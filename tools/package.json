@@ -1,0 +1,11 @@
+{
+  "name": "odyssey-shipments-data",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "generate": "node generate.mjs"
+  },
+  "dependencies": {
+    "@faker-js/faker": "^9.0.0"
+  }
+}
