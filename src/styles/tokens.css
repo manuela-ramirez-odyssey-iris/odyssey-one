@@ -92,6 +92,9 @@
   --btn-secondary-bg: var(--bg-primary);
   --btn-secondary-border: var(--border-default);
   --btn-secondary-text: var(--text-secondary);
+  --btn-disabled-bg: var(--deep-sea-neutral-300);
+  --btn-disabled-text: var(--text-inverse);
+  --btn-link-text: var(--text-link);
 
   /* --- Component: Input --- */
   --input-bg: var(--bg-primary);
@@ -100,6 +103,11 @@
   --input-text: var(--text-primary);
   --input-placeholder: var(--text-placeholder);
   --input-label: var(--text-secondary);
+
+  /* --- Component: Radio / Checkbox --- */
+  --radio-border: var(--border-default);
+  --radio-selected-bg: var(--bg-inverse);
+  --radio-indicator: var(--text-inverse);
 
   /* --- Component: Tabs --- */
   --tab-active-bg: var(--deep-sea-neutral-200);
@@ -110,6 +118,7 @@
   --panel-bg: var(--bg-primary);
   --panel-border: var(--border-subtle);
   --panel-heading: var(--text-primary);
+  --panel-footer-border: var(--border-subtle);
 
   /* --- Component: Badge --- */
   --badge-blue-bg: var(--bay-of-many-100);
@@ -127,6 +136,15 @@
   --dropdown-bg: var(--bg-primary);
   --dropdown-border: var(--border-subtle);
   --dropdown-hover-bg: var(--bg-tertiary);
+
+  /* --- Component: Alert / Banner --- */
+  --alert-warning-bg: var(--bg-warning);
+  --alert-warning-border: var(--sunrise-yellow-200);
+  --alert-warning-text: var(--text-warning);
+  --alert-error-bg: var(--bg-error);
+  --alert-error-text: var(--text-error);
+  --alert-success-bg: var(--bg-success);
+  --alert-success-text: var(--text-success);
 
   /* --- Typography --- */
   --font-primary: 'Inter', sans-serif;

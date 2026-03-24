@@ -1,0 +1,360 @@
+/* ========================================
+   ODYSSEY COMPONENT STYLES
+   Reusable patterns that are hard to express
+   with Tailwind utilities alone.
+   ======================================== */
+
+/* ----------------------------------------
+   SCROLLBAR STYLING
+   ---------------------------------------- */
+/* Webkit (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--deep-sea-neutral-300);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--deep-sea-neutral-400);
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--deep-sea-neutral-300) transparent;
+}
+
+/* ----------------------------------------
+   FOCUS-VISIBLE RING
+   Consistent keyboard-focus indicator
+   ---------------------------------------- */
+:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+/* Remove default outline for mouse users */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* ----------------------------------------
+   TABLE BASE STYLES
+   Complex table patterns from the prototype
+   ---------------------------------------- */
+.odyssey-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-primary);
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.odyssey-table thead {
+  background: var(--bg-primary);
+}
+
+.odyssey-table th {
+  padding: 0 16px;
+  height: 48px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-placeholder);
+  border-bottom: 1px solid var(--border-subtle);
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+  background: var(--bg-primary);
+  z-index: 2;
+}
+
+.odyssey-table td {
+  padding: 0 16px;
+  height: 56px;
+  border-bottom: 1px solid var(--bg-tertiary);
+  white-space: nowrap;
+  font-weight: 400;
+}
+
+.odyssey-table tbody tr {
+  background: var(--bg-primary);
+  transition: background 0.15s ease;
+}
+
+.odyssey-table tbody tr:hover {
+  background: var(--bg-secondary);
+}
+
+.odyssey-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.odyssey-table tbody tr.selected {
+  background: var(--badge-blue-bg);
+}
+
+.odyssey-table tbody tr.selected:hover {
+  background: var(--badge-blue-bg);
+}
+
+/* Product / nested table variant */
+.odyssey-table-nested th {
+  padding: 10px 14px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.odyssey-table-nested thead {
+  background: var(--bg-secondary);
+}
+
+.odyssey-table-nested td {
+  padding: 10px 14px;
+  height: auto;
+}
+
+/* ----------------------------------------
+   BOTTOM BAR TRANSITIONS
+   Slide-up panel with multiple states
+   ---------------------------------------- */
+.odyssey-bottom-bar {
+  position: fixed;
+  bottom: 0;
+  left: 64px;
+  right: 0;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-subtle);
+  z-index: 40;
+  transition: height 0.3s ease;
+  height: 48px;
+  overflow: hidden;
+}
+
+.odyssey-bottom-bar.expanded {
+  height: 50vh;
+}
+
+.odyssey-bottom-bar.fullscreen {
+  height: calc(100vh - 64px);
+}
+
+.odyssey-bottom-bar-content {
+  display: none;
+  height: calc(100% - 48px);
+  overflow-y: auto;
+  background: var(--bg-primary);
+}
+
+.odyssey-bottom-bar.expanded .odyssey-bottom-bar-content {
+  display: block;
+}
+
+/* ----------------------------------------
+   MONITOR PANEL COLLAPSE ANIMATION
+   ---------------------------------------- */
+.odyssey-monitor-panels {
+  transition: max-height 0.3s ease, opacity 0.3s ease, margin 0.3s ease;
+  max-height: 500px;
+  opacity: 1;
+}
+
+.odyssey-monitor-panels.collapsed {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  margin: 0;
+}
+
+/* ----------------------------------------
+   COLLAPSE CHEVRON ANIMATION
+   ---------------------------------------- */
+.odyssey-collapse-chevron {
+  transition: transform 0.3s ease;
+}
+
+.odyssey-collapse-chevron.flipped {
+  transform: rotate(180deg);
+}
+
+/* ----------------------------------------
+   FILTERS PANEL SLIDE TRANSITION
+   ---------------------------------------- */
+.odyssey-filters-panel {
+  width: 0;
+  min-width: 0;
+  overflow: hidden;
+  background: var(--bg-primary);
+  border-left: 0px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 64px);
+  position: sticky;
+  top: 64px;
+  flex-shrink: 0;
+  transition: width 0.3s ease, min-width 0.3s ease, border-left-width 0.3s ease;
+}
+
+.filters-open .odyssey-filters-panel {
+  width: 354px;
+  min-width: 354px;
+  border-left-width: 1px;
+}
+
+/* ----------------------------------------
+   MODAL OVERLAY
+   ---------------------------------------- */
+.odyssey-modal-overlay {
+  display: none;
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 10;
+  align-items: center;
+  justify-content: center;
+}
+
+.odyssey-modal-overlay.open {
+  display: flex;
+}
+
+/* ----------------------------------------
+   ANIMATION KEYFRAMES
+   ---------------------------------------- */
+@keyframes odyssey-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes odyssey-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes odyssey-slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes odyssey-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Utility classes for animations */
+.odyssey-animate-fade-in {
+  animation: odyssey-fade-in 0.2s ease-out;
+}
+
+.odyssey-animate-slide-up {
+  animation: odyssey-slide-up 0.2s ease-out;
+}
+
+.odyssey-animate-slide-down {
+  animation: odyssey-slide-down 0.2s ease-out;
+}
+
+.odyssey-animate-scale-in {
+  animation: odyssey-scale-in 0.15s ease-out;
+}
+
+/* ----------------------------------------
+   NATIVE DATE INPUT STYLING
+   Match design system appearance
+   ---------------------------------------- */
+input[type="date"].odyssey-date-input {
+  width: 100%;
+  padding: 8px 13px;
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius-md);
+  font-family: var(--font-primary);
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--input-text);
+  line-height: 20px;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+}
+
+input[type="date"].odyssey-date-input:focus {
+  outline: none;
+  border-color: var(--input-border-focus);
+}
+
+input[type="date"].odyssey-date-input:not(:valid),
+input[type="date"].odyssey-date-input[value=""] {
+  color: var(--input-placeholder);
+}
+
+input[type="date"].odyssey-date-input::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.5;
+  transition: opacity 0.15s ease;
+}
+
+input[type="date"].odyssey-date-input::-webkit-calendar-picker-indicator:hover {
+  opacity: 0.8;
+}
+
+/* ----------------------------------------
+   CHECKBOX / RADIO ACCENT
+   ---------------------------------------- */
+input[type="checkbox"].odyssey-checkbox,
+input[type="radio"].odyssey-radio {
+  accent-color: var(--radio-selected-bg);
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+/* ----------------------------------------
+   PRINT STYLES
+   ---------------------------------------- */
+@media print {
+  .odyssey-bottom-bar,
+  .odyssey-filters-panel,
+  nav,
+  .sidebar {
+    display: none !important;
+  }
+
+  body {
+    background: white;
+  }
+
+  .odyssey-table th {
+    position: static;
+  }
+}

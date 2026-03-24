@@ -582,8 +582,9 @@ for (let i = 0; i < 200; i++) {
   shipmentDetails[mainRow.buyShipment] = detail;
 }
 
-writeFileSync(new URL('./shipments.json', import.meta.url), JSON.stringify(shipments, null, 2));
-writeFileSync(new URL('./shipment-details.json', import.meta.url), JSON.stringify(shipmentDetails, null, 2));
+const outDir = new URL('../src/data/', import.meta.url);
+writeFileSync(new URL('shipments.json', outDir), JSON.stringify(shipments, null, 2));
+writeFileSync(new URL('shipment-details.json', outDir), JSON.stringify(shipmentDetails, null, 2));
 
 console.log(`Done! Generated ${shipments.length} shipments.`);
 console.log(`  shipments.json: ${shipments.length} rows`);

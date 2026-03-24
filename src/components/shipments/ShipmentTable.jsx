@@ -1,10 +1,8 @@
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { MoreVertical } from 'lucide-react'
-import { getAllShipments } from '../../data'
 import Badge from '../ui/Badge'
 
-export default function ShipmentTable({ onRowSelect, selectedId }) {
-  const shipments = useMemo(() => getAllShipments(), [])
+export default function ShipmentTable({ shipments, onRowSelect, selectedId }) {
   const [selectAll, setSelectAll] = useState(false)
 
   const handleCheckboxChange = (shipment) => {
