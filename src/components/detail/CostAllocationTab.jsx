@@ -2,23 +2,26 @@ import { useState, useCallback } from 'react'
 import { Lock } from 'lucide-react'
 
 const thStyle = {
-  padding: '8px 10px',
+  padding: '10px 14px',
   textAlign: 'left',
   whiteSpace: 'nowrap',
-  fontSize: 12,
+  fontSize: 'var(--font-size-xs)',
   fontWeight: 600,
   color: 'var(--text-placeholder)',
   background: 'var(--bg-secondary)',
   borderBottom: '1px solid var(--border-subtle)',
+  textTransform: 'uppercase',
+  letterSpacing: '0.03em',
   position: 'sticky',
   top: 0,
   zIndex: 2,
 }
 
 const tdStyle = {
-  padding: '8px 10px',
+  padding: '10px 14px',
   whiteSpace: 'nowrap',
   fontSize: 13,
+  fontWeight: 400,
   color: 'var(--text-secondary)',
   borderBottom: '1px solid var(--bg-tertiary)',
 }
@@ -27,14 +30,9 @@ function isNegative(val) {
   return typeof val === 'string' && val.includes('-')
 }
 
-function isMargin(val) {
-  return typeof val === 'string' && val.startsWith('$') && !val.includes('-')
-}
-
 function CostValue({ value }) {
   if (!value || value === '--') return <span>--</span>
   if (isNegative(value)) return <span style={{ color: 'var(--text-error)' }}>{value}</span>
-  if (isMargin(value)) return <span style={{ color: 'var(--text-success)' }}>{value}</span>
   return <span>{value}</span>
 }
 
@@ -56,151 +54,220 @@ export default function CostAllocationTab({ data }) {
   const planned = data.planned
 
   return (
-    <div>
-      {/* Sub-tabs */}
-      <div className="flex items-center gap-1 mb-4">
-        <button
-          onClick={() => setSubTab('planned')}
-          className="border-none cursor-pointer text-xs font-medium"
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', margin: 'calc(-1 * var(--spacing-4)) calc(-1 * var(--spacing-5))' }}>
+      {/* Header: Cost Information label + pill tab group */}
+      <div
+        className="flex items-center shrink-0"
+        style={{
+          padding: '14px 20px',
+          borderBottom: '1px solid var(--border-subtle)',
+          gap: 'var(--spacing-6)',
+        }}
+      >
+        <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 700, color: 'var(--text-primary)' }}>
+          Cost Information
+        </span>
+        <div
+          className="flex"
           style={{
-            padding: '6px 14px',
+            border: '1px solid var(--border-default)',
             borderRadius: 'var(--radius-md)',
-            background: subTab === 'planned' ? 'var(--tab-active-bg)' : 'transparent',
-            color: subTab === 'planned' ? 'var(--tab-active-text)' : 'var(--tab-inactive-text)',
+            overflow: 'hidden',
           }}
         >
-          Planned Cost
-        </button>
-        <button
-          onClick={() => setSubTab('completed')}
-          className="border-none cursor-pointer text-xs font-medium"
-          style={{
-            padding: '6px 14px',
-            borderRadius: 'var(--radius-md)',
-            background: subTab === 'completed' ? 'var(--tab-active-bg)' : 'transparent',
-            color: subTab === 'completed' ? 'var(--tab-active-text)' : 'var(--tab-inactive-text)',
-          }}
-        >
-          Completed Cost
-        </button>
+          <button
+            onClick={() => setSubTab('planned')}
+            className="border-none cursor-pointer"
+            style={{
+              padding: '6px 16px',
+              fontSize: 13,
+              fontWeight: 500,
+              fontFamily: 'var(--font-primary)',
+              background: subTab === 'planned' ? 'var(--bg-inverse)' : 'var(--bg-primary)',
+              color: subTab === 'planned' ? 'var(--text-inverse)' : 'var(--text-tertiary)',
+              borderRight: '1px solid var(--border-default)',
+              transition: 'background var(--transition-fast), color var(--transition-fast)',
+            }}
+          >
+            Planned Cost
+          </button>
+          <button
+            onClick={() => setSubTab('completed')}
+            className="border-none cursor-pointer"
+            style={{
+              padding: '6px 16px',
+              fontSize: 13,
+              fontWeight: 500,
+              fontFamily: 'var(--font-primary)',
+              background: subTab === 'completed' ? 'var(--bg-inverse)' : 'var(--bg-primary)',
+              color: subTab === 'completed' ? 'var(--text-inverse)' : 'var(--text-tertiary)',
+              transition: 'background var(--transition-fast), color var(--transition-fast)',
+            }}
+          >
+            Completed Cost
+          </button>
+        </div>
       </div>
 
       {subTab === 'completed' ? (
         <div
-          className="flex flex-col items-center justify-center gap-3"
-          style={{ padding: '48px 0', color: 'var(--text-placeholder)' }}
+          className="flex flex-col items-center justify-center gap-3 flex-1"
+          style={{ color: 'var(--text-tertiary)', fontSize: 'var(--font-size-sm)' }}
         >
-          <Lock size={32} />
-          <div className="text-sm font-medium">Completed cost not yet available</div>
-          <div className="text-xs">Cost data will appear after shipment delivery is confirmed.</div>
+          <Lock size={32} style={{ color: 'var(--text-placeholder)' }} />
+          <p>Available after PGI/PGR is received</p>
         </div>
       ) : (
-        <>
+        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
           {/* Summary bar */}
           {planned?.summary && (
             <div
-              className="flex items-center gap-6 flex-wrap"
-              style={{
-                padding: '10px 16px',
-                background: 'var(--bg-secondary)',
-                borderRadius: 'var(--radius-lg)',
-                marginBottom: 16,
-              }}
+              className="flex shrink-0"
+              style={{ borderBottom: '1px solid var(--border-subtle)' }}
             >
-              <SummaryItem label="Base" value={planned.summary.base} />
-              <SummaryItem label="Discount" value={planned.summary.discount} negative />
-              <SummaryItem label="Fuel" value={planned.summary.fuel} />
-              <SummaryItem label="Accessorials" value={planned.summary.accessorials} />
-              <div style={{ width: 1, height: 24, background: 'var(--border-subtle)' }} />
-              <SummaryItem label="AP Total" value={planned.summary.apTotal} bold />
-              <SummaryItem label="AR Total" value={planned.summary.arTotal} bold />
-              <SummaryItem label="Margin" value={planned.summary.margin} bold success />
+              <SummaryCell label="BASE" value={planned.summary.base} />
+              <SummaryCell label="DISCOUNT" value={planned.summary.discount} negative />
+              <SummaryCell label="FUEL (FSC)" value={planned.summary.fuel} />
+              <SummaryCell label="ACCESSORIALS" value={planned.summary.accessorials} />
+              <SummaryCell label="AP TOTAL" value={planned.summary.apTotal} total />
+              <SummaryCell label="AR TOTAL" value={planned.summary.arTotal} total />
+              <SummaryCell label="MARGIN" value={planned.summary.margin} success last />
             </div>
           )}
 
           {/* Cost table */}
-          <div className="overflow-auto">
-            <table className="w-full border-collapse" style={{ fontFamily: 'var(--font-primary)' }}>
+          <div style={{ overflow: 'auto', flex: 1 }}>
+            <table className="w-full border-collapse" style={{ fontFamily: 'var(--font-primary)', fontSize: 13, color: 'var(--text-secondary)' }}>
               <thead>
                 <tr>
-                  <th style={{ ...thStyle, width: 40 }} />
-                  <th style={thStyle}>Order / Load</th>
+                  <th style={{ ...thStyle, width: 36, paddingLeft: 8, paddingRight: 4 }} />
+                  <th style={thStyle}>Order #</th>
                   <th style={thStyle}>Direct Cost</th>
                   <th style={thStyle}>AP Cost</th>
                   <th style={thStyle}>AR Cost</th>
                   <th style={thStyle}>Margin</th>
                   <th style={thStyle}>Base</th>
-                  <th style={thStyle}>Fuel</th>
+                  <th style={thStyle}>Fuel Charge</th>
                   <th style={thStyle}>Discount</th>
-                  <th style={thStyle}>HZC</th>
-                  <th style={thStyle}>SOC</th>
+                  <th style={thStyle}>Stop Off (HZC)</th>
+                  <th style={thStyle}>Stop Off (SOC)</th>
                 </tr>
               </thead>
               <tbody>
-                {planned?.orders?.map((order) => {
-                  const isExpanded = expandedOrders[order.orderId]
-                  return (
-                    <CostOrderGroup
-                      key={order.orderId}
-                      order={order}
-                      isExpanded={isExpanded}
-                      onToggle={() => toggleOrder(order.orderId)}
-                    />
-                  )
-                })}
+                {planned?.orders?.map((order) => (
+                  <CostOrderGroup
+                    key={order.orderId}
+                    order={order}
+                    isExpanded={!!expandedOrders[order.orderId]}
+                    onToggle={() => toggleOrder(order.orderId)}
+                  />
+                ))}
               </tbody>
             </table>
           </div>
-        </>
+        </div>
       )}
     </div>
   )
 }
 
-function SummaryItem({ label, value, negative, bold, success }) {
-  let color = 'var(--text-secondary)'
-  if (negative || isNegative(value)) color = 'var(--text-error)'
-  if (success) color = 'var(--text-success)'
+function SummaryCell({ label, value, negative, total, success, last }) {
+  let valueColor = 'var(--text-primary)'
+  if (negative || isNegative(value)) valueColor = 'var(--text-error)'
+  if (success) valueColor = 'var(--caribbean-green-600)'
 
   return (
-    <div className="flex items-center gap-2">
-      <span className="text-xs" style={{ color: 'var(--text-placeholder)' }}>{label}:</span>
-      <span className="text-xs" style={{ color, fontWeight: bold ? 700 : 600 }}>{value || '--'}</span>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 2,
+        padding: '12px 20px',
+        borderRight: last ? 'none' : '1px solid var(--border-subtle)',
+        background: total ? 'var(--bg-secondary)' : 'transparent',
+      }}
+    >
+      <span style={{
+        fontSize: 11,
+        fontWeight: 500,
+        color: 'var(--text-tertiary)',
+        textTransform: 'uppercase',
+        letterSpacing: '0.03em',
+        lineHeight: '14px',
+        whiteSpace: 'nowrap',
+      }}>
+        {label}
+      </span>
+      <span style={{
+        fontSize: 'var(--font-size-sm)',
+        fontWeight: 600,
+        color: valueColor,
+        lineHeight: '20px',
+        whiteSpace: 'nowrap',
+      }}>
+        {value || '--'}
+      </span>
     </div>
   )
 }
 
 function CostOrderGroup({ order, isExpanded, onToggle }) {
+  const hasLoads = order.loads && order.loads.length > 0
+
   return (
     <>
-      <tr style={{ background: 'var(--bg-secondary)', cursor: 'pointer' }} onClick={onToggle}>
-        <td style={{ ...tdStyle, textAlign: 'center', fontWeight: 700, fontSize: 14, color: 'var(--text-tertiary)' }}>
-          {isExpanded ? '\u2212' : '+'}
+      <tr
+        style={{ background: 'var(--bg-primary)', cursor: hasLoads ? 'pointer' : 'default' }}
+        onClick={hasLoads ? onToggle : undefined}
+      >
+        <td style={{ ...tdStyle, textAlign: 'center', paddingLeft: 8, paddingRight: 4 }}>
+          {hasLoads && (
+            <button
+              className="inline-flex items-center justify-center"
+              style={{
+                width: 22, height: 22,
+                border: '1px solid var(--border-default)',
+                borderRadius: 'var(--radius-sm)',
+                background: isExpanded ? 'var(--bg-tertiary)' : 'var(--bg-primary)',
+                fontSize: 'var(--font-size-sm)',
+                fontWeight: 600,
+                color: isExpanded ? 'var(--text-primary)' : 'var(--text-tertiary)',
+                cursor: 'pointer',
+                lineHeight: 1,
+                fontFamily: 'var(--font-primary)',
+              }}
+              onClick={(e) => { e.stopPropagation(); onToggle() }}
+            >
+              {isExpanded ? '\u2212' : '+'}
+            </button>
+          )}
         </td>
-        <td style={{ ...tdStyle, fontWeight: 600, color: 'var(--text-primary)' }}>{order.orderId}</td>
-        <td style={tdStyle}><CostValue value={order.directCost} /></td>
-        <td style={tdStyle}><CostValue value={order.apCost} /></td>
-        <td style={tdStyle}><CostValue value={order.arCost} /></td>
-        <td style={{ ...tdStyle, color: 'var(--text-success)', fontWeight: 600 }}>{order.margin}</td>
+        <td style={{ ...tdStyle, fontWeight: 500, color: 'var(--text-primary)' }}>{order.orderId}</td>
+        <td style={tdStyle}>{order.directCost}</td>
+        <td style={tdStyle}>{order.apCost}</td>
+        <td style={tdStyle}>{order.arCost}</td>
+        <td style={{ ...tdStyle, color: 'var(--caribbean-green-600)', fontWeight: 600 }}>{order.margin}</td>
         <td style={tdStyle}>{order.base}</td>
         <td style={tdStyle}>{order.fuel}</td>
         <td style={tdStyle}><CostValue value={order.discount} /></td>
-        <td style={tdStyle}>{order.hzc || '--'}</td>
-        <td style={tdStyle}>{order.soc || '--'}</td>
+        <td style={tdStyle}><CostValue value={order.hzc} /></td>
+        <td style={tdStyle}><CostValue value={order.soc} /></td>
       </tr>
       {isExpanded && order.loads?.map((load, idx) => (
-        <tr key={idx} style={{ background: 'var(--bg-primary)' }}>
+        <tr key={idx} style={{ background: 'var(--bg-secondary)' }}>
           <td style={tdStyle} />
-          <td style={{ ...tdStyle, paddingLeft: 28, color: 'var(--text-tertiary)', fontSize: 12 }}>{load.loadLabel}</td>
-          <td style={tdStyle}><CostValue value={load.directCost} /></td>
-          <td style={tdStyle}><CostValue value={load.apCost} /></td>
-          <td style={tdStyle}><CostValue value={load.arCost} /></td>
-          <td style={{ ...tdStyle, color: 'var(--text-success)', fontWeight: 600 }}>{load.margin}</td>
+          <td style={{ ...tdStyle, paddingLeft: 'var(--spacing-2)', fontSize: 'var(--font-size-xs)', fontWeight: 500, color: 'var(--text-tertiary)' }}>
+            {load.loadLabel}
+          </td>
+          <td style={tdStyle}>{load.directCost}</td>
+          <td style={tdStyle}>{load.apCost}</td>
+          <td style={tdStyle}>{load.arCost}</td>
+          <td style={{ ...tdStyle, color: 'var(--caribbean-green-600)', fontWeight: 600 }}>{load.margin}</td>
           <td style={tdStyle}>{load.base}</td>
           <td style={tdStyle}>{load.fuel}</td>
           <td style={tdStyle}><CostValue value={load.discount} /></td>
-          <td style={tdStyle}>{load.hzc || '--'}</td>
-          <td style={tdStyle}>{load.soc || '--'}</td>
+          <td style={tdStyle}><CostValue value={load.hzc} /></td>
+          <td style={tdStyle}><CostValue value={load.soc} /></td>
         </tr>
       ))}
     </>

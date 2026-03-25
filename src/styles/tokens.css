@@ -149,6 +149,31 @@
   /* --- Typography --- */
   --font-primary: 'Inter', sans-serif;
 
+  /* --- Typography Scale --- */
+  --font-size-xs: 12px;
+  --font-size-sm: 14px;
+  --font-size-base: 16px;
+  --font-size-lg: 18px;
+  --line-height-xs: 16px;
+  --line-height-sm: 20px;
+  --line-height-base: 24px;
+  --line-height-lg: 24px;
+
+  /* --- Spacing Scale --- */
+  --spacing-1: 4px;
+  --spacing-2: 8px;
+  --spacing-3: 12px;
+  --spacing-4: 16px;
+  --spacing-5: 20px;
+  --spacing-6: 24px;
+  --spacing-8: 32px;
+  --spacing-12: 48px;
+
+  /* --- Layout Dimensions --- */
+  --navbar-height: 64px;
+  --sidebar-width: 64px;
+  --bottombar-collapsed: 48px;
+
   /* --- Border Radius --- */
   --radius-sm: 4px;
   --radius-md: 6px;
@@ -159,4 +184,15 @@
 
   /* --- Shadows --- */
   --shadow-sm: 0px 1px 2px 0px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 12px 0 rgba(0, 0, 0, 0.12);
+  --shadow-lg: 0 8px 32px 0 rgba(0, 0, 0, 0.16);
+  --shadow-up-md: 0 -4px 16px rgba(0, 0, 0, 0.08);
+
+  /* --- Overlay --- */
+  --overlay-bg: rgba(0, 0, 0, 0.4);
+
+  /* --- Transitions --- */
+  --transition-fast: 150ms ease;
+  --transition-base: 200ms ease;
+  --transition-slow: 300ms ease;
 }

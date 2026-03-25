@@ -10,20 +10,46 @@ function SummaryBar({ summary }) {
 
   return (
     <div
-      className="flex items-center gap-6 flex-wrap"
       style={{
-        padding: '10px 16px',
-        background: 'var(--bg-secondary)',
-        borderRadius: 'var(--radius-lg)',
-        marginBottom: 20,
+        display: 'flex',
+        borderBottom: '1px solid var(--border-subtle)',
       }}
     >
-      {items.map((item) => (
-        <div key={item.label} className="flex items-center gap-2">
-          <span className="text-xs" style={{ color: 'var(--text-placeholder)' }}>
-            {item.label}:
+      {items.map((item, idx) => (
+        <div
+          key={item.label}
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '2px',
+            padding: '14px 20px',
+            borderRight: idx < items.length - 1 ? '1px solid var(--border-subtle)' : 'none',
+          }}
+        >
+          <span
+            style={{
+              fontFamily: 'var(--font-primary)',
+              fontSize: '11px',
+              fontWeight: 500,
+              color: 'var(--text-tertiary)',
+              lineHeight: '14px',
+              textTransform: 'uppercase',
+              letterSpacing: '0.03em',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {item.label}
           </span>
-          <span className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
+          <span
+            style={{
+              fontFamily: 'var(--font-primary)',
+              fontSize: '14px',
+              fontWeight: 600,
+              color: 'var(--text-primary)',
+              lineHeight: '20px',
+              whiteSpace: 'nowrap',
+            }}
+          >
             {item.value || '--'}
           </span>
         </div>
@@ -32,56 +58,128 @@ function SummaryBar({ summary }) {
   )
 }
 
-function StopNode({ stop, isLast }) {
+function StopCard({ stop, isLast }) {
   const isPickup = stop.type === 'pickup'
-  const nodeColor = isPickup ? 'var(--caribbean-green-600)' : 'var(--carolina-blue-600)'
-  const nodeBg = isPickup ? 'var(--caribbean-green-100)' : 'var(--bay-of-many-100)'
+  const stopNum = String(stop.stopNumber).padStart(2, '0')
   const badgeLabel = isPickup ? 'Pickup' : 'Delivery'
 
+  // Node colors
+  const nodeStyle = isPickup
+    ? {
+        borderColor: 'var(--caribbean-green-600)',
+        background: 'var(--caribbean-green-100)',
+        color: 'var(--caribbean-green-800)',
+      }
+    : {
+        borderColor: 'var(--carolina-blue-600)',
+        background: 'var(--bay-of-many-100)',
+        color: 'var(--bay-of-many-950)',
+      }
+
+  // Badge colors
+  const badgeStyle = isPickup
+    ? { background: 'var(--badge-green-bg)', color: 'var(--badge-green-text)' }
+    : { background: 'var(--badge-blue-bg)', color: 'var(--badge-blue-text)' }
+
   return (
-    <div className="flex gap-4" style={{ position: 'relative', paddingBottom: isLast ? 0 : 24 }}>
-      {/* Timeline line + node */}
-      <div className="flex flex-col items-center shrink-0" style={{ width: 32 }}>
+    <div style={{ display: 'flex', gap: '16px' }}>
+      {/* Stop number label */}
+      <span
+        style={{
+          fontFamily: 'var(--font-primary)',
+          fontSize: '11px',
+          fontWeight: 500,
+          color: 'var(--text-placeholder)',
+          lineHeight: '14px',
+          width: '36px',
+          flexShrink: 0,
+          textAlign: 'right',
+          paddingTop: '5px',
+        }}
+      >
+        Stop {stop.stopNumber}
+      </span>
+
+      {/* Timeline track */}
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          width: '32px',
+          flexShrink: 0,
+        }}
+      >
+        {/* Circle node */}
         <div
-          className="flex items-center justify-center text-xs font-bold shrink-0"
           style={{
-            width: 28,
-            height: 28,
+            width: '28px',
+            height: '28px',
             borderRadius: 'var(--radius-full)',
-            background: nodeBg,
-            color: nodeColor,
-            border: `2px solid ${nodeColor}`,
+            border: '2px solid',
+            ...nodeStyle,
+            flexShrink: 0,
+            marginTop: '2px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
           }}
         >
-          {stop.stopNumber}
+          <span
+            style={{
+              fontFamily: 'var(--font-primary)',
+              fontSize: '11px',
+              fontWeight: 700,
+              lineHeight: 1,
+            }}
+          >
+            {stopNum}
+          </span>
         </div>
+        {/* Vertical connector line */}
         {!isLast && (
           <div
-            className="flex-1"
-            style={{ width: 2, background: 'var(--border-subtle)', minHeight: 24 }}
+            style={{
+              width: '2px',
+              flex: 1,
+              background: 'var(--border-default)',
+              minHeight: '16px',
+            }}
           />
         )}
       </div>
 
       {/* Stop content */}
-      <div className="flex-1 pb-2" style={{ minWidth: 0 }}>
-        <div className="flex items-center gap-2 mb-2">
+      <div style={{ flex: 1, minWidth: 0, paddingBottom: '20px' }}>
+        {/* Badge header */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
           <span
-            className="text-xs font-semibold px-2 py-0.5"
             style={{
+              fontFamily: 'var(--font-primary)',
+              fontSize: '12px',
+              fontWeight: 600,
+              lineHeight: '16px',
+              padding: '2px 10px',
               borderRadius: 'var(--radius-sm)',
-              background: nodeBg,
-              color: nodeColor,
+              ...badgeStyle,
             }}
           >
             {badgeLabel}
           </span>
-          <span className="text-xs" style={{ color: 'var(--text-placeholder)' }}>
-            Stop {stop.stopNumber}
-          </span>
         </div>
 
-        <div className="grid grid-cols-3 gap-x-6 gap-y-2">
+        {/* Detail fields grid */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: '10px 20px',
+            background: 'var(--bg-secondary)',
+            border: '1px solid var(--border-subtle)',
+            borderRadius: 'var(--radius-md)',
+            padding: '14px 16px',
+          }}
+        >
           <Field label="Order" value={stop.order} />
           <Field label="Location" value={stop.location} />
           <Field label="Address" value={stop.address} />
@@ -90,7 +188,7 @@ function StopNode({ stop, isLast }) {
           <Field label="Weight" value={stop.weight} />
           <Field label="Volume" value={stop.volume} />
           <Field label="Package Count" value={stop.packageCount} />
-          <Field label="Pickup No" value={stop.pickupNo} />
+          <Field label="Pickup No." value={stop.pickupNo} />
         </div>
       </div>
     </div>
@@ -99,28 +197,61 @@ function StopNode({ stop, isLast }) {
 
 function Field({ label, value }) {
   return (
-    <div>
-      <div className="text-xs" style={{ color: 'var(--text-placeholder)', marginBottom: 1 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', minWidth: 0 }}>
+      <span
+        style={{
+          fontFamily: 'var(--font-primary)',
+          fontSize: '11px',
+          fontWeight: 400,
+          color: 'var(--text-tertiary)',
+          lineHeight: '14px',
+        }}
+      >
         {label}
-      </div>
-      <div className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
+      </span>
+      <span
+        style={{
+          fontFamily: 'var(--font-primary)',
+          fontSize: '13px',
+          fontWeight: 500,
+          color: 'var(--text-primary)',
+          lineHeight: '18px',
+          wordBreak: 'break-word',
+        }}
+      >
         {value || '--'}
-      </div>
+      </span>
     </div>
   )
 }
 
 export default function StopsTab({ data }) {
-  if (!data) return <div className="text-sm" style={{ color: 'var(--text-placeholder)' }}>No stops data available.</div>
+  if (!data)
+    return (
+      <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-placeholder)' }}>
+        No stops data available.
+      </div>
+    )
 
   const { summary, stops } = data
 
   return (
-    <div>
+    <div
+      style={{
+        margin: 'calc(-1 * var(--spacing-4)) calc(-1 * var(--spacing-5))',
+      }}
+    >
       <SummaryBar summary={summary} />
-      <div>
+      <div
+        style={{
+          padding: '20px 24px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 0,
+        }}
+      >
         {stops.map((stop, idx) => (
-          <StopNode key={stop.stopNumber} stop={stop} isLast={idx === stops.length - 1} />
+          <StopCard key={stop.stopNumber} stop={stop} isLast={idx === stops.length - 1} />
         ))}
       </div>
     </div>

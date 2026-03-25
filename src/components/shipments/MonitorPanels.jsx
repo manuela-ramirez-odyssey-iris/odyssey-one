@@ -1,42 +1,45 @@
 import { useState } from 'react'
 import { ChevronUp } from 'lucide-react'
 
-const PANELS = [
-  {
-    key: 'exceptions',
-    title: 'Shipment Exceptions',
-    metrics: [
-      { label: 'Date Issues', count: 5 },
-      { label: 'Routing Review', count: 5 },
-      { label: 'Tender Issues', count: 5 },
-      { label: 'Tender Review', count: 5 },
-      { label: 'Bid Review', count: 5 },
-    ],
-  },
-  {
-    key: 'monitoring',
-    title: 'Monitoring',
-    metrics: [
-      { label: 'Hold', count: 5 },
-      { label: 'Consolidation', count: 5 },
-      { label: 'SpotBid', count: 5 },
-      { label: 'Approved', count: 5 },
-    ],
-  },
-  {
-    key: 'pgipgr',
-    title: 'PGI/PGR',
-    metrics: [
-      { label: 'PGI/PGR Errors', count: 5 },
-      { label: 'Rating Failure', count: 5 },
-      { label: 'Manual PGI/PGR', count: 5 },
-      { label: 'Missed PGI/PGR', count: 5 },
-    ],
-  },
-]
+function buildPanels(metrics) {
+  return [
+    {
+      key: 'exceptions',
+      title: 'Shipment Exceptions',
+      metrics: [
+        { label: 'Date Issues', count: metrics.dateIssues ?? 0 },
+        { label: 'Routing Review', count: metrics.routingReview ?? 0 },
+        { label: 'Tender Issues', count: metrics.tenderIssues ?? 0 },
+        { label: 'Tender Review', count: metrics.tenderReview ?? 0 },
+        { label: 'Bid Review', count: metrics.bidReview ?? 0 },
+      ],
+    },
+    {
+      key: 'monitoring',
+      title: 'Monitoring',
+      metrics: [
+        { label: 'Hold', count: metrics.hold ?? 0 },
+        { label: 'Consolidation', count: metrics.consolidation ?? 0 },
+        { label: 'SpotBid', count: metrics.spotBid ?? 0 },
+        { label: 'Approved', count: metrics.approved ?? 0 },
+      ],
+    },
+    {
+      key: 'pgipgr',
+      title: 'PGI/PGR',
+      metrics: [
+        { label: 'PGI/PGR Errors', count: metrics.pgipgrErrors ?? 0 },
+        { label: 'Rating Failure', count: metrics.ratingFailure ?? 0 },
+        { label: 'Manual PGI/PGR', count: metrics.manualPgipgr ?? 0 },
+        { label: 'Missed PGI/PGR', count: metrics.missedPgipgr ?? 0 },
+      ],
+    },
+  ]
+}
 
-export default function MonitorPanels({ activePanel, onPanelSelect }) {
+export default function MonitorPanels({ activePanel, onPanelSelect, metrics }) {
   const [collapsed, setCollapsed] = useState(false)
+  const panels = buildPanels(metrics || {})
 
   return (
     <div>
@@ -44,13 +47,13 @@ export default function MonitorPanels({ activePanel, onPanelSelect }) {
       <div
         className="flex gap-[22px]"
         style={{
-          transition: 'max-height 0.3s ease, opacity 0.3s ease, margin 0.3s ease',
+          transition: 'max-height var(--transition-slow), opacity var(--transition-slow), margin var(--transition-slow)',
           maxHeight: collapsed ? 0 : 500,
           opacity: collapsed ? 0 : 1,
           overflow: collapsed ? 'hidden' : 'visible',
         }}
       >
-        {PANELS.map((panel) => {
+        {panels.map((panel) => {
           const isSelected = activePanel === panel.key
           return (
             <div
@@ -58,11 +61,11 @@ export default function MonitorPanels({ activePanel, onPanelSelect }) {
               className="flex-1 cursor-pointer"
               style={{
                 borderRadius: 12,
-                padding: 16,
+                padding: 'var(--spacing-4)',
                 background: 'var(--panel-bg)',
                 border: `1px solid ${isSelected ? 'var(--deep-sea-neutral-400)' : 'var(--panel-border)'}`,
                 opacity: isSelected ? 1 : 0.7,
-                transition: 'opacity 0.2s ease, border-color 0.2s ease',
+                transition: 'opacity var(--transition-base), border-color var(--transition-base)',
               }}
               onClick={() => onPanelSelect(panel.key)}
               onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.opacity = '0.9' }}
@@ -87,7 +90,7 @@ export default function MonitorPanels({ activePanel, onPanelSelect }) {
       </div>
 
       {/* Collapse/Expand Toggle */}
-      <div className="flex items-center gap-3" style={{ margin: '24px 0' }}>
+      <div className="flex items-center gap-3" style={{ margin: 'var(--spacing-6) 0' }}>
         <div className="flex-1 h-px" style={{ background: 'var(--border-default)' }} />
         <button
           className="flex items-center gap-1.5 bg-transparent border-none cursor-pointer whitespace-nowrap"
@@ -101,7 +104,7 @@ export default function MonitorPanels({ activePanel, onPanelSelect }) {
             size={16}
             style={{
               color: 'var(--text-tertiary)',
-              transition: 'transform 0.3s ease',
+              transition: 'transform var(--transition-slow)',
               transform: collapsed ? 'rotate(180deg)' : 'none',
             }}
           />

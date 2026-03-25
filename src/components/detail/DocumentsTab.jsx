@@ -1,41 +1,86 @@
 import { useState, useCallback } from 'react'
-import { Upload, Trash2, X, FileText, RefreshCw } from 'lucide-react'
+import { Upload, Trash2, X, RefreshCw } from 'lucide-react'
 
 const TYPE_STYLES = {
   BoL:          { bg: 'var(--badge-blue-bg)', color: 'var(--badge-blue-text)' },
+  MBoL:         { bg: 'var(--badge-blue-bg)', color: 'var(--badge-blue-text)' },
   Invoice:      { bg: 'var(--badge-yellow-bg)', color: 'var(--badge-yellow-text)' },
   Instructions: { bg: 'var(--badge-green-bg)', color: 'var(--badge-green-text)' },
   POD:          { bg: 'var(--badge-purple-bg)', color: 'var(--badge-purple-text)' },
-  Other:        { bg: 'var(--bg-tertiary)', color: 'var(--text-tertiary)' },
+  Other:        { bg: 'var(--badge-purple-bg)', color: 'var(--badge-purple-text)' },
 }
 
-const DOC_TYPES = ['BoL', 'Instructions', 'Invoice', 'POD', 'Other']
+const DOC_TYPES = ['BoL', 'MBoL', 'Invoice', 'Instructions', 'Other']
+
+/* ---- Shared inline styles matching the prototype CSS exactly ---- */
 
 const thStyle = {
-  padding: '8px 12px',
+  padding: '10px 14px',
   textAlign: 'left',
   whiteSpace: 'nowrap',
   fontSize: 12,
   fontWeight: 600,
   color: 'var(--text-placeholder)',
+  textTransform: 'uppercase',
+  letterSpacing: '0.03em',
   background: 'var(--bg-secondary)',
   borderBottom: '1px solid var(--border-subtle)',
 }
 
 const tdStyle = {
-  padding: '8px 12px',
+  padding: '10px 14px',
   whiteSpace: 'nowrap',
   fontSize: 13,
+  fontWeight: 400,
   color: 'var(--text-secondary)',
   borderBottom: '1px solid var(--bg-tertiary)',
+}
+
+const actionBtnStyle = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 6,
+  background: 'var(--btn-secondary-bg)',
+  border: '1px solid var(--btn-secondary-border)',
+  borderRadius: 'var(--radius-lg)',
+  padding: '6px 12px',
+  cursor: 'pointer',
+  fontFamily: 'var(--font-primary)',
+  fontSize: 14,
+  fontWeight: 500,
+  color: 'var(--btn-secondary-text)',
+  transition: 'background 0.15s ease',
+}
+
+const deleteBtnStyle = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  width: 28,
+  height: 28,
+  background: 'none',
+  border: '1px solid transparent',
+  borderRadius: 'var(--radius-sm)',
+  cursor: 'pointer',
+  color: 'var(--text-placeholder)',
+  transition: 'color 0.15s ease, border-color 0.15s ease, background 0.15s ease',
+  margin: '0 auto',
 }
 
 function TypeBadge({ type }) {
   const style = TYPE_STYLES[type] || TYPE_STYLES.Other
   return (
     <span
-      className="text-xs font-semibold px-2 py-0.5"
-      style={{ borderRadius: 'var(--radius-sm)', background: style.bg, color: style.color }}
+      style={{
+        display: 'inline-block',
+        fontFamily: 'var(--font-primary)',
+        fontSize: 12,
+        fontWeight: 600,
+        padding: '1px 8px',
+        borderRadius: 'var(--radius-sm)',
+        background: style.bg,
+        color: style.color,
+      }}
     >
       {type}
     </span>
@@ -75,130 +120,227 @@ export default function DocumentsTab({ data }) {
   }, [])
 
   return (
-    <div>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        margin: 'calc(-1 * var(--spacing-4)) calc(-1 * var(--spacing-5))',
+      }}
+    >
       {/* Toolbar */}
-      <div className="flex items-center gap-2 mb-3">
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          padding: '12px 20px',
+          borderBottom: '1px solid var(--border-subtle)',
+        }}
+      >
         <button
           onClick={() => setShowModal(true)}
-          className="flex items-center gap-1.5 text-xs font-medium border-none cursor-pointer"
-          style={{
-            padding: '6px 12px',
-            borderRadius: 'var(--radius-md)',
-            background: 'var(--btn-primary-bg)',
-            color: 'var(--btn-primary-text)',
-          }}
+          style={actionBtnStyle}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-secondary)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--btn-secondary-bg)' }}
         >
-          <Upload size={14} />
-          Upload Document
+          <Upload size={16} />
+          <span>Upload Attachment</span>
         </button>
         <button
-          className="flex items-center gap-1.5 text-xs font-medium cursor-pointer"
-          style={{
-            padding: '6px 12px',
-            borderRadius: 'var(--radius-md)',
-            background: 'var(--btn-secondary-bg)',
-            border: '1px solid var(--btn-secondary-border)',
-            color: 'var(--btn-secondary-text)',
-          }}
+          style={actionBtnStyle}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-secondary)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--btn-secondary-bg)' }}
         >
-          <RefreshCw size={14} />
-          Refresh
+          <RefreshCw size={16} />
+          <span>Refresh</span>
         </button>
       </div>
 
       {/* Table */}
-      <table className="w-full border-collapse" style={{ fontFamily: 'var(--font-primary)' }}>
-        <thead>
-          <tr>
-            <th style={thStyle}>Type</th>
-            <th style={thStyle}>Description</th>
-            <th style={thStyle}>File Name</th>
-            <th style={{ ...thStyle, width: 60, textAlign: 'center' }}>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {documents.length === 0 && (
+      <div style={{ overflow: 'auto', height: '100%' }}>
+        <table
+          style={{
+            width: '100%',
+            borderCollapse: 'collapse',
+            fontFamily: 'var(--font-primary)',
+            fontSize: 13,
+            color: 'var(--text-secondary)',
+          }}
+        >
+          <thead style={{ background: 'var(--bg-secondary)', position: 'sticky', top: 0, zIndex: 1 }}>
             <tr>
-              <td colSpan={4} className="text-sm text-center" style={{ ...tdStyle, color: 'var(--text-placeholder)', padding: 24 }}>
-                No documents uploaded.
-              </td>
+              <th style={thStyle}>Type</th>
+              <th style={thStyle}>Description</th>
+              <th style={thStyle}>File</th>
+              <th style={{ ...thStyle, width: 48, textAlign: 'center' }} />
             </tr>
-          )}
-          {documents.map((doc, idx) => (
-            <tr key={idx}>
-              <td style={tdStyle}><TypeBadge type={doc.type} /></td>
-              <td style={tdStyle}>{doc.description}</td>
-              <td style={tdStyle}>
-                <span className="flex items-center gap-1" style={{ color: 'var(--text-link)' }}>
-                  <FileText size={14} />
-                  {doc.fileName}
-                </span>
-              </td>
-              <td style={{ ...tdStyle, textAlign: 'center' }}>
-                <button
-                  onClick={() => handleDelete(idx)}
-                  className="flex items-center justify-center mx-auto bg-transparent border-none cursor-pointer"
-                  style={{ color: 'var(--text-placeholder)', padding: 4 }}
-                  title="Delete document"
+          </thead>
+          <tbody>
+            {documents.length === 0 && (
+              <tr>
+                <td
+                  colSpan={4}
+                  style={{
+                    ...tdStyle,
+                    color: 'var(--text-placeholder)',
+                    padding: 'var(--spacing-6)',
+                    textAlign: 'center',
+                    fontSize: 'var(--font-size-sm)',
+                  }}
                 >
-                  <Trash2 size={14} />
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+                  No documents uploaded.
+                </td>
+              </tr>
+            )}
+            {documents.map((doc, idx) => (
+              <tr
+                key={idx}
+                style={{ transition: 'background 0.15s ease' }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-secondary)' }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = '' }}
+              >
+                <td style={tdStyle}>
+                  <TypeBadge type={doc.type} />
+                </td>
+                <td style={tdStyle}>{doc.description}</td>
+                <td style={tdStyle}>
+                  <a
+                    href="#"
+                    onClick={(e) => e.preventDefault()}
+                    style={{
+                      fontFamily: 'var(--font-primary)',
+                      fontSize: 13,
+                      fontWeight: 500,
+                      color: 'var(--text-link)',
+                      textDecoration: 'none',
+                      cursor: 'pointer',
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.textDecoration = 'underline' }}
+                    onMouseLeave={(e) => { e.currentTarget.style.textDecoration = 'none' }}
+                  >
+                    {doc.fileName}
+                  </a>
+                </td>
+                <td style={{ ...tdStyle, textAlign: 'center', width: 48 }}>
+                  <button
+                    onClick={() => handleDelete(idx)}
+                    style={deleteBtnStyle}
+                    title="Delete document"
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.color = 'var(--text-error)'
+                      e.currentTarget.style.borderColor = 'var(--border-subtle)'
+                      e.currentTarget.style.background = 'var(--bg-error)'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.color = 'var(--text-placeholder)'
+                      e.currentTarget.style.borderColor = 'transparent'
+                      e.currentTarget.style.background = 'none'
+                    }}
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       {/* Upload Modal */}
       {showModal && (
         <div
-          className="fixed inset-0 flex items-center justify-center z-50"
-          style={{ background: 'rgba(0,0,0,0.4)' }}
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.3)',
+            zIndex: 10,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
           onClick={handleCloseModal}
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="flex flex-col"
             style={{
-              width: 440,
               background: 'var(--bg-primary)',
-              borderRadius: 'var(--radius-xl)',
-              boxShadow: '0 8px 32px rgba(0,0,0,0.16)',
-              overflow: 'hidden',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: 'var(--radius-lg)',
+              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
+              width: 400,
+              display: 'flex',
+              flexDirection: 'column',
             }}
           >
             {/* Modal header */}
             <div
-              className="flex items-center justify-between"
-              style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-subtle)' }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '16px 20px',
+                borderBottom: '1px solid var(--border-subtle)',
+              }}
             >
-              <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-                Upload Document
+              <span
+                style={{
+                  fontFamily: 'var(--font-primary)',
+                  fontSize: 16,
+                  fontWeight: 600,
+                  color: 'var(--text-primary)',
+                }}
+              >
+                Upload Attachment
               </span>
               <button
                 onClick={handleCloseModal}
-                className="flex items-center justify-center bg-transparent border-none cursor-pointer"
-                style={{ color: 'var(--text-placeholder)' }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: 'var(--text-placeholder)',
+                }}
               >
                 <X size={16} />
               </button>
             </div>
 
             {/* Modal body */}
-            <div className="flex flex-col gap-4" style={{ padding: '20px' }}>
-              <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium" style={{ color: 'var(--input-label)' }}>Type</label>
+            <div
+              style={{
+                padding: 20,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 16,
+              }}
+            >
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <label
+                  style={{
+                    fontFamily: 'var(--font-primary)',
+                    fontSize: 13,
+                    fontWeight: 500,
+                    color: 'var(--input-label)',
+                  }}
+                >
+                  Type
+                </label>
                 <select
                   value={formType}
                   onChange={(e) => setFormType(e.target.value)}
-                  className="text-sm"
                   style={{
-                    padding: '8px 10px',
-                    borderRadius: 'var(--radius-md)',
-                    border: '1px solid var(--input-border)',
+                    width: '100%',
+                    padding: '8px 12px',
                     background: 'var(--input-bg)',
-                    color: 'var(--input-text)',
+                    border: '1px solid var(--input-border)',
+                    borderRadius: 'var(--radius-md)',
                     fontFamily: 'var(--font-primary)',
+                    fontSize: 13,
+                    color: 'var(--input-text)',
                   }}
                 >
                   {DOC_TYPES.map((t) => (
@@ -206,37 +348,53 @@ export default function DocumentsTab({ data }) {
                   ))}
                 </select>
               </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium" style={{ color: 'var(--input-label)' }}>File</label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <label
+                  style={{
+                    fontFamily: 'var(--font-primary)',
+                    fontSize: 13,
+                    fontWeight: 500,
+                    color: 'var(--input-label)',
+                  }}
+                >
+                  File
+                </label>
                 <input
                   type="file"
                   onChange={(e) => setFormFile(e.target.files[0] || null)}
-                  className="text-sm"
+                  accept=".pdf,.xlsx,.xls,.docx,.doc,.csv,.msg"
                   style={{
-                    padding: '6px 10px',
-                    borderRadius: 'var(--radius-md)',
-                    border: '1px solid var(--input-border)',
-                    background: 'var(--input-bg)',
-                    color: 'var(--input-text)',
                     fontFamily: 'var(--font-primary)',
+                    fontSize: 13,
+                    color: 'var(--text-secondary)',
                   }}
                 />
               </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium" style={{ color: 'var(--input-label)' }}>Description</label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <label
+                  style={{
+                    fontFamily: 'var(--font-primary)',
+                    fontSize: 13,
+                    fontWeight: 500,
+                    color: 'var(--input-label)',
+                  }}
+                >
+                  Description
+                </label>
                 <input
                   type="text"
                   value={formDesc}
                   onChange={(e) => setFormDesc(e.target.value)}
-                  placeholder="Optional description"
-                  className="text-sm"
+                  placeholder="Enter description..."
                   style={{
-                    padding: '8px 10px',
-                    borderRadius: 'var(--radius-md)',
-                    border: '1px solid var(--input-border)',
+                    width: '100%',
+                    padding: '8px 12px',
                     background: 'var(--input-bg)',
-                    color: 'var(--input-text)',
+                    border: '1px solid var(--input-border)',
+                    borderRadius: 'var(--radius-md)',
                     fontFamily: 'var(--font-primary)',
+                    fontSize: 13,
+                    color: 'var(--input-text)',
                   }}
                 />
               </div>
@@ -244,16 +402,25 @@ export default function DocumentsTab({ data }) {
 
             {/* Modal footer */}
             <div
-              className="flex items-center justify-end gap-2"
-              style={{ padding: '12px 20px', borderTop: '1px solid var(--border-subtle)' }}
+              style={{
+                display: 'flex',
+                gap: 10,
+                padding: '16px 20px',
+                borderTop: '1px solid var(--border-subtle)',
+                justifyContent: 'flex-end',
+              }}
             >
               <button
                 onClick={handleCloseModal}
-                className="text-xs font-medium border-none cursor-pointer"
                 style={{
                   padding: '6px 16px',
                   borderRadius: 'var(--radius-md)',
                   background: 'var(--bg-secondary)',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontFamily: 'var(--font-primary)',
+                  fontSize: 13,
+                  fontWeight: 500,
                   color: 'var(--text-secondary)',
                 }}
               >
@@ -261,15 +428,19 @@ export default function DocumentsTab({ data }) {
               </button>
               <button
                 onClick={handleUpload}
-                className="text-xs font-medium border-none cursor-pointer"
+                disabled={!formFile}
                 style={{
                   padding: '6px 16px',
                   borderRadius: 'var(--radius-md)',
                   background: 'var(--btn-primary-bg)',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontFamily: 'var(--font-primary)',
+                  fontSize: 13,
+                  fontWeight: 500,
                   color: 'var(--btn-primary-text)',
                   opacity: formFile ? 1 : 0.5,
                 }}
-                disabled={!formFile}
               >
                 Upload
               </button>

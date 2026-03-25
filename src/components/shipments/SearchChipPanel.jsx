@@ -1,7 +1,8 @@
 import { useMemo } from 'react'
+import { SlidersHorizontal } from 'lucide-react'
 import { SEARCH_ATTRIBUTES } from '../../data'
 
-export default function SearchChipPanel({ query, activeChipKey, onChipSelect }) {
+export default function SearchChipPanel({ query, activeChipKey, onChipSelect, onToggleFilters }) {
   const chips = useMemo(() => {
     if (!query || !query.trim()) return []
     return getChipsForQuery(query.trim())
@@ -9,20 +10,12 @@ export default function SearchChipPanel({ query, activeChipKey, onChipSelect }) 
 
   if (chips.length === 0) return null
 
+  const filterEnabled = activeChipKey !== null
+
   return (
-    <div
-      className="absolute left-0 right-0 z-30"
-      style={{
-        top: '100%',
-        marginTop: 4,
-        background: 'var(--bg-primary)',
-        border: '1px solid var(--border-subtle)',
-        borderRadius: 'var(--radius-lg)',
-        boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
-        padding: '8px 12px',
-      }}
-    >
-      <div className="flex flex-wrap gap-1.5">
+    <div className="flex items-center gap-2" style={{ padding: 'var(--spacing-2) 0', marginBottom: 'var(--spacing-2)' }}>
+      {/* Chips */}
+      <div className="flex flex-wrap gap-2 flex-1 min-w-0">
         {chips.map((attr) => {
           const isActive = activeChipKey === attr.key
           return (
@@ -33,19 +26,56 @@ export default function SearchChipPanel({ query, activeChipKey, onChipSelect }) 
                 e.stopPropagation()
                 onChipSelect(isActive ? null : attr.key)
               }}
-              className="text-xs font-medium border-none cursor-pointer whitespace-nowrap"
+              className="cursor-pointer whitespace-nowrap"
               style={{
-                padding: '4px 10px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '3px 10px',
                 borderRadius: 'var(--radius-pill)',
-                background: isActive ? 'var(--bg-inverse)' : 'var(--bg-tertiary)',
-                color: isActive ? 'var(--text-inverse)' : 'var(--text-secondary)',
-                transition: 'background 0.15s ease, color 0.15s ease',
+                border: `1px solid ${isActive ? 'var(--border-focus)' : 'var(--border-subtle)'}`,
+                background: isActive ? 'var(--badge-blue-bg)' : 'var(--bg-tertiary)',
+                color: isActive ? 'var(--badge-blue-text)' : 'var(--text-secondary)',
+                fontFamily: 'var(--font-primary)',
+                fontSize: 13,
+                fontWeight: 500,
+                lineHeight: '18px',
+                transition: 'background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast)',
               }}
             >
               {attr.label}
             </button>
           )
         })}
+      </div>
+
+      {/* Filter icon — right side with divider */}
+      <div
+        className="flex items-center shrink-0"
+        style={{
+          paddingLeft: 'var(--spacing-3)',
+          marginLeft: 'auto',
+          borderLeft: '1px solid var(--border-subtle)',
+        }}
+      >
+        <button
+          onMouseDown={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            if (filterEnabled && onToggleFilters) onToggleFilters()
+          }}
+          className="flex items-center justify-center bg-transparent border-none"
+          style={{
+            cursor: filterEnabled ? 'pointer' : 'not-allowed',
+            opacity: filterEnabled ? 1 : 0.35,
+            color: 'var(--text-tertiary)',
+            transition: 'opacity var(--transition-fast)',
+            padding: 4,
+          }}
+          title={filterEnabled ? 'Open filters' : 'Select a chip to enable filters'}
+        >
+          <SlidersHorizontal size={18} />
+        </button>
       </div>
     </div>
   )

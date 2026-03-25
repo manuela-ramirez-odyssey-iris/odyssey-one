@@ -91,7 +91,7 @@ export default function Navbar() {
                 background: 'var(--dropdown-bg)',
                 border: '1px solid var(--dropdown-border)',
                 borderRadius: 'var(--radius-lg)',
-                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                boxShadow: 'var(--shadow-md)',
                 zIndex: 9999,
                 padding: '4px 0',
                 overflow: 'hidden',

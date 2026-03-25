@@ -54,7 +54,7 @@
   width: 100%;
   border-collapse: collapse;
   font-family: var(--font-primary);
-  font-size: 14px;
+  font-size: var(--font-size-sm);
   color: var(--text-secondary);
 }
 
@@ -63,11 +63,11 @@
 }
 
 .odyssey-table th {
-  padding: 0 16px;
-  height: 48px;
+  padding: 0 var(--spacing-4);
+  height: var(--bottombar-collapsed);
   text-align: left;
   font-weight: 600;
-  font-size: 14px;
+  font-size: var(--font-size-sm);
   color: var(--text-placeholder);
   border-bottom: 1px solid var(--border-subtle);
   white-space: nowrap;
@@ -78,7 +78,7 @@
 }
 
 .odyssey-table td {
-  padding: 0 16px;
+  padding: 0 var(--spacing-4);
   height: 56px;
   border-bottom: 1px solid var(--bg-tertiary);
   white-space: nowrap;
@@ -87,7 +87,7 @@
 
 .odyssey-table tbody tr {
   background: var(--bg-primary);
-  transition: background 0.15s ease;
+  transition: background var(--transition-fast);
 }
 
 .odyssey-table tbody tr:hover {
@@ -109,7 +109,7 @@
 /* Product / nested table variant */
 .odyssey-table-nested th {
   padding: 10px 14px;
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
@@ -130,13 +130,13 @@
 .odyssey-bottom-bar {
   position: fixed;
   bottom: 0;
-  left: 64px;
+  left: var(--sidebar-width);
   right: 0;
   background: var(--bg-secondary);
   border-top: 1px solid var(--border-subtle);
   z-index: 40;
-  transition: height 0.3s ease;
-  height: 48px;
+  transition: height var(--transition-slow);
+  height: var(--bottombar-collapsed);
   overflow: hidden;
 }
 
@@ -145,12 +145,12 @@
 }
 
 .odyssey-bottom-bar.fullscreen {
-  height: calc(100vh - 64px);
+  height: calc(100vh - var(--navbar-height));
 }
 
 .odyssey-bottom-bar-content {
   display: none;
-  height: calc(100% - 48px);
+  height: calc(100% - var(--bottombar-collapsed));
   overflow-y: auto;
   background: var(--bg-primary);
 }
@@ -163,7 +163,7 @@
    MONITOR PANEL COLLAPSE ANIMATION
    ---------------------------------------- */
 .odyssey-monitor-panels {
-  transition: max-height 0.3s ease, opacity 0.3s ease, margin 0.3s ease;
+  transition: max-height var(--transition-slow), opacity var(--transition-slow), margin var(--transition-slow);
   max-height: 500px;
   opacity: 1;
 }
@@ -179,7 +179,7 @@
    COLLAPSE CHEVRON ANIMATION
    ---------------------------------------- */
 .odyssey-collapse-chevron {
-  transition: transform 0.3s ease;
+  transition: transform var(--transition-slow);
 }
 
 .odyssey-collapse-chevron.flipped {
@@ -197,11 +197,11 @@
   border-left: 0px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 64px);
+  height: calc(100vh - var(--navbar-height));
   position: sticky;
-  top: 64px;
+  top: var(--navbar-height);
   flex-shrink: 0;
-  transition: width 0.3s ease, min-width 0.3s ease, border-left-width 0.3s ease;
+  transition: width var(--transition-slow), min-width var(--transition-slow), border-left-width var(--transition-slow);
 }
 
 .filters-open .odyssey-filters-panel {
@@ -217,7 +217,7 @@
   display: none;
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.3);
+  background: var(--overlay-bg);
   z-index: 10;
   align-items: center;
   justify-content: center;
@@ -300,10 +300,10 @@ input[type="date"].odyssey-date-input {
   border: 1px solid var(--input-border);
   border-radius: var(--radius-md);
   font-family: var(--font-primary);
-  font-size: 14px;
+  font-size: var(--font-size-sm);
   font-weight: 400;
   color: var(--input-text);
-  line-height: 20px;
+  line-height: var(--line-height-sm);
   box-shadow: var(--shadow-sm);
   cursor: pointer;
 }
@@ -321,7 +321,7 @@ input[type="date"].odyssey-date-input[value=""] {
 input[type="date"].odyssey-date-input::-webkit-calendar-picker-indicator {
   cursor: pointer;
   opacity: 0.5;
-  transition: opacity 0.15s ease;
+  transition: opacity var(--transition-fast);
 }
 
 input[type="date"].odyssey-date-input::-webkit-calendar-picker-indicator:hover {
@@ -334,8 +334,8 @@ input[type="date"].odyssey-date-input::-webkit-calendar-picker-indicator:hover {
 input[type="checkbox"].odyssey-checkbox,
 input[type="radio"].odyssey-radio {
   accent-color: var(--radio-selected-bg);
-  width: 16px;
-  height: 16px;
+  width: var(--spacing-4);
+  height: var(--spacing-4);
   cursor: pointer;
 }
 

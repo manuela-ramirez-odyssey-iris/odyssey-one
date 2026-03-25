@@ -1,8 +1,8 @@
 const PANEL_TABS = {
   exceptions: [
     { key: 'all', label: 'All (Exceptions)' },
-    { key: 'date-issues', label: 'Date Issues', badge: 4 },
-    { key: 'routing-review', label: 'Routing Review', badge: 4 },
+    { key: 'date-issues', label: 'Date Issues', badgeKey: 'dateIssues' },
+    { key: 'routing-review', label: 'Routing Review', badgeKey: 'routingReview' },
     { key: 'tender-issues', label: 'Tender Issues' },
     { key: 'tender-review', label: 'Tender Review' },
     { key: 'bid-review', label: 'Bid Review' },
@@ -23,13 +23,15 @@ const PANEL_TABS = {
   ],
 }
 
-export default function ShipmentTabs({ activePanel, activeTab, onTabSelect }) {
+export default function ShipmentTabs({ activePanel, activeTab, onTabSelect, badgeCounts }) {
   const tabs = PANEL_TABS[activePanel] || PANEL_TABS.exceptions
+  const counts = badgeCounts || {}
 
   return (
-    <div className="flex gap-6" style={{ borderBottom: '1px solid var(--border-subtle)', marginBottom: 12 }}>
+    <div className="flex gap-6" style={{ borderBottom: '1px solid var(--border-subtle)', marginBottom: 'var(--spacing-3)' }}>
       {tabs.map((tab) => {
         const isActive = activeTab === tab.key
+        const badge = tab.badgeKey ? counts[tab.badgeKey] : undefined
         return (
           <button
             key={tab.key}
@@ -38,12 +40,12 @@ export default function ShipmentTabs({ activePanel, activeTab, onTabSelect }) {
               color: isActive ? 'var(--text-primary)' : 'var(--text-tertiary)',
               borderBottom: `2px solid ${isActive ? 'var(--text-tertiary)' : 'transparent'}`,
               padding: '8px 0',
-              transition: 'color 0.15s ease, border-color 0.15s ease',
+              transition: 'color var(--transition-fast), border-color var(--transition-fast)',
             }}
             onClick={() => onTabSelect(tab.key)}
           >
             {tab.label}
-            {tab.badge != null && (
+            {badge != null && badge > 0 && (
               <span
                 className="text-xs font-bold"
                 style={{
@@ -53,7 +55,7 @@ export default function ShipmentTabs({ activePanel, activeTab, onTabSelect }) {
                   padding: '2px 10px',
                 }}
               >
-                {tab.badge}
+                {badge}
               </span>
             )}
           </button>

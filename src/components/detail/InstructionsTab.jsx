@@ -1,20 +1,34 @@
 import { useState } from 'react'
+import { ChevronDown, ChevronRight } from 'lucide-react'
 
-const TYPE_STYLES = {
-  BOL:  { bg: 'var(--badge-blue-bg)', color: 'var(--badge-blue-text)' },
-  MISC: { bg: 'var(--badge-purple-bg)', color: 'var(--badge-purple-text)' },
-  TRA:  { bg: 'var(--badge-green-bg)', color: 'var(--badge-green-text)' },
-  ADC:  { bg: 'var(--badge-yellow-bg)', color: 'var(--badge-yellow-text)' },
-  ZD02: { bg: 'var(--badge-red-bg)', color: 'var(--badge-red-text)' },
-  SPC:  { bg: 'var(--badge-purple-bg)', color: 'var(--badge-purple-text)' },
+const TYPE_COLORS = {
+  BOL:  'var(--badge-blue-text)',
+  MISC: 'var(--badge-purple-text)',
+  TRA:  'var(--badge-green-text)',
+  ADC:  'var(--badge-yellow-text)',
+  ZD02: 'var(--badge-red-text)',
+  SPC:  'var(--badge-purple-text)',
 }
 
 function TypeBadge({ type }) {
-  const style = TYPE_STYLES[type] || { bg: 'var(--bg-tertiary)', color: 'var(--text-placeholder)' }
+  const color = TYPE_COLORS[type] || 'var(--text-tertiary)'
   return (
     <span
-      className="text-xs font-semibold px-2 py-0.5 shrink-0"
-      style={{ borderRadius: 'var(--radius-sm)', background: style.bg, color: style.color }}
+      style={{
+        fontFamily: 'var(--font-primary)',
+        fontSize: '10px',
+        fontWeight: 600,
+        color: color,
+        background: 'transparent',
+        border: `1px solid ${color}`,
+        borderRadius: 'var(--radius-sm)',
+        padding: '1px 6px',
+        flexShrink: 0,
+        letterSpacing: '0.03em',
+        marginTop: '2px',
+        lineHeight: '16px',
+        display: 'inline-block',
+      }}
     >
       {type}
     </span>
@@ -25,72 +39,120 @@ function InstructionGroup({ order }) {
   const [expanded, setExpanded] = useState(true)
 
   return (
-    <div style={{ marginBottom: 16 }}>
-      {/* Group header */}
+    <div style={{ marginBottom: 'var(--spacing-5)' }}>
+      {/* Order header */}
       <div
-        className="flex items-center gap-3"
         style={{
-          padding: '8px 12px',
-          background: 'var(--bg-secondary)',
-          borderRadius: 'var(--radius-md)',
-          marginBottom: expanded ? 8 : 0,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 'var(--spacing-2)',
+          marginBottom: expanded ? 'var(--spacing-2)' : 0,
+          cursor: 'pointer',
         }}
+        onClick={() => setExpanded(!expanded)}
       >
         <button
-          onClick={() => setExpanded(!expanded)}
-          className="flex items-center justify-center border-none cursor-pointer shrink-0"
+          type="button"
+          aria-label="Toggle"
           style={{
-            width: 22,
-            height: 22,
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '22px',
+            height: '22px',
+            border: '1px solid var(--border-default)',
             borderRadius: 'var(--radius-sm)',
             background: 'var(--bg-primary)',
-            border: '1px solid var(--border-subtle)',
-            fontSize: 14,
-            fontWeight: 700,
             color: 'var(--text-tertiary)',
-            lineHeight: 1,
+            cursor: 'pointer',
+            flexShrink: 0,
+            padding: 0,
+            transition: 'background var(--transition-fast)',
+          }}
+          onClick={(e) => {
+            e.stopPropagation()
+            setExpanded(!expanded)
           }}
         >
-          {expanded ? '\u2212' : '+'}
+          {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
         </button>
-        <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+        <span
+          style={{
+            fontFamily: 'var(--font-primary)',
+            fontSize: '13px',
+            fontWeight: 600,
+            color: 'var(--text-primary)',
+          }}
+        >
           {order.orderId}
         </span>
-        <span className="text-xs" style={{ color: 'var(--text-placeholder)' }}>
+        <span
+          style={{
+            fontFamily: 'var(--font-primary)',
+            fontSize: 'var(--font-size-xs)',
+            fontWeight: 400,
+            color: 'var(--text-placeholder)',
+          }}
+        >
           {order.instructions.length} {order.instructions.length === 1 ? 'instruction' : 'instructions'}
         </span>
       </div>
 
       {/* Instruction list */}
       {expanded && (
-        <div className="flex flex-col gap-2" style={{ paddingLeft: 16 }}>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '6px',
+            paddingLeft: 'var(--spacing-1)',
+          }}
+        >
           {order.instructions.map((instr) => (
             <div
               key={`${order.orderId}-${instr.seq}`}
-              className="flex items-start gap-3"
               style={{
-                padding: '10px 12px',
-                background: 'var(--bg-primary)',
-                border: '1px solid var(--border-subtle)',
-                borderRadius: 'var(--radius-md)',
+                display: 'flex',
+                gap: '10px',
+                alignItems: 'flex-start',
+                padding: 'var(--spacing-2) var(--spacing-3)',
+                background: 'var(--bg-secondary)',
+                borderLeft: '3px solid var(--border-default)',
+                borderRadius: '0 var(--radius-sm) var(--radius-sm) 0',
               }}
             >
               <span
-                className="flex items-center justify-center text-xs font-bold shrink-0"
                 style={{
-                  width: 24,
-                  height: 24,
-                  borderRadius: 'var(--radius-full)',
+                  fontFamily: 'var(--font-primary)',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  color: 'var(--text-placeholder)',
                   background: 'var(--bg-tertiary)',
-                  color: 'var(--text-tertiary)',
+                  borderRadius: 'var(--radius-full)',
+                  width: '20px',
+                  height: '20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  marginTop: '1px',
                 }}
               >
                 {instr.seq}
               </span>
               <TypeBadge type={instr.type} />
-              <span className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+              <p
+                style={{
+                  fontFamily: 'var(--font-primary)',
+                  fontSize: '13px',
+                  fontWeight: 400,
+                  color: 'var(--text-secondary)',
+                  lineHeight: '19px',
+                  margin: 0,
+                }}
+              >
                 {instr.text}
-              </span>
+              </p>
             </div>
           ))}
         </div>
@@ -101,12 +163,44 @@ function InstructionGroup({ order }) {
 
 export default function InstructionsTab({ data }) {
   if (!data?.orders?.length) {
-    return <div className="text-sm" style={{ color: 'var(--text-placeholder)' }}>No instructions available.</div>
+    return (
+      <div
+        style={{
+          padding: 'var(--spacing-5) var(--spacing-6)',
+          fontFamily: 'var(--font-primary)',
+          fontSize: 'var(--font-size-sm)',
+          color: 'var(--text-placeholder)',
+        }}
+      >
+        No instructions available.
+      </div>
+    )
   }
 
   return (
-    <div>
-      {data.orders.map((order) => (
+    <div
+      style={{
+        padding: 'var(--spacing-5) var(--spacing-6)',
+        overflowY: 'auto',
+        height: '100%',
+      }}
+    >
+      <div
+        style={{
+          fontFamily: 'var(--font-primary)',
+          fontSize: 'var(--font-size-sm)',
+          fontWeight: 700,
+          textTransform: 'uppercase',
+          color: 'var(--text-primary)',
+          letterSpacing: '0.04em',
+          paddingBottom: 'var(--spacing-3)',
+          borderBottom: '1px solid var(--border-subtle)',
+          marginBottom: 'var(--spacing-4)',
+        }}
+      >
+        Instructions
+      </div>
+      {data.orders.map((order, idx) => (
         <InstructionGroup key={order.orderId} order={order} />
       ))}
     </div>

@@ -20,8 +20,8 @@ export default function Sidebar() {
   return (
     <aside className="shrink-0 flex flex-col sticky top-16"
       style={{
-        width: 64, background: 'var(--deep-sea-neutral-200)',
-        padding: 12, height: 'calc(100vh - 64px)',
+        width: 'var(--sidebar-width)', background: 'var(--deep-sea-neutral-200)',
+        padding: 'var(--spacing-3)', height: 'calc(100vh - var(--navbar-height))',
       }}>
       <nav className="flex flex-col items-center flex-1" style={{ width: 40 }}>
         <div className="flex flex-col gap-2">

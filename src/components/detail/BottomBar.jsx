@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react'
-import { Maximize2, Minimize2, Settings, X } from 'lucide-react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { ChevronLeft, ChevronRight, ChevronDown, Maximize2, Minimize2, X, Columns3Cog } from 'lucide-react'
 import OrderTab from './OrderTab'
 import StopsTab from './StopsTab'
 import ProductTab from './ProductTab'
@@ -13,26 +13,31 @@ import TenderHistoryTab from './TenderHistoryTab'
 
 const TABS = [
   { key: 'order', label: 'Order' },
-  { key: 'stops', label: 'Stops' },
   { key: 'product', label: 'Product' },
-  { key: 'routing', label: 'Routing' },
+  { key: 'routing', label: 'Routing guide' },
+  { key: 'tender', label: 'Tender History' },
   { key: 'cost', label: 'Cost Allocation' },
   { key: 'instructions', label: 'Instructions' },
+  { key: 'history', label: 'History' },
   { key: 'documents', label: 'Documents' },
   { key: 'notes', label: 'Notes' },
-  { key: 'history', label: 'History' },
-  { key: 'tender', label: 'Tender History' },
+  { key: 'stops', label: 'Stops' },
 ]
 
 const STATES = {
-  collapsed: 48,
+  collapsed: 'var(--bottombar-collapsed)',
   expanded: '50vh',
-  fullscreen: 'calc(100vh - 64px)',
+  fullscreen: 'calc(100vh - var(--navbar-height))',
 }
 
-export default function BottomBar({ selectedShipmentId, shipmentDetails, onClose }) {
+export default function BottomBar({ selectedShipmentId, shipmentDetails, onClose, rightOffset = 0, onToggleColumnPanel }) {
   const [barState, setBarState] = useState('collapsed')
   const [activeTab, setActiveTab] = useState('order')
+  const [orderDropdownOpen, setOrderDropdownOpen] = useState(false)
+  const tabsRef = useRef(null)
+
+  const isExpanded = barState === 'expanded' || barState === 'fullscreen'
+  const isDisabled = !selectedShipmentId
 
   useEffect(() => {
     if (selectedShipmentId && barState === 'collapsed') {
@@ -44,44 +49,39 @@ export default function BottomBar({ selectedShipmentId, shipmentDetails, onClose
     }
   }, [selectedShipmentId])
 
-  const handleToggleFullscreen = useCallback(() => {
-    setBarState((prev) => (prev === 'fullscreen' ? 'expanded' : 'fullscreen'))
+  const handleTabClick = useCallback((key) => {
+    if (isDisabled) return
+    setActiveTab(key)
+    if (key !== 'order') setOrderDropdownOpen(false)
+  }, [isDisabled])
+
+  const scrollTabs = useCallback((direction) => {
+    if (!tabsRef.current) return
+    tabsRef.current.scrollBy({ left: direction * 150, behavior: 'smooth' })
   }, [])
 
-  const handleClose = useCallback(() => {
-    setBarState('collapsed')
-    onClose()
-  }, [onClose])
-
-  const isExpanded = barState === 'expanded' || barState === 'fullscreen'
+  const orders = useMemo(() => {
+    if (!shipmentDetails?.orderDetail) return []
+    const od = shipmentDetails.orderDetail
+    return od.orderNumber ? [od.orderNumber] : []
+  }, [shipmentDetails])
 
   const height = STATES[barState]
 
   const renderTabContent = () => {
     if (!shipmentDetails) return null
     switch (activeTab) {
-      case 'order':
-        return <OrderTab data={shipmentDetails.orderDetail} />
-      case 'stops':
-        return <StopsTab data={shipmentDetails.stopsData} />
-      case 'product':
-        return <ProductTab data={shipmentDetails.productData} />
-      case 'routing':
-        return <RoutingGuideTab data={shipmentDetails.routingData} />
-      case 'cost':
-        return <CostAllocationTab data={shipmentDetails.costData} />
-      case 'instructions':
-        return <InstructionsTab data={shipmentDetails.instructionsData} />
-      case 'documents':
-        return <DocumentsTab data={shipmentDetails.documentsData} />
-      case 'notes':
-        return <NotesTab data={shipmentDetails.notesData} />
-      case 'history':
-        return <HistoryTab />
-      case 'tender':
-        return <TenderHistoryTab />
-      default:
-        return null
+      case 'order': return <OrderTab data={shipmentDetails.orderDetail} />
+      case 'stops': return <StopsTab data={shipmentDetails.stopsData} />
+      case 'product': return <ProductTab data={shipmentDetails.productData} />
+      case 'routing': return <RoutingGuideTab data={shipmentDetails.routingData} />
+      case 'cost': return <CostAllocationTab data={shipmentDetails.costData} />
+      case 'instructions': return <InstructionsTab data={shipmentDetails.instructionsData} />
+      case 'documents': return <DocumentsTab data={shipmentDetails.documentsData} />
+      case 'notes': return <NotesTab data={shipmentDetails.notesData} />
+      case 'history': return <HistoryTab />
+      case 'tender': return <TenderHistoryTab />
+      default: return null
     }
   }
 
@@ -90,91 +90,227 @@ export default function BottomBar({ selectedShipmentId, shipmentDetails, onClose
       style={{
         position: 'fixed',
         bottom: 0,
-        left: 64,
-        right: 0,
+        left: 'var(--sidebar-width)',
+        right: rightOffset,
         height,
         background: 'var(--bg-primary)',
         borderTop: '1px solid var(--border-subtle)',
-        transition: 'height 0.3s ease',
+        transition: 'height var(--transition-slow), right var(--transition-base)',
         zIndex: 40,
         display: 'flex',
         flexDirection: 'column',
-        boxShadow: isExpanded ? '0 -4px 16px rgba(0,0,0,0.08)' : 'none',
+        boxShadow: isExpanded ? 'var(--shadow-up-md)' : 'none',
       }}
     >
-      {/* Header */}
+      {/* Header — always shows tabs */}
       <div
-        className="flex items-center justify-between shrink-0"
+        className="flex items-center shrink-0"
         style={{
-          height: 48,
-          padding: '0 16px',
+          height: 'var(--bottombar-collapsed)',
           borderBottom: isExpanded ? '1px solid var(--border-subtle)' : 'none',
-          cursor: !isExpanded ? 'default' : 'default',
         }}
       >
-        <span
-          className="text-sm font-semibold"
-          style={{ color: isExpanded ? 'var(--text-primary)' : 'var(--text-placeholder)' }}
+        {/* Left: Shipment ID or "Select a Shipment" */}
+        <div
+          className="text-sm font-semibold shrink-0"
+          style={{
+            color: isDisabled ? 'var(--text-placeholder)' : 'var(--text-primary)',
+            padding: '0 var(--spacing-4)',
+            borderRight: '1px solid var(--border-subtle)',
+            height: '100%',
+            display: 'flex',
+            alignItems: 'center',
+          }}
         >
-          {isExpanded && selectedShipmentId ? selectedShipmentId : 'Select a Shipment'}
-        </span>
+          {isDisabled ? 'Select a Shipment' : selectedShipmentId}
+        </div>
 
-        {isExpanded && (
-          <div className="flex items-center gap-1">
-            {/* Tab bar */}
-            <div className="flex items-center gap-0 mr-4">
-              {TABS.map((tab) => {
-                const isActive = activeTab === tab.key
-                return (
-                  <button
-                    key={tab.key}
-                    onClick={() => setActiveTab(tab.key)}
-                    className="border-none cursor-pointer whitespace-nowrap text-xs font-medium"
+        {/* Tabs — always visible, scrollable, disabled when no shipment */}
+        <div
+          ref={tabsRef}
+          className="flex items-center flex-1 min-w-0"
+          style={{ height: '100%', overflow: 'hidden' }}
+        >
+          {TABS.map((tab) => {
+            const isActive = activeTab === tab.key && !isDisabled
+            const isOrderTab = tab.key === 'order' && isActive
+
+            return (
+              <div key={tab.key} className="relative shrink-0" style={{ height: '100%' }}>
+                <button
+                  onClick={() => {
+                    handleTabClick(tab.key)
+                    if (tab.key === 'order' && !isDisabled) {
+                      setOrderDropdownOpen((prev) => activeTab === 'order' ? !prev : false)
+                    }
+                  }}
+                  className="border-none whitespace-nowrap flex items-center gap-1"
+                  style={{
+                    padding: '0 var(--spacing-4)',
+                    height: '100%',
+                    cursor: isDisabled ? 'default' : 'pointer',
+                    background: isActive ? 'var(--bg-secondary)' : 'transparent',
+                    borderRight: '1px solid var(--border-subtle)',
+                    fontFamily: 'var(--font-primary)',
+                    fontSize: 14,
+                    fontWeight: 600,
+                    color: isDisabled ? 'var(--text-placeholder)' : isActive ? 'var(--text-primary)' : 'var(--text-tertiary)',
+                    transition: 'background var(--transition-fast), color var(--transition-fast)',
+                    opacity: isDisabled ? 0.6 : 1,
+                  }}
+                >
+                  {tab.label}
+                  {isOrderTab && orders.length > 0 && (
+                    <>
+                      <span className="text-xs font-medium" style={{ color: 'var(--text-tertiary)', marginLeft: 4 }}>
+                        {orders[0]}
+                      </span>
+                      <ChevronDown size={14} style={{ color: 'var(--text-placeholder)', marginLeft: 2 }} />
+                    </>
+                  )}
+                </button>
+
+                {/* Order dropdown */}
+                {isOrderTab && orderDropdownOpen && orders.length > 0 && (
+                  <div
+                    className="absolute z-50"
                     style={{
-                      padding: '6px 12px',
+                      top: '100%',
+                      left: 0,
+                      minWidth: 200,
+                      background: 'var(--dropdown-bg)',
+                      border: '1px solid var(--dropdown-border)',
                       borderRadius: 'var(--radius-md)',
-                      background: isActive ? 'var(--tab-active-bg)' : 'transparent',
-                      color: isActive ? 'var(--tab-active-text)' : 'var(--tab-inactive-text)',
-                      transition: 'background 0.15s ease, color 0.15s ease',
+                      boxShadow: 'var(--shadow-md)',
+                      padding: '4px 0',
                     }}
                   >
-                    {tab.label}
-                  </button>
-                )
-              })}
-            </div>
+                    {orders.map((ord) => (
+                      <button
+                        key={ord}
+                        className="flex items-center w-full text-left text-sm border-none cursor-pointer"
+                        style={{
+                          padding: '8px 12px',
+                          background: 'transparent',
+                          color: 'var(--text-secondary)',
+                          fontFamily: 'var(--font-primary)',
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = 'var(--dropdown-hover-bg)'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                        onClick={() => setOrderDropdownOpen(false)}
+                      >
+                        {ord}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
 
-            {/* Action buttons */}
-            <button
-              onClick={handleToggleFullscreen}
-              className="flex items-center justify-center border-none cursor-pointer bg-transparent"
-              style={{ width: 32, height: 32, color: 'var(--text-placeholder)' }}
-              title={barState === 'fullscreen' ? 'Exit fullscreen' : 'Fullscreen'}
-            >
-              {barState === 'fullscreen' ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
-            </button>
-            <button
-              className="flex items-center justify-center border-none cursor-pointer bg-transparent"
-              style={{ width: 32, height: 32, color: 'var(--text-placeholder)' }}
-              title="Settings"
-            >
-              <Settings size={16} />
-            </button>
-            <button
-              onClick={handleClose}
-              className="flex items-center justify-center border-none cursor-pointer bg-transparent"
-              style={{ width: 32, height: 32, color: 'var(--text-placeholder)' }}
-              title="Close"
-            >
-              <X size={16} />
-            </button>
-          </div>
-        )}
+        {/* Right: Scroll arrows + Expand/Shrink + Column config + Close */}
+        <div className="flex items-center shrink-0" style={{ padding: '0 8px', gap: 6 }}>
+          {/* Scroll tabs left */}
+          <button
+            onClick={() => scrollTabs(-1)}
+            className="flex items-center justify-center"
+            style={{
+              width: 32, height: 32,
+              cursor: 'pointer',
+              color: 'var(--text-placeholder)',
+              background: 'var(--bg-primary)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: 'var(--radius-full)',
+            }}
+            title="Scroll tabs left"
+          >
+            <ChevronLeft size={16} />
+          </button>
+
+          {/* Scroll tabs right */}
+          <button
+            onClick={() => scrollTabs(1)}
+            className="flex items-center justify-center"
+            style={{
+              width: 32, height: 32,
+              cursor: 'pointer',
+              color: 'var(--text-placeholder)',
+              background: 'var(--bg-primary)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: 'var(--radius-full)',
+            }}
+            title="Scroll tabs right"
+          >
+            <ChevronRight size={16} />
+          </button>
+
+          {/* Expand / Shrink toggle */}
+          <button
+            onClick={() => {
+              if (isDisabled) return
+              if (barState === 'collapsed') setBarState('expanded')
+              else if (barState === 'expanded') setBarState('fullscreen')
+              else setBarState('expanded')
+            }}
+            className="flex items-center justify-center"
+            style={{
+              width: 32, height: 32,
+              cursor: isDisabled ? 'default' : 'pointer',
+              color: 'var(--text-placeholder)',
+              background: 'var(--bg-primary)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: 'var(--radius-md)',
+              opacity: isDisabled ? 0.4 : 1,
+            }}
+            title={barState === 'fullscreen' ? 'Shrink' : 'Expand'}
+          >
+            {barState === 'fullscreen' ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+          </button>
+
+          {/* Close button */}
+          <button
+            onClick={() => {
+              setBarState('collapsed')
+              onClose()
+            }}
+            className="flex items-center justify-center"
+            style={{
+              width: 32, height: 32,
+              cursor: isDisabled ? 'default' : 'pointer',
+              color: 'var(--text-placeholder)',
+              background: 'var(--bg-primary)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: 'var(--radius-md)',
+              opacity: isDisabled ? 0.4 : 1,
+            }}
+            title="Close"
+          >
+            <X size={14} />
+          </button>
+
+          {/* Column arrangement button */}
+          <button
+            onClick={() => { if (onToggleColumnPanel) onToggleColumnPanel() }}
+            className="flex items-center justify-center"
+            style={{
+              width: 36, height: 36,
+              cursor: 'pointer',
+              color: 'var(--text-placeholder)',
+              background: 'var(--bg-primary)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: 'var(--radius-lg)',
+            }}
+            title="Column arrangement"
+          >
+            <Columns3Cog size={18} />
+          </button>
+        </div>
       </div>
 
       {/* Content */}
       {isExpanded && (
-        <div className="flex-1 min-h-0 overflow-auto" style={{ padding: '16px 20px' }}>
+        <div key={selectedShipmentId} className="flex-1 min-h-0 overflow-auto" style={{ padding: 'var(--spacing-4) var(--spacing-5)' }}>
           {renderTabContent()}
         </div>
       )}

@@ -31,7 +31,7 @@ function NoteItem({ note, onEdit, onDelete }) {
   return (
     <div
       style={{
-        padding: '12px 16px',
+        padding: 'var(--spacing-3) var(--spacing-4)',
         background: 'var(--bg-primary)',
         border: '1px solid var(--border-subtle)',
         borderRadius: 'var(--radius-md)',
@@ -174,10 +174,10 @@ export default function NotesTab({ data }) {
       <div
         className="flex items-start gap-3"
         style={{
-          padding: '12px 16px',
+          padding: 'var(--spacing-3) var(--spacing-4)',
           background: 'var(--bg-secondary)',
           borderRadius: 'var(--radius-lg)',
-          marginBottom: 16,
+          marginBottom: 'var(--spacing-4)',
         }}
       >
         <div
@@ -212,7 +212,7 @@ export default function NotesTab({ data }) {
           onClick={handleAdd}
           className="text-xs font-medium border-none cursor-pointer shrink-0"
           style={{
-            padding: '8px 16px',
+            padding: 'var(--spacing-2) var(--spacing-4)',
             borderRadius: 'var(--radius-md)',
             background: 'var(--btn-primary-bg)',
             color: 'var(--btn-primary-text)',
@@ -227,7 +227,7 @@ export default function NotesTab({ data }) {
       {/* Notes list */}
       <div className="flex flex-col gap-2">
         {notes.length === 0 && (
-          <div className="text-sm text-center" style={{ color: 'var(--text-placeholder)', padding: 24 }}>
+          <div className="text-sm text-center" style={{ color: 'var(--text-placeholder)', padding: 'var(--spacing-6)' }}>
             No notes yet.
           </div>
         )}

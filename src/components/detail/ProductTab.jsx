@@ -1,73 +1,155 @@
 import { useState, useCallback } from 'react'
 
 const COLUMNS = [
-  { key: 'lineNumber', label: 'Line #', width: 60 },
-  { key: 'shipItem', label: 'Ship Item', width: 100 },
-  { key: 'description', label: 'Description', width: 180 },
-  { key: 'packageCount', label: 'Pkg Count', width: 100 },
-  { key: 'grossWeight', label: 'Gross Wt', width: 100 },
-  { key: 'volume', label: 'Volume', width: 80 },
-  { key: 'hazmat', label: 'Hazmat', width: 70 },
-  { key: 'tareWeight', label: 'Tare Wt', width: 90 },
-  { key: 'netWeight', label: 'Net Wt', width: 90 },
-  { key: 'hazmatClass', label: 'Hazmat Class', width: 100 },
-  { key: 'hazmatGroup', label: 'Hazmat Grp', width: 90 },
-  { key: 'productClass', label: 'Product Class', width: 110 },
-  { key: 'shippingClass', label: 'Ship Class', width: 90 },
-  { key: 'flashPoint', label: 'Flash Pt', width: 80 },
-  { key: 'countryOfOrigin', label: 'Country', width: 80 },
-  { key: 'declaredValue', label: 'Declared Value', width: 130 },
-  { key: 'thirdPartRef', label: '3rd Party Ref', width: 100 },
-  { key: 'batchLot', label: 'Batch/Lot', width: 100 },
-  { key: 'length', label: 'Length', width: 70 },
-  { key: 'width', label: 'Width', width: 70 },
-  { key: 'height', label: 'Height', width: 70 },
+  { key: 'lineNumber', label: 'Line #' },
+  { key: 'shipItem', label: 'Ship Item' },
+  { key: 'description', label: 'Description' },
+  { key: 'packageCount', label: 'Package Count' },
+  { key: 'grossWeight', label: 'Gross Weight' },
+  { key: 'volume', label: 'Volume' },
+  { key: 'hazmat', label: 'Hazmat' },
+  { key: 'tareWeight', label: 'Tare Weight' },
+  { key: 'netWeight', label: 'Net Weight' },
+  { key: 'hazmatClass', label: 'Hazmat Class' },
+  { key: 'hazmatGroup', label: 'Hazmat Group' },
+  { key: 'productClass', label: 'Product Class' },
+  { key: 'shippingClass', label: 'Shipping Class' },
+  { key: 'flashPoint', label: 'Flash Point' },
+  { key: 'countryOfOrigin', label: 'Country of Origin' },
+  { key: 'declaredValue', label: 'Declared Value' },
+  { key: 'thirdPartRef', label: 'Third Part Ref #' },
+  { key: 'batchLot', label: 'BatchLot #' },
+  { key: 'length', label: 'Length' },
+  { key: 'width', label: 'Width' },
+  { key: 'height', label: 'Height' },
 ]
 
+/* ── Styles matching prototype CSS exactly ── */
+
+const wrapperStyle = {
+  overflow: 'auto',
+  height: '100%',
+}
+
+const tableStyle = {
+  width: '100%',
+  borderCollapse: 'collapse',
+  fontFamily: 'var(--font-primary)',
+  fontSize: 13,
+  color: 'var(--text-secondary)',
+}
+
+const theadStyle = {
+  background: 'var(--bg-secondary)',
+  position: 'sticky',
+  top: 0,
+  zIndex: 1,
+}
+
 const thStyle = {
-  padding: '8px 10px',
+  padding: '10px 14px',
   textAlign: 'left',
-  whiteSpace: 'nowrap',
   fontSize: 12,
   fontWeight: 600,
   color: 'var(--text-placeholder)',
-  background: 'var(--bg-secondary)',
   borderBottom: '1px solid var(--border-subtle)',
-  position: 'sticky',
-  top: 0,
-  zIndex: 2,
+  whiteSpace: 'nowrap',
+  textTransform: 'uppercase',
+  letterSpacing: '0.03em',
+}
+
+const thExpandStyle = {
+  ...thStyle,
+  width: 36,
+  textAlign: 'center',
+  paddingLeft: 8,
+  paddingRight: 4,
 }
 
 const tdStyle = {
-  padding: '8px 10px',
-  whiteSpace: 'nowrap',
-  fontSize: 13,
-  color: 'var(--text-secondary)',
+  padding: '10px 14px',
   borderBottom: '1px solid var(--bg-tertiary)',
+  whiteSpace: 'nowrap',
+  fontWeight: 400,
+}
+
+const tdExpandStyle = {
+  ...tdStyle,
+  width: 36,
+  textAlign: 'center',
+  paddingLeft: 8,
+  paddingRight: 4,
+}
+
+const expandBtnBase = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  width: 22,
+  height: 22,
+  border: '1px solid var(--border-default)',
+  borderRadius: 'var(--radius-sm)',
+  background: 'var(--bg-primary)',
+  fontFamily: 'var(--font-primary)',
+  fontSize: 14,
+  fontWeight: 600,
+  color: 'var(--text-tertiary)',
+  cursor: 'pointer',
+  transition: 'background 0.15s ease, color 0.15s ease',
+  lineHeight: 1,
+  padding: 0,
+}
+
+const expandBtnExpanded = {
+  ...expandBtnBase,
+  background: 'var(--bg-tertiary)',
+  color: 'var(--text-primary)',
+}
+
+const colPrimaryStyle = {
+  ...tdStyle,
+  fontWeight: 500,
+  color: 'var(--text-primary)',
+}
+
+const hazmatTagBase = {
+  display: 'inline-block',
+  fontSize: 12,
+  fontWeight: 600,
+  padding: '1px 8px',
+  borderRadius: 'var(--radius-sm)',
+}
+
+const hazmatYesStyle = {
+  ...hazmatTagBase,
+  background: 'var(--badge-red-bg)',
+  color: 'var(--badge-red-text)',
+}
+
+const hazmatNoStyle = {
+  ...hazmatTagBase,
+  background: 'var(--bg-tertiary)',
+  color: 'var(--text-tertiary)',
 }
 
 export default function ProductTab({ data }) {
-  const [expandedOrders, setExpandedOrders] = useState(() => {
-    if (!data?.orders) return {}
-    const init = {}
-    data.orders.forEach((o) => { init[o.orderId] = true })
-    return init
-  })
+  const [expandedOrders, setExpandedOrders] = useState({})
 
   const toggleOrder = useCallback((orderId) => {
     setExpandedOrders((prev) => ({ ...prev, [orderId]: !prev[orderId] }))
   }, [])
 
-  if (!data?.orders) return <div className="text-sm" style={{ color: 'var(--text-placeholder)' }}>No product data available.</div>
+  if (!data?.orders) return <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-placeholder)' }}>No product data available.</div>
 
   return (
-    <div className="overflow-auto" style={{ maxHeight: '100%' }}>
-      <table className="w-full border-collapse" style={{ minWidth: 1800, fontFamily: 'var(--font-primary)' }}>
-        <thead>
+    <div style={{ ...wrapperStyle, margin: 'calc(-1 * var(--spacing-4)) calc(-1 * var(--spacing-5))' }}>
+      <table style={tableStyle}>
+        <thead style={theadStyle}>
           <tr>
-            <th style={{ ...thStyle, width: 40 }} />
+            <th style={thExpandStyle}></th>
+            <th style={thStyle}>Order #</th>
             {COLUMNS.map((col) => (
-              <th key={col.key} style={{ ...thStyle, width: col.width }}>
+              <th key={col.key} style={thStyle}>
                 {col.label}
               </th>
             ))}
@@ -75,7 +157,7 @@ export default function ProductTab({ data }) {
         </thead>
         <tbody>
           {data.orders.map((order) => {
-            const isExpanded = expandedOrders[order.orderId]
+            const isExpanded = !!expandedOrders[order.orderId]
             return (
               <OrderGroup
                 key={order.orderId}
@@ -92,35 +174,65 @@ export default function ProductTab({ data }) {
 }
 
 function OrderGroup({ order, isExpanded, onToggle }) {
+  const isSingleLine = order.lines.length === 1
+  const singleLine = isSingleLine ? order.lines[0] : null
+
+  /* Single-line orders render inline with no expand button */
+  if (isSingleLine) {
+    return (
+      <tr style={{ background: 'var(--bg-primary)' }}>
+        <td style={tdExpandStyle} />
+        <td style={colPrimaryStyle}>{order.orderId}</td>
+        {COLUMNS.map((col) => (
+          <td key={col.key} style={tdStyle}>
+            {col.key === 'hazmat' ? (
+              <HazmatTag value={singleLine.hazmat} />
+            ) : (
+              singleLine[col.key] ?? '\u2014'
+            )}
+          </td>
+        ))}
+      </tr>
+    )
+  }
+
+  /* Multi-line orders: collapsible parent + child rows */
   return (
     <>
       {/* Parent row */}
       <tr
-        style={{ background: 'var(--bg-secondary)', cursor: 'pointer' }}
+        style={{ background: 'var(--bg-primary)', cursor: 'pointer' }}
         onClick={onToggle}
       >
-        <td style={{ ...tdStyle, textAlign: 'center', fontWeight: 700, fontSize: 14, color: 'var(--text-tertiary)' }}>
-          {isExpanded ? '\u2212' : '+'}
+        <td style={tdExpandStyle}>
+          <button
+            style={isExpanded ? expandBtnExpanded : expandBtnBase}
+            onClick={(e) => { e.stopPropagation(); onToggle() }}
+            aria-label={isExpanded ? 'Collapse' : 'Expand'}
+          >
+            {isExpanded ? '\u2212' : '+'}
+          </button>
         </td>
-        <td colSpan={COLUMNS.length} style={{ ...tdStyle, fontWeight: 600, color: 'var(--text-primary)' }}>
-          {order.orderId}
-          <span className="ml-2 text-xs font-normal" style={{ color: 'var(--text-placeholder)' }}>
-            ({order.lineCount} {order.lineCount === 1 ? 'line' : 'lines'})
-          </span>
-        </td>
+        <td style={colPrimaryStyle}>{order.orderId}</td>
+        <td style={tdStyle}>{order.lineCount ?? order.lines.length}</td>
+        <td colSpan={COLUMNS.length - 1} style={tdStyle}></td>
       </tr>
 
       {/* Child rows */}
       {isExpanded &&
         order.lines.map((line, idx) => (
-          <tr key={`${order.orderId}-${idx}`} style={{ background: 'var(--bg-primary)' }}>
-            <td style={tdStyle} />
+          <tr
+            key={`${order.orderId}-${idx}`}
+            style={{ background: 'var(--bg-secondary)' }}
+          >
+            <td style={tdExpandStyle} />
+            <td style={colPrimaryStyle}>{order.orderId}</td>
             {COLUMNS.map((col) => (
               <td key={col.key} style={tdStyle}>
                 {col.key === 'hazmat' ? (
-                  <HazmatBadge value={line.hazmat} />
+                  <HazmatTag value={line.hazmat} />
                 ) : (
-                  line[col.key] ?? '--'
+                  line[col.key] ?? '\u2014'
                 )}
               </td>
             ))}
@@ -130,31 +242,9 @@ function OrderGroup({ order, isExpanded, onToggle }) {
   )
 }
 
-function HazmatBadge({ value }) {
+function HazmatTag({ value }) {
   if (value === true || value === 'Yes') {
-    return (
-      <span
-        className="text-xs font-semibold px-2 py-0.5"
-        style={{
-          borderRadius: 'var(--radius-sm)',
-          background: 'var(--badge-red-bg)',
-          color: 'var(--badge-red-text)',
-        }}
-      >
-        Yes
-      </span>
-    )
+    return <span style={hazmatYesStyle}>Yes</span>
   }
-  return (
-    <span
-      className="text-xs font-semibold px-2 py-0.5"
-      style={{
-        borderRadius: 'var(--radius-sm)',
-        background: 'var(--bg-tertiary)',
-        color: 'var(--text-placeholder)',
-      }}
-    >
-      No
-    </span>
-  )
+  return <span style={hazmatNoStyle}>No</span>
 }

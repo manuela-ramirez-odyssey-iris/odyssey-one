@@ -1,5 +1,5 @@
-import { useState, useCallback } from 'react'
-import { X, Copy, Check } from 'lucide-react'
+import { useState, useCallback, useEffect } from 'react'
+import { X, Copy, Check, Info } from 'lucide-react'
 
 const DATE_FIELDS = [
   { label: 'Pickup Date', key: 'pickupDate' },
@@ -20,8 +20,13 @@ const SAVED_QUERIES = [
   { name: 'Delivered -- Dallas Origin', query: 'origin:Dallas status:Delivered' },
 ]
 
-export default function FilterPanel({ isOpen, onClose, itemCount, onApplyFilters, onClearFilters }) {
-  const [activeTab, setActiveTab] = useState('all')
+export default function FilterPanel({ isOpen, onClose, itemCount, onApplyFilters, onClearFilters, initialTab = 'all' }) {
+  const [activeTab, setActiveTab] = useState(initialTab)
+
+  useEffect(() => {
+    setActiveTab(initialTab)
+  }, [initialTab])
+
   const [dateFilters, setDateFilters] = useState({})
   const [copiedIdx, setCopiedIdx] = useState(null)
 
@@ -49,12 +54,12 @@ export default function FilterPanel({ isOpen, onClose, itemCount, onApplyFilters
 
   return (
     <div
-      className="fixed top-16 bottom-0 right-0 z-30 flex flex-col"
+      className="flex flex-col shrink-0"
       style={{
         width: 354,
         background: 'var(--bg-primary)',
         borderLeft: '1px solid var(--border-subtle)',
-        boxShadow: '-4px 0 16px rgba(0,0,0,0.06)',
+        overflow: 'hidden',
       }}
     >
       {/* Header */}
@@ -97,12 +102,12 @@ export default function FilterPanel({ isOpen, onClose, itemCount, onApplyFilters
       </div>
 
       {/* Body */}
-      <div className="flex-1 min-h-0 overflow-auto" style={{ padding: 16 }}>
+      <div className="flex-1 min-h-0 overflow-auto" style={{ padding: 'var(--spacing-4)' }}>
         {activeTab === 'all' ? (
           <div>
             <div
               className="text-xs font-semibold uppercase tracking-wide"
-              style={{ color: 'var(--text-tertiary)', marginBottom: 12 }}
+              style={{ color: 'var(--text-tertiary)', marginBottom: 'var(--spacing-3)' }}
             >
               Schedule & Dates
             </div>
@@ -111,10 +116,7 @@ export default function FilterPanel({ isOpen, onClose, itemCount, onApplyFilters
                 <div key={field.key} className="flex flex-col gap-1">
                   <label className="text-xs font-medium flex items-center gap-1" style={{ color: 'var(--input-label)' }}>
                     {field.label}
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                      <circle cx="8" cy="8" r="6.5" stroke="var(--text-placeholder)" strokeWidth="1" />
-                      <path d="M8 7v4M8 5.5v.01" stroke="var(--text-placeholder)" strokeWidth="1.2" strokeLinecap="round" />
-                    </svg>
+                    <Info size={14} style={{ color: 'var(--text-placeholder)' }} />
                   </label>
                   <input
                     type="date"
