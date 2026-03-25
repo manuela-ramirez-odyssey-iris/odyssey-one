@@ -1,10 +1,68 @@
+import React, { useCallback } from 'react'
 import { MoreVertical } from 'lucide-react'
 import Badge from '../ui/Badge'
 
+const ShipmentRow = React.memo(function ShipmentRow({ shipment, isSelected, onSelect }) {
+  const s = shipment
+  return (
+    <tr
+      className="transition-colors duration-150 cursor-pointer"
+      style={{
+        background: isSelected ? 'var(--badge-blue-bg)' : 'var(--bg-primary)',
+      }}
+      onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.background = 'var(--bg-secondary)' }}
+      onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.background = 'var(--bg-primary)' }}
+      onClick={() => onSelect(s)}
+    >
+      <td style={{ padding: '0 var(--spacing-4)', height: 56, borderBottom: '1px solid var(--bg-tertiary)', textAlign: 'center' }}
+        onClick={(e) => { e.stopPropagation(); onSelect(s) }}>
+        <input
+          type="radio"
+          name="shipment-select"
+          checked={isSelected}
+          readOnly
+          style={{ accentColor: 'var(--border-focus)', width: 16, height: 16, cursor: 'pointer', pointerEvents: 'none' }}
+        />
+      </td>
+      <td style={{ padding: '0 var(--spacing-4)', height: 56, borderBottom: '1px solid var(--bg-tertiary)', whiteSpace: 'nowrap', fontWeight: 500, color: 'var(--text-secondary)' }}>
+        {s.buyShipment}
+      </td>
+      <td style={{ padding: '0 var(--spacing-4)', height: 56, borderBottom: '1px solid var(--bg-tertiary)', whiteSpace: 'nowrap' }}>
+        {s.customerId}
+      </td>
+      <td style={{ padding: '0 var(--spacing-4)', height: 56, borderBottom: '1px solid var(--bg-tertiary)', whiteSpace: 'nowrap', minWidth: 190 }}>
+        {s.orders.map((ord, i) => (
+          <Badge key={ord} variant={i % 2 === 0 ? 'amber' : 'blue'}>{ord}</Badge>
+        ))}
+      </td>
+      <td style={{ padding: '0 var(--spacing-4)', height: 56, borderBottom: '1px solid var(--bg-tertiary)', textAlign: 'center', minWidth: 80 }}>
+        {s.orderCount}
+      </td>
+      <td style={{ padding: '0 var(--spacing-4)', height: 56, borderBottom: '1px solid var(--bg-tertiary)', whiteSpace: 'nowrap', minWidth: 170 }}>
+        {s.pickupDate}
+      </td>
+      <td style={{ padding: '0 var(--spacing-4)', height: 56, borderBottom: '1px solid var(--bg-tertiary)', whiteSpace: 'nowrap', minWidth: 170 }}>
+        {s.deliveryDate}
+      </td>
+      <td style={{ padding: '0 var(--spacing-4)', height: 56, borderBottom: '1px solid var(--bg-tertiary)', whiteSpace: 'nowrap', minWidth: 180 }}>
+        {s.origin}
+      </td>
+      <td style={{ padding: '0 var(--spacing-4)', height: 56, borderBottom: '1px solid var(--bg-tertiary)', textAlign: 'center', width: 76 }}>
+        <button className="flex items-center justify-center mx-auto bg-transparent border-none cursor-pointer p-1">
+          <MoreVertical size={16} style={{ color: 'var(--text-placeholder)' }} />
+        </button>
+      </td>
+    </tr>
+  )
+}, (prevProps, nextProps) => {
+  return prevProps.isSelected === nextProps.isSelected &&
+    prevProps.shipment === nextProps.shipment
+})
+
 export default function ShipmentTable({ shipments, onRowSelect, selectedId }) {
-  const handleSelect = (shipment) => {
+  const handleSelect = useCallback((shipment) => {
     onRowSelect(selectedId === shipment.buyShipment ? null : shipment.buyShipment)
-  }
+  }, [onRowSelect, selectedId])
 
   return (
     <div className="flex-1 min-h-0 overflow-auto"
@@ -25,59 +83,14 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId }) {
           </tr>
         </thead>
         <tbody>
-          {shipments.map((s) => {
-            const isSelected = selectedId === s.buyShipment
-            return (
-              <tr key={s.buyShipment}
-                className="transition-colors duration-150 cursor-pointer"
-                style={{
-                  background: isSelected ? 'var(--badge-blue-bg)' : 'var(--bg-primary)',
-                }}
-                onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.background = 'var(--bg-secondary)' }}
-                onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.background = 'var(--bg-primary)' }}
-                onClick={() => handleSelect(s)}
-              >
-                <td style={{ padding: '0 var(--spacing-4)', height: 56, borderBottom: '1px solid var(--bg-tertiary)', textAlign: 'center' }}
-                  onClick={(e) => { e.stopPropagation(); handleSelect(s) }}>
-                  <input
-                    type="radio"
-                    name="shipment-select"
-                    checked={isSelected}
-                    readOnly
-                    style={{ accentColor: 'var(--border-focus)', width: 16, height: 16, cursor: 'pointer', pointerEvents: 'none' }}
-                  />
-                </td>
-                <td style={{ padding: '0 var(--spacing-4)', height: 56, borderBottom: '1px solid var(--bg-tertiary)', whiteSpace: 'nowrap', fontWeight: 500, color: 'var(--text-secondary)' }}>
-                  {s.buyShipment}
-                </td>
-                <td style={{ padding: '0 var(--spacing-4)', height: 56, borderBottom: '1px solid var(--bg-tertiary)', whiteSpace: 'nowrap' }}>
-                  {s.customerId}
-                </td>
-                <td style={{ padding: '0 var(--spacing-4)', height: 56, borderBottom: '1px solid var(--bg-tertiary)', whiteSpace: 'nowrap', minWidth: 190 }}>
-                  {s.orders.map((ord, i) => (
-                    <Badge key={ord} variant={i % 2 === 0 ? 'amber' : 'blue'}>{ord}</Badge>
-                  ))}
-                </td>
-                <td style={{ padding: '0 var(--spacing-4)', height: 56, borderBottom: '1px solid var(--bg-tertiary)', textAlign: 'center', minWidth: 80 }}>
-                  {s.orderCount}
-                </td>
-                <td style={{ padding: '0 var(--spacing-4)', height: 56, borderBottom: '1px solid var(--bg-tertiary)', whiteSpace: 'nowrap', minWidth: 170 }}>
-                  {s.pickupDate}
-                </td>
-                <td style={{ padding: '0 var(--spacing-4)', height: 56, borderBottom: '1px solid var(--bg-tertiary)', whiteSpace: 'nowrap', minWidth: 170 }}>
-                  {s.deliveryDate}
-                </td>
-                <td style={{ padding: '0 var(--spacing-4)', height: 56, borderBottom: '1px solid var(--bg-tertiary)', whiteSpace: 'nowrap', minWidth: 180 }}>
-                  {s.origin}
-                </td>
-                <td style={{ padding: '0 var(--spacing-4)', height: 56, borderBottom: '1px solid var(--bg-tertiary)', textAlign: 'center', width: 76 }}>
-                  <button className="flex items-center justify-center mx-auto bg-transparent border-none cursor-pointer p-1">
-                    <MoreVertical size={16} style={{ color: 'var(--text-placeholder)' }} />
-                  </button>
-                </td>
-              </tr>
-            )
-          })}
+          {shipments.map((s) => (
+            <ShipmentRow
+              key={s.buyShipment}
+              shipment={s}
+              isSelected={selectedId === s.buyShipment}
+              onSelect={handleSelect}
+            />
+          ))}
         </tbody>
       </table>
     </div>

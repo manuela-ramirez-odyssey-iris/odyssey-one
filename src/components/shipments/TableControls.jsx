@@ -10,6 +10,8 @@ export default function TableControls({
   onChipSelect,
   onToggleFilters,
   onToggleSavedSearches,
+  appliedSavedQuery,
+  onClearSavedQuery,
 }) {
   const [focused, setFocused] = useState(false)
   const inputRef = useRef(null)
@@ -45,6 +47,38 @@ export default function TableControls({
           }}
         >
           <Search size={16} style={{ color: focused ? 'var(--text-tertiary)' : 'var(--text-placeholder)', flexShrink: 0 }} />
+          {appliedSavedQuery && (
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+                background: 'var(--bg-tertiary)',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: 'var(--radius-sm)',
+                padding: '2px 6px 2px 8px',
+                fontSize: 11,
+                fontWeight: 500,
+                color: 'var(--text-tertiary)',
+                maxWidth: 200,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+              }}
+            >
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {appliedSavedQuery.name}
+              </span>
+              <button
+                onClick={(e) => { e.stopPropagation(); onClearSavedQuery && onClearSavedQuery() }}
+                className="flex items-center justify-center bg-transparent border-none cursor-pointer p-0"
+                style={{ color: 'var(--text-placeholder)', flexShrink: 0 }}
+              >
+                <X size={12} />
+              </button>
+            </span>
+          )}
           <input
             ref={inputRef}
             type="text"

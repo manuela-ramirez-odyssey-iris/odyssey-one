@@ -1,5 +1,4 @@
 import shipments from './shipments.json'
-import details from './shipment-details.json'
 
 export function getAllShipments() {
   return shipments
@@ -9,8 +8,23 @@ export function getShipmentById(id) {
   return shipments.find(s => s.buyShipment === id) || null
 }
 
+let detailsCache = null
+let detailsPromise = null
+
+export async function loadShipmentDetails() {
+  if (detailsCache) return detailsCache
+  if (!detailsPromise) {
+    detailsPromise = import('./shipment-details.json').then(m => {
+      detailsCache = m.default
+      return detailsCache
+    })
+  }
+  return detailsPromise
+}
+
 export function getShipmentDetails(id) {
-  return details[id] || null
+  if (!detailsCache) return null
+  return detailsCache[id] || null
 }
 
 export const SEARCH_ATTRIBUTES = [

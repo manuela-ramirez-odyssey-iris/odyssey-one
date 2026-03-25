@@ -1,16 +1,16 @@
 import { X } from 'lucide-react'
 
 export default function ColumnPanel({ isOpen, onClose }) {
-  if (!isOpen) return null
-
   return (
     <div
       className="flex flex-col shrink-0"
       style={{
-        width: 354,
+        width: isOpen ? 354 : 0,
+        minWidth: isOpen ? 354 : 0,
         background: 'var(--bg-primary)',
-        borderLeft: '1px solid var(--border-subtle)',
+        borderLeft: isOpen ? '1px solid var(--border-subtle)' : '0px solid var(--border-subtle)',
         overflow: 'hidden',
+        transition: 'width var(--transition-slow), min-width var(--transition-slow), border-left-width var(--transition-slow)',
       }}
     >
       {/* Header */}

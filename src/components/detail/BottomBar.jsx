@@ -1,15 +1,24 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import React, { useState, useEffect, useCallback, useMemo, useRef, Suspense } from 'react'
 import { ChevronLeft, ChevronRight, ChevronDown, Maximize2, Minimize2, X, Columns3Cog } from 'lucide-react'
-import OrderTab from './OrderTab'
-import StopsTab from './StopsTab'
-import ProductTab from './ProductTab'
-import RoutingGuideTab from './RoutingGuideTab'
-import CostAllocationTab from './CostAllocationTab'
-import InstructionsTab from './InstructionsTab'
-import DocumentsTab from './DocumentsTab'
-import NotesTab from './NotesTab'
-import HistoryTab from './HistoryTab'
-import TenderHistoryTab from './TenderHistoryTab'
+
+const OrderTab = React.lazy(() => import('./OrderTab'))
+const StopsTab = React.lazy(() => import('./StopsTab'))
+const ProductTab = React.lazy(() => import('./ProductTab'))
+const RoutingGuideTab = React.lazy(() => import('./RoutingGuideTab'))
+const CostAllocationTab = React.lazy(() => import('./CostAllocationTab'))
+const InstructionsTab = React.lazy(() => import('./InstructionsTab'))
+const DocumentsTab = React.lazy(() => import('./DocumentsTab'))
+const NotesTab = React.lazy(() => import('./NotesTab'))
+const HistoryTab = React.lazy(() => import('./HistoryTab'))
+const TenderHistoryTab = React.lazy(() => import('./TenderHistoryTab'))
+
+function TabLoader() {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'var(--spacing-12)', color: 'var(--text-placeholder)' }}>
+      <span style={{ fontSize: 'var(--font-size-sm)' }}>Loading...</span>
+    </div>
+  )
+}
 
 const TABS = [
   { key: 'order', label: 'Order' },
@@ -311,7 +320,9 @@ export default function BottomBar({ selectedShipmentId, shipmentDetails, onClose
       {/* Content */}
       {isExpanded && (
         <div key={selectedShipmentId} className="flex-1 min-h-0 overflow-auto" style={{ padding: 'var(--spacing-4) var(--spacing-5)' }}>
-          {renderTabContent()}
+          <Suspense fallback={<TabLoader />}>
+            {renderTabContent()}
+          </Suspense>
         </div>
       )}
     </div>

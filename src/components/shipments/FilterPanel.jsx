@@ -20,7 +20,7 @@ const SAVED_QUERIES = [
   { name: 'Delivered -- Dallas Origin', query: 'origin:Dallas status:Delivered' },
 ]
 
-export default function FilterPanel({ isOpen, onClose, itemCount, onApplyFilters, onClearFilters, initialTab = 'all' }) {
+export default function FilterPanel({ isOpen, onClose, itemCount, onApplyFilters, onClearFilters, onApplySavedQuery, initialTab = 'all' }) {
   const [activeTab, setActiveTab] = useState(initialTab)
 
   useEffect(() => {
@@ -50,16 +50,16 @@ export default function FilterPanel({ isOpen, onClose, itemCount, onApplyFilters
     })
   }, [])
 
-  if (!isOpen) return null
-
   return (
     <div
       className="flex flex-col shrink-0"
       style={{
-        width: 354,
+        width: isOpen ? 354 : 0,
+        minWidth: isOpen ? 354 : 0,
         background: 'var(--bg-primary)',
-        borderLeft: '1px solid var(--border-subtle)',
+        borderLeft: isOpen ? '1px solid var(--border-subtle)' : '0px solid var(--border-subtle)',
         overflow: 'hidden',
+        transition: 'width var(--transition-slow), min-width var(--transition-slow), border-left-width var(--transition-slow)',
       }}
     >
       {/* Header */}
@@ -142,6 +142,7 @@ export default function FilterPanel({ isOpen, onClose, itemCount, onApplyFilters
               <div
                 key={idx}
                 className="flex items-start gap-2 cursor-pointer"
+                onClick={() => onApplySavedQuery && onApplySavedQuery({ name: sq.name, query: sq.query })}
                 style={{
                   padding: '10px 12px',
                   borderRadius: 'var(--radius-md)',
