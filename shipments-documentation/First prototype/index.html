@@ -1,0 +1,1978 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Odyssey ONE</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Navbar -->
+  <header class="header">
+    <!-- Left: Hamburger + Logo -->
+    <div class="header-left">
+      <button class="icon-btn hamburger-btn" aria-label="Menu">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <path d="M3 5h14M3 10h14M3 15h14" stroke="#9DA3B0" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </button>
+      <div class="logo">
+        <img src="https://www.figma.com/api/mcp/asset/62aed918-0d05-427d-816e-ca780b7ff2bb" alt="Odyssey ONE" class="logo-img">
+      </div>
+    </div>
+
+    <!-- Center: Navigation + Search -->
+    <div class="header-center">
+      <div class="nav-arrows">
+        <button class="icon-btn nav-btn" aria-label="Go back">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <path d="M12 5L7 10L12 15" stroke="#9DA3B0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <button class="icon-btn nav-btn" aria-label="Go forward">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <path d="M8 5L13 10L8 15" stroke="#9DA3B0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Navbar search bar (original — fully functional) -->
+      <div class="nav-search-bar" id="navSearchBar">
+        <button class="nav-search-category" id="navSearchCategory" type="button">
+          <span class="nav-search-category-text" id="navCategoryText">Shipment Exceptions</span>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M4 6L8 10L12 6" stroke="#9DA3B0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <input type="text" class="nav-search-input" id="navSearchInput" placeholder="Search">
+        <div class="nav-search-applied-query" id="navSearchAppliedQuery" style="display:none;">
+          <span class="nav-search-applied-query-text" id="navSearchAppliedQueryText"></span>
+          <button class="nav-search-applied-query-remove" id="navSearchAppliedQueryRemove" type="button" aria-label="Remove saved query">
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+              <path d="M2 2L8 8M8 2L2 8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+        <button class="nav-search-clear" id="navSearchClear" type="button" aria-label="Clear search">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.2"/>
+            <path d="M6 6L10 10M10 6L6 10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Navbar category dropdown -->
+      <div class="nav-search-dropdown" id="navSearchDropdown">
+        <button class="search-dropdown-item" type="button" data-value="Global">Global</button>
+        <div class="search-dropdown-divider"></div>
+        <span class="search-dropdown-label">Shipments</span>
+        <button class="search-dropdown-item active" type="button" data-value="Shipment Exceptions">Shipment Exceptions</button>
+        <button class="search-dropdown-item" type="button" data-value="Monitoring">Monitoring</button>
+        <button class="search-dropdown-item" type="button" data-value="PGI/PGR">PGI/PGR</button>
+      </div>
+
+      <!-- Navbar search coincidences panel -->
+      <div class="nav-search-panel" id="navSearchPanel">
+        <div class="search-panel-layout">
+          <div class="search-panel-main">
+            <div class="search-panel-inner" id="navSearchPanelChipsView">
+              <div class="nav-search-chips" id="navSearchChips"></div>
+            </div>
+            <div class="nav-search-panel-saved" id="navSearchPanelSavedView" style="display:none;">
+              <div class="search-panel-saved-header">
+                <button class="search-panel-saved-back" id="navSearchSavedBackBtn" aria-label="Back to chips">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path d="M10 3L5 8L10 13" stroke="#6B7280" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+                <span class="search-panel-saved-title">Saved Searches</span>
+              </div>
+              <div class="search-panel-saved-list" id="navSearchPanelSavedList"></div>
+            </div>
+          </div>
+          <div class="nav-search-panel-actions">
+            <button class="search-filter-icon nav-filter-icon" id="navFilterIcon" aria-label="Filters">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <path d="M2 4h5M11 4h7M2 10h9M15 10h3M2 16h3M9 16h9" stroke="#6B7280" stroke-width="1.5" stroke-linecap="round"/>
+                <circle cx="8.5" cy="4" r="2.5" stroke="#6B7280" stroke-width="1.5"/>
+                <circle cx="13" cy="10" r="2.5" stroke="#6B7280" stroke-width="1.5"/>
+                <circle cx="6.5" cy="16" r="2.5" stroke="#6B7280" stroke-width="1.5"/>
+              </svg>
+            </button>
+            <button class="search-bookmark-icon" id="navSearchBookmarkBtn" aria-label="Saved searches">
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                <path d="M4.5 2.25h9a.75.75 0 01.75.75v13.5L9 13.125 3.75 16.5V3a.75.75 0 01.75-.75z" stroke="#6B7280" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Notifications + Profile -->
+    <div class="header-right">
+      <button class="icon-btn bell-btn" aria-label="Notifications">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <path d="M8 17.5C8.55 17.96 9.24 18.25 10 18.25C10.76 18.25 11.45 17.96 12 17.5" stroke="#9DA3B0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M3.5 14.17H16.5C15.17 14.17 14.5 13.17 14.5 11.67V8.33C14.5 5.83 12.5 1.67 10 1.67C7.5 1.67 5.5 5.83 5.5 8.33V11.67C5.5 13.17 4.83 14.17 3.5 14.17Z" stroke="#9DA3B0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="notification-badge">6</span>
+      </button>
+
+      <div class="profile-divider"></div>
+
+      <div class="profile-section">
+        <img src="https://www.figma.com/api/mcp/asset/ea366469-7833-4244-89de-889619d2812c" alt="Amy Cook" class="profile-avatar">
+        <div class="profile-info">
+          <span class="profile-name">Amy Cook</span>
+          <span class="profile-role">Admin</span>
+        </div>
+        <button class="icon-btn profile-dropdown-btn" aria-label="Profile menu">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M4 6L8 10L12 6" stroke="#9DA3B0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Layout: Sidebar + Content -->
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <nav class="sidebar-nav">
+        <!-- Top icon group -->
+        <div class="sidebar-group">
+          <button class="sidebar-btn" aria-label="Home" title="Home">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <path d="M3 10L10 3L17 10" stroke="#6B7280" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M5 8.5V16H8V12H12V16H15V8.5" stroke="#6B7280" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <button class="sidebar-btn active" aria-label="Shipments" title="Shipments">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <rect x="5" y="2" width="10" height="3" rx="1" stroke="#6B7280" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <rect x="4" y="4" width="12" height="14" rx="1.5" stroke="#6B7280" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <line x1="8" y1="9" x2="13" y2="9" stroke="#6B7280" stroke-width="1.5" stroke-linecap="round"/>
+              <line x1="8" y1="13" x2="13" y2="13" stroke="#6B7280" stroke-width="1.5" stroke-linecap="round"/>
+              <circle cx="6" cy="9" r="0.75" fill="#6B7280"/>
+              <circle cx="6" cy="13" r="0.75" fill="#6B7280"/>
+            </svg>
+          </button>
+          <button class="sidebar-btn" aria-label="Packages" title="Packages">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <path d="M2.5 6.5L10 2L17.5 6.5V13.5L10 18L2.5 13.5V6.5Z" stroke="#6B7280" stroke-width="1.5" stroke-linejoin="round"/>
+              <path d="M10 10V18" stroke="#6B7280" stroke-width="1.5"/>
+              <path d="M10 10L17.5 6.5" stroke="#6B7280" stroke-width="1.5"/>
+              <path d="M10 10L2.5 6.5" stroke="#6B7280" stroke-width="1.5"/>
+              <path d="M6.25 4.25L13.75 8.25" stroke="#6B7280" stroke-width="1.5"/>
+            </svg>
+          </button>
+          <button class="sidebar-btn" aria-label="Trucks" title="Trucks">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <path d="M2 4H11V14H2V4Z" stroke="#6B7280" stroke-width="1.5" stroke-linejoin="round"/>
+              <path d="M11 7H15L17.5 10V14H11V7Z" stroke="#6B7280" stroke-width="1.5" stroke-linejoin="round"/>
+              <circle cx="5.5" cy="14.5" r="1.75" stroke="#6B7280" stroke-width="1.5"/>
+              <circle cx="14.5" cy="14.5" r="1.75" stroke="#6B7280" stroke-width="1.5"/>
+            </svg>
+          </button>
+          <button class="sidebar-btn" aria-label="Routes" title="Routes">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <circle cx="5" cy="15" r="2.5" stroke="#6B7280" stroke-width="1.5"/>
+              <circle cx="15" cy="5" r="2.5" stroke="#6B7280" stroke-width="1.5"/>
+              <path d="M5 12.5V8C5 6.34 6.34 5 8 5H12.5" stroke="#6B7280" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Divider -->
+        <div class="sidebar-divider"></div>
+
+        <!-- Bottom icon group -->
+        <div class="sidebar-group">
+          <button class="sidebar-btn" aria-label="User Settings" title="User Settings">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <circle cx="8" cy="6" r="3" stroke="#6B7280" stroke-width="1.5"/>
+              <path d="M2 17C2 14.24 4.24 12 7 12H9" stroke="#6B7280" stroke-width="1.5" stroke-linecap="round"/>
+              <circle cx="15" cy="14" r="2.5" stroke="#6B7280" stroke-width="1.5"/>
+              <path d="M15 10.5V11.5M15 16.5V17.5M12 12.5L12.87 13M17.13 15L18 15.5M12 15.5L12.87 15M17.13 13L18 12.5" stroke="#6B7280" stroke-width="1.2" stroke-linecap="round"/>
+            </svg>
+          </button>
+          <button class="sidebar-btn" aria-label="Partners" title="Partners">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <path d="M3 10L5.5 7L8 10" stroke="#6B7280" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M12 10L14.5 7L17 10" stroke="#6B7280" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M5.5 10V12.5L10 16L14.5 12.5V10" stroke="#6B7280" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+      </nav>
+
+      <!-- Bottom logo -->
+      <div class="sidebar-logo">
+        <img src="https://www.figma.com/api/mcp/asset/0a15c2c3-132a-4b8d-8fad-302b89884e1d" alt="Odyssey" class="sidebar-logo-img">
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <h1 class="page-title">Shipments</h1>
+
+      <!-- Monitor Panels -->
+      <div class="monitor-panels" id="monitorPanels">
+        <div class="monitor-panel selected" data-panel="exceptions">
+          <div class="panel-title">Shipment Exceptions</div>
+          <div class="panel-metric"><span>Date Issues</span><span>5</span></div>
+          <div class="panel-metric"><span>Routing Review</span><span>5</span></div>
+          <div class="panel-metric"><span>Tender Issues</span><span>5</span></div>
+          <div class="panel-metric"><span>Tender Review</span><span>5</span></div>
+          <div class="panel-metric"><span>Tender Review</span><span>5</span></div>
+        </div>
+        <div class="monitor-panel" data-panel="monitoring">
+          <div class="panel-title">Monitoring</div>
+          <div class="panel-metric"><span>Hold</span><span>5</span></div>
+          <div class="panel-metric"><span>Consolidation</span><span>5</span></div>
+          <div class="panel-metric"><span>SpotBid</span><span>5</span></div>
+          <div class="panel-metric"><span>Approved</span><span>5</span></div>
+        </div>
+        <div class="monitor-panel" data-panel="pgipgr">
+          <div class="panel-title">PGI/PGR</div>
+          <div class="panel-metric"><span>PGI/PGR Errors</span><span>5</span></div>
+          <div class="panel-metric"><span>Rating Failure</span><span>5</span></div>
+          <div class="panel-metric"><span>Manual PGI/PGR</span><span>5</span></div>
+          <div class="panel-metric"><span>Missed PGI/PGR</span><span>5</span></div>
+        </div>
+      </div>
+
+      <!-- Collapse/Expand Toggle -->
+      <div class="collapse-toggle" id="collapseToggle">
+        <div class="collapse-line"></div>
+        <button class="collapse-btn" id="collapseBtn">
+          <span class="collapse-text">Collapse metrics</span>
+          <svg class="collapse-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M4 10L8 6L12 10" stroke="#6B7280" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <div class="collapse-line"></div>
+      </div>
+
+      <!-- Panel Content Area -->
+      <div id="panelContent">
+        <!-- Exceptions View (default) -->
+        <div class="panel-view active" id="viewExceptions">
+          <!-- Tabs -->
+          <div class="shipment-tabs">
+            <button class="shipment-tab active" data-tab="all">All (Exceptions)</button>
+            <button class="shipment-tab" data-tab="date-issues">Date Issues <span class="tab-badge">4</span></button>
+            <button class="shipment-tab" data-tab="routing-review">Routing Review <span class="tab-badge">4</span></button>
+            <button class="shipment-tab" data-tab="tender-issues">Tender Issues</button>
+            <button class="shipment-tab" data-tab="tender-review">Tender Review</button>
+            <button class="shipment-tab" data-tab="bid-review">Bid Review</button>
+          </div>
+
+          <!-- Table Controls -->
+          <div class="table-controls">
+            <span class="table-item-count">30 items</span>
+            <div class="table-search-bar" id="searchBar">
+              <svg class="table-search-icon" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.4"/>
+                <path d="M11 11L14 14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+              </svg>
+              <input type="text" class="search-input" id="searchInput" placeholder="Search shipments...">
+              <div class="search-applied-query" id="searchAppliedQuery" style="display:none;">
+                <span class="search-applied-query-text" id="searchAppliedQueryText"></span>
+                <button class="search-applied-query-remove" id="searchAppliedQueryRemove" type="button" aria-label="Remove saved query">
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                    <path d="M2 2L8 8M8 2L2 8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+                  </svg>
+                </button>
+              </div>
+              <button class="search-clear" id="searchClear" type="button" aria-label="Clear search">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M4 4L12 12M12 4L4 12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+                </svg>
+              </button>
+              <button class="table-search-bookmark" id="searchBookmarkBtn" aria-label="Saved searches">
+                <svg class="bookmark-outlined" width="16" height="16" viewBox="0 0 18 18" fill="none">
+                  <path d="M4.5 2.25h9a.75.75 0 01.75.75v13.5L9 13.125 3.75 16.5V3a.75.75 0 01.75-.75z" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <svg class="bookmark-filled" width="16" height="16" viewBox="0 0 18 18" fill="none" style="display:none;">
+                  <path d="M4.5 2.25h9a.75.75 0 01.75.75v13.5L9 13.125 3.75 16.5V3a.75.75 0 01.75-.75z" fill="currentColor" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </div>
+            <div class="table-actions">
+              <button class="action-btn sort-btn" aria-label="Sort">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M2 4h12M4 8h8M6 12h4" stroke="#384253" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+              </button>
+              <button class="action-btn export-btn">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M2 10v3a1 1 0 001 1h10a1 1 0 001-1v-3M8 2v8M5 5l3-3 3 3" stroke="#384253" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>Export</span>
+              </button>
+              <button class="action-btn actions-menu-btn">
+                <span>Actions</span>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M4 6L8 10L12 6" stroke="#384253" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Search Chips (inline, shown when searching) -->
+          <div class="table-search-chips" id="searchPanel">
+            <div class="search-chips" id="searchChips"></div>
+            <div class="table-search-chips-actions">
+              <button class="search-filter-icon" id="tableFilterIcon" aria-label="Filters">
+                <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+                  <path d="M2 4h5M11 4h7M2 10h9M15 10h3M2 16h3M9 16h9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                  <circle cx="8.5" cy="4" r="2.5" stroke="currentColor" stroke-width="1.5"/>
+                  <circle cx="13" cy="10" r="2.5" stroke="currentColor" stroke-width="1.5"/>
+                  <circle cx="6.5" cy="16" r="2.5" stroke="currentColor" stroke-width="1.5"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Saved Searches Panel (inline, shown when bookmark toggled) -->
+          <div class="table-search-saved" id="searchPanelSavedView" style="display:none;">
+            <div class="search-panel-saved-header">
+              <button class="search-panel-saved-back" id="searchSavedBackBtn" aria-label="Back to chips">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M10 3L5 8L10 13" stroke="#6B7280" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+              <span class="search-panel-saved-title">Saved Searches</span>
+            </div>
+            <div class="search-panel-saved-list" id="searchPanelSavedList"></div>
+          </div>
+
+          <!-- Shipments Table -->
+          <div class="table-wrapper">
+            <table class="shipment-table">
+              <thead>
+                <tr>
+                  <th class="col-checkbox"><input type="checkbox" class="row-checkbox select-all" aria-label="Select all"></th>
+                  <th class="col-shipment">Buy Shipment</th>
+                  <th class="col-customer">Customer ID(s)</th>
+                  <th class="col-order">Order #</th>
+                  <th class="col-ordercount">Order Count</th>
+                  <th class="col-pickup">Pickup Date</th>
+                  <th class="col-delivery">Delivery Date</th>
+                  <th class="col-origin">Origin</th>
+                  <th class="col-actions">
+                    <button class="col-config-btn" aria-label="Configure columns">
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M6.5 2v1.5M6.5 5.5V14M9.5 2v8.5M9.5 12.5V14M2 3.5h3M8.5 3.5h5.5M2 10.5h5.5M11.5 10.5H14" stroke="#9DA3B0" stroke-width="1.2" stroke-linecap="round"/>
+                        <circle cx="6.5" cy="3.5" r="1.5" stroke="#9DA3B0" stroke-width="1.2"/>
+                        <circle cx="9.5" cy="10.5" r="1.5" stroke="#9DA3B0" stroke-width="1.2"/>
+                      </svg>
+                    </button>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr data-buy-shipment="SHP-D78120458" data-sell-shipment="25690101" data-order="ORD-S26000074M,ORD-S26000075M" data-pro="PRO-445601" data-customer-id="ERCO_SYS_01" data-customer-name="ERCO Systems Inc" data-consignor="ERCO WORLDWIDE" data-consignee="MC ATHLON GEISMAR PL" data-origin="Houston TX US 77001" data-destination="Geismar LA US 70734" data-pickup="01/05/2026 09:00 CST" data-delivery="01/12/2026 09:00 CST" data-mode="FTL" data-equipment-code="FLT" data-equipment="8043" data-seal="S445601" data-scac="CTNS" data-tender-status="Done" data-shipment-status="Tender" data-gross-weight="6000" data-load="23567" data-load-count="2" data-order-count="2">
+                  <td class="col-checkbox"><input type="checkbox" class="row-checkbox" aria-label="Select row"></td>
+                  <td class="col-shipment cell-link">SHP-D78120458</td>
+                  <td class="col-customer">ERCO_SYS_01</td>
+                  <td class="col-order"><span class="order-badge amber">ORD-S26000074M</span> <span class="order-badge blue">ORD-S26000075M</span></td>
+                  <td class="col-ordercount">2</td>
+                  <td class="col-pickup">01/05/2026 09:00 CST</td>
+                  <td class="col-delivery">01/12/2026 09:00 CST</td>
+                  <td class="col-origin">Houston TX US 77001</td>
+                  <td class="col-actions"><button class="row-actions-btn" aria-label="Row actions"><svg width="4" height="16" viewBox="0 0 4 16" fill="none"><circle cx="2" cy="2" r="1.5" fill="#9DA3B0"/><circle cx="2" cy="8" r="1.5" fill="#9DA3B0"/><circle cx="2" cy="14" r="1.5" fill="#9DA3B0"/></svg></button></td>
+                </tr>
+                <tr data-buy-shipment="SHP-D78120457" data-sell-shipment="25690202" data-order="ORD-S26000073M" data-pro="PRO-445602" data-customer-id="G20TECH_SYS_01" data-customer-name="G2O Technologies LLC" data-consignor="G2O TECH SOLUTIONS" data-consignee="BAYOU CHEMICAL PLANT" data-origin="Bastrop LA US 71202" data-destination="Baton Rouge LA US 70801" data-pickup="01/06/2026 09:00 CST" data-delivery="01/13/2026 09:00 CST" data-mode="LTL" data-equipment-code="VAN" data-equipment="7215" data-seal="S445602" data-scac="JBHT" data-tender-status="Pending" data-shipment-status="Booked" data-gross-weight="4500" data-load="31482" data-load-count="1" data-order-count="1">
+                  <td class="col-checkbox"><input type="checkbox" class="row-checkbox" aria-label="Select row"></td>
+                  <td class="col-shipment cell-link">SHP-D78120457</td>
+                  <td class="col-customer">G20TECH_SYS_01</td>
+                  <td class="col-order"><span class="order-badge amber">ORD-S26000073M</span></td>
+                  <td class="col-ordercount">1</td>
+                  <td class="col-pickup">01/06/2026 09:00 CST</td>
+                  <td class="col-delivery">01/13/2026 09:00 CST</td>
+                  <td class="col-origin">Bastrop LA US 71202</td>
+                  <td class="col-actions"><button class="row-actions-btn" aria-label="Row actions"><svg width="4" height="16" viewBox="0 0 4 16" fill="none"><circle cx="2" cy="2" r="1.5" fill="#9DA3B0"/><circle cx="2" cy="8" r="1.5" fill="#9DA3B0"/><circle cx="2" cy="14" r="1.5" fill="#9DA3B0"/></svg></button></td>
+                </tr>
+                <tr data-buy-shipment="SHP-D78120456" data-sell-shipment="25690303" data-order="ORD-S26000072M,ORD-S26000071M" data-pro="PRO-445603" data-customer-id="USALCO_SYS_01" data-customer-name="USALCO LLC" data-consignor="USALCO CHEMICALS" data-consignee="WESTLAKE CHEMICAL PL" data-origin="Geismar LA US 70734" data-destination="Lake Charles LA US 70601" data-pickup="01/07/2026 09:00 CST" data-delivery="01/14/2026 09:00 CST" data-mode="FTL" data-equipment-code="LTH" data-equipment="9102" data-seal="S445603" data-scac="SNLU" data-tender-status="Done" data-shipment-status="In Transit" data-gross-weight="8200" data-load="44821" data-load-count="3" data-order-count="3">
+                  <td class="col-checkbox"><input type="checkbox" class="row-checkbox" aria-label="Select row"></td>
+                  <td class="col-shipment cell-link">SHP-D78120456</td>
+                  <td class="col-customer">USALCO_SYS_01</td>
+                  <td class="col-order"><span class="order-badge blue">ORD-S26000072M</span> <span class="order-badge amber">ORD-S26000071M</span></td>
+                  <td class="col-ordercount">3</td>
+                  <td class="col-pickup">01/07/2026 09:00 CST</td>
+                  <td class="col-delivery">01/14/2026 09:00 CST</td>
+                  <td class="col-origin">Geismar LA US 70734</td>
+                  <td class="col-actions"><button class="row-actions-btn" aria-label="Row actions"><svg width="4" height="16" viewBox="0 0 4 16" fill="none"><circle cx="2" cy="2" r="1.5" fill="#9DA3B0"/><circle cx="2" cy="8" r="1.5" fill="#9DA3B0"/><circle cx="2" cy="14" r="1.5" fill="#9DA3B0"/></svg></button></td>
+                </tr>
+                <tr data-buy-shipment="SHP-B28826322" data-sell-shipment="25690404" data-order="ORD-S26000070M" data-pro="PRO-445604" data-customer-id="ACME_LOG_01" data-customer-name="ACME Logistics Corp" data-consignor="ACME DISTRIBUTION CTR" data-consignee="GULF COAST RECEIVING" data-origin="Dallas TX US 75201" data-destination="San Antonio TX US 78201" data-pickup="01/08/2026 09:00 CST" data-delivery="01/15/2026 09:00 CST" data-mode="LTL" data-equipment-code="FLT" data-equipment="6331" data-seal="S445604" data-scac="USFC" data-tender-status="Rejected" data-shipment-status="Tender" data-gross-weight="3200" data-load="18934" data-load-count="1" data-order-count="1">
+                  <td class="col-checkbox"><input type="checkbox" class="row-checkbox" aria-label="Select row"></td>
+                  <td class="col-shipment cell-link">SHP-B28826322</td>
+                  <td class="col-customer">ACME_LOG_01</td>
+                  <td class="col-order"><span class="order-badge amber">ORD-S26000070M</span></td>
+                  <td class="col-ordercount">1</td>
+                  <td class="col-pickup">01/08/2026 09:00 CST</td>
+                  <td class="col-delivery">01/15/2026 09:00 CST</td>
+                  <td class="col-origin">Dallas TX US 75201</td>
+                  <td class="col-actions"><button class="row-actions-btn" aria-label="Row actions"><svg width="4" height="16" viewBox="0 0 4 16" fill="none"><circle cx="2" cy="2" r="1.5" fill="#9DA3B0"/><circle cx="2" cy="8" r="1.5" fill="#9DA3B0"/><circle cx="2" cy="14" r="1.5" fill="#9DA3B0"/></svg></button></td>
+                </tr>
+                <tr data-buy-shipment="SHP-D78120455" data-sell-shipment="25690505" data-order="ORD-S26000069M" data-pro="PRO-445605" data-customer-id="G20TECH_SYS_02" data-customer-name="G2O Technologies LLC" data-consignor="G2O ADVANCED MATERIALS" data-consignee="EASTMAN CHEMICAL RECV" data-origin="Houston TX US 77001" data-destination="Kingsport TN US 37660" data-pickup="01/09/2026 09:00 CST" data-delivery="01/16/2026 09:00 CST" data-mode="INTERMODAL" data-equipment-code="VAN" data-equipment="5478" data-seal="S445605" data-scac="CTNS" data-tender-status="Done" data-shipment-status="In Transit" data-gross-weight="7500" data-load="29176" data-load-count="2" data-order-count="2">
+                  <td class="col-checkbox"><input type="checkbox" class="row-checkbox" aria-label="Select row"></td>
+                  <td class="col-shipment cell-link">SHP-D78120455</td>
+                  <td class="col-customer">G20TECH_SYS_02</td>
+                  <td class="col-order"><span class="order-badge blue">ORD-S26000069M</span></td>
+                  <td class="col-ordercount">2</td>
+                  <td class="col-pickup">01/09/2026 09:00 CST</td>
+                  <td class="col-delivery">01/16/2026 09:00 CST</td>
+                  <td class="col-origin">Houston TX US 77001</td>
+                  <td class="col-actions"><button class="row-actions-btn" aria-label="Row actions"><svg width="4" height="16" viewBox="0 0 4 16" fill="none"><circle cx="2" cy="2" r="1.5" fill="#9DA3B0"/><circle cx="2" cy="8" r="1.5" fill="#9DA3B0"/><circle cx="2" cy="14" r="1.5" fill="#9DA3B0"/></svg></button></td>
+                </tr>
+                <tr data-buy-shipment="SHP-B28826321" data-sell-shipment="25690606" data-order="ORD-S26000068M,ORD-S26000067M" data-pro="PRO-445606" data-customer-id="USALCO_SYS_02" data-customer-name="USALCO LLC" data-consignor="USALCO SOUTHEAST" data-consignee="DOW CHEMICAL FREEPORT" data-origin="Bastrop LA US 71202" data-destination="Freeport TX US 77541" data-pickup="01/10/2026 09:00 CST" data-delivery="01/17/2026 09:00 CST" data-mode="FTL" data-equipment-code="REEFER" data-equipment="3290" data-seal="S445606" data-scac="ODFL" data-tender-status="Done" data-shipment-status="Delivered" data-gross-weight="11000" data-load="52413" data-load-count="4" data-order-count="4">
+                  <td class="col-checkbox"><input type="checkbox" class="row-checkbox" aria-label="Select row"></td>
+                  <td class="col-shipment cell-link">SHP-B28826321</td>
+                  <td class="col-customer">USALCO_SYS_02</td>
+                  <td class="col-order"><span class="order-badge amber">ORD-S26000068M</span> <span class="order-badge blue">ORD-S26000067M</span></td>
+                  <td class="col-ordercount">4</td>
+                  <td class="col-pickup">01/10/2026 09:00 CST</td>
+                  <td class="col-delivery">01/17/2026 09:00 CST</td>
+                  <td class="col-origin">Bastrop LA US 71202</td>
+                  <td class="col-actions"><button class="row-actions-btn" aria-label="Row actions"><svg width="4" height="16" viewBox="0 0 4 16" fill="none"><circle cx="2" cy="2" r="1.5" fill="#9DA3B0"/><circle cx="2" cy="8" r="1.5" fill="#9DA3B0"/><circle cx="2" cy="14" r="1.5" fill="#9DA3B0"/></svg></button></td>
+                </tr>
+                <tr data-buy-shipment="SHP-D78120454" data-sell-shipment="25690707" data-order="ORD-S26000066M" data-pro="PRO-445607" data-customer-id="ACME_LOG_02" data-customer-name="ACME Logistics Corp" data-consignor="ACME WAREHOUSING" data-consignee="BASF CORP WYANDOTTE" data-origin="Geismar LA US 70734" data-destination="Wyandotte MI US 48192" data-pickup="01/11/2026 09:00 CST" data-delivery="01/18/2026 09:00 CST" data-mode="FTL" data-equipment-code="FLT" data-equipment="4156" data-seal="S445607" data-scac="JBHT" data-tender-status="Pending" data-shipment-status="Booked" data-gross-weight="5800" data-load="67234" data-load-count="1" data-order-count="1">
+                  <td class="col-checkbox"><input type="checkbox" class="row-checkbox" aria-label="Select row"></td>
+                  <td class="col-shipment cell-link">SHP-D78120454</td>
+                  <td class="col-customer">ACME_LOG_02</td>
+                  <td class="col-order"><span class="order-badge amber">ORD-S26000066M</span></td>
+                  <td class="col-ordercount">1</td>
+                  <td class="col-pickup">01/11/2026 09:00 CST</td>
+                  <td class="col-delivery">01/18/2026 09:00 CST</td>
+                  <td class="col-origin">Geismar LA US 70734</td>
+                  <td class="col-actions"><button class="row-actions-btn" aria-label="Row actions"><svg width="4" height="16" viewBox="0 0 4 16" fill="none"><circle cx="2" cy="2" r="1.5" fill="#9DA3B0"/><circle cx="2" cy="8" r="1.5" fill="#9DA3B0"/><circle cx="2" cy="14" r="1.5" fill="#9DA3B0"/></svg></button></td>
+                </tr>
+                <tr data-buy-shipment="SHP-B28826320" data-sell-shipment="25690808" data-order="ORD-S26000065M" data-pro="PRO-445608" data-customer-id="ERCO_SYS_02" data-customer-name="ERCO Systems Inc" data-consignor="ERCO PROCESSING" data-consignee="HUNTSMAN CORP ODESSA" data-origin="Dallas TX US 75201" data-destination="Odessa TX US 79761" data-pickup="01/12/2026 09:00 CST" data-delivery="01/20/2026 09:00 CST" data-mode="LTL" data-equipment-code="LTH" data-equipment="2087" data-seal="S445608" data-scac="SNLU" data-tender-status="Done" data-shipment-status="Tender" data-gross-weight="9400" data-load="73581" data-load-count="3" data-order-count="5">
+                  <td class="col-checkbox"><input type="checkbox" class="row-checkbox" aria-label="Select row"></td>
+                  <td class="col-shipment cell-link">SHP-B28826320</td>
+                  <td class="col-customer">ERCO_SYS_02</td>
+                  <td class="col-order"><span class="order-badge blue">ORD-S26000065M</span></td>
+                  <td class="col-ordercount">5</td>
+                  <td class="col-pickup">01/12/2026 09:00 CST</td>
+                  <td class="col-delivery">01/20/2026 09:00 CST</td>
+                  <td class="col-origin">Dallas TX US 75201</td>
+                  <td class="col-actions"><button class="row-actions-btn" aria-label="Row actions"><svg width="4" height="16" viewBox="0 0 4 16" fill="none"><circle cx="2" cy="2" r="1.5" fill="#9DA3B0"/><circle cx="2" cy="8" r="1.5" fill="#9DA3B0"/><circle cx="2" cy="14" r="1.5" fill="#9DA3B0"/></svg></button></td>
+                </tr>
+                <tr data-buy-shipment="SHP-D78120453" data-sell-shipment="25690909" data-order="ORD-S26000064M,ORD-S26000063M" data-pro="PRO-445609" data-customer-id="G20TECH_SYS_03" data-customer-name="G2O Technologies LLC" data-consignor="G2O INNOVATIONS" data-consignee="LYONDELLBASELL CHANN" data-origin="Houston TX US 77001" data-destination="Channelview TX US 77530" data-pickup="01/14/2026 09:00 CST" data-delivery="02/01/2026 09:00 CST" data-mode="FTL" data-equipment-code="VAN" data-equipment="8891" data-seal="S445609" data-scac="USFC" data-tender-status="Rejected" data-shipment-status="In Transit" data-gross-weight="6700" data-load="40192" data-load-count="2" data-order-count="3">
+                  <td class="col-checkbox"><input type="checkbox" class="row-checkbox" aria-label="Select row"></td>
+                  <td class="col-shipment cell-link">SHP-D78120453</td>
+                  <td class="col-customer">G20TECH_SYS_03</td>
+                  <td class="col-order"><span class="order-badge amber">ORD-S26000064M</span> <span class="order-badge amber">ORD-S26000063M</span></td>
+                  <td class="col-ordercount">3</td>
+                  <td class="col-pickup">01/14/2026 09:00 CST</td>
+                  <td class="col-delivery">02/01/2026 09:00 CST</td>
+                  <td class="col-origin">Houston TX US 77001</td>
+                  <td class="col-actions"><button class="row-actions-btn" aria-label="Row actions"><svg width="4" height="16" viewBox="0 0 4 16" fill="none"><circle cx="2" cy="2" r="1.5" fill="#9DA3B0"/><circle cx="2" cy="8" r="1.5" fill="#9DA3B0"/><circle cx="2" cy="14" r="1.5" fill="#9DA3B0"/></svg></button></td>
+                </tr>
+                <tr data-buy-shipment="SHP-B28826319" data-sell-shipment="25691010" data-order="ORD-S26000062M" data-pro="PRO-445610" data-customer-id="USALCO_SYS_03" data-customer-name="USALCO LLC" data-consignor="USALCO GULF REGION" data-consignee="COVESTRO BAYTOWN PL" data-origin="Geismar LA US 70734" data-destination="Baytown TX US 77520" data-pickup="01/15/2026 09:00 CST" data-delivery="02/03/2026 09:00 CST" data-mode="INTERMODAL" data-equipment-code="FLT" data-equipment="1543" data-seal="S445610" data-scac="CTNS" data-tender-status="Done" data-shipment-status="Delivered" data-gross-weight="10200" data-load="85643" data-load-count="1" data-order-count="1">
+                  <td class="col-checkbox"><input type="checkbox" class="row-checkbox" aria-label="Select row"></td>
+                  <td class="col-shipment cell-link">SHP-B28826319</td>
+                  <td class="col-customer">USALCO_SYS_03</td>
+                  <td class="col-order"><span class="order-badge blue">ORD-S26000062M</span></td>
+                  <td class="col-ordercount">1</td>
+                  <td class="col-pickup">01/15/2026 09:00 CST</td>
+                  <td class="col-delivery">02/03/2026 09:00 CST</td>
+                  <td class="col-origin">Geismar LA US 70734</td>
+                  <td class="col-actions"><button class="row-actions-btn" aria-label="Row actions"><svg width="4" height="16" viewBox="0 0 4 16" fill="none"><circle cx="2" cy="2" r="1.5" fill="#9DA3B0"/><circle cx="2" cy="8" r="1.5" fill="#9DA3B0"/><circle cx="2" cy="14" r="1.5" fill="#9DA3B0"/></svg></button></td>
+                </tr>
+                <tr data-buy-shipment="SHP-D78120452" data-sell-shipment="25691111" data-order="ORD-S26000061M,ORD-S26000060M" data-pro="PRO-445611" data-customer-id="ACME_LOG_03" data-customer-name="ACME Logistics Corp" data-consignor="ACME FREIGHT SERVICES" data-consignee="OLIN CORP MCINTOSH" data-origin="Miami FL US 33101" data-destination="McIntosh AL US 36553" data-pickup="01/16/2026 09:00 CST" data-delivery="01/23/2026 09:00 CST" data-mode="FTL" data-equipment-code="REEFER" data-equipment="7762" data-seal="S445611" data-scac="ODFL" data-tender-status="Pending" data-shipment-status="Tender" data-gross-weight="4100" data-load="91245" data-load-count="2" data-order-count="2">
+                  <td class="col-checkbox"><input type="checkbox" class="row-checkbox" aria-label="Select row"></td>
+                  <td class="col-shipment cell-link">SHP-D78120452</td>
+                  <td class="col-customer">ACME_LOG_03</td>
+                  <td class="col-order"><span class="order-badge amber">ORD-S26000061M</span> <span class="order-badge blue">ORD-S26000060M</span></td>
+                  <td class="col-ordercount">2</td>
+                  <td class="col-pickup">01/16/2026 09:00 CST</td>
+                  <td class="col-delivery">01/23/2026 09:00 CST</td>
+                  <td class="col-origin">Miami FL US 33101</td>
+                  <td class="col-actions"><button class="row-actions-btn" aria-label="Row actions"><svg width="4" height="16" viewBox="0 0 4 16" fill="none"><circle cx="2" cy="2" r="1.5" fill="#9DA3B0"/><circle cx="2" cy="8" r="1.5" fill="#9DA3B0"/><circle cx="2" cy="14" r="1.5" fill="#9DA3B0"/></svg></button></td>
+                </tr>
+                <tr data-buy-shipment="SHP-B28826318" data-sell-shipment="25691212" data-order="ORD-S26000059M" data-pro="PRO-445612" data-customer-id="ERCO_SYS_03" data-customer-name="ERCO Systems Inc" data-consignor="ERCO GLOBAL LOGISTICS" data-consignee="SOLVAY CHEMICALS PL" data-origin="Atlanta GA US 30301" data-destination="Green River WY US 82935" data-pickup="01/17/2026 10:30 CST" data-delivery="01/24/2026 14:00 CST" data-mode="LTL" data-equipment-code="VAN" data-equipment="6604" data-seal="S445612" data-scac="JBHT" data-tender-status="Done" data-shipment-status="Booked" data-gross-weight="3800" data-load="14829" data-load-count="1" data-order-count="1">
+                  <td class="col-checkbox"><input type="checkbox" class="row-checkbox" aria-label="Select row"></td>
+                  <td class="col-shipment cell-link">SHP-B28826318</td>
+                  <td class="col-customer">ERCO_SYS_03</td>
+                  <td class="col-order"><span class="order-badge amber">ORD-S26000059M</span></td>
+                  <td class="col-ordercount">1</td>
+                  <td class="col-pickup">01/17/2026 10:30 CST</td>
+                  <td class="col-delivery">01/24/2026 14:00 CST</td>
+                  <td class="col-origin">Atlanta GA US 30301</td>
+                  <td class="col-actions"><button class="row-actions-btn" aria-label="Row actions"><svg width="4" height="16" viewBox="0 0 4 16" fill="none"><circle cx="2" cy="2" r="1.5" fill="#9DA3B0"/><circle cx="2" cy="8" r="1.5" fill="#9DA3B0"/><circle cx="2" cy="14" r="1.5" fill="#9DA3B0"/></svg></button></td>
+                </tr>
+                <tr data-buy-shipment="SHP-D78120451" data-sell-shipment="25691313" data-order="ORD-S26000058M,ORD-S26000057M" data-pro="PRO-445613" data-customer-id="G20TECH_SYS_04" data-customer-name="G2O Technologies LLC" data-consignor="G2O ENGINEERING" data-consignee="INEOS STYROLUTION PL" data-origin="Chicago IL US 60601" data-destination="Bayport TX US 77507" data-pickup="01/18/2026 08:00 CST" data-delivery="01/25/2026 09:00 CST" data-mode="FTL" data-equipment-code="LTH" data-equipment="3417" data-seal="S445613" data-scac="SNLU" data-tender-status="Done" data-shipment-status="In Transit" data-gross-weight="8900" data-load="56718" data-load-count="3" data-order-count="3">
+                  <td class="col-checkbox"><input type="checkbox" class="row-checkbox" aria-label="Select row"></td>
+                  <td class="col-shipment cell-link">SHP-D78120451</td>
+                  <td class="col-customer">G20TECH_SYS_04</td>
+                  <td class="col-order"><span class="order-badge blue">ORD-S26000058M</span> <span class="order-badge amber">ORD-S26000057M</span></td>
+                  <td class="col-ordercount">3</td>
+                  <td class="col-pickup">01/18/2026 08:00 CST</td>
+                  <td class="col-delivery">01/25/2026 09:00 CST</td>
+                  <td class="col-origin">Chicago IL US 60601</td>
+                  <td class="col-actions"><button class="row-actions-btn" aria-label="Row actions"><svg width="4" height="16" viewBox="0 0 4 16" fill="none"><circle cx="2" cy="2" r="1.5" fill="#9DA3B0"/><circle cx="2" cy="8" r="1.5" fill="#9DA3B0"/><circle cx="2" cy="14" r="1.5" fill="#9DA3B0"/></svg></button></td>
+                </tr>
+                <tr data-buy-shipment="SHP-B28826317" data-sell-shipment="25691414" data-order="ORD-S26000056M" data-pro="PRO-445614" data-customer-id="USALCO_SYS_04" data-customer-name="USALCO LLC" data-consignor="USALCO MOUNTAIN DIV" data-consignee="CHEMOURS CHAMBERS WK" data-origin="Denver CO US 80201" data-destination="Deepwater NJ US 08023" data-pickup="01/19/2026 07:00 CST" data-delivery="01/26/2026 11:00 CST" data-mode="LTL" data-equipment-code="FLT" data-equipment="9953" data-seal="S445614" data-scac="USFC" data-tender-status="Rejected" data-shipment-status="Delivered" data-gross-weight="5300" data-load="28467" data-load-count="1" data-order-count="1">
+                  <td class="col-checkbox"><input type="checkbox" class="row-checkbox" aria-label="Select row"></td>
+                  <td class="col-shipment cell-link">SHP-B28826317</td>
+                  <td class="col-customer">USALCO_SYS_04</td>
+                  <td class="col-order"><span class="order-badge amber">ORD-S26000056M</span></td>
+                  <td class="col-ordercount">1</td>
+                  <td class="col-pickup">01/19/2026 07:00 CST</td>
+                  <td class="col-delivery">01/26/2026 11:00 CST</td>
+                  <td class="col-origin">Denver CO US 80201</td>
+                  <td class="col-actions"><button class="row-actions-btn" aria-label="Row actions"><svg width="4" height="16" viewBox="0 0 4 16" fill="none"><circle cx="2" cy="2" r="1.5" fill="#9DA3B0"/><circle cx="2" cy="8" r="1.5" fill="#9DA3B0"/><circle cx="2" cy="14" r="1.5" fill="#9DA3B0"/></svg></button></td>
+                </tr>
+                <tr data-buy-shipment="SHP-D78120450" data-sell-shipment="25691515" data-order="ORD-S26000055M" data-pro="PRO-445615" data-customer-id="ACME_LOG_04" data-customer-name="ACME Logistics Corp" data-consignor="ACME PACIFIC NW" data-consignee="WEYERHAEUSER LONGVW" data-origin="Seattle WA US 98101" data-destination="Longview WA US 98632" data-pickup="01/20/2026 09:00 CST" data-delivery="01/27/2026 09:00 CST" data-mode="FTL" data-equipment-code="VAN" data-equipment="5230" data-seal="S445615" data-scac="CTNS" data-tender-status="Done" data-shipment-status="Booked" data-gross-weight="7200" data-load="63491" data-load-count="2" data-order-count="2">
+                  <td class="col-checkbox"><input type="checkbox" class="row-checkbox" aria-label="Select row"></td>
+                  <td class="col-shipment cell-link">SHP-D78120450</td>
+                  <td class="col-customer">ACME_LOG_04</td>
+                  <td class="col-order"><span class="order-badge blue">ORD-S26000055M</span></td>
+                  <td class="col-ordercount">2</td>
+                  <td class="col-pickup">01/20/2026 09:00 CST</td>
+                  <td class="col-delivery">01/27/2026 09:00 CST</td>
+                  <td class="col-origin">Seattle WA US 98101</td>
+                  <td class="col-actions"><button class="row-actions-btn" aria-label="Row actions"><svg width="4" height="16" viewBox="0 0 4 16" fill="none"><circle cx="2" cy="2" r="1.5" fill="#9DA3B0"/><circle cx="2" cy="8" r="1.5" fill="#9DA3B0"/><circle cx="2" cy="14" r="1.5" fill="#9DA3B0"/></svg></button></td>
+                </tr>
+                <tr data-buy-shipment="SHP-B28826316" data-sell-shipment="25691616" data-order="ORD-S26000054M,ORD-S26000053M" data-pro="PRO-445616" data-customer-id="ERCO_SYS_04" data-customer-name="ERCO Systems Inc" data-consignor="ERCO SOUTHWEST" data-consignee="FREEPORT MCMORAN PL" data-origin="Phoenix AZ US 85001" data-destination="Morenci AZ US 85540" data-pickup="01/21/2026 11:00 CST" data-delivery="01/28/2026 16:00 CST" data-mode="INTERMODAL" data-equipment-code="REEFER" data-equipment="1189" data-seal="S445616" data-scac="ODFL" data-tender-status="Pending" data-shipment-status="Tender" data-gross-weight="12000" data-load="47832" data-load-count="4" data-order-count="4">
+                  <td class="col-checkbox"><input type="checkbox" class="row-checkbox" aria-label="Select row"></td>
+                  <td class="col-shipment cell-link">SHP-B28826316</td>
+                  <td class="col-customer">ERCO_SYS_04</td>
+                  <td class="col-order"><span class="order-badge amber">ORD-S26000054M</span> <span class="order-badge blue">ORD-S26000053M</span></td>
+                  <td class="col-ordercount">4</td>
+                  <td class="col-pickup">01/21/2026 11:00 CST</td>
+                  <td class="col-delivery">01/28/2026 16:00 CST</td>
+                  <td class="col-origin">Phoenix AZ US 85001</td>
+                  <td class="col-actions"><button class="row-actions-btn" aria-label="Row actions"><svg width="4" height="16" viewBox="0 0 4 16" fill="none"><circle cx="2" cy="2" r="1.5" fill="#9DA3B0"/><circle cx="2" cy="8" r="1.5" fill="#9DA3B0"/><circle cx="2" cy="14" r="1.5" fill="#9DA3B0"/></svg></button></td>
+                </tr>
+                <tr data-buy-shipment="SHP-D78120449" data-sell-shipment="25691717" data-order="ORD-S26000052M" data-pro="PRO-445617" data-customer-id="G20TECH_SYS_05" data-customer-name="G2O Technologies LLC" data-consignor="G2O RESEARCH LABS" data-consignee="SEMPRA ENERGY OTAY" data-origin="San Diego CA US 92101" data-destination="Otay Mesa CA US 92154" data-pickup="01/22/2026 09:00 CST" data-delivery="01/29/2026 09:00 CST" data-mode="FTL" data-equipment-code="FLT" data-equipment="4472" data-seal="S445617" data-scac="JBHT" data-tender-status="Done" data-shipment-status="Delivered" data-gross-weight="3500" data-load="78213" data-load-count="1" data-order-count="1">
+                  <td class="col-checkbox"><input type="checkbox" class="row-checkbox" aria-label="Select row"></td>
+                  <td class="col-shipment cell-link">SHP-D78120449</td>
+                  <td class="col-customer">G20TECH_SYS_05</td>
+                  <td class="col-order"><span class="order-badge amber">ORD-S26000052M</span></td>
+                  <td class="col-ordercount">1</td>
+                  <td class="col-pickup">01/22/2026 09:00 CST</td>
+                  <td class="col-delivery">01/29/2026 09:00 CST</td>
+                  <td class="col-origin">San Diego CA US 92101</td>
+                  <td class="col-actions"><button class="row-actions-btn" aria-label="Row actions"><svg width="4" height="16" viewBox="0 0 4 16" fill="none"><circle cx="2" cy="2" r="1.5" fill="#9DA3B0"/><circle cx="2" cy="8" r="1.5" fill="#9DA3B0"/><circle cx="2" cy="14" r="1.5" fill="#9DA3B0"/></svg></button></td>
+                </tr>
+                <tr data-buy-shipment="SHP-B28826315" data-sell-shipment="25691818" data-order="ORD-S26000051M,ORD-S26000050M" data-pro="PRO-445618" data-customer-id="USALCO_SYS_05" data-customer-name="USALCO LLC" data-consignor="USALCO PACIFIC" data-consignee="INTEL HILLSBORO FAB" data-origin="Portland OR US 97201" data-destination="Hillsboro OR US 97124" data-pickup="01/23/2026 08:30 CST" data-delivery="01/30/2026 13:00 CST" data-mode="LTL" data-equipment-code="LTH" data-equipment="8316" data-seal="S445618" data-scac="SNLU" data-tender-status="Done" data-shipment-status="In Transit" data-gross-weight="6400" data-load="35974" data-load-count="2" data-order-count="2">
+                  <td class="col-checkbox"><input type="checkbox" class="row-checkbox" aria-label="Select row"></td>
+                  <td class="col-shipment cell-link">SHP-B28826315</td>
+                  <td class="col-customer">USALCO_SYS_05</td>
+                  <td class="col-order"><span class="order-badge blue">ORD-S26000051M</span> <span class="order-badge amber">ORD-S26000050M</span></td>
+                  <td class="col-ordercount">2</td>
+                  <td class="col-pickup">01/23/2026 08:30 CST</td>
+                  <td class="col-delivery">01/30/2026 13:00 CST</td>
+                  <td class="col-origin">Portland OR US 97201</td>
+                  <td class="col-actions"><button class="row-actions-btn" aria-label="Row actions"><svg width="4" height="16" viewBox="0 0 4 16" fill="none"><circle cx="2" cy="2" r="1.5" fill="#9DA3B0"/><circle cx="2" cy="8" r="1.5" fill="#9DA3B0"/><circle cx="2" cy="14" r="1.5" fill="#9DA3B0"/></svg></button></td>
+                </tr>
+                <tr data-buy-shipment="SHP-D78120448" data-sell-shipment="25691919" data-order="ORD-S26000049M" data-pro="PRO-445619" data-customer-id="ACME_LOG_05" data-customer-name="ACME Logistics Corp" data-consignor="ACME INTERMOUNTAIN" data-consignee="RIO TINTO KENNECOTT" data-origin="Salt Lake City UT US 84101" data-destination="Magna UT US 84044" data-pickup="01/24/2026 10:00 CST" data-delivery="01/31/2026 15:00 CST" data-mode="FTL" data-equipment-code="VAN" data-equipment="2645" data-seal="S445619" data-scac="CTNS" data-tender-status="Rejected" data-shipment-status="Booked" data-gross-weight="9800" data-load="50127" data-load-count="1" data-order-count="1">
+                  <td class="col-checkbox"><input type="checkbox" class="row-checkbox" aria-label="Select row"></td>
+                  <td class="col-shipment cell-link">SHP-D78120448</td>
+                  <td class="col-customer">ACME_LOG_05</td>
+                  <td class="col-order"><span class="order-badge amber">ORD-S26000049M</span></td>
+                  <td class="col-ordercount">1</td>
+                  <td class="col-pickup">01/24/2026 10:00 CST</td>
+                  <td class="col-delivery">01/31/2026 15:00 CST</td>
+                  <td class="col-origin">Salt Lake City UT US 84101</td>
+                  <td class="col-actions"><button class="row-actions-btn" aria-label="Row actions"><svg width="4" height="16" viewBox="0 0 4 16" fill="none"><circle cx="2" cy="2" r="1.5" fill="#9DA3B0"/><circle cx="2" cy="8" r="1.5" fill="#9DA3B0"/><circle cx="2" cy="14" r="1.5" fill="#9DA3B0"/></svg></button></td>
+                </tr>
+                <tr data-buy-shipment="SHP-B28826314" data-sell-shipment="25692020" data-order="ORD-S26000048M" data-pro="PRO-445620" data-customer-id="ERCO_SYS_05" data-customer-name="ERCO Systems Inc" data-consignor="ERCO MIDWEST" data-consignee="NOURYON COLUMBUS PL" data-origin="Kansas City MO US 64101" data-destination="Columbus MS US 39701" data-pickup="01/25/2026 07:30 CST" data-delivery="02/01/2026 12:00 CST" data-mode="FTL" data-equipment-code="REEFER" data-equipment="7738" data-seal="S445620" data-scac="ODFL" data-tender-status="Done" data-shipment-status="Tender" data-gross-weight="4700" data-load="82156" data-load-count="3" data-order-count="3">
+                  <td class="col-checkbox"><input type="checkbox" class="row-checkbox" aria-label="Select row"></td>
+                  <td class="col-shipment cell-link">SHP-B28826314</td>
+                  <td class="col-customer">ERCO_SYS_05</td>
+                  <td class="col-order"><span class="order-badge blue">ORD-S26000048M</span></td>
+                  <td class="col-ordercount">3</td>
+                  <td class="col-pickup">01/25/2026 07:30 CST</td>
+                  <td class="col-delivery">02/01/2026 12:00 CST</td>
+                  <td class="col-origin">Kansas City MO US 64101</td>
+                  <td class="col-actions"><button class="row-actions-btn" aria-label="Row actions"><svg width="4" height="16" viewBox="0 0 4 16" fill="none"><circle cx="2" cy="2" r="1.5" fill="#9DA3B0"/><circle cx="2" cy="8" r="1.5" fill="#9DA3B0"/><circle cx="2" cy="14" r="1.5" fill="#9DA3B0"/></svg></button></td>
+                </tr>
+                <tr data-buy-shipment="SHP-D78120447" data-sell-shipment="25692121" data-order="ORD-S26000047M,ORD-S26000046M" data-pro="PRO-445621" data-customer-id="G20TECH_SYS_06" data-customer-name="G2O Technologies LLC" data-consignor="G2O GULF OPERATIONS" data-consignee="CF INDUSTRIES DONALDSV" data-origin="New Orleans LA US 70112" data-destination="Donaldsonville LA US 70346" data-pickup="01/26/2026 09:00 CST" data-delivery="02/02/2026 09:00 CST" data-mode="INTERMODAL" data-equipment-code="LTH" data-equipment="6025" data-seal="S445621" data-scac="USFC" data-tender-status="Pending" data-shipment-status="In Transit" data-gross-weight="11500" data-load="19843" data-load-count="4" data-order-count="5">
+                  <td class="col-checkbox"><input type="checkbox" class="row-checkbox" aria-label="Select row"></td>
+                  <td class="col-shipment cell-link">SHP-D78120447</td>
+                  <td class="col-customer">G20TECH_SYS_06</td>
+                  <td class="col-order"><span class="order-badge amber">ORD-S26000047M</span> <span class="order-badge blue">ORD-S26000046M</span></td>
+                  <td class="col-ordercount">5</td>
+                  <td class="col-pickup">01/26/2026 09:00 CST</td>
+                  <td class="col-delivery">02/02/2026 09:00 CST</td>
+                  <td class="col-origin">New Orleans LA US 70112</td>
+                  <td class="col-actions"><button class="row-actions-btn" aria-label="Row actions"><svg width="4" height="16" viewBox="0 0 4 16" fill="none"><circle cx="2" cy="2" r="1.5" fill="#9DA3B0"/><circle cx="2" cy="8" r="1.5" fill="#9DA3B0"/><circle cx="2" cy="14" r="1.5" fill="#9DA3B0"/></svg></button></td>
+                </tr>
+                <tr data-buy-shipment="SHP-B28826313" data-sell-shipment="25692222" data-order="ORD-S26000045M" data-pro="PRO-445622" data-customer-id="USALCO_SYS_06" data-customer-name="USALCO LLC" data-consignor="USALCO NORTH CENTRAL" data-consignee="3M COTTAGE GROVE PL" data-origin="Minneapolis MN US 55401" data-destination="Cottage Grove MN US 55016" data-pickup="01/27/2026 08:00 CST" data-delivery="02/03/2026 14:30 CST" data-mode="FTL" data-equipment-code="FLT" data-equipment="3581" data-seal="S445622" data-scac="JBHT" data-tender-status="Done" data-shipment-status="Delivered" data-gross-weight="8600" data-load="41058" data-load-count="2" data-order-count="2">
+                  <td class="col-checkbox"><input type="checkbox" class="row-checkbox" aria-label="Select row"></td>
+                  <td class="col-shipment cell-link">SHP-B28826313</td>
+                  <td class="col-customer">USALCO_SYS_06</td>
+                  <td class="col-order"><span class="order-badge amber">ORD-S26000045M</span></td>
+                  <td class="col-ordercount">2</td>
+                  <td class="col-pickup">01/27/2026 08:00 CST</td>
+                  <td class="col-delivery">02/03/2026 14:30 CST</td>
+                  <td class="col-origin">Minneapolis MN US 55401</td>
+                  <td class="col-actions"><button class="row-actions-btn" aria-label="Row actions"><svg width="4" height="16" viewBox="0 0 4 16" fill="none"><circle cx="2" cy="2" r="1.5" fill="#9DA3B0"/><circle cx="2" cy="8" r="1.5" fill="#9DA3B0"/><circle cx="2" cy="14" r="1.5" fill="#9DA3B0"/></svg></button></td>
+                </tr>
+                <tr data-buy-shipment="SHP-D78120446" data-sell-shipment="25692323" data-order="ORD-S26000044M,ORD-S26000043M" data-pro="PRO-445623" data-customer-id="ACME_LOG_06" data-customer-name="ACME Logistics Corp" data-consignor="ACME GREAT LAKES" data-consignee="DOW MIDLAND COMPLEX" data-origin="Detroit MI US 48201" data-destination="Midland MI US 48640" data-pickup="01/28/2026 09:00 CST" data-delivery="02/04/2026 09:00 CST" data-mode="LTL" data-equipment-code="REEFER" data-equipment="9104" data-seal="S445623" data-scac="SNLU" data-tender-status="Rejected" data-shipment-status="In Transit" data-gross-weight="5100" data-load="69372" data-load-count="3" data-order-count="4">
+                  <td class="col-checkbox"><input type="checkbox" class="row-checkbox" aria-label="Select row"></td>
+                  <td class="col-shipment cell-link">SHP-D78120446</td>
+                  <td class="col-customer">ACME_LOG_06</td>
+                  <td class="col-order"><span class="order-badge blue">ORD-S26000044M</span> <span class="order-badge amber">ORD-S26000043M</span></td>
+                  <td class="col-ordercount">4</td>
+                  <td class="col-pickup">01/28/2026 09:00 CST</td>
+                  <td class="col-delivery">02/04/2026 09:00 CST</td>
+                  <td class="col-origin">Detroit MI US 48201</td>
+                  <td class="col-actions"><button class="row-actions-btn" aria-label="Row actions"><svg width="4" height="16" viewBox="0 0 4 16" fill="none"><circle cx="2" cy="2" r="1.5" fill="#9DA3B0"/><circle cx="2" cy="8" r="1.5" fill="#9DA3B0"/><circle cx="2" cy="14" r="1.5" fill="#9DA3B0"/></svg></button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Monitoring View (placeholder) -->
+        <div class="panel-view" id="viewMonitoring">
+          <div class="placeholder-message">Monitoring view coming soon</div>
+        </div>
+
+        <!-- PGI/PGR View (placeholder) -->
+        <div class="panel-view" id="viewPgipgr">
+          <div class="placeholder-message">PGI/PGR view coming soon</div>
+        </div>
+      </div>
+
+      <!-- Bottom Fixed Bar -->
+      <div class="bottom-bar" id="bottomBar">
+        <div class="bottom-bar-header">
+          <div class="bottom-bar-tabs">
+            <span class="bottom-bar-select-text" id="bottomBarSelectText">Select a Shipment</span>
+            <button class="bottom-tab" data-tab="order">Order</button>
+            <button class="bottom-tab" data-tab="stops">Stops</button>
+            <button class="bottom-tab" data-tab="product">Product</button>
+            <button class="bottom-tab" data-tab="routing">Routing guide</button>
+            <button class="bottom-tab" data-tab="tender">Tender History</button>
+            <button class="bottom-tab" data-tab="cost">Cost Allocation</button>
+            <button class="bottom-tab" data-tab="instructions">Instructions</button>
+            <button class="bottom-tab" data-tab="history">History</button>
+            <button class="bottom-tab" data-tab="documents">Documents</button>
+            <button class="bottom-tab" data-tab="notes">Notes</button>
+          </div>
+          <div class="bottom-bar-actions">
+            <button class="bottom-nav-btn" aria-label="Previous">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M10 4L6 8L10 12" stroke="#9DA3B0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+            <button class="bottom-nav-btn" aria-label="Next">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M6 4L10 8L6 12" stroke="#9DA3B0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+            <button class="bottom-config-btn" aria-label="Configure">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M6.5 2v1.5M6.5 5.5V14M9.5 2v8.5M9.5 12.5V14M2 3.5h3M8.5 3.5h5.5M2 10.5h5.5M11.5 10.5H14" stroke="#9DA3B0" stroke-width="1.2" stroke-linecap="round"/>
+                <circle cx="6.5" cy="3.5" r="1.5" stroke="#9DA3B0" stroke-width="1.2"/>
+                <circle cx="9.5" cy="10.5" r="1.5" stroke="#9DA3B0" stroke-width="1.2"/>
+              </svg>
+            </button>
+            <div class="bottom-bar-separator"></div>
+            <button class="bottom-nav-btn" id="bottomBarFullscreen" aria-label="Toggle fullscreen">
+              <svg class="icon-expand" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4" stroke="#9DA3B0" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <svg class="icon-collapse" width="16" height="16" viewBox="0 0 16 16" fill="none" style="display:none;">
+                <path d="M6 2v4H2M10 6h4V2M10 14v-4h4M6 10H2v4" stroke="#9DA3B0" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+            <button class="bottom-nav-btn" id="bottomBarClose" aria-label="Close">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M4 4L12 12M12 4L4 12" stroke="#9DA3B0" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div class="bottom-bar-content" id="bottomBarContent">
+          <!-- Order Tab -->
+          <div class="bottom-tab-view active" id="bottomTabOrder">
+            <div class="order-detail-grid">
+              <!-- Row 1 -->
+              <div class="order-section">
+                <div class="order-section-title">General</div>
+                <div class="order-section-grid cols-2">
+                  <div class="order-field">
+                    <span class="order-field-label">Order# / Client Order#</span>
+                    <span class="order-field-value" data-field="order-number">S260004NGW</span>
+                  </div>
+                  <div class="order-field">
+                    <span class="order-field-label">Ship Direction</span>
+                    <span class="order-field-value" data-field="ship-direction">Outbound</span>
+                  </div>
+                  <div class="order-field">
+                    <span class="order-field-label">Order Date</span>
+                    <span class="order-field-value" data-field="order-date">01/08/2026 09:11 AM, US/Eastern</span>
+                  </div>
+                  <div class="order-field">
+                    <span class="order-field-label">Payment Terms</span>
+                    <span class="order-field-value" data-field="payment-terms">Prepaid</span>
+                  </div>
+                  <div class="order-field">
+                    <span class="order-field-label">Shipment Mode</span>
+                    <span class="order-field-value" data-field="shipment-mode">Ground</span>
+                  </div>
+                  <div class="order-field">
+                    <span class="order-field-label">Expedited</span>
+                    <span class="order-field-value" data-field="expedited">No</span>
+                  </div>
+                  <div class="order-field">
+                    <span class="order-field-label">Instructions</span>
+                    <span class="order-field-value" data-field="instructions"></span>
+                  </div>
+                  <div class="order-field">
+                    <span class="order-field-label">Consolidatable</span>
+                    <span class="order-field-value" data-field="consolidatable">Yes</span>
+                  </div>
+                </div>
+              </div>
+              <div class="order-section">
+                <div class="order-section-title">Requested Transportation</div>
+                <div class="order-section-grid cols-1">
+                  <div class="order-field">
+                    <span class="order-field-label">Equipment</span>
+                    <span class="order-field-value" data-field="equipment">LTL</span>
+                  </div>
+                  <div class="order-field">
+                    <span class="order-field-label">Special Service(s)</span>
+                    <span class="order-field-value" data-field="special-services"></span>
+                  </div>
+                  <div class="order-field">
+                    <span class="order-field-label">LSP</span>
+                    <span class="order-field-value" data-field="lsp"></span>
+                  </div>
+                  <div class="order-field">
+                    <span class="order-field-label">Carrier</span>
+                    <span class="order-field-value" data-field="carrier"></span>
+                  </div>
+                </div>
+              </div>
+              <div class="order-section">
+                <div class="order-section-title">Ship From</div>
+                <div class="order-section-grid cols-1">
+                  <div class="order-field">
+                    <span class="order-field-label">Site ID</span>
+                    <span class="order-field-value" data-field="ship-from-site">ABC Company</span>
+                  </div>
+                  <div class="order-field">
+                    <span class="order-field-label">Company</span>
+                    <span class="order-field-value" data-field="ship-from-company">ABC Company</span>
+                  </div>
+                  <div class="order-field">
+                    <span class="order-field-label">Location</span>
+                    <span class="order-field-value" data-field="ship-from-location">55301, ALBERTVILLE, MN, US</span>
+                  </div>
+                  <div class="order-field">
+                    <span class="order-field-label">Address</span>
+                    <span class="order-field-value" data-field="ship-from-address">123 Main Street</span>
+                  </div>
+                </div>
+              </div>
+              <div class="order-section">
+                <div class="order-section-title">Ship To</div>
+                <div class="order-section-grid cols-1">
+                  <div class="order-field">
+                    <span class="order-field-label">Site ID</span>
+                    <span class="order-field-value" data-field="ship-to-site">Acme</span>
+                  </div>
+                  <div class="order-field">
+                    <span class="order-field-label">Company</span>
+                    <span class="order-field-value" data-field="ship-to-company">Acme</span>
+                  </div>
+                  <div class="order-field">
+                    <span class="order-field-label">Location</span>
+                    <span class="order-field-value" data-field="ship-to-location">33321, TAMARAC, FL, US</span>
+                  </div>
+                  <div class="order-field">
+                    <span class="order-field-label">Address</span>
+                    <span class="order-field-value" data-field="ship-to-address">987 East Main Street</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Row 2 -->
+              <div class="order-section">
+                <div class="order-section-title">Requested Schedule (Fixed Pickup)</div>
+                <div class="order-section-grid cols-1">
+                  <div class="order-field">
+                    <span class="order-field-label">Earliest Pickup</span>
+                    <span class="order-field-value" data-field="earliest-pickup">01/08/2026 08:00 AM, America/Chicago</span>
+                  </div>
+                  <div class="order-field">
+                    <span class="order-field-label">Latest Pickup</span>
+                    <span class="order-field-value" data-field="latest-pickup">01/08/2026 05:00 PM, America/Chicago</span>
+                  </div>
+                  <div class="order-field">
+                    <span class="order-field-label">Earliest Delivery</span>
+                    <span class="order-field-value" data-field="earliest-delivery"></span>
+                  </div>
+                  <div class="order-field">
+                    <span class="order-field-label">Latest Delivery</span>
+                    <span class="order-field-value" data-field="latest-delivery"></span>
+                  </div>
+                </div>
+              </div>
+              <div class="order-section">
+                <div class="order-section-title">Products Info</div>
+                <div class="order-section-grid cols-1">
+                  <div class="order-field">
+                    <span class="order-field-label">Number of Products</span>
+                    <span class="order-field-value" data-field="num-products">1</span>
+                  </div>
+                  <div class="order-field">
+                    <span class="order-field-label">Products</span>
+                    <span class="order-field-value" data-field="products">1. Reprocessed Pellets</span>
+                  </div>
+                </div>
+              </div>
+              <div class="order-section">
+                <div class="order-section-title">Totals</div>
+                <div class="order-section-grid cols-1">
+                  <div class="order-field">
+                    <span class="order-field-label">Total Product Weight</span>
+                    <span class="order-field-value" data-field="total-weight">200.000 lb</span>
+                  </div>
+                  <div class="order-field">
+                    <span class="order-field-label">Total Volume</span>
+                    <span class="order-field-value" data-field="total-volume">64.000 cuft</span>
+                  </div>
+                  <div class="order-field">
+                    <span class="order-field-label">Hazmat</span>
+                    <span class="order-field-value" data-field="hazmat">No</span>
+                  </div>
+                </div>
+              </div>
+              <div class="order-section">
+                <div class="order-section-title">Incoterms & Ocean/Air Ports</div>
+                <div class="order-section-grid cols-1">
+                  <div class="order-field">
+                    <span class="order-field-label">Incoterms Code</span>
+                    <span class="order-field-value" data-field="incoterms-code"></span>
+                  </div>
+                  <div class="order-field">
+                    <span class="order-field-label">Incoterms Location</span>
+                    <span class="order-field-value" data-field="incoterms-location"></span>
+                  </div>
+                  <div class="order-field">
+                    <span class="order-field-label">Move Type</span>
+                    <span class="order-field-value" data-field="move-type"></span>
+                  </div>
+                  <div class="order-field">
+                    <span class="order-field-label">Port Of Loading/Discharge</span>
+                    <span class="order-field-value" data-field="port">None / None</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Row 3 -->
+              <div class="order-section">
+                <div class="order-section-title">References</div>
+                <div class="order-section-grid cols-2">
+                  <div class="order-field">
+                    <span class="order-field-label">Sales Order#</span>
+                    <span class="order-field-value" data-field="sales-order"></span>
+                  </div>
+                  <div class="order-field">
+                    <span class="order-field-label">Quote#</span>
+                    <span class="order-field-value" data-field="quote"></span>
+                  </div>
+                  <div class="order-field">
+                    <span class="order-field-label">Purchase Order#</span>
+                    <span class="order-field-value" data-field="purchase-order"></span>
+                  </div>
+                  <div class="order-field">
+                    <span class="order-field-label">Pro#/Booking#</span>
+                    <span class="order-field-value" data-field="ref-pro"></span>
+                  </div>
+                  <div class="order-field">
+                    <span class="order-field-label">Pickup Number</span>
+                    <span class="order-field-value" data-field="pickup-number"></span>
+                  </div>
+                  <div class="order-field">
+                    <span class="order-field-label">P/U Confirmation#</span>
+                    <span class="order-field-value" data-field="pu-confirmation"></span>
+                  </div>
+                </div>
+              </div>
+              <div class="order-section">
+                <div class="order-section-title">Merged References</div>
+                <div class="order-section-grid cols-1">
+                  <div class="order-field">
+                    <span class="order-field-label">Quote#</span>
+                    <span class="order-field-value" data-field="merged-quote"></span>
+                  </div>
+                  <div class="order-field">
+                    <span class="order-field-label">Pro#/Booking#</span>
+                    <span class="order-field-value" data-field="merged-pro"></span>
+                  </div>
+                  <div class="order-field">
+                    <span class="order-field-label">P/U Confirmation#</span>
+                    <span class="order-field-value" data-field="merged-pu"></span>
+                  </div>
+                </div>
+              </div>
+              <div class="order-section">
+                <div class="order-section-title">Contact Details</div>
+                <div class="order-section-grid cols-1">
+                  <div class="order-field">
+                    <span class="order-field-label">Name</span>
+                    <span class="order-field-value" data-field="contact-name">Lucas Smith</span>
+                  </div>
+                  <div class="order-field">
+                    <span class="order-field-label">Email</span>
+                    <span class="order-field-value" data-field="contact-email">lucassmith@odysseylogistics.com</span>
+                  </div>
+                  <div class="order-field">
+                    <span class="order-field-label">Phone</span>
+                    <span class="order-field-value" data-field="contact-phone"></span>
+                  </div>
+                </div>
+              </div>
+              <div class="order-section">
+                <div class="order-section-title">Custom Fields General</div>
+                <div class="order-section-grid cols-1">
+                  <div class="order-field">
+                    <span class="order-field-label">Customer#</span>
+                    <span class="order-field-value" data-field="custom-customer"></span>
+                  </div>
+                  <div class="order-field">
+                    <span class="order-field-label"></span>
+                    <span class="order-field-value" data-field="custom-name">Gina</span>
+                  </div>
+                  <div class="order-field">
+                    <span class="order-field-label"></span>
+                    <span class="order-field-value" data-field="custom-type">BUYER</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- Other tabs (placeholders) -->
+          <div class="bottom-tab-view" id="bottomTabProduct">
+            <div class="product-table-wrapper">
+              <table class="product-table">
+                <thead>
+                  <tr>
+                    <th class="col-expand"></th>
+                    <th>Order #</th>
+                    <th>Line #</th>
+                    <th>Ship Item</th>
+                    <th>Description</th>
+                    <th>Package Count</th>
+                    <th>Gross Weight</th>
+                    <th>Volume</th>
+                    <th>Hazmat</th>
+                    <th>Tare Weight</th>
+                    <th>Net Weight</th>
+                    <th>Hazmat Class</th>
+                    <th>Hazmat Group</th>
+                    <th>Product Class</th>
+                    <th>Shipping Class</th>
+                    <th>Flash Point</th>
+                    <th>Country of Origin</th>
+                    <th>Declared Value</th>
+                    <th>Third Part Ref #</th>
+                    <th>BatchLot #</th>
+                    <th>Length</th>
+                    <th>Width</th>
+                    <th>Height</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- Order 1: 2 lines -->
+                  <tr class="product-row primary" data-order-group="ord1">
+                    <td class="col-expand"><button class="product-expand-btn" data-group="ord1" aria-label="Expand order lines">+</button></td>
+                    <td class="product-col-primary">ORD-S26000074M</td>
+                    <td>2</td>
+                    <td colspan="20"></td>
+                  </tr>
+                  <tr class="product-row child hidden" data-order-group="ord1">
+                    <td class="col-expand"></td>
+                    <td class="product-col-primary">ORD-S26000074M</td>
+                    <td>001</td>
+                    <td>32041H1D</td>
+                    <td>Sodium Hydroxide Solution 50%</td>
+                    <td>45 Boxes</td>
+                    <td>12,500 LB</td>
+                    <td>86 cuft</td>
+                    <td><span class="product-hazmat-tag yes">Yes</span></td>
+                    <td>2,500 LB</td>
+                    <td>10,000 LB</td>
+                    <td>Class 8</td>
+                    <td>II</td>
+                    <td>Commodity</td>
+                    <td>230008</td>
+                    <td>120 F</td>
+                    <td>USA</td>
+                    <td>$24,500 USD</td>
+                    <td>S2367</td>
+                    <td>BL-40821</td>
+                    <td>4 FT</td>
+                    <td>4 FT</td>
+                    <td>3 FT</td>
+                  </tr>
+                  <tr class="product-row child hidden" data-order-group="ord1">
+                    <td class="col-expand"></td>
+                    <td class="product-col-primary">ORD-S26000074M</td>
+                    <td>002</td>
+                    <td>28103A2K</td>
+                    <td>Hydrochloric Acid 32%</td>
+                    <td>20 Boxes</td>
+                    <td>8,200 LB</td>
+                    <td>52 cuft</td>
+                    <td><span class="product-hazmat-tag yes">Yes</span></td>
+                    <td>1,800 LB</td>
+                    <td>6,400 LB</td>
+                    <td>Class 8</td>
+                    <td>II</td>
+                    <td>Commodity</td>
+                    <td>230012</td>
+                    <td>N/A</td>
+                    <td>USA</td>
+                    <td>$18,200 USD</td>
+                    <td>S2367</td>
+                    <td>BL-40822</td>
+                    <td>3 FT</td>
+                    <td>3 FT</td>
+                    <td>4 FT</td>
+                  </tr>
+
+                  <!-- Order 2: 1 line -->
+                  <tr class="product-row primary" data-order-group="ord2">
+                    <td class="col-expand"></td>
+                    <td class="product-col-primary">ORD-S26000075M</td>
+                    <td>1</td>
+                    <td>55129P3R</td>
+                    <td>Reprocessed Polyethylene Pellets</td>
+                    <td>80 Bags</td>
+                    <td>22,000 LB</td>
+                    <td>148 cuft</td>
+                    <td><span class="product-hazmat-tag no">No</span></td>
+                    <td>4,000 LB</td>
+                    <td>18,000 LB</td>
+                    <td>--</td>
+                    <td>--</td>
+                    <td>NMFC</td>
+                    <td>156400</td>
+                    <td>--</td>
+                    <td>USA</td>
+                    <td>$31,000 USD</td>
+                    <td>S2401</td>
+                    <td>BL-40830</td>
+                    <td>4 FT</td>
+                    <td>4 FT</td>
+                    <td>4 FT</td>
+                  </tr>
+
+                  <!-- Order 3: 3 lines -->
+                  <tr class="product-row primary" data-order-group="ord3">
+                    <td class="col-expand"><button class="product-expand-btn" data-group="ord3" aria-label="Expand order lines">+</button></td>
+                    <td class="product-col-primary">ORD-S26000076M</td>
+                    <td>3</td>
+                    <td colspan="20"></td>
+                  </tr>
+                  <tr class="product-row child hidden" data-order-group="ord3">
+                    <td class="col-expand"></td>
+                    <td class="product-col-primary">ORD-S26000076M</td>
+                    <td>001</td>
+                    <td>76201C5M</td>
+                    <td>Calcium Chloride Flakes 77%</td>
+                    <td>60 Bags</td>
+                    <td>15,000 LB</td>
+                    <td>102 cuft</td>
+                    <td><span class="product-hazmat-tag no">No</span></td>
+                    <td>3,200 LB</td>
+                    <td>11,800 LB</td>
+                    <td>--</td>
+                    <td>--</td>
+                    <td>Commodity</td>
+                    <td>281100</td>
+                    <td>--</td>
+                    <td>USA</td>
+                    <td>$12,800 USD</td>
+                    <td>S2445</td>
+                    <td>BL-40835</td>
+                    <td>4 FT</td>
+                    <td>4 FT</td>
+                    <td>3 FT</td>
+                  </tr>
+                  <tr class="product-row child hidden" data-order-group="ord3">
+                    <td class="col-expand"></td>
+                    <td class="product-col-primary">ORD-S26000076M</td>
+                    <td>002</td>
+                    <td>76201C5N</td>
+                    <td>Calcium Chloride Liquid 35%</td>
+                    <td>12 Bags</td>
+                    <td>9,600 LB</td>
+                    <td>64 cuft</td>
+                    <td><span class="product-hazmat-tag no">No</span></td>
+                    <td>2,100 LB</td>
+                    <td>7,500 LB</td>
+                    <td>--</td>
+                    <td>--</td>
+                    <td>Commodity</td>
+                    <td>281100</td>
+                    <td>--</td>
+                    <td>USA</td>
+                    <td>$8,400 USD</td>
+                    <td>S2445</td>
+                    <td>BL-40836</td>
+                    <td>4 FT</td>
+                    <td>4 FT</td>
+                    <td>4 FT</td>
+                  </tr>
+                  <tr class="product-row child hidden" data-order-group="ord3">
+                    <td class="col-expand"></td>
+                    <td class="product-col-primary">ORD-S26000076M</td>
+                    <td>003</td>
+                    <td>31052D8J</td>
+                    <td>Ferric Chloride Solution 42%</td>
+                    <td>8 Bags</td>
+                    <td>6,800 LB</td>
+                    <td>38 cuft</td>
+                    <td><span class="product-hazmat-tag yes">Yes</span></td>
+                    <td>1,400 LB</td>
+                    <td>5,400 LB</td>
+                    <td>Class 8</td>
+                    <td>III</td>
+                    <td>Commodity</td>
+                    <td>282740</td>
+                    <td>N/A</td>
+                    <td>USA</td>
+                    <td>$5,600 USD</td>
+                    <td>S2445</td>
+                    <td>BL-40837</td>
+                    <td>3 FT</td>
+                    <td>3 FT</td>
+                    <td>3 FT</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="bottom-tab-view" id="bottomTabRouting">
+            <div class="product-table-wrapper">
+              <table class="product-table routing-table">
+                <thead>
+                  <tr>
+                    <th class="col-routing-select"></th>
+                    <th>Rank</th>
+                    <th>SCAC</th>
+                    <th>Carrier Name</th>
+                    <th>Rate</th>
+                    <th>Cost</th>
+                    <th>Status</th>
+                    <th>Pickup Date / Time</th>
+                    <th>Pickup TZ</th>
+                    <th>Pickup Org Hours</th>
+                    <th>Pickup Org Day</th>
+                    <th>Delivery Date / Time</th>
+                    <th>Delivery Org Hours</th>
+                    <th>Delivery TZ</th>
+                    <th>Transit</th>
+                    <th>Distance</th>
+                    <th>SL</th>
+                    <th>Linehaul</th>
+                    <th>Route Group</th>
+                    <th>API</th>
+                    <th>Notify Date / Time</th>
+                    <th>Response Method</th>
+                    <th>Response Date / Time</th>
+                    <th>Carrier Pickup #</th>
+                    <th>Delivery #</th>
+                    <th>Transit Time Source</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="routing-row selected" data-routing="r1">
+                    <td class="col-routing-select"><input type="radio" name="routingOption" class="routing-radio" checked></td>
+                    <td class="product-col-primary">1</td>
+                    <td>SEFL</td>
+                    <td class="product-col-primary">SOUTHEASTERN FREIGHT LINES</td>
+                    <td>$438.76</td>
+                    <td>$157.35 USD</td>
+                    <td><span class="routing-status accepted">Accepted</span></td>
+                    <td>08/20/2025 14:00</td>
+                    <td>CST</td>
+                    <td>07:00 - 15:30</td>
+                    <td>Yes</td>
+                    <td>08/22/2025 14:00</td>
+                    <td>08:00 - 23:59</td>
+                    <td>CST</td>
+                    <td>2 Days</td>
+                    <td>438.76 mi</td>
+                    <td>98%</td>
+                    <td>Completed</td>
+                    <td>Primary</td>
+                    <td>API</td>
+                    <td>08/20/2025 09:00</td>
+                    <td>API Update</td>
+                    <td>08/20/2025 09:08</td>
+                    <td>5AA98909</td>
+                    <td>SA4M908</td>
+                    <td>SMC</td>
+                    <td>PC*Milan Practical</td>
+                  </tr>
+                  <tr class="routing-row" data-routing="r2">
+                    <td class="col-routing-select"><input type="radio" name="routingOption" class="routing-radio"></td>
+                    <td class="product-col-primary">2</td>
+                    <td>ODFL</td>
+                    <td class="product-col-primary">OLD DOMINION FREIGHT LINE</td>
+                    <td>$512.40</td>
+                    <td>$184.20 USD</td>
+                    <td><span class="routing-status pending">Pending</span></td>
+                    <td>08/20/2025 16:00</td>
+                    <td>CST</td>
+                    <td>06:00 - 18:00</td>
+                    <td>Yes</td>
+                    <td>08/23/2025 10:00</td>
+                    <td>07:00 - 22:00</td>
+                    <td>CST</td>
+                    <td>3 Days</td>
+                    <td>452.10 mi</td>
+                    <td>96%</td>
+                    <td>Completed</td>
+                    <td>Primary</td>
+                    <td>EDI</td>
+                    <td>08/20/2025 09:15</td>
+                    <td>EDI Update</td>
+                    <td>--</td>
+                    <td>--</td>
+                    <td>--</td>
+                    <td>SMC</td>
+                    <td>LTL Standard Route</td>
+                  </tr>
+                  <tr class="routing-row" data-routing="r3">
+                    <td class="col-routing-select"><input type="radio" name="routingOption" class="routing-radio"></td>
+                    <td class="product-col-primary">3</td>
+                    <td>XPOL</td>
+                    <td class="product-col-primary">XPO LOGISTICS</td>
+                    <td>$625.80</td>
+                    <td>$221.50 USD</td>
+                    <td><span class="routing-status rejected">Rejected</span></td>
+                    <td>08/21/2025 08:00</td>
+                    <td>EST</td>
+                    <td>08:00 - 17:00</td>
+                    <td>No</td>
+                    <td>08/23/2025 16:00</td>
+                    <td>06:00 - 20:00</td>
+                    <td>EST</td>
+                    <td>2 Days</td>
+                    <td>441.30 mi</td>
+                    <td>94%</td>
+                    <td>Completed</td>
+                    <td>Backup</td>
+                    <td>Email</td>
+                    <td>08/20/2025 10:30</td>
+                    <td>Manual Update</td>
+                    <td>08/20/2025 14:22</td>
+                    <td>--</td>
+                    <td>--</td>
+                    <td>SMC</td>
+                    <td>Capacity constrained</td>
+                  </tr>
+                  <tr class="routing-row" data-routing="r4">
+                    <td class="col-routing-select"><input type="radio" name="routingOption" class="routing-radio"></td>
+                    <td class="product-col-primary">4</td>
+                    <td>EXLA</td>
+                    <td class="product-col-primary">ESTES EXPRESS LINES</td>
+                    <td>$580.00</td>
+                    <td>$198.75 USD</td>
+                    <td><span class="routing-status pending">Pending</span></td>
+                    <td>08/20/2025 15:00</td>
+                    <td>CST</td>
+                    <td>07:30 - 16:30</td>
+                    <td>Yes</td>
+                    <td>08/24/2025 09:00</td>
+                    <td>08:00 - 21:00</td>
+                    <td>CST</td>
+                    <td>4 Days</td>
+                    <td>468.50 mi</td>
+                    <td>92%</td>
+                    <td>Completed</td>
+                    <td>Backup</td>
+                    <td>API</td>
+                    <td>08/20/2025 09:45</td>
+                    <td>Automatic Update</td>
+                    <td>--</td>
+                    <td>--</td>
+                    <td>--</td>
+                    <td>SMC</td>
+                    <td>Extended transit option</td>
+                  </tr>
+                  <tr class="routing-row" data-routing="r5">
+                    <td class="col-routing-select"><input type="radio" name="routingOption" class="routing-radio"></td>
+                    <td class="product-col-primary">5</td>
+                    <td>SAIA</td>
+                    <td class="product-col-primary">SAIA INC</td>
+                    <td>$395.20</td>
+                    <td>$142.90 USD</td>
+                    <td><span class="routing-status declined">Declined</span></td>
+                    <td>08/21/2025 10:00</td>
+                    <td>CST</td>
+                    <td>06:30 - 15:00</td>
+                    <td>No</td>
+                    <td>08/24/2025 14:00</td>
+                    <td>07:00 - 19:00</td>
+                    <td>CST</td>
+                    <td>3 Days</td>
+                    <td>455.90 mi</td>
+                    <td>89%</td>
+                    <td>Completed</td>
+                    <td>Spot</td>
+                    <td>Fax</td>
+                    <td>08/20/2025 11:00</td>
+                    <td>Manual Update</td>
+                    <td>08/21/2025 08:15</td>
+                    <td>--</td>
+                    <td>--</td>
+                    <td>SMC</td>
+                    <td>No available capacity</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="bottom-tab-view" id="bottomTabTender"><div class="placeholder-message">Tender history coming soon</div></div>
+          <div class="bottom-tab-view" id="bottomTabCost">
+            <div class="cost-container">
+              <!-- Cost sub-tabs -->
+              <div class="cost-header">
+                <span class="cost-title">Cost Information</span>
+                <div class="cost-tabs">
+                  <button class="cost-tab active" data-cost-tab="planned">Planned Cost</button>
+                  <button class="cost-tab" data-cost-tab="completed">Completed Cost</button>
+                </div>
+              </div>
+
+              <!-- Planned Cost View -->
+              <div class="cost-tab-view active" id="costPlanned">
+                <!-- Summary -->
+                <div class="cost-summary">
+                  <div class="cost-summary-item">
+                    <span class="cost-summary-label">Base</span>
+                    <span class="cost-summary-value">$2,000.00</span>
+                  </div>
+                  <div class="cost-summary-item">
+                    <span class="cost-summary-label">Discount</span>
+                    <span class="cost-summary-value negative">-$200.00</span>
+                  </div>
+                  <div class="cost-summary-item">
+                    <span class="cost-summary-label">Fuel (FSC)</span>
+                    <span class="cost-summary-value">$800.00</span>
+                  </div>
+                  <div class="cost-summary-item">
+                    <span class="cost-summary-label">Accessorials</span>
+                    <span class="cost-summary-value">$300.00</span>
+                  </div>
+                  <div class="cost-summary-item total">
+                    <span class="cost-summary-label">AP Total</span>
+                    <span class="cost-summary-value">$2,900.00</span>
+                  </div>
+                  <div class="cost-summary-item total">
+                    <span class="cost-summary-label">AR Total</span>
+                    <span class="cost-summary-value">$3,730.00</span>
+                  </div>
+                  <div class="cost-summary-item">
+                    <span class="cost-summary-label">Margin</span>
+                    <span class="cost-summary-value positive">$830.00 (22.3%)</span>
+                  </div>
+                </div>
+
+                <!-- Per-order breakdown -->
+                <div class="product-table-wrapper">
+                  <table class="product-table cost-table">
+                    <thead>
+                      <tr>
+                        <th class="col-expand"></th>
+                        <th>Order #</th>
+                        <th>Direct Cost</th>
+                        <th>AP Cost</th>
+                        <th>AR Cost</th>
+                        <th>Margin</th>
+                        <th>Base</th>
+                        <th>Fuel Charge</th>
+                        <th>Discount</th>
+                        <th>Stop Off (HZC)</th>
+                        <th>Stop Off (SOC)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr class="product-row primary" data-order-group="cost-p1">
+                        <td class="col-expand"><button class="product-expand-btn" data-group="cost-p1" aria-label="Expand loads">+</button></td>
+                        <td class="product-col-primary">ORD-S26000074M</td>
+                        <td>$1,000.00 USD</td>
+                        <td>$1,500.00 USD</td>
+                        <td>$1,950.00 USD</td>
+                        <td class="cost-positive">$450.00</td>
+                        <td>$1,000.00</td>
+                        <td>$400.00</td>
+                        <td class="cost-negative">-$100.00</td>
+                        <td>$100.00</td>
+                        <td>$100.00</td>
+                      </tr>
+                      <tr class="product-row child hidden" data-order-group="cost-p1">
+                        <td class="col-expand"></td>
+                        <td class="cost-load-label">Load 1 — LOAD200801</td>
+                        <td>$600.00 USD</td>
+                        <td>$900.00 USD</td>
+                        <td>$1,170.00 USD</td>
+                        <td class="cost-positive">$270.00</td>
+                        <td>$600.00</td>
+                        <td>$240.00</td>
+                        <td class="cost-negative">-$60.00</td>
+                        <td>$60.00</td>
+                        <td>$60.00</td>
+                      </tr>
+                      <tr class="product-row child hidden" data-order-group="cost-p1">
+                        <td class="col-expand"></td>
+                        <td class="cost-load-label">Load 2 — LOAD200802</td>
+                        <td>$400.00 USD</td>
+                        <td>$600.00 USD</td>
+                        <td>$780.00 USD</td>
+                        <td class="cost-positive">$180.00</td>
+                        <td>$400.00</td>
+                        <td>$160.00</td>
+                        <td class="cost-negative">-$40.00</td>
+                        <td>$40.00</td>
+                        <td>$40.00</td>
+                      </tr>
+
+                      <tr class="product-row primary" data-order-group="cost-p2">
+                        <td class="col-expand"></td>
+                        <td class="product-col-primary">ORD-S26000075M</td>
+                        <td>$800.00 USD</td>
+                        <td>$1,200.00 USD</td>
+                        <td>$1,500.00 USD</td>
+                        <td class="cost-positive">$300.00</td>
+                        <td>$800.00</td>
+                        <td>$320.00</td>
+                        <td class="cost-negative">-$80.00</td>
+                        <td>$80.00</td>
+                        <td>--</td>
+                      </tr>
+
+                      <tr class="product-row primary" data-order-group="cost-p3">
+                        <td class="col-expand"><button class="product-expand-btn" data-group="cost-p3" aria-label="Expand loads">+</button></td>
+                        <td class="product-col-primary">ORD-S26000076M</td>
+                        <td>$1,100.00 USD</td>
+                        <td>$1,650.00 USD</td>
+                        <td>$2,030.00 USD</td>
+                        <td class="cost-positive">$380.00</td>
+                        <td>$1,100.00</td>
+                        <td>$440.00</td>
+                        <td class="cost-negative">-$110.00</td>
+                        <td>$120.00</td>
+                        <td>$100.00</td>
+                      </tr>
+                      <tr class="product-row child hidden" data-order-group="cost-p3">
+                        <td class="col-expand"></td>
+                        <td class="cost-load-label">Load 1 — LOAD200803</td>
+                        <td>$500.00 USD</td>
+                        <td>$750.00 USD</td>
+                        <td>$920.00 USD</td>
+                        <td class="cost-positive">$170.00</td>
+                        <td>$500.00</td>
+                        <td>$200.00</td>
+                        <td class="cost-negative">-$50.00</td>
+                        <td>$50.00</td>
+                        <td>$50.00</td>
+                      </tr>
+                      <tr class="product-row child hidden" data-order-group="cost-p3">
+                        <td class="col-expand"></td>
+                        <td class="cost-load-label">Load 2 — LOAD200804</td>
+                        <td>$350.00 USD</td>
+                        <td>$525.00 USD</td>
+                        <td>$650.00 USD</td>
+                        <td class="cost-positive">$125.00</td>
+                        <td>$350.00</td>
+                        <td>$140.00</td>
+                        <td class="cost-negative">-$35.00</td>
+                        <td>$40.00</td>
+                        <td>$30.00</td>
+                      </tr>
+                      <tr class="product-row child hidden" data-order-group="cost-p3">
+                        <td class="col-expand"></td>
+                        <td class="cost-load-label">Load 3 — LOAD200805</td>
+                        <td>$250.00 USD</td>
+                        <td>$375.00 USD</td>
+                        <td>$460.00 USD</td>
+                        <td class="cost-positive">$85.00</td>
+                        <td>$250.00</td>
+                        <td>$100.00</td>
+                        <td class="cost-negative">-$25.00</td>
+                        <td>$30.00</td>
+                        <td>$20.00</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Completed Cost View -->
+              <div class="cost-tab-view" id="costCompleted">
+                <div class="cost-disabled-message">
+                  <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                    <rect x="8" y="14" width="16" height="12" rx="2" stroke="#9DA3B0" stroke-width="1.5"/>
+                    <path d="M12 14v-4a4 4 0 018 0v4" stroke="#9DA3B0" stroke-width="1.5" stroke-linecap="round"/>
+                  </svg>
+                  <p>Available after PGI/PGR is received</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="bottom-tab-view" id="bottomTabInstructions">
+            <div class="instructions-container">
+              <div class="instructions-header">Instructions</div>
+
+              <!-- Order 1 -->
+              <div class="instruction-order">
+                <div class="instruction-order-header">
+                  <button class="instruction-toggle expanded" data-instruction-group="inst-ord1" aria-label="Toggle">&minus;</button>
+                  <span class="instruction-order-id">ORD-S26000074M</span>
+                  <span class="instruction-count">3 instructions</span>
+                </div>
+                <div class="instruction-list" data-instruction-group="inst-ord1">
+                  <div class="instruction-item">
+                    <span class="instruction-seq">1</span>
+                    <span class="instruction-type-badge">TRA</span>
+                    <p class="instruction-text">Drivers are required to wear face coverings and follow social distancing guidelines. They may also be subject to temperature checks upon arrival.</p>
+                  </div>
+                  <div class="instruction-item">
+                    <span class="instruction-seq">2</span>
+                    <span class="instruction-type-badge">ADC</span>
+                    <p class="instruction-text">DRIVER: Purchasing Contact: Mary Ellen Maynard Main Office Phone; 205-328-0808 Receiving Hours: Monday - Friday 7:30-3:30</p>
+                  </div>
+                  <div class="instruction-item">
+                    <span class="instruction-seq">3</span>
+                    <span class="instruction-type-badge">SPC</span>
+                    <p class="instruction-text">SHIPPING INSTRUCTIONS: Please ship via AAA Cooper using our account # 000821525. If product is being shipped out of the South Eastern United States, use alternate carrier SEFL with account # 000934812.</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Order 2 -->
+              <div class="instruction-order">
+                <div class="instruction-order-header">
+                  <button class="instruction-toggle expanded" data-instruction-group="inst-ord2" aria-label="Toggle">&minus;</button>
+                  <span class="instruction-order-id">ORD-S26000075M</span>
+                  <span class="instruction-count">2 instructions</span>
+                </div>
+                <div class="instruction-list" data-instruction-group="inst-ord2">
+                  <div class="instruction-item">
+                    <span class="instruction-seq">1</span>
+                    <span class="instruction-type-badge">BOL</span>
+                    <p class="instruction-text">Drivers are required to wear face coverings and follow social distancing guidelines. They may also be subject to temperature checks upon arrival.</p>
+                  </div>
+                  <div class="instruction-item">
+                    <span class="instruction-seq">2</span>
+                    <span class="instruction-type-badge">MISC</span>
+                    <p class="instruction-text">DRIVER: Purchasing Contact: Mary Ellen Maynard Main Office Phone; 205-328-0808 Receiving Hours: Monday - Friday 7:30-3:30</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Order 3 -->
+              <div class="instruction-order">
+                <div class="instruction-order-header">
+                  <button class="instruction-toggle expanded" data-instruction-group="inst-ord3" aria-label="Toggle">&minus;</button>
+                  <span class="instruction-order-id">ORD-S26000076M</span>
+                  <span class="instruction-count">1 instruction</span>
+                </div>
+                <div class="instruction-list" data-instruction-group="inst-ord3">
+                  <div class="instruction-item">
+                    <span class="instruction-seq">1</span>
+                    <span class="instruction-type-badge">ZD02</span>
+                    <p class="instruction-text">DELIVERY INSTRUCTIONS: Deliver to dock 14B only. Facility requires 24-hour advance appointment scheduling. Contact dispatch at 312-555-0192 to confirm slot availability.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="bottom-tab-view" id="bottomTabHistory"><div class="placeholder-message">History coming soon</div></div>
+          <div class="bottom-tab-view" id="bottomTabDocuments">
+            <div class="docs-container">
+              <!-- Toolbar -->
+              <div class="docs-toolbar">
+                <button class="action-btn docs-upload-btn" id="docsUploadBtn">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path d="M2 10v3a1 1 0 001 1h10a1 1 0 001-1v-3M8 2v8M5 5l3-3 3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  <span>Upload Attachment</span>
+                </button>
+                <button class="action-btn docs-refresh-btn" id="docsRefreshBtn" aria-label="Refresh">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path d="M13.5 8A5.5 5.5 0 112.5 8a5.5 5.5 0 0111 0z" stroke="currentColor" stroke-width="1.4"/>
+                    <path d="M13.5 3v5h-5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  <span>Refresh</span>
+                </button>
+              </div>
+
+              <!-- Documents table -->
+              <div class="product-table-wrapper">
+                <table class="product-table docs-table" id="docsTable">
+                  <thead>
+                    <tr>
+                      <th>Type</th>
+                      <th>Description</th>
+                      <th>File</th>
+                      <th class="col-doc-actions"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><span class="doc-type-badge bol">BoL</span></td>
+                      <td>Bill of Lading — Shipment SHP-B28826319</td>
+                      <td><a class="doc-file-link" href="#" target="_blank">BOL_SHP-B28826319.pdf</a></td>
+                      <td class="col-doc-actions"><button class="doc-delete-btn" aria-label="Delete document"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M5.33 4V2.67a.67.67 0 01.67-.67h4a.67.67 0 01.67.67V4M6.67 7.33v4M9.33 7.33v4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M3.33 4l.67 9.33a1.33 1.33 0 001.33 1.34h5.34a1.33 1.33 0 001.33-1.34L12.67 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></td>
+                    </tr>
+                    <tr>
+                      <td><span class="doc-type-badge invoice">Invoice</span></td>
+                      <td>Carrier Invoice — SEFL #5AA98909</td>
+                      <td><a class="doc-file-link" href="#" target="_blank">INV_SEFL_5AA98909.pdf</a></td>
+                      <td class="col-doc-actions"><button class="doc-delete-btn" aria-label="Delete document"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M5.33 4V2.67a.67.67 0 01.67-.67h4a.67.67 0 01.67.67V4M6.67 7.33v4M9.33 7.33v4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M3.33 4l.67 9.33a1.33 1.33 0 001.33 1.34h5.34a1.33 1.33 0 001.33-1.34L12.67 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></td>
+                    </tr>
+                    <tr>
+                      <td><span class="doc-type-badge instructions">Instructions</span></td>
+                      <td>Pickup Instructions — Columbus GA facility</td>
+                      <td><a class="doc-file-link" href="#" target="_blank">Pickup_Instructions_Columbus.docx</a></td>
+                      <td class="col-doc-actions"><button class="doc-delete-btn" aria-label="Delete document"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M5.33 4V2.67a.67.67 0 01.67-.67h4a.67.67 0 01.67.67V4M6.67 7.33v4M9.33 7.33v4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M3.33 4l.67 9.33a1.33 1.33 0 001.33 1.34h5.34a1.33 1.33 0 001.33-1.34L12.67 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></td>
+                    </tr>
+                    <tr>
+                      <td><span class="doc-type-badge other">Other</span></td>
+                      <td>Weight certificate — Load LOAD200801</td>
+                      <td><a class="doc-file-link" href="#" target="_blank">Weight_Cert_LOAD200801.xlsx</a></td>
+                      <td class="col-doc-actions"><button class="doc-delete-btn" aria-label="Delete document"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M5.33 4V2.67a.67.67 0 01.67-.67h4a.67.67 0 01.67.67V4M6.67 7.33v4M9.33 7.33v4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M3.33 4l.67 9.33a1.33 1.33 0 001.33 1.34h5.34a1.33 1.33 0 001.33-1.34L12.67 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Upload Modal -->
+            <div class="docs-modal-overlay" id="docsModalOverlay">
+              <div class="docs-modal">
+                <div class="docs-modal-header">
+                  <span class="docs-modal-title">Upload Attachment</span>
+                  <button class="docs-modal-close" id="docsModalClose" aria-label="Close">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <path d="M4 4L12 12M12 4L4 12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+                    </svg>
+                  </button>
+                </div>
+                <div class="docs-modal-body">
+                  <div class="docs-modal-field">
+                    <label class="docs-modal-label">Type</label>
+                    <select class="docs-modal-select" id="docTypeSelect">
+                      <option value="BoL">BoL</option>
+                      <option value="MBoL">MBoL</option>
+                      <option value="Invoice">Invoice</option>
+                      <option value="Instructions">Instructions</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                  <div class="docs-modal-field">
+                    <label class="docs-modal-label">File</label>
+                    <input type="file" class="docs-modal-file" id="docFileInput" accept=".pdf,.xlsx,.xls,.docx,.doc,.csv,.msg">
+                  </div>
+                  <div class="docs-modal-field">
+                    <label class="docs-modal-label">Description</label>
+                    <input type="text" class="docs-modal-input" id="docDescInput" placeholder="Enter description...">
+                  </div>
+                </div>
+                <div class="docs-modal-footer">
+                  <button class="filters-apply-btn" id="docUploadSubmit">Upload</button>
+                  <button class="filters-clear-btn" id="docUploadCancel">Cancel</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="bottom-tab-view" id="bottomTabNotes">
+            <div class="notes-container">
+              <!-- Note input -->
+              <div class="notes-input-area">
+                <div class="notes-input-row">
+                  <div class="notes-avatar">AC</div>
+                  <textarea class="notes-textarea" id="notesTextarea" placeholder="Write an internal note..." rows="2"></textarea>
+                </div>
+                <div class="notes-input-actions">
+                  <button class="filters-apply-btn notes-add-btn" id="notesAddBtn">Add Note</button>
+                </div>
+              </div>
+
+              <!-- Notes list -->
+              <div class="notes-list" id="notesList">
+                <div class="note-item" data-note-id="n3">
+                  <div class="note-header">
+                    <div class="notes-avatar">AC</div>
+                    <div class="note-meta">
+                      <span class="note-author">Amy Cook</span>
+                      <span class="note-date">03/22/2026 14:35 CST</span>
+                    </div>
+                    <div class="note-actions">
+                      <button class="note-action-btn note-edit-btn" aria-label="Edit note">
+                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M11.5 2.5l2 2L5 13H3v-2l8.5-8.5z" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      </button>
+                      <button class="note-action-btn note-delete-btn" aria-label="Delete note">
+                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M5.33 4V2.67a.67.67 0 01.67-.67h4a.67.67 0 01.67.67V4M6.67 7.33v4M9.33 7.33v4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M3.33 4l.67 9.33a1.33 1.33 0 001.33 1.34h5.34a1.33 1.33 0 001.33-1.34L12.67 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      </button>
+                    </div>
+                  </div>
+                  <div class="note-body">Confirmed with SEFL dispatcher — pickup window adjusted to 14:00-15:30 CST per facility request. Updated routing option accordingly.</div>
+                </div>
+
+                <div class="note-item" data-note-id="n2">
+                  <div class="note-header">
+                    <div class="notes-avatar jd">JD</div>
+                    <div class="note-meta">
+                      <span class="note-author">Jana Dharma</span>
+                      <span class="note-date">03/21/2026 09:12 CST</span>
+                    </div>
+                    <div class="note-actions"></div>
+                  </div>
+                  <div class="note-body">Customer requested delivery before 08/22 due to plant shutdown starting 08/23. Flagged as priority — please ensure carrier confirms earliest delivery slot.</div>
+                </div>
+
+                <div class="note-item" data-note-id="n1">
+                  <div class="note-header">
+                    <div class="notes-avatar ls">LS</div>
+                    <div class="note-meta">
+                      <span class="note-author">Lucas Smith</span>
+                      <span class="note-date">03/20/2026 16:45 CST</span>
+                    </div>
+                    <div class="note-actions"></div>
+                  </div>
+                  <div class="note-body">Hazmat paperwork verified for both line items on ORD-S26000074M. Class 8 corrosive documentation is complete and attached under Documents tab.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="bottom-tab-view" id="bottomTabStops">
+            <!-- Shipment Summary -->
+            <div class="stops-summary">
+              <div class="stops-summary-item">
+                <span class="stops-summary-label">Distance</span>
+                <span class="stops-summary-value">1,013 mi</span>
+              </div>
+              <div class="stops-summary-item">
+                <span class="stops-summary-label">Gross Weight</span>
+                <span class="stops-summary-value">420 LB</span>
+              </div>
+              <div class="stops-summary-item">
+                <span class="stops-summary-label">Volume</span>
+                <span class="stops-summary-value">328.0 cuft</span>
+              </div>
+              <div class="stops-summary-item">
+                <span class="stops-summary-label">Accepted Carrier</span>
+                <span class="stops-summary-value">FXFE - LTL</span>
+              </div>
+              <div class="stops-summary-item">
+                <span class="stops-summary-label">Seed Equipment</span>
+                <span class="stops-summary-value">TL</span>
+              </div>
+              <div class="stops-summary-item">
+                <span class="stops-summary-label">Utilization</span>
+                <span class="stops-summary-value">75%</span>
+              </div>
+            </div>
+
+            <!-- Stops Timeline -->
+            <div class="stops-timeline">
+              <!-- Stop 1: Pickup -->
+              <div class="stop-card">
+                <span class="stop-number">Stop 1</span>
+                <div class="stop-timeline-track">
+                  <div class="stop-node pickup"><span class="stop-node-num">01</span></div>
+                  <div class="stop-line"></div>
+                </div>
+                <div class="stop-content">
+                  <div class="stop-header">
+                    <span class="stop-badge pickup">Pickup</span>
+                  </div>
+                  <div class="stop-detail-grid">
+                    <div class="stop-field">
+                      <span class="stop-field-label">Order</span>
+                      <span class="stop-field-value">LOAD200801</span>
+                    </div>
+                    <div class="stop-field">
+                      <span class="stop-field-label">Location</span>
+                      <span class="stop-field-value">01-BP, COLUMBUS, GA 31907 US</span>
+                    </div>
+                    <div class="stop-field">
+                      <span class="stop-field-label">Address</span>
+                      <span class="stop-field-value">01-BP, 1502 NORTH WASHINGTON, COLUMBUS, GA 31907 US</span>
+                    </div>
+                    <div class="stop-field">
+                      <span class="stop-field-label">Date</span>
+                      <span class="stop-field-value">August 20, 2025 14:00 CST</span>
+                    </div>
+                    <div class="stop-field">
+                      <span class="stop-field-label">Appointment</span>
+                      <span class="stop-field-value">14:00 CST</span>
+                    </div>
+                    <div class="stop-field">
+                      <span class="stop-field-label">Weight</span>
+                      <span class="stop-field-value">105 LB</span>
+                    </div>
+                    <div class="stop-field">
+                      <span class="stop-field-label">Volume</span>
+                      <span class="stop-field-value">82 cuft</span>
+                    </div>
+                    <div class="stop-field">
+                      <span class="stop-field-label">Package Count</span>
+                      <span class="stop-field-value">3</span>
+                    </div>
+                    <div class="stop-field">
+                      <span class="stop-field-label">Pickup No.</span>
+                      <span class="stop-field-value">--</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Stop 2: Pickup -->
+              <div class="stop-card">
+                <span class="stop-number">Stop 2</span>
+                <div class="stop-timeline-track">
+                  <div class="stop-node pickup"><span class="stop-node-num">02</span></div>
+                  <div class="stop-line"></div>
+                </div>
+                <div class="stop-content">
+                  <div class="stop-header">
+                    <span class="stop-badge pickup">Pickup</span>
+                  </div>
+                  <div class="stop-detail-grid">
+                    <div class="stop-field">
+                      <span class="stop-field-label">Order</span>
+                      <span class="stop-field-value">LOAD200802, LOAD200803</span>
+                    </div>
+                    <div class="stop-field">
+                      <span class="stop-field-label">Location</span>
+                      <span class="stop-field-value">02-BP, COLUMBUS, GA 31906 US</span>
+                    </div>
+                    <div class="stop-field">
+                      <span class="stop-field-label">Address</span>
+                      <span class="stop-field-value">02-BP, COLUMBUS, GA 31906 US</span>
+                    </div>
+                    <div class="stop-field">
+                      <span class="stop-field-label">Date</span>
+                      <span class="stop-field-value">August 20, 2025 14:00 CST</span>
+                    </div>
+                    <div class="stop-field">
+                      <span class="stop-field-label">Appointment</span>
+                      <span class="stop-field-value">14:00 CST</span>
+                    </div>
+                    <div class="stop-field">
+                      <span class="stop-field-label">Weight</span>
+                      <span class="stop-field-value">105 LB</span>
+                    </div>
+                    <div class="stop-field">
+                      <span class="stop-field-label">Volume</span>
+                      <span class="stop-field-value">82 cuft</span>
+                    </div>
+                    <div class="stop-field">
+                      <span class="stop-field-label">Package Count</span>
+                      <span class="stop-field-value">--</span>
+                    </div>
+                    <div class="stop-field">
+                      <span class="stop-field-label">Pickup No.</span>
+                      <span class="stop-field-value">--</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Stop 3: Delivery -->
+              <div class="stop-card">
+                <span class="stop-number">Stop 3</span>
+                <div class="stop-timeline-track">
+                  <div class="stop-node delivery"><span class="stop-node-num">03</span></div>
+                </div>
+                <div class="stop-content">
+                  <div class="stop-header">
+                    <span class="stop-badge delivery">Delivery</span>
+                  </div>
+                  <div class="stop-detail-grid">
+                    <div class="stop-field">
+                      <span class="stop-field-label">Order</span>
+                      <span class="stop-field-value">LOAD200801, LOAD200802, LOAD200803</span>
+                    </div>
+                    <div class="stop-field">
+                      <span class="stop-field-label">Location</span>
+                      <span class="stop-field-value">SHIPTUSLA, NEENAH, WI 54956 US</span>
+                    </div>
+                    <div class="stop-field">
+                      <span class="stop-field-label">Date</span>
+                      <span class="stop-field-value">August 22, 2025 14:00 CST</span>
+                    </div>
+                    <div class="stop-field">
+                      <span class="stop-field-label">Appointment</span>
+                      <span class="stop-field-value">14:00 CST</span>
+                    </div>
+                    <div class="stop-field">
+                      <span class="stop-field-label">Weight</span>
+                      <span class="stop-field-value">105 LB</span>
+                    </div>
+                    <div class="stop-field">
+                      <span class="stop-field-label">Volume</span>
+                      <span class="stop-field-value">82 cuft</span>
+                    </div>
+                    <div class="stop-field">
+                      <span class="stop-field-label">Pickup No.</span>
+                      <span class="stop-field-value">--</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <aside class="filters-panel" id="filtersPanel">
+      <div class="filters-header">
+        <h2 class="filters-title">Filters</h2>
+        <button class="filters-close-btn" id="filtersCloseBtn" aria-label="Close filters">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <path d="M5 5L15 15M15 5L5 15" stroke="#6B7280" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+      <div class="filters-tabs">
+        <button class="filters-tab active" data-tab="all">All</button>
+        <button class="filters-tab" data-tab="saved">Saved</button>
+      </div>
+      <div class="filters-body" id="filtersBody">
+        <!-- Dynamically populated based on search context -->
+      </div>
+      <div class="filters-body filters-saved-body" id="filtersSavedBody" style="display:none;">
+        <!-- Populated with saved search queries -->
+      </div>
+      <div class="filters-footer" id="filtersFooterAll">
+        <button class="filters-clear-btn" id="filtersClearBtn">Clear all</button>
+        <button class="filters-apply-btn" id="filtersApplyBtn">Show results</button>
+      </div>
+    </aside>
+  </div>
+
+
+
+  <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx vite:*)",
+      "Bash(bun install:*)",
+      "Bash(node:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(jq '.[0:5] | .[].buyShipment' -r)",
+      "Bash(jq 'keys | .[0:5]' -r)",
+      "Bash(jq '.[].buyShipment' -r)",
+      "Bash(jq 'keys | sort' -r)",
+      "Bash(jq '.[0:10].buyShipment' -r)",
+      "Bash(jq 'keys[0:10]' -r)",
+      "Bash(jq '.[0:10] | .[].buyShipment' -r)",
+      "Bash(jq 'keys[0:10][]' -r)",
+      "Bash(jq 'keys[]' -r)",
+      "Bash(jq 'keys | to_entries | .[] | select\\(.value == \"\"\"\"SHP-D95564287\"\"\"\"\\) | .key')",
+      "Bash(npx skills:*)"
+    ]
+  }
+}

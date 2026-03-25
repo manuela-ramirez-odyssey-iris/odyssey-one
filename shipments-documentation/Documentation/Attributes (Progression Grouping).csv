@@ -1,0 +1,56 @@
+Progression,Stakeholder Group,Suggested Group,Attribute,Example,Description,Field Type,Notes
+"Find the shipment
+?",Find Shipment by,Shipment Identifiers,Buy Shipment #,28826319,-,Text/Number Input,
+,,,Sell Shipment #,25678981,-,Text/Number Input,
+,,,Order #,"JAN6ERCO6, JAN7ERCO7",Transportation Order #,Text Input,
+,,,Pro#/Booking #,345678,-,Text/Number Input,
+,,,Pickup # (skipped),41197,Operational pickup identifier missing from stakeholder grouping,Text/Number Input,Skipped attribute
+"Understand who it belongs to
+?",Customer & Parties involved,Customers & Parties,Customer ID,"*G20TECH_SYS_01, 2nd customer ID",Cross customer IDs separated by comma,Autocomplete Text,
+,,,Customer Name,*USALCO_SYS_01,-,Autocomplete Text,
+,,,Consignor,G2O TECHNOLOGIES LLC,Name of consignor,Autocomplete Text,
+,,,Consignee,MC ATHLON GEISMAR PL,Name of consignee,Autocomplete Text,
+"Understand where it goes
+?",Location & Route,Route & Geography,Origin,"Bastrop, LA, US, 71202",First pickup location,Location Search,
+,,,Destination,"GEISMAR, TX, US, 79762",Last drop off location,Location Search,
+,,,Distance,635 MI,Miles code,Numeric Range,
+,,,Stops,2,Count of stops,Numeric Range,
+,,,Ship Direction,Outbound,Direction of shipment,Dropdown,
+"Understand when it moves
+?",Dates & Appointment Windows,Schedule & Appointments,Pickup Date,01/12/2026 09:00 CST,Planned Pickup Date,Date Range Picker,
+,,,Delivery Date,01/29/2026 09:00 CST,Planned Delivery Date,Date Range Picker,
+,,,Earliest Pickup Date,01/12/2026 09:00 CST,Latest value from orders at first pickup,Date Range Picker,
+,,,Latest Pickup Date,01/12/2026 11:00 CST,Earliest value from orders at first pickup,Date Range Picker,
+,,,Earliest Delivery Date,01/19/2026 09:00 CST,Latest value from orders at last drop off,Date Range Picker,
+,,,Latest Delivery Date,01/19/2026 14:00 CST,Earliest value from orders at last drop off,Date Range Picker,
+"Understand how it moves
+?",Transportation Details,Transport & Equipment,Mode,LTL,-,Dropdown,
+,,,Equipment Code,LTH,-,Dropdown,
+,,,Equipment #,8043,-,Text/Number Input,
+,,,Seal Number,S345676,-,Text Input,
+,,,Incoterm Info,FOB,-,Dropdown,
+,,,Freight Terms,Pre-Paid,-,Dropdown,
+"Understand its operational status
+?",Carrier / Tender,Carrier & Tender Status,SCAC,CTNS,Split from combined SCAC - Tender Status in stakeholder proposal,Dropdown,Added because stakeholder split the original combined field
+,,,Tender Status,Done,Split from combined SCAC - Tender Status in stakeholder proposal,Dropdown,Added because stakeholder split the original combined field
+,,,Shipment Status,Tender,Shipment status values,Dropdown,
+"Inspect cargo details
+?","Weight, Quantity & Handling",Cargo & Handling,Gross Weight,6000 LB,-,Numeric Range,
+,,,Net Weight,3500 LB,-,Numeric Range,
+,,,Tare Weight,2500 LB,-,Numeric Range,
+,,,Pkg Count,2 PLT,Total package count,Numeric Range,
+,,,Hazardous (Y/N),Y,Hazardous indicator,Toggle,
+"Inspect financial details
+?",Rate details,Rates & Costs,AP Freight Cost,1080 USD,Total AP freight cost,Numeric Range,
+,,,Preferred AP Direct Cost,1000 USD,Direct AP cost,Numeric Range,
+,,,AR Freight Cost,6000 USD,Total AR freight cost,Numeric Range,
+,,,Preferred AR Direct Cost,1200 USD,Direct AR cost,Numeric Range,
+"Inspect load logistics
+?",Load information,Load Details,Load #,"23567, 45673",Load numbers in shipment,Text Input,
+,,,Load Count,2,Count of loads in shipment,Numeric Range,
+,,,Load Status,In Shipment,Load operational status,Dropdown,
+Edge cases,Others,Advanced / Rare Fields,Shipment Type,"Pooling, Cross customer, Line haul, Rule 11",Type of shipment,Dropdown,
+,,,Shipment Sequence Leg,1 or 2 or 3,Leg of multi-leg shipment,Dropdown,
+,,,Next Shipment ID,ID of next shipment,Used for pooling or Rule 11,Text Input,
+,,,Validation Message (skipped),CHK_Dates,User review validation message missing from stakeholder grouping,Dropdown,Skipped attribute
+,,,SCAC - Tender Status (skipped),CTNS - Done,Original combined attribute omitted in stakeholder split proposal,Dropdown,Skipped attribute

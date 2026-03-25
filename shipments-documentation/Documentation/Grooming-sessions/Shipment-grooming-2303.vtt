@@ -1,0 +1,3490 @@
+WEBVTT
+
+9254b293-b339-4a8a-8f54-217a365f2c01/7-0
+00:00:05.346 --> 00:00:06.146
+<v Manuela Ramirez (Iris Software)>Some.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/8-0
+00:00:07.426 --> 00:00:09.026
+<v Manuela Ramirez (Iris Software)>Or the default.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/9-0
+00:00:11.426 --> 00:00:12.626
+<v Manuela Ramirez (Iris Software)>Right, yeah.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/11-0
+00:00:11.986 --> 00:00:15.234
+<v Janardhana Soundararajan (Cognizant)>But here, in this particular design,
+you have three line items,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/11-1
+00:00:15.234 --> 00:00:18.380
+<v Janardhana Soundararajan (Cognizant)>but it is when you collapse, right,
+when you shrink this one,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/10-0
+00:00:17.786 --> 00:00:18.386
+<v Manuela Ramirez (Iris Software)>Mm-hmm.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/11-2
+00:00:18.380 --> 00:00:20.866
+<v Janardhana Soundararajan (Cognizant)>it is showing two,
+it should show only one line.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/12-0
+00:00:24.466 --> 00:00:27.426
+<v Manuela Ramirez (Iris Software)>Okay, so it should show only one line.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/14-0
+00:00:27.746 --> 00:00:31.017
+<v Janardhana Soundararajan (Cognizant)>The first line, right?
+And that's why you have a plus.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/13-0
+00:00:30.386 --> 00:00:30.626
+<v Manuela Ramirez (Iris Software)>Hmm.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/14-1
+00:00:31.017 --> 00:00:34.466
+<v Janardhana Soundararajan (Cognizant)>The plus is to say that there are
+additional lines to it.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/16-0
+00:00:36.866 --> 00:00:41.346
+<v Manuela Ramirez (Iris Software)>Okay,
+there are many more things up below here.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/18-0
+00:00:40.626 --> 00:00:42.789
+<v Janardhana Soundararajan (Cognizant)>Yeah, more than one. Yeah,
+say more than one.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/17-0
+00:00:42.306 --> 00:00:42.786
+<v Manuela Ramirez (Iris Software)>Okay.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/18-1
+00:00:42.789 --> 00:00:45.986
+<v Janardhana Soundararajan (Cognizant)>That is why you're just giving an option
+so that you click and see.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/19-0
+00:00:47.266 --> 00:00:48.946
+<v Manuela Ramirez (Iris Software)>Okay, I gotcha.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/22-0
+00:00:48.186 --> 00:00:54.059
+<v Janardhana Soundararajan (Cognizant)>For that particular order, 74 M, right?
+You see what you are having here is you</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/21-0
+00:00:52.546 --> 00:00:52.746
+<v Manuela Ramirez (Iris Software)>Huh.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/22-1
+00:00:54.059 --> 00:00:58.537
+<v Janardhana Soundararajan (Cognizant)>are having order 74 M, 74 M,
+and then the third one is 75 M.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/22-2
+00:00:58.537 --> 00:01:03.308
+<v Janardhana Soundararajan (Cognizant)>If it is a second order,
+then it should be a separate by itself,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/22-3
+00:01:03.308 --> 00:01:06.905
+<v Janardhana Soundararajan (Cognizant)>right?
+There should be either A plus or just one</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/22-4
+00:01:06.905 --> 00:01:08.226
+<v Janardhana Soundararajan (Cognizant)>item to show. See.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/23-0
+00:01:08.546 --> 00:01:11.506
+<v Janardhana Soundararajan (Cognizant)>Each order will have its own number of
+lines.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/24-0
+00:01:13.426 --> 00:01:15.386
+<v Manuela Ramirez (Iris Software)>Okay, get shorter.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/27-0
+00:01:14.226 --> 00:01:19.061
+<v Janardhana Soundararajan (Cognizant)>Are you getting it right?
+Each order will have its own line. I have,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/27-1
+00:01:19.061 --> 00:01:23.265
+<v Janardhana Soundararajan (Cognizant)>say, in a shipment,
+shipment is a combination of 1 order or</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/27-2
+00:01:23.265 --> 00:01:24.386
+<v Janardhana Soundararajan (Cognizant)>multiple orders.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/25-0
+00:01:23.826 --> 00:01:24.026
+<v Manuela Ramirez (Iris Software)>Uh-huh.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/26-0
+00:01:25.266 --> 00:01:25.506
+<v Manuela Ramirez (Iris Software)>Huh?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/30-0
+00:01:26.226 --> 00:01:31.038
+<v Janardhana Soundararajan (Cognizant)>right? One order or more than one order,
+right? If there is only one order,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/28-0
+00:01:27.106 --> 00:01:27.506
+<v Manuela Ramirez (Iris Software)>Yeah.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/29-0
+00:01:29.826 --> 00:01:30.146
+<v Manuela Ramirez (Iris Software)>Uh-huh.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/30-1
+00:01:31.038 --> 00:01:35.026
+<v Janardhana Soundararajan (Cognizant)>one order can have one line or it can
+have more than one line.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/31-0
+00:01:37.346 --> 00:01:39.506
+<v Manuela Ramirez (Iris Software)>In order to have online, yeah, exactly.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/32-0
+00:01:40.226 --> 00:01:45.912
+<v Janardhana Soundararajan (Cognizant)>But if you look at your model right here,
+the diagram, it shows that 74 M, 74 M,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/32-1
+00:01:45.912 --> 00:01:51.106
+<v Janardhana Soundararajan (Cognizant)>and the third line within the same minus
+is 75 M. It cannot be like that.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/35-0
+00:01:52.306 --> 00:01:58.719
+<v Janardhana Soundararajan (Cognizant)>Right, you can group 74 M together, right?
+74 M has line one and line 2.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/33-0
+00:01:52.466 --> 00:01:53.186
+<v Manuela Ramirez (Iris Software)>Okay.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/34-0
+00:01:58.666 --> 00:01:59.266
+<v Manuela Ramirez (Iris Software)>Mm-hmm.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/35-1
+00:01:58.719 --> 00:02:01.266
+<v Janardhana Soundararajan (Cognizant)>75 M maybe has only one line.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/37-0
+00:02:02.386 --> 00:02:03.906
+<v Janardhana Soundararajan (Cognizant)>Right, 76 M.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/36-0
+00:02:03.026 --> 00:02:03.986
+<v Manuela Ramirez (Iris Software)>Yeah, right.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/38-0
+00:02:07.586 --> 00:02:11.346
+<v Manuela Ramirez (Iris Software)>Right now, this is different though,
+right? Yeah.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/40-0
+00:02:09.746 --> 00:02:12.875
+<v Janardhana Soundararajan (Cognizant)>Ah, right.
+So it should not be together with 74M.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/40-1
+00:02:12.875 --> 00:02:14.626
+<v Janardhana Soundararajan (Cognizant)>It should be a separate one.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/39-0
+00:02:14.426 --> 00:02:14.706
+<v Manuela Ramirez (Iris Software)>Mm.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/43-0
+00:02:15.786 --> 00:02:17.941
+<v Manuela Ramirez (Iris Software)>Okay,
+I will put another colour to</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/43-1
+00:02:17.941 --> 00:02:21.881
+<v Manuela Ramirez (Iris Software)>differentiate because that's bringing
+confusion. Yeah, exactly.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/41-0
+00:02:18.706 --> 00:02:19.106
+<v Janardhana Soundararajan (Cognizant)>Yeah.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/42-0
+00:02:21.746 --> 00:02:22.146
+<v Janardhana Soundararajan (Cognizant)>Yeah.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/43-2
+00:02:21.881 --> 00:02:25.266
+<v Manuela Ramirez (Iris Software)>If it's too many,
+it's going to bring confusion. Okay.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/44-0
+00:02:24.946 --> 00:02:30.272
+<v Janardhana Soundararajan (Cognizant)>Yeah, and one one suggestion, right?
+Then say the say design-wise, it's fine,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/44-1
+00:02:30.272 --> 00:02:32.866
+<v Janardhana Soundararajan (Cognizant)>but if you go back to this one, right?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/46-0
+00:02:34.626 --> 00:02:40.146
+<v Janardhana Soundararajan (Cognizant)>See, you selected a shipment.
+You selected shipment 448, correct?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/45-0
+00:02:35.106 --> 00:02:35.746
+<v Manuela Ramirez (Iris Software)>Geta.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/47-0
+00:02:40.906 --> 00:02:41.506
+<v Manuela Ramirez (Iris Software)>Mm-hmm.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/48-0
+00:02:41.106 --> 00:02:47.186
+<v Janardhana Soundararajan (Cognizant)>But you are showing only one order,
+but there are three orders here, right?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/48-1
+00:02:47.186 --> 00:02:53.346
+<v Janardhana Soundararajan (Cognizant)>Do you see that inconsistency exists in
+the model, right? You show only one.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/50-0
+00:02:55.026 --> 00:02:59.730
+<v Janardhana Soundararajan (Cognizant)>Order, but in the design,
+but there are in the product section,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/49-0
+00:02:56.306 --> 00:02:56.946
+<v Manuela Ramirez (Iris Software)>Mhm.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/50-1
+00:02:59.730 --> 00:03:01.346
+<v Janardhana Soundararajan (Cognizant)>you have three orders.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/51-0
+00:03:02.946 --> 00:03:03.426
+<v Manuela Ramirez (Iris Software)>Yeah.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/53-0
+00:03:03.906 --> 00:03:08.631
+<v Janardhana Soundararajan (Cognizant)>Yeah, just make it consistent, right?
+So if you have just for one line,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/53-1
+00:03:08.631 --> 00:03:11.649
+<v Janardhana Soundararajan (Cognizant)>if you are demonstrating one or two
+examples,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/53-2
+00:03:11.649 --> 00:03:16.242
+<v Janardhana Soundararajan (Cognizant)>just make those examples consistent.
+If you say count of order count,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/52-0
+00:03:13.826 --> 00:03:14.026
+<v Manuela Ramirez (Iris Software)>No.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/53-3
+00:03:16.242 --> 00:03:21.295
+<v Janardhana Soundararajan (Cognizant)>you see there only one. But here,
+the order count under the product section,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/53-4
+00:03:21.295 --> 00:03:24.706
+<v Janardhana Soundararajan (Cognizant)>you have three orders, right? 74 M, 75 M,
+and 76 M.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/54-0
+00:03:24.866 --> 00:03:26.386
+<v Janardhana Soundararajan (Cognizant)>So, they are not consistent.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/55-0
+00:03:27.266 --> 00:03:30.277
+<v Manuela Ramirez (Iris Software)>Yeah,
+they should be consistent to what I was</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/55-1
+00:03:30.277 --> 00:03:31.586
+<v Manuela Ramirez (Iris Software)>looking here, right?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/56-0
+00:03:32.426 --> 00:03:32.706
+<v Janardhana Soundararajan (Cognizant)>It.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/59-0
+00:03:34.386 --> 00:03:38.489
+<v Janardhana Soundararajan (Cognizant)>Right. So when you have the order,
+you just say instead of 49 AM,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/59-1
+00:03:38.489 --> 00:03:42.528
+<v Janardhana Soundararajan (Cognizant)>make it 74 AM, 75 AM, and 75 76 AM, right?
+So that you can make,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/59-2
+00:03:42.528 --> 00:03:45.822
+<v Janardhana Soundararajan (Cognizant)>you are making it consistent.
+That's all I'm saying.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/57-0
+00:03:43.266 --> 00:03:43.506
+<v Manuela Ramirez (Iris Software)>Yeah.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/59-3
+00:03:45.822 --> 00:03:49.862
+<v Janardhana Soundararajan (Cognizant)>Because someone looking at it, right,
+might not get the picture.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/59-4
+00:03:49.862 --> 00:03:54.026
+<v Janardhana Soundararajan (Cognizant)>Why there is only one order,
+but here you're showing three orders.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/58-0
+00:03:56.146 --> 00:03:56.626
+<v Manuela Ramirez (Iris Software)>Okay.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/60-0
+00:03:57.826 --> 00:03:59.426
+<v Manuela Ramirez (Iris Software)>Okay, we open it.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/61-0
+00:04:05.826 --> 00:04:06.626
+<v Manuela Ramirez (Iris Software)>I.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/62-0
+00:04:07.986 --> 00:04:08.386
+<v Manuela Ramirez (Iris Software)>Okay.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/63-0
+00:04:13.666 --> 00:04:14.546
+<v Manuela Ramirez (Iris Software)>****.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/64-0
+00:04:16.146 --> 00:04:16.546
+<v Manuela Ramirez (Iris Software)>Yes.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/65-0
+00:04:21.946 --> 00:04:22.386
+<v Manuela Ramirez (Iris Software)>Okay.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/67-0
+00:04:25.186 --> 00:04:29.346
+<v Manuela Ramirez (Iris Software)>Yeah, this table is pretty long.
+You have too many attributes here.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/66-0
+00:04:27.586 --> 00:04:28.026
+<v Janardhana Soundararajan (Cognizant)>Yeah.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/69-0
+00:04:29.346 --> 00:04:32.327
+<v Janardhana Soundararajan (Cognizant)>Yeah. See,
+the main thing that they will look into</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/69-1
+00:04:32.327 --> 00:04:35.132
+<v Janardhana Soundararajan (Cognizant)>is the volume, the count,
+and all those things.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/69-2
+00:04:35.132 --> 00:04:39.866
+<v Janardhana Soundararajan (Cognizant)>So just see that the data is consistent
+between the lines being selected and the</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/69-3
+00:04:39.866 --> 00:04:43.782
+<v Janardhana Soundararajan (Cognizant)>total that comes out for this particular
+orders altogether, right?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/69-4
+00:04:43.782 --> 00:04:48.458
+<v Janardhana Soundararajan (Cognizant)>A shipment is a collection of orders.
+If say, for example, in this case, right,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/68-0
+00:04:44.866 --> 00:04:44.946
+<v Manuela Ramirez (Iris Software)>Jha.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/69-5
+00:04:48.458 --> 00:04:50.386
+<v Janardhana Soundararajan (Cognizant)>the package count comes out to be</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/71-0
+00:04:50.866 --> 00:04:55.761
+<v Janardhana Soundararajan (Cognizant)>100, 105, 105 plus 80 is 185, right?
+185 bags or 185, this one.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/70-0
+00:04:55.466 --> 00:04:56.066
+<v Manuela Ramirez (Iris Software)>Mm-hmm.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/71-1
+00:04:55.761 --> 00:04:59.891
+<v Janardhana Soundararajan (Cognizant)>The same count should be there at the
+shipment level.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/71-2
+00:04:59.891 --> 00:05:03.715
+<v Janardhana Soundararajan (Cognizant)>It should say the shipment has 185 bags
+or boxes.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/71-3
+00:05:03.715 --> 00:05:09.986
+<v Janardhana Soundararajan (Cognizant)>You're putting bags and boxes together,
+right? Just make it a little easy for us.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/72-0
+00:05:10.066 --> 00:05:15.698
+<v Janardhana Soundararajan (Cognizant)>right? Say that it is all back, all boxes,
+so that it's easy for us to show them,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/72-1
+00:05:15.698 --> 00:05:19.132
+<v Janardhana Soundararajan (Cognizant)>right?
+We don't have to make it complicated here.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/72-2
+00:05:19.132 --> 00:05:20.986
+<v Janardhana Soundararajan (Cognizant)>It's just an idea, correct?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/73-0
+00:05:22.466 --> 00:05:23.026
+<v Manuela Ramirez (Iris Software)>Okay.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/74-0
+00:05:23.866 --> 00:05:24.386
+<v Manuela Ramirez (Iris Software)>Perfect.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/75-0
+00:05:26.106 --> 00:05:28.306
+<v Manuela Ramirez (Iris Software)>Um, let's go to the next.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/77-0
+00:05:27.026 --> 00:05:31.246
+<v Janardhana Soundararajan (Cognizant)>And again, you will not have, yeah,
+you will not have a mix of weights.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/77-1
+00:05:31.246 --> 00:05:35.407
+<v Janardhana Soundararajan (Cognizant)>Say you are here, you are having LBs,
+right? All will be in LB, right?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/77-2
+00:05:35.407 --> 00:05:40.271
+<v Janardhana Soundararajan (Cognizant)>In pounds. Similarly, a package will be,
+let's keep it all constant, right? Boxes,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/76-0
+00:05:36.386 --> 00:05:36.946
+<v Manuela Ramirez (Iris Software)>Mhm.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/77-3
+00:05:40.271 --> 00:05:42.908
+<v Janardhana Soundararajan (Cognizant)>you know,
+pallets or bags or whatever it is.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/77-4
+00:05:42.908 --> 00:05:46.306
+<v Janardhana Soundararajan (Cognizant)>Don't put boxes,
+drums and bags because then it might be.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/78-0
+00:05:46.466 --> 00:05:48.946
+<v Janardhana Soundararajan (Cognizant)>little difficult for us to show certain
+information.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/79-0
+00:05:50.546 --> 00:05:53.825
+<v Manuela Ramirez (Iris Software)>Yeah, so this will be,
+but the description could be different,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/79-1
+00:05:53.825 --> 00:05:55.906
+<v Manuela Ramirez (Iris Software)>right? Because this is a different item.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/82-0
+00:05:54.706 --> 00:05:59.611
+<v Janardhana Soundararajan (Cognizant)>Yeah, description can be different. Yeah,
+that is fine. Description is different,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/82-1
+00:05:59.611 --> 00:06:04.098
+<v Janardhana Soundararajan (Cognizant)>but I'm saying the package, right?
+So only a few things like here you made</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/80-0
+00:06:00.786 --> 00:06:01.106
+<v Manuela Ramirez (Iris Software)>Yeah.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/82-2
+00:06:04.098 --> 00:06:07.328
+<v Janardhana Soundararajan (Cognizant)>the volume consistent, right?
+It's all in cubic feet.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/82-3
+00:06:07.328 --> 00:06:11.934
+<v Janardhana Soundararajan (Cognizant)>It is in pounds and tare weights in
+pounds. Don't mix pounds and kgs, right?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/82-4
+00:06:11.934 --> 00:06:14.266
+<v Janardhana Soundararajan (Cognizant)>Don't mix pounds and maybe metric tons.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/81-0
+00:06:12.146 --> 00:06:12.626
+<v Manuela Ramirez (Iris Software)>Mhm.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/84-0
+00:06:14.466 --> 00:06:16.386
+<v Janardhana Soundararajan (Cognizant)>Don't do that.
+That's what I'm trying to say.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/83-0
+00:06:17.266 --> 00:06:18.186
+<v Manuela Ramirez (Iris Software)>Okay, perfect.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/85-0
+00:06:19.466 --> 00:06:20.066
+<v Manuela Ramirez (Iris Software)>Great.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/86-0
+00:06:22.586 --> 00:06:23.666
+<v Manuela Ramirez (Iris Software)>Let's go with the next one.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/88-0
+00:06:26.626 --> 00:06:28.706
+<v Manuela Ramirez (Iris Software)>This is the routing guides.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/87-0
+00:06:26.946 --> 00:06:27.226
+<v Janardhana Soundararajan (Cognizant)>Yeah.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/89-0
+00:06:28.866 --> 00:06:30.066
+<v Janardhana Soundararajan (Cognizant)>Yeah, correct.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/90-0
+00:06:30.386 --> 00:06:35.484
+<v Manuela Ramirez (Iris Software)>This is all the options,
+and here is your explanation of what it</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/90-1
+00:06:35.484 --> 00:06:38.306
+<v Manuela Ramirez (Iris Software)>it look it used to look like, right?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/91-0
+00:06:36.706 --> 00:06:40.245
+<v Janardhana Soundararajan (Cognizant)>I gave you the second file, right?
+I gave you the second file.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/91-1
+00:06:40.245 --> 00:06:41.986
+<v Janardhana Soundararajan (Cognizant)>That's what how it needs to be.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/92-0
+00:06:42.946 --> 00:06:44.786
+<v Manuela Ramirez (Iris Software)>Okay, give me a second.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/93-0
+00:06:45.906 --> 00:06:48.346
+<v Manuela Ramirez (Iris Software)>It is here, I'm not wrong.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/94-0
+00:06:50.506 --> 00:06:53.706
+<v Manuela Ramirez (Iris Software)>Give me one second.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/95-0
+00:06:58.066 --> 00:06:59.106
+<v Manuela Ramirez (Iris Software)>Iris.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/96-0
+00:07:01.026 --> 00:07:02.066
+<v Manuela Ramirez (Iris Software)>Odyssey.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/97-0
+00:07:07.586 --> 00:07:09.106
+<v Manuela Ramirez (Iris Software)>I think it's this one.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/99-0
+00:07:13.026 --> 00:07:15.346
+<v Janardhana Soundararajan (Cognizant)>Yes, this is how it needs to be, yeah.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/98-0
+00:07:13.666 --> 00:07:14.786
+<v Manuela Ramirez (Iris Software)>Yeah, this is it.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/100-0
+00:07:17.666 --> 00:07:21.986
+<v Manuela Ramirez (Iris Software)>And so we are in routing and where is
+routing?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/103-0
+00:07:23.906 --> 00:07:28.546
+<v Manuela Ramirez (Iris Software)>Here, right? This one. Ah, okay.
+Let me see.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/101-0
+00:07:25.666 --> 00:07:25.986
+<v Janardhana Soundararajan (Cognizant)>Yeah.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/102-0
+00:07:26.946 --> 00:07:27.666
+<v Janardhana Soundararajan (Cognizant)>Connects.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/104-0
+00:07:29.666 --> 00:07:30.146
+<v Manuela Ramirez (Iris Software)>I see.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/106-0
+00:07:31.426 --> 00:07:34.450
+<v Manuela Ramirez (Iris Software)>OK,
+I didn't like my mind didn't click on</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/106-1
+00:07:34.450 --> 00:07:38.194
+<v Manuela Ramirez (Iris Software)>this one,
+so I need to review it once again because</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/105-0
+00:07:37.826 --> 00:07:38.666
+<v Janardhana Soundararajan (Cognizant)>Correct, yeah.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/106-2
+00:07:38.194 --> 00:07:39.346
+<v Manuela Ramirez (Iris Software)>I only use this.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/107-0
+00:07:41.746 --> 00:07:45.586
+<v Manuela Ramirez (Iris Software)>And obviously you always want to use your
+grid.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/109-0
+00:07:47.106 --> 00:07:50.193
+<v Manuela Ramirez (Iris Software)>These 3 lines, okay.
+And let's cheque this.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/109-1
+00:07:50.193 --> 00:07:54.894
+<v Manuela Ramirez (Iris Software)>So the first thing that I knew is that
+the each line is an option,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/108-0
+00:07:51.346 --> 00:07:51.746
+<v Janardhana Soundararajan (Cognizant)>Yeah.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/109-2
+00:07:54.894 --> 00:07:56.226
+<v Manuela Ramirez (Iris Software)>so it's selectable.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/110-0
+00:07:56.706 --> 00:08:02.555
+<v Janardhana Soundararajan (Cognizant)>Correct. Each line is an option.
+It should be selectable.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/110-1
+00:08:02.555 --> 00:08:10.219
+<v Janardhana Soundararajan (Cognizant)>Then you have routing guide, status,
+pick up, okay, pick up, pick up hours,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/110-2
+00:08:10.219 --> 00:08:15.866
+<v Janardhana Soundararajan (Cognizant)>pick up this one, delivery date, okay,
+complete backup.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/114-0
+00:08:15.986 --> 00:08:21.461
+<v Janardhana Soundararajan (Cognizant)>Primary group, primary, okay, okay,
+but this one needs to be modified</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/114-1
+00:08:21.461 --> 00:08:27.639
+<v Janardhana Soundararajan (Cognizant)>accordingly to those design that I gave
+you earlier, right? The second design,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/114-2
+00:08:27.639 --> 00:08:33.426
+<v Janardhana Soundararajan (Cognizant)>that's how it needs to be, right?
+Because when the user would want to see</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/111-0
+00:08:28.466 --> 00:08:28.946
+<v Manuela Ramirez (Iris Software)>Mhm.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/112-0
+00:08:32.066 --> 00:08:32.226
+<v Manuela Ramirez (Iris Software)>Mm.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/114-3
+00:08:33.426 --> 00:08:36.866
+<v Janardhana Soundararajan (Cognizant)>what are all the routing options
+available.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/115-0
+00:08:37.186 --> 00:08:41.424
+<v Janardhana Soundararajan (Cognizant)>to them, they should be able to see it,
+how they would want their, yeah,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/113-0
+00:08:38.546 --> 00:08:39.026
+<v Manuela Ramirez (Iris Software)>Mhm.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/115-1
+00:08:41.424 --> 00:08:43.746
+<v Janardhana Soundararajan (Cognizant)>this is how they would want to see that.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/116-0
+00:08:44.626 --> 00:08:46.706
+<v Manuela Ramirez (Iris Software)>So you want to see everything at once,
+right?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/120-0
+00:08:47.666 --> 00:08:50.523
+<v Janardhana Soundararajan (Cognizant)>Exactly, right? See,
+what you did is right.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/117-0
+00:08:49.346 --> 00:08:49.586
+<v Manuela Ramirez (Iris Software)>Alright.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/120-1
+00:08:50.523 --> 00:08:54.548
+<v Janardhana Soundararajan (Cognizant)>The tables are fine,
+but you need to put the headers the same</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/120-2
+00:08:54.548 --> 00:08:57.080
+<v Janardhana Soundararajan (Cognizant)>way.
+Then we need to add specific tabs</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/120-3
+00:08:57.080 --> 00:09:01.689
+<v Janardhana Soundararajan (Cognizant)>underneath it, right? If you go back,
+within the routing guide, right,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/120-4
+00:09:01.689 --> 00:09:05.714
+<v Janardhana Soundararajan (Cognizant)>you will have multiple tabs here.
+Routing option, then, yeah,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/118-0
+00:09:04.506 --> 00:09:05.026
+<v Manuela Ramirez (Iris Software)>Yes.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/120-5
+00:09:05.714 --> 00:09:07.986
+<v Janardhana Soundararajan (Cognizant)>there are four to five tabs, right?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/123-0
+00:09:08.466 --> 00:09:11.839
+<v Janardhana Soundararajan (Cognizant)>There are five tabs there.
+So we need to add those tabs and there</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/119-0
+00:09:09.466 --> 00:09:09.666
+<v Manuela Ramirez (Iris Software)>Yeah.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/123-1
+00:09:11.839 --> 00:09:15.518
+<v Janardhana Soundararajan (Cognizant)>are action buttons within those.
+Then there are certain few that action</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/121-0
+00:09:13.946 --> 00:09:14.306
+<v Manuela Ramirez (Iris Software)>Yeah.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/123-2
+00:09:15.518 --> 00:09:18.328
+<v Janardhana Soundararajan (Cognizant)>for shipments,
+so action for shipment options for each</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/123-3
+00:09:18.328 --> 00:09:21.598
+<v Janardhana Soundararajan (Cognizant)>of those options, right?
+And then there are some information at</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/122-0
+00:09:20.306 --> 00:09:20.466
+<v Manuela Ramirez (Iris Software)>Mm.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/123-4
+00:09:21.598 --> 00:09:22.466
+<v Janardhana Soundararajan (Cognizant)>the header level.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/125-0
+00:09:23.906 --> 00:09:28.483
+<v Manuela Ramirez (Iris Software)>Okay,
+I just like to know a quick description</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/125-1
+00:09:28.483 --> 00:09:34.652
+<v Manuela Ramirez (Iris Software)>of routing options, thus.
+My guess is this is the way you are</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/125-2
+00:09:34.652 --> 00:09:42.115
+<v Manuela Ramirez (Iris Software)>taking action over your planification,
+right? So is this for that as well?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/125-3
+00:09:42.115 --> 00:09:43.706
+<v Manuela Ramirez (Iris Software)>Because since...</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/124-0
+00:09:42.706 --> 00:09:44.306
+<v Janardhana Soundararajan (Cognizant)>I didn't get your point.
+Can you say that again?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/126-0
+00:09:45.906 --> 00:09:51.385
+<v Manuela Ramirez (Iris Software)>Like I like to understand what this
+routing options table is not just for</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/126-1
+00:09:51.385 --> 00:09:55.826
+<v Manuela Ramirez (Iris Software)>displaying information, right?
+It's also for taking action.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/128-0
+00:09:54.546 --> 00:09:59.333
+<v Janardhana Soundararajan (Cognizant)>Yeah, they will have to take action.
+Correct. User will take an action. See,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/127-0
+00:09:57.186 --> 00:09:57.346
+<v Manuela Ramirez (Iris Software)>Yeah.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/128-1
+00:09:59.333 --> 00:10:03.186
+<v Janardhana Soundararajan (Cognizant)>as I told you, right,
+the shipment idea is to find a carrier.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/130-0
+00:10:04.066 --> 00:10:07.266
+<v Manuela Ramirez (Iris Software)>Exactly. Okay. Okay.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/129-0
+00:10:04.546 --> 00:10:05.026
+<v Janardhana Soundararajan (Cognizant)>Right.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/133-0
+00:10:06.146 --> 00:10:10.842
+<v Janardhana Soundararajan (Cognizant)>Right? So the options are nothing,
+but I have multiple carrier options,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/133-1
+00:10:10.842 --> 00:10:13.777
+<v Janardhana Soundararajan (Cognizant)>which carrier I would want to select,
+right?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/133-2
+00:10:13.777 --> 00:10:18.864
+<v Janardhana Soundararajan (Cognizant)>The system automatically selects or the
+user will be able to select their own</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/133-3
+00:10:18.864 --> 00:10:21.146
+<v Janardhana Soundararajan (Cognizant)>carrier and tender to that carrier.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/132-0
+00:10:20.626 --> 00:10:20.826
+<v Manuela Ramirez (Iris Software)>Yeah.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/134-0
+00:10:22.946 --> 00:10:23.906
+<v Manuela Ramirez (Iris Software)>Oh, I see.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/138-0
+00:10:24.786 --> 00:10:28.958
+<v Janardhana Soundararajan (Cognizant)>Tender means it is like sending that
+information to the carrier, right?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/135-0
+00:10:25.186 --> 00:10:25.786
+<v Manuela Ramirez (Iris Software)>I Geta.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/136-0
+00:10:28.506 --> 00:10:28.986
+<v Manuela Ramirez (Iris Software)>Mhm.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/138-1
+00:10:28.958 --> 00:10:32.839
+<v Janardhana Soundararajan (Cognizant)>The carrier can accept it or carrier can
+reject it. Say like, hey,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/138-2
+00:10:32.839 --> 00:10:37.473
+<v Janardhana Soundararajan (Cognizant)>I'm already booked for that day, right?
+I cannot do anything. They can decline.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/137-0
+00:10:34.386 --> 00:10:34.546
+<v Manuela Ramirez (Iris Software)>Mm.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/138-3
+00:10:37.473 --> 00:10:41.586
+<v Janardhana Soundararajan (Cognizant)>So in that case, if they decline,
+you go to the next option available.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/139-0
+00:10:44.146 --> 00:10:44.786
+<v Manuela Ramirez (Iris Software)>Okay.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/141-0
+00:10:45.666 --> 00:10:48.706
+<v Manuela Ramirez (Iris Software)>Got it. So...</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/140-0
+00:10:47.106 --> 00:10:47.426
+<v Janardhana Soundararajan (Cognizant)>Yeah.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/143-0
+00:10:50.546 --> 00:10:53.186
+<v Manuela Ramirez (Iris Software)>That comes to another question that I
+have.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/144-0
+00:10:56.466 --> 00:10:56.946
+<v Manuela Ramirez (Iris Software)>Mmh.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/147-0
+00:10:58.066 --> 00:11:03.017
+<v Manuela Ramirez (Iris Software)>Here you have shipments, exceptions,
+right? So, this, this,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/145-0
+00:11:01.906 --> 00:11:02.186
+<v Janardhana Soundararajan (Cognizant)>Yeah.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/147-1
+00:11:03.017 --> 00:11:10.031
+<v Manuela Ramirez (Iris Software)>this whole this whole domain is all is is
+on the first go is showing you exceptions,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/147-2
+00:11:10.031 --> 00:11:11.186
+<v Manuela Ramirez (Iris Software)>errors, right?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/146-0
+00:11:11.746 --> 00:11:12.466
+<v Janardhana Soundararajan (Cognizant)>Exactly.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/148-0
+00:11:13.506 --> 00:11:19.916
+<v Manuela Ramirez (Iris Software)>So, based on errors,
+the user is trying to plan, right?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/151-0
+00:11:19.826 --> 00:11:23.788
+<v Janardhana Soundararajan (Cognizant)>Yeah, they should take an action.
+Say the first one is exceptions.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/148-1
+00:11:19.916 --> 00:11:20.946
+<v Manuela Ramirez (Iris Software)>Plan its.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/151-1
+00:11:23.788 --> 00:11:26.745
+<v Janardhana Soundararajan (Cognizant)>The system is not able to proceed by
+itself. See,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/151-2
+00:11:26.745 --> 00:11:31.534
+<v Janardhana Soundararajan (Cognizant)>the whole objective is to make the system
+work by itself, right? Find a carrier,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/149-0
+00:11:30.866 --> 00:11:31.346
+<v Manuela Ramirez (Iris Software)>Hmm.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/151-3
+00:11:31.534 --> 00:11:34.254
+<v Janardhana Soundararajan (Cognizant)>do this, send them, update,
+all those things.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/151-4
+00:11:34.254 --> 00:11:38.866
+<v Janardhana Soundararajan (Cognizant)>But there are certain instances where the
+system will not be able to proceed.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/150-0
+00:11:36.466 --> 00:11:36.946
+<v Manuela Ramirez (Iris Software)>Where?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/154-0
+00:11:39.506 --> 00:11:43.563
+<v Janardhana Soundararajan (Cognizant)>do certain things by itself.
+It would require someone's intervention</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/152-0
+00:11:42.066 --> 00:11:42.146
+<v Manuela Ramirez (Iris Software)>Uh-uh.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/154-1
+00:11:43.563 --> 00:11:47.090
+<v Janardhana Soundararajan (Cognizant)>to guide the system, right?
+So what do you need to do next?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/153-0
+00:11:46.466 --> 00:11:46.946
+<v Manuela Ramirez (Iris Software)>Yeah.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/154-2
+00:11:47.090 --> 00:11:50.146
+<v Janardhana Soundararajan (Cognizant)>So that is when it comes and sits in the
+exception.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/155-0
+00:11:51.986 --> 00:11:53.026
+<v Manuela Ramirez (Iris Software)>Oh, okay.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/158-0
+00:11:52.306 --> 00:11:57.117
+<v Janardhana Soundararajan (Cognizant)>If the system can do everything by itself,
+it will go in monitoring, right?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/158-1
+00:11:57.117 --> 00:12:01.865
+<v Janardhana Soundararajan (Cognizant)>It is just for the user to monitor.
+The system is doing by itself a lot of</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/156-0
+00:11:57.586 --> 00:11:57.746
+<v Manuela Ramirez (Iris Software)>Mm.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/158-2
+00:12:01.865 --> 00:12:06.802
+<v Janardhana Soundararajan (Cognizant)>things, and it is just monitoring.
+If the user would want to see, like, okay,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/158-3
+00:12:06.802 --> 00:12:11.866
+<v Janardhana Soundararajan (Cognizant)>if the customer calls and says, like,
+okay, well, what happened to my shipment?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/160-0
+00:12:12.146 --> 00:12:16.129
+<v Janardhana Soundararajan (Cognizant)>And it might be in monitoring and it was
+like waiting for a carrier,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/157-0
+00:12:13.186 --> 00:12:13.346
+<v Manuela Ramirez (Iris Software)>Yeah.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/160-1
+00:12:16.129 --> 00:12:20.688
+<v Janardhana Soundararajan (Cognizant)>a carrier to send send us a feedback
+saying like they're going to accept it or</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/160-2
+00:12:20.688 --> 00:12:23.401
+<v Janardhana Soundararajan (Cognizant)>not.
+So they will look into the monitoring and</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/160-3
+00:12:23.401 --> 00:12:27.210
+<v Janardhana Soundararajan (Cognizant)>then they will tell, okay,
+it's maybe just waiting for, you know,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/160-4
+00:12:27.210 --> 00:12:28.306
+<v Janardhana Soundararajan (Cognizant)>carrier acceptance.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/159-0
+00:12:29.906 --> 00:12:30.706
+<v Manuela Ramirez (Iris Software)>I see.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/161-0
+00:12:30.386 --> 00:12:30.506
+<v Janardhana Soundararajan (Cognizant)>Yes.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/162-0
+00:12:32.146 --> 00:12:35.106
+<v Manuela Ramirez (Iris Software)>Okay, yeah, that's much clearer now.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/163-0
+00:12:36.226 --> 00:12:36.546
+<v Manuela Ramirez (Iris Software)>Um...</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/164-0
+00:12:38.706 --> 00:12:41.186
+<v Manuela Ramirez (Iris Software)>Okay, so let me let me work on that.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/165-0
+00:12:42.706 --> 00:12:43.426
+<v Manuela Ramirez (Iris Software)>I'm sorry.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/166-0
+00:12:44.866 --> 00:12:48.146
+<v Manuela Ramirez (Iris Software)>Then we have a coastal location.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/167-0
+00:12:48.546 --> 00:12:51.186
+<v Janardhana Soundararajan (Cognizant)>Yeah, cost allocation base, yeah.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/168-0
+00:12:51.906 --> 00:12:54.546
+<v Manuela Ramirez (Iris Software)>Give me a second, let's go here.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/169-0
+00:12:57.506 --> 00:13:03.734
+<v Manuela Ramirez (Iris Software)>So you don't need sell shipment costs.
+Here's example and here it is.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/169-1
+00:13:03.734 --> 00:13:08.626
+<v Manuela Ramirez (Iris Software)>So it will give you a summary and then it
+will, sorry.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/170-0
+00:13:09.986 --> 00:13:11.066
+<v Manuela Ramirez (Iris Software)>It will show you the...</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/171-0
+00:13:11.906 --> 00:13:20.599
+<v Janardhana Soundararajan (Cognizant)>Yeah, base, discount, fuel, axorial, okay,
+total, margin, fantastic. That looks cool,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/171-1
+00:13:20.599 --> 00:13:29.291
+<v Janardhana Soundararajan (Cognizant)>the header. Then the bottom section, okay,
+order, each order allocation, direct cost,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/171-2
+00:13:29.291 --> 00:13:30.706
+<v Janardhana Soundararajan (Cognizant)>AP cost, base,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/172-0
+00:13:30.746 --> 00:13:38.660
+<v Janardhana Soundararajan (Cognizant)>Fuel discount, stop of charges,
+stop of charges, okay, okay,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/172-1
+00:13:38.660 --> 00:13:48.518
+<v Janardhana Soundararajan (Cognizant)>then direct cost, AP cost, base cost,
+okay, plan completed, plan completed,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/172-2
+00:13:48.518 --> 00:13:49.426
+<v Janardhana Soundararajan (Cognizant)>do you?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/174-0
+00:13:49.546 --> 00:13:55.820
+<v Janardhana Soundararajan (Cognizant)>have cost allocation, right? See,
+right now you have, what do you say,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/174-1
+00:13:55.820 --> 00:14:00.856
+<v Janardhana Soundararajan (Cognizant)>AP cost, right?
+We might have to do a similar tab for AR</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/173-0
+00:13:58.586 --> 00:13:58.866
+<v Manuela Ramirez (Iris Software)>Uh-huh.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/174-2
+00:14:00.856 --> 00:14:03.506
+<v Janardhana Soundararajan (Cognizant)>cost. A cost is customer cost.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/175-0
+00:14:05.506 --> 00:14:06.026
+<v Janardhana Soundararajan (Cognizant)>Thanks.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/176-0
+00:14:06.306 --> 00:14:07.026
+<v Manuela Ramirez (Iris Software)>Okay.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/178-0
+00:14:07.586 --> 00:14:09.026
+<v Janardhana Soundararajan (Cognizant)>Yeah, so we don't have...</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/177-0
+00:14:08.146 --> 00:14:08.706
+<v Manuela Ramirez (Iris Software)>Soham.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/181-0
+00:14:10.786 --> 00:14:14.964
+<v Janardhana Soundararajan (Cognizant)>Don't need sell shipment cost. Okay,
+it has been marked as don't need sell</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/181-1
+00:14:14.964 --> 00:14:18.306
+<v Janardhana Soundararajan (Cognizant)>shipment cost. Okay,
+one second if you go back to that one.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/179-0
+00:14:17.026 --> 00:14:17.346
+<v Manuela Ramirez (Iris Software)>Uh-huh.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/180-0
+00:14:19.106 --> 00:14:19.586
+<v Manuela Ramirez (Iris Software)>Yeah.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/184-0
+00:14:20.066 --> 00:14:22.741
+<v Janardhana Soundararajan (Cognizant)>Yeah,
+we need direct shipping cost only if the</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/182-0
+00:14:21.426 --> 00:14:21.826
+<v Manuela Ramirez (Iris Software)>Okay.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/184-1
+00:14:22.741 --> 00:14:26.781
+<v Janardhana Soundararajan (Cognizant)>two loads is in the shipment.
+Direct shipping cost should be available</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/184-2
+00:14:26.781 --> 00:14:31.504
+<v Janardhana Soundararajan (Cognizant)>for, see, okay, if you go back to that,
+why I'm saying that you might not need it,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/184-3
+00:14:31.504 --> 00:14:33.666
+<v Janardhana Soundararajan (Cognizant)>because if you go back to your design.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/183-0
+00:14:34.586 --> 00:14:34.946
+<v Manuela Ramirez (Iris Software)>Uh-huh.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/185-0
+00:14:34.946 --> 00:14:38.312
+<v Janardhana Soundararajan (Cognizant)>Right?
+Why I said it is not required here is</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/185-1
+00:14:38.312 --> 00:14:41.826
+<v Janardhana Soundararajan (Cognizant)>because you are still awaiting customer.
+Okay.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/186-0
+00:14:43.506 --> 00:14:49.388
+<v Janardhana Soundararajan (Cognizant)>We might need it, say just like this,
+we might have to create a customer cost</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/186-1
+00:14:49.388 --> 00:14:53.837
+<v Janardhana Soundararajan (Cognizant)>related for that.
+Why I'm saying that is because initially</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/186-2
+00:14:53.837 --> 00:14:59.643
+<v Janardhana Soundararajan (Cognizant)>we had we had recently had a requirement
+where in which the sell side of the</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/186-3
+00:14:59.643 --> 00:15:03.186
+<v Janardhana Soundararajan (Cognizant)>shipment is not going to get created
+until by.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/189-0
+00:15:03.426 --> 00:15:08.445
+<v Janardhana Soundararajan (Cognizant)>or a carrier has been accepted, right?
+So that is how we had current logic.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/187-0
+00:15:06.906 --> 00:15:07.186
+<v Manuela Ramirez (Iris Software)>Uh-huh.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/189-1
+00:15:08.445 --> 00:15:13.265
+<v Janardhana Soundararajan (Cognizant)>That logic is going to get replaced.
+They wanted to create the sell side</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/189-2
+00:15:13.265 --> 00:15:15.906
+<v Janardhana Soundararajan (Cognizant)>immediately on creation of the buy side.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/190-0
+00:15:17.186 --> 00:15:20.878
+<v Janardhana Soundararajan (Cognizant)>Right?
+So it means that at any point you have an</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/188-0
+00:15:18.546 --> 00:15:18.866
+<v Manuela Ramirez (Iris Software)>A.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/190-1
+00:15:20.878 --> 00:15:26.226
+<v Janardhana Soundararajan (Cognizant)>AP cost, you also have an AR cost. Right?
+Two costs will be available.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/191-0
+00:15:28.066 --> 00:15:28.626
+<v Manuela Ramirez (Iris Software)>Okay.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/193-0
+00:15:29.186 --> 00:15:32.116
+<v Janardhana Soundararajan (Cognizant)>Right,
+so that is where we would also want the</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/192-0
+00:15:30.426 --> 00:15:30.906
+<v Manuela Ramirez (Iris Software)>Mhm.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/193-1
+00:15:32.116 --> 00:15:34.546
+<v Janardhana Soundararajan (Cognizant)>cost to be available for the AP and AR.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/197-0
+00:15:36.706 --> 00:15:40.572
+<v Janardhana Soundararajan (Cognizant)>Right, similar screen,
+if you can create a similar screen for</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/194-0
+00:15:37.306 --> 00:15:37.986
+<v Manuela Ramirez (Iris Software)>I don't think.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/195-0
+00:15:40.546 --> 00:15:40.946
+<v Manuela Ramirez (Iris Software)>Mm.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/197-1
+00:15:40.572 --> 00:15:45.372
+<v Janardhana Soundararajan (Cognizant)>within this cost allocation, right?
+If you can create AP cost and a separate</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/197-2
+00:15:45.372 --> 00:15:48.926
+<v Janardhana Soundararajan (Cognizant)>one or insert inside this,
+if you can create an AR cost,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/197-3
+00:15:48.926 --> 00:15:50.546
+<v Janardhana Soundararajan (Cognizant)>that will also be helpful.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/196-0
+00:15:52.386 --> 00:15:53.426
+<v Manuela Ramirez (Iris Software)>Give me a second.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/198-0
+00:15:57.266 --> 00:16:00.262
+<v Janardhana Soundararajan (Cognizant)>A way to show that, okay,
+this is your customer.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/198-1
+00:16:00.262 --> 00:16:04.786
+<v Janardhana Soundararajan (Cognizant)>Let me see if I have that screen so that
+you'll be able to get that idea.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/199-0
+00:16:07.106 --> 00:16:07.866
+<v Janardhana Soundararajan (Cognizant)>Jha.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/200-0
+00:16:09.906 --> 00:16:10.866
+<v Manuela Ramirez (Iris Software)>Maybe select.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/201-0
+00:16:09.906 --> 00:16:13.906
+<v Janardhana Soundararajan (Cognizant)>From last time it is not opening for me.
+I don't know for some reason.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/203-0
+00:16:15.026 --> 00:16:15.586
+<v Janardhana Soundararajan (Cognizant)>To do.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/202-0
+00:16:15.106 --> 00:16:15.266
+<v Manuela Ramirez (Iris Software)>Mm.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/204-0
+00:16:18.026 --> 00:16:18.546
+<v Janardhana Soundararajan (Cognizant)>18.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/205-0
+00:16:28.666 --> 00:16:31.586
+<v Manuela Ramirez (Iris Software)>Thank God Efrain is recording the call.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/206-0
+00:16:35.586 --> 00:16:38.386
+<v Janardhana Soundararajan (Cognizant)>Yeah, he's already started the recording.
+I did see that.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/208-0
+00:16:39.266 --> 00:16:39.586
+<v Efrain Hernandez>Yep.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/207-0
+00:16:39.786 --> 00:16:39.986
+<v Manuela Ramirez (Iris Software)>Yeah.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/209-0
+00:16:40.626 --> 00:16:44.269
+<v Janardhana Soundararajan (Cognizant)>I don't have, it's not opening for,
+are you able to open the QA screen?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/209-1
+00:16:44.269 --> 00:16:47.506
+<v Janardhana Soundararajan (Cognizant)>Can you, do you get the access right?
+You got the access right.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/210-0
+00:16:48.546 --> 00:16:50.066
+<v Manuela Ramirez (Iris Software)>Oh yeah, give me a second.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/211-0
+00:16:49.426 --> 00:16:52.490
+<v Janardhana Soundararajan (Cognizant)>Yeah, yeah, yeah, yeah.
+I'll put the link here.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/211-1
+00:16:52.490 --> 00:16:57.213
+<v Janardhana Soundararajan (Cognizant)>Try to click on that link and it's not
+opening for me. That's what, yeah,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/211-2
+00:16:57.213 --> 00:17:00.786
+<v Janardhana Soundararajan (Cognizant)>if you go to the rating error, right,
+whatever you add.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/212-0
+00:17:01.506 --> 00:17:03.586
+<v Manuela Ramirez (Iris Software)>Do you need the portal or the audience?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/214-0
+00:17:02.226 --> 00:17:07.240
+<v Janardhana Soundararajan (Cognizant)>Yeah, yeah, rating, rating, rating error.
+If you go to the rating error screen,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/214-1
+00:17:07.240 --> 00:17:10.122
+<v Janardhana Soundararajan (Cognizant)>third, yeah.
+And then do you have a shipment?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/213-0
+00:17:07.426 --> 00:17:07.666
+<v Manuela Ramirez (Iris Software)>Huh?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/214-2
+00:17:10.122 --> 00:17:13.506
+<v Janardhana Soundararajan (Cognizant)>You don't see the shipment.
+There should be 3, right?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/215-0
+00:17:15.106 --> 00:17:16.706
+<v Manuela Ramirez (Iris Software)>Give me a second, I'm gonna refresh.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/216-0
+00:17:15.706 --> 00:17:19.026
+<v Janardhana Soundararajan (Cognizant)>No, no, if you go to rating, rating error,
+third one.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/217-0
+00:17:22.146 --> 00:17:25.666
+<v Manuela Ramirez (Iris Software)>Oh no, it's not working now.
+It was on my cache.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/218-0
+00:17:28.386 --> 00:17:30.066
+<v Manuela Ramirez (Iris Software)>Yeah, this is not working for you either.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/219-0
+00:17:30.386 --> 00:17:32.466
+<v Janardhana Soundararajan (Cognizant)>Yeah, it's not working for me.
+That's right.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/220-0
+00:17:34.546 --> 00:17:36.226
+<v Manuela Ramirez (Iris Software)>So you have it zero like me?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/221-0
+00:17:36.626 --> 00:17:36.986
+<v Janardhana Soundararajan (Cognizant)>Yeah.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/222-0
+00:17:37.826 --> 00:17:40.066
+<v Manuela Ramirez (Iris Software)>Oh no, yeah that is, yeah.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/223-0
+00:17:41.586 --> 00:17:42.226
+<v Manuela Ramirez (Iris Software)>Oh.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/224-0
+00:17:43.346 --> 00:17:44.786
+<v Manuela Ramirez (Iris Software)>And I refresh it, sorry.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/225-0
+00:17:45.986 --> 00:17:46.306
+<v Manuela Ramirez (Iris Software)>Oh.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/226-0
+00:17:48.786 --> 00:17:51.944
+<v Manuela Ramirez (Iris Software)>What shall we do?
+You don't have the same thing here, right?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/226-1
+00:17:51.944 --> 00:17:52.306
+<v Manuela Ramirez (Iris Software)>In ODM?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/229-0
+00:17:53.786 --> 00:17:58.073
+<v Janardhana Soundararajan (Cognizant)>ODM, we don't have that.
+We don't have that ODM, right?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/227-0
+00:17:56.866 --> 00:17:57.426
+<v Manuela Ramirez (Iris Software)>Okay.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/229-1
+00:17:58.073 --> 00:18:01.746
+<v Janardhana Soundararajan (Cognizant)>So this is okay.
+If you go back to your design.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/228-0
+00:18:02.546 --> 00:18:02.746
+<v Manuela Ramirez (Iris Software)>Uh-huh.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/230-0
+00:18:04.626 --> 00:18:05.026
+<v Janardhana Soundararajan (Cognizant)>Right.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/232-0
+00:18:06.226 --> 00:18:09.424
+<v Janardhana Soundararajan (Cognizant)>See,
+the main idea is there will be some</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/232-1
+00:18:09.424 --> 00:18:14.338
+<v Janardhana Soundararajan (Cognizant)>difference in cost between the AP and the
+AR, right? The base,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/232-2
+00:18:14.338 --> 00:18:18.706
+<v Janardhana Soundararajan (Cognizant)>you're seeing the base is 1000, right?
+The fuel is 400.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/231-0
+00:18:18.546 --> 00:18:18.626
+<v Manuela Ramirez (Iris Software)>Jha.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/234-0
+00:18:19.866 --> 00:18:24.896
+<v Janardhana Soundararajan (Cognizant)>In AP, sorry, in the AR cost, this 1,
+500 can be a little higher or a little</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/234-1
+00:18:24.896 --> 00:18:28.293
+<v Janardhana Soundararajan (Cognizant)>less, right? We don't know how it will be.
+Ideally,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/234-2
+00:18:28.293 --> 00:18:33.127
+<v Janardhana Soundararajan (Cognizant)>it should be higher than the AP cost.
+AP cost is cost that we give to the</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/234-3
+00:18:33.127 --> 00:18:38.549
+<v Janardhana Soundararajan (Cognizant)>carrier. When we charge to the customer,
+we might charge the same rate or we might</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/234-4
+00:18:38.549 --> 00:18:39.986
+<v Janardhana Soundararajan (Cognizant)>charge more than that.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/235-0
+00:18:40.026 --> 00:18:40.786
+<v Janardhana Soundararajan (Cognizant)>A P cost.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/233-0
+00:18:42.466 --> 00:18:44.066
+<v Manuela Ramirez (Iris Software)>Oh, I see. Okay.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/236-0
+00:18:44.226 --> 00:18:47.315
+<v Janardhana Soundararajan (Cognizant)>Right,
+so how do we show both the cost in the</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/236-1
+00:18:47.315 --> 00:18:47.986
+<v Janardhana Soundararajan (Cognizant)>same page?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/237-0
+00:18:52.226 --> 00:18:53.186
+<v Manuela Ramirez (Iris Software)>AR and AP.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/238-0
+00:18:53.826 --> 00:18:57.026
+<v Janardhana Soundararajan (Cognizant)>AR and AP, right?
+How do we show the same cost?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/242-0
+00:18:58.706 --> 00:19:05.070
+<v Janardhana Soundararajan (Cognizant)>Say, for example, you have the base rate,
+right? You have the discount on the top.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/239-0
+00:18:59.506 --> 00:18:59.666
+<v Manuela Ramirez (Iris Software)>Mm.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/242-1
+00:19:05.070 --> 00:19:11.510
+<v Janardhana Soundararajan (Cognizant)>Fuel is there. All this is going to be AP,
+right? Can you do a similar line to say,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/242-2
+00:19:11.510 --> 00:19:16.110
+<v Janardhana Soundararajan (Cognizant)>okay, this is your AR,
+this is your AP cost or a, you know,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/240-0
+00:19:11.746 --> 00:19:12.106
+<v Manuela Ramirez (Iris Software)>Mm.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/241-0
+00:19:16.066 --> 00:19:16.546
+<v Manuela Ramirez (Iris Software)>Singh.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/242-3
+00:19:16.110 --> 00:19:17.106
+<v Janardhana Soundararajan (Cognizant)>carrier cost?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/244-0
+00:19:17.186 --> 00:19:22.237
+<v Janardhana Soundararajan (Cognizant)>And then you can call it AP cost for now
+and then the second line or somewhere to</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/244-1
+00:19:22.237 --> 00:19:24.146
+<v Janardhana Soundararajan (Cognizant)>show that what is your AR cost.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/243-0
+00:19:23.106 --> 00:19:23.186
+<v Manuela Ramirez (Iris Software)>Jha.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/245-0
+00:19:25.266 --> 00:19:31.106
+<v Manuela Ramirez (Iris Software)>And do you need to have it side by side?
+Or do you can have it separate?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/246-0
+00:19:33.666 --> 00:19:35.826
+<v Janardhana Soundararajan (Cognizant)>Separate means you are asking separate
+tab.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/247-0
+00:19:36.706 --> 00:19:41.303
+<v Manuela Ramirez (Iris Software)>Yeah, exactly, like this, right?
+When you change tabs, it changes view,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/247-1
+00:19:41.303 --> 00:19:43.346
+<v Manuela Ramirez (Iris Software)>right? Do you, or do you need...</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/248-0
+00:19:42.146 --> 00:19:46.949
+<v Janardhana Soundararajan (Cognizant)>Yeah, true, but would you,
+don't you think comparing cost,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/248-1
+00:19:46.949 --> 00:19:51.426
+<v Janardhana Soundararajan (Cognizant)>having it on the same,
+this one will be better, right?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/249-0
+00:20:03.666 --> 00:20:06.066
+<v Janardhana Soundararajan (Cognizant)>Yeah, yeah, yeah, yeah.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/250-0
+00:20:06.146 --> 00:20:06.626
+<v Manuela Ramirez (Iris Software)>Cost.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/251-0
+00:20:07.226 --> 00:20:10.146
+<v Janardhana Soundararajan (Cognizant)>Yeah, accounts receivable,
+one is accounts payable.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/252-0
+00:20:11.226 --> 00:20:12.066
+<v Janardhana Soundararajan (Cognizant)>A PM here.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/254-0
+00:20:11.426 --> 00:20:16.871
+<v Manuela Ramirez (Iris Software)>Conspinable and but users do usually
+compare those like they need to see both</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/254-1
+00:20:16.871 --> 00:20:18.546
+<v Manuela Ramirez (Iris Software)>at the same time or not.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/257-0
+00:20:19.026 --> 00:20:22.727
+<v Janardhana Soundararajan (Cognizant)>Ideally, yes.
+It will be better for them to see both at</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/255-0
+00:20:20.786 --> 00:20:21.346
+<v Manuela Ramirez (Iris Software)>Oh.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/257-1
+00:20:22.727 --> 00:20:26.362
+<v Janardhana Soundararajan (Cognizant)>the same time.
+So that you're saying the 22.3% margin,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/257-2
+00:20:26.362 --> 00:20:29.468
+<v Janardhana Soundararajan (Cognizant)>right?
+The margin is the difference in pricing</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/256-0
+00:20:27.986 --> 00:20:28.346
+<v Manuela Ramirez (Iris Software)>Pareek.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/257-3
+00:20:29.468 --> 00:20:31.186
+<v Janardhana Soundararajan (Cognizant)>between the AP and the AR.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/258-0
+00:20:33.746 --> 00:20:34.146
+<v Manuela Ramirez (Iris Software)>Yeah.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/259-0
+00:20:36.626 --> 00:20:40.066
+<v Manuela Ramirez (Iris Software)>It's about margins and dances, about...</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/260-0
+00:20:43.826 --> 00:20:44.626
+<v Manuela Ramirez (Iris Software)>Yeah, sure.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/261-0
+00:20:46.066 --> 00:20:46.866
+<v Manuela Ramirez (Iris Software)>Okay.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/263-0
+00:20:47.946 --> 00:20:51.186
+<v Manuela Ramirez (Iris Software)>Little by little,
+I am learning more about this.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/262-0
+00:20:52.626 --> 00:20:52.946
+<v Janardhana Soundararajan (Cognizant)>Yeah.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/264-0
+00:20:54.546 --> 00:20:59.586
+<v Manuela Ramirez (Iris Software)>Okay, so this is a this is the same,
+right? You need to have a PNA.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/267-0
+00:20:58.226 --> 00:21:01.712
+<v Janardhana Soundararajan (Cognizant)>Yeah,
+we need planned cost and completed cost.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/267-1
+00:21:01.712 --> 00:21:07.200
+<v Janardhana Soundararajan (Cognizant)>Planned cost is when we are actually
+planning what is the cost available.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/265-0
+00:21:03.546 --> 00:21:03.746
+<v Manuela Ramirez (Iris Software)>Yeah.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/266-0
+00:21:06.426 --> 00:21:06.906
+<v Manuela Ramirez (Iris Software)>Mhm.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/267-2
+00:21:07.200 --> 00:21:12.837
+<v Janardhana Soundararajan (Cognizant)>You can mark the completed right now as
+grey because when you are completed</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/267-3
+00:21:12.837 --> 00:21:15.506
+<v Janardhana Soundararajan (Cognizant)>happens only when you receive a PGI.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/268-0
+00:21:18.146 --> 00:21:19.986
+<v Manuela Ramirez (Iris Software)>Okay, sorry, give me a second.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/269-0
+00:21:23.026 --> 00:21:27.424
+<v Janardhana Soundararajan (Cognizant)>The option should be there,
+but it should be grey and there should</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/269-1
+00:21:27.424 --> 00:21:32.610
+<v Janardhana Soundararajan (Cognizant)>not be any data at this point of time
+because completed happens only after you</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/269-2
+00:21:32.610 --> 00:21:33.266
+<v Janardhana Soundararajan (Cognizant)>get a PGI.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/270-0
+00:21:35.426 --> 00:21:38.706
+<v Manuela Ramirez (Iris Software)>Okay,
+but it should be then disabled maybe.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/271-0
+00:21:39.186 --> 00:21:41.283
+<v Janardhana Soundararajan (Cognizant)>Yeah,
+it should be grey and there should be no</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/271-1
+00:21:41.283 --> 00:21:41.506
+<v Janardhana Soundararajan (Cognizant)>data.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/272-0
+00:21:44.066 --> 00:21:44.546
+<v Manuela Ramirez (Iris Software)>Okay.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/273-0
+00:21:44.946 --> 00:21:51.826
+<v Janardhana Soundararajan (Cognizant)>So you just update the plan cost and plan
+should have the AP cost and the AR cost.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/274-0
+00:21:56.146 --> 00:21:58.986
+<v Manuela Ramirez (Iris Software)>Show it completed.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/275-0
+00:22:00.466 --> 00:22:01.906
+<v Manuela Ramirez (Iris Software)>So, that.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/276-0
+00:22:04.146 --> 00:22:05.106
+<v Manuela Ramirez (Iris Software)>I should be.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/277-0
+00:22:07.426 --> 00:22:08.066
+<v Manuela Ramirez (Iris Software)>Right on.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/279-0
+00:22:10.226 --> 00:22:15.482
+<v Manuela Ramirez (Iris Software)>So, that is not relevant right now, right?
+OK, seeing at the center, yeah,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/278-0
+00:22:13.746 --> 00:22:14.066
+<v Janardhana Soundararajan (Cognizant)>Yeah.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/279-1
+00:22:15.482 --> 00:22:20.106
+<v Manuela Ramirez (Iris Software)>so this is not relevant that right now,
+because it's after the...</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/280-0
+00:22:21.666 --> 00:22:22.786
+<v Manuela Ramirez (Iris Software)>The PGR, right?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/281-0
+00:22:21.866 --> 00:22:24.866
+<v Janardhana Soundararajan (Cognizant)>PGI. Yeah, PGI. Yeah, correct.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/282-0
+00:22:25.506 --> 00:22:28.546
+<v Manuela Ramirez (Iris Software)>Sorry, BGIBGI.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/284-0
+00:22:27.986 --> 00:22:33.586
+<v Janardhana Soundararajan (Cognizant)>PGI or PGR, both are same.
+Both are related, right? I slash R.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/283-0
+00:22:33.026 --> 00:22:33.066
+<v Manuela Ramirez (Iris Software)>Ahh.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/285-0
+00:22:34.786 --> 00:22:35.746
+<v Janardhana Soundararajan (Cognizant)>Yeah, correct.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/286-0
+00:22:36.946 --> 00:22:37.426
+<v Manuela Ramirez (Iris Software)>Okay.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/287-0
+00:22:38.306 --> 00:22:38.866
+<v Manuela Ramirez (Iris Software)>Great.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/288-0
+00:22:40.066 --> 00:22:44.408
+<v Manuela Ramirez (Iris Software)>Okay, let's see the second, the next one.
+Then what about the here,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/288-1
+00:22:44.408 --> 00:22:46.706
+<v Manuela Ramirez (Iris Software)>the instructions? This is for the...</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/290-0
+00:22:46.546 --> 00:22:50.245
+<v Janardhana Soundararajan (Cognizant)>Instructions, order. Yeah, fantastic.
+That's cool.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/290-1
+00:22:50.245 --> 00:22:54.306
+<v Janardhana Soundararajan (Cognizant)>All the order instructions are here,
+right? That's all.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/289-0
+00:22:51.666 --> 00:22:51.826
+<v Manuela Ramirez (Iris Software)>Mm.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/291-0
+00:22:54.546 --> 00:22:56.386
+<v Manuela Ramirez (Iris Software)>Maybe we can collapse it.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/294-0
+00:22:57.506 --> 00:23:00.091
+<v Janardhana Soundararajan (Cognizant)>Yeah,
+if you can collapse it and then show,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/292-0
+00:22:57.746 --> 00:22:58.226
+<v Manuela Ramirez (Iris Software)>Maybe.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/294-1
+00:23:00.091 --> 00:23:04.261
+<v Janardhana Soundararajan (Cognizant)>that's also good. The first line,
+just like how we have it for orders,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/294-2
+00:23:04.261 --> 00:23:08.020
+<v Janardhana Soundararajan (Cognizant)>the order lines, right?
+So the first line is always visible and</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/293-0
+00:23:06.266 --> 00:23:06.426
+<v Manuela Ramirez (Iris Software)>Mm.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/294-3
+00:23:08.020 --> 00:23:11.426
+<v Janardhana Soundararajan (Cognizant)>when there are multiple ones,
+you just click and open it.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/295-0
+00:23:12.706 --> 00:23:14.066
+<v Manuela Ramirez (Iris Software)>Okay, I see.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/297-0
+00:23:27.306 --> 00:23:28.066
+<v Manuela Ramirez (Iris Software)>Perfect.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/298-0
+00:23:30.306 --> 00:23:36.274
+<v Manuela Ramirez (Iris Software)>History, I don't have it here yet,
+and the documents - this is broken,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/298-1
+00:23:36.274 --> 00:23:36.946
+<v Manuela Ramirez (Iris Software)>I think.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/299-0
+00:23:38.626 --> 00:23:39.666
+<v Manuela Ramirez (Iris Software)>Give me one second.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/300-0
+00:23:45.506 --> 00:23:45.986
+<v Manuela Ramirez (Iris Software)>Yeah.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/301-0
+00:23:47.826 --> 00:23:51.586
+<v Manuela Ramirez (Iris Software)>So, instructions then,
+then the documents part.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/303-0
+00:23:52.946 --> 00:23:58.470
+<v Janardhana Soundararajan (Cognizant)>Instructions, yeah, documents, documents,
+you have a BOL, PDF, okay, invoice.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/302-0
+00:23:53.026 --> 00:23:53.426
+<v Manuela Ramirez (Iris Software)>And.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/303-1
+00:23:58.470 --> 00:24:04.065
+<v Janardhana Soundararajan (Cognizant)>How would they upload it, right? Invoice,
+I don't think invoice will be there.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/303-2
+00:24:04.065 --> 00:24:08.880
+<v Janardhana Soundararajan (Cognizant)>So you, okay, just for example,
+you have given, instructions, yeah,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/303-3
+00:24:08.880 --> 00:24:11.146
+<v Janardhana Soundararajan (Cognizant)>others, wait, certificate, yeah.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/305-0
+00:24:11.506 --> 00:24:15.282
+<v Janardhana Soundararajan (Cognizant)>Cool, that's cool. Yeah,
+upload attachments, right?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/304-0
+00:24:13.986 --> 00:24:14.146
+<v Manuela Ramirez (Iris Software)>Mm.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/305-1
+00:24:15.282 --> 00:24:20.946
+<v Janardhana Soundararajan (Cognizant)>Can you click on upload attachments? Yeah,
+BOL, choose file. Yeah, that's it.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/307-0
+00:24:21.786 --> 00:24:24.107
+<v Manuela Ramirez (Iris Software)>That's it,
+because you can select here the</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/306-0
+00:24:22.706 --> 00:24:23.106
+<v Janardhana Soundararajan (Cognizant)>Yeah.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/307-1
+00:24:24.107 --> 00:24:25.186
+<v Manuela Ramirez (Iris Software)>difference one here.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/308-0
+00:24:24.386 --> 00:24:27.746
+<v Janardhana Soundararajan (Cognizant)>Yeah, others and then get right.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/309-0
+00:24:28.306 --> 00:24:33.470
+<v Manuela Ramirez (Iris Software)>I will try to put this model here then,
+in the middle of the screen,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/309-1
+00:24:33.470 --> 00:24:35.266
+<v Manuela Ramirez (Iris Software)>so it's not very like...</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/311-0
+00:24:35.826 --> 00:24:39.992
+<v Janardhana Soundararajan (Cognizant)>Yeah, maybe,
+maybe it should when someone is trying to</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/310-0
+00:24:36.146 --> 00:24:36.786
+<v Manuela Ramirez (Iris Software)>On the para.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/311-1
+00:24:39.992 --> 00:24:42.946
+<v Janardhana Soundararajan (Cognizant)>upload it, just it expands and goes up.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/312-0
+00:24:44.866 --> 00:24:48.306
+<v Manuela Ramirez (Iris Software)>Okay, everything, right? Yeah, good idea.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/313-0
+00:24:47.426 --> 00:24:51.426
+<v Janardhana Soundararajan (Cognizant)>Yeah, and then once they are done,
+it comes back to its normal position.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/314-0
+00:24:53.346 --> 00:24:56.104
+<v Manuela Ramirez (Iris Software)>Yeah,
+that's better because we forget about</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/314-1
+00:24:56.104 --> 00:24:57.106
+<v Manuela Ramirez (Iris Software)>this background.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/315-0
+00:24:57.506 --> 00:24:57.986
+<v Janardhana Soundararajan (Cognizant)>Yeah.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/316-0
+00:24:58.066 --> 00:24:58.466
+<v Manuela Ramirez (Iris Software)>Yeah.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/317-0
+00:25:07.506 --> 00:25:08.546
+<v Manuela Ramirez (Iris Software)>And.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/318-0
+00:25:17.986 --> 00:25:18.226
+<v Janardhana Soundararajan (Cognizant)>To.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/319-0
+00:25:19.986 --> 00:25:20.466
+<v Manuela Ramirez (Iris Software)>OK.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/320-0
+00:25:21.426 --> 00:25:23.426
+<v Manuela Ramirez (Iris Software)>And then notes? Oh, I don't have it yet.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/322-0
+00:25:24.826 --> 00:25:26.906
+<v Janardhana Soundararajan (Cognizant)>Yeah, notes are going to be internal,
+that's all. Yeah.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/321-0
+00:25:25.506 --> 00:25:25.906
+<v Manuela Ramirez (Iris Software)>Yeah.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/324-0
+00:25:28.706 --> 00:25:32.473
+<v Janardhana Soundararajan (Cognizant)>See, once you create the screen,
+the second metrics, right?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/323-0
+00:25:28.866 --> 00:25:29.426
+<v Manuela Ramirez (Iris Software)>Okay.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/324-1
+00:25:32.473 --> 00:25:36.679
+<v Janardhana Soundararajan (Cognizant)>If you go to the top, expand metrics,
+right? Expand metrics. Yeah,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/324-2
+00:25:36.679 --> 00:25:41.262
+<v Janardhana Soundararajan (Cognizant)>the monitoring is going to be very
+similar, right? It's not any, if you,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/324-3
+00:25:41.262 --> 00:25:45.719
+<v Janardhana Soundararajan (Cognizant)>once you design all these screens,
+all these screens are going to look</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/324-4
+00:25:45.719 --> 00:25:46.786
+<v Janardhana Soundararajan (Cognizant)>exactly the same.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/326-0
+00:25:48.386 --> 00:25:51.434
+<v Manuela Ramirez (Iris Software)>Hmm,
+so we can put the same thing with</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/325-0
+00:25:49.586 --> 00:25:50.066
+<v Janardhana Soundararajan (Cognizant)>Right.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/328-0
+00:25:51.106 --> 00:25:56.527
+<v Janardhana Soundararajan (Cognizant)>Yeah, yeah, different data monitoring.
+You will have a carrier that has been</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/326-1
+00:25:51.434 --> 00:25:53.466
+<v Manuela Ramirez (Iris Software)>different data atomic, OK?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/328-1
+00:25:56.527 --> 00:25:59.765
+<v Janardhana Soundararajan (Cognizant)>waiting. Maybe if you go to,
+say for example,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/328-2
+00:25:59.765 --> 00:26:05.326
+<v Janardhana Soundararajan (Cognizant)>you can just show one example. Maybe like,
+what do you do? Approved, approved.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/327-0
+00:26:03.666 --> 00:26:03.746
+<v Manuela Ramirez (Iris Software)>Huh.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/328-3
+00:26:05.326 --> 00:26:10.746
+<v Janardhana Soundararajan (Cognizant)>You just click on approved and show that,
+okay, maybe we can say during the.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/329-0
+00:26:11.426 --> 00:26:16.416
+<v Janardhana Soundararajan (Cognizant)>A presentation saying like approved,
+approved is nothing but a carrier has</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/329-1
+00:26:16.416 --> 00:26:20.541
+<v Janardhana Soundararajan (Cognizant)>accepted it, right?
+So we just say that in the tender screen,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/329-2
+00:26:20.541 --> 00:26:24.466
+<v Janardhana Soundararajan (Cognizant)>instead of being sent,
+you will say accept it. That's all.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/330-0
+00:26:26.466 --> 00:26:27.906
+<v Manuela Ramirez (Iris Software)>Okay, I see.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/331-0
+00:26:28.466 --> 00:26:30.654
+<v Janardhana Soundararajan (Cognizant)>Right,
+so you're just tweaking the same</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/331-1
+00:26:30.654 --> 00:26:33.826
+<v Janardhana Soundararajan (Cognizant)>information a little bit in different
+stages. That's all.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/334-0
+00:26:34.986 --> 00:26:38.739
+<v Janardhana Soundararajan (Cognizant)>That is why I'm saying, once you complete,
+once you complete this part right,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/332-0
+00:26:35.666 --> 00:26:36.226
+<v Manuela Ramirez (Iris Software)>Okay.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/334-1
+00:26:38.739 --> 00:26:41.530
+<v Janardhana Soundararajan (Cognizant)>shipment exception,
+we can go to monitoring and then tell</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/333-0
+00:26:40.706 --> 00:26:40.826
+<v Manuela Ramirez (Iris Software)>Huh?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/334-2
+00:26:41.530 --> 00:26:43.743
+<v Janardhana Soundararajan (Cognizant)>them that, you know,
+it is it's all the same,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/334-3
+00:26:43.743 --> 00:26:45.186
+<v Janardhana Soundararajan (Cognizant)>but this is how it might look.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/335-0
+00:26:46.306 --> 00:26:49.345
+<v Manuela Ramirez (Iris Software)>Yeah,
+you don't need to explain everything</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/337-0
+00:26:48.786 --> 00:26:52.527
+<v Janardhana Soundararajan (Cognizant)>Yeah, yeah, the content-wise,
+this is this is the content, right?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/335-1
+00:26:49.345 --> 00:26:50.546
+<v Manuela Ramirez (Iris Software)>after this. Okay.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/337-1
+00:26:52.527 --> 00:26:55.985
+<v Janardhana Soundararajan (Cognizant)>This is how it looks when the content is
+going to look like,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/336-0
+00:26:54.066 --> 00:26:54.186
+<v Manuela Ramirez (Iris Software)>Huh?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/337-2
+00:26:55.985 --> 00:27:00.180
+<v Janardhana Soundararajan (Cognizant)>and what do you have for actions?
+You have certain things in the actions,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/337-3
+00:27:00.180 --> 00:27:01.426
+<v Janardhana Soundararajan (Cognizant)>right? What are those?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/338-0
+00:27:03.186 --> 00:27:05.066
+<v Manuela Ramirez (Iris Software)>The actions and...</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/339-0
+00:27:04.546 --> 00:27:06.466
+<v Janardhana Soundararajan (Cognizant)>Yeah, right side, next to the export.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/341-0
+00:27:08.066 --> 00:27:15.156
+<v Manuela Ramirez (Iris Software)>Yeah, no, I still need to put it up.
+Do you remember we have already the</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/341-1
+00:27:15.156 --> 00:27:20.594
+<v Manuela Ramirez (Iris Software)>designer for that?
+I just need to implement it here and</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/340-0
+00:27:18.786 --> 00:27:19.266
+<v Janardhana Soundararajan (Cognizant)>Okay.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/341-2
+00:27:20.594 --> 00:27:25.450
+<v Manuela Ramirez (Iris Software)>that's it.
+I think this is bad because we used to</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/341-3
+00:27:25.450 --> 00:27:27.586
+<v Manuela Ramirez (Iris Software)>have a button instead.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/342-0
+00:27:28.546 --> 00:27:36.584
+<v Manuela Ramirez (Iris Software)>Let me show you. If you remember, no,
+this is shipments here, the change field,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/342-1
+00:27:36.584 --> 00:27:37.186
+<v Manuela Ramirez (Iris Software)>right?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/343-0
+00:27:37.906 --> 00:27:38.626
+<v Janardhana Soundararajan (Cognizant)>Ah, okay.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/344-0
+00:27:40.546 --> 00:27:44.995
+<v Manuela Ramirez (Iris Software)>So, yeah,
+I think actions was because we were</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/344-1
+00:27:44.995 --> 00:27:49.346
+<v Manuela Ramirez (Iris Software)>thinking with Efrain. Efrain,
+are you there?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/345-0
+00:27:50.306 --> 00:27:51.106
+<v Janardhana Soundararajan (Cognizant)>Yeah, easier.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/346-0
+00:27:51.186 --> 00:27:51.586
+<v Efrain Hernandez>Yeah.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/347-0
+00:27:52.466 --> 00:27:56.354
+<v Manuela Ramirez (Iris Software)>Okay,
+do you remember why we was the idea to</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/347-1
+00:27:56.354 --> 00:28:01.106
+<v Manuela Ramirez (Iris Software)>put place an actions button? No,
+it's not here, right?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/350-0
+00:28:01.826 --> 00:28:07.826
+<v Efrain Hernandez>No, I didn't put action.
+I only put change a view button. Yeah.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/348-0
+00:28:02.466 --> 00:28:03.026
+<v Manuela Ramirez (Iris Software)>Oh.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/349-0
+00:28:06.466 --> 00:28:06.626
+<v Manuela Ramirez (Iris Software)>Mm.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/351-0
+00:28:09.026 --> 00:28:10.386
+<v Manuela Ramirez (Iris Software)>Yeah, no, then, then...</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/353-0
+00:28:09.186 --> 00:28:12.669
+<v Janardhana Soundararajan (Cognizant)>But anyway, Manuela,
+we would need an action button, right?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/353-1
+00:28:12.669 --> 00:28:16.790
+<v Janardhana Soundararajan (Cognizant)>Say, for example, David raised a point,
+what he told me in one of our,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/352-0
+00:28:13.226 --> 00:28:13.866
+<v Manuela Ramirez (Iris Software)>Mm-hmm.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/353-2
+00:28:16.790 --> 00:28:20.796
+<v Janardhana Soundararajan (Cognizant)>maybe you were not there in the call. Say,
+for example, if the user,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/353-3
+00:28:20.796 --> 00:28:24.626
+<v Janardhana Soundararajan (Cognizant)>there are a few things on the exception,
+right? Say, for example,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/354-0
+00:28:28.706 --> 00:28:29.266
+<v Janardhana Soundararajan (Cognizant)>And.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/357-0
+00:28:31.066 --> 00:28:36.122
+<v Janardhana Soundararajan (Cognizant)>Where is that? Okay, tender review, right?
+So there are two tender reviews.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/357-1
+00:28:36.122 --> 00:28:41.444
+<v Janardhana Soundararajan (Cognizant)>There should be only one tender review.
+But if you are in tender review and the</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/357-2
+00:28:41.444 --> 00:28:45.835
+<v Janardhana Soundararajan (Cognizant)>user goes and clicks on that,
+it will display 5 shipments, right?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/355-0
+00:28:41.626 --> 00:28:42.106
+<v Manuela Ramirez (Iris Software)>Mhm.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/357-3
+00:28:45.835 --> 00:28:49.826
+<v Janardhana Soundararajan (Cognizant)>Ideally, it will display 5 shipments,
+right? If the user...</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/356-0
+00:28:48.186 --> 00:28:48.866
+<v Manuela Ramirez (Iris Software)>Mm-hmm.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/358-0
+00:28:49.906 --> 00:28:56.003
+<v Janardhana Soundararajan (Cognizant)>goes and select the five shipments and
+can say that go and manually tender all</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/358-1
+00:28:56.003 --> 00:28:56.466
+<v Janardhana Soundararajan (Cognizant)>these.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/359-0
+00:28:59.506 --> 00:29:00.066
+<v Manuela Ramirez (Iris Software)>Okay.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/361-0
+00:28:59.586 --> 00:29:04.395
+<v Janardhana Soundararajan (Cognizant)>right? Instead of selecting the carrier,
+you say it will say that go and tender to</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/361-1
+00:29:04.395 --> 00:29:08.913
+<v Janardhana Soundararajan (Cognizant)>the first carrier or a preferred carrier.
+First carrier is always a preferred</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/361-2
+00:29:08.913 --> 00:29:13.258
+<v Janardhana Soundararajan (Cognizant)>carrier, right? Within that option,
+the first carrier that appears will be</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/360-0
+00:29:10.786 --> 00:29:11.346
+<v Manuela Ramirez (Iris Software)>Mmh.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/361-3
+00:29:13.258 --> 00:29:16.966
+<v Janardhana Soundararajan (Cognizant)>the preferred carrier.
+So if it goes and says if the user wants</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/361-4
+00:29:16.966 --> 00:29:19.746
+<v Janardhana Soundararajan (Cognizant)>to say just tender to everyone,
+don't wait for.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/362-0
+00:29:20.626 --> 00:29:23.734
+<v Janardhana Soundararajan (Cognizant)>tendering time to start,
+just go and tender, right?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/362-1
+00:29:23.734 --> 00:29:28.575
+<v Janardhana Soundararajan (Cognizant)>Then they need an action button where in
+which it goes, they click and say like,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/362-2
+00:29:28.575 --> 00:29:31.563
+<v Janardhana Soundararajan (Cognizant)>okay, you know,
+tender to the preferred carriers.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/362-3
+00:29:31.563 --> 00:29:36.404
+<v Janardhana Soundararajan (Cognizant)>Maybe we can add, keep the action button.
+It is to multi-select shipments and do</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/362-4
+00:29:36.404 --> 00:29:39.094
+<v Janardhana Soundararajan (Cognizant)>like, you know,
+tender to preferred carrier.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/362-5
+00:29:39.094 --> 00:29:40.946
+<v Janardhana Soundararajan (Cognizant)>I'll give you maybe one or two.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/364-0
+00:29:40.986 --> 00:29:44.853
+<v Janardhana Soundararajan (Cognizant)>two options which the user can select to
+do it, right?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/363-0
+00:29:44.826 --> 00:29:45.066
+<v Manuela Ramirez (Iris Software)>Uh-huh.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/364-1
+00:29:44.853 --> 00:29:50.548
+<v Janardhana Soundararajan (Cognizant)>Like tender to preferred carrier, right?
+Or we can say cancel all the shipments.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/364-2
+00:29:50.548 --> 00:29:54.837
+<v Janardhana Soundararajan (Cognizant)>We can say like user can select and
+cancel shipments, right?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/364-3
+00:29:54.837 --> 00:29:59.829
+<v Janardhana Soundararajan (Cognizant)>So that can also be possible.
+And what circumstance you would want the</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/364-4
+00:29:59.829 --> 00:30:01.586
+<v Janardhana Soundararajan (Cognizant)>user to cancel shipments.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/365-0
+00:30:05.226 --> 00:30:05.506
+<v Manuela Ramirez (Iris Software)>Uh-huh.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/366-0
+00:30:07.626 --> 00:30:07.826
+<v Manuela Ramirez (Iris Software)>Mm.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/368-0
+00:30:07.866 --> 00:30:08.546
+<v Janardhana Soundararajan (Cognizant)>That can do.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/367-0
+00:30:07.986 --> 00:30:08.106
+<v Manuela Ramirez (Iris Software)>Yeah.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/370-0
+00:30:09.266 --> 00:30:13.176
+<v Manuela Ramirez (Iris Software)>I see.
+Maybe this one can change depending on</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/370-1
+00:30:13.176 --> 00:30:16.066
+<v Manuela Ramirez (Iris Software)>the place we are right now, right?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/371-0
+00:30:14.426 --> 00:30:17.826
+<v Janardhana Soundararajan (Cognizant)>Databricks, exactly which tab we added,
+exactly.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/372-0
+00:30:18.786 --> 00:30:22.866
+<v Manuela Ramirez (Iris Software)>Okay, that's a good idea.
+I'm going to put it here.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/373-0
+00:30:28.066 --> 00:30:29.386
+<v Manuela Ramirez (Iris Software)>Dynamic actions with.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/374-0
+00:30:34.626 --> 00:30:35.106
+<v Manuela Ramirez (Iris Software)>Okay.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/375-0
+00:30:36.386 --> 00:30:39.826
+<v Manuela Ramirez (Iris Software)>Okay, I think that's it for today.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/377-0
+00:30:41.026 --> 00:30:44.765
+<v Janardhana Soundararajan (Cognizant)>Right, sure. And yeah,
+if you can get these done as soon as</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/376-0
+00:30:41.466 --> 00:30:42.706
+<v Manuela Ramirez (Iris Software)>Um, so...</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/377-1
+00:30:44.765 --> 00:30:49.812
+<v Janardhana Soundararajan (Cognizant)>possible, Manuela, then we can, you know,
+take it to David and we can review it.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/377-2
+00:30:49.812 --> 00:30:54.360
+<v Janardhana Soundararajan (Cognizant)>I believe we have a call Wednesday.
+If you can get it done by Wednesday,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/377-3
+00:30:54.360 --> 00:30:59.033
+<v Janardhana Soundararajan (Cognizant)>then we can show David and probably by
+this week we can set up a call with</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/377-4
+00:30:59.033 --> 00:31:00.466
+<v Janardhana Soundararajan (Cognizant)>business and review it.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/380-0
+00:31:01.386 --> 00:31:09.186
+<v Manuela Ramirez (Iris Software)>Hopefully, hopefully we can, yeah, I, I,
+I...</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/378-0
+00:31:04.306 --> 00:31:04.706
+<v Janardhana Soundararajan (Cognizant)>Yeah.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/381-0
+00:31:07.026 --> 00:31:11.426
+<v Janardhana Soundararajan (Cognizant)>25th, we have Wednesday, touchpoint,
+UX touchpoint, right? Yeah.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/382-0
+00:31:11.706 --> 00:31:16.481
+<v Manuela Ramirez (Iris Software)>Exactly.
+I actually asked David to do that because</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/382-1
+00:31:16.481 --> 00:31:22.097
+<v Manuela Ramirez (Iris Software)>I feel like their feedback is valuable
+too. So I said, hey,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/382-2
+00:31:22.097 --> 00:31:25.186
+<v Manuela Ramirez (Iris Software)>let's do this reviews every week.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/385-0
+00:31:26.266 --> 00:31:31.634
+<v Manuela Ramirez (Iris Software)>So, so they can, yeah,
+they they can give us some feedback as</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/383-0
+00:31:28.706 --> 00:31:28.746
+<v Janardhana Soundararajan (Cognizant)>I.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/385-1
+00:31:31.634 --> 00:31:32.066
+<v Manuela Ramirez (Iris Software)>well.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/384-0
+00:31:32.546 --> 00:31:32.946
+<v Janardhana Soundararajan (Cognizant)>Yeah.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/387-0
+00:31:35.586 --> 00:31:43.554
+<v Manuela Ramirez (Iris Software)>Yeah, hopefully this week. I don't know.
+Like, it's really a lot to understand.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/386-0
+00:31:42.226 --> 00:31:42.466
+<v Janardhana Soundararajan (Cognizant)>Jha.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/387-1
+00:31:43.554 --> 00:31:48.633
+<v Manuela Ramirez (Iris Software)>And yeah,
+I don't want to like too much guesswork.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/388-0
+00:31:47.906 --> 00:31:51.101
+<v Janardhana Soundararajan (Cognizant)>Correct, correct, correct. See,
+it requires a lot of understanding as</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/387-2
+00:31:48.633 --> 00:31:50.226
+<v Manuela Ramirez (Iris Software)>But okay, it is.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/388-1
+00:31:51.101 --> 00:31:53.338
+<v Janardhana Soundararajan (Cognizant)>well.
+It's not like just like doing some design,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/388-2
+00:31:53.338 --> 00:31:55.026
+<v Janardhana Soundararajan (Cognizant)>right? It should flow and make sense.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/389-0
+00:31:55.906 --> 00:32:03.560
+<v Manuela Ramirez (Iris Software)>Exactly. One more thing, Janardhana.
+After this is approved and you hand it</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/389-1
+00:32:03.560 --> 00:32:10.005
+<v Manuela Ramirez (Iris Software)>over to the business,
+just be mindful that this doesn't mean it</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/389-2
+00:32:10.005 --> 00:32:13.026
+<v Manuela Ramirez (Iris Software)>is done in Figma. We did this.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/393-0
+00:32:12.066 --> 00:32:14.501
+<v Janardhana Soundararajan (Cognizant)>No, no,
+we are not handing over to business.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/393-1
+00:32:14.501 --> 00:32:18.993
+<v Janardhana Soundararajan (Cognizant)>We are just going to show it to business
+saying that this is how it will come out,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/393-2
+00:32:18.993 --> 00:32:21.536
+<v Janardhana Soundararajan (Cognizant)>right?
+And then I will have my own stories for</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/390-0
+00:32:19.826 --> 00:32:20.146
+<v Manuela Ramirez (Iris Software)>Yeah.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/393-3
+00:32:21.536 --> 00:32:24.674
+<v Janardhana Soundararajan (Cognizant)>each of those, right?
+Because I need to start putting the</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/391-0
+00:32:24.466 --> 00:32:24.866
+<v Manuela Ramirez (Iris Software)>Okay.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/393-4
+00:32:24.674 --> 00:32:27.109
+<v Janardhana Soundararajan (Cognizant)>stories for each of those. Say,
+for example,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/393-5
+00:32:27.109 --> 00:32:30.789
+<v Janardhana Soundararajan (Cognizant)>I'll start with the three tabs.
+I will say there will be a shipment</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/393-6
+00:32:30.789 --> 00:32:31.546
+<v Janardhana Soundararajan (Cognizant)>exception tab,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/395-0
+00:32:31.626 --> 00:32:36.438
+<v Janardhana Soundararajan (Cognizant)>monitoring tab, PGI tab,
+and then what will be under each of those,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/392-0
+00:32:32.866 --> 00:32:33.026
+<v Manuela Ramirez (Iris Software)>Mm.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/395-1
+00:32:36.438 --> 00:32:39.481
+<v Janardhana Soundararajan (Cognizant)>right?
+And then they will have to use your</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/395-2
+00:32:39.481 --> 00:32:43.868
+<v Janardhana Soundararajan (Cognizant)>information, right,
+that demo or this mock, what you created,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/395-3
+00:32:43.868 --> 00:32:48.467
+<v Janardhana Soundararajan (Cognizant)>for them to see, okay, oh,
+this is how it is going to look like.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/394-0
+00:32:45.586 --> 00:32:45.986
+<v Manuela Ramirez (Iris Software)>Her.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/395-4
+00:32:48.467 --> 00:32:51.226
+<v Janardhana Soundararajan (Cognizant)>And then you would start adding colors.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/399-0
+00:32:51.506 --> 00:32:55.106
+<v Janardhana Soundararajan (Cognizant)>And then, you know,
+you would say that exactly this is how</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/399-1
+00:32:55.106 --> 00:32:59.742
+<v Janardhana Soundararajan (Cognizant)>the final output of the UX user interface
+is going to be. Say, for example,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/399-2
+00:32:59.742 --> 00:33:03.281
+<v Janardhana Soundararajan (Cognizant)>maybe you want to give a specific colour
+for data issues.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/396-0
+00:33:00.706 --> 00:33:01.186
+<v Manuela Ramirez (Iris Software)>Mhm.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/399-3
+00:33:03.281 --> 00:33:06.270
+<v Janardhana Soundararajan (Cognizant)>You want to give a specific colour for
+this one.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/399-4
+00:33:06.270 --> 00:33:10.906
+<v Janardhana Soundararajan (Cognizant)>All that user will start going into
+details. Right now, it's more a sketch.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/397-0
+00:33:08.146 --> 00:33:08.466
+<v Manuela Ramirez (Iris Software)>No.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/401-0
+00:33:11.346 --> 00:33:15.374
+<v Janardhana Soundararajan (Cognizant)>Right? We are giving them a more sketch.
+And then once we finalize,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/398-0
+00:33:11.906 --> 00:33:12.946
+<v Manuela Ramirez (Iris Software)>Okay, yeah.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/401-1
+00:33:15.374 --> 00:33:20.053
+<v Janardhana Soundararajan (Cognizant)>we all align on some kind of a sketch,
+then I would start drafting the details</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/401-2
+00:33:20.053 --> 00:33:23.133
+<v Janardhana Soundararajan (Cognizant)>around each of those.
+And then using those details,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/401-3
+00:33:23.133 --> 00:33:27.753
+<v Janardhana Soundararajan (Cognizant)>you will refine each of the segments.
+You will start with shipment exception,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/400-0
+00:33:25.666 --> 00:33:25.826
+<v Manuela Ramirez (Iris Software)>Right.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/401-4
+00:33:27.753 --> 00:33:29.826
+<v Janardhana Soundararajan (Cognizant)>then you will work with monitoring.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/405-0
+00:33:30.066 --> 00:33:34.168
+<v Janardhana Soundararajan (Cognizant)>then PGI, then all the philtre tabs.
+Do you want to show the philtre tab?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/405-1
+00:33:34.168 --> 00:33:38.215
+<v Janardhana Soundararajan (Cognizant)>Then you go in details to make it
+consistent across all the sections how</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/402-0
+00:33:37.666 --> 00:33:38.066
+<v Manuela Ramirez (Iris Software)>Yeah.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/405-2
+00:33:38.215 --> 00:33:42.372
+<v Janardhana Soundararajan (Cognizant)>you want to show the philtre tab, right?
+So how does it need to look like?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/403-0
+00:33:41.826 --> 00:33:41.946
+<v Manuela Ramirez (Iris Software)>Yeah.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/405-3
+00:33:42.372 --> 00:33:46.307
+<v Janardhana Soundararajan (Cognizant)>And then next I will put in a story for
+search. And under that search,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/405-4
+00:33:46.307 --> 00:33:50.188
+<v Janardhana Soundararajan (Cognizant)>I will define, say, for example,
+we come up with AI kind of a search,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/405-5
+00:33:50.188 --> 00:33:52.626
+<v Janardhana Soundararajan (Cognizant)>right? Natural language search.
+I will say,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/404-0
+00:33:52.866 --> 00:33:53.346
+<v Manuela Ramirez (Iris Software)>Mhm.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/406-0
+00:33:53.026 --> 00:33:57.906
+<v Janardhana Soundararajan (Cognizant)>AI search and then you will show to the
+user how they would be able to search.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/407-0
+00:34:00.146 --> 00:34:03.346
+<v Manuela Ramirez (Iris Software)>OK, yeah, that that.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/408-0
+00:34:01.226 --> 00:34:05.218
+<v Janardhana Soundararajan (Cognizant)>Right, so that,
+so we will go step by step to refine each</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/408-1
+00:34:05.218 --> 00:34:09.346
+<v Janardhana Soundararajan (Cognizant)>of these next, right? Right now,
+it is a high-level sketch.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/410-0
+00:34:10.546 --> 00:34:16.203
+<v Manuela Ramirez (Iris Software)>Okay. Perfect.
+That was my only concern because to do</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/410-1
+00:34:16.203 --> 00:34:22.907
+<v Manuela Ramirez (Iris Software)>the fake math, we need more details.
+This is faster. But still,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/409-0
+00:34:20.786 --> 00:34:21.586
+<v Janardhana Soundararajan (Cognizant)>Exactly.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/410-2
+00:34:22.907 --> 00:34:29.506
+<v Manuela Ramirez (Iris Software)>I would like to start advancing in the
+documentation with you.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/412-0
+00:34:30.066 --> 00:34:37.606
+<v Manuela Ramirez (Iris Software)>like I'm going to start writing. I mean,
+what I started to do is to write to</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/412-1
+00:34:37.606 --> 00:34:44.166
+<v Manuela Ramirez (Iris Software)>little texts about each feature or each
+thing or the general idea.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/412-2
+00:34:44.166 --> 00:34:48.866
+<v Manuela Ramirez (Iris Software)>This is what I gave to CloudCut and
+everything.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/411-0
+00:34:47.586 --> 00:34:48.066
+<v Janardhana Soundararajan (Cognizant)>Mhm.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/413-0
+00:34:49.746 --> 00:34:54.022
+<v Manuela Ramirez (Iris Software)>It's not like for Cloud Code,
+it's more like for me, for you.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/413-1
+00:34:54.022 --> 00:34:58.022
+<v Manuela Ramirez (Iris Software)>So for example,
+you can see here how we are doing things,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/413-2
+00:34:58.022 --> 00:35:01.402
+<v Manuela Ramirez (Iris Software)>right?
+So you yourself are like having new ideas</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/413-3
+00:35:01.402 --> 00:35:06.160
+<v Manuela Ramirez (Iris Software)>on how to do things as well.
+So all of that process needs to be kind</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/413-4
+00:35:06.160 --> 00:35:07.746
+<v Manuela Ramirez (Iris Software)>of documented and also.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/414-0
+00:35:08.546 --> 00:35:11.379
+<v Manuela Ramirez (Iris Software)>And that way,
+that will help me as well to understand</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/414-1
+00:35:11.379 --> 00:35:11.746
+<v Manuela Ramirez (Iris Software)>better.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/417-0
+00:35:11.746 --> 00:35:14.006
+<v Janardhana Soundararajan (Cognizant)>Yeah, see,
+it is already there a little bit.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/417-1
+00:35:14.006 --> 00:35:17.922
+<v Janardhana Soundararajan (Cognizant)>You can refer to this one and you can
+start doing it, right? Say for example,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/417-2
+00:35:17.922 --> 00:35:21.235
+<v Janardhana Soundararajan (Cognizant)>let me share the epic, right?
+That epic has all that information,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/415-0
+00:35:17.986 --> 00:35:18.546
+<v Manuela Ramirez (Iris Software)>Mmh.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/417-3
+00:35:21.235 --> 00:35:23.946
+<v Janardhana Soundararajan (Cognizant)>what you're asking for, right?
+Just give me a second.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/416-0
+00:35:22.826 --> 00:35:23.306
+<v Manuela Ramirez (Iris Software)>Mmh.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/418-0
+00:35:27.226 --> 00:35:27.506
+<v Janardhana Soundararajan (Cognizant)>Okay.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/420-0
+00:35:27.266 --> 00:35:31.395
+<v Manuela Ramirez (Iris Software)>And if you have if you have any other
+documentation that will be helpful as</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/420-1
+00:35:31.395 --> 00:35:31.666
+<v Manuela Ramirez (Iris Software)>well.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/419-0
+00:35:31.986 --> 00:35:32.386
+<v Janardhana Soundararajan (Cognizant)>Yeah.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/421-0
+00:35:33.586 --> 00:35:34.146
+<v Janardhana Soundararajan (Cognizant)>Paint.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/423-0
+00:35:39.426 --> 00:35:41.970
+<v Janardhana Soundararajan (Cognizant)>Okay, I'll share my screen for a second,
+right?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/423-1
+00:35:41.970 --> 00:35:46.102
+<v Janardhana Soundararajan (Cognizant)>Then I'll show you which one is that and
+then I will paste that link as well.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/422-0
+00:35:42.426 --> 00:35:42.786
+<v Manuela Ramirez (Iris Software)>Yeah.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/423-2
+00:35:46.102 --> 00:35:47.426
+<v Janardhana Soundararajan (Cognizant)>We'll put that link here.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/426-0
+00:35:50.946 --> 00:35:53.519
+<v Janardhana Soundararajan (Cognizant)>See,
+the link that I pasted was the is the</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/426-1
+00:35:53.519 --> 00:35:56.630
+<v Janardhana Soundararajan (Cognizant)>master epic, right?
+So the master epic has all that</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/424-0
+00:35:55.906 --> 00:35:56.546
+<v Manuela Ramirez (Iris Software)>Anand.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/426-2
+00:35:56.630 --> 00:36:01.296
+<v Janardhana Soundararajan (Cognizant)>information, what you're looking for.
+It has a high level for your sketch and</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/426-3
+00:36:01.296 --> 00:36:04.706
+<v Janardhana Soundararajan (Cognizant)>all your details.
+It has some high level details, right?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/425-0
+00:36:05.426 --> 00:36:05.546
+<v Manuela Ramirez (Iris Software)>Yeah.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/430-0
+00:36:05.986 --> 00:36:09.243
+<v Janardhana Soundararajan (Cognizant)>Yeah, see, for example,
+it tells you what it is.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/430-1
+00:36:09.243 --> 00:36:13.628
+<v Janardhana Soundararajan (Cognizant)>And then if you go into details by
+shipment creation for Odyssey,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/430-2
+00:36:13.628 --> 00:36:18.014
+<v Janardhana Soundararajan (Cognizant)>one confirmed orders, right?
+How does it look like? Then it goes,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/430-3
+00:36:18.014 --> 00:36:22.134
+<v Janardhana Soundararajan (Cognizant)>if you go and open it,
+it'll add a lot of details underneath,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/427-0
+00:36:19.266 --> 00:36:19.826
+<v Manuela Ramirez (Iris Software)>Mmh.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/430-4
+00:36:22.134 --> 00:36:26.386
+<v Janardhana Soundararajan (Cognizant)>saying like, okay, right,
+say load creation and cost retrieval.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/428-0
+00:36:22.306 --> 00:36:22.546
+<v Manuela Ramirez (Iris Software)>Okay.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/432-0
+00:36:26.786 --> 00:36:29.878
+<v Janardhana Soundararajan (Cognizant)>Right, auto plan evaluation,
+then optimization process,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/429-0
+00:36:27.266 --> 00:36:27.866
+<v Manuela Ramirez (Iris Software)>Ohh.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/432-1
+00:36:29.878 --> 00:36:32.803
+<v Janardhana Soundararajan (Cognizant)>auto tender consideration,
+audit and logging, right?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/432-2
+00:36:32.803 --> 00:36:35.950
+<v Janardhana Soundararajan (Cognizant)>And then what needs to be done in under
+all this, right?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/432-3
+00:36:35.950 --> 00:36:39.262
+<v Janardhana Soundararajan (Cognizant)>So there are details under the UI screens.
+If you see here,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/431-0
+00:36:37.666 --> 00:36:38.226
+<v Manuela Ramirez (Iris Software)>Mmh.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/432-4
+00:36:39.262 --> 00:36:43.070
+<v Janardhana Soundararajan (Cognizant)>I've written some details about UI
+screens by shipment listing page,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/432-5
+00:36:43.070 --> 00:36:46.714
+<v Janardhana Soundararajan (Cognizant)>then it need to have details,
+then save search, filters, columns.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/432-6
+00:36:46.714 --> 00:36:48.866
+<v Janardhana Soundararajan (Cognizant)>So I have given all these details here.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/434-0
+00:36:49.186 --> 00:36:53.192
+<v Janardhana Soundararajan (Cognizant)>right, in each of those epics, right?
+So under this epic,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/433-0
+00:36:52.946 --> 00:36:53.426
+<v Manuela Ramirez (Iris Software)>No.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/434-1
+00:36:53.192 --> 00:36:57.611
+<v Janardhana Soundararajan (Cognizant)>you will have all those being created.
+Then here, if you go to,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/434-2
+00:36:57.611 --> 00:37:02.653
+<v Janardhana Soundararajan (Cognizant)>then you will have for load related items,
+right? So it has a framework.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/434-3
+00:37:02.653 --> 00:37:03.826
+<v Janardhana Soundararajan (Cognizant)>How does it work?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/435-0
+00:37:04.786 --> 00:37:10.206
+<v Janardhana Soundararajan (Cognizant)>Right, so if you go here,
+so each of this particular epic, 8088,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/435-1
+00:37:10.206 --> 00:37:10.706
+<v Janardhana Soundararajan (Cognizant)>right?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/440-0
+00:37:12.146 --> 00:37:14.920
+<v Janardhana Soundararajan (Cognizant)>8088 is the master epic.
+Under the master epic,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/436-0
+00:37:14.186 --> 00:37:14.546
+<v Manuela Ramirez (Iris Software)>Yes.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/440-1
+00:37:14.920 --> 00:37:18.098
+<v Janardhana Soundararajan (Cognizant)>it does all the ones that we would be
+building, right?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/440-2
+00:37:18.098 --> 00:37:20.698
+<v Janardhana Soundararajan (Cognizant)>And each of these will have its own
+stories.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/440-3
+00:37:20.698 --> 00:37:25.551
+<v Janardhana Soundararajan (Cognizant)>I have not started fully writing stories,
+but you can see some stories that we have</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/440-4
+00:37:25.551 --> 00:37:28.786
+<v Janardhana Soundararajan (Cognizant)>already started writing.
+If you go underneath this one,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/437-0
+00:37:26.706 --> 00:37:26.866
+<v Manuela Ramirez (Iris Software)>Mm.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/438-0
+00:37:28.546 --> 00:37:29.026
+<v Manuela Ramirez (Iris Software)>Okay.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/440-5
+00:37:28.786 --> 00:37:31.906
+<v Janardhana Soundararajan (Cognizant)>you can see that I have started writing
+stories here.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/442-0
+00:37:32.146 --> 00:37:36.786
+<v Janardhana Soundararajan (Cognizant)>Right, you see all the stories. So,
+these are details for this particular</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/439-0
+00:37:32.666 --> 00:37:32.866
+<v Manuela Ramirez (Iris Software)>Mm.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/442-1
+00:37:36.786 --> 00:37:40.987
+<v Janardhana Soundararajan (Cognizant)>epic, right? So, similarly,
+I will be adding many stories as I go,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/442-2
+00:37:40.987 --> 00:37:44.874
+<v Janardhana Soundararajan (Cognizant)>right? As I told you,
+we will have to start refining details.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/442-3
+00:37:44.874 --> 00:37:48.698
+<v Janardhana Soundararajan (Cognizant)>Right now, it is all back in,
+so I don't have the front end,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/441-0
+00:37:46.866 --> 00:37:47.346
+<v Manuela Ramirez (Iris Software)>Mhm.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/442-4
+00:37:48.698 --> 00:37:52.146
+<v Janardhana Soundararajan (Cognizant)>but this gives you an idea saying how the
+shipment is.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/443-0
+00:37:52.306 --> 00:37:53.426
+<v Janardhana Soundararajan (Cognizant)>Supposed to work.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/444-0
+00:37:55.186 --> 00:37:55.826
+<v Manuela Ramirez (Iris Software)>Okay.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/446-0
+00:37:57.346 --> 00:38:01.892
+<v Manuela Ramirez (Iris Software)>Okay, that's important.
+And those stories were written for the</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/445-0
+00:38:00.226 --> 00:38:00.546
+<v Janardhana Soundararajan (Cognizant)>Yeah.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/446-1
+00:38:01.892 --> 00:38:04.706
+<v Manuela Ramirez (Iris Software)>future or were written for the backend.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/449-0
+00:38:06.226 --> 00:38:10.527
+<v Janardhana Soundararajan (Cognizant)>Right now I'm writing only back end.
+Once we have an approval from the</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/447-0
+00:38:09.186 --> 00:38:09.586
+<v Manuela Ramirez (Iris Software)>Okay.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/449-1
+00:38:10.527 --> 00:38:14.101
+<v Janardhana Soundararajan (Cognizant)>business saying like, okay, this design,
+I like it, right?</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/449-2
+00:38:14.101 --> 00:38:18.766
+<v Janardhana Soundararajan (Cognizant)>I like to proceed with this design.
+Then I would start writing the front end</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/448-0
+00:38:17.426 --> 00:38:17.906
+<v Manuela Ramirez (Iris Software)>Mhm.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/449-3
+00:38:18.766 --> 00:38:20.946
+<v Janardhana Soundararajan (Cognizant)>stories, all the UX related stories.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/450-0
+00:38:21.626 --> 00:38:24.586
+<v Manuela Ramirez (Iris Software)>Okay. Okay, yeah, but still I have.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/451-0
+00:38:23.426 --> 00:38:26.879
+<v Janardhana Soundararajan (Cognizant)>Right now, I'm putting all these,
+all these backend related, say,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/451-1
+00:38:26.879 --> 00:38:27.506
+<v Janardhana Soundararajan (Cognizant)>for example.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/452-0
+00:38:29.146 --> 00:38:32.066
+<v Janardhana Soundararajan (Cognizant)>have it open, but I can show you.
+It's a little more complicated.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/452-1
+00:38:32.066 --> 00:38:33.746
+<v Janardhana Soundararajan (Cognizant)>I don't know whether you have seen it.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/455-0
+00:38:50.786 --> 00:38:51.746
+<v Manuela Ramirez (Iris Software)>Efrain left.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/457-0
+00:38:54.786 --> 00:38:59.119
+<v Janardhana Soundararajan (Cognizant)>Okay, maybe he has another call. Okay,
+so this is how the shipment domain is</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/457-1
+00:38:59.119 --> 00:39:02.607
+<v Janardhana Soundararajan (Cognizant)>supposed to work, right?
+It has a lot of flows. So it'll get,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/457-2
+00:39:02.607 --> 00:39:06.658
+<v Janardhana Soundararajan (Cognizant)>once an order comes, it'll create a load,
+then it'll create a shipment,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/457-3
+00:39:06.658 --> 00:39:10.315
+<v Janardhana Soundararajan (Cognizant)>then it'll do some optimization,
+then it will send to tendering,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/456-0
+00:39:07.306 --> 00:39:07.506
+<v Manuela Ramirez (Iris Software)>Yeah.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/457-4
+00:39:10.315 --> 00:39:13.746
+<v Janardhana Soundararajan (Cognizant)>then once it sends to tendering,
+it has certain other steps.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/461-0
+00:39:13.866 --> 00:39:18.841
+<v Janardhana Soundararajan (Cognizant)>until the carrier accepts it, right?
+So there are so many logics underneath it.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/458-0
+00:39:16.466 --> 00:39:17.106
+<v Manuela Ramirez (Iris Software)>And.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/461-1
+00:39:18.841 --> 00:39:23.381
+<v Janardhana Soundararajan (Cognizant)>So not every screen will require,
+not every logic will require a screen,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/461-2
+00:39:23.381 --> 00:39:26.428
+<v Janardhana Soundararajan (Cognizant)>right?
+It can run back end without even the user</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/461-3
+00:39:26.428 --> 00:39:30.284
+<v Janardhana Soundararajan (Cognizant)>knowing about it, right?
+So those are the ones I'm completing</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/459-0
+00:39:28.186 --> 00:39:28.386
+<v Manuela Ramirez (Iris Software)>Jha.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/461-4
+00:39:30.284 --> 00:39:33.579
+<v Janardhana Soundararajan (Cognizant)>right now.
+Wherever it requires an user intervention</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/461-5
+00:39:33.579 --> 00:39:36.626
+<v Janardhana Soundararajan (Cognizant)>or a user action,
+or the user would want to see.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/462-0
+00:39:36.706 --> 00:39:39.753
+<v Janardhana Soundararajan (Cognizant)>what the system has done, then I'm,
+that is where EDR,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/460-0
+00:39:39.146 --> 00:39:39.426
+<v Manuela Ramirez (Iris Software)>Yeah.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/462-1
+00:39:39.753 --> 00:39:43.186
+<v Janardhana Soundararajan (Cognizant)>you are coming in and trying to put a
+screen together for it.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/465-0
+00:39:44.866 --> 00:39:48.933
+<v Manuela Ramirez (Iris Software)>Okay,
+so you are the you are we are doing this</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/463-0
+00:39:46.066 --> 00:39:46.546
+<v Janardhana Soundararajan (Cognizant)>Right.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/465-1
+00:39:48.933 --> 00:39:52.306
+<v Manuela Ramirez (Iris Software)>from starting from the backend and then</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/464-0
+00:39:52.306 --> 00:39:53.026
+<v Janardhana Soundararajan (Cognizant)>Got it.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/466-0
+00:39:54.266 --> 00:39:55.426
+<v Manuela Ramirez (Iris Software)>On it, OK.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/468-0
+00:39:55.226 --> 00:39:58.408
+<v Janardhana Soundararajan (Cognizant)>Yeah,
+back end I'm trying to build so that once</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/467-0
+00:39:56.466 --> 00:39:56.866
+<v Manuela Ramirez (Iris Software)>Ohh.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/468-1
+00:39:58.408 --> 00:40:02.186
+<v Janardhana Soundararajan (Cognizant)>we have the data ready,
+we can show it in the front end.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/469-0
+00:40:03.506 --> 00:40:08.618
+<v Manuela Ramirez (Iris Software)>Yeah, okay. Yeah,
+this even for the user stories is really</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/469-1
+00:40:08.618 --> 00:40:15.462
+<v Manuela Ramirez (Iris Software)>important for because user stories for
+front ends mostly are defined by users,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/469-2
+00:40:15.462 --> 00:40:19.706
+<v Manuela Ramirez (Iris Software)>right? We need to define the users.
+So it's the.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/472-0
+00:40:20.026 --> 00:40:24.133
+<v Janardhana Soundararajan (Cognizant)>That is why we need this UX wireframe
+ready so that we can talk to the users</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/470-0
+00:40:24.026 --> 00:40:24.346
+<v Manuela Ramirez (Iris Software)>Yeah.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/472-1
+00:40:24.133 --> 00:40:27.706
+<v Janardhana Soundararajan (Cognizant)>and get their approval saying like, okay,
+hey, I like this design.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/472-2
+00:40:27.706 --> 00:40:30.746
+<v Janardhana Soundararajan (Cognizant)>This is coming out well.
+So they can give some feedback,</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/471-0
+00:40:28.586 --> 00:40:28.746
+<v Manuela Ramirez (Iris Software)>Mm.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/472-3
+00:40:30.746 --> 00:40:34.426
+<v Janardhana Soundararajan (Cognizant)>then we will go and work on those and,
+you know, talk to them again.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/475-0
+00:40:35.546 --> 00:40:40.906
+<v Manuela Ramirez (Iris Software)>Perfect. Okay. That makes...
+Thank you for this. I will review it.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/473-0
+00:40:35.946 --> 00:40:36.106
+<v Janardhana Soundararajan (Cognizant)>But.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/475-1
+00:40:40.906 --> 00:40:42.266
+<v Manuela Ramirez (Iris Software)>I will cheque it.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/474-0
+00:40:41.066 --> 00:40:41.866
+<v Janardhana Soundararajan (Cognizant)>Yeah, sure.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/477-0
+00:40:43.386 --> 00:40:44.506
+<v Manuela Ramirez (Iris Software)>Okay, okay, Jha.</v>
+
+9254b293-b339-4a8a-8f54-217a365f2c01/478-0
+00:40:54.986 --> 00:40:55.386
+<v Manuela Ramirez (Iris Software)>Yeah.</v>
