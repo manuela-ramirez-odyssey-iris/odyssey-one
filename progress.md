@@ -101,7 +101,7 @@ Created a faker-based data generator producing 200 shipments with correlated dat
 ### Data Model
 Each shipment has correlated data for: Order tab, Stops tab, Product tab, Routing Guide tab, Cost Allocation tab, Instructions tab, Documents tab, Notes tab.
 
-**Stats:** 200 shipments, 507 total orders, 15 customers, 30 locations, 20 chemical products, 15 carriers.
+**Stats:** 200 shipments, 502 total orders, 15 customers, 30 locations, 20 chemical products, 15 carriers.
 
 **Constraints enforced:**
 - Orders within a shipment share the same customer
@@ -141,9 +141,9 @@ Each shipment has correlated data for: Order tab, Stops tab, Product tab, Routin
 
 ---
 
-## Phase 2: React Migration (In Progress)
+## Phase 2: React Migration (Complete)
 
-### Stack Decisions Made
+### Stack
 | Tool | Version | Why |
 |---|---|---|
 | **React** | 19 | Component architecture |
@@ -159,50 +159,76 @@ Each shipment has correlated data for: Order tab, Stops tab, Product tab, Routin
 `/Users/manuelramirez/Documents/iris/Odyssey/Shipments/odyssey-shipments/`
 Served on `localhost:3010`.
 
-### Phase 1 (Shell + Layout + Data + Table) — Complete
-
-**What's running:**
-- AppShell layout (Navbar, Sidebar, MainContent)
-- Design tokens as CSS custom properties
-- ShipmentTable rendering 200 rows from `shipments.json`
-- Row selection with checkbox (single-select, blue highlight)
-- Order badges (amber/blue alternating)
-- Data access layer (`src/data/index.js` with `getAllShipments`, `getShipmentById`, `getShipmentDetails`)
-- Git repo initialized with first commit
-
 ### Component Architecture
 ```
 src/
   components/
     layout/     AppShell, Navbar, Sidebar
-    shipments/  ShipmentTable (done), MonitorPanels, ShipmentTabs, TableControls, SearchChips, FilterPanel
-    detail/     BottomBar, OrderTab, StopsTab, ProductTab, RoutingGuideTab, CostAllocationTab, InstructionsTab, DocumentsTab, NotesTab
-    ui/         Badge (done), StatusBadge, ExpandButton, SearchBar
+    shipments/  ShipmentTable, MonitorPanels, ShipmentTabs, TableControls, SearchChipPanel, FilterPanel
+    detail/     BottomBar, OrderTab, StopsTab, ProductTab, RoutingGuideTab, CostAllocationTab, InstructionsTab, DocumentsTab, NotesTab, HistoryTab, TenderHistoryTab, ColumnPanel
+    ui/         Badge, DarkTooltip
   data/         shipments.json, shipment-details.json, index.js (accessors)
   styles/       tokens.css (design system)
 ```
 
-### Remaining Phases
+---
 
-**Phase 2: Main View Features**
-- MonitorPanels with collapse
-- ShipmentTabs with badges
-- TableControls + SearchBar (white, inline)
-- SearchChips
-- FilterPanel side drawer
-- Table filtering + search
+## Session 2 — March 24, 2026
 
-**Phase 3: Bottom Bar + Detail Tabs**
-- BottomBar shell (partial/full/close states)
-- All 9 active tabs rendering from `shipment-details.json`
-- Product expand/collapse, Routing row selection, Cost sub-tabs
-- Instructions collapsible, Documents upload modal, Notes CRUD
+### Shipments Table — Last Column
+- Sticky last column (`position: sticky; right: 0`) with subtle left shadow
+- `Columns3Cog` icon in header — opens ColumnPanel side panel
+- `MoreVertical` (3-dot) icon per row
+- Column arrangement button wired to same ColumnPanel as BottomBar
 
-**Phase 4: Polish**
-- Saved search profiles
-- Responsive refinements
-- Performance optimization (memo, lazy loading)
-- Monitoring view, PGI/PGR view
+### Order # Column & Badge Overhaul
+- Badge colors by position: 1st=amber, 2nd=blue, 3rd=green, 4th=red, 5th=purple
+- Badges are single-line, `nowrap`, `flexShrink: 0` — clip at column edge
+- Column max-width 192px, horizontal layout with 6px gap
+
+### Per-Order Data Generation
+- `orderDetail` (singular) → `orderDetails[]` (array) in `shipment-details.json`
+- Each order gets unique faker data: ship from/to, dates, references, contacts, incoterms, ports, etc.
+- Generator updated (`tools/generate.mjs`) and data regenerated with seed 42
+
+### Order Dropdown in BottomBar
+- Header: "Order" label (small) + bold selected order number + chevron
+- Dropdown opens downward into content area, aligned with tab, same width
+- Colored badges per order matching table colors
+- Order selection updates OrderTab data; resets on shipment change
+
+### Selected Row UX
+- MonitorPanels collapse when shipment selected, expand when deselected
+- Auto-scroll: selected row scrolls into view above bottom bar (targets `<main>`, 350ms delay)
+
+### Search Bar Styling (Prototype Parity)
+- Focus border: `var(--border-strong)` (dark navy)
+- All transitions: `0.15s ease` on icon, clear, bookmark, chip remove
+- Hover states on all interactive elements
+- Bookmark: filled when saved searches panel open or query applied
+- Input: no focus ring (`border: none`, `outline: none`, `boxShadow: none`)
+
+### Bottom Bar Trailing Buttons
+- Shrunk to 26×26 (column btn 28×28), transparent bg
+- Hover: color → `var(--text-secondary)`, bg → `var(--bg-tertiary)`
+
+### Dark Tooltips (Portal-based)
+- `OrdersTooltip` on Order # and Order Count cells — dark themed, shows all order badges
+- `DarkTooltip` reusable component (`src/components/ui/DarkTooltip.jsx`)
+- Export button tooltip: "Only the first 10,000 records will be exported to Excel"
+- Both use `createPortal` to `document.body` — no overflow clipping
+
+### Export Modal
+- Centered modal with blurred overlay (`backdrop-filter: blur(4px)`)
+- Two options: "Export all records" and "Export filtered records" with counts
+- Actual CSV download with proper escaping
+
+### Layout Fix
+- Main container padding left changed from `var(--sidebar-width)` to `var(--spacing-6)` to match right
+
+### Web Interface Guidelines Audit
+- Full review completed, findings saved to memory for future implementation
+- Key gaps: aria-labels, focus states, virtualization, tabular-nums, prefers-reduced-motion
 
 ---
 
@@ -222,3 +248,23 @@ Figma source: `https://www.figma.com/design/1kXenKxAqgxNmB36HERhvk/Test-MCP`
 1. Spacing & sizing tokens
 2. Create Figma variables from token definitions
 3. Z-index scale, transitions, breakpoints
+
+---
+
+## What's Next (March 25)
+
+### Tier 1 — Ready to build
+- **Table tabs**: Review and implement tab functionality for shipment table views
+- **AP/AR Costs columns**: Not just two columns — need to expand cost-related columns in the shipments table
+- ColumnPanel functionality (checkbox list to toggle table column visibility)
+
+### Tier 2 — Polish
+- Responsive design (Tailwind breakpoints for panels, search bar, bottom bar)
+- Keyboard shortcuts (Escape to close panels/bottom bar)
+- Web Interface Guidelines fixes (accessibility, focus states, virtualization)
+
+### Tier 3 — Future
+- Saved search CRUD (create/edit/delete profiles, localStorage persistence)
+- Error boundaries
+- Testing (unit + integration)
+- Deployment setup

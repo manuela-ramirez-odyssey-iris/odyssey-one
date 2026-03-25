@@ -45,15 +45,18 @@ function App() {
   const [dateFilters, setDateFilters] = useState({})
   const [appliedSavedQuery, setAppliedSavedQuery] = useState(null)
   const [detailsLoaded, setDetailsLoaded] = useState(false)
+  const [metricsCollapsed, setMetricsCollapsed] = useState(false)
 
   const allShipments = useMemo(() => getAllShipments(), [])
 
   useEffect(() => {
     if (selectedShipmentId) {
+      setMetricsCollapsed(true)
       loadShipmentDetails().then(() => {
-        // Force re-render to pick up cached details
         setDetailsLoaded(true)
       })
+    } else {
+      setMetricsCollapsed(false)
     }
   }, [selectedShipmentId])
 
@@ -226,10 +229,11 @@ function App() {
       <h1 className="text-3xl font-semibold mb-6" style={{ color: 'var(--text-primary)', lineHeight: '32px' }}>
         Shipments
       </h1>
-      <MonitorPanels activePanel={activePanel} onPanelSelect={handlePanelSelect} metrics={metrics} />
+      <MonitorPanels activePanel={activePanel} onPanelSelect={handlePanelSelect} metrics={metrics} collapsed={metricsCollapsed} onToggleCollapsed={() => setMetricsCollapsed(c => !c)} />
       <ShipmentTabs activePanel={activePanel} activeTab={activeTab} onTabSelect={setActiveTab} badgeCounts={metrics} />
       <TableControls
         itemCount={filteredShipments.length}
+        totalCount={allShipments.length}
         searchQuery={searchQuery}
         onSearchChange={handleSearchChange}
         activeChipKey={activeChipKey}
@@ -238,11 +242,29 @@ function App() {
         onToggleSavedSearches={handleToggleSavedSearches}
         appliedSavedQuery={appliedSavedQuery}
         onClearSavedQuery={handleClearSavedQuery}
+        savedSearchesOpen={filtersOpen && filtersInitialTab === 'saved'}
+        onExport={(mode) => {
+          const data = mode === 'all' ? allShipments : filteredShipments
+          const headers = Object.keys(data[0] || {})
+          const csv = [headers.join(','), ...data.map(r => headers.map(h => {
+            const v = r[h]
+            const str = Array.isArray(v) ? v.join('; ') : String(v ?? '')
+            return str.includes(',') || str.includes('"') ? `"${str.replace(/"/g, '""')}"` : str
+          }).join(','))].join('\n')
+          const blob = new Blob([csv], { type: 'text/csv' })
+          const url = URL.createObjectURL(blob)
+          const a = document.createElement('a')
+          a.href = url
+          a.download = `shipments-${mode}-${new Date().toISOString().slice(0, 10)}.csv`
+          a.click()
+          URL.revokeObjectURL(url)
+        }}
       />
       <ShipmentTable
         shipments={filteredShipments}
         selectedId={selectedShipmentId}
         onRowSelect={handleRowSelect}
+        onToggleColumnPanel={handleToggleColumnPanel}
       />
       <BottomBar
         selectedShipmentId={selectedShipmentId}

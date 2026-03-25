@@ -464,43 +464,66 @@ function generateShipment(index) {
   }
   notes.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-  // Order tab detail
-  const orderDetail = {
-    orderNumber: orders[0].orderId,
-    shipDirection: pick(SHIP_DIRECTIONS),
-    orderDate: formatDateTime(genDate(baseDate, -faker.number.int({ min: 1, max: 5 }))),
-    paymentTerms: pick(PAYMENT_TERMS),
-    shipmentMode: mode === 'FTL' ? 'Ground' : mode === 'LTL' ? 'Ground LTL' : 'Intermodal',
-    expedited: pick(['Yes', 'No']),
-    consolidatable: pick(['Yes', 'No']),
-    equipment: equipmentCode,
-    specialServices: faker.datatype.boolean() ? 'Hazmat handling' : '',
-    lsp: '',
-    carrier: tenderStatus === 'Done' ? carrier.name : '',
-    shipFrom: {
-      siteId: originLoc.facility,
-      company: customer.name,
-      location: `${originLoc.zip}, ${originLoc.city}, ${originLoc.state}, US`,
-      address: faker.location.streetAddress(),
-    },
-    shipTo: {
-      siteId: destLoc.facility,
-      company: destLoc.facility,
-      location: `${destLoc.zip}, ${destLoc.city}, ${destLoc.state}, US`,
-      address: faker.location.streetAddress(),
-    },
-    earliestPickup: formatDateTime(baseDate),
-    latestPickup: formatDateTime(genDate(baseDate, 0)),
-    earliestDelivery: '',
-    latestDelivery: '',
-    numProducts: orders.reduce((s, o) => s + o.lineCount, 0),
-    totalWeight: `${fmtInt(grossWeight)} LB`,
-    totalVolume: `${faker.number.int({ min: 50, max: 500 })} cuft`,
-    hazmat: orders.some(o => o.lines.some(l => l.hazmat)) ? 'Yes' : 'No',
-    contactName: faker.person.fullName(),
-    contactEmail: faker.internet.email(),
-    contactPhone: faker.phone.number({ style: 'national' }),
-  };
+  // Order tab detail — one entry per order
+  const orderDetails = orders.map((ord, oi) => {
+    const orderWeight = Math.round(grossWeight / orders.length);
+    const orderVolume = faker.number.int({ min: 50, max: 500 });
+    const shipFromLoc = oi === 0 ? originLoc : pick(LOCATIONS.filter(l => l.city !== destLoc.city));
+    return {
+      orderNumber: ord.orderId,
+      shipDirection: pick(SHIP_DIRECTIONS),
+      orderDate: formatDateTime(genDate(baseDate, -faker.number.int({ min: 1, max: 5 }))),
+      paymentTerms: pick(PAYMENT_TERMS),
+      shipmentMode: mode === 'FTL' ? 'Ground' : mode === 'LTL' ? 'Ground LTL' : 'Intermodal',
+      expedited: pick(['Yes', 'No']),
+      consolidatable: pick(['Yes', 'No']),
+      equipment: equipmentCode,
+      specialServices: faker.datatype.boolean() ? 'Hazmat handling' : '',
+      lsp: '',
+      carrier: tenderStatus === 'Done' ? carrier.name : '',
+      serviceLevel: pick(['Standard', 'Expedited', 'Economy', 'Premium']),
+      transportPriority: pick(['Normal', 'High', 'Critical']),
+      shipFrom: {
+        siteId: shipFromLoc.facility,
+        company: customer.name,
+        location: `${shipFromLoc.zip}, ${shipFromLoc.city}, ${shipFromLoc.state}, US`,
+        address: faker.location.streetAddress(),
+      },
+      shipTo: {
+        siteId: destLoc.facility,
+        company: destLoc.facility,
+        location: `${destLoc.zip}, ${destLoc.city}, ${destLoc.state}, US`,
+        address: faker.location.streetAddress(),
+      },
+      earliestPickup: formatDateTime(genDate(baseDate, oi)),
+      latestPickup: formatDateTime(genDate(baseDate, oi)),
+      earliestDelivery: oi > 0 ? formatDateTime(genDate(baseDate, faker.number.int({ min: 2, max: 5 }))) : '',
+      latestDelivery: '',
+      numProducts: ord.lineCount,
+      totalWeight: `${fmtInt(orderWeight)} LB`,
+      totalVolume: `${orderVolume} cuft`,
+      grossWeight: `${fmtInt(Math.round(orderWeight * 1.2))} LB`,
+      tareWeight: `${fmtInt(Math.round(orderWeight * 0.2))} LB`,
+      hazmat: ord.lines.some(l => l.hazmat) ? 'Yes' : 'No',
+      incoterm: pick(['FOB', 'CIF', 'EXW', 'DDP', 'FCA']),
+      incotermLocation: `${originLoc.city}, ${originLoc.state}`,
+      portOfLoading: faker.datatype.boolean() ? `${pick(['Houston', 'Long Beach', 'Savannah', 'Newark'])} Port` : '--',
+      portOfDischarge: faker.datatype.boolean() ? `${pick(['Rotterdam', 'Antwerp', 'Shanghai', 'Singapore'])} Port` : '--',
+      salesOrder: `SO-${faker.number.int({ min: 100000, max: 999999 })}`,
+      deliveryNumber: `DN-${faker.number.int({ min: 100000, max: 999999 })}`,
+      poNumber: `PO-${faker.number.int({ min: 100000, max: 999999 })}`,
+      proBooking: `PRO-${faker.number.int({ min: 440001, max: 449999 })}`,
+      pickupNumber: faker.datatype.boolean() ? `PU-${faker.number.int({ min: 100000, max: 999999 })}` : '--',
+      confirmationNumber: `CNF-${faker.number.int({ min: 100000, max: 999999 })}`,
+      quoteNumber: `QT-${faker.number.int({ min: 10000, max: 99999 })}`,
+      bolNumber: `BOL-${faker.number.int({ min: 100000, max: 999999 })}`,
+      contactName: faker.person.fullName(),
+      contactEmail: faker.internet.email(),
+      contactPhone: faker.phone.number({ style: 'national' }),
+      customField1: faker.datatype.boolean() ? faker.lorem.words(3) : '--',
+      customField2: faker.datatype.boolean() ? faker.lorem.words(2) : '--',
+    };
+  });
 
   // Main table row
   const mainRow = {
@@ -531,7 +554,7 @@ function generateShipment(index) {
 
   // Detail data
   const detail = {
-    orderDetail,
+    orderDetails,
     stopsData: {
       summary: {
         distance: `${fmt(distance)} mi`,

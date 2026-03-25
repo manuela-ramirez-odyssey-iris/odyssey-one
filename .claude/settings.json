@@ -10,7 +10,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "jq -r '.prompt' | grep -qi 'finish session' && echo '{\"decision\":\"block\",\"reason\":\"FINISH SESSION: 1) Update finish-session.md with session summary 2) Commit all changes 3) Clear context with /clear\"}' || echo '{}'",
+            "command": "jq -r '.prompt' | grep -qi 'finish session' && echo '{\"decision\":\"block\",\"reason\":\"FINISH SESSION: 1) Update progress.md with session summary 2) Commit all changes 3) Clear context with /clear\"}' || echo '{}'",
             "timeout": 5
           }
         ]

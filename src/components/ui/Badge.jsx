@@ -10,12 +10,14 @@ export default function Badge({ children, variant = 'blue' }) {
   const style = variants[variant] || variants.blue
   return (
     <span
-      className="inline-block text-xs font-medium mr-1"
+      className="inline-block text-xs font-medium"
       style={{
         borderRadius: 'var(--radius-sm)',
         padding: '2px 8px',
         background: style.bg,
         color: style.color,
+        whiteSpace: 'nowrap',
+        flexShrink: 0,
       }}
     >
       {children}

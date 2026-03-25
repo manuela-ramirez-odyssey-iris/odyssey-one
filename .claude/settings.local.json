@@ -16,7 +16,14 @@
       "Bash(jq 'keys[0:10][]' -r)",
       "Bash(jq 'keys[]' -r)",
       "Bash(jq 'keys | to_entries | .[] | select\\(.value == \"\"\"\"SHP-D95564287\"\"\"\"\\) | .key')",
-      "Bash(npx skills:*)"
+      "Bash(npx skills:*)",
+      "Skill(update-config)",
+      "Bash(jq:*)",
+      "Bash(kill -9 12789 17221 17223 17244 55129 55151)",
+      "Bash(curl -s http://localhost:3010/src/components/shipments/ShipmentTable.jsx)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(git status:*)",
+      "Bash(git rm:*)"
     ]
   }
 }

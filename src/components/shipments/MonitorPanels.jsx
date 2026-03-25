@@ -37,8 +37,10 @@ function buildPanels(metrics) {
   ]
 }
 
-export default function MonitorPanels({ activePanel, onPanelSelect, metrics }) {
-  const [collapsed, setCollapsed] = useState(false)
+export default function MonitorPanels({ activePanel, onPanelSelect, metrics, collapsed: controlledCollapsed, onToggleCollapsed }) {
+  const [internalCollapsed, setInternalCollapsed] = useState(false)
+  const collapsed = controlledCollapsed ?? internalCollapsed
+  const toggleCollapsed = onToggleCollapsed ?? (() => setInternalCollapsed(c => !c))
   const panels = buildPanels(metrics || {})
 
   return (
@@ -95,7 +97,7 @@ export default function MonitorPanels({ activePanel, onPanelSelect, metrics }) {
         <button
           className="flex items-center gap-1.5 bg-transparent border-none cursor-pointer whitespace-nowrap"
           style={{ padding: '4px 8px' }}
-          onClick={() => setCollapsed(!collapsed)}
+          onClick={toggleCollapsed}
         >
           <span className="text-sm" style={{ color: 'var(--text-tertiary)' }}>
             {collapsed ? 'Expand metrics' : 'Collapse metrics'}

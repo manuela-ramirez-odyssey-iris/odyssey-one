@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef, Suspense } from 'react'
-import { ChevronLeft, ChevronRight, ChevronDown, Maximize2, Minimize2, X, Columns3Cog } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ChevronUp, Maximize2, Minimize2, X, Columns3Cog } from 'lucide-react'
+import Badge from '../ui/Badge'
+
+const BADGE_COLORS = ['amber', 'blue', 'green', 'red', 'purple']
 
 const OrderTab = React.lazy(() => import('./OrderTab'))
 const StopsTab = React.lazy(() => import('./StopsTab'))
@@ -43,7 +46,10 @@ export default function BottomBar({ selectedShipmentId, shipmentDetails, onClose
   const [barState, setBarState] = useState('collapsed')
   const [activeTab, setActiveTab] = useState('order')
   const [orderDropdownOpen, setOrderDropdownOpen] = useState(false)
+  const [dropdownPos, setDropdownPos] = useState({ left: 0, width: 240 })
   const tabsRef = useRef(null)
+  const orderTabRef = useRef(null)
+  const contentRef = useRef(null)
 
   const isExpanded = barState === 'expanded' || barState === 'fullscreen'
   const isDisabled = !selectedShipmentId
@@ -69,18 +75,25 @@ export default function BottomBar({ selectedShipmentId, shipmentDetails, onClose
     tabsRef.current.scrollBy({ left: direction * 150, behavior: 'smooth' })
   }, [])
 
+  const [selectedOrderIndex, setSelectedOrderIndex] = useState(0)
+
   const orders = useMemo(() => {
-    if (!shipmentDetails?.orderDetail) return []
-    const od = shipmentDetails.orderDetail
-    return od.orderNumber ? [od.orderNumber] : []
+    if (!shipmentDetails?.orderDetails) return []
+    return shipmentDetails.orderDetails.map(od => od.orderNumber)
   }, [shipmentDetails])
+
+  // Reset selected order when shipment changes
+  useEffect(() => {
+    setSelectedOrderIndex(0)
+    setOrderDropdownOpen(false)
+  }, [selectedShipmentId])
 
   const height = STATES[barState]
 
   const renderTabContent = () => {
     if (!shipmentDetails) return null
     switch (activeTab) {
-      case 'order': return <OrderTab data={shipmentDetails.orderDetail} />
+      case 'order': return <OrderTab data={shipmentDetails.orderDetails?.[selectedOrderIndex]} />
       case 'stops': return <StopsTab data={shipmentDetails.stopsData} />
       case 'product': return <ProductTab data={shipmentDetails.productData} />
       case 'routing': return <RoutingGuideTab data={shipmentDetails.routingData} />
@@ -142,15 +155,26 @@ export default function BottomBar({ selectedShipmentId, shipmentDetails, onClose
         >
           {TABS.map((tab) => {
             const isActive = activeTab === tab.key && !isDisabled
-            const isOrderTab = tab.key === 'order' && isActive
+            const isOrderTab = tab.key === 'order'
 
             return (
-              <div key={tab.key} className="relative shrink-0" style={{ height: '100%' }}>
+              <div key={tab.key} ref={isOrderTab ? orderTabRef : undefined} className="relative shrink-0" style={{ height: '100%' }}>
                 <button
                   onClick={() => {
                     handleTabClick(tab.key)
                     if (tab.key === 'order' && !isDisabled) {
-                      setOrderDropdownOpen((prev) => activeTab === 'order' ? !prev : false)
+                      setOrderDropdownOpen((prev) => {
+                        const willOpen = activeTab === 'order' ? !prev : false
+                        if (willOpen && orderTabRef.current && contentRef.current) {
+                          const tabRect = orderTabRef.current.getBoundingClientRect()
+                          const contentRect = contentRef.current.getBoundingClientRect()
+                          setDropdownPos({
+                            left: tabRect.left - contentRect.left,
+                            width: tabRect.width,
+                          })
+                        }
+                        return willOpen
+                      })
                     }
                   }}
                   className="border-none whitespace-nowrap flex items-center gap-1"
@@ -168,73 +192,51 @@ export default function BottomBar({ selectedShipmentId, shipmentDetails, onClose
                     opacity: isDisabled ? 0.6 : 1,
                   }}
                 >
-                  {tab.label}
-                  {isOrderTab && orders.length > 0 && (
-                    <>
-                      <span className="text-xs font-medium" style={{ color: 'var(--text-tertiary)', marginLeft: 4 }}>
-                        {orders[0]}
-                      </span>
-                      <ChevronDown size={14} style={{ color: 'var(--text-placeholder)', marginLeft: 2 }} />
-                    </>
+                  {isOrderTab && isActive && orders.length > 0 ? (
+                    <div className="flex items-center gap-2" style={{ textAlign: 'left' }}>
+                      <div style={{ lineHeight: 1.2 }}>
+                        <div style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-tertiary)', textAlign: 'left' }}>Order</div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', textAlign: 'left' }}>{orders[selectedOrderIndex]}</div>
+                      </div>
+                      <ChevronUp
+                        size={14}
+                        style={{
+                          color: 'var(--text-placeholder)',
+                          transform: orderDropdownOpen ? 'rotate(0deg)' : 'rotate(180deg)',
+                          transition: 'transform var(--transition-fast)',
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    tab.label
                   )}
                 </button>
 
-                {/* Order dropdown */}
-                {isOrderTab && orderDropdownOpen && orders.length > 0 && (
-                  <div
-                    className="absolute z-50"
-                    style={{
-                      top: '100%',
-                      left: 0,
-                      minWidth: 200,
-                      background: 'var(--dropdown-bg)',
-                      border: '1px solid var(--dropdown-border)',
-                      borderRadius: 'var(--radius-md)',
-                      boxShadow: 'var(--shadow-md)',
-                      padding: '4px 0',
-                    }}
-                  >
-                    {orders.map((ord) => (
-                      <button
-                        key={ord}
-                        className="flex items-center w-full text-left text-sm border-none cursor-pointer"
-                        style={{
-                          padding: '8px 12px',
-                          background: 'transparent',
-                          color: 'var(--text-secondary)',
-                          fontFamily: 'var(--font-primary)',
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.background = 'var(--dropdown-hover-bg)'}
-                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                        onClick={() => setOrderDropdownOpen(false)}
-                      >
-                        {ord}
-                      </button>
-                    ))}
-                  </div>
-                )}
               </div>
             )
           })}
         </div>
 
         {/* Right: Scroll arrows + Expand/Shrink + Column config + Close */}
-        <div className="flex items-center shrink-0" style={{ padding: '0 8px', gap: 6 }}>
+        <div className="flex items-center shrink-0" style={{ padding: '0 8px', gap: 4 }}>
           {/* Scroll tabs left */}
           <button
             onClick={() => scrollTabs(-1)}
             className="flex items-center justify-center"
             style={{
-              width: 32, height: 32,
+              width: 26, height: 26,
               cursor: 'pointer',
               color: 'var(--text-placeholder)',
-              background: 'var(--bg-primary)',
+              background: 'transparent',
               border: '1px solid var(--border-subtle)',
               borderRadius: 'var(--radius-full)',
+              transition: 'color 0.15s ease, background 0.15s ease',
             }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.background = 'var(--bg-tertiary)' }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-placeholder)'; e.currentTarget.style.background = 'transparent' }}
             title="Scroll tabs left"
           >
-            <ChevronLeft size={16} />
+            <ChevronLeft size={14} />
           </button>
 
           {/* Scroll tabs right */}
@@ -242,16 +244,19 @@ export default function BottomBar({ selectedShipmentId, shipmentDetails, onClose
             onClick={() => scrollTabs(1)}
             className="flex items-center justify-center"
             style={{
-              width: 32, height: 32,
+              width: 26, height: 26,
               cursor: 'pointer',
               color: 'var(--text-placeholder)',
-              background: 'var(--bg-primary)',
+              background: 'transparent',
               border: '1px solid var(--border-subtle)',
               borderRadius: 'var(--radius-full)',
+              transition: 'color 0.15s ease, background 0.15s ease',
             }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.background = 'var(--bg-tertiary)' }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-placeholder)'; e.currentTarget.style.background = 'transparent' }}
             title="Scroll tabs right"
           >
-            <ChevronRight size={16} />
+            <ChevronRight size={14} />
           </button>
 
           {/* Expand / Shrink toggle */}
@@ -264,17 +269,20 @@ export default function BottomBar({ selectedShipmentId, shipmentDetails, onClose
             }}
             className="flex items-center justify-center"
             style={{
-              width: 32, height: 32,
+              width: 26, height: 26,
               cursor: isDisabled ? 'default' : 'pointer',
               color: 'var(--text-placeholder)',
-              background: 'var(--bg-primary)',
+              background: 'transparent',
               border: '1px solid var(--border-subtle)',
-              borderRadius: 'var(--radius-md)',
+              borderRadius: 'var(--radius-sm)',
               opacity: isDisabled ? 0.4 : 1,
+              transition: 'color 0.15s ease, background 0.15s ease',
             }}
+            onMouseEnter={(e) => { if (!isDisabled) { e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.background = 'var(--bg-tertiary)' } }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-placeholder)'; e.currentTarget.style.background = 'transparent' }}
             title={barState === 'fullscreen' ? 'Shrink' : 'Expand'}
           >
-            {barState === 'fullscreen' ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+            {barState === 'fullscreen' ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
           </button>
 
           {/* Close button */}
@@ -285,17 +293,20 @@ export default function BottomBar({ selectedShipmentId, shipmentDetails, onClose
             }}
             className="flex items-center justify-center"
             style={{
-              width: 32, height: 32,
+              width: 26, height: 26,
               cursor: isDisabled ? 'default' : 'pointer',
               color: 'var(--text-placeholder)',
-              background: 'var(--bg-primary)',
+              background: 'transparent',
               border: '1px solid var(--border-subtle)',
-              borderRadius: 'var(--radius-md)',
+              borderRadius: 'var(--radius-sm)',
               opacity: isDisabled ? 0.4 : 1,
+              transition: 'color 0.15s ease, background 0.15s ease',
             }}
+            onMouseEnter={(e) => { if (!isDisabled) { e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.background = 'var(--bg-tertiary)' } }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-placeholder)'; e.currentTarget.style.background = 'transparent' }}
             title="Close"
           >
-            <X size={14} />
+            <X size={12} />
           </button>
 
           {/* Column arrangement button */}
@@ -303,23 +314,64 @@ export default function BottomBar({ selectedShipmentId, shipmentDetails, onClose
             onClick={() => { if (onToggleColumnPanel) onToggleColumnPanel() }}
             className="flex items-center justify-center"
             style={{
-              width: 36, height: 36,
+              width: 28, height: 28,
               cursor: 'pointer',
               color: 'var(--text-placeholder)',
-              background: 'var(--bg-primary)',
+              background: 'transparent',
               border: '1px solid var(--border-subtle)',
-              borderRadius: 'var(--radius-lg)',
+              borderRadius: 'var(--radius-md)',
+              transition: 'color 0.15s ease, background 0.15s ease',
             }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.background = 'var(--bg-tertiary)' }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-placeholder)'; e.currentTarget.style.background = 'transparent' }}
             title="Column arrangement"
           >
-            <Columns3Cog size={18} />
+            <Columns3Cog size={15} />
           </button>
         </div>
       </div>
 
       {/* Content */}
       {isExpanded && (
-        <div key={selectedShipmentId} className="flex-1 min-h-0 overflow-auto" style={{ padding: 'var(--spacing-4) var(--spacing-5)' }}>
+        <div ref={contentRef} key={selectedShipmentId} className="flex-1 min-h-0 overflow-auto relative" style={{ padding: 'var(--spacing-4) var(--spacing-5)' }}>
+          {/* Order dropdown overlay */}
+          {activeTab === 'order' && orderDropdownOpen && orders.length > 0 && (
+            <div
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: dropdownPos.left,
+                width: dropdownPos.width,
+                background: 'var(--bg-primary)',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: '0 0 var(--radius-md) var(--radius-md)',
+                boxShadow: 'var(--shadow-md)',
+                zIndex: 10,
+                overflow: 'hidden',
+              }}
+            >
+              {orders.map((ord, i) => (
+                <button
+                  key={ord}
+                  className="flex items-center justify-center w-full border-none cursor-pointer"
+                  style={{
+                    padding: '10px 16px',
+                    background: i === selectedOrderIndex ? 'var(--bg-secondary)' : 'transparent',
+                    borderBottom: i < orders.length - 1 ? '1px solid var(--border-subtle)' : 'none',
+                    fontFamily: 'var(--font-primary)',
+                  }}
+                  onMouseEnter={(e) => { if (i !== selectedOrderIndex) e.currentTarget.style.background = 'var(--bg-tertiary)' }}
+                  onMouseLeave={(e) => { if (i !== selectedOrderIndex) e.currentTarget.style.background = 'transparent' }}
+                  onClick={() => {
+                    setSelectedOrderIndex(i)
+                    setOrderDropdownOpen(false)
+                  }}
+                >
+                  <Badge variant={BADGE_COLORS[i]}>{ord}</Badge>
+                </button>
+              ))}
+            </div>
+          )}
           <Suspense fallback={<TabLoader />}>
             {renderTabContent()}
           </Suspense>
