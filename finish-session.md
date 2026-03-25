@@ -38,6 +38,11 @@
   - Code-split shipment-details.json (2.2MB loaded on demand)
   - Vendor/icons split into cacheable chunks
 
+### Session Infrastructure
+- "finish session" hook configured in `.claude/settings.json`
+- `finish-session.md` created for session summaries
+- `web-design-guidelines` skill installed from Vercel Labs
+
 ### Data
 - 200 shipments from faker-generated dataset (seed 42)
 - Shipment details for all tabs (Order, Stops, Product, Routing, Cost, Instructions, Documents, Notes)
@@ -45,10 +50,20 @@
 - Tab badge counts computed from real data
 
 ## Current State
-- **3 commits**: Initial scaffold → Full migration → Design overhaul + Phase 4
+- **5 commits**: scaffold → migration → design overhaul → Phase 4 → documentation
 - **Build**: Passes cleanly, code-split into ~15 chunks
+- **Initial JS**: 365KB (down from 2,587KB)
 - **Dev server**: localhost:3010
 - **Stack**: React 19, Bun, Vite 8, Tailwind v4, lucide-react, @faker-js/faker
+
+## Git Log
+```
+24b10bd Phase 4: wire filters, performance optimization, panel animations
+14fda04 documentation and progress done
+0165d99 Design system overhaul: tokens, tab designs, layout fixes
+42c8626 Migrate Phase 1 prototype to React: full feature parity
+25f93e2 Initial scaffold: React 19 + Bun + Vite + Tailwind v4
+```
 
 ## What's Next (Phase 4 Remaining + Beyond)
 
