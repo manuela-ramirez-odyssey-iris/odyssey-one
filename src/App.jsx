@@ -244,18 +244,21 @@ function App() {
         onClearSavedQuery={handleClearSavedQuery}
         savedSearchesOpen={filtersOpen && filtersInitialTab === 'saved'}
         onExport={(mode) => {
-          const data = mode === 'all' ? allShipments : filteredShipments
-          const headers = Object.keys(data[0] || {})
-          const csv = [headers.join(','), ...data.map(r => headers.map(h => {
-            const v = r[h]
-            const str = Array.isArray(v) ? v.join('; ') : String(v ?? '')
-            return str.includes(',') || str.includes('"') ? `"${str.replace(/"/g, '""')}"` : str
-          }).join(','))].join('\n')
-          const blob = new Blob([csv], { type: 'text/csv' })
+          const VISIBLE_COLUMNS = ['buyShipment', 'customerId', 'orders', 'orderCount', 'pickupDate', 'deliveryDate', 'origin']
+          const data = filteredShipments.slice(0, 10000)
+          const headers = mode === 'all' ? Object.keys(data[0] || {}) : VISIBLE_COLUMNS
+          const escapeCSV = (val) => {
+            const str = Array.isArray(val) ? val.join('; ') : String(val ?? '')
+            return (str.includes(',') || str.includes('"') || str.includes('\n'))
+              ? `"${str.replace(/"/g, '""')}"`
+              : str
+          }
+          const csv = '\uFEFF' + [headers.join(','), ...data.map(r => headers.map(h => escapeCSV(r[h])).join(','))].join('\n')
+          const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
           const url = URL.createObjectURL(blob)
           const a = document.createElement('a')
           a.href = url
-          a.download = `shipments-${mode}-${new Date().toISOString().slice(0, 10)}.csv`
+          a.download = `shipments-export-${new Date().toISOString().slice(0, 10)}.csv`
           a.click()
           URL.revokeObjectURL(url)
         }}

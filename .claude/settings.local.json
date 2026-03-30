@@ -23,7 +23,8 @@
       "Bash(curl -s http://localhost:3010/src/components/shipments/ShipmentTable.jsx)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "Bash(git status:*)",
-      "Bash(git rm:*)"
+      "Bash(git rm:*)",
+      "Bash(bun run:*)"
     ]
   }
 }

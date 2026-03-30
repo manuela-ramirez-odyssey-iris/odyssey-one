@@ -267,7 +267,7 @@ export default function TableControls({
               </button>
             </div>
             <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: '0 0 20px', lineHeight: 1.5 }}>
-              Choose which records to include in the export. Only the first 10,000 records will be exported.
+              Choose which columns to include in the export. Only the first 10,000 records will be exported.
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <button
@@ -290,8 +290,8 @@ export default function TableControls({
                 onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-secondary)'; e.currentTarget.style.borderColor = 'var(--border-strong, var(--deep-sea-neutral-900))' }}
                 onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--bg-primary)'; e.currentTarget.style.borderColor = 'var(--border-default)' }}
               >
-                <span>Export all records</span>
-                <span style={{ fontSize: 12, color: 'var(--text-placeholder)' }}>{totalCount ?? itemCount} records</span>
+                <span>Export all columns</span>
+                <span style={{ fontSize: 12, color: 'var(--text-placeholder)' }}>{itemCount} records</span>
               </button>
               <button
                 onClick={() => {
@@ -313,7 +313,7 @@ export default function TableControls({
                 onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-secondary)'; e.currentTarget.style.borderColor = 'var(--border-strong, var(--deep-sea-neutral-900))' }}
                 onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--bg-primary)'; e.currentTarget.style.borderColor = 'var(--border-default)' }}
               >
-                <span>Export filtered records</span>
+                <span>Export visible columns</span>
                 <span style={{ fontSize: 12, color: 'var(--text-placeholder)' }}>{itemCount} records</span>
               </button>
             </div>
