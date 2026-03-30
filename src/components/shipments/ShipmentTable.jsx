@@ -63,8 +63,73 @@ const stickyLastCol = {
   boxShadow: '-2px 0 4px rgba(0,0,0,0.06)',
 }
 
+function ActionMenu({ shipmentId, position, onClose }) {
+  const menuRef = useRef(null)
+
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) onClose()
+    }
+    document.addEventListener('click', handleClick)
+    return () => document.removeEventListener('click', handleClick)
+  }, [onClose])
+
+  const items = [
+    { label: 'Edit by Shipment', key: 'edit' },
+    { label: 'Tender to Preferred Carrier', key: 'tender' },
+  ]
+
+  return createPortal(
+    <div
+      ref={menuRef}
+      style={{
+        position: 'fixed',
+        top: position.top,
+        left: position.left,
+        transform: 'translateX(-100%)',
+        background: 'var(--bg-primary)',
+        border: '1px solid var(--border-subtle)',
+        borderRadius: 'var(--radius-md)',
+        boxShadow: 'var(--shadow-md)',
+        zIndex: 9999,
+        minWidth: 220,
+        padding: '4px 0',
+        fontFamily: 'var(--font-primary)',
+      }}
+    >
+      {items.map((item) => (
+        <button
+          key={item.key}
+          onClick={() => onClose()}
+          style={{
+            display: 'block',
+            width: '100%',
+            padding: '8px 14px',
+            background: 'transparent',
+            border: 'none',
+            textAlign: 'left',
+            fontSize: 13,
+            fontWeight: 500,
+            color: 'var(--text-secondary)',
+            cursor: 'pointer',
+            fontFamily: 'var(--font-primary)',
+            transition: 'background 0.12s ease',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-secondary)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+        >
+          {item.label}
+        </button>
+      ))}
+    </div>,
+    document.body
+  )
+}
+
 const ShipmentRow = React.memo(function ShipmentRow({ shipment, isSelected, onSelect, rowRef }) {
   const s = shipment
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [menuPos, setMenuPos] = useState({ top: 0, left: 0 })
   const rowBg = isSelected ? 'var(--badge-blue-bg)' : 'var(--bg-primary)'
   return (
     <tr
@@ -124,11 +189,20 @@ const ShipmentRow = React.memo(function ShipmentRow({ shipment, isSelected, onSe
       <td style={{ padding: '0 var(--spacing-4)', height: 56, borderBottom: '1px solid var(--bg-tertiary)', whiteSpace: 'nowrap', minWidth: 180 }}>
         {s.origin}
       </td>
-      <td data-sticky-col style={{ ...stickyLastCol, padding: '0 var(--spacing-4)', height: 56, borderBottom: '1px solid var(--bg-tertiary)', textAlign: 'center', width: 56, background: isSelected ? 'var(--badge-blue-bg)' : 'var(--bg-primary)' }}>
-        <button className="flex items-center justify-center mx-auto bg-transparent border-none cursor-pointer p-1"
-          onClick={(e) => e.stopPropagation()}>
+      <td
+        data-sticky-col
+        onClick={(e) => {
+          e.stopPropagation()
+          const rect = e.currentTarget.getBoundingClientRect()
+          setMenuPos({ top: rect.bottom + 4, left: rect.right })
+          setMenuOpen((prev) => !prev)
+        }}
+        style={{ ...stickyLastCol, padding: 0, height: 56, borderBottom: '1px solid var(--bg-tertiary)', textAlign: 'center', width: 56, cursor: 'pointer', background: isSelected ? 'var(--badge-blue-bg)' : 'var(--bg-primary)' }}
+      >
+        <div className="flex items-center justify-center" style={{ width: '100%', height: '100%' }}>
           <MoreVertical size={16} style={{ color: 'var(--text-placeholder)' }} />
-        </button>
+        </div>
+        {menuOpen && <ActionMenu shipmentId={s.buyShipment} position={menuPos} onClose={() => setMenuOpen(false)} />}
       </td>
     </tr>
   )

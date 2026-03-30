@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 
 const COLUMNS = [
   { key: 'lineNumber', label: 'Line #' },
@@ -51,7 +51,7 @@ const thStyle = {
   textAlign: 'left',
   fontSize: 12,
   fontWeight: 600,
-  color: 'var(--text-placeholder)',
+  color: 'var(--text-tertiary)',
   borderBottom: '1px solid var(--border-subtle)',
   whiteSpace: 'nowrap',
   textTransform: 'uppercase',
@@ -133,7 +133,23 @@ const hazmatNoStyle = {
 }
 
 export default function ProductTab({ data }) {
-  const [expandedOrders, setExpandedOrders] = useState({})
+  const [expandedOrders, setExpandedOrders] = useState(() => {
+    if (!data?.orders) return {}
+    const init = {}
+    data.orders.forEach((order) => {
+      init[order.orderId] = true
+    })
+    return init
+  })
+
+  useEffect(() => {
+    if (!data?.orders) return
+    const init = {}
+    data.orders.forEach((order) => {
+      init[order.orderId] = true
+    })
+    setExpandedOrders(init)
+  }, [data])
 
   const toggleOrder = useCallback((orderId) => {
     setExpandedOrders((prev) => ({ ...prev, [orderId]: !prev[orderId] }))
@@ -147,7 +163,6 @@ export default function ProductTab({ data }) {
         <thead style={theadStyle}>
           <tr>
             <th style={thExpandStyle}></th>
-            <th style={thStyle}>Order #</th>
             {COLUMNS.map((col) => (
               <th key={col.key} style={thStyle}>
                 {col.label}
@@ -156,15 +171,33 @@ export default function ProductTab({ data }) {
           </tr>
         </thead>
         <tbody>
-          {data.orders.map((order) => {
+          {data.orders.map((order, orderIdx) => {
             const isExpanded = !!expandedOrders[order.orderId]
             return (
-              <OrderGroup
-                key={order.orderId}
-                order={order}
-                isExpanded={isExpanded}
-                onToggle={() => toggleOrder(order.orderId)}
-              />
+              <React.Fragment key={order.orderId}>
+                {/* Order separator row */}
+                <tr>
+                  <td
+                    colSpan={COLUMNS.length + 1}
+                    style={{
+                      padding: orderIdx === 0 ? '8px 14px 6px' : '16px 14px 6px',
+                      fontSize: 12,
+                      fontWeight: 700,
+                      color: 'var(--text-primary)',
+                      background: 'var(--bg-primary)',
+                      borderBottom: '2px solid var(--border-default)',
+                      letterSpacing: '0.02em',
+                    }}
+                  >
+                    {order.orderId}
+                  </td>
+                </tr>
+                <OrderGroup
+                  order={order}
+                  isExpanded={isExpanded}
+                  onToggle={() => toggleOrder(order.orderId)}
+                />
+              </React.Fragment>
             )
           })}
         </tbody>
@@ -182,7 +215,6 @@ function OrderGroup({ order, isExpanded, onToggle }) {
     return (
       <tr style={{ background: 'var(--bg-primary)' }}>
         <td style={tdExpandStyle} />
-        <td style={colPrimaryStyle}>{order.orderId}</td>
         {COLUMNS.map((col) => (
           <td key={col.key} style={tdStyle}>
             {col.key === 'hazmat' ? (
@@ -213,8 +245,7 @@ function OrderGroup({ order, isExpanded, onToggle }) {
             {isExpanded ? '\u2212' : '+'}
           </button>
         </td>
-        <td style={colPrimaryStyle}>{order.orderId}</td>
-        <td style={tdStyle}>{order.lineCount ?? order.lines.length}</td>
+        <td style={tdStyle}>{order.lineCount ?? order.lines.length} lines</td>
         <td colSpan={COLUMNS.length - 1} style={tdStyle}></td>
       </tr>
 
@@ -226,7 +257,6 @@ function OrderGroup({ order, isExpanded, onToggle }) {
             style={{ background: 'var(--bg-secondary)' }}
           >
             <td style={tdExpandStyle} />
-            <td style={colPrimaryStyle}>{order.orderId}</td>
             {COLUMNS.map((col) => (
               <td key={col.key} style={tdStyle}>
                 {col.key === 'hazmat' ? (

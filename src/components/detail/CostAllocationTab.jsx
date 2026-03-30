@@ -1,5 +1,8 @@
-import { useState, useCallback } from 'react'
-import { Lock } from 'lucide-react'
+import { useState } from 'react'
+import { createPortal } from 'react-dom'
+import { Lock, X } from 'lucide-react'
+
+const BADGE_COLORS = ['amber', 'blue', 'green', 'red', 'purple']
 
 const thStyle = {
   padding: '10px 14px',
@@ -36,22 +39,62 @@ function CostValue({ value }) {
   return <span>{value}</span>
 }
 
-export default function CostAllocationTab({ data }) {
-  const [subTab, setSubTab] = useState('planned')
-  const [expandedOrders, setExpandedOrders] = useState(() => {
-    if (!data?.planned?.orders) return {}
-    const init = {}
-    data.planned.orders.forEach((o) => { init[o.orderId] = true })
-    return init
-  })
+function parseDollar(val) {
+  if (!val || val === '--') return null
+  return parseFloat(val.replace(/[^0-9.\-]/g, ''))
+}
 
-  const toggleOrder = useCallback((orderId) => {
-    setExpandedOrders((prev) => ({ ...prev, [orderId]: !prev[orderId] }))
-  }, [])
+function fmtDollar(n) {
+  if (n == null) return '--'
+  const abs = Math.abs(n)
+  const formatted = abs.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  return n < 0 ? `-$${formatted}` : `$${formatted}`
+}
+
+const BADGE_BG = {
+  amber: 'rgba(245, 158, 11, 0.12)',
+  blue: 'rgba(59, 130, 246, 0.12)',
+  green: 'rgba(16, 185, 129, 0.12)',
+  red: 'rgba(239, 68, 68, 0.12)',
+  purple: 'rgba(139, 92, 246, 0.12)',
+}
+
+const BADGE_TEXT = {
+  amber: 'rgb(180, 110, 5)',
+  blue: 'rgb(37, 99, 235)',
+  green: 'rgb(5, 150, 105)',
+  red: 'rgb(220, 38, 38)',
+  purple: 'rgb(109, 40, 217)',
+}
+
+export default function CostAllocationTab({ data, selectedOrderIdx = 0 }) {
+  const [subTab, setSubTab] = useState('planned')
+  const [compareOpen, setCompareOpen] = useState(false)
 
   if (!data) return <div className="text-sm" style={{ color: 'var(--text-placeholder)' }}>No cost data available.</div>
 
   const planned = data.planned
+
+  const apColumns = [
+    { key: 'orderId', label: 'Order #' },
+    { key: 'directCost', label: 'Direct Cost' },
+    { key: 'apBase', label: 'Base' },
+    { key: 'apFuel', label: 'Fuel Charge' },
+    { key: 'apDiscount', label: 'Discount' },
+    { key: 'apHzc', label: 'Stop Off (HZC)' },
+    { key: 'apSoc', label: 'Stop Off (SOC)' },
+    { key: 'apCost', label: 'AP Total' },
+  ]
+
+  const arColumns = [
+    { key: 'orderId', label: 'Order #' },
+    { key: 'arBase', label: 'Base' },
+    { key: 'arFuel', label: 'Fuel Charge' },
+    { key: 'arDiscount', label: 'Discount' },
+    { key: 'arHzc', label: 'Stop Off (HZC)' },
+    { key: 'arSoc', label: 'Stop Off (SOC)' },
+    { key: 'arCost', label: 'AR Total' },
+  ]
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', margin: 'calc(-1 * var(--spacing-4)) calc(-1 * var(--spacing-5))' }}>
@@ -119,11 +162,11 @@ export default function CostAllocationTab({ data }) {
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-          {/* Summary bar */}
+          {/* Summary bar with Compare button */}
           {planned?.summary && (
             <div
               className="flex shrink-0"
-              style={{ borderBottom: '1px solid var(--border-subtle)' }}
+              style={{ borderBottom: '1px solid var(--border-subtle)', alignItems: 'stretch' }}
             >
               <SummaryCell label="BASE" value={planned.summary.base} />
               <SummaryCell label="DISCOUNT" value={planned.summary.discount} negative />
@@ -131,43 +174,96 @@ export default function CostAllocationTab({ data }) {
               <SummaryCell label="ACCESSORIALS" value={planned.summary.accessorials} />
               <SummaryCell label="AP TOTAL" value={planned.summary.apTotal} total />
               <SummaryCell label="AR TOTAL" value={planned.summary.arTotal} total />
-              <SummaryCell label="MARGIN" value={planned.summary.margin} success last />
+              <SummaryCell label="MARGIN" value={planned.summary.margin} success />
+              <div style={{ display: 'flex', alignItems: 'center', padding: '0 16px', marginLeft: 'auto' }}>
+                <button
+                  onClick={() => setCompareOpen(true)}
+                  className="border-none cursor-pointer"
+                  style={{
+                    padding: '6px 16px',
+                    fontSize: 13,
+                    fontWeight: 500,
+                    fontFamily: 'var(--font-primary)',
+                    background: 'transparent',
+                    border: '1px solid var(--border-default)',
+                    borderRadius: 'var(--radius-md)',
+                    color: 'var(--text-secondary)',
+                    transition: 'background 0.15s ease',
+                    whiteSpace: 'nowrap',
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-tertiary)' }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+                >
+                  Compare AP/AR
+                </button>
+              </div>
             </div>
           )}
 
-          {/* Cost table */}
+          {/* Both tables stacked vertically */}
           <div style={{ overflow: 'auto', flex: 1 }}>
-            <table className="w-full border-collapse" style={{ fontFamily: 'var(--font-primary)', fontSize: 13, color: 'var(--text-secondary)' }}>
-              <thead>
-                <tr>
-                  <th style={{ ...thStyle, width: 36, paddingLeft: 8, paddingRight: 4 }} />
-                  <th style={thStyle}>Order #</th>
-                  <th style={thStyle}>Direct Cost</th>
-                  <th style={thStyle}>AP Cost</th>
-                  <th style={thStyle}>AR Cost</th>
-                  <th style={thStyle}>Margin</th>
-                  <th style={thStyle}>Base</th>
-                  <th style={thStyle}>Fuel Charge</th>
-                  <th style={thStyle}>Discount</th>
-                  <th style={thStyle}>Stop Off (HZC)</th>
-                  <th style={thStyle}>Stop Off (SOC)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {planned?.orders?.map((order) => (
-                  <CostOrderGroup
-                    key={order.orderId}
-                    order={order}
-                    isExpanded={!!expandedOrders[order.orderId]}
-                    onToggle={() => toggleOrder(order.orderId)}
-                  />
-                ))}
-              </tbody>
-            </table>
+            {/* AP Breakdown */}
+            <div style={{ padding: '16px 20px 4px 20px' }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>
+                AP Breakdown (Carrier Cost)
+              </span>
+            </div>
+            <CostTable columns={apColumns} orders={planned?.orders} />
+
+            {/* AR Breakdown */}
+            <div style={{ padding: '20px 20px 4px 20px' }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>
+                AR Breakdown (Customer Cost)
+              </span>
+            </div>
+            <CostTable columns={arColumns} orders={planned?.orders} />
           </div>
         </div>
       )}
+
+      {/* Compare AP/AR Modal */}
+      {compareOpen && planned?.orders && createPortal(
+        <CompareModal
+          orders={planned.orders}
+          defaultOrderIdx={selectedOrderIdx}
+          onClose={() => setCompareOpen(false)}
+        />,
+        document.body,
+      )}
     </div>
+  )
+}
+
+function CostTable({ columns, orders }) {
+  return (
+    <table className="w-full border-collapse" style={{ fontFamily: 'var(--font-primary)', fontSize: 13, color: 'var(--text-secondary)' }}>
+      <thead>
+        <tr>
+          {columns.map((col) => (
+            <th key={col.key} style={thStyle}>{col.label}</th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {orders?.map((order) => (
+          <tr key={order.orderId} style={{ background: 'var(--bg-primary)' }}>
+            {columns.map((col) => {
+              const val = order[col.key]
+              if (col.key === 'orderId') {
+                return <td key={col.key} style={{ ...tdStyle, fontWeight: 500, color: 'var(--text-primary)' }}>{val}</td>
+              }
+              if (col.key === 'apCost' || col.key === 'arCost') {
+                return <td key={col.key} style={{ ...tdStyle, fontWeight: 600 }}>{val}</td>
+              }
+              if (col.key === 'apDiscount' || col.key === 'arDiscount' || col.key === 'apHzc' || col.key === 'apSoc' || col.key === 'arHzc' || col.key === 'arSoc') {
+                return <td key={col.key} style={tdStyle}><CostValue value={val} /></td>
+              }
+              return <td key={col.key} style={tdStyle}>{val}</td>
+            })}
+          </tr>
+        ))}
+      </tbody>
+    </table>
   )
 }
 
@@ -211,65 +307,187 @@ function SummaryCell({ label, value, negative, total, success, last }) {
   )
 }
 
-function CostOrderGroup({ order, isExpanded, onToggle }) {
-  const hasLoads = order.loads && order.loads.length > 0
+function CompareModal({ orders, defaultOrderIdx, onClose }) {
+  const [activeIdx, setActiveIdx] = useState(
+    defaultOrderIdx < orders.length ? defaultOrderIdx : 0
+  )
+
+  const order = orders[activeIdx]
+
+  const components = [
+    { label: 'Base', apKey: 'apBase', arKey: 'arBase' },
+    { label: 'Fuel', apKey: 'apFuel', arKey: 'arFuel' },
+    { label: 'Discount', apKey: 'apDiscount', arKey: 'arDiscount' },
+    { label: 'HZC', apKey: 'apHzc', arKey: 'arHzc' },
+    { label: 'SOC', apKey: 'apSoc', arKey: 'arSoc' },
+  ]
+
+  const apTotal = parseDollar(order.apCost)
+  const arTotal = parseDollar(order.arCost)
+  const marginVal = parseDollar(order.margin)
+  const marginPct = apTotal && apTotal > 0 ? ((marginVal / apTotal) * 100).toFixed(1) : '0.0'
+
+  const compareTh = {
+    padding: '8px 14px',
+    textAlign: 'right',
+    whiteSpace: 'nowrap',
+    fontSize: 'var(--font-size-xs)',
+    fontWeight: 600,
+    color: 'var(--text-placeholder)',
+    textTransform: 'uppercase',
+    letterSpacing: '0.03em',
+    borderBottom: '1px solid var(--border-subtle)',
+  }
+
+  const compareTd = {
+    padding: '8px 14px',
+    whiteSpace: 'nowrap',
+    fontSize: 13,
+    fontWeight: 400,
+    color: 'var(--text-secondary)',
+    borderBottom: '1px solid var(--bg-tertiary)',
+    textAlign: 'right',
+  }
+
+  const rows = components.map(({ label, apKey, arKey }) => {
+    const ap = parseDollar(order[apKey])
+    const ar = parseDollar(order[arKey])
+    const bothEmpty = ap == null && ar == null
+    const diff = bothEmpty ? null : (ar || 0) - (ap || 0)
+    return { label, ap: order[apKey], ar: order[arKey], diff, bothEmpty }
+  })
+
+  const totalDiff = arTotal != null && apTotal != null ? arTotal - apTotal : null
 
   return (
-    <>
-      <tr
-        style={{ background: 'var(--bg-primary)', cursor: hasLoads ? 'pointer' : 'default' }}
-        onClick={hasLoads ? onToggle : undefined}
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 9999,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backdropFilter: 'blur(4px)',
+        background: 'rgba(0,0,0,0.3)',
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: 'var(--bg-primary)',
+          borderRadius: 'var(--radius-lg)',
+          boxShadow: '0 8px 30px rgba(0,0,0,0.2)',
+          padding: 24,
+          width: 520,
+          fontFamily: 'var(--font-primary)',
+        }}
       >
-        <td style={{ ...tdStyle, textAlign: 'center', paddingLeft: 8, paddingRight: 4 }}>
-          {hasLoads && (
-            <button
-              className="inline-flex items-center justify-center"
-              style={{
-                width: 22, height: 22,
-                border: '1px solid var(--border-default)',
-                borderRadius: 'var(--radius-sm)',
-                background: isExpanded ? 'var(--bg-tertiary)' : 'var(--bg-primary)',
-                fontSize: 'var(--font-size-sm)',
-                fontWeight: 600,
-                color: isExpanded ? 'var(--text-primary)' : 'var(--text-tertiary)',
-                cursor: 'pointer',
-                lineHeight: 1,
-                fontFamily: 'var(--font-primary)',
-              }}
-              onClick={(e) => { e.stopPropagation(); onToggle() }}
-            >
-              {isExpanded ? '\u2212' : '+'}
-            </button>
-          )}
-        </td>
-        <td style={{ ...tdStyle, fontWeight: 500, color: 'var(--text-primary)' }}>{order.orderId}</td>
-        <td style={tdStyle}>{order.directCost}</td>
-        <td style={tdStyle}>{order.apCost}</td>
-        <td style={tdStyle}>{order.arCost}</td>
-        <td style={{ ...tdStyle, color: 'var(--caribbean-green-600)', fontWeight: 600 }}>{order.margin}</td>
-        <td style={tdStyle}>{order.base}</td>
-        <td style={tdStyle}>{order.fuel}</td>
-        <td style={tdStyle}><CostValue value={order.discount} /></td>
-        <td style={tdStyle}><CostValue value={order.hzc} /></td>
-        <td style={tdStyle}><CostValue value={order.soc} /></td>
-      </tr>
-      {isExpanded && order.loads?.map((load, idx) => (
-        <tr key={idx} style={{ background: 'var(--bg-secondary)' }}>
-          <td style={tdStyle} />
-          <td style={{ ...tdStyle, paddingLeft: 'var(--spacing-2)', fontSize: 'var(--font-size-xs)', fontWeight: 500, color: 'var(--text-tertiary)' }}>
-            {load.loadLabel}
-          </td>
-          <td style={tdStyle}>{load.directCost}</td>
-          <td style={tdStyle}>{load.apCost}</td>
-          <td style={tdStyle}>{load.arCost}</td>
-          <td style={{ ...tdStyle, color: 'var(--caribbean-green-600)', fontWeight: 600 }}>{load.margin}</td>
-          <td style={tdStyle}>{load.base}</td>
-          <td style={tdStyle}>{load.fuel}</td>
-          <td style={tdStyle}><CostValue value={load.discount} /></td>
-          <td style={tdStyle}><CostValue value={load.hzc} /></td>
-          <td style={tdStyle}><CostValue value={load.soc} /></td>
-        </tr>
-      ))}
-    </>
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+          <span style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>Compare AP / AR</span>
+          <button
+            onClick={onClose}
+            className="flex items-center justify-center bg-transparent border-none cursor-pointer"
+            style={{ color: 'var(--text-placeholder)', padding: 0, transition: 'color 0.15s ease' }}
+            onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
+            onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-placeholder)'}
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Order tabs */}
+        <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+          {orders.map((ord, i) => {
+            const isActive = i === activeIdx
+            const color = BADGE_COLORS[i % BADGE_COLORS.length]
+            return (
+              <button
+                key={ord.orderId}
+                onClick={() => setActiveIdx(i)}
+                className="border-none cursor-pointer"
+                style={{
+                  padding: '4px 10px',
+                  fontSize: 12,
+                  fontWeight: isActive ? 600 : 500,
+                  fontFamily: 'var(--font-primary)',
+                  borderRadius: 'var(--radius-sm)',
+                  background: isActive ? BADGE_BG[color] : 'var(--bg-secondary)',
+                  color: isActive ? BADGE_TEXT[color] : 'var(--text-tertiary)',
+                  border: isActive ? `1px solid ${BADGE_TEXT[color]}30` : '1px solid transparent',
+                  transition: 'all 0.15s ease',
+                }}
+                onMouseEnter={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.background = BADGE_BG[color]
+                    e.currentTarget.style.color = BADGE_TEXT[color]
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.background = 'var(--bg-secondary)'
+                    e.currentTarget.style.color = 'var(--text-tertiary)'
+                  }
+                }}
+              >
+                {ord.orderId}
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Margin */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginBottom: 16 }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--caribbean-green-600)' }}>
+            Margin: {fmtDollar(marginVal)} ({marginPct}%)
+          </span>
+        </div>
+
+        {/* Table */}
+        <table className="w-full border-collapse" style={{ fontSize: 13 }}>
+          <thead>
+            <tr>
+              <th style={{ ...compareTh, textAlign: 'left' }}>Component</th>
+              <th style={compareTh}>AP (Carrier)</th>
+              <th style={compareTh}>AR (Customer)</th>
+              <th style={compareTh}>Diff</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.label}>
+                <td style={{ ...compareTd, textAlign: 'left', fontWeight: 500, color: 'var(--text-primary)' }}>{row.label}</td>
+                <td style={compareTd}><CostValue value={row.ap} /></td>
+                <td style={compareTd}><CostValue value={row.ar} /></td>
+                <td style={compareTd}>
+                  {row.bothEmpty ? (
+                    <span>--</span>
+                  ) : (
+                    <span style={{ color: row.diff >= 0 ? 'var(--caribbean-green-600)' : 'var(--text-error)' }}>
+                      {row.diff >= 0 ? '+' : ''}{fmtDollar(row.diff)}
+                    </span>
+                  )}
+                </td>
+              </tr>
+            ))}
+            {/* Total row */}
+            <tr>
+              <td style={{ ...compareTd, textAlign: 'left', fontWeight: 700, color: 'var(--text-primary)', borderTop: '2px solid var(--border-default)', borderBottom: 'none' }}>Total</td>
+              <td style={{ ...compareTd, fontWeight: 700, borderTop: '2px solid var(--border-default)', borderBottom: 'none' }}>{order.apCost}</td>
+              <td style={{ ...compareTd, fontWeight: 700, borderTop: '2px solid var(--border-default)', borderBottom: 'none' }}>{order.arCost}</td>
+              <td style={{ ...compareTd, fontWeight: 700, borderTop: '2px solid var(--border-default)', borderBottom: 'none' }}>
+                {totalDiff != null ? (
+                  <span style={{ color: totalDiff >= 0 ? 'var(--caribbean-green-600)' : 'var(--text-error)' }}>
+                    {totalDiff >= 0 ? '+' : ''}{fmtDollar(totalDiff)}
+                  </span>
+                ) : '--'}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
   )
 }

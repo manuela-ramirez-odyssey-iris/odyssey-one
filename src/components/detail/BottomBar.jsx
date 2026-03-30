@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef, Suspense } from 'react'
+import { createPortal } from 'react-dom'
 import { ChevronLeft, ChevronRight, ChevronUp, Maximize2, Minimize2, X, Columns3Cog } from 'lucide-react'
 import Badge from '../ui/Badge'
 
@@ -26,14 +27,14 @@ function TabLoader() {
 const TABS = [
   { key: 'order', label: 'Order' },
   { key: 'product', label: 'Product' },
-  { key: 'routing', label: 'Routing guide' },
-  { key: 'tender', label: 'Tender History' },
+  { key: 'stops', label: 'Stops' },
+  { key: 'routing', label: 'Tender' },
   { key: 'cost', label: 'Cost Allocation' },
   { key: 'instructions', label: 'Instructions' },
-  { key: 'history', label: 'History' },
   { key: 'documents', label: 'Documents' },
   { key: 'notes', label: 'Notes' },
-  { key: 'stops', label: 'Stops' },
+  { key: 'tender', label: 'Tender History' },
+  { key: 'history', label: 'History' },
 ]
 
 const STATES = {
@@ -97,11 +98,11 @@ export default function BottomBar({ selectedShipmentId, shipmentDetails, onClose
       case 'stops': return <StopsTab data={shipmentDetails.stopsData} />
       case 'product': return <ProductTab data={shipmentDetails.productData} />
       case 'routing': return <RoutingGuideTab data={shipmentDetails.routingData} />
-      case 'cost': return <CostAllocationTab data={shipmentDetails.costData} />
+      case 'cost': return <CostAllocationTab data={shipmentDetails.costData} selectedOrderIdx={selectedOrderIndex} />
       case 'instructions': return <InstructionsTab data={shipmentDetails.instructionsData} />
       case 'documents': return <DocumentsTab data={shipmentDetails.documentsData} />
       case 'notes': return <NotesTab data={shipmentDetails.notesData} />
-      case 'history': return <HistoryTab />
+      case 'history': return <HistoryTab data={shipmentDetails.historyData} />
       case 'tender': return <TenderHistoryTab />
       default: return null
     }
@@ -334,49 +335,98 @@ export default function BottomBar({ selectedShipmentId, shipmentDetails, onClose
       {/* Content */}
       {isExpanded && (
         <div ref={contentRef} key={selectedShipmentId} className="flex-1 min-h-0 overflow-auto relative" style={{ padding: 'var(--spacing-4) var(--spacing-5)' }}>
-          {/* Order dropdown overlay */}
-          {activeTab === 'order' && orderDropdownOpen && orders.length > 0 && (
-            <div
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: dropdownPos.left,
-                width: dropdownPos.width,
-                background: 'var(--bg-primary)',
-                border: '1px solid var(--border-subtle)',
-                borderRadius: '0 0 var(--radius-md) var(--radius-md)',
-                boxShadow: 'var(--shadow-md)',
-                zIndex: 10,
-                overflow: 'hidden',
-              }}
-            >
-              {orders.map((ord, i) => (
-                <button
-                  key={ord}
-                  className="flex items-center justify-center w-full border-none cursor-pointer"
-                  style={{
-                    padding: '10px 16px',
-                    background: i === selectedOrderIndex ? 'var(--bg-secondary)' : 'transparent',
-                    borderBottom: i < orders.length - 1 ? '1px solid var(--border-subtle)' : 'none',
-                    fontFamily: 'var(--font-primary)',
-                  }}
-                  onMouseEnter={(e) => { if (i !== selectedOrderIndex) e.currentTarget.style.background = 'var(--bg-tertiary)' }}
-                  onMouseLeave={(e) => { if (i !== selectedOrderIndex) e.currentTarget.style.background = 'transparent' }}
-                  onClick={() => {
-                    setSelectedOrderIndex(i)
-                    setOrderDropdownOpen(false)
-                  }}
-                >
-                  <Badge variant={BADGE_COLORS[i]}>{ord}</Badge>
-                </button>
-              ))}
-            </div>
-          )}
           <Suspense fallback={<TabLoader />}>
             {renderTabContent()}
           </Suspense>
         </div>
       )}
+      {/* Order dropdown — portal to body, positioned relative to Order tab */}
+      {activeTab === 'order' && orderDropdownOpen && orders.length > 0 && orderTabRef.current && createPortal(
+        <OrderDropdown
+          orders={orders}
+          shipmentDetails={shipmentDetails}
+          selectedOrderIndex={selectedOrderIndex}
+          onSelect={(i) => { setSelectedOrderIndex(i); setOrderDropdownOpen(false) }}
+          onClose={() => setOrderDropdownOpen(false)}
+          orderTabRef={orderTabRef}
+        />,
+        document.body
+      )}
     </div>
+  )
+}
+
+function OrderDropdown({ orders, shipmentDetails, selectedOrderIndex, onSelect, onClose, orderTabRef }) {
+  const dropdownRef = useRef(null)
+
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target) && !orderTabRef.current?.contains(e.target)) {
+        onClose()
+      }
+    }
+    document.addEventListener('click', handleClick)
+    return () => document.removeEventListener('click', handleClick)
+  }, [onClose, orderTabRef])
+
+  return (
+        <div
+          ref={dropdownRef}
+          style={{
+            position: 'fixed',
+            top: orderTabRef.current.getBoundingClientRect().bottom,
+            left: orderTabRef.current.getBoundingClientRect().left,
+            width: 'max-content',
+            minWidth: 320,
+            background: 'var(--bg-primary)',
+            border: '1px solid var(--border-subtle)',
+            borderRadius: '0 0 var(--radius-md) var(--radius-md)',
+            boxShadow: 'var(--shadow-md)',
+            zIndex: 9999,
+            overflow: 'hidden',
+            fontFamily: 'var(--font-primary)',
+          }}
+        >
+          {orders.map((ord, i) => {
+            const orderDetail = shipmentDetails?.orderDetails?.[i]
+            const originLoc = orderDetail?.shipFrom?.location || ''
+            const destLoc = orderDetail?.shipTo?.location || ''
+            const origin = originLoc.split(', ')[1] || '—'
+            const dest = destLoc.split(', ')[1] || '—'
+            const weightDisplay = orderDetail?.grossWeight || ''
+
+            return (
+              <button
+                key={ord}
+                onClick={() => onSelect(i)}
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  padding: '8px 12px',
+                  background: selectedOrderIndex === i ? 'var(--bg-secondary)' : 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  borderRadius: 'var(--radius-sm)',
+                  fontFamily: 'var(--font-primary)',
+                  transition: 'background 0.15s ease',
+                }}
+                onMouseEnter={(e) => { if (selectedOrderIndex !== i) e.currentTarget.style.background = 'var(--bg-tertiary)' }}
+                onMouseLeave={(e) => { if (selectedOrderIndex !== i) e.currentTarget.style.background = 'transparent' }}
+              >
+                <Badge variant={BADGE_COLORS[i]}>{ord}</Badge>
+                <span style={{ fontSize: 12, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                  {origin} → {dest}
+                </span>
+                {weightDisplay && (
+                  <span style={{ fontSize: 11, color: 'var(--text-tertiary)', marginLeft: 'auto', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
+                    {weightDisplay}
+                  </span>
+                )}
+              </button>
+            )
+          })}
+        </div>
   )
 }

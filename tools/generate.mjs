@@ -12,8 +12,7 @@ const EQUIPMENT_CODES = ['FLT', 'LTH', 'VAN', 'REEFER'];
 const TENDER_STATUSES = ['Done', 'Pending', 'Rejected'];
 const SHIPMENT_STATUSES = ['Tender', 'In Transit', 'Delivered', 'Booked'];
 const INSTRUCTION_TYPES = ['BOL', 'MISC', 'TRA', 'ADC', 'ZD02', 'SPC'];
-const DOC_TYPES = ['BoL', 'MBoL', 'Invoice', 'Instructions', 'Other'];
-const ROUTING_STATUSES = ['Accepted', 'Pending', 'Rejected', 'Declined'];
+const DOC_TYPES = ['BoL', 'MBoL', 'POD', 'SL', 'Packing List', 'Other'];
 const ROUTING_APIS = ['API', 'EDI', 'Email', 'Fax'];
 const RESPONSE_METHODS = ['API Update', 'EDI Update', 'Manual Update', 'Automatic Update'];
 const ROUTE_GROUPS = ['Primary', 'Backup', 'Spot'];
@@ -328,22 +327,44 @@ function generateShipment(index) {
 
   const distance = faker.number.float({ min: 50, max: 2000, fractionDigits: 2 });
 
-  // Routing options (3-6)
+  // Routing options (3-6) — sequential tendering logic
   const routingCount = faker.number.int({ min: 3, max: 6 });
   const routingCarriers = faker.helpers.arrayElements(CARRIERS, routingCount);
+
+  // Determine tendering scenario
+  const tenderCompleted = faker.number.float({ min: 0, max: 1 }) < 0.85; // 85% accepted, 15% in-progress
+  // Pick which rank is the "decisive" carrier (accepted or currently sent)
+  const decisiveRank = faker.number.int({ min: 1, max: routingCount }); // 1-based
+
   const routingOptions = routingCarriers.map((rc, ri) => {
+    const rank = ri + 1;
+    let status;
+    if (tenderCompleted) {
+      // Scenario A: someone accepted
+      if (rank < decisiveRank) status = pick(['Declined', 'Rejected']);
+      else if (rank === decisiveRank) status = 'Accepted';
+      else status = null; // never tendered
+    } else {
+      // Scenario B: tender in progress
+      if (rank < decisiveRank) status = pick(['Declined', 'Rejected']);
+      else if (rank === decisiveRank) status = 'Sent';
+      else status = null; // never tendered
+    }
+
+    const isAccepted = status === 'Accepted';
+    const wasTendered = status !== null;
     const baseRate = faker.number.float({ min: 200, max: 2000, fractionDigits: 2 });
     const cost = faker.number.float({ min: 100, max: 800, fractionDigits: 2 });
     const pickupHour = faker.number.int({ min: 6, max: 16 });
     const delivHour = faker.number.int({ min: 6, max: 22 });
     return {
-      rank: ri + 1,
+      rank,
       routeRank: faker.number.int({ min: 1, max: 3 }),
       scac: rc.scac,
       carrierName: rc.name,
       rate: `$${fmt(baseRate)}`,
       cost: `$${fmt(cost)} USD`,
-      status: ri === 0 ? 'Accepted' : pick(ROUTING_STATUSES.filter(s => s !== 'Accepted')),
+      status,
       pickupDateTime: formatDateTime(baseDate),
       pickupTZ: 'CST',
       pickupOrgHours: `${String(pickupHour).padStart(2, '0')}:00 - ${String(pickupHour + faker.number.int({ min: 6, max: 10 })).padStart(2, '0')}:30`,
@@ -357,11 +378,11 @@ function generateShipment(index) {
       linehaul: pick(['Completed', 'In Progress', 'Pending']),
       routeGroup: pick(ROUTE_GROUPS),
       api: pick(ROUTING_APIS),
-      notifyDateTime: formatDateTime(genDate(baseDate, -1)),
-      responseMethod: pick(RESPONSE_METHODS),
-      responseDateTime: ri === 0 ? formatDateTime(genDate(baseDate, 0)) : '--',
-      carrierPickup: ri === 0 ? `${faker.string.alphanumeric(3).toUpperCase()}${faker.number.int({ min: 10000, max: 99999 })}` : '--',
-      deliveryNum: ri === 0 ? `${faker.string.alphanumeric(3).toUpperCase()}${faker.number.int({ min: 10000, max: 99999 })}` : '--',
+      notifyDateTime: wasTendered ? formatDateTime(genDate(baseDate, -1)) : '--',
+      responseMethod: wasTendered ? pick(RESPONSE_METHODS) : '--',
+      responseDateTime: isAccepted ? formatDateTime(genDate(baseDate, 0)) : '--',
+      carrierPickup: isAccepted ? `${faker.string.alphanumeric(3).toUpperCase()}${faker.number.int({ min: 10000, max: 99999 })}` : '--',
+      deliveryNum: isAccepted ? `${faker.string.alphanumeric(3).toUpperCase()}${faker.number.int({ min: 10000, max: 99999 })}` : '--',
       transitTimeSource: 'SMC',
       description: faker.lorem.words({ min: 2, max: 4 }),
     };
@@ -374,36 +395,78 @@ function generateShipment(index) {
   const apAccessorials = faker.datatype.boolean() ? faker.number.float({ min: 50, max: 400, fractionDigits: 2 }) : 0;
   const apTotal = apBase + apFuel - apDiscount + apAccessorials;
   const marginPct = faker.number.float({ min: 0.18, max: 0.35, fractionDigits: 2 });
-  const arTotal = Math.round(apTotal * (1 + marginPct) * 100) / 100;
+  // AR breakdown: apply margin to each component individually
+  const arBase = Math.round(apBase * (1 + marginPct) * 100) / 100;
+  const arFuel = Math.round(apFuel * (1 + marginPct) * 100) / 100;
+  const arDiscount = Math.round(apDiscount * (1 + marginPct) * 100) / 100;
+  const arTotal = Math.round((arBase + arFuel - arDiscount + Math.round(apAccessorials * (1 + marginPct) * 100) / 100) * 100) / 100;
   const marginAmt = Math.round((arTotal - apTotal) * 100) / 100;
 
+  // Generate random weight shares that sum to 1.0 (simulates weight-based distribution)
+  const rawShares = orders.map(() => faker.number.float({ min: 0.1, max: 1.0 }));
+  const shareTotal = rawShares.reduce((a, b) => a + b, 0);
+  const shares = rawShares.map(s => s / shareTotal);
+
+  // Generate HZC/SOC at shipment level so they can be distributed by weight
+  const shipApHzc = faker.datatype.boolean() ? faker.number.float({ min: 30, max: 150, fractionDigits: 2 }) : 0;
+  const shipApSoc = faker.datatype.boolean() ? faker.number.float({ min: 20, max: 120, fractionDigits: 2 }) : 0;
+  const shipArHzc = shipApHzc > 0 ? Math.round(shipApHzc * (1 + marginPct) * 100) / 100 : 0;
+  const shipArSoc = shipApSoc > 0 ? Math.round(shipApSoc * (1 + marginPct) * 100) / 100 : 0;
+
   const costOrders = orders.map((ord, oi) => {
-    const orderShare = 1 / orders.length;
-    const ordApBase = Math.round(apBase * orderShare * 100) / 100;
-    const ordApFuel = Math.round(apFuel * orderShare * 100) / 100;
-    const ordApDiscount = Math.round(apDiscount * orderShare * 100) / 100;
-    const ordApTotal = Math.round(apTotal * orderShare * 100) / 100;
-    const ordArTotal = Math.round(arTotal * orderShare * 100) / 100;
+    const share = shares[oi];
+    const isLast = oi === orders.length - 1;
+
+    // For the last order, adjust to ensure exact totals (handle rounding)
+    let ordApBase, ordApFuel, ordApDiscount, ordApTotal;
+    let ordArBase, ordArFuel, ordArDiscount, ordArTotal;
+    let ordApHzc, ordApSoc, ordArHzc, ordArSoc;
+
+    if (!isLast) {
+      ordApBase = Math.round(apBase * share * 100) / 100;
+      ordApFuel = Math.round(apFuel * share * 100) / 100;
+      ordApDiscount = Math.round(apDiscount * share * 100) / 100;
+      ordApTotal = Math.round(apTotal * share * 100) / 100;
+      ordArBase = Math.round(arBase * share * 100) / 100;
+      ordArFuel = Math.round(arFuel * share * 100) / 100;
+      ordArDiscount = Math.round(arDiscount * share * 100) / 100;
+      ordArTotal = Math.round(arTotal * share * 100) / 100;
+      ordApHzc = Math.round(shipApHzc * share * 100) / 100;
+      ordApSoc = Math.round(shipApSoc * share * 100) / 100;
+      ordArHzc = Math.round(shipArHzc * share * 100) / 100;
+      ordArSoc = Math.round(shipArSoc * share * 100) / 100;
+    } else {
+      // Last order gets the remainder to avoid rounding drift
+      const prevApBase = orders.slice(0, -1).reduce((s, _, j) => s + Math.round(apBase * shares[j] * 100) / 100, 0);
+      const prevApFuel = orders.slice(0, -1).reduce((s, _, j) => s + Math.round(apFuel * shares[j] * 100) / 100, 0);
+      const prevApDiscount = orders.slice(0, -1).reduce((s, _, j) => s + Math.round(apDiscount * shares[j] * 100) / 100, 0);
+      const prevApTotal = orders.slice(0, -1).reduce((s, _, j) => s + Math.round(apTotal * shares[j] * 100) / 100, 0);
+      const prevArBase = orders.slice(0, -1).reduce((s, _, j) => s + Math.round(arBase * shares[j] * 100) / 100, 0);
+      const prevArFuel = orders.slice(0, -1).reduce((s, _, j) => s + Math.round(arFuel * shares[j] * 100) / 100, 0);
+      const prevArDiscount = orders.slice(0, -1).reduce((s, _, j) => s + Math.round(arDiscount * shares[j] * 100) / 100, 0);
+      const prevArTotal = orders.slice(0, -1).reduce((s, _, j) => s + Math.round(arTotal * shares[j] * 100) / 100, 0);
+      const prevApHzc = orders.slice(0, -1).reduce((s, _, j) => s + Math.round(shipApHzc * shares[j] * 100) / 100, 0);
+      const prevApSoc = orders.slice(0, -1).reduce((s, _, j) => s + Math.round(shipApSoc * shares[j] * 100) / 100, 0);
+      const prevArHzc = orders.slice(0, -1).reduce((s, _, j) => s + Math.round(shipArHzc * shares[j] * 100) / 100, 0);
+      const prevArSoc = orders.slice(0, -1).reduce((s, _, j) => s + Math.round(shipArSoc * shares[j] * 100) / 100, 0);
+
+      ordApBase = Math.round((apBase - prevApBase) * 100) / 100;
+      ordApFuel = Math.round((apFuel - prevApFuel) * 100) / 100;
+      ordApDiscount = Math.round((apDiscount - prevApDiscount) * 100) / 100;
+      ordApTotal = Math.round((apTotal - prevApTotal) * 100) / 100;
+      ordArBase = Math.round((arBase - prevArBase) * 100) / 100;
+      ordArFuel = Math.round((arFuel - prevArFuel) * 100) / 100;
+      ordArDiscount = Math.round((arDiscount - prevArDiscount) * 100) / 100;
+      ordArTotal = Math.round((arTotal - prevArTotal) * 100) / 100;
+      ordApHzc = Math.round((shipApHzc - prevApHzc) * 100) / 100;
+      ordApSoc = Math.round((shipApSoc - prevApSoc) * 100) / 100;
+      ordArHzc = Math.round((shipArHzc - prevArHzc) * 100) / 100;
+      ordArSoc = Math.round((shipArSoc - prevArSoc) * 100) / 100;
+    }
+
+    // Direct cost is independent per order
     const ordDirectCost = Math.round(ordApTotal * faker.number.float({ min: 1.05, max: 1.25, fractionDigits: 2 }) * 100) / 100;
     const ordMargin = Math.round((ordArTotal - ordApTotal) * 100) / 100;
-    const hzc = faker.datatype.boolean() ? faker.number.float({ min: 30, max: 150, fractionDigits: 2 }) : 0;
-    const soc = faker.datatype.boolean() ? faker.number.float({ min: 20, max: 120, fractionDigits: 2 }) : 0;
-
-    const loads = ord.lines.map((line, li) => {
-      const loadShare = 1 / ord.lineCount;
-      return {
-        loadLabel: `Load ${li + 1} — ${genLoadId()}`,
-        directCost: `$${fmt(ordDirectCost * loadShare)} USD`,
-        apCost: `$${fmt(ordApTotal * loadShare)} USD`,
-        arCost: `$${fmt(ordArTotal * loadShare)} USD`,
-        margin: `$${fmt(ordMargin * loadShare)}`,
-        base: `$${fmt(ordApBase * loadShare)}`,
-        fuel: `$${fmt(ordApFuel * loadShare)}`,
-        discount: ordApDiscount > 0 ? `-$${fmt(ordApDiscount * loadShare)}` : '--',
-        hzc: hzc > 0 ? `$${fmt(hzc * loadShare)}` : '--',
-        soc: soc > 0 ? `$${fmt(soc * loadShare)}` : '--',
-      };
-    });
 
     return {
       orderId: ord.orderId,
@@ -411,12 +474,18 @@ function generateShipment(index) {
       apCost: `$${fmt(ordApTotal)} USD`,
       arCost: `$${fmt(ordArTotal)} USD`,
       margin: `$${fmt(ordMargin)}`,
-      base: `$${fmt(ordApBase)}`,
-      fuel: `$${fmt(ordApFuel)}`,
-      discount: ordApDiscount > 0 ? `-$${fmt(ordApDiscount)}` : '--',
-      hzc: hzc > 0 ? `$${fmt(hzc)}` : '--',
-      soc: soc > 0 ? `$${fmt(soc)}` : '--',
-      loads: ord.lineCount > 1 ? loads : [],
+      // AP breakdown
+      apBase: `$${fmt(ordApBase)}`,
+      apFuel: `$${fmt(ordApFuel)}`,
+      apDiscount: ordApDiscount > 0 ? `-$${fmt(ordApDiscount)}` : '--',
+      apHzc: ordApHzc > 0 ? `$${fmt(ordApHzc)}` : '--',
+      apSoc: ordApSoc > 0 ? `$${fmt(ordApSoc)}` : '--',
+      // AR breakdown
+      arBase: `$${fmt(ordArBase)}`,
+      arFuel: `$${fmt(ordArFuel)}`,
+      arDiscount: ordArDiscount > 0 ? `-$${fmt(ordArDiscount)}` : '--',
+      arHzc: ordArHzc > 0 ? `$${fmt(ordArHzc)}` : '--',
+      arSoc: ordArSoc > 0 ? `$${fmt(ordArSoc)}` : '--',
     };
   });
 
@@ -447,6 +516,142 @@ function generateShipment(index) {
     });
   }
 
+  // History / Audit entries
+  const HISTORY_USERS = ['Jana Soundararajan', 'David Johns', 'Sarah Chen', 'Mike Rodriguez', 'Emily Park', 'Alex Kumar'];
+  const HISTORY_ACTIONS = [
+    { action: 'Order Created', category: 'create' },
+    { action: 'Shipment Created', category: 'create' },
+    { action: 'Load Assigned', category: 'update' },
+    { action: 'Tender Sent', category: 'tender' },
+    { action: 'Tender Accepted', category: 'tender' },
+    { action: 'Tender Declined', category: 'tender' },
+    { action: 'Carrier Updated', category: 'update' },
+    { action: 'Schedule Updated', category: 'update' },
+    { action: 'Route Changed', category: 'update' },
+    { action: 'Cost Updated', category: 'update' },
+    { action: 'Document Uploaded', category: 'update' },
+    { action: 'Status Changed', category: 'update' },
+    { action: 'PGI Completed', category: 'completion' },
+    { action: 'PGR Completed', category: 'completion' },
+  ];
+
+  const historyEntryCount = faker.number.int({ min: 5, max: 12 });
+  const historyEntries = [];
+  // Generate timestamps spread over last 30 days
+  const historyTimestamps = [];
+  for (let h = 0; h < historyEntryCount; h++) {
+    const daysAgo = faker.number.float({ min: 0, max: 30, fractionDigits: 4 });
+    const ts = new Date(baseDate);
+    ts.setDate(ts.getDate() - daysAgo);
+    ts.setHours(faker.number.int({ min: 6, max: 20 }), faker.number.int({ min: 0, max: 59 }), faker.number.int({ min: 0, max: 59 }));
+    historyTimestamps.push(ts);
+  }
+  // Sort newest first
+  historyTimestamps.sort((a, b) => b - a);
+
+  for (let h = 0; h < historyEntryCount; h++) {
+    const user = pick(HISTORY_USERS);
+    const actionObj = pick(HISTORY_ACTIONS);
+    const ts = historyTimestamps[h];
+    let details = '';
+    let field = undefined;
+    let oldValue = undefined;
+    let newValue = undefined;
+
+    switch (actionObj.action) {
+      case 'Order Created':
+        details = `Order ${orders[0].orderId} created for ${customer.name}`;
+        break;
+      case 'Shipment Created':
+        details = `Shipment ${buyShipment} created with ${orderCount} order(s)`;
+        break;
+      case 'Load Assigned':
+        details = `Load ${genLoadId()} assigned to shipment`;
+        break;
+      case 'Tender Sent': {
+        const tCarrier = pick(CARRIERS);
+        details = `Tendered to ${tCarrier.name} at $${fmt(faker.number.float({ min: 800, max: 5000, fractionDigits: 2 }))}`;
+        break;
+      }
+      case 'Tender Accepted': {
+        const tCarrier = pick(CARRIERS);
+        details = `${tCarrier.name} accepted tender`;
+        break;
+      }
+      case 'Tender Declined': {
+        const tCarrier = pick(CARRIERS);
+        details = `${tCarrier.name} declined tender — capacity unavailable`;
+        break;
+      }
+      case 'Carrier Updated': {
+        const oldCarrier = pick(CARRIERS);
+        const newCarrier = pick(CARRIERS.filter(c => c.scac !== oldCarrier.scac));
+        details = `Carrier changed from ${oldCarrier.name} to ${newCarrier.name}`;
+        field = 'carrier';
+        oldValue = oldCarrier.name;
+        newValue = newCarrier.name;
+        break;
+      }
+      case 'Schedule Updated': {
+        const oldDate = formatShortDate(genDate(baseDate, -faker.number.int({ min: 1, max: 5 })));
+        const newDate2 = formatShortDate(genDate(baseDate, faker.number.int({ min: 0, max: 3 })));
+        details = `Pickup date rescheduled`;
+        field = 'pickupDate';
+        oldValue = oldDate;
+        newValue = newDate2;
+        break;
+      }
+      case 'Route Changed':
+        details = `Route updated — new transit via ${pick(LOCATIONS).city}, ${pick(LOCATIONS).state}`;
+        field = 'route';
+        oldValue = `${pick(LOCATIONS).city} direct`;
+        newValue = `Via ${pick(LOCATIONS).city}`;
+        break;
+      case 'Cost Updated': {
+        const oldCost = fmt(faker.number.float({ min: 500, max: 4000, fractionDigits: 2 }));
+        const newCost = fmt(faker.number.float({ min: 500, max: 4000, fractionDigits: 2 }));
+        details = `AP cost adjusted`;
+        field = 'apCost';
+        oldValue = `$${oldCost}`;
+        newValue = `$${newCost}`;
+        break;
+      }
+      case 'Document Uploaded': {
+        const docType = pick(DOC_TYPES);
+        details = `${docType} document uploaded`;
+        break;
+      }
+      case 'Status Changed': {
+        const oldStatus = pick(SHIPMENT_STATUSES);
+        const newStatus2 = pick(SHIPMENT_STATUSES.filter(s => s !== oldStatus));
+        details = `Shipment status changed`;
+        field = 'status';
+        oldValue = oldStatus;
+        newValue = newStatus2;
+        break;
+      }
+      case 'PGI Completed':
+        details = `Post Goods Issue completed for ${orders.length} order(s)`;
+        break;
+      case 'PGR Completed':
+        details = `Post Goods Receipt confirmed at ${destLoc.facility}`;
+        break;
+    }
+
+    const entry = {
+      user,
+      timestamp: ts.toISOString(),
+      action: actionObj.action,
+      category: actionObj.category,
+      details,
+    };
+    if (field) entry.field = field;
+    if (oldValue !== undefined) entry.oldValue = oldValue;
+    if (newValue !== undefined) entry.newValue = newValue;
+
+    historyEntries.push(entry);
+  }
+
   // Notes
   const noteCount = faker.number.int({ min: 0, max: 5 });
   const notes = [];
@@ -466,13 +671,38 @@ function generateShipment(index) {
 
   // Order tab detail — one entry per order
   const orderDetails = orders.map((ord, oi) => {
-    const orderWeight = Math.round(grossWeight / orders.length);
-    const orderVolume = faker.number.int({ min: 50, max: 500 });
+    // Each order gets its own independent weight values
+    const orderGrossWeight = faker.number.int({ min: 1000, max: 40000 });
+    const orderTareRatio = faker.number.float({ min: 0.08, max: 0.22, fractionDigits: 2 });
+    const orderTareWeight = Math.round(orderGrossWeight * orderTareRatio);
+    const orderTotalWeight = orderGrossWeight - orderTareWeight;
+    const orderVolume = faker.number.int({ min: 30, max: 600 });
+    const orderNumProducts = faker.number.int({ min: 1, max: 6 });
     const shipFromLoc = oi === 0 ? originLoc : pick(LOCATIONS.filter(l => l.city !== destLoc.city));
+    const shipToLoc = oi === 0 ? destLoc : pick(LOCATIONS.filter(l => l.city !== shipFromLoc.city));
+    const shipFromCustomer = oi === 0 ? customer : pick(CUSTOMERS);
+
+    // Each order gets its own schedule offsets
+    const pickupOffsetDays = faker.number.int({ min: 0, max: 2 });
+    const pickupEarlyHourOffset = faker.number.int({ min: -2, max: 2 });
+    const pickupLateHourOffset = faker.number.int({ min: 1, max: 4 });
+    const deliveryEarlyOffset = faker.number.int({ min: 2, max: 6 });
+    const deliveryLateOffset = faker.number.int({ min: 1, max: 3 });
+
+    const orderPickupBase = genDate(baseDate, pickupOffsetDays);
+    orderPickupBase.setHours(Math.max(6, Math.min(18, baseDate.getHours() + pickupEarlyHourOffset)), pick([0, 15, 30, 45]), 0, 0);
+    const orderPickupLate = new Date(orderPickupBase);
+    orderPickupLate.setHours(orderPickupBase.getHours() + pickupLateHourOffset);
+
+    const orderDeliveryEarly = genDate(baseDate, deliveryEarlyOffset);
+    orderDeliveryEarly.setHours(faker.number.int({ min: 6, max: 16 }), pick([0, 15, 30, 45]), 0, 0);
+    const orderDeliveryLate = genDate(baseDate, deliveryEarlyOffset + deliveryLateOffset);
+    orderDeliveryLate.setHours(faker.number.int({ min: 8, max: 20 }), pick([0, 15, 30, 45]), 0, 0);
+
     return {
       orderNumber: ord.orderId,
       shipDirection: pick(SHIP_DIRECTIONS),
-      orderDate: formatDateTime(genDate(baseDate, -faker.number.int({ min: 1, max: 5 }))),
+      orderDate: formatDateTime(genDate(baseDate, -faker.number.int({ min: 1, max: 10 }))),
       paymentTerms: pick(PAYMENT_TERMS),
       shipmentMode: mode === 'FTL' ? 'Ground' : mode === 'LTL' ? 'Ground LTL' : 'Intermodal',
       expedited: pick(['Yes', 'No']),
@@ -485,25 +715,25 @@ function generateShipment(index) {
       transportPriority: pick(['Normal', 'High', 'Critical']),
       shipFrom: {
         siteId: shipFromLoc.facility,
-        company: customer.name,
+        company: shipFromCustomer.name,
         location: `${shipFromLoc.zip}, ${shipFromLoc.city}, ${shipFromLoc.state}, US`,
         address: faker.location.streetAddress(),
       },
       shipTo: {
-        siteId: destLoc.facility,
-        company: destLoc.facility,
-        location: `${destLoc.zip}, ${destLoc.city}, ${destLoc.state}, US`,
+        siteId: shipToLoc.facility,
+        company: shipToLoc.facility,
+        location: `${shipToLoc.zip}, ${shipToLoc.city}, ${shipToLoc.state}, US`,
         address: faker.location.streetAddress(),
       },
-      earliestPickup: formatDateTime(genDate(baseDate, oi)),
-      latestPickup: formatDateTime(genDate(baseDate, oi)),
-      earliestDelivery: oi > 0 ? formatDateTime(genDate(baseDate, faker.number.int({ min: 2, max: 5 }))) : '',
-      latestDelivery: '',
-      numProducts: ord.lineCount,
-      totalWeight: `${fmtInt(orderWeight)} LB`,
+      earliestPickup: formatDateTime(orderPickupBase),
+      latestPickup: formatDateTime(orderPickupLate),
+      earliestDelivery: formatDateTime(orderDeliveryEarly),
+      latestDelivery: formatDateTime(orderDeliveryLate),
+      numProducts: orderNumProducts,
+      totalWeight: `${fmtInt(orderTotalWeight)} LB`,
       totalVolume: `${orderVolume} cuft`,
-      grossWeight: `${fmtInt(Math.round(orderWeight * 1.2))} LB`,
-      tareWeight: `${fmtInt(Math.round(orderWeight * 0.2))} LB`,
+      grossWeight: `${fmtInt(orderGrossWeight)} LB`,
+      tareWeight: `${fmtInt(orderTareWeight)} LB`,
       hazmat: ord.lines.some(l => l.hazmat) ? 'Yes' : 'No',
       incoterm: pick(['FOB', 'CIF', 'EXW', 'DDP', 'FCA']),
       incotermLocation: `${originLoc.city}, ${originLoc.state}`,
@@ -585,6 +815,7 @@ function generateShipment(index) {
     instructionsData: { orders: instrOrders },
     documentsData: { documents },
     notesData: { notes },
+    historyData: { entries: historyEntries },
   };
 
   return { mainRow, detail };

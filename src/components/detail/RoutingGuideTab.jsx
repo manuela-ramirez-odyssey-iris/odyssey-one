@@ -2,9 +2,10 @@ import { useState } from 'react'
 
 const STATUS_STYLES = {
   Accepted: { bg: 'var(--badge-green-bg)', color: 'var(--badge-green-text)' },
-  Pending: { bg: 'var(--badge-yellow-bg)', color: 'var(--badge-yellow-text)' },
+  Sent: { bg: 'var(--badge-blue-bg)', color: 'var(--badge-blue-text)' },
+  Declined: { bg: 'var(--badge-yellow-bg)', color: 'var(--badge-yellow-text)' },
   Rejected: { bg: 'var(--badge-red-bg)', color: 'var(--badge-red-text)' },
-  Declined: { bg: 'var(--bg-tertiary)', color: 'var(--text-tertiary)' },
+  Cancelled: { bg: 'var(--bg-tertiary)', color: 'var(--text-placeholder)' },
 }
 
 const COLUMNS = [
@@ -177,6 +178,7 @@ export default function RoutingGuideTab({ data }) {
 }
 
 function StatusBadge({ status }) {
+  if (!status) return null
   const style = STATUS_STYLES[status] || STATUS_STYLES.Declined
   return (
     <span

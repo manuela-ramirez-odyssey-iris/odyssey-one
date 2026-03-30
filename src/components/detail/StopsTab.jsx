@@ -58,9 +58,9 @@ function SummaryBar({ summary }) {
   )
 }
 
-function StopCard({ stop, isLast }) {
+function StopCard({ stop, isLast, pickupIndex, deliveryIndex }) {
   const isPickup = stop.type === 'pickup'
-  const stopNum = String(stop.stopNumber).padStart(2, '0')
+  const pdLabel = isPickup ? `P${pickupIndex}` : `D${deliveryIndex}`
   const badgeLabel = isPickup ? 'Pickup' : 'Delivery'
 
   // Node colors
@@ -83,23 +83,6 @@ function StopCard({ stop, isLast }) {
 
   return (
     <div style={{ display: 'flex', gap: '16px' }}>
-      {/* Stop number label */}
-      <span
-        style={{
-          fontFamily: 'var(--font-primary)',
-          fontSize: '11px',
-          fontWeight: 500,
-          color: 'var(--text-placeholder)',
-          lineHeight: '14px',
-          width: '36px',
-          flexShrink: 0,
-          textAlign: 'right',
-          paddingTop: '5px',
-        }}
-      >
-        Stop {stop.stopNumber}
-      </span>
-
       {/* Timeline track */}
       <div
         style={{
@@ -133,7 +116,7 @@ function StopCard({ stop, isLast }) {
               lineHeight: 1,
             }}
           >
-            {stopNum}
+            {pdLabel}
           </span>
         </div>
         {/* Vertical connector line */}
@@ -180,11 +163,11 @@ function StopCard({ stop, isLast }) {
             padding: '14px 16px',
           }}
         >
-          <Field label="Order" value={stop.order} />
-          <Field label="Location" value={stop.location} />
-          <Field label="Address" value={stop.address} />
-          <Field label="Date" value={stop.date} />
+          <Field label="Location" value={stop.location} primary />
+          <Field label="Date" value={stop.date} primary />
           <Field label="Appointment" value={stop.appointment} />
+          <Field label="Order" value={stop.order} />
+          <Field label="Address" value={stop.address} />
           <Field label="Weight" value={stop.weight} />
           <Field label="Volume" value={stop.volume} />
           <Field label="Package Count" value={stop.packageCount} />
@@ -195,7 +178,7 @@ function StopCard({ stop, isLast }) {
   )
 }
 
-function Field({ label, value }) {
+function Field({ label, value, primary }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', minWidth: 0 }}>
       <span
@@ -212,8 +195,8 @@ function Field({ label, value }) {
       <span
         style={{
           fontFamily: 'var(--font-primary)',
-          fontSize: '13px',
-          fontWeight: 500,
+          fontSize: primary ? '14px' : '13px',
+          fontWeight: primary ? 600 : 500,
           color: 'var(--text-primary)',
           lineHeight: '18px',
           wordBreak: 'break-word',
@@ -250,9 +233,22 @@ export default function StopsTab({ data }) {
           gap: 0,
         }}
       >
-        {stops.map((stop, idx) => (
-          <StopCard key={stop.stopNumber} stop={stop} isLast={idx === stops.length - 1} />
-        ))}
+        {(() => {
+          let pCount = 0, dCount = 0
+          return stops.map((stop, idx) => {
+            if (stop.type === 'pickup') pCount++
+            else dCount++
+            return (
+              <StopCard
+                key={stop.stopNumber}
+                stop={stop}
+                isLast={idx === stops.length - 1}
+                pickupIndex={pCount}
+                deliveryIndex={dCount}
+              />
+            )
+          })
+        })()}
       </div>
     </div>
   )

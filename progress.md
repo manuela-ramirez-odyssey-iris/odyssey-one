@@ -251,12 +251,163 @@ Figma source: `https://www.figma.com/design/1kXenKxAqgxNmB36HERhvk/Test-MCP`
 
 ---
 
-## What's Next (March 25)
+## Session 3 — March 30, 2026
+
+### New Grooming Sessions Analyzed
+- **Mar 25 — David Johns**: Spot bidding flow, PGI data flow, freight accruals, cost allocation by weight, multi-customer shipments (corrected assumption), routing guide sequential tendering, UI feedback on products/stops/instructions/documents
+- **Mar 25 — Jana**: Order→Load→Shipment hierarchy, loads hidden from users, 5 tender statuses (Sent/Accepted/Declined/Rejected/Cancelled), tender history vs shipment history distinction, 16 exception conditions, spot bid overflow, user personas
+- **Mar 30 — Jana + Manuela review**: Corrections to implemented features, new requirements
+
+### Domain Analysis Updated
+- `shipments-documentation/Documentation/shipments-domain-analysis.md` fully rewritten — now covers all 5 grooming sessions (Feb 17, Mar 23, Mar 25 x2, Mar 30)
+- Key correction: orders from **different customers** can be on the same shipment (was wrong before)
+- Key correction: cost components must be **distributed by weight** across orders, not repeated
+- Entity hierarchy documented: Customer Order → Load (1:1) → Shipment (1:many loads)
+- 5 tender statuses defined, sequential tendering constraints documented
+- Spot bidding / overflow process documented
+- PGI flow and freight accruals documented
+- 13 open questions tracked, 1 resolved (document types)
+
+### Completed Changes
+
+#### AP/AR Cost Tab Overhaul
+- **Stacked layout**: AP breakdown table on top, AR breakdown table below (Manuela proposed, Jana confirmed — replaced AP/AR toggle tabs since vertical space is now available)
+- **Full AR breakdown in generator**: Each AR component (arBase, arFuel, arDiscount, arHzc, arSoc) generated individually by applying markup per component
+- **Weight-based cost distribution**: Each order gets a proportional share of each cost component based on weight — sum of order portions = shipment total
+- **Flat table**: Removed loads expand/collapse (1 order = 1 load, always)
+- **Compare AP/AR modal**: Portal-rendered, shows AP vs AR side-by-side with Diff column (green positive, red negative). Order tabs inside modal to switch between orders (max 5). Overall margin always visible.
+- `selectedOrderIdx` threaded from BottomBar to CostAllocationTab
+
+#### Tab Reorder
+- New order: Order → Product → **Stops** → Tender → Cost Allocation → Instructions → Documents → Notes → Tender History → History
+- Stops moved from last to 3rd (David feedback)
+- Tender History and History pushed to end (deprioritized by Jana)
+
+#### Products Tab — Default Expanded
+- All order groups start expanded on load
+- useEffect re-expands when user switches shipments
+- Collapse toggle still works (confirmed by Jana: "start expanded, leave them with minus signs")
+
+#### Export Modal
+- Labels updated: "Export all columns" / "Export visible columns" (Jana clarified: choice is about columns, not records)
+- Description updated: "Choose which columns to include..."
+- CSV export functional for both modes with proper escaping + BOM for Excel
+- Both buttons show same filtered record count
+
+#### Order Dropdown Enhancement
+- Now shows: **badge + order ID + origin city → destination city + weight**
+- Data pulled from `orderDetails[i].shipFrom.location`, `shipTo.location`, `grossWeight`
+- Dropdown rendered as portal (`createPortal` to `document.body`) — fixed position relative to Order tab, doesn't scroll with content
+- Min width 320px for the extra content
+
+#### Document Types
+- Final list: **BoL, MBoL, POD, SL, Packing List, Other**
+- Invoice removed (David: "we would never have an invoice")
+- POD (Proof of Delivery), SL (Shipping List), Packing List added (David provided list)
+- Other kept for emails, images, misc attachments (Jana, Mar 30)
+- Badge colors: BoL/MBoL=blue, POD=yellow, SL=green, Packing List=purple, Other=gray
+
+#### Tender Status Names + Colors
+- 5 statuses from Jana: Sent, Accepted, Declined, Rejected, Cancelled
+- "Pending" removed — replaced by "Sent"
+- Colors: Accepted=green, Sent=blue, Declined=yellow, Rejected=red, Cancelled=gray
+
+#### Tab Rename
+- "Routing Guide" → "Tender" in all display text (Jana: "Everywhere it is going to be tender")
+- Internal keys (`routing`, `RoutingGuideTab.jsx` filename) preserved
+
+#### Data Generator Improvements
+- All order-level fields now unique per order (grossWeight, totalWeight, tareWeight, totalVolume, numProducts, schedule fields, contacts, references)
+- No hardcoded values in any detail components — confirmed by grep audit
+- Weight-based random proportions for cost distribution (not equal splits)
+- Reproducible via faker seed 42
+
+---
+
+## Session 4 — March 30, 2026
+
+### Grooming Session Analyzed
+- **Mar 30 — Jana + Manuela review** (3003-Shipment-grooming-Jana.vtt): Full walkthrough of implemented features with corrections and new requirements
+
+### Completed Changes
+
+#### Tender Status Data Fix
+- Replaced "Pending" with "Sent" in `ROUTING_STATUSES` (generator)
+- Added "Cancelled" status to the pool
+- Component `STATUS_STYLES` map already had all 5 correct statuses (Accepted, Sent, Declined, Rejected, Cancelled) — generator was the only source of "Pending"
+- Data regenerated (200 shipments, seed 42)
+
+#### N1: Product Tab — Order Number Separators
+- Added full-width separator row before each order group showing the order ID in bold
+- Removed redundant "Order #" column from table header
+- Removed repeated order IDs from individual product rows (single-line, parent, and child rows)
+- Parent rows now show "X lines" count instead of order ID
+- thead font color changed from `--text-placeholder` to `--text-tertiary` for better readability
+
+#### N5: Three-Dot Menu — Shipment Actions
+- Clicking `MoreVertical` icon opens a dropdown with two actions: "Edit by Shipment" and "Tender to Preferred Carrier"
+- Menu rendered via `createPortal` to avoid overflow clipping
+- Entire sticky cell is the click target (not just the icon)
+- Cell click does not trigger row selection (`e.stopPropagation`)
+- Closes on click outside and toggles on cell re-click
+
+#### N6: Tender History Tab — Blank Placeholder
+- Updated text from "coming soon" to "No tender history available — Tender history records will appear here once tenders are processed"
+
+#### N2: Document Preview Modal
+- Clicking a document file link opens a preview modal instead of downloading
+- Modal shows: type badge, file name, description, and a mock document preview
+- **PDF/Word files**: realistic Bill of Lading mockup with Odyssey letterhead, shipper/carrier info, items table, signature lines. POD shows "PROOF OF DELIVERY", SL shows "SHIPPING LIST"
+- **Spreadsheet files**: mock grid with order numbers, descriptions, quantities, weights
+- Download button + Close button in footer
+- Click outside to close
+
+#### N4: History Tab — Jira-Style Audit Timeline
+- Generator produces 5-12 history entries per shipment with: user (6-person pool), timestamp, action (14 types), category, details, and optional field/oldValue/newValue for change tracking
+- Vertical timeline with small 7px colored dots (distinct from Stops tab's numbered circles)
+- Dots colored by category: green (create), blue (tender), amber (update), purple (completion)
+- Each entry: bold user name + colored action badge + relative timestamp, details line, optional field change with strikethrough old value → new value
+- Timestamps are relative to the shipment's most recent entry (not real clock), so newest shows "just now" and others spread naturally
+
+#### #8: Sequential Tender Logic
+- Generator now follows realistic sequential tendering: carriers tendered top-down by rank
+- **~85% of shipments**: tender completed — Declined/Rejected above the accepted carrier, null (never tendered) below
+- **~15% of shipments**: tender in progress — Declined/Rejected above, "Sent" as current, null below
+- RoutingGuideTab: null-status carriers render empty cells (no badge); no pre-selection when no Accepted exists
+
+#### #9: Stops Tab Redesign (Partial)
+- Replaced "Stop 1, Stop 2" labels with **P1, P2** (pickups) and **D1, D2** (deliveries) — both in side label and circle node
+- Promoted **Location** and **Date** to first positions in field grid, rendered larger/bolder (14px/600 weight)
+- Removed redundant leading "P1/D1" spans (label already inside circle node)
+- Compact layout (step 3) deferred — pending review of current state
+
+#### Order Dropdown — Click Outside to Close
+- Extracted `OrderDropdown` as a separate component in BottomBar.jsx
+- Added click-outside listener (excludes the Order tab button so toggle still works)
+
+#### Modal Style Unification
+- Documents tab upload + preview modals updated to match Export/Cost Allocation pattern: `position: fixed`, `zIndex: 9999`, `backdropFilter: blur(4px)`, `boxShadow: '0 8px 30px rgba(0,0,0,0.2)'`, `padding: 24` card with margin-based spacing (no inner border separators)
+
+#### Compare AP/AR Modal Cleanup
+- Removed redundant "Order: ORD-XXXX" subheader span (order tabs already show selection)
+- Margin display remains right-aligned
+
+---
+
+## What's Next
+
+### Remaining from grooming feedback
+
+| # | Task | Source | Size | Status |
+|---|------|--------|------|--------|
+| 6 | Remove instruction type badges (BOL, MISC, etc.) | David | Small | Halted — revisit |
+| 9.3 | Stops tab compact layout — condense cards so users see data without scrolling | David | Medium | Pending review of current P/D state |
+| 11 | Multi-customer shipments in generator (~20% of multi-order) | David | Medium | Halted — Jana says cross-customer consolidation is planned but not active yet |
+| N3 | Tender tab content — match PPT2 layout (summary + details, reuse in Exceptions + Monitoring) | Jana | Large | Needs PPT2 grooming |
 
 ### Tier 1 — Ready to build
 - **Table tabs**: Review and implement tab functionality for shipment table views
-- **AP/AR Costs columns**: Not just two columns — need to expand cost-related columns in the shipments table
-- ColumnPanel functionality (checkbox list to toggle table column visibility)
+- **ColumnPanel functionality**: Checkbox list to toggle table column visibility
 
 ### Tier 2 — Polish
 - Responsive design (Tailwind breakpoints for panels, search bar, bottom bar)
