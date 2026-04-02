@@ -75,8 +75,9 @@ function ActionMenu({ shipmentId, position, onClose }) {
   }, [onClose])
 
   const items = [
-    { label: 'Edit by Shipment', key: 'edit' },
-    { label: 'Tender to Preferred Carrier', key: 'tender' },
+    { label: 'Buy Shipment', key: 'buy' },
+    { label: 'Edit', key: 'edit' },
+    { label: 'Tender by Preferred Carrier', key: 'tender' },
   ]
 
   return createPortal(
@@ -189,6 +190,11 @@ const ShipmentRow = React.memo(function ShipmentRow({ shipment, isSelected, onSe
       <td style={{ padding: '0 var(--spacing-4)', height: 56, borderBottom: '1px solid var(--bg-tertiary)', whiteSpace: 'nowrap', minWidth: 180 }}>
         {s.origin}
       </td>
+      <td style={{ padding: '0 var(--spacing-4)', height: 56, borderBottom: '1px solid var(--bg-tertiary)', whiteSpace: 'nowrap', minWidth: 120 }}>
+        {s.shipmentStatus ? (
+          <Badge variant={s.shipmentStatus === 'Done' ? 'green' : 'amber'}>{s.shipmentStatus}</Badge>
+        ) : null}
+      </td>
       <td
         data-sticky-col
         onClick={(e) => {
@@ -248,7 +254,7 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
             <th className="sticky top-0 z-2"
               style={{ width: 48, padding: '0 var(--spacing-4)', height: 'var(--bottombar-collapsed)', background: 'var(--bg-primary)', borderBottom: '1px solid var(--border-subtle)', textAlign: 'center' }}>
             </th>
-            {['Buy Shipment', 'Customer ID(s)', 'Order #', 'Order Count', 'Pickup Date', 'Delivery Date', 'Origin'].map(col => (
+            {['Buy Shipment', 'Customer ID(s)', 'Order #', 'Order Count', 'Pickup Date', 'Delivery Date', 'Origin', 'Shipment Status'].map(col => (
               <th key={col} className="sticky top-0 z-2 text-left whitespace-nowrap"
                 style={{ padding: '0 var(--spacing-4)', height: 'var(--bottombar-collapsed)', background: 'var(--bg-primary)', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-placeholder)', fontWeight: 600, fontSize: 'var(--font-size-sm)' }}>
                 {col}

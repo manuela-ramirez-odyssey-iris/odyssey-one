@@ -7,6 +7,7 @@ import ShipmentTable from './components/shipments/ShipmentTable'
 import BottomBar from './components/detail/BottomBar'
 import FilterPanel from './components/shipments/FilterPanel'
 import ColumnPanel from './components/detail/ColumnPanel'
+import { FileText } from 'lucide-react'
 import { getAllShipments, getShipmentDetails, loadShipmentDetails, SEARCH_ATTRIBUTES } from './data'
 
 function parseSavedQuery(queryStr) {
@@ -66,9 +67,15 @@ function App() {
   }, [selectedShipmentId, detailsLoaded])
 
   const filteredShipments = useMemo(() => {
-    let result = allShipments
+    // 0. Filter by active panel
+    let result = allShipments.filter(s => s.panel === activePanel)
 
-    // 1. Apply saved query filters first
+    // 1. Filter by active tab (if not 'all')
+    if (activeTab !== 'all') {
+      result = result.filter(s => s.category === activeTab)
+    }
+
+    // 2. Apply saved query filters
     if (appliedSavedQuery) {
       const conditions = parseSavedQuery(appliedSavedQuery.query)
       result = result.filter((s) =>
@@ -82,7 +89,7 @@ function App() {
       )
     }
 
-    // 2. Apply text/chip search filtering
+    // 3. Apply text/chip search filtering
     if (debouncedQuery.trim()) {
       const q = debouncedQuery.toLowerCase()
       if (activeChipKey) {
@@ -106,7 +113,7 @@ function App() {
       }
     }
 
-    // 3. Apply date filters
+    // 4. Apply date filters
     const activeDateFilters = Object.entries(dateFilters).filter(([, v]) => v)
     if (activeDateFilters.length > 0) {
       result = result.filter((s) =>
@@ -119,24 +126,29 @@ function App() {
     }
 
     return result
-  }, [allShipments, debouncedQuery, activeChipKey, dateFilters, appliedSavedQuery])
+  }, [allShipments, activePanel, activeTab, debouncedQuery, activeChipKey, dateFilters, appliedSavedQuery])
 
   const metrics = useMemo(() => {
-    const s = allShipments
+    const exceptionsPool = allShipments.filter(s => s.panel === 'exceptions')
+    const monitoringPool = allShipments.filter(s => s.panel === 'monitoring')
+    const pgipgrPool = allShipments.filter(s => s.panel === 'pgipgr')
     return {
-      dateIssues: s.filter((x) => x.tenderStatus === 'Pending' && x.shipmentStatus === 'Tender').length,
-      routingReview: s.filter((x) => x.tenderStatus === 'Rejected').length,
-      tenderIssues: s.filter((x) => x.tenderStatus === 'Rejected' && x.shipmentStatus === 'Tender').length,
-      tenderReview: s.filter((x) => x.tenderStatus === 'Pending').length,
-      bidReview: s.filter((x) => x.mode === 'LTL' && x.tenderStatus === 'Pending').length,
-      hold: s.filter((x) => x.shipmentStatus === 'Booked').length,
-      consolidation: s.filter((x) => x.mode === 'LTL').length,
-      spotBid: s.filter((x) => x.mode === 'INTERMODAL').length,
-      approved: s.filter((x) => x.tenderStatus === 'Done' && x.shipmentStatus === 'In Transit').length,
-      pgipgrErrors: s.filter((x) => x.shipmentStatus === 'Delivered' && x.tenderStatus === 'Rejected').length,
-      ratingFailure: s.filter((x) => x.shipmentStatus === 'Delivered' && x.tenderStatus === 'Pending').length,
-      manualPgipgr: s.filter((x) => x.shipmentStatus === 'Delivered' && x.tenderStatus === 'Done').length,
-      missedPgipgr: s.filter((x) => x.shipmentStatus === 'Delivered' && x.mode === 'FTL').length,
+      // Exception counts
+      dateIssues: exceptionsPool.filter(s => s.category === 'date-issues').length,
+      routingReview: exceptionsPool.filter(s => s.category === 'routing-review').length,
+      tenderIssues: exceptionsPool.filter(s => s.category === 'tender-issues').length,
+      tenderReview: exceptionsPool.filter(s => s.category === 'tender-review').length,
+      bidReview: exceptionsPool.filter(s => s.category === 'bid-review').length,
+      // Monitoring counts
+      hold: monitoringPool.filter(s => s.category === 'hold').length,
+      consolidation: monitoringPool.filter(s => s.category === 'consolidation').length,
+      sent: monitoringPool.filter(s => s.category === 'sent').length,
+      spotBid: monitoringPool.filter(s => s.category === 'spotbid').length,
+      approved: monitoringPool.filter(s => s.category === 'approved').length,
+      // PGI/PGR counts
+      pgipgrErrors: pgipgrPool.filter(s => s.category === 'pgipgr-errors').length,
+      ratingFailure: pgipgrPool.filter(s => s.category === 'rating-failure').length,
+      manualPgipgr: pgipgrPool.filter(s => s.category === 'manual-pgipgr').length,
     }
   }, [allShipments])
 
@@ -263,12 +275,23 @@ function App() {
           URL.revokeObjectURL(url)
         }}
       />
-      <ShipmentTable
-        shipments={filteredShipments}
-        selectedId={selectedShipmentId}
-        onRowSelect={handleRowSelect}
-        onToggleColumnPanel={handleToggleColumnPanel}
-      />
+      {activePanel === 'pgipgr' ? (
+        <div
+          className="flex flex-col items-center justify-center gap-3"
+          style={{ padding: '48px 0', color: 'var(--text-placeholder)' }}
+        >
+          <FileText size={32} />
+          <div className="text-sm font-medium">Coming soon</div>
+          <div className="text-xs">PGI/PGR monitoring will be available in a future release.</div>
+        </div>
+      ) : (
+        <ShipmentTable
+          shipments={filteredShipments}
+          selectedId={selectedShipmentId}
+          onRowSelect={handleRowSelect}
+          onToggleColumnPanel={handleToggleColumnPanel}
+        />
+      )}
       <BottomBar
         selectedShipmentId={selectedShipmentId}
         shipmentDetails={shipmentDetails}

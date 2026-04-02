@@ -1,40 +1,6 @@
 import { useState } from 'react'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 
-const TYPE_COLORS = {
-  BOL:  'var(--badge-blue-text)',
-  MISC: 'var(--badge-purple-text)',
-  TRA:  'var(--badge-green-text)',
-  ADC:  'var(--badge-yellow-text)',
-  ZD02: 'var(--badge-red-text)',
-  SPC:  'var(--badge-purple-text)',
-}
-
-function TypeBadge({ type }) {
-  const color = TYPE_COLORS[type] || 'var(--text-tertiary)'
-  return (
-    <span
-      style={{
-        fontFamily: 'var(--font-primary)',
-        fontSize: '10px',
-        fontWeight: 600,
-        color: color,
-        background: 'transparent',
-        border: `1px solid ${color}`,
-        borderRadius: 'var(--radius-sm)',
-        padding: '1px 6px',
-        flexShrink: 0,
-        letterSpacing: '0.03em',
-        marginTop: '2px',
-        lineHeight: '16px',
-        display: 'inline-block',
-      }}
-    >
-      {type}
-    </span>
-  )
-}
-
 function InstructionGroup({ order }) {
   const [expanded, setExpanded] = useState(true)
 
@@ -140,7 +106,6 @@ function InstructionGroup({ order }) {
               >
                 {instr.seq}
               </span>
-              <TypeBadge type={instr.type} />
               <p
                 style={{
                   fontFamily: 'var(--font-primary)',
@@ -200,7 +165,7 @@ export default function InstructionsTab({ data }) {
       >
         Instructions
       </div>
-      {data.orders.map((order, idx) => (
+      {data.orders.map((order) => (
         <InstructionGroup key={order.orderId} order={order} />
       ))}
     </div>

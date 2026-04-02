@@ -20,6 +20,7 @@ function buildPanels(metrics) {
       metrics: [
         { label: 'Hold', count: metrics.hold ?? 0 },
         { label: 'Consolidation', count: metrics.consolidation ?? 0 },
+        { label: 'Sent', count: metrics.sent ?? 0 },
         { label: 'SpotBid', count: metrics.spotBid ?? 0 },
         { label: 'Approved', count: metrics.approved ?? 0 },
       ],
@@ -31,7 +32,6 @@ function buildPanels(metrics) {
         { label: 'PGI/PGR Errors', count: metrics.pgipgrErrors ?? 0 },
         { label: 'Rating Failure', count: metrics.ratingFailure ?? 0 },
         { label: 'Manual PGI/PGR', count: metrics.manualPgipgr ?? 0 },
-        { label: 'Missed PGI/PGR', count: metrics.missedPgipgr ?? 0 },
       ],
     },
   ]

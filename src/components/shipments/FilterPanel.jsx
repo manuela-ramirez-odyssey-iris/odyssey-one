@@ -11,13 +11,13 @@ const DATE_FIELDS = [
 ]
 
 const SAVED_QUERIES = [
-  { name: 'Late LTL Deliveries -- West Coast', query: 'mode:LTL status:"In Transit" destination:CA delivery:<2026-01-15' },
-  { name: 'Pending Tenders -- JBHT', query: 'scac:JBHT tender-status:Pending' },
-  { name: 'FTL Shipments -- G2O Tech', query: 'mode:FTL customer-name:G2O' },
-  { name: 'Rejected Tenders -- January', query: 'tender-status:Rejected pickup:01/*/2026' },
-  { name: 'Intermodal -- Hazardous Cargo', query: 'mode:INTERMODAL hazardous:Y' },
-  { name: 'Open Orders -- USALCO', query: 'customer-name:USALCO status:Tender' },
-  { name: 'Delivered -- Dallas Origin', query: 'origin:Dallas status:Delivered' },
+  { name: 'Review Shipments -- West Coast', query: 'mode:LTL shipment-status:Review destination:CA delivery:<2026-01-15' },
+  { name: 'Sent Tenders -- JBHT', query: 'scac:JBHT tender-status:Sent' },
+  { name: 'TL Shipments -- G2O Tech', query: 'mode:TL customer-name:G2O' },
+  { name: 'Declined Tenders -- January', query: 'tender-status:Declined pickup:01/*/2026' },
+  { name: 'Intermodal -- Hazardous Cargo', query: 'mode:IMD hazardous:Y' },
+  { name: 'Review Orders -- USALCO', query: 'customer-name:USALCO shipment-status:Review' },
+  { name: 'Done -- Dallas Origin', query: 'origin:Dallas shipment-status:Done' },
 ]
 
 export default function FilterPanel({ isOpen, onClose, itemCount, onApplyFilters, onClearFilters, onApplySavedQuery, initialTab = 'all' }) {

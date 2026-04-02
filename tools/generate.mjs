@@ -7,11 +7,11 @@ faker.seed(42);
 // DOMAIN CONSTANTS (from grooming sessions + prototype)
 // ============================================================
 
-const MODES = ['FTL', 'LTL', 'INTERMODAL'];
+const MODES = ['TL', 'LTL', 'RR', 'IMD', 'AIR'];
+const MODE_WEIGHTS = { TL: 35, LTL: 35, IMD: 15, RR: 10, AIR: 5 };
+const RR_CUSTOMERS = ['BASF_CHM_01', 'DOW_IND_01']; // RR restricted to these customers
 const EQUIPMENT_CODES = ['FLT', 'LTH', 'VAN', 'REEFER'];
-const TENDER_STATUSES = ['Done', 'Pending', 'Rejected'];
-const SHIPMENT_STATUSES = ['Tender', 'In Transit', 'Delivered', 'Booked'];
-const INSTRUCTION_TYPES = ['BOL', 'MISC', 'TRA', 'ADC', 'ZD02', 'SPC'];
+const TENDER_STATUSES = ['Sent', 'Accepted', 'Declined', 'Cancelled'];
 const DOC_TYPES = ['BoL', 'MBoL', 'POD', 'SL', 'Packing List', 'Other'];
 const ROUTING_APIS = ['API', 'EDI', 'Email', 'Fax'];
 const RESPONSE_METHODS = ['API Update', 'EDI Update', 'Manual Update', 'Automatic Update'];
@@ -94,27 +94,37 @@ const LOCATIONS = [
 ];
 
 const CHEMICAL_PRODUCTS = [
-  { item: '32041H1D', desc: 'Sodium Hydroxide Solution 50%', hazmat: true, hClass: 'Class 8', hGroup: 'II' },
-  { item: '28103A2K', desc: 'Hydrochloric Acid 32%', hazmat: true, hClass: 'Class 8', hGroup: 'II' },
+  { item: '32041H1D', desc: 'Sodium Hydroxide Solution 50%', hazmat: true, hClass: 'Class 8', hGroup: 'II', unNumber: 'UN1824' },
+  { item: '28103A2K', desc: 'Hydrochloric Acid 32%', hazmat: true, hClass: 'Class 8', hGroup: 'II', unNumber: 'UN1789' },
   { item: '76201C5M', desc: 'Calcium Chloride Flakes 77%', hazmat: false },
   { item: '76201C5N', desc: 'Calcium Chloride Liquid 35%', hazmat: false },
-  { item: '31052D8J', desc: 'Ferric Chloride Solution 42%', hazmat: true, hClass: 'Class 8', hGroup: 'III' },
+  { item: '31052D8J', desc: 'Ferric Chloride Solution 42%', hazmat: true, hClass: 'Class 8', hGroup: 'III', unNumber: 'UN2582' },
   { item: '55129P3R', desc: 'Reprocessed Polyethylene Pellets', hazmat: false },
-  { item: '29051A7F', desc: 'Methanol Technical Grade', hazmat: true, hClass: 'Class 3', hGroup: 'II' },
-  { item: '28042B9G', desc: 'Sulfuric Acid 93%', hazmat: true, hClass: 'Class 8', hGroup: 'II' },
-  { item: '38089C2H', desc: 'Herbicide Concentrate 2,4-D', hazmat: true, hClass: 'Class 6', hGroup: 'III' },
-  { item: '27101D4J', desc: 'Petroleum Distillate', hazmat: true, hClass: 'Class 3', hGroup: 'III' },
+  { item: '29051A7F', desc: 'Methanol Technical Grade', hazmat: true, hClass: 'Class 3', hGroup: 'II', unNumber: 'UN1230' },
+  { item: '28042B9G', desc: 'Sulfuric Acid 93%', hazmat: true, hClass: 'Class 8', hGroup: 'II', unNumber: 'UN1830' },
+  { item: '38089C2H', desc: 'Herbicide Concentrate 2,4-D', hazmat: true, hClass: 'Class 6', hGroup: 'III', unNumber: 'UN3082' },
+  { item: '27101D4J', desc: 'Petroleum Distillate', hazmat: true, hClass: 'Class 3', hGroup: 'III', unNumber: 'UN1268' },
   { item: '39011E6K', desc: 'Polyethylene Resin HD', hazmat: false },
   { item: '39021F8L', desc: 'Polypropylene Copolymer', hazmat: false },
-  { item: '28112G3M', desc: 'Hydrogen Peroxide 35%', hazmat: true, hClass: 'Class 5', hGroup: 'I' },
+  { item: '28112G3M', desc: 'Hydrogen Peroxide 35%', hazmat: true, hClass: 'Class 5', hGroup: 'I', unNumber: 'UN2014' },
   { item: '22071H5N', desc: 'Ethylene Glycol Industrial', hazmat: false },
-  { item: '28151J7P', desc: 'Potassium Hydroxide 45%', hazmat: true, hClass: 'Class 8', hGroup: 'II' },
-  { item: '29031K9Q', desc: 'Vinyl Chloride Monomer', hazmat: true, hClass: 'Class 2', hGroup: 'I' },
-  { item: '38089L2R', desc: 'Insecticide Emulsifiable', hazmat: true, hClass: 'Class 6', hGroup: 'II' },
+  { item: '28151J7P', desc: 'Potassium Hydroxide 45%', hazmat: true, hClass: 'Class 8', hGroup: 'II', unNumber: 'UN1814' },
+  { item: '29031K9Q', desc: 'Vinyl Chloride Monomer', hazmat: true, hClass: 'Class 2', hGroup: 'I', unNumber: 'UN1086' },
+  { item: '38089L2R', desc: 'Insecticide Emulsifiable', hazmat: true, hClass: 'Class 6', hGroup: 'II', unNumber: 'UN2902' },
   { item: '34021M4S', desc: 'Surfactant Non-ionic', hazmat: false },
-  { item: '28070N6T', desc: 'Phosphoric Acid 75%', hazmat: true, hClass: 'Class 8', hGroup: 'III' },
+  { item: '28070N6T', desc: 'Phosphoric Acid 75%', hazmat: true, hClass: 'Class 8', hGroup: 'III', unNumber: 'UN1805' },
   { item: '39076P8U', desc: 'PVC Compound Rigid', hazmat: false },
 ];
+
+const HAZMAT_DESCRIPTIONS = {
+  'Class 2': 'Flammable gas',
+  'Class 3': 'Flammable liquid',
+  'Class 5': 'Oxidizing substance',
+  'Class 6': 'Toxic substance',
+  'Class 8': 'Corrosive substance',
+};
+
+const LOAD_CONSTRAINTS = ['Keep Upright', 'No Stacking', 'Temperature Controlled', 'Fragile - Handle With Care', 'Keep Dry', '--'];
 
 const INSTRUCTION_TEMPLATES = [
   { type: 'TRA', text: 'Drivers are required to wear face coverings and follow social distancing guidelines. They may also be subject to temperature checks upon arrival.' },
@@ -239,11 +249,22 @@ function generateShipment(index) {
   const customer = pick(CUSTOMERS);
   const originLoc = pick(LOCATIONS);
   const destLoc = pick(LOCATIONS.filter(l => l.city !== originLoc.city));
-  const mode = pick(MODES);
+  // Weighted mode selection; RR only for specific customers
+  const mode = (() => {
+    const available = RR_CUSTOMERS.includes(customer.id)
+      ? MODES
+      : MODES.filter(m => m !== 'RR');
+    const weights = available.map(m => MODE_WEIGHTS[m]);
+    const total = weights.reduce((a, b) => a + b, 0);
+    let r = faker.number.int({ min: 1, max: total });
+    for (let i = 0; i < available.length; i++) {
+      r -= weights[i];
+      if (r <= 0) return available[i];
+    }
+    return available[available.length - 1];
+  })();
   const equipmentCode = pick(EQUIPMENT_CODES);
   const carrier = pick(CARRIERS);
-  const tenderStatus = pick(TENDER_STATUSES);
-  const shipmentStatus = pick(SHIPMENT_STATUSES);
   const baseDate = faker.date.between({ from: '2026-01-01', to: '2026-06-30' });
   baseDate.setHours(faker.number.int({ min: 6, max: 16 }), pick([0, 30]), 0, 0);
   const transitDays = faker.number.int({ min: 1, max: 7 });
@@ -264,6 +285,7 @@ function generateShipment(index) {
       const product = pick(CHEMICAL_PRODUCTS);
       const lineWeight = faker.number.int({ min: 1000, max: 15000 });
       const tareWeight = Math.round(lineWeight * 0.2);
+      const thirdPartRefDate = genDate(baseDate, faker.number.int({ min: -3, max: 3 }));
       lines.push({
         lineNumber: String(l + 1).padStart(3, '0'),
         shipItem: product.item,
@@ -276,6 +298,12 @@ function generateShipment(index) {
         netWeight: `${fmtInt(lineWeight - tareWeight)} LB`,
         hazmatClass: product.hazmat ? product.hClass : '--',
         hazmatGroup: product.hazmat ? product.hGroup : '--',
+        hazmatDescription: product.hazmat ? (HAZMAT_DESCRIPTIONS[product.hClass] || product.hClass) : '--',
+        hazmatUnNumber: product.hazmat ? product.unNumber : '--',
+        boilingPoint: product.hazmat ? `${faker.number.int({ min: 150, max: 400 })} F` : '--',
+        marinePollutant: product.hazmat ? (faker.number.int({ min: 1, max: 100 }) <= 30 ? 'Yes' : 'No') : '--',
+        wgkClass: product.hazmat ? pick(['1', '2', '3']) : '--',
+        tunnelCode: product.hazmat ? pick(TUNNEL_CODES) : '--',
         productClass: pick(PRODUCT_CLASSES),
         shippingClass: String(faker.number.int({ min: 100000, max: 999999 })),
         flashPoint: product.hazmat ? `${faker.number.int({ min: 60, max: 200 })} F` : '--',
@@ -286,6 +314,10 @@ function generateShipment(index) {
         length: `${faker.number.int({ min: 2, max: 6 })} FT`,
         width: `${faker.number.int({ min: 2, max: 6 })} FT`,
         height: `${faker.number.int({ min: 2, max: 6 })} FT`,
+        dimensions: `${faker.number.int({ min: 24, max: 96 })}" x ${faker.number.int({ min: 24, max: 48 })}" x ${faker.number.int({ min: 24, max: 72 })}"`,
+        loadConstraints: pick(LOAD_CONSTRAINTS),
+        toPartnerRef: `TP-${faker.number.int({ min: 10000, max: 99999 })}`,
+        thirdPartRefDate: formatShortDate(thirdPartRefDate),
       });
     }
 
@@ -293,7 +325,8 @@ function generateShipment(index) {
   }
 
   // Stops
-  const pickupStopCount = faker.number.int({ min: 1, max: 2 });
+  // TL can have multi-stop; LTL, RR, IMD, AIR are always 1 pickup + 1 delivery
+  const pickupStopCount = mode === 'TL' ? faker.number.int({ min: 1, max: 2 }) : 1;
   const stops = [];
   for (let s = 0; s < pickupStopCount; s++) {
     const stopLoc = s === 0 ? originLoc : pick(LOCATIONS.filter(l => l.city !== originLoc.city && l.city !== destLoc.city));
@@ -341,12 +374,12 @@ function generateShipment(index) {
     let status;
     if (tenderCompleted) {
       // Scenario A: someone accepted
-      if (rank < decisiveRank) status = pick(['Declined', 'Rejected']);
+      if (rank < decisiveRank) status = pick(['Declined', 'Cancelled']);
       else if (rank === decisiveRank) status = 'Accepted';
       else status = null; // never tendered
     } else {
       // Scenario B: tender in progress
-      if (rank < decisiveRank) status = pick(['Declined', 'Rejected']);
+      if (rank < decisiveRank) status = pick(['Declined', 'Cancelled']);
       else if (rank === decisiveRank) status = 'Sent';
       else status = null; // never tendered
     }
@@ -387,6 +420,15 @@ function generateShipment(index) {
       description: faker.lorem.words({ min: 2, max: 4 }),
     };
   });
+
+  // Derive tender status and shipment status from routing options
+  const routingStatuses = routingOptions.map(r => r.status).filter(Boolean);
+  const hasAccepted = routingStatuses.includes('Accepted');
+  const hasSent = routingStatuses.includes('Sent');
+  // tenderStatus = the status of the "active" routing option (accepted or sent carrier)
+  const tenderStatus = hasAccepted ? 'Accepted' : hasSent ? 'Sent' : (routingStatuses.length > 0 ? routingStatuses[0] : 'Sent');
+  // shipmentStatus derived from tender statuses
+  const shipmentStatus = hasAccepted ? 'Done' : hasSent ? '' : 'Review';
 
   // Cost allocation
   const apBase = faker.number.float({ min: 500, max: 5000, fractionDigits: 2 });
@@ -497,7 +539,6 @@ function generateShipment(index) {
       orderId: ord.orderId,
       instructions: templates.map((t, i) => ({
         seq: i + 1,
-        type: t.type,
         text: fillTemplate(t.text, null),
       })),
     };
@@ -622,8 +663,9 @@ function generateShipment(index) {
         break;
       }
       case 'Status Changed': {
-        const oldStatus = pick(SHIPMENT_STATUSES);
-        const newStatus2 = pick(SHIPMENT_STATUSES.filter(s => s !== oldStatus));
+        const statusValues = ['Review', 'Done'];
+        const oldStatus = pick(statusValues);
+        const newStatus2 = pick(statusValues.filter(s => s !== oldStatus));
         details = `Shipment status changed`;
         field = 'status';
         oldValue = oldStatus;
@@ -704,13 +746,13 @@ function generateShipment(index) {
       shipDirection: pick(SHIP_DIRECTIONS),
       orderDate: formatDateTime(genDate(baseDate, -faker.number.int({ min: 1, max: 10 }))),
       paymentTerms: pick(PAYMENT_TERMS),
-      shipmentMode: mode === 'FTL' ? 'Ground' : mode === 'LTL' ? 'Ground LTL' : 'Intermodal',
+      shipmentMode: { TL: 'Truckload', LTL: 'Less Than Truckload', RR: 'Railroad', IMD: 'Intermodal', AIR: 'Air Freight' }[mode],
       expedited: pick(['Yes', 'No']),
       consolidatable: pick(['Yes', 'No']),
       equipment: equipmentCode,
       specialServices: faker.datatype.boolean() ? 'Hazmat handling' : '',
       lsp: '',
-      carrier: tenderStatus === 'Done' ? carrier.name : '',
+      carrier: tenderStatus === 'Accepted' ? carrier.name : '',
       serviceLevel: pick(['Standard', 'Expedited', 'Economy', 'Premium']),
       transportPriority: pick(['Normal', 'High', 'Critical']),
       shipFrom: {
@@ -822,16 +864,51 @@ function generateShipment(index) {
 }
 
 // ============================================================
+// PANEL / CATEGORY ASSIGNMENT
+// ============================================================
+
+const PANEL_CATEGORIES = {
+  exceptions: ['date-issues', 'routing-review', 'tender-issues', 'tender-review', 'bid-review'],
+  monitoring: ['hold', 'consolidation', 'sent', 'spotbid'],
+  pgipgr: ['pgipgr-errors', 'rating-failure', 'manual-pgipgr'],
+};
+
+function assignPanelAndCategory(index, total) {
+  // ~40% exceptions (0-79), ~40% monitoring (80-159), ~20% pgipgr (160-199)
+  const exceptionsCount = Math.round(total * 0.4);
+  const monitoringCount = Math.round(total * 0.4);
+
+  let panel, categories;
+  if (index < exceptionsCount) {
+    panel = 'exceptions';
+    categories = PANEL_CATEGORIES.exceptions;
+  } else if (index < exceptionsCount + monitoringCount) {
+    panel = 'monitoring';
+    categories = PANEL_CATEGORIES.monitoring;
+  } else {
+    panel = 'pgipgr';
+    categories = PANEL_CATEGORIES.pgipgr;
+  }
+
+  const category = categories[index % categories.length];
+  return { panel, category };
+}
+
+// ============================================================
 // GENERATE 200 SHIPMENTS
 // ============================================================
 
 console.log('Generating 200 shipments...');
 
+const TOTAL_SHIPMENTS = 200;
 const shipments = [];
 const shipmentDetails = {};
 
-for (let i = 0; i < 200; i++) {
+for (let i = 0; i < TOTAL_SHIPMENTS; i++) {
   const { mainRow, detail } = generateShipment(i);
+  const { panel, category } = assignPanelAndCategory(i, TOTAL_SHIPMENTS);
+  mainRow.panel = panel;
+  mainRow.category = category;
   shipments.push(mainRow);
   shipmentDetails[mainRow.buyShipment] = detail;
 }

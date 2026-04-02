@@ -4,7 +4,6 @@ const STATUS_STYLES = {
   Accepted: { bg: 'var(--badge-green-bg)', color: 'var(--badge-green-text)' },
   Sent: { bg: 'var(--badge-blue-bg)', color: 'var(--badge-blue-text)' },
   Declined: { bg: 'var(--badge-yellow-bg)', color: 'var(--badge-yellow-text)' },
-  Rejected: { bg: 'var(--badge-red-bg)', color: 'var(--badge-red-text)' },
   Cancelled: { bg: 'var(--bg-tertiary)', color: 'var(--text-placeholder)' },
 }
 

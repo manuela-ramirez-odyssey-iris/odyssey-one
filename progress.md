@@ -394,28 +394,162 @@ Figma source: `https://www.figma.com/design/1kXenKxAqgxNmB36HERhvk/Test-MCP`
 
 ---
 
+## Session 5 — March 31, 2026
+
+### PPT Analysis & Domain Reanalysis
+Extracted and cross-referenced both PowerPoint decks (`Shipments-Monitoring.pptx`, `Shipments-Exceptions.pptx`) against all 5 grooming transcripts. Major domain gaps identified and documented.
+
+### Domain Analysis Updates (shipments-domain-analysis.md)
+- **Section 3 (Tendering)** — Added tender summary header (shipment context for carrier decisions), 5 routing sub-views (Routing Options, Notify & Response Method, Pro & Equipment Info, Additional Info, Others), expanded tender action buttons (Add Quote, Show Rate Details/QCA, Routing Query/QCP, View Stops, View Volume Commitment)
+- **Section 7 (PGI/PGR)** — Added 3 sub-categories: PGI Errors, Manual PGI/PGR, Rating Failure
+- **Section 8 (Exceptions & Monitoring)** — Added three-panel navigation architecture, table-level tabs per panel (Exceptions tabs filter table, Monitoring tabs change visible column groups), tender summary appears on shipment selection in both panels
+- **Section 10 (UI Feedback)** — Added "Replan" to three-dot menu actions
+- **Section 11 (NEW: Search, Filtering & Column Arrangement)** — Full requirements for search progression, smart chip search, filter panel (synced to visible columns, "More filters" expansion), filter layering, Column Arrangement/Change View (presets, draggable columns, saveable/shareable profiles, locked columns from PPT green markers)
+- **Section 13 (Data Model)** — ~10 missing product fields added, Mode values corrected (TL, LTL, RR, IMD, AIR), Planning Date Type documented (RDD/SSD/RSD — not in scope for UI)
+- **Section 14 (Open Questions)** — Q3 resolved (routing sub-tabs answered from PPT)
+
+### Completed Changes
+
+#### #6: Instruction Type Badges Removed
+- Removed `TYPE_COLORS` map, `TypeBadge` component, and `<TypeBadge>` usage from `InstructionsTab.jsx`
+- Removed `INSTRUCTION_TYPES` constant and `type` field from generator (`tools/generate.mjs`)
+- Data regenerated (200 shipments, seed 42)
+- Instructions now show sequence number + text only
+
+### Key Clarifications from Brainstorming
+
+#### Tender Summary Header
+- Appears when user selects a shipment row in Exceptions or Monitoring views
+- Shows shipment context (IDs, mode, weight, pickup/delivery addresses) needed for carrier decisions
+- Same shared screen across both panels — Jana: "Both the same screen tender screen"
+- Is a **separate screen** as a deliverable, but lives within the panel views
+
+#### Table Tabs per Panel
+- **Planning Exceptions** tabs: All, Date Issues, Routing Review, Tender Issues, Tender Review, Bid Review — act as first-order filters
+- **Planning Monitoring** tabs: Routing Options, Notify & Response Method, Pro & Equipment Info, Additional Info, Others — change visible column groups
+- **PGI/PGR**: "Coming soon" placeholder for entire view
+- Exception tabs currently exist but do nothing — need wiring
+
+#### Column Arrangement (Change View)
+- Same panel pattern for main table and bottom bar detail table
+- Flow: presets list → chevron-right → draggable/checkbox column list
+- Locked columns (green in PPT) are unselectable/undraggable
+- Profiles saveable and shareable with other users
+
+#### Filter-Column Sync
+- Filter panel shows only filters matching currently visible columns
+- "More filters" expands to full view for advanced attributes (cargo, financial, load, edge cases)
+- Filters grouped by progression subtitle
+
+#### Planning Date Type
+- RDD (Requested Delivery Date), RSD (Requested Ship Date), SSD (Standard Shipping Date)
+- Jana said don't worry about it for now — documented only
+
+#### Mode Values
+- Changed from FTL/LTL/INTERMODAL to TL/LTL/RR/IMD/AIR (per PPT)
+- Not yet updated in codebase — pending implementation
+
+### New Files
+- `change-notes.md` — change notes for grooming/demo context (per-change remarks)
+
+---
+
+## Session 6 — April 1, 2026
+
+### Grooming Session Analyzed
+- **Apr 1 — Jana**: MAJOR CORRECTION — Monitoring view is the same screen as Exceptions (not column-group tabs). Tender tab identical in both views. PPT slides were one table split across slides. Tender statuses simplified to 4. Shipment status mapping. Actions available in both panels.
+
+### Accomplished This Session
+
+#### Backlog & Prioritization
+- Created formal backlog with Jira-style IDs (SHP-11 through SHP-22)
+- Established **spec-before-implementation workflow** — PRD → Spec (user stories, edge cases, functional requirements) → Implementation
+- Prioritized all items across 6 priority levels
+- Created `shipments-documentation/Documentation/backlog.html` — visual backlog for stakeholder sharing
+- Created `shipments-documentation/Documentation/decision-log.md` — 27 decisions traced to source (DEC-01 through DEC-27)
+
+#### Domain Analysis Enhancements
+- Added **conceptual "why" explanations** to all major sections (Tendering, Spot Bidding, AP/AR, Cost Allocation, PGI, Exceptions & Monitoring, History, Search & Filtering)
+- Documented **Filtering vs. Column Visibility cross-cutting rule** (DEC-19): panel/tab filtering always works independent of column visibility; filter panel defaults to visible columns; "More filters" expands to all
+- Documented **three separate shipment pools** (DEC-18): Exceptions, Monitoring, PGI/PGR are not views of the same data
+
+#### Major Correction from Apr 1 Grooming (DEC-21 through DEC-27)
+- **Monitoring = same screen as Exceptions** — only high-level tabs and tender status values differ
+- **PPT slides = one table split across slides** — not 5 separate sub-view tabs
+- **Tender tab identical in both views** — same actions, same layout, status values differ (Exceptions: Cancelled/Declined; Monitoring: Sent/Accepted)
+- **Actions available in both panels** — not read-only in Monitoring
+- **Tender statuses simplified**: Sent, Accepted, Declined, Cancelled (removed Rejected)
+- **Shipment statuses corrected**: Review, Done (removed Tender/In Transit/Delivered/Booked)
+- **Tender status drives shipment status**: Accepted→Done, Cancelled/Declined→Review, Sent→blank
+- **"Replan" removed from three-dot menu** — Jana retracted it (Mar 30: "forget replan, it happens from the tender screen")
+
+#### Implemented Stories
+
+| ID | Task | What was done |
+|---|---|---|
+| **SHP-12** | Mode values correction | MODES: TL, LTL, RR, IMD, AIR. Weighted distribution (TL/LTL majority, RR=2 customers only, AIR rare). shipmentMode labels updated. Stops constraint: non-TL = 2 stops only. |
+| **SHP-14** | Missing product fields | Added 10 fields: hazmatDescription, hazmatUnNumber, boilingPoint, marinePollutant, wgkClass, tunnelCode, dimensions, loadConstraints, toPartnerRef, thirdPartRefDate. Real UN numbers for hazmat products. |
+| **SHP-15** | Exception tabs wired | Added `panel` and `category` fields to generator. filteredShipments now filters by activePanel first, then activeTab. Badges show real counts. |
+| **SHP-16** | Monitoring row-filter tabs | Same mechanism as SHP-15 — tabs (Hold, Consolidation, Sent, Spot Bid) filter rows. CORRECTED from column-group tabs. |
+| **SHP-17** | PGI/PGR placeholder | "Coming soon" centered message when PGI/PGR panel selected. |
+| **SHP-20** | Tender tab status-aware | No code change needed — data naturally shows correct statuses per panel. Removed stale "Rejected" from STATUS_STYLES. |
+| **SHP-22** | Shipment status column + mapping | Shipment status derived from tender status (not random). Added as visible column in main table with Done (green) / Review (amber) badges. Tender statuses reduced to 4. |
+| **SHP-13** | Three-dot menu | Updated to: "Buy Shipment", "Edit", "Tender by Preferred Carrier". Same in both panels. Removed Replan. |
+
+#### New Documentation Files
+- `shipments-documentation/Documentation/decision-log.md` — All implemented decisions with previous state, source, rationale
+- `shipments-documentation/Documentation/backlog.html` — Visual backlog with completed work history
+
+#### Key Domain Insights Captured
+- **TL vs LTL** (David, Apr 1): LTL = max 2 stops (1P + 1D), carrier can mix other freight. TL = exclusive truck, multi-stop allowed.
+- **Mode definitions**: RR = only 2 customers use it. AIR = not supported today but kept for demo.
+
+---
+
+## Current State
+
+### Data Generator
+- 200 shipments, seed 42, fully reproducible
+- 5 modes (TL, LTL, RR, IMD, AIR) with weighted distribution
+- 4 tender statuses (Sent, Accepted, Declined, Cancelled)
+- 2 shipment statuses (Review, Done) driven by tender status mapping
+- Panel/category assignment (exceptions ~40%, monitoring ~40%, pgipgr ~20%)
+- Full product fields including ~10 hazmat-specific fields with real UN numbers
+- Sequential tender logic, weight-based cost distribution, per-order unique data
+
+### UI
+- Three-panel navigation (Exceptions, Monitoring, PGI/PGR) with panel-based filtering
+- Tab-based row filtering in Exceptions and Monitoring
+- PGI/PGR "Coming soon" placeholder
+- Shipment status column in main table
+- Tender tab works correctly in both panels (same component, data-driven statuses)
+- Three-dot menu: Buy Shipment, Edit, Tender by Preferred Carrier
+
+### Documentation
+- Domain analysis fully updated with Apr 1 corrections and conceptual explanations
+- Decision log with 27 traced decisions
+- Visual backlog HTML for stakeholder sharing
+- Cross-cutting filtering vs. column visibility rules documented
+
+---
+
 ## What's Next
 
-### Remaining from grooming feedback
+### Prioritized Backlog (all need spec before implementation)
 
-| # | Task | Source | Size | Status |
-|---|------|--------|------|--------|
-| 6 | Remove instruction type badges (BOL, MISC, etc.) | David | Small | Halted — revisit |
-| 9.3 | Stops tab compact layout — condense cards so users see data without scrolling | David | Medium | Pending review of current P/D state |
-| 11 | Multi-customer shipments in generator (~20% of multi-order) | David | Medium | Halted — Jana says cross-customer consolidation is planned but not active yet |
-| N3 | Tender tab content — match PPT2 layout (summary + details, reuse in Exceptions + Monitoring) | Jana | Large | Needs PPT2 grooming |
+| Priority | ID | Task | Size |
+|----------|----|------|------|
+| **3 — Column Arrangement** | SHP-18 | Column Arrangement panel redesign — presets → draggable column list, locked columns, saveable profiles | L |
+| **4 — Tender Summary** | SHP-21 | Tender summary header — shipment context on selection (Buy/Sell IDs, mode, weight, addresses). Shared in both panels. From PPT Slide 4. | M |
+| **5 — Search & Filtering** | SHP-19 | Search & filtering expansion — 15→45 attributes, filter panel syncs with visible columns, "More filters", full filter layering. Dependent on data + column arrangement. | L |
+| **6 — Halted** | SHP-9.3 | Stops tab compact layout | M |
+| | SHP-11 | Multi-customer shipments in generator | M |
 
-### Tier 1 — Ready to build
-- **Table tabs**: Review and implement tab functionality for shipment table views
-- **ColumnPanel functionality**: Checkbox list to toggle table column visibility
+### Pending Input
+- Search bar grooming transcript still to be provided
+- Jana confirmation needed on: which actions appear in three-dot menu per panel edge cases, equipment codes for RR/IMD/AIR modes
 
-### Tier 2 — Polish
-- Responsive design (Tailwind breakpoints for panels, search bar, bottom bar)
-- Keyboard shortcuts (Escape to close panels/bottom bar)
-- Web Interface Guidelines fixes (accessibility, focus states, virtualization)
-
-### Tier 3 — Future
-- Saved search CRUD (create/edit/delete profiles, localStorage persistence)
-- Error boundaries
-- Testing (unit + integration)
-- Deployment setup
+### Next Session Plan
+1. Spec SHP-18 (Column Arrangement) — largest remaining item
+2. Spec SHP-21 (Tender Summary Header)
+3. Begin implementation

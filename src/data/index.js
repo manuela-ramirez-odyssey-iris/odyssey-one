@@ -38,9 +38,9 @@ export const SEARCH_ATTRIBUTES = [
   { key: 'consignee', label: 'Consignee', type: 'text', dataKey: 'consignee' },
   { key: 'origin', label: 'Origin', type: 'text', dataKey: 'origin' },
   { key: 'destination', label: 'Destination', type: 'text', dataKey: 'destination' },
-  { key: 'mode', label: 'Mode', type: 'dropdown', dataKey: 'mode', values: ['FTL', 'LTL', 'INTERMODAL'] },
+  { key: 'mode', label: 'Mode', type: 'dropdown', dataKey: 'mode', values: ['TL', 'LTL', 'RR', 'IMD', 'AIR'] },
   { key: 'scac', label: 'SCAC', type: 'dropdown', dataKey: 'scac' },
-  { key: 'tender-status', label: 'Tender Status', type: 'dropdown', dataKey: 'tenderStatus', values: ['Done', 'Pending', 'Rejected'] },
-  { key: 'shipment-status', label: 'Shipment Status', type: 'dropdown', dataKey: 'shipmentStatus', values: ['Tender', 'In Transit', 'Delivered', 'Booked'] },
+  { key: 'tender-status', label: 'Tender Status', type: 'dropdown', dataKey: 'tenderStatus', values: ['Sent', 'Accepted', 'Declined', 'Cancelled'] },
+  { key: 'shipment-status', label: 'Shipment Status', type: 'dropdown', dataKey: 'shipmentStatus', values: ['Review', 'Done'] },
   { key: 'equipment-code', label: 'Equipment Code', type: 'dropdown', dataKey: 'equipmentCode', values: ['FLT', 'LTH', 'VAN', 'REEFER'] },
 ]

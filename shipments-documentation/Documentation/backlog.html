@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Odyssey Shipments — Backlog</title>
+<style>
+  @page { size: landscape; margin: 12mm; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 24px; color: #1a1a2e; background: #fff; }
+  h1 { font-size: 20px; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: #64748b; margin-bottom: 20px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { background: #1e293b; color: #fff; text-align: left; padding: 10px 12px; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+  td { padding: 10px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: top; line-height: 1.45; }
+  tr:hover td { background: #f8fafc; }
+  .priority-group td { background: #f1f5f9; font-weight: 700; font-size: 12px; border-bottom: 2px solid #cbd5e1; }
+  .priority-group td:first-child { color: #1e293b; }
+  .id { font-weight: 700; color: #3b82f6; white-space: nowrap; }
+  .size-s { display: inline-block; background: #dcfce7; color: #166534; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+  .size-m { display: inline-block; background: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+  .size-l { display: inline-block; background: #fecaca; color: #991b1b; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+  .status-spec { display: inline-block; background: #e0e7ff; color: #3730a3; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; }
+  .status-halted { display: inline-block; background: #f1f5f9; color: #64748b; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; }
+  .status-done { display: inline-block; background: #dcfce7; color: #166534; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; }
+  .done-group td { background: #f0fdf4; }
+  .section-divider td { padding: 20px 12px 8px; border-bottom: none; font-size: 16px; font-weight: 700; color: #1e293b; }
+  col.col-priority { width: 10%; }
+  col.col-id { width: 7%; }
+  col.col-task { width: 16%; }
+  col.col-size { width: 5%; }
+  col.col-status { width: 8%; }
+  col.col-desc { width: 54%; }
+</style>
+</head>
+<body>
+
+<h1>Odyssey Shipments — Backlog</h1>
+<p class="subtitle">Updated April 1, 2026 &mdash; All items need spec before implementation (user stories, edge cases, functional requirements)</p>
+
+<table>
+<colgroup>
+  <col class="col-priority">
+  <col class="col-id">
+  <col class="col-task">
+  <col class="col-size">
+  <col class="col-status">
+  <col class="col-desc">
+</colgroup>
+<thead>
+<tr>
+  <th>Priority</th>
+  <th>ID</th>
+  <th>Task</th>
+  <th>Size</th>
+  <th>Status</th>
+  <th>Description</th>
+</tr>
+</thead>
+<tbody>
+
+<!-- Priority 1 -->
+<tr class="priority-group"><td colspan="6">Priority 1 — Data Corrections</td></tr>
+<tr>
+  <td></td>
+  <td class="id">SHP-12</td>
+  <td>Mode values correction</td>
+  <td><span class="size-s">S</span></td>
+  <td><span class="status-spec">Needs spec</span></td>
+  <td>Generator still produces FTL/LTL/INTERMODAL. Needs to become TL/LTL/RR/IMD/AIR per PPT deck. Affects main table Mode column and all downstream references.</td>
+</tr>
+<tr>
+  <td></td>
+  <td class="id">SHP-14</td>
+  <td>Missing product fields in generator</td>
+  <td><span class="size-m">M</span></td>
+  <td><span class="status-spec">Needs spec</span></td>
+  <td>~10 product fields from Exceptions PPT Slide 7 not in generator yet: hazmat UN#, boiling point, marine pollutant, WGK class, tunnel code, load constraints, toPartnerRef, thirdPartRef, thirdPartLine, thirdPartRefDate. Needed before Product tab and Column Arrangement can show full data.</td>
+</tr>
+
+<!-- Priority 2 -->
+<tr class="priority-group"><td colspan="6">Priority 2 — Monitoring View</td></tr>
+<tr>
+  <td></td>
+  <td class="id">SHP-15</td>
+  <td>Wire exception table tabs to filter rows</td>
+  <td><span class="size-m">M</span></td>
+  <td><span class="status-spec">Needs spec</span></td>
+  <td>The 6 tabs above the main table (All, Date Issues, Routing Review, Tender Issues, Tender Review, Bid Review) exist in the UI but clicking them does nothing. Need to wire them so each tab filters the shipment table to matching shipments.</td>
+</tr>
+<tr>
+  <td></td>
+  <td class="id">SHP-16</td>
+  <td>Monitoring row-filter tabs (Hold, Consolidation, Sent, Spot Bid)</td>
+  <td><span class="size-m">M</span></td>
+  <td><span class="status-spec">Needs spec</span></td>
+  <td>When user switches to Planning Monitoring panel, main table tabs change to: All (Monitoring), Hold, Consolidation, Sent, Spot Bid. These are ROW FILTERS (same pattern as Exception tabs), not column-group tabs. Each tab filters the shipment table to that monitoring category. CORRECTED Apr 1 &mdash; previously thought these swapped visible columns.</td>
+</tr>
+<tr>
+  <td></td>
+  <td class="id">SHP-17</td>
+  <td>PGI/PGR "Coming soon" placeholder</td>
+  <td><span class="size-s">S</span></td>
+  <td><span class="status-spec">Needs spec</span></td>
+  <td>Third monitor panel (PGI/PGR) needs a proper "Coming soon" state. Jana confirmed PGI/PGR not in scope yet. Sub-categories (PGI Errors, Manual PGI/PGR, Rating Failure) documented for future.</td>
+</tr>
+<tr>
+  <td></td>
+  <td class="id">SHP-22</td>
+  <td>Shipment status column + status mapping</td>
+  <td><span class="size-s">S</span></td>
+  <td><span class="status-spec">Needs spec</span></td>
+  <td>Add shipment status as visible column in main table. Values: Review, Done. Driven by tender status: Accepted&rarr;Done, Cancelled&rarr;Review, Declined&rarr;Review, Sent&rarr;blank. Also update generator tender statuses from 5 to 4 (remove Rejected, keep Declined). Jana Apr 1.</td>
+</tr>
+<tr>
+  <td></td>
+  <td class="id">SHP-20</td>
+  <td>Tender tab &mdash; status-aware behavior</td>
+  <td><span class="size-s">S</span></td>
+  <td><span class="status-spec">Needs spec</span></td>
+  <td>Tender tab (bottom bar) is identical in Exceptions and Monitoring &mdash; same layout, same routing table, same action buttons. Only difference: tender status values shown. Exceptions shows Cancelled/Declined. Monitoring shows Sent/Accepted. CORRECTED Apr 1 &mdash; was previously thought to be a separate read-only view.</td>
+</tr>
+<tr>
+  <td></td>
+  <td class="id">SHP-13</td>
+  <td>Three-dot menu context per panel</td>
+  <td><span class="size-s">S</span></td>
+  <td><span class="status-spec">Needs spec</span></td>
+  <td>Three-dot menu context per panel. Actions exist in both Exceptions and Monitoring (Jana Apr 1 correction), but available actions may differ. "Replan" for Monitoring confirmed. Needs spec review for which actions appear where.</td>
+</tr>
+
+<!-- Priority 3 -->
+<tr class="priority-group"><td colspan="6">Priority 3 — Column Arrangement</td></tr>
+<tr>
+  <td></td>
+  <td class="id">SHP-18</td>
+  <td>Column Arrangement panel redesign</td>
+  <td><span class="size-l">L</span></td>
+  <td><span class="status-spec">Needs spec</span></td>
+  <td>Two-level flow: presets list &rarr; draggable/checkbox column list. Locked columns (PPT green markers) always visible, can't be hidden/reordered. Saveable/shareable profiles. Applies to main table and bottom bar detail tables.</td>
+</tr>
+
+<!-- Priority 4 -->
+<tr class="priority-group"><td colspan="6">Priority 4 — Tender Summary Header</td></tr>
+<tr>
+  <td></td>
+  <td class="id">SHP-21</td>
+  <td>Tender summary header</td>
+  <td><span class="size-m">M</span></td>
+  <td><span class="status-spec">Needs spec</span></td>
+  <td>On shipment selection in Exceptions or Monitoring, a summary header appears showing shipment context: Buy/Sell IDs, mode, weight, equipment, distance, hazmat, pickup/delivery addresses. Shared layout across both panels. From Monitoring PPT Slide 4.</td>
+</tr>
+
+<!-- Priority 5 -->
+<tr class="priority-group"><td colspan="6">Priority 5 — Search &amp; Filtering</td></tr>
+<tr>
+  <td></td>
+  <td class="id">SHP-19</td>
+  <td>Search &amp; filtering expansion</td>
+  <td><span class="size-l">L</span></td>
+  <td><span class="status-spec">Needs spec</span></td>
+  <td>Currently 15 of ~45 search attributes wired. Filter panel syncs with visible columns, grouped by progression. "More filters" for advanced attributes. Full filter layering: panel tabs &rarr; chips &rarr; date ranges &rarr; saved profiles. Highly dependent on data — partially implemented.</td>
+</tr>
+
+<!-- Priority 6 -->
+<tr class="priority-group"><td colspan="6">Priority 6 — Halted</td></tr>
+<tr>
+  <td></td>
+  <td class="id">SHP-9.3</td>
+  <td>Stops tab compact layout</td>
+  <td><span class="size-m">M</span></td>
+  <td><span class="status-halted">Halted</span></td>
+  <td>Stop cards too tall — condense vertical spacing so more stops visible without scrolling. David: "internal users prefer seeing data without scrolling."</td>
+</tr>
+<tr>
+  <td></td>
+  <td class="id">SHP-11</td>
+  <td>Multi-customer shipments in generator</td>
+  <td><span class="size-m">M</span></td>
+  <td><span class="status-halted">Halted</span></td>
+  <td>~20% of multi-order shipments should have orders from different customers. Each customer has different AR markup. Not active — waiting on business direction.</td>
+</tr>
+
+</tbody>
+</table>
+
+<!-- Completed Work -->
+<br>
+<table>
+<colgroup>
+  <col class="col-priority">
+  <col class="col-id">
+  <col class="col-task">
+  <col class="col-size">
+  <col class="col-status">
+  <col class="col-desc">
+</colgroup>
+<thead>
+<tr>
+  <th>Session</th>
+  <th>ID</th>
+  <th>Task</th>
+  <th>Size</th>
+  <th>Status</th>
+  <th>Description</th>
+</tr>
+</thead>
+<tbody>
+
+<!-- Phase 1 -->
+<tr class="priority-group"><td colspan="6">Phase 1 — HTML/CSS/JS Prototype</td></tr>
+<tr class="done-group">
+  <td>Phase 1</td>
+  <td class="id">SHP-1</td>
+  <td>Core layout (Navbar, Sidebar, Monitor Panels)</td>
+  <td><span class="size-l">L</span></td>
+  <td><span class="status-done">Done</span></td>
+  <td>Navbar with global search, 64px sidebar with 7 items, 3 selectable monitor cards (Exceptions, Monitoring, PGI/PGR), shipment tabs.</td>
+</tr>
+<tr class="done-group">
+  <td>Phase 1</td>
+  <td class="id">SHP-2</td>
+  <td>Shipment table (24 rows)</td>
+  <td><span class="size-l">L</span></td>
+  <td><span class="status-done">Done</span></td>
+  <td>Sticky header, checkbox selection with indeterminate state, row hover/selected states. Columns: Checkbox, Buy Shipment, Customer ID, Order #, Order Count, Pickup, Delivery, Origin, Actions.</td>
+</tr>
+<tr class="done-group">
+  <td>Phase 1</td>
+  <td class="id">SHP-3</td>
+  <td>Dual search system</td>
+  <td><span class="size-l">L</span></td>
+  <td><span class="status-done">Done</span></td>
+  <td>Navbar search bar (dark) + table-level search bar (white). Smart chip suggestions, saved search profiles, real-time filtering with 150ms debounce, bookmark icon toggle.</td>
+</tr>
+<tr class="done-group">
+  <td>Phase 1</td>
+  <td class="id">SHP-4</td>
+  <td>Filters panel</td>
+  <td><span class="size-m">M</span></td>
+  <td><span class="status-done">Done</span></td>
+  <td>354px side drawer with All (date filters) and Saved (search profiles) tabs. Live result counter, Clear all, copy-to-clipboard on saved queries.</td>
+</tr>
+<tr class="done-group">
+  <td>Phase 1</td>
+  <td class="id">SHP-5</td>
+  <td>Selected shipment bottom bar (3 states)</td>
+  <td><span class="size-l">L</span></td>
+  <td><span class="status-done">Done</span></td>
+  <td>Collapsed (48px), partial (50vh), fullscreen. Fullscreen toggle + close button, auto-scroll to selected row on expand.</td>
+</tr>
+<tr class="done-group">
+  <td>Phase 1</td>
+  <td class="id">SHP-5.1</td>
+  <td>Order Tab</td>
+  <td><span class="size-m">M</span></td>
+  <td><span class="status-done">Done</span></td>
+  <td>4-column grid, 3 rows of sections: General, Transportation, Ship From/To, Schedule, Products, Totals, References, Contacts.</td>
+</tr>
+<tr class="done-group">
+  <td>Phase 1</td>
+  <td class="id">SHP-5.2</td>
+  <td>Stops Tab</td>
+  <td><span class="size-m">M</span></td>
+  <td><span class="status-done">Done</span></td>
+  <td>Summary bar (distance, weight, volume, carrier, equipment, utilization) + vertical tracking timeline with numbered nodes, pickup (green) and delivery (blue) badges.</td>
+</tr>
+<tr class="done-group">
+  <td>Phase 1</td>
+  <td class="id">SHP-5.3</td>
+  <td>Product Tab</td>
+  <td><span class="size-m">M</span></td>
+  <td><span class="status-done">Done</span></td>
+  <td>Expandable order lines table with 23 columns. Parent rows show order ID + line count. Priority (green) columns first. Hazmat badges.</td>
+</tr>
+<tr class="done-group">
+  <td>Phase 1</td>
+  <td class="id">SHP-5.4</td>
+  <td>Routing Guide / Tender Tab</td>
+  <td><span class="size-m">M</span></td>
+  <td><span class="status-done">Done</span></td>
+  <td>Selectable rows with radio buttons, carrier options, SCAC codes, status badges (Accepted/Sent/Declined/Rejected/Cancelled).</td>
+</tr>
+<tr class="done-group">
+  <td>Phase 1</td>
+  <td class="id">SHP-5.5</td>
+  <td>Cost Allocation Tab</td>
+  <td><span class="size-m">M</span></td>
+  <td><span class="status-done">Done</span></td>
+  <td>Planned Cost and Completed Cost sub-tabs. AP and AR side by side with margin. Per-order breakdown. Negative values in red, margins in green.</td>
+</tr>
+<tr class="done-group">
+  <td>Phase 1</td>
+  <td class="id">SHP-5.6</td>
+  <td>Instructions Tab</td>
+  <td><span class="size-s">S</span></td>
+  <td><span class="status-done">Done</span></td>
+  <td>Collapsible order groups with sequence number + instruction text. Count per group.</td>
+</tr>
+<tr class="done-group">
+  <td>Phase 1</td>
+  <td class="id">SHP-5.7</td>
+  <td>Documents Tab</td>
+  <td><span class="size-m">M</span></td>
+  <td><span class="status-done">Done</span></td>
+  <td>Upload toolbar + document table. Upload modal with type dropdown, file picker, description. Type badges color-coded (BoL, MBoL, POD, SL, Packing List, Other).</td>
+</tr>
+<tr class="done-group">
+  <td>Phase 1</td>
+  <td class="id">SHP-5.8</td>
+  <td>Notes Tab</td>
+  <td><span class="size-m">M</span></td>
+  <td><span class="status-done">Done</span></td>
+  <td>Full CRUD. Input area with avatar + textarea. Note list with author, timestamp, body. Edit (inline) and Delete on current user's notes only.</td>
+</tr>
+<tr class="done-group">
+  <td>Phase 1</td>
+  <td class="id">SHP-5.9</td>
+  <td>Design system tokens</td>
+  <td><span class="size-m">M</span></td>
+  <td><span class="status-done">Done</span></td>
+  <td>29 primitive tokens, 22 semantic tokens, component tokens. All CSS refactored to use design tokens (CSS custom properties).</td>
+</tr>
+
+<!-- Data Generation -->
+<tr class="priority-group"><td colspan="6">Data Generation</td></tr>
+<tr class="done-group">
+  <td>Pre-S2</td>
+  <td class="id">SHP-6</td>
+  <td>Faker-based data generator</td>
+  <td><span class="size-l">L</span></td>
+  <td><span class="status-done">Done</span></td>
+  <td>200 shipments with correlated data for all tabs. Seed 42 (reproducible). 502 orders, 15 customers, 30 locations, 20 products, 15 carriers. Enforced constraints: weight distribution, AP/AR margins, sequential tender logic.</td>
+</tr>
+
+<!-- Domain Analysis -->
+<tr class="priority-group"><td colspan="6">Domain Analysis</td></tr>
+<tr class="done-group">
+  <td>Pre-S2</td>
+  <td class="id">SHP-7</td>
+  <td>Domain analysis &amp; interactive visualization</td>
+  <td><span class="size-l">L</span></td>
+  <td><span class="status-done">Done</span></td>
+  <td>Full written analysis from 5 grooming sessions + 2 PPT decks. Interactive 7-tab visualization (Lifecycle, Exceptions, Tender, AP/AR, Data Model, Generated Data, Open Questions).</td>
+</tr>
+
+<!-- Phase 2: React Migration -->
+<tr class="priority-group"><td colspan="6">Phase 2 — React Migration</td></tr>
+<tr class="done-group">
+  <td>Phase 2</td>
+  <td class="id">SHP-8</td>
+  <td>Full React migration</td>
+  <td><span class="size-l">L</span></td>
+  <td><span class="status-done">Done</span></td>
+  <td>React 19 + Bun + Vite + Tailwind v4. Complete component architecture: layout (AppShell, Navbar, Sidebar), shipments (Table, MonitorPanels, Tabs, Controls, SearchChipPanel, FilterPanel), detail (BottomBar + all tabs), ui (Badge, DarkTooltip). Served on localhost:3010.</td>
+</tr>
+
+<!-- Session 2 -->
+<tr class="priority-group"><td colspan="6">Session 2 — March 24, 2026</td></tr>
+<tr class="done-group">
+  <td>S2</td>
+  <td class="id">SHP-9</td>
+  <td>Sticky last column + ColumnPanel + 3-dot menu</td>
+  <td><span class="size-m">M</span></td>
+  <td><span class="status-done">Done</span></td>
+  <td>Sticky last column with left shadow. Columns3Cog icon opens ColumnPanel. MoreVertical (3-dot) icon per row.</td>
+</tr>
+<tr class="done-group">
+  <td>S2</td>
+  <td class="id">SHP-9.1</td>
+  <td>Order # badges &amp; per-order data</td>
+  <td><span class="size-m">M</span></td>
+  <td><span class="status-done">Done</span></td>
+  <td>Badge colors by position (amber, blue, green, red, purple). orderDetail → orderDetails[] in generator. Each order gets unique faker data.</td>
+</tr>
+<tr class="done-group">
+  <td>S2</td>
+  <td class="id">SHP-9.2</td>
+  <td>Order dropdown in BottomBar</td>
+  <td><span class="size-m">M</span></td>
+  <td><span class="status-done">Done</span></td>
+  <td>Header with selected order + chevron. Dropdown with colored badges. Order selection updates tab data, resets on shipment change.</td>
+</tr>
+<tr class="done-group">
+  <td>S2</td>
+  <td class="id">SHP-10</td>
+  <td>Dark tooltips, export modal, search bar styling</td>
+  <td><span class="size-m">M</span></td>
+  <td><span class="status-done">Done</span></td>
+  <td>Portal-based OrdersTooltip + DarkTooltip. Export modal with blurred overlay, CSV download. Search bar focus/hover/bookmark states matching prototype.</td>
+</tr>
+
+<!-- Session 3 -->
+<tr class="priority-group"><td colspan="6">Session 3 — March 30, 2026</td></tr>
+<tr class="done-group">
+  <td>S3</td>
+  <td class="id">DEC-04</td>
+  <td>AP/AR stacked layout (was toggle tabs)</td>
+  <td><span class="size-m">M</span></td>
+  <td><span class="status-done">Done</span></td>
+  <td>Replaced AP/AR toggle tabs with stacked layout — AP table on top, AR below. Both visible simultaneously for comparison. Manuela proposed, Jana confirmed.</td>
+</tr>
+<tr class="done-group">
+  <td>S3</td>
+  <td class="id">DEC-07</td>
+  <td>Weight-based cost distribution</td>
+  <td><span class="size-m">M</span></td>
+  <td><span class="status-done">Done</span></td>
+  <td>Each order gets proportional share of each cost component by weight. Sum of order portions = shipment total. Replaced equal splits / repeated values.</td>
+</tr>
+<tr class="done-group">
+  <td>S3</td>
+  <td class="id">DEC-05</td>
+  <td>Products tab default expanded</td>
+  <td><span class="size-s">S</span></td>
+  <td><span class="status-done">Done</span></td>
+  <td>All order groups start expanded. useEffect re-expands on shipment change. David: "When it's closed, it doesn't have any value."</td>
+</tr>
+<tr class="done-group">
+  <td>S3</td>
+  <td class="id">DEC-06</td>
+  <td>Tab reorder</td>
+  <td><span class="size-s">S</span></td>
+  <td><span class="status-done">Done</span></td>
+  <td>New order: Order → Product → Stops → Tender → Cost Allocation → Instructions → Documents → Notes → Tender History → History. Stops moved to 3rd (David feedback).</td>
+</tr>
+<tr class="done-group">
+  <td>S3</td>
+  <td class="id">DEC-08</td>
+  <td>Order dropdown enhanced</td>
+  <td><span class="size-s">S</span></td>
+  <td><span class="status-done">Done</span></td>
+  <td>Now shows badge + order ID + origin city → destination city + weight. Portal-rendered, min-width 320px. David: "Just looking at 4 order IDs doesn't tell me which order I want to look at."</td>
+</tr>
+<tr class="done-group">
+  <td>S3</td>
+  <td class="id">DEC-09</td>
+  <td>Export modal labels corrected</td>
+  <td><span class="size-s">S</span></td>
+  <td><span class="status-done">Done</span></td>
+  <td>"Export all columns" / "Export visible columns" — choice is about columns, not records. Both export same filtered record count.</td>
+</tr>
+<tr class="done-group">
+  <td>S3</td>
+  <td class="id">DEC-10</td>
+  <td>Document types updated</td>
+  <td><span class="size-s">S</span></td>
+  <td><span class="status-done">Done</span></td>
+  <td>BoL, MBoL, POD, SL, Packing List, Other. Invoice removed (David: "we would never have an invoice"). Other kept for misc attachments.</td>
+</tr>
+<tr class="done-group">
+  <td>S3</td>
+  <td class="id">DEC-15</td>
+  <td>Compare AP/AR modal — order tabs</td>
+  <td><span class="size-s">S</span></td>
+  <td><span class="status-done">Done</span></td>
+  <td>Added order tabs inside Compare modal (max 5). Overall margin stays visible. Jana proposed dropdown, Manuela suggested tabs, Jana agreed.</td>
+</tr>
+<tr class="done-group">
+  <td>S3</td>
+  <td class="id">DEC-03</td>
+  <td>Tender statuses corrected</td>
+  <td><span class="size-s">S</span></td>
+  <td><span class="status-done">Done</span></td>
+  <td>5 statuses: Sent, Accepted, Declined, Rejected, Cancelled. "Pending" removed. Colors: Accepted=green, Sent=blue, Declined=yellow, Rejected=red, Cancelled=gray.</td>
+</tr>
+<tr class="done-group">
+  <td>S3</td>
+  <td class="id">DEC-01</td>
+  <td>"Routing Guide" → "Tender" rename</td>
+  <td><span class="size-s">S</span></td>
+  <td><span class="status-done">Done</span></td>
+  <td>All display text renamed. Internal keys (routing, RoutingGuideTab.jsx) preserved. Jana: "Everywhere it is going to be tender."</td>
+</tr>
+
+<!-- Session 4 -->
+<tr class="priority-group"><td colspan="6">Session 4 — March 30, 2026</td></tr>
+<tr class="done-group">
+  <td>S4</td>
+  <td class="id">N1</td>
+  <td>Product tab — order number separators</td>
+  <td><span class="size-s">S</span></td>
+  <td><span class="status-done">Done</span></td>
+  <td>Full-width separator row before each order group with bold order ID. Removed redundant Order # column from header. Parent rows show "X lines" count instead.</td>
+</tr>
+<tr class="done-group">
+  <td>S4</td>
+  <td class="id">N5</td>
+  <td>Three-dot menu — shipment actions</td>
+  <td><span class="size-s">S</span></td>
+  <td><span class="status-done">Done</span></td>
+  <td>Dropdown with "Edit by Shipment" and "Tender to Preferred Carrier". Portal-rendered. Entire sticky cell is click target. Click outside closes.</td>
+</tr>
+<tr class="done-group">
+  <td>S4</td>
+  <td class="id">N6</td>
+  <td>Tender History tab — blank placeholder</td>
+  <td><span class="size-s">S</span></td>
+  <td><span class="status-done">Done</span></td>
+  <td>"No tender history available — Tender history records will appear here once tenders are processed."</td>
+</tr>
+<tr class="done-group">
+  <td>S4</td>
+  <td class="id">N2</td>
+  <td>Document preview modal</td>
+  <td><span class="size-m">M</span></td>
+  <td><span class="status-done">Done</span></td>
+  <td>Clicking file link opens preview instead of downloading. PDF/Word: realistic mock documents (BoL letterhead, POD, SL). Spreadsheet: mock grid. Download + Close buttons.</td>
+</tr>
+<tr class="done-group">
+  <td>S4</td>
+  <td class="id">N4</td>
+  <td>History tab — Jira-style audit timeline</td>
+  <td><span class="size-m">M</span></td>
+  <td><span class="status-done">Done</span></td>
+  <td>5-12 history entries per shipment. Vertical timeline with 7px colored dots by category (create/tender/update/completion). Bold user + colored action badge + relative timestamp. Optional field change with strikethrough old → new value.</td>
+</tr>
+<tr class="done-group">
+  <td>S4</td>
+  <td class="id">DEC-12</td>
+  <td>Sequential tender logic in generator</td>
+  <td><span class="size-m">M</span></td>
+  <td><span class="status-done">Done</span></td>
+  <td>~85% completed (Declined/Rejected above accepted, null below). ~15% in progress (Sent as current). Null-status carriers render empty cells.</td>
+</tr>
+<tr class="done-group">
+  <td>S4</td>
+  <td class="id">DEC-02</td>
+  <td>Stops tab P1/P2/D1/D2 labels</td>
+  <td><span class="size-s">S</span></td>
+  <td><span class="status-done">Done</span></td>
+  <td>Replaced "Stop 1, Stop 2" with P1/P2 (pickups) and D1/D2 (deliveries) in side labels and circle nodes. Location and Date promoted to first position, larger/bolder.</td>
+</tr>
+
+<!-- Session 5 -->
+<tr class="priority-group"><td colspan="6">Session 5 — March 31, 2026</td></tr>
+<tr class="done-group">
+  <td>S5</td>
+  <td class="id">DEC-11</td>
+  <td>Instruction type badges removed</td>
+  <td><span class="size-s">S</span></td>
+  <td><span class="status-done">Done</span></td>
+  <td>Removed TYPE_COLORS, TypeBadge component, and type field from generator. Instructions now show sequence number + text only. David: "Business pushed back — they don't use typed instructions today."</td>
+</tr>
+<tr class="done-group">
+  <td>S5</td>
+  <td class="id">SHP-7.1</td>
+  <td>PPT analysis &amp; domain reanalysis</td>
+  <td><span class="size-l">L</span></td>
+  <td><span class="status-done">Done</span></td>
+  <td>Cross-referenced both PPT decks against all 5 grooming transcripts. Added tender summary header, 5 routing sub-views, PGI sub-categories, missing product fields, mode corrections, search/filtering/column arrangement requirements. Domain analysis fully rewritten.</td>
+</tr>
+
+<!-- Session 6 (today) -->
+<tr class="priority-group"><td colspan="6">Session 6 — April 1, 2026</td></tr>
+<tr class="done-group">
+  <td>S6</td>
+  <td class="id">—</td>
+  <td>Backlog creation &amp; prioritization</td>
+  <td><span class="size-m">M</span></td>
+  <td><span class="status-done">Done</span></td>
+  <td>Created prioritized backlog (SHP-11 through SHP-21). Established spec-before-implementation workflow. Decision log created (DEC-01 through DEC-17). Conceptual "why" explanations added to all domain analysis sections.</td>
+</tr>
+
+</tbody>
+</table>
+
+</body>
+</html>
