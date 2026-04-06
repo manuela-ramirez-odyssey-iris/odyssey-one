@@ -43,7 +43,7 @@ const STATES = {
   fullscreen: 'calc(100vh - var(--navbar-height))',
 }
 
-export default function BottomBar({ selectedShipmentId, shipmentDetails, onClose, rightOffset = 0, onToggleColumnPanel }) {
+export default function BottomBar({ selectedShipmentId, shipmentDetails, shipment, onClose, rightOffset = 0, onToggleColumnPanel }) {
   const [barState, setBarState] = useState('collapsed')
   const [activeTab, setActiveTab] = useState('order')
   const [orderDropdownOpen, setOrderDropdownOpen] = useState(false)
@@ -97,7 +97,7 @@ export default function BottomBar({ selectedShipmentId, shipmentDetails, onClose
       case 'order': return <OrderTab data={shipmentDetails.orderDetails?.[selectedOrderIndex]} />
       case 'stops': return <StopsTab data={shipmentDetails.stopsData} />
       case 'product': return <ProductTab data={shipmentDetails.productData} />
-      case 'routing': return <RoutingGuideTab data={shipmentDetails.routingData} />
+      case 'routing': return <RoutingGuideTab data={shipmentDetails.routingData} shipmentDetails={shipmentDetails} shipment={shipment} />
       case 'cost': return <CostAllocationTab data={shipmentDetails.costData} selectedOrderIdx={selectedOrderIndex} />
       case 'instructions': return <InstructionsTab data={shipmentDetails.instructionsData} />
       case 'documents': return <DocumentsTab data={shipmentDetails.documentsData} />
