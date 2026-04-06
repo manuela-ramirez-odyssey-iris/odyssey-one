@@ -58,78 +58,8 @@
 </thead>
 <tbody>
 
-<!-- Priority 1 -->
-<tr class="priority-group"><td colspan="6">Priority 1 — Data Corrections</td></tr>
-<tr>
-  <td></td>
-  <td class="id">SHP-12</td>
-  <td>Mode values correction</td>
-  <td><span class="size-s">S</span></td>
-  <td><span class="status-spec">Needs spec</span></td>
-  <td>Generator still produces FTL/LTL/INTERMODAL. Needs to become TL/LTL/RR/IMD/AIR per PPT deck. Affects main table Mode column and all downstream references.</td>
-</tr>
-<tr>
-  <td></td>
-  <td class="id">SHP-14</td>
-  <td>Missing product fields in generator</td>
-  <td><span class="size-m">M</span></td>
-  <td><span class="status-spec">Needs spec</span></td>
-  <td>~10 product fields from Exceptions PPT Slide 7 not in generator yet: hazmat UN#, boiling point, marine pollutant, WGK class, tunnel code, load constraints, toPartnerRef, thirdPartRef, thirdPartLine, thirdPartRefDate. Needed before Product tab and Column Arrangement can show full data.</td>
-</tr>
-
-<!-- Priority 2 -->
-<tr class="priority-group"><td colspan="6">Priority 2 — Monitoring View</td></tr>
-<tr>
-  <td></td>
-  <td class="id">SHP-15</td>
-  <td>Wire exception table tabs to filter rows</td>
-  <td><span class="size-m">M</span></td>
-  <td><span class="status-spec">Needs spec</span></td>
-  <td>The 6 tabs above the main table (All, Date Issues, Routing Review, Tender Issues, Tender Review, Bid Review) exist in the UI but clicking them does nothing. Need to wire them so each tab filters the shipment table to matching shipments.</td>
-</tr>
-<tr>
-  <td></td>
-  <td class="id">SHP-16</td>
-  <td>Monitoring row-filter tabs (Hold, Consolidation, Sent, Spot Bid)</td>
-  <td><span class="size-m">M</span></td>
-  <td><span class="status-spec">Needs spec</span></td>
-  <td>When user switches to Planning Monitoring panel, main table tabs change to: All (Monitoring), Hold, Consolidation, Sent, Spot Bid. These are ROW FILTERS (same pattern as Exception tabs), not column-group tabs. Each tab filters the shipment table to that monitoring category. CORRECTED Apr 1 &mdash; previously thought these swapped visible columns.</td>
-</tr>
-<tr>
-  <td></td>
-  <td class="id">SHP-17</td>
-  <td>PGI/PGR "Coming soon" placeholder</td>
-  <td><span class="size-s">S</span></td>
-  <td><span class="status-spec">Needs spec</span></td>
-  <td>Third monitor panel (PGI/PGR) needs a proper "Coming soon" state. Jana confirmed PGI/PGR not in scope yet. Sub-categories (PGI Errors, Manual PGI/PGR, Rating Failure) documented for future.</td>
-</tr>
-<tr>
-  <td></td>
-  <td class="id">SHP-22</td>
-  <td>Shipment status column + status mapping</td>
-  <td><span class="size-s">S</span></td>
-  <td><span class="status-spec">Needs spec</span></td>
-  <td>Add shipment status as visible column in main table. Values: Review, Done. Driven by tender status: Accepted&rarr;Done, Cancelled&rarr;Review, Declined&rarr;Review, Sent&rarr;blank. Also update generator tender statuses from 5 to 4 (remove Rejected, keep Declined). Jana Apr 1.</td>
-</tr>
-<tr>
-  <td></td>
-  <td class="id">SHP-20</td>
-  <td>Tender tab &mdash; status-aware behavior</td>
-  <td><span class="size-s">S</span></td>
-  <td><span class="status-spec">Needs spec</span></td>
-  <td>Tender tab (bottom bar) is identical in Exceptions and Monitoring &mdash; same layout, same routing table, same action buttons. Only difference: tender status values shown. Exceptions shows Cancelled/Declined. Monitoring shows Sent/Accepted. CORRECTED Apr 1 &mdash; was previously thought to be a separate read-only view.</td>
-</tr>
-<tr>
-  <td></td>
-  <td class="id">SHP-13</td>
-  <td>Three-dot menu context per panel</td>
-  <td><span class="size-s">S</span></td>
-  <td><span class="status-spec">Needs spec</span></td>
-  <td>Three-dot menu context per panel. Actions exist in both Exceptions and Monitoring (Jana Apr 1 correction), but available actions may differ. "Replan" for Monitoring confirmed. Needs spec review for which actions appear where.</td>
-</tr>
-
-<!-- Priority 3 -->
-<tr class="priority-group"><td colspan="6">Priority 3 — Column Arrangement</td></tr>
+<!-- Pending -->
+<tr class="priority-group"><td colspan="6">Priority 1 — Column Arrangement</td></tr>
 <tr>
   <td></td>
   <td class="id">SHP-18</td>
@@ -139,30 +69,19 @@
   <td>Two-level flow: presets list &rarr; draggable/checkbox column list. Locked columns (PPT green markers) always visible, can't be hidden/reordered. Saveable/shareable profiles. Applies to main table and bottom bar detail tables.</td>
 </tr>
 
-<!-- Priority 4 -->
-<tr class="priority-group"><td colspan="6">Priority 4 — Tender Summary Header</td></tr>
-<tr>
-  <td></td>
-  <td class="id">SHP-21</td>
-  <td>Tender summary header</td>
-  <td><span class="size-m">M</span></td>
-  <td><span class="status-spec">Needs spec</span></td>
-  <td>On shipment selection in Exceptions or Monitoring, a summary header appears showing shipment context: Buy/Sell IDs, mode, weight, equipment, distance, hazmat, pickup/delivery addresses. Shared layout across both panels. From Monitoring PPT Slide 4.</td>
-</tr>
-
-<!-- Priority 5 -->
-<tr class="priority-group"><td colspan="6">Priority 5 — Search &amp; Filtering</td></tr>
+<!-- Priority 2 -->
+<tr class="priority-group"><td colspan="6">Priority 2 — Search &amp; Filtering</td></tr>
 <tr>
   <td></td>
   <td class="id">SHP-19</td>
   <td>Search &amp; filtering expansion</td>
   <td><span class="size-l">L</span></td>
   <td><span class="status-spec">Needs spec</span></td>
-  <td>Currently 15 of ~45 search attributes wired. Filter panel syncs with visible columns, grouped by progression. "More filters" for advanced attributes. Full filter layering: panel tabs &rarr; chips &rarr; date ranges &rarr; saved profiles. Highly dependent on data — partially implemented.</td>
+  <td>Currently 15 of ~45 search attributes wired. Filter panel syncs with visible columns, grouped by progression. "More filters" for advanced attributes. Full filter layering: panel tabs &rarr; chips &rarr; date ranges &rarr; saved profiles. Highly dependent on data &mdash; partially implemented.</td>
 </tr>
 
-<!-- Priority 6 -->
-<tr class="priority-group"><td colspan="6">Priority 6 — Halted</td></tr>
+<!-- Halted -->
+<tr class="priority-group"><td colspan="6">Halted</td></tr>
 <tr>
   <td></td>
   <td class="id">SHP-9.3</td>
@@ -180,10 +99,149 @@
   <td>~20% of multi-order shipments should have orders from different customers. Each customer has different AR markup. Not active — waiting on business direction.</td>
 </tr>
 
+<!-- Scrapped -->
+<tr class="priority-group"><td colspan="6">Scrapped</td></tr>
+<tr class="done-group">
+  <td></td>
+  <td class="id"><s>SHP-13</s></td>
+  <td>"Replan" in three-dot menu</td>
+  <td><span class="size-s">S</span></td>
+  <td><span class="status-halted">Scrapped</span></td>
+  <td>Jana retracted "Replan" for three-dot menu (Mar 30: "forget replan, it happens from the tender screen"). SHP-13 repurposed to just update menu actions.</td>
+</tr>
+<tr class="done-group">
+  <td></td>
+  <td class="id"><s>SHP-16</s></td>
+  <td>Monitoring column-group tabs (original)</td>
+  <td><span class="size-m">M</span></td>
+  <td><span class="status-halted">Scrapped</span></td>
+  <td>Originally: Monitoring tabs swap visible columns (Routing Options, Notify &amp; Response, etc.). WRONG &mdash; Jana Apr 1 corrected: Monitoring is same screen as Exceptions, tabs are row filters. SHP-16 redefined as row-filter tabs.</td>
+</tr>
+<tr class="done-group">
+  <td></td>
+  <td class="id"><s>SHP-20</s></td>
+  <td>Tender tab read-only in Monitoring (original)</td>
+  <td><span class="size-m">M</span></td>
+  <td><span class="status-halted">Scrapped</span></td>
+  <td>Originally: separate read-only tender view for Monitoring with no actions. WRONG &mdash; Jana Apr 1 corrected: Tender tab is identical in both panels, actions available in both. SHP-20 redefined as status-aware behavior (1 line fix).</td>
+</tr>
+
 </tbody>
 </table>
 
-<!-- Completed Work -->
+<!-- Completed Work — Session 6 -->
+<br>
+<table>
+<colgroup>
+  <col class="col-priority">
+  <col class="col-id">
+  <col class="col-task">
+  <col class="col-size">
+  <col class="col-status">
+  <col class="col-desc">
+</colgroup>
+<thead>
+<tr>
+  <th>Session</th>
+  <th>ID</th>
+  <th>Task</th>
+  <th>Size</th>
+  <th>Status</th>
+  <th>Description</th>
+</tr>
+</thead>
+<tbody>
+
+<tr class="priority-group"><td colspan="6">Session 6 — April 1-2, 2026 (Data Corrections)</td></tr>
+<tr class="done-group">
+  <td>S6</td>
+  <td class="id">SHP-12</td>
+  <td>Mode values correction</td>
+  <td><span class="size-s">S</span></td>
+  <td><span class="status-done">Done</span></td>
+  <td>Generator updated: TL/LTL/RR/IMD/AIR with weighted distribution. TL/LTL majority, RR=2 customers, AIR rare. shipmentMode labels, stops constraints (non-TL=2 stops).</td>
+</tr>
+<tr class="done-group">
+  <td>S6</td>
+  <td class="id">SHP-14</td>
+  <td>Missing product fields in generator</td>
+  <td><span class="size-m">M</span></td>
+  <td><span class="status-done">Done</span></td>
+  <td>Added 10 fields: hazmatDescription, hazmatUnNumber (real UN numbers), boilingPoint, marinePollutant, wgkClass, tunnelCode, dimensions, loadConstraints, toPartnerRef, thirdPartRefDate.</td>
+</tr>
+
+<tr class="priority-group"><td colspan="6">Session 6 — April 1-2, 2026 (Monitoring View)</td></tr>
+<tr class="done-group">
+  <td>S6</td>
+  <td class="id">SHP-15</td>
+  <td>Wire exception table tabs to filter rows</td>
+  <td><span class="size-m">M</span></td>
+  <td><span class="status-done">Done</span></td>
+  <td>Added panel/category fields to generator. filteredShipments filters by activePanel then activeTab. Badges show real counts with realistic weighted distribution.</td>
+</tr>
+<tr class="done-group">
+  <td>S6</td>
+  <td class="id">SHP-16</td>
+  <td>Monitoring row-filter tabs</td>
+  <td><span class="size-m">M</span></td>
+  <td><span class="status-done">Done</span></td>
+  <td>Monitoring tabs (Hold, Consolidation, Sent, Spot Bid) are row filters, same as Exceptions. CORRECTED Apr 1.</td>
+</tr>
+<tr class="done-group">
+  <td>S6</td>
+  <td class="id">SHP-17</td>
+  <td>PGI/PGR "Coming soon" placeholder</td>
+  <td><span class="size-s">S</span></td>
+  <td><span class="status-done">Done</span></td>
+  <td>Centered placeholder message when PGI/PGR panel selected.</td>
+</tr>
+<tr class="done-group">
+  <td>S6</td>
+  <td class="id">SHP-22</td>
+  <td>Shipment status column + status mapping</td>
+  <td><span class="size-s">S</span></td>
+  <td><span class="status-done">Done</span></td>
+  <td>Shipment status derived from tender status (Accepted&rarr;Done, Cancelled/Declined&rarr;Review, Sent&rarr;blank). Visible column in main table. Tender statuses reduced to 4.</td>
+</tr>
+<tr class="done-group">
+  <td>S6</td>
+  <td class="id">SHP-20</td>
+  <td>Tender tab &mdash; status-aware behavior</td>
+  <td><span class="size-s">S</span></td>
+  <td><span class="status-done">Done</span></td>
+  <td>Tender tab identical in both panels. Data naturally shows correct statuses per panel. Removed stale "Rejected" status.</td>
+</tr>
+<tr class="done-group">
+  <td>S6</td>
+  <td class="id">SHP-13</td>
+  <td>Three-dot menu actions</td>
+  <td><span class="size-s">S</span></td>
+  <td><span class="status-done">Done</span></td>
+  <td>Updated to: "Buy Shipment", "Edit", "Tender by Preferred Carrier". Same in both panels.</td>
+</tr>
+
+<tr class="priority-group"><td colspan="6">Session 6 — April 1-2, 2026 (Tender Tab Full Layout)</td></tr>
+<tr class="done-group">
+  <td>S6</td>
+  <td class="id">SHP-21</td>
+  <td>Tender tab full PPT layout</td>
+  <td><span class="size-m">M</span></td>
+  <td><span class="status-spec">In Progress</span></td>
+  <td>Complete redesign matching Shipments-Monitoring PPT. Collapsed: compact 3-column summary. Fullscreen: full 4-column summary (Shipment, Order, Initial Pickup, Final Delivery) + action buttons + 5 sub-tabs (Routing Options, Notify &amp; Response, View Volume Commitment, Additional Info, Others) switching table columns.</td>
+</tr>
+<tr class="done-group">
+  <td>S6</td>
+  <td class="id">&mdash;</td>
+  <td>Backlog &amp; prioritization infrastructure</td>
+  <td><span class="size-m">M</span></td>
+  <td><span class="status-done">Done</span></td>
+  <td>Created formal backlog (SHP-11 to SHP-22), decision log (DEC-01 to DEC-27), conceptual "why" explanations in domain analysis, cross-cutting filtering vs column visibility rules, Apr 1 grooming analysis (major corrections).</td>
+</tr>
+
+</tbody>
+</table>
+
+<!-- Completed Work — Sessions 1-5 -->
 <br>
 <table>
 <colgroup>

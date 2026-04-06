@@ -553,3 +553,36 @@ Extracted and cross-referenced both PowerPoint decks (`Shipments-Monitoring.pptx
 1. Spec SHP-18 (Column Arrangement) — largest remaining item
 2. Spec SHP-21 (Tender Summary Header)
 3. Begin implementation
+
+---
+
+## Session 7 — April 6, 2026
+
+### SHP-21: Tender Tab Rebuild (Proper Spec Workflow)
+
+Went back to the proper brainstorm → spec → plan → implement workflow after Session 6 rushed this feature.
+
+#### Brainstorming Decisions
+- **Summary Header**: Merged CompactSummary + FullSummary into single TenderSummary component. Compact always visible, full detail in modal via "View Full Details" button
+- **Tender Actions**: Moved from standalone action bars to contextual 3-dot menu per carrier row (same UX pattern as shipments table). Actions contextual to tender status:
+  - null → Tender | Sent → Accept, Decline, Cancel | Accepted → Cancel | Declined/Cancelled → Re-Tender
+- **CTAs not colored**: Neutral/outlined style only — color language reserved for status badges
+- **Badge updates**: Real-time status badge update on action + cascade simulation (Decline/Cancel auto-tenders next null carrier)
+- **Row interaction**: Removed radio buttons, row highlights on 3-dot click, deselectable
+- **Add Quote**: Table-level button next to sub-tabs (trailing right)
+- **No fullscreen gating**: All content available in collapsed/partial/fullscreen states
+
+#### Implemented Changes
+
+| Component | What Changed |
+|---|---|
+| **Generator** | Added 25 new fields per carrier option (55 total): routing options (3), notify/response (3), volume commitment (6), additional info (8), others (8). VC fields sum to commitment. |
+| **RoutingGuideTab.jsx** | Full rewrite (~790 lines). TenderSummary, TenderDetailModal, ActionDropdown, RoutingTable, RoutingSubTabs. Cascade tendering. No radio buttons. |
+| **BottomBar.jsx** | Removed isFullscreen prop from RoutingGuideTab render |
+
+#### Font Sizes Restored
+- th: 12px (was 11px), td: 14px (was 12px), padding: 10px 14px (was 6px 10px)
+
+#### New Documentation
+- `docs/superpowers/specs/2026-04-06-shp21-tender-tab-design.md` — Full spec with 45 functional requirements, 9 edge cases, interaction state machines
+- `docs/superpowers/plans/2026-04-06-shp21-tender-tab.md` — 8-task implementation plan
