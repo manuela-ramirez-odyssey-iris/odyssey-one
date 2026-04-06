@@ -390,6 +390,11 @@ function generateShipment(index) {
     const cost = faker.number.float({ min: 100, max: 800, fractionDigits: 2 });
     const pickupHour = faker.number.int({ min: 6, max: 16 });
     const delivHour = faker.number.int({ min: 6, max: 22 });
+    // Volume commitment: pre-compute so vcOpen + vcAccept + vcDecline === commitment
+    const _commitment = faker.number.int({ min: 1, max: 20 });
+    const _vcOpen = faker.number.int({ min: 0, max: _commitment });
+    const _vcAccept = faker.number.int({ min: 0, max: _commitment - _vcOpen });
+    const _vcDecline = _commitment - _vcOpen - _vcAccept;
     return {
       rank,
       routeRank: faker.number.int({ min: 1, max: 3 }),
@@ -418,6 +423,44 @@ function generateShipment(index) {
       deliveryNum: isAccepted ? `${faker.string.alphanumeric(3).toUpperCase()}${faker.number.int({ min: 10000, max: 99999 })}` : '--',
       transitTimeSource: 'SMC',
       description: faker.lorem.words({ min: 2, max: 4 }),
+
+      // --- Routing Options tab (3 new) ---
+      responseUser: wasTendered ? faker.person.fullName() : null,
+      carrierQuoted: pick(['Yes', 'No']),
+      networkLeverage: `${faker.number.int({ min: 0, max: 35 })}%`,
+
+      // --- Notify & Response tab (3 new) ---
+      proNumber: isAccepted ? `PRO-${faker.string.numeric(8)}` : null,
+      transportingCarrier: faker.number.float({ min: 0, max: 1 }) < 0.7 ? rc.name : faker.company.name(),
+      equipNumber: `EQ-${faker.string.alphanumeric(6).toUpperCase()}`,
+
+      // --- Volume Commitment tab (6 new) ---
+      commitment: _commitment,
+      uom: pick(['Loads/Week', 'Loads/Month']),
+      vcEquipNumber: `EQ-${faker.string.alphanumeric(6).toUpperCase()}`,
+      vcOpen: _vcOpen,
+      vcAccept: _vcAccept,
+      vcDecline: _vcDecline,
+
+      // --- Additional Info tab (8 new) ---
+      carrierApiTenderId: faker.string.uuid(),
+      breakPoint: faker.number.float({ min: 0, max: 1 }) < 0.8 ? faker.location.city() : 'Direct',
+      rateSource: pick(['Contract', 'Spot', 'Benchmark', 'Historical']),
+      distanceSource: pick(['PC Miler', 'Google Maps', 'ALK', 'Manual']),
+      transitTimeId: `TT-${faker.string.alphanumeric(8).toUpperCase()}`,
+      loadboardExpiry: faker.number.float({ min: 0, max: 1 }) < 0.7 ? formatDateTime(genDate(baseDate, faker.number.int({ min: 5, max: 30 }))) : '--',
+      rcpId: `RCP-${faker.string.alphanumeric(6).toUpperCase()}`,
+      lcePkId: faker.number.int({ min: 100000, max: 999999 }),
+
+      // --- Others tab (8 new) ---
+      modifyUser: faker.person.fullName(),
+      modifyDate: formatDateTime(genDate(baseDate, faker.number.int({ min: -10, max: 0 }))),
+      indirectPoint: faker.number.float({ min: 0, max: 1 }) < 0.6 ? faker.location.city() : 'N/A',
+      roundTrip: pick(['Yes', 'No']),
+      customerPreferred: pick(['Yes', 'No']),
+      orderEquip: pick(EQUIPMENT_CODES),
+      contactExped: `${faker.person.fullName()} ${faker.phone.number()}`,
+      note: faker.number.float({ min: 0, max: 1 }) < 0.5 ? faker.lorem.sentence() : '--',
     };
   });
 
@@ -873,24 +916,53 @@ const PANEL_CATEGORIES = {
   pgipgr: ['pgipgr-errors', 'rating-failure', 'manual-pgipgr'],
 };
 
-function assignPanelAndCategory(index, total) {
-  // ~40% exceptions (0-79), ~40% monitoring (80-159), ~20% pgipgr (160-199)
-  const exceptionsCount = Math.round(total * 0.4);
-  const monitoringCount = Math.round(total * 0.4);
+// Weighted random: pick from items using weights array (weights are relative, not %)
+function weightedPick(items, weights) {
+  const total = weights.reduce((a, b) => a + b, 0);
+  let r = faker.number.float({ min: 0, max: total, multipleOf: 0.001 });
+  for (let i = 0; i < items.length; i++) {
+    r -= weights[i];
+    if (r <= 0) return items[i];
+  }
+  return items[items.length - 1];
+}
 
-  let panel, categories;
-  if (index < exceptionsCount) {
+// Category weights within each panel (realistic, unequal distribution)
+const CATEGORY_WEIGHTS = {
+  exceptions: {
+    items:   ['date-issues', 'routing-review', 'tender-issues', 'tender-review', 'bid-review'],
+    weights: [28, 22, 22, 18, 10], // date-issues most common, bid-review least
+  },
+  monitoring: {
+    items:   ['sent', 'hold', 'consolidation', 'spotbid'],
+    weights: [38, 22, 20, 20], // sent is dominant
+  },
+  pgipgr: {
+    items:   ['pgipgr-errors', 'manual-pgipgr', 'rating-failure'],
+    weights: [45, 33, 22], // PGI errors most common
+  },
+};
+
+// Panel sizes vary slightly from the base 40/40/20 split
+const PANEL_COUNTS = {
+  exceptions: faker.number.int({ min: 75, max: 85 }),
+  monitoring: faker.number.int({ min: 75, max: 85 }),
+  // pgipgr gets the remainder (roughly 35-45)
+};
+PANEL_COUNTS.pgipgr = 200 - PANEL_COUNTS.exceptions - PANEL_COUNTS.monitoring;
+
+function assignPanelAndCategory(index, _total) {
+  let panel;
+  if (index < PANEL_COUNTS.exceptions) {
     panel = 'exceptions';
-    categories = PANEL_CATEGORIES.exceptions;
-  } else if (index < exceptionsCount + monitoringCount) {
+  } else if (index < PANEL_COUNTS.exceptions + PANEL_COUNTS.monitoring) {
     panel = 'monitoring';
-    categories = PANEL_CATEGORIES.monitoring;
   } else {
     panel = 'pgipgr';
-    categories = PANEL_CATEGORIES.pgipgr;
   }
 
-  const category = categories[index % categories.length];
+  const { items, weights } = CATEGORY_WEIGHTS[panel];
+  const category = weightedPick(items, weights);
   return { panel, category };
 }
 
