@@ -260,7 +260,7 @@ const ShipmentRow = React.memo(function ShipmentRow({ shipment, isSelected, onSe
           setMenuPos({ top: rect.bottom + 4, left: rect.right })
           setMenuOpen((prev) => !prev)
         }}
-        style={{ ...stickyLastCol, width: 56, flexShrink: 0, height: ROW_HEIGHT, borderBottom: '1px solid var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: isSelected ? 'var(--badge-blue-bg)' : 'var(--bg-primary)' }}
+        style={{ width: 56, flexShrink: 0, height: ROW_HEIGHT, borderBottom: '1px solid var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: isSelected ? 'var(--badge-blue-bg)' : 'var(--bg-primary)' }}
       >
         <MoreVertical size={16} style={{ color: 'var(--text-placeholder)' }} />
         {menuOpen && <ActionMenu shipmentId={s.buyShipment} position={menuPos} onClose={() => setMenuOpen(false)} />}
@@ -351,8 +351,8 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
   }), [shipments, selectedId, handleSelect, orderedColumns])
 
   return (
-    <div ref={containerRef} className="flex-1 min-h-0 overflow-hidden flex flex-col"
-      style={{ borderRadius: 'var(--radius-lg)', paddingBottom: 'var(--bottombar-collapsed)', minHeight: 560 }}>
+    <div ref={containerRef} className="flex-1 min-h-0 overflow-hidden flex flex-col text-sm"
+      style={{ borderRadius: 'var(--radius-lg)', paddingBottom: 'var(--bottombar-collapsed)', minHeight: 560, color: 'var(--text-secondary)', fontFamily: 'var(--font-primary)' }}>
       {/* Sticky header */}
       <div ref={headerRef} style={{ flexShrink: 0, overflowX: 'hidden' }}>
         <div className="flex" style={{ minWidth: 'max-content' }}>
@@ -363,7 +363,7 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
               {col.label}
             </div>
           ))}
-          <div style={{ ...stickyLastCol, zIndex: 5, width: 56, flexShrink: 0, padding: '0 var(--spacing-4)', height: 'var(--bottombar-collapsed)', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: 56, flexShrink: 0, padding: '0 var(--spacing-4)', height: 'var(--bottombar-collapsed)', background: 'var(--bg-primary)', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <button
               className="flex items-center justify-center mx-auto bg-transparent border-none cursor-pointer p-1 rounded"
               style={{ color: 'var(--text-placeholder)' }}
