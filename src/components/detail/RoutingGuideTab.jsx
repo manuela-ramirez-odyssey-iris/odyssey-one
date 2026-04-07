@@ -565,11 +565,13 @@ function RoutingTable({ options, columns, highlightedRank, openMenuRank, onOpenM
                 key={option.rank}
                 style={{
                   cursor: 'default',
-                  background: isHighlighted ? 'var(--badge-blue-bg)' : 'var(--bg-primary)',
+                  background: isHighlighted
+                    ? (STATUS_STYLES[option.status]?.bg ?? 'var(--badge-blue-bg)')
+                    : 'var(--bg-primary)',
                   transition: 'background 0.12s ease',
                 }}
                 onMouseEnter={(e) => { if (!isHighlighted) e.currentTarget.style.background = 'var(--bg-secondary)' }}
-                onMouseLeave={(e) => { if (!isHighlighted) e.currentTarget.style.background = isHighlighted ? 'var(--badge-blue-bg)' : 'var(--bg-primary)' }}
+                onMouseLeave={(e) => { if (!isHighlighted) e.currentTarget.style.background = 'var(--bg-primary)' }}
               >
                 {columns.map((col) => {
                   const isPrimary = col.primary
@@ -586,11 +588,16 @@ function RoutingTable({ options, columns, highlightedRank, openMenuRank, onOpenM
                   )
                 })}
                 <td
-                  style={{ ...stickyLastCol, padding: '0 var(--spacing-4)', borderBottom: '1px solid var(--bg-tertiary)', textAlign: 'center', width: 72, cursor: 'pointer', background: isHighlighted ? 'var(--badge-blue-bg)' : (option.status && STATUS_STYLES[option.status] ? STATUS_STYLES[option.status].bg : 'var(--bg-primary)') }}
+                  style={{ ...stickyLastCol, padding: '0 var(--spacing-4)', borderBottom: '1px solid var(--bg-tertiary)', textAlign: 'center', width: 72, cursor: 'pointer', background: isHighlighted ? (STATUS_STYLES[option.status]?.bg ?? 'var(--badge-blue-bg)') : (STATUS_STYLES[option.status]?.bg ?? 'var(--bg-primary)') }}
                   onClick={(e) => {
                     e.stopPropagation()
                     const rect = e.currentTarget.getBoundingClientRect()
-                    onOpenMenu(option.rank, { top: rect.bottom + 4, left: rect.right })
+                    const dropdownHeight = 200
+                    const spaceBelow = window.innerHeight - rect.bottom
+                    const top = spaceBelow < dropdownHeight
+                      ? Math.max(8, rect.top - dropdownHeight)
+                      : rect.bottom + 4
+                    onOpenMenu(option.rank, { top, left: rect.right })
                   }}
                 >
                   <div className="flex items-center justify-center" style={{ width: '100%', height: '100%' }}>

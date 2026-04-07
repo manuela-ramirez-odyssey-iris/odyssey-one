@@ -75,7 +75,6 @@ function ActionMenu({ shipmentId, position, onClose }) {
   }, [onClose])
 
   const items = [
-    { label: 'Buy Shipment', key: 'buy' },
     { label: 'Edit', key: 'edit' },
     { label: 'Tender by Preferred Carrier', key: 'tender' },
   ]
