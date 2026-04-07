@@ -131,6 +131,14 @@ const HAZMAT_DESCRIPTIONS = {
   'Class 8': 'Corrosive substance',
 };
 
+const CHARGE_CODES = [
+  { code: 'THC', description: 'Terminal Handling Charge' },
+  { code: 'FSC', description: 'Fuel Surcharge' },
+  { code: 'SOC', description: 'Stop-Off Charge' },
+  { code: 'HZC', description: 'Hazmat Charge' },
+  { code: 'ACC', description: 'Accessorial' },
+];
+
 const LOAD_CONSTRAINTS = ['Keep Upright', 'No Stacking', 'Temperature Controlled', 'Fragile - Handle With Care', 'Keep Dry', '--'];
 
 const INSTRUCTION_TEMPLATES = [
@@ -400,7 +408,6 @@ function generateShipment(index) {
     const isAccepted = status === 'Accepted';
     const wasTendered = status !== null;
     const baseRate = faker.number.float({ min: 200, max: 2000, fractionDigits: 2 });
-    const cost = faker.number.float({ min: 100, max: 800, fractionDigits: 2 });
     const pickupHour = faker.number.int({ min: 6, max: 16 });
     const delivHour = faker.number.int({ min: 6, max: 22 });
     // Volume commitment: pre-compute so vcOpen + vcAccept + vcDecline === commitment
@@ -408,6 +415,21 @@ function generateShipment(index) {
     const _vcOpen = faker.number.int({ min: 0, max: _commitment });
     const _vcAccept = faker.number.int({ min: 0, max: _commitment - _vcOpen });
     const _vcDecline = _commitment - _vcOpen - _vcAccept;
+
+    // Rate details per carrier
+    const _baseRate = faker.number.float({ min: 200, max: 2000, fractionDigits: 2 });
+    const _markup = faker.number.float({ min: 50, max: 400, fractionDigits: 2 });
+    const _numCharges = faker.number.int({ min: 0, max: 3 });
+    const _additionalCharges = faker.helpers.arrayElements(CHARGE_CODES, _numCharges).map(cc => ({
+      code: cc.code,
+      description: cc.description,
+      amount: faker.number.float({ min: 50, max: 500, fractionDigits: 2 }),
+      currency: 'USD',
+    }));
+    const _chargeTotal = _additionalCharges.reduce((s, c) => s + c.amount, 0);
+    const _apTotal = Math.round((_baseRate + _chargeTotal) * 100) / 100;
+    const _arTotal = Math.round((_baseRate + _markup + _chargeTotal) * 100) / 100;
+
     return {
       rank,
       routeRank: routeRanks[ri],
@@ -415,7 +437,15 @@ function generateShipment(index) {
       carrierName: rc.name,
       equipment: pick(EQUIPMENT_CODES),
       rate: `$${fmt(baseRate)}`,
-      cost: `$${fmt(cost)} USD`,
+      cost: `$${fmt(_apTotal)} USD`,
+      rateDetails: {
+        baseRate: _baseRate,
+        currency: 'USD',
+        markup: _markup,
+        additionalCharges: _additionalCharges,
+        apTotal: _apTotal,
+        arTotal: _arTotal,
+      },
       status,
       pickupDateTime: formatDateTime(baseDate),
       pickupTZ: 'CST',
@@ -496,8 +526,13 @@ function generateShipment(index) {
     ? pick(VALIDATION_MESSAGES[category])
     : null;
 
+  // Use accepted carrier's rateDetails as base for cost allocation when available
+  const acceptedOption = routingOptions.find(o => o.status === 'Accepted');
+
   // Cost allocation
-  const apBase = faker.number.float({ min: 500, max: 5000, fractionDigits: 2 });
+  const apBase = acceptedOption
+    ? acceptedOption.rateDetails.baseRate
+    : faker.number.float({ min: 500, max: 5000, fractionDigits: 2 });
   const apFuel = Math.round(apBase * faker.number.float({ min: 0.25, max: 0.45, fractionDigits: 2 }) * 100) / 100;
   const apDiscount = faker.datatype.boolean() ? Math.round(apBase * faker.number.float({ min: 0.03, max: 0.1, fractionDigits: 2 }) * 100) / 100 : 0;
   const apAccessorials = faker.datatype.boolean() ? faker.number.float({ min: 50, max: 400, fractionDigits: 2 }) : 0;

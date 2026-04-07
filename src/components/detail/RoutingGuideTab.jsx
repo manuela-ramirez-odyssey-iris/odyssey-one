@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { TruckElectric, Columns3Cog, X } from 'lucide-react'
+import { TruckElectric, Columns3Cog, X, Trash2 } from 'lucide-react'
 
 /* ═══════════════════════════════════════════════════════════
    Section 1 — Constants
@@ -132,6 +132,32 @@ const stickyLastCol = {
   background: 'var(--bg-primary)',
   boxShadow: '-2px 0 4px rgba(0,0,0,0.06)',
 }
+
+const CARRIERS = [
+  { scac: 'SEFL', name: 'SOUTHEASTERN FREIGHT LINES' },
+  { scac: 'ODFL', name: 'OLD DOMINION FREIGHT LINE' },
+  { scac: 'XPOL', name: 'XPO LOGISTICS' },
+  { scac: 'EXLA', name: 'ESTES EXPRESS LINES' },
+  { scac: 'SAIA', name: 'SAIA INC' },
+  { scac: 'CTNS', name: 'CONTINENTAL TRANSPORTATION' },
+  { scac: 'JBHT', name: 'J.B. HUNT TRANSPORT' },
+  { scac: 'SNLU', name: 'SCHNEIDER NATIONAL' },
+  { scac: 'USFC', name: 'USF CORPORATION' },
+  { scac: 'FXFE', name: 'FEDEX FREIGHT ECONOMY' },
+  { scac: 'UPGF', name: 'UPS FREIGHT' },
+  { scac: 'RLCA', name: 'R+L CARRIERS' },
+  { scac: 'ABFS', name: 'ABF FREIGHT SYSTEM' },
+  { scac: 'CNWY', name: 'CONWAY FREIGHT' },
+  { scac: 'WARD', name: 'WARD TRUCKING' },
+]
+
+const CHARGE_CODES = [
+  { code: 'THC', description: 'Terminal Handling Charge' },
+  { code: 'FSC', description: 'Fuel Surcharge' },
+  { code: 'SOC', description: 'Stop-Off Charge' },
+  { code: 'HZC', description: 'Hazmat Charge' },
+  { code: 'ACC', description: 'Accessorial' },
+]
 
 /* ═══════════════════════════════════════════════════════════
    Section 2 — Helper Components
@@ -413,6 +439,448 @@ function TenderDetailModal({ isOpen, onClose, shipment, shipmentDetails }) {
 }
 
 /* ═══════════════════════════════════════════════════════════
+   Section 4b — QuoteModal
+   ═══════════════════════════════════════════════════════════ */
+
+function QuoteModal({ mode, carrierData, onSave, onClose }) {
+  const isView = mode === 'view'
+  const isEdit = mode === 'edit'
+
+  const [scac, setScac] = useState(() => carrierData?.scac || '')
+  const [carrierName, setCarrierName] = useState(() => carrierData?.carrierName || '')
+  const [pickupDateTime, setPickupDateTime] = useState(() => carrierData?.pickupDateTime || '')
+  const [deliveryDateTime, setDeliveryDateTime] = useState(() => carrierData?.deliveryDateTime || '')
+  const [baseRate, setBaseRate] = useState(() => carrierData?.rateDetails?.baseRate ?? '')
+  const [currency, setCurrency] = useState(() => carrierData?.rateDetails?.currency || 'USD')
+  const [markup, setMarkup] = useState(() => carrierData?.rateDetails?.markup ?? '')
+  const [markupCurrency, setMarkupCurrency] = useState(() => 'USD')
+  const [additionalCharges, setAdditionalCharges] = useState(() =>
+    carrierData?.rateDetails?.additionalCharges?.map(c => ({ ...c })) || [],
+  )
+
+  const handleKeyDown = useCallback(
+    (e) => { if (e.key === 'Escape') onClose() },
+    [onClose],
+  )
+
+  useEffect(() => {
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [handleKeyDown])
+
+  const handleScacChange = (val) => {
+    setScac(val)
+    const found = CARRIERS.find(c => c.scac === val)
+    setCarrierName(found ? found.name : '')
+  }
+
+  const addChargeRow = () => {
+    setAdditionalCharges(prev => [...prev, { code: '', description: '', amount: '', currency: 'USD' }])
+  }
+
+  const updateCharge = (idx, field, value) => {
+    setAdditionalCharges(prev => prev.map((c, i) => {
+      if (i !== idx) return c
+      if (field === 'code') {
+        const found = CHARGE_CODES.find(cc => cc.code === value)
+        return { ...c, code: value, description: found ? found.description : '' }
+      }
+      return { ...c, [field]: field === 'amount' ? (value === '' ? '' : Number(value)) : value }
+    }))
+  }
+
+  const removeCharge = (idx) => {
+    setAdditionalCharges(prev => prev.filter((_, i) => i !== idx))
+  }
+
+  // Derived totals
+  const numBase = Number(baseRate) || 0
+  const numMarkup = Number(markup) || 0
+  const chargeTotal = additionalCharges.reduce((s, c) => s + (Number(c.amount) || 0), 0)
+  const apTotal = Math.round((numBase + chargeTotal) * 100) / 100
+  const arTotal = Math.round((numBase + numMarkup + chargeTotal) * 100) / 100
+
+  const handleSave = () => {
+    onSave({
+      scac,
+      carrierName,
+      pickupDateTime,
+      deliveryDateTime,
+      rateDetails: {
+        baseRate: numBase,
+        currency,
+        markup: numMarkup,
+        additionalCharges: additionalCharges.filter(c => c.code),
+        apTotal,
+        arTotal,
+      },
+    })
+  }
+
+  const title = mode === 'add' ? 'Add Quote' : mode === 'edit' ? 'Edit Quote' : 'Rate Details'
+
+  const inputStyle = {
+    width: '100%',
+    padding: '6px 8px',
+    fontSize: 13,
+    fontFamily: 'var(--font-primary)',
+    background: isView ? 'var(--bg-tertiary)' : 'var(--bg-primary)',
+    border: '1px solid var(--border-subtle)',
+    borderRadius: 'var(--radius-sm)',
+    color: 'var(--text-primary)',
+    outline: 'none',
+  }
+
+  const labelStyle = {
+    fontSize: 11,
+    fontWeight: 600,
+    color: 'var(--text-tertiary)',
+    textTransform: 'uppercase',
+    letterSpacing: '0.03em',
+    marginBottom: 4,
+  }
+
+  const fmt2 = (n) => Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
+  return createPortal(
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0,0,0,0.4)',
+        backdropFilter: 'blur(4px)',
+        zIndex: 9999,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: '90vw',
+          maxWidth: 720,
+          maxHeight: '85vh',
+          overflow: 'auto',
+          background: 'var(--bg-primary)',
+          borderRadius: 'var(--radius-md)',
+          border: '1px solid var(--border-subtle)',
+          boxShadow: 'var(--shadow-lg)',
+        }}
+      >
+        {/* Header */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '12px 16px',
+          borderBottom: '1px solid var(--border-subtle)',
+        }}>
+          <span style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>{title}</span>
+          <button
+            onClick={onClose}
+            style={{ color: 'var(--text-placeholder)', padding: 0, background: 'transparent', border: 'none', cursor: 'pointer', transition: 'color 0.15s ease' }}
+            onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
+            onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-placeholder)'}
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <div style={{ padding: '16px' }}>
+          {/* Carrier Section */}
+          <SectionHeader>Carrier</SectionHeader>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+            <div>
+              <div style={labelStyle}>SCAC</div>
+              <select
+                value={scac}
+                onChange={(e) => handleScacChange(e.target.value)}
+                disabled={isView || isEdit}
+                style={{ ...inputStyle, cursor: (isView || isEdit) ? 'default' : 'pointer' }}
+              >
+                <option value="">Select SCAC...</option>
+                {CARRIERS.map(c => (
+                  <option key={c.scac} value={c.scac}>{c.scac}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <div style={labelStyle}>Carrier Name</div>
+              <input
+                type="text"
+                value={carrierName}
+                disabled
+                style={{ ...inputStyle, background: 'var(--bg-tertiary)' }}
+              />
+            </div>
+            <div>
+              <div style={labelStyle}>Pickup Date/Time</div>
+              <input
+                type="text"
+                value={pickupDateTime}
+                onChange={(e) => setPickupDateTime(e.target.value)}
+                disabled={isView}
+                placeholder="MM/DD/YYYY HH:MM CST"
+                style={inputStyle}
+              />
+            </div>
+            <div>
+              <div style={labelStyle}>Delivery Date/Time</div>
+              <input
+                type="text"
+                value={deliveryDateTime}
+                onChange={(e) => setDeliveryDateTime(e.target.value)}
+                disabled={isView}
+                placeholder="MM/DD/YYYY HH:MM CST"
+                style={inputStyle}
+              />
+            </div>
+          </div>
+
+          {/* Rate Section */}
+          <SectionHeader>Rate</SectionHeader>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr auto', gap: 12, marginBottom: 16, alignItems: 'end' }}>
+            <div>
+              <div style={labelStyle}>Base Rate *</div>
+              <input
+                type="number"
+                value={baseRate}
+                onChange={(e) => setBaseRate(e.target.value === '' ? '' : Number(e.target.value))}
+                disabled={isView}
+                style={inputStyle}
+                min="0"
+                step="0.01"
+              />
+            </div>
+            <div>
+              <div style={labelStyle}>Currency</div>
+              <select value={currency} onChange={(e) => setCurrency(e.target.value)} disabled={isView} style={{ ...inputStyle, width: 80 }}>
+                <option value="USD">USD</option>
+                <option value="CAD">CAD</option>
+                <option value="EUR">EUR</option>
+              </select>
+            </div>
+            <div>
+              <div style={labelStyle}>Markup</div>
+              <input
+                type="number"
+                value={markup}
+                onChange={(e) => setMarkup(e.target.value === '' ? '' : Number(e.target.value))}
+                disabled={isView}
+                style={inputStyle}
+                min="0"
+                step="0.01"
+              />
+            </div>
+            <div>
+              <div style={labelStyle}>Currency</div>
+              <select value={markupCurrency} onChange={(e) => setMarkupCurrency(e.target.value)} disabled={isView} style={{ ...inputStyle, width: 80 }}>
+                <option value="USD">USD</option>
+                <option value="CAD">CAD</option>
+                <option value="EUR">EUR</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Additional Charges */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+            <SectionHeader>Additional Charges</SectionHeader>
+            {!isView && (
+              <button
+                onClick={addChargeRow}
+                style={{
+                  padding: '4px 10px',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  fontFamily: 'var(--font-primary)',
+                  background: 'var(--btn-secondary-bg)',
+                  border: '1px solid var(--btn-secondary-border)',
+                  borderRadius: 'var(--radius-sm)',
+                  color: 'var(--btn-secondary-text)',
+                  cursor: 'pointer',
+                }}
+              >
+                + Add Row
+              </button>
+            )}
+          </div>
+
+          {additionalCharges.length > 0 && (
+            <div style={{ marginBottom: 16 }}>
+              {/* Charge table header */}
+              <div style={{ display: 'grid', gridTemplateColumns: '100px 1fr 100px 80px 32px', gap: 8, marginBottom: 4 }}>
+                <div style={labelStyle}>Code</div>
+                <div style={labelStyle}>Description</div>
+                <div style={labelStyle}>Amount</div>
+                <div style={labelStyle}>Currency</div>
+                <div />
+              </div>
+              {additionalCharges.map((charge, idx) => (
+                <div key={idx} style={{ display: 'grid', gridTemplateColumns: '100px 1fr 100px 80px 32px', gap: 8, marginBottom: 6, alignItems: 'center' }}>
+                  <select
+                    value={charge.code}
+                    onChange={(e) => updateCharge(idx, 'code', e.target.value)}
+                    disabled={isView}
+                    style={{ ...inputStyle, padding: '4px 6px' }}
+                  >
+                    <option value="">--</option>
+                    {CHARGE_CODES.map(cc => (
+                      <option key={cc.code} value={cc.code}>{cc.code}</option>
+                    ))}
+                  </select>
+                  <input
+                    type="text"
+                    value={charge.description}
+                    disabled
+                    style={{ ...inputStyle, padding: '4px 6px', background: 'var(--bg-tertiary)' }}
+                  />
+                  <input
+                    type="number"
+                    value={charge.amount}
+                    onChange={(e) => updateCharge(idx, 'amount', e.target.value)}
+                    disabled={isView}
+                    style={{ ...inputStyle, padding: '4px 6px' }}
+                    min="0"
+                    step="0.01"
+                  />
+                  <select
+                    value={charge.currency}
+                    onChange={(e) => updateCharge(idx, 'currency', e.target.value)}
+                    disabled={isView}
+                    style={{ ...inputStyle, padding: '4px 6px' }}
+                  >
+                    <option value="USD">USD</option>
+                    <option value="CAD">CAD</option>
+                    <option value="EUR">EUR</option>
+                  </select>
+                  {!isView ? (
+                    <button
+                      onClick={() => removeCharge(idx)}
+                      style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-placeholder)', padding: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      onMouseEnter={(e) => e.currentTarget.style.color = 'var(--badge-red-text)'}
+                      onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-placeholder)'}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  ) : <div />}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {additionalCharges.length === 0 && (
+            <div style={{ fontSize: 13, color: 'var(--text-placeholder)', marginBottom: 16 }}>
+              No additional charges.
+            </div>
+          )}
+
+          {/* Summary Cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+            {/* AP Card */}
+            <div style={{
+              background: 'var(--bg-secondary)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: 'var(--radius-md)',
+              padding: '12px 14px',
+            }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8 }}>
+                AP Summary
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--text-secondary)', marginBottom: 4 }}>
+                <span>Base Rate</span>
+                <span style={{ fontVariantNumeric: 'tabular-nums' }}>${fmt2(numBase)}</span>
+              </div>
+              {additionalCharges.filter(c => c.code).map((c, i) => (
+                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--text-secondary)', marginBottom: 4 }}>
+                  <span>{c.code}</span>
+                  <span style={{ fontVariantNumeric: 'tabular-nums' }}>${fmt2(c.amount || 0)}</span>
+                </div>
+              ))}
+              <div style={{ borderTop: '1px solid var(--border-subtle)', marginTop: 6, paddingTop: 6, display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
+                <span>Total</span>
+                <span style={{ fontVariantNumeric: 'tabular-nums' }}>${fmt2(apTotal)}</span>
+              </div>
+            </div>
+
+            {/* AR Card */}
+            <div style={{
+              background: 'var(--bg-secondary)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: 'var(--radius-md)',
+              padding: '12px 14px',
+            }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8 }}>
+                AR Summary
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--text-secondary)', marginBottom: 4 }}>
+                <span>Base Rate</span>
+                <span style={{ fontVariantNumeric: 'tabular-nums' }}>${fmt2(numBase)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--text-secondary)', marginBottom: 4 }}>
+                <span>Markup</span>
+                <span style={{ fontVariantNumeric: 'tabular-nums' }}>${fmt2(numMarkup)}</span>
+              </div>
+              {additionalCharges.filter(c => c.code).map((c, i) => (
+                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--text-secondary)', marginBottom: 4 }}>
+                  <span>{c.code}</span>
+                  <span style={{ fontVariantNumeric: 'tabular-nums' }}>${fmt2(c.amount || 0)}</span>
+                </div>
+              ))}
+              <div style={{ borderTop: '1px solid var(--border-subtle)', marginTop: 6, paddingTop: 6, display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
+                <span>Total</span>
+                <span style={{ fontVariantNumeric: 'tabular-nums' }}>${fmt2(arTotal)}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer buttons */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, paddingTop: 8 }}>
+            <button
+              onClick={onClose}
+              style={{
+                padding: '8px 16px',
+                fontSize: 13,
+                fontWeight: 600,
+                fontFamily: 'var(--font-primary)',
+                background: 'var(--btn-secondary-bg)',
+                border: '1px solid var(--btn-secondary-border)',
+                borderRadius: 'var(--radius-lg)',
+                color: 'var(--btn-secondary-text)',
+                cursor: 'pointer',
+              }}
+            >
+              {isView ? 'Close' : 'Cancel'}
+            </button>
+            {!isView && (
+              <button
+                onClick={handleSave}
+                disabled={!scac || !baseRate}
+                style={{
+                  padding: '8px 16px',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  fontFamily: 'var(--font-primary)',
+                  background: (!scac || !baseRate) ? 'var(--bg-tertiary)' : 'var(--btn-primary-bg, #2563eb)',
+                  border: '1px solid transparent',
+                  borderRadius: 'var(--radius-lg)',
+                  color: (!scac || !baseRate) ? 'var(--text-placeholder)' : '#fff',
+                  cursor: (!scac || !baseRate) ? 'not-allowed' : 'pointer',
+                }}
+              >
+                Save Quote
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  )
+}
+
+/* ═══════════════════════════════════════════════════════════
    Section 5 — ActionDropdown
    ═══════════════════════════════════════════════════════════ */
 
@@ -491,6 +959,14 @@ function ActionDropdown({ status, position, onAction, onClose }) {
       <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.04em', padding: '4px 12px 4px' }}>
         Rate Details
       </div>
+      <button
+        style={btnStyle}
+        onClick={() => { onAction('EditQuote') }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-secondary)' }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+      >
+        Edit Quote
+      </button>
       <button
         style={btnStyle}
         onClick={() => { onAction('ShowRateDetails') }}
@@ -666,6 +1142,7 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 })
   const [options, setOptions] = useState(data?.options || [])
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
+  const [quoteModal, setQuoteModal] = useState({ isOpen: false, mode: 'add', carrierData: null })
   const tableRef = useRef(null)
 
   /* Reset all state when data changes (new shipment selected) */
@@ -676,6 +1153,7 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
     setMenuPos({ top: 0, left: 0 })
     setOptions(data?.options || [])
     setIsDetailModalOpen(false)
+    setQuoteModal({ isOpen: false, mode: 'add', carrierData: null })
   }, [data])
 
   /* Click-outside listener: clicks outside tableRef and not inside [data-tender-dropdown] */
@@ -700,9 +1178,99 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
     setOpenMenuRank(null)
   }, [])
 
+  const handleQuoteSave = useCallback((formData) => {
+    if (quoteModal.mode === 'add') {
+      setOptions((prev) => {
+        const maxRank = prev.reduce((m, o) => Math.max(m, o.rank), 0)
+        const newOption = {
+          rank: maxRank + 1,
+          routeRank: maxRank + 1,
+          scac: formData.scac,
+          carrierName: formData.carrierName,
+          equipment: '--',
+          rate: `$${formData.rateDetails.baseRate.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+          cost: `$${formData.rateDetails.apTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD`,
+          rateDetails: formData.rateDetails,
+          status: null,
+          pickupDateTime: formData.pickupDateTime || '--',
+          deliveryDateTime: formData.deliveryDateTime || '--',
+          transit: '--',
+          distance: '--',
+          api: '--',
+          notifyDateTime: '--',
+          responseMethod: '--',
+          responseDateTime: '--',
+          responseUser: null,
+          carrierQuoted: 'Yes',
+          networkLeverage: '0%',
+          proNumber: null,
+          transportingCarrier: formData.carrierName,
+          equipNumber: '--',
+          routeGroup: 'Spot',
+          commitment: 0,
+          uom: '--',
+          vcEquipNumber: '--',
+          vcOpen: 0,
+          vcAccept: 0,
+          vcDecline: 0,
+          carrierApiTenderId: '--',
+          breakPoint: 'Direct',
+          rateSource: 'Manual',
+          distanceSource: '--',
+          description: 'Manual quote',
+          transitTimeSource: '--',
+          transitTimeId: '--',
+          loadboardExpiry: '--',
+          rcpId: '--',
+          lcePkId: '--',
+          modifyUser: 'Current User',
+          modifyDate: new Date().toLocaleString(),
+          indirectPoint: 'N/A',
+          roundTrip: 'No',
+          customerPreferred: 'No',
+          orderEquip: '--',
+          contactExped: '--',
+          note: '--',
+          sl: '--',
+          linehaul: 'Pending',
+          carrierPickup: '--',
+          deliveryNum: '--',
+          pickupTZ: 'CST',
+          deliveryTZ: 'CST',
+          pickupOrgHours: '--',
+          pickupOrgDay: '--',
+          deliveryOrgHours: '--',
+        }
+        return [...prev, newOption]
+      })
+    } else if (quoteModal.mode === 'edit') {
+      setOptions((prev) =>
+        prev.map((opt) => {
+          if (opt.rank !== quoteModal.carrierData.rank) return opt
+          return {
+            ...opt,
+            pickupDateTime: formData.pickupDateTime || opt.pickupDateTime,
+            deliveryDateTime: formData.deliveryDateTime || opt.deliveryDateTime,
+            cost: `$${formData.rateDetails.apTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD`,
+            rateDetails: formData.rateDetails,
+          }
+        }),
+      )
+    }
+    setQuoteModal({ isOpen: false, mode: 'add', carrierData: null })
+  }, [quoteModal])
+
   const handleAction = useCallback((rank, action) => {
     if (action === 'ShowRateDetails') {
-      console.log('[Tender] Show Rate Details for rank', rank)
+      const carrier = options.find(o => o.rank === rank)
+      setQuoteModal({ isOpen: true, mode: 'view', carrierData: carrier || null })
+      setOpenMenuRank(null)
+      return
+    }
+
+    if (action === 'EditQuote') {
+      const carrier = options.find(o => o.rank === rank)
+      setQuoteModal({ isOpen: true, mode: 'edit', carrierData: carrier || null })
       setOpenMenuRank(null)
       return
     }
@@ -727,7 +1295,7 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
     })
 
     setOpenMenuRank(null)
-  }, [])
+  }, [options])
 
   const activeColumns = [...LOCKED_COLUMNS, ...(TAB_COLUMNS[activeSubTab] || [])]
 
@@ -772,6 +1340,7 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
           }}
           onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.background = 'var(--bg-tertiary)' }}
           onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--btn-secondary-text)'; e.currentTarget.style.background = 'var(--btn-secondary-bg)' }}
+          onClick={() => setQuoteModal({ isOpen: true, mode: 'add', carrierData: null })}
         >
           Add Quote
         </button>
@@ -796,6 +1365,15 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
           onClose={() => setIsDetailModalOpen(false)}
           shipment={shipment}
           shipmentDetails={shipmentDetails}
+        />
+      )}
+
+      {quoteModal.isOpen && (
+        <QuoteModal
+          mode={quoteModal.mode}
+          carrierData={quoteModal.carrierData}
+          onSave={handleQuoteSave}
+          onClose={() => setQuoteModal({ isOpen: false, mode: 'add', carrierData: null })}
         />
       )}
     </div>
