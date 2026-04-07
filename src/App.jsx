@@ -6,7 +6,8 @@ import TableControls from './components/shipments/TableControls'
 import ShipmentTable from './components/shipments/ShipmentTable'
 import BottomBar from './components/detail/BottomBar'
 import FilterPanel from './components/shipments/FilterPanel'
-import ColumnPanel from './components/detail/ColumnPanel'
+import ColumnPanel, { ALL_COLUMNS } from './components/detail/ColumnPanel'
+import { COLUMN_CONFIG } from './components/shipments/ShipmentTable'
 import { FileText } from 'lucide-react'
 import { getAllShipments, getShipmentDetails, loadShipmentDetails, SEARCH_ATTRIBUTES } from './data'
 
@@ -47,6 +48,7 @@ function App() {
   const [appliedSavedQuery, setAppliedSavedQuery] = useState(null)
   const [detailsLoaded, setDetailsLoaded] = useState(false)
   const [metricsCollapsed, setMetricsCollapsed] = useState(false)
+  const [visibleColumns, setVisibleColumns] = useState(() => COLUMN_CONFIG.map(c => c.key))
 
   const allShipments = useMemo(() => getAllShipments(), [])
 
@@ -65,6 +67,11 @@ function App() {
     if (!selectedShipmentId) return null
     return getShipmentDetails(selectedShipmentId)
   }, [selectedShipmentId, detailsLoaded])
+
+  const selectedShipment = useMemo(() => {
+    if (!selectedShipmentId) return null
+    return allShipments.find(s => s.buyShipment === selectedShipmentId) || null
+  }, [selectedShipmentId, allShipments])
 
   const filteredShipments = useMemo(() => {
     // 0. Filter by active panel
@@ -182,6 +189,10 @@ function App() {
     setColumnPanelOpen((prev) => !prev)
   }, [])
 
+  const handleColumnsChange = useCallback((newVisibleColumns) => {
+    setVisibleColumns(newVisibleColumns)
+  }, [])
+
   const handleApplyFilters = useCallback((filters) => {
     setDateFilters(filters)
     setFiltersOpen(false)
@@ -234,6 +245,8 @@ function App() {
           <ColumnPanel
             isOpen={columnPanelOpen}
             onClose={() => setColumnPanelOpen(false)}
+            visibleColumns={visibleColumns}
+            onColumnsChange={handleColumnsChange}
           />
         </>
       }
@@ -290,11 +303,13 @@ function App() {
           selectedId={selectedShipmentId}
           onRowSelect={handleRowSelect}
           onToggleColumnPanel={handleToggleColumnPanel}
+          visibleColumns={visibleColumns}
         />
       )}
       <BottomBar
         selectedShipmentId={selectedShipmentId}
         shipmentDetails={shipmentDetails}
+        shipment={selectedShipment}
         onClose={handleBottomBarClose}
         rightOffset={rightOffset}
         onToggleColumnPanel={handleToggleColumnPanel}

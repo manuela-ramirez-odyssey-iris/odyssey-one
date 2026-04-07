@@ -1,8 +1,9 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { MoreVertical, Columns3Cog } from 'lucide-react'
 import Badge from '../ui/Badge'
 import DarkTooltip from '../ui/DarkTooltip'
+import { ALL_COLUMNS } from '../detail/ColumnPanel'
 
 const BADGE_COLORS = ['amber', 'blue', 'green', 'red', 'purple']
 
@@ -63,9 +64,9 @@ export const COLUMN_CONFIG = [
     key: 'shipmentStatus',
     label: 'Shipment Status',
     render: (s) => (
-      <DarkTooltip text={s.tenderStatus ? `Tender: ${s.tenderStatus}` : null}>
+      <DarkTooltip text={s.tenderStatus ? `Tender Status: ${s.tenderStatus}` : null} width="auto">
         <span>{s.shipmentStatus ? (
-          <Badge variant={s.shipmentStatus === 'Done' ? 'green' : 'amber'}>{s.shipmentStatus}</Badge>
+          <Badge variant={s.shipmentStatus === 'Done' ? 'green' : 'gray'}>{s.shipmentStatus}</Badge>
         ) : '\u2014'}</span>
       </DarkTooltip>
     ),
@@ -195,7 +196,9 @@ function ActionMenu({ shipmentId, position, onClose }) {
   )
 }
 
-const ShipmentRow = React.memo(function ShipmentRow({ shipment, isSelected, onSelect, rowRef }) {
+const COLUMN_CONFIG_MAP = Object.fromEntries(COLUMN_CONFIG.map(c => [c.key, c]))
+
+const ShipmentRow = React.memo(function ShipmentRow({ shipment, isSelected, onSelect, rowRef, orderedColumns }) {
   const s = shipment
   const [menuOpen, setMenuOpen] = useState(false)
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 })
@@ -229,17 +232,20 @@ const ShipmentRow = React.memo(function ShipmentRow({ shipment, isSelected, onSe
           style={{ accentColor: 'var(--border-focus)', width: 16, height: 16, cursor: 'pointer', pointerEvents: 'none' }}
         />
       </td>
-      {COLUMN_CONFIG.map(col => (
-        <td key={col.key} style={{
-          padding: '0 var(--spacing-4)',
-          height: 56,
-          borderBottom: '1px solid var(--bg-tertiary)',
-          whiteSpace: 'nowrap',
-          ...(col.key === 'buyShipment' ? { fontWeight: 500, color: 'var(--text-secondary)' } : {}),
-        }}>
-          {col.render ? col.render(s) : (s[col.key] || '')}
-        </td>
-      ))}
+      {orderedColumns.map(col => {
+        const configCol = COLUMN_CONFIG_MAP[col.key]
+        return (
+          <td key={col.key} style={{
+            padding: '0 var(--spacing-4)',
+            height: 56,
+            borderBottom: '1px solid var(--bg-tertiary)',
+            whiteSpace: 'nowrap',
+            ...(col.key === 'buyShipment' ? { fontWeight: 500, color: 'var(--text-secondary)' } : {}),
+          }}>
+            {configCol && configCol.render ? configCol.render(s) : (s[col.key] || '--')}
+          </td>
+        )
+      })}
       <td
         data-sticky-col
         onClick={(e) => {
@@ -260,12 +266,26 @@ const ShipmentRow = React.memo(function ShipmentRow({ shipment, isSelected, onSe
 }, (prevProps, nextProps) => {
   return prevProps.isSelected === nextProps.isSelected &&
     prevProps.shipment === nextProps.shipment &&
-    prevProps.rowRef === nextProps.rowRef
+    prevProps.rowRef === nextProps.rowRef &&
+    prevProps.orderedColumns === nextProps.orderedColumns
 })
 
-export default function ShipmentTable({ shipments, onRowSelect, selectedId, onToggleColumnPanel }) {
+export default function ShipmentTable({ shipments, onRowSelect, selectedId, onToggleColumnPanel, visibleColumns }) {
   const tableContainerRef = useRef(null)
   const selectedRowRef = useRef(null)
+
+  const orderedColumns = useMemo(() => {
+    if (!visibleColumns) return COLUMN_CONFIG
+    return visibleColumns
+      .map(key => {
+        const fromConfig = COLUMN_CONFIG.find(c => c.key === key)
+        if (fromConfig) return fromConfig
+        // Fallback: column not in COLUMN_CONFIG, render as plain text
+        const allCol = ALL_COLUMNS.find(c => c.key === key)
+        return { key, label: allCol ? allCol.label : key }
+      })
+      .filter(Boolean)
+  }, [visibleColumns])
 
   const handleSelect = useCallback((shipment) => {
     onRowSelect(selectedId === shipment.buyShipment ? null : shipment.buyShipment)
@@ -299,7 +319,7 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
             <th className="sticky top-0 z-2"
               style={{ width: 48, padding: '0 var(--spacing-4)', height: 'var(--bottombar-collapsed)', background: 'var(--bg-primary)', borderBottom: '1px solid var(--border-subtle)', textAlign: 'center' }}>
             </th>
-            {COLUMN_CONFIG.map(col => (
+            {orderedColumns.map(col => (
               <th key={col.key} className="sticky top-0 z-2 text-left whitespace-nowrap"
                 style={{ padding: '0 var(--spacing-4)', height: 'var(--bottombar-collapsed)', background: 'var(--bg-primary)', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-placeholder)', fontWeight: 600, fontSize: 'var(--font-size-sm)' }}>
                 {col.label}
@@ -327,6 +347,7 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
               isSelected={selectedId === s.buyShipment}
               onSelect={handleSelect}
               rowRef={selectedId === s.buyShipment ? selectedRowRef : undefined}
+              orderedColumns={orderedColumns}
             />
           ))}
         </tbody>
