@@ -113,6 +113,7 @@ export default function BottomBar({ selectedShipmentId, shipmentDetails, shipmen
 
   return (
     <div
+      data-bottombar
       style={{
         position: 'fixed',
         bottom: 0,

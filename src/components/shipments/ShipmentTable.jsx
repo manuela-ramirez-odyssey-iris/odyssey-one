@@ -360,17 +360,19 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
           const listEl = listRef.current?.element
           if (!listEl) return
           const rowTop = idx * ROW_HEIGHT - listEl.scrollTop
-          const rowRect = listEl.getBoundingClientRect()
-          const rowAbsoluteTop = rowRect.top + rowTop
-          const bottomBarTop = window.innerHeight * 0.5
-          if (rowAbsoluteTop > bottomBarTop - ROW_HEIGHT * 2) {
+          const listRect = listEl.getBoundingClientRect()
+          const rowAbsoluteTop = listRect.top + rowTop
+          // Find the actual bottom bar top edge
+          const bottomBar = document.querySelector('[data-bottombar]')
+          const visibleBottom = bottomBar ? bottomBar.getBoundingClientRect().top : window.innerHeight * 0.5
+          if (rowAbsoluteTop + ROW_HEIGHT > visibleBottom) {
             const main = listEl.closest('main')
             if (main) {
-              main.scrollBy({ top: rowAbsoluteTop - bottomBarTop + ROW_HEIGHT * 2 + 20, behavior: 'smooth' })
+              main.scrollBy({ top: rowAbsoluteTop - visibleBottom + ROW_HEIGHT + 80, behavior: 'smooth' })
             }
           }
         }
-        setTimeout(scrollMainIfNeeded, 400)
+        setTimeout(scrollMainIfNeeded, 450)
       }
     }
   }, [selectedId, shipments])
