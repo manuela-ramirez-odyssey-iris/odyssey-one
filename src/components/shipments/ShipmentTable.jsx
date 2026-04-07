@@ -347,14 +347,28 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
     onRowSelect(shipment.buyShipment)
   }, [onRowSelect])
 
-  // Auto-scroll selected row into view
+  // Auto-scroll selected row into view above the bottom bar
   useEffect(() => {
     if (selectedId && listRef.current) {
       const idx = shipments.findIndex(s => s.buyShipment === selectedId)
       if (idx >= 0) {
+        // First scroll within the virtual list
+        listRef.current?.scrollToRow({ index: idx, align: 'smart' })
+        // Then scroll <main> so the row is above the bottom bar (which takes ~50vh)
         setTimeout(() => {
-          listRef.current?.scrollToRow({ index: idx, align: 'smart' })
-        }, 100)
+          const listEl = listRef.current?.element
+          if (!listEl) return
+          const rowTop = idx * ROW_HEIGHT - listEl.scrollTop
+          const rowRect = listEl.getBoundingClientRect()
+          const rowAbsoluteTop = rowRect.top + rowTop
+          const bottomBarTop = window.innerHeight * 0.5
+          if (rowAbsoluteTop > bottomBarTop - ROW_HEIGHT) {
+            const main = listEl.closest('main')
+            if (main) {
+              main.scrollBy({ top: rowAbsoluteTop - bottomBarTop + ROW_HEIGHT + 40, behavior: 'smooth' })
+            }
+          }
+        }, 350)
       }
     }
   }, [selectedId, shipments])
