@@ -29,6 +29,7 @@ const NEVER_COLLAPSE_KEYS = ['routeRank', 'rank', 'status']
 const COLLAPSIBLE_KEYS = ['scac', 'carrierName', 'equipment', 'cost', 'pickupDateTime', 'deliveryDateTime']
 const COLLAPSED_WIDTH = 52
 
+
 const TAB_COLUMNS = {
   'routing-options': [
     { key: 'transit', label: 'Transit Time' },
@@ -434,6 +435,53 @@ function TenderDetailModal({ isOpen, onClose, shipment, shipmentDetails }) {
             <div style={{ marginTop: 8 }} />
             <Field label="Delivery Date/Time" value={deliveryStop?.date} />
           </div>
+        </div>
+
+        {/* Footer — shipment context actions */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'flex-end',
+          alignItems: 'center',
+          gap: 8,
+          padding: '12px 16px',
+          borderTop: '1px solid var(--border-subtle)',
+        }}>
+          <button
+            onClick={() => console.log('[Tender] Routing Query (QCP) clicked')}
+            className="flex items-center text-sm font-medium"
+            style={{
+              padding: '6px 12px',
+              fontFamily: 'var(--font-primary)',
+              background: 'var(--btn-secondary-bg)',
+              border: '1px solid var(--btn-secondary-border)',
+              borderRadius: 'var(--radius-lg)',
+              color: 'var(--btn-secondary-text)',
+              cursor: 'pointer',
+              transition: 'color 0.15s ease, background 0.15s ease',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.background = 'var(--bg-tertiary)' }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--btn-secondary-text)'; e.currentTarget.style.background = 'var(--btn-secondary-bg)' }}
+          >
+            Routing Query (QCP)
+          </button>
+          <button
+            onClick={() => console.log('[Tender] View Stops clicked')}
+            className="flex items-center text-sm font-medium"
+            style={{
+              padding: '6px 12px',
+              fontFamily: 'var(--font-primary)',
+              background: 'var(--btn-secondary-bg)',
+              border: '1px solid var(--btn-secondary-border)',
+              borderRadius: 'var(--radius-lg)',
+              color: 'var(--btn-secondary-text)',
+              cursor: 'pointer',
+              transition: 'color 0.15s ease, background 0.15s ease',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.background = 'var(--bg-tertiary)' }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--btn-secondary-text)'; e.currentTarget.style.background = 'var(--btn-secondary-bg)' }}
+          >
+            View Stops
+          </button>
         </div>
 
       </div>
@@ -988,7 +1036,9 @@ function ActionDropdown({ status, position, onAction, onClose }) {
    Section 6 — RoutingTable
    ═══════════════════════════════════════════════════════════ */
 
-function RoutingTable({ options, columns, highlightedRank, openMenuRank, onOpenMenu, onCloseMenu, onAction, onToggleColumnPanel, isCollapsed, onCollapse, onExpand }) {
+function RoutingTable({ options, columns, tabColumns, highlightedRank, openMenuRank, onOpenMenu, onCloseMenu, onAction, onToggleColumnPanel, isCollapsed, columnsCollapsed, onCollapse, onExpand }) {
+  const [hoveredRank, setHoveredRank] = useState(null)
+
   if (!options || options.length === 0) {
     return (
       <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-placeholder)', padding: 16 }}>
@@ -1002,139 +1052,182 @@ function RoutingTable({ options, columns, highlightedRank, openMenuRank, onOpenM
     return option[dataKey] ?? '--'
   }
 
-  return (
-    <div style={{ overflow: 'auto', border: '1px solid var(--border-subtle)', borderRadius: '0 0 var(--radius-md) var(--radius-md)', marginBottom: 24 }}>
-      <table
-        style={{
-          width: '100%',
-          borderCollapse: 'collapse',
-          fontFamily: 'var(--font-primary)',
-          fontSize: '14px',
-          color: 'var(--text-secondary)',
-        }}
-      >
-        <thead>
-          <tr>
-            {columns.map((col) => {
-              const collapsed = isCollapsed(col.key)
-              const isCollapsible = COLLAPSIBLE_KEYS.includes(col.key)
+  const getRowBg = (option) => {
+    const isHighlighted = highlightedRank === option.rank
+    const isHovered = hoveredRank === option.rank
+    if (isHighlighted) return STATUS_STYLES[option.status]?.bg ?? 'var(--badge-blue-bg)'
+    if (isHovered) return 'var(--bg-secondary)'
+    return 'var(--bg-primary)'
+  }
 
-              if (collapsed) {
+  const tableStyle = {
+    borderCollapse: 'collapse',
+    fontFamily: 'var(--font-primary)',
+    fontSize: '14px',
+    color: 'var(--text-secondary)',
+  }
+
+  return (
+    <div style={{ display: 'flex', border: '1px solid var(--border-subtle)', borderRadius: '0 0 var(--radius-md) var(--radius-md)', marginBottom: 24 }}>
+      {/* ── LEFT TABLE: locked columns ── */}
+      <div style={{ flexShrink: 0 }}>
+        <table style={tableStyle}>
+          <thead>
+            <tr>
+              {LOCKED_COLUMNS.map((col) => {
+                const collapsed = isCollapsed(col.key)
+
+                if (collapsed) {
+                  return (
+                    <th key={col.key} style={{ ...thStyle, width: COLLAPSED_WIDTH, maxWidth: COLLAPSED_WIDTH, padding: '10px 4px', textAlign: 'center' }} title={col.label}>
+                      <span style={{ fontSize: 11, color: 'var(--text-placeholder)' }}>...</span>
+                    </th>
+                  )
+                }
+
                 return (
-                  <th key={col.key} style={{ ...thStyle, width: COLLAPSED_WIDTH, maxWidth: COLLAPSED_WIDTH, padding: '10px 4px', textAlign: 'center' }} title={col.label}>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); onExpand(col.key) }}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 2, color: 'var(--text-tertiary)', padding: 0 }}
-                      aria-label={`Expand ${col.label} column`}
-                    >
-                      <span style={{ fontSize: 11 }}>...</span>
-                      <UnfoldHorizontal size={12} />
-                    </button>
+                  <th key={col.key} style={{ ...thStyle, ...(col.narrow ? { width: 64, whiteSpace: 'normal', lineHeight: 1.3, textAlign: 'center' } : {}) }}>
+                    {col.label}
                   </th>
                 )
-              }
-
+              })}
+            </tr>
+          </thead>
+          <tbody>
+            {options.map((option) => {
+              const isHighlighted = highlightedRank === option.rank
               return (
-                <th
-                  key={col.key}
-                  style={{ ...thStyle, ...(col.narrow ? { width: 64, whiteSpace: 'normal', lineHeight: 1.3, textAlign: 'center' } : {}) }}
-                  onMouseEnter={(e) => { const icon = e.currentTarget.querySelector('.fold-icon'); if (icon) icon.style.opacity = '1' }}
-                  onMouseLeave={(e) => { const icon = e.currentTarget.querySelector('.fold-icon'); if (icon) icon.style.opacity = '0' }}
+                <tr
+                  key={option.rank}
+                  style={{ cursor: 'default', background: getRowBg(option), transition: 'background 0.12s ease' }}
+                  onMouseEnter={() => setHoveredRank(option.rank)}
+                  onMouseLeave={() => setHoveredRank(null)}
                 >
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    {col.label}
-                    {isCollapsible && (
-                      <button
-                        className="fold-icon"
-                        onClick={(e) => { e.stopPropagation(); onCollapse() }}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', padding: 0, opacity: 0, transition: 'opacity 0.15s', display: 'flex' }}
-                        aria-label="Collapse all optional columns"
-                      >
-                        <FoldHorizontal size={12} />
-                      </button>
-                    )}
-                  </span>
-                </th>
-              )
-            })}
-            <th className="sticky top-0" style={{ ...stickyLastCol, zIndex: 5, width: 72, padding: '0 var(--spacing-4)', textAlign: 'center', borderBottom: '1px solid var(--border-subtle)', background: 'var(--bg-secondary)' }}>
-              <button
-                className="flex items-center justify-center mx-auto bg-transparent border-none cursor-pointer p-1 rounded"
-                style={{ color: 'var(--text-placeholder)' }}
-                onClick={() => { if (onToggleColumnPanel) onToggleColumnPanel() }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-secondary)' }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-placeholder)' }}
-                title="Column arrangement"
-              >
-                <Columns3Cog size={15} />
-              </button>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {options.map((option) => {
-            const isHighlighted = highlightedRank === option.rank
-            return (
-              <tr
-                key={option.rank}
-                style={{
-                  cursor: 'default',
-                  background: isHighlighted
-                    ? (STATUS_STYLES[option.status]?.bg ?? 'var(--badge-blue-bg)')
-                    : 'var(--bg-primary)',
-                  transition: 'background 0.12s ease',
-                }}
-                onMouseEnter={(e) => { if (!isHighlighted) e.currentTarget.style.background = 'var(--bg-secondary)' }}
-                onMouseLeave={(e) => { if (!isHighlighted) e.currentTarget.style.background = 'var(--bg-primary)' }}
-              >
-                {columns.map((col) => {
-                  const collapsed = isCollapsed(col.key)
-                  const isPrimary = col.primary
+                  {LOCKED_COLUMNS.map((col) => {
+                    const collapsed = isCollapsed(col.key)
+                    const isPrimary = col.primary
 
-                  if (collapsed) {
-                    const rawValue = col.key === 'status' ? option.status : (option[col.dataKey || col.key] ?? '')
-                    const display = (!rawValue && rawValue !== 0) ? '--' : String(rawValue).slice(0, 3) + '...'
+                    if (collapsed) {
+                      const rawValue = col.key === 'status' ? option.status : (option[col.dataKey || col.key] ?? '')
+                      const display = (!rawValue && rawValue !== 0) ? '--' : String(rawValue).slice(0, 3) + '...'
+                      return (
+                        <td key={col.key} style={{ ...tdStyle, width: COLLAPSED_WIDTH, maxWidth: COLLAPSED_WIDTH, overflow: 'hidden', padding: '10px 4px', fontSize: 12 }}>
+                          {display}
+                        </td>
+                      )
+                    }
+
+                    const cellStyle = {
+                      ...tdStyle,
+                      ...(isHighlighted ? { fontWeight: 500 } : {}),
+                      ...(isPrimary ? { fontWeight: 500, color: 'var(--text-primary)' } : {}),
+                      ...(col.narrow ? { width: 64, textAlign: 'center' } : {}),
+                    }
                     return (
-                      <td key={col.key} style={{ ...tdStyle, width: COLLAPSED_WIDTH, maxWidth: COLLAPSED_WIDTH, overflow: 'hidden', padding: '10px 4px', fontSize: 12 }}>
-                        {display}
+                      <td key={col.key} style={cellStyle}>
+                        {col.key === 'status' ? <StatusBadge status={option.status} /> : getCellValue(option, col)}
                       </td>
                     )
-                  }
+                  })}
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
 
-                  const cellStyle = {
-                    ...tdStyle,
-                    ...(isHighlighted ? { fontWeight: 500 } : {}),
-                    ...(isPrimary ? { fontWeight: 500, color: 'var(--text-primary)' } : {}),
-                    ...(col.narrow ? { width: 64, textAlign: 'center' } : {}),
-                  }
-                  return (
-                    <td key={col.key} style={cellStyle}>
-                      {col.key === 'status' ? <StatusBadge status={option.status} /> : getCellValue(option, col)}
-                    </td>
-                  )
-                })}
-                <td
-                  style={{ ...stickyLastCol, padding: '0 var(--spacing-4)', borderBottom: '1px solid var(--bg-tertiary)', textAlign: 'center', width: 72, cursor: 'pointer', background: isHighlighted ? (STATUS_STYLES[option.status]?.bg ?? 'var(--badge-blue-bg)') : (STATUS_STYLES[option.status]?.bg ?? 'var(--bg-primary)') }}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    const rect = e.currentTarget.getBoundingClientRect()
-                    const dropdownHeight = 200
-                    const spaceBelow = window.innerHeight - rect.bottom
-                    const top = spaceBelow < dropdownHeight
-                      ? Math.max(8, rect.top - dropdownHeight)
-                      : rect.bottom + 4
-                    onOpenMenu(option.rank, { top, left: rect.right })
-                  }}
+      {/* ── CENTER TOGGLE ── */}
+      <div
+        onClick={() => columnsCollapsed ? onExpand() : onCollapse()}
+        title={columnsCollapsed ? 'Expand columns' : 'Collapse columns'}
+        style={{
+          width: 28,
+          minWidth: 28,
+          maxWidth: 28,
+          flexShrink: 0,
+          alignSelf: 'stretch',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'var(--bg-tertiary)',
+          borderLeft: '1px solid var(--border-subtle)',
+          borderRight: '1px solid var(--border-subtle)',
+          cursor: 'pointer',
+          color: 'var(--text-placeholder)',
+        }}
+      >
+        {columnsCollapsed ? <UnfoldHorizontal size={14} /> : <FoldHorizontal size={14} />}
+      </div>
+
+      {/* ── RIGHT TABLE: tab-specific columns + actions ── */}
+      <div style={{ flex: 1, overflowX: 'auto' }}>
+        <table style={tableStyle}>
+          <thead>
+            <tr>
+              {tabColumns.map((col) => (
+                <th key={col.key} style={{ ...thStyle, ...(col.narrow ? { width: 64, whiteSpace: 'normal', lineHeight: 1.3, textAlign: 'center' } : {}) }}>
+                  {col.label}
+                </th>
+              ))}
+              <th className="sticky top-0" style={{ ...stickyLastCol, zIndex: 5, width: 72, padding: '0 var(--spacing-4)', textAlign: 'center', borderBottom: '1px solid var(--border-subtle)', background: 'var(--bg-secondary)' }}>
+                <button
+                  className="flex items-center justify-center mx-auto bg-transparent border-none cursor-pointer p-1 rounded"
+                  style={{ color: 'var(--text-placeholder)' }}
+                  onClick={() => { if (onToggleColumnPanel) onToggleColumnPanel() }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-secondary)' }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-placeholder)' }}
+                  title="Column arrangement"
                 >
-                  <div className="flex items-center justify-center" style={{ width: '100%', height: '100%' }}>
-                    <TruckElectric size={16} style={{ color: option.status && STATUS_STYLES[option.status] ? STATUS_STYLES[option.status].color : 'var(--text-placeholder)' }} />
-                  </div>
-                </td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
+                  <Columns3Cog size={15} />
+                </button>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {options.map((option) => {
+              const isHighlighted = highlightedRank === option.rank
+              return (
+                <tr
+                  key={option.rank}
+                  style={{ cursor: 'default', background: getRowBg(option), transition: 'background 0.12s ease' }}
+                  onMouseEnter={() => setHoveredRank(option.rank)}
+                  onMouseLeave={() => setHoveredRank(null)}
+                >
+                  {tabColumns.map((col) => {
+                    const cellStyle = {
+                      ...tdStyle,
+                      ...(isHighlighted ? { fontWeight: 500 } : {}),
+                      ...(col.narrow ? { width: 64, textAlign: 'center' } : {}),
+                    }
+                    return (
+                      <td key={col.key} style={cellStyle}>
+                        {getCellValue(option, col)}
+                      </td>
+                    )
+                  })}
+                  <td
+                    style={{ ...stickyLastCol, padding: '0 var(--spacing-4)', borderBottom: '1px solid var(--bg-tertiary)', textAlign: 'center', width: 72, cursor: 'pointer', background: isHighlighted ? (STATUS_STYLES[option.status]?.bg ?? 'var(--badge-blue-bg)') : (STATUS_STYLES[option.status]?.bg ?? 'var(--bg-primary)') }}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      const rect = e.currentTarget.getBoundingClientRect()
+                      const dropdownHeight = 200
+                      const spaceBelow = window.innerHeight - rect.bottom
+                      const top = spaceBelow < dropdownHeight
+                        ? Math.max(8, rect.top - dropdownHeight)
+                        : rect.bottom + 4
+                      onOpenMenu(option.rank, { top, left: rect.right })
+                    }}
+                  >
+                    <div className="flex items-center justify-center" style={{ width: '100%', height: '100%' }}>
+                      <TruckElectric size={16} style={{ color: option.status && STATUS_STYLES[option.status] ? STATUS_STYLES[option.status].color : 'var(--text-placeholder)' }} />
+                    </div>
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
 
       {openMenuRank != null && (() => {
         const activeOption = options.find(o => o.rank === openMenuRank)
@@ -1199,7 +1292,6 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
   const [quoteModal, setQuoteModal] = useState({ isOpen: false, mode: 'add', carrierData: null })
   const [columnsCollapsed, setColumnsCollapsed] = useState(false)
-  const [expandedColumnKey, setExpandedColumnKey] = useState(null)
   const tableRef = useRef(null)
 
   /* Reset all state when data changes (new shipment selected) */
@@ -1212,7 +1304,7 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
     setIsDetailModalOpen(false)
     setQuoteModal({ isOpen: false, mode: 'add', carrierData: null })
     setColumnsCollapsed(false)
-    setExpandedColumnKey(null)
+
   }, [data])
 
   /* Click-outside listener: clicks outside tableRef and not inside [data-tender-dropdown] */
@@ -1238,19 +1330,19 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
   }, [])
 
   const isCollapsed = useCallback((key) => {
-    if (NEVER_COLLAPSE_KEYS.includes(key)) return false
-    if (!columnsCollapsed) return false
-    if (expandedColumnKey === key) return false
-    return true
-  }, [columnsCollapsed, expandedColumnKey])
+    if (!COLLAPSIBLE_KEYS.includes(key)) return false
+    return columnsCollapsed
+  }, [columnsCollapsed])
 
   const handleCollapse = useCallback(() => {
     setColumnsCollapsed(true)
-    setExpandedColumnKey(null)
+
   }, [])
 
-  const handleExpand = useCallback((key) => {
-    setExpandedColumnKey(key)
+
+  const handleExpand = useCallback(() => {
+    setColumnsCollapsed(false)
+
   }, [])
 
   const handleQuoteSave = useCallback((formData) => {
@@ -1373,6 +1465,7 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
   }, [options])
 
   const activeColumns = [...LOCKED_COLUMNS, ...(TAB_COLUMNS[activeSubTab] || [])]
+  const activeTabColumns = TAB_COLUMNS[activeSubTab] || []
 
   /* Attach _menuPos to the option that has its menu open */
   const optionsWithPos = options.map((opt) =>
@@ -1425,6 +1518,7 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
         <RoutingTable
           options={optionsWithPos}
           columns={activeColumns}
+          tabColumns={activeTabColumns}
           highlightedRank={highlightedRank}
           openMenuRank={openMenuRank}
           onOpenMenu={handleOpenMenu}
@@ -1432,6 +1526,7 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
           onAction={handleAction}
           onToggleColumnPanel={onToggleColumnPanel}
           isCollapsed={isCollapsed}
+          columnsCollapsed={columnsCollapsed}
           onCollapse={handleCollapse}
           onExpand={handleExpand}
         />
