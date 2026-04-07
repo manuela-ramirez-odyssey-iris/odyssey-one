@@ -94,7 +94,7 @@ const MonitorPanels = React.memo(function MonitorPanels({ activePanel, onPanelSe
 
       {/* Collapse/Expand Toggle */}
       <div className="flex items-center gap-3" style={{ marginTop: 0, marginBottom: 'var(--spacing-6)' }}>
-        <div className="flex-1 h-px" style={{ background: 'var(--border-default)' }} />
+        <div className="flex-1 h-px" style={{ background: 'var(--border-subtle)' }} />
         <button
           className="flex items-center gap-1.5 bg-transparent border-none cursor-pointer whitespace-nowrap"
           style={{ padding: '4px 8px' }}
@@ -112,7 +112,7 @@ const MonitorPanels = React.memo(function MonitorPanels({ activePanel, onPanelSe
             }}
           />
         </button>
-        <div className="flex-1 h-px" style={{ background: 'var(--border-default)' }} />
+        <div className="flex-1 h-px" style={{ background: 'var(--border-subtle)' }} />
       </div>
     </div>
   )
