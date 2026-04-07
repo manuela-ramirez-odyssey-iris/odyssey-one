@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { FixedSizeList as List } from 'react-window'
+import { List } from 'react-window'
 import { MoreVertical, Columns3Cog } from 'lucide-react'
 import Badge from '../ui/Badge'
 import DarkTooltip from '../ui/DarkTooltip'
