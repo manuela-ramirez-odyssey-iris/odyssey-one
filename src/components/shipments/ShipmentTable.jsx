@@ -376,13 +376,17 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
     const headerEl = headerRef.current
     if (!dataEl) return
 
-    let notified = false
+    let didNotify = false
     const syncScroll = () => {
       if (headerEl) headerEl.scrollLeft = dataEl.scrollLeft
       if (actionsEl) actionsEl.scrollTop = dataEl.scrollTop
-      if (!notified && dataEl.scrollTop > 0 && onScrollStart) {
-        notified = true
-        onScrollStart()
+      if (onScrollStart) {
+        if (dataEl.scrollTop > 0 && !didNotify) {
+          didNotify = true
+          onScrollStart()
+        } else if (dataEl.scrollTop === 0) {
+          didNotify = false
+        }
       }
     }
     dataEl.addEventListener('scroll', syncScroll, { passive: true })
