@@ -210,7 +210,7 @@ const ROW_HEIGHT = 56
 // Data row (radio + data columns only — no actions)
 const ShipmentRow = React.memo(function ShipmentRow({ shipment, isSelected, onSelect, orderedColumns }) {
   const s = shipment
-  const rowBg = isSelected ? 'var(--badge-blue-bg)' : 'var(--bg-primary)'
+  const rowBg = isSelected ? 'var(--deep-sea-neutral-200, #E4E6EB)' : 'var(--bg-primary)'
 
   return (
     <div
@@ -283,7 +283,7 @@ const VirtualRow = React.memo(function VirtualRow({ index, style, shipments, sel
 const ActionCell = React.memo(function ActionCell({ shipment, isSelected, onSelect }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 })
-  const rowBg = isSelected ? 'var(--badge-blue-bg)' : 'var(--bg-primary)'
+  const rowBg = isSelected ? 'var(--deep-sea-neutral-200, #E4E6EB)' : 'var(--bg-primary)'
 
   return (
     <div
