@@ -1,5 +1,7 @@
 import shipments from './shipments.json'
 
+// ─── Shipment list (statically imported, ~0.9 MB) ───────────
+
 export function getAllShipments() {
   return shipments
 }
@@ -8,24 +10,57 @@ export function getShipmentById(id) {
   return shipments.find(s => s.buyShipment === id) || null
 }
 
-let detailsCache = null
-let detailsPromise = null
+// ─── Pre-built indexes for O(1) panel/category lookups ──────
 
-export async function loadShipmentDetails() {
-  if (detailsCache) return detailsCache
-  if (!detailsPromise) {
-    detailsPromise = import('./shipment-details.json').then(m => {
-      detailsCache = m.default
-      return detailsCache
-    })
+const byPanel = Map.groupBy(shipments, s => s.panel)
+
+const byPanelAndCategory = new Map()
+for (const [panel, items] of byPanel) {
+  byPanelAndCategory.set(panel, Map.groupBy(items, s => s.category))
+}
+
+export function getShipmentsByPanel(panel) {
+  return byPanel.get(panel) || []
+}
+
+export function getShipmentsByPanelAndCategory(panel, category) {
+  const panelMap = byPanelAndCategory.get(panel)
+  if (!panelMap) return []
+  return panelMap.get(category) || []
+}
+
+export function getCategoryCount(panel, category) {
+  const panelMap = byPanelAndCategory.get(panel)
+  if (!panelMap) return 0
+  return panelMap.get(category)?.length ?? 0
+}
+
+// ─── Per-shipment detail loader (fetch on demand) ───────────
+
+const detailsCache = new Map()
+
+export async function fetchShipmentDetails(id) {
+  if (detailsCache.has(id)) return detailsCache.get(id)
+
+  const res = await fetch(`/details/${id}.json`)
+  if (!res.ok) throw new Error(`Failed to load details for ${id}`)
+  const data = await res.json()
+  detailsCache.set(id, data)
+
+  // Cap cache at 50 entries (~1.5 MB)
+  if (detailsCache.size > 50) {
+    const oldest = detailsCache.keys().next().value
+    detailsCache.delete(oldest)
   }
-  return detailsPromise
+
+  return data
 }
 
-export function getShipmentDetails(id) {
-  if (!detailsCache) return null
-  return detailsCache[id] || null
+export function getCachedShipmentDetails(id) {
+  return detailsCache.get(id) || null
 }
+
+// ─── Search attributes ──────────────────────────────────────
 
 export const SEARCH_ATTRIBUTES = [
   { key: 'buy-shipment', label: 'Buy Shipment #', type: 'number-text', dataKey: 'buyShipment' },
