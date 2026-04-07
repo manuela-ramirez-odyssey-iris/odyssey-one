@@ -49,7 +49,7 @@ const TableControls = React.memo(function TableControls({
             width: 420,
             gap: 8,
             background: 'var(--bg-primary)',
-            border: `1px solid ${focused ? 'var(--border-strong, var(--deep-sea-neutral-900))' : 'var(--border-default)'}`,
+            border: `${focused ? '2px' : '1px'} solid ${focused ? 'var(--deep-sea-neutral-700, #384253)' : 'var(--border-default)'}`,
             borderRadius: 'var(--radius-md)',
             padding: '0 12px',
             height: 36,
