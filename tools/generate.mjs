@@ -369,6 +369,9 @@ function generateShipment(index) {
   // Pick which rank is the "decisive" carrier (accepted or currently sent)
   const decisiveRank = faker.number.int({ min: 1, max: routingCount }); // 1-based
 
+  // Route ranks: unique per carrier, shuffled so routeRank !== rank
+  const routeRanks = faker.helpers.shuffle(Array.from({ length: routingCount }, (_, i) => i + 1));
+
   const routingOptions = routingCarriers.map((rc, ri) => {
     const rank = ri + 1;
     let status;
@@ -397,7 +400,7 @@ function generateShipment(index) {
     const _vcDecline = _commitment - _vcOpen - _vcAccept;
     return {
       rank,
-      routeRank: faker.number.int({ min: 1, max: 3 }),
+      routeRank: routeRanks[ri],
       scac: rc.scac,
       carrierName: rc.name,
       rate: `$${fmt(baseRate)}`,

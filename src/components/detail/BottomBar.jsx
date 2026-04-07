@@ -97,7 +97,7 @@ export default function BottomBar({ selectedShipmentId, shipmentDetails, shipmen
       case 'order': return <OrderTab data={shipmentDetails.orderDetails?.[selectedOrderIndex]} />
       case 'stops': return <StopsTab data={shipmentDetails.stopsData} />
       case 'product': return <ProductTab data={shipmentDetails.productData} />
-      case 'routing': return <RoutingGuideTab data={shipmentDetails.routingData} shipmentDetails={shipmentDetails} shipment={shipment} />
+      case 'routing': return <RoutingGuideTab data={shipmentDetails.routingData} shipmentDetails={shipmentDetails} shipment={shipment} onToggleColumnPanel={onToggleColumnPanel} />
       case 'cost': return <CostAllocationTab data={shipmentDetails.costData} selectedOrderIdx={selectedOrderIndex} />
       case 'instructions': return <InstructionsTab data={shipmentDetails.instructionsData} />
       case 'documents': return <DocumentsTab data={shipmentDetails.documentsData} />

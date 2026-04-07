@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { MoreVertical, Columns3Cog } from 'lucide-react'
+import { TruckElectric, Columns3Cog } from 'lucide-react'
 
 /* ═══════════════════════════════════════════════════════════
    Section 1 — Constants
@@ -9,17 +9,17 @@ import { MoreVertical, Columns3Cog } from 'lucide-react'
 const STATUS_STYLES = {
   Accepted: { bg: 'var(--badge-green-bg)', color: 'var(--badge-green-text)' },
   Sent: { bg: 'var(--badge-blue-bg)', color: 'var(--badge-blue-text)' },
-  Declined: { bg: 'var(--badge-yellow-bg)', color: 'var(--badge-yellow-text)' },
+  Declined: { bg: 'var(--badge-red-bg)', color: 'var(--badge-red-text)' },
   Cancelled: { bg: 'var(--bg-tertiary)', color: 'var(--text-placeholder)' },
 }
 
 const LOCKED_COLUMNS = [
-  { key: 'routeRank', label: 'Route Rank', primary: true },
-  { key: 'rank', label: 'Rank', primary: true },
-  { key: 'scac', label: 'SCAC' },
+  { key: 'routeRank', label: 'Route Rank', primary: true, narrow: true },
+  { key: 'rank', label: 'Rank', primary: true, narrow: true },
+  { key: 'scac', label: 'SCAC', narrow: true },
   { key: 'carrierName', label: 'Carrier Name', primary: true },
   { key: 'equipment', label: 'Equipment', dataKey: 'rate' },
-  { key: 'cost', label: 'AP Cost' },
+  { key: 'cost', label: 'AP Cost', narrow: true },
   { key: 'status', label: 'Tender Status' },
   { key: 'pickupDateTime', label: 'Pickup Date/Time' },
   { key: 'deliveryDateTime', label: 'Delivery Date/Time' },
@@ -34,8 +34,8 @@ const TAB_COLUMNS = {
     { key: 'responseMethod', label: 'Response Method' },
     { key: 'responseDateTime', label: 'Response Date' },
     { key: 'responseUser', label: 'Response User' },
-    { key: 'carrierQuoted', label: 'Carrier Quoted' },
-    { key: 'networkLeverage', label: 'Network Leverage' },
+    { key: 'carrierQuoted', label: 'Carrier Quoted', narrow: true },
+    { key: 'networkLeverage', label: 'Network Leverage', narrow: true },
   ],
   'notify-response': [
     { key: 'proNumber', label: 'Pro #' },
@@ -44,12 +44,12 @@ const TAB_COLUMNS = {
     { key: 'routeGroup', label: 'Route Group' },
   ],
   'volume-commitment': [
-    { key: 'commitment', label: 'Commitment' },
-    { key: 'uom', label: 'UOM' },
+    { key: 'commitment', label: 'Commitment', narrow: true },
+    { key: 'uom', label: 'UOM', narrow: true },
     { key: 'vcEquipNumber', label: 'Equip #' },
-    { key: 'vcOpen', label: 'Open' },
-    { key: 'vcAccept', label: 'Accept' },
-    { key: 'vcDecline', label: 'Decline' },
+    { key: 'vcOpen', label: 'Open', narrow: true },
+    { key: 'vcAccept', label: 'Accept', narrow: true },
+    { key: 'vcDecline', label: 'Decline', narrow: true },
   ],
   'additional-info': [
     { key: 'carrierPickup', label: 'Carrier Pickup #' },
@@ -68,8 +68,8 @@ const TAB_COLUMNS = {
     { key: 'modifyUser', label: 'Modify User' },
     { key: 'modifyDate', label: 'Modify Date' },
     { key: 'indirectPoint', label: 'Indirect Point' },
-    { key: 'roundTrip', label: 'Round Trip' },
-    { key: 'customerPreferred', label: 'Customer Preferred' },
+    { key: 'roundTrip', label: 'Round Trip', narrow: true },
+    { key: 'customerPreferred', label: 'Customer Preferred', narrow: true },
     { key: 'orderEquip', label: 'Order Equip' },
     { key: 'contactExped', label: 'Contact Exped' },
     { key: 'note', label: 'Note' },
@@ -123,6 +123,14 @@ const tdStyle = {
   fontWeight: 400,
   color: 'var(--text-secondary)',
   borderBottom: '1px solid var(--bg-tertiary)',
+}
+
+const stickyLastCol = {
+  position: 'sticky',
+  right: 0,
+  zIndex: 3,
+  background: 'var(--bg-primary)',
+  boxShadow: '-2px 0 4px rgba(0,0,0,0.06)',
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -208,56 +216,46 @@ function TenderSummary({ shipment, shipmentDetails, onOpenDetail }) {
         border: '1px solid var(--border-subtle)',
         borderRadius: 'var(--radius-md)',
         padding: '14px 18px',
+        marginBottom: 40,
       }}
     >
-      {/* Row 1 */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 24, marginBottom: 12 }}>
-        <Field label="Buy Shipment ID" value={shipment?.buyShipment} />
-        <Field label="Sell Shipment ID" value={shipment?.sellShipment} />
-        <Field label="Mode" value={shipment?.mode} />
-        <Field label="Weight" value={shipment?.grossWeight ? `${Number(shipment.grossWeight).toLocaleString()} LB` : null} />
-        <button
-          onClick={onOpenDetail}
-          style={{
-            marginLeft: 'auto',
-            padding: '6px 14px',
-            fontSize: 12,
-            fontWeight: 600,
-            fontFamily: 'var(--font-primary)',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: 'var(--radius-sm)',
-            background: 'transparent',
-            color: 'var(--text-link)',
-            cursor: 'pointer',
-            whiteSpace: 'nowrap',
-            transition: 'all 0.15s ease',
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-tertiary)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
-        >
-          View Full Details
-        </button>
-      </div>
-
-      {/* Row 2 */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 24 }}>
-        {/* Pickup */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: 24, alignItems: 'start' }}>
         <div>
-          <div style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-tertiary)', marginBottom: 2 }}>Pickup</div>
-          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{order?.shipFrom?.company || '\u2014'}</div>
-          <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{order?.shipFrom?.location || '\u2014'}</div>
-          <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{pickupStop?.date || '\u2014'}</div>
+          <Field label="Buy Shipment ID" value={shipment?.buyShipment} />
+          <Field label="Sell Shipment ID" value={shipment?.sellShipment} />
+          <Field label="Mode" value={shipment?.mode} />
+          <Field label="Weight" value={shipment?.grossWeight ? `${Number(shipment.grossWeight).toLocaleString()} LB` : null} />
         </div>
-
-        {/* Separator */}
-        <div style={{ width: 1, alignSelf: 'stretch', background: 'var(--border-subtle)' }} />
-
-        {/* Delivery */}
         <div>
-          <div style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-tertiary)', marginBottom: 2 }}>Delivery</div>
-          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{order?.shipTo?.company || '\u2014'}</div>
-          <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{order?.shipTo?.location || '\u2014'}</div>
-          <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{deliveryStop?.date || '\u2014'}</div>
+          <Field label="Pickup" value={order?.shipFrom?.company} />
+          <Field label="Pickup Location" value={order?.shipFrom?.location} />
+          <Field label="Pickup Date" value={pickupStop?.date} />
+        </div>
+        <div>
+          <Field label="Delivery" value={order?.shipTo?.company} />
+          <Field label="Delivery Location" value={order?.shipTo?.location} />
+          <Field label="Delivery Date" value={deliveryStop?.date} />
+        </div>
+        <div style={{ display: 'flex', alignItems: 'flex-start' }}>
+          <button
+            onClick={onOpenDetail}
+            className="flex items-center text-sm font-medium"
+            style={{
+              padding: '6px 12px',
+              fontFamily: 'var(--font-primary)',
+              background: 'var(--btn-secondary-bg)',
+              border: '1px solid var(--btn-secondary-border)',
+              borderRadius: 'var(--radius-lg)',
+              color: 'var(--btn-secondary-text)',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              transition: 'color 0.15s ease, background 0.15s ease',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.background = 'var(--bg-tertiary)' }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--btn-secondary-text)'; e.currentTarget.style.background = 'var(--btn-secondary-bg)' }}
+          >
+            View Full Details
+          </button>
         </div>
       </div>
     </div>
@@ -515,7 +513,7 @@ function ActionDropdown({ status, position, onAction, onClose }) {
    Section 6 — RoutingTable
    ═══════════════════════════════════════════════════════════ */
 
-function RoutingTable({ options, columns, highlightedRank, openMenuRank, onOpenMenu, onCloseMenu, onAction }) {
+function RoutingTable({ options, columns, highlightedRank, openMenuRank, onOpenMenu, onCloseMenu, onAction, onToggleColumnPanel }) {
   if (!options || options.length === 0) {
     return (
       <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-placeholder)', padding: 16 }}>
@@ -530,7 +528,7 @@ function RoutingTable({ options, columns, highlightedRank, openMenuRank, onOpenM
   }
 
   return (
-    <div style={{ overflow: 'auto', border: '1px solid var(--border-subtle)', borderRadius: '0 0 var(--radius-md) var(--radius-md)' }}>
+    <div style={{ overflow: 'auto', border: '1px solid var(--border-subtle)', borderRadius: '0 0 var(--radius-md) var(--radius-md)', marginBottom: 24 }}>
       <table
         style={{
           width: '100%',
@@ -543,10 +541,19 @@ function RoutingTable({ options, columns, highlightedRank, openMenuRank, onOpenM
         <thead>
           <tr>
             {columns.map((col) => (
-              <th key={col.key} style={thStyle}>{col.label}</th>
+              <th key={col.key} style={{ ...thStyle, ...(col.narrow ? { width: 64, whiteSpace: 'normal', lineHeight: 1.3, textAlign: 'center' } : {}) }}>{col.label}</th>
             ))}
-            <th style={{ ...thStyle, width: 40, textAlign: 'center', padding: '10px 8px' }}>
-              <Columns3Cog size={15} style={{ color: 'var(--text-tertiary)' }} />
+            <th className="sticky top-0" style={{ ...stickyLastCol, zIndex: 5, width: 72, padding: '0 var(--spacing-4)', textAlign: 'center', borderBottom: '1px solid var(--border-subtle)', background: 'var(--bg-secondary)' }}>
+              <button
+                className="flex items-center justify-center mx-auto bg-transparent border-none cursor-pointer p-1 rounded"
+                style={{ color: 'var(--text-placeholder)' }}
+                onClick={() => { if (onToggleColumnPanel) onToggleColumnPanel() }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-secondary)' }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-placeholder)' }}
+                title="Column arrangement"
+              >
+                <Columns3Cog size={15} />
+              </button>
             </th>
           </tr>
         </thead>
@@ -570,6 +577,7 @@ function RoutingTable({ options, columns, highlightedRank, openMenuRank, onOpenM
                     ...tdStyle,
                     ...(isHighlighted ? { fontWeight: 500 } : {}),
                     ...(isPrimary ? { fontWeight: 500, color: 'var(--text-primary)' } : {}),
+                    ...(col.narrow ? { width: 64, textAlign: 'center' } : {}),
                   }
                   return (
                     <td key={col.key} style={cellStyle}>
@@ -578,14 +586,16 @@ function RoutingTable({ options, columns, highlightedRank, openMenuRank, onOpenM
                   )
                 })}
                 <td
-                  style={{ ...tdStyle, width: 40, textAlign: 'center', padding: '10px 8px', cursor: 'pointer' }}
+                  style={{ ...stickyLastCol, padding: '0 var(--spacing-4)', borderBottom: '1px solid var(--bg-tertiary)', textAlign: 'center', width: 72, cursor: 'pointer', background: isHighlighted ? 'var(--badge-blue-bg)' : (option.status && STATUS_STYLES[option.status] ? STATUS_STYLES[option.status].bg : 'var(--bg-primary)') }}
                   onClick={(e) => {
                     e.stopPropagation()
                     const rect = e.currentTarget.getBoundingClientRect()
-                    onOpenMenu(option.rank, { top: rect.bottom + 2, left: rect.right })
+                    onOpenMenu(option.rank, { top: rect.bottom + 4, left: rect.right })
                   }}
                 >
-                  <MoreVertical size={16} style={{ color: 'var(--text-tertiary)' }} />
+                  <div className="flex items-center justify-center" style={{ width: '100%', height: '100%' }}>
+                    <TruckElectric size={16} style={{ color: option.status && STATUS_STYLES[option.status] ? STATUS_STYLES[option.status].color : 'var(--text-placeholder)' }} />
+                  </div>
                 </td>
               </tr>
             )
@@ -616,29 +626,24 @@ function RoutingTable({ options, columns, highlightedRank, openMenuRank, onOpenM
 
 function RoutingSubTabs({ activeSubTab, onTabChange }) {
   return (
-    <div style={{ display: 'flex', gap: 0, borderBottom: '2px solid var(--border-subtle)' }}>
+    <div className="flex" style={{ gap: 'var(--spacing-6)', borderBottom: '1px solid var(--border-subtle)' }}>
       {SUB_TABS.map((tab) => {
         const isActive = tab.key === activeSubTab
         return (
           <button
             key={tab.key}
             onClick={() => onTabChange(tab.key)}
+            className="whitespace-nowrap bg-transparent border-none cursor-pointer text-sm font-bold"
             style={{
-              padding: '10px 18px',
-              fontSize: 12,
-              fontWeight: isActive ? 700 : 500,
+              padding: '8px 0',
               fontFamily: 'var(--font-primary)',
-              color: isActive ? 'var(--text-link)' : 'var(--text-secondary)',
-              background: 'transparent',
-              border: 'none',
-              borderBottom: isActive ? '2px solid var(--text-link)' : '2px solid transparent',
-              marginBottom: -2,
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              transition: 'color 0.15s ease, border-color 0.15s ease',
+              color: isActive ? 'var(--text-primary)' : 'var(--text-tertiary)',
+              borderBottom: `2px solid ${isActive ? 'var(--text-tertiary)' : 'transparent'}`,
+              marginBottom: -1,
+              transition: 'color var(--transition-fast), border-color var(--transition-fast)',
             }}
             onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.color = 'var(--text-primary)' }}
-            onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.color = isActive ? 'var(--text-link)' : 'var(--text-secondary)' }}
+            onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.color = isActive ? 'var(--text-primary)' : 'var(--text-tertiary)' }}
           >
             {tab.label}
           </button>
@@ -652,7 +657,7 @@ function RoutingSubTabs({ activeSubTab, onTabChange }) {
    Section 8 — Main Component
    ═══════════════════════════════════════════════════════════ */
 
-export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
+export default function RoutingGuideTab({ data, shipmentDetails, shipment, onToggleColumnPanel }) {
   const [activeSubTab, setActiveSubTab] = useState('routing-options')
   const [highlightedRank, setHighlightedRank] = useState(null)
   const [openMenuRank, setOpenMenuRank] = useState(null)
@@ -744,24 +749,27 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
         onOpenDetail={() => setIsDetailModalOpen(true)}
       />
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 16 }}>
-        <RoutingSubTabs activeSubTab={activeSubTab} onTabChange={setActiveSubTab} />
+      <div style={{ display: 'flex', alignItems: 'flex-end', marginTop: 16, marginBottom: 12 }}>
+        <div style={{ flex: 1 }}>
+          <RoutingSubTabs activeSubTab={activeSubTab} onTabChange={setActiveSubTab} />
+        </div>
         <button
+          className="flex items-center text-sm font-medium"
           style={{
-            padding: '6px 14px',
-            fontSize: 12,
-            fontWeight: 600,
+            padding: '6px 12px',
             fontFamily: 'var(--font-primary)',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: 'var(--radius-sm)',
-            background: 'transparent',
-            color: 'var(--text-secondary)',
+            background: 'var(--btn-secondary-bg)',
+            border: '1px solid var(--btn-secondary-border)',
+            borderRadius: 'var(--radius-lg)',
+            color: 'var(--btn-secondary-text)',
             cursor: 'pointer',
             whiteSpace: 'nowrap',
-            transition: 'all 0.15s ease',
+            transition: 'color 0.15s ease, background 0.15s ease',
+            marginLeft: 16,
+            marginBottom: 4,
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-tertiary)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.background = 'var(--bg-tertiary)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--btn-secondary-text)'; e.currentTarget.style.background = 'var(--btn-secondary-bg)' }}
         >
           Add Quote
         </button>
@@ -776,6 +784,7 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
           onOpenMenu={handleOpenMenu}
           onCloseMenu={handleCloseMenu}
           onAction={handleAction}
+          onToggleColumnPanel={onToggleColumnPanel}
         />
       </div>
 

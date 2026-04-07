@@ -35,7 +35,7 @@
 <body>
 
 <h1>Odyssey Shipments — Backlog</h1>
-<p class="subtitle">Updated April 1, 2026 &mdash; All items need spec before implementation (user stories, edge cases, functional requirements)</p>
+<p class="subtitle">Updated April 6, 2026 &mdash; All items need spec before implementation (user stories, edge cases, functional requirements)</p>
 
 <table>
 <colgroup>
@@ -58,8 +58,95 @@
 </thead>
 <tbody>
 
-<!-- Pending -->
-<tr class="priority-group"><td colspan="6">Priority 1 — Column Arrangement</td></tr>
+<!-- Session 7 — New stories from Apr 6 grooming -->
+<tr class="priority-group"><td colspan="6">Priority 1 — Bug Fixes &amp; Data Corrections (Session 7)</td></tr>
+<tr>
+  <td></td>
+  <td class="id">SHP-23</td>
+  <td>Fix equipment column data key in routing table</td>
+  <td><span class="size-s">S</span></td>
+  <td><span class="status-spec">Needs spec</span></td>
+  <td>Equipment column has <code>dataKey: 'rate'</code> showing wrong data. Add <code>equipment</code> field per carrier option in generator (from EQUIPMENT_CODES). Remove dataKey override. Jana caught: "Equipment should not be rate."</td>
+</tr>
+<tr>
+  <td></td>
+  <td class="id">SHP-24</td>
+  <td>Three-dot menu cleanup + row highlight + dropdown clipping</td>
+  <td><span class="size-s">S</span></td>
+  <td><span class="status-spec">Needs spec</span></td>
+  <td>Three fixes: (1) Remove "Buy Shipment" from menu, rename "Edit by Shipment" &rarr; "Edit". Items: "Edit", "Tender by Preferred Carrier". (2) Selected row background uses badge bg color matching tender status (green-bg for Accepted, red-bg for Declined, etc.). (3) Tender actions dropdown repositions to avoid clipping &mdash; shows left of actions column and flips above when near bottom edge.</td>
+</tr>
+<tr>
+  <td></td>
+  <td class="id">SHP-25</td>
+  <td>Panel assignment derived from tender outcome</td>
+  <td><span class="size-m">M</span></td>
+  <td><span class="status-spec">Needs spec</span></td>
+  <td>Generator logic: if shipment has Accepted or Sent carrier &rarr; Monitoring (Done/empty). If all carriers Declined/Cancelled/null &rarr; Exceptions (Review). No Accepted/Sent in Exceptions routing table. No "Done" shipment status in Exceptions. Routing table still shows all carrier history in Monitoring.</td>
+</tr>
+<tr>
+  <td></td>
+  <td class="id">SHP-32</td>
+  <td>Only TL and LTL modes in generator</td>
+  <td><span class="size-s">S</span></td>
+  <td><span class="status-spec">Needs spec</span></td>
+  <td>Remove AIR, RR, IMD from generator for demo purposes. Jana: "We don't have air shipments right now. All you can do is TL, LTL."</td>
+</tr>
+
+<tr class="priority-group"><td colspan="6">Priority 2 — Main Table Enhancements (Session 7)</td></tr>
+<tr>
+  <td></td>
+  <td class="id">SHP-27</td>
+  <td>Validation Message column in main table</td>
+  <td><span class="size-s">S</span></td>
+  <td><span class="status-spec">Needs spec</span></td>
+  <td>New column for Exceptions panel. Message per shipment based on exception category tab. Message map: Date Issues &rarr; "Pickup date missing", "Delivery date in the past", etc. Routing Review &rarr; "No routing guide available", "All carriers exhausted", etc. Empty for Monitoring. From PPT attribute list "Shipment Status Validation Message" (was skipped, Jana now requires it).</td>
+</tr>
+<tr>
+  <td></td>
+  <td class="id">SHP-28</td>
+  <td>Restore missing columns + new defaults in main table</td>
+  <td><span class="size-m">M</span></td>
+  <td><span class="status-spec">Needs spec</span></td>
+  <td>Default column preset: Buy Shipment, Customer ID(s), Shipment Status (moved up), Order #, Order Count, Pickup Date, Delivery Date, Origin, Destination, Gross Weight, Mode, Equipment, SCAC, AP Freight Cost, Validation Message. Columns disappeared at some point &mdash; restore from attributes list. Jana's top demo priority.</td>
+</tr>
+<tr>
+  <td></td>
+  <td class="id">SHP-26</td>
+  <td>Shipment status tooltip showing tender status</td>
+  <td><span class="size-s">S</span></td>
+  <td><span class="status-spec">Needs spec</span></td>
+  <td>Hover on shipment status badge in main table &rarr; DarkTooltip shows underlying tender status (e.g. hover "Done" &rarr; "Tender: Accepted", hover "Review" &rarr; "Tender: Declined"). No new column needed &mdash; tender status is derived context.</td>
+</tr>
+
+<tr class="priority-group"><td colspan="6">Priority 3 — Tender Tab Enhancements (Session 7)</td></tr>
+<tr>
+  <td></td>
+  <td class="id">SHP-31</td>
+  <td>View Full Details modal cleanup</td>
+  <td><span class="size-s">S</span></td>
+  <td><span class="status-spec">Needs spec</span></td>
+  <td>Hazardous: change from checkbox to regular Field (value "Yes" with hazmat config or "No"). Instructions: change from checkbox to Field with count (e.g. "5 instructions" summed across all orders). Close button: X top-right corner like export modal. Remove footer buttons (QCP, View Stops, Close).</td>
+</tr>
+<tr>
+  <td></td>
+  <td class="id">SHP-29</td>
+  <td>Add Quote / Edit Quote / Show Rate Details modal</td>
+  <td><span class="size-l">L</span></td>
+  <td><span class="status-spec">Needs spec</span></td>
+  <td>Three modes, one modal: Add Quote (empty form), Edit Quote (pre-filled, new 3-dot menu item), Show Rate Details (read-only, existing 3-dot menu item). Form: SCAC dropdown, Carrier Name (auto-populated), Pickup/Delivery date/time, Base rate (required), Currency, Markup, Additional Charges table (add/delete rows with charge code, description, amount, currency), live AP/AR totals. On save: updates routing table. Generator: AP breakdown per carrier option. Cost Allocation tab must derive from accepted carrier's breakdown for consistency.</td>
+</tr>
+<tr>
+  <td></td>
+  <td class="id">SHP-30</td>
+  <td>Collapsible mandatory columns in routing table</td>
+  <td><span class="size-l">L</span></td>
+  <td><span class="status-spec">Needs spec</span></td>
+  <td>Mandatory columns frozen on left (like actions column). Route Rank, Rank, Tender Status never collapse. SCAC, Carrier Name, Equipment, AP Cost, Pickup/Delivery Date/Time are collapsible. Collapse = batch (fold-horizontal icon on any header collapses all 6). Expand = individual (unfold-horizontal icon expands one column). Collapsed: header shows "..." + icon, cells show first 3 chars + "...". Icons from lucide-react: fold-horizontal, unfold-horizontal.</td>
+</tr>
+
+<!-- Existing priorities -->
+<tr class="priority-group"><td colspan="6">Priority 4 — Column Arrangement</td></tr>
 <tr>
   <td></td>
   <td class="id">SHP-18</td>
@@ -70,7 +157,7 @@
 </tr>
 
 <!-- Priority 2 -->
-<tr class="priority-group"><td colspan="6">Priority 2 — Search &amp; Filtering</td></tr>
+<tr class="priority-group"><td colspan="6">Priority 5 — Search &amp; Filtering</td></tr>
 <tr>
   <td></td>
   <td class="id">SHP-19</td>
@@ -222,11 +309,11 @@
 
 <tr class="priority-group"><td colspan="6">Session 6 — April 1-2, 2026 (Tender Tab Full Layout)</td></tr>
 <tr class="done-group">
-  <td>S6</td>
+  <td>S7</td>
   <td class="id">SHP-21</td>
   <td>Tender tab full PPT layout</td>
   <td><span class="size-m">M</span></td>
-  <td><span class="status-spec">In Progress</span></td>
+  <td><span class="status-done">Done</span></td>
   <td>Complete redesign matching Shipments-Monitoring PPT. Collapsed: compact 3-column summary. Fullscreen: full 4-column summary (Shipment, Order, Initial Pickup, Final Delivery) + action buttons + 5 sub-tabs (Routing Options, Notify &amp; Response, View Volume Commitment, Additional Info, Others) switching table columns.</td>
 </tr>
 <tr class="done-group">
