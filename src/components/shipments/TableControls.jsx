@@ -113,6 +113,9 @@ const TableControls = React.memo(function TableControls({
             onChange={(e) => onSearchChange(e.target.value)}
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
+            spellCheck={false}
+            autoCorrect="off"
+            autoCapitalize="off"
             className="flex-1 bg-transparent min-w-0"
             style={{
               color: 'var(--text-primary)',
@@ -191,7 +194,7 @@ const TableControls = React.memo(function TableControls({
       </div>
 
       {/* Row 2: Chips row — only visible when there's a search query */}
-      {searchQuery.trim() && (
+      {searchQuery.trim() && itemCount > 0 && (
         <SearchChipPanel
           query={searchQuery}
           activeChipKey={activeChipKey}
