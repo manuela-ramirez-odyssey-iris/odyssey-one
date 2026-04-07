@@ -1009,12 +1009,12 @@ const CATEGORY_WEIGHTS = {
 };
 
 // ============================================================
-// GENERATE 200 SHIPMENTS
+// GENERATE 700 SHIPMENTS
 // ============================================================
 
-console.log('Generating 200 shipments...');
+console.log('Generating 700 shipments...');
 
-const TOTAL_SHIPMENTS = 200;
+const TOTAL_SHIPMENTS = 700;
 const shipments = [];
 const shipmentDetails = {};
 
