@@ -34,7 +34,7 @@ export default function SearchChipPanel({ query, activeChipKey, onChipSelect, on
               borderRadius: 'var(--radius-pill)',
               border: `1px solid ${isActive ? 'var(--deep-sea-neutral-400, #9DA3B0)' : 'var(--border-subtle)'}`,
               background: isActive ? 'var(--deep-sea-neutral-400, #9DA3B0)' : 'var(--bg-tertiary)',
-              color: isActive ? 'var(--white, #fff)' : 'var(--text-secondary)',
+              color: isActive ? 'var(--deep-sea-neutral-800, #283040)' : 'var(--text-secondary)',
               fontFamily: 'var(--font-primary)',
               fontSize: 13,
               fontWeight: 500,
