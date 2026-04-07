@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
 
-export default function DarkTooltip({ text, children, width = 300 }) {
+export default function DarkTooltip({ text, children, width = 300, align = 'center' }) {
   const [show, setShow] = useState(false)
   const ref = useRef(null)
   const [pos, setPos] = useState(null)
@@ -9,7 +9,8 @@ export default function DarkTooltip({ text, children, width = 300 }) {
   const handleEnter = () => {
     if (ref.current) {
       const rect = ref.current.getBoundingClientRect()
-      setPos({ top: rect.top, left: rect.left + rect.width / 2 })
+      const left = align === 'right' ? rect.right : rect.left + rect.width / 2
+      setPos({ top: rect.top, left })
     }
     setShow(true)
   }
@@ -27,14 +28,14 @@ export default function DarkTooltip({ text, children, width = 300 }) {
           position: 'fixed',
           top: pos.top - 8,
           left: pos.left,
-          transform: 'translate(-50%, -100%)',
+          transform: align === 'right' ? 'translate(-100%, -100%)' : 'translate(-50%, -100%)',
           background: 'var(--deep-sea-neutral-900, #1B2537)',
           borderRadius: 'var(--radius-md)',
           padding: '10px 14px',
           zIndex: 9999,
           width: width === 'auto' ? 'auto' : width,
           whiteSpace: width === 'auto' ? 'nowrap' : 'normal',
-          textAlign: 'left',
+          textAlign: align === 'right' ? 'right' : 'left',
           boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
           pointerEvents: 'none',
         }}>

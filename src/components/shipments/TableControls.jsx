@@ -184,7 +184,7 @@ const TableControls = React.memo(function TableControls({
           >
             <ArrowUpDown size={16} style={{ color: 'var(--btn-secondary-text)' }} />
           </button>
-          <DarkTooltip text="Only the first 10,000 records will be exported to Excel" width={220}>
+          <DarkTooltip text="Only the first 10,000 records will be exported to Excel" width={220} align="right">
             <SecondaryButton onClick={() => setExportModalOpen(true)}>
               <Upload size={16} />
               <span>Export</span>
