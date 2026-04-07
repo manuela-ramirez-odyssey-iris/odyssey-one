@@ -9,7 +9,7 @@ import FilterPanel from './components/shipments/FilterPanel'
 import ColumnPanel, { ALL_COLUMNS } from './components/detail/ColumnPanel'
 import { COLUMN_CONFIG } from './components/shipments/ShipmentTable'
 import { FileText } from 'lucide-react'
-import { getAllShipments, getShipmentDetails, loadShipmentDetails, SEARCH_ATTRIBUTES } from './data'
+import { getAllShipments, fetchShipmentDetails, getCachedShipmentDetails, getShipmentsByPanel, getShipmentsByPanelAndCategory, getCategoryCount, SEARCH_ATTRIBUTES } from './data'
 
 function parseSavedQuery(queryStr) {
   const pairs = []
@@ -46,7 +46,8 @@ function App() {
   const [columnPanelOpen, setColumnPanelOpen] = useState(false)
   const [filters, setFilters] = useState({})
   const [appliedSavedQuery, setAppliedSavedQuery] = useState(null)
-  const [detailsLoaded, setDetailsLoaded] = useState(false)
+  const [shipmentDetails, setShipmentDetails] = useState(null)
+  const [detailsLoading, setDetailsLoading] = useState(false)
   const [metricsCollapsed, setMetricsCollapsed] = useState(false)
   const [visibleColumns, setVisibleColumns] = useState(() => COLUMN_CONFIG.map(c => c.key))
 
@@ -55,18 +56,29 @@ function App() {
   useEffect(() => {
     if (selectedShipmentId) {
       setMetricsCollapsed(true)
-      loadShipmentDetails().then(() => {
-        setDetailsLoaded(true)
+      // Check cache first (instant)
+      const cached = getCachedShipmentDetails(selectedShipmentId)
+      if (cached) {
+        setShipmentDetails(cached)
+        return
+      }
+      // Fetch on demand (~30 KB per shipment)
+      setDetailsLoading(true)
+      let stale = false
+      fetchShipmentDetails(selectedShipmentId).then(data => {
+        if (!stale) {
+          setShipmentDetails(data)
+          setDetailsLoading(false)
+        }
+      }).catch(() => {
+        if (!stale) setDetailsLoading(false)
       })
+      return () => { stale = true }
     } else {
       setMetricsCollapsed(false)
+      setShipmentDetails(null)
     }
   }, [selectedShipmentId])
-
-  const shipmentDetails = useMemo(() => {
-    if (!selectedShipmentId) return null
-    return getShipmentDetails(selectedShipmentId)
-  }, [selectedShipmentId, detailsLoaded])
 
   const selectedShipment = useMemo(() => {
     if (!selectedShipmentId) return null
@@ -74,21 +86,18 @@ function App() {
   }, [selectedShipmentId, allShipments])
 
   const filteredShipments = useMemo(() => {
-    // 0. Filter by active panel
-    let result = allShipments.filter(s => s.panel === activePanel)
+    // O(1) panel lookup instead of O(n) filter
+    let result = activeTab === 'all'
+      ? getShipmentsByPanel(activePanel)
+      : getShipmentsByPanelAndCategory(activePanel, activeTab)
 
-    // 1. Filter by active tab (if not 'all')
-    if (activeTab !== 'all') {
-      result = result.filter(s => s.category === activeTab)
-    }
-
-    // 2. Apply saved query filters
+    // Apply saved query filters
     if (appliedSavedQuery) {
       const conditions = parseSavedQuery(appliedSavedQuery.query)
       result = result.filter((s) =>
         conditions.every(({ key, value }) => {
           const attr = SEARCH_ATTRIBUTES.find((a) => a.key === key)
-          if (!attr) return true // skip unknown keys
+          if (!attr) return true
           const fieldVal = s[attr.dataKey]
           if (Array.isArray(fieldVal)) return fieldVal.some((v) => String(v).toLowerCase().includes(value.toLowerCase()))
           return String(fieldVal || '').toLowerCase().includes(value.toLowerCase())
@@ -96,7 +105,7 @@ function App() {
       )
     }
 
-    // 3. Apply text/chip search filtering
+    // Apply text/chip search filtering
     if (debouncedQuery.trim()) {
       const q = debouncedQuery.toLowerCase()
       if (activeChipKey) {
@@ -120,7 +129,7 @@ function App() {
       }
     }
 
-    // 4. Apply panel filters
+    // Apply panel filters
     if (filters.origin) result = result.filter((s) => s.origin === filters.origin)
     if (filters.destination) result = result.filter((s) => s.destination === filters.destination)
     if (filters.shipmentStatus) result = result.filter((s) => s.shipmentStatus === filters.shipmentStatus)
@@ -156,26 +165,23 @@ function App() {
   }, [allShipments, activePanel, activeTab, debouncedQuery, activeChipKey, filters, appliedSavedQuery])
 
   const metrics = useMemo(() => {
-    const exceptionsPool = allShipments.filter(s => s.panel === 'exceptions')
-    const monitoringPool = allShipments.filter(s => s.panel === 'monitoring')
-    const pgipgrPool = allShipments.filter(s => s.panel === 'pgipgr')
     return {
-      // Exception counts
-      dateIssues: exceptionsPool.filter(s => s.category === 'date-issues').length,
-      routingReview: exceptionsPool.filter(s => s.category === 'routing-review').length,
-      tenderIssues: exceptionsPool.filter(s => s.category === 'tender-issues').length,
-      tenderReview: exceptionsPool.filter(s => s.category === 'tender-review').length,
-      bidReview: exceptionsPool.filter(s => s.category === 'bid-review').length,
+      // Exception counts — O(1) lookups
+      dateIssues: getCategoryCount('exceptions', 'date-issues'),
+      routingReview: getCategoryCount('exceptions', 'routing-review'),
+      tenderIssues: getCategoryCount('exceptions', 'tender-issues'),
+      tenderReview: getCategoryCount('exceptions', 'tender-review'),
+      bidReview: getCategoryCount('exceptions', 'bid-review'),
       // Monitoring counts
-      hold: monitoringPool.filter(s => s.category === 'hold').length,
-      consolidation: monitoringPool.filter(s => s.category === 'consolidation').length,
-      sent: monitoringPool.filter(s => s.category === 'sent').length,
-      spotBid: monitoringPool.filter(s => s.category === 'spotbid').length,
-      approved: monitoringPool.filter(s => s.category === 'approved').length,
+      hold: getCategoryCount('monitoring', 'hold'),
+      consolidation: getCategoryCount('monitoring', 'consolidation'),
+      sent: getCategoryCount('monitoring', 'sent'),
+      spotBid: getCategoryCount('monitoring', 'spotbid'),
+      approved: getCategoryCount('monitoring', 'approved'),
       // PGI/PGR counts
-      pgipgrErrors: pgipgrPool.filter(s => s.category === 'pgipgr-errors').length,
-      ratingFailure: pgipgrPool.filter(s => s.category === 'rating-failure').length,
-      manualPgipgr: pgipgrPool.filter(s => s.category === 'manual-pgipgr').length,
+      pgipgrErrors: getCategoryCount('pgipgr', 'pgipgr-errors'),
+      ratingFailure: getCategoryCount('pgipgr', 'rating-failure'),
+      manualPgipgr: getCategoryCount('pgipgr', 'manual-pgipgr'),
     }
   }, [allShipments])
 
@@ -334,6 +340,7 @@ function App() {
         onClose={handleBottomBarClose}
         rightOffset={rightOffset}
         onToggleColumnPanel={handleToggleColumnPanel}
+        detailsLoading={detailsLoading}
       />
     </AppShell>
   )
