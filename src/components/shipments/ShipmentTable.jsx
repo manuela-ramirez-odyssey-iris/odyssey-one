@@ -324,7 +324,7 @@ const VirtualActionRow = React.memo(function VirtualActionRow({ index, style, sh
   )
 })
 
-export default function ShipmentTable({ shipments, onRowSelect, selectedId, onToggleColumnPanel, visibleColumns }) {
+export default function ShipmentTable({ shipments, onRowSelect, selectedId, onToggleColumnPanel, visibleColumns, onScrollStart }) {
   const containerRef = useRef(null)
   const listRef = useRef(null)
   const actionsListRef = useRef(null)
@@ -376,9 +376,14 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
     const headerEl = headerRef.current
     if (!dataEl) return
 
+    let notified = false
     const syncScroll = () => {
       if (headerEl) headerEl.scrollLeft = dataEl.scrollLeft
       if (actionsEl) actionsEl.scrollTop = dataEl.scrollTop
+      if (!notified && dataEl.scrollTop > 0 && onScrollStart) {
+        notified = true
+        onScrollStart()
+      }
     }
     dataEl.addEventListener('scroll', syncScroll, { passive: true })
     return () => dataEl.removeEventListener('scroll', syncScroll)

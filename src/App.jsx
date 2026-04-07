@@ -332,6 +332,7 @@ function App() {
           onRowSelect={handleRowSelect}
           onToggleColumnPanel={handleToggleColumnPanel}
           visibleColumns={visibleColumns}
+          onScrollStart={useCallback(() => setMetricsCollapsed(true), [])}
         />
       )}
       <BottomBar
