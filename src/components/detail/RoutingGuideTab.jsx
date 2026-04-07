@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { TruckElectric, Columns3Cog, X, Trash2 } from 'lucide-react'
+import { TruckElectric, Columns3Cog, X, Trash2, FoldHorizontal, UnfoldHorizontal } from 'lucide-react'
 
 /* ═══════════════════════════════════════════════════════════
    Section 1 — Constants
@@ -24,6 +24,10 @@ const LOCKED_COLUMNS = [
   { key: 'pickupDateTime', label: 'Pickup Date/Time' },
   { key: 'deliveryDateTime', label: 'Delivery Date/Time' },
 ]
+
+const NEVER_COLLAPSE_KEYS = ['routeRank', 'rank', 'status']
+const COLLAPSIBLE_KEYS = ['scac', 'carrierName', 'equipment', 'cost', 'pickupDateTime', 'deliveryDateTime']
+const COLLAPSED_WIDTH = 52
 
 const TAB_COLUMNS = {
   'routing-options': [
@@ -984,7 +988,7 @@ function ActionDropdown({ status, position, onAction, onClose }) {
    Section 6 — RoutingTable
    ═══════════════════════════════════════════════════════════ */
 
-function RoutingTable({ options, columns, highlightedRank, openMenuRank, onOpenMenu, onCloseMenu, onAction, onToggleColumnPanel }) {
+function RoutingTable({ options, columns, highlightedRank, openMenuRank, onOpenMenu, onCloseMenu, onAction, onToggleColumnPanel, isCollapsed, onCollapse, onExpand }) {
   if (!options || options.length === 0) {
     return (
       <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-placeholder)', padding: 16 }}>
@@ -1011,9 +1015,48 @@ function RoutingTable({ options, columns, highlightedRank, openMenuRank, onOpenM
       >
         <thead>
           <tr>
-            {columns.map((col) => (
-              <th key={col.key} style={{ ...thStyle, ...(col.narrow ? { width: 64, whiteSpace: 'normal', lineHeight: 1.3, textAlign: 'center' } : {}) }}>{col.label}</th>
-            ))}
+            {columns.map((col) => {
+              const collapsed = isCollapsed(col.key)
+              const isCollapsible = COLLAPSIBLE_KEYS.includes(col.key)
+
+              if (collapsed) {
+                return (
+                  <th key={col.key} style={{ ...thStyle, width: COLLAPSED_WIDTH, maxWidth: COLLAPSED_WIDTH, padding: '10px 4px', textAlign: 'center' }} title={col.label}>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onExpand(col.key) }}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 2, color: 'var(--text-tertiary)', padding: 0 }}
+                      aria-label={`Expand ${col.label} column`}
+                    >
+                      <span style={{ fontSize: 11 }}>...</span>
+                      <UnfoldHorizontal size={12} />
+                    </button>
+                  </th>
+                )
+              }
+
+              return (
+                <th
+                  key={col.key}
+                  style={{ ...thStyle, ...(col.narrow ? { width: 64, whiteSpace: 'normal', lineHeight: 1.3, textAlign: 'center' } : {}) }}
+                  onMouseEnter={(e) => { const icon = e.currentTarget.querySelector('.fold-icon'); if (icon) icon.style.opacity = '1' }}
+                  onMouseLeave={(e) => { const icon = e.currentTarget.querySelector('.fold-icon'); if (icon) icon.style.opacity = '0' }}
+                >
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    {col.label}
+                    {isCollapsible && (
+                      <button
+                        className="fold-icon"
+                        onClick={(e) => { e.stopPropagation(); onCollapse() }}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', padding: 0, opacity: 0, transition: 'opacity 0.15s', display: 'flex' }}
+                        aria-label="Collapse all optional columns"
+                      >
+                        <FoldHorizontal size={12} />
+                      </button>
+                    )}
+                  </span>
+                </th>
+              )
+            })}
             <th className="sticky top-0" style={{ ...stickyLastCol, zIndex: 5, width: 72, padding: '0 var(--spacing-4)', textAlign: 'center', borderBottom: '1px solid var(--border-subtle)', background: 'var(--bg-secondary)' }}>
               <button
                 className="flex items-center justify-center mx-auto bg-transparent border-none cursor-pointer p-1 rounded"
@@ -1045,7 +1088,19 @@ function RoutingTable({ options, columns, highlightedRank, openMenuRank, onOpenM
                 onMouseLeave={(e) => { if (!isHighlighted) e.currentTarget.style.background = 'var(--bg-primary)' }}
               >
                 {columns.map((col) => {
+                  const collapsed = isCollapsed(col.key)
                   const isPrimary = col.primary
+
+                  if (collapsed) {
+                    const rawValue = col.key === 'status' ? option.status : (option[col.dataKey || col.key] ?? '')
+                    const display = (!rawValue && rawValue !== 0) ? '--' : String(rawValue).slice(0, 3) + '...'
+                    return (
+                      <td key={col.key} style={{ ...tdStyle, width: COLLAPSED_WIDTH, maxWidth: COLLAPSED_WIDTH, overflow: 'hidden', padding: '10px 4px', fontSize: 12 }}>
+                        {display}
+                      </td>
+                    )
+                  }
+
                   const cellStyle = {
                     ...tdStyle,
                     ...(isHighlighted ? { fontWeight: 500 } : {}),
@@ -1143,6 +1198,8 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
   const [options, setOptions] = useState(data?.options || [])
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
   const [quoteModal, setQuoteModal] = useState({ isOpen: false, mode: 'add', carrierData: null })
+  const [columnsCollapsed, setColumnsCollapsed] = useState(false)
+  const [expandedColumnKey, setExpandedColumnKey] = useState(null)
   const tableRef = useRef(null)
 
   /* Reset all state when data changes (new shipment selected) */
@@ -1154,6 +1211,8 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
     setOptions(data?.options || [])
     setIsDetailModalOpen(false)
     setQuoteModal({ isOpen: false, mode: 'add', carrierData: null })
+    setColumnsCollapsed(false)
+    setExpandedColumnKey(null)
   }, [data])
 
   /* Click-outside listener: clicks outside tableRef and not inside [data-tender-dropdown] */
@@ -1176,6 +1235,22 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
 
   const handleCloseMenu = useCallback(() => {
     setOpenMenuRank(null)
+  }, [])
+
+  const isCollapsed = useCallback((key) => {
+    if (NEVER_COLLAPSE_KEYS.includes(key)) return false
+    if (!columnsCollapsed) return false
+    if (expandedColumnKey === key) return false
+    return true
+  }, [columnsCollapsed, expandedColumnKey])
+
+  const handleCollapse = useCallback(() => {
+    setColumnsCollapsed(true)
+    setExpandedColumnKey(null)
+  }, [])
+
+  const handleExpand = useCallback((key) => {
+    setExpandedColumnKey(key)
   }, [])
 
   const handleQuoteSave = useCallback((formData) => {
@@ -1356,6 +1431,9 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
           onCloseMenu={handleCloseMenu}
           onAction={handleAction}
           onToggleColumnPanel={onToggleColumnPanel}
+          isCollapsed={isCollapsed}
+          onCollapse={handleCollapse}
+          onExpand={handleExpand}
         />
       </div>
 
