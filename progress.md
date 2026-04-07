@@ -596,10 +596,27 @@ Extracted and cross-referenced both PowerPoint decks (`Shipments-Monitoring.pptx
 | SHP-32 | TL/LTL modes (then restored all 5) | **Done** |
 | SHP-18 | Column arrangement panel | **Done** |
 
+### Session 8 Stories — April 7, 2026
+
+| ID | Task | Status |
+|---|---|---|
+| SHP-34 | Performance optimization (virtualization, split details, memoization, indexes) | **Done** |
+| SHP-33 | Temporary search column promotion | **Done** |
+| SHP-35 | Button components (PrimaryButton, SecondaryButton) | **Done** |
+| SHP-36 | Filter panel redesign (header, pill tabs, click-outside close, stay open on apply) | **Done** |
+| SHP-37 | Search bar UX (no spellcheck, blur on clear, relevance sort, chip-driven column) | **Done** |
+| SHP-38 | Shipments table UX (Zap icon, row highlight on menu, auto-scroll, metrics auto-collapse) | **Done** |
+| SHP-39 | Filter attributes expansion — add ~40 missing attributes, normal vs extended panel | Needs spec |
+| SHP-40 | Saved search profiles — create, save, manage, apply (CRUD) | Needs spec |
+| SHP-41 | Filter panel UI styling — dropdowns, calendars, inputs to match design system | Needs spec |
+| SHP-42 | Saved query behavior — filters on top of search text, not replaces it | Needs spec |
+
+### Open Questions
+- **Ask Jana:** When is "Sent" tender status shown to users? (Blocks SHP-39 filter options)
+
 ### Pending Items
-- SHP-19: Search & filtering expansion (15→45 attributes, chip search, filter-column sync)
-- Stops tab compact layout (SHP-9.3, halted)
-- Multi-customer shipments (SHP-11, halted)
+- SHP-9.3: Stops tab compact layout (halted)
+- SHP-11: Multi-customer shipments (halted)
 - PGI/PGR implementation (placeholder only)
 - Edit screen for by-shipment editing (deferred, not designed)
 - Column arrangement for tender routing table (cog icon placed, not wired)
