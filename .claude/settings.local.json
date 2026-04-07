@@ -44,7 +44,15 @@
       "Bash(echo \"Exit: $?\")",
       "Bash(npx eslint:*)",
       "mcp__claude_ai_Figma__get_design_context",
-      "Bash(lsof -ti:3008)"
+      "Bash(lsof -ti:3008)",
+      "Bash(find /Users/manuelramirez/Documents/iris/Odyssey/Shipments/odyssey-shipments/src -type f \\\\\\( -name \"*.jsx\" -o -name \"*.js\" -o -name \"*.tsx\" \\\\\\) -exec wc -l {} +)",
+      "Bash(ls:*)",
+      "Bash(xargs cat:*)",
+      "Bash(wc:*)",
+      "Bash(du -sh /Users/manuelramirez/Documents/iris/Odyssey/Shipments/odyssey-shipments/dist/assets/*)",
+      "Bash(gzip -c /Users/manuelramirez/Documents/iris/Odyssey/Shipments/odyssey-shipments/dist/assets/shipment-details-B96ENUdW.js)",
+      "Bash(gzip -c /Users/manuelramirez/Documents/iris/Odyssey/Shipments/odyssey-shipments/dist/assets/index-BL1bq7eY.css)",
+      "Bash(gzip -c /Users/manuelramirez/Documents/iris/Odyssey/Shipments/odyssey-shipments/dist/assets/index-DpU3XaoR.js)"
     ]
   }
 }

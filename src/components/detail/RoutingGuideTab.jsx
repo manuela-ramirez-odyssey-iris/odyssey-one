@@ -1077,6 +1077,7 @@ function RoutingTable({ options, columns, tabColumns, highlightedRank, openMenuR
   }
 
   const tableStyle = {
+    width: '100%',
     borderCollapse: 'collapse',
     fontFamily: 'var(--font-primary)',
     fontSize: '14px',
@@ -1166,9 +1167,9 @@ function RoutingTable({ options, columns, tabColumns, highlightedRank, openMenuR
           onClick={() => columnsCollapsed ? onExpand() : onCollapse()}
           title={columnsCollapsed ? 'Expand columns' : 'Collapse columns'}
           style={{
-            width: 28,
-            minWidth: 28,
-            maxWidth: 28,
+            width: 20,
+            minWidth: 20,
+            maxWidth: 20,
             flexShrink: 0,
             alignSelf: 'stretch',
             display: 'flex',
@@ -1177,7 +1178,10 @@ function RoutingTable({ options, columns, tabColumns, highlightedRank, openMenuR
             background: 'var(--bg-secondary)',
             cursor: 'pointer',
             color: 'var(--text-tertiary)',
+            transition: 'background 0.15s ease, color 0.15s ease',
           }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-tertiary)'; e.currentTarget.style.color = 'var(--text-primary)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--bg-secondary)'; e.currentTarget.style.color = 'var(--text-tertiary)' }}
         >
           {columnsCollapsed ? <UnfoldHorizontal size={14} /> : <FoldHorizontal size={14} />}
         </div>
@@ -1194,7 +1198,7 @@ function RoutingTable({ options, columns, tabColumns, highlightedRank, openMenuR
                   {col.label}
                 </th>
               ))}
-              <th className="sticky top-0" style={{ ...stickyLastCol, zIndex: 5, width: 72, padding: '0 var(--spacing-4)', textAlign: 'center', borderBottom: '1px solid var(--border-subtle)', background: 'var(--bg-secondary)' }}>
+              <th className="sticky top-0" style={{ ...stickyLastCol, zIndex: 5, width: 50, minWidth: 50, maxWidth: 50, padding: '0 var(--spacing-4)', textAlign: 'center', borderBottom: '1px solid var(--border-subtle)', background: 'var(--bg-secondary)' }}>
                 <button
                   className="flex items-center justify-center mx-auto bg-transparent border-none cursor-pointer p-1 rounded"
                   style={{ color: 'var(--text-placeholder)' }}
@@ -1231,7 +1235,7 @@ function RoutingTable({ options, columns, tabColumns, highlightedRank, openMenuR
                     )
                   })}
                   <td
-                    style={{ ...stickyLastCol, padding: '0 var(--spacing-4)', borderBottom: '1px solid var(--bg-tertiary)', textAlign: 'center', width: 72, cursor: 'pointer', background: isHighlighted ? (STATUS_STYLES[option.status]?.bg ?? 'var(--badge-blue-bg)') : (STATUS_STYLES[option.status]?.bg ?? 'var(--bg-primary)') }}
+                    style={{ ...stickyLastCol, padding: '0 var(--spacing-4)', borderBottom: '1px solid var(--bg-tertiary)', textAlign: 'center', width: 50, minWidth: 50, maxWidth: 50, cursor: 'pointer', background: isHighlighted ? (STATUS_STYLES[option.status]?.bg ?? 'var(--badge-blue-bg)') : (STATUS_STYLES[option.status]?.bg ?? 'var(--bg-primary)') }}
                     onClick={(e) => {
                       e.stopPropagation()
                       const rect = e.currentTarget.getBoundingClientRect()
@@ -1374,15 +1378,13 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
     const container = document.querySelector('[data-routing-container]')
     const leftTable = document.querySelector('[data-left-table] table')
     const rightEl = document.querySelector('[data-right-table]')
-    if (!container || !leftTable || !rightEl) return
+    const rightTable = rightEl?.querySelector('table')
+    if (!container || !leftTable || !rightEl || !rightTable) return
 
     const containerWidth = container.clientWidth
-    const actionsWidth = 72
-    const toggleWidth = 28
-    const usableWidth = containerWidth - actionsWidth - toggleWidth
 
-    const rightContentWidth = rightEl.scrollWidth
-    const targetLeftWidth = Math.max(200, usableWidth - rightContentWidth)
+    const rightContentWidth = rightTable.scrollWidth
+    const targetLeftWidth = Math.max(200, containerWidth - rightContentWidth)
 
     const leftCurrentWidth = leftTable.getBoundingClientRect().width
     if (targetLeftWidth >= leftCurrentWidth) return
