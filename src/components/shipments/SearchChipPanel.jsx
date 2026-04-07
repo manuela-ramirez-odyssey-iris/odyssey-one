@@ -50,7 +50,7 @@ export default function SearchChipPanel({ query, activeChipKey, onChipSelect, on
       {/* Filter icon — inline after last chip with divider */}
       <div
         className="flex items-center shrink-0"
-        style={{ paddingLeft: 'var(--spacing-2)', borderLeft: '1px solid var(--border-subtle)' }}
+        style={{ paddingLeft: 'var(--spacing-2)', marginLeft: 10, borderLeft: '1px solid var(--border-subtle)' }}
       >
         <button
           onMouseDown={(e) => {
