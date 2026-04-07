@@ -403,6 +403,7 @@ function generateShipment(index) {
       routeRank: routeRanks[ri],
       scac: rc.scac,
       carrierName: rc.name,
+      equipment: pick(EQUIPMENT_CODES),
       rate: `$${fmt(baseRate)}`,
       cost: `$${fmt(cost)} USD`,
       status,

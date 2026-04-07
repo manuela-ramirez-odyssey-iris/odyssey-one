@@ -18,7 +18,7 @@ const LOCKED_COLUMNS = [
   { key: 'rank', label: 'Rank', primary: true, narrow: true },
   { key: 'scac', label: 'SCAC', narrow: true },
   { key: 'carrierName', label: 'Carrier Name', primary: true },
-  { key: 'equipment', label: 'Equipment', dataKey: 'rate' },
+  { key: 'equipment', label: 'Equipment' },
   { key: 'cost', label: 'AP Cost', narrow: true },
   { key: 'status', label: 'Tender Status' },
   { key: 'pickupDateTime', label: 'Pickup Date/Time' },
