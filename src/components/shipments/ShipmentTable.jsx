@@ -302,7 +302,7 @@ const ActionCell = React.memo(function ActionCell({ shipment, isSelected, onSele
       }}
       style={{ width: 56, height: ROW_HEIGHT, borderBottom: '1px solid var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: rowBg }}
     >
-      <Zap size={16} style={{ color: 'var(--text-placeholder)' }} />
+      <Zap size={16} fill={menuOpen ? 'var(--text-placeholder)' : 'none'} style={{ color: 'var(--text-placeholder)' }} />
       {menuOpen && <ActionMenu shipmentId={shipment.buyShipment} position={menuPos} onClose={() => setMenuOpen(false)} />}
     </div>
   )
