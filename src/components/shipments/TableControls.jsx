@@ -59,9 +59,8 @@ const TableControls = React.memo(function TableControls({
         >
           <Search
             size={16}
-            strokeWidth={(searchQuery.trim() || focused) ? 3 : 2}
             style={{
-              color: (searchQuery.trim() || focused) ? 'var(--text-primary)' : 'var(--text-placeholder)',
+              color: focused ? 'var(--text-tertiary)' : 'var(--text-placeholder)',
               flexShrink: 0,
               transition: 'color 0.15s ease',
             }}
