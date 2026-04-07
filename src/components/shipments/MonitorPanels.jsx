@@ -92,7 +92,7 @@ const MonitorPanels = React.memo(function MonitorPanels({ activePanel, onPanelSe
       </div>
 
       {/* Collapse/Expand Toggle */}
-      <div className="flex items-center gap-3" style={{ margin: 'var(--spacing-6) 0' }}>
+      <div className="flex items-center gap-3" style={{ marginTop: collapsed ? 0 : 'var(--spacing-6)', marginBottom: 'var(--spacing-6)' }}>
         <div className="flex-1 h-px" style={{ background: 'var(--border-default)' }} />
         <button
           className="flex items-center gap-1.5 bg-transparent border-none cursor-pointer whitespace-nowrap"
