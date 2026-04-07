@@ -1,5 +1,5 @@
 import { faker } from '@faker-js/faker';
-import { writeFileSync } from 'fs';
+import { writeFileSync, mkdirSync, existsSync, readdirSync, unlinkSync } from 'fs';
 
 faker.seed(42);
 
@@ -1009,12 +1009,12 @@ const CATEGORY_WEIGHTS = {
 };
 
 // ============================================================
-// GENERATE 700 SHIPMENTS
+// GENERATE 1000 SHIPMENTS
 // ============================================================
 
-console.log('Generating 700 shipments...');
+console.log('Generating 1000 shipments...');
 
-const TOTAL_SHIPMENTS = 700;
+const TOTAL_SHIPMENTS = 1000;
 const shipments = [];
 const shipmentDetails = {};
 
@@ -1024,11 +1024,30 @@ for (let i = 0; i < TOTAL_SHIPMENTS; i++) {
   shipmentDetails[mainRow.buyShipment] = detail;
 }
 
+// Write main table data (statically imported by app)
 const outDir = new URL('../src/data/', import.meta.url);
 writeFileSync(new URL('shipments.json', outDir), JSON.stringify(shipments, null, 2));
-writeFileSync(new URL('shipment-details.json', outDir), JSON.stringify(shipmentDetails, null, 2));
+
+// Write per-shipment detail files to public/details/
+const detailsDir = new URL('../public/details/', import.meta.url);
+const detailsDirPath = new URL('.', detailsDir).pathname;
+
+// Ensure directory exists
+mkdirSync(detailsDirPath, { recursive: true });
+
+// Clean old detail files
+if (existsSync(detailsDirPath)) {
+  for (const f of readdirSync(detailsDirPath)) {
+    if (f.endsWith('.json')) unlinkSync(detailsDirPath + f);
+  }
+}
+
+// Write individual files
+for (const [id, detail] of Object.entries(shipmentDetails)) {
+  writeFileSync(detailsDirPath + id + '.json', JSON.stringify(detail));
+}
 
 console.log(`Done! Generated ${shipments.length} shipments.`);
 console.log(`  shipments.json: ${shipments.length} rows`);
-console.log(`  shipment-details.json: ${Object.keys(shipmentDetails).length} detail records`);
+console.log(`  public/details/: ${Object.keys(shipmentDetails).length} detail files`);
 console.log(`  Total orders: ${shipments.reduce((s, r) => s + r.orders.length, 0)}`);
