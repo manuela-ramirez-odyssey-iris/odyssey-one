@@ -367,7 +367,7 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
           // Always scroll if the row is in the lower third of visible area
           const threshold = cutoff - 150
           if (main && rowScreenY > threshold) {
-            main.scrollBy({ top: rowScreenY - threshold + ROW_HEIGHT, behavior: 'smooth' })
+            main.scrollBy({ top: rowScreenY - threshold + ROW_HEIGHT + 60, behavior: 'smooth' })
           }
         }, 600)
       }
