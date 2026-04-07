@@ -66,6 +66,29 @@ const TableControls = React.memo(function TableControls({
               transition: 'color 0.15s ease',
             }}
           />
+          <input
+            ref={inputRef}
+            type="text"
+            placeholder="Search shipments..."
+            value={searchQuery}
+            onChange={(e) => onSearchChange(e.target.value)}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
+            spellCheck={false}
+            autoCorrect="off"
+            autoCapitalize="off"
+            className="flex-1 bg-transparent min-w-0"
+            style={{
+              color: 'var(--text-primary)',
+              fontFamily: 'var(--font-primary)',
+              fontSize: 14,
+              fontWeight: 400,
+              lineHeight: '20px',
+              border: 'none',
+              outline: 'none',
+              boxShadow: 'none',
+            }}
+          />
           {appliedSavedQuery && (
             <span
               style={{
@@ -105,29 +128,6 @@ const TableControls = React.memo(function TableControls({
               </button>
             </span>
           )}
-          <input
-            ref={inputRef}
-            type="text"
-            placeholder="Search shipments..."
-            value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
-            onFocus={() => setFocused(true)}
-            onBlur={() => setFocused(false)}
-            spellCheck={false}
-            autoCorrect="off"
-            autoCapitalize="off"
-            className="flex-1 bg-transparent min-w-0"
-            style={{
-              color: 'var(--text-primary)',
-              fontFamily: 'var(--font-primary)',
-              fontSize: 14,
-              fontWeight: 400,
-              lineHeight: '20px',
-              border: 'none',
-              outline: 'none',
-              boxShadow: 'none',
-            }}
-          />
           {searchQuery && (
             <button
               className="flex items-center justify-center bg-transparent border-none cursor-pointer shrink-0"
