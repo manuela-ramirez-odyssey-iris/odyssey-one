@@ -132,7 +132,7 @@ const hazmatNoStyle = {
   color: 'var(--text-tertiary)',
 }
 
-export default function ProductTab({ data }) {
+const ProductTab = React.memo(function ProductTab({ data }) {
   const [expandedOrders, setExpandedOrders] = useState(() => {
     if (!data?.orders) return {}
     const init = {}
@@ -204,7 +204,8 @@ export default function ProductTab({ data }) {
       </table>
     </div>
   )
-}
+})
+export default ProductTab
 
 function OrderGroup({ order, isExpanded, onToggle }) {
   const isSingleLine = order.lines.length === 1

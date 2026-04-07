@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import React, { useState, useCallback } from 'react'
 import { Upload, Trash2, X, RefreshCw, Download, FileText, Sheet, File } from 'lucide-react'
 
 const TYPE_STYLES = {
@@ -99,7 +99,7 @@ function TypeBadge({ type }) {
   )
 }
 
-export default function DocumentsTab({ data }) {
+const DocumentsTab = React.memo(function DocumentsTab({ data }) {
   const [documents, setDocuments] = useState(() => data?.documents || [])
   const [showModal, setShowModal] = useState(false)
   const [formType, setFormType] = useState('BoL')
@@ -503,7 +503,8 @@ export default function DocumentsTab({ data }) {
       )}
     </div>
   )
-}
+})
+export default DocumentsTab
 
 /* ---- Mock document preview ---- */
 

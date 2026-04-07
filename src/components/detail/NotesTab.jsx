@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import React, { useState, useCallback } from 'react'
 import { Pencil, Trash2 } from 'lucide-react'
 
 let noteIdCounter = 100
@@ -138,7 +138,7 @@ function NoteItem({ note, onEdit, onDelete }) {
   )
 }
 
-export default function NotesTab({ data }) {
+const NotesTab = React.memo(function NotesTab({ data }) {
   const [notes, setNotes] = useState(() => {
     if (!data?.notes) return []
     return data.notes.map((n, i) => ({ ...n, id: `existing-${i}` }))
@@ -237,4 +237,5 @@ export default function NotesTab({ data }) {
       </div>
     </div>
   )
-}
+})
+export default NotesTab

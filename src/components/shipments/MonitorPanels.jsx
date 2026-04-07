@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { ChevronUp } from 'lucide-react'
 
 function buildPanels(metrics) {
@@ -37,7 +37,7 @@ function buildPanels(metrics) {
   ]
 }
 
-export default function MonitorPanels({ activePanel, onPanelSelect, metrics, collapsed: controlledCollapsed, onToggleCollapsed }) {
+const MonitorPanels = React.memo(function MonitorPanels({ activePanel, onPanelSelect, metrics, collapsed: controlledCollapsed, onToggleCollapsed }) {
   const [internalCollapsed, setInternalCollapsed] = useState(false)
   const collapsed = controlledCollapsed ?? internalCollapsed
   const toggleCollapsed = onToggleCollapsed ?? (() => setInternalCollapsed(c => !c))
@@ -115,4 +115,5 @@ export default function MonitorPanels({ activePanel, onPanelSelect, metrics, col
       </div>
     </div>
   )
-}
+})
+export default MonitorPanels

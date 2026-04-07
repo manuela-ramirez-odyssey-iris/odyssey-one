@@ -1,9 +1,9 @@
-import { useState, useRef, useCallback } from 'react'
+import React, { useState, useRef, useCallback } from 'react'
 import { Search, Bookmark, ArrowUpDown, Upload, ChevronDown, X, FileSpreadsheet } from 'lucide-react'
 import SearchChipPanel from './SearchChipPanel'
 import DarkTooltip from '../ui/DarkTooltip'
 
-export default function TableControls({
+const TableControls = React.memo(function TableControls({
   itemCount,
   totalCount,
   searchQuery,
@@ -308,4 +308,5 @@ export default function TableControls({
       )}
     </div>
   )
-}
+})
+export default TableControls

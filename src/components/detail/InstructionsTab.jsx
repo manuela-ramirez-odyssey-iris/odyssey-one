@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 
 function InstructionGroup({ order }) {
@@ -126,7 +126,7 @@ function InstructionGroup({ order }) {
   )
 }
 
-export default function InstructionsTab({ data }) {
+const InstructionsTab = React.memo(function InstructionsTab({ data }) {
   if (!data?.orders?.length) {
     return (
       <div
@@ -170,4 +170,5 @@ export default function InstructionsTab({ data }) {
       ))}
     </div>
   )
-}
+})
+export default InstructionsTab

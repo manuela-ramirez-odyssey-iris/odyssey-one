@@ -1,3 +1,5 @@
+import React from 'react'
+
 function SummaryBar({ summary }) {
   const items = [
     { label: 'Distance', value: summary.distance },
@@ -208,7 +210,7 @@ function Field({ label, value, primary }) {
   )
 }
 
-export default function StopsTab({ data }) {
+const StopsTab = React.memo(function StopsTab({ data }) {
   if (!data)
     return (
       <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-placeholder)' }}>
@@ -252,4 +254,5 @@ export default function StopsTab({ data }) {
       </div>
     </div>
   )
-}
+})
+export default StopsTab

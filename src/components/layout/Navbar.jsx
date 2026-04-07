@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { ChevronLeft, ChevronRight, Menu, Bell, ChevronDown } from 'lucide-react'
 
 const CATEGORIES = [
@@ -8,7 +8,7 @@ const CATEGORIES = [
   { value: 'PGI/PGR', label: 'PGI/PGR', group: 'Shipments' },
 ]
 
-export default function Navbar() {
+const Navbar = React.memo(function Navbar() {
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState('Shipment Exceptions')
   const dropdownRef = useRef(null)
@@ -192,4 +192,5 @@ export default function Navbar() {
       </div>
     </header>
   )
-}
+})
+export default Navbar

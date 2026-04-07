@@ -1,4 +1,6 @@
-export default function HistoryTab({ data }) {
+import React from 'react'
+
+const HistoryTab = React.memo(function HistoryTab({ data }) {
   const entries = data?.entries
   // Use the newest entry as the reference point for relative times
   const refDate = entries?.length > 0 ? new Date(entries[0].timestamp) : new Date()
@@ -143,7 +145,8 @@ export default function HistoryTab({ data }) {
       })}
     </div>
   )
-}
+})
+export default HistoryTab
 
 // --- Helpers ---
 

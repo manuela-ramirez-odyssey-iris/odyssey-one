@@ -1,3 +1,5 @@
+import React from 'react'
+
 const PANEL_TABS = {
   exceptions: [
     { key: 'all', label: 'All (Exceptions)' },
@@ -23,7 +25,7 @@ const PANEL_TABS = {
   ],
 }
 
-export default function ShipmentTabs({ activePanel, activeTab, onTabSelect, badgeCounts }) {
+const ShipmentTabs = React.memo(function ShipmentTabs({ activePanel, activeTab, onTabSelect, badgeCounts }) {
   const tabs = PANEL_TABS[activePanel] || PANEL_TABS.exceptions
   const counts = badgeCounts || {}
 
@@ -63,4 +65,5 @@ export default function ShipmentTabs({ activePanel, activeTab, onTabSelect, badg
       })}
     </div>
   )
-}
+})
+export default ShipmentTabs

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Lock, X } from 'lucide-react'
 
@@ -67,7 +67,7 @@ const BADGE_TEXT = {
   purple: 'rgb(109, 40, 217)',
 }
 
-export default function CostAllocationTab({ data, selectedOrderIdx = 0 }) {
+const CostAllocationTab = React.memo(function CostAllocationTab({ data, selectedOrderIdx = 0 }) {
   const [subTab, setSubTab] = useState('planned')
   const [compareOpen, setCompareOpen] = useState(false)
 
@@ -232,7 +232,8 @@ export default function CostAllocationTab({ data, selectedOrderIdx = 0 }) {
       )}
     </div>
   )
-}
+})
+export default CostAllocationTab
 
 function CostTable({ columns, orders }) {
   return (

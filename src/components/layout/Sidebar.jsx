@@ -1,5 +1,5 @@
 import { Home, ClipboardList, Package, Truck, Route, Settings, Handshake } from 'lucide-react'
-import { useState } from 'react'
+import React, { useState } from 'react'
 
 const topItems = [
   { icon: Home, label: 'Home', key: 'home' },
@@ -14,7 +14,7 @@ const bottomItems = [
   { icon: Handshake, label: 'Partners', key: 'partners' },
 ]
 
-export default function Sidebar() {
+const Sidebar = React.memo(function Sidebar() {
   const [active, setActive] = useState('trucks')
 
   return (
@@ -61,4 +61,5 @@ export default function Sidebar() {
 
     </aside>
   )
-}
+})
+export default Sidebar

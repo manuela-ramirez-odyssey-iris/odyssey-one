@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import React, { useMemo } from 'react'
 
 const sectionStyle = {
   padding: 'var(--spacing-4) var(--spacing-5)',
@@ -61,7 +61,7 @@ function Field({ label, value }) {
   )
 }
 
-export default function OrderTab({ data }) {
+const OrderTab = React.memo(function OrderTab({ data }) {
   const d = useMemo(() => data || {}, [data])
 
   if (!data)
@@ -174,4 +174,5 @@ export default function OrderTab({ data }) {
       </SectionCell>
     </div>
   )
-}
+})
+export default OrderTab
