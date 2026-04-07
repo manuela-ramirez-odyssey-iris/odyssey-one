@@ -368,7 +368,7 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
           if (rowAbsoluteTop + ROW_HEIGHT > visibleBottom) {
             const main = listEl.closest('main')
             if (main) {
-              main.scrollBy({ top: rowAbsoluteTop - visibleBottom + ROW_HEIGHT + 80, behavior: 'smooth' })
+              main.scrollBy({ top: rowAbsoluteTop - visibleBottom + ROW_HEIGHT + 160, behavior: 'smooth' })
             }
           }
         }
