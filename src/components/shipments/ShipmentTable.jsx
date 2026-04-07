@@ -56,6 +56,74 @@ function OrdersTooltip({ orders, children }) {
   )
 }
 
+export const COLUMN_CONFIG = [
+  { key: 'buyShipment', label: 'Buy Shipment' },
+  { key: 'customerId', label: 'Customer ID(s)' },
+  {
+    key: 'shipmentStatus',
+    label: 'Shipment Status',
+    render: (s) => (
+      <DarkTooltip text={s.tenderStatus ? `Tender: ${s.tenderStatus}` : null}>
+        <span>{s.shipmentStatus ? (
+          <Badge variant={s.shipmentStatus === 'Done' ? 'green' : 'amber'}>{s.shipmentStatus}</Badge>
+        ) : '\u2014'}</span>
+      </DarkTooltip>
+    ),
+  },
+  {
+    key: 'orders',
+    label: 'Order #',
+    render: (s) => (
+      <OrdersTooltip orders={s.orders}>
+        <div style={{ display: 'flex', flexWrap: 'nowrap', gap: 6, overflow: 'hidden', maxWidth: 192 }}>
+          {s.orders.map((ord, i) => (
+            <Badge key={ord} variant={BADGE_COLORS[i]}>{ord}</Badge>
+          ))}
+        </div>
+      </OrdersTooltip>
+    ),
+  },
+  {
+    key: 'orderCount',
+    label: 'Order Count',
+    render: (s) => (
+      <OrdersTooltip orders={s.orders}>
+        <span>{s.orderCount}</span>
+      </OrdersTooltip>
+    ),
+  },
+  { key: 'pickupDate', label: 'Pickup Date' },
+  { key: 'deliveryDate', label: 'Delivery Date' },
+  { key: 'origin', label: 'Origin' },
+  { key: 'destination', label: 'Destination' },
+  {
+    key: 'grossWeight',
+    label: 'Gross Weight',
+    render: (s) => (
+      <span style={{ fontVariantNumeric: 'tabular-nums' }}>
+        {s.grossWeight ? `${Number(s.grossWeight).toLocaleString()} LB` : '--'}
+      </span>
+    ),
+  },
+  { key: 'mode', label: 'Mode' },
+  { key: 'equipmentCode', label: 'Equipment' },
+  { key: 'scac', label: 'SCAC' },
+  {
+    key: 'apFreightCost',
+    label: 'AP Freight Cost',
+    render: (s) => (
+      <span style={{ fontVariantNumeric: 'tabular-nums' }}>
+        {s.apFreightCost ? `$${Number(s.apFreightCost.replace(/,/g, '')).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '--'}
+      </span>
+    ),
+  },
+  {
+    key: 'validationMessage',
+    label: 'Message',
+    render: (s) => s.validationMessage || '',
+  },
+]
+
 const stickyLastCol = {
   position: 'sticky',
   right: 0,
@@ -161,42 +229,17 @@ const ShipmentRow = React.memo(function ShipmentRow({ shipment, isSelected, onSe
           style={{ accentColor: 'var(--border-focus)', width: 16, height: 16, cursor: 'pointer', pointerEvents: 'none' }}
         />
       </td>
-      <td style={{ padding: '0 var(--spacing-4)', height: 56, borderBottom: '1px solid var(--bg-tertiary)', whiteSpace: 'nowrap', fontWeight: 500, color: 'var(--text-secondary)' }}>
-        {s.buyShipment}
-      </td>
-      <td style={{ padding: '0 var(--spacing-4)', height: 56, borderBottom: '1px solid var(--bg-tertiary)', whiteSpace: 'nowrap' }}>
-        {s.customerId}
-      </td>
-      <td style={{ padding: '0 var(--spacing-4)', height: 56, borderBottom: '1px solid var(--bg-tertiary)', maxWidth: 192, overflow: 'visible', position: 'relative' }}>
-        <OrdersTooltip orders={s.orders}>
-          <div style={{ display: 'flex', flexWrap: 'nowrap', gap: 6, overflow: 'hidden', maxWidth: 192 }}>
-            {s.orders.map((ord, i) => (
-              <Badge key={ord} variant={BADGE_COLORS[i]}>{ord}</Badge>
-            ))}
-          </div>
-        </OrdersTooltip>
-      </td>
-      <td style={{ padding: '0 var(--spacing-4)', height: 56, borderBottom: '1px solid var(--bg-tertiary)', textAlign: 'center', minWidth: 80, position: 'relative', overflow: 'visible' }}>
-        <OrdersTooltip orders={s.orders}>
-          <span>{s.orderCount}</span>
-        </OrdersTooltip>
-      </td>
-      <td style={{ padding: '0 var(--spacing-4)', height: 56, borderBottom: '1px solid var(--bg-tertiary)', whiteSpace: 'nowrap', minWidth: 170 }}>
-        {s.pickupDate}
-      </td>
-      <td style={{ padding: '0 var(--spacing-4)', height: 56, borderBottom: '1px solid var(--bg-tertiary)', whiteSpace: 'nowrap', minWidth: 170 }}>
-        {s.deliveryDate}
-      </td>
-      <td style={{ padding: '0 var(--spacing-4)', height: 56, borderBottom: '1px solid var(--bg-tertiary)', whiteSpace: 'nowrap', minWidth: 180 }}>
-        {s.origin}
-      </td>
-      <td style={{ padding: '0 var(--spacing-4)', height: 56, borderBottom: '1px solid var(--bg-tertiary)', whiteSpace: 'nowrap', minWidth: 120 }}>
-        <DarkTooltip text={s.tenderStatus ? `Tender: ${s.tenderStatus}` : null}>
-          <span>{s.shipmentStatus ? (
-            <Badge variant={s.shipmentStatus === 'Done' ? 'green' : 'amber'}>{s.shipmentStatus}</Badge>
-          ) : '\u2014'}</span>
-        </DarkTooltip>
-      </td>
+      {COLUMN_CONFIG.map(col => (
+        <td key={col.key} style={{
+          padding: '0 var(--spacing-4)',
+          height: 56,
+          borderBottom: '1px solid var(--bg-tertiary)',
+          whiteSpace: 'nowrap',
+          ...(col.key === 'buyShipment' ? { fontWeight: 500, color: 'var(--text-secondary)' } : {}),
+        }}>
+          {col.render ? col.render(s) : (s[col.key] || '')}
+        </td>
+      ))}
       <td
         data-sticky-col
         onClick={(e) => {
@@ -256,10 +299,10 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
             <th className="sticky top-0 z-2"
               style={{ width: 48, padding: '0 var(--spacing-4)', height: 'var(--bottombar-collapsed)', background: 'var(--bg-primary)', borderBottom: '1px solid var(--border-subtle)', textAlign: 'center' }}>
             </th>
-            {['Buy Shipment', 'Customer ID(s)', 'Order #', 'Order Count', 'Pickup Date', 'Delivery Date', 'Origin', 'Shipment Status'].map(col => (
-              <th key={col} className="sticky top-0 z-2 text-left whitespace-nowrap"
+            {COLUMN_CONFIG.map(col => (
+              <th key={col.key} className="sticky top-0 z-2 text-left whitespace-nowrap"
                 style={{ padding: '0 var(--spacing-4)', height: 'var(--bottombar-collapsed)', background: 'var(--bg-primary)', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-placeholder)', fontWeight: 600, fontSize: 'var(--font-size-sm)' }}>
-                {col}
+                {col.label}
               </th>
             ))}
             <th className="sticky top-0" style={{ ...stickyLastCol, zIndex: 5, width: 56, padding: '0 var(--spacing-4)', height: 'var(--bottombar-collapsed)', borderBottom: '1px solid var(--border-subtle)', textAlign: 'center' }}>

@@ -891,6 +891,7 @@ function generateShipment(index) {
     load: String(faker.number.int({ min: 10000, max: 99999 })),
     loadCount: String(orders.reduce((s, o) => s + o.lineCount, 0)),
     orderCount: String(orderCount),
+    apFreightCost: fmt(apTotal),
   };
 
   // Detail data
