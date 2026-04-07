@@ -161,6 +161,25 @@ function App() {
       })
     }
 
+    // Sort by match relevance when chip search is active
+    if (debouncedQuery.trim() && activeChipKey) {
+      const q = debouncedQuery.toLowerCase()
+      const attr = SEARCH_ATTRIBUTES.find(a => a.key === activeChipKey)
+      if (attr) {
+        const getMatchPriority = (s) => {
+          const raw = s[attr.dataKey]
+          const val = Array.isArray(raw) ? raw.join(' ') : String(raw || '')
+          const lower = val.toLowerCase()
+          if (lower.startsWith(q)) return 0
+          // Word boundary: check if q appears after a space
+          const wordIdx = lower.indexOf(' ' + q)
+          if (wordIdx >= 0) return 1
+          return 2
+        }
+        result = [...result].sort((a, b) => getMatchPriority(a) - getMatchPriority(b))
+      }
+    }
+
     return result
   }, [allShipments, activePanel, activeTab, debouncedQuery, activeChipKey, filters, appliedSavedQuery])
 
