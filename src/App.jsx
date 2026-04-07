@@ -221,7 +221,6 @@ function App() {
 
   const handleApplyFilters = useCallback((newFilters) => {
     setFilters(newFilters)
-    setFiltersOpen(false)
   }, [])
 
   const handleClearFilters = useCallback(() => {
