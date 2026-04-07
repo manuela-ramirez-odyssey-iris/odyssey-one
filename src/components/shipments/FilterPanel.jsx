@@ -345,13 +345,13 @@ export default function FilterPanel({ isOpen, onClose, itemCount, onApplyFilters
       {/* Footer (only on All tab) */}
       {activeTab === 'all' && (
         <div
-          className="flex items-center justify-between shrink-0"
-          style={{ padding: '12px 16px', borderTop: '1px solid var(--border-subtle)' }}
+          className="flex items-center shrink-0"
+          style={{ padding: '12px 16px', borderTop: '1px solid var(--border-subtle)', gap: 10 }}
         >
-          <SecondaryButton onClick={handleClear}>
+          <SecondaryButton onClick={handleClear} style={{ flex: 1 }}>
             Clear all
           </SecondaryButton>
-          <PrimaryButton onClick={handleApply}>
+          <PrimaryButton onClick={handleApply} style={{ flex: 1 }}>
             Show {itemCount} results
           </PrimaryButton>
         </div>

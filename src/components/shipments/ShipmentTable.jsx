@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { List } from 'react-window'
-import { Zap, Columns3Cog } from 'lucide-react'
+import { Zap, Columns3Cog, Info } from 'lucide-react'
 import Badge from '../ui/Badge'
 import DarkTooltip from '../ui/DarkTooltip'
 import { ALL_COLUMNS } from '../detail/ColumnPanel'
@@ -68,8 +68,8 @@ export const COLUMN_CONFIG = [
     width: 130,
     render: (s) => (
       <DarkTooltip text={s.tenderStatus ? `Tender Status: ${s.tenderStatus}` : null} width="auto">
-        <span>{s.shipmentStatus ? (
-          <Badge variant={s.shipmentStatus === 'Done' ? 'green' : 'red'}>{s.shipmentStatus}</Badge>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>{s.shipmentStatus ? (
+          <><Badge variant={s.shipmentStatus === 'Done' ? 'green' : 'red'}>{s.shipmentStatus}</Badge><Info size={14} style={{ color: 'var(--text-placeholder)' }} /></>
         ) : '\u2014'}</span>
       </DarkTooltip>
     ),
