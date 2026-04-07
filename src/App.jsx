@@ -44,7 +44,7 @@ function App() {
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [filtersInitialTab, setFiltersInitialTab] = useState('all')
   const [columnPanelOpen, setColumnPanelOpen] = useState(false)
-  const [dateFilters, setDateFilters] = useState({})
+  const [filters, setFilters] = useState({})
   const [appliedSavedQuery, setAppliedSavedQuery] = useState(null)
   const [detailsLoaded, setDetailsLoaded] = useState(false)
   const [metricsCollapsed, setMetricsCollapsed] = useState(false)
@@ -120,20 +120,40 @@ function App() {
       }
     }
 
-    // 4. Apply date filters
-    const activeDateFilters = Object.entries(dateFilters).filter(([, v]) => v)
-    if (activeDateFilters.length > 0) {
-      result = result.filter((s) =>
-        activeDateFilters.every(([key, filterDate]) => {
-          const shipmentDate = parseShipmentDate(s[key])
-          if (!shipmentDate) return false
-          return shipmentDate >= filterDate
-        })
-      )
+    // 4. Apply panel filters
+    if (filters.origin) result = result.filter((s) => s.origin === filters.origin)
+    if (filters.destination) result = result.filter((s) => s.destination === filters.destination)
+    if (filters.shipmentStatus) result = result.filter((s) => s.shipmentStatus === filters.shipmentStatus)
+    if (filters.scac) result = result.filter((s) => s.scac === filters.scac)
+
+    // Date range filters
+    if (filters.pickupDateFrom) {
+      result = result.filter((s) => {
+        const d = parseShipmentDate(s.pickupDate)
+        return d && d >= filters.pickupDateFrom
+      })
+    }
+    if (filters.pickupDateTo) {
+      result = result.filter((s) => {
+        const d = parseShipmentDate(s.pickupDate)
+        return d && d <= filters.pickupDateTo
+      })
+    }
+    if (filters.deliveryDateFrom) {
+      result = result.filter((s) => {
+        const d = parseShipmentDate(s.deliveryDate)
+        return d && d >= filters.deliveryDateFrom
+      })
+    }
+    if (filters.deliveryDateTo) {
+      result = result.filter((s) => {
+        const d = parseShipmentDate(s.deliveryDate)
+        return d && d <= filters.deliveryDateTo
+      })
     }
 
     return result
-  }, [allShipments, activePanel, activeTab, debouncedQuery, activeChipKey, dateFilters, appliedSavedQuery])
+  }, [allShipments, activePanel, activeTab, debouncedQuery, activeChipKey, filters, appliedSavedQuery])
 
   const metrics = useMemo(() => {
     const exceptionsPool = allShipments.filter(s => s.panel === 'exceptions')
@@ -193,13 +213,13 @@ function App() {
     setVisibleColumns(newVisibleColumns)
   }, [])
 
-  const handleApplyFilters = useCallback((filters) => {
-    setDateFilters(filters)
+  const handleApplyFilters = useCallback((newFilters) => {
+    setFilters(newFilters)
     setFiltersOpen(false)
   }, [])
 
   const handleClearFilters = useCallback(() => {
-    setDateFilters({})
+    setFilters({})
   }, [])
 
   const handleApplySavedQuery = useCallback((query) => {
@@ -241,6 +261,7 @@ function App() {
             onApplyFilters={handleApplyFilters}
             onClearFilters={handleClearFilters}
             onApplySavedQuery={handleApplySavedQuery}
+            allShipments={allShipments}
           />
           <ColumnPanel
             isOpen={columnPanelOpen}

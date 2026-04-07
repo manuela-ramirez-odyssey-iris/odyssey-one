@@ -1,14 +1,5 @@
-import { useState, useCallback, useEffect } from 'react'
-import { X, Copy, Check, Info } from 'lucide-react'
-
-const DATE_FIELDS = [
-  { label: 'Pickup Date', key: 'pickupDate' },
-  { label: 'Delivery Date', key: 'deliveryDate' },
-  { label: 'Earliest Pickup Date', key: 'earliestPickup' },
-  { label: 'Latest Pickup Date', key: 'latestPickup' },
-  { label: 'Earliest Delivery Date', key: 'earliestDelivery' },
-  { label: 'Latest Delivery Date', key: 'latestDelivery' },
-]
+import { useState, useCallback, useEffect, useMemo } from 'react'
+import { X, Copy, Check, Info, ChevronDown } from 'lucide-react'
 
 const SAVED_QUERIES = [
   { name: 'Review Shipments -- West Coast', query: 'mode:LTL shipment-status:Review destination:CA delivery:<2026-01-15' },
@@ -19,28 +10,157 @@ const SAVED_QUERIES = [
   { name: 'Done -- Dallas Origin', query: 'origin:Dallas shipment-status:Done' },
 ]
 
-export default function FilterPanel({ isOpen, onClose, itemCount, onApplyFilters, onClearFilters, onApplySavedQuery, initialTab = 'all' }) {
+const INITIAL_FILTERS = {
+  origin: '',
+  destination: '',
+  shipmentStatus: '',
+  scac: '',
+  pickupDateFrom: '',
+  pickupDateTo: '',
+  deliveryDateFrom: '',
+  deliveryDateTo: '',
+}
+
+function FilterSelect({ label, value, options, onChange, placeholder = 'Select an option' }) {
+  return (
+    <div className="flex flex-col" style={{ gap: 6 }}>
+      <label className="flex items-center" style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)', gap: 4 }}>
+        {label}
+        <Info size={14} style={{ color: 'var(--text-placeholder)' }} />
+      </label>
+      <div style={{ position: 'relative' }}>
+        <select
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          style={{
+            width: '100%',
+            padding: '8px 30px 8px 10px',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--input-border)',
+            background: 'var(--input-bg)',
+            color: value ? 'var(--input-text)' : 'var(--text-placeholder)',
+            fontFamily: 'var(--font-primary)',
+            fontSize: 13,
+            appearance: 'none',
+            cursor: 'pointer',
+          }}
+        >
+          <option value="">{placeholder}</option>
+          {options.map((opt) => (
+            <option key={opt} value={opt}>
+              {opt}
+            </option>
+          ))}
+        </select>
+        <ChevronDown
+          size={14}
+          style={{
+            position: 'absolute',
+            right: 10,
+            top: '50%',
+            transform: 'translateY(-50%)',
+            pointerEvents: 'none',
+            color: 'var(--text-placeholder)',
+          }}
+        />
+      </div>
+    </div>
+  )
+}
+
+function DateRangeField({ label, fromValue, toValue, onFromChange, onToChange }) {
+  const inputStyle = {
+    flex: 1,
+    padding: '8px 10px',
+    borderRadius: 'var(--radius-md)',
+    border: '1px solid var(--input-border)',
+    background: 'var(--input-bg)',
+    color: 'var(--input-text)',
+    fontFamily: 'var(--font-primary)',
+    fontSize: 13,
+    minWidth: 0,
+  }
+
+  return (
+    <div className="flex flex-col" style={{ gap: 6 }}>
+      <label className="flex items-center" style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)', gap: 4 }}>
+        {label}
+        <Info size={14} style={{ color: 'var(--text-placeholder)' }} />
+      </label>
+      <div className="flex items-center" style={{ gap: 8 }}>
+        <input
+          type="date"
+          value={fromValue}
+          onChange={(e) => onFromChange(e.target.value)}
+          placeholder="From"
+          style={inputStyle}
+        />
+        <span style={{ fontSize: 12, color: 'var(--text-placeholder)', flexShrink: 0 }}>to</span>
+        <input
+          type="date"
+          value={toValue}
+          onChange={(e) => onToChange(e.target.value)}
+          placeholder="To"
+          style={inputStyle}
+        />
+      </div>
+    </div>
+  )
+}
+
+function SectionHeader({ children, first }) {
+  return (
+    <div
+      style={{
+        fontSize: 14,
+        fontWeight: 700,
+        color: 'var(--text-primary)',
+        marginBottom: 12,
+        marginTop: first ? 0 : 20,
+      }}
+    >
+      {children}
+    </div>
+  )
+}
+
+export default function FilterPanel({ isOpen, onClose, itemCount, onApplyFilters, onClearFilters, onApplySavedQuery, initialTab = 'all', allShipments = [] }) {
   const [activeTab, setActiveTab] = useState(initialTab)
 
   useEffect(() => {
     setActiveTab(initialTab)
   }, [initialTab])
 
-  const [dateFilters, setDateFilters] = useState({})
+  const [filters, setFilters] = useState({ ...INITIAL_FILTERS })
   const [copiedIdx, setCopiedIdx] = useState(null)
 
-  const handleDateChange = useCallback((key, value) => {
-    setDateFilters((prev) => ({ ...prev, [key]: value }))
+  // Compute unique dropdown options from shipment data
+  const origins = useMemo(
+    () => [...new Set(allShipments.map((s) => s.origin))].filter(Boolean).sort(),
+    [allShipments]
+  )
+  const destinations = useMemo(
+    () => [...new Set(allShipments.map((s) => s.destination))].filter(Boolean).sort(),
+    [allShipments]
+  )
+  const scacs = useMemo(
+    () => [...new Set(allShipments.map((s) => s.scac))].filter(Boolean).sort(),
+    [allShipments]
+  )
+  const statuses = useMemo(() => ['Done', 'Review'], [])
+
+  const updateFilter = useCallback((key, value) => {
+    setFilters((prev) => ({ ...prev, [key]: value }))
   }, [])
 
   const handleClear = useCallback(() => {
-    setDateFilters({})
+    setFilters({ ...INITIAL_FILTERS })
     if (onClearFilters) onClearFilters()
   }, [onClearFilters])
 
   const handleApply = useCallback(() => {
-    if (onApplyFilters) onApplyFilters(dateFilters)
-  }, [dateFilters, onApplyFilters])
+    if (onApplyFilters) onApplyFilters(filters)
+  }, [filters, onApplyFilters])
 
   const handleCopy = useCallback((query, idx) => {
     navigator.clipboard.writeText(query).then(() => {
@@ -104,35 +224,62 @@ export default function FilterPanel({ isOpen, onClose, itemCount, onApplyFilters
       <div className="flex-1 min-h-0 overflow-auto" style={{ padding: 'var(--spacing-4)' }}>
         {activeTab === 'all' ? (
           <div>
-            <div
-              className="text-xs font-semibold uppercase tracking-wide"
-              style={{ color: 'var(--text-tertiary)', marginBottom: 'var(--spacing-3)' }}
-            >
-              Schedule & Dates
+            {/* Location */}
+            <SectionHeader first>Location</SectionHeader>
+            <div className="flex flex-col" style={{ gap: 14 }}>
+              <FilterSelect
+                label="Origin"
+                value={filters.origin}
+                options={origins}
+                onChange={(v) => updateFilter('origin', v)}
+              />
+              <FilterSelect
+                label="Destination"
+                value={filters.destination}
+                options={destinations}
+                onChange={(v) => updateFilter('destination', v)}
+              />
             </div>
-            <div className="flex flex-col gap-3">
-              {DATE_FIELDS.map((field) => (
-                <div key={field.key} className="flex flex-col gap-1">
-                  <label className="text-xs font-medium flex items-center gap-1" style={{ color: 'var(--input-label)' }}>
-                    {field.label}
-                    <Info size={14} style={{ color: 'var(--text-placeholder)' }} />
-                  </label>
-                  <input
-                    type="date"
-                    value={dateFilters[field.key] || ''}
-                    onChange={(e) => handleDateChange(field.key, e.target.value)}
-                    className="text-sm"
-                    style={{
-                      padding: '7px 10px',
-                      borderRadius: 'var(--radius-md)',
-                      border: '1px solid var(--input-border)',
-                      background: 'var(--input-bg)',
-                      color: 'var(--input-text)',
-                      fontFamily: 'var(--font-primary)',
-                    }}
-                  />
-                </div>
-              ))}
+
+            {/* Status */}
+            <SectionHeader>Status</SectionHeader>
+            <div className="flex flex-col" style={{ gap: 14 }}>
+              <FilterSelect
+                label="Status"
+                value={filters.shipmentStatus}
+                options={statuses}
+                onChange={(v) => updateFilter('shipmentStatus', v)}
+              />
+            </div>
+
+            {/* Carrier Information */}
+            <SectionHeader>Carrier Information</SectionHeader>
+            <div className="flex flex-col" style={{ gap: 14 }}>
+              <FilterSelect
+                label="SCAC"
+                value={filters.scac}
+                options={scacs}
+                onChange={(v) => updateFilter('scac', v)}
+              />
+            </div>
+
+            {/* Date Range */}
+            <SectionHeader>Date Range</SectionHeader>
+            <div className="flex flex-col" style={{ gap: 14 }}>
+              <DateRangeField
+                label="Pickup Date"
+                fromValue={filters.pickupDateFrom}
+                toValue={filters.pickupDateTo}
+                onFromChange={(v) => updateFilter('pickupDateFrom', v)}
+                onToChange={(v) => updateFilter('pickupDateTo', v)}
+              />
+              <DateRangeField
+                label="Delivery Date Range"
+                fromValue={filters.deliveryDateFrom}
+                toValue={filters.deliveryDateTo}
+                onFromChange={(v) => updateFilter('deliveryDateFrom', v)}
+                onToChange={(v) => updateFilter('deliveryDateTo', v)}
+              />
             </div>
           </div>
         ) : (
