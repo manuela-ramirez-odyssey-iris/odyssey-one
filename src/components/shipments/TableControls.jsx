@@ -36,7 +36,7 @@ const TableControls = React.memo(function TableControls({
       <div className="flex items-center justify-between">
         {/* Left group: item count + search bar */}
         <div className="flex items-center gap-4">
-        <span className="text-sm shrink-0" style={{ color: 'var(--text-tertiary)' }}>
+        <span className="text-sm shrink-0" style={{ color: (searchQuery.trim() || filtersOpen) ? 'var(--text-primary)' : 'var(--text-tertiary)', fontWeight: (searchQuery.trim() || filtersOpen) ? 600 : 400, transition: 'color 0.15s ease' }}>
           {itemCount} items
         </span>
 
