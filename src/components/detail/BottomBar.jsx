@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef, Suspense } from 'react'
 import { createPortal } from 'react-dom'
-import { ChevronLeft, ChevronRight, ChevronUp, Maximize2, Minimize2, X, Columns3Cog } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ChevronUp, Maximize2, Minimize2, X, Columns3Cog, Loader2 } from 'lucide-react'
 import Badge from '../ui/Badge'
 
 const BADGE_COLORS = ['amber', 'blue', 'green', 'red', 'purple']
@@ -19,7 +19,7 @@ const TenderHistoryTab = React.lazy(() => import('./TenderHistoryTab'))
 function TabLoader() {
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'var(--spacing-12)', color: 'var(--text-placeholder)' }}>
-      <span style={{ fontSize: 'var(--font-size-sm)' }}>Loading...</span>
+      <Loader2 size={24} className="animate-spin" />
     </div>
   )
 }
