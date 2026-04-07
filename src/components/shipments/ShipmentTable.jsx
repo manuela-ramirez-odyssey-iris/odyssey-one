@@ -372,7 +372,8 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
             }
           }
         }
-        setTimeout(scrollMainIfNeeded, 450)
+        // Wait for bottom bar expand animation (300ms) + metrics collapse to settle
+        setTimeout(scrollMainIfNeeded, 600)
       }
     }
   }, [selectedId, shipments])
