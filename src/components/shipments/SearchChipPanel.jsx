@@ -13,50 +13,44 @@ export default function SearchChipPanel({ query, activeChipKey, onChipSelect, on
   const filterEnabled = activeChipKey !== null
 
   return (
-    <div className="flex items-center gap-2" style={{ padding: 'var(--spacing-2) 0', marginBottom: 'var(--spacing-2)' }}>
+    <div className="flex flex-wrap items-center gap-2" style={{ padding: 'var(--spacing-2) 0', marginBottom: 'var(--spacing-2)' }}>
       {/* Chips */}
-      <div className="flex flex-wrap gap-2 flex-1 min-w-0">
-        {chips.map((attr) => {
-          const isActive = activeChipKey === attr.key
-          return (
-            <button
-              key={attr.key}
-              onMouseDown={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                onChipSelect(isActive ? null : attr.key)
-              }}
-              className="cursor-pointer whitespace-nowrap"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '3px 10px',
-                borderRadius: 'var(--radius-pill)',
-                border: `1px solid ${isActive ? 'var(--border-focus)' : 'var(--border-subtle)'}`,
-                background: isActive ? 'var(--badge-blue-bg)' : 'var(--bg-tertiary)',
-                color: isActive ? 'var(--badge-blue-text)' : 'var(--text-secondary)',
-                fontFamily: 'var(--font-primary)',
-                fontSize: 13,
-                fontWeight: 500,
-                lineHeight: '18px',
-                transition: 'background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast)',
-              }}
-            >
-              {attr.label}
-            </button>
-          )
-        })}
-      </div>
+      {chips.map((attr) => {
+        const isActive = activeChipKey === attr.key
+        return (
+          <button
+            key={attr.key}
+            onMouseDown={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              onChipSelect(isActive ? null : attr.key)
+            }}
+            className="cursor-pointer whitespace-nowrap"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '3px 10px',
+              borderRadius: 'var(--radius-pill)',
+              border: `1px solid ${isActive ? 'var(--border-focus)' : 'var(--border-subtle)'}`,
+              background: isActive ? 'var(--badge-blue-bg)' : 'var(--bg-tertiary)',
+              color: isActive ? 'var(--badge-blue-text)' : 'var(--text-secondary)',
+              fontFamily: 'var(--font-primary)',
+              fontSize: 13,
+              fontWeight: 500,
+              lineHeight: '18px',
+              transition: 'background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast)',
+            }}
+          >
+            {attr.label}
+          </button>
+        )
+      })}
 
-      {/* Filter icon — right side with divider */}
+      {/* Filter icon — inline after last chip with divider */}
       <div
         className="flex items-center shrink-0"
-        style={{
-          paddingLeft: 'var(--spacing-3)',
-          marginLeft: 'auto',
-          borderLeft: '1px solid var(--border-subtle)',
-        }}
+        style={{ paddingLeft: 'var(--spacing-2)', borderLeft: '1px solid var(--border-subtle)' }}
       >
         <button
           onMouseDown={(e) => {
