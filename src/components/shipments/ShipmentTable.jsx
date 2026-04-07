@@ -369,8 +369,9 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
             || ALL_COLUMNS.find(c => c.key === colKey)
             || { key: colKey, label: attr.label, width: 120 }
         }
-        // Mark as promoted for styling
-        promotedCol = { ...promotedCol, _promoted: true }
+        // Mark as promoted for styling, ensure width fits the label
+        const labelWidth = Math.max(promotedCol.width || 120, (promotedCol.label || '').length * 9 + 32)
+        promotedCol = { ...promotedCol, _promoted: true, width: labelWidth }
         // Insert at position 1 (after Buy Shipment which is at 0)
         cols.splice(1, 0, promotedCol)
       }
