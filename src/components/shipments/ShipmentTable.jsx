@@ -5,6 +5,7 @@ import { Zap, Columns3Cog } from 'lucide-react'
 import Badge from '../ui/Badge'
 import DarkTooltip from '../ui/DarkTooltip'
 import { ALL_COLUMNS } from '../detail/ColumnPanel'
+import { SEARCH_ATTRIBUTES } from '../../data'
 
 const BADGE_COLORS = ['amber', 'blue', 'green', 'red', 'purple']
 
@@ -329,7 +330,7 @@ const VirtualActionRow = React.memo(function VirtualActionRow({ index, style, sh
   )
 })
 
-export default function ShipmentTable({ shipments, onRowSelect, selectedId, onToggleColumnPanel, visibleColumns, onScrollStart }) {
+export default function ShipmentTable({ shipments, onRowSelect, selectedId, onToggleColumnPanel, visibleColumns, onScrollStart, activeChipKey }) {
   const containerRef = useRef(null)
   const listRef = useRef(null)
   const actionsListRef = useRef(null)
@@ -338,16 +339,45 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
   const [menuOpenId, setMenuOpenId] = useState(null)
 
   const orderedColumns = useMemo(() => {
-    if (!visibleColumns) return COLUMN_CONFIG
-    return visibleColumns
-      .map(key => {
-        const fromConfig = COLUMN_CONFIG.find(c => c.key === key)
-        if (fromConfig) return fromConfig
-        const allCol = ALL_COLUMNS.find(c => c.key === key)
-        return { key, label: allCol ? allCol.label : key, width: 120 }
-      })
-      .filter(Boolean)
-  }, [visibleColumns])
+    let cols
+    if (!visibleColumns) {
+      cols = [...COLUMN_CONFIG]
+    } else {
+      cols = visibleColumns
+        .map(key => {
+          const fromConfig = COLUMN_CONFIG.find(c => c.key === key)
+          if (fromConfig) return fromConfig
+          const allCol = ALL_COLUMNS.find(c => c.key === key)
+          return { key, label: allCol ? allCol.label : key, width: 120 }
+        })
+        .filter(Boolean)
+    }
+
+    // SHP-33: Promote search column to position 2 when chip is active
+    if (activeChipKey) {
+      const attr = SEARCH_ATTRIBUTES.find(a => a.key === activeChipKey)
+      if (attr) {
+        const colKey = attr.dataKey
+        // Remove from current position if present
+        const existingIdx = cols.findIndex(c => c.key === colKey)
+        let promotedCol
+        if (existingIdx >= 0) {
+          promotedCol = cols.splice(existingIdx, 1)[0]
+        } else {
+          // Column not in visible set — find from COLUMN_CONFIG or ALL_COLUMNS
+          promotedCol = COLUMN_CONFIG.find(c => c.key === colKey)
+            || ALL_COLUMNS.find(c => c.key === colKey)
+            || { key: colKey, label: attr.label, width: 120 }
+        }
+        // Mark as promoted for styling
+        promotedCol = { ...promotedCol, _promoted: true }
+        // Insert at position 1 (after Buy Shipment which is at 0)
+        cols.splice(1, 0, promotedCol)
+      }
+    }
+
+    return cols
+  }, [visibleColumns, activeChipKey])
 
   const handleSelect = useCallback((shipment) => {
     onRowSelect(shipment.buyShipment)
@@ -446,7 +476,7 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
               <div style={{ width: 48, flexShrink: 0, padding: '0 var(--spacing-4)', height: 'var(--bottombar-collapsed)', background: 'var(--bg-primary)', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} />
               {orderedColumns.map(col => (
                 <div key={col.key} className="text-left whitespace-nowrap"
-                  style={{ width: col.width || 120, minWidth: col.width || 120, flexShrink: 0, padding: '0 var(--spacing-4)', height: 'var(--bottombar-collapsed)', background: 'var(--bg-primary)', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-placeholder)', fontWeight: 600, fontSize: 'var(--font-size-sm)', display: 'flex', alignItems: 'center' }}>
+                  style={{ width: col.width || 120, minWidth: col.width || 120, flexShrink: 0, padding: '0 var(--spacing-4)', height: 'var(--bottombar-collapsed)', background: 'var(--bg-primary)', borderBottom: '1px solid var(--border-subtle)', color: col._promoted ? 'var(--deep-sea-neutral-700, #384253)' : 'var(--text-placeholder)', fontWeight: col._promoted ? 700 : 600, fontSize: 'var(--font-size-sm)', display: 'flex', alignItems: 'center' }}>
                   {col.label}
                 </div>
               ))}

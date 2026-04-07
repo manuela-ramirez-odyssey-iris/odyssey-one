@@ -336,6 +336,7 @@ function App() {
           onToggleColumnPanel={handleToggleColumnPanel}
           visibleColumns={visibleColumns}
           onScrollStart={useCallback(() => setMetricsCollapsed(true), [])}
+          activeChipKey={activeChipKey}
         />
       )}
       <BottomBar
