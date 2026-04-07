@@ -1,8 +1,8 @@
 import { useMemo } from 'react'
-import { SlidersHorizontal } from 'lucide-react'
+import { Filter } from 'lucide-react'
 import { SEARCH_ATTRIBUTES } from '../../data'
 
-export default function SearchChipPanel({ query, activeChipKey, onChipSelect, onToggleFilters }) {
+export default function SearchChipPanel({ query, activeChipKey, onChipSelect, onToggleFilters, filtersOpen }) {
   const chips = useMemo(() => {
     if (!query || !query.trim()) return []
     return getChipsForQuery(query.trim())
@@ -68,7 +68,7 @@ export default function SearchChipPanel({ query, activeChipKey, onChipSelect, on
           }}
           title={filterEnabled ? 'Open filters' : 'Select a chip to enable filters'}
         >
-          <SlidersHorizontal size={18} />
+          <Filter size={18} fill={filtersOpen ? 'currentColor' : 'none'} />
         </button>
       </div>
     </div>

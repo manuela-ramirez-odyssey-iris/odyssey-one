@@ -16,6 +16,7 @@ const TableControls = React.memo(function TableControls({
   onClearSavedQuery,
   savedSearchesOpen,
   onExport,
+  filtersOpen,
 }) {
   const [focused, setFocused] = useState(false)
   const [exportModalOpen, setExportModalOpen] = useState(false)
@@ -208,6 +209,7 @@ const TableControls = React.memo(function TableControls({
           activeChipKey={activeChipKey}
           onChipSelect={onChipSelect}
           onToggleFilters={onToggleFilters}
+          filtersOpen={filtersOpen}
         />
       )}
 

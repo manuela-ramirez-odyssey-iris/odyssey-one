@@ -295,6 +295,7 @@ function App() {
         appliedSavedQuery={appliedSavedQuery}
         onClearSavedQuery={handleClearSavedQuery}
         savedSearchesOpen={filtersOpen && filtersInitialTab === 'saved'}
+        filtersOpen={filtersOpen}
         onExport={(mode) => {
           const VISIBLE_COLUMNS = ['buyShipment', 'customerId', 'orders', 'orderCount', 'pickupDate', 'deliveryDate', 'origin']
           const data = filteredShipments.slice(0, 10000)
