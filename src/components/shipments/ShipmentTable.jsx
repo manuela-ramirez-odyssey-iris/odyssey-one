@@ -365,7 +365,7 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
           const cutoff = bottomBar ? bottomBar.getBoundingClientRect().top : window.innerHeight * 0.5
           const main = listEl.closest('main')
           if (main && rowScreenY + ROW_HEIGHT > cutoff - 20) {
-            main.scrollBy({ top: rowScreenY - cutoff + ROW_HEIGHT + 100, behavior: 'smooth' })
+            main.scrollBy({ top: rowScreenY - cutoff + ROW_HEIGHT + 110, behavior: 'smooth' })
           }
         }, 600)
       }
