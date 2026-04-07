@@ -58,6 +58,7 @@ export default function SearchChipPanel({ query, activeChipKey, onChipSelect, on
             e.stopPropagation()
             if (filterEnabled && onToggleFilters) onToggleFilters()
           }}
+          onClick={(e) => e.stopPropagation()}
           className="flex items-center justify-center bg-transparent border-none"
           style={{
             cursor: filterEnabled ? 'pointer' : 'not-allowed',

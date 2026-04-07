@@ -146,6 +146,7 @@ const TableControls = React.memo(function TableControls({
               e.stopPropagation()
               if (onToggleSavedSearches) onToggleSavedSearches()
             }}
+            onClick={(e) => e.stopPropagation()}
             className="flex items-center justify-center bg-transparent border-none cursor-pointer shrink-0"
             style={{
               padding: '0 0 0 8px',
