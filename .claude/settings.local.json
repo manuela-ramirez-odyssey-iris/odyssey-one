@@ -52,7 +52,13 @@
       "Bash(du -sh /Users/manuelramirez/Documents/iris/Odyssey/Shipments/odyssey-shipments/dist/assets/*)",
       "Bash(gzip -c /Users/manuelramirez/Documents/iris/Odyssey/Shipments/odyssey-shipments/dist/assets/shipment-details-B96ENUdW.js)",
       "Bash(gzip -c /Users/manuelramirez/Documents/iris/Odyssey/Shipments/odyssey-shipments/dist/assets/index-BL1bq7eY.css)",
-      "Bash(gzip -c /Users/manuelramirez/Documents/iris/Odyssey/Shipments/odyssey-shipments/dist/assets/index-DpU3XaoR.js)"
+      "Bash(gzip -c /Users/manuelramirez/Documents/iris/Odyssey/Shipments/odyssey-shipments/dist/assets/index-DpU3XaoR.js)",
+      "Bash(bun add:*)",
+      "Bash(bun:*)",
+      "Bash(xargs -I {} sh -c 'wc -c {}')",
+      "Bash(kill %1)",
+      "Bash(curl -s http://localhost:3010)",
+      "Bash(find:*)"
     ]
   }
 }
