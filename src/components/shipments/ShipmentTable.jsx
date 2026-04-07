@@ -273,8 +273,7 @@ const ShipmentRow = React.memo(function ShipmentRow({ shipment, isSelected, onSe
     prevProps.orderedColumns === nextProps.orderedColumns
 })
 
-const VirtualRow = React.memo(function VirtualRow({ index, style, data }) {
-  const { shipments, selectedId, handleSelect, orderedColumns } = data
+const VirtualRow = React.memo(function VirtualRow({ index, style, shipments, selectedId, handleSelect, orderedColumns }) {
   const s = shipments[index]
   return (
     <div style={style}>
@@ -316,7 +315,7 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
       const idx = shipments.findIndex(s => s.buyShipment === selectedId)
       if (idx >= 0) {
         setTimeout(() => {
-          listRef.current?.scrollToItem(idx, 'smart')
+          listRef.current?.scrollToRow({ index: idx, align: 'smart' })
         }, 100)
       }
     }
@@ -335,8 +334,7 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
   // Sync horizontal scroll between header and virtual list body
   const listWrapperRef = useRef(null)
   useEffect(() => {
-    // The List renders an outer scrollable div as its first child
-    const listEl = listWrapperRef.current?.querySelector('[style*="overflow"]')
+    const listEl = listRef.current?.element || listWrapperRef.current?.firstElementChild
     const headerEl = headerRef.current
     if (!listEl || !headerEl) return
     const sync = () => { headerEl.scrollLeft = listEl.scrollLeft }
@@ -344,8 +342,8 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
     return () => listEl.removeEventListener('scroll', sync)
   })
 
-  // Shared data passed to each row via itemData
-  const itemData = useMemo(() => ({
+  // Shared data passed to each row via rowProps
+  const rowProps = useMemo(() => ({
     shipments,
     selectedId,
     handleSelect,
@@ -388,17 +386,14 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
       ) : (
         <div ref={listWrapperRef} className="flex-1 min-h-0">
           <List
-            ref={listRef}
-            height={listHeight}
-            itemCount={shipments.length}
-            itemSize={ROW_HEIGHT}
-            width="100%"
+            listRef={listRef}
+            style={{ height: listHeight, width: '100%', overflowX: 'auto' }}
+            rowCount={shipments.length}
+            rowHeight={ROW_HEIGHT}
             overscanCount={10}
-            itemData={itemData}
-            style={{ overflowX: 'auto' }}
-          >
-            {VirtualRow}
-          </List>
+            rowComponent={VirtualRow}
+            rowProps={rowProps}
+          />
         </div>
       )}
     </div>
