@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { List } from 'react-window'
-import { MoreVertical, Columns3Cog } from 'lucide-react'
+import { Zap, Columns3Cog } from 'lucide-react'
 import Badge from '../ui/Badge'
 import DarkTooltip from '../ui/DarkTooltip'
 import { ALL_COLUMNS } from '../detail/ColumnPanel'
@@ -302,7 +302,7 @@ const ActionCell = React.memo(function ActionCell({ shipment, isSelected, onSele
       }}
       style={{ width: 56, height: ROW_HEIGHT, borderBottom: '1px solid var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: rowBg }}
     >
-      <MoreVertical size={16} style={{ color: 'var(--text-placeholder)' }} />
+      <Zap size={16} style={{ color: 'var(--text-placeholder)' }} />
       {menuOpen && <ActionMenu shipmentId={shipment.buyShipment} position={menuPos} onClose={() => setMenuOpen(false)} />}
     </div>
   )
