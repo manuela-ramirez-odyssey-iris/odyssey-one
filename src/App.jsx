@@ -76,7 +76,6 @@ function App() {
       })
       return () => { stale = true }
     } else {
-      setMetricsCollapsed(false)
       setShipmentDetails(null)
     }
   }, [selectedShipmentId])
