@@ -43,7 +43,7 @@ const STATES = {
   fullscreen: 'calc(100vh - var(--navbar-height))',
 }
 
-export default function BottomBar({ selectedShipmentId, shipmentDetails, shipment, onClose, rightOffset = 0, onToggleColumnPanel }) {
+export default function BottomBar({ selectedShipmentId, shipmentDetails, shipment, onClose, rightOffset = 0, onToggleColumnPanel, detailsLoading }) {
   const [barState, setBarState] = useState('collapsed')
   const [activeTab, setActiveTab] = useState('order')
   const [orderDropdownOpen, setOrderDropdownOpen] = useState(false)
@@ -92,6 +92,9 @@ export default function BottomBar({ selectedShipmentId, shipmentDetails, shipmen
   const height = STATES[barState]
 
   const renderTabContent = () => {
+    if (detailsLoading && !shipmentDetails) {
+      return <TabLoader />
+    }
     if (!shipmentDetails) return null
     switch (activeTab) {
       case 'order': return <OrderTab data={shipmentDetails.orderDetails?.[selectedOrderIndex]} />
