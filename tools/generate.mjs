@@ -23,6 +23,14 @@ const HAZMAT_GROUPS = ['I', 'II', 'III'];
 const PRODUCT_CLASSES = ['Commodity', 'Harmonized', 'NMFC', 'Product Class'];
 const TUNNEL_CODES = ['A', 'B', 'C', 'D', 'E'];
 
+const VALIDATION_MESSAGES = {
+  'date-issues': ['Pickup date missing', 'Delivery date in the past', 'No delivery date provided', 'Pickup/delivery date conflict'],
+  'routing-review': ['No routing guide available', 'All carriers exhausted', 'Route group expired'],
+  'tender-issues': ['Tender failed - carrier timeout', 'Tender rejected by system', 'Carrier API error'],
+  'tender-review': ['Manual carrier selection required', 'Cost exceeds threshold', 'Preferred carrier unavailable'],
+  'bid-review': ['Spot bid expired', 'Multiple bids pending review', 'Bid below minimum rate'],
+};
+
 const CARRIERS = [
   { scac: 'SEFL', name: 'SOUTHEASTERN FREIGHT LINES' },
   { scac: 'ODFL', name: 'OLD DOMINION FREIGHT LINE' },
@@ -484,6 +492,9 @@ function generateShipment(index) {
   const category = panel === 'exceptions'
     ? weightedPick(CATEGORY_WEIGHTS.exceptions.items, CATEGORY_WEIGHTS.exceptions.weights)
     : null;
+  const validationMessage = (panel === 'exceptions' && category)
+    ? pick(VALIDATION_MESSAGES[category])
+    : null;
 
   // Cost allocation
   const apBase = faker.number.float({ min: 500, max: 5000, fractionDigits: 2 });
@@ -875,6 +886,7 @@ function generateShipment(index) {
     shipmentStatus,
     panel,
     category,
+    validationMessage,
     grossWeight: String(grossWeight),
     load: String(faker.number.int({ min: 10000, max: 99999 })),
     loadCount: String(orders.reduce((s, o) => s + o.lineCount, 0)),
