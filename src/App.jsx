@@ -272,7 +272,7 @@ function App() {
         </>
       }
     >
-      <h1 className="text-3xl font-semibold mb-6" style={{ color: 'var(--text-primary)', lineHeight: '32px' }}>
+      <h1 className="text-3xl font-semibold" style={{ color: 'var(--text-primary)', lineHeight: '32px', marginBottom: 25 }}>
         Shipments
       </h1>
       <MonitorPanels activePanel={activePanel} onPanelSelect={handlePanelSelect} metrics={metrics} collapsed={metricsCollapsed} onToggleCollapsed={() => setMetricsCollapsed(c => !c)} />

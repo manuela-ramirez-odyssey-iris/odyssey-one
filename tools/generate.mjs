@@ -524,7 +524,7 @@ function generateShipment(index) {
   const panel = (hasAccepted || hasSent) ? 'monitoring' : 'exceptions';
   const category = panel === 'exceptions'
     ? weightedPick(CATEGORY_WEIGHTS.exceptions.items, CATEGORY_WEIGHTS.exceptions.weights)
-    : null;
+    : weightedPick(CATEGORY_WEIGHTS.monitoring.items, CATEGORY_WEIGHTS.monitoring.weights);
   const validationMessage = (panel === 'exceptions' && category)
     ? pick(VALIDATION_MESSAGES[category])
     : null;
@@ -999,8 +999,8 @@ const CATEGORY_WEIGHTS = {
     weights: [28, 22, 22, 18, 10], // date-issues most common, bid-review least
   },
   monitoring: {
-    items:   ['sent', 'hold', 'consolidation', 'spotbid'],
-    weights: [38, 22, 20, 20], // sent is dominant
+    items:   ['sent', 'hold', 'consolidation', 'spotbid', 'approved'],
+    weights: [25, 15, 15, 15, 30], // approved most common (accepted carriers), sent next
   },
   pgipgr: {
     items:   ['pgipgr-errors', 'manual-pgipgr', 'rating-failure'],
