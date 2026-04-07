@@ -1012,9 +1012,9 @@ const CATEGORY_WEIGHTS = {
 // GENERATE 1000 SHIPMENTS
 // ============================================================
 
-console.log('Generating 1500 shipments...');
+console.log('Generating 1200 shipments...');
 
-const TOTAL_SHIPMENTS = 1500;
+const TOTAL_SHIPMENTS = 1200;
 const shipments = [];
 const shipmentDetails = {};
 
