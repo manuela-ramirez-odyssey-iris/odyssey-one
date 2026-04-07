@@ -274,9 +274,9 @@ function TenderSummary({ shipment, shipmentDetails, onOpenDetail }) {
             className="flex items-center"
             style={{
               padding: '8px 18px',
-              fontSize: 16,
+              fontSize: 14,
               fontWeight: 500,
-              lineHeight: '24px',
+              lineHeight: '1.1',
               fontFamily: 'var(--font-primary)',
               background: 'var(--btn-secondary-bg)',
               border: '1px solid var(--btn-secondary-border)',
@@ -362,7 +362,7 @@ function TenderDetailModal({ isOpen, onClose, shipment, shipmentDetails }) {
           padding: '12px 16px',
           borderBottom: '1px solid var(--border-subtle)',
         }}>
-          <span style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>Shipment Details</span>
+          <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Shipment Details</span>
           <button
             onClick={onClose}
             className="flex items-center justify-center bg-transparent border-none cursor-pointer"
@@ -458,9 +458,9 @@ function TenderDetailModal({ isOpen, onClose, shipment, shipmentDetails }) {
             className="flex items-center"
             style={{
               padding: '8px 18px',
-              fontSize: 16,
+              fontSize: 14,
               fontWeight: 500,
-              lineHeight: '24px',
+              lineHeight: '1.1',
               fontFamily: 'var(--font-primary)',
               background: 'var(--btn-secondary-bg)',
               border: '1px solid var(--btn-secondary-border)',
@@ -482,9 +482,9 @@ function TenderDetailModal({ isOpen, onClose, shipment, shipmentDetails }) {
             className="flex items-center"
             style={{
               padding: '8px 18px',
-              fontSize: 16,
+              fontSize: 14,
               fontWeight: 500,
-              lineHeight: '24px',
+              lineHeight: '1.1',
               fontFamily: 'var(--font-primary)',
               background: 'var(--btn-secondary-bg)',
               border: '1px solid var(--btn-secondary-border)',
@@ -648,7 +648,7 @@ function QuoteModal({ mode, carrierData, onSave, onClose }) {
           padding: '12px 16px',
           borderBottom: '1px solid var(--border-subtle)',
         }}>
-          <span style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>{title}</span>
+          <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{title}</span>
           <button
             onClick={onClose}
             style={{ color: 'var(--text-placeholder)', padding: 0, background: 'transparent', border: 'none', cursor: 'pointer', transition: 'color 0.15s ease' }}
@@ -912,9 +912,9 @@ function QuoteModal({ mode, carrierData, onSave, onClose }) {
               onClick={onClose}
               style={{
                 padding: '8px 18px',
-                fontSize: 16,
+                fontSize: 14,
                 fontWeight: 500,
-                lineHeight: '24px',
+                lineHeight: '1.1',
                 fontFamily: 'var(--font-primary)',
                 background: 'var(--btn-secondary-bg)',
                 border: '1px solid var(--btn-secondary-border)',
@@ -937,9 +937,9 @@ function QuoteModal({ mode, carrierData, onSave, onClose }) {
                 disabled={!scac || !baseRate}
                 style={{
                   padding: '8px 18px',
-                  fontSize: 16,
+                  fontSize: 14,
                   fontWeight: 500,
-                  lineHeight: '24px',
+                  lineHeight: '1.1',
                   fontFamily: 'var(--font-primary)',
                   background: (!scac || !baseRate) ? 'var(--bg-tertiary)' : 'var(--btn-primary-bg)',
                   border: '1px solid ' + ((!scac || !baseRate) ? 'var(--bg-tertiary)' : 'var(--btn-primary-bg)'),
@@ -1602,9 +1602,9 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
           className="flex items-center"
           style={{
             padding: '8px 18px',
-            fontSize: 16,
+            fontSize: 14,
             fontWeight: 500,
-            lineHeight: '24px',
+            lineHeight: '1.1',
             fontFamily: 'var(--font-primary)',
             background: 'var(--btn-secondary-bg)',
             border: '1px solid var(--btn-secondary-border)',

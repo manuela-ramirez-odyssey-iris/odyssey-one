@@ -185,9 +185,9 @@ const TableControls = React.memo(function TableControls({
               className="flex items-center gap-1.5"
               style={{
                 padding: '8px 18px',
-                fontSize: 16,
+                fontSize: 14,
                 fontWeight: 500,
-                lineHeight: '24px',
+                lineHeight: '1.1',
                 fontFamily: 'var(--font-primary)',
                 background: 'var(--btn-secondary-bg)',
                 border: '1px solid var(--btn-secondary-border)',
@@ -250,7 +250,7 @@ const TableControls = React.memo(function TableControls({
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <FileSpreadsheet size={20} style={{ color: 'var(--text-tertiary)' }} />
-                <span style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>Export to CSV</span>
+                <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Export to CSV</span>
               </div>
               <button
                 onClick={() => setExportModalOpen(false)}
@@ -275,9 +275,9 @@ const TableControls = React.memo(function TableControls({
                 style={{
                   width: '100%',
                   padding: '8px 18px',
-                  fontSize: 16,
+                  fontSize: 14,
                   fontWeight: 500,
-                  lineHeight: '24px',
+                  lineHeight: '1.1',
                   fontFamily: 'var(--font-primary)',
                   background: 'var(--btn-secondary-bg)',
                   border: '1px solid var(--btn-secondary-border)',
@@ -304,9 +304,9 @@ const TableControls = React.memo(function TableControls({
                 style={{
                   width: '100%',
                   padding: '8px 18px',
-                  fontSize: 16,
+                  fontSize: 14,
                   fontWeight: 500,
-                  lineHeight: '24px',
+                  lineHeight: '1.1',
                   fontFamily: 'var(--font-primary)',
                   background: 'var(--btn-secondary-bg)',
                   border: '1px solid var(--btn-secondary-border)',

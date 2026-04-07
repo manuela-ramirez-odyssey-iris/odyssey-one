@@ -351,9 +351,9 @@ export default function FilterPanel({ isOpen, onClose, itemCount, onApplyFilters
             onClick={handleClear}
             style={{
               padding: '8px 18px',
-              fontSize: 16,
+              fontSize: 14,
               fontWeight: 500,
-              lineHeight: '24px',
+              lineHeight: '1.1',
               fontFamily: 'var(--font-primary)',
               background: 'var(--btn-secondary-bg)',
               border: '1px solid var(--btn-secondary-border)',
@@ -374,9 +374,9 @@ export default function FilterPanel({ isOpen, onClose, itemCount, onApplyFilters
             onClick={handleApply}
             style={{
               padding: '8px 18px',
-              fontSize: 16,
+              fontSize: 14,
               fontWeight: 500,
-              lineHeight: '24px',
+              lineHeight: '1.1',
               fontFamily: 'var(--font-primary)',
               background: 'var(--btn-primary-bg)',
               border: '1px solid var(--btn-primary-bg)',

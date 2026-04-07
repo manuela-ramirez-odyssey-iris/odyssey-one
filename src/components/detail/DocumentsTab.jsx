@@ -41,9 +41,9 @@ const actionBtnStyle = {
   alignItems: 'center',
   gap: 6,
   padding: '8px 18px',
-  fontSize: 16,
+  fontSize: 14,
   fontWeight: 500,
-  lineHeight: '24px',
+  lineHeight: '1.1',
   fontFamily: 'var(--font-primary)',
   background: 'var(--btn-secondary-bg)',
   border: '1px solid var(--btn-secondary-border)',
@@ -299,7 +299,7 @@ const DocumentsTab = React.memo(function DocumentsTab({ data }) {
                 <TypeBadge type={previewDoc.type} />
                 <span
                   style={{
-                    fontSize: 16,
+                    fontSize: 14,
                     fontWeight: 600,
                     color: 'var(--text-primary)',
                     flex: 1,
@@ -335,9 +335,9 @@ const DocumentsTab = React.memo(function DocumentsTab({ data }) {
                   onClick={() => setPreviewDoc(null)}
                   style={{
                     padding: '8px 18px',
-                    fontSize: 16,
+                    fontSize: 14,
                     fontWeight: 500,
-                    lineHeight: '24px',
+                    lineHeight: '1.1',
                     fontFamily: 'var(--font-primary)',
                     background: 'var(--btn-secondary-bg)',
                     border: '1px solid var(--btn-secondary-border)',
@@ -360,9 +360,9 @@ const DocumentsTab = React.memo(function DocumentsTab({ data }) {
                     alignItems: 'center',
                     gap: 6,
                     padding: '8px 18px',
-                    fontSize: 16,
+                    fontSize: 14,
                     fontWeight: 500,
-                    lineHeight: '24px',
+                    lineHeight: '1.1',
                     fontFamily: 'var(--font-primary)',
                     background: 'var(--btn-primary-bg)',
                     border: '1px solid var(--btn-primary-bg)',
@@ -414,7 +414,7 @@ const DocumentsTab = React.memo(function DocumentsTab({ data }) {
           >
             {/* Header */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-              <span style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>
+              <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>
                 Upload Attachment
               </span>
               <button
@@ -487,9 +487,9 @@ const DocumentsTab = React.memo(function DocumentsTab({ data }) {
                 onClick={handleCloseModal}
                 style={{
                   padding: '8px 18px',
-                  fontSize: 16,
+                  fontSize: 14,
                   fontWeight: 500,
-                  lineHeight: '24px',
+                  lineHeight: '1.1',
                   fontFamily: 'var(--font-primary)',
                   background: 'var(--btn-secondary-bg)',
                   border: '1px solid var(--btn-secondary-border)',
@@ -511,9 +511,9 @@ const DocumentsTab = React.memo(function DocumentsTab({ data }) {
                 disabled={!formFile}
                 style={{
                   padding: '8px 18px',
-                  fontSize: 16,
+                  fontSize: 14,
                   fontWeight: 500,
-                  lineHeight: '24px',
+                  lineHeight: '1.1',
                   fontFamily: 'var(--font-primary)',
                   background: 'var(--btn-primary-bg)',
                   border: '1px solid var(--btn-primary-bg)',

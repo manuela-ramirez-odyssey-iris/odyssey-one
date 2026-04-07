@@ -107,9 +107,9 @@ function NoteItem({ note, onEdit, onDelete }) {
               onClick={handleCancel}
               style={{
                 padding: '8px 18px',
-                fontSize: 16,
+                fontSize: 14,
                 fontWeight: 500,
-                lineHeight: '24px',
+                lineHeight: '1.1',
                 fontFamily: 'var(--font-primary)',
                 background: 'var(--btn-secondary-bg)',
                 border: '1px solid var(--btn-secondary-border)',
@@ -130,9 +130,9 @@ function NoteItem({ note, onEdit, onDelete }) {
               onClick={handleSave}
               style={{
                 padding: '8px 18px',
-                fontSize: 16,
+                fontSize: 14,
                 fontWeight: 500,
-                lineHeight: '24px',
+                lineHeight: '1.1',
                 fontFamily: 'var(--font-primary)',
                 background: 'var(--btn-primary-bg)',
                 border: '1px solid var(--btn-primary-bg)',
@@ -235,9 +235,9 @@ const NotesTab = React.memo(function NotesTab({ data }) {
           className="shrink-0"
           style={{
             padding: '8px 18px',
-            fontSize: 16,
+            fontSize: 14,
             fontWeight: 500,
-            lineHeight: '24px',
+            lineHeight: '1.1',
             fontFamily: 'var(--font-primary)',
             background: 'var(--btn-primary-bg)',
             border: '1px solid var(--btn-primary-bg)',

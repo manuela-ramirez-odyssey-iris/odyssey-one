@@ -180,9 +180,9 @@ const CostAllocationTab = React.memo(function CostAllocationTab({ data, selected
                   onClick={() => setCompareOpen(true)}
                   style={{
                     padding: '8px 18px',
-                    fontSize: 16,
+                    fontSize: 14,
                     fontWeight: 500,
-                    lineHeight: '24px',
+                    lineHeight: '1.1',
                     fontFamily: 'var(--font-primary)',
                     background: 'var(--btn-secondary-bg)',
                     border: '1px solid var(--btn-secondary-border)',
@@ -391,7 +391,7 @@ function CompareModal({ orders, defaultOrderIdx, onClose }) {
       >
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-          <span style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>Compare AP / AR</span>
+          <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Compare AP / AR</span>
           <button
             onClick={onClose}
             className="flex items-center justify-center bg-transparent border-none cursor-pointer"
