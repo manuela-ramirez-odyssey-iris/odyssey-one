@@ -26,7 +26,7 @@ const TableControls = React.memo(function TableControls({
   const handleClear = useCallback(() => {
     onSearchChange('')
     if (onChipSelect) onChipSelect(null)
-    inputRef.current?.focus()
+    inputRef.current?.blur()
   }, [onSearchChange, onChipSelect])
 
   const bookmarkActive = savedSearchesOpen || !!appliedSavedQuery
@@ -131,7 +131,6 @@ const TableControls = React.memo(function TableControls({
           {searchQuery && (
             <button
               className="flex items-center justify-center bg-transparent border-none cursor-pointer shrink-0"
-              onMouseDown={(e) => e.preventDefault()}
               onClick={handleClear}
               style={{
                 padding: 0,
