@@ -22,7 +22,7 @@ export default function DarkTooltip({ text, children, width = 300 }) {
       style={{ position: 'relative', display: 'inline-flex' }}
     >
       {children}
-      {show && pos && createPortal(
+      {show && pos && text && createPortal(
         <div style={{
           position: 'fixed',
           top: pos.top - 8,

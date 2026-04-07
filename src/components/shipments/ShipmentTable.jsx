@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { MoreVertical, Columns3Cog } from 'lucide-react'
 import Badge from '../ui/Badge'
+import DarkTooltip from '../ui/DarkTooltip'
 
 const BADGE_COLORS = ['amber', 'blue', 'green', 'red', 'purple']
 
@@ -190,9 +191,11 @@ const ShipmentRow = React.memo(function ShipmentRow({ shipment, isSelected, onSe
         {s.origin}
       </td>
       <td style={{ padding: '0 var(--spacing-4)', height: 56, borderBottom: '1px solid var(--bg-tertiary)', whiteSpace: 'nowrap', minWidth: 120 }}>
-        {s.shipmentStatus ? (
-          <Badge variant={s.shipmentStatus === 'Done' ? 'green' : 'amber'}>{s.shipmentStatus}</Badge>
-        ) : null}
+        <DarkTooltip text={s.tenderStatus ? `Tender: ${s.tenderStatus}` : null}>
+          <span>{s.shipmentStatus ? (
+            <Badge variant={s.shipmentStatus === 'Done' ? 'green' : 'amber'}>{s.shipmentStatus}</Badge>
+          ) : '\u2014'}</span>
+        </DarkTooltip>
       </td>
       <td
         data-sticky-col
