@@ -24,7 +24,7 @@ export default function Sidebar() {
         padding: 'var(--spacing-3)', height: 'calc(100vh - var(--navbar-height))',
       }}>
       <nav className="flex flex-col items-center flex-1" style={{ width: 40 }}>
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 pb-6">
           {topItems.map(({ icon: Icon, label, key }) => (
             <button
               key={key}
@@ -41,9 +41,7 @@ export default function Sidebar() {
           ))}
         </div>
 
-        <div className="my-6" style={{ width: 40, height: 1, background: 'var(--deep-sea-neutral-300)' }} />
-
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 pt-6 w-10" style={{ borderTop: '1px solid var(--deep-sea-neutral-300)' }}>
           {bottomItems.map(({ icon: Icon, label, key }) => (
             <button
               key={key}
