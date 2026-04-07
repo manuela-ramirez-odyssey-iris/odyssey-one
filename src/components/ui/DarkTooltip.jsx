@@ -32,12 +32,13 @@ export default function DarkTooltip({ text, children, width = 300 }) {
           borderRadius: 'var(--radius-md)',
           padding: '10px 14px',
           zIndex: 9999,
-          width,
-          textAlign: 'center',
+          width: width === 'auto' ? 'auto' : width,
+          whiteSpace: width === 'auto' ? 'nowrap' : 'normal',
+          textAlign: 'left',
           boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
           pointerEvents: 'none',
         }}>
-          <span style={{ fontSize: 13, color: 'var(--deep-sea-neutral-300, #D0D4DB)', lineHeight: 1.4 }}>
+          <span style={{ fontSize: 13, color: 'var(--deep-sea-neutral-300, #D0D4DB)', lineHeight: 1.4, textWrap: 'pretty' }}>
             {text}
           </span>
         </div>,

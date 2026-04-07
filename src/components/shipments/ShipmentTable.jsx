@@ -229,7 +229,7 @@ const ShipmentRow = React.memo(function ShipmentRow({ shipment, isSelected, onSe
           name="shipment-select"
           checked={isSelected}
           readOnly
-          style={{ accentColor: 'var(--border-focus)', width: 16, height: 16, cursor: 'pointer', pointerEvents: 'none' }}
+          style={{ accentColor: 'var(--text-primary)', width: 16, height: 16, cursor: 'pointer', pointerEvents: 'none' }}
         />
       </td>
       {orderedColumns.map(col => {

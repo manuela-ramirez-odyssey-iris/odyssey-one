@@ -31,7 +31,20 @@
       "Bash(python3:*)",
       "Bash(grep -n \"see.*table\\\\|understand.*tender\\\\|purpose.*tender\\\\|reason.*summary\\\\|what is.*tender\" /Users/manuelramirez/Documents/iris/Odyssey/Shipments/odyssey-shipments/shipments-documentation/Documentation/Grooming-sessions/*.vtt)",
       "Bash(grep -n -B 5 -A 20 \"shipment summary at\\\\|summary section\\\\|header.*shipment\\\\|summary.*routing\" /Users/manuelramirez/Documents/iris/Odyssey/Shipments/odyssey-shipments/shipments-documentation/Documentation/Grooming-sessions/*.vtt)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(lsof -ti:3010)",
+      "Bash(xargs kill:*)",
+      "Bash(lsof -i :3010 -sTCP:LISTEN)",
+      "Bash(bash:*)",
+      "Bash(ls -la \"/Users/manuelramirez/Documents/iris/Odyssey/Shipments/odyssey-shipments/shipments-documentation/Documentation/Powerpoints\"*)",
+      "Bash(pip3 install:*)",
+      "Bash(/tmp/pptx_env/bin/pip install:*)",
+      "Bash(/tmp/pptx_env/bin/python3 -c ':*)",
+      "Bash(npx -y acorn-loose --ecma2020 src/components/detail/RoutingGuideTab.jsx)",
+      "Bash(echo \"Exit: $?\")",
+      "Bash(npx eslint:*)",
+      "mcp__claude_ai_Figma__get_design_context",
+      "Bash(lsof -ti:3008)"
     ]
   }
 }

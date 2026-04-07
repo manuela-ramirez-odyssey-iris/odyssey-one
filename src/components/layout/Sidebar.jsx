@@ -15,10 +15,10 @@ const bottomItems = [
 ]
 
 export default function Sidebar() {
-  const [active, setActive] = useState('shipments')
+  const [active, setActive] = useState('trucks')
 
   return (
-    <aside className="shrink-0 flex flex-col sticky top-16"
+    <aside className="shrink-0 flex flex-col sticky top-0"
       style={{
         width: 'var(--sidebar-width)', background: 'var(--deep-sea-neutral-200)',
         padding: 'var(--spacing-3)', height: 'calc(100vh - var(--navbar-height))',
@@ -59,10 +59,6 @@ export default function Sidebar() {
         </div>
       </nav>
 
-      <div className="flex items-center justify-center p-1 shrink-0 text-xs font-bold"
-        style={{ color: 'var(--text-placeholder)' }}>
-        O
-      </div>
     </aside>
   )
 }

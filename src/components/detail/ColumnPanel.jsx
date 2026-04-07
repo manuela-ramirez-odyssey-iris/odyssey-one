@@ -194,7 +194,7 @@ export default function ColumnPanel({ isOpen, onClose, visibleColumns, onColumns
       <button
         onClick={() => { setView('presets'); setSearchQuery('') }}
         className="flex items-center gap-1 bg-transparent border-none cursor-pointer"
-        style={{ color: 'var(--text-link, var(--border-focus))', fontSize: 13, fontWeight: 500, padding: '12px 0 8px', fontFamily: 'var(--font-primary)' }}
+        style={{ color: 'var(--text-primary)', fontSize: 13, fontWeight: 500, padding: '12px 0 8px', fontFamily: 'var(--font-primary)' }}
       >
         <ChevronLeft size={14} />
         Back
@@ -241,7 +241,7 @@ export default function ColumnPanel({ isOpen, onClose, visibleColumns, onColumns
               type="checkbox"
               checked
               onChange={() => handleToggleColumn(col.key, false)}
-              style={{ accentColor: 'var(--border-focus)', width: 15, height: 15, cursor: 'pointer', flexShrink: 0 }}
+              style={{ accentColor: 'var(--text-primary)', width: 15, height: 15, cursor: 'pointer', flexShrink: 0 }}
             />
             <span style={{ fontSize: 13, color: 'var(--text-secondary)', flex: 1 }}>{col.label}</span>
             <GripVertical size={14} style={{ color: 'var(--text-placeholder)', flexShrink: 0 }} />
@@ -297,7 +297,7 @@ export default function ColumnPanel({ isOpen, onClose, visibleColumns, onColumns
               type="checkbox"
               checked={false}
               onChange={() => handleToggleColumn(col.key, true)}
-              style={{ accentColor: 'var(--border-focus)', width: 15, height: 15, cursor: 'pointer', flexShrink: 0 }}
+              style={{ accentColor: 'var(--text-primary)', width: 15, height: 15, cursor: 'pointer', flexShrink: 0 }}
             />
             <span style={{ fontSize: 13, color: 'var(--text-secondary)', flex: 1 }}>{col.label}</span>
             <GripVertical size={14} style={{ color: 'var(--text-placeholder)', flexShrink: 0, opacity: 0.4 }} />
@@ -367,25 +367,20 @@ function PresetRow({ preset, isActive, onSelect, onNavigate }) {
       }}
       onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-secondary)' }}
       onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--bg-primary)' }}
-      onClick={onSelect}
+      onClick={onNavigate}
     >
       <input
         type="radio"
         name="preset-select"
         checked={isActive}
+        onClick={(e) => { e.stopPropagation(); onSelect() }}
         readOnly
-        style={{ accentColor: 'var(--border-focus)', width: 16, height: 16, cursor: 'pointer', flexShrink: 0 }}
+        style={{ accentColor: 'var(--text-primary)', width: 16, height: 16, cursor: 'pointer', flexShrink: 0 }}
       />
       <span style={{ fontSize: 13, color: 'var(--text-secondary)', flex: 1, fontWeight: 500 }}>
         {preset.name}
       </span>
-      <button
-        onClick={(e) => { e.stopPropagation(); onNavigate() }}
-        className="flex items-center justify-center bg-transparent border-none cursor-pointer p-0"
-        style={{ color: 'var(--text-placeholder)' }}
-      >
-        <ChevronRight size={16} />
-      </button>
+      <ChevronRight size={16} style={{ color: 'var(--text-placeholder)', flexShrink: 0 }} />
     </div>
   )
 }

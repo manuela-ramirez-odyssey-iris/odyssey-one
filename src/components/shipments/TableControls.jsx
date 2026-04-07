@@ -178,7 +178,7 @@ export default function TableControls({
           >
             <ArrowUpDown size={16} style={{ color: 'var(--btn-secondary-text)' }} />
           </button>
-          <DarkTooltip text="Only the first 10,000 records will be exported to Excel">
+          <DarkTooltip text="Only the first 10,000 records will be exported to Excel" width={220}>
             <button
               className="flex items-center gap-1.5 text-sm font-medium"
               style={{
@@ -198,20 +198,6 @@ export default function TableControls({
               <span>Export</span>
             </button>
           </DarkTooltip>
-          <button
-            className="flex items-center gap-1.5 text-sm font-medium"
-            style={{
-              background: 'var(--btn-secondary-bg)',
-              border: '1px solid var(--btn-secondary-border)',
-              borderRadius: 'var(--radius-lg)',
-              padding: '6px 12px',
-              cursor: 'pointer',
-              color: 'var(--btn-secondary-text)',
-            }}
-          >
-            <span>Actions</span>
-            <ChevronDown size={16} />
-          </button>
         </div>
       </div>
 

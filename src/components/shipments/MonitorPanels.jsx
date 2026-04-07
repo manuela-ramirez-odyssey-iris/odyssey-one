@@ -67,7 +67,7 @@ export default function MonitorPanels({ activePanel, onPanelSelect, metrics, col
                 background: 'var(--panel-bg)',
                 border: '1px solid var(--border-subtle)',
                 opacity: isSelected ? 1 : 0.5,
-                transition: 'opacity 0.2s ease, border-color var(--transition-base)',
+                transition: 'border-color var(--transition-base)',
               }}
               onClick={() => onPanelSelect(panel.key)}
               onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.opacity = '0.75' }}

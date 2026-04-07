@@ -4,6 +4,7 @@ const variants = {
   green: { bg: 'var(--badge-green-bg)', color: 'var(--badge-green-text)' },
   red: { bg: 'var(--badge-red-bg)', color: 'var(--badge-red-text)' },
   purple: { bg: 'var(--badge-purple-bg)', color: 'var(--badge-purple-text)' },
+  gray: { bg: 'var(--deep-sea-neutral-200, #E4E6EB)', color: 'var(--deep-sea-neutral-500, #6B7280)' },
 }
 
 export default function Badge({ children, variant = 'blue' }) {

@@ -1088,7 +1088,7 @@ function RoutingTable({ options, columns, tabColumns, highlightedRank, openMenuR
     <div style={{ display: 'flex', border: '1px solid var(--border-subtle)', borderRadius: '0 0 var(--radius-md) var(--radius-md)', marginBottom: 24 }}>
       {/* ── LEFT TABLE + TOGGLE: fixed container with shadow ── */}
       <div style={{ flexShrink: 0, display: 'flex', boxShadow: '2px 0 4px rgba(0,0,0,0.06)', zIndex: 1 }}>
-      <div style={{ flexShrink: 0 }}>
+      <div data-left-table style={{ flexShrink: 0 }}>
         <table style={tableStyle}>
           <thead>
             <tr>
@@ -1172,9 +1172,8 @@ function RoutingTable({ options, columns, tabColumns, highlightedRank, openMenuR
             alignItems: 'center',
             justifyContent: 'center',
             background: 'var(--bg-primary)',
-            borderLeft: '1px solid var(--border-subtle)',
             cursor: 'pointer',
-            color: 'var(--text-placeholder)',
+            color: 'var(--text-tertiary)',
           }}
         >
           {columnsCollapsed ? <UnfoldHorizontal size={14} /> : <FoldHorizontal size={14} />}
@@ -1326,12 +1325,14 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
     setOptions(data?.options || [])
     setIsDetailModalOpen(false)
     setQuoteModal({ isOpen: false, mode: 'add', carrierData: null })
+
     setCollapsedKeys(new Set())
 
   }, [data])
 
   /* Reset collapse when switching sub-tabs */
   useEffect(() => {
+
     setCollapsedKeys(new Set())
   }, [activeSubTab])
 
@@ -1362,32 +1363,22 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
   }, [collapsedKeys])
 
   const handleCollapse = useCallback(() => {
-    const rightEl = document.querySelector('[data-right-table]')
-    if (!rightEl) {
-      setCollapsedKeys(new Set(COLLAPSIBLE_KEYS))
-      return
-    }
-
     const collapseOrder = ['deliveryDateTime', 'pickupDateTime', 'cost', 'equipment', 'carrierName', 'scac']
-    const newCollapsed = new Set()
+    const tabColCount = (TAB_COLUMNS[activeSubTab] || []).length
 
-    const overflow = rightEl.scrollWidth - rightEl.clientWidth
-    if (overflow <= 0) return
+    // More tab columns = collapse more locked columns
+    let colsToCollapse
+    if (tabColCount >= 9) colsToCollapse = 6       // routing-options, additional-info: max collapse
+    else if (tabColCount >= 6) colsToCollapse = 4   // others, volume-commitment
+    else if (tabColCount >= 4) colsToCollapse = 2   // notify-response
+    else colsToCollapse = 1
 
-    let reclaimedSpace = 0
-    const avgSavingsPerCol = 100
-
-    for (const key of collapseOrder) {
-      newCollapsed.add(key)
-      reclaimedSpace += avgSavingsPerCol
-      if (reclaimedSpace >= overflow) break
-    }
-
-    setCollapsedKeys(newCollapsed)
-  }, [])
+    setCollapsedKeys(new Set(collapseOrder.slice(0, colsToCollapse)))
+  }, [activeSubTab])
 
 
   const handleExpand = useCallback(() => {
+
     setCollapsedKeys(new Set())
   }, [])
 

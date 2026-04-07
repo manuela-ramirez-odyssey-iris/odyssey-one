@@ -1,0 +1,3 @@
+{"type":"server-started","port":61837,"host":"127.0.0.1","url_host":"localhost","url":"http://localhost:61837","screen_dir":"/Users/manuelramirez/Documents/iris/Odyssey/Shipments/odyssey-shipments/.superpowers/brainstorm/89670-1775441830/content","state_dir":"/Users/manuelramirez/Documents/iris/Odyssey/Shipments/odyssey-shipments/.superpowers/brainstorm/89670-1775441830/state"}
+{"type":"screen-added","file":"/Users/manuelramirez/Documents/iris/Odyssey/Shipments/odyssey-shipments/.superpowers/brainstorm/89670-1775441830/content/shp21-current-state.html"}
+{"type":"server-stopped","reason":"idle timeout"}
