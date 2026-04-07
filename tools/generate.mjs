@@ -361,9 +361,12 @@ function generateShipment(index) {
   const routingCarriers = faker.helpers.arrayElements(CARRIERS, routingCount);
 
   // Determine tendering scenario
-  const tenderCompleted = faker.number.float({ min: 0, max: 1 }) < 0.85; // 85% accepted, 15% in-progress
-  // Pick which rank is the "decisive" carrier (accepted or currently sent)
-  const decisiveRank = faker.number.int({ min: 1, max: routingCount }); // 1-based
+  const scenarioRoll = faker.number.float({ min: 0, max: 1 });
+  const tenderCompleted = scenarioRoll < 0.55;    // 55% → Accepted → Monitoring
+  const tenderInProgress = scenarioRoll >= 0.55 && scenarioRoll < 0.70;  // 15% → Sent → Monitoring
+  const tenderFailed = scenarioRoll >= 0.70;       // 30% → All failed → Exceptions
+  // Pick which rank is the "decisive" carrier (accepted or currently sent) — not used for tenderFailed
+  const decisiveRank = tenderFailed ? null : faker.number.int({ min: 1, max: routingCount }); // 1-based
 
   // Route ranks: unique per carrier, shuffled so routeRank !== rank
   const routeRanks = faker.helpers.shuffle(Array.from({ length: routingCount }, (_, i) => i + 1));
@@ -371,7 +374,10 @@ function generateShipment(index) {
   const routingOptions = routingCarriers.map((rc, ri) => {
     const rank = ri + 1;
     let status;
-    if (tenderCompleted) {
+    if (tenderFailed) {
+      // Scenario C: all carriers failed — no Accepted, no Sent, no null
+      status = pick(['Declined', 'Cancelled']);
+    } else if (tenderCompleted) {
       // Scenario A: someone accepted
       if (rank < decisiveRank) status = pick(['Declined', 'Cancelled']);
       else if (rank === decisiveRank) status = 'Accepted';
@@ -472,6 +478,12 @@ function generateShipment(index) {
   const tenderStatus = hasAccepted ? 'Accepted' : hasSent ? 'Sent' : (routingStatuses.length > 0 ? routingStatuses[0] : 'Sent');
   // shipmentStatus derived from tender statuses
   const shipmentStatus = hasAccepted ? 'Done' : hasSent ? '' : 'Review';
+
+  // Panel and category derived from tender outcome
+  const panel = (hasAccepted || hasSent) ? 'monitoring' : 'exceptions';
+  const category = panel === 'exceptions'
+    ? weightedPick(CATEGORY_WEIGHTS.exceptions.items, CATEGORY_WEIGHTS.exceptions.weights)
+    : null;
 
   // Cost allocation
   const apBase = faker.number.float({ min: 500, max: 5000, fractionDigits: 2 });
@@ -861,6 +873,8 @@ function generateShipment(index) {
     scac: carrier.scac,
     tenderStatus,
     shipmentStatus,
+    panel,
+    category,
     grossWeight: String(grossWeight),
     load: String(faker.number.int({ min: 10000, max: 99999 })),
     loadCount: String(orders.reduce((s, o) => s + o.lineCount, 0)),
@@ -943,29 +957,6 @@ const CATEGORY_WEIGHTS = {
   },
 };
 
-// Panel sizes vary slightly from the base 40/40/20 split
-const PANEL_COUNTS = {
-  exceptions: faker.number.int({ min: 75, max: 85 }),
-  monitoring: faker.number.int({ min: 75, max: 85 }),
-  // pgipgr gets the remainder (roughly 35-45)
-};
-PANEL_COUNTS.pgipgr = 200 - PANEL_COUNTS.exceptions - PANEL_COUNTS.monitoring;
-
-function assignPanelAndCategory(index, _total) {
-  let panel;
-  if (index < PANEL_COUNTS.exceptions) {
-    panel = 'exceptions';
-  } else if (index < PANEL_COUNTS.exceptions + PANEL_COUNTS.monitoring) {
-    panel = 'monitoring';
-  } else {
-    panel = 'pgipgr';
-  }
-
-  const { items, weights } = CATEGORY_WEIGHTS[panel];
-  const category = weightedPick(items, weights);
-  return { panel, category };
-}
-
 // ============================================================
 // GENERATE 200 SHIPMENTS
 // ============================================================
@@ -978,9 +969,6 @@ const shipmentDetails = {};
 
 for (let i = 0; i < TOTAL_SHIPMENTS; i++) {
   const { mainRow, detail } = generateShipment(i);
-  const { panel, category } = assignPanelAndCategory(i, TOTAL_SHIPMENTS);
-  mainRow.panel = panel;
-  mainRow.category = category;
   shipments.push(mainRow);
   shipmentDetails[mainRow.buyShipment] = detail;
 }
