@@ -291,6 +291,7 @@ const VirtualRow = React.memo(function VirtualRow({ index, style, data }) {
 export default function ShipmentTable({ shipments, onRowSelect, selectedId, onToggleColumnPanel, visibleColumns }) {
   const containerRef = useRef(null)
   const listRef = useRef(null)
+  const headerRef = useRef(null)
   const [listHeight, setListHeight] = useState(600)
 
   const orderedColumns = useMemo(() => {
@@ -306,8 +307,8 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
   }, [visibleColumns])
 
   const handleSelect = useCallback((shipment) => {
-    onRowSelect(selectedId === shipment.buyShipment ? null : shipment.buyShipment)
-  }, [onRowSelect, selectedId])
+    onRowSelect(shipment.buyShipment)
+  }, [onRowSelect])
 
   // Auto-scroll selected row into view
   useEffect(() => {
@@ -331,6 +332,18 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
     return () => ro.disconnect()
   }, [])
 
+  // Sync horizontal scroll between header and virtual list body
+  const listWrapperRef = useRef(null)
+  useEffect(() => {
+    // The List renders an outer scrollable div as its first child
+    const listEl = listWrapperRef.current?.querySelector('[style*="overflow"]')
+    const headerEl = headerRef.current
+    if (!listEl || !headerEl) return
+    const sync = () => { headerEl.scrollLeft = listEl.scrollLeft }
+    listEl.addEventListener('scroll', sync, { passive: true })
+    return () => listEl.removeEventListener('scroll', sync)
+  })
+
   // Shared data passed to each row via itemData
   const itemData = useMemo(() => ({
     shipments,
@@ -343,7 +356,7 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
     <div ref={containerRef} className="flex-1 min-h-0 overflow-hidden flex flex-col"
       style={{ borderRadius: 'var(--radius-lg)', paddingBottom: 'var(--bottombar-collapsed)', minHeight: 560 }}>
       {/* Sticky header */}
-      <div style={{ flexShrink: 0, overflowX: 'auto' }}>
+      <div ref={headerRef} style={{ flexShrink: 0, overflowX: 'hidden' }}>
         <div className="flex" style={{ minWidth: 'max-content' }}>
           <div style={{ width: 48, flexShrink: 0, padding: '0 var(--spacing-4)', height: 'var(--bottombar-collapsed)', background: 'var(--bg-primary)', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} />
           {orderedColumns.map(col => (
@@ -373,18 +386,20 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
           No shipments found
         </div>
       ) : (
-        <List
-          ref={listRef}
-          height={listHeight}
-          itemCount={shipments.length}
-          itemSize={ROW_HEIGHT}
-          width="100%"
-          overscanCount={10}
-          itemData={itemData}
-          style={{ overflowX: 'auto' }}
-        >
-          {VirtualRow}
-        </List>
+        <div ref={listWrapperRef} className="flex-1 min-h-0">
+          <List
+            ref={listRef}
+            height={listHeight}
+            itemCount={shipments.length}
+            itemSize={ROW_HEIGHT}
+            width="100%"
+            overscanCount={10}
+            itemData={itemData}
+            style={{ overflowX: 'auto' }}
+          >
+            {VirtualRow}
+          </List>
+        </div>
       )}
     </div>
   )

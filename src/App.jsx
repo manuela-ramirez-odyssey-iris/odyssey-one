@@ -60,6 +60,7 @@ function App() {
       const cached = getCachedShipmentDetails(selectedShipmentId)
       if (cached) {
         setShipmentDetails(cached)
+        setDetailsLoading(false)
         return
       }
       // Fetch on demand (~30 KB per shipment)
@@ -194,7 +195,7 @@ function App() {
   }, [])
 
   const handleRowSelect = useCallback((id) => {
-    setSelectedShipmentId(id)
+    setSelectedShipmentId(prev => prev === id ? null : id)
   }, [])
 
   const handleBottomBarClose = useCallback(() => {
