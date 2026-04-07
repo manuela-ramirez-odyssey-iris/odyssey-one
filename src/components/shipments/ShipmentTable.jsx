@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { FixedSizeList as List } from 'react-window'
 import { MoreVertical, Columns3Cog } from 'lucide-react'
 import Badge from '../ui/Badge'
 import DarkTooltip from '../ui/DarkTooltip'
@@ -198,31 +199,28 @@ function ActionMenu({ shipmentId, position, onClose }) {
 
 const COLUMN_CONFIG_MAP = Object.fromEntries(COLUMN_CONFIG.map(c => [c.key, c]))
 
-const ShipmentRow = React.memo(function ShipmentRow({ shipment, isSelected, onSelect, rowRef, orderedColumns }) {
+const ROW_HEIGHT = 56
+
+const ShipmentRow = React.memo(function ShipmentRow({ shipment, isSelected, onSelect, orderedColumns }) {
   const s = shipment
   const [menuOpen, setMenuOpen] = useState(false)
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 })
   const rowBg = isSelected ? 'var(--badge-blue-bg)' : 'var(--bg-primary)'
+
   return (
-    <tr
-      ref={rowRef}
-      className="transition-colors duration-150 cursor-pointer"
-      style={{ background: rowBg }}
+    <div
+      className="flex items-center cursor-pointer transition-colors duration-150"
+      style={{ background: rowBg, height: ROW_HEIGHT, minWidth: 'max-content' }}
+      onClick={() => onSelect(s)}
       onMouseEnter={(e) => {
-        if (!isSelected) {
-          e.currentTarget.style.background = 'var(--bg-secondary)'
-          e.currentTarget.querySelector('[data-sticky-col]').style.background = 'var(--bg-secondary)'
-        }
+        if (!isSelected) e.currentTarget.style.background = 'var(--bg-secondary)'
       }}
       onMouseLeave={(e) => {
-        if (!isSelected) {
-          e.currentTarget.style.background = 'var(--bg-primary)'
-          e.currentTarget.querySelector('[data-sticky-col]').style.background = 'var(--bg-primary)'
-        }
+        if (!isSelected) e.currentTarget.style.background = 'var(--bg-primary)'
       }}
-      onClick={() => onSelect(s)}
     >
-      <td style={{ padding: '0 var(--spacing-4)', height: 56, borderBottom: '1px solid var(--bg-tertiary)', textAlign: 'center' }}
+      {/* Radio */}
+      <div style={{ width: 48, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', height: ROW_HEIGHT, borderBottom: '1px solid var(--bg-tertiary)' }}
         onClick={(e) => { e.stopPropagation(); onSelect(s) }}>
         <input
           type="radio"
@@ -231,48 +229,69 @@ const ShipmentRow = React.memo(function ShipmentRow({ shipment, isSelected, onSe
           readOnly
           style={{ accentColor: 'var(--text-primary)', width: 16, height: 16, cursor: 'pointer', pointerEvents: 'none' }}
         />
-      </td>
+      </div>
+
+      {/* Data columns */}
       {orderedColumns.map(col => {
         const configCol = COLUMN_CONFIG_MAP[col.key]
         return (
-          <td key={col.key} style={{
+          <div key={col.key} style={{
+            flex: '1 0 0',
+            minWidth: 100,
             padding: '0 var(--spacing-4)',
-            height: 56,
+            height: ROW_HEIGHT,
             borderBottom: '1px solid var(--bg-tertiary)',
             whiteSpace: 'nowrap',
+            display: 'flex',
+            alignItems: 'center',
+            overflow: 'hidden',
             ...(col.key === 'buyShipment' ? { fontWeight: 500, color: 'var(--text-secondary)' } : {}),
           }}>
             {configCol && configCol.render ? configCol.render(s) : (s[col.key] || '--')}
-          </td>
+          </div>
         )
       })}
-      <td
-        data-sticky-col
+
+      {/* Sticky actions column */}
+      <div
         onClick={(e) => {
           e.stopPropagation()
           const rect = e.currentTarget.getBoundingClientRect()
           setMenuPos({ top: rect.bottom + 4, left: rect.right })
           setMenuOpen((prev) => !prev)
         }}
-        style={{ ...stickyLastCol, padding: 0, height: 56, borderBottom: '1px solid var(--bg-tertiary)', textAlign: 'center', width: 56, cursor: 'pointer', background: isSelected ? 'var(--badge-blue-bg)' : 'var(--bg-primary)' }}
+        style={{ ...stickyLastCol, width: 56, flexShrink: 0, height: ROW_HEIGHT, borderBottom: '1px solid var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: isSelected ? 'var(--badge-blue-bg)' : 'var(--bg-primary)' }}
       >
-        <div className="flex items-center justify-center" style={{ width: '100%', height: '100%' }}>
-          <MoreVertical size={16} style={{ color: 'var(--text-placeholder)' }} />
-        </div>
+        <MoreVertical size={16} style={{ color: 'var(--text-placeholder)' }} />
         {menuOpen && <ActionMenu shipmentId={s.buyShipment} position={menuPos} onClose={() => setMenuOpen(false)} />}
-      </td>
-    </tr>
+      </div>
+    </div>
   )
 }, (prevProps, nextProps) => {
   return prevProps.isSelected === nextProps.isSelected &&
     prevProps.shipment === nextProps.shipment &&
-    prevProps.rowRef === nextProps.rowRef &&
     prevProps.orderedColumns === nextProps.orderedColumns
 })
 
+const VirtualRow = React.memo(function VirtualRow({ index, style, data }) {
+  const { shipments, selectedId, handleSelect, orderedColumns } = data
+  const s = shipments[index]
+  return (
+    <div style={style}>
+      <ShipmentRow
+        shipment={s}
+        isSelected={selectedId === s.buyShipment}
+        onSelect={handleSelect}
+        orderedColumns={orderedColumns}
+      />
+    </div>
+  )
+})
+
 export default function ShipmentTable({ shipments, onRowSelect, selectedId, onToggleColumnPanel, visibleColumns }) {
-  const tableContainerRef = useRef(null)
-  const selectedRowRef = useRef(null)
+  const containerRef = useRef(null)
+  const listRef = useRef(null)
+  const [listHeight, setListHeight] = useState(600)
 
   const orderedColumns = useMemo(() => {
     if (!visibleColumns) return COLUMN_CONFIG
@@ -280,7 +299,6 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
       .map(key => {
         const fromConfig = COLUMN_CONFIG.find(c => c.key === key)
         if (fromConfig) return fromConfig
-        // Fallback: column not in COLUMN_CONFIG, render as plain text
         const allCol = ALL_COLUMNS.find(c => c.key === key)
         return { key, label: allCol ? allCol.label : key }
       })
@@ -291,67 +309,83 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
     onRowSelect(selectedId === shipment.buyShipment ? null : shipment.buyShipment)
   }, [onRowSelect, selectedId])
 
-  // Auto-scroll selected row into view above the bottom bar
+  // Auto-scroll selected row into view
   useEffect(() => {
-    if (selectedId && selectedRowRef.current) {
-      // Small delay to let the bottom bar expand and metrics collapse
-      setTimeout(() => {
-        const row = selectedRowRef.current
-        if (!row) return
-        const main = row.closest('main')
-        if (!main) return
-        const rowRect = row.getBoundingClientRect()
-        // Bottom bar expands to 50vh, so the visible area ends there
-        const bottomBarTop = window.innerHeight * 0.5
-        if (rowRect.bottom > bottomBarTop) {
-          main.scrollBy({ top: rowRect.bottom - bottomBarTop + 80, behavior: 'smooth' })
-        }
-      }, 350)
+    if (selectedId && listRef.current) {
+      const idx = shipments.findIndex(s => s.buyShipment === selectedId)
+      if (idx >= 0) {
+        setTimeout(() => {
+          listRef.current?.scrollToItem(idx, 'smart')
+        }, 100)
+      }
     }
-  }, [selectedId])
+  }, [selectedId, shipments])
+
+  // Dynamic height via ResizeObserver
+  useEffect(() => {
+    if (!containerRef.current) return
+    const ro = new ResizeObserver(([entry]) => {
+      setListHeight(Math.max(400, entry.contentRect.height - 48))
+    })
+    ro.observe(containerRef.current)
+    return () => ro.disconnect()
+  }, [])
+
+  // Shared data passed to each row via itemData
+  const itemData = useMemo(() => ({
+    shipments,
+    selectedId,
+    handleSelect,
+    orderedColumns,
+  }), [shipments, selectedId, handleSelect, orderedColumns])
 
   return (
-    <div ref={tableContainerRef} className="flex-1 min-h-0 overflow-auto"
+    <div ref={containerRef} className="flex-1 min-h-0 overflow-hidden flex flex-col"
       style={{ borderRadius: 'var(--radius-lg)', paddingBottom: 'var(--bottombar-collapsed)', minHeight: 560 }}>
-      <table className="w-full border-collapse text-sm" style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-primary)' }}>
-        <thead>
-          <tr>
-            <th className="sticky top-0 z-2"
-              style={{ width: 48, padding: '0 var(--spacing-4)', height: 'var(--bottombar-collapsed)', background: 'var(--bg-primary)', borderBottom: '1px solid var(--border-subtle)', textAlign: 'center' }}>
-            </th>
-            {orderedColumns.map(col => (
-              <th key={col.key} className="sticky top-0 z-2 text-left whitespace-nowrap"
-                style={{ padding: '0 var(--spacing-4)', height: 'var(--bottombar-collapsed)', background: 'var(--bg-primary)', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-placeholder)', fontWeight: 600, fontSize: 'var(--font-size-sm)' }}>
-                {col.label}
-              </th>
-            ))}
-            <th className="sticky top-0" style={{ ...stickyLastCol, zIndex: 5, width: 56, padding: '0 var(--spacing-4)', height: 'var(--bottombar-collapsed)', borderBottom: '1px solid var(--border-subtle)', textAlign: 'center' }}>
-              <button
-                className="flex items-center justify-center mx-auto bg-transparent border-none cursor-pointer p-1 rounded"
-                style={{ color: 'var(--text-placeholder)' }}
-                onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
-                onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-placeholder)'}
-                onClick={() => { if (onToggleColumnPanel) onToggleColumnPanel() }}
-                title="Column arrangement"
-              >
-                <Columns3Cog size={18} />
-              </button>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {shipments.map((s) => (
-            <ShipmentRow
-              key={s.buyShipment}
-              shipment={s}
-              isSelected={selectedId === s.buyShipment}
-              onSelect={handleSelect}
-              rowRef={selectedId === s.buyShipment ? selectedRowRef : undefined}
-              orderedColumns={orderedColumns}
-            />
+      {/* Sticky header */}
+      <div style={{ flexShrink: 0, overflowX: 'auto' }}>
+        <div className="flex" style={{ minWidth: 'max-content' }}>
+          <div style={{ width: 48, flexShrink: 0, padding: '0 var(--spacing-4)', height: 'var(--bottombar-collapsed)', background: 'var(--bg-primary)', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} />
+          {orderedColumns.map(col => (
+            <div key={col.key} className="text-left whitespace-nowrap"
+              style={{ flex: '1 0 0', minWidth: 100, padding: '0 var(--spacing-4)', height: 'var(--bottombar-collapsed)', background: 'var(--bg-primary)', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-placeholder)', fontWeight: 600, fontSize: 'var(--font-size-sm)', display: 'flex', alignItems: 'center' }}>
+              {col.label}
+            </div>
           ))}
-        </tbody>
-      </table>
+          <div style={{ ...stickyLastCol, zIndex: 5, width: 56, flexShrink: 0, padding: '0 var(--spacing-4)', height: 'var(--bottombar-collapsed)', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <button
+              className="flex items-center justify-center mx-auto bg-transparent border-none cursor-pointer p-1 rounded"
+              style={{ color: 'var(--text-placeholder)' }}
+              onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
+              onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-placeholder)'}
+              onClick={() => { if (onToggleColumnPanel) onToggleColumnPanel() }}
+              title="Column arrangement"
+            >
+              <Columns3Cog size={18} />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Virtualized row list */}
+      {shipments.length === 0 ? (
+        <div className="flex items-center justify-center" style={{ padding: '48px 0', color: 'var(--text-placeholder)', fontSize: 'var(--font-size-sm)' }}>
+          No shipments found
+        </div>
+      ) : (
+        <List
+          ref={listRef}
+          height={listHeight}
+          itemCount={shipments.length}
+          itemSize={ROW_HEIGHT}
+          width="100%"
+          overscanCount={10}
+          itemData={itemData}
+          style={{ overflowX: 'auto' }}
+        >
+          {VirtualRow}
+        </List>
+      )}
     </div>
   )
 }
