@@ -256,6 +256,10 @@ function App() {
 
   return (
     <AppShell
+      onMainClick={useCallback(() => {
+        if (filtersOpen) setFiltersOpen(false)
+        if (columnPanelOpen) setColumnPanelOpen(false)
+      }, [filtersOpen, columnPanelOpen])}
       filterPanel={
         <>
           <FilterPanel
