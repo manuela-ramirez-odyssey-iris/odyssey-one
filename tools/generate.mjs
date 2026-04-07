@@ -7,9 +7,8 @@ faker.seed(42);
 // DOMAIN CONSTANTS (from grooming sessions + prototype)
 // ============================================================
 
-const MODES = ['TL', 'LTL', 'RR', 'IMD', 'AIR'];
-const MODE_WEIGHTS = { TL: 35, LTL: 35, IMD: 15, RR: 10, AIR: 5 };
-const RR_CUSTOMERS = ['BASF_CHM_01', 'DOW_IND_01']; // RR restricted to these customers
+const MODES = ['TL', 'LTL'];
+const MODE_WEIGHTS = { TL: 55, LTL: 45 };
 const EQUIPMENT_CODES = ['FLT', 'LTH', 'VAN', 'REEFER'];
 const TENDER_STATUSES = ['Sent', 'Accepted', 'Declined', 'Cancelled'];
 const DOC_TYPES = ['BoL', 'MBoL', 'POD', 'SL', 'Packing List', 'Other'];
@@ -249,19 +248,16 @@ function generateShipment(index) {
   const customer = pick(CUSTOMERS);
   const originLoc = pick(LOCATIONS);
   const destLoc = pick(LOCATIONS.filter(l => l.city !== originLoc.city));
-  // Weighted mode selection; RR only for specific customers
+  // Weighted mode selection
   const mode = (() => {
-    const available = RR_CUSTOMERS.includes(customer.id)
-      ? MODES
-      : MODES.filter(m => m !== 'RR');
-    const weights = available.map(m => MODE_WEIGHTS[m]);
+    const weights = MODES.map(m => MODE_WEIGHTS[m]);
     const total = weights.reduce((a, b) => a + b, 0);
     let r = faker.number.int({ min: 1, max: total });
-    for (let i = 0; i < available.length; i++) {
+    for (let i = 0; i < MODES.length; i++) {
       r -= weights[i];
-      if (r <= 0) return available[i];
+      if (r <= 0) return MODES[i];
     }
-    return available[available.length - 1];
+    return MODES[MODES.length - 1];
   })();
   const equipmentCode = pick(EQUIPMENT_CODES);
   const carrier = pick(CARRIERS);
@@ -325,7 +321,7 @@ function generateShipment(index) {
   }
 
   // Stops
-  // TL can have multi-stop; LTL, RR, IMD, AIR are always 1 pickup + 1 delivery
+  // TL can have multi-stop; LTL is always 1 pickup + 1 delivery
   const pickupStopCount = mode === 'TL' ? faker.number.int({ min: 1, max: 2 }) : 1;
   const stops = [];
   for (let s = 0; s < pickupStopCount; s++) {
@@ -793,7 +789,7 @@ function generateShipment(index) {
       shipDirection: pick(SHIP_DIRECTIONS),
       orderDate: formatDateTime(genDate(baseDate, -faker.number.int({ min: 1, max: 10 }))),
       paymentTerms: pick(PAYMENT_TERMS),
-      shipmentMode: { TL: 'Truckload', LTL: 'Less Than Truckload', RR: 'Railroad', IMD: 'Intermodal', AIR: 'Air Freight' }[mode],
+      shipmentMode: { TL: 'Truckload', LTL: 'Less Than Truckload' }[mode],
       expedited: pick(['Yes', 'No']),
       consolidatable: pick(['Yes', 'No']),
       equipment: equipmentCode,

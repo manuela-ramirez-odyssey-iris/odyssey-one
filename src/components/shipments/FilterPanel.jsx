@@ -15,7 +15,6 @@ const SAVED_QUERIES = [
   { name: 'Sent Tenders -- JBHT', query: 'scac:JBHT tender-status:Sent' },
   { name: 'TL Shipments -- G2O Tech', query: 'mode:TL customer-name:G2O' },
   { name: 'Declined Tenders -- January', query: 'tender-status:Declined pickup:01/*/2026' },
-  { name: 'Intermodal -- Hazardous Cargo', query: 'mode:IMD hazardous:Y' },
   { name: 'Review Orders -- USALCO', query: 'customer-name:USALCO shipment-status:Review' },
   { name: 'Done -- Dallas Origin', query: 'origin:Dallas shipment-status:Done' },
 ]
