@@ -462,7 +462,7 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
         </div>
 
         {/* Right: fixed actions column — single div with shadow spanning full height */}
-        <div style={{ width: 56, flexShrink: 0, boxShadow: '-2px 0 4px rgba(0,0,0,0.06)', background: 'var(--bg-primary)', display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 2 }}>
+        <div onClick={(e) => e.stopPropagation()} style={{ width: 56, flexShrink: 0, boxShadow: '-2px 0 4px rgba(0,0,0,0.06)', background: 'var(--bg-primary)', display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 2 }}>
           {/* Actions header */}
           <div style={{ height: 'var(--bottombar-collapsed)', flexShrink: 0, borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <button
