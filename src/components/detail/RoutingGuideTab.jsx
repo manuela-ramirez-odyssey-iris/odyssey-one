@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { TruckElectric, Columns3Cog } from 'lucide-react'
+import { TruckElectric, Columns3Cog, X } from 'lucide-react'
 
 /* ═══════════════════════════════════════════════════════════
    Section 1 — Constants
@@ -289,20 +289,6 @@ function TenderDetailModal({ isOpen, onClose, shipment, shipmentDetails }) {
   const columnStyle = { padding: '14px 16px', borderRight: '1px solid var(--border-subtle)' }
   const lastColumnStyle = { ...columnStyle, borderRight: 'none' }
 
-  const neutralBtn = {
-    padding: '6px 14px',
-    fontSize: 12,
-    fontWeight: 600,
-    fontFamily: 'var(--font-primary)',
-    border: '1px solid var(--border-subtle)',
-    borderRadius: 'var(--radius-sm)',
-    background: 'transparent',
-    color: 'var(--text-secondary)',
-    cursor: 'pointer',
-    whiteSpace: 'nowrap',
-    transition: 'all 0.15s ease',
-  }
-
   return createPortal(
     <div
       onClick={onClose}
@@ -330,6 +316,26 @@ function TenderDetailModal({ isOpen, onClose, shipment, shipmentDetails }) {
           boxShadow: 'var(--shadow-lg)',
         }}
       >
+        {/* Header bar */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '12px 16px',
+          borderBottom: '1px solid var(--border-subtle)',
+        }}>
+          <span style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>Shipment Details</span>
+          <button
+            onClick={onClose}
+            className="flex items-center justify-center bg-transparent border-none cursor-pointer"
+            style={{ color: 'var(--text-placeholder)', padding: 0, transition: 'color 0.15s ease' }}
+            onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
+            onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-placeholder)'}
+          >
+            <X size={18} />
+          </button>
+        </div>
+
         {/* 4-column grid */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr' }}>
           {/* Column 1: Shipment */}
@@ -344,8 +350,22 @@ function TenderDetailModal({ isOpen, onClose, shipment, shipmentDetails }) {
             <Field label="Pkg Count" value={pickupStop?.packageCount || null} />
             <Field label="Volume" value={summary.volume} />
             <Field label="Distance" value={summary.distance} />
-            <CheckboxField label="Instructions" checked={true} />
-            <CheckboxField label="Hazardous" checked={order?.hazmat === 'Yes'} />
+            <Field label="Instructions" value={
+              (() => {
+                const orders = shipmentDetails?.instructionsData?.orders || []
+                const count = orders.reduce((sum, o) => sum + (o.instructions?.length || 0), 0)
+                return count > 0 ? `${count} instruction${count !== 1 ? 's' : ''}` : 'No instructions'
+              })()
+            } />
+            <Field label="Hazardous" value={
+              order?.hazmat === 'Yes'
+                ? (() => {
+                    const products = shipmentDetails?.productData?.orders?.[0]?.products || []
+                    const haz = products.find(p => p.hazmat)
+                    return haz ? `Yes — ${haz.hazmatClass || ''} ${haz.hazmatDescription || ''}`.trim() : 'Yes'
+                  })()
+                : 'No'
+            } />
           </div>
 
           {/* Column 2: Order */}
@@ -386,31 +406,6 @@ function TenderDetailModal({ isOpen, onClose, shipment, shipmentDetails }) {
           </div>
         </div>
 
-        {/* Footer */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, padding: '12px 16px', borderTop: '1px solid var(--border-subtle)' }}>
-          <button
-            style={neutralBtn}
-            onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-tertiary)' }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
-          >
-            Routing Query (QCP)
-          </button>
-          <button
-            style={neutralBtn}
-            onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-tertiary)' }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
-          >
-            View Stops
-          </button>
-          <button
-            onClick={onClose}
-            style={neutralBtn}
-            onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-tertiary)' }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
-          >
-            Close
-          </button>
-        </div>
       </div>
     </div>,
     document.body,
