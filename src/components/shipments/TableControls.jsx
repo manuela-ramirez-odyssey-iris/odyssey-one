@@ -2,6 +2,7 @@ import React, { useState, useRef, useCallback } from 'react'
 import { Search, Bookmark, ArrowUpDown, Upload, ChevronDown, X, FileSpreadsheet } from 'lucide-react'
 import SearchChipPanel from './SearchChipPanel'
 import DarkTooltip from '../ui/DarkTooltip'
+import { SecondaryButton } from '../ui/Button'
 
 const TableControls = React.memo(function TableControls({
   itemCount,
@@ -181,31 +182,10 @@ const TableControls = React.memo(function TableControls({
             <ArrowUpDown size={16} style={{ color: 'var(--btn-secondary-text)' }} />
           </button>
           <DarkTooltip text="Only the first 10,000 records will be exported to Excel" width={220}>
-            <button
-              className="flex items-center gap-1.5"
-              style={{
-                padding: '8px 18px',
-                fontSize: 14,
-                fontWeight: 500,
-                lineHeight: '1.1',
-                fontFamily: 'var(--font-primary)',
-                background: 'var(--btn-secondary-bg)',
-                border: '1px solid var(--btn-secondary-border)',
-                borderRadius: 'var(--radius-lg)',
-                color: 'var(--btn-secondary-text)',
-                boxShadow: 'var(--shadow-sm)',
-                cursor: 'pointer',
-                transition: 'background 0.15s ease',
-              }}
-              onClick={() => setExportModalOpen(true)}
-              onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
-              onMouseLeave={(e) => e.currentTarget.style.background = 'var(--btn-secondary-bg)'}
-              onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; e.currentTarget.style.background = 'var(--deep-sea-neutral-200)' }}
-              onMouseUp={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.background = 'var(--btn-secondary-bg)' }}
-            >
+            <SecondaryButton onClick={() => setExportModalOpen(true)}>
               <Upload size={16} />
               <span>Export</span>
-            </button>
+            </SecondaryButton>
           </DarkTooltip>
         </div>
       </div>
@@ -266,64 +246,26 @@ const TableControls = React.memo(function TableControls({
               Choose which columns to include in the export. Only the first 10,000 records will be exported.
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <button
+              <SecondaryButton
                 onClick={() => {
                   if (onExport) onExport('all')
                   setExportModalOpen(false)
                 }}
-                className="flex items-center justify-between"
-                style={{
-                  width: '100%',
-                  padding: '8px 18px',
-                  fontSize: 14,
-                  fontWeight: 500,
-                  lineHeight: '1.1',
-                  fontFamily: 'var(--font-primary)',
-                  background: 'var(--btn-secondary-bg)',
-                  border: '1px solid var(--btn-secondary-border)',
-                  borderRadius: 'var(--radius-lg)',
-                  color: 'var(--btn-secondary-text)',
-                  boxShadow: 'var(--shadow-sm)',
-                  cursor: 'pointer',
-                  transition: 'background 0.15s ease',
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
-                onMouseLeave={(e) => e.currentTarget.style.background = 'var(--btn-secondary-bg)'}
-                onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; e.currentTarget.style.background = 'var(--deep-sea-neutral-200)' }}
-                onMouseUp={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.background = 'var(--btn-secondary-bg)' }}
+                style={{ width: '100%', justifyContent: 'space-between' }}
               >
                 <span>Export all columns</span>
                 <span style={{ fontSize: 12, color: 'var(--text-placeholder)' }}>{itemCount} records</span>
-              </button>
-              <button
+              </SecondaryButton>
+              <SecondaryButton
                 onClick={() => {
                   if (onExport) onExport('filtered')
                   setExportModalOpen(false)
                 }}
-                className="flex items-center justify-between"
-                style={{
-                  width: '100%',
-                  padding: '8px 18px',
-                  fontSize: 14,
-                  fontWeight: 500,
-                  lineHeight: '1.1',
-                  fontFamily: 'var(--font-primary)',
-                  background: 'var(--btn-secondary-bg)',
-                  border: '1px solid var(--btn-secondary-border)',
-                  borderRadius: 'var(--radius-lg)',
-                  color: 'var(--btn-secondary-text)',
-                  boxShadow: 'var(--shadow-sm)',
-                  cursor: 'pointer',
-                  transition: 'background 0.15s ease',
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
-                onMouseLeave={(e) => e.currentTarget.style.background = 'var(--btn-secondary-bg)'}
-                onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; e.currentTarget.style.background = 'var(--deep-sea-neutral-200)' }}
-                onMouseUp={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.background = 'var(--btn-secondary-bg)' }}
+                style={{ width: '100%', justifyContent: 'space-between' }}
               >
                 <span>Export visible columns</span>
                 <span style={{ fontSize: 12, color: 'var(--text-placeholder)' }}>{itemCount} records</span>
-              </button>
+              </SecondaryButton>
             </div>
           </div>
         </div>

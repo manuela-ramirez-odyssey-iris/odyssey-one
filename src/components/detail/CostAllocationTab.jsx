@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Lock, X } from 'lucide-react'
+import { SecondaryButton } from '../ui/Button'
 
 const BADGE_COLORS = ['amber', 'blue', 'green', 'red', 'purple']
 
@@ -176,30 +177,9 @@ const CostAllocationTab = React.memo(function CostAllocationTab({ data, selected
               <SummaryCell label="AR TOTAL" value={planned.summary.arTotal} total />
               <SummaryCell label="MARGIN" value={planned.summary.margin} success />
               <div style={{ display: 'flex', alignItems: 'center', padding: '0 16px', marginLeft: 'auto' }}>
-                <button
-                  onClick={() => setCompareOpen(true)}
-                  style={{
-                    padding: '8px 18px',
-                    fontSize: 14,
-                    fontWeight: 500,
-                    lineHeight: '1.1',
-                    fontFamily: 'var(--font-primary)',
-                    background: 'var(--btn-secondary-bg)',
-                    border: '1px solid var(--btn-secondary-border)',
-                    borderRadius: 'var(--radius-lg)',
-                    color: 'var(--btn-secondary-text)',
-                    boxShadow: 'var(--shadow-sm)',
-                    cursor: 'pointer',
-                    transition: 'background 0.15s ease',
-                    whiteSpace: 'nowrap',
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
-                  onMouseLeave={(e) => e.currentTarget.style.background = 'var(--btn-secondary-bg)'}
-                  onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; e.currentTarget.style.background = 'var(--deep-sea-neutral-200)' }}
-                  onMouseUp={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.background = 'var(--btn-secondary-bg)' }}
-                >
+                <SecondaryButton onClick={() => setCompareOpen(true)}>
                   Compare AP/AR
-                </button>
+                </SecondaryButton>
               </div>
             </div>
           )}

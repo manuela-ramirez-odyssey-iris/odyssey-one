@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react'
 import { Upload, Trash2, X, RefreshCw, Download, FileText, Sheet, File } from 'lucide-react'
+import { PrimaryButton, SecondaryButton } from '../ui/Button'
 
 const TYPE_STYLES = {
   BoL:            { bg: 'var(--badge-blue-bg)', color: 'var(--badge-blue-text)' },
@@ -34,24 +35,6 @@ const tdStyle = {
   fontWeight: 400,
   color: 'var(--text-secondary)',
   borderBottom: '1px solid var(--bg-tertiary)',
-}
-
-const actionBtnStyle = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 6,
-  padding: '8px 18px',
-  fontSize: 14,
-  fontWeight: 500,
-  lineHeight: '1.1',
-  fontFamily: 'var(--font-primary)',
-  background: 'var(--btn-secondary-bg)',
-  border: '1px solid var(--btn-secondary-border)',
-  borderRadius: 'var(--radius-lg)',
-  color: 'var(--btn-secondary-text)',
-  boxShadow: 'var(--shadow-sm)',
-  cursor: 'pointer',
-  transition: 'background 0.15s ease',
 }
 
 const deleteBtnStyle = {
@@ -153,27 +136,14 @@ const DocumentsTab = React.memo(function DocumentsTab({ data }) {
           borderBottom: '1px solid var(--border-subtle)',
         }}
       >
-        <button
-          onClick={() => setShowModal(true)}
-          style={actionBtnStyle}
-          onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
-          onMouseLeave={(e) => e.currentTarget.style.background = 'var(--btn-secondary-bg)'}
-          onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; e.currentTarget.style.background = 'var(--deep-sea-neutral-200)' }}
-          onMouseUp={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.background = 'var(--btn-secondary-bg)' }}
-        >
+        <SecondaryButton onClick={() => setShowModal(true)}>
           <Upload size={16} />
           <span>Upload Attachment</span>
-        </button>
-        <button
-          style={actionBtnStyle}
-          onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
-          onMouseLeave={(e) => e.currentTarget.style.background = 'var(--btn-secondary-bg)'}
-          onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; e.currentTarget.style.background = 'var(--deep-sea-neutral-200)' }}
-          onMouseUp={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.background = 'var(--btn-secondary-bg)' }}
-        >
+        </SecondaryButton>
+        <SecondaryButton>
           <RefreshCw size={16} />
           <span>Refresh</span>
-        </button>
+        </SecondaryButton>
       </div>
 
       {/* Table */}
@@ -331,55 +301,13 @@ const DocumentsTab = React.memo(function DocumentsTab({ data }) {
 
               {/* Footer */}
               <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
-                <button
-                  onClick={() => setPreviewDoc(null)}
-                  style={{
-                    padding: '8px 18px',
-                    fontSize: 14,
-                    fontWeight: 500,
-                    lineHeight: '1.1',
-                    fontFamily: 'var(--font-primary)',
-                    background: 'var(--btn-secondary-bg)',
-                    border: '1px solid var(--btn-secondary-border)',
-                    borderRadius: 'var(--radius-lg)',
-                    color: 'var(--btn-secondary-text)',
-                    boxShadow: 'var(--shadow-sm)',
-                    cursor: 'pointer',
-                    transition: 'background 0.15s ease',
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
-                  onMouseLeave={(e) => e.currentTarget.style.background = 'var(--btn-secondary-bg)'}
-                  onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; e.currentTarget.style.background = 'var(--deep-sea-neutral-200)' }}
-                  onMouseUp={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.background = 'var(--btn-secondary-bg)' }}
-                >
+                <SecondaryButton onClick={() => setPreviewDoc(null)}>
                   Close
-                </button>
-                <button
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    padding: '8px 18px',
-                    fontSize: 14,
-                    fontWeight: 500,
-                    lineHeight: '1.1',
-                    fontFamily: 'var(--font-primary)',
-                    background: 'var(--btn-primary-bg)',
-                    border: '1px solid var(--btn-primary-bg)',
-                    borderRadius: 'var(--radius-lg)',
-                    color: 'var(--btn-primary-text)',
-                    boxShadow: 'var(--shadow-sm)',
-                    cursor: 'pointer',
-                    transition: 'background 0.15s ease, border-color 0.15s ease',
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--btn-primary-hover)'; e.currentTarget.style.borderColor = 'var(--btn-primary-hover)' }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--btn-primary-bg)'; e.currentTarget.style.borderColor = 'var(--btn-primary-bg)' }}
-                  onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.98)'}
-                  onMouseUp={(e) => e.currentTarget.style.transform = 'none'}
-                >
+                </SecondaryButton>
+                <PrimaryButton>
                   <Download size={14} />
                   Download
-                </button>
+                </PrimaryButton>
               </div>
             </div>
           </div>
@@ -483,54 +411,12 @@ const DocumentsTab = React.memo(function DocumentsTab({ data }) {
 
             {/* Footer */}
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
-              <button
-                onClick={handleCloseModal}
-                style={{
-                  padding: '8px 18px',
-                  fontSize: 14,
-                  fontWeight: 500,
-                  lineHeight: '1.1',
-                  fontFamily: 'var(--font-primary)',
-                  background: 'var(--btn-secondary-bg)',
-                  border: '1px solid var(--btn-secondary-border)',
-                  borderRadius: 'var(--radius-lg)',
-                  color: 'var(--btn-secondary-text)',
-                  boxShadow: 'var(--shadow-sm)',
-                  cursor: 'pointer',
-                  transition: 'background 0.15s ease',
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
-                onMouseLeave={(e) => e.currentTarget.style.background = 'var(--btn-secondary-bg)'}
-                onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; e.currentTarget.style.background = 'var(--deep-sea-neutral-200)' }}
-                onMouseUp={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.background = 'var(--btn-secondary-bg)' }}
-              >
+              <SecondaryButton onClick={handleCloseModal}>
                 Cancel
-              </button>
-              <button
-                onClick={handleUpload}
-                disabled={!formFile}
-                style={{
-                  padding: '8px 18px',
-                  fontSize: 14,
-                  fontWeight: 500,
-                  lineHeight: '1.1',
-                  fontFamily: 'var(--font-primary)',
-                  background: 'var(--btn-primary-bg)',
-                  border: '1px solid var(--btn-primary-bg)',
-                  borderRadius: 'var(--radius-lg)',
-                  color: 'var(--btn-primary-text)',
-                  boxShadow: 'var(--shadow-sm)',
-                  cursor: formFile ? 'pointer' : 'not-allowed',
-                  transition: 'background 0.15s ease, border-color 0.15s ease',
-                  opacity: formFile ? 1 : 0.5,
-                }}
-                onMouseEnter={(e) => { if (formFile) { e.currentTarget.style.background = 'var(--btn-primary-hover)'; e.currentTarget.style.borderColor = 'var(--btn-primary-hover)' } }}
-                onMouseLeave={(e) => { if (formFile) { e.currentTarget.style.background = 'var(--btn-primary-bg)'; e.currentTarget.style.borderColor = 'var(--btn-primary-bg)' } }}
-                onMouseDown={(e) => { if (formFile) e.currentTarget.style.transform = 'scale(0.98)' }}
-                onMouseUp={(e) => { if (formFile) e.currentTarget.style.transform = 'none' }}
-              >
+              </SecondaryButton>
+              <PrimaryButton onClick={handleUpload} disabled={!formFile}>
                 Upload
-              </button>
+              </PrimaryButton>
             </div>
           </div>
         </div>

@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useMemo } from 'react'
 import { X, Copy, Check, Info, ChevronDown } from 'lucide-react'
+import { PrimaryButton, SecondaryButton } from '../ui/Button'
 
 const SAVED_QUERIES = [
   { name: 'Review Shipments -- West Coast', query: 'mode:LTL shipment-status:Review destination:CA delivery:<2026-01-15' },
@@ -347,52 +348,12 @@ export default function FilterPanel({ isOpen, onClose, itemCount, onApplyFilters
           className="flex items-center justify-between shrink-0"
           style={{ padding: '12px 16px', borderTop: '1px solid var(--border-subtle)' }}
         >
-          <button
-            onClick={handleClear}
-            style={{
-              padding: '8px 18px',
-              fontSize: 14,
-              fontWeight: 500,
-              lineHeight: '1.1',
-              fontFamily: 'var(--font-primary)',
-              background: 'var(--btn-secondary-bg)',
-              border: '1px solid var(--btn-secondary-border)',
-              borderRadius: 'var(--radius-lg)',
-              color: 'var(--btn-secondary-text)',
-              boxShadow: 'var(--shadow-sm)',
-              cursor: 'pointer',
-              transition: 'background 0.15s ease',
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
-            onMouseLeave={(e) => e.currentTarget.style.background = 'var(--btn-secondary-bg)'}
-            onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; e.currentTarget.style.background = 'var(--deep-sea-neutral-200)' }}
-            onMouseUp={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.background = 'var(--btn-secondary-bg)' }}
-          >
+          <SecondaryButton onClick={handleClear}>
             Clear all
-          </button>
-          <button
-            onClick={handleApply}
-            style={{
-              padding: '8px 18px',
-              fontSize: 14,
-              fontWeight: 500,
-              lineHeight: '1.1',
-              fontFamily: 'var(--font-primary)',
-              background: 'var(--btn-primary-bg)',
-              border: '1px solid var(--btn-primary-bg)',
-              borderRadius: 'var(--radius-lg)',
-              color: 'var(--btn-primary-text)',
-              boxShadow: 'var(--shadow-sm)',
-              cursor: 'pointer',
-              transition: 'background 0.15s ease, border-color 0.15s ease',
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--btn-primary-hover)'; e.currentTarget.style.borderColor = 'var(--btn-primary-hover)' }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--btn-primary-bg)'; e.currentTarget.style.borderColor = 'var(--btn-primary-bg)' }}
-            onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.98)'}
-            onMouseUp={(e) => e.currentTarget.style.transform = 'none'}
-          >
+          </SecondaryButton>
+          <PrimaryButton onClick={handleApply}>
             Show {itemCount} results
-          </button>
+          </PrimaryButton>
         </div>
       )}
     </div>
