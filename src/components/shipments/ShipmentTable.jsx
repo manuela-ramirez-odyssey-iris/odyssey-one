@@ -364,8 +364,10 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
           const bottomBar = document.querySelector('[data-bottombar]')
           const cutoff = bottomBar ? bottomBar.getBoundingClientRect().top : window.innerHeight * 0.5
           const main = listEl.closest('main')
-          if (main && rowScreenY + ROW_HEIGHT > cutoff - 20) {
-            main.scrollBy({ top: rowScreenY - cutoff + ROW_HEIGHT + 130, behavior: 'smooth' })
+          // Always scroll if the row is in the lower third of visible area
+          const threshold = cutoff - 150
+          if (main && rowScreenY > threshold) {
+            main.scrollBy({ top: rowScreenY - threshold + ROW_HEIGHT, behavior: 'smooth' })
           }
         }, 600)
       }
