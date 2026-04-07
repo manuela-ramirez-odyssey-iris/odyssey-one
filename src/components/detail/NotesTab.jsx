@@ -105,25 +105,47 @@ function NoteItem({ note, onEdit, onDelete }) {
           <div className="flex items-center gap-2 justify-end">
             <button
               onClick={handleCancel}
-              className="text-xs font-medium border-none cursor-pointer"
               style={{
-                padding: '6px 14px',
-                borderRadius: 'var(--radius-md)',
-                background: 'var(--bg-secondary)',
-                color: 'var(--text-secondary)',
+                padding: '8px 18px',
+                fontSize: 16,
+                fontWeight: 500,
+                lineHeight: '24px',
+                fontFamily: 'var(--font-primary)',
+                background: 'var(--btn-secondary-bg)',
+                border: '1px solid var(--btn-secondary-border)',
+                borderRadius: 'var(--radius-lg)',
+                color: 'var(--btn-secondary-text)',
+                boxShadow: 'var(--shadow-sm)',
+                cursor: 'pointer',
+                transition: 'background 0.15s ease',
               }}
+              onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'var(--btn-secondary-bg)'}
+              onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; e.currentTarget.style.background = 'var(--deep-sea-neutral-200)' }}
+              onMouseUp={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.background = 'var(--btn-secondary-bg)' }}
             >
               Cancel
             </button>
             <button
               onClick={handleSave}
-              className="text-xs font-medium border-none cursor-pointer"
               style={{
-                padding: '6px 14px',
-                borderRadius: 'var(--radius-md)',
+                padding: '8px 18px',
+                fontSize: 16,
+                fontWeight: 500,
+                lineHeight: '24px',
+                fontFamily: 'var(--font-primary)',
                 background: 'var(--btn-primary-bg)',
+                border: '1px solid var(--btn-primary-bg)',
+                borderRadius: 'var(--radius-lg)',
                 color: 'var(--btn-primary-text)',
+                boxShadow: 'var(--shadow-sm)',
+                cursor: 'pointer',
+                transition: 'background 0.15s ease, border-color 0.15s ease',
               }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--btn-primary-hover)'; e.currentTarget.style.borderColor = 'var(--btn-primary-hover)' }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--btn-primary-bg)'; e.currentTarget.style.borderColor = 'var(--btn-primary-bg)' }}
+              onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.98)'}
+              onMouseUp={(e) => e.currentTarget.style.transform = 'none'}
             >
               Save
             </button>
@@ -210,15 +232,27 @@ const NotesTab = React.memo(function NotesTab({ data }) {
         />
         <button
           onClick={handleAdd}
-          className="text-xs font-medium border-none cursor-pointer shrink-0"
+          className="shrink-0"
           style={{
-            padding: 'var(--spacing-2) var(--spacing-4)',
-            borderRadius: 'var(--radius-md)',
+            padding: '8px 18px',
+            fontSize: 16,
+            fontWeight: 500,
+            lineHeight: '24px',
+            fontFamily: 'var(--font-primary)',
             background: 'var(--btn-primary-bg)',
+            border: '1px solid var(--btn-primary-bg)',
+            borderRadius: 'var(--radius-lg)',
             color: 'var(--btn-primary-text)',
+            boxShadow: 'var(--shadow-sm)',
+            cursor: newText.trim() ? 'pointer' : 'not-allowed',
+            transition: 'background 0.15s ease, border-color 0.15s ease',
             opacity: newText.trim() ? 1 : 0.5,
           }}
           disabled={!newText.trim()}
+          onMouseEnter={(e) => { if (newText.trim()) { e.currentTarget.style.background = 'var(--btn-primary-hover)'; e.currentTarget.style.borderColor = 'var(--btn-primary-hover)' } }}
+          onMouseLeave={(e) => { if (newText.trim()) { e.currentTarget.style.background = 'var(--btn-primary-bg)'; e.currentTarget.style.borderColor = 'var(--btn-primary-bg)' } }}
+          onMouseDown={(e) => { if (newText.trim()) e.currentTarget.style.transform = 'scale(0.98)' }}
+          onMouseUp={(e) => { if (newText.trim()) e.currentTarget.style.transform = 'none' }}
         >
           Add Note
         </button>

@@ -182,19 +182,26 @@ const TableControls = React.memo(function TableControls({
           </button>
           <DarkTooltip text="Only the first 10,000 records will be exported to Excel" width={220}>
             <button
-              className="flex items-center gap-1.5 text-sm font-medium"
+              className="flex items-center gap-1.5"
               style={{
+                padding: '8px 18px',
+                fontSize: 16,
+                fontWeight: 500,
+                lineHeight: '24px',
+                fontFamily: 'var(--font-primary)',
                 background: 'var(--btn-secondary-bg)',
                 border: '1px solid var(--btn-secondary-border)',
                 borderRadius: 'var(--radius-lg)',
-                padding: '6px 12px',
-                cursor: 'pointer',
                 color: 'var(--btn-secondary-text)',
-                transition: 'color 0.15s ease, background 0.15s ease',
+                boxShadow: 'var(--shadow-sm)',
+                cursor: 'pointer',
+                transition: 'background 0.15s ease',
               }}
               onClick={() => setExportModalOpen(true)}
-              onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.background = 'var(--bg-tertiary)' }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--btn-secondary-text)'; e.currentTarget.style.background = 'var(--btn-secondary-bg)' }}
+              onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'var(--btn-secondary-bg)'}
+              onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; e.currentTarget.style.background = 'var(--deep-sea-neutral-200)' }}
+              onMouseUp={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.background = 'var(--btn-secondary-bg)' }}
             >
               <Upload size={16} />
               <span>Export</span>
@@ -264,20 +271,26 @@ const TableControls = React.memo(function TableControls({
                   if (onExport) onExport('all')
                   setExportModalOpen(false)
                 }}
-                className="flex items-center justify-between text-sm font-medium"
+                className="flex items-center justify-between"
                 style={{
                   width: '100%',
-                  padding: '12px 16px',
-                  background: 'var(--bg-primary)',
-                  border: '1px solid var(--border-default)',
-                  borderRadius: 'var(--radius-md)',
-                  cursor: 'pointer',
-                  color: 'var(--text-primary)',
+                  padding: '8px 18px',
+                  fontSize: 16,
+                  fontWeight: 500,
+                  lineHeight: '24px',
                   fontFamily: 'var(--font-primary)',
-                  transition: 'background 0.15s ease, border-color 0.15s ease',
+                  background: 'var(--btn-secondary-bg)',
+                  border: '1px solid var(--btn-secondary-border)',
+                  borderRadius: 'var(--radius-lg)',
+                  color: 'var(--btn-secondary-text)',
+                  boxShadow: 'var(--shadow-sm)',
+                  cursor: 'pointer',
+                  transition: 'background 0.15s ease',
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-secondary)'; e.currentTarget.style.borderColor = 'var(--border-strong, var(--deep-sea-neutral-900))' }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--bg-primary)'; e.currentTarget.style.borderColor = 'var(--border-default)' }}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'var(--btn-secondary-bg)'}
+                onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; e.currentTarget.style.background = 'var(--deep-sea-neutral-200)' }}
+                onMouseUp={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.background = 'var(--btn-secondary-bg)' }}
               >
                 <span>Export all columns</span>
                 <span style={{ fontSize: 12, color: 'var(--text-placeholder)' }}>{itemCount} records</span>
@@ -287,20 +300,26 @@ const TableControls = React.memo(function TableControls({
                   if (onExport) onExport('filtered')
                   setExportModalOpen(false)
                 }}
-                className="flex items-center justify-between text-sm font-medium"
+                className="flex items-center justify-between"
                 style={{
                   width: '100%',
-                  padding: '12px 16px',
-                  background: 'var(--bg-primary)',
-                  border: '1px solid var(--border-default)',
-                  borderRadius: 'var(--radius-md)',
-                  cursor: 'pointer',
-                  color: 'var(--text-primary)',
+                  padding: '8px 18px',
+                  fontSize: 16,
+                  fontWeight: 500,
+                  lineHeight: '24px',
                   fontFamily: 'var(--font-primary)',
-                  transition: 'background 0.15s ease, border-color 0.15s ease',
+                  background: 'var(--btn-secondary-bg)',
+                  border: '1px solid var(--btn-secondary-border)',
+                  borderRadius: 'var(--radius-lg)',
+                  color: 'var(--btn-secondary-text)',
+                  boxShadow: 'var(--shadow-sm)',
+                  cursor: 'pointer',
+                  transition: 'background 0.15s ease',
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-secondary)'; e.currentTarget.style.borderColor = 'var(--border-strong, var(--deep-sea-neutral-900))' }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--bg-primary)'; e.currentTarget.style.borderColor = 'var(--border-default)' }}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'var(--btn-secondary-bg)'}
+                onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; e.currentTarget.style.background = 'var(--deep-sea-neutral-200)' }}
+                onMouseUp={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.background = 'var(--btn-secondary-bg)' }}
               >
                 <span>Export visible columns</span>
                 <span style={{ fontSize: 12, color: 'var(--text-placeholder)' }}>{itemCount} records</span>

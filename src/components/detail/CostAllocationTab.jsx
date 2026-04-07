@@ -178,21 +178,25 @@ const CostAllocationTab = React.memo(function CostAllocationTab({ data, selected
               <div style={{ display: 'flex', alignItems: 'center', padding: '0 16px', marginLeft: 'auto' }}>
                 <button
                   onClick={() => setCompareOpen(true)}
-                  className="border-none cursor-pointer"
                   style={{
-                    padding: '6px 16px',
-                    fontSize: 13,
+                    padding: '8px 18px',
+                    fontSize: 16,
                     fontWeight: 500,
+                    lineHeight: '24px',
                     fontFamily: 'var(--font-primary)',
-                    background: 'transparent',
-                    border: '1px solid var(--border-default)',
-                    borderRadius: 'var(--radius-md)',
-                    color: 'var(--text-secondary)',
+                    background: 'var(--btn-secondary-bg)',
+                    border: '1px solid var(--btn-secondary-border)',
+                    borderRadius: 'var(--radius-lg)',
+                    color: 'var(--btn-secondary-text)',
+                    boxShadow: 'var(--shadow-sm)',
+                    cursor: 'pointer',
                     transition: 'background 0.15s ease',
                     whiteSpace: 'nowrap',
                   }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-tertiary)' }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = 'var(--btn-secondary-bg)'}
+                  onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; e.currentTarget.style.background = 'var(--deep-sea-neutral-200)' }}
+                  onMouseUp={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.background = 'var(--btn-secondary-bg)' }}
                 >
                   Compare AP/AR
                 </button>

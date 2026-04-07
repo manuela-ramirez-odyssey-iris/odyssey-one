@@ -271,20 +271,26 @@ function TenderSummary({ shipment, shipmentDetails, onOpenDetail }) {
         <div style={{ display: 'flex', alignItems: 'flex-start' }}>
           <button
             onClick={onOpenDetail}
-            className="flex items-center text-sm font-medium"
+            className="flex items-center"
             style={{
-              padding: '6px 12px',
+              padding: '8px 18px',
+              fontSize: 16,
+              fontWeight: 500,
+              lineHeight: '24px',
               fontFamily: 'var(--font-primary)',
               background: 'var(--btn-secondary-bg)',
               border: '1px solid var(--btn-secondary-border)',
               borderRadius: 'var(--radius-lg)',
               color: 'var(--btn-secondary-text)',
+              boxShadow: 'var(--shadow-sm)',
               cursor: 'pointer',
               whiteSpace: 'nowrap',
-              transition: 'color 0.15s ease, background 0.15s ease',
+              transition: 'background 0.15s ease',
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.background = 'var(--bg-tertiary)' }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--btn-secondary-text)'; e.currentTarget.style.background = 'var(--btn-secondary-bg)' }}
+            onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'var(--btn-secondary-bg)'}
+            onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; e.currentTarget.style.background = 'var(--deep-sea-neutral-200)' }}
+            onMouseUp={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.background = 'var(--btn-secondary-bg)' }}
           >
             View Full Details
           </button>
@@ -449,37 +455,49 @@ function TenderDetailModal({ isOpen, onClose, shipment, shipmentDetails }) {
         }}>
           <button
             onClick={() => console.log('[Tender] Routing Query (QCP) clicked')}
-            className="flex items-center text-sm font-medium"
+            className="flex items-center"
             style={{
-              padding: '6px 12px',
+              padding: '8px 18px',
+              fontSize: 16,
+              fontWeight: 500,
+              lineHeight: '24px',
               fontFamily: 'var(--font-primary)',
               background: 'var(--btn-secondary-bg)',
               border: '1px solid var(--btn-secondary-border)',
               borderRadius: 'var(--radius-lg)',
               color: 'var(--btn-secondary-text)',
+              boxShadow: 'var(--shadow-sm)',
               cursor: 'pointer',
-              transition: 'color 0.15s ease, background 0.15s ease',
+              transition: 'background 0.15s ease',
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.background = 'var(--bg-tertiary)' }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--btn-secondary-text)'; e.currentTarget.style.background = 'var(--btn-secondary-bg)' }}
+            onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'var(--btn-secondary-bg)'}
+            onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; e.currentTarget.style.background = 'var(--deep-sea-neutral-200)' }}
+            onMouseUp={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.background = 'var(--btn-secondary-bg)' }}
           >
             Routing Query (QCP)
           </button>
           <button
             onClick={() => console.log('[Tender] View Stops clicked')}
-            className="flex items-center text-sm font-medium"
+            className="flex items-center"
             style={{
-              padding: '6px 12px',
+              padding: '8px 18px',
+              fontSize: 16,
+              fontWeight: 500,
+              lineHeight: '24px',
               fontFamily: 'var(--font-primary)',
               background: 'var(--btn-secondary-bg)',
               border: '1px solid var(--btn-secondary-border)',
               borderRadius: 'var(--radius-lg)',
               color: 'var(--btn-secondary-text)',
+              boxShadow: 'var(--shadow-sm)',
               cursor: 'pointer',
-              transition: 'color 0.15s ease, background 0.15s ease',
+              transition: 'background 0.15s ease',
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.background = 'var(--bg-tertiary)' }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--btn-secondary-text)'; e.currentTarget.style.background = 'var(--btn-secondary-bg)' }}
+            onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'var(--btn-secondary-bg)'}
+            onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; e.currentTarget.style.background = 'var(--deep-sea-neutral-200)' }}
+            onMouseUp={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.background = 'var(--btn-secondary-bg)' }}
           >
             View Stops
           </button>
@@ -893,16 +911,23 @@ function QuoteModal({ mode, carrierData, onSave, onClose }) {
             <button
               onClick={onClose}
               style={{
-                padding: '8px 16px',
-                fontSize: 13,
-                fontWeight: 600,
+                padding: '8px 18px',
+                fontSize: 16,
+                fontWeight: 500,
+                lineHeight: '24px',
                 fontFamily: 'var(--font-primary)',
                 background: 'var(--btn-secondary-bg)',
                 border: '1px solid var(--btn-secondary-border)',
                 borderRadius: 'var(--radius-lg)',
                 color: 'var(--btn-secondary-text)',
+                boxShadow: 'var(--shadow-sm)',
                 cursor: 'pointer',
+                transition: 'background 0.15s ease',
               }}
+              onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'var(--btn-secondary-bg)'}
+              onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; e.currentTarget.style.background = 'var(--deep-sea-neutral-200)' }}
+              onMouseUp={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.background = 'var(--btn-secondary-bg)' }}
             >
               {isView ? 'Close' : 'Cancel'}
             </button>
@@ -911,16 +936,23 @@ function QuoteModal({ mode, carrierData, onSave, onClose }) {
                 onClick={handleSave}
                 disabled={!scac || !baseRate}
                 style={{
-                  padding: '8px 16px',
-                  fontSize: 13,
-                  fontWeight: 600,
+                  padding: '8px 18px',
+                  fontSize: 16,
+                  fontWeight: 500,
+                  lineHeight: '24px',
                   fontFamily: 'var(--font-primary)',
-                  background: (!scac || !baseRate) ? 'var(--bg-tertiary)' : 'var(--btn-primary-bg, #2563eb)',
-                  border: '1px solid transparent',
+                  background: (!scac || !baseRate) ? 'var(--bg-tertiary)' : 'var(--btn-primary-bg)',
+                  border: '1px solid ' + ((!scac || !baseRate) ? 'var(--bg-tertiary)' : 'var(--btn-primary-bg)'),
                   borderRadius: 'var(--radius-lg)',
-                  color: (!scac || !baseRate) ? 'var(--text-placeholder)' : '#fff',
+                  color: (!scac || !baseRate) ? 'var(--text-placeholder)' : 'var(--btn-primary-text)',
+                  boxShadow: 'var(--shadow-sm)',
                   cursor: (!scac || !baseRate) ? 'not-allowed' : 'pointer',
+                  transition: 'background 0.15s ease, border-color 0.15s ease',
                 }}
+                onMouseEnter={(e) => { if (scac && baseRate) { e.currentTarget.style.background = 'var(--btn-primary-hover)'; e.currentTarget.style.borderColor = 'var(--btn-primary-hover)' } }}
+                onMouseLeave={(e) => { if (scac && baseRate) { e.currentTarget.style.background = 'var(--btn-primary-bg)'; e.currentTarget.style.borderColor = 'var(--btn-primary-bg)' } }}
+                onMouseDown={(e) => { if (scac && baseRate) e.currentTarget.style.transform = 'scale(0.98)' }}
+                onMouseUp={(e) => { if (scac && baseRate) e.currentTarget.style.transform = 'none' }}
               >
                 Save Quote
               </button>
@@ -1567,22 +1599,28 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
           <RoutingSubTabs activeSubTab={activeSubTab} onTabChange={setActiveSubTab} />
         </div>
         <button
-          className="flex items-center text-sm font-medium"
+          className="flex items-center"
           style={{
-            padding: '6px 12px',
+            padding: '8px 18px',
+            fontSize: 16,
+            fontWeight: 500,
+            lineHeight: '24px',
             fontFamily: 'var(--font-primary)',
             background: 'var(--btn-secondary-bg)',
             border: '1px solid var(--btn-secondary-border)',
             borderRadius: 'var(--radius-lg)',
             color: 'var(--btn-secondary-text)',
+            boxShadow: 'var(--shadow-sm)',
             cursor: 'pointer',
             whiteSpace: 'nowrap',
-            transition: 'color 0.15s ease, background 0.15s ease',
+            transition: 'background 0.15s ease',
             marginLeft: 16,
             marginBottom: 4,
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.background = 'var(--bg-tertiary)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--btn-secondary-text)'; e.currentTarget.style.background = 'var(--btn-secondary-bg)' }}
+          onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
+          onMouseLeave={(e) => e.currentTarget.style.background = 'var(--btn-secondary-bg)'}
+          onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; e.currentTarget.style.background = 'var(--deep-sea-neutral-200)' }}
+          onMouseUp={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.background = 'var(--btn-secondary-bg)' }}
           onClick={() => setQuoteModal({ isOpen: true, mode: 'add', carrierData: null })}
         >
           Add Quote

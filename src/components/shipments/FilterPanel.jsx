@@ -349,25 +349,47 @@ export default function FilterPanel({ isOpen, onClose, itemCount, onApplyFilters
         >
           <button
             onClick={handleClear}
-            className="text-xs font-medium border-none cursor-pointer"
             style={{
-              padding: '6px 14px',
-              borderRadius: 'var(--radius-md)',
-              background: 'var(--bg-secondary)',
-              color: 'var(--text-secondary)',
+              padding: '8px 18px',
+              fontSize: 16,
+              fontWeight: 500,
+              lineHeight: '24px',
+              fontFamily: 'var(--font-primary)',
+              background: 'var(--btn-secondary-bg)',
+              border: '1px solid var(--btn-secondary-border)',
+              borderRadius: 'var(--radius-lg)',
+              color: 'var(--btn-secondary-text)',
+              boxShadow: 'var(--shadow-sm)',
+              cursor: 'pointer',
+              transition: 'background 0.15s ease',
             }}
+            onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'var(--btn-secondary-bg)'}
+            onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.98)'; e.currentTarget.style.background = 'var(--deep-sea-neutral-200)' }}
+            onMouseUp={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.background = 'var(--btn-secondary-bg)' }}
           >
             Clear all
           </button>
           <button
             onClick={handleApply}
-            className="text-xs font-medium border-none cursor-pointer"
             style={{
-              padding: '6px 14px',
-              borderRadius: 'var(--radius-md)',
+              padding: '8px 18px',
+              fontSize: 16,
+              fontWeight: 500,
+              lineHeight: '24px',
+              fontFamily: 'var(--font-primary)',
               background: 'var(--btn-primary-bg)',
+              border: '1px solid var(--btn-primary-bg)',
+              borderRadius: 'var(--radius-lg)',
               color: 'var(--btn-primary-text)',
+              boxShadow: 'var(--shadow-sm)',
+              cursor: 'pointer',
+              transition: 'background 0.15s ease, border-color 0.15s ease',
             }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--btn-primary-hover)'; e.currentTarget.style.borderColor = 'var(--btn-primary-hover)' }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--btn-primary-bg)'; e.currentTarget.style.borderColor = 'var(--btn-primary-bg)' }}
+            onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.98)'}
+            onMouseUp={(e) => e.currentTarget.style.transform = 'none'}
           >
             Show {itemCount} results
           </button>
