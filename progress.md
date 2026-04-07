@@ -506,78 +506,94 @@ Extracted and cross-referenced both PowerPoint decks (`Shipments-Monitoring.pptx
 
 ---
 
-## Current State (as of April 7, 2026)
+## Current State (as of April 7, 2026 — End of Session 8)
+
+### Performance Architecture
+- **1200 shipments**, seed 42, fully reproducible
+- **Virtualized table** — `react-window` `List`, only ~20 rows in DOM regardless of data size
+- **Per-shipment detail files** — 1200 individual JSON files in `public/details/` (~30KB each), fetched on demand via `fetch()` with LRU cache (50 entries)
+- **Pre-built filter indexes** — `Map.groupBy` for O(1) panel/category lookups
+- **React.memo** on 13 components to prevent cascade re-renders
+- **Two-panel table layout** — scrollable data columns (left) + fixed actions column (right) with synced vertical scroll
+- `shipments.json` (1.0MB) statically imported; old 21MB monolith eliminated
 
 ### Data Generator
-- **700 shipments**, seed 42, fully reproducible
 - 5 modes: TL (40%), LTL (40%), AIR (10%), IMD (5%), RR (5% — restricted to BASF customer)
 - 4 tender statuses (Sent, Accepted, Declined, Cancelled)
-- 2 shipment statuses: Done (monitoring), Review (exceptions)
-- **Panel assignment derived from tender outcome** — not random:
-  - Accepted/Sent → Monitoring (~70%)
-  - All Declined/Cancelled → Exceptions (~30%)
+- 2 shipment statuses: Done (green badge, monitoring), Review (red badge, exceptions)
+- **Panel assignment derived from tender outcome** — Accepted/Sent → Monitoring (~70%), Declined/Cancelled → Exceptions (~30%)
 - Monitoring categories: approved, sent, consolidation, hold, spotbid (weighted)
 - Exception categories: date-issues, routing-review, tender-issues, tender-review, bid-review (weighted)
-- **Validation messages** per exception shipment (category-specific messages)
-- **Rate details** per carrier option (baseRate, markup, additionalCharges, apTotal, arTotal)
-- 55 fields per carrier option, VC sums validated
-- Sequential tender logic, weight-based cost distribution, per-order unique data
+- Validation messages per exception shipment, rate details per carrier option
+- 55 fields per carrier option, VC sums validated, sequential tender logic, weight-based cost distribution
 
 ### UI — Shipments Table
-- **15-column config-driven preset**: Buy Shipment, Customer ID(s), Shipment Status, Order #, Order Count, Pickup Date, Delivery Date, Origin, Destination, Gross Weight, Mode, Equipment, SCAC, AP Freight Cost, Validation Message
-- Shipment status badge: Done (green), Review (darker gray) with **tender status tooltip** on hover
-- **Column Arrangement Panel** (SHP-18): two-level panel with presets (Default, Logistics View, Financial View, Carrier View) → drag-to-reorder + checkbox toggle, real-time table updates
-- **Filter Panel**: rebuilt with grouped dropdown filters (Location, Status, Carrier, Date Range), all wired to data
-- Three-dot menu: Edit, Tender by Preferred Carrier (removed Buy Shipment)
-- Monitor panels: instant opacity fade on selection (50% unselected), real badge counts from data
+- **15-column config-driven preset** with fixed pixel widths per column
+- **Shipment status badge**: Done (green) / Review (red) with Info icon inside badge + tender status tooltip on hover
+- **Zap icon** for actions — fills with `--text-primary` when dropdown open, entire row highlights with `--deep-sea-neutral-200`
+- **Auto-scroll** — selected row scrolls above bottom bar using actual bottom bar position (600ms delay for animation), works in all panel states
+- **Metrics auto-collapse** on table scroll (fires once, resets when scrolled back to top), manual-only expand
+- **Selected row** background: `--deep-sea-neutral-200` (#E4E6EB)
+- **Column Arrangement Panel** (SHP-18): two-level panel with 4 presets → drag-to-reorder + checkbox toggle
+
+### UI — Search & Filtering
+- **Search bar**: no spellcheck/autocorrect, 2px focus border (`--deep-sea-neutral-600`), blurs on X clear
+- **Smart chip search**: chips appear on search, selected chip background `--deep-sea-neutral-300` with `--deep-sea-neutral-800` text
+- **SHP-33 column promotion**: selecting a chip temporarily moves that column to position 2 (after Buy Shipment) with `--deep-sea-neutral-700` header, auto-width based on label length. Reverts on clear.
+- **Relevance sort**: starts-with first → word boundary → contains anywhere
+- **Funnel filter icon**: inline after last chip with left divider, filled with `--text-primary` when panel open, only clickable when chip selected
+- **Bookmark icon**: always clickable, filled when Saved tab open, independent from funnel state
+- **Item counter**: darkens to `--text-primary` + bold when search active or filter panel open
+- **Chips hidden** when search returns 0 results
+- **Filter panel**: redesigned header (18px bold title, pill tabs with counts), stays open on "Show results", closes on X or click outside main area
+- **Saved query chip**: appears after input text in search bar
+
+### UI — Button Design System
+- **`PrimaryButton`** component (`src/components/ui/Button.jsx`): dark bg (`--btn-primary-bg`), hover to `--btn-primary-hover` (#384253), scale(0.98) + inset shadow on click
+- **`SecondaryButton`** component: white bg, outlined, hover to `--bg-secondary`, click to `--deep-sea-neutral-200`
+- Both: 14px font, 1.1 line-height, 8px 18px padding, `--radius-lg`, `--shadow-sm`, disabled state (0.5 opacity)
+- **21 buttons** across 6 files replaced with these components
+- **`--btn-primary-hover`** token added to design tokens
+- **Filter panel footer**: equal-width buttons via flex:1
 
 ### UI — Tender Tab (SHP-21 complete)
-- **TenderSummary**: compact 3-column card (IDs/mode/weight | pickup | delivery) + View Full Details button
-- **TenderDetailModal**: 4-column grid (Shipment, Order, Initial Pickup, Final Delivery), X close button, QCP + View Stops footer, hazardous as field with config, instructions as count
-- **3-part routing table layout**: fixed left table (locked columns) | collapse toggle | scrollable right table (tab columns + actions)
-- **Proportional column collapse**: measures actual table widths, scales collapsible columns to fit right table without scroll or gap. Collapse button with hover effect.
-- **5 sub-tabs**: Routing Options, Notify & Response, Volume Commitment, Additional Info, Others — all with full generated data
-- **Contextual 3-dot menu** per carrier: tender actions (Tender/Accept/Decline/Cancel/Re-Tender) based on status + Edit Quote + Show Rate Details
-- **Quote Modal** (SHP-29): Add Quote / Edit Quote / Show Rate Details — same modal, three modes. SCAC dropdown, carrier auto-populate, rate/markup/additional charges, live AP/AR totals
+- **TenderSummary**: compact 3-column card + View Full Details button
+- **TenderDetailModal**: 4-column grid, QCP + View Stops footer
+- **3-part routing table**: fixed left | collapse toggle | scrollable right (proportional algorithm)
+- **5 sub-tabs**: Routing Options, Notify & Response, Volume Commitment, Additional Info, Others
+- **Contextual menu** per carrier: tender actions based on status + Edit Quote + Show Rate Details
+- **Quote Modal** (SHP-29): Add/Edit/View modes, SCAC dropdown, live AP/AR totals
 - **Cascade tendering**: Decline/Cancel auto-tenders next null carrier
-- **Status-matched row highlighting**: row background uses badge color
-- **Truck icon** colored by status in actions column
 
 ### UI — Layout
 - **Navbar**: embedded SVG Odyssey ONE logo, ⌘K shortcut badge, Figma-matched colors
-- **Sidebar**: truck icon active for shipments, 100vh - navbar height, no logo at bottom
+- **Sidebar**: truck icon active for shipments, 100vh - navbar height
+- **Monitor panels**: collapse toggle dividers match tab border color (`--border-subtle`), spacing on panels container margin-bottom (0 when collapsed)
+- **Export tooltip**: right-aligned to prevent clipping, right-justified text
 - **Loading spinner** for lazy-loaded tab content
+- **Click outside** closes filter/column panels
 
 ### Documentation
-- Domain analysis fully updated with Apr 1 + Apr 6 corrections
+- Domain analysis fully updated through Session 7
 - Decision log with 27+ traced decisions
-- Visual backlog HTML updated with all Session 7 stories
-- **10 specs** written: SHP-23 through SHP-32
-- Full data audit: 26/26 checks pass
-
-### Audit Results (700 shipments)
-- Panel distribution: 485 monitoring, 215 exceptions ✅
-- Exceptions routing: no Accepted/Sent/null ✅
-- Monitoring routing: all have Accepted or Sent ✅
-- Status alignment: correct per panel ✅
-- Categories: all shipments have categories ✅
-- Validation messages: 215/215 exceptions, 0 monitoring ✅
-- Rate details: present on all carrier options ✅
-- Equipment field: correct (SHP-23 fix) ✅
-- VC sums: all pass ✅
+- Performance optimization spec + plan: `docs/superpowers/specs/2026-04-07-performance-optimization-design.md`
+- **12 specs** written: SHP-21 through SHP-33
 
 ---
 
 ## What's Next
 
-### Remaining Backlog
+### Stories Ready for Spec (SHP-19 decomposed)
 
-| Priority | ID | Task | Size | Status |
-|---|---|---|---|---|
-| — | SHP-18 | Column Arrangement panel | L | **Done** |
-| — | SHP-19 | Search & filtering expansion | L | Needs spec |
-| — | SHP-9.3 | Stops tab compact layout | M | Halted |
-| — | SHP-11 | Multi-customer shipments | M | Halted |
+| ID | Task | Size | Notes |
+|---|---|---|---|
+| SHP-39 | Filter attributes expansion | L | Add ~40 attributes from CSV, split into normal + extended panel. **Start here** — foundation for profiles and styling. |
+| SHP-40 | Saved search profiles (CRUD) | M | Create, save, manage, apply — similar pattern to column arrangement presets |
+| SHP-41 | Filter panel UI styling | M | Update dropdowns, calendars, inputs to match login.html design system |
+| SHP-42 | Saved query behavior fix | S | Filters layer on top of search text, not replace it |
+
+### Open Questions
+- **Ask Jana:** When is "Sent" tender status shown to users? (Blocks SHP-39 filter options)
 
 ### Session 7 Stories — All Complete
 
@@ -596,7 +612,7 @@ Extracted and cross-referenced both PowerPoint decks (`Shipments-Monitoring.pptx
 | SHP-32 | TL/LTL modes (then restored all 5) | **Done** |
 | SHP-18 | Column arrangement panel | **Done** |
 
-### Session 8 Stories — April 7, 2026
+### Session 8 Stories — April 7, 2026 (73 commits)
 
 | ID | Task | Status |
 |---|---|---|
@@ -606,20 +622,17 @@ Extracted and cross-referenced both PowerPoint decks (`Shipments-Monitoring.pptx
 | SHP-36 | Filter panel redesign (header, pill tabs, click-outside close, stay open on apply) | **Done** |
 | SHP-37 | Search bar UX (no spellcheck, blur on clear, relevance sort, chip-driven column) | **Done** |
 | SHP-38 | Shipments table UX (Zap icon, row highlight on menu, auto-scroll, metrics auto-collapse) | **Done** |
-| SHP-39 | Filter attributes expansion — add ~40 missing attributes, normal vs extended panel | Needs spec |
-| SHP-40 | Saved search profiles — create, save, manage, apply (CRUD) | Needs spec |
-| SHP-41 | Filter panel UI styling — dropdowns, calendars, inputs to match design system | Needs spec |
-| SHP-42 | Saved query behavior — filters on top of search text, not replaces it | Needs spec |
 
-### Open Questions
-- **Ask Jana:** When is "Sent" tender status shown to users? (Blocks SHP-39 filter options)
+### Remaining Backlog
 
-### Pending Items
-- SHP-9.3: Stops tab compact layout (halted)
-- SHP-11: Multi-customer shipments (halted)
-- PGI/PGR implementation (placeholder only)
-- Edit screen for by-shipment editing (deferred, not designed)
-- Column arrangement for tender routing table (cog icon placed, not wired)
+| ID | Task | Size | Status |
+|---|---|---|---|
+| SHP-9.3 | Stops tab compact layout | M | Halted |
+| SHP-11 | Multi-customer shipments | M | Halted |
+| — | PGI/PGR implementation | L | Placeholder only |
+| — | Edit screen (by-shipment editing) | L | Deferred, not designed |
+| — | Column arrangement for tender routing table | S | Cog placed, not wired |
+| — | Web interface guidelines audit items | M | Focus states, aria-labels, prefers-reduced-motion |
 
 ---
 
