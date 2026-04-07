@@ -65,7 +65,10 @@ export default function SearchChipPanel({ query, activeChipKey, onChipSelect, on
             color: filtersOpen ? 'var(--text-primary)' : 'var(--text-tertiary)',
             transition: 'opacity var(--transition-fast), color var(--transition-fast)',
             padding: 4,
+            borderRadius: 'var(--radius-sm)',
           }}
+          onMouseEnter={(e) => { if (filterEnabled && !filtersOpen) e.currentTarget.style.color = 'var(--text-secondary)' }}
+          onMouseLeave={(e) => { if (!filtersOpen) e.currentTarget.style.color = 'var(--text-tertiary)' }}
           title={filterEnabled ? 'Open filters' : 'Select a chip to enable filters'}
         >
           <Filter size={18} fill={filtersOpen ? 'var(--text-primary)' : 'none'} />
