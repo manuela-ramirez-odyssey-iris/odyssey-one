@@ -403,44 +403,28 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
     <div ref={containerRef} className="flex-1 min-h-0 overflow-hidden flex flex-col text-sm"
       style={{ borderRadius: 'var(--radius-lg)', paddingBottom: 'var(--bottombar-collapsed)', minHeight: 560, color: 'var(--text-secondary)', fontFamily: 'var(--font-primary)' }}>
 
-      {/* Header row: scrollable data headers + fixed actions header */}
-      <div style={{ display: 'flex', flexShrink: 0 }}>
-        {/* Scrollable header (synced with data list horizontal scroll) */}
-        <div ref={headerRef} style={{ flex: 1, minWidth: 0, overflowX: 'hidden' }}>
-          <div className="flex" style={{ minWidth: 'max-content' }}>
-            <div style={{ width: 48, flexShrink: 0, padding: '0 var(--spacing-4)', height: 'var(--bottombar-collapsed)', background: 'var(--bg-primary)', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} />
-            {orderedColumns.map(col => (
-              <div key={col.key} className="text-left whitespace-nowrap"
-                style={{ width: col.width || 120, minWidth: col.width || 120, flexShrink: 0, padding: '0 var(--spacing-4)', height: 'var(--bottombar-collapsed)', background: 'var(--bg-primary)', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-placeholder)', fontWeight: 600, fontSize: 'var(--font-size-sm)', display: 'flex', alignItems: 'center' }}>
-                {col.label}
-              </div>
-            ))}
+      {/* Two-panel layout: scrollable data (left) + fixed actions (right) */}
+      <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
+        {/* Left: scrollable data columns */}
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          {/* Data header */}
+          <div ref={headerRef} style={{ flexShrink: 0, overflowX: 'hidden' }}>
+            <div className="flex" style={{ minWidth: 'max-content' }}>
+              <div style={{ width: 48, flexShrink: 0, padding: '0 var(--spacing-4)', height: 'var(--bottombar-collapsed)', background: 'var(--bg-primary)', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} />
+              {orderedColumns.map(col => (
+                <div key={col.key} className="text-left whitespace-nowrap"
+                  style={{ width: col.width || 120, minWidth: col.width || 120, flexShrink: 0, padding: '0 var(--spacing-4)', height: 'var(--bottombar-collapsed)', background: 'var(--bg-primary)', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-placeholder)', fontWeight: 600, fontSize: 'var(--font-size-sm)', display: 'flex', alignItems: 'center' }}>
+                  {col.label}
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-        {/* Fixed actions header */}
-        <div style={{ width: 56, flexShrink: 0, height: 'var(--bottombar-collapsed)', background: 'var(--bg-primary)', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '-2px 0 4px rgba(0,0,0,0.06)' }}>
-          <button
-            className="flex items-center justify-center mx-auto bg-transparent border-none cursor-pointer p-1 rounded"
-            style={{ color: 'var(--text-placeholder)' }}
-            onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
-            onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-placeholder)'}
-            onClick={() => { if (onToggleColumnPanel) onToggleColumnPanel() }}
-            title="Column arrangement"
-          >
-            <Columns3Cog size={18} />
-          </button>
-        </div>
-      </div>
-
-      {/* Body: scrollable data list + fixed actions list */}
-      {shipments.length === 0 ? (
-        <div className="flex items-center justify-center" style={{ padding: '48px 0', color: 'var(--text-placeholder)', fontSize: 'var(--font-size-sm)' }}>
-          No shipments found
-        </div>
-      ) : (
-        <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-          {/* Main data list — scrolls both horizontally and vertically */}
-          <div style={{ flex: 1, minWidth: 0 }}>
+          {/* Data list */}
+          {shipments.length === 0 ? (
+            <div className="flex items-center justify-center" style={{ padding: '48px 0', color: 'var(--text-placeholder)', fontSize: 'var(--font-size-sm)' }}>
+              No shipments found
+            </div>
+          ) : (
             <List
               listRef={listRef}
               style={{ height: listHeight, width: '100%', overflowX: 'auto' }}
@@ -450,9 +434,26 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
               rowComponent={VirtualRow}
               rowProps={rowProps}
             />
+          )}
+        </div>
+
+        {/* Right: fixed actions column — single div with shadow spanning full height */}
+        <div style={{ width: 56, flexShrink: 0, boxShadow: '-2px 0 4px rgba(0,0,0,0.06)', background: 'var(--bg-primary)', display: 'flex', flexDirection: 'column' }}>
+          {/* Actions header */}
+          <div style={{ height: 'var(--bottombar-collapsed)', flexShrink: 0, borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <button
+              className="flex items-center justify-center mx-auto bg-transparent border-none cursor-pointer p-1 rounded"
+              style={{ color: 'var(--text-placeholder)' }}
+              onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
+              onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-placeholder)'}
+              onClick={() => { if (onToggleColumnPanel) onToggleColumnPanel() }}
+              title="Column arrangement"
+            >
+              <Columns3Cog size={18} />
+            </button>
           </div>
-          {/* Fixed actions column — only vertical scroll, synced from data list */}
-          <div style={{ width: 56, flexShrink: 0, boxShadow: '-2px 0 4px rgba(0,0,0,0.06)', background: 'var(--bg-primary)' }}>
+          {/* Actions list — vertical scroll synced from data list */}
+          {shipments.length > 0 && (
             <List
               listRef={actionsListRef}
               style={{ height: listHeight, width: 56, overflow: 'hidden' }}
@@ -462,9 +463,9 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
               rowComponent={VirtualActionRow}
               rowProps={actionRowProps}
             />
-          </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   )
 }
