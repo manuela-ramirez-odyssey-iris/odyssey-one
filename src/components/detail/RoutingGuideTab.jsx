@@ -116,6 +116,8 @@ const thStyle = {
   letterSpacing: '0.03em',
   background: 'var(--bg-secondary)',
   borderBottom: '1px solid var(--border-subtle)',
+  height: 48,
+  verticalAlign: 'middle',
   position: 'sticky',
   top: 0,
   zIndex: 2,
@@ -1038,6 +1040,21 @@ function ActionDropdown({ status, position, onAction, onClose }) {
 
 function RoutingTable({ options, columns, tabColumns, highlightedRank, openMenuRank, onOpenMenu, onCloseMenu, onAction, onToggleColumnPanel, isCollapsed, columnsCollapsed, onCollapse, onExpand }) {
   const [hoveredRank, setHoveredRank] = useState(null)
+  const [showToggle, setShowToggle] = useState(false)
+  const rightTableRef = useRef(null)
+
+  useEffect(() => {
+    const el = rightTableRef.current
+    if (!el) return
+    const check = () => {
+      const hiddenRatio = el.scrollWidth > 0 ? 1 - (el.clientWidth / el.scrollWidth) : 0
+      setShowToggle(hiddenRatio >= 0.4)
+    }
+    check()
+    const observer = new ResizeObserver(check)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [tabColumns])
 
   if (!options || options.length === 0) {
     return (
@@ -1069,7 +1086,8 @@ function RoutingTable({ options, columns, tabColumns, highlightedRank, openMenuR
 
   return (
     <div style={{ display: 'flex', border: '1px solid var(--border-subtle)', borderRadius: '0 0 var(--radius-md) var(--radius-md)', marginBottom: 24 }}>
-      {/* ── LEFT TABLE: locked columns ── */}
+      {/* ── LEFT TABLE + TOGGLE: fixed container with shadow ── */}
+      <div style={{ flexShrink: 0, display: 'flex', boxShadow: '2px 0 4px rgba(0,0,0,0.06)', zIndex: 1 }}>
       <div style={{ flexShrink: 0 }}>
         <table style={tableStyle}>
           <thead>
@@ -1085,8 +1103,10 @@ function RoutingTable({ options, columns, tabColumns, highlightedRank, openMenuR
                   )
                 }
 
+                const wrapWhenCollapsed = columnsCollapsed && !col.narrow ? { whiteSpace: 'normal', lineHeight: 1.3 } : {}
+                const statusNarrow = columnsCollapsed && col.key === 'status' ? { width: 78, maxWidth: 78 } : {}
                 return (
-                  <th key={col.key} style={{ ...thStyle, ...(col.narrow ? { width: 64, whiteSpace: 'normal', lineHeight: 1.3, textAlign: 'center' } : {}) }}>
+                  <th key={col.key} style={{ ...thStyle, ...(col.narrow ? { width: 64, whiteSpace: 'normal', lineHeight: 1.3, textAlign: 'center' } : {}), ...wrapWhenCollapsed, ...statusNarrow }}>
                     {col.label}
                   </th>
                 )
@@ -1122,6 +1142,7 @@ function RoutingTable({ options, columns, tabColumns, highlightedRank, openMenuR
                       ...(isHighlighted ? { fontWeight: 500 } : {}),
                       ...(isPrimary ? { fontWeight: 500, color: 'var(--text-primary)' } : {}),
                       ...(col.narrow ? { width: 64, textAlign: 'center' } : {}),
+                      ...(columnsCollapsed && col.key === 'status' ? { width: 78, maxWidth: 78 } : {}),
                     }
                     return (
                       <td key={col.key} style={cellStyle}>
@@ -1136,31 +1157,33 @@ function RoutingTable({ options, columns, tabColumns, highlightedRank, openMenuR
         </table>
       </div>
 
-      {/* ── CENTER TOGGLE ── */}
-      <div
-        onClick={() => columnsCollapsed ? onExpand() : onCollapse()}
-        title={columnsCollapsed ? 'Expand columns' : 'Collapse columns'}
-        style={{
-          width: 28,
-          minWidth: 28,
-          maxWidth: 28,
-          flexShrink: 0,
-          alignSelf: 'stretch',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: 'var(--bg-tertiary)',
-          borderLeft: '1px solid var(--border-subtle)',
-          borderRight: '1px solid var(--border-subtle)',
-          cursor: 'pointer',
-          color: 'var(--text-placeholder)',
-        }}
-      >
-        {columnsCollapsed ? <UnfoldHorizontal size={14} /> : <FoldHorizontal size={14} />}
+      {/* ── CENTER TOGGLE (only shows when right table is >40% hidden) ── */}
+      {(showToggle || columnsCollapsed) && (
+        <div
+          onClick={() => columnsCollapsed ? onExpand() : onCollapse()}
+          title={columnsCollapsed ? 'Expand columns' : 'Collapse columns'}
+          style={{
+            width: 28,
+            minWidth: 28,
+            maxWidth: 28,
+            flexShrink: 0,
+            alignSelf: 'stretch',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'var(--bg-primary)',
+            borderLeft: '1px solid var(--border-subtle)',
+            cursor: 'pointer',
+            color: 'var(--text-placeholder)',
+          }}
+        >
+          {columnsCollapsed ? <UnfoldHorizontal size={14} /> : <FoldHorizontal size={14} />}
+        </div>
+      )}
       </div>
 
       {/* ── RIGHT TABLE: tab-specific columns + actions ── */}
-      <div style={{ flex: 1, overflowX: 'auto' }}>
+      <div ref={rightTableRef} data-right-table style={{ flex: 1, overflowX: 'auto' }}>
         <table style={tableStyle}>
           <thead>
             <tr>
@@ -1291,7 +1314,7 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
   const [options, setOptions] = useState(data?.options || [])
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
   const [quoteModal, setQuoteModal] = useState({ isOpen: false, mode: 'add', carrierData: null })
-  const [columnsCollapsed, setColumnsCollapsed] = useState(false)
+  const [collapsedKeys, setCollapsedKeys] = useState(new Set())
   const tableRef = useRef(null)
 
   /* Reset all state when data changes (new shipment selected) */
@@ -1303,9 +1326,14 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
     setOptions(data?.options || [])
     setIsDetailModalOpen(false)
     setQuoteModal({ isOpen: false, mode: 'add', carrierData: null })
-    setColumnsCollapsed(false)
+    setCollapsedKeys(new Set())
 
   }, [data])
+
+  /* Reset collapse when switching sub-tabs */
+  useEffect(() => {
+    setCollapsedKeys(new Set())
+  }, [activeSubTab])
 
   /* Click-outside listener: clicks outside tableRef and not inside [data-tender-dropdown] */
   useEffect(() => {
@@ -1330,19 +1358,37 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
   }, [])
 
   const isCollapsed = useCallback((key) => {
-    if (!COLLAPSIBLE_KEYS.includes(key)) return false
-    return columnsCollapsed
-  }, [columnsCollapsed])
+    return collapsedKeys.has(key)
+  }, [collapsedKeys])
 
   const handleCollapse = useCallback(() => {
-    setColumnsCollapsed(true)
+    const rightEl = document.querySelector('[data-right-table]')
+    if (!rightEl) {
+      setCollapsedKeys(new Set(COLLAPSIBLE_KEYS))
+      return
+    }
 
+    const collapseOrder = ['deliveryDateTime', 'pickupDateTime', 'cost', 'equipment', 'carrierName', 'scac']
+    const newCollapsed = new Set()
+
+    const overflow = rightEl.scrollWidth - rightEl.clientWidth
+    if (overflow <= 0) return
+
+    let reclaimedSpace = 0
+    const avgSavingsPerCol = 100
+
+    for (const key of collapseOrder) {
+      newCollapsed.add(key)
+      reclaimedSpace += avgSavingsPerCol
+      if (reclaimedSpace >= overflow) break
+    }
+
+    setCollapsedKeys(newCollapsed)
   }, [])
 
 
   const handleExpand = useCallback(() => {
-    setColumnsCollapsed(false)
-
+    setCollapsedKeys(new Set())
   }, [])
 
   const handleQuoteSave = useCallback((formData) => {
@@ -1526,7 +1572,7 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
           onAction={handleAction}
           onToggleColumnPanel={onToggleColumnPanel}
           isCollapsed={isCollapsed}
-          columnsCollapsed={columnsCollapsed}
+          columnsCollapsed={collapsedKeys.size > 0}
           onCollapse={handleCollapse}
           onExpand={handleExpand}
         />
