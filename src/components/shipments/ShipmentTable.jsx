@@ -59,11 +59,12 @@ function OrdersTooltip({ orders, children }) {
 }
 
 export const COLUMN_CONFIG = [
-  { key: 'buyShipment', label: 'Buy Shipment' },
-  { key: 'customerId', label: 'Customer ID(s)' },
+  { key: 'buyShipment', label: 'Buy Shipment', width: 140 },
+  { key: 'customerId', label: 'Customer ID(s)', width: 130 },
   {
     key: 'shipmentStatus',
     label: 'Shipment Status',
+    width: 130,
     render: (s) => (
       <DarkTooltip text={s.tenderStatus ? `Tender Status: ${s.tenderStatus}` : null} width="auto">
         <span>{s.shipmentStatus ? (
@@ -75,6 +76,7 @@ export const COLUMN_CONFIG = [
   {
     key: 'orders',
     label: 'Order #',
+    width: 200,
     render: (s) => (
       <OrdersTooltip orders={s.orders}>
         <div style={{ display: 'flex', flexWrap: 'nowrap', gap: 6, overflow: 'hidden', maxWidth: 192 }}>
@@ -88,31 +90,34 @@ export const COLUMN_CONFIG = [
   {
     key: 'orderCount',
     label: 'Order Count',
+    width: 100,
     render: (s) => (
       <OrdersTooltip orders={s.orders}>
         <span>{s.orderCount}</span>
       </OrdersTooltip>
     ),
   },
-  { key: 'pickupDate', label: 'Pickup Date' },
-  { key: 'deliveryDate', label: 'Delivery Date' },
-  { key: 'origin', label: 'Origin' },
-  { key: 'destination', label: 'Destination' },
+  { key: 'pickupDate', label: 'Pickup Date', width: 160 },
+  { key: 'deliveryDate', label: 'Delivery Date', width: 160 },
+  { key: 'origin', label: 'Origin', width: 160 },
+  { key: 'destination', label: 'Destination', width: 160 },
   {
     key: 'grossWeight',
     label: 'Gross Weight',
+    width: 120,
     render: (s) => (
       <span style={{ fontVariantNumeric: 'tabular-nums' }}>
         {s.grossWeight ? `${Number(s.grossWeight).toLocaleString()} LB` : '--'}
       </span>
     ),
   },
-  { key: 'mode', label: 'Mode' },
-  { key: 'equipmentCode', label: 'Equipment' },
-  { key: 'scac', label: 'SCAC' },
+  { key: 'mode', label: 'Mode', width: 70 },
+  { key: 'equipmentCode', label: 'Equipment', width: 100 },
+  { key: 'scac', label: 'SCAC', width: 80 },
   {
     key: 'apFreightCost',
     label: 'AP Freight Cost',
+    width: 130,
     render: (s) => (
       <span style={{ fontVariantNumeric: 'tabular-nums' }}>
         {s.apFreightCost ? `$${Number(s.apFreightCost.replace(/,/g, '')).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '--'}
@@ -122,6 +127,7 @@ export const COLUMN_CONFIG = [
   {
     key: 'validationMessage',
     label: 'Message',
+    width: 200,
     render: (s) => s.validationMessage || '',
   },
 ]
@@ -236,8 +242,9 @@ const ShipmentRow = React.memo(function ShipmentRow({ shipment, isSelected, onSe
         const configCol = COLUMN_CONFIG_MAP[col.key]
         return (
           <div key={col.key} style={{
-            flex: '1 0 0',
-            minWidth: 100,
+            width: col.width || 120,
+            minWidth: col.width || 120,
+            flexShrink: 0,
             padding: '0 var(--spacing-4)',
             height: ROW_HEIGHT,
             borderBottom: '1px solid var(--bg-tertiary)',
@@ -359,7 +366,7 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
           <div style={{ width: 48, flexShrink: 0, padding: '0 var(--spacing-4)', height: 'var(--bottombar-collapsed)', background: 'var(--bg-primary)', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} />
           {orderedColumns.map(col => (
             <div key={col.key} className="text-left whitespace-nowrap"
-              style={{ flex: '1 0 0', minWidth: 100, padding: '0 var(--spacing-4)', height: 'var(--bottombar-collapsed)', background: 'var(--bg-primary)', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-placeholder)', fontWeight: 600, fontSize: 'var(--font-size-sm)', display: 'flex', alignItems: 'center' }}>
+              style={{ width: col.width || 120, minWidth: col.width || 120, flexShrink: 0, padding: '0 var(--spacing-4)', height: 'var(--bottombar-collapsed)', background: 'var(--bg-primary)', borderBottom: '1px solid var(--border-subtle)', color: 'var(--text-placeholder)', fontWeight: 600, fontSize: 'var(--font-size-sm)', display: 'flex', alignItems: 'center' }}>
               {col.label}
             </div>
           ))}
