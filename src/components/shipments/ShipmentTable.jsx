@@ -208,9 +208,10 @@ const COLUMN_CONFIG_MAP = Object.fromEntries(COLUMN_CONFIG.map(c => [c.key, c]))
 const ROW_HEIGHT = 56
 
 // Data row (radio + data columns only — no actions)
-const ShipmentRow = React.memo(function ShipmentRow({ shipment, isSelected, onSelect, orderedColumns }) {
+const ShipmentRow = React.memo(function ShipmentRow({ shipment, isSelected, isMenuOpen, onSelect, orderedColumns }) {
   const s = shipment
-  const rowBg = isSelected ? 'var(--deep-sea-neutral-200, #E4E6EB)' : 'var(--bg-primary)'
+  const highlighted = isSelected || isMenuOpen
+  const rowBg = highlighted ? 'var(--deep-sea-neutral-200, #E4E6EB)' : 'var(--bg-primary)'
 
   return (
     <div
@@ -218,10 +219,10 @@ const ShipmentRow = React.memo(function ShipmentRow({ shipment, isSelected, onSe
       style={{ background: rowBg, height: ROW_HEIGHT, minWidth: 'max-content' }}
       onClick={() => onSelect(s)}
       onMouseEnter={(e) => {
-        if (!isSelected) e.currentTarget.style.background = 'var(--bg-secondary)'
+        if (!highlighted) e.currentTarget.style.background = 'var(--bg-secondary)'
       }}
       onMouseLeave={(e) => {
-        if (!isSelected) e.currentTarget.style.background = 'var(--bg-primary)'
+        if (!highlighted) e.currentTarget.style.background = 'var(--bg-primary)'
       }}
     >
       {/* Radio */}
@@ -261,17 +262,19 @@ const ShipmentRow = React.memo(function ShipmentRow({ shipment, isSelected, onSe
   )
 }, (prevProps, nextProps) => {
   return prevProps.isSelected === nextProps.isSelected &&
+    prevProps.isMenuOpen === nextProps.isMenuOpen &&
     prevProps.shipment === nextProps.shipment &&
     prevProps.orderedColumns === nextProps.orderedColumns
 })
 
-const VirtualRow = React.memo(function VirtualRow({ index, style, shipments, selectedId, handleSelect, orderedColumns }) {
+const VirtualRow = React.memo(function VirtualRow({ index, style, shipments, selectedId, handleSelect, orderedColumns, menuOpenId }) {
   const s = shipments[index]
   return (
     <div style={style}>
       <ShipmentRow
         shipment={s}
         isSelected={selectedId === s.buyShipment}
+        isMenuOpen={menuOpenId === s.buyShipment}
         onSelect={handleSelect}
         orderedColumns={orderedColumns}
       />
@@ -280,10 +283,10 @@ const VirtualRow = React.memo(function VirtualRow({ index, style, shipments, sel
 })
 
 // Actions column row (fixed right panel)
-const ActionCell = React.memo(function ActionCell({ shipment, isSelected, onSelect }) {
-  const [menuOpen, setMenuOpen] = useState(false)
+const ActionCell = React.memo(function ActionCell({ shipment, isSelected, menuOpen, onMenuToggle }) {
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 })
-  const rowBg = isSelected ? 'var(--deep-sea-neutral-200, #E4E6EB)' : 'var(--bg-primary)'
+  const highlighted = isSelected || menuOpen
+  const rowBg = highlighted ? 'var(--deep-sea-neutral-200, #E4E6EB)' : 'var(--bg-primary)'
 
   return (
     <div
@@ -292,33 +295,35 @@ const ActionCell = React.memo(function ActionCell({ shipment, isSelected, onSele
         e.stopPropagation()
         const rect = e.currentTarget.getBoundingClientRect()
         setMenuPos({ top: rect.bottom + 4, left: rect.right })
-        setMenuOpen((prev) => !prev)
+        onMenuToggle(menuOpen ? null : shipment.buyShipment)
       }}
       onMouseEnter={(e) => {
-        if (!isSelected) e.currentTarget.style.background = 'var(--bg-secondary)'
+        if (!highlighted) e.currentTarget.style.background = 'var(--bg-secondary)'
       }}
       onMouseLeave={(e) => {
-        if (!isSelected) e.currentTarget.style.background = rowBg
+        if (!highlighted) e.currentTarget.style.background = rowBg
       }}
       style={{ width: 56, height: ROW_HEIGHT, borderBottom: '1px solid var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: rowBg }}
     >
       <Zap size={16} fill={menuOpen ? 'var(--text-primary)' : 'none'} style={{ color: menuOpen ? 'var(--text-primary)' : 'var(--text-placeholder)' }} />
-      {menuOpen && <ActionMenu shipmentId={shipment.buyShipment} position={menuPos} onClose={() => setMenuOpen(false)} />}
+      {menuOpen && <ActionMenu shipmentId={shipment.buyShipment} position={menuPos} onClose={() => onMenuToggle(null)} />}
     </div>
   )
 }, (prevProps, nextProps) => {
   return prevProps.isSelected === nextProps.isSelected &&
+    prevProps.menuOpen === nextProps.menuOpen &&
     prevProps.shipment === nextProps.shipment
 })
 
-const VirtualActionRow = React.memo(function VirtualActionRow({ index, style, shipments, selectedId, handleSelect }) {
+const VirtualActionRow = React.memo(function VirtualActionRow({ index, style, shipments, selectedId, setMenuOpenId, menuOpenId }) {
   const s = shipments[index]
   return (
     <div style={style}>
       <ActionCell
         shipment={s}
         isSelected={selectedId === s.buyShipment}
-        onSelect={handleSelect}
+        menuOpen={menuOpenId === s.buyShipment}
+        onMenuToggle={setMenuOpenId}
       />
     </div>
   )
@@ -330,6 +335,7 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
   const actionsListRef = useRef(null)
   const headerRef = useRef(null)
   const [listHeight, setListHeight] = useState(600)
+  const [menuOpenId, setMenuOpenId] = useState(null)
 
   const orderedColumns = useMemo(() => {
     if (!visibleColumns) return COLUMN_CONFIG
@@ -414,14 +420,17 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
     selectedId,
     handleSelect,
     orderedColumns,
-  }), [shipments, selectedId, handleSelect, orderedColumns])
+    menuOpenId,
+  }), [shipments, selectedId, handleSelect, orderedColumns, menuOpenId])
 
   // Shared data for action rows
   const actionRowProps = useMemo(() => ({
     shipments,
     selectedId,
     handleSelect,
-  }), [shipments, selectedId, handleSelect])
+    setMenuOpenId,
+    menuOpenId,
+  }), [shipments, selectedId, handleSelect, menuOpenId])
 
   return (
     <div ref={containerRef} className="flex-1 min-h-0 overflow-hidden flex flex-col text-sm"
@@ -462,7 +471,7 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
         </div>
 
         {/* Right: fixed actions column — single div with shadow spanning full height */}
-        <div onClick={(e) => e.stopPropagation()} style={{ width: 56, flexShrink: 0, boxShadow: '-2px 0 4px rgba(0,0,0,0.06)', background: 'var(--bg-primary)', display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 2 }}>
+        <div style={{ width: 56, flexShrink: 0, boxShadow: '-2px 0 4px rgba(0,0,0,0.06)', background: 'var(--bg-primary)', display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 2 }}>
           {/* Actions header */}
           <div style={{ height: 'var(--bottombar-collapsed)', flexShrink: 0, borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <button
