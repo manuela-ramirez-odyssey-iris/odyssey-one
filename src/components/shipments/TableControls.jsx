@@ -155,7 +155,7 @@ const TableControls = React.memo(function TableControls({
               borderLeft: '1px solid var(--border-subtle)',
               transition: 'color 0.15s ease',
             }}
-            onMouseEnter={(e) => { if (!bookmarkActive) e.currentTarget.style.color = 'var(--text-secondary)' }}
+            onMouseEnter={(e) => { if (!bookmarkActive) e.currentTarget.style.color = 'var(--text-primary)' }}
             onMouseLeave={(e) => { if (!bookmarkActive) e.currentTarget.style.color = 'var(--text-placeholder)' }}
             title="Saved searches"
           >
