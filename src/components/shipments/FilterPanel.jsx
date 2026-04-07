@@ -183,41 +183,64 @@ export default function FilterPanel({ isOpen, onClose, itemCount, onApplyFilters
     >
       {/* Header */}
       <div
-        className="flex items-center justify-between shrink-0"
-        style={{ padding: '14px 16px', borderBottom: '1px solid var(--border-subtle)' }}
+        className="flex flex-col shrink-0"
+        style={{ padding: '20px 16px 16px', borderBottom: '1px solid var(--border-subtle)' }}
       >
-        <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-          Filters
-        </span>
-        <button
-          onClick={onClose}
-          className="flex items-center justify-center bg-transparent border-none cursor-pointer"
-          style={{ color: 'var(--text-placeholder)' }}
-        >
-          <X size={16} />
-        </button>
-      </div>
+        <div className="flex items-center justify-between" style={{ marginBottom: 16 }}>
+          <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-primary)' }}>
+            Filters
+          </span>
+          <button
+            onClick={onClose}
+            className="flex items-center justify-center bg-transparent border-none cursor-pointer"
+            style={{ color: 'var(--text-placeholder)', padding: 4, borderRadius: 'var(--radius-sm)', transition: 'color 0.15s ease, background 0.15s ease' }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.background = 'var(--bg-tertiary)' }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-placeholder)'; e.currentTarget.style.background = 'transparent' }}
+          >
+            <X size={18} />
+          </button>
+        </div>
 
-      {/* Tabs */}
-      <div className="flex shrink-0" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-        {[{ key: 'all', label: 'All' }, { key: 'saved', label: 'Saved' }].map((tab) => {
-          const isActive = activeTab === tab.key
-          return (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className="flex-1 text-xs font-semibold border-none cursor-pointer"
-              style={{
-                padding: '10px 0',
-                background: 'transparent',
-                color: isActive ? 'var(--text-primary)' : 'var(--text-placeholder)',
-                borderBottom: `2px solid ${isActive ? 'var(--text-tertiary)' : 'transparent'}`,
-              }}
-            >
-              {tab.label}
-            </button>
-          )
-        })}
+        {/* Tabs as pill buttons */}
+        <div className="flex items-center" style={{ gap: 12 }}>
+          {[{ key: 'all', label: 'All', count: 8 }, { key: 'saved', label: 'Saved', count: SAVED_QUERIES.length }].map((tab) => {
+            const isActive = activeTab === tab.key
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className="flex items-center border-none cursor-pointer"
+                style={{
+                  gap: 6,
+                  padding: '6px 14px',
+                  borderRadius: 'var(--radius-pill)',
+                  background: isActive ? 'var(--bg-tertiary)' : 'transparent',
+                  color: isActive ? 'var(--text-primary)' : 'var(--text-placeholder)',
+                  fontFamily: 'var(--font-primary)',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  transition: 'background 0.15s ease, color 0.15s ease',
+                }}
+                onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = 'var(--bg-secondary)' }}
+                onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = isActive ? 'var(--bg-tertiary)' : 'transparent' }}
+              >
+                {tab.label}
+                <span style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: isActive ? 'var(--text-secondary)' : 'var(--text-placeholder)',
+                  background: isActive ? 'var(--border-subtle)' : 'var(--bg-tertiary)',
+                  borderRadius: 'var(--radius-full)',
+                  padding: '1px 7px',
+                  minWidth: 20,
+                  textAlign: 'center',
+                }}>
+                  {tab.count}
+                </span>
+              </button>
+            )
+          })}
+        </div>
       </div>
 
       {/* Body */}
