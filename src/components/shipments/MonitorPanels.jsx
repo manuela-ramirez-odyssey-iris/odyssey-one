@@ -65,13 +65,13 @@ export default function MonitorPanels({ activePanel, onPanelSelect, metrics, col
                 borderRadius: 12,
                 padding: 'var(--spacing-4)',
                 background: 'var(--panel-bg)',
-                border: `1px solid ${isSelected ? 'var(--deep-sea-neutral-400)' : 'var(--panel-border)'}`,
-                opacity: isSelected ? 1 : 0.7,
-                transition: 'opacity var(--transition-base), border-color var(--transition-base)',
+                border: '1px solid var(--border-subtle)',
+                opacity: isSelected ? 1 : 0.5,
+                transition: 'opacity 0.2s ease, border-color var(--transition-base)',
               }}
               onClick={() => onPanelSelect(panel.key)}
-              onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.opacity = '0.9' }}
-              onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.opacity = isSelected ? '1' : '0.7' }}
+              onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.opacity = '0.75' }}
+              onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.opacity = '0.5' }}
             >
               <div className="text-sm font-semibold mb-3" style={{ color: 'var(--panel-heading)' }}>
                 {panel.title}
