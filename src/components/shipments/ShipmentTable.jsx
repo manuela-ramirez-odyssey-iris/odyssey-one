@@ -352,28 +352,22 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
     if (selectedId && listRef.current) {
       const idx = shipments.findIndex(s => s.buyShipment === selectedId)
       if (idx >= 0) {
-        // First scroll within the virtual list
-        listRef.current?.scrollToRow({ index: idx, align: 'smart' })
-        // Then scroll <main> so the row is visible above the bottom bar (50vh)
-        // Use two passes: one immediate for already-collapsed panels, one delayed for expanding bottom bar
-        const scrollMainIfNeeded = () => {
+        // Scroll within the virtual list — use 'start' to place row at top of list
+        listRef.current?.scrollToRow({ index: Math.max(0, idx - 2), align: 'start' })
+        // After bottom bar finishes expanding, ensure row is above it in the page
+        setTimeout(() => {
           const listEl = listRef.current?.element
           if (!listEl) return
           const rowTop = idx * ROW_HEIGHT - listEl.scrollTop
           const listRect = listEl.getBoundingClientRect()
-          const rowAbsoluteTop = listRect.top + rowTop
-          // Find the actual bottom bar top edge
+          const rowScreenY = listRect.top + rowTop
           const bottomBar = document.querySelector('[data-bottombar]')
-          const visibleBottom = bottomBar ? bottomBar.getBoundingClientRect().top : window.innerHeight * 0.5
-          if (rowAbsoluteTop + ROW_HEIGHT > visibleBottom) {
-            const main = listEl.closest('main')
-            if (main) {
-              main.scrollBy({ top: rowAbsoluteTop - visibleBottom + ROW_HEIGHT + 160, behavior: 'smooth' })
-            }
+          const cutoff = bottomBar ? bottomBar.getBoundingClientRect().top : window.innerHeight * 0.5
+          const main = listEl.closest('main')
+          if (main && rowScreenY + ROW_HEIGHT > cutoff - 20) {
+            main.scrollBy({ top: rowScreenY - cutoff + ROW_HEIGHT + 100, behavior: 'smooth' })
           }
-        }
-        // Wait for bottom bar expand animation (300ms) + metrics collapse to settle
-        setTimeout(scrollMainIfNeeded, 600)
+        }, 600)
       }
     }
   }, [selectedId, shipments])
