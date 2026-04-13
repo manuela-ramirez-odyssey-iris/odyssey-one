@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react'
-import { TriangleAlert } from 'lucide-react'
+import { TriangleAlert, ChevronDown, ChevronRight } from 'lucide-react'
 
 const COLUMNS = [
   { key: 'lineNumber', label: 'Line #' },
@@ -86,29 +86,20 @@ const tdExpandStyle = {
   paddingRight: 4,
 }
 
-const expandBtnBase = {
+const expandBtnStyle = {
   display: 'inline-flex',
   alignItems: 'center',
   justifyContent: 'center',
-  width: 20,
-  height: 20,
-  border: 'none',
+  width: 22,
+  height: 22,
+  border: '1px solid var(--border-default)',
   borderRadius: 'var(--radius-sm)',
-  background: 'transparent',
-  fontFamily: 'var(--font-primary)',
-  fontSize: 12,
-  fontWeight: 500,
-  color: 'var(--text-placeholder)',
+  background: 'var(--bg-primary)',
+  color: 'var(--text-tertiary)',
   cursor: 'pointer',
-  transition: 'background var(--transition-fast), color var(--transition-fast)',
-  lineHeight: 1,
+  flexShrink: 0,
   padding: 0,
-}
-
-const expandBtnExpanded = {
-  ...expandBtnBase,
-  color: 'var(--text-secondary)',
-  background: 'var(--bg-tertiary)',
+  transition: 'background var(--transition-fast)',
 }
 
 const colPrimaryStyle = {
@@ -237,11 +228,11 @@ function OrderGroup({ order, isExpanded, onToggle }) {
       >
         <td style={tdExpandStyle}>
           <button
-            style={isExpanded ? expandBtnExpanded : expandBtnBase}
+            style={expandBtnStyle}
             onClick={(e) => { e.stopPropagation(); onToggle() }}
             aria-label={isExpanded ? 'Collapse' : 'Expand'}
           >
-            {isExpanded ? '\u2212' : '+'}
+            {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
           </button>
         </td>
         <td style={tdStyle}>{order.lineCount ?? order.lines.length} lines</td>
@@ -253,7 +244,7 @@ function OrderGroup({ order, isExpanded, onToggle }) {
         order.lines.map((line, idx) => (
           <tr
             key={`${order.orderId}-${idx}`}
-            style={{ background: 'var(--bg-secondary)' }}
+            style={{ background: 'var(--bg-secondary)', borderLeft: '3px solid var(--border-default)' }}
           >
             <td style={tdExpandStyle} />
             {COLUMNS.map((col) => (
