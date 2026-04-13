@@ -1053,23 +1053,21 @@ function RoutingTable({ options, columns, tabColumns, highlightedRank, openMenuR
             <tr>
               {LOCKED_COLUMNS.map((col) => {
                 const collapsed = isCollapsed(col.key)
-
-                if (collapsed) {
-                  const w = getCollapsedWidth(col.key)
-                  return (
-                    <th key={col.key} style={{ ...thStyle, width: w, maxWidth: w, overflow: 'hidden', padding: '10px 4px', transition: 'width var(--transition-slow), max-width var(--transition-slow)' }} title={col.label}>
-                      <span style={{ fontSize: 11, color: 'var(--text-placeholder)', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block', whiteSpace: 'nowrap' }}>
-                        {col.label}
-                      </span>
-                    </th>
-                  )
-                }
-
+                const w = collapsed ? getCollapsedWidth(col.key) : null
                 const wrapWhenCollapsed = columnsCollapsed && !col.narrow ? { whiteSpace: 'normal', lineHeight: 1.3 } : {}
                 const statusNarrow = columnsCollapsed && col.key === 'status' ? { width: 78, maxWidth: 78 } : {}
                 return (
-                  <th key={col.key} style={{ ...thStyle, ...(col.narrow ? { width: 64, whiteSpace: 'normal', lineHeight: 1.3, textAlign: 'center' } : {}), ...wrapWhenCollapsed, ...statusNarrow, transition: 'width var(--transition-slow), max-width var(--transition-slow)' }}>
-                    {col.label}
+                  <th key={col.key} style={{
+                    ...thStyle,
+                    ...(col.narrow ? { width: 64, whiteSpace: 'normal', lineHeight: 1.3, textAlign: 'center' } : {}),
+                    ...wrapWhenCollapsed,
+                    ...statusNarrow,
+                    ...(collapsed ? { width: w, maxWidth: w, overflow: 'hidden', padding: '10px 4px' } : {}),
+                    transition: 'width var(--transition-slow), max-width var(--transition-slow), padding var(--transition-slow)',
+                  }} title={col.label}>
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', display: 'block', whiteSpace: 'nowrap', ...(collapsed ? { fontSize: 11, color: 'var(--text-placeholder)' } : {}) }}>
+                      {col.label}
+                    </span>
                   </th>
                 )
               })}
@@ -1088,17 +1086,7 @@ function RoutingTable({ options, columns, tabColumns, highlightedRank, openMenuR
                   {LOCKED_COLUMNS.map((col) => {
                     const collapsed = isCollapsed(col.key)
                     const isPrimary = col.primary
-
-                    if (collapsed) {
-                      const w = getCollapsedWidth(col.key)
-                      const rawValue = col.key === 'status' ? option.status : (option[col.dataKey || col.key] ?? '')
-                      const display = (!rawValue && rawValue !== 0) ? '--' : String(rawValue)
-                      return (
-                        <td key={col.key} style={{ ...tdStyle, width: w, maxWidth: w, overflow: 'hidden', textOverflow: 'ellipsis', padding: '10px 4px', fontSize: 12, transition: 'width var(--transition-slow), max-width var(--transition-slow)' }}>
-                          {display}
-                        </td>
-                      )
-                    }
+                    const w = collapsed ? getCollapsedWidth(col.key) : null
 
                     const cellStyle = {
                       ...tdStyle,
@@ -1106,13 +1094,19 @@ function RoutingTable({ options, columns, tabColumns, highlightedRank, openMenuR
                       ...(isPrimary ? { fontWeight: 500, color: 'var(--text-primary)' } : {}),
                       ...(col.narrow ? { width: 64, textAlign: 'center' } : {}),
                       ...(columnsCollapsed && col.key === 'status' ? { width: 78, maxWidth: 78 } : {}),
-                      transition: 'width var(--transition-slow), max-width var(--transition-slow)',
+                      ...(collapsed ? { width: w, maxWidth: w, overflow: 'hidden', textOverflow: 'ellipsis', padding: '10px 4px', fontSize: 12 } : {}),
+                      transition: 'width var(--transition-slow), max-width var(--transition-slow), padding var(--transition-slow)',
                     }
+
+                    const content = col.key === 'status' ? <StatusBadge status={option.status} />
+                      : col.key === 'cost' ? <CostTooltip carrier={option} onViewDetails={() => onViewRateDetails(option)} />
+                      : getCellValue(option, col)
+
                     return (
                       <td key={col.key} style={cellStyle}>
-                        {col.key === 'status' ? <StatusBadge status={option.status} />
-                          : col.key === 'cost' ? <CostTooltip carrier={option} onViewDetails={() => onViewRateDetails(option)} />
-                          : getCellValue(option, col)}
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', display: 'block', whiteSpace: 'nowrap' }}>
+                          {content}
+                        </span>
                       </td>
                     )
                   })}
