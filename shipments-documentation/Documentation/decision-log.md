@@ -245,6 +245,12 @@ Every implemented decision with its previous state, source, and rationale. This 
 - **Decision:** Move to position ~12-13 (after operational columns)
 - **Source:** David, Apr 9 — "I would move order number to the far right. I don't think people care about that. That's just a number."
 
+### DEC-39: Merge Hazmat Class + Hazmat Group into Hazardous column (PENDING STAKEHOLDER APPROVAL)
+- **Previous:** Product tab has 3 separate columns: Hazardous, Hazmat Class, Hazmat Group
+- **Decision:** Merge Hazmat Class and Hazmat Group into the Hazardous column. Info shows on hover tooltip over the hazmat badge. Removes 2 columns from the product table.
+- **Source:** Manuela, Apr 13 — "we can actually merge these"
+- **Status:** PENDING — roll back if stakeholders don't approve. Original columns: `hazmatClass` (label: "Hazmat Class"), `hazmatGroup` (label: "Hazmat Group") in COLUMNS array of ProductTab.jsx
+
 ---
 
 ## Changelog
@@ -255,3 +261,4 @@ Every implemented decision with its previous state, source, and rationale. This 
 | Apr 1, 2026 | DEC-18 (panel pools), DEC-19 (filter vs column visibility), DEC-20 (context-aware menu) from Session 6 speccing |
 | Apr 1, 2026 | DEC-21 through DEC-27 — Major corrections from grooming with Jana: Monitoring = same screen as Exceptions, PPT slides were one split table, tender statuses reduced to 4, shipment status mapping, actions in both panels, shipment status column |
 | Apr 13, 2026 | DEC-28 through DEC-38 — David's written feedback review + Apr 9 grooming with Jana/David/Manuela: hazmat badges, column auto-fit/wrapping, cost visibility from tender tab, panel-aware presets, date-only display, "Tender Sent" rename, order tab overhaul, TenderSummary removal, Order # deprioritized |
+| Apr 13, 2026 | DEC-39 — Merge Hazmat Class/Group into Hazardous column with hover tooltip (PENDING stakeholder approval) |
