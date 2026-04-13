@@ -87,7 +87,7 @@ export const COLUMN_CONFIG = [
   {
     key: 'orders',
     label: 'Order #',
-    width: 200,
+    width: 130,
     render: (s) => (
       <OrdersTooltip orders={s.orders}>
         <div style={{ display: 'flex', flexWrap: 'nowrap', gap: 6, overflow: 'hidden', maxWidth: 192 }}>
