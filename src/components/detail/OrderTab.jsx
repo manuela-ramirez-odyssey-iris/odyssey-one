@@ -102,7 +102,6 @@ const OrderTab = React.memo(function OrderTab({ data }) {
     >
       {/* Row 1: General | Totals (promoted) | Ship From + Pickup Dates | Ship To + Delivery Dates */}
       <SectionCell title="General">
-        <Field label="Order Number" value={d.orderNumber} />
         <Field label="Ship Direction" value={d.shipDirection} />
         <Field label="Order Date" value={d.orderDate} />
         <Field label="Payment Terms" value={d.paymentTerms} />
