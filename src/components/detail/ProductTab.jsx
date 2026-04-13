@@ -85,6 +85,7 @@ const thExpandStyle = {
   paddingLeft: 8,
   paddingRight: 4,
   background: 'var(--bg-secondary)',
+  borderBottom: 'none',
 }
 
 const tdStyle = {
@@ -111,6 +112,7 @@ const thLineNumStyle = {
   boxShadow: '2px 0 4px rgba(0,0,0,0.06)',
   paddingLeft: 20,
   paddingRight: 20,
+  borderBottom: 'none',
 }
 
 const tdLineNumStyle = {
