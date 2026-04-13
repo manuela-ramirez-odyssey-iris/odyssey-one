@@ -566,8 +566,8 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
         {/* Left: scrollable data columns */}
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           {/* Data header */}
-          <div ref={headerRef} style={{ flexShrink: 0, overflowX: 'scroll', scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
-            className="hide-scrollbar"
+          <div ref={headerRef} style={{ flexShrink: 0, overflowX: 'auto' }}
+            className="top-scrollbar"
             onScroll={(e) => {
               const dataEl = listRef.current?.element
               if (dataEl && Math.abs(dataEl.scrollLeft - e.currentTarget.scrollLeft) > 1) {
@@ -606,6 +606,7 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
           ) : (
             <List
               listRef={listRef}
+              className="hide-scrollbar-x"
               style={{ height: listHeight, width: '100%', overflowX: 'auto' }}
               rowCount={shipments.length}
               rowHeight={ROW_HEIGHT}

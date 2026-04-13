@@ -32,8 +32,27 @@
   scrollbar-color: var(--deep-sea-neutral-300) transparent;
 }
 
-.hide-scrollbar::-webkit-scrollbar { display: none; }
-.hide-scrollbar { scrollbar-width: none; }
+/* Hide horizontal scrollbar on data list (primary scrollbar is on header) */
+.hide-scrollbar-x::-webkit-scrollbar:horizontal { display: none; }
+
+/* Top scrollbar — shows horizontal scrollbar below header instead of at page bottom */
+.top-scrollbar {
+  display: flex;
+  flex-direction: column-reverse;
+}
+.top-scrollbar::-webkit-scrollbar {
+  height: 6px;
+}
+.top-scrollbar::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+.top-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--deep-sea-neutral-300);
+  border-radius: 3px;
+}
+.top-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--deep-sea-neutral-400);
+}
 
 /* ----------------------------------------
    FOCUS-VISIBLE RING
