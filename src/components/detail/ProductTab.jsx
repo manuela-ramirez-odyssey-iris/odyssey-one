@@ -101,6 +101,7 @@ const tdExpandStyle = {
   textAlign: 'center',
   paddingLeft: 8,
   paddingRight: 4,
+  borderBottom: 'none',
 }
 
 const thLineNumStyle = {
@@ -117,6 +118,7 @@ const tdLineNumStyle = {
   ...stickyCol1,
   boxShadow: '2px 0 4px rgba(0,0,0,0.06)',
   paddingLeft: 20,
+  borderBottom: 'none',
   paddingRight: 20,
 }
 
