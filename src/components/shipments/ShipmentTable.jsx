@@ -108,14 +108,14 @@ export const COLUMN_CONFIG = [
       </OrdersTooltip>
     ),
   },
-  { key: 'pickupDate', label: 'Pickup Date', width: 120, render: (val) => (
-    <DarkTooltip text={val || null} width="auto">
-      <span>{formatDateOnly(val)}</span>
+  { key: 'pickupDate', label: 'Pickup Date', width: 120, render: (s) => (
+    <DarkTooltip text={s.pickupDate || null} width="auto">
+      <span>{formatDateOnly(s.pickupDate)}</span>
     </DarkTooltip>
   )},
-  { key: 'deliveryDate', label: 'Delivery Date', width: 120, render: (val) => (
-    <DarkTooltip text={val || null} width="auto">
-      <span>{formatDateOnly(val)}</span>
+  { key: 'deliveryDate', label: 'Delivery Date', width: 120, render: (s) => (
+    <DarkTooltip text={s.deliveryDate || null} width="auto">
+      <span>{formatDateOnly(s.deliveryDate)}</span>
     </DarkTooltip>
   )},
   { key: 'origin', label: 'Origin', width: 160 },
@@ -143,7 +143,8 @@ export const COLUMN_CONFIG = [
       </span>
     ),
   },
-  { key: 'hazardous', label: 'Hazardous', width: 100, render: (val) => {
+  { key: 'hazardous', label: 'Hazardous', width: 100, render: (s) => {
+    const val = s.hazardous
     if (val === true || val === 'Yes' || val === 'Y') {
       return (
         <span style={{
