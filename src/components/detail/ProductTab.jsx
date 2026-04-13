@@ -30,6 +30,8 @@ const COLUMNS = [
 const wrapperStyle = {
   overflow: 'auto',
   height: '100%',
+  border: '1px solid var(--border-subtle)',
+  borderRadius: 'var(--radius-md)',
 }
 
 const tableStyle = {
