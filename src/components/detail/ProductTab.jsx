@@ -72,7 +72,7 @@ const stickyCol0 = {
 
 const stickyCol1 = {
   position: 'sticky',
-  left: 36,
+  left: 34,
   zIndex: 2,
   background: 'inherit',
 }
