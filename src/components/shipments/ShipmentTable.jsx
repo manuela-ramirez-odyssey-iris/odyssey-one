@@ -566,7 +566,12 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
         {/* Left: scrollable data columns */}
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           {/* Data header */}
-          <div ref={headerRef} style={{ flexShrink: 0, overflowX: 'hidden' }}>
+          <div ref={headerRef} style={{ flexShrink: 0, overflowX: 'auto' }}
+            onScroll={(e) => {
+              const dataEl = listRef.current?.element
+              if (dataEl) dataEl.scrollLeft = e.currentTarget.scrollLeft
+            }}
+          >
             <div
               className="flex"
               style={{ minWidth: 'max-content' }}
