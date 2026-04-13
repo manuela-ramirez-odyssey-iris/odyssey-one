@@ -107,11 +107,17 @@ const thLineNumStyle = {
   ...thStyle,
   ...stickyCol1,
   background: 'var(--bg-secondary)',
+  boxShadow: '2px 0 4px rgba(0,0,0,0.06)',
+  paddingLeft: 20,
+  paddingRight: 20,
 }
 
 const tdLineNumStyle = {
   ...tdStyle,
   ...stickyCol1,
+  boxShadow: '2px 0 4px rgba(0,0,0,0.06)',
+  paddingLeft: 20,
+  paddingRight: 20,
 }
 
 const expandBtnStyle = {
@@ -273,9 +279,9 @@ function OrderGroup({ order, isExpanded, onToggle, isFirst }) {
         order.lines.map((line, idx) => (
           <tr
             key={`${order.orderId}-${idx}`}
-            style={{ background: 'var(--bg-secondary)', boxShadow: 'inset 3px 0 0 var(--border-default)' }}
+            style={{ background: 'var(--bg-secondary)' }}
           >
-            <td style={tdExpandStyle} />
+            <td style={{ ...tdExpandStyle, boxShadow: 'inset 3px 0 0 var(--border-default)' }} />
             {COLUMNS.map((col) => (
               <td key={col.key} style={col.key === 'lineNumber' ? tdLineNumStyle : tdStyle}>
                 {col.key === 'hazmat' ? (
