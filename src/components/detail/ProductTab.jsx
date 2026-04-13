@@ -52,7 +52,7 @@ const thStyle = {
   textAlign: 'left',
   fontSize: 12,
   fontWeight: 600,
-  color: 'var(--text-tertiary)',
+  color: 'var(--text-placeholder)',
   borderBottom: '1px solid var(--border-subtle)',
   whiteSpace: 'nowrap',
   textTransform: 'uppercase',
@@ -86,25 +86,25 @@ const expandBtnBase = {
   display: 'inline-flex',
   alignItems: 'center',
   justifyContent: 'center',
-  width: 22,
-  height: 22,
-  border: '1px solid var(--border-default)',
+  width: 20,
+  height: 20,
+  border: 'none',
   borderRadius: 'var(--radius-sm)',
-  background: 'var(--bg-primary)',
+  background: 'transparent',
   fontFamily: 'var(--font-primary)',
-  fontSize: 14,
-  fontWeight: 600,
-  color: 'var(--text-tertiary)',
+  fontSize: 12,
+  fontWeight: 500,
+  color: 'var(--text-placeholder)',
   cursor: 'pointer',
-  transition: 'background 0.15s ease, color 0.15s ease',
+  transition: 'background var(--transition-fast), color var(--transition-fast)',
   lineHeight: 1,
   padding: 0,
 }
 
 const expandBtnExpanded = {
   ...expandBtnBase,
+  color: 'var(--text-secondary)',
   background: 'var(--bg-tertiary)',
-  color: 'var(--text-primary)',
 }
 
 const colPrimaryStyle = {
@@ -173,13 +173,14 @@ const ProductTab = React.memo(function ProductTab({ data }) {
                   <td
                     colSpan={COLUMNS.length + 1}
                     style={{
-                      padding: orderIdx === 0 ? '8px 14px 6px' : '16px 14px 6px',
-                      fontSize: 12,
-                      fontWeight: 700,
-                      color: 'var(--text-primary)',
+                      padding: orderIdx === 0 ? '8px 14px 6px' : '20px 14px 6px',
+                      fontSize: 11,
+                      fontWeight: 600,
+                      color: 'var(--text-tertiary)',
                       background: 'var(--bg-primary)',
-                      borderBottom: '2px solid var(--border-default)',
-                      letterSpacing: '0.02em',
+                      borderBottom: '1px solid var(--border-subtle)',
+                      letterSpacing: '0.04em',
+                      textTransform: 'uppercase',
                     }}
                   >
                     {order.orderId}
