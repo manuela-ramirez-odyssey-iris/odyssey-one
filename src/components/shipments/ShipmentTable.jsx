@@ -416,7 +416,7 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
   const handleResizeStart = useCallback((e, key, startWidth) => {
     e.preventDefault()
     const startX = e.clientX
-    const minWidth = 60
+    const minWidth = 80
     const handleMove = (moveE) => {
       const delta = moveE.clientX - startX
       setColumnWidths(prev => ({ ...prev, [key]: Math.max(minWidth, startWidth + delta) }))
@@ -567,19 +567,23 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           {/* Data header */}
           <div ref={headerRef} style={{ flexShrink: 0, overflowX: 'hidden' }}>
-            <div className="flex" style={{ minWidth: 'max-content' }}>
+            <div
+              className="flex"
+              style={{ minWidth: 'max-content' }}
+              onMouseEnter={(e) => { e.currentTarget.querySelectorAll('[data-resize-handle]').forEach(h => { h.style.background = 'var(--border-default)' }) }}
+              onMouseLeave={(e) => { e.currentTarget.querySelectorAll('[data-resize-handle]').forEach(h => { h.style.background = 'transparent' }) }}
+            >
               <div style={{ width: 48, flexShrink: 0, padding: '0 var(--spacing-4)', height: 'var(--bottombar-collapsed)', background: 'var(--bg-primary)', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} />
               {orderedColumns.map(col => {
                 const w = columnWidths[col.key] || col.width || 120
                 return (
                   <div key={col.key} className="text-left"
-                    style={{ width: w, minWidth: w, flexShrink: 0, padding: '0 var(--spacing-4)', minHeight: 'var(--bottombar-collapsed)', background: 'var(--bg-primary)', borderBottom: '1px solid var(--border-subtle)', color: col._promoted ? 'var(--deep-sea-neutral-700, #384253)' : 'var(--text-placeholder)', fontWeight: col._promoted ? 700 : 600, fontSize: 'var(--font-size-sm)', display: 'flex', alignItems: 'flex-end', paddingBottom: 8, position: 'relative', whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: 1.3 }}>
+                    style={{ width: w, minWidth: w, flexShrink: 0, padding: '0 var(--spacing-4)', minHeight: 'var(--bottombar-collapsed)', background: 'var(--bg-primary)', borderBottom: '1px solid var(--border-subtle)', color: col._promoted ? 'var(--deep-sea-neutral-700, #384253)' : 'var(--text-placeholder)', fontWeight: col._promoted ? 700 : 600, fontSize: 'var(--font-size-sm)', display: 'flex', alignItems: 'center', position: 'relative', whiteSpace: 'normal', overflowWrap: 'break-word', lineHeight: 1.3 }}>
                     {col.label}
                     <div
+                      data-resize-handle
                       onMouseDown={(e) => handleResizeStart(e, col.key, w)}
-                      style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 4, cursor: 'col-resize', background: 'transparent' }}
-                      onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--border-default)' }}
-                      onMouseLeave={(e) => { if (!e.currentTarget.dataset.dragging) e.currentTarget.style.background = 'transparent' }}
+                      style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 4, cursor: 'col-resize', background: 'transparent', transition: 'background var(--transition-fast)' }}
                     />
                   </div>
                 )
