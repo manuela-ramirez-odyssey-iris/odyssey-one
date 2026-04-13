@@ -7,6 +7,16 @@ import DarkTooltip from '../ui/DarkTooltip'
 import { ALL_COLUMNS } from '../detail/ColumnPanel'
 import { SEARCH_ATTRIBUTES } from '../../data'
 
+function formatDateOnly(raw) {
+  if (!raw) return '--'
+  // raw format: "05/08/2026 06:30 CST"
+  const parts = raw.split(' ')
+  const datePart = parts[0] // "05/08/2026"
+  const [mm, dd, yyyy] = datePart.split('/')
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+  return `${months[parseInt(mm, 10) - 1]} ${parseInt(dd, 10)}, ${yyyy}`
+}
+
 const BADGE_COLORS = ['amber', 'blue', 'green', 'red', 'purple']
 
 function OrdersTooltip({ orders, children }) {
@@ -98,8 +108,16 @@ export const COLUMN_CONFIG = [
       </OrdersTooltip>
     ),
   },
-  { key: 'pickupDate', label: 'Pickup Date', width: 160 },
-  { key: 'deliveryDate', label: 'Delivery Date', width: 160 },
+  { key: 'pickupDate', label: 'Pickup Date', width: 120, render: (val) => (
+    <DarkTooltip text={val || null} width="auto">
+      <span>{formatDateOnly(val)}</span>
+    </DarkTooltip>
+  )},
+  { key: 'deliveryDate', label: 'Delivery Date', width: 120, render: (val) => (
+    <DarkTooltip text={val || null} width="auto">
+      <span>{formatDateOnly(val)}</span>
+    </DarkTooltip>
+  )},
   { key: 'origin', label: 'Origin', width: 160 },
   { key: 'destination', label: 'Destination', width: 160 },
   {
