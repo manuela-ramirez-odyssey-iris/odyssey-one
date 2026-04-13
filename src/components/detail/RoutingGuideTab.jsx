@@ -920,6 +920,7 @@ function ActionDropdown({ status, position, onAction, onClose }) {
 
 function CostTooltip({ carrier, onViewDetails }) {
   const [show, setShow] = useState(false)
+  const [hovered, setHovered] = useState(false)
   const [pos, setPos] = useState({ top: 0, left: 0 })
   const ref = useRef(null)
 
@@ -928,6 +929,7 @@ function CostTooltip({ carrier, onViewDetails }) {
     const rect = ref.current.getBoundingClientRect()
     setPos({ top: rect.top - 8, left: rect.left + rect.width / 2 })
     setShow(true)
+    setHovered(true)
   }
 
   const apTotal = carrier.cost || carrier.apFreightCost || '--'
@@ -941,8 +943,9 @@ function CostTooltip({ carrier, onViewDetails }) {
     <span
       ref={ref}
       onMouseEnter={handleEnter}
-      onMouseLeave={() => setShow(false)}
-      style={{ cursor: 'pointer' }}
+      onMouseLeave={() => { setShow(false); setHovered(false) }}
+      onClick={(e) => { e.stopPropagation(); onViewDetails() }}
+      style={{ cursor: 'pointer', color: hovered ? 'var(--carolina-blue-600)' : 'inherit', transition: 'color var(--transition-fast)' }}
     >
       {apTotal}
       {show && createPortal(
@@ -961,9 +964,8 @@ function CostTooltip({ carrier, onViewDetails }) {
             boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
             zIndex: 99999,
             whiteSpace: 'nowrap',
+            pointerEvents: 'none',
           }}
-          onMouseEnter={() => setShow(true)}
-          onMouseLeave={() => setShow(false)}
         >
           <div>AP Total: <strong>{apTotal}</strong></div>
           <div>AR Total: <strong>{arTotal}</strong></div>
@@ -972,18 +974,8 @@ function CostTooltip({ carrier, onViewDetails }) {
               Margin: ${Math.abs(margin).toLocaleString('en-US', { minimumFractionDigits: 2 })} ({marginPct}%)
             </div>
           )}
-          <div
-            style={{
-              marginTop: 6,
-              paddingTop: 6,
-              borderTop: '1px solid rgba(255,255,255,0.1)',
-              color: '#93c5fd',
-              cursor: 'pointer',
-              fontSize: 12,
-            }}
-            onClick={(e) => { e.stopPropagation(); setShow(false); onViewDetails() }}
-          >
-            View Details →
+          <div style={{ marginTop: 6, paddingTop: 6, borderTop: '1px solid rgba(255,255,255,0.1)', color: '#93c5fd', fontSize: 12 }}>
+            Click to view details
           </div>
         </div>,
         document.body
