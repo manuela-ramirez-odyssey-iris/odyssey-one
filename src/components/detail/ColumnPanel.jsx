@@ -55,6 +55,18 @@ const DEFAULT_COLUMNS = [
   'mode', 'equipmentCode', 'scac', 'orders', 'apFreightCost', 'validationMessage',
 ]
 
+export const EXCEPTIONS_DEFAULT_COLUMNS = [
+  'buyShipment', 'customerId', 'shipmentStatus', 'orderCount',
+  'pickupDate', 'deliveryDate', 'origin', 'destination', 'grossWeight',
+  'mode', 'equipmentCode', 'scac', 'orders', 'apFreightCost', 'validationMessage',
+]
+
+export const MONITORING_DEFAULT_COLUMNS = [
+  'buyShipment', 'customerId', 'shipmentStatus', 'orderCount',
+  'pickupDate', 'deliveryDate', 'origin', 'destination', 'grossWeight',
+  'mode', 'equipmentCode', 'scac', 'orders', 'apFreightCost',
+]
+
 export const PRESETS = {
   custom: [
     { id: 'default', name: 'Default', columns: DEFAULT_COLUMNS },

@@ -6,7 +6,7 @@ import TableControls from './components/shipments/TableControls'
 import ShipmentTable from './components/shipments/ShipmentTable'
 import BottomBar from './components/detail/BottomBar'
 import FilterPanel from './components/shipments/FilterPanel'
-import ColumnPanel, { ALL_COLUMNS } from './components/detail/ColumnPanel'
+import ColumnPanel, { ALL_COLUMNS, EXCEPTIONS_DEFAULT_COLUMNS, MONITORING_DEFAULT_COLUMNS } from './components/detail/ColumnPanel'
 import { COLUMN_CONFIG } from './components/shipments/ShipmentTable'
 import { FileText } from 'lucide-react'
 import { getAllShipments, fetchShipmentDetails, getCachedShipmentDetails, getShipmentsByPanel, getShipmentsByPanelAndCategory, getCategoryCount, SEARCH_ATTRIBUTES } from './data'
@@ -49,7 +49,14 @@ function App() {
   const [shipmentDetails, setShipmentDetails] = useState(null)
   const [detailsLoading, setDetailsLoading] = useState(false)
   const [metricsCollapsed, setMetricsCollapsed] = useState(false)
-  const [visibleColumns, setVisibleColumns] = useState(() => COLUMN_CONFIG.map(c => c.key))
+  const [columnsByPanel, setColumnsByPanel] = useState({
+    exceptions: EXCEPTIONS_DEFAULT_COLUMNS,
+    monitoring: MONITORING_DEFAULT_COLUMNS,
+  })
+  const visibleColumns = columnsByPanel[activePanel] || EXCEPTIONS_DEFAULT_COLUMNS
+  const setVisibleColumns = useCallback((newCols) => {
+    setColumnsByPanel(prev => ({ ...prev, [activePanel]: newCols }))
+  }, [activePanel])
 
   const allShipments = useMemo(() => getAllShipments(), [])
 
@@ -236,7 +243,7 @@ function App() {
 
   const handleColumnsChange = useCallback((newVisibleColumns) => {
     setVisibleColumns(newVisibleColumns)
-  }, [])
+  }, [setVisibleColumns])
 
   const handleApplyFilters = useCallback((newFilters) => {
     setFilters(newFilters)
