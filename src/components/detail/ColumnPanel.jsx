@@ -96,7 +96,7 @@ function getPresetByColumns(columns) {
 
 export default function ColumnPanel({ isOpen, onClose, visibleColumns, onColumnsChange }) {
   const [view, setView] = useState('presets')
-  const [activePresetId, setActivePresetId] = useState('default')
+  const [activePresetId, setActivePresetId] = useState('default-exceptions')
   const [searchQuery, setSearchQuery] = useState('')
   const [dragOverIndex, setDragOverIndex] = useState(null)
 
@@ -173,7 +173,7 @@ export default function ColumnPanel({ isOpen, onClose, visibleColumns, onColumns
           <PresetRow
             key={preset.id}
             preset={preset}
-            isActive={activePresetId === preset.id && !!matchedPreset && matchedPreset.id === preset.id}
+            isActive={!!matchedPreset && matchedPreset.id === preset.id}
             onSelect={() => handlePresetSelect(preset.id)}
             onNavigate={() => handleNavigateToArrangement(preset.id)}
           />
@@ -192,7 +192,7 @@ export default function ColumnPanel({ isOpen, onClose, visibleColumns, onColumns
           <PresetRow
             key={preset.id}
             preset={preset}
-            isActive={activePresetId === preset.id && !!matchedPreset && matchedPreset.id === preset.id}
+            isActive={!!matchedPreset && matchedPreset.id === preset.id}
             onSelect={() => handlePresetSelect(preset.id)}
             onNavigate={() => handleNavigateToArrangement(preset.id)}
           />
