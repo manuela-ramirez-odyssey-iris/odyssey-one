@@ -105,10 +105,8 @@ const OrderTab = React.memo(function OrderTab({ data }) {
         <Field label="Ship Direction" value={d.shipDirection} />
         <Field label="Order Date" value={d.orderDate} />
         <Field label="Payment Terms" value={d.paymentTerms} />
-        <Field label="Shipment Mode" value={d.shipmentMode} />
         <Field label="Expedited" value={d.expedited} />
         <Field label="Consolidatable" value={d.consolidatable} />
-        <Field label="Equipment" value={d.equipment} />
         <Field label="Special Services" value={d.specialServices} />
         <Field label="LSP" value={d.lsp} />
         <Field label="Carrier" value={d.carrier} />
