@@ -54,11 +54,13 @@ const thStyle = {
   textAlign: 'left',
   fontSize: 12,
   fontWeight: 600,
-  color: 'var(--text-placeholder)',
+  color: 'var(--text-tertiary)',
   borderBottom: '1px solid var(--border-subtle)',
   whiteSpace: 'nowrap',
   textTransform: 'uppercase',
   letterSpacing: '0.03em',
+  height: 48,
+  verticalAlign: 'middle',
 }
 
 const thExpandStyle = {

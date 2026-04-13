@@ -1044,7 +1044,7 @@ function RoutingTable({ options, columns, tabColumns, highlightedRank, openMenuR
   }
 
   return (
-    <div data-routing-container style={{ display: 'flex', border: '1px solid var(--border-subtle)', borderRadius: '0 0 var(--radius-md) var(--radius-md)', marginBottom: 24 }}>
+    <div data-routing-container style={{ display: 'flex', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', marginBottom: 24, overflow: 'hidden' }}>
       {/* ── LEFT TABLE + TOGGLE: fixed container with shadow ── */}
       <div style={{ flexShrink: 0, display: 'flex', boxShadow: '2px 0 4px rgba(0,0,0,0.06)', zIndex: 3 }}>
       <div data-left-table style={{ flexShrink: 0 }}>
