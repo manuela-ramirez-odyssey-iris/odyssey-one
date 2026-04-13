@@ -996,7 +996,7 @@ function CostTooltip({ carrier, onViewDetails }) {
    Section 6 — RoutingTable
    ═══════════════════════════════════════════════════════════ */
 
-function RoutingTable({ options, columns, tabColumns, highlightedRank, openMenuRank, onOpenMenu, onCloseMenu, onAction, onToggleColumnPanel, isCollapsed, getCollapsedWidth, columnsCollapsed, onCollapse, onExpand, onViewRateDetails }) {
+function RoutingTable({ options, columns, tabColumns, highlightedRank, openMenuRank, onOpenMenu, onCloseMenu, onAction, onToggleColumnPanel, isCollapsed, getCollapsedWidth, columnsCollapsed, collapsedWidths, onCollapse, onExpand, onViewRateDetails }) {
   const [hoveredRank, setHoveredRank] = useState(null)
   const [showToggle, setShowToggle] = useState(false)
   const rightTableRef = useRef(null)
@@ -1560,6 +1560,7 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
           onToggleColumnPanel={onToggleColumnPanel}
           isCollapsed={isCollapsed}
           columnsCollapsed={collapsedWidths !== null}
+          collapsedWidths={collapsedWidths}
           getCollapsedWidth={getCollapsedWidth}
           onCollapse={handleCollapse}
           onExpand={handleExpand}
