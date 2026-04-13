@@ -269,8 +269,8 @@ function OrderGroup({ order, isExpanded, onToggle, isFirst }) {
         </td>
         <td style={tdLineNumStyle}>
           <span style={{ display: 'flex', alignItems: 'center' }}>
-            <span style={{ color: 'var(--text-placeholder)', marginRight: 4 }}>({order.lineCount ?? order.lines.length})</span>
             {orderLabel}
+            <span style={{ color: 'var(--text-placeholder)', marginLeft: 4 }}>({order.lineCount ?? order.lines.length})</span>
           </span>
         </td>
         <td colSpan={COLUMNS.length - 1} style={tdStyle}></td>
