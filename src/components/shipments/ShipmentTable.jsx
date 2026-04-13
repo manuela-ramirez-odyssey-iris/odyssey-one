@@ -238,6 +238,43 @@ function ActionMenu({ shipmentId, position, onClose }) {
   )
 }
 
+function TruncatedText({ value }) {
+  const ref = useRef(null)
+  const [showTip, setShowTip] = useState(false)
+  const [pos, setPos] = useState({ top: 0, left: 0 })
+
+  const handleEnter = () => {
+    const el = ref.current
+    if (!el || el.scrollWidth <= el.clientWidth) return
+    const text = String(value || '')
+    const words = text.split(/\s+/)
+    if (words.length < 3) return // only tooltip if 2+ words hidden
+    const rect = el.getBoundingClientRect()
+    setPos({ top: rect.top - 8, left: rect.left + rect.width / 2 })
+    setShowTip(true)
+  }
+
+  return (
+    <>
+      <span ref={ref} onMouseEnter={handleEnter} onMouseLeave={() => setShowTip(false)}
+        style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        {value ?? '—'}
+      </span>
+      {showTip && createPortal(
+        <div style={{
+          position: 'fixed', top: pos.top, left: pos.left, transform: 'translate(-50%, -100%)',
+          background: 'var(--deep-sea-neutral-900, #1B2537)', color: 'var(--deep-sea-neutral-300, #D0D4DB)',
+          borderRadius: 'var(--radius-md)', padding: '8px 12px', fontSize: 13,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.25)', zIndex: 99999, maxWidth: 300, whiteSpace: 'normal',
+        }}>
+          {value}
+        </div>,
+        document.body
+      )}
+    </>
+  )
+}
+
 const COLUMN_CONFIG_MAP = Object.fromEntries(COLUMN_CONFIG.map(c => [c.key, c]))
 
 const ROW_HEIGHT = 56
@@ -275,10 +312,11 @@ const ShipmentRow = React.memo(function ShipmentRow({ shipment, isSelected, isMe
       {/* Data columns */}
       {orderedColumns.map(col => {
         const configCol = COLUMN_CONFIG_MAP[col.key]
+        const w = col._resolvedWidth || col.width || 120
         return (
           <div key={col.key} style={{
-            width: col.width || 120,
-            minWidth: col.width || 120,
+            width: w,
+            minWidth: w,
             flexShrink: 0,
             padding: '0 var(--spacing-4)',
             height: ROW_HEIGHT,
@@ -287,9 +325,10 @@ const ShipmentRow = React.memo(function ShipmentRow({ shipment, isSelected, isMe
             display: 'flex',
             alignItems: 'center',
             overflow: 'hidden',
+            textOverflow: 'ellipsis',
             ...(col.key === 'buyShipment' ? { fontWeight: 500, color: 'var(--text-secondary)' } : {}),
           }}>
-            {configCol && configCol.render ? configCol.render(s) : (s[col.key] || '--')}
+            {configCol && configCol.render ? configCol.render(s) : <TruncatedText value={s[col.key]} />}
           </div>
         )
       })}
@@ -371,6 +410,23 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
   const headerRef = useRef(null)
   const [listHeight, setListHeight] = useState(600)
   const [menuOpenId, setMenuOpenId] = useState(null)
+  const [columnWidths, setColumnWidths] = useState({})
+
+  const handleResizeStart = useCallback((e, key, startWidth) => {
+    e.preventDefault()
+    const startX = e.clientX
+    const minWidth = 60
+    const handleMove = (moveE) => {
+      const delta = moveE.clientX - startX
+      setColumnWidths(prev => ({ ...prev, [key]: Math.max(minWidth, startWidth + delta) }))
+    }
+    const handleUp = () => {
+      document.removeEventListener('mousemove', handleMove)
+      document.removeEventListener('mouseup', handleUp)
+    }
+    document.addEventListener('mousemove', handleMove)
+    document.addEventListener('mouseup', handleUp)
+  }, [])
 
   const orderedColumns = useMemo(() => {
     let cols
@@ -411,8 +467,11 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
       }
     }
 
-    return cols
-  }, [visibleColumns, activeChipKey])
+    return cols.map(col => ({
+      ...col,
+      _resolvedWidth: columnWidths[col.key] || col.width || 120,
+    }))
+  }, [visibleColumns, activeChipKey, columnWidths])
 
   const handleSelect = useCallback((shipment) => {
     onRowSelect(shipment.buyShipment)
@@ -509,12 +568,21 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
           <div ref={headerRef} style={{ flexShrink: 0, overflowX: 'hidden' }}>
             <div className="flex" style={{ minWidth: 'max-content' }}>
               <div style={{ width: 48, flexShrink: 0, padding: '0 var(--spacing-4)', height: 'var(--bottombar-collapsed)', background: 'var(--bg-primary)', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} />
-              {orderedColumns.map(col => (
-                <div key={col.key} className="text-left whitespace-nowrap"
-                  style={{ width: col.width || 120, minWidth: col.width || 120, flexShrink: 0, padding: '0 var(--spacing-4)', height: 'var(--bottombar-collapsed)', background: 'var(--bg-primary)', borderBottom: '1px solid var(--border-subtle)', color: col._promoted ? 'var(--deep-sea-neutral-700, #384253)' : 'var(--text-placeholder)', fontWeight: col._promoted ? 700 : 600, fontSize: 'var(--font-size-sm)', display: 'flex', alignItems: 'center' }}>
-                  {col.label}
-                </div>
-              ))}
+              {orderedColumns.map(col => {
+                const w = columnWidths[col.key] || col.width || 120
+                return (
+                  <div key={col.key} className="text-left"
+                    style={{ width: w, minWidth: w, flexShrink: 0, padding: '0 var(--spacing-4)', minHeight: 'var(--bottombar-collapsed)', background: 'var(--bg-primary)', borderBottom: '1px solid var(--border-subtle)', color: col._promoted ? 'var(--deep-sea-neutral-700, #384253)' : 'var(--text-placeholder)', fontWeight: col._promoted ? 700 : 600, fontSize: 'var(--font-size-sm)', display: 'flex', alignItems: 'flex-end', paddingBottom: 8, position: 'relative', whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: 1.3 }}>
+                    {col.label}
+                    <div
+                      onMouseDown={(e) => handleResizeStart(e, col.key, w)}
+                      style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 4, cursor: 'col-resize', background: 'transparent' }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--border-default)' }}
+                      onMouseLeave={(e) => { if (!e.currentTarget.dataset.dragging) e.currentTarget.style.background = 'transparent' }}
+                    />
+                  </div>
+                )
+              })}
             </div>
           </div>
           {/* Data list */}
