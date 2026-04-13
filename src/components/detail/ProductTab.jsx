@@ -237,6 +237,7 @@ function OrderGroup({ order, isExpanded, onToggle, isFirst }) {
             {col.key === 'lineNumber' ? (
               <span style={{ display: 'flex', alignItems: 'center' }}>
                 {orderLabel}
+                <span style={{ margin: '0 4px', color: 'var(--text-placeholder)' }}>-</span>
                 {singleLine[col.key] ?? '\u2014'}
               </span>
             ) : col.key === 'hazmat' ? (
