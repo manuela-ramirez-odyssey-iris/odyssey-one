@@ -915,10 +915,88 @@ function ActionDropdown({ status, position, onAction, onClose }) {
 }
 
 /* ═══════════════════════════════════════════════════════════
+   Section 5b — CostTooltip (AP cost hover in routing table)
+   ═══════════════════════════════════════════════════════════ */
+
+function CostTooltip({ carrier, onViewDetails }) {
+  const [show, setShow] = useState(false)
+  const [pos, setPos] = useState({ top: 0, left: 0 })
+  const ref = useRef(null)
+
+  const handleEnter = () => {
+    if (!ref.current) return
+    const rect = ref.current.getBoundingClientRect()
+    setPos({ top: rect.top - 8, left: rect.left + rect.width / 2 })
+    setShow(true)
+  }
+
+  const apTotal = carrier.cost || carrier.apFreightCost || '--'
+  const arTotal = carrier.arCost || carrier.arFreightCost || '--'
+  const apNum = parseFloat(String(apTotal).replace(/[^0-9.\-]/g, ''))
+  const arNum = parseFloat(String(arTotal).replace(/[^0-9.\-]/g, ''))
+  const margin = (!isNaN(apNum) && !isNaN(arNum)) ? arNum - apNum : null
+  const marginPct = (margin != null && apNum > 0) ? ((margin / apNum) * 100).toFixed(1) : null
+
+  return (
+    <span
+      ref={ref}
+      onMouseEnter={handleEnter}
+      onMouseLeave={() => setShow(false)}
+      style={{ cursor: 'pointer' }}
+    >
+      {apTotal}
+      {show && createPortal(
+        <div
+          style={{
+            position: 'fixed',
+            top: pos.top,
+            left: pos.left,
+            transform: 'translate(-50%, -100%)',
+            background: 'var(--deep-sea-neutral-900, #1B2537)',
+            color: 'var(--deep-sea-neutral-300, #D0D4DB)',
+            borderRadius: 'var(--radius-md)',
+            padding: '10px 14px',
+            fontSize: 13,
+            lineHeight: 1.6,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
+            zIndex: 99999,
+            whiteSpace: 'nowrap',
+          }}
+          onMouseEnter={() => setShow(true)}
+          onMouseLeave={() => setShow(false)}
+        >
+          <div>AP Total: <strong>{apTotal}</strong></div>
+          <div>AR Total: <strong>{arTotal}</strong></div>
+          {margin != null && (
+            <div style={{ color: margin >= 0 ? '#34d399' : '#f87171' }}>
+              Margin: ${Math.abs(margin).toLocaleString('en-US', { minimumFractionDigits: 2 })} ({marginPct}%)
+            </div>
+          )}
+          <div
+            style={{
+              marginTop: 6,
+              paddingTop: 6,
+              borderTop: '1px solid rgba(255,255,255,0.1)',
+              color: '#93c5fd',
+              cursor: 'pointer',
+              fontSize: 12,
+            }}
+            onClick={(e) => { e.stopPropagation(); setShow(false); onViewDetails() }}
+          >
+            View Details →
+          </div>
+        </div>,
+        document.body
+      )}
+    </span>
+  )
+}
+
+/* ═══════════════════════════════════════════════════════════
    Section 6 — RoutingTable
    ═══════════════════════════════════════════════════════════ */
 
-function RoutingTable({ options, columns, tabColumns, highlightedRank, openMenuRank, onOpenMenu, onCloseMenu, onAction, onToggleColumnPanel, isCollapsed, getCollapsedWidth, columnsCollapsed, onCollapse, onExpand }) {
+function RoutingTable({ options, columns, tabColumns, highlightedRank, openMenuRank, onOpenMenu, onCloseMenu, onAction, onToggleColumnPanel, isCollapsed, getCollapsedWidth, columnsCollapsed, onCollapse, onExpand, onViewRateDetails }) {
   const [hoveredRank, setHoveredRank] = useState(null)
   const [showToggle, setShowToggle] = useState(false)
   const rightTableRef = useRef(null)
@@ -1031,7 +1109,9 @@ function RoutingTable({ options, columns, tabColumns, highlightedRank, openMenuR
                     }
                     return (
                       <td key={col.key} style={cellStyle}>
-                        {col.key === 'status' ? <StatusBadge status={option.status} /> : getCellValue(option, col)}
+                        {col.key === 'status' ? <StatusBadge status={option.status} />
+                          : col.key === 'cost' ? <CostTooltip carrier={option} onViewDetails={() => onViewRateDetails(option)} />
+                          : getCellValue(option, col)}
                       </td>
                     )
                   })}
@@ -1478,6 +1558,7 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
           getCollapsedWidth={getCollapsedWidth}
           onCollapse={handleCollapse}
           onExpand={handleExpand}
+          onViewRateDetails={(carrier) => setQuoteModal({ isOpen: true, mode: 'view', carrierData: carrier })}
         />
       </div>
 
