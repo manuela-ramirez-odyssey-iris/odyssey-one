@@ -953,7 +953,7 @@ function CostTooltip({ carrier, onViewDetails }) {
       onMouseEnter={handleEnter}
       onMouseLeave={() => { setShow(false); setHovered(false) }}
       onClick={(e) => { e.stopPropagation(); onViewDetails() }}
-      style={{ cursor: 'pointer', color: hovered ? '#93c5fd' : 'inherit', transition: 'color var(--transition-fast)' }}
+      style={{ cursor: 'pointer', color: hovered ? 'var(--carolina-blue-400)' : 'inherit', transition: 'color var(--transition-fast)' }}
     >
       {apTotal}
       {show && createPortal(
@@ -982,7 +982,7 @@ function CostTooltip({ carrier, onViewDetails }) {
               Margin: ${Math.abs(margin).toLocaleString('en-US', { minimumFractionDigits: 2 })} ({marginPct}%)
             </div>
           )}
-          <div style={{ marginTop: 6, paddingTop: 6, borderTop: '1px solid rgba(255,255,255,0.1)', color: '#93c5fd', fontSize: 12 }}>
+          <div style={{ marginTop: 6, paddingTop: 6, borderTop: '1px solid rgba(255,255,255,0.1)', color: 'var(--carolina-blue-400)', fontSize: 12 }}>
             Click to view details
           </div>
         </div>,
