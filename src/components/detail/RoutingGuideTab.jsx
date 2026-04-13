@@ -1068,7 +1068,7 @@ function RoutingTable({ options, columns, tabColumns, highlightedRank, openMenuR
                 const wrapWhenCollapsed = columnsCollapsed && !col.narrow ? { whiteSpace: 'normal', lineHeight: 1.3 } : {}
                 const statusNarrow = columnsCollapsed && col.key === 'status' ? { width: 78, maxWidth: 78 } : {}
                 return (
-                  <th key={col.key} style={{ ...thStyle, ...(col.narrow ? { width: 64, whiteSpace: 'normal', lineHeight: 1.3, textAlign: 'center' } : {}), ...wrapWhenCollapsed, ...statusNarrow }}>
+                  <th key={col.key} style={{ ...thStyle, ...(col.narrow ? { width: 64, whiteSpace: 'normal', lineHeight: 1.3, textAlign: 'center' } : {}), ...wrapWhenCollapsed, ...statusNarrow, transition: 'width var(--transition-slow), max-width var(--transition-slow)' }}>
                     {col.label}
                   </th>
                 )
@@ -1106,6 +1106,7 @@ function RoutingTable({ options, columns, tabColumns, highlightedRank, openMenuR
                       ...(isPrimary ? { fontWeight: 500, color: 'var(--text-primary)' } : {}),
                       ...(col.narrow ? { width: 64, textAlign: 'center' } : {}),
                       ...(columnsCollapsed && col.key === 'status' ? { width: 78, maxWidth: 78 } : {}),
+                      transition: 'width var(--transition-slow), max-width var(--transition-slow)',
                     }
                     return (
                       <td key={col.key} style={cellStyle}>
