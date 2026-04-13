@@ -26,7 +26,8 @@ function OrdersTooltip({ orders, children }) {
 
   const handleEnter = () => {
     if (ref.current) {
-      const rect = ref.current.getBoundingClientRect()
+      const child = ref.current.firstElementChild || ref.current
+      const rect = child.getBoundingClientRect()
       setPos({ top: rect.top, left: rect.left + rect.width / 2 })
     }
     setShow(true)
@@ -37,7 +38,7 @@ function OrdersTooltip({ orders, children }) {
       ref={ref}
       onMouseEnter={handleEnter}
       onMouseLeave={() => setShow(false)}
-      style={{ position: 'relative', height: '100%', display: 'flex', alignItems: 'center' }}
+      style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}
     >
       {children}
       {show && orders.length > 0 && pos && createPortal(
@@ -87,7 +88,7 @@ export const COLUMN_CONFIG = [
   {
     key: 'orders',
     label: 'Order #',
-    width: 130,
+    width: 150,
     render: (s) => (
       <OrdersTooltip orders={s.orders}>
         <div style={{ display: 'flex', flexWrap: 'nowrap', gap: 6, overflow: 'hidden', maxWidth: 192 }}>
@@ -101,7 +102,7 @@ export const COLUMN_CONFIG = [
   {
     key: 'orderCount',
     label: 'Order Count',
-    width: 100,
+    width: 60,
     render: (s) => (
       <OrdersTooltip orders={s.orders}>
         <span>{s.orderCount}</span>
