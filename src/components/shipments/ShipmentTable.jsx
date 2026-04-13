@@ -577,7 +577,7 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
           >
             <div
               className="flex"
-              style={{ minWidth: 'max-content', paddingBottom: 6, background: 'var(--bg-primary)', borderBottom: '1px solid var(--border-subtle)' }}
+              style={{ minWidth: 'max-content', paddingTop: 6, paddingBottom: 6, background: 'var(--bg-primary)', borderBottom: '1px solid var(--border-subtle)' }}
               onMouseEnter={(e) => { e.currentTarget.querySelectorAll('[data-resize-handle]').forEach(h => { h.style.background = 'var(--border-subtle)' }) }}
               onMouseLeave={(e) => { e.currentTarget.querySelectorAll('[data-resize-handle]').forEach(h => { h.style.background = 'transparent' }) }}
             >
