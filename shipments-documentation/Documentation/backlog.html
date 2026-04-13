@@ -23,6 +23,7 @@
   .status-spec { display: inline-block; background: #e0e7ff; color: #3730a3; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; }
   .status-halted { display: inline-block; background: #f1f5f9; color: #64748b; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; }
   .status-done { display: inline-block; background: #dcfce7; color: #166534; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; }
+  .status-validate { display: inline-block; background: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; }
   .done-group td { background: #f0fdf4; }
   .section-divider td { padding: 20px 12px 8px; border-bottom: none; font-size: 16px; font-weight: 700; color: #1e293b; }
   col.col-priority { width: 10%; }
@@ -64,14 +65,14 @@
 <tbody>
 
 <!-- David's Feedback — Priority 1 -->
-<tr class="priority-group"><td colspan="6">Priority 1 — David's Feedback (Apr 9 Grooming)</td></tr>
+<tr class="priority-group"><td colspan="6">Priority 1 — David's Feedback (Apr 9 Grooming) &mdash; Implemented, awaiting validation</td></tr>
 
 <tr>
   <td></td>
   <td class="id">SHP-43</td>
   <td>Hazmat badge visual</td>
   <td><span class="size-s">S</span></td>
-  <td><span class="status-spec">Needs spec</span></td>
+  <td><span class="status-validate">Validate</span></td>
   <td>Product tab + Shipments table: yellow badge with warning icon + "Hazmat" when true, "--" when false. Rename column "Hazardous(Y/N)" &rarr; "Hazardous". DEC-28.</td>
 </tr>
 <tr>
@@ -79,7 +80,7 @@
   <td class="id">SHP-44</td>
   <td>Column auto-fit, header wrapping &amp; manual resize</td>
   <td><span class="size-l">L</span></td>
-  <td><span class="status-spec">Needs spec</span></td>
+  <td><span class="status-validate">Validate</span></td>
   <td>Auto-fit: width = header + ~20-30% buffer. Headers wrap words vertically. Content truncates with "...", tooltip only if 2+ words hidden. Manual drag-to-resize, min width = header text. DEC-29, DEC-30.</td>
 </tr>
 <tr>
@@ -87,7 +88,7 @@
   <td class="id">SHP-45</td>
   <td>Cost visibility from tender tab</td>
   <td><span class="size-s">S</span></td>
-  <td><span class="status-spec">Needs spec</span></td>
+  <td><span class="status-validate">Validate</span></td>
   <td>AP cost cell in routing table &rarr; hover tooltip (AP/AR/Margin summary) + "View Details" link &rarr; opens existing Show Rate Details modal (SHP-29). Cost data available from "Sent" onward. DEC-31, DEC-32.</td>
 </tr>
 <tr>
@@ -95,7 +96,7 @@
   <td class="id">SHP-46</td>
   <td>Product tab table styling</td>
   <td><span class="size-xs">XS</span></td>
-  <td><span class="status-spec">Needs spec</span></td>
+  <td><span class="status-validate">Validate</span></td>
   <td>Add top spacing between tab bar and table. Match Cost Allocation table header style (--text-placeholder). Consistent visual treatment across detail tables.</td>
 </tr>
 <tr>
@@ -103,7 +104,7 @@
   <td class="id">SHP-47</td>
   <td>Panel-aware column presets</td>
   <td><span class="size-m">M</span></td>
-  <td><span class="status-spec">Needs spec</span></td>
+  <td><span class="status-validate">Validate</span></td>
   <td>Switching Exceptions/Monitoring auto-applies different default column profile. Exceptions shows Message/Validation Message; Monitoring hides them. User customization overrides. Builds on SHP-18. DEC-33.</td>
 </tr>
 <tr>
@@ -111,7 +112,7 @@
   <td class="id">SHP-48</td>
   <td>Date-only display with time-on-hover</td>
   <td><span class="size-s">S</span></td>
-  <td><span class="status-spec">Needs spec</span></td>
+  <td><span class="status-validate">Validate</span></td>
   <td>All date columns show date only (no time). Hover tooltip shows full date + time. David: "time is a made-up time by the system." Saves ~50% column width. DEC-34.</td>
 </tr>
 <tr>
@@ -119,7 +120,7 @@
   <td class="id">SHP-49</td>
   <td>Rename "Sent" &rarr; "Tender Sent" in Monitoring</td>
   <td><span class="size-xs">XS</span></td>
-  <td><span class="status-spec">Needs spec</span></td>
+  <td><span class="status-validate">Validate</span></td>
   <td>MonitorPanels.jsx label change. Only the Monitoring panel tab label; tender status badge values stay as "Sent." David: "what sent?" DEC-35.</td>
 </tr>
 <tr>
@@ -127,7 +128,7 @@
   <td class="id">SHP-50</td>
   <td>Order tab layout overhaul</td>
   <td><span class="size-l">L</span></td>
-  <td><span class="status-spec">Needs spec</span></td>
+  <td><span class="status-validate">Validate</span></td>
   <td>Reorder: General &rarr; Totals (promoted) &rarr; Ship From + pickup dates &rarr; Ship To + delivery dates &rarr; Req. Transportation (demoted). Add appointment checkbox (display-only). Reduce white space. DEC-36.</td>
 </tr>
 <tr>
@@ -135,7 +136,7 @@
   <td class="id">SHP-51</td>
   <td>Tender tab &mdash; remove TenderSummary</td>
   <td><span class="size-s">S</span></td>
-  <td><span class="status-spec">Needs spec</span></td>
+  <td><span class="status-validate">Validate</span></td>
   <td>Remove 4-column TenderSummary card from RoutingGuideTab. Relocate "View Full Details" button to tender sub-tab row. Frees vertical space for routing table. DEC-37.</td>
 </tr>
 <tr>
@@ -143,7 +144,7 @@
   <td class="id">SHP-52</td>
   <td>Order # column deprioritized</td>
   <td><span class="size-xs">XS</span></td>
-  <td><span class="status-spec">Needs spec</span></td>
+  <td><span class="status-validate">Validate</span></td>
   <td>Move Order # from position 4 to far right in default preset. David: "I don't think people care about that. That's just a number." DEC-38.</td>
 </tr>
 <tr>
@@ -151,7 +152,7 @@
   <td class="id">SHP-53</td>
   <td>Tender collapse: animated transition + default collapsed</td>
   <td><span class="size-s">S</span></td>
-  <td><span class="status-spec">Needs spec</span></td>
+  <td><span class="status-validate">Validate</span></td>
   <td>All tender sub-tabs start with collapsible section collapsed by default. Add smooth animated transition for expand/collapse (CSS height animation).</td>
 </tr>
 
