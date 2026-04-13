@@ -979,7 +979,7 @@ function RoutingTable({ options, columns, tabColumns, highlightedRank, openMenuR
                 if (collapsed) {
                   const w = getCollapsedWidth(col.key)
                   return (
-                    <th key={col.key} style={{ ...thStyle, width: w, maxWidth: w, overflow: 'hidden', padding: '10px 4px' }} title={col.label}>
+                    <th key={col.key} style={{ ...thStyle, width: w, maxWidth: w, overflow: 'hidden', padding: '10px 4px', transition: 'width var(--transition-slow), max-width var(--transition-slow)' }} title={col.label}>
                       <span style={{ fontSize: 11, color: 'var(--text-placeholder)', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block', whiteSpace: 'nowrap' }}>
                         {col.label}
                       </span>
@@ -1016,7 +1016,7 @@ function RoutingTable({ options, columns, tabColumns, highlightedRank, openMenuR
                       const rawValue = col.key === 'status' ? option.status : (option[col.dataKey || col.key] ?? '')
                       const display = (!rawValue && rawValue !== 0) ? '--' : String(rawValue)
                       return (
-                        <td key={col.key} style={{ ...tdStyle, width: w, maxWidth: w, overflow: 'hidden', textOverflow: 'ellipsis', padding: '10px 4px', fontSize: 12 }}>
+                        <td key={col.key} style={{ ...tdStyle, width: w, maxWidth: w, overflow: 'hidden', textOverflow: 'ellipsis', padding: '10px 4px', fontSize: 12, transition: 'width var(--transition-slow), max-width var(--transition-slow)' }}>
                           {display}
                         </td>
                       )
@@ -1202,6 +1202,7 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
   const [quoteModal, setQuoteModal] = useState({ isOpen: false, mode: 'add', carrierData: null })
   const [collapsedWidths, setCollapsedWidths] = useState(null)
+  const hasInitCollapse = useRef(false)
   const tableRef = useRef(null)
 
   /* Reset all state when data changes (new shipment selected) */
@@ -1235,6 +1236,16 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
+
+  /* Default to collapsed on first render */
+  useEffect(() => {
+    if (hasInitCollapse.current) return
+    const timer = setTimeout(() => {
+      hasInitCollapse.current = true
+      handleCollapse()
+    }, 200)
+    return () => clearTimeout(timer)
+  }, [handleCollapse])
 
   const handleOpenMenu = useCallback((rank, pos) => {
     setHighlightedRank(rank)
