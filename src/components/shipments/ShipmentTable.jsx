@@ -102,7 +102,7 @@ export const COLUMN_CONFIG = [
   {
     key: 'orderCount',
     label: 'Order Count',
-    width: 60,
+    width: 80,
     render: (s) => (
       <OrdersTooltip orders={s.orders}>
         <span>{s.orderCount}</span>
