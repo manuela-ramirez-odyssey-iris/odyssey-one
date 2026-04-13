@@ -1317,16 +1317,6 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  /* Default to collapsed on first render */
-  useEffect(() => {
-    if (hasInitCollapse.current) return
-    const timer = setTimeout(() => {
-      hasInitCollapse.current = true
-      handleCollapse()
-    }, 200)
-    return () => clearTimeout(timer)
-  }, [handleCollapse])
-
   const handleOpenMenu = useCallback((rank, pos) => {
     setHighlightedRank(rank)
     setOpenMenuRank((prev) => (prev === rank ? null : rank))
@@ -1391,6 +1381,16 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
   const handleExpand = useCallback(() => {
     setCollapsedWidths(null)
   }, [])
+
+  /* Default to collapsed on first render */
+  useEffect(() => {
+    if (hasInitCollapse.current) return
+    const timer = setTimeout(() => {
+      hasInitCollapse.current = true
+      handleCollapse()
+    }, 200)
+    return () => clearTimeout(timer)
+  }, [handleCollapse])
 
   const handleQuoteSave = useCallback((formData) => {
     if (quoteModal.mode === 'add') {
