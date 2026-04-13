@@ -1298,12 +1298,7 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
 
   }, [data])
 
-  /* Re-collapse when switching sub-tabs (columns change per tab) */
-  useEffect(() => {
-    setCollapsedWidths(null)
-    const timer = setTimeout(() => handleCollapse(), 200)
-    return () => clearTimeout(timer)
-  }, [activeSubTab, handleCollapse])
+  /* Note: collapse useEffect is placed after handleCollapse/handleExpand definitions below */
 
   /* Click-outside listener: clicks outside tableRef and not inside [data-tender-dropdown] */
   useEffect(() => {
@@ -1381,6 +1376,13 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
   const handleExpand = useCallback(() => {
     setCollapsedWidths(null)
   }, [])
+
+  /* Re-collapse when switching sub-tabs (columns change per tab) */
+  useEffect(() => {
+    setCollapsedWidths(null)
+    const timer = setTimeout(() => handleCollapse(), 200)
+    return () => clearTimeout(timer)
+  }, [activeSubTab, handleCollapse])
 
 
   const handleQuoteSave = useCallback((formData) => {
