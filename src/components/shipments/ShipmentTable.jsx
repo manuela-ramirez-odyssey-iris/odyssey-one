@@ -566,7 +566,7 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
         {/* Left: scrollable data columns */}
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           {/* Data header */}
-          <div ref={headerRef} style={{ flexShrink: 0, overflowX: 'auto' }}
+          <div ref={headerRef} style={{ flexShrink: 0, overflowX: 'scroll' }}
             className="top-scrollbar"
             onScroll={(e) => {
               const dataEl = listRef.current?.element
