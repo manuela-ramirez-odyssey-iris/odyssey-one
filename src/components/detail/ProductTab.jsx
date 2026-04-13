@@ -46,7 +46,7 @@ const theadStyle = {
   background: 'var(--bg-secondary)',
   position: 'sticky',
   top: 0,
-  zIndex: 1,
+  zIndex: 3,
 }
 
 const thStyle = {
@@ -212,8 +212,8 @@ function OrderGroup({ order, isExpanded, onToggle, isFirst }) {
   const singleLine = isSingleLine ? order.lines[0] : null
 
   const orderLabel = (
-    <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', letterSpacing: '0.04em', textTransform: 'uppercase', marginRight: 8 }}>
-      {order.orderId}
+    <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', letterSpacing: '0.04em', textTransform: 'uppercase', marginRight: 8, whiteSpace: 'nowrap' }}>
+      {order.orderId} —
     </span>
   )
 
