@@ -186,6 +186,67 @@ Every implemented decision with its previous state, source, and rationale. This 
 
 ---
 
+## David's Feedback Review (Apr 9 Grooming)
+
+### DEC-28: Hazmat display — yellow badge when true, "--" when false
+- **Previous:** "Yes" (red badge) / "No" (neutral badge) text in Product tab; "Y/N" column in shipments table
+- **Decision:** Yellow badge with warning triangle icon + "Hazmat" text when true; "--" when false. Shipments table column renamed "Hazardous(Y/N)" → "Hazardous"
+- **Source:** David, Apr 9 ("would an image work better than Yes value?") → Jana: "a triangle, warning triangle" → Manuela confirmed, Apr 13
+
+### DEC-29: Column headers wrap vertically, content truncates with "..."
+- **Previous:** Fixed column widths with `whiteSpace: nowrap` on headers and cells
+- **Decision:** Headers wrap words vertically (stacked) to stay compact. Content cells truncate with "..." when clipped. Auto-fit default width = header width + ~20-30% buffer.
+- **Source:** David, Apr 9 ("Is there a way for a user to change column width?") → Jana: auto-adjust → Manuela designed full behavior, Apr 13
+
+### DEC-30: Truncation tooltip only if 2+ words hidden
+- **Previous:** No truncation tooltips existed
+- **Decision:** Show "..." always when content is clipped, but hover tooltip only appears if more than 2 words are truncated. Avoids tooltip spam for minor clipping.
+- **Source:** Manuela, Apr 13 brainstorm
+
+### DEC-31: AP cost in routing table → hover tooltip with summary
+- **Previous:** AP cost cell in routing table was plain text, not interactive
+- **Decision:** Hover shows compact tooltip (AP Total, AR Total, Margin amount + %). "View Details" link opens existing Show Rate Details modal (SHP-29).
+- **Source:** Manuela proposed, Jana agreed, Apr 9
+
+### DEC-32: Cost data available from "Sent" status onward
+- **Previous assumption:** Cost Allocation only populated after carrier acceptance
+- **Correction:** AP and AR costs populate during tendering evaluation (rating service called at send). Available from "Sent" onward.
+- **Source:** Jana, Apr 9 — "after you send, that is when you call the rating service"
+
+### DEC-33: Panel-aware column presets (Exceptions vs Monitoring)
+- **Previous:** Same column preset regardless of panel
+- **Decision:** Switching panels auto-applies a default column profile. Exceptions shows Message/Validation Message columns; Monitoring hides them. User manual customization takes priority.
+- **Source:** David, Apr 9 ("Message is meaningless if I go to monitoring tabs") → Manuela proposed two profiles → Jana + David confirmed
+
+### DEC-34: Dates show date-only in table, time on hover
+- **Previous:** Dates displayed as raw "MM/DD/YYYY HH:MM TZ" format
+- **Decision:** Show date only in table cells. Hover tooltip shows full date + time.
+- **Source:** David, Apr 9 ("the date is important, the time is not" / "time is just a made-up time by the system") → Jana + Manuela confirmed
+- **Why:** Saves column width. Time is system-generated and only meaningful for appointments.
+
+### DEC-35: "Sent" → "Tender Sent" in Monitoring panel tab
+- **Previous:** Monitoring panel tab labeled "Sent"
+- **Decision:** Rename to "Tender Sent" for clarity. Tender status badge values stay as "Sent" (already in tender context).
+- **Source:** David, Apr 9 ("what sent? We send data, we send to the customer, we send to the carrier") → Jana confirmed
+
+### DEC-36: Order tab section reorder + dates merged into locations
+- **Previous:** Row 1: General | Req. Transportation | Ship From | Ship To. Row 2: Schedule | Products Info | Totals | Incoterms
+- **Decision:** General → Totals (promoted) → Ship From + pickup dates → Ship To + delivery dates → Req. Transportation (demoted). Add appointment checkbox (display-only) under pickup/delivery dates.
+- **Source:** David, Apr 9 — "by the time we have a shipment, we're not concerned about requested mode" / "the pickup dates associated with the ship from, delivery dates with the ship to" / appointment checkbox clarified as display-only
+- **Why:** Totals help users assess borderline LTL/TL. Dates logically belong with their location. Requested Transportation is less relevant at shipment stage.
+
+### DEC-37: TenderSummary card removed, "View Shipment Details" button kept
+- **Previous:** 4-column TenderSummary card showing shipment context above routing table
+- **Decision:** Remove TenderSummary card entirely. Rename button "View Full Details" → "View Shipment Details". Relocate to left side of "Add Quote" in tender sub-tab action row. TenderDetailModal still accessible.
+- **Source:** David, Apr 9 ("redundant, all displayed elsewhere" / "We're replacing TMS for a reason") → Jana: "we can remove it, keep the button" → Manuela: button placement and naming, Apr 13
+
+### DEC-38: Order # column moved to far right in default preset
+- **Previous:** Order # at position 4 in default column preset
+- **Decision:** Move to position ~12-13 (after operational columns)
+- **Source:** David, Apr 9 — "I would move order number to the far right. I don't think people care about that. That's just a number."
+
+---
+
 ## Changelog
 
 | Date | Decisions added |
@@ -193,3 +254,4 @@ Every implemented decision with its previous state, source, and rationale. This 
 | Apr 1, 2026 | Initial decision log created — DEC-01 through DEC-17 from Sessions 2-5 |
 | Apr 1, 2026 | DEC-18 (panel pools), DEC-19 (filter vs column visibility), DEC-20 (context-aware menu) from Session 6 speccing |
 | Apr 1, 2026 | DEC-21 through DEC-27 — Major corrections from grooming with Jana: Monitoring = same screen as Exceptions, PPT slides were one split table, tender statuses reduced to 4, shipment status mapping, actions in both panels, shipment status column |
+| Apr 13, 2026 | DEC-28 through DEC-38 — David's written feedback review + Apr 9 grooming with Jana/David/Manuela: hazmat badges, column auto-fit/wrapping, cost visibility from tender tab, panel-aware presets, date-only display, "Tender Sent" rename, order tab overhaul, TenderSummary removal, Order # deprioritized |
