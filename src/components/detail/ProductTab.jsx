@@ -109,15 +109,15 @@ const thLineNumStyle = {
   ...thStyle,
   ...stickyCol1,
   background: 'var(--bg-secondary)',
+  borderRight: '1px solid var(--border-subtle)',
   paddingLeft: 20,
   paddingRight: 20,
-  borderBottom: '1px solid var(--border-subtle)',
 }
 
 const tdLineNumStyle = {
   ...tdStyle,
   ...stickyCol1,
-  boxShadow: '2px 0 4px rgba(0,0,0,0.06)',
+  borderRight: '1px solid var(--border-subtle)',
   paddingLeft: 20,
   borderBottom: 'none',
   paddingRight: 20,
