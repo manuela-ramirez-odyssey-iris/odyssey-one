@@ -1369,13 +1369,27 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
   }, [])
 
   const handleExpand = useCallback(() => {
-    setCollapsedWidths(null)
+    // Set full widths first so CSS can transition from collapsed → full
+    const leftTable = document.querySelector('[data-left-table] table')
+    if (leftTable) {
+      const headerCells = [...leftTable.querySelectorAll('thead th')]
+      const fullWidths = {}
+      COLLAPSIBLE_KEYS.forEach(key => {
+        const idx = LOCKED_COLUMNS.findIndex(c => c.key === key)
+        fullWidths[key] = headerCells[idx]?.scrollWidth || 140
+      })
+      setCollapsedWidths(fullWidths)
+      // After transition completes, remove constraints
+      setTimeout(() => setCollapsedWidths(null), 250)
+    } else {
+      setCollapsedWidths(null)
+    }
   }, [])
 
   /* Re-collapse when switching sub-tabs (columns change per tab) */
   useEffect(() => {
     setCollapsedWidths(null)
-    const timer = setTimeout(() => handleCollapse(), 200)
+    const timer = setTimeout(() => handleCollapse(), 100)
     return () => clearTimeout(timer)
   }, [activeSubTab, handleCollapse])
 
