@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react'
+import { TriangleAlert } from 'lucide-react'
 
 const COLUMNS = [
   { key: 'lineNumber', label: 'Line #' },
@@ -112,24 +113,16 @@ const colPrimaryStyle = {
   color: 'var(--text-primary)',
 }
 
-const hazmatTagBase = {
-  display: 'inline-block',
+const hazmatBadgeStyle = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 4,
   fontSize: 12,
   fontWeight: 600,
-  padding: '1px 8px',
+  padding: '2px 8px',
   borderRadius: 'var(--radius-sm)',
-}
-
-const hazmatYesStyle = {
-  ...hazmatTagBase,
-  background: 'var(--badge-red-bg)',
-  color: 'var(--badge-red-text)',
-}
-
-const hazmatNoStyle = {
-  ...hazmatTagBase,
-  background: 'var(--bg-tertiary)',
-  color: 'var(--text-tertiary)',
+  background: 'rgba(245, 158, 11, 0.12)',
+  color: 'rgb(180, 110, 5)',
 }
 
 const ProductTab = React.memo(function ProductTab({ data }) {
@@ -158,7 +151,7 @@ const ProductTab = React.memo(function ProductTab({ data }) {
   if (!data?.orders) return <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-placeholder)' }}>No product data available.</div>
 
   return (
-    <div style={{ ...wrapperStyle, margin: 'calc(-1 * var(--spacing-4)) calc(-1 * var(--spacing-5))' }}>
+    <div style={{ ...wrapperStyle, marginTop: 'var(--spacing-3)' }}>
       <table style={tableStyle}>
         <thead style={theadStyle}>
           <tr>
@@ -275,7 +268,12 @@ function OrderGroup({ order, isExpanded, onToggle }) {
 
 function HazmatTag({ value }) {
   if (value === true || value === 'Yes') {
-    return <span style={hazmatYesStyle}>Yes</span>
+    return (
+      <span style={hazmatBadgeStyle}>
+        <TriangleAlert size={12} />
+        Hazmat
+      </span>
+    )
   }
-  return <span style={hazmatNoStyle}>No</span>
+  return <span style={{ color: 'var(--text-placeholder)' }}>--</span>
 }

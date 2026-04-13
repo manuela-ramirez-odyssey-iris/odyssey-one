@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { List } from 'react-window'
-import { Zap, Columns3Cog, Info } from 'lucide-react'
+import { Zap, Columns3Cog, Info, TriangleAlert } from 'lucide-react'
 import Badge from '../ui/Badge'
 import DarkTooltip from '../ui/DarkTooltip'
 import { ALL_COLUMNS } from '../detail/ColumnPanel'
@@ -143,6 +143,22 @@ export const COLUMN_CONFIG = [
       </span>
     ),
   },
+  { key: 'hazardous', label: 'Hazardous', width: 100, render: (val) => {
+    if (val === true || val === 'Yes' || val === 'Y') {
+      return (
+        <span style={{
+          display: 'inline-flex', alignItems: 'center', gap: 4,
+          fontSize: 12, fontWeight: 600, padding: '2px 8px',
+          borderRadius: 'var(--radius-sm)',
+          background: 'rgba(245, 158, 11, 0.12)', color: 'rgb(180, 110, 5)',
+        }}>
+          <TriangleAlert size={12} />
+          Hazmat
+        </span>
+      )
+    }
+    return <span style={{ color: 'var(--text-placeholder)' }}>--</span>
+  }},
   {
     key: 'validationMessage',
     label: 'Message',

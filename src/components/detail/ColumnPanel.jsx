@@ -35,7 +35,7 @@ export const ALL_COLUMNS = [
   { key: 'netWeight', label: 'Net Weight' },
   { key: 'tareWeight', label: 'Tare Weight' },
   { key: 'pkgCount', label: 'Pkg Count' },
-  { key: 'hazardous', label: 'Hazardous (Y/N)' },
+  { key: 'hazardous', label: 'Hazardous' },
   { key: 'apFreightCost', label: 'AP Freight Cost' },
   { key: 'preferredApDirectCost', label: 'Preferred AP Direct Cost' },
   { key: 'arFreightCost', label: 'AR Freight Cost' },
