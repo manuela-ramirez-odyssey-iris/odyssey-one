@@ -63,16 +63,23 @@ const thStyle = {
   verticalAlign: 'middle',
 }
 
-const stickyFirstCol = {
+const stickyCol0 = {
   position: 'sticky',
   left: 0,
   zIndex: 2,
   background: 'inherit',
 }
 
+const stickyCol1 = {
+  position: 'sticky',
+  left: 36,
+  zIndex: 2,
+  background: 'inherit',
+}
+
 const thExpandStyle = {
   ...thStyle,
-  ...stickyFirstCol,
+  ...stickyCol0,
   width: 36,
   textAlign: 'center',
   paddingLeft: 8,
@@ -89,11 +96,22 @@ const tdStyle = {
 
 const tdExpandStyle = {
   ...tdStyle,
-  ...stickyFirstCol,
+  ...stickyCol0,
   width: 36,
   textAlign: 'center',
   paddingLeft: 8,
   paddingRight: 4,
+}
+
+const thLineNumStyle = {
+  ...thStyle,
+  ...stickyCol1,
+  background: 'var(--bg-secondary)',
+}
+
+const tdLineNumStyle = {
+  ...tdStyle,
+  ...stickyCol1,
 }
 
 const expandBtnStyle = {
@@ -162,7 +180,7 @@ const ProductTab = React.memo(function ProductTab({ data }) {
           <tr>
             <th style={thExpandStyle}></th>
             {COLUMNS.map((col) => (
-              <th key={col.key} style={thStyle}>
+              <th key={col.key} style={col.key === 'lineNumber' ? thLineNumStyle : thStyle}>
                 {col.label}
               </th>
             ))}
@@ -186,6 +204,8 @@ const ProductTab = React.memo(function ProductTab({ data }) {
                       borderBottom: '1px solid var(--border-subtle)',
                       letterSpacing: '0.04em',
                       textTransform: 'uppercase',
+                      position: 'sticky',
+                      left: 0,
                     }}
                   >
                     {order.orderId}
@@ -216,7 +236,7 @@ function OrderGroup({ order, isExpanded, onToggle }) {
       <tr style={{ background: 'var(--bg-primary)' }}>
         <td style={tdExpandStyle} />
         {COLUMNS.map((col) => (
-          <td key={col.key} style={tdStyle}>
+          <td key={col.key} style={col.key === 'lineNumber' ? tdLineNumStyle : tdStyle}>
             {col.key === 'hazmat' ? (
               <HazmatTag value={singleLine.hazmat} />
             ) : (
@@ -245,7 +265,7 @@ function OrderGroup({ order, isExpanded, onToggle }) {
             {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
           </button>
         </td>
-        <td style={tdStyle}>{order.lineCount ?? order.lines.length} lines</td>
+        <td style={tdLineNumStyle}>{order.lineCount ?? order.lines.length} lines</td>
         <td colSpan={COLUMNS.length - 1} style={tdStyle}></td>
       </tr>
 
@@ -258,7 +278,7 @@ function OrderGroup({ order, isExpanded, onToggle }) {
           >
             <td style={tdExpandStyle} />
             {COLUMNS.map((col) => (
-              <td key={col.key} style={tdStyle}>
+              <td key={col.key} style={col.key === 'lineNumber' ? tdLineNumStyle : tdStyle}>
                 {col.key === 'hazmat' ? (
                   <HazmatTag value={line.hazmat} />
                 ) : (
