@@ -1053,7 +1053,8 @@ function RoutingTable({ options, columns, tabColumns, highlightedRank, openMenuR
             <tr>
               {LOCKED_COLUMNS.map((col) => {
                 const collapsed = isCollapsed(col.key)
-                const w = collapsed ? getCollapsedWidth(col.key) : null
+                const hasWidth = collapsedWidths && COLLAPSIBLE_KEYS.includes(col.key)
+                const w = hasWidth ? collapsedWidths[col.key] : null
                 const wrapWhenCollapsed = columnsCollapsed && !col.narrow ? { whiteSpace: 'normal', lineHeight: 1.3 } : {}
                 const statusNarrow = columnsCollapsed && col.key === 'status' ? { width: 78, maxWidth: 78 } : {}
                 return (
@@ -1062,7 +1063,8 @@ function RoutingTable({ options, columns, tabColumns, highlightedRank, openMenuR
                     ...(col.narrow ? { width: 64, whiteSpace: 'normal', lineHeight: 1.3, textAlign: 'center' } : {}),
                     ...wrapWhenCollapsed,
                     ...statusNarrow,
-                    ...(collapsed ? { width: w, maxWidth: w, overflow: 'hidden', padding: '10px 4px' } : {}),
+                    ...(hasWidth ? { width: w, maxWidth: w, overflow: 'hidden' } : {}),
+                    ...(collapsed ? { padding: '10px 4px' } : {}),
                     transition: 'width var(--transition-base), max-width var(--transition-base), padding var(--transition-base)',
                   }} title={col.label}>
                     <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', display: 'block', whiteSpace: 'nowrap', ...(collapsed ? { fontSize: 11, color: 'var(--text-placeholder)' } : {}) }}>
@@ -1086,7 +1088,8 @@ function RoutingTable({ options, columns, tabColumns, highlightedRank, openMenuR
                   {LOCKED_COLUMNS.map((col) => {
                     const collapsed = isCollapsed(col.key)
                     const isPrimary = col.primary
-                    const w = collapsed ? getCollapsedWidth(col.key) : null
+                    const hasWidth = collapsedWidths && COLLAPSIBLE_KEYS.includes(col.key)
+                    const w = hasWidth ? collapsedWidths[col.key] : null
 
                     const cellStyle = {
                       ...tdStyle,
@@ -1094,7 +1097,8 @@ function RoutingTable({ options, columns, tabColumns, highlightedRank, openMenuR
                       ...(isPrimary ? { fontWeight: 500, color: 'var(--text-primary)' } : {}),
                       ...(col.narrow ? { width: 64, textAlign: 'center' } : {}),
                       ...(columnsCollapsed && col.key === 'status' ? { width: 78, maxWidth: 78 } : {}),
-                      ...(collapsed ? { width: w, maxWidth: w, overflow: 'hidden', textOverflow: 'ellipsis', padding: '10px 4px', fontSize: 12 } : {}),
+                      ...(hasWidth ? { width: w, maxWidth: w, overflow: 'hidden', textOverflow: 'ellipsis' } : {}),
+                      ...(collapsed ? { padding: '10px 4px', fontSize: 12 } : {}),
                       transition: 'width var(--transition-base), max-width var(--transition-base), padding var(--transition-base)',
                     }
 
@@ -1277,6 +1281,7 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
   const [quoteModal, setQuoteModal] = useState({ isOpen: false, mode: 'add', carrierData: null })
   const [collapsedWidths, setCollapsedWidths] = useState(null)
+  const [expandedWidths, setExpandedWidths] = useState(null)
   const tableRef = useRef(null)
 
   /* Reset all state when data changes (new shipment selected) */
@@ -1318,8 +1323,11 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
   }, [])
 
   const isCollapsed = useCallback((key) => {
-    return collapsedWidths !== null && COLLAPSIBLE_KEYS.includes(key)
-  }, [collapsedWidths])
+    if (!collapsedWidths || !COLLAPSIBLE_KEYS.includes(key)) return false
+    // Not visually collapsed if width matches expanded width (transitioning back)
+    if (expandedWidths && collapsedWidths[key] >= expandedWidths[key]) return false
+    return true
+  }, [collapsedWidths, expandedWidths])
 
   const getCollapsedWidth = useCallback((key) => {
     if (!collapsedWidths || !collapsedWidths[key]) return null
@@ -1356,6 +1364,9 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
       totalCollapsibleWidth += w
     })
 
+    // Save expanded widths for smooth expand animation later
+    setExpandedWidths({ ...collapsibleCurrentWidths })
+
     const targetCollapsibleWidth = targetLeftWidth - neverCollapseWidth
     const scaleFactor = Math.max(0.2, targetCollapsibleWidth / totalCollapsibleWidth)
     const MIN_COL_WIDTH = 40
@@ -1369,22 +1380,14 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
   }, [])
 
   const handleExpand = useCallback(() => {
-    // Set full widths first so CSS can transition from collapsed → full
-    const leftTable = document.querySelector('[data-left-table] table')
-    if (leftTable) {
-      const headerCells = [...leftTable.querySelectorAll('thead th')]
-      const fullWidths = {}
-      COLLAPSIBLE_KEYS.forEach(key => {
-        const idx = LOCKED_COLUMNS.findIndex(c => c.key === key)
-        fullWidths[key] = headerCells[idx]?.scrollWidth || 140
-      })
-      setCollapsedWidths(fullWidths)
-      // After transition completes, remove constraints
+    if (expandedWidths) {
+      // Transition to saved full widths, then clear
+      setCollapsedWidths(expandedWidths)
       setTimeout(() => setCollapsedWidths(null), 250)
     } else {
       setCollapsedWidths(null)
     }
-  }, [])
+  }, [expandedWidths])
 
   /* Re-collapse when switching sub-tabs (columns change per tab) */
   useEffect(() => {
