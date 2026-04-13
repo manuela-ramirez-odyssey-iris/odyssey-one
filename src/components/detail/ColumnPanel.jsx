@@ -50,9 +50,9 @@ export const ALL_COLUMNS = [
 ]
 
 const DEFAULT_COLUMNS = [
-  'buyShipment', 'customerId', 'shipmentStatus', 'orders', 'orderCount',
+  'buyShipment', 'customerId', 'shipmentStatus', 'orderCount',
   'pickupDate', 'deliveryDate', 'origin', 'destination', 'grossWeight',
-  'mode', 'equipmentCode', 'scac', 'apFreightCost', 'validationMessage',
+  'mode', 'equipmentCode', 'scac', 'orders', 'apFreightCost', 'validationMessage',
 ]
 
 export const PRESETS = {
