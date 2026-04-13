@@ -111,6 +111,7 @@ const thLineNumStyle = {
   background: 'var(--bg-secondary)',
   paddingLeft: 10,
   paddingRight: 10,
+  boxShadow: '1px 0 0 var(--border-default)',
 }
 
 const tdLineNumStyle = {
@@ -119,6 +120,7 @@ const tdLineNumStyle = {
   paddingLeft: 10,
   paddingRight: 10,
   borderBottom: 'none',
+  boxShadow: '1px 0 0 var(--border-default)',
   paddingRight: 20,
 }
 
