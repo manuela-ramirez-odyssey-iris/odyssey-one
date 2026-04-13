@@ -47,7 +47,7 @@ const theadStyle = {
   position: 'sticky',
   top: 0,
   zIndex: 3,
-  borderBottom: '1px solid var(--border-subtle)',
+  boxShadow: '0 1px 0 var(--border-subtle)',
 }
 
 const thStyle = {
