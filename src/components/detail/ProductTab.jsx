@@ -227,13 +227,15 @@ function OrderGroup({ order, isExpanded, onToggle, isFirst }) {
 
   const topBorder = {}
 
+  const stickyBottomBorder = { borderBottom: '1px solid var(--bg-tertiary)' }
+
   /* Single-line orders render inline with no expand button */
   if (isSingleLine) {
     return (
       <tr style={{ background: 'var(--bg-primary)', ...topBorder }}>
-        <td style={tdExpandStyle} />
+        <td style={{ ...tdExpandStyle, ...stickyBottomBorder }} />
         {COLUMNS.map((col) => (
-          <td key={col.key} style={col.key === 'lineNumber' ? tdLineNumStyle : tdStyle}>
+          <td key={col.key} style={col.key === 'lineNumber' ? { ...tdLineNumStyle, ...stickyBottomBorder } : tdStyle}>
             {col.key === 'lineNumber' ? (
               <span style={{ display: 'flex', alignItems: 'center' }}>
                 {orderLabel}
@@ -259,7 +261,7 @@ function OrderGroup({ order, isExpanded, onToggle, isFirst }) {
         style={{ background: 'var(--bg-primary)', cursor: 'pointer', ...topBorder }}
         onClick={onToggle}
       >
-        <td style={tdExpandStyle}>
+        <td style={{ ...tdExpandStyle, ...(!isExpanded ? stickyBottomBorder : {}) }}>
           <button
             style={expandBtnStyle}
             onClick={(e) => { e.stopPropagation(); onToggle() }}
@@ -268,7 +270,7 @@ function OrderGroup({ order, isExpanded, onToggle, isFirst }) {
             {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
           </button>
         </td>
-        <td style={tdLineNumStyle}>
+        <td style={{ ...tdLineNumStyle, ...(!isExpanded ? stickyBottomBorder : {}) }}>
           <span style={{ display: 'flex', alignItems: 'center' }}>
             {orderLabel}
             <span style={{ color: 'var(--text-placeholder)', marginLeft: 4 }}>({order.lineCount ?? order.lines.length})</span>
