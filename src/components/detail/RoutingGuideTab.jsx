@@ -953,7 +953,7 @@ function CostTooltip({ carrier, onViewDetails }) {
       onMouseEnter={handleEnter}
       onMouseLeave={() => { setShow(false); setHovered(false) }}
       onClick={(e) => { e.stopPropagation(); onViewDetails() }}
-      style={{ cursor: 'pointer', color: hovered ? 'var(--carolina-blue-600)' : 'inherit', transition: 'color var(--transition-fast)' }}
+      style={{ cursor: 'pointer', color: hovered ? 'var(--carolina-blue-400)' : 'inherit', transition: 'color var(--transition-fast)' }}
     >
       {apTotal}
       {show && createPortal(
