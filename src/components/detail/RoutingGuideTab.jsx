@@ -1282,7 +1282,6 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
   const [quoteModal, setQuoteModal] = useState({ isOpen: false, mode: 'add', carrierData: null })
   const [collapsedWidths, setCollapsedWidths] = useState(null)
-  const hasInitCollapse = useRef(false)
   const tableRef = useRef(null)
 
   /* Reset all state when data changes (new shipment selected) */
@@ -1299,11 +1298,12 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
 
   }, [data])
 
-  /* Reset collapse when switching sub-tabs */
+  /* Re-collapse when switching sub-tabs (columns change per tab) */
   useEffect(() => {
-
     setCollapsedWidths(null)
-  }, [activeSubTab])
+    const timer = setTimeout(() => handleCollapse(), 200)
+    return () => clearTimeout(timer)
+  }, [activeSubTab, handleCollapse])
 
   /* Click-outside listener: clicks outside tableRef and not inside [data-tender-dropdown] */
   useEffect(() => {
@@ -1382,15 +1382,6 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
     setCollapsedWidths(null)
   }, [])
 
-  /* Default to collapsed on first render */
-  useEffect(() => {
-    if (hasInitCollapse.current) return
-    const timer = setTimeout(() => {
-      hasInitCollapse.current = true
-      handleCollapse()
-    }, 200)
-    return () => clearTimeout(timer)
-  }, [handleCollapse])
 
   const handleQuoteSave = useCallback((formData) => {
     if (quoteModal.mode === 'add') {
