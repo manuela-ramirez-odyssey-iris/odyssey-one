@@ -412,6 +412,7 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
   const [listHeight, setListHeight] = useState(600)
   const [menuOpenId, setMenuOpenId] = useState(null)
   const [columnWidths, setColumnWidths] = useState({})
+  const [headerHeight, setHeaderHeight] = useState(null)
 
   const handleResizeStart = useCallback((e, key, startWidth) => {
     e.preventDefault()
@@ -515,6 +516,16 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
     return () => ro.disconnect()
   }, [])
 
+  // Track header height so actions column header matches
+  useEffect(() => {
+    if (!headerRef.current) return
+    const ro = new ResizeObserver(([entry]) => {
+      setHeaderHeight(entry.contentRect.height)
+    })
+    ro.observe(headerRef.current)
+    return () => ro.disconnect()
+  }, [])
+
   // Sync horizontal scroll (data list → header) and vertical scroll (data list → actions list)
   useEffect(() => {
     const dataEl = listRef.current?.element
@@ -577,7 +588,7 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
           >
             <div
               className="flex"
-              style={{ minWidth: 'max-content', paddingTop: 5, paddingBottom: 5, background: 'var(--bg-primary)', borderBottom: '1px solid var(--border-subtle)' }}
+              style={{ minWidth: 'max-content', background: 'var(--bg-primary)', borderBottom: '1px solid var(--border-subtle)' }}
               onMouseEnter={(e) => { e.currentTarget.querySelectorAll('[data-resize-handle]').forEach(h => { h.style.background = 'var(--border-subtle)' }) }}
               onMouseLeave={(e) => { e.currentTarget.querySelectorAll('[data-resize-handle]').forEach(h => { h.style.background = 'transparent' }) }}
             >
@@ -620,7 +631,7 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
         {/* Right: fixed actions column — single div with shadow spanning full height */}
         <div style={{ width: 56, flexShrink: 0, boxShadow: '-2px 0 4px rgba(0,0,0,0.06)', background: 'var(--bg-primary)', display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 2 }}>
           {/* Actions header */}
-          <div style={{ minHeight: 'var(--bottombar-collapsed)', flexShrink: 0, borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: 5, paddingBottom: 5 }}>
+          <div style={{ height: headerHeight || 'var(--bottombar-collapsed)', flexShrink: 0, borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <button
               className="flex items-center justify-center mx-auto bg-transparent border-none cursor-pointer p-1 rounded"
               style={{ color: 'var(--text-placeholder)' }}
