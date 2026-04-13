@@ -1,4 +1,5 @@
-import React, { useState, useCallback, useEffect } from 'react'
+import React, { useState, useCallback, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { TriangleAlert, ChevronDown, ChevronRight } from 'lucide-react'
 
 const COLUMNS = [
@@ -11,8 +12,6 @@ const COLUMNS = [
   { key: 'hazmat', label: 'Hazardous' },
   { key: 'tareWeight', label: 'Tare Weight' },
   { key: 'netWeight', label: 'Net Weight' },
-  { key: 'hazmatClass', label: 'Hazmat Class' },
-  { key: 'hazmatGroup', label: 'Hazmat Group' },
   { key: 'productClass', label: 'Product Class' },
   { key: 'shippingClass', label: 'Shipping Class' },
   { key: 'flashPoint', label: 'Flash Point' },
@@ -243,7 +242,7 @@ function OrderGroup({ order, isExpanded, onToggle, isFirst }) {
                 {singleLine[col.key] ?? '\u2014'}
               </span>
             ) : col.key === 'hazmat' ? (
-              <HazmatTag value={singleLine.hazmat} />
+              <HazmatTag value={singleLine.hazmat} hazmatClass={singleLine.hazmatClass} hazmatGroup={singleLine.hazmatGroup} />
             ) : (
               singleLine[col.key] ?? '\u2014'
             )}
@@ -290,7 +289,7 @@ function OrderGroup({ order, isExpanded, onToggle, isFirst }) {
             {COLUMNS.map((col) => (
               <td key={col.key} style={col.key === 'lineNumber' ? { ...tdLineNumStyle, paddingLeft: 30 } : tdStyle}>
                 {col.key === 'hazmat' ? (
-                  <HazmatTag value={line.hazmat} />
+                  <HazmatTag value={line.hazmat} hazmatClass={line.hazmatClass} hazmatGroup={line.hazmatGroup} />
                 ) : (
                   line[col.key] ?? '\u2014'
                 )}
@@ -302,14 +301,40 @@ function OrderGroup({ order, isExpanded, onToggle, isFirst }) {
   )
 }
 
-function HazmatTag({ value }) {
-  if (value === true || value === 'Yes') {
-    return (
-      <span style={hazmatBadgeStyle}>
+function HazmatTag({ value, hazmatClass, hazmatGroup }) {
+  const [show, setShow] = useState(false)
+  const [pos, setPos] = useState({ top: 0, left: 0 })
+  const ref = useRef(null)
+
+  if (value !== true && value !== 'Yes') {
+    return <span style={{ color: 'var(--text-placeholder)' }}>--</span>
+  }
+
+  const handleEnter = () => {
+    if (!ref.current) return
+    const rect = ref.current.getBoundingClientRect()
+    setPos({ top: rect.top - 8, left: rect.left + rect.width / 2 })
+    setShow(true)
+  }
+
+  return (
+    <>
+      <span ref={ref} onMouseEnter={handleEnter} onMouseLeave={() => setShow(false)} style={hazmatBadgeStyle}>
         <TriangleAlert size={12} />
         Hazmat
       </span>
-    )
-  }
-  return <span style={{ color: 'var(--text-placeholder)' }}>--</span>
+      {show && (hazmatClass || hazmatGroup) && createPortal(
+        <div style={{
+          position: 'fixed', top: pos.top, left: pos.left, transform: 'translate(-50%, -100%)',
+          background: 'var(--deep-sea-neutral-900, #1B2537)', color: 'var(--deep-sea-neutral-300, #D0D4DB)',
+          borderRadius: 'var(--radius-md)', padding: '8px 12px', fontSize: 13, lineHeight: 1.6,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.25)', zIndex: 99999, whiteSpace: 'nowrap',
+        }}>
+          {hazmatClass && <div>Class: <strong>{hazmatClass}</strong></div>}
+          {hazmatGroup && <div>Group: <strong>{hazmatGroup}</strong></div>}
+        </div>,
+        document.body
+      )}
+    </>
+  )
 }
