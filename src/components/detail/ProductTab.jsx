@@ -191,30 +191,11 @@ const ProductTab = React.memo(function ProductTab({ data }) {
             const isExpanded = !!expandedOrders[order.orderId]
             return (
               <React.Fragment key={order.orderId}>
-                {/* Order separator row */}
-                <tr>
-                  <td
-                    colSpan={COLUMNS.length + 1}
-                    style={{
-                      padding: orderIdx === 0 ? '8px 14px 6px' : '20px 14px 6px',
-                      fontSize: 11,
-                      fontWeight: 600,
-                      color: 'var(--text-tertiary)',
-                      background: 'var(--bg-primary)',
-                      borderBottom: '1px solid var(--border-subtle)',
-                      letterSpacing: '0.04em',
-                      textTransform: 'uppercase',
-                      position: 'sticky',
-                      left: 0,
-                    }}
-                  >
-                    {order.orderId}
-                  </td>
-                </tr>
                 <OrderGroup
                   order={order}
                   isExpanded={isExpanded}
                   onToggle={() => toggleOrder(order.orderId)}
+                  isFirst={orderIdx === 0}
                 />
               </React.Fragment>
             )
@@ -226,18 +207,31 @@ const ProductTab = React.memo(function ProductTab({ data }) {
 })
 export default ProductTab
 
-function OrderGroup({ order, isExpanded, onToggle }) {
+function OrderGroup({ order, isExpanded, onToggle, isFirst }) {
   const isSingleLine = order.lines.length === 1
   const singleLine = isSingleLine ? order.lines[0] : null
+
+  const orderLabel = (
+    <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', letterSpacing: '0.04em', textTransform: 'uppercase', marginRight: 8 }}>
+      {order.orderId}
+    </span>
+  )
+
+  const topBorder = !isFirst ? { borderTop: '1px solid var(--border-subtle)' } : {}
 
   /* Single-line orders render inline with no expand button */
   if (isSingleLine) {
     return (
-      <tr style={{ background: 'var(--bg-primary)' }}>
+      <tr style={{ background: 'var(--bg-primary)', ...topBorder }}>
         <td style={tdExpandStyle} />
         {COLUMNS.map((col) => (
           <td key={col.key} style={col.key === 'lineNumber' ? tdLineNumStyle : tdStyle}>
-            {col.key === 'hazmat' ? (
+            {col.key === 'lineNumber' ? (
+              <span style={{ display: 'flex', alignItems: 'center' }}>
+                {orderLabel}
+                {singleLine[col.key] ?? '\u2014'}
+              </span>
+            ) : col.key === 'hazmat' ? (
               <HazmatTag value={singleLine.hazmat} />
             ) : (
               singleLine[col.key] ?? '\u2014'
@@ -253,7 +247,7 @@ function OrderGroup({ order, isExpanded, onToggle }) {
     <>
       {/* Parent row */}
       <tr
-        style={{ background: 'var(--bg-primary)', cursor: 'pointer' }}
+        style={{ background: 'var(--bg-primary)', cursor: 'pointer', ...topBorder }}
         onClick={onToggle}
       >
         <td style={tdExpandStyle}>
@@ -265,7 +259,12 @@ function OrderGroup({ order, isExpanded, onToggle }) {
             {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
           </button>
         </td>
-        <td style={tdLineNumStyle}>{order.lineCount ?? order.lines.length} lines</td>
+        <td style={tdLineNumStyle}>
+          <span style={{ display: 'flex', alignItems: 'center' }}>
+            {orderLabel}
+            <span>{order.lineCount ?? order.lines.length} lines</span>
+          </span>
+        </td>
         <td colSpan={COLUMNS.length - 1} style={tdStyle}></td>
       </tr>
 
