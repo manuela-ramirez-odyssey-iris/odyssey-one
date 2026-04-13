@@ -224,7 +224,7 @@ function OrderGroup({ order, isExpanded, onToggle, isFirst }) {
     </span>
   )
 
-  const topBorder = !isFirst ? { borderTop: '1px solid var(--border-subtle)' } : {}
+  const topBorder = {}
 
   /* Single-line orders render inline with no expand button */
   if (isSingleLine) {
