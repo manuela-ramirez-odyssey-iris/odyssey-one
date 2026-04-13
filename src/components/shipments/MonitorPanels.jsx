@@ -20,7 +20,7 @@ function buildPanels(metrics) {
       metrics: [
         { label: 'Hold', count: metrics.hold ?? 0 },
         { label: 'Consolidation', count: metrics.consolidation ?? 0 },
-        { label: 'Sent', count: metrics.sent ?? 0 },
+        { label: 'Tender Sent', count: metrics.sent ?? 0 },
         { label: 'SpotBid', count: metrics.spotBid ?? 0 },
         { label: 'Approved', count: metrics.approved ?? 0 },
       ],
