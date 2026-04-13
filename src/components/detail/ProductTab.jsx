@@ -8,7 +8,7 @@ const COLUMNS = [
   { key: 'packageCount', label: 'Package Count' },
   { key: 'grossWeight', label: 'Gross Weight' },
   { key: 'volume', label: 'Volume' },
-  { key: 'hazmat', label: 'Hazmat' },
+  { key: 'hazmat', label: 'Hazardous' },
   { key: 'tareWeight', label: 'Tare Weight' },
   { key: 'netWeight', label: 'Net Weight' },
   { key: 'hazmatClass', label: 'Hazmat Class' },
