@@ -506,7 +506,7 @@ Extracted and cross-referenced both PowerPoint decks (`Shipments-Monitoring.pptx
 
 ---
 
-## Current State (as of April 7, 2026 — End of Session 8)
+## Current State (as of April 13, 2026 — End of Session 9)
 
 ### Performance Architecture
 - **1200 shipments**, seed 42, fully reproducible
@@ -526,15 +526,21 @@ Extracted and cross-referenced both PowerPoint decks (`Shipments-Monitoring.pptx
 - Exception categories: date-issues, routing-review, tender-issues, tender-review, bid-review (weighted)
 - Validation messages per exception shipment, rate details per carrier option
 - 55 fields per carrier option, VC sums validated, sequential tender logic, weight-based cost distribution
+- **Appointment fields** added per order: `pickupAppointment`, `deliveryAppointment` (boolean)
 
 ### UI — Shipments Table
-- **15-column config-driven preset** with fixed pixel widths per column
+- **Panel-aware column presets** (SHP-47): Exceptions and Monitoring have independent column configs. "Default Exceptions" includes Validation Message; "Default Monitoring" includes Tender Status, Stops, hides messages.
+- **Header wrapping** (SHP-44): column headers wrap words vertically, content truncates with "...", smart tooltip (2+ words hidden). Drag-to-resize with min 80px. Resize handles appear on header row hover.
+- **Horizontal scrollbar at top** — always visible below header row, bidirectional sync with data list
+- **Date-only display** (SHP-48): date columns show date only, full date+time on hover tooltip
+- **Hazmat badge** (SHP-43): yellow badge with TriangleAlert icon + "Hazmat" when true, "--" when false. Column renamed "Hazardous"
+- **Order # deprioritized** (SHP-52): moved to far right in default preset, width 150px
+- **Order Count** width: 80px (minimum)
 - **Shipment status badge**: Done (green) / Review (red) with Info icon inside badge + tender status tooltip on hover
-- **Zap icon** for actions — fills with `--text-primary` when dropdown open, entire row highlights with `--deep-sea-neutral-200`
-- **Auto-scroll** — selected row scrolls above bottom bar using actual bottom bar position (600ms delay for animation), works in all panel states
-- **Metrics auto-collapse** on table scroll (fires once, resets when scrolled back to top), manual-only expand
-- **Selected row** background: `--deep-sea-neutral-200` (#E4E6EB)
-- **Column Arrangement Panel** (SHP-18): two-level panel with 4 presets → drag-to-reorder + checkbox toggle
+- **Zap icon** for actions — fills with `--text-primary` when dropdown open, entire row highlights
+- **Auto-scroll** — selected row scrolls above bottom bar, works in all panel states
+- **Metrics auto-collapse** on table scroll
+- **Column Arrangement Panel** (SHP-18): two-level panel with named presets (Default Exceptions, Default Monitoring, Logistics View, Financial View, Carrier View). Radio button highlights active preset based on current columns.
 
 ### UI — Search & Filtering
 - **Search bar**: no spellcheck/autocorrect, 2px focus border (`--deep-sea-neutral-600`), blurs on X clear
@@ -556,14 +562,31 @@ Extracted and cross-referenced both PowerPoint decks (`Shipments-Monitoring.pptx
 - **`--btn-primary-hover`** token added to design tokens
 - **Filter panel footer**: equal-width buttons via flex:1
 
-### UI — Tender Tab (SHP-21 complete)
-- **TenderSummary**: compact 3-column card + View Full Details button
-- **TenderDetailModal**: 4-column grid, QCP + View Stops footer
+### UI — Tender Tab
+- **TenderSummary removed** (SHP-51): "View Shipment Details" button relocated left of "Add Quote" in sub-tab row
+- **TenderDetailModal**: 4-column grid, sticky header on scroll
 - **3-part routing table**: fixed left | collapse toggle | scrollable right (proportional algorithm)
+- **Default collapsed** (SHP-53): all sub-tabs start collapsed, CSS transition on expand/collapse (200ms)
 - **5 sub-tabs**: Routing Options, Notify & Response, Volume Commitment, Additional Info, Others
 - **Contextual menu** per carrier: tender actions based on status + Edit Quote + Show Rate Details
-- **Quote Modal** (SHP-29): Add/Edit/View modes, SCAC dropdown, live AP/AR totals
+- **Quote Modal** (SHP-29): Add/Edit/View modes, SCAC dropdown, live AP/AR totals, sticky header on scroll
+- **AP cost tooltip** (SHP-45): hover shows AP/AR/Margin summary, click opens Rate Details modal. Value turns carolina-blue-400 on hover.
 - **Cascade tendering**: Decline/Cancel auto-tenders next null carrier
+- **"Tender Sent"** (SHP-49): Monitoring panel tab renamed from "Sent"
+
+### UI — Product Tab (SHP-46 overhaul)
+- **Table styling**: matches Cost Allocation — header color `--text-tertiary`, height 48px, outer border with `--radius-md`
+- **Order groups**: order name + line count inline (e.g., "ORD-X (3)"), single-line shows "ORD-X - 001"
+- **Expand/collapse**: ChevronDown/ChevronRight icons in bordered 22x22 buttons (matching Instructions tab)
+- **Child rows**: inset 3px left border (`boxShadow`), indented line numbers (paddingLeft 30px)
+- **Sticky columns**: expand button (left:0) + Line # (left:34) stay fixed on horizontal scroll, thead z-index 3
+- **Hazmat merged** (SHP-54, pending approval): Hazmat Class/Group columns removed, info shown in hover tooltip on hazmat badge
+
+### UI — Order Tab (SHP-50 overhaul)
+- **Section reorder**: General → Totals (promoted) → Ship From + pickup dates → Ship To + delivery dates → Req. Transportation (demoted) → Products Info → References → Incoterms → Contacts → Custom Fields
+- **Appointment badge**: blue "Appointment" badge (display-only) when order has pickup/delivery appointment
+- **Redundancy removed**: Order Number, Shipment Mode, Equipment removed from General (shown in other sections/tabs)
+- **Reduced white space**: tighter grid, fewer sections
 
 ### UI — Layout
 - **Navbar**: embedded SVG Odyssey ONE logo, ⌘K shortcut badge, Figma-matched colors
@@ -572,28 +595,57 @@ Extracted and cross-referenced both PowerPoint decks (`Shipments-Monitoring.pptx
 - **Export tooltip**: right-aligned to prevent clipping, right-justified text
 - **Loading spinner** for lazy-loaded tab content
 - **Click outside** closes filter/column panels
+- **Sticky modal headers**: title + close button stay pinned on scroll (QuoteModal, TenderDetailModal)
 
 ### Documentation
 - Domain analysis fully updated through Session 7
-- Decision log with 27+ traced decisions
+- Decision log with **39 traced decisions** (DEC-01 through DEC-39)
+- DEC-39 (Hazmat merge) pending stakeholder approval
 - Performance optimization spec + plan: `docs/superpowers/specs/2026-04-07-performance-optimization-design.md`
-- **12 specs** written: SHP-21 through SHP-33
+- David's feedback spec + plan: `docs/superpowers/specs/2026-04-13-david-feedback-stories-design.md`
+- **Backlog HTML** updated with all stories through SHP-54, "Validate" status for implemented items
+- **13 specs** written: SHP-21 through SHP-33, SHP-43 through SHP-54
 
 ---
 
 ## What's Next
 
+### Tomorrow's Priorities (Session 10)
+1. **Supabase database** — integrate backend database
+2. **UI detail fixes** — remaining validation feedback from today's review
+3. **Vercel deployment** — deploy via GitHub + Vercel (replace current Cloudflare tunnel + python http.server)
+
 ### Stories Ready for Spec (SHP-19 decomposed)
 
 | ID | Task | Size | Notes |
 |---|---|---|---|
-| SHP-39 | Filter attributes expansion | L | Add ~40 attributes from CSV, split into normal + extended panel. **Start here** — foundation for profiles and styling. |
+| SHP-39 | Filter attributes expansion | L | Add ~40 attributes from CSV, split into normal + extended panel. |
 | SHP-40 | Saved search profiles (CRUD) | M | Create, save, manage, apply — similar pattern to column arrangement presets |
 | SHP-41 | Filter panel UI styling | M | Update dropdowns, calendars, inputs to match login.html design system |
 | SHP-42 | Saved query behavior fix | S | Filters layer on top of search text, not replace it |
 
+### Pending Stakeholder Approval
+- **SHP-54** — Hazmat Class/Group merged into Hazardous badge tooltip (DEC-39). Roll back if not approved.
+
 ### Open Questions
 - **Ask Jana:** When is "Sent" tender status shown to users? (Blocks SHP-39 filter options)
+
+### Session 9 Stories — David's Feedback (April 13, 2026)
+
+| ID | Task | Status |
+|---|---|---|
+| SHP-43 | Hazmat badge visual | **Validate** |
+| SHP-44 | Column auto-fit, header wrapping, manual resize | **Validate** |
+| SHP-45 | Cost visibility from tender tab | **Validate** |
+| SHP-46 | Product tab table styling overhaul | **Validate** |
+| SHP-47 | Panel-aware column presets | **Validate** |
+| SHP-48 | Date-only display with time-on-hover | **Validate** |
+| SHP-49 | Rename "Sent" → "Tender Sent" | **Validate** |
+| SHP-50 | Order tab layout overhaul | **Validate** |
+| SHP-51 | Tender tab — remove TenderSummary | **Validate** |
+| SHP-52 | Order # column deprioritized | **Validate** |
+| SHP-53 | Tender collapse animated + default collapsed | **Validate** |
+| SHP-54 | Merge Hazmat Class/Group into badge tooltip | **Validate** (pending approval) |
 
 ### Session 7 Stories — All Complete
 
