@@ -592,12 +592,12 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
               onMouseEnter={(e) => { e.currentTarget.querySelectorAll('[data-resize-handle]').forEach(h => { h.style.background = 'var(--border-subtle)' }) }}
               onMouseLeave={(e) => { e.currentTarget.querySelectorAll('[data-resize-handle]').forEach(h => { h.style.background = 'transparent' }) }}
             >
-              <div style={{ width: 48, flexShrink: 0, padding: '0 var(--spacing-4)', minHeight: 'var(--bottombar-collapsed)', paddingBottom: 10, background: 'var(--bg-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} />
+              <div style={{ width: 48, flexShrink: 0, padding: '10px var(--spacing-4)', minHeight: 'var(--bottombar-collapsed)', background: 'var(--bg-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} />
               {orderedColumns.map(col => {
                 const w = columnWidths[col.key] || col.width || 120
                 return (
                   <div key={col.key} className="text-left"
-                    style={{ width: w, minWidth: w, flexShrink: 0, padding: '0 var(--spacing-4)', paddingBottom: 10, minHeight: 'var(--bottombar-collapsed)', background: 'var(--bg-primary)', color: col._promoted ? 'var(--deep-sea-neutral-700, #384253)' : 'var(--text-placeholder)', fontWeight: col._promoted ? 700 : 600, fontSize: 'var(--font-size-sm)', display: 'flex', alignItems: 'center', position: 'relative', whiteSpace: 'normal', overflowWrap: 'break-word', lineHeight: 1.3 }}>
+                    style={{ width: w, minWidth: w, flexShrink: 0, padding: '10px var(--spacing-4)', minHeight: 'var(--bottombar-collapsed)', background: 'var(--bg-primary)', color: col._promoted ? 'var(--deep-sea-neutral-700, #384253)' : 'var(--text-placeholder)', fontWeight: col._promoted ? 700 : 600, fontSize: 'var(--font-size-sm)', display: 'flex', alignItems: 'center', position: 'relative', whiteSpace: 'normal', overflowWrap: 'break-word', lineHeight: 1.3 }}>
                     {col.label}
                     <div
                       data-resize-handle
