@@ -109,14 +109,15 @@ const thLineNumStyle = {
   ...thStyle,
   ...stickyCol1,
   background: 'var(--bg-secondary)',
-  paddingLeft: 20,
-  paddingRight: 20,
+  paddingLeft: 10,
+  paddingRight: 10,
 }
 
 const tdLineNumStyle = {
   ...tdStyle,
   ...stickyCol1,
-  paddingLeft: 20,
+  paddingLeft: 10,
+  paddingRight: 10,
   borderBottom: 'none',
   paddingRight: 20,
 }
@@ -268,8 +269,8 @@ function OrderGroup({ order, isExpanded, onToggle, isFirst }) {
         </td>
         <td style={tdLineNumStyle}>
           <span style={{ display: 'flex', alignItems: 'center' }}>
+            <span style={{ color: 'var(--text-placeholder)', marginRight: 4 }}>({order.lineCount ?? order.lines.length})</span>
             {orderLabel}
-            <span style={{ color: 'var(--text-placeholder)', marginLeft: 4 }}>({order.lineCount ?? order.lines.length})</span>
           </span>
         </td>
         <td colSpan={COLUMNS.length - 1} style={tdStyle}></td>
@@ -284,7 +285,7 @@ function OrderGroup({ order, isExpanded, onToggle, isFirst }) {
           >
             <td style={{ ...tdExpandStyle, boxShadow: 'inset 3px 0 0 var(--border-default)' }} />
             {COLUMNS.map((col) => (
-              <td key={col.key} style={col.key === 'lineNumber' ? { ...tdLineNumStyle, paddingLeft: 40 } : tdStyle}>
+              <td key={col.key} style={col.key === 'lineNumber' ? { ...tdLineNumStyle, paddingLeft: 30 } : tdStyle}>
                 {col.key === 'hazmat' ? (
                   <HazmatTag value={line.hazmat} />
                 ) : (
