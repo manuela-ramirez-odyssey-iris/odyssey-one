@@ -219,8 +219,8 @@ function OrderGroup({ order, isExpanded, onToggle, isFirst }) {
   const singleLine = isSingleLine ? order.lines[0] : null
 
   const orderLabel = (
-    <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', letterSpacing: '0.04em', textTransform: 'uppercase', marginRight: 8, whiteSpace: 'nowrap' }}>
-      {order.orderId} —
+    <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', letterSpacing: '0.04em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+      {order.orderId}
     </span>
   )
 
@@ -269,7 +269,7 @@ function OrderGroup({ order, isExpanded, onToggle, isFirst }) {
         <td style={tdLineNumStyle}>
           <span style={{ display: 'flex', alignItems: 'center' }}>
             {orderLabel}
-            <span>{order.lineCount ?? order.lines.length} lines</span>
+            <span style={{ color: 'var(--text-placeholder)', marginLeft: 4 }}>({order.lineCount ?? order.lines.length})</span>
           </span>
         </td>
         <td colSpan={COLUMNS.length - 1} style={tdStyle}></td>
