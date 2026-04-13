@@ -1063,7 +1063,7 @@ function RoutingTable({ options, columns, tabColumns, highlightedRank, openMenuR
                     ...wrapWhenCollapsed,
                     ...statusNarrow,
                     ...(collapsed ? { width: w, maxWidth: w, overflow: 'hidden', padding: '10px 4px' } : {}),
-                    transition: 'width var(--transition-slow), max-width var(--transition-slow), padding var(--transition-slow)',
+                    transition: 'width var(--transition-base), max-width var(--transition-base), padding var(--transition-base)',
                   }} title={col.label}>
                     <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', display: 'block', whiteSpace: 'nowrap', ...(collapsed ? { fontSize: 11, color: 'var(--text-placeholder)' } : {}) }}>
                       {col.label}
@@ -1095,7 +1095,7 @@ function RoutingTable({ options, columns, tabColumns, highlightedRank, openMenuR
                       ...(col.narrow ? { width: 64, textAlign: 'center' } : {}),
                       ...(columnsCollapsed && col.key === 'status' ? { width: 78, maxWidth: 78 } : {}),
                       ...(collapsed ? { width: w, maxWidth: w, overflow: 'hidden', textOverflow: 'ellipsis', padding: '10px 4px', fontSize: 12 } : {}),
-                      transition: 'width var(--transition-slow), max-width var(--transition-slow), padding var(--transition-slow)',
+                      transition: 'width var(--transition-base), max-width var(--transition-base), padding var(--transition-base)',
                     }
 
                     const content = col.key === 'status' ? <StatusBadge status={option.status} />
