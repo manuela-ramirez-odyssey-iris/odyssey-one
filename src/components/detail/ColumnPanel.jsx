@@ -62,14 +62,15 @@ export const EXCEPTIONS_DEFAULT_COLUMNS = [
 ]
 
 export const MONITORING_DEFAULT_COLUMNS = [
-  'buyShipment', 'customerId', 'shipmentStatus', 'orderCount',
-  'pickupDate', 'deliveryDate', 'origin', 'destination', 'grossWeight',
-  'mode', 'equipmentCode', 'scac', 'orders', 'apFreightCost',
+  'buyShipment', 'customerId', 'shipmentStatus', 'tenderStatus', 'scac',
+  'pickupDate', 'deliveryDate', 'origin', 'destination', 'stops',
+  'grossWeight', 'mode', 'equipmentCode',
 ]
 
 export const PRESETS = {
   custom: [
-    { id: 'default', name: 'Default', columns: DEFAULT_COLUMNS },
+    { id: 'default-exceptions', name: 'Default Exceptions', columns: EXCEPTIONS_DEFAULT_COLUMNS },
+    { id: 'default-monitoring', name: 'Default Monitoring', columns: MONITORING_DEFAULT_COLUMNS },
   ],
   odyssey: [
     { id: 'logistics', name: 'Logistics View', columns: ['buyShipment', 'customerId', 'shipmentStatus', 'origin', 'destination', 'mode', 'equipmentCode', 'grossWeight', 'pickupDate', 'deliveryDate'] },
