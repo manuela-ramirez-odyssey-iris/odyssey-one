@@ -293,6 +293,10 @@ function TenderDetailModal({ isOpen, onClose, shipment, shipmentDetails }) {
           justifyContent: 'space-between',
           padding: '12px 16px',
           borderBottom: '1px solid var(--border-subtle)',
+          position: 'sticky',
+          top: 0,
+          background: 'var(--bg-primary)',
+          zIndex: 1,
         }}>
           <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Shipment Details</span>
           <button
@@ -537,6 +541,10 @@ function QuoteModal({ mode, carrierData, onSave, onClose }) {
           justifyContent: 'space-between',
           padding: '12px 16px',
           borderBottom: '1px solid var(--border-subtle)',
+          position: 'sticky',
+          top: 0,
+          background: 'var(--bg-primary)',
+          zIndex: 1,
         }}>
           <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{title}</span>
           <button
