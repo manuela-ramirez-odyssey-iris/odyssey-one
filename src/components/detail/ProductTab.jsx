@@ -63,12 +63,21 @@ const thStyle = {
   verticalAlign: 'middle',
 }
 
+const stickyFirstCol = {
+  position: 'sticky',
+  left: 0,
+  zIndex: 2,
+  background: 'inherit',
+}
+
 const thExpandStyle = {
   ...thStyle,
+  ...stickyFirstCol,
   width: 36,
   textAlign: 'center',
   paddingLeft: 8,
   paddingRight: 4,
+  background: 'var(--bg-secondary)',
 }
 
 const tdStyle = {
@@ -80,6 +89,7 @@ const tdStyle = {
 
 const tdExpandStyle = {
   ...tdStyle,
+  ...stickyFirstCol,
   width: 36,
   textAlign: 'center',
   paddingLeft: 8,
@@ -244,7 +254,7 @@ function OrderGroup({ order, isExpanded, onToggle }) {
         order.lines.map((line, idx) => (
           <tr
             key={`${order.orderId}-${idx}`}
-            style={{ background: 'var(--bg-secondary)', borderLeft: '3px solid var(--border-default)' }}
+            style={{ background: 'var(--bg-secondary)', boxShadow: 'inset 3px 0 0 var(--border-default)' }}
           >
             <td style={tdExpandStyle} />
             {COLUMNS.map((col) => (
