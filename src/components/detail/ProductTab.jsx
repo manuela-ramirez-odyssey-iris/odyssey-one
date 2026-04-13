@@ -109,7 +109,6 @@ const thLineNumStyle = {
   ...thStyle,
   ...stickyCol1,
   background: 'var(--bg-secondary)',
-  borderRight: '1px solid var(--border-subtle)',
   paddingLeft: 20,
   paddingRight: 20,
 }
@@ -117,7 +116,6 @@ const thLineNumStyle = {
 const tdLineNumStyle = {
   ...tdStyle,
   ...stickyCol1,
-  borderRight: '1px solid var(--border-subtle)',
   paddingLeft: 20,
   borderBottom: 'none',
   paddingRight: 20,
