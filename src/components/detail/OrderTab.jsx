@@ -11,7 +11,20 @@ const lastColSectionStyle = {
   borderRight: 'none',
 }
 
-function SectionCell({ title, children, isLastCol = false }) {
+const appointmentBadgeStyle = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 4,
+  fontSize: 11,
+  fontWeight: 600,
+  padding: '2px 8px',
+  borderRadius: 'var(--radius-sm)',
+  background: 'rgba(59, 130, 246, 0.10)',
+  color: 'rgb(37, 99, 235)',
+  marginTop: 4,
+}
+
+function SectionCell({ title, children, isLastCol = false, appointment }) {
   return (
     <div style={isLastCol ? lastColSectionStyle : sectionStyle}>
       <div
@@ -28,6 +41,11 @@ function SectionCell({ title, children, isLastCol = false }) {
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-3)' }}>
         {children}
+        {appointment && (
+          <div>
+            <span style={appointmentBadgeStyle}>Appointment</span>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -82,7 +100,7 @@ const OrderTab = React.memo(function OrderTab({ data }) {
         overflow: 'hidden',
       }}
     >
-      {/* Row 1 */}
+      {/* Row 1: General | Totals (promoted) | Ship From + Pickup Dates | Ship To + Delivery Dates */}
       <SectionCell title="General">
         <Field label="Order Number" value={d.orderNumber} />
         <Field label="Ship Direction" value={d.shipDirection} />
@@ -97,33 +115,37 @@ const OrderTab = React.memo(function OrderTab({ data }) {
         <Field label="Carrier" value={d.carrier} />
       </SectionCell>
 
+      <SectionCell title="Totals">
+        <Field label="Total Product Weight" value={d.totalWeight} />
+        <Field label="Total Product Volume" value={d.totalVolume} />
+        <Field label="Total Gross Weight" value={d.grossWeight} />
+        <Field label="Total Tare Weight" value={d.tareWeight} />
+      </SectionCell>
+
+      <SectionCell title="Ship From" appointment={d.pickupAppointment}>
+        <Field label="Site ID" value={d.shipFrom?.siteId} />
+        <Field label="Company" value={d.shipFrom?.company} />
+        <Field label="Location" value={d.shipFrom?.location} />
+        <Field label="Address" value={d.shipFrom?.address} />
+        <Field label="Earliest Pickup" value={d.earliestPickup} />
+        <Field label="Latest Pickup" value={d.latestPickup} />
+      </SectionCell>
+
+      <SectionCell title="Ship To" isLastCol appointment={d.deliveryAppointment}>
+        <Field label="Site ID" value={d.shipTo?.siteId} />
+        <Field label="Company" value={d.shipTo?.company} />
+        <Field label="Location" value={d.shipTo?.location} />
+        <Field label="Address" value={d.shipTo?.address} />
+        <Field label="Earliest Delivery" value={d.earliestDelivery} />
+        <Field label="Latest Delivery" value={d.latestDelivery} />
+      </SectionCell>
+
+      {/* Row 2: Req. Transportation (demoted) | Products Info | References | Incoterms */}
       <SectionCell title="Requested Transportation">
         <Field label="Mode" value={d.shipmentMode} />
         <Field label="Equipment Type" value={d.equipment} />
         <Field label="Service Level" value={d.serviceLevel} />
         <Field label="Transport Priority" value={d.transportPriority} />
-      </SectionCell>
-
-      <SectionCell title="Ship From">
-        <Field label="Site ID" value={d.shipFrom?.siteId} />
-        <Field label="Company" value={d.shipFrom?.company} />
-        <Field label="Location" value={d.shipFrom?.location} />
-        <Field label="Address" value={d.shipFrom?.address} />
-      </SectionCell>
-
-      <SectionCell title="Ship To" isLastCol>
-        <Field label="Site ID" value={d.shipTo?.siteId} />
-        <Field label="Company" value={d.shipTo?.company} />
-        <Field label="Location" value={d.shipTo?.location} />
-        <Field label="Address" value={d.shipTo?.address} />
-      </SectionCell>
-
-      {/* Row 2 */}
-      <SectionCell title="Requested Schedule (Fixed Pickup)">
-        <Field label="Earliest Pickup" value={d.earliestPickup} />
-        <Field label="Latest Pickup" value={d.latestPickup} />
-        <Field label="Earliest Delivery" value={d.earliestDelivery} />
-        <Field label="Latest Delivery" value={d.latestDelivery} />
       </SectionCell>
 
       <SectionCell title="Products Info">
@@ -133,21 +155,6 @@ const OrderTab = React.memo(function OrderTab({ data }) {
         <Field label="Hazmat" value={d.hazmat} />
       </SectionCell>
 
-      <SectionCell title="Totals">
-        <Field label="Total Product Weight" value={d.totalWeight} />
-        <Field label="Total Product Volume" value={d.totalVolume} />
-        <Field label="Total Gross Weight" value={d.grossWeight} />
-        <Field label="Total Tare Weight" value={d.tareWeight} />
-      </SectionCell>
-
-      <SectionCell title="Incoterms & Ocean/Air Ports" isLastCol>
-        <Field label="Incoterm" value={d.incoterm} />
-        <Field label="Incoterm Location" value={d.incotermLocation} />
-        <Field label="Port of Loading" value={d.portOfLoading} />
-        <Field label="Port of Discharge" value={d.portOfDischarge} />
-      </SectionCell>
-
-      {/* Row 3 */}
       <SectionCell title="References">
         <Field label="Sales Order #" value={d.salesOrder} />
         <Field label="Delivery #" value={d.deliveryNumber} />
@@ -157,18 +164,21 @@ const OrderTab = React.memo(function OrderTab({ data }) {
         <Field label="Confirmation #" value={d.confirmationNumber} />
       </SectionCell>
 
-      <SectionCell title="Merged References">
-        <Field label="Quote #" value={d.quoteNumber} />
-        <Field label="BOL #" value={d.bolNumber} />
+      <SectionCell title="Incoterms & Ports" isLastCol>
+        <Field label="Incoterm" value={d.incoterm} />
+        <Field label="Incoterm Location" value={d.incotermLocation} />
+        <Field label="Port of Loading" value={d.portOfLoading} />
+        <Field label="Port of Discharge" value={d.portOfDischarge} />
       </SectionCell>
 
+      {/* Row 3: Contact Details | Custom Fields */}
       <SectionCell title="Contact Details">
         <Field label="Contact Name" value={d.contactName} />
         <Field label="Contact Email" value={d.contactEmail} />
         <Field label="Contact Phone" value={d.contactPhone} />
       </SectionCell>
 
-      <SectionCell title="Custom Fields General" isLastCol>
+      <SectionCell title="Custom Fields" isLastCol>
         <Field label="Custom Field 1" value={d.customField1} />
         <Field label="Custom Field 2" value={d.customField2} />
       </SectionCell>
