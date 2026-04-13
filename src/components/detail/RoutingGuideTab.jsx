@@ -233,54 +233,7 @@ function StatusBadge({ status }) {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   Section 3 — TenderSummary
-   ═══════════════════════════════════════════════════════════ */
-
-function TenderSummary({ shipment, shipmentDetails, onOpenDetail }) {
-  const order = shipmentDetails?.orderDetails?.[0]
-  const stops = shipmentDetails?.stopsData?.stops || []
-  const pickupStop = stops.find(s => s.type === 'pickup')
-  const deliveryStop = [...stops].reverse().find(s => s.type === 'delivery')
-
-  return (
-    <div
-      style={{
-        background: 'var(--bg-secondary)',
-        border: '1px solid var(--border-subtle)',
-        borderRadius: 'var(--radius-md)',
-        padding: '14px 18px',
-        marginBottom: 40,
-      }}
-    >
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: 24, alignItems: 'start' }}>
-        <div>
-          <Field label="Buy Shipment ID" value={shipment?.buyShipment} />
-          <Field label="Sell Shipment ID" value={shipment?.sellShipment} />
-          <Field label="Mode" value={shipment?.mode} />
-          <Field label="Weight" value={shipment?.grossWeight ? `${Number(shipment.grossWeight).toLocaleString()} LB` : null} />
-        </div>
-        <div>
-          <Field label="Pickup" value={order?.shipFrom?.company} />
-          <Field label="Pickup Location" value={order?.shipFrom?.location} />
-          <Field label="Pickup Date" value={pickupStop?.date} />
-        </div>
-        <div>
-          <Field label="Delivery" value={order?.shipTo?.company} />
-          <Field label="Delivery Location" value={order?.shipTo?.location} />
-          <Field label="Delivery Date" value={deliveryStop?.date} />
-        </div>
-        <div style={{ display: 'flex', alignItems: 'flex-start' }}>
-          <SecondaryButton onClick={onOpenDetail}>
-            View Full Details
-          </SecondaryButton>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-/* ═══════════════════════════════════════════════════════════
-   Section 4 — TenderDetailModal
+   Section 3 — TenderDetailModal
    ═══════════════════════════════════════════════════════════ */
 
 function TenderDetailModal({ isOpen, onClose, shipment, shipmentDetails }) {
@@ -1484,22 +1437,18 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
         overflow: 'auto',
       }}
     >
-      <TenderSummary
-        shipment={shipment}
-        shipmentDetails={shipmentDetails}
-        onOpenDetail={() => setIsDetailModalOpen(true)}
-      />
-
-      <div style={{ display: 'flex', alignItems: 'flex-end', marginTop: 16, marginBottom: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-end', marginTop: 4, marginBottom: 12 }}>
         <div style={{ flex: 1 }}>
           <RoutingSubTabs activeSubTab={activeSubTab} onTabChange={setActiveSubTab} />
         </div>
-        <SecondaryButton
-          onClick={() => setQuoteModal({ isOpen: true, mode: 'add', carrierData: null })}
-          style={{ marginLeft: 16, marginBottom: 4 }}
-        >
-          Add Quote
-        </SecondaryButton>
+        <div style={{ display: 'flex', gap: 8, marginLeft: 16, marginBottom: 4 }}>
+          <SecondaryButton onClick={() => setIsDetailModalOpen(true)}>
+            View Shipment Details
+          </SecondaryButton>
+          <SecondaryButton onClick={() => setQuoteModal({ isOpen: true, mode: 'add', carrierData: null })}>
+            Add Quote
+          </SecondaryButton>
+        </div>
       </div>
 
       <div ref={tableRef}>
