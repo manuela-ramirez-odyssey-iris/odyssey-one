@@ -287,7 +287,7 @@ function OrderGroup({ order, isExpanded, onToggle, isFirst }) {
           >
             <td style={{ ...tdExpandStyle, boxShadow: 'inset 3px 0 0 var(--border-default)' }} />
             {COLUMNS.map((col) => (
-              <td key={col.key} style={col.key === 'lineNumber' ? tdLineNumStyle : tdStyle}>
+              <td key={col.key} style={col.key === 'lineNumber' ? { ...tdLineNumStyle, paddingLeft: 40 } : tdStyle}>
                 {col.key === 'hazmat' ? (
                   <HazmatTag value={line.hazmat} />
                 ) : (
