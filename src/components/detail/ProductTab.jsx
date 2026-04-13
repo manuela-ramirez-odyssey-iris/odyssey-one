@@ -29,7 +29,7 @@ const COLUMNS = [
 
 const wrapperStyle = {
   overflow: 'auto',
-  height: '100%',
+  height: 'auto',
   border: '1px solid var(--border-subtle)',
   borderRadius: 'var(--radius-md)',
 }
@@ -111,7 +111,6 @@ const thLineNumStyle = {
   background: 'var(--bg-secondary)',
   paddingLeft: 10,
   paddingRight: 10,
-  boxShadow: '1px 0 0 var(--border-default)',
 }
 
 const tdLineNumStyle = {
@@ -120,7 +119,6 @@ const tdLineNumStyle = {
   paddingLeft: 10,
   paddingRight: 10,
   borderBottom: 'none',
-  boxShadow: '1px 0 0 var(--border-default)',
   paddingRight: 20,
 }
 
