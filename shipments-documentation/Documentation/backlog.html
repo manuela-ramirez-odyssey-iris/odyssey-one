@@ -20,10 +20,12 @@
   .size-s { display: inline-block; background: #dcfce7; color: #166534; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
   .size-m { display: inline-block; background: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
   .size-l { display: inline-block; background: #fecaca; color: #991b1b; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+  .status-not-started { display: inline-block; background: #f1f5f9; color: #475569; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; }
   .status-spec { display: inline-block; background: #e0e7ff; color: #3730a3; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; }
+  .status-progress { display: inline-block; background: #dbeafe; color: #1e40af; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; }
   .status-halted { display: inline-block; background: #f1f5f9; color: #64748b; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; }
   .status-done { display: inline-block; background: #dcfce7; color: #166534; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; }
-  .status-validate { display: inline-block; background: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; }
+  .status-validate { display: inline-block; background: #dcfce7; color: #166534; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; }
   .done-group td { background: #f0fdf4; }
   .section-divider td { padding: 20px 12px 8px; border-bottom: none; font-size: 16px; font-weight: 700; color: #1e293b; }
   col.col-priority { width: 10%; }
@@ -37,7 +39,7 @@
 <body>
 
 <h1>Odyssey Shipments — Backlog</h1>
-<p class="subtitle">Updated April 13, 2026 &mdash; All items need spec before implementation (user stories, edge cases, functional requirements)</p>
+<p class="subtitle">Updated April 15, 2026 &mdash; All items need spec before implementation (user stories, edge cases, functional requirements)</p>
 
 <!-- ═══════════════════════════════════════════════════════ -->
 <!--  ACTIVE BACKLOG                                        -->
@@ -72,7 +74,7 @@
   <td class="id">SHP-43</td>
   <td>Hazmat badge visual</td>
   <td><span class="size-s">S</span></td>
-  <td><span class="status-validate">Validate</span></td>
+  <td><span class="status-validate">Done - To Validate</span></td>
   <td>Product tab + Shipments table: yellow badge with warning icon + "Hazmat" when true, "--" when false. Rename column "Hazardous(Y/N)" &rarr; "Hazardous". DEC-28.</td>
 </tr>
 <tr>
@@ -80,7 +82,7 @@
   <td class="id">SHP-44</td>
   <td>Column auto-fit, header wrapping &amp; manual resize</td>
   <td><span class="size-l">L</span></td>
-  <td><span class="status-validate">Validate</span></td>
+  <td><span class="status-validate">Done - To Validate</span></td>
   <td>Auto-fit: width = header + ~20-30% buffer. Headers wrap words vertically. Content truncates with "...", tooltip only if 2+ words hidden. Manual drag-to-resize, min width = header text. DEC-29, DEC-30.</td>
 </tr>
 <tr>
@@ -88,7 +90,7 @@
   <td class="id">SHP-45</td>
   <td>Cost visibility from tender tab</td>
   <td><span class="size-s">S</span></td>
-  <td><span class="status-validate">Validate</span></td>
+  <td><span class="status-validate">Done - To Validate</span></td>
   <td>AP cost cell in routing table &rarr; hover tooltip (AP/AR/Margin summary) + "View Details" link &rarr; opens existing Show Rate Details modal (SHP-29). Cost data available from "Sent" onward. DEC-31, DEC-32.</td>
 </tr>
 <tr>
@@ -96,7 +98,7 @@
   <td class="id">SHP-46</td>
   <td>Product tab table styling</td>
   <td><span class="size-xs">XS</span></td>
-  <td><span class="status-validate">Validate</span></td>
+  <td><span class="status-validate">Done - To Validate</span></td>
   <td>Add top spacing between tab bar and table. Match Cost Allocation table header style (--text-placeholder). Consistent visual treatment across detail tables.</td>
 </tr>
 <tr>
@@ -104,7 +106,7 @@
   <td class="id">SHP-47</td>
   <td>Panel-aware column presets</td>
   <td><span class="size-m">M</span></td>
-  <td><span class="status-validate">Validate</span></td>
+  <td><span class="status-validate">Done - To Validate</span></td>
   <td>Switching Exceptions/Monitoring auto-applies different default column profile. Exceptions shows Message/Validation Message; Monitoring hides them. User customization overrides. Builds on SHP-18. DEC-33.</td>
 </tr>
 <tr>
@@ -112,7 +114,7 @@
   <td class="id">SHP-48</td>
   <td>Date-only display with time-on-hover</td>
   <td><span class="size-s">S</span></td>
-  <td><span class="status-validate">Validate</span></td>
+  <td><span class="status-validate">Done - To Validate</span></td>
   <td>All date columns show date only (no time). Hover tooltip shows full date + time. David: "time is a made-up time by the system." Saves ~50% column width. DEC-34.</td>
 </tr>
 <tr>
@@ -120,7 +122,7 @@
   <td class="id">SHP-49</td>
   <td>Rename "Sent" &rarr; "Tender Sent" in Monitoring</td>
   <td><span class="size-xs">XS</span></td>
-  <td><span class="status-validate">Validate</span></td>
+  <td><span class="status-validate">Done - To Validate</span></td>
   <td>MonitorPanels.jsx label change. Only the Monitoring panel tab label; tender status badge values stay as "Sent." David: "what sent?" DEC-35.</td>
 </tr>
 <tr>
@@ -128,7 +130,7 @@
   <td class="id">SHP-50</td>
   <td>Order tab layout overhaul</td>
   <td><span class="size-l">L</span></td>
-  <td><span class="status-validate">Validate</span></td>
+  <td><span class="status-validate">Done - To Validate</span></td>
   <td>Reorder: General &rarr; Totals (promoted) &rarr; Ship From + pickup dates &rarr; Ship To + delivery dates &rarr; Req. Transportation (demoted). Add appointment checkbox (display-only). Reduce white space. DEC-36.</td>
 </tr>
 <tr>
@@ -136,7 +138,7 @@
   <td class="id">SHP-51</td>
   <td>Tender tab &mdash; remove TenderSummary</td>
   <td><span class="size-s">S</span></td>
-  <td><span class="status-validate">Validate</span></td>
+  <td><span class="status-validate">Done - To Validate</span></td>
   <td>Remove 4-column TenderSummary card from RoutingGuideTab. Relocate "View Full Details" button to tender sub-tab row. Frees vertical space for routing table. DEC-37.</td>
 </tr>
 <tr>
@@ -144,7 +146,7 @@
   <td class="id">SHP-52</td>
   <td>Order # column deprioritized</td>
   <td><span class="size-xs">XS</span></td>
-  <td><span class="status-validate">Validate</span></td>
+  <td><span class="status-validate">Done - To Validate</span></td>
   <td>Move Order # from position 4 to far right in default preset. David: "I don't think people care about that. That's just a number." DEC-38.</td>
 </tr>
 <tr>
@@ -152,7 +154,7 @@
   <td class="id">SHP-53</td>
   <td>Tender collapse: animated transition + default collapsed</td>
   <td><span class="size-s">S</span></td>
-  <td><span class="status-validate">Validate</span></td>
+  <td><span class="status-validate">Done - To Validate</span></td>
   <td>All tender sub-tabs start with collapsible section collapsed by default. Add smooth animated transition for expand/collapse (CSS height animation).</td>
 </tr>
 
@@ -164,7 +166,7 @@
   <td class="id">SHP-54</td>
   <td>Merge Hazmat Class/Group into Hazardous column</td>
   <td><span class="size-s">S</span></td>
-  <td><span class="status-validate">Validate</span></td>
+  <td><span class="status-validate">Done - To Validate</span></td>
   <td>Product tab: remove separate Hazmat Class and Hazmat Group columns. Show their values in a hover tooltip on the Hazardous badge instead. Reduces product table width by 2 columns. DEC-39. <strong>Roll back if stakeholders don't approve.</strong></td>
 </tr>
 
@@ -202,6 +204,106 @@
   <td><span class="size-s">S</span></td>
   <td><span class="status-spec">Needs spec</span></td>
   <td>Filters layer on top of search text, not replace it.</td>
+</tr>
+
+<!-- Supabase Database Epic -->
+<tr class="priority-group"><td colspan="6">Epic — Supabase Database Integration</td></tr>
+
+<tr>
+  <td></td>
+  <td class="id">SHP-55</td>
+  <td>Supabase project setup &amp; schema design</td>
+  <td><span class="size-l">L</span></td>
+  <td><span class="status-not-started">Not Started</span></td>
+  <td>Create Supabase project. Design database schema (shipments, orders, stops, products, routing options, cost allocations, instructions, documents, notes, history). Migrate faker-generated data model to relational tables. Define RLS policies.</td>
+</tr>
+<tr>
+  <td></td>
+  <td class="id">SHP-56</td>
+  <td>Seed database from generator</td>
+  <td><span class="size-m">M</span></td>
+  <td><span class="status-not-started">Not Started</span></td>
+  <td>Adapt generate.mjs to output SQL inserts or use Supabase client to seed 1200 shipments with all related data. Replace static JSON files with live database queries.</td>
+</tr>
+<tr>
+  <td></td>
+  <td class="id">SHP-57</td>
+  <td>Data layer migration (JSON &rarr; Supabase)</td>
+  <td><span class="size-l">L</span></td>
+  <td><span class="status-not-started">Not Started</span></td>
+  <td>Replace src/data/index.js static imports and fetch() calls with Supabase client queries. Maintain existing API surface (getAllShipments, fetchShipmentDetails, getCategoryCount). Preserve LRU cache and pre-built indexes for performance.</td>
+</tr>
+<tr>
+  <td></td>
+  <td class="id">SHP-58</td>
+  <td>Real-time CRUD operations</td>
+  <td><span class="size-l">L</span></td>
+  <td><span class="status-not-started">Not Started</span></td>
+  <td>Wire UI mutations (tender actions, quote save, note CRUD, document upload) to Supabase writes. Replace local state mutations with database round-trips. Optimistic UI updates where appropriate.</td>
+</tr>
+
+<!-- Migration & Deployment Epic -->
+<tr class="priority-group"><td colspan="6">Epic — Migration &amp; Deployment</td></tr>
+
+<tr>
+  <td></td>
+  <td class="id">SHP-59</td>
+  <td>Vercel deployment</td>
+  <td><span class="size-m">M</span></td>
+  <td><span class="status-not-started">Not Started</span></td>
+  <td>Deploy via GitHub + Vercel. Replace current Cloudflare tunnel + python http.server setup. Configure environment variables for Supabase connection. Set up preview deployments for PRs.</td>
+</tr>
+<tr>
+  <td></td>
+  <td class="id">SHP-60</td>
+  <td>Auth &amp; environment configuration</td>
+  <td><span class="size-m">M</span></td>
+  <td><span class="status-not-started">Not Started</span></td>
+  <td>Supabase Auth integration (if needed for demo). Environment-based config (.env.local, .env.production). Secure API keys. CORS and domain setup.</td>
+</tr>
+
+<!-- Design System Sync Epic -->
+<tr class="priority-group"><td colspan="6">Epic — Design System Sync (Figma &harr; Code)</td></tr>
+
+<tr>
+  <td></td>
+  <td class="id">SHP-61</td>
+  <td>Figma component library creation</td>
+  <td><span class="size-l">L</span></td>
+  <td><span class="status-not-started">Not Started</span></td>
+  <td>Create proper Figma components matching our implemented UI: Badge, Button (Primary/Secondary), DarkTooltip, FilterSelect, MonitorPanel cards, ShipmentTabs, BottomBar tabs, table headers/rows. Use Figma MCP to read current design state and identify gaps between code and Figma.</td>
+</tr>
+<tr>
+  <td></td>
+  <td class="id">SHP-62</td>
+  <td>Design token sync workflow (Figma &rarr; Code)</td>
+  <td><span class="size-l">L</span></td>
+  <td><span class="status-not-started">Not Started</span></td>
+  <td>Make Figma the single source of truth for design tokens. Build automated pipeline: Figma variables &rarr; exported JSON &rarr; tokens.css generation. Covers color primitives, semantic tokens, typography, spacing, border-radius, shadows. Prevents drift between Efrain's design work and code across all Odyssey domains.</td>
+</tr>
+<tr>
+  <td></td>
+  <td class="id">SHP-63</td>
+  <td>Code Connect mapping</td>
+  <td><span class="size-m">M</span></td>
+  <td><span class="status-not-started">Not Started</span></td>
+  <td>Map Figma components to codebase components via Figma MCP Code Connect. When designers update a component in Figma, the mapping shows developers exactly which React component and props correspond. Reduces design-to-code translation errors.</td>
+</tr>
+<tr>
+  <td></td>
+  <td class="id">SHP-64</td>
+  <td>UI normalization pass</td>
+  <td><span class="size-l">L</span></td>
+  <td><span class="status-not-started">Not Started</span></td>
+  <td>Audit all Shipments UI against the Figma component library. Replace inline styles and one-off patterns with shared components. Ensure every visual element traces back to a Figma component or token. Goal: zero visual drift between Figma and production.</td>
+</tr>
+<tr>
+  <td></td>
+  <td class="id">SHP-65</td>
+  <td>Cross-domain token sharing strategy</td>
+  <td><span class="size-m">M</span></td>
+  <td><span class="status-not-started">Not Started</span></td>
+  <td>Define how Shipments domain tokens extend the global Odyssey ONE token set. Document which tokens are global (shared across domains) vs. domain-specific. Coordinate with Efrain to ensure other domains can consume the same Figma-sourced tokens without conflicts.</td>
 </tr>
 
 <!-- Halted -->
@@ -329,7 +431,7 @@
   <td class="id">SHP-34</td>
   <td>Performance optimization</td>
   <td><span class="size-l">L</span></td>
-  <td><span class="status-done">Done</span></td>
+  <td><span class="status-done">Completed</span></td>
   <td>1200 shipments. Virtualized table (react-window). Per-shipment detail files (public/details/). LRU cache (50 entries). Pre-built filter indexes (Map.groupBy). React.memo on 13 components. Two-panel table layout with synced scroll.</td>
 </tr>
 <tr class="done-group">
@@ -337,7 +439,7 @@
   <td class="id">SHP-33</td>
   <td>Temporary search column promotion</td>
   <td><span class="size-m">M</span></td>
-  <td><span class="status-done">Done</span></td>
+  <td><span class="status-done">Completed</span></td>
   <td>Selecting a search chip temporarily moves that column to position 2 (after Buy Shipment) with dark header and auto-width. Reverts on clear.</td>
 </tr>
 <tr class="done-group">
@@ -345,7 +447,7 @@
   <td class="id">SHP-35</td>
   <td>Button components (PrimaryButton, SecondaryButton)</td>
   <td><span class="size-s">S</span></td>
-  <td><span class="status-done">Done</span></td>
+  <td><span class="status-done">Completed</span></td>
   <td>Reusable button components with consistent styling, hover/click states, disabled state. 21 buttons across 6 files replaced. --btn-primary-hover token added.</td>
 </tr>
 <tr class="done-group">
@@ -353,7 +455,7 @@
   <td class="id">SHP-36</td>
   <td>Filter panel redesign</td>
   <td><span class="size-m">M</span></td>
-  <td><span class="status-done">Done</span></td>
+  <td><span class="status-done">Completed</span></td>
   <td>Redesigned header (18px bold title, pill tabs with counts). Stays open on "Show results". Closes on X or click outside main area. Funnel icon inline after last chip.</td>
 </tr>
 <tr class="done-group">
@@ -361,7 +463,7 @@
   <td class="id">SHP-37</td>
   <td>Search bar UX improvements</td>
   <td><span class="size-s">S</span></td>
-  <td><span class="status-done">Done</span></td>
+  <td><span class="status-done">Completed</span></td>
   <td>No spellcheck/autocorrect. Blur on clear. Relevance sort (starts-with &rarr; word boundary &rarr; contains). Chip-driven column promotion. Chips hidden when 0 results.</td>
 </tr>
 <tr class="done-group">
@@ -369,7 +471,7 @@
   <td class="id">SHP-38</td>
   <td>Shipments table UX</td>
   <td><span class="size-m">M</span></td>
-  <td><span class="status-done">Done</span></td>
+  <td><span class="status-done">Completed</span></td>
   <td>Zap icon for actions (fills on open). Row highlight on menu open. Auto-scroll using actual bottom bar position (600ms delay). Metrics auto-collapse on scroll.</td>
 </tr>
 
@@ -380,7 +482,7 @@
   <td class="id">SHP-21</td>
   <td>Tender tab full rebuild</td>
   <td><span class="size-l">L</span></td>
-  <td><span class="status-done">Done</span></td>
+  <td><span class="status-done">Completed</span></td>
   <td>TenderSummary, TenderDetailModal, ActionDropdown, RoutingTable, RoutingSubTabs. 3-part layout (fixed | collapse toggle | scrollable). 5 sub-tabs. Cascade tendering. Contextual menu per carrier. ~790 lines.</td>
 </tr>
 <tr class="done-group">
@@ -388,7 +490,7 @@
   <td class="id">SHP-23</td>
   <td>Equipment column fix</td>
   <td><span class="size-s">S</span></td>
-  <td><span class="status-done">Done</span></td>
+  <td><span class="status-done">Completed</span></td>
   <td>Equipment column had dataKey: 'rate' bug. Added equipment field per carrier option in generator.</td>
 </tr>
 <tr class="done-group">
@@ -396,7 +498,7 @@
   <td class="id">SHP-24</td>
   <td>Three-dot menu + highlight + clipping</td>
   <td><span class="size-s">S</span></td>
-  <td><span class="status-done">Done</span></td>
+  <td><span class="status-done">Completed</span></td>
   <td>Removed "Buy Shipment" from menu. Renamed to "Edit" + "Tender by Preferred Carrier". Row highlight on 3-dot click. Dropdown repositions to avoid clipping.</td>
 </tr>
 <tr class="done-group">
@@ -404,7 +506,7 @@
   <td class="id">SHP-25</td>
   <td>Panel assignment from tender outcome</td>
   <td><span class="size-m">M</span></td>
-  <td><span class="status-done">Done</span></td>
+  <td><span class="status-done">Completed</span></td>
   <td>Accepted/Sent &rarr; Monitoring (~70%). Declined/Cancelled &rarr; Exceptions (~30%). No Accepted/Sent in Exceptions routing table.</td>
 </tr>
 <tr class="done-group">
@@ -412,7 +514,7 @@
   <td class="id">SHP-26</td>
   <td>Shipment status tooltip</td>
   <td><span class="size-s">S</span></td>
-  <td><span class="status-done">Done</span></td>
+  <td><span class="status-done">Completed</span></td>
   <td>Hover on shipment status badge &rarr; DarkTooltip shows tender status.</td>
 </tr>
 <tr class="done-group">
@@ -420,7 +522,7 @@
   <td class="id">SHP-27</td>
   <td>Validation message column</td>
   <td><span class="size-s">S</span></td>
-  <td><span class="status-done">Done</span></td>
+  <td><span class="status-done">Completed</span></td>
   <td>New column for Exceptions panel. Category-specific messages. Empty for Monitoring.</td>
 </tr>
 <tr class="done-group">
@@ -428,7 +530,7 @@
   <td class="id">SHP-28</td>
   <td>Restore 15-column default preset</td>
   <td><span class="size-m">M</span></td>
-  <td><span class="status-done">Done</span></td>
+  <td><span class="status-done">Completed</span></td>
   <td>15-column config-driven preset with fixed pixel widths per column.</td>
 </tr>
 <tr class="done-group">
@@ -436,7 +538,7 @@
   <td class="id">SHP-29</td>
   <td>Quote modal (Add/Edit/View)</td>
   <td><span class="size-l">L</span></td>
-  <td><span class="status-done">Done</span></td>
+  <td><span class="status-done">Completed</span></td>
   <td>Three modes: Add Quote (empty), Edit Quote (pre-filled), Show Rate Details (read-only). SCAC dropdown, live AP/AR totals, additional charges table.</td>
 </tr>
 <tr class="done-group">
@@ -444,7 +546,7 @@
   <td class="id">SHP-30</td>
   <td>Proportional column collapse</td>
   <td><span class="size-l">L</span></td>
-  <td><span class="status-done">Done</span></td>
+  <td><span class="status-done">Completed</span></td>
   <td>3-part table: fixed left | collapse toggle | scrollable right. Proportional algorithm scales columns to exact fit. Collapse button shows only when right table overflows &gt;40%.</td>
 </tr>
 <tr class="done-group">
@@ -452,7 +554,7 @@
   <td class="id">SHP-31</td>
   <td>View Full Details modal cleanup</td>
   <td><span class="size-s">S</span></td>
-  <td><span class="status-done">Done</span></td>
+  <td><span class="status-done">Completed</span></td>
   <td>Hazardous as regular field. Instructions as count. X close button. Removed footer buttons.</td>
 </tr>
 <tr class="done-group">
@@ -460,7 +562,7 @@
   <td class="id">SHP-32</td>
   <td>TL/LTL modes (then restored all 5)</td>
   <td><span class="size-s">S</span></td>
-  <td><span class="status-done">Done</span></td>
+  <td><span class="status-done">Completed</span></td>
   <td>Initially restricted to TL/LTL. Later restored all 5 modes at 40/40/10/5/5 distribution.</td>
 </tr>
 <tr class="done-group">
@@ -468,7 +570,7 @@
   <td class="id">SHP-18</td>
   <td>Column arrangement panel</td>
   <td><span class="size-l">L</span></td>
-  <td><span class="status-done">Done</span></td>
+  <td><span class="status-done">Completed</span></td>
   <td>Two-level panel: presets list &rarr; drag-to-reorder + checkbox toggle. 4 presets (Default, Logistics, Financial, Carrier). 44 attributes available. Real-time table updates.</td>
 </tr>
 
@@ -479,7 +581,7 @@
   <td class="id">SHP-12</td>
   <td>Mode values correction</td>
   <td><span class="size-s">S</span></td>
-  <td><span class="status-done">Done</span></td>
+  <td><span class="status-done">Completed</span></td>
   <td>TL/LTL/RR/IMD/AIR with weighted distribution. TL/LTL majority, RR=2 customers, AIR rare. Stops constraints (non-TL=2 stops).</td>
 </tr>
 <tr class="done-group">
@@ -487,7 +589,7 @@
   <td class="id">SHP-14</td>
   <td>Missing product fields</td>
   <td><span class="size-m">M</span></td>
-  <td><span class="status-done">Done</span></td>
+  <td><span class="status-done">Completed</span></td>
   <td>Added 10 fields: hazmatDescription, hazmatUnNumber (real UN numbers), boilingPoint, marinePollutant, wgkClass, tunnelCode, dimensions, loadConstraints, toPartnerRef, thirdPartRefDate.</td>
 </tr>
 <tr class="done-group">
@@ -495,7 +597,7 @@
   <td class="id">SHP-15</td>
   <td>Wire exception tabs to filter rows</td>
   <td><span class="size-m">M</span></td>
-  <td><span class="status-done">Done</span></td>
+  <td><span class="status-done">Completed</span></td>
   <td>Added panel/category fields to generator. filteredShipments filters by activePanel then activeTab. Badges show real counts.</td>
 </tr>
 <tr class="done-group">
@@ -503,7 +605,7 @@
   <td class="id">SHP-16</td>
   <td>Monitoring row-filter tabs</td>
   <td><span class="size-m">M</span></td>
-  <td><span class="status-done">Done</span></td>
+  <td><span class="status-done">Completed</span></td>
   <td>Monitoring tabs (Hold, Consolidation, Sent, Spot Bid) are row filters, same as Exceptions. CORRECTED Apr 1.</td>
 </tr>
 <tr class="done-group">
@@ -511,7 +613,7 @@
   <td class="id">SHP-17</td>
   <td>PGI/PGR placeholder</td>
   <td><span class="size-s">S</span></td>
-  <td><span class="status-done">Done</span></td>
+  <td><span class="status-done">Completed</span></td>
   <td>Centered "Coming soon" message when PGI/PGR panel selected.</td>
 </tr>
 <tr class="done-group">
@@ -519,7 +621,7 @@
   <td class="id">SHP-22</td>
   <td>Shipment status column + mapping</td>
   <td><span class="size-s">S</span></td>
-  <td><span class="status-done">Done</span></td>
+  <td><span class="status-done">Completed</span></td>
   <td>Status derived from tender (Accepted&rarr;Done, Cancelled/Declined&rarr;Review, Sent&rarr;blank). Visible column. Tender statuses reduced to 4.</td>
 </tr>
 <tr class="done-group">
@@ -527,7 +629,7 @@
   <td class="id">SHP-20</td>
   <td>Tender tab &mdash; status-aware</td>
   <td><span class="size-s">S</span></td>
-  <td><span class="status-done">Done</span></td>
+  <td><span class="status-done">Completed</span></td>
   <td>Tender tab identical in both panels. Removed stale "Rejected" status.</td>
 </tr>
 <tr class="done-group">
@@ -535,7 +637,7 @@
   <td class="id">SHP-13</td>
   <td>Three-dot menu actions</td>
   <td><span class="size-s">S</span></td>
-  <td><span class="status-done">Done</span></td>
+  <td><span class="status-done">Completed</span></td>
   <td>"Buy Shipment", "Edit", "Tender by Preferred Carrier". Same in both panels.</td>
 </tr>
 <tr class="done-group">
@@ -543,7 +645,7 @@
   <td class="id">SHP-21</td>
   <td>Tender tab full PPT layout (initial)</td>
   <td><span class="size-m">M</span></td>
-  <td><span class="status-done">Done</span></td>
+  <td><span class="status-done">Completed</span></td>
   <td>Initial implementation. Rebuilt fully in Session 7 with proper spec workflow.</td>
 </tr>
 <tr class="done-group">
@@ -551,7 +653,7 @@
   <td class="id">&mdash;</td>
   <td>Backlog &amp; prioritization infrastructure</td>
   <td><span class="size-m">M</span></td>
-  <td><span class="status-done">Done</span></td>
+  <td><span class="status-done">Completed</span></td>
   <td>Formal backlog (SHP-11 to SHP-22), decision log (DEC-01 to DEC-27), conceptual "why" explanations in domain analysis.</td>
 </tr>
 
@@ -562,7 +664,7 @@
   <td class="id">SHP-1&ndash;10</td>
   <td>Full prototype + React migration</td>
   <td><span class="size-l">L</span></td>
-  <td><span class="status-done">Done</span></td>
+  <td><span class="status-done">Completed</span></td>
   <td>Core layout (Navbar, Sidebar, Monitor Panels), Shipment table, Dual search, Filters panel, Bottom bar with all 10 tabs (Order, Product, Stops, Tender, Cost Allocation, Instructions, Documents, Notes, History, Tender History). Design tokens. Faker data generator (200 shipments, seed 42). Domain analysis with interactive visualization. React 19 + Bun + Vite + Tailwind v4 migration.</td>
 </tr>
 <tr class="done-group">
@@ -570,7 +672,7 @@
   <td class="id">DEC-01&ndash;15</td>
   <td>Grooming corrections &amp; enhancements</td>
   <td><span class="size-l">L</span></td>
-  <td><span class="status-done">Done</span></td>
+  <td><span class="status-done">Completed</span></td>
   <td>Tab reorder, AP/AR stacked layout, weight-based cost distribution, order dropdown enhanced, export modal corrected, document types updated, sequential tender logic, P1/P2/D1/D2 stop labels, instruction type badges removed, history tab audit timeline, compare modal order tabs.</td>
 </tr>
 <tr class="done-group">
@@ -578,7 +680,7 @@
   <td class="id">SHP-7.1</td>
   <td>PPT analysis &amp; domain reanalysis</td>
   <td><span class="size-l">L</span></td>
-  <td><span class="status-done">Done</span></td>
+  <td><span class="status-done">Completed</span></td>
   <td>Cross-referenced both PPT decks against all 5 grooming transcripts. Tender sub-views, PGI sub-categories, missing product fields, mode corrections, search/filtering requirements.</td>
 </tr>
 

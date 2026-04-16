@@ -178,6 +178,7 @@ Component tokens are for Figma organization. In code, components consume semanti
 | Figma Token | Resolves To | Hex |
 |-------------|-------------|-----|
 | `btn/primary-bg` | `bg/inverse` | #1B2537 |
+| `btn/primary-hover` | `deep-sea-neutral/700` | #384253 |
 | `btn/primary-text` | `text/inverse` | #FFFFFF |
 | `btn/secondary-bg` | `bg/primary` | #FFFFFF |
 | `btn/secondary-border` | `border/default` | #D0D4DB |
@@ -236,6 +237,16 @@ Component tokens are for Figma organization. In code, components consume semanti
 | `badge/red-text` | `bittersweet/800` | #922922 |
 | `badge/purple-bg` | `purple/100` | #EDE9FE |
 | `badge/purple-text` | `purple/800` | #5B21B6 |
+| `badge/gray-bg` | `deep-sea-neutral/100` | #F2F3F5 |
+| `badge/gray-text` | `deep-sea-neutral/700` | #384253 |
+
+**Badge Component Rules:**
+- Icons always render on the **right** side via `icon` prop
+- Status dot (6x6 animated circle) renders on the **left** side via `statusDot` prop
+- Padding: no icon/dot → `2px 10px`; icon only → `2px 8px 2px 10px`; dot only → `2px 10px`; dot+icon → `2px 8px`
+- Icon color: gray variant uses `--text-tertiary`; all others inherit badge text color
+- Dot color: inherits badge text color
+- Gap: 4px between elements; dot has extra 2px margin-right (6px total to text)
 
 #### Dropdown
 

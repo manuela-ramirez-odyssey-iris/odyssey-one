@@ -1,0 +1,2122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Odyssey Shipments — Design System Map</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #F5F6F8;
+    color: #1B2537;
+    padding: 0;
+    line-height: 1.5;
+  }
+
+  /* ── Tab Navigation ── */
+  .tab-nav {
+    display: flex; gap: 0;
+    justify-content: space-between;
+    background: #fff;
+    border-bottom: 2px solid #E4E6EB;
+    padding: 0 48px;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .tab-nav-left { display: flex; gap: 0; }
+  .tab-nav-right { display: flex; gap: 0; align-items: center; }
+  .tab-btn {
+    padding: 14px 28px;
+    font-size: 14px; font-weight: 600; font-family: inherit;
+    color: #6B7280;
+    background: none; border: none; border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .tab-btn:hover { color: #1B2537; }
+  .tab-btn.active {
+    color: #1B2537;
+    border-bottom-color: #1B2537;
+  }
+
+  /* Normalize tab — process tab styling */
+  .tab-btn.tab-process {
+    border: 1px dashed #9DA3B0;
+    border-bottom: 2px solid transparent;
+    border-radius: 6px 6px 0 0;
+    margin-bottom: -2px;
+    font-size: 13px;
+    padding: 10px 20px;
+  }
+  .tab-btn.tab-process:hover:not(.tab-disabled) { color: #1e40af; border-color: #93c5fd; border-bottom-color: transparent; }
+  .tab-btn.tab-process.active {
+    color: #1e40af;
+    border-color: #3B82F6;
+    border-bottom-color: #3B82F6;
+    background: #F8FAFF;
+  }
+  .tab-btn.tab-disabled {
+    color: #D0D4DB;
+    cursor: default;
+    border-color: #E4E6EB;
+    pointer-events: none;
+  }
+  .tab-btn.tab-attention {
+    animation: tabAttention 1.5s ease-in-out infinite;
+    border-color: #3B82F6;
+    color: #1e40af;
+    pointer-events: auto;
+    cursor: pointer;
+  }
+  @keyframes tabAttention {
+    0%, 100% { background: #F8FAFF; box-shadow: 0 0 0 0 rgba(59,130,246,0); }
+    50% { background: #DBEAFE; box-shadow: 0 0 12px 2px rgba(59,130,246,0.35); }
+  }
+
+  .tab-content { display: none; padding: 40px 48px 80px; }
+  .tab-content.active { display: block; }
+
+  h1 { font-size: 28px; font-weight: 700; margin-bottom: 6px; letter-spacing: -0.02em; }
+  .subtitle { font-size: 14px; color: #6B7280; margin-bottom: 36px; }
+
+  /* ── Badge tab styles (original) ── */
+  .legend {
+    display: flex; gap: 24px; align-items: center;
+    padding: 14px 20px; background: #fff; border: 1px solid #E4E6EB;
+    border-radius: 10px; margin-bottom: 20px; font-size: 13px; color: #4B5563;
+  }
+  .legend-title { font-weight: 700; color: #1B2537; margin-right: 4px; }
+  .legend-item { display: flex; align-items: center; gap: 7px; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .legend-dot.component { background: #10B981; }
+  .legend-dot.adhoc { background: #FEF3C7; border: 2px dashed #D97706; }
+
+  .toolbar { display: flex; gap: 12px; align-items: center; margin-bottom: 28px; }
+  .toggle-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 16px; font-size: 13px; font-weight: 600; font-family: inherit;
+    color: #1e40af; background: #dbeafe; border: 1px solid #93c5fd;
+    border-radius: 8px; cursor: pointer; transition: all 0.15s ease;
+  }
+  .toggle-btn:hover { background: #bfdbfe; }
+  .toggle-btn:active { transform: scale(0.98); }
+
+  .category { margin-bottom: 36px; }
+  .category-title {
+    font-size: 16px; font-weight: 700; margin-bottom: 16px;
+    padding-bottom: 8px; border-bottom: 2px solid #E4E6EB; color: #1B2537;
+  }
+  .badge-grid { display: flex; flex-wrap: wrap; gap: 20px; }
+
+  .badge-card {
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    padding: 20px 24px 16px; background: #fff; border: 1px solid #E4E6EB;
+    border-radius: 10px; min-width: 160px; position: relative;
+  }
+  .badge-card.uses-component { border-left: 3px solid #10B981; }
+  .badge-card.adhoc { border-left: 3px dashed #F59E0B; }
+
+  .badge-meta {
+    font-size: 11px; color: #9CA3AF; text-align: center; line-height: 1.4; max-width: 200px;
+  }
+  .badge-meta code {
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 10px; background: #F3F4F6; padding: 1px 5px; border-radius: 3px; color: #6B7280;
+  }
+  .badge-file { font-size: 10px; color: #B0B5BE; text-align: center; }
+  .badge-props {
+    font-size: 10px; color: #A0A5B0; text-align: center; line-height: 1.5;
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    background: #FAFAFA; padding: 4px 8px; border-radius: 4px; border: 1px solid #F0F0F0;
+  }
+
+  .type-indicator {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .type-indicator.component { color: #10B981; }
+  .type-indicator.adhoc { color: #D97706; }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  .icon-inline { display: inline; vertical-align: -1px; }
+
+  /* ── Colors tab styles ── */
+  .color-section { margin-bottom: 44px; }
+  .color-section-title {
+    font-size: 20px; font-weight: 700; margin-bottom: 6px; color: #1B2537;
+  }
+  .color-section-desc {
+    font-size: 13px; color: #6B7280; margin-bottom: 20px;
+  }
+
+  .color-group { margin-bottom: 28px; }
+  .color-group-title {
+    font-size: 14px; font-weight: 700; margin-bottom: 12px;
+    padding-bottom: 6px; border-bottom: 1px solid #E4E6EB; color: #384253;
+  }
+
+  .color-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 10px;
+  }
+
+  .color-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 8px 12px;
+    background: #fff; border: 1px solid #E4E6EB; border-radius: 8px;
+    font-size: 13px;
+  }
+
+  .color-swatch {
+    width: 32px; height: 32px; border-radius: 6px; flex-shrink: 0;
+    border: 1px solid rgba(0,0,0,0.08);
+  }
+
+  .color-info { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  .color-var {
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 12px; font-weight: 600; color: #1B2537;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .color-hex {
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 11px; color: #6B7280;
+  }
+  .color-ref {
+    font-size: 10px; color: #9DA3B0;
+  }
+
+  .hardcoded-file {
+    font-size: 10px; color: #D97706; font-weight: 500;
+  }
+
+  /* ── Typography tab styles ── */
+  .typo-section { margin-bottom: 48px; }
+  .typo-section-title {
+    font-size: 20px; font-weight: 700; margin-bottom: 6px; color: #1B2537;
+  }
+  .typo-section-desc {
+    font-size: 13px; color: #6B7280; margin-bottom: 20px;
+  }
+
+  .typo-font-sample {
+    padding: 24px; background: #fff; border: 1px solid #E4E6EB; border-radius: 10px;
+    margin-bottom: 12px;
+  }
+  .typo-font-sample .family-name {
+    font-size: 13px; font-weight: 600; color: #6B7280; margin-bottom: 8px;
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  }
+  .typo-font-sample .family-render {
+    font-size: 28px; font-weight: 400; color: #1B2537; line-height: 1.4;
+  }
+
+  .typo-scale-grid {
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .typo-scale-card {
+    display: flex; align-items: flex-start; gap: 20px;
+    padding: 18px 20px; background: #fff; border: 1px solid #E4E6EB; border-radius: 10px;
+  }
+  .typo-scale-card .typo-sample { flex: 1; min-width: 0; }
+  .typo-scale-card .typo-details {
+    flex-shrink: 0; width: 260px;
+    font-size: 11px; color: #6B7280; line-height: 1.6;
+  }
+  .typo-scale-card .typo-details .token-name {
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 12px; font-weight: 600; color: #1B2537; display: block; margin-bottom: 4px;
+  }
+  .typo-scale-card .typo-details .token-usage {
+    font-size: 11px; color: #9DA3B0; margin-top: 4px; font-style: italic;
+  }
+
+  .typo-tw-group { margin-bottom: 28px; }
+  .typo-tw-group-title {
+    font-size: 14px; font-weight: 700; margin-bottom: 12px;
+    padding-bottom: 6px; border-bottom: 1px solid #E4E6EB; color: #384253;
+  }
+  .typo-tw-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 10px;
+  }
+  .typo-tw-card {
+    display: flex; align-items: flex-start; gap: 14px;
+    padding: 14px 16px; background: #fff; border: 1px solid #E4E6EB; border-radius: 8px;
+  }
+  .typo-tw-card .tw-class {
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 12px; font-weight: 600; color: #1B2537;
+    background: #F3F4F6; padding: 2px 8px; border-radius: 4px; white-space: nowrap;
+  }
+  .typo-tw-card .tw-resolved {
+    font-size: 11px; color: #6B7280; margin-top: 2px;
+  }
+  .typo-tw-card .tw-files {
+    font-size: 10px; color: #B0B5BE; margin-top: 4px; line-height: 1.4;
+  }
+
+  .typo-inline-group { margin-bottom: 28px; }
+  .typo-inline-group-title {
+    font-size: 14px; font-weight: 700; margin-bottom: 12px;
+    padding-bottom: 6px; border-bottom: 1px solid #E4E6EB; color: #384253;
+  }
+  .typo-inline-grid { display: flex; flex-wrap: wrap; gap: 12px; }
+  .typo-inline-card {
+    display: flex; flex-direction: column; gap: 8px;
+    padding: 16px 18px; background: #fff; border: 1px solid #E4E6EB; border-radius: 10px;
+    min-width: 220px; max-width: 340px; position: relative;
+  }
+  .typo-inline-card.matches-token { border-left: 3px solid #10B981; }
+  .typo-inline-card.no-match { border-left: 3px dashed #F59E0B; }
+  .typo-inline-card .inline-file { font-size: 10px; color: #B0B5BE; }
+  .typo-inline-card .inline-props {
+    font-size: 10px; color: #A0A5B0; line-height: 1.5;
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    background: #FAFAFA; padding: 4px 8px; border-radius: 4px; border: 1px solid #F0F0F0;
+  }
+  .typo-inline-card .inline-match {
+    font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .typo-inline-card .inline-match.yes { color: #10B981; }
+  .typo-inline-card .inline-match.no { color: #D97706; }
+
+  /* ── Components tab styles ── */
+  .comp-section { margin-bottom: 48px; }
+  .comp-section-title {
+    font-size: 20px; font-weight: 700; margin-bottom: 4px; color: #1B2537;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .comp-section-subtitle {
+    font-size: 13px; color: #6B7280; margin-bottom: 20px;
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  }
+  .comp-normalized-label {
+    display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 4px;
+    font-size: 11px; font-weight: 600; background: #D4F3EB; color: #1D524A;
+    letter-spacing: 0.03em;
+  }
+  .comp-subsection { margin-bottom: 32px; }
+  .comp-subsection-title {
+    font-size: 14px; font-weight: 700; margin-bottom: 14px;
+    padding-bottom: 6px; border-bottom: 1px solid #E4E6EB; color: #384253;
+  }
+  .comp-card-grid { display: flex; flex-wrap: wrap; gap: 16px; }
+  .comp-card {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 10px;
+    padding: 20px 24px 16px; background: #fff; border: 1px solid #E4E6EB;
+    border-radius: 10px; min-width: 180px; max-width: 320px;
+  }
+  .comp-card-code {
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 11px; color: #6B7280; background: #F3F4F6;
+    padding: 4px 8px; border-radius: 4px; line-height: 1.5;
+    word-break: break-all;
+  }
+  .comp-card-note {
+    font-size: 11px; color: #9CA3AF; line-height: 1.4;
+  }
+  .comp-table {
+    width: 100%; border-collapse: collapse; font-size: 13px;
+    background: #fff; border: 1px solid #E4E6EB; border-radius: 8px;
+    overflow: hidden;
+  }
+  .comp-table th {
+    text-align: left; padding: 10px 14px; background: #F7F8FA;
+    font-weight: 600; color: #384253; border-bottom: 1px solid #E4E6EB;
+    font-size: 12px;
+  }
+  .comp-table td {
+    padding: 8px 14px; border-bottom: 1px solid #F2F3F5; color: #384253;
+  }
+  .comp-table td code {
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 11px; background: #F3F4F6; padding: 1px 5px; border-radius: 3px; color: #6B7280;
+  }
+
+  /* ── Modal overlay ── */
+  .modal-overlay {
+    display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.4); backdrop-filter: blur(4px);
+    z-index: 1000; justify-content: center; align-items: flex-start;
+    overflow-y: auto; padding: 40px 20px;
+  }
+  .modal-overlay.visible { display: flex; }
+  .modal-box {
+    background: #fff; border-radius: 12px; max-width: 900px; width: 100%;
+    padding: 32px 36px; position: relative;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.16);
+  }
+  .modal-close {
+    position: absolute; top: 16px; right: 16px; width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    background: #F2F3F5; border: none; border-radius: 6px; cursor: pointer;
+    font-size: 18px; color: #384253; transition: background 0.15s ease;
+  }
+  .modal-close:hover { background: #E4E6EB; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- TAB NAVIGATION -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="tab-nav">
+  <div class="tab-nav-left">
+    <button class="tab-btn active" onclick="switchTab('badges')">Badges</button>
+    <button class="tab-btn" onclick="switchTab('colors')">Colors</button>
+    <button class="tab-btn" onclick="switchTab('typography')">Typography</button>
+    <button class="tab-btn" onclick="switchTab('components')">Components</button>
+  </div>
+  <div class="tab-nav-right">
+    <button class="tab-btn tab-process tab-disabled" id="normalizeTabBtn" onclick="switchTab('normalize')">&#x1F504; Normalize</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- BADGES TAB -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="tab-content active" id="tab-badges">
+
+<h1>Odyssey Shipments — Badge Catalog</h1>
+<p class="subtitle">Pixel-accurate audit of every badge element. Rendered with exact styles from source code. Updated 2026-04-15.</p>
+
+<div class="legend">
+  <span class="legend-title">Legend:</span>
+  <div class="legend-item"><span class="legend-dot component"></span><span>Uses <code>Badge</code> component</span></div>
+  <div class="legend-item"><span class="legend-dot adhoc"></span><span>Inline / ad-hoc implementation</span></div>
+</div>
+
+<div class="toolbar">
+  <button class="toggle-btn" id="groupToggle" onclick="toggleGrouping()">
+    <span>&#9776;</span> Group by component
+  </button>
+</div>
+
+<div id="badgeContainer">
+
+<!-- SHIPMENT STATUS BADGES -->
+<div class="category">
+  <div class="category-title">Shipment Status</div>
+  <div class="badge-grid">
+    <div class="badge-card uses-component" data-component="Badge">
+      <span style="display:inline-flex; align-items:center; gap:4px; font-size:12px; font-weight:500; font-family:'Inter',sans-serif; padding:2px 8px 2px 10px; border-radius:4px; background:#D4F3EB; color:#1D524A; white-space:nowrap;">Done <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></span>
+      <div class="badge-meta"><code>Badge variant="green" rightIcon={&lt;Info size={16}/&gt;}</code></div>
+      <div class="badge-file">ShipmentTable.jsx</div>
+      <div class="badge-props">font-weight: 500 (medium)<br>padding: 2px 8px 2px 10px<br>border-radius: 4px<br>rightIcon: Info 16px, inherits text color</div>
+      <div class="type-indicator component">Component</div>
+    </div>
+    <div class="badge-card uses-component" data-component="Badge">
+      <span style="display:inline-flex; align-items:center; gap:4px; font-size:12px; font-weight:500; font-family:'Inter',sans-serif; padding:2px 8px 2px 10px; border-radius:4px; background:#FDE5E3; color:#922922; white-space:nowrap;">Review <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></span>
+      <div class="badge-meta"><code>Badge variant="red" rightIcon={&lt;Info size={16}/&gt;}</code></div>
+      <div class="badge-file">ShipmentTable.jsx</div>
+      <div class="badge-props">font-weight: 500 (medium)<br>padding: 2px 8px 2px 10px<br>border-radius: 4px<br>rightIcon: Info 16px, inherits text color</div>
+      <div class="type-indicator component">Component</div>
+    </div>
+  </div>
+</div>
+
+<!-- ORDER NUMBER BADGES -->
+<div class="category">
+  <div class="category-title">Order Number Badges</div>
+  <div class="badge-grid">
+    <div class="badge-card uses-component" data-component="Badge">
+      <span style="display:inline-block; font-size:12px; font-weight:500; padding:2px 8px; border-radius:4px; background:#FDF1C8; color:#8F3F11; white-space:nowrap;">ORD-1001</span>
+      <div class="badge-meta"><code>Badge variant="amber"</code></div>
+      <div class="badge-file">ShipmentTable.jsx, BottomBar.jsx</div>
+      <div class="badge-props">font-weight: 500 (medium)<br>padding: 2px 8px<br>border-radius: 4px</div>
+      <div class="type-indicator component">Component</div>
+    </div>
+    <div class="badge-card uses-component" data-component="Badge">
+      <span style="display:inline-block; font-size:12px; font-weight:500; padding:2px 8px; border-radius:4px; background:#D0F1FF; color:#063A83; white-space:nowrap;">ORD-1002</span>
+      <div class="badge-meta"><code>Badge variant="blue"</code></div>
+      <div class="badge-file">ShipmentTable.jsx, BottomBar.jsx</div>
+      <div class="badge-props">font-weight: 500 (medium)<br>padding: 2px 8px<br>border-radius: 4px</div>
+      <div class="type-indicator component">Component</div>
+    </div>
+    <div class="badge-card uses-component" data-component="Badge">
+      <span style="display:inline-block; font-size:12px; font-weight:500; padding:2px 8px; border-radius:4px; background:#D4F3EB; color:#1D524A; white-space:nowrap;">ORD-1003</span>
+      <div class="badge-meta"><code>Badge variant="green"</code></div>
+      <div class="badge-file">ShipmentTable.jsx, BottomBar.jsx</div>
+      <div class="badge-props">font-weight: 500 (medium)<br>padding: 2px 8px<br>border-radius: 4px</div>
+      <div class="type-indicator component">Component</div>
+    </div>
+    <div class="badge-card uses-component" data-component="Badge">
+      <span style="display:inline-block; font-size:12px; font-weight:500; padding:2px 8px; border-radius:4px; background:#FDE5E3; color:#922922; white-space:nowrap;">ORD-1004</span>
+      <div class="badge-meta"><code>Badge variant="red"</code></div>
+      <div class="badge-file">ShipmentTable.jsx, BottomBar.jsx</div>
+      <div class="badge-props">font-weight: 500 (medium)<br>padding: 2px 8px<br>border-radius: 4px</div>
+      <div class="type-indicator component">Component</div>
+    </div>
+    <div class="badge-card uses-component" data-component="Badge">
+      <span style="display:inline-block; font-size:12px; font-weight:500; padding:2px 8px; border-radius:4px; background:#EDE9FE; color:#5B21B6; white-space:nowrap;">ORD-1005</span>
+      <div class="badge-meta"><code>Badge variant="purple"</code></div>
+      <div class="badge-file">ShipmentTable.jsx, BottomBar.jsx</div>
+      <div class="badge-props">font-weight: 500 (medium)<br>padding: 2px 8px<br>border-radius: 4px</div>
+      <div class="type-indicator component">Component</div>
+    </div>
+  </div>
+</div>
+
+<!-- TENDER STATUS BADGES -->
+<div class="category">
+  <div class="category-title">Tender Status</div>
+  <div class="badge-grid">
+    <div class="badge-card adhoc" data-component="StatusBadge">
+      <span style="display:inline-block; font-family:'Inter',sans-serif; font-size:12px; font-weight:600; padding:1px 8px; border-radius:4px; background:#D4F3EB; color:#1D524A;">Accepted</span>
+      <div class="badge-meta"><code>StatusBadge</code> (local fn)</div>
+      <div class="badge-file">RoutingGuideTab.jsx</div>
+      <div class="badge-props">font-weight: 600 (semibold)<br>padding: 1px 8px<br>border-radius: 4px</div>
+      <div class="type-indicator adhoc">Ad-hoc</div>
+    </div>
+    <div class="badge-card adhoc" data-component="StatusBadge">
+      <span style="display:inline-block; font-family:'Inter',sans-serif; font-size:12px; font-weight:600; padding:1px 8px; border-radius:4px; background:#D0F1FF; color:#063A83;">Sent</span>
+      <div class="badge-meta"><code>StatusBadge</code> (local fn)</div>
+      <div class="badge-file">RoutingGuideTab.jsx</div>
+      <div class="badge-props">font-weight: 600 (semibold)<br>padding: 1px 8px<br>border-radius: 4px</div>
+      <div class="type-indicator adhoc">Ad-hoc</div>
+    </div>
+    <div class="badge-card adhoc" data-component="StatusBadge">
+      <span style="display:inline-block; font-family:'Inter',sans-serif; font-size:12px; font-weight:600; padding:1px 8px; border-radius:4px; background:#FDE5E3; color:#922922;">Declined</span>
+      <div class="badge-meta"><code>StatusBadge</code> (local fn)</div>
+      <div class="badge-file">RoutingGuideTab.jsx</div>
+      <div class="badge-props">font-weight: 600 (semibold)<br>padding: 1px 8px<br>border-radius: 4px</div>
+      <div class="type-indicator adhoc">Ad-hoc</div>
+    </div>
+    <div class="badge-card adhoc" data-component="StatusBadge">
+      <span style="display:inline-block; font-family:'Inter',sans-serif; font-size:12px; font-weight:600; padding:1px 8px; border-radius:4px; background:#E4E6EB; color:#9DA3B0;">Cancelled</span>
+      <div class="badge-meta"><code>StatusBadge</code> (local fn)</div>
+      <div class="badge-file">RoutingGuideTab.jsx</div>
+      <div class="badge-props">font-weight: 600 (semibold)<br>padding: 1px 8px<br>border-radius: 4px<br>uses --bg-tertiary / --text-placeholder</div>
+      <div class="type-indicator adhoc">Ad-hoc</div>
+    </div>
+  </div>
+</div>
+
+<!-- DOCUMENT TYPE BADGES -->
+<div class="category">
+  <div class="category-title">Document Types</div>
+  <div class="badge-grid">
+    <div class="badge-card adhoc" data-component="TypeBadge">
+      <span style="display:inline-block; font-family:'Inter',sans-serif; font-size:12px; font-weight:600; padding:1px 8px; border-radius:4px; background:#D0F1FF; color:#063A83;">BoL</span>
+      <div class="badge-meta"><code>TypeBadge</code> (local fn)</div>
+      <div class="badge-file">DocumentsTab.jsx</div>
+      <div class="badge-props">font-weight: 600<br>padding: 1px 8px<br>border-radius: 4px</div>
+      <div class="type-indicator adhoc">Ad-hoc</div>
+    </div>
+    <div class="badge-card adhoc" data-component="TypeBadge">
+      <span style="display:inline-block; font-family:'Inter',sans-serif; font-size:12px; font-weight:600; padding:1px 8px; border-radius:4px; background:#D0F1FF; color:#063A83;">MBoL</span>
+      <div class="badge-meta"><code>TypeBadge</code> (local fn)</div>
+      <div class="badge-file">DocumentsTab.jsx</div>
+      <div class="badge-props">font-weight: 600<br>padding: 1px 8px<br>border-radius: 4px</div>
+      <div class="type-indicator adhoc">Ad-hoc</div>
+    </div>
+    <div class="badge-card adhoc" data-component="TypeBadge">
+      <span style="display:inline-block; font-family:'Inter',sans-serif; font-size:12px; font-weight:600; padding:1px 8px; border-radius:4px; background:#FDF1C8; color:#8F3F11;">POD</span>
+      <div class="badge-meta"><code>TypeBadge</code> (local fn)</div>
+      <div class="badge-file">DocumentsTab.jsx</div>
+      <div class="badge-props">font-weight: 600<br>padding: 1px 8px<br>border-radius: 4px</div>
+      <div class="type-indicator adhoc">Ad-hoc</div>
+    </div>
+    <div class="badge-card adhoc" data-component="TypeBadge">
+      <span style="display:inline-block; font-family:'Inter',sans-serif; font-size:12px; font-weight:600; padding:1px 8px; border-radius:4px; background:#D4F3EB; color:#1D524A;">SL</span>
+      <div class="badge-meta"><code>TypeBadge</code> (local fn)</div>
+      <div class="badge-file">DocumentsTab.jsx</div>
+      <div class="badge-props">font-weight: 600<br>padding: 1px 8px<br>border-radius: 4px</div>
+      <div class="type-indicator adhoc">Ad-hoc</div>
+    </div>
+    <div class="badge-card adhoc" data-component="TypeBadge">
+      <span style="display:inline-block; font-family:'Inter',sans-serif; font-size:12px; font-weight:600; padding:1px 8px; border-radius:4px; background:#EDE9FE; color:#5B21B6;">Packing List</span>
+      <div class="badge-meta"><code>TypeBadge</code> (local fn)</div>
+      <div class="badge-file">DocumentsTab.jsx</div>
+      <div class="badge-props">font-weight: 600<br>padding: 1px 8px<br>border-radius: 4px</div>
+      <div class="type-indicator adhoc">Ad-hoc</div>
+    </div>
+    <div class="badge-card adhoc" data-component="TypeBadge">
+      <span style="display:inline-block; font-family:'Inter',sans-serif; font-size:12px; font-weight:600; padding:1px 8px; border-radius:4px; background:#E4E6EB; color:#384253;">Other</span>
+      <div class="badge-meta"><code>TypeBadge</code> (local fn)</div>
+      <div class="badge-file">DocumentsTab.jsx</div>
+      <div class="badge-props">font-weight: 600<br>padding: 1px 8px<br>border-radius: 4px<br>uses --bg-tertiary / --text-secondary</div>
+      <div class="type-indicator adhoc">Ad-hoc</div>
+    </div>
+  </div>
+</div>
+
+<!-- STOP TYPE BADGES -->
+<div class="category">
+  <div class="category-title">Stop Types</div>
+  <div class="badge-grid">
+    <div class="badge-card adhoc" data-component="--">
+      <span style="display:inline-block; font-family:'Inter',sans-serif; font-size:12px; font-weight:600; line-height:16px; padding:2px 10px; border-radius:4px; background:#D4F3EB; color:#1D524A;">Pickup</span>
+      <div class="badge-meta">--</div>
+      <div class="badge-file">StopsTab.jsx</div>
+      <div class="badge-props">font-weight: 600<br>padding: 2px 10px<br>line-height: 16px<br>border-radius: 4px</div>
+      <div class="type-indicator adhoc">Ad-hoc</div>
+    </div>
+    <div class="badge-card adhoc" data-component="--">
+      <span style="display:inline-block; font-family:'Inter',sans-serif; font-size:12px; font-weight:600; line-height:16px; padding:2px 10px; border-radius:4px; background:#D0F1FF; color:#063A83;">Delivery</span>
+      <div class="badge-meta">--</div>
+      <div class="badge-file">StopsTab.jsx</div>
+      <div class="badge-props">font-weight: 600<br>padding: 2px 10px<br>line-height: 16px<br>border-radius: 4px</div>
+      <div class="type-indicator adhoc">Ad-hoc</div>
+    </div>
+  </div>
+</div>
+
+<!-- HAZMAT BADGES -->
+<div class="category">
+  <div class="category-title">Hazmat Badges</div>
+  <div class="badge-grid">
+    <div class="badge-card adhoc" data-component="--">
+      <span style="display:inline-flex; align-items:center; gap:4px; font-size:12px; font-weight:600; padding:2px 8px; border-radius:4px; background:rgba(245,158,11,0.12); color:rgb(180,110,5);">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+        Hazmat
+      </span>
+      <div class="badge-meta">-- (inline in ShipmentTable)</div>
+      <div class="badge-file">ShipmentTable.jsx</div>
+      <div class="badge-props">display: inline-flex<br>gap: 4px<br>font-weight: 600<br>padding: 2px 8px<br>border-radius: 4px<br>bg: rgba(245,158,11,0.12)<br>icon: TriangleAlert 12px</div>
+      <div class="type-indicator adhoc">Ad-hoc</div>
+    </div>
+    <div class="badge-card adhoc" data-component="HazmatTag">
+      <span style="display:inline-flex; align-items:center; gap:4px; font-size:12px; font-weight:600; padding:2px 8px; border-radius:4px; background:rgba(245,158,11,0.12); color:rgb(180,110,5);">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+        Hazmat
+      </span>
+      <div class="badge-meta"><code>HazmatTag</code> (local fn, with tooltip)</div>
+      <div class="badge-file">ProductTab.jsx</div>
+      <div class="badge-props">display: inline-flex<br>gap: 4px<br>font-weight: 600<br>padding: 2px 8px<br>border-radius: 4px<br>bg: rgba(245,158,11,0.12)<br>icon: TriangleAlert 12px<br>+ hover tooltip</div>
+      <div class="type-indicator adhoc">Ad-hoc</div>
+    </div>
+  </div>
+</div>
+
+<!-- APPOINTMENT BADGE -->
+<div class="category">
+  <div class="category-title">Appointment Badge</div>
+  <div class="badge-grid">
+    <div class="badge-card adhoc" data-component="--">
+      <span style="display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:600; padding:2px 8px; border-radius:4px; background:rgba(59,130,246,0.10); color:rgb(37,99,235); margin-top:4px;">Appointment</span>
+      <div class="badge-meta">--</div>
+      <div class="badge-file">OrderTab.jsx</div>
+      <div class="badge-props">font-size: 11px<br>font-weight: 600<br>padding: 2px 8px<br>border-radius: 4px<br>bg: rgba(59,130,246,0.10)<br>margin-top: 4px</div>
+      <div class="type-indicator adhoc">Ad-hoc</div>
+    </div>
+  </div>
+</div>
+
+<!-- HISTORY ACTION BADGES -->
+<div class="category">
+  <div class="category-title">History / Audit Log Action Badges</div>
+  <div class="badge-grid">
+    <div class="badge-card adhoc" data-component="--">
+      <span style="display:inline-block; font-family:'Inter',sans-serif; font-size:11px; font-weight:600; padding:1px 7px; border-radius:9999px; background:#dcfce7; color:#16a34a; line-height:18px; white-space:nowrap;">Order Created</span>
+      <div class="badge-meta">-- (getBadge 'create')</div>
+      <div class="badge-file">HistoryTab.jsx</div>
+      <div class="badge-props">font-size: 11px<br>font-weight: 600<br>padding: 1px 7px<br>border-radius: 9999px (pill)<br>line-height: 18px</div>
+      <div class="type-indicator adhoc">Ad-hoc</div>
+    </div>
+    <div class="badge-card adhoc" data-component="--">
+      <span style="display:inline-block; font-family:'Inter',sans-serif; font-size:11px; font-weight:600; padding:1px 7px; border-radius:9999px; background:#dbeafe; color:#2563eb; line-height:18px; white-space:nowrap;">Tender Sent</span>
+      <div class="badge-meta">-- (getBadge 'tender')</div>
+      <div class="badge-file">HistoryTab.jsx</div>
+      <div class="badge-props">font-size: 11px<br>font-weight: 600<br>padding: 1px 7px<br>border-radius: 9999px (pill)<br>line-height: 18px</div>
+      <div class="type-indicator adhoc">Ad-hoc</div>
+    </div>
+    <div class="badge-card adhoc" data-component="--">
+      <span style="display:inline-block; font-family:'Inter',sans-serif; font-size:11px; font-weight:600; padding:1px 7px; border-radius:9999px; background:#fef3c7; color:#d97706; line-height:18px; white-space:nowrap;">Schedule Updated</span>
+      <div class="badge-meta">-- (getBadge 'update')</div>
+      <div class="badge-file">HistoryTab.jsx</div>
+      <div class="badge-props">font-size: 11px<br>font-weight: 600<br>padding: 1px 7px<br>border-radius: 9999px (pill)<br>line-height: 18px</div>
+      <div class="type-indicator adhoc">Ad-hoc</div>
+    </div>
+    <div class="badge-card adhoc" data-component="--">
+      <span style="display:inline-block; font-family:'Inter',sans-serif; font-size:11px; font-weight:600; padding:1px 7px; border-radius:9999px; background:#ede9fe; color:#7c3aed; line-height:18px; white-space:nowrap;">PGI Completed</span>
+      <div class="badge-meta">-- (getBadge 'completion')</div>
+      <div class="badge-file">HistoryTab.jsx</div>
+      <div class="badge-props">font-size: 11px<br>font-weight: 600<br>padding: 1px 7px<br>border-radius: 9999px (pill)<br>line-height: 18px</div>
+      <div class="type-indicator adhoc">Ad-hoc</div>
+    </div>
+    <div class="badge-card adhoc" data-component="--">
+      <span style="display:inline-block; font-family:'Inter',sans-serif; font-size:11px; font-weight:600; padding:1px 7px; border-radius:9999px; background:#E4E6EB; color:#384253; line-height:18px; white-space:nowrap;">Other</span>
+      <div class="badge-meta">-- (getBadge default)</div>
+      <div class="badge-file">HistoryTab.jsx</div>
+      <div class="badge-props">font-size: 11px<br>font-weight: 600<br>padding: 1px 7px<br>border-radius: 9999px (pill)<br>line-height: 18px</div>
+      <div class="type-indicator adhoc">Ad-hoc</div>
+    </div>
+  </div>
+</div>
+
+<!-- COST ALLOCATION ORDER TABS -->
+<div class="category">
+  <div class="category-title">Cost Allocation Order Tabs</div>
+  <div class="badge-grid">
+    <div class="badge-card adhoc" data-component="--">
+      <span style="display:inline-block; font-family:'Inter',sans-serif; font-size:12px; font-weight:600; padding:4px 10px; border-radius:4px; background:rgba(245,158,11,0.12); color:rgb(180,110,5); border:1px solid rgba(180,110,5,0.19); cursor:pointer;">ORD-1001</span>
+      <div class="badge-meta">-- (active state)</div>
+      <div class="badge-file">CostAllocationTab.jsx</div>
+      <div class="badge-props">font-weight: 600 (active)<br>padding: 4px 10px<br>border-radius: 4px<br>bg: rgba opacity 12%<br>border: 1px solid color@19%<br>transition: all 0.15s ease</div>
+      <div class="type-indicator adhoc">Ad-hoc</div>
+    </div>
+    <div class="badge-card adhoc" data-component="--">
+      <span style="display:inline-block; font-family:'Inter',sans-serif; font-size:12px; font-weight:500; padding:4px 10px; border-radius:4px; background:#F0F1F3; color:#6B7280; border:1px solid transparent; cursor:pointer;">ORD-1002</span>
+      <div class="badge-meta">-- (inactive state)</div>
+      <div class="badge-file">CostAllocationTab.jsx</div>
+      <div class="badge-props">font-weight: 500 (inactive)<br>padding: 4px 10px<br>border-radius: 4px<br>bg: --bg-secondary<br>color: --text-tertiary<br>border: 1px solid transparent</div>
+      <div class="type-indicator adhoc">Ad-hoc</div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB COUNT BADGES -->
+<div class="category">
+  <div class="category-title">Tab Count Badges</div>
+  <div class="badge-grid">
+    <div class="badge-card adhoc" data-component="--">
+      <span style="display:inline-block; font-size:12px; font-weight:700; padding:2px 10px; border-radius:10px; background:#E4E6EB; color:#1B2537;">12</span>
+      <div class="badge-meta">--</div>
+      <div class="badge-file">ShipmentTabs.jsx</div>
+      <div class="badge-props">font-size: 12px (text-xs)<br>font-weight: 700 (bold)<br>padding: 2px 10px<br>border-radius: 10px (pill)</div>
+      <div class="type-indicator adhoc">Ad-hoc</div>
+    </div>
+  </div>
+</div>
+
+<!-- NOTIFICATION BADGE -->
+<div class="category">
+  <div class="category-title">Notification Badge</div>
+  <div class="badge-grid">
+    <div class="badge-card adhoc" data-component="--">
+      <span style="display:inline-flex; align-items:center; justify-content:center; font-size:12px; font-weight:500; width:20px; height:20px; padding:4px; border-radius:9999px; background:#D23930; color:#FFFFFF;">6</span>
+      <div class="badge-meta">--</div>
+      <div class="badge-file">Navbar.jsx</div>
+      <div class="badge-props">font-size: 12px<br>font-weight: 500<br>width/height: 20px<br>border-radius: 9999px (circle)<br>bg: #D23930 (bittersweet-600)<br>positioned: absolute top:-6 left:16</div>
+      <div class="type-indicator adhoc">Ad-hoc</div>
+    </div>
+  </div>
+</div>
+
+<!-- BADGE COMPONENT (Normalized) — Compact Reference -->
+<div class="category">
+  <div class="category-title">Badge Component (Normalized) <span style="font-size:11px; font-weight:500; color:#10B981; margin-left:8px;">NORMALIZED</span></div>
+  <p style="font-size:13px; color:#6B7280; margin-bottom:14px;">This component has been normalized. View full reference for all variants and props.</p>
+  <button class="toggle-btn" onclick="openBadgeModal()">View Badge Component</button>
+</div>
+
+<!-- Badge Modal Overlay -->
+<div class="modal-overlay" id="badgeModal" onclick="closeBadgeModal(event)">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <button class="modal-close" onclick="closeBadgeModal()">&times;</button>
+    <div id="badgeModalContent"></div>
+  </div>
+</div>
+
+</div><!-- end badgeContainer -->
+
+</div><!-- end tab-badges -->
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- NORMALIZE TAB (disabled by default) -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="tab-content" id="tab-normalize">
+  <div id="normalizeContent">
+    <div style="text-align:center; padding:80px 40px; color:#D0D4DB;">
+      <div style="font-size:48px; margin-bottom:16px;">&#x1F504;</div>
+      <div style="font-size:18px; font-weight:600; color:#9DA3B0;">No active normalization</div>
+      <div style="font-size:13px; color:#B0B5BE; margin-top:8px;">Run <code style="background:#F3F4F6; padding:2px 8px; border-radius:4px; font-size:12px;">/normalize &lt;figma-url&gt;</code> to start a component comparison.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- COLORS TAB -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="tab-content" id="tab-colors">
+
+<h1>Odyssey Shipments — Color Tokens</h1>
+<p class="subtitle">Complete inventory of every color token from tokens.css, plus hardcoded colors found in component source files. Source: src/styles/tokens.css</p>
+
+<!-- ──────────────────────────────────────── -->
+<!-- PRIMITIVES -->
+<!-- ──────────────────────────────────────── -->
+<div class="color-section">
+  <div class="color-section-title">Primitive Tokens</div>
+  <div class="color-section-desc">Raw color values. These are the base palette — never used directly in components; referenced by semantic and component tokens.</div>
+
+  <!-- Deep Sea Neutral -->
+  <div class="color-group">
+    <div class="color-group-title">Deep Sea Neutral</div>
+    <div class="color-grid">
+      <div class="color-row"><div class="color-swatch" style="background:#F7F8FA"></div><div class="color-info"><span class="color-var">--deep-sea-neutral-50</span><span class="color-hex">#F7F8FA</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#F2F3F5"></div><div class="color-info"><span class="color-var">--deep-sea-neutral-100</span><span class="color-hex">#F2F3F5</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#E4E6EB"></div><div class="color-info"><span class="color-var">--deep-sea-neutral-200</span><span class="color-hex">#E4E6EB</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#D0D4DB"></div><div class="color-info"><span class="color-var">--deep-sea-neutral-300</span><span class="color-hex">#D0D4DB</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#9DA3B0"></div><div class="color-info"><span class="color-var">--deep-sea-neutral-400</span><span class="color-hex">#9DA3B0</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#6B7280"></div><div class="color-info"><span class="color-var">--deep-sea-neutral-500</span><span class="color-hex">#6B7280</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#4C5463"></div><div class="color-info"><span class="color-var">--deep-sea-neutral-600</span><span class="color-hex">#4C5463</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#384253"></div><div class="color-info"><span class="color-var">--deep-sea-neutral-700</span><span class="color-hex">#384253</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#283142"></div><div class="color-info"><span class="color-var">--deep-sea-neutral-800</span><span class="color-hex">#283142</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#1B2537"></div><div class="color-info"><span class="color-var">--deep-sea-neutral-900</span><span class="color-hex">#1B2537</span></div></div>
+    </div>
+  </div>
+
+  <!-- White -->
+  <div class="color-group">
+    <div class="color-group-title">White</div>
+    <div class="color-grid">
+      <div class="color-row"><div class="color-swatch" style="background:#FFFFFF; border:1px solid #E4E6EB"></div><div class="color-info"><span class="color-var">--white</span><span class="color-hex">#FFFFFF</span></div></div>
+    </div>
+  </div>
+
+  <!-- Carolina Blue -->
+  <div class="color-group">
+    <div class="color-group-title">Carolina Blue</div>
+    <div class="color-grid">
+      <div class="color-row"><div class="color-swatch" style="background:#5BA4D4"></div><div class="color-info"><span class="color-var">--carolina-blue-400</span><span class="color-hex">#5BA4D4</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#276DA2"></div><div class="color-info"><span class="color-var">--carolina-blue-600</span><span class="color-hex">#276DA2</span></div></div>
+    </div>
+  </div>
+
+  <!-- Bittersweet -->
+  <div class="color-group">
+    <div class="color-group-title">Bittersweet</div>
+    <div class="color-grid">
+      <div class="color-row"><div class="color-swatch" style="background:#FDE5E3"></div><div class="color-info"><span class="color-var">--bittersweet-100</span><span class="color-hex">#FDE5E3</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#D23930"></div><div class="color-info"><span class="color-var">--bittersweet-600</span><span class="color-hex">#D23930</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#922922"></div><div class="color-info"><span class="color-var">--bittersweet-800</span><span class="color-hex">#922922</span></div></div>
+    </div>
+  </div>
+
+  <!-- Caribbean Green -->
+  <div class="color-group">
+    <div class="color-group-title">Caribbean Green</div>
+    <div class="color-grid">
+      <div class="color-row"><div class="color-swatch" style="background:#D4F3EB"></div><div class="color-info"><span class="color-var">--caribbean-green-100</span><span class="color-hex">#D4F3EB</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#237E70"></div><div class="color-info"><span class="color-var">--caribbean-green-600</span><span class="color-hex">#237E70</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#1D524A"></div><div class="color-info"><span class="color-var">--caribbean-green-800</span><span class="color-hex">#1D524A</span></div></div>
+    </div>
+  </div>
+
+  <!-- Sunrise Yellow -->
+  <div class="color-group">
+    <div class="color-group-title">Sunrise Yellow</div>
+    <div class="color-grid">
+      <div class="color-row"><div class="color-swatch" style="background:#FFFBEB"></div><div class="color-info"><span class="color-var">--sunrise-yellow-50</span><span class="color-hex">#FFFBEB</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FDF1C8"></div><div class="color-info"><span class="color-var">--sunrise-yellow-100</span><span class="color-hex">#FDF1C8</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FADF7E"></div><div class="color-info"><span class="color-var">--sunrise-yellow-200</span><span class="color-hex">#FADF7E</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#F8CE51"></div><div class="color-info"><span class="color-var">--sunrise-yellow-300</span><span class="color-hex">#F8CE51</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#8F3F11"></div><div class="color-info"><span class="color-var">--sunrise-yellow-800</span><span class="color-hex">#8F3F11</span></div></div>
+    </div>
+  </div>
+
+  <!-- Bay of Many -->
+  <div class="color-group">
+    <div class="color-group-title">Bay of Many</div>
+    <div class="color-grid">
+      <div class="color-row"><div class="color-swatch" style="background:#D0F1FF"></div><div class="color-info"><span class="color-var">--bay-of-many-100</span><span class="color-hex">#D0F1FF</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#063A83"></div><div class="color-info"><span class="color-var">--bay-of-many-950</span><span class="color-hex">#063A83</span></div></div>
+    </div>
+  </div>
+
+  <!-- Purple -->
+  <div class="color-group">
+    <div class="color-group-title">Purple</div>
+    <div class="color-grid">
+      <div class="color-row"><div class="color-swatch" style="background:#EDE9FE"></div><div class="color-info"><span class="color-var">--purple-100</span><span class="color-hex">#EDE9FE</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#5B21B6"></div><div class="color-info"><span class="color-var">--purple-800</span><span class="color-hex">#5B21B6</span></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────── -->
+<!-- SEMANTIC TOKENS -->
+<!-- ──────────────────────────────────────── -->
+<div class="color-section">
+  <div class="color-section-title">Semantic Tokens</div>
+  <div class="color-section-desc">Purpose-based aliases that reference primitives. These are what components should use.</div>
+
+  <!-- Text -->
+  <div class="color-group">
+    <div class="color-group-title">Text</div>
+    <div class="color-grid">
+      <div class="color-row"><div class="color-swatch" style="background:#1B2537"></div><div class="color-info"><span class="color-var">--text-primary</span><span class="color-hex">#1B2537</span><span class="color-ref">deep-sea-neutral-900</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#384253"></div><div class="color-info"><span class="color-var">--text-secondary</span><span class="color-hex">#384253</span><span class="color-ref">deep-sea-neutral-700</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#6B7280"></div><div class="color-info"><span class="color-var">--text-tertiary</span><span class="color-hex">#6B7280</span><span class="color-ref">deep-sea-neutral-500</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#9DA3B0"></div><div class="color-info"><span class="color-var">--text-placeholder</span><span class="color-hex">#9DA3B0</span><span class="color-ref">deep-sea-neutral-400</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FFFFFF; border:1px solid #E4E6EB"></div><div class="color-info"><span class="color-var">--text-inverse</span><span class="color-hex">#FFFFFF</span><span class="color-ref">white</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#D0D4DB"></div><div class="color-info"><span class="color-var">--text-inverse-muted</span><span class="color-hex">#D0D4DB</span><span class="color-ref">deep-sea-neutral-300</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#276DA2"></div><div class="color-info"><span class="color-var">--text-link</span><span class="color-hex">#276DA2</span><span class="color-ref">carolina-blue-600</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#D23930"></div><div class="color-info"><span class="color-var">--text-error</span><span class="color-hex">#D23930</span><span class="color-ref">bittersweet-600</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#237E70"></div><div class="color-info"><span class="color-var">--text-success</span><span class="color-hex">#237E70</span><span class="color-ref">caribbean-green-600</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#8F3F11"></div><div class="color-info"><span class="color-var">--text-warning</span><span class="color-hex">#8F3F11</span><span class="color-ref">sunrise-yellow-800</span></div></div>
+    </div>
+  </div>
+
+  <!-- Background -->
+  <div class="color-group">
+    <div class="color-group-title">Background</div>
+    <div class="color-grid">
+      <div class="color-row"><div class="color-swatch" style="background:#FFFFFF; border:1px solid #E4E6EB"></div><div class="color-info"><span class="color-var">--bg-primary</span><span class="color-hex">#FFFFFF</span><span class="color-ref">white</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#F7F8FA"></div><div class="color-info"><span class="color-var">--bg-secondary</span><span class="color-hex">#F7F8FA</span><span class="color-ref">deep-sea-neutral-50</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#F2F3F5"></div><div class="color-info"><span class="color-var">--bg-tertiary</span><span class="color-hex">#F2F3F5</span><span class="color-ref">deep-sea-neutral-100</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#1B2537"></div><div class="color-info"><span class="color-var">--bg-inverse</span><span class="color-hex">#1B2537</span><span class="color-ref">deep-sea-neutral-900</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FDE5E3"></div><div class="color-info"><span class="color-var">--bg-error</span><span class="color-hex">#FDE5E3</span><span class="color-ref">bittersweet-100</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#D4F3EB"></div><div class="color-info"><span class="color-var">--bg-success</span><span class="color-hex">#D4F3EB</span><span class="color-ref">caribbean-green-100</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FFFBEB"></div><div class="color-info"><span class="color-var">--bg-warning</span><span class="color-hex">#FFFBEB</span><span class="color-ref">sunrise-yellow-50</span></div></div>
+    </div>
+  </div>
+
+  <!-- Border -->
+  <div class="color-group">
+    <div class="color-group-title">Border</div>
+    <div class="color-grid">
+      <div class="color-row"><div class="color-swatch" style="background:#D0D4DB"></div><div class="color-info"><span class="color-var">--border-default</span><span class="color-hex">#D0D4DB</span><span class="color-ref">deep-sea-neutral-300</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#E4E6EB"></div><div class="color-info"><span class="color-var">--border-subtle</span><span class="color-hex">#E4E6EB</span><span class="color-ref">deep-sea-neutral-200</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#1B2537"></div><div class="color-info"><span class="color-var">--border-strong</span><span class="color-hex">#1B2537</span><span class="color-ref">deep-sea-neutral-900</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#5BA4D4"></div><div class="color-info"><span class="color-var">--border-focus</span><span class="color-hex">#5BA4D4</span><span class="color-ref">carolina-blue-400</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#4C5463"></div><div class="color-info"><span class="color-var">--border-inverse</span><span class="color-hex">#4C5463</span><span class="color-ref">deep-sea-neutral-600</span></div></div>
+    </div>
+  </div>
+
+  <!-- Overlay & Shadows -->
+  <div class="color-group">
+    <div class="color-group-title">Overlay &amp; Shadows</div>
+    <div class="color-grid">
+      <div class="color-row"><div class="color-swatch" style="background:rgba(0,0,0,0.4)"></div><div class="color-info"><span class="color-var">--overlay-bg</span><span class="color-hex">rgba(0, 0, 0, 0.4)</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:rgba(0,0,0,0.05)"></div><div class="color-info"><span class="color-var">--shadow-sm</span><span class="color-hex">rgba(0, 0, 0, 0.05)</span><span class="color-ref">0px 1px 2px</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:rgba(0,0,0,0.12)"></div><div class="color-info"><span class="color-var">--shadow-md</span><span class="color-hex">rgba(0, 0, 0, 0.12)</span><span class="color-ref">0 4px 12px</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:rgba(0,0,0,0.16)"></div><div class="color-info"><span class="color-var">--shadow-lg</span><span class="color-hex">rgba(0, 0, 0, 0.16)</span><span class="color-ref">0 8px 32px</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:rgba(0,0,0,0.08)"></div><div class="color-info"><span class="color-var">--shadow-up-md</span><span class="color-hex">rgba(0, 0, 0, 0.08)</span><span class="color-ref">0 -4px 16px</span></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────── -->
+<!-- COMPONENT TOKENS -->
+<!-- ──────────────────────────────────────── -->
+<div class="color-section">
+  <div class="color-section-title">Component Tokens</div>
+  <div class="color-section-desc">Component-scoped aliases. Each resolves to a semantic or primitive token.</div>
+
+  <!-- Navbar -->
+  <div class="color-group">
+    <div class="color-group-title">Navbar</div>
+    <div class="color-grid">
+      <div class="color-row"><div class="color-swatch" style="background:#1B2537"></div><div class="color-info"><span class="color-var">--navbar-bg</span><span class="color-hex">#1B2537</span><span class="color-ref">bg-inverse</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#F7F8FA"></div><div class="color-info"><span class="color-var">--navbar-text</span><span class="color-hex">#F7F8FA</span><span class="color-ref">deep-sea-neutral-50</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#9DA3B0"></div><div class="color-info"><span class="color-var">--navbar-text-muted</span><span class="color-hex">#9DA3B0</span><span class="color-ref">text-placeholder</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#1B2537"></div><div class="color-info"><span class="color-var">--navbar-search-bg</span><span class="color-hex">#1B2537</span><span class="color-ref">bg-inverse</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#5BA4D4"></div><div class="color-info"><span class="color-var">--navbar-search-focus</span><span class="color-hex">#5BA4D4</span><span class="color-ref">border-focus</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#384253"></div><div class="color-info"><span class="color-var">--navbar-search-dropdown</span><span class="color-hex">#384253</span><span class="color-ref">deep-sea-neutral-700</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#4C5463"></div><div class="color-info"><span class="color-var">--navbar-divider</span><span class="color-hex">#4C5463</span><span class="color-ref">border-inverse</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#D23930"></div><div class="color-info"><span class="color-var">--navbar-notification</span><span class="color-hex">#D23930</span><span class="color-ref">bittersweet-600</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#D0D4DB"></div><div class="color-info"><span class="color-var">--navbar-user-name</span><span class="color-hex">#D0D4DB</span><span class="color-ref">text-inverse-muted</span></div></div>
+    </div>
+  </div>
+
+  <!-- Button -->
+  <div class="color-group">
+    <div class="color-group-title">Button</div>
+    <div class="color-grid">
+      <div class="color-row"><div class="color-swatch" style="background:#1B2537"></div><div class="color-info"><span class="color-var">--btn-primary-bg</span><span class="color-hex">#1B2537</span><span class="color-ref">bg-inverse</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FFFFFF; border:1px solid #E4E6EB"></div><div class="color-info"><span class="color-var">--btn-primary-text</span><span class="color-hex">#FFFFFF</span><span class="color-ref">text-inverse</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#384253"></div><div class="color-info"><span class="color-var">--btn-primary-hover</span><span class="color-hex">#384253</span><span class="color-ref">deep-sea-neutral-700</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FFFFFF; border:1px solid #E4E6EB"></div><div class="color-info"><span class="color-var">--btn-secondary-bg</span><span class="color-hex">#FFFFFF</span><span class="color-ref">bg-primary</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#D0D4DB"></div><div class="color-info"><span class="color-var">--btn-secondary-border</span><span class="color-hex">#D0D4DB</span><span class="color-ref">border-default</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#384253"></div><div class="color-info"><span class="color-var">--btn-secondary-text</span><span class="color-hex">#384253</span><span class="color-ref">text-secondary</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#D0D4DB"></div><div class="color-info"><span class="color-var">--btn-disabled-bg</span><span class="color-hex">#D0D4DB</span><span class="color-ref">deep-sea-neutral-300</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FFFFFF; border:1px solid #E4E6EB"></div><div class="color-info"><span class="color-var">--btn-disabled-text</span><span class="color-hex">#FFFFFF</span><span class="color-ref">text-inverse</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#276DA2"></div><div class="color-info"><span class="color-var">--btn-link-text</span><span class="color-hex">#276DA2</span><span class="color-ref">text-link</span></div></div>
+    </div>
+  </div>
+
+  <!-- Input -->
+  <div class="color-group">
+    <div class="color-group-title">Input</div>
+    <div class="color-grid">
+      <div class="color-row"><div class="color-swatch" style="background:#FFFFFF; border:1px solid #E4E6EB"></div><div class="color-info"><span class="color-var">--input-bg</span><span class="color-hex">#FFFFFF</span><span class="color-ref">bg-primary</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#D0D4DB"></div><div class="color-info"><span class="color-var">--input-border</span><span class="color-hex">#D0D4DB</span><span class="color-ref">border-default</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#1B2537"></div><div class="color-info"><span class="color-var">--input-border-focus</span><span class="color-hex">#1B2537</span><span class="color-ref">border-strong</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#1B2537"></div><div class="color-info"><span class="color-var">--input-text</span><span class="color-hex">#1B2537</span><span class="color-ref">text-primary</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#9DA3B0"></div><div class="color-info"><span class="color-var">--input-placeholder</span><span class="color-hex">#9DA3B0</span><span class="color-ref">text-placeholder</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#384253"></div><div class="color-info"><span class="color-var">--input-label</span><span class="color-hex">#384253</span><span class="color-ref">text-secondary</span></div></div>
+    </div>
+  </div>
+
+  <!-- Radio / Checkbox -->
+  <div class="color-group">
+    <div class="color-group-title">Radio / Checkbox</div>
+    <div class="color-grid">
+      <div class="color-row"><div class="color-swatch" style="background:#D0D4DB"></div><div class="color-info"><span class="color-var">--radio-border</span><span class="color-hex">#D0D4DB</span><span class="color-ref">border-default</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#1B2537"></div><div class="color-info"><span class="color-var">--radio-selected-bg</span><span class="color-hex">#1B2537</span><span class="color-ref">bg-inverse</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FFFFFF; border:1px solid #E4E6EB"></div><div class="color-info"><span class="color-var">--radio-indicator</span><span class="color-hex">#FFFFFF</span><span class="color-ref">text-inverse</span></div></div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="color-group">
+    <div class="color-group-title">Tabs</div>
+    <div class="color-grid">
+      <div class="color-row"><div class="color-swatch" style="background:#E4E6EB"></div><div class="color-info"><span class="color-var">--tab-active-bg</span><span class="color-hex">#E4E6EB</span><span class="color-ref">deep-sea-neutral-200</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#1B2537"></div><div class="color-info"><span class="color-var">--tab-active-text</span><span class="color-hex">#1B2537</span><span class="color-ref">text-primary</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#4C5463"></div><div class="color-info"><span class="color-var">--tab-inactive-text</span><span class="color-hex">#4C5463</span><span class="color-ref">deep-sea-neutral-600</span></div></div>
+    </div>
+  </div>
+
+  <!-- Panel -->
+  <div class="color-group">
+    <div class="color-group-title">Panel</div>
+    <div class="color-grid">
+      <div class="color-row"><div class="color-swatch" style="background:#FFFFFF; border:1px solid #E4E6EB"></div><div class="color-info"><span class="color-var">--panel-bg</span><span class="color-hex">#FFFFFF</span><span class="color-ref">bg-primary</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#E4E6EB"></div><div class="color-info"><span class="color-var">--panel-border</span><span class="color-hex">#E4E6EB</span><span class="color-ref">border-subtle</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#1B2537"></div><div class="color-info"><span class="color-var">--panel-heading</span><span class="color-hex">#1B2537</span><span class="color-ref">text-primary</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#E4E6EB"></div><div class="color-info"><span class="color-var">--panel-footer-border</span><span class="color-hex">#E4E6EB</span><span class="color-ref">border-subtle</span></div></div>
+    </div>
+  </div>
+
+  <!-- Badge -->
+  <div class="color-group">
+    <div class="color-group-title">Badge</div>
+    <div class="color-grid">
+      <div class="color-row"><div class="color-swatch" style="background:#D0F1FF"></div><div class="color-info"><span class="color-var">--badge-blue-bg</span><span class="color-hex">#D0F1FF</span><span class="color-ref">bay-of-many-100</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#063A83"></div><div class="color-info"><span class="color-var">--badge-blue-text</span><span class="color-hex">#063A83</span><span class="color-ref">bay-of-many-950</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FDF1C8"></div><div class="color-info"><span class="color-var">--badge-yellow-bg</span><span class="color-hex">#FDF1C8</span><span class="color-ref">sunrise-yellow-100</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#8F3F11"></div><div class="color-info"><span class="color-var">--badge-yellow-text</span><span class="color-hex">#8F3F11</span><span class="color-ref">sunrise-yellow-800</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FDE5E3"></div><div class="color-info"><span class="color-var">--badge-red-bg</span><span class="color-hex">#FDE5E3</span><span class="color-ref">bittersweet-100</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#922922"></div><div class="color-info"><span class="color-var">--badge-red-text</span><span class="color-hex">#922922</span><span class="color-ref">bittersweet-800</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#D4F3EB"></div><div class="color-info"><span class="color-var">--badge-green-bg</span><span class="color-hex">#D4F3EB</span><span class="color-ref">caribbean-green-100</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#1D524A"></div><div class="color-info"><span class="color-var">--badge-green-text</span><span class="color-hex">#1D524A</span><span class="color-ref">caribbean-green-800</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#EDE9FE"></div><div class="color-info"><span class="color-var">--badge-purple-bg</span><span class="color-hex">#EDE9FE</span><span class="color-ref">purple-100</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#5B21B6"></div><div class="color-info"><span class="color-var">--badge-purple-text</span><span class="color-hex">#5B21B6</span><span class="color-ref">purple-800</span></div></div>
+    </div>
+  </div>
+
+  <!-- Dropdown -->
+  <div class="color-group">
+    <div class="color-group-title">Dropdown</div>
+    <div class="color-grid">
+      <div class="color-row"><div class="color-swatch" style="background:#FFFFFF; border:1px solid #E4E6EB"></div><div class="color-info"><span class="color-var">--dropdown-bg</span><span class="color-hex">#FFFFFF</span><span class="color-ref">bg-primary</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#E4E6EB"></div><div class="color-info"><span class="color-var">--dropdown-border</span><span class="color-hex">#E4E6EB</span><span class="color-ref">border-subtle</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#F2F3F5"></div><div class="color-info"><span class="color-var">--dropdown-hover-bg</span><span class="color-hex">#F2F3F5</span><span class="color-ref">bg-tertiary</span></div></div>
+    </div>
+  </div>
+
+  <!-- Alert / Banner -->
+  <div class="color-group">
+    <div class="color-group-title">Alert / Banner</div>
+    <div class="color-grid">
+      <div class="color-row"><div class="color-swatch" style="background:#FFFBEB"></div><div class="color-info"><span class="color-var">--alert-warning-bg</span><span class="color-hex">#FFFBEB</span><span class="color-ref">bg-warning</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FADF7E"></div><div class="color-info"><span class="color-var">--alert-warning-border</span><span class="color-hex">#FADF7E</span><span class="color-ref">sunrise-yellow-200</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#8F3F11"></div><div class="color-info"><span class="color-var">--alert-warning-text</span><span class="color-hex">#8F3F11</span><span class="color-ref">text-warning</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#FDE5E3"></div><div class="color-info"><span class="color-var">--alert-error-bg</span><span class="color-hex">#FDE5E3</span><span class="color-ref">bg-error</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#D23930"></div><div class="color-info"><span class="color-var">--alert-error-text</span><span class="color-hex">#D23930</span><span class="color-ref">text-error</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#D4F3EB"></div><div class="color-info"><span class="color-var">--alert-success-bg</span><span class="color-hex">#D4F3EB</span><span class="color-ref">bg-success</span></div></div>
+      <div class="color-row"><div class="color-swatch" style="background:#237E70"></div><div class="color-info"><span class="color-var">--alert-success-text</span><span class="color-hex">#237E70</span><span class="color-ref">text-success</span></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────── -->
+<!-- HARDCODED COLORS -->
+<!-- ──────────────────────────────────────── -->
+<div class="color-section">
+  <div class="color-section-title">Hardcoded Colors</div>
+  <div class="color-section-desc">Colors used directly in component source code as raw hex/rgba values instead of design tokens. These are candidates for tokenization.</div>
+
+  <!-- Navbar hardcoded -->
+  <div class="color-group">
+    <div class="color-group-title">Navbar.jsx</div>
+    <div class="color-grid">
+      <div class="color-row"><div class="color-swatch" style="background:#0B1629"></div><div class="color-info"><span class="color-var">hardcoded</span><span class="color-hex">#0B1629</span><span class="color-ref">Search dropdown background (darker than --bg-inverse)</span></div><span class="hardcoded-file">Navbar.jsx:71</span></div>
+      <div class="color-row"><div class="color-swatch" style="background:#378AC0"></div><div class="color-info"><span class="color-var">hardcoded</span><span class="color-hex">#378AC0</span><span class="color-ref">Search dropdown border (not a token)</span></div><span class="hardcoded-file">Navbar.jsx:72</span></div>
+      <div class="color-row"><div class="color-swatch" style="background:#384253"></div><div class="color-info"><span class="color-var">hardcoded</span><span class="color-hex">#384253</span><span class="color-ref">Search scope button bg (matches --deep-sea-neutral-700)</span></div><span class="hardcoded-file">Navbar.jsx:81</span></div>
+      <div class="color-row"><div class="color-swatch" style="background:#4C5463"></div><div class="color-info"><span class="color-var">hardcoded</span><span class="color-hex">#4C5463</span><span class="color-ref">Search scope border-right, input border (matches --deep-sea-neutral-600)</span></div><span class="hardcoded-file">Navbar.jsx:82, 101</span></div>
+      <div class="color-row"><div class="color-swatch" style="background:#9DA3B0"></div><div class="color-info"><span class="color-var">hardcoded</span><span class="color-hex">#9DA3B0</span><span class="color-ref">Scope label, chevrons, input text (matches --deep-sea-neutral-400)</span></div><span class="hardcoded-file">Navbar.jsx:85, 88, 105, 190</span></div>
+      <div class="color-row"><div class="color-swatch" style="background:#D23930"></div><div class="color-info"><span class="color-var">hardcoded</span><span class="color-hex">#D23930</span><span class="color-ref">Notification badge bg (matches --bittersweet-600)</span></div><span class="hardcoded-file">Navbar.jsx:172</span></div>
+      <div class="color-row"><div class="color-swatch" style="background:#D0D4DB"></div><div class="color-info"><span class="color-var">hardcoded</span><span class="color-hex">#D0D4DB</span><span class="color-ref">User name text (matches --deep-sea-neutral-300)</span></div><span class="hardcoded-file">Navbar.jsx:187</span></div>
+      <div class="color-row"><div class="color-swatch" style="background:#5BA4D4"></div><div class="color-info"><span class="color-var">hardcoded</span><span class="color-hex">#5BA4D4</span><span class="color-ref">SVG logo fill (matches --carolina-blue-400)</span></div><span class="hardcoded-file">Navbar.jsx:44-46</span></div>
+    </div>
+  </div>
+
+  <!-- HistoryTab hardcoded -->
+  <div class="color-group">
+    <div class="color-group-title">HistoryTab.jsx — Tailwind palette (not Odyssey tokens)</div>
+    <div class="color-grid">
+      <div class="color-row"><div class="color-swatch" style="background:#dcfce7"></div><div class="color-info"><span class="color-var">hardcoded fallback</span><span class="color-hex">#dcfce7</span><span class="color-ref">'create' badge bg (Tailwind green-100, not token)</span></div><span class="hardcoded-file">HistoryTab.jsx:166</span></div>
+      <div class="color-row"><div class="color-swatch" style="background:#16a34a"></div><div class="color-info"><span class="color-var">hardcoded fallback</span><span class="color-hex">#16a34a</span><span class="color-ref">'create' badge fg (Tailwind green-600, not token)</span></div><span class="hardcoded-file">HistoryTab.jsx:155, 166</span></div>
+      <div class="color-row"><div class="color-swatch" style="background:#dbeafe"></div><div class="color-info"><span class="color-var">hardcoded fallback</span><span class="color-hex">#dbeafe</span><span class="color-ref">'tender' badge bg (Tailwind blue-100, not token)</span></div><span class="hardcoded-file">HistoryTab.jsx:168</span></div>
+      <div class="color-row"><div class="color-swatch" style="background:#2563eb"></div><div class="color-info"><span class="color-var">hardcoded fallback</span><span class="color-hex">#2563eb</span><span class="color-ref">'tender' badge fg (Tailwind blue-600, not token)</span></div><span class="hardcoded-file">HistoryTab.jsx:156, 168</span></div>
+      <div class="color-row"><div class="color-swatch" style="background:#fef3c7"></div><div class="color-info"><span class="color-var">hardcoded fallback</span><span class="color-hex">#fef3c7</span><span class="color-ref">'update' badge bg (Tailwind amber-100, not token)</span></div><span class="hardcoded-file">HistoryTab.jsx:170</span></div>
+      <div class="color-row"><div class="color-swatch" style="background:#d97706"></div><div class="color-info"><span class="color-var">hardcoded fallback</span><span class="color-hex">#d97706</span><span class="color-ref">'update' badge fg (Tailwind amber-600, not token)</span></div><span class="hardcoded-file">HistoryTab.jsx:157, 170</span></div>
+      <div class="color-row"><div class="color-swatch" style="background:#7c3aed"></div><div class="color-info"><span class="color-var">hardcoded fallback</span><span class="color-hex">#7c3aed</span><span class="color-ref">'completion' badge fg (Tailwind violet-600, not token)</span></div><span class="hardcoded-file">HistoryTab.jsx:158, 172</span></div>
+    </div>
+  </div>
+
+  <!-- RoutingGuideTab hardcoded -->
+  <div class="color-group">
+    <div class="color-group-title">RoutingGuideTab.jsx</div>
+    <div class="color-grid">
+      <div class="color-row"><div class="color-swatch" style="background:#34d399"></div><div class="color-info"><span class="color-var">hardcoded</span><span class="color-hex">#34d399</span><span class="color-ref">Positive margin indicator (Tailwind emerald-400)</span></div><span class="hardcoded-file">RoutingGuideTab.jsx:981</span></div>
+      <div class="color-row"><div class="color-swatch" style="background:#f87171"></div><div class="color-info"><span class="color-var">hardcoded</span><span class="color-hex">#f87171</span><span class="color-ref">Negative margin indicator (Tailwind red-400)</span></div><span class="hardcoded-file">RoutingGuideTab.jsx:981</span></div>
+    </div>
+  </div>
+
+  <!-- CostAllocationTab hardcoded -->
+  <div class="color-group">
+    <div class="color-group-title">CostAllocationTab.jsx — Order tab colors</div>
+    <div class="color-grid">
+      <div class="color-row"><div class="color-swatch" style="background:rgba(245,158,11,0.12)"></div><div class="color-info"><span class="color-var">hardcoded</span><span class="color-hex">rgba(245, 158, 11, 0.12)</span><span class="color-ref">Amber tab bg</span></div><span class="hardcoded-file">CostAllocationTab.jsx:56</span></div>
+      <div class="color-row"><div class="color-swatch" style="background:rgb(180,110,5)"></div><div class="color-info"><span class="color-var">hardcoded</span><span class="color-hex">rgb(180, 110, 5)</span><span class="color-ref">Amber tab text</span></div><span class="hardcoded-file">CostAllocationTab.jsx:64</span></div>
+      <div class="color-row"><div class="color-swatch" style="background:rgba(59,130,246,0.12)"></div><div class="color-info"><span class="color-var">hardcoded</span><span class="color-hex">rgba(59, 130, 246, 0.12)</span><span class="color-ref">Blue tab bg</span></div><span class="hardcoded-file">CostAllocationTab.jsx:57</span></div>
+      <div class="color-row"><div class="color-swatch" style="background:rgb(37,99,235)"></div><div class="color-info"><span class="color-var">hardcoded</span><span class="color-hex">rgb(37, 99, 235)</span><span class="color-ref">Blue tab text</span></div><span class="hardcoded-file">CostAllocationTab.jsx:65</span></div>
+      <div class="color-row"><div class="color-swatch" style="background:rgba(16,185,129,0.12)"></div><div class="color-info"><span class="color-var">hardcoded</span><span class="color-hex">rgba(16, 185, 129, 0.12)</span><span class="color-ref">Green tab bg</span></div><span class="hardcoded-file">CostAllocationTab.jsx:58</span></div>
+      <div class="color-row"><div class="color-swatch" style="background:rgb(5,150,105)"></div><div class="color-info"><span class="color-var">hardcoded</span><span class="color-hex">rgb(5, 150, 105)</span><span class="color-ref">Green tab text</span></div><span class="hardcoded-file">CostAllocationTab.jsx:66</span></div>
+      <div class="color-row"><div class="color-swatch" style="background:rgba(239,68,68,0.12)"></div><div class="color-info"><span class="color-var">hardcoded</span><span class="color-hex">rgba(239, 68, 68, 0.12)</span><span class="color-ref">Red tab bg</span></div><span class="hardcoded-file">CostAllocationTab.jsx:59</span></div>
+      <div class="color-row"><div class="color-swatch" style="background:rgb(220,38,38)"></div><div class="color-info"><span class="color-var">hardcoded</span><span class="color-hex">rgb(220, 38, 38)</span><span class="color-ref">Red tab text</span></div><span class="hardcoded-file">CostAllocationTab.jsx:67</span></div>
+      <div class="color-row"><div class="color-swatch" style="background:rgba(139,92,246,0.12)"></div><div class="color-info"><span class="color-var">hardcoded</span><span class="color-hex">rgba(139, 92, 246, 0.12)</span><span class="color-ref">Purple tab bg</span></div><span class="hardcoded-file">CostAllocationTab.jsx:60</span></div>
+      <div class="color-row"><div class="color-swatch" style="background:rgb(109,40,217)"></div><div class="color-info"><span class="color-var">hardcoded</span><span class="color-hex">rgb(109, 40, 217)</span><span class="color-ref">Purple tab text</span></div><span class="hardcoded-file">CostAllocationTab.jsx:68</span></div>
+    </div>
+  </div>
+
+  <!-- OrderTab / ProductTab / ShipmentTable hardcoded -->
+  <div class="color-group">
+    <div class="color-group-title">OrderTab.jsx, ProductTab.jsx, ShipmentTable.jsx — Shared hardcoded patterns</div>
+    <div class="color-grid">
+      <div class="color-row"><div class="color-swatch" style="background:rgba(59,130,246,0.10)"></div><div class="color-info"><span class="color-var">hardcoded</span><span class="color-hex">rgba(59, 130, 246, 0.10)</span><span class="color-ref">Appointment badge bg</span></div><span class="hardcoded-file">OrderTab.jsx:22</span></div>
+      <div class="color-row"><div class="color-swatch" style="background:rgb(37,99,235)"></div><div class="color-info"><span class="color-var">hardcoded</span><span class="color-hex">rgb(37, 99, 235)</span><span class="color-ref">Appointment badge text</span></div><span class="hardcoded-file">OrderTab.jsx:23</span></div>
+      <div class="color-row"><div class="color-swatch" style="background:rgba(245,158,11,0.12)"></div><div class="color-info"><span class="color-var">hardcoded</span><span class="color-hex">rgba(245, 158, 11, 0.12)</span><span class="color-ref">Hazmat badge bg</span></div><span class="hardcoded-file">ProductTab.jsx:154, ShipmentTable.jsx:155</span></div>
+      <div class="color-row"><div class="color-swatch" style="background:rgb(180,110,5)"></div><div class="color-info"><span class="color-var">hardcoded</span><span class="color-hex">rgb(180, 110, 5)</span><span class="color-ref">Hazmat badge text</span></div><span class="hardcoded-file">ProductTab.jsx:155, ShipmentTable.jsx:155</span></div>
+      <div class="color-row"><div class="color-swatch" style="background:#fff; border:1px solid #E4E6EB"></div><div class="color-info"><span class="color-var">hardcoded</span><span class="color-hex">#fff</span><span class="color-ref">Document card background</span></div><span class="hardcoded-file">DocumentsTab.jsx:441</span></div>
+    </div>
+  </div>
+
+  <!-- Shadow hardcoded (used outside tokens) -->
+  <div class="color-group">
+    <div class="color-group-title">Hardcoded shadows &amp; overlays (various files)</div>
+    <div class="color-grid">
+      <div class="color-row"><div class="color-swatch" style="background:rgba(0,0,0,0.06)"></div><div class="color-info"><span class="color-var">hardcoded</span><span class="color-hex">rgba(0,0,0,0.06)</span><span class="color-ref">Sticky column shadow</span></div><span class="hardcoded-file">RoutingGuideTab, ShipmentTable</span></div>
+      <div class="color-row"><div class="color-swatch" style="background:rgba(0,0,0,0.25)"></div><div class="color-info"><span class="color-var">hardcoded</span><span class="color-hex">rgba(0,0,0,0.25)</span><span class="color-ref">Tooltip / dark-tooltip shadow</span></div><span class="hardcoded-file">ShipmentTable, RoutingGuideTab, ProductTab, DarkTooltip</span></div>
+      <div class="color-row"><div class="color-swatch" style="background:rgba(0,0,0,0.3)"></div><div class="color-info"><span class="color-var">hardcoded</span><span class="color-hex">rgba(0,0,0,0.3)</span><span class="color-ref">Modal overlay bg</span></div><span class="hardcoded-file">CostAllocationTab, DocumentsTab, TableControls</span></div>
+      <div class="color-row"><div class="color-swatch" style="background:rgba(0,0,0,0.2)"></div><div class="color-info"><span class="color-var">hardcoded</span><span class="color-hex">rgba(0,0,0,0.2)</span><span class="color-ref">Modal box-shadow</span></div><span class="hardcoded-file">CostAllocationTab, DocumentsTab, TableControls</span></div>
+      <div class="color-row"><div class="color-swatch" style="background:rgba(0,0,0,0.1)"></div><div class="color-info"><span class="color-var">hardcoded</span><span class="color-hex">rgba(0,0,0,0.1)</span><span class="color-ref">Button active press shadow</span></div><span class="hardcoded-file">Button.jsx:35, 82</span></div>
+      <div class="color-row"><div class="color-swatch" style="background:rgba(255,255,255,0.1)"></div><div class="color-info"><span class="color-var">hardcoded</span><span class="color-hex">rgba(255,255,255,0.1)</span><span class="color-ref">Dark tooltip inner divider</span></div><span class="hardcoded-file">RoutingGuideTab.jsx:985</span></div>
+    </div>
+  </div>
+
+  <!-- Badge.jsx gray variant -->
+  <div class="color-group">
+    <div class="color-group-title">Badge.jsx — Gray variant (inline, not from tokens)</div>
+    <div class="color-grid">
+      <div class="color-row"><div class="color-swatch" style="background:#E4E6EB"></div><div class="color-info"><span class="color-var">hardcoded fallback</span><span class="color-hex">#E4E6EB</span><span class="color-ref">Gray badge bg (uses token with fallback)</span></div><span class="hardcoded-file">Badge.jsx:7</span></div>
+      <div class="color-row"><div class="color-swatch" style="background:#6B7280"></div><div class="color-info"><span class="color-var">hardcoded fallback</span><span class="color-hex">#6B7280</span><span class="color-ref">Gray badge text (uses token with fallback)</span></div><span class="hardcoded-file">Badge.jsx:7</span></div>
+    </div>
+  </div>
+</div>
+
+</div><!-- end tab-colors -->
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- TYPOGRAPHY TAB -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="tab-content" id="tab-typography">
+
+<h1>Odyssey Shipments — Typography Audit</h1>
+<p class="subtitle">Complete inventory of every typography token, Tailwind class, and inline style in the codebase. Font: Inter. Source: design.md + tokens.css + component audit. Updated 2026-04-13.</p>
+
+<!-- ──────────────────────────────────────── -->
+<!-- SECTION 1: FONT FAMILY -->
+<!-- ──────────────────────────────────────── -->
+<div class="typo-section">
+  <div class="typo-section-title">Font Family</div>
+  <div class="typo-section-desc">The single font family used across all UI text. Defined as <code style="font-size:12px; background:#F3F4F6; padding:1px 5px; border-radius:3px;">--font-primary</code> in tokens.css.</div>
+
+  <div class="typo-font-sample">
+    <div class="family-name">--font-primary: 'Inter', sans-serif</div>
+    <div class="family-render" style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;">
+      The quick brown fox jumps over the lazy dog
+    </div>
+    <div style="margin-top:12px; font-size:14px; color:#384253; font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;">
+      ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789
+    </div>
+    <div style="margin-top:8px; font-size:13px; color:#6B7280;">
+      All UI text: labels, body, headings, buttons, tabs, form data. Public Sans and IBM Plex Sans were normalized to Inter.
+    </div>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────── -->
+<!-- SECTION 2: DESIGN SYSTEM TYPE SCALE -->
+<!-- ──────────────────────────────────────── -->
+<div class="typo-section">
+  <div class="typo-section-title">Design System Type Scale</div>
+  <div class="typo-section-desc">11 defined tokens from design.md. All use Inter with 0 letter-spacing. CSS variables defined in tokens.css for font-size and line-height.</div>
+
+  <div class="typo-scale-grid">
+    <!-- text-xs-normal -->
+    <div class="typo-scale-card">
+      <div class="typo-sample" style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:12px; line-height:16px; font-weight:400; color:#1B2537;">
+        The quick brown fox jumps over the lazy dog
+      </div>
+      <div class="typo-details">
+        <span class="token-name">text-xs-normal</span>
+        font-size: 12px &middot; line-height: 16px (1.33) &middot; weight: 400 (Regular)
+        <div class="token-usage">Small annotations</div>
+      </div>
+    </div>
+
+    <!-- text-xs-medium -->
+    <div class="typo-scale-card">
+      <div class="typo-sample" style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:12px; line-height:16px; font-weight:500; color:#1B2537;">
+        The quick brown fox jumps over the lazy dog
+      </div>
+      <div class="typo-details">
+        <span class="token-name">text-xs-medium</span>
+        font-size: 12px &middot; line-height: 16px (1.33) &middot; weight: 500 (Medium)
+        <div class="token-usage">Badge labels, count text</div>
+      </div>
+    </div>
+
+    <!-- text-xs-tight -->
+    <div class="typo-scale-card">
+      <div class="typo-sample" style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:12px; line-height:12px; font-weight:400; color:#1B2537;">
+        The quick brown fox jumps over the lazy dog
+      </div>
+      <div class="typo-details">
+        <span class="token-name">text-xs-tight</span>
+        font-size: 12px &middot; line-height: 12px (1.0) &middot; weight: 400 (Regular)
+        <div class="token-usage">Compact labels</div>
+      </div>
+    </div>
+
+    <!-- text-sm-normal -->
+    <div class="typo-scale-card">
+      <div class="typo-sample" style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:14px; line-height:20px; font-weight:400; color:#1B2537;">
+        The quick brown fox jumps over the lazy dog
+      </div>
+      <div class="typo-details">
+        <span class="token-name">text-sm-normal</span>
+        font-size: 14px &middot; line-height: 20px (1.43) &middot; weight: 400 (Regular)
+        <div class="token-usage">Body text, form values</div>
+      </div>
+    </div>
+
+    <!-- text-sm-medium -->
+    <div class="typo-scale-card">
+      <div class="typo-sample" style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:14px; line-height:20px; font-weight:500; color:#1B2537;">
+        The quick brown fox jumps over the lazy dog
+      </div>
+      <div class="typo-details">
+        <span class="token-name">text-sm-medium</span>
+        font-size: 14px &middot; line-height: 20px (1.43) &middot; weight: 500 (Medium)
+        <div class="token-usage">Labels, menu items</div>
+      </div>
+    </div>
+
+    <!-- text-sm-semibold -->
+    <div class="typo-scale-card">
+      <div class="typo-sample" style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:14px; line-height:20px; font-weight:600; color:#1B2537;">
+        The quick brown fox jumps over the lazy dog
+      </div>
+      <div class="typo-details">
+        <span class="token-name">text-sm-semibold</span>
+        font-size: 14px &middot; line-height: 20px (1.43) &middot; weight: 600 (Semi Bold)
+        <div class="token-usage">Emphasized labels</div>
+      </div>
+    </div>
+
+    <!-- text-base-normal -->
+    <div class="typo-scale-card">
+      <div class="typo-sample" style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:16px; line-height:24px; font-weight:400; color:#1B2537;">
+        The quick brown fox jumps over the lazy dog
+      </div>
+      <div class="typo-details">
+        <span class="token-name">text-base-normal</span>
+        font-size: 16px &middot; line-height: 24px (1.5) &middot; weight: 400 (Regular)
+        <div class="token-usage">Large body text</div>
+      </div>
+    </div>
+
+    <!-- text-base-medium -->
+    <div class="typo-scale-card">
+      <div class="typo-sample" style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:16px; line-height:24px; font-weight:500; color:#1B2537;">
+        The quick brown fox jumps over the lazy dog
+      </div>
+      <div class="typo-details">
+        <span class="token-name">text-base-medium</span>
+        font-size: 16px &middot; line-height: 24px (1.5) &middot; weight: 500 (Medium)
+        <div class="token-usage">Button text (secondary)</div>
+      </div>
+    </div>
+
+    <!-- text-base-semibold -->
+    <div class="typo-scale-card">
+      <div class="typo-sample" style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:16px; line-height:24px; font-weight:600; color:#1B2537;">
+        The quick brown fox jumps over the lazy dog
+      </div>
+      <div class="typo-details">
+        <span class="token-name">text-base-semibold</span>
+        font-size: 16px &middot; line-height: 24px (1.5) &middot; weight: 600 (Semi Bold)
+        <div class="token-usage">Section headings</div>
+      </div>
+    </div>
+
+    <!-- text-lg-semibold -->
+    <div class="typo-scale-card">
+      <div class="typo-sample" style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:18px; line-height:24px; font-weight:600; color:#1B2537;">
+        The quick brown fox jumps over the lazy dog
+      </div>
+      <div class="typo-details">
+        <span class="token-name">text-lg-semibold</span>
+        font-size: 18px &middot; line-height: 24px (1.33) &middot; weight: 600 (Semi Bold)
+        <div class="token-usage">Panel/filter headings</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────── -->
+<!-- SECTION 3: TAILWIND CLASSES IN USE -->
+<!-- ──────────────────────────────────────── -->
+<div class="typo-section">
+  <div class="typo-section-title">Tailwind Typography Classes in Use</div>
+  <div class="typo-section-desc">Every Tailwind typography utility class found in src/components/**/*.jsx, grouped by type.</div>
+
+  <!-- Size Classes -->
+  <div class="typo-tw-group">
+    <div class="typo-tw-group-title">Size Classes</div>
+    <div class="typo-tw-grid">
+      <div class="typo-tw-card">
+        <div>
+          <div class="tw-class">text-xs</div>
+          <div class="tw-resolved">font-size: 12px (0.75rem) / line-height: 16px (1rem)</div>
+          <div style="margin-top:6px; font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:12px; line-height:16px; color:#1B2537;">ORD-1001 &middot; Admin &middot; Badge labels</div>
+          <div class="tw-files">NotesTab, Navbar, ShipmentTabs, FilterPanel, MonitorPanels, Badge</div>
+        </div>
+      </div>
+      <div class="typo-tw-card">
+        <div>
+          <div class="tw-class">text-sm</div>
+          <div class="tw-resolved">font-size: 14px (0.875rem) / line-height: 20px (1.25rem)</div>
+          <div style="margin-top:6px; font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:14px; line-height:20px; color:#1B2537;">Shipment body text &middot; Labels &middot; Menu items</div>
+          <div class="tw-files">CostAllocationTab, TenderHistoryTab, NotesTab, Navbar, BottomBar, MonitorPanels, ShipmentTable, TableControls, FilterPanel, ColumnPanel, RoutingGuideTab, ShipmentTabs</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Weight Classes -->
+  <div class="typo-tw-group">
+    <div class="typo-tw-group-title">Weight Classes</div>
+    <div class="typo-tw-grid">
+      <div class="typo-tw-card">
+        <div>
+          <div class="tw-class">font-medium</div>
+          <div class="tw-resolved">font-weight: 500</div>
+          <div style="margin-top:6px; font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:14px; font-weight:500; color:#1B2537;">Medium weight labels</div>
+          <div class="tw-files">TenderHistoryTab, HistoryTab, Navbar, Badge, MonitorPanels</div>
+        </div>
+      </div>
+      <div class="typo-tw-card">
+        <div>
+          <div class="tw-class">font-semibold</div>
+          <div class="tw-resolved">font-weight: 600</div>
+          <div style="margin-top:6px; font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:14px; font-weight:600; color:#1B2537;">Semibold emphasized labels</div>
+          <div class="tw-files">NotesTab, Navbar, BottomBar, MonitorPanels, FilterPanel, ColumnPanel</div>
+        </div>
+      </div>
+      <div class="typo-tw-card">
+        <div>
+          <div class="tw-class">font-bold</div>
+          <div class="tw-resolved">font-weight: 700</div>
+          <div style="margin-top:6px; font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:14px; font-weight:700; color:#1B2537;">Bold headings and counts</div>
+          <div class="tw-files">NotesTab, ShipmentTabs, RoutingGuideTab</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Line-height Classes -->
+  <div class="typo-tw-group">
+    <div class="typo-tw-group-title">Line-height Classes</div>
+    <div class="typo-tw-grid">
+      <div class="typo-tw-card">
+        <div>
+          <div class="tw-class">leading-relaxed</div>
+          <div class="tw-resolved">line-height: 1.625</div>
+          <div style="margin-top:6px; font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:14px; line-height:1.625; color:#1B2537;">Relaxed body text for readability</div>
+          <div class="tw-files">NotesTab</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ──────────────────────────────────────── -->
+<!-- SECTION 4: INLINE / HARDCODED TYPOGRAPHY -->
+<!-- ──────────────────────────────────────── -->
+<div class="typo-section">
+  <div class="typo-section-title">Inline / Hardcoded Typography</div>
+  <div class="typo-section-desc">Every hardcoded fontSize, fontWeight, lineHeight, letterSpacing, and fontFamily found in inline style objects. Green border = matches a design.md token; amber dashed = off-system value.</div>
+
+  <!-- CostAllocationTab.jsx -->
+  <div class="typo-inline-group">
+    <div class="typo-inline-group-title">CostAllocationTab.jsx</div>
+    <div class="typo-inline-grid">
+      <div class="typo-inline-card matches-token">
+        <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:12px; font-weight:600; letter-spacing:0.03em; color:#1B2537;">SECTION HEADER</div>
+        <div class="inline-file">CostAllocationTab.jsx:12-18</div>
+        <div class="inline-props">fontSize: var(--font-size-xs) (12px)<br>fontWeight: 600<br>letterSpacing: 0.03em</div>
+        <div class="inline-match yes">Matches text-xs + custom weight</div>
+      </div>
+      <div class="typo-inline-card no-match">
+        <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:13px; font-weight:400; color:#384253;">Table body text at 13px</div>
+        <div class="inline-file">CostAllocationTab.jsx:27-28, 127, 143, 191, 224, 330, 434</div>
+        <div class="inline-props">fontSize: 13<br>fontWeight: 400-600 (varies)</div>
+        <div class="inline-match no">No token — 13px is between xs (12) and sm (14)</div>
+      </div>
+      <div class="typo-inline-card matches-token">
+        <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:14px; font-weight:700; color:#1B2537;">Order heading bold</div>
+        <div class="inline-file">CostAllocationTab.jsx:111</div>
+        <div class="inline-props">fontSize: var(--font-size-sm) (14px)<br>fontWeight: 700</div>
+        <div class="inline-match yes">Matches text-sm size (custom bold weight)</div>
+      </div>
+      <div class="typo-inline-card matches-token">
+        <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:14px; font-weight:600; line-height:20px; color:#1B2537;">Compare AP / AR</div>
+        <div class="inline-file">CostAllocationTab.jsx:283-286, 374</div>
+        <div class="inline-props">fontSize: var(--font-size-sm) (14px)<br>fontWeight: 600<br>lineHeight: 20px</div>
+        <div class="inline-match yes">Matches text-sm-semibold</div>
+      </div>
+      <div class="typo-inline-card no-match">
+        <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:11px; font-weight:500; letter-spacing:0.03em; line-height:14px; color:#6B7280;">Summary footer label</div>
+        <div class="inline-file">CostAllocationTab.jsx:272-277</div>
+        <div class="inline-props">fontSize: 11<br>fontWeight: 500<br>letterSpacing: 0.03em<br>lineHeight: 14px</div>
+        <div class="inline-match no">No token — 11px is off-scale</div>
+      </div>
+      <div class="typo-inline-card matches-token">
+        <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:12px; font-weight:600; color:#1B2537;">Tab label active</div>
+        <div class="inline-file">CostAllocationTab.jsx:398-400</div>
+        <div class="inline-props">fontSize: 12<br>fontWeight: 500-600 (varies by state)</div>
+        <div class="inline-match yes">Matches text-xs size range</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ColumnPanel.jsx -->
+  <div class="typo-inline-group">
+    <div class="typo-inline-group-title">ColumnPanel.jsx</div>
+    <div class="typo-inline-grid">
+      <div class="typo-inline-card no-match">
+        <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:#6B7280;">SECTION LABEL</div>
+        <div class="inline-file">ColumnPanel.jsx:167, 186, 219, 271</div>
+        <div class="inline-props">fontSize: 11<br>fontWeight: 600<br>textTransform: uppercase<br>letterSpacing: 0.05em</div>
+        <div class="inline-match no">No token — 11px off-scale, custom letter-spacing</div>
+      </div>
+      <div class="typo-inline-card no-match">
+        <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:13px; font-weight:500; color:#384253;">Column list item</div>
+        <div class="inline-file">ColumnPanel.jsx:210, 259, 291, 315, 350, 393</div>
+        <div class="inline-props">fontSize: 13<br>fontWeight: 500</div>
+        <div class="inline-match no">No token — 13px is between xs (12) and sm (14)</div>
+      </div>
+      <div class="typo-inline-card matches-token">
+        <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:16px; font-weight:600; color:#1B2537;">Panel heading</div>
+        <div class="inline-file">ColumnPanel.jsx:347 (className text-sm + override fontSize:16)</div>
+        <div class="inline-props">fontSize: 16 (overrides text-sm)<br>fontWeight: 600</div>
+        <div class="inline-match yes">Matches text-base-semibold</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DocumentsTab.jsx -->
+  <div class="typo-inline-group">
+    <div class="typo-inline-group-title">DocumentsTab.jsx</div>
+    <div class="typo-inline-grid">
+      <div class="typo-inline-card matches-token">
+        <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:12px; font-weight:600; letter-spacing:0.03em; color:#1B2537;">TH HEADER</div>
+        <div class="inline-file">DocumentsTab.jsx:22-26, 73-75</div>
+        <div class="inline-props">fontSize: 12<br>fontWeight: 600<br>letterSpacing: 0.03em</div>
+        <div class="inline-match yes">Matches text-xs size</div>
+      </div>
+      <div class="typo-inline-card no-match">
+        <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:13px; font-weight:400; color:#384253;">Table body cell text</div>
+        <div class="inline-file">DocumentsTab.jsx:34, 156, 202, 221, 373, 405</div>
+        <div class="inline-props">fontSize: 13<br>fontWeight: 400-500</div>
+        <div class="inline-match no">No token — 13px off-scale</div>
+      </div>
+      <div class="typo-inline-card matches-token">
+        <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:14px; font-weight:600; color:#1B2537;">Modal title</div>
+        <div class="inline-file">DocumentsTab.jsx:272-273, 345</div>
+        <div class="inline-props">fontSize: 14<br>fontWeight: 600</div>
+        <div class="inline-match yes">Matches text-sm-semibold</div>
+      </div>
+      <div class="typo-inline-card no-match">
+        <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:10px; font-weight:400; color:#6B7280;">Mini table cell</div>
+        <div class="inline-file">DocumentsTab.jsx:458, 509, 526</div>
+        <div class="inline-props">fontSize: 10<br>fontWeight: 400</div>
+        <div class="inline-match no">No token — 10px off-scale</div>
+      </div>
+      <div class="typo-inline-card no-match">
+        <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:9px; font-weight:600; text-transform:uppercase; color:#9DA3B0;">MINI HEADER</div>
+        <div class="inline-file">DocumentsTab.jsx:463, 500, 504, 530</div>
+        <div class="inline-props">fontSize: 9<br>fontWeight: 600<br>textTransform: uppercase</div>
+        <div class="inline-match no">No token — 9px off-scale (document preview only)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- StopsTab.jsx -->
+  <div class="typo-inline-group">
+    <div class="typo-inline-group-title">StopsTab.jsx</div>
+    <div class="typo-inline-grid">
+      <div class="typo-inline-card no-match">
+        <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:11px; font-weight:500; line-height:14px; letter-spacing:0.03em; color:#6B7280;">LABEL ABOVE STOP</div>
+        <div class="inline-file">StopsTab.jsx:33-39</div>
+        <div class="inline-props">fontSize: 11px<br>fontWeight: 500-700<br>lineHeight: 14px<br>letterSpacing: 0.03em</div>
+        <div class="inline-match no">No token — 11px off-scale</div>
+      </div>
+      <div class="typo-inline-card matches-token">
+        <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:14px; font-weight:600; line-height:20px; color:#1B2537;">Stop location name</div>
+        <div class="inline-file">StopsTab.jsx:47-51</div>
+        <div class="inline-props">fontSize: 14px<br>fontWeight: 600<br>lineHeight: 20px</div>
+        <div class="inline-match yes">Matches text-sm-semibold</div>
+      </div>
+      <div class="typo-inline-card matches-token">
+        <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:12px; font-weight:600; line-height:16px; color:#1B2537;">Pickup / Delivery badge</div>
+        <div class="inline-file">StopsTab.jsx:143-146</div>
+        <div class="inline-props">fontSize: 12px<br>fontWeight: 600<br>lineHeight: 16px</div>
+        <div class="inline-match yes">Matches text-xs size + line-height</div>
+      </div>
+      <div class="typo-inline-card no-match">
+        <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:13px; font-weight:500; line-height:18px; color:#384253;">Address detail text</div>
+        <div class="inline-file">StopsTab.jsx:199-203</div>
+        <div class="inline-props">fontSize: 13-14px (varies by primary)<br>fontWeight: 500-600<br>lineHeight: 18px</div>
+        <div class="inline-match no">13px off-scale; 18px line-height off-scale</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RoutingGuideTab.jsx -->
+  <div class="typo-inline-group">
+    <div class="typo-inline-group-title">RoutingGuideTab.jsx</div>
+    <div class="typo-inline-grid">
+      <div class="typo-inline-card matches-token">
+        <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:12px; font-weight:600; letter-spacing:0.03em; color:#1B2537;">TABLE HEADER</div>
+        <div class="inline-file">RoutingGuideTab.jsx:112-116, 222-223, 500-504, 664-666</div>
+        <div class="inline-props">fontSize: 12px<br>fontWeight: 600<br>letterSpacing: 0.03em</div>
+        <div class="inline-match yes">Matches text-xs size</div>
+      </div>
+      <div class="typo-inline-card matches-token">
+        <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:14px; font-weight:400; color:#384253;">Table body default</div>
+        <div class="inline-file">RoutingGuideTab.jsx:129-130, 1042</div>
+        <div class="inline-props">fontSize: 14px<br>fontWeight: 400</div>
+        <div class="inline-match yes">Matches text-sm-normal</div>
+      </div>
+      <div class="typo-inline-card no-match">
+        <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:11px; font-weight:400; line-height:1.3; color:#6B7280;">Subtitles &amp; section labels</div>
+        <div class="inline-file">RoutingGuideTab.jsx:176, 359, 372, 882, 901</div>
+        <div class="inline-props">fontSize: 11<br>fontWeight: 400-600<br>letterSpacing: 0.04em (some)</div>
+        <div class="inline-match no">No token — 11px off-scale</div>
+      </div>
+      <div class="typo-inline-card no-match">
+        <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:13px; font-weight:600; color:#1B2537;">Card values &amp; totals</div>
+        <div class="inline-file">RoutingGuideTab.jsx:179, 490, 760, 770, 852</div>
+        <div class="inline-props">fontSize: 13<br>fontWeight: 500-600</div>
+        <div class="inline-match no">No token — 13px off-scale</div>
+      </div>
+      <div class="typo-inline-card matches-token">
+        <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:14px; font-weight:600; color:#1B2537;">Shipment Details heading</div>
+        <div class="inline-file">RoutingGuideTab.jsx:301, 549</div>
+        <div class="inline-props">fontSize: 14<br>fontWeight: 600</div>
+        <div class="inline-match yes">Matches text-sm-semibold</div>
+      </div>
+      <div class="typo-inline-card matches-token">
+        <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:#1B2537;">COST BREAKDOWN</div>
+        <div class="inline-file">RoutingGuideTab.jsx:190-194, 757, 783</div>
+        <div class="inline-props">fontSize: 12<br>fontWeight: 700<br>textTransform: uppercase<br>letterSpacing: 0.04em</div>
+        <div class="inline-match yes">Matches text-xs size (custom bold + uppercase)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ProductTab.jsx -->
+  <div class="typo-inline-group">
+    <div class="typo-inline-group-title">ProductTab.jsx</div>
+    <div class="typo-inline-grid">
+      <div class="typo-inline-card no-match">
+        <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:13px; font-weight:400; color:#384253;">Table body default</div>
+        <div class="inline-file">ProductTab.jsx:39-40</div>
+        <div class="inline-props">fontSize: 13<br>fontWeight: 400</div>
+        <div class="inline-match no">No token — 13px off-scale</div>
+      </div>
+      <div class="typo-inline-card matches-token">
+        <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:12px; font-weight:600; letter-spacing:0.03em; color:#1B2537;">TH HEADER</div>
+        <div class="inline-file">ProductTab.jsx:55-61</div>
+        <div class="inline-props">fontSize: 12<br>fontWeight: 600<br>letterSpacing: 0.03em</div>
+        <div class="inline-match yes">Matches text-xs size</div>
+      </div>
+      <div class="typo-inline-card no-match">
+        <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:11px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:#6B7280;">ORDER-001</div>
+        <div class="inline-file">ProductTab.jsx:222</div>
+        <div class="inline-props">fontSize: 11<br>fontWeight: 600<br>letterSpacing: 0.04em<br>textTransform: uppercase</div>
+        <div class="inline-match no">No token — 11px off-scale</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OrderTab.jsx -->
+  <div class="typo-inline-group">
+    <div class="typo-inline-group-title">OrderTab.jsx</div>
+    <div class="typo-inline-grid">
+      <div class="typo-inline-card no-match">
+        <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:11px; font-weight:600; color:#6B7280;">Label above field</div>
+        <div class="inline-file">OrderTab.jsx:18-19</div>
+        <div class="inline-props">fontSize: 11<br>fontWeight: 600</div>
+        <div class="inline-match no">No token — 11px off-scale</div>
+      </div>
+      <div class="typo-inline-card no-match">
+        <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:13px; font-weight:700; color:#1B2537;">Order number</div>
+        <div class="inline-file">OrderTab.jsx:32-33</div>
+        <div class="inline-props">fontSize: 13px<br>fontWeight: 700</div>
+        <div class="inline-match no">No token — 13px off-scale</div>
+      </div>
+      <div class="typo-inline-card matches-token">
+        <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:12px; font-weight:400; line-height:16px; color:#6B7280;">Annotation text</div>
+        <div class="inline-file">OrderTab.jsx:59-62</div>
+        <div class="inline-props">fontSize: var(--font-size-xs)<br>fontWeight: 400<br>lineHeight: var(--line-height-xs)</div>
+        <div class="inline-match yes">Matches text-xs-normal</div>
+      </div>
+      <div class="typo-inline-card no-match">
+        <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:13px; font-weight:600; line-height:20px; color:#1B2537;">Field value</div>
+        <div class="inline-file">OrderTab.jsx:70-73</div>
+        <div class="inline-props">fontSize: 13px<br>fontWeight: 600<br>lineHeight: var(--line-height-sm)</div>
+        <div class="inline-match no">No token — 13px off-scale (uses token line-height)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- InstructionsTab.jsx -->
+  <div class="typo-inline-group">
+    <div class="typo-inline-group-title">InstructionsTab.jsx</div>
+    <div class="typo-inline-grid">
+      <div class="typo-inline-card no-match">
+        <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:13px; font-weight:600; color:#1B2537;">Section heading</div>
+        <div class="inline-file">InstructionsTab.jsx:47-49</div>
+        <div class="inline-props">fontSize: 13px<br>fontWeight: 600</div>
+        <div class="inline-match no">No token — 13px off-scale</div>
+      </div>
+      <div class="typo-inline-card no-match">
+        <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:11px; font-weight:600; color:#6B7280;">Field label</div>
+        <div class="inline-file">InstructionsTab.jsx:93-94</div>
+        <div class="inline-props">fontSize: 11px<br>fontWeight: 600</div>
+        <div class="inline-match no">No token — 11px off-scale</div>
+      </div>
+      <div class="typo-inline-card no-match">
+        <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:13px; font-weight:400; line-height:19px; color:#384253;">Instruction body text</div>
+        <div class="inline-file">InstructionsTab.jsx:112-115</div>
+        <div class="inline-props">fontSize: 13px<br>fontWeight: 400<br>lineHeight: 19px</div>
+        <div class="inline-match no">No token — 13px and 19px both off-scale</div>
+      </div>
+      <div class="typo-inline-card matches-token">
+        <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:14px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:#1B2537;">SPECIAL INSTRUCTIONS</div>
+        <div class="inline-file">InstructionsTab.jsx:155-160</div>
+        <div class="inline-props">fontSize: var(--font-size-sm)<br>fontWeight: 700<br>letterSpacing: 0.04em</div>
+        <div class="inline-match yes">Matches text-sm size (custom bold/uppercase)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HistoryTab.jsx -->
+  <div class="typo-inline-group">
+    <div class="typo-inline-group-title">HistoryTab.jsx</div>
+    <div class="typo-inline-grid">
+      <div class="typo-inline-card matches-token">
+        <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:14px; font-weight:600; color:#1B2537;">History action label</div>
+        <div class="inline-file">HistoryTab.jsx:67-70</div>
+        <div class="inline-props">fontSize: var(--font-size-sm)<br>fontWeight: 600</div>
+        <div class="inline-match yes">Matches text-sm-semibold</div>
+      </div>
+      <div class="typo-inline-card no-match">
+        <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:11px; font-weight:600; line-height:18px; color:#1B2537;">Badge text</div>
+        <div class="inline-file">HistoryTab.jsx:78-85</div>
+        <div class="inline-props">fontSize: 11<br>fontWeight: 600<br>lineHeight: 18px</div>
+        <div class="inline-match no">No token — 11px off-scale</div>
+      </div>
+      <div class="typo-inline-card matches-token">
+        <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:12px; font-weight:400; line-height:1.4; color:#6B7280;">Timestamp / details</div>
+        <div class="inline-file">HistoryTab.jsx:107-111</div>
+        <div class="inline-props">fontSize: var(--font-size-xs)<br>lineHeight: 1.4</div>
+        <div class="inline-match yes">Matches text-xs-normal (close line-height)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Navbar.jsx -->
+  <div class="typo-inline-group">
+    <div class="typo-inline-group-title">Navbar.jsx</div>
+    <div class="typo-inline-grid">
+      <div class="typo-inline-card matches-token">
+        <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:14px; font-weight:500; color:#384253;">Search dropdown item</div>
+        <div class="inline-file">Navbar.jsx:103-104, 147</div>
+        <div class="inline-props">fontSize: 14<br>fontWeight: 500</div>
+        <div class="inline-match yes">Matches text-sm-medium</div>
+      </div>
+      <div class="typo-inline-card matches-token">
+        <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:12px; font-weight:400; line-height:12px; color:#9DA3B0;">Admin</div>
+        <div class="inline-file">Navbar.jsx:188</div>
+        <div class="inline-props">fontSize: text-xs (className)<br>lineHeight: 12px (inline)</div>
+        <div class="inline-match yes">Matches text-xs-tight</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FilterPanel.jsx -->
+  <div class="typo-inline-group">
+    <div class="typo-inline-group-title">FilterPanel.jsx</div>
+    <div class="typo-inline-grid">
+      <div class="typo-inline-card no-match">
+        <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:13px; font-weight:600; color:#1B2537;">Dropdown item</div>
+        <div class="inline-file">FilterPanel.jsx:43-44, 80-81, 220-222</div>
+        <div class="inline-props">fontSize: 13<br>fontWeight: 500-600</div>
+        <div class="inline-match no">No token — 13px off-scale</div>
+      </div>
+      <div class="typo-inline-card matches-token">
+        <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:18px; font-weight:700; color:#1B2537;">Filters</div>
+        <div class="inline-file">FilterPanel.jsx:191</div>
+        <div class="inline-props">fontSize: 18<br>fontWeight: 700</div>
+        <div class="inline-match yes">Matches text-lg size (custom bold weight)</div>
+      </div>
+      <div class="typo-inline-card no-match">
+        <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:11px; font-weight:600; color:#6B7280;">Count label</div>
+        <div class="inline-file">FilterPanel.jsx:230-231</div>
+        <div class="inline-props">fontSize: 11<br>fontWeight: 600</div>
+        <div class="inline-match no">No token — 11px off-scale</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Button.jsx -->
+  <div class="typo-inline-group">
+    <div class="typo-inline-group-title">Button.jsx (ui component)</div>
+    <div class="typo-inline-grid">
+      <div class="typo-inline-card matches-token">
+        <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:14px; font-weight:500; line-height:1.1; color:#1B2537;">Button label</div>
+        <div class="inline-file">Button.jsx:4-7</div>
+        <div class="inline-props">fontSize: 14<br>fontWeight: 500<br>lineHeight: 1.1<br>fontFamily: var(--font-primary)</div>
+        <div class="inline-match yes">Matches text-sm-medium (custom tight line-height)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BottomBar.jsx -->
+  <div class="typo-inline-group">
+    <div class="typo-inline-group-title">BottomBar.jsx</div>
+    <div class="typo-inline-grid">
+      <div class="typo-inline-card matches-token">
+        <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:14px; font-weight:600; color:#1B2537;">Tab label active</div>
+        <div class="inline-file">BottomBar.jsx:192-194</div>
+        <div class="inline-props">fontSize: 14<br>fontWeight: 600</div>
+        <div class="inline-match yes">Matches text-sm-semibold</div>
+      </div>
+      <div class="typo-inline-card no-match">
+        <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:11px; font-weight:400; color:#6B7280;">Order</div>
+        <div class="inline-file">BottomBar.jsx:203</div>
+        <div class="inline-props">fontSize: 11<br>fontWeight: 400</div>
+        <div class="inline-match no">No token — 11px off-scale</div>
+      </div>
+      <div class="typo-inline-card matches-token">
+        <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:14px; font-weight:700; color:#1B2537;">ORD-1001</div>
+        <div class="inline-file">BottomBar.jsx:204</div>
+        <div class="inline-props">fontSize: 14<br>fontWeight: 700</div>
+        <div class="inline-match yes">Matches text-sm size (custom bold)</div>
+      </div>
+      <div class="typo-inline-card matches-token">
+        <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:12px; font-weight:400; color:#384253;">Field label</div>
+        <div class="inline-file">BottomBar.jsx:423</div>
+        <div class="inline-props">fontSize: 12<br>color: var(--text-secondary)</div>
+        <div class="inline-match yes">Matches text-xs-normal</div>
+      </div>
+      <div class="typo-inline-card no-match">
+        <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:11px; font-weight:400; color:#6B7280;">Field timestamp</div>
+        <div class="inline-file">BottomBar.jsx:427</div>
+        <div class="inline-props">fontSize: 11<br>fontVariantNumeric: tabular-nums</div>
+        <div class="inline-match no">No token — 11px off-scale</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ShipmentTable.jsx -->
+  <div class="typo-inline-group">
+    <div class="typo-inline-group-title">ShipmentTable.jsx</div>
+    <div class="typo-inline-grid">
+      <div class="typo-inline-card matches-token">
+        <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:12px; font-weight:600; color:#1B2537;">Badge text</div>
+        <div class="inline-file">ShipmentTable.jsx:153</div>
+        <div class="inline-props">fontSize: 12<br>fontWeight: 600</div>
+        <div class="inline-match yes">Matches text-xs size</div>
+      </div>
+      <div class="typo-inline-card no-match">
+        <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:13px; font-weight:500; color:#384253;">Cell tooltip content</div>
+        <div class="inline-file">ShipmentTable.jsx:225-229, 269</div>
+        <div class="inline-props">fontSize: 13<br>fontWeight: 500</div>
+        <div class="inline-match no">No token — 13px off-scale</div>
+      </div>
+      <div class="typo-inline-card matches-token">
+        <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:14px; font-weight:600; line-height:1.3; color:#384253;">Column header</div>
+        <div class="inline-file">ShipmentTable.jsx:601</div>
+        <div class="inline-props">fontSize: var(--font-size-sm)<br>fontWeight: 600-700 (promoted)<br>lineHeight: 1.3</div>
+        <div class="inline-match yes">Matches text-sm-semibold (custom line-height)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TableControls.jsx -->
+  <div class="typo-inline-group">
+    <div class="typo-inline-group-title">TableControls.jsx</div>
+    <div class="typo-inline-grid">
+      <div class="typo-inline-card matches-token">
+        <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:14px; font-weight:400; line-height:20px; color:#384253;">Search input text</div>
+        <div class="inline-file">TableControls.jsx:83-86</div>
+        <div class="inline-props">fontSize: 14<br>fontWeight: 400<br>lineHeight: 20px</div>
+        <div class="inline-match yes">Matches text-sm-normal</div>
+      </div>
+      <div class="typo-inline-card no-match">
+        <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:11px; font-weight:500; color:#6B7280;">Autocomplete count</div>
+        <div class="inline-file">TableControls.jsx:102-103</div>
+        <div class="inline-props">fontSize: 11<br>fontWeight: 500</div>
+        <div class="inline-match no">No token — 11px off-scale</div>
+      </div>
+      <div class="typo-inline-card matches-token">
+        <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:14px; font-weight:600; color:#1B2537;">Export to CSV</div>
+        <div class="inline-file">TableControls.jsx:236</div>
+        <div class="inline-props">fontSize: 14<br>fontWeight: 600</div>
+        <div class="inline-match yes">Matches text-sm-semibold</div>
+      </div>
+      <div class="typo-inline-card no-match">
+        <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:13px; font-weight:400; line-height:1.5; color:#6B7280;">Modal description body</div>
+        <div class="inline-file">TableControls.jsx:248</div>
+        <div class="inline-props">fontSize: 13<br>lineHeight: 1.5</div>
+        <div class="inline-match no">No token — 13px off-scale</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SearchChipPanel.jsx -->
+  <div class="typo-inline-group">
+    <div class="typo-inline-group-title">SearchChipPanel.jsx</div>
+    <div class="typo-inline-grid">
+      <div class="typo-inline-card no-match">
+        <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:13px; font-weight:500; line-height:18px; color:#384253;">Search chip label</div>
+        <div class="inline-file">SearchChipPanel.jsx:38-41</div>
+        <div class="inline-props">fontSize: 13<br>fontWeight: 500<br>lineHeight: 18px</div>
+        <div class="inline-match no">No token — 13px and 18px both off-scale</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DarkTooltip.jsx -->
+  <div class="typo-inline-group">
+    <div class="typo-inline-group-title">DarkTooltip.jsx (ui component)</div>
+    <div class="typo-inline-grid">
+      <div class="typo-inline-card no-match">
+        <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:13px; font-weight:400; line-height:1.4; color:#D0D4DB; background:#1B2537; padding:4px 8px; border-radius:4px;">Tooltip content text</div>
+        <div class="inline-file">DarkTooltip.jsx:42</div>
+        <div class="inline-props">fontSize: 13<br>lineHeight: 1.4</div>
+        <div class="inline-match no">No token — 13px off-scale</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- NotesTab.jsx -->
+  <div class="typo-inline-group">
+    <div class="typo-inline-group-title">NotesTab.jsx</div>
+    <div class="typo-inline-grid">
+      <div class="typo-inline-card matches-token">
+        <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:14px; font-weight:400; color:#384253;">Note body text</div>
+        <div class="inline-file">NotesTab.jsx:93, 102, 182, 190</div>
+        <div class="inline-props">className: text-sm<br>fontFamily: var(--font-primary)</div>
+        <div class="inline-match yes">Matches text-sm-normal (via Tailwind class)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MonitorPanels.jsx -->
+  <div class="typo-inline-group">
+    <div class="typo-inline-group-title">MonitorPanels.jsx</div>
+    <div class="typo-inline-grid">
+      <div class="typo-inline-card matches-token">
+        <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:14px; font-weight:600; color:#1B2537;">Exceptions</div>
+        <div class="inline-file">MonitorPanels.jsx:53</div>
+        <div class="inline-props">className: text-sm font-semibold</div>
+        <div class="inline-match yes">Matches text-sm-semibold (via Tailwind)</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</div><!-- end tab-typography -->
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- COMPONENTS TAB -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="tab-content" id="tab-components">
+
+<h1>Odyssey Shipments — Component Library</h1>
+<p class="subtitle">Normalized component reference showing every variant and prop combination. Only normalized components appear here.</p>
+
+<div id="componentsTabBadgeContent"></div>
+
+</div><!-- end tab-components -->
+
+<script>
+/* ── Badge component reference HTML (shared between Components tab and modal) ── */
+function getBadgeComponentHTML() {
+  return '' +
+  '<div class="comp-section">' +
+    '<div class="comp-section-title">Badge <span class="comp-normalized-label">NORMALIZED</span></div>' +
+    '<div class="comp-section-subtitle">src/components/ui/Badge.jsx</div>' +
+
+    /* Sub-section: Plain */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Plain (no icon, no dot)</div>' +
+      '<div class="comp-card-grid">' +
+        '<div class="comp-card">' +
+          '<span style="display:inline-flex; align-items:center; padding:2px 10px; border-radius:4px; font-size:12px; font-weight:500; font-family:\'Inter\',sans-serif; background:#FDF1C8; color:#8F3F11; white-space:nowrap;">Label</span>' +
+          '<div class="comp-card-code">&lt;Badge variant="amber"&gt;Label&lt;/Badge&gt;</div>' +
+          '<div class="comp-card-note">amber variant</div>' +
+        '</div>' +
+        '<div class="comp-card">' +
+          '<span style="display:inline-flex; align-items:center; padding:2px 10px; border-radius:4px; font-size:12px; font-weight:500; font-family:\'Inter\',sans-serif; background:#D0F1FF; color:#063A83; white-space:nowrap;">Label</span>' +
+          '<div class="comp-card-code">&lt;Badge variant="blue"&gt;Label&lt;/Badge&gt;</div>' +
+          '<div class="comp-card-note">blue variant (default)</div>' +
+        '</div>' +
+        '<div class="comp-card">' +
+          '<span style="display:inline-flex; align-items:center; padding:2px 10px; border-radius:4px; font-size:12px; font-weight:500; font-family:\'Inter\',sans-serif; background:#D4F3EB; color:#1D524A; white-space:nowrap;">Label</span>' +
+          '<div class="comp-card-code">&lt;Badge variant="green"&gt;Label&lt;/Badge&gt;</div>' +
+          '<div class="comp-card-note">green variant</div>' +
+        '</div>' +
+        '<div class="comp-card">' +
+          '<span style="display:inline-flex; align-items:center; padding:2px 10px; border-radius:4px; font-size:12px; font-weight:500; font-family:\'Inter\',sans-serif; background:#FDE5E3; color:#922922; white-space:nowrap;">Label</span>' +
+          '<div class="comp-card-code">&lt;Badge variant="red"&gt;Label&lt;/Badge&gt;</div>' +
+          '<div class="comp-card-note">red variant</div>' +
+        '</div>' +
+        '<div class="comp-card">' +
+          '<span style="display:inline-flex; align-items:center; padding:2px 10px; border-radius:4px; font-size:12px; font-weight:500; font-family:\'Inter\',sans-serif; background:#EDE9FE; color:#5B21B6; white-space:nowrap;">Label</span>' +
+          '<div class="comp-card-code">&lt;Badge variant="purple"&gt;Label&lt;/Badge&gt;</div>' +
+          '<div class="comp-card-note">purple variant</div>' +
+        '</div>' +
+        '<div class="comp-card">' +
+          '<span style="display:inline-flex; align-items:center; padding:2px 10px; border-radius:4px; font-size:12px; font-weight:500; font-family:\'Inter\',sans-serif; background:#F2F3F5; color:#384253; white-space:nowrap;">Label</span>' +
+          '<div class="comp-card-code">&lt;Badge variant="gray"&gt;Label&lt;/Badge&gt;</div>' +
+          '<div class="comp-card-note">gray variant</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    /* Sub-section: With Icon */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">With Icon (right side)</div>' +
+      '<div class="comp-card-grid">' +
+        '<div class="comp-card">' +
+          '<span style="display:inline-flex; align-items:center; gap:4px; padding:2px 8px 2px 10px; border-radius:4px; font-size:12px; font-weight:500; font-family:\'Inter\',sans-serif; background:#D4F3EB; color:#1D524A; white-space:nowrap;">Done <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></span>' +
+          '<div class="comp-card-code">&lt;Badge variant="green" icon={&lt;Info size={16} /&gt;}&gt;Done&lt;/Badge&gt;</div>' +
+          '<div class="comp-card-note">Icon color inherits text color (#1D524A)</div>' +
+        '</div>' +
+        '<div class="comp-card">' +
+          '<span style="display:inline-flex; align-items:center; gap:4px; padding:2px 8px 2px 10px; border-radius:4px; font-size:12px; font-weight:500; font-family:\'Inter\',sans-serif; background:#FDE5E3; color:#922922; white-space:nowrap;">Review <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></span>' +
+          '<div class="comp-card-code">&lt;Badge variant="red" icon={&lt;Info size={16} /&gt;}&gt;Review&lt;/Badge&gt;</div>' +
+          '<div class="comp-card-note">Icon color inherits text color (#922922)</div>' +
+        '</div>' +
+        '<div class="comp-card">' +
+          '<span style="display:inline-flex; align-items:center; gap:4px; padding:2px 8px 2px 10px; border-radius:4px; font-size:12px; font-weight:500; font-family:\'Inter\',sans-serif; background:#FDF1C8; color:#8F3F11; white-space:nowrap;">Hazmat <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></span>' +
+          '<div class="comp-card-code">&lt;Badge variant="amber" icon={&lt;TriangleAlert size={16} /&gt;}&gt;Hazmat&lt;/Badge&gt;</div>' +
+          '<div class="comp-card-note">Icon color inherits text color (#8F3F11)</div>' +
+        '</div>' +
+        '<div class="comp-card">' +
+          '<span style="display:inline-flex; align-items:center; gap:4px; padding:2px 8px 2px 10px; border-radius:4px; font-size:12px; font-weight:500; font-family:\'Inter\',sans-serif; background:#F2F3F5; color:#384253; white-space:nowrap;">Info <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></span>' +
+          '<div class="comp-card-code">&lt;Badge variant="gray" icon={&lt;Info size={16} /&gt;}&gt;Info&lt;/Badge&gt;</div>' +
+          '<div class="comp-card-note">Gray exception: icon uses --text-tertiary (#6B7280) instead of text color</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    /* Sub-section: With Status Dot */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">With Status Dot (left side)</div>' +
+      '<div class="comp-card-grid">' +
+        '<div class="comp-card">' +
+          '<span style="display:inline-flex; align-items:center; padding:2px 10px; border-radius:4px; font-size:12px; font-weight:500; font-family:\'Inter\',sans-serif; background:#D0F1FF; color:#063A83; white-space:nowrap;"><span style="width:6px; height:6px; border-radius:50%; background:currentColor; flex-shrink:0; animation:pulse 2s ease-in-out infinite; margin-right:2px;"></span>Sent</span>' +
+          '<div class="comp-card-code">&lt;Badge variant="blue" statusDot&gt;Sent&lt;/Badge&gt;</div>' +
+          '<div class="comp-card-note">6x6 dot inherits text color, animated pulse, margin-right: 2px</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    /* Sub-section: Status Dot + Icon */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Status Dot + Icon (both)</div>' +
+      '<div class="comp-card-grid">' +
+        '<div class="comp-card">' +
+          '<span style="display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:4px; font-size:12px; font-weight:500; font-family:\'Inter\',sans-serif; background:#D0F1FF; color:#063A83; white-space:nowrap;"><span style="width:6px; height:6px; border-radius:50%; background:currentColor; flex-shrink:0; animation:pulse 2s ease-in-out infinite; margin-right:2px;"></span>Sent <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></span>' +
+          '<div class="comp-card-code">&lt;Badge variant="blue" statusDot icon={&lt;Info size={16} /&gt;}&gt;Sent&lt;/Badge&gt;</div>' +
+          '<div class="comp-card-note">Symmetric padding (2px 8px) when both dot and icon are present</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    /* Sub-section: Props Reference */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Props Reference</div>' +
+      '<table class="comp-table">' +
+        '<thead><tr><th>Prop</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>' +
+        '<tbody>' +
+          '<tr><td><code>variant</code></td><td>string</td><td><code>"blue"</code></td><td>Color variant: amber, blue, green, red, purple, gray</td></tr>' +
+          '<tr><td><code>icon</code></td><td>ReactNode</td><td>&mdash;</td><td>Icon element, always rendered on the right</td></tr>' +
+          '<tr><td><code>statusDot</code></td><td>boolean</td><td><code>false</code></td><td>Animated 6x6 status dot on the left</td></tr>' +
+          '<tr><td><code>children</code></td><td>ReactNode</td><td>&mdash;</td><td>Badge text content</td></tr>' +
+        '</tbody>' +
+      '</table>' +
+    '</div>' +
+
+    /* Sub-section: Padding Rules */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Padding Rules</div>' +
+      '<table class="comp-table">' +
+        '<thead><tr><th>State</th><th>Padding</th><th>Reason</th></tr></thead>' +
+        '<tbody>' +
+          '<tr><td>No icon, no dot</td><td><code>2px 10px</code></td><td>Symmetric</td></tr>' +
+          '<tr><td>Icon only</td><td><code>2px 8px 2px 10px</code></td><td>Extra left padding for visual compensation</td></tr>' +
+          '<tr><td>Dot only</td><td><code>2px 10px</code></td><td>Symmetric</td></tr>' +
+          '<tr><td>Dot + icon</td><td><code>2px 8px</code></td><td>Symmetric when both sides have elements</td></tr>' +
+        '</tbody>' +
+      '</table>' +
+    '</div>' +
+
+  '</div>';
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  /* Populate Components tab */
+  var compTab = document.getElementById('componentsTabBadgeContent');
+  if (compTab) compTab.innerHTML = getBadgeComponentHTML();
+});
+</script>
+
+<script>
+/* ── Tab switching ── */
+function switchTab(tabId) {
+  // Block switching to normalize if disabled
+  var normalizeBtn = document.getElementById('normalizeTabBtn');
+  if (tabId === 'normalize' && normalizeBtn.classList.contains('tab-disabled')) return;
+
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + tabId).classList.add('active');
+  var clickedBtn = document.querySelector('[onclick="switchTab(\'' + tabId + '\')"]');
+  clickedBtn.classList.add('active');
+  // Stop attention animation when user clicks the normalize tab
+  if (tabId === 'normalize') clickedBtn.classList.remove('tab-attention');
+}
+
+/* ── Badge modal ── */
+function openBadgeModal() {
+  var modal = document.getElementById('badgeModal');
+  var content = document.getElementById('badgeModalContent');
+  content.innerHTML = getBadgeComponentHTML();
+  modal.classList.add('visible');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeBadgeModal(event) {
+  /* When called from backdrop click, only close if clicking the overlay itself */
+  if (event && event.target !== document.getElementById('badgeModal')) return;
+  var modal = document.getElementById('badgeModal');
+  modal.classList.remove('visible');
+  document.body.style.overflow = '';
+}
+
+/* ── Normalize tab activation / deactivation ── */
+function activateNormalizeTab(content) {
+  var btn = document.getElementById('normalizeTabBtn');
+  var container = document.getElementById('normalizeContent');
+  btn.classList.remove('tab-disabled');
+  btn.classList.add('tab-attention');
+  btn.style.pointerEvents = 'auto';
+  if (content) {
+    container.innerHTML = content;
+  }
+}
+
+function deactivateNormalizeTab() {
+  var btn = document.getElementById('normalizeTabBtn');
+  var container = document.getElementById('normalizeContent');
+  btn.classList.add('tab-disabled');
+  btn.classList.remove('tab-attention');
+  btn.style.pointerEvents = '';
+  container.innerHTML =
+    '<div style="text-align:center; padding:80px 40px; color:#D0D4DB;">' +
+      '<div style="font-size:48px; margin-bottom:16px;">&#x1F504;</div>' +
+      '<div style="font-size:18px; font-weight:600; color:#9DA3B0;">No active normalization</div>' +
+      '<div style="font-size:13px; color:#B0B5BE; margin-top:8px;">Run <code style="background:#F3F4F6; padding:2px 8px; border-radius:4px; font-size:12px;">/normalize &lt;figma-url&gt;</code> to start a component comparison.</div>' +
+    '</div>';
+  // If normalize tab was active, switch back to badges
+  if (document.getElementById('tab-normalize').classList.contains('active')) {
+    switchTab('badges');
+  }
+}
+
+/* ── Badge grouping toggle (original) ── */
+let groupedByComponent = false;
+let originalHTML = '';
+
+document.addEventListener('DOMContentLoaded', () => {
+  originalHTML = document.getElementById('badgeContainer').innerHTML;
+});
+
+function toggleGrouping() {
+  const container = document.getElementById('badgeContainer');
+  const btn = document.getElementById('groupToggle');
+
+  if (!groupedByComponent) {
+    const cards = [...container.querySelectorAll('.badge-card')];
+    const groups = {};
+
+    cards.forEach(card => {
+      const component = card.dataset.component || '--';
+      if (!groups[component]) groups[component] = [];
+      groups[component].push(card.outerHTML);
+    });
+
+    const sortedKeys = Object.keys(groups).sort((a, b) => {
+      if (a === '--' && b !== '--') return 1;
+      if (b === '--' && a !== '--') return -1;
+      return a.localeCompare(b);
+    });
+
+    let html = '';
+    sortedKeys.forEach(key => {
+      const title = key === '--' ? 'No Component (inline / ad-hoc)' : key;
+      const count = groups[key].length;
+      html += '<div class="category">' +
+        '<div class="category-title">' + title + ' <span style="font-weight:400;font-size:13px;color:#9CA3AF;">(' + count + ' badge' + (count !== 1 ? 's' : '') + ')</span></div>' +
+        '<div class="badge-grid">' + groups[key].join('') + '</div>' +
+        '</div>';
+    });
+
+    container.innerHTML = html;
+    btn.innerHTML = '<span>&#9776;</span> Group by usage';
+    groupedByComponent = true;
+  } else {
+    container.innerHTML = originalHTML;
+    btn.innerHTML = '<span>&#9776;</span> Group by component';
+    groupedByComponent = false;
+  }
+}
+</script>
+
+</body>
+</html>

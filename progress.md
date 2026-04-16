@@ -608,12 +608,114 @@ Extracted and cross-referenced both PowerPoint decks (`Shipments-Monitoring.pptx
 
 ---
 
+## Session 10 — April 15, 2026
+
+### Bug Fixes
+- **PGI/PGR panel crash fixed** — React error #300 ("Rendered fewer hooks than expected"). Root cause: `useCallback` hook inside conditional JSX branch in App.jsx. Moved to top-level `handleScrollStart` callback.
+- **"Sent" → "Tender Sent"** — renamed in ShipmentTabs monitoring tab to match MonitorPanels card label
+
+### Architecture
+- **`src/data/panelConfig.js`** — single source of truth for panel names and categories. MonitorPanels and ShipmentTabs both derive from it. Changing a label in one place updates both.
+
+### Backlog Updates
+- **New status system**: Not Started (ungroomed), Needs Spec (groomed), In Progress (specced/dev), Completed, Done - To Validate
+- **3 new epics** (SHP-55 through SHP-65):
+  - **Supabase Database** (SHP-55–58): schema design, seed from generator, data layer migration, real-time CRUD
+  - **Migration & Deployment** (SHP-59–60): Vercel deployment, auth & environment config
+  - **Design System Sync** (SHP-61–65): Figma component library, token sync workflow, Code Connect, UI normalization, cross-domain token sharing
+- Backlog HTML updated: new epics, green "Done - To Validate" badge, "Completed" replaces "Done"
+
+### Design System Sync (Epic Started)
+
+#### Playground & Visualization
+- Created `playground/` directory for design system planning and visualization
+- Built `playground/DesignSystemMap.html` — 5 tabs:
+  - **Badges** — audit of every badge-like element, ad-hoc vs component, with exact rendered styles
+  - **Colors** — all tokens (primitives, semantic, component) + hardcoded color audit
+  - **Typography** — type scale from design.md + inline/hardcoded font audit across all components
+  - **Components** — normalized component library (Badge with all variants/props)
+  - **Normalize** — right-aligned process tab, activates with pulsing animation during `/normalize` routine, deactivates after completion
+
+#### Figma Integration
+- Pushed to Figma (`UT9nTpl6FNpqmyNcX9AsuK`):
+  - **104 color variables** in 3 collections (Primitives: 28, Semantic: 22, Component: 54)
+  - **10 text styles** grouped by size (text-xs/, text-sm/, text-base/, text-lg/)
+  - **6 radius variables** (sm: 4px, md: 6px, lg: 8px, xl: 16px, pill: 10px, full: 9999px)
+- Shadows and transitions not pushed (shadows will come from Figma later, transitions are code-only)
+
+#### Token Updates
+- Added `--badge-gray-bg` / `--badge-gray-text` tokens (design.md, tokens.css, Badge.jsx, Figma)
+- Added `--btn-primary-hover` to design.md (already existed in tokens.css)
+- Added `@keyframes pulse` animation to tokens.css
+
+#### Badge Component Normalization (First `/normalize` Run)
+- **Badge.jsx rewritten**:
+  - `icon` prop — always renders right side; gray variant icon uses `--text-tertiary`, all others inherit text color
+  - `statusDot` prop — animated 6x6 circle on left side, 2px extra margin-right (6px total gap to text)
+  - Padding logic: no icon/dot → `2px 10px`; icon only → `2px 8px 2px 10px`; dot only → `2px 10px`; dot+icon → `2px 8px`
+  - `display: inline-flex` with `align-items: center`, `gap: 4px`
+- **ShipmentTable.jsx** — status badge updated: `icon={<Info size={16} />}` prop instead of ad-hoc child with inline styling
+- **`.text-badge`** composite CSS utility created in components.css (12px / 16px / 500) — Badge.jsx uses `className="text-badge"` instead of inline font styles
+- Badge component rules documented in design.md
+
+### Workflow Tooling
+- **`/normalize` skill** — 8-step Figma component intake routine:
+  1. Pull from Figma (icons → Lucide mapping)
+  2. Token validation (BLOCKING — flags unknown values)
+  3. Component classification & PascalCase naming enforcement
+  4. Compare Figma vs Code (side-by-side diff)
+  5. Playground preview (Normalize tab with animation)
+  6. User approval
+  7. Implement (component + composite text utilities + color convention)
+  8. Sync back (design.md, Figma, tracker, pending sync list)
+- **`/wrap` skill** — end-of-session routine (summarize, update progress.md, git commit + push)
+- **`playground/figma-component-routine.md`** — full routine spec with all edge cases
+- **`playground/normalization-tracker.md`** — tracks normalized components, composite text utilities, ad-hoc implementations, pending Figma sync items
+
+### New Files
+| File | Purpose |
+|------|---------|
+| `src/data/panelConfig.js` | Single source of truth for panel/category config |
+| `playground/DesignSystemMap.html` | Design system visualization (5 tabs) |
+| `playground/figma-component-routine.md` | `/normalize` routine spec |
+| `playground/normalization-tracker.md` | Normalization tracking + purge safety |
+| `.claude/skills/normalize/SKILL.md` | `/normalize` slash command |
+| `.claude/skills/wrap/SKILL.md` | `/wrap` slash command |
+
+---
+
+## Current State (as of April 15, 2026 — End of Session 10)
+
+### Performance Architecture
+- **1200 shipments**, seed 42, fully reproducible
+- **Virtualized table** — `react-window` `List`, only ~20 rows in DOM regardless of data size
+- **Per-shipment detail files** — 1200 individual JSON files in `public/details/` (~30KB each), fetched on demand via `fetch()` with LRU cache (50 entries)
+- **Pre-built filter indexes** — `Map.groupBy` for O(1) panel/category lookups
+- **React.memo** on 13 components to prevent cascade re-renders
+- **Two-panel table layout** — scrollable data columns (left) + fixed actions column (right) with synced vertical scroll
+- `shipments.json` (1.0MB) statically imported; old 21MB monolith eliminated
+
+### Design System
+- **Figma file**: `UT9nTpl6FNpqmyNcX9AsuK` (Components Buffer) — 104 color vars, 10 text styles, 6 radius vars
+- **Token tiers**: Primitives (28 colors) → Semantic (22) → Component (54 + badge gray)
+- **Normalized components**: Badge (icon, statusDot, padding rules, `.text-badge` utility)
+- **Ad-hoc components pending normalization**: StatusBadge, TypeBadge, HazmatTag, Appointment badge, History badges, Cost tabs, Tab counts, Notification circle
+- **Pending Figma sync**: Badge statusDot, icon prop, padding rules (deferred)
+- **Playground**: `DesignSystemMap.html` with Badges/Colors/Typography/Components/Normalize tabs
+
+### Workflow
+- `/normalize` routine established for Figma → Code component alignment
+- `/wrap` routine established for end-of-session
+- Normalization tracker in place for purge safety
+
+---
+
 ## What's Next
 
-### Tomorrow's Priorities (Session 10)
-1. **Supabase database** — integrate backend database
-2. **UI detail fixes** — remaining validation feedback from today's review
-3. **Vercel deployment** — deploy via GitHub + Vercel (replace current Cloudflare tunnel + python http.server)
+### Session 11 Priorities
+1. **Continue Design System Sync** — normalize StatusBadge, TypeBadge, HazmatTag (may need new Badge variants)
+2. **Supabase database** — schema design and project setup
+3. **Vercel deployment** — deploy via GitHub + Vercel
 
 ### Stories Ready for Spec (SHP-19 decomposed)
 

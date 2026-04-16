@@ -362,6 +362,19 @@ input[type="radio"].odyssey-radio {
 }
 
 /* ----------------------------------------
+   COMPOSITE TEXT UTILITIES
+   Semantic typography classes for normalized components.
+   Each maps to a design system text token combination.
+   See: playground/normalization-tracker.md
+   ---------------------------------------- */
+.text-badge {
+  font-family: var(--font-primary);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+}
+
+/* ----------------------------------------
    PRINT STYLES
    ---------------------------------------- */
 @media print {

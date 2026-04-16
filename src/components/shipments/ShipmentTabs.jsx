@@ -1,29 +1,15 @@
 import React from 'react'
+import { PANEL_CONFIG } from '../../data/panelConfig'
 
-const PANEL_TABS = {
-  exceptions: [
-    { key: 'all', label: 'All (Exceptions)' },
-    { key: 'date-issues', label: 'Date Issues', badgeKey: 'dateIssues' },
-    { key: 'routing-review', label: 'Routing Review', badgeKey: 'routingReview' },
-    { key: 'tender-issues', label: 'Tender Issues', badgeKey: 'tenderIssues' },
-    { key: 'tender-review', label: 'Tender Review', badgeKey: 'tenderReview' },
-    { key: 'bid-review', label: 'Bid Review', badgeKey: 'bidReview' },
-  ],
-  monitoring: [
-    { key: 'all', label: 'All (Monitoring)' },
-    { key: 'hold', label: 'Hold', badgeKey: 'hold' },
-    { key: 'consolidation', label: 'Consolidation', badgeKey: 'consolidation' },
-    { key: 'sent', label: 'Sent', badgeKey: 'sent' },
-    { key: 'spotbid', label: 'SpotBid', badgeKey: 'spotBid' },
-    { key: 'approved', label: 'Approved', badgeKey: 'approved' },
-  ],
-  pgipgr: [
-    { key: 'all', label: 'All (PGI/PGR)' },
-    { key: 'pgipgr-errors', label: 'PGI/PGR Errors', badgeKey: 'pgipgrErrors' },
-    { key: 'rating-failure', label: 'Rating Failure', badgeKey: 'ratingFailure' },
-    { key: 'manual-pgipgr', label: 'Manual PGI/PGR', badgeKey: 'manualPgipgr' },
-  ],
-}
+const PANEL_TABS = Object.fromEntries(
+  Object.entries(PANEL_CONFIG).map(([key, panel]) => [
+    key,
+    [
+      { key: 'all', label: `All (${panel.title})` },
+      ...panel.categories,
+    ],
+  ])
+)
 
 const ShipmentTabs = React.memo(function ShipmentTabs({ activePanel, activeTab, onTabSelect, badgeCounts }) {
   const tabs = PANEL_TABS[activePanel] || PANEL_TABS.exceptions

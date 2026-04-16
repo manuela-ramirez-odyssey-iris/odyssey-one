@@ -132,6 +132,8 @@
   --badge-green-text: var(--caribbean-green-800);
   --badge-purple-bg: var(--purple-100);
   --badge-purple-text: var(--purple-800);
+  --badge-gray-bg: var(--deep-sea-neutral-100);
+  --badge-gray-text: var(--deep-sea-neutral-700);
 
   /* --- Component: Dropdown --- */
   --dropdown-bg: var(--bg-primary);
@@ -196,4 +198,10 @@
   --transition-fast: 150ms ease;
   --transition-base: 200ms ease;
   --transition-slow: 300ms ease;
+}
+
+/* --- Animations --- */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
 }

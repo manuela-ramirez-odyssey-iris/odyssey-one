@@ -1,40 +1,16 @@
 import React, { useState } from 'react'
 import { ChevronUp } from 'lucide-react'
+import { PANEL_CONFIG } from '../../data/panelConfig'
 
 function buildPanels(metrics) {
-  return [
-    {
-      key: 'exceptions',
-      title: 'Shipment Exceptions',
-      metrics: [
-        { label: 'Date Issues', count: metrics.dateIssues ?? 0 },
-        { label: 'Routing Review', count: metrics.routingReview ?? 0 },
-        { label: 'Tender Issues', count: metrics.tenderIssues ?? 0 },
-        { label: 'Tender Review', count: metrics.tenderReview ?? 0 },
-        { label: 'Bid Review', count: metrics.bidReview ?? 0 },
-      ],
-    },
-    {
-      key: 'monitoring',
-      title: 'Monitoring',
-      metrics: [
-        { label: 'Hold', count: metrics.hold ?? 0 },
-        { label: 'Consolidation', count: metrics.consolidation ?? 0 },
-        { label: 'Tender Sent', count: metrics.sent ?? 0 },
-        { label: 'SpotBid', count: metrics.spotBid ?? 0 },
-        { label: 'Approved', count: metrics.approved ?? 0 },
-      ],
-    },
-    {
-      key: 'pgipgr',
-      title: 'PGI/PGR',
-      metrics: [
-        { label: 'PGI/PGR Errors', count: metrics.pgipgrErrors ?? 0 },
-        { label: 'Rating Failure', count: metrics.ratingFailure ?? 0 },
-        { label: 'Manual PGI/PGR', count: metrics.manualPgipgr ?? 0 },
-      ],
-    },
-  ]
+  return Object.entries(PANEL_CONFIG).map(([key, panel]) => ({
+    key,
+    title: panel.title,
+    metrics: panel.categories.map(cat => ({
+      label: cat.label,
+      count: metrics[cat.badgeKey] ?? 0,
+    })),
+  }))
 }
 
 const MonitorPanels = React.memo(function MonitorPanels({ activePanel, onPanelSelect, metrics, collapsed: controlledCollapsed, onToggleCollapsed }) {

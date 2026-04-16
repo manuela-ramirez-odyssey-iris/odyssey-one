@@ -245,6 +245,8 @@ function App() {
     setVisibleColumns(newVisibleColumns)
   }, [setVisibleColumns])
 
+  const handleScrollStart = useCallback(() => setMetricsCollapsed(true), [])
+
   const handleApplyFilters = useCallback((newFilters) => {
     setFilters(newFilters)
   }, [])
@@ -361,7 +363,7 @@ function App() {
           onRowSelect={handleRowSelect}
           onToggleColumnPanel={handleToggleColumnPanel}
           visibleColumns={visibleColumns}
-          onScrollStart={useCallback(() => setMetricsCollapsed(true), [])}
+          onScrollStart={handleScrollStart}
           activeChipKey={activeChipKey}
         />
       )}
