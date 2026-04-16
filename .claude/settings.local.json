@@ -58,7 +58,20 @@
       "Bash(xargs -I {} sh -c 'wc -c {}')",
       "Bash(kill %1)",
       "Bash(curl -s http://localhost:3010)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(brew install:*)",
+      "Bash(pandoc --version)",
+      "Bash(chmod +x /Users/manuelramirez/Documents/iris/Odyssey/Shipments/odyssey-shipments/tools/convert-docs.sh)",
+      "Bash(sed -i '' '75s/status-spec\">Needs spec/status-validate\">Validate/' shipments-documentation/Documentation/backlog.html)",
+      "Bash(sed -i '' '83s/status-spec\">Needs spec/status-validate\">Validate/' shipments-documentation/Documentation/backlog.html)",
+      "Bash(sed -i '' '91s/status-spec\">Needs spec/status-validate\">Validate/' shipments-documentation/Documentation/backlog.html)",
+      "Bash(sed -i '' '99s/status-spec\">Needs spec/status-validate\">Validate/' shipments-documentation/Documentation/backlog.html)",
+      "Bash(sed -i '' '107s/status-spec\">Needs spec/status-validate\">Validate/' shipments-documentation/Documentation/backlog.html)",
+      "Bash(ps:*)",
+      "Bash(git push:*)",
+      "Bash(curl -s \"https://react.dev/errors/300\")",
+      "mcp__claude_ai_Figma__use_figma",
+      "WebSearch"
     ]
   }
 }
