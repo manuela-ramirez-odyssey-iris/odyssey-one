@@ -71,7 +71,10 @@
       "Bash(git push:*)",
       "Bash(curl -s \"https://react.dev/errors/300\")",
       "mcp__claude_ai_Figma__use_figma",
-      "WebSearch"
+      "WebSearch",
+      "Bash(npx vercel:*)",
+      "Bash(npm run:*)",
+      "Bash(git:*)"
     ]
   }
 }
