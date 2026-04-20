@@ -684,7 +684,7 @@ Extracted and cross-referenced both PowerPoint decks (`Shipments-Monitoring.pptx
 
 ---
 
-## Current State (as of April 15, 2026 — End of Session 10)
+## Current State (as of April 20, 2026 — End of Session 11)
 
 ### Performance Architecture
 - **1200 shipments**, seed 42, fully reproducible
@@ -703,6 +703,10 @@ Extracted and cross-referenced both PowerPoint decks (`Shipments-Monitoring.pptx
 - **Pending Figma sync**: Badge statusDot, icon prop, padding rules (deferred)
 - **Playground**: `DesignSystemMap.html` with Badges/Colors/Typography/Components/Normalize tabs
 
+### Deployment
+- **Vercel production**: `odyssey-shipments.vercel.app`
+- Manual deploy via `npx vercel --prod` (GitHub auto-deploy not connected)
+
 ### Workflow
 - `/normalize` routine established for Figma → Code component alignment
 - `/wrap` routine established for end-of-session
@@ -710,12 +714,40 @@ Extracted and cross-referenced both PowerPoint decks (`Shipments-Monitoring.pptx
 
 ---
 
+## Session 11 — April 20, 2026
+
+### Gateway Knowledge Integration
+- Analyzed `Gateway_Project_Overview.md` — cross-referenced 4 integration flows, 47 customer gateways, and 8+ wire formats against our domain analysis
+- Created `shipments-documentation/Documentation/Other-Insights/Gateway_Insights_for_Shipments.md` — separated analysis file covering:
+  - 4 integration flows mapped to our shipment lifecycle (Order in, Shipment out, PGI in, Accrual out)
+  - PGI complexity context (~100+ format variants — explains why PGI Errors are structurally common)
+  - Customer format diversity (SAP IDoc, EDIFACT, CIDX, X12, flat files — all normalized by Gateway before reaching TMS)
+  - Confirmed facts already in domain analysis (5 modes, accrual no-UI, billing separate, buy+sell simultaneous, 3 panels)
+  - Parked backend-only details (DOCTYPE codes, JMS routing, XSLT chains, SCAC logic, VSBED mappings)
+- Kept `shipments-domain-analysis.md` clean as single source of truth — Gateway knowledge lives in `Other-Insights/`, promotable when confirmed via grooming
+
+### Vercel Deployment
+- Deployed to Vercel production: `odyssey-shipments.vercel.app`
+- Direct upload deploy (GitHub auto-deploy not connected — requires org OAuth that could trigger IT)
+- Manual redeploy workflow: `npx vercel --prod` from project directory (~1 min)
+
+### Context for Future Sessions
+- Home dashboard coming soon — landing page leading users to different domains (Shipments, etc.)
+- Gateway project is a parallel engineering effort (AI-assisted migration of 47 customer gateways from Sterling to Boomi) — `Gateway_Project_Overview.md` will evolve as more insights are gathered
+
+### New Files
+| File | Purpose |
+|------|---------|
+| `shipments-documentation/Documentation/Other-Insights/Gateway_Insights_for_Shipments.md` | Gateway analysis filtered for Shipments relevance |
+
+---
+
 ## What's Next
 
-### Session 11 Priorities
+### Session 12 Priorities
 1. **Continue Design System Sync** — normalize StatusBadge, TypeBadge, HazmatTag (may need new Badge variants)
 2. **Supabase database** — schema design and project setup
-3. **Vercel deployment** — deploy via GitHub + Vercel
+3. **Home dashboard** — landing page design (new scope)
 
 ### Stories Ready for Spec (SHP-19 decomposed)
 
