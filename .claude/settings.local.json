@@ -74,7 +74,18 @@
       "WebSearch",
       "Bash(npx vercel:*)",
       "Bash(npm run:*)",
-      "Bash(git:*)"
+      "Bash(git:*)",
+      "Bash(awk '{print $NF}')",
+      "Bash(claude mcp *)",
+      "Bash(vercel --version)",
+      "mcp__plugin_vercel_vercel__get_project",
+      "mcp__plugin_vercel_vercel__list_deployments",
+      "mcp__plugin_vercel_vercel__list_teams",
+      "mcp__plugin_vercel_vercel__list_projects",
+      "mcp__plugin_vercel_vercel__get_deployment",
+      "Bash(npm i *)",
+      "Bash(awk '{print $2}')",
+      "Read(//tmp/**)"
     ]
   }
 }
