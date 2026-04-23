@@ -742,12 +742,50 @@ Extracted and cross-referenced both PowerPoint decks (`Shipments-Monitoring.pptx
 
 ---
 
+## Session 12 — April 23, 2026
+
+Admin + scoping session after a pause on the design system epic. No feature code shipped — focus was reconciling the backlog with current reality and mapping the boundaries of Figma push-back before committing to a normalization scope.
+
+### Backlog Housekeeping (`backlog.html`)
+- **David's feedback stories approved** — SHP-43 through SHP-53 moved from "Done - To Validate" to **Completed**. Added as a new Session 9 block in the completed work table.
+- **SHP-54 (Hazmat merge)** stays **Done - To Validate** pending stakeholder decision.
+- **SHP-59 Vercel deployment** → **Completed** (odyssey-shipments.vercel.app, manual `npx vercel --prod`). `done-group` class applied for green row.
+- **SHP-60 Auth & env config** → **Halted** — requires Odyssey infrastructure team (SSO/CloudFront/S3). Not worth pursuing right now. Revisit when real deployment pipeline becomes a priority.
+- **SHP-66 Windows VM setup** — new entry. **Done - To Validate**. Auxiliary deployment path used when org network/firewall blocks Vercel for internal stakeholders.
+- **SHP-55 Supabase schema** → **In Progress**.
+- **SHP-61 Figma component library, SHP-62 Token sync workflow, SHP-64 UI normalization pass** → **In Progress** (backed by `/normalize` skill + playground + tracker).
+- Subtitle date refreshed.
+
+### Normalization State Review
+Confirmed where we left off after the long pause:
+- **Normalized (1):** `Badge` — `icon`, `statusDot` props, asymmetric padding, `text-badge` utility.
+- **Pending normalization (8 components):** `StatusBadge`, `TypeBadge`, `HazmatTag`, inline Hazmat in `ShipmentTable`, Appointment badge, History action badges, Cost order tabs, Tab count pills, Notification circle.
+- **Pending Figma sync:** Badge `statusDot`, `icon` prop, padding rules (deferred 2026-04-15).
+
+### `/normalize` Gap Identified
+Badge uses `borderRadius: 'var(--radius-sm)'` (4px) in React but the Figma Badge has no border-radius applied. This surfaces in Step 4's diff but Step 8 ("Sync Back") only prescribes code→Figma for *new variants/props* via the Pending Figma Sync list — **not for base style properties**. Border-radius should be treated as a pending Figma sync item.
+
+### Push-Back to Figma — Scoping
+Mapped boundaries of `mcp__claude_ai_Figma__use_figma` (runs JS via Plugin API, 50,000-char payload, one fileKey per call, no undo):
+
+- **✅ Easy in one push:** token binding (fills, strokes, radius, padding, gap), boolean component properties, variant matrices (State × Type), descriptions.
+- **⚠️ Gotchas:** instance-swap for icons needs the icon to exist as a component first (Lucide needs importing separately); fonts need `loadFontAsync`; auto-layout adds boilerplate.
+- **❌ Avoid:** real interactive prototype reactions (use variants instead), bulk icon imports, cross-file operations.
+
+**Recommended scope split for `/normalize`:** Light sync (rebind tokens + new boolean props) vs Heavy sync (full variant matrix + instance swaps + auto-layout).
+
+**Pilot plan:** Badge — rebind `cornerRadius` to `--radius-sm`, add `hasStatusDot`/`hasIcon` boolean props, add placeholder instance-swap `icon` slot. Validates single-push workflow before scaling to Button (badges + state variants).
+
+---
+
 ## What's Next
 
-### Session 12 Priorities
-1. **Continue Design System Sync** — normalize StatusBadge, TypeBadge, HazmatTag (may need new Badge variants)
-2. **Supabase database** — schema design and project setup
-3. **Home dashboard** — landing page design (new scope)
+### Session 13 Priorities
+1. **Patch `/normalize` skill** — Step 4 diff gets a "Direction to resolve" column (Figma→Code, Code→Figma, Intentional); Step 8's Pending Figma Sync list explicitly admits base properties, not just new variants.
+2. **Run the Badge pilot push-back** — rebinds radius, adds boolean props, adds placeholder icon slot. Validates workflow before scaling.
+3. **Resume normalization** — `HazmatTag` + inline `ShipmentTable` Hazmat are the lowest-friction next pickups (map cleanly to existing `Badge variant="amber" icon={...}`).
+4. **Supabase schema (SHP-55)** — continue schema design.
+5. **Home dashboard** — still on the horizon as new scope.
 
 ### Stories Ready for Spec (SHP-19 decomposed)
 
