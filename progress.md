@@ -9,6 +9,19 @@ Odyssey is a US-based logistics company building a unified platform to consolida
 
 ---
 
+## ⏸ PAUSED FOR MONOREPO MIGRATION (2026-04-23)
+
+Single-app repo is being restructured into a Turborepo monorepo. Plan: `docs/superpowers/plans/2026-04-23-turborepo-monorepo-migration.md`. Everything below is frozen until the migration lands. Bookmark for resume:
+
+- **Component normalization** — next up: `HazmatTag` + inline Hazmat in `ShipmentTable`. See `playground/normalization-tracker.md` for the full pickup list, open `/normalize` Step 4/8 gap, and Badge pilot push-back decision.
+- **Supabase integration (SHP-55)** — not started. Schema work will populate `packages/db` after the monorepo migration completes.
+- **Home dashboard** — still on the horizon as new scope.
+- **`/normalize` skill patch** — Step 4 needs a "Direction to resolve" column; Step 8 needs wording that admits base style properties (not just new variants) into the Pending Figma Sync list.
+
+No in-flight code WIP — Sessions 11 and 12 were docs/admin only. Safe to migrate.
+
+---
+
 ## Phase 1: HTML/CSS/JS Prototype (Complete)
 
 Fast prototyping and ideation to translate stakeholder requirements into a working demo. Served on `localhost:3005`.
