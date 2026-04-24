@@ -1,5 +1,5 @@
 @import "tailwindcss";
-@import "./styles/tokens.css";
+@import "@odyssey/tokens/tokens.css";
 @import "./styles/components.css";
 
 /* ========================================
