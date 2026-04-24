@@ -5,27 +5,11 @@
 
 ---
 
-## ⏸ PAUSED 2026-04-23 — Monorepo Migration
-
-Normalization is on hold while the repo is restructured into a Turborepo monorepo
-(plan: `docs/superpowers/plans/2026-04-23-turborepo-monorepo-migration.md`).
-
-**Resume from here:**
-
-- **Last normalized:** `Badge` (2026-04-15) — `icon`, `statusDot` props, asymmetric padding, `text-badge` utility. See row in the table below.
-- **Next queued:** `HazmatTag` (`src/components/detail/ProductTab.jsx`) + inline Hazmat in `src/components/shipments/ShipmentTable.jsx:147-163`. Both are the lowest-friction pickups — they map cleanly to `Badge variant="amber" icon={<TriangleAlert size={12} />}` with no new variant needed.
-- **Open mid-flight decisions (must revisit before continuing):**
-  1. **`/normalize` Step 4 diff gap** — needs a "Direction to resolve" column (Figma→Code, Code→Figma, Intentional) to handle cases like Badge's `border-radius: var(--radius-sm)` in code vs no radius in Figma. Currently Step 8's Pending Figma Sync list only covers *new variants/props*, not base style properties — needs wording update.
-  2. **Badge pilot push-back to Figma** — rebind `cornerRadius` to `--radius-sm`, add `hasStatusDot` / `hasIcon` boolean props, add placeholder instance-swap `icon` slot. Validates the single-push workflow before scaling to Button.
-- **Post-migration note:** after monorepo move, `src/components/ui/Badge.jsx` will likely live at `packages/ui/src/Badge.tsx` (or similar). Update the "Normalized Components" table's `File` column when the move lands.
-
----
-
 ## Normalized Components
 
 | Component | File | Text Utility | Date | Notes |
 |---|---|---|---|---|
-| Badge | `src/components/ui/Badge.jsx` | `text-badge` | 2026-04-15 | Added `icon`, `statusDot` props. Asymmetric padding logic. Gray icon uses --text-tertiary. |
+| Badge | `packages/ui/src/Badge.jsx` | `text-badge` | 2026-04-15 | Added `icon`, `statusDot` props. Asymmetric padding logic. Gray icon uses --text-tertiary. |
 
 ## Composite Text Utilities Created
 
@@ -39,15 +23,15 @@ These still use inline styles or local components. Do NOT purge their dependenci
 
 | Element | File | Blocks Purge Of | Notes |
 |---|---|---|---|
-| StatusBadge | `RoutingGuideTab.jsx` | inline font-size: 12px, font-weight: 600 | May need new variant (semibold weight differs) |
-| TypeBadge | `DocumentsTab.jsx` | inline font-size: 12px, font-weight: 600 | Same pattern as StatusBadge |
-| HazmatTag | `ProductTab.jsx` | inline rgba colors, TriangleAlert 12px | Migrate to `Badge variant="amber" icon={...}` |
-| Hazmat inline | `ShipmentTable.jsx:147-163` | inline rgba colors, TriangleAlert 12px | Same as HazmatTag |
-| Appointment badge | `OrderTab.jsx` | inline rgba colors, font-size: 11px | Unique size — may need new text utility |
-| History action badges | `HistoryTab.jsx` | pill shape (border-radius: 9999px), font-size: 11px | Different shape — may need `pill` variant |
-| Cost order tabs | `CostAllocationTab.jsx` | inline rgba BADGE_BG/TEXT maps | Interactive tabs, not pure badges |
-| Tab count pills | `ShipmentTabs.jsx` | font-weight: 700, border-radius: 10px | Count indicator, different pattern |
-| Notification circle | `Navbar.jsx` | #D23930, circular 20x20px | Unique element |
+| StatusBadge | `apps/shipments/src/components/detail/RoutingGuideTab.jsx` | inline font-size: 12px, font-weight: 600 | May need new variant (semibold weight differs) |
+| TypeBadge | `apps/shipments/src/components/detail/DocumentsTab.jsx` | inline font-size: 12px, font-weight: 600 | Same pattern as StatusBadge |
+| HazmatTag | `apps/shipments/src/components/detail/ProductTab.jsx` | inline rgba colors, TriangleAlert 12px | Migrate to `Badge variant="amber" icon={...}` |
+| Hazmat inline | `apps/shipments/src/components/shipments/ShipmentTable.jsx` (grep TriangleAlert) | inline rgba colors, TriangleAlert 12px | Same as HazmatTag |
+| Appointment badge | `apps/shipments/src/components/detail/OrderTab.jsx` | inline rgba colors, font-size: 11px | Unique size — may need new text utility |
+| History action badges | `apps/shipments/src/components/detail/HistoryTab.jsx` | pill shape (border-radius: 9999px), font-size: 11px | Different shape — may need `pill` variant |
+| Cost order tabs | `apps/shipments/src/components/detail/CostAllocationTab.jsx` | inline rgba BADGE_BG/TEXT maps | Interactive tabs, not pure badges |
+| Tab count pills | `apps/shipments/src/components/shipments/ShipmentTabs.jsx` | font-weight: 700, border-radius: 10px | Count indicator, different pattern |
+| Notification circle | `apps/shipments/src/components/layout/Navbar.jsx` | #D23930, circular 20x20px | Unique element |
 
 ---
 

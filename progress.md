@@ -9,19 +9,6 @@ Odyssey is a US-based logistics company building a unified platform to consolida
 
 ---
 
-## ⏸ PAUSED FOR MONOREPO MIGRATION (2026-04-23)
-
-Single-app repo is being restructured into a Turborepo monorepo. Plan: `docs/superpowers/plans/2026-04-23-turborepo-monorepo-migration.md`. Everything below is frozen until the migration lands. Bookmark for resume:
-
-- **Component normalization** — next up: `HazmatTag` + inline Hazmat in `ShipmentTable`. See `playground/normalization-tracker.md` for the full pickup list, open `/normalize` Step 4/8 gap, and Badge pilot push-back decision.
-- **Supabase integration (SHP-55)** — not started. Schema work will populate `packages/db` after the monorepo migration completes.
-- **Home dashboard** — still on the horizon as new scope.
-- **`/normalize` skill patch** — Step 4 needs a "Direction to resolve" column; Step 8 needs wording that admits base style properties (not just new variants) into the Pending Figma Sync list.
-
-No in-flight code WIP — Sessions 11 and 12 were docs/admin only. Safe to migrate.
-
----
-
 ## Phase 1: HTML/CSS/JS Prototype (Complete)
 
 Fast prototyping and ideation to translate stakeholder requirements into a working demo. Served on `localhost:3005`.
@@ -959,3 +946,57 @@ Analyzed full grooming transcript (`0406-Shipment-grooming-Jana.vtt`). Key decis
 - Increased to 700 shipments for demo
 - Full audit: 26/26 checks pass
 - Monitoring categories assigned for real badge counts
+
+---
+
+## Session 13 — April 23, 2026
+
+Turborepo monorepo migration. Structural change only — no feature or behavior changes.
+
+### Goal
+
+Restructure the single-app repo into a Turborepo monorepo to support multi-domain expansion (Home, Carriers, Orders). The Shipments app moves to `apps/shipments/`; shared design system code lives under `packages/`.
+
+### New Layout
+
+```
+odyssey-shipments/               (repo root — rename deferred)
+├── apps/shipments/              (Shipments prototype, formerly at root)
+├── packages/ui/src/             (shared React components, starting with Badge)
+├── packages/tokens/tokens.css   (shared design tokens)
+├── packages/db/                 (placeholder — Supabase client goes here)
+├── playground/                  (design system visualization + tracker)
+├── turbo.json
+└── package.json                 (workspace root)
+```
+
+### Running Dev
+
+- **Preferred:** `npm run dev:shipments` from repo root
+- **Alternative:** `npm run dev` from `apps/shipments/`
+
+### Deploy
+
+CLI only: `cd apps/shipments && npx vercel --prod`. Auto-deploy remains off. No `git push` triggers a deploy.
+
+### Live Verification
+
+Production prototype at `odyssey-shipments.vercel.app` renders identically to the pre-migration build. Verified by user after Phase 6.3.
+
+### Troubleshooting Notes
+
+1. **`public/details/` move (1200 gitignored JSONs)** — these files are gitignored so `git mv` silently ignored them. Required a plain filesystem `mv`. `.gitignore` updated to cover the new path `apps/shipments/public/details/`.
+
+2. **`@odyssey/ui` stub required before `npm install`** — `apps/shipments/package.json` referenced `@odyssey/ui` as a workspace dep. `npm install` fails until `packages/ui/package.json` exists. Stub was created in Phase 2 before Phase 3 install ran.
+
+3. **Vercel Git Author Protection** — Vercel's Pro account is owned by `manuyetilee@gmail.com`. CLI pushes that carry a different git author email are blocked by Vercel's author-protection check. Resolved by rebasing the migration commits to use that email. Future deploys: ensure git commit email matches the Vercel account owner.
+
+4. **Turborepo `packageManager` field** — `turbo run build` was failing with "Could not resolve workspaces" during Vercel's build. Root cause: Turborepo requires a `packageManager` field in root `package.json` (e.g. `"packageManager": "npm@10.9.2"`) to locate the workspace lockfile. Added in a follow-up commit (`bf30583`); this was the last blocker before production succeeded.
+
+### Unblocked
+
+Future apps (`apps/home`, `apps/carriers`, `apps/orders`) can now share `@odyssey/ui`, `@odyssey/tokens`, and `@odyssey/db` via workspace imports without copy-pasting.
+
+### Normalization Resume Point
+
+Badge is at its new path: `packages/ui/src/Badge.jsx`. Next up: `HazmatTag` + inline `ShipmentTable` Hazmat (both map cleanly to `Badge variant="amber" icon={<TriangleAlert size={12} />}`).

@@ -86,7 +86,15 @@
       "Bash(npm i *)",
       "Bash(awk '{print $2}')",
       "Read(//tmp/**)",
-      "Bash(npm install *)"
+      "Bash(npm install *)",
+      "mcp__plugin_vercel_vercel__get_deployment_build_logs",
+      "Bash(curl -s https://api.github.com/users/manuela-ramirez-odyssey-iris)",
+      "Bash(curl -s -H \"Cache-Control: no-cache\" \"https://api.github.com/users/manuela-ramirez-odyssey-iris?t=$\\(date +%s\\)\")",
+      "Bash(npm *)",
+      "Bash(turbo run *)",
+      "Bash(turbo *)",
+      "Bash(npm run dev:shipments)",
+      "Bash(npm run build:shipments)"
     ]
   }
 }
