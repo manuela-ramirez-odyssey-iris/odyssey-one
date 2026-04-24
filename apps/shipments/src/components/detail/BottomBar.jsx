@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef, Suspense } from 'react'
 import { createPortal } from 'react-dom'
 import { ChevronLeft, ChevronRight, ChevronUp, Maximize2, Minimize2, X, Columns3Cog, Loader2 } from 'lucide-react'
-import Badge from '../ui/Badge'
+import { Badge } from '@odyssey/ui'
 
 const BADGE_COLORS = ['amber', 'blue', 'green', 'red', 'purple']
 
