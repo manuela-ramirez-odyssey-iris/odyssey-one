@@ -780,12 +780,17 @@ Mapped boundaries of `mcp__claude_ai_Figma__use_figma` (runs JS via Plugin API, 
 
 ## What's Next
 
-### Session 13 Priorities
-1. **Patch `/normalize` skill** — Step 4 diff gets a "Direction to resolve" column (Figma→Code, Code→Figma, Intentional); Step 8's Pending Figma Sync list explicitly admits base properties, not just new variants.
-2. **Run the Badge pilot push-back** — rebinds radius, adds boolean props, adds placeholder icon slot. Validates workflow before scaling.
-3. **Resume normalization** — `HazmatTag` + inline `ShipmentTable` Hazmat are the lowest-friction next pickups (map cleanly to existing `Badge variant="amber" icon={...}`).
-4. **Supabase schema (SHP-55)** — continue schema design.
-5. **Home dashboard** — still on the horizon as new scope.
+### Session 14 Priorities
+
+1. **Vault migration** — migrate `shipments-documentation/Documentation/` → `vault/shipments/`. Set up skeleton directories: `vault/odyssey-one/`, `vault/shipments/feedback/`, `vault/shared/`. Update CLAUDE.md pointers. Owns its own plan (1–2 hours).
+2. **Close Q4 and Q5** from Session 13 architecture discussion:
+   - Q4: Portal timing (`apps/home` as standalone first, or start with the portal?).
+   - Q5: Normalization lane cadence (continuous-merge vs weekly batched?).
+3. **Resume normalization** — `HazmatTag` + inline `ShipmentTable` Hazmat (lowest-friction pickups; map to existing `Badge variant="amber" icon={<TriangleAlert size={12} />}`).
+4. **Patch `/normalize` skill** — Step 4 diff gets a "Direction to resolve" column (Figma→Code, Code→Figma, Intentional); Step 8's Pending Figma Sync list admits base properties, not just new variants.
+5. **Run the Badge pilot push-back to Figma** — rebinds `cornerRadius` to `--radius-sm`, adds `hasStatusDot`/`hasIcon` boolean props, placeholder instance-swap `icon` slot. Validates single-push workflow before scaling to Button.
+6. **Supabase schema (SHP-55)** — continue schema design in `packages/db/`.
+7. **Set up first shared NotebookLM notebook** for Shipments — upload existing grooming transcripts, share with Jana/David/Efra as Editor. Validate IT DLP policies before uploading sensitive content.
 
 ### Stories Ready for Spec (SHP-19 decomposed)
 
@@ -1000,3 +1005,73 @@ Future apps (`apps/home`, `apps/carriers`, `apps/orders`) can now share `@odysse
 ### Normalization Resume Point
 
 Badge is at its new path: `packages/ui/src/Badge.jsx`. Next up: `HazmatTag` + inline `ShipmentTable` Hazmat (both map cleanly to `Badge variant="amber" icon={<TriangleAlert size={12} />}`).
+
+### Post-Migration Discussion — Multi-Domain Workflow & Documentation Architecture
+
+Unplanned architecture discussion after migration landed. Decisions locked in or explicitly parked for Session 14.
+
+#### Vercel Pro — kept
+
+$20/month Pro upgrade retained. Justifications beyond today's deploy fix: (1) **commercial-use rights** (Hobby is non-commercial only; prototyping Odyssey work technically violated TOS), (2) team collaboration when Efra or others need dashboard access, (3) custom domains for future `odyssey-one.vercel.app` routing, (4) password-protected previews, (5) priority support. Not wasted — bought earlier than strictly needed, but all capabilities will matter as Home/Carriers/Orders come online.
+
+#### Git author email — staying as `manuyetilee@gmail.com`
+
+Commit email was switched during migration to satisfy Vercel's author-protection check. Keeping permanently. Reason: every CLI deploy re-triggers the check, and reverting to the Odyssey email would re-block deploys on every iteration. Cosmetic cost (GitHub UI shows personal identity as commit author) outweighed by deploy-friction cost. SSH push still goes through the Odyssey GitHub account — only author *metadata* is personal.
+
+**Scope:** This repo only. `git config user.email` is local to `.git/config`; Gateway project (`Customer Gateway/`) still uses `manuelaramirez@odysseylogistics.com`, unaffected.
+
+#### Multi-domain workflow pattern
+
+**Workflow shape confirmed:** each domain runs its own design↔prototype↔feedback loop. Efra designs → user prototypes → CLI deploy → Efra presents → stakeholder feedback → iterate. Multiple domains run this loop in parallel. Normalization is cross-cutting.
+
+**Q1 — Branching model: DECIDED as Option A (trunk-based with domain feature branches).**
+- `main` = always-deploy-ready trunk. Nobody commits directly; only merges.
+- Short-lived feature branches: `shipments/<SHP-ID>`, `home/<ID>`, `carriers/<ID>`, `design-system/<sweep>`, `infra/<thing>`.
+- Preview deploys (`npx vercel` with no `--prod`) come from any branch; disposable unique URLs; shareable with Efra per iteration without touching `odyssey-shipments.vercel.app`.
+- Prod deploys (`npx vercel --prod`) come from `main`, always intentional.
+- Branches deleted after merge.
+
+**Q2 — Efra's role: DECIDED.** Efra consumes the prototype link only. No Vercel account, no Claude access, no git commits. Single-user workflow from Claude/Vercel's perspective.
+
+**Q3 — Stakeholder scope: PARTIALLY DECIDED.** Jana and David are product managers. Jana is mostly Shipments-scoped today; David similarly. Future domains will have their own stakeholders (unknown yet). Cross-domain figures: user + Efra at design/product level.
+
+Decision: **memory and vault entries scoped per-domain by default**; explicitly flag cross-domain items. Shipments docs can CROSS-REFERENCE into Home to inform understanding, but never get MIXED. Backlogs per domain.
+
+**Q4 — Portal timing: PARKED for Session 14.** (Build `apps/home` as standalone first, or start with the portal?)
+**Q5 — Normalization cadence: PARKED for Session 14.** (Continuous-merge vs weekly batched?)
+
+#### Documentation architecture — vault + NotebookLM
+
+**Decision: Obsidian vault lives INSIDE the repo** at `vault/`. Reasons: Claude reads automatically (no MCP), version-controlled with code, humans use Obsidian as a UI layer pointed at the folder, git push/pull serves as the sync mechanism.
+
+**Target structure:**
+
+```
+vault/
+├── odyssey-one/           (cross-domain framing, shared principles)
+├── shipments/
+│   ├── prd.md
+│   ├── what-and-why.md
+│   ├── backlog.md
+│   ├── domain-analysis.md (migrated from shipments-documentation/)
+│   ├── decisions.md
+│   └── feedback/          (dated per meeting/stakeholder)
+├── home/                  (when started)
+├── carriers/
+└── shared/                (cross-cutting conventions)
+```
+
+**Decision: migrate `shipments-documentation/` → `vault/shipments/`** as a separate cleanup task (owns its own plan, 1–2 hours).
+
+**Decision: NotebookLM is an ingestion + distillation + query layer for humans — NOT a Claude dependency.**
+
+Three-layer model:
+- **Layer 1 (raw):** meeting recordings, Google Docs, emails.
+- **Layer 2 (NotebookLM):** per-domain shared notebooks, co-edited by Jana/David/Efra/user. Uploads transcripts, generates summaries, chat-with-docs for stakeholders.
+- **Layer 3 (vault):** canonized outputs committed to `vault/<domain>/`. User curates the handoff from NotebookLM → vault.
+
+Claude reads Layer 3 only. NotebookLM is not integrated with Claude; handoff is manual copy-paste of distilled summaries.
+
+**Notebook sharing model:** one shared notebook per domain, owned by user, co-edited (Editor role) by Jana/David/Efra. On Odyssey's enterprise Workspace, in-org sharing is supported (subject to IT DLP policies). Beats per-user notebooks because it's a single source of truth per domain.
+
+**Stakeholders contribute at the notebook level; user curates at the vault level.** Jana/David don't need to git push.

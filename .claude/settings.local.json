@@ -94,7 +94,8 @@
       "Bash(turbo run *)",
       "Bash(turbo *)",
       "Bash(npm run dev:shipments)",
-      "Bash(npm run build:shipments)"
+      "Bash(npm run build:shipments)",
+      "Bash(awk '/^## Session 13/,/^## Session 14|EOF/' progress.md)"
     ]
   }
 }
