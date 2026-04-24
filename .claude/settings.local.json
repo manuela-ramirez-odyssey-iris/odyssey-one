@@ -85,7 +85,8 @@
       "mcp__plugin_vercel_vercel__get_deployment",
       "Bash(npm i *)",
       "Bash(awk '{print $2}')",
-      "Read(//tmp/**)"
+      "Read(//tmp/**)",
+      "Bash(npm install *)"
     ]
   }
 }
