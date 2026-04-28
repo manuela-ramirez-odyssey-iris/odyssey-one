@@ -1,0 +1,22 @@
+.route-stub {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 24px;
+  height: 100%;
+}
+
+.route-stub h1 {
+  font-family: var(--font-primary);
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.route-stub p {
+  font-family: var(--font-primary);
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0;
+}
