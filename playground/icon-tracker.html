@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Lucide Icon Tracker — Odyssey Design System</title>
+  <style>
+    :root {
+      --bg: #f7f8fa;
+      --card: #ffffff;
+      --card-done: #f2f3f5;
+      --text: #283142;
+      --muted: #6b7280;
+      --subtle: #9da3b0;
+      --border: #e4e6eb;
+      --pending-bg: #fdf1c8;
+      --pending-text: #8f3f11;
+      --done-bg: #d4f3eb;
+      --done-text: #1d524a;
+      --info-bg: #d0f1ff;
+      --info-text: #063a83;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+      margin: 0;
+      padding: 32px;
+      background: var(--bg);
+      color: var(--text);
+      max-width: 1200px;
+    }
+    h1 { font-size: 28px; margin: 0 0 8px; font-weight: 700; }
+    .subtitle { color: var(--muted); margin-bottom: 24px; font-size: 14px; line-height: 1.5; }
+
+    .info-box {
+      background: var(--info-bg);
+      color: var(--info-text);
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin-bottom: 24px;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .info-box h3 {
+      margin: 0 0 8px;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 700;
+    }
+    .info-box ol { margin: 0; padding-left: 20px; }
+
+    .legend {
+      display: flex;
+      gap: 24px;
+      margin-bottom: 24px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .legend-item { display: flex; align-items: center; gap: 8px; }
+    .legend-dot {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+
+    .section-header {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      margin: 32px 0 12px;
+      font-weight: 700;
+    }
+    .section-desc {
+      color: var(--muted);
+      font-size: 13px;
+      margin: 0 0 16px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 16px;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: 8px;
+      padding: 20px;
+      border: 1px solid var(--border);
+      transition: opacity 0.2s, background 0.2s;
+    }
+    .card.done {
+      background: var(--card-done);
+      opacity: 0.55;
+    }
+
+    .icon-display {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 32px;
+      margin-bottom: 16px;
+    }
+    .icon-display svg {
+      width: 16px;
+      height: 16px;
+      stroke-width: 2.25;
+      stroke: var(--text);
+    }
+    .card.done .icon-display svg { stroke: var(--subtle); }
+
+    .name {
+      font-weight: 600;
+      font-size: 15px;
+      text-align: center;
+      margin-bottom: 8px;
+    }
+
+    .status {
+      display: inline-block;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+    .status.pending { background: var(--pending-bg); color: var(--pending-text); }
+    .status.done { background: var(--done-bg); color: var(--done-text); }
+    .status-wrap { text-align: center; }
+
+    .config { font-size: 12px; line-height: 1.6; margin-top: 12px; }
+    .config-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 3px 0;
+      border-bottom: 1px dashed transparent;
+    }
+    .config-row:not(:last-child) { border-bottom-color: var(--border); }
+    .config-key { color: var(--subtle); flex-shrink: 0; }
+    .config-val { color: var(--text); text-align: right; word-break: break-word; }
+
+    .meta { color: var(--muted); font-size: 11px; margin-top: 16px; }
+  </style>
+</head>
+<body>
+  <h1>Lucide Icon Tracker</h1>
+  <p class="subtitle">
+    Icons to add manually to the <strong>Design System - MCP</strong> Figma library via the official Lucide plugin.
+    Updated whenever a normalization touches a new icon. Gray cards = already in the library; yellow cards = pending manual add.
+  </p>
+
+  <div class="info-box">
+    <h3>How to add an icon to Figma</h3>
+    <ol>
+      <li>Open <strong>Design System - MCP</strong> in Figma. Place the icon inside the right frame:
+        <ul>
+          <li><strong>md (16px) icons</strong> → <code>Lucide Icons md</code> (node <code>230:1054</code>)</li>
+          <li><strong>lg (20px) icons</strong> → <code>Lucide Icons lg</code> (node <code>366:619</code>)</li>
+        </ul>
+      </li>
+      <li>Run <strong>Plugins → Lucide</strong>. Search the <em>plugin search name</em> shown on the card (kebab-case) and insert.</li>
+      <li>Resize to the target size (16 for md, 20 for lg).</li>
+      <li><strong>Change stroke width</strong> to match the card. Lucide defaults to <code>2</code>; Odyssey overrides to <code>2.25</code> at md and <code>2</code> at lg. Bind it to the matching variable (<code>Stroke / md</code> or <code>Stroke / lg</code>) from the Icon collection.</li>
+      <li>Right-click → <strong>Create component</strong> (<code>Cmd+Opt+K</code>). The default name is fine — Claude renames it.</li>
+      <li>Tell Claude "TriangleAlert added" (or whichever icons). Claude will:
+        <ul>
+          <li>Rename the component to <code>lucide/md/TriangleAlert</code> or <code>lucide/lg/TriangleAlert</code> (PascalCase, matching <code>lucide-react</code> for Code Connect later)</li>
+          <li>Mark the tracker card as done</li>
+        </ul>
+      </li>
+    </ol>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><span class="legend-dot" style="background: var(--pending-bg);"></span>Pending — add to Figma</div>
+    <div class="legend-item"><span class="legend-dot" style="background: var(--done-bg);"></span>Done — already in library</div>
+  </div>
+
+  <div class="section-header">Tier 1 — Foundation</div>
+  <p class="section-desc">High-frequency icons used across many components. Add these first.</p>
+  <div class="grid">
+
+    <div class="card done" data-icon="TriangleAlert">
+      <div class="icon-display"><i data-lucide="triangle-alert"></i></div>
+      <div class="name">TriangleAlert</div>
+      <div class="status-wrap"><span class="status done">Done</span></div>
+      <div class="config">
+        <div class="config-row"><span class="config-key">Plugin search</span><span class="config-val">triangle-alert</span></div>
+        <div class="config-row"><span class="config-key">Figma name</span><span class="config-val">lucide/md/TriangleAlert</span></div>
+        <div class="config-row"><span class="config-key">Size in Figma</span><span class="config-val">16px (--icon-size-md)</span></div>
+        <div class="config-row"><span class="config-key">Stroke width</span><span class="config-val">2.25 (--icon-stroke-md)</span></div>
+        <div class="config-row"><span class="config-key">Color</span><span class="config-val">currentColor</span></div>
+        <div class="config-row"><span class="config-key">Used in</span><span class="config-val">HazmatTag, ShipmentTable</span></div>
+      </div>
+    </div>
+
+    <div class="card done" data-icon="Search">
+      <div class="icon-display"><i data-lucide="search"></i></div>
+      <div class="name">Search</div>
+      <div class="status-wrap"><span class="status done">Done</span></div>
+      <div class="config">
+        <div class="config-row"><span class="config-key">Plugin search</span><span class="config-val">search</span></div>
+        <div class="config-row"><span class="config-key">Figma name</span><span class="config-val">lucide/md/Search</span></div>
+        <div class="config-row"><span class="config-key">Size in Figma</span><span class="config-val">16px (--icon-size-md)</span></div>
+        <div class="config-row"><span class="config-key">Stroke width</span><span class="config-val">2.25 (--icon-stroke-md)</span></div>
+        <div class="config-row"><span class="config-key">Color</span><span class="config-val">currentColor</span></div>
+        <div class="config-row"><span class="config-key">Used in</span><span class="config-val">Navbar search, FilterPanel, search bars</span></div>
+      </div>
+    </div>
+
+    <div class="card done" data-icon="X">
+      <div class="icon-display"><i data-lucide="x"></i></div>
+      <div class="name">X</div>
+      <div class="status-wrap"><span class="status done">Done</span></div>
+      <div class="config">
+        <div class="config-row"><span class="config-key">Plugin search</span><span class="config-val">x</span></div>
+        <div class="config-row"><span class="config-key">Figma name</span><span class="config-val">lucide/md/X</span></div>
+        <div class="config-row"><span class="config-key">Size in Figma</span><span class="config-val">16px (--icon-size-md)</span></div>
+        <div class="config-row"><span class="config-key">Stroke width</span><span class="config-val">2.25 (--icon-stroke-md)</span></div>
+        <div class="config-row"><span class="config-key">Color</span><span class="config-val">currentColor</span></div>
+        <div class="config-row"><span class="config-key">Used in</span><span class="config-val">Modal close, panel close, tag remove</span></div>
+      </div>
+    </div>
+
+    <div class="card done" data-icon="Check">
+      <div class="icon-display"><i data-lucide="check"></i></div>
+      <div class="name">Check</div>
+      <div class="status-wrap"><span class="status done">Done</span></div>
+      <div class="config">
+        <div class="config-row"><span class="config-key">Plugin search</span><span class="config-val">check</span></div>
+        <div class="config-row"><span class="config-key">Figma name</span><span class="config-val">lucide/md/Check</span></div>
+        <div class="config-row"><span class="config-key">Size in Figma</span><span class="config-val">16px (--icon-size-md)</span></div>
+        <div class="config-row"><span class="config-key">Stroke width</span><span class="config-val">2.25 (--icon-stroke-md)</span></div>
+        <div class="config-row"><span class="config-key">Color</span><span class="config-val">currentColor</span></div>
+        <div class="config-row"><span class="config-key">Used in</span><span class="config-val">Checkboxes, validation states, dropdown selection</span></div>
+      </div>
+    </div>
+
+    <div class="card done" data-icon="ChevronDown">
+      <div class="icon-display"><i data-lucide="chevron-down"></i></div>
+      <div class="name">ChevronDown</div>
+      <div class="status-wrap"><span class="status done">Done</span></div>
+      <div class="config">
+        <div class="config-row"><span class="config-key">Plugin search</span><span class="config-val">chevron-down</span></div>
+        <div class="config-row"><span class="config-key">Figma name</span><span class="config-val">lucide/md/ChevronDown</span></div>
+        <div class="config-row"><span class="config-key">Size in Figma</span><span class="config-val">16px (--icon-size-md)</span></div>
+        <div class="config-row"><span class="config-key">Stroke width</span><span class="config-val">2.25 (--icon-stroke-md)</span></div>
+        <div class="config-row"><span class="config-key">Color</span><span class="config-val">currentColor</span></div>
+        <div class="config-row"><span class="config-key">Used in</span><span class="config-val">Dropdowns, selects, accordions, sort indicators</span></div>
+      </div>
+    </div>
+
+    <div class="card done" data-icon="Info">
+      <div class="icon-display"><i data-lucide="info"></i></div>
+      <div class="name">Info</div>
+      <div class="status-wrap"><span class="status done">Done</span></div>
+      <div class="config">
+        <div class="config-row"><span class="config-key">Plugin search</span><span class="config-val">info</span></div>
+        <div class="config-row"><span class="config-key">Figma name</span><span class="config-val">lucide/md/Info</span></div>
+        <div class="config-row"><span class="config-key">Size in Figma</span><span class="config-val">16px (--icon-size-md)</span></div>
+        <div class="config-row"><span class="config-key">Stroke width</span><span class="config-val">2.25 (--icon-stroke-md)</span></div>
+        <div class="config-row"><span class="config-key">Color</span><span class="config-val">currentColor</span></div>
+        <div class="config-row"><span class="config-key">Used in</span><span class="config-val">Badge instances (ShipmentTable shipment status)</span></div>
+      </div>
+    </div>
+
+  </div>
+
+  <p class="meta">
+    Tracker maintained automatically by Claude during the <code>/normalize</code> routine.
+    To mark an icon as done, tell Claude "X added" — Claude swaps the card class from <code>pending</code> to <code>done</code>.
+  </p>
+
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>lucide.createIcons();</script>
+</body>
+</html>

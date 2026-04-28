@@ -80,7 +80,7 @@ export const COLUMN_CONFIG = [
     render: (s) => (
       <DarkTooltip text={s.tenderStatus ? `Tender Status: ${s.tenderStatus}` : null} width="auto">
         <span>{s.shipmentStatus ? (
-          <Badge variant={s.shipmentStatus === 'Done' ? 'green' : 'red'} icon={<Info size={16} />}>{s.shipmentStatus}</Badge>
+          <Badge variant={s.shipmentStatus === 'Done' ? 'green' : 'red'} rightIcon={<Info size={16} />}>{s.shipmentStatus}</Badge>
         ) : '\u2014'}</span>
       </DarkTooltip>
     ),

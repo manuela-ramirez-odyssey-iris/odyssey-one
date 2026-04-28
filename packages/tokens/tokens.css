@@ -185,6 +185,12 @@
   --radius-pill: 10px;
   --radius-full: 9999px;
 
+  /* --- Icon Sizing (paired: each size has a corresponding stroke) --- */
+  --icon-size-md: 16px;
+  --icon-size-lg: 20px;
+  --icon-stroke-md: 2.25px;  /* Odyssey override of Lucide default 2 */
+  --icon-stroke-lg: 2px;     /* Lucide default */
+
   /* --- Shadows --- */
   --shadow-sm: 0px 1px 2px 0px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 12px 0 rgba(0, 0, 0, 0.12);

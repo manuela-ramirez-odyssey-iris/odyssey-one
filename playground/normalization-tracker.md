@@ -9,7 +9,7 @@
 
 | Component | File | Text Utility | Date | Notes |
 |---|---|---|---|---|
-| Badge | `packages/ui/src/Badge.jsx` | `text-badge` | 2026-04-15 | Added `icon`, `statusDot` props. Asymmetric padding logic. Gray icon uses --text-tertiary. |
+| Badge | `packages/ui/src/Badge.jsx` | `text-badge` | 2026-04-27 | Props: `variant`, `leftIcon`, `rightIcon`, `statusDot`. Symmetric padding-per-side via `getPadding(leftIcon, rightIcon)`. Gray's icon override applies to both slots. (Original 2026-04-15: had single `icon` prop; renamed to `rightIcon` and added `leftIcon` after Figma alignment with Efrain.) |
 
 ## Composite Text Utilities Created
 
@@ -41,9 +41,22 @@ Variants/props defined in code but not yet pushed to Figma. Push all at once whe
 
 | Component | Variant/Prop | Description | Deferred On |
 |---|---|---|---|
-| Badge | `statusDot` | Animated 6x6 dot on the left side | 2026-04-15 |
-| Badge | `icon` (right) | 16px icon on the right, gray uses --text-tertiary | 2026-04-15 |
-| Badge | padding rules | Asymmetric/symmetric logic based on icon+dot state | 2026-04-15 |
+| Badge | pulse animation on `statusDot` | CSS keyframes — not representable in Figma. Documented in component description. | 2026-04-27 |
+| Badge | asymmetric padding logic | `getPadding(icon, statusDot)` returns different padding per state. Figma uses static 2px 10px symmetric — code-only behavior. | 2026-04-27 |
+| Badge | gray-only icon color override | Code: gray variant icon uses `--text-tertiary`; other variants use `currentColor`. In Figma, icon is an instance-swap slot — color comes from swapped icon content, not parent. Cannot model as a single variable binding. | 2026-04-27 |
+
+## Pushed to Figma
+
+Components pushed back to Figma via the `/normalize` skill's Step 8 routine.
+
+| Component | Figma File | Component Set ID | Pushed | Notes |
+|---|---|---|---|---|
+| Badge | Design System - MCP (`vodiHJU38YWZYmTz81uOk7`) | `213:27` | 2026-04-27 | First push — seeded 5 variable collections (85 vars). Properties: Variant (6 colors), Show dot (bool), Show right icon (bool), Right icon (instance-swap), Show left icon (bool), Left icon (instance-swap). |
+| Badge — leftIcon update | same | `213:27` | 2026-04-27 | Added Left icon slot + Show left icon + Left icon properties. Renamed Show icon → Show right icon, Icon → Right icon. Showcase has 4 columns: Default / Dot / Left / Right. **Convention: never set both leftIcon and rightIcon on a single Badge.** Code permits it structurally but it's not a valid state — the showcase intentionally omits a "Both" example. |
+
+## Icon Tracker
+
+Lucide icons needed in the Figma library are tracked in `playground/icon-tracker.html`. Open in a browser to see pending vs done icons with their config (plugin search name, target Figma name, size, stroke). Updated by the `/normalize` routine's Step 8b whenever a normalized component touches a new icon.
 
 ---
 

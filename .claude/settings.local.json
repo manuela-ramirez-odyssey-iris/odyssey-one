@@ -95,7 +95,14 @@
       "Bash(turbo *)",
       "Bash(npm run dev:shipments)",
       "Bash(npm run build:shipments)",
-      "Bash(awk '/^## Session 13/,/^## Session 14|EOF/' progress.md)"
+      "Bash(awk '/^## Session 13/,/^## Session 14|EOF/' progress.md)",
+      "mcp__figma__whoami",
+      "mcp__figma__get_metadata",
+      "mcp__figma__get_design_context",
+      "mcp__figma__get_libraries",
+      "mcp__figma__use_figma",
+      "Bash(/Users/manuelramirez/Documents/iris/Odyssey/Shipments/odyssey-shipments/packages/ui/node_modules/.bin/figma --version)",
+      "Bash(../../node_modules/.bin/figma connect *)"
     ]
   }
 }

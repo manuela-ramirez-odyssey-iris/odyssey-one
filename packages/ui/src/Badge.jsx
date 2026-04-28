@@ -7,16 +7,18 @@ const variants = {
   gray: { bg: 'var(--badge-gray-bg)', color: 'var(--badge-gray-text)', iconColor: 'var(--text-tertiary)' },
 }
 
-function getPadding(icon, statusDot) {
-  if (statusDot && icon) return '2px 8px'
-  if (icon) return '2px 8px 2px 10px'
-  return '2px 10px'
+function getPadding(leftIcon, rightIcon) {
+  const left = leftIcon ? 8 : 10
+  const right = rightIcon ? 8 : 10
+  return `2px ${right}px 2px ${left}px`
 }
 
-export default function Badge({ children, variant = 'blue', icon, statusDot }) {
+export default function Badge({ children, variant = 'blue', leftIcon, rightIcon, statusDot }) {
   const v = variants[variant] || variants.blue
-  const hasIcon = !!icon
+  const hasLeft = !!leftIcon
+  const hasRight = !!rightIcon
   const hasDot = !!statusDot
+  const iconColor = v.iconColor || 'currentColor'
 
   return (
     <span
@@ -26,7 +28,7 @@ export default function Badge({ children, variant = 'blue', icon, statusDot }) {
         alignItems: 'center',
         gap: 4,
         borderRadius: 'var(--radius-sm)',
-        padding: getPadding(hasIcon, hasDot),
+        padding: getPadding(hasLeft, hasRight),
         background: v.bg,
         color: v.color,
         whiteSpace: 'nowrap',
@@ -46,16 +48,27 @@ export default function Badge({ children, variant = 'blue', icon, statusDot }) {
           }}
         />
       )}
-      {children}
-      {hasIcon && (
+      {hasLeft && (
         <span
           style={{
             display: 'inline-flex',
             flexShrink: 0,
-            color: v.iconColor || 'currentColor',
+            color: iconColor,
           }}
         >
-          {icon}
+          {leftIcon}
+        </span>
+      )}
+      {children}
+      {hasRight && (
+        <span
+          style={{
+            display: 'inline-flex',
+            flexShrink: 0,
+            color: iconColor,
+          }}
+        >
+          {rightIcon}
         </span>
       )}
     </span>
