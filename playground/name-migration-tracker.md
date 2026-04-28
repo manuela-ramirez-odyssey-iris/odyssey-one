@@ -31,7 +31,7 @@ Legend:  ✅ done · 🟡 in progress · ⏳ pending (you) · ⏸ deferred · �
 | 2 | Update `CLAUDE.md` directory map header | Claude | ✅ |
 | 3 | Update `apps/shipments/index.html` `<title>` | Claude | ✅ |
 | 4 | Update `reference_vercel_deployment.md` memory (reflect dual-URL plan) | Claude | ✅ |
-| 5 | Commit + push internal pass | Claude | 🟡 |
+| 5 | Commit + push internal pass | Claude | ✅ (commit `de926a0`) |
 
 ### External pass (user — at your own pace, browser/CLI)
 
