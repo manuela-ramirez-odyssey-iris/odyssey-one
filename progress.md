@@ -780,17 +780,20 @@ Mapped boundaries of `mcp__claude_ai_Figma__use_figma` (runs JS via Plugin API, 
 
 ## What's Next
 
-### Session 14 Priorities
+### Session 15 Priorities
 
-1. **Vault migration** — migrate `shipments-documentation/Documentation/` → `vault/shipments/`. Set up skeleton directories: `vault/odyssey-one/`, `vault/shipments/feedback/`, `vault/shared/`. Update CLAUDE.md pointers. Owns its own plan (1–2 hours).
-2. **Close Q4 and Q5** from Session 13 architecture discussion:
-   - Q4: Portal timing (`apps/home` as standalone first, or start with the portal?).
-   - Q5: Normalization lane cadence (continuous-merge vs weekly batched?).
-3. **Resume normalization** — `HazmatTag` + inline `ShipmentTable` Hazmat (lowest-friction pickups; map to existing `Badge variant="amber" icon={<TriangleAlert size={12} />}`).
-4. **Patch `/normalize` skill** — Step 4 diff gets a "Direction to resolve" column (Figma→Code, Code→Figma, Intentional); Step 8's Pending Figma Sync list admits base properties, not just new variants.
-5. **Run the Badge pilot push-back to Figma** — rebinds `cornerRadius` to `--radius-sm`, adds `hasStatusDot`/`hasIcon` boolean props, placeholder instance-swap `icon` slot. Validates single-push workflow before scaling to Button.
-6. **Supabase schema (SHP-55)** — continue schema design in `packages/db/`.
-7. **Set up first shared NotebookLM notebook** for Shipments — upload existing grooming transcripts, share with Jana/David/Efra as Editor. Validate IT DLP policies before uploading sensitive content.
+1. **Vercel umbrella architecture** (primary focus per user). Build out the `odyssey-one` umbrella so `odyssey-one.vercel.app/shipments` rewrites to the existing `odyssey-shipments.vercel.app` deploy, etc. Specific sub-steps from `playground/name-migration-tracker.md`:
+   - Build `apps/home/` skeleton with sidebar nav for the confirmed domain list (home, orders, carriers, shipments, tracking; user management separate).
+   - Create new Vercel project `odyssey-one` connected to the renamed GitHub repo, root: `apps/home`.
+   - Configure Vercel rewrites in `apps/home/vercel.json` (or via project settings): `/shipments/*` → existing shipments deploy. Add stubs for `/orders`, `/carriers`, `/tracking` once those apps exist.
+   - Existing `odyssey-shipments.vercel.app` URL stays alive throughout — no breakage for current users.
+2. **Resume normalization** — `HazmatTag` + inline `ShipmentTable` Hazmat (deferred from Session 14). Will exercise the new `/normalize` Step 8b workflow end-to-end and consume the `lucide/md/TriangleAlert` icon (already in tracker as done).
+3. **Close Q4 and Q5** from Session 13 architecture discussion (Q1–Q3 effectively closed via Session 14 work):
+   - Q4: Portal timing — likely answered by Session 15's umbrella work.
+   - Q5: Normalization lane cadence (continuous-merge vs weekly batched?) — still open.
+4. **Vault migration** — still parked pending NotebookLM access + Obsidian setup (per `project_vault_migration_parked.md`).
+5. **Supabase schema (SHP-55)** — continue schema design in `packages/db/`.
+6. **Set up first shared NotebookLM notebook** for Shipments — pending IT/access provisioning.
 
 ### Stories Ready for Spec (SHP-19 decomposed)
 
@@ -1075,3 +1078,126 @@ Claude reads Layer 3 only. NotebookLM is not integrated with Claude; handoff is 
 **Notebook sharing model:** one shared notebook per domain, owned by user, co-edited (Editor role) by Jana/David/Efra. On Odyssey's enterprise Workspace, in-org sharing is supported (subject to IT DLP policies). Beats per-user notebooks because it's a single source of truth per domain.
 
 **Stakeholders contribute at the notebook level; user curates at the vault level.** Jana/David don't need to git push.
+
+---
+
+## Session 14 — April 28, 2026
+
+Two threads: (1) Badge pushed end-to-end through the design-system pipeline (Figma library → Code Connect) as a full dry-run of the normalization workflow; (2) project name migration started — `odyssey-shipments` → `odyssey-one`.
+
+### Thread 1 — Badge through the full pipeline
+
+#### Initial push to Figma (`Design System - MCP`, fileKey `vodiHJU38YWZYmTz81uOk7`)
+
+- Pushed 5 variable collections (89 vars total) seeded from `tokens.css`: Color Primitives, Color Semantic, Color Component / Badge, Sizing, Typography.
+- Pushed Badge component set at `213:27`: 6 variants × Show dot / Show icon booleans + Icon instance-swap, plus a Showcase frame.
+- **Caught a bug mid-push:** color variable lookups silently failed because the local map keyed names with a `Badge/` prefix while the actual Figma names were just `Blue/bg`, `Yellow/bg`, etc. (the prefix lives in the collection name, not the variable name). All badges initially rendered black. Fixed by keying lookups by `(collection, name)` tuple.
+
+#### Lucide icon strategy and tracker
+
+- Decision: use the official Lucide plugin (not a community-fork library file) as the source. Each imported icon becomes a component in our new library, named per our convention.
+- Created `playground/icon-tracker.html` — HTML checklist showing each icon at its actual usage size (16×16, stroke 2.25). Pending → done state machine; Lucide JS lib renders previews; cards turn gray when added to Figma.
+- **Tier 1 icons (all done):** TriangleAlert, Search, X, Check, ChevronDown, Info — all live in the `Lucide Icons md` frame (`230:1054`), named per convention (see below).
+- **Naming convention finalized:** `lucide/<size-token>/PascalCase` where size-token is `md` (16px) or `lg` (20px). Two dedicated frames: md → `230:1054`, lg → `366:619`. Eliminates duplicate-name collisions across sizes (see `project_lucide_icon_frames.md`).
+
+#### Icon size + stroke tokens
+
+Added to `tokens.css`:
+```css
+--icon-size-md: 16px;
+--icon-size-lg: 20px;
+--icon-stroke-md: 2.25px;  /* Odyssey override of Lucide default 2 */
+--icon-stroke-lg: 2px;
+```
+And pushed to Figma as a new `6. Icon` variable collection.
+
+#### Variable collection renames in Figma
+
+For clarity:
+- `1. Primitives` → `1. Color Primitives`
+- `2. Semantic` → `2. Color Semantic`
+- `3. Component / Badge` → `3. Color Component / Badge`
+- `4. Spacing & Radius` → `4. Sizing`
+- `5. Typography` (unchanged), `6. Icon` (new)
+
+#### Badge code update — leftIcon + rightIcon
+
+After Efrain noted that left-icon Badges exist in some places, expanded the API:
+- Renamed `icon` prop → `rightIcon`; added `leftIcon`.
+- Symmetric per-side padding via `getPadding(leftIcon, rightIcon)`.
+- Gray's `iconColor` override applies to both slots.
+- Migrated sole external caller `ShipmentTable.jsx:83` (icon → rightIcon).
+- Mutual-exclusivity convention for both icons documented in `playground/normalization-tracker.md`; showcase intentionally has no "Both" column.
+
+Figma Badge component set (`213:27`) updated to match: added Left icon slot + `Show left icon` boolean + `Left icon` instance-swap; renamed `Show icon` → `Show right icon`, `Icon` → `Right icon`. Showcase rebuilt with 4 columns (Default / Dot / Left / Right) × 6 variants.
+
+#### Code Connect — installed and active
+
+- `@figma/code-connect` v1.4.4 as devDep in `packages/ui/`.
+- `packages/ui/figma.config.json` config + `packages/ui/src/Badge.figma.tsx` mapping (variant enum + `Show dot`/`Show left icon`/`Show right icon` booleans + `Left icon`/`Right icon` instance-swaps + text content for `children`).
+- Mapping published with `imports: ["import { Badge } from '@odyssey/ui'"]` override so consumers see the workspace path.
+- Verified: `get_design_context` on Badge now returns `import { Badge } from '@odyssey/ui'` with real props, no regenerated React+Tailwind.
+- Memory rotated: `project_code_connect_pending.md` → `project_code_connect_active.md` with the recipe for adding mappings to future components.
+
+#### `/normalize` routine improvements
+
+- **Step 8b (icon tracking) entirely rewritten:** Figma drives icon size/name/stroke (not code grep). Cross-check against code usage now mandatory — Badge → Info case spelled out as canonical example for catching icons that live in callers, not the component itself.
+- Naming convention codified: `lucide/<size-token>/PascalCase`.
+- Source-of-truth direction (Figma → Code) explicit.
+
+#### Library publish
+
+User published `Design System - MCP` as a Figma library. Components, variables, styles, and the showcase are now subscribable from other Figma files in the org.
+
+### Thread 2 — Name migration: `odyssey-shipments` → `odyssey-one`
+
+Triggered by realization that the project is multi-domain now (sidebar set: home, orders, carriers, shipments, tracking; user management separate per `project_domains_list.md`). Existing name is misleading.
+
+**URL strategy decided (Q1 = Option A, deployment via Option B):**
+- Future structure: `odyssey-one.vercel.app/` = home; `odyssey-one.vercel.app/shipments` = shipments; etc.
+- Implementation: a new `odyssey-one` Vercel project (when `apps/home` exists) will rewrite `/shipments/*` to the existing `odyssey-shipments.vercel.app` deploy. Both URLs alive indefinitely, no break for current users.
+
+#### Internal pass (this session)
+
+- Updated `CLAUDE.md` directory map header.
+- Updated `apps/shipments/index.html` `<title>`.
+- Updated `reference_vercel_deployment.md` memory to reflect dual-URL plan.
+- Created `playground/name-migration-tracker.md` documenting every step with owner and status.
+
+#### External pass (user, this session)
+
+- Renamed GitHub repo `odyssey-shipments` → `odyssey-one` in GitHub web UI.
+- Updated local git remote URL to the new repo path.
+- Verified push/fetch works against the renamed remote (commit `f0a810c` pushed cleanly).
+
+#### Intentionally NOT changed
+
+- Vercel project name — stays `odyssey-shipments` so the prototype URL keeps working for current users.
+- Local directory name — deferred per user (rename between sessions).
+- Root `package.json` — already named `odyssey-monorepo` (generic).
+- `apps/shipments/`, `@odyssey/*` packages — untouched.
+- Historical artifacts (older session entries, completed implementation plans).
+
+### Memory updates
+
+**New:**
+- `project_design_system_strategy.md` — rollout sequence, library coexistence, icon strategy
+- `project_lucide_icon_frames.md` — md/lg frame node IDs and naming convention
+- `project_domains_list.md` — confirmed sidebar domains
+- `project_vault_migration_parked.md` — parked pending NotebookLM/Obsidian
+- `project_code_connect_active.md` — replaces `project_code_connect_pending.md`
+
+**Updated:**
+- `feedback_badge_icon_props.md` — flipped from "waiting" to "IMPLEMENTED 2026-04-27"
+- `reference_vercel_deployment.md` — dual-URL plan + new GitHub repo URL
+
+### Commits / checkpoints
+
+- `852637d` — Badge normalization (Figma push, Code Connect, icon workflow)
+- `de926a0` — Begin name migration (internal pass)
+- `10dd9e4` — Migration tracker created (user's commit)
+- `f0a810c` — Name migration steps 6-8 complete (GitHub rename + remote URL)
+
+### Carry-forward to Session 15
+
+Per user instruction: continue with Vercel umbrella work — `apps/home/`, new Vercel project, rewrites configuration. See updated What's Next above.
