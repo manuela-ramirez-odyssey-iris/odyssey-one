@@ -6,3 +6,4 @@ apps/shipments/public/details/
 shipments-documentation/Documentation/converted/
 .vercel
 .worktrees/
+.turbo/
