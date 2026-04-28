@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { ChevronLeft, ChevronRight, Menu, Bell, ChevronDown } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 
 const CATEGORIES = [
   { value: 'Global', label: 'Global', group: null },
@@ -9,19 +10,32 @@ const CATEGORIES = [
 ]
 
 const Navbar = React.memo(function Navbar() {
-  const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState('Shipment Exceptions')
-  const dropdownRef = useRef(null)
+  const categoryDropdownRef = useRef(null)
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false)
+  const profileDropdownRef = useRef(null)
+  const navigate = useNavigate()
 
   useEffect(() => {
     function handleClickOutside(e) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
-        setDropdownOpen(false)
+      if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(e.target)) {
+        setCategoryDropdownOpen(false)
       }
     }
-    if (dropdownOpen) document.addEventListener('mousedown', handleClickOutside)
+    if (categoryDropdownOpen) document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [dropdownOpen])
+  }, [categoryDropdownOpen])
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (profileDropdownRef.current && !profileDropdownRef.current.contains(e.target)) {
+        setProfileDropdownOpen(false)
+      }
+    }
+    if (profileDropdownOpen) document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [profileDropdownOpen])
 
   return (
     <header className="flex items-center justify-between shrink-0 relative z-50"
@@ -65,7 +79,7 @@ const Navbar = React.memo(function Navbar() {
         </div>
 
         {/* Navbar search bar */}
-        <div className="relative" ref={dropdownRef}>
+        <div className="relative" ref={categoryDropdownRef}>
           <div className="flex items-center gap-3 overflow-hidden"
             style={{
               width: 632, background: '#0B1629',
@@ -75,7 +89,7 @@ const Navbar = React.memo(function Navbar() {
             }}>
             <button
               className="flex items-center gap-3 shrink-0 whitespace-nowrap"
-              onClick={() => setDropdownOpen(!dropdownOpen)}
+              onClick={() => setCategoryDropdownOpen(!categoryDropdownOpen)}
               style={{
                 padding: '6px 8px 6px 12px',
                 background: '#384253',
@@ -110,7 +124,7 @@ const Navbar = React.memo(function Navbar() {
           </div>
 
           {/* Category dropdown */}
-          {dropdownOpen && (
+          {categoryDropdownOpen && (
             <div
               className="absolute flex flex-col"
               style={{
@@ -150,7 +164,7 @@ const Navbar = React.memo(function Navbar() {
                     onMouseLeave={(e) => e.currentTarget.style.background = selectedCategory === cat.value ? 'var(--bg-tertiary)' : 'transparent'}
                     onClick={() => {
                       setSelectedCategory(cat.value)
-                      setDropdownOpen(false)
+                      setCategoryDropdownOpen(false)
                     }}
                   >
                     {cat.label}
@@ -178,16 +192,91 @@ const Navbar = React.memo(function Navbar() {
 
         <div style={{ width: 1, alignSelf: 'stretch', background: 'var(--navbar-search-dropdown)' }} />
 
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center text-xs font-semibold"
-            style={{ background: 'var(--deep-sea-neutral-600)', color: 'var(--text-inverse)' }}>
-            AC
-          </div>
-          <div className="flex flex-col whitespace-nowrap">
-            <span className="text-sm font-medium" style={{ color: '#D0D4DB' }}>Amy Cook</span>
-            <span className="text-xs" style={{ color: '#9DA3B0', lineHeight: '12px' }}>Admin</span>
-          </div>
-          <ChevronDown size={16} style={{ color: '#9DA3B0' }} />
+        <div className="relative" ref={profileDropdownRef}>
+          <button
+            onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+            className="flex items-center gap-2 border-none bg-transparent cursor-pointer"
+            style={{ padding: 0 }}
+          >
+            <div className="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center text-xs font-semibold"
+              style={{ background: 'var(--deep-sea-neutral-600)', color: 'var(--text-inverse)' }}>
+              AC
+            </div>
+            <div className="flex flex-col whitespace-nowrap items-start">
+              <span className="text-sm font-medium" style={{ color: '#D0D4DB' }}>Amy Cook</span>
+              <span className="text-xs" style={{ color: '#9DA3B0', lineHeight: '12px' }}>Admin</span>
+            </div>
+            <ChevronDown size={16} style={{ color: '#9DA3B0' }} />
+          </button>
+
+          {profileDropdownOpen && (
+            <div
+              className="absolute flex flex-col"
+              style={{
+                top: '100%',
+                right: 0,
+                marginTop: 4,
+                width: 200,
+                background: 'var(--dropdown-bg)',
+                border: '1px solid var(--dropdown-border)',
+                borderRadius: 'var(--radius-lg)',
+                boxShadow: 'var(--shadow-md)',
+                zIndex: 9999,
+                padding: '4px 0',
+                overflow: 'hidden',
+              }}
+            >
+              <button
+                className="flex items-center w-full text-left text-sm border-none cursor-pointer"
+                style={{
+                  padding: '8px 12px',
+                  minHeight: 36,
+                  background: 'transparent',
+                  color: 'var(--text-secondary)',
+                  fontFamily: 'var(--font-primary)',
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'var(--dropdown-hover-bg)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                disabled
+              >
+                Account
+              </button>
+              <button
+                className="flex items-center w-full text-left text-sm border-none cursor-pointer"
+                style={{
+                  padding: '8px 12px',
+                  minHeight: 36,
+                  background: 'transparent',
+                  color: 'var(--text-secondary)',
+                  fontFamily: 'var(--font-primary)',
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'var(--dropdown-hover-bg)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                onClick={() => {
+                  setProfileDropdownOpen(false)
+                  navigate('/users')
+                }}
+              >
+                Manage Users
+              </button>
+              <div style={{ height: 1, background: 'var(--border-subtle)', margin: '4px 0' }} />
+              <button
+                className="flex items-center w-full text-left text-sm border-none cursor-pointer"
+                style={{
+                  padding: '8px 12px',
+                  minHeight: 36,
+                  background: 'transparent',
+                  color: 'var(--text-secondary)',
+                  fontFamily: 'var(--font-primary)',
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'var(--dropdown-hover-bg)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                disabled
+              >
+                Sign out
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </header>
