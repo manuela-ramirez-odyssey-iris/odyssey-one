@@ -1,13 +1,15 @@
-# Odyssey Monorepo — Project Instructions
+# Odyssey-One Monorepo — Project Instructions
 
-Multi-domain platform prototype. Shipments is live; Home, Carriers, and possibly Orders will be added as sibling apps sharing the same design system, component library, and (future) Supabase database.
+Multi-domain platform prototype. Sidebar-accessible domains: home, orders, carriers, shipments, tracking. User management is separate (location TBD). Shipments is the only live app today; the others will be added as sibling apps sharing the same design system, component library, and (future) Supabase database.
+
+> **Naming note:** the repo is in the middle of being renamed from `odyssey-shipments` to `odyssey-one`. The local directory and GitHub repo may still be named `odyssey-shipments` while the rename is in progress. See `playground/name-migration-tracker.md` for status.
 
 ## Directory map
 
 ```
-odyssey-shipments/                      (repo — rename deferred)
+odyssey-one/                            (repo; may still be named odyssey-shipments locally during rename)
 ├── apps/
-│   └── shipments/                      (the Shipments prototype)
+│   └── shipments/                      (the Shipments prototype — currently the only built app)
 │       ├── src/
 │       ├── public/details/             (1200 generated JSONs, gitignored)
 │       ├── tools/generate.mjs          (data generator, node runtime)
@@ -16,7 +18,7 @@ odyssey-shipments/                      (repo — rename deferred)
 │   ├── ui/src/                         (shared React components — see "Normalization policy")
 │   ├── tokens/tokens.css               (shared design tokens)
 │   └── db/                             (placeholder — Supabase client goes here)
-├── playground/                         (design-system visualization + tracker)
+├── playground/                         (design-system visualization, tracker, name migration tracker)
 ├── shipments-documentation/            (domain analysis, grooming transcripts, backlog)
 ├── docs/superpowers/plans/             (implementation plans)
 ├── tools/convert-docs.sh               (cross-cutting: .docx/.pptx → Markdown)
@@ -24,7 +26,7 @@ odyssey-shipments/                      (repo — rename deferred)
 ├── progress.md                         (session log)
 ├── CLAUDE.md                           (this file)
 ├── turbo.json
-└── package.json                        (workspace root)
+└── package.json                        (workspace root, name: odyssey-monorepo)
 ```
 
 ## Key commands
