@@ -37,9 +37,9 @@ Legend:  ✅ done · 🟡 in progress · ⏳ pending (you) · ⏸ deferred · �
 
 | # | Step | Owner | Status | Notes |
 |---|---|---|---|---|
-| 6 | Rename GitHub repo `odyssey-shipments` → `odyssey-one` | User | ⏳ | GitHub Settings → General → Rename. GitHub auto-redirects old URL for ~6 months. |
-| 7 | Update local git remote URL after #6 | User | ⏳ | `git remote set-url origin git@github.com-odyssey:manuela-ramirez-odyssey-iris/odyssey-one.git` |
-| 8 | Verify `git fetch / push` still works | User | ⏳ | After #7. |
+| 6 | Rename GitHub repo `odyssey-shipments` → `odyssey-one` | User | ✅ (2026-04-28) | GitHub auto-redirects old URL for ~6 months. |
+| 7 | Update local git remote URL after #6 | User | ✅ (2026-04-28) | Remote now `git@github.com-odyssey:manuela-ramirez-odyssey-iris/odyssey-one.git` |
+| 8 | Verify `git fetch / push` still works | User | ✅ (2026-04-28) | Verified by Claude. |
 
 ### Vercel pass (deferred — when `apps/home` exists)
 
