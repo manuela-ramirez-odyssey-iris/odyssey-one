@@ -1,3 +1,17 @@
 {
+  "redirects": [
+    {
+      "source": "/",
+      "has": [{ "type": "host", "value": "odyssey-shipments.vercel.app" }],
+      "destination": "https://odyssey-one-stage.vercel.app/shipments",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "odyssey-shipments.vercel.app" }],
+      "destination": "https://odyssey-one-stage.vercel.app/:path*",
+      "permanent": true
+    }
+  ],
   "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
 }
