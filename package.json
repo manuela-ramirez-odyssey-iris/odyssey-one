@@ -11,8 +11,8 @@
     "dev": "turbo run dev",
     "build": "turbo run build",
     "lint": "turbo run lint",
-    "dev:shipments": "turbo run dev --filter=shipments",
-    "build:shipments": "turbo run build --filter=shipments"
+    "dev:odyssey-one": "turbo run dev --filter=odyssey-one-app",
+    "build:odyssey-one": "turbo run build --filter=odyssey-one-app"
   },
   "devDependencies": {
     "turbo": "^2.3.0"
