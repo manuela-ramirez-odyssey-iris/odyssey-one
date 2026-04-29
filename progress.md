@@ -1330,6 +1330,14 @@ No new memories created — this session was almost entirely execution of decisi
 - `CLAUDE.md` — directory map, key commands, deploy section, dual-URL note in header.
 - `playground/name-migration-tracker.md` — fully rewritten as a completed-state record. Original was a forward-looking plan; new version documents what actually happened, including the architecture revision, the URL pivot to `-stage`, and the in-place rename mechanic. Future-Claude needs to see why the "do not rename" decision and the "multi-app + rewrites" plan were both reversed.
 
+### Post-wrap fixes (same session, after first /wrap)
+
+Two follow-ups landed after the initial wrap commit:
+
+- **Legacy URL redirect** (`0ead536`). User noticed that `odyssey-shipments.vercel.app/` served the umbrella Home stub — old bookmarks expected the shipments app. Added host-conditional redirects to `apps/odyssey-one/vercel.json`: `odyssey-shipments.vercel.app/` 308s to `odyssey-one-stage.vercel.app/shipments`; other paths preserve themselves on the new host. Redirects only fire when the request `host` header matches the legacy domain, so `odyssey-one-stage.vercel.app` is unaffected.
+
+- **Detail JSON prebuild** (`b07c4e8`). User found that clicking a shipment row didn't populate the bottom detail panel. Two issues compounded: (1) the 1200 per-shipment JSONs in `apps/odyssey-one/public/details/` are gitignored and weren't being regenerated at build time, so Vercel deployed without them; (2) the SPA rewrite (`/(.*) → /index.html`) was catching `/details/<id>.json` requests and returning `index.html`, which the data layer then tried to parse as JSON and silently threw. Fix: added `prebuild: node tools/generate.mjs` to `apps/odyssey-one/package.json` — npm runs it before `build`, Vite copies `public/details/` into `dist/details/`, and Vercel's static-file serving takes precedence over the rewrite. Verified on production: `/details/SHP-X.json` now returns `application/json` with the expected data, routes still SPA-rewrite, legacy redirect still works. Also tidied `.gitignore` (stale `apps/shipments/public/details/` → `apps/odyssey-one/public/details/`).
+
 ### Carry-forward to Session 16
 
 - **Local directory rename.** The path `/Users/manuelramirez/Documents/iris/Odyssey/Shipments/odyssey-shipments/` is the last surface still carrying the old name. User must do this between sessions:
