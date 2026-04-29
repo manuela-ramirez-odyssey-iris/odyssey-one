@@ -2,7 +2,7 @@ node_modules
 dist
 .DS_Store
 public/details/
-apps/shipments/public/details/
+apps/odyssey-one/public/details/
 shipments-documentation/Documentation/converted/
 .vercel
 .worktrees/
