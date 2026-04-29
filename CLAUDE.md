@@ -1,19 +1,25 @@
 # Odyssey-One Monorepo — Project Instructions
 
-Multi-domain platform prototype. Sidebar-accessible domains: home, orders, carriers, shipments, tracking. User management is separate (location TBD). Shipments is the only live app today; the others will be added as sibling apps sharing the same design system, component library, and (future) Supabase database.
+Multi-domain platform prototype. Single React app `apps/odyssey-one/` serving 6 routes via React Router: home, orders, carriers, shipments, tracking (sidebar) plus users (avatar dropdown). Shipments is the only route with real content today; the other four are placeholder stubs that get filled in incrementally. All routes share the same chrome (sidebar + navbar via `AppShell`). Future Supabase access will be shared across all routes via `@odyssey/db`.
 
-> **Naming note:** the repo is in the middle of being renamed from `odyssey-shipments` to `odyssey-one`. The local directory and GitHub repo may still be named `odyssey-shipments` while the rename is in progress. See `playground/name-migration-tracker.md` for status.
+> **Live URLs (both serve the same deploy):** `odyssey-one-stage.vercel.app` (primary), `odyssey-shipments.vercel.app` (alias preserved for legacy bookmarks). The `.vercel.app` name `odyssey-one` is owned by another team — `-stage` is a deliberate suffix to signal this is a prototype URL, not the eventual production URL.
 
 ## Directory map
 
 ```
-odyssey-one/                            (repo; may still be named odyssey-shipments locally during rename)
+odyssey-one/                            (repo; GitHub: manuela-ramirez-odyssey-iris/odyssey-one)
 ├── apps/
-│   └── shipments/                      (the Shipments prototype — currently the only built app)
+│   └── odyssey-one/                    (the umbrella app — single Vite build, 6 routes)
 │       ├── src/
+│       │   ├── App.jsx                 (Router shell — 6 routes)
+│       │   ├── routes/                 (Home, Orders, Carriers, Tracking, Users stubs)
+│       │   │   └── shipments/          (ShipmentsRoute — owns AppShell + filterPanel)
+│       │   ├── components/layout/      (AppShell, Sidebar, Navbar — umbrella chrome)
+│       │   └── components/             (shipments-specific components — co-located until normalized)
 │       ├── public/details/             (1200 generated JSONs, gitignored)
 │       ├── tools/generate.mjs          (data generator, node runtime)
-│       └── package.json
+│       ├── vercel.json                 (SPA rewrite — all paths → /index.html)
+│       └── package.json                (name: odyssey-one-app)
 ├── packages/
 │   ├── ui/src/                         (shared React components — see "Normalization policy")
 │   ├── tokens/tokens.css               (shared design tokens)
@@ -33,13 +39,13 @@ odyssey-one/                            (repo; may still be named odyssey-shipme
 
 From repo root:
 
-- `npm run dev:shipments` — start dev server (preferred)
-- `npm run build:shipments` — build the shipments app
-- `cd apps/shipments && node tools/generate.mjs` — regenerate the 1200 shipment JSONs (seed 42, reproducible)
+- `npm run dev:odyssey-one` — start dev server (preferred)
+- `npm run build:odyssey-one` — build the umbrella app
+- `cd apps/odyssey-one && node tools/generate.mjs` — regenerate the 1200 shipment JSONs (seed 42, reproducible)
 
 ## Deploys
 
-**CLI only.** All deploys happen via `npx vercel --prod` run from the relevant app's directory (e.g. `cd apps/shipments && npx vercel --prod`). Do not enable GitHub auto-deploy. Do not `git push` expecting a deploy to fire.
+**CLI only.** Deploy with `npx vercel --prod` from the **repo root** (Vercel project's Root Directory is set to `apps/odyssey-one`, so the CLI handles the build context). Do not enable GitHub auto-deploy. Do not `git push` expecting a deploy to fire.
 
 ## Shared packages
 
