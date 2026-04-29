@@ -780,20 +780,16 @@ Mapped boundaries of `mcp__claude_ai_Figma__use_figma` (runs JS via Plugin API, 
 
 ## What's Next
 
-### Session 15 Priorities
+### Session 16 Priorities
 
-1. **Vercel umbrella architecture** (primary focus per user). Build out the `odyssey-one` umbrella so `odyssey-one.vercel.app/shipments` rewrites to the existing `odyssey-shipments.vercel.app` deploy, etc. Specific sub-steps from `playground/name-migration-tracker.md`:
-   - Build `apps/home/` skeleton with sidebar nav for the confirmed domain list (home, orders, carriers, shipments, tracking; user management separate).
-   - Create new Vercel project `odyssey-one` connected to the renamed GitHub repo, root: `apps/home`.
-   - Configure Vercel rewrites in `apps/home/vercel.json` (or via project settings): `/shipments/*` → existing shipments deploy. Add stubs for `/orders`, `/carriers`, `/tracking` once those apps exist.
-   - Existing `odyssey-shipments.vercel.app` URL stays alive throughout — no breakage for current users.
+1. **Local directory rename `odyssey-shipments/` → `odyssey-one/`** (between sessions; carry-forward from 15). Includes migrating Claude memory directory at `~/.claude/projects/-Users-...-odyssey-shipments/` → `-Users-...-odyssey-one/` so accumulated memories aren't orphaned. CLAUDE.md and migration tracker also have a residual "may still be named locally" note that becomes obsolete after this.
 2. **Resume normalization** — `HazmatTag` + inline `ShipmentTable` Hazmat (deferred from Session 14). Will exercise the new `/normalize` Step 8b workflow end-to-end and consume the `lucide/md/TriangleAlert` icon (already in tracker as done).
-3. **Close Q4 and Q5** from Session 13 architecture discussion (Q1–Q3 effectively closed via Session 14 work):
-   - Q4: Portal timing — likely answered by Session 15's umbrella work.
+3. **Close Q5** from Session 13 architecture discussion (Q1–Q4 closed via Session 14 + 15 work):
    - Q5: Normalization lane cadence (continuous-merge vs weekly batched?) — still open.
 4. **Vault migration** — still parked pending NotebookLM access + Obsidian setup (per `project_vault_migration_parked.md`).
 5. **Supabase schema (SHP-55)** — continue schema design in `packages/db/`.
 6. **Set up first shared NotebookLM notebook** for Shipments — pending IT/access provisioning.
+7. **Real content for new umbrella stubs** — Home / Orders / Carriers / Tracking / Users routes are placeholders; fill in incrementally as content/spec lands. Trigger architecture reassessment (single-app vs split) once 2–3 domains have real content (per spec).
 
 ### Stories Ready for Spec (SHP-19 decomposed)
 
@@ -1201,3 +1197,153 @@ Triggered by realization that the project is multi-domain now (sidebar set: home
 ### Carry-forward to Session 15
 
 Per user instruction: continue with Vercel umbrella work — `apps/home/`, new Vercel project, rewrites configuration. See updated What's Next above.
+
+---
+
+## Session 15 — April 28, 2026
+
+Single-session execution of the umbrella migration. Two threads ran together because they were tightly coupled by Vercel project configuration: (1) collapse the shipments app into a single React-Router-driven umbrella with all 6 domain routes; (2) rename and reconfigure the Vercel project. The architecture deviates meaningfully from the Session 14 carry-forward; capturing the deviations explicitly because future-Claude will otherwise see the migration tracker referencing a plan that wasn't followed.
+
+### Thread 1 — Single-app umbrella architecture
+
+Original Session 14 plan: multi-app monorepo with `apps/home/` umbrella + Vercel rewrites pointing `/shipments/*` to a separate `apps/shipments/` deploy. **Reversed.** Decision made via the brainstorming skill at session start, captured in `docs/superpowers/specs/2026-04-28-odyssey-one-umbrella-design.md`. Reasons:
+
+- Single Vite build is sufficient at prototype scale; multi-deploy adds infra without paying off until 2–3 domains have real content.
+- Single project simplifies deploys, env-var config, and (eventually) Supabase wiring.
+- Future-reassessment trigger documented — split into multi-app if build times balloon.
+
+#### Refactor in place
+
+`apps/shipments/` → `apps/odyssey-one/` (later in session; before that, Phase 1 work happened inside `apps/shipments/`). Final structure:
+
+```
+apps/odyssey-one/
+├── src/
+│   ├── App.jsx                       (Routes shell — no AppShell here)
+│   ├── main.jsx                      (BrowserRouter wraps App)
+│   ├── routes/
+│   │   ├── Home.jsx                  (stub, wraps content in AppShell)
+│   │   ├── Orders.jsx                (stub)
+│   │   ├── Carriers.jsx              (stub)
+│   │   ├── Tracking.jsx              (stub)
+│   │   ├── Users.jsx                 (stub — accessed via avatar dropdown)
+│   │   ├── route-stub.css            (shared placeholder styling)
+│   │   └── shipments/ShipmentsRoute.jsx  (existing App.jsx body, owns own AppShell + filterPanel)
+│   └── components/                   (existing layout + shipments components)
+├── vercel.json                       (SPA rewrite + legacy-host redirects)
+└── package.json                      (name: odyssey-one-app)
+```
+
+#### Architectural revision from spec — AppShell location
+
+Spec said: lift `AppShell` to `App.jsx` so it wraps `<Routes>`. **Not done.** Reason discovered by Task 3 implementer subagent: AppShell takes `filterPanel` and `onMainClick` props that are computed from state living in `ShipmentsRoute`. Lifting AppShell up would force prop-drilling or context for those shipments-specific concerns. Cleaner: each route wraps its own `<AppShell>` (4-line repetition across stubs is cheap; ShipmentsRoute keeps its existing AppShell unchanged). Documented in the migration tracker.
+
+#### Sidebar + Navbar updates
+
+- `Sidebar.jsx`: replaced internal `useState` active-state with `NavLink`-based highlighting. Five sidebar items (Home / Orders / Carriers / Shipments / Tracking) using lucide icons (`Home`, `ShoppingCart`, `Truck`, `ClipboardList`, `MapPin`). `end={to === '/'}` on the Home link prevents it from matching all routes. Bottom items (Settings, Partners) kept as decorative placeholders.
+- `Navbar.jsx`: avatar block (initials AC + "Amy Cook / Admin") became a clickable `<button>` opening a dropdown. Dropdown items: Account (disabled), Manage Users → `/users` via `useNavigate`, divider, Sign out (disabled). Existing search-category dropdown's state hooks renamed (`dropdownOpen` → `categoryDropdownOpen`, etc.) to avoid collision with the new profile dropdown's hooks.
+
+#### SPA fallback
+
+Direct hits to `/orders`, `/users`, etc. were 404'ing on Vercel (server didn't know to serve `index.html` for non-`/` paths). Fix: `apps/odyssey-one/vercel.json` rewrite `/(.*)` → `/index.html`. Caught during the verification deploy, not during local dev (Vite dev server already does SPA fallback).
+
+### Thread 2 — Vercel rename + URL strategy
+
+Original Session 14 plan: keep the existing `odyssey-shipments` Vercel project name, add a new `odyssey-one` Vercel project for the umbrella. Updated by spec to: rename the existing project in place to `odyssey-one`, preserve the old URL via custom-domain pinning. **Both reversed mid-session as constraints surfaced.**
+
+#### `odyssey-one.vercel.app` is owned by another team
+
+Discovered when adding domains: the friendly name `odyssey-one.vercel.app` returns "Another team is already using this domain." The URL serves an Astro marketing template hosted by the third-party owner. We can't claim it. Pivot: `odyssey-one-stage.vercel.app`. The "stage" suffix signals "prototype URL, not eventual production" (long-term home is CloudFront+S3+SSO, pending Soni's infra work).
+
+#### In-place rename, custom-domain pinning didn't apply
+
+Spec said: pin both URLs as custom domains BEFORE renaming, to survive the auto-domain swap. Vercel rejected adding `odyssey-shipments.vercel.app` as a second custom domain ("You are already using this domain on this project") — can't pin the auto-domain. Plan changed to the race-window fallback: rename and immediately re-add. **Race window never hit.** When user renamed the project from `odyssey-shipments` to `odyssey-one-stage`, Vercel automatically converted the old auto-domain into a custom domain on the same project, preserving the attachment without intervention. Both URLs alive throughout.
+
+#### Final Vercel state
+
+| | |
+|---|---|
+| Project | `odyssey-one-stage` |
+| Project ID | `prj_d7bHwlscJ9ZfgcUiEBEv2LbvuGXf` (unchanged across rename) |
+| Root Directory | `apps/odyssey-one` |
+| Primary URL | `odyssey-one-stage.vercel.app` |
+| Alias URL | `odyssey-shipments.vercel.app` |
+| Deploy command | `npx vercel --prod` from repo root (CLAUDE.md updated) |
+
+#### Legacy URL redirect (post-merge addition)
+
+Initial state after migration: both URLs aliased to the same deploy, both serving Home at `/`. User flagged that legacy bookmarks to `odyssey-shipments.vercel.app/` should land on the shipments app, not the umbrella home. Added host-conditional redirects to `vercel.json`:
+
+- `odyssey-shipments.vercel.app/` → `odyssey-one-stage.vercel.app/shipments` (308 permanent)
+- `odyssey-shipments.vercel.app/<path>` → `odyssey-one-stage.vercel.app/<path>` (preserves path on the new domain)
+
+Same-domain requests on `odyssey-one-stage.vercel.app` are unaffected because the `has` clause filters by request `host` header. Verified with `curl -I` after deploy.
+
+### Thread 3 — Process / methodology
+
+Used the full superpowers workflow:
+
+1. `superpowers:brainstorming` — converged on Pattern 1 (single app) over Pattern 2 (multi-app + rewrites) and Vercel Plan A vs B vs C variants.
+2. `superpowers:writing-plans` — produced a 19-task implementation plan in `docs/superpowers/plans/2026-04-28-odyssey-one-umbrella-migration.md`.
+3. `superpowers:using-git-worktrees` — isolated work in `.worktrees/odyssey-one-migration` on branch `feature/odyssey-one-migration`. Cleaned up post-merge.
+4. `superpowers:subagent-driven-development` — fresh subagent per implementation task (haiku for trivial, sonnet for integration). Reviews done inline rather than dispatched, since most tasks were short and the deploy/verify cycle was the real check.
+
+### Accidents and cleanup
+
+- **Accidental Vercel project creation.** First deploy attempt was run from `cd apps/shipments && npx vercel --prod` (per the existing CLAUDE.md instruction). Vercel CLI didn't walk up to find the existing `.vercel/project.json` at repo root and instead linked a NEW project named `shipments`. Build failed (`npm install` error from the wrong workspace context). User deleted the stranger project from the dashboard. Lesson captured in updated CLAUDE.md: deploy from repo root, not from `apps/odyssey-one/`.
+- **Workaround domain `odyssey-one-platform.vercel.app`.** User added this as a fallback when initially mistaking the "domain in use" error for "domain unavailable to me." After clarification (the error meant "in use on this same project"), reverted to `odyssey-one-stage.vercel.app` and removed the platform alias.
+
+### Files / commits
+
+13 commits on branch + 2 on main:
+
+- `a24e2f8` deps: add react-router-dom for umbrella routing
+- `efff2b5` feat: add 5 stub route components for umbrella domains
+- `26e3096` refactor: extract App body into routes/shipments/ShipmentsRoute
+- `883ac7a` feat: wire react-router with 6 umbrella routes
+- `938f874` feat: sidebar nav for 5 umbrella domains via NavLink
+- `f4d0b76` feat: avatar dropdown with Manage Users entry
+- `d20afe1` chore: update browser tab title to Odyssey-One
+- `6b6b6ba` chore: ignore turbo cache directories
+- `92bfaa9` chore: add SPA rewrite for vercel deploy
+- `35e6fc8` refactor: rename apps/shipments to apps/odyssey-one (51 files renamed via `git mv`)
+- `c6899d2` docs: update CLAUDE.md for odyssey-one umbrella + apps/odyssey-one rename
+- `88a7d10` docs: rewrite migration tracker as completed-state record
+- `bac928e` chore: record session 15 permission grants (on main, after merge)
+- `0ead536` chore: redirect legacy odyssey-shipments.vercel.app to odyssey-one-stage (on main, after merge)
+
+Pre-session checkpoints (already on main from start of session):
+
+- `6b44f25` spec: odyssey-one umbrella + Vercel rename design
+- `ceca645` plan: odyssey-one umbrella migration implementation plan
+- `832632a` chore: ignore .worktrees/ directory
+
+### Memory updates
+
+**Updated:**
+- `reference_vercel_deployment.md` — rewritten for final state: dual URLs, project name `odyssey-one-stage`, deploy from repo root, SPA rewrite + legacy redirect documented, Root Directory = `apps/odyssey-one`.
+
+No new memories created — this session was almost entirely execution of decisions captured in the spec. The spec/plan files in `docs/superpowers/` are the durable artifacts.
+
+### Documentation rewrites
+
+- `CLAUDE.md` — directory map, key commands, deploy section, dual-URL note in header.
+- `playground/name-migration-tracker.md` — fully rewritten as a completed-state record. Original was a forward-looking plan; new version documents what actually happened, including the architecture revision, the URL pivot to `-stage`, and the in-place rename mechanic. Future-Claude needs to see why the "do not rename" decision and the "multi-app + rewrites" plan were both reversed.
+
+### Carry-forward to Session 16
+
+- **Local directory rename.** The path `/Users/manuelramirez/Documents/iris/Odyssey/Shipments/odyssey-shipments/` is the last surface still carrying the old name. User must do this between sessions:
+
+  ```bash
+  cd /Users/manuelramirez/Documents/iris/Odyssey/Shipments
+  mv odyssey-shipments odyssey-one
+
+  mv ~/.claude/projects/-Users-manuelramirez-Documents-iris-Odyssey-Shipments-odyssey-shipments \
+     ~/.claude/projects/-Users-manuelramirez-Documents-iris-Odyssey-Shipments-odyssey-one
+  ```
+
+  Second `mv` migrates Claude's project memory directory; without it, accumulated memories become orphaned. Vercel's `.vercel/project.json` references the project by ID, not path, so deploys survive the rename without further config changes.
+
+- **Residual CLAUDE.md note** — the directory-map header still has a "may still be named locally" caveat; can drop after the rename above lands.
+
+- See updated What's Next above for normalization, Supabase, vault migration, and other priorities.
