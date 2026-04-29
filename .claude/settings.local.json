@@ -102,7 +102,15 @@
       "mcp__figma__get_libraries",
       "mcp__figma__use_figma",
       "Bash(/Users/manuelramirez/Documents/iris/Odyssey/Shipments/odyssey-shipments/packages/ui/node_modules/.bin/figma --version)",
-      "Bash(../../node_modules/.bin/figma connect *)"
+      "Bash(../../node_modules/.bin/figma connect *)",
+      "mcp__plugin_vercel_vercel__search_vercel_documentation",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5173/)",
+      "Bash(curl *)",
+      "Bash(jobs -l)",
+      "Bash(pkill -f \"vite\")",
+      "Bash(echo \"PID: $!\")",
+      "Bash(wget -q -O /dev/null --server-response http://localhost:5173__TRACKED_VAR__)",
+      "Bash(kill 86949)"
     ]
   }
 }
