@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import { X, ChevronRight, ChevronLeft, Search, GripVertical } from 'lucide-react'
+import { ICON_MD } from '@odyssey/tokens'
 
 export const ALL_COLUMNS = [
   { key: 'buyShipment', label: 'Buy Shipment #' },
@@ -356,7 +357,7 @@ export default function ColumnPanel({ isOpen, onClose, visibleColumns, onColumns
           className="flex items-center justify-center bg-transparent border-none cursor-pointer"
           style={{ color: 'var(--text-placeholder)' }}
         >
-          <X size={16} />
+          <X {...ICON_MD} />
         </button>
       </div>
 
@@ -393,7 +394,7 @@ function PresetRow({ preset, isActive, onSelect, onNavigate }) {
       <span style={{ fontSize: 13, color: 'var(--text-secondary)', flex: 1, fontWeight: 500 }}>
         {preset.name}
       </span>
-      <ChevronRight size={16} style={{ color: 'var(--text-placeholder)', flexShrink: 0 }} />
+      <ChevronRight {...ICON_MD} style={{ color: 'var(--text-placeholder)', flexShrink: 0 }} />
     </div>
   )
 }

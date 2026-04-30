@@ -10,6 +10,11 @@
 - Use `get_design_context` on the shared node URL
 - Extract: padding, border-radius, gap, auto-layout direction, sizing, colors (bg, text, border), font properties (size, weight, line-height, letter-spacing), icon positions/sizes
 - For icons: note position (left/right of text), size, and color — map to Lucide equivalent, never recreate SVGs
+- **Icon swap slots — `lucide / Placeholder*` instances:** When a component contains an instance whose name starts with `lucide / Placeholder` (e.g., `lucide / Placeholder-16`, `lucide / Placeholder-20`), this is a **swap slot** — designers replace it with a real Lucide icon when composing screens. This signals three connected actions:
+  1. **Figma side:** the Figma component must expose an `INSTANCE_SWAP` component property for the placeholder. If it doesn't yet, add one via `use_figma` (default value = the placeholder master's `key`) and wire each variant's placeholder instance via `componentPropertyReferences.mainComponent = propertyName`. Use the property name `Icon` for single-slot components, or `Left icon` / `Right icon` for multi-slot components.
+  2. **Code side:** the React component needs a matching prop — `icon` for single-slot, `leftIcon` / `rightIcon` for multi-slot. The prop type is a React node (e.g. `<Home size={20} />`), mirroring the Badge pattern.
+  3. **Code Connect:** map them via `figma.instance('Icon')` (or matching property name). For optional slots, wrap in `figma.boolean('Show icon', { true: figma.instance('Icon'), false: undefined })`.
+  - **Canonical examples in this codebase:** `Badge` (multi-slot: `leftIcon` / `rightIcon`, both optional), `SidebarButton` (single-slot: `icon`, always required).
 
 ## Step 2: Token Validation (BLOCKING)
 
@@ -165,9 +170,9 @@ If the normalized component imports any icons from `lucide-react`, ensure each i
 5. **For icons already listed as `done`**, no action needed — they're in the Figma library and instances can swap them in.
 6. **Tell the user** which new pending icons need manual addition via the Lucide plugin in Figma. Specify which frame to add to: **md icons → frame `230:1054` (`Lucide Icons md`)**, **lg icons → frame `366:619` (`Lucide Icons lg`)**. The tracker HTML is the visual checklist; pending icons are the backlog and future normalizations consume them when sizes match.
 7. **When the user confirms an icon is added** ("TriangleAlert added"):
-   a. **Look inside the appropriate Figma frame** (`230:1054` for md, `366:619` for lg) and find the new component (will likely have a kebab-case name like `lucide/triangle-alert`).
-   b. **Rename it** via `mcp__figma__use_figma` to `lucide/<size-token>/<PascalCaseName>` (e.g. `lucide/md/TriangleAlert`).
-   c. Update the tracker card: change class from `pending` to `done` and `<span class="status pending">Pending</span>` to `<span class="status done">Done</span>`.
+   a. **Look inside the appropriate Figma frame** (`230:1054` for md, `366:619` for lg) and verify the new component is present (it will have the plugin-default kebab name like `lucide/triangle-alert`).
+   b. **Do NOT rename the component.** As of 2026-04-28 the convention is to keep the plugin-default name (`lucide/<kebab-name>`) — size differentiation comes from which frame the component lives in (md vs lg), not from the name path. Verify the component is created (Cmd+Opt+K), at the right size (16px for md, 20px for lg), with the right stroke width (`--icon-stroke-md` 2.25 / `--icon-stroke-lg` 2), and that its color is bound to the appropriate variable (e.g. `Deep Sea Neutral/500` for sidebar icons).
+   c. Update the tracker card: change class from `pending` to `done` and `<span class="status pending">Pending</span>` to `<span class="status done">Done</span>`. The "Figma name" field on the card should match the kebab plugin output (`lucide/<kebab-name>`).
    d. Code-side update (`size`, `strokeWidth` props) follows the new Figma values, since Figma is the source.
 
 **Direction:**

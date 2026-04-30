@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { ChevronLeft, ChevronRight, Menu, Bell, ChevronDown } from 'lucide-react'
+import { ICON_MD, ICON_LG } from '@odyssey/tokens'
 import { useNavigate } from 'react-router-dom'
 
 const CATEGORIES = [
@@ -44,7 +45,7 @@ const Navbar = React.memo(function Navbar() {
       {/* Left: Hamburger + Logo */}
       <div className="flex items-center gap-4 pr-14">
         <button className="flex items-center justify-center p-2" style={{ color: 'var(--navbar-text-muted)' }}>
-          <Menu size={20} />
+          <Menu {...ICON_LG} />
         </button>
         <svg width="172" height="24" viewBox="0 0 172 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <g clipPath="url(#clip0_866_2163)">
@@ -71,10 +72,10 @@ const Navbar = React.memo(function Navbar() {
       <div className="flex items-center gap-2">
         <div className="flex items-center gap-1 h-8">
           <button className="flex items-center justify-center p-1.5" style={{ color: 'var(--navbar-text-muted)' }}>
-            <ChevronLeft size={20} />
+            <ChevronLeft {...ICON_LG} />
           </button>
           <button className="flex items-center justify-center p-1.5" style={{ color: 'var(--navbar-text-muted)' }}>
-            <ChevronRight size={20} />
+            <ChevronRight {...ICON_LG} />
           </button>
         </div>
 
@@ -99,7 +100,7 @@ const Navbar = React.memo(function Navbar() {
               <span className="text-sm" style={{ color: '#9DA3B0' }}>
                 {selectedCategory}
               </span>
-              <ChevronDown size={16} style={{ color: '#9DA3B0' }} />
+              <ChevronDown {...ICON_MD} style={{ color: '#9DA3B0' }} />
             </button>
             <input
               type="text"
@@ -179,7 +180,7 @@ const Navbar = React.memo(function Navbar() {
       {/* Right: Bell + Profile */}
       <div className="flex items-center gap-6 justify-end pl-9" style={{ width: 272 }}>
         <button className="relative p-1.5" style={{ color: 'var(--navbar-text-muted)' }}>
-          <Bell size={20} />
+          <Bell {...ICON_LG} />
           <span className="absolute flex items-center justify-center text-xs font-medium"
             style={{
               top: -6, left: 16, width: 20, height: 20, padding: 4,
@@ -206,7 +207,7 @@ const Navbar = React.memo(function Navbar() {
               <span className="text-sm font-medium" style={{ color: '#D0D4DB' }}>Amy Cook</span>
               <span className="text-xs" style={{ color: '#9DA3B0', lineHeight: '12px' }}>Admin</span>
             </div>
-            <ChevronDown size={16} style={{ color: '#9DA3B0' }} />
+            <ChevronDown {...ICON_MD} style={{ color: '#9DA3B0' }} />
           </button>
 
           {profileDropdownOpen && (

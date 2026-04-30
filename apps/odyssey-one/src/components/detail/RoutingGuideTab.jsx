@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { TruckElectric, Columns3Cog, X, Trash2, FoldHorizontal, UnfoldHorizontal } from 'lucide-react'
+import { ICON_MD } from '@odyssey/tokens'
 import { PrimaryButton, SecondaryButton } from '../ui/Button'
 
 /* ═══════════════════════════════════════════════════════════
@@ -1208,7 +1209,7 @@ function RoutingTable({ options, columns, tabColumns, highlightedRank, openMenuR
                     }}
                   >
                     <div className="flex items-center justify-center" style={{ width: '100%', height: '100%' }}>
-                      <TruckElectric size={16} style={{ color: option.status && STATUS_STYLES[option.status] ? STATUS_STYLES[option.status].color : 'var(--text-placeholder)' }} />
+                      <TruckElectric {...ICON_MD} style={{ color: option.status && STATUS_STYLES[option.status] ? STATUS_STYLES[option.status].color : 'var(--text-placeholder)' }} />
                     </div>
                   </td>
                 </tr>

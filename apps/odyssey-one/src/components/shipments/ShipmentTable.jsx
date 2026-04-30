@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { List } from 'react-window'
 import { Zap, Columns3Cog, Info, TriangleAlert } from 'lucide-react'
+import { ICON_MD } from '@odyssey/tokens'
 import { Badge } from '@odyssey/ui'
 import DarkTooltip from '../ui/DarkTooltip'
 import { ALL_COLUMNS } from '../detail/ColumnPanel'
@@ -80,7 +81,7 @@ export const COLUMN_CONFIG = [
     render: (s) => (
       <DarkTooltip text={s.tenderStatus ? `Tender Status: ${s.tenderStatus}` : null} width="auto">
         <span>{s.shipmentStatus ? (
-          <Badge variant={s.shipmentStatus === 'Done' ? 'green' : 'red'} rightIcon={<Info size={16} />}>{s.shipmentStatus}</Badge>
+          <Badge variant={s.shipmentStatus === 'Done' ? 'green' : 'red'} rightIcon={<Info {...ICON_MD} />}>{s.shipmentStatus}</Badge>
         ) : '\u2014'}</span>
       </DarkTooltip>
     ),
@@ -381,7 +382,7 @@ const ActionCell = React.memo(function ActionCell({ shipment, isSelected, menuOp
       }}
       style={{ width: 56, height: ROW_HEIGHT, borderBottom: '1px solid var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: rowBg }}
     >
-      <Zap size={16} fill={menuOpen ? 'var(--text-primary)' : 'none'} style={{ color: menuOpen ? 'var(--text-primary)' : 'var(--text-placeholder)' }} />
+      <Zap {...ICON_MD} fill={menuOpen ? 'var(--text-primary)' : 'none'} style={{ color: menuOpen ? 'var(--text-primary)' : 'var(--text-placeholder)' }} />
       {menuOpen && <ActionMenu shipmentId={shipment.buyShipment} position={menuPos} onClose={() => onMenuToggle(null)} />}
     </div>
   )

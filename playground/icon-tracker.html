@@ -166,13 +166,9 @@
       <li>Run <strong>Plugins → Lucide</strong>. Search the <em>plugin search name</em> shown on the card (kebab-case) and insert.</li>
       <li>Resize to the target size (16 for md, 20 for lg).</li>
       <li><strong>Change stroke width</strong> to match the card. Lucide defaults to <code>2</code>; Odyssey overrides to <code>2.25</code> at md and <code>2</code> at lg. Bind it to the matching variable (<code>Stroke / md</code> or <code>Stroke / lg</code>) from the Icon collection.</li>
-      <li>Right-click → <strong>Create component</strong> (<code>Cmd+Opt+K</code>). The default name is fine — Claude renames it.</li>
-      <li>Tell Claude "TriangleAlert added" (or whichever icons). Claude will:
-        <ul>
-          <li>Rename the component to <code>lucide/md/TriangleAlert</code> or <code>lucide/lg/TriangleAlert</code> (PascalCase, matching <code>lucide-react</code> for Code Connect later)</li>
-          <li>Mark the tracker card as done</li>
-        </ul>
-      </li>
+      <li>Right-click → <strong>Create component</strong> (<code>Cmd+Opt+K</code>).</li>
+      <li>Verify the component name matches the plugin default (<code>lucide/&lt;kebab-name&gt;</code>) — do NOT rename. Size differentiation comes from which frame the icon is in (md/lg), not the path.</li>
+      <li>Tell Claude "TriangleAlert added" (or whichever icons). Claude will mark the tracker card as done.</li>
     </ol>
   </div>
 
@@ -191,7 +187,7 @@
       <div class="status-wrap"><span class="status done">Done</span></div>
       <div class="config">
         <div class="config-row"><span class="config-key">Plugin search</span><span class="config-val">triangle-alert</span></div>
-        <div class="config-row"><span class="config-key">Figma name</span><span class="config-val">lucide/md/TriangleAlert</span></div>
+        <div class="config-row"><span class="config-key">Figma name</span><span class="config-val">lucide/triangle-alert</span></div>
         <div class="config-row"><span class="config-key">Size in Figma</span><span class="config-val">16px (--icon-size-md)</span></div>
         <div class="config-row"><span class="config-key">Stroke width</span><span class="config-val">2.25 (--icon-stroke-md)</span></div>
         <div class="config-row"><span class="config-key">Color</span><span class="config-val">currentColor</span></div>
@@ -205,7 +201,7 @@
       <div class="status-wrap"><span class="status done">Done</span></div>
       <div class="config">
         <div class="config-row"><span class="config-key">Plugin search</span><span class="config-val">search</span></div>
-        <div class="config-row"><span class="config-key">Figma name</span><span class="config-val">lucide/md/Search</span></div>
+        <div class="config-row"><span class="config-key">Figma name</span><span class="config-val">lucide/search</span></div>
         <div class="config-row"><span class="config-key">Size in Figma</span><span class="config-val">16px (--icon-size-md)</span></div>
         <div class="config-row"><span class="config-key">Stroke width</span><span class="config-val">2.25 (--icon-stroke-md)</span></div>
         <div class="config-row"><span class="config-key">Color</span><span class="config-val">currentColor</span></div>
@@ -219,7 +215,7 @@
       <div class="status-wrap"><span class="status done">Done</span></div>
       <div class="config">
         <div class="config-row"><span class="config-key">Plugin search</span><span class="config-val">x</span></div>
-        <div class="config-row"><span class="config-key">Figma name</span><span class="config-val">lucide/md/X</span></div>
+        <div class="config-row"><span class="config-key">Figma name</span><span class="config-val">lucide/x</span></div>
         <div class="config-row"><span class="config-key">Size in Figma</span><span class="config-val">16px (--icon-size-md)</span></div>
         <div class="config-row"><span class="config-key">Stroke width</span><span class="config-val">2.25 (--icon-stroke-md)</span></div>
         <div class="config-row"><span class="config-key">Color</span><span class="config-val">currentColor</span></div>
@@ -233,7 +229,7 @@
       <div class="status-wrap"><span class="status done">Done</span></div>
       <div class="config">
         <div class="config-row"><span class="config-key">Plugin search</span><span class="config-val">check</span></div>
-        <div class="config-row"><span class="config-key">Figma name</span><span class="config-val">lucide/md/Check</span></div>
+        <div class="config-row"><span class="config-key">Figma name</span><span class="config-val">lucide/check</span></div>
         <div class="config-row"><span class="config-key">Size in Figma</span><span class="config-val">16px (--icon-size-md)</span></div>
         <div class="config-row"><span class="config-key">Stroke width</span><span class="config-val">2.25 (--icon-stroke-md)</span></div>
         <div class="config-row"><span class="config-key">Color</span><span class="config-val">currentColor</span></div>
@@ -247,7 +243,7 @@
       <div class="status-wrap"><span class="status done">Done</span></div>
       <div class="config">
         <div class="config-row"><span class="config-key">Plugin search</span><span class="config-val">chevron-down</span></div>
-        <div class="config-row"><span class="config-key">Figma name</span><span class="config-val">lucide/md/ChevronDown</span></div>
+        <div class="config-row"><span class="config-key">Figma name</span><span class="config-val">lucide/chevron-down</span></div>
         <div class="config-row"><span class="config-key">Size in Figma</span><span class="config-val">16px (--icon-size-md)</span></div>
         <div class="config-row"><span class="config-key">Stroke width</span><span class="config-val">2.25 (--icon-stroke-md)</span></div>
         <div class="config-row"><span class="config-key">Color</span><span class="config-val">currentColor</span></div>
@@ -261,11 +257,115 @@
       <div class="status-wrap"><span class="status done">Done</span></div>
       <div class="config">
         <div class="config-row"><span class="config-key">Plugin search</span><span class="config-val">info</span></div>
-        <div class="config-row"><span class="config-key">Figma name</span><span class="config-val">lucide/md/Info</span></div>
+        <div class="config-row"><span class="config-key">Figma name</span><span class="config-val">lucide/info</span></div>
         <div class="config-row"><span class="config-key">Size in Figma</span><span class="config-val">16px (--icon-size-md)</span></div>
         <div class="config-row"><span class="config-key">Stroke width</span><span class="config-val">2.25 (--icon-stroke-md)</span></div>
         <div class="config-row"><span class="config-key">Color</span><span class="config-val">currentColor</span></div>
         <div class="config-row"><span class="config-key">Used in</span><span class="config-val">Badge instances (ShipmentTable shipment status)</span></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="section-header">Tier 2 — Sidebar Navigation</div>
+  <p class="section-desc">Icons for the umbrella sidebar (5 domains + User Management + Partners). All <code>lg</code> (20px, stroke 2) — sidebar renders at <code>size={20}</code>.</p>
+  <div class="grid">
+
+    <div class="card done" data-icon="House">
+      <div class="icon-display"><i data-lucide="house"></i></div>
+      <div class="name">House</div>
+      <div class="status-wrap"><span class="status done">Done</span></div>
+      <div class="config">
+        <div class="config-row"><span class="config-key">Plugin search</span><span class="config-val">house</span></div>
+        <div class="config-row"><span class="config-key">Figma name</span><span class="config-val">lucide/house</span></div>
+        <div class="config-row"><span class="config-key">Size in Figma</span><span class="config-val">20px (--icon-size-lg)</span></div>
+        <div class="config-row"><span class="config-key">Stroke width</span><span class="config-val">2 (--icon-stroke-lg)</span></div>
+        <div class="config-row"><span class="config-key">Color</span><span class="config-val">gray/deep-sea/500</span></div>
+        <div class="config-row"><span class="config-key">Used in</span><span class="config-val">Sidebar — Home</span></div>
+      </div>
+    </div>
+
+    <div class="card done" data-icon="ClipboardListLg">
+      <div class="icon-display"><i data-lucide="clipboard-list"></i></div>
+      <div class="name">ClipboardList</div>
+      <div class="status-wrap"><span class="status done">Done</span></div>
+      <div class="config">
+        <div class="config-row"><span class="config-key">Plugin search</span><span class="config-val">clipboard-list</span></div>
+        <div class="config-row"><span class="config-key">Figma name</span><span class="config-val">lucide/clipboard-list</span></div>
+        <div class="config-row"><span class="config-key">Size in Figma</span><span class="config-val">20px (--icon-size-lg)</span></div>
+        <div class="config-row"><span class="config-key">Stroke width</span><span class="config-val">2 (--icon-stroke-lg)</span></div>
+        <div class="config-row"><span class="config-key">Color</span><span class="config-val">gray/deep-sea/500</span></div>
+        <div class="config-row"><span class="config-key">Used in</span><span class="config-val">Sidebar — Orders</span></div>
+      </div>
+    </div>
+
+    <div class="card done" data-icon="Truck">
+      <div class="icon-display"><i data-lucide="truck"></i></div>
+      <div class="name">Truck</div>
+      <div class="status-wrap"><span class="status done">Done</span></div>
+      <div class="config">
+        <div class="config-row"><span class="config-key">Plugin search</span><span class="config-val">truck</span></div>
+        <div class="config-row"><span class="config-key">Figma name</span><span class="config-val">lucide/truck</span></div>
+        <div class="config-row"><span class="config-key">Size in Figma</span><span class="config-val">20px (--icon-size-lg)</span></div>
+        <div class="config-row"><span class="config-key">Stroke width</span><span class="config-val">2 (--icon-stroke-lg)</span></div>
+        <div class="config-row"><span class="config-key">Color</span><span class="config-val">gray/deep-sea/500</span></div>
+        <div class="config-row"><span class="config-key">Used in</span><span class="config-val">Sidebar — Carriers</span></div>
+      </div>
+    </div>
+
+    <div class="card done" data-icon="Container">
+      <div class="icon-display"><i data-lucide="container"></i></div>
+      <div class="name">Container</div>
+      <div class="status-wrap"><span class="status done">Done</span></div>
+      <div class="config">
+        <div class="config-row"><span class="config-key">Plugin search</span><span class="config-val">container</span></div>
+        <div class="config-row"><span class="config-key">Figma name</span><span class="config-val">lucide/container</span></div>
+        <div class="config-row"><span class="config-key">Size in Figma</span><span class="config-val">20px (--icon-size-lg)</span></div>
+        <div class="config-row"><span class="config-key">Stroke width</span><span class="config-val">2 (--icon-stroke-lg)</span></div>
+        <div class="config-row"><span class="config-key">Color</span><span class="config-val">gray/deep-sea/500</span></div>
+        <div class="config-row"><span class="config-key">Used in</span><span class="config-val">Sidebar — Shipments</span></div>
+      </div>
+    </div>
+
+    <div class="card done" data-icon="Route">
+      <div class="icon-display"><i data-lucide="route"></i></div>
+      <div class="name">Route</div>
+      <div class="status-wrap"><span class="status done">Done</span></div>
+      <div class="config">
+        <div class="config-row"><span class="config-key">Plugin search</span><span class="config-val">route</span></div>
+        <div class="config-row"><span class="config-key">Figma name</span><span class="config-val">lucide/route</span></div>
+        <div class="config-row"><span class="config-key">Size in Figma</span><span class="config-val">20px (--icon-size-lg)</span></div>
+        <div class="config-row"><span class="config-key">Stroke width</span><span class="config-val">2 (--icon-stroke-lg)</span></div>
+        <div class="config-row"><span class="config-key">Color</span><span class="config-val">gray/deep-sea/500</span></div>
+        <div class="config-row"><span class="config-key">Used in</span><span class="config-val">Sidebar — Tracking</span></div>
+      </div>
+    </div>
+
+    <div class="card done" data-icon="UserCog">
+      <div class="icon-display"><i data-lucide="user-cog"></i></div>
+      <div class="name">UserCog</div>
+      <div class="status-wrap"><span class="status done">Done</span></div>
+      <div class="config">
+        <div class="config-row"><span class="config-key">Plugin search</span><span class="config-val">user-cog</span></div>
+        <div class="config-row"><span class="config-key">Figma name</span><span class="config-val">lucide/user-cog</span></div>
+        <div class="config-row"><span class="config-key">Size in Figma</span><span class="config-val">20px (--icon-size-lg)</span></div>
+        <div class="config-row"><span class="config-key">Stroke width</span><span class="config-val">2 (--icon-stroke-lg)</span></div>
+        <div class="config-row"><span class="config-key">Color</span><span class="config-val">gray/deep-sea/500</span></div>
+        <div class="config-row"><span class="config-key">Used in</span><span class="config-val">Sidebar — User Management (moved from Navbar avatar dropdown)</span></div>
+      </div>
+    </div>
+
+    <div class="card done" data-icon="Handshake">
+      <div class="icon-display"><i data-lucide="handshake"></i></div>
+      <div class="name">Handshake</div>
+      <div class="status-wrap"><span class="status done">Done</span></div>
+      <div class="config">
+        <div class="config-row"><span class="config-key">Plugin search</span><span class="config-val">handshake</span></div>
+        <div class="config-row"><span class="config-key">Figma name</span><span class="config-val">lucide/handshake</span></div>
+        <div class="config-row"><span class="config-key">Size in Figma</span><span class="config-val">20px (--icon-size-lg)</span></div>
+        <div class="config-row"><span class="config-key">Stroke width</span><span class="config-val">2 (--icon-stroke-lg)</span></div>
+        <div class="config-row"><span class="config-key">Color</span><span class="config-val">gray/deep-sea/500</span></div>
+        <div class="config-row"><span class="config-key">Used in</span><span class="config-val">Sidebar — Partners (no route yet, placeholder button)</span></div>
       </div>
     </div>
 

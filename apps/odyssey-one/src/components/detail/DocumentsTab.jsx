@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react'
 import { Upload, Trash2, X, RefreshCw, Download, FileText, Sheet, File } from 'lucide-react'
+import { ICON_MD } from '@odyssey/tokens'
 import { PrimaryButton, SecondaryButton } from '../ui/Button'
 
 const TYPE_STYLES = {
@@ -137,11 +138,11 @@ const DocumentsTab = React.memo(function DocumentsTab({ data }) {
         }}
       >
         <SecondaryButton onClick={() => setShowModal(true)}>
-          <Upload size={16} />
+          <Upload {...ICON_MD} />
           <span>Upload Attachment</span>
         </SecondaryButton>
         <SecondaryButton>
-          <RefreshCw size={16} />
+          <RefreshCw {...ICON_MD} />
           <span>Refresh</span>
         </SecondaryButton>
       </div>

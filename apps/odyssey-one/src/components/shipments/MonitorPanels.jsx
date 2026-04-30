@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { ChevronUp } from 'lucide-react'
+import { ICON_MD } from '@odyssey/tokens'
 import { PANEL_CONFIG } from '../../data/panelConfig'
 
 function buildPanels(metrics) {
@@ -80,7 +81,7 @@ const MonitorPanels = React.memo(function MonitorPanels({ activePanel, onPanelSe
             {collapsed ? 'Expand metrics' : 'Collapse metrics'}
           </span>
           <ChevronUp
-            size={16}
+            {...ICON_MD}
             style={{
               color: 'var(--text-tertiary)',
               transition: 'transform var(--transition-slow)',

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react'
 import { Search, Bookmark, ArrowUpDown, Upload, ChevronDown, X, FileSpreadsheet } from 'lucide-react'
+import { ICON_MD, ICON_LG } from '@odyssey/tokens'
 import SearchChipPanel from './SearchChipPanel'
 import DarkTooltip from '../ui/DarkTooltip'
 import { SecondaryButton } from '../ui/Button'
@@ -59,7 +60,7 @@ const TableControls = React.memo(function TableControls({
           }}
         >
           <Search
-            size={16}
+            {...ICON_MD}
             style={{
               color: focused ? 'var(--text-tertiary)' : 'var(--text-placeholder)',
               flexShrink: 0,
@@ -163,7 +164,7 @@ const TableControls = React.memo(function TableControls({
             onMouseLeave={(e) => { if (!bookmarkActive) e.currentTarget.style.color = 'var(--text-placeholder)' }}
             title="Saved searches"
           >
-            <Bookmark size={16} fill={bookmarkActive ? 'currentColor' : 'none'} />
+            <Bookmark {...ICON_MD} fill={bookmarkActive ? 'currentColor' : 'none'} />
           </button>
         </div>
         </div>
@@ -182,11 +183,11 @@ const TableControls = React.memo(function TableControls({
             }}
             title="Sort"
           >
-            <ArrowUpDown size={16} style={{ color: 'var(--btn-secondary-text)' }} />
+            <ArrowUpDown {...ICON_MD} style={{ color: 'var(--btn-secondary-text)' }} />
           </button>
           <DarkTooltip text="Only the first 10,000 records will be exported to Excel" width={220} align="right">
             <SecondaryButton onClick={() => setExportModalOpen(true)}>
-              <Upload size={16} />
+              <Upload {...ICON_MD} />
               <span>Export</span>
             </SecondaryButton>
           </DarkTooltip>
@@ -232,7 +233,7 @@ const TableControls = React.memo(function TableControls({
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <FileSpreadsheet size={20} style={{ color: 'var(--text-tertiary)' }} />
+                <FileSpreadsheet {...ICON_LG} style={{ color: 'var(--text-tertiary)' }} />
                 <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Export to CSV</span>
               </div>
               <button

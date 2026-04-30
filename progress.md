@@ -780,16 +780,18 @@ Mapped boundaries of `mcp__claude_ai_Figma__use_figma` (runs JS via Plugin API, 
 
 ## What's Next
 
-### Session 16 Priorities
+### Session 17 Priorities
 
-1. **Local directory rename `odyssey-shipments/` → `odyssey-one/`** (between sessions; carry-forward from 15). Includes migrating Claude memory directory at `~/.claude/projects/-Users-...-odyssey-shipments/` → `-Users-...-odyssey-one/` so accumulated memories aren't orphaned. CLAUDE.md and migration tracker also have a residual "may still be named locally" note that becomes obsolete after this.
-2. **Resume normalization** — `HazmatTag` + inline `ShipmentTable` Hazmat (deferred from Session 14). Will exercise the new `/normalize` Step 8b workflow end-to-end and consume the `lucide/md/TriangleAlert` icon (already in tracker as done).
-3. **Close Q5** from Session 13 architecture discussion (Q1–Q4 closed via Session 14 + 15 work):
-   - Q5: Normalization lane cadence (continuous-merge vs weekly batched?) — still open.
-4. **Vault migration** — still parked pending NotebookLM access + Obsidian setup (per `project_vault_migration_parked.md`).
-5. **Supabase schema (SHP-55)** — continue schema design in `packages/db/`.
-6. **Set up first shared NotebookLM notebook** for Shipments — pending IT/access provisioning.
-7. **Real content for new umbrella stubs** — Home / Orders / Carriers / Tracking / Users routes are placeholders; fill in incrementally as content/spec lands. Trigger architecture reassessment (single-app vs split) once 2–3 domains have real content (per spec).
+1. **Off-token icon-size sweep.** `size={12}`, `size={14}`, `size={18}`, `size={32}` exist across tabs, tooltips, BottomBar, and one empty state. Decide per-size: add `ICON_SIZE_SM=14`, `ICON_SIZE_XS=12`, `ICON_SIZE_XL=32` tokens (with paired strokes) or correct the off-target ones (most `size={18}` likely should be 16 or 20). Audit list is in Session 16's bulk-migration subagent report.
+2. **Code Connect publish for SidebarButton.** `packages/ui/src/SidebarButton.figma.tsx` exists but isn't pushed. Run `npx figma connect publish` from `packages/ui/` (needs `FIGMA_ACCESS_TOKEN`). Same may want to re-publish Badge to update its source URLs from `odyssey-shipments` to `odyssey-one` (currently working via GitHub redirect).
+3. **Figma Selected variant icon-color encoding.** Per the "hover/selected = 900" rule, the Selected variant placeholder still inherits 500 in Figma (we only updated Hover). Override Selected's placeholder stroke to bind to `Deep Sea Neutral/900` for visual fidelity in Figma comps.
+4. **Other-domain documentation collection.** Orders, Carriers, Tracking, Home, User Management — none have repo docs yet. Set up the Obsidian / NotebookLM workflow user mentioned, drop docs into `domain-documentation/` as siblings of `domains-overview.md`. Per-domain files like `0506-orders-grooming-john.md`, etc.
+5. **First real content domain — Orders.** Per David's framing, Orders is the canonical entry point (creates Shipments). Once Orders docs land, brainstorm the Orders UI scope and start scaffolding. Tracker reassessment trigger (single-app vs split) fires once 2–3 domains have real content.
+6. **Resume `HazmatTag` normalization** — carry-forward from Session 14, not picked up in 15 or 16. Exercises `/normalize` Step 8b with the now-corrected kebab convention. Consumes `lucide/triangle-alert` (already in tracker as done).
+7. **Close Q5 from Session 13** — normalization lane cadence (continuous-merge vs weekly batched?). Still open.
+8. **Sidebar layout re-evaluation.** Currently option A (stack from top, empty space below Partners on tall monitors). Worth re-eyeballing once stakeholders see the live app — option B (`mt-auto` to flush bottom group) remains a one-line change if A reads wrong.
+9. **Vault migration** — still parked pending NotebookLM access + Obsidian setup (per `project_vault_migration_parked.md`).
+10. **Supabase migration** — still deferred. Resume conditions in `docs/supabase-migration-plan.md`. Decisions and grooming-derived schema concerns already captured.
 
 ### Stories Ready for Spec (SHP-19 decomposed)
 
@@ -1355,3 +1357,208 @@ Two follow-ups landed after the initial wrap commit:
 - **Residual CLAUDE.md note** — the directory-map header still has a "may still be named locally" caveat; can drop after the rename above lands.
 
 - See updated What's Next above for normalization, Supabase, vault migration, and other priorities.
+
+---
+
+## Session 16 — April 30, 2026
+
+Long, multi-thread session. Three big arcs ran in sequence: (1) re-establish the post-rename design-system pipe (Figma MCP, Code Connect, permissions, tokens), (2) normalize the Sidebar atom + organism end-to-end with David's domain framing as the input, (3) stage the Supabase migration as a deferred plan rather than execute it. Several durable feedback memories landed because the user's working preferences sharpened during the session.
+
+### Thread 1 — Session 15 carry-forward cleanup
+
+User did the local directory rename (`odyssey-shipments/` → `odyssey-one/`) and Claude memory directory rename between sessions. Verified context fully restored: working dir, memory dir, CLAUDE.md, MEMORY.md, recent commits. Then pruned residue:
+
+- Deleted `project_monorepo_migration.md` memory (migration completed Session 14, the "current status: Paused before execution (2026-04-23)" line was stale).
+- Fixed `project_vercel_deploy_via_cli.md` — said "deployments to the `odyssey-shipments` Vercel project" → updated to `odyssey-one-stage` with rename note.
+- Fixed `MEMORY.md` index — `reference_vercel_deployment.md` description still said "Live prototype at odyssey-shipments.vercel.app" → updated to current dual-URL state.
+- Fixed `playground/normalization-tracker.md` — multiple `apps/shipments/src/...` paths → `apps/odyssey-one/src/...`.
+
+Found nothing else stale. The wrap from Session 15 had warned about the rename tracker referencing the old working-directory path; that was wrong — it never did.
+
+### Thread 2 — Figma MCP re-establishment
+
+After the project rename, the `mcp__figma__*` tool surface that worked in Sessions 12–15 was no longer loaded. Diagnosis:
+
+- `~/.claude/plugins/installed_plugins.json` listed `frontend-design`, `superpowers`, `vercel` plugins — all installed at the OLD `odyssey-shipments` projectPath, but still loading fine in this session despite the stale path. No `figma` plugin in the list.
+- Past session logs confirmed `mcp__figma__*` tools were available (2026-04-23) — but the plugin was either uninstalled or never persisted to the install registry.
+
+Fix: user reinstalled the official `figma` plugin via `/plugin`, ran `/reload-plugins`. New namespace turned out to be `mcp__plugin_figma_figma__*` (different prefix from the old `mcp__figma__*`). Authenticated via the OAuth flow (`mcp__plugin_figma_figma__authenticate` returned a Figma URL; user signed in; the full read+write tool surface appeared as deferred tools).
+
+#### Permissions cleanup (`.claude/settings.local.json`)
+
+Pruned 21 entries — 12 with stale `/odyssey-shipments/` paths, 5 in the old `mcp__figma__*` namespace, 2 in the older `mcp__claude_ai_Figma__*` namespace, 2 npm scripts (`dev:shipments`, `build:shipments`). The local settings dropped from 94 → 73 entries.
+
+Then ran the `fewer-permission-prompts` skill to add 19 read-only MCP entries to the **shared** `.claude/settings.json` (not the gitignored local one) so future Figma + Vercel reads don't prompt:
+
+- `mcp__plugin_figma_figma__{whoami, get_metadata, get_design_context, get_screenshot, get_libraries, get_variable_defs, search_design_system, get_code_connect_map, get_code_connect_suggestions, get_context_for_code_connect, get_figjam}`
+- `mcp__plugin_vercel_vercel__{search_vercel_documentation, get_project, list_deployments, get_deployment, list_projects, list_teams, get_deployment_build_logs, get_runtime_logs}`
+
+Write tools (`use_figma`, `send_code_connect_mappings`, deploy_to_vercel) intentionally NOT allowlisted — every write still prompts.
+
+### Thread 3 — Bulk lg sidebar icons in Figma
+
+Picked 7 Lucide icons for the umbrella sidebar: `House` (Home), `ClipboardList` (Orders), `Truck` (Carriers), `Container` (Shipments), `Route` (Tracking), `UserCog` (User Management), `Handshake` (Partners). User added them via the Lucide plugin in the lg frame (`366:619`).
+
+Then via `use_figma`: converted all 7 from frames to components, set strokeWidth=2, bound their stroke color to `Deep Sea Neutral/500` (`VariableID:212:8`). Initial naming applied was `lucide/lg/<PascalCase>` — but mid-session the user clarified the convention has changed:
+
+- **New rule:** keep the Lucide plugin's default kebab name (`lucide/<kebab-name>`, e.g. `lucide/clipboard-list`, `lucide/user-cog`).
+- **Why:** simpler, matches what the plugin produces, less per-icon churn.
+- **Size differentiation:** comes from the parent frame (`230:1054` md / `366:619` lg), not the path.
+
+User manually renamed all 13 existing icons (6 md + 7 lg) to the new convention. We then:
+- Updated `playground/icon-tracker.html` info-box (dropped rename instructions) + all 13 cards' "Figma name" rows.
+- Updated `playground/figma-component-routine.md` Step 8b to drop the rename instruction, added a "do NOT rename" callout.
+- Saved `project_lucide_naming_kebab.md` memory; flagged old `project_lucide_icon_frames` as superseded.
+
+#### Decision: no per-icon Code Connect mappings
+
+Lucide icons in Figma are not individually Code Connect-mapped. Trade-off: when Code Connect generates a snippet for a component with a swapped icon (Badge / SidebarButton), the snippet shows `icon={icon}` as a placeholder rather than `<House size={20} />` — the dev translates the kebab name to PascalCase by hand. For 100+ icons, the maintenance burden of per-icon `.figma.tsx` files outweighs the dev experience win. Component-level mappings (Badge, SidebarButton) DO stay because they carry props/variants/state that aren't mechanical to translate.
+
+### Thread 4 — JS tokens export (Option B)
+
+Diagnostic grep revealed two real gaps:
+- **Zero `strokeWidth=` calls** in `apps/odyssey-one/src/`. Every Lucide icon used Lucide's default 2 — including 16px icons, where the spec says 2.25.
+- **Zero JS imports from `@odyssey/tokens`.** The package's only export was `./tokens.css`. `--icon-size-md/lg`, `--icon-stroke-md/lg` were defined but never consumed by any component.
+
+Lucide-react accepts `size` and `strokeWidth` as numeric props, not CSS. So CSS variables can't bridge. The fix: ship a JS export of the same constants alongside the CSS.
+
+Created `packages/tokens/index.js`:
+
+```js
+export const ICON_SIZE_MD = 16
+export const ICON_SIZE_LG = 20
+export const ICON_STROKE_MD = 2.25
+export const ICON_STROKE_LG = 2
+
+// Pre-paired bundles — spread on Lucide icons to lock size+stroke together
+export const ICON_MD = { size: ICON_SIZE_MD, strokeWidth: ICON_STROKE_MD }
+export const ICON_LG = { size: ICON_SIZE_LG, strokeWidth: ICON_STROKE_LG }
+```
+
+Updated `packages/tokens/package.json` to ESM with `main: "./index.js"` and added the `.` export entry; preserved the existing `tokens.css` export so CSS imports still work.
+
+Migrated 21 Lucide icon call sites across 8 files: `Sidebar.jsx`, `Navbar.jsx`, `TableControls.jsx`, `MonitorPanels.jsx`, `ShipmentTable.jsx`, `DocumentsTab.jsx`, `ColumnPanel.jsx`, `RoutingGuideTab.jsx`. `size={16}` → `{...ICON_MD}` (14 sites), `size={20}` → `{...ICON_LG}` (7 sites). Off-token sizes (12, 14, 18, 32) intentionally left untouched — separate cleanup pass.
+
+**Visible side-effect:** 16px icons now render with strokeWidth=2.25 instead of 2 (Odyssey's design-system override of Lucide's default). Slightly thicker, matches spec.
+
+### Thread 5 — SidebarButton (atom) `/normalize`
+
+`/normalize` routine on the Figma sidebar button (`484:2292` wrapper containing component set `514:2479`). Token validation surfaced:
+- 10px button padding off-token; resolved as a 40×40 container expression in code (`w-10 h-10`), no new spacing token.
+- Hover state was undesigned in both code and Figma — needed a spec.
+
+User chose **option C** for hover: icon-only color shift (no bg change), no new color token. Bg stays transparent; icon shifts from `--text-tertiary` (500) to `--deep-sea-neutral-700`. Selected was already `--text-primary` (900) on `--deep-sea-neutral-300` bg.
+
+Pushed Hover variant to Figma component set (new variant id `573:2`). Then user clarified the placeholder semantics:
+
+> "I've put the icon placeholder for a reason. I need you to do the same job as you did in badges. Please in the skill every time there's the lucide / Placeholder means needs a prop to change the icon."
+
+Acted on this:
+- Added `Icon#580:0` `INSTANCE_SWAP` component property to the component set, default = placeholder master `512:2395`. Wired each variant's placeholder instance via `componentPropertyReferences.mainComponent`.
+- Created `packages/ui/src/SidebarButton.jsx` — pure visual atom, props `state` (`'default' | 'hover' | 'selected'`) + `icon` (React node). Renders a `<div>` so it can be wrapped by `<a>` (NavLink) or `<button>` without invalid HTML nesting.
+- Created `packages/ui/src/SidebarButton.figma.tsx` Code Connect mapping. `state` mapped via `figma.enum('Property 1', ...)`, `icon` via `figma.instance('Icon')`.
+- Exported `SidebarButton` from `packages/ui/src/index.js`.
+- Updated `Sidebar.jsx` to use the new component (initial migration).
+- Updated `playground/figma-component-routine.md` Step 1 with a new rule: when a component contains a `lucide / Placeholder*` instance, treat it as a swap slot — Figma `INSTANCE_SWAP` property + React `icon` prop + `figma.instance(...)` Code Connect mapping. Badge is the multi-slot canonical example, SidebarButton is the single-slot.
+
+### Thread 6 — David grooming analysis (0429)
+
+User shared `shipments-documentation/Documentation/Grooming-sessions/0429-Domains-grooming-David.vtt` — 89KB transcript of a session where Manuela tried to get David to describe all 5 sidebar domains (Home, Orders, Carriers, Shipments, Tracking) and how they relate. Explore subagent extracted:
+
+- **Sidebar order principle:** transactional flow on top (Home → Orders → Shipments → Tracking), master data below (Carriers, Customers). When asked "carriers or shipments next?" David said Shipments. Carriers is a reference table, not a workflow step.
+- **Per-domain capsules** with what each is, who uses it, key entities, cross-domain reads/writes.
+- **Canonical flow:** Order created → auto-creates Shipment → optional auto-tender → tender → Tracking consumes events. Confirmed by David.
+- **Surprises:** auto-tender is OPTIONAL not always-on; carriers compliance matrix is stored reference data not a live query; manager visibility differs from planner (managers see whole-team customers ~8–12 vs planner's ~7); Customers is a needed master domain that's not yet in the sidebar.
+- **7 open questions** for future grooming sessions, with whom to ask each.
+
+Saved to `domain-documentation/domains-overview.md` (new top-level folder, sister to `shipments-documentation/`). Folder will grow as other domains get groomings.
+
+Appended grooming-derived schema concerns to `docs/supabase-migration-plan.md` Open Questions: tender mode field on orders, carriers compliance columns, manager team relation for RLS, Customers as a separate master, Tracking as read-only consumer.
+
+### Thread 7 — Sidebar (organism) `/normalize`
+
+`/normalize` on the Figma SideBar component at `597:514`. Diff revealed substantial code-Figma misalignment:
+
+- Code had 5 top items including Carriers (wrong group); Figma had 4 transactional + 3 master matching David's framing.
+- Code had stale Settings + missing User Management.
+- Code icons were the old set (Home, ShoppingCart, MapPin); Figma had the new icons (House, Container, Route, UserCog).
+- Figma had a 76px top padding; code had uniform 12px.
+
+Recommendation accepted: **drop the 76px top padding to 12px uniform**. The navbar in `AppShell.jsx` is a flex-column sibling, not `position: fixed` — there's no overlap to compensate for. The 76 = 64 (navbar height) + 12 hidden coupling would silently break if navbar height ever changed.
+
+User chose **layout option A** (stack from top, empty space below the last button) — match Figma literally rather than push the bottom group to the actual viewport bottom (option B, common in VS Code / Slack). User: "we should follow how the figma looks."
+
+Implementation in parallel:
+- Rewrote `Sidebar.jsx`: new icon set (`House, ClipboardList, Container, Route, Truck, UserCog, Handshake`), David-driven order, Settings dropped, User Management added with `/users` route, Carriers moved to bottom group with route preserved. Both Carriers and User Management render as `NavLink`s with proper active state. Partners stays as a `<button>` with no route (placeholder).
+- Pushed Figma updates: dropped 76 → 12 on `paddingTop`; bound `paddingTop/Right/Bottom/Left` to `Spacing/3` (12), `Main Container` and `Second Container` `itemSpacing` to `Spacing/2` (8), their separator gaps (`Main.paddingBottom` and `Second.paddingTop`) to `Spacing/6` (24). Bonus finding: `Spacing/2`, `Spacing/3`, `Spacing/6` already existed in the `4. Sizing` collection — just needed binding.
+- Added `Sidebar (organism)` row to `playground/normalization-tracker.md`. Stays app-local (depends on `react-router-dom` + concrete app routes); not in `@odyssey/ui`.
+- Added Sidebar (organism) section to `playground/DesignSystemMap.html` Components tab via subagent — matches the visual DNA of Badge and SidebarButton sections (NORMALIZED pill, Layout simulation, Items table, Tokens table, Figma reference, Code Connect note).
+
+### Thread 8 — Post-implementation fixes
+
+User reported the divider line wasn't visible in the running app. Suspected cause: Tailwind v4 JIT class detection on `pb-6` / `pt-6` was unreliable when chained with other utilities in the JSX. Fix: converted the top group's `gap-2 pb-6` and bottom group's `gap-2 pt-6 w-10` Tailwind utilities to inline CSS using `gap: var(--spacing-2)`, `paddingBottom: var(--spacing-6)`, `paddingTop: var(--spacing-6)`, explicit `width: 40`. Deterministic; eliminates Tailwind dependency for spacing.
+
+Same turn: user requested **icon hover color change from 700 to 900 ("as semantic")**. Hover and selected now share the same icon color (`--text-primary` / 900) — they differ only by background (transparent vs `--deep-sea-neutral-300`). Updated:
+- `SidebarButton.jsx` — hover branch and `:hover` pseudo both → `text-[var(--text-primary)]`. Simplified to `isSelected || isHover` single branch.
+- Figma Hover variant placeholder instance (`573:3`) — overrode strokes to bind to `Deep Sea Neutral/900` (`VariableID:212:12`) via `setBoundVariableForPaint`. Default keeps inherited 500 (no override). Selected variant placeholder kept as-is (visual change deferred — placeholder still shows 500 in Selected variant in Figma even though spec says 900; flagged for follow-up if needed).
+- `playground/normalization-tracker.md` — SidebarButton entry updated.
+- `playground/DesignSystemMap.html` — 3 spots in `getSidebarButtonComponentHTML()`: hover demo button stroke color, hover note text, hover row in Token Contract spec table.
+
+Verified in dev: Vite ready in 354ms, no errors.
+
+### Memory updates
+
+**Created:**
+- `feedback_use_subagents.md` — User prefers parallelizing work with subagents (Explore, general-purpose, Plan) whenever possible.
+- `feedback_confirm_before_acting.md` — Confirm explicitly before write/destructive ops; don't chain info-gathering into execution in one turn. Triggered after the SidebarButton bulk Figma writes happened without an explicit "ready to proceed?" gate.
+- `feedback_animated_preview_indicators.md` — Animate dashed-line "preview state" indicators in playground HTML so they don't look like real design elements.
+- `user_role.md` — Designer-developer leading Odyssey-One; frontend-strong, backend-newer; frame backend explanations in frontend analogues.
+- `project_supabase_deferred.md` — Migration halted 2026-04-28; resume conditions and decisions in `docs/supabase-migration-plan.md`.
+- `project_lucide_naming_kebab.md` — Convention: `lucide/<kebab-name>`, no per-size path segment, no per-icon Code Connect mapping.
+
+**Updated:**
+- `project_vercel_deploy_via_cli.md` — fixed stale path/project-name reference.
+- `MEMORY.md` — added/updated description lines several times, marked `project_lucide_icon_frames` as superseded.
+- `reference_vercel_deployment.md` index entry — fixed description.
+
+**Deleted:**
+- `project_monorepo_migration.md` — migration complete, status field stale.
+
+### Files / commits
+
+This session is a single wrap commit (no per-task commits during work). Files in this commit:
+
+**New files (5):**
+- `packages/tokens/index.js`
+- `packages/ui/src/SidebarButton.jsx`
+- `packages/ui/src/SidebarButton.figma.tsx`
+- `docs/supabase-migration-plan.md`
+- `domain-documentation/domains-overview.md`
+- `shipments-documentation/Documentation/Grooming-sessions/0429-Domains-grooming-David.vtt` (added by user)
+
+**Modified files (17):**
+- `.claude/settings.json` — added 19 read-only MCP entries
+- `.claude/settings.local.json` — pruned 21 stale entries
+- `.gitignore` — added `.superpowers/`
+- `apps/odyssey-one/src/components/layout/Sidebar.jsx` — full rewrite (icons, order, items, layout, inline CSS)
+- `apps/odyssey-one/src/components/layout/Navbar.jsx` — ICON_MD/LG migration
+- `apps/odyssey-one/src/components/shipments/{TableControls,MonitorPanels,ShipmentTable}.jsx` — ICON_MD/LG migration
+- `apps/odyssey-one/src/components/detail/{ColumnPanel,DocumentsTab,RoutingGuideTab}.jsx` — ICON_MD/LG migration
+- `packages/tokens/package.json` — ESM, `main`, `.` export
+- `packages/ui/src/index.js` — exports SidebarButton
+- `playground/DesignSystemMap.html` — Sidebar organism + SidebarButton spec updates, two Normalize-tab cycles
+- `playground/figma-component-routine.md` — Step 1 placeholder rule, Step 8b rename-instruction drop
+- `playground/icon-tracker.html` — kebab convention applied to all 13 cards + info-box
+- `playground/normalization-tracker.md` — Sidebar (organism) row, SidebarButton hover update, stale-path fixes
+
+### Carry-forward to Session 17
+
+- **Off-token icon-size sweep.** `size={12}`, `size={14}`, `size={18}`, `size={32}` — many call sites, mostly in tabs and tooltips and one empty-state. Decide per-size: add tokens (`ICON_SIZE_SM=14`, `ICON_SIZE_XS=12`, `ICON_SIZE_XL=32`) or correct the off-target ones (most `size={18}` likely should be 16 or 20).
+- **Code Connect publish.** `packages/ui/src/SidebarButton.figma.tsx` exists but isn't pushed. Run `npx figma connect publish` from `packages/ui/` (needs `FIGMA_ACCESS_TOKEN` in env).
+- **Figma Selected variant icon-color encoding.** Per the new "icon color = 900 in hover and selected" rule, the Selected variant's placeholder still inherits 500 in Figma. Override its stroke binding to 900 to match Hover.
+- **Other-domain documentation.** Collect docs for Orders, Carriers, Tracking, Home, User Management. Set up Obsidian / NotebookLM. Drop into `domain-documentation/` (or sibling) as files arrive. The session's `domains-overview.md` is the umbrella; per-domain docs grow under it.
+- **Resume Supabase migration** when conditions in `docs/supabase-migration-plan.md` are met (≥3 other domains have UIs, their docs are in-repo, write-flow UX is mocked, user-management roles clarified).
+- **Settings entry.** Currently dropped from sidebar (David never endorsed it). Revisit only if a real per-user-settings need surfaces.
+- **Sidebar layout decision (option A vs B).** Currently option A (stack from top). Worth re-evaluating once stakeholders see the live app on a tall monitor — empty space below Partners may feel wrong.
+- **Vault migration** — still parked pending NotebookLM access + Obsidian setup.
+- **Real content for umbrella stubs** — Home / Orders / Carriers / Tracking / Users routes are still placeholders. Per David's framing, Home is read-only consumption; Orders is the first real domain to build. Trigger architecture reassessment (single-app vs split) once 2–3 domains have real content.
