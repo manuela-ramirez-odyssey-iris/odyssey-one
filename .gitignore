@@ -8,3 +8,6 @@ shipments-documentation/Documentation/converted/
 .worktrees/
 .turbo/
 .superpowers/
+.env
+.env.local
+.env.*.local

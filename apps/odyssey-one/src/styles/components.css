@@ -374,6 +374,71 @@ input[type="radio"].odyssey-radio {
   font-weight: 500;
 }
 
+/* GlobalSearch — placeholder color (cannot be set via inline styles) */
+.global-search-input::placeholder {
+  color: var(--deep-sea-neutral-400);
+  opacity: 1;
+}
+/* Suppress the global :focus-visible outline on the input — focus is
+   indicated by the wrapper's border thickening (handled in component) */
+.global-search-input:focus,
+.global-search-input:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+/* GlobalSearch — wrapper border drawn as a pseudo-element overlay so it
+   always paints above child backgrounds (e.g. the scope dropdown button
+   would otherwise hide an inset box-shadow). pointer-events:none keeps
+   clicks reaching the children underneath. */
+.global-search-wrapper::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--carolina-blue-400);
+  border-radius: var(--radius-lg);
+  pointer-events: none;
+  transition: border-width var(--transition-fast);
+}
+.global-search-wrapper.focused::after {
+  border-width: 2px;
+}
+
+/* GlobalSearch — interactive surfaces (scope dropdown + clear button) share
+   the same hover behavior: brighten one step beyond the current accent
+   (default 400 → hover 200; focused 200 → hover 100). Text + icon both
+   pick up `color` via currentColor / inheritance. */
+.global-search-clear,
+.global-search-scope { transition: color var(--transition-fast); }
+.global-search-clear:hover,
+.global-search-scope:hover {
+  color: var(--deep-sea-neutral-200) !important;
+}
+.global-search-wrapper.focused .global-search-clear:hover,
+.global-search-wrapper.focused .global-search-scope:hover {
+  color: var(--deep-sea-neutral-100) !important;
+}
+
+/* TrailNav hover — bell brightens; profile (name + role + chevron) brightens
+   together when the profile button is hovered. */
+.trail-nav-bell { transition: color var(--transition-fast); }
+.trail-nav-bell:hover {
+  color: var(--deep-sea-neutral-200) !important;
+}
+
+.trail-nav-profile-name,
+.trail-nav-profile-role,
+.trail-nav-profile-chevron { transition: color var(--transition-fast); }
+.trail-nav-profile:hover .trail-nav-profile-name {
+  color: var(--deep-sea-neutral-100) !important;
+}
+.trail-nav-profile:hover .trail-nav-profile-role {
+  color: var(--deep-sea-neutral-200) !important;
+}
+.trail-nav-profile:hover .trail-nav-profile-chevron {
+  color: var(--deep-sea-neutral-200) !important;
+}
+
 /* ----------------------------------------
    PRINT STYLES
    ---------------------------------------- */

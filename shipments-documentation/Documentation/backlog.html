@@ -221,6 +221,22 @@
   <td><span class="status-not-started">Not Started</span></td>
   <td>Define how Shipments domain tokens extend the global Odyssey ONE token set. Document which tokens are global (shared across domains) vs. domain-specific. Coordinate with Efrain to ensure other domains can consume the same Figma-sourced tokens without conflicts.</td>
 </tr>
+<tr>
+  <td></td>
+  <td class="id">SHP-66</td>
+  <td>GlobalSearch &mdash; complete scope dropdown menu</td>
+  <td><span class="size-m">M</span></td>
+  <td><span class="status-not-started">Not Started</span></td>
+  <td><strong>Umbrella scope (used by all domains).</strong> The <code>GlobalSearch</code> molecule (<code>packages/ui/src/GlobalSearch.jsx</code>, Figma <code>658:18</code>) was normalized 2026-04-30 with the chevron exposed as a swap slot (<code>dropdownIcon</code> prop / Figma <code>Dropdown icon</code> INSTANCE_SWAP). The dropdown <em>menu</em> itself is still inline in <code>Navbar.jsx</code> (categories list, divider, group label, hover/selected states). To-do: design the menu as its own component in Figma, normalize it, and either compose it into <code>GlobalSearch</code> as a slot or keep it as a sibling positioned via the parent. While at it: decide whether the chevron should rotate (currently swaps Down&rarr;Up) and whether ~K affordance returns. Source link from Manuela&apos;s 2026-04-30 normalization session.</td>
+</tr>
+<tr>
+  <td></td>
+  <td class="id">SHP-67</td>
+  <td>Responsive normalization pass (per component)</td>
+  <td><span class="size-l">L</span></td>
+  <td><span class="status-not-started">Not Started</span></td>
+  <td><strong>Umbrella scope.</strong> Components are currently normalized at fixed widths matching the Figma frame. Responsive behavior (min/max widths, fluid sizing, breakpoint adaptations, mobile/tablet rules) is not part of the standard <code>/normalize</code> pass yet. To-do: define what "responsive" means for each component category (atoms vs molecules vs organisms), capture rules in Figma using auto-layout / constraints, then run a second pass per component to apply them in code. First touchpoint: <code>GlobalSearch</code> (already changed from fixed 632px to <code>flex: 1</code> + <code>minWidth: 400</code>, 2026-05-04). Sidebar, Navbar, and ShipmentTable are next candidates. Outcome: a documented responsive convention + a checklist that gets folded into the <code>/normalize</code> skill or runs as a follow-up routine.</td>
+</tr>
 
 <!-- Halted -->
 <tr class="priority-group"><td colspan="6">Halted</td></tr>

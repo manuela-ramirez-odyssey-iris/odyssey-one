@@ -5,9 +5,11 @@ const variants = {
   red: { bg: 'var(--badge-red-bg)', color: 'var(--badge-red-text)' },
   purple: { bg: 'var(--badge-purple-bg)', color: 'var(--badge-purple-text)' },
   gray: { bg: 'var(--badge-gray-bg)', color: 'var(--badge-gray-text)', iconColor: 'var(--text-tertiary)' },
+  notification: { bg: 'var(--bittersweet-600)', color: 'var(--text-inverse)', isDot: true },
 }
 
-function getPadding(leftIcon, rightIcon) {
+function getPadding(leftIcon, rightIcon, isDot) {
+  if (isDot) return '4px'
   const left = leftIcon ? 8 : 10
   const right = rightIcon ? 8 : 10
   return `2px ${right}px 2px ${left}px`
@@ -19,6 +21,7 @@ export default function Badge({ children, variant = 'blue', leftIcon, rightIcon,
   const hasRight = !!rightIcon
   const hasDot = !!statusDot
   const iconColor = v.iconColor || 'currentColor'
+  const isDot = !!v.isDot
 
   return (
     <span
@@ -26,9 +29,13 @@ export default function Badge({ children, variant = 'blue', leftIcon, rightIcon,
       style={{
         display: 'inline-flex',
         alignItems: 'center',
+        justifyContent: isDot ? 'center' : undefined,
         gap: 4,
-        borderRadius: 'var(--radius-sm)',
-        padding: getPadding(hasLeft, hasRight),
+        borderRadius: isDot ? 'var(--radius-full)' : 'var(--radius-sm)',
+        padding: getPadding(hasLeft, hasRight, isDot),
+        width: isDot ? 20 : undefined,
+        height: isDot ? 20 : undefined,
+        boxSizing: 'border-box',
         background: v.bg,
         color: v.color,
         whiteSpace: 'nowrap',

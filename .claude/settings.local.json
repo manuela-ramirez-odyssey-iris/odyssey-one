@@ -102,7 +102,8 @@
       "Bash(awk -F'\\\\t' '{print $1}')",
       "Bash(awk 'NR<736 || NR>901' /Users/manuelramirez/Documents/iris/Odyssey/Shipments/odyssey-one/playground/DesignSystemMap.html)",
       "Bash(mv /tmp/dsm_clean.html /Users/manuelramirez/Documents/iris/Odyssey/Shipments/odyssey-one/playground/DesignSystemMap.html)",
-      "Bash(awk 'NR==2103,NR==2215' /Users/manuelramirez/Documents/iris/Odyssey/Shipments/odyssey-one/playground/DesignSystemMap.html)"
+      "Bash(awk 'NR==2103,NR==2215' /Users/manuelramirez/Documents/iris/Odyssey/Shipments/odyssey-one/playground/DesignSystemMap.html)",
+      "Bash(printenv)"
     ]
   }
 }
