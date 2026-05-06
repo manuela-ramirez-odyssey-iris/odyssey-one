@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react'
 import { Pencil, Trash2 } from 'lucide-react'
-import { PrimaryButton, SecondaryButton } from '../ui/Button'
+import { Button } from '@odyssey/ui'
 
 let noteIdCounter = 100
 
@@ -104,12 +104,12 @@ function NoteItem({ note, onEdit, onDelete }) {
             }}
           />
           <div className="flex items-center gap-2 justify-end">
-            <SecondaryButton onClick={handleCancel}>
+            <Button variant="secondary" onClick={handleCancel}>
               Cancel
-            </SecondaryButton>
-            <PrimaryButton onClick={handleSave}>
+            </Button>
+            <Button variant="primary" onClick={handleSave}>
               Save
-            </PrimaryButton>
+            </Button>
           </div>
         </div>
       ) : (
@@ -191,9 +191,9 @@ const NotesTab = React.memo(function NotesTab({ data }) {
             resize: 'vertical',
           }}
         />
-        <PrimaryButton onClick={handleAdd} disabled={!newText.trim()}>
+        <Button variant="primary" onClick={handleAdd} disabled={!newText.trim()}>
           Add Note
-        </PrimaryButton>
+        </Button>
       </div>
 
       {/* Notes list */}

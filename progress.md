@@ -1730,3 +1730,295 @@ Tomorrow's stated priorities (from user): **Button atoms** + **Navbar (organism)
 **Standing backlog:**
 - **SHP-66** — dropdown menu component (covers GlobalSearch scope + TrailNav profile, both still inline in Navbar).
 - **SHP-67** — responsive normalization pass per component.
+
+## Session 18 — May 5, 2026
+
+The Button atom cycle. Technically: the first foundational interactive atom in `@odyssey/ui` — 3 variants (Primary/Secondary/Outline) × 3 sizes (sm/md/lg) × disabled state with optional left-icon. Politically: the longest, bumpiest normalization cycle yet, where multiple skill failures (token discipline, workflow ordering, DSM-vs-code timing) forced repeated resets and skill rewrites. The component shipped, but the meta-takeaway — "the routine wasn't strict enough about WHEN things happen, in WHAT ORDER, by WHICH thread" — is the more valuable output.
+
+### Thread 1 — Initial Figma build (Phase 1)
+
+Pulled the existing CTAs from `1278:486` ("Buttons" frame on Components-Atoms). Found a showcase of 12 ad-hoc button frames using mixed dark scales (DS-Gray-Neutral/900 #1B2537, DS-Gray-Blue/800 #1E283B, DSN/900 #283142 — three different "darks"), inconsistent typography at 36h (some 14/20, some 16/24), and legacy `icons/20px/*` icons not in our `Icons md` (`230:1054`) / `Icons lg` (`366:619`) frames. User's intent: consolidate to 3 variants (Primary = dark, Secondary = light, Outline = transparent) + a unified disabled state (DSN/300 fill + white text across all variants).
+
+Spec finalized after a few rounds:
+- **Sizes:** sm 32h (14/20 type, py 6, px 14), md 36h (16/24 type, py 6, px 14), lg 40h (16/24 type, py 8, px 18). Asymmetric padding only when icon present (pl 12 / pr 14 for sm-md, pl 14 / pr 16 for lg).
+- **Primary:** bg `--deep-sea-neutral-900` + 1px `--deep-sea-neutral-500` stroke + white text. Hover bg `--deep-sea-neutral-600` (2-step jump, not /800 — user wanted bigger contrast). Pressed bg `--deep-sea-neutral-900` + DSN/400 text/icon + inset shadow `0 1 3 black@40%` (no outer shadow). Disabled DSN/300 + white, no border.
+- **Secondary:** white bg + DSN/300 border + DSN/700 text. Hover DSN/50 + DSN/400 border. Pressed DSN/100 + DSN/400 text + DSN/400 border, no shadow. Disabled DSN/300 + white, no border.
+- **Outline (dark surfaces only):** transparent + DSN/300 border + white text. Hover white@10% + same border. Pressed white@20% + DSN/200 text + DSN/400 border, no shadow. Disabled DSN/300 + white, no border.
+- **Universal rule (after iteration):** icon color = text color across all variants/states.
+
+Created lucide/plus master in Icons lg (`1303:5`) programmatically (Lucide standard 24-viewBox, stroke 2 round). Built the 36-variant component set on Components-Atoms (`1307:333`), bound paint colors to DSN tokens, applied effects + radius bindings.
+
+### Thread 2 — Path A explosion (the workflow disaster)
+
+After GATE A, asked the user "DSM validation first, or straight to React?" — they picked Path A (DSM-first). The skill at that point had Path A defined as "Step 5 (write React) AND add DSM section AND validate" — so I plowed straight into writing `Button.jsx` + `.figma.tsx` + `components.css` + DSM section, all simultaneously. The user pushed back hard: "I chose A, why have you created the button component in our project? It wasn't supposed that A was the map first?"
+
+Reverted everything. The skill was wrong: Path A means **DSM section ONLY → user validates → THEN React.** Updated the routine to fix this. Plus another failure surfaced: `compTab.innerHTML = ...` referenced a `codeChip` variable I'd used in my Button function that wasn't in scope, throwing at runtime → cascade-killing every Components-tab section. The user opened the playground and saw Badge / SidebarButton / Sidebar / GlobalSearch / LeadNav / TrailNav all blank. Multiple cumulative trust failures in one round.
+
+Dispatched a subagent to fix the cascade and move the Button section to the Normalize tab without the `NORMALIZED` pill (per the new "in-progress = Normalize tab, validated = Components tab + pill" rule that emerged this session). The DSM-always-subagent rule was already in the skill; I'd violated it by making the codeChip "emergency fix" on the main thread.
+
+### Thread 3 — Token discipline failure
+
+Once Path A was correctly running (DSM section in Normalize tab, user iterating on hover/pressed options), the user caught a deeper issue: "our buttons in the shipments code look weird, they're not following icons sizing, font tokens — neither Figma is following font tokens. YOU HAVE TO FOLLOW ALL TOKENS POSSIBLE." Inventoried `tokens.css` and discovered nearly every token I needed *already existed*: `--font-size-sm/base`, `--line-height-sm/base`, `--icon-size-md/lg`, `--transition-fast`, `--shadow-sm`, etc. I'd been hardcoding raw `14px`, `20px`, `120ms ease`, etc. throughout. Same on the Figma side: typography variables already lived in collection 5 ("Font Size/sm" etc.) but no Button text node was bound to them.
+
+Dispatched a subagent to add typography variables to Figma + apply canonical spec to all 36 variants with proper bindings. Saved `feedback_token_discipline.md` and added a top-level Token Discipline rule + Pre-completion checklist + (later) a Token Inventory Pre-flight step to the routine. The pre-flight is the key insight: **read tokens.css and Figma collections BEFORE writing CSS, not after the user catches the drift**.
+
+### Thread 4 — Show icon BOOLEAN vs VARIANT axis (multiple wrong answers)
+
+User wanted "asymmetric padding only when icon is present, symmetric otherwise." The Figma constraint: BOOLEAN component property can only bind to `visible` / `mainComponent` / `characters` — **not** padding. So driving padding from the BOOLEAN isn't possible.
+
+Tried three implementations across three rounds:
+1. **Show icon as VARIANT axis** (72 variants total). Each variant had its own correct padding. User picked this from the options I presented but later realized it removed the BOOLEAN toggle they actually wanted — "WTF I still need icons to be toggled on or off". Reverted to 36 variants + BOOLEAN.
+2. **IconSlot wrapper** (20×20 frame containing the Icon, persistent in layout). Made the label x-position byte-identical regardless of toggle, but pushed the no-icon label 13px right of center — visually worse than the original 1px-left asymmetry.
+3. **TextGroup compensation** (the user's idea, executed correctly third time): wrap Label in an auto-layout `TextGroup` containing a 2px transparent Spacer + Label, and reduce the Button's outer `itemSpacing` from 8 → 6. With icon: pl(12) + icon(20) + gap(6) + spacer(2) + label = visual gap icon→label is 8 ✓. Without icon: pl(12) + spacer(2) + label + pr(14) = label sits at 14 from left, 14 from right ✓ — perfectly symmetric. The 2px spacer is a mini-padding inside TextGroup that compensates the asymmetric outer padding. Brilliant solve.
+
+Final Figma model: 36 variants, `Show icon` BOOLEAN, TextGroup compensation, asymmetric padding always. Code achieves the same visual via `.btn--has-icon` class (different mechanism, same outcome) — accepted divergence in implementation, identical user experience.
+
+### Thread 5 — Skill enforcement passes (this session's biggest output)
+
+Throughout the cycle the routine + memories got hardened in ~6 rewrites:
+
+- **Path A redefined** — DSM section in Normalize tab → GATE B-DSM → Figma sync (subagent) → Components tab move + `NORMALIZED` pill → React component → consumers → GATE B-Project. **Critical insight:** the React code does NOT get written until DSM validation has passed AND Figma has been synced to the validated spec.
+- **Figma-always-before-code system-wide rule** — even mid-cycle. If the spec changes during DSM iteration, Figma masters get re-synced before any React touches.
+- **DSM-always-subagent rule** — every edit to `playground/DesignSystemMap.html` goes through a `general-purpose` subagent. No exceptions, even one-line bug fixes (the codeChip incident).
+- **Normalize-tab-vs-Components-tab rule** — in-progress sections live in the Normalize tab via `activateNormalizeTab(...)`, no `NORMALIZED` pill. Move to Components tab + add pill only after GATE B-DSM passes.
+- **Token discipline rule** — every value category (color, spacing, radius, typography, sizing, border, effect, outline, transition) gets a token. Hardcoded values are normalization failures, not just for colors.
+- **Token Inventory Pre-flight** — read tokens.css and Figma variable collections at the START of any CSS/DSM/Figma work, before writing anything. Match the spec to existing tokens. Propose new tokens only if no existing one fits.
+- **Pre-completion checklist** — grep `\d+px`, `#`, `rgb(`, `rgba(` on changed files before declaring code done.
+
+5 new feedback memories + 1 project memory saved this cycle:
+- `feedback_designsystemmap_first.md` — DSM-first for multi-state atoms
+- `feedback_designsystemmap_subagent.md` — DSM = always subagent
+- `feedback_designsystemmap_normalize_tab.md` — Normalize-tab vs Components-tab lifecycle
+- `feedback_figma_before_code.md` — Figma → DSM → Code, never reverse
+- `feedback_token_discipline.md` — every value goes through a token, in code AND Figma
+- `project_button_secondary_usage.md` — Secondary on light surfaces only; for dark, use Outline
+
+### Thread 6 — Phase 3: Code Connect publish + tracker + library publish
+
+`npm run connect:publish` succeeded, mapping Button (`1307:333`) alongside the existing 5 components (Badge, SidebarButton, GlobalSearch, LeadNav, TrailNav). 6 mappings now live; `get_design_context` on any of them returns the proper `import { X } from '@odyssey/ui'` snippet.
+
+Updated `playground/normalization-tracker.md` with the Button row in "Normalized Components" + "Pushed to Figma → Code Connect" tables.
+
+User manually published the Figma library (Assets panel → Publish library / Update) — the new Button + 9 typography variables + new `lucide/plus` master + structural TextGroup pattern now propagate to other Figma files. The earlier "library publish reminder" rule (Step 8c) covered this.
+
+### Thread 7 — Consumer migration
+
+6 files using the old `apps/odyssey-one/src/components/ui/Button.jsx` (`PrimaryButton` / `SecondaryButton` named exports):
+- `shipments/FilterPanel.jsx` — Apply / Clear all (text only)
+- `shipments/TableControls.jsx` — Export (with Upload icon) + 2 modal CTAs
+- `detail/DocumentsTab.jsx` — Upload Attachment (icon), Refresh (icon), modal Cancel/Upload, preview Download (icon)
+- `detail/CostAllocationTab.jsx` — Compare AP/AR (text only)
+- `detail/RoutingGuideTab.jsx` — 5 buttons (text only) across QCP/View Stops/Save/Detail/Quote
+- `detail/NotesTab.jsx` — Save / Cancel / Add Note (text only)
+
+All rewired to `import { Button } from '@odyssey/ui'`. 4 with-icon buttons migrated to the `icon` prop with `<Icon size={20} />` (was `{...ICON_MD}` = 16, wrong). Old `apps/odyssey-one/src/components/ui/Button.jsx` deleted. Build passes.
+
+### Thread 8 — Refinements
+
+After live validation, two more rounds of small spec tweaks:
+- Primary disabled lost a stale border (carried over from `.btn--primary` default). Fixed in DSM CSS to `border-color: transparent`. Production CSS already had it. Disabled is now uniform across all variants — DSN/300 fill + white text + no border + shadow-sm.
+- Secondary pressed border darkened to DSN/400 (was DSN/500). Outline pressed text+icon to DSN/200 (was white) + border DSN/400 (was DSN/300). All three layers (Figma → DSM → code) updated in sequence per the new rule.
+
+### State of `@odyssey/ui` after Session 18
+
+**7 components normalized:**
+- Badge, SidebarButton (atoms — earlier sessions)
+- OdysseyLogo (atom — Session 17)
+- GlobalSearch (molecule — Session 17)
+- LeadNav, TrailNav (molecules — Session 17)
+- **Button (atom — this session)**
+
+**6 Code Connect mappings live.** Figma library re-published. All consumers wired.
+
+**Open spec items deferred:**
+- Padding values 6 / 14 / 18 are raw px in Button (no Spacing/1.5, /3.5, /4.5 tokens exist). Adding them would require either weird names (Spacing/1.5) or migrating the whole Spacing scale to value-based naming (`Spacing/4` = 4 instead of `Spacing/1` = 4) — too risky for a one-off addition. Logged for a future scale-rename pass.
+- Outline shadow on dark surfaces is `--shadow-sm` (rgba(0,0,0,0.05)) which renders invisible on dark cells. User accepted this as "approved Outline" but it's a known visual limitation in the design system docs.
+
+### Carry-forward to Session 19
+
+**Session 18's other priority (still pending):** **Navbar organism.** Compose `LeadNav` + `GlobalSearch` + `TrailNav` into a single shared `Navbar` in `@odyssey/ui`. Currently inline in `apps/odyssey-one/src/components/layout/Navbar.jsx`. Per the now-strict routine: Path A (DSM-first), Figma-first sync at every step, every value bound to tokens, all DSM work via subagent.
+
+**Still carrying from earlier sessions:**
+- Off-token icon-size sweep (12, 14, 18, 32 across tab/tooltip/empty-state call sites).
+- Sidebar Selected variant icon-color encoding in Figma (placeholder still inherits 500; should override to 900 to match Hover).
+- Other-domain documentation (Orders / Carriers / Tracking / Home / Users) — Obsidian + NotebookLM setup; populate `domain-documentation/`.
+- Resume Supabase migration when conditions met (≥3 domains with UIs).
+- Sidebar layout option A vs B re-evaluation on a tall monitor.
+- Vault migration parked (NotebookLM access + Obsidian setup).
+- Real content for umbrella stubs (Home / Orders / Carriers / Tracking / Users still placeholders). Orders recommended next per David's framing.
+
+**Standing backlog:**
+- **SHP-66** — dropdown menu component (GlobalSearch scope + TrailNav profile).
+- **SHP-67** — responsive normalization pass per component.
+
+**New backlog from Session 18:**
+- Spacing scale rename / extension to support 6 / 14 / 18 padding values used by Button.
+- Component-level color property on every Lucide icon master (so per-instance icon recoloring is one dropdown instead of a `findAll(VECTOR)` traversal). Out-of-scope for this cycle but noted.
+
+## Session 19 — May 6, 2026
+
+The session that built the first organism. Started as cleanup of Session-18 carry-over (Button placeholder default + DSM notification badge ad-hoc), turned into three sequential normalize cycles — TrailNav Editor mode, Ghost Button variant, and the Navbar organism — with two separate skill enforcement passes captured along the way (icon-slot convention + realistic-default-exception + swap-collection artboards). Net result: `@odyssey/ui` now has 8 components covering atom → molecule → organism, and Code Connect maps all eight (TrailNav has two mappings via `variant: { Mode: 'X' }`). The Navbar organism replaces the inline composition that's been living in `apps/odyssey-one/src/components/layout/Navbar.jsx` since Session 17.
+
+### Thread 1 — Drift cleanup carried over from Session 18
+
+Two follow-ups before any new work.
+
+- **Notification badge ad-hoc card** removed from `playground/DesignSystemMap.html` Badges tab. The card was added before Session 17's `<Badge variant="notification">` preset existed; the tracker had been cleaned but the DSM still showed it. Subagent edit (per DSM-always-subagent rule).
+- **Button `Icon` INSTANCE_SWAP default** swapped from `lucide/plus` (`1303:5`) → `placeholder-20` (`512:2395`). Drift surfaced when the user pointed out Button was using a real icon as the swap default while SidebarButton used a placeholder — inconsistent. Updated all 36 Button variants via the property's `defaultValue` setter (single API call updated all bound instances). DSM Button section + tracker also updated (`lucide/plus` mention → `placeholder-20`). The `lucide/plus` master itself stays in Icons lg — still useful for actual `+` button consumers.
+
+### Thread 2 — Icon-slot convention, formalized into the skill
+
+While discussing the placeholder fix, the user formalized a rule for `/normalize`: *"every time we create a component that needs to select between icons, replace the icons in figma for the corresponding placeholder"* — with a two-pronged decision per icon: **static or switchable?**
+
+Translated into 4 edits to `playground/figma-component-routine.md`:
+- Step 1 (Pull from Figma) — replaced the vague "swap slot" bullet with the static/switchable decision + canonical examples + size mapping (16=md, 20=lg) + frame locations (`Icons md` `230:1054`, `Icons lg` `366:619`, `Icons Placeholder` separate).
+- Step 3b (Apply Figma writes) — explicit rule that INSTANCE_SWAP slots default to the matching placeholder, never to a real icon.
+- Step 3c (Nested-component audit) — split the icon audit into static-vs-switchable buckets so the rule is enforced during composition.
+- Step 6 (new pending icons) — clarified placeholders are never "new pending" since both already exist.
+
+Memory persistence (so the rule survives outside `/normalize`):
+- New `feedback_icon_slot_convention.md` — the rule itself + why (Button-as-`lucide/plus` rework example) + how to apply.
+- `project_lucide_icon_frames.md` rewritten — three frames documented (md, lg, Placeholder), canonical-consumers list, naming convention reference, switchable-vs-static decision recap.
+- `MEMORY.md` index updated.
+
+### Thread 3 — TrailNav Editor mode (`/normalize` cycle)
+
+User opened with: *"now we will complement the TrailNav molecule component with [link] … this is a variant that will show up whenever the content of each domain needs a global change."*
+
+I initially misread it as "add an internal variant axis to the existing TrailNav" — they corrected me: the whole TrailNav is what swaps. They had already started the work in Figma — TrailNav was upgraded from a single component (`639:562`) to a 2-variant set (`1565:648`) with `Property 1=Default | Variant2`.
+
+**Phase 1 (Figma):**
+- Renamed `Property 1` → `Mode`; `Default` → `Profile`; `Variant2` → `Editor`; inner frame `trainNavVariant2` (typo) → `Editor Container`. (User later removed Editor Container as redundant + added a static-size wrapper to the help icon so the X doesn't collapse left when help hides — kept for layout preservation in code too.)
+- Replaced legacy `icons/20px/circle-question-mark` with `lucide/circle-question-mark` (already in Icons lg).
+- `lucide/x` didn't exist in Icons lg — programmatically created at `1570:2` matching `lucide/plus`'s structure (two diagonal vectors, stroke 1.667 with rounded caps, color bound to DSN/500). Now 15 lucide masters in Icons lg.
+- Added 4 BOOLEAN properties: `Show button 1/2`, `Show help icon`, `Show close icon`. Wired each to its instance's `visible` via `componentPropertyReferences`.
+- Set `isExposedInstance: true` on the two Cancel/Save Button instances (full Button props bubble up — user confirmed accepting the noise; alternative was unexposing + losing label configurability since Figma can't selectively expose).
+- After user iteration, X icon converted to `INSTANCE_SWAP` with `preferredValues` scoped to `[lucide/x, lucide/circle-question-mark]`.
+
+**Mid-session skill nuance — realistic-default exception:** the X→? swap raised the same question as TrailNav's existing Profile Chevron. Per the just-written rule, switchable slots default to placeholder — but Chevron's realistic default IS chevron-down, and the right-icon's realistic default IS X. Forcing placeholder defaults would mean every consumer has to swap. Captured this as an explicit nuance: *switchable slot WITH a universal default = real icon as default; switchable slot WITHOUT a universal default = placeholder*.
+
+**Mid-session second nuance — swap-collection artboards:** user proposed a clean way to scope the `preferredValues` picker without exposing the entire icon library. Created two collection frames on Icons page:
+- `Chevron Up/Down` (`1584:2`) — instances of `lucide/chevron-up` + `lucide/chevron-down`.
+- `X / Help` (`1584:7`) — instances of `lucide/x` lg + `lucide/circle-question-mark` lg.
+
+The collection frame is the **visual** reference for designers; `preferredValues` (component KEYS) is the **technical** restriction. Both work together. As a side-effect: `lucide/chevron-up` was a FRAME in Icons md — converted to a proper COMPONENT (`1582:2`) via `figma.createComponentFromNode`.
+
+Both nuances folded back into `playground/figma-component-routine.md` Step 3b + into `feedback_icon_slot_convention.md`.
+
+**Phase 2 (code, Path A):**
+- DSM Normalize-tab section first (in-progress, no `NORMALIZED` pill): 4 Editor-mode state cards + 4 hover-state cards (Cancel, Save, help, right-icon hovers — all coded as static renders so the user could validate the spec). User asked for a fix mid-cycle: card 2 originally rendered both ?s when right-icon was swapped to ?, but two ?s never happen in practice — fixed to also hide help when right=?.
+- After GATE B-DSM, code:
+  - `TrailNav.jsx` rewritten — `mode` prop branches to `TrailNavProfile` (existing, unchanged) or new `TrailNavEditor`. Editor renders 2 `<Button>` instances + 2 `IconSlot`s. `IconSlot` returns either a clickable `<button>` when shown OR a 20×20 spacer `<span>` when hidden — preserves layout (matches Figma's static-size wrapper).
+  - `TrailNav.figma.tsx` — two `figma.connect()` blocks using `variant: { Mode: 'X' }` to map per Mode.
+  - `components.css` — new `.trail-nav-editor-icon:hover` rule (DSN/500 → DSN/200, mirrors bell hover ladder, code-only).
+
+**Phase 3:** DSM Editor mode demos + hover sub-section moved into the existing Components-tab TrailNav section; Normalize tab functions removed; activation call removed (Normalize tab back to default empty state).
+
+### Thread 4 — Ghost Button variant (`/normalize` cycle, mid-flow interjection)
+
+After GATE B-DSM passed for TrailNav Editor, the user said: *"i realised we need to create a new button variant for this case so it complements the outlined usage, itll be without outline without default background color … i dont wanna drag that for later, otherwise im gonna forget."*
+
+Naming: **Ghost** (most common in Vercel / shadcn / Radix for "no fill, no border, just text"). User accepted.
+
+**Phase 1 — DSM preview first** (user explicit ask): a single side-by-side card in the Normalize tab showing Outline md vs Ghost md with **live** `:hover` / `:active` CSS, on a dark surface. User approved after one round.
+
+**Phase 1 — Figma:**
+- 12 new variants cloned from Outline (sm/md/lg × Idle/Hover/Pressed/Disabled), renamed to `Variant=Ghost, Size=X, State=Y`, strokes cleared (no border). Component set went 36 → 48 variants. `Variant` axis options: `[Primary, Secondary, Outline, Ghost]`.
+- Repositioned the Ghost row below Outline (y=652/708/768).
+- Resized component_set bounds (189×692 → 789×848) so Ghost variants render inside the visible frame.
+- After visual confirmation, also extended the `Button — Showcase` frame (`1331:188`): 3 new rows (Ghost sm/md/lg) cloned from Outline rows, label text renamed, Button instances swapped to Ghost variants. Showcase auto-grew via VERTICAL auto-layout.
+
+**Phase 2 (code, Path B):**
+- `apps/odyssey-one/src/styles/components.css` — `.btn--ghost` block with idle/hover/active/disabled rules. Mirrors Outline's structure but with `border-color: transparent` everywhere except disabled (which uses universal disabled spec: DSN/300 + white + shadow-sm).
+- `Button.figma.tsx` — `Ghost: 'ghost'` added to the Variant enum.
+- `Button.jsx` — no change (variant prop is passthrough string).
+
+**Coupling with Thread 3:** the user then asked me to swap TrailNav Editor's Cancel from Primary lg → Ghost lg. Single Figma instance swap (1565:668 → 1612:287) + DSM renderer's `btn1Bg` updated from DSN/900→DSN/600 ladder to transparent→white@10% ladder. The DSM hover card 1 note updated to reflect Ghost inheritance.
+
+### Thread 5 — Navbar organism (`/normalize` cycle, finally)
+
+The composition that's been living inline in `apps/odyssey-one/src/components/layout/Navbar.jsx` since Session 17 — extracted into `@odyssey/ui` as the first organism.
+
+**Phase 1 — Figma:**
+- Source frame at `1567:687` (named "Header"). Drift: "Logo and Menu" was a hand-built frame (legacy `icons/20px/menu` + Odyssey-One Logo); "User Section" was hand-built (legacy bell + chip + profile). The center GlobalSearch was already a real instance.
+- Removed both hand-built frames + a hidden legacy Global Search duplicate at `1567:698`.
+- Converted the frame to COMPONENT (`figma.createComponentFromNode`), renamed `Header` → `Navbar`. Note: order matters — `isExposedInstance` requires the parent to be a COMPONENT, so the conversion has to happen BEFORE creating + exposing nested instances. First attempt failed atomically; second attempt got it right.
+- Created a real `LeadNav` instance and a real `TrailNav` instance (Mode=Profile from `1565:648`'s set), appended both, set `isExposedInstance: true` on all 3 children (LeadNav, GlobalSearch, TrailNav). Reordered: lead | search | trail.
+- Bound bg to `Deep Sea Neutral/900`; padding-left to `Spacing/4`; padding-right to `Spacing/6`. Padding-top/bottom stay raw at 14 (not in scale, same compromise as the app).
+
+**Phase 2 (code, Path B):**
+- `packages/ui/src/Navbar.jsx` — slot shell with props `lead`, `search`, `searchRef`, `trail`, `trailRef`. Renders `<header>` with `flex items-center justify-between`, the navbar surface (DSN/900 bg, padding `14 var(--spacing-6) 14 var(--spacing-4)`), and 3 wrapper divs around the slots. `searchRef` / `trailRef` attach to the wrappers — consumers render dropdowns as siblings of GlobalSearch / TrailNav inside the slot, click-outside detection works because the dropdowns live under the same wrapper.
+- `Navbar.figma.tsx` — Code Connect mapping that uses `figma.instance('LeadNav' | 'GlobalSearch' | 'TrailNav')` so the rendered child snippets land in the slot props.
+- `apps/odyssey-one/src/components/layout/Navbar.jsx` rewritten — wraps `<NavbarShell>` from `@odyssey/ui`, passes data via slot fragments. The category + profile dropdowns stay (still inline, still SHP-66), now rendered as siblings inside their respective slots.
+
+**Mid-Phase 2 layout iteration:** initial pass had `flex-1` on the search wrapper — GlobalSearch sat at left edge with a right gap. User pushed back: *"this div is introducing a right gap … you dont need to respect what we did before, just make it the same as our figma component."* Stripped the `flex-1` entirely, switched the header to `justify-between`, made all 3 wrappers `shrink-0`. Three sections now distribute naturally; LeadNav and TrailNav are equal-width so GlobalSearch is visually centered.
+
+**Mid-Phase 2 sizing:** user requested the WHOLE GlobalSearch (history nav + scope dropdown + search field) be bound by min/max width — first 590/900, with the dropdown staying auto-width and only the search field stretching. Reworked GlobalSearch.jsx: moved the min/max constraints from the inner searchbar wrapper to the OUTER container (`minWidth: 590, maxWidth: 900`); inner searchbar dropped to `minWidth: 0, flex: 1` so it absorbs whatever remains after the auto-width arrows + scope dropdown.
+
+**Phase 3:** DSM section for Navbar added directly to Components tab (user opted out of Normalize-tab review for the organism — *"no need to review it in DSM just put it and aprove it your self this time"*); tracker entry added; Code Connect publish ran, 8 mappings now live (Badge, Button, GlobalSearch, LeadNav, **Navbar**, SidebarButton, TrailNav-Profile, TrailNav-Editor); user confirmed pushing the Figma library.
+
+### Thread 6 — Skill + memory updates
+
+`playground/figma-component-routine.md` — Step 3b extended with the realistic-default-exception nuance + swap-collection artboards convention. The wording is intentionally specific so future cycles don't re-derive it: "no universal default → placeholder; has a universal default → real icon; ≥2 realistic alternatives → collection frame on Icons page + `preferredValues`".
+
+Memories created / rewritten:
+- **Created:** `feedback_icon_slot_convention.md` — full rule + the realistic-default nuance + the swap-collection convention.
+- **Rewritten:** `project_lucide_icon_frames.md` — three frames now documented, canonical consumers split into "switchable defaulting to placeholder" / "switchable defaulting to realistic icon" / "static using real lucide", swap-collection artboards section, recently-added masters (lucide/x lg + lucide/chevron-up md upgrade).
+- **Rewritten:** `project_button_secondary_usage.md` — title + body changed from a 2-option rule (Secondary on light, Outline on dark) to a 3-option rule that includes Ghost (lighter weight than Outline on dark, transparent + no border + same hover/pressed tints).
+- **Updated:** `project_code_connect_active.md` — 8 mappings live across 7 components; documented the two patterns (TrailNav uses `variant: { Mode: 'X' }`, Navbar uses `figma.instance(...)` for slot children).
+- **Updated:** `MEMORY.md` index — Code Connect entry, project_lucide_icon_frames entry, project_button_secondary_usage entry rewritten.
+
+### State of `@odyssey/ui` after Session 19
+
+**8 normalized components:**
+- Atoms: Badge, **Button** (now 4 variants — Ghost added), OdysseyLogo, SidebarButton
+- Molecules: GlobalSearch, LeadNav, TrailNav (now 2-variant set — Editor mode added)
+- **Organisms: Navbar (NEW — first organism)**
+
+**8 Code Connect mappings** across the 7 components. Library republished by user. The legacy `icons/20px/*` masters are no longer referenced by any normalized consumer — they can be purged in a future hygiene pass (not touched this cycle, scope discipline).
+
+**New Figma assets this session:**
+- Components-Atoms page: Button has 12 new Ghost variants (48 total); Navbar component (`1661:206`); TrailNav is now a 2-variant set (`1565:648`); 3 new rows in Button Showcase.
+- Icons page: `lucide/x` lg (`1570:2`, programmatic creation), `lucide/chevron-up` md (`1582:2`, frame→component conversion), 2 new collection artboards (`Chevron Up/Down`, `X / Help`).
+
+### Files / commits
+
+The `/wrap` commit includes:
+
+**New files:**
+- `packages/ui/src/Navbar.jsx` + `Navbar.figma.tsx`
+- `feedback_icon_slot_convention.md` (memory)
+
+**Modified files:**
+- `apps/odyssey-one/src/components/layout/Navbar.jsx` — rewritten to use `<NavbarShell>` from `@odyssey/ui` with dropdown logic preserved
+- `apps/odyssey-one/src/styles/components.css` — `.btn--ghost` block + `.trail-nav-editor-icon:hover` rule
+- `packages/ui/src/Button.figma.tsx` — Ghost added to Variant enum
+- `packages/ui/src/GlobalSearch.jsx` — min/max relocated to outer container (590/900)
+- `packages/ui/src/TrailNav.jsx` — full rewrite with `mode` prop + `TrailNavEditor` + `IconSlot` helper
+- `packages/ui/src/TrailNav.figma.tsx` — two `figma.connect()` blocks per Mode variant
+- `packages/ui/src/index.js` — Navbar export
+- `playground/DesignSystemMap.html` — multiple subagent edits across the session (notification card removal, Button Ghost row, TrailNav Editor mode integration, Normalize-tab cleanup, Navbar section, GlobalSearch defaults bump)
+- `playground/figma-component-routine.md` — icon-slot convention + realistic-default nuance + swap-collection convention
+- `playground/normalization-tracker.md` — Button row (Ghost added, 48 variants), TrailNav rows (Editor mode + legacy Profile entry), GlobalSearch row (590/900), Navbar row (new)
+- `progress.md` — this entry
+
+### Carry-forward to Session 20
+
+**Still carrying from earlier sessions:**
+- Off-token icon-size sweep (12, 14, 18, 32 across tab/tooltip/empty-state call sites).
+- Sidebar Selected variant icon-color encoding in Figma (placeholder still inherits 500; should override to 900 to match Hover).
+- Other-domain documentation (Orders / Carriers / Tracking / Home / Users) — Obsidian + NotebookLM setup; populate `domain-documentation/`.
+- Resume Supabase migration when conditions met (≥3 domains with UIs).
+- Sidebar layout option A vs B re-evaluation on a tall monitor.
+- Vault migration parked.
+- Real content for umbrella stubs (Home / Orders / Carriers / Tracking / Users still placeholders). Orders recommended next per David's framing.
+
+**Standing backlog:**
+- **SHP-66** — dropdown menu component (GlobalSearch scope + TrailNav profile, both still inline in Navbar consumer).
+- **SHP-67** — responsive normalization pass per component.
+- Spacing scale rename / extension to support 6 / 14 / 18 padding values used by Button + Navbar's py 14.
+- Component-level color property on every Lucide icon master.
+
+**New from Session 19:**
+- Purge legacy `icons/20px/*` masters — no normalized consumer references them anymore.
+- Convert remaining Lucide FRAMEs (if any) to proper COMPONENTs — `chevron-up` was caught this session, others may exist.

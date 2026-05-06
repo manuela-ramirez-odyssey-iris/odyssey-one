@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useMemo } from 'react'
 import { X, Copy, Check, Info, ChevronDown } from 'lucide-react'
-import { PrimaryButton, SecondaryButton } from '../ui/Button'
+import { Button } from '@odyssey/ui'
 
 const SAVED_QUERIES = [
   { name: 'Review Shipments -- West Coast', query: 'mode:LTL shipment-status:Review destination:CA delivery:<2026-01-15' },
@@ -348,12 +348,12 @@ export default function FilterPanel({ isOpen, onClose, itemCount, onApplyFilters
           className="flex items-center shrink-0"
           style={{ padding: '12px 16px', borderTop: '1px solid var(--border-subtle)', gap: 10 }}
         >
-          <SecondaryButton onClick={handleClear} style={{ flex: 1 }}>
+          <Button variant="secondary" onClick={handleClear} style={{ flex: 1 }}>
             Clear all
-          </SecondaryButton>
-          <PrimaryButton onClick={handleApply} style={{ flex: 1 }}>
+          </Button>
+          <Button variant="primary" onClick={handleApply} style={{ flex: 1 }}>
             Show {itemCount} results
-          </PrimaryButton>
+          </Button>
         </div>
       )}
     </div>

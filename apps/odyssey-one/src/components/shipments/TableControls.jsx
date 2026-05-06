@@ -3,7 +3,7 @@ import { Search, Bookmark, ArrowUpDown, Upload, ChevronDown, X, FileSpreadsheet 
 import { ICON_MD, ICON_LG } from '@odyssey/tokens'
 import SearchChipPanel from './SearchChipPanel'
 import DarkTooltip from '../ui/DarkTooltip'
-import { SecondaryButton } from '../ui/Button'
+import { Button } from '@odyssey/ui'
 
 const TableControls = React.memo(function TableControls({
   itemCount,
@@ -186,10 +186,9 @@ const TableControls = React.memo(function TableControls({
             <ArrowUpDown {...ICON_MD} style={{ color: 'var(--btn-secondary-text)' }} />
           </button>
           <DarkTooltip text="Only the first 10,000 records will be exported to Excel" width={220} align="right">
-            <SecondaryButton onClick={() => setExportModalOpen(true)}>
-              <Upload {...ICON_MD} />
-              <span>Export</span>
-            </SecondaryButton>
+            <Button variant="secondary" icon={<Upload size={20} />} onClick={() => setExportModalOpen(true)}>
+              Export
+            </Button>
           </DarkTooltip>
         </div>
       </div>
@@ -250,7 +249,7 @@ const TableControls = React.memo(function TableControls({
               Choose which columns to include in the export. Only the first 10,000 records will be exported.
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <SecondaryButton
+              <Button variant="secondary"
                 onClick={() => {
                   if (onExport) onExport('all')
                   setExportModalOpen(false)
@@ -259,8 +258,8 @@ const TableControls = React.memo(function TableControls({
               >
                 <span>Export all columns</span>
                 <span style={{ fontSize: 12, color: 'var(--text-placeholder)' }}>{itemCount} records</span>
-              </SecondaryButton>
-              <SecondaryButton
+              </Button>
+              <Button variant="secondary"
                 onClick={() => {
                   if (onExport) onExport('filtered')
                   setExportModalOpen(false)
@@ -269,7 +268,7 @@ const TableControls = React.memo(function TableControls({
               >
                 <span>Export visible columns</span>
                 <span style={{ fontSize: 12, color: 'var(--text-placeholder)' }}>{itemCount} records</span>
-              </SecondaryButton>
+              </Button>
             </div>
           </div>
         </div>

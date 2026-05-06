@@ -1,8 +1,14 @@
-import { Bell, ChevronDown, ChevronUp } from 'lucide-react'
+import { Bell, ChevronDown, ChevronUp, CircleHelp, X } from 'lucide-react'
 import { ICON_MD, ICON_LG } from '@odyssey/tokens'
 import Badge from './Badge.jsx'
+import Button from './Button.jsx'
 
-export default function TrailNav({
+export default function TrailNav({ mode = 'profile', ...rest }) {
+  if (mode === 'editor') return <TrailNavEditor {...rest} />
+  return <TrailNavProfile {...rest} />
+}
+
+function TrailNavProfile({
   name,
   role,
   avatar,
@@ -115,5 +121,65 @@ export default function TrailNav({
         </button>
       </div>
     </div>
+  )
+}
+
+function TrailNavEditor({
+  showPrimaryButton = true,
+  primaryButtonLabel = 'Cancel',
+  onPrimaryButtonClick,
+  showSecondaryButton = true,
+  secondaryButtonLabel = 'Save',
+  onSecondaryButtonClick,
+  showHelpIcon = true,
+  helpIcon,
+  onHelpClick,
+  showRightIcon = true,
+  rightIcon,
+  onRightIconClick,
+}) {
+  return (
+    <div
+      className="flex items-center justify-end shrink-0"
+      style={{ gap: 'var(--spacing-4)' }}
+    >
+      <div className="flex items-center" style={{ gap: 'var(--spacing-3)' }}>
+        {showPrimaryButton && (
+          <Button variant="ghost" size="lg" onClick={onPrimaryButtonClick}>
+            {primaryButtonLabel}
+          </Button>
+        )}
+        {showSecondaryButton && (
+          <Button variant="outline" size="lg" onClick={onSecondaryButtonClick}>
+            {secondaryButtonLabel}
+          </Button>
+        )}
+      </div>
+      <div className="flex items-center" style={{ gap: 'var(--spacing-5)' }}>
+        <IconSlot show={showHelpIcon} onClick={onHelpClick} ariaLabel="Help">
+          {helpIcon ?? <CircleHelp {...ICON_LG} />}
+        </IconSlot>
+        <IconSlot show={showRightIcon} onClick={onRightIconClick} ariaLabel="Close">
+          {rightIcon ?? <X {...ICON_LG} />}
+        </IconSlot>
+      </div>
+    </div>
+  )
+}
+
+function IconSlot({ show, onClick, ariaLabel, children }) {
+  if (!show) {
+    return <span style={{ width: 20, height: 20, display: 'inline-block', flexShrink: 0 }} aria-hidden="true" />
+  }
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="trail-nav-editor-icon flex items-center justify-center border-none bg-transparent cursor-pointer p-0"
+      style={{ width: 20, height: 20, flexShrink: 0, color: 'var(--deep-sea-neutral-500)' }}
+      aria-label={ariaLabel}
+    >
+      {children}
+    </button>
   )
 }

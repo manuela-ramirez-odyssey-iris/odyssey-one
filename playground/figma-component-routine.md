@@ -42,7 +42,12 @@ If you find yourself about to write code without a quotable approval phrase from
 
 - Call `get_design_context` + `get_variable_defs` + `get_metadata` (or `use_figma` for deeper inspection) in parallel for the node.
 - Extract: layout, padding, gap, radius, fills, strokes, font props, icon positions/sizes/colors.
-- Note any **icon swap slots** — instances named `lucide / Placeholder*` mean a slot needs an `INSTANCE_SWAP` property + a React `icon` prop. Canonical examples: Badge (multi-slot, optional), SidebarButton (single-slot, required). If user explicitly says icons are fixed (won't change per instance), skip the swap-slot wiring.
+- For each **icon** in the component, ask up-front: **static or switchable?**
+  - **Static** = the icon never changes for this component type (e.g. the bell in TrailNav, a chevron in a navigation control). Use a real `lucide/<kebab-name>` master from `Icons md` (`230:1054`) at 16px or `Icons lg` (`366:619`) at 20px — pick by slot dimensions.
+  - **Switchable** = the icon varies per consumer instance, exposed as an `INSTANCE_SWAP` property + a React `icon` prop. **Default the slot to a placeholder, never to a real lucide icon.** The dashed-square placeholder visually signals "swap me out"; defaulting to a real icon (e.g. `lucide/plus`) implies wrong semantics ("+ button") that may not match the consumer's actual usage.
+  - Placeholder masters live in the **`Icons Placeholder`** frame on the Icons page (separate from `Icons md` / `Icons lg`): `placeholder-16` for 16px slots (md), `placeholder-20` for 20px slots (lg). Both already exist — never create new placeholders without explicit user confirmation.
+  - Size mapping: **16 = md, 20 = lg.** The size comes from the slot dimensions in the Figma component, not from a name suffix on the source icon.
+  - Canonical examples: Badge (multi-slot switchable, defaults to placeholder), SidebarButton (single-slot switchable, defaults to `placeholder-20` at `512:2395`), Button (single-slot switchable, defaults to `placeholder-20`), TrailNav bell (static, real `lucide/bell` at lg).
 
 ### Step 2: Token Validation
 
@@ -82,7 +87,11 @@ After the name is confirmed, both the React component name **and** the Figma com
 Do all the Figma changes the normalization requires:
 - Bind unbound colors / spacings / radii to existing variables.
 - Add new variants (clone existing → modify → add to set) if the spec needs them.
-- Add INSTANCE_SWAP / TEXT / BOOLEAN component properties as needed.
+- Add INSTANCE_SWAP / TEXT / BOOLEAN component properties as needed. **INSTANCE_SWAP icon slot defaults follow this rule:**
+  - **No universal default** (e.g. `Button.icon`, Badge `leftIcon` / `rightIcon` — every consumer brings a different icon, no realistic shared default) → default to placeholder (`Icons Placeholder/placeholder-16` for 16px slots, `Icons Placeholder/placeholder-20` for 20px slots).
+  - **Has a universal default** (e.g. TrailNav Profile chevron defaults to `lucide/chevron-down` — the closed-state default; TrailNav Editor right-icon defaults to `lucide/x` — close is the typical role) → default to the realistic icon, since defaulting to a placeholder would force every consumer to swap.
+  - Real lucide as a default for a "no universal default" slot is drift — swap it for the placeholder.
+- **Picker scoping via collection artboards:** when a switchable slot has ≥2 realistic alternatives (chevron-up/down, X/help, etc.), create a "collection" frame on the **Icons page** named after the pair (examples: `Chevron Up/Down`, `X / Help`). Place INSTANCES of the masters inside the frame. Then set the INSTANCE_SWAP property's `preferredValues` to the master component KEYS (not the instance IDs — `preferredValues` accepts component keys only). The collection frame is a visual reference for designers ("here are the options for this slot"); `preferredValues` is the technical restriction that scopes the picker. Both work together.
 - Expose nested instance properties (`isExposedInstance: true`) where variant pickers should bubble up to parents.
 - Take a screenshot of the result.
 
@@ -91,7 +100,10 @@ Do all the Figma changes the normalization requires:
 **Normalizing a molecule or organism means normalizing everything inside it too.** Walk the component tree and verify:
 
 - **Every color** is bound to a `Deep Sea Neutral/*`, `Carolina Blue/*`, `Bittersweet/*`, etc. variable — never raw hex, never legacy scales (e.g. `DS-Gray-Neutral/*` if those somehow exist). Use `use_figma` to read `boundVariables` on every fill / stroke. Raw hex on text fills, frame strokes, and icon strokes is the most common miss.
-- **Every icon** is an instance of `lucide/*` from our `Icons md` (`230:1054`) or `Icons lg` (`366:619`) frames. Hand-drawn vectors don't count — replace them with the right lucide instance.
+- **Every icon** is an instance of the right master, depending on whether the slot is static or switchable:
+  - Static slots → `lucide/<kebab-name>` from `Icons md` (`230:1054`) at 16px or `Icons lg` (`366:619`) at 20px.
+  - Switchable slots (INSTANCE_SWAP) → `placeholder-16` or `placeholder-20` from the `Icons Placeholder` frame.
+  Hand-drawn vectors don't count — replace them with the right master. A switchable slot defaulting to a real lucide icon is also drift — swap it for the matching placeholder.
 - **Every sub-component** that has a parallel in our library is an actual instance of that library component. A "badge" inside a molecule must be an INSTANCE of `Badge` (the component set `213:27`), not a frame styled to look like one. A "button" inside must be an instance of `SidebarButton` / future Button, not a frame with the same dimensions. **Frame-that-looks-like-component is a code smell — replace it with `createInstance()` of the real component, even if it costs a re-layout.**
 - **Naming clarity:** when you insert an instance, name it after the source component (`Badge`, not `Notification Badge`) so the layers panel makes the relationship obvious to anyone reviewing the file. The custom name shouldn't disguise what it is.
 
@@ -118,6 +130,50 @@ If the user says "code-first" instead at the start of the routine, skip Phase 1 
 ### Step 4: Compare Figma vs Code
 
 One small table, only mismatches. No need to list matching props.
+
+### Step 4b: Phase 2 path choice — ask the user
+
+Before writing code, ask explicitly:
+
+> "DesignSystemMap.html validation first, or straight to wiring consumers in the project?"
+
+**Default suggestion for multi-state atoms** (Button, Input, Toggle, Select, etc., where hover/pressed/disabled live on the component) **is DesignSystemMap-first.** The reason: hover/pressed/focus states can't be exercised without consumers, and consumers may not exist yet for every state. Wiring consumers first risks shipping broken interactive states because no one tested them.
+
+For single-state components or when the project already has consumers exercising every state, going straight to consumers is fine.
+
+The choice changes the Step 5 → Step 6 ordering, NOT what gets done. Phase 3 still updates the DesignSystemMap as a tracker entry regardless.
+
+#### Path A — DesignSystemMap-first (default for multi-state atoms)
+
+**The whole point of Path A is to validate the *design* before committing to *code*.** Do NOT write the React component or any production CSS until DSM validation passes. The DSM section uses self-contained scoped CSS (e.g. `.btn-demo` classes inside a `<style>` block within the section's HTML) so it stands alone, independent of any React work.
+
+**Section placement:** In-progress sections live in the **Normalize tab** (`tab-nav-right`, activated via `activateNormalizeTab(content)`), NOT in the Components tab composition line. They render WITHOUT the green `NORMALIZED` pill — that pill is the post-validation marker. After GATE B-DSM passes, the section is *moved* to the Components tab and the pill is added.
+
+1. **Delegate to a subagent** to add the in-progress section to the **Normalize tab** of `playground/DesignSystemMap.html` with demo cards for every variant × size × state. The section ships its own scoped `<style>` block (no production CSS touched yet). NO `NORMALIZED` pill on the section title. Mirror existing Components-tab sections for visual DNA but skip the pill. (See "DesignSystemMap = always subagent" rule below.)
+2. **GATE B-DSM** — user opens the Normalize tab in a browser, hovers/clicks every state, signs off. If anything's off, iterate on the Normalize-tab section only — still no React.
+3. **Sync Figma masters with any spec deltas from DSM iterations.** Dispatch a subagent (`use_figma`) to update the Figma component set so the masters reflect the FINAL agreed spec — not the GATE-A-era spec. **This is non-negotiable: Figma is updated before any production code is written.** See the "Figma always before code" rule below.
+4. **Subagent moves the validated section** from Normalize tab → Components tab: removes from `activateNormalizeTab(...)` content, adds to the composition line `compTab.innerHTML = ... + getXyzComponentHTML() + ...`, adds the `NORMALIZED` pill to the section title, adds the `compDetails.<Name>` modal entry.
+5. Step 5: Write the React component + `.figma.tsx` + production CSS classes (the DSM scoped styles port to `components.css` cleanly here).
+6. Step 6: Wire consumers.
+7. **GATE B-Project** — user runs the dev server, reports any Step-9 refinements.
+
+> **Path A common mistakes:**
+> - Writing the React component in step 1 alongside the DSM section — defeats the whole point. If you're going to write React anyway, do Path B.
+> - Dumping the in-progress section directly into the Components tab with the `NORMALIZED` pill — that lies to anyone scanning the page. Use the Normalize tab until GATE B-DSM passes.
+> - **Skipping step 3 (Figma sync) and going straight to React after GATE B-DSM** — the masters then lag the running app. Designers composing product screens get the wrong visuals. ALWAYS sync Figma between GATE B-DSM and Step 5.
+> - Editing DSM directly from the main thread instead of via a subagent — see the rule below. No exceptions, even for one-line bug fixes.
+
+### Figma always before code (system-wide rule)
+
+**Whenever the spec changes — at GATE A, mid-Phase-2 during DSM iteration, or post-GATE-B refinements — the order is always: Figma → DSM → Code. Never reverse.**
+
+If you catch yourself about to edit production code (`packages/ui/`, `apps/odyssey-one/src/`) while the Figma component set is on an older spec, that's the violation. Stop, dispatch a subagent to update Figma first, then continue. This rule is what makes Code Connect publish meaningful — designers dragging instances see the same component the user runs.
+
+#### Path B — Consumer-first
+1. Step 5: Write the component + `.figma.tsx`.
+2. Step 6: Wire consumers.
+3. **GATE B** — user runs the dev server.
+4. Phase 3 adds the DesignSystemMap section as documentation.
 
 ### Step 5: Write the component
 
@@ -147,7 +203,7 @@ User runs the dev server, reviews the live behavior, reports any Step-9-style re
 A normalize cycle is **not done** until ALL of the following are updated. Treat this as a checklist; tick each item explicitly.
 
 - [ ] `design.md` updated if new tokens / rules were introduced.
-- [ ] **`playground/DesignSystemMap.html` Components tab updated with the new component section** (NORMALIZED pill, layout/states demo, props table, token contract table, Figma reference, Code Connect note). Use a subagent — token-heavy. Add the new function to the composition line at the bottom (e.g. `... + getNewComponentHTML()`). Mirror the existing Badge / SidebarButton / Sidebar / GlobalSearch / LeadNav / TrailNav sections for visual DNA.
+- [ ] **`playground/DesignSystemMap.html` Components tab updated with the new component section** (NORMALIZED pill, layout/states demo, props table, token contract table, Figma reference, Code Connect note). **Always use a subagent** (general-purpose) — see "DesignSystemMap = always subagent" rule below. Add the new function to the composition line at the bottom (e.g. `... + getNewComponentHTML()`). Mirror the existing Badge / Button / SidebarButton / Sidebar / GlobalSearch / LeadNav / TrailNav sections for visual DNA.
 - [ ] Normalize tab cleared (any temporary preview content removed).
 - [ ] `playground/normalization-tracker.md` updated with a row in "Normalized Components" + (if applicable) entries in "Pushed to Figma" / "Pending Figma Sync" / "Pushed to Figma → Code Connect".
 - [ ] Old ad-hoc entries that are now solved → **remove from the ad-hoc list**.
@@ -200,7 +256,7 @@ Only run this when icons are baked into the component (not when icons are passed
    - Already `done` → done.
    - Already `pending` → append the component to "Used in".
    - Not listed → add a `pending` card with kebab plugin name, size, stroke (`--icon-stroke-md` 2.25 / `--icon-stroke-lg` 2).
-3. List the **new pending** icons and which frame to add them to: md → `230:1054`, lg → `366:619`. User adds via Lucide plugin.
+3. List the **new pending** icons and which frame to add them to: md → `Icons md` (`230:1054`), lg → `Icons lg` (`366:619`). User adds via Lucide plugin. **Placeholders are never "new pending"** — `placeholder-16` and `placeholder-20` already exist in the separate `Icons Placeholder` frame; if you think you need a new placeholder size, stop and ask first.
 4. When user confirms ("X added"): verify the icon is in the right frame at the right size and stroke, update the card to `done`. **Don't rename** — keep `lucide/<kebab-name>` as produced by the plugin; size differentiation comes from the parent frame.
 
 ---
@@ -230,5 +286,85 @@ When the user reports / requests a refinement after the implement step:
 - Neither changes without the user seeing the diff (one screenshot is enough).
 - Icons map to Lucide; never recreate SVGs by hand unless the Figma file is missing the master and waiting on the user would block work — then create programmatically and flag.
 - Hard-blocking gates: GATE A (Figma → Code), GATE B (Code → Sync Back), genuinely unknown tokens, multiple component matches, new-component implement/park.
-- No hardcoded hex/rgb/rgba in normalized components — always tokens.
 - Pre-flight check before every code-touching tool call: did the user explicitly approve the Figma changes? If you can't quote the approval phrase, you haven't crossed GATE A.
+
+### Token inventory pre-flight (run FIRST, before any writing)
+
+**Before writing a single line of CSS, DSM section, or Figma master — inventory tokens.** This is non-negotiable. The token-discipline failures in past cycles all came from skipping this and discovering existing tokens *after* the work was done.
+
+Required reads at the start of Phase 2 (and again at the start of any DSM/code work):
+
+1. **`packages/tokens/tokens.css`** — read top to bottom. Note every existing token by category:
+   - Colors (DSN scale, brand colors, semantic colors)
+   - Typography (`--font-primary`, `--font-size-xs/sm/base/lg`, `--line-height-xs/sm/base/lg`, weights if any)
+   - Spacing (`--spacing-1/2/3/4/5/6/8/12`)
+   - Radius (`--radius-sm/md/lg/xl/pill/full`)
+   - Shadow (`--shadow-sm/md/lg/up-md`)
+   - Icon (`--icon-size-md/lg`, `--icon-stroke-md/lg`)
+   - Transition (`--transition-fast/base/slow`)
+   - Layout (`--navbar-height`, etc.)
+   - Component tokens (`--btn-*`, `--badge-*`, etc. — re-use or supersede)
+2. **Figma variable collections** (via `use_figma`): list every collection's vars — colors (1–3), sizing (4 — Spacing + Radius), typography (5 — Font Size + Line Height + Font Weight), icon (6).
+3. **Match the spec to the inventory.** For each value category the new component touches (e.g. font-size, line-height, padding, gap, border-width, transition, shadow, icon-size, focus outline), confirm a token exists.
+4. **If a token is missing, propose it BEFORE writing.** Don't hardcode and tokenize later.
+
+Common categories that get skipped — verify these explicitly each cycle:
+- `--font-primary` (font-family) — never write `'Inter', sans-serif` directly
+- `--font-size-*` and `--line-height-*` — never write raw `14px`/`20px`/`16px`/`24px`
+- `--icon-size-md` (16) and `--icon-size-lg` (20) — never write raw width/height for icons
+- `--transition-fast` (150ms) — never write raw `120ms ease` or `200ms`
+- `--shadow-sm` — never write the full `0 1px 2px rgba(0,0,0,0.05)` literal
+- `--border-focus` — for focus rings, use the semantic token
+
+Skipping this pre-flight is the single most expensive mistake in past cycles: it forces a full revisit of CSS, Figma, and DSM after the user catches the drift. Always inventory first.
+
+### Token discipline — every value goes through a token
+
+Hardcoded values are normalization failures. The "no hardcoded hex/rgb/rgba" rule extends to **every value category**:
+
+| Category | What must be a token |
+|---|---|
+| Color | fills, strokes, text colors, shadow color |
+| Spacing | padding, gap, margin |
+| Radius | corner radius |
+| Typography | font-family, font-size, line-height, letter-spacing, font-weight |
+| Sizing | icon dimensions, fixed widths/heights, min/max constraints |
+| Border | border-width if we use multiple (1, 1.5, 2px) |
+| Effect | shadow blur, offset, spread |
+| Outline | focus-ring color, width, offset |
+| Transition | duration, easing curves |
+
+**If a needed token doesn't exist:** stop, propose it (name + value + scope) to the user, add it to `packages/tokens/tokens.css` AND the matching Figma variable collection, then bind. Never hardcode and "tokenize later."
+
+**This rule applies in three places, not just one:**
+
+1. **Production code** (`packages/ui/<Component>.jsx`, `apps/odyssey-one/src/styles/components.css`): only `var(--token)` references. Pre-flight grep for `\d+px`, raw hex `#`, `rgb(`, `rgba(` on the changed files — every match is suspect.
+2. **Figma masters**: every fill/stroke/padding/gap/radius shows a bound variable in `boundVariables`. Every text node has a text-style applied or font properties bound to typography variables. Inspect via `use_figma` before screenshotting at GATE A.
+3. **DSM section**: even though demos are scoped HTML/CSS, prefer `var(--token, fallback)` references so the DSM stays in sync if tokens shift, and the in-file inspector can read them.
+
+**Consumer migration is part of normalization.** When you wire consumers to the new component, also normalize their usage — icon sizes must match the new component's spec (e.g. `<Button>` expects 20px icons, so consumers passing `{...ICON_MD}` = 16 need to switch to `{...ICON_LG}` = 20 or migrate to the `icon` prop). Don't leave consumers calling the new API with old-API assumptions.
+
+### Pre-completion checklist (run before declaring any phase done)
+
+- [ ] No raw px values in the new component or its CSS (except width/height for icons that map to a sizing token).
+- [ ] No raw hex / rgb / rgba.
+- [ ] All Figma fills/strokes show `boundVariables`.
+- [ ] All Figma text nodes use a text style or have font properties bound to typography variables.
+- [ ] Consumer call sites updated to the new component's spec (icon sizes, prop API).
+- [ ] Any new tokens are in BOTH `tokens.css` AND the Figma variable collection.
+
+### DesignSystemMap = always subagent
+
+**Building or updating any section of `playground/DesignSystemMap.html` is always delegated to a subagent (`general-purpose`). No exceptions** — applies to both Phase 2 Path A and Phase 3.
+
+Why:
+- DSM sections are token-heavy, repetitive HTML strings (long concatenations, demo card scaffolding, modal tables) that bloat the main conversation context with low-information bytes.
+- The main thread's job is to **spec** the section (what to demo, what tokens to surface, modal table contents) and **review** the result, not to type the concatenations.
+- Verification still requires the user to open the page in a browser regardless of who wrote the section — delegating doesn't slow the GATE loop.
+
+How to dispatch:
+- Subagent type: `general-purpose`.
+- Hand it: the path to `DesignSystemMap.html`, the current insertion point or function to edit, the source-of-truth React component file (for the audit-the-code rule), the props + tokens content for the modal entry, and the composition-line update (`... + getNewComponentHTML() + ...`).
+- After it reports back, main thread verifies: section renders, modal trigger works, no broken HTML, composition line is correct.
+
+This rule applies retroactively to any future edits of existing sections (refinements, hover-state additions, tracker corrections) — they go through a subagent too.

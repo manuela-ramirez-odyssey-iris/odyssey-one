@@ -744,20 +744,6 @@
   </div>
 </div>
 
-<!-- NOTIFICATION BADGE -->
-<div class="category">
-  <div class="category-title">Notification Badge</div>
-  <div class="badge-grid">
-    <div class="badge-card adhoc" data-component="--">
-      <span style="display:inline-flex; align-items:center; justify-content:center; font-size:12px; font-weight:500; width:20px; height:20px; padding:4px; border-radius:9999px; background:#D23930; color:#FFFFFF;">6</span>
-      <div class="badge-meta">--</div>
-      <div class="badge-file">Navbar.jsx</div>
-      <div class="badge-props">font-size: 12px<br>font-weight: 500<br>width/height: 20px<br>border-radius: 9999px (circle)<br>bg: #D23930 (bittersweet-600)<br>positioned: absolute top:-6 left:16</div>
-      <div class="type-indicator adhoc">Ad-hoc</div>
-    </div>
-  </div>
-</div>
-
 <!-- BADGE COMPONENT (Normalized) — Compact Reference -->
 <div class="category">
   <div class="category-title">Badge Component (Normalized) <span style="font-size:11px; font-weight:500; color:#10B981; margin-left:8px;">NORMALIZED</span></div>
@@ -2388,6 +2374,10 @@ function getTrailNavComponentHTML() {
   var codeChip = 'font-family:\'SF Mono\',\'Fira Code\',monospace; font-size:11px; background:#F3F4F6; padding:1px 5px; border-radius:3px; color:#6B7280;';
   var svgBell = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/></svg>';
   var svgChev = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>';
+  /* Lucide circle-help (?) — used by Editor mode help slot */
+  var svgHelp = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>';
+  /* Lucide x — used by Editor mode close slot */
+  var svgX = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>';
 
   function avatarStub(initials) {
     return '<div style="width:32px; height:32px; border-radius:var(--radius-lg, 8px); background:var(--deep-sea-neutral-600, #4C5463); color:#fff; font-size:12px; font-weight:600; display:flex; align-items:center; justify-content:center;">' + initials + '</div>';
@@ -2427,15 +2417,66 @@ function getTrailNavComponentHTML() {
       '</div>';
   }
 
+  /* ── Editor mode renderer (Mode="Editor") ── */
+  function renderTrailNavEditor(opts) {
+    opts = opts || {};
+    var button1Visible = opts.button1Visible !== false;
+    var button1Label = opts.button1Label || 'Cancel';
+    var button2Visible = opts.button2Visible !== false;
+    var button2Label = opts.button2Label || 'Save';
+    var helpVisible = opts.helpVisible !== false;
+    var rightIcon = opts.rightIcon || 'x';
+    var rightIconVisible = opts.rightIconVisible !== false;
+    var hoverState = opts.hoverState;
+
+    /* Per-element styling driven by hoverState (idle defaults when unset) */
+    var btn1Bg = (hoverState === 'button1') ? 'rgba(255,255,255,0.1)' : 'transparent';
+    var btn2Bg = (hoverState === 'button2') ? 'rgba(255,255,255,0.1)' : 'transparent';
+    var helpColor = (hoverState === 'help') ? 'var(--deep-sea-neutral-200, #E4E6EB)' : 'var(--deep-sea-neutral-500, #6B7280)';
+    var rightColor = (hoverState === 'rightIcon') ? 'var(--deep-sea-neutral-200, #E4E6EB)' : 'var(--deep-sea-neutral-500, #6B7280)';
+
+    /* Outer wrapper — matches Profile demo for visual parity */
+    var outer = 'display:flex; align-items:center; justify-content:flex-end; gap:14px; padding:14px 16px; background:var(--deep-sea-neutral-900, #1B2537); border-radius:8px;';
+    /* Button container (left) */
+    var buttonContainer = 'display:flex; align-items:center; gap:12px;';
+    /* Cancel — Ghost lg (transparent + no border) */
+    var btn1Style = 'display:inline-flex; align-items:center; justify-content:center; height:40px; padding:8px 18px; background:' + btn1Bg + '; border:1px solid transparent; color:#fff; font-family:Inter,sans-serif; font-size:16px; line-height:24px; font-weight:500; border-radius:var(--radius-lg, 8px); cursor:default;';
+    /* Save — Outline lg */
+    var btn2Style = 'display:inline-flex; align-items:center; justify-content:center; height:40px; padding:8px 18px; background:' + btn2Bg + '; border:1px solid var(--deep-sea-neutral-300, #D0D4DB); color:#fff; font-family:Inter,sans-serif; font-size:16px; line-height:24px; font-weight:500; border-radius:var(--radius-lg, 8px); cursor:default;';
+    /* Icon container (right) — color set per-slot via wrappers below */
+    var iconContainer = 'display:flex; align-items:center; gap:20px;';
+    /* Static-size 20×20 wrapper preserves layout slot when icon hidden */
+    var iconSlot = 'display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px;';
+
+    /* Right icon SVG selection (INSTANCE_SWAP visualization) */
+    var rightIconSvg = (rightIcon === 'help') ? svgHelp : svgX;
+
+    /* When hidden, keep wrapper but empty inner content (slot preserved) */
+    var helpInner = helpVisible ? svgHelp : '';
+    var rightInner = rightIconVisible ? rightIconSvg : '';
+
+    return '' +
+      '<div style="' + outer + '">' +
+        '<div style="' + buttonContainer + '">' +
+          (button1Visible ? '<button style="' + btn1Style + '">' + button1Label + '</button>' : '') +
+          (button2Visible ? '<button style="' + btn2Style + '">' + button2Label + '</button>' : '') +
+        '</div>' +
+        '<div style="' + iconContainer + '">' +
+          '<span style="' + iconSlot + ' color:' + helpColor + ';">' + helpInner + '</span>' +
+          '<span style="' + iconSlot + ' color:' + rightColor + ';">' + rightInner + '</span>' +
+        '</div>' +
+      '</div>';
+  }
+
   return '' +
   '<div class="comp-section">' +
     '<div class="comp-section-title">TrailNav <span class="comp-normalized-label">NORMALIZED</span></div>' +
     '<div class="comp-section-subtitle">packages/ui/src/TrailNav.jsx</div>' +
-    '<div style="font-size:13px; color:#6B7280; margin-bottom:18px; line-height:1.5;">Molecule &mdash; the right (trailing) side of the navbar. Bell + notification Badge overlay + divider + avatar slot + name/role + chevron slot. Renamed from <code>User</code>. Avatar is consumer-provided (consumer brings <code>&lt;img&gt;</code>, initials, etc.). The notification chip is now a real <code>&lt;Badge variant="notification"&gt;</code> instance &mdash; replaces the old inline circle.</div>' +
+    '<div style="font-size:13px; color:#6B7280; margin-bottom:18px; line-height:1.5;">Molecule &mdash; the right (trailing) side of the navbar. Two modes via the <code>mode</code> prop: <strong>Profile</strong> (default) and <strong>Editor</strong>. Profile = bell + notification Badge overlay + divider + avatar slot + name/role + chevron slot. Editor = two action buttons (Cancel + Save) + help icon + close icon &mdash; shown when a domain enters a global edit context (e.g. layout edit mode). Parent Nav swaps the whole TrailNav variant (Profile/Editor are not co-rendered). Avatar is consumer-provided (consumer brings <code>&lt;img&gt;</code>, initials, etc.). Profile&rsquo;s notification chip is a real <code>&lt;Badge variant="notification"&gt;</code> instance. Editor mode composes 2 <code>@odyssey/ui</code> Button instances (Cancel = Ghost lg, Save = Outline lg) + 2 lucide icons; per-element show/hide via 4 BOOLEAN props (<code>showPrimaryButton</code>, <code>showSecondaryButton</code>, <code>showHelpIcon</code>, <code>showRightIcon</code>); right icon is INSTANCE_SWAP scoped to <code>lucide/x</code> &amp; <code>lucide/circle-question-mark</code>.</div>' +
 
-    /* Sub-section: States */
+    /* Sub-section: Profile mode states */
     '<div class="comp-subsection">' +
-      '<div class="comp-subsection-title">States</div>' +
+      '<div class="comp-subsection-title">Profile mode &mdash; states</div>' +
       '<div class="comp-card-grid">' +
         '<div class="comp-card">' +
           renderTrailNav({ notificationCount: 6 }) +
@@ -2448,9 +2489,9 @@ function getTrailNavComponentHTML() {
       '</div>' +
     '</div>' +
 
-    /* Sub-section: Hover (code-only — not in Figma) */
+    /* Sub-section: Profile mode hover (code-only — not in Figma) */
     '<div class="comp-subsection">' +
-      '<div class="comp-subsection-title">Hover &mdash; <span style="font-weight:400; color:#6B7280;">code-only, deliberately not pushed to Figma</span></div>' +
+      '<div class="comp-subsection-title">Profile mode &mdash; Hover <span style="font-weight:400; color:#6B7280;">— code-only, deliberately not pushed to Figma</span></div>' +
       '<div class="comp-card-grid">' +
         '<div class="comp-card">' +
           renderTrailNav({ notificationCount: 6, bellHover: true }) +
@@ -2459,6 +2500,52 @@ function getTrailNavComponentHTML() {
         '<div class="comp-card">' +
           renderTrailNav({ notificationCount: 6, profileHover: true }) +
           '<div class="comp-card-note">Profile hover &mdash; name <code>300</code>&rarr;<code>100</code>, role <code>400</code>&rarr;<code>200</code>, chevron <code>500</code>&rarr;<code>200</code>. Avatar image is unchanged on hover (per spec).</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    /* Sub-section: Editor mode states */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Editor mode &mdash; states</div>' +
+      '<div class="comp-card-grid">' +
+        '<div class="comp-card">' +
+          renderTrailNavEditor({}) +
+          '<div class="comp-card-note">Default &mdash; <code>mode="editor"</code>. Cancel (Ghost lg) + Save (Outline lg) + Help (?) + X. All elements visible.</div>' +
+        '</div>' +
+        '<div class="comp-card">' +
+          renderTrailNavEditor({ rightIcon: 'help', helpVisible: false }) +
+          '<div class="comp-card-note"><code>rightIcon="help"</code> + <code>showHelpIcon={false}</code> &mdash; INSTANCE_SWAP swap shows ? in the right slot. Help is hidden because repeating icons (two ?s) doesn\'t happen in practice. Picker scoped to <code>lucide/x</code> + <code>lucide/circle-question-mark</code> via Figma <code>preferredValues</code>.</div>' +
+        '</div>' +
+        '<div class="comp-card">' +
+          renderTrailNavEditor({ helpVisible: false }) +
+          '<div class="comp-card-note">Help icon hidden via <code>showHelpIcon={false}</code> (Figma <code>Show help icon</code> BOOLEAN). The 20&times;20 wrapper preserves the slot &mdash; X stays in place, doesn\'t collapse left.</div>' +
+        '</div>' +
+        '<div class="comp-card">' +
+          renderTrailNavEditor({ button2Visible: false }) +
+          '<div class="comp-card-note">Save button hidden via <code>showSecondaryButton={false}</code> (Figma <code>Show button 2</code> BOOLEAN).</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    /* Sub-section: Editor mode hover (code-only — not in Figma) */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Editor mode &mdash; Hover <span style="font-weight:400; color:#6B7280;">— code-only, deliberately not pushed to Figma (mirrors Profile mode pattern)</span></div>' +
+      '<div class="comp-card-grid">' +
+        '<div class="comp-card">' +
+          renderTrailNavEditor({ hoverState: 'button1' }) +
+          '<div class="comp-card-note">Cancel hover &mdash; bg <code>transparent</code> &rarr; <code>rgba(255,255,255,0.1)</code> (white@10%). Inherits from <code>@odyssey/ui</code> Button (Ghost lg). The Cancel button uses the new Ghost variant &mdash; no border, transparent idle. No code work needed in TrailNav &mdash; the Button component already owns this state.</div>' +
+        '</div>' +
+        '<div class="comp-card">' +
+          renderTrailNavEditor({ hoverState: 'button2' }) +
+          '<div class="comp-card-note">Save hover &mdash; bg <code>transparent</code> &rarr; <code>rgba(255,255,255,0.1)</code>. Inherits from <code>@odyssey/ui</code> Button (Outline lg). No code work needed in TrailNav.</div>' +
+        '</div>' +
+        '<div class="comp-card">' +
+          renderTrailNavEditor({ hoverState: 'help' }) +
+          '<div class="comp-card-note">Help icon hover &mdash; color <code>--deep-sea-neutral-500</code> &rarr; <code>--deep-sea-neutral-200</code>. Same ladder as Profile mode bell/chevron. Spec\'d via the <code>.trail-nav-editor-icon:hover</code> CSS rule in <code>components.css</code>.</div>' +
+        '</div>' +
+        '<div class="comp-card">' +
+          renderTrailNavEditor({ hoverState: 'rightIcon' }) +
+          '<div class="comp-card-note">Close-X icon hover &mdash; same color ladder as Help. Same CSS rule. Whether the right icon is X or ? (swapped via INSTANCE_SWAP), the hover behavior is identical.</div>' +
         '</div>' +
       '</div>' +
     '</div>' +
@@ -2472,7 +2559,7 @@ function getTrailNavComponentHTML() {
     '<div class="comp-subsection">' +
       '<div class="comp-subsection-title">Figma Reference</div>' +
       '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
-        'Component <code style="' + codeChip + '">639:562</code> in Design System - MCP (renamed to <code>TrailNav</code>). TEXT properties <code style="' + codeChip + '">Name</code> / <code style="' + codeChip + '">Role</code> wired to the name/role text nodes (added 2026-05-04). Notification chip bg bound to <code style="' + codeChip + '">Bittersweet/600</code> variable.' +
+        'Component set <code style="' + codeChip + '">1565:648</code> in Design System - MCP &mdash; <code>Mode=Profile | Mode=Editor</code> (Profile variant <code style="' + codeChip + '">639:562</code>, Editor variant <code style="' + codeChip + '">1565:649</code>). Profile: TEXT properties <code style="' + codeChip + '">Name</code> / <code style="' + codeChip + '">Role</code> wired to the name/role text nodes; notification chip bg bound to <code style="' + codeChip + '">Bittersweet/600</code> variable. Editor: 4 BOOLEANs on the set (Show button 1/2, Show help icon, Show close icon), Right icon INSTANCE_SWAP (default <code>lucide/x</code>, preferred [<code>lucide/x</code>, <code>lucide/circle-question-mark</code>]); Cancel/Save Button instances exposed (<code>isExposedInstance: true</code>) so consumers configure variant/label.' +
       '</div>' +
     '</div>' +
 
@@ -2480,7 +2567,448 @@ function getTrailNavComponentHTML() {
     '<div class="comp-subsection">' +
       '<div class="comp-subsection-title">Code Connect</div>' +
       '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
-        'Mapped via <code style="' + codeChip + '">packages/ui/src/TrailNav.figma.tsx</code>, published 2026-05-04.' +
+        'Mapped via <code style="' + codeChip + '">packages/ui/src/TrailNav.figma.tsx</code>. Initial mapping (Profile mode) published 2026-05-04; Editor mode added in Phase 3 of the Editor rollout.' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+/* ── Navbar (organism) component reference HTML ── */
+function getNavbarComponentHTML() {
+  var codeChip = 'font-family:\'SF Mono\',\'Fira Code\',monospace; font-size:11px; background:#F3F4F6; padding:1px 5px; border-radius:3px; color:#6B7280;';
+
+  /* Inline icons used by the composed demo */
+  var svgMenu = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>';
+  var svgChevL = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>';
+  var svgChevR = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>';
+  var svgChevDown = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>';
+  var svgCircleX = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>';
+  var svgBell = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/></svg>';
+  var svgChevDown16 = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>';
+
+  /* Real Odyssey-One logo SVG (mirrors LeadNav demo) */
+  function odysseyLogoSvg() {
+    var clipId = 'odyssey-logo-clip-navbar';
+    var odysseyColor = 'var(--white, #fff)';
+    var oneColor = 'var(--carolina-blue-400, #5BA4D4)';
+    return '<svg width="172" height="24" viewBox="0 0 172 24" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Odyssey One">' +
+      '<g clip-path="url(#' + clipId + ')">' +
+        '<path d="M12.8985 5.26607C10.9236 5.26607 9.26832 5.97702 7.9326 7.40072C6.59687 8.82442 5.92901 10.591 5.92901 12.697C5.92901 14.5623 6.46222 16.0524 7.52685 17.1673C8.59148 18.2804 10.0116 18.837 11.7872 18.837C13.7297 18.837 15.3796 18.1009 16.7369 16.6287C18.096 15.1548 18.7746 13.3594 18.7746 11.2409C18.7746 9.49767 18.2216 8.065 17.1193 6.94471C16.017 5.82442 14.6076 5.26607 12.8985 5.26607ZM11.4658 24.0004C9.83565 24.0004 8.35809 23.7777 7.02416 23.3307C5.69202 22.8855 4.5071 22.2158 3.4694 21.3235C2.37963 20.3702 1.53044 19.1925 0.918234 17.7921C0.306025 16.3935 -0.000976562 14.9052 -0.000976562 13.3271C-0.000976562 11.6251 0.261142 10.0363 0.785379 8.56051C1.30782 7.08295 2.08879 5.74184 3.12649 4.53896C4.34014 3.10629 5.81949 2.01114 7.56814 1.24991C9.3168 0.485103 11.2109 0.104492 13.254 0.104492C16.6759 0.104492 19.4425 1.08833 21.5538 3.05961C23.6651 5.02909 24.719 7.59103 24.719 10.7436C24.719 12.4348 24.4514 14.0237 23.9164 15.5138C23.3832 17.0022 22.6023 18.3415 21.5771 19.5336C20.3222 20.9968 18.8374 22.1063 17.1265 22.8621C15.4155 23.6198 13.5286 23.9986 11.464 23.9986" fill="' + odysseyColor + '"/>' +
+        '<path d="M29.3146 12.7433C29.3146 13.5099 29.548 14.1257 30.0148 14.5925C30.4798 15.0592 31.0956 15.2908 31.8622 15.2908C32.7006 15.2908 33.399 14.9641 33.9591 14.3124C34.5211 13.6607 34.8012 12.8456 34.8012 11.8653C34.8012 11.1221 34.566 10.5189 34.0956 10.0575C33.6252 9.59605 33.0202 9.36445 32.2751 9.36445C31.4152 9.36445 30.706 9.68223 30.1494 10.3178C29.5929 10.9551 29.3128 11.7612 29.3128 12.7433M40.5283 0L37.636 18.3716H33.6521L33.9017 16.8205C33.3074 17.4919 32.6593 18 31.9502 18.3429C31.2446 18.6858 30.4834 18.8582 29.6683 18.8582C28.2931 18.8582 27.1656 18.3375 26.2841 17.298C25.4008 16.2603 24.9609 14.9174 24.9609 13.2729C24.9609 11.2029 25.5552 9.48833 26.7455 8.12926C27.934 6.7702 29.4259 6.09156 31.2195 6.09156C32.0256 6.09156 32.7545 6.25853 33.4062 6.59425C34.0579 6.92998 34.6737 7.45781 35.2482 8.17774V7.83303C35.2482 7.59605 35.2608 7.35009 35.2841 7.09336C35.3092 6.83662 35.3398 6.57451 35.381 6.30521L36.3793 0H40.5283Z" fill="' + odysseyColor + '"/>' +
+        '<path d="M62.8551 7.27838L61.6217 9.96958C61.0777 9.58179 60.575 9.29992 60.1172 9.12398C59.6576 8.94624 59.2034 8.85647 58.7528 8.85647C58.3722 8.85647 58.0598 8.94265 57.812 9.11859C57.5625 9.29094 57.4368 9.50459 57.4368 9.75773C57.4368 10.1222 57.8479 10.4615 58.6702 10.7757C59.0329 10.9103 59.3183 11.0234 59.523 11.1204C60.6684 11.6177 61.4709 12.133 61.9287 12.668C62.3865 13.2012 62.6163 13.8672 62.6163 14.6644C62.6163 15.9211 62.128 16.9301 61.1567 17.6931C60.1837 18.4561 58.8892 18.8367 57.2698 18.8367C56.3524 18.8367 55.4763 18.7164 54.6433 18.4759C53.8102 18.2353 53.0005 17.869 52.2178 17.3789L53.6289 14.51C54.4368 15.0073 55.1101 15.361 55.6576 15.5656C56.2034 15.7721 56.7169 15.8726 57.198 15.8726C57.6163 15.8726 57.9539 15.7811 58.2052 15.5944C58.4566 15.4094 58.584 15.1689 58.584 14.878C58.584 14.4274 58.0041 13.966 56.8425 13.492C56.4943 13.3502 56.2267 13.2389 56.0346 13.1599C55.11 12.7488 54.4548 12.3035 54.067 11.8206C53.6792 11.3376 53.4853 10.738 53.4853 10.0198C53.4853 8.87263 53.9646 7.9211 54.9197 7.16168C55.8767 6.40225 57.1065 6.02344 58.6074 6.02344C59.365 6.02344 60.1029 6.12936 60.8246 6.3448C61.5427 6.55845 62.2196 6.86904 62.8515 7.28017" fill="' + odysseyColor + '"/>' +
+        '<path d="M73.7908 7.27838L72.5556 9.96958C72.0099 9.58179 71.509 9.29992 71.0529 9.12398C70.5933 8.94624 70.1373 8.85647 69.6867 8.85647C69.3097 8.85647 68.9955 8.94265 68.7459 9.11859C68.4982 9.29094 68.3725 9.50459 68.3725 9.75773C68.3725 10.1222 68.7836 10.4615 69.6059 10.7757C69.9686 10.9103 70.254 11.0234 70.4587 11.1204C71.6041 11.6177 72.4048 12.133 72.8644 12.668C73.3222 13.2012 73.552 13.8672 73.552 14.6644C73.552 15.9211 73.0637 16.9301 72.0924 17.6931C71.1194 18.4561 69.8249 18.8367 68.2038 18.8367C67.2863 18.8367 66.412 18.7164 65.579 18.4759C64.7441 18.2353 63.9362 17.869 63.1553 17.3789L64.5646 14.51C65.3725 15.0073 66.0458 15.361 66.5933 15.5656C67.1391 15.7721 67.6508 15.8726 68.1337 15.8726C68.552 15.8726 68.8878 15.7811 69.1409 15.5944C69.3923 15.4094 69.5197 15.1689 69.5197 14.878C69.5197 14.4274 68.938 13.966 67.7783 13.492C67.43 13.3502 67.1607 13.2389 66.9704 13.1599C66.0458 12.7488 65.3887 12.3035 65.0027 11.8206C64.6149 11.3376 64.421 10.738 64.421 10.0198C64.421 8.87263 64.9003 7.9211 65.8555 7.16168C66.8124 6.40225 68.0404 6.02344 69.5413 6.02344C70.3007 6.02344 71.0386 6.12936 71.7603 6.3448C72.4784 6.55845 73.1553 6.86904 73.7872 7.28017" fill="' + odysseyColor + '"/>' +
+        '<path d="M83.7976 10.9666C83.7564 10.3185 83.5409 9.80327 83.1459 9.42446C82.7492 9.04385 82.2285 8.85534 81.5822 8.85534C80.9969 8.85534 80.4745 9.04026 80.0131 9.41189C79.5517 9.78352 79.1998 10.3006 78.9628 10.9649H83.7994L83.7976 10.9666ZM78.6774 13.3957V13.6668C78.6774 14.4245 78.8713 15.0044 79.259 15.3975C79.645 15.7943 80.2106 15.9918 80.9538 15.9918C81.4763 15.9918 81.9682 15.8823 82.4296 15.665C82.891 15.4478 83.3883 15.0977 83.9179 14.6166L86.1926 16.9164C85.5122 17.5627 84.7276 18.0492 83.8407 18.3724C82.952 18.6973 81.9592 18.8589 80.8605 18.8589C78.9072 18.8589 77.3937 18.3383 76.3147 17.2988C75.2357 16.2611 74.6953 14.8033 74.6953 12.9307C74.6953 10.8841 75.3362 9.21799 76.6217 7.93972C77.9054 6.66144 79.5678 6.02051 81.6073 6.02051C83.4565 6.02051 84.9449 6.58424 86.0705 7.7153C87.1962 8.84636 87.7599 10.3437 87.7599 12.2072C87.7599 12.3742 87.7348 12.674 87.6881 13.1085C87.6702 13.2431 87.6612 13.3365 87.6522 13.3939H78.6774V13.3957Z" fill="' + odysseyColor + '"/>' +
+        '<path d="M97.5775 6.30566L93.9402 14.1979L92.0174 6.30566H87.985L90.4662 14.7276C90.4662 14.7276 92.3226 20.8137 88.9366 20.8137C87.8486 20.8137 60.3118 20.8155 47.2938 20.8155L47.1753 21.0382C47.0407 21.3254 46.3208 22.7724 44.9814 23.855C59.0694 23.855 87.8791 23.8532 89.6673 23.8532C92.5793 23.8532 94.0694 20.496 94.0694 20.496L101.556 6.30746H97.5775V6.30566Z" fill="' + odysseyColor + '"/>' +
+        '<path d="M49.584 6.30554L45.9466 14.1978L44.022 6.30554H39.9897L42.4727 14.7274C42.4727 14.7274 44.3273 20.8136 40.9413 20.8136C40.0849 20.8136 29.2483 20.8154 22.1657 20.8154C20.961 22.0991 19.5606 23.117 17.9951 23.8549C26.1441 23.8531 40.1208 23.8531 41.672 23.8531C44.584 23.8531 46.0741 20.4958 46.0741 20.4958L53.5606 6.30734H49.5822L49.584 6.30554Z" fill="' + odysseyColor + '"/>' +
+        '<path d="M131.466 0.845703H138.227L145.625 16.5369H145.688L147.889 0.845703H152.864L149.706 23.4256H143.2L135.577 7.35199H135.514L133.282 23.4256H128.308L131.466 0.845703Z" fill="' + oneColor + '"/>' +
+        '<path d="M155.289 0.845703H170.628L169.991 5.43816H159.627L159.02 9.64822H168.811L168.174 14.2407H158.382L157.745 18.8331H168.684L168.047 23.4256H152.133L155.289 0.845703Z" fill="' + oneColor + '"/>' +
+        '<path d="M116.516 5.19592C114.541 5.19592 112.886 5.90687 111.55 7.33057C110.214 8.75427 109.546 10.5209 109.546 12.6268C109.546 14.4921 110.079 15.9823 111.144 17.0972C112.209 18.2103 113.629 18.7668 115.404 18.7668C117.347 18.7668 118.997 18.0308 120.354 16.5586C121.713 15.0846 122.392 13.2893 122.392 11.1708C122.392 9.42752 121.839 7.99484 120.736 6.87455C119.634 5.75427 118.225 5.19592 116.516 5.19592ZM115.083 23.9302C113.453 23.9302 111.975 23.7076 110.641 23.2606C109.309 22.8153 108.124 22.1456 107.087 21.2534C105.997 20.3 105.148 19.1223 104.535 17.722C103.923 16.3234 103.616 14.8351 103.616 13.257C103.616 11.555 103.878 9.96612 104.403 8.49035C104.925 7.01279 105.706 5.67168 106.744 4.46881C107.957 3.03613 109.437 1.94098 111.185 1.17976C112.932 0.414948 114.826 0.0361328 116.869 0.0361328C120.291 0.0361328 123.058 1.01997 125.169 2.99125C127.28 4.96073 128.334 7.52267 128.334 10.6753C128.334 12.3665 128.067 13.9553 127.532 15.4455C126.999 16.9338 126.218 18.2731 125.193 19.4652C123.938 20.9284 122.453 22.0379 120.742 22.7938C119.031 23.5514 117.144 23.9302 115.079 23.9302" fill="' + oneColor + '"/>' +
+      '</g>' +
+      '<defs><clipPath id="' + clipId + '"><rect width="172" height="24" fill="white"/></clipPath></defs>' +
+    '</svg>';
+  }
+
+  /* ── Lead slot — hamburger + Odyssey ONE logo (no padding; the navbar shell owns padding) ── */
+  function renderLeadSlot() {
+    var hamburger = 'display:inline-flex; align-items:center; justify-content:center; width:36px; height:36px; padding:8px; background:transparent; border:none; color:var(--deep-sea-neutral-500, #6B7280); cursor:default;';
+    return '<div style="display:flex; align-items:center; gap:var(--spacing-4, 16px);">' +
+             '<button style="' + hamburger + '">' + svgMenu + '</button>' +
+             odysseyLogoSvg() +
+           '</div>';
+  }
+
+  /* ── Search slot — minimal inline GlobalSearch (matches molecule visual) ── */
+  function renderSearchSlot() {
+    var historyBtn = 'display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; padding:6px; background:transparent; border:none; cursor:default; color:var(--deep-sea-neutral-400, #9DA3B0);';
+    var wrap = 'position:relative; display:flex; align-items:center; flex:1; background:var(--deep-sea-neutral-900, #1B2537); border:1px solid var(--carolina-blue-400, #5BA4D4); border-radius:var(--radius-lg, 8px); padding-right:12px; gap:12px; overflow:hidden; box-shadow:0 1px 2px 0 rgba(0,0,0,0.05);';
+    var scope = 'display:flex; align-items:center; gap:12px; padding:6px 8px 6px 12px; background:var(--deep-sea-neutral-700, #384253); border:none; border-right:1px solid var(--deep-sea-neutral-600, #4C5463); color:var(--deep-sea-neutral-400, #9DA3B0); font-family:Inter,sans-serif; font-size:14px; line-height:20px; cursor:default;';
+    var placeholderText = 'flex:1; color:var(--deep-sea-neutral-400, #9DA3B0); font-family:Inter,sans-serif; font-size:14px;';
+    var clearBtn = 'display:inline-flex; align-items:center; justify-content:center; padding:0; background:transparent; border:none; color:var(--deep-sea-neutral-400, #9DA3B0); cursor:default;';
+    /* min/max on the OUTER wrapper — entire GlobalSearch is bounded 590..900 */
+    return '<div style="display:flex; align-items:center; gap:var(--spacing-2, 8px); min-width:590px; max-width:900px; flex:1;">' +
+             '<div style="display:flex; align-items:center; gap:4px; height:32px;">' +
+               '<button style="' + historyBtn + '">' + svgChevL + '</button>' +
+               '<button style="' + historyBtn + '">' + svgChevR + '</button>' +
+             '</div>' +
+             '<div style="' + wrap + '">' +
+               '<button style="' + scope + '">All' + svgChevDown + '</button>' +
+               '<span style="' + placeholderText + '">Search</span>' +
+               '<button style="' + clearBtn + '">' + svgCircleX + '</button>' +
+             '</div>' +
+           '</div>';
+  }
+
+  /* ── Trail slot — bell + divider + avatar + name/role + chevron (Profile mode) ── */
+  function renderTrailSlot() {
+    var bellBtn = 'position:relative; display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; padding:6px; background:transparent; border:none; cursor:default; color:var(--deep-sea-neutral-500, #6B7280);';
+    var dot = 'position:absolute; top:-6px; left:16px; pointer-events:none; display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px; box-sizing:border-box; padding:4px; border-radius:var(--radius-full, 9999px); background:var(--bittersweet-600, #D23930); color:var(--text-inverse, #fff); font-family:Inter,sans-serif; font-size:12px; line-height:16px; font-weight:500;';
+    var divider = 'border-left:1px solid var(--deep-sea-neutral-700, #384253); padding-left:20px; padding-right:4px; display:flex; align-items:center; gap:8px;';
+    var profileBtn = 'display:flex; align-items:center; gap:12px; background:transparent; border:none; padding:0; cursor:default;';
+    var avatar = '<div style="width:32px; height:32px; border-radius:var(--radius-lg, 8px); background:var(--deep-sea-neutral-600, #4C5463); color:#fff; font-size:12px; font-weight:600; display:flex; align-items:center; justify-content:center;">AC</div>';
+    var nameEl = 'font-family:Inter,sans-serif; font-size:14px; font-weight:500; line-height:20px; color:var(--deep-sea-neutral-300, #D0D4DB);';
+    var roleEl = 'font-family:Inter,sans-serif; font-size:12px; font-weight:400; line-height:12px; color:var(--deep-sea-neutral-400, #9DA3B0);';
+    return '<div style="display:flex; align-items:stretch; gap:16px;">' +
+             '<button style="' + bellBtn + '">' + svgBell +
+               '<span style="' + dot + '">6</span>' +
+             '</button>' +
+             '<div style="' + divider + '">' +
+               '<button style="' + profileBtn + '">' +
+                 avatar +
+                 '<div style="display:flex; flex-direction:column; align-items:flex-start; white-space:nowrap;">' +
+                   '<span style="' + nameEl + '">Amy Cook</span>' +
+                   '<span style="' + roleEl + '">Admin</span>' +
+                 '</div>' +
+                 '<span style="color:var(--deep-sea-neutral-500, #6B7280);">' + svgChevDown16 + '</span>' +
+               '</button>' +
+             '</div>' +
+           '</div>';
+  }
+
+  /* ── Composed shell (Navbar) ── */
+  function renderNavbarShell() {
+    /* Padding 14 24 14 16 — 14 raw (no Spacing token), --spacing-6 right, --spacing-4 left */
+    var shell = 'display:flex; align-items:center; justify-content:space-between; gap:var(--spacing-4, 16px); padding:14px var(--spacing-6, 24px) 14px var(--spacing-4, 16px); background:var(--navbar-bg, var(--deep-sea-neutral-900, #1B2537)); border-radius:var(--radius-lg, 8px); min-width:1100px;';
+    return '<div style="' + shell + '">' +
+             renderLeadSlot() +
+             renderSearchSlot() +
+             renderTrailSlot() +
+           '</div>';
+  }
+
+  return '' +
+  '<div class="comp-section">' +
+    '<div class="comp-section-title">Navbar <span class="comp-normalized-label">NORMALIZED</span></div>' +
+    '<div class="comp-section-subtitle">packages/ui/src/Navbar.jsx</div>' +
+    '<div style="font-size:13px; color:#6B7280; margin-bottom:18px; line-height:1.5;">Organism &mdash; layout shell for the top navigation bar. Composes <code>LeadNav</code> + <code>GlobalSearch</code> + <code>TrailNav</code> via slot props (<code>lead</code>, <code>search</code>, <code>trail</code>). The shell provides the surface (DSN/900 background, padding 14&middot;24&middot;14&middot;16) and the <code>justify-between</code> distribution. <code>searchRef</code> / <code>trailRef</code> attach to internal wrappers for consumer-rendered dropdowns&rsquo; click-outside detection.</div>' +
+
+    /* Sub-section: Composition demo */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Composition</div>' +
+      '<div class="comp-card-grid">' +
+        '<div class="comp-card" style="grid-column: 1 / -1;">' +
+          '<div style="overflow-x:auto;">' + renderNavbarShell() + '</div>' +
+          '<div class="comp-card-note">Default composition &mdash; <code>LeadNav</code> left, <code>GlobalSearch</code> center, <code>TrailNav</code> (Profile mode) right. <code>justify-between</code> distributes the three slots; the search slot stretches between the fixed-width lead and trail. GlobalSearch is bounded 590&ndash;900px on the <strong>whole</strong> component (history-nav arrows + scope dropdown + search field) &mdash; the dropdown is auto-width, the search field absorbs remaining space.</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    /* Props & Tokens — modal */
+    '<div class="comp-subsection">' +
+      '<button class="comp-details-button" onclick="showCompDetails(\'Navbar\')">Show props &amp; tokens</button>' +
+    '</div>' +
+
+    /* Sub-section: Figma reference */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Figma Reference</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
+        'Component <code style="' + codeChip + '">1661:206</code> in Design System - MCP. Composes 3 nested instances (LeadNav, GlobalSearch, TrailNav), all <code>isExposedInstance: true</code>. Background bound to <code>Deep Sea Neutral/900</code>. Padding-left bound to <code>Spacing/4</code>; padding-right to <code>Spacing/6</code>; padding-top/bottom stay raw at 14 (not in spacing scale). Renamed from Figma\'s "Header".' +
+      '</div>' +
+    '</div>' +
+
+    /* Sub-section: Code Connect */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Code Connect</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
+        'Mapped via <code style="' + codeChip + '">packages/ui/src/Navbar.figma.tsx</code>. Maps the 3 nested instances to slot props using <code>figma.instance(\'...\')</code> &mdash; selecting the Figma Navbar in <code>get_design_context</code> outputs <code>&lt;Navbar lead={&lt;LeadNav /&gt;} search={&lt;GlobalSearch /&gt;} trail={&lt;TrailNav /&gt;} /&gt;</code> with each child rendering its own Code Connect snippet.' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+/* ── Button component reference HTML ── */
+function getButtonComponentHTML() {
+  var codeChip = 'font-family:\'SF Mono\',\'Fira Code\',monospace; font-size:11px; background:#F3F4F6; padding:1px 5px; border-radius:3px; color:#6B7280;';
+  /* Lucide plus icon (20px, currentColor) */
+  var plus = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>';
+
+  /* Render a button with given variant/size + optional disabled + optional icon */
+  function btn(variant, size, opts) {
+    opts = opts || {};
+    var hasIcon = !opts.noIcon;
+    var classes = 'btn-demo btn-demo--' + variant + ' btn-demo--' + size + (hasIcon ? ' btn-demo--has-icon' : '');
+    if (opts.forceState) classes += ' btn-demo--force-' + opts.forceState;
+    var icon = hasIcon ? '<span class="btn-demo__icon">' + plus + '</span>' : '';
+    var label = opts.label || 'Button';
+    var disabled = opts.disabled ? 'disabled' : '';
+    return '<button type="button" class="' + classes + '" ' + disabled + '>' + icon + '<span>' + label + '</span></button>';
+  }
+
+  /* Dark-surface wrapper (for Outline visibility) */
+  function dark(content) {
+    return '<div class="btn-demo-dark-surface">' + content + '</div>';
+  }
+
+  return '' +
+  '<style>' +
+    '.btn-demo { display: inline-flex; align-items: center; justify-content: center; gap: var(--spacing-2, 8px); font-family: var(--font-primary, \'Inter\', sans-serif); font-weight: 500; border-radius: var(--radius-lg, 8px); border: 1px solid transparent; cursor: pointer; white-space: nowrap; user-select: none; transition: background-color var(--transition-fast, 150ms ease), border-color var(--transition-fast, 150ms ease), box-shadow var(--transition-fast, 150ms ease), color var(--transition-fast, 150ms ease); }' +
+    '.btn-demo:focus-visible { outline: 2px solid var(--carolina-blue-400, #5BA4D4); outline-offset: 2px; }' +
+    '.btn-demo:disabled { cursor: not-allowed; }' +
+    '.btn-demo .btn-demo__icon { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: var(--icon-size-lg, 20px); height: var(--icon-size-lg, 20px); color: currentColor; }' +
+    '.btn-demo .btn-demo__icon > svg { width: 100%; height: 100%; }' +
+    /* Sizes — base rules (height, type, vertical padding); horizontal padding is set per icon-state */
+    '.btn-demo--sm { height: 32px; padding-top: 6px; padding-bottom: 6px; font-size: var(--font-size-sm, 14px); line-height: var(--line-height-sm, 20px); }' +
+    '.btn-demo--md { height: 36px; padding-top: 6px; padding-bottom: 6px; font-size: var(--font-size-base, 16px); line-height: var(--line-height-base, 24px); }' +
+    '.btn-demo--lg { height: 40px; padding-top: 8px; padding-bottom: 8px; font-size: var(--font-size-base, 16px); line-height: var(--line-height-base, 24px); }' +
+    /* Without icon — symmetric horizontal padding */
+    '.btn-demo--sm { padding-left: 14px; padding-right: 14px; }' +
+    '.btn-demo--md { padding-left: 14px; padding-right: 14px; }' +
+    '.btn-demo--lg { padding-left: 18px; padding-right: 18px; }' +
+    /* With icon — asymmetric horizontal padding (pl < pr to compensate for left-side icon weight) */
+    '.btn-demo--has-icon.btn-demo--sm { padding-left: 12px; padding-right: 14px; }' +
+    '.btn-demo--has-icon.btn-demo--md { padding-left: 12px; padding-right: 14px; }' +
+    '.btn-demo--has-icon.btn-demo--lg { padding-left: 14px; padding-right: 16px; }' +
+    /* Primary */
+    '.btn-demo--primary { background: var(--deep-sea-neutral-900, #1B2537); color: var(--white, #fff); border: 1px solid var(--deep-sea-neutral-500, #6B7280); box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.05)); }' +
+    '.btn-demo--primary:hover:not(:disabled), .btn-demo--primary.btn-demo--force-hover { background: var(--deep-sea-neutral-600, #4C5463); color: var(--white, #fff); border: 1px solid var(--deep-sea-neutral-500, #6B7280); }' +
+    '.btn-demo--primary:active:not(:disabled), .btn-demo--primary.btn-demo--force-pressed { background: var(--deep-sea-neutral-900, #1B2537); color: var(--deep-sea-neutral-400, #9DA3B0); border: 1px solid var(--deep-sea-neutral-500, #6B7280); box-shadow: inset 0 1px 3px rgba(0,0,0,0.4); }' +
+    '.btn-demo--primary:disabled { background: var(--deep-sea-neutral-300, #D0D4DB); color: var(--white, #fff); border-color: transparent; box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.05)); }' +
+    /* Secondary */
+    '.btn-demo--secondary { background: var(--white, #fff); color: var(--deep-sea-neutral-700, #384253); border-color: var(--deep-sea-neutral-300, #D0D4DB); box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.05)); }' +
+    '.btn-demo--secondary:hover:not(:disabled), .btn-demo--secondary.btn-demo--force-hover { background: var(--deep-sea-neutral-50, #F7F8FA); border-color: var(--deep-sea-neutral-400, #9DA3B0); }' +
+    '.btn-demo--secondary:active:not(:disabled), .btn-demo--secondary.btn-demo--force-pressed { background: var(--deep-sea-neutral-100, #F2F3F5); color: var(--deep-sea-neutral-400, #9DA3B0); border-color: var(--deep-sea-neutral-400, #9DA3B0); box-shadow: none; }' +
+    '.btn-demo--secondary:disabled { background: var(--deep-sea-neutral-300, #D0D4DB); color: var(--white, #fff); border-color: transparent; box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.05)); }' +
+    /* Outline (designed for dark surfaces) */
+    '.btn-demo--outline { background: transparent; color: var(--white, #fff); border-color: var(--deep-sea-neutral-300, #D0D4DB); box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.05)); }' +
+    '.btn-demo--outline:hover:not(:disabled), .btn-demo--outline.btn-demo--force-hover { background: rgba(255,255,255,0.1); }' +
+    '.btn-demo--outline:active:not(:disabled), .btn-demo--outline.btn-demo--force-pressed { background: rgba(255,255,255,0.2); color: var(--deep-sea-neutral-200, #E4E6EB); border-color: var(--deep-sea-neutral-400, #9DA3B0); box-shadow: none; }' +
+    '.btn-demo--outline:disabled { background: var(--deep-sea-neutral-300, #D0D4DB); color: var(--white, #fff); border-color: transparent; box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.05)); }' +
+    /* Ghost (designed for dark surfaces, lighter visual weight than Outline — no border) */
+    '.btn-demo--ghost { background: transparent; color: var(--white, #fff); border-color: transparent; box-shadow: none; }' +
+    '.btn-demo--ghost:hover:not(:disabled), .btn-demo--ghost.btn-demo--force-hover { background: rgba(255,255,255,0.1); }' +
+    '.btn-demo--ghost:active:not(:disabled), .btn-demo--ghost.btn-demo--force-pressed { background: rgba(255,255,255,0.2); color: var(--deep-sea-neutral-200, #E4E6EB); box-shadow: none; }' +
+    '.btn-demo--ghost:disabled { background: var(--deep-sea-neutral-300, #D0D4DB); color: var(--white, #fff); border-color: transparent; box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.05)); }' +
+    '.btn-demo-dark-surface { background: var(--deep-sea-neutral-900, #1B2537); padding: 16px; border-radius: var(--radius-lg, 8px); display: inline-flex; gap: var(--spacing-2, 8px); flex-wrap: wrap; }' +
+    /* Padding-guide visualization for the with/without-icon comparison */
+    '.btn-demo-padding-guide { display: inline-flex; padding: 2px; border: 1px dashed var(--carolina-blue-400, #5BA4D4); border-radius: 10px; }' +
+    '.btn-demo-padding-label { display: flex; align-items: center; gap: 8px; font-family: \'SF Mono\', \'Fira Code\', monospace; font-size: 11px; color: var(--deep-sea-neutral-500, #6B7280); margin-top: 8px; }' +
+    '.btn-demo-padding-label code { background: var(--deep-sea-neutral-50, #F7F8FA); padding: 1px 5px; border-radius: 3px; }' +
+  '</style>' +
+  '<div class="comp-section">' +
+    '<div class="comp-section-title">Button <span class="comp-normalized-label">NORMALIZED</span></div>' +
+    '<div class="comp-section-subtitle">packages/ui/src/Button.jsx</div>' +
+
+    /* Sub-section: Variants */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Variants (md, with icon)</div>' +
+      '<div class="comp-card-grid">' +
+        '<div class="comp-card">' +
+          btn('primary', 'md') +
+          '<div class="comp-card-code">&lt;Button variant="primary"&gt;Button&lt;/Button&gt;</div>' +
+          '<div class="comp-card-note">Dark fill — main CTA. <strong>Hover, click, focus, tab</strong> to test states live.</div>' +
+        '</div>' +
+        '<div class="comp-card">' +
+          btn('secondary', 'md') +
+          '<div class="comp-card-code">&lt;Button variant="secondary"&gt;Button&lt;/Button&gt;</div>' +
+          '<div class="comp-card-note">Neutral action. <strong>Use Secondary on light surfaces only.</strong> On dark surfaces, prefer the Outline variant — Secondary&rsquo;s hover (DSN/50 bg) and pressed (DSN/100 bg) states lose contrast against dark backdrops, so the interactive feedback becomes invisible. Outline is designed for that case.</div>' +
+        '</div>' +
+        '<div class="comp-card">' +
+          dark(btn('outline', 'md')) +
+          '<div class="comp-card-code">&lt;Button variant="outline"&gt;Button&lt;/Button&gt;</div>' +
+          '<div class="comp-card-note">Outline is designed for <strong>dark surfaces</strong> — white text + transparent. Wrapped here in a dark cell for visibility.</div>' +
+        '</div>' +
+        '<div class="comp-card">' +
+          dark(btn('ghost', 'md')) +
+          '<div class="comp-card-code">&lt;Button variant="ghost"&gt;Button&lt;/Button&gt;</div>' +
+          '<div class="comp-card-note">Ghost is designed for <strong>dark surfaces</strong> — transparent + <strong>no border</strong> + white text. Lighter visual weight than Outline (use Ghost when the button should recede until hovered, e.g. a Cancel button next to a primary Save). Wrapped here in a dark cell for visibility.</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    /* Sub-section: Sizes */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Sizes</div>' +
+      '<div class="comp-card-grid">' +
+        '<div class="comp-card">' +
+          btn('primary', 'sm') +
+          '<div class="comp-card-code">&lt;Button size="sm"&gt;Button&lt;/Button&gt;</div>' +
+          '<div class="comp-card-note">32h, 14/20 type, padding 6/12-14, icon 20</div>' +
+        '</div>' +
+        '<div class="comp-card">' +
+          btn('primary', 'md') +
+          '<div class="comp-card-code">&lt;Button size="md"&gt;Button&lt;/Button&gt; <em>// default</em></div>' +
+          '<div class="comp-card-note">36h, 16/24 type, padding 6/12-14, icon 20</div>' +
+        '</div>' +
+        '<div class="comp-card">' +
+          btn('primary', 'lg') +
+          '<div class="comp-card-code">&lt;Button size="lg"&gt;Button&lt;/Button&gt;</div>' +
+          '<div class="comp-card-note">40h, 16/24 type, padding 8/14-16, icon 20</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    /* Sub-section: States — interactive */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">States <span style="font-weight:400; font-size:13px; color:#6B7280;">— hover and click any button to see live transitions</span></div>' +
+      '<div class="comp-card-grid">' +
+        '<div class="comp-card">' +
+          btn('primary', 'md') +
+          '<div class="comp-card-code">Idle</div>' +
+          '<div class="comp-card-note">DSN/900 fill</div>' +
+        '</div>' +
+        '<div class="comp-card">' +
+          btn('primary', 'md', { forceState: 'hover' }) +
+          '<div class="comp-card-code">Hover (forced)</div>' +
+          '<div class="comp-card-note">DSN/800 — one step lighter</div>' +
+        '</div>' +
+        '<div class="comp-card">' +
+          btn('primary', 'md', { forceState: 'pressed' }) +
+          '<div class="comp-card-code">Pressed (forced)</div>' +
+          '<div class="comp-card-note">DSN/700, no shadow</div>' +
+        '</div>' +
+        '<div class="comp-card">' +
+          btn('primary', 'md', { disabled: true }) +
+          '<div class="comp-card-code">Disabled</div>' +
+          '<div class="comp-card-note">DSN/300 fill, white text + icon, shadow stays</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="comp-card-grid" style="margin-top:12px;">' +
+        '<div class="comp-card">' +
+          btn('secondary', 'md') +
+          '<div class="comp-card-code">Idle</div>' +
+        '</div>' +
+        '<div class="comp-card">' +
+          btn('secondary', 'md', { forceState: 'hover' }) +
+          '<div class="comp-card-code">Hover (forced)</div>' +
+          '<div class="comp-card-note">DSN/50 fill, DSN/400 border</div>' +
+        '</div>' +
+        '<div class="comp-card">' +
+          btn('secondary', 'md', { forceState: 'pressed' }) +
+          '<div class="comp-card-code">Pressed (forced)</div>' +
+          '<div class="comp-card-note">DSN/100 fill, DSN/500 border, no shadow</div>' +
+        '</div>' +
+        '<div class="comp-card">' +
+          btn('secondary', 'md', { disabled: true }) +
+          '<div class="comp-card-code">Disabled</div>' +
+          '<div class="comp-card-note">DSN/300 fill, white text — border drops</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="comp-card-grid" style="margin-top:12px;">' +
+        '<div class="comp-card">' +
+          dark(btn('outline', 'md')) +
+          '<div class="comp-card-code">Idle</div>' +
+          '<div class="comp-card-note">Transparent + DSN/300 border + white text</div>' +
+        '</div>' +
+        '<div class="comp-card">' +
+          dark(btn('outline', 'md', { forceState: 'hover' })) +
+          '<div class="comp-card-code">Hover (forced)</div>' +
+          '<div class="comp-card-note">white@10% tint over the dark surface</div>' +
+        '</div>' +
+        '<div class="comp-card">' +
+          dark(btn('outline', 'md', { forceState: 'pressed' })) +
+          '<div class="comp-card-code">Pressed (forced)</div>' +
+          '<div class="comp-card-note">white@20% tint, no shadow</div>' +
+        '</div>' +
+        '<div class="comp-card">' +
+          dark(btn('outline', 'md', { disabled: true })) +
+          '<div class="comp-card-code">Disabled</div>' +
+          '<div class="comp-card-note">DSN/300 chip — same as Primary/Secondary disabled</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="comp-card-grid" style="margin-top:12px;">' +
+        '<div class="comp-card">' +
+          dark(btn('ghost', 'md')) +
+          '<div class="comp-card-code">Idle</div>' +
+          '<div class="comp-card-note">Transparent + <strong>no border</strong> + white text</div>' +
+        '</div>' +
+        '<div class="comp-card">' +
+          dark(btn('ghost', 'md', { forceState: 'hover' })) +
+          '<div class="comp-card-code">Hover (forced)</div>' +
+          '<div class="comp-card-note">white@10% tint over the dark surface (same hover ladder as Outline)</div>' +
+        '</div>' +
+        '<div class="comp-card">' +
+          dark(btn('ghost', 'md', { forceState: 'pressed' })) +
+          '<div class="comp-card-code">Pressed (forced)</div>' +
+          '<div class="comp-card-note">white@20% tint, text → DSN/200, no shadow</div>' +
+        '</div>' +
+        '<div class="comp-card">' +
+          dark(btn('ghost', 'md', { disabled: true })) +
+          '<div class="comp-card-code">Disabled</div>' +
+          '<div class="comp-card-note">DSN/300 chip — same universal disabled as the other variants</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    /* Sub-section: Sizes — Ghost (mirrors Primary sm/md/lg, Ghost-only) */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Sizes &mdash; Ghost</div>' +
+      '<div class="comp-card-grid">' +
+        '<div class="comp-card">' +
+          dark(btn('ghost', 'sm')) +
+          '<div class="comp-card-code">&lt;Button variant="ghost" size="sm"&gt;Button&lt;/Button&gt;</div>' +
+          '<div class="comp-card-note">32h, 14/20 type</div>' +
+        '</div>' +
+        '<div class="comp-card">' +
+          dark(btn('ghost', 'md')) +
+          '<div class="comp-card-code">&lt;Button variant="ghost" size="md"&gt;Button&lt;/Button&gt;</div>' +
+          '<div class="comp-card-note">36h, 16/24 type</div>' +
+        '</div>' +
+        '<div class="comp-card">' +
+          dark(btn('ghost', 'lg')) +
+          '<div class="comp-card-code">&lt;Button variant="ghost" size="lg"&gt;Button&lt;/Button&gt;</div>' +
+          '<div class="comp-card-note">40h, 16/24 type. This is the size used by TrailNav (Editor mode) Cancel.</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    /* Sub-section: With/without icon — padding difference */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">With icon vs without icon (different horizontal padding)</div>' +
+      '<div class="comp-card-grid">' +
+        '<div class="comp-card">' +
+          '<span class="btn-demo-padding-guide">' + btn('primary', 'md') + '</span>' +
+          '<div class="btn-demo-padding-label"><code>pl: 12</code><span>&middot;</span><code>pr: 14</code><span>&middot;</span><code>py: 6</code></div>' +
+          '<div class="comp-card-code">&lt;Button icon={&lt;Plus /&gt;}&gt;Button&lt;/Button&gt;</div>' +
+          '<div class="comp-card-note"><strong>With icon:</strong> asymmetric padding (pl &lt; pr) compensates for the icon&rsquo;s visual weight on the left, so the label feels optically centered next to the icon.</div>' +
+        '</div>' +
+        '<div class="comp-card">' +
+          '<span class="btn-demo-padding-guide">' + btn('primary', 'md', { noIcon: true }) + '</span>' +
+          '<div class="btn-demo-padding-label"><code>pl: 14</code><span>&middot;</span><code>pr: 14</code><span>&middot;</span><code>py: 6</code></div>' +
+          '<div class="comp-card-code">&lt;Button&gt;Button&lt;/Button&gt;</div>' +
+          '<div class="comp-card-note"><strong>Without icon:</strong> symmetric padding (pl = pr) so the text sits centered in the button. In React, omitting the <code>icon</code> prop drops the <code>.btn--has-icon</code> class and the symmetric padding kicks in.</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="comp-card-note" style="margin-top:10px; font-size:12.5px; color:#6B7280; font-style:italic;">Both Figma and the running app produce the same visual: when icon is shown, asymmetric padding (pl &lt; pr) compensates for the icon&rsquo;s left-side weight; when icon is hidden, the label visually centers. Figma achieves this via a TextGroup auto-layout with a 2px Spacer; the React component achieves it via a <code>.btn--has-icon</code> modifier class that swaps to symmetric padding.</div>' +
+    '</div>' +
+
+    /* Sub-section: Usage rule callout — surfaces */
+    '<div class="comp-subsection" style="margin-top: 24px;">' +
+      '<div style="background: var(--sunrise-yellow-50, #FFFBEB); border-left: 4px solid var(--sunrise-yellow-300, #F8CE51); padding: 16px 20px; border-radius: 6px;">' +
+        '<div style="font-weight: 600; color: #1B2537; margin-bottom: 6px; font-size: 14px;">Usage rule &mdash; surfaces (Secondary vs Outline vs Ghost)</div>' +
+        '<div style="font-size: 13px; color: #384253; line-height: 1.55;">' +
+          'Secondary Button is intended for <strong>light surfaces only</strong>. On <strong>dark surfaces</strong> (DSN/700+ backgrounds), use the Outline or Ghost variant instead &mdash; Secondary&rsquo;s hover/pressed states use DSN/50 and DSN/100 fills which become invisible on dark backdrops, while Outline and Ghost both use white-tint overlays and white text designed specifically for dark contexts. <strong>Outline vs Ghost</strong>: both work on dark surfaces; Ghost is lighter visual weight (no border) so it recedes until hovered &mdash; reach for Ghost when the button is a low-priority companion to a primary action (e.g. a Cancel paired with a Save). The &ldquo;All variants on a dark surface&rdquo; demo below shows how each variant reads on DSN/900.' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    /* Sub-section: Full matrix on dark surface (Outline + Ghost-friendly) */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">All variants on a dark surface</div>' +
+      '<div class="comp-card-grid">' +
+        '<div class="comp-card" style="grid-column: span 3;">' +
+          dark(btn('primary', 'md') + btn('secondary', 'md') + btn('outline', 'md') + btn('ghost', 'md')) +
+          '<div class="comp-card-note">Primary and Secondary still work on dark surfaces (Secondary becomes a high-contrast white CTA). Outline and Ghost are the dark-surface specialists &mdash; Outline reads as a defined affordance via its border; Ghost recedes until hovered.</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    /* Props & Tokens — modal */
+    '<div class="comp-subsection">' +
+      '<button class="comp-details-button" onclick="showCompDetails(\'Button\')">Show props &amp; tokens</button>' +
+    '</div>' +
+
+    /* Sub-section: Figma reference */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Figma Reference</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
+        'Component <code style="' + codeChip + '">1307:333</code> in Design System &mdash; MCP. <strong>48 variants</strong> (4 <code style="' + codeChip + '">Variant</code> &times; 3 <code style="' + codeChip + '">Size</code> &times; 4 <code style="' + codeChip + '">State</code>). Variant axes: <code style="' + codeChip + '">Variant</code> (Primary/Secondary/Outline/Ghost), <code style="' + codeChip + '">Size</code> (sm/md/lg), <code style="' + codeChip + '">State</code> (Idle/Hover/Pressed/Disabled). Ghost was added in Phase 1 of the Ghost rollout (12 new variants). Non-variant component properties: <code style="' + codeChip + '">Show icon</code> (BOOLEAN, default <code>true</code>), <code style="' + codeChip + '">Icon</code> (INSTANCE_SWAP, default <code>placeholder-20</code>), <code style="' + codeChip + '">Label</code> (TEXT, default <code>"Button"</code>). Layout: each variant&rsquo;s auto-layout is [Icon &rarr; TextGroup[Spacer(2px) &rarr; Label]] with <code style="' + codeChip + '">itemSpacing=6</code> between Icon and TextGroup, 0 between Spacer and Label. The 2px Spacer compensates the asymmetric <code style="' + codeChip + '">pl=12</code> padding when the icon is hidden, so the label visually centers regardless of <code style="' + codeChip + '">Show icon</code> state &mdash; Figma matches the running app exactly. All paint colors bound to DSN tokens; effects bound to the local <code style="' + codeChip + '">shadow/sm</code> Effect Style. Typography bound to Figma typography variables: <code style="' + codeChip + '">Font Size/sm</code> + <code style="' + codeChip + '">base</code>, <code style="' + codeChip + '">Line Height/sm</code> + <code style="' + codeChip + '">base</code>, <code style="' + codeChip + '">Font Weight/medium</code>.' +
+      '</div>' +
+    '</div>' +
+
+    /* Sub-section: Code Connect */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Code Connect</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
+        'Mapped via <code style="' + codeChip + '">packages/ui/src/Button.figma.tsx</code>. State variant maps Idle/Hover/Pressed to <code>disabled: false</code> (CSS handles those interactively); only <code>State=Disabled</code> sets <code>disabled: true</code>.' +
       '</div>' +
     '</div>' +
   '</div>';
@@ -2490,6 +3018,95 @@ function getTrailNavComponentHTML() {
    Each entry is two raw HTML strings: `props` (Props Reference table) and
    `tokens` (Token Contract / Tokens / Padding Rules table). */
 var compDetails = {
+  Button: {
+    props:
+      '<table class="comp-table">' +
+        '<thead><tr><th>Prop</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>' +
+        '<tbody>' +
+          '<tr style="background:#F7F8FA;"><td colspan="4" style="font-style:italic; color:#384253;"><strong>Surface guidance:</strong> Secondary is designed for light surfaces. On dark surfaces, use Outline or Ghost &mdash; Secondary&rsquo;s hover (DSN/50) and pressed (DSN/100) fills lose contrast on dark backdrops. Outline (with border) and Ghost (no border) both use white-tint overlays + white text for dark contexts; Ghost is lighter visual weight and recedes until hovered.</td></tr>' +
+          '<tr><td><code>variant</code></td><td><code>"primary" | "secondary" | "outline" | "ghost"</code></td><td><code>"primary"</code></td><td>Visual style. <code>outline</code> and <code>ghost</code> are intended for dark surfaces &mdash; <code>ghost</code> = <code>outline</code> minus the border, so it recedes until hovered.</td></tr>' +
+          '<tr><td><code>size</code></td><td><code>"sm" | "md" | "lg"</code></td><td><code>"md"</code></td><td>32 / 36 / 40 height respectively.</td></tr>' +
+          '<tr><td><code>disabled</code></td><td>boolean</td><td><code>false</code></td><td>Native HTML <code>disabled</code>. All variants render as DSN/300 fill + white text when disabled.</td></tr>' +
+          '<tr><td><code>icon</code></td><td>ReactNode</td><td>&mdash;</td><td>Optional left-side 20&times;20 icon (e.g. <code>&lt;Plus size={20} /&gt;</code> from lucide-react). Color inherits text via <code>currentColor</code>. Icon dimensions are forced to 20&times;20 by <code>.btn__icon</code> regardless of inner SVG size. Maps to Figma&rsquo;s <code>Show icon</code> BOOLEAN + <code>Icon</code> INSTANCE_SWAP. When omitted in code, the button renders without <code>.btn--has-icon</code>; in Figma, toggling Show icon = false collapses the icon and the 2px Spacer in TextGroup keeps the label centered. Both produce a visually-centered no-icon button.</td></tr>' +
+          '<tr><td><code>children</code></td><td>ReactNode</td><td>&mdash;</td><td>Button label text.</td></tr>' +
+          '<tr><td><code>type</code></td><td><code>"button" | "submit" | "reset"</code></td><td><code>"button"</code></td><td>Native HTML button type.</td></tr>' +
+          '<tr><td><code>...props</code></td><td>HTMLButtonAttrs</td><td>&mdash;</td><td>Spreads to underlying <code>&lt;button&gt;</code> (onClick, aria-*, etc.).</td></tr>' +
+        '</tbody>' +
+      '</table>',
+    tokens:
+      '<table class="comp-table">' +
+        '<thead><tr><th>Area / Property</th><th>Token / Value</th><th>Resolved</th></tr></thead>' +
+        '<tbody>' +
+          /* Sizing */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Sizing</td></tr>' +
+          '<tr><td>Height &mdash; sm / md / lg</td><td>32px / 36px / 40px (raw)</td><td>no Sizing token in current scale</td></tr>' +
+          '<tr><td>Icon size (all sizes)</td><td><code>--icon-size-lg</code></td><td>20px</td></tr>' +
+          /* Spacing */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Spacing</td></tr>' +
+          '<tr><td>Gap (icon &harr; label)</td><td><code>--spacing-2</code></td><td>8px</td></tr>' +
+          '<tr><td>Figma itemSpacing (Icon &harr; TextGroup)</td><td>6 (raw, unbound &mdash; no Spacing/6 token)</td><td>+ 2px Spacer inside TextGroup &rarr; effective with-icon visual gap = 8. Code uses <code>gap: var(--spacing-2)</code> (8) directly without a TextGroup wrapper. Same visual.</td></tr>' +
+          '<tr><td>sm &mdash; px (no icon)</td><td>14px / 14px (raw)</td><td>no Spacing token (raw, no Spacing token)</td></tr>' +
+          '<tr><td>sm &mdash; pl / pr (with icon)</td><td>12px / 14px</td><td><code>--spacing-3</code> = 12px; 14px raw (raw, no Spacing token)</td></tr>' +
+          '<tr><td>sm &mdash; py</td><td>6px (raw)</td><td>(raw, no Spacing token)</td></tr>' +
+          '<tr><td>md &mdash; px (no icon)</td><td>14px / 14px (raw)</td><td>(raw, no Spacing token)</td></tr>' +
+          '<tr><td>md &mdash; pl / pr (with icon)</td><td>12px / 14px</td><td><code>--spacing-3</code> = 12px; 14px raw (raw, no Spacing token)</td></tr>' +
+          '<tr><td>md &mdash; py</td><td>6px (raw)</td><td>(raw, no Spacing token)</td></tr>' +
+          '<tr><td>lg &mdash; px (no icon)</td><td>18px / 18px (raw)</td><td>(raw, no Spacing token)</td></tr>' +
+          '<tr><td>lg &mdash; pl / pr (with icon)</td><td>14px / 16px</td><td>14px raw; <code>--spacing-4</code> = 16px (14 raw, no Spacing token)</td></tr>' +
+          '<tr><td>lg &mdash; py</td><td><code>--spacing-2</code></td><td>8px</td></tr>' +
+          /* Typography */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Typography</td></tr>' +
+          '<tr><td>Font family</td><td><code>--font-primary</code></td><td>Inter, sans-serif</td></tr>' +
+          '<tr><td>Font weight (all)</td><td>500 (raw; <code>--font-weight-medium</code> if added)</td><td>Medium</td></tr>' +
+          '<tr><td>Font size &mdash; sm</td><td><code>--font-size-sm</code></td><td>14px</td></tr>' +
+          '<tr><td>Font size &mdash; md / lg</td><td><code>--font-size-base</code></td><td>16px</td></tr>' +
+          '<tr><td>Line height &mdash; sm</td><td><code>--line-height-sm</code></td><td>20px</td></tr>' +
+          '<tr><td>Line height &mdash; md / lg</td><td><code>--line-height-base</code></td><td>24px</td></tr>' +
+          /* Color — Primary */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Color &mdash; Primary</td></tr>' +
+          '<tr><td>Idle bg / border / text+icon</td><td><code>--deep-sea-neutral-900</code> / <code>--deep-sea-neutral-500</code> / <code>--white</code></td><td>#1B2537 / #6B7280 / #FFFFFF</td></tr>' +
+          '<tr><td>Hover bg / border / text+icon</td><td><code>--deep-sea-neutral-600</code> / <code>--deep-sea-neutral-500</code> / <code>--white</code></td><td>#4C5463 / #6B7280 / #FFFFFF</td></tr>' +
+          '<tr><td>Pressed bg / border / text+icon</td><td><code>--deep-sea-neutral-900</code> / <code>--deep-sea-neutral-500</code> / <code>--deep-sea-neutral-400</code></td><td>#1B2537 / #6B7280 / #9DA3B0</td></tr>' +
+          '<tr><td>Disabled bg / border / text+icon</td><td><code>--deep-sea-neutral-300</code> / transparent / <code>--white</code></td><td>#D0D4DB / &mdash; / #FFFFFF</td></tr>' +
+          /* Color — Secondary */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Color &mdash; Secondary</td></tr>' +
+          '<tr><td>Idle bg / border / text+icon</td><td><code>--white</code> / <code>--deep-sea-neutral-300</code> / <code>--deep-sea-neutral-700</code></td><td>#FFFFFF / #D0D4DB / #384253</td></tr>' +
+          '<tr><td>Hover bg / border / text+icon</td><td><code>--deep-sea-neutral-50</code> / <code>--deep-sea-neutral-400</code> / <code>--deep-sea-neutral-700</code></td><td>#F7F8FA / #9DA3B0 / #384253</td></tr>' +
+          '<tr><td>Pressed bg / border / text+icon</td><td><code>--deep-sea-neutral-100</code> / <code>--deep-sea-neutral-400</code> / <code>--deep-sea-neutral-400</code></td><td>#F2F3F5 / #9DA3B0 / #9DA3B0</td></tr>' +
+          '<tr><td>Disabled bg / border / text+icon</td><td><code>--deep-sea-neutral-300</code> / transparent / <code>--white</code></td><td>#D0D4DB / &mdash; / #FFFFFF</td></tr>' +
+          /* Color — Outline */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Color &mdash; Outline (designed for dark surfaces)</td></tr>' +
+          '<tr><td>Idle bg / border / text+icon</td><td>transparent / <code>--deep-sea-neutral-300</code> / <code>--white</code></td><td>&mdash; / #D0D4DB / #FFFFFF</td></tr>' +
+          '<tr><td>Hover bg / border / text+icon</td><td><code>rgba(255,255,255,0.1)</code> / <code>--deep-sea-neutral-300</code> / <code>--white</code></td><td>component-scoped tint / #D0D4DB / #FFFFFF</td></tr>' +
+          '<tr><td>Pressed bg / border / text+icon</td><td><code>rgba(255,255,255,0.2)</code> / <code>--deep-sea-neutral-400</code> / <code>--deep-sea-neutral-200</code></td><td>component-scoped tint / #9DA3B0 / #E4E6EB</td></tr>' +
+          '<tr><td>Disabled bg / border / text+icon</td><td><code>--deep-sea-neutral-300</code> / transparent / <code>--white</code></td><td>#D0D4DB / &mdash; / #FFFFFF</td></tr>' +
+          /* Color — Ghost */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Color &mdash; Ghost (designed for dark surfaces, no border)</td></tr>' +
+          '<tr><td>Idle bg / border / text+icon</td><td>transparent / transparent / <code>--white</code></td><td>&mdash; / &mdash; / #FFFFFF</td></tr>' +
+          '<tr><td>Hover bg / border / text+icon</td><td><code>rgba(255,255,255,0.1)</code> / transparent / <code>--white</code></td><td>component-scoped tint / &mdash; / #FFFFFF</td></tr>' +
+          '<tr><td>Pressed bg / border / text+icon</td><td><code>rgba(255,255,255,0.2)</code> / transparent / <code>--deep-sea-neutral-200</code></td><td>component-scoped tint / &mdash; / #E4E6EB</td></tr>' +
+          '<tr><td>Disabled bg / border / text+icon</td><td><code>--deep-sea-neutral-300</code> / transparent / <code>--white</code></td><td>#D0D4DB / &mdash; / #FFFFFF (universal disabled)</td></tr>' +
+          /* Border */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Border</td></tr>' +
+          '<tr><td>Width (all)</td><td>1px (raw)</td><td>no Border-Width token in current scale</td></tr>' +
+          '<tr><td>Radius (all)</td><td><code>--radius-lg</code></td><td>8px</td></tr>' +
+          /* Effect */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Effect (shadow)</td></tr>' +
+          '<tr><td>Idle / hover / disabled (all variants)</td><td><code>--shadow-sm</code></td><td>0 1px 2px rgba(0,0,0,0.05)</td></tr>' +
+          '<tr><td>Pressed &mdash; Primary (inset)</td><td><code>inset 0 1px 3px rgba(0,0,0,0.4)</code> (raw)</td><td>replaces outer shadow on press</td></tr>' +
+          '<tr><td>Pressed &mdash; Secondary / Outline / Ghost</td><td>none</td><td>shadow drops</td></tr>' +
+          '<tr><td>Transition</td><td><code>--transition-fast</code></td><td>150ms ease</td></tr>' +
+          /* Outline */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Outline (focus ring)</td></tr>' +
+          '<tr><td>Color</td><td><code>--carolina-blue-400</code></td><td>#5BA4D4</td></tr>' +
+          '<tr><td>Width / offset</td><td>2px solid, offset 2px</td><td>via <code>:focus-visible</code></td></tr>' +
+          /* Icon */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Icon</td></tr>' +
+          '<tr><td>Default (Figma INSTANCE_SWAP)</td><td><code>placeholder-20</code> from Icons Placeholder</td><td>20&times;20</td></tr>' +
+          '<tr><td>Color</td><td><code>currentColor</code></td><td>inherits text color per state</td></tr>' +
+        '</tbody>' +
+      '</table>'
+  },
   Badge: {
     props:
       '<table class="comp-table">' +
@@ -2593,8 +3210,8 @@ var compDetails = {
           '<tr><td><code>onClear</code></td><td>() =&gt; void</td><td>&mdash;</td><td>Triggered when clear button clicked (only fires if value)</td></tr>' +
           '<tr><td><code>onBack</code> / <code>onForward</code></td><td>() =&gt; void</td><td>&mdash;</td><td>History nav button handlers</td></tr>' +
           '<tr><td><code>placeholder</code></td><td>string</td><td><code>"Search"</code></td><td>Input placeholder text</td></tr>' +
-          '<tr><td><code>minWidth</code></td><td>number</td><td><code>400</code></td><td>Wrapper minimum width (px)</td></tr>' +
-          '<tr><td><code>maxWidth</code></td><td>number</td><td><code>800</code></td><td>Wrapper maximum width (px)</td></tr>' +
+          '<tr><td><code>minWidth</code></td><td>number</td><td><code>590</code></td><td>Min width applied to the <strong>whole</strong> component (history-nav arrows + scope dropdown + search field). The dropdown is auto-width; the search field absorbs remaining space.</td></tr>' +
+          '<tr><td><code>maxWidth</code></td><td>number</td><td><code>900</code></td><td>Max width applied to the whole component (same scope as <code>minWidth</code>).</td></tr>' +
         '</tbody>' +
       '</table>',
     tokens:
@@ -2645,6 +3262,9 @@ var compDetails = {
       '<table class="comp-table">' +
         '<thead><tr><th>Prop</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>' +
         '<tbody>' +
+          '<tr style="background:#F7F8FA;"><td colspan="4" style="font-weight:600; color:#283142;">Mode (variant axis)</td></tr>' +
+          '<tr><td><code>mode</code></td><td><code>"profile" | "editor"</code></td><td><code>"profile"</code></td><td>Selects which TrailNav variant to render. Maps to the Figma component_set <code>Mode</code> variant axis.</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="4" style="font-weight:600; color:#283142;">Profile mode props</td></tr>' +
           '<tr><td><code>name</code></td><td>string</td><td>&mdash;</td><td>User\'s display name (maps to Figma <code>Name</code> TEXT property)</td></tr>' +
           '<tr><td><code>role</code></td><td>string</td><td>&mdash;</td><td>User\'s role label (maps to Figma <code>Role</code> TEXT property)</td></tr>' +
           '<tr><td><code>avatar</code></td><td>ReactNode</td><td>&mdash;</td><td>Avatar slot &mdash; consumer brings <code>&lt;img&gt;</code>, initials, etc. Rendered inside a 32&times;32 wrapper with <code>--radius-lg</code>.</td></tr>' +
@@ -2654,6 +3274,19 @@ var compDetails = {
           '<tr><td><code>onNotificationClick</code></td><td>() =&gt; void</td><td>&mdash;</td><td>Bell click handler.</td></tr>' +
           '<tr><td><code>onProfileClick</code></td><td>() =&gt; void</td><td>&mdash;</td><td>Profile area click handler (typically toggles dropdown).</td></tr>' +
           '<tr><td><code>dropdownOpen</code></td><td>boolean</td><td><code>false</code></td><td>Switches default chevron Down &rarr; Up when dropdown is open.</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="4" style="font-weight:600; color:#283142;">Editor mode props</td></tr>' +
+          '<tr><td><code>showPrimaryButton</code></td><td>boolean</td><td><code>true</code></td><td>Show the Cancel button (Ghost lg). Maps to Figma <code>Show button 1</code> BOOLEAN.</td></tr>' +
+          '<tr><td><code>primaryButtonLabel</code></td><td>string</td><td><code>"Cancel"</code></td><td>Cancel button label. Maps to the exposed Cancel Button instance&rsquo;s <code>Label</code> TEXT property.</td></tr>' +
+          '<tr><td><code>onPrimaryButtonClick</code></td><td>() =&gt; void</td><td>&mdash;</td><td>Cancel click handler.</td></tr>' +
+          '<tr><td><code>showSecondaryButton</code></td><td>boolean</td><td><code>true</code></td><td>Show the Save button (Outline lg). Maps to Figma <code>Show button 2</code> BOOLEAN.</td></tr>' +
+          '<tr><td><code>secondaryButtonLabel</code></td><td>string</td><td><code>"Save"</code></td><td>Save button label. Maps to the exposed Save Button instance&rsquo;s <code>Label</code> TEXT property.</td></tr>' +
+          '<tr><td><code>onSecondaryButtonClick</code></td><td>() =&gt; void</td><td>&mdash;</td><td>Save click handler.</td></tr>' +
+          '<tr><td><code>showHelpIcon</code></td><td>boolean</td><td><code>true</code></td><td>Show the help (?) icon. Maps to Figma <code>Show help icon</code> BOOLEAN. The 20&times;20 wrapper preserves the slot when hidden &mdash; X stays in place.</td></tr>' +
+          '<tr><td><code>helpIcon</code></td><td>ReactNode</td><td>lucide <code>CircleHelp</code></td><td>Slot &mdash; overrides the default help icon (rare).</td></tr>' +
+          '<tr><td><code>onHelpClick</code></td><td>() =&gt; void</td><td>&mdash;</td><td>Help icon click handler.</td></tr>' +
+          '<tr><td><code>showRightIcon</code></td><td>boolean</td><td><code>true</code></td><td>Show the right-most icon (X or ?). Maps to Figma <code>Show close icon</code> BOOLEAN.</td></tr>' +
+          '<tr><td><code>rightIcon</code></td><td><code>"x" | "help"</code> <em>or</em> ReactNode</td><td><code>"x"</code></td><td>Selects the right icon variant; maps to Figma <code>Right icon</code> INSTANCE_SWAP scoped to <code>lucide/x</code> + <code>lucide/circle-question-mark</code>. Pass a ReactNode to override entirely.</td></tr>' +
+          '<tr><td><code>onRightIconClick</code></td><td>() =&gt; void</td><td>&mdash;</td><td>Right-icon click handler (typically Close).</td></tr>' +
         '</tbody>' +
       '</table>',
     tokens:
@@ -2672,6 +3305,30 @@ var compDetails = {
           '<tr><td>Name color / size</td><td><code>--deep-sea-neutral-300</code> / <code>--font-size-sm</code> medium</td><td>#D0D4DB / 14px / 20 lh</td></tr>' +
           '<tr><td>Role color / size</td><td><code>--deep-sea-neutral-400</code> / <code>--font-size-xs</code> regular</td><td>#9DA3B0 / 12px / 12 lh</td></tr>' +
           '<tr><td>Chevron color / size</td><td><code>--deep-sea-neutral-500</code> / <code>--icon-size-md</code></td><td>#6B7280 / 16px</td></tr>' +
+        '</tbody>' +
+      '</table>'
+  },
+  Navbar: {
+    props:
+      '<table class="comp-table">' +
+        '<thead><tr><th>Prop</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>' +
+        '<tbody>' +
+          '<tr><td><code>lead</code></td><td>ReactNode</td><td>&mdash;</td><td>Left slot &mdash; typically <code>&lt;LeadNav /&gt;</code> (hamburger + logo).</td></tr>' +
+          '<tr><td><code>search</code></td><td>ReactNode</td><td>&mdash;</td><td>Center slot &mdash; typically <code>&lt;GlobalSearch /&gt;</code>. May contain sibling dropdown content; the dropdown should attach to <code>searchRef</code>.</td></tr>' +
+          '<tr><td><code>searchRef</code></td><td>Ref</td><td>&mdash;</td><td>Forwarded to the inner wrapper around the search slot. Consumers attach this to enable click-outside detection on the search-scope dropdown.</td></tr>' +
+          '<tr><td><code>trail</code></td><td>ReactNode</td><td>&mdash;</td><td>Right slot &mdash; typically <code>&lt;TrailNav /&gt;</code> (Profile or Editor mode). May contain a sibling profile dropdown; attach to <code>trailRef</code>.</td></tr>' +
+          '<tr><td><code>trailRef</code></td><td>Ref</td><td>&mdash;</td><td>Forwarded to the inner wrapper around the trail slot. Consumers attach this to enable click-outside detection on the profile dropdown.</td></tr>' +
+        '</tbody>' +
+      '</table>',
+    tokens:
+      '<table class="comp-table">' +
+        '<thead><tr><th>Property</th><th>Token</th><th>Resolved</th></tr></thead>' +
+        '<tbody>' +
+          '<tr><td>Background</td><td><code>--navbar-bg</code> (semantic alias of <code>--deep-sea-neutral-900</code>)</td><td>#1B2537</td></tr>' +
+          '<tr><td>Padding &mdash; top / bottom</td><td>14px (raw &mdash; not in Spacing scale)</td><td>14px</td></tr>' +
+          '<tr><td>Padding &mdash; left</td><td><code>--spacing-4</code></td><td>16px</td></tr>' +
+          '<tr><td>Padding &mdash; right</td><td><code>--spacing-6</code></td><td>24px</td></tr>' +
+          '<tr><td>Layout</td><td><code>flex items-center justify-between</code></td><td>3 slots distributed left / center / right</td></tr>' +
         '</tbody>' +
       '</table>'
   }
@@ -2701,7 +3358,7 @@ function showCompDetails(componentName) {
 document.addEventListener('DOMContentLoaded', function() {
   /* Populate Components tab */
   var compTab = document.getElementById('componentsTabBadgeContent');
-  if (compTab) compTab.innerHTML = getBadgeComponentHTML() + getSidebarButtonComponentHTML() + getSidebarComponentHTML() + getGlobalSearchComponentHTML() + getLeadNavComponentHTML() + getTrailNavComponentHTML();
+  if (compTab) compTab.innerHTML = getBadgeComponentHTML() + getButtonComponentHTML() + getSidebarButtonComponentHTML() + getSidebarComponentHTML() + getGlobalSearchComponentHTML() + getLeadNavComponentHTML() + getTrailNavComponentHTML() + getNavbarComponentHTML();
 
   /* Click on backdrop closes the comp details dialog */
   var compDialog = document.getElementById('comp-details-dialog');
@@ -2711,6 +3368,7 @@ document.addEventListener('DOMContentLoaded', function() {
       if (e.target === compDialog) compDialog.close();
     });
   }
+
 });
 </script>
 

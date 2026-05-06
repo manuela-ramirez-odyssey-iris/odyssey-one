@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Lock, X } from 'lucide-react'
-import { SecondaryButton } from '../ui/Button'
+import { Button } from '@odyssey/ui'
 
 const BADGE_COLORS = ['amber', 'blue', 'green', 'red', 'purple']
 
@@ -177,9 +177,9 @@ const CostAllocationTab = React.memo(function CostAllocationTab({ data, selected
               <SummaryCell label="AR TOTAL" value={planned.summary.arTotal} total />
               <SummaryCell label="MARGIN" value={planned.summary.margin} success />
               <div style={{ display: 'flex', alignItems: 'center', padding: '0 16px', marginLeft: 'auto' }}>
-                <SecondaryButton onClick={() => setCompareOpen(true)}>
+                <Button variant="secondary" onClick={() => setCompareOpen(true)}>
                   Compare AP/AR
-                </SecondaryButton>
+                </Button>
               </div>
             </div>
           )}

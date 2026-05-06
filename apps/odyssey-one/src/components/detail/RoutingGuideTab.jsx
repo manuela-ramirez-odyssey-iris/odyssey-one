@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { TruckElectric, Columns3Cog, X, Trash2, FoldHorizontal, UnfoldHorizontal } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
-import { PrimaryButton, SecondaryButton } from '../ui/Button'
+import { Button } from '@odyssey/ui'
 
 /* ═══════════════════════════════════════════════════════════
    Section 1 — Constants
@@ -390,12 +390,12 @@ function TenderDetailModal({ isOpen, onClose, shipment, shipmentDetails }) {
           padding: '12px 16px',
           borderTop: '1px solid var(--border-subtle)',
         }}>
-          <SecondaryButton onClick={() => console.log('[Tender] Routing Query (QCP) clicked')}>
+          <Button variant="secondary" onClick={() => console.log('[Tender] Routing Query (QCP) clicked')}>
             Routing Query (QCP)
-          </SecondaryButton>
-          <SecondaryButton onClick={() => console.log('[Tender] View Stops clicked')}>
+          </Button>
+          <Button variant="secondary" onClick={() => console.log('[Tender] View Stops clicked')}>
             View Stops
-          </SecondaryButton>
+          </Button>
         </div>
 
       </div>
@@ -807,13 +807,13 @@ function QuoteModal({ mode, carrierData, onSave, onClose }) {
 
           {/* Footer buttons */}
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, paddingTop: 8 }}>
-            <SecondaryButton onClick={onClose}>
+            <Button variant="secondary" onClick={onClose}>
               {isView ? 'Close' : 'Cancel'}
-            </SecondaryButton>
+            </Button>
             {!isView && (
-              <PrimaryButton onClick={handleSave} disabled={!scac || !baseRate}>
+              <Button variant="primary" onClick={handleSave} disabled={!scac || !baseRate}>
                 Save Quote
-              </PrimaryButton>
+              </Button>
             )}
           </div>
         </div>
@@ -1539,12 +1539,12 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
           <RoutingSubTabs activeSubTab={activeSubTab} onTabChange={setActiveSubTab} />
         </div>
         <div style={{ display: 'flex', gap: 8, marginLeft: 16, marginBottom: 4 }}>
-          <SecondaryButton onClick={() => setIsDetailModalOpen(true)}>
+          <Button variant="secondary" onClick={() => setIsDetailModalOpen(true)}>
             View Shipment Details
-          </SecondaryButton>
-          <SecondaryButton onClick={() => setQuoteModal({ isOpen: true, mode: 'add', carrierData: null })}>
+          </Button>
+          <Button variant="secondary" onClick={() => setQuoteModal({ isOpen: true, mode: 'add', carrierData: null })}>
             Add Quote
-          </SecondaryButton>
+          </Button>
         </div>
       </div>
 

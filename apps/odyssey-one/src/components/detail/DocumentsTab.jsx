@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react'
 import { Upload, Trash2, X, RefreshCw, Download, FileText, Sheet, File } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
-import { PrimaryButton, SecondaryButton } from '../ui/Button'
+import { Button } from '@odyssey/ui'
 
 const TYPE_STYLES = {
   BoL:            { bg: 'var(--badge-blue-bg)', color: 'var(--badge-blue-text)' },
@@ -137,14 +137,12 @@ const DocumentsTab = React.memo(function DocumentsTab({ data }) {
           borderBottom: '1px solid var(--border-subtle)',
         }}
       >
-        <SecondaryButton onClick={() => setShowModal(true)}>
-          <Upload {...ICON_MD} />
-          <span>Upload Attachment</span>
-        </SecondaryButton>
-        <SecondaryButton>
-          <RefreshCw {...ICON_MD} />
-          <span>Refresh</span>
-        </SecondaryButton>
+        <Button variant="secondary" icon={<Upload size={20} />} onClick={() => setShowModal(true)}>
+          Upload Attachment
+        </Button>
+        <Button variant="secondary" icon={<RefreshCw size={20} />}>
+          Refresh
+        </Button>
       </div>
 
       {/* Table */}
@@ -302,13 +300,12 @@ const DocumentsTab = React.memo(function DocumentsTab({ data }) {
 
               {/* Footer */}
               <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
-                <SecondaryButton onClick={() => setPreviewDoc(null)}>
+                <Button variant="secondary" onClick={() => setPreviewDoc(null)}>
                   Close
-                </SecondaryButton>
-                <PrimaryButton>
-                  <Download size={14} />
+                </Button>
+                <Button variant="primary" icon={<Download size={20} />}>
                   Download
-                </PrimaryButton>
+                </Button>
               </div>
             </div>
           </div>
@@ -412,12 +409,12 @@ const DocumentsTab = React.memo(function DocumentsTab({ data }) {
 
             {/* Footer */}
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
-              <SecondaryButton onClick={handleCloseModal}>
+              <Button variant="secondary" onClick={handleCloseModal}>
                 Cancel
-              </SecondaryButton>
-              <PrimaryButton onClick={handleUpload} disabled={!formFile}>
+              </Button>
+              <Button variant="primary" onClick={handleUpload} disabled={!formFile}>
                 Upload
-              </PrimaryButton>
+              </Button>
             </div>
           </div>
         </div>

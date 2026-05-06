@@ -13,8 +13,8 @@ export default function GlobalSearch({
   onBack,
   onForward,
   placeholder = 'Search',
-  minWidth = 400,
-  maxWidth = 800,
+  minWidth = 590,
+  maxWidth = 900,
 }) {
   const [inputFocused, setInputFocused] = useState(false)
   const focused = inputFocused || dropdownOpen
@@ -24,7 +24,7 @@ export default function GlobalSearch({
   const ChevronIcon = dropdownOpen ? ChevronUp : ChevronDown
 
   return (
-    <div className="flex items-center" style={{ gap: 'var(--spacing-2)', flex: 1, minWidth: 0 }}>
+    <div className="flex items-center" style={{ gap: 'var(--spacing-2)', flex: 1, minWidth, maxWidth }}>
       <div className="flex items-center" style={{ gap: 'var(--spacing-1)', height: 32 }}>
         <button
           type="button"
@@ -50,8 +50,7 @@ export default function GlobalSearch({
         className={`global-search-wrapper relative flex items-center overflow-hidden${focused ? ' focused' : ''}`}
         style={{
           flex: 1,
-          minWidth,
-          maxWidth,
+          minWidth: 0,
           background: 'var(--deep-sea-neutral-900)',
           boxShadow: 'var(--shadow-sm)',
           borderRadius: 'var(--radius-lg)',
