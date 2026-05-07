@@ -3027,6 +3027,316 @@ function getButtonComponentHTML() {
   '</div>';
 }
 
+/* ── IconButton (atom) component reference HTML ── */
+function getIconButtonComponentHTML() {
+  var codeChip = 'font-family:\'SF Mono\',\'Fira Code\',monospace; font-size:11px; background:#F3F4F6; padding:1px 5px; border-radius:3px; color:#6B7280;';
+  /* Lucide plus (16px) for the demo icon */
+  var svgPlus = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>';
+  /* Placeholder dashed-circle (16px) — mirrors Icons Placeholder/placeholder-16 */
+  var svgPlaceholder = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1" stroke-dasharray="2 2"/></svg>';
+
+  function iconBtn(iconSvg) {
+    var btn = 'display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; padding:var(--spacing-1, 4px); background:var(--white, #fff); color:var(--text-secondary, #4C5463); border:none; border-radius:var(--radius-full, 9999px); box-shadow:var(--shadow-base, 0 1px 2px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.10)); cursor:default;';
+    return '<button type="button" style="' + btn + '" aria-label="Add">' + iconSvg + '</button>';
+  }
+
+  return '' +
+  '<div class="comp-section">' +
+    '<div class="comp-section-title">IconButton <span class="comp-normalized-label">NORMALIZED</span></div>' +
+    '<div class="comp-section-subtitle">packages/ui/src/IconButton.jsx</div>' +
+    '<div style="font-size:13px; color:#6B7280; margin-bottom:18px; line-height:1.5;">Atom &mdash; 24&times;24 circular surface with a single icon slot and elevated shadow. Used today by <code>EntityChip</code>&rsquo;s add affordance; will be reused by future toolbar / inline-action contexts. <strong>Hover / pressed states are not yet defined</strong> &mdash; tracked as a Step-9 follow-up.</div>' +
+
+    /* Sub-section: Variants demo */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Default surface (light backdrop)</div>' +
+      '<div class="comp-card-grid">' +
+        '<div class="comp-card">' +
+          iconBtn(svgPlus) +
+          '<div class="comp-card-code">&lt;IconButton icon={&lt;Plus size={16} /&gt;} /&gt;</div>' +
+          '<div class="comp-card-note">Default usage &mdash; <code>+</code> as the action affordance. Icon inherits <code>--text-secondary</code> via <code>currentColor</code>.</div>' +
+        '</div>' +
+        '<div class="comp-card">' +
+          iconBtn(svgPlaceholder) +
+          '<div class="comp-card-code">&lt;IconButton icon={&lt;Placeholder /&gt;} /&gt;</div>' +
+          '<div class="comp-card-note">With a placeholder icon &mdash; demonstrates the swap slot. In Figma this maps to <code>Icon</code> INSTANCE_SWAP defaulting to <code>placeholder-16</code>.</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    /* Props & Tokens — modal */
+    '<div class="comp-subsection">' +
+      '<button class="comp-details-button" onclick="showCompDetails(\'IconButton\')">Show props &amp; tokens</button>' +
+    '</div>' +
+
+    /* Sub-section: Figma reference */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Figma Reference</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
+        'Component <code style="' + codeChip + '">1711:297</code> in <a href="https://www.figma.com/design/vodiHJU38YWZYmTz81uOk7/Design-System---MCP?node-id=1711-297" target="_blank" rel="noopener">Design System - MCP</a>. INSTANCE_SWAP property <code>Icon</code> defaults to <code>placeholder-16</code>. Surface paint bound to <code>White</code>; effect bound to <code>shadow/base</code>; padding bound to <code>Spacing/1</code>; radius bound to <code>Radius/Full</code>.' +
+      '</div>' +
+    '</div>' +
+
+    /* Sub-section: Code Connect */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Code Connect</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
+        'Mapped via <code style="' + codeChip + '">packages/ui/src/IconButton.figma.tsx</code>. The <code>Icon</code> INSTANCE_SWAP maps to the <code>icon</code> ReactNode prop.' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+/* ── PageHeader (molecule) component reference HTML ── */
+function getPageHeaderComponentHTML() {
+  var codeChip = 'font-family:\'SF Mono\',\'Fira Code\',monospace; font-size:11px; background:#F3F4F6; padding:1px 5px; border-radius:3px; color:#6B7280;';
+
+  /* Stand-in Button to demonstrate right-side actions slot */
+  var actionBtn = 'display:inline-flex; align-items:center; justify-content:center; gap:var(--spacing-2, 8px); height:36px; padding:6px 14px; background:var(--deep-sea-neutral-900, #1B2537); color:var(--white, #fff); border:1px solid var(--deep-sea-neutral-500, #6B7280); border-radius:var(--radius-lg, 8px); font-family:var(--font-primary, Inter,sans-serif); font-size:var(--font-size-base, 16px); line-height:var(--line-height-base, 24px); font-weight:500; cursor:default; box-shadow:var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.05));';
+  var primaryBtn = '<button type="button" style="' + actionBtn + '"><span>Edit</span></button>';
+
+  function header(titleHtml, rightHtml) {
+    var shell = 'display:flex; align-items:center; justify-content:space-between; width:100%; padding:16px 20px; background:var(--white, #fff); border:1px solid var(--deep-sea-neutral-200, #E4E6EB); border-radius:var(--radius-lg, 8px); box-sizing:border-box;';
+    var h1 = 'font-family:var(--font-primary, Inter,sans-serif); font-size:var(--font-size-3xl, 32px); line-height:var(--line-height-3xl, 32px); font-weight:var(--font-weight-semibold, 600); color:var(--text-primary, #1B2537); margin:0;';
+    var trailing = rightHtml ? '<div>' + rightHtml + '</div>' : '';
+    return '<div style="' + shell + '"><h1 style="' + h1 + '">' + titleHtml + '</h1>' + trailing + '</div>';
+  }
+
+  return '' +
+  '<div class="comp-section">' +
+    '<div class="comp-section-title">PageHeader <span class="comp-normalized-label">NORMALIZED</span></div>' +
+    '<div class="comp-section-subtitle">packages/ui/src/PageHeader.jsx</div>' +
+    '<div style="font-size:13px; color:#6B7280; margin-bottom:18px; line-height:1.5;">Molecule &mdash; the page-level title row. Renders a 3xl semibold H1 and an optional right-side actions slot via <code>children</code>. Uses <code>justify-between</code> so a single-child layout ends up with the title left and action right; with no children, the H1 takes the full row.</div>' +
+
+    /* Sub-section: Variants demo */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Examples</div>' +
+      '<div class="comp-card-grid">' +
+        '<div class="comp-card" style="grid-column: 1 / -1;">' +
+          header('Home', '') +
+          '<div class="comp-card-code">&lt;PageHeader title="Home" /&gt;</div>' +
+          '<div class="comp-card-note">Title only. The H1 sits at the start of the row; the trailing slot collapses.</div>' +
+        '</div>' +
+        '<div class="comp-card" style="grid-column: 1 / -1;">' +
+          header('Shipments', primaryBtn) +
+          '<div class="comp-card-code">&lt;PageHeader title="Shipments"&gt;&lt;Button&gt;Edit&lt;/Button&gt;&lt;/PageHeader&gt;</div>' +
+          '<div class="comp-card-note">Title plus a right-side action via <code>children</code>. Any ReactNode works (Button, menu, BadgeRow).</div>' +
+        '</div>' +
+        '<div class="comp-card" style="grid-column: 1 / -1;">' +
+          header('Carriers contracted under the long-haul TL framework', '') +
+          '<div class="comp-card-code">&lt;PageHeader title="Carriers contracted under the long-haul TL framework" /&gt;</div>' +
+          '<div class="comp-card-note">Long titles wrap. Line height matches font size (32/32) so wrapped lines stay tight.</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    /* Props & Tokens — modal */
+    '<div class="comp-subsection">' +
+      '<button class="comp-details-button" onclick="showCompDetails(\'PageHeader\')">Show props &amp; tokens</button>' +
+    '</div>' +
+
+    /* Sub-section: Figma reference */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Figma Reference</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
+        'Component <code style="' + codeChip + '">1693:49</code> in <a href="https://www.figma.com/design/vodiHJU38YWZYmTz81uOk7/Design-System---MCP?node-id=1693-49" target="_blank" rel="noopener">Design System - MCP</a>. <code>Title</code> TEXT property maps to the H1 string. Typography bound to <code>Font Size/3xl</code>, <code>Line Height/3xl</code>, <code>Font Weight/semibold</code>.' +
+      '</div>' +
+    '</div>' +
+
+    /* Sub-section: Code Connect */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Code Connect</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
+        'Mapped via <code style="' + codeChip + '">packages/ui/src/PageHeader.figma.tsx</code>. <code>Title</code> TEXT &rarr; <code>title</code> string prop.' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+/* ── SectionHeader (molecule) component reference HTML ── */
+function getSectionHeaderComponentHTML() {
+  var codeChip = 'font-family:\'SF Mono\',\'Fira Code\',monospace; font-size:11px; background:#F3F4F6; padding:1px 5px; border-radius:3px; color:#6B7280;';
+
+  /* Stand-in Button (Secondary md) for leadingActions demo */
+  var secondaryBtn = 'display:inline-flex; align-items:center; justify-content:center; gap:var(--spacing-2, 8px); height:36px; padding:6px 14px; background:var(--white, #fff); color:var(--deep-sea-neutral-700, #384253); border:1px solid var(--deep-sea-neutral-300, #D0D4DB); border-radius:var(--radius-lg, 8px); font-family:var(--font-primary, Inter,sans-serif); font-size:var(--font-size-base, 16px); line-height:var(--line-height-base, 24px); font-weight:500; cursor:default; box-shadow:var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.05));';
+  var leadingDemo = '<button type="button" style="' + secondaryBtn + '"><span>Filter</span></button>';
+
+  /* Stand-in Badge (gray) for trailingActions demo */
+  var chipStyle = 'display:inline-flex; align-items:center; padding:2px 10px; background:var(--deep-sea-neutral-100, #F2F3F5); color:var(--deep-sea-neutral-700, #384253); border:1px solid var(--deep-sea-neutral-300, #D0D4DB); border-radius:var(--radius-full, 9999px); font-family:var(--font-primary, Inter,sans-serif); font-size:var(--font-size-xs, 12px); line-height:var(--line-height-xs, 16px); font-weight:500;';
+  var trailingDemo = '<span style="' + chipStyle + '">12 results</span>';
+
+  function section(titleHtml, supportingHtml, leadingHtml, trailingHtml) {
+    var shell = 'display:flex; flex-direction:column; gap:var(--spacing-8, 32px); padding:16px 20px; background:var(--white, #fff); border:1px solid var(--deep-sea-neutral-200, #E4E6EB); border-radius:var(--radius-lg, 8px); box-sizing:border-box;';
+    var row = 'display:flex; align-items:center; justify-content:space-between; width:100%;';
+    var h2 = 'font-family:var(--font-primary, Inter,sans-serif); font-size:var(--font-size-2xl, 24px); line-height:var(--line-height-2xl, 32px); font-weight:var(--font-weight-semibold, 600); color:var(--text-primary, #1B2537); margin:0;';
+    var support = 'font-family:var(--font-primary, Inter,sans-serif); font-size:var(--font-size-sm, 14px); line-height:var(--line-height-sm, 20px); font-weight:var(--font-weight-regular, 400); color:var(--text-tertiary, #6B7280);';
+    var supportingNode = supportingHtml ? '<span style="' + support + '">' + supportingHtml + '</span>' : '';
+    var row1 = '<div style="' + row + '"><h2 style="' + h2 + '">' + titleHtml + '</h2>' + supportingNode + '</div>';
+    var row2 = '';
+    if (leadingHtml || trailingHtml) {
+      row2 = '<div style="' + row + '"><div>' + (leadingHtml || '') + '</div><div>' + (trailingHtml || '') + '</div></div>';
+    }
+    return '<div style="' + shell + '">' + row1 + row2 + '</div>';
+  }
+
+  return '' +
+  '<div class="comp-section">' +
+    '<div class="comp-section-title">SectionHeader <span class="comp-normalized-label">NORMALIZED</span></div>' +
+    '<div class="comp-section-subtitle">packages/ui/src/SectionHeader.jsx</div>' +
+    '<div style="font-size:13px; color:#6B7280; margin-bottom:18px; line-height:1.5;">Molecule &mdash; section-level header with two rows. Row 1: H2 + optional supporting text (right-aligned). Row 2: optional <code>leadingActions</code> + <code>trailingActions</code> slots (only renders if either has content). Stack gap is <code>--spacing-8</code> (32px).</div>' +
+
+    /* Sub-section: Variants demo */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Examples</div>' +
+      '<div class="comp-card-grid">' +
+        '<div class="comp-card" style="grid-column: 1 / -1;">' +
+          section('Active shipments', '', '', '') +
+          '<div class="comp-card-code">&lt;SectionHeader title="Active shipments" /&gt;</div>' +
+          '<div class="comp-card-note">Title only. Row 2 is suppressed when both action slots are empty.</div>' +
+        '</div>' +
+        '<div class="comp-card" style="grid-column: 1 / -1;">' +
+          section('Active shipments', 'Updated 5 min ago', '', '') +
+          '<div class="comp-card-code">&lt;SectionHeader title="Active shipments" supportingText="Updated 5 min ago" /&gt;</div>' +
+          '<div class="comp-card-note">Title + supporting text. Supporting sits right-aligned in Row 1 via <code>justify-between</code>.</div>' +
+        '</div>' +
+        '<div class="comp-card" style="grid-column: 1 / -1;">' +
+          section('Active shipments', 'Updated 5 min ago', leadingDemo, trailingDemo) +
+          '<div class="comp-card-code">&lt;SectionHeader title="..." supportingText="..." leadingActions={&lt;Button&gt;Filter&lt;/Button&gt;} trailingActions={&lt;Badge&gt;12 results&lt;/Badge&gt;} /&gt;</div>' +
+          '<div class="comp-card-note">Full layout &mdash; both slots populated. Row 2 mirrors Row 1&rsquo;s <code>justify-between</code>: leading actions left, trailing right.</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    /* Props & Tokens — modal */
+    '<div class="comp-subsection">' +
+      '<button class="comp-details-button" onclick="showCompDetails(\'SectionHeader\')">Show props &amp; tokens</button>' +
+    '</div>' +
+
+    /* Sub-section: Figma reference */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Figma Reference</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
+        'Component <code style="' + codeChip + '">1696:49</code> in <a href="https://www.figma.com/design/vodiHJU38YWZYmTz81uOk7/Design-System---MCP?node-id=1696-49" target="_blank" rel="noopener">Design System - MCP</a>. <code>Title</code> TEXT &rarr; H2; <code>Supporting text</code> TEXT &rarr; right-aligned support label. Typography bound to <code>Font Size/2xl</code>, <code>Line Height/2xl</code>, <code>Font Weight/semibold</code> for the title; <code>Font Size/sm</code>, <code>Line Height/sm</code>, <code>Font Weight/regular</code> for the supporting text.' +
+      '</div>' +
+    '</div>' +
+
+    /* Sub-section: Code Connect */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Code Connect</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
+        'Mapped via <code style="' + codeChip + '">packages/ui/src/SectionHeader.figma.tsx</code>. <code>Title</code> TEXT &rarr; <code>title</code>; <code>Supporting text</code> TEXT &rarr; <code>supportingText</code>.' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+/* ── EntityChip (molecule) component reference HTML ── */
+function getEntityChipComponentHTML() {
+  var codeChip = 'font-family:\'SF Mono\',\'Fira Code\',monospace; font-size:11px; background:#F3F4F6; padding:1px 5px; border-radius:3px; color:#6B7280;';
+
+  /* Lucide handshake (16px, currentColor) */
+  var svgHandshake = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m11 17 2 2a1 1 0 1 0 3-3"/><path d="m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4"/><path d="m21 3 1 11h-2"/><path d="M3 3 2 14l6.5 6.5a1 1 0 1 0 3-3"/><path d="M3 4h8"/></svg>';
+  /* Lucide plus (16px) for the add IconButton */
+  var svgPlus = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>';
+
+  /* A single 24x24 dashed-border slot */
+  function slot(inner, isFirst) {
+    var s = 'display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; padding:var(--spacing-1, 4px); background:var(--white, #fff); border:2px dashed var(--deep-sea-neutral-300, #D0D4DB); border-radius:var(--radius-full, 9999px); box-sizing:border-box; color:var(--text-secondary, #4C5463);';
+    if (!isFirst) s += ' margin-left:-4px;';
+    return '<span style="' + s + '">' + inner + '</span>';
+  }
+
+  /* Add button — IconButton instance with Plus, also overlaps -4 like the slots */
+  function addBtn(isFirst) {
+    var btn = 'display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; padding:var(--spacing-1, 4px); background:var(--white, #fff); color:var(--text-secondary, #4C5463); border:none; border-radius:var(--radius-full, 9999px); box-shadow:var(--shadow-base, 0 1px 2px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.10)); cursor:default; box-sizing:border-box;';
+    if (!isFirst) btn += ' margin-left:-4px;';
+    return '<button type="button" style="' + btn + '" aria-label="Add customer">' + svgPlus + '</button>';
+  }
+
+  /* "+N" slot — same dashed circle, with a numeric label using xs typography */
+  function plusNSlot(n, isFirst) {
+    var s = 'display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; padding:var(--spacing-1, 4px); background:var(--white, #fff); border:2px dashed var(--deep-sea-neutral-300, #D0D4DB); border-radius:var(--radius-full, 9999px); box-sizing:border-box; font-family:var(--font-primary, Inter,sans-serif); font-size:var(--font-size-xs, 12px); line-height:var(--line-height-xs, 16px); font-weight:var(--font-weight-semibold, 600); color:var(--text-primary, #1B2537); font-variant-numeric:tabular-nums;';
+    if (!isFirst) s += ' margin-left:-4px;';
+    return '<span style="' + s + '">+' + n + '</span>';
+  }
+
+  function chip(name, count) {
+    var pill = 'display:inline-flex; align-items:center; gap:var(--spacing-3, 12px); padding:6px var(--spacing-2, 8px) 6px var(--spacing-3, 12px); background:var(--white, #fff); border:1px solid var(--deep-sea-neutral-300, #D0D4DB); border-radius:var(--radius-full, 9999px); box-sizing:border-box;';
+    var label = 'font-family:var(--font-primary, Inter,sans-serif); font-size:var(--font-size-sm, 14px); line-height:var(--line-height-sm, 20px); font-weight:var(--font-weight-regular, 400); color:var(--deep-sea-neutral-700, #384253);';
+    var c = Math.max(1, count);
+    var visibleHandshakes = c <= 3 ? c : 3;
+    var overflow = c > 3 ? Math.min(c - 3, 9) : 0;
+    var slotsHtml = '';
+    for (var i = 0; i < visibleHandshakes; i++) {
+      slotsHtml += slot(svgHandshake, i === 0);
+    }
+    var idx = visibleHandshakes;
+    if (overflow > 0) {
+      slotsHtml += plusNSlot(overflow, idx === 0);
+      idx++;
+    }
+    slotsHtml += addBtn(idx === 0);
+    return '<span style="' + pill + '">' +
+             '<span style="' + label + '">' + name + '</span>' +
+             '<span style="display:inline-flex; align-items:center;">' + slotsHtml + '</span>' +
+           '</span>';
+  }
+
+  return '' +
+  '<div class="comp-section">' +
+    '<div class="comp-section-title">EntityChip <span class="comp-normalized-label">NORMALIZED</span></div>' +
+    '<div class="comp-section-subtitle">packages/ui/src/EntityChip.jsx</div>' +
+    '<div style="font-size:13px; color:#6B7280; margin-bottom:18px; line-height:1.5;">Molecule &mdash; pill-shaped affordance for an entity (default: <code>Customers</code>) and its associated icon stack. Renders the entity name + 1&ndash;3 entity icons, then a <code>+N</code> overflow slot when there are 4+, capped at <code>+9</code>. Trailing add button is an <code>IconButton</code> instance. Slots overlap horizontally by 4px.</div>' +
+
+    /* Sub-section: Count rules demo */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Count display rules</div>' +
+      '<div class="comp-card-grid">' +
+        '<div class="comp-card">' +
+          chip('Customers', 1) +
+          '<div class="comp-card-code">&lt;EntityChip count={1} /&gt;</div>' +
+          '<div class="comp-card-note">1 customer &rarr; 1 handshake + add. Minimum render is 1 (via <code>Math.max(1, count)</code>).</div>' +
+        '</div>' +
+        '<div class="comp-card">' +
+          chip('Customers', 3) +
+          '<div class="comp-card-code">&lt;EntityChip count={3} /&gt;</div>' +
+          '<div class="comp-card-note">3 customers &rarr; 3 handshakes + add. Last single-icon-per-customer state before overflow kicks in.</div>' +
+        '</div>' +
+        '<div class="comp-card">' +
+          chip('Customers', 5) +
+          '<div class="comp-card-code">&lt;EntityChip count={5} /&gt;</div>' +
+          '<div class="comp-card-note">5 customers &rarr; 3 handshakes + <code>+2</code> overflow slot + add.</div>' +
+        '</div>' +
+        '<div class="comp-card">' +
+          chip('Customers', 12) +
+          '<div class="comp-card-code">&lt;EntityChip count={12} /&gt;</div>' +
+          '<div class="comp-card-note">12 customers &rarr; 3 handshakes + <code>+9</code> (capped) + add. Counts above 12 still display as <code>+9</code>.</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    /* Props & Tokens — modal */
+    '<div class="comp-subsection">' +
+      '<button class="comp-details-button" onclick="showCompDetails(\'EntityChip\')">Show props &amp; tokens</button>' +
+    '</div>' +
+
+    /* Sub-section: Figma reference */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Figma Reference</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
+        'Component <code style="' + codeChip + '">1716:60</code> in <a href="https://www.figma.com/design/vodiHJU38YWZYmTz81uOk7/Design-System---MCP?node-id=1716-60" target="_blank" rel="noopener">Design System - MCP</a>. <code>Entity name</code> TEXT &rarr; <code>name</code>; <code>Show add button</code> BOOLEAN &rarr; <code>showAddButton</code>. The trailing add affordance is an exposed <code>IconButton</code> instance.' +
+      '</div>' +
+    '</div>' +
+
+    /* Sub-section: Code Connect */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Code Connect</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
+        'Mapped via <code style="' + codeChip + '">packages/ui/src/EntityChip.figma.tsx</code>. <code>Entity name</code> TEXT &rarr; <code>name</code> string prop; <code>Show add button</code> BOOLEAN &rarr; <code>showAddButton</code> boolean prop.' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
 /* ── Component details modal: props + tokens map ──
    Each entry is two raw HTML strings: `props` (Props Reference table) and
    `tokens` (Token Contract / Tokens / Padding Rules table). */
@@ -3348,6 +3658,185 @@ var compDetails = {
           '<tr><td>Layout</td><td><code>flex items-center justify-between</code></td><td>3 slots distributed left / center / right</td></tr>' +
         '</tbody>' +
       '</table>'
+  },
+  IconButton: {
+    props:
+      '<table class="comp-table">' +
+        '<thead><tr><th>Prop</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>' +
+        '<tbody>' +
+          '<tr><td><code>icon</code></td><td>ReactNode</td><td>&mdash; (required)</td><td>Icon element rendered inside the button. Color inherits via <code>currentColor</code>. Maps to Figma <code>Icon</code> INSTANCE_SWAP (default <code>placeholder-16</code>).</td></tr>' +
+          '<tr><td><code>onClick</code></td><td>() =&gt; void</td><td>&mdash;</td><td>Click handler.</td></tr>' +
+          '<tr><td><code>ariaLabel</code></td><td>string</td><td>&mdash;</td><td>Accessible label for the button (icon-only buttons must provide one).</td></tr>' +
+          '<tr><td><code>className</code></td><td>string</td><td>&mdash;</td><td>Optional class for consumer-side overrides.</td></tr>' +
+          '<tr><td><code>...props</code></td><td>HTMLButtonAttrs</td><td>&mdash;</td><td>Spreads to the underlying <code>&lt;button&gt;</code>.</td></tr>' +
+        '</tbody>' +
+      '</table>',
+    tokens:
+      '<table class="comp-table">' +
+        '<thead><tr><th>Area / Property</th><th>Token / Value</th><th>Resolved</th></tr></thead>' +
+        '<tbody>' +
+          /* Sizing */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Sizing</td></tr>' +
+          '<tr><td>Surface</td><td>24 &times; 24 (raw)</td><td>derived (4 + 16 + 4)</td></tr>' +
+          '<tr><td>Icon size</td><td><code>--icon-size-md</code></td><td>16px</td></tr>' +
+          /* Spacing */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Spacing</td></tr>' +
+          '<tr><td>Padding (all sides)</td><td><code>--spacing-1</code></td><td>4px</td></tr>' +
+          /* Color */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Color</td></tr>' +
+          '<tr><td>Background</td><td><code>--white</code></td><td>#FFFFFF</td></tr>' +
+          '<tr><td>Icon color (idle)</td><td><code>--text-secondary</code></td><td>#4C5463 (DSN/600)</td></tr>' +
+          /* Border */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Border</td></tr>' +
+          '<tr><td>Border</td><td>none</td><td>&mdash;</td></tr>' +
+          '<tr><td>Radius</td><td><code>--radius-full</code></td><td>9999px</td></tr>' +
+          /* Shadow */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Shadow</td></tr>' +
+          '<tr><td>Shadow (idle)</td><td><code>--shadow-base</code></td><td>0 1 2 rgba(0,0,0,0.06) + 0 1 3 rgba(0,0,0,0.10)</td></tr>' +
+          '<tr><td>Hover / pressed</td><td>(not yet defined)</td><td>tracked as a Step-9 follow-up</td></tr>' +
+          /* Icon slot */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Icon slot</td></tr>' +
+          '<tr><td>Default (Figma INSTANCE_SWAP)</td><td><code>placeholder-16</code> from Icons Placeholder</td><td>16&times;16</td></tr>' +
+        '</tbody>' +
+      '</table>'
+  },
+  PageHeader: {
+    props:
+      '<table class="comp-table">' +
+        '<thead><tr><th>Prop</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>' +
+        '<tbody>' +
+          '<tr><td><code>title</code></td><td>string</td><td>&mdash; (required)</td><td>Page title rendered as an H1. Maps to Figma <code>Title</code> TEXT property.</td></tr>' +
+          '<tr><td><code>children</code></td><td>ReactNode</td><td>&mdash;</td><td>Optional right-side actions slot (e.g. <code>&lt;Button&gt;</code>). The flex container uses <code>justify-between</code> so children land on the right.</td></tr>' +
+          '<tr><td><code>className</code></td><td>string</td><td>&mdash;</td><td>Optional class for consumer-side overrides.</td></tr>' +
+          '<tr><td><code>style</code></td><td>CSSProperties</td><td>&mdash;</td><td>Optional inline-style override.</td></tr>' +
+          '<tr><td><code>...rest</code></td><td>HTMLDivAttrs</td><td>&mdash;</td><td>Spreads to the outer <code>&lt;div&gt;</code>.</td></tr>' +
+        '</tbody>' +
+      '</table>',
+    tokens:
+      '<table class="comp-table">' +
+        '<thead><tr><th>Area / Property</th><th>Token / Value</th><th>Resolved</th></tr></thead>' +
+        '<tbody>' +
+          /* Sizing */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Sizing</td></tr>' +
+          '<tr><td>Width</td><td>100%</td><td>fills parent</td></tr>' +
+          /* Spacing */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Spacing</td></tr>' +
+          '<tr><td>Layout</td><td><code>flex items-center justify-between</code></td><td>title left, optional children right</td></tr>' +
+          '<tr><td>H1 margin</td><td><code>0</code></td><td>reset</td></tr>' +
+          /* Typography */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Typography (H1)</td></tr>' +
+          '<tr><td>Font family</td><td><code>--font-primary</code></td><td>Inter, sans-serif</td></tr>' +
+          '<tr><td>Font size</td><td><code>--font-size-3xl</code></td><td>32px</td></tr>' +
+          '<tr><td>Line height</td><td><code>--line-height-3xl</code></td><td>32px</td></tr>' +
+          '<tr><td>Font weight</td><td><code>--font-weight-semibold</code></td><td>600</td></tr>' +
+          /* Color */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Color</td></tr>' +
+          '<tr><td>Title color</td><td><code>--text-primary</code></td><td>#1B2537 (DSN/900)</td></tr>' +
+        '</tbody>' +
+      '</table>'
+  },
+  SectionHeader: {
+    props:
+      '<table class="comp-table">' +
+        '<thead><tr><th>Prop</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>' +
+        '<tbody>' +
+          '<tr><td><code>title</code></td><td>string</td><td>&mdash; (required)</td><td>Section title rendered as an H2. Maps to Figma <code>Title</code> TEXT property.</td></tr>' +
+          '<tr><td><code>supportingText</code></td><td>string</td><td>&mdash;</td><td>Optional right-aligned supporting label in Row 1. Maps to Figma <code>Supporting text</code> TEXT property.</td></tr>' +
+          '<tr><td><code>leadingActions</code></td><td>ReactNode</td><td>&mdash;</td><td>Row 2 left slot (e.g. <code>&lt;Button&gt;</code>). Row 2 only renders when <code>leadingActions</code> or <code>trailingActions</code> is present.</td></tr>' +
+          '<tr><td><code>trailingActions</code></td><td>ReactNode</td><td>&mdash;</td><td>Row 2 right slot (e.g. badge, chip, secondary button).</td></tr>' +
+          '<tr><td><code>className</code></td><td>string</td><td>&mdash;</td><td>Optional class for consumer-side overrides.</td></tr>' +
+          '<tr><td><code>style</code></td><td>CSSProperties</td><td>&mdash;</td><td>Optional inline-style override.</td></tr>' +
+          '<tr><td><code>...rest</code></td><td>HTMLDivAttrs</td><td>&mdash;</td><td>Spreads to the outer <code>&lt;div&gt;</code>.</td></tr>' +
+        '</tbody>' +
+      '</table>',
+    tokens:
+      '<table class="comp-table">' +
+        '<thead><tr><th>Area / Property</th><th>Token / Value</th><th>Resolved</th></tr></thead>' +
+        '<tbody>' +
+          /* Sizing */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Sizing</td></tr>' +
+          '<tr><td>Width</td><td>100%</td><td>fills parent</td></tr>' +
+          /* Spacing */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Spacing</td></tr>' +
+          '<tr><td>Container layout</td><td><code>flex column</code></td><td>two stacked rows</td></tr>' +
+          '<tr><td>Row gap (Row 1 &harr; Row 2)</td><td><code>--spacing-8</code></td><td>32px</td></tr>' +
+          '<tr><td>Row layout</td><td><code>flex items-center justify-between</code></td><td>each row distributes left / right</td></tr>' +
+          '<tr><td>H2 margin</td><td><code>0</code></td><td>reset</td></tr>' +
+          /* Typography — Title */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Typography &mdash; Title (H2)</td></tr>' +
+          '<tr><td>Font family</td><td><code>--font-primary</code></td><td>Inter, sans-serif</td></tr>' +
+          '<tr><td>Font size</td><td><code>--font-size-2xl</code></td><td>24px</td></tr>' +
+          '<tr><td>Line height</td><td><code>--line-height-2xl</code></td><td>32px</td></tr>' +
+          '<tr><td>Font weight</td><td><code>--font-weight-semibold</code></td><td>600</td></tr>' +
+          /* Typography — Supporting */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Typography &mdash; Supporting text</td></tr>' +
+          '<tr><td>Font family</td><td><code>--font-primary</code></td><td>Inter, sans-serif</td></tr>' +
+          '<tr><td>Font size</td><td><code>--font-size-sm</code></td><td>14px</td></tr>' +
+          '<tr><td>Line height</td><td><code>--line-height-sm</code></td><td>20px</td></tr>' +
+          '<tr><td>Font weight</td><td><code>--font-weight-regular</code></td><td>400</td></tr>' +
+          /* Color */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Color</td></tr>' +
+          '<tr><td>Title color</td><td><code>--text-primary</code></td><td>#1B2537 (DSN/900)</td></tr>' +
+          '<tr><td>Supporting text color</td><td><code>--text-tertiary</code></td><td>#6B7280 (DSN/500)</td></tr>' +
+        '</tbody>' +
+      '</table>'
+  },
+  EntityChip: {
+    props:
+      '<table class="comp-table">' +
+        '<thead><tr><th>Prop</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>' +
+        '<tbody>' +
+          '<tr><td><code>name</code></td><td>string</td><td><code>"Customers"</code></td><td>Entity label text. Maps to Figma <code>Entity name</code> TEXT property.</td></tr>' +
+          '<tr><td><code>count</code></td><td>number</td><td><code>1</code></td><td>Number of entities. 1&ndash;3 &rarr; that many entity icons. 4+ &rarr; 3 icons + <code>+N</code> overflow slot (capped at <code>+9</code>). Minimum render is 1.</td></tr>' +
+          '<tr><td><code>entityIcon</code></td><td>ReactNode / IconType</td><td>lucide <code>Handshake</code></td><td>Icon used for each entity slot. Pass a different lucide icon for non-customer use cases.</td></tr>' +
+          '<tr><td><code>showAddButton</code></td><td>boolean</td><td><code>true</code></td><td>Show the trailing add IconButton. Maps to Figma <code>Show add button</code> BOOLEAN.</td></tr>' +
+          '<tr><td><code>onAddClick</code></td><td>() =&gt; void</td><td>&mdash;</td><td>Triggered when the add button is clicked.</td></tr>' +
+          '<tr><td><code>onClick</code></td><td>() =&gt; void</td><td>&mdash;</td><td>Triggered when the chip itself (not the add button) is clicked.</td></tr>' +
+        '</tbody>' +
+      '</table>',
+    tokens:
+      '<table class="comp-table">' +
+        '<thead><tr><th>Area / Property</th><th>Token / Value</th><th>Resolved</th></tr></thead>' +
+        '<tbody>' +
+          /* Sizing */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Sizing</td></tr>' +
+          '<tr><td>Slot size (each)</td><td>24 &times; 24 (raw)</td><td>derived (4 + 16 + 4)</td></tr>' +
+          '<tr><td>Entity icon size</td><td><code>--icon-size-md</code></td><td>16px</td></tr>' +
+          '<tr><td>Add button size</td><td>24 &times; 24 (IconButton instance)</td><td>&mdash;</td></tr>' +
+          /* Spacing */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Spacing</td></tr>' +
+          '<tr><td>Pill padding (top / right / bottom / left)</td><td>6 / <code>--spacing-2</code> / 6 / <code>--spacing-3</code></td><td>6px / 8px / 6px / 12px</td></tr>' +
+          '<tr><td>Pill gap (label &harr; icon stack)</td><td><code>--spacing-3</code></td><td>12px</td></tr>' +
+          '<tr><td>Slot padding (each)</td><td><code>--spacing-1</code></td><td>4px</td></tr>' +
+          '<tr><td>Slot overlap</td><td><code>margin-left: -4px</code></td><td>4px overlap on each subsequent slot</td></tr>' +
+          /* Typography — Name */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Typography &mdash; Entity name</td></tr>' +
+          '<tr><td>Font family</td><td><code>--font-primary</code></td><td>Inter, sans-serif</td></tr>' +
+          '<tr><td>Font size</td><td><code>--font-size-sm</code></td><td>14px</td></tr>' +
+          '<tr><td>Line height</td><td><code>--line-height-sm</code></td><td>20px</td></tr>' +
+          '<tr><td>Font weight</td><td><code>--font-weight-regular</code></td><td>400</td></tr>' +
+          /* Typography — +N */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Typography &mdash; +N overflow slot</td></tr>' +
+          '<tr><td>Font family</td><td><code>--font-primary</code></td><td>Inter, sans-serif</td></tr>' +
+          '<tr><td>Font size</td><td><code>--font-size-xs</code></td><td>12px</td></tr>' +
+          '<tr><td>Line height</td><td><code>--line-height-xs</code></td><td>16px</td></tr>' +
+          '<tr><td>Font weight</td><td><code>--font-weight-semibold</code></td><td>600</td></tr>' +
+          '<tr><td>Numeric variant</td><td><code>tabular-nums</code></td><td>aligns single- vs double-digit overflow counts</td></tr>' +
+          /* Color */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Color</td></tr>' +
+          '<tr><td>Pill background</td><td><code>--white</code></td><td>#FFFFFF</td></tr>' +
+          '<tr><td>Pill border</td><td><code>--border-default</code> (DSN/300)</td><td>#D0D4DB</td></tr>' +
+          '<tr><td>Slot background</td><td><code>--white</code></td><td>#FFFFFF</td></tr>' +
+          '<tr><td>Slot border</td><td>2px dashed <code>--border-default</code> (DSN/300)</td><td>#D0D4DB</td></tr>' +
+          '<tr><td>Entity name color</td><td><code>--deep-sea-neutral-700</code></td><td>#384253</td></tr>' +
+          '<tr><td>+N text color</td><td><code>--text-primary</code></td><td>#1B2537 (DSN/700)</td></tr>' +
+          /* Border */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Border &amp; radius</td></tr>' +
+          '<tr><td>Pill border width</td><td>1px (raw)</td><td>&mdash;</td></tr>' +
+          '<tr><td>Pill radius</td><td><code>--radius-full</code></td><td>9999px</td></tr>' +
+          '<tr><td>Slot radius</td><td><code>--radius-full</code></td><td>9999px</td></tr>' +
+        '</tbody>' +
+      '</table>'
   }
 };
 
@@ -3375,7 +3864,7 @@ function showCompDetails(componentName) {
 document.addEventListener('DOMContentLoaded', function() {
   /* Populate Components tab */
   var compTab = document.getElementById('componentsTabBadgeContent');
-  if (compTab) compTab.innerHTML = getBadgeComponentHTML() + getButtonComponentHTML() + getSidebarButtonComponentHTML() + getSidebarComponentHTML() + getGlobalSearchComponentHTML() + getLeadNavComponentHTML() + getTrailNavComponentHTML() + getNavbarComponentHTML();
+  if (compTab) compTab.innerHTML = getBadgeComponentHTML() + getButtonComponentHTML() + getIconButtonComponentHTML() + getSidebarButtonComponentHTML() + getSidebarComponentHTML() + getGlobalSearchComponentHTML() + getLeadNavComponentHTML() + getTrailNavComponentHTML() + getNavbarComponentHTML() + getPageHeaderComponentHTML() + getSectionHeaderComponentHTML() + getEntityChipComponentHTML();
 
   /* Click on backdrop closes the comp details dialog */
   var compDialog = document.getElementById('comp-details-dialog');

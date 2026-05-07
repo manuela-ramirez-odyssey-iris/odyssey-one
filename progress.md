@@ -2049,3 +2049,209 @@ Added to `5. Typography` Figma collection + corresponding CSS custom properties 
 - DSM Components-tab GlobalSearch section: new "Title mode" sub-section with the centered "Edit Dashboard" demo on a dark surface; `compDetails` modal updated with `mode` and `title` props.
 - Tracker: GlobalSearch row updated for the 3-variant set + Title mode props; original sizing spec kept as a follow-up row.
 - Code Connect publish: now **10 mappings live across 7 components** (GlobalSearch has 3, TrailNav has 2, others single). Memory `project_code_connect_active.md` + `MEMORY.md` index updated.
+
+## Session 20 — May 7, 2026
+
+The session that pivoted the design system focus to the **Home domain**. Started with a small token-discipline question from the user — *"is the Shipments title using tokens for font and size?"* — which surfaced that the inline H1 in `ShipmentsRoute.jsx` was a hardcoded mess (Tailwind `text-3xl`, raw `lineHeight: '32px'`, raw `marginBottom: 25`). That triggered a full normalize cycle for the page-header pattern, which expanded mid-flow to cover a sibling Subheader with action row, two new components inside that row (a hand-built "Customers Button" frame with a toggleable handshake stack, and a small "+" button), and a legacy Add Widgets Button instance that was using the old library. End state: 4 new components in `@odyssey/ui`, 5 new typography variables, 4 new Effect Styles in Figma (no duplicates with code), a new icon-color rule documented for Buttons, and 14 Code Connect mappings live across 11 components.
+
+### Thread 1 — Token-discipline question that started the cycle
+
+User asked whether the Shipments H1 used tokens. Answer: no. The H1 at `apps/odyssey-one/src/routes/shipments/ShipmentsRoute.jsx:312` was:
+
+```jsx
+<h1 className="text-3xl font-semibold" style={{ color: 'var(--text-primary)', lineHeight: '32px', marginBottom: 25 }}>
+```
+
+`text-3xl` (Tailwind = 30px) didn't match any token in our scale (which topped out at `xl=20`). `lineHeight: '32px'` was raw. `marginBottom: 25` was off the spacing scale. Only the color was tokenized. User responded with `/normalize <figma-url>` pointing at the Figma `Header` frame — and noted "you can also jump steps on this one as is something simple."
+
+### Thread 2 — Pairing PageHeader with SectionHeader (preempted a rename)
+
+Before the first cycle could start, user flagged: *"i forgot to add the part below in SectionHeader. Also see there's a Customers Button which also needs to be normalized but as Atom, where those icons group can be turned off and on, also see the left button. please read SectionHeader again to see all this"* — and shared a second Figma URL (`1685:1509`).
+
+Pulling both nodes together let us name the pair coherently up-front instead of needing to rename later:
+- Figma `Header` → **`PageHeader`** (page-level title, mirrors the React role; avoids collision with HTML `<header>` and our `Navbar` organism)
+- Figma `Subheader` → **`SectionHeader`** (section-level title row + optional supporting text + optional actions row)
+
+The naming-pair rule worked cleanly here — `Page` vs `Section` distinguishes hierarchy, both are *bars* (consistent with the role of a `<header>` element), and neither name collides with anything else in the codebase.
+
+### Thread 3 — Token + drift inventory across both nodes
+
+| Property | Figma | Token decision |
+|---|---|---|
+| PageHeader H1 — 32/32 Inter Semi Bold | unbound | new `--font-size-3xl: 32`, `--line-height-3xl: 32` |
+| SectionHeader H2 — 24/32 Inter Semi Bold | unbound | new `--font-size-2xl: 24`, `--line-height-2xl: 32` |
+| SectionHeader supporting text — 14/20 | **IBM Plex Sans Regular** + `Gray/500` | drift fix → bound to `Inter Regular` (`Font/primary`) + `--text-tertiary` (DSN/500); needed new `--font-weight-regular: 400` |
+| Both H1/H2 colors | bound to legacy `Gray/900` | rebound to `Deep Sea Neutral/900` (`#1B2537`) |
+
+User also added two new lucide masters in `Icons md` between turns: `lucide/handshake` (`1701:650`) and `lucide/plus` (`1701:705`) — needed for EntityChip's 16px slots. Existing `lucide/handshake lg` (`583:417`) and `lucide/plus lg` (`1303:5`) stay for 20px slots.
+
+### Thread 4 — EntityChip (molecule) discovery + spec
+
+What started as "fix the title" surfaced that the SectionHeader's row 2 contained a hand-built pill labeled "Customers Button" — a frame styled as a button, with a stack of 3 dashed-border circles (each containing hand-drawn handshake vectors) plus a fourth "+" button. User clarified its real semantics over a few rounds:
+
+- Adds customers to a shared dashboard view (Home will land on a "summary of all customers' shipments / orders / exceptions" page)
+- **Each handshake icon = one customer.** Min 1 handshake (always at least one is shown)
+- **Display rules**: 1–3 customers → that many handshakes; **4+ customers** → 3 handshakes + a `+N` slot in the 4th position (where N = count − 3, **capped at 9**, e.g. 12 customers shows "+9")
+- Reclassified from atom → **molecule** mid-flow: it composes text + icons + a sub-button
+- The "+" sub-button is its own **atom** with toggleable visibility on the chip; user named it generically when I suggested `IconButton`
+- Pill design: white bg, DSN/300 1px border, fully rounded, padding `6/8/6/12` (top/bottom 6 stays raw — known carry-forward)
+- Each handshake/count slot: 24×24, **2px dashed DSN/300 border**, 4px padding, fully rounded. Slots overlap by `-4px` (negative gap, expressed in code as `margin-left: -4` on stacked slots since CSS `gap` doesn't accept negatives)
+
+Final naming: **`EntityChip`** (molecule) + **`IconButton`** (atom). The `IconButton` master keeps a generic `Icon` INSTANCE_SWAP defaulting to `placeholder-16`, but the specific instance inside EntityChip has `isExposedInstance: false` — so designers using EntityChip can't swap that "+" icon. The instance is configured to `lucide/plus md` and stays that way.
+
+### Thread 5 — Phase 1 Figma writes (multi-step)
+
+Roughly 10+ `use_figma` calls walking through:
+
+**PageHeader** (`1693:49`):
+- Convert `Header` FRAME → COMPONENT, rename → `PageHeader`
+- Bind H1 text node: `fontFamily` → Font/primary; `fontSize` → Font Size/3xl; `lineHeight` → Line Height/3xl; `fontWeight` → Font Weight/semibold
+- Rebind text fill from `Gray/900` → `Deep Sea Neutral/900`
+- Add `Title` TEXT property (default "Home"), wire to `characters`
+
+**SectionHeader** (`1696:49`):
+- Convert `Subheader` FRAME → COMPONENT, rename → `SectionHeader`
+- Both text nodes' fills rebound to DSN scale (Title → DSN/900, Supporting → DSN/500)
+- Supporting text fontName switched from `IBM Plex Sans Regular` → `Inter Regular` (preloaded both fonts before the operation; loaded `Inter Regular` first to avoid font-binding errors during the change)
+- Both texts' typography fully bound to tokens (semibold for title, regular for supporting)
+- Two TEXT properties added: `Title` (default "Welcome Amy!"), `Supporting text` (default "Last update: 04/24/2026 03:51 PM")
+- After Phase 1, user added Row 2 in Figma directly (Add Widgets button + Customers Button frame) — required a re-pull and additional Phase 1 work for those
+
+**Add Widgets Button replacement** — the legacy instance was from an old Button library, not our normalized Button. Deleted, replaced with an instance of our `Button` set's `Variant=Primary, Size=md, State=Idle` variant (`1305:135`). Configured: `Label#1308:37` → "Add Widgets", `Icon#1308:74` → `1303:5` (lucide/plus lg). **Gotcha noted**: for INSTANCE_SWAP property values on local components, Figma needs the component **id** (e.g. `'1303:5'`), not the component **key**. Using the key throws "Property value is incompatible with component property type" — the docs aren't explicit about this distinction.
+
+**IconButton** (`1711:297`):
+- Built on Components-Atoms page at `(-81, 1520)` (clear position below the existing Button showcase)
+- Frame 24×24, padding `Spacing/1` (4), radius `Radius/full` (9999), bg `White`, INSTANCE_SWAP `Icon` defaults to `placeholder-16` (`213:2`)
+- After GATE A iteration, had the new `shadow/base` Effect Style applied (see Thread 8)
+
+**EntityChip** (`1716:60`):
+- Architecturally tricky: `createComponentFromNode` fails with "Cannot create component from node" when called on a frame nested inside another component (SectionHeader). Workaround: temporarily move the frame out to the page level, convert to component, add properties, then create an instance and append it back into the SectionHeader's row 2. (Same pattern other systems use when converting frames inside live screens.)
+- Replaced hand-drawn handshake vectors in each of 3 slots with `lucide/handshake md` instances; replaced the hand-drawn "+" with an instance of the new `IconButton` configured to `lucide/plus md`
+- Cloned the 3rd handshake circle to create the 4th "Count slot" — replaced its inner instance with a centered TEXT node showing "+1" (Inter Semi Bold xs/xs DSN/700)
+- 6 component properties total: `Entity name` TEXT, `Show handshake 2` BOOLEAN (default true), `Show handshake 3` BOOLEAN (default true), `Show count` BOOLEAN (default true — shown ON in the master to advertise the feature; consumers control), `Count` TEXT (default "+1"), `Show add button` BOOLEAN (default true)
+- All values bound: pill bg → White, pill border → DSN/300, "Customers" text fill → DSN/700, gap/padding → Spacing tokens
+
+### Thread 6 — IconButton shadow + the Effect Style audit
+
+After GATE A, user spotted the IconButton lacked a shadow vs the Figma reference (`1717:379`). The reference effect was a 2-stack drop shadow (`0/1/2 6%` + `0/1/3 10%`) — different from our existing `--shadow-md` (single `0/4/12 12%`, used by 4 dropdown surfaces).
+
+User asked: *"do we have that only in code?"* — yes. Figma had no shadow Effect Styles or variables (only `shadow/sm` existed). They asked me to mirror code shadows in Figma with no duplicates.
+
+**Decision**: name the new dual-shadow `--shadow-base` (matches Figma's `/shadow/base` description, doesn't collide with the 4 popover consumers using `--shadow-md`).
+
+**Created in Figma**: `shadow/base` (new), `shadow/md` (mirror existing code), `shadow/lg` (mirror), `shadow/up-md` (mirror) — 4 new Effect Styles. `shadow/sm` already existed and matched code.
+
+**Added to code**: `--shadow-base: 0px 1px 2px rgba(0,0,0,0.06), 0px 1px 3px rgba(0,0,0,0.10)`. Applied to IconButton's CSS via `boxShadow: var(--shadow-base)`.
+
+### Thread 7 — Icon-color rule (new rule, partial Figma fix)
+
+User flagged: *"Why the add widgets icon has its own color, i thought we had rules for icons colors in buttons"* — the new normalized Button rendered the `lucide/plus` icon in DSN/500 (gray) instead of white on its dark Primary background. We didn't have a rule. The architectural cause:
+
+- `lucide/plus` master ships with strokes pre-bound to `Deep Sea Neutral/500`
+- Button variant masters had no per-variant override forcing the icon to track label color
+- Inspection of all 48 variants: every Icon child is an instance of `placeholder-16` (zero Vector descendants). Per-variant Vector overrides have no anchor — they wouldn't survive INSTANCE_SWAP cleanly because the structures don't match
+- **The legacy `icons/20px/plus` happened to ship with white strokes baked in, masking the gap**
+
+**Rule established and documented** (`feedback_button_icon_color_rule.md` + `figma-component-routine.md` Step 3c):
+> Inside Buttons / IconButtons, an icon's vector strokes adopt the parent's label color — unless explicitly overridden.
+
+- **In code**: this is automatic. Lucide React icons default to `stroke="currentColor"`. The container sets `color: var(--btn-X-text)`. No per-variant icon wiring needed in `Button.jsx`.
+- **In Figma**: harder. Two paths: (a) per-instance manual override (designer discipline), or (b) Mode-based theming with a `Color Mode` collection — define one mode per Button variant, bind every lucide icon's strokes to a single `Icon color/active` variable, call `setExplicitVariableModeForCollection` at each Button variant. Path (b) is the proper architectural fix, but is **parked** as a future cycle (significant lift, not blocking).
+
+**Targeted fix this cycle**: overrode the SectionHeader's "+ Add Widgets" Button instance — dove into its Icon child, found 2 Vector descendants, rebound their strokes to `White`. That specific instance now renders correctly. Other Button consumers in Figma may show the gray drift on the master view until either (a) per-instance overrides or (b) Mode-based theming lands. Code is the source of truth for the rendered behavior.
+
+### Thread 8 — Phase 2 (code)
+
+`packages/tokens/tokens.css` — 6 new tokens added:
+- `--font-size-2xl: 24px`, `--font-size-3xl: 32px`
+- `--line-height-2xl: 32px`, `--line-height-3xl: 32px`
+- `--font-weight-regular: 400` (joins existing `--font-weight-semibold: 600`)
+- `--shadow-base: 0px 1px 2px 0px rgba(0,0,0,0.06), 0px 1px 3px 0px rgba(0,0,0,0.10)`
+
+`packages/ui/src/`:
+- **`IconButton.jsx`** + `.figma.tsx` — 24×24 circular surface, `--shadow-base`, holds `icon` prop. Icon inherits `var(--text-secondary)` via `currentColor`.
+- **`PageHeader.jsx`** + `.figma.tsx` — flex shell + H1 (3xl/3xl semibold DSN/900). Props: `title`, optional `children` (right-side actions).
+- **`SectionHeader.jsx`** + `.figma.tsx` — two-row. Row 1: H2 + supporting text. Row 2: optional `leadingActions`/`trailingActions` slots. Row 2 only renders if either slot is provided.
+- **`EntityChip.jsx`** + `.figma.tsx` — count logic mirrors the Figma rules (1–3 → handshakes; 4+ → 3 handshakes + capped "+N"). Props: `name`, `count`, `entityIcon` (default Handshake from lucide-react — for non-customer scopes), `showAddButton`, `onAddClick`. Uses `EntityChipSlot` helper for the dashed-border circles. `+N` text uses `font-variant-numeric: tabular-nums`.
+
+Negative-gap detail: CSS `gap` doesn't accept negatives, so the `-4px` overlap between EntityChip's slots is expressed via `margin-left: -4` on subsequent slots and the trailing IconButton.
+
+`apps/odyssey-one/src/routes/shipments/ShipmentsRoute.jsx`:
+- Added `import { PageHeader } from '@odyssey/ui'`
+- Replaced inline `<h1 className="text-3xl font-semibold" style={...}>Shipments</h1>` with `<PageHeader title="Shipments" style={{ marginBottom: 25 }} />`. Bottom margin stays consumer-side (it's layout, not the component's concern).
+
+User clarified mid-Phase 2: **SectionHeader, EntityChip, IconButton are Home-domain components — not for Shipments.** They live in `@odyssey/ui` ready to be wired when Home gets real content next session. PageHeader is the only one wired this cycle.
+
+### Thread 9 — Phase 3 sync-back
+
+DSM update (subagent per the always-subagent rule): added 4 sections to `playground/DesignSystemMap.html` Components tab:
+- `getIconButtonComponentHTML()` — 2 demos (plus icon, placeholder)
+- `getPageHeaderComponentHTML()` — 3 demos (title only, title + Edit button, long-wrapping)
+- `getSectionHeaderComponentHTML()` — 3 demos (title only, title + supporting, full row 2)
+- `getEntityChipComponentHTML()` — 4 demos (count=1, 3, 5, 12 — covering 1-3 / +N / cap-at-9)
+
+Composition line updated: IconButton goes between Button and SidebarButton (atom slot); the three molecules go at the end. Each section has the green NORMALIZED pill, Figma reference link, Code Connect note, and a working compDetails modal entry with props + tokens tables.
+
+Tracker (`playground/normalization-tracker.md`): 4 new rows in Normalized Components, 4 new rows in Pushed to Figma → Code Connect.
+
+Routine (`playground/figma-component-routine.md` Step 3c): icon-color rule added under the Nested-component audit checklist.
+
+Code Connect publish: 14 mappings live across 11 components (was 10 across 7).
+
+### Files / commits
+
+This `/wrap` commit includes:
+
+**New files:**
+- `packages/ui/src/IconButton.jsx` + `IconButton.figma.tsx`
+- `packages/ui/src/PageHeader.jsx` + `PageHeader.figma.tsx`
+- `packages/ui/src/SectionHeader.jsx` + `SectionHeader.figma.tsx`
+- `packages/ui/src/EntityChip.jsx` + `EntityChip.figma.tsx`
+- `feedback_button_icon_color_rule.md` (memory)
+
+**Modified files:**
+- `apps/odyssey-one/src/routes/shipments/ShipmentsRoute.jsx` — PageHeader wired, replacing the inline H1
+- `packages/ui/src/index.js` — 4 new exports
+- `packages/tokens/tokens.css` — 6 new tokens (typography 2xl/3xl, font-weight-regular, shadow-base)
+- `playground/DesignSystemMap.html` — 4 new component sections + composition line + 4 compDetails entries (subagent edit)
+- `playground/figma-component-routine.md` — icon-color rule under Step 3c
+- `playground/normalization-tracker.md` — 4 component rows + 4 Code Connect entries
+- `progress.md` — this entry
+- Memory: `project_code_connect_active.md` (14 mappings), `project_lucide_icon_frames.md` (handshake md + plus md added), `MEMORY.md` index
+
+### State of `@odyssey/ui` after Session 20
+
+**12 normalized components** (was 8):
+- Atoms: Badge, Button, **IconButton** (NEW), OdysseyLogo, SidebarButton
+- Molecules: GlobalSearch, LeadNav, TrailNav, **PageHeader** (NEW), **SectionHeader** (NEW), **EntityChip** (NEW)
+- Organisms: Navbar
+
+**14 Code Connect mappings** across 11 components. Library re-publish required by the user (manual step in Figma desktop).
+
+### Carry-forward to Session 21
+
+**Explicitly called out by the user during /wrap:**
+- **Replace all domain headers with PageHeader** — Home, Orders, Carriers, Tracking, Users routes still have placeholder H1s (or no H1s yet); each should swap to `<PageHeader title="..." />`. Domain-aware title pattern.
+- **Start Home implementation** with what we have — the SectionHeader + EntityChip + IconButton are Home-domain components built ahead of use; next session begins wiring them into the Home route's content (likely "Welcome [user]" sub-header + Customers EntityChip + dashboard widgets).
+- **Define hover and pressed states for EntityChip and IconButton** — both shipped this session without interactive states. Hover/pressed need spec'd in DSM (Path A) and synced back to Figma masters before they go into a real consumer.
+
+**Still carrying from earlier sessions:**
+- Off-token icon-size sweep (12, 14, 18, 32 across tab/tooltip/empty-state call sites).
+- Sidebar Selected variant icon-color encoding in Figma (placeholder still inherits 500; should override to 900 to match Hover).
+- Other-domain documentation (Orders / Carriers / Tracking / Home / Users) — Obsidian + NotebookLM setup; populate `domain-documentation/`.
+- Resume Supabase migration when conditions met (≥3 domains with UIs).
+- Sidebar layout option A vs B re-evaluation on a tall monitor.
+- Vault migration parked.
+
+**Standing backlog:**
+- **SHP-66** — dropdown menu component (GlobalSearch scope + TrailNav profile, both still inline in Navbar consumer).
+- **SHP-67** — responsive normalization pass per component.
+- Spacing scale rename / extension to support 6 / 14 / 18 padding values used by Button + Navbar's py 14 + EntityChip's py 6.
+- Component-level color property on every Lucide icon master.
+
+**Parked (architectural follow-ups):**
+- **Mode-based Figma theming for Button icon colors** — `Color Mode` collection with one mode per Button variant + bind every lucide icon's strokes to `Icon color/active` + `setExplicitVariableModeForCollection` at each variant. The proper fix for the icon-color rule in Figma; significant lift. Code already handles the rule correctly via `currentColor`.
+- Purge legacy `icons/20px/*` masters — no normalized consumer references them anymore.
+- Convert remaining Lucide FRAMEs (if any) to proper COMPONENTs.
+
+**Library publish required**: Open Figma → Assets → **Publish library / Update**. New components added (IconButton, PageHeader, SectionHeader, EntityChip), 2 renamed (Header→PageHeader, Subheader→SectionHeader), 5 new typography variables, 4 new Effect Styles.

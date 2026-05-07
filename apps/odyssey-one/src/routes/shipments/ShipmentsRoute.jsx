@@ -9,6 +9,7 @@ import FilterPanel from '../../components/shipments/FilterPanel'
 import ColumnPanel, { ALL_COLUMNS, EXCEPTIONS_DEFAULT_COLUMNS, MONITORING_DEFAULT_COLUMNS } from '../../components/detail/ColumnPanel'
 import { COLUMN_CONFIG } from '../../components/shipments/ShipmentTable'
 import { FileText } from 'lucide-react'
+import { PageHeader } from '@odyssey/ui'
 import { getAllShipments, fetchShipmentDetails, getCachedShipmentDetails, getShipmentsByPanel, getShipmentsByPanelAndCategory, getCategoryCount, SEARCH_ATTRIBUTES } from '../../data'
 
 function parseSavedQuery(queryStr) {
@@ -309,9 +310,7 @@ function ShipmentsRoute() {
         </>
       }
     >
-      <h1 className="text-3xl font-semibold" style={{ color: 'var(--text-primary)', lineHeight: '32px', marginBottom: 25 }}>
-        Shipments
-      </h1>
+      <PageHeader title="Shipments" style={{ marginBottom: 25 }} />
       <MonitorPanels activePanel={activePanel} onPanelSelect={handlePanelSelect} metrics={metrics} collapsed={metricsCollapsed} onToggleCollapsed={() => setMetricsCollapsed(c => !c)} />
       <ShipmentTabs activePanel={activePanel} activeTab={activeTab} onTabSelect={setActiveTab} badgeCounts={metrics} />
       <TableControls
