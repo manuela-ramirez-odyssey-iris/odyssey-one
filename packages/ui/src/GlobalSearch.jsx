@@ -2,7 +2,40 @@ import React, { useState } from 'react'
 import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, CircleX } from 'lucide-react'
 import { ICON_MD, ICON_LG } from '@odyssey/tokens'
 
-export default function GlobalSearch({
+export default function GlobalSearch({ mode = 'search', ...rest }) {
+  if (mode === 'title') return <GlobalSearchTitle {...rest} />
+  return <GlobalSearchSearch {...rest} />
+}
+
+function GlobalSearchTitle({
+  title = 'Edit Dashboard',
+  minWidth = 590,
+  maxWidth = 900,
+}) {
+  return (
+    <div
+      className="flex items-center justify-center"
+      style={{
+        flex: 1,
+        minWidth,
+        maxWidth,
+        paddingTop: 2,
+        paddingBottom: 2,
+        fontFamily: 'var(--font-primary)',
+        fontSize: 'var(--font-size-xl)',
+        lineHeight: 'var(--line-height-xl)',
+        fontWeight: 'var(--font-weight-semibold)',
+        color: 'var(--white)',
+        textAlign: 'center',
+        whiteSpace: 'nowrap',
+      }}
+    >
+      {title}
+    </div>
+  )
+}
+
+function GlobalSearchSearch({
   scope = 'All',
   onScopeClick,
   dropdownOpen = false,
@@ -95,8 +128,6 @@ export default function GlobalSearch({
 
         <button
           type="button"
-          // Prevent the click from stealing focus from the input — keeps the
-          // searchbar in its focused state while clearing.
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => { if (value) onClear?.() }}
           className="global-search-clear flex items-center justify-center border-none bg-transparent cursor-pointer p-0 shrink-0"

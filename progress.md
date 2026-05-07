@@ -2022,3 +2022,30 @@ The `/wrap` commit includes:
 **New from Session 19:**
 - Purge legacy `icons/20px/*` masters — no normalized consumer references them anymore.
 - Convert remaining Lucide FRAMEs (if any) to proper COMPONENTs — `chevron-up` was caught this session, others may exist.
+
+### Session 19 addendum — GlobalSearch Title mode
+
+Post-/wrap follow-up. User added a 3rd variant to GlobalSearch in Figma — `State=State3` containing a single text node — described as "basically a title, that is also context aware as the trail component, switches to that whenever there's something to change in the content." Pairs naturally with TrailNav `Mode=Editor`.
+
+**Token additions** (extending the typography scale):
+- `Font Size/xl = 20`
+- `Line Height/xl = 28`
+- `Font Weight/semibold = 600`
+
+Added to `5. Typography` Figma collection + corresponding CSS custom properties (`--font-size-xl`, `--line-height-xl`, `--font-weight-semibold`) in `packages/tokens/tokens.css`. The Title spec (Inter Semi Bold 20/28, white) needed values not present in the existing scale; user approved adding rather than tightening to existing tokens.
+
+**Phase 1 (Figma):**
+- Renamed `State=State3` → `State=Title`. State axis now `[Default, Focused, Title]`.
+- Bound the title text's `fontSize` / `lineHeight` / `fontWeight` to the new variables; `fills` to `White`.
+- Added `Title` TEXT component property (default `"Edit Dashboard"`), wired to the text node's `characters` via `componentPropertyReferences`.
+- Renamed text node `Details` → `Title`.
+
+**Phase 2 (Path B — code):**
+- `GlobalSearch.jsx` rewritten to mirror TrailNav's branching pattern: top-level `<GlobalSearch>` reads `mode` and routes to `<GlobalSearchSearch>` (existing search render, untouched) or new `<GlobalSearchTitle>`. Title sub-component renders a centered text with the same `minWidth: 590, maxWidth: 900` bounds (positioned identically inside the Navbar slot).
+- Sub-components are needed because the search render uses `useState` for `inputFocused` — early-return on mode='title' would violate React's rules of hooks. Same pattern fix as TrailNav.
+- `GlobalSearch.figma.tsx` — 3 `figma.connect()` blocks, one per State variant. Default + Focused both map to `mode='search'`; Title maps to `mode='title'` with the `Title` TEXT prop.
+
+**Phase 3:**
+- DSM Components-tab GlobalSearch section: new "Title mode" sub-section with the centered "Edit Dashboard" demo on a dark surface; `compDetails` modal updated with `mode` and `title` props.
+- Tracker: GlobalSearch row updated for the 3-variant set + Title mode props; original sizing spec kept as a follow-up row.
+- Code Connect publish: now **10 mappings live across 7 components** (GlobalSearch has 3, TrailNav has 2, others single). Memory `project_code_connect_active.md` + `MEMORY.md` index updated.

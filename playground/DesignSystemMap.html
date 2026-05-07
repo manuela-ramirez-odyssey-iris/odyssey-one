@@ -2228,7 +2228,7 @@ function getGlobalSearchComponentHTML() {
   '<div class="comp-section">' +
     '<div class="comp-section-title">GlobalSearch <span class="comp-normalized-label">NORMALIZED</span></div>' +
     '<div class="comp-section-subtitle">packages/ui/src/GlobalSearch.jsx</div>' +
-    '<div style="font-size:13px; color:#6B7280; margin-bottom:18px; line-height:1.5;">Molecule &mdash; history-nav arrows + scope dropdown + input + clear button. Two variants in Figma (Default / Focused); the Focused state in code is driven by either input focus or an open dropdown.</div>' +
+    '<div style="font-size:13px; color:#6B7280; margin-bottom:18px; line-height:1.5;">Molecule &mdash; history-nav arrows + scope dropdown + input + clear button. Two variants in Figma (Default / Focused); the Focused state in code is driven by either input focus or an open dropdown. Now supports a <code>mode</code> prop &mdash; <code>\'search\'</code> (default) shows the searchbar; <code>\'title\'</code> swaps to a centered title text (used as a context swap, e.g. when entering an edit mode).</div>' +
     globalSearchStyles +
 
     /* Sub-section: States */
@@ -2250,6 +2250,19 @@ function getGlobalSearchComponentHTML() {
       '</div>' +
     '</div>' +
 
+    /* Sub-section: Title mode */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Title mode</div>' +
+      '<div class="comp-card-grid">' +
+        '<div class="comp-card">' +
+          '<div style="display:flex; align-items:center; justify-content:center; min-width:590px; max-width:900px; padding:14px 24px; background:var(--deep-sea-neutral-900, #1B2537); border-radius:8px;">' +
+            '<div style="font-family:Inter,sans-serif; font-size:var(--font-size-xl, 20px); line-height:var(--line-height-xl, 28px); font-weight:var(--font-weight-semibold, 600); color:#fff; text-align:center; white-space:nowrap;">Edit Dashboard</div>' +
+          '</div>' +
+          '<div class="comp-card-note"><code>mode="title"</code> &mdash; centered title text replaces the search bar. Inter Semi Bold 20/28, white. Width bounds inherit from search mode (590&ndash;900). New typography tokens: <code>--font-size-xl</code> (20px), <code>--line-height-xl</code> (28px), <code>--font-weight-semibold</code> (600). Used as a context swap (e.g. when entering an edit mode); pairs naturally with TrailNav <code>Mode=Editor</code>.</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
     /* Props & Tokens — moved into modal */
     '<div class="comp-subsection">' +
       '<button class="comp-details-button" onclick="showCompDetails(\'GlobalSearch\')">Show props &amp; tokens</button>' +
@@ -2259,7 +2272,7 @@ function getGlobalSearchComponentHTML() {
     '<div class="comp-subsection">' +
       '<div class="comp-subsection-title">Figma Reference</div>' +
       '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
-        'Component set <code style="' + codeChip + '">658:18</code> in Design System - MCP. Variant property <code style="' + codeChip + '">State</code> with values Default / Focused. INSTANCE_SWAP property <code style="' + codeChip + '">Dropdown icon</code> for the chevron slot (default <code style="' + codeChip + '">lucide/chevron-down</code>).' +
+        'Component set <code style="' + codeChip + '">658:18</code> in Design System - MCP. Variant property <code style="' + codeChip + '">State</code> with values Default / Focused / Title. TEXT property <code style="' + codeChip + '">Title</code> (default <code style="' + codeChip + '">"Edit Dashboard"</code>) drives the centered title in the Title variant. INSTANCE_SWAP property <code style="' + codeChip + '">Dropdown icon</code> for the chevron slot (default <code style="' + codeChip + '">lucide/chevron-down</code>).' +
       '</div>' +
     '</div>' +
 
@@ -3201,6 +3214,10 @@ var compDetails = {
       '<table class="comp-table">' +
         '<thead><tr><th>Prop</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>' +
         '<tbody>' +
+          '<tr style="background:#F7F8FA;"><td colspan="4" style="font-weight:600; color:#283142;">Mode (variant axis)</td></tr>' +
+          '<tr><td><code>mode</code></td><td><code>"search" | "title"</code></td><td><code>"search"</code></td><td>Selects which GlobalSearch variant to render. Maps to the Figma component_set <code>State</code> variant axis (<code>Default</code>/<code>Focused</code> &rarr; <code>"search"</code>; <code>Title</code> &rarr; <code>"title"</code>).</td></tr>' +
+          '<tr><td><code>title</code></td><td>string</td><td><code>"Edit Dashboard"</code></td><td>Title text rendered in Title mode. Maps to Figma <code>Title</code> TEXT property. Inter Semi Bold 20/28, white, centered.</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="4" style="font-weight:600; color:#283142;">Search mode props</td></tr>' +
           '<tr><td><code>scope</code></td><td>string</td><td><code>"All"</code></td><td>Scope dropdown label</td></tr>' +
           '<tr><td><code>onScopeClick</code></td><td>() =&gt; void</td><td>&mdash;</td><td>Triggered when scope button is clicked</td></tr>' +
           '<tr><td><code>dropdownOpen</code></td><td>boolean</td><td><code>false</code></td><td>Controls chevron up/down + treats as focused</td></tr>' +
