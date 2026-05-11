@@ -19,6 +19,7 @@
   --white: #FFFFFF;
 
   /* --- Primitives: Carolina Blue --- */
+  --carolina-blue-50: #F3F7FC;
   --carolina-blue-400: #5BA4D4;
   --carolina-blue-600: #276DA2;
 
@@ -47,9 +48,18 @@
   --purple-100: #EDE9FE;
   --purple-800: #5B21B6;
 
+  /* --- Primitives: Ice Blue --- */
+  --ice-blue-200: #C0DEFD;
+  --ice-blue-600: #296DE7;
+
+  /* --- Primitives: Tan Hide --- */
+  --tan-hide-300: #FFB872;
+  --tan-hide-600: #FC6F13;
+
   /* --- Semantic: Text --- */
   --text-primary: var(--deep-sea-neutral-900);
   --text-secondary: var(--deep-sea-neutral-700);
+  --text-secondary-soft: var(--deep-sea-neutral-600);
   --text-tertiary: var(--deep-sea-neutral-500);
   --text-placeholder: var(--deep-sea-neutral-400);
   --text-inverse: var(--white);
@@ -58,6 +68,13 @@
   --text-error: var(--bittersweet-600);
   --text-success: var(--caribbean-green-600);
   --text-warning: var(--sunrise-yellow-800);
+
+  /* --- Semantic: Chart palette (pie segments + corresponding inline indicator dots) --- */
+  --chart-1: var(--ice-blue-600);
+  --chart-2: var(--ice-blue-200);
+  --chart-3: var(--tan-hide-600);
+  --chart-4: var(--tan-hide-300);
+  --chart-rest: var(--deep-sea-neutral-200);
 
   /* --- Semantic: Background --- */
   --bg-primary: var(--white);
@@ -160,6 +177,7 @@
   --font-size-xl: 20px;
   --font-size-2xl: 24px;
   --font-size-3xl: 32px;
+  --font-size-4xl: 40px;
   --line-height-xs: 16px;
   --line-height-sm: 20px;
   --line-height-base: 24px;
@@ -167,7 +185,9 @@
   --line-height-xl: 28px;
   --line-height-2xl: 32px;
   --line-height-3xl: 32px;
+  --line-height-4xl: 48px;
   --font-weight-regular: 400;
+  --font-weight-medium: 500;
   --font-weight-semibold: 600;
 
   /* --- Spacing Scale --- */
@@ -189,7 +209,8 @@
   --radius-sm: 4px;
   --radius-md: 6px;
   --radius-lg: 8px;
-  --radius-xl: 16px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
   --radius-pill: 10px;
   --radius-full: 9999px;
 

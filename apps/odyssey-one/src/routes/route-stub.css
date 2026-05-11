@@ -1,22 +1,14 @@
 .route-stub {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 24px;
+  gap: var(--spacing-2);
+  padding: var(--spacing-6);
   height: 100%;
-}
-
-.route-stub h1 {
-  font-family: var(--font-primary);
-  font-size: 24px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0;
 }
 
 .route-stub p {
   font-family: var(--font-primary);
-  font-size: 14px;
+  font-size: var(--font-size-sm);
   color: var(--text-secondary);
   margin: 0;
 }

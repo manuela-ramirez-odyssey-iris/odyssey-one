@@ -2254,4 +2254,192 @@ This `/wrap` commit includes:
 - Purge legacy `icons/20px/*` masters — no normalized consumer references them anymore.
 - Convert remaining Lucide FRAMEs (if any) to proper COMPONENTs.
 
+## Session 21 — May 7–8, 2026
+
+The Home-domain widget normalization marathon. Started as a small carry-forward sweep (PageHeader across the 5 placeholder routes), then pivoted into a full vertical slice for the Home dashboard's widget family — `WidgetMetricRow`, the `Widget` component set with 4 variants (1x / 2x / 3x / 3xChart), a `Widget content` set with matching variants, a `Button "link"` variant + `ButtonLink` master, 12 local text styles, and a process-discipline upgrade for the `/normalize` routine. Two-day session with three distinct phases divided by user-flagged process gaps (Efrain pivot on chip interactivity → IconButton variants; user-flagged typography drift → comprehensive text-style overhaul). End state: 4 new normalized components + a chart palette + 12 local text styles + zero external OdysseyOne-library typography references.
+
+### Thread 1 — PageHeader sweep across the placeholder routes
+
+Carry-forward from Session 20. Each of the 5 stub routes (`Home`, `Orders`, `Carriers`, `Tracking`, `Users`) had a placeholder `<h1>{name}</h1>` styled by a hardcoded `.route-stub h1` rule (24px raw, off our scale). Swapped each for `<PageHeader title="..." />`, removed the dead `.route-stub h1` selector, tokenized the leftover px values (`8` → `--spacing-2`, `24` → `--spacing-6`, `14` → `--font-size-sm`). All 5 routes compile + serve in Vite. Closed the lowest-hanging Session-20 carry-forward in one batch.
+
+### Thread 2 — EntityChip interactive states (and the Efrain pivot)
+
+Built hover/pressed states for `EntityChip` following the Secondary-button family palette (white → DSN/50 → DSN/100; border DSN/300 → DSN/400; shadow-sm on idle/hover, off on pressed). Migrated `EntityChip` from inline styles to CSS classes mirroring the `Button` pattern. Made the inner `IconButton` polymorphic (`<button>` when interactive, `<span>` otherwise) to avoid invalid nested-button HTML when the chip itself became a `<button>`. Reverted my initial misread of "above" (vertical) — corrected to z-axis stacking via `position: relative; z-index: 1` + the existing `margin-left: -4px` overlap.
+
+**Mid-cycle pivot — Efrain feedback (2026-05-07):** chip is decorative; only the inner "+" IconButton is the click target. Reverted all chip interactivity (polymorphic shell gone, `--interactive` CSS rules removed, `onClick` prop dropped, re-added `onAddClick` that forwards to the inner IconButton). Pushed the full state palette onto `IconButton` itself instead — minus the always-on idle border (1px transparent at idle to keep layout stable, 1px DSN/400 on hover, transparent again on pressed since the user later removed the pressed border to match the visual press).
+
+**Figma side:** built the `IconButton` component set at node `1754:295` inside the Small Buttons frame (`1724:654`) Efrain placed. Cloned the existing 1711:297 master into State=Hover (`1753:295`) and State=Pressed (`1753:297`), bound tokens per variant. Updated `IconButton.figma.tsx` to point at the set.
+
+**Memory:** saved `feedback_designsystemmap_first.md`, `feedback_designsystemmap_subagent.md`, `feedback_figma_before_code.md` are already in place; this session reinforced them but didn't add new feedback memories on that subject.
+
+### Thread 3 — Home domain analysis written
+
+David + Kathleen confirmed Home is **not a data-owning domain** — it's a cross-domain dashboard exposing other domains' data (Orders, Shipments, Tracking, Exceptions) filtered by a per-user customer scope. Wrote `shipments-documentation/Documentation/home-domain-analysis.md` covering: cross-domain model, customer-filter mechanics (the EntityChip), widget sizes (3) + profiles (saved layouts), stakeholder ownership (David central + co-PM Home; Kathleen co-PM Home; Jana = Shipments), open questions (widget catalog pruning, grid system, edit-mode toggle, profile UX, customer-picker design).
+
+Saved supporting memories: `project_home_domain_model.md`, `project_stakeholders.md`.
+
+### Thread 4 — Widget token foundation (Phase 1 of the widget cycle)
+
+Pulled the 4 widget shells (`Widget1x/2x/3x/3xChart`) + 4 content components from Figma (`1774:1117` "Widgets Sizes Slot Version"). Token audit surfaced **zero bound values across the entire family** — every fill, stroke, padding, gap, radius was raw. Plus 2 instances of legacy `icons/20px/clipboard-list` and `icons/16px/arrow-right` + `icons/16px/chevron-right`.
+
+**New tokens added (Figma + code in lockstep):**
+- `--font-size-4xl: 40px` + `--line-height-4xl: 48px` (Widget3xChart big value)
+- `--font-weight-medium: 500` (drift fix — was in Figma but missing in `tokens.css`)
+- `--radius-2xl` swap (the user caught the naming inconsistency mid-cycle: original scale had `--radius-xl: 16` + new `--radius-2xl: 12`, semantically backwards. Renamed via Figma variable swap — preserved IDs so bindings stayed intact. Final: `--radius-xl: 12px`, `--radius-2xl: 16px`.)
+- `--carolina-blue-50: #F3F7FC` (domain icon container bg)
+- `--text-secondary-soft: var(--deep-sea-neutral-600)` (widget labels, distinct from `--text-secondary` = DSN/700)
+- `--chart-1` through `--chart-4` + `--chart-rest` (palette pivot — see Thread 7)
+
+**3 missing lucide icons created** (user added them in Figma): `lucide/grip-vertical` @ lg, `lucide/arrow-right` @ md, `lucide/chevron-right` @ md. Plus bonus pair `lucide/arrow-left` @ md + lg.
+
+**Widget masters bound + cleaned:**
+- All 4 shells: fills/strokes/padding/radius/effects bound to tokens; shadow effects bound to `shadow/sm` style
+- All 4 content components: text fills + typography per text node bound to variables (initially via individual property bindings — later upgraded to local text styles, see Thread 8)
+- 17 legacy `icons/Npx/*` instances swapped to `lucide/*` masters
+- `Show grip` BOOLEAN added to each shell (toggleable drag affordance per edit-mode)
+- Domain icon container bg (Widget3x/3xChart) bound to new `Carolina Blue/50`
+
+### Thread 5 — WidgetMetricRow molecule
+
+The single most-shared piece across Widget3x + Widget3xChart: 4 rows in each content variant × 2 variants = 8 duplicated row layouts. Normalized as a single molecule.
+
+**Figma master at `1814:7`** (moved to Components-Molecules page by user mid-cycle):
+- HORIZONTAL auto-layout, justify-between
+- Label group (HUG): optional indicator dot (8×8 circle, fill `Chart/1` default, hidden by default via `Show indicator` BOOLEAN) + Label TEXT
+- Trailing (HUG): inline Badge frame (1px vertical pad, `Spacing/2` horizontal, `Radius/lg`, `Gray/bg`) containing Value TEXT + lucide/chevron-right md
+- 3 component properties: `Label` TEXT default "Date Issues", `Value` TEXT default "99", `Show indicator` BOOLEAN default false
+- Indicator dot's color is consumer-overridable per instance to `Chart/2-4` for the 3xChart legend (no `Color` variant in the master — kept variant matrix small)
+
+**Code side:** `packages/ui/src/WidgetMetricRow.jsx` polymorphic (`<button>` when `onClick`, `<div>` otherwise), props mirror Figma + `indicatorColor` CSS-color prop for the dot. CSS in `components.css` token-bound. `WidgetMetricRow.figma.tsx` Code Connect mapping. Refactored to use the `.text-label-sm-regular` + `.text-label-xs-semibold` utility classes once those landed.
+
+**Deduplication:** 8 hand-built Container row frames in WidgetContent3x + WidgetContent3xChart replaced with instances of the new master. Per-instance overrides drive the chart-color and percentage-vs-bare-value differences between the two consumer variants.
+
+### Thread 6 — Variant consolidation: Widget set + WidgetContent set
+
+User flagged the philosophy question: separate shell-per-size components vs one component with variants. Aligned on **one component with `Variant=1x|2x|3x|3xChart`** for both shells and content. Used `figma.combineAsVariants(...)` to merge:
+- `Widget` set at `1825:7` — 4 variants + `ContentSlot` SLOT + `Show grip` BOOLEAN (unified across variants) + later `Title` TEXT + `Domain icon` INSTANCE_SWAP + (initially) `Go to label` TEXT (removed in Thread 9)
+- `WidgetContent` set at `1825:8` — 4 variants + `Value` TEXT + `Label` TEXT + `Percentage` TEXT
+
+Trade-off acknowledged: Figma slots don't auto-couple to parent variant. Designer changing Widget Variant from 1x → 2x changes shell layout but the slot's content stays as whatever variant was placed — they manually swap content variant. Acceptable until Figma adds slot-variant coupling.
+
+Moved all 8 masters into a clean `Widgets` frame (`1776:1854`) with `Widget shells` + `Widget content` auto-layout rows. Did a light layer-rename pass (`Option text` → `Label`, `Badge text` → `Value`, `Indicator icon` → `Indicator dot`, etc.) but later reverted icon-instance renames per Efrain's "preserve lucide names" directive — all icon instances now named after their master (e.g. `lucide/clipboard-list`, `lucide/grip-vertical`).
+
+### Thread 7 — Chart palette pivot (user-flagged drift)
+
+Initial picks (Carolina Blue / Caribbean Green / Bittersweet / Internacional Orange / Liberty Green — 5 chart slots) drifted too far from the actual segment colors in the WidgetContent3xChart Figma master. User pointed to the old theme-color palette doc and the exact 4 hex values (`#296DE7`, `#C0DEFD`, `#FC6F13`, `#FFB872`) representing the design intent.
+
+Pivot:
+- **Removed**: `Internacional Orange/600`, `Liberty Green/600`, `Chart/5` (unused)
+- **Added**: `Ice Blue/200`, `Ice Blue/600`, `Tan Hide/300`, `Tan Hide/600`
+- **Final palette**: `Chart/1` = Ice Blue/600, `Chart/2` = Ice Blue/200, `Chart/3` = Tan Hide/600, `Chart/4` = Tan Hide/300, `Chart/rest` = DSN/200
+- Pie segments in WidgetContent3xChart bound to Chart/1–4 (had been deferred earlier — done as part of this pivot)
+- Indicator dot in WidgetMetricRow rebound to default `Chart/1`; consumer overrides to /2/3/4 per row
+- Changed indicator dot from RECTANGLE to circle (cornerRadius bound to `Radius/full`)
+- Mirrored token rename in `tokens.css`
+
+Lesson: when binding to a generic "chart" palette, match the *exact* design colors first; pick semantically named tokens later. Initial picks privileged hue spread over fidelity — wrong call.
+
+### Thread 8 — Local text styles + typography overhaul (process-discipline upgrade)
+
+User flagged that we had zero local text styles + were inheriting from the legacy OdysseyOne library at 10+ text nodes across the widget masters. Also caught me sample-and-fix-ing across iterations — every "pass" missed something. Process-discipline gap.
+
+**Created 11 local text styles** (`display/4xl semibold` through `label/xs regular`) + later a 12th (`label/xs regular tight` = 12/12 for compact roles like TrailNav). Each style binds `fontFamily`/`fontSize`/`lineHeight`/`fontWeight` to typography variables so tokens cascade.
+
+**Mirrored as 12 utility classes** in `components.css` (`.text-display-4xl-semibold` etc.). Refactored `WidgetMetricRow.jsx`, `PageHeader.jsx`, `SectionHeader.jsx`, `GlobalSearch.jsx`, `TrailNav.jsx`, `Button.jsx` to use the utility classes instead of redeclaring the 4 typography vars per component. Button now picks the right utility per size (`sm → text-label-sm-medium`, `md/lg → text-label-base-medium`).
+
+**Comprehensive sweep across Components-Atoms / Molecules / Organisms**: 112 text nodes restyled in one subagent pass. Zero external OdysseyOne library references remain (was 10+ before). Off-scale specs snapped to the closest local style with user approval (11px → 12px, 13px → 14px; 12/12 → new `label/xs regular tight`). Only the intentional pie chart micro-text (5.76px) left unstyled.
+
+**Skill updated** (`playground/figma-component-routine.md`):
+- Step 3c gained a hard rule: **one comprehensive audit sweep before any fix**, not sample-and-fix
+- Added explicit "every text node uses a local text style" requirement (catches external library inheritance + the no-style-only-bindings failure mode)
+- Pre-completion checklist updated
+
+### Thread 9 — Widget code + Button "link" variant
+
+**`Widget.jsx`** — unified component with 4 internal variants (1x / 2x / 3x / 3xChart). Each variant renders its own shell + content layout. Embedded `PieChart` sub-component renders SVG donut from segment data. Composes `WidgetMetricRow` instances for 3x / 3xChart rows.
+
+**Button.jsx extended:**
+- New `variant="link"` (no bg / border / shadow at idle; `Text/link` color; hover DSN/50 bg; pressed DSN/100 bg + DSN/400 text)
+- New `iconRight` prop (trailing icon slot — first time Button supports trailing)
+- `.btn--has-icon-right` asymmetric padding mirroring leading-icon padding
+
+**Figma side — `ButtonLink` master at `1838:7`** inside the user-placed "Link Buttons" frame (`1822:3987`). Single variant for now (sm/Idle), full state/size matrix deferred. Code Connect maps to `<Button variant="link" iconRight={...}>` in the same `.figma.tsx` file as the main Button set.
+
+**Widget Go-to button swap (carry-forward closeout):** 3 inline Button frames in Widget2x/3x/3xChart shells (`1774:1194`, `1774:1298`, `1774:1357`) replaced with instances of ButtonLink (`1850:77`, `:82`, `:86`). `isExposedInstance: true` so designers see the inner Label property at the Widget instance level. Removed the now-redundant `Go to label` TEXT property from the Widget set.
+
+### Files / commits
+
+This `/wrap` commit includes:
+
+**New files:**
+- `packages/ui/src/WidgetMetricRow.jsx` + `.figma.tsx`
+- `packages/ui/src/Widget.jsx` + `.figma.tsx`
+- `apps/odyssey-one/src/routes/Home.css`
+- `shipments-documentation/Documentation/home-domain-analysis.md`
+- Memory: `project_home_domain_model.md`, `project_stakeholders.md`
+
+**Modified files:**
+- `apps/odyssey-one/src/routes/{Home,Orders,Carriers,Tracking,Users}.jsx` — PageHeader wired
+- `apps/odyssey-one/src/routes/Home.jsx` — Section header + EntityChip wired; `onAddClick` (post-Efrain-pivot)
+- `apps/odyssey-one/src/routes/route-stub.css` — dead H1 selector dropped; remaining values tokenized
+- `apps/odyssey-one/src/routes/shipments/ShipmentsRoute.jsx` — (no widget changes; the page-header wiring stayed from Session 20)
+- `apps/odyssey-one/src/styles/components.css` — `.icon-button` interactive states; `.entity-chip` family revert (decorative); `.btn--link`; `.btn--has-icon-right`; `.widget-metric-row__*`; `.widget` + `.widget--{variant}` + `.widget__*`; 11 `.text-*` utility classes + tight variant (12); `.btn--secondary` typography moved to per-size utility class
+- `packages/ui/src/EntityChip.jsx` — polymorphic shell, then reverted to decorative `<div>`; `onAddClick` forwards to inner IconButton
+- `packages/ui/src/IconButton.jsx` — polymorphic (button / span)
+- `packages/ui/src/IconButton.figma.tsx` — points at component set 1754:295
+- `packages/ui/src/Button.jsx` — `iconRight` prop + `link` variant; per-size text-utility derivation
+- `packages/ui/src/Button.figma.tsx` — added second `figma.connect` for ButtonLink master 1838:7
+- `packages/ui/src/{PageHeader, SectionHeader, GlobalSearch, TrailNav}.jsx` — inline typography removed in favor of `.text-*` utility classes
+- `packages/ui/src/index.js` — exports for WidgetMetricRow + Widget
+- `packages/tokens/tokens.css` — `--carolina-blue-50`; `--ice-blue-{200,600}`; `--tan-hide-{300,600}`; `--text-secondary-soft`; `--chart-{1,2,3,4,rest}`; `--font-size-4xl`; `--line-height-4xl`; `--font-weight-medium` (drift fix); `--radius-xl` ↔ `--radius-2xl` swap
+- `apps/odyssey-one/src/index.css` — `--radius-xl/2xl` swap mirrored in Tailwind `@theme`
+- `playground/figma-component-routine.md` — comprehensive-audit rule + local-text-style rule + checklist
+- Memory: `project_home_domain_model.md`, `project_stakeholders.md`, `MEMORY.md` index
+
+### State of `@odyssey/ui` after Session 21
+
+**14 normalized components** (was 12):
+- Atoms: Badge, Button (now with `link` variant + `iconRight`), IconButton (now stateful), OdysseyLogo, SidebarButton
+- Molecules: GlobalSearch, LeadNav, TrailNav, PageHeader, SectionHeader, EntityChip, **WidgetMetricRow** (NEW)
+- Organisms: Navbar, **Widget** (NEW, 4 variants)
+
+**Figma:**
+- Widget set `1825:7` + WidgetContent set `1825:8` + WidgetMetricRow `1814:7` + ButtonLink `1838:7` + IconButton variant set `1754:295`
+- 12 local text styles, zero external OdysseyOne library references in any component master
+- Chart palette: 4 segment colors + 1 rest, all bound to primitives
+- 6 new color primitives (Carolina Blue/50, Ice Blue/200+600, Tan Hide/300+600)
+- 12 typography styles bound to typography variables
+
+Library re-publish required (user's manual step in Figma desktop).
+
+### Carry-forward to Session 22
+
+**Pre-flagged for next session (by user during /wrap):**
+- **Normalize the inline Badge inside WidgetMetricRow** — the gray pill (padding 1/8/1/8, `Gray/bg`, value text) is a frame-styled-like-component, not an instance of `Badge`. May need a new iconless / pill-only Badge variant for this use case. Audit whether other widgets have similar inline pills.
+- **Remove unused chart primitive colors** — audit which Chart-introduced colors are actually consumed; remove anything dangling in `tokens.css` + Figma after the palette pivot.
+
+**Still carrying from earlier sessions:**
+- **#16 WidgetPieChart Figma master** — code SVG sub-component works for now; Figma needs a real PieChart molecule when 2x/3xChart consumers go beyond the prototype shape.
+- **#18 Wire example Widget into Home route** — end-to-end smoke test; pick Orders or Shipments-Exceptions and place one Widget at each size below SectionHeader.
+- Off-token icon-size sweep (12, 14, 18, 32 across tab/tooltip/empty-state call sites).
+- Sidebar Selected variant icon-color encoding in Figma.
+- Other-domain documentation (Orders / Carriers / Tracking / Users) — Obsidian + NotebookLM setup pending.
+- Resume Supabase migration when ≥3 domains have real UIs.
+- Sidebar layout option A vs B re-evaluation on tall monitor.
+- Vault migration parked (NotebookLM access).
+- Define hover / pressed states for EntityChip — chip is decorative again post-Efrain pivot; revisit if a use case emerges.
+
+**Standing backlog:**
+- **SHP-66** — dropdown menu component (GlobalSearch scope + TrailNav profile inline in Navbar).
+- **SHP-67** — responsive normalization pass per component.
+- Button "link" variant — full size × state matrix in Figma (currently only sm/Idle).
+- Spacing scale rename / extension for off-scale paddings (6 / 14 / 18 still raw in some components).
+
+**Parked (architectural follow-ups):**
+- Mode-based Figma theming for Button icon colors (the icon-color-rule's proper fix).
+- Purge legacy `icons/Npx/*` masters now that widget normalization swept them.
+- Convert any remaining Lucide FRAMEs to proper COMPONENTs.
+
+**Library publish required**: Open Figma → Assets → **Publish library / Update**. Changes: new components (Widget set, WidgetContent set, WidgetMetricRow, ButtonLink, IconButton variant set), 12 local text styles, 6 new color primitives, several renamed/restructured masters.
+
 **Library publish required**: Open Figma → Assets → **Publish library / Update**. New components added (IconButton, PageHeader, SectionHeader, EntityChip), 2 renamed (Header→PageHeader, Subheader→SectionHeader), 5 new typography variables, 4 new Effect Styles.

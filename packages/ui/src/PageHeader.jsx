@@ -18,12 +18,8 @@ export default function PageHeader({ title, children, className = '', style, ...
       {...rest}
     >
       <h1
-        className="page-header__title"
+        className="page-header__title text-display-3xl-semibold"
         style={{
-          fontFamily: 'var(--font-primary)',
-          fontSize: 'var(--font-size-3xl)',
-          lineHeight: 'var(--line-height-3xl)',
-          fontWeight: 'var(--font-weight-semibold)',
           color: 'var(--text-primary)',
           margin: 0,
         }}

@@ -99,6 +99,8 @@ Do all the Figma changes the normalization requires:
 
 **Normalizing a molecule or organism means normalizing everything inside it too.** Walk the component tree and verify:
 
+**Run ONE comprehensive sweep first, then fix in batch.** Do not sample-and-fix iteratively. The pattern is: write a single `use_figma` script that enumerates EVERY violation across the component tree — every legacy icon master, every unbound fill/stroke/spacing/radius, every text node inheriting an external `textStyleId`, every text node missing local text-style application — produce one report, present it to the user for batch decisions, then execute fixes in one script. Sample-and-fix surfaces missed items at every review and burns user time on re-corrections.
+
 - **Every color** is bound to a `Deep Sea Neutral/*`, `Carolina Blue/*`, `Bittersweet/*`, etc. variable — never raw hex, never legacy scales (e.g. `DS-Gray-Neutral/*` if those somehow exist). Use `use_figma` to read `boundVariables` on every fill / stroke. Raw hex on text fills, frame strokes, and icon strokes is the most common miss.
 - **Every icon** is an instance of the right master, depending on whether the slot is static or switchable:
   - Static slots → `lucide/<kebab-name>` from `Icons md` (`230:1054`) at 16px or `Icons lg` (`366:619`) at 20px.
@@ -106,6 +108,12 @@ Do all the Figma changes the normalization requires:
   Hand-drawn vectors don't count — replace them with the right master. A switchable slot defaulting to a real lucide icon is also drift — swap it for the matching placeholder.
 - **Every sub-component** that has a parallel in our library is an actual instance of that library component. A "badge" inside a molecule must be an INSTANCE of `Badge` (the component set `213:27`), not a frame styled to look like one. A "button" inside must be an instance of `SidebarButton` / future Button, not a frame with the same dimensions. **Frame-that-looks-like-component is a code smell — replace it with `createInstance()` of the real component, even if it costs a re-layout.**
 - **Naming clarity:** when you insert an instance, name it after the source component (`Badge`, not `Notification Badge`) so the layers panel makes the relationship obvious to anyone reviewing the file. The custom name shouldn't disguise what it is.
+- **Every text node uses a LOCAL text style.** Two failure modes to catch:
+  - **External library text styles** — when a text node has a `textStyleId` pointing to a style from a *different* file (e.g. the legacy OdysseyOne library: `inter-text-sm/leading-5/font-medium` etc.), that's drift. The publish drags the external dependency. Detach by replacing the styleId with a local equivalent: `await textNode.setTextStyleIdAsync(localStyle.id)`.
+  - **No style applied + individual variable bindings** — binding `fontSize` / `lineHeight` / `fontWeight` / `fontFamily` individually on a text node works for runtime values but doesn't carry semantic meaning ("this is a heading", "this is a label"). Apply a local text style instead — it composes the typography variables under one semantic name.
+
+  Local text style catalog should cover the cross-component typography needs (display/heading/body/label tiers × size × weight). Each style binds `fontFamily`/`fontSize`/`lineHeight`/`fontWeight` to typography variables so token changes cascade. If a needed style doesn't exist, create it (in Figma via `figma.createTextStyle()`) AND mirror as a `.text-{tier}-{size}-{weight}` utility class in `components.css`.
+
 - **Icon color tracks the parent's text color (Buttons + similar).** When an icon sits inside a Button, IconButton, or any text-and-icon container, its vector strokes adopt the same color as the label — unless the consumer explicitly overrides. In **code** this is automatic: Lucide React icons default to `stroke="currentColor"`, and the surrounding component sets `color: var(--text-X)`, so the icon inherits via CSS. In **Figma** this is harder — `lucide/*` masters ship with their vector strokes pre-bound to a specific color (typically `Deep Sea Neutral/500`), and per-variant overrides don't reliably survive INSTANCE_SWAP because `placeholder-16` (the default swap target) has no Vector descendants. Two practical options: (a) **per-instance manual override** — when you swap a real lucide icon into a Button variant in Figma, also override that icon's inner Vector strokes to match the variant's label-color variable; (b) **mode-based theming** (parked, larger architectural lift) — define a `Color Mode` collection with one mode per Button variant, bind every lucide icon's strokes to a single `Icon color/active` variable, and call `setExplicitVariableModeForCollection` at each Button variant to switch modes for its subtree. Until (b) ships, code is the source of truth for icon-in-button colors; Figma renderings may drift on the master, which is acceptable as long as the consumer-side render in the running app is correct.
 
 If the audit surfaces something hand-built where a primitive exists, fix it in Phase 1 before screenshotting. Don't punt to a follow-up — the whole point of normalization is that the file becomes a true composition of our primitives.
@@ -350,7 +358,7 @@ Hardcoded values are normalization failures. The "no hardcoded hex/rgb/rgba" rul
 - [ ] No raw px values in the new component or its CSS (except width/height for icons that map to a sizing token).
 - [ ] No raw hex / rgb / rgba.
 - [ ] All Figma fills/strokes show `boundVariables`.
-- [ ] All Figma text nodes use a text style or have font properties bound to typography variables.
+- [ ] All Figma text nodes apply a LOCAL text style (not external library style, not just individual property bindings). Verify via `textNode.textStyleId` resolving to a style returned by `figma.getLocalTextStylesAsync()`.
 - [ ] Consumer call sites updated to the new component's spec (icon sizes, prop API).
 - [ ] Any new tokens are in BOTH `tokens.css` AND the Figma variable collection.
 

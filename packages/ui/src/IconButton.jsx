@@ -1,34 +1,40 @@
 /**
  * IconButton — atom. 24×24 circular surface with shadow-base, holds a single icon.
  *
- * The icon is passed via the `icon` prop and inherits the button's text color via
- * `currentColor` (Lucide React icons default to `stroke="currentColor"`). To override
- * the color, set `color` on the button or wrap the icon with explicit color.
+ * Polymorphic: renders as `<button>` when an `onClick` handler is provided,
+ * otherwise as `<span>` (purely decorative). Avoids invalid nested-button
+ * markup when used inside another interactive component (e.g. EntityChip).
+ *
+ * The icon inherits the surface's text color via `currentColor` (Lucide React
+ * icons default to `stroke="currentColor"`). Override by setting `color` on
+ * the IconButton or wrapping the icon with explicit color.
  */
 export default function IconButton({ icon, onClick, ariaLabel, className = '', ...props }) {
+  const isInteractive = typeof onClick === 'function'
+  const Tag = isInteractive ? 'button' : 'span'
+  const classes = [
+    'icon-button',
+    isInteractive && 'icon-button--interactive',
+    className,
+  ].filter(Boolean).join(' ')
+
+  if (isInteractive) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        aria-label={ariaLabel}
+        className={classes}
+        {...props}
+      >
+        {icon}
+      </button>
+    )
+  }
+
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={ariaLabel}
-      className={`icon-button ${className}`.trim()}
-      style={{
-        width: 24,
-        height: 24,
-        padding: 'var(--spacing-1)',
-        borderRadius: 'var(--radius-full)',
-        background: 'var(--white)',
-        border: 'none',
-        boxShadow: 'var(--shadow-base)',
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        cursor: 'pointer',
-        color: 'var(--text-secondary)',
-      }}
-      {...props}
-    >
+    <span className={classes} aria-hidden={ariaLabel ? undefined : true} {...props}>
       {icon}
-    </button>
+    </span>
   )
 }

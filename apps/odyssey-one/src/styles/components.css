@@ -315,6 +315,10 @@
    NATIVE DATE INPUT STYLING
    Match design system appearance
    ---------------------------------------- */
+/* Full typography bundle below maps to .text-label-sm-regular — consumers of
+   .odyssey-date-input should add that utility once any JSX picks it up; left
+   inline here because the selector is attribute-based and no JSX consumer is
+   wired yet. */
 input[type="date"].odyssey-date-input {
   width: 100%;
   padding: 8px 13px;
@@ -456,8 +460,11 @@ input[type="radio"].odyssey-radio {
   align-items: center;
   justify-content: center;
   gap: var(--spacing-2);
-  font-family: var(--font-primary);
-  font-weight: 500;
+  /* Typography (font-family + font-size + line-height + font-weight) comes from
+     the size-specific text utility applied in Button.jsx:
+       .btn--sm → .text-label-sm-medium
+       .btn--md → .text-label-base-medium
+       .btn--lg → .text-label-base-medium */
   border-radius: var(--radius-lg);
   border: 1px solid transparent;
   cursor: pointer;
@@ -486,15 +493,14 @@ input[type="radio"].odyssey-radio {
 }
 .btn__icon > svg { width: 100%; height: 100%; }
 
-/* Sizes — base (height + typography + py); horizontal padding varies by .btn--has-icon */
+/* Sizes — base (height + py); horizontal padding varies by .btn--has-icon.
+   Typography is owned by the text-label-* utility applied in Button.jsx. */
 .btn--sm {
   height: 32px;
   padding-top: 6px;
   padding-bottom: 6px;
   padding-left: 14px;
   padding-right: 14px;
-  font-size: var(--font-size-sm);
-  line-height: var(--line-height-sm);
 }
 .btn--md {
   height: 36px;
@@ -502,8 +508,6 @@ input[type="radio"].odyssey-radio {
   padding-bottom: 6px;
   padding-left: 14px;
   padding-right: 14px;
-  font-size: var(--font-size-base);
-  line-height: var(--line-height-base);
 }
 .btn--lg {
   height: 40px;
@@ -511,8 +515,6 @@ input[type="radio"].odyssey-radio {
   padding-bottom: var(--spacing-2);
   padding-left: 18px;
   padding-right: 18px;
-  font-size: var(--font-size-base);
-  line-height: var(--line-height-base);
 }
 
 /* With-icon: asymmetric padding (pl < pr) compensates for icon's left-side weight */
@@ -610,6 +612,441 @@ input[type="radio"].odyssey-radio {
   color: var(--white);
   border-color: transparent;
   box-shadow: var(--shadow-sm);
+}
+
+/* Link — text-only tertiary action on light surfaces. No bg / border / shadow at idle. */
+.btn--link {
+  background: transparent;
+  color: var(--text-link);
+  border-color: transparent;
+  box-shadow: none;
+}
+.btn--link:hover:not(:disabled) {
+  background: var(--deep-sea-neutral-50);
+}
+.btn--link:active:not(:disabled) {
+  background: var(--deep-sea-neutral-100);
+  color: var(--deep-sea-neutral-400);
+}
+.btn--link:disabled {
+  color: var(--text-placeholder);
+  background: transparent;
+}
+
+/* Trailing-icon padding — mirror leading-icon asymmetric padding */
+.btn--has-icon-right.btn--sm { padding-left: 14px; padding-right: var(--spacing-3); }
+.btn--has-icon-right.btn--md { padding-left: 14px; padding-right: var(--spacing-3); }
+.btn--has-icon-right.btn--lg { padding-left: var(--spacing-4); padding-right: 14px; }
+.btn__icon--right { margin-left: auto; }
+
+/* ----------------------------------------
+   ICON BUTTON (atom)
+   24×24 circular surface, shadow-base, single icon. Polymorphic — renders as
+   `<button>` when interactive (onClick provided), `<span>` otherwise.
+   Interactive variant mirrors `.btn--secondary` palette (minus border) on a
+   light surface: bg white → DSN/50 → DSN/100, color DSN/700 → DSN/700 → DSN/400,
+   shadow-base on idle/hover, off on pressed.
+   ---------------------------------------- */
+.icon-button {
+  width: 24px;
+  height: 24px;
+  padding: var(--spacing-1);
+  border-radius: var(--radius-full);
+  background: var(--white);
+  /* 1px transparent border at idle keeps layout stable when hover/pressed
+     swap the color in (mirrors Secondary's always-1px pattern). */
+  border: 1px solid transparent;
+  box-shadow: var(--shadow-base);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  box-sizing: border-box;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+.icon-button--interactive {
+  cursor: pointer;
+}
+.icon-button--interactive:hover {
+  background: var(--deep-sea-neutral-50);
+  border-color: var(--deep-sea-neutral-400);
+}
+.icon-button--interactive:active {
+  background: var(--deep-sea-neutral-100);
+  color: var(--deep-sea-neutral-400);
+  box-shadow: none;
+}
+
+/* ----------------------------------------
+   ENTITY CHIP (molecule)
+   Pill that names a scope and shows entity count via stacked dashed slots.
+   Interactive variant mirrors `.btn--secondary` palette: white → DSN/50 (hover)
+   → DSN/100 (pressed), border DSN/300 → DSN/400 on hover/pressed. Text color
+   intentionally stays stable (Secondary's text-dim on press would dim the
+   entity-name label and slot icons, which reads poorly for an info chip).
+   ---------------------------------------- */
+/* EntityChip is decorative — the only interactive element is the inner "+"
+   IconButton (wired via the chip's `onAddClick` prop). The pill itself does
+   not respond to hover/press. */
+.entity-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  /* Vertical padding 4 (not 6, the Figma master) to compensate for the SVG
+     ring extending 2px outside each slot; Figma renders borders inward and
+     doesn't need the fudge. */
+  padding: 4px var(--spacing-2) 4px var(--spacing-3);
+  background: var(--white);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-full);
+  font-family: var(--font-primary);
+  color: var(--text-secondary);
+  box-shadow: var(--shadow-sm);
+}
+.entity-chip__name {
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+  font-weight: var(--font-weight-regular);
+  color: inherit;
+  white-space: nowrap;
+}
+.entity-chip__icons {
+  display: inline-flex;
+  align-items: center;
+}
+.entity-chip__overflow {
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-xs);
+  font-weight: var(--font-weight-semibold);
+  color: inherit;
+  font-variant-numeric: tabular-nums;
+}
+/* The "+" sub-button overlaps the previous slot by 4px (same -4px stacking
+   pattern as slots). Later in DOM = painted on top, so it sits z-axis above
+   the slot it overlaps. */
+.entity-chip__add {
+  margin-left: -4px;
+  position: relative;
+  z-index: 1;
+}
+
+/* Slot — 24×24 circle with white interior. The dashed ring is rendered by an
+   inline SVG child positioned at inset:-2px so it draws OUTSIDE the slot box
+   (consuming part of the chip's vertical padding rather than eating into the
+   icon's inner space). Slot color drives the icon color via currentColor. */
+.entity-chip__slot {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-full);
+  background: var(--white);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  color: inherit;
+}
+.entity-chip__slot--stacked {
+  margin-left: -4px;
+}
+.entity-chip__slot-ring {
+  position: absolute;
+  inset: -2px;
+  width: 28px;
+  height: 28px;
+  pointer-events: none;
+  color: var(--border-default);
+}
+
+/* ----------------------------------------
+   TEXT STYLES — mirror of Figma local text styles. Each class is the composite
+   of font-family + font-size + line-height + font-weight pulled from our
+   typography variables. Use these on text nodes in JSX instead of redeclaring
+   the same 4 var() calls per component.
+
+   Naming convention matches the Figma style names:
+     display/X — large display numbers (charts, hero stats)
+     heading/X — H1..H4
+     body/X    — paragraph text, regular weight
+     label/X   — UI labels (button text, badges, captions), medium/semibold
+   ---------------------------------------- */
+.text-display-4xl-semibold {
+  font-family: var(--font-primary);
+  font-size: var(--font-size-4xl);
+  line-height: var(--line-height-4xl);
+  font-weight: var(--font-weight-semibold);
+}
+.text-display-3xl-semibold {
+  font-family: var(--font-primary);
+  font-size: var(--font-size-3xl);
+  line-height: var(--line-height-3xl);
+  font-weight: var(--font-weight-semibold);
+}
+.text-heading-2xl-semibold {
+  font-family: var(--font-primary);
+  font-size: var(--font-size-2xl);
+  line-height: var(--line-height-2xl);
+  font-weight: var(--font-weight-semibold);
+}
+.text-heading-xl-semibold {
+  font-family: var(--font-primary);
+  font-size: var(--font-size-xl);
+  line-height: var(--line-height-xl);
+  font-weight: var(--font-weight-semibold);
+}
+.text-heading-lg-medium {
+  font-family: var(--font-primary);
+  font-size: var(--font-size-lg);
+  line-height: var(--line-height-xl);
+  font-weight: var(--font-weight-medium);
+}
+.text-label-base-medium {
+  font-family: var(--font-primary);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-base);
+  font-weight: var(--font-weight-medium);
+}
+.text-label-sm-medium {
+  font-family: var(--font-primary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+  font-weight: var(--font-weight-medium);
+}
+.text-label-sm-regular {
+  font-family: var(--font-primary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+  font-weight: var(--font-weight-regular);
+}
+.text-label-xs-medium {
+  font-family: var(--font-primary);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-xs);
+  font-weight: var(--font-weight-medium);
+}
+.text-label-xs-semibold {
+  font-family: var(--font-primary);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-xs);
+  font-weight: var(--font-weight-semibold);
+}
+.text-label-xs-regular {
+  font-family: var(--font-primary);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-xs);
+  font-weight: var(--font-weight-regular);
+}
+.text-label-xs-regular-tight {
+  font-family: var(--font-primary);
+  font-size: var(--font-size-xs);
+  line-height: 12px; /* raw — no token for 12px line-height (matches Figma label/xs regular tight) */
+  font-weight: var(--font-weight-regular);
+}
+
+/* ----------------------------------------
+   WIDGET (molecule, 4 variants)
+   Home dashboard widget — shell + content combined. Variant prop selects layout:
+   1x / 2x / 3x / 3xChart. Mirrors Figma component set `Widget` at 1825:7.
+   ---------------------------------------- */
+.widget {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  padding: var(--spacing-6);
+  background: var(--white);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+  box-sizing: border-box;
+}
+.widget--1x { width: 170px; }
+.widget--2x { width: 360px; }
+.widget--3x,
+.widget--3xChart { width: 360px; gap: var(--spacing-6); }
+
+.widget__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+}
+.widget__header-title {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  min-width: 0; /* allow title truncation */
+}
+.widget__grip {
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+.widget__close {
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+.widget__title {
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.widget__domain-icon {
+  color: var(--text-link);
+  flex-shrink: 0;
+}
+.widget__domain-icon-container {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 10px;
+  border-radius: var(--radius-xl);
+  background: var(--carolina-blue-50);
+  color: var(--text-link);
+  flex-shrink: 0;
+}
+
+.widget__content {
+  display: flex;
+}
+.widget__content--1x {
+  flex-direction: column;
+  gap: var(--spacing-3);
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+}
+.widget__content--1x:disabled {
+  cursor: default;
+}
+.widget__value-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.widget__value { color: var(--text-primary); }
+.widget__inline-arrow { color: var(--text-link); flex-shrink: 0; }
+.widget__label { color: var(--text-secondary-soft); }
+
+.widget__content--2x {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+}
+.widget__data-container {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--spacing-1);
+}
+
+.widget__content--3x,
+.widget__content--3xChart {
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+.widget__chart-section {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 28px;
+}
+.widget__info-container {
+  display: flex;
+  flex-direction: column;
+}
+.widget__data-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  margin-top: var(--spacing-6);
+}
+
+.widget__pie {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.widget__pie-center {
+  position: absolute;
+  color: var(--text-secondary-soft);
+}
+
+/* Widget Go-to button uses the new Button "link" variant — no custom widget__go-to needed. */
+
+/* ----------------------------------------
+   WIDGET METRIC ROW (molecule)
+   Used inside Widget 3x / 3xChart content. Optional dot indicator + label +
+   inline value badge + trailing chevron. Polymorphic — renders as <button>
+   when onClick provided.
+   ---------------------------------------- */
+.widget-metric-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: var(--spacing-3);
+  font-family: var(--font-primary);
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: var(--text-secondary-soft);
+}
+.widget-metric-row--interactive {
+  cursor: pointer;
+  text-align: left;
+}
+.widget-metric-row__label-group {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+.widget-metric-row__indicator {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+.widget-metric-row__label {
+  /* typography via .text-label-sm-regular utility on the element */
+  color: inherit;
+}
+.widget-metric-row__trailing {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+.widget-metric-row__badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px var(--spacing-2);
+  background: var(--badge-gray-bg);
+  border-radius: var(--radius-lg);
+}
+.widget-metric-row__value {
+  /* typography via .text-label-xs-semibold utility on the element */
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.widget-metric-row__chevron {
+  color: var(--text-tertiary);
+  flex-shrink: 0;
 }
 
 /* ----------------------------------------

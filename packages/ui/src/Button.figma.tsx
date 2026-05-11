@@ -39,3 +39,25 @@ figma.connect(
     ),
   },
 )
+
+// Separate Link Button master at 1838:7 (inside "Link Buttons" frame).
+// Maps to the same Button atom with variant="link" + iconRight slot.
+figma.connect(
+  Button,
+  'https://www.figma.com/design/vodiHJU38YWZYmTz81uOk7/Design-System---MCP?node-id=1838-7',
+  {
+    imports: ["import { Button } from '@odyssey/ui'"],
+    props: {
+      label: figma.textContent('Label'),
+      iconRight: figma.boolean('Show icon', {
+        true: figma.instance('Icon'),
+        false: undefined,
+      }),
+    },
+    example: ({ label, iconRight }) => (
+      <Button variant="link" size="sm" iconRight={iconRight}>
+        {label}
+      </Button>
+    ),
+  },
+)

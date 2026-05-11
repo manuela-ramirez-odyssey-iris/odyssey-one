@@ -11,7 +11,8 @@ import IconButton from './IconButton.jsx'
  *   count 4+   → 3 handshakes + a "+N" slot where N = count − 3, capped at 9
  *
  * Default `entityIcon` is Handshake (Customers context). Pass a different Lucide icon for
- * other entity types. Optional trailing `+` button (`showAddButton`) is on by default.
+ * other entity types. The trailing `+` IconButton is the only interactive element — the
+ * pill itself is decorative. Wire `onAddClick` to handle the add affordance.
  */
 export default function EntityChip({
   name = 'Customers',
@@ -19,7 +20,6 @@ export default function EntityChip({
   entityIcon,
   showAddButton = true,
   onAddClick,
-  onClick,
   className = '',
   ...rest
 }) {
@@ -29,41 +29,9 @@ export default function EntityChip({
   const Icon = entityIcon ?? Handshake
 
   return (
-    <div
-      className={`entity-chip ${className}`.trim()}
-      onClick={onClick}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 'var(--spacing-3)',
-        padding: '6px var(--spacing-2) 6px var(--spacing-3)',
-        background: 'var(--white)',
-        border: '1px solid var(--border-default)',
-        borderRadius: 'var(--radius-full)',
-        cursor: onClick ? 'pointer' : 'default',
-      }}
-      {...rest}
-    >
-      <span
-        className="entity-chip__name"
-        style={{
-          fontFamily: 'var(--font-primary)',
-          fontSize: 'var(--font-size-sm)',
-          lineHeight: 'var(--line-height-sm)',
-          fontWeight: 'var(--font-weight-regular)',
-          color: 'var(--text-secondary)',
-          whiteSpace: 'nowrap',
-        }}
-      >
-        {name}
-      </span>
-      <div
-        className="entity-chip__icons"
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-        }}
-      >
+    <div className={`entity-chip ${className}`.trim()} {...rest}>
+      <span className="entity-chip__name">{name}</span>
+      <span className="entity-chip__icons">
         {Array.from({ length: handshakeCount }).map((_, i) => (
           <EntityChipSlot key={`hs-${i}`} stacked={i > 0}>
             <Icon {...ICON_MD} />
@@ -71,22 +39,11 @@ export default function EntityChip({
         ))}
         {overflow > 0 && (
           <EntityChipSlot stacked={handshakeCount > 0}>
-            <span
-              style={{
-                fontFamily: 'var(--font-primary)',
-                fontSize: 'var(--font-size-xs)',
-                lineHeight: 'var(--line-height-xs)',
-                fontWeight: 'var(--font-weight-semibold)',
-                color: 'var(--text-secondary)',
-                fontVariantNumeric: 'tabular-nums',
-              }}
-            >
-              {`+${overflow}`}
-            </span>
+            <span className="entity-chip__overflow">{`+${overflow}`}</span>
           </EntityChipSlot>
         )}
         {showAddButton && (
-          <span style={{ marginLeft: -4 }}>
+          <span className="entity-chip__add">
             <IconButton
               icon={<Plus {...ICON_MD} />}
               onClick={onAddClick}
@@ -94,30 +51,29 @@ export default function EntityChip({
             />
           </span>
         )}
-      </div>
+      </span>
     </div>
   )
 }
 
 function EntityChipSlot({ children, stacked = false }) {
   return (
-    <span
-      className="entity-chip__slot"
-      style={{
-        width: 24,
-        height: 24,
-        padding: 'var(--spacing-1)',
-        marginLeft: stacked ? -4 : 0,
-        borderRadius: 'var(--radius-full)',
-        border: '2px dashed var(--border-default)',
-        background: 'var(--white)',
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        boxSizing: 'border-box',
-        color: 'var(--text-placeholder)',
-      }}
-    >
+    <span className={`entity-chip__slot${stacked ? ' entity-chip__slot--stacked' : ''}`}>
+      <svg
+        className="entity-chip__slot-ring"
+        viewBox="0 0 28 28"
+        aria-hidden="true"
+      >
+        <circle
+          cx="14"
+          cy="14"
+          r="13"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeDasharray="3 2"
+        />
+      </svg>
       {children}
     </span>
   )

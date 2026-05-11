@@ -33,12 +33,8 @@ export default function SectionHeader({
     >
       <div className="section-header__row" style={rowStyle}>
         <h2
-          className="section-header__title"
+          className="section-header__title text-heading-2xl-semibold"
           style={{
-            fontFamily: 'var(--font-primary)',
-            fontSize: 'var(--font-size-2xl)',
-            lineHeight: 'var(--line-height-2xl)',
-            fontWeight: 'var(--font-weight-semibold)',
             color: 'var(--text-primary)',
             margin: 0,
           }}
@@ -47,12 +43,8 @@ export default function SectionHeader({
         </h2>
         {supportingText && (
           <span
-            className="section-header__supporting"
+            className="section-header__supporting text-label-sm-regular"
             style={{
-              fontFamily: 'var(--font-primary)',
-              fontSize: 'var(--font-size-sm)',
-              lineHeight: 'var(--line-height-sm)',
-              fontWeight: 'var(--font-weight-regular)',
               color: 'var(--text-tertiary)',
               whiteSpace: 'nowrap',
             }}

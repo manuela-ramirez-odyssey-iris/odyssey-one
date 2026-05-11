@@ -3035,8 +3035,26 @@ function getIconButtonComponentHTML() {
   /* Placeholder dashed-circle (16px) — mirrors Icons Placeholder/placeholder-16 */
   var svgPlaceholder = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1" stroke-dasharray="2 2"/></svg>';
 
-  function iconBtn(iconSvg) {
-    var btn = 'display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; padding:var(--spacing-1, 4px); background:var(--white, #fff); color:var(--text-secondary, #4C5463); border:none; border-radius:var(--radius-full, 9999px); box-shadow:var(--shadow-base, 0 1px 2px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.10)); cursor:default;';
+  function iconBtn(iconSvg, state) {
+    state = state || 'idle';
+    var bg, border, shadow, color;
+    if (state === 'hover') {
+      bg = 'var(--deep-sea-neutral-50, #F7F8FA)';
+      border = '1px solid var(--deep-sea-neutral-400, #9DA3B0)';
+      shadow = 'var(--shadow-base, 0 1px 2px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.10))';
+      color = 'var(--text-secondary, #4C5463)';
+    } else if (state === 'pressed') {
+      bg = 'var(--deep-sea-neutral-100, #F2F3F5)';
+      border = '1px solid transparent';
+      shadow = 'none';
+      color = 'var(--deep-sea-neutral-400, #9DA3B0)';
+    } else {
+      bg = 'var(--white, #fff)';
+      border = '1px solid transparent';
+      shadow = 'var(--shadow-base, 0 1px 2px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.10))';
+      color = 'var(--text-secondary, #4C5463)';
+    }
+    var btn = 'display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; padding:var(--spacing-1, 4px); background:' + bg + '; color:' + color + '; border:' + border + '; border-radius:var(--radius-full, 9999px); box-shadow:' + shadow + '; cursor:default; box-sizing:border-box;';
     return '<button type="button" style="' + btn + '" aria-label="Add">' + iconSvg + '</button>';
   }
 
@@ -3044,7 +3062,7 @@ function getIconButtonComponentHTML() {
   '<div class="comp-section">' +
     '<div class="comp-section-title">IconButton <span class="comp-normalized-label">NORMALIZED</span></div>' +
     '<div class="comp-section-subtitle">packages/ui/src/IconButton.jsx</div>' +
-    '<div style="font-size:13px; color:#6B7280; margin-bottom:18px; line-height:1.5;">Atom &mdash; 24&times;24 circular surface with a single icon slot and elevated shadow. Used today by <code>EntityChip</code>&rsquo;s add affordance; will be reused by future toolbar / inline-action contexts. <strong>Hover / pressed states are not yet defined</strong> &mdash; tracked as a Step-9 follow-up.</div>' +
+    '<div style="font-size:13px; color:#6B7280; margin-bottom:18px; line-height:1.5;">Atom &mdash; 24&times;24 circular surface with a single icon slot. Polymorphic: renders as <code>&lt;button&gt;</code> when an <code>onClick</code> handler is provided, <code>&lt;span&gt;</code> otherwise (the decorative case avoids invalid nested-button HTML when used inside another interactive component). Interactive variant follows the Secondary Button family &mdash; minus the always-on idle border. State palette below.</div>' +
 
     /* Sub-section: Variants demo */
     '<div class="comp-subsection">' +
@@ -3063,6 +3081,28 @@ function getIconButtonComponentHTML() {
       '</div>' +
     '</div>' +
 
+    /* Sub-section: Interactive states */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Interactive states</div>' +
+      '<div class="comp-card-grid">' +
+        '<div class="comp-card">' +
+          iconBtn(svgPlus, 'idle') +
+          '<div class="comp-card-code">Idle</div>' +
+          '<div class="comp-card-note">White bg, 1px transparent border, <code>--shadow-base</code>, icon <code>--text-secondary</code>.</div>' +
+        '</div>' +
+        '<div class="comp-card">' +
+          iconBtn(svgPlus, 'hover') +
+          '<div class="comp-card-code">:hover</div>' +
+          '<div class="comp-card-note">Bg <code>--deep-sea-neutral-50</code>, 1px <code>--deep-sea-neutral-400</code> border, shadow stays. Icon color unchanged (mirrors <code>.btn--secondary</code>).</div>' +
+        '</div>' +
+        '<div class="comp-card">' +
+          iconBtn(svgPlus, 'pressed') +
+          '<div class="comp-card-code">:active</div>' +
+          '<div class="comp-card-note">Bg <code>--deep-sea-neutral-100</code>, border returns to transparent (1px transparent for layout stability), shadow off, icon shifts to DSN/400.</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
     /* Props & Tokens — modal */
     '<div class="comp-subsection">' +
       '<button class="comp-details-button" onclick="showCompDetails(\'IconButton\')">Show props &amp; tokens</button>' +
@@ -3072,7 +3112,7 @@ function getIconButtonComponentHTML() {
     '<div class="comp-subsection">' +
       '<div class="comp-subsection-title">Figma Reference</div>' +
       '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
-        'Component <code style="' + codeChip + '">1711:297</code> in <a href="https://www.figma.com/design/vodiHJU38YWZYmTz81uOk7/Design-System---MCP?node-id=1711-297" target="_blank" rel="noopener">Design System - MCP</a>. INSTANCE_SWAP property <code>Icon</code> defaults to <code>placeholder-16</code>. Surface paint bound to <code>White</code>; effect bound to <code>shadow/base</code>; padding bound to <code>Spacing/1</code>; radius bound to <code>Radius/Full</code>.' +
+        'Component set <code style="' + codeChip + '">1754:295</code> in <a href="https://www.figma.com/design/vodiHJU38YWZYmTz81uOk7/Design-System---MCP?node-id=1754-295" target="_blank" rel="noopener">Design System - MCP</a> &mdash; variants <code>State=Idle</code> (<code>1711:297</code>), <code>State=Hover</code> (<code>1753:295</code>), <code>State=Pressed</code> (<code>1753:297</code>). INSTANCE_SWAP property <code>Icon</code> defaults to <code>placeholder-16</code>. Surface paint, padding, radius bound to <code>White</code> / <code>Spacing/1</code> / <code>Radius/full</code> at idle; Hover swaps fill to <code>Deep Sea Neutral/50</code> and adds a 1px stroke bound to <code>Deep Sea Neutral/400</code>; Pressed swaps fill to <code>Deep Sea Neutral/100</code>, drops the shadow effect, and has no visible stroke (matches code, where the border returns to transparent on press). <strong>Icon color across variants is uniform</strong> &mdash; per-instance icon stroke overrides through INSTANCE_SWAP don&rsquo;t survive cleanly in Figma (known limitation, see icon-color-rule). Code handles the press-time icon color shift correctly via <code>currentColor</code>.' +
       '</div>' +
     '</div>' +
 
@@ -3238,30 +3278,46 @@ function getEntityChipComponentHTML() {
   /* Lucide plus (16px) for the add IconButton */
   var svgPlus = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>';
 
-  /* A single 24x24 dashed-border slot */
+  /* SVG ring — replaces CSS dashed border. Positioned outside the 24x24 slot
+     box (inset:-2px, 28x28 viewBox) so the dash count reads as ~16 dashes
+     around the perimeter rather than the 6–8 a CSS dashed border produces.
+     Color hardcoded to DSN/300 — chip is decorative, no state shift. */
+  var svgRing =
+    '<svg viewBox="0 0 28 28" style="position:absolute; inset:-2px; width:28px; height:28px; pointer-events:none; color:var(--deep-sea-neutral-300, #D0D4DB);" aria-hidden="true">' +
+      '<circle cx="14" cy="14" r="13" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="3 2"/>' +
+    '</svg>';
+
+  /* A single 24x24 slot with an SVG dashed ring (no CSS border). Color
+     inherits from the chip so handshake icons track the chip's text color. */
   function slot(inner, isFirst) {
-    var s = 'display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; padding:var(--spacing-1, 4px); background:var(--white, #fff); border:2px dashed var(--deep-sea-neutral-300, #D0D4DB); border-radius:var(--radius-full, 9999px); box-sizing:border-box; color:var(--text-secondary, #4C5463);';
+    var s = 'position:relative; display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; background:var(--white, #fff); border-radius:var(--radius-full, 9999px); box-sizing:border-box; color:inherit;';
     if (!isFirst) s += ' margin-left:-4px;';
-    return '<span style="' + s + '">' + inner + '</span>';
+    return '<span style="' + s + '">' + svgRing + inner + '</span>';
   }
 
-  /* Add button — IconButton instance with Plus, also overlaps -4 like the slots */
+  /* Add button — IconButton instance with Plus, also overlaps -4 like the
+     slots. Idle visual only (chip is decorative, IconButton owns the state
+     palette in its own section). 1px transparent border mirrors the
+     standalone IconButton idle so the demo matches code. */
   function addBtn(isFirst) {
-    var btn = 'display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; padding:var(--spacing-1, 4px); background:var(--white, #fff); color:var(--text-secondary, #4C5463); border:none; border-radius:var(--radius-full, 9999px); box-shadow:var(--shadow-base, 0 1px 2px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.10)); cursor:default; box-sizing:border-box;';
+    var btn = 'display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; padding:var(--spacing-1, 4px); background:var(--white, #fff); color:var(--text-secondary, #4C5463); border:1px solid transparent; border-radius:var(--radius-full, 9999px); box-shadow:var(--shadow-base, 0 1px 2px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.10)); cursor:default; box-sizing:border-box;';
     if (!isFirst) btn += ' margin-left:-4px;';
     return '<button type="button" style="' + btn + '" aria-label="Add customer">' + svgPlus + '</button>';
   }
 
-  /* "+N" slot — same dashed circle, with a numeric label using xs typography */
+  /* "+N" slot — same SVG ring, numeric label using xs typography. Color
+     inherits from the chip (no explicit color override). */
   function plusNSlot(n, isFirst) {
-    var s = 'display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; padding:var(--spacing-1, 4px); background:var(--white, #fff); border:2px dashed var(--deep-sea-neutral-300, #D0D4DB); border-radius:var(--radius-full, 9999px); box-sizing:border-box; font-family:var(--font-primary, Inter,sans-serif); font-size:var(--font-size-xs, 12px); line-height:var(--line-height-xs, 16px); font-weight:var(--font-weight-semibold, 600); color:var(--text-primary, #1B2537); font-variant-numeric:tabular-nums;';
+    var s = 'position:relative; display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; background:var(--white, #fff); border-radius:var(--radius-full, 9999px); box-sizing:border-box; font-family:var(--font-primary, Inter,sans-serif); font-size:var(--font-size-xs, 12px); line-height:var(--line-height-xs, 16px); font-weight:var(--font-weight-semibold, 600); color:inherit; font-variant-numeric:tabular-nums;';
     if (!isFirst) s += ' margin-left:-4px;';
-    return '<span style="' + s + '">+' + n + '</span>';
+    return '<span style="' + s + '">' + svgRing + '+' + n + '</span>';
   }
 
+  /* Static chip — no state parameter. Pill is decorative; the inner "+"
+     IconButton is the only click target (state palette lives in IconButton). */
   function chip(name, count) {
-    var pill = 'display:inline-flex; align-items:center; gap:var(--spacing-3, 12px); padding:6px var(--spacing-2, 8px) 6px var(--spacing-3, 12px); background:var(--white, #fff); border:1px solid var(--deep-sea-neutral-300, #D0D4DB); border-radius:var(--radius-full, 9999px); box-sizing:border-box;';
-    var label = 'font-family:var(--font-primary, Inter,sans-serif); font-size:var(--font-size-sm, 14px); line-height:var(--line-height-sm, 20px); font-weight:var(--font-weight-regular, 400); color:var(--deep-sea-neutral-700, #384253);';
+    var pill = 'display:inline-flex; align-items:center; gap:var(--spacing-3, 12px); padding:4px var(--spacing-2, 8px) 4px var(--spacing-3, 12px); background:var(--white, #fff); border:1px solid var(--border-default, #D0D4DB); border-radius:var(--radius-full, 9999px); box-shadow:var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.05)); color:var(--text-secondary, #4C5463); box-sizing:border-box;';
+    var label = 'font-family:var(--font-primary, Inter,sans-serif); font-size:var(--font-size-sm, 14px); line-height:var(--line-height-sm, 20px); font-weight:var(--font-weight-regular, 400); color:inherit;';
     var c = Math.max(1, count);
     var visibleHandshakes = c <= 3 ? c : 3;
     var overflow = c > 3 ? Math.min(c - 3, 9) : 0;
@@ -3665,7 +3721,7 @@ var compDetails = {
         '<thead><tr><th>Prop</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>' +
         '<tbody>' +
           '<tr><td><code>icon</code></td><td>ReactNode</td><td>&mdash; (required)</td><td>Icon element rendered inside the button. Color inherits via <code>currentColor</code>. Maps to Figma <code>Icon</code> INSTANCE_SWAP (default <code>placeholder-16</code>).</td></tr>' +
-          '<tr><td><code>onClick</code></td><td>() =&gt; void</td><td>&mdash;</td><td>Click handler.</td></tr>' +
+          '<tr><td><code>onClick</code></td><td>() =&gt; void</td><td>&mdash;</td><td>Click handler. <strong>When provided, the IconButton renders as a <code>&lt;button&gt;</code> and gains hover / pressed states</strong> (Secondary Button family minus idle border). Without <code>onClick</code>, renders as <code>&lt;span&gt;</code> (decorative).</td></tr>' +
           '<tr><td><code>ariaLabel</code></td><td>string</td><td>&mdash;</td><td>Accessible label for the button (icon-only buttons must provide one).</td></tr>' +
           '<tr><td><code>className</code></td><td>string</td><td>&mdash;</td><td>Optional class for consumer-side overrides.</td></tr>' +
           '<tr><td><code>...props</code></td><td>HTMLButtonAttrs</td><td>&mdash;</td><td>Spreads to the underlying <code>&lt;button&gt;</code>.</td></tr>' +
@@ -3684,16 +3740,16 @@ var compDetails = {
           '<tr><td>Padding (all sides)</td><td><code>--spacing-1</code></td><td>4px</td></tr>' +
           /* Color */
           '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Color</td></tr>' +
-          '<tr><td>Background</td><td><code>--white</code></td><td>#FFFFFF</td></tr>' +
-          '<tr><td>Icon color (idle)</td><td><code>--text-secondary</code></td><td>#4C5463 (DSN/600)</td></tr>' +
+          '<tr><td>Background &mdash; Idle / Hover / Pressed</td><td><code>--white</code> / <code>--deep-sea-neutral-50</code> / <code>--deep-sea-neutral-100</code></td><td>#FFFFFF / #F7F8FA / #F2F3F5</td></tr>' +
+          '<tr><td>Icon &mdash; Idle, Hover / Pressed</td><td><code>--text-secondary</code> / <code>--deep-sea-neutral-400</code></td><td>DSN/700 &rarr; DSN/400 on press</td></tr>' +
           /* Border */
           '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Border</td></tr>' +
-          '<tr><td>Border</td><td>none</td><td>&mdash;</td></tr>' +
+          '<tr><td>Border &mdash; Idle / Hover / Pressed</td><td><code>1px solid transparent</code> / <code>1px solid --deep-sea-neutral-400</code> / <code>1px solid transparent</code></td><td>only Hover shows a visible border; Idle &amp; Pressed both transparent so layout stays stable across all three states</td></tr>' +
           '<tr><td>Radius</td><td><code>--radius-full</code></td><td>9999px</td></tr>' +
           /* Shadow */
           '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Shadow</td></tr>' +
-          '<tr><td>Shadow (idle)</td><td><code>--shadow-base</code></td><td>0 1 2 rgba(0,0,0,0.06) + 0 1 3 rgba(0,0,0,0.10)</td></tr>' +
-          '<tr><td>Hover / pressed</td><td>(not yet defined)</td><td>tracked as a Step-9 follow-up</td></tr>' +
+          '<tr><td>Shadow &mdash; Idle, Hover / Pressed</td><td><code>--shadow-base</code> / <code>none</code></td><td>0 1 2 rgba(0,0,0,0.06) + 0 1 3 rgba(0,0,0,0.10) &rarr; none on press</td></tr>' +
+          '<tr><td>Transition</td><td><code>background</code>, <code>border-color</code>, <code>color</code>, <code>box-shadow</code> at <code>--transition-fast</code></td><td>150ms ease</td></tr>' +
           /* Icon slot */
           '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Icon slot</td></tr>' +
           '<tr><td>Default (Figma INSTANCE_SWAP)</td><td><code>placeholder-16</code> from Icons Placeholder</td><td>16&times;16</td></tr>' +
@@ -3790,8 +3846,7 @@ var compDetails = {
           '<tr><td><code>count</code></td><td>number</td><td><code>1</code></td><td>Number of entities. 1&ndash;3 &rarr; that many entity icons. 4+ &rarr; 3 icons + <code>+N</code> overflow slot (capped at <code>+9</code>). Minimum render is 1.</td></tr>' +
           '<tr><td><code>entityIcon</code></td><td>ReactNode / IconType</td><td>lucide <code>Handshake</code></td><td>Icon used for each entity slot. Pass a different lucide icon for non-customer use cases.</td></tr>' +
           '<tr><td><code>showAddButton</code></td><td>boolean</td><td><code>true</code></td><td>Show the trailing add IconButton. Maps to Figma <code>Show add button</code> BOOLEAN.</td></tr>' +
-          '<tr><td><code>onAddClick</code></td><td>() =&gt; void</td><td>&mdash;</td><td>Triggered when the add button is clicked.</td></tr>' +
-          '<tr><td><code>onClick</code></td><td>() =&gt; void</td><td>&mdash;</td><td>Triggered when the chip itself (not the add button) is clicked.</td></tr>' +
+          '<tr><td><code>onAddClick</code></td><td>() =&gt; void</td><td>&mdash;</td><td>Triggered when the inner &ldquo;+&rdquo; IconButton is clicked. Wired to the IconButton&rsquo;s <code>onClick</code>. The chip itself is decorative (always renders as <code>&lt;div&gt;</code>); only the inner IconButton is the click target.</td></tr>' +
         '</tbody>' +
       '</table>',
     tokens:
@@ -3805,7 +3860,7 @@ var compDetails = {
           '<tr><td>Add button size</td><td>24 &times; 24 (IconButton instance)</td><td>&mdash;</td></tr>' +
           /* Spacing */
           '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Spacing</td></tr>' +
-          '<tr><td>Pill padding (top / right / bottom / left)</td><td>6 / <code>--spacing-2</code> / 6 / <code>--spacing-3</code></td><td>6px / 8px / 6px / 12px</td></tr>' +
+          '<tr><td>Pill padding (top / right / bottom / left)</td><td>4 / <code>--spacing-2</code> / 4 / <code>--spacing-3</code></td><td>4px / 8px / 4px / 12px (top/bottom raw 4 &mdash; code-only divergence; Figma master is 6 because Figma renders borders inward)</td></tr>' +
           '<tr><td>Pill gap (label &harr; icon stack)</td><td><code>--spacing-3</code></td><td>12px</td></tr>' +
           '<tr><td>Slot padding (each)</td><td><code>--spacing-1</code></td><td>4px</td></tr>' +
           '<tr><td>Slot overlap</td><td><code>margin-left: -4px</code></td><td>4px overlap on each subsequent slot</td></tr>' +
@@ -3826,10 +3881,13 @@ var compDetails = {
           '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Color</td></tr>' +
           '<tr><td>Pill background</td><td><code>--white</code></td><td>#FFFFFF</td></tr>' +
           '<tr><td>Pill border</td><td><code>--border-default</code> (DSN/300)</td><td>#D0D4DB</td></tr>' +
+          '<tr><td>Slot ring color</td><td><code>--border-default</code> (via inline SVG <code>stroke-dasharray="3 2"</code>)</td><td>#D0D4DB</td></tr>' +
+          '<tr><td>Slot ring positioning</td><td>SVG <code>position:absolute; inset:-2px; width:28; height:28</code></td><td>renders OUTSIDE the 24&times;24 slot box (consumes part of pill padding)</td></tr>' +
           '<tr><td>Slot background</td><td><code>--white</code></td><td>#FFFFFF</td></tr>' +
-          '<tr><td>Slot border</td><td>2px dashed <code>--border-default</code> (DSN/300)</td><td>#D0D4DB</td></tr>' +
-          '<tr><td>Entity name color</td><td><code>--deep-sea-neutral-700</code></td><td>#384253</td></tr>' +
-          '<tr><td>+N text color</td><td><code>--text-primary</code></td><td>#1B2537 (DSN/700)</td></tr>' +
+          '<tr><td>Color cascade (text + slot icons + +N counter)</td><td><code>--text-secondary</code></td><td>DSN/700 &mdash; drives all child colors via <code>color: inherit</code> / <code>currentColor</code></td></tr>' +
+          /* Shadow */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Shadow</td></tr>' +
+          '<tr><td>Pill shadow</td><td><code>--shadow-sm</code></td><td>static, no state shift (chip is decorative)</td></tr>' +
           /* Border */
           '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Border &amp; radius</td></tr>' +
           '<tr><td>Pill border width</td><td>1px (raw)</td><td>&mdash;</td></tr>' +

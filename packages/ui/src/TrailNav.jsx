@@ -83,12 +83,8 @@ function TrailNavProfile({
           </div>
           <div className="flex flex-col items-start whitespace-nowrap">
             <span
-              className="trail-nav-profile-name"
+              className="trail-nav-profile-name text-label-sm-medium"
               style={{
-                fontFamily: 'var(--font-primary)',
-                fontSize: 'var(--font-size-sm)',
-                fontWeight: 500,
-                lineHeight: 'var(--line-height-sm)',
                 color: 'var(--deep-sea-neutral-300)',
               }}
             >
