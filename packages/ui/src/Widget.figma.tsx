@@ -16,6 +16,7 @@ figma.connect(
         '2x': '2x',
         '3x': '3x',
         '3xChart': '3xChart',
+        '3xCta': '3xCta',
       }),
       title: figma.textContent('Title'),
       domainIcon: figma.instance('Domain icon'),

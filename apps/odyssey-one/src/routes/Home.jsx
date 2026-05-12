@@ -1,4 +1,4 @@
-import { Plus, TriangleAlert } from 'lucide-react'
+import { Download, Plus, Route, TriangleAlert, UserCog } from 'lucide-react'
 import { ICON_LG } from '@odyssey/tokens'
 import { Button, EntityChip, PageHeader, SectionHeader, Widget } from '@odyssey/ui'
 import AppShell from '../components/layout/AppShell'
@@ -22,11 +22,25 @@ const chartRows = [
   { label: 'Other', value: '12%', indicatorColor: 'var(--chart-4)', onClick: handleRow('other') },
 ]
 
+// 3xChart widget — multi-data, all 4 segments visible.
 const chartSegments = [
   { value: 42, color: 'var(--chart-1)' },
   { value: 28, color: 'var(--chart-2)' },
   { value: 18, color: 'var(--chart-3)' },
   { value: 12, color: 'var(--chart-4)' },
+]
+
+// 2x widget — single-data view (one metric = one filled segment in chart-1).
+// Matches WidgetPieChart md Figma variant which has exactly one Chart/1 segment + Chart/rest ring.
+const singleChartSegment = [{ value: 42, color: 'var(--chart-1)' }]
+
+// 3xCta widget — call-to-action quick links. Action-oriented labels to ease
+// onboarding for users coming from the old system. No data attached.
+const ctaRows = [
+  { icon: <Plus size={20} />, label: 'Create a New Order', onClick: handleRow('create-order') },
+  { icon: <Route size={20} />, label: 'Track a Shipment', onClick: handleRow('track-shipment') },
+  { icon: <UserCog size={20} />, label: 'Manage Users', onClick: handleRow('manage-users') },
+  { icon: <Download size={20} />, label: 'Invoices', onClick: handleRow('invoices') },
 ]
 
 export default function Home() {
@@ -52,40 +66,46 @@ export default function Home() {
       <div className="home-widget-grid">
         <Widget
           variant="1x"
-          title="Open exceptions"
+          title="Open Exceptions"
           value="83"
           label="Across all customers"
           onGoToClick={() => console.log('go to exceptions')}
         />
         <Widget
           variant="2x"
-          title="Critical exceptions"
+          title="Critical Exceptions"
           domainIcon={domainIcon}
           value="12"
           label="Need action today"
           percentage="42%"
-          chartSegments={chartSegments}
-          goToLabel="Go to exceptions"
+          chartSegments={singleChartSegment}
+          chartTotal={100}
+          goToLabel="Go to Exceptions"
           onGoToClick={() => console.log('go to exceptions')}
         />
         <Widget
           variant="3x"
-          title="Exceptions by type"
+          title="Exceptions by Type"
           domainIcon={domainIcon}
           rows={exceptionRows}
-          goToLabel="Go to exceptions"
+          goToLabel="Go to Exceptions"
           onGoToClick={() => console.log('go to exceptions')}
         />
         <Widget
           variant="3xChart"
-          title="Exception causes (7d)"
+          title="Exception Causes (7d)"
           domainIcon={domainIcon}
           value="156"
           label="Total this week"
           chartSegments={chartSegments}
           rows={chartRows}
-          goToLabel="Go to exceptions"
+          goToLabel="Go to Exceptions"
           onGoToClick={() => console.log('go to exceptions')}
+        />
+        <Widget
+          variant="3xCta"
+          title="What would you like to do?"
+          ctaRows={ctaRows}
         />
       </div>
     </AppShell>

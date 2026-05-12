@@ -10,13 +10,18 @@ import { useEffect, useState } from 'react'
  *   segments       — array of { value, color }. `color` is a Chart/* token (e.g. 'var(--chart-1)').
  *   centerText     — optional text rendered in the donut center (Widget 2x percentage).
  *   size           — 'md' | 'lg' | number. md=72, lg=96. Number passes through for ad-hoc sizes.
+ *   total          — optional denominator. When the sum of segment values does NOT cover the
+ *                    whole circle (e.g. 2x single-data: one 42-value segment of an implied 100),
+ *                    pass `total={100}` so the segment renders as 42% of the ring and the rest
+ *                    shows as `--chart-rest`. Defaults to the sum of segment values.
  *
  * Figma master: `WidgetPieChart` component set (1881:77) with `Size=md|lg`,
  * `Show center text` BOOLEAN, `Center text` TEXT.
  */
-export default function WidgetPieChart({ segments = [], centerText, size = 'md' }) {
+export default function WidgetPieChart({ segments = [], centerText, size = 'md', total }) {
   const px = size === 'md' ? 72 : size === 'lg' ? 96 : size
-  const total = segments.reduce((sum, s) => sum + (s.value || 0), 0) || 1
+  const segmentSum = segments.reduce((sum, s) => sum + (s.value || 0), 0)
+  const denominator = total ?? segmentSum ?? 1
   const radius = px / 2
   const strokeWidth = px * 0.18
   const innerRadius = radius - strokeWidth / 2
@@ -39,11 +44,11 @@ export default function WidgetPieChart({ segments = [], centerText, size = 'md' 
           strokeWidth={strokeWidth}
         />
         {segments.map((seg, i) => {
-          const length = (seg.value / total) * circumference
+          const length = (seg.value / denominator) * circumference
           const dasharray = animatedIn
             ? `${length} ${circumference - length}`
             : `0 ${circumference}`
-          const segOffset = (offset / total) * circumference
+          const segOffset = (offset / denominator) * circumference
           offset += seg.value
           return (
             <circle

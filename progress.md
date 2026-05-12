@@ -2649,3 +2649,225 @@ User reviewed the live Home page after the wrap and flagged 3 layout bugs + a de
 Build clean after all 4 fixes. No Figma changes — these are running-app behavior corrections only.
 
 **Library publish required**: Open Figma → Assets → **Publish library / Update**. New components added (IconButton, PageHeader, SectionHeader, EntityChip), 2 renamed (Header→PageHeader, Subheader→SectionHeader), 5 new typography variables, 4 new Effect Styles.
+
+## Session 23 — May 12, 2026
+
+Wide-surface widget-family iteration capped with a full `/normalize` cycle for a new Widget variant. Spent the first two-thirds of the session closing Session 22 carry-forwards + answering a sequence of design feedback rounds on widget spacing, animation, layout, and data accuracy. Last third did the formal normalization of a brand-new variant — `3xCta` — used as a non-data call-to-action widget that surfaces quick links to domain entry points (designed to ease the IA transition for users coming from the old system). End state: 18 normalized components in `@odyssey/ui` (added WidgetCtaRow), 5 variants on Widget, a 6-column CSS Grid for Home, Inter self-hosted at runtime, and 19 Code Connect mappings live.
+
+### Thread 1 — Three Figma spec fixes (carry-forward closeout from Session 22)
+
+**ButtonLink padding 0 across all 3 State variants.** Set `1895:7` Idle (`1838:7`) + Hover (`1894:7`) + Pressed (`1894:11`) all dropped from `14/12/6/6` → `0/0/0/0`. Widths hug to ~130 / ~134 / ~134 (Hover/Pressed are wider via itemSpacing 20 vs 16 — the "arrow translates +4 forward and stays through press" semantic).
+
+**WidgetPieChart md = 1 segment.** Reverted the Session 22 "improvement" — md variant `1880:78` now contains only Rest ring + Segment 1 + Center text (Segments 2/3/4 deleted). Variant semantic codified: md = 2x single-data view, lg = 3xChart multi-data view. Segment 1's arcData reset to a clean 42% arc from 12 o'clock going clockwise (`startingAngle ≈ -1.068 rad`, `endingAngle = π/2`, sweep = `0.42·2π`).
+
+**WidgetContent 3xChart pie aligned to trail.** Turned out Figma already had `primaryAxisAlignItems: SPACE_BETWEEN` on the Chart section frame `1774:1703` — the drift was code-only. Fixed by adding `justify-content: space-between` to `.widget__chart-section`.
+
+### Thread 2 — ButtonLink cascade fix + WidgetPieChart `total` prop + chart easing
+
+User flagged after the round-1 land: ButtonLink horizontal padding hadn't actually changed visually. Root cause: CSS specificity. `.btn--link.btn--has-icon-right` (0,2,0) collides with `.btn--has-icon-right.btn--sm` (0,2,0) — equal specificity, cascade order wins, and the size-icon rule came LATER. Fix: moved a chained selector block AFTER the `.btn--has-icon-right.btn--*` rules:
+
+```css
+.btn--link,
+.btn--link.btn--sm, .btn--link.btn--md, .btn--link.btn--lg,
+.btn--link.btn--has-icon, .btn--link.btn--has-icon-right {
+  padding: 0;
+}
+```
+
+**WidgetPieChart `total` prop.** When 2x passed `[{ value: 42, color: 'var(--chart-1)' }]`, total = sum = 42, so the segment filled 100% of the ring. Added an optional `total` prop — when provided (`total={100}`), segments render as fraction of the denominator instead of fraction of their own sum. The 58% gap then shows `--chart-rest`. Widget.jsx forwards via new `chartTotal` prop. Home 2x sets `chartTotal={100}`. Without it, sum-as-total stays the default for 3xChart-style multi-segment use.
+
+**Chart grow-in non-linear easing.** Replaced `transition: stroke-dasharray 800ms ease-out` with a new token `--transition-chart-grow: 1000ms cubic-bezier(0.22, 1, 0.36, 1)` (ease-out-quart). Added to tokens.css alongside the existing `--transition-fast/base/slow` family. DSM CSS animations + prose updated to match.
+
+### Thread 3 — Home grid layout (CSS Grid, 6 × 184 × 20)
+
+Replaced the smoke-test `.home-widget-grid` flex-wrap with a real CSS Grid:
+
+```css
+.home-widget-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--home-grid-columns), minmax(var(--home-grid-col-min-width), 1fr));
+  grid-auto-rows: minmax(var(--home-grid-row-min-height), auto);
+  gap: var(--spacing-5);
+}
+```
+
+New tokens added to `packages/tokens/tokens.css`:
+- `--home-grid-columns: 6`
+- `--home-grid-col-min-width: 170px`
+- `--home-grid-row-min-height: 184px`
+
+Widget spans defined via class:
+- `.widget--1x` → `span 1 × span 1`
+- `.widget--2x` → `span 2 × span 1`
+- `.widget--3x` / `.widget--3xChart` / `.widget--3xCta` → `span 2 × span 2`
+
+The fixed widths on `.widget--1x { width: 170px }` etc. stay (for standalone use outside grids) but are overridden inside `.home-widget-grid > .widget { width: auto }` so widgets fill their grid cells. Per-variant min-width 170 + 5 gaps × 20 = 1120px min content area + AppShell side padding 48 = ~1168px viewport minimum. Below that, the grid overflows horizontally; responsive pass deferred (the tokens make breakpoint redefinition cheap when we need it).
+
+### Thread 4 — 32px header distance across all 6 domains
+
+User asked for consistent 32px between navbar bottom and PageHeader top. Audit found drift:
+- Home: 24 (AppShell padding-top only) ✗
+- Stub routes (Orders/Carriers/Tracking/Users): 24 (AppShell) + 24 (route-stub padding) = 48 ✗
+- Shipments: 24 ✗
+
+Fix: AppShell `padding-top` → `var(--spacing-8)` (32px). `route-stub.css` dropped its all-around `padding: var(--spacing-6)` so AppShell's top padding now governs uniformly across every domain. Sides + bottom of the stub still inherit from AppShell's 24px sides + 0 bottom. Net: exactly 32px on every route, no stacking.
+
+### Thread 5 — Widget content alignment in stretched grid cells
+
+With the grid forcing widgets to grid-cell-sized heights (3x/3xChart/3xCta = 388h), content was sitting at the top with empty space below. User's spec for content distribution within stretched cells:
+
+- **1x / 2x / 3xChart** — `.widget__content--{variant} { margin-top: auto }` pushes content (and any trailing ButtonLink) to the bottom. The header sticks to the top.
+- **3x** — `.widget--3x > .btn--link { margin-top: auto }` pushes the ButtonLink to the bottom; content stays right after the header.
+
+Auto-margin on a flex item consumes all extra space above it, so `gap` between siblings still applies and the trailing ButtonLink (for 2x/3xChart) lands naturally at the very bottom via the row's own gap.
+
+### Thread 6 — ButtonLink subtle press animation
+
+User asked for a subtle press animation (previously Pressed kept the arrow at +4 with no motion on click). Settled on a halfway return:
+
+- Idle: `translateX(0)`
+- Hover: `translateX(4px)` (existing)
+- **Pressed: `translateX(2px)`** (new — 2px nudge back from hover)
+
+CSS rule added: `.btn--link:active:not(:disabled) .btn__icon--right { transform: translateX(2px); }`. Figma Pressed variant `1894:11` `itemSpacing` set to 18 (mirrors the 2px nudge).
+
+### Thread 7 — Inter self-hosted via @fontsource
+
+User pointed out that `<p style="font-family: Inter">` was falling through to `sans-serif` in the browser — Inter wasn't actually loading. Tokens declared `--font-primary: 'Inter', sans-serif;` but nothing fetched the font.
+
+Installed `@fontsource/inter` and imported three weights from `main.jsx`:
+
+```js
+import '@fontsource/inter/400.css'
+import '@fontsource/inter/500.css'
+import '@fontsource/inter/600.css'
+```
+
+Initially tried `@fontsource-variable/inter` (one file, all weights), but it registers the family as `'Inter Variable'` — required token changes. Switched to the non-variable package so the family is exactly `Inter` and tokens stay clean (`--font-primary: 'Inter', sans-serif`). 3 weights × ~15kb gzipped ≈ 45kb bundled.
+
+### Thread 8 — 2x widget `showChart` BOOLEAN
+
+Use case the user surfaced: 2x widgets that don't need a chart (e.g. User Management → "Users Enrolled: 142"). Added:
+
+**Figma side:** new `Show chart` BOOLEAN on WidgetContent set `1825:8` (default true), bound to the WidgetPieChart instance `visible` on the 2x variant only. 1x / 3x have no chart node; 3xChart's chart stays mandatory. No new Figma variants — just a BOOLEAN.
+
+**Code side:** `showChart` prop on Widget (default true). When `false`, the 2x donut is omitted entirely; the data-container flexes left-aligned via existing `justify-content: space-between` (single flex item → naturally on the left).
+
+Home widget titles also flipped to Title Case in the same round: "Open Exceptions", "Critical Exceptions", "Exceptions by Type", "Exception Causes (7d)". ButtonLink labels too: "Go to Exceptions".
+
+### Thread 9 — 1x arrow hover color matches ButtonLink
+
+User noticed the 1x widget's inline arrow used `--text-secondary` (DSN/700) on hover, while the ButtonLink used `--carolina-blue-400` (CB/400, lighter). Aligned: `.widget__content--1x:hover .widget__inline-arrow { color: var(--carolina-blue-400) }`. Pressed (`--text-primary`) was already aligned. Same color ladder across the two link-style affordances in the widget family.
+
+### Thread 10 — /normalize Widget 3xCta variant + new molecule WidgetCtaRow
+
+Formal `/normalize` cycle for a brand-new Widget variant. The Figma source was a standalone "CTA Widget" frame at `1916:337` — a 360×388 card with grip + title + X header and 4 link rows (icon container 40×40 with CB/50 bg + label + chevron). Use case per the user: "quick link to domains that influences users to do things — some users will be confused when they land on Odyssey One because this design is a radical change from the old system."
+
+**Decisions (single-question round):**
+- **Border alignment:** migrate *all* widget variants from `--border-default` (DSN/300) to `--border-subtle` (DSN/200). Semantic rule now: `--border-default` for input-like surfaces (badges/buttons); `--border-subtle` for card-like surfaces (widgets).
+- **Hover/pressed scope:** full ladder (row bg + chevron + icon-container bg). Requires new color primitive `Carolina Blue/100` (#DCE8F7).
+- **Off-scale 40 / 72 sizing:** kept as literals (not promoted to tokens) — premature abstraction risk.
+
+**Figma side (executed in 6 phases):**
+1. New color primitive `Carolina Blue/100` (#DCE8F7) variable.
+2. Rebound all 4 existing Widget shell variants' strokes from raw `Deep Sea Neutral/300` → semantic `Border/subtle` (DSN/200).
+3. Created new component `WidgetCtaRow` at `1927:84` on Components-Molecules — 358×72 row, HORIZONTAL SPACE_BETWEEN, icon container 40×40 (CB/50 bg, Radius/pill, contains placeholder-20 INSTANCE_SWAP) + label (`label/sm medium`, Text/primary) + lucide/chevron-right. Border-bottom Border/subtle. Props: `Label` TEXT default "Track a Shipment", `Icon` INSTANCE_SWAP.
+4. Added `Variant=3xCta` to WidgetContent set `1825:8` → `1930:37`. Contains 4 WidgetCtaRow instances (exposed) with sample labels Create / Track / Manage Users / Invoices. Last row's `strokeBottomWeight` set to 0.
+5. Added `Variant=3xCta` to Widget set `1825:7` → `1934:715`. Shell padding 0, gap 0, radius `Radius/xl`, `Border/subtle`, `shadow/sm`. Header sub-frame holds its own 24/24/24/12 padding + own bottom border. Variant axis now: `1x | 2x | 3x | 3xChart | 3xCta`.
+6. Renamed the original standalone CTA Widget frame `1916:337` to `(deprecated — replaced by Widget set Variant=3xCta)`. Not deleted — user can purge later.
+
+**Off-token Figma drift fixes during normalization:** cornerRadius 14→12 (`--radius-xl`); inner Container 16→0; row 73→72; `itemSpacing: 170` → `SPACE_BETWEEN`; real icons → `placeholder-20` per icon-slot convention.
+
+**Code side:**
+- `packages/ui/src/WidgetCtaRow.jsx` — new polymorphic molecule (`<button>` when onClick, `<div>` otherwise). Icon-container `color: var(--text-link)` → currentColor cascades to the lucide icon stroke.
+- `packages/ui/src/WidgetCtaRow.figma.tsx` — Code Connect mapping.
+- `packages/ui/src/index.js` — export.
+- `packages/ui/src/Widget.jsx` — `3xCta` added to variant union, new `ctaRows` prop, ButtonLink footer guard extended (`variant !== '1x' && variant !== '3xCta'`).
+- `packages/ui/src/Widget.figma.tsx` — `3xCta` added to variant enum.
+- `apps/odyssey-one/src/styles/components.css` — `.widget--3xCta { padding: 0; gap: 0 }`, header padding override, full `.widget-cta-row` rules + state ladder. `.widget` shell migrated to `--border-subtle`.
+- `tokens.css` + `index.css` `@theme` — added `--carolina-blue-100` / `--color-carolina-blue-100`.
+- `apps/odyssey-one/src/routes/Home.jsx` — 5th widget added (3xCta) with 4 ctaRows using lucide icons (Plus, Route, UserCog, Download).
+- `apps/odyssey-one/src/routes/Home.css` — extended grid-span rule to include `.widget--3xCta`.
+
+**DSM workflow** (subagent-driven per `feedback_designsystemmap_subagent.md`):
+- Phase A: subagent #1 wrote `getWidgetCtaNormalizeHTML()` to the Normalize tab + auto-activation for gate B-DSM.
+- User corrected one detail (row icons → `--text-link` / CB/600, not text-tertiary). Inline-fixed.
+- Phase B: subagent #2 promoted the section to Components tab (new `getWidgetCtaRowComponentHTML()` + 3xCta subsection inside `getWidgetComponentHTML()` + `compDetails.WidgetCtaRow` entry + extended `compDetails.Widget`). Removed Normalize-tab auto-activation; Components tab is default again. `getWidgetCtaNormalizeHTML()` left defined for future reference.
+
+### Thread 11 — Manual user correction post-publish (X icon size)
+
+User caught + manually fixed in Figma: the Widget header X close button on the new 3xCta variant used the MD (16px) lucide/x master, not the LG (20px) — inconsistent with the other Widget variants. Code was already correct (`<X {...ICON_LG} />`); the Figma drift came from my `findIconByName('lucide/x')` returning the first match (the md frame's master) instead of scoping to the lg frame.
+
+Saved as `feedback_widget_close_icon_lg.md` memory: Widget header X always LG (20px) — applies to every variant uniformly. When instantiating in Figma, scope to the `Icons lg` frame `366:619`.
+
+### Files / commits
+
+**New files:**
+- `packages/ui/src/WidgetCtaRow.jsx`
+- `packages/ui/src/WidgetCtaRow.figma.tsx`
+- `~/.claude/projects/.../memory/feedback_widget_close_icon_lg.md` (new memory)
+
+**Modified files:**
+- `packages/tokens/tokens.css` — `--home-grid-columns/col-min-width/row-min-height`, `--transition-chart-grow`, `--carolina-blue-100`.
+- `packages/ui/src/Widget.jsx` — `3xCta` variant, new `ctaRows` / `chartTotal` / `showChart` props, ButtonLink footer guard, JSDoc updated.
+- `packages/ui/src/WidgetPieChart.jsx` — new `total` prop (defaults to sum of segment values).
+- `packages/ui/src/index.js` — `WidgetCtaRow` export.
+- `packages/ui/src/Widget.figma.tsx` — `3xCta` in variant enum.
+- `apps/odyssey-one/src/styles/components.css` — `.btn--link` padding cascade fix, `--transition-chart-grow` on `.widget__pie-segment`, `.widget` border `--border-subtle`, `.widget__content--{1x,2x,3xChart}` margin-top auto, `.widget--3x > .btn--link` margin-top auto, ButtonLink press translateX(2), 1x arrow hover CB/400, `.widget--3xCta` shell + `.widget-cta-row` full block.
+- `apps/odyssey-one/src/components/layout/AppShell.jsx` — padding-top `--spacing-8`.
+- `apps/odyssey-one/src/routes/Home.jsx` — `singleChartSegment`, `chartTotal={100}` on 2x, ctaRows array, 5th Widget (3xCta), Title Case titles.
+- `apps/odyssey-one/src/routes/Home.css` — CSS Grid rewrite + 3xCta span 2×2.
+- `apps/odyssey-one/src/routes/route-stub.css` — dropped padding (AppShell handles 32px).
+- `apps/odyssey-one/src/index.css` — `--color-carolina-blue-100` parity in `@theme`.
+- `apps/odyssey-one/src/main.jsx` — `@fontsource/inter` 400/500/600 imports.
+- `apps/odyssey-one/package.json` — `@fontsource/inter` dependency.
+- `playground/DesignSystemMap.html` — animation easing updates, new WidgetCtaRow Components section, extended Widget section (3xCta subsection + border-migration callout), removed Normalize auto-activation.
+- `playground/normalization-tracker.md` — Widget row Round 4 note; new WidgetCtaRow row; 4 new Pushed-to-Figma entries (WidgetCtaRow, 3xCta variant, Carolina Blue/100, Widget shell border migration).
+
+### State of `@odyssey/ui` after Session 23
+
+**18 normalized components** (was 17):
+- Atoms: Badge, Button, IconButton, OdysseyLogo, SidebarButton
+- Molecules: GlobalSearch, LeadNav, TrailNav, PageHeader, SectionHeader, EntityChip, WidgetMetricRow, WidgetPieChart, **WidgetCtaRow** (NEW)
+- Organisms: Navbar, Widget (now **5 variants** including 3xCta)
+
+**Figma:**
+- Widget set 5 variants: `1x | 2x | 3x | 3xChart | 3xCta`
+- WidgetContent set 5 variants matching
+- New WidgetCtaRow master (Components-Molecules `1927:84`)
+- New primitive `Carolina Blue/100` (#DCE8F7)
+- All Widget shells migrated to `Border/subtle` (DSN/200)
+- Old standalone `CTA Widget` frame renamed to `(deprecated)`
+
+**Code Connect:** 19 mappings live (added WidgetCtaRow; Widget's variant enum extended).
+
+**Tokens added this session:**
+- `--home-grid-columns: 6`, `--home-grid-col-min-width: 170px`, `--home-grid-row-min-height: 184px`
+- `--transition-chart-grow: 1000ms cubic-bezier(0.22, 1, 0.36, 1)`
+- `--carolina-blue-100: #DCE8F7`
+
+**Semantic distinction codified:** `--border-default` for input-like surfaces (badges/buttons/inputs); `--border-subtle` for card-like surfaces (widgets).
+
+### Carry-forward to Session 24
+
+**Pre-flagged for next session:**
+- **Normalize the "Add Widgets" Home sidebar** — the next /normalize target the user named.
+- Figma masters for 3x / 3xChart / 3xCta widgets at grid-stretched heights (388h) — currently they hug content; the live grid stretches them. Future Figma update to show stretched-state version.
+- Responsive breakpoints for `.home-widget-grid` — tokens already in place; just need media-query overrides when needed.
+- Cleanup: delete the deprecated standalone CTA Widget frame `1916:337` once user confirms it's safe.
+
+**Standing backlog:**
+- SHP-66 — dropdown menu component.
+- SHP-67 — responsive normalization pass.
+- ButtonLink — full size × state matrix in Figma (currently only sm with state set; md/lg not represented).
+- StatusBadge / TypeBadge / HazmatTag / Appointment badge / History action badges / Tab count pills normalizations (Ad-hoc Implementations table in tracker).
+- Off-token off-scale paddings (6 / 14 / 18) still raw across several components — Spacing scale extension.
+- Sidebar Selected variant Figma icon-color encoding.
+
+**Parked:**
+- Mode-based Figma theming for Button icon colors.
+- Purge legacy `icons/Npx/*` masters.
+- Convert any remaining Lucide FRAMEs to proper COMPONENTs.
+- Resume Supabase migration when ≥3 domains have real UIs.
+
+**Library publish required**: Open Figma → Assets → **Publish library / Update**. Changes this cycle: new component `WidgetCtaRow`, new Widget set variant `3xCta` (in both Widget and WidgetContent sets), new color primitive `Carolina Blue/100`, all 4 existing Widget shell strokes rebound to `Border/subtle`, ButtonLink Pressed itemSpacing 18, deprecated standalone CTA Widget frame.

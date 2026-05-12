@@ -22,6 +22,7 @@
   --color-deep-sea-neutral-900: #1B2537;
 
   --color-carolina-blue-50: #F3F7FC;
+  --color-carolina-blue-100: #DCE8F7;
   --color-carolina-blue-400: #5BA4D4;
   --color-carolina-blue-600: #276DA2;
 
@@ -51,7 +52,8 @@
   --color-purple-100: #EDE9FE;
   --color-purple-800: #5B21B6;
 
-  /* Font family */
+  /* Font family — mirrors --font-primary in @odyssey/tokens. Inter loaded via
+     @fontsource/inter (see main.jsx). */
   --font-family-primary: 'Inter', sans-serif;
 
   /* Border radius */

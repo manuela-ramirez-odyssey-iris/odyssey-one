@@ -626,13 +626,16 @@ input[type="radio"].odyssey-radio {
    press DARKENS to DSN/900 (the "committed action" feel).
    `align-self: flex-start` keeps the button content-width when placed inside a flex
    column (e.g. Widget shell) — without it, flex's default `align-items: stretch`
-   would force the button to fill the parent's width. */
+   would force the button to fill the parent's width.
+   Padding 0 overrides the size paddings (`.btn--sm/md/lg`) since link is purely
+   typographic — no surface to pad. height: auto lets the line-height define height. */
 .btn--link {
   background: transparent;
   color: var(--text-link);
   border-color: transparent;
   box-shadow: none;
   align-self: flex-start;
+  height: auto;
 }
 .btn--link:hover:not(:disabled) {
   background: transparent;
@@ -656,12 +659,31 @@ input[type="radio"].odyssey-radio {
 .btn--link:hover:not(:disabled) .btn__icon--right {
   transform: translateX(4px);
 }
+/* Press: subtle partial-return from +4 to +2 (2px nudge back) so the click reads as a
+   small commit motion, not a full reset. Hover-out still snaps the arrow fully back to 0
+   via the base `.btn__icon--right` transition. */
+.btn--link:active:not(:disabled) .btn__icon--right {
+  transform: translateX(2px);
+}
 
 /* Trailing-icon padding — mirror leading-icon asymmetric padding */
 .btn--has-icon-right.btn--sm { padding-left: 14px; padding-right: var(--spacing-3); }
 .btn--has-icon-right.btn--md { padding-left: 14px; padding-right: var(--spacing-3); }
 .btn--has-icon-right.btn--lg { padding-left: var(--spacing-4); padding-right: 14px; }
 .btn__icon--right { margin-left: auto; }
+
+/* Link variant: padding 0 always, regardless of size or icon slots.
+   Placed AFTER the size + icon-slot padding rules so equal-specificity selectors
+   (e.g. `.btn--link.btn--has-icon-right` vs `.btn--has-icon-right.btn--sm`, both
+   0,2,0) lose to cascade order if placed earlier. */
+.btn--link,
+.btn--link.btn--sm,
+.btn--link.btn--md,
+.btn--link.btn--lg,
+.btn--link.btn--has-icon,
+.btn--link.btn--has-icon-right {
+  padding: 0;
+}
 
 /* ----------------------------------------
    ICON BUTTON (atom)
@@ -882,7 +904,9 @@ input[type="radio"].odyssey-radio {
   gap: var(--spacing-3);
   padding: var(--spacing-6);
   background: var(--white);
-  border: 1px solid var(--border-default);
+  /* Card surfaces use --border-subtle (DSN/200). --border-default (DSN/300) is reserved
+     for input-like surfaces (badges, buttons, inputs). */
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-sm);
   box-sizing: border-box;
@@ -891,6 +915,22 @@ input[type="radio"].odyssey-radio {
 .widget--2x { width: 360px; }
 .widget--3x,
 .widget--3xChart { width: 360px; gap: var(--spacing-6); }
+
+/* Content/Button distribution inside the widget shell when it's taller than its
+   natural content height (i.e. when placed in a Home-grid cell larger than content).
+   - 1x / 2x / 3xChart → Content pushes to the bottom; auto-gap appears between
+     Header and Content. Button (when present, 2x/3xChart) follows Content
+     naturally via the flex `gap` so it lands at the very bottom too.
+   - 3x → Content stays right after Header (no auto-gap); Button pushes to the
+     bottom on its own. */
+.widget__content--1x,
+.widget__content--2x,
+.widget__content--3xChart {
+  margin-top: auto;
+}
+.widget--3x > .btn--link {
+  margin-top: auto;
+}
 
 .widget__header {
   display: flex;
@@ -989,7 +1029,7 @@ input[type="radio"].odyssey-radio {
   transition: color var(--transition-fast);
 }
 .widget__content--1x:hover:not(:disabled) .widget__inline-arrow {
-  color: var(--text-secondary);
+  color: var(--carolina-blue-400);
   transform: translateX(4px);
 }
 .widget__content--1x:hover:not(:disabled) .widget__label {
@@ -1024,6 +1064,7 @@ input[type="radio"].odyssey-radio {
   display: flex;
   flex-direction: row;
   align-items: center;
+  justify-content: space-between;
   gap: 28px;
 }
 .widget__info-container {
@@ -1054,9 +1095,10 @@ input[type="radio"].odyssey-radio {
 }
 /* Page-load grow-in animation for segments. Driven by the `widget__pie--animated`
    modifier set by the React PieChart after mount (rAF flip). Each segment's
-   stroke-dasharray transitions from "0 circumference" to its final length. */
+   stroke-dasharray transitions from "0 circumference" to its final length.
+   Uses --transition-chart-grow (ease-out-quart) so the sweep feels designed. */
 .widget__pie-segment {
-  transition: stroke-dasharray 800ms ease-out;
+  transition: stroke-dasharray var(--transition-chart-grow);
 }
 
 /* Widget Go-to button uses the new Button "link" variant — no custom widget__go-to needed. */
@@ -1141,6 +1183,98 @@ input[type="radio"].odyssey-radio {
 }
 .widget-metric-row--interactive:active .badge-metric {
   background: var(--badge-gray-bg);
+}
+
+/* ----------------------------------------
+   WIDGET 3xCta — CTA Widget shell + row overrides
+   Variant of Widget that surfaces call-to-action quick links (no data).
+   Shell drops the standard 24px padding so the 4 rows can extend flush to the
+   shell border, separated by their own border-bottom dividers.
+   ---------------------------------------- */
+.widget--3xCta {
+  padding: 0;
+  gap: 0;
+}
+.widget--3xCta .widget__header {
+  padding: var(--spacing-6) var(--spacing-6) var(--spacing-3) var(--spacing-6);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.widget__content--3xCta {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ----------------------------------------
+   WIDGET CTA ROW (molecule)
+   Used inside Widget 3xCta content. Icon container (40×40, CB/50 bg) + label +
+   trailing chevron. Polymorphic — renders as <button> when onClick provided.
+   ---------------------------------------- */
+.widget-cta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 72px;
+  padding: 0 var(--spacing-4);
+  background: var(--white);
+  border: none;
+  border-bottom: 1px solid var(--border-subtle);
+  font-family: var(--font-primary);
+  text-align: left;
+  transition: background var(--transition-fast);
+  box-sizing: border-box;
+}
+.widget-cta-row:last-child {
+  border-bottom: none;
+}
+.widget-cta-row--interactive {
+  cursor: pointer;
+}
+.widget-cta-row__label-group {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+.widget-cta-row__icon-bg {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--carolina-blue-50);
+  color: var(--text-link);
+  border-radius: var(--radius-pill);
+  transition: background var(--transition-fast);
+}
+.widget-cta-row__icon {
+  display: inline-flex;
+}
+.widget-cta-row__label {
+  color: var(--text-primary);
+}
+.widget-cta-row__chevron {
+  color: var(--text-secondary-soft);
+  flex-shrink: 0;
+  transition: color var(--transition-fast);
+}
+.widget-cta-row--interactive:hover {
+  background: var(--deep-sea-neutral-50);
+}
+.widget-cta-row--interactive:hover .widget-cta-row__icon-bg {
+  background: var(--carolina-blue-100);
+}
+.widget-cta-row--interactive:hover .widget-cta-row__chevron {
+  color: var(--text-primary);
+}
+.widget-cta-row--interactive:active {
+  background: var(--deep-sea-neutral-100);
+}
+.widget-cta-row--interactive:active .widget-cta-row__icon-bg {
+  background: var(--carolina-blue-100);
+}
+.widget-cta-row--interactive:active .widget-cta-row__chevron {
+  color: var(--text-placeholder);
 }
 
 /* ----------------------------------------

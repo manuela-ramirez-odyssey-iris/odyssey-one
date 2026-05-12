@@ -3026,10 +3026,15 @@ function getButtonComponentHTML() {
       /* ButtonLink ladder — text-only, NO background change at any state.
          Ladder INVERTS the icon-button pattern: hover LIGHTENS to Carolina Blue 400,
          press DARKENS to DSN/900 (the "committed action" feel).
-         Trailing arrow translates 4px right on hover and STAYS there through press. */
+         Trailing arrow translates 4px right on hover and STAYS there through press.
+         Padding override — Link variant is content-sized: padding 0 / 0 / 0 / 0 on
+         all 3 State variants (Idle / Hover / Pressed). Only Link drops the size
+         padding inherited from .btn-demo--sm/md/lg; other Button variants keep theirs. */
       '.btn-demo--link {' +
         'background: transparent; color: var(--text-link, #276DA2);' +
         'border: 1px solid transparent; box-shadow: none;' +
+        'height: auto;' +
+        'padding: 0 !important;' +
         'transition: color var(--transition-fast, 150ms ease);' +
       '}' +
       '.btn-demo--link:hover:not(:disabled), .btn-demo--link.btn-demo--force-hover {' +
@@ -3065,7 +3070,7 @@ function getButtonComponentHTML() {
             '<span class="btn-demo__icon-right"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span>' +
           '</button>' +
           '<div class="comp-card-code">&lt;Button variant="link" iconRight={&lt;ArrowRight /&gt;}&gt;Go to Tracking&lt;/Button&gt;</div>' +
-          '<div class="comp-card-note"><strong>Idle</strong> &mdash; color <code>--text-link</code> (Carolina Blue 600 #276DA2) &middot; bg transparent &middot; no border &middot; no shadow &middot; arrow at <code>translateX(0)</code>. <strong>Hover</strong> and <strong>hold mousedown</strong> on this card to see the ladder live.</div>' +
+          '<div class="comp-card-note"><strong>Idle</strong> &mdash; color <code>--text-link</code> (Carolina Blue 600 #276DA2) &middot; bg transparent &middot; no border &middot; no shadow &middot; <strong>padding 0</strong> (content-sized: label + 4px gap + 16px arrow) &middot; arrow at <code>translateX(0)</code>. <strong>Hover</strong> and <strong>hold mousedown</strong> on this card to see the ladder live.</div>' +
         '</div>' +
         /* Forced hover */
         '<div class="comp-card">' +
@@ -3097,6 +3102,9 @@ function getButtonComponentHTML() {
       '</div>' +
       '<div class="comp-card-note" style="margin-top:12px; font-size:12.5px; color:#384253; line-height:1.55; background:#F7F8FA; border-left:3px solid #296DE7; padding:10px 14px; border-radius:4px;">' +
         '<strong>Ladder semantics &mdash; why Link inverts the standard pattern.</strong> Every other Button variant darkens its fill on hover and darkens further on press. Link has no fill, so it instead modulates text color: it <strong>lightens</strong> on hover to soften the affordance (a tertiary action shouldn&rsquo;t shout) and <strong>darkens to DSN/900</strong> on press to lock in the &ldquo;committed&rdquo; moment. The trailing arrow stays at +4px through the press so the forward motion reads as a follow-through, not a bounce. Primary use: Widget Go-to affordances (e.g. <code>&lt;Button variant="link" iconRight={&lt;ArrowRight /&gt;}&gt;Go to Tracking&lt;/Button&gt;</code>) inside Widget 2x / 3x / 3xChart footers.' +
+      '</div>' +
+      '<div class="comp-card-note" style="margin-top:10px; font-size:12.5px; color:#384253; line-height:1.55; background:#FFFBEB; border-left:3px solid #F8CE51; padding:10px 14px; border-radius:4px;">' +
+        '<strong>Padding = 0 &mdash; Link is the only Button variant without size padding.</strong> Idle / Hover / Pressed all render with <code>padding: 0</code> in Figma (was <code>14 / 12 / 6 / 6</code> pre-Session-23). The button is now content-sized: label + 4px gap + 16px arrow. <code>itemSpacing</code> stays per-variant in Figma &mdash; <strong>16</strong> Idle, <strong>20</strong> Hover, <strong>20</strong> Pressed &mdash; which is what gives the arrow its +4px translate on hover and the &ldquo;stays through press&rdquo; semantic (itemSpacing diff = +4 from Idle &rarr; Hover, then 0 from Hover &rarr; Pressed). Primary / Secondary / Outline / Ghost keep their size paddings (sm 14/12-14/6, md 14/12-14/6, lg 18/14-16/8).' +
       '</div>' +
     '</div>' +
 
@@ -3705,13 +3713,16 @@ function getWidgetMetricRowComponentHTML() {
 function getWidgetPieChartComponentHTML() {
   var codeChip = 'font-family:\'SF Mono\',\'Fira Code\',monospace; font-size:11px; background:#F3F4F6; padding:1px 5px; border-radius:3px; color:#6B7280;';
 
-  /* SVG donut helpers — segments 42/28/18/12 summed to 100. */
-  function donut(size, withCenterText, centerLabel) {
+  /* SVG donut helpers — default segments 42/28/18/12 sum to 100 (lg / 3xChart usage).
+     md (72px) variant now renders ONE segment only (Chart/1 + Chart/rest ring) —
+     the 2x widget is a single-data-at-a-time view per Session-23 Figma spec.
+     Pass `segsOverride` to render a custom segment array (e.g. md single-segment). */
+  function donut(size, withCenterText, centerLabel, segsOverride) {
     var radius = size / 2;
     var strokeWidth = size * 0.18;
     var innerRadius = radius - strokeWidth / 2;
     var circumference = 2 * Math.PI * innerRadius;
-    var segs = [
+    var segs = segsOverride || [
       { value: 42, color: 'var(--chart-1, #296DE7)' },
       { value: 28, color: 'var(--chart-2, #C0DEFD)' },
       { value: 18, color: 'var(--chart-3, #FC6F13)' },
@@ -3761,14 +3772,14 @@ function getWidgetPieChartComponentHTML() {
       'font-variant-numeric: tabular-nums;' +
     '}' +
     /* Page-load grow-in: each segment animates stroke-dasharray from "0 circumference"
-       to its final length over 800ms ease-out. Auto-fires once per render. */
+       to its final length over 1000ms ease-out-quart. Auto-fires once per render. */
     '@keyframes wpc-demo-pie-grow {' +
       'from { stroke-dasharray: var(--wpc-pie-start); }' +
       'to { stroke-dasharray: var(--wpc-pie-end); }' +
     '}' +
     '.wpc-demo__segment {' +
       'stroke-dasharray: var(--wpc-pie-end);' +
-      'animation: wpc-demo-pie-grow 800ms ease-out;' +
+      'animation: wpc-demo-pie-grow 1000ms cubic-bezier(0.22, 1, 0.36, 1);' +
     '}' +
   '</style>' +
   '<div class="comp-section">' +
@@ -3778,21 +3789,24 @@ function getWidgetPieChartComponentHTML() {
     /* Sub-section: Sizes + Center text */
     '<div class="comp-subsection">' +
       '<div class="comp-subsection-title">Sizes &mdash; md (72) &amp; lg (96), with / without center text</div>' +
+      '<div class="comp-card-note" style="font-size:12.5px; color:#384253; line-height:1.55; background:#FFFBEB; border-left:3px solid #F8CE51; padding:10px 14px; border-radius:4px; margin-bottom:14px;">' +
+        '<strong>Variant semantic (Session-23 spec).</strong> <strong>md</strong> renders a single Chart/1 segment over the Chart/rest ring &mdash; the 2x widget is a single-data-at-a-time view (e.g. on-time delivery % vs. the rest). <strong>lg</strong> renders the full 4-segment ring &mdash; the 3xChart widget shows the multi-data breakdown synced with its 4-row legend.' +
+      '</div>' +
       '<div class="comp-card-grid">' +
         '<div class="comp-card">' +
-          donut(72, false) +
-          '<div class="comp-card-code">&lt;WidgetPieChart size="md" segments={...} /&gt;</div>' +
-          '<div class="comp-card-note">md (72px). Stroke width = <code>size * 0.18</code>. Used inside Widget 2x.</div>' +
+          donut(72, false, null, [{ value: 42, color: 'var(--chart-1, #296DE7)' }]) +
+          '<div class="comp-card-code">&lt;WidgetPieChart size="md" segments={[{ value: 42, color: "var(--chart-1)" }]} /&gt;</div>' +
+          '<div class="comp-card-note">md (72px). Stroke width = <code>size * 0.18</code>. Used inside <code>Widget variant="2x"</code>. <strong>One segment only</strong> &mdash; Chart/1 (blue) for the filled value + Chart/rest gray ring for the remainder.</div>' +
         '</div>' +
         '<div class="comp-card">' +
-          donut(72, true, '42%') +
+          donut(72, true, '42%', [{ value: 42, color: 'var(--chart-1, #296DE7)' }]) +
           '<div class="comp-card-code">&lt;WidgetPieChart size="md" centerText="42%" /&gt;</div>' +
-          '<div class="comp-card-note">md with center text (Widget 2x percentage). <code>text-label-sm-medium</code> (14 / 20 / 500), color <code>--text-secondary-soft</code>, tabular-nums.</div>' +
+          '<div class="comp-card-note">md with center text (Widget 2x percentage). <code>text-label-sm-medium</code> (14 / 20 / 500), color <code>--text-secondary-soft</code>, tabular-nums. Still single-segment.</div>' +
         '</div>' +
         '<div class="comp-card">' +
           donut(96, false) +
-          '<div class="comp-card-code">&lt;WidgetPieChart size="lg" segments={...} /&gt;</div>' +
-          '<div class="comp-card-note">lg (96px). Used inside Widget 3xChart.</div>' +
+          '<div class="comp-card-code">&lt;WidgetPieChart size="lg" segments={...4 segs...} /&gt;</div>' +
+          '<div class="comp-card-note">lg (96px). Used inside <code>Widget variant="3xChart"</code>. 4 segments &mdash; chart-1..4 + chart-rest, synced with the 4-row legend.</div>' +
         '</div>' +
         '<div class="comp-card">' +
           donut(96, true, '42%') +
@@ -3806,7 +3820,7 @@ function getWidgetPieChartComponentHTML() {
     '<div class="comp-subsection">' +
       '<div class="comp-subsection-title">Animations <span style="font-weight:400; font-size:13px; color:#6B7280;">&mdash; reload this tab to see grow-in; hover any chart for scale</span></div>' +
       '<div class="comp-card-note" style="font-size:12.5px; color:#384253; line-height:1.55; background:#F7F8FA; border-left:3px solid #296DE7; padding:10px 14px; border-radius:4px;">' +
-        '<strong>Grow-in on mount.</strong> Each segment&rsquo;s <code>stroke-dasharray</code> animates from <code>0 circumference</code> to its final length over <strong>800ms ease-out</strong>. In React the source toggles a <code>useState</code> via <code>requestAnimationFrame</code> after mount; here it&rsquo;s a CSS <code>@keyframes</code> rule (<code>wpc-demo-pie-grow</code>) that auto-fires per render. ' +
+        '<strong>Grow-in on mount.</strong> Each segment&rsquo;s <code>stroke-dasharray</code> animates from <code>0 circumference</code> to its final length over <strong>1000ms ease-out-quart</strong>. In React the source toggles a <code>useState</code> via <code>requestAnimationFrame</code> after mount; here it&rsquo;s a CSS <code>@keyframes</code> rule (<code>wpc-demo-pie-grow</code>) that auto-fires per render. ' +
         '<strong>Hover scale.</strong> Chart wrapper transforms <code>scale(1.05)</code> on hover with <code>transition: transform var(--transition-base)</code> (200ms ease).' +
       '</div>' +
     '</div>' +
@@ -3815,7 +3829,7 @@ function getWidgetPieChartComponentHTML() {
     '<div class="comp-subsection">' +
       '<div class="comp-subsection-title">Segments &mdash; bound to Chart/* tokens</div>' +
       '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
-        'Segments take an array of <code>{ value, color }</code>. <code>color</code> is a Chart/* CSS variable: <code>--chart-1</code> (Carolina Blue 600 #296DE7), <code>--chart-2</code> (CB/100 #C0DEFD), <code>--chart-3</code> (Bittersweet 600 #FC6F13), <code>--chart-4</code> (Sunrise Yellow 400 #FFB872). The remaining ring uses <code>--chart-rest</code> (DSN/200 #E4E6EB). Segments above sum to 100 (42 / 28 / 18 / 12) for visual demo; in practice they sum to whatever total the consumer passes.' +
+        'Segments take an array of <code>{ value, color }</code>. <code>color</code> is a Chart/* CSS variable: <code>--chart-1</code> (Carolina Blue 600 #296DE7), <code>--chart-2</code> (CB/100 #C0DEFD), <code>--chart-3</code> (Bittersweet 600 #FC6F13), <code>--chart-4</code> (Sunrise Yellow 400 #FFB872). The remaining ring uses <code>--chart-rest</code> (DSN/200 #E4E6EB). <strong>md (2x widget)</strong> passes a single <code>{ value, color: --chart-1 }</code> entry &mdash; one data point at a time. <strong>lg (3xChart widget)</strong> passes 4 entries summing to a total (e.g. 42 / 28 / 18 / 12 = 100) &mdash; the multi-data breakdown synced with the legend.' +
       '</div>' +
     '</div>' +
 
@@ -3855,13 +3869,15 @@ function getWidgetComponentHTML() {
   var truck20 = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/></svg>';
 
   /* Donut helper — same shape as in WidgetPieChart demo, but with its own animation class
-     name so the Widget section's pie reload is independent of the standalone PieChart section. */
-  function donut(size, withCenterText, centerLabel) {
+     name so the Widget section's pie reload is independent of the standalone PieChart section.
+     `segsOverride` lets the 2x widget pass a single-segment array (Session-23 spec); 3xChart
+     keeps the default 4 segments. */
+  function donut(size, withCenterText, centerLabel, segsOverride) {
     var radius = size / 2;
     var strokeWidth = size * 0.18;
     var innerRadius = radius - strokeWidth / 2;
     var circumference = 2 * Math.PI * innerRadius;
-    var segs = [
+    var segs = segsOverride || [
       { value: 42, color: 'var(--chart-1, #296DE7)' },
       { value: 28, color: 'var(--chart-2, #C0DEFD)' },
       { value: 18, color: 'var(--chart-3, #FC6F13)' },
@@ -3944,7 +3960,7 @@ function getWidgetComponentHTML() {
           '<span class="wgt-demo__2x-value">94</span>' +
           '<span class="wgt-demo__2x-label">on-time</span>' +
         '</div>' +
-        donut(72, true, '94%') +
+        donut(72, true, '94%', [{ value: 94, color: 'var(--chart-1, #296DE7)' }]) +
       '</div>' +
       '<button type="button" class="wgt-demo__link">Go to Tracking <span class="wgt-demo__link-arrow">' + arrowRight16 + '</span></button>' +
     '</div>';
@@ -3998,6 +4014,66 @@ function getWidgetComponentHTML() {
       '<button type="button" class="wgt-demo__link">Go to Shipments <span class="wgt-demo__link-arrow">' + arrowRight16 + '</span></button>' +
     '</div>';
 
+  /* Variant 3xCta widget — Session-22 normalization. Stat-less CTA list, no
+     footer link, no body padding (rows are flush). Shell drops the standard
+     24px padding and uses the new .wgt-demo--3xCta class. */
+  var widget3xCta =
+    '<div class="wgt-demo wgt-demo--3xCta">' +
+      '<header class="wgt-demo__header wgt-demo__header--3xCta">' +
+        '<div class="wgt-demo__header-title">' +
+          '<span class="wgt-demo__grip" aria-hidden="true">' + gripVertical20 + '</span>' +
+          '<span class="wgt-demo__title wgt-demo__title--3xCta">What would you like to do?</span>' +
+        '</div>' +
+        '<button type="button" class="wgt-demo__close" aria-label="Remove widget">' + x20 + '</button>' +
+      '</header>' +
+      '<div class="wgt-demo__content--3xCta">' +
+        '<button type="button" class="widget-cta-row">' +
+          '<span class="widget-cta-row__left">' +
+            '<span class="widget-cta-row__icon-bg"><span class="widget-cta-row__icon">' +
+              '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>' +
+            '</span></span>' +
+            '<span class="widget-cta-row__label">Create a New Order</span>' +
+          '</span>' +
+          '<span class="widget-cta-row__chevron">' +
+            '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>' +
+          '</span>' +
+        '</button>' +
+        '<button type="button" class="widget-cta-row">' +
+          '<span class="widget-cta-row__left">' +
+            '<span class="widget-cta-row__icon-bg"><span class="widget-cta-row__icon">' +
+              '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/></svg>' +
+            '</span></span>' +
+            '<span class="widget-cta-row__label">Track a Shipment</span>' +
+          '</span>' +
+          '<span class="widget-cta-row__chevron">' +
+            '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>' +
+          '</span>' +
+        '</button>' +
+        '<button type="button" class="widget-cta-row">' +
+          '<span class="widget-cta-row__left">' +
+            '<span class="widget-cta-row__icon-bg"><span class="widget-cta-row__icon">' +
+              '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="15" r="3"/><circle cx="9" cy="7" r="4"/><path d="M10 15H6a4 4 0 0 0-4 4v2"/><path d="m21.7 16.4-.9-.3"/><path d="m15.2 13.9-.9-.3"/><path d="m16.6 18.7.3-.9"/><path d="m19.1 12.2.3-.9"/><path d="m19.6 18.7-.4-1"/><path d="m16.8 12.3-.4-1"/><path d="m14.3 16.6 1-.4"/><path d="m20.7 13.8 1-.4"/></svg>' +
+            '</span></span>' +
+            '<span class="widget-cta-row__label">Manage Users</span>' +
+          '</span>' +
+          '<span class="widget-cta-row__chevron">' +
+            '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>' +
+          '</span>' +
+        '</button>' +
+        '<button type="button" class="widget-cta-row widget-cta-row--last">' +
+          '<span class="widget-cta-row__left">' +
+            '<span class="widget-cta-row__icon-bg"><span class="widget-cta-row__icon">' +
+              '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>' +
+            '</span></span>' +
+            '<span class="widget-cta-row__label">Invoices</span>' +
+          '</span>' +
+          '<span class="widget-cta-row__chevron">' +
+            '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>' +
+          '</span>' +
+        '</button>' +
+      '</div>' +
+    '</div>';
+
   return '' +
   '<style>' +
     /* Widget shell — mirror of .widget in components.css */
@@ -4014,6 +4090,56 @@ function getWidgetComponentHTML() {
     '.wgt-demo--1x { width: 170px; }' +
     '.wgt-demo--2x { width: 360px; }' +
     '.wgt-demo--3x, .wgt-demo--3xChart { width: 360px; gap: var(--spacing-6, 24px); }' +
+    /* 3xCta — drops the standard 24px padding so the rows are flush.
+       Header keeps its own 24/24/24/12 padding and a divider. */
+    '.wgt-demo--3xCta {' +
+      'width: 360px; height: 388px; padding: 0; gap: 0;' +
+      'border: 1px solid var(--border-subtle, #E4E6EB);' +
+      'overflow: hidden;' +
+    '}' +
+    '.wgt-demo__header--3xCta {' +
+      'padding: var(--spacing-6, 24px) var(--spacing-6, 24px) var(--spacing-3, 12px) var(--spacing-6, 24px);' +
+      'border-bottom: 1px solid var(--border-subtle, #E4E6EB);' +
+    '}' +
+    '.wgt-demo__title--3xCta { font-size: 18px; line-height: 24px; font-weight: 500; color: var(--text-primary, #1B2537); }' +
+    '.wgt-demo__content--3xCta {' +
+      'display: flex; flex-direction: column; flex: 1 1 auto;' +
+    '}' +
+    /* WidgetCtaRow — embedded inside Widget 3xCta. Rows are FILL. */
+    '.wgt-demo__content--3xCta .widget-cta-row {' +
+      'display: flex; align-items: center; justify-content: space-between;' +
+      'width: 100%; height: 72px; padding: 0 var(--spacing-4, 16px);' +
+      'background: var(--white, #FFFFFF); border: none;' +
+      'border-bottom: 1px solid var(--border-subtle, #E4E6EB);' +
+      'cursor: pointer; text-align: left;' +
+      'font-family: var(--font-primary, \'Inter\', sans-serif);' +
+      'transition: background var(--transition-fast, 150ms ease);' +
+    '}' +
+    '.wgt-demo__content--3xCta .widget-cta-row--last { border-bottom: none; }' +
+    '.wgt-demo__content--3xCta .widget-cta-row__left { display: inline-flex; align-items: center; gap: var(--spacing-3, 12px); }' +
+    '.wgt-demo__content--3xCta .widget-cta-row__icon-bg {' +
+      'width: 40px; height: 40px; flex-shrink: 0;' +
+      'display: inline-flex; align-items: center; justify-content: center;' +
+      'background: var(--carolina-blue-50, #F3F7FC);' +
+      'border-radius: var(--radius-pill, 10px);' +
+      'transition: background var(--transition-fast, 150ms ease);' +
+    '}' +
+    '.wgt-demo__content--3xCta .widget-cta-row__icon { display: inline-flex; color: var(--text-link, #276DA2); }' +
+    '.wgt-demo__content--3xCta .widget-cta-row__label {' +
+      'font-size: 14px; line-height: 20px; font-weight: 500;' +
+      'color: var(--text-primary, #1B2537);' +
+    '}' +
+    '.wgt-demo__content--3xCta .widget-cta-row__chevron {' +
+      'display: inline-flex; flex-shrink: 0;' +
+      'color: var(--text-secondary-soft, #4C5463);' +
+      'transition: color var(--transition-fast, 150ms ease);' +
+    '}' +
+    '.wgt-demo__content--3xCta .widget-cta-row:hover { background: var(--deep-sea-neutral-50, #F7F8FA); }' +
+    '.wgt-demo__content--3xCta .widget-cta-row:hover .widget-cta-row__icon-bg { background: var(--carolina-blue-100, #DCE8F7); }' +
+    '.wgt-demo__content--3xCta .widget-cta-row:hover .widget-cta-row__chevron { color: var(--text-primary, #1B2537); }' +
+    '.wgt-demo__content--3xCta .widget-cta-row:active { background: var(--deep-sea-neutral-100, #F2F3F5); }' +
+    '.wgt-demo__content--3xCta .widget-cta-row:active .widget-cta-row__icon-bg { background: var(--carolina-blue-100, #DCE8F7); }' +
+    '.wgt-demo__content--3xCta .widget-cta-row:active .widget-cta-row__chevron { color: var(--text-placeholder, #9CA3AF); }' +
     /* Header */
     '.wgt-demo__header {' +
       'display: flex; align-items: center; justify-content: space-between;' +
@@ -4107,8 +4233,11 @@ function getWidgetComponentHTML() {
     '.wgt-demo__content--3x, .wgt-demo__content--3xChart {' +
       'display: flex; flex-direction: column; gap: var(--spacing-2, 8px);' +
     '}' +
+    /* 3xChart chart-section — value/label LEFT + pie chart at the TRAIL edge (right).
+       Figma uses primaryAxisAlignItems: SPACE_BETWEEN here; pre-Session-23 the code
+       was missing justify-content, which collapsed the pie next to the value. */
     '.wgt-demo__chart-section {' +
-      'display: flex; flex-direction: row; align-items: center; gap: 28px;' +
+      'display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 28px;' +
     '}' +
     '.wgt-demo__info-container { display: flex; flex-direction: column; }' +
     '.wgt-demo__3xChart-value {' +
@@ -4180,7 +4309,7 @@ function getWidgetComponentHTML() {
     '}' +
     '.wgt-demo__pie-segment {' +
       'stroke-dasharray: var(--wgt-pie-end);' +
-      'animation: wgt-demo-pie-grow 800ms ease-out;' +
+      'animation: wgt-demo-pie-grow 1000ms cubic-bezier(0.22, 1, 0.36, 1);' +
     '}' +
     /* Footer link (Button variant="link") — text-only ladder, arrow translate stays on press */
     '.wgt-demo__link {' +
@@ -4225,11 +4354,12 @@ function getWidgetComponentHTML() {
     '<div class="comp-subsection">' +
       '<div class="comp-subsection-title">Anatomy</div>' +
       '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6; margin-bottom:14px;">' +
-        '<strong>Single component, 4 variants.</strong> Resizing in the UI is a <code>variant</code> prop change, not a component swap &mdash; Figma mirrors this as one component set with <code>Variant = 1x | 2x | 3x | 3xChart</code>. Shell (header + optional footer link) is shared; content layout swaps per variant. ' +
+        '<strong>Single component, 5 variants.</strong> Resizing in the UI is a <code>variant</code> prop change, not a component swap &mdash; Figma mirrors this as one component set with <code>Variant = 1x | 2x | 3x | 3xChart | 3xCta</code>. Shell (header + optional footer link) is shared; content layout swaps per variant. ' +
         '<strong>1x</strong> renders a button-like content surface that drills into the source domain. ' +
-        '<strong>2x</strong> pairs a primary metric with a small (72px) donut. ' +
+        '<strong>2x</strong> pairs a primary metric with a small (72px) <strong>single-segment</strong> donut &mdash; one data point at a time (Chart/1 + Chart/rest ring). ' +
         '<strong>3x</strong> shows 4&ndash;6 metric rows in a vertical list. ' +
-        '<strong>3xChart</strong> combines a large (96px) donut with a multi-row legend.' +
+        '<strong>3xChart</strong> combines a large (96px) <strong>4-segment</strong> donut with a multi-row legend &mdash; value/label on LEAD, pie on TRAIL. ' +
+        '<strong>3xCta</strong> (Session-22) is a stat-less call-to-action list of <code>WidgetCtaRow</code> instances &mdash; quick-link entry points for cross-domain navigation. No footer link; rows are flush.' +
       '</div>' +
     '</div>' +
 
@@ -4245,7 +4375,7 @@ function getWidgetComponentHTML() {
         '<div class="comp-card" style="min-width:380px;">' +
           widget2x +
           '<div class="comp-card-code">&lt;Widget variant="2x" title="On-time delivery" value="94" percentage="94%" chartSegments={...} goToLabel="Go to Tracking" /&gt;</div>' +
-          '<div class="comp-card-note"><strong>2x</strong> (360w). Primary metric + 72px donut + center percentage. Header uses <code>text-label-sm-medium</code>; footer Go-to is a <code>Button variant="link"</code> instance (text-only, lightens on hover, darkens on press, arrow stays at +4 through press).</div>' +
+          '<div class="comp-card-note"><strong>2x</strong> (360w). Primary metric + 72px <strong>single-segment</strong> donut (Chart/1 fill + Chart/rest ring) + center percentage &mdash; the 2x view shows one data point at a time per Session-23 spec. Header uses <code>text-label-sm-medium</code>; footer Go-to is a <code>Button variant="link"</code> instance (content-sized, text-only, lightens on hover, darkens on press, arrow stays at +4 through press).</div>' +
         '</div>' +
         '<div class="comp-card" style="min-width:380px;">' +
           widget3x +
@@ -4255,8 +4385,16 @@ function getWidgetComponentHTML() {
         '<div class="comp-card" style="min-width:380px;">' +
           widget3xChart +
           '<div class="comp-card-code">&lt;Widget variant="3xChart" title="Shipment mix" value="100" label="total this week" chartSegments={...} rows={[...]} /&gt;</div>' +
-          '<div class="comp-card-note"><strong>3xChart</strong> (360w). Largest variant &mdash; 96px donut + 4&times;<code>WidgetMetricRow</code> legend with chart-token indicators. Row indicators bind to <code>--chart-1..4</code>; donut segments use the same tokens, so the donut + legend stay in sync. <code>--chart-rest</code> fills the unallocated ring.</div>' +
+          '<div class="comp-card-note"><strong>3xChart</strong> (360w). Largest variant &mdash; 96px <strong>4-segment</strong> donut + 4&times;<code>WidgetMetricRow</code> legend with chart-token indicators. Row indicators bind to <code>--chart-1..4</code>; donut segments use the same tokens, so the donut + legend stay in sync. <code>--chart-rest</code> fills the unallocated ring. <strong>Chart-section layout</strong>: value/label sit on the LEAD edge, pie sits at the TRAIL edge &mdash; <code>justify-content: space-between</code> on <code>.widget__chart-section</code> mirrors Figma&rsquo;s <code>primaryAxisAlignItems: SPACE_BETWEEN</code>.</div>' +
         '</div>' +
+        '<div class="comp-card" style="min-width:380px;">' +
+          widget3xCta +
+          '<div class="comp-card-code">&lt;Widget variant="3xCta" title="What would you like to do?" rows={[{ icon, label }, ...]} /&gt;</div>' +
+          '<div class="comp-card-note"><strong>3xCta</strong> (360&times;388). Stat-less call-to-action list &mdash; surfaces quick links to domain entry points. Header (24/24/24/12 padding, <code>--border-subtle</code> divider) with grip + 18/24/500 title + close X. Body is 4&times;<code>WidgetCtaRow</code> flush against the shell &mdash; <strong>3xCta drops the standard 24px widget padding</strong> so each row spans edge-to-edge. No footer link. Hover any row to verify the icon-container + chevron ladder.</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="comp-card-note" style="margin-top:12px; font-size:12.5px; color:#384253; line-height:1.55; background:#FFFBEB; border-left:3px solid #F59E0B; padding:10px 14px; border-radius:4px;">' +
+        '<strong>Border migration (Session-22).</strong> All Widget variants (<code>1x</code> / <code>2x</code> / <code>3x</code> / <code>3xChart</code> / <code>3xCta</code>) now use <code>--border-subtle</code> (DSN/200) instead of <code>--border-default</code> (DSN/300). Semantic split &mdash; <code>--border-default</code> stays on input-like surfaces (badges, buttons); <code>--border-subtle</code> is for card-like surfaces (widgets).' +
       '</div>' +
     '</div>' +
 
@@ -4365,6 +4503,174 @@ function getWidgetComponentHTML() {
       '<div class="comp-subsection-title">Code Connect</div>' +
       '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
         'Mapped via <code style="' + codeChip + '">packages/ui/src/Widget.figma.tsx</code>. <code>Variant</code> &rarr; <code>variant</code> string. Nested <code>WidgetMetricRow</code> and <code>WidgetPieChart</code> children use <code>figma.instance(...)</code> so consumer-supplied data flows through without re-mapping.' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+/* ── WidgetCtaRow (sub-component) reference HTML ── */
+function getWidgetCtaRowComponentHTML() {
+  var codeChip = 'font-family:\'SF Mono\',\'Fira Code\',monospace; font-size:11px; background:#F3F4F6; padding:1px 5px; border-radius:3px; color:#6B7280;';
+
+  /* Inline lucide SVGs — 20px icons (Plus, Route, UserCog, Download) and 16px chevron-right. */
+  var svgPlus20 = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>';
+  var svgRoute20 = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/></svg>';
+  var svgUserCog20 = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="15" r="3"/><circle cx="9" cy="7" r="4"/><path d="M10 15H6a4 4 0 0 0-4 4v2"/><path d="m21.7 16.4-.9-.3"/><path d="m15.2 13.9-.9-.3"/><path d="m16.6 18.7.3-.9"/><path d="m19.1 12.2.3-.9"/><path d="m19.6 18.7-.4-1"/><path d="m16.8 12.3-.4-1"/><path d="m14.3 16.6 1-.4"/><path d="m20.7 13.8 1-.4"/></svg>';
+  var svgDownload20 = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>';
+  var svgChevronRight16 = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>';
+
+  /* Row builder — produces a CtaRow with the given icon + label.
+     `forceState` is one of '', 'hover', 'pressed' to lock the visual state.
+     `isLast` drops the bottom divider. Polymorphic Tag mirrors the production
+     pattern: button when interactive, div otherwise. */
+  function row(iconSvg, label, forceState, isLast, interactive) {
+    var Tag = (interactive === false) ? 'div' : 'button';
+    var typeAttr = (Tag === 'button') ? ' type="button"' : '';
+    var stateClass = forceState ? ' wcta-demo--force-' + forceState : '';
+    var lastClass = isLast ? ' wcta-demo--last' : '';
+    var nonInteractiveClass = (interactive === false) ? ' wcta-demo--non-interactive' : '';
+    return '<' + Tag + typeAttr + ' class="wcta-demo' + stateClass + lastClass + nonInteractiveClass + '">' +
+      '<span class="wcta-demo__left">' +
+        '<span class="wcta-demo__icon-bg"><span class="wcta-demo__icon">' + iconSvg + '</span></span>' +
+        '<span class="wcta-demo__label">' + label + '</span>' +
+      '</span>' +
+      '<span class="wcta-demo__chevron">' + svgChevronRight16 + '</span>' +
+    '</' + Tag + '>';
+  }
+
+  function stack(content) {
+    return '<div class="wcta-demo-stack">' + content + '</div>';
+  }
+
+  return '' +
+  '<style>' +
+    /* WidgetCtaRow — mirror of .widget-cta-row in components.css.
+       Fixed width inside DSM cards (358px) to match the composed widget body.
+       In production the row is FILL inside the 3xCta widget. */
+    '.wcta-demo {' +
+      'display: flex; align-items: center; justify-content: space-between;' +
+      'width: 358px; height: 72px; padding: 0 var(--spacing-4, 16px);' +
+      'background: var(--white, #FFFFFF);' +
+      'border: none; border-bottom: 1px solid var(--border-subtle, #E4E6EB);' +
+      'cursor: pointer; text-align: left;' +
+      'font-family: var(--font-primary, \'Inter\', sans-serif);' +
+      'transition: background var(--transition-fast, 150ms ease);' +
+    '}' +
+    '.wcta-demo--last { border-bottom: none; }' +
+    '.wcta-demo--non-interactive { cursor: default; }' +
+    '.wcta-demo__left { display: inline-flex; align-items: center; gap: var(--spacing-3, 12px); }' +
+    '.wcta-demo__icon-bg {' +
+      'width: 40px; height: 40px; flex-shrink: 0;' +
+      'display: inline-flex; align-items: center; justify-content: center;' +
+      'background: var(--carolina-blue-50, #F3F7FC);' +
+      'border-radius: var(--radius-pill, 10px);' +
+      'transition: background var(--transition-fast, 150ms ease);' +
+    '}' +
+    '.wcta-demo__icon { display: inline-flex; color: var(--text-link, #276DA2); }' +
+    '.wcta-demo__label {' +
+      'font-size: 14px; line-height: 20px; font-weight: 500;' +
+      'color: var(--text-primary, #1B2537);' +
+    '}' +
+    '.wcta-demo__chevron {' +
+      'display: inline-flex; flex-shrink: 0;' +
+      'color: var(--text-secondary-soft, #4C5463);' +
+      'transition: color var(--transition-fast, 150ms ease);' +
+    '}' +
+    /* Live hover/pressed ladder — only on interactive (button) rows */
+    'button.wcta-demo:hover { background: var(--deep-sea-neutral-50, #F7F8FA); }' +
+    'button.wcta-demo:hover .wcta-demo__icon-bg { background: var(--carolina-blue-100, #DCE8F7); }' +
+    'button.wcta-demo:hover .wcta-demo__chevron { color: var(--text-primary, #1B2537); }' +
+    'button.wcta-demo:active { background: var(--deep-sea-neutral-100, #F2F3F5); }' +
+    'button.wcta-demo:active .wcta-demo__icon-bg { background: var(--carolina-blue-100, #DCE8F7); }' +
+    'button.wcta-demo:active .wcta-demo__chevron { color: var(--text-placeholder, #9CA3AF); }' +
+    /* Forced-state classes mirror the :hover / :active rules so each card displays a single locked state. */
+    '.wcta-demo--force-hover { background: var(--deep-sea-neutral-50, #F7F8FA); }' +
+    '.wcta-demo--force-hover .wcta-demo__icon-bg { background: var(--carolina-blue-100, #DCE8F7); }' +
+    '.wcta-demo--force-hover .wcta-demo__chevron { color: var(--text-primary, #1B2537); }' +
+    '.wcta-demo--force-pressed { background: var(--deep-sea-neutral-100, #F2F3F5); }' +
+    '.wcta-demo--force-pressed .wcta-demo__icon-bg { background: var(--carolina-blue-100, #DCE8F7); }' +
+    '.wcta-demo--force-pressed .wcta-demo__chevron { color: var(--text-placeholder, #9CA3AF); }' +
+    /* Stack — 4 rows in a column, no internal padding (matches the composed widget body). */
+    '.wcta-demo-stack {' +
+      'width: 358px;' +
+      'display: flex; flex-direction: column;' +
+      'background: var(--white, #FFFFFF);' +
+      'border-radius: var(--radius-md, 6px);' +
+      'overflow: hidden;' +
+    '}' +
+    /* Hint strip for live cards */
+    '.wcta-demo-card-hint {' +
+      'font-size: 11px; color: #6B7280; font-style: italic; line-height: 1.4;' +
+    '}' +
+    '.wcta-demo-card-hint strong { color: #384253; font-style: normal; font-weight: 600; }' +
+  '</style>' +
+  '<div class="comp-section">' +
+    '<div class="comp-section-title">WidgetCtaRow <span class="comp-normalized-label">NORMALIZED</span></div>' +
+    '<div class="comp-section-subtitle">packages/ui/src/WidgetCtaRow.jsx</div>' +
+
+    /* Sub-section: Anatomy */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Anatomy</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6; margin-bottom:14px;">' +
+        'CTA link row used inside <code>Widget 3xCta</code>. Icon container 40&times;40 (<code>--carolina-blue-50</code> bg) + label + trailing chevron. ' +
+        '<strong>Polymorphic.</strong> Renders as <code>&lt;button&gt;</code> when <code>onClick</code> is provided, <code>&lt;div&gt;</code> otherwise. Only the interactive form shows hover/pressed states.' +
+      '</div>' +
+    '</div>' +
+
+    /* Sub-section: Interactive states — forced grid + live stack */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Interactive states <span style="font-weight:400; font-size:13px; color:#6B7280;">&mdash; idle / hover / pressed ladder</span></div>' +
+      '<div class="comp-card-grid">' +
+        '<div class="comp-card" style="min-width:380px;">' +
+          row(svgPlus20, 'Create a New Order', '', false, true) +
+          '<div class="comp-card-code">Idle</div>' +
+          '<div class="comp-card-note"><strong>Idle</strong> &mdash; row bg <code>--white</code> &middot; icon-bg <code>--carolina-blue-50</code> &middot; icon <code>--text-link</code> (CB/600) &middot; label <code>--text-primary</code> (DSN/900) &middot; chevron <code>--text-secondary-soft</code> (DSN/600). Border-bottom <code>--border-subtle</code> &mdash; the last row in a stack drops the divider via <code>.widget-cta-row--last</code>.</div>' +
+        '</div>' +
+        '<div class="comp-card" style="min-width:380px;">' +
+          row(svgRoute20, 'Track a Shipment', 'hover', false, true) +
+          '<div class="comp-card-code">Hover (forced)</div>' +
+          '<div class="comp-card-note"><strong>Hover</strong> &mdash; row bg <code>--deep-sea-neutral-50</code> &middot; icon-bg <code>--carolina-blue-100</code> (#DCE8F7) &middot; chevron <code>--text-primary</code>. Label color unchanged.</div>' +
+        '</div>' +
+        '<div class="comp-card" style="min-width:380px;">' +
+          row(svgUserCog20, 'Manage Users', 'pressed', false, true) +
+          '<div class="comp-card-code">Pressed (forced)</div>' +
+          '<div class="comp-card-note"><strong>Pressed</strong> &mdash; row bg <code>--deep-sea-neutral-100</code> &middot; icon-bg <code>--carolina-blue-100</code> (same as hover) &middot; chevron <code>--text-placeholder</code> (DSN/400 &mdash; <strong>lifts lighter</strong> than idle, the &ldquo;release&rdquo; feel). Label color unchanged.</div>' +
+        '</div>' +
+        '<div class="comp-card" style="min-width:380px;">' +
+          stack(
+            row(svgPlus20, 'Create a New Order', '', false, true) +
+            row(svgRoute20, 'Track a Shipment', '', false, true) +
+            row(svgUserCog20, 'Manage Users', '', false, true) +
+            row(svgDownload20, 'Invoices', '', true, true)
+          ) +
+          '<div class="wcta-demo-card-hint"><strong>Live &mdash; hover each row, then hold mousedown.</strong> Verifies the full ladder + last-child border drop.</div>' +
+          '<div class="comp-card-note">Stack of 4 interactive rows mirroring the composed widget body. All transitions on <code>--transition-fast</code> (150ms ease). Icon stroke tracks <code>currentColor</code>; chevron color animates independently.</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="comp-card-note" style="margin-top:12px; font-size:12.5px; color:#384253; line-height:1.55; background:#F7F8FA; border-left:3px solid #296DE7; padding:10px 14px; border-radius:4px;">' +
+        '<strong>Reversed chevron ladder.</strong> Chevron darkens to <code>--text-primary</code> on hover, then <strong>lightens</strong> to <code>--text-placeholder</code> on press &mdash; the same release pattern as Widget 1x arrow return-on-press. Row bg darkens monotonically (DSN/50 &rarr; DSN/100) so the surface still reads as committed during press; only the chevron lifts. ' +
+        '<strong>Icon container.</strong> Carolina Blue family stays in the family on press &mdash; CB/50 &rarr; CB/100 for both hover and press &mdash; preserving the icon&rsquo;s blue identity through the state ladder.' +
+      '</div>' +
+    '</div>' +
+
+    /* Sub-section: Props & Tokens — modal */
+    '<div class="comp-subsection">' +
+      '<button class="comp-details-button" onclick="showCompDetails(\'WidgetCtaRow\')">Show props &amp; tokens</button>' +
+    '</div>' +
+
+    /* Sub-section: Figma reference */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Figma Reference</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
+        'Nested inside <code>Widget</code> component set (<code style="' + codeChip + '">1825:7</code>) under <code>Variant = 3xCta</code>. Sub-component properties: <code style="' + codeChip + '">Icon</code> INSTANCE_SWAP (placeholder-20 from Icons Placeholder), <code style="' + codeChip + '">Label</code> TEXT. Row hover/pressed states render via parent variant; no per-row state property in Figma.' +
+      '</div>' +
+    '</div>' +
+
+    /* Sub-section: Code Connect */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Code Connect</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
+        'Mapped via <code style="' + codeChip + '">packages/ui/src/WidgetCtaRow.figma.tsx</code>. <code>Label</code> TEXT &rarr; <code>label</code>; <code>Icon</code> INSTANCE_SWAP &rarr; <code>icon</code> (ReactNode). Parent Widget consumes child rows via <code>figma.instance(...)</code> so consumer-supplied icons + labels flow through without re-mapping.' +
       '</div>' +
     '</div>' +
   '</div>';
@@ -4950,7 +5256,7 @@ var compDetails = {
           '<tr><td>Typography</td><td><code>text-label-sm-medium</code></td><td>14 / 20 / 500, tabular-nums</td></tr>' +
           '<tr><td>Color</td><td><code>--text-secondary-soft</code></td><td>DSN/600 #4C5463</td></tr>' +
           '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Animation</td></tr>' +
-          '<tr><td>Grow-in (segment stroke-dasharray 0 &rarr; final)</td><td>800ms ease-out</td><td>Page-load animation. React drives it via <code>useState</code> + <code>requestAnimationFrame</code>; DSM uses a CSS <code>@keyframes</code> rule per segment.</td></tr>' +
+          '<tr><td>Grow-in (segment stroke-dasharray 0 &rarr; final)</td><td>1000ms ease-out-quart</td><td>Page-load animation. React drives it via <code>useState</code> + <code>requestAnimationFrame</code>; DSM uses a CSS <code>@keyframes</code> rule per segment.</td></tr>' +
           '<tr><td>Hover scale</td><td><code>transform: scale(1.05)</code></td><td>On the chart wrapper</td></tr>' +
           '<tr><td>Hover transition</td><td><code>--transition-base</code></td><td>200ms ease</td></tr>' +
         '</tbody>' +
@@ -4961,8 +5267,8 @@ var compDetails = {
       '<table class="comp-table">' +
         '<thead><tr><th>Prop</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>' +
         '<tbody>' +
-          '<tr style="background:#F7F8FA;"><td colspan="4" style="font-style:italic; color:#384253;"><strong>Shape:</strong> Single component, 4 variants. The shell (header + footer link) is shared; <code>variant</code> swaps the content layout. Resizing in the UI is a variant change, not a component swap.</td></tr>' +
-          '<tr><td><code>variant</code></td><td><code>"1x" | "2x" | "3x" | "3xChart"</code></td><td><code>"1x"</code></td><td>Layout. 1x is a compact metric jump card; 2x pairs a metric with a 72px donut; 3x is a 4&ndash;6-row list; 3xChart combines a 96px donut with a multi-row legend.</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="4" style="font-style:italic; color:#384253;"><strong>Shape:</strong> Single component, 5 variants. The shell (header + optional footer link) is shared; <code>variant</code> swaps the content layout. Resizing in the UI is a variant change, not a component swap.</td></tr>' +
+          '<tr><td><code>variant</code></td><td><code>"1x" | "2x" | "3x" | "3xChart" | "3xCta"</code></td><td><code>"1x"</code></td><td>Layout. 1x is a compact metric jump card; 2x pairs a metric with a 72px donut; 3x is a 4&ndash;6-row list; 3xChart combines a 96px donut with a multi-row legend; <strong>3xCta</strong> is a stat-less CTA list of <code>WidgetCtaRow</code> instances.</td></tr>' +
           '<tr><td><code>title</code></td><td>string</td><td><code>""</code></td><td>Header title text. Typography scales per variant.</td></tr>' +
           '<tr><td><code>domainIcon</code></td><td>ReactNode</td><td>&mdash;</td><td>Domain icon. On 2x it renders inline next to the title; on 3x / 3xChart it sits inside a 40&times;40 <code>--carolina-blue-50</code> container.</td></tr>' +
           '<tr><td><code>showGrip</code></td><td>boolean</td><td><code>true</code></td><td>Show the leading <code>GripVertical</code> drag handle.</td></tr>' +
@@ -4973,7 +5279,7 @@ var compDetails = {
           '<tr><td><code>value</code></td><td>string | number</td><td>&mdash;</td><td>Primary metric value (1x / 2x / 3xChart).</td></tr>' +
           '<tr><td><code>label</code></td><td>string</td><td>&mdash;</td><td>Secondary metric label (1x / 2x / 3xChart).</td></tr>' +
           '<tr><td><code>percentage</code></td><td>string</td><td>&mdash;</td><td>Center text rendered inside the 2x donut.</td></tr>' +
-          '<tr><td><code>rows</code></td><td><code>Array&lt;{ label, value, indicatorColor?, onClick? }&gt;</code></td><td><code>[]</code></td><td>Metric rows for 3x and 3xChart. Each becomes a <code>WidgetMetricRow</code>.</td></tr>' +
+          '<tr><td><code>rows</code></td><td><code>Array&lt;{ label, value, indicatorColor?, onClick? }&gt; | Array&lt;{ label, icon, onClick? }&gt;</code></td><td><code>[]</code></td><td>Metric rows for 3x / 3xChart (each becomes a <code>WidgetMetricRow</code>). For 3xCta, each row becomes a <code>WidgetCtaRow</code> with <code>icon</code> + <code>label</code> + <code>onClick</code>.</td></tr>' +
           '<tr><td><code>chartSegments</code></td><td><code>Array&lt;{ value, color }&gt;</code></td><td><code>[]</code></td><td>Donut segments for 2x and 3xChart.</td></tr>' +
         '</tbody>' +
       '</table>',
@@ -4983,17 +5289,19 @@ var compDetails = {
         '<tbody>' +
           '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Shell</td></tr>' +
           '<tr><td>Width &mdash; 1x</td><td>170px (raw)</td><td>&mdash;</td></tr>' +
-          '<tr><td>Width &mdash; 2x / 3x / 3xChart</td><td>360px (raw)</td><td>&mdash;</td></tr>' +
-          '<tr><td>Padding</td><td><code>--spacing-6</code></td><td>24px</td></tr>' +
-          '<tr><td>Gap (header &harr; content &harr; footer)</td><td><code>--spacing-3</code> (1x / 2x); <code>--spacing-6</code> (3x / 3xChart)</td><td>12px / 24px</td></tr>' +
+          '<tr><td>Width &mdash; 2x / 3x / 3xChart / 3xCta</td><td>360px (raw)</td><td>3xCta also fixes height to 388px (raw)</td></tr>' +
+          '<tr><td>Padding</td><td><code>--spacing-6</code> (1x / 2x / 3x / 3xChart); <code>0</code> (3xCta)</td><td>24px / 0 &mdash; <strong>3xCta drops shell padding</strong> so rows are flush; header keeps 24/24/24/12 padding internally.</td></tr>' +
+          '<tr><td>Gap (header &harr; content &harr; footer)</td><td><code>--spacing-3</code> (1x / 2x); <code>--spacing-6</code> (3x / 3xChart); <code>0</code> (3xCta)</td><td>12px / 24px / 0</td></tr>' +
           '<tr><td>Background</td><td><code>--white</code></td><td>#FFFFFF</td></tr>' +
-          '<tr><td>Border</td><td><code>--border-default</code></td><td>DSN/300 #D0D4DB (1px)</td></tr>' +
+          '<tr><td>Border</td><td><code>--border-subtle</code> <em>(Session-22 migration)</em></td><td>DSN/200 #E4E6EB (1px). <strong>Migrated from <code>--border-default</code> (DSN/300)</strong> &mdash; <code>--border-default</code> stays on input-like surfaces (badges, buttons); <code>--border-subtle</code> is the card-surface token.</td></tr>' +
           '<tr><td>Radius</td><td><code>--radius-xl</code></td><td>12px</td></tr>' +
           '<tr><td>Shadow</td><td><code>--shadow-sm</code></td><td>0 1px 2px rgba(15,23,42,0.04)</td></tr>' +
           '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Header</td></tr>' +
           '<tr><td>Title &mdash; 1x</td><td><code>text-label-xs-medium</code></td><td>12 / 16 / 500</td></tr>' +
           '<tr><td>Title &mdash; 2x</td><td><code>text-label-sm-medium</code></td><td>14 / 20 / 500</td></tr>' +
-          '<tr><td>Title &mdash; 3x / 3xChart</td><td><code>text-heading-lg-medium</code></td><td>18 / 24 / 500</td></tr>' +
+          '<tr><td>Title &mdash; 3x / 3xChart / 3xCta</td><td><code>text-heading-lg-medium</code></td><td>18 / 24 / 500</td></tr>' +
+          '<tr><td>3xCta header padding</td><td><code>24px 24px 12px 24px</code></td><td><code>--spacing-6</code> on three sides, <code>--spacing-3</code> on bottom</td></tr>' +
+          '<tr><td>3xCta header divider</td><td><code>1px solid --border-subtle</code></td><td>DSN/200 #E4E6EB</td></tr>' +
           '<tr><td>Title color</td><td><code>--text-primary</code></td><td>DSN/900 #1B2537</td></tr>' +
           '<tr><td>Header gap</td><td><code>--spacing-3</code></td><td>12px</td></tr>' +
           '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Grip (drag handle) &mdash; reversed ladder</td></tr>' +
@@ -5023,7 +5331,46 @@ var compDetails = {
           '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Transitions</td></tr>' +
           '<tr><td>Color (titles, grip, close, label, arrow)</td><td><code>--transition-fast</code></td><td>150ms ease</td></tr>' +
           '<tr><td>Donut hover scale</td><td><code>--transition-base</code></td><td>200ms ease</td></tr>' +
-          '<tr><td>Donut grow-in</td><td>800ms ease-out (per segment)</td><td>React rAF flip after mount</td></tr>' +
+          '<tr><td>Donut grow-in</td><td>1000ms ease-out-quart (per segment)</td><td>React rAF flip after mount</td></tr>' +
+        '</tbody>' +
+      '</table>'
+  },
+  WidgetCtaRow: {
+    props:
+      '<table class="comp-table">' +
+        '<thead><tr><th>Prop</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>' +
+        '<tbody>' +
+          '<tr><td><code>label</code></td><td>string</td><td>&mdash;</td><td>Row label (right of the icon container).</td></tr>' +
+          '<tr><td><code>icon</code></td><td>ReactNode</td><td>&mdash;</td><td>20&times;20 leading icon. Renders inside a 40&times;40 <code>--carolina-blue-50</code> container. Color inherits via <code>currentColor</code> &rarr; <code>--text-link</code>.</td></tr>' +
+          '<tr><td><code>onClick</code></td><td>() =&gt; void</td><td>&mdash;</td><td>If provided, the row renders as <code>&lt;button&gt;</code> with full hover/pressed states. Otherwise it renders as <code>&lt;div&gt;</code> (non-interactive).</td></tr>' +
+          '<tr><td><code>isLast</code></td><td>boolean</td><td><code>false</code></td><td>Drops the bottom divider (used by the parent <code>Widget 3xCta</code> on the last row).</td></tr>' +
+          '<tr><td><code>className</code></td><td>string</td><td><code>""</code></td><td>Appended to the root class list.</td></tr>' +
+        '</tbody>' +
+      '</table>',
+    tokens:
+      '<table class="comp-table">' +
+        '<thead><tr><th>Area / Property</th><th>Token / Value</th><th>Resolved</th></tr></thead>' +
+        '<tbody>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Layout</td></tr>' +
+          '<tr><td>Row height</td><td>72px (raw)</td><td>&mdash;</td></tr>' +
+          '<tr><td>Row padding (horizontal)</td><td><code>--spacing-4</code></td><td>16px</td></tr>' +
+          '<tr><td>Left-group gap (icon container &harr; label)</td><td><code>--spacing-3</code></td><td>12px</td></tr>' +
+          '<tr><td>Icon container size</td><td>40 &times; 40 (raw)</td><td>&mdash;</td></tr>' +
+          '<tr><td>Icon container radius</td><td><code>--radius-pill</code></td><td>10px</td></tr>' +
+          '<tr><td>Inner icon size</td><td>20 &times; 20 (raw)</td><td>lucide stroke 2</td></tr>' +
+          '<tr><td>Chevron size</td><td>16 &times; 16 (raw)</td><td>lucide stroke 2</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Typography</td></tr>' +
+          '<tr><td>Label</td><td><code>text-label-sm-medium</code></td><td>14 / 20 / 500</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Color &mdash; row (state ladder)</td></tr>' +
+          '<tr><td>Idle &mdash; row bg / icon-container bg / chevron</td><td><code>--white</code> / <code>--carolina-blue-50</code> / <code>--text-secondary-soft</code></td><td>#FFFFFF / #F3F7FC / DSN/600</td></tr>' +
+          '<tr><td>Hover &mdash; row bg / icon-container bg / chevron</td><td><code>--deep-sea-neutral-50</code> / <code>--carolina-blue-100</code> / <code>--text-primary</code></td><td>#F7F8FA / #DCE8F7 / DSN/900</td></tr>' +
+          '<tr><td>Pressed &mdash; row bg / icon-container bg / chevron</td><td><code>--deep-sea-neutral-100</code> / <code>--carolina-blue-100</code> / <code>--text-placeholder</code></td><td>#F2F3F5 / #DCE8F7 (same as hover) / DSN/400 (release feel)</td></tr>' +
+          '<tr><td>Label (all states)</td><td><code>--text-primary</code></td><td>DSN/900 &mdash; unchanged through ladder</td></tr>' +
+          '<tr><td>Inner icon (all states)</td><td><code>--text-link</code></td><td>CB/600 &mdash; unchanged through ladder (Carolina Blue identity)</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Border</td></tr>' +
+          '<tr><td>Bottom divider</td><td><code>1px solid --border-subtle</code></td><td>DSN/200 #E4E6EB &middot; dropped on the last row via <code>--last</code> modifier</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Transitions</td></tr>' +
+          '<tr><td>Row bg / icon-container bg / chevron color</td><td><code>--transition-fast</code></td><td>150ms ease</td></tr>' +
         '</tbody>' +
       '</table>'
   }
@@ -5260,14 +5607,14 @@ function getWidgetFamilyNormalizeHTML() {
       'font-variant-numeric: tabular-nums;' +
     '}' +
     /* Page-load grow-in: each segment animates stroke-dasharray from "0 circumference"' +
-       to its final length over 800ms ease-out. Auto-fires once per render. */
+       to its final length over 1000ms ease-out-quart. Auto-fires once per render. */
     '@keyframes wf-norm-pie-grow {' +
       'from { stroke-dasharray: var(--wf-pie-start); }' +
       'to { stroke-dasharray: var(--wf-pie-end); }' +
     '}' +
     '.wf-norm-pie-segment {' +
       'stroke-dasharray: var(--wf-pie-end);' +
-      'animation: wf-norm-pie-grow 800ms ease-out;' +
+      'animation: wf-norm-pie-grow 1000ms cubic-bezier(0.22, 1, 0.36, 1);' +
     '}' +
     /* Hint strip for live cards */
     '.wf-norm-card-hint {' +
@@ -5428,7 +5775,7 @@ function getWidgetFamilyNormalizeHTML() {
       '<div class="comp-subsection-title">7. WidgetPieChart — md (72) &amp; lg (96), with / without center text</div>' +
       '<div class="wf-norm-callout">' +
         '<strong>New behaviors:</strong> ' +
-        '<strong>Grow-in on mount</strong> — each segment\'s <code>stroke-dasharray</code> animates from <code>0 circumference</code> to its final length over <code>800ms ease-out</code>. In the React component this is a <code>useState</code> + <code>useEffect</code> + <code>requestAnimationFrame</code> flip; here it\'s a CSS <code>@keyframes</code> rule that auto-fires on render. ' +
+        '<strong>Grow-in on mount</strong> — each segment\'s <code>stroke-dasharray</code> animates from <code>0 circumference</code> to its final length over <code>1000ms ease-out-quart</code>. In the React component this is a <code>useState</code> + <code>useEffect</code> + <code>requestAnimationFrame</code> flip; here it\'s a CSS <code>@keyframes</code> rule that auto-fires on render. ' +
         '<strong>Hover scale</strong> — chart transforms <code>scale(1.05)</code> on hover with <code>transition: transform var(--transition-base)</code> (200ms ease). ' +
         'Reload this tab to see the grow-in again.' +
       '</div>' +
@@ -5452,6 +5799,279 @@ function getWidgetFamilyNormalizeHTML() {
           donutSvg(96, true) +
           '<div class="comp-card-code">size=96 · showCenterText={true}</div>' +
           '<div class="comp-card-note">lg with center text — mirrors the Figma <code>Show center text</code> BOOLEAN.</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+  '</div>';
+}
+
+/* ──────────────────────────────────────────────────────────────
+   WidgetCtaRow + Widget 3xCta — Normalize Validation (gate B-DSM)
+   Validates a new sub-component (WidgetCtaRow) and a new Widget
+   variant (3xCta) ahead of code implementation. Scoped class names
+   prefixed with `cta-norm-` to avoid collisions with the Components
+   tab and the previous `wf-norm-` cycle.
+
+   Token used inline (not yet in tokens.css at gate B):
+     --carolina-blue-100 #DCE8F7
+
+   Also flags the widget shell border migration:
+     --border-default (DSN/300) → --border-subtle (DSN/200)
+   across all Widget variants (1x / 2x / 3x / 3xChart / 3xCta).
+   ────────────────────────────────────────────────────────────── */
+function getWidgetCtaNormalizeHTML() {
+  /* Inline lucide SVGs — 20px icons (Plus, Route, UserCog, Download)
+     and a 16px chevron-right for row trailing affordance. */
+  var svgPlus20 = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>';
+  var svgRoute20 = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/></svg>';
+  var svgUserCog20 = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="15" r="3"/><circle cx="9" cy="7" r="4"/><path d="M10 15H6a4 4 0 0 0-4 4v2"/><path d="m21.7 16.4-.9-.3"/><path d="m15.2 13.9-.9-.3"/><path d="m16.6 18.7.3-.9"/><path d="m19.1 12.2.3-.9"/><path d="m19.6 18.7-.4-1"/><path d="m16.8 12.3-.4-1"/><path d="m14.3 16.6 1-.4"/><path d="m20.7 13.8 1-.4"/></svg>';
+  var svgDownload20 = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>';
+  var svgChevronRight16 = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>';
+  var svgGripVertical20 = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/></svg>';
+  var svgX20 = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>';
+
+  /* Row builder — produces a CtaRow with the given icon + label.
+     `forceState` is one of '', 'hover', 'pressed' to lock the visual state. */
+  function ctaRow(iconSvg, label, forceState, isLast) {
+    var stateClass = forceState ? ' cta-norm-row--force-' + forceState : '';
+    var lastClass = isLast ? ' cta-norm-row--last' : '';
+    return '<button type="button" class="cta-norm-row' + stateClass + lastClass + '">' +
+      '<span class="cta-norm-row__left">' +
+        '<span class="cta-norm-row__icon-bg">' +
+          '<span class="cta-norm-row__icon">' + iconSvg + '</span>' +
+        '</span>' +
+        '<span class="cta-norm-row__label">' + label + '</span>' +
+      '</span>' +
+      '<span class="cta-norm-row__chevron">' + svgChevronRight16 + '</span>' +
+    '</button>';
+  }
+
+  return '' +
+  /* ── Scoped styles ── */
+  '<style>' +
+    '.cta-norm-section { margin-bottom: 48px; }' +
+    '.cta-norm-callout {' +
+      'background: #FFFBEB; border: 1px solid #FDE68A; border-left: 3px solid #F59E0B;' +
+      'padding: 12px 16px; border-radius: 6px; margin-bottom: 24px;' +
+      'font-size: 13px; color: #78350F; line-height: 1.6;' +
+    '}' +
+    '.cta-norm-callout strong { color: #4B2E05; }' +
+    '.cta-norm-callout code {' +
+      'background: rgba(120, 53, 15, 0.08); padding: 1px 6px; border-radius: 4px;' +
+      'font-size: 12px; color: #4B2E05;' +
+    '}' +
+    '.cta-norm-info-callout {' +
+      'background: #F7F8FA; border: 1px solid #E4E6EB; border-left: 3px solid #296DE7;' +
+      'padding: 12px 16px; border-radius: 6px; margin-bottom: 24px;' +
+      'font-size: 13px; color: #384253; line-height: 1.6;' +
+    '}' +
+    '.cta-norm-info-callout strong { color: #1B2537; }' +
+    /* WidgetCtaRow — the row anatomy.
+       Width is fixed inside the demo card (358px); in production it is FILL.
+       Border-bottom is shown on every row in the standalone demo grid; the
+       composed widget below uses .cta-norm-row--last to drop the last divider. */
+    '.cta-norm-row {' +
+      'display: flex; align-items: center; justify-content: space-between;' +
+      'width: 358px; height: 72px; padding: 0 16px;' +
+      'background: var(--white, #FFFFFF);' +
+      'border: none; border-bottom: 1px solid var(--border-subtle, #E4E6EB);' +
+      'cursor: pointer; text-align: left;' +
+      'font-family: \'Inter\', sans-serif;' +
+      'transition: background var(--transition-fast, 150ms ease);' +
+    '}' +
+    '.cta-norm-row--last { border-bottom: none; }' +
+    '.cta-norm-row__left {' +
+      'display: inline-flex; align-items: center; gap: 12px;' +
+    '}' +
+    '.cta-norm-row__icon-bg {' +
+      'width: 40px; height: 40px; flex-shrink: 0;' +
+      'display: inline-flex; align-items: center; justify-content: center;' +
+      'background: var(--carolina-blue-50, #F3F7FC);' +
+      'border-radius: var(--radius-pill, 10px);' +
+      'transition: background var(--transition-fast, 150ms ease);' +
+    '}' +
+    '.cta-norm-row__icon {' +
+      'display: inline-flex;' +
+      'color: var(--text-link, #276DA2);' +
+    '}' +
+    '.cta-norm-row__label {' +
+      'font-size: 14px; line-height: 20px; font-weight: 500;' +
+      'color: var(--text-primary, #1B2537);' +
+    '}' +
+    '.cta-norm-row__chevron {' +
+      'display: inline-flex; flex-shrink: 0;' +
+      'color: var(--text-secondary-soft, #4C5463);' +
+      'transition: color var(--transition-fast, 150ms ease);' +
+    '}' +
+    /* Live hover/pressed ladder */
+    '.cta-norm-row:hover {' +
+      'background: var(--deep-sea-neutral-50, #F7F8FA);' +
+    '}' +
+    '.cta-norm-row:hover .cta-norm-row__icon-bg {' +
+      'background: #DCE8F7;' + /* --carolina-blue-100, hexed inline (not yet in tokens.css) */
+    '}' +
+    '.cta-norm-row:hover .cta-norm-row__chevron {' +
+      'color: var(--text-primary, #1B2537);' +
+    '}' +
+    '.cta-norm-row:active {' +
+      'background: var(--deep-sea-neutral-100, #F2F3F5);' +
+    '}' +
+    '.cta-norm-row:active .cta-norm-row__icon-bg {' +
+      'background: #DCE8F7;' + /* --carolina-blue-100, same as hover */
+    '}' +
+    '.cta-norm-row:active .cta-norm-row__chevron {' +
+      'color: var(--text-placeholder, #9CA3AF);' +
+    '}' +
+    /* Forced-state classes mirror the :hover / :active rules so each side-by-side
+       card displays a single locked state without user interaction. */
+    '.cta-norm-row--force-hover {' +
+      'background: var(--deep-sea-neutral-50, #F7F8FA);' +
+    '}' +
+    '.cta-norm-row--force-hover .cta-norm-row__icon-bg {' +
+      'background: #DCE8F7;' +
+    '}' +
+    '.cta-norm-row--force-hover .cta-norm-row__chevron {' +
+      'color: var(--text-primary, #1B2537);' +
+    '}' +
+    '.cta-norm-row--force-pressed {' +
+      'background: var(--deep-sea-neutral-100, #F2F3F5);' +
+    '}' +
+    '.cta-norm-row--force-pressed .cta-norm-row__icon-bg {' +
+      'background: #DCE8F7;' +
+    '}' +
+    '.cta-norm-row--force-pressed .cta-norm-row__chevron {' +
+      'color: var(--text-placeholder, #9CA3AF);' +
+    '}' +
+    /* Live container — strips the demo-card width override so rows sit in a
+       360-wide column with no internal padding. */
+    '.cta-norm-live-stack {' +
+      'width: 358px;' +
+      'display: flex; flex-direction: column;' +
+      'background: var(--white, #FFFFFF);' +
+      'border-radius: var(--radius-md, 6px);' +
+      'overflow: hidden;' +
+    '}' +
+    /* Widget 3xCta shell — composed variant card. */
+    '.cta-norm-widget {' +
+      'width: 360px; height: 388px;' +
+      'background: var(--white, #FFFFFF);' +
+      'border: 1px solid var(--border-subtle, #E4E6EB);' +
+      'border-radius: var(--radius-xl, 12px);' +
+      'box-shadow: var(--shadow-sm, 0px 1px 2px 0px rgba(0,0,0,0.05));' +
+      'overflow: hidden;' +
+      'display: flex; flex-direction: column;' +
+    '}' +
+    '.cta-norm-widget__header {' +
+      'display: flex; align-items: center; justify-content: space-between; gap: 12px;' +
+      'padding: 24px 24px 12px 24px;' +
+      'border-bottom: 1px solid var(--border-subtle, #E4E6EB);' +
+    '}' +
+    '.cta-norm-widget__grip {' +
+      'display: inline-flex; color: var(--text-tertiary, #6B7280); flex-shrink: 0;' +
+    '}' +
+    '.cta-norm-widget__title {' +
+      'flex: 1 1 auto;' +
+      'font-family: \'Inter\', sans-serif;' +
+      'font-size: 18px; line-height: 24px; font-weight: 500;' +
+      'color: var(--text-primary, #1B2537);' +
+    '}' +
+    '.cta-norm-widget__close {' +
+      'display: inline-flex; color: var(--text-tertiary, #6B7280); flex-shrink: 0;' +
+      'background: transparent; border: none; padding: 0; cursor: pointer;' +
+    '}' +
+    '.cta-norm-widget__body {' +
+      'display: flex; flex-direction: column;' +
+      'flex: 1 1 auto;' +
+    '}' +
+    /* Inside the composed widget, the rows are FILL (no fixed 358px). */
+    '.cta-norm-widget__body .cta-norm-row {' +
+      'width: 100%;' +
+    '}' +
+    /* Hint strip — copied from wf-norm cycle for visual continuity. */
+    '.cta-norm-card-hint {' +
+      'font-size: 11px; color: #6B7280; font-style: italic; line-height: 1.4;' +
+    '}' +
+    '.cta-norm-card-hint strong { color: #384253; font-style: normal; font-weight: 600; }' +
+  '</style>' +
+
+  /* ── Section header ── */
+  '<div class="cta-norm-section">' +
+    '<div class="comp-section-title" style="margin-bottom:8px;">WidgetCtaRow + Widget 3xCta — Normalize Validation</div>' +
+    '<div class="comp-section-subtitle">New sub-component (WidgetCtaRow) and new Widget variant (3xCta). Stat-less call-to-action widget that surfaces quick links to domain entry points. Designed to soften the IA transition for users coming from the old system.</div>' +
+
+    /* C) Border migration callout */
+    '<div class="cta-norm-callout">' +
+      '<strong>Border migration:</strong> all Widget variants (<code>1x</code> / <code>2x</code> / <code>3x</code> / <code>3xChart</code> / <code>3xCta</code>) now use <code>--border-subtle</code> (DSN/200) instead of <code>--border-default</code> (DSN/300). Semantic distinction — <code>--border-default</code> is for input-like surfaces (badges, buttons); <code>--border-subtle</code> is for card-like surfaces (widgets).' +
+    '</div>' +
+
+    '<div class="cta-norm-info-callout">' +
+      '<strong>How to use:</strong> The <strong>idle / hover / pressed</strong> cards in section A are <strong>forced-state demos</strong> — they lock a single visual state so you can compare side-by-side. The <strong>Live</strong> card responds to your hover and mousedown so you can verify the real ladder. Section B shows the composed 3xCta variant in widget-grid context (360 × 388).' +
+    '</div>' +
+
+    /* A) WidgetCtaRow — force-state grid + live stack */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">A. WidgetCtaRow — idle / hover / pressed ladder (new sub-component)</div>' +
+      '<div class="comp-card-grid">' +
+        /* Idle (forced) */
+        '<div class="comp-card">' +
+          ctaRow(svgPlus20, 'Create a New Order', '', false) +
+          '<div class="comp-card-note">' +
+            '<strong>Idle</strong> — row bg <code>white</code> · icon-bg <code>--carolina-blue-50</code> (#F3F7FC) · chevron <code>--text-secondary-soft</code> (DSN/600) · label <code>--text-primary</code> (DSN/900). Border-bottom <code>--border-subtle</code> (DSN/200) — in production, last child drops this divider.' +
+          '</div>' +
+        '</div>' +
+        /* Hover (forced) */
+        '<div class="comp-card">' +
+          ctaRow(svgRoute20, 'Track a Shipment', 'hover', false) +
+          '<div class="comp-card-note">' +
+            '<strong>Hover (forced)</strong> — row bg <code>--deep-sea-neutral-50</code> (#F7F8FA) · icon-bg <code>--carolina-blue-100</code> (<strong>#DCE8F7</strong> — NEW primitive, hexed inline until tokens.css ships it) · chevron <code>--text-primary</code> (DSN/900). Label color unchanged.' +
+          '</div>' +
+        '</div>' +
+        /* Pressed (forced) */
+        '<div class="comp-card">' +
+          ctaRow(svgUserCog20, 'Manage Users', 'pressed', false) +
+          '<div class="comp-card-note">' +
+            '<strong>Pressed (forced)</strong> — row bg <code>--deep-sea-neutral-100</code> (#F2F3F5) · icon-bg <code>--carolina-blue-100</code> (same as hover) · chevron <code>--text-placeholder</code> (DSN/400 — <strong>lifts lighter</strong> than idle, the "release" feel). Label color unchanged.' +
+          '</div>' +
+        '</div>' +
+        /* Live stack — 4 rows, last has no border */
+        '<div class="comp-card">' +
+          '<div class="cta-norm-live-stack">' +
+            ctaRow(svgPlus20, 'Create a New Order', '', false) +
+            ctaRow(svgRoute20, 'Track a Shipment', '', false) +
+            ctaRow(svgUserCog20, 'Manage Users', '', false) +
+            ctaRow(svgDownload20, 'Invoices', '', true) +
+          '</div>' +
+          '<div class="cta-norm-card-hint"><strong>Live — hover each row, then hold mousedown.</strong> Verifies the full ladder + last-child border drop.</div>' +
+          '<div class="comp-card-note">' +
+            'All transitions on <code>--transition-fast</code> (150ms ease). Icon stroke tracks <code>--text-tertiary</code> via <code>currentColor</code>; chevron color animates independently. Row width here is fixed at <strong>358px</strong> to match the composed widget body; in production the row is FILL.' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    /* B) Widget 3xCta variant — full composed widget */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">B. Widget 3xCta — composed variant (360 × 388)</div>' +
+      '<div class="comp-card-grid">' +
+        '<div class="comp-card">' +
+          '<div class="cta-norm-widget">' +
+            '<div class="cta-norm-widget__header">' +
+              '<span class="cta-norm-widget__grip" role="img" aria-label="Drag handle">' + svgGripVertical20 + '</span>' +
+              '<span class="cta-norm-widget__title">What would you like to do?</span>' +
+              '<button type="button" class="cta-norm-widget__close" aria-label="Remove widget">' + svgX20 + '</button>' +
+            '</div>' +
+            '<div class="cta-norm-widget__body">' +
+              ctaRow(svgPlus20, 'Create a New Order', '', false) +
+              ctaRow(svgRoute20, 'Track a Shipment', '', false) +
+              ctaRow(svgUserCog20, 'Manage Users', '', false) +
+              ctaRow(svgDownload20, 'Invoices', '', true) +
+            '</div>' +
+          '</div>' +
+          '<div class="cta-norm-card-hint"><strong>Live — hover the rows inside the widget.</strong> Last row has no divider.</div>' +
+          '<div class="comp-card-note">' +
+            'Shell — <code>--white</code> bg · <code>1px solid --border-subtle</code> · <code>--radius-xl</code> (12px) · <code>--shadow-sm</code>. Header — <code>padding: 24px 24px 12px 24px</code>, <code>border-bottom: 1px solid --border-subtle</code>, flex space-between gap 12. Title <code>--text-heading-lg-medium</code> (18 / 24 / 500). Body — flex column of 4 WidgetCtaRow instances (Create / Track / Manage Users / Invoices).' +
+          '</div>' +
         '</div>' +
       '</div>' +
     '</div>' +
@@ -5483,13 +6103,14 @@ function showCompDetails(componentName) {
 document.addEventListener('DOMContentLoaded', function() {
   /* Populate Components tab */
   var compTab = document.getElementById('componentsTabBadgeContent');
-  if (compTab) compTab.innerHTML = getBadgeComponentHTML() + getButtonComponentHTML() + getIconButtonComponentHTML() + getSidebarButtonComponentHTML() + getSidebarComponentHTML() + getGlobalSearchComponentHTML() + getLeadNavComponentHTML() + getTrailNavComponentHTML() + getNavbarComponentHTML() + getPageHeaderComponentHTML() + getSectionHeaderComponentHTML() + getEntityChipComponentHTML() + getWidgetMetricRowComponentHTML() + getWidgetPieChartComponentHTML() + getWidgetComponentHTML();
+  if (compTab) compTab.innerHTML = getBadgeComponentHTML() + getButtonComponentHTML() + getIconButtonComponentHTML() + getSidebarButtonComponentHTML() + getSidebarComponentHTML() + getGlobalSearchComponentHTML() + getLeadNavComponentHTML() + getTrailNavComponentHTML() + getNavbarComponentHTML() + getPageHeaderComponentHTML() + getSectionHeaderComponentHTML() + getEntityChipComponentHTML() + getWidgetMetricRowComponentHTML() + getWidgetPieChartComponentHTML() + getWidgetComponentHTML() + getWidgetCtaRowComponentHTML();
 
-  /* Normalize tab is empty by default. The widget-family normalization has been
-     promoted to the Components tab (post GATE B-DSM). `getWidgetFamilyNormalizeHTML()`
-     remains defined below as a reference for future iteration, but is no longer
-     auto-rendered on load. To re-activate it manually for inspection, run
-     `activateNormalizeTab(getWidgetFamilyNormalizeHTML())` in the console. */
+  /* No active normalization cycle. The previous wcta-norm cycle (WidgetCtaRow +
+     Widget 3xCta) has passed Gate B-DSM and been promoted to the Components
+     tab. `getWidgetCtaNormalizeHTML()` and `getWidgetFamilyNormalizeHTML()`
+     remain defined as references — re-activate manually via the console with
+     `activateNormalizeTab(getWidgetCtaNormalizeHTML())` + `switchTab('normalize')`
+     if you need to revisit the validation surfaces. */
 
   /* Click on backdrop closes the comp details dialog */
   var compDialog = document.getElementById('comp-details-dialog');

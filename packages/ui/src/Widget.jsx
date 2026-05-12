@@ -3,22 +3,26 @@ import { ICON_MD, ICON_LG } from '@odyssey/tokens'
 import Button from './Button.jsx'
 import WidgetMetricRow from './WidgetMetricRow.jsx'
 import WidgetPieChart from './WidgetPieChart.jsx'
+import WidgetCtaRow from './WidgetCtaRow.jsx'
 
 /**
- * Widget — molecule. Unified Home dashboard widget with 4 variants (1x / 2x / 3x / 3xChart).
+ * Widget — molecule. Unified Home dashboard widget with 5 variants (1x / 2x / 3x / 3xChart / 3xCta).
  *
  * The shell (header + footer) and content are intentionally bundled into one component:
  * resizing in the UI is a `variant` prop change, not a component swap. Figma mirrors this
- * as a single component set with `Variant=1x|2x|3x|3xChart`.
+ * as a single component set with `Variant=1x|2x|3x|3xChart|3xCta`.
  *
  * Common props:  variant, title, domainIcon, showGrip, onClose, onGoToClick, goToLabel
  * 1x:            value, label                                          (Header arrow takes you to source)
  * 2x:            value, label, percentage, chartSegments               (small donut beside metric)
  * 3x:            rows (array of { label, value, indicatorColor? })     (4-6 rows of stats)
  * 3xChart:       value, label, rows, chartSegments                     (donut + multi-row legend)
+ * 3xCta:         ctaRows (array of { icon, label, onClick })           (4 link rows, no chart, no data)
  *
  * `rows` items: { label, value, indicatorColor?, onClick? }
  * `chartSegments` items: { value, color } — color is a Chart/* token (e.g. 'var(--chart-1)')
+ * `ctaRows` items: { icon (ReactNode), label (string), onClick (fn) } — call-to-action links.
+ *   The 3xCta shell drops outer padding so rows can sit flush against the divider lines.
  */
 export default function Widget({
   variant = '1x',
@@ -35,7 +39,16 @@ export default function Widget({
   label,
   percentage,
   rows = [],
+  ctaRows = [],
   chartSegments = [],
+  // Optional denominator for the chart. Use for 2x single-data views where the
+  // segment value (e.g. 42) represents a fraction of an implied whole (e.g. 100),
+  // so the chart shows 42% filled + 58% chart-rest. Omit for 3xChart where the
+  // segments already sum to the total.
+  chartTotal,
+  // 2x only — hide the donut for stat-only widgets (e.g. Users Enrolled: 142
+  // with no percentage). Maps to the Figma `Show chart` BOOLEAN on WidgetContent 2x.
+  showChart = true,
   className = '',
   ...rest
 }) {
@@ -55,10 +68,13 @@ export default function Widget({
         label={label}
         percentage={percentage}
         rows={rows}
+        ctaRows={ctaRows}
         chartSegments={chartSegments}
+        chartTotal={chartTotal}
+        showChart={showChart}
         onGoToClick={onGoToClick}
       />
-      {variant !== '1x' && onGoToClick && goToLabel && (
+      {variant !== '1x' && variant !== '3xCta' && onGoToClick && goToLabel && (
         <Button
           variant="link"
           size="sm"
@@ -106,7 +122,7 @@ function Header({ variant, title, domainIcon, showGrip, onClose }) {
   )
 }
 
-function Content({ variant, value, label, percentage, rows, chartSegments, onGoToClick }) {
+function Content({ variant, value, label, percentage, rows, ctaRows, chartSegments, chartTotal, showChart, onGoToClick }) {
   if (variant === '1x') {
     return (
       <button
@@ -130,7 +146,9 @@ function Content({ variant, value, label, percentage, rows, chartSegments, onGoT
           <span className="text-display-3xl-semibold widget__value">{value}</span>
           <span className="text-label-sm-medium widget__label">{label}</span>
         </div>
-        <WidgetPieChart segments={chartSegments} centerText={percentage} size="md" />
+        {showChart && (
+          <WidgetPieChart segments={chartSegments} total={chartTotal} centerText={percentage} size="md" />
+        )}
       </div>
     )
   }
@@ -149,6 +167,20 @@ function Content({ variant, value, label, percentage, rows, chartSegments, onGoT
       </div>
     )
   }
+  if (variant === '3xCta') {
+    return (
+      <div className="widget__content widget__content--3xCta">
+        {ctaRows.map((row, i) => (
+          <WidgetCtaRow
+            key={i}
+            icon={row.icon}
+            label={row.label}
+            onClick={row.onClick}
+          />
+        ))}
+      </div>
+    )
+  }
   if (variant === '3xChart') {
     return (
       <div className="widget__content widget__content--3xChart">
@@ -157,7 +189,7 @@ function Content({ variant, value, label, percentage, rows, chartSegments, onGoT
             <span className="text-display-4xl-semibold widget__value">{value}</span>
             <span className="text-label-sm-medium widget__label">{label}</span>
           </div>
-          <WidgetPieChart segments={chartSegments} size="lg" />
+          <WidgetPieChart segments={chartSegments} total={chartTotal} size="lg" />
         </div>
         <div className="widget__data-section">
           {rows.map((row, i) => (

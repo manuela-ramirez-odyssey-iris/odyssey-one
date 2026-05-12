@@ -2,14 +2,25 @@
   margin-bottom: var(--spacing-6);
 }
 
-/* Smoke-test widget grid. One of each Widget variant placed below SectionHeader.
-   Real grid system (drag-resize, profiles, etc.) comes later — see home-domain-analysis.md.
-   `align-items: flex-start` so widgets hug their own content height instead of
-   matching the tallest item in the row. */
+/* Home dashboard grid — 6 equal columns, cells ≥ 170×184, 20px gap.
+   Widget variants span: 1x = 1×1, 2x = 2×1, 3x / 3xChart = 2×2.
+   Tokens (`--home-grid-*`) live in packages/tokens so a future responsive pass
+   can redefine them per breakpoint. */
 .home-widget-grid {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  gap: var(--spacing-4);
+  display: grid;
+  grid-template-columns: repeat(var(--home-grid-columns), minmax(var(--home-grid-col-min-width), 1fr));
+  grid-auto-rows: minmax(var(--home-grid-row-min-height), auto);
+  gap: var(--spacing-5);
   margin-top: var(--spacing-6);
 }
+
+/* Widget shells inherit fixed widths from components.css (170 / 360) so they look
+   right standalone — override to fill the grid cell when placed inside the home grid. */
+.home-widget-grid > .widget {
+  width: auto;
+}
+.home-widget-grid > .widget--1x { grid-column: span 1; grid-row: span 1; }
+.home-widget-grid > .widget--2x { grid-column: span 2; grid-row: span 1; }
+.home-widget-grid > .widget--3x,
+.home-widget-grid > .widget--3xChart,
+.home-widget-grid > .widget--3xCta { grid-column: span 2; grid-row: span 2; }
