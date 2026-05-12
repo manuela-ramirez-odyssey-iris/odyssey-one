@@ -2033,6 +2033,23 @@ function getBadgeComponentHTML() {
       '</div>' +
     '</div>' +
 
+    /* Sub-section: Metric (new variant — inline numeric pill, parent-overridable bg) */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Metric (preset variant — inline numeric pill)</div>' +
+      '<div class="comp-card-grid">' +
+        '<div class="comp-card">' +
+          '<span class="badge-metric" style="display:inline-flex; align-items:center; justify-content:center; padding:1px 8px; border-radius:8px; font-family:\'Inter\',sans-serif; font-size:12px; line-height:16px; font-weight:600; color:#1B2537; font-variant-numeric:tabular-nums; white-space:nowrap;">99</span>' +
+          '<div class="comp-card-code">&lt;Badge variant="metric"&gt;99&lt;/Badge&gt;</div>' +
+          '<div class="comp-card-note">' +
+            'bg <code>--badge-gray-bg</code> (DSN/100 #F2F3F5) &middot; text <code>--text-primary</code> (DSN/900) &middot; radius <code>--radius-lg</code> (8px) &middot; padding <strong>1px 8px</strong> &middot; <code>text-label-xs-semibold</code> (12 / 16 / 600) &middot; tabular-nums &middot; <strong>iconless</strong>. Used as the inline value pill inside <code>WidgetMetricRow</code>.' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="comp-card-note" style="margin-top:10px; font-size:12.5px; color:#384253; line-height:1.55; background:#F7F8FA; border-left:3px solid #296DE7; padding:10px 14px; border-radius:4px;">' +
+        '<strong>Parent-override behavior.</strong> Unlike the other variants, Badge <code>metric</code> sets its background via the <code>.badge-metric</code> CSS class (not an inline <code>style</code>). This lets a parent context override it. The only consumer that uses this today is <code>WidgetMetricRow</code> — when its interactive row is hovered, the inner <code>.badge-metric</code> bg darkens one step: <code>.widget-metric-row--interactive:hover .badge-metric { background: var(--deep-sea-neutral-200); }</code>. Standalone <code>Badge metric</code> instances elsewhere keep the default bg (single state — the Badge itself is not interactive).' +
+      '</div>' +
+    '</div>' +
+
     /* Props & Tokens — moved into modal */
     '<div class="comp-subsection">' +
       '<button class="comp-details-button" onclick="showCompDetails(\'Badge\')">Show props &amp; tokens</button>' +
@@ -3004,6 +3021,85 @@ function getButtonComponentHTML() {
       '</div>' +
     '</div>' +
 
+    /* Sub-section: Link variant (text-only tertiary action on light surfaces) */
+    '<style>' +
+      /* ButtonLink ladder — text-only, NO background change at any state.
+         Ladder INVERTS the icon-button pattern: hover LIGHTENS to Carolina Blue 400,
+         press DARKENS to DSN/900 (the "committed action" feel).
+         Trailing arrow translates 4px right on hover and STAYS there through press. */
+      '.btn-demo--link {' +
+        'background: transparent; color: var(--text-link, #276DA2);' +
+        'border: 1px solid transparent; box-shadow: none;' +
+        'transition: color var(--transition-fast, 150ms ease);' +
+      '}' +
+      '.btn-demo--link:hover:not(:disabled), .btn-demo--link.btn-demo--force-hover {' +
+        'background: transparent; color: var(--carolina-blue-400, #5BA4D4);' +
+      '}' +
+      '.btn-demo--link:active:not(:disabled), .btn-demo--link.btn-demo--force-pressed {' +
+        'background: transparent; color: var(--text-primary, #1B2537);' +
+      '}' +
+      '.btn-demo--link:disabled { color: var(--text-placeholder, #9CA3AF); background: transparent; }' +
+      /* Trailing-icon arrow tracks text via currentColor; transform animates independently. */
+      '.btn-demo--link .btn-demo__icon-right {' +
+        'display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;' +
+        'width: var(--icon-size-md, 16px); height: var(--icon-size-md, 16px);' +
+        'transition: transform var(--transition-fast, 150ms ease);' +
+      '}' +
+      '.btn-demo--link .btn-demo__icon-right > svg { width: 100%; height: 100%; }' +
+      '.btn-demo--link:hover:not(:disabled) .btn-demo__icon-right,' +
+      '.btn-demo--link.btn-demo--force-hover .btn-demo__icon-right,' +
+      '.btn-demo--link.btn-demo--force-pressed .btn-demo__icon-right {' +
+        'transform: translateX(4px);' +
+      '}' +
+      /* No :active reset on the icon — it STAYS at +4 through the press, returns only on hover-out. */
+    '</style>' +
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Link variant <span style="font-weight:400; font-size:13px; color:#6B7280;">&mdash; text-only tertiary action, light surfaces (the &ldquo;Go to X&rdquo; affordance)</span></div>' +
+      /* Helper: a link-variant button with optional disabled + optional forceState */
+      (function() { return ''; })() +
+      '<div class="comp-card-grid">' +
+        /* Idle */
+        '<div class="comp-card">' +
+          '<button type="button" class="btn-demo btn-demo--link btn-demo--md">' +
+            '<span>Go to Tracking</span>' +
+            '<span class="btn-demo__icon-right"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span>' +
+          '</button>' +
+          '<div class="comp-card-code">&lt;Button variant="link" iconRight={&lt;ArrowRight /&gt;}&gt;Go to Tracking&lt;/Button&gt;</div>' +
+          '<div class="comp-card-note"><strong>Idle</strong> &mdash; color <code>--text-link</code> (Carolina Blue 600 #276DA2) &middot; bg transparent &middot; no border &middot; no shadow &middot; arrow at <code>translateX(0)</code>. <strong>Hover</strong> and <strong>hold mousedown</strong> on this card to see the ladder live.</div>' +
+        '</div>' +
+        /* Forced hover */
+        '<div class="comp-card">' +
+          '<button type="button" class="btn-demo btn-demo--link btn-demo--md btn-demo--force-hover">' +
+            '<span>Go to Tracking</span>' +
+            '<span class="btn-demo__icon-right"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span>' +
+          '</button>' +
+          '<div class="comp-card-code">Hover (forced)</div>' +
+          '<div class="comp-card-note"><strong>Hover</strong> &mdash; color <code>--carolina-blue-400</code> (CB/400 #5BA4D4 &mdash; <strong>LIGHTENS</strong>; the opposite of every other Button variant). Bg stays transparent. Arrow slides right <code>translateX(4px)</code> via <code>transition: transform var(--transition-fast)</code>.</div>' +
+        '</div>' +
+        /* Forced pressed */
+        '<div class="comp-card">' +
+          '<button type="button" class="btn-demo btn-demo--link btn-demo--md btn-demo--force-pressed">' +
+            '<span>Go to Tracking</span>' +
+            '<span class="btn-demo__icon-right"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span>' +
+          '</button>' +
+          '<div class="comp-card-code">Pressed (forced)</div>' +
+          '<div class="comp-card-note"><strong>Pressed</strong> &mdash; color <code>--text-primary</code> (DSN/900 #1B2537 &mdash; <strong>DARKENS</strong> to near-black, the &ldquo;committed action&rdquo; feel). Bg stays transparent. Arrow <strong>stays</strong> at <code>translateX(4px)</code> through the press &mdash; it only returns on hover-out. (Diverges from the Widget 1x inline-arrow, which snaps back on press.)</div>' +
+        '</div>' +
+        /* Disabled */
+        '<div class="comp-card">' +
+          '<button type="button" class="btn-demo btn-demo--link btn-demo--md" disabled>' +
+            '<span>Go to Tracking</span>' +
+            '<span class="btn-demo__icon-right"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span>' +
+          '</button>' +
+          '<div class="comp-card-code">Disabled</div>' +
+          '<div class="comp-card-note">Color <code>--text-placeholder</code> (DSN/400 #9CA3AF) &middot; bg transparent. No arrow translate.</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="comp-card-note" style="margin-top:12px; font-size:12.5px; color:#384253; line-height:1.55; background:#F7F8FA; border-left:3px solid #296DE7; padding:10px 14px; border-radius:4px;">' +
+        '<strong>Ladder semantics &mdash; why Link inverts the standard pattern.</strong> Every other Button variant darkens its fill on hover and darkens further on press. Link has no fill, so it instead modulates text color: it <strong>lightens</strong> on hover to soften the affordance (a tertiary action shouldn&rsquo;t shout) and <strong>darkens to DSN/900</strong> on press to lock in the &ldquo;committed&rdquo; moment. The trailing arrow stays at +4px through the press so the forward motion reads as a follow-through, not a bounce. Primary use: Widget Go-to affordances (e.g. <code>&lt;Button variant="link" iconRight={&lt;ArrowRight /&gt;}&gt;Go to Tracking&lt;/Button&gt;</code>) inside Widget 2x / 3x / 3xChart footers.' +
+      '</div>' +
+    '</div>' +
+
     /* Props & Tokens — modal */
     '<div class="comp-subsection">' +
       '<button class="comp-details-button" onclick="showCompDetails(\'Button\')">Show props &amp; tokens</button>' +
@@ -3393,6 +3489,887 @@ function getEntityChipComponentHTML() {
   '</div>';
 }
 
+/* ── WidgetMetricRow (molecule) component reference HTML ── */
+function getWidgetMetricRowComponentHTML() {
+  var codeChip = 'font-family:\'SF Mono\',\'Fira Code\',monospace; font-size:11px; background:#F3F4F6; padding:1px 5px; border-radius:3px; color:#6B7280;';
+  /* Inline lucide chevron-right at 20px stroke 2, color via currentColor */
+  var chevronRight20 = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>';
+
+  /* Render a metric row demo. opts: { interactive, indicator, indicatorColor, label, value, forceState } */
+  function row(opts) {
+    opts = opts || {};
+    var Tag = opts.interactive ? 'button' : 'div';
+    var typeAttr = opts.interactive ? ' type="button"' : '';
+    var classes = 'wmr-demo';
+    if (opts.interactive) classes += ' wmr-demo--interactive';
+    if (opts.forceState) classes += ' wmr-demo--force-' + opts.forceState;
+    var indicator = opts.indicator
+      ? '<span class="wmr-demo__indicator" style="background: ' + (opts.indicatorColor || 'var(--chart-1, #296DE7)') + ';"></span>'
+      : '';
+    return '<' + Tag + typeAttr + ' class="' + classes + '">' +
+      '<span class="wmr-demo__label-group">' + indicator +
+        '<span class="wmr-demo__label">' + (opts.label || 'Date issues') + '</span>' +
+      '</span>' +
+      '<span class="wmr-demo__trailing">' +
+        '<span class="wmr-demo__badge badge-metric">' + (opts.value || '99') + '</span>' +
+        '<span class="wmr-demo__chevron">' + chevronRight20 + '</span>' +
+      '</span>' +
+    '</' + Tag + '>';
+  }
+
+  /* Faux widget wrapper to give the row a realistic visual context (matches the production .widget shell). */
+  function wrap(content) {
+    return '<div class="wmr-demo-widget">' + content + '</div>';
+  }
+
+  return '' +
+  '<style>' +
+    /* Faux Widget shell — matches production .widget so the row reads in realistic context. */
+    '.wmr-demo-widget {' +
+      'display: flex; flex-direction: column; gap: var(--spacing-2, 8px);' +
+      'width: 312px; padding: var(--spacing-6, 24px);' +
+      'background: var(--white, #FFFFFF);' +
+      'border: 1px solid var(--border-default, #E4E6EB);' +
+      'border-radius: var(--radius-xl, 12px);' +
+      'box-shadow: var(--shadow-sm, 0 1px 2px rgba(15,23,42,0.04));' +
+    '}' +
+    /* Row — mirror of .widget-metric-row + .widget-metric-row--interactive in components.css */
+    '.wmr-demo {' +
+      'display: flex; align-items: center; justify-content: space-between;' +
+      'width: 100%; gap: var(--spacing-3, 12px);' +
+      'font-family: var(--font-primary, \'Inter\', sans-serif);' +
+      'background: transparent; border: none; padding: 0;' +
+      'color: var(--text-secondary-soft, #4C5463);' +
+    '}' +
+    '.wmr-demo--interactive {' +
+      'cursor: pointer; text-align: left;' +
+      'transition: color var(--transition-fast, 150ms ease);' +
+    '}' +
+    '.wmr-demo__label-group { display: inline-flex; align-items: center; gap: var(--spacing-2, 8px); }' +
+    '.wmr-demo__indicator {' +
+      'display: inline-block; width: 8px; height: 8px;' +
+      'border-radius: var(--radius-full, 9999px); flex-shrink: 0;' +
+      'transition: transform var(--transition-fast, 150ms ease);' +
+    '}' +
+    '.wmr-demo__label {' +
+      'font-size: 14px; line-height: 20px; font-weight: 400; color: inherit;' +
+    '}' +
+    '.wmr-demo__trailing { display: inline-flex; align-items: center; gap: var(--spacing-3, 12px); }' +
+    '.wmr-demo__chevron {' +
+      'color: var(--text-tertiary, #6B7280); flex-shrink: 0; display: inline-flex;' +
+      'transition: color var(--transition-fast, 150ms ease);' +
+    '}' +
+    /* Inline Badge metric — parent-overridable bg via .badge-metric class.
+       Note: the .badge-metric class itself is defined globally below (it ships in production
+       components.css too). We re-declare it here for DSM isolation. */
+    '.wmr-demo__badge {' +
+      'display: inline-flex; align-items: center; justify-content: center;' +
+      'padding: 1px var(--spacing-2, 8px); border-radius: var(--radius-lg, 8px);' +
+      'color: var(--text-primary, #1B2537);' +
+      'font-family: var(--font-primary, \'Inter\', sans-serif);' +
+      'font-size: 12px; line-height: 16px; font-weight: 600;' +
+      'font-variant-numeric: tabular-nums; white-space: nowrap;' +
+    '}' +
+    /* Interactive states — reversed ladder. Color darkens on hover, lightens further on press. */
+    '.wmr-demo--interactive:hover, .wmr-demo--interactive.wmr-demo--force-hover {' +
+      'color: var(--text-primary, #1B2537);' +
+    '}' +
+    '.wmr-demo--interactive:hover .wmr-demo__chevron,' +
+    '.wmr-demo--interactive.wmr-demo--force-hover .wmr-demo__chevron {' +
+      'color: var(--text-primary, #1B2537);' +
+    '}' +
+    '.wmr-demo--interactive:hover .wmr-demo__indicator,' +
+    '.wmr-demo--interactive.wmr-demo--force-hover .wmr-demo__indicator {' +
+      'transform: scale(1.25);' +
+    '}' +
+    /* NEW — inner Badge metric bg darkens on hover, releases on press.
+       Mirrors the production .widget-metric-row--interactive:hover .badge-metric override. */
+    '.wmr-demo--interactive:hover .badge-metric,' +
+    '.wmr-demo--interactive.wmr-demo--force-hover .badge-metric {' +
+      'background: var(--deep-sea-neutral-200, #E4E6EB);' +
+    '}' +
+    '.wmr-demo--interactive:active, .wmr-demo--interactive.wmr-demo--force-pressed {' +
+      'color: var(--text-placeholder, #9CA3AF);' +
+    '}' +
+    '.wmr-demo--interactive:active .wmr-demo__chevron,' +
+    '.wmr-demo--interactive.wmr-demo--force-pressed .wmr-demo__chevron {' +
+      'color: var(--text-placeholder, #9CA3AF);' +
+    '}' +
+    '.wmr-demo--interactive:active .wmr-demo__indicator,' +
+    '.wmr-demo--interactive.wmr-demo--force-pressed .wmr-demo__indicator {' +
+      'transform: scale(1);' +
+    '}' +
+    '.wmr-demo--interactive:active .badge-metric,' +
+    '.wmr-demo--interactive.wmr-demo--force-pressed .badge-metric {' +
+      'background: var(--badge-gray-bg, #F2F3F5);' +
+    '}' +
+    /* Hint strip for live cards */
+    '.wmr-demo-card-hint {' +
+      'font-size: 11px; color: #6B7280; font-style: italic; line-height: 1.4;' +
+    '}' +
+    '.wmr-demo-card-hint strong { color: #384253; font-style: normal; font-weight: 600; }' +
+  '</style>' +
+  '<div class="comp-section">' +
+    '<div class="comp-section-title">WidgetMetricRow <span class="comp-normalized-label">NORMALIZED</span></div>' +
+    '<div class="comp-section-subtitle">packages/ui/src/WidgetMetricRow.jsx</div>' +
+
+    /* Sub-section: Anatomy */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Anatomy</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6; margin-bottom:14px;">' +
+        'Optional indicator dot (8&times;8, default <code>--chart-1</code>) + label + inline value Badge (<code>variant="metric"</code>) + trailing chevron (<code>ChevronRight</code> @ 20px). ' +
+        '<strong>Polymorphic.</strong> Renders as <code>&lt;button&gt;</code> when <code>onClick</code> is provided, <code>&lt;div&gt;</code> otherwise. Only the interactive form shows hover/pressed states.' +
+      '</div>' +
+      '<div class="comp-card-grid">' +
+        '<div class="comp-card" style="min-width:340px;">' +
+          wrap(row({ interactive: false, indicator: true, label: 'Date issues', value: '99' })) +
+          '<div class="comp-card-code">&lt;WidgetMetricRow label="Date issues" value="99" showIndicator /&gt;</div>' +
+          '<div class="comp-card-note">Non-interactive (renders as <code>&lt;div&gt;</code> &mdash; no <code>onClick</code>). Indicator + label + Badge + chevron. Used inside Widget 3xChart legend rows.</div>' +
+        '</div>' +
+        '<div class="comp-card" style="min-width:340px;">' +
+          wrap(row({ interactive: false, indicator: false, label: 'In Transit', value: '152' })) +
+          '<div class="comp-card-code">&lt;WidgetMetricRow label="In Transit" value="152" /&gt;</div>' +
+          '<div class="comp-card-note">Non-interactive, indicator hidden (<code>showIndicator={false}</code>). Used inside Widget 3x rows where there&rsquo;s no chart to legend against.</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    /* Sub-section: Interactive states — live */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Interactive states <span style="font-weight:400; font-size:13px; color:#6B7280;">&mdash; hover and hold mousedown on the live card to see the ladder</span></div>' +
+      '<div class="comp-card-grid">' +
+        '<div class="comp-card" style="min-width:340px;">' +
+          wrap(row({ interactive: true, indicator: true, label: 'Date issues', value: '99' })) +
+          '<div class="wmr-demo-card-hint"><strong>Live &mdash; hover, then hold mousedown.</strong> Watch the inline <code>99</code> pill darken on hover and release on press.</div>' +
+          '<div class="comp-card-code">&lt;WidgetMetricRow ... onClick={...} /&gt;</div>' +
+          '<div class="comp-card-note">Polymorphic <code>&lt;button&gt;</code> form. <code>onClick</code> spreads through; full keyboard + focus-visible support inherited.</div>' +
+        '</div>' +
+        '<div class="comp-card" style="min-width:340px;">' +
+          wrap(row({ interactive: true, indicator: true, label: 'Date issues', value: '99', forceState: 'hover' })) +
+          '<div class="comp-card-code">Hover (forced)</div>' +
+          '<div class="comp-card-note"><strong>Hover</strong> &mdash; label/chevron <code>DSN/600 &rarr; DSN/900</code>; indicator <code>scale(1) &rarr; scale(1.25)</code>; inner <code>.badge-metric</code> bg <code>DSN/100 &rarr; DSN/200</code>.</div>' +
+        '</div>' +
+        '<div class="comp-card" style="min-width:340px;">' +
+          wrap(row({ interactive: true, indicator: true, label: 'Date issues', value: '99', forceState: 'pressed' })) +
+          '<div class="comp-card-code">Pressed (forced)</div>' +
+          '<div class="comp-card-note"><strong>Pressed</strong> &mdash; label/chevron <code>DSN/900 &rarr; DSN/400</code> (release feel); indicator <code>scale</code> returns to <code>1</code>; inner <code>.badge-metric</code> bg returns to <code>--badge-gray-bg</code>.</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="comp-card-note" style="margin-top:12px; font-size:12.5px; color:#384253; line-height:1.55; background:#F7F8FA; border-left:3px solid #296DE7; padding:10px 14px; border-radius:4px;">' +
+        '<strong>Reversed ladder &mdash; design intent.</strong> The row mirrors the Widget 1x button: the indicator scales <strong>up</strong> on hover and returns to <strong>scale(1)</strong> on press (same return-on-press pattern as the Widget 1x arrow translate). Colors lighten to DSN/400 on press to read as a &ldquo;release&rdquo; rather than a deeper commitment &mdash; this row is a navigational drill-down, not a CTA. ' +
+        '<strong>Inner Badge bg override.</strong> <code>.widget-metric-row--interactive:hover .badge-metric { background: var(--deep-sea-neutral-200); }</code> &mdash; the inline metric pill darkens only when used inside this interactive row. Standalone Badge metric instances stay at <code>--badge-gray-bg</code>.' +
+      '</div>' +
+    '</div>' +
+
+    /* Sub-section: Indicator color */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Indicator color &mdash; chart-token driven</div>' +
+      '<div class="comp-card-grid">' +
+        '<div class="comp-card" style="min-width:340px;">' +
+          wrap(
+            row({ interactive: false, indicator: true, indicatorColor: 'var(--chart-1, #296DE7)', label: 'Delivered',   value: '42' }) +
+            row({ interactive: false, indicator: true, indicatorColor: 'var(--chart-2, #C0DEFD)', label: 'In Transit',  value: '28' }) +
+            row({ interactive: false, indicator: true, indicatorColor: 'var(--chart-3, #FC6F13)', label: 'Late',        value: '18' }) +
+            row({ interactive: false, indicator: true, indicatorColor: 'var(--chart-4, #FFB872)', label: 'Cancelled',   value: '12' })
+          ) +
+          '<div class="comp-card-code">indicatorColor="var(--chart-1..4)"</div>' +
+          '<div class="comp-card-note">Indicator color is consumer-driven. Pass a Chart/* token (e.g. <code>indicatorColor="var(--chart-2)"</code>) to legend a multi-segment <code>WidgetPieChart</code>. Default is <code>--chart-1</code>.</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    /* Sub-section: Props & Tokens — modal */
+    '<div class="comp-subsection">' +
+      '<button class="comp-details-button" onclick="showCompDetails(\'WidgetMetricRow\')">Show props &amp; tokens</button>' +
+    '</div>' +
+
+    /* Sub-section: Figma reference */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Figma Reference</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
+        'Component <code style="' + codeChip + '">1814:7</code> in Design System &mdash; MCP. Properties: <code style="' + codeChip + '">Show indicator</code> BOOLEAN, <code style="' + codeChip + '">Label</code> TEXT, <code style="' + codeChip + '">Value</code> TEXT, <code style="' + codeChip + '">Indicator color</code> VARIABLE_ALIAS bound to a Chart/* token. The inline value pill is a nested Badge instance with <code>Variant=metric</code>.' +
+      '</div>' +
+    '</div>' +
+
+    /* Sub-section: Code Connect */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Code Connect</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
+        'Mapped via <code style="' + codeChip + '">packages/ui/src/WidgetMetricRow.figma.tsx</code>. <code>Label</code> TEXT &rarr; <code>label</code>; <code>Value</code> TEXT &rarr; <code>value</code>; <code>Show indicator</code> BOOLEAN &rarr; <code>showIndicator</code>; <code>Indicator color</code> VARIABLE_ALIAS &rarr; <code>indicatorColor</code> (passes the CSS var string).' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+/* ── WidgetPieChart (molecule) component reference HTML ── */
+function getWidgetPieChartComponentHTML() {
+  var codeChip = 'font-family:\'SF Mono\',\'Fira Code\',monospace; font-size:11px; background:#F3F4F6; padding:1px 5px; border-radius:3px; color:#6B7280;';
+
+  /* SVG donut helpers — segments 42/28/18/12 summed to 100. */
+  function donut(size, withCenterText, centerLabel) {
+    var radius = size / 2;
+    var strokeWidth = size * 0.18;
+    var innerRadius = radius - strokeWidth / 2;
+    var circumference = 2 * Math.PI * innerRadius;
+    var segs = [
+      { value: 42, color: 'var(--chart-1, #296DE7)' },
+      { value: 28, color: 'var(--chart-2, #C0DEFD)' },
+      { value: 18, color: 'var(--chart-3, #FC6F13)' },
+      { value: 12, color: 'var(--chart-4, #FFB872)' }
+    ];
+    var offset = 0;
+    var arcs = '';
+    var circStr = circumference.toFixed(2);
+    var startDash = '0 ' + circStr;
+    for (var i = 0; i < segs.length; i++) {
+      var len = (segs[i].value / 100) * circumference;
+      var endDash = len.toFixed(2) + ' ' + (circumference - len).toFixed(2);
+      var segOffset = ((offset / 100) * circumference).toFixed(2);
+      offset += segs[i].value;
+      /* Inline CSS vars feed the @keyframes wpc-demo-pie-grow rule so each segment
+         animates from "0 circumference" to its own final dasharray on render. */
+      var segStyle = '--wpc-pie-start: ' + startDash + '; --wpc-pie-end: ' + endDash + ';';
+      arcs += '<circle class="wpc-demo__segment" cx="' + radius + '" cy="' + radius + '" r="' + innerRadius.toFixed(2) + '" fill="none" stroke="' + segs[i].color + '" stroke-width="' + strokeWidth + '" stroke-dashoffset="-' + segOffset + '" transform="rotate(-90 ' + radius + ' ' + radius + ')" style="' + segStyle + '"></circle>';
+    }
+    var center = withCenterText
+      ? '<span class="wpc-demo__center">' + (centerLabel || '42%') + '</span>'
+      : '';
+    return '<span class="wpc-demo__pie" style="width:' + size + 'px; height:' + size + 'px;">' +
+      '<svg viewBox="0 0 ' + size + ' ' + size + '" width="' + size + '" height="' + size + '">' +
+        '<circle cx="' + radius + '" cy="' + radius + '" r="' + innerRadius.toFixed(2) + '" fill="none" stroke="var(--chart-rest, #E4E6EB)" stroke-width="' + strokeWidth + '"></circle>' +
+        arcs +
+      '</svg>' +
+      center +
+    '</span>';
+  }
+
+  return '' +
+  '<style>' +
+    /* PieChart wrapper — hover scale(1.05) on the chart. Mirror of .widget__pie in components.css. */
+    '.wpc-demo__pie {' +
+      'position: relative; display: inline-flex; align-items: center; justify-content: center;' +
+      'flex-shrink: 0;' +
+      'transition: transform var(--transition-base, 200ms ease);' +
+    '}' +
+    '.wpc-demo__pie:hover { transform: scale(1.05); }' +
+    '.wpc-demo__center {' +
+      'position: absolute; inset: 0; display: inline-flex;' +
+      'align-items: center; justify-content: center;' +
+      'font-family: var(--font-primary, \'Inter\', sans-serif);' +
+      'font-size: 14px; line-height: 20px; font-weight: 500;' +
+      'color: var(--text-secondary-soft, #4C5463);' +
+      'font-variant-numeric: tabular-nums;' +
+    '}' +
+    /* Page-load grow-in: each segment animates stroke-dasharray from "0 circumference"
+       to its final length over 800ms ease-out. Auto-fires once per render. */
+    '@keyframes wpc-demo-pie-grow {' +
+      'from { stroke-dasharray: var(--wpc-pie-start); }' +
+      'to { stroke-dasharray: var(--wpc-pie-end); }' +
+    '}' +
+    '.wpc-demo__segment {' +
+      'stroke-dasharray: var(--wpc-pie-end);' +
+      'animation: wpc-demo-pie-grow 800ms ease-out;' +
+    '}' +
+  '</style>' +
+  '<div class="comp-section">' +
+    '<div class="comp-section-title">WidgetPieChart <span class="comp-normalized-label">NORMALIZED</span></div>' +
+    '<div class="comp-section-subtitle">packages/ui/src/WidgetPieChart.jsx</div>' +
+
+    /* Sub-section: Sizes + Center text */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Sizes &mdash; md (72) &amp; lg (96), with / without center text</div>' +
+      '<div class="comp-card-grid">' +
+        '<div class="comp-card">' +
+          donut(72, false) +
+          '<div class="comp-card-code">&lt;WidgetPieChart size="md" segments={...} /&gt;</div>' +
+          '<div class="comp-card-note">md (72px). Stroke width = <code>size * 0.18</code>. Used inside Widget 2x.</div>' +
+        '</div>' +
+        '<div class="comp-card">' +
+          donut(72, true, '42%') +
+          '<div class="comp-card-code">&lt;WidgetPieChart size="md" centerText="42%" /&gt;</div>' +
+          '<div class="comp-card-note">md with center text (Widget 2x percentage). <code>text-label-sm-medium</code> (14 / 20 / 500), color <code>--text-secondary-soft</code>, tabular-nums.</div>' +
+        '</div>' +
+        '<div class="comp-card">' +
+          donut(96, false) +
+          '<div class="comp-card-code">&lt;WidgetPieChart size="lg" segments={...} /&gt;</div>' +
+          '<div class="comp-card-note">lg (96px). Used inside Widget 3xChart.</div>' +
+        '</div>' +
+        '<div class="comp-card">' +
+          donut(96, true, '42%') +
+          '<div class="comp-card-code">&lt;WidgetPieChart size="lg" centerText="42%" /&gt;</div>' +
+          '<div class="comp-card-note">lg with center text &mdash; mirrors the Figma <code>Show center text</code> BOOLEAN + <code>Center text</code> TEXT properties.</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    /* Sub-section: Animations + states */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Animations <span style="font-weight:400; font-size:13px; color:#6B7280;">&mdash; reload this tab to see grow-in; hover any chart for scale</span></div>' +
+      '<div class="comp-card-note" style="font-size:12.5px; color:#384253; line-height:1.55; background:#F7F8FA; border-left:3px solid #296DE7; padding:10px 14px; border-radius:4px;">' +
+        '<strong>Grow-in on mount.</strong> Each segment&rsquo;s <code>stroke-dasharray</code> animates from <code>0 circumference</code> to its final length over <strong>800ms ease-out</strong>. In React the source toggles a <code>useState</code> via <code>requestAnimationFrame</code> after mount; here it&rsquo;s a CSS <code>@keyframes</code> rule (<code>wpc-demo-pie-grow</code>) that auto-fires per render. ' +
+        '<strong>Hover scale.</strong> Chart wrapper transforms <code>scale(1.05)</code> on hover with <code>transition: transform var(--transition-base)</code> (200ms ease).' +
+      '</div>' +
+    '</div>' +
+
+    /* Sub-section: Chart-token segments */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Segments &mdash; bound to Chart/* tokens</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
+        'Segments take an array of <code>{ value, color }</code>. <code>color</code> is a Chart/* CSS variable: <code>--chart-1</code> (Carolina Blue 600 #296DE7), <code>--chart-2</code> (CB/100 #C0DEFD), <code>--chart-3</code> (Bittersweet 600 #FC6F13), <code>--chart-4</code> (Sunrise Yellow 400 #FFB872). The remaining ring uses <code>--chart-rest</code> (DSN/200 #E4E6EB). Segments above sum to 100 (42 / 28 / 18 / 12) for visual demo; in practice they sum to whatever total the consumer passes.' +
+      '</div>' +
+    '</div>' +
+
+    /* Sub-section: Props & Tokens — modal */
+    '<div class="comp-subsection">' +
+      '<button class="comp-details-button" onclick="showCompDetails(\'WidgetPieChart\')">Show props &amp; tokens</button>' +
+    '</div>' +
+
+    /* Sub-section: Figma reference */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Figma Reference</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
+        'Component set <code style="' + codeChip + '">1881:77</code> in Design System &mdash; MCP. Variant axis <code style="' + codeChip + '">Size</code> = <code>md</code> | <code>lg</code> (matches the JS sizes 72 / 96). Non-variant properties: <code style="' + codeChip + '">Show center text</code> BOOLEAN, <code style="' + codeChip + '">Center text</code> TEXT. Segment fills bind to Chart/* variables.' +
+      '</div>' +
+    '</div>' +
+
+    /* Sub-section: Code Connect */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Code Connect</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
+        'Mapped via <code style="' + codeChip + '">packages/ui/src/WidgetPieChart.figma.tsx</code>. <code>Size</code> variant &rarr; <code>size</code> prop (<code>"md"</code> | <code>"lg"</code>); <code>Show center text</code> BOOLEAN gates the <code>centerText</code> prop string from <code>Center text</code> TEXT.' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+/* ── Widget (molecule, 4 variants) component reference HTML ── */
+function getWidgetComponentHTML() {
+  var codeChip = 'font-family:\'SF Mono\',\'Fira Code\',monospace; font-size:11px; background:#F3F4F6; padding:1px 5px; border-radius:3px; color:#6B7280;';
+
+  /* Inline lucide SVGs at requested sizes, color via currentColor */
+  var arrowRight16 = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>';
+  var chevronRight20 = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>';
+  var x20 = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>';
+  var gripVertical20 = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/></svg>';
+  /* Lucide truck icon for domain icon on 3x / 3xChart variants */
+  var truck20 = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/></svg>';
+
+  /* Donut helper — same shape as in WidgetPieChart demo, but with its own animation class
+     name so the Widget section's pie reload is independent of the standalone PieChart section. */
+  function donut(size, withCenterText, centerLabel) {
+    var radius = size / 2;
+    var strokeWidth = size * 0.18;
+    var innerRadius = radius - strokeWidth / 2;
+    var circumference = 2 * Math.PI * innerRadius;
+    var segs = [
+      { value: 42, color: 'var(--chart-1, #296DE7)' },
+      { value: 28, color: 'var(--chart-2, #C0DEFD)' },
+      { value: 18, color: 'var(--chart-3, #FC6F13)' },
+      { value: 12, color: 'var(--chart-4, #FFB872)' }
+    ];
+    var offset = 0;
+    var arcs = '';
+    var circStr = circumference.toFixed(2);
+    var startDash = '0 ' + circStr;
+    for (var i = 0; i < segs.length; i++) {
+      var len = (segs[i].value / 100) * circumference;
+      var endDash = len.toFixed(2) + ' ' + (circumference - len).toFixed(2);
+      var segOffset = ((offset / 100) * circumference).toFixed(2);
+      offset += segs[i].value;
+      var segStyle = '--wgt-pie-start: ' + startDash + '; --wgt-pie-end: ' + endDash + ';';
+      arcs += '<circle class="wgt-demo__pie-segment" cx="' + radius + '" cy="' + radius + '" r="' + innerRadius.toFixed(2) + '" fill="none" stroke="' + segs[i].color + '" stroke-width="' + strokeWidth + '" stroke-dashoffset="-' + segOffset + '" transform="rotate(-90 ' + radius + ' ' + radius + ')" style="' + segStyle + '"></circle>';
+    }
+    var center = withCenterText
+      ? '<span class="wgt-demo__pie-center">' + (centerLabel || '42%') + '</span>'
+      : '';
+    return '<span class="wgt-demo__pie" style="width:' + size + 'px; height:' + size + 'px;">' +
+      '<svg viewBox="0 0 ' + size + ' ' + size + '" width="' + size + '" height="' + size + '">' +
+        '<circle cx="' + radius + '" cy="' + radius + '" r="' + innerRadius.toFixed(2) + '" fill="none" stroke="var(--chart-rest, #E4E6EB)" stroke-width="' + strokeWidth + '"></circle>' +
+        arcs +
+      '</svg>' +
+      center +
+    '</span>';
+  }
+
+  /* Embedded metric row — uses the shared .badge-metric class so the parent
+     .wgt-demo__1x-button override behaviors line up. */
+  function mrow(opts) {
+    opts = opts || {};
+    var indicator = opts.indicator
+      ? '<span class="wgt-demo__mrow-indicator" style="background: ' + (opts.indicatorColor || 'var(--chart-1, #296DE7)') + ';"></span>'
+      : '';
+    return '<button type="button" class="wgt-demo__mrow">' +
+      '<span class="wgt-demo__mrow-label-group">' + indicator +
+        '<span class="wgt-demo__mrow-label">' + opts.label + '</span>' +
+      '</span>' +
+      '<span class="wgt-demo__mrow-trailing">' +
+        '<span class="wgt-demo__mrow-badge badge-metric">' + opts.value + '</span>' +
+        '<span class="wgt-demo__mrow-chevron">' + chevronRight20 + '</span>' +
+      '</span>' +
+    '</button>';
+  }
+
+  /* Variant 1x widget */
+  var widget1x =
+    '<div class="wgt-demo wgt-demo--1x">' +
+      '<header class="wgt-demo__header">' +
+        '<div class="wgt-demo__header-title">' +
+          '<span class="wgt-demo__grip" aria-hidden="true">' + gripVertical20 + '</span>' +
+          '<span class="wgt-demo__title wgt-demo__title--1x">Exceptions</span>' +
+        '</div>' +
+        '<button type="button" class="wgt-demo__close" aria-label="Remove widget">' + x20 + '</button>' +
+      '</header>' +
+      '<button type="button" class="wgt-demo__1x-button">' +
+        '<span class="wgt-demo__1x-value-row">' +
+          '<span class="wgt-demo__1x-value">83</span>' +
+          '<span class="wgt-demo__1x-inline-arrow">' + arrowRight16 + '</span>' +
+        '</span>' +
+        '<span class="wgt-demo__1x-label">Open exceptions</span>' +
+      '</button>' +
+    '</div>';
+
+  /* Variant 2x widget */
+  var widget2x =
+    '<div class="wgt-demo wgt-demo--2x">' +
+      '<header class="wgt-demo__header">' +
+        '<div class="wgt-demo__header-title">' +
+          '<span class="wgt-demo__grip" aria-hidden="true">' + gripVertical20 + '</span>' +
+          '<span class="wgt-demo__domain-icon">' + truck20 + '</span>' +
+          '<span class="wgt-demo__title wgt-demo__title--2x">On-time delivery</span>' +
+        '</div>' +
+        '<button type="button" class="wgt-demo__close" aria-label="Remove widget">' + x20 + '</button>' +
+      '</header>' +
+      '<div class="wgt-demo__content--2x">' +
+        '<div class="wgt-demo__data-container">' +
+          '<span class="wgt-demo__2x-value">94</span>' +
+          '<span class="wgt-demo__2x-label">on-time</span>' +
+        '</div>' +
+        donut(72, true, '94%') +
+      '</div>' +
+      '<button type="button" class="wgt-demo__link">Go to Tracking <span class="wgt-demo__link-arrow">' + arrowRight16 + '</span></button>' +
+    '</div>';
+
+  /* Variant 3x widget */
+  var widget3x =
+    '<div class="wgt-demo wgt-demo--3x">' +
+      '<header class="wgt-demo__header">' +
+        '<div class="wgt-demo__header-title">' +
+          '<span class="wgt-demo__grip" aria-hidden="true">' + gripVertical20 + '</span>' +
+          '<span class="wgt-demo__domain-icon-container">' + truck20 + '</span>' +
+          '<span class="wgt-demo__title wgt-demo__title--3x">Shipments</span>' +
+        '</div>' +
+        '<button type="button" class="wgt-demo__close" aria-label="Remove widget">' + x20 + '</button>' +
+      '</header>' +
+      '<div class="wgt-demo__content--3x">' +
+        mrow({ indicator: false, label: 'Delivered',   value: '142' }) +
+        mrow({ indicator: false, label: 'In Transit',  value: '38'  }) +
+        mrow({ indicator: false, label: 'Late',        value: '12'  }) +
+        mrow({ indicator: false, label: 'Cancelled',   value: '3'   }) +
+      '</div>' +
+      '<button type="button" class="wgt-demo__link">Go to Shipments <span class="wgt-demo__link-arrow">' + arrowRight16 + '</span></button>' +
+    '</div>';
+
+  /* Variant 3xChart widget */
+  var widget3xChart =
+    '<div class="wgt-demo wgt-demo--3xChart">' +
+      '<header class="wgt-demo__header">' +
+        '<div class="wgt-demo__header-title">' +
+          '<span class="wgt-demo__grip" aria-hidden="true">' + gripVertical20 + '</span>' +
+          '<span class="wgt-demo__domain-icon-container">' + truck20 + '</span>' +
+          '<span class="wgt-demo__title wgt-demo__title--3x">Shipment mix</span>' +
+        '</div>' +
+        '<button type="button" class="wgt-demo__close" aria-label="Remove widget">' + x20 + '</button>' +
+      '</header>' +
+      '<div class="wgt-demo__content--3xChart">' +
+        '<div class="wgt-demo__chart-section">' +
+          '<div class="wgt-demo__info-container">' +
+            '<span class="wgt-demo__3xChart-value">100</span>' +
+            '<span class="wgt-demo__3xChart-label">total this week</span>' +
+          '</div>' +
+          donut(96, false) +
+        '</div>' +
+        '<div class="wgt-demo__data-section">' +
+          mrow({ indicator: true, indicatorColor: 'var(--chart-1, #296DE7)', label: 'Delivered',  value: '42' }) +
+          mrow({ indicator: true, indicatorColor: 'var(--chart-2, #C0DEFD)', label: 'In Transit', value: '28' }) +
+          mrow({ indicator: true, indicatorColor: 'var(--chart-3, #FC6F13)', label: 'Late',       value: '18' }) +
+          mrow({ indicator: true, indicatorColor: 'var(--chart-4, #FFB872)', label: 'Cancelled',  value: '12' }) +
+        '</div>' +
+      '</div>' +
+      '<button type="button" class="wgt-demo__link">Go to Shipments <span class="wgt-demo__link-arrow">' + arrowRight16 + '</span></button>' +
+    '</div>';
+
+  return '' +
+  '<style>' +
+    /* Widget shell — mirror of .widget in components.css */
+    '.wgt-demo {' +
+      'display: flex; flex-direction: column; gap: var(--spacing-3, 12px);' +
+      'padding: var(--spacing-6, 24px);' +
+      'background: var(--white, #FFFFFF);' +
+      'border: 1px solid var(--border-default, #E4E6EB);' +
+      'border-radius: var(--radius-xl, 12px);' +
+      'box-shadow: var(--shadow-sm, 0 1px 2px rgba(15,23,42,0.04));' +
+      'box-sizing: border-box;' +
+      'font-family: var(--font-primary, \'Inter\', sans-serif);' +
+    '}' +
+    '.wgt-demo--1x { width: 170px; }' +
+    '.wgt-demo--2x { width: 360px; }' +
+    '.wgt-demo--3x, .wgt-demo--3xChart { width: 360px; gap: var(--spacing-6, 24px); }' +
+    /* Header */
+    '.wgt-demo__header {' +
+      'display: flex; align-items: center; justify-content: space-between;' +
+      'gap: var(--spacing-3, 12px);' +
+    '}' +
+    '.wgt-demo__header-title {' +
+      'display: inline-flex; align-items: center; gap: var(--spacing-3, 12px);' +
+      'min-width: 0;' +
+    '}' +
+    /* Grip — reversed ladder (idle DSN/500 → hover DSN/900 → press DSN/400, cursor grab → grabbing). */
+    '.wgt-demo__grip {' +
+      'color: var(--text-tertiary, #6B7280); flex-shrink: 0;' +
+      'cursor: grab; display: inline-flex;' +
+      'transition: color var(--transition-fast, 150ms ease);' +
+    '}' +
+    '.wgt-demo__grip:hover { color: var(--text-primary, #1B2537); }' +
+    '.wgt-demo__grip:active { color: var(--text-placeholder, #9CA3AF); cursor: grabbing; }' +
+    /* Close X — same reversed ladder as Grip. */
+    '.wgt-demo__close {' +
+      'background: transparent; border: none; padding: 0;' +
+      'color: var(--text-tertiary, #6B7280); cursor: pointer;' +
+      'display: inline-flex; flex-shrink: 0;' +
+      'transition: color var(--transition-fast, 150ms ease);' +
+    '}' +
+    '.wgt-demo__close:hover { color: var(--text-primary, #1B2537); }' +
+    '.wgt-demo__close:active { color: var(--text-placeholder, #9CA3AF); }' +
+    /* Title — typography ladder per variant */
+    '.wgt-demo__title {' +
+      'color: var(--text-primary, #1B2537);' +
+      'overflow: hidden; text-overflow: ellipsis; white-space: nowrap;' +
+    '}' +
+    '.wgt-demo__title--1x { font-size: 12px; line-height: 16px; font-weight: 500; }' +
+    '.wgt-demo__title--2x { font-size: 14px; line-height: 20px; font-weight: 500; }' +
+    '.wgt-demo__title--3x { font-size: 18px; line-height: 24px; font-weight: 500; }' +
+    /* 2x inline domain icon (no container) */
+    '.wgt-demo__domain-icon { color: var(--text-link, #276DA2); flex-shrink: 0; display: inline-flex; }' +
+    /* 3x / 3xChart domain icon container */
+    '.wgt-demo__domain-icon-container {' +
+      'display: inline-flex; align-items: center; justify-content: center;' +
+      'width: 40px; height: 40px; padding: 10px;' +
+      'border-radius: var(--radius-xl, 12px);' +
+      'background: var(--carolina-blue-50, #ECF8FF);' +
+      'color: var(--text-link, #276DA2);' +
+      'flex-shrink: 0;' +
+    '}' +
+    /* 1x clickable content — label + arrow ladder (DSN/600 → DSN/700 → DSN/900) + arrow translate(4px) → 0 on press */
+    '.wgt-demo__1x-button {' +
+      'display: flex; flex-direction: column; gap: var(--spacing-3, 12px);' +
+      'background: transparent; border: none; padding: 0;' +
+      'cursor: pointer; text-align: left; width: 100%;' +
+    '}' +
+    '.wgt-demo__1x-value-row { display: inline-flex; align-items: center; gap: 3px; }' +
+    '.wgt-demo__1x-value {' +
+      'font-size: 36px; line-height: 40px; font-weight: 600;' +
+      'color: var(--text-primary, #1B2537);' +
+    '}' +
+    '.wgt-demo__1x-inline-arrow {' +
+      'color: var(--text-link, #276DA2); flex-shrink: 0; display: inline-flex;' +
+      'transition: color var(--transition-fast, 150ms ease), transform var(--transition-fast, 150ms ease);' +
+    '}' +
+    '.wgt-demo__1x-label {' +
+      'font-size: 14px; line-height: 20px; font-weight: 400;' +
+      'color: var(--text-secondary-soft, #4C5463);' +
+      'transition: color var(--transition-fast, 150ms ease);' +
+    '}' +
+    '.wgt-demo__1x-button:hover .wgt-demo__1x-inline-arrow {' +
+      'color: var(--text-secondary, #384253); transform: translateX(4px);' +
+    '}' +
+    '.wgt-demo__1x-button:hover .wgt-demo__1x-label { color: var(--text-secondary, #384253); }' +
+    '.wgt-demo__1x-button:active .wgt-demo__1x-inline-arrow {' +
+      'color: var(--text-primary, #1B2537); transform: translateX(0);' +
+    '}' +
+    '.wgt-demo__1x-button:active .wgt-demo__1x-label { color: var(--text-primary, #1B2537); }' +
+    /* 2x content */
+    '.wgt-demo__content--2x {' +
+      'display: flex; flex-direction: row; align-items: center; justify-content: space-between;' +
+      'gap: var(--spacing-3, 12px);' +
+    '}' +
+    '.wgt-demo__data-container {' +
+      'display: inline-flex; align-items: baseline; gap: var(--spacing-1, 4px);' +
+    '}' +
+    '.wgt-demo__2x-value {' +
+      'font-size: 36px; line-height: 40px; font-weight: 600;' +
+      'color: var(--text-primary, #1B2537);' +
+    '}' +
+    '.wgt-demo__2x-label {' +
+      'font-size: 14px; line-height: 20px; font-weight: 500;' +
+      'color: var(--text-secondary-soft, #4C5463);' +
+    '}' +
+    /* 3x / 3xChart content */
+    '.wgt-demo__content--3x, .wgt-demo__content--3xChart {' +
+      'display: flex; flex-direction: column; gap: var(--spacing-2, 8px);' +
+    '}' +
+    '.wgt-demo__chart-section {' +
+      'display: flex; flex-direction: row; align-items: center; gap: 28px;' +
+    '}' +
+    '.wgt-demo__info-container { display: flex; flex-direction: column; }' +
+    '.wgt-demo__3xChart-value {' +
+      'font-size: 48px; line-height: 52px; font-weight: 600;' +
+      'color: var(--text-primary, #1B2537);' +
+    '}' +
+    '.wgt-demo__3xChart-label {' +
+      'font-size: 14px; line-height: 20px; font-weight: 500;' +
+      'color: var(--text-secondary-soft, #4C5463);' +
+    '}' +
+    '.wgt-demo__data-section {' +
+      'display: flex; flex-direction: column; gap: var(--spacing-2, 8px);' +
+      'margin-top: var(--spacing-6, 24px);' +
+    '}' +
+    /* WidgetMetricRow inside Widget — interactive row with full ladder */
+    '.wgt-demo__mrow {' +
+      'display: flex; align-items: center; justify-content: space-between;' +
+      'width: 100%; gap: var(--spacing-3, 12px);' +
+      'font-family: var(--font-primary, \'Inter\', sans-serif);' +
+      'background: transparent; border: none; padding: 0;' +
+      'color: var(--text-secondary-soft, #4C5463);' +
+      'cursor: pointer; text-align: left;' +
+      'transition: color var(--transition-fast, 150ms ease);' +
+    '}' +
+    '.wgt-demo__mrow-label-group { display: inline-flex; align-items: center; gap: var(--spacing-2, 8px); }' +
+    '.wgt-demo__mrow-indicator {' +
+      'display: inline-block; width: 8px; height: 8px;' +
+      'border-radius: var(--radius-full, 9999px); flex-shrink: 0;' +
+      'transition: transform var(--transition-fast, 150ms ease);' +
+    '}' +
+    '.wgt-demo__mrow-label { font-size: 14px; line-height: 20px; font-weight: 400; color: inherit; }' +
+    '.wgt-demo__mrow-trailing { display: inline-flex; align-items: center; gap: var(--spacing-3, 12px); }' +
+    '.wgt-demo__mrow-chevron {' +
+      'color: var(--text-tertiary, #6B7280); flex-shrink: 0; display: inline-flex;' +
+      'transition: color var(--transition-fast, 150ms ease);' +
+    '}' +
+    '.wgt-demo__mrow-badge {' +
+      'display: inline-flex; align-items: center; justify-content: center;' +
+      'padding: 1px var(--spacing-2, 8px); border-radius: var(--radius-lg, 8px);' +
+      'color: var(--text-primary, #1B2537);' +
+      'font-size: 12px; line-height: 16px; font-weight: 600;' +
+      'font-variant-numeric: tabular-nums; white-space: nowrap;' +
+    '}' +
+    '.wgt-demo__mrow:hover { color: var(--text-primary, #1B2537); }' +
+    '.wgt-demo__mrow:hover .wgt-demo__mrow-chevron { color: var(--text-primary, #1B2537); }' +
+    '.wgt-demo__mrow:hover .wgt-demo__mrow-indicator { transform: scale(1.25); }' +
+    '.wgt-demo__mrow:hover .badge-metric { background: var(--deep-sea-neutral-200, #E4E6EB); }' +
+    '.wgt-demo__mrow:active { color: var(--text-placeholder, #9CA3AF); }' +
+    '.wgt-demo__mrow:active .wgt-demo__mrow-chevron { color: var(--text-placeholder, #9CA3AF); }' +
+    '.wgt-demo__mrow:active .wgt-demo__mrow-indicator { transform: scale(1); }' +
+    '.wgt-demo__mrow:active .badge-metric { background: var(--badge-gray-bg, #F2F3F5); }' +
+    /* PieChart inside Widget */
+    '.wgt-demo__pie {' +
+      'position: relative; display: inline-flex; align-items: center; justify-content: center;' +
+      'flex-shrink: 0;' +
+      'transition: transform var(--transition-base, 200ms ease);' +
+    '}' +
+    '.wgt-demo__pie:hover { transform: scale(1.05); }' +
+    '.wgt-demo__pie-center {' +
+      'position: absolute; inset: 0; display: inline-flex;' +
+      'align-items: center; justify-content: center;' +
+      'font-size: 14px; line-height: 20px; font-weight: 500;' +
+      'color: var(--text-secondary-soft, #4C5463);' +
+      'font-variant-numeric: tabular-nums;' +
+    '}' +
+    '@keyframes wgt-demo-pie-grow {' +
+      'from { stroke-dasharray: var(--wgt-pie-start); }' +
+      'to { stroke-dasharray: var(--wgt-pie-end); }' +
+    '}' +
+    '.wgt-demo__pie-segment {' +
+      'stroke-dasharray: var(--wgt-pie-end);' +
+      'animation: wgt-demo-pie-grow 800ms ease-out;' +
+    '}' +
+    /* Footer link (Button variant="link") — text-only ladder, arrow translate stays on press */
+    '.wgt-demo__link {' +
+      'display: inline-flex; align-items: center; gap: var(--spacing-2, 8px);' +
+      'background: transparent; border: 1px solid transparent; box-shadow: none;' +
+      'color: var(--text-link, #276DA2);' +
+      'padding: 6px 14px; border-radius: var(--radius-lg, 8px);' +
+      'font-size: 14px; line-height: 20px; font-weight: 500;' +
+      'align-self: flex-start; cursor: pointer;' +
+      'transition: color var(--transition-fast, 150ms ease);' +
+    '}' +
+    '.wgt-demo__link:hover { color: var(--carolina-blue-400, #5BA4D4); }' +
+    '.wgt-demo__link:active { color: var(--text-primary, #1B2537); }' +
+    '.wgt-demo__link-arrow {' +
+      'display: inline-flex; transition: transform var(--transition-fast, 150ms ease);' +
+    '}' +
+    '.wgt-demo__link:hover .wgt-demo__link-arrow { transform: translateX(4px); }' +
+    /* Live-state hint strip on demo cards */
+    '.wgt-demo-card-hint {' +
+      'font-size: 11px; color: #6B7280; font-style: italic; line-height: 1.4;' +
+    '}' +
+    '.wgt-demo-card-hint strong { color: #384253; font-style: normal; font-weight: 600; }' +
+    /* Forced-state demo helpers for the interactive surface micro-states */
+    '.wgt-demo__close--force-hover { color: var(--text-primary, #1B2537); }' +
+    '.wgt-demo__close--force-pressed { color: var(--text-placeholder, #9CA3AF); }' +
+    '.wgt-demo__grip--force-hover { color: var(--text-primary, #1B2537); }' +
+    '.wgt-demo__grip--force-pressed { color: var(--text-placeholder, #9CA3AF); }' +
+    '.wgt-demo__1x-button--force-hover .wgt-demo__1x-inline-arrow {' +
+      'color: var(--text-secondary, #384253); transform: translateX(4px);' +
+    '}' +
+    '.wgt-demo__1x-button--force-hover .wgt-demo__1x-label { color: var(--text-secondary, #384253); }' +
+    '.wgt-demo__1x-button--force-pressed .wgt-demo__1x-inline-arrow {' +
+      'color: var(--text-primary, #1B2537); transform: translateX(0);' +
+    '}' +
+    '.wgt-demo__1x-button--force-pressed .wgt-demo__1x-label { color: var(--text-primary, #1B2537); }' +
+  '</style>' +
+  '<div class="comp-section">' +
+    '<div class="comp-section-title">Widget <span class="comp-normalized-label">NORMALIZED</span></div>' +
+    '<div class="comp-section-subtitle">packages/ui/src/Widget.jsx</div>' +
+
+    /* Sub-section: Anatomy */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Anatomy</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6; margin-bottom:14px;">' +
+        '<strong>Single component, 4 variants.</strong> Resizing in the UI is a <code>variant</code> prop change, not a component swap &mdash; Figma mirrors this as one component set with <code>Variant = 1x | 2x | 3x | 3xChart</code>. Shell (header + optional footer link) is shared; content layout swaps per variant. ' +
+        '<strong>1x</strong> renders a button-like content surface that drills into the source domain. ' +
+        '<strong>2x</strong> pairs a primary metric with a small (72px) donut. ' +
+        '<strong>3x</strong> shows 4&ndash;6 metric rows in a vertical list. ' +
+        '<strong>3xChart</strong> combines a large (96px) donut with a multi-row legend.' +
+      '</div>' +
+    '</div>' +
+
+    /* Sub-section: All 4 variants */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Variants</div>' +
+      '<div class="comp-card-grid">' +
+        '<div class="comp-card" style="min-width:200px;">' +
+          widget1x +
+          '<div class="comp-card-code">&lt;Widget variant="1x" title="Exceptions" value="83" label="Open exceptions" onGoToClick={...} /&gt;</div>' +
+          '<div class="comp-card-note"><strong>1x</strong> (170w). Compact metric &ldquo;jump card&rdquo; &mdash; the entire content surface is a button that navigates to the source. Header uses <code>text-label-xs-medium</code>; value is <code>text-display-3xl-semibold</code>; inline arrow is 16px <code>--text-link</code>. Hover/pressed states on the content button are live &mdash; see the States subsection.</div>' +
+        '</div>' +
+        '<div class="comp-card" style="min-width:380px;">' +
+          widget2x +
+          '<div class="comp-card-code">&lt;Widget variant="2x" title="On-time delivery" value="94" percentage="94%" chartSegments={...} goToLabel="Go to Tracking" /&gt;</div>' +
+          '<div class="comp-card-note"><strong>2x</strong> (360w). Primary metric + 72px donut + center percentage. Header uses <code>text-label-sm-medium</code>; footer Go-to is a <code>Button variant="link"</code> instance (text-only, lightens on hover, darkens on press, arrow stays at +4 through press).</div>' +
+        '</div>' +
+        '<div class="comp-card" style="min-width:380px;">' +
+          widget3x +
+          '<div class="comp-card-code">&lt;Widget variant="3x" title="Shipments" rows={[...]} goToLabel="Go to Shipments" /&gt;</div>' +
+          '<div class="comp-card-note"><strong>3x</strong> (360w). 4&ndash;6 metric rows. Header uses <code>text-heading-lg-medium</code> + 40&times;40 domain-icon container with <code>--carolina-blue-50</code> bg + <code>--text-link</code> icon. Each row is a <code>WidgetMetricRow</code> (no indicator) with full hover/pressed ladder &mdash; hover any row to see the badge bg + chevron + label all darken in concert.</div>' +
+        '</div>' +
+        '<div class="comp-card" style="min-width:380px;">' +
+          widget3xChart +
+          '<div class="comp-card-code">&lt;Widget variant="3xChart" title="Shipment mix" value="100" label="total this week" chartSegments={...} rows={[...]} /&gt;</div>' +
+          '<div class="comp-card-note"><strong>3xChart</strong> (360w). Largest variant &mdash; 96px donut + 4&times;<code>WidgetMetricRow</code> legend with chart-token indicators. Row indicators bind to <code>--chart-1..4</code>; donut segments use the same tokens, so the donut + legend stay in sync. <code>--chart-rest</code> fills the unallocated ring.</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    /* Sub-section: Interactive surface states (live + forced) */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Interactive surface states <span style="font-weight:400; font-size:13px; color:#6B7280;">&mdash; hover and hold mousedown to see the ladders</span></div>' +
+
+      /* 1x content button */
+      '<div class="comp-subsection-title" style="font-size:13px; font-weight:600; margin-top:14px; border:none; padding:0;">1x content button</div>' +
+      '<div class="comp-card-grid">' +
+        '<div class="comp-card">' +
+          '<button type="button" class="wgt-demo__1x-button">' +
+            '<span class="wgt-demo__1x-value-row">' +
+              '<span class="wgt-demo__1x-value" style="font-size:28px; line-height:32px;">83</span>' +
+              '<span class="wgt-demo__1x-inline-arrow">' + arrowRight16 + '</span>' +
+            '</span>' +
+            '<span class="wgt-demo__1x-label">Open exceptions</span>' +
+          '</button>' +
+          '<div class="wgt-demo-card-hint"><strong>Live</strong> &mdash; hover, then hold mousedown</div>' +
+          '<div class="comp-card-note"><strong>Idle</strong> &mdash; label <code>--text-secondary-soft</code> (DSN/600); arrow <code>--text-link</code> (CB/600).</div>' +
+        '</div>' +
+        '<div class="comp-card">' +
+          '<button type="button" class="wgt-demo__1x-button wgt-demo__1x-button--force-hover">' +
+            '<span class="wgt-demo__1x-value-row">' +
+              '<span class="wgt-demo__1x-value" style="font-size:28px; line-height:32px;">83</span>' +
+              '<span class="wgt-demo__1x-inline-arrow">' + arrowRight16 + '</span>' +
+            '</span>' +
+            '<span class="wgt-demo__1x-label">Open exceptions</span>' +
+          '</button>' +
+          '<div class="comp-card-code">Hover (forced)</div>' +
+          '<div class="comp-card-note">Label &amp; arrow <code>--text-secondary</code> (DSN/700); arrow <code>translateX(4px)</code>.</div>' +
+        '</div>' +
+        '<div class="comp-card">' +
+          '<button type="button" class="wgt-demo__1x-button wgt-demo__1x-button--force-pressed">' +
+            '<span class="wgt-demo__1x-value-row">' +
+              '<span class="wgt-demo__1x-value" style="font-size:28px; line-height:32px;">83</span>' +
+              '<span class="wgt-demo__1x-inline-arrow">' + arrowRight16 + '</span>' +
+            '</span>' +
+            '<span class="wgt-demo__1x-label">Open exceptions</span>' +
+          '</button>' +
+          '<div class="comp-card-code">Pressed (forced)</div>' +
+          '<div class="comp-card-note">Both <code>--text-primary</code> (DSN/900); arrow snaps back to <code>translateX(0)</code> (the return-on-press signature).</div>' +
+        '</div>' +
+      '</div>' +
+
+      /* Close X */
+      '<div class="comp-subsection-title" style="font-size:13px; font-weight:600; margin-top:20px; border:none; padding:0;">Close (X)</div>' +
+      '<div class="comp-card-grid">' +
+        '<div class="comp-card">' +
+          '<button type="button" class="wgt-demo__close" aria-label="Remove widget">' + x20 + '</button>' +
+          '<div class="wgt-demo-card-hint"><strong>Live</strong> &mdash; hover, then hold mousedown</div>' +
+          '<div class="comp-card-note"><strong>Idle</strong> <code>--text-tertiary</code> (DSN/500).</div>' +
+        '</div>' +
+        '<div class="comp-card">' +
+          '<button type="button" class="wgt-demo__close wgt-demo__close--force-hover" aria-label="Remove widget">' + x20 + '</button>' +
+          '<div class="comp-card-code">Hover (forced)</div>' +
+          '<div class="comp-card-note"><code>--text-primary</code> (DSN/900) &mdash; darkens.</div>' +
+        '</div>' +
+        '<div class="comp-card">' +
+          '<button type="button" class="wgt-demo__close wgt-demo__close--force-pressed" aria-label="Remove widget">' + x20 + '</button>' +
+          '<div class="comp-card-code">Pressed (forced)</div>' +
+          '<div class="comp-card-note"><code>--text-placeholder</code> (DSN/400) &mdash; <strong>reversed</strong> ladder; press is lighter than idle (the &ldquo;release&rdquo; feel).</div>' +
+        '</div>' +
+      '</div>' +
+
+      /* Grip */
+      '<div class="comp-subsection-title" style="font-size:13px; font-weight:600; margin-top:20px; border:none; padding:0;">Grip (drag handle)</div>' +
+      '<div class="comp-card-grid">' +
+        '<div class="comp-card">' +
+          '<span class="wgt-demo__grip" role="img" aria-label="Drag handle">' + gripVertical20 + '</span>' +
+          '<div class="wgt-demo-card-hint"><strong>Live</strong> &mdash; hover, then hold mousedown</div>' +
+          '<div class="comp-card-note"><strong>Idle</strong> <code>--text-tertiary</code> &middot; <code>cursor: grab</code>.</div>' +
+        '</div>' +
+        '<div class="comp-card">' +
+          '<span class="wgt-demo__grip wgt-demo__grip--force-hover" role="img" aria-label="Drag handle">' + gripVertical20 + '</span>' +
+          '<div class="comp-card-code">Hover (forced)</div>' +
+          '<div class="comp-card-note"><code>--text-primary</code> &mdash; darkens.</div>' +
+        '</div>' +
+        '<div class="comp-card">' +
+          '<span class="wgt-demo__grip wgt-demo__grip--force-pressed" role="img" aria-label="Drag handle">' + gripVertical20 + '</span>' +
+          '<div class="comp-card-code">Pressed (forced)</div>' +
+          '<div class="comp-card-note"><code>--text-placeholder</code> &middot; <code>cursor: grabbing</code>. Same reversed ladder as Close.</div>' +
+        '</div>' +
+      '</div>' +
+
+      '<div class="comp-card-note" style="margin-top:14px; font-size:12.5px; color:#384253; line-height:1.55; background:#F7F8FA; border-left:3px solid #296DE7; padding:10px 14px; border-radius:4px;">' +
+        '<strong>Two ladders at play.</strong> The 1x content button uses the <em>standard</em> ladder &mdash; darkens on hover, darkens further on press, with an arrow translate that <strong>returns</strong> to <code>0</code> on press (the &ldquo;committed lock-in&rdquo;). Close and Grip use a <em>reversed</em> ladder &mdash; press is lighter than idle (DSN/400), reading as a release/lift rather than a deeper commitment. This is intentional: clicking Close or Grip is a transient mechanical action (release or grab), not a destination commitment.' +
+      '</div>' +
+    '</div>' +
+
+    /* Sub-section: Props & Tokens — modal */
+    '<div class="comp-subsection">' +
+      '<button class="comp-details-button" onclick="showCompDetails(\'Widget\')">Show props &amp; tokens</button>' +
+    '</div>' +
+
+    /* Sub-section: Figma reference */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Figma Reference</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
+        'Component set <code style="' + codeChip + '">1825:7</code> in Design System &mdash; MCP. Variant axis <code style="' + codeChip + '">Variant</code> = <code>1x</code> | <code>2x</code> | <code>3x</code> | <code>3xChart</code>. Non-variant properties: <code style="' + codeChip + '">Title</code> TEXT, <code style="' + codeChip + '">Show grip</code> BOOLEAN, <code style="' + codeChip + '">Domain icon</code> INSTANCE_SWAP, <code style="' + codeChip + '">Show go to</code> BOOLEAN, <code style="' + codeChip + '">Go to label</code> TEXT, plus variant-specific data slots. The 2x and 3xChart variants embed nested <code>WidgetPieChart</code> instances; 3x and 3xChart embed <code>WidgetMetricRow</code> rows.' +
+      '</div>' +
+    '</div>' +
+
+    /* Sub-section: Code Connect */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Code Connect</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
+        'Mapped via <code style="' + codeChip + '">packages/ui/src/Widget.figma.tsx</code>. <code>Variant</code> &rarr; <code>variant</code> string. Nested <code>WidgetMetricRow</code> and <code>WidgetPieChart</code> children use <code>figma.instance(...)</code> so consumer-supplied data flows through without re-mapping.' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
 /* ── Component details modal: props + tokens map ──
    Each entry is two raw HTML strings: `props` (Props Reference table) and
    `tokens` (Token Contract / Tokens / Padding Rules table). */
@@ -3491,10 +4468,11 @@ var compDetails = {
       '<table class="comp-table">' +
         '<thead><tr><th>Prop</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>' +
         '<tbody>' +
-          '<tr><td><code>variant</code></td><td>string</td><td><code>"blue"</code></td><td>Color variant: amber, blue, green, red, purple, gray, <strong>notification</strong> (preset: solid red dot)</td></tr>' +
-          '<tr><td><code>icon</code></td><td>ReactNode</td><td>&mdash;</td><td>Icon element, always rendered on the right</td></tr>' +
-          '<tr><td><code>statusDot</code></td><td>boolean</td><td><code>false</code></td><td>Animated 6x6 status dot on the left</td></tr>' +
-          '<tr><td><code>children</code></td><td>ReactNode</td><td>&mdash;</td><td>Badge text content. For <code>variant="notification"</code>, typically a count number.</td></tr>' +
+          '<tr><td><code>variant</code></td><td>string</td><td><code>"blue"</code></td><td>Color variant: amber, blue, green, red, purple, gray, <strong>notification</strong> (preset: solid red dot), <strong>metric</strong> (preset: inline numeric pill, parent-overridable bg)</td></tr>' +
+          '<tr><td><code>leftIcon</code></td><td>ReactNode</td><td>&mdash;</td><td>Optional leading icon. Suppressed in <code>metric</code> variant.</td></tr>' +
+          '<tr><td><code>rightIcon</code></td><td>ReactNode</td><td>&mdash;</td><td>Optional trailing icon. Suppressed in <code>metric</code> variant.</td></tr>' +
+          '<tr><td><code>statusDot</code></td><td>boolean</td><td><code>false</code></td><td>Animated 6x6 status dot on the left. Suppressed in <code>metric</code> variant.</td></tr>' +
+          '<tr><td><code>children</code></td><td>ReactNode</td><td>&mdash;</td><td>Badge text content. For <code>variant="notification"</code> or <code>variant="metric"</code>, typically a count number.</td></tr>' +
         '</tbody>' +
       '</table>',
     tokens:
@@ -3510,6 +4488,14 @@ var compDetails = {
           '<tr><td>Notification &mdash; text color</td><td><code>--text-inverse</code></td><td>#fff</td></tr>' +
           '<tr><td>Notification &mdash; size</td><td>min 20 &times; 20</td><td>Fixed dot dimensions (designed to overlay icons)</td></tr>' +
           '<tr><td>Notification &mdash; padding</td><td><code>4px</code></td><td>Centers the count number inside the 20&times;20 circle</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Metric variant</td></tr>' +
+          '<tr><td>Metric &mdash; background</td><td><code>--badge-gray-bg</code> (DSN/100)</td><td>#F2F3F5. <strong>Set via the <code>.badge-metric</code> CSS class</strong> (not inline) so parent context can override &mdash; e.g. <code>.widget-metric-row--interactive:hover .badge-metric { background: --deep-sea-neutral-200; }</code>.</td></tr>' +
+          '<tr><td>Metric &mdash; text color</td><td><code>--text-primary</code></td><td>#1B2537</td></tr>' +
+          '<tr><td>Metric &mdash; radius</td><td><code>--radius-lg</code></td><td>8px</td></tr>' +
+          '<tr><td>Metric &mdash; padding</td><td><code>1px var(--spacing-2)</code></td><td>1px 8px</td></tr>' +
+          '<tr><td>Metric &mdash; typography</td><td><code>text-label-xs-semibold</code></td><td>12 / 16 / 600, tabular-nums</td></tr>' +
+          '<tr><td>Metric &mdash; icons / dot</td><td>suppressed</td><td>Iconless pill &mdash; <code>leftIcon</code>, <code>rightIcon</code>, <code>statusDot</code> are all ignored when <code>variant="metric"</code>.</td></tr>' +
+          '<tr><td>Metric &mdash; transition</td><td><code>background var(--transition-fast)</code></td><td>150ms ease &mdash; smooths the parent-driven bg darken inside WidgetMetricRow.</td></tr>' +
         '</tbody>' +
       '</table>'
   },
@@ -3895,8 +4881,583 @@ var compDetails = {
           '<tr><td>Slot radius</td><td><code>--radius-full</code></td><td>9999px</td></tr>' +
         '</tbody>' +
       '</table>'
+  },
+  WidgetMetricRow: {
+    props:
+      '<table class="comp-table">' +
+        '<thead><tr><th>Prop</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>' +
+        '<tbody>' +
+          '<tr><td><code>label</code></td><td>string</td><td>&mdash;</td><td>Row label (left side).</td></tr>' +
+          '<tr><td><code>value</code></td><td>string | number</td><td>&mdash;</td><td>Inline value (rendered inside a <code>Badge variant="metric"</code>).</td></tr>' +
+          '<tr><td><code>showIndicator</code></td><td>boolean</td><td><code>false</code></td><td>Show the 8&times;8 indicator dot to the left of the label.</td></tr>' +
+          '<tr><td><code>indicatorColor</code></td><td>string</td><td><code>"var(--chart-1)"</code></td><td>Indicator color &mdash; pass a Chart/* token to legend a multi-segment <code>WidgetPieChart</code>.</td></tr>' +
+          '<tr><td><code>onClick</code></td><td>() =&gt; void</td><td>&mdash;</td><td>If provided, the row renders as <code>&lt;button&gt;</code> with full hover/pressed states. Otherwise it renders as <code>&lt;div&gt;</code> (non-interactive).</td></tr>' +
+          '<tr><td><code>className</code></td><td>string</td><td><code>""</code></td><td>Appended to the root class list.</td></tr>' +
+        '</tbody>' +
+      '</table>',
+    tokens:
+      '<table class="comp-table">' +
+        '<thead><tr><th>Area / Property</th><th>Token / Value</th><th>Resolved</th></tr></thead>' +
+        '<tbody>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Layout</td></tr>' +
+          '<tr><td>Row gap (between label group and trailing)</td><td><code>--spacing-3</code></td><td>12px</td></tr>' +
+          '<tr><td>Label-group gap (indicator &harr; label)</td><td><code>--spacing-2</code></td><td>8px</td></tr>' +
+          '<tr><td>Trailing gap (Badge &harr; chevron)</td><td><code>--spacing-3</code></td><td>12px</td></tr>' +
+          '<tr><td>Indicator size</td><td>8 &times; 8 (raw)</td><td>&mdash;</td></tr>' +
+          '<tr><td>Indicator radius</td><td><code>--radius-full</code></td><td>9999px</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Typography</td></tr>' +
+          '<tr><td>Label</td><td><code>text-label-sm-regular</code></td><td>14 / 20 / 400</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Color &mdash; row (reversed ladder)</td></tr>' +
+          '<tr><td>Idle &mdash; label / chevron</td><td><code>--text-secondary-soft</code> / <code>--text-tertiary</code></td><td>DSN/600 / DSN/500</td></tr>' +
+          '<tr><td>Hover &mdash; label / chevron</td><td><code>--text-primary</code> / <code>--text-primary</code></td><td>DSN/900 / DSN/900 (both darken)</td></tr>' +
+          '<tr><td>Pressed &mdash; label / chevron</td><td><code>--text-placeholder</code> / <code>--text-placeholder</code></td><td>DSN/400 / DSN/400 (release feel &mdash; lighter than idle)</td></tr>' +
+          '<tr><td>Indicator transform &mdash; hover / pressed</td><td><code>scale(1.25)</code> / <code>scale(1)</code></td><td>Mirrors the Widget 1x arrow return-on-press pattern.</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Inner Badge metric bg (parent-driven)</td></tr>' +
+          '<tr><td>Idle</td><td><code>--badge-gray-bg</code></td><td>DSN/100 #F2F3F5</td></tr>' +
+          '<tr><td>Hover (scoped via <code>.widget-metric-row--interactive:hover .badge-metric</code>)</td><td><code>--deep-sea-neutral-200</code></td><td>DSN/200 #E4E6EB</td></tr>' +
+          '<tr><td>Pressed</td><td><code>--badge-gray-bg</code></td><td>back to DSN/100 (release)</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Transitions</td></tr>' +
+          '<tr><td>Row color / chevron color / indicator transform</td><td><code>--transition-fast</code></td><td>150ms ease</td></tr>' +
+          '<tr><td>Badge bg</td><td><code>--transition-fast</code></td><td>150ms ease (on the Badge itself via <code>.badge-metric</code>)</td></tr>' +
+        '</tbody>' +
+      '</table>'
+  },
+  WidgetPieChart: {
+    props:
+      '<table class="comp-table">' +
+        '<thead><tr><th>Prop</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>' +
+        '<tbody>' +
+          '<tr><td><code>segments</code></td><td><code>Array&lt;{ value, color }&gt;</code></td><td><code>[]</code></td><td>Donut segments. <code>color</code> is a Chart/* CSS variable string (e.g. <code>"var(--chart-1)"</code>).</td></tr>' +
+          '<tr><td><code>centerText</code></td><td>string</td><td>&mdash;</td><td>Optional center text. Maps to the Figma <code>Show center text</code> BOOLEAN + <code>Center text</code> TEXT properties.</td></tr>' +
+          '<tr><td><code>size</code></td><td><code>"md" | "lg" | number</code></td><td><code>"md"</code></td><td>md = 72, lg = 96. A raw number passes through for ad-hoc sizes.</td></tr>' +
+        '</tbody>' +
+      '</table>',
+    tokens:
+      '<table class="comp-table">' +
+        '<thead><tr><th>Area / Property</th><th>Token / Value</th><th>Resolved</th></tr></thead>' +
+        '<tbody>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Geometry</td></tr>' +
+          '<tr><td>md size</td><td>72px (raw)</td><td>&mdash;</td></tr>' +
+          '<tr><td>lg size</td><td>96px (raw)</td><td>&mdash;</td></tr>' +
+          '<tr><td>Stroke width</td><td><code>size * 0.18</code></td><td>md &rarr; 12.96px, lg &rarr; 17.28px</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Color &mdash; segments</td></tr>' +
+          '<tr><td>Segment 1</td><td><code>--chart-1</code></td><td>Carolina Blue 600 #296DE7</td></tr>' +
+          '<tr><td>Segment 2</td><td><code>--chart-2</code></td><td>CB/100 #C0DEFD</td></tr>' +
+          '<tr><td>Segment 3</td><td><code>--chart-3</code></td><td>Bittersweet 600 #FC6F13</td></tr>' +
+          '<tr><td>Segment 4</td><td><code>--chart-4</code></td><td>Sunrise Yellow 400 #FFB872</td></tr>' +
+          '<tr><td>Unallocated ring</td><td><code>--chart-rest</code></td><td>DSN/200 #E4E6EB</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Center text typography</td></tr>' +
+          '<tr><td>Typography</td><td><code>text-label-sm-medium</code></td><td>14 / 20 / 500, tabular-nums</td></tr>' +
+          '<tr><td>Color</td><td><code>--text-secondary-soft</code></td><td>DSN/600 #4C5463</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Animation</td></tr>' +
+          '<tr><td>Grow-in (segment stroke-dasharray 0 &rarr; final)</td><td>800ms ease-out</td><td>Page-load animation. React drives it via <code>useState</code> + <code>requestAnimationFrame</code>; DSM uses a CSS <code>@keyframes</code> rule per segment.</td></tr>' +
+          '<tr><td>Hover scale</td><td><code>transform: scale(1.05)</code></td><td>On the chart wrapper</td></tr>' +
+          '<tr><td>Hover transition</td><td><code>--transition-base</code></td><td>200ms ease</td></tr>' +
+        '</tbody>' +
+      '</table>'
+  },
+  Widget: {
+    props:
+      '<table class="comp-table">' +
+        '<thead><tr><th>Prop</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>' +
+        '<tbody>' +
+          '<tr style="background:#F7F8FA;"><td colspan="4" style="font-style:italic; color:#384253;"><strong>Shape:</strong> Single component, 4 variants. The shell (header + footer link) is shared; <code>variant</code> swaps the content layout. Resizing in the UI is a variant change, not a component swap.</td></tr>' +
+          '<tr><td><code>variant</code></td><td><code>"1x" | "2x" | "3x" | "3xChart"</code></td><td><code>"1x"</code></td><td>Layout. 1x is a compact metric jump card; 2x pairs a metric with a 72px donut; 3x is a 4&ndash;6-row list; 3xChart combines a 96px donut with a multi-row legend.</td></tr>' +
+          '<tr><td><code>title</code></td><td>string</td><td><code>""</code></td><td>Header title text. Typography scales per variant.</td></tr>' +
+          '<tr><td><code>domainIcon</code></td><td>ReactNode</td><td>&mdash;</td><td>Domain icon. On 2x it renders inline next to the title; on 3x / 3xChart it sits inside a 40&times;40 <code>--carolina-blue-50</code> container.</td></tr>' +
+          '<tr><td><code>showGrip</code></td><td>boolean</td><td><code>true</code></td><td>Show the leading <code>GripVertical</code> drag handle.</td></tr>' +
+          '<tr><td><code>onClose</code></td><td>() =&gt; void</td><td>&mdash;</td><td>If provided, renders the trailing close X button.</td></tr>' +
+          '<tr><td><code>onGoToClick</code></td><td>() =&gt; void</td><td>&mdash;</td><td>On 1x: handler for the content button. On 2x / 3x / 3xChart: handler for the footer <code>Button variant="link"</code>.</td></tr>' +
+          '<tr><td><code>goToLabel</code></td><td>string</td><td>&mdash;</td><td>Footer link label on 2x / 3x / 3xChart (e.g. <code>"Go to Tracking"</code>).</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="4" style="font-weight:600; color:#283142;">Content props (per variant)</td></tr>' +
+          '<tr><td><code>value</code></td><td>string | number</td><td>&mdash;</td><td>Primary metric value (1x / 2x / 3xChart).</td></tr>' +
+          '<tr><td><code>label</code></td><td>string</td><td>&mdash;</td><td>Secondary metric label (1x / 2x / 3xChart).</td></tr>' +
+          '<tr><td><code>percentage</code></td><td>string</td><td>&mdash;</td><td>Center text rendered inside the 2x donut.</td></tr>' +
+          '<tr><td><code>rows</code></td><td><code>Array&lt;{ label, value, indicatorColor?, onClick? }&gt;</code></td><td><code>[]</code></td><td>Metric rows for 3x and 3xChart. Each becomes a <code>WidgetMetricRow</code>.</td></tr>' +
+          '<tr><td><code>chartSegments</code></td><td><code>Array&lt;{ value, color }&gt;</code></td><td><code>[]</code></td><td>Donut segments for 2x and 3xChart.</td></tr>' +
+        '</tbody>' +
+      '</table>',
+    tokens:
+      '<table class="comp-table">' +
+        '<thead><tr><th>Area / Property</th><th>Token / Value</th><th>Resolved</th></tr></thead>' +
+        '<tbody>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Shell</td></tr>' +
+          '<tr><td>Width &mdash; 1x</td><td>170px (raw)</td><td>&mdash;</td></tr>' +
+          '<tr><td>Width &mdash; 2x / 3x / 3xChart</td><td>360px (raw)</td><td>&mdash;</td></tr>' +
+          '<tr><td>Padding</td><td><code>--spacing-6</code></td><td>24px</td></tr>' +
+          '<tr><td>Gap (header &harr; content &harr; footer)</td><td><code>--spacing-3</code> (1x / 2x); <code>--spacing-6</code> (3x / 3xChart)</td><td>12px / 24px</td></tr>' +
+          '<tr><td>Background</td><td><code>--white</code></td><td>#FFFFFF</td></tr>' +
+          '<tr><td>Border</td><td><code>--border-default</code></td><td>DSN/300 #D0D4DB (1px)</td></tr>' +
+          '<tr><td>Radius</td><td><code>--radius-xl</code></td><td>12px</td></tr>' +
+          '<tr><td>Shadow</td><td><code>--shadow-sm</code></td><td>0 1px 2px rgba(15,23,42,0.04)</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Header</td></tr>' +
+          '<tr><td>Title &mdash; 1x</td><td><code>text-label-xs-medium</code></td><td>12 / 16 / 500</td></tr>' +
+          '<tr><td>Title &mdash; 2x</td><td><code>text-label-sm-medium</code></td><td>14 / 20 / 500</td></tr>' +
+          '<tr><td>Title &mdash; 3x / 3xChart</td><td><code>text-heading-lg-medium</code></td><td>18 / 24 / 500</td></tr>' +
+          '<tr><td>Title color</td><td><code>--text-primary</code></td><td>DSN/900 #1B2537</td></tr>' +
+          '<tr><td>Header gap</td><td><code>--spacing-3</code></td><td>12px</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Grip (drag handle) &mdash; reversed ladder</td></tr>' +
+          '<tr><td>Idle</td><td><code>--text-tertiary</code></td><td>DSN/500 #6B7280 &middot; cursor: grab</td></tr>' +
+          '<tr><td>Hover</td><td><code>--text-primary</code></td><td>DSN/900 (darkens)</td></tr>' +
+          '<tr><td>Pressed</td><td><code>--text-placeholder</code></td><td>DSN/400 &middot; cursor: grabbing (release/lift feel)</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Close (X) &mdash; reversed ladder</td></tr>' +
+          '<tr><td>Idle / Hover / Pressed</td><td><code>--text-tertiary</code> &rarr; <code>--text-primary</code> &rarr; <code>--text-placeholder</code></td><td>DSN/500 &rarr; DSN/900 &rarr; DSN/400. Same shape as Grip.</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Domain icon</td></tr>' +
+          '<tr><td>2x inline icon</td><td>color <code>--text-link</code></td><td>CB/600 #276DA2</td></tr>' +
+          '<tr><td>3x / 3xChart container size</td><td>40 &times; 40 (raw)</td><td>&mdash;</td></tr>' +
+          '<tr><td>3x / 3xChart container bg</td><td><code>--carolina-blue-50</code></td><td>#ECF8FF</td></tr>' +
+          '<tr><td>3x / 3xChart container radius</td><td><code>--radius-xl</code></td><td>12px</td></tr>' +
+          '<tr><td>3x / 3xChart icon color</td><td><code>--text-link</code></td><td>CB/600 #276DA2</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">1x content button &mdash; standard ladder (with arrow return-on-press)</td></tr>' +
+          '<tr><td>Value typography</td><td><code>text-display-3xl-semibold</code></td><td>36 / 40 / 600</td></tr>' +
+          '<tr><td>Idle &mdash; label / inline arrow</td><td><code>--text-secondary-soft</code> / <code>--text-link</code></td><td>DSN/600 / CB/600</td></tr>' +
+          '<tr><td>Hover &mdash; label / arrow</td><td><code>--text-secondary</code> &times; 2 &middot; arrow <code>translateX(4px)</code></td><td>DSN/700; arrow shifts right</td></tr>' +
+          '<tr><td>Pressed &mdash; label / arrow</td><td><code>--text-primary</code> &times; 2 &middot; arrow <code>translateX(0)</code></td><td>DSN/900; arrow snaps back (commitment signature)</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">3xChart content</td></tr>' +
+          '<tr><td>Value typography</td><td><code>text-display-4xl-semibold</code></td><td>48 / 52 / 600</td></tr>' +
+          '<tr><td>Chart-section gap</td><td>28px (raw)</td><td>info-container &harr; donut</td></tr>' +
+          '<tr><td>Data-section margin-top</td><td><code>--spacing-6</code></td><td>24px (separates donut from rows)</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Footer Go-to link</td></tr>' +
+          '<tr><td>Component</td><td><code>Button variant="link" size="sm" iconRight={&lt;ArrowRight /&gt;}</code></td><td>Reuses the Button atom &mdash; no custom widget link CSS.</td></tr>' +
+          '<tr><td>Idle / Hover / Pressed</td><td><code>--text-link</code> &rarr; <code>--carolina-blue-400</code> &rarr; <code>--text-primary</code></td><td>CB/600 &rarr; CB/400 (lightens) &rarr; DSN/900 (darkens). Arrow stays at <code>translateX(4px)</code> through press.</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Transitions</td></tr>' +
+          '<tr><td>Color (titles, grip, close, label, arrow)</td><td><code>--transition-fast</code></td><td>150ms ease</td></tr>' +
+          '<tr><td>Donut hover scale</td><td><code>--transition-base</code></td><td>200ms ease</td></tr>' +
+          '<tr><td>Donut grow-in</td><td>800ms ease-out (per segment)</td><td>React rAF flip after mount</td></tr>' +
+        '</tbody>' +
+      '</table>'
   }
 };
+
+/* ──────────────────────────────────────────────────────────────
+   Widget Family — Normalize Validation
+   Live demo section rendered into the Normalize tab.
+   Self-contained scoped CSS + 7 subsections covering Badge metric,
+   ButtonLink hover/pressed ladder, Widget 1x button, Widget close X,
+   Widget grip, WidgetMetricRow, and WidgetPieChart md/lg.
+   All scoped class names prefixed with `wf-norm-` to avoid collisions
+   with Components-tab styles. Source files audited at HEAD:
+     packages/ui/src/Badge.jsx
+     packages/ui/src/Widget.jsx
+     packages/ui/src/WidgetMetricRow.jsx
+     packages/ui/src/Button.jsx
+     apps/odyssey-one/src/styles/components.css
+   ────────────────────────────────────────────────────────────── */
+function getWidgetFamilyNormalizeHTML() {
+  /* Inline lucide SVGs at 20px stroke 2, color via currentColor */
+  var svgArrowRight16 = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>';
+  var svgArrowRight20 = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>';
+  var svgChevronRight20 = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>';
+  var svgX20 = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>';
+  var svgGripVertical20 = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/></svg>';
+
+  /* SVG donut helpers — segments 42/28/18/12 summed to 100. */
+  function donutSvg(size, withCenterText) {
+    var radius = size / 2;
+    var strokeWidth = size * 0.18;
+    var innerRadius = radius - strokeWidth / 2;
+    var circumference = 2 * Math.PI * innerRadius;
+    var segs = [
+      { value: 42, color: 'var(--chart-1, #296DE7)' },
+      { value: 28, color: 'var(--chart-2, #C0DEFD)' },
+      { value: 18, color: 'var(--chart-3, #FC6F13)' },
+      { value: 12, color: 'var(--chart-4, #FFB872)' }
+    ];
+    var offset = 0;
+    var arcs = '';
+    var circStr = circumference.toFixed(2);
+    var startDash = '0 ' + circStr;
+    for (var i = 0; i < segs.length; i++) {
+      var len = (segs[i].value / 100) * circumference;
+      var endDash = len.toFixed(2) + ' ' + (circumference - len).toFixed(2);
+      var segOffset = ((offset / 100) * circumference).toFixed(2);
+      offset += segs[i].value;
+      /* Inline CSS vars feed the @keyframes wf-norm-pie-grow rule so each segment
+         animates from "0 circumference" to its own final dasharray. */
+      var segStyle = '--wf-pie-start: ' + startDash + '; --wf-pie-end: ' + endDash + ';';
+      arcs += '<circle class="wf-norm-pie-segment" cx="' + radius + '" cy="' + radius + '" r="' + innerRadius.toFixed(2) + '" fill="none" stroke="' + segs[i].color + '" stroke-width="' + strokeWidth + '" stroke-dashoffset="-' + segOffset + '" transform="rotate(-90 ' + radius + ' ' + radius + ')" style="' + segStyle + '"></circle>';
+    }
+    var center = withCenterText
+      ? '<span class="wf-norm-pie__center">42%</span>'
+      : '';
+    return '<span class="wf-norm-pie" style="width:' + size + 'px; height:' + size + 'px;">' +
+      '<svg viewBox="0 0 ' + size + ' ' + size + '" width="' + size + '" height="' + size + '">' +
+        '<circle cx="' + radius + '" cy="' + radius + '" r="' + innerRadius.toFixed(2) + '" fill="none" stroke="var(--chart-rest, #E4E6EB)" stroke-width="' + strokeWidth + '"></circle>' +
+        arcs +
+      '</svg>' +
+      center +
+    '</span>';
+  }
+
+  return '' +
+  /* ── Scoped styles ── */
+  '<style>' +
+    '.wf-norm-section { margin-bottom: 48px; }' +
+    '.wf-norm-callout {' +
+      'background: #F7F8FA; border: 1px solid #E4E6EB; border-left: 3px solid #296DE7;' +
+      'padding: 12px 16px; border-radius: 6px; margin-bottom: 24px;' +
+      'font-size: 13px; color: #384253; line-height: 1.6;' +
+    '}' +
+    '.wf-norm-callout strong { color: #1B2537; }' +
+    /* Badge metric */
+    '.wf-norm-badge-metric {' +
+      'display: inline-flex; align-items: center; justify-content: center;' +
+      'padding: 1px 8px; border-radius: var(--radius-lg, 8px);' +
+      'background: var(--badge-gray-bg, #F2F3F5); color: var(--text-primary, #1B2537);' +
+      'font-family: \'Inter\', sans-serif; font-size: 12px; line-height: 16px; font-weight: 600;' +
+      'font-variant-numeric: tabular-nums; white-space: nowrap;' +
+    '}' +
+    /* ButtonLink ladder — text-only, NO background change at any state.
+       Ladder inverts the icon-button pattern: hover LIGHTENS to Carolina Blue 400,
+       press DARKENS to DSN/900 (the "committed action" feel).
+       Trailing arrow translates 4px right on hover, snaps back on press. */
+    '.wf-norm-btn-link {' +
+      'display: inline-flex; align-items: center; gap: 6px;' +
+      'background: transparent; border: 1px solid transparent; box-shadow: none;' +
+      'color: var(--text-link, #276DA2);' +
+      'padding: 6px 12px; border-radius: var(--radius-md, 6px);' +
+      'font-family: \'Inter\', sans-serif; font-size: 14px; font-weight: 500; line-height: 20px;' +
+      'cursor: pointer;' +
+      'transition: color var(--transition-fast, 150ms ease);' +
+    '}' +
+    '.wf-norm-btn-link:hover:not(:disabled) {' +
+      'background: transparent; color: var(--carolina-blue-400, #5BA4D4);' +
+    '}' +
+    '.wf-norm-btn-link:active:not(:disabled) {' +
+      'background: transparent; color: var(--text-primary, #1B2537);' +
+    '}' +
+    /* Trailing-icon arrow — color tracks text via currentColor, transform animates independently. */
+    '.wf-norm-btn-link__icon-right {' +
+      'display: inline-flex; margin-left: auto;' +
+      'transition: transform var(--transition-fast, 150ms ease);' +
+    '}' +
+    '.wf-norm-btn-link:hover:not(:disabled) .wf-norm-btn-link__icon-right {' +
+      'transform: translateX(4px);' +
+    '}' +
+    /* No :active reset — arrow stays at +4px through the press, only returns on hover-out. */
+    /* Forced-state variants for the Idle / Hover (forced) / Pressed (forced) cards */
+    '.wf-norm-btn-link--force-hover {' +
+      'background: transparent; color: var(--carolina-blue-400, #5BA4D4);' +
+    '}' +
+    '.wf-norm-btn-link--force-hover .wf-norm-btn-link__icon-right {' +
+      'transform: translateX(4px);' +
+    '}' +
+    '.wf-norm-btn-link--force-pressed {' +
+      'background: transparent; color: var(--text-primary, #1B2537);' +
+    '}' +
+    '.wf-norm-btn-link--force-pressed .wf-norm-btn-link__icon-right {' +
+      'transform: translateX(4px);' +
+    '}' +
+    /* Widget 1x button demo */
+    '.wf-norm-1x {' +
+      'display: flex; flex-direction: column; gap: 12px;' +
+      'background: transparent; border: none; padding: 12px; cursor: pointer;' +
+      'text-align: left; width: 220px;' +
+      'border-radius: 8px;' +
+    '}' +
+    '.wf-norm-1x__value-row { display: inline-flex; align-items: center; gap: 3px; }' +
+    '.wf-norm-1x__value {' +
+      'font-family: \'Inter\', sans-serif; font-size: 36px; line-height: 40px; font-weight: 600;' +
+      'color: var(--text-primary, #1B2537);' +
+    '}' +
+    '.wf-norm-1x__arrow {' +
+      'color: var(--text-link, #276DA2); flex-shrink: 0; display: inline-flex;' +
+      'transition: color var(--transition-fast, 150ms ease), transform var(--transition-fast, 150ms ease);' +
+    '}' +
+    '.wf-norm-1x__label {' +
+      'font-family: \'Inter\', sans-serif; font-size: 14px; line-height: 20px; font-weight: 400;' +
+      'color: var(--text-secondary-soft, #4C5463);' +
+      'transition: color var(--transition-fast, 150ms ease);' +
+    '}' +
+    '.wf-norm-1x:hover .wf-norm-1x__arrow {' +
+      'color: var(--text-secondary, #384253); transform: translateX(4px);' +
+    '}' +
+    '.wf-norm-1x:hover .wf-norm-1x__label { color: var(--text-secondary, #384253); }' +
+    '.wf-norm-1x:active .wf-norm-1x__arrow {' +
+      'color: var(--text-primary, #1B2537); transform: translateX(0);' +
+    '}' +
+    '.wf-norm-1x:active .wf-norm-1x__label { color: var(--text-primary, #1B2537); }' +
+    /* Widget close X demo — reversed ladder: idle DSN/500 → hover DSN/900 → press DSN/400 (release feel). */
+    '.wf-norm-close {' +
+      'background: transparent; border: none; padding: 0;' +
+      'color: var(--text-tertiary, #6B7280);' +
+      'cursor: pointer; display: inline-flex; flex-shrink: 0;' +
+      'transition: color var(--transition-fast, 150ms ease);' +
+    '}' +
+    '.wf-norm-close:hover { color: var(--text-primary, #1B2537); }' +
+    '.wf-norm-close:active { color: var(--text-placeholder, #9CA3AF); }' +
+    /* Widget grip demo — same reversed ladder as close, plus cursor: grabbing on press. */
+    '.wf-norm-grip {' +
+      'color: var(--text-tertiary, #6B7280); flex-shrink: 0;' +
+      'cursor: grab; display: inline-flex;' +
+      'transition: color var(--transition-fast, 150ms ease);' +
+    '}' +
+    '.wf-norm-grip:hover { color: var(--text-primary, #1B2537); }' +
+    '.wf-norm-grip:active { color: var(--text-placeholder, #9CA3AF); cursor: grabbing; }' +
+    /* WidgetMetricRow demo — reversed ladder on the row itself.
+       The faux .widget wrapper is purely visual context now — no parent-bg
+       reactivity. The new bg-change behavior lives on the inner .badge-metric
+       pill (see scoped overrides below). */
+    '.wf-norm-mrow-widget {' +
+      'display: flex; flex-direction: column; gap: 12px;' +
+      'width: 312px; padding: 16px;' +
+      'background: var(--white, #FFFFFF); border: 1px solid var(--border-default, #E4E6EB);' +
+      'border-radius: var(--radius-lg, 8px);' +
+      'box-shadow: var(--shadow-sm, 0 1px 2px rgba(15,23,42,0.04));' +
+    '}' +
+    '.wf-norm-mrow {' +
+      'display: flex; align-items: center; justify-content: space-between;' +
+      'width: 100%; gap: 12px;' +
+      'font-family: \'Inter\', sans-serif;' +
+      'background: transparent; border: none; padding: 0;' +
+      'color: var(--text-secondary-soft, #4C5463);' +
+      'cursor: pointer; text-align: left;' +
+      'transition: color var(--transition-fast, 150ms ease);' +
+    '}' +
+    '.wf-norm-mrow__label-group { display: inline-flex; align-items: center; gap: 8px; }' +
+    '.wf-norm-mrow__indicator {' +
+      'display: inline-block; width: 8px; height: 8px;' +
+      'border-radius: var(--radius-full, 9999px); flex-shrink: 0;' +
+      'background: var(--chart-1, #296DE7);' +
+      'transition: transform var(--transition-fast, 150ms ease);' +
+    '}' +
+    '.wf-norm-mrow__label {' +
+      'font-size: 14px; line-height: 20px; font-weight: 400; color: inherit;' +
+    '}' +
+    '.wf-norm-mrow__trailing { display: inline-flex; align-items: center; gap: 12px; }' +
+    '.wf-norm-mrow__chevron {' +
+      'color: var(--text-tertiary, #6B7280); flex-shrink: 0; display: inline-flex;' +
+      'transition: color var(--transition-fast, 150ms ease);' +
+    '}' +
+    /* Mirror of the production .badge-metric class — bg via class (not inline)
+       so the parent .wf-norm-mrow row context can override it on hover/active. */
+    '.badge-metric {' +
+      'background: var(--badge-gray-bg, #F2F3F5);' +
+      'transition: background var(--transition-fast, 150ms ease);' +
+    '}' +
+    '.wf-norm-mrow:hover { color: var(--text-primary, #1B2537); }' +
+    '.wf-norm-mrow:hover .wf-norm-mrow__chevron { color: var(--text-primary, #1B2537); }' +
+    '.wf-norm-mrow:hover .wf-norm-mrow__indicator { transform: scale(1.25); }' +
+    /* NEW — the inline value pill (.badge-metric) inside an interactive row
+       darkens one step on hover, releases back on press. Scoped to this row
+       context — standalone .badge-metric instances (subsection 1) stay default. */
+    '.wf-norm-mrow:hover .badge-metric { background: var(--deep-sea-neutral-200, #E4E6EB); }' +
+    '.wf-norm-mrow:active { color: var(--text-placeholder, #9CA3AF); }' +
+    '.wf-norm-mrow:active .wf-norm-mrow__chevron { color: var(--text-placeholder, #9CA3AF); }' +
+    '.wf-norm-mrow:active .wf-norm-mrow__indicator { transform: scale(1); }' +
+    '.wf-norm-mrow:active .badge-metric { background: var(--badge-gray-bg, #F2F3F5); }' +
+    /* PieChart demo — hover scale(1.05) on the chart wrapper. */
+    '.wf-norm-pie {' +
+      'position: relative; display: inline-flex; align-items: center; justify-content: center;' +
+      'transition: transform var(--transition-base, 200ms ease);' +
+    '}' +
+    '.wf-norm-pie:hover { transform: scale(1.05); }' +
+    '.wf-norm-pie__center {' +
+      'position: absolute; inset: 0; display: inline-flex;' +
+      'align-items: center; justify-content: center;' +
+      'font-family: \'Inter\', sans-serif; font-size: 14px; line-height: 20px; font-weight: 500;' +
+      'color: var(--text-secondary-soft, #4C5463);' +
+      'font-variant-numeric: tabular-nums;' +
+    '}' +
+    /* Page-load grow-in: each segment animates stroke-dasharray from "0 circumference"' +
+       to its final length over 800ms ease-out. Auto-fires once per render. */
+    '@keyframes wf-norm-pie-grow {' +
+      'from { stroke-dasharray: var(--wf-pie-start); }' +
+      'to { stroke-dasharray: var(--wf-pie-end); }' +
+    '}' +
+    '.wf-norm-pie-segment {' +
+      'stroke-dasharray: var(--wf-pie-end);' +
+      'animation: wf-norm-pie-grow 800ms ease-out;' +
+    '}' +
+    /* Hint strip for live cards */
+    '.wf-norm-card-hint {' +
+      'font-size: 11px; color: #6B7280; font-style: italic; line-height: 1.4;' +
+    '}' +
+    '.wf-norm-card-hint strong { color: #384253; font-style: normal; font-weight: 600; }' +
+  '</style>' +
+
+  /* ── Section header ── */
+  '<div class="wf-norm-section">' +
+    '<div class="comp-section-title" style="margin-bottom:8px;">Widget Family — Normalize Validation</div>' +
+    '<div class="comp-section-subtitle">Live preview of new components + hover/pressed states added during the widget normalization cycle. Sources: packages/ui/src/{Badge,Widget,WidgetMetricRow,Button}.jsx + apps/odyssey-one/src/styles/components.css</div>' +
+    '<div class="wf-norm-callout">' +
+      '<strong>How to use:</strong> Some cards are <strong>live</strong> — hover them, then hold mousedown to see the pressed state. They reproduce the same scoped CSS that ships in <code>components.css</code> at HEAD. Tokens use <code>var(--token, fallback)</code> so this section stays in sync if the design system shifts.' +
+    '</div>' +
+
+    /* 1. Badge metric */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">1. Badge — metric variant (new)</div>' +
+      '<div class="comp-card-grid">' +
+        '<div class="comp-card">' +
+          '<span class="wf-norm-badge-metric">99</span>' +
+          '<div class="comp-card-code">&lt;Badge variant="metric"&gt;99&lt;/Badge&gt;</div>' +
+          '<div class="comp-card-note">' +
+            'bg <code>--badge-gray-bg</code> (DSN/100 #F2F3F5) · text <code>--text-primary</code> (DSN/900) · radius <code>--radius-lg</code> (8px) · padding <strong>1px 8px</strong> · label/xs semibold (12 / 16 / 600) · tabular-nums · iconless · single state (Badge is not interactive).' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    /* 2. ButtonLink ladder */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">2. ButtonLink — hover / pressed ladder (updated)</div>' +
+      '<div class="comp-card-grid">' +
+        /* Idle */
+        '<div class="comp-card">' +
+          '<button type="button" class="wf-norm-btn-link" disabled>Go to Tracking <span class="wf-norm-btn-link__icon-right">' + svgArrowRight16 + '</span></button>' +
+          '<div class="comp-card-note"><strong>Idle</strong> — color <code>--text-link</code> (CB/600 #276DA2) · bg transparent · no border · no shadow · arrow at <code>translateX(0)</code>.</div>' +
+        '</div>' +
+        /* Hover live */
+        '<div class="comp-card">' +
+          '<button type="button" class="wf-norm-btn-link">Go to Tracking <span class="wf-norm-btn-link__icon-right">' + svgArrowRight16 + '</span></button>' +
+          '<div class="wf-norm-card-hint"><strong>Live — hover me</strong></div>' +
+          '<div class="comp-card-note"><strong>Hover</strong> — color <code>--carolina-blue-400</code> (CB/400 #5BA4D4 — <strong>lighter</strong> than idle) · bg <strong>stays transparent</strong>. Arrow slides right <code>translateX(4px)</code>. Icon color tracks text via <code>currentColor</code>.</div>' +
+        '</div>' +
+        /* Pressed live */
+        '<div class="comp-card">' +
+          '<button type="button" class="wf-norm-btn-link">Go to Tracking <span class="wf-norm-btn-link__icon-right">' + svgArrowRight16 + '</span></button>' +
+          '<div class="wf-norm-card-hint"><strong>Live — hold mousedown</strong></div>' +
+          '<div class="comp-card-note"><strong>Pressed</strong> — color <code>--text-primary</code> (DSN/900 #1B2537 — <strong>darkens</strong> to near-black, the "committed action" feel) · bg <strong>stays transparent</strong>. Arrow snaps back to <code>translateX(0)</code>.</div>' +
+        '</div>' +
+        /* Forced hover */
+        '<div class="comp-card">' +
+          '<button type="button" class="wf-norm-btn-link wf-norm-btn-link--force-hover">Go to Tracking <span class="wf-norm-btn-link__icon-right">' + svgArrowRight16 + '</span></button>' +
+          '<div class="comp-card-note">Forced hover state for side-by-side comparison — CB/400 + arrow translated.</div>' +
+        '</div>' +
+        /* Forced pressed */
+        '<div class="comp-card">' +
+          '<button type="button" class="wf-norm-btn-link wf-norm-btn-link--force-pressed">Go to Tracking <span class="wf-norm-btn-link__icon-right">' + svgArrowRight16 + '</span></button>' +
+          '<div class="comp-card-note">Forced pressed state for side-by-side comparison — DSN/900 + arrow at baseline.</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    /* 3. Widget 1x button */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">3. Widget 1x — clickable content (new hover/pressed)</div>' +
+      '<div class="comp-card-grid">' +
+        '<div class="comp-card">' +
+          '<button type="button" class="wf-norm-1x">' +
+            '<span class="wf-norm-1x__value-row">' +
+              '<span class="wf-norm-1x__value">83</span>' +
+              '<span class="wf-norm-1x__arrow">' + svgArrowRight16 + '</span>' +
+            '</span>' +
+            '<span class="wf-norm-1x__label">Open exceptions</span>' +
+          '</button>' +
+          '<div class="wf-norm-card-hint"><strong>Live — hover, then hold mousedown</strong></div>' +
+          '<div class="comp-card-note">' +
+            '<strong>Idle</strong> — label <code>--text-secondary-soft</code> (DSN/600 #4C5463) · arrow <code>--text-link</code> (CB/600). ' +
+            '<strong>Hover</strong> — label &amp; arrow <code>--text-secondary</code> (DSN/700) · arrow <code>translateX(4px)</code>. ' +
+            '<strong>Pressed</strong> — both <code>--text-primary</code> (DSN/900) · arrow returns to <code>translateX(0)</code>. ' +
+            'Transitions: <code>color</code> + <code>transform</code> on <code>--transition-fast</code> (150ms ease).' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    /* 4. Widget close X */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">4. Widget close — X icon (new hover/pressed)</div>' +
+      '<div class="comp-card-grid">' +
+        '<div class="comp-card">' +
+          '<button type="button" class="wf-norm-close" aria-label="Remove widget">' + svgX20 + '</button>' +
+          '<div class="wf-norm-card-hint"><strong>Live — hover, then hold mousedown</strong></div>' +
+          '<div class="comp-card-note">' +
+            'Lucide <code>X</code> @ 20px. <strong>Reversed ladder</strong> — press is lighter than idle (the "release" feel). ' +
+            '<strong>Idle</strong> <code>--text-tertiary</code> (DSN/500 #6B7280) → ' +
+            '<strong>Hover</strong> <code>--text-primary</code> (DSN/900) → ' +
+            '<strong>Pressed</strong> <code>--text-placeholder</code> (DSN/400). ' +
+            'Transition: <code>color var(--transition-fast)</code>.' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    /* 5. Widget grip */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">5. Widget grip — drag handle (new hover/pressed)</div>' +
+      '<div class="comp-card-grid">' +
+        '<div class="comp-card">' +
+          '<span class="wf-norm-grip" role="img" aria-label="Drag handle">' + svgGripVertical20 + '</span>' +
+          '<div class="wf-norm-card-hint"><strong>Live — hover, then hold mousedown</strong></div>' +
+          '<div class="comp-card-note">' +
+            'Lucide <code>GripVertical</code> @ 20px. Same <strong>reversed ladder</strong> as the close X. ' +
+            '<strong>Idle</strong> <code>--text-tertiary</code> (DSN/500) · <code>cursor: grab</code>. ' +
+            '<strong>Hover</strong> <code>--text-primary</code> (DSN/900). ' +
+            '<strong>Pressed</strong> <code>--text-placeholder</code> (DSN/400) · <code>cursor: grabbing</code>.' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    /* 6. WidgetMetricRow — the faux .widget wrapper is now purely visual context.
+       The new bg-change behavior lives on the inline .badge-metric pill, scoped
+       to fire only when the parent .wf-norm-mrow is hovered/active. */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">6. WidgetMetricRow — interactive row (new component)</div>' +
+      '<div class="comp-card-grid">' +
+        '<div class="comp-card">' +
+          '<div class="wf-norm-mrow-widget">' +
+            '<button type="button" class="wf-norm-mrow">' +
+              '<span class="wf-norm-mrow__label-group">' +
+                '<span class="wf-norm-mrow__indicator"></span>' +
+                '<span class="wf-norm-mrow__label">Date issues</span>' +
+              '</span>' +
+              '<span class="wf-norm-mrow__trailing">' +
+                '<span class="wf-norm-badge-metric badge-metric">99</span>' +
+                '<span class="wf-norm-mrow__chevron">' + svgChevronRight20 + '</span>' +
+              '</span>' +
+            '</button>' +
+          '</div>' +
+          '<div class="wf-norm-card-hint"><strong>Live — hover the row, then hold mousedown.</strong> Watch the inline <code>99</code> pill darken on hover and release on press.</div>' +
+          '<div class="comp-card-note">' +
+            '8×8 indicator (default <code>--chart-1</code>) + label + metric Badge + chevron. <strong>Reversed ladder</strong> on the row itself. ' +
+            '<strong>Hover</strong> — label <code>DSN/600 → DSN/900</code>, chevron <code>DSN/500 → DSN/900</code>, indicator <code>scale(1) → scale(1.25)</code>. ' +
+            '<strong>Pressed</strong> — colors → <code>DSN/400</code> (release feel); indicator <code>scale</code> returns to <code>1</code> (mirrors the 1x arrow translate return-on-press pattern). ' +
+            '<strong>NEW — inner Badge bg:</strong> the inline value pill (Badge <code>metric</code> variant, class <code>.badge-metric</code>) bg darkens when its parent <code>.widget-metric-row--interactive</code> is hovered: ' +
+            '<code>--badge-gray-bg</code> (DSN/100) → <code>--deep-sea-neutral-200</code> (DSN/200) → back to <code>--badge-gray-bg</code> on press. ' +
+            'Scoped via <code>.widget-metric-row--interactive:hover .badge-metric</code> — the Badge metric variant darkens its bg <strong>only when used inside an interactive WidgetMetricRow</strong>. Standalone Badge metric instances elsewhere (see subsection 1) stay at the default bg — no hover state on the badge itself. ' +
+            'Indicator transition: <code>transform var(--transition-fast)</code>.' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    /* 7. WidgetPieChart — page-load grow-in + hover scale(1.05). */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">7. WidgetPieChart — md (72) &amp; lg (96), with / without center text</div>' +
+      '<div class="wf-norm-callout">' +
+        '<strong>New behaviors:</strong> ' +
+        '<strong>Grow-in on mount</strong> — each segment\'s <code>stroke-dasharray</code> animates from <code>0 circumference</code> to its final length over <code>800ms ease-out</code>. In the React component this is a <code>useState</code> + <code>useEffect</code> + <code>requestAnimationFrame</code> flip; here it\'s a CSS <code>@keyframes</code> rule that auto-fires on render. ' +
+        '<strong>Hover scale</strong> — chart transforms <code>scale(1.05)</code> on hover with <code>transition: transform var(--transition-base)</code> (200ms ease). ' +
+        'Reload this tab to see the grow-in again.' +
+      '</div>' +
+      '<div class="comp-card-grid">' +
+        '<div class="comp-card">' +
+          donutSvg(72, false) +
+          '<div class="comp-card-code">size=72 · showCenterText={false}</div>' +
+          '<div class="comp-card-note">md (72px). Segments 42 / 28 / 18 / 12 using <code>--chart-1 / 2 / 3 / 4</code>; remaining ring <code>--chart-rest</code>. Stroke width = <code>size * 0.18</code>. Hover the chart to see <code>scale(1.05)</code>.</div>' +
+        '</div>' +
+        '<div class="comp-card">' +
+          donutSvg(72, true) +
+          '<div class="comp-card-code">size=72 · showCenterText={true}</div>' +
+          '<div class="comp-card-note">md with center text "42%" — label/sm medium (14 / 20 / 500), color <code>--text-secondary-soft</code> (DSN/600), tabular-nums.</div>' +
+        '</div>' +
+        '<div class="comp-card">' +
+          donutSvg(96, false) +
+          '<div class="comp-card-code">size=96 · showCenterText={false}</div>' +
+          '<div class="comp-card-note">lg (96px). Used in <code>Widget variant="3xChart"</code>. Same chart-1..4 + chart-rest ring. Hover for <code>scale(1.05)</code>.</div>' +
+        '</div>' +
+        '<div class="comp-card">' +
+          donutSvg(96, true) +
+          '<div class="comp-card-code">size=96 · showCenterText={true}</div>' +
+          '<div class="comp-card-note">lg with center text — mirrors the Figma <code>Show center text</code> BOOLEAN.</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+  '</div>';
+}
 
 function showCompDetails(componentName) {
   var entry = compDetails[componentName];
@@ -3922,7 +5483,13 @@ function showCompDetails(componentName) {
 document.addEventListener('DOMContentLoaded', function() {
   /* Populate Components tab */
   var compTab = document.getElementById('componentsTabBadgeContent');
-  if (compTab) compTab.innerHTML = getBadgeComponentHTML() + getButtonComponentHTML() + getIconButtonComponentHTML() + getSidebarButtonComponentHTML() + getSidebarComponentHTML() + getGlobalSearchComponentHTML() + getLeadNavComponentHTML() + getTrailNavComponentHTML() + getNavbarComponentHTML() + getPageHeaderComponentHTML() + getSectionHeaderComponentHTML() + getEntityChipComponentHTML();
+  if (compTab) compTab.innerHTML = getBadgeComponentHTML() + getButtonComponentHTML() + getIconButtonComponentHTML() + getSidebarButtonComponentHTML() + getSidebarComponentHTML() + getGlobalSearchComponentHTML() + getLeadNavComponentHTML() + getTrailNavComponentHTML() + getNavbarComponentHTML() + getPageHeaderComponentHTML() + getSectionHeaderComponentHTML() + getEntityChipComponentHTML() + getWidgetMetricRowComponentHTML() + getWidgetPieChartComponentHTML() + getWidgetComponentHTML();
+
+  /* Normalize tab is empty by default. The widget-family normalization has been
+     promoted to the Components tab (post GATE B-DSM). `getWidgetFamilyNormalizeHTML()`
+     remains defined below as a reference for future iteration, but is no longer
+     auto-rendered on load. To re-activate it manually for inspection, run
+     `activateNormalizeTab(getWidgetFamilyNormalizeHTML())` in the console. */
 
   /* Click on backdrop closes the comp details dialog */
   var compDialog = document.getElementById('comp-details-dialog');

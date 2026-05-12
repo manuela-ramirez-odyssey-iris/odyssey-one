@@ -15,6 +15,7 @@ figma.connect(
         purple: 'purple',
         gray: 'gray',
         notification: 'notification',
+        metric: 'metric',
       }),
       statusDot: figma.boolean('Show dot'),
       leftIcon: figma.boolean('Show left icon', {

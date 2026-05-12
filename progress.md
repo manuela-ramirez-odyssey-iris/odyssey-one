@@ -2442,4 +2442,210 @@ Library re-publish required (user's manual step in Figma desktop).
 
 **Library publish required**: Open Figma → Assets → **Publish library / Update**. Changes: new components (Widget set, WidgetContent set, WidgetMetricRow, ButtonLink, IconButton variant set), 12 local text styles, 6 new color primitives, several renamed/restructured masters.
 
+## Session 22 — May 11, 2026
+
+Widget-family carry-forward closeout + first cross-component interaction system. Closed every pre-flagged Session 21 carry-forward in a single session: inline-pill Badge normalization, chart-palette audit, WidgetPieChart Figma master extraction, Widget→Home wiring, hover/pressed states across 5 widget-family interactive surfaces, and a comprehensive DSM update. End state: 3 new normalized components in `@odyssey/ui`, a new Badge variant, a unified hover/pressed/animation language for the Widget family, and Code Connect publish for the full widget set.
+
+### Thread 1 — Inline-pill Badge normalization (`metric` variant)
+
+The gray "99" pill inside `WidgetMetricRow` was a frame-styled-like-component (1px/8px padding, `--badge-gray-bg`, `text-primary`, radius-lg, semibold) — not a real Badge instance. Classified as a new `Variant=metric` on the existing Badge component set rather than a separate atom (lowest churn, keeps the 8-color-coded + 2-utility taxonomy honest about the new "value-display" role).
+
+**Figma side:** New variant `1858:296` cloned from `gray` in set `213:27`. Bindings: bg `Gray/bg`, text fill `Text/primary`, radius `Radius/lg`, padding `Spacing/2` horizontal + 1px vertical raw (off-scale, consistent with Badge's existing off-scale padding). Local text style `label/xs semibold` applied; external library style detached first. Dot + left/right icon slot frames removed from the metric variant only — the component-set BOOLEANs stay but no-op for metric.
+
+**Code side:** Added `metric` to Badge.jsx variants object. `isMetric` gating skips `hasLeft / hasRight / hasDot` so leftIcon/rightIcon/statusDot props are ignored. `getPadding` returns `1px var(--spacing-2)` for metric. Radius switches to `--radius-lg`. Font flips from `text-badge` (medium) to `text-label-xs-semibold` (semibold) class. `font-variant-numeric: tabular-nums` added inline for metric only.
+
+**Class-based bg (the parent-override trick):** initially bg was inline `style={{ background: v.bg }}` — but WidgetMetricRow's hover needs to darken the pill, and inline styles trump CSS class rules. Refactored: when `isMetric`, set `className="badge-metric text-label-xs-semibold"` and skip the inline `background`. The `.badge-metric { background: var(--badge-gray-bg); transition: ... }` rule lives in `components.css`. Now `.widget-metric-row--interactive:hover .badge-metric` can override the bg — scoped to that context, standalone Badge metric instances elsewhere stay at default.
+
+`WidgetMetricRow.jsx` updated — replaced inline `.widget-metric-row__badge` div with `<Badge variant="metric">{value}</Badge>`. Removed `.widget-metric-row__badge` and `.widget-metric-row__value` CSS rules (now lives in the Badge metric variant). `Badge.figma.tsx` enum extended with `metric`.
+
+### Thread 2 — Chart primitive audit (carry-forward closeout)
+
+Pre-flagged from Session 21: "Remove unused chart primitive colors — audit which Chart-introduced colors are actually consumed; remove anything dangling in tokens.css + Figma after the palette pivot."
+
+**tokens.css:** Clean. All 4 chart primitives (`--ice-blue-200/600`, `--tan-hide-300/600`) consumed via the semantic `--chart-1/2/3/4` layer. No Internacional Orange or Liberty Green stragglers — already removed in S21.
+
+**Figma:** Subagent audit (color collections 1–3) reported zero stragglers. The S21 pivot was fully applied to Figma at the time — no Internacional Orange / Liberty Green / Chart/5 variables exist. Nothing to remove.
+
+**Drift caught + fixed:** `apps/odyssey-one/src/index.css` (`@theme` for Tailwind v4) was missing `--color-carolina-blue-50`, `--color-ice-blue-{200,600}`, `--color-tan-hide-{300,600}`. Added for parity even though no Tailwind utility consumes them today — opens future `bg-ice-blue-600` etc. usage without surprises.
+
+### Thread 3 — WidgetPieChart Figma master + code refactor
+
+Pre-flagged carry-forward #16: code SVG sub-component (an internal `function PieChart()` inside `Widget.jsx`) worked for the prototype but had no Figma master. Extracted both.
+
+**Figma side:** New component set `WidgetPieChart` at `1881:77` on Components-Molecules page. Two variants:
+- `Size=md` (72×72, stroke 13px) — `1880:78`
+- `Size=lg` (96×96, stroke 17px) — `1880:77`
+
+Properties: `Size` VARIANT (md|lg), `Show center text` BOOLEAN (default false), `Center text` TEXT (default "42%"). 4 segments + rest ring bound to `Chart/1`/`2`/`3`/`4`/`rest` respectively (representative 42/28/18/12 split — illustrative; code drives real values). Center text bound to `Text/secondary-soft` with local `label/sm medium` style.
+
+**Extraction:** The 96px lg variant cloned from the existing inline donut in WidgetContent3xChart (already had Chart/* bindings from S21). The md variant cloned from the lg variant and resized (the existing 72px donut in WidgetContent2x only had 2 arcs — `Chart/1` + `Chart/rest` — so the new md variant is a richer 4-segment chart, an improvement over the source).
+
+**Inline donuts replaced:** WidgetContent2x's old donut frame `1774:1503` replaced with instance `1884:283` (Size=md, Show center text=true, Center text="42%"). WidgetContent3xChart's old donut frame `1774:1583` replaced with instance `1884:291` (Size=lg, Show center text=false). Both instances `isExposedInstance: true` so consumers see the inner properties.
+
+**Code refactor:** Pulled `PieChart` out of `Widget.jsx` into a new standalone `packages/ui/src/WidgetPieChart.jsx`. Widget.jsx now imports + composes it (matches the Figma 1:1). Added export to `index.js`. `size` prop now accepts `'md' | 'lg' | number` — Widget consumers pass `size="md"` / `size="lg"` instead of raw 72/96. Code Connect mapping `WidgetPieChart.figma.tsx` created — maps `Size` enum → `size` prop, `Show center text` BOOLEAN → `centerText` (gated; when false → undefined).
+
+### Thread 4 — Widget wired into Home (smoke test)
+
+Pre-flagged carry-forward #18: end-to-end smoke test for the Widget component family. Placed one Widget of each variant (1x, 2x, 3x, 3xChart) below SectionHeader on the Home route. Mock data: exceptions-themed (TriangleAlert domain icon, 4 chart segments at 42/28/18/12, 4 metric rows). All 4 Widgets render via the unified `Widget` component with `variant` prop.
+
+Added `.home-widget-grid` flex-wrap container in `Home.css`. Real grid system (drag-resize, profiles, edit-mode) deferred — see `home-domain-analysis.md`. Each Widget has a no-op `onGoToClick` handler so the ButtonLink "Go to exceptions" renders in 2x/3x/3xChart variants. WidgetMetricRow rows have `onClick` handlers so they become interactive (required for the new hover/pressed states to fire).
+
+### Thread 5 — Hover/pressed state system across the widget family (5 surfaces)
+
+This was the largest creative thread — establishing the first cross-component interaction language for the widget family on light surfaces. **Two distinct patterns emerged**, each with its own semantic meaning:
+
+**Pattern A — "Build up on hover, release on press"** (used for surfaces that feel like persistent commitment):
+- WidgetContent 1x button — label `--text-secondary-soft` (DSN/600) → hover `--text-secondary` (DSN/700) → press `--text-primary` (DSN/900); inline arrow `--text-link` → hover DSN/700 + `translateX(4px)` → press DSN/900 + `translateX(0)` (snaps back).
+- Wait — that's actually the original ladder. The user iterated mid-thread, see below.
+
+**Pattern B — "Hover commits darkest, press releases to lighter"** (the final ladder after user iteration):
+- **Widget close X** — `--text-tertiary` (DSN/500) → hover `--text-primary` (DSN/900) → press `--text-placeholder` (DSN/400, lighter than idle, "lift").
+- **Widget grip** — same ladder + `cursor: grab` → `cursor: grabbing` on press.
+- **WidgetMetricRow text + chevron** — label DSN/600 / chevron DSN/500 → hover DSN/900 → press DSN/400.
+- **WidgetMetricRow indicator dot** — scale(1) → hover scale(1.25) → press scale(1) (back to default — same "release" semantic).
+- **WidgetMetricRow inner Badge metric bg** — `--badge-gray-bg` (DSN/100) → hover `--deep-sea-neutral-200` → press DSN/100. Scoped via `.widget-metric-row--interactive:hover .badge-metric` — only fires inside a row, standalone Badge metric stays untouched.
+
+**Pattern C — "Lighten on hover, darken on press"** (the inverted ButtonLink pattern, after user iteration):
+- **ButtonLink** — text + icon `--text-link` (Carolina Blue/600) → hover `--carolina-blue-400` (LIGHTER) → press `--text-primary` (DSN/900, darker). bg STAYS transparent at all states. Arrow `translateX(0)` → hover `translateX(4px)` → STAYS at `translateX(4px)` through press → returns to 0 only on hover-out (the "commitment animation" — diverges from Widget 1x arrow which snaps back on press because ButtonLink's semantic is "go somewhere" while Widget 1x is "drill in").
+
+**Mid-thread iterations the user flagged:**
+1. **First spec change:** Originally proposed "darken on hover, darker on press" universally. User clarified: Widget close/grip pressed should be LIGHTER (lift feel). Inverted the ladder for those surfaces.
+2. **Second spec change:** I misread "make the widget background also change to a step darker" as the Widget shell bg — user clarified it meant the inner Badge metric pill bg, not the Widget container. Removed the `.widget:has()` rule entirely, added the scoped `.badge-metric` override.
+3. **Third spec change:** ButtonLink originally had bg dim (DSN/50 hover, DSN/100 press) + text darken. User: "ButtonLink should not have background, my instructions were for the text icon and badge background. ButtonLink hover is carolina 400, and click 900." Inverted the ladder + removed all bg changes.
+4. **Fourth spec change:** ButtonLink arrow originally snapped back on press. User: "ButtonLink arrow animation should not come back when clicked, animation return arrow to original position only when hover out." Removed the `:active translateX(0)` rule — arrow now stays at +4px through the press.
+
+**WidgetPieChart animations:**
+- Hover scale `transform: scale(1.05)` via `transition: transform var(--transition-base)` (200ms).
+- Page-load grow-in: `stroke-dasharray` transitions from `0 ${circumference}` to final length over 800ms ease-out. Implemented in React via `useState` + `useEffect` + `requestAnimationFrame` flip on mount. CSS rule `transition: stroke-dasharray 800ms ease-out` on `.widget__pie-segment` class (added to each segment circle in the SVG). User mentioned this will tie to data in code — for now it fires on mount; future iterations can re-trigger when data changes.
+
+**Transitions everywhere:** every color / transform change uses `--transition-fast` (150ms) for color, `--transition-base` (200ms) for the larger pie hover scale, and 800ms ease-out for the segment grow-in. No raw timing literals introduced.
+
+### Thread 6 — DSM Normalize-tab validation + Components-tab promotion
+
+Per the routine + project memory, all DSM work delegated to subagents.
+
+**Phase 6a — Normalize tab section** (subagent #1, then iteration subagent #2 + main-thread edits): Added comprehensive `getWidgetFamilyNormalizeHTML()` function (lines 3915-4260) with 7 subsections — Badge metric variant, ButtonLink (live + force-state cards), Widget 1x button, Widget close, Widget grip, WidgetMetricRow (live demo with inner Badge metric override), WidgetPieChart (md + lg, with + without center text, page-load grow-in via CSS @keyframes + custom property per-segment for the dasharray endpoints). All scoped CSS prefixed `wf-norm-*` to avoid colliding with Components tab. Auto-activated the Normalize tab on page load so user could validate without clicking.
+
+**Iterations during validation:**
+- Subagent #1 wrote sections based on the original Pattern A ladder. User feedback flagged corrections (see "Mid-thread iterations" above).
+- Subagent #2 reworked ButtonLink + WidgetMetricRow subsections to match the corrected ladders. Added the faux `.widget`-styled container around the WidgetMetricRow demo (initially for the `:has()` bg-change effect; later removed when the spec changed to inner-pill bg only).
+- Final inline edit removed the ButtonLink arrow `:active translateX(0)` rule from both code + DSM after user's "arrow shouldn't come back on click" feedback.
+
+**Phase 6b — Components-tab promotion** (subagent #3): After GATE B-DSM passed, dispatched a subagent to move the validated widget-family content into proper Components-tab sections. Result:
+- 3 new `getWidget*ComponentHTML()` functions added (WidgetMetricRow at line 3493, WidgetPieChart at 3705, Widget at 3846).
+- Each section has a green `NORMALIZED` pill in the title.
+- Composition line updated: `... getEntityChipComponentHTML() + getWidgetMetricRowComponentHTML() + getWidgetPieChartComponentHTML() + getWidgetComponentHTML()`.
+- 3 new `compDetails` modal entries added (Widget, WidgetMetricRow, WidgetPieChart).
+- `getBadgeComponentHTML()` updated in-place to include the metric variant subsection + parent-override callout.
+- `getButtonComponentHTML()` updated in-place: link variant subsection added (idle / forced hover / forced pressed / disabled cards) reflecting the new lighter-on-hover ladder + arrow translate.
+- Normalize-tab auto-activation removed; tab now shows empty by default (the `getWidgetFamilyNormalizeHTML()` function stays defined as a reference for future iteration but is no longer called on load).
+- All 0-grep checks pass: no leftover `:has(` rules, no `--bg-secondary` references in widget sections, ButtonLink demo shows `--carolina-blue-400` on hover + `--text-primary` on active.
+
+### Thread 7 — Tracker + progress.md + Code Connect publish
+
+**`playground/normalization-tracker.md`:**
+- Updated Badge row: noted `metric` variant added 2026-05-11, the parent-override `.badge-metric` class trick, the 8-variant total.
+- Updated Button row: noted ButtonLink ladder revision + arrow translate.
+- Added 3 new rows (Widget, WidgetMetricRow, WidgetPieChart) with full spec for each — including the hover/pressed states for Widget surfaces and the scale animation for WidgetPieChart.
+- Added 4 new entries to "Pushed to Figma" table (Badge metric variant `1858:296`, Widget set `1825:7` + `1825:8`, WidgetMetricRow `1814:7`, WidgetPieChart `1881:77`).
+- Added 5 new entries to "Pushed to Figma → Code Connect" table.
+
+**Code Connect publish (`npm run connect:publish`):** All 18 mappings uploaded successfully — including the new Widget, WidgetMetricRow, WidgetPieChart, and the extended Badge (now exposing `metric` in the variant enum picker). Verified the upload log lists every mapping.
+
+### Files / commits
+
+**New files:**
+- `packages/ui/src/WidgetPieChart.jsx` + `.figma.tsx`
+
+**Modified files:**
+- `packages/ui/src/Badge.jsx` — `metric` variant added; bg via class for metric (parent-override compatible); padding + radius branching; `text-label-xs-semibold` class + tabular-nums for metric.
+- `packages/ui/src/Badge.figma.tsx` — `metric` added to variant enum.
+- `packages/ui/src/Widget.jsx` — `useState`/`useEffect` imports removed (moved to WidgetPieChart.jsx); inline `PieChart` function removed; uses `<WidgetPieChart size="md|lg">` for 2x and 3xChart variants.
+- `packages/ui/src/WidgetMetricRow.jsx` — replaced inline `__badge` + `__value` spans with `<Badge variant="metric">{value}</Badge>`.
+- `packages/ui/src/index.js` — added `WidgetPieChart` export.
+- `apps/odyssey-one/src/styles/components.css` — `.badge-metric` class added; widget-family hover/pressed states across `.btn--link` (arrow translate + new color ladder), `.widget__close`, `.widget__grip`, `.widget__content--1x` (+ children), `.widget-metric-row--interactive` (+ chevron + indicator + inner `.badge-metric` override); `.widget__pie` hover scale + `.widget__pie-segment` grow-in transition; removed dead `.widget-metric-row__badge` + `.widget-metric-row__value` rules.
+- `apps/odyssey-one/src/index.css` — added 5 missing Tailwind `@theme` color primitives (Carolina Blue/50, Ice Blue/200+600, Tan Hide/300+600) for tokens.css parity.
+- `apps/odyssey-one/src/routes/Home.jsx` — wired 4 Widget instances (one per variant) with exceptions-themed mock data; metric rows have no-op `onClick` so they render as interactive.
+- `apps/odyssey-one/src/routes/Home.css` — added `.home-widget-grid` flex-wrap container.
+- `playground/DesignSystemMap.html` — Normalize-tab validation section (added + iterated), Components-tab promotion (3 new sections + Badge metric + ButtonLink link variant subsection + 3 compDetails entries + composition line update).
+- `playground/normalization-tracker.md` — Badge row updated, Button row updated, 3 new rows added, 4 new "Pushed to Figma" entries, 5 new Code Connect entries.
+
+### State of `@odyssey/ui` after Session 22
+
+**17 normalized components** (was 14):
+- Atoms: Badge (now 8 variants with `metric`), Button (link variant ladder revised), IconButton, OdysseyLogo, SidebarButton
+- Molecules: GlobalSearch, LeadNav, TrailNav, PageHeader, SectionHeader, EntityChip, WidgetMetricRow, **WidgetPieChart** (NEW)
+- Organisms: Navbar, Widget (now with hover/pressed states across all 3 interactive surfaces)
+
+**Figma:**
+- Badge set extended to 8 variants (metric `1858:296` cloned from gray, iconless)
+- WidgetPieChart set `1881:77` (md + lg variants, Show center text BOOLEAN, Center text TEXT)
+- WidgetContent 2x + 3xChart now reference WidgetPieChart instances (`isExposedInstance: true`)
+- Component bindings unchanged for other masters
+
+**DSM:**
+- Components tab: 15 sections now (12 from before + Widget + WidgetMetricRow + WidgetPieChart)
+- Normalize tab: cleared (the `getWidgetFamilyNormalizeHTML()` function is defined but not called — kept as reference for future cycles)
+- All sections audit-clean against HEAD source files
+
+**Cross-component interaction language established:**
+- Pattern A — "build/release" with motion (Widget 1x arrow): translateX forward on hover, snaps back on press
+- Pattern B — "hover commits, press lifts" (Widget close/grip, WidgetMetricRow text/chevron/indicator/inner-badge-bg): icons darken to DSN/900 on hover, lighten to DSN/400 on press; indicators scale up and back
+- Pattern C — "lighten/commit" (ButtonLink): text lightens to CB/400 on hover, darkens to DSN/900 on press; arrow translates forward on hover and STAYS through press (the "going somewhere" semantic)
+- `:has()` selector tried and abandoned for cross-component effects this cycle; the class-based `.badge-metric` override pattern won (cleaner scoping, explicit DOM relationship, no specificity gymnastics)
+
+### Carry-forward to Session 23
+
+**Pre-flagged for next session:**
+- WidgetMetricRow Figma master could be updated to reference an instance of `Badge variant=metric` now that the variant exists (currently the value pill is still a hand-built frame in the Figma master). Cosmetic — code already uses the real Badge.
+- The chart-data tie-in mentioned by the user: "We will tie these charts to data in code" — WidgetPieChart's animation will fire when real data lands. Plumbing for data-bound widgets is a Home-domain milestone.
+- Off-token off-scale paddings (6 / 14 / 18) still raw in some components — Spacing scale extension on the agenda.
+- Sidebar Selected variant icon-color encoding in Figma.
+- Other-domain documentation (Orders / Carriers / Tracking / Users) — Obsidian + NotebookLM setup pending.
+- Resume Supabase migration when ≥3 domains have real UIs.
+
+**Standing backlog:**
+- SHP-66 — dropdown menu component.
+- SHP-67 — responsive normalization pass.
+- ButtonLink — full size × state matrix in Figma (currently only sm/Idle; new ladder + arrow translate are code-only for now, no Figma variants).
+- StatusBadge / TypeBadge / HazmatTag / Appointment badge / History action badges / Tab count pills normalizations (Ad-hoc Implementations table in tracker).
+
+**Parked:**
+- Mode-based Figma theming for Button icon colors.
+- Purge legacy `icons/Npx/*` masters.
+- Convert any remaining Lucide FRAMEs to proper COMPONENTs.
+
+**Library publish required**: Open Figma → Assets → **Publish library / Update**. Changes this cycle: Badge `metric` variant (new, in existing set), WidgetPieChart (new component set, includes `Size` variant + 2 properties), WidgetContent 2x + 3xChart inline donuts replaced by WidgetPieChart instances (structural change visible to other Figma files composing widgets), **ButtonLink converted to a State variant set** (Idle/Hover/Pressed at size=sm).
+
+### Thread 8 (addendum) — ButtonLink State variants in Figma
+
+User flagged a gap during wrap: the new ButtonLink hover/pressed states were code-only (per the cycle's earlier "batch as Pending Figma Sync" decision), but ButtonLink is user-facing enough that Figma parity was warranted before the library publish. Reversed the decision for ButtonLink only — other widget-family hover states (Widget close, grip, 1x button, WidgetMetricRow) stay on the Pending Figma Sync list.
+
+**Figma changes:**
+- Master `1838:7` converted into a **variant component set** at new id `1895:7` (named `ButtonLink`, still parented inside the user's "Link Buttons" frame `1822:3987`).
+- `State` VARIANT property added: `Idle` (preserved as `1838:7` inside the set), `Hover` (NEW `1894:7`), `Pressed` (NEW `1894:11`).
+- **Idle:** text + icon `Text/link` (CB/600), itemSpacing bound to `Spacing/4` (16).
+- **Hover:** text + icon bound to `Carolina Blue/400` primitive (#5BA4D4 — no `Text/*` semantic alias exists for CB/400 today; could add `--text-link-hover` later if other components need it). itemSpacing **unbound** and set to literal 20 — the +4px offset mirrors code's `translateX(4px)` on `.btn__icon--right`. Auto-layout-friendly: no extra spacer node needed.
+- **Pressed:** text + icon `Text/primary` (DSN/900). itemSpacing literal 20 — icon STAYS at +4 through press, matching code which has no `:active` transform reset.
+
+**Why preserve `1838:7` inside the set:** existing instances in WidgetContent 2x / 3x / 3xChart (`1850:77`, `:82`, `:86`) reference `1838:7` directly. Combining into a set preserves the id under `State=Idle`, so consumers continue to resolve correctly without manual swap.
+
+**Code Connect updated:** `Button.figma.tsx` second `figma.connect` block — URL changed from `1838-7` to `1895-7`. Mapping otherwise unchanged (`Label` TEXT → children, `Show icon` BOOLEAN + `Icon` INSTANCE_SWAP → `iconRight`). State variants share one React snippet (`variant="link"` plus the runtime CSS pseudo-classes — same pattern as the main Button set). Republished — `connect:publish` log lists `Button https://...node-id=1895-7`.
+
+No Disabled variant added this cycle (no consumer requires it). Full size × state matrix for ButtonLink (sm + md + lg × all states) remains on the standing backlog for when wider consumers materialize.
+
+### Thread 9 — Post-wrap layout fixes + grip/close default
+
+User reviewed the live Home page after the wrap and flagged 3 layout bugs + a default-state correction.
+
+**3 layout fixes:**
+1. **Widget shells stretching vertically** — in the `.home-widget-grid` flex-wrap row, widgets were inheriting `align-items: stretch` (the default) and matching the tallest widget's height. Fix: `align-items: flex-start` on `.home-widget-grid` so each widget hugs its own content height.
+2. **ButtonLink stretching horizontally** — inside `.widget` (flex column with default `align-items: stretch`), the ButtonLink atom (`display: inline-flex`, natively content-width) was being forced to fill the parent's width. Fix: `align-self: flex-start` on `.btn--link` so it stays content-width inside flex parents. Scoped to the link variant only — other Button variants in other layouts unaffected.
+3. **Widget 1x value-row collapsing** — the `.widget__value-row` (value + inline arrow) was `display: inline-flex`, so it only took content width and clustered at the left with empty space on the right. Fix: switched to `display: flex` + `justify-content: space-between` so the value sits at the left edge of the 1x widget's width and the arrow is pushed to the right edge.
+
+**Default-state correction:**
+- `Widget.showGrip` default flipped from `true` → `false`. The grip + close button are **edit-mode-only affordances** (shown when editing a view profile, future work). Default Widget state has neither. Existing logic was already correct for close (only rendered when `onClose` is passed); fix needed for grip (was rendering by default). Now consumers in edit mode opt in via `showGrip={true} onClose={fn}`.
+
+Build clean after all 4 fixes. No Figma changes — these are running-app behavior corrections only.
+
 **Library publish required**: Open Figma → Assets → **Publish library / Update**. New components added (IconButton, PageHeader, SectionHeader, EntityChip), 2 renamed (Header→PageHeader, Subheader→SectionHeader), 5 new typography variables, 4 new Effect Styles.

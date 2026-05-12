@@ -2,6 +2,7 @@ import { ArrowRight, GripVertical, X } from 'lucide-react'
 import { ICON_MD, ICON_LG } from '@odyssey/tokens'
 import Button from './Button.jsx'
 import WidgetMetricRow from './WidgetMetricRow.jsx'
+import WidgetPieChart from './WidgetPieChart.jsx'
 
 /**
  * Widget — molecule. Unified Home dashboard widget with 4 variants (1x / 2x / 3x / 3xChart).
@@ -23,7 +24,9 @@ export default function Widget({
   variant = '1x',
   title = '',
   domainIcon,
-  showGrip = true,
+  // Grip + close button are edit-mode-only affordances. Default off; consumers
+  // in an "edit a view profile" mode pass showGrip={true} + onClose={fn} to enable.
+  showGrip = false,
   onClose,
   onGoToClick,
   goToLabel,
@@ -127,7 +130,7 @@ function Content({ variant, value, label, percentage, rows, chartSegments, onGoT
           <span className="text-display-3xl-semibold widget__value">{value}</span>
           <span className="text-label-sm-medium widget__label">{label}</span>
         </div>
-        <PieChart segments={chartSegments} centerText={percentage} size={72} />
+        <WidgetPieChart segments={chartSegments} centerText={percentage} size="md" />
       </div>
     )
   }
@@ -154,7 +157,7 @@ function Content({ variant, value, label, percentage, rows, chartSegments, onGoT
             <span className="text-display-4xl-semibold widget__value">{value}</span>
             <span className="text-label-sm-medium widget__label">{label}</span>
           </div>
-          <PieChart segments={chartSegments} size={96} />
+          <WidgetPieChart segments={chartSegments} size="lg" />
         </div>
         <div className="widget__data-section">
           {rows.map((row, i) => (
@@ -174,49 +177,3 @@ function Content({ variant, value, label, percentage, rows, chartSegments, onGoT
   return null
 }
 
-/** Simple SVG pie chart. Segments rendered as conic-style arcs. */
-function PieChart({ segments = [], centerText, size = 72 }) {
-  const total = segments.reduce((sum, s) => sum + (s.value || 0), 0) || 1
-  const radius = size / 2
-  const strokeWidth = size * 0.18
-  const innerRadius = radius - strokeWidth / 2
-  const circumference = 2 * Math.PI * innerRadius
-  let offset = 0
-  return (
-    <span className="widget__pie" style={{ width: size, height: size }}>
-      <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size}>
-        <circle
-          cx={radius}
-          cy={radius}
-          r={innerRadius}
-          fill="none"
-          stroke="var(--chart-rest)"
-          strokeWidth={strokeWidth}
-        />
-        {segments.map((seg, i) => {
-          const length = (seg.value / total) * circumference
-          const dasharray = `${length} ${circumference - length}`
-          const segOffset = (offset / total) * circumference
-          offset += seg.value
-          return (
-            <circle
-              key={i}
-              cx={radius}
-              cy={radius}
-              r={innerRadius}
-              fill="none"
-              stroke={seg.color}
-              strokeWidth={strokeWidth}
-              strokeDasharray={dasharray}
-              strokeDashoffset={-segOffset}
-              transform={`rotate(-90 ${radius} ${radius})`}
-            />
-          )
-        })}
-      </svg>
-      {centerText && (
-        <span className="widget__pie-center text-label-sm-medium">{centerText}</span>
-      )}
-    </span>
-  )
-}

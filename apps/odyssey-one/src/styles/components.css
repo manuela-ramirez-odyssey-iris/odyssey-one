@@ -378,6 +378,13 @@ input[type="radio"].odyssey-radio {
   font-weight: 500;
 }
 
+/* Badge — metric variant. Bg via class (not inline) so parent context
+   (e.g. WidgetMetricRow interactive states) can override on hover/press. */
+.badge-metric {
+  background: var(--badge-gray-bg);
+  transition: background var(--transition-fast);
+}
+
 /* GlobalSearch — placeholder color (cannot be set via inline styles) */
 .global-search-input::placeholder {
   color: var(--deep-sea-neutral-400);
@@ -614,23 +621,40 @@ input[type="radio"].odyssey-radio {
   box-shadow: var(--shadow-sm);
 }
 
-/* Link — text-only tertiary action on light surfaces. No bg / border / shadow at idle. */
+/* Link — text-only tertiary action on light surfaces. No bg / border / shadow at any state.
+   Ladder inverts the icon-button pattern: hover LIGHTENS (Carolina Blue 400),
+   press DARKENS to DSN/900 (the "committed action" feel).
+   `align-self: flex-start` keeps the button content-width when placed inside a flex
+   column (e.g. Widget shell) — without it, flex's default `align-items: stretch`
+   would force the button to fill the parent's width. */
 .btn--link {
   background: transparent;
   color: var(--text-link);
   border-color: transparent;
   box-shadow: none;
+  align-self: flex-start;
 }
 .btn--link:hover:not(:disabled) {
-  background: var(--deep-sea-neutral-50);
+  background: transparent;
+  color: var(--carolina-blue-400);
 }
 .btn--link:active:not(:disabled) {
-  background: var(--deep-sea-neutral-100);
-  color: var(--deep-sea-neutral-400);
+  background: transparent;
+  color: var(--text-primary);
 }
 .btn--link:disabled {
   color: var(--text-placeholder);
   background: transparent;
+}
+/* Trailing-icon arrow animation on ButtonLink — slides right on hover and
+   STAYS there through press; only returns on hover-out. (Diverges from the
+   Widget 1x arrow which snaps back on press — different semantic: ButtonLink
+   keeps the forward motion as the "committed" state.) */
+.btn--link .btn__icon--right {
+  transition: transform var(--transition-fast);
+}
+.btn--link:hover:not(:disabled) .btn__icon--right {
+  transform: translateX(4px);
 }
 
 /* Trailing-icon padding — mirror leading-icon asymmetric padding */
@@ -883,6 +907,15 @@ input[type="radio"].odyssey-radio {
 .widget__grip {
   color: var(--text-tertiary);
   flex-shrink: 0;
+  cursor: grab;
+  transition: color var(--transition-fast);
+}
+.widget__grip:hover {
+  color: var(--text-primary);
+}
+.widget__grip:active {
+  color: var(--text-placeholder);
+  cursor: grabbing;
 }
 .widget__close {
   background: transparent;
@@ -892,6 +925,13 @@ input[type="radio"].odyssey-radio {
   cursor: pointer;
   display: inline-flex;
   flex-shrink: 0;
+  transition: color var(--transition-fast);
+}
+.widget__close:hover {
+  color: var(--text-primary);
+}
+.widget__close:active {
+  color: var(--text-placeholder);
 }
 .widget__title {
   color: var(--text-primary);
@@ -933,13 +973,35 @@ input[type="radio"].odyssey-radio {
   cursor: default;
 }
 .widget__value-row {
-  display: inline-flex;
+  display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 3px;
 }
 .widget__value { color: var(--text-primary); }
-.widget__inline-arrow { color: var(--text-link); flex-shrink: 0; }
-.widget__label { color: var(--text-secondary-soft); }
+.widget__inline-arrow {
+  color: var(--text-link);
+  flex-shrink: 0;
+  transition: color var(--transition-fast), transform var(--transition-fast);
+}
+.widget__label {
+  color: var(--text-secondary-soft);
+  transition: color var(--transition-fast);
+}
+.widget__content--1x:hover:not(:disabled) .widget__inline-arrow {
+  color: var(--text-secondary);
+  transform: translateX(4px);
+}
+.widget__content--1x:hover:not(:disabled) .widget__label {
+  color: var(--text-secondary);
+}
+.widget__content--1x:active:not(:disabled) .widget__inline-arrow {
+  color: var(--text-primary);
+  transform: translateX(0);
+}
+.widget__content--1x:active:not(:disabled) .widget__label {
+  color: var(--text-primary);
+}
 
 .widget__content--2x {
   flex-direction: row;
@@ -981,10 +1043,20 @@ input[type="radio"].odyssey-radio {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  transition: transform var(--transition-base);
+}
+.widget__pie:hover {
+  transform: scale(1.05);
 }
 .widget__pie-center {
   position: absolute;
   color: var(--text-secondary-soft);
+}
+/* Page-load grow-in animation for segments. Driven by the `widget__pie--animated`
+   modifier set by the React PieChart after mount (rAF flip). Each segment's
+   stroke-dasharray transitions from "0 circumference" to its final length. */
+.widget__pie-segment {
+  transition: stroke-dasharray 800ms ease-out;
 }
 
 /* Widget Go-to button uses the new Button "link" variant — no custom widget__go-to needed. */
@@ -1010,6 +1082,7 @@ input[type="radio"].odyssey-radio {
 .widget-metric-row--interactive {
   cursor: pointer;
   text-align: left;
+  transition: color var(--transition-fast);
 }
 .widget-metric-row__label-group {
   display: inline-flex;
@@ -1022,6 +1095,7 @@ input[type="radio"].odyssey-radio {
   height: 8px;
   border-radius: var(--radius-full);
   flex-shrink: 0;
+  transition: transform var(--transition-fast);
 }
 .widget-metric-row__label {
   /* typography via .text-label-sm-regular utility on the element */
@@ -1032,21 +1106,41 @@ input[type="radio"].odyssey-radio {
   align-items: center;
   gap: var(--spacing-3);
 }
-.widget-metric-row__badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 1px var(--spacing-2);
-  background: var(--badge-gray-bg);
-  border-radius: var(--radius-lg);
-}
-.widget-metric-row__value {
-  /* typography via .text-label-xs-semibold utility on the element */
-  color: var(--text-primary);
-  font-variant-numeric: tabular-nums;
-}
 .widget-metric-row__chevron {
   color: var(--text-tertiary);
   flex-shrink: 0;
+  transition: color var(--transition-fast);
+}
+/* Hover/pressed states — only on interactive rows.
+   Color darkens on hover, darkens further on press.
+   Indicator scales up on hover, returns to baseline on press
+   (mirrors the WidgetContent 1x arrow translate pattern). */
+.widget-metric-row--interactive:hover {
+  color: var(--text-primary);
+}
+.widget-metric-row--interactive:hover .widget-metric-row__chevron {
+  color: var(--text-primary);
+}
+.widget-metric-row--interactive:hover .widget-metric-row__indicator {
+  transform: scale(1.25);
+}
+/* The inline value pill (Badge metric) inside an interactive row darkens
+   one step on hover. Scoped to this context — standalone Badge metric
+   instances elsewhere keep the default bg. */
+.widget-metric-row--interactive:hover .badge-metric {
+  background: var(--deep-sea-neutral-200);
+}
+.widget-metric-row--interactive:active {
+  color: var(--text-placeholder);
+}
+.widget-metric-row--interactive:active .widget-metric-row__chevron {
+  color: var(--text-placeholder);
+}
+.widget-metric-row--interactive:active .widget-metric-row__indicator {
+  transform: scale(1);
+}
+.widget-metric-row--interactive:active .badge-metric {
+  background: var(--badge-gray-bg);
 }
 
 /* ----------------------------------------

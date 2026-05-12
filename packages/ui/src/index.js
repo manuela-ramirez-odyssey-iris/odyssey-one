@@ -11,4 +11,5 @@ export { default as PageHeader } from './PageHeader.jsx';
 export { default as SectionHeader } from './SectionHeader.jsx';
 export { default as EntityChip } from './EntityChip.jsx';
 export { default as WidgetMetricRow } from './WidgetMetricRow.jsx';
+export { default as WidgetPieChart } from './WidgetPieChart.jsx';
 export { default as Widget } from './Widget.jsx';

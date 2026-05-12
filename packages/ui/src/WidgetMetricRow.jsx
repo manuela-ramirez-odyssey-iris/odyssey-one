@@ -1,9 +1,10 @@
 import { ChevronRight } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
+import Badge from './Badge.jsx'
 
 /**
  * WidgetMetricRow — molecule. Single data row inside Widget 3x / 3xChart content:
- * optional indicator dot + label + inline value badge + trailing chevron.
+ * optional indicator dot + label + inline value Badge (metric variant) + trailing chevron.
  *
  * Polymorphic: renders as `<button>` when `onClick` is provided, `<div>` otherwise.
  * Indicator color is consumer-driven (defaults to `--chart-1`); pass a chart token
@@ -43,9 +44,7 @@ export default function WidgetMetricRow({
         <span className="widget-metric-row__label text-label-sm-regular">{label}</span>
       </span>
       <span className="widget-metric-row__trailing">
-        <span className="widget-metric-row__badge">
-          <span className="widget-metric-row__value text-label-xs-semibold">{value}</span>
-        </span>
+        <Badge variant="metric">{value}</Badge>
         <ChevronRight {...ICON_MD} className="widget-metric-row__chevron" aria-hidden="true" />
       </span>
     </Tag>

@@ -6,10 +6,12 @@ const variants = {
   purple: { bg: 'var(--badge-purple-bg)', color: 'var(--badge-purple-text)' },
   gray: { bg: 'var(--badge-gray-bg)', color: 'var(--badge-gray-text)', iconColor: 'var(--text-tertiary)' },
   notification: { bg: 'var(--bittersweet-600)', color: 'var(--text-inverse)', isDot: true },
+  metric: { bg: 'var(--badge-gray-bg)', color: 'var(--text-primary)', isMetric: true },
 }
 
-function getPadding(leftIcon, rightIcon, isDot) {
+function getPadding(leftIcon, rightIcon, isDot, isMetric) {
   if (isDot) return '4px'
+  if (isMetric) return '1px var(--spacing-2)'
   const left = leftIcon ? 8 : 10
   const right = rightIcon ? 8 : 10
   return `2px ${right}px 2px ${left}px`
@@ -17,29 +19,40 @@ function getPadding(leftIcon, rightIcon, isDot) {
 
 export default function Badge({ children, variant = 'blue', leftIcon, rightIcon, statusDot }) {
   const v = variants[variant] || variants.blue
-  const hasLeft = !!leftIcon
-  const hasRight = !!rightIcon
-  const hasDot = !!statusDot
-  const iconColor = v.iconColor || 'currentColor'
   const isDot = !!v.isDot
+  const isMetric = !!v.isMetric
+  const hasLeft = !!leftIcon && !isMetric
+  const hasRight = !!rightIcon && !isMetric
+  const hasDot = !!statusDot && !isMetric
+  const iconColor = v.iconColor || 'currentColor'
+  const radius = isDot
+    ? 'var(--radius-full)'
+    : isMetric
+      ? 'var(--radius-lg)'
+      : 'var(--radius-sm)'
 
   return (
     <span
-      className="text-badge"
+      className={
+        isMetric
+          ? 'badge-metric text-label-xs-semibold'
+          : 'text-badge'
+      }
       style={{
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: isDot ? 'center' : undefined,
         gap: 4,
-        borderRadius: isDot ? 'var(--radius-full)' : 'var(--radius-sm)',
-        padding: getPadding(hasLeft, hasRight, isDot),
+        borderRadius: radius,
+        padding: getPadding(hasLeft, hasRight, isDot, isMetric),
         width: isDot ? 20 : undefined,
         height: isDot ? 20 : undefined,
         boxSizing: 'border-box',
-        background: v.bg,
+        background: isMetric ? undefined : v.bg,
         color: v.color,
         whiteSpace: 'nowrap',
         flexShrink: 0,
+        fontVariantNumeric: isMetric ? 'tabular-nums' : undefined,
       }}
     >
       {hasDot && (

@@ -1,3 +1,15 @@
 .home-page-header {
   margin-bottom: var(--spacing-6);
 }
+
+/* Smoke-test widget grid. One of each Widget variant placed below SectionHeader.
+   Real grid system (drag-resize, profiles, etc.) comes later — see home-domain-analysis.md.
+   `align-items: flex-start` so widgets hug their own content height instead of
+   matching the tallest item in the row. */
+.home-widget-grid {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--spacing-4);
+  margin-top: var(--spacing-6);
+}
