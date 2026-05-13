@@ -109,6 +109,17 @@ function previewWidgetProps(variant, itemLabel) {
   return base
 }
 
+// Navigation targets for each widget's "Go to X" link/arrow. Looked up by
+// widget id in useState init and wrapped in a navigate() callback.
+const widgetGoToPaths = {
+  'order-exceptions': '/orders',
+  'carriers-active': '/tracking',
+  'um-locked': '/users',
+  'um-pending': '/users',
+  'shipments-exceptions': '/shipments',
+  'tracking-total': '/tracking',
+}
+
 // Stub ctaRows for the module-level initialWidgets seed — handlers are no-op
 // here so initialization stays pure. The Home component overrides this with
 // navigation-bound handlers via useState's lazy initializer.
@@ -400,11 +411,16 @@ export default function Home() {
   )
 
   const [widgets, setWidgets] = useState(() =>
-    initialWidgets.map((w) =>
-      w.id === 'home-quick-actions'
-        ? { ...w, props: { ...w.props, ctaRows } }
-        : w,
-    ),
+    initialWidgets.map((w) => {
+      if (w.id === 'home-quick-actions') {
+        return { ...w, props: { ...w.props, ctaRows } }
+      }
+      const target = widgetGoToPaths[w.id]
+      if (target) {
+        return { ...w, props: { ...w.props, onGoToClick: () => navigate(target) } }
+      }
+      return w
+    }),
   )
   const [catalog, setCatalog] = useState(initialCatalog)
   const [searchValue, setSearchValue] = useState('')
