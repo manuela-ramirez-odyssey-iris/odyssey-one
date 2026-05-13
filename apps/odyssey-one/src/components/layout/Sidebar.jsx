@@ -14,7 +14,7 @@ const topItems = [
 const bottomItems = [
   { icon: Truck,     label: 'Carriers',        to: '/carriers' },
   { icon: UserCog,   label: 'User Management', to: '/users' },
-  { icon: Handshake, label: 'Partners',        to: null },
+  { icon: Handshake, label: 'Partners',        to: '/partners' },
 ]
 
 const Sidebar = React.memo(function Sidebar() {
@@ -58,26 +58,16 @@ const Sidebar = React.memo(function Sidebar() {
             borderTop: '1px solid var(--deep-sea-neutral-300)',
           }}
         >
-          {bottomItems.map(({ icon: Icon, label, to }) =>
-            to ? (
-              <NavLink key={label} to={to} title={label}>
-                {({ isActive }) => (
-                  <SidebarButton
-                    state={isActive ? 'selected' : 'default'}
-                    icon={<Icon {...ICON_LG} />}
-                  />
-                )}
-              </NavLink>
-            ) : (
-              <button
-                key={label}
-                title={label}
-                className="border-none bg-transparent p-0 cursor-pointer"
-              >
-                <SidebarButton icon={<Icon {...ICON_LG} />} />
-              </button>
-            )
-          )}
+          {bottomItems.map(({ icon: Icon, label, to }) => (
+            <NavLink key={to} to={to} title={label}>
+              {({ isActive }) => (
+                <SidebarButton
+                  state={isActive ? 'selected' : 'default'}
+                  icon={<Icon {...ICON_LG} />}
+                />
+              )}
+            </NavLink>
+          ))}
         </div>
       </nav>
     </aside>

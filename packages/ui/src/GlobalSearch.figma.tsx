@@ -1,19 +1,15 @@
 import figma from '@figma/code-connect'
 import GlobalSearch from './GlobalSearch'
 
-// State=Default | State=Focused — both render the search bar (mode='search')
+// State=Default | State=Focused — both render the search bar (mode='search').
+// Visual difference between the two is internal focus state; one mapping covers both.
 figma.connect(
   GlobalSearch,
   'https://www.figma.com/design/vodiHJU38YWZYmTz81uOk7/Design-System---MCP?node-id=658-18',
   {
     imports: ["import { GlobalSearch } from '@odyssey/ui'"],
     variant: { State: 'Default' },
-    props: {
-      dropdownIcon: figma.instance('Dropdown icon'),
-    },
-    example: ({ dropdownIcon }) => (
-      <GlobalSearch mode="search" dropdownIcon={dropdownIcon} />
-    ),
+    example: () => <GlobalSearch mode="search" />,
   },
 )
 
@@ -23,12 +19,7 @@ figma.connect(
   {
     imports: ["import { GlobalSearch } from '@odyssey/ui'"],
     variant: { State: 'Focused' },
-    props: {
-      dropdownIcon: figma.instance('Dropdown icon'),
-    },
-    example: ({ dropdownIcon }) => (
-      <GlobalSearch mode="search" dropdownOpen dropdownIcon={dropdownIcon} />
-    ),
+    example: () => <GlobalSearch mode="search" />,
   },
 )
 

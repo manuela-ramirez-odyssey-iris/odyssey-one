@@ -2211,7 +2211,6 @@ function getGlobalSearchComponentHTML() {
   /* lucide icons (20px lg + 16px md) */
   var svgChevL = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>';
   var svgChevR = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>';
-  var svgChevDown = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>';
   var svgCircleX = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>';
 
   /* Inject the wrapper-border styles once per render. ::after with pointer-events:none
@@ -2224,7 +2223,7 @@ function getGlobalSearchComponentHTML() {
 
   function renderBar(accentColor, focused) {
     var historyBtn = 'display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; padding:6px; background:transparent; border:none; cursor:default; color:var(--deep-sea-neutral-400, #9DA3B0);';
-    var scope = 'display:flex; align-items:center; gap:12px; padding:6px 8px 6px 12px; background:var(--deep-sea-neutral-700, #384253); border:none; border-right:1px solid var(--deep-sea-neutral-600, #4C5463); color:' + accentColor + '; font-family:Inter,sans-serif; font-size:14px; line-height:20px; cursor:default;';
+    var scope = 'display:flex; align-items:center; padding:6px 12px; background:var(--deep-sea-neutral-700, #384253); border-right:1px solid var(--deep-sea-neutral-600, #4C5463); color:' + accentColor + '; font-family:Inter,sans-serif; font-size:14px; line-height:20px;';
     var placeholderText = 'flex:1; color:var(--deep-sea-neutral-400, #9DA3B0); font-family:Inter,sans-serif; font-size:14px;';
     var clearBtn = 'display:inline-flex; align-items:center; justify-content:center; padding:0; background:transparent; border:none; color:' + accentColor + '; cursor:default;';
     return '' +
@@ -2234,7 +2233,7 @@ function getGlobalSearchComponentHTML() {
           '<button style="' + historyBtn + '">' + svgChevR + '</button>' +
         '</div>' +
         '<div class="gs-demo-wrap' + (focused ? ' focused' : '') + '">' +
-          '<button style="' + scope + '">All' + svgChevDown + '</button>' +
+          '<span style="' + scope + '">All</span>' +
           '<span style="' + placeholderText + '">Search</span>' +
           '<button style="' + clearBtn + '">' + svgCircleX + '</button>' +
         '</div>' +
@@ -2245,7 +2244,7 @@ function getGlobalSearchComponentHTML() {
   '<div class="comp-section">' +
     '<div class="comp-section-title">GlobalSearch <span class="comp-normalized-label">NORMALIZED</span></div>' +
     '<div class="comp-section-subtitle">packages/ui/src/GlobalSearch.jsx</div>' +
-    '<div style="font-size:13px; color:#6B7280; margin-bottom:18px; line-height:1.5;">Molecule &mdash; history-nav arrows + scope dropdown + input + clear button. Two variants in Figma (Default / Focused); the Focused state in code is driven by either input focus or an open dropdown. Now supports a <code>mode</code> prop &mdash; <code>\'search\'</code> (default) shows the searchbar; <code>\'title\'</code> swaps to a centered title text (used as a context swap, e.g. when entering an edit mode).</div>' +
+    '<div style="font-size:13px; color:#6B7280; margin-bottom:18px; line-height:1.5;">Molecule &mdash; history-nav arrows + static scope label + input + clear button. Two variants in Figma (Default / Focused); the Focused state in code is driven by input focus. Now supports a <code>mode</code> prop &mdash; <code>\'search\'</code> (default) shows the searchbar; <code>\'title\'</code> swaps to a centered title text (used as a context swap, e.g. when entering an edit mode).</div>' +
     globalSearchStyles +
 
     /* Sub-section: States */
@@ -2256,13 +2255,13 @@ function getGlobalSearchComponentHTML() {
           '<div style="display:flex; justify-content:center; padding:12px; background:#0B1629; border-radius:8px;">' +
             renderBar('var(--deep-sea-neutral-400, #9DA3B0)', false) +
           '</div>' +
-          '<div class="comp-card-note">Default &mdash; 1px Carolina Blue/400 border (drawn via wrapper <code>::after</code>), scope text + chevron + circle-x at <code>--deep-sea-neutral-400</code>.</div>' +
+          '<div class="comp-card-note">Default &mdash; 1px Carolina Blue/400 border (drawn via wrapper <code>::after</code>), scope text + circle-x at <code>--deep-sea-neutral-400</code>.</div>' +
         '</div>' +
         '<div class="comp-card">' +
           '<div style="display:flex; justify-content:center; padding:12px; background:#0B1629; border-radius:8px;">' +
             renderBar('var(--deep-sea-neutral-200, #E4E6EB)', true) +
           '</div>' +
-          '<div class="comp-card-note">Focused &mdash; 2px border, scope text + chevron + circle-x lift to <code>--deep-sea-neutral-200</code>. Triggered by <code>inputFocused || dropdownOpen</code>.</div>' +
+          '<div class="comp-card-note">Focused &mdash; 2px border, scope text + circle-x lift to <code>--deep-sea-neutral-200</code>. Triggered by input focus.</div>' +
         '</div>' +
       '</div>' +
     '</div>' +
@@ -2289,7 +2288,7 @@ function getGlobalSearchComponentHTML() {
     '<div class="comp-subsection">' +
       '<div class="comp-subsection-title">Figma Reference</div>' +
       '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
-        'Component set <code style="' + codeChip + '">658:18</code> in Design System - MCP. Variant property <code style="' + codeChip + '">State</code> with values Default / Focused / Title. TEXT property <code style="' + codeChip + '">Title</code> (default <code style="' + codeChip + '">"Edit Dashboard"</code>) drives the centered title in the Title variant. INSTANCE_SWAP property <code style="' + codeChip + '">Dropdown icon</code> for the chevron slot (default <code style="' + codeChip + '">lucide/chevron-down</code>).' +
+        'Component set <code style="' + codeChip + '">658:18</code> in Design System - MCP. Variant property <code style="' + codeChip + '">State</code> with values Default / Focused / Title. TEXT property <code style="' + codeChip + '">Title</code> (default <code style="' + codeChip + '">"Edit Dashboard"</code>) drives the centered title in the Title variant.' +
       '</div>' +
     '</div>' +
 
@@ -2305,11 +2304,10 @@ function getGlobalSearchComponentHTML() {
     '<div class="comp-subsection">' +
       '<div class="comp-subsection-title">Implementation Notes</div>' +
       '<ul style="margin:0; padding-left:20px; font-size:13px; color:#384253; line-height:1.7;">' +
-        '<li>Border drawn via wrapper <code>::after</code> pseudo (with <code>pointer-events:none</code>) so child backgrounds (the scope dropdown) don\'t clip it.</li>' +
+        '<li>Border drawn via wrapper <code>::after</code> pseudo (with <code>pointer-events:none</code>) so the child scope-label background doesn\'t clip it.</li>' +
         '<li>Clear button uses <code>onMouseDown preventDefault</code> so clicking it doesn\'t blur the input.</li>' +
         '<li>Placeholder color &amp; focus-outline suppression live in <code>apps/odyssey-one/src/styles/components.css</code>.</li>' +
-        '<li>Focus state combines internal <code>inputFocused</code> with the <code>dropdownOpen</code> prop.</li>' +
-        '<li>Scope dropdown menu (Categories list, divider, group label) is currently inline in <code>Navbar.jsx</code> &mdash; pending its own normalize pass (SHP-66).</li>' +
+        '<li>Focus state is driven by internal <code>inputFocused</code>; scope is a static labeled chip and never opens a menu.</li>' +
       '</ul>' +
     '</div>' +
   '</div>';
@@ -2651,7 +2649,7 @@ function getNavbarComponentHTML() {
   function renderSearchSlot() {
     var historyBtn = 'display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; padding:6px; background:transparent; border:none; cursor:default; color:var(--deep-sea-neutral-400, #9DA3B0);';
     var wrap = 'position:relative; display:flex; align-items:center; flex:1; background:var(--deep-sea-neutral-900, #1B2537); border:1px solid var(--carolina-blue-400, #5BA4D4); border-radius:var(--radius-lg, 8px); padding-right:12px; gap:12px; overflow:hidden; box-shadow:0 1px 2px 0 rgba(0,0,0,0.05);';
-    var scope = 'display:flex; align-items:center; gap:12px; padding:6px 8px 6px 12px; background:var(--deep-sea-neutral-700, #384253); border:none; border-right:1px solid var(--deep-sea-neutral-600, #4C5463); color:var(--deep-sea-neutral-400, #9DA3B0); font-family:Inter,sans-serif; font-size:14px; line-height:20px; cursor:default;';
+    var scope = 'display:flex; align-items:center; padding:6px 12px; background:var(--deep-sea-neutral-700, #384253); border-right:1px solid var(--deep-sea-neutral-600, #4C5463); color:var(--deep-sea-neutral-400, #9DA3B0); font-family:Inter,sans-serif; font-size:14px; line-height:20px;';
     var placeholderText = 'flex:1; color:var(--deep-sea-neutral-400, #9DA3B0); font-family:Inter,sans-serif; font-size:14px;';
     var clearBtn = 'display:inline-flex; align-items:center; justify-content:center; padding:0; background:transparent; border:none; color:var(--deep-sea-neutral-400, #9DA3B0); cursor:default;';
     /* min/max on the OUTER wrapper — entire GlobalSearch is bounded 590..900 */
@@ -2661,7 +2659,7 @@ function getNavbarComponentHTML() {
                '<button style="' + historyBtn + '">' + svgChevR + '</button>' +
              '</div>' +
              '<div style="' + wrap + '">' +
-               '<button style="' + scope + '">All' + svgChevDown + '</button>' +
+               '<span style="' + scope + '">All</span>' +
                '<span style="' + placeholderText + '">Search</span>' +
                '<button style="' + clearBtn + '">' + svgCircleX + '</button>' +
              '</div>' +
@@ -2709,7 +2707,7 @@ function getNavbarComponentHTML() {
   '<div class="comp-section">' +
     '<div class="comp-section-title">Navbar <span class="comp-normalized-label">NORMALIZED</span></div>' +
     '<div class="comp-section-subtitle">packages/ui/src/Navbar.jsx</div>' +
-    '<div style="font-size:13px; color:#6B7280; margin-bottom:18px; line-height:1.5;">Organism &mdash; layout shell for the top navigation bar. Composes <code>LeadNav</code> + <code>GlobalSearch</code> + <code>TrailNav</code> via slot props (<code>lead</code>, <code>search</code>, <code>trail</code>). The shell provides the surface (DSN/900 background, padding 14&middot;24&middot;14&middot;16) and the <code>justify-between</code> distribution. <code>searchRef</code> / <code>trailRef</code> attach to internal wrappers for consumer-rendered dropdowns&rsquo; click-outside detection.</div>' +
+    '<div style="font-size:13px; color:#6B7280; margin-bottom:18px; line-height:1.5;">Organism &mdash; layout shell for the top navigation bar. Composes <code>LeadNav</code> + <code>GlobalSearch</code> + <code>TrailNav</code> via slot props (<code>lead</code>, <code>search</code>, <code>trail</code>). The shell provides the surface (DSN/900 background, padding 14&middot;24&middot;14&middot;16) and the <code>justify-between</code> distribution. <code>trailRef</code> attaches to the internal trail wrapper for the profile dropdown&rsquo;s click-outside detection.</div>' +
 
     /* Sub-section: Composition demo */
     '<div class="comp-subsection">' +
@@ -2717,7 +2715,7 @@ function getNavbarComponentHTML() {
       '<div class="comp-card-grid">' +
         '<div class="comp-card" style="grid-column: 1 / -1;">' +
           '<div style="overflow-x:auto;">' + renderNavbarShell() + '</div>' +
-          '<div class="comp-card-note">Default composition &mdash; <code>LeadNav</code> left, <code>GlobalSearch</code> center, <code>TrailNav</code> (Profile mode) right. <code>justify-between</code> distributes the three slots; the search slot stretches between the fixed-width lead and trail. GlobalSearch is bounded 590&ndash;900px on the <strong>whole</strong> component (history-nav arrows + scope dropdown + search field) &mdash; the dropdown is auto-width, the search field absorbs remaining space.</div>' +
+          '<div class="comp-card-note">Default composition &mdash; <code>LeadNav</code> left, <code>GlobalSearch</code> center, <code>TrailNav</code> (Profile mode) right. <code>justify-between</code> distributes the three slots; the search slot stretches between the fixed-width lead and trail. GlobalSearch is bounded 590&ndash;900px on the <strong>whole</strong> component (history-nav arrows + scope label + search field) &mdash; scope is a static labeled chip, the search field absorbs remaining space.</div>' +
         '</div>' +
       '</div>' +
     '</div>' +
@@ -3497,6 +3495,378 @@ function getEntityChipComponentHTML() {
   '</div>';
 }
 
+/* ── SearchField (molecule) component reference HTML ── */
+function getSearchFieldComponentHTML() {
+  var codeChip = 'font-family:\'SF Mono\',\'Fira Code\',monospace; font-size:11px; background:#F3F4F6; padding:1px 5px; border-radius:3px; color:#6B7280;';
+
+  /* Inline lucide SVGs at 16px stroke 2, color via currentColor */
+  var searchIcon = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>';
+  var circleXIcon = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>';
+
+  /* Build a SearchField demo. `value` empty triggers placeholder render;
+     when value present and `withClear` is true, the trailing CircleX shows.
+     `focused` forces the focused visual state (2px DSN/600 border + brighter search icon). */
+  function field(value, placeholder, withClear, focused) {
+    var hasValue = value && value.length > 0;
+    var inner = hasValue
+      ? '<span class="sf-demo__value">' + value + '</span>'
+      : '<span class="sf-demo__placeholder">' + (placeholder || 'Search') + '</span>';
+    var clear = (withClear && hasValue)
+      ? '<button type="button" class="sf-demo__clear" aria-label="Clear search">' + circleXIcon + '</button>'
+      : '';
+    var rootClass = 'sf-demo' + (focused ? ' sf-demo--focused' : '');
+    return '<div class="' + rootClass + '">' +
+      '<span class="sf-demo__icon">' + searchIcon + '</span>' +
+      '<span class="sf-demo__input">' + inner + '</span>' +
+      clear +
+    '</div>';
+  }
+
+  return '' +
+  '<style>' +
+    /* SearchField — mirror of .search-field in components.css.
+       32h white surface, 16px icon + input + optional clear, fixed-width demo. */
+    '.sf-demo {' +
+      'display: inline-flex; align-items: center; gap: var(--spacing-2, 8px);' +
+      'width: 280px; height: 32px;' +
+      'padding: 6px var(--spacing-3, 12px);' +
+      'background: var(--bg-primary, #FFFFFF);' +
+      'border: 1px solid var(--border-default, #D0D4DB);' +
+      'border-radius: var(--radius-md, 6px);' +
+      'box-shadow: var(--shadow-sm, 0 1px 2px rgba(15,23,42,0.04));' +
+      'box-sizing: border-box;' +
+      'font-family: var(--font-primary, \'Inter\', sans-serif);' +
+      'transition: border-color var(--transition-fast, 150ms ease), border-width var(--transition-fast, 150ms ease);' +
+    '}' +
+    /* Focused — 2px DSN/600 border + brighter search icon (text-placeholder to text-tertiary). */
+    '.sf-demo--focused {' +
+      'border: 2px solid var(--deep-sea-neutral-600, #4C5463);' +
+      /* Compensate the extra 1px ring so the demo does not jump 2px. */
+      'padding: 5px calc(var(--spacing-3, 12px) - 1px);' +
+    '}' +
+    '.sf-demo__icon {' +
+      'color: var(--text-placeholder, #9CA3AF); flex-shrink: 0; display: inline-flex;' +
+      'transition: color var(--transition-fast, 150ms ease);' +
+    '}' +
+    '.sf-demo--focused .sf-demo__icon { color: var(--text-tertiary, #6B7280); }' +
+    '.sf-demo__input {' +
+      'flex: 1 1 auto; min-width: 0; display: inline-flex; align-items: center;' +
+      'font-size: 14px; line-height: 20px; font-weight: 400;' +
+      'overflow: hidden; text-overflow: ellipsis; white-space: nowrap;' +
+    '}' +
+    '.sf-demo__placeholder { color: var(--text-placeholder, #9CA3AF); }' +
+    '.sf-demo__value { color: var(--text-primary, #1B2537); }' +
+    '.sf-demo__clear {' +
+      'background: transparent; border: none; padding: 0;' +
+      'color: var(--text-tertiary, #6B7280); cursor: pointer;' +
+      'display: inline-flex; flex-shrink: 0;' +
+      'transition: color var(--transition-fast, 150ms ease);' +
+    '}' +
+    '.sf-demo__clear:hover { color: var(--text-primary, #1B2537); }' +
+  '</style>' +
+  '<div class="comp-section">' +
+    '<div class="comp-section-title">SearchField <span class="comp-normalized-label">NORMALIZED</span></div>' +
+    '<div class="comp-section-subtitle">packages/ui/src/SearchField.jsx</div>' +
+
+    /* Sub-section: Anatomy */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Anatomy</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6; margin-bottom:14px;">' +
+        '32h light-surface search input. Leading 16px lucide <code>Search</code> icon + text input + optional trailing 16px <code>CircleX</code> clear button. ' +
+        '<code>--bg-primary</code> background, idle <code>1px solid --border-default</code> stroke, <code>--radius-md</code> corners, <code>--shadow-sm</code>. ' +
+        '<strong>Focus state &mdash;</strong> stroke thickens to <code>2px solid --deep-sea-neutral-600</code> and the search icon shifts <code>--text-placeholder</code> &rarr; <code>--text-tertiary</code>. ' +
+        'Restyled 2026-05-12 to mirror the Shipments <code>TableControls</code> searchbar recipe. Used inside overlay panels (e.g. <code>WidgetsLeftMenu</code>) and any filter surface that lives on a light card.' +
+      '</div>' +
+      '<div class="comp-card-grid">' +
+        '<div class="comp-card">' +
+          field('', 'Search', false, false) +
+          '<div class="comp-card-code">&lt;SearchField value="" onChange={...} /&gt;</div>' +
+          '<div class="comp-card-note"><strong>Idle &mdash; empty.</strong> Placeholder is <code>--text-placeholder</code> (DSN/400); search icon is <code>--text-placeholder</code> (DSN/400). 1px <code>--border-default</code> stroke. No clear button rendered.</div>' +
+        '</div>' +
+        '<div class="comp-card">' +
+          field('Date issues', 'Search', true, false) +
+          '<div class="comp-card-code">&lt;SearchField value="Date issues" onChange={...} onClear={...} /&gt;</div>' +
+          '<div class="comp-card-note"><strong>Idle &mdash; filled with clear.</strong> When <code>onClear</code> is provided <em>and</em> <code>value</code> is non-empty, the trailing <code>CircleX</code> renders. Clicking it fires <code>onClear()</code>; the clear button uses <code>onMouseDown preventDefault</code> so the input retains focus.</div>' +
+        '</div>' +
+        '<div class="comp-card">' +
+          field('Date issues', 'Search', true, true) +
+          '<div class="comp-card-code">Focused (input has focus)</div>' +
+          '<div class="comp-card-note"><strong>Focused.</strong> Internal <code>useState</code> tracks the input&rsquo;s <code>onFocus</code> / <code>onBlur</code>. On focus: border thickens to <code>2px solid --deep-sea-neutral-600</code> and the leading search icon shifts <code>--text-placeholder</code> &rarr; <code>--text-tertiary</code>. Transitions via <code>--transition-fast</code>.</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    /* Sub-section: Props & Tokens — modal */
+    '<div class="comp-subsection">' +
+      '<button class="comp-details-button" onclick="showCompDetails(\'SearchField\')">Show props &amp; tokens</button>' +
+    '</div>' +
+
+    /* Sub-section: Figma reference */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Figma Reference</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
+        'Component <code style="' + codeChip + '">1959:76</code> in Design System &mdash; MCP (file <code style="' + codeChip + '">vodiHJU38YWZYmTz81uOk7</code>). Single TEXT property: <code style="' + codeChip + '">Placeholder</code> (default <code>"Search"</code>) &rarr; maps to the <code>placeholder</code> prop.' +
+      '</div>' +
+    '</div>' +
+
+    /* Sub-section: Code Connect */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Code Connect</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
+        'Mapped via <code style="' + codeChip + '">packages/ui/src/SearchField.figma.tsx</code>. <code>Placeholder</code> TEXT &rarr; <code>placeholder</code> string prop.' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+/* ── MenuRow (molecule) component reference HTML ── */
+function getMenuRowComponentHTML() {
+  var codeChip = 'font-family:\'SF Mono\',\'Fira Code\',monospace; font-size:11px; background:#F3F4F6; padding:1px 5px; border-radius:3px; color:#6B7280;';
+
+  /* Inline lucide grip-vertical at 16px stroke 2, color via currentColor */
+  var gripVertical = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/></svg>';
+
+  /* Single row demo. `state` is '', 'hover', or 'pressed' — when set, the demo
+     ships an inline background fill + 100% grip opacity so the static card
+     shows the state without :hover/:active firing. */
+  function row(label, state) {
+    var stateClass = state ? ' mr-demo--force-' + state : '';
+    return '<div class="mr-demo' + stateClass + '">' +
+      '<span class="mr-demo__label">' + label + '</span>' +
+      '<span class="mr-demo__grip" aria-hidden="true">' + gripVertical + '</span>' +
+    '</div>';
+  }
+
+  return '' +
+  '<style>' +
+    /* MenuRow — mirror of .menu-row in apps/odyssey-one/src/styles/components.css.
+       36h horizontal row, justify-between, padding 8/16, gap 12. */
+    '.mr-demo {' +
+      'display: flex; align-items: center; justify-content: space-between;' +
+      'width: 240px; height: 36px;' +
+      'padding: var(--spacing-2, 8px) var(--spacing-4, 16px);' +
+      'gap: var(--spacing-3, 12px);' +
+      'font-family: var(--font-primary, \'Inter\', sans-serif);' +
+      'cursor: pointer;' +
+      'transition: background var(--transition-fast, 150ms ease);' +
+    '}' +
+    '.mr-demo__label {' +
+      'font-size: var(--font-size-sm, 14px);' +
+      'line-height: var(--line-height-sm, 20px);' +
+      'font-weight: var(--font-weight-regular, 400);' +
+      'color: var(--text-secondary, #384253);' +
+    '}' +
+    '.mr-demo__grip {' +
+      'display: inline-flex; flex-shrink: 0;' +
+      'color: var(--text-tertiary, #6B7280);' +
+      'opacity: 0;' +
+      'transition: opacity var(--transition-fast, 150ms ease);' +
+    '}' +
+    /* Live hover/pressed ladder */
+    '.mr-demo:hover { background: var(--deep-sea-neutral-100, #F2F3F5); }' +
+    '.mr-demo:hover .mr-demo__grip { opacity: 1; }' +
+    '.mr-demo:active { background: var(--deep-sea-neutral-200, #E4E6EB); }' +
+    '.mr-demo:active .mr-demo__grip { opacity: 1; }' +
+    /* Forced-state classes — locked visual per card. */
+    '.mr-demo--force-hover { background: var(--deep-sea-neutral-100, #F2F3F5); }' +
+    '.mr-demo--force-hover .mr-demo__grip { opacity: 1; }' +
+    '.mr-demo--force-pressed { background: var(--deep-sea-neutral-200, #E4E6EB); }' +
+    '.mr-demo--force-pressed .mr-demo__grip { opacity: 1; }' +
+  '</style>' +
+  '<div class="comp-section">' +
+    '<div class="comp-section-title">MenuRow <span class="comp-normalized-label">NORMALIZED</span></div>' +
+    '<div class="comp-section-subtitle">packages/ui/src/MenuRow.jsx</div>' +
+
+    /* Sub-section: Anatomy */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Anatomy</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6; margin-bottom:14px;">' +
+        '36h horizontal row &mdash; label + trailing 16px <code>GripVertical</code> drag affordance. Justify-between, padding <code>--spacing-2 --spacing-4</code> (8 / 16), gap <code>--spacing-3</code>. ' +
+        '<strong>States are CSS-driven</strong> &mdash; no React <code>state</code> prop. Hover bg <code>--deep-sea-neutral-100</code>; pressed bg <code>--deep-sea-neutral-200</code>; grip fades in on hover and when an ancestor sets <code>data-dragging="true"</code> (the dnd-kit wrapper convention). ' +
+        'Renders as a <code>&lt;div&gt;</code> (not <code>&lt;button&gt;</code>) so consumers can drag from anywhere on the row via rest-spread of dnd-kit <code>listeners</code> + <code>attributes</code>. Used by <code>MenuDropdown</code> + <code>WidgetsLeftMenu</code>.' +
+      '</div>' +
+      '<div class="comp-card-grid">' +
+        '<div class="comp-card" style="min-width:280px;">' +
+          row('Total Orders', '') +
+          '<div class="comp-card-code">Default &mdash; live (hover then hold mousedown)</div>' +
+          '<div class="comp-card-note"><strong>Idle.</strong> Transparent bg, label <code>--text-secondary</code>, grip opacity 0. Hover the card to verify the DSN/100 fill + grip fade-in; hold mousedown for DSN/200 pressed.</div>' +
+        '</div>' +
+        '<div class="comp-card" style="min-width:280px;">' +
+          row('Total Orders', 'hover') +
+          '<div class="comp-card-code">Hover (forced)</div>' +
+          '<div class="comp-card-note"><strong>Hover</strong> &mdash; bg <code>--deep-sea-neutral-100</code>, grip visible (opacity 1). Matches Figma <code>State=Hover</code> variant (<code style="' + codeChip + '">1973:79</code>).</div>' +
+        '</div>' +
+        '<div class="comp-card" style="min-width:280px;">' +
+          row('Total Orders', 'pressed') +
+          '<div class="comp-card-code">Pressed (forced)</div>' +
+          '<div class="comp-card-note"><strong>Pressed / dragging</strong> &mdash; bg <code>--deep-sea-neutral-200</code>, grip visible. Triggered by <code>:active</code> OR by an ancestor carrying <code>data-dragging="true"</code> (dnd-kit). Matches Figma <code>State=Pressed</code> variant (<code style="' + codeChip + '">1973:83</code>).</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    /* Sub-section: Props & Tokens — modal */
+    '<div class="comp-subsection">' +
+      '<button class="comp-details-button" onclick="showCompDetails(\'MenuRow\')">Show props &amp; tokens</button>' +
+    '</div>' +
+
+    /* Sub-section: Figma reference */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Figma Reference</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
+        'Component set <code style="' + codeChip + '">1973:87</code> in Design System &mdash; MCP, under Components-Molecules. Variant axis <code style="' + codeChip + '">State</code> = <code>Default</code> (<code style="' + codeChip + '">1973:77</code>) | <code>Hover</code> (<code style="' + codeChip + '">1973:79</code>) | <code>Pressed</code> (<code style="' + codeChip + '">1973:83</code>). TEXT property: <code style="' + codeChip + '">Label</code> default <code>"Total Orders"</code> &rarr; maps to the <code>label</code> prop.' +
+      '</div>' +
+    '</div>' +
+
+    /* Sub-section: Code Connect */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Code Connect</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
+        'Mapped via <code style="' + codeChip + '">packages/ui/src/MenuRow.figma.tsx</code>. <strong>3 <code>figma.connect()</code> blocks</strong> &mdash; one per State variant (Default / Hover / Pressed). All three render the identical snippet <code>&lt;MenuRow label={label} /&gt;</code> because visual state is CSS-only in code &mdash; the React component does not expose a <code>state</code> prop.' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+/* ── MenuDropdown (molecule) component reference HTML ── */
+function getMenuDropdownComponentHTML() {
+  var codeChip = 'font-family:\'SF Mono\',\'Fira Code\',monospace; font-size:11px; background:#F3F4F6; padding:1px 5px; border-radius:3px; color:#6B7280;';
+
+  /* Inline lucide chevrons at 16px stroke 2, color via currentColor */
+  var chevronDown = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>';
+  var chevronRight = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>';
+  var gripVertical = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/></svg>';
+
+  /* Reuse the same MenuRow shape inline (cannot share class with mr-demo
+     since both styles co-exist on the same page; prefix is md-demo__row). */
+  function row(label) {
+    return '<div class="md-demo__row">' +
+      '<span class="md-demo__row-label">' + label + '</span>' +
+      '<span class="md-demo__row-grip" aria-hidden="true">' + gripVertical + '</span>' +
+    '</div>';
+  }
+
+  function dropdown(title, expanded, items) {
+    var chev = expanded ? chevronDown : chevronRight;
+    var body = '';
+    if (expanded) {
+      var inner = '';
+      for (var i = 0; i < items.length; i++) inner += row(items[i]);
+      body = '<div class="md-demo__items">' + inner + '</div>';
+    }
+    return '<div class="md-demo">' +
+      '<button type="button" class="md-demo__header text-label-xs-medium-uppercase">' +
+        '<span class="md-demo__header-title">' + title + '</span>' +
+        '<span class="md-demo__header-chevron">' + chev + '</span>' +
+      '</button>' +
+      body +
+    '</div>';
+  }
+
+  return '' +
+  '<style>' +
+    /* MenuDropdown — mirror of .menu-dropdown in code. Vertical layout, padding-top spacing-3. */
+    '.md-demo {' +
+      'display: flex; flex-direction: column;' +
+      'width: 240px;' +
+      'padding-top: var(--spacing-3, 12px);' +
+      'font-family: var(--font-primary, \'Inter\', sans-serif);' +
+    '}' +
+    /* Header — 32h, label/xs medium uppercase. Local fallback so the card reads
+       even if the page-level .text-label-xs-medium-uppercase utility is absent. */
+    '.md-demo__header {' +
+      'display: inline-flex; align-items: center; justify-content: space-between;' +
+      'height: 32px;' +
+      'padding: var(--spacing-2, 8px) var(--spacing-4, 16px);' +
+      'gap: var(--spacing-3, 12px);' +
+      'background: transparent; border: none;' +
+      'border-bottom: 1px solid var(--border-subtle, #E4E6EB);' +
+      'color: var(--text-tertiary, #6B7280);' +
+      'cursor: pointer; text-align: left;' +
+      'font-size: 12px; line-height: 16px; font-weight: 500;' +
+      'text-transform: uppercase;' +
+      'letter-spacing: var(--letter-spacing-wide, 0.05em);' +
+      'transition: color var(--transition-fast, 150ms ease);' +
+    '}' +
+    '.md-demo__header:hover { color: var(--text-primary, #1B2537); }' +
+    '.md-demo__header-title { flex: 1; }' +
+    /* Chevron inherits via currentColor so hover on the header brightens it in lockstep. */
+    '.md-demo__header-chevron { display: inline-flex; flex-shrink: 0; }' +
+    /* Items container — appears only when expanded. */
+    '.md-demo__items { display: flex; flex-direction: column; }' +
+    /* Inner MenuRow shape — duplicated locally so it can co-exist with .mr-demo on the page. */
+    '.md-demo__row {' +
+      'display: flex; align-items: center; justify-content: space-between;' +
+      'height: 36px;' +
+      'padding: var(--spacing-2, 8px) var(--spacing-4, 16px);' +
+      'gap: var(--spacing-3, 12px);' +
+      'cursor: pointer;' +
+      'transition: background var(--transition-fast, 150ms ease);' +
+    '}' +
+    '.md-demo__row-label {' +
+      'font-size: var(--font-size-sm, 14px);' +
+      'line-height: var(--line-height-sm, 20px);' +
+      'font-weight: var(--font-weight-regular, 400);' +
+      'color: var(--text-secondary, #384253);' +
+    '}' +
+    '.md-demo__row-grip {' +
+      'display: inline-flex; flex-shrink: 0;' +
+      'color: var(--text-tertiary, #6B7280);' +
+      'opacity: 0;' +
+      'transition: opacity var(--transition-fast, 150ms ease);' +
+    '}' +
+    '.md-demo__row:hover { background: var(--deep-sea-neutral-100, #F2F3F5); }' +
+    '.md-demo__row:hover .md-demo__row-grip { opacity: 1; }' +
+    '.md-demo__row:active { background: var(--deep-sea-neutral-200, #E4E6EB); }' +
+  '</style>' +
+  '<div class="comp-section">' +
+    '<div class="comp-section-title">MenuDropdown <span class="comp-normalized-label">NORMALIZED</span></div>' +
+    '<div class="comp-section-subtitle">packages/ui/src/MenuDropdown.jsx</div>' +
+
+    /* Sub-section: Anatomy */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Anatomy</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6; margin-bottom:14px;">' +
+        'Collapsible group inside a left-menu. 32h header (label/xs medium uppercase, <code>--text-tertiary</code>, border-bottom <code>--border-subtle</code>) with a trailing chevron-down (expanded) / chevron-right (collapsed) toggle, followed by a composition slot for items via <code>children</code> (typically <code>MenuRow</code> instances). ' +
+        '<strong>When <code>expanded === false</code> the items container unmounts entirely</strong> &mdash; no display:none, no animation. Used inside <code>WidgetsLeftMenu</code> to render its 6 metric groups. ' +
+        '<strong>Implementation notes (2026-05-12):</strong> the header button has its own class <code>.menu-dropdown__header</code> with a hover affordance &mdash; text color shifts <code>--text-tertiary</code> &rarr; <code>--text-primary</code> on <code>:hover</code>, and the chevron icon follows via <code>currentColor</code> (the prior inline <code>color</code> style on the chevron was removed so it inherits from the button). CSS lives in <code>apps/odyssey-one/src/styles/components.css</code> near the <code>.menu-row*</code> block.' +
+      '</div>' +
+      '<div class="comp-card-grid">' +
+        '<div class="comp-card" style="min-width:280px;">' +
+          dropdown('Orders', true, ['Total Orders', 'Open Orders', 'Backorders']) +
+          '<div class="comp-card-code">&lt;MenuDropdown title="Orders" expanded={true}&gt;&lt;MenuRow ... /&gt;&lt;MenuRow ... /&gt;&lt;MenuRow ... /&gt;&lt;/MenuDropdown&gt;</div>' +
+          '<div class="comp-card-note"><strong>Expanded.</strong> Chevron-down + 3 <code>MenuRow</code> children rendered inside the slot. Hover any row to verify the inherited <code>MenuRow</code> ladder (DSN/100 bg + grip fade-in).</div>' +
+        '</div>' +
+        '<div class="comp-card" style="min-width:280px;">' +
+          dropdown('Orders', false, []) +
+          '<div class="comp-card-code">&lt;MenuDropdown title="Orders" expanded={false} /&gt;</div>' +
+          '<div class="comp-card-note"><strong>Collapsed.</strong> Chevron-right; items container unmounted. Click the header in production to fire <code>onToggle</code> &mdash; collapse/expand is consumer-controlled state.</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    /* Sub-section: Props & Tokens — modal */
+    '<div class="comp-subsection">' +
+      '<button class="comp-details-button" onclick="showCompDetails(\'MenuDropdown\')">Show props &amp; tokens</button>' +
+    '</div>' +
+
+    /* Sub-section: Figma reference */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Figma Reference</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
+        'Component <code style="' + codeChip + '">1981:79</code> in Design System &mdash; MCP, under Components-Molecules. Properties: <code style="' + codeChip + '">Title</code> TEXT (default <code>"Orders"</code>), <code style="' + codeChip + '">Expanded</code> BOOLEAN (default <code>true</code>), <code style="' + codeChip + '">ContentSlot</code> SLOT. The ContentSlot is a designer-only workflow &mdash; Figma plugin API can&rsquo;t programmatically override instance children inside a slot.' +
+      '</div>' +
+    '</div>' +
+
+    /* Sub-section: Code Connect */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Code Connect</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
+        'Mapped via <code style="' + codeChip + '">packages/ui/src/MenuDropdown.figma.tsx</code>. Single <code>figma.connect()</code> &mdash; <code>Title</code> TEXT &rarr; <code>title</code>, <code>Expanded</code> BOOLEAN &rarr; <code>expanded</code>. SLOT children are NOT mapped explicitly (mirrors the <code>Widget</code> pattern &mdash; slot content lives outside Figma component props).' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
 /* ── WidgetMetricRow (molecule) component reference HTML ── */
 function getWidgetMetricRowComponentHTML() {
   var codeChip = 'font-family:\'SF Mono\',\'Fira Code\',monospace; font-size:11px; background:#F3F4F6; padding:1px 5px; border-radius:3px; color:#6B7280;';
@@ -3867,6 +4237,8 @@ function getWidgetComponentHTML() {
   var gripVertical20 = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/></svg>';
   /* Lucide truck icon for domain icon on 3x / 3xChart variants */
   var truck20 = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/></svg>';
+  /* Lucide triangle-alert icon — Home consumer uses this on the open-exceptions 1x widget. */
+  var triangleAlert20 = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>';
 
   /* Donut helper — same shape as in WidgetPieChart demo, but with its own animation class
      name so the Widget section's pie reload is independent of the standalone PieChart section.
@@ -3925,12 +4297,13 @@ function getWidgetComponentHTML() {
     '</button>';
   }
 
-  /* Variant 1x widget */
+  /* Variant 1x widget — 2026-05-12: domain icon at lead (between grip and title), 22px gap. */
   var widget1x =
     '<div class="wgt-demo wgt-demo--1x">' +
       '<header class="wgt-demo__header">' +
         '<div class="wgt-demo__header-title">' +
           '<span class="wgt-demo__grip" aria-hidden="true">' + gripVertical20 + '</span>' +
+          '<span class="wgt-demo__domain-icon">' + triangleAlert20 + '</span>' +
           '<span class="wgt-demo__title wgt-demo__title--1x">Exceptions</span>' +
         '</div>' +
         '<button type="button" class="wgt-demo__close" aria-label="Remove widget">' + x20 + '</button>' +
@@ -4087,7 +4460,9 @@ function getWidgetComponentHTML() {
       'box-sizing: border-box;' +
       'font-family: var(--font-primary, \'Inter\', sans-serif);' +
     '}' +
-    '.wgt-demo--1x { width: 170px; }' +
+    /* 1x — 22px gap between header and content (override default --spacing-3).
+       Content sits at the top of the cell (no margin-top: auto on 1x). */
+    '.wgt-demo--1x { width: 170px; gap: 22px; }' +
     '.wgt-demo--2x { width: 360px; }' +
     '.wgt-demo--3x, .wgt-demo--3xChart { width: 360px; gap: var(--spacing-6, 24px); }' +
     /* 3xCta — drops the standard 24px padding so the rows are flush.
@@ -4355,11 +4730,19 @@ function getWidgetComponentHTML() {
       '<div class="comp-subsection-title">Anatomy</div>' +
       '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6; margin-bottom:14px;">' +
         '<strong>Single component, 5 variants.</strong> Resizing in the UI is a <code>variant</code> prop change, not a component swap &mdash; Figma mirrors this as one component set with <code>Variant = 1x | 2x | 3x | 3xChart | 3xCta</code>. Shell (header + optional footer link) is shared; content layout swaps per variant. ' +
-        '<strong>1x</strong> renders a button-like content surface that drills into the source domain. ' +
-        '<strong>2x</strong> pairs a primary metric with a small (72px) <strong>single-segment</strong> donut &mdash; one data point at a time (Chart/1 + Chart/rest ring). ' +
+        '<strong>1x</strong> renders a button-like content surface that drills into the source domain. <em>Updated 2026-05-12 &mdash;</em> 1x now <strong>also</strong> accepts the <code>domainIcon</code> slot (previously only 2x / 3x / 3xChart); the icon renders inline next to the title between the grip and the label. The 1x shell uses a <code>22px</code> gap between header and content, and the content sits at the <strong>top</strong> of the cell (the prior <code>margin-top: auto</code> push-to-bottom rule was removed for 1x). ' +
+        '<strong>2x</strong> pairs a primary metric with a small (72px) <strong>single-segment</strong> donut &mdash; one data point at a time (Chart/1 + Chart/rest ring). <em>Figma drift fixed 2026-05-12 &mdash;</em> the domain icon now sits on the LEAD side of the header (between grip and title); previously the Figma master had the clipboard-list icon parked next to the X in the &ldquo;Button group&rdquo; frame. Code was already correct; Figma now matches. ' +
         '<strong>3x</strong> shows 4&ndash;6 metric rows in a vertical list. ' +
         '<strong>3xChart</strong> combines a large (96px) <strong>4-segment</strong> donut with a multi-row legend &mdash; value/label on LEAD, pie on TRAIL. ' +
         '<strong>3xCta</strong> (Session-22) is a stat-less call-to-action list of <code>WidgetCtaRow</code> instances &mdash; quick-link entry points for cross-domain navigation. No footer link; rows are flush.' +
+      '</div>' +
+      /* All-variants note — domain-icon Figma slot default. */
+      '<div class="comp-card-note" style="margin-bottom:14px; font-size:12.5px; color:#384253; line-height:1.55; background:#F7F8FA; border-left:3px solid #6B7280; padding:10px 14px; border-radius:4px;">' +
+        '<strong>Domain-icon Figma slot default (2026-05-12).</strong> Across all variants that expose the slot (1x / 2x / 3x / 3xChart &mdash; 3xCta has no domain icon), the <code>Domain icon#1828:5</code> INSTANCE_SWAP default is now <code>placeholder-20</code> (<code style="' + codeChip + '">512:2395</code>, from Icons Placeholder), not a real lucide icon. Consumers swap in their real icon at instance level. Follows the icon-slot convention: switchable INSTANCE_SWAP slots default to a placeholder so the slot reads as empty until populated.' +
+      '</div>' +
+      /* Edit-mode behavior note — X close routes through header onClose slot. */
+      '<div class="comp-card-note" style="margin-bottom:14px; font-size:12.5px; color:#384253; line-height:1.55; background:#FFFBEB; border-left:3px solid #F59E0B; padding:10px 14px; border-radius:4px;">' +
+        '<strong>Edit-mode X alignment (2026-05-12).</strong> The prior absolute-positioned <code>.widget__edit-close</code> overlay was removed. In edit mode, <code>onRemove</code> is routed through the <strong>existing header <code>onClose</code> slot</strong> (<code>onClose={editMode ? onRemove : onClose}</code>) so the X uses the standard <code>.widget__close</code> styling and stays vertically centered in <code>.widget__header</code> via <code>align-items: center</code>. No z-index overlay; the X is part of the header row across every variant. See the Edit Mode section below for the broader edit-mode coordination layer.' +
       '</div>' +
     '</div>' +
 
@@ -4369,8 +4752,8 @@ function getWidgetComponentHTML() {
       '<div class="comp-card-grid">' +
         '<div class="comp-card" style="min-width:200px;">' +
           widget1x +
-          '<div class="comp-card-code">&lt;Widget variant="1x" title="Exceptions" value="83" label="Open exceptions" onGoToClick={...} /&gt;</div>' +
-          '<div class="comp-card-note"><strong>1x</strong> (170w). Compact metric &ldquo;jump card&rdquo; &mdash; the entire content surface is a button that navigates to the source. Header uses <code>text-label-xs-medium</code>; value is <code>text-display-3xl-semibold</code>; inline arrow is 16px <code>--text-link</code>. Hover/pressed states on the content button are live &mdash; see the States subsection.</div>' +
+          '<div class="comp-card-code">&lt;Widget variant="1x" title="Exceptions" domainIcon={&lt;TriangleAlert /&gt;} value="83" label="Open exceptions" onGoToClick={...} /&gt;</div>' +
+          '<div class="comp-card-note"><strong>1x</strong> (170w). Compact metric &ldquo;jump card&rdquo; &mdash; the entire content surface is a button that navigates to the source. Header uses <code>text-label-xs-medium</code>; value is <code>text-display-3xl-semibold</code>; inline arrow is 16px <code>--text-link</code>. <em>Updated 2026-05-12 &mdash;</em> 1x now supports the <code>domainIcon</code> slot at lead (between grip and title); shell uses a <strong>22px</strong> gap between header and content, and content is <strong>top-aligned</strong> in the cell (previously pushed to bottom via <code>margin-top: auto</code>). Hover/pressed states on the content button are live &mdash; see the States subsection.</div>' +
         '</div>' +
         '<div class="comp-card" style="min-width:380px;">' +
           widget2x +
@@ -4676,6 +5059,281 @@ function getWidgetCtaRowComponentHTML() {
   '</div>';
 }
 
+/* ── Edit-mode overview (cross-cutting context for Widget + WidgetsLeftMenu) ── */
+function getEditModeOverviewHTML() {
+  var codeChip = 'font-family:\'SF Mono\',\'Fira Code\',monospace; font-size:11px; background:#F3F4F6; padding:1px 5px; border-radius:3px; color:#6B7280;';
+
+  return '' +
+  '<div class="comp-section">' +
+    '<div class="comp-section-title">Edit Mode &mdash; coordination layer</div>' +
+    '<div class="comp-section-subtitle">apps/odyssey-one/src/contexts/EditModeContext.jsx</div>' +
+    '<div class="comp-subsection">' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.65;">' +
+        'Edit mode is a cross-component state coordinated by <code style="' + codeChip + '">EditModeProvider</code>. The <code>useEditMode()</code> hook exposes <code>{ isEditMode, enterEditMode({ onSave, onCancel }), save, cancel }</code>. ' +
+        '<strong>Navbar swap.</strong> When <code>isEditMode</code> flips true, the layout Navbar reads the flag and swaps <code>GlobalSearch</code> to <code>mode="title"</code> (renders &ldquo;Edit Dashboard&rdquo;) and <code>TrailNav</code> to <code>mode="editor"</code> with <code>showRightIcon={false}</code> &mdash; the X close drops out, leaving Cancel / Save / Help. ' +
+        '<strong>Home entry.</strong> The Home route&rsquo;s &ldquo;Add Widgets&rdquo; button calls <code>enterEditMode({ onSave, onCancel })</code>. <code>onSave</code> increments a <code>gridKey</code> so the full widget grid remounts and the donut grow-in + row animations replay; <code>onCancel</code> restores a snapshot of <code>widgets</code> + <code>catalog</code> taken at edit-mode entry. ' +
+        '<strong>Widget X removal.</strong> In edit mode each <code>Widget</code> renders a top-right close button (<code>onRemove</code>) that pulls the widget out of the in-memory array. ' +
+        '<strong>Footer link suppression.</strong> Descendants matching <code>.btn--link</code> get <code>pointer-events: none</code> while in edit mode &mdash; <strong>no opacity change, no fading</strong>. The link still reads as a normal Button visually; it just stops firing navigation while the user is rearranging the grid. ' +
+        '<strong>DnD wiring.</strong> Home wraps both grid widgets and panel items with <code style="' + codeChip + '">@dnd-kit/sortable</code>. The catalog overlay uses <code>WidgetsLeftMenu</code> with a <code>renderItem</code> render-prop that injects the dnd-kit <code>useSortable</code> handlers per item &mdash; the library itself is dnd-agnostic.' +
+      '</div>' +
+    '</div>' +
+
+    /* 2026-05-12 follow-ups — layout, navbar compact, DnD transform fixes, click-disable extension, Widget X. */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Updates &mdash; 2026-05-12</div>' +
+
+      /* Layout */
+      '<div class="comp-subsection-title" style="font-size:13px; font-weight:600; margin-top:14px; border:none; padding:0;">Layout &mdash; AppShell sidebar hide + main offset</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
+        '<code style="' + codeChip + '">apps/odyssey-one/src/components/layout/AppShell.jsx</code> now reads <code>useEditMode()</code>. When <code>isEditMode</code> is true: ' +
+        '(1) <code>&lt;Sidebar /&gt;</code> is removed from the layout flex flow (conditional render <code>{!isEditMode &amp;&amp; &lt;Sidebar /&gt;}</code>); ' +
+        '(2) <code>&lt;main&gt;</code> left padding becomes <code>calc(var(--edit-panel-width) + var(--spacing-6))</code> so content sits to the right of the floating <code>WidgetsLeftMenu</code> panel. ' +
+        'New token <code style="' + codeChip + '">--edit-panel-width: 240px</code> added to <code>packages/tokens/tokens.css</code> alongside <code>--navbar-height</code> / <code>--sidebar-width</code>.' +
+      '</div>' +
+
+      /* Navbar compact */
+      '<div class="comp-subsection-title" style="font-size:13px; font-weight:600; margin-top:14px; border:none; padding:0;">Navbar &mdash; <code style="' + codeChip + '">compact</code> prop</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
+        '<code style="' + codeChip + '">packages/ui/src/Navbar.jsx</code> (NavbarShell) gained a <code>compact</code> boolean prop. When <code>true</code>, vertical padding drops from 14px &rarr; <strong>12px</strong> (saves 4px total). Keeps the navbar at <strong>64px</strong> when the editor-mode TrailNav buttons (Button size <code>lg</code> &mdash; 40px tall) would otherwise push it to 68px. App-side Navbar passes <code>compact={true}</code> in the <code>isEditMode</code> branch so the Navbar height stays stable across the mode swap.' +
+      '</div>' +
+
+      /* DnD fixes */
+      '<div class="comp-subsection-title" style="font-size:13px; font-weight:600; margin-top:14px; border:none; padding:0;">DnD fixes &mdash; transform / sibling reflow</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
+        '<strong><code>SortableWidget</code> (grid items).</strong> Uses a <em>translate-only</em> transform string <code>translate3d(${transform.x}px, ${transform.y}px, 0)</code> &mdash; strips the <code>scaleX</code> / <code>scaleY</code> that <code>rectSortingStrategy</code> adds when a dragged widget crosses variable-span grid cells. Also passes <code>animateLayoutChanges: () =&gt; false</code> to <code>useSortable</code> so sibling widgets don&rsquo;t reflow during a drag. ' +
+        '<strong><code>SortablePanelItem</code> (panel items).</strong> Vertical-only transform <code>translate3d(0, ${transform.y}px, 0)</code> &mdash; panel items only reorder vertically within their group, so the X axis is locked. ' +
+        '<code>CSS.Transform.toString</code> from <code>@dnd-kit/utilities</code> is no longer imported in Home.jsx; both sortables emit their own transform strings.' +
+      '</div>' +
+
+      /* Click disable */
+      '<div class="comp-subsection-title" style="font-size:13px; font-weight:600; margin-top:14px; border:none; padding:0;">Click disable &mdash; widget content inert in edit mode</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
+        'The <code>pointer-events: none</code> rule in <code>components.css</code> was extended from just <code>.btn--link</code> to <strong>all <code>.widget__content</code> descendants</strong>: ' +
+        '<code>.widget[data-edit-mode="true"] .btn--link, .widget[data-edit-mode="true"] .widget__content, .widget[data-edit-mode="true"] .widget__content *</code>. ' +
+        'The header <code>.widget__close</code> button lives <strong>outside</strong> <code>.widget__content</code> so it remains clickable &mdash; intentional, since the X must still work as the remove affordance while the widget content (rows, links, buttons) goes inert.' +
+      '</div>' +
+
+      /* Widget X alignment */
+      '<div class="comp-subsection-title" style="font-size:13px; font-weight:600; margin-top:14px; border:none; padding:0;">Widget X &mdash; routed through header <code style="' + codeChip + '">onClose</code> slot</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
+        'The prior <code>.widget__edit-close</code> absolute-positioned button (with its own z-index overlay layer) was removed. <code>Widget.jsx</code> now wires <code>onClose={editMode ? onRemove : onClose}</code> so the X uses the existing <code>.widget__close</code> styling &mdash; vertically centered in <code>.widget__header</code> via <code>align-items: center</code>. The X aligns with the rest of the header content across every variant (no more visual drift between regular X and edit-mode X).' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+/* ── WidgetsLeftMenu (organism) component reference HTML ── */
+function getWidgetsLeftMenuComponentHTML() {
+  var codeChip = 'font-family:\'SF Mono\',\'Fira Code\',monospace; font-size:11px; background:#F3F4F6; padding:1px 5px; border-radius:3px; color:#6B7280;';
+
+  /* Inline lucide SVGs */
+  var searchIcon = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>';
+  var chevronDown = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>';
+  var chevronRight = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>';
+  var gripVertical = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/></svg>';
+
+  /* Single item row. `state` is '', 'hover', or 'pressed' to lock visual state. */
+  function item(label, state) {
+    var stateClass = state ? ' wlm-demo__item--force-' + state : '';
+    return '<div class="wlm-demo__item' + stateClass + '">' +
+      '<span class="wlm-demo__item-grip" aria-hidden="true">' + gripVertical + '</span>' +
+      '<span class="wlm-demo__item-label">' + label + '</span>' +
+    '</div>';
+  }
+
+  /* Group block. `collapsed` swaps chevron + hides items list. */
+  function group(title, items, collapsed) {
+    var chev = collapsed ? chevronRight : chevronDown;
+    var itemsHtml = '';
+    if (!collapsed) {
+      for (var i = 0; i < items.length; i++) itemsHtml += items[i];
+    }
+    return '<div class="wlm-demo__group">' +
+      '<button type="button" class="wlm-demo__group-header">' +
+        '<span class="wlm-demo__group-chevron">' + chev + '</span>' +
+        '<span class="wlm-demo__group-title">' + title + '</span>' +
+      '</button>' +
+      (collapsed ? '' : '<div class="wlm-demo__group-items">' + itemsHtml + '</div>') +
+    '</div>';
+  }
+
+  /* Full panel with title row + search + 3 groups (1 collapsed, 2 expanded). */
+  var panelDemo =
+    '<div class="wlm-demo">' +
+      '<div class="wlm-demo__title-row">' +
+        '<span class="wlm-demo__title-label">Metrics library</span>' +
+      '</div>' +
+      '<div class="wlm-demo__search-section">' +
+        '<div class="wlm-demo__search">' +
+          '<span class="wlm-demo__search-icon">' + searchIcon + '</span>' +
+          '<span class="wlm-demo__search-placeholder">Search</span>' +
+        '</div>' +
+      '</div>' +
+      '<div class="wlm-demo__groups">' +
+        group('Shipments', [
+          item('Open exceptions', ''),
+          item('On-time delivery', 'hover'),
+          item('Shipment mix', '')
+        ], false) +
+        group('Orders', [
+          item('Order volume', ''),
+          item('Order value', ''),
+          item('Customer mix', '')
+        ], false) +
+        group('Tracking', [], true) +
+      '</div>' +
+    '</div>';
+
+  return '' +
+  '<style>' +
+    /* WidgetsLeftMenu — mirror of .widgets-left-menu in components.css.
+       Fixed 240px wide; the demo trims height + adds an outer shadow so the
+       panel reads as the overlay it is in production. */
+    '.wlm-demo {' +
+      'width: 240px;' +
+      'display: flex; flex-direction: column;' +
+      'background: var(--white, #FFFFFF);' +
+      'border: 1px solid var(--border-subtle, #E4E6EB);' +
+      'border-radius: var(--radius-md, 6px);' +
+      'box-shadow: var(--shadow-panel, 0 0 0 1px rgba(0,0,0,0.05), 0 4px 6px -2px rgba(0,0,0,0.05), 0 10px 15px -3px rgba(0,0,0,0.1));' +
+      'box-sizing: border-box;' +
+      'font-family: var(--font-primary, \'Inter\', sans-serif);' +
+      'overflow: hidden;' +
+    '}' +
+    /* Title row — 48h, label/xs semibold */
+    '.wlm-demo__title-row {' +
+      'display: flex; align-items: center;' +
+      'height: 48px; padding: 0 var(--spacing-4, 16px);' +
+      'border-bottom: 1px solid var(--border-subtle, #E4E6EB);' +
+    '}' +
+    '.wlm-demo__title-label {' +
+      'font-size: 12px; line-height: 16px; font-weight: 600;' +
+      'color: var(--text-primary, #1B2537);' +
+      'text-transform: uppercase;' +
+      'letter-spacing: var(--letter-spacing-wide, 0.05em);' +
+    '}' +
+    /* Search section */
+    '.wlm-demo__search-section {' +
+      'padding: var(--spacing-3, 12px) var(--spacing-3, 12px);' +
+      'border-bottom: 1px solid var(--border-subtle, #E4E6EB);' +
+    '}' +
+    '.wlm-demo__search {' +
+      'display: inline-flex; align-items: center; gap: var(--spacing-2, 8px);' +
+      'width: 100%; height: 32px;' +
+      'padding: 6px var(--spacing-3, 12px);' +
+      'background: var(--white, #FFFFFF);' +
+      'border: 1px solid var(--border-default, #D0D4DB);' +
+      'border-radius: var(--radius-md, 6px);' +
+      'box-shadow: var(--shadow-sm, 0 1px 2px rgba(15,23,42,0.04));' +
+      'box-sizing: border-box;' +
+    '}' +
+    '.wlm-demo__search-icon { color: var(--text-tertiary, #6B7280); flex-shrink: 0; display: inline-flex; }' +
+    '.wlm-demo__search-placeholder {' +
+      'font-size: 14px; line-height: 20px; font-weight: 400;' +
+      'color: var(--text-placeholder, #9CA3AF);' +
+    '}' +
+    /* Groups area */
+    '.wlm-demo__groups {' +
+      'display: flex; flex-direction: column;' +
+      'padding: var(--spacing-2, 8px) 0;' +
+    '}' +
+    '.wlm-demo__group { display: flex; flex-direction: column; }' +
+    /* Group header — 32h, label/xs medium uppercase */
+    '.wlm-demo__group-header {' +
+      'display: inline-flex; align-items: center; gap: var(--spacing-2, 8px);' +
+      'width: 100%; height: 32px;' +
+      'padding: 0 var(--spacing-3, 12px);' +
+      'background: transparent; border: none;' +
+      'cursor: pointer; text-align: left;' +
+    '}' +
+    '.wlm-demo__group-chevron {' +
+      'color: var(--text-tertiary, #6B7280); flex-shrink: 0; display: inline-flex;' +
+    '}' +
+    '.wlm-demo__group-title {' +
+      'font-size: 12px; line-height: 16px; font-weight: 500;' +
+      'color: var(--text-tertiary, #6B7280);' +
+      'text-transform: uppercase;' +
+      'letter-spacing: var(--letter-spacing-wide, 0.05em);' +
+    '}' +
+    /* Items */
+    '.wlm-demo__group-items { display: flex; flex-direction: column; }' +
+    '.wlm-demo__item {' +
+      'display: inline-flex; align-items: center; gap: var(--spacing-2, 8px);' +
+      'height: 36px; padding: 0 var(--spacing-3, 12px);' +
+      'cursor: pointer;' +
+      'transition: background var(--transition-fast, 150ms ease);' +
+    '}' +
+    '.wlm-demo__item-grip {' +
+      'color: var(--text-tertiary, #6B7280); flex-shrink: 0; display: inline-flex;' +
+      'opacity: 0;' +
+      'transition: opacity var(--transition-fast, 150ms ease);' +
+    '}' +
+    '.wlm-demo__item-label {' +
+      'font-size: 14px; line-height: 20px; font-weight: 400;' +
+      'color: var(--text-secondary, #384253);' +
+    '}' +
+    '.wlm-demo__item:hover { background: var(--deep-sea-neutral-100, #F2F3F5); }' +
+    '.wlm-demo__item:hover .wlm-demo__item-grip { opacity: 1; }' +
+    '.wlm-demo__item:active { background: var(--deep-sea-neutral-200, #E4E6EB); }' +
+    '.wlm-demo__item:active .wlm-demo__item-grip { opacity: 1; }' +
+    /* Forced-state classes mirror hover/pressed so each card displays a single locked state. */
+    '.wlm-demo__item--force-hover { background: var(--deep-sea-neutral-100, #F2F3F5); }' +
+    '.wlm-demo__item--force-hover .wlm-demo__item-grip { opacity: 1; }' +
+    '.wlm-demo__item--force-pressed { background: var(--deep-sea-neutral-200, #E4E6EB); }' +
+    '.wlm-demo__item--force-pressed .wlm-demo__item-grip { opacity: 1; }' +
+  '</style>' +
+  '<div class="comp-section">' +
+    '<div class="comp-section-title">WidgetsLeftMenu <span class="comp-normalized-label">NORMALIZED</span></div>' +
+    '<div class="comp-section-subtitle">packages/ui/src/WidgetsLeftMenu.jsx</div>' +
+
+    /* Sub-section: Anatomy */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Anatomy</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6; margin-bottom:14px;">' +
+        '240w catalog panel. Vertical layout &mdash; title row (48h, label/xs semibold uppercase) + <code>SearchField</code> section + scrollable groups area. Each group has a collapsible 32h header (label/xs medium uppercase + chevron) + 36h items (label/sm regular). ' +
+        '<strong>Library-pure.</strong> The component does not import <code>@dnd-kit</code>. Consumers wrap each item via the <code>renderItem</code> render-prop &mdash; in <code>apps/odyssey-one/src/routes/Home.jsx</code>, the wrapper attaches <code>useSortable</code> handlers so panel items can drag into the grid. ' +
+        '<strong>Internal search filter.</strong> <code>searchValue</code> filters items by case-insensitive <code>label.includes()</code>. Groups with zero matches are hidden. Used as an overlay panel in Home&rsquo;s edit mode.' +
+      '</div>' +
+      '<div class="comp-card-grid">' +
+        '<div class="comp-card" style="min-width:280px;">' +
+          panelDemo +
+          '<div class="comp-card-code">&lt;WidgetsLeftMenu title="Metrics library" groups={...} searchValue={s} onSearchChange={...} collapsedGroupIds={set} onToggleGroup={...} onItemClick={...} renderItem={...} /&gt;</div>' +
+          '<div class="comp-card-note">Composed demo &mdash; title row + SearchField (empty) + 2 expanded groups + 1 collapsed group (chevron-right). <strong>The second item in &ldquo;Shipments&rdquo; is forced to hover state</strong> so you can see the DSN/100 background + grip-vertical fade-in. Live hover/pressed on any other item to verify the rest of the ladder.</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    /* Sub-section: Implementation notes */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Implementation notes</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
+        'Item hover / pressed CSS lives in <code style="' + codeChip + '">apps/odyssey-one/src/styles/components.css</code> under <code>.widgets-left-menu__item</code> (bg DSN/100 hover, DSN/200 pressed). The grip fades in via <code>transition: opacity</code> on <code>:hover</code> or when the item carries <code>data-dragging="true"</code> from dnd-kit. Panel surface uses <code>--shadow-panel</code> + <code>--transition-panel</code> (220ms ease-out-quart) for enter/exit animations.' +
+      '</div>' +
+    '</div>' +
+
+    /* Sub-section: Props & Tokens — modal */
+    '<div class="comp-subsection">' +
+      '<button class="comp-details-button" onclick="showCompDetails(\'WidgetsLeftMenu\')">Show props &amp; tokens</button>' +
+    '</div>' +
+
+    /* Sub-section: Figma reference */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Figma Reference</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
+        'Component <code style="' + codeChip + '">1961:393</code> in Design System &mdash; MCP, under Components-Organisms. Single TEXT property: <code style="' + codeChip + '">Title</code> (default <code>"Metrics library"</code>) &rarr; maps to the <code>title</code> prop. Group + item content is consumer-driven in code (Figma uses static sample groups for layout).' +
+      '</div>' +
+    '</div>' +
+
+    /* Sub-section: Code Connect */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Code Connect</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
+        'Mapped via <code style="' + codeChip + '">packages/ui/src/WidgetsLeftMenu.figma.tsx</code>. <code>Title</code> TEXT &rarr; <code>title</code> string prop. Group + item rendering remains code-only (no Figma slot mapping).' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
 /* ── Component details modal: props + tokens map ──
    Each entry is two raw HTML strings: `props` (Props Reference table) and
    `tokens` (Token Contract / Tokens / Padding Rules table). */
@@ -4876,16 +5534,13 @@ var compDetails = {
           '<tr><td><code>mode</code></td><td><code>"search" | "title"</code></td><td><code>"search"</code></td><td>Selects which GlobalSearch variant to render. Maps to the Figma component_set <code>State</code> variant axis (<code>Default</code>/<code>Focused</code> &rarr; <code>"search"</code>; <code>Title</code> &rarr; <code>"title"</code>).</td></tr>' +
           '<tr><td><code>title</code></td><td>string</td><td><code>"Edit Dashboard"</code></td><td>Title text rendered in Title mode. Maps to Figma <code>Title</code> TEXT property. Inter Semi Bold 20/28, white, centered.</td></tr>' +
           '<tr style="background:#F7F8FA;"><td colspan="4" style="font-weight:600; color:#283142;">Search mode props</td></tr>' +
-          '<tr><td><code>scope</code></td><td>string</td><td><code>"All"</code></td><td>Scope dropdown label</td></tr>' +
-          '<tr><td><code>onScopeClick</code></td><td>() =&gt; void</td><td>&mdash;</td><td>Triggered when scope button is clicked</td></tr>' +
-          '<tr><td><code>dropdownOpen</code></td><td>boolean</td><td><code>false</code></td><td>Controls chevron up/down + treats as focused</td></tr>' +
-          '<tr><td><code>dropdownIcon</code></td><td>ReactNode</td><td>&mdash;</td><td>Slot &mdash; overrides chevron. Maps to Figma <code>Dropdown icon</code> INSTANCE_SWAP.</td></tr>' +
+          '<tr><td><code>scope</code></td><td>string</td><td><code>"All"</code></td><td>Scope label text (static chip &mdash; non-interactive).</td></tr>' +
           '<tr><td><code>value</code></td><td>string</td><td><code>""</code></td><td>Input value (controlled)</td></tr>' +
           '<tr><td><code>onChange</code></td><td>(value) =&gt; void</td><td>&mdash;</td><td>Input change handler</td></tr>' +
           '<tr><td><code>onClear</code></td><td>() =&gt; void</td><td>&mdash;</td><td>Triggered when clear button clicked (only fires if value)</td></tr>' +
           '<tr><td><code>onBack</code> / <code>onForward</code></td><td>() =&gt; void</td><td>&mdash;</td><td>History nav button handlers</td></tr>' +
           '<tr><td><code>placeholder</code></td><td>string</td><td><code>"Search"</code></td><td>Input placeholder text</td></tr>' +
-          '<tr><td><code>minWidth</code></td><td>number</td><td><code>590</code></td><td>Min width applied to the <strong>whole</strong> component (history-nav arrows + scope dropdown + search field). The dropdown is auto-width; the search field absorbs remaining space.</td></tr>' +
+          '<tr><td><code>minWidth</code></td><td>number</td><td><code>590</code></td><td>Min width applied to the <strong>whole</strong> component (history-nav arrows + scope label + search field). The search field absorbs remaining space.</td></tr>' +
           '<tr><td><code>maxWidth</code></td><td>number</td><td><code>900</code></td><td>Max width applied to the whole component (same scope as <code>minWidth</code>).</td></tr>' +
         '</tbody>' +
       '</table>',
@@ -4989,8 +5644,7 @@ var compDetails = {
         '<thead><tr><th>Prop</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>' +
         '<tbody>' +
           '<tr><td><code>lead</code></td><td>ReactNode</td><td>&mdash;</td><td>Left slot &mdash; typically <code>&lt;LeadNav /&gt;</code> (hamburger + logo).</td></tr>' +
-          '<tr><td><code>search</code></td><td>ReactNode</td><td>&mdash;</td><td>Center slot &mdash; typically <code>&lt;GlobalSearch /&gt;</code>. May contain sibling dropdown content; the dropdown should attach to <code>searchRef</code>.</td></tr>' +
-          '<tr><td><code>searchRef</code></td><td>Ref</td><td>&mdash;</td><td>Forwarded to the inner wrapper around the search slot. Consumers attach this to enable click-outside detection on the search-scope dropdown.</td></tr>' +
+          '<tr><td><code>search</code></td><td>ReactNode</td><td>&mdash;</td><td>Center slot &mdash; typically <code>&lt;GlobalSearch /&gt;</code>.</td></tr>' +
           '<tr><td><code>trail</code></td><td>ReactNode</td><td>&mdash;</td><td>Right slot &mdash; typically <code>&lt;TrailNav /&gt;</code> (Profile or Editor mode). May contain a sibling profile dropdown; attach to <code>trailRef</code>.</td></tr>' +
           '<tr><td><code>trailRef</code></td><td>Ref</td><td>&mdash;</td><td>Forwarded to the inner wrapper around the trail slot. Consumers attach this to enable click-outside detection on the profile dropdown.</td></tr>' +
         '</tbody>' +
@@ -5270,11 +5924,14 @@ var compDetails = {
           '<tr style="background:#F7F8FA;"><td colspan="4" style="font-style:italic; color:#384253;"><strong>Shape:</strong> Single component, 5 variants. The shell (header + optional footer link) is shared; <code>variant</code> swaps the content layout. Resizing in the UI is a variant change, not a component swap.</td></tr>' +
           '<tr><td><code>variant</code></td><td><code>"1x" | "2x" | "3x" | "3xChart" | "3xCta"</code></td><td><code>"1x"</code></td><td>Layout. 1x is a compact metric jump card; 2x pairs a metric with a 72px donut; 3x is a 4&ndash;6-row list; 3xChart combines a 96px donut with a multi-row legend; <strong>3xCta</strong> is a stat-less CTA list of <code>WidgetCtaRow</code> instances.</td></tr>' +
           '<tr><td><code>title</code></td><td>string</td><td><code>""</code></td><td>Header title text. Typography scales per variant.</td></tr>' +
-          '<tr><td><code>domainIcon</code></td><td>ReactNode</td><td>&mdash;</td><td>Domain icon. On 2x it renders inline next to the title; on 3x / 3xChart it sits inside a 40&times;40 <code>--carolina-blue-50</code> container.</td></tr>' +
+          '<tr><td><code>domainIcon</code></td><td>ReactNode</td><td>&mdash;</td><td>Domain icon slot. <em>2026-05-12:</em> now applies to <strong>1x</strong> as well (previously only 2x / 3x / 3xChart). On 1x and 2x it renders inline next to the title (between grip and title text); on 3x / 3xChart it sits inside a 40&times;40 <code>--carolina-blue-50</code> container. Figma slot default is <code>placeholder-20</code> (per the icon-slot convention).</td></tr>' +
           '<tr><td><code>showGrip</code></td><td>boolean</td><td><code>true</code></td><td>Show the leading <code>GripVertical</code> drag handle.</td></tr>' +
           '<tr><td><code>onClose</code></td><td>() =&gt; void</td><td>&mdash;</td><td>If provided, renders the trailing close X button.</td></tr>' +
           '<tr><td><code>onGoToClick</code></td><td>() =&gt; void</td><td>&mdash;</td><td>On 1x: handler for the content button. On 2x / 3x / 3xChart: handler for the footer <code>Button variant="link"</code>.</td></tr>' +
           '<tr><td><code>goToLabel</code></td><td>string</td><td>&mdash;</td><td>Footer link label on 2x / 3x / 3xChart (e.g. <code>"Go to Tracking"</code>).</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="4" style="font-weight:600; color:#283142;">Edit-mode props</td></tr>' +
+          '<tr><td><code>editMode</code></td><td>boolean</td><td><code>false</code></td><td>When <code>true</code>: header grip is <strong>forced visible</strong> regardless of <code>showGrip</code>; the <strong>X uses the header&rsquo;s existing <code>onClose</code> slot</strong> (<em>2026-05-12 &mdash; the prior <code>.widget__edit-close</code> absolute overlay was removed</em>), so the close button stays vertically centered with the rest of the header row; all <code>.widget__content</code> descendants (and any <code>.btn--link</code>) get <code>pointer-events: none</code> (<strong>no opacity change, no fading</strong>). Root gets <code>data-edit-mode="true"</code> for downstream styling hooks. The header <code>.widget__close</code> stays clickable because it lives outside <code>.widget__content</code>.</td></tr>' +
+          '<tr><td><code>onRemove</code></td><td>() =&gt; void</td><td>&mdash;</td><td>Fires when the edit-mode close X is clicked. Consumer typically removes this widget from the in-memory widgets array.</td></tr>' +
           '<tr style="background:#F7F8FA;"><td colspan="4" style="font-weight:600; color:#283142;">Content props (per variant)</td></tr>' +
           '<tr><td><code>value</code></td><td>string | number</td><td>&mdash;</td><td>Primary metric value (1x / 2x / 3xChart).</td></tr>' +
           '<tr><td><code>label</code></td><td>string</td><td>&mdash;</td><td>Secondary metric label (1x / 2x / 3xChart).</td></tr>' +
@@ -5371,6 +6028,160 @@ var compDetails = {
           '<tr><td>Bottom divider</td><td><code>1px solid --border-subtle</code></td><td>DSN/200 #E4E6EB &middot; dropped on the last row via <code>--last</code> modifier</td></tr>' +
           '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Transitions</td></tr>' +
           '<tr><td>Row bg / icon-container bg / chevron color</td><td><code>--transition-fast</code></td><td>150ms ease</td></tr>' +
+        '</tbody>' +
+      '</table>'
+  },
+  SearchField: {
+    props:
+      '<table class="comp-table">' +
+        '<thead><tr><th>Prop</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>' +
+        '<tbody>' +
+          '<tr style="background:#F7F8FA;"><td colspan="4" style="font-style:italic; color:#384253;"><strong>Focus state (2026-05-12).</strong> Internal <code>useState</code> tracks the input&rsquo;s <code>onFocus</code> / <code>onBlur</code>. On focus the border thickens 1px &rarr; 2px (color <code>--deep-sea-neutral-600</code>) and the leading search icon shifts <code>--text-placeholder</code> &rarr; <code>--text-tertiary</code>. The input also forces <code>spellCheck=false</code>, <code>autoCorrect=off</code>, and <code>autoCapitalize=off</code>. Mirrors the Shipments <code>TableControls</code> searchbar recipe.</td></tr>' +
+          '<tr><td><code>value</code></td><td>string</td><td>&mdash;</td><td>Controlled input value.</td></tr>' +
+          '<tr><td><code>onChange</code></td><td>(value) =&gt; void</td><td>&mdash;</td><td>Fires on every keystroke with the new input value.</td></tr>' +
+          '<tr><td><code>placeholder</code></td><td>string</td><td><code>"Search"</code></td><td>Input placeholder text. Maps to the Figma <code>Placeholder</code> TEXT property.</td></tr>' +
+          '<tr><td><code>onClear</code></td><td>() =&gt; void</td><td>&mdash;</td><td>Optional. When provided <strong>and</strong> <code>value</code> is non-empty, renders a clickable trailing <code>CircleX</code> (16px). The clear button uses <code>onMouseDown preventDefault</code> so input focus is retained.</td></tr>' +
+        '</tbody>' +
+      '</table>',
+    tokens:
+      '<table class="comp-table">' +
+        '<thead><tr><th>Area / Property</th><th>Token / Value</th><th>Resolved</th></tr></thead>' +
+        '<tbody>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Layout</td></tr>' +
+          '<tr><td>Height</td><td>32px (raw)</td><td>&mdash;</td></tr>' +
+          '<tr><td>Padding</td><td><code>6px var(--spacing-3)</code></td><td>6 / 12</td></tr>' +
+          '<tr><td>Gap (icon &harr; input &harr; clear)</td><td><code>--spacing-2</code></td><td>8px</td></tr>' +
+          '<tr><td>Icon size (Search / CircleX)</td><td>16 &times; 16 (raw)</td><td>lucide stroke 2</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Surface</td></tr>' +
+          '<tr><td>Background</td><td><code>--bg-primary</code></td><td>#FFFFFF &middot; <em>2026-05-12: was <code>--white</code></em></td></tr>' +
+          '<tr><td>Border &mdash; idle</td><td>1px solid <code>--border-default</code></td><td>#D0D4DB</td></tr>' +
+          '<tr><td>Border &mdash; focused</td><td>2px solid <code>--deep-sea-neutral-600</code></td><td>#4C5463 &middot; <em>new 2026-05-12</em></td></tr>' +
+          '<tr><td>Radius</td><td><code>--radius-md</code></td><td>6px</td></tr>' +
+          '<tr><td>Shadow</td><td><code>--shadow-sm</code></td><td>0 1px 2px rgba(15,23,42,0.04)</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Color</td></tr>' +
+          '<tr><td>Input text</td><td><code>--text-primary</code></td><td>DSN/900 #1B2537</td></tr>' +
+          '<tr><td>Placeholder</td><td><code>--text-placeholder</code></td><td>DSN/400 #9CA3AF</td></tr>' +
+          '<tr><td>Leading search icon &mdash; idle</td><td><code>--text-placeholder</code></td><td>DSN/400 #9CA3AF &middot; <em>2026-05-12: was <code>--text-tertiary</code></em></td></tr>' +
+          '<tr><td>Leading search icon &mdash; focused</td><td><code>--text-tertiary</code></td><td>DSN/500 #6B7280</td></tr>' +
+          '<tr><td>Clear icon</td><td><code>--text-tertiary</code></td><td>DSN/500 #6B7280</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Transitions</td></tr>' +
+          '<tr><td>Border color / icon color</td><td><code>--transition-fast</code></td><td>150ms ease</td></tr>' +
+        '</tbody>' +
+      '</table>'
+  },
+  MenuRow: {
+    props:
+      '<table class="comp-table">' +
+        '<thead><tr><th>Prop</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>' +
+        '<tbody>' +
+          '<tr style="background:#F7F8FA;"><td colspan="4" style="font-style:italic; color:#384253;"><strong>State semantics.</strong> MenuRow does NOT expose a <code>state</code> prop. Hover and pressed are CSS pseudo-classes (<code>:hover</code> / <code>:active</code>) on <code>.menu-row</code>. A parent ancestor setting <code>data-dragging="true"</code> (the dnd-kit convention) pins the pressed visual + visible grip via the ancestor selector <code>[data-dragging="true"] .menu-row</code>. The 3 Figma State variants exist for designer-side spec parity only &mdash; Code Connect maps all 3 to the same React snippet.</td></tr>' +
+          '<tr><td><code>label</code></td><td>string</td><td>&mdash;</td><td>Row label. Maps to Figma <code>Label</code> TEXT property.</td></tr>' +
+          '<tr><td><code>onClick</code></td><td>() =&gt; void</td><td>&mdash;</td><td>Fires on row click. Not required &mdash; the row is library-pure and stays interactive via consumer-attached handlers.</td></tr>' +
+          '<tr><td><code>className</code></td><td>string</td><td><code>""</code></td><td>Optional. Appended to the root class list. Used by consumers to add dnd-kit wrapper classes (e.g. sortable-state class names).</td></tr>' +
+          '<tr><td><code>...rest</code></td><td>HTMLDivAttrs</td><td>&mdash;</td><td>Spreads onto the root <code>&lt;div&gt;</code>. Consumers attach dnd-kit <code>listeners</code> + <code>attributes</code> here for drag-from-anywhere behavior.</td></tr>' +
+        '</tbody>' +
+      '</table>',
+    tokens:
+      '<table class="comp-table">' +
+        '<thead><tr><th>Area / Property</th><th>Token / Value</th><th>Resolved</th></tr></thead>' +
+        '<tbody>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Layout</td></tr>' +
+          '<tr><td>Height</td><td>36px (raw)</td><td>&mdash;</td></tr>' +
+          '<tr><td>Padding</td><td><code>--spacing-2</code> <code>--spacing-4</code></td><td>8 / 16</td></tr>' +
+          '<tr><td>Gap (label &harr; grip)</td><td><code>--spacing-3</code></td><td>12px</td></tr>' +
+          '<tr><td>Grip icon size</td><td>16 &times; 16 (raw)</td><td>lucide stroke 2</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Typography</td></tr>' +
+          '<tr><td>Label font-size / line-height / weight</td><td><code>--font-size-sm</code> / <code>--line-height-sm</code> / <code>--font-weight-regular</code></td><td>14 / 20 / 400</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Color &mdash; idle</td></tr>' +
+          '<tr><td>Label</td><td><code>--text-secondary</code></td><td>DSN/700 #384253</td></tr>' +
+          '<tr><td>Grip</td><td><code>--text-tertiary</code></td><td>DSN/500 #6B7280 (opacity 0)</td></tr>' +
+          '<tr><td>Background</td><td>transparent</td><td>&mdash;</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">State backgrounds (CSS pseudo-classes)</td></tr>' +
+          '<tr><td>Hover bg (<code>:hover</code>)</td><td><code>--deep-sea-neutral-100</code></td><td>#F2F3F5 &middot; grip opacity 0 &rarr; 1</td></tr>' +
+          '<tr><td>Pressed / dragging bg (<code>:active</code> OR ancestor <code>data-dragging="true"</code>)</td><td><code>--deep-sea-neutral-200</code></td><td>#E4E6EB &middot; grip opacity 0 &rarr; 1</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Transitions</td></tr>' +
+          '<tr><td>Background + grip opacity</td><td><code>--transition-fast</code></td><td>150ms ease</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">CSS location</td></tr>' +
+          '<tr><td>Rules</td><td><code>.menu-row</code> in <code>apps/odyssey-one/src/styles/components.css</code></td><td>REPLACES the prior <code>.widgets-left-menu__item*</code> rules (renamed in the WidgetsLeftMenu refactor)</td></tr>' +
+        '</tbody>' +
+      '</table>'
+  },
+  MenuDropdown: {
+    props:
+      '<table class="comp-table">' +
+        '<thead><tr><th>Prop</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>' +
+        '<tbody>' +
+          '<tr><td><code>title</code></td><td>string</td><td>&mdash;</td><td>Group header label. Maps to Figma <code>Title</code> TEXT property.</td></tr>' +
+          '<tr><td><code>expanded</code></td><td>boolean</td><td><code>true</code></td><td>Whether the items slot is rendered. When <code>false</code>, the items container is unmounted (no display:none). Maps to Figma <code>Expanded</code> BOOLEAN.</td></tr>' +
+          '<tr><td><code>onToggle</code></td><td>() =&gt; void</td><td>&mdash;</td><td>Fires when the header is clicked. Consumer owns the collapse/expand state.</td></tr>' +
+          '<tr><td><code>children</code></td><td>ReactNode</td><td>&mdash;</td><td>Composition slot. Corresponds to the Figma <code>ContentSlot</code> SLOT property. Typically a list of <code>MenuRow</code> instances; accepts any nodes.</td></tr>' +
+        '</tbody>' +
+      '</table>',
+    tokens:
+      '<table class="comp-table">' +
+        '<thead><tr><th>Area / Property</th><th>Token / Value</th><th>Resolved</th></tr></thead>' +
+        '<tbody>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Layout</td></tr>' +
+          '<tr><td>Root padding-top</td><td><code>--spacing-3</code></td><td>12px</td></tr>' +
+          '<tr><td>Header height</td><td>32px (raw)</td><td>&mdash;</td></tr>' +
+          '<tr><td>Header padding</td><td><code>--spacing-2</code> <code>--spacing-4</code></td><td>8 / 16</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Header typography</td></tr>' +
+          '<tr><td>Class</td><td><code>.text-label-xs-medium-uppercase</code></td><td>12 / 16 / 500, uppercase, <code>letter-spacing: var(--letter-spacing-wide)</code> (0.05em)</td></tr>' +
+          '<tr><td>Color</td><td><code>--text-tertiary</code></td><td>DSN/500 #6B7280</td></tr>' +
+          '<tr><td>Trailing icon</td><td>16 &times; 16 lucide chevron-down (expanded) / chevron-right (collapsed)</td><td>color <code>--text-tertiary</code></td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Header border</td></tr>' +
+          '<tr><td>Border-bottom</td><td>1px solid <code>--border-subtle</code></td><td>DSN/200 #E4E6EB</td></tr>' +
+        '</tbody>' +
+      '</table>'
+  },
+  WidgetsLeftMenu: {
+    props:
+      '<table class="comp-table">' +
+        '<thead><tr><th>Prop</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>' +
+        '<tbody>' +
+          '<tr style="background:#F7F8FA;"><td colspan="4" style="font-style:italic; color:#384253;"><strong>Dependencies.</strong> The organism composes <code>MenuRow</code> (item rows) and <code>MenuDropdown</code> (collapsible groups) internally. The <code>renderItem(item, group, defaultNode)</code> render-prop&rsquo;s <code>defaultNode</code> is a <code>&lt;MenuRow&gt;</code> element &mdash; consumers can wrap it in a dnd-kit Sortable while still using the library row.</td></tr>' +
+          '<tr><td><code>title</code></td><td>string</td><td><code>"Metrics library"</code></td><td>Panel title (label/xs semibold uppercase). Maps to Figma <code>Title</code> TEXT property.</td></tr>' +
+          '<tr><td><code>groups</code></td><td><code>Array&lt;{ id, title, items: Array&lt;{ id, label }&gt; }&gt;</code></td><td><code>[]</code></td><td>Group catalog. Each group renders a collapsible header + items list.</td></tr>' +
+          '<tr><td><code>searchValue</code></td><td>string</td><td><code>""</code></td><td>Controlled value of the internal <code>SearchField</code>.</td></tr>' +
+          '<tr><td><code>onSearchChange</code></td><td>(value) =&gt; void</td><td>&mdash;</td><td>Search input handler. Filtering itself is internal: items match by case-insensitive <code>label.includes(searchValue.toLowerCase().trim())</code>. Groups with zero matches are hidden.</td></tr>' +
+          '<tr><td><code>collapsedGroupIds</code></td><td>Set | array</td><td><code>new Set()</code></td><td>Group ids currently collapsed (chevron-right + items hidden).</td></tr>' +
+          '<tr><td><code>onToggleGroup</code></td><td>(groupId) =&gt; void</td><td>&mdash;</td><td>Fires when a group header is clicked.</td></tr>' +
+          '<tr><td><code>onItemClick</code></td><td>(itemId, groupId) =&gt; void</td><td>&mdash;</td><td>Fires when an item row is clicked.</td></tr>' +
+          '<tr><td><code>renderItem</code></td><td>(item, group, defaultNode) =&gt; ReactNode</td><td>&mdash;</td><td>Optional render-prop for consumer DnD wrapping. When omitted, items render unwrapped. In <code>Home.jsx</code> this wraps each item with dnd-kit&rsquo;s <code>useSortable</code> handlers.</td></tr>' +
+        '</tbody>' +
+      '</table>',
+    tokens:
+      '<table class="comp-table">' +
+        '<thead><tr><th>Area / Property</th><th>Token / Value</th><th>Resolved</th></tr></thead>' +
+        '<tbody>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Panel surface</td></tr>' +
+          '<tr><td>Width</td><td>240px (raw)</td><td>&mdash;</td></tr>' +
+          '<tr><td>Background</td><td><code>--white</code></td><td>#FFFFFF</td></tr>' +
+          '<tr><td>Border</td><td>1px solid <code>--border-subtle</code></td><td>DSN/200 #E4E6EB</td></tr>' +
+          '<tr><td>Shadow</td><td><code>--shadow-panel</code></td><td>0 0 0 1px rgba(0,0,0,0.05), 0 4px 6px -2px rgba(0,0,0,0.05), 0 10px 15px -3px rgba(0,0,0,0.1)</td></tr>' +
+          '<tr><td>Enter / exit transition</td><td><code>--transition-panel</code></td><td>220ms cubic-bezier(0.22, 1, 0.36, 1)</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Title row</td></tr>' +
+          '<tr><td>Height / padding</td><td>48px / 0 <code>--spacing-4</code></td><td>0 / 16</td></tr>' +
+          '<tr><td>Title typography</td><td><code>text-label-xs-medium-uppercase</code> (semibold variant)</td><td>12 / 16 / 600, uppercase, <code>--letter-spacing-wide</code></td></tr>' +
+          '<tr><td>Title color</td><td><code>--text-primary</code></td><td>DSN/900 #1B2537</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Search section</td></tr>' +
+          '<tr><td>Padding</td><td><code>--spacing-3</code> all sides</td><td>12px</td></tr>' +
+          '<tr><td>Embedded component</td><td><code>SearchField</code></td><td>see SearchField token contract</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Groups area</td></tr>' +
+          '<tr><td>Vertical padding</td><td><code>--spacing-2</code></td><td>8px</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Group header</td></tr>' +
+          '<tr><td>Height / padding</td><td>32px / 0 <code>--spacing-3</code></td><td>0 / 12</td></tr>' +
+          '<tr><td>Typography</td><td><code>text-label-xs-medium-uppercase</code> class</td><td>12 / 16 / 500, uppercase, <code>--letter-spacing-wide</code> (defined in apps/odyssey-one/src/styles/components.css)</td></tr>' +
+          '<tr><td>Title + chevron color</td><td><code>--text-tertiary</code></td><td>DSN/500 #6B7280</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Item</td></tr>' +
+          '<tr><td>Height / padding</td><td>36px / 0 <code>--spacing-3</code></td><td>0 / 12</td></tr>' +
+          '<tr><td>Label typography</td><td><code>text-label-sm-regular</code></td><td>14 / 20 / 400</td></tr>' +
+          '<tr><td>Label color</td><td><code>--text-secondary</code></td><td>DSN/700 #384253</td></tr>' +
+          '<tr><td>Idle bg</td><td>transparent</td><td>&mdash;</td></tr>' +
+          '<tr><td>Hover bg</td><td><code>--deep-sea-neutral-100</code></td><td>#F2F3F5</td></tr>' +
+          '<tr><td>Pressed bg</td><td><code>--deep-sea-neutral-200</code></td><td>#E4E6EB</td></tr>' +
+          '<tr><td>Grip icon</td><td>16 &times; 16 lucide</td><td>opacity 0 idle &rarr; 1 on hover or <code>data-dragging="true"</code></td></tr>' +
+          '<tr><td>Transition (bg + grip opacity)</td><td><code>--transition-fast</code></td><td>150ms ease</td></tr>' +
         '</tbody>' +
       '</table>'
   }
@@ -6103,7 +6914,7 @@ function showCompDetails(componentName) {
 document.addEventListener('DOMContentLoaded', function() {
   /* Populate Components tab */
   var compTab = document.getElementById('componentsTabBadgeContent');
-  if (compTab) compTab.innerHTML = getBadgeComponentHTML() + getButtonComponentHTML() + getIconButtonComponentHTML() + getSidebarButtonComponentHTML() + getSidebarComponentHTML() + getGlobalSearchComponentHTML() + getLeadNavComponentHTML() + getTrailNavComponentHTML() + getNavbarComponentHTML() + getPageHeaderComponentHTML() + getSectionHeaderComponentHTML() + getEntityChipComponentHTML() + getWidgetMetricRowComponentHTML() + getWidgetPieChartComponentHTML() + getWidgetComponentHTML() + getWidgetCtaRowComponentHTML();
+  if (compTab) compTab.innerHTML = getBadgeComponentHTML() + getButtonComponentHTML() + getIconButtonComponentHTML() + getSidebarButtonComponentHTML() + getSidebarComponentHTML() + getGlobalSearchComponentHTML() + getLeadNavComponentHTML() + getTrailNavComponentHTML() + getNavbarComponentHTML() + getPageHeaderComponentHTML() + getSectionHeaderComponentHTML() + getEntityChipComponentHTML() + getSearchFieldComponentHTML() + getWidgetMetricRowComponentHTML() + getWidgetPieChartComponentHTML() + getWidgetComponentHTML() + getWidgetCtaRowComponentHTML() + getMenuRowComponentHTML() + getMenuDropdownComponentHTML() + getEditModeOverviewHTML() + getWidgetsLeftMenuComponentHTML();
 
   /* No active normalization cycle. The previous wcta-norm cycle (WidgetCtaRow +
      Widget 3xCta) has passed Gate B-DSM and been promoted to the Components

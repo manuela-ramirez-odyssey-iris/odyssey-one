@@ -3,9 +3,7 @@
 }
 
 /* Home dashboard grid — 6 equal columns, cells ≥ 170×184, 20px gap.
-   Widget variants span: 1x = 1×1, 2x = 2×1, 3x / 3xChart = 2×2.
-   Tokens (`--home-grid-*`) live in packages/tokens so a future responsive pass
-   can redefine them per breakpoint. */
+   Widget variants span: 1x = 1×1, 2x = 2×1, 3x / 3xChart / 3xCta = 2×2. */
 .home-widget-grid {
   display: grid;
   grid-template-columns: repeat(var(--home-grid-columns), minmax(var(--home-grid-col-min-width), 1fr));
@@ -14,13 +12,38 @@
   margin-top: var(--spacing-6);
 }
 
-/* Widget shells inherit fixed widths from components.css (170 / 360) so they look
-   right standalone — override to fill the grid cell when placed inside the home grid. */
-.home-widget-grid > .widget {
-  width: auto;
+/* Each widget is wrapped in `.home-widget-cell` (dnd-kit sortable wrapper).
+   The variant span lives on the wrapper so the grid sizes correctly even
+   while dnd-kit applies its transform to the wrapper. */
+.home-widget-cell {
+  display: flex;
+  min-width: 0;
 }
-.home-widget-grid > .widget--1x { grid-column: span 1; grid-row: span 1; }
-.home-widget-grid > .widget--2x { grid-column: span 2; grid-row: span 1; }
-.home-widget-grid > .widget--3x,
-.home-widget-grid > .widget--3xChart,
-.home-widget-grid > .widget--3xCta { grid-column: span 2; grid-row: span 2; }
+.home-widget-cell > .widget {
+  width: 100%;
+}
+.home-widget-cell--1x { grid-column: span 1; grid-row: span 1; }
+.home-widget-cell--2x { grid-column: span 2; grid-row: span 1; }
+.home-widget-cell--3x,
+.home-widget-cell--3xChart,
+.home-widget-cell--3xCta { grid-column: span 2; grid-row: span 2; }
+
+/* Edit-mode panel — sits where the sidebar normally lives. AppShell hides
+   the sidebar and pushes main's left padding by --edit-panel-width when
+   isEditMode is true, so this fixed panel slots into the freed space. */
+.home-edit-panel {
+  position: fixed;
+  top: var(--navbar-height);
+  left: 0;
+  bottom: 0;
+  width: var(--edit-panel-width);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  animation: home-edit-panel-slide-in var(--transition-panel);
+}
+
+@keyframes home-edit-panel-slide-in {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}

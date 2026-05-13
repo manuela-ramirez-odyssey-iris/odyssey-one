@@ -892,6 +892,14 @@ input[type="radio"].odyssey-radio {
   line-height: 12px; /* raw — no token for 12px line-height (matches Figma label/xs regular tight) */
   font-weight: var(--font-weight-regular);
 }
+.text-label-xs-medium-uppercase {
+  font-family: var(--font-primary);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-xs);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+}
 
 /* ----------------------------------------
    WIDGET (molecule, 4 variants)
@@ -899,6 +907,7 @@ input[type="radio"].odyssey-radio {
    1x / 2x / 3x / 3xChart. Mirrors Figma component set `Widget` at 1825:7.
    ---------------------------------------- */
 .widget {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: var(--spacing-3);
@@ -911,19 +920,23 @@ input[type="radio"].odyssey-radio {
   box-shadow: var(--shadow-sm);
   box-sizing: border-box;
 }
-.widget--1x { width: 170px; }
+.widget[data-edit-mode="true"] .btn--link,
+.widget[data-edit-mode="true"] .widget__content,
+.widget[data-edit-mode="true"] .widget__content * { pointer-events: none; }
+.widget[data-edit-mode="true"] .widget__grip { cursor: grab; }
+.widget--1x { width: 170px; gap: 22px; }
 .widget--2x { width: 360px; }
 .widget--3x,
 .widget--3xChart { width: 360px; gap: var(--spacing-6); }
 
 /* Content/Button distribution inside the widget shell when it's taller than its
    natural content height (i.e. when placed in a Home-grid cell larger than content).
-   - 1x / 2x / 3xChart → Content pushes to the bottom; auto-gap appears between
+   - 2x / 3xChart → Content pushes to the bottom; auto-gap appears between
      Header and Content. Button (when present, 2x/3xChart) follows Content
      naturally via the flex `gap` so it lands at the very bottom too.
+   - 1x → Content stays right after Header with a fixed 22px gap (no auto-bottom).
    - 3x → Content stays right after Header (no auto-gap); Button pushes to the
      bottom on its own. */
-.widget__content--1x,
 .widget__content--2x,
 .widget__content--3xChart {
   margin-top: auto;
@@ -1276,6 +1289,17 @@ input[type="radio"].odyssey-radio {
 .widget-cta-row--interactive:active .widget-cta-row__chevron {
   color: var(--text-placeholder);
 }
+
+.menu-row { cursor: pointer; transition: background var(--transition-fast); }
+.menu-row__grip { opacity: 0; transition: opacity 120ms ease-out; color: var(--text-tertiary); display: inline-flex; }
+.menu-row:hover { background: var(--deep-sea-neutral-100); }
+.menu-row:hover .menu-row__grip { opacity: 1; }
+.menu-row:active { background: var(--deep-sea-neutral-200); }
+[data-dragging="true"] .menu-row { background: var(--deep-sea-neutral-200); }
+[data-dragging="true"] .menu-row__grip { opacity: 1; }
+
+.menu-dropdown__header { color: var(--text-tertiary); transition: color var(--transition-fast); }
+.menu-dropdown__header:hover { color: var(--text-primary); }
 
 /* ----------------------------------------
    PRINT STYLES

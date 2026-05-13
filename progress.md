@@ -2871,3 +2871,210 @@ Saved as `feedback_widget_close_icon_lg.md` memory: Widget header X always LG (2
 - Resume Supabase migration when ≥3 domains have real UIs.
 
 **Library publish required**: Open Figma → Assets → **Publish library / Update**. Changes this cycle: new component `WidgetCtaRow`, new Widget set variant `3xCta` (in both Widget and WidgetContent sets), new color primitive `Carolina Blue/100`, all 4 existing Widget shell strokes rebound to `Border/subtle`, ButtonLink Pressed itemSpacing 18, deprecated standalone CTA Widget frame.
+
+## Session 24 — May 12, 2026
+
+Marathon session — full Home "edit mode" feature shipped end-to-end: a left-side widgets panel that replaces the sidebar, navbar swap, in-grid widget reorder/remove via @dnd-kit/sortable, snapshot+revert/commit semantics, and animation replay on save. Two NEW normalized molecules (SearchField, WidgetsLeftMenu) plus two extracted sub-molecules (MenuRow with 3 states, MenuDropdown with SLOT) — bringing the library to 24 normalized components, 22 Pushed-to-Figma entries, 21 Code Connect mappings. Also closed three carry-forwards from earlier today: scrapped the GlobalSearch scope dropdown entirely, added the Partners empty-view route, and fixed a series of polish corrections (drag deformation, navbar height, panel layout, icon-slot convention, X alignment).
+
+### Thread 1 — GlobalSearch scope dropdown scrapped (Figma → code → DSM → tracker)
+
+User decision: the "All / Shipment Exceptions" scope pill + chevron + opening dropdown panel were scrapped. Scope kept as a non-interactive labeled `<span>`.
+
+**Figma** (set `658:18`): removed `Dropdown icon` INSTANCE_SWAP component property; deleted chevron instances on `State=Default` (`471:2220`) and `State=Focused` (`658:11`); rebalanced Search Scope padding L12 R8 (itemSpacing 12) → symmetric L12 R12 (itemSpacing 0) on both variants.
+
+**Code**: `GlobalSearch.jsx` props `onScopeClick` / `dropdownOpen` / `dropdownIcon` removed; scope rendered as a `<span>`; only internal `focused` state (input focus) drives the clear-X icon brightness. Layout `Navbar.jsx` dropped CATEGORIES list, `categoryDropdownOpen` state, the entire dropdown JSX panel, and the `searchRef` wiring. Shell `Navbar.jsx` (in `@odyssey/ui`) dropped `searchRef` prop. `GlobalSearch.figma.tsx` Default + Focused mappings now emit bare `<GlobalSearch mode="search" />` (Title mapping unchanged).
+
+**DSM + tracker**: subagent updated the GlobalSearch demo (no chevron, scope = static span), Figma metadata blurb, props tables, Implementation Notes, and the Navbar composition note (`searchRef` mention dropped, "scope dropdown" → "scope label"). Tracker rows for GlobalSearch + Navbar got `*Updated 2026-05-12:*` notes; obsolete Pending-Figma-Sync rows retired; new Pushed-to-Figma entry added.
+
+### Thread 2 — Partners empty view
+
+New `apps/odyssey-one/src/routes/Partners.jsx` (PageHeader "Partners" + "Coming soon."). Route `/partners` added to `App.jsx`. Sidebar `Handshake` button wired to `/partners` (was `to: null`). Cleaned the now-dead `to ? () : ()` branch in `Sidebar.jsx` since all three bottom items route now.
+
+### Thread 3 — /normalize WidgetsLeftMenu organism (panel for edit mode)
+
+Source: Figma `1937:643` (Untitled-UI-style "Widgets Left Menu"). User specs: vertical scrollable panel, mini search at top, 6 collapsible groups, items with hover/pressed states, drag-to-reorder, click-to-open-configurator (modal not yet built). On entry → enters edit mode; on exit → save replays animations.
+
+**Spec questions** locked early via AskUserQuestion: mini search becomes a new molecule (not inline); edit-mode state lives in React Context; Cancel reverts a snapshot, Save commits in-memory; panel overlays the sidebar; DnD via @dnd-kit (full functional); panel-item click → stub "Coming soon" modal.
+
+**Library-purity rule reinforced mid-cycle**: user pushed back on referencing the Figma kit's `Navbars/Search field` master + `icons/16px/*` placeholder instances. Pivoted to use ONLY our primitives. Audit revealed 2 icon gaps — `lucide/search` at 20px (Icons lg) and `lucide/grip-vertical` at 16px (Icons md) — both added by the user before the Figma builds resumed.
+
+**Token additions** (`packages/tokens/tokens.css`):
+- `--letter-spacing-wide: 0.05em` (uppercase tracking for group headers)
+- `--shadow-panel: 0 0 0 1px rgba(0,0,0,0.05), 0 4px 6px -2px rgba(0,0,0,0.05), 0 10px 15px -3px rgba(0,0,0,0.1)` (3-layer drop shadow)
+- `--transition-panel: 220ms cubic-bezier(0.22, 1, 0.36, 1)` (slide-in)
+- `.text-label-xs-medium-uppercase` utility class in `apps/odyssey-one/src/styles/components.css`
+
+**Figma builds:**
+- New Effect Style `shadow/panel` (3-layer)
+- New `SearchField` molecule master `1959:76` (Components-Molecules) — 32h white-surface field, lucide/search at lead, `Placeholder` TEXT property
+- New `WidgetsLeftMenu` organism master `1961:393` (Components-Organisms) — 240×1568, title row + SearchField + 6 inline groups, "Order Exceptions" demoed in hover state with DSN/100 bg + visible grip. Built from scratch using only our primitives.
+
+**Code builds:**
+- `packages/ui/src/SearchField.jsx` + `.figma.tsx` + index export
+- `packages/ui/src/WidgetsLeftMenu.jsx` + `.figma.tsx` + index export. Library-pure — accepts a `renderItem(item, group, defaultNode)` render-prop so consumers wire DnD without coupling @dnd-kit into the library.
+- Installed `@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities` in `apps/odyssey-one` (apps-side only; library stays framework-pure)
+- New `apps/odyssey-one/src/contexts/EditModeContext.jsx` — Provider + `useEditMode()` hook exposing `{ isEditMode, enterEditMode({onSave,onCancel}), save, cancel }`. Wraps the app in `main.jsx`.
+- App-side `Navbar.jsx` early-returns an edit-mode branch: `GlobalSearch mode="title" title="Edit Dashboard"` + `TrailNav mode="editor"` with `showRightIcon={false}`, Cancel/Save wired to context.
+- TrailNav micro-fix: `IconSlot` returns `null` when `show=false` (was a 20×20 placeholder span that created a 40px gap where the X had been).
+- `Widget.jsx`: added `editMode` + `onRemove` props. In edit mode the header grip is forced visible, the root gets `data-edit-mode="true"`, and an absolute top-right close button shows.
+- New `apps/odyssey-one/src/components/ComingSoonModal.jsx` — placeholder for the future widget configurator modal.
+- `Home.jsx` fully rewired: widget array driven state, DndContext with `closestCenter`, PointerSensor (8px distance constraint), separate SortableContexts for grid (rectSortingStrategy) and panel items (verticalListSortingStrategy). Snapshot-via-closure on `enterEditMode`; `onCancel` restores; `onSave` increments `gridKey` for full grid remount → animations replay.
+
+### Thread 4 — MenuRow + MenuDropdown extraction (user-requested)
+
+After WidgetsLeftMenu landed, user asked to extract the row and group as their own normalized molecules with state variants, plus a Figma slot for designer composition.
+
+**Decisions** via AskUserQuestion: menu-scoped naming (`MenuRow`, `MenuDropdown`), 3 row states (Default / Hover / Pressed — no persistent Selected).
+
+**Figma:**
+- `MenuRow` component set `1973:87` (Components-Molecules) — 3 State variants (`1973:77` Default / `1973:79` Hover / `1973:83` Pressed). `Label` TEXT (default `"Total Orders"`). Hover bg DSN/100 + visible 16px grip; Pressed bg DSN/200 + grip. Bound to `Spacing/2/3/4`, `Deep Sea Neutral/100/200`, `Text/secondary`, `label/sm regular`.
+- `MenuDropdown` component `1981:79` (Components-Molecules) — `Title` TEXT, `Expanded` BOOLEAN (default true, bound to itemsFrame visibility), `ContentSlot` SLOT. Header 32h with chevron-down + lucide/chevron-right.
+
+**SLOT investigation:** Figma plugin API doesn't expose `figma.createSlot()` directly — but `addComponentProperty(name, 'SLOT', '')` followed by `componentPropertyReferences.slotContentId = propId` on a child frame converts that frame to a SLOT node. Confirmed SLOT property added; however, programmatic child-override on instances (the WidgetsLeftMenu's 6 MenuDropdown instances) didn't take effect — Figma SLOT semantics keep the master's default content frozen at instance level; designers override slot content via the Figma UI, not the plugin API.
+
+**Pivot:** WidgetsLeftMenu master rebuilt to compose MenuRow instances directly inside custom Group containers (not via MenuDropdown instances). MenuDropdown stays available standalone for designers who want to build their own composed dropdowns. Panel total height back to 1568 (matches the original mock).
+
+**Code:**
+- `packages/ui/src/MenuRow.jsx` + `.figma.tsx` (3 Code Connect mappings, one per State variant, all rendering identical `<MenuRow label={label} />` since state is CSS-only)
+- `packages/ui/src/MenuDropdown.jsx` + `.figma.tsx` (Title TEXT + Expanded BOOLEAN; SLOT children NOT mapped explicitly, mirroring Widget's pattern)
+- `WidgetsLeftMenu.jsx` refactored to compose MenuRow + MenuDropdown internally. The `renderItem(item, group, defaultNode)` signature unchanged — `defaultNode` is now a `<MenuRow>` element. Imports of `GripVertical`, `ChevronDown`, `ChevronRight`, `ICON_MD` removed (now MenuRow/MenuDropdown's responsibility).
+- CSS in `components.css`: `.widgets-left-menu__item*` rules replaced with `.menu-row*` block. `[data-dragging="true"]` uses ancestor selector so Home's `SortablePanelItem` data attribute on the dnd-kit wrapper drives the inner row's visual state.
+
+### Thread 5 — Layout / navbar / drag correction round
+
+User reported via screenshot reference that the panel was overlapping content, navbar was 68px tall (4px overage), and widgets deformed when dragged across variable-span cells.
+
+**Panel replaces sidebar.** `AppShell.jsx` now reads `useEditMode()`. When `isEditMode`:
+- `<Sidebar />` removed from the layout flex flow (`!isEditMode && <Sidebar />`)
+- `<main>` left padding becomes `calc(var(--edit-panel-width) + var(--spacing-6))` — content shifts as one block (PageHeader + SectionHeader + grid all together)
+- New token `--edit-panel-width: 240px` in `tokens.css`
+- Panel stays `position: fixed; left: 0; top: var(--navbar-height); width: var(--edit-panel-width)` — slots into the freed sidebar space
+- Removed the old `.home-widget-grid--edit { padding-left: ... }` hack from `Home.css`
+
+**Navbar back to 64px in edit mode.** NavbarShell (`packages/ui/src/Navbar.jsx`) added a `compact` BOOLEAN prop — when `true`, vertical padding is 12px (default 14px), shaving 4px total. App-side Navbar passes `compact` in the edit-mode branch. Math: editor-mode `Button size=lg` is 40h; 12+40+12 = 64. Matches profile mode (14+36+14 = 64).
+
+**Drag deformation fix.** Two-part:
+1. `SortableWidget` adds `animateLayoutChanges: () => false` to `useSortable` — disables sibling auto-animation that was reshaping variable-span grid cells.
+2. `SortableWidget` strips scale from the transform: `translate3d(${x}px, ${y}px, 0)` (was `CSS.Transform.toString(transform)` which includes `scaleX/scaleY` when rectSortingStrategy crosses different-size cells). Widget keeps its native cell size throughout the drag.
+
+### Thread 6 — Panel + widget polish round
+
+Multi-item correction batch:
+- **Vertical-only drag for panel items.** `SortablePanelItem` transform locked to `translate3d(0, ${y}px, 0)` — panel items only reorder within their vertical column.
+- **MenuDropdown header hover.** Added `.menu-dropdown__header` class with `color: var(--text-tertiary)` + transition. Hover shifts to `--text-primary`. Inline color on chevron icons removed → both label and chevron follow via `currentColor`.
+- **SearchField restyled** to mirror Shipments TableControls searchbar (lines 45–92 of `TableControls.jsx`): `--bg-primary` surface (was `--white`), 1px → 2px focus border (`--deep-sea-neutral-600`), search-icon `--text-placeholder` → `--text-tertiary` on input focus. Internal `useState` for focused. Removed the "input active" visual that was bothering the user.
+- **Widget 1x adds domain icon at lead.** Figma 1x variant `1774:1483` got a new icon instance inserted at position 1 in Header title (between grip and Title container). Title container set to `layoutSizingHorizontal=FILL` with `textTruncation=ENDING` so the title fits. Code Widget.jsx Header function: `showInlineDomainIcon` now matches `variant === '1x' || variant === '2x'` (was just 2x). Home passes `domainIcon: <TriangleAlert/>` on the open-exceptions 1x.
+- **Widget 1x content top-aligned + 22px gap from header.** Figma: `primaryAxisAlignItems: SPACE_BETWEEN → MIN`, `itemSpacing: 16 → 22`. CSS: `.widget--1x { gap: 22px }` (overrides the default `--spacing-3`); `.widget__content--1x` removed from the `margin-top: auto` block.
+- **Widget 2x icon to lead.** Figma 2x master `1774:1509`: clipboard-list icon moved from "Button group" (right, next to X) into "Header title" (lead position, between grip and title text). Button group now contains only the X icon. Matches code, which was already correct.
+- **Edit-mode click disable extended.** CSS rule grew from just `.btn--link` to also cover `.widget__content` and `.widget__content *`: `.widget[data-edit-mode="true"] { all clickable descendants } { pointer-events: none }`. Covers 1x's content button, 3x's WidgetMetricRow rows, 3xCta's WidgetCtaRow rows, plus existing ButtonLinks. `.widget__close` (in `.widget__header`) is outside `.widget__content` and stays clickable.
+
+### Thread 7 — Edit-mode X alignment + Widget icons → placeholder-20
+
+User caught a visual inconsistency: the edit-mode X close button (`.widget__edit-close` — absolute-positioned overlay I added earlier) wasn't vertically aligned with the rest of the header content. Also noted that the Widget Figma masters still had real icons (`lucide/clipboard-list`, `lucide/container`) where they should be `placeholder-20` per the icon-slot convention.
+
+**Code refactor:** removed `.widget__edit-close` entirely. `Widget.jsx` now routes `onRemove` through the existing header `onClose` slot: `onClose={editMode ? onRemove : onClose}`. The X uses the existing `.widget__close` styling — inline-flex, text-tertiary, sits inside `.widget__header` which has `align-items: center` so the X is vertically centered with the header row content. Removed all `.widget__edit-close` CSS rules.
+
+**Figma:** all Widget domain icons swapped to `placeholder-20` (`512:2395` from Icons Placeholder, same master Button + SidebarButton use):
+- 1x: `lucide/triangle-alert` → `placeholder-20`
+- 2x: `lucide/clipboard-list` → `placeholder-20`
+- 3x: `lucide/container` → `placeholder-20`
+- 3xChart: `lucide/container` → `placeholder-20`
+- `Domain icon#1828:5` INSTANCE_SWAP property default also updated to `placeholder-20` (was `lucide/container` `583:415`)
+- 3xCta unaffected (no domain icon slot)
+
+Follows `feedback_icon_slot_convention.md`: switchable INSTANCE_SWAP slots always default to placeholder so consumers know it's overridable.
+
+### Thread 8 — DSM + tracker updates (4 subagent dispatches)
+
+Per `feedback_designsystemmap_subagent.md` and `feedback_designsystemmap_first.md`, DSM + tracker work was delegated to general-purpose subagents across 4 rounds:
+
+1. **GlobalSearch dropdown removal** — DSM demos rewritten, props tables updated, blurb edits.
+2. **WidgetsLeftMenu + SearchField + edit-mode overview** — new DSM sections, `compDetails` entries, render-loop update. Tracker rows + Pushed-to-Figma + Code Connect entries.
+3. **MenuRow + MenuDropdown** — new DSM sections (3 demo cards per state for MenuRow; expanded/collapsed demo for MenuDropdown); `compDetails` entries; render loop reordered small → large.
+4. **Today's later corrections** — SearchField restyle + MenuDropdown hover + Widget 1x/2x changes + edit-mode click extension + X header alignment + icons → placeholder-20.
+
+### Files / commits
+
+**New files (code):**
+- `packages/ui/src/SearchField.jsx` + `.figma.tsx`
+- `packages/ui/src/WidgetsLeftMenu.jsx` + `.figma.tsx`
+- `packages/ui/src/MenuRow.jsx` + `.figma.tsx`
+- `packages/ui/src/MenuDropdown.jsx` + `.figma.tsx`
+- `apps/odyssey-one/src/contexts/EditModeContext.jsx`
+- `apps/odyssey-one/src/components/ComingSoonModal.jsx`
+- `apps/odyssey-one/src/routes/Partners.jsx`
+
+**Modified files (code):**
+- `packages/tokens/tokens.css` — `--letter-spacing-wide`, `--shadow-panel`, `--transition-panel`, `--edit-panel-width`
+- `apps/odyssey-one/src/styles/components.css` — `.text-label-xs-medium-uppercase`, `.menu-row*`, `.menu-dropdown__header`, `.widget[data-edit-mode]` pointer-events extension, `.widget--1x { gap: 22px }`. Removed: `.widgets-left-menu__item*`, `.widget__edit-close`, `.home-widget-grid--edit`.
+- `packages/ui/src/index.js` — exports for SearchField, WidgetsLeftMenu, MenuRow, MenuDropdown
+- `packages/ui/src/GlobalSearch.jsx` + `.figma.tsx` — scope dropdown scrapped
+- `packages/ui/src/Navbar.jsx` (shell) — `searchRef` dropped, `compact` prop added
+- `packages/ui/src/TrailNav.jsx` — `IconSlot` returns null when `show=false`
+- `packages/ui/src/Widget.jsx` — `editMode`/`onRemove` props, 1x domain icon, edit-mode X via header onClose
+- `packages/ui/src/WidgetsLeftMenu.jsx` — refactored to compose MenuRow + MenuDropdown
+- `apps/odyssey-one/src/main.jsx` — wraps `<App/>` with `<EditModeProvider>`
+- `apps/odyssey-one/src/App.jsx` — `/partners` route
+- `apps/odyssey-one/src/components/layout/AppShell.jsx` — hides Sidebar + shifts main when isEditMode
+- `apps/odyssey-one/src/components/layout/Navbar.jsx` — edit-mode branch (GlobalSearch=Title, TrailNav=Editor, `compact`)
+- `apps/odyssey-one/src/components/layout/Sidebar.jsx` — Partners wired to `/partners`, dead `to: null` branch removed
+- `apps/odyssey-one/src/routes/Home.jsx` — full rewrite to array-driven widgets, dnd-kit wiring, panel render, snapshot/revert, gridKey remount, modal stub
+- `apps/odyssey-one/src/routes/Home.css` — `.home-widget-cell*` wrapper, `.home-edit-panel` (fixed, slides in from -100% with `--transition-panel`)
+- `apps/odyssey-one/package.json` + `package-lock.json` — `@dnd-kit/core` 6.3.1, `@dnd-kit/sortable` 10.0.0, `@dnd-kit/utilities` 3.2.2
+- `playground/DesignSystemMap.html` — 4 update passes across the session
+- `playground/normalization-tracker.md` — multiple `*Updated 2026-05-12:*` notes + new Pushed-to-Figma + Code Connect rows
+
+**Memory updates:**
+- (No new memory files this session; existing memories applied throughout.)
+
+**Figma masters created/modified:**
+- New Effect Style `shadow/panel`
+- New `SearchField` master `1959:76`
+- New `WidgetsLeftMenu` master `1961:393`
+- New `MenuRow` component set `1973:87` (3 State variants)
+- New `MenuDropdown` master `1981:79` (with SLOT)
+- `GlobalSearch` set `658:18` — chevron deletion, padding rebalance, `Dropdown icon` property removed
+- `Widget` set `1825:7` — 1x adds icon + 22 gap + top-align, 2x icon to lead, all variants' domain icons → `placeholder-20`, `Domain icon` property default updated
+- User added 2 icon masters: `lucide/search` (20px, Icons lg, `1948:848`) and `lucide/grip-vertical` (16px, Icons md, `1948:910`)
+
+### State of `@odyssey/ui` after Session 24
+
+**24 normalized components** (was 18 at end of Session 23):
+- Atoms: Badge, Button, IconButton, OdysseyLogo, SidebarButton
+- Molecules: GlobalSearch, LeadNav, TrailNav, PageHeader, SectionHeader, EntityChip, WidgetMetricRow, WidgetPieChart, WidgetCtaRow, **SearchField** (NEW), **MenuRow** (NEW), **MenuDropdown** (NEW)
+- Organisms: Navbar, Widget, **WidgetsLeftMenu** (NEW)
+
+**Code Connect:** 21+ mappings live (added: 1 SearchField, 1 WidgetsLeftMenu, 3 MenuRow per State, 1 MenuDropdown; modified: GlobalSearch 3 mappings simplified).
+
+**Tokens added this session:**
+- `--letter-spacing-wide: 0.05em`
+- `--shadow-panel: 0 0 0 1px rgba(0,0,0,0.05), 0 4px 6px -2px rgba(0,0,0,0.05), 0 10px 15px -3px rgba(0,0,0,0.1)`
+- `--transition-panel: 220ms cubic-bezier(0.22, 1, 0.36, 1)`
+- `--edit-panel-width: 240px`
+- New utility class `.text-label-xs-medium-uppercase`
+
+**New Figma Effect Style:** `shadow/panel` (3-layer drop shadow)
+
+**Library publish required**: Open Figma → Assets → **Publish library / Update**. (User confirmed published before /wrap.)
+
+### Carry-forward to Session 25
+
+**Pre-flagged for next session:**
+- **Widget configurator modal** — the modal that opens when a panel item is clicked. Currently a placeholder `ComingSoonModal` stub. Next /normalize target.
+
+**Standing backlog:**
+- SHP-66 — generic dropdown menu component (separate from MenuDropdown — popover style).
+- SHP-67 — responsive normalization pass.
+- ButtonLink — full size × state matrix in Figma (currently only sm with state set).
+- StatusBadge / TypeBadge / HazmatTag / Appointment badge / History action badges / Tab count pills normalizations.
+- Off-token off-scale paddings (6 / 14 / 18) still raw across several components.
+- Sidebar Selected variant Figma icon-color encoding.
+- MenuDropdown / SearchField additional state variants in Figma (hover, focus, pressed) — currently code-only via CSS pseudo-classes.
+
+**Parked:**
+- Mode-based Figma theming for Button icon colors.
+- Purge legacy `icons/Npx/*` masters.
+- Convert any remaining Lucide FRAMEs to proper COMPONENTs.
+- Resume Supabase migration when ≥3 domains have real UIs.
+
+**Library publish**: Already done at end of session per user confirmation.

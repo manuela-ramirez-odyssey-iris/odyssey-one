@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, CircleX } from 'lucide-react'
+import { ChevronLeft, ChevronRight, CircleX } from 'lucide-react'
 import { ICON_MD, ICON_LG } from '@odyssey/tokens'
 
 export default function GlobalSearch({ mode = 'search', ...rest }) {
@@ -33,9 +33,6 @@ function GlobalSearchTitle({
 
 function GlobalSearchSearch({
   scope = 'All',
-  onScopeClick,
-  dropdownOpen = false,
-  dropdownIcon,
   value = '',
   onChange,
   onClear,
@@ -45,12 +42,10 @@ function GlobalSearchSearch({
   minWidth = 590,
   maxWidth = 900,
 }) {
-  const [inputFocused, setInputFocused] = useState(false)
-  const focused = inputFocused || dropdownOpen
+  const [focused, setFocused] = useState(false)
   const accent = focused
     ? 'var(--deep-sea-neutral-200)'
     : 'var(--deep-sea-neutral-400)'
-  const ChevronIcon = dropdownOpen ? ChevronUp : ChevronDown
 
   return (
     <div className="flex items-center" style={{ gap: 'var(--spacing-2)', flex: 1, minWidth, maxWidth }}>
@@ -87,13 +82,10 @@ function GlobalSearchSearch({
           paddingRight: 'var(--spacing-3)',
         }}
       >
-        <button
-          type="button"
-          onClick={onScopeClick}
-          className="global-search-scope flex items-center shrink-0 whitespace-nowrap border-none cursor-pointer"
+        <span
+          className="global-search-scope flex items-center shrink-0 whitespace-nowrap"
           style={{
-            gap: 'var(--spacing-3)',
-            padding: '6px 8px 6px 12px',
+            padding: '6px 12px',
             background: 'var(--deep-sea-neutral-700)',
             borderRight: '1px solid var(--deep-sea-neutral-600)',
             color: accent,
@@ -103,16 +95,15 @@ function GlobalSearchSearch({
           }}
         >
           {scope}
-          {dropdownIcon ?? <ChevronIcon {...ICON_MD} />}
-        </button>
+        </span>
 
         <input
           type="text"
           value={value}
           placeholder={placeholder}
           onChange={(e) => onChange?.(e.target.value)}
-          onFocus={() => setInputFocused(true)}
-          onBlur={() => setInputFocused(false)}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
           className="global-search-input flex-1 bg-transparent border-none outline-none min-w-0"
           style={{
             color: 'var(--text-inverse)',

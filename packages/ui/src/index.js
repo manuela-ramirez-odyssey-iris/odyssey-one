@@ -14,3 +14,7 @@ export { default as WidgetMetricRow } from './WidgetMetricRow.jsx';
 export { default as WidgetPieChart } from './WidgetPieChart.jsx';
 export { default as WidgetCtaRow } from './WidgetCtaRow.jsx';
 export { default as Widget } from './Widget.jsx';
+export { default as SearchField } from './SearchField.jsx';
+export { default as MenuRow } from './MenuRow.jsx';
+export { default as MenuDropdown } from './MenuDropdown.jsx';
+export { default as WidgetsLeftMenu } from './WidgetsLeftMenu.jsx';

@@ -4,6 +4,7 @@ import Orders from './routes/Orders.jsx'
 import Carriers from './routes/Carriers.jsx'
 import Tracking from './routes/Tracking.jsx'
 import Users from './routes/Users.jsx'
+import Partners from './routes/Partners.jsx'
 import ShipmentsRoute from './routes/shipments/ShipmentsRoute.jsx'
 
 export default function App() {
@@ -15,6 +16,7 @@ export default function App() {
       <Route path="/shipments/*" element={<ShipmentsRoute />} />
       <Route path="/tracking" element={<Tracking />} />
       <Route path="/users" element={<Users />} />
+      <Route path="/partners" element={<Partners />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )

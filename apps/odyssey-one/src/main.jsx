@@ -11,11 +11,14 @@ import '@fontsource/inter/500.css'
 import '@fontsource/inter/600.css'
 import './index.css'
 import App from './App.jsx'
+import { EditModeProvider } from './contexts/EditModeContext.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
-      <App />
+      <EditModeProvider>
+        <App />
+      </EditModeProvider>
     </BrowserRouter>
     <Analytics />
     <SpeedInsights />

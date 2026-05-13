@@ -49,18 +49,23 @@ export default function Widget({
   // 2x only — hide the donut for stat-only widgets (e.g. Users Enrolled: 142
   // with no percentage). Maps to the Figma `Show chart` BOOLEAN on WidgetContent 2x.
   showChart = true,
+  // Edit mode — Home dashboard "Add Widgets" flow. Forces grip on, dims CTAs to
+  // non-interactive, and overlays a top-right close button wired to onRemove.
+  editMode = false,
+  onRemove,
   className = '',
   ...rest
 }) {
   const cls = `widget widget--${variant} ${className}`.trim()
+  const editAttrs = editMode ? { 'data-edit-mode': 'true' } : {}
   return (
-    <div className={cls} {...rest}>
+    <div className={cls} {...editAttrs} {...rest}>
       <Header
         variant={variant}
         title={title}
         domainIcon={domainIcon}
-        showGrip={showGrip}
-        onClose={onClose}
+        showGrip={showGrip || editMode}
+        onClose={editMode ? onRemove : onClose}
       />
       <Content
         variant={variant}
@@ -94,6 +99,7 @@ function Header({ variant, title, domainIcon, showGrip, onClose }) {
     : variant === '2x' ? 'text-label-sm-medium'
     : 'text-heading-lg-medium' // 3x / 3xChart
   const showDomainIconContainer = variant === '3x' || variant === '3xChart'
+  const showInlineDomainIcon = (variant === '1x' || variant === '2x') && domainIcon
 
   return (
     <header className="widget__header">
@@ -104,7 +110,7 @@ function Header({ variant, title, domainIcon, showGrip, onClose }) {
             {domainIcon}
           </span>
         ) : (
-          variant === '2x' && domainIcon && <span className="widget__domain-icon">{domainIcon}</span>
+          showInlineDomainIcon && <span className="widget__domain-icon">{domainIcon}</span>
         )}
         <span className={`widget__title ${titleClass}`}>{title}</span>
       </div>

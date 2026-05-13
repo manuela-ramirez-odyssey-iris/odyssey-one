@@ -164,9 +164,7 @@ function TrailNavEditor({
 }
 
 function IconSlot({ show, onClick, ariaLabel, children }) {
-  if (!show) {
-    return <span style={{ width: 20, height: 20, display: 'inline-block', flexShrink: 0 }} aria-hidden="true" />
-  }
+  if (!show) return null
   return (
     <button
       type="button"
