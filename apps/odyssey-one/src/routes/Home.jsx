@@ -1,5 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Download, Plus, Route, TriangleAlert, UserCog } from 'lucide-react'
+import {
+  ClipboardList,
+  Container,
+  Download,
+  Plus,
+  Route,
+  TriangleAlert,
+  Truck,
+  UserCog,
+} from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { ICON_LG } from '@odyssey/tokens'
 import {
   Button,
@@ -99,63 +109,131 @@ function previewWidgetProps(variant, itemLabel) {
   return base
 }
 
-const ctaRows = [
-  { icon: <Plus size={20} />, label: 'Create a New Order', onClick: handleRow('create-order') },
-  { icon: <Route size={20} />, label: 'Track a Shipment', onClick: handleRow('track-shipment') },
-  { icon: <UserCog size={20} />, label: 'Manage Users', onClick: handleRow('manage-users') },
-  { icon: <Download size={20} />, label: 'Invoices', onClick: handleRow('invoices') },
+// Stub ctaRows for the module-level initialWidgets seed — handlers are no-op
+// here so initialization stays pure. The Home component overrides this with
+// navigation-bound handlers via useState's lazy initializer.
+const ctaRowsStub = [
+  { icon: <Plus size={20} />, label: 'Go to Create a New Order', onClick: () => {} },
+  { icon: <Route size={20} />, label: 'Track a Shipment', onClick: () => {} },
+  { icon: <UserCog size={20} />, label: 'Management Users', onClick: () => {} },
+  { icon: <Download size={20} />, label: 'Invoices', onClick: () => {} },
+]
+
+const orderIcon = <ClipboardList {...ICON_LG} />
+const carriersIcon = <Truck {...ICON_LG} />
+const userMgmtIcon = <UserCog {...ICON_LG} />
+const shipmentsIcon = <Container {...ICON_LG} />
+const trackingIcon = <Route {...ICON_LG} />
+
+const shipmentsExceptionsRows = [
+  { label: 'Date Issues', value: '99 (26.33%)', indicatorColor: 'var(--chart-1)', onClick: handleRow('date-issues') },
+  { label: 'Routing Review', value: '72 (19.15%)', indicatorColor: 'var(--chart-2)', onClick: handleRow('routing-review') },
+  { label: 'Tender Issues', value: '161 (42.82%)', indicatorColor: 'var(--chart-3)', onClick: handleRow('tender-issues') },
+  { label: 'Bid Review', value: '44 (11.70%)', indicatorColor: 'var(--chart-4)', onClick: handleRow('bid-review') },
+]
+
+const shipmentsExceptionsSegments = [
+  { value: 99, color: 'var(--chart-1)' },
+  { value: 72, color: 'var(--chart-2)' },
+  { value: 161, color: 'var(--chart-3)' },
+  { value: 44, color: 'var(--chart-4)' },
+]
+
+const trackingRows = [
+  { label: 'At Risk Pickup', value: '0 (0%)', indicatorColor: 'var(--chart-1)', onClick: handleRow('at-risk-pickup') },
+  { label: 'At Risk Delivery', value: '34 (0.05%)', indicatorColor: 'var(--chart-2)', onClick: handleRow('at-risk-delivery') },
+  { label: 'Picked Up - On Time', value: '32 (0.05%)', indicatorColor: 'var(--chart-3)', onClick: handleRow('picked-on-time') },
+  { label: 'Picked Up - Late', value: '15 (0.02%)', indicatorColor: 'var(--chart-4)', onClick: handleRow('picked-late') },
+]
+
+const trackingSegments = [
+  { value: 1, color: 'var(--chart-1)' },
+  { value: 34, color: 'var(--chart-2)' },
+  { value: 32, color: 'var(--chart-3)' },
+  { value: 15, color: 'var(--chart-4)' },
 ]
 
 const initialWidgets = [
+  // Row 1
   {
-    id: 'open-exceptions',
-    variant: '1x',
-    props: {
-      title: 'Open Exceptions',
-      domainIcon,
-      value: '83',
-      label: 'Across all customers',
-      onGoToClick: () => console.log('go to exceptions'),
-    },
-  },
-  {
-    id: 'critical-exceptions',
+    id: 'order-exceptions',
     variant: '2x',
     props: {
-      title: 'Critical Exceptions',
-      domainIcon,
-      value: '12',
-      label: 'Need action today',
-      percentage: '42%',
-      chartSegments: singleChartSegment,
+      title: 'Order',
+      domainIcon: orderIcon,
+      value: '99',
+      label: 'Order Exceptions',
+      percentage: '25%',
+      chartSegments: [{ value: 25, color: 'var(--chart-1)' }],
       chartTotal: 100,
-      goToLabel: 'Go to Exceptions',
-      onGoToClick: () => console.log('go to exceptions'),
+      goToLabel: 'Go to Order',
+      onGoToClick: handleRow('order-exceptions'),
     },
   },
   {
-    id: 'exceptions-by-type',
-    variant: '3x',
+    id: 'carriers-active',
+    variant: '2x',
     props: {
-      title: 'Exceptions by Type',
-      domainIcon,
-      rows: exceptionRows,
-      goToLabel: 'Go to Exceptions',
-      onGoToClick: () => console.log('go to exceptions'),
+      title: 'Carriers',
+      domainIcon: carriersIcon,
+      value: '5269',
+      label: 'Active',
+      percentage: '89%',
+      chartSegments: [{ value: 89, color: 'var(--chart-1)' }],
+      chartTotal: 100,
+      goToLabel: 'Go to Tracking',
+      onGoToClick: handleRow('carriers-active'),
     },
   },
   {
-    id: 'exception-causes-7d',
+    id: 'um-locked',
+    variant: '1x',
+    props: {
+      title: 'User Management',
+      domainIcon: userMgmtIcon,
+      value: '8',
+      label: 'Locked',
+      onGoToClick: handleRow('um-locked'),
+    },
+  },
+  {
+    id: 'um-pending',
+    variant: '1x',
+    props: {
+      title: 'User Management',
+      domainIcon: userMgmtIcon,
+      value: '10',
+      label: 'Pending',
+      onGoToClick: handleRow('um-pending'),
+    },
+  },
+  // Row 2 (3xChart + 3xChart + 3xCta — each spans 2 cols × 2 rows)
+  {
+    id: 'shipments-exceptions',
     variant: '3xChart',
     props: {
-      title: 'Exception Causes (7d)',
-      domainIcon,
-      value: '156',
-      label: 'Total this week',
-      chartSegments,
-      rows: chartRows,
-      goToLabel: 'Go to Exceptions',
-      onGoToClick: () => console.log('go to exceptions'),
+      title: 'Shipments - Exceptions',
+      domainIcon: shipmentsIcon,
+      value: '376',
+      label: 'Total Shipments Exceptions',
+      chartSegments: shipmentsExceptionsSegments,
+      rows: shipmentsExceptionsRows,
+      goToLabel: 'Go to Shipments Exceptions',
+      onGoToClick: handleRow('shipments-exceptions'),
+    },
+  },
+  {
+    id: 'tracking-total',
+    variant: '3xChart',
+    props: {
+      title: 'Tracking',
+      domainIcon: trackingIcon,
+      value: '57897',
+      label: 'Total Trackings',
+      chartSegments: trackingSegments,
+      rows: trackingRows,
+      goToLabel: 'Go to Tracking',
+      onGoToClick: handleRow('tracking-total'),
     },
   },
   {
@@ -163,7 +241,7 @@ const initialWidgets = [
     variant: '3xCta',
     props: {
       title: 'What would you like to do?',
-      ctaRows,
+      ctaRows: ctaRowsStub,
     },
   },
 ]
@@ -307,8 +385,27 @@ function SortablePanelItem({ item, group, defaultNode, disabled = false }) {
 
 export default function Home() {
   const { isEditMode, enterEditMode } = useEditMode()
+  const navigate = useNavigate()
 
-  const [widgets, setWidgets] = useState(initialWidgets)
+  // Navigation-bound CTA rows for the "What would you like to do?" widget.
+  // Invoices intentionally has no route (stub).
+  const ctaRows = useMemo(
+    () => [
+      { icon: <Plus size={20} />, label: 'Go to Create a New Order', onClick: () => navigate('/orders') },
+      { icon: <Route size={20} />, label: 'Track a Shipment', onClick: () => navigate('/tracking') },
+      { icon: <UserCog size={20} />, label: 'Management Users', onClick: () => navigate('/users') },
+      { icon: <Download size={20} />, label: 'Invoices', onClick: () => {} },
+    ],
+    [navigate],
+  )
+
+  const [widgets, setWidgets] = useState(() =>
+    initialWidgets.map((w) =>
+      w.id === 'home-quick-actions'
+        ? { ...w, props: { ...w.props, ctaRows } }
+        : w,
+    ),
+  )
   const [catalog, setCatalog] = useState(initialCatalog)
   const [searchValue, setSearchValue] = useState('')
   const [collapsedGroupIds, setCollapsedGroupIds] = useState(new Set())
@@ -432,7 +529,7 @@ export default function Home() {
       groupTitle: group.title,
       variant: '1x',
     })
-  }, [catalog, hasCtaWidget, widgets])
+  }, [catalog, hasCtaWidget, widgets, ctaRows])
 
   const handleInsertWidget = useCallback(() => {
     if (!configurator) return
