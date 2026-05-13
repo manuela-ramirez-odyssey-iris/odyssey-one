@@ -3262,3 +3262,43 @@ Deployed via `npx vercel --prod`. Live at:
 - Purge legacy `icons/Npx/*` masters.
 - Convert any remaining Lucide FRAMEs to proper COMPONENTs.
 - Resume Supabase migration when ≥3 domains have real UIs.
+
+### Session 25 addendum — demo widgets + CTA / Go-to navigation
+
+After the main session wrap commit (`a8f1a2b`), user asked for a stakeholder-demo-friendly default dashboard + navigation wiring on the existing link buttons. Two follow-ups, two prod deploys.
+
+**Demo default widgets (commit `0098d82`)** — replaced the prior 5-widget initialWidgets seed with 7 widgets matching `shipments-documentation/Documentation/screenshots reference/demodefaultwidgets.png`:
+
+- Row 1 (2x + 2x + 1x + 1x): Order (99 / 25% / "Go to Order"), Carriers (5269 Active / 89% / "Go to Tracking"), UM Locked (8 / 1x), UM Pending (10 / 1x).
+- Row 2 (3xChart + 3xChart + 3xCta): Shipments-Exceptions (376 + 4 chart rows with indicator dots), Tracking (57897 + 4 chart rows), "What would you like to do?" (3xCta).
+
+Domain icons swapped per widget: Order → `ClipboardList`, Carriers → `Truck`, User Management → `UserCog`, Shipments → `Container`, Tracking → `Route`. CTA row labels updated to match the reference ("Go to Create a New Order", "Management Users"). Originally seeded with a third row (Order Canceled / Carriers Inactive / UM New Account Review / UM Rejected Request); user asked to drop that mid-cycle to keep the dashboard tight.
+
+**CTA navigation wired (same commit)** — moved `ctaRows` inside the Home component as a `useMemo(navigate)`:
+
+- Go to Create a New Order → `/orders`
+- Track a Shipment → `/tracking`
+- Management Users → `/users`
+- Invoices → no-op (route doesn't exist yet)
+
+Module-level `ctaRowsStub` (no-op handlers) is the seed for `initialWidgets`; the component's `useState` lazy initializer replaces the stub with the navigation-bound array. `handleItemClick`'s CTA-direct-insert branch picks up the same bound `ctaRows` via closure (added to the `useCallback` deps).
+
+**Widget Go-to links wired (commit `f76bf68`)** — same pattern, applied to the `onGoToClick` callback on every widget that renders a "Go to X" affordance (the link button on 2x and 3xChart, the inline arrow on 1x):
+
+```js
+const widgetGoToPaths = {
+  'order-exceptions': '/orders',
+  'carriers-active': '/tracking',
+  'um-locked': '/users',
+  'um-pending': '/users',
+  'shipments-exceptions': '/shipments',
+  'tracking-total': '/tracking',
+}
+```
+
+The `useState` lazy init now also wraps each matched widget's `onGoToClick` with `() => navigate(widgetGoToPaths[w.id])`.
+
+**Files modified in this addendum:**
+- `apps/odyssey-one/src/routes/Home.jsx` — `useNavigate` import; `widgetGoToPaths` + `ctaRowsStub` module-level data; full rewrite of `initialWidgets` to the demo set; `ctaRows` useMemo inside Home; `useState` init transforms both CTA and Go-to handlers.
+
+**Two prod deploys** — both via `npx vercel --prod`. Live URLs unchanged (`odyssey-one-stage.vercel.app`).
