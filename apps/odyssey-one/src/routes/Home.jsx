@@ -372,23 +372,24 @@ export default function Home() {
           </div>
         </SortableContext>
 
-        {isEditMode && (
-          <aside className="home-edit-panel">
-            <SortableContext items={panelItemIds} strategy={verticalListSortingStrategy}>
-              <WidgetsLeftMenu
-                groups={catalog}
-                searchValue={searchValue}
-                onSearchChange={setSearchValue}
-                collapsedGroupIds={collapsedGroupIds}
-                onToggleGroup={handleToggleGroup}
-                onItemClick={handleItemClick}
-                renderItem={(item, group, defaultNode) => (
-                  <SortablePanelItem item={item} group={group} defaultNode={defaultNode} />
-                )}
-              />
-            </SortableContext>
-          </aside>
-        )}
+        <aside
+          className={`home-edit-panel ${isEditMode ? 'home-edit-panel--visible' : ''}`.trim()}
+          aria-hidden={!isEditMode}
+        >
+          <SortableContext items={panelItemIds} strategy={verticalListSortingStrategy}>
+            <WidgetsLeftMenu
+              groups={catalog}
+              searchValue={searchValue}
+              onSearchChange={setSearchValue}
+              collapsedGroupIds={collapsedGroupIds}
+              onToggleGroup={handleToggleGroup}
+              onItemClick={handleItemClick}
+              renderItem={(item, group, defaultNode) => (
+                <SortablePanelItem item={item} group={group} defaultNode={defaultNode} />
+              )}
+            />
+          </SortableContext>
+        </aside>
       </DndContext>
 
       <ComingSoonModal

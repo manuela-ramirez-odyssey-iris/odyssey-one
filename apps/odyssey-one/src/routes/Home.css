@@ -30,7 +30,11 @@
 
 /* Edit-mode panel — sits where the sidebar normally lives. AppShell hides
    the sidebar and pushes main's left padding by --edit-panel-width when
-   isEditMode is true, so this fixed panel slots into the freed space. */
+   isEditMode is true, so this fixed panel slots into the freed space.
+
+   Always rendered (not conditionally mounted) so the CSS transform transition
+   plays both directions — slide-in on enter, slide-out on exit. The --visible
+   modifier flips transform 0 ↔ -100%, the transition smooths the motion. */
 .home-edit-panel {
   position: fixed;
   top: var(--navbar-height);
@@ -40,10 +44,11 @@
   z-index: 50;
   display: flex;
   flex-direction: column;
-  animation: home-edit-panel-slide-in var(--transition-panel);
+  transform: translateX(-100%);
+  transition: transform var(--transition-panel);
+  pointer-events: none;
 }
-
-@keyframes home-edit-panel-slide-in {
-  from { transform: translateX(-100%); }
-  to { transform: translateX(0); }
+.home-edit-panel--visible {
+  transform: translateX(0);
+  pointer-events: auto;
 }

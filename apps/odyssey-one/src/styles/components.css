@@ -924,19 +924,24 @@ input[type="radio"].odyssey-radio {
 .widget[data-edit-mode="true"] .widget__content,
 .widget[data-edit-mode="true"] .widget__content * { pointer-events: none; }
 .widget[data-edit-mode="true"] .widget__grip { cursor: grab; }
-.widget--1x { width: 170px; gap: 22px; }
+.widget--1x { width: 170px; }
 .widget--2x { width: 360px; }
 .widget--3x,
 .widget--3xChart { width: 360px; gap: var(--spacing-6); }
 
 /* Content/Button distribution inside the widget shell when it's taller than its
    natural content height (i.e. when placed in a Home-grid cell larger than content).
+   - 1x → Content vertically centers between header bottom and shell bottom-padding
+     (auto top + bottom margins absorb excess space symmetrically).
    - 2x / 3xChart → Content pushes to the bottom; auto-gap appears between
      Header and Content. Button (when present, 2x/3xChart) follows Content
      naturally via the flex `gap` so it lands at the very bottom too.
-   - 1x → Content stays right after Header with a fixed 22px gap (no auto-bottom).
    - 3x → Content stays right after Header (no auto-gap); Button pushes to the
      bottom on its own. */
+.widget__content--1x {
+  margin-top: auto;
+  margin-bottom: auto;
+}
 .widget__content--2x,
 .widget__content--3xChart {
   margin-top: auto;

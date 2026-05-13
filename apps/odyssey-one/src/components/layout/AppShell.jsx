@@ -16,6 +16,7 @@ export default function AppShell({ children, filterPanel, onMainClick }) {
               ? 'var(--spacing-8) var(--spacing-6) 0 calc(var(--edit-panel-width) + var(--spacing-6))'
               : 'var(--spacing-8) var(--spacing-6) 0 var(--spacing-6)',
             background: 'var(--bg-secondary)',
+            transition: 'padding-left var(--transition-panel)',
           }}
           onClick={onMainClick}
         >

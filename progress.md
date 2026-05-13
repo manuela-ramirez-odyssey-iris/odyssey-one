@@ -3078,3 +3078,26 @@ Per `feedback_designsystemmap_subagent.md` and `feedback_designsystemmap_first.m
 - Resume Supabase migration when ≥3 domains have real UIs.
 
 **Library publish**: Already done at end of session per user confirmation.
+
+### Session 24 addendum — final polish round
+
+Two small fixes after the main commit was pushed:
+
+**Widget 1x content vertically centered.** Earlier in the session the 1x content was set to top-aligned with a fixed 22px gap from the header. User flagged that "it looked odd" — wanted the content centered between the header bottom and the shell's bottom padding instead. Switched from a fixed-gap approach to symmetric auto margins:
+- `.widget--1x` dropped `gap: 22px` (default `.widget` gap of `--spacing-3` kicks in as the minimum)
+- `.widget__content--1x` added `margin-top: auto; margin-bottom: auto` — excess vertical space splits evenly above + below the content.
+
+At the default 184h cell, this produces ~22px symmetric gaps (math: inner 136h - header 40 - content ~52 = 44 to split → 22+22). At taller stretched cells (when grid rows grow), the gaps grow symmetrically too, instead of all the slack accumulating below.
+
+**Panel slide-out animation.** Previously the panel slid IN via a CSS `@keyframes` animation but disappeared abruptly on exit (conditional render). Switched to always-mounted with a class-driven CSS transition:
+- `.home-edit-panel` always rendered; class toggles `.home-edit-panel--visible` based on `isEditMode`.
+- CSS: `transform: translateX(-100%)` default; `.home-edit-panel--visible { transform: translateX(0) }`. `transition: transform var(--transition-panel)` smooths both enter and exit.
+- `pointer-events: none` when hidden prevents interaction with the off-screen panel. `aria-hidden={!isEditMode}` for screen readers.
+- Removed the one-shot `@keyframes home-edit-panel-slide-in` block (transition handles both directions now).
+- AppShell's `<main>` got `transition: padding-left var(--transition-panel)` so the content shift stays synced with the panel slide — no jerky jump when the panel exits.
+
+**Files modified in this addendum:**
+- `apps/odyssey-one/src/styles/components.css` (1x content margin auto + gap dropped)
+- `apps/odyssey-one/src/routes/Home.css` (panel transition + always-rendered)
+- `apps/odyssey-one/src/routes/Home.jsx` (panel `<aside>` no longer conditional; class + aria-hidden driven by isEditMode)
+- `apps/odyssey-one/src/components/layout/AppShell.jsx` (main padding-left transition)
