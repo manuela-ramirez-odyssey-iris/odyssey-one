@@ -3101,3 +3101,164 @@ At the default 184h cell, this produces ~22px symmetric gaps (math: inner 136h -
 - `apps/odyssey-one/src/routes/Home.css` (panel transition + always-rendered)
 - `apps/odyssey-one/src/routes/Home.jsx` (panel `<aside>` no longer conditional; class + aria-hidden driven by isEditMode)
 - `apps/odyssey-one/src/components/layout/AppShell.jsx` (main padding-left transition)
+
+## Session 25 — May 12–13, 2026
+
+Two /normalize cycles (`ModalLarge` + `WidgetVariantPicker`, then `ModalMedium` + `CustomerRow` + SearchField extension), heavy Home edit-mode polish (action-bar swap, drag-anywhere widgets, pulse-on-insert, CTA dup prevention), Add Customers flow shipped end-to-end, plus prod deploy mid-session for a stakeholder meeting. Library at 28 normalized components (+2 organisms + 2 molecules) and ~30 Code Connect mappings (added 11 this session).
+
+### Thread 1 — /normalize ModalLarge + WidgetVariantPicker (Figma-first → consumer-first code path)
+
+**Spec questions** locked via AskUserQuestion: names `ModalLarge` + `WidgetVariantPicker`; variant labels `Small / Wide / Tall / Tall with chart`; real Widget instances inside the picker (per nested-audit rule, not hand-drawn proxies); implement now.
+
+**Figma builds:**
+- New text style `label/sm semibold` (14/20/600) bound to `Font/primary`, `Font Size/sm`, `Line Height/sm`, `Font Weight/semibold`.
+- `WidgetVariantPicker` set `2005:554` (initially Components-Molecules; moved to Modals artboard on Components-Organisms 2026-05-13 — reclassified as organism). 4 variants (`Variant=1x|2x|3x|3xChart`). 496×460 each. Composes a real `Widget` instance per variant + private `Picker arrow` frames (40×40 radius-full with lucide chevron-left/right lg) + `Info container` + `Dots indicator` (4 ellipses) + variant label. Variants `3x` and `3xChart` rescaled to 0.85 via `rescale()` so the 360-wide widget breathes in the modal.
+- `ModalLarge` organism `2006:663` (Components-Organisms, inside Modals artboard `1997:434`). Properties: `Title` TEXT, `Subtitle` TEXT, `Show subtitle` BOOLEAN, `Content` SLOT, `Footer` SLOT. Default Content SLOT = WidgetVariantPicker (1x); default Footer SLOT = primary lg "Insert widget" Button. Header padding `12/12/8/16`, gap 0, modal width 496.
+- 4 ready-made ModalLarge instances in the Modals artboard, each preset to a different picker variant.
+- The old hand-built `Metric view` component_set placeholder at `1997:1201` was deleted (superseded).
+
+**Code builds (Path B — consumer-first):**
+- `packages/ui/src/ModalLarge.jsx` + `.figma.tsx` — ESC + overlay-click dismiss; `aria-modal`; close X 40×40 with hover bg.
+- `packages/ui/src/WidgetVariantPicker.jsx` + `.figma.tsx` (4 mappings, one per Variant). Initial release had arrows that disabled at the ends — refactored mid-cycle to **infinite-wrap** carousel (`(currentIndex - 1 + len) % len` / `(currentIndex + 1) % len`).
+- `Home.jsx`: replaced `ComingSoonModal` with the new flow. New `previewWidgetProps(variant, itemLabel)` helper returns realistic per-variant content (value/label, single-segment chart for 2x, exceptionRows for 3x, full chart + chartRows for 3xChart). Catalog group `Quick action` renamed to `Misc`; CTA item `qa-what-to-do` → `misc-quick-actions` tagged `cta: true` — clicking it bypasses the picker and inserts a `3xCta` widget directly.
+- `ComingSoonModal.jsx` deleted.
+
+**Step 9 visual refinements** (after running app review): infinite wrap, scaled-down 3x/3xChart inside picker, fake content per variant, `.widget-variant-picker__main { pointer-events: none }` to make previews decorative, header gap removed + header padding-bottom 8 (`--spacing-2`), inner header-text gap → 0. All synced back to Figma master.
+
+### Thread 2 — Edit-mode visual + interaction polish
+
+Several user-requested refinements to Home edit mode, applied in series:
+
+**Title / subtitle / Add Widgets button hidden in edit mode.** PageHeader + SectionHeader conditionally rendered only when `!isEditMode`. In edit mode, a new right-aligned `home-edit-actions` row renders: `Add Section` (Secondary md, stub) + `Customers` chip (label override "Add Customers" + count + `+` button only visible here).
+
+**`--main-padding-top-edit: 52px`** new layout token added to `tokens.css`. AppShell main's top padding animates 32 → 52px when entering edit mode (`transition: padding-top var(--transition-panel)`).
+
+**Widget shadow on hover only.** `.widget` no longer has a baseline `box-shadow`; `:hover` fades in `var(--shadow-sm)` via `transition: box-shadow var(--transition-fast)`. Flat at rest, lifts on attention.
+
+**Whole-widget drag affordance.** `.widget[data-edit-mode="true"]:hover` sets `cursor: grab` and darkens the grip via descendant selector `.widget[data-edit-mode="true"]:hover .widget__grip { color: var(--text-primary) }`. `:active` → `cursor: grabbing` + grip dims to `--text-placeholder`. Removed the redundant grip-only rule.
+
+**Pulse + scroll on widget insert.** New `lastInsertedId` state in Home + `useEffect` that clears after 900ms. `SortableWidget` accepts `justInserted` prop → renders `data-just-inserted="true"` attribute and triggers `ref.scrollIntoView({ behavior: 'smooth', block: 'center' })`. CSS animates an expanding outline ripple (Carolina Blue 400, 2px → outline-offset 10px, fades to transparent over 900ms). Applied after every insert path — picker Insert + CTA direct insert + click-existing-CTA.
+
+**CTA duplicate prevention.** Only one `3xCta` allowed. New `disabled` prop on `MenuRow` (renders with `opacity: 0.4`, `cursor: not-allowed`, hover bg suppressed, grip hidden). New `isItemDisabled(item, group)` predicate prop on `WidgetsLeftMenu` evaluated per item. `Home.jsx` computes `hasCtaWidget` from widgets state and disables the CTA item when one exists. SortablePanelItem receives `disabled` via renderItem meta and skips dnd-kit attributes/listeners when disabled (no drag of disabled items). Clicking a disabled CTA pulse-scrolls to the existing CTA widget instead of failing silently.
+
+**EntityChip name weight medium.** `.entity-chip__name { font-weight: var(--font-weight-medium) }` (was regular). Figma master text node `1694:549` rebound to `label/sm medium` text style.
+
+**Non-edit chip is decorative.** `showAddButton={false}` on the non-edit-mode EntityChip — modal only reachable from edit mode.
+
+### Thread 3 — /normalize ModalMedium + CustomerRow + SearchField extension
+
+**Spec questions** locked: shell name `ModalMedium` (mirrors ModalLarge); split into ModalMedium shell + extracted `CustomerRow` molecule (labeled-search-list pattern stays inline in Home consumer); implement now.
+
+**Figma builds:**
+- New text style `heading/lg semibold` (18/24/600).
+- New Effect Style `shadow/2xl` (`0 25 50 -12 rgba(0,0,0,0.25)`).
+- `CustomerRow` set `2029:461` on Components-Molecules. 2 `Favorite` variants. 48h × 492w. Icon container 24×24 (padding 0, 2px DSN/300 ring, radius-full) with INSTANCE_SWAP defaulting to `placeholder-16` per icon-slot convention. `Favorite=True` variant has the lucide/star's inner Vector fill overridden to `Text/secondary` for the filled state.
+- `ModalMedium` shell `2032:915` (Components-Organisms, in Modals artboard). 540w × auto height. Header (Title + Close container) / Content SLOT / Footer SLOT. Default Content = labeled SearchField + 3 CustomerRow instances (first `Favorite=True`); default Footer = Cancel (Secondary lg) + Save (Primary lg). Nested default-content instances **NOT exposed** (`isExposedInstance=false`) — user's call to keep parent property panel clean when list grows to ~100 items.
+- Demo instance `ModalMedium — Add Customers` `2033:963` next to master.
+- **SearchField master restructured** — `1959:76` changed to VERTICAL auto-layout with the existing input bar wrapped in a new `Input bar` sub-frame; new `Label row` frame above (label text + lucide/info md). 3 new properties: `Show label` BOOLEAN, `Label` TEXT, `Show info icon` BOOLEAN. Defaults keep the field flat (label hidden) so WidgetsLeftMenu's existing usage is unaffected. The Placeholder text node's `componentPropertyReferences.characters` had to be re-bound after the appendChild reparent (binding was lost during restructure — a known Plugin API quirk).
+
+**Step 9 deltas synced to Figma:** EntityChip name → label/sm medium; CustomerRow icon container padding → 0; Modal close button radius `Radius/full` → `Radius/lg` on both ModalLarge + ModalMedium (rounded-square hover instead of pill); ModalMedium content padding-bottom → 0; new Close container wrapping ModalMedium's lucide/x for structural parity with ModalLarge.
+
+**Code builds:**
+- `packages/ui/src/ModalMedium.jsx` + `.figma.tsx` — title-only header (no subtitle), ESC + overlay-click dismiss. Close button `--radius-lg` + `margin-right: calc(-1 * --spacing-2)` for optical alignment with modal's right edge.
+- `packages/ui/src/CustomerRow.jsx` + `.figma.tsx` (2 mappings) — `label` / `icon` / `favorite` / `onFavoriteToggle` / `onDelete` props. Star uses `fill="currentColor"` when favorite. Hover/active color ladder on action buttons: secondary → primary → placeholder.
+- `packages/ui/src/SearchField.jsx` + `.figma.tsx` — extended with `showLabel`, `label`, `showInfoIcon`, `onInfoClick`. Wrapper focus state retained (1→2px DSN/600 + icon color shift). Input has explicit `outline: none` + `box-shadow: none` to suppress browser default focus ring (user reported lingering blue ring; correction kept the wrapper focus border but killed the browser ring on the input element).
+- `apps/odyssey-one/src/styles/components.css` — `.modal-medium*` + `.customer-row*` blocks; new `.text-heading-lg-semibold` utility; close-button updates on both modals; EntityChip name weight medium.
+- `packages/tokens/tokens.css` — `--shadow-2xl: 0 25px 50px -12px rgba(0,0,0,0.25)`.
+- `apps/odyssey-one/src/routes/Home.jsx` — `customers` state seeded with 12 entries (first `favorite: true`); `customersModalOpen` + `customersFilter` state; handlers for open/close/toggle-favorite/delete; filtered list via `useMemo` (search by label, case-insensitive). ModalMedium mounted; both chips wire `onAddClick` to the same handler; non-edit chip has `showAddButton={false}`.
+- `apps/odyssey-one/src/routes/Home.css` — `.home-customers-list { max-height: 240px; overflow-y: auto }` so the list scrolls when customers grow toward the ~100 scenario.
+
+**Pre-completion checklist** passed: every fill/stroke on created Figma nodes bound to variables, every text node uses a local style (no external library styles), no raw hex / spacing literals in production code or DSM, consumers updated. Audit unbound entries traced to nested lucide instances (own normalization track) or placeholder dashed-strokes (by design).
+
+### Thread 4 — `.icon-button` size 24 → 25
+
+User asked mid-cycle to bump the IconButton size from 24px to 25px. Applied in code via `.icon-button { width: 25px; height: 25px }`. **Figma master sync deferred** — user wanted to confirm functionality before pushing. Logged in tracker's Pending Figma Sync.
+
+### Thread 5 — Figma reorganization: WidgetVariantPicker → Modals artboard
+
+User asked to move `WidgetVariantPicker` from Components-Molecules to the Modals artboard on Components-Organisms — closer to ModalLarge and ModalMedium masters. Done via `appendChild`; tracker entries updated (Normalized Components row reclassified `molecule → organism`, Pushed to Figma row's location field updated).
+
+### Thread 6 — Production deploy
+
+Mid-session, user requested a prod deploy to demo at a stakeholder meeting. `npx vercel --prod` from repo root. Live at `odyssey-one-stage.vercel.app` (alias).
+
+### Files / commits
+
+**New files (code):**
+- `packages/ui/src/ModalLarge.jsx` + `.figma.tsx`
+- `packages/ui/src/WidgetVariantPicker.jsx` + `.figma.tsx`
+- `packages/ui/src/ModalMedium.jsx` + `.figma.tsx`
+- `packages/ui/src/CustomerRow.jsx` + `.figma.tsx`
+
+**Deleted files:**
+- `apps/odyssey-one/src/components/ComingSoonModal.jsx`
+
+**Modified files (code):**
+- `packages/ui/src/SearchField.jsx` + `.figma.tsx` — extended with label/info icon props
+- `packages/ui/src/MenuRow.jsx` — `disabled` prop
+- `packages/ui/src/WidgetsLeftMenu.jsx` — `isItemDisabled` predicate + renderItem `meta.disabled`
+- `packages/ui/src/index.js` — exports for ModalLarge, ModalMedium, WidgetVariantPicker, CustomerRow
+- `packages/tokens/tokens.css` — `--shadow-2xl`, `--main-padding-top-edit`
+- `apps/odyssey-one/src/styles/components.css` — text utility additions, modal-large/medium/customer-row blocks, EntityChip name medium, widget shadow-on-hover, grab-cursor whole-widget, MenuRow disabled, search-field input outline suppression
+- `apps/odyssey-one/src/routes/Home.jsx` — full rewrite of edit-mode action-bar swap, customers state + modal flow, widget configurator flow, pulse-scroll, CTA dup prevention
+- `apps/odyssey-one/src/routes/Home.css` — `.home-edit-actions`, `.home-configurator__insert`, `.home-customers-list`, pulse keyframes; sticky-headers rule removed after user clarified
+- `apps/odyssey-one/src/components/layout/AppShell.jsx` — `--main-padding-top-edit` in main padding + padding-top transition
+- `playground/DesignSystemMap.html` — 2 subagent passes (one per /normalize cycle) added ModalLarge / ModalMedium / WidgetVariantPicker / CustomerRow sections + extended SearchField section with labeled-variant demo
+- `playground/normalization-tracker.md` — Normalized rows for ModalLarge / ModalMedium / WidgetVariantPicker / CustomerRow; Pushed-to-Figma rows for both modal cycles (incl. shadow/2xl + heading/lg semibold + label/sm semibold styles, SearchField extension, EntityChip name weight, close-button radius syncs); Pushed → Code Connect rows for the 11 new/extended mappings; Pending Figma Sync row for IconButton 25×25
+
+**Figma masters created / modified:**
+- `ModalLarge` `2006:663` + `ModalMedium` `2032:915` masters
+- `WidgetVariantPicker` set `2005:554` (4 variants; moved to Modals artboard)
+- `CustomerRow` set `2029:461` (2 Favorite variants)
+- `SearchField` `1959:76` restructured + 3 new properties
+- New text styles `label/sm semibold` (Session 25 cycle 1) and `heading/lg semibold` (cycle 2)
+- New Effect Style `shadow/2xl`
+- `EntityChip` text node rebound to `label/sm medium`
+- Both modals' close containers updated to `Radius/lg` + ModalMedium gained a proper Close container frame
+
+### State of `@odyssey/ui` after Session 25
+
+**28 normalized components** (was 24 at end of Session 24):
+- Atoms: Badge, Button, IconButton, OdysseyLogo, SidebarButton
+- Molecules: GlobalSearch, LeadNav, TrailNav, PageHeader, SectionHeader, EntityChip, WidgetMetricRow, WidgetPieChart, WidgetCtaRow, SearchField, MenuRow, MenuDropdown, **CustomerRow** (NEW)
+- Organisms: Navbar, Widget, WidgetsLeftMenu, **ModalLarge** (NEW), **ModalMedium** (NEW), **WidgetVariantPicker** (NEW; reclassified from molecule 2026-05-13)
+
+**Code Connect:** ~30 mappings live (added this session: 1 ModalLarge, 1 ModalMedium, 4 WidgetVariantPicker variants, 2 CustomerRow variants, extended SearchField, extended Widget).
+
+**Tokens added this session:**
+- `--shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25)`
+- `--main-padding-top-edit: 52px`
+- Text styles: `label/sm semibold`, `heading/lg semibold`
+- Utility classes: `.text-label-sm-semibold`, `.text-heading-lg-semibold`
+- Figma Effect Style: `shadow/2xl`
+
+**Library publish required**: User confirmed published before /wrap.
+
+### Production status
+
+Deployed via `npx vercel --prod`. Live at:
+- `odyssey-one-stage.vercel.app` (primary alias)
+- Deployment URL: `odyssey-one-stage-168haus7s-manuyetilee-6094s-projects.vercel.app`
+
+### Carry-forward to Session 26
+
+**Pre-flagged for next session:**
+- **Add Section button functionality** — currently a `console.log` stub. Spec needs grooming (what does "section" mean — divider with title? Saved-layout boundary?).
+- **Complete Add Customers flow** — Cancel/Save snapshot/revert semantics (currently both just close; favorite/delete apply immediately). Decide if changes should be optimistic or commit-on-save.
+- **IconButton 25×25 confirmation** — currently code-only at 25px; Figma master still 24. Sync if functionality is right; revert to 24 if user changes mind.
+
+**Standing backlog:**
+- SHP-66 — generic dropdown menu component (popover style, separate from MenuDropdown).
+- SHP-67 — responsive normalization pass.
+- ButtonLink — full size × state matrix in Figma.
+- StatusBadge / TypeBadge / HazmatTag / Appointment badge / History action badges / Tab count pills normalizations.
+- Off-token off-scale paddings (6 / 14 / 18) still raw across several components.
+- Sidebar Selected variant Figma icon-color encoding.
+- MenuDropdown / SearchField additional state variants in Figma (hover, focus, pressed) — currently code-only via CSS pseudo-classes.
+- IconButton size matrix (Size=md/lg) — flagged this cycle when picker chevron arrows had to be built inline because the existing IconButton at 24×24 with 16px icon was too small for 20px chevrons.
+
+**Parked:**
+- Mode-based Figma theming for Button icon colors.
+- Purge legacy `icons/Npx/*` masters.
+- Convert any remaining Lucide FRAMEs to proper COMPONENTs.
+- Resume Supabase migration when ≥3 domains have real UIs.

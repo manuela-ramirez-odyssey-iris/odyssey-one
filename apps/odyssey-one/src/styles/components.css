@@ -694,8 +694,8 @@ input[type="radio"].odyssey-radio {
    shadow-base on idle/hover, off on pressed.
    ---------------------------------------- */
 .icon-button {
-  width: 24px;
-  height: 24px;
+  width: 25px;
+  height: 25px;
   padding: var(--spacing-1);
   border-radius: var(--radius-full);
   background: var(--white);
@@ -756,7 +756,7 @@ input[type="radio"].odyssey-radio {
 .entity-chip__name {
   font-size: var(--font-size-sm);
   line-height: var(--line-height-sm);
-  font-weight: var(--font-weight-regular);
+  font-weight: var(--font-weight-medium);
   color: inherit;
   white-space: nowrap;
 }
@@ -850,6 +850,12 @@ input[type="radio"].odyssey-radio {
   line-height: var(--line-height-xl);
   font-weight: var(--font-weight-medium);
 }
+.text-heading-lg-semibold {
+  font-family: var(--font-primary);
+  font-size: var(--font-size-lg);
+  line-height: var(--line-height-lg);
+  font-weight: var(--font-weight-semibold);
+}
 .text-label-base-medium {
   font-family: var(--font-primary);
   font-size: var(--font-size-base);
@@ -867,6 +873,12 @@ input[type="radio"].odyssey-radio {
   font-size: var(--font-size-sm);
   line-height: var(--line-height-sm);
   font-weight: var(--font-weight-regular);
+}
+.text-label-sm-semibold {
+  font-family: var(--font-primary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+  font-weight: var(--font-weight-semibold);
 }
 .text-label-xs-medium {
   font-family: var(--font-primary);
@@ -917,13 +929,21 @@ input[type="radio"].odyssey-radio {
      for input-like surfaces (badges, buttons, inputs). */
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-sm);
   box-sizing: border-box;
+  transition: box-shadow var(--transition-fast);
+}
+/* Shadow only on hover — flat at rest, lifts when the user focuses on it. */
+.widget:hover {
+  box-shadow: var(--shadow-sm);
 }
 .widget[data-edit-mode="true"] .btn--link,
 .widget[data-edit-mode="true"] .widget__content,
 .widget[data-edit-mode="true"] .widget__content * { pointer-events: none; }
-.widget[data-edit-mode="true"] .widget__grip { cursor: grab; }
+/* Edit mode — the entire widget is the drag surface, not just the grip. */
+.widget[data-edit-mode="true"] { cursor: grab; }
+.widget[data-edit-mode="true"]:active { cursor: grabbing; }
+.widget[data-edit-mode="true"]:hover .widget__grip { color: var(--text-primary); }
+.widget[data-edit-mode="true"]:active .widget__grip { color: var(--text-placeholder); }
 .widget--1x { width: 170px; }
 .widget--2x { width: 360px; }
 .widget--3x,
@@ -1302,9 +1322,326 @@ input[type="radio"].odyssey-radio {
 .menu-row:active { background: var(--deep-sea-neutral-200); }
 [data-dragging="true"] .menu-row { background: var(--deep-sea-neutral-200); }
 [data-dragging="true"] .menu-row__grip { opacity: 1; }
+.menu-row[data-disabled="true"] { opacity: 0.4; cursor: not-allowed; }
+.menu-row[data-disabled="true"]:hover { background: transparent; }
+.menu-row[data-disabled="true"] .menu-row__grip { opacity: 0 !important; }
 
 .menu-dropdown__header { color: var(--text-tertiary); transition: color var(--transition-fast); }
 .menu-dropdown__header:hover { color: var(--text-primary); }
+
+/* ----------------------------------------
+   MODAL LARGE (organism shell)
+   Mirrors Figma `ModalLarge` at 2006:663. Reusable shell with header (title +
+   subtitle + close), content slot (children), and footer slot. ESC + overlay
+   click dismiss; dialog click does not propagate.
+   ---------------------------------------- */
+.modal-large-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--overlay-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+
+.modal-large {
+  background: var(--bg-primary);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
+  width: 496px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modal-large__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-3) var(--spacing-3) var(--spacing-2) var(--spacing-4);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.modal-large__header-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.modal-large__title { color: var(--text-secondary); }
+.modal-large__subtitle { color: var(--text-tertiary); }
+
+.modal-large__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  margin-right: calc(-1 * var(--spacing-2));
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--text-tertiary);
+  border-radius: var(--radius-lg);
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.modal-large__close:hover {
+  background: var(--deep-sea-neutral-100);
+  color: var(--text-secondary);
+}
+.modal-large__close:active {
+  background: var(--deep-sea-neutral-200);
+}
+
+.modal-large__content { flex: 1; }
+
+.modal-large__footer {
+  padding: var(--spacing-3) var(--spacing-4) var(--spacing-4) var(--spacing-4);
+}
+
+/* ----------------------------------------
+   MODAL MEDIUM (organism shell)
+   Mirrors Figma `ModalMedium` at 2032:915. 540-wide reusable shell with title-only
+   header (no subtitle), content slot, footer slot. ESC + overlay click dismiss.
+   ---------------------------------------- */
+.modal-medium-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--overlay-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+
+.modal-medium {
+  background: var(--bg-primary);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-2xl);
+  width: 540px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modal-medium__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-6) var(--spacing-6) var(--spacing-3) var(--spacing-6);
+}
+
+.modal-medium__title { color: var(--text-primary); }
+
+.modal-medium__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  margin-right: calc(-1 * var(--spacing-2));
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--text-tertiary);
+  border-radius: var(--radius-lg);
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.modal-medium__close:hover {
+  background: var(--deep-sea-neutral-100);
+  color: var(--text-secondary);
+}
+.modal-medium__close:active {
+  background: var(--deep-sea-neutral-200);
+}
+
+.modal-medium__content {
+  padding: var(--spacing-3) var(--spacing-6) 0 var(--spacing-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.modal-medium__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-3) var(--spacing-6);
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* ----------------------------------------
+   CUSTOMER ROW (molecule)
+   Mirrors Figma `CustomerRow` set at 2029:461. Icon container (24×24, 2px ring) +
+   label + favorite Star + Trash. Border-bottom DSN/200; :last-child clears it.
+   ---------------------------------------- */
+.customer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 48px;
+  padding: var(--spacing-3);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.customer-row:last-child { border-bottom: none; }
+
+.customer-row__info {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  min-width: 0;
+}
+
+.customer-row__icon-container {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 2px solid var(--border-default);
+  border-radius: var(--radius-full);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.customer-row__label {
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.customer-row__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  flex-shrink: 0;
+}
+
+.customer-row__action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: color var(--transition-fast);
+}
+.customer-row__action:hover { color: var(--text-primary); }
+.customer-row__action:active { color: var(--text-placeholder); }
+
+/* ----------------------------------------
+   WIDGET VARIANT PICKER (molecule)
+   Mirrors Figma `WidgetVariantPicker` at 2005:554. Centered Widget preview
+   flanked by chevron arrows, labelled dots indicator below.
+   ---------------------------------------- */
+.widget-variant-picker {
+  background: var(--bg-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-3) var(--spacing-4);
+  height: 460px;
+}
+
+.widget-variant-picker__arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--text-secondary);
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.widget-variant-picker__arrow:hover {
+  background: var(--deep-sea-neutral-200);
+  color: var(--text-primary);
+}
+.widget-variant-picker__arrow:active {
+  background: var(--deep-sea-neutral-300);
+}
+
+/* Larger variants render at full grid dimensions (3x = 360×386, 3xChart = 360×382),
+   which fills the picker too aggressively. Scale them down visually inside the
+   modal — DOM dimensions stay native so real Home grid rendering is unaffected. */
+.widget-variant-picker[data-variant="3x"] .widget,
+.widget-variant-picker[data-variant="3xChart"] .widget {
+  transform: scale(0.85);
+  transform-origin: center;
+}
+
+.widget-variant-picker__info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-3);
+  min-width: 0;
+  height: 100%;
+}
+
+.widget-variant-picker__main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 0;
+  /* Preview is decorative — disable all widget interaction (Go-to link, 1x
+     content button, metric rows). Arrows + dots are siblings so unaffected. */
+  pointer-events: none;
+}
+
+.widget-variant-picker__dots-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-4);
+}
+
+.widget-variant-picker__label {
+  color: var(--text-secondary-soft);
+}
+
+.widget-variant-picker__dots {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.widget-variant-picker__dot {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border: none;
+  background: var(--deep-sea-neutral-300);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+.widget-variant-picker__dot--active {
+  background: var(--deep-sea-neutral-900);
+}
+.widget-variant-picker__dot:hover:not(.widget-variant-picker__dot--active) {
+  background: var(--deep-sea-neutral-500);
+}
 
 /* ----------------------------------------
    PRINT STYLES

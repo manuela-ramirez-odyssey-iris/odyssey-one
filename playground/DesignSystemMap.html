@@ -3502,6 +3502,7 @@ function getSearchFieldComponentHTML() {
   /* Inline lucide SVGs at 16px stroke 2, color via currentColor */
   var searchIcon = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>';
   var circleXIcon = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>';
+  var infoIcon = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>';
 
   /* Build a SearchField demo. `value` empty triggers placeholder render;
      when value present and `withClear` is true, the trailing CircleX shows.
@@ -3519,6 +3520,21 @@ function getSearchFieldComponentHTML() {
       '<span class="sf-demo__icon">' + searchIcon + '</span>' +
       '<span class="sf-demo__input">' + inner + '</span>' +
       clear +
+    '</div>';
+  }
+
+  /* Build a SearchField demo WITH a label row above the input bar (showLabel=true).
+     `withInfo` toggles the trailing info icon next to the label. */
+  function labeledField(labelText, withInfo, value, placeholder, withClear, focused) {
+    var info = withInfo
+      ? '<span class="sf-demo__label-info" aria-hidden="true">' + infoIcon + '</span>'
+      : '';
+    return '<div class="sf-demo__wrap">' +
+      '<div class="sf-demo__label-row">' +
+        '<span class="sf-demo__label">' + labelText + '</span>' +
+        info +
+      '</div>' +
+      field(value, placeholder, withClear, focused) +
     '</div>';
   }
 
@@ -3563,6 +3579,28 @@ function getSearchFieldComponentHTML() {
       'transition: color var(--transition-fast, 150ms ease);' +
     '}' +
     '.sf-demo__clear:hover { color: var(--text-primary, #1B2537); }' +
+    /* Wrapper (showLabel=true) — column flex with spacing-2 gap. */
+    '.sf-demo__wrap {' +
+      'display: inline-flex; flex-direction: column;' +
+      'gap: var(--spacing-2, 8px);' +
+      'align-items: stretch;' +
+      'font-family: var(--font-primary, \'Inter\', sans-serif);' +
+    '}' +
+    /* Label row — label + optional info icon, gap spacing-1 (4px). */
+    '.sf-demo__label-row {' +
+      'display: inline-flex; align-items: center;' +
+      'gap: var(--spacing-1, 4px);' +
+    '}' +
+    /* Label — text-label-sm-medium (14/20/500), text-secondary. */
+    '.sf-demo__label {' +
+      'font-size: 14px; line-height: 20px; font-weight: 500;' +
+      'color: var(--text-secondary, #384253);' +
+    '}' +
+    /* Info icon — text-tertiary (decorative span). */
+    '.sf-demo__label-info {' +
+      'display: inline-flex; align-items: center; justify-content: center;' +
+      'color: var(--text-tertiary, #6B7280);' +
+    '}' +
   '</style>' +
   '<div class="comp-section">' +
     '<div class="comp-section-title">SearchField <span class="comp-normalized-label">NORMALIZED</span></div>' +
@@ -3574,8 +3612,9 @@ function getSearchFieldComponentHTML() {
       '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6; margin-bottom:14px;">' +
         '32h light-surface search input. Leading 16px lucide <code>Search</code> icon + text input + optional trailing 16px <code>CircleX</code> clear button. ' +
         '<code>--bg-primary</code> background, idle <code>1px solid --border-default</code> stroke, <code>--radius-md</code> corners, <code>--shadow-sm</code>. ' +
-        '<strong>Focus state &mdash;</strong> stroke thickens to <code>2px solid --deep-sea-neutral-600</code> and the search icon shifts <code>--text-placeholder</code> &rarr; <code>--text-tertiary</code>. ' +
-        'Restyled 2026-05-12 to mirror the Shipments <code>TableControls</code> searchbar recipe. Used inside overlay panels (e.g. <code>WidgetsLeftMenu</code>) and any filter surface that lives on a light card.' +
+        '<strong>Focus state &mdash;</strong> stroke thickens to <code>2px solid --deep-sea-neutral-600</code> and the search icon shifts <code>--text-placeholder</code> &rarr; <code>--text-tertiary</code>. The input forces <code>outline: none; box-shadow: none</code> inline to suppress the browser&rsquo;s default focus ring &mdash; the wrapping border IS the focus affordance. ' +
+        'Restyled 2026-05-12 to mirror the Shipments <code>TableControls</code> searchbar recipe. ' +
+        '<strong>Labeled variant (2026-05-13):</strong> setting <code>showLabel</code> stacks a Label row above the input bar (column flex, gap <code>--spacing-2</code>). The row carries a <code>--text-secondary</code> label and an optional <code>Info</code> icon (<code>--text-tertiary</code>). When <code>onInfoClick</code> is supplied the icon becomes a button; otherwise it&rsquo;s a decorative span. <code>showLabel</code> defaults to <code>false</code>, so existing call sites (e.g. <code>WidgetsLeftMenu</code>) keep their bare-input rendering untouched.' +
       '</div>' +
       '<div class="comp-card-grid">' +
         '<div class="comp-card">' +
@@ -3593,6 +3632,11 @@ function getSearchFieldComponentHTML() {
           '<div class="comp-card-code">Focused (input has focus)</div>' +
           '<div class="comp-card-note"><strong>Focused.</strong> Internal <code>useState</code> tracks the input&rsquo;s <code>onFocus</code> / <code>onBlur</code>. On focus: border thickens to <code>2px solid --deep-sea-neutral-600</code> and the leading search icon shifts <code>--text-placeholder</code> &rarr; <code>--text-tertiary</code>. Transitions via <code>--transition-fast</code>.</div>' +
         '</div>' +
+        '<div class="comp-card" style="min-width:320px;">' +
+          labeledField('Label', true, '', 'Search', false, false) +
+          '<div class="comp-card-code">&lt;SearchField showLabel label="Label" showInfoIcon onChange={...} /&gt;</div>' +
+          '<div class="comp-card-note"><strong>Labeled variant.</strong> <code>showLabel={true}</code> wraps the input bar in a column flex with a Label row above. <code>showInfoIcon</code> appends a 16px lucide <code>Info</code> next to the label. Pass <code>onInfoClick</code> to make it a button (else it&rsquo;s a decorative span). Label uses <code>text-label-sm-medium</code> in <code>--text-secondary</code>; icon uses <code>--text-tertiary</code>.</div>' +
+        '</div>' +
       '</div>' +
     '</div>' +
 
@@ -3605,7 +3649,12 @@ function getSearchFieldComponentHTML() {
     '<div class="comp-subsection">' +
       '<div class="comp-subsection-title">Figma Reference</div>' +
       '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
-        'Component <code style="' + codeChip + '">1959:76</code> in Design System &mdash; MCP (file <code style="' + codeChip + '">vodiHJU38YWZYmTz81uOk7</code>). Single TEXT property: <code style="' + codeChip + '">Placeholder</code> (default <code>"Search"</code>) &rarr; maps to the <code>placeholder</code> prop.' +
+        'Component <code style="' + codeChip + '">1959:76</code> in Design System &mdash; MCP (file <code style="' + codeChip + '">vodiHJU38YWZYmTz81uOk7</code>). ' +
+        'Properties (4 total): <code style="' + codeChip + '">Placeholder</code> TEXT (default <code>"Search"</code>) &rarr; <code>placeholder</code>; ' +
+        '<code style="' + codeChip + '">Show label</code> BOOLEAN (default <code>false</code>) &rarr; <code>showLabel</code>; ' +
+        '<code style="' + codeChip + '">Label</code> TEXT (default <code>"Label"</code>) &rarr; <code>label</code>; ' +
+        '<code style="' + codeChip + '">Show info icon</code> BOOLEAN (default <code>false</code>) &rarr; <code>showInfoIcon</code>. ' +
+        'The three label-related properties were added 2026-05-13 to support filter-panel call sites where the input needs a header row.' +
       '</div>' +
     '</div>' +
 
@@ -3613,7 +3662,7 @@ function getSearchFieldComponentHTML() {
     '<div class="comp-subsection">' +
       '<div class="comp-subsection-title">Code Connect</div>' +
       '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
-        'Mapped via <code style="' + codeChip + '">packages/ui/src/SearchField.figma.tsx</code>. <code>Placeholder</code> TEXT &rarr; <code>placeholder</code> string prop.' +
+        'Mapped via <code style="' + codeChip + '">packages/ui/src/SearchField.figma.tsx</code>. <code>Placeholder</code> TEXT &rarr; <code>placeholder</code>; <code>Show label</code> BOOLEAN &rarr; <code>showLabel</code>; <code>Label</code> TEXT &rarr; <code>label</code>; <code>Show info icon</code> BOOLEAN &rarr; <code>showInfoIcon</code>. <code>onInfoClick</code> is a code-only prop (handlers are never expressed in Figma).' +
       '</div>' +
     '</div>' +
   '</div>';
@@ -3722,6 +3771,153 @@ function getMenuRowComponentHTML() {
       '<div class="comp-subsection-title">Code Connect</div>' +
       '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
         'Mapped via <code style="' + codeChip + '">packages/ui/src/MenuRow.figma.tsx</code>. <strong>3 <code>figma.connect()</code> blocks</strong> &mdash; one per State variant (Default / Hover / Pressed). All three render the identical snippet <code>&lt;MenuRow label={label} /&gt;</code> because visual state is CSS-only in code &mdash; the React component does not expose a <code>state</code> prop.' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+/* ── CustomerRow (molecule) component reference HTML ── */
+function getCustomerRowComponentHTML() {
+  var codeChip = 'font-family:\'SF Mono\',\'Fira Code\',monospace; font-size:11px; background:#F3F4F6; padding:1px 5px; border-radius:3px; color:#6B7280;';
+
+  /* Inline lucide icons. Handshake (16px) inside the icon container; Star + Trash2 (20px lg) as actions. */
+  var handshake = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m11 17 2 2a1 1 0 1 0 3-3"/><path d="m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4"/><path d="m21 3 1 11h-2"/><path d="M3 3 2 14l6.5 6.5a1 1 0 1 0 3-3"/><path d="M3 4h8"/></svg>';
+  /* Star — fill toggles between none (favorite=false) and currentColor (favorite=true). */
+  function starIcon(filled) {
+    var fill = filled ? 'currentColor' : 'none';
+    return '<svg width="20" height="20" viewBox="0 0 24 24" fill="' + fill + '" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
+  }
+  var trash = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>';
+
+  /* Single CustomerRow demo. `favorite` toggles the star fill. */
+  function row(label, favorite) {
+    return '<div class="cr-demo">' +
+      '<div class="cr-demo__info">' +
+        '<span class="cr-demo__icon-container" aria-hidden="true">' + handshake + '</span>' +
+        '<span class="cr-demo__label">' + label + '</span>' +
+      '</div>' +
+      '<div class="cr-demo__actions">' +
+        '<button type="button" class="cr-demo__action" aria-label="' + (favorite ? 'Unfavorite' : 'Favorite') + '" aria-pressed="' + (favorite ? 'true' : 'false') + '">' + starIcon(favorite) + '</button>' +
+        '<button type="button" class="cr-demo__action" aria-label="Delete">' + trash + '</button>' +
+      '</div>' +
+    '</div>';
+  }
+
+  /* Stack 3 rows so the :last-child { border-bottom: none } rule is visible. */
+  function rowList(rows) {
+    return '<div class="cr-demo__list">' + rows.join('') + '</div>';
+  }
+
+  return '' +
+  '<style>' +
+    /* CustomerRow — mirror of .customer-row in components.css.
+       48h row, justify-between, padding spacing-3, border-bottom subtle. */
+    '.cr-demo {' +
+      'display: flex; align-items: center; justify-content: space-between;' +
+      'width: 360px; height: 48px;' +
+      'padding: var(--spacing-3, 12px);' +
+      'border-bottom: 1px solid var(--border-subtle, #E4E6EB);' +
+      'box-sizing: border-box;' +
+      'font-family: var(--font-primary, \'Inter\', sans-serif);' +
+    '}' +
+    '.cr-demo:last-child { border-bottom: none; }' +
+    '.cr-demo__list {' +
+      'display: flex; flex-direction: column;' +
+      'background: var(--bg-primary, #FFFFFF);' +
+      'border: 1px solid var(--border-subtle, #E4E6EB);' +
+      'border-radius: var(--radius-md, 6px);' +
+      'overflow: hidden;' +
+    '}' +
+    /* Info group — icon container + label. */
+    '.cr-demo__info {' +
+      'display: flex; align-items: center;' +
+      'gap: var(--spacing-3, 12px);' +
+      'min-width: 0;' +
+    '}' +
+    /* Icon container — 24x24, 2px DSN/300 ring, radius-full, white bg, centered 16px icon. */
+    '.cr-demo__icon-container {' +
+      'display: inline-flex; align-items: center; justify-content: center;' +
+      'width: 24px; height: 24px; padding: 0;' +
+      'border: 2px solid var(--border-default, #D0D4DB);' +
+      'border-radius: var(--radius-full, 9999px);' +
+      'background: var(--bg-primary, #FFFFFF);' +
+      'color: var(--text-secondary, #384253);' +
+      'box-sizing: border-box;' +
+      'flex-shrink: 0;' +
+    '}' +
+    /* Label — text-label-sm-medium, text-secondary, ellipsis. */
+    '.cr-demo__label {' +
+      'font-size: 14px; line-height: 20px; font-weight: 500;' +
+      'color: var(--text-secondary, #384253);' +
+      'white-space: nowrap; overflow: hidden; text-overflow: ellipsis;' +
+    '}' +
+    /* Actions cluster — Star + Trash, gap spacing-3. */
+    '.cr-demo__actions {' +
+      'display: flex; align-items: center;' +
+      'gap: var(--spacing-3, 12px);' +
+      'flex-shrink: 0;' +
+    '}' +
+    /* Action button — 20x20 transparent slot, color ladder text-secondary → text-primary → text-placeholder. */
+    '.cr-demo__action {' +
+      'display: inline-flex; align-items: center; justify-content: center;' +
+      'width: 20px; height: 20px; padding: 0;' +
+      'border: none; background: transparent; cursor: pointer;' +
+      'color: var(--text-secondary, #384253);' +
+      'transition: color var(--transition-fast, 150ms ease);' +
+    '}' +
+    '.cr-demo__action:hover { color: var(--text-primary, #1B2537); }' +
+    '.cr-demo__action:active { color: var(--text-placeholder, #9CA3AF); }' +
+  '</style>' +
+  '<div class="comp-section">' +
+    '<div class="comp-section-title">CustomerRow <span class="comp-normalized-label">NORMALIZED</span></div>' +
+    '<div class="comp-section-subtitle">packages/ui/src/CustomerRow.jsx</div>' +
+
+    /* Sub-section: Anatomy */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Anatomy</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6; margin-bottom:14px;">' +
+        '48h horizontal row used inside selector lists (e.g. the <strong>Add Customers</strong> modal). Two clusters: ' +
+        '<strong>(left)</strong> a 24&times;24 icon container (2px <code>--border-default</code> ring, <code>--radius-full</code>, <code>--bg-primary</code> fill) housing a centered 16px lucide icon (default <code>Handshake</code>, swappable via <code>icon</code> prop) + a label using <code>.text-label-sm-medium</code> in <code>--text-secondary</code>; ' +
+        '<strong>(right)</strong> two 20&times;20 action buttons &mdash; <code>Star</code> (toggles <code>fill="currentColor"</code> when <code>favorite=true</code>) and <code>Trash2</code>. ' +
+        '<strong>Border-bottom <code>--border-subtle</code>;</strong> <code>:last-child { border-bottom: none }</code> handles list-end automatically (no consumer effort needed). ' +
+        '<strong>Color ladder on actions:</strong> idle <code>--text-secondary</code> &rarr; hover <code>--text-primary</code> &rarr; pressed <code>--text-placeholder</code>, both Star and Trash share the same ladder. ' +
+        'Figma exposes two variants on the <code>Favorite</code> axis (False / True) which drive the star fill &mdash; React maps this to the <code>favorite</code> prop.' +
+      '</div>' +
+      '<div class="comp-card-grid">' +
+        '<div class="comp-card" style="min-width:400px;">' +
+          rowList([row('Acme Corp', false), row('Globex Holdings', false), row('Initech Logistics', false)]) +
+          '<div class="comp-card-code">&lt;CustomerRow label="Acme Corp" favorite={false} onFavoriteToggle={...} onDelete={...} /&gt;</div>' +
+          '<div class="comp-card-note"><strong>Favorite = false (default).</strong> Star renders with <code>fill="none"</code> (outline only) using lucide&rsquo;s stroke. The bottom row demonstrates the <code>:last-child</code> rule &mdash; its border-bottom is suppressed automatically. Hover any star/trash to verify the <code>--text-secondary</code> &rarr; <code>--text-primary</code> ladder; hold mousedown for <code>--text-placeholder</code>.</div>' +
+        '</div>' +
+        '<div class="comp-card" style="min-width:400px;">' +
+          rowList([row('Acme Corp', true), row('Globex Holdings', true), row('Initech Logistics', false)]) +
+          '<div class="comp-card-code">&lt;CustomerRow label="..." favorite={true} ... /&gt;</div>' +
+          '<div class="comp-card-note"><strong>Favorite = true.</strong> Star renders with <code>fill="currentColor"</code> &mdash; the fill inherits whatever <code>color</code> the action button currently exposes (text-secondary idle &rarr; text-primary hover), so the filled state still follows the color ladder. Mixed list shows two favorited rows above one non-favorited.</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    /* Sub-section: Props & Tokens — modal */
+    '<div class="comp-subsection">' +
+      '<button class="comp-details-button" onclick="showCompDetails(\'CustomerRow\')">Show props &amp; tokens</button>' +
+    '</div>' +
+
+    /* Sub-section: Figma reference */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Figma Reference</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
+        'Component set <code style="' + codeChip + '">2029:461</code> in Design System &mdash; MCP, under Components-Molecules. ' +
+        'Variant axis <code style="' + codeChip + '">Favorite</code> = <code>False</code> | <code>True</code> drives the star fill. ' +
+        'TEXT property <code style="' + codeChip + '">Label</code> &rarr; <code>label</code> prop. ' +
+        'INSTANCE_SWAP property <code style="' + codeChip + '">Icon</code> defaults to the 16px <code>Handshake</code> master from the Icons frame &rarr; <code>icon</code> prop (omit to use the default).' +
+      '</div>' +
+    '</div>' +
+
+    /* Sub-section: Code Connect */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Code Connect</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
+        'Mapped via <code style="' + codeChip + '">packages/ui/src/CustomerRow.figma.tsx</code>. <strong>2 <code>figma.connect()</code> blocks</strong> &mdash; one per Favorite variant. Both blocks map <code>Label</code> TEXT &rarr; <code>label</code>; the variant key sets <code>favorite={true|false}</code> directly in the rendered snippet. Action handlers (<code>onFavoriteToggle</code>, <code>onDelete</code>) are code-only props.' +
       '</div>' +
     '</div>' +
   '</div>';
@@ -5059,6 +5255,814 @@ function getWidgetCtaRowComponentHTML() {
   '</div>';
 }
 
+/* ── WidgetVariantPicker (molecule) component reference HTML ── */
+function getWidgetVariantPickerComponentHTML() {
+  var codeChip = 'font-family:\'SF Mono\',\'Fira Code\',monospace; font-size:11px; background:#F3F4F6; padding:1px 5px; border-radius:3px; color:#6B7280;';
+
+  /* Inline lucide chevrons at 20px stroke 2, color via currentColor */
+  var chevronLeft = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>';
+  var chevronRight = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>';
+  var gripVertical = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/></svg>';
+
+  var VARIANTS = ['1x', '2x', '3x', '3xChart'];
+  var VARIANT_LABELS = { '1x': 'Small', '2x': 'Wide', '3x': 'Tall', '3xChart': 'Tall with chart' };
+  /* Approximate widget dimensions per variant — mirrors the production code:
+       1x   = 170 wide, ~150 tall (square-ish small card)
+       2x   = 360 wide, ~150 tall (wide card)
+       3x   = 360 wide, 386 tall  (tall card)
+       3xChart = 360 wide, 382 tall (tall + chart). 3x/3xChart get scale(0.85). */
+  var WIDGET_DIMS = {
+    '1x':      { w: 170, h: 150 },
+    '2x':      { w: 360, h: 150 },
+    '3x':      { w: 360, h: 386 },
+    '3xChart': { w: 360, h: 382 }
+  };
+
+  /* Stub Widget body — header (icon-bg + title + grip), then a placeholder
+     content block sized to the variant. Visually approximates the real Widget
+     so reviewers see what the picker is framing. */
+  function widgetStub(variant) {
+    var dim = WIDGET_DIMS[variant];
+    var has3xChart = variant === '3xChart';
+    var has3xCol  = variant === '3x';
+
+    /* Mock content varies by variant for visual distinction */
+    var content;
+    if (variant === '1x') {
+      content = '<div class="wvp-demo__widget-content">' +
+        '<div class="wvp-demo__metric-big">$24.7K</div>' +
+      '</div>';
+    } else if (variant === '2x') {
+      content = '<div class="wvp-demo__widget-content">' +
+        '<div class="wvp-demo__metric-big">$24.7K</div>' +
+        '<div class="wvp-demo__metric-trend">+12.4% vs last week</div>' +
+      '</div>';
+    } else if (has3xCol) {
+      content = '<div class="wvp-demo__widget-content wvp-demo__widget-content--3x">' +
+        '<div class="wvp-demo__metric-row"><span>Open orders</span><span>1,248</span></div>' +
+        '<div class="wvp-demo__metric-row"><span>Backorders</span><span>32</span></div>' +
+        '<div class="wvp-demo__metric-row"><span>Picked</span><span>876</span></div>' +
+        '<div class="wvp-demo__metric-row"><span>Shipped</span><span>2,103</span></div>' +
+        '<div class="wvp-demo__metric-row"><span>Delivered</span><span>1,955</span></div>' +
+      '</div>';
+    } else { /* 3xChart */
+      content = '<div class="wvp-demo__widget-content wvp-demo__widget-content--3xchart">' +
+        '<div class="wvp-demo__donut">' +
+          '<svg width="120" height="120" viewBox="0 0 120 120">' +
+            '<circle cx="60" cy="60" r="48" fill="none" stroke="#E4E6EB" stroke-width="16"/>' +
+            '<circle cx="60" cy="60" r="48" fill="none" stroke="#296DE7" stroke-width="16" stroke-dasharray="180 301" stroke-dashoffset="-80" transform="rotate(-90 60 60)"/>' +
+          '</svg>' +
+        '</div>' +
+        '<div class="wvp-demo__chart-legend">' +
+          '<div class="wvp-demo__legend-row"><span class="wvp-demo__legend-swatch" style="background:#296DE7;"></span><span>TL</span><span class="wvp-demo__legend-val">60%</span></div>' +
+          '<div class="wvp-demo__legend-row"><span class="wvp-demo__legend-swatch" style="background:#E4E6EB;"></span><span>LTL</span><span class="wvp-demo__legend-val">40%</span></div>' +
+        '</div>' +
+      '</div>';
+    }
+
+    return '<div class="wvp-demo__widget wvp-demo__widget--' + variant + '" style="width:' + dim.w + 'px; height:' + dim.h + 'px;">' +
+      '<div class="wvp-demo__widget-header">' +
+        '<span class="wvp-demo__widget-icon" aria-hidden="true">' +
+          '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>' +
+        '</span>' +
+        '<span class="wvp-demo__widget-title">' + (has3xChart ? 'Shipment mix' : (variant === '3x' ? 'Order pipeline' : 'Revenue')) + '</span>' +
+        '<span class="wvp-demo__widget-grip" aria-hidden="true">' + gripVertical + '</span>' +
+      '</div>' +
+      content +
+    '</div>';
+  }
+
+  /* Picker card — full layout: arrow + (widget stub + label + dots) + arrow.
+     `activeVariant` chooses which widget stub renders and which dot is active. */
+  function pickerCard(activeVariant) {
+    var scaled = (activeVariant === '3x' || activeVariant === '3xChart');
+    var dotsHtml = '';
+    for (var i = 0; i < VARIANTS.length; i++) {
+      var isActive = VARIANTS[i] === activeVariant;
+      dotsHtml += '<span class="wvp-demo__dot' + (isActive ? ' wvp-demo__dot--active' : '') + '" aria-hidden="true"></span>';
+    }
+    return '<div class="wvp-demo" data-variant="' + activeVariant + '">' +
+      '<button type="button" class="wvp-demo__arrow" aria-label="Previous variant">' + chevronLeft + '</button>' +
+      '<div class="wvp-demo__info">' +
+        '<div class="wvp-demo__main' + (scaled ? ' wvp-demo__main--scaled' : '') + '">' +
+          widgetStub(activeVariant) +
+        '</div>' +
+        '<div class="wvp-demo__dots-container">' +
+          '<span class="wvp-demo__label">' + VARIANT_LABELS[activeVariant] + '</span>' +
+          '<div class="wvp-demo__dots" role="tablist" aria-label="Widget size variants">' + dotsHtml + '</div>' +
+        '</div>' +
+      '</div>' +
+      '<button type="button" class="wvp-demo__arrow" aria-label="Next variant">' + chevronRight + '</button>' +
+    '</div>';
+  }
+
+  return '' +
+  '<style>' +
+    /* WidgetVariantPicker — mirror of .widget-variant-picker in components.css.
+       460h, padding 12/16, DSN/100 bg. Arrows 40x40 radius-full. Dots at bottom. */
+    '.wvp-demo {' +
+      'background: var(--bg-tertiary, #F2F3F5);' +
+      'display: flex; align-items: center; justify-content: space-between;' +
+      'padding: var(--spacing-3, 12px) var(--spacing-4, 16px);' +
+      'height: 460px;' +
+      'width: 496px;' +
+      'box-sizing: border-box;' +
+      'font-family: var(--font-primary, \'Inter\', sans-serif);' +
+      'border-radius: var(--radius-md, 6px);' +
+    '}' +
+    /* Arrow button — 40x40 radius-full, transparent, DSN/200 hover, DSN/300 active. */
+    '.wvp-demo__arrow {' +
+      'display: inline-flex; align-items: center; justify-content: center;' +
+      'width: 40px; height: 40px; padding: 0;' +
+      'border: none; background: transparent; cursor: pointer;' +
+      'color: var(--text-secondary, #384253);' +
+      'border-radius: var(--radius-full, 9999px);' +
+      'flex-shrink: 0;' +
+      'transition: background var(--transition-fast, 150ms ease), color var(--transition-fast, 150ms ease);' +
+    '}' +
+    '.wvp-demo__arrow:hover {' +
+      'background: var(--deep-sea-neutral-200, #E4E6EB);' +
+      'color: var(--text-primary, #1B2537);' +
+    '}' +
+    '.wvp-demo__arrow:active {' +
+      'background: var(--deep-sea-neutral-300, #D0D4DB);' +
+    '}' +
+    /* Info column — widget preview + label + dots */
+    '.wvp-demo__info {' +
+      'flex: 1; display: flex; flex-direction: column;' +
+      'align-items: center; justify-content: center;' +
+      'gap: var(--spacing-3, 12px);' +
+      'min-width: 0; height: 100%;' +
+    '}' +
+    /* Main preview area — flex-centered, decorative (pointer-events off in production). */
+    '.wvp-demo__main {' +
+      'flex: 1; display: flex; align-items: center; justify-content: center;' +
+      'width: 100%; min-height: 0;' +
+      'pointer-events: none;' +
+    '}' +
+    /* 3x + 3xChart variants apply scale(0.85) so the inner widget fits the picker. */
+    '.wvp-demo__main--scaled .wvp-demo__widget {' +
+      'transform: scale(0.85);' +
+      'transform-origin: center;' +
+    '}' +
+    /* Dots area */
+    '.wvp-demo__dots-container {' +
+      'display: flex; flex-direction: column; align-items: center;' +
+      'gap: var(--spacing-4, 16px);' +
+    '}' +
+    '.wvp-demo__label {' +
+      'font-size: var(--font-size-xs, 12px);' +
+      'line-height: var(--line-height-xs, 16px);' +
+      'font-weight: var(--font-weight-regular, 400);' +
+      'color: var(--text-secondary-soft, #4C5463);' +
+    '}' +
+    '.wvp-demo__dots {' +
+      'display: flex; align-items: center; gap: var(--spacing-2, 8px);' +
+    '}' +
+    '.wvp-demo__dot {' +
+      'display: inline-block; width: 8px; height: 8px; padding: 0;' +
+      'border: none; background: var(--deep-sea-neutral-300, #D0D4DB);' +
+      'border-radius: var(--radius-full, 9999px);' +
+      'transition: background var(--transition-fast, 150ms ease);' +
+    '}' +
+    '.wvp-demo__dot--active {' +
+      'background: var(--deep-sea-neutral-900, #1B2537);' +
+    '}' +
+    /* Stub widget shell — inline mock of the Widget component (so the demo
+       renders without needing real Widget CSS). White card, DSN/200 border,
+       radius-xl, padding 24, shadow-sm. */
+    '.wvp-demo__widget {' +
+      'background: var(--white, #FFFFFF);' +
+      'border: 1px solid var(--border-subtle, #E4E6EB);' +
+      'border-radius: var(--radius-xl, 12px);' +
+      'box-shadow: var(--shadow-sm, 0 1px 2px rgba(15,23,42,0.04));' +
+      'padding: var(--spacing-6, 24px);' +
+      'box-sizing: border-box;' +
+      'display: flex; flex-direction: column;' +
+      'gap: var(--spacing-3, 12px);' +
+    '}' +
+    '.wvp-demo__widget-header {' +
+      'display: flex; align-items: center; gap: var(--spacing-2, 8px);' +
+    '}' +
+    '.wvp-demo__widget-icon {' +
+      'width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center;' +
+      'background: var(--carolina-blue-50, #F3F7FC); color: var(--text-link, #276DA2);' +
+      'border-radius: var(--radius-pill, 10px); flex-shrink: 0;' +
+    '}' +
+    '.wvp-demo__widget-title {' +
+      'flex: 1; font-size: 14px; line-height: 20px; font-weight: 500;' +
+      'color: var(--text-primary, #1B2537);' +
+      'white-space: nowrap; overflow: hidden; text-overflow: ellipsis;' +
+    '}' +
+    '.wvp-demo__widget-grip {' +
+      'color: var(--text-tertiary, #6B7280); display: inline-flex; flex-shrink: 0; opacity: 0.5;' +
+    '}' +
+    '.wvp-demo__widget-content { display: flex; flex-direction: column; gap: var(--spacing-2, 8px); }' +
+    '.wvp-demo__widget-content--3x { gap: var(--spacing-3, 12px); }' +
+    '.wvp-demo__widget-content--3xchart {' +
+      'flex: 1; display: flex; flex-direction: column; align-items: center;' +
+      'justify-content: center; gap: var(--spacing-3, 12px);' +
+    '}' +
+    '.wvp-demo__metric-big {' +
+      'font-size: 28px; line-height: 32px; font-weight: 600;' +
+      'color: var(--text-primary, #1B2537);' +
+    '}' +
+    '.wvp-demo__metric-trend {' +
+      'font-size: 12px; line-height: 16px; color: var(--text-tertiary, #6B7280);' +
+    '}' +
+    '.wvp-demo__metric-row {' +
+      'display: flex; justify-content: space-between; align-items: center;' +
+      'font-size: 13px; line-height: 18px;' +
+      'color: var(--text-secondary, #384253);' +
+      'padding: 4px 0;' +
+      'border-bottom: 1px solid var(--border-subtle, #E4E6EB);' +
+    '}' +
+    '.wvp-demo__metric-row:last-child { border-bottom: none; }' +
+    '.wvp-demo__metric-row > span:last-child {' +
+      'font-weight: 600; color: var(--text-primary, #1B2537);' +
+      'font-variant-numeric: tabular-nums;' +
+    '}' +
+    '.wvp-demo__donut { display: inline-flex; }' +
+    '.wvp-demo__chart-legend {' +
+      'display: flex; flex-direction: column; gap: var(--spacing-2, 8px); width: 100%;' +
+    '}' +
+    '.wvp-demo__legend-row {' +
+      'display: flex; align-items: center; gap: var(--spacing-2, 8px);' +
+      'font-size: 12px; line-height: 16px;' +
+      'color: var(--text-secondary, #384253);' +
+    '}' +
+    '.wvp-demo__legend-swatch {' +
+      'width: 10px; height: 10px; border-radius: var(--radius-full, 9999px); flex-shrink: 0;' +
+    '}' +
+    '.wvp-demo__legend-val {' +
+      'margin-left: auto; font-weight: 600; color: var(--text-primary, #1B2537);' +
+      'font-variant-numeric: tabular-nums;' +
+    '}' +
+    /* Card hint strip (consistent with other live cards on the page) */
+    '.wvp-demo-card-hint {' +
+      'font-size: 11px; color: #6B7280; font-style: italic; line-height: 1.4;' +
+    '}' +
+    '.wvp-demo-card-hint strong { color: #384253; font-style: normal; font-weight: 600; }' +
+  '</style>' +
+  '<div class="comp-section">' +
+    '<div class="comp-section-title">WidgetVariantPicker <span class="comp-normalized-label">NORMALIZED</span></div>' +
+    '<div class="comp-section-subtitle">packages/ui/src/WidgetVariantPicker.jsx</div>' +
+
+    /* Sub-section: Anatomy */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Anatomy</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6; margin-bottom:14px;">' +
+        'Centered <code>Widget</code> preview at the selected variant flanked by two chevron arrow buttons, with a label + dots indicator stacked below. ' +
+        '<strong>Infinite wrap</strong> &mdash; arrows never disable; next at the last variant loops back to the first, prev at the first loops to the last. ' +
+        '<strong>Preview is decorative</strong> &mdash; <code>.widget-variant-picker__main</code> sets <code>pointer-events: none</code> so the inner Widget&rsquo;s Go-to link, 1x content button, and metric rows are inert. Arrows + dots are siblings of the preview and remain interactive. ' +
+        'The 4 dots are clickable too (each is a <code>role="tab"</code>), so consumers can jump to any variant. Container is 460h fixed, 496w fixed in production (matches the <code>ModalLarge</code> width). ' +
+        '<strong>Scaling.</strong> The 3x and 3xChart variants render at 360&times;~384, which fills the picker too aggressively &mdash; CSS applies <code>transform: scale(0.85)</code> only to those two variants via the <code>[data-variant]</code> attribute. DOM dimensions stay native so the real Home-grid rendering is unaffected.' +
+      '</div>' +
+    '</div>' +
+
+    /* Sub-section: Variant states — 4 cards */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Variants <span style="font-weight:400; font-size:13px; color:#6B7280;">&mdash; 1x / 2x / 3x / 3xChart</span></div>' +
+      '<div class="comp-card-grid">' +
+        '<div class="comp-card" style="min-width:516px;">' +
+          pickerCard('1x') +
+          '<div class="comp-card-code">&lt;WidgetVariantPicker variant="1x" onVariantChange={...} widgetProps={...} /&gt;</div>' +
+          '<div class="wvp-demo-card-hint"><strong>Hover the arrows</strong> to verify the DSN/200 hover &rarr; DSN/300 active ladder on the circular IconButtons.</div>' +
+          '<div class="comp-card-note"><strong>1x &mdash; Small.</strong> Inner widget 170&times;150 (native, no scale). Label reads &ldquo;Small&rdquo;. First dot active.</div>' +
+        '</div>' +
+        '<div class="comp-card" style="min-width:516px;">' +
+          pickerCard('2x') +
+          '<div class="comp-card-code">&lt;WidgetVariantPicker variant="2x" /&gt;</div>' +
+          '<div class="comp-card-note"><strong>2x &mdash; Wide.</strong> Inner widget 360&times;150 (native, no scale). Label reads &ldquo;Wide&rdquo;. Second dot active.</div>' +
+        '</div>' +
+        '<div class="comp-card" style="min-width:516px;">' +
+          pickerCard('3x') +
+          '<div class="comp-card-code">&lt;WidgetVariantPicker variant="3x" /&gt;</div>' +
+          '<div class="comp-card-note"><strong>3x &mdash; Tall.</strong> Inner widget native 360&times;386, <strong>scaled to 0.85</strong> to fit. Label reads &ldquo;Tall&rdquo;. Third dot active. The scale rule lives at <code>.widget-variant-picker[data-variant="3x"] .widget</code>.</div>' +
+        '</div>' +
+        '<div class="comp-card" style="min-width:516px;">' +
+          pickerCard('3xChart') +
+          '<div class="comp-card-code">&lt;WidgetVariantPicker variant="3xChart" /&gt;</div>' +
+          '<div class="comp-card-note"><strong>3xChart &mdash; Tall with chart.</strong> Inner widget native 360&times;382, <strong>scaled to 0.85</strong> like 3x. Label reads &ldquo;Tall with chart&rdquo;. Fourth dot active. Donut + legend are mock-only here &mdash; production renders the real <code>WidgetPieChart</code>.</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    /* Sub-section: Props & Tokens — modal */
+    '<div class="comp-subsection">' +
+      '<button class="comp-details-button" onclick="showCompDetails(\'WidgetVariantPicker\')">Show props &amp; tokens</button>' +
+    '</div>' +
+
+    /* Sub-section: Figma reference */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Figma Reference</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
+        'Component set <code style="' + codeChip + '">2005:554</code> in Design System &mdash; MCP, under Components-Molecules. Variant axis <code style="' + codeChip + '">Variant</code> = <code>1x</code> | <code>2x</code> | <code>3x</code> | <code>3xChart</code> &mdash; each variant frames the matching <code>Widget</code> instance. Properties: <code style="' + codeChip + '">WidgetSlot</code> SLOT &rarr; nested <code>Widget</code> instance.' +
+      '</div>' +
+    '</div>' +
+
+    /* Sub-section: Code Connect */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Code Connect</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
+        'Mapped via <code style="' + codeChip + '">packages/ui/src/WidgetVariantPicker.figma.tsx</code>. <strong>4 <code>figma.connect()</code> blocks</strong> &mdash; one per Variant value (1x / 2x / 3x / 3xChart). Each renders <code>&lt;WidgetVariantPicker variant="..." /&gt;</code> with the literal variant string baked in. The inner Widget SLOT is consumer-driven via <code>widgetProps</code> in code; Figma uses its own nested Widget instance for layout.' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+/* ── ModalLarge (organism shell) component reference HTML ── */
+function getModalLargeComponentHTML() {
+  var codeChip = 'font-family:\'SF Mono\',\'Fira Code\',monospace; font-size:11px; background:#F3F4F6; padding:1px 5px; border-radius:3px; color:#6B7280;';
+
+  /* Inline lucide X at 20px */
+  var xIcon = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>';
+
+  /* Modal shell — header + content slot + footer slot. */
+  function modal(title, subtitle, showSubtitle, contentHtml, footerHtml) {
+    return '<div class="ml-demo">' +
+      '<header class="ml-demo__header">' +
+        '<div class="ml-demo__header-text">' +
+          '<span class="ml-demo__title">' + title + '</span>' +
+          (showSubtitle && subtitle ? '<span class="ml-demo__subtitle">' + subtitle + '</span>' : '') +
+        '</div>' +
+        '<button type="button" class="ml-demo__close" aria-label="Close">' + xIcon + '</button>' +
+      '</header>' +
+      '<div class="ml-demo__content">' + contentHtml + '</div>' +
+      (footerHtml ? '<footer class="ml-demo__footer">' + footerHtml + '</footer>' : '') +
+    '</div>';
+  }
+
+  /* Footer buttons — secondary Cancel + primary Save (stub styling). */
+  var footerButtons =
+    '<div class="ml-demo__footer-buttons">' +
+      '<button type="button" class="ml-demo__btn ml-demo__btn--secondary">Cancel</button>' +
+      '<button type="button" class="ml-demo__btn ml-demo__btn--primary">Save</button>' +
+    '</div>';
+
+  /* Sample content for demos */
+  var sampleContent =
+    '<div class="ml-demo__sample">' +
+      '<div class="ml-demo__field">' +
+        '<label class="ml-demo__field-label">Field label</label>' +
+        '<div class="ml-demo__field-input">Some value here</div>' +
+      '</div>' +
+      '<div class="ml-demo__field">' +
+        '<label class="ml-demo__field-label">Another field</label>' +
+        '<div class="ml-demo__field-input">Another value</div>' +
+      '</div>' +
+    '</div>';
+
+  return '' +
+  '<style>' +
+    /* Overlay frame for the demo — preserves the centered surface look without
+       actually being position:fixed (we don\'t want to overlay the whole page). */
+    '.ml-demo-overlay {' +
+      'background: var(--overlay-bg, rgba(15,23,42,0.5));' +
+      'padding: 32px;' +
+      'border-radius: var(--radius-md, 6px);' +
+      'display: flex; justify-content: center; align-items: flex-start;' +
+    '}' +
+    /* ModalLarge — mirror of .modal-large in components.css.
+       496 fixed wide, white bg, radius-xl, shadow-md, vertical flex. */
+    '.ml-demo {' +
+      'background: var(--bg-primary, #FFFFFF);' +
+      'border-radius: var(--radius-xl, 12px);' +
+      'box-shadow: var(--shadow-md, 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1));' +
+      'width: 496px;' +
+      'display: flex; flex-direction: column;' +
+      'overflow: hidden;' +
+      'box-sizing: border-box;' +
+      'font-family: var(--font-primary, \'Inter\', sans-serif);' +
+    '}' +
+    /* Header — padding spacing-3/3/2/4, border-bottom subtle */
+    '.ml-demo__header {' +
+      'display: flex; align-items: center; justify-content: space-between;' +
+      'padding: var(--spacing-3, 12px) var(--spacing-3, 12px) var(--spacing-2, 8px) var(--spacing-4, 16px);' +
+      'border-bottom: 1px solid var(--border-subtle, #E4E6EB);' +
+    '}' +
+    '.ml-demo__header-text {' +
+      'display: flex; flex-direction: column; gap: var(--spacing-1, 4px);' +
+      'min-width: 0;' +
+    '}' +
+    /* Title — text-label-sm-semibold (NEW utility, 14/20/600). Color secondary. */
+    '.ml-demo__title {' +
+      'font-size: 14px; line-height: 20px; font-weight: 600;' +
+      'color: var(--text-secondary, #384253);' +
+    '}' +
+    /* Subtitle — text-label-xs-regular (12/16/400). Color tertiary. */
+    '.ml-demo__subtitle {' +
+      'font-size: 12px; line-height: 16px; font-weight: 400;' +
+      'color: var(--text-tertiary, #6B7280);' +
+    '}' +
+    /* Close X — 40x40 radius-full, transparent, DSN/100 hover, DSN/200 active. */
+    '.ml-demo__close {' +
+      'display: inline-flex; align-items: center; justify-content: center;' +
+      'width: 40px; height: 40px; padding: 0;' +
+      'border: none; background: transparent; cursor: pointer;' +
+      'color: var(--text-tertiary, #6B7280);' +
+      'border-radius: var(--radius-full, 9999px);' +
+      'transition: background var(--transition-fast, 150ms ease), color var(--transition-fast, 150ms ease);' +
+      'flex-shrink: 0;' +
+    '}' +
+    '.ml-demo__close:hover {' +
+      'background: var(--deep-sea-neutral-100, #F2F3F5);' +
+      'color: var(--text-secondary, #384253);' +
+    '}' +
+    '.ml-demo__close:active {' +
+      'background: var(--deep-sea-neutral-200, #E4E6EB);' +
+    '}' +
+    /* Content — flex:1 so it stretches when the modal has fixed height (none here). */
+    '.ml-demo__content {' +
+      'flex: 1;' +
+      'padding: var(--spacing-4, 16px);' +
+    '}' +
+    /* Footer — padding spacing-3/4/4/4 */
+    '.ml-demo__footer {' +
+      'padding: var(--spacing-3, 12px) var(--spacing-4, 16px) var(--spacing-4, 16px) var(--spacing-4, 16px);' +
+    '}' +
+    '.ml-demo__footer-buttons {' +
+      'display: flex; justify-content: flex-end; gap: var(--spacing-2, 8px);' +
+    '}' +
+    /* Stub buttons so the footer reads as a real composed footer */
+    '.ml-demo__btn {' +
+      'padding: 6px 14px; height: 36px;' +
+      'font-size: 16px; line-height: 24px; font-weight: 500; font-family: inherit;' +
+      'border-radius: var(--radius-lg, 8px); cursor: pointer;' +
+      'transition: background var(--transition-fast, 150ms ease), border-color var(--transition-fast, 150ms ease);' +
+      'box-shadow: var(--shadow-sm, 0 1px 2px rgba(15,23,42,0.04));' +
+    '}' +
+    '.ml-demo__btn--secondary {' +
+      'background: var(--white, #FFFFFF);' +
+      'border: 1px solid var(--deep-sea-neutral-300, #D0D4DB);' +
+      'color: var(--text-secondary, #384253);' +
+    '}' +
+    '.ml-demo__btn--secondary:hover {' +
+      'background: var(--deep-sea-neutral-50, #F7F8FA);' +
+      'border-color: var(--deep-sea-neutral-400, #9DA3B0);' +
+    '}' +
+    '.ml-demo__btn--primary {' +
+      'background: var(--deep-sea-neutral-900, #1B2537);' +
+      'border: 1px solid var(--deep-sea-neutral-500, #6B7280);' +
+      'color: var(--white, #FFFFFF);' +
+    '}' +
+    '.ml-demo__btn--primary:hover {' +
+      'background: var(--deep-sea-neutral-600, #4C5463);' +
+    '}' +
+    /* Sample content fields */
+    '.ml-demo__sample { display: flex; flex-direction: column; gap: var(--spacing-3, 12px); }' +
+    '.ml-demo__field { display: flex; flex-direction: column; gap: var(--spacing-1, 4px); }' +
+    '.ml-demo__field-label {' +
+      'font-size: 12px; line-height: 16px; font-weight: 500;' +
+      'color: var(--text-secondary, #384253);' +
+    '}' +
+    '.ml-demo__field-input {' +
+      'padding: 8px 12px; height: 36px;' +
+      'display: flex; align-items: center;' +
+      'background: var(--white, #FFFFFF);' +
+      'border: 1px solid var(--border-default, #D0D4DB);' +
+      'border-radius: var(--radius-md, 6px);' +
+      'font-size: 14px; line-height: 20px; color: var(--text-primary, #1B2537);' +
+    '}' +
+    /* Card hint */
+    '.ml-demo-card-hint {' +
+      'font-size: 11px; color: #6B7280; font-style: italic; line-height: 1.4;' +
+    '}' +
+    '.ml-demo-card-hint strong { color: #384253; font-style: normal; font-weight: 600; }' +
+  '</style>' +
+  '<div class="comp-section">' +
+    '<div class="comp-section-title">ModalLarge <span class="comp-normalized-label">NORMALIZED</span></div>' +
+    '<div class="comp-section-subtitle">packages/ui/src/ModalLarge.jsx</div>' +
+
+    /* Sub-section: Anatomy */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Anatomy</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6; margin-bottom:14px;">' +
+        'Reusable large-modal shell. Fixed 496w, white background, <code>--radius-xl</code> corners, <code>--shadow-md</code>. ' +
+        'Vertical layout: <strong>header</strong> (title + optional subtitle on the left; close X on the right, border-bottom <code>--border-subtle</code>) + <strong>content slot</strong> (<code>children</code>) + <strong>footer slot</strong> (optional, only rendered when <code>footer</code> is supplied). ' +
+        '<strong>Dismissal.</strong> ESC keydown and overlay click both fire <code>onClose</code>; clicks on the dialog itself <code>stopPropagation</code> so they don&rsquo;t bubble to the overlay. ' +
+        '<strong>Typography.</strong> Title uses the NEW <code>text-label-sm-semibold</code> utility class added this session (14&nbsp;/&nbsp;20&nbsp;/&nbsp;600). Subtitle uses <code>text-label-xs-regular</code> (12&nbsp;/&nbsp;16&nbsp;/&nbsp;400). ' +
+        '<strong>Header padding asymmetry.</strong> Top 12 / right 12 / bottom 8 / left 16 &mdash; the 8px bottom (instead of 12) matches the Step 9 spec, tightening the gap between subtitle and the divider.' +
+      '</div>' +
+      '<div class="comp-card-grid">' +
+        '<div class="comp-card" style="min-width:560px;">' +
+          '<div class="ml-demo-overlay">' +
+            modal('Choose widget', 'Pick a widget size and place it on your dashboard', true, sampleContent, footerButtons) +
+          '</div>' +
+          '<div class="comp-card-code">&lt;ModalLarge title="Choose widget" subtitle="..." onClose={...} footer={...}&gt;{children}&lt;/ModalLarge&gt;</div>' +
+          '<div class="ml-demo-card-hint"><strong>Hover the X</strong> in the header to verify the DSN/100 hover ladder; hold mousedown for DSN/200 pressed.</div>' +
+          '<div class="comp-card-note"><strong>Default composition.</strong> Title + subtitle visible, footer with Cancel/Save. Sample content stubs in two fields to show the <code>children</code> slot rendering. Overlay tint mirrors <code>--overlay-bg</code>.</div>' +
+        '</div>' +
+        '<div class="comp-card" style="min-width:560px;">' +
+          '<div class="ml-demo-overlay">' +
+            modal('Confirm action', null, false, '<div style="font-size:14px; line-height:20px; color:#384253;">Are you sure you want to proceed? This action cannot be undone.</div>', footerButtons) +
+          '</div>' +
+          '<div class="comp-card-code">&lt;ModalLarge title="Confirm action" showSubtitle={false} ... /&gt;</div>' +
+          '<div class="comp-card-note"><strong>No subtitle.</strong> Pass <code>showSubtitle={false}</code> (or omit <code>subtitle</code>) to collapse the second header line. The header text column drops its lower row entirely &mdash; no reserved space.</div>' +
+        '</div>' +
+        '<div class="comp-card" style="min-width:560px;">' +
+          '<div class="ml-demo-overlay">' +
+            modal('Read-only details', 'A view-only modal with no footer actions', true, sampleContent, null) +
+          '</div>' +
+          '<div class="comp-card-code">&lt;ModalLarge title="..." subtitle="..." onClose={...}&gt;{children}&lt;/ModalLarge&gt;</div>' +
+          '<div class="comp-card-note"><strong>No footer.</strong> Omit the <code>footer</code> prop entirely &mdash; the <code>&lt;footer&gt;</code> element is conditionally rendered, so the bottom padding belongs to <code>.modal-large__content</code> alone.</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    /* Sub-section: Props & Tokens — modal */
+    '<div class="comp-subsection">' +
+      '<button class="comp-details-button" onclick="showCompDetails(\'ModalLarge\')">Show props &amp; tokens</button>' +
+    '</div>' +
+
+    /* Sub-section: Figma reference */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Figma Reference</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
+        'Component <code style="' + codeChip + '">2006:663</code> in Design System &mdash; MCP, under Components-Organisms. Properties: <code style="' + codeChip + '">Title</code> TEXT, <code style="' + codeChip + '">Subtitle</code> TEXT, <code style="' + codeChip + '">ShowSubtitle</code> BOOLEAN (default <code>true</code>), <code style="' + codeChip + '">ContentSlot</code> SLOT, <code style="' + codeChip + '">FooterSlot</code> SLOT. Both slots are designer-only workflows (Figma plugin API can&rsquo;t programmatically override instance children inside a slot).' +
+      '</div>' +
+    '</div>' +
+
+    /* Sub-section: Code Connect */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Code Connect</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
+        'Mapped via <code style="' + codeChip + '">packages/ui/src/ModalLarge.figma.tsx</code>. Single <code>figma.connect()</code> &mdash; <code>Title</code> TEXT &rarr; <code>title</code>, <code>Subtitle</code> TEXT &rarr; <code>subtitle</code>, <code>ShowSubtitle</code> BOOLEAN &rarr; <code>showSubtitle</code>. SLOT children are NOT mapped explicitly (slot content lives outside Figma component props &mdash; matches the <code>Widget</code> / <code>MenuDropdown</code> pattern).' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+/* ── ModalMedium (organism shell) component reference HTML ── */
+function getModalMediumComponentHTML() {
+  var codeChip = 'font-family:\'SF Mono\',\'Fira Code\',monospace; font-size:11px; background:#F3F4F6; padding:1px 5px; border-radius:3px; color:#6B7280;';
+
+  /* Inline lucide X at 20px (LG — Widget/Modal close convention). */
+  var xIcon = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>';
+  /* CustomerRow building blocks reused inline so the demo content reads as a real "Add Customers" modal body. */
+  var handshake = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m11 17 2 2a1 1 0 1 0 3-3"/><path d="m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4"/><path d="m21 3 1 11h-2"/><path d="M3 3 2 14l6.5 6.5a1 1 0 1 0 3-3"/><path d="M3 4h8"/></svg>';
+  function star(filled) {
+    var fill = filled ? 'currentColor' : 'none';
+    return '<svg width="20" height="20" viewBox="0 0 24 24" fill="' + fill + '" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
+  }
+  var trash = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>';
+
+  function customerRow(label, favorite) {
+    return '<div class="mm-demo__cr">' +
+      '<div class="mm-demo__cr-info">' +
+        '<span class="mm-demo__cr-icon" aria-hidden="true">' + handshake + '</span>' +
+        '<span class="mm-demo__cr-label">' + label + '</span>' +
+      '</div>' +
+      '<div class="mm-demo__cr-actions">' +
+        '<span class="mm-demo__cr-action">' + star(favorite) + '</span>' +
+        '<span class="mm-demo__cr-action">' + trash + '</span>' +
+      '</div>' +
+    '</div>';
+  }
+
+  /* Modal shell — header (title + close X), content slot, optional footer. */
+  function modal(title, contentHtml, footerHtml) {
+    return '<div class="mm-demo">' +
+      '<header class="mm-demo__header">' +
+        '<span class="mm-demo__title">' + title + '</span>' +
+        '<button type="button" class="mm-demo__close" aria-label="Close">' + xIcon + '</button>' +
+      '</header>' +
+      '<div class="mm-demo__content">' + contentHtml + '</div>' +
+      (footerHtml ? '<footer class="mm-demo__footer">' + footerHtml + '</footer>' : '') +
+    '</div>';
+  }
+
+  /* Footer — secondary Cancel + primary Save (stub styling reused from ModalLarge demo). */
+  var footerButtons =
+    '<div class="mm-demo__footer-buttons">' +
+      '<button type="button" class="mm-demo__btn mm-demo__btn--secondary">Cancel</button>' +
+      '<button type="button" class="mm-demo__btn mm-demo__btn--primary">Save</button>' +
+    '</div>';
+
+  /* Content that reads as the Add Customers list — a few CustomerRow stubs. */
+  var customerList =
+    '<div class="mm-demo__cr-list">' +
+      customerRow('Acme Corp', true) +
+      customerRow('Globex Holdings', false) +
+      customerRow('Initech Logistics', false) +
+      customerRow('Stark Industries', true) +
+    '</div>';
+
+  return '' +
+  '<style>' +
+    /* Overlay frame for the demo — preserves the centered surface look without
+       actually being position:fixed (we don\'t want to overlay the whole page). */
+    '.mm-demo-overlay {' +
+      'background: var(--overlay-bg, rgba(15,23,42,0.5));' +
+      'padding: 32px;' +
+      'border-radius: var(--radius-md, 6px);' +
+      'display: flex; justify-content: center; align-items: flex-start;' +
+    '}' +
+    /* ModalMedium — mirror of .modal-medium in components.css.
+       540 fixed wide, --bg-primary, --radius-xl, --shadow-2xl, vertical flex, overflow hidden. */
+    '.mm-demo {' +
+      'background: var(--bg-primary, #FFFFFF);' +
+      'border-radius: var(--radius-xl, 12px);' +
+      'box-shadow: var(--shadow-2xl, 0 25px 50px -12px rgba(0,0,0,0.25));' +
+      'width: 540px;' +
+      'display: flex; flex-direction: column;' +
+      'overflow: hidden;' +
+      'box-sizing: border-box;' +
+      'font-family: var(--font-primary, \'Inter\', sans-serif);' +
+    '}' +
+    /* Header — padding spacing-6 / 6 / 3 / 6, no border-bottom (the modal divider lives on the footer). */
+    '.mm-demo__header {' +
+      'display: flex; align-items: center; justify-content: space-between;' +
+      'padding: var(--spacing-6, 24px) var(--spacing-6, 24px) var(--spacing-3, 12px) var(--spacing-6, 24px);' +
+    '}' +
+    /* Title — text-heading-lg-semibold (NEW utility this cycle, 18/24/600), text-primary. */
+    '.mm-demo__title {' +
+      'font-size: 18px; line-height: 24px; font-weight: 600;' +
+      'color: var(--text-primary, #1B2537);' +
+    '}' +
+    /* Close X — 40x40 square (radius-lg, NOT radius-full like ModalLarge). margin-right -spacing-2 optically aligns the X to the modal edge. */
+    '.mm-demo__close {' +
+      'display: inline-flex; align-items: center; justify-content: center;' +
+      'width: 40px; height: 40px; padding: 0;' +
+      'margin-right: calc(-1 * var(--spacing-2, 8px));' +
+      'border: none; background: transparent; cursor: pointer;' +
+      'color: var(--text-tertiary, #6B7280);' +
+      'border-radius: var(--radius-lg, 8px);' +
+      'transition: background var(--transition-fast, 150ms ease), color var(--transition-fast, 150ms ease);' +
+      'flex-shrink: 0;' +
+    '}' +
+    '.mm-demo__close:hover {' +
+      'background: var(--deep-sea-neutral-100, #F2F3F5);' +
+      'color: var(--text-secondary, #384253);' +
+    '}' +
+    '.mm-demo__close:active {' +
+      'background: var(--deep-sea-neutral-200, #E4E6EB);' +
+    '}' +
+    /* Content — padding spacing-3 / 6 / 0 / 6. Bottom 0 lets the list flush against the footer. */
+    '.mm-demo__content {' +
+      'padding: var(--spacing-3, 12px) var(--spacing-6, 24px) 0 var(--spacing-6, 24px);' +
+      'display: flex; flex-direction: column;' +
+      'gap: var(--spacing-3, 12px);' +
+    '}' +
+    /* Footer — padding spacing-3 / 6, border-top subtle. */
+    '.mm-demo__footer {' +
+      'display: flex; align-items: center; justify-content: space-between;' +
+      'padding: var(--spacing-3, 12px) var(--spacing-6, 24px);' +
+      'border-top: 1px solid var(--border-subtle, #E4E6EB);' +
+    '}' +
+    '.mm-demo__footer-buttons {' +
+      'display: flex; justify-content: flex-end; gap: var(--spacing-2, 8px);' +
+      'width: 100%;' +
+    '}' +
+    /* Stub buttons mirror ModalLarge demo footer styling for consistency. */
+    '.mm-demo__btn {' +
+      'padding: 6px 14px; height: 36px;' +
+      'font-size: 16px; line-height: 24px; font-weight: 500; font-family: inherit;' +
+      'border-radius: var(--radius-lg, 8px); cursor: pointer;' +
+      'transition: background var(--transition-fast, 150ms ease), border-color var(--transition-fast, 150ms ease);' +
+      'box-shadow: var(--shadow-sm, 0 1px 2px rgba(15,23,42,0.04));' +
+    '}' +
+    '.mm-demo__btn--secondary {' +
+      'background: var(--white, #FFFFFF);' +
+      'border: 1px solid var(--deep-sea-neutral-300, #D0D4DB);' +
+      'color: var(--text-secondary, #384253);' +
+    '}' +
+    '.mm-demo__btn--secondary:hover {' +
+      'background: var(--deep-sea-neutral-50, #F7F8FA);' +
+      'border-color: var(--deep-sea-neutral-400, #9DA3B0);' +
+    '}' +
+    '.mm-demo__btn--primary {' +
+      'background: var(--deep-sea-neutral-900, #1B2537);' +
+      'border: 1px solid var(--deep-sea-neutral-500, #6B7280);' +
+      'color: var(--white, #FFFFFF);' +
+    '}' +
+    '.mm-demo__btn--primary:hover {' +
+      'background: var(--deep-sea-neutral-600, #4C5463);' +
+    '}' +
+    /* Inline CustomerRow stubs for the content slot. Visually mirror .customer-row. */
+    '.mm-demo__cr-list { display: flex; flex-direction: column; }' +
+    '.mm-demo__cr {' +
+      'display: flex; align-items: center; justify-content: space-between;' +
+      'height: 48px;' +
+      'padding: var(--spacing-3, 12px);' +
+      'border-bottom: 1px solid var(--border-subtle, #E4E6EB);' +
+    '}' +
+    '.mm-demo__cr:last-child { border-bottom: none; }' +
+    '.mm-demo__cr-info { display: flex; align-items: center; gap: var(--spacing-3, 12px); min-width: 0; }' +
+    '.mm-demo__cr-icon {' +
+      'display: inline-flex; align-items: center; justify-content: center;' +
+      'width: 24px; height: 24px; padding: 0;' +
+      'border: 2px solid var(--border-default, #D0D4DB);' +
+      'border-radius: var(--radius-full, 9999px);' +
+      'background: var(--bg-primary, #FFFFFF);' +
+      'color: var(--text-secondary, #384253);' +
+      'box-sizing: border-box;' +
+    '}' +
+    '.mm-demo__cr-label {' +
+      'font-size: 14px; line-height: 20px; font-weight: 500;' +
+      'color: var(--text-secondary, #384253);' +
+    '}' +
+    '.mm-demo__cr-actions { display: flex; align-items: center; gap: var(--spacing-3, 12px); flex-shrink: 0; }' +
+    '.mm-demo__cr-action {' +
+      'display: inline-flex; align-items: center; justify-content: center;' +
+      'width: 20px; height: 20px;' +
+      'color: var(--text-secondary, #384253);' +
+    '}' +
+    /* Sample content (form-ish) for the second demo. */
+    '.mm-demo__sample { display: flex; flex-direction: column; gap: var(--spacing-3, 12px); padding-bottom: var(--spacing-3, 12px); }' +
+    '.mm-demo__field { display: flex; flex-direction: column; gap: var(--spacing-1, 4px); }' +
+    '.mm-demo__field-label {' +
+      'font-size: 12px; line-height: 16px; font-weight: 500;' +
+      'color: var(--text-secondary, #384253);' +
+    '}' +
+    '.mm-demo__field-input {' +
+      'padding: 8px 12px; height: 36px;' +
+      'display: flex; align-items: center;' +
+      'background: var(--white, #FFFFFF);' +
+      'border: 1px solid var(--border-default, #D0D4DB);' +
+      'border-radius: var(--radius-md, 6px);' +
+      'font-size: 14px; line-height: 20px; color: var(--text-primary, #1B2537);' +
+    '}' +
+    /* Card hint */
+    '.mm-demo-card-hint {' +
+      'font-size: 11px; color: #6B7280; font-style: italic; line-height: 1.4;' +
+    '}' +
+    '.mm-demo-card-hint strong { color: #384253; font-style: normal; font-weight: 600; }' +
+  '</style>' +
+  '<div class="comp-section">' +
+    '<div class="comp-section-title">ModalMedium <span class="comp-normalized-label">NORMALIZED</span></div>' +
+    '<div class="comp-section-subtitle">packages/ui/src/ModalMedium.jsx</div>' +
+
+    /* Sub-section: Anatomy */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Anatomy</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6; margin-bottom:14px;">' +
+        'Reusable medium-modal shell. Fixed 540w (wider than ModalLarge&rsquo;s 496), <code>--bg-primary</code> background, <code>--radius-xl</code> corners, ' +
+        '<strong><code>--shadow-2xl</code></strong> (NEW token this session &mdash; <code>0 25px 50px -12px rgba(0,0,0,0.25)</code>, the deeper lift used for body-blocking selector modals). ' +
+        'Vertical layout: <strong>header</strong> (title-only, no subtitle &mdash; this is the spec difference vs ModalLarge; close X on the right; <strong>no</strong> border-bottom) + <strong>content slot</strong> (<code>children</code>) + <strong>footer slot</strong> (border-top <code>--border-subtle</code> when present). ' +
+        '<strong>Dismissal.</strong> Identical to ModalLarge &mdash; ESC keydown and overlay click both fire <code>onClose</code>; clicks on the dialog itself <code>stopPropagation</code> so they don&rsquo;t bubble. ' +
+        '<strong>Typography.</strong> Title uses the NEW <code>text-heading-lg-semibold</code> utility added this cycle (18&nbsp;/&nbsp;24&nbsp;/&nbsp;600). Color is <code>--text-primary</code> (vs ModalLarge&rsquo;s smaller-title secondary). ' +
+        '<strong>Padding asymmetry.</strong> Header <code>spacing-6 / 6 / 3 / 6</code> (top right bottom left) leaves a 12px gap before content. Content <code>spacing-3 / 6 / 0 / 6</code> &mdash; bottom is 0 so the list can sit flush against the footer divider. Footer <code>spacing-3 / 6</code> + border-top <code>--border-subtle</code>. ' +
+        '<strong>Close X.</strong> 40&times;40 rounded-square (<code>--radius-lg</code>, not radius-full like ModalLarge), 20px lucide <code>X</code> via <code>ICON_LG</code>. <code>margin-right: calc(-1 * --spacing-2)</code> nudges the X 8px toward the right edge so the icon glyph optically aligns with the right padding of the body content below it (otherwise the bg pill would sit too far inset).' +
+      '</div>' +
+      '<div class="comp-card-grid">' +
+        '<div class="comp-card" style="min-width:600px;">' +
+          '<div class="mm-demo-overlay">' +
+            modal('Add Customers', customerList, footerButtons) +
+          '</div>' +
+          '<div class="comp-card-code">&lt;ModalMedium title="Add Customers" onClose={...} footer={...}&gt;{customerRows}&lt;/ModalMedium&gt;</div>' +
+          '<div class="mm-demo-card-hint"><strong>Hover the X</strong> to verify the DSN/100 hover ladder on the rounded-square; hold mousedown for DSN/200 pressed. The X sits flush to the right edge of the modal &mdash; that&rsquo;s the <code>margin-right: -spacing-2</code> trick at work.</div>' +
+          '<div class="comp-card-note"><strong>Default composition.</strong> Title + close X header, <code>CustomerRow</code> list as content, footer with Cancel/Save. Mirrors the prototype Add Customers modal verbatim &mdash; same width, same shadow, same flush-to-footer list. Overlay tint uses <code>--overlay-bg</code>.</div>' +
+        '</div>' +
+        '<div class="comp-card" style="min-width:600px;">' +
+          '<div class="mm-demo-overlay">' +
+            modal('Edit setting', '<div class="mm-demo__sample">' +
+              '<div class="mm-demo__field"><label class="mm-demo__field-label">Field label</label><div class="mm-demo__field-input">Some value here</div></div>' +
+              '<div class="mm-demo__field"><label class="mm-demo__field-label">Another field</label><div class="mm-demo__field-input">Another value</div></div>' +
+            '</div>', footerButtons) +
+          '</div>' +
+          '<div class="comp-card-code">&lt;ModalMedium title="Edit setting" onClose={...} footer={...}&gt;{formFields}&lt;/ModalMedium&gt;</div>' +
+          '<div class="comp-card-note"><strong>Generic content.</strong> The shell is content-agnostic &mdash; here it wraps a simple form. Note the bottom-0 content padding means the content owns its own bottom spacing (the inner <code>.mm-demo__sample</code> has <code>padding-bottom: spacing-3</code>) before the footer divider.</div>' +
+        '</div>' +
+        '<div class="comp-card" style="min-width:600px;">' +
+          '<div class="mm-demo-overlay">' +
+            modal('Read-only details', '<div class="mm-demo__sample">' +
+              '<div class="mm-demo__field"><label class="mm-demo__field-label">Read-only</label><div class="mm-demo__field-input" style="background:#F7F8FA;">Locked value</div></div>' +
+            '</div>', null) +
+          '</div>' +
+          '<div class="comp-card-code">&lt;ModalMedium title="Read-only details" onClose={...}&gt;{children}&lt;/ModalMedium&gt;</div>' +
+          '<div class="comp-card-note"><strong>No footer.</strong> Omit the <code>footer</code> prop &mdash; the <code>&lt;footer&gt;</code> element is conditionally rendered. The border-top divider goes with it; the rounded bottom corners come from the shell&rsquo;s <code>overflow: hidden</code> + <code>--radius-xl</code>.</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    /* Sub-section: Props & Tokens — modal */
+    '<div class="comp-subsection">' +
+      '<button class="comp-details-button" onclick="showCompDetails(\'ModalMedium\')">Show props &amp; tokens</button>' +
+    '</div>' +
+
+    /* Sub-section: Figma reference */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Figma Reference</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
+        'Component <code style="' + codeChip + '">2032:915</code> in Design System &mdash; MCP, under Components-Organisms (inside the Modals artboard). Properties: ' +
+        '<code style="' + codeChip + '">Title</code> TEXT (default <code>"Add Customers"</code>), ' +
+        '<code style="' + codeChip + '">ContentSlot</code> SLOT, ' +
+        '<code style="' + codeChip + '">FooterSlot</code> SLOT. ' +
+        'Both slots are designer-only workflows (Figma plugin API can&rsquo;t programmatically override instance children inside a slot). Unlike ModalLarge there is <strong>no</strong> Subtitle / ShowSubtitle property &mdash; the title-only header is the medium-modal&rsquo;s defining spec difference.' +
+      '</div>' +
+    '</div>' +
+
+    /* Sub-section: Code Connect */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Code Connect</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
+        'Mapped via <code style="' + codeChip + '">packages/ui/src/ModalMedium.figma.tsx</code>. Single <code>figma.connect()</code> &mdash; <code>Title</code> TEXT &rarr; <code>title</code>. SLOT children are NOT mapped explicitly (matches the <code>ModalLarge</code> / <code>Widget</code> / <code>MenuDropdown</code> pattern &mdash; slot content lives outside Figma component props).' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
 /* ── Edit-mode overview (cross-cutting context for Widget + WidgetsLeftMenu) ── */
 function getEditModeOverviewHTML() {
   var codeChip = 'font-family:\'SF Mono\',\'Fira Code\',monospace; font-size:11px; background:#F3F4F6; padding:1px 5px; border-radius:3px; color:#6B7280;';
@@ -6036,29 +7040,48 @@ var compDetails = {
       '<table class="comp-table">' +
         '<thead><tr><th>Prop</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>' +
         '<tbody>' +
-          '<tr style="background:#F7F8FA;"><td colspan="4" style="font-style:italic; color:#384253;"><strong>Focus state (2026-05-12).</strong> Internal <code>useState</code> tracks the input&rsquo;s <code>onFocus</code> / <code>onBlur</code>. On focus the border thickens 1px &rarr; 2px (color <code>--deep-sea-neutral-600</code>) and the leading search icon shifts <code>--text-placeholder</code> &rarr; <code>--text-tertiary</code>. The input also forces <code>spellCheck=false</code>, <code>autoCorrect=off</code>, and <code>autoCapitalize=off</code>. Mirrors the Shipments <code>TableControls</code> searchbar recipe.</td></tr>' +
-          '<tr><td><code>value</code></td><td>string</td><td>&mdash;</td><td>Controlled input value.</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="4" style="font-style:italic; color:#384253;"><strong>Focus state (2026-05-12).</strong> Internal <code>useState</code> tracks the input&rsquo;s <code>onFocus</code> / <code>onBlur</code>. On focus the border thickens 1px &rarr; 2px (color <code>--deep-sea-neutral-600</code>) and the leading search icon shifts <code>--text-placeholder</code> &rarr; <code>--text-tertiary</code>. The input also forces <code>spellCheck=false</code>, <code>autoCorrect=off</code>, <code>autoCapitalize=off</code>, and inline <code>outline: none; box-shadow: none</code> to suppress the browser&rsquo;s default focus ring (the wrapper border IS the focus affordance). Mirrors the Shipments <code>TableControls</code> searchbar recipe.</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="4" style="font-style:italic; color:#384253;"><strong>Labeled variant (2026-05-13).</strong> When <code>showLabel={true}</code> the component returns a column-flex wrapper (<code>gap: var(--spacing-2)</code>) with a Label row above the input bar. The input bar itself is unchanged. When <code>showLabel={false}</code> (default) the component returns just the bare input bar &mdash; backwards compatible with all existing consumers (<code>WidgetsLeftMenu</code> etc.).</td></tr>' +
+          '<tr><td><code>value</code></td><td>string</td><td><code>""</code></td><td>Controlled input value.</td></tr>' +
           '<tr><td><code>onChange</code></td><td>(value) =&gt; void</td><td>&mdash;</td><td>Fires on every keystroke with the new input value.</td></tr>' +
           '<tr><td><code>placeholder</code></td><td>string</td><td><code>"Search"</code></td><td>Input placeholder text. Maps to the Figma <code>Placeholder</code> TEXT property.</td></tr>' +
           '<tr><td><code>onClear</code></td><td>() =&gt; void</td><td>&mdash;</td><td>Optional. When provided <strong>and</strong> <code>value</code> is non-empty, renders a clickable trailing <code>CircleX</code> (16px). The clear button uses <code>onMouseDown preventDefault</code> so input focus is retained.</td></tr>' +
+          '<tr><td><code>showLabel</code></td><td>boolean</td><td><code>false</code></td><td><em>NEW 2026-05-13.</em> When <code>true</code>, stacks a Label row above the input bar. Maps to Figma <code>Show label</code> BOOLEAN.</td></tr>' +
+          '<tr><td><code>label</code></td><td>string</td><td><code>"Label"</code></td><td><em>NEW 2026-05-13.</em> Text rendered in the label row (only when <code>showLabel</code>). Maps to Figma <code>Label</code> TEXT.</td></tr>' +
+          '<tr><td><code>showInfoIcon</code></td><td>boolean</td><td><code>false</code></td><td><em>NEW 2026-05-13.</em> When <code>true</code> AND <code>showLabel</code> is true, renders a lucide <code>Info</code> icon (16px) at the end of the label row. Maps to Figma <code>Show info icon</code> BOOLEAN.</td></tr>' +
+          '<tr><td><code>onInfoClick</code></td><td>() =&gt; void</td><td>&mdash;</td><td><em>NEW 2026-05-13. Code-only.</em> When provided AND <code>showInfoIcon</code> is true, the info icon becomes a <code>&lt;button&gt;</code> firing this handler. When omitted, the icon renders as a decorative <code>&lt;span aria-hidden&gt;</code>.</td></tr>' +
+          '<tr><td><code>className</code></td><td>string</td><td><code>""</code></td><td>Appended to the outermost wrapper (input bar in default mode; column wrapper in labeled mode).</td></tr>' +
+          '<tr><td><code>...rest</code></td><td>HTMLDivAttrs</td><td>&mdash;</td><td>Spread onto the outermost wrapper.</td></tr>' +
         '</tbody>' +
       '</table>',
     tokens:
       '<table class="comp-table">' +
         '<thead><tr><th>Area / Property</th><th>Token / Value</th><th>Resolved</th></tr></thead>' +
         '<tbody>' +
-          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Layout</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Wrapper (showLabel=true)</td></tr>' +
+          '<tr><td>Flex direction</td><td>column</td><td>&mdash;</td></tr>' +
+          '<tr><td>Gap (label row &harr; input bar)</td><td><code>--spacing-2</code></td><td>8px</td></tr>' +
+          '<tr><td>Align items</td><td>stretch</td><td>&mdash;</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Label row (showLabel=true)</td></tr>' +
+          '<tr><td>Layout</td><td>inline-flex, align-items: center</td><td>&mdash;</td></tr>' +
+          '<tr><td>Gap (label &harr; info icon)</td><td><code>--spacing-1</code></td><td>4px</td></tr>' +
+          '<tr><td>Label class</td><td><code>.text-label-sm-medium</code></td><td>14 / 20 / 500</td></tr>' +
+          '<tr><td>Label color</td><td><code>--text-secondary</code></td><td>DSN/700 #384253</td></tr>' +
+          '<tr><td>Info icon size</td><td>16 &times; 16 (raw)</td><td>lucide <code>Info</code> stroke 2 via <code>ICON_MD</code></td></tr>' +
+          '<tr><td>Info icon color</td><td><code>--text-tertiary</code></td><td>DSN/500 #6B7280</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Input bar — Layout</td></tr>' +
           '<tr><td>Height</td><td>32px (raw)</td><td>&mdash;</td></tr>' +
-          '<tr><td>Padding</td><td><code>6px var(--spacing-3)</code></td><td>6 / 12</td></tr>' +
+          '<tr><td>Padding</td><td><code>0 var(--spacing-3)</code></td><td>0 / 12</td></tr>' +
           '<tr><td>Gap (icon &harr; input &harr; clear)</td><td><code>--spacing-2</code></td><td>8px</td></tr>' +
           '<tr><td>Icon size (Search / CircleX)</td><td>16 &times; 16 (raw)</td><td>lucide stroke 2</td></tr>' +
-          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Surface</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Input bar — Surface</td></tr>' +
           '<tr><td>Background</td><td><code>--bg-primary</code></td><td>#FFFFFF &middot; <em>2026-05-12: was <code>--white</code></em></td></tr>' +
           '<tr><td>Border &mdash; idle</td><td>1px solid <code>--border-default</code></td><td>#D0D4DB</td></tr>' +
           '<tr><td>Border &mdash; focused</td><td>2px solid <code>--deep-sea-neutral-600</code></td><td>#4C5463 &middot; <em>new 2026-05-12</em></td></tr>' +
           '<tr><td>Radius</td><td><code>--radius-md</code></td><td>6px</td></tr>' +
           '<tr><td>Shadow</td><td><code>--shadow-sm</code></td><td>0 1px 2px rgba(15,23,42,0.04)</td></tr>' +
-          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Color</td></tr>' +
+          '<tr><td>Input outline / box-shadow</td><td>inline <code>outline: none; box-shadow: none</code></td><td>suppresses browser default focus ring</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Input bar — Color</td></tr>' +
           '<tr><td>Input text</td><td><code>--text-primary</code></td><td>DSN/900 #1B2537</td></tr>' +
           '<tr><td>Placeholder</td><td><code>--text-placeholder</code></td><td>DSN/400 #9CA3AF</td></tr>' +
           '<tr><td>Leading search icon &mdash; idle</td><td><code>--text-placeholder</code></td><td>DSN/400 #9CA3AF &middot; <em>2026-05-12: was <code>--text-tertiary</code></em></td></tr>' +
@@ -6103,6 +7126,65 @@ var compDetails = {
           '<tr><td>Background + grip opacity</td><td><code>--transition-fast</code></td><td>150ms ease</td></tr>' +
           '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">CSS location</td></tr>' +
           '<tr><td>Rules</td><td><code>.menu-row</code> in <code>apps/odyssey-one/src/styles/components.css</code></td><td>REPLACES the prior <code>.widgets-left-menu__item*</code> rules (renamed in the WidgetsLeftMenu refactor)</td></tr>' +
+        '</tbody>' +
+      '</table>'
+  },
+  CustomerRow: {
+    props:
+      '<table class="comp-table">' +
+        '<thead><tr><th>Prop</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>' +
+        '<tbody>' +
+          '<tr style="background:#F7F8FA;"><td colspan="4" style="font-style:italic; color:#384253;"><strong>Variant axis.</strong> Figma exposes <code>Favorite=False|True</code> &mdash; the <code>favorite</code> prop drives the <code>Star</code>&rsquo;s <code>fill</code> attribute (<code>"none"</code> &harr; <code>"currentColor"</code>). Both Star and Trash share a single color ladder (<code>--text-secondary</code> &rarr; <code>--text-primary</code> on hover &rarr; <code>--text-placeholder</code> on active), so the filled Star follows the same brighten-on-hover behavior as the outlined one.</td></tr>' +
+          '<tr><td><code>label</code></td><td>string</td><td>&mdash;</td><td>Row label. Maps to Figma <code>Label</code> TEXT property.</td></tr>' +
+          '<tr><td><code>icon</code></td><td>ReactNode</td><td><code>&lt;Handshake size=16 /&gt;</code></td><td>Optional 16px lucide icon inside the 24&times;24 ring. Falls back to <code>Handshake</code> from <code>lucide-react</code> via <code>ICON_MD</code>. Maps to Figma <code>Icon</code> INSTANCE_SWAP (default master = 16px Handshake from Icons frame).</td></tr>' +
+          '<tr><td><code>favorite</code></td><td>boolean</td><td><code>false</code></td><td>When <code>true</code>, the Star renders with <code>fill="currentColor"</code> (matches the Figma <code>Favorite=True</code> variant). Drives the <code>aria-pressed</code> + <code>aria-label</code> on the Star button (<code>"Unfavorite"</code> when true, <code>"Favorite"</code> when false).</td></tr>' +
+          '<tr><td><code>onFavoriteToggle</code></td><td>() =&gt; void</td><td>&mdash;</td><td>Fires on Star click. Consumer owns the <code>favorite</code> state. Code-only prop (Figma has no Action concept).</td></tr>' +
+          '<tr><td><code>onDelete</code></td><td>() =&gt; void</td><td>&mdash;</td><td>Fires on Trash click. Consumer owns the row removal. Code-only prop.</td></tr>' +
+          '<tr><td><code>className</code></td><td>string</td><td><code>""</code></td><td>Appended to the root <code>.customer-row</code> class list.</td></tr>' +
+          '<tr><td><code>...rest</code></td><td>HTMLDivAttrs</td><td>&mdash;</td><td>Spread onto the root <code>&lt;div&gt;</code>.</td></tr>' +
+        '</tbody>' +
+      '</table>',
+    tokens:
+      '<table class="comp-table">' +
+        '<thead><tr><th>Area / Property</th><th>Token / Value</th><th>Resolved</th></tr></thead>' +
+        '<tbody>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Layout</td></tr>' +
+          '<tr><td>Height</td><td>48px (raw)</td><td>&mdash;</td></tr>' +
+          '<tr><td>Padding</td><td><code>--spacing-3</code></td><td>12px on all sides</td></tr>' +
+          '<tr><td>Justify content</td><td>space-between</td><td>info cluster left, actions cluster right</td></tr>' +
+          '<tr><td>Border-bottom</td><td>1px solid <code>--border-subtle</code></td><td>DSN/200 #E4E6EB &middot; <code>:last-child</code> clears it via CSS</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Info cluster</td></tr>' +
+          '<tr><td>Layout</td><td>flex, align-items: center</td><td>&mdash;</td></tr>' +
+          '<tr><td>Gap (icon container &harr; label)</td><td><code>--spacing-3</code></td><td>12px</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Icon container (24&times;24 ring)</td></tr>' +
+          '<tr><td>Size</td><td>24 &times; 24 (raw)</td><td>&mdash;</td></tr>' +
+          '<tr><td>Padding</td><td>0</td><td>icon centers via inline-flex</td></tr>' +
+          '<tr><td>Border</td><td>2px solid <code>--border-default</code></td><td>DSN/300 #D0D4DB</td></tr>' +
+          '<tr><td>Border radius</td><td><code>--radius-full</code></td><td>circular</td></tr>' +
+          '<tr><td>Background</td><td><code>--bg-primary</code></td><td>#FFFFFF</td></tr>' +
+          '<tr><td>Inner icon size</td><td>16 &times; 16</td><td>via <code>ICON_MD</code> default; consumer-provided icon takes whatever size it ships with</td></tr>' +
+          '<tr><td>Inner icon color</td><td><code>--text-secondary</code> (inherited via <code>color</code>)</td><td>DSN/700 #384253 &mdash; icons use <code>currentColor</code></td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Label typography</td></tr>' +
+          '<tr><td>Class</td><td><code>.text-label-sm-medium</code></td><td>14 / 20 / 500</td></tr>' +
+          '<tr><td>Color</td><td><code>--text-secondary</code></td><td>DSN/700 #384253</td></tr>' +
+          '<tr><td>Overflow</td><td>white-space: nowrap, ellipsis on overflow</td><td>&mdash;</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Actions cluster</td></tr>' +
+          '<tr><td>Layout</td><td>flex, align-items: center, flex-shrink: 0</td><td>&mdash;</td></tr>' +
+          '<tr><td>Gap (Star &harr; Trash)</td><td><code>--spacing-3</code></td><td>12px</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Action button (Star / Trash)</td></tr>' +
+          '<tr><td>Size</td><td>20 &times; 20 (raw)</td><td>&mdash;</td></tr>' +
+          '<tr><td>Padding / border / background</td><td>0 / none / transparent</td><td>bare icon slot</td></tr>' +
+          '<tr><td>Idle color</td><td><code>--text-secondary</code></td><td>DSN/700 #384253</td></tr>' +
+          '<tr><td>Hover color (<code>:hover</code>)</td><td><code>--text-primary</code></td><td>DSN/900 #1B2537</td></tr>' +
+          '<tr><td>Pressed color (<code>:active</code>)</td><td><code>--text-placeholder</code></td><td>DSN/400 #9CA3AF</td></tr>' +
+          '<tr><td>Star fill behavior</td><td><code>fill="currentColor"</code> when <code>favorite=true</code> &middot; <code>fill="none"</code> otherwise</td><td>filled star follows the same color ladder via <code>currentColor</code></td></tr>' +
+          '<tr><td>Transition</td><td><code>--transition-fast</code></td><td>150ms ease (color only)</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">A11y</td></tr>' +
+          '<tr><td>Icon container</td><td><code>aria-hidden="true"</code></td><td>decorative</td></tr>' +
+          '<tr><td>Star button</td><td><code>aria-pressed</code> mirrors <code>favorite</code>; <code>aria-label</code> swaps <code>"Favorite"</code> / <code>"Unfavorite"</code></td><td>&mdash;</td></tr>' +
+          '<tr><td>Trash button</td><td><code>aria-label="Delete"</code></td><td>&mdash;</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">CSS location</td></tr>' +
+          '<tr><td>Rules</td><td><code>.customer-row*</code> in <code>apps/odyssey-one/src/styles/components.css</code></td><td>around the line 1481 block</td></tr>' +
         '</tbody>' +
       '</table>'
   },
@@ -6182,6 +7264,180 @@ var compDetails = {
           '<tr><td>Pressed bg</td><td><code>--deep-sea-neutral-200</code></td><td>#E4E6EB</td></tr>' +
           '<tr><td>Grip icon</td><td>16 &times; 16 lucide</td><td>opacity 0 idle &rarr; 1 on hover or <code>data-dragging="true"</code></td></tr>' +
           '<tr><td>Transition (bg + grip opacity)</td><td><code>--transition-fast</code></td><td>150ms ease</td></tr>' +
+        '</tbody>' +
+      '</table>'
+  },
+  ModalLarge: {
+    props:
+      '<table class="comp-table">' +
+        '<thead><tr><th>Prop</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>' +
+        '<tbody>' +
+          '<tr><td><code>title</code></td><td>string</td><td>&mdash;</td><td>Header title text. Rendered with <code>text-label-sm-semibold</code> (NEW utility this session). Maps to Figma <code>Title</code> TEXT.</td></tr>' +
+          '<tr><td><code>subtitle</code></td><td>string</td><td>&mdash;</td><td>Optional secondary line under the title. Rendered with <code>text-label-xs-regular</code>. Maps to Figma <code>Subtitle</code> TEXT.</td></tr>' +
+          '<tr><td><code>showSubtitle</code></td><td>boolean</td><td><code>true</code></td><td>Whether the subtitle row is rendered. Maps to Figma <code>ShowSubtitle</code> BOOLEAN. When <code>false</code>, the subtitle DOM is omitted entirely (not display:none).</td></tr>' +
+          '<tr><td><code>onClose</code></td><td>() =&gt; void</td><td>&mdash;</td><td>Dismiss handler. Fires on ESC keydown, overlay click, AND the X button (when present). When omitted, the close X is not rendered.</td></tr>' +
+          '<tr><td><code>children</code></td><td>ReactNode</td><td>&mdash;</td><td>Body content slot. Maps to Figma <code>ContentSlot</code> SLOT.</td></tr>' +
+          '<tr><td><code>footer</code></td><td>ReactNode</td><td>&mdash;</td><td>Optional footer slot. The <code>&lt;footer&gt;</code> element is conditionally rendered &mdash; pass actions, buttons, or any composition. Maps to Figma <code>FooterSlot</code> SLOT.</td></tr>' +
+          '<tr><td><code>className</code></td><td>string</td><td><code>""</code></td><td>Appended to the dialog (<code>.modal-large</code>) root class list.</td></tr>' +
+          '<tr><td><code>ariaLabel</code></td><td>string</td><td>(falls back to <code>title</code>)</td><td>Custom <code>aria-label</code> for the dialog. Use when the title text isn&rsquo;t descriptive enough on its own.</td></tr>' +
+        '</tbody>' +
+      '</table>',
+    tokens:
+      '<table class="comp-table">' +
+        '<thead><tr><th>Area / Property</th><th>Token / Value</th><th>Resolved</th></tr></thead>' +
+        '<tbody>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Surface</td></tr>' +
+          '<tr><td>Width</td><td>496px (raw)</td><td>fixed &mdash; no Sizing token in current scale</td></tr>' +
+          '<tr><td>Background</td><td><code>--bg-primary</code></td><td>white</td></tr>' +
+          '<tr><td>Border radius</td><td><code>--radius-xl</code></td><td>12px</td></tr>' +
+          '<tr><td>Shadow</td><td><code>--shadow-md</code></td><td>0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1)</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Overlay</td></tr>' +
+          '<tr><td>Background</td><td><code>--overlay-bg</code></td><td>tinted scrim &mdash; centers the dialog via flex</td></tr>' +
+          '<tr><td>z-index</td><td>200 (raw)</td><td>&mdash;</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Header</td></tr>' +
+          '<tr><td>Padding (top / right / bottom / left)</td><td><code>--spacing-3</code> <code>--spacing-3</code> <code>--spacing-2</code> <code>--spacing-4</code></td><td>12 / 12 / <strong>8</strong> / 16 &mdash; bottom is 8 per Step 9 spec</td></tr>' +
+          '<tr><td>Border-bottom</td><td>1px solid <code>--border-subtle</code></td><td>DSN/200 #E4E6EB</td></tr>' +
+          '<tr><td>Header-text gap (title &harr; subtitle)</td><td><code>--spacing-1</code></td><td>4px</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Typography</td></tr>' +
+          '<tr><td>Title class</td><td><code>text-label-sm-semibold</code> (NEW this session)</td><td>14 / 20 / 600 &middot; color <code>--text-secondary</code></td></tr>' +
+          '<tr><td>Subtitle class</td><td><code>text-label-xs-regular</code></td><td>12 / 16 / 400 &middot; color <code>--text-tertiary</code></td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Close X</td></tr>' +
+          '<tr><td>Size</td><td>40 &times; 40 (raw)</td><td>square hit target</td></tr>' +
+          '<tr><td>Border radius</td><td><code>--radius-full</code></td><td>circular</td></tr>' +
+          '<tr><td>Icon</td><td>20 &times; 20 lucide <code>X</code></td><td>via <code>ICON_LG</code> from <code>@odyssey/tokens</code></td></tr>' +
+          '<tr><td>Idle bg / color</td><td>transparent / <code>--text-tertiary</code></td><td>&mdash; / DSN/500</td></tr>' +
+          '<tr><td>Hover bg / color</td><td><code>--deep-sea-neutral-100</code> / <code>--text-secondary</code></td><td>#F2F3F5 / DSN/700</td></tr>' +
+          '<tr><td>Pressed bg</td><td><code>--deep-sea-neutral-200</code></td><td>#E4E6EB</td></tr>' +
+          '<tr><td>Transition</td><td><code>--transition-fast</code></td><td>150ms ease (bg + color)</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Content slot</td></tr>' +
+          '<tr><td>Flex</td><td>flex: 1 (raw)</td><td>fills available height between header and footer</td></tr>' +
+          '<tr><td>Padding</td><td>none (consumer-owned)</td><td>content&rsquo;s responsibility &mdash; the WidgetVariantPicker sets its own padding inside, for example</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Footer slot (when present)</td></tr>' +
+          '<tr><td>Padding (top / right / bottom / left)</td><td><code>--spacing-3</code> <code>--spacing-4</code> <code>--spacing-4</code> <code>--spacing-4</code></td><td>12 / 16 / 16 / 16</td></tr>' +
+          '<tr><td>Conditional render</td><td>only when <code>footer</code> prop is truthy</td><td><code>&lt;footer&gt;</code> element omitted otherwise</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">A11y / Behavior</td></tr>' +
+          '<tr><td>Role / aria-modal</td><td><code>role="dialog"</code> + <code>aria-modal="true"</code></td><td>&mdash;</td></tr>' +
+          '<tr><td>aria-label</td><td><code>ariaLabel</code> prop, falls back to <code>title</code></td><td>&mdash;</td></tr>' +
+          '<tr><td>ESC dismiss</td><td>window keydown listener fires <code>onClose</code></td><td>registered via <code>useEffect</code>; cleaned up on unmount</td></tr>' +
+          '<tr><td>Overlay click dismiss</td><td>overlay <code>onClick</code> fires <code>onClose</code></td><td>dialog itself <code>stopPropagation</code>s so inner clicks don&rsquo;t bubble</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">CSS location</td></tr>' +
+          '<tr><td>Rules</td><td><code>.modal-large*</code> in <code>apps/odyssey-one/src/styles/components.css</code></td><td>around the line 1320 block</td></tr>' +
+        '</tbody>' +
+      '</table>'
+  },
+  ModalMedium: {
+    props:
+      '<table class="comp-table">' +
+        '<thead><tr><th>Prop</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>' +
+        '<tbody>' +
+          '<tr style="background:#F7F8FA;"><td colspan="4" style="font-style:italic; color:#384253;"><strong>vs ModalLarge.</strong> No <code>subtitle</code> / <code>showSubtitle</code> &mdash; the medium-modal&rsquo;s header is title-only by spec. Wider surface (540 vs 496). Deeper shadow (<code>--shadow-2xl</code> vs <code>--shadow-md</code>). Title uses the larger <code>text-heading-lg-semibold</code> utility (18&nbsp;/&nbsp;24&nbsp;/&nbsp;600) instead of <code>text-label-sm-semibold</code>. Close X uses <code>--radius-lg</code> (rounded square) instead of <code>--radius-full</code>.</td></tr>' +
+          '<tr><td><code>title</code></td><td>string</td><td>&mdash;</td><td>Header title text. Rendered with the NEW <code>text-heading-lg-semibold</code> utility (18&nbsp;/&nbsp;24&nbsp;/&nbsp;600). Maps to Figma <code>Title</code> TEXT.</td></tr>' +
+          '<tr><td><code>onClose</code></td><td>() =&gt; void</td><td>&mdash;</td><td>Dismiss handler. Fires on ESC keydown, overlay click, AND the X button (when present). When omitted, the close X is not rendered.</td></tr>' +
+          '<tr><td><code>children</code></td><td>ReactNode</td><td>&mdash;</td><td>Body content slot. Maps to Figma <code>ContentSlot</code> SLOT. Content&rsquo;s bottom edge sits flush against the footer divider (content padding-bottom is <code>0</code> by design).</td></tr>' +
+          '<tr><td><code>footer</code></td><td>ReactNode</td><td>&mdash;</td><td>Optional footer slot. The <code>&lt;footer&gt;</code> element is conditionally rendered &mdash; when truthy, a 1px <code>--border-subtle</code> divider appears above it. Maps to Figma <code>FooterSlot</code> SLOT.</td></tr>' +
+          '<tr><td><code>className</code></td><td>string</td><td><code>""</code></td><td>Appended to the dialog (<code>.modal-medium</code>) root class list.</td></tr>' +
+          '<tr><td><code>ariaLabel</code></td><td>string</td><td>(falls back to <code>title</code>)</td><td>Custom <code>aria-label</code> for the dialog. Use when the title text isn&rsquo;t descriptive enough on its own.</td></tr>' +
+        '</tbody>' +
+      '</table>',
+    tokens:
+      '<table class="comp-table">' +
+        '<thead><tr><th>Area / Property</th><th>Token / Value</th><th>Resolved</th></tr></thead>' +
+        '<tbody>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Surface</td></tr>' +
+          '<tr><td>Width</td><td>540px (raw)</td><td>fixed &mdash; no Sizing token in current scale</td></tr>' +
+          '<tr><td>Background</td><td><code>--bg-primary</code></td><td>white</td></tr>' +
+          '<tr><td>Border radius</td><td><code>--radius-xl</code></td><td>12px</td></tr>' +
+          '<tr><td>Shadow</td><td><code>--shadow-2xl</code> (NEW this session)</td><td>0 25px 50px -12px rgba(0,0,0,0.25)</td></tr>' +
+          '<tr><td>Overflow</td><td>hidden</td><td>clips the conditional footer + radius corners</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Overlay</td></tr>' +
+          '<tr><td>Background</td><td><code>--overlay-bg</code></td><td>tinted scrim &mdash; centers the dialog via flex</td></tr>' +
+          '<tr><td>z-index</td><td>200 (raw)</td><td>&mdash;</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Header</td></tr>' +
+          '<tr><td>Padding (top / right / bottom / left)</td><td><code>--spacing-6</code> <code>--spacing-6</code> <code>--spacing-3</code> <code>--spacing-6</code></td><td>24 / 24 / 12 / 24</td></tr>' +
+          '<tr><td>Border-bottom</td><td>none</td><td>medium-modal has no header divider (vs ModalLarge which does)</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Typography</td></tr>' +
+          '<tr><td>Title class</td><td><code>text-heading-lg-semibold</code> (NEW this session)</td><td>18 / 24 / 600 &middot; color <code>--text-primary</code></td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Close X</td></tr>' +
+          '<tr><td>Size</td><td>40 &times; 40 (raw)</td><td>square hit target</td></tr>' +
+          '<tr><td>Border radius</td><td><code>--radius-lg</code></td><td>8px &middot; rounded square (NOT radius-full like ModalLarge)</td></tr>' +
+          '<tr><td>Margin-right</td><td><code>calc(-1 * --spacing-2)</code></td><td>-8px &mdash; optically aligns the X glyph with the right edge of the content area below</td></tr>' +
+          '<tr><td>Icon</td><td>20 &times; 20 lucide <code>X</code></td><td>via <code>ICON_LG</code> from <code>@odyssey/tokens</code></td></tr>' +
+          '<tr><td>Idle bg / color</td><td>transparent / <code>--text-tertiary</code></td><td>&mdash; / DSN/500</td></tr>' +
+          '<tr><td>Hover bg / color</td><td><code>--deep-sea-neutral-100</code> / <code>--text-secondary</code></td><td>#F2F3F5 / DSN/700</td></tr>' +
+          '<tr><td>Pressed bg</td><td><code>--deep-sea-neutral-200</code></td><td>#E4E6EB</td></tr>' +
+          '<tr><td>Transition</td><td><code>--transition-fast</code></td><td>150ms ease (bg + color)</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Content slot</td></tr>' +
+          '<tr><td>Padding (top / right / bottom / left)</td><td><code>--spacing-3</code> <code>--spacing-6</code> <strong>0</strong> <code>--spacing-6</code></td><td>12 / 24 / 0 / 24 &mdash; bottom 0 so list-style content (e.g. CustomerRow) flushes against the footer divider</td></tr>' +
+          '<tr><td>Inner layout</td><td>flex column, gap <code>--spacing-3</code></td><td>12px between children</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Footer slot (when present)</td></tr>' +
+          '<tr><td>Padding</td><td><code>--spacing-3</code> <code>--spacing-6</code></td><td>12 / 24</td></tr>' +
+          '<tr><td>Border-top</td><td>1px solid <code>--border-subtle</code></td><td>DSN/200 #E4E6EB</td></tr>' +
+          '<tr><td>Conditional render</td><td>only when <code>footer</code> prop is truthy</td><td><code>&lt;footer&gt;</code> element + border-top both omitted otherwise</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">A11y / Behavior</td></tr>' +
+          '<tr><td>Role / aria-modal</td><td><code>role="dialog"</code> + <code>aria-modal="true"</code></td><td>&mdash;</td></tr>' +
+          '<tr><td>aria-label</td><td><code>ariaLabel</code> prop, falls back to <code>title</code></td><td>&mdash;</td></tr>' +
+          '<tr><td>ESC dismiss</td><td>window keydown listener fires <code>onClose</code></td><td>registered via <code>useEffect</code>; cleaned up on unmount</td></tr>' +
+          '<tr><td>Overlay click dismiss</td><td>overlay <code>onClick</code> fires <code>onClose</code></td><td>dialog itself <code>stopPropagation</code>s so inner clicks don&rsquo;t bubble</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">CSS location</td></tr>' +
+          '<tr><td>Rules</td><td><code>.modal-medium*</code> in <code>apps/odyssey-one/src/styles/components.css</code></td><td>around the line 1409 block</td></tr>' +
+        '</tbody>' +
+      '</table>'
+  },
+  WidgetVariantPicker: {
+    props:
+      '<table class="comp-table">' +
+        '<thead><tr><th>Prop</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>' +
+        '<tbody>' +
+          '<tr style="background:#F7F8FA;"><td colspan="4" style="font-style:italic; color:#384253;"><strong>Infinite wrap.</strong> Arrows never disable. Pressing next at the last variant loops to the first; pressing prev at the first loops to the last. The dots indicator also acts as a tab list &mdash; consumers can jump directly to any variant.</td></tr>' +
+          '<tr><td><code>variant</code></td><td><code>"1x" | "2x" | "3x" | "3xChart"</code></td><td><code>"1x"</code></td><td>Currently displayed variant. Maps to Figma <code>Variant</code> property (component set 2005:554 has 4 variants).</td></tr>' +
+          '<tr><td><code>onVariantChange</code></td><td>(nextVariant) =&gt; void</td><td>&mdash;</td><td>Fires on arrow click + dot click. Consumer owns the <code>variant</code> state.</td></tr>' +
+          '<tr><td><code>widgetProps</code></td><td>object</td><td><code>{}</code></td><td>Spread onto the inner <code>&lt;Widget /&gt;</code> instance. Forward whatever your widget needs: <code>title</code>, <code>domainIcon</code>, <code>value</code>, <code>rows</code>, <code>chartSegments</code>, etc. <code>variant</code> + <code>showGrip</code> are managed internally.</td></tr>' +
+          '<tr><td><code>className</code></td><td>string</td><td><code>""</code></td><td>Appended to the root <code>.widget-variant-picker</code> element.</td></tr>' +
+        '</tbody>' +
+      '</table>',
+    tokens:
+      '<table class="comp-table">' +
+        '<thead><tr><th>Area / Property</th><th>Token / Value</th><th>Resolved</th></tr></thead>' +
+        '<tbody>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Container</td></tr>' +
+          '<tr><td>Width</td><td>496px (raw)</td><td>matches <code>ModalLarge</code> width &mdash; designed to live inside one</td></tr>' +
+          '<tr><td>Height</td><td>460px (raw)</td><td>fixed &mdash; the picker is itself fixed-height inside the modal</td></tr>' +
+          '<tr><td>Background</td><td><code>--bg-tertiary</code></td><td>DSN/100 #F2F3F5</td></tr>' +
+          '<tr><td>Padding</td><td><code>--spacing-3</code> <code>--spacing-4</code></td><td>12 / 16 (vertical / horizontal)</td></tr>' +
+          '<tr><td>Layout</td><td>flex, justify-between, align-center</td><td>arrow &mdash; info column &mdash; arrow</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Arrow buttons</td></tr>' +
+          '<tr><td>Size</td><td>40 &times; 40 (raw)</td><td>circular IconButton-equivalent</td></tr>' +
+          '<tr><td>Border radius</td><td><code>--radius-full</code></td><td>9999px</td></tr>' +
+          '<tr><td>Icon</td><td>20 &times; 20 lucide <code>ChevronLeft</code> / <code>ChevronRight</code></td><td>via <code>ICON_LG</code></td></tr>' +
+          '<tr><td>Idle bg / color</td><td>transparent / <code>--text-secondary</code></td><td>&mdash; / DSN/700</td></tr>' +
+          '<tr><td>Hover bg / color</td><td><code>--deep-sea-neutral-200</code> / <code>--text-primary</code></td><td>#E4E6EB / DSN/900</td></tr>' +
+          '<tr><td>Pressed bg</td><td><code>--deep-sea-neutral-300</code></td><td>#D0D4DB</td></tr>' +
+          '<tr><td>Transition</td><td><code>--transition-fast</code></td><td>150ms ease (bg + color)</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Info column (center)</td></tr>' +
+          '<tr><td>Layout</td><td>flex column, align-center, justify-center</td><td>fills available width via <code>flex:1</code></td></tr>' +
+          '<tr><td>Gap (main &harr; dots-container)</td><td><code>--spacing-3</code></td><td>12px</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Preview area (<code>.widget-variant-picker__main</code>)</td></tr>' +
+          '<tr><td>Interaction</td><td><code>pointer-events: none</code></td><td>decorative &mdash; inner Widget&rsquo;s Go-to link, 1x content button, metric rows all inert. Arrows + dots are siblings so remain interactive.</td></tr>' +
+          '<tr><td>3x / 3xChart scale</td><td><code>transform: scale(0.85)</code></td><td>applied via <code>.widget-variant-picker[data-variant="3x"] .widget</code> and <code>[data-variant="3xChart"] .widget</code> only &mdash; DOM dimensions stay native</td></tr>' +
+          '<tr><td>Native variant sizes</td><td>1x: 170 / 2x: 360 / 3x: 360&times;386 / 3xChart: 360&times;382</td><td>see <code>.widget--*</code> in <code>components.css</code></td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Label</td></tr>' +
+          '<tr><td>Typography</td><td><code>text-label-xs-regular</code></td><td>12 / 16 / 400</td></tr>' +
+          '<tr><td>Color</td><td><code>--text-secondary-soft</code></td><td>DSN/600 #4C5463</td></tr>' +
+          '<tr><td>Values</td><td>1x &rarr; &ldquo;Small&rdquo; &middot; 2x &rarr; &ldquo;Wide&rdquo; &middot; 3x &rarr; &ldquo;Tall&rdquo; &middot; 3xChart &rarr; &ldquo;Tall with chart&rdquo;</td><td><code>VARIANT_LABELS</code> map in <code>WidgetVariantPicker.jsx</code></td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Dots indicator</td></tr>' +
+          '<tr><td>Container</td><td>flex row, gap <code>--spacing-2</code></td><td>8px</td></tr>' +
+          '<tr><td>Dots-container gap (label &harr; dots row)</td><td><code>--spacing-4</code></td><td>16px</td></tr>' +
+          '<tr><td>Dot size</td><td>8 &times; 8 (raw)</td><td>&mdash;</td></tr>' +
+          '<tr><td>Dot border radius</td><td><code>--radius-full</code></td><td>circular</td></tr>' +
+          '<tr><td>Inactive bg</td><td><code>--deep-sea-neutral-300</code></td><td>#D0D4DB</td></tr>' +
+          '<tr><td>Inactive hover bg</td><td><code>--deep-sea-neutral-500</code></td><td>#6B7280 &mdash; only when not active</td></tr>' +
+          '<tr><td>Active bg</td><td><code>--deep-sea-neutral-900</code></td><td>#1B2537</td></tr>' +
+          '<tr><td>Transition (bg)</td><td><code>--transition-fast</code></td><td>150ms ease</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">A11y</td></tr>' +
+          '<tr><td>Dots role</td><td><code>role="tablist"</code> on container, <code>role="tab"</code> + <code>aria-selected</code> on each dot</td><td>each dot also has <code>aria-label</code> e.g. &ldquo;Small variant&rdquo;</td></tr>' +
+          '<tr><td>Arrow aria-labels</td><td><code>Previous variant</code> / <code>Next variant</code></td><td>&mdash;</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">CSS location</td></tr>' +
+          '<tr><td>Rules</td><td><code>.widget-variant-picker*</code> in <code>apps/odyssey-one/src/styles/components.css</code></td><td>around the line 1392 block</td></tr>' +
         '</tbody>' +
       '</table>'
   }
@@ -6914,7 +8170,7 @@ function showCompDetails(componentName) {
 document.addEventListener('DOMContentLoaded', function() {
   /* Populate Components tab */
   var compTab = document.getElementById('componentsTabBadgeContent');
-  if (compTab) compTab.innerHTML = getBadgeComponentHTML() + getButtonComponentHTML() + getIconButtonComponentHTML() + getSidebarButtonComponentHTML() + getSidebarComponentHTML() + getGlobalSearchComponentHTML() + getLeadNavComponentHTML() + getTrailNavComponentHTML() + getNavbarComponentHTML() + getPageHeaderComponentHTML() + getSectionHeaderComponentHTML() + getEntityChipComponentHTML() + getSearchFieldComponentHTML() + getWidgetMetricRowComponentHTML() + getWidgetPieChartComponentHTML() + getWidgetComponentHTML() + getWidgetCtaRowComponentHTML() + getMenuRowComponentHTML() + getMenuDropdownComponentHTML() + getEditModeOverviewHTML() + getWidgetsLeftMenuComponentHTML();
+  if (compTab) compTab.innerHTML = getBadgeComponentHTML() + getButtonComponentHTML() + getIconButtonComponentHTML() + getSidebarButtonComponentHTML() + getSidebarComponentHTML() + getGlobalSearchComponentHTML() + getLeadNavComponentHTML() + getTrailNavComponentHTML() + getNavbarComponentHTML() + getPageHeaderComponentHTML() + getSectionHeaderComponentHTML() + getEntityChipComponentHTML() + getSearchFieldComponentHTML() + getWidgetMetricRowComponentHTML() + getWidgetPieChartComponentHTML() + getWidgetComponentHTML() + getWidgetCtaRowComponentHTML() + getWidgetVariantPickerComponentHTML() + getMenuRowComponentHTML() + getCustomerRowComponentHTML() + getMenuDropdownComponentHTML() + getEditModeOverviewHTML() + getWidgetsLeftMenuComponentHTML() + getModalLargeComponentHTML() + getModalMediumComponentHTML();
 
   /* No active normalization cycle. The previous wcta-norm cycle (WidgetCtaRow +
      Widget 3xCta) has passed Gate B-DSM and been promoted to the Components

@@ -104,7 +104,9 @@
       "Bash(mv /tmp/dsm_clean.html /Users/manuelramirez/Documents/iris/Odyssey/Shipments/odyssey-one/playground/DesignSystemMap.html)",
       "Bash(awk 'NR==2103,NR==2215' /Users/manuelramirez/Documents/iris/Odyssey/Shipments/odyssey-one/playground/DesignSystemMap.html)",
       "Bash(printenv)",
-      "Bash(awk *)"
+      "Bash(awk *)",
+      "Bash(lsof -ti:5173)",
+      "Bash(kill 5261 5291 5344)"
     ]
   }
 }

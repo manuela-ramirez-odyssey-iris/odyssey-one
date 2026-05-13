@@ -1,7 +1,19 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Download, Plus, Route, TriangleAlert, UserCog } from 'lucide-react'
 import { ICON_LG } from '@odyssey/tokens'
-import { Button, EntityChip, PageHeader, SectionHeader, Widget, WidgetsLeftMenu } from '@odyssey/ui'
+import {
+  Button,
+  CustomerRow,
+  EntityChip,
+  ModalLarge,
+  ModalMedium,
+  PageHeader,
+  SearchField,
+  SectionHeader,
+  Widget,
+  WidgetVariantPicker,
+  WidgetsLeftMenu,
+} from '@odyssey/ui'
 import {
   DndContext,
   PointerSensor,
@@ -19,7 +31,6 @@ import {
   useSortable,
 } from '@dnd-kit/sortable'
 import AppShell from '../components/layout/AppShell'
-import ComingSoonModal from '../components/ComingSoonModal'
 import { useEditMode } from '../contexts/EditModeContext.jsx'
 import './Home.css'
 
@@ -49,6 +60,44 @@ const chartSegments = [
 ]
 
 const singleChartSegment = [{ value: 42, color: 'var(--chart-1)' }]
+
+// Demo content fed to the inner Widget inside the configurator picker so each
+// variant preview reads as a real widget instead of an empty shell. Mirrors
+// the data shape of the initialWidgets entries — values are placeholders.
+function previewWidgetProps(variant, itemLabel) {
+  const base = {
+    title: itemLabel,
+    domainIcon,
+    goToLabel: `Go to ${itemLabel}`,
+    onGoToClick: () => {},
+  }
+  if (variant === '1x') {
+    return { ...base, value: '12', label: 'Across all customers' }
+  }
+  if (variant === '2x') {
+    return {
+      ...base,
+      value: '12',
+      label: 'Need action today',
+      percentage: '42%',
+      chartSegments: singleChartSegment,
+      chartTotal: 100,
+    }
+  }
+  if (variant === '3x') {
+    return { ...base, rows: exceptionRows }
+  }
+  if (variant === '3xChart') {
+    return {
+      ...base,
+      value: '156',
+      label: 'Total this week',
+      chartSegments,
+      rows: chartRows,
+    }
+  }
+  return base
+}
 
 const ctaRows = [
   { icon: <Plus size={20} />, label: 'Create a New Order', onClick: handleRow('create-order') },
@@ -121,9 +170,9 @@ const initialWidgets = [
 
 const initialCatalog = [
   {
-    id: 'quick-action',
-    title: 'Quick action',
-    items: [{ id: 'qa-what-to-do', label: 'What would you like to do?' }],
+    id: 'misc',
+    title: 'Misc',
+    items: [{ id: 'misc-quick-actions', label: 'What would you like to do?', cta: true }],
   },
   {
     id: 'orders',
@@ -186,12 +235,24 @@ const initialCatalog = [
   },
 ]
 
-function SortableWidget({ widget, isEditMode, onRemove }) {
+function SortableWidget({ widget, isEditMode, onRemove, justInserted = false }) {
+  const cellRef = useRef(null)
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: widget.id,
     disabled: !isEditMode,
     animateLayoutChanges: () => false,
   })
+
+  useEffect(() => {
+    if (justInserted && cellRef.current) {
+      cellRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  }, [justInserted])
+
+  const mergedRef = (node) => {
+    setNodeRef(node)
+    cellRef.current = node
+  }
   // Variable-span grid cells (1x/2x/3x). rectSortingStrategy includes a scaleX/scaleY
   // in `transform` to fit the dragged item into the target's footprint — strip the
   // scale so the widget keeps its native size while moving.
@@ -205,9 +266,10 @@ function SortableWidget({ widget, isEditMode, onRemove }) {
   const dragProps = isEditMode ? { ...attributes, ...listeners } : {}
   return (
     <div
-      ref={setNodeRef}
+      ref={mergedRef}
       style={style}
       className={`home-widget-cell home-widget-cell--${widget.variant}`}
+      data-just-inserted={justInserted || undefined}
       {...dragProps}
     >
       <Widget
@@ -220,22 +282,23 @@ function SortableWidget({ widget, isEditMode, onRemove }) {
   )
 }
 
-function SortablePanelItem({ item, group, defaultNode }) {
+function SortablePanelItem({ item, group, defaultNode, disabled = false }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: `${group.id}:${item.id}`,
+    disabled,
   })
   const style = {
     transform: transform ? `translate3d(0, ${transform.y}px, 0)` : undefined,
     transition,
     background: isDragging ? 'var(--deep-sea-neutral-200)' : undefined,
   }
+  const dragProps = disabled ? {} : { ...attributes, ...listeners }
   return (
     <div
       ref={setNodeRef}
       style={style}
       data-dragging={isDragging ? 'true' : undefined}
-      {...attributes}
-      {...listeners}
+      {...dragProps}
     >
       {defaultNode}
     </div>
@@ -250,7 +313,39 @@ export default function Home() {
   const [searchValue, setSearchValue] = useState('')
   const [collapsedGroupIds, setCollapsedGroupIds] = useState(new Set())
   const [gridKey, setGridKey] = useState(0)
-  const [selectedWidgetLabel, setSelectedWidgetLabel] = useState(null)
+  // Customers state — drives the EntityChip count and the Add Customers modal.
+  // List size simulates the realistic ~100-customer scenario (list scrolls).
+  const [customers, setCustomers] = useState(() =>
+    Array.from({ length: 12 }, (_, i) => ({
+      id: `c${i + 1}`,
+      label: `Customer ${i + 1}`,
+      favorite: i === 0,
+    })),
+  )
+  const [customersModalOpen, setCustomersModalOpen] = useState(false)
+  const [customersFilter, setCustomersFilter] = useState('')
+  // Configurator modal state: null when closed, else { itemId, itemLabel, groupTitle, variant }
+  const [configurator, setConfigurator] = useState(null)
+  // ID of the widget to pulse + scroll into view after insert (or after re-clicking
+  // a panel item whose widget already exists in the grid). Cleared after the
+  // CSS animation finishes (~900ms).
+  const [lastInsertedId, setLastInsertedId] = useState(null)
+
+  useEffect(() => {
+    if (!lastInsertedId) return
+    const t = setTimeout(() => setLastInsertedId(null), 900)
+    return () => clearTimeout(t)
+  }, [lastInsertedId])
+
+  // Only one "What would you like to do?" (3xCta) widget can exist at a time.
+  const hasCtaWidget = useMemo(
+    () => widgets.some((w) => w.variant === '3xCta'),
+    [widgets],
+  )
+  const isItemDisabled = useCallback(
+    (item) => Boolean(item?.cta && hasCtaWidget),
+    [hasCtaWidget],
+  )
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -281,6 +376,25 @@ export default function Home() {
     setWidgets((current) => current.filter((w) => w.id !== id))
   }, [])
 
+  const handleOpenCustomersModal = useCallback(() => {
+    setCustomersFilter('')
+    setCustomersModalOpen(true)
+  }, [])
+  const handleCloseCustomersModal = useCallback(() => {
+    setCustomersModalOpen(false)
+  }, [])
+  const handleToggleCustomerFavorite = useCallback((id) => {
+    setCustomers((cs) => cs.map((c) => (c.id === id ? { ...c, favorite: !c.favorite } : c)))
+  }, [])
+  const handleDeleteCustomer = useCallback((id) => {
+    setCustomers((cs) => cs.filter((c) => c.id !== id))
+  }, [])
+  const filteredCustomers = useMemo(() => {
+    const q = customersFilter.trim().toLowerCase()
+    if (!q) return customers
+    return customers.filter((c) => c.label.toLowerCase().includes(q))
+  }, [customers, customersFilter])
+
   const handleToggleGroup = useCallback((groupId) => {
     setCollapsedGroupIds((current) => {
       const next = new Set(current)
@@ -293,8 +407,53 @@ export default function Home() {
   const handleItemClick = useCallback((itemId, groupId) => {
     const group = catalog.find((g) => g.id === groupId)
     const item = group?.items.find((it) => it.id === itemId)
-    if (item) setSelectedWidgetLabel(item.label)
-  }, [catalog])
+    if (!item) return
+    // CTA items are single-shape (3xCta) and bypass the variant picker.
+    if (item.cta) {
+      // Only one CTA widget allowed — if already present, pulse-scroll the existing one
+      // instead of inserting a duplicate. (Item is also visually disabled in the panel.)
+      if (hasCtaWidget) {
+        const existing = widgets.find((w) => w.variant === '3xCta')
+        if (existing) setLastInsertedId(existing.id)
+        return
+      }
+      const newWidget = {
+        id: `${item.id}-${Date.now()}`,
+        variant: '3xCta',
+        props: { title: item.label, ctaRows },
+      }
+      setWidgets((current) => [...current, newWidget])
+      setLastInsertedId(newWidget.id)
+      return
+    }
+    setConfigurator({
+      itemId: item.id,
+      itemLabel: item.label,
+      groupTitle: group.title,
+      variant: '1x',
+    })
+  }, [catalog, hasCtaWidget, widgets])
+
+  const handleInsertWidget = useCallback(() => {
+    if (!configurator) return
+    const { itemId, itemLabel, variant } = configurator
+    const placeholderProps =
+      variant === '3xChart'
+        ? { title: itemLabel, domainIcon, value: '0', label: 'No data yet', rows: chartRows, chartSegments }
+        : variant === '3x'
+          ? { title: itemLabel, domainIcon, rows: exceptionRows, goToLabel: `Go to ${itemLabel}`, onGoToClick: () => {} }
+          : variant === '2x'
+            ? { title: itemLabel, domainIcon, value: '0', label: 'No data yet', percentage: '0%', chartSegments: singleChartSegment, chartTotal: 100, goToLabel: `Go to ${itemLabel}`, onGoToClick: () => {} }
+            : { title: itemLabel, domainIcon, value: '0', label: 'No data yet', onGoToClick: () => {} }
+    const newWidget = {
+      id: `${itemId}-${Date.now()}`,
+      variant,
+      props: placeholderProps,
+    }
+    setWidgets((current) => [...current, newWidget])
+    setLastInsertedId(newWidget.id)
+    setConfigurator(null)
+  }, [configurator])
 
   const handleDragEnd = (event) => {
     const { active, over } = event
@@ -334,29 +493,48 @@ export default function Home() {
 
   return (
     <AppShell>
-      <PageHeader title="Home" className="home-page-header" />
-      <SectionHeader
-        title="Welcome Amy!"
-        supportingText="Last update: 04/24/2026 03:51 PM"
-        leadingActions={
-          <Button
-            variant="primary"
-            size="md"
-            icon={<Plus />}
-            onClick={handleAddWidgets}
-            disabled={isEditMode}
-          >
-            Add Widgets
-          </Button>
-        }
-        trailingActions={
-          <EntityChip
-            name="Customers"
-            count={5}
-            onAddClick={() => console.log('add customer')}
+      {!isEditMode && (
+        <>
+          <PageHeader title="Home" className="home-page-header" />
+          <SectionHeader
+            title="Welcome Amy!"
+            supportingText="Last update: 04/24/2026 03:51 PM"
+            leadingActions={
+              <Button
+                variant="primary"
+                size="md"
+                icon={<Plus />}
+                onClick={handleAddWidgets}
+              >
+                Add Widgets
+              </Button>
+            }
+            trailingActions={
+              <EntityChip
+                name="Customers"
+                count={customers.length}
+                showAddButton={false}
+              />
+            }
           />
-        }
-      />
+        </>
+      )}
+      {isEditMode && (
+        <div className="home-edit-actions">
+          <Button
+            variant="secondary"
+            size="md"
+            onClick={() => console.log('add section')}
+          >
+            Add Section
+          </Button>
+          <EntityChip
+            name="Add Customers"
+            count={customers.length}
+            onAddClick={handleOpenCustomersModal}
+          />
+        </div>
+      )}
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={widgetIds} strategy={rectSortingStrategy}>
@@ -367,6 +545,7 @@ export default function Home() {
                 widget={widget}
                 isEditMode={isEditMode}
                 onRemove={handleRemoveWidget}
+                justInserted={widget.id === lastInsertedId}
               />
             ))}
           </div>
@@ -384,18 +563,82 @@ export default function Home() {
               collapsedGroupIds={collapsedGroupIds}
               onToggleGroup={handleToggleGroup}
               onItemClick={handleItemClick}
-              renderItem={(item, group, defaultNode) => (
-                <SortablePanelItem item={item} group={group} defaultNode={defaultNode} />
+              isItemDisabled={isItemDisabled}
+              renderItem={(item, group, defaultNode, meta) => (
+                <SortablePanelItem
+                  item={item}
+                  group={group}
+                  defaultNode={defaultNode}
+                  disabled={meta?.disabled}
+                />
               )}
             />
           </SortableContext>
         </aside>
       </DndContext>
 
-      <ComingSoonModal
-        widgetLabel={selectedWidgetLabel}
-        onClose={() => setSelectedWidgetLabel(null)}
-      />
+      {configurator && (
+        <ModalLarge
+          title={configurator.itemLabel}
+          subtitle={configurator.groupTitle}
+          onClose={() => setConfigurator(null)}
+          footer={
+            <Button
+              variant="primary"
+              size="lg"
+              onClick={handleInsertWidget}
+              className="home-configurator__insert"
+            >
+              Insert widget
+            </Button>
+          }
+        >
+          <WidgetVariantPicker
+            variant={configurator.variant}
+            onVariantChange={(next) =>
+              setConfigurator((prev) => (prev ? { ...prev, variant: next } : prev))
+            }
+            widgetProps={previewWidgetProps(configurator.variant, configurator.itemLabel)}
+          />
+        </ModalLarge>
+      )}
+      {customersModalOpen && (
+        <ModalMedium
+          title="Add Customers"
+          onClose={handleCloseCustomersModal}
+          footer={
+            <>
+              <Button variant="secondary" size="lg" onClick={handleCloseCustomersModal}>
+                Cancel
+              </Button>
+              <Button variant="primary" size="lg" onClick={handleCloseCustomersModal}>
+                Save
+              </Button>
+            </>
+          }
+        >
+          <SearchField
+            value={customersFilter}
+            onChange={setCustomersFilter}
+            onClear={() => setCustomersFilter('')}
+            placeholder="Search Customers"
+            showLabel
+            showInfoIcon
+            label="Add Customers"
+          />
+          <div className="home-customers-list">
+            {filteredCustomers.map((c) => (
+              <CustomerRow
+                key={c.id}
+                label={c.label}
+                favorite={c.favorite}
+                onFavoriteToggle={() => handleToggleCustomerFavorite(c.id)}
+                onDelete={() => handleDeleteCustomer(c.id)}
+              />
+            ))}
+          </div>
+        </ModalMedium>
+      )}
     </AppShell>
   )
 }

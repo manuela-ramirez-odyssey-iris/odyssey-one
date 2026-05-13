@@ -8,12 +8,14 @@ import { ICON_MD } from '@odyssey/tokens'
  * states are CSS-driven via `.menu-row` rules in `apps/odyssey-one/src/styles/components.css`.
  * Figma master: `MenuRow` set at `1973:87` on Components-Molecules.
  */
-export default function MenuRow({ label, onClick, className = '', ...rest }) {
+export default function MenuRow({ label, onClick, disabled = false, className = '', ...rest }) {
   const cls = `menu-row flex items-center justify-between ${className}`.trim()
   return (
     <div
       className={cls}
-      onClick={onClick}
+      onClick={disabled ? undefined : onClick}
+      data-disabled={disabled || undefined}
+      aria-disabled={disabled || undefined}
       style={{
         height: 36,
         padding: 'var(--spacing-2) var(--spacing-4)',

@@ -17,6 +17,7 @@ export default function WidgetsLeftMenu({
   onToggleGroup,
   onItemClick,
   renderItem,
+  isItemDisabled,
   className = '',
   ...rest
 }) {
@@ -85,17 +86,19 @@ export default function WidgetsLeftMenu({
               onToggle={() => onToggleGroup?.(group.id)}
             >
               {group.items.map((item) => {
+                const disabled = isItemDisabled ? Boolean(isItemDisabled(item, group)) : false
                 const defaultNode = (
                   <MenuRow
                     key={item.id}
                     label={item.label}
                     onClick={() => onItemClick?.(item.id, group.id)}
+                    disabled={disabled}
                   />
                 )
                 if (renderItem) {
                   return (
                     <Fragment key={item.id}>
-                      {renderItem(item, group, defaultNode)}
+                      {renderItem(item, group, defaultNode, { disabled })}
                     </Fragment>
                   )
                 }

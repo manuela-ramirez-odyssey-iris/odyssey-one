@@ -2,6 +2,16 @@
   margin-bottom: var(--spacing-6);
 }
 
+/* Edit-mode action bar — replaces PageHeader + SectionHeader while in edit mode.
+   Right-aligned: Add Section button + Customers EntityChip. */
+.home-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--spacing-3);
+  margin-bottom: var(--spacing-6);
+}
+
 /* Home dashboard grid — 6 equal columns, cells ≥ 170×184, 20px gap.
    Widget variants span: 1x = 1×1, 2x = 2×1, 3x / 3xChart / 3xCta = 2×2. */
 .home-widget-grid {
@@ -51,4 +61,38 @@
 .home-edit-panel--visible {
   transform: translateX(0);
   pointer-events: auto;
+}
+
+/* Widget configurator modal — full-width Insert button inside the modal footer. */
+.home-configurator__insert {
+  width: 100%;
+  justify-content: center;
+}
+
+/* Add Customers modal — scrollable list region. Caps at ~5 row heights (5 × 48 = 240)
+   so longer lists scroll inside the modal instead of growing it past the viewport. */
+.home-customers-list {
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+/* Just-inserted (or re-clicked) widget — outline ripple draws attention as the
+   page scrolls the widget into view. Outline doesn't affect layout, so the
+   grid + dnd-kit transforms stay clean. */
+.home-widget-cell[data-just-inserted="true"] .widget {
+  animation: home-widget-just-inserted 900ms ease-out;
+}
+@keyframes home-widget-just-inserted {
+  0% {
+    outline: 2px solid var(--carolina-blue-400);
+    outline-offset: 0;
+  }
+  60% {
+    outline-color: var(--carolina-blue-400);
+    outline-offset: 8px;
+  }
+  100% {
+    outline: 2px solid transparent;
+    outline-offset: 10px;
+  }
 }

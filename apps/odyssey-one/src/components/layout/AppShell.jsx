@@ -13,10 +13,10 @@ export default function AppShell({ children, filterPanel, onMainClick }) {
           className="flex-1 min-w-0 overflow-x-hidden overflow-y-auto flex flex-col"
           style={{
             padding: isEditMode
-              ? 'var(--spacing-8) var(--spacing-6) 0 calc(var(--edit-panel-width) + var(--spacing-6))'
+              ? 'var(--main-padding-top-edit) var(--spacing-6) 0 calc(var(--edit-panel-width) + var(--spacing-6))'
               : 'var(--spacing-8) var(--spacing-6) 0 var(--spacing-6)',
             background: 'var(--bg-secondary)',
-            transition: 'padding-left var(--transition-panel)',
+            transition: 'padding-left var(--transition-panel), padding-top var(--transition-panel)',
           }}
           onClick={onMainClick}
         >

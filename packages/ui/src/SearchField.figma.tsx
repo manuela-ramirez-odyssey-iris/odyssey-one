@@ -8,9 +8,19 @@ figma.connect(
     imports: ["import { SearchField } from '@odyssey/ui'"],
     props: {
       placeholder: figma.string('Placeholder'),
+      showLabel: figma.boolean('Show label'),
+      label: figma.string('Label'),
+      showInfoIcon: figma.boolean('Show info icon'),
     },
-    example: ({ placeholder }) => (
-      <SearchField placeholder={placeholder} value="" onChange={() => {}} />
+    example: ({ placeholder, showLabel, label, showInfoIcon }) => (
+      <SearchField
+        placeholder={placeholder}
+        showLabel={showLabel}
+        label={label}
+        showInfoIcon={showInfoIcon}
+        value=""
+        onChange={() => {}}
+      />
     ),
   },
 )

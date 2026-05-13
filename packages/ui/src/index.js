@@ -18,3 +18,7 @@ export { default as SearchField } from './SearchField.jsx';
 export { default as MenuRow } from './MenuRow.jsx';
 export { default as MenuDropdown } from './MenuDropdown.jsx';
 export { default as WidgetsLeftMenu } from './WidgetsLeftMenu.jsx';
+export { default as ModalLarge } from './ModalLarge.jsx';
+export { default as ModalMedium } from './ModalMedium.jsx';
+export { default as WidgetVariantPicker } from './WidgetVariantPicker.jsx';
+export { default as CustomerRow } from './CustomerRow.jsx';
