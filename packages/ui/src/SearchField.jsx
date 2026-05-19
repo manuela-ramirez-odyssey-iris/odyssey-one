@@ -21,6 +21,7 @@ export default function SearchField({
   label = 'Label',
   showInfoIcon = false,
   onInfoClick,
+  results = null,
   className = '',
   ...rest
 }) {
@@ -91,6 +92,7 @@ export default function SearchField({
     return (
       <div className={className} {...rest}>
         {inputBar}
+        {results && <div className="search-field__results">{results}</div>}
       </div>
     )
   }
@@ -131,6 +133,7 @@ export default function SearchField({
         )}
       </div>
       {inputBar}
+      {results && <div className="search-field__results">{results}</div>}
     </div>
   )
 }

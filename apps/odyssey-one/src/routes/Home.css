@@ -76,6 +76,13 @@
   overflow-y: auto;
 }
 
+/* Consumer-specific spacing for the EmptyState inside the Add Customers modal.
+   The atom owns its visual styling; this wrapper only adds the modal-local margin. */
+.home-customers-empty {
+  margin-top: var(--spacing-3);
+  margin-bottom: var(--spacing-8);
+}
+
 /* Just-inserted (or re-clicked) widget — outline ripple draws attention as the
    page scrolls the widget into view. Outline doesn't affect layout, so the
    grid + dnd-kit transforms stay clean. */

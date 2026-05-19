@@ -1,6 +1,7 @@
 import figma from '@figma/code-connect'
 import Badge from './Badge'
 
+// Generic mapping for text-bearing + notification + metric variants.
 figma.connect(
   Badge,
   'https://www.figma.com/design/vodiHJU38YWZYmTz81uOk7/Design-System---MCP?node-id=213-27',
@@ -38,5 +39,16 @@ figma.connect(
         {label}
       </Badge>
     ),
+  },
+)
+
+// Dedicated mapping for the favorite indicator (icon-only, no children, no slots).
+figma.connect(
+  Badge,
+  'https://www.figma.com/design/vodiHJU38YWZYmTz81uOk7/Design-System---MCP?node-id=213-27',
+  {
+    variant: { Variant: 'favorite' },
+    imports: ["import { Badge } from '@odyssey/ui'"],
+    example: () => <Badge variant="favorite" />,
   },
 )

@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { X } from 'lucide-react'
 import { ICON_LG } from '@odyssey/tokens'
+import IconButtonGhost from './IconButtonGhost.jsx'
 
 /**
  * ModalLarge — organism shell. Reusable large modal with a header (title +
@@ -45,14 +46,11 @@ export default function ModalLarge({
             )}
           </div>
           {onClose && (
-            <button
-              type="button"
-              className="modal-large__close"
+            <IconButtonGhost
+              icon={<X {...ICON_LG} aria-hidden="true" />}
               onClick={onClose}
-              aria-label="Close"
-            >
-              <X {...ICON_LG} aria-hidden="true" />
-            </button>
+              ariaLabel="Close"
+            />
           )}
         </header>
         <div className="modal-large__content">{children}</div>

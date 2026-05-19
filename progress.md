@@ -3302,3 +3302,187 @@ The `useState` lazy init now also wraps each matched widget's `onGoToClick` with
 - `apps/odyssey-one/src/routes/Home.jsx` — `useNavigate` import; `widgetGoToPaths` + `ctaRowsStub` module-level data; full rewrite of `initialWidgets` to the demo set; `ctaRows` useMemo inside Home; `useState` init transforms both CTA and Go-to handlers.
 
 **Two prod deploys** — both via `npx vercel --prod`. Live URLs unchanged (`odyssey-one-stage.vercel.app`).
+
+## Session 26 — May 14–18, 2026
+
+Two distinct threads: a major Cognizant handoff meeting prep (strategic doc + visual presentation arguing for an AI-assisted React → Angular workflow), then a deep /normalize cycle that completed the Home customer flow (CustomerRow Mode axis, Badge favorite variant, SearchField Results slot, IconButtonGhost new atom replacing every inline close button, EmptyState new atom + new Panels artboard, Home Add Customers rebuilt around a search-against-pool model). Library now at 30 normalized components (+2) and 35 Code Connect mappings (added 4 this session, reworked 1).
+
+### Thread 1 — Cognizant handoff: meeting prep + outcome (May 14)
+
+Pre-meeting, built two artifacts to argue for adopting the Odyssey design system as Cognizant's frontend foundation (PrimeNG / Angular shop):
+
+- **`cognizant-handoff-prep.md`** — proposal document. 18 sections. Lead with the reframe (*"You haven't built a React app. You've built a design system, and the React app is a fast prototyping vehicle that validates it."*), key numbers (60–70% dev-day reduction per feature; break-even at feature 2; ~9 months of dev capacity recovered per year of 40 features), what transfers (~80% of artifacts: tokens, CSS, Figma masters, DSM, docs) vs what needs porting (the React components and routes — ~1 dev-week AI-assisted). Includes the design-team workflow upstream of every handoff (parallel groom → Efra Figma → Manuela React prototype → stakeholder review on running code → approval gate → Cognizant Angular port), a worked Button code comparison (React → Angular `@Component` + `@Input` + `<ng-content>`), the PrimeNG layering model (wrap PrimeNG primitives with our tokens; use PrimeNG directly for complex data tables; use Odyssey components for domain widgets/chrome), the feature-by-feature savings projection, and the non-negotiable maintenance rule (*all UI changes originate in React + Figma; never patch only-Angular*).
+- **`cognizant-handoff-presentation.html`** — visual deck. Editorial-modernist aesthetic (Geist Sans + Geist Mono via Google Fonts, warm off-white background, deep emerald accent for savings deltas, deep red for problem callouts). 16 sections numbered with mono eyebrows. Cover with three big-mono stats. Current vs proposed dev-cycle as side-by-side annotated flows (red-toned for current with rework cycles called out, emerald-toned for proposed with the approval-gate keystone). Numbers grid, feature-by-feature projection rendered as horizontal bars that grow, PrimeNG 4-layer stack diagram, React-vs-Angular code compare, qualitative-benefits cards, closing claim in inverted dark section. Mobile-responsive, print-friendly.
+- **Meeting outcome** — went well per user. Pivoted back to dev work after meeting.
+
+### Thread 2 — /normalize cycle: Add Customers flow + everything orbiting it
+
+A single `/normalize` invocation on node `2059:988` (Add Customers 1–4 staging frames by Efrain) opened into an extensive cycle that spanned multiple new atoms, variant axes, and consumer rewires. Decisions locked via batched AskUserQuestion at GATE A: SearchField gets a `results` slot prop; favorite indicator lives as a new Badge variant (not a standalone atom); CustomerRow's star action is removed entirely; staging-file legacy token drift is cleaned up in this cycle.
+
+#### Phase 1 — Figma writes
+
+**Badge — new `Variant=favorite`** (`213:27`, 9th variant, `2096:294`)
+- Cloned from `Variant=notification`; resized 20→12, fixed sizing, padding 2, Radius/full, fill Caribbean Green/600, contains a centered 8×8 lucide/star with Vector fill+stroke overridden to White (filled-star effect). Inherited children (Dot / Left icon / "6" / Right icon) all removed for a pure single-star variant.
+- Original standalone `BookmarkedBadge` atom at `2089:293` (built first, then user redirected to "make it a Badge variant" mid-cycle) — deleted as orphan.
+
+**CustomerRow — new `Mode` axis** (`2029:461`, now 4 variants)
+- Added `Mode=List | Result` axis: 4 variants total (List/F=False, List/F=True, Result/F=False, Result/F=True).
+- **List mode** (existing variants reworked): logo container resized 16→32 with Radius/full + 2px DSN/300 inside-stroke + padding 6, inner placeholder swapped 16 → 20 (`512:2395`). Star action button **removed entirely**; only Trash remains. `Favorite=True` overlays a `Badge[Variant=favorite]` instance at logo bottom-right (`x=22, y=22` absolute positioning, slightly outside the ring).
+- **Result mode** (new variants): 40h row, padding 8/16, logo container 24×24 with placeholder-16, action button is lucide/star 16px (from Icons md `2091:1844` — added by user this session). `Favorite=False` star has Vector stroke DSN/400 + empty fill (outlined); `Favorite=True` has Vector fill+stroke DSN/900 (filled).
+- INSTANCE_SWAP `Icon` default auto-updated 213:2 → 512:2395 via swapComponent on List variants. Variants kept as `Favorite=True/False` (reverted from a mid-cycle `Bookmarked` rename per user direction).
+
+**SearchField — Results slot** (`1959:76`)
+- New `Show results` BOOLEAN property (default false). New `Results slot` frame child (`2093:100`) appended after Input bar, visibility bound to the boolean. Frame is HUG-vertical / FILL-horizontal, empty by default.
+
+**IconButtonGhost — NEW atom** (`2138:304`, Components-Atoms, Small Buttons artboard)
+- 28×28, Radius/lg, padding 4. 3 State variants (Idle transparent / Hover DSN/100 / Pressed DSN/200). INSTANCE_SWAP `Icon` property defaulting to placeholder-20.
+- Built via `combineAsVariants` then moved into Small Buttons artboard alongside existing IconButton (parent-pair convention).
+- **Replaces every prior inline close-button**: ModalLarge close (`2006:668`), ModalMedium close (`2046:1054`), and Widget set's 5 variants' close buttons (1x `2143:914`, 2x `2152:908`, 3x `2152:912`, 3xChart `2152:916`, 3xCta `2152:920`). Each variant's structure differed (Button group wrapper in 2x, Close container in 3x/3xChart, bare lucide/x in 3xCta) — all replaced with uniform IconButtonGhost instance overridden to `Icon=lucide/x` (`1570:2`).
+- User added `lucide/x` 16px master to Icons md (`2091:1844`) for the CustomerRow Result-mode star toggle — independent of IconButtonGhost but flagged in tracker.
+
+**EmptyState — NEW atom** (`2159:295`, Components-Atoms, new **Panels artboard** `2159:294`)
+- Vertical auto-layout, padding 24 / gap 8, centered. Background bound to DSN/100, all 4 corner radii bound to Radius/lg. Children: 32×32 placeholder-20 (Icon slot) + Message text bound to `label/xs regular`.
+- Properties: `Icon` INSTANCE_SWAP (default placeholder-20) + `Message` TEXT (default "No items to show yet.").
+- Brand-new top-level artboard (`Panels`) on Components-Atoms for future panel-family atoms.
+
+**Add Customers staging cleanup** (Efrain's 4 frames at `2059:988`)
+- 39 visible text nodes rebound from legacy library text styles (`inter-text-sm/leading-5/font-medium`, `text-base/leading-6/font-medium`, etc.) → local `label/* medium` and `heading/lg semibold`.
+- 152 visible solid fills rebound from raw hex / legacy Gray scale → local DSN + White + Caribbean Green/600 variables.
+- Hidden subtrees skipped intentionally (legacy unused layout paths — will be removed when staging gets rebuilt with the new component instances).
+- Eliminates the external library dependency that the publish would have dragged through.
+
+**ModalMedium header padding** — rebalanced to 20/24/16/24 (user-side) then 20/24/20/24 (code-side adjustment) to compensate for the smaller 28×28 close.
+
+#### Phase 2 — Code
+
+**`Badge.jsx`** — early-return branch for `variant="favorite"` (12×12 green disc + 8px white `<Star fill="currentColor" stroke="currentColor" />`). Adds `Star` import from lucide-react.
+
+**`CustomerRow.jsx`** — full rewrite. New `mode` prop ('list' default | 'result'); favorite Star action removed entirely; renders `<Badge variant="favorite" />` overlay inside the icon-container when `favorite && !isResult`. Polymorphic — adds `onClick` for row-level click in result mode + `role="button"` + `tabIndex`. Star button in result mode uses `e.stopPropagation()` so it doesn't trigger row click. Default icon swaps Handshake size based on mode (ICON_MD in result, ICON_LG in list).
+
+**`SearchField.jsx`** — new `results` prop (ReactNode). Renders `<div className="search-field__results">` below the input bar when present. Works in both `showLabel=true` and `showLabel=false` branches.
+
+**`IconButtonGhost.jsx`** — new atom. Polymorphic (button when `onClick`, span otherwise). 28×28 surface, transparent at rest, hover DSN/100, active DSN/200, color ladder text-tertiary → text-secondary → text-primary. Same JSX shape as existing `IconButton.jsx`.
+
+**`EmptyState.jsx`** — new atom. Icon + message slots. Class-only — `.empty-state` block in components.css owns padding/bg/radius/color; consumer adds margins via className.
+
+**`Widget.jsx` / `ModalLarge.jsx` / `ModalMedium.jsx`** — close-button inline JSX replaced with `<IconButtonGhost icon={<X .../>} onClick={onClose} ariaLabel="Close" />`. Old `<button className="...__close">` markup removed from all 3.
+
+**`EntityChip.jsx`** — `Math.max(1, count)` → `Math.max(0, count)`; count=0 now renders no hands (decorative-only "Customers" pill in non-edit mode with 0 selected). JSDoc updated.
+
+**`components.css`** — major surgery:
+- Added `.icon-button-ghost` block (28×28, radius-lg, full state ladder)
+- Added `.empty-state` + `.empty-state__icon` blocks
+- Updated `.customer-row__icon-container` (24×24 → 32×32, added `position: relative`)
+- Added `.customer-row__badge-overlay` (absolute positioning at logo bottom-right)
+- Added `.customer-row--result` modifier (40h, padding 8/16, no bottom border, hover bg, child overrides for 24×24 container + 16×16 action) + result-mode Star color overrides matching Figma spec (DSN/400 outline → DSN/700 hover → DSN/900 filled)
+- Added `.search-field__results*` block (margin-top 4, white bg, DSN/300 border, radius-md, shadow-2xl, max-height 240, overflow-y auto) + header + empty subclasses
+- Updated `.modal-medium__header` padding 24/24/12/24 → 20/24
+- **Removed** `.modal-large__close`, `.modal-medium__close`, `.widget__close` (and all their hover/active variants) — superseded by IconButtonGhost
+
+**`Home.jsx`** — large refactor:
+- Customer state restructured: `customers` is now the full pool (50 placeholder customers — bumped from 20, awaiting real names), `selectedIds` is a `Set` tracking what's in the user's selected list. Initial `selectedIds` is empty (was pre-seeded with 4).
+- New handlers: `handleToggleCustomerSelect` (add/remove from selectedIds), `handleDeleteCustomer` (rewritten to remove from selectedIds, not from pool).
+- New derived state: `selectedCustomers` (memoized filter), `searchMatches` (memoized filter excluding already-selected customers).
+- **Widgets zero out when no customers selected**: `widgetsForRender` useMemo transforms widget props (value → '0', percentage → '0%', chartSegments → [], rows → all-zero) when `selectedIds.size === 0`. CTA widgets unchanged (actions still valid). Render-only transform — widget state itself isn't mutated, drag/remove/reorder still work.
+- **Click-outside-to-close** on the search results dropdown: `useEffect` registers a `mousedown` listener on `document` that hides results when click target is outside the SearchField wrapper ref. Re-focus on the input (any input bubbling up onFocus) reopens.
+- **Search auto-opens on focus**: clicking into the input opens the results dropdown immediately, showing all available customers (excluding selected). Typing narrows.
+- **EntityChip non-edit dynamic**: when `selectedIds.size === 0` → name="Add Customers", showAddButton=true, onAddClick=enter-edit-mode + open-customers-modal in one action. When 1+ selected → name="Customers" with hands count, no + button.
+- **"Add Widgets" button** label flips to "Edit Dashboard View" when widgets exist (icon stays Plus).
+- Empty state for selected list uses new `<EmptyState />` atom via `<EmptyState className="home-customers-empty" icon={<Handshake size={32} />} message="No customer has been selected yet." />`.
+
+**`Home.css`** — `.home-customers-empty` slimmed to consumer-specific margins only (`margin-top: --spacing-3`, `margin-bottom: --spacing-8`). All visual styling (bg/padding/radius/etc.) moved into the EmptyState atom.
+
+**`@odyssey/ui` exports** — added `IconButtonGhost` and `EmptyState`.
+
+**Code Connect mappings:**
+- `IconButtonGhost.figma.tsx` — new. Single mapping, Icon INSTANCE_SWAP → `icon` prop.
+- `EmptyState.figma.tsx` — new. Icon INSTANCE_SWAP → `icon`, Message TEXT → `message`.
+- `Badge.figma.tsx` — extended with a second `figma.connect` block for `variant: { Variant: 'favorite' }` rendering the simpler snippet `<Badge variant="favorite" />` (no children/slots needed for the indicator variant).
+- `CustomerRow.figma.tsx` — replaced previous 2 variant-specific mappings with single `figma.connect` using two enums: `Mode` (List → 'list', Result → 'result') + `Favorite` (True → true, False → false).
+
+#### Phase 3 — Sync back
+
+**DesignSystemMap** — subagent (general-purpose) dispatched per the always-subagent rule. Added 2 new sections (EmptyState at line ~5838 in the Panels area, IconButtonGhost at line ~3252 right after IconButton) and updated 3 existing sections (Badge favorite variant card, CustomerRow rewritten with 4 demo cards covering Mode × Favorite matrix, SearchField with new fieldWithResults() helper + dropdown demo). Composition line at ~8617 updated; compDetails modal entries added/extended. Subagent flagged one source/spec divergence (Result-mode Star color in CSS vs Figma spec) — reconciled by adding explicit Result-mode Star color rules in components.css (DSN/400 outline → DSN/700 hover → DSN/900 filled).
+
+**Tracker** — 2 new rows in Normalized Components (IconButtonGhost, EmptyState); CustomerRow + EntityChip rows extended with 2026-05-18 dates. 8 new rows in Pushed to Figma (Badge favorite, CustomerRow Mode axis, SearchField Results slot, Icons md lucide/star 16px, IconButtonGhost set, the 3-master Close swap, EmptyState + Panels artboard, ModalMedium header padding update, Add Customers token drift cleanup). 5 new rows in Pushed to Figma → Code Connect.
+
+**`npm run connect:publish`** — 35 mappings uploaded successfully. New: IconButtonGhost, EmptyState, Badge `Variant=favorite` dedicated block. Reworked: CustomerRow (2 → 1 mapping consolidating Mode + Favorite enums). Plus all 30+ existing mappings re-published cleanly.
+
+**Library publish** — user confirmed published.
+
+### Thread 3 — Memory updates
+
+Two new feedback memories captured this session:
+
+- **`feedback_validate_before_normalize`** — When invoking /normalize on a Figma component, first check if it's already normalized (in `@odyssey/ui` or in normalization-tracker). If yes, explicitly state it ("This is already normalized — treating as update cycle") before proceeding. Avoids accidentally re-doing components and surprises the user when they expected an update flow. Triggered by the initial /normalize URL being the Navbar (already done).
+- **`feedback_strategic_tokens`** — Refines [[feedback_token_discipline]]: strategic container paddings, gaps, sizing primitives, all colors, radii, typography, shadow, transition still need tokens. **Small internal paddings inside an atom** (e.g. 4px around an icon inside a 28×28 IconButtonGhost, or the 2px star-inside-badge offset) **don't have to be tokens** if they're (a) specific to that one component, (b) tightly coupled to a fixed inner-content size, and (c) wouldn't sensibly cascade if a token changed. Treating every literal padding as a token forces one-off tokens that never get reused and bloat `tokens.css`.
+
+### Files / commits
+
+**New files (code):**
+- `packages/ui/src/IconButtonGhost.jsx` + `.figma.tsx`
+- `packages/ui/src/EmptyState.jsx` + `.figma.tsx`
+- `cognizant-handoff-prep.md` (repo root)
+- `cognizant-handoff-presentation.html` (repo root)
+
+**Deleted CSS rules:** `.modal-large__close*`, `.modal-medium__close*`, `.widget__close*` (all hover/active variants) — superseded by `.icon-button-ghost`.
+
+**Modified files (code):**
+- `packages/ui/src/Badge.jsx` + `.figma.tsx` — favorite variant
+- `packages/ui/src/CustomerRow.jsx` + `.figma.tsx` — Mode prop, removed star action, badge overlay
+- `packages/ui/src/SearchField.jsx` — results slot prop
+- `packages/ui/src/EntityChip.jsx` — count=0 allowed
+- `packages/ui/src/ModalLarge.jsx` + `ModalMedium.jsx` + `Widget.jsx` — close swapped to IconButtonGhost
+- `packages/ui/src/index.js` — added 2 exports
+- `apps/odyssey-one/src/styles/components.css` — `.icon-button-ghost`, `.empty-state`, `.customer-row--result`, `.customer-row__badge-overlay`, `.search-field__results*` blocks; removed close-button rules; updated modal-medium header padding
+- `apps/odyssey-one/src/routes/Home.jsx` — full Add Customers state model rewrite; widgets zero out on no-customers; non-edit chip dynamic; "Add Widgets" → "Edit Dashboard View"; click-outside on search results; auto-open on focus
+- `apps/odyssey-one/src/routes/Home.css` — empty-state slimmed to consumer margins only
+- `playground/DesignSystemMap.html` — subagent pass: 2 new sections + 3 extended sections + composition line + compDetails
+- `playground/normalization-tracker.md` — 2 new Normalized rows, 8 Pushed to Figma rows, 5 Code Connect rows
+
+**Figma masters created / modified:**
+- `IconButtonGhost` set `2138:304` (3 variants) on Components-Atoms (Small Buttons)
+- `EmptyState` `2159:295` on Components-Atoms (new **Panels** artboard `2159:294`)
+- `Badge` `Variant=favorite` (`2096:294`) added to set `213:27`
+- `CustomerRow` set `2029:461` — Mode axis added (4 variants); inner placeholder swap; star action removed; Badge favorite overlay
+- `SearchField` `1959:76` — Show results BOOLEAN + Results slot frame
+- Close button instances swapped to IconButtonGhost across ModalLarge, ModalMedium, Widget (5 variants)
+- ModalMedium header padding updated to 20/24/16/24
+
+### State of `@odyssey/ui` after Session 26
+
+**30 normalized components** (was 28 after Session 25):
+- Atoms: Badge, Button, IconButton, **IconButtonGhost** (NEW), OdysseyLogo, SidebarButton, **EmptyState** (NEW)
+- Molecules: GlobalSearch, LeadNav, TrailNav, PageHeader, SectionHeader, EntityChip, WidgetMetricRow, WidgetPieChart, WidgetCtaRow, SearchField, MenuRow, MenuDropdown, CustomerRow
+- Organisms: Navbar, Widget, WidgetsLeftMenu, ModalLarge, ModalMedium, WidgetVariantPicker
+
+**Code Connect:** 35 mappings live (added 2 new this session: IconButtonGhost + EmptyState; extended Badge with favorite block; consolidated CustomerRow's 2 variant mappings into 1 enum-based mapping).
+
+**Tokens added this session:** none (everything used existing tokens — per the new `feedback_strategic_tokens` refinement, the 4px-padding-inside-28px-button kind of literal stays raw).
+
+**Library publish:** confirmed published by user.
+
+### Carry-forward to Session 27
+
+**Pre-flagged for next session:**
+- **Real customer data** — Home's `customers` array is still 50 placeholder entries (`Customer 1` … `Customer 50`). User will provide real names; swap at the documented module-level constant.
+- **Add Section button functionality** — still a `console.log` stub on the edit-mode action bar (carried from Session 25).
+- **IconButton 25×25 confirmation** — code-only override at 25px; Figma master still 24. Carried from Session 25.
+
+**Standing backlog:**
+- SHP-66 — generic dropdown menu component (popover style, separate from MenuDropdown).
+- SHP-67 — responsive normalization pass.
+- ButtonLink — full size × state matrix in Figma.
+- StatusBadge / TypeBadge / HazmatTag / Appointment badge / History action badges / Tab count pills normalizations.
+- Off-token off-scale paddings (6 / 14 / 18) still raw across several components.
+- Sidebar Selected variant Figma icon-color encoding.
+- MenuDropdown / SearchField additional state variants in Figma (hover, focus, pressed) — currently code-only via CSS pseudo-classes.
+- IconButton size matrix (Size=md/lg).
+- Cognizant repo access + 3–5 component proof-of-concept Angular port — outcome from the handoff meeting.
+
+**Parked:**
+- Mode-based Figma theming for Button icon colors.
+- Purge legacy `icons/Npx/*` masters.
+- Convert any remaining Lucide FRAMEs to proper COMPONENTs.
+- Resume Supabase migration when ≥3 domains have real UIs.
+- Add 32px lucide masters if more 32px-icon use cases appear (EmptyState currently uses size={32} on a 20px lucide handshake instance — visually fine, semantically slight mismatch).

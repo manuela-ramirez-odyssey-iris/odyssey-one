@@ -1,0 +1,1602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Odyssey Frontend — Proposed Workflow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #FAFAF8;
+    --bg-alt: #F4F4F1;
+    --surface: #FFFFFF;
+    --ink: #0A0A0A;
+    --ink-2: #262626;
+    --ink-3: #525252;
+    --ink-4: #A3A3A3;
+    --rule: #E7E5E0;
+    --rule-2: #D4D2CD;
+
+    --accent: #15803D;
+    --accent-deep: #14532D;
+    --accent-bg: #ECFDF5;
+    --accent-rule: #BBF7D0;
+
+    --danger: #991B1B;
+    --danger-bg: #FEF2F2;
+    --danger-rule: #FECACA;
+
+    --warn: #92400E;
+    --warn-bg: #FFFBEB;
+
+    --code-bg: #F7F7F5;
+    --code-rule: #E7E5E0;
+
+    --sans: 'Geist', -apple-system, BlinkMacSystemFont, sans-serif;
+    --mono: 'Geist Mono', ui-monospace, SFMono-Regular, monospace;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.6;
+    color: var(--ink-2);
+    background: var(--bg);
+    font-feature-settings: "ss01", "ss03", "cv11";
+  }
+
+  .container {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 0 32px;
+  }
+
+  /* ─────────── Section structure ─────────── */
+
+  section {
+    padding: 80px 0;
+    border-bottom: 1px solid var(--rule);
+    position: relative;
+  }
+
+  section:nth-of-type(even) {
+    background: var(--bg-alt);
+  }
+
+  section:last-of-type {
+    border-bottom: none;
+  }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ink-4);
+    margin-bottom: 24px;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: var(--sans);
+    color: var(--ink);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+  }
+
+  h1 {
+    font-size: clamp(40px, 7vw, 72px);
+    font-weight: 700;
+    letter-spacing: -0.035em;
+    margin-bottom: 24px;
+  }
+
+  h2 {
+    font-size: clamp(28px, 4.5vw, 44px);
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    margin-bottom: 32px;
+  }
+
+  h3 {
+    font-size: 20px;
+    margin-bottom: 16px;
+    font-weight: 600;
+  }
+
+  h4 {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+
+  p {
+    margin-bottom: 16px;
+    max-width: 68ch;
+  }
+
+  p.lede {
+    font-size: 19px;
+    line-height: 1.55;
+    color: var(--ink-2);
+    margin-bottom: 32px;
+    max-width: 60ch;
+  }
+
+  strong {
+    color: var(--ink);
+    font-weight: 600;
+  }
+
+  /* ─────────── Cover ─────────── */
+
+  .cover {
+    padding: 120px 0 100px;
+    background: var(--bg);
+  }
+
+  .cover-meta {
+    display: flex;
+    gap: 24px;
+    font-family: var(--mono);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ink-4);
+    margin-bottom: 48px;
+  }
+
+  .cover-meta span:not(:first-child)::before {
+    content: '·';
+    margin-right: 24px;
+    color: var(--rule-2);
+  }
+
+  .cover-title {
+    font-size: clamp(48px, 9vw, 96px);
+    line-height: 0.98;
+    letter-spacing: -0.045em;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 32px;
+    max-width: 14ch;
+  }
+
+  .cover-subtitle {
+    font-size: clamp(20px, 2.5vw, 24px);
+    line-height: 1.4;
+    color: var(--ink-3);
+    max-width: 36ch;
+    margin-bottom: 64px;
+    font-weight: 400;
+  }
+
+  .cover-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 32px;
+    padding-top: 48px;
+    border-top: 1px solid var(--rule);
+  }
+
+  .cover-stat {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .cover-stat__value {
+    font-family: var(--mono);
+    font-size: clamp(36px, 5vw, 52px);
+    font-weight: 600;
+    color: var(--ink);
+    line-height: 1;
+    margin-bottom: 12px;
+    letter-spacing: -0.02em;
+    font-feature-settings: "tnum", "ss01";
+  }
+
+  .cover-stat__value.accent {
+    color: var(--accent);
+  }
+
+  .cover-stat__label {
+    font-size: 13px;
+    color: var(--ink-3);
+    line-height: 1.4;
+  }
+
+  @media (max-width: 640px) {
+    .cover-stats {
+      grid-template-columns: 1fr;
+      gap: 28px;
+    }
+  }
+
+  /* ─────────── Tables ─────────── */
+
+  .table-wrap {
+    margin: 32px 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    font-feature-settings: "tnum";
+  }
+
+  th, td {
+    text-align: left;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+  }
+
+  th {
+    font-weight: 500;
+    color: var(--ink-3);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-family: var(--mono);
+    background: transparent;
+    border-bottom-color: var(--rule-2);
+  }
+
+  td {
+    color: var(--ink-2);
+  }
+
+  td:first-child {
+    color: var(--ink);
+    font-weight: 500;
+  }
+
+  tr:last-child td {
+    border-bottom: none;
+  }
+
+  td.num, th.num {
+    font-family: var(--mono);
+    text-align: right;
+  }
+
+  .delta-positive {
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .delta-negative {
+    color: var(--danger);
+    font-weight: 600;
+  }
+
+  tr.totals td {
+    border-top: 2px solid var(--ink);
+    border-bottom: none;
+    padding-top: 18px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+
+  /* ─────────── Numbers callout ─────────── */
+
+  .numbers-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0;
+    margin: 40px 0;
+    border-top: 1px solid var(--rule-2);
+  }
+
+  .num-row {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr 1fr 2fr;
+    gap: 24px;
+    padding: 28px 0;
+    border-bottom: 1px solid var(--rule);
+    align-items: baseline;
+  }
+
+  .num-row__label {
+    font-size: 15px;
+    color: var(--ink);
+    font-weight: 500;
+  }
+
+  .num-row__value {
+    font-family: var(--mono);
+    font-size: 22px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+
+  .num-row__value.current {
+    color: var(--ink-3);
+  }
+
+  .num-row__value.proposed {
+    color: var(--ink);
+  }
+
+  .num-row__delta {
+    color: var(--accent);
+    font-weight: 600;
+    font-size: 14px;
+  }
+
+  @media (max-width: 640px) {
+    .num-row {
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .num-row__label {
+      grid-column: 1 / -1;
+    }
+    .num-row__delta {
+      grid-column: 1 / -1;
+    }
+  }
+
+  /* ─────────── Workflow diagrams ─────────── */
+
+  .workflow {
+    margin: 32px 0;
+    padding: 32px;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+  }
+
+  .workflow--current {
+    background: var(--danger-bg);
+    border-color: var(--danger-rule);
+  }
+
+  .workflow--proposed {
+    background: var(--accent-bg);
+    border-color: var(--accent-rule);
+  }
+
+  .workflow__header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid currentColor;
+    border-bottom-color: var(--rule);
+  }
+
+  .workflow--current .workflow__header { border-bottom-color: var(--danger-rule); }
+  .workflow--proposed .workflow__header { border-bottom-color: var(--accent-rule); }
+
+  .workflow__title {
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-weight: 500;
+    color: var(--ink-3);
+  }
+
+  .workflow--current .workflow__title { color: var(--danger); }
+  .workflow--proposed .workflow__title { color: var(--accent); }
+
+  .workflow__total {
+    font-family: var(--mono);
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+
+  .workflow--current .workflow__total { color: var(--danger); }
+  .workflow--proposed .workflow__total { color: var(--accent-deep); }
+
+  .flow {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .flow-step {
+    display: grid;
+    grid-template-columns: 24px 1fr auto;
+    gap: 16px;
+    align-items: center;
+    padding: 12px 16px;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    font-size: 14px;
+  }
+
+  .flow-step__num {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-4);
+  }
+
+  .flow-step__label {
+    color: var(--ink);
+    line-height: 1.3;
+  }
+
+  .flow-step__time {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--ink-3);
+    white-space: nowrap;
+  }
+
+  .flow-step--rework {
+    background: var(--danger-bg);
+    border-color: var(--danger-rule);
+  }
+
+  .flow-step--rework .flow-step__label::after {
+    content: ' ↺';
+    color: var(--danger);
+    font-weight: 600;
+  }
+
+  .flow-step--gate {
+    background: var(--accent-bg);
+    border-color: var(--accent);
+    border-width: 1.5px;
+    color: var(--accent-deep);
+  }
+
+  .flow-step--gate .flow-step__label {
+    color: var(--accent-deep);
+    font-weight: 500;
+  }
+
+  .flow-step--gate .flow-step__time {
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  /* ─────────── Side-by-side ─────────── */
+
+  .compare {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin: 32px 0;
+  }
+
+  @media (max-width: 720px) {
+    .compare {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* ─────────── Callout ─────────── */
+
+  .callout {
+    margin: 32px 0;
+    padding: 24px 28px;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-left: 3px solid var(--ink);
+    border-radius: 0 3px 3px 0;
+  }
+
+  .callout--rule {
+    background: var(--surface);
+    border-left-color: var(--accent);
+  }
+
+  .callout__label {
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--ink-3);
+    margin-bottom: 8px;
+    font-weight: 500;
+  }
+
+  .callout__body {
+    font-size: 17px;
+    color: var(--ink);
+    line-height: 1.45;
+    font-weight: 500;
+    margin: 0;
+  }
+
+  .callout--rule .callout__body {
+    font-weight: 500;
+  }
+
+  /* ─────────── Cards ─────────── */
+
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin: 32px 0;
+  }
+
+  @media (max-width: 640px) {
+    .cards {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .card {
+    padding: 24px;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+  }
+
+  .card__icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 100px;
+    background: var(--accent-bg);
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 16px;
+  }
+
+  .card h4 {
+    margin-bottom: 8px;
+  }
+
+  .card p {
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--ink-3);
+    margin: 0;
+  }
+
+  /* ─────────── Projection table ─────────── */
+
+  .projection {
+    margin: 32px 0;
+  }
+
+  .projection-bar {
+    display: grid;
+    grid-template-columns: 140px 1fr 100px;
+    gap: 16px;
+    align-items: center;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .projection-bar:last-child {
+    border-bottom: none;
+  }
+
+  .projection-bar__label {
+    font-size: 14px;
+    color: var(--ink);
+    font-weight: 500;
+  }
+
+  .projection-bar__viz {
+    position: relative;
+    height: 24px;
+    background: transparent;
+  }
+
+  .projection-bar__viz-fill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    transition: width 0.6s ease;
+  }
+
+  .projection-bar__viz-fill.negative {
+    background: var(--danger);
+  }
+
+  .projection-bar__value {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--accent);
+    font-weight: 600;
+    text-align: right;
+  }
+
+  .projection-bar__value.negative {
+    color: var(--danger);
+  }
+
+  @media (max-width: 640px) {
+    .projection-bar {
+      grid-template-columns: 1fr 80px;
+      grid-template-areas: "label value" "viz viz";
+      row-gap: 8px;
+    }
+    .projection-bar__label { grid-area: label; }
+    .projection-bar__viz { grid-area: viz; }
+    .projection-bar__value { grid-area: value; }
+  }
+
+  /* ─────────── Code blocks ─────────── */
+
+  .code-compare {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 32px 0;
+  }
+
+  @media (max-width: 860px) {
+    .code-compare {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .code-block {
+    background: var(--code-bg);
+    border: 1px solid var(--code-rule);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .code-block__header {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--code-rule);
+    background: var(--surface);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .code-block__title {
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--ink-3);
+    font-weight: 500;
+  }
+
+  .code-block__tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-4);
+  }
+
+  .code-block pre {
+    margin: 0;
+    padding: 16px;
+    overflow-x: auto;
+  }
+
+  .code-block code {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    line-height: 1.55;
+    color: var(--ink-2);
+    font-feature-settings: "ss01";
+  }
+
+  /* ─────────── Layer diagram (PrimeNG) ─────────── */
+
+  .stack {
+    margin: 32px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .stack-layer {
+    padding: 20px 24px;
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 24px;
+  }
+
+  .stack-layer--ours {
+    background: var(--accent-bg);
+    border-color: var(--accent-rule);
+  }
+
+  .stack-layer--primeng {
+    background: var(--surface);
+  }
+
+  .stack-layer__label {
+    font-weight: 600;
+    color: var(--ink);
+    font-size: 15px;
+  }
+
+  .stack-layer--ours .stack-layer__label {
+    color: var(--accent-deep);
+  }
+
+  .stack-layer__desc {
+    color: var(--ink-3);
+    font-size: 13px;
+    text-align: right;
+    max-width: 50%;
+  }
+
+  /* ─────────── Tree ─────────── */
+
+  .tree {
+    margin: 32px 0;
+    padding: 28px;
+    background: var(--code-bg);
+    border: 1px solid var(--code-rule);
+    border-radius: 4px;
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.85;
+    color: var(--ink-2);
+    overflow-x: auto;
+    white-space: pre;
+  }
+
+  .tree .annot {
+    color: var(--accent);
+    font-style: normal;
+  }
+
+  /* ─────────── Asks ─────────── */
+
+  .asks {
+    list-style: none;
+    counter-reset: ask;
+    margin: 32px 0;
+  }
+
+  .asks li {
+    counter-increment: ask;
+    padding: 20px 0 20px 64px;
+    border-bottom: 1px solid var(--rule);
+    position: relative;
+    font-size: 16px;
+    line-height: 1.5;
+  }
+
+  .asks li::before {
+    content: counter(ask, decimal-leading-zero);
+    position: absolute;
+    left: 0;
+    top: 20px;
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--ink-4);
+    font-weight: 500;
+  }
+
+  .asks li:last-child {
+    border-bottom: none;
+  }
+
+  /* ─────────── Final claim ─────────── */
+
+  .claim {
+    padding: 80px 0;
+    background: var(--ink);
+    color: var(--bg);
+    border-bottom: none;
+  }
+
+  .claim .container {
+    max-width: 760px;
+  }
+
+  .claim__eyebrow {
+    font-family: var(--mono);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--ink-4);
+    margin-bottom: 32px;
+  }
+
+  .claim__body {
+    font-size: clamp(22px, 3.5vw, 30px);
+    line-height: 1.35;
+    color: var(--bg);
+    font-weight: 400;
+    letter-spacing: -0.015em;
+  }
+
+  .claim__body p {
+    margin-bottom: 24px;
+    max-width: none;
+    color: var(--bg);
+  }
+
+  .claim__body strong {
+    color: var(--bg);
+    font-weight: 600;
+  }
+
+  .claim__body em {
+    font-style: normal;
+    color: #6EE7B7;
+  }
+
+  /* ─────────── Section list ─────────── */
+
+  .doc-table th {
+    font-size: 11px;
+  }
+
+  /* ─────────── Misc ─────────── */
+
+  .pill {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 100px;
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 500;
+  }
+
+  .pill--ok { background: var(--accent-bg); color: var(--accent); }
+  .pill--warn { background: var(--warn-bg); color: var(--warn); }
+  .pill--no { background: var(--danger-bg); color: var(--danger); }
+
+  /* ─────────── Print ─────────── */
+
+  @media print {
+    section { break-inside: avoid; padding: 40px 0; }
+    .workflow, .callout, .card, .code-block { break-inside: avoid; }
+    body { background: white; }
+    section:nth-of-type(even) { background: white; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ─────────── COVER ─────────── -->
+<section class="cover">
+  <div class="container">
+    <div class="cover-meta">
+      <span>Iris Design × Cognizant</span>
+      <span>Frontend workflow proposal</span>
+      <span>May 2026</span>
+    </div>
+
+    <h1 class="cover-title">A faster way to ship the frontend, together.</h1>
+
+    <p class="cover-subtitle">Replacing visual interpretation between Figma and Angular with a validated, AI-portable design system.</p>
+
+    <div class="cover-stats">
+      <div class="cover-stat">
+        <div class="cover-stat__value accent">60–70%</div>
+        <div class="cover-stat__label">Reduction in dev-days per feature, post-design.</div>
+      </div>
+      <div class="cover-stat">
+        <div class="cover-stat__value accent">2</div>
+        <div class="cover-stat__label">Features to break even on the one-time setup.</div>
+      </div>
+      <div class="cover-stat">
+        <div class="cover-stat__value accent">~9 mo</div>
+        <div class="cover-stat__label">Of dev capacity recovered across a typical year.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─────────── TL;DR ─────────── -->
+<section>
+  <div class="container">
+    <div class="eyebrow">00 · Summary</div>
+    <h2>What we're proposing</h2>
+    <p class="lede">We've built a production-grade frontend implementation of the Odyssey design system in React — 28 normalized components, design tokens, CSS, a Figma library, a visual contract, and the documentation behind every decision.</p>
+
+    <p>We're proposing a workflow where the design team delivers a <strong>running, validated prototype</strong> instead of static specs — and Cognizant <strong>AI-ports it to Angular</strong> instead of rebuilding visually from PDFs.</p>
+
+    <p>The design system stays the <strong>single source of truth</strong> for both sides. PrimeNG stays where it adds value. Visual interpretation — the part that breaks today — gets replaced by an executable contract.</p>
+  </div>
+</section>
+
+<!-- ─────────── PROBLEM ─────────── -->
+<section>
+  <div class="container">
+    <div class="eyebrow">01 · The problem today</div>
+    <h2>Visual interpretation is the bug.</h2>
+
+    <p class="lede">Today, every feature crosses from design to engineering through visual interpretation. That bridge guarantees drift, rework, and grooming sessions burned on UI corrections that should never have happened.</p>
+
+    <div class="workflow workflow--current">
+      <div class="workflow__header">
+        <div class="workflow__title">Current Cognizant dev cycle</div>
+        <div class="workflow__total">5.5–10 dev-days</div>
+      </div>
+      <div class="flow">
+        <div class="flow-step">
+          <div class="flow-step__num">01</div>
+          <div class="flow-step__label">Dev reads spec, interprets visually, builds in Angular</div>
+          <div class="flow-step__time">2–4 days</div>
+        </div>
+        <div class="flow-step flow-step--rework">
+          <div class="flow-step__num">02</div>
+          <div class="flow-step__label">QA round 1: discrepancies vs Figma</div>
+          <div class="flow-step__time">0.5–1 day</div>
+        </div>
+        <div class="flow-step flow-step--rework">
+          <div class="flow-step__num">03</div>
+          <div class="flow-step__label">Fix round 1</div>
+          <div class="flow-step__time">1–2 days</div>
+        </div>
+        <div class="flow-step flow-step--rework">
+          <div class="flow-step__num">04</div>
+          <div class="flow-step__label">QA round 2</div>
+          <div class="flow-step__time">0.5 day</div>
+        </div>
+        <div class="flow-step flow-step--rework">
+          <div class="flow-step__num">05</div>
+          <div class="flow-step__label">Fix round 2 (frequently needed)</div>
+          <div class="flow-step__time">1–2 days</div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-step__num">06</div>
+          <div class="flow-step__label">Final QA + ship</div>
+          <div class="flow-step__time">0.5 day</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <div class="callout__label">The pattern</div>
+      <p class="callout__body">~50–60% of every feature's dev time is rework, driven by the visual-interpretation bridge between Figma and Angular.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ─────────── DESIGN WORKFLOW ─────────── -->
+<section>
+  <div class="container">
+    <div class="eyebrow">02 · The design workflow</div>
+    <h2>Upstream of every handoff.</h2>
+
+    <p class="lede">Before anything reaches Cognizant, the design team runs a parallel, iterative process that turns requirements into a validated, running prototype. The handoff isn't a one-shot delivery — it's the output of this loop.</p>
+
+    <div class="workflow workflow--proposed">
+      <div class="workflow__header">
+        <div class="workflow__title">Design team process</div>
+        <div class="workflow__total">→ Approval gate</div>
+      </div>
+      <div class="flow">
+        <div class="flow-step">
+          <div class="flow-step__num">01</div>
+          <div class="flow-step__label">Requirements come in</div>
+          <div class="flow-step__time"></div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-step__num">02</div>
+          <div class="flow-step__label">Analyze + groom (design team + PM + stakeholders)</div>
+          <div class="flow-step__time"></div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-step__num">03</div>
+          <div class="flow-step__label">Efra designs in Figma using the design system</div>
+          <div class="flow-step__time"></div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-step__num">04</div>
+          <div class="flow-step__label">Manuela prototypes in React — in parallel with Efra, catches gaps in real time</div>
+          <div class="flow-step__time">/normalize gate for new components</div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-step__num">05</div>
+          <div class="flow-step__label">Stakeholder grooming on the running prototype (not screenshots)</div>
+          <div class="flow-step__time"></div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-step__num">06</div>
+          <div class="flow-step__label">Iterate cheaply — Figma + React stay in sync</div>
+          <div class="flow-step__time"></div>
+        </div>
+        <div class="flow-step flow-step--gate">
+          <div class="flow-step__num">✓</div>
+          <div class="flow-step__label">Approval gate — spec is locked, ready for Angular port</div>
+          <div class="flow-step__time"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cards">
+      <div class="card">
+        <div class="card__icon">∥</div>
+        <h4>Parallel, not sequential</h4>
+        <p>Design and prototype evolve together. The prototype catches missing states, edge cases, and component gaps while Efra is still iterating in Figma. Problems that would normally surface in QA round 2 surface here instead.</p>
+      </div>
+      <div class="card">
+        <div class="card__icon">/</div>
+        <h4>Component-system gated</h4>
+        <p>New components don't enter <code>@odyssey/ui</code> until they pass <code>/normalize</code>: Figma master → DesignSystemMap → React implementation. Protects the system as it grows.</p>
+      </div>
+      <div class="card">
+        <div class="card__icon">✓</div>
+        <h4>Stakeholder-validated on code</h4>
+        <p>Manager grooming sessions happen on running React, not static specs. By the time the handoff happens, the spec is real — not aspirational.</p>
+      </div>
+      <div class="card">
+        <div class="card__icon">∎</div>
+        <h4>Documented as it happens</h4>
+        <p>Decisions in <code>decision-log.md</code>. Component status in <code>normalization-tracker.md</code>. Obsidian integration in progress for cross-domain knowledge.</p>
+      </div>
+    </div>
+
+    <div class="callout callout--rule">
+      <div class="callout__label">What you receive at the approval gate</div>
+      <p class="callout__body">Not a "design" — a contract. Running React + finalized Figma + visual reference + decision rationale. Ready to port.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ─────────── PROPOSAL ─────────── -->
+<section>
+  <div class="container">
+    <div class="eyebrow">03 · The proposal</div>
+    <h2>Replace the bridge with an executable contract.</h2>
+
+    <p class="lede">A validated, running React prototype becomes the spec. Cognizant ports it to Angular with AI assistance against a locked visual contract. Drift becomes structurally impossible.</p>
+
+    <div class="workflow workflow--proposed">
+      <div class="workflow__header">
+        <div class="workflow__title">Proposed dev cycle</div>
+        <div class="workflow__total">2–4 dev-days</div>
+      </div>
+      <div class="flow">
+        <div class="flow-step flow-step--gate">
+          <div class="flow-step__num">✓</div>
+          <div class="flow-step__label">Approval gate — spec is locked in running React</div>
+          <div class="flow-step__time">0 days</div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-step__num">01</div>
+          <div class="flow-step__label">AI-assisted Angular port (route-level code only — library already exists)</div>
+          <div class="flow-step__time">0.5–1.5 days</div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-step__num">02</div>
+          <div class="flow-step__label">Backend wiring + ship</div>
+          <div class="flow-step__time">1–2 days</div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-step__num">03</div>
+          <div class="flow-step__label">QA (visual rework is contractually impossible)</div>
+          <div class="flow-step__time">0.5 day</div>
+        </div>
+      </div>
+    </div>
+
+    <p>The approval gate is the keystone. Once a feature is locked in running React, no design changes happen without going back through the prototype. This is what makes the port deterministic.</p>
+  </div>
+</section>
+
+<!-- ─────────── NUMBERS ─────────── -->
+<section>
+  <div class="container">
+    <div class="eyebrow">04 · The numbers</div>
+    <h2>What changes, measured.</h2>
+
+    <div class="numbers-grid">
+      <div class="num-row">
+        <div class="num-row__label">Dev-days per feature</div>
+        <div class="num-row__value current">5.5–10</div>
+        <div class="num-row__value proposed">2–4</div>
+        <div class="num-row__delta">~60–70% reduction</div>
+      </div>
+      <div class="num-row">
+        <div class="num-row__label">Visual rework cycles</div>
+        <div class="num-row__value current">2–3</div>
+        <div class="num-row__value proposed">~0</div>
+        <div class="num-row__delta">~100% eliminated</div>
+      </div>
+      <div class="num-row">
+        <div class="num-row__label">Drift bugs over time</div>
+        <div class="num-row__value current">continuous</div>
+        <div class="num-row__value proposed">~zero</div>
+        <div class="num-row__delta">Continuous ambient savings</div>
+      </div>
+      <div class="num-row">
+        <div class="num-row__label">UI debt accumulation</div>
+        <div class="num-row__value current">yes</div>
+        <div class="num-row__value proposed">no</div>
+        <div class="num-row__delta">Compounds over months</div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <div class="callout__label">Break-even</div>
+      <p class="callout__body">One-time setup cost: ~5 dev-days (component library port). Per-feature savings: 3–6 dev-days. Payback at <strong>feature 2</strong>.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ─────────── PROJECTION ─────────── -->
+<section>
+  <div class="container">
+    <div class="eyebrow">05 · Feature-by-feature projection</div>
+    <h2>The savings compound.</h2>
+
+    <p class="lede">Assumes ~5 dev-day one-time setup and a midpoint ~4 dev-day average savings per feature.</p>
+
+    <div class="projection">
+      <div class="projection-bar">
+        <div class="projection-bar__label">Setup only</div>
+        <div class="projection-bar__viz"><div class="projection-bar__viz-fill negative" style="width: 3%"></div></div>
+        <div class="projection-bar__value negative">−5 days</div>
+      </div>
+      <div class="projection-bar">
+        <div class="projection-bar__label">1 feature</div>
+        <div class="projection-bar__viz"><div class="projection-bar__viz-fill" style="width: 0.5%"></div></div>
+        <div class="projection-bar__value">~0 days</div>
+      </div>
+      <div class="projection-bar">
+        <div class="projection-bar__label">2 features</div>
+        <div class="projection-bar__viz"><div class="projection-bar__viz-fill" style="width: 3%"></div></div>
+        <div class="projection-bar__value">+5 days</div>
+      </div>
+      <div class="projection-bar">
+        <div class="projection-bar__label">5 features</div>
+        <div class="projection-bar__viz"><div class="projection-bar__viz-fill" style="width: 10%"></div></div>
+        <div class="projection-bar__value">+19 days</div>
+      </div>
+      <div class="projection-bar">
+        <div class="projection-bar__label">10 features</div>
+        <div class="projection-bar__viz"><div class="projection-bar__viz-fill" style="width: 23%"></div></div>
+        <div class="projection-bar__value">+43 days</div>
+      </div>
+      <div class="projection-bar">
+        <div class="projection-bar__label">20 features</div>
+        <div class="projection-bar__viz"><div class="projection-bar__viz-fill" style="width: 49%"></div></div>
+        <div class="projection-bar__value">+90 days</div>
+      </div>
+      <div class="projection-bar">
+        <div class="projection-bar__label">40 features (~1 year)</div>
+        <div class="projection-bar__viz"><div class="projection-bar__viz-fill" style="width: 100%"></div></div>
+        <div class="projection-bar__value">+185 days</div>
+      </div>
+    </div>
+
+    <div class="callout callout--rule">
+      <div class="callout__label">Annual impact</div>
+      <p class="callout__body">At a year of typical cadence, <strong>~9 months of one developer's capacity is recovered</strong> — without changing headcount, scope, or stack.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ─────────── WHAT TRANSFERS ─────────── -->
+<section>
+  <div class="container">
+    <div class="eyebrow">06 · Transferable assets</div>
+    <h2>~80% transfers untouched.</h2>
+
+    <p class="lede">The expensive parts — tokens, CSS, Figma masters, the visual contract, the documentation — drop directly into your stack. Only the React-specific code needs porting.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Artifact</th>
+            <th>Status</th>
+            <th>Cognizant effort</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Design tokens (<code>tokens.css</code>)</td>
+            <td><span class="pill pill--ok">As-is</span></td>
+            <td>Drop in</td>
+          </tr>
+          <tr>
+            <td>Component CSS</td>
+            <td><span class="pill pill--ok">As-is</span></td>
+            <td>Consume directly</td>
+          </tr>
+          <tr>
+            <td>Figma library (28 components)</td>
+            <td><span class="pill pill--ok">As-is</span></td>
+            <td>Adopt as canonical</td>
+          </tr>
+          <tr>
+            <td>DesignSystemMap (visual contract)</td>
+            <td><span class="pill pill--ok">As-is</span></td>
+            <td>Validate Angular renders</td>
+          </tr>
+          <tr>
+            <td>Documentation + decision log</td>
+            <td><span class="pill pill--ok">As-is</span></td>
+            <td>Shared reference</td>
+          </tr>
+          <tr>
+            <td>Code Connect bridge</td>
+            <td><span class="pill pill--warn">Rewire</span></td>
+            <td>Write Angular <code>.figma.ts</code> against same masters</td>
+          </tr>
+          <tr>
+            <td>React components (<code>.jsx</code>)</td>
+            <td><span class="pill pill--no">Port</span></td>
+            <td>~1 dev-week, AI-assisted</td>
+          </tr>
+          <tr>
+            <td>Route code (Home, Shipments)</td>
+            <td><span class="pill pill--no">Port</span></td>
+            <td>Port + wire backend</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ─────────── PRIMENG ─────────── -->
+<section>
+  <div class="container">
+    <div class="eyebrow">07 · PrimeNG</div>
+    <h2>We complement PrimeNG. We don't replace it.</h2>
+
+    <p class="lede">Our design system layers on top of your existing Angular + PrimeNG foundation. PrimeNG keeps owning accessibility, keyboard handling, and Angular-native ergonomics. We bring the visual identity, tokens, and design-system discipline.</p>
+
+    <div class="stack">
+      <div class="stack-layer stack-layer--ours">
+        <div class="stack-layer__label">Domain widgets &amp; chrome</div>
+        <div class="stack-layer__desc">Widget, WidgetVariantPicker, EntityChip, AppShell, Sidebar, Navbar — Odyssey components, no PrimeNG equivalent.</div>
+      </div>
+      <div class="stack-layer stack-layer--ours">
+        <div class="stack-layer__label">Primitives (wrapped)</div>
+        <div class="stack-layer__desc">Button, Dialog, Dropdown — wrap PrimeNG with Odyssey tokens + CSS. API stays PrimeNG-native, look stays Odyssey.</div>
+      </div>
+      <div class="stack-layer stack-layer--primeng">
+        <div class="stack-layer__label">PrimeNG (direct use)</div>
+        <div class="stack-layer__desc">Data tables, calendars, advanced controls — used directly, styled with our tokens.</div>
+      </div>
+      <div class="stack-layer stack-layer--primeng">
+        <div class="stack-layer__label">Design tokens · CSS · Figma</div>
+        <div class="stack-layer__desc">Shared foundation across all layers. Single source of truth.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─────────── COMPONENT EXAMPLE ─────────── -->
+<section>
+  <div class="container">
+    <div class="eyebrow">08 · Component port example</div>
+    <h2>The port is mechanical.</h2>
+
+    <p class="lede">Our components are intentionally dumb: pure presentational, props in / events out. No global state, no effect chains, no React-specific gymnastics. With AI assistance, a component like this takes <strong>15–30 minutes</strong> to port.</p>
+
+    <div class="code-compare">
+      <div class="code-block">
+        <div class="code-block__header">
+          <div class="code-block__title">Button.jsx</div>
+          <div class="code-block__tag">React (today)</div>
+        </div>
+<pre><code>export default function Button({
+  children, variant = 'primary',
+  size = 'md', disabled = false,
+  icon, iconRight, ...props
+}) {
+  const classes = ['btn',
+    `btn--${variant}`,
+    `btn--${size}`,
+    icon &amp;&amp; 'btn--has-icon'
+  ].filter(Boolean).join(' ')
+
+  return (
+    &lt;button className={classes}
+      disabled={disabled} {...props}&gt;
+      {icon &amp;&amp; (
+        &lt;span className="btn__icon"&gt;
+          {icon}
+        &lt;/span&gt;
+      )}
+      {children}
+      {iconRight &amp;&amp; (
+        &lt;span className="btn__icon btn__icon--right"&gt;
+          {iconRight}
+        &lt;/span&gt;
+      )}
+    &lt;/button&gt;
+  )
+}</code></pre>
+      </div>
+
+      <div class="code-block">
+        <div class="code-block__header">
+          <div class="code-block__title">button.component.ts</div>
+          <div class="code-block__tag">Angular (the port)</div>
+        </div>
+<pre><code>@Component({
+  selector: 'ody-button',
+  standalone: true,
+  template: `
+    &lt;button [class]="classes"
+      [disabled]="disabled"
+      (click)="clicked.emit($event)"&gt;
+      &lt;span class="btn__icon" *ngIf="icon"&gt;
+        &lt;ng-content select="[icon]"&gt;&lt;/ng-content&gt;
+      &lt;/span&gt;
+      &lt;ng-content&gt;&lt;/ng-content&gt;
+      &lt;span class="btn__icon btn__icon--right"
+        *ngIf="iconRight"&gt;
+        &lt;ng-content select="[iconRight]"&gt;&lt;/ng-content&gt;
+      &lt;/span&gt;
+    &lt;/button&gt;
+  `,
+})
+export class ButtonComponent {
+  @Input() variant = 'primary';
+  @Input() size = 'md';
+  @Input() disabled = false;
+  @Input() icon = false;
+  @Input() iconRight = false;
+  @Output() clicked = new EventEmitter();
+  get classes() { /* same as React */ }
+}</code></pre>
+      </div>
+    </div>
+
+    <div class="cards">
+      <div class="card">
+        <div class="card__icon">=</div>
+        <h4>Identical across both</h4>
+        <p>All CSS classes (<code>btn btn--primary btn--md</code>), all design tokens, the rendered output — pixel-identical against the DesignSystemMap.</p>
+      </div>
+      <div class="card">
+        <div class="card__icon">→</div>
+        <h4>Mechanical changes</h4>
+        <p>Function → class. Props → <code>@Input</code>. Callbacks → <code>@Output</code> events. JSX → Angular template. <code>children</code> → <code>&lt;ng-content&gt;</code>.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─────────── QUALITATIVE BENEFITS ─────────── -->
+<section>
+  <div class="container">
+    <div class="eyebrow">09 · The benefits not in the numbers</div>
+    <h2>What compounds beyond the spreadsheet.</h2>
+
+    <p class="lede">These are continuous and ambient. Hard to quantify per day; impossible to ignore over months.</p>
+
+    <div class="cards">
+      <div class="card">
+        <div class="card__icon">01</div>
+        <h4>Zero design drift</h4>
+        <p>The #1 source of frontend bug tickets goes to ~zero. Today this drift is continuous, ambient cost we all pay for.</p>
+      </div>
+      <div class="card">
+        <div class="card__icon">02</div>
+        <h4>Consistent UX across the platform</h4>
+        <p>Visible to customers. They notice the difference between Shipments and Orders looking like the same product vs. two products glued together.</p>
+      </div>
+      <div class="card">
+        <div class="card__icon">03</div>
+        <h4>Faster onboarding</h4>
+        <p>A working component library + visual contract is a better onboarding artifact than a wiki of design rules.</p>
+      </div>
+      <div class="card">
+        <div class="card__icon">04</div>
+        <h4>Documentation lives in the system</h4>
+        <p>Decision log, normalization tracker, DesignSystemMap. Not tribal knowledge. Cognizant inherits an asset, not a person.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─────────── COGNIZANT PARTICIPATION ─────────── -->
+<section>
+  <div class="container">
+    <div class="eyebrow">10 · How you participate</div>
+    <h2>Per feature, your role.</h2>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Stage</th>
+            <th>Your role</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Groom</td><td>Tech lead in the room</td></tr>
+          <tr><td>Design + prototype</td><td>Observer; async feedback welcome</td></tr>
+          <tr><td>Approval gate</td><td>Sign off on spec freeze</td></tr>
+          <tr><td>Port to Angular</td><td>Your team does it (AI-assisted), we pair on the first few</td></tr>
+          <tr><td>Backend wiring</td><td>You own fully</td></tr>
+          <tr><td>Ship</td><td>You own</td></tr>
+          <tr><td>Maintenance</td><td>Bugs route back to design, not patched directly</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout callout--rule">
+      <div class="callout__label">The frame</div>
+      <p class="callout__body">You are not a translator. You are the implementation owner against a locked design contract.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ─────────── PROJECT STRUCTURE ─────────── -->
+<section>
+  <div class="container">
+    <div class="eyebrow">11 · How the source is structured</div>
+    <h2>A clean monorepo, no exotic tooling.</h2>
+
+    <div class="tree">odyssey-one/
+├── apps/odyssey-one/        <span class="annot">← React app, 6 routes</span>
+│   ├── src/routes/          <span class="annot">← Home, Shipments, etc.</span>
+│   └── src/styles/          <span class="annot">← components.css (transfers)</span>
+├── packages/
+│   ├── ui/                  <span class="annot">← 28 normalized components (port these)</span>
+│   ├── tokens/tokens.css    <span class="annot">← Design tokens (transfers)</span>
+│   └── db/                  <span class="annot">← Data layer (your backend goes here)</span>
+├── playground/
+│   ├── DesignSystemMap.html <span class="annot">← Visual contract (transfers)</span>
+│   └── normalization-tracker.md
+└── shipments-documentation/ <span class="annot">← Domain analysis + decisions</span></div>
+
+    <div class="cards">
+      <div class="card">
+        <h4>Monorepo with workspaces</h4>
+        <p>Clean separation between tokens, shared UI, and apps. Standard npm workspaces — no exotic tooling required.</p>
+      </div>
+      <div class="card">
+        <h4>No Tailwind, no CSS-in-JS</h4>
+        <p>Pure CSS + design tokens. Directly consumable from any framework, including Angular.</p>
+      </div>
+      <div class="card">
+        <h4>Quality gate enforced</h4>
+        <p>Components don't enter <code>@odyssey/ui</code> until they pass <code>/normalize</code>. No raw values. No drift.</p>
+      </div>
+      <div class="card">
+        <h4>28 components, growing</h4>
+        <p>5 atoms, 13 molecules, 6 organisms — each documented, each visible in the DesignSystemMap.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─────────── MIGRATION TIMELINE ─────────── -->
+<section>
+  <div class="container">
+    <div class="eyebrow">12 · Migration timeline</div>
+    <h2>The one-time port.</h2>
+
+    <p class="lede">For Shipments + Home, ported into your Angular stack. After this, the design system library is in your stack permanently. Every new feature inherits it.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Phase</th>
+            <th class="num">Effort</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Port 28 components</td><td class="num">~5 dev-days</td></tr>
+          <tr><td>Port Home route</td><td class="num">1–2 dev-days</td></tr>
+          <tr><td>Port Shipments route</td><td class="num">2–3 dev-days</td></tr>
+          <tr><td>Angular Code Connect mappings</td><td class="num">~1 dev-day (parallel)</td></tr>
+          <tr><td>Integration into app shell + backend wiring</td><td class="num">~1 dev-week</td></tr>
+          <tr class="totals"><td>Total</td><td class="num">~2–3 dev-weeks</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>One Angular developer, AI-assisted. We'll pair on the first few components to establish the pattern.</p>
+  </div>
+</section>
+
+<!-- ─────────── DOCUMENTATION MAP ─────────── -->
+<section>
+  <div class="container">
+    <div class="eyebrow">13 · Documentation map</div>
+    <h2>JIRA stays project management. The design system stays canonical.</h2>
+
+    <p class="lede">JIRA tickets link to Figma masters, DSM sections, and decision-log entries. No design system documentation lives inside JIRA itself.</p>
+
+    <div class="table-wrap">
+      <table class="doc-table">
+        <thead>
+          <tr>
+            <th>Artifact</th>
+            <th>Lives in</th>
+            <th>Owner</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Requirements / user stories</td><td>JIRA</td><td>PM</td></tr>
+          <tr><td>Sprint planning + status</td><td>JIRA</td><td>PM / leads</td></tr>
+          <tr><td>Bug tickets</td><td>JIRA</td><td>QA / devs</td></tr>
+          <tr><td>Design source of truth</td><td>Figma library</td><td>Design team</td></tr>
+          <tr><td>Component specs + states</td><td>DesignSystemMap + Figma</td><td>Design team</td></tr>
+          <tr><td>Design tokens</td><td><code>packages/tokens/tokens.css</code></td><td>Design team</td></tr>
+          <tr><td>Decision log</td><td><code>decision-log.md</code></td><td>Design team</td></tr>
+          <tr><td>Domain analysis</td><td><code>shipments-documentation/</code></td><td>Design team + PM</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ─────────── MAINTENANCE RULE ─────────── -->
+<section>
+  <div class="container">
+    <div class="eyebrow">14 · The non-negotiable</div>
+    <h2>The maintenance rule.</h2>
+
+    <div class="callout callout--rule">
+      <div class="callout__label">Rule</div>
+      <p class="callout__body">All UI changes originate in React + Figma. Then port to Angular. Never patch only-Angular.</p>
+    </div>
+
+    <p>If this rule slips, the design system drifts and we lose every benefit within 6 months. This is the single most important governance decision in the proposal — and it protects both teams equally.</p>
+
+    <p>It is also the rule that earns the political bargain: in exchange for accepting it, Cognizant gets a faster, more consistent frontend pipeline that doesn't depend on any one person.</p>
+  </div>
+</section>
+
+<!-- ─────────── ASKS ─────────── -->
+<section>
+  <div class="container">
+    <div class="eyebrow">15 · What we're asking for</div>
+    <h2>To move this forward.</h2>
+
+    <ol class="asks">
+      <li><strong>Read access to your Angular repo.</strong> We need to understand version, state management, styling, PrimeNG patterns, and module conventions before we can scope the port precisely.</li>
+      <li><strong>A feature branch for a proof-of-concept port</strong> of 3–5 components — including one organism — running in your stack within the week.</li>
+      <li><strong>A 30-minute review session</strong> to walk through the proof and decide who carries the remaining components.</li>
+      <li><strong>The tech lead's name and time</strong> for the maintenance-rule conversation. Whoever owns long-term system integrity should sign off explicitly.</li>
+      <li><strong>Acceptance of the approval gate</strong> — once a feature is locked in React, no design changes without going back through the prototype.</li>
+    </ol>
+  </div>
+</section>
+
+<!-- ─────────── CLOSING CLAIM ─────────── -->
+<section class="claim">
+  <div class="container">
+    <div class="claim__eyebrow">16 · The case, restated</div>
+    <div class="claim__body">
+      <p>Today, every feature costs <em>5–10 dev-days</em>, with about half of that being rework driven by visual interpretation between Figma and code.</p>
+      <p>The proposed flow replaces that bridge with a validated React prototype and an AI-assisted port — reducing per-feature dev time by <em>60–70%</em>, eliminating visual rework, and producing a design system that doesn't drift over time.</p>
+      <p>One-time setup: <em>~1 dev-week</em>. Break-even: <em>feature 2</em>. Compounded savings: <em>~9 months of dev capacity</em> recovered across a typical year.</p>
+    </div>
+  </div>
+</section>
+
+</body>
+</html>

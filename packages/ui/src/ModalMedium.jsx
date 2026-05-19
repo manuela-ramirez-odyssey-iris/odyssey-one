@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { X } from 'lucide-react'
 import { ICON_LG } from '@odyssey/tokens'
+import IconButtonGhost from './IconButtonGhost.jsx'
 
 /**
  * ModalMedium — organism shell. 540-wide reusable modal with a header (title + close X),
@@ -38,14 +39,11 @@ export default function ModalMedium({
         <header className="modal-medium__header">
           <span className="text-heading-lg-semibold modal-medium__title">{title}</span>
           {onClose && (
-            <button
-              type="button"
-              className="modal-medium__close"
+            <IconButtonGhost
+              icon={<X {...ICON_LG} aria-hidden="true" />}
               onClick={onClose}
-              aria-label="Close"
-            >
-              <X {...ICON_LG} aria-hidden="true" />
-            </button>
+              ariaLabel="Close"
+            />
           )}
         </header>
         <div className="modal-medium__content">{children}</div>

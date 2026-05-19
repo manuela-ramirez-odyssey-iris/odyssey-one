@@ -2050,6 +2050,26 @@ function getBadgeComponentHTML() {
       '</div>' +
     '</div>' +
 
+    /* Sub-section: Favorite (NEW 2026-05-18 — circular green disc with centered Star) */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Favorite (preset variant — circular indicator)</div>' +
+      '<div class="comp-card-grid">' +
+        '<div class="comp-card">' +
+          /* Reuse a small wrapper to demonstrate the badge alone */
+          '<span style="display:inline-flex; align-items:center; justify-content:center; width:12px; height:12px; border-radius:var(--radius-full, 9999px); background:var(--caribbean-green-600, #237E70); color:var(--white, #fff); box-sizing:border-box;" aria-hidden="true">' +
+            '<svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>' +
+          '</span>' +
+          '<div class="comp-card-code">&lt;Badge variant="favorite" /&gt;</div>' +
+          '<div class="comp-card-note">' +
+            'Fixed <strong>12&times;12</strong> circular disc. Bg <code>--caribbean-green-600</code> (#237E70) &middot; radius <code>--radius-full</code> &middot; centered 8px lucide <code>Star</code> with <strong>both <code>fill</code> and <code>stroke</code> set to white</strong> (<code>strokeWidth=2</code>) &mdash; the doubled paint guarantees the star reads cleanly inside the tiny disc. No children, no icon, no dot &mdash; the variant short-circuits all other Badge wiring (returns its own <code>&lt;span&gt;</code> before the standard render path). Used as an overlay on a <code>CustomerRow</code> logo at <code>mode="list"</code> when <code>favorite={true}</code> &mdash; positioned absolutely at the icon container&rsquo;s bottom-right (<code>right:-2px; bottom:-2px</code>) so it overlaps the 2px ring.' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="comp-card-note" style="margin-top:10px; font-size:12.5px; color:#384253; line-height:1.55; background:#F7F8FA; border-left:3px solid #237E70; padding:10px 14px; border-radius:4px;">' +
+        '<strong>Why a Badge?</strong> The favorite indicator is logically a status badge &mdash; it tags a parent entity (a customer) with a binary state. Co-locating it as a Badge variant keeps the &ldquo;customer is favorited&rdquo; mark on one component family instead of growing a one-off <code>FavoriteDot</code> atom. The CustomerRow overlay simply wraps it in an absolute-positioned span; the Badge owns its own geometry and color.' +
+      '</div>' +
+    '</div>' +
+
     /* Props & Tokens — moved into modal */
     '<div class="comp-subsection">' +
       '<button class="comp-details-button" onclick="showCompDetails(\'Badge\')">Show props &amp; tokens</button>' +
@@ -3228,6 +3248,82 @@ function getIconButtonComponentHTML() {
   '</div>';
 }
 
+/* ── IconButtonGhost (atom) component reference HTML — NEW 2026-05-18 ── */
+function getIconButtonGhostComponentHTML() {
+  var codeChip = 'font-family:\'SF Mono\',\'Fira Code\',monospace; font-size:11px; background:#F3F4F6; padding:1px 5px; border-radius:3px; color:#6B7280;';
+
+  /* Lucide X (20px stroke 2) — the canonical close icon for modal + widget headers. */
+  var svgX = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>';
+
+  /* Forced-state cards. Idle = transparent, color text-tertiary.
+     Hover = DSN/100 bg, color text-secondary. Pressed = DSN/200 bg, color text-primary. */
+  function ghostBtn(state) {
+    var bg, color;
+    if (state === 'hover') {
+      bg = 'var(--deep-sea-neutral-100, #F2F3F5)';
+      color = 'var(--text-secondary, #384253)';
+    } else if (state === 'pressed') {
+      bg = 'var(--deep-sea-neutral-200, #E4E6EB)';
+      color = 'var(--text-primary, #1B2537)';
+    } else {
+      bg = 'transparent';
+      color = 'var(--text-tertiary, #6B7280)';
+    }
+    var btn = 'display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; padding:0; background:' + bg + '; color:' + color + '; border:none; border-radius:var(--radius-lg, 8px); cursor:default; box-sizing:border-box; transition:background var(--transition-fast, 150ms ease), color var(--transition-fast, 150ms ease);';
+    return '<button type="button" style="' + btn + '" aria-label="Close">' + svgX + '</button>';
+  }
+
+  return '' +
+  '<div class="comp-section">' +
+    '<div class="comp-section-title">IconButtonGhost <span class="comp-normalized-label">NORMALIZED</span></div>' +
+    '<div class="comp-section-subtitle">packages/ui/src/IconButtonGhost.jsx</div>' +
+    '<div style="font-size:13px; color:#6B7280; margin-bottom:18px; line-height:1.5;">Atom &mdash; 28&times;28 transparent-at-rest icon-only button. Surface fills on hover (DSN/100) and pressed (DSN/200); icon color brightens in lockstep (text-tertiary &rarr; text-secondary &rarr; text-primary). Used by modal close (<code>ModalLarge</code> / <code>ModalMedium</code>) and widget close (<code>Widget</code>) headers &mdash; cases where the close affordance shouldn&rsquo;t draw attention until interacted with. Polymorphic like <code>IconButton</code>: renders as <code>&lt;button&gt;</code> when <code>onClick</code> is provided, <code>&lt;span&gt;</code> otherwise.</div>' +
+
+    /* Sub-section: Interactive states */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Interactive states</div>' +
+      '<div class="comp-card-grid">' +
+        '<div class="comp-card">' +
+          ghostBtn('idle') +
+          '<div class="comp-card-code">Idle</div>' +
+          '<div class="comp-card-note">Bg <code>transparent</code> (recedes into the surface), color <code>--text-tertiary</code> (DSN/500). 28&times;28 surface, <code>--radius-lg</code> corners. No border, no shadow.</div>' +
+        '</div>' +
+        '<div class="comp-card">' +
+          ghostBtn('hover') +
+          '<div class="comp-card-code">:hover</div>' +
+          '<div class="comp-card-note">Bg fills with <code>--deep-sea-neutral-100</code> (DSN/100 #F2F3F5); color shifts to <code>--text-secondary</code> (DSN/700). The fill makes the button "land" on the surface; the icon brightens.</div>' +
+        '</div>' +
+        '<div class="comp-card">' +
+          ghostBtn('pressed') +
+          '<div class="comp-card-code">:active</div>' +
+          '<div class="comp-card-note">Bg darkens one more step to <code>--deep-sea-neutral-200</code> (DSN/200 #E4E6EB); color goes to <code>--text-primary</code> (DSN/900). Pressed = darkest state in the ladder.</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    /* Props & Tokens — modal */
+    '<div class="comp-subsection">' +
+      '<button class="comp-details-button" onclick="showCompDetails(\'IconButtonGhost\')">Show props &amp; tokens</button>' +
+    '</div>' +
+
+    /* Sub-section: Figma reference */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Figma Reference</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
+        'Component set <code style="' + codeChip + '">2138:304</code> on the <strong>Small Buttons</strong> artboard of Components-Atoms in <a href="https://www.figma.com/design/vodiHJU38YWZYmTz81uOk7/Design-System---MCP?node-id=2138-304" target="_blank" rel="noopener">Design System &mdash; MCP</a>. Three <code>State</code> variants (Idle / Hover / Pressed). INSTANCE_SWAP property <code style="' + codeChip + '">Icon</code> defaults to <code>placeholder-20</code> from Icons Placeholder &mdash; consumers always pass a real Lucide icon (e.g. <code>X</code> at <code>ICON_LG</code>). Surface paint, padding, and radius bound to <code>transparent</code> / <code>0</code> / <code>Radius/lg</code> at idle; Hover swaps fill to <code>Deep Sea Neutral/100</code>; Pressed swaps fill to <code>Deep Sea Neutral/200</code>.' +
+      '</div>' +
+    '</div>' +
+
+    /* Sub-section: Code Connect */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Code Connect</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
+        'Mapped via <code style="' + codeChip + '">packages/ui/src/IconButtonGhost.figma.tsx</code>. The <code>Icon</code> INSTANCE_SWAP maps to the <code>icon</code> ReactNode prop. State variants in Figma all render the same React snippet &mdash; visual state is CSS-only (<code>:hover</code> / <code>:active</code>).' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
 /* ── PageHeader (molecule) component reference HTML ── */
 function getPageHeaderComponentHTML() {
   var codeChip = 'font-family:\'SF Mono\',\'Fira Code\',monospace; font-size:11px; background:#F3F4F6; padding:1px 5px; border-radius:3px; color:#6B7280;';
@@ -3538,6 +3634,31 @@ function getSearchFieldComponentHTML() {
     '</div>';
   }
 
+  /* Build a SearchField demo with a `results` dropdown rendered below the input bar.
+     Mirrors how `Add Customers` modal renders search results inline below the bar. */
+  var handshakeSm = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m11 17 2 2a1 1 0 1 0 3-3"/><path d="m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4"/><path d="m21 3 1 11h-2"/><path d="M3 3 2 14l6.5 6.5a1 1 0 1 0 3-3"/><path d="M3 4h8"/></svg>';
+  function outlineStarSm() {
+    return '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
+  }
+  function resultsRow(label) {
+    return '<div class="sf-demo__results-row">' +
+      '<span class="sf-demo__results-row-info">' +
+        '<span class="sf-demo__results-row-icon" aria-hidden="true">' + handshakeSm + '</span>' +
+        '<span class="sf-demo__results-row-label">' + label + '</span>' +
+      '</span>' +
+      '<button type="button" class="sf-demo__results-row-star" aria-label="Favorite" aria-pressed="false">' + outlineStarSm() + '</button>' +
+    '</div>';
+  }
+  function fieldWithResults(value, placeholder, withClear, focused, headerHtml, rowsHtml) {
+    return '<div class="sf-demo__container">' +
+      field(value, placeholder, withClear, focused) +
+      '<div class="sf-demo__results">' +
+        (headerHtml ? '<div class="sf-demo__results-header">' + headerHtml + '</div>' : '') +
+        rowsHtml +
+      '</div>' +
+    '</div>';
+  }
+
   return '' +
   '<style>' +
     /* SearchField — mirror of .search-field in components.css.
@@ -3601,6 +3722,61 @@ function getSearchFieldComponentHTML() {
       'display: inline-flex; align-items: center; justify-content: center;' +
       'color: var(--text-tertiary, #6B7280);' +
     '}' +
+    /* Results slot — appears below the input bar. */
+    '.sf-demo__container {' +
+      'display: inline-flex; flex-direction: column;' +
+      'font-family: var(--font-primary, \'Inter\', sans-serif);' +
+    '}' +
+    '.sf-demo__results {' +
+      'margin-top: var(--spacing-1, 4px);' +
+      'background: var(--bg-primary, #FFFFFF);' +
+      'border: 1px solid var(--border-default, #D0D4DB);' +
+      'border-radius: var(--radius-md, 6px);' +
+      'box-shadow: var(--shadow-2xl, 0 25px 50px -12px rgba(0,0,0,0.25));' +
+      'max-height: 240px; overflow-y: auto;' +
+      'width: 280px;' +
+      'box-sizing: border-box;' +
+    '}' +
+    '.sf-demo__results-header {' +
+      'padding: var(--spacing-3, 12px) var(--spacing-4, 16px) var(--spacing-2, 8px);' +
+      'color: var(--text-tertiary, #6B7280);' +
+      'font-size: 12px; line-height: 16px; font-weight: 500;' +
+      'text-transform: uppercase; letter-spacing: 0.05em;' +
+    '}' +
+    /* Row — 40h Result-mode-style CustomerRow inside the dropdown. */
+    '.sf-demo__results-row {' +
+      'display: flex; align-items: center; justify-content: space-between;' +
+      'height: 40px;' +
+      'padding: var(--spacing-2, 8px) var(--spacing-4, 16px);' +
+      'cursor: pointer;' +
+      'transition: background var(--transition-fast, 150ms ease);' +
+    '}' +
+    '.sf-demo__results-row:hover { background: var(--bg-tertiary, #F2F3F5); }' +
+    '.sf-demo__results-row-info {' +
+      'display: inline-flex; align-items: center; min-width: 0;' +
+      'gap: var(--spacing-3, 12px);' +
+    '}' +
+    '.sf-demo__results-row-icon {' +
+      'display: inline-flex; align-items: center; justify-content: center;' +
+      'width: 24px; height: 24px;' +
+      'border: 2px solid var(--border-default, #D0D4DB);' +
+      'border-radius: var(--radius-full, 9999px);' +
+      'background: var(--bg-primary, #FFFFFF);' +
+      'color: var(--text-secondary, #384253);' +
+      'box-sizing: border-box; flex-shrink: 0;' +
+    '}' +
+    '.sf-demo__results-row-label {' +
+      'font-size: 14px; line-height: 20px; font-weight: 500;' +
+      'color: var(--text-secondary, #384253);' +
+      'white-space: nowrap; overflow: hidden; text-overflow: ellipsis;' +
+    '}' +
+    '.sf-demo__results-row-star {' +
+      'display: inline-flex; align-items: center; justify-content: center;' +
+      'width: 16px; height: 16px; padding: 0;' +
+      'border: none; background: transparent; cursor: pointer;' +
+      'color: var(--deep-sea-neutral-400, #9DA3B0);' +
+      'flex-shrink: 0;' +
+    '}' +
   '</style>' +
   '<div class="comp-section">' +
     '<div class="comp-section-title">SearchField <span class="comp-normalized-label">NORMALIZED</span></div>' +
@@ -3614,7 +3790,8 @@ function getSearchFieldComponentHTML() {
         '<code>--bg-primary</code> background, idle <code>1px solid --border-default</code> stroke, <code>--radius-md</code> corners, <code>--shadow-sm</code>. ' +
         '<strong>Focus state &mdash;</strong> stroke thickens to <code>2px solid --deep-sea-neutral-600</code> and the search icon shifts <code>--text-placeholder</code> &rarr; <code>--text-tertiary</code>. The input forces <code>outline: none; box-shadow: none</code> inline to suppress the browser&rsquo;s default focus ring &mdash; the wrapping border IS the focus affordance. ' +
         'Restyled 2026-05-12 to mirror the Shipments <code>TableControls</code> searchbar recipe. ' +
-        '<strong>Labeled variant (2026-05-13):</strong> setting <code>showLabel</code> stacks a Label row above the input bar (column flex, gap <code>--spacing-2</code>). The row carries a <code>--text-secondary</code> label and an optional <code>Info</code> icon (<code>--text-tertiary</code>). When <code>onInfoClick</code> is supplied the icon becomes a button; otherwise it&rsquo;s a decorative span. <code>showLabel</code> defaults to <code>false</code>, so existing call sites (e.g. <code>WidgetsLeftMenu</code>) keep their bare-input rendering untouched.' +
+        '<strong>Labeled variant (2026-05-13):</strong> setting <code>showLabel</code> stacks a Label row above the input bar (column flex, gap <code>--spacing-2</code>). The row carries a <code>--text-secondary</code> label and an optional <code>Info</code> icon (<code>--text-tertiary</code>). When <code>onInfoClick</code> is supplied the icon becomes a button; otherwise it&rsquo;s a decorative span. <code>showLabel</code> defaults to <code>false</code>, so existing call sites (e.g. <code>WidgetsLeftMenu</code>) keep their bare-input rendering untouched. ' +
+        '<strong>Results slot (2026-05-18):</strong> the new <code>results</code> ReactNode prop renders inside <code>.search-field__results</code> below the input bar &mdash; a bounded (max-height 240px), scrollable, shadowed dropdown intended for inline-list patterns (the Add Customers search-result row list, for instance). Both bare and labeled variants render the results slot &mdash; it appears as the final child either way.' +
       '</div>' +
       '<div class="comp-card-grid">' +
         '<div class="comp-card">' +
@@ -3637,6 +3814,11 @@ function getSearchFieldComponentHTML() {
           '<div class="comp-card-code">&lt;SearchField showLabel label="Label" showInfoIcon onChange={...} /&gt;</div>' +
           '<div class="comp-card-note"><strong>Labeled variant.</strong> <code>showLabel={true}</code> wraps the input bar in a column flex with a Label row above. <code>showInfoIcon</code> appends a 16px lucide <code>Info</code> next to the label. Pass <code>onInfoClick</code> to make it a button (else it&rsquo;s a decorative span). Label uses <code>text-label-sm-medium</code> in <code>--text-secondary</code>; icon uses <code>--text-tertiary</code>.</div>' +
         '</div>' +
+        '<div class="comp-card" style="min-width:320px;">' +
+          fieldWithResults('Acme', 'Search', true, true, 'Customers', resultsRow('Acme Corp') + resultsRow('Acme Holdings') + resultsRow('Acme Industries')) +
+          '<div class="comp-card-code">&lt;SearchField value="Acme" results={<em>resultsNode</em>} onChange={...} /&gt;</div>' +
+          '<div class="comp-card-note"><strong>Results slot.</strong> The optional <code>results</code> ReactNode prop renders below the input bar inside a <code>.search-field__results</code> wrapper: <code>--bg-primary</code> background, 1px <code>--border-default</code> stroke, <code>--radius-md</code> corners, <code>--shadow-2xl</code> for a "floating" feel, <code>max-height: 240px</code> + <code>overflow-y: auto</code>. The card demo shows a small UPPERCASE header ("Customers") followed by three Result-mode-style CustomerRows. The slot accepts any ReactNode, so consumers can supply an empty state, headers, or a custom inline list. Margin-top from the input bar = <code>--spacing-1</code> (4px).</div>' +
+        '</div>' +
       '</div>' +
     '</div>' +
 
@@ -3650,11 +3832,12 @@ function getSearchFieldComponentHTML() {
       '<div class="comp-subsection-title">Figma Reference</div>' +
       '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
         'Component <code style="' + codeChip + '">1959:76</code> in Design System &mdash; MCP (file <code style="' + codeChip + '">vodiHJU38YWZYmTz81uOk7</code>). ' +
-        'Properties (4 total): <code style="' + codeChip + '">Placeholder</code> TEXT (default <code>"Search"</code>) &rarr; <code>placeholder</code>; ' +
+        'Properties (5 total): <code style="' + codeChip + '">Placeholder</code> TEXT (default <code>"Search"</code>) &rarr; <code>placeholder</code>; ' +
         '<code style="' + codeChip + '">Show label</code> BOOLEAN (default <code>false</code>) &rarr; <code>showLabel</code>; ' +
         '<code style="' + codeChip + '">Label</code> TEXT (default <code>"Label"</code>) &rarr; <code>label</code>; ' +
-        '<code style="' + codeChip + '">Show info icon</code> BOOLEAN (default <code>false</code>) &rarr; <code>showInfoIcon</code>. ' +
-        'The three label-related properties were added 2026-05-13 to support filter-panel call sites where the input needs a header row.' +
+        '<code style="' + codeChip + '">Show info icon</code> BOOLEAN (default <code>false</code>) &rarr; <code>showInfoIcon</code>; ' +
+        '<code style="' + codeChip + '">Show results</code> BOOLEAN (default <code>false</code>, NEW 2026-05-18) &rarr; gates rendering of the <code>Results slot</code> child frame in Figma. In code the slot is implicit &mdash; pass any ReactNode to <code>results</code> to show it; pass <code>null</code> to hide it. ' +
+        'The three label-related properties were added 2026-05-13. The Results slot was added 2026-05-18 to support inline search-result patterns (Add Customers).' +
       '</div>' +
     '</div>' +
 
@@ -3662,7 +3845,7 @@ function getSearchFieldComponentHTML() {
     '<div class="comp-subsection">' +
       '<div class="comp-subsection-title">Code Connect</div>' +
       '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
-        'Mapped via <code style="' + codeChip + '">packages/ui/src/SearchField.figma.tsx</code>. <code>Placeholder</code> TEXT &rarr; <code>placeholder</code>; <code>Show label</code> BOOLEAN &rarr; <code>showLabel</code>; <code>Label</code> TEXT &rarr; <code>label</code>; <code>Show info icon</code> BOOLEAN &rarr; <code>showInfoIcon</code>. <code>onInfoClick</code> is a code-only prop (handlers are never expressed in Figma).' +
+        'Mapped via <code style="' + codeChip + '">packages/ui/src/SearchField.figma.tsx</code>. <code>Placeholder</code> TEXT &rarr; <code>placeholder</code>; <code>Show label</code> BOOLEAN &rarr; <code>showLabel</code>; <code>Label</code> TEXT &rarr; <code>label</code>; <code>Show info icon</code> BOOLEAN &rarr; <code>showInfoIcon</code>. <code>onInfoClick</code> and <code>results</code> are code-only (handlers and ReactNode slots are never expressed in Figma). The <code>Show results</code> BOOLEAN in Figma is a designer-only toggle for the wireframe.' +
       '</div>' +
     '</div>' +
   '</div>';
@@ -3780,47 +3963,84 @@ function getMenuRowComponentHTML() {
 function getCustomerRowComponentHTML() {
   var codeChip = 'font-family:\'SF Mono\',\'Fira Code\',monospace; font-size:11px; background:#F3F4F6; padding:1px 5px; border-radius:3px; color:#6B7280;';
 
-  /* Inline lucide icons. Handshake (16px) inside the icon container; Star + Trash2 (20px lg) as actions. */
-  var handshake = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m11 17 2 2a1 1 0 1 0 3-3"/><path d="m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4"/><path d="m21 3 1 11h-2"/><path d="M3 3 2 14l6.5 6.5a1 1 0 1 0 3-3"/><path d="M3 4h8"/></svg>';
-  /* Star — fill toggles between none (favorite=false) and currentColor (favorite=true). */
-  function starIcon(filled) {
-    var fill = filled ? 'currentColor' : 'none';
-    return '<svg width="20" height="20" viewBox="0 0 24 24" fill="' + fill + '" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
+  /* Lucide handshake at 20 (List mode) and 16 (Result mode). currentColor stroke. */
+  function handshakeSvg(size) {
+    return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m11 17 2 2a1 1 0 1 0 3-3"/><path d="m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4"/><path d="m21 3 1 11h-2"/><path d="M3 3 2 14l6.5 6.5a1 1 0 1 0 3-3"/><path d="M3 4h8"/></svg>';
   }
+  /* Star — fill toggles based on favorite. Result mode uses 16, List mode no longer uses Star. */
+  function starIcon(filled, size) {
+    var fill = filled ? 'currentColor' : 'none';
+    /* In result mode, when filled, the parent button gets a darker color (DSN/900) — we keep currentColor for fill, color set on the parent. */
+    return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="' + fill + '" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>';
+  }
+  /* Trash2 — used by List mode delete action. */
   var trash = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>';
 
-  /* Single CustomerRow demo. `favorite` toggles the star fill. */
-  function row(label, favorite) {
-    return '<div class="cr-demo">' +
+  /* Favorite Badge overlay — 12x12 Caribbean Green disc with centered 8px white Star. */
+  var favoriteBadge = '<span class="cr-demo__badge-overlay" aria-hidden="true">' +
+    '<span class="cr-demo__badge">' +
+      '<svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>' +
+    '</span>' +
+  '</span>';
+
+  /* List-mode row (48h) — 32x32 logo container with 20px icon, Trash action, optional Badge overlay. */
+  function listRow(label, favorite) {
+    return '<div class="cr-demo cr-demo--list">' +
       '<div class="cr-demo__info">' +
-        '<span class="cr-demo__icon-container" aria-hidden="true">' + handshake + '</span>' +
+        '<span class="cr-demo__icon-container cr-demo__icon-container--list" aria-hidden="true">' + handshakeSvg(20) + (favorite ? favoriteBadge : '') + '</span>' +
         '<span class="cr-demo__label">' + label + '</span>' +
       '</div>' +
       '<div class="cr-demo__actions">' +
-        '<button type="button" class="cr-demo__action" aria-label="' + (favorite ? 'Unfavorite' : 'Favorite') + '" aria-pressed="' + (favorite ? 'true' : 'false') + '">' + starIcon(favorite) + '</button>' +
         '<button type="button" class="cr-demo__action" aria-label="Delete">' + trash + '</button>' +
       '</div>' +
     '</div>';
   }
 
-  /* Stack 3 rows so the :last-child { border-bottom: none } rule is visible. */
+  /* Result-mode row (40h) — 24x24 logo container with 16px icon, Star toggle, no overlay, no bottom border. */
+  function resultRow(label, favorite) {
+    var starColorClass = favorite ? ' cr-demo__action--favorited' : '';
+    return '<div class="cr-demo cr-demo--result">' +
+      '<div class="cr-demo__info">' +
+        '<span class="cr-demo__icon-container cr-demo__icon-container--result" aria-hidden="true">' + handshakeSvg(16) + '</span>' +
+        '<span class="cr-demo__label">' + label + '</span>' +
+      '</div>' +
+      '<div class="cr-demo__actions">' +
+        '<button type="button" class="cr-demo__action cr-demo__action--star' + starColorClass + '" aria-label="' + (favorite ? 'Unfavorite' : 'Favorite') + '" aria-pressed="' + (favorite ? 'true' : 'false') + '">' + starIcon(favorite, 16) + '</button>' +
+      '</div>' +
+    '</div>';
+  }
+
+  /* Stack rows in a list container. */
   function rowList(rows) {
     return '<div class="cr-demo__list">' + rows.join('') + '</div>';
   }
 
   return '' +
   '<style>' +
-    /* CustomerRow — mirror of .customer-row in components.css.
-       48h row, justify-between, padding spacing-3, border-bottom subtle. */
+    /* CustomerRow — mirror of .customer-row in components.css. */
+    /* List mode (default) — 48h, padding spacing-2/spacing-3, border-bottom subtle. */
     '.cr-demo {' +
       'display: flex; align-items: center; justify-content: space-between;' +
-      'width: 360px; height: 48px;' +
-      'padding: var(--spacing-3, 12px);' +
-      'border-bottom: 1px solid var(--border-subtle, #E4E6EB);' +
+      'width: 360px;' +
       'box-sizing: border-box;' +
       'font-family: var(--font-primary, \'Inter\', sans-serif);' +
     '}' +
-    '.cr-demo:last-child { border-bottom: none; }' +
+    '.cr-demo--list {' +
+      'height: 48px;' +
+      'padding: var(--spacing-2, 8px) var(--spacing-3, 12px);' +
+      'border-bottom: 1px solid var(--border-subtle, #E4E6EB);' +
+    '}' +
+    '.cr-demo--list:last-child { border-bottom: none; }' +
+    /* Result mode — 40h, padding spacing-2/spacing-4, no bottom border, hover bg. */
+    '.cr-demo--result {' +
+      'height: 40px;' +
+      'padding: var(--spacing-2, 8px) var(--spacing-4, 16px);' +
+      'border-bottom: none;' +
+      'cursor: pointer;' +
+      'transition: background var(--transition-fast, 150ms ease);' +
+    '}' +
+    '.cr-demo--result:hover { background: var(--bg-tertiary, #F2F3F5); }' +
+    /* Container for stacked rows */
     '.cr-demo__list {' +
       'display: flex; flex-direction: column;' +
       'background: var(--bg-primary, #FFFFFF);' +
@@ -3834,10 +4054,11 @@ function getCustomerRowComponentHTML() {
       'gap: var(--spacing-3, 12px);' +
       'min-width: 0;' +
     '}' +
-    /* Icon container — 24x24, 2px DSN/300 ring, radius-full, white bg, centered 16px icon. */
+    /* Icon container — base styles. */
     '.cr-demo__icon-container {' +
+      'position: relative;' +
       'display: inline-flex; align-items: center; justify-content: center;' +
-      'width: 24px; height: 24px; padding: 0;' +
+      'padding: 0;' +
       'border: 2px solid var(--border-default, #D0D4DB);' +
       'border-radius: var(--radius-full, 9999px);' +
       'background: var(--bg-primary, #FFFFFF);' +
@@ -3845,19 +4066,40 @@ function getCustomerRowComponentHTML() {
       'box-sizing: border-box;' +
       'flex-shrink: 0;' +
     '}' +
+    /* List mode container — 32x32 with 20px icon */
+    '.cr-demo__icon-container--list { width: 32px; height: 32px; }' +
+    /* Result mode container — 24x24 with 16px icon */
+    '.cr-demo__icon-container--result { width: 24px; height: 24px; }' +
+    /* Badge overlay — absolutely positioned at icon container bottom-right */
+    '.cr-demo__badge-overlay {' +
+      'position: absolute;' +
+      'right: -2px; bottom: -2px;' +
+      'display: inline-flex;' +
+      'z-index: 1;' +
+    '}' +
+    /* The badge itself — mirrors Badge variant="favorite" */
+    '.cr-demo__badge {' +
+      'display: inline-flex; align-items: center; justify-content: center;' +
+      'width: 12px; height: 12px;' +
+      'border-radius: var(--radius-full, 9999px);' +
+      'background: var(--caribbean-green-600, #237E70);' +
+      'color: var(--white, #fff);' +
+      'flex-shrink: 0;' +
+      'box-sizing: border-box;' +
+    '}' +
     /* Label — text-label-sm-medium, text-secondary, ellipsis. */
     '.cr-demo__label {' +
       'font-size: 14px; line-height: 20px; font-weight: 500;' +
       'color: var(--text-secondary, #384253);' +
       'white-space: nowrap; overflow: hidden; text-overflow: ellipsis;' +
     '}' +
-    /* Actions cluster — Star + Trash, gap spacing-3. */
+    /* Actions cluster — Star and/or Trash. */
     '.cr-demo__actions {' +
       'display: flex; align-items: center;' +
       'gap: var(--spacing-3, 12px);' +
       'flex-shrink: 0;' +
     '}' +
-    /* Action button — 20x20 transparent slot, color ladder text-secondary → text-primary → text-placeholder. */
+    /* Action button — base 20x20 transparent slot, color ladder for List mode (Trash). */
     '.cr-demo__action {' +
       'display: inline-flex; align-items: center; justify-content: center;' +
       'width: 20px; height: 20px; padding: 0;' +
@@ -3867,6 +4109,14 @@ function getCustomerRowComponentHTML() {
     '}' +
     '.cr-demo__action:hover { color: var(--text-primary, #1B2537); }' +
     '.cr-demo__action:active { color: var(--text-placeholder, #9CA3AF); }' +
+    /* Result-mode star — 16x16 slot, outline color (DSN/400) at idle, fill (DSN/900) when favorited. */
+    '.cr-demo--result .cr-demo__action--star {' +
+      'width: 16px; height: 16px;' +
+      'color: var(--deep-sea-neutral-400, #9DA3B0);' +
+    '}' +
+    '.cr-demo--result .cr-demo__action--star.cr-demo__action--favorited {' +
+      'color: var(--deep-sea-neutral-900, #1B2537);' +
+    '}' +
   '</style>' +
   '<div class="comp-section">' +
     '<div class="comp-section-title">CustomerRow <span class="comp-normalized-label">NORMALIZED</span></div>' +
@@ -3876,23 +4126,35 @@ function getCustomerRowComponentHTML() {
     '<div class="comp-subsection">' +
       '<div class="comp-subsection-title">Anatomy</div>' +
       '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6; margin-bottom:14px;">' +
-        '48h horizontal row used inside selector lists (e.g. the <strong>Add Customers</strong> modal). Two clusters: ' +
-        '<strong>(left)</strong> a 24&times;24 icon container (2px <code>--border-default</code> ring, <code>--radius-full</code>, <code>--bg-primary</code> fill) housing a centered 16px lucide icon (default <code>Handshake</code>, swappable via <code>icon</code> prop) + a label using <code>.text-label-sm-medium</code> in <code>--text-secondary</code>; ' +
-        '<strong>(right)</strong> two 20&times;20 action buttons &mdash; <code>Star</code> (toggles <code>fill="currentColor"</code> when <code>favorite=true</code>) and <code>Trash2</code>. ' +
-        '<strong>Border-bottom <code>--border-subtle</code>;</strong> <code>:last-child { border-bottom: none }</code> handles list-end automatically (no consumer effort needed). ' +
-        '<strong>Color ladder on actions:</strong> idle <code>--text-secondary</code> &rarr; hover <code>--text-primary</code> &rarr; pressed <code>--text-placeholder</code>, both Star and Trash share the same ladder. ' +
-        'Figma exposes two variants on the <code>Favorite</code> axis (False / True) which drive the star fill &mdash; React maps this to the <code>favorite</code> prop.' +
+        '<strong>Two modes</strong> on the <code>mode</code> prop, crossed with the <code>favorite</code> boolean (4 visual variants total in Figma). ' +
+        '<strong>List mode (default)</strong> &mdash; 48h selected-list row used in the Add Customers picker&rsquo;s selected column. 32&times;32 logo container (2px <code>--border-default</code> ring, <code>--radius-full</code>, <code>--bg-primary</code> fill) housing a centered 20px lucide <code>Handshake</code>. Label uses <code>.text-label-sm-medium</code> in <code>--text-secondary</code>. ' +
+        '<strong>Right action is Trash only</strong> &mdash; the Star toggle was removed from List mode (favoriting happens upstream in Result mode). When <code>favorite=true</code>, a <code>&lt;Badge variant="favorite" /&gt;</code> renders as an absolute-positioned overlay at the logo&rsquo;s bottom-right (<code>right:-2px; bottom:-2px</code>). Border-bottom <code>--border-subtle</code>; <code>:last-child { border-bottom: none }</code>. ' +
+        '<strong>Result mode</strong> &mdash; 40h search-dropdown row used inside the Add Customers search results dropdown. 24&times;24 logo container with 16px <code>Handshake</code>, label, no bottom border, hover bg <code>--bg-tertiary</code>. Right action is a 16&times;16 Star toggle &mdash; outline <code>--deep-sea-neutral-400</code> at idle (favorite=false), filled <code>--deep-sea-neutral-900</code> at favorite=true. No badge overlay in Result mode (the filled Star communicates the state directly).' +
       '</div>' +
       '<div class="comp-card-grid">' +
+        /* List mode, Favorite=False */
         '<div class="comp-card" style="min-width:400px;">' +
-          rowList([row('Acme Corp', false), row('Globex Holdings', false), row('Initech Logistics', false)]) +
-          '<div class="comp-card-code">&lt;CustomerRow label="Acme Corp" favorite={false} onFavoriteToggle={...} onDelete={...} /&gt;</div>' +
-          '<div class="comp-card-note"><strong>Favorite = false (default).</strong> Star renders with <code>fill="none"</code> (outline only) using lucide&rsquo;s stroke. The bottom row demonstrates the <code>:last-child</code> rule &mdash; its border-bottom is suppressed automatically. Hover any star/trash to verify the <code>--text-secondary</code> &rarr; <code>--text-primary</code> ladder; hold mousedown for <code>--text-placeholder</code>.</div>' +
+          rowList([listRow('Acme Corp', false), listRow('Globex Holdings', false), listRow('Initech Logistics', false)]) +
+          '<div class="comp-card-code">&lt;CustomerRow mode="list" label="Acme Corp" favorite={false} onDelete={...} /&gt;</div>' +
+          '<div class="comp-card-note"><strong>List mode &middot; Favorite = false.</strong> 48h rows with 32&times;32 logo container (20px Handshake). Right action is Trash only. The last row demonstrates the <code>:last-child { border-bottom: none }</code> rule.</div>' +
         '</div>' +
+        /* List mode, Favorite=True (with Badge overlay) */
         '<div class="comp-card" style="min-width:400px;">' +
-          rowList([row('Acme Corp', true), row('Globex Holdings', true), row('Initech Logistics', false)]) +
-          '<div class="comp-card-code">&lt;CustomerRow label="..." favorite={true} ... /&gt;</div>' +
-          '<div class="comp-card-note"><strong>Favorite = true.</strong> Star renders with <code>fill="currentColor"</code> &mdash; the fill inherits whatever <code>color</code> the action button currently exposes (text-secondary idle &rarr; text-primary hover), so the filled state still follows the color ladder. Mixed list shows two favorited rows above one non-favorited.</div>' +
+          rowList([listRow('Acme Corp', true), listRow('Globex Holdings', true), listRow('Initech Logistics', false)]) +
+          '<div class="comp-card-code">&lt;CustomerRow mode="list" label="..." favorite={true} onDelete={...} /&gt;</div>' +
+          '<div class="comp-card-note"><strong>List mode &middot; Favorite = true.</strong> When <code>favorite=true</code>, the logo container gains a <code>&lt;Badge variant="favorite" /&gt;</code> overlay at its bottom-right corner (12&times;12 Caribbean Green disc with a centered 8px white Star). The bottom row keeps <code>favorite=false</code> for contrast &mdash; same row geometry, no overlay.</div>' +
+        '</div>' +
+        /* Result mode, Favorite=False (outline star) */
+        '<div class="comp-card" style="min-width:400px;">' +
+          rowList([resultRow('Acme Corp', false), resultRow('Globex Holdings', false), resultRow('Initech Logistics', false)]) +
+          '<div class="comp-card-code">&lt;CustomerRow mode="result" label="..." favorite={false} onFavoriteToggle={...} onClick={...} /&gt;</div>' +
+          '<div class="comp-card-note"><strong>Result mode &middot; Favorite = false.</strong> 40h rows with 24&times;24 logo container (16px Handshake). Right action is a 16&times;16 outline Star (<code>fill="none"</code>, color <code>--deep-sea-neutral-400</code>). No bottom border; the row itself is clickable (hover bg <code>--bg-tertiary</code>) &mdash; clicking the row fires <code>onClick</code>, clicking the Star fires <code>onFavoriteToggle</code> with <code>e.stopPropagation()</code>.</div>' +
+        '</div>' +
+        /* Result mode, Favorite=True (filled star) */
+        '<div class="comp-card" style="min-width:400px;">' +
+          rowList([resultRow('Acme Corp', true), resultRow('Globex Holdings', true), resultRow('Initech Logistics', false)]) +
+          '<div class="comp-card-code">&lt;CustomerRow mode="result" label="..." favorite={true} onFavoriteToggle={...} /&gt;</div>' +
+          '<div class="comp-card-note"><strong>Result mode &middot; Favorite = true.</strong> Star renders with <code>fill="currentColor"</code> and the button color shifts to <code>--deep-sea-neutral-900</code> &mdash; the filled glyph reads dark against the surface. <code>aria-pressed</code> tracks the favorite state; the third row (favorite=false) shows the contrast.</div>' +
         '</div>' +
       '</div>' +
     '</div>' +
@@ -3907,9 +4169,10 @@ function getCustomerRowComponentHTML() {
       '<div class="comp-subsection-title">Figma Reference</div>' +
       '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
         'Component set <code style="' + codeChip + '">2029:461</code> in Design System &mdash; MCP, under Components-Molecules. ' +
-        'Variant axis <code style="' + codeChip + '">Favorite</code> = <code>False</code> | <code>True</code> drives the star fill. ' +
+        '<strong>Two variant axes</strong> (2026-05-18): <code style="' + codeChip + '">Mode</code> = <code>List</code> | <code>Result</code> &times; <code style="' + codeChip + '">Favorite</code> = <code>False</code> | <code>True</code> &mdash; 4 variants total. ' +
+        '<code>Mode</code> maps to the React <code>mode</code> prop and drives row height + logo size + right action (Trash vs Star). <code>Favorite</code> drives the badge overlay (List mode) and the Star fill (Result mode). ' +
         'TEXT property <code style="' + codeChip + '">Label</code> &rarr; <code>label</code> prop. ' +
-        'INSTANCE_SWAP property <code style="' + codeChip + '">Icon</code> defaults to the 16px <code>Handshake</code> master from the Icons frame &rarr; <code>icon</code> prop (omit to use the default).' +
+        'INSTANCE_SWAP property <code style="' + codeChip + '">Icon</code> defaults to the <code>Handshake</code> master (20px in List, 16px in Result) &rarr; <code>icon</code> prop (omit to use the default).' +
       '</div>' +
     '</div>' +
 
@@ -3917,7 +4180,7 @@ function getCustomerRowComponentHTML() {
     '<div class="comp-subsection">' +
       '<div class="comp-subsection-title">Code Connect</div>' +
       '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
-        'Mapped via <code style="' + codeChip + '">packages/ui/src/CustomerRow.figma.tsx</code>. <strong>2 <code>figma.connect()</code> blocks</strong> &mdash; one per Favorite variant. Both blocks map <code>Label</code> TEXT &rarr; <code>label</code>; the variant key sets <code>favorite={true|false}</code> directly in the rendered snippet. Action handlers (<code>onFavoriteToggle</code>, <code>onDelete</code>) are code-only props.' +
+        'Mapped via <code style="' + codeChip + '">packages/ui/src/CustomerRow.figma.tsx</code>. <strong>One <code>figma.connect()</code> per variant</strong> &mdash; the variant key in each block sets <code>mode</code> and <code>favorite</code> directly in the rendered snippet (no <code>state</code> prop needed). Both action handlers (<code>onFavoriteToggle</code>, <code>onDelete</code>) and the row-click handler (<code>onClick</code>) are code-only props.' +
       '</div>' +
     '</div>' +
   '</div>';
@@ -5571,6 +5834,70 @@ function getWidgetVariantPickerComponentHTML() {
   '</div>';
 }
 
+/* ── EmptyState (atom) component reference HTML — NEW 2026-05-18 ── */
+function getEmptyStateComponentHTML() {
+  var codeChip = 'font-family:\'SF Mono\',\'Fira Code\',monospace; font-size:11px; background:#F3F4F6; padding:1px 5px; border-radius:3px; color:#6B7280;';
+
+  /* Lucide Handshake at 32px stroke 2 — matches Home.jsx home-customers-empty usage. */
+  var handshake32 = '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m11 17 2 2a1 1 0 1 0 3-3"/><path d="m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4"/><path d="m21 3 1 11h-2"/><path d="M3 3 2 14l6.5 6.5a1 1 0 1 0 3-3"/><path d="M3 4h8"/></svg>';
+
+  /* Tile demo — 200px wide DSN/100 surface, padding spacing-6, gap spacing-2, centered icon + message. */
+  function tile(iconHtml, messageText) {
+    var tileCss = 'display:flex; flex-direction:column; align-items:center; justify-content:center; gap:var(--spacing-2, 8px); padding:var(--spacing-6, 24px); width:200px; background:var(--deep-sea-neutral-100, #F2F3F5); border-radius:var(--radius-lg, 8px); color:var(--text-placeholder, #9DA3B0); text-align:center; box-sizing:border-box; font-family:var(--font-primary, \'Inter\', sans-serif);';
+    var iconCss = 'display:inline-flex;';
+    var msgCss = 'font-size:12px; line-height:16px; font-weight:400;';
+    return '<div style="' + tileCss + '">' +
+      '<span style="' + iconCss + '">' + iconHtml + '</span>' +
+      '<span style="' + msgCss + '">' + messageText + '</span>' +
+    '</div>';
+  }
+
+  return '' +
+  '<div class="comp-section">' +
+    '<div class="comp-section-title">EmptyState <span class="comp-normalized-label">NORMALIZED</span></div>' +
+    '<div class="comp-section-subtitle">packages/ui/src/EmptyState.jsx</div>' +
+    '<div style="font-size:13px; color:#6B7280; margin-bottom:18px; line-height:1.5;">Atom &mdash; centered icon over a help message on a <code>--deep-sea-neutral-100</code> surface with <code>--radius-lg</code> corners. Use when a list, search result, or data view has no content yet. The icon is fully consumer-provided (pass any Lucide icon at any size); the message is a single text node styled with <code>text-label-xs-regular</code> in <code>--text-placeholder</code>. Both <code>icon</code> and <code>message</code> are optional &mdash; the component renders an empty surface if neither is provided, but the design intent is always to show both.</div>' +
+
+    /* Sub-section: Default */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Default usage</div>' +
+      '<div class="comp-card-grid">' +
+        '<div class="comp-card" style="min-width:240px;">' +
+          tile(handshake32, 'No customer has been selected yet.') +
+          '<div class="comp-card-code">&lt;EmptyState icon={&lt;Handshake size={32} /&gt;} message="No customer has been selected yet." /&gt;</div>' +
+          '<div class="comp-card-note"><strong>Add Customers modal &mdash; selected column.</strong> This is the exact render from <code>Home.jsx</code> (<code>home-customers-empty</code>) when the user has no customer selected yet. 32px <code>Handshake</code> over the message. Icon and message share the <code>--text-placeholder</code> color via the wrapper&rsquo;s <code>color</code> &mdash; icons inherit through <code>currentColor</code>, message via the wrapper&rsquo;s text color.</div>' +
+        '</div>' +
+        '<div class="comp-card" style="min-width:240px;">' +
+          tile(handshake32, 'No results match “Acme”.') +
+          '<div class="comp-card-code">&lt;EmptyState icon={&lt;Handshake size={32} /&gt;} message="No results match “Acme”." /&gt;</div>' +
+          '<div class="comp-card-note"><strong>Reused for search-empty.</strong> Same atom &mdash; only the message changes. The DSM demo width is fixed at 200px to match the Home consumer; in production the atom is fluid and fills its parent.</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    /* Props & Tokens — modal */
+    '<div class="comp-subsection">' +
+      '<button class="comp-details-button" onclick="showCompDetails(\'EmptyState\')">Show props &amp; tokens</button>' +
+    '</div>' +
+
+    /* Sub-section: Figma reference */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Figma Reference</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
+        'Component <code style="' + codeChip + '">2159:295</code> on the <strong>Panels</strong> artboard of Components-Atoms in <a href="https://www.figma.com/design/vodiHJU38YWZYmTz81uOk7/Design-System---MCP?node-id=2159-295" target="_blank" rel="noopener">Design System &mdash; MCP</a>. INSTANCE_SWAP property for <code>Icon</code> (default placeholder; consumers swap to a real Lucide icon at the size that fits their context). TEXT property <code>Message</code> &rarr; <code>message</code> prop. Surface paint bound to <code>Deep Sea Neutral/100</code>; padding bound to <code>Spacing/6</code>; gap bound to <code>Spacing/2</code>; border radius bound to <code>Radius/lg</code>; text color bound to <code>Text/Placeholder</code>.' +
+      '</div>' +
+    '</div>' +
+
+    /* Sub-section: Code Connect */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Code Connect</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
+        'Mapped via <code style="' + codeChip + '">packages/ui/src/EmptyState.figma.tsx</code>. <code>Icon</code> INSTANCE_SWAP &rarr; <code>icon</code> ReactNode; <code>Message</code> TEXT &rarr; <code>message</code> string.' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
 /* ── ModalLarge (organism shell) component reference HTML ── */
 function getModalLargeComponentHTML() {
   var codeChip = 'font-family:\'SF Mono\',\'Fira Code\',monospace; font-size:11px; background:#F3F4F6; padding:1px 5px; border-radius:3px; color:#6B7280;';
@@ -6436,11 +6763,11 @@ var compDetails = {
       '<table class="comp-table">' +
         '<thead><tr><th>Prop</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>' +
         '<tbody>' +
-          '<tr><td><code>variant</code></td><td>string</td><td><code>"blue"</code></td><td>Color variant: amber, blue, green, red, purple, gray, <strong>notification</strong> (preset: solid red dot), <strong>metric</strong> (preset: inline numeric pill, parent-overridable bg)</td></tr>' +
-          '<tr><td><code>leftIcon</code></td><td>ReactNode</td><td>&mdash;</td><td>Optional leading icon. Suppressed in <code>metric</code> variant.</td></tr>' +
-          '<tr><td><code>rightIcon</code></td><td>ReactNode</td><td>&mdash;</td><td>Optional trailing icon. Suppressed in <code>metric</code> variant.</td></tr>' +
-          '<tr><td><code>statusDot</code></td><td>boolean</td><td><code>false</code></td><td>Animated 6x6 status dot on the left. Suppressed in <code>metric</code> variant.</td></tr>' +
-          '<tr><td><code>children</code></td><td>ReactNode</td><td>&mdash;</td><td>Badge text content. For <code>variant="notification"</code> or <code>variant="metric"</code>, typically a count number.</td></tr>' +
+          '<tr><td><code>variant</code></td><td>string</td><td><code>"blue"</code></td><td>Color variant: amber, blue, green, red, purple, gray, <strong>notification</strong> (preset: solid red dot), <strong>metric</strong> (preset: inline numeric pill, parent-overridable bg), <strong>favorite</strong> (preset: 12&times;12 Caribbean Green circular disc with a centered 8px white Star &mdash; iconless / dotless; suppresses <code>children</code>, <code>leftIcon</code>, <code>rightIcon</code>, <code>statusDot</code>). <em>The Figma master <code>Variant=favorite</code> sits at <code>2096:294</code> inside the Badge set <code>213:27</code>.</em></td></tr>' +
+          '<tr><td><code>leftIcon</code></td><td>ReactNode</td><td>&mdash;</td><td>Optional leading icon. Suppressed in <code>metric</code> and <code>favorite</code> variants.</td></tr>' +
+          '<tr><td><code>rightIcon</code></td><td>ReactNode</td><td>&mdash;</td><td>Optional trailing icon. Suppressed in <code>metric</code> and <code>favorite</code> variants.</td></tr>' +
+          '<tr><td><code>statusDot</code></td><td>boolean</td><td><code>false</code></td><td>Animated 6x6 status dot on the left. Suppressed in <code>metric</code> and <code>favorite</code> variants.</td></tr>' +
+          '<tr><td><code>children</code></td><td>ReactNode</td><td>&mdash;</td><td>Badge text content. For <code>variant="notification"</code> or <code>variant="metric"</code>, typically a count number. <code>favorite</code> ignores <code>children</code> entirely.</td></tr>' +
         '</tbody>' +
       '</table>',
     tokens:
@@ -6464,6 +6791,14 @@ var compDetails = {
           '<tr><td>Metric &mdash; typography</td><td><code>text-label-xs-semibold</code></td><td>12 / 16 / 600, tabular-nums</td></tr>' +
           '<tr><td>Metric &mdash; icons / dot</td><td>suppressed</td><td>Iconless pill &mdash; <code>leftIcon</code>, <code>rightIcon</code>, <code>statusDot</code> are all ignored when <code>variant="metric"</code>.</td></tr>' +
           '<tr><td>Metric &mdash; transition</td><td><code>background var(--transition-fast)</code></td><td>150ms ease &mdash; smooths the parent-driven bg darken inside WidgetMetricRow.</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Favorite variant (2026-05-18)</td></tr>' +
+          '<tr><td>Favorite &mdash; size</td><td>12 &times; 12 (raw)</td><td>fixed circular disc</td></tr>' +
+          '<tr><td>Favorite &mdash; background</td><td><code>--caribbean-green-600</code></td><td>#237E70</td></tr>' +
+          '<tr><td>Favorite &mdash; border radius</td><td><code>--radius-full</code></td><td>9999px</td></tr>' +
+          '<tr><td>Favorite &mdash; inner icon</td><td>lucide <code>Star</code> at <code>size=8</code></td><td>centered via inline-flex</td></tr>' +
+          '<tr><td>Favorite &mdash; star fill / stroke</td><td>both <code>currentColor</code> with <code>strokeWidth=2</code></td><td>fill + stroke set to white via <code>color: var(--white)</code> on the wrapper. Both paints ensure crisp legibility at 8px.</td></tr>' +
+          '<tr><td>Favorite &mdash; suppressed props</td><td><code>children</code> / <code>leftIcon</code> / <code>rightIcon</code> / <code>statusDot</code></td><td>The <code>isFavorite</code> branch in <code>Badge.jsx</code> returns its own <code>&lt;span&gt;</code> before the standard render path &mdash; no padding, gap, or label logic runs.</td></tr>' +
+          '<tr><td>Favorite &mdash; a11y</td><td><code>aria-hidden="true"</code></td><td>decorative indicator; the parent context (e.g. <code>CustomerRow</code> at <code>mode="list"</code>) communicates the favorite state semantically via its Star button&rsquo;s <code>aria-pressed</code>.</td></tr>' +
         '</tbody>' +
       '</table>'
   },
@@ -6703,6 +7038,48 @@ var compDetails = {
           /* Icon slot */
           '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Icon slot</td></tr>' +
           '<tr><td>Default (Figma INSTANCE_SWAP)</td><td><code>placeholder-16</code> from Icons Placeholder</td><td>16&times;16</td></tr>' +
+        '</tbody>' +
+      '</table>'
+  },
+  IconButtonGhost: {
+    props:
+      '<table class="comp-table">' +
+        '<thead><tr><th>Prop</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>' +
+        '<tbody>' +
+          '<tr style="background:#F7F8FA;"><td colspan="4" style="font-style:italic; color:#384253;"><strong>vs IconButton.</strong> IconButtonGhost is the inverted-ladder cousin of <code>IconButton</code>: 28&times;28 instead of 24&times;24, <code>--radius-lg</code> instead of <code>--radius-full</code>, transparent at idle (no shadow, no border) instead of white surface with shadow. It recedes into its host until interacted with &mdash; the visual opposite of IconButton&rsquo;s always-present "lifted" affordance. Use for close-or-clear actions where the button should be discoverable but not visually demanding (modal X, widget X, etc.).</td></tr>' +
+          '<tr><td><code>icon</code></td><td>ReactNode</td><td>&mdash; (required)</td><td>Icon element rendered inside the button. Color inherits via <code>currentColor</code>. Maps to Figma <code>Icon</code> INSTANCE_SWAP (default <code>placeholder-20</code>). Consumers always pass a real Lucide icon at <code>ICON_LG</code> (20px).</td></tr>' +
+          '<tr><td><code>onClick</code></td><td>() =&gt; void</td><td>&mdash;</td><td>Click handler. <strong>When provided, renders as a <code>&lt;button&gt;</code> and gains hover / pressed states.</strong> Without <code>onClick</code>, renders as <code>&lt;span&gt;</code> (decorative).</td></tr>' +
+          '<tr><td><code>ariaLabel</code></td><td>string</td><td>&mdash;</td><td>Accessible label for the button (icon-only buttons must provide one). When the button is decorative (no <code>onClick</code>) and no <code>ariaLabel</code> is provided, the span gets <code>aria-hidden="true"</code>.</td></tr>' +
+          '<tr><td><code>className</code></td><td>string</td><td>&mdash;</td><td>Optional class for consumer-side overrides.</td></tr>' +
+          '<tr><td><code>...props</code></td><td>HTMLButtonAttrs / HTMLSpanAttrs</td><td>&mdash;</td><td>Spreads to the underlying element.</td></tr>' +
+        '</tbody>' +
+      '</table>',
+    tokens:
+      '<table class="comp-table">' +
+        '<thead><tr><th>Area / Property</th><th>Token / Value</th><th>Resolved</th></tr></thead>' +
+        '<tbody>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Sizing</td></tr>' +
+          '<tr><td>Surface</td><td>28 &times; 28 (raw)</td><td>&mdash;</td></tr>' +
+          '<tr><td>Padding</td><td>0</td><td>icon centers via inline-flex</td></tr>' +
+          '<tr><td>Icon size</td><td><code>--icon-size-lg</code></td><td>20px (consumer-provided lucide at ICON_LG)</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Surface (state ladder)</td></tr>' +
+          '<tr><td>Background &mdash; Idle</td><td><code>transparent</code></td><td>&mdash;</td></tr>' +
+          '<tr><td>Background &mdash; Hover</td><td><code>--deep-sea-neutral-100</code></td><td>#F2F3F5</td></tr>' +
+          '<tr><td>Background &mdash; Pressed</td><td><code>--deep-sea-neutral-200</code></td><td>#E4E6EB</td></tr>' +
+          '<tr><td>Border</td><td>none (all states)</td><td>no border across the ladder</td></tr>' +
+          '<tr><td>Shadow</td><td>none (all states)</td><td>no shadow across the ladder</td></tr>' +
+          '<tr><td>Radius</td><td><code>--radius-lg</code></td><td>8px</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Icon color (state ladder)</td></tr>' +
+          '<tr><td>Color &mdash; Idle</td><td><code>--text-tertiary</code></td><td>DSN/500 #6B7280</td></tr>' +
+          '<tr><td>Color &mdash; Hover</td><td><code>--text-secondary</code></td><td>DSN/700 #384253</td></tr>' +
+          '<tr><td>Color &mdash; Pressed</td><td><code>--text-primary</code></td><td>DSN/900 #1B2537</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Transitions</td></tr>' +
+          '<tr><td><code>background</code>, <code>color</code></td><td><code>--transition-fast</code></td><td>150ms ease</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Icon slot</td></tr>' +
+          '<tr><td>Default (Figma INSTANCE_SWAP)</td><td><code>placeholder-20</code> from Icons Placeholder</td><td>20&times;20</td></tr>' +
+          '<tr><td>Color binding</td><td><code>currentColor</code></td><td>icons inherit the wrapper&rsquo;s color across all three states</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">CSS location</td></tr>' +
+          '<tr><td>Rules</td><td><code>.icon-button-ghost*</code> in <code>apps/odyssey-one/src/styles/components.css</code></td><td>around line 718 block (defined just below <code>.empty-state*</code>)</td></tr>' +
         '</tbody>' +
       '</table>'
   },
@@ -7050,6 +7427,7 @@ var compDetails = {
           '<tr><td><code>label</code></td><td>string</td><td><code>"Label"</code></td><td><em>NEW 2026-05-13.</em> Text rendered in the label row (only when <code>showLabel</code>). Maps to Figma <code>Label</code> TEXT.</td></tr>' +
           '<tr><td><code>showInfoIcon</code></td><td>boolean</td><td><code>false</code></td><td><em>NEW 2026-05-13.</em> When <code>true</code> AND <code>showLabel</code> is true, renders a lucide <code>Info</code> icon (16px) at the end of the label row. Maps to Figma <code>Show info icon</code> BOOLEAN.</td></tr>' +
           '<tr><td><code>onInfoClick</code></td><td>() =&gt; void</td><td>&mdash;</td><td><em>NEW 2026-05-13. Code-only.</em> When provided AND <code>showInfoIcon</code> is true, the info icon becomes a <code>&lt;button&gt;</code> firing this handler. When omitted, the icon renders as a decorative <code>&lt;span aria-hidden&gt;</code>.</td></tr>' +
+          '<tr><td><code>results</code></td><td>ReactNode</td><td><code>null</code></td><td><em>NEW 2026-05-18.</em> Optional dropdown content rendered below the input bar inside a <code>.search-field__results</code> wrapper (max-height 240px, scrollable, shadowed). Pass any ReactNode &mdash; consumers typically pass a list of <code>CustomerRow mode="result"</code> instances + an optional header. Pass <code>null</code> (or omit) to hide. The Figma master exposes a <code>Show results</code> BOOLEAN that gates the corresponding <code>Results slot</code> child frame; in code the prop&rsquo;s truthiness IS the gate (no separate boolean needed).</td></tr>' +
           '<tr><td><code>className</code></td><td>string</td><td><code>""</code></td><td>Appended to the outermost wrapper (input bar in default mode; column wrapper in labeled mode).</td></tr>' +
           '<tr><td><code>...rest</code></td><td>HTMLDivAttrs</td><td>&mdash;</td><td>Spread onto the outermost wrapper.</td></tr>' +
         '</tbody>' +
@@ -7089,6 +7467,18 @@ var compDetails = {
           '<tr><td>Clear icon</td><td><code>--text-tertiary</code></td><td>DSN/500 #6B7280</td></tr>' +
           '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Transitions</td></tr>' +
           '<tr><td>Border color / icon color</td><td><code>--transition-fast</code></td><td>150ms ease</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Results slot (2026-05-18)</td></tr>' +
+          '<tr><td>Wrapper class</td><td><code>.search-field__results</code></td><td>rendered when <code>results</code> is truthy</td></tr>' +
+          '<tr><td>Margin-top (from input bar)</td><td><code>--spacing-1</code></td><td>4px</td></tr>' +
+          '<tr><td>Background</td><td><code>--bg-primary</code></td><td>#FFFFFF</td></tr>' +
+          '<tr><td>Border</td><td>1px solid <code>--border-default</code></td><td>DSN/300 #D0D4DB</td></tr>' +
+          '<tr><td>Border radius</td><td><code>--radius-md</code></td><td>6px</td></tr>' +
+          '<tr><td>Shadow</td><td><code>--shadow-2xl</code></td><td>0 25px 50px -12px rgba(0,0,0,0.25) &mdash; "floating" dropdown feel</td></tr>' +
+          '<tr><td>Max height</td><td>240px (raw)</td><td>fixed cap so the slot stays scrollable inside short modals</td></tr>' +
+          '<tr><td>Overflow</td><td><code>overflow-y: auto</code></td><td>vertical scroll when contents exceed the cap</td></tr>' +
+          '<tr><td>Header (optional, consumer-styled)</td><td><code>.search-field__results-header</code></td><td>padding <code>--spacing-3 --spacing-4 --spacing-2</code>, color <code>--text-tertiary</code> &mdash; ad-hoc helper class for an UPPERCASE section header above the rows</td></tr>' +
+          '<tr><td>Empty state (optional)</td><td><code>.search-field__results-empty</code></td><td>padding <code>--spacing-3 --spacing-4</code>, color <code>--text-tertiary</code></td></tr>' +
+          '<tr><td>CSS location</td><td><code>.search-field__results*</code> in <code>apps/odyssey-one/src/styles/components.css</code></td><td>around line 1557 block</td></tr>' +
         '</tbody>' +
       '</table>'
   },
@@ -7134,13 +7524,15 @@ var compDetails = {
       '<table class="comp-table">' +
         '<thead><tr><th>Prop</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>' +
         '<tbody>' +
-          '<tr style="background:#F7F8FA;"><td colspan="4" style="font-style:italic; color:#384253;"><strong>Variant axis.</strong> Figma exposes <code>Favorite=False|True</code> &mdash; the <code>favorite</code> prop drives the <code>Star</code>&rsquo;s <code>fill</code> attribute (<code>"none"</code> &harr; <code>"currentColor"</code>). Both Star and Trash share a single color ladder (<code>--text-secondary</code> &rarr; <code>--text-primary</code> on hover &rarr; <code>--text-placeholder</code> on active), so the filled Star follows the same brighten-on-hover behavior as the outlined one.</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="4" style="font-style:italic; color:#384253;"><strong>Variant axes (2026-05-18).</strong> Figma exposes <code>Mode=List|Result</code> &times; <code>Favorite=False|True</code> &mdash; 4 variants total. In code these map to two independent props: <code>mode</code> selects row geometry (height + logo size + right action) and <code>favorite</code> drives the badge overlay (List mode) or the Star fill (Result mode). The List-mode Star toggle was removed in this cycle &mdash; favoriting is now a Result-mode-only action; List mode keeps Trash only.</td></tr>' +
+          '<tr><td><code>mode</code></td><td><code>"list" | "result"</code></td><td><code>"list"</code></td><td><em>NEW 2026-05-18.</em> Selects the row variant. <code>"list"</code> &mdash; 48h, 32&times;32 logo with 20px icon, Trash action, optional Badge overlay when favorited. <code>"result"</code> &mdash; 40h, 24&times;24 logo with 16px icon, Star toggle, no overlay, no border-bottom, hover bg <code>--bg-tertiary</code>. Maps to the Figma <code>Mode</code> variant axis.</td></tr>' +
           '<tr><td><code>label</code></td><td>string</td><td>&mdash;</td><td>Row label. Maps to Figma <code>Label</code> TEXT property.</td></tr>' +
-          '<tr><td><code>icon</code></td><td>ReactNode</td><td><code>&lt;Handshake size=16 /&gt;</code></td><td>Optional 16px lucide icon inside the 24&times;24 ring. Falls back to <code>Handshake</code> from <code>lucide-react</code> via <code>ICON_MD</code>. Maps to Figma <code>Icon</code> INSTANCE_SWAP (default master = 16px Handshake from Icons frame).</td></tr>' +
-          '<tr><td><code>favorite</code></td><td>boolean</td><td><code>false</code></td><td>When <code>true</code>, the Star renders with <code>fill="currentColor"</code> (matches the Figma <code>Favorite=True</code> variant). Drives the <code>aria-pressed</code> + <code>aria-label</code> on the Star button (<code>"Unfavorite"</code> when true, <code>"Favorite"</code> when false).</td></tr>' +
-          '<tr><td><code>onFavoriteToggle</code></td><td>() =&gt; void</td><td>&mdash;</td><td>Fires on Star click. Consumer owns the <code>favorite</code> state. Code-only prop (Figma has no Action concept).</td></tr>' +
-          '<tr><td><code>onDelete</code></td><td>() =&gt; void</td><td>&mdash;</td><td>Fires on Trash click. Consumer owns the row removal. Code-only prop.</td></tr>' +
-          '<tr><td><code>className</code></td><td>string</td><td><code>""</code></td><td>Appended to the root <code>.customer-row</code> class list.</td></tr>' +
+          '<tr><td><code>icon</code></td><td>ReactNode</td><td><code>&lt;Handshake /&gt;</code> at <code>ICON_LG</code> (list) / <code>ICON_MD</code> (result)</td><td>Optional lucide icon inside the logo container. Falls back to <code>Handshake</code> at <code>ICON_LG</code> (20px) in List mode, <code>ICON_MD</code> (16px) in Result mode. Maps to Figma <code>Icon</code> INSTANCE_SWAP.</td></tr>' +
+          '<tr><td><code>favorite</code></td><td>boolean</td><td><code>false</code></td><td>When <code>true</code> in <strong>List mode</strong>, renders a <code>&lt;Badge variant="favorite" /&gt;</code> overlay at the logo&rsquo;s bottom-right corner (12&times;12 Caribbean Green disc with centered 8px white Star). When <code>true</code> in <strong>Result mode</strong>, the Star toggle renders with <code>fill="currentColor"</code> and color <code>--deep-sea-neutral-900</code>. Drives the <code>aria-pressed</code> + <code>aria-label</code> on the Star button (Result mode only).</td></tr>' +
+          '<tr><td><code>onFavoriteToggle</code></td><td>() =&gt; void</td><td>&mdash;</td><td><strong>Result mode only.</strong> Fires on Star click. The button stops propagation so the row&rsquo;s <code>onClick</code> does not also fire. Consumer owns the <code>favorite</code> state. Code-only prop.</td></tr>' +
+          '<tr><td><code>onDelete</code></td><td>() =&gt; void</td><td>&mdash;</td><td><strong>List mode only.</strong> Fires on Trash click. The button stops propagation so the row&rsquo;s <code>onClick</code> does not fire. When <code>onDelete</code> is omitted, the Trash button is not rendered. Consumer owns the row removal. Code-only prop.</td></tr>' +
+          '<tr><td><code>onClick</code></td><td>() =&gt; void</td><td>&mdash;</td><td>Optional row click handler. When provided, the root <code>&lt;div&gt;</code> gets <code>role="button"</code> and <code>tabIndex=0</code>. Primarily used in Result mode where clicking the row selects the customer.</td></tr>' +
+          '<tr><td><code>className</code></td><td>string</td><td><code>""</code></td><td>Appended to the root <code>.customer-row</code> class list (plus <code>.customer-row--result</code> when <code>mode="result"</code>).</td></tr>' +
           '<tr><td><code>...rest</code></td><td>HTMLDivAttrs</td><td>&mdash;</td><td>Spread onto the root <code>&lt;div&gt;</code>.</td></tr>' +
         '</tbody>' +
       '</table>',
@@ -7148,43 +7540,56 @@ var compDetails = {
       '<table class="comp-table">' +
         '<thead><tr><th>Area / Property</th><th>Token / Value</th><th>Resolved</th></tr></thead>' +
         '<tbody>' +
-          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Layout</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Layout &mdash; List mode (default)</td></tr>' +
           '<tr><td>Height</td><td>48px (raw)</td><td>&mdash;</td></tr>' +
-          '<tr><td>Padding</td><td><code>--spacing-3</code></td><td>12px on all sides</td></tr>' +
-          '<tr><td>Justify content</td><td>space-between</td><td>info cluster left, actions cluster right</td></tr>' +
+          '<tr><td>Padding</td><td><code>--spacing-2</code> <code>--spacing-3</code></td><td>8 / 12</td></tr>' +
           '<tr><td>Border-bottom</td><td>1px solid <code>--border-subtle</code></td><td>DSN/200 #E4E6EB &middot; <code>:last-child</code> clears it via CSS</td></tr>' +
-          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Info cluster</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Layout &mdash; Result mode</td></tr>' +
+          '<tr><td>Height</td><td>40px (raw)</td><td>&mdash;</td></tr>' +
+          '<tr><td>Padding</td><td><code>--spacing-2</code> <code>--spacing-4</code></td><td>8 / 16</td></tr>' +
+          '<tr><td>Border-bottom</td><td>none</td><td>&mdash;</td></tr>' +
+          '<tr><td>Hover bg</td><td><code>--bg-tertiary</code></td><td>#F2F3F5 (DSN/100) &mdash; signals the row is clickable</td></tr>' +
+          '<tr><td>Cursor</td><td>pointer</td><td>row itself is the primary click target</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Info cluster (shared)</td></tr>' +
           '<tr><td>Layout</td><td>flex, align-items: center</td><td>&mdash;</td></tr>' +
           '<tr><td>Gap (icon container &harr; label)</td><td><code>--spacing-3</code></td><td>12px</td></tr>' +
-          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Icon container (24&times;24 ring)</td></tr>' +
-          '<tr><td>Size</td><td>24 &times; 24 (raw)</td><td>&mdash;</td></tr>' +
-          '<tr><td>Padding</td><td>0</td><td>icon centers via inline-flex</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Icon container &mdash; List mode</td></tr>' +
+          '<tr><td>Size</td><td>32 &times; 32 (raw)</td><td>&mdash;</td></tr>' +
           '<tr><td>Border</td><td>2px solid <code>--border-default</code></td><td>DSN/300 #D0D4DB</td></tr>' +
           '<tr><td>Border radius</td><td><code>--radius-full</code></td><td>circular</td></tr>' +
           '<tr><td>Background</td><td><code>--bg-primary</code></td><td>#FFFFFF</td></tr>' +
-          '<tr><td>Inner icon size</td><td>16 &times; 16</td><td>via <code>ICON_MD</code> default; consumer-provided icon takes whatever size it ships with</td></tr>' +
-          '<tr><td>Inner icon color</td><td><code>--text-secondary</code> (inherited via <code>color</code>)</td><td>DSN/700 #384253 &mdash; icons use <code>currentColor</code></td></tr>' +
-          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Label typography</td></tr>' +
+          '<tr><td>Inner icon size</td><td>20 &times; 20</td><td>via <code>ICON_LG</code> default</td></tr>' +
+          '<tr><td>Position</td><td>relative</td><td>anchors the absolutely-positioned Badge overlay</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Icon container &mdash; Result mode</td></tr>' +
+          '<tr><td>Size</td><td>24 &times; 24 (raw)</td><td>shrinks from List mode</td></tr>' +
+          '<tr><td>Inner icon size</td><td>16 &times; 16</td><td>via <code>ICON_MD</code> default</td></tr>' +
+          '<tr><td>Other</td><td>same border / radius / bg / color as List mode</td><td>only size differs</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Badge overlay (List mode, favorite=true only)</td></tr>' +
+          '<tr><td>Position</td><td>absolute &middot; <code>right: -2px; bottom: -2px</code></td><td>overlaps the 2px ring at the bottom-right corner</td></tr>' +
+          '<tr><td>z-index</td><td>1</td><td>sits above the icon</td></tr>' +
+          '<tr><td>Inner</td><td><code>&lt;Badge variant="favorite" /&gt;</code></td><td>12&times;12 Caribbean Green disc with centered 8px white Star (see Badge / favorite variant tokens)</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Label typography (shared)</td></tr>' +
           '<tr><td>Class</td><td><code>.text-label-sm-medium</code></td><td>14 / 20 / 500</td></tr>' +
           '<tr><td>Color</td><td><code>--text-secondary</code></td><td>DSN/700 #384253</td></tr>' +
           '<tr><td>Overflow</td><td>white-space: nowrap, ellipsis on overflow</td><td>&mdash;</td></tr>' +
-          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Actions cluster</td></tr>' +
-          '<tr><td>Layout</td><td>flex, align-items: center, flex-shrink: 0</td><td>&mdash;</td></tr>' +
-          '<tr><td>Gap (Star &harr; Trash)</td><td><code>--spacing-3</code></td><td>12px</td></tr>' +
-          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Action button (Star / Trash)</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Action button &mdash; List mode (Trash, 20&times;20)</td></tr>' +
           '<tr><td>Size</td><td>20 &times; 20 (raw)</td><td>&mdash;</td></tr>' +
-          '<tr><td>Padding / border / background</td><td>0 / none / transparent</td><td>bare icon slot</td></tr>' +
           '<tr><td>Idle color</td><td><code>--text-secondary</code></td><td>DSN/700 #384253</td></tr>' +
           '<tr><td>Hover color (<code>:hover</code>)</td><td><code>--text-primary</code></td><td>DSN/900 #1B2537</td></tr>' +
           '<tr><td>Pressed color (<code>:active</code>)</td><td><code>--text-placeholder</code></td><td>DSN/400 #9CA3AF</td></tr>' +
-          '<tr><td>Star fill behavior</td><td><code>fill="currentColor"</code> when <code>favorite=true</code> &middot; <code>fill="none"</code> otherwise</td><td>filled star follows the same color ladder via <code>currentColor</code></td></tr>' +
           '<tr><td>Transition</td><td><code>--transition-fast</code></td><td>150ms ease (color only)</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Action button &mdash; Result mode (Star, 16&times;16)</td></tr>' +
+          '<tr><td>Size</td><td>16 &times; 16 (raw)</td><td>via <code>.customer-row--result .customer-row__action</code> override</td></tr>' +
+          '<tr><td>Star fill</td><td><code>fill="currentColor"</code> when <code>favorite=true</code> &middot; <code>fill="none"</code> otherwise</td><td>fill inherits color via <code>currentColor</code></td></tr>' +
+          '<tr><td>Idle color (<code>favorite=false</code>)</td><td>(per Figma spec)</td><td>outline-only at <code>--deep-sea-neutral-400</code> in the DSM demo; the production CSS inherits the shared <code>.customer-row__action</code> ladder (<code>--text-secondary</code>) &mdash; spec was authored from Figma which uses DSN/400 outline.</td></tr>' +
+          '<tr><td>Color (<code>favorite=true</code>)</td><td><code>--deep-sea-neutral-900</code></td><td>filled glyph reads dark against surface</td></tr>' +
           '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">A11y</td></tr>' +
           '<tr><td>Icon container</td><td><code>aria-hidden="true"</code></td><td>decorative</td></tr>' +
-          '<tr><td>Star button</td><td><code>aria-pressed</code> mirrors <code>favorite</code>; <code>aria-label</code> swaps <code>"Favorite"</code> / <code>"Unfavorite"</code></td><td>&mdash;</td></tr>' +
-          '<tr><td>Trash button</td><td><code>aria-label="Delete"</code></td><td>&mdash;</td></tr>' +
+          '<tr><td>Star button (Result mode)</td><td><code>aria-pressed</code> mirrors <code>favorite</code>; <code>aria-label</code> swaps <code>"Favorite"</code> / <code>"Unfavorite"</code></td><td>&mdash;</td></tr>' +
+          '<tr><td>Trash button (List mode)</td><td><code>aria-label="Delete"</code></td><td>&mdash;</td></tr>' +
+          '<tr><td>Row (when <code>onClick</code> set)</td><td><code>role="button"</code>, <code>tabIndex=0</code></td><td>only when an <code>onClick</code> handler is provided</td></tr>' +
           '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">CSS location</td></tr>' +
-          '<tr><td>Rules</td><td><code>.customer-row*</code> in <code>apps/odyssey-one/src/styles/components.css</code></td><td>around the line 1481 block</td></tr>' +
+          '<tr><td>Rules</td><td><code>.customer-row*</code> in <code>apps/odyssey-one/src/styles/components.css</code></td><td>List + Result mode blocks around line 1465. <code>.customer-row--result</code> overrides height / padding / icon container / action sizing.</td></tr>' +
         '</tbody>' +
       '</table>'
   },
@@ -7264,6 +7669,45 @@ var compDetails = {
           '<tr><td>Pressed bg</td><td><code>--deep-sea-neutral-200</code></td><td>#E4E6EB</td></tr>' +
           '<tr><td>Grip icon</td><td>16 &times; 16 lucide</td><td>opacity 0 idle &rarr; 1 on hover or <code>data-dragging="true"</code></td></tr>' +
           '<tr><td>Transition (bg + grip opacity)</td><td><code>--transition-fast</code></td><td>150ms ease</td></tr>' +
+        '</tbody>' +
+      '</table>'
+  },
+  EmptyState: {
+    props:
+      '<table class="comp-table">' +
+        '<thead><tr><th>Prop</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>' +
+        '<tbody>' +
+          '<tr><td><code>icon</code></td><td>ReactNode</td><td>&mdash;</td><td>Decorative icon element rendered above the message. Color inherits via <code>currentColor</code> from the wrapper&rsquo;s <code>color</code> (DSN/400). When omitted, the icon row is not rendered. Maps to Figma <code>Icon</code> INSTANCE_SWAP.</td></tr>' +
+          '<tr><td><code>message</code></td><td>string</td><td>&mdash;</td><td>Help text rendered below the icon. Styled with <code>text-label-xs-regular</code> (12 / 16 / 400). When omitted, the message row is not rendered. Maps to Figma <code>Message</code> TEXT property.</td></tr>' +
+          '<tr><td><code>className</code></td><td>string</td><td><code>""</code></td><td>Appended to the root <code>.empty-state</code> class list. Consumers (e.g. <code>Home.jsx</code>&rsquo;s <code>home-customers-empty</code>) use this to set width / flex-grow behavior since the atom itself is content-sized.</td></tr>' +
+          '<tr><td><code>...rest</code></td><td>HTMLDivAttrs</td><td>&mdash;</td><td>Spread onto the root <code>&lt;div&gt;</code>.</td></tr>' +
+        '</tbody>' +
+      '</table>',
+    tokens:
+      '<table class="comp-table">' +
+        '<thead><tr><th>Area / Property</th><th>Token / Value</th><th>Resolved</th></tr></thead>' +
+        '<tbody>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Surface</td></tr>' +
+          '<tr><td>Background</td><td><code>--deep-sea-neutral-100</code></td><td>#F2F3F5</td></tr>' +
+          '<tr><td>Border radius</td><td><code>--radius-lg</code></td><td>8px</td></tr>' +
+          '<tr><td>Width / height</td><td>content-sized (fills <code>className</code>-set parent)</td><td>no fixed dimensions on the atom &mdash; the Home consumer sets the width via <code>home-customers-empty</code></td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Layout</td></tr>' +
+          '<tr><td>Display</td><td>flex column</td><td>icon stacked above message</td></tr>' +
+          '<tr><td>Align / justify</td><td><code>align-items: center; justify-content: center</code></td><td>both axes centered</td></tr>' +
+          '<tr><td>Padding (all sides)</td><td><code>--spacing-6</code></td><td>24px</td></tr>' +
+          '<tr><td>Gap (icon &harr; message)</td><td><code>--spacing-2</code></td><td>8px</td></tr>' +
+          '<tr><td>Text alignment</td><td>center</td><td>multi-line messages stay centered</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Color</td></tr>' +
+          '<tr><td>Wrapper <code>color</code></td><td><code>--text-placeholder</code></td><td>DSN/400 #9DA3B0 &mdash; sets a single color for both the icon (via <code>currentColor</code>) and the message text (via inheritance)</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Typography &mdash; Message</td></tr>' +
+          '<tr><td>Class</td><td><code>.text-label-xs-regular</code></td><td>12 / 16 / 400</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Icon</td></tr>' +
+          '<tr><td>Default (Figma INSTANCE_SWAP)</td><td>placeholder</td><td>consumer-provided lucide at consumer-chosen size (32px in <code>Home.jsx</code>)</td></tr>' +
+          '<tr><td>Color binding</td><td><code>currentColor</code></td><td>inherits the wrapper&rsquo;s placeholder color</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">A11y</td></tr>' +
+          '<tr><td>Icon wrapper</td><td><code>aria-hidden="true"</code></td><td>decorative; the message text carries the semantics</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">CSS location</td></tr>' +
+          '<tr><td>Rules</td><td><code>.empty-state*</code> in <code>apps/odyssey-one/src/styles/components.css</code></td><td>around line 699 block</td></tr>' +
         '</tbody>' +
       '</table>'
   },
@@ -8170,7 +8614,7 @@ function showCompDetails(componentName) {
 document.addEventListener('DOMContentLoaded', function() {
   /* Populate Components tab */
   var compTab = document.getElementById('componentsTabBadgeContent');
-  if (compTab) compTab.innerHTML = getBadgeComponentHTML() + getButtonComponentHTML() + getIconButtonComponentHTML() + getSidebarButtonComponentHTML() + getSidebarComponentHTML() + getGlobalSearchComponentHTML() + getLeadNavComponentHTML() + getTrailNavComponentHTML() + getNavbarComponentHTML() + getPageHeaderComponentHTML() + getSectionHeaderComponentHTML() + getEntityChipComponentHTML() + getSearchFieldComponentHTML() + getWidgetMetricRowComponentHTML() + getWidgetPieChartComponentHTML() + getWidgetComponentHTML() + getWidgetCtaRowComponentHTML() + getWidgetVariantPickerComponentHTML() + getMenuRowComponentHTML() + getCustomerRowComponentHTML() + getMenuDropdownComponentHTML() + getEditModeOverviewHTML() + getWidgetsLeftMenuComponentHTML() + getModalLargeComponentHTML() + getModalMediumComponentHTML();
+  if (compTab) compTab.innerHTML = getBadgeComponentHTML() + getButtonComponentHTML() + getIconButtonComponentHTML() + getIconButtonGhostComponentHTML() + getSidebarButtonComponentHTML() + getSidebarComponentHTML() + getGlobalSearchComponentHTML() + getLeadNavComponentHTML() + getTrailNavComponentHTML() + getNavbarComponentHTML() + getPageHeaderComponentHTML() + getSectionHeaderComponentHTML() + getEntityChipComponentHTML() + getSearchFieldComponentHTML() + getWidgetMetricRowComponentHTML() + getWidgetPieChartComponentHTML() + getWidgetComponentHTML() + getWidgetCtaRowComponentHTML() + getWidgetVariantPickerComponentHTML() + getMenuRowComponentHTML() + getCustomerRowComponentHTML() + getMenuDropdownComponentHTML() + getEditModeOverviewHTML() + getWidgetsLeftMenuComponentHTML() + getEmptyStateComponentHTML() + getModalLargeComponentHTML() + getModalMediumComponentHTML();
 
   /* No active normalization cycle. The previous wcta-norm cycle (WidgetCtaRow +
      Widget 3xCta) has passed Gate B-DSM and been promoted to the Components

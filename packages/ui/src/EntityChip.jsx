@@ -7,6 +7,7 @@ import IconButton from './IconButton.jsx'
  * entities are currently selected via stacked dashed-border icon slots.
  *
  * Display rules:
+ *   count 0    → no handshakes (chip shows only name + add affordance)
  *   count 1–3  → that many handshake icons
  *   count 4+   → 3 handshakes + a "+N" slot where N = count − 3, capped at 9
  *
@@ -23,7 +24,7 @@ export default function EntityChip({
   className = '',
   ...rest
 }) {
-  const safeCount = Math.max(1, Math.floor(count))
+  const safeCount = Math.max(0, Math.floor(count))
   const handshakeCount = Math.min(safeCount, 3)
   const overflow = safeCount > 3 ? Math.min(safeCount - 3, 9) : 0
   const Icon = entityIcon ?? Handshake

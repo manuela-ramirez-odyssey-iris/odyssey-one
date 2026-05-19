@@ -3,6 +3,7 @@ import {
   ClipboardList,
   Container,
   Download,
+  Handshake,
   Plus,
   Route,
   TriangleAlert,
@@ -14,6 +15,7 @@ import { ICON_LG } from '@odyssey/tokens'
 import {
   Button,
   CustomerRow,
+  EmptyState,
   EntityChip,
   ModalLarge,
   ModalMedium,
@@ -426,17 +428,39 @@ export default function Home() {
   const [searchValue, setSearchValue] = useState('')
   const [collapsedGroupIds, setCollapsedGroupIds] = useState(new Set())
   const [gridKey, setGridKey] = useState(0)
-  // Customers state — drives the EntityChip count and the Add Customers modal.
-  // List size simulates the realistic ~100-customer scenario (list scrolls).
+  // Customers state. `customers` is the full pool (what search queries against);
+  // `selectedIds` is the user's selected/added set (what the EntityChip counts +
+  // what renders in the selected list inside the Add Customers modal). `favorite`
+  // on a pool customer = bookmarked for future searches; bookmarked + selected
+  // displays the green Badge favorite overlay on the row.
+  //
+  // Real customer data is forthcoming (no Supabase yet); the seed below is a
+  // placeholder list — swap it for the real names when they land.
   const [customers, setCustomers] = useState(() =>
-    Array.from({ length: 12 }, (_, i) => ({
+    Array.from({ length: 50 }, (_, i) => ({
       id: `c${i + 1}`,
       label: `Customer ${i + 1}`,
-      favorite: i === 0,
+      favorite: i < 3,
     })),
   )
+  const [selectedIds, setSelectedIds] = useState(() => new Set())
   const [customersModalOpen, setCustomersModalOpen] = useState(false)
   const [customersFilter, setCustomersFilter] = useState('')
+  const [customersResultsOpen, setCustomersResultsOpen] = useState(false)
+  const customersSearchRef = useRef(null)
+
+  // Close the search-results dropdown when clicking anywhere outside the
+  // SearchField wrapper (mirrors the typical select/menu UX).
+  useEffect(() => {
+    if (!customersResultsOpen) return
+    function onMouseDown(e) {
+      if (customersSearchRef.current && !customersSearchRef.current.contains(e.target)) {
+        setCustomersResultsOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', onMouseDown)
+    return () => document.removeEventListener('mousedown', onMouseDown)
+  }, [customersResultsOpen])
   // Configurator modal state: null when closed, else { itemId, itemLabel, groupTitle, variant }
   const [configurator, setConfigurator] = useState(null)
   // ID of the widget to pulse + scroll into view after insert (or after re-clicking
@@ -466,6 +490,24 @@ export default function Home() {
   )
 
   const widgetIds = useMemo(() => widgets.map((w) => w.id), [widgets])
+
+  // When the user has no customers selected, every data widget zeros out — the
+  // dashboard reflects "no scope, no data". CTA widgets stay (their actions are
+  // still valid). This is a render-only transform; widget state itself isn't
+  // mutated, so drag/remove/reorder still work as expected.
+  const hasCustomers = selectedIds.size > 0
+  const widgetsForRender = useMemo(() => {
+    if (hasCustomers) return widgets
+    return widgets.map((w) => {
+      if (w.variant === '3xCta') return w
+      const p = { ...w.props }
+      if ('value' in p) p.value = '0'
+      if ('percentage' in p) p.percentage = '0%'
+      if (Array.isArray(p.chartSegments)) p.chartSegments = []
+      if (Array.isArray(p.rows)) p.rows = p.rows.map((r) => ({ ...r, value: '0' }))
+      return { ...w, props: p }
+    })
+  }, [widgets, hasCustomers])
   const panelItemIds = useMemo(
     () => catalog.flatMap((g) => g.items.map((it) => `${g.id}:${it.id}`)),
     [catalog],
@@ -499,14 +541,31 @@ export default function Home() {
   const handleToggleCustomerFavorite = useCallback((id) => {
     setCustomers((cs) => cs.map((c) => (c.id === id ? { ...c, favorite: !c.favorite } : c)))
   }, [])
-  const handleDeleteCustomer = useCallback((id) => {
-    setCustomers((cs) => cs.filter((c) => c.id !== id))
+  const handleToggleCustomerSelect = useCallback((id) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
   }, [])
-  const filteredCustomers = useMemo(() => {
+  const handleDeleteCustomer = useCallback((id) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      next.delete(id)
+      return next
+    })
+  }, [])
+  const selectedCustomers = useMemo(
+    () => customers.filter((c) => selectedIds.has(c.id)),
+    [customers, selectedIds],
+  )
+  const searchMatches = useMemo(() => {
     const q = customersFilter.trim().toLowerCase()
-    if (!q) return customers
-    return customers.filter((c) => c.label.toLowerCase().includes(q))
-  }, [customers, customersFilter])
+    const available = customers.filter((c) => !selectedIds.has(c.id))
+    if (!q) return available
+    return available.filter((c) => c.label.toLowerCase().includes(q))
+  }, [customers, customersFilter, selectedIds])
 
   const handleToggleGroup = useCallback((groupId) => {
     setCollapsedGroupIds((current) => {
@@ -619,14 +678,18 @@ export default function Home() {
                 icon={<Plus />}
                 onClick={handleAddWidgets}
               >
-                Add Widgets
+                {widgets.length === 0 ? 'Add Widgets' : 'Edit Dashboard View'}
               </Button>
             }
             trailingActions={
               <EntityChip
-                name="Customers"
-                count={customers.length}
-                showAddButton={false}
+                name={selectedIds.size === 0 ? 'Add Customers' : 'Customers'}
+                count={selectedIds.size}
+                showAddButton={selectedIds.size === 0}
+                onAddClick={() => {
+                  handleAddWidgets()
+                  handleOpenCustomersModal()
+                }}
               />
             }
           />
@@ -643,7 +706,7 @@ export default function Home() {
           </Button>
           <EntityChip
             name="Add Customers"
-            count={customers.length}
+            count={selectedIds.size}
             onAddClick={handleOpenCustomersModal}
           />
         </div>
@@ -652,7 +715,7 @@ export default function Home() {
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={widgetIds} strategy={rectSortingStrategy}>
           <div key={gridKey} className="home-widget-grid">
-            {widgets.map((widget) => (
+            {widgetsForRender.map((widget) => (
               <SortableWidget
                 key={widget.id}
                 widget={widget}
@@ -730,25 +793,63 @@ export default function Home() {
             </>
           }
         >
+          <div
+            ref={customersSearchRef}
+            onFocus={() => setCustomersResultsOpen(true)}
+          >
           <SearchField
             value={customersFilter}
-            onChange={setCustomersFilter}
-            onClear={() => setCustomersFilter('')}
+            onChange={(v) => { setCustomersFilter(v); setCustomersResultsOpen(true) }}
+            onClear={() => { setCustomersFilter(''); setCustomersResultsOpen(false) }}
             placeholder="Search Customers"
             showLabel
             showInfoIcon
-            label="Add Customers"
+            label="Set your Customers"
+            results={
+              customersResultsOpen ? (
+                <>
+                  <div className="search-field__results-header text-label-sm-medium">
+                    All Customers
+                  </div>
+                  {searchMatches.length === 0 ? (
+                    <div className="search-field__results-empty text-label-sm-regular">
+                      No matches
+                    </div>
+                  ) : (
+                    searchMatches.map((c) => (
+                      <CustomerRow
+                        key={c.id}
+                        mode="result"
+                        label={c.label}
+                        favorite={c.favorite}
+                        onClick={() => handleToggleCustomerSelect(c.id)}
+                        onFavoriteToggle={() => handleToggleCustomerFavorite(c.id)}
+                      />
+                    ))
+                  )}
+                </>
+              ) : null
+            }
           />
+          </div>
           <div className="home-customers-list">
-            {filteredCustomers.map((c) => (
-              <CustomerRow
-                key={c.id}
-                label={c.label}
-                favorite={c.favorite}
-                onFavoriteToggle={() => handleToggleCustomerFavorite(c.id)}
-                onDelete={() => handleDeleteCustomer(c.id)}
+            {selectedCustomers.length === 0 ? (
+              <EmptyState
+                className="home-customers-empty"
+                icon={<Handshake size={32} />}
+                message="No customer has been selected yet."
               />
-            ))}
+            ) : (
+              selectedCustomers.map((c) => (
+                <CustomerRow
+                  key={c.id}
+                  mode="list"
+                  label={c.label}
+                  favorite={c.favorite}
+                  onDelete={() => handleDeleteCustomer(c.id)}
+                />
+              ))
+            )}
           </div>
         </ModalMedium>
       )}

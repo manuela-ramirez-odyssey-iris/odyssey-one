@@ -1,6 +1,7 @@
 import { ArrowRight, GripVertical, X } from 'lucide-react'
 import { ICON_MD, ICON_LG } from '@odyssey/tokens'
 import Button from './Button.jsx'
+import IconButtonGhost from './IconButtonGhost.jsx'
 import WidgetMetricRow from './WidgetMetricRow.jsx'
 import WidgetPieChart from './WidgetPieChart.jsx'
 import WidgetCtaRow from './WidgetCtaRow.jsx'
@@ -115,14 +116,11 @@ function Header({ variant, title, domainIcon, showGrip, onClose }) {
         <span className={`widget__title ${titleClass}`}>{title}</span>
       </div>
       {onClose && (
-        <button
-          type="button"
-          className="widget__close"
+        <IconButtonGhost
+          icon={<X {...ICON_LG} aria-hidden="true" />}
           onClick={onClose}
-          aria-label="Remove widget"
-        >
-          <X {...ICON_LG} aria-hidden="true" />
-        </button>
+          ariaLabel="Remove widget"
+        />
       )}
     </header>
   )

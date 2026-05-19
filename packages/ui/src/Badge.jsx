@@ -1,3 +1,5 @@
+import { Star } from 'lucide-react'
+
 const variants = {
   amber: { bg: 'var(--badge-yellow-bg)', color: 'var(--badge-yellow-text)' },
   blue: { bg: 'var(--badge-blue-bg)', color: 'var(--badge-blue-text)' },
@@ -7,6 +9,7 @@ const variants = {
   gray: { bg: 'var(--badge-gray-bg)', color: 'var(--badge-gray-text)', iconColor: 'var(--text-tertiary)' },
   notification: { bg: 'var(--bittersweet-600)', color: 'var(--text-inverse)', isDot: true },
   metric: { bg: 'var(--badge-gray-bg)', color: 'var(--text-primary)', isMetric: true },
+  favorite: { bg: 'var(--caribbean-green-600)', color: 'var(--white)', isFavorite: true },
 }
 
 function getPadding(leftIcon, rightIcon, isDot, isMetric) {
@@ -21,6 +24,30 @@ export default function Badge({ children, variant = 'blue', leftIcon, rightIcon,
   const v = variants[variant] || variants.blue
   const isDot = !!v.isDot
   const isMetric = !!v.isMetric
+  const isFavorite = !!v.isFavorite
+
+  if (isFavorite) {
+    return (
+      <span
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: 12,
+          height: 12,
+          borderRadius: 'var(--radius-full)',
+          background: v.bg,
+          color: v.color,
+          flexShrink: 0,
+          boxSizing: 'border-box',
+        }}
+        aria-hidden="true"
+      >
+        <Star size={8} fill="currentColor" stroke="currentColor" strokeWidth={2} />
+      </span>
+    )
+  }
+
   const hasLeft = !!leftIcon && !isMetric
   const hasRight = !!rightIcon && !isMetric
   const hasDot = !!statusDot && !isMetric

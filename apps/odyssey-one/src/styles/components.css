@@ -693,6 +693,52 @@ input[type="radio"].odyssey-radio {
    light surface: bg white → DSN/50 → DSN/100, color DSN/700 → DSN/700 → DSN/400,
    shadow-base on idle/hover, off on pressed.
    ---------------------------------------- */
+/* EmptyState — atom. Centered icon over a help message on a DSN/100 surface,
+   Radius/lg. Used when a list, search result, or data view has no content yet.
+   Mirrors Figma `EmptyState` 2159:295. */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-6);
+  background: var(--deep-sea-neutral-100);
+  border-radius: var(--radius-lg);
+  color: var(--text-placeholder);
+  text-align: center;
+}
+.empty-state__icon {
+  display: inline-flex;
+}
+
+/* IconButtonGhost — atom. Transparent at rest, fills on hover/pressed.
+   Mirrors Figma `IconButtonGhost` set 2138:304. Used by modal close, widget close,
+   and similar small actions. State ladder via CSS pseudo-classes. */
+.icon-button-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-lg);
+  background: transparent;
+  cursor: pointer;
+  color: var(--text-tertiary);
+  transition: background var(--transition-fast), color var(--transition-fast);
+  flex-shrink: 0;
+}
+.icon-button-ghost:hover {
+  background: var(--deep-sea-neutral-100);
+  color: var(--text-secondary);
+}
+.icon-button-ghost:active {
+  background: var(--deep-sea-neutral-200);
+  color: var(--text-primary);
+}
+
 .icon-button {
   width: 25px;
   height: 25px;
@@ -994,22 +1040,6 @@ input[type="radio"].odyssey-radio {
 .widget__grip:active {
   color: var(--text-placeholder);
   cursor: grabbing;
-}
-.widget__close {
-  background: transparent;
-  border: none;
-  padding: 0;
-  color: var(--text-tertiary);
-  cursor: pointer;
-  display: inline-flex;
-  flex-shrink: 0;
-  transition: color var(--transition-fast);
-}
-.widget__close:hover {
-  color: var(--text-primary);
-}
-.widget__close:active {
-  color: var(--text-placeholder);
 }
 .widget__title {
   color: var(--text-primary);
@@ -1372,29 +1402,6 @@ input[type="radio"].odyssey-radio {
 .modal-large__title { color: var(--text-secondary); }
 .modal-large__subtitle { color: var(--text-tertiary); }
 
-.modal-large__close {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  padding: 0;
-  margin-right: calc(-1 * var(--spacing-2));
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  color: var(--text-tertiary);
-  border-radius: var(--radius-lg);
-  transition: background var(--transition-fast), color var(--transition-fast);
-}
-.modal-large__close:hover {
-  background: var(--deep-sea-neutral-100);
-  color: var(--text-secondary);
-}
-.modal-large__close:active {
-  background: var(--deep-sea-neutral-200);
-}
-
 .modal-large__content { flex: 1; }
 
 .modal-large__footer {
@@ -1430,36 +1437,13 @@ input[type="radio"].odyssey-radio {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--spacing-6) var(--spacing-6) var(--spacing-3) var(--spacing-6);
+  padding: var(--spacing-5) var(--spacing-6);
 }
 
 .modal-medium__title { color: var(--text-primary); }
 
-.modal-medium__close {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  padding: 0;
-  margin-right: calc(-1 * var(--spacing-2));
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  color: var(--text-tertiary);
-  border-radius: var(--radius-lg);
-  transition: background var(--transition-fast), color var(--transition-fast);
-}
-.modal-medium__close:hover {
-  background: var(--deep-sea-neutral-100);
-  color: var(--text-secondary);
-}
-.modal-medium__close:active {
-  background: var(--deep-sea-neutral-200);
-}
-
 .modal-medium__content {
-  padding: var(--spacing-3) var(--spacing-6) 0 var(--spacing-6);
+  padding: 0 var(--spacing-6);
   display: flex;
   flex-direction: column;
   gap: var(--spacing-3);
@@ -1483,7 +1467,7 @@ input[type="radio"].odyssey-radio {
   align-items: center;
   justify-content: space-between;
   height: 48px;
-  padding: var(--spacing-3);
+  padding: var(--spacing-2) var(--spacing-3);
   border-bottom: 1px solid var(--border-subtle);
 }
 .customer-row:last-child { border-bottom: none; }
@@ -1496,11 +1480,12 @@ input[type="radio"].odyssey-radio {
 }
 
 .customer-row__icon-container {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 32px;
+  height: 32px;
   padding: 0;
   border: 2px solid var(--border-default);
   border-radius: var(--radius-full);
@@ -1508,6 +1493,14 @@ input[type="radio"].odyssey-radio {
   color: var(--text-secondary);
   box-sizing: border-box;
   flex-shrink: 0;
+}
+
+.customer-row__badge-overlay {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  display: inline-flex;
+  z-index: 1;
 }
 
 .customer-row__label {
@@ -1539,6 +1532,52 @@ input[type="radio"].odyssey-radio {
 }
 .customer-row__action:hover { color: var(--text-primary); }
 .customer-row__action:active { color: var(--text-placeholder); }
+
+/* Result mode — search-dropdown row. Smaller logo (24×24) + smaller icons (16),
+   star toggle instead of trash, no bottom border, clickable row for selection. */
+.customer-row--result {
+  height: 40px;
+  padding: var(--spacing-2) var(--spacing-4);
+  border-bottom: none;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+.customer-row--result:hover { background: var(--bg-tertiary); }
+.customer-row--result .customer-row__icon-container {
+  width: 24px;
+  height: 24px;
+}
+.customer-row--result .customer-row__action {
+  width: 16px;
+  height: 16px;
+  color: var(--deep-sea-neutral-400);
+}
+.customer-row--result .customer-row__action:hover {
+  color: var(--deep-sea-neutral-700);
+}
+.customer-row--result .customer-row__action[aria-pressed="true"] {
+  color: var(--deep-sea-neutral-900);
+}
+
+/* Search-field results dropdown — appears below the input bar when a `results`
+   slot is passed. Bounded list with shadow. */
+.search-field__results {
+  margin-top: var(--spacing-1);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-2xl);
+  max-height: 240px;
+  overflow-y: auto;
+}
+.search-field__results-header {
+  padding: var(--spacing-3) var(--spacing-4) var(--spacing-2);
+  color: var(--text-tertiary);
+}
+.search-field__results-empty {
+  padding: var(--spacing-3) var(--spacing-4);
+  color: var(--text-tertiary);
+}
 
 /* ----------------------------------------
    WIDGET VARIANT PICKER (molecule)

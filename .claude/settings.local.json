@@ -106,7 +106,8 @@
       "Bash(printenv)",
       "Bash(awk *)",
       "Bash(lsof -ti:5173)",
-      "Bash(kill 5261 5291 5344)"
+      "Bash(kill 5261 5291 5344)",
+      "Bash(xxd)"
     ]
   }
 }
