@@ -3303,6 +3303,208 @@ The `useState` lazy init now also wraps each matched widget's `onGoToClick` with
 
 **Two prod deploys** — both via `npx vercel --prod`. Live URLs unchanged (`odyssey-one-stage.vercel.app`).
 
+## Session 27 — May 19, 2026
+
+Five threads. Started with a focused Button-Disabled re-normalize, paused for a permission-allowlist audit, then a triple /normalize cycle for the three atoms needed by the Home sections feature (SectionLabel, AddSectionDivider, AddSectionButton), then the big Phase B feature work — the Home page refactored around explicit-position sections with full cross-section drag, a 2-step "Add to section" modal, a preview row at the bottom, and a pile of edge-case refinements (minimal-slide placement, DragOverlay, pointerWithin collision, ghost cell drop targets). Library now at **33 normalized components (+3)**, **38 Code Connect mappings (+3)**, **1 new shared utility (`.icon-action`)**, and **zero new tokens / icons / text styles added** — all values reused from the existing system.
+
+### Thread 1 — Button Disabled state re-normalize
+
+User pointed me at a single Figma node (`2167:4698`) showing the "official" disabled visual for buttons: **white background + 1px DSN/300 inside border + DSN/300 text + DSN/300 icon strokes**. Replaces the previous "filled-pill" disabled (DSN/300 fill + white text, no border). Scoping question batched at the start locked: applies uniformly to all 4 main variants AND Link variant gets DSN/300 text (was `--text-placeholder` = DSN/400). IconButton + IconButtonGhost out of scope.
+
+**Figma writes (both bound to existing variables — no new tokens):**
+- All 12 `State=Disabled` variants in Button set `1307:333` (4 variants × 3 sizes) updated: root fill DSN/300 → **White (bound)**; new 1px DSN/300 INSIDE border (bound); Label text fill White → DSN/300 (bound); Icon placeholder-20's inner Vector strokes overridden per-instance from purple → DSN/300 (bound). Geometry untouched (padding/gap/radius preserved).
+- Spec frame `2167:4698` cleaned of drift: raw hex fills/strokes bound to variables, external library textStyleId replaced with local `label/sm medium`, legacy `icons/20px/download` instance swapped for `placeholder-20` with DSN/300 stroke override.
+
+**Code changes:**
+- `apps/odyssey-one/src/styles/components.css` — 5 `.btn--*:disabled` rules rewritten. Primary/Secondary/Outline/Ghost all share the same rule (`bg: white`, `color: DSN/300`, `border-color: DSN/300`, `box-shadow: shadow-sm`). Link disabled: `color: DSN/300` (was `--text-placeholder`), bg transparent.
+- `packages/tokens/tokens.css` — removed dead `--btn-disabled-bg` (DSN/300) and `--btn-disabled-text` (text-inverse). Grep confirmed zero `var(--btn-disabled-*)` consumers before removal.
+- `design.md` — updated DSN/300 usage row ("Input borders, dividers, **disabled border/text/icon**"); removed dead `btn/disabled-bg` + `btn/disabled-text` token rows; added uniform-disabled callout describing the new spec.
+- DSM (subagent) — 13 spots updated in Button section (5 scoped `:disabled` rules + 5 disabled card notes + compDetails description + 4 color-table rows + Link special-case row); 2 stale `--btn-disabled-*` swatches removed from Foundations Colors tab.
+
+### Thread 2 — /fewer-permission-prompts audit (mid-session, interleaved)
+
+Per the `/fewer-permission-prompts` slash command, scanned 50 most-recent transcripts (3,361 tool calls). Top candidates were the 5 read-only Figma MCP tools (`get_screenshot` 78, `get_metadata` 28, `get_design_context` 24, `get_variable_defs` 11, `search_design_system` 1) — **all already in `.claude/settings.json` `permissions.allow`**. Dropped: `mcp__plugin_figma_figma__use_figma` (308 calls — writes); `node` (interpreter); `curl -s` (write potential); `npm run build/dev/connect:publish` (side effects); `git add/push/commit` (writes). Already auto-allowed via the harness's built-in read-only catalog: `grep` (387), `wc` (35), `tail` (16), `ls` (12), `find` (4), `git status/log/diff` (23 combined), `cd` (45+). **Net: zero new entries needed.** Existing 19 allowlist entries already cover the noise.
+
+### Thread 3 — Cycles A1, A2, A3: the three Home-sections atoms
+
+Decided upfront to do **3 sequential /normalize cycles** (one per atom, full GATE A + GATE B-DSM + Phase 3 each) before any feature wiring — keeps each component's spec clean and lets us catch design issues before they get consumed. Naming locked as `SectionLabel` / `AddSectionDivider` / `AddSectionButton` (SectionLabel deliberately distinct from existing `SectionHeader` atom, the Home top "Welcome Amy!" header).
+
+#### Cycle A1 — SectionLabel (NEW atom)
+
+Section-header row for the Home widget groups. Two `Mode` VARIANT axis — `Default` (transparent fill, label only) and `Edit` (DSN/100 bound fill, label + pencil + trash actions, gap 12). 400w (default) × 36h, padding 6/14, radius-lg bound on all 4 corners, primaryAxis SPACE_BETWEEN, counterAxis CENTER, single `Label` TEXT property default `"Section name"`. Real `lucide/pencil` (`2167:4812`) + `lucide/trash-2` (`2025:2349`) from Icons lg — static slots, no placeholders — with per-instance Vector stroke override to DSN/500.
+
+Figma set `2198:308` in Panels artboard (`Default` `2198:299` + `Edit` `2198:301`). React `SectionLabel.jsx` + `.figma.tsx` mapping Mode enum + Label TEXT. Action buttons are bare `<button>`s composing the **new shared `.icon-action` utility** (extracted same cycle — see thread below).
+
+**`.icon-action` extraction** — When wiring SectionLabel's action buttons, paused to audit the existing repo for the same hover/active color ladder. Found 4 places already using `text-tertiary → text-primary → text-placeholder` (`.widget__grip` edit subset, `.menu-dropdown__header`, soon-to-be `.section-label__action`) and 1 using `text-secondary → text-primary → text-placeholder` (`.customer-row__action`). Rather than create another duplicate, extracted a shared utility class:
+```css
+.icon-action { cursor: pointer; transition: color var(--transition-fast); }
+.icon-action:hover { color: var(--text-primary); }
+.icon-action:active { color: var(--text-placeholder); }
+```
+Idle color stays per-component (varies). Consumers compose: `<button className="icon-action component-class">`. SectionLabel migrated as part of this cycle (greenfield, zero risk). Other 3-4 consumers tracked as follow-up (task #16).
+
+DSM: in-progress section to Normalize tab → GATE B-DSM → renamed `getSectionLabelComponentHTML`, moved to Components tab, NORMALIZED pill added, composition line wires it between SectionHeader + EntityChip (sibling section-affordances). Code Connect: 36 mappings (was 35).
+
+#### Cycle A2 — AddSectionDivider (NEW atom)
+
+Started life as a "polymorphic interactive divider" (`<button>` when onClick, `<div>` otherwise, with hover/active color ladder DSN/400 → DSN/700 → DSN/900 on both label + border-top color). **Refined same-session per user direction** to **purely decorative**: now always `<div role="separator" aria-label={label}>`, no `onClick`, no `--interactive` modifier, no hover/active. Visual unchanged in idle state — 32h, padding 6/14, transparent fill, `border-top: 1px dashed DSN/400`, centered `"Add Section"` label `label/sm medium` DSN/400. Single `Label` TEXT property. Sole purpose in the running app: sits ONCE directly above the AddSectionButton at the bottom of edit mode, announcing where the new section will land — the click affordance is the button below.
+
+Figma component `2203:297` in Panels artboard. React `AddSectionDivider.jsx` + `.figma.tsx`. Replaces a legacy external-library button instance from the original Figma mockup. DSM updated twice (initial Components-tab section with 4-card state ladder → later collapsed to single decorative card after the refinement). Tracker entry annotated as *"Initial release on 2026-05-19 included a polymorphic interactive variant with a hover/active ladder; same-day refinement removed those states per user direction — divider is a label, not an action."* Code Connect: 37 mappings.
+
+#### Cycle A3 — AddSectionButton (NEW atom)
+
+The "secondary entry point" for adding sections — sits at the very bottom of all sections in edit mode (the primary entry point is the top-right "Add Section" Button[variant=secondary, size=lg]). Visual: full-width 48h row with a 1px CB/600 top border + a centered 36×36 CB/600 pill containing a white 20px `lucide/plus`, the pill positioned at `y=-18` (`layoutPositioning='ABSOLUTE'`) so its vertical center straddles the border line.
+
+Figma component `2210:302` in Panels artboard. Pill anatomy: VERTICAL auto-layout, padding 8, primaryAxis CENTER + counterAxis CENTER, all 4 corner radii bound to `Radius/full`, CB/600 fill bound, contains `lucide/plus` (`1303:5` from Icons lg) with per-instance Vector strokes overridden to White (lesson from Button-Disabled cycle: lucide masters' strokes live on the inner vectors, not on the instance root — `findAll(n => n.strokes?.length)` catches them).
+
+React `AddSectionButton.jsx`: polymorphic pill (`<button>` when `onClick` provided, decorative `<span>` otherwise), single-state Figma master, hover/active CSS-only on `.add-section-button__pill--interactive`: bg CB/600 → CB/400 (hover, lightens) → DSN/900 (active, darkens — mirrors ButtonLink ladder). The line itself is decorative; only the pill is interactive.
+
+DSM Components tab + NORMALIZED pill. Code Connect: 38 mappings.
+
+### Thread 4 — Phase B: Home sections feature (the big one)
+
+After all 3 normalize cycles closed, locked the feature plan via batched AskUserQuestion: persisted state in Home component; delete cascades widgets (no orphans); widgets keep their size when dragged between sections; "Add Widgets" modal asks for destination section; ONE BIG PR with single GATE B at the end; default sections seeded by domain.
+
+**Initial implementation** (sections + DnD + grid + 2-step modal) was a ~870-line rewrite of `apps/odyssey-one/src/routes/Home.jsx`. Then a cascade of refinements driven by user feedback over the rest of the session — each refinement tackled a different layer of the experience:
+
+#### 4a. Data model + initial render
+
+- `section.widgetIds: string[]` → `section.placements: { id, row, col }[]` (explicit grid positioning per widget). Old `widgetIds` kept ONLY in the file-level `initialSections` constant, converted to placements lazily on mount via `autoPackFromWidgetIds`.
+- 6 default sections seeded by domain from the initial widget list: Orders / Carriers / User Management / Shipments / Tracking / Quick Actions.
+- New helpers: `buildOccupied`, `computeGridRows`, `computeEmptyCells`, `findFirstFreePosition`, `gridStyleFor`, `clampPlacement`.
+- `SortableWidget` rewritten to render at `gridStyleFor(placement.row, placement.col, cw, rh)` — explicit position + span via inline style. No more CSS auto-flow packing.
+- `PlaceholderCell` (NEW) — droppable empty grid slot with id `placeholder:<sectionId>:<row>:<col>`. `GhostCell` (NEW) — decorative-only variant used in the AddSection preview row (the section doesn't exist yet so it has no droppable id).
+- Per-section grid: `gridTemplateRows: repeat(N, ...)` derived from the widget reaching furthest down. Section extends downward as widgets are dropped lower.
+
+#### 4b. SectionLabel consumed in both modes + inline rename
+
+- Default mode: SectionLabel rendered without `onEdit`/`onDelete` (so the actions don't render — gated by props).
+- Edit mode: pencil opens inline rename (replaces the SectionLabel with a `SectionRenameInput` component — input field + Done button on the same DSN/100 surface). Trash opens `ModalMedium` confirm with widget count, cascade-delete on confirm.
+- SectionRenameInput evolution across the session: input + auto-commit-on-blur → added Done button (`Button variant="link" size="sm"`) → changed to `variant="ghost" size="sm"` per user direction → consumer-class CSS override making the Ghost button readable on DSN/100 (Ghost's default `color: white` is for dark surfaces; overrode to `--text-tertiary` idle / `--text-primary` hover / `--text-placeholder` active to match the `.icon-action` ladder used by the pencil/trash icons it replaces). Hover/active backgrounds suppressed to keep the surface clean. Tracked as follow-up: design a proper light-surface Ghost variant.
+- Enter saves, Esc cancels, click outside saves (only when input had focus). Auto-focus + select on mount.
+
+#### 4c. AddSection affordance at the bottom
+
+After the last section in edit mode, in this order:
+1. **AddSectionDivider** — purely decorative dashed line + "Add Section" label, sits ABOVE the preview row.
+2. **AddSection preview row** — `<div className="home-widget-grid home-add-section-preview">` containing 6 `GhostCell` instances. Shows the user what the new section's grid will look like. Decorative (no useDroppable) since the section doesn't yet exist.
+3. **AddSectionButton** — the CB/600 pill on a CB/600 line, click to actually create the new section. Auto-scrolls into view via `scrollToSectionId` state + `useEffect`.
+
+#### 4d. Cross-section drag — the @dnd-kit refactor
+
+The trickiest part. Multiple sub-iterations:
+
+- **Single DndContext + single SortableContext + flat sortable ids** `section:<sectionId>:<widgetId>`. Items from all sections live in one sortable context so cross-section drags work.
+- **Placeholders are droppable** via `useDroppable` (NOT useSortable — placeholders don't reorder). Drop handler: `placeholder:<sectionId>:<row>:<col>` parses out the target cell.
+- **DragOverlay** introduced — earlier the dragged widget became invisible when over a highlighted placeholder (stacking-context conflict between explicit `gridColumn` + transform). DragOverlay portal-renders a floating clone of the widget at the cursor; the source cell stays in its grid position dimmed to 30% opacity. `activeDragWidgetId` state set on `onDragStart`, cleared on `onDragEnd`/`onDragCancel`. Overlay renders `<Widget>` directly (the atom's own variant CSS sets the 170/360px width).
+- **Custom collision detection**: `closestCenter` was wrong for multi-col widgets — a 2x widget grabbed near its left edge has its CENTER offset ~one cell to the right of the cursor, so right-drags would land one placeholder past the highlighted one. Switched to:
+  ```js
+  const collisionDetection = (args) => {
+    const pointerCollisions = pointerWithin(args)
+    if (pointerCollisions.length > 0) return pointerCollisions
+    return closestCorners(args)  // fallback when cursor is in the grid gap
+  }
+  ```
+  Pointer-driven detection means drop tracks the cursor exactly, with closestCorners catching gap hovers.
+- **Minimal-slide placement**: `clampPlacement(targetRow, targetCol, variant, currentCol, currentRow)`. The widget's anchor must satisfy two constraints: (1) it covers the target cell (`anchor ∈ [target - span + 1, target]`), (2) it stays inside the grid (`anchor ∈ [0, GRID_COLS - span]`). Within the intersection, pick the position **closest to the widget's current anchor**. So a 2x widget at cols 0-1 dropped on placeholder col 2 lands at cols **1-2** (slide of +1, covers col 2), not at cols 2-3 (which would skip col 1). Asymmetric drag bug eliminated. Same logic applied to rows.
+- **Drag-end branches**: (a) same-section widget→widget swap positions; (b) cross-section widget→widget — active takes target's position, target finds next free cell via `findFirstFreePosition`; (c) same-section widget→placeholder — set widget's (row, col) to target via clamp; (d) cross-section widget→placeholder — remove from source, add to target at clamped (row, col).
+
+#### 4e. "Add to section" configurator: 2-step flow
+
+Replaced the prior single-modal flow with a 2-step `ModalLarge` sequence:
+
+- **Step 1** (non-CTA only): title = item label (e.g. "Order Exceptions"), subtitle = group title (e.g. "Orders"), body = `WidgetVariantPicker`, footer = "Continue" button. Skipped entirely for CTA items (they bypass variant pick).
+- **Step 2** (both flows): **title + subtitle now match step 1's** (item label + group title — context carries through), body = new `.home-section-picker` selectable list (`role="radiogroup"` / `role="radio"` / `aria-checked`, selected row gets DSN/100 surface + trailing `Check` icon, hover DSN/50, active DSN/100), footer = Back (hidden for CTA — there's no step 1 to go back to) + **"Add to {sectionName}"** button (label changes based on selected section so the button itself indicates destination).
+- Footer button widths: equal at first (`flex: 1 1 0` on both), later reverted to Back = content-width + Add = `flex: 1` (handles long section names without truncating Back).
+- Empty `sections.length === 0` case shows an `EmptyState` in step 2.
+- `handleInsertWidget` auto-packs the new widget into the first free position of the target section via `findFirstFreePosition`.
+
+Section picker rows tracked as a future normalize candidate (`SectionPickerRow` atom) — same shape will apply to other "pick one from a named list" UX. See task #17.
+
+#### 4f. Other polish
+
+- **Widget close button** — added `className="widget__close"` on the `IconButtonGhost` instance in `Widget.jsx`; CSS rule `.widget__close { margin-right: calc(-1 * var(--spacing-2)) }` pulls the X glyph flush with the widget's right padding edge — same trick used on ModalLarge / ModalMedium close.
+- **Empty-cell border color** — DSN/200 → **DSN/400** (per user; more visible suggestion of "available slot").
+- **Multi-row placeholder math** — `computeEmptyCells` originally counted empties only in the last occupied row; updated to count empties across **every row** that contains a widget. So a section with one 3xChart widget (2 cols × 2 rows) gets 4 placeholders on row 1 AND 4 on row 2 (8 total), filling all visible gaps.
+- **Drop-target highlight** — `.home-widget-cell--ghost-over` border CB/600 + bg CB/50 (`useDroppable`'s `isOver` boolean toggles the modifier class). User explicitly liked this so it stayed.
+
+### Thread 5 — Memory + task tracking
+
+Two design system follow-ups annotated as task #17:
+1. **Light-surface Ghost Button variant** — current Ghost has `color: var(--white)` hardcoded for dark surfaces. Used on the SectionLabel rename Done button (DSN/100 surface) required a per-consumer color override. Recommend a new variant (`ghost-light` or surface-aware via `currentColor`) so dark/light intent is explicit.
+2. **SectionPickerRow atom** — the inline `.home-section-picker__row` list rows in the configurator step 2 are a reusable shape (radiogroup row with selection + check icon). Normalize as a real atom in a future cycle.
+
+Task #16 (.icon-action migration of customer-row__action + widget__grip edit subset + menu-dropdown__header) carried over from the SectionLabel cycle.
+
+### Files / commits
+
+**New files (code):**
+- `packages/ui/src/SectionLabel.jsx` + `.figma.tsx`
+- `packages/ui/src/AddSectionDivider.jsx` + `.figma.tsx`
+- `packages/ui/src/AddSectionButton.jsx` + `.figma.tsx`
+
+**Modified files (code):**
+- `packages/ui/src/index.js` — 3 new exports
+- `packages/ui/src/Widget.jsx` — `className="widget__close"` added to the IconButtonGhost close instance
+- `packages/tokens/tokens.css` — removed dead `--btn-disabled-bg` + `--btn-disabled-text`
+- `apps/odyssey-one/src/routes/Home.jsx` — full sections refactor (placements model, helpers, DnD, drag overlay, custom collision detection, clampPlacement, 2-step modal, section CRUD)
+- `apps/odyssey-one/src/routes/Home.css` — sections wrapper, section-rename, section-picker, ghost cells, drop-target highlight, drag-overlay
+- `apps/odyssey-one/src/styles/components.css` — 5 `.btn--*:disabled` rewrites; new `.section-label*`, `.add-section-divider`, `.add-section-button*`, `.icon-action`, `.widget__close` blocks
+- `playground/DesignSystemMap.html` — 3 new Components-tab sections (SectionLabel, AddSectionDivider, AddSectionButton); Button section's Disabled-state cards + compDetails refreshed (13 spots); 2 dead Foundations swatches removed; AddSectionDivider refined to single decorative card after the polymorphic→decorative refinement
+- `playground/normalization-tracker.md` — Normalized Components rows added for SectionLabel, AddSectionDivider, AddSectionButton; Pushed-to-Figma rows for each; Pushed-to-Code-Connect rows for each; Button disabled re-spec row; `.icon-action` utility row; dead `--btn-disabled-*` token cleanup row
+- `design.md` — DSN/300 usage row updated; dead `btn/disabled-bg`/`btn/disabled-text` rows removed; uniform-disabled callout added
+
+**Figma masters created / modified:**
+- Button set `1307:333` — 12 Disabled variants re-spec (white bg + DSN/300 border + DSN/300 text + DSN/300 icon strokes)
+- Spec frame `2167:4698` — drift cleaned (raw → bound colors, external → local text style, legacy → placeholder-20 icon)
+- `SectionLabel` set `2198:308` on Components-Atoms (Panels artboard, 2 Mode variants)
+- `AddSectionDivider` `2203:297` on Components-Atoms (Panels artboard, single state)
+- `AddSectionButton` `2210:302` on Components-Atoms (Panels artboard, single state)
+
+### State of `@odyssey/ui` after Session 27
+
+**33 normalized components** (was 30):
+- Atoms: Badge, Button, IconButton, IconButtonGhost, OdysseyLogo, SidebarButton, EmptyState, **SectionLabel** (NEW), **AddSectionDivider** (NEW), **AddSectionButton** (NEW)
+- Molecules: GlobalSearch, LeadNav, TrailNav, PageHeader, SectionHeader, EntityChip, WidgetMetricRow, WidgetPieChart, WidgetCtaRow, SearchField, MenuRow, MenuDropdown, CustomerRow
+- Organisms: Navbar, Widget, WidgetsLeftMenu, ModalLarge, ModalMedium, WidgetVariantPicker
+
+**Shared utilities** (new this session): `.icon-action` (hover/active color ladder for bare clickable icons — pending migration of customer-row, widget-grip edit subset, menu-dropdown header).
+
+**Code Connect:** 38 mappings live (was 35; added SectionLabel + AddSectionDivider + AddSectionButton).
+
+**Tokens added this session:** none (every value used existing primitives — per the strategic-tokens refinement, 6/14/-18/36/etc. raw px stays raw for component-internal geometry).
+
+**Library publish status:** Library needs publishing (3 new components + Button Disabled re-spec). User mentioned earlier this session: confirmed library published after Button-Disabled cycle. Subsequent additions (SectionLabel, AddSectionDivider, AddSectionButton) may need a fresh publish — flagged for user.
+
+### Carry-forward to Session 28
+
+**Pre-flagged for next session** — user said: *"next session we will implement the flashy attractive part of the homepage with animations and background and with that Home will be done"*. Scope likely includes:
+- Hero-area animations / micro-interactions
+- Background visual treatment (gradient, mesh, particles, etc.)
+- Maybe entry / scroll transitions for the section grid
+- Closes out the Home domain end-to-end
+
+**Standing backlog (unchanged):**
+- Task #16 — Migrate `customer-row__action`, `widget__grip` (edit-mode subset), `menu-dropdown__header` to compose `.icon-action`
+- Task #17 — DS follow-ups: light-surface Ghost Button variant + SectionPickerRow atom normalization
+- SHP-66 — generic dropdown popover (separate from MenuDropdown)
+- SHP-67 — responsive normalization pass
+- ButtonLink — full size × state matrix in Figma
+- StatusBadge / TypeBadge / HazmatTag / Appointment / History action badges / Tab count pills normalizations
+- Off-token off-scale paddings (6 / 14 / 18) still raw across several components
+- Sidebar Selected variant Figma icon-color encoding
+- MenuDropdown / SearchField additional state variants in Figma (hover, focus, pressed)
+- IconButton size matrix (Size=md/lg) + 25×25 (code) vs 24×24 (Figma) reconciliation
+- Cognizant repo access + 3–5 component proof-of-concept Angular port (outcome from the May 14 handoff meeting)
+
+**Parked:**
+- Mode-based Figma theming for Button icon colors (would unlock the Ghost light/dark + Button variant icon colors in one shot)
+- Purge legacy `icons/Npx/*` masters
+- Convert any remaining Lucide FRAMEs to proper COMPONENTs
+- Resume Supabase migration when ≥3 domains have real UIs
+- Real customer data (Home `customers` array still 50 placeholders)
+- "Add Section" inline-between-sections affordance (currently divider+button only at the bottom — could be revisited if user wants insertion at arbitrary positions)
+
 ## Session 26 — May 14–18, 2026
 
 Two distinct threads: a major Cognizant handoff meeting prep (strategic doc + visual presentation arguing for an AI-assisted React → Angular workflow), then a deep /normalize cycle that completed the Home customer flow (CustomerRow Mode axis, Badge favorite variant, SearchField Results slot, IconButtonGhost new atom replacing every inline close button, EmptyState new atom + new Panels artboard, Home Add Customers rebuilt around a search-against-pool model). Library now at 30 normalized components (+2) and 35 Code Connect mappings (added 4 this session, reworked 1).

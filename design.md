@@ -53,7 +53,7 @@ Unified neutral scale. Consolidated from DS-Gray-Neutral, Gray/*, gray/*, neutra
 | 50 | #F7F8FA | `deep-sea-neutral/50` | Page backgrounds, subtle fills |
 | 100 | #F2F3F5 | `deep-sea-neutral/100` | Hover states, alternating rows |
 | 200 | #E4E6EB | `deep-sea-neutral/200` | Card borders, dropdown outlines |
-| 300 | #D0D4DB | `deep-sea-neutral/300` | Input borders, dividers, disabled bg |
+| 300 | #D0D4DB | `deep-sea-neutral/300` | Input borders, dividers, disabled border/text/icon |
 | 400 | #9DA3B0 | `deep-sea-neutral/400` | Placeholder text, disabled icons |
 | 500 | #6B7280 | `deep-sea-neutral/500` | Secondary body text, helper text |
 | 600 | #4C5463 | `deep-sea-neutral/600` | Muted labels, captions |
@@ -183,9 +183,9 @@ Component tokens are for Figma organization. In code, components consume semanti
 | `btn/secondary-bg` | `bg/primary` | #FFFFFF |
 | `btn/secondary-border` | `border/default` | #D0D4DB |
 | `btn/secondary-text` | `text/secondary` | #384253 |
-| `btn/disabled-bg` | `deep-sea-neutral/300` | #D0D4DB |
-| `btn/disabled-text` | `text/inverse` | #FFFFFF |
 | `btn/link-text` | `text/link` | #276DA2 |
+
+> Disabled state (all Button variants — uniform): `--white` bg + `--deep-sea-neutral-300` border (1px inside) + `--deep-sea-neutral-300` text/icon. Link variant special-cases to text-only DSN/300. No dedicated `btn/disabled-*` tokens — rules use the primitives directly.
 
 #### Input / Form Field
 

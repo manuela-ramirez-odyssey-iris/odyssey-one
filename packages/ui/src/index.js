@@ -24,3 +24,6 @@ export { default as ModalMedium } from './ModalMedium.jsx';
 export { default as WidgetVariantPicker } from './WidgetVariantPicker.jsx';
 export { default as CustomerRow } from './CustomerRow.jsx';
 export { default as EmptyState } from './EmptyState.jsx';
+export { default as SectionLabel } from './SectionLabel.jsx';
+export { default as AddSectionDivider } from './AddSectionDivider.jsx';
+export { default as AddSectionButton } from './AddSectionButton.jsx';

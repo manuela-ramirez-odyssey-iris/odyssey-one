@@ -973,8 +973,6 @@
       <div class="color-row"><div class="color-swatch" style="background:#FFFFFF; border:1px solid #E4E6EB"></div><div class="color-info"><span class="color-var">--btn-secondary-bg</span><span class="color-hex">#FFFFFF</span><span class="color-ref">bg-primary</span></div></div>
       <div class="color-row"><div class="color-swatch" style="background:#D0D4DB"></div><div class="color-info"><span class="color-var">--btn-secondary-border</span><span class="color-hex">#D0D4DB</span><span class="color-ref">border-default</span></div></div>
       <div class="color-row"><div class="color-swatch" style="background:#384253"></div><div class="color-info"><span class="color-var">--btn-secondary-text</span><span class="color-hex">#384253</span><span class="color-ref">text-secondary</span></div></div>
-      <div class="color-row"><div class="color-swatch" style="background:#D0D4DB"></div><div class="color-info"><span class="color-var">--btn-disabled-bg</span><span class="color-hex">#D0D4DB</span><span class="color-ref">deep-sea-neutral-300</span></div></div>
-      <div class="color-row"><div class="color-swatch" style="background:#FFFFFF; border:1px solid #E4E6EB"></div><div class="color-info"><span class="color-var">--btn-disabled-text</span><span class="color-hex">#FFFFFF</span><span class="color-ref">text-inverse</span></div></div>
       <div class="color-row"><div class="color-swatch" style="background:#276DA2"></div><div class="color-info"><span class="color-var">--btn-link-text</span><span class="color-hex">#276DA2</span><span class="color-ref">text-link</span></div></div>
     </div>
   </div>
@@ -2809,22 +2807,22 @@ function getButtonComponentHTML() {
     '.btn-demo--primary { background: var(--deep-sea-neutral-900, #1B2537); color: var(--white, #fff); border: 1px solid var(--deep-sea-neutral-500, #6B7280); box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.05)); }' +
     '.btn-demo--primary:hover:not(:disabled), .btn-demo--primary.btn-demo--force-hover { background: var(--deep-sea-neutral-600, #4C5463); color: var(--white, #fff); border: 1px solid var(--deep-sea-neutral-500, #6B7280); }' +
     '.btn-demo--primary:active:not(:disabled), .btn-demo--primary.btn-demo--force-pressed { background: var(--deep-sea-neutral-900, #1B2537); color: var(--deep-sea-neutral-400, #9DA3B0); border: 1px solid var(--deep-sea-neutral-500, #6B7280); box-shadow: inset 0 1px 3px rgba(0,0,0,0.4); }' +
-    '.btn-demo--primary:disabled { background: var(--deep-sea-neutral-300, #D0D4DB); color: var(--white, #fff); border-color: transparent; box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.05)); }' +
+    '.btn-demo--primary:disabled { background: var(--white, #fff); color: var(--deep-sea-neutral-300, #D0D4DB); border-color: var(--deep-sea-neutral-300, #D0D4DB); box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.05)); }' +
     /* Secondary */
     '.btn-demo--secondary { background: var(--white, #fff); color: var(--deep-sea-neutral-700, #384253); border-color: var(--deep-sea-neutral-300, #D0D4DB); box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.05)); }' +
     '.btn-demo--secondary:hover:not(:disabled), .btn-demo--secondary.btn-demo--force-hover { background: var(--deep-sea-neutral-50, #F7F8FA); border-color: var(--deep-sea-neutral-400, #9DA3B0); }' +
     '.btn-demo--secondary:active:not(:disabled), .btn-demo--secondary.btn-demo--force-pressed { background: var(--deep-sea-neutral-100, #F2F3F5); color: var(--deep-sea-neutral-400, #9DA3B0); border-color: var(--deep-sea-neutral-400, #9DA3B0); box-shadow: none; }' +
-    '.btn-demo--secondary:disabled { background: var(--deep-sea-neutral-300, #D0D4DB); color: var(--white, #fff); border-color: transparent; box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.05)); }' +
+    '.btn-demo--secondary:disabled { background: var(--white, #fff); color: var(--deep-sea-neutral-300, #D0D4DB); border-color: var(--deep-sea-neutral-300, #D0D4DB); box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.05)); }' +
     /* Outline (designed for dark surfaces) */
     '.btn-demo--outline { background: transparent; color: var(--white, #fff); border-color: var(--deep-sea-neutral-300, #D0D4DB); box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.05)); }' +
     '.btn-demo--outline:hover:not(:disabled), .btn-demo--outline.btn-demo--force-hover { background: rgba(255,255,255,0.1); }' +
     '.btn-demo--outline:active:not(:disabled), .btn-demo--outline.btn-demo--force-pressed { background: rgba(255,255,255,0.2); color: var(--deep-sea-neutral-200, #E4E6EB); border-color: var(--deep-sea-neutral-400, #9DA3B0); box-shadow: none; }' +
-    '.btn-demo--outline:disabled { background: var(--deep-sea-neutral-300, #D0D4DB); color: var(--white, #fff); border-color: transparent; box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.05)); }' +
+    '.btn-demo--outline:disabled { background: var(--white, #fff); color: var(--deep-sea-neutral-300, #D0D4DB); border-color: var(--deep-sea-neutral-300, #D0D4DB); box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.05)); }' +
     /* Ghost (designed for dark surfaces, lighter visual weight than Outline — no border) */
     '.btn-demo--ghost { background: transparent; color: var(--white, #fff); border-color: transparent; box-shadow: none; }' +
     '.btn-demo--ghost:hover:not(:disabled), .btn-demo--ghost.btn-demo--force-hover { background: rgba(255,255,255,0.1); }' +
     '.btn-demo--ghost:active:not(:disabled), .btn-demo--ghost.btn-demo--force-pressed { background: rgba(255,255,255,0.2); color: var(--deep-sea-neutral-200, #E4E6EB); box-shadow: none; }' +
-    '.btn-demo--ghost:disabled { background: var(--deep-sea-neutral-300, #D0D4DB); color: var(--white, #fff); border-color: transparent; box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.05)); }' +
+    '.btn-demo--ghost:disabled { background: var(--white, #fff); color: var(--deep-sea-neutral-300, #D0D4DB); border-color: var(--deep-sea-neutral-300, #D0D4DB); box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.05)); }' +
     '.btn-demo-dark-surface { background: var(--deep-sea-neutral-900, #1B2537); padding: 16px; border-radius: var(--radius-lg, 8px); display: inline-flex; gap: var(--spacing-2, 8px); flex-wrap: wrap; }' +
     /* Padding-guide visualization for the with/without-icon comparison */
     '.btn-demo-padding-guide { display: inline-flex; padding: 2px; border: 1px dashed var(--carolina-blue-400, #5BA4D4); border-radius: 10px; }' +
@@ -2906,7 +2904,7 @@ function getButtonComponentHTML() {
         '<div class="comp-card">' +
           btn('primary', 'md', { disabled: true }) +
           '<div class="comp-card-code">Disabled</div>' +
-          '<div class="comp-card-note">DSN/300 fill, white text + icon, shadow stays</div>' +
+          '<div class="comp-card-note">White fill, DSN/300 text + icon + 1px border, shadow stays</div>' +
         '</div>' +
       '</div>' +
       '<div class="comp-card-grid" style="margin-top:12px;">' +
@@ -2927,7 +2925,7 @@ function getButtonComponentHTML() {
         '<div class="comp-card">' +
           btn('secondary', 'md', { disabled: true }) +
           '<div class="comp-card-code">Disabled</div>' +
-          '<div class="comp-card-note">DSN/300 fill, white text — border drops</div>' +
+          '<div class="comp-card-note">White fill, DSN/300 text + 1px DSN/300 border, shadow stays — same universal disabled as the other variants</div>' +
         '</div>' +
       '</div>' +
       '<div class="comp-card-grid" style="margin-top:12px;">' +
@@ -2949,7 +2947,7 @@ function getButtonComponentHTML() {
         '<div class="comp-card">' +
           dark(btn('outline', 'md', { disabled: true })) +
           '<div class="comp-card-code">Disabled</div>' +
-          '<div class="comp-card-note">DSN/300 chip — same as Primary/Secondary disabled</div>' +
+          '<div class="comp-card-note">White fill, DSN/300 text + 1px DSN/300 border — same universal disabled as the other variants (the disabled chip stays light even on dark surfaces, signalling unavailability rather than recede)</div>' +
         '</div>' +
       '</div>' +
       '<div class="comp-card-grid" style="margin-top:12px;">' +
@@ -2971,7 +2969,7 @@ function getButtonComponentHTML() {
         '<div class="comp-card">' +
           dark(btn('ghost', 'md', { disabled: true })) +
           '<div class="comp-card-code">Disabled</div>' +
-          '<div class="comp-card-note">DSN/300 chip — same universal disabled as the other variants</div>' +
+          '<div class="comp-card-note">White fill, DSN/300 text + 1px DSN/300 border — same universal disabled as the other variants (Ghost takes a visible border only in this state for affordance parity)</div>' +
         '</div>' +
       '</div>' +
     '</div>' +
@@ -3061,7 +3059,7 @@ function getButtonComponentHTML() {
       '.btn-demo--link:active:not(:disabled), .btn-demo--link.btn-demo--force-pressed {' +
         'background: transparent; color: var(--text-primary, #1B2537);' +
       '}' +
-      '.btn-demo--link:disabled { color: var(--text-placeholder, #9CA3AF); background: transparent; }' +
+      '.btn-demo--link:disabled { color: var(--deep-sea-neutral-300, #D0D4DB); background: transparent; }' +
       /* Trailing-icon arrow tracks text via currentColor; transform animates independently. */
       '.btn-demo--link .btn-demo__icon-right {' +
         'display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;' +
@@ -3115,7 +3113,7 @@ function getButtonComponentHTML() {
             '<span class="btn-demo__icon-right"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span>' +
           '</button>' +
           '<div class="comp-card-code">Disabled</div>' +
-          '<div class="comp-card-note">Color <code>--text-placeholder</code> (DSN/400 #9CA3AF) &middot; bg transparent. No arrow translate.</div>' +
+          '<div class="comp-card-note">Color <code>--deep-sea-neutral-300</code> (DSN/300 #D0D4DB) &middot; bg transparent &middot; no border &middot; no shadow. No arrow translate. (Link disabled is the special case &mdash; matches text color of the universal disabled chip but skips the border/bg/shadow since Link has no surface.)</div>' +
         '</div>' +
       '</div>' +
       '<div class="comp-card-note" style="margin-top:12px; font-size:12.5px; color:#384253; line-height:1.55; background:#F7F8FA; border-left:3px solid #296DE7; padding:10px 14px; border-radius:4px;">' +
@@ -6677,7 +6675,7 @@ var compDetails = {
           '<tr style="background:#F7F8FA;"><td colspan="4" style="font-style:italic; color:#384253;"><strong>Surface guidance:</strong> Secondary is designed for light surfaces. On dark surfaces, use Outline or Ghost &mdash; Secondary&rsquo;s hover (DSN/50) and pressed (DSN/100) fills lose contrast on dark backdrops. Outline (with border) and Ghost (no border) both use white-tint overlays + white text for dark contexts; Ghost is lighter visual weight and recedes until hovered.</td></tr>' +
           '<tr><td><code>variant</code></td><td><code>"primary" | "secondary" | "outline" | "ghost"</code></td><td><code>"primary"</code></td><td>Visual style. <code>outline</code> and <code>ghost</code> are intended for dark surfaces &mdash; <code>ghost</code> = <code>outline</code> minus the border, so it recedes until hovered.</td></tr>' +
           '<tr><td><code>size</code></td><td><code>"sm" | "md" | "lg"</code></td><td><code>"md"</code></td><td>32 / 36 / 40 height respectively.</td></tr>' +
-          '<tr><td><code>disabled</code></td><td>boolean</td><td><code>false</code></td><td>Native HTML <code>disabled</code>. All variants render as DSN/300 fill + white text when disabled.</td></tr>' +
+          '<tr><td><code>disabled</code></td><td>boolean</td><td><code>false</code></td><td>Native HTML <code>disabled</code>. All four main variants render as white fill + DSN/300 text + 1px DSN/300 border + shadow-sm when disabled (uniform universal disabled). Link is the special case: DSN/300 text, transparent bg, no border/shadow.</td></tr>' +
           '<tr><td><code>icon</code></td><td>ReactNode</td><td>&mdash;</td><td>Optional left-side 20&times;20 icon (e.g. <code>&lt;Plus size={20} /&gt;</code> from lucide-react). Color inherits text via <code>currentColor</code>. Icon dimensions are forced to 20&times;20 by <code>.btn__icon</code> regardless of inner SVG size. Maps to Figma&rsquo;s <code>Show icon</code> BOOLEAN + <code>Icon</code> INSTANCE_SWAP. When omitted in code, the button renders without <code>.btn--has-icon</code>; in Figma, toggling Show icon = false collapses the icon and the 2px Spacer in TextGroup keeps the label centered. Both produce a visually-centered no-icon button.</td></tr>' +
           '<tr><td><code>children</code></td><td>ReactNode</td><td>&mdash;</td><td>Button label text.</td></tr>' +
           '<tr><td><code>type</code></td><td><code>"button" | "submit" | "reset"</code></td><td><code>"button"</code></td><td>Native HTML button type.</td></tr>' +
@@ -6718,25 +6716,25 @@ var compDetails = {
           '<tr><td>Idle bg / border / text+icon</td><td><code>--deep-sea-neutral-900</code> / <code>--deep-sea-neutral-500</code> / <code>--white</code></td><td>#1B2537 / #6B7280 / #FFFFFF</td></tr>' +
           '<tr><td>Hover bg / border / text+icon</td><td><code>--deep-sea-neutral-600</code> / <code>--deep-sea-neutral-500</code> / <code>--white</code></td><td>#4C5463 / #6B7280 / #FFFFFF</td></tr>' +
           '<tr><td>Pressed bg / border / text+icon</td><td><code>--deep-sea-neutral-900</code> / <code>--deep-sea-neutral-500</code> / <code>--deep-sea-neutral-400</code></td><td>#1B2537 / #6B7280 / #9DA3B0</td></tr>' +
-          '<tr><td>Disabled bg / border / text+icon</td><td><code>--deep-sea-neutral-300</code> / transparent / <code>--white</code></td><td>#D0D4DB / &mdash; / #FFFFFF</td></tr>' +
+          '<tr><td>Disabled bg / border / text+icon</td><td><code>--white</code> / <code>--deep-sea-neutral-300</code> / <code>--deep-sea-neutral-300</code></td><td>#FFFFFF / #D0D4DB / #D0D4DB</td></tr>' +
           /* Color — Secondary */
           '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Color &mdash; Secondary</td></tr>' +
           '<tr><td>Idle bg / border / text+icon</td><td><code>--white</code> / <code>--deep-sea-neutral-300</code> / <code>--deep-sea-neutral-700</code></td><td>#FFFFFF / #D0D4DB / #384253</td></tr>' +
           '<tr><td>Hover bg / border / text+icon</td><td><code>--deep-sea-neutral-50</code> / <code>--deep-sea-neutral-400</code> / <code>--deep-sea-neutral-700</code></td><td>#F7F8FA / #9DA3B0 / #384253</td></tr>' +
           '<tr><td>Pressed bg / border / text+icon</td><td><code>--deep-sea-neutral-100</code> / <code>--deep-sea-neutral-400</code> / <code>--deep-sea-neutral-400</code></td><td>#F2F3F5 / #9DA3B0 / #9DA3B0</td></tr>' +
-          '<tr><td>Disabled bg / border / text+icon</td><td><code>--deep-sea-neutral-300</code> / transparent / <code>--white</code></td><td>#D0D4DB / &mdash; / #FFFFFF</td></tr>' +
+          '<tr><td>Disabled bg / border / text+icon</td><td><code>--white</code> / <code>--deep-sea-neutral-300</code> / <code>--deep-sea-neutral-300</code></td><td>#FFFFFF / #D0D4DB / #D0D4DB</td></tr>' +
           /* Color — Outline */
           '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Color &mdash; Outline (designed for dark surfaces)</td></tr>' +
           '<tr><td>Idle bg / border / text+icon</td><td>transparent / <code>--deep-sea-neutral-300</code> / <code>--white</code></td><td>&mdash; / #D0D4DB / #FFFFFF</td></tr>' +
           '<tr><td>Hover bg / border / text+icon</td><td><code>rgba(255,255,255,0.1)</code> / <code>--deep-sea-neutral-300</code> / <code>--white</code></td><td>component-scoped tint / #D0D4DB / #FFFFFF</td></tr>' +
           '<tr><td>Pressed bg / border / text+icon</td><td><code>rgba(255,255,255,0.2)</code> / <code>--deep-sea-neutral-400</code> / <code>--deep-sea-neutral-200</code></td><td>component-scoped tint / #9DA3B0 / #E4E6EB</td></tr>' +
-          '<tr><td>Disabled bg / border / text+icon</td><td><code>--deep-sea-neutral-300</code> / transparent / <code>--white</code></td><td>#D0D4DB / &mdash; / #FFFFFF</td></tr>' +
+          '<tr><td>Disabled bg / border / text+icon</td><td><code>--white</code> / <code>--deep-sea-neutral-300</code> / <code>--deep-sea-neutral-300</code></td><td>#FFFFFF / #D0D4DB / #D0D4DB</td></tr>' +
           /* Color — Ghost */
           '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Color &mdash; Ghost (designed for dark surfaces, no border)</td></tr>' +
           '<tr><td>Idle bg / border / text+icon</td><td>transparent / transparent / <code>--white</code></td><td>&mdash; / &mdash; / #FFFFFF</td></tr>' +
           '<tr><td>Hover bg / border / text+icon</td><td><code>rgba(255,255,255,0.1)</code> / transparent / <code>--white</code></td><td>component-scoped tint / &mdash; / #FFFFFF</td></tr>' +
           '<tr><td>Pressed bg / border / text+icon</td><td><code>rgba(255,255,255,0.2)</code> / transparent / <code>--deep-sea-neutral-200</code></td><td>component-scoped tint / &mdash; / #E4E6EB</td></tr>' +
-          '<tr><td>Disabled bg / border / text+icon</td><td><code>--deep-sea-neutral-300</code> / transparent / <code>--white</code></td><td>#D0D4DB / &mdash; / #FFFFFF (universal disabled)</td></tr>' +
+          '<tr><td>Disabled bg / border / text+icon</td><td><code>--white</code> / <code>--deep-sea-neutral-300</code> / <code>--deep-sea-neutral-300</code></td><td>#FFFFFF / #D0D4DB / #D0D4DB (universal disabled &mdash; Ghost takes a visible border only in this state for affordance parity)</td></tr>' +
           /* Border */
           '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Border</td></tr>' +
           '<tr><td>Width (all)</td><td>1px (raw)</td><td>no Border-Width token in current scale</td></tr>' +
@@ -7672,6 +7670,174 @@ var compDetails = {
         '</tbody>' +
       '</table>'
   },
+  SectionLabel: {
+    props:
+      '<table class="comp-table">' +
+        '<thead><tr><th>Prop</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>' +
+        '<tbody>' +
+          '<tr style="background:#F7F8FA;"><td colspan="4" style="font-style:italic; color:#384253;"><strong>Atom.</strong> Section header for widget rows on Home. Two Mode variants &mdash; <code>default</code> (transparent, label only) and <code>edit</code> (DSN/100 surface + pencil + trash actions). Action buttons compose the shared <code>.icon-action</code> utility for hover/active behavior.</td></tr>' +
+          '<tr><td><code>label</code></td><td>string</td><td>&mdash; (required)</td><td>The section name shown in the row. Maps to Figma <code>Label</code> TEXT property. Styled with <code>text-label-sm-medium</code> (14&nbsp;/&nbsp;20&nbsp;/&nbsp;500) in <code>--text-primary</code>.</td></tr>' +
+          '<tr><td><code>mode</code></td><td><code>"default" | "edit"</code></td><td><code>"default"</code></td><td>Mirrors the Figma <code>Mode</code> axis. <code>edit</code> adds the DSN/100 surface and the pencil + trash actions; <code>default</code> renders a transparent label-only row.</td></tr>' +
+          '<tr><td><code>onEdit</code></td><td>() =&gt; void</td><td>&mdash;</td><td>Fires when the pencil is clicked. The pencil button is only rendered when this prop is provided (in addition to <code>mode="edit"</code>).</td></tr>' +
+          '<tr><td><code>onDelete</code></td><td>() =&gt; void</td><td>&mdash;</td><td>Fires when the trash is clicked. The trash button is only rendered when this prop is provided (in addition to <code>mode="edit"</code>).</td></tr>' +
+          '<tr><td><code>className</code></td><td>string</td><td><code>""</code></td><td>Appended to the root <code>.section-label</code> class list.</td></tr>' +
+          '<tr><td><code>...rest</code></td><td>HTMLDivAttrs</td><td>&mdash;</td><td>Spread onto the root <code>&lt;div&gt;</code>.</td></tr>' +
+        '</tbody>' +
+      '</table>',
+    tokens:
+      '<table class="comp-table">' +
+        '<thead><tr><th>Area / Property</th><th>Token / Value</th><th>Resolved</th></tr></thead>' +
+        '<tbody>' +
+          /* Sizing */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Sizing</td></tr>' +
+          '<tr><td>Width</td><td>100% (FILL)</td><td>fills parent column</td></tr>' +
+          '<tr><td>Min-height</td><td>36px (raw)</td><td>fixed &mdash; no Sizing token in current scale</td></tr>' +
+          /* Spacing */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Spacing</td></tr>' +
+          '<tr><td>Padding (frame)</td><td>6px / 14px (raw)</td><td>strategic-tokens exception &mdash; small component-internal geometry stays as raw px; strategic tokens are reserved for container-level paddings</td></tr>' +
+          '<tr><td>Actions gap (pencil &harr; trash)</td><td><code>--spacing-3</code></td><td>12px &middot; <code>.section-label__actions</code></td></tr>' +
+          '<tr><td>Layout</td><td><code>flex items-center justify-between</code></td><td>label left, actions right (edit mode)</td></tr>' +
+          /* Surface */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Surface</td></tr>' +
+          '<tr><td>Background &mdash; default</td><td><code>transparent</code></td><td>&mdash;</td></tr>' +
+          '<tr><td>Background &mdash; edit</td><td><code>--deep-sea-neutral-100</code></td><td>#F2F3F5 &middot; <code>.section-label--edit</code></td></tr>' +
+          '<tr><td>Border radius</td><td><code>--radius-lg</code></td><td>8px</td></tr>' +
+          /* Typography */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Typography &mdash; Label</td></tr>' +
+          '<tr><td>Class</td><td><code>.text-label-sm-medium</code></td><td>14 / 20 / 500</td></tr>' +
+          '<tr><td>Color</td><td><code>--text-primary</code></td><td>DSN/900 #1B2537 &middot; component-owned</td></tr>' +
+          /* Action ladder */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Action ladder (edit mode)</td></tr>' +
+          '<tr><td>Idle color</td><td><code>--text-tertiary</code></td><td>DSN/500 #6B7280 &middot; <strong>component-owned</strong> on <code>.section-label__action</code></td></tr>' +
+          '<tr><td>Hover color</td><td><code>--text-primary</code></td><td>DSN/900 #1B2537 &middot; from shared <code>.icon-action</code> utility</td></tr>' +
+          '<tr><td>Active color</td><td><code>--text-placeholder</code></td><td>DSN/400 #9DA3B0 &middot; from shared <code>.icon-action</code> utility (release step &mdash; lighter than idle)</td></tr>' +
+          '<tr><td>Transition</td><td><code>--transition-fast</code></td><td>150ms ease on <code>color</code> &middot; from shared <code>.icon-action</code> utility</td></tr>' +
+          /* Icon slot */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Icons</td></tr>' +
+          '<tr><td>Pencil + Trash size</td><td><code>ICON_LG</code></td><td>20 &times; 20 lucide (<code>Pencil</code>, <code>Trash2</code>) via <code>@odyssey/tokens</code></td></tr>' +
+          '<tr><td>Color binding</td><td><code>currentColor</code></td><td>strokes inherit the button color across the idle / hover / active ladder</td></tr>' +
+          /* A11y */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">A11y</td></tr>' +
+          '<tr><td>Pencil button</td><td><code>aria-label="Rename section"</code></td><td>required (icon-only)</td></tr>' +
+          '<tr><td>Trash button</td><td><code>aria-label="Delete section"</code></td><td>required (icon-only)</td></tr>' +
+          /* CSS location */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">CSS location</td></tr>' +
+          '<tr><td>Rules</td><td><code>.section-label*</code> in <code>apps/odyssey-one/src/styles/components.css</code></td><td>around the line 733 block</td></tr>' +
+          '<tr><td>Shared utility</td><td><code>.icon-action</code> in <code>apps/odyssey-one/src/styles/components.css</code></td><td>around the line 396 block (used by hover/active ladder)</td></tr>' +
+        '</tbody>' +
+      '</table>'
+  },
+  AddSectionDivider: {
+    props:
+      '<table class="comp-table">' +
+        '<thead><tr><th>Prop</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>' +
+        '<tbody>' +
+          '<tr style="background:#F7F8FA;"><td colspan="4" style="font-style:italic; color:#384253;"><strong>Atom.</strong> Purely decorative row separator above the AddSectionButton in Home edit mode. Renders as a <code>&lt;div role="separator"&gt;</code>. <strong>NOT a button.</strong> Sits once directly above the AddSectionButton &mdash; announces to users &ldquo;the new section will start here.&rdquo; The clickable affordance is the AddSectionButton below it. No hover/active states.</td></tr>' +
+          '<tr><td><code>label</code></td><td>string</td><td><code>"Add Section"</code></td><td>Centered label text. Maps to the single Figma <code>Label</code> TEXT property on the master. Styled with <code>text-label-sm-medium</code> (14&nbsp;/&nbsp;20&nbsp;/&nbsp;500). Also forwarded as the root&rsquo;s <code>aria-label</code> so the separator has an accessible name.</td></tr>' +
+          '<tr><td><code>className</code></td><td>string</td><td><code>""</code></td><td>Appended to the root class list (after <code>.add-section-divider</code>).</td></tr>' +
+          '<tr><td><code>...rest</code></td><td>HTMLDivAttrs</td><td>&mdash;</td><td>Spread onto the root <code>&lt;div&gt;</code>.</td></tr>' +
+        '</tbody>' +
+      '</table>',
+    tokens:
+      '<table class="comp-table">' +
+        '<thead><tr><th>Area / Property</th><th>Token / Value</th><th>Resolved</th></tr></thead>' +
+        '<tbody>' +
+          /* Sizing */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Sizing</td></tr>' +
+          '<tr><td>Width</td><td>100% (FILL)</td><td>fills parent column &mdash; matches Figma master width behavior</td></tr>' +
+          '<tr><td>Min-height</td><td>32px (raw)</td><td>fixed &mdash; no Sizing token in current scale</td></tr>' +
+          /* Spacing */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Spacing</td></tr>' +
+          '<tr><td>Padding (frame)</td><td>6px / 14px (raw)</td><td>strategic-tokens exception &mdash; small component-internal geometry stays as raw px; strategic tokens are reserved for container-level paddings</td></tr>' +
+          '<tr><td>Layout</td><td><code>flex items-center justify-content-center</code></td><td>label centered on both axes</td></tr>' +
+          /* Surface */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Surface</td></tr>' +
+          '<tr><td>Background</td><td><code>transparent</code></td><td>&mdash; the dashed line is the only visible surface</td></tr>' +
+          '<tr><td>Border (left / right / bottom)</td><td><code>0</code></td><td>explicitly cleared &mdash; the top border is the only border</td></tr>' +
+          /* Border */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Border-top</td></tr>' +
+          '<tr><td>Style</td><td><code>1px dashed</code> (CSS literal)</td><td>not a token &mdash; <code>dashed</code> is a CSS style literal, only the color is tokenized</td></tr>' +
+          '<tr><td>Color</td><td><code>--deep-sea-neutral-400</code></td><td>DSN/400 #9DA3B0 &mdash; the only color (decorative, no state ladder)</td></tr>' +
+          /* Typography */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Typography &mdash; Label</td></tr>' +
+          '<tr><td>Class</td><td><code>.text-label-sm-medium</code></td><td>14 / 20 / 500</td></tr>' +
+          '<tr><td>Color (inherited)</td><td>same as <code>border-top-color</code></td><td>color set on the root; label uses <code>color: inherit</code> so label and line read as a single object</td></tr>' +
+          /* A11y */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">A11y</td></tr>' +
+          '<tr><td>Root</td><td><code>&lt;div role="separator" aria-label={label}&gt;</code></td><td>purely decorative separator &mdash; not polymorphic, not interactive. The clickable affordance is the AddSectionButton that follows it.</td></tr>' +
+          /* Figma */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Figma</td></tr>' +
+          '<tr><td>Master</td><td><code>2203:297</code></td><td>Components-Atoms &mdash; Panels artboard</td></tr>' +
+          '<tr><td>Properties</td><td>single TEXT <code>Label</code></td><td>default <code>"Add Section"</code> &mdash; no Mode axis, no state ladder (decorative)</td></tr>' +
+          /* CSS location */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">CSS location</td></tr>' +
+          '<tr><td>Rules</td><td><code>.add-section-divider*</code> in <code>apps/odyssey-one/src/styles/components.css</code></td><td>directly after the <code>.section-label*</code> block</td></tr>' +
+        '</tbody>' +
+      '</table>'
+  },
+  AddSectionButton: {
+    props:
+      '<table class="comp-table">' +
+        '<thead><tr><th>Prop</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>' +
+        '<tbody>' +
+          '<tr style="background:#F7F8FA;"><td colspan="4" style="font-style:italic; color:#384253;"><strong>Atom.</strong> Prominent &ldquo;add new section&rdquo; affordance at the very bottom of all sections on Home in edit mode &mdash; the secondary entry point; the primary is the top-bar <em>Add Section</em> Button. Visual: full-width row with a single CB/600 top border and a centered 36&times;36 CB/600 pill straddling the line, containing a white lucide plus icon. Polymorphic &mdash; renders the pill as <code>&lt;button&gt;</code> when <code>onClick</code> is provided, otherwise as <code>&lt;span&gt;</code>. The line is decorative; only the pill is interactive.</td></tr>' +
+          '<tr><td><code>onClick</code></td><td>() =&gt; void</td><td>&mdash;</td><td><strong>Polymorphism driver.</strong> When provided, the pill renders as <code>&lt;button type="button"&gt;</code> with the <code>.add-section-button__pill--interactive</code> modifier &mdash; the hover/active background ladder activates. When omitted, the pill renders as a decorative <code>&lt;span aria-hidden="true"&gt;</code> with no interactive states (matches the idle visual exactly &mdash; useful when nested inside another interactive ancestor).</td></tr>' +
+          '<tr><td><code>ariaLabel</code></td><td>string</td><td><code>"Add section"</code></td><td>Forwarded as <code>aria-label</code> on the interactive <code>&lt;button&gt;</code> render. Icon-only affordance &mdash; an accessible name is required.</td></tr>' +
+          '<tr><td><code>className</code></td><td>string</td><td><code>""</code></td><td>Appended to the outer <code>.add-section-button</code> class list.</td></tr>' +
+          '<tr><td><code>...rest</code></td><td>HTMLDivAttrs</td><td>&mdash;</td><td>Spread onto the outer <code>&lt;div&gt;</code> wrapper (the row carrying the line), not onto the pill.</td></tr>' +
+        '</tbody>' +
+      '</table>',
+    tokens:
+      '<table class="comp-table">' +
+        '<thead><tr><th>Area / Property</th><th>Token / Value</th><th>Resolved</th></tr></thead>' +
+        '<tbody>' +
+          /* Sizing */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Sizing &mdash; row</td></tr>' +
+          '<tr><td>Width</td><td>100% (FILL)</td><td>row fills parent column</td></tr>' +
+          '<tr><td>Height</td><td>48px (raw)</td><td>fixed &mdash; gives the straddling pill vertical room above and below the line</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Sizing &mdash; pill</td></tr>' +
+          '<tr><td>Width &times; height</td><td>36px &times; 36px (raw)</td><td>strategic-tokens exception &mdash; tightly coupled to the 20px <code>ICON_LG</code> plus icon inside and to the geometry of the straddle</td></tr>' +
+          '<tr><td>Top offset</td><td><code>-18px</code> (raw)</td><td>strategic-tokens exception &mdash; exactly <code>-(height / 2)</code> so the pill&rsquo;s vertical center sits ON the row&rsquo;s top edge (straddle)</td></tr>' +
+          /* Layout */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Layout</td></tr>' +
+          '<tr><td>Row</td><td><code>position: relative; flex items-center justify-content-center</code></td><td>establishes the positioning context for the absolute pill and horizontally centers it</td></tr>' +
+          '<tr><td>Pill</td><td><code>position: absolute; top: -18px</code></td><td>vertically centered on the row&rsquo;s top border</td></tr>' +
+          /* Surface — row */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Surface &mdash; row</td></tr>' +
+          '<tr><td>Background</td><td><code>transparent</code></td><td>&mdash;</td></tr>' +
+          '<tr><td>Border (left / right / bottom)</td><td><code>0</code></td><td>explicit zero &mdash; only the top border is visible</td></tr>' +
+          '<tr><td>Border-top</td><td><code>1px solid --carolina-blue-600</code></td><td>CB/600 #00689D &middot; the line is decorative and stays constant across all states &mdash; only the pill responds to interaction</td></tr>' +
+          /* Surface — pill ladder */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Surface &mdash; pill ladder</td></tr>' +
+          '<tr><td>Border</td><td><code>0</code></td><td>no border &mdash; the pill is a solid filled disc</td></tr>' +
+          '<tr><td>Border radius</td><td><code>--radius-full</code></td><td>9999px &middot; full circle</td></tr>' +
+          '<tr><td>Padding</td><td><code>0</code></td><td>icon is centered via flex, not via padding</td></tr>' +
+          '<tr><td>Idle background</td><td><code>--carolina-blue-600</code></td><td>CB/600 #00689D &middot; matches the row&rsquo;s border-top color</td></tr>' +
+          '<tr><td>Hover background (interactive only)</td><td><code>--carolina-blue-400</code></td><td>CB/400 #4DA8D8 &middot; <strong>lightens</strong> on hover</td></tr>' +
+          '<tr><td>Active background (interactive only)</td><td><code>--deep-sea-neutral-900</code></td><td>DSN/900 #1B2537 &middot; <strong>darkens</strong> on press (commit-action feel &mdash; mirrors ButtonLink active)</td></tr>' +
+          /* Icon */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Icon</td></tr>' +
+          '<tr><td>Icon</td><td>lucide <code>Plus</code> at <code>ICON_LG</code> (20&nbsp;&times;&nbsp;20)</td><td>baked into the master &mdash; not a swappable slot in this iteration</td></tr>' +
+          '<tr><td>Color binding</td><td><code>currentColor</code></td><td>pill sets <code>color: var(--white)</code>; the lucide stroke inherits via <code>currentColor</code> &mdash; no per-icon override needed</td></tr>' +
+          /* Transition */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Transition (interactive only)</td></tr>' +
+          '<tr><td>Property</td><td><code>background</code></td><td>only the pill background animates &mdash; icon color stays white via <code>currentColor</code> against the shifting fill</td></tr>' +
+          '<tr><td>Duration / easing</td><td><code>--transition-fast</code></td><td>150ms ease</td></tr>' +
+          /* A11y */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">A11y</td></tr>' +
+          '<tr><td>Interactive pill</td><td><code>&lt;button type="button"&gt;</code></td><td>polymorphic &mdash; only when <code>onClick</code> provided</td></tr>' +
+          '<tr><td>Decorative pill</td><td><code>&lt;span aria-hidden="true"&gt;</code></td><td>polymorphic &mdash; when <code>onClick</code> omitted (keeps markup valid inside other interactive ancestors)</td></tr>' +
+          '<tr><td>aria-label</td><td><code>ariaLabel</code> prop, default <code>"Add section"</code></td><td>icon-only affordance &mdash; explicit accessible name required on the interactive render</td></tr>' +
+          /* Figma */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Figma</td></tr>' +
+          '<tr><td>Master</td><td><code>2210:302</code></td><td>Components-Atoms &mdash; Panels artboard</td></tr>' +
+          '<tr><td>Properties</td><td>none in this iteration</td><td>no TEXT or INSTANCE_SWAP &mdash; the visual is icon-only; <code>lucide/plus</code> master is baked in, not swappable. Hover/active are code-side state.</td></tr>' +
+          /* CSS location */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">CSS location</td></tr>' +
+          '<tr><td>Rules</td><td><code>.add-section-button*</code> in <code>apps/odyssey-one/src/styles/components.css</code></td><td>directly after the <code>.add-section-divider*</code> block (around line 805)</td></tr>' +
+        '</tbody>' +
+      '</table>'
+  },
   EmptyState: {
     props:
       '<table class="comp-table">' +
@@ -8590,6 +8756,400 @@ function getWidgetCtaNormalizeHTML() {
   '</div>';
 }
 
+/* ── SectionLabel (atom) — NORMALIZED ──
+   Atom: header row for a widget section on Home. Two Mode variants mirror the
+   Figma `SectionLabel` set 2198:308 — default (transparent, label only) and
+   edit (DSN/100 surface + pencil + trash). Promoted from the Normalize tab to
+   the Components tab after Gate B-DSM sign-off. */
+function getSectionLabelComponentHTML() {
+  var codeChip = 'font-family:\'SF Mono\',\'Fira Code\',monospace; font-size:11px; background:#F3F4F6; padding:1px 5px; border-radius:3px; color:#6B7280;';
+
+  /* Inline lucide SVGs at 20px (ICON_LG) — match the real component which uses
+     <Pencil {...ICON_LG} /> and <Trash2 {...ICON_LG} />. */
+  var svgPencil20 = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg>';
+  var svgTrash20 = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>';
+
+  /* Forced-state action button — locks idle / hover / active so the ladder is
+     comparable side-by-side without user interaction. Mirrors the live CSS
+     in apps/odyssey-one/src/styles/components.css (.section-label__action). */
+  function actionBtn(iconSvg, state) {
+    var color;
+    if (state === 'hover') color = 'var(--text-primary, #1B2537)';
+    else if (state === 'active') color = 'var(--text-placeholder, #9DA3B0)';
+    else color = 'var(--text-tertiary, #6B7280)';
+    var style = 'display:inline-flex; align-items:center; justify-content:center; padding:0; border:0; background:transparent; color:' + color + '; cursor:default; transition:color var(--transition-fast, 150ms ease);';
+    return '<button type="button" style="' + style + '" aria-label="Action">' + iconSvg + '</button>';
+  }
+
+  return '' +
+  /* ── Scoped styles ── */
+  '<style>' +
+    /* SectionLabel — frame matches .section-label in components.css. */
+    '.section-label-comp-row {' +
+      'display: flex; align-items: center; justify-content: space-between;' +
+      'width: 100%; min-height: 36px; padding: 6px 14px;' +
+      'border-radius: var(--radius-lg, 8px);' +
+      'color: var(--text-primary, #1B2537);' +
+      'background: transparent;' +
+      'box-sizing: border-box;' +
+    '}' +
+    '.section-label-comp-row--edit { background: var(--deep-sea-neutral-100, #F2F3F5); }' +
+    '.section-label-comp-row__text {' +
+      'font-family: var(--font-primary, Inter, sans-serif);' +
+      'font-size: var(--font-size-sm, 14px); line-height: var(--line-height-sm, 20px);' +
+      'font-weight: var(--font-weight-medium, 500);' +
+      'color: var(--text-primary, #1B2537);' +
+    '}' +
+    '.section-label-comp-row__actions {' +
+      'display: inline-flex; align-items: center; gap: var(--spacing-3, 12px);' +
+    '}' +
+    /* Live action button — for cards where reviewers verify the real
+       hover/active behavior. Mirrors the live split: layout + idle color on
+       `.section-label__action` (component-owned); cursor + transition +
+       :hover / :active on the shared `.icon-action` utility. Flattened
+       together here for the scoped demo. */
+    '.section-label-comp-action-live {' +
+      'display: inline-flex; align-items: center; justify-content: center;' +
+      'padding: 0; border: 0; background: transparent;' +
+      'color: var(--text-tertiary, #6B7280);' +
+      'cursor: pointer;' +
+      'transition: color var(--transition-fast, 150ms ease);' +
+    '}' +
+    '.section-label-comp-action-live:hover { color: var(--text-primary, #1B2537); }' +
+    '.section-label-comp-action-live:active { color: var(--text-placeholder, #9DA3B0); }' +
+    /* Demo container — gives each card a realistic widget-header width so the
+       FILL behavior is visible without the rows stretching to the full page. */
+    '.section-label-comp-frame {' +
+      'width: 360px; padding: 12px;' +
+      'background: var(--white, #FFFFFF);' +
+      'border: 1px solid var(--border-subtle, #E4E6EB);' +
+      'border-radius: var(--radius-md, 6px);' +
+      'box-sizing: border-box;' +
+    '}' +
+    '.section-label-comp-card-hint {' +
+      'font-size: 11px; color: #6B7280; font-style: italic; line-height: 1.4;' +
+    '}' +
+    '.section-label-comp-card-hint strong { color: #384253; font-style: normal; font-weight: 600; }' +
+  '</style>' +
+
+  /* ── Section header ── */
+  '<div class="comp-section">' +
+    '<div class="comp-section-title">SectionLabel <span class="comp-normalized-label">NORMALIZED</span></div>' +
+    '<div class="comp-section-subtitle">packages/ui/src/SectionLabel.jsx</div>' +
+    '<div style="font-size:13px; color:#6B7280; margin-bottom:18px; line-height:1.5;">Atom &mdash; header row for a widget section on Home. Sits above a group of widgets to name the row (e.g. <em>Order Exceptions</em>, <em>Widgets 1x &mdash; Orders</em>). Two Mode variants: <code>default</code> is a transparent label-only row used in view mode; <code>edit</code> swaps to a DSN/100 surface and surfaces pencil + trash actions for renaming and removing the section. Action buttons compose the shared <code>.icon-action</code> utility for hover/active behavior &mdash; the component class <code>.section-label__action</code> owns idle color + layout reset; the utility owns cursor, transition, and the <code>--text-primary</code> / <code>--text-placeholder</code> ladder.</div>' +
+
+    /* A) Modes — default vs edit */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Modes &mdash; default vs edit</div>' +
+      '<div class="comp-card-grid">' +
+        /* Mode: default */
+        '<div class="comp-card" style="flex: 1 1 380px;">' +
+          '<div class="section-label-comp-frame">' +
+            '<div class="section-label-comp-row">' +
+              '<span class="section-label-comp-row__text">Order Exceptions</span>' +
+            '</div>' +
+          '</div>' +
+          '<div class="comp-card-code">&lt;SectionLabel label="Order Exceptions" /&gt;</div>' +
+          '<div class="comp-card-note">' +
+            '<strong>Mode = default</strong> &mdash; transparent surface, label only. Frame <code>min-height 36</code>, <code>padding 6/14</code>, <code>--radius-lg</code>. Text <code>--text-label-sm-medium</code> in <code>--text-primary</code>. Used in view mode above any widget row.' +
+          '</div>' +
+        '</div>' +
+        /* Mode: edit */
+        '<div class="comp-card" style="flex: 1 1 380px;">' +
+          '<div class="section-label-comp-frame">' +
+            '<div class="section-label-comp-row section-label-comp-row--edit">' +
+              '<span class="section-label-comp-row__text">Widgets 1x &mdash; Orders</span>' +
+              '<div class="section-label-comp-row__actions">' +
+                '<button type="button" class="section-label-comp-action-live" aria-label="Rename section">' + svgPencil20 + '</button>' +
+                '<button type="button" class="section-label-comp-action-live" aria-label="Delete section">' + svgTrash20 + '</button>' +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="comp-card-code">&lt;SectionLabel label="Widgets 1x &mdash; Orders" mode="edit" onEdit={fn} onDelete={fn} /&gt;</div>' +
+          '<div class="comp-card-note">' +
+            '<strong>Mode = edit</strong> &mdash; surface fills with <code>--deep-sea-neutral-100</code> (DSN/100 #F2F3F5). Pencil + trash actions appear right-aligned in an inline-flex group with <code>--spacing-3</code> (12px) between them. Each action is a 20px lucide icon (Pencil / Trash2) on a transparent surface &mdash; no border, no padding. <strong>Hover and mousedown the icons above</strong> to verify the live ladder.' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    /* B) Action ladder — forced idle / hover / active + live */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Action ladder &mdash; idle / hover / active</div>' +
+      '<div style="font-size:13px; color:#384253; margin-bottom:12px; line-height:1.6;">The ladder below is <strong>not unique to SectionLabel</strong>. The buttons compose two classes: <code>.section-label__action</code> (component-owned &mdash; layout reset + idle color) and the shared <code>.icon-action</code> utility (cursor + transition + the <code>:hover</code> / <code>:active</code> color ladder). The same <code>.icon-action</code> utility is used by other small inline icons across the system, so the affordance reads consistently wherever it appears.</div>' +
+      '<div class="comp-card-grid">' +
+        /* Idle */
+        '<div class="comp-card">' +
+          actionBtn(svgPencil20, 'idle') +
+          '<div class="comp-card-code">Idle</div>' +
+          '<div class="comp-card-note">Color <code>--text-tertiary</code> (DSN/500 #6B7280) &mdash; <strong>component-owned</strong>, set on <code>.section-label__action</code>. Transparent surface; no border, no padding. Stroke tracks <code>currentColor</code> via Lucide so the icon recolors with the button color.</div>' +
+        '</div>' +
+        /* Hover */
+        '<div class="comp-card">' +
+          actionBtn(svgPencil20, 'hover') +
+          '<div class="comp-card-code">:hover</div>' +
+          '<div class="comp-card-note">Color steps up to <code>--text-primary</code> (DSN/900 #1B2537) &mdash; the darkest text token. Owned by the shared <code>.icon-action</code> utility, not the component. Transition <code>--transition-fast</code> (150ms ease) on the <code>color</code> property only.</div>' +
+        '</div>' +
+        /* Active */
+        '<div class="comp-card">' +
+          actionBtn(svgPencil20, 'active') +
+          '<div class="comp-card-code">:active</div>' +
+          '<div class="comp-card-note">Color lifts to <code>--text-placeholder</code> (DSN/400 #9DA3B0) &mdash; the same "release" feel used in <code>WidgetCtaRow</code>. Pressed is <strong>lighter</strong> than idle, not darker. Owned by the shared <code>.icon-action</code> utility.</div>' +
+        '</div>' +
+        /* Live */
+        '<div class="comp-card">' +
+          '<div style="display:inline-flex; align-items:center; gap:var(--spacing-3, 12px);">' +
+            '<button type="button" class="section-label-comp-action-live" aria-label="Rename section">' + svgPencil20 + '</button>' +
+            '<button type="button" class="section-label-comp-action-live" aria-label="Delete section">' + svgTrash20 + '</button>' +
+          '</div>' +
+          '<div class="section-label-comp-card-hint"><strong>Live &mdash; hover each icon, then hold mousedown.</strong> Verifies the real <code>:hover</code> / <code>:active</code> ladder.</div>' +
+          '<div class="comp-card-note">Live markup composes <code>icon-action section-label__action</code> together. The utility owns hover/active + transition; the component class owns idle color + layout reset. All transitions on <code>--transition-fast</code> (150ms ease).</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    /* Props & Tokens — modal */
+    '<div class="comp-subsection">' +
+      '<button class="comp-details-button" onclick="showCompDetails(\'SectionLabel\')">Show props &amp; tokens</button>' +
+    '</div>' +
+
+    /* Figma reference */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Figma Reference</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
+        'Component set <code style="' + codeChip + '">2198:308</code> on the <strong>Panels</strong> artboard of Components-Atoms in <a href="https://www.figma.com/design/vodiHJU38YWZYmTz81uOk7/Design-System---MCP?node-id=2198-308" target="_blank" rel="noopener">Design System &mdash; MCP</a>. Two <code>Mode</code> variants: <code style="' + codeChip + '">Default</code> = <code>2198:299</code>, <code style="' + codeChip + '">Edit</code> = <code>2198:301</code>. Single TEXT property <code>Label</code> bound to the label string. Frame width FILL, min-height 36, padding 6/14, radius <code>Radius/lg</code>, primaryAxis space-between, counterAxis center.' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+/* ── AddSectionDivider (atom) — NORMALIZED ──
+   Purely decorative row separator that announces the start of the to-be-added
+   section above the AddSectionButton in Home edit mode. NOT a button — no
+   hover/active states, no onClick, no polymorphism. Renders as a
+   <div role="separator">. The clickable affordance is the AddSectionButton
+   below it. Promoted from the Normalize tab to the Components tab after Gate
+   B-DSM sign-off (cycle A2 of the Home sections feature). */
+function getAddSectionDividerComponentHTML() {
+  var codeChip = 'font-family:\'SF Mono\',\'Fira Code\',monospace; font-size:11px; background:#F3F4F6; padding:1px 5px; border-radius:3px; color:#6B7280;';
+
+  return '' +
+  /* ── Scoped styles ── prefixed `.add-section-divider-comp-*` so they cannot
+     collide with the production `.add-section-divider*` rules in
+     components.css. Ports the live (single-state) visual: dashed top border,
+     centered label, no other borders, transparent surface, no transitions. */
+  '<style>' +
+    /* Base divider — matches `.add-section-divider` in components.css.
+       Only state: DSN/400 on both label color and border-top-color. */
+    '.add-section-divider-comp-divider {' +
+      'display: flex; align-items: center; justify-content: center;' +
+      'width: 100%; min-height: 32px; padding: 6px 14px;' +
+      'border: 0;' +
+      'border-top: 1px dashed var(--deep-sea-neutral-400, #9DA3B0);' +
+      'background: transparent;' +
+      'color: var(--deep-sea-neutral-400, #9DA3B0);' +
+      'box-sizing: border-box;' +
+      'font-family: var(--font-primary, Inter, sans-serif);' +
+    '}' +
+    /* Label — `text-label-sm-medium` (14 / 20 / 500). Color is inherited from
+       the parent divider so label and line read as a single object. */
+    '.add-section-divider-comp-divider__label {' +
+      'font-size: var(--font-size-sm, 14px);' +
+      'line-height: var(--line-height-sm, 20px);' +
+      'font-weight: var(--font-weight-medium, 500);' +
+      'color: inherit;' +
+    '}' +
+    /* Demo frame — gives the card a realistic section-row width so the FILL
+       behavior on the divider is visible without the row stretching to the
+       full page. White surface inside a subtle bordered card mirrors a real
+       Home edit-mode context where the divider sits above the AddSectionButton. */
+    '.add-section-divider-comp-frame {' +
+      'width: 360px; padding: 12px;' +
+      'background: var(--white, #FFFFFF);' +
+      'border: 1px solid var(--border-subtle, #E4E6EB);' +
+      'border-radius: var(--radius-md, 6px);' +
+      'box-sizing: border-box;' +
+    '}' +
+  '</style>' +
+
+  /* ── Section header ── */
+  '<div class="comp-section">' +
+    '<div class="comp-section-title">AddSectionDivider <span class="comp-normalized-label">NORMALIZED</span></div>' +
+    '<div class="comp-section-subtitle">packages/ui/src/AddSectionDivider.jsx</div>' +
+    '<div style="font-size:13px; color:#6B7280; margin-bottom:18px; line-height:1.5;">Atom &mdash; purely decorative row separator that announces the start of the to-be-added section above the AddSectionButton in Home edit mode. <strong>NOT a button.</strong> No hover/active states. Renders as a <code>&lt;div role="separator"&gt;</code>. The clickable affordance is the AddSectionButton below it. A single dashed top border in DSN/400 carries the entire visual; a centered <em>Add Section</em> label names the action.</div>' +
+
+    /* Single decorative demo card */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Decorative separator</div>' +
+      '<div style="font-size:13px; color:#384253; margin-bottom:12px; line-height:1.6;">The divider has one visual state only &mdash; dashed top border + centered label, both in DSN/400. No hover, no active, no transition. In Home edit mode the divider sits once directly above the AddSectionButton, telling users &ldquo;the new section will start here.&rdquo;</div>' +
+      '<div class="comp-card-grid">' +
+        '<div class="comp-card" style="flex: 1 1 380px;">' +
+          '<div class="add-section-divider-comp-frame">' +
+            '<div class="add-section-divider-comp-divider" role="separator" aria-label="Add Section">' +
+              '<span class="add-section-divider-comp-divider__label">Add Section</span>' +
+            '</div>' +
+          '</div>' +
+          '<div class="comp-card-code">&lt;AddSectionDivider /&gt;  // renders as &lt;div role="separator"&gt;</div>' +
+          '<div class="comp-card-note"><strong>The only state.</strong> Label color and <code>border-top-color</code> both <code>--deep-sea-neutral-400</code> (DSN/400 #9DA3B0). Single <code>1px dashed</code> top border &mdash; no left/right/bottom borders, no background, no transition. Frame <code>min-height 32</code>, <code>padding 6/14</code>, label centered via <code>justify-content: center</code>. Rendered as <code>&lt;div role="separator" aria-label="Add Section"&gt;</code> &mdash; decorative only; the clickable affordance is the AddSectionButton below it in Home edit mode.</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    /* Props & Tokens — modal */
+    '<div class="comp-subsection">' +
+      '<button class="comp-details-button" onclick="showCompDetails(\'AddSectionDivider\')">Show props &amp; tokens</button>' +
+    '</div>' +
+
+    /* Figma reference */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Figma Reference</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
+        'Component <code style="' + codeChip + '">2203:297</code> on the <strong>Panels</strong> artboard of Components-Atoms in <a href="https://www.figma.com/design/vodiHJU38YWZYmTz81uOk7/Design-System---MCP?node-id=2203-297" target="_blank" rel="noopener">Design System &mdash; MCP</a>. Single <code>Label</code> TEXT property, default <code>"Add Section"</code>. Frame width FILL, min-height 32, padding 6/14, transparent background, single <code>1px dashed</code> top border in DSN/400. The Figma master and the code render match 1:1 &mdash; a single decorative state, no Mode axis, no hover/active.' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+function getAddSectionButtonComponentHTML() {
+  var codeChip = 'font-family:\'SF Mono\',\'Fira Code\',monospace; font-size:11px; background:#F3F4F6; padding:1px 5px; border-radius:3px; color:#6B7280;';
+
+  /* Inline lucide Plus SVG at 20px (ICON_LG) — matches the real component which
+     uses <Plus {...ICON_LG} />. Stroke inherits the parent pill's color via
+     `currentColor` so it stays white across all background states. */
+  var svgPlus20 = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>';
+
+  return '' +
+  /* ── Scoped styles ── prefixed `.add-section-button-comp-*` so they cannot
+     collide with the production `.add-section-button*` rules in components.css.
+     Ports the live behavior faithfully: row carries the CB/600 top border,
+     pill straddles via `top:-18px`, only the pill responds to interaction. */
+  '<style>' +
+    /* Outer row — matches `.add-section-button` in components.css. */
+    '.add-section-button-comp-row {' +
+      'position: relative;' +
+      'display: flex; align-items: center; justify-content: center;' +
+      'width: 100%; height: 48px;' +
+      'border-top: 1px solid var(--carolina-blue-600, #00689D);' +
+      'background: transparent;' +
+      'box-sizing: border-box;' +
+    '}' +
+    /* Pill — matches `.add-section-button__pill`. Centered horizontally by the
+       row's `justify-content: center`; lifted vertically by `top: -18px` so
+       its vertical center sits ON the row's top edge (straddle). */
+    '.add-section-button-comp-pill {' +
+      'position: absolute; top: -18px;' +
+      'width: 36px; height: 36px;' +
+      'display: inline-flex; align-items: center; justify-content: center;' +
+      'padding: 0; border: 0;' +
+      'border-radius: var(--radius-full, 9999px);' +
+      'background: var(--carolina-blue-600, #00689D);' +
+      'color: var(--white, #FFFFFF);' +
+      'transition: background var(--transition-fast, 150ms ease);' +
+    '}' +
+    /* Interactive variant — matches `.add-section-button__pill--interactive`. */
+    '.add-section-button-comp-pill--interactive { cursor: pointer; }' +
+    '.add-section-button-comp-pill--interactive:hover {' +
+      'background: var(--carolina-blue-400, #4DA8D8);' +
+    '}' +
+    '.add-section-button-comp-pill--interactive:active {' +
+      'background: var(--deep-sea-neutral-900, #1B2537);' +
+    '}' +
+    /* Forced-state classes — lock idle / hover / active visually so each
+       side-by-side card displays one state without user interaction. */
+    '.add-section-button-comp-pill--force-hover {' +
+      'background: var(--carolina-blue-400, #4DA8D8);' +
+    '}' +
+    '.add-section-button-comp-pill--force-active {' +
+      'background: var(--deep-sea-neutral-900, #1B2537);' +
+    '}' +
+    /* Demo frame — gives each card a realistic section-bottom width so the
+       line + pill geometry reads correctly without the row stretching to the
+       full page. White surface inside a subtle bordered card mirrors a real
+       Home edit-mode context where the row sits at the bottom of a section.
+       Top padding (24px) leaves room for the pill to straddle without being
+       clipped by the frame border. */
+    '.add-section-button-comp-frame {' +
+      'width: 380px; padding: 24px 12px 12px;' +
+      'background: var(--white, #FFFFFF);' +
+      'border: 1px solid var(--border-subtle, #E4E6EB);' +
+      'border-radius: var(--radius-md, 6px);' +
+      'box-sizing: border-box;' +
+    '}' +
+    '.add-section-button-comp-card-hint {' +
+      'font-size: 11px; color: #6B7280; font-style: italic; line-height: 1.4;' +
+    '}' +
+    '.add-section-button-comp-card-hint strong { color: #384253; font-style: normal; font-weight: 600; }' +
+  '</style>' +
+
+  /* ── Section header ── */
+  '<div class="comp-section">' +
+    '<div class="comp-section-title">AddSectionButton <span class="comp-normalized-label">NORMALIZED</span></div>' +
+    '<div class="comp-section-subtitle">packages/ui/src/AddSectionButton.jsx</div>' +
+    '<div style="font-size:13px; color:#6B7280; margin-bottom:18px; line-height:1.5;">Atom. Prominent &ldquo;add new section&rdquo; affordance at the very bottom of all sections in Home edit mode (secondary entry point; the primary is the top-bar <em>Add Section</em> <code>Button</code>). Visual: CB/600 top-border line + centered 36&times;36 CB/600 pill straddling the line with a white lucide/plus icon. Polymorphic pill &mdash; renders as <code>&lt;button&gt;</code> when <code>onClick</code> is provided, <code>&lt;span&gt;</code> otherwise.</div>' +
+
+    /* States ladder — Idle / Hover (forced) / Active (forced) / Live */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">States &mdash; idle / hover / active</div>' +
+      '<div style="font-size:13px; color:#384253; margin-bottom:12px; line-height:1.6;">The interactive state ladder is owned by <code>.add-section-button__pill--interactive</code> and runs on the pill <code>background</code> only &mdash; the icon stays white across all states via <code>currentColor</code>. The transition is <code>--transition-fast</code> (150ms ease). The first three cards lock each visual state via a forced-state class; the fourth is a real <code>&lt;button&gt;</code> responding to <code>:hover</code> and <code>:active</code>.</div>' +
+      '<div class="comp-card-grid">' +
+        /* Idle (decorative) */
+        '<div class="comp-card" style="flex: 1 1 380px;">' +
+          '<div class="add-section-button-comp-frame">' +
+            '<div class="add-section-button-comp-row">' +
+              '<span class="add-section-button-comp-pill" aria-hidden="true">' + svgPlus20 + '</span>' +
+            '</div>' +
+          '</div>' +
+          '<div class="comp-card-code">&lt;AddSectionButton /&gt;  // no onClick &rarr; pill renders as &lt;span&gt;</div>' +
+          '<div class="comp-card-note"><strong>Idle (decorative)</strong> &mdash; pill background <code>--carolina-blue-600</code> (CB/600 #00689D), exactly matching the row&rsquo;s <code>border-top</code> color so the pill reads as part of the line. Pill is <code>36&times;36</code>, <code>border-radius: var(--radius-full)</code>, <code>position:absolute; top:-18px</code> so its vertical center sits ON the row&rsquo;s top edge. Plus icon is 20px lucide via <code>ICON_LG</code>, white via <code>currentColor</code> inherited from the pill&rsquo;s <code>color</code>. This is the bare class without the <code>--interactive</code> modifier &mdash; same look the non-clickable <code>&lt;span aria-hidden&gt;</code> render renders.</div>' +
+        '</div>' +
+        /* Hover (forced) */
+        '<div class="comp-card" style="flex: 1 1 380px;">' +
+          '<div class="add-section-button-comp-frame">' +
+            '<div class="add-section-button-comp-row">' +
+              '<span class="add-section-button-comp-pill add-section-button-comp-pill--interactive add-section-button-comp-pill--force-hover" aria-hidden="true">' + svgPlus20 + '</span>' +
+            '</div>' +
+          '</div>' +
+          '<div class="comp-card-code">forced :hover</div>' +
+          '<div class="comp-card-note"><strong>Hover (forced)</strong> &mdash; pill background steps to <code>--carolina-blue-400</code> (CB/400 #4DA8D8) &mdash; <em>lightens</em> against the unchanged CB/600 line. Icon stays white. The row&rsquo;s <code>border-top</code> does not shift &mdash; only the pill responds. Side-by-side comparison card &mdash; the live card below is the real <code>:hover</code> behavior on an interactive instance.</div>' +
+        '</div>' +
+        /* Active (forced) */
+        '<div class="comp-card" style="flex: 1 1 380px;">' +
+          '<div class="add-section-button-comp-frame">' +
+            '<div class="add-section-button-comp-row">' +
+              '<span class="add-section-button-comp-pill add-section-button-comp-pill--interactive add-section-button-comp-pill--force-active" aria-hidden="true">' + svgPlus20 + '</span>' +
+            '</div>' +
+          '</div>' +
+          '<div class="comp-card-code">forced :active</div>' +
+          '<div class="comp-card-note"><strong>Active (forced)</strong> &mdash; pill background steps to <code>--deep-sea-neutral-900</code> (DSN/900 #1B2537) &mdash; <em>darkens</em> on press. Press is <strong>darker</strong> than idle, not lighter (commit-action feel, mirroring ButtonLink active). Icon stays white via <code>currentColor</code>. Line color does not shift.</div>' +
+        '</div>' +
+        /* Live */
+        '<div class="comp-card" style="flex: 1 1 380px;">' +
+          '<div class="add-section-button-comp-frame">' +
+            '<div class="add-section-button-comp-row">' +
+              '<button type="button" class="add-section-button-comp-pill add-section-button-comp-pill--interactive" aria-label="Add section">' + svgPlus20 + '</button>' +
+            '</div>' +
+          '</div>' +
+          '<div class="add-section-button-comp-card-hint"><strong>Live &mdash; hover, then hold mousedown.</strong> Verifies the real <code>:hover</code> / <code>:active</code> ladder on the pill.</div>' +
+          '<div class="comp-card-note">Real <code>&lt;button&gt;</code> with <code>.add-section-button__pill--interactive</code>. Background transitions on <code>--transition-fast</code> (150ms ease) across CB/600 &rarr; CB/400 &rarr; DSN/900. <code>aria-label="Add section"</code> required since the affordance is icon-only.</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    /* Props & Tokens — modal */
+    '<div class="comp-subsection">' +
+      '<button class="comp-details-button" onclick="showCompDetails(\'AddSectionButton\')">Show props &amp; tokens</button>' +
+    '</div>' +
+
+    /* Figma reference */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Figma Reference</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
+        'Component <code style="' + codeChip + '">2210:302</code> on the <strong>Panels</strong> artboard of Components-Atoms in <a href="https://www.figma.com/design/vodiHJU38YWZYmTz81uOk7/Design-System---MCP?node-id=2210-302" target="_blank" rel="noopener">Design System &mdash; MCP</a>. No properties in this iteration &mdash; no TEXT, no INSTANCE_SWAP. The visual is icon-only; the <code>lucide/plus</code> master is baked in, not swappable. Frame width FILL, height 48, single <code>1px solid</code> top border in CB/600, transparent background; pill is a 36&times;36 CB/600 disc at <code>top:-18px</code> with a white plus inside. The Figma master shows the idle state only &mdash; hover/active are code-side state and verified here in the live card above.' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
 function showCompDetails(componentName) {
   var entry = compDetails[componentName];
   if (!entry) return;
@@ -8614,14 +9174,15 @@ function showCompDetails(componentName) {
 document.addEventListener('DOMContentLoaded', function() {
   /* Populate Components tab */
   var compTab = document.getElementById('componentsTabBadgeContent');
-  if (compTab) compTab.innerHTML = getBadgeComponentHTML() + getButtonComponentHTML() + getIconButtonComponentHTML() + getIconButtonGhostComponentHTML() + getSidebarButtonComponentHTML() + getSidebarComponentHTML() + getGlobalSearchComponentHTML() + getLeadNavComponentHTML() + getTrailNavComponentHTML() + getNavbarComponentHTML() + getPageHeaderComponentHTML() + getSectionHeaderComponentHTML() + getEntityChipComponentHTML() + getSearchFieldComponentHTML() + getWidgetMetricRowComponentHTML() + getWidgetPieChartComponentHTML() + getWidgetComponentHTML() + getWidgetCtaRowComponentHTML() + getWidgetVariantPickerComponentHTML() + getMenuRowComponentHTML() + getCustomerRowComponentHTML() + getMenuDropdownComponentHTML() + getEditModeOverviewHTML() + getWidgetsLeftMenuComponentHTML() + getEmptyStateComponentHTML() + getModalLargeComponentHTML() + getModalMediumComponentHTML();
+  if (compTab) compTab.innerHTML = getBadgeComponentHTML() + getButtonComponentHTML() + getIconButtonComponentHTML() + getIconButtonGhostComponentHTML() + getSidebarButtonComponentHTML() + getSidebarComponentHTML() + getGlobalSearchComponentHTML() + getLeadNavComponentHTML() + getTrailNavComponentHTML() + getNavbarComponentHTML() + getPageHeaderComponentHTML() + getSectionHeaderComponentHTML() + getSectionLabelComponentHTML() + getAddSectionDividerComponentHTML() + getAddSectionButtonComponentHTML() + getEntityChipComponentHTML() + getSearchFieldComponentHTML() + getWidgetMetricRowComponentHTML() + getWidgetPieChartComponentHTML() + getWidgetComponentHTML() + getWidgetCtaRowComponentHTML() + getWidgetVariantPickerComponentHTML() + getMenuRowComponentHTML() + getCustomerRowComponentHTML() + getMenuDropdownComponentHTML() + getEditModeOverviewHTML() + getWidgetsLeftMenuComponentHTML() + getEmptyStateComponentHTML() + getModalLargeComponentHTML() + getModalMediumComponentHTML();
 
-  /* No active normalization cycle. The previous wcta-norm cycle (WidgetCtaRow +
-     Widget 3xCta) has passed Gate B-DSM and been promoted to the Components
-     tab. `getWidgetCtaNormalizeHTML()` and `getWidgetFamilyNormalizeHTML()`
-     remain defined as references — re-activate manually via the console with
+  /* No active normalization cycle. The Normalize tab shows its default empty
+     state (the inline "No active normalization" placeholder rendered in the
+     #normalizeContent container). Earlier cycles
+     (`getWidgetCtaNormalizeHTML()`, `getWidgetFamilyNormalizeHTML()`) remain
+     defined as references — re-activate manually via the console with
      `activateNormalizeTab(getWidgetCtaNormalizeHTML())` + `switchTab('normalize')`
-     if you need to revisit the validation surfaces. */
+     if you need to revisit those validation surfaces. */
 
   /* Click on backdrop closes the comp details dialog */
   var compDialog = document.getElementById('comp-details-dialog');

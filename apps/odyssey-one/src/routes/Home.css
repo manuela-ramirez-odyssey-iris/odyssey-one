@@ -12,14 +12,42 @@
   margin-bottom: var(--spacing-6);
 }
 
+/* Top-level sections container — stacks each section vertically with the
+   AddSectionDivider in between (in edit mode) and the AddSectionButton at
+   the bottom (in edit mode). */
+.home-sections {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-5);
+  margin-top: var(--spacing-6);
+}
+.home-sections--edit {
+  /* Slightly wider gap in edit mode so the dashed AddSectionDivider has
+     breathing room between sections. */
+  gap: var(--spacing-6);
+}
+
+/* Per-section wrapper — SectionLabel above + widget grid below. */
+.home-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+/* Empty no-sections state (default mode) — quiet copy so the page reads as
+   "not configured" rather than broken. */
+.home-sections-empty {
+  margin-top: var(--spacing-6);
+}
+
 /* Home dashboard grid — 6 equal columns, cells ≥ 170×184, 20px gap.
    Widget variants span: 1x = 1×1, 2x = 2×1, 3x / 3xChart / 3xCta = 2×2. */
 .home-widget-grid {
   display: grid;
   grid-template-columns: repeat(var(--home-grid-columns), minmax(var(--home-grid-col-min-width), 1fr));
   grid-auto-rows: minmax(var(--home-grid-row-min-height), auto);
+  grid-auto-flow: dense;
   gap: var(--spacing-5);
-  margin-top: var(--spacing-6);
 }
 
 /* Each widget is wrapped in `.home-widget-cell` (dnd-kit sortable wrapper).
@@ -38,13 +66,87 @@
 .home-widget-cell--3xChart,
 .home-widget-cell--3xCta { grid-column: span 2; grid-row: span 2; }
 
-/* Edit-mode panel — sits where the sidebar normally lives. AppShell hides
-   the sidebar and pushes main's left padding by --edit-panel-width when
-   isEditMode is true, so this fixed panel slots into the freed space.
+/* Ghost placeholder cells — 1x sized, dashed DSN/200 outline, no fill.
+   Shown only in edit mode to suggest the grid's snap targets. Decorative —
+   not draggable, not droppable in this iteration. */
+.home-widget-cell--ghost {
+  border: 1px dashed var(--deep-sea-neutral-400);
+  border-radius: var(--radius-xl);
+  background: transparent;
+  min-height: var(--home-grid-row-min-height);
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+/* When a dragged widget hovers over a droppable placeholder, brighten the
+   border + fill subtly so the user sees the snap target. */
+.home-widget-cell--ghost-over {
+  border-color: var(--carolina-blue-600);
+  background: var(--carolina-blue-50);
+}
 
-   Always rendered (not conditionally mounted) so the CSS transform transition
-   plays both directions — slide-in on enter, slide-out on exit. The --visible
-   modifier flips transform 0 ↔ -100%, the transition smooths the motion. */
+/* DragOverlay clone — the floating representation of the dragged widget. The
+   Widget atom owns its own variant width (170/360px), so the overlay just
+   needs the lifted-shadow + grabbing cursor. The real cell in the grid is
+   dimmed to 30% (via .home-widget-cell inline style when isDragging) while
+   this overlay tracks the cursor. */
+.home-widget-drag-overlay {
+  cursor: grabbing;
+}
+.home-widget-drag-overlay > .widget {
+  box-shadow: var(--shadow-lg, 0 10px 25px -5px rgba(0, 0, 0, 0.15));
+}
+
+/* Add-section preview grid — sits between the AddSectionDivider and the
+   AddSectionButton, showing 6 placeholder cells that hint at the layout of
+   the new section that the button will create. Decorative — these cells
+   aren't droppable because the section doesn't exist yet. */
+.home-add-section-preview {
+  /* Inherits .home-widget-grid for the 6-column grid. The cells inside use
+     GhostCell which doesn't wire useDroppable. */
+}
+
+/* Inline section rename — replaces SectionLabel while editing. Inherits the
+   edit-mode surface so the swap is visually quiet. The `.section-label` +
+   `.section-label--edit` classes provide padding + DSN/100 fill + radius-lg
+   + space-between layout. We just override `.section-label__text` so the
+   input fills the available width. */
+.home-section-rename__input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  padding: 0;
+  color: var(--text-primary);
+}
+.home-section-rename__input:focus {
+  outline: 0;
+  box-shadow: none;
+}
+/* The Done button uses Button variant="ghost" size="sm". Ghost is designed
+   for dark surfaces (color: white, press → DSN/200) — none of that reads on
+   the DSN/100 SectionLabel rename surface. Until we add a proper light-surface
+   ghost variant (tracked as a follow-up), this consumer overrides the color
+   ladder + suppresses Ghost's white-tint background so the button matches the
+   same icon-action ladder used by the pencil/trash icons it replaces:
+     idle    → --text-tertiary
+     hover   → --text-primary
+     active  → --text-placeholder
+   Selectors compound `.btn--ghost` so the specificity beats Ghost's own
+   :hover / :active rules. */
+.home-section-rename__done.btn--ghost {
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+.home-section-rename__done.btn--ghost:hover:not(:disabled) {
+  color: var(--text-primary);
+  background: transparent;
+}
+.home-section-rename__done.btn--ghost:active:not(:disabled) {
+  color: var(--text-placeholder);
+  background: transparent;
+}
+
+/* Edit-mode panel — sits where the sidebar normally lives. */
 .home-edit-panel {
   position: fixed;
   top: var(--navbar-height);
@@ -63,29 +165,89 @@
   pointer-events: auto;
 }
 
-/* Widget configurator modal — full-width Insert button inside the modal footer. */
+/* Widget configurator modal — 2-step flow.
+   Step 1 footer = single Continue button (full-width).
+   Step 2 footer = Back + Add to dashboard (Back left, Add full-width on the right). */
 .home-configurator__insert {
   width: 100%;
   justify-content: center;
 }
+.home-configurator__step2-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  width: 100%;
+}
+/* Back stays content-width; only the Add-to-{section} button grows to fill
+   the remaining footer space. The "Add to {section}" label can be long so
+   giving it the leftover space keeps it on one line. `width: auto` overrides
+   `.home-configurator__insert`'s `width: 100%` (correct for step 1's single-
+   button footer; not what we want here). */
+.home-configurator__step2-actions > .btn {
+  justify-content: center;
+}
+.home-configurator__step2-actions > .home-configurator__insert {
+  flex: 1 1 auto;
+  width: auto;
+}
 
-/* Add Customers modal — scrollable list region. Caps at ~5 row heights (5 × 48 = 240)
-   so longer lists scroll inside the modal instead of growing it past the viewport. */
+/* Section picker (step 2 of the configurator) — radiogroup of selectable
+   section rows. Mirrors the MenuRow visual (36h, padded, hover bg) but adds
+   a selected state (DSN/100 surface + trailing Check icon DSN/900). */
+.home-section-picker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  max-height: 320px;
+  overflow-y: auto;
+}
+.home-section-picker__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 36px;
+  padding: var(--spacing-2) var(--spacing-3);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.home-section-picker__row:hover {
+  background: var(--deep-sea-neutral-50);
+  color: var(--text-primary);
+}
+.home-section-picker__row:active {
+  background: var(--deep-sea-neutral-100);
+}
+.home-section-picker__row--selected,
+.home-section-picker__row--selected:hover {
+  background: var(--deep-sea-neutral-100);
+  color: var(--text-primary);
+}
+
+/* Section delete confirm modal — body copy. */
+.home-section-delete-copy {
+  margin: 0;
+  padding: var(--spacing-2) 0;
+  color: var(--text-secondary);
+}
+
+/* Add Customers modal — scrollable list region. */
 .home-customers-list {
   max-height: 240px;
   overflow-y: auto;
 }
 
-/* Consumer-specific spacing for the EmptyState inside the Add Customers modal.
-   The atom owns its visual styling; this wrapper only adds the modal-local margin. */
 .home-customers-empty {
   margin-top: var(--spacing-3);
   margin-bottom: var(--spacing-8);
 }
 
-/* Just-inserted (or re-clicked) widget — outline ripple draws attention as the
-   page scrolls the widget into view. Outline doesn't affect layout, so the
-   grid + dnd-kit transforms stay clean. */
+/* Just-inserted (or re-clicked) widget — outline ripple. */
 .home-widget-cell[data-just-inserted="true"] .widget {
   animation: home-widget-just-inserted 900ms ease-out;
 }

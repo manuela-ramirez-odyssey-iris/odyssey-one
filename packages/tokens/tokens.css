@@ -111,8 +111,6 @@
   --btn-secondary-bg: var(--bg-primary);
   --btn-secondary-border: var(--border-default);
   --btn-secondary-text: var(--text-secondary);
-  --btn-disabled-bg: var(--deep-sea-neutral-300);
-  --btn-disabled-text: var(--text-inverse);
   --btn-link-text: var(--text-link);
 
   /* --- Component: Input --- */

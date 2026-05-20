@@ -120,6 +120,7 @@ function Header({ variant, title, domainIcon, showGrip, onClose }) {
           icon={<X {...ICON_LG} aria-hidden="true" />}
           onClick={onClose}
           ariaLabel="Remove widget"
+          className="widget__close"
         />
       )}
     </header>
