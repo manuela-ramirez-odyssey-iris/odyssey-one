@@ -107,7 +107,10 @@
       "Bash(awk *)",
       "Bash(lsof -ti:5173)",
       "Bash(kill 5261 5291 5344)",
-      "Bash(xxd)"
+      "Bash(xxd)",
+      "Bash(xargs -0 ls -t)",
+      "Bash(xargs -0 jq -c 'select\\(.message?.content?\\) | .message.content[]? | select\\(.type==\"tool_use\"\\) | {name: .name, cmd: \\(.input.command // null\\)}')",
+      "Bash(echo \"exit: $?\")"
     ]
   }
 }

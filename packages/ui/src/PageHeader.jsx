@@ -19,10 +19,7 @@ export default function PageHeader({ title, children, className = '', style, ...
     >
       <h1
         className="page-header__title text-display-3xl-semibold"
-        style={{
-          color: 'var(--text-primary)',
-          margin: 0,
-        }}
+        style={{ margin: 0 }}
       >
         {title}
       </h1>

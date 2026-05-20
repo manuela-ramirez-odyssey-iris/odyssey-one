@@ -727,6 +727,21 @@ input[type="radio"].odyssey-radio {
   display: inline-flex;
 }
 
+/* PageHeader — atom. Top-of-route H1. Color lives on the title so consumers
+   can override via a modifier on the header root (e.g. .home-on-dark). */
+.page-header__title {
+  color: var(--text-primary);
+}
+
+/* SectionHeader — molecule. Two-row header (title + actions). Colors on the
+   text leaves so consumers can override via a modifier on the header root. */
+.section-header__title {
+  color: var(--text-primary);
+}
+.section-header__supporting {
+  color: var(--text-tertiary);
+}
+
 /* SectionLabel — atom. Header row for a widget section on Home. Two modes
    mirror Figma `SectionLabel` set 2198:308 — default = transparent text-only;
    edit = DSN/100 surface + pencil + trash actions. */

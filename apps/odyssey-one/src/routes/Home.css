@@ -2,6 +2,132 @@
   margin-bottom: var(--spacing-6);
 }
 
+/* === Home background ====================================================
+   Port-at-dusk image + 900→50 gradient overlay anchored at the TOP of the
+   scrollable Home content. The bg lives inside .home-content (absolutely
+   positioned) so it scrolls with the rest of the content — when the user
+   scrolls down, both the bg image and the foreground text move up together.
+   The gradient blends to DSN/50 at its bottom edge so the seam where the
+   bg ends matches the page bg color seamlessly. */
+.home-background {
+  position: absolute;
+  /* Break out of the AppShell <main>'s padding so the bg meets the navbar
+     bottom and main's left/right edges with no light gutters. .home-content
+     is the relative ancestor; main's padding is 32px top / 24px sides in
+     default mode (52px top / 264px left in edit mode — handled below). */
+  top: calc(-1 * var(--spacing-8));
+  left: calc(-1 * var(--spacing-6));
+  right: calc(-1 * var(--spacing-6));
+  height: 100vh;
+  /* z-index: -1 paints below the stacking context's content (PageHeader,
+     sections, etc.) while still rendering above main's DSN/50 bg, since
+     .home-content's z-index: 1 owns the stacking context. */
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+  background-image: url('/bg.webp');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  /* Fades out when entering edit mode, back in when returning to default. */
+  opacity: 1;
+  transition: opacity var(--transition-panel),
+              top var(--transition-panel),
+              left var(--transition-panel);
+}
+.home-content--edit .home-background {
+  top: calc(-1 * var(--main-padding-top-edit));
+  left: calc(-1 * (var(--edit-panel-width) + var(--spacing-6)));
+  opacity: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-background {
+    transition: none;
+  }
+}
+.home-background::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  /* 900 with alpha at top → fully opaque DSN/50 at the bottom so the page
+     bg blends seamlessly into the freight image. */
+  background: linear-gradient(
+    180deg,
+    rgba(27, 37, 55, 0.55) 0%,
+    rgba(27, 37, 55, 0.35) 25%,
+    rgba(247, 248, 250, 0.85) 75%,
+    var(--deep-sea-neutral-50) 100%
+  );
+}
+
+/* Reduced-motion: the bg + gradient are static; nothing to disable here.
+   If we later animate the gradient or add parallax, gate it on
+   `@media (prefers-reduced-motion: no-preference)`. */
+
+/* Home content layer — sits above .home-background. Position relative +
+   explicit z-index lifts the non-positioned descendants above the fixed
+   bg sibling (which would otherwise paint on top in source-order).
+
+   Plain block layout (no display:flex): a column flex container shrinks
+   to its content's intrinsic height, which would cut .home-sticky-actions's
+   sticky container short the moment scrolling pushes content above the
+   viewport. Block layout lets .home-content extend its full scroll height
+   so sticky keeps working until the very bottom of the page. */
+.home-content {
+  position: relative;
+  z-index: 1;
+}
+
+/* === Sticky page-level actions =========================================
+   Welcome row's leadingActions ("Add Widgets") + trailingActions
+   ("Customers" chip) are extracted out of SectionHeader and rendered as
+   their own sibling here. position: sticky pins them at top:32 once the
+   page scrolls past them — keeps the primary Home actions always
+   reachable while widgets scroll. Sticky parent is .home-content which
+   spans the full Home page height. */
+.home-sticky-actions {
+  position: sticky;
+  /* `<main>` has padding-top: 32px (= --spacing-8) which sits between the
+     scrollport edge and the content. To stick at 24px below the navbar,
+     pull the sticky offset back by 8px so the rendered position is
+     32 (padding) − 8 = 24 from the navbar. */
+  top: calc(-1 * var(--spacing-2));
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+  width: 100%;
+  margin-top: var(--spacing-8);
+  margin-bottom: var(--spacing-6);
+  pointer-events: none;
+}
+/* Children re-enable pointer events so the bar itself is click-through but
+   the buttons / chip remain interactive. */
+.home-sticky-actions > * {
+  pointer-events: auto;
+}
+
+/* === On-dark text variants =============================================
+   Applied to the atoms that sit over the dark portion of the gradient.
+   PageHeader (Home), Welcome SectionHeader, and the first SectionLabel
+   ("Overview") get white text; other section labels keep default DSN
+   colors so they stay readable on the lighter portion of the gradient. */
+.home-on-dark.page-header .page-header__title,
+.home-on-dark .page-header__title {
+  color: var(--white);
+}
+.home-on-dark.section-header .section-header__title {
+  color: var(--white);
+}
+.home-on-dark.section-header .section-header__supporting {
+  color: rgba(255, 255, 255, 0.7);
+}
+.home-on-dark.section-label .section-label__text,
+.home-on-dark .section-label__text {
+  color: var(--white);
+}
+
 /* Edit-mode action bar — replaces PageHeader + SectionHeader while in edit mode.
    Right-aligned: Add Section button + Customers EntityChip. */
 .home-edit-actions {
@@ -75,6 +201,47 @@
   background: transparent;
   min-height: var(--home-grid-row-min-height);
   transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+/* Edit-mode grid frame — in edit mode, every occupied widget cell shows
+   the dashed grid line 2px OUTSIDE the widget so users can read the grid
+   underneath the populated slots. Drawn via a ::before pseudo behind the
+   widget; non-positioned, z-index: -1 paints below the widget. Border-radius
+   = widget radius + 2px so the rounded corners stay concentric. */
+.home-sections--edit .home-widget-cell:not(.home-widget-cell--ghost) {
+  position: relative;
+  z-index: 0;
+}
+.home-sections--edit .home-widget-cell:not(.home-widget-cell--ghost)::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border: 1px dashed var(--deep-sea-neutral-400);
+  border-radius: calc(var(--radius-xl) + 3px);
+  pointer-events: none;
+  z-index: -1;
+  transition: border-color var(--transition-fast),
+              background-color var(--transition-fast);
+}
+/* Drag-over highlight on a populated cell — when another widget is being
+   dragged onto this one (swap), the grid frame switches to CB/600 +
+   CB/50 fill so the user sees the same affordance as when dropping into
+   an empty cell. The bg sits on the ::before pseudo (z-index: -1, behind
+   the widget); since the resident widget fades to opacity:0 during the
+   highlight, the fill becomes visible through the now-transparent widget.
+   `:not(.home-widget-cell--ghost)` matches the specificity of the base
+   ::before rule above so this override actually wins the cascade. */
+.home-sections--edit .home-widget-cell--swap-target:not(.home-widget-cell--ghost)::before {
+  border-color: var(--carolina-blue-600);
+  background-color: var(--carolina-blue-50);
+}
+/* While the swap highlight is active, hide the resident widget so the user
+   sees the empty highlighted slot and reads the cell as "about to be
+   replaced". Pure visual — the widget DOM still exists; only opacity is
+   tweened. */
+.home-sections--edit .home-widget-cell--swap-target > .widget {
+  opacity: 0;
+  transition: opacity var(--transition-fast);
 }
 /* When a dragged widget hovers over a droppable placeholder, brighten the
    border + fill subtly so the user sees the snap target. */
@@ -245,6 +412,40 @@
 .home-customers-empty {
   margin-top: var(--spacing-3);
   margin-bottom: var(--spacing-8);
+}
+
+/* === Initial mount entry animation =====================================
+   On first Home load, each widget slides up + fades in. Per-cell delay is
+   set inline via --enter-delay (deterministic hash of widget id, 0-600ms
+   range) so the order looks organic but stable across reloads.
+   `animation-fill-mode: backwards` holds the widget at the `from` state
+   during its delay so it stays invisible until its turn arrives.
+   Easing matches --transition-panel for a consistent project motion tone. */
+.home-widget-cell--enter > .widget {
+  animation: home-widget-enter 600ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  animation-delay: var(--enter-delay, 0ms);
+  will-change: transform, opacity;
+}
+@keyframes home-widget-enter {
+  from {
+    opacity: 0;
+    transform: translateY(80px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+/* Reduced-motion users get a quick fade with no transform. */
+@media (prefers-reduced-motion: reduce) {
+  .home-widget-cell--enter > .widget {
+    animation: home-widget-enter-fade 200ms ease-out backwards;
+    animation-delay: var(--enter-delay, 0ms);
+  }
+  @keyframes home-widget-enter-fade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
 }
 
 /* Just-inserted (or re-clicked) widget — outline ripple. */

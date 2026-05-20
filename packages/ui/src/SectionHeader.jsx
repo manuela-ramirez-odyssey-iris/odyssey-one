@@ -34,20 +34,14 @@ export default function SectionHeader({
       <div className="section-header__row" style={rowStyle}>
         <h2
           className="section-header__title text-heading-2xl-semibold"
-          style={{
-            color: 'var(--text-primary)',
-            margin: 0,
-          }}
+          style={{ margin: 0 }}
         >
           {title}
         </h2>
         {supportingText && (
           <span
             className="section-header__supporting text-label-sm-regular"
-            style={{
-              color: 'var(--text-tertiary)',
-              whiteSpace: 'nowrap',
-            }}
+            style={{ whiteSpace: 'nowrap' }}
           >
             {supportingText}
           </span>

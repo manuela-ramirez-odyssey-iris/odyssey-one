@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import {
   Check,
   ClipboardList,
@@ -120,7 +120,11 @@ const widgetGoToPaths = {
   'carriers-active': '/tracking',
   'um-locked': '/users',
   'um-pending': '/users',
+  'um-account-reviews': '/users',
+  'um-rejected': '/users',
   'shipments-exceptions': '/shipments',
+  'shipments-monitoring': '/shipments',
+  'shipments-po-ipgr': '/shipments',
   'tracking-total': '/tracking',
 }
 
@@ -151,6 +155,34 @@ const shipmentsExceptionsSegments = [
   { value: 44, color: 'var(--chart-4)' },
 ]
 
+const shipmentsMonitoringRows = [
+  { label: 'Hold', value: '533 (64.93%)', indicatorColor: 'var(--chart-1)', onClick: handleRow('hold') },
+  { label: 'Consolidation', value: '128 (15.53%)', indicatorColor: 'var(--chart-2)', onClick: handleRow('consolidation') },
+  { label: 'Sent', value: '99 (12.05%)', indicatorColor: 'var(--chart-3)', onClick: handleRow('sent') },
+  { label: 'Spotted', value: '64 (7.49%)', indicatorColor: 'var(--chart-4)', onClick: handleRow('spotted') },
+]
+
+const shipmentsMonitoringSegments = [
+  { value: 533, color: 'var(--chart-1)' },
+  { value: 128, color: 'var(--chart-2)' },
+  { value: 99, color: 'var(--chart-3)' },
+  { value: 64, color: 'var(--chart-4)' },
+]
+
+const shipmentsPoIpgrRows = [
+  { label: 'PO Errors', value: '56 (48.43%)', indicatorColor: 'var(--chart-1)', onClick: handleRow('po-errors') },
+  { label: 'IPGR Errors', value: '32 (27.65%)', indicatorColor: 'var(--chart-2)', onClick: handleRow('ipgr-errors') },
+  { label: 'Routing Failures', value: '17 (14.55%)', indicatorColor: 'var(--chart-3)', onClick: handleRow('routing-failures') },
+  { label: 'Manual PO/IPGR', value: '10 (9.37%)', indicatorColor: 'var(--chart-4)', onClick: handleRow('manual-po-ipgr') },
+]
+
+const shipmentsPoIpgrSegments = [
+  { value: 56, color: 'var(--chart-1)' },
+  { value: 32, color: 'var(--chart-2)' },
+  { value: 17, color: 'var(--chart-3)' },
+  { value: 10, color: 'var(--chart-4)' },
+]
+
 const trackingRows = [
   { label: 'At Risk Pickup', value: '0 (0%)', indicatorColor: 'var(--chart-1)', onClick: handleRow('at-risk-pickup') },
   { label: 'At Risk Delivery', value: '34 (0.05%)', indicatorColor: 'var(--chart-2)', onClick: handleRow('at-risk-delivery') },
@@ -165,7 +197,11 @@ const trackingSegments = [
   { value: 15, color: 'var(--chart-4)' },
 ]
 
+// Order matters: auto-pack places widgets in this order on first render, so
+// the resulting layout matches the "Overview" + "Shipments" reference
+// (see shipments-documentation/Documentation/screenshots reference/Home_with_background.png).
 const initialWidgets = [
+  // --- Overview row 1 ---
   {
     id: 'order-exceptions',
     variant: '2x',
@@ -179,21 +215,6 @@ const initialWidgets = [
       chartTotal: 100,
       goToLabel: 'Go to Order',
       onGoToClick: handleRow('order-exceptions'),
-    },
-  },
-  {
-    id: 'carriers-active',
-    variant: '2x',
-    props: {
-      title: 'Carriers',
-      domainIcon: carriersIcon,
-      value: '5269',
-      label: 'Active',
-      percentage: '89%',
-      chartSegments: [{ value: 89, color: 'var(--chart-1)' }],
-      chartTotal: 100,
-      goToLabel: 'Go to Tracking',
-      onGoToClick: handleRow('carriers-active'),
     },
   },
   {
@@ -219,6 +240,53 @@ const initialWidgets = [
     },
   },
   {
+    id: 'home-quick-actions',
+    variant: '3xCta',
+    props: {
+      title: 'What would you like to do?',
+      ctaRows: ctaRowsStub,
+    },
+  },
+  // --- Overview row 2 ---
+  {
+    id: 'carriers-active',
+    variant: '2x',
+    props: {
+      title: 'Carriers',
+      domainIcon: carriersIcon,
+      value: '5269',
+      label: 'Active',
+      percentage: '89%',
+      chartSegments: [{ value: 89, color: 'var(--chart-1)' }],
+      chartTotal: 100,
+      goToLabel: 'Go to Tracking',
+      onGoToClick: handleRow('carriers-active'),
+    },
+  },
+  {
+    id: 'um-account-reviews',
+    variant: '1x',
+    props: {
+      title: 'User Management',
+      domainIcon: userMgmtIcon,
+      value: '12',
+      label: 'New Account Reviews',
+      onGoToClick: handleRow('um-account-reviews'),
+    },
+  },
+  {
+    id: 'um-rejected',
+    variant: '1x',
+    props: {
+      title: 'User Management',
+      domainIcon: userMgmtIcon,
+      value: '4',
+      label: 'Rejected Request',
+      onGoToClick: handleRow('um-rejected'),
+    },
+  },
+  // --- Shipments row ---
+  {
     id: 'shipments-exceptions',
     variant: '3xChart',
     props: {
@@ -233,25 +301,31 @@ const initialWidgets = [
     },
   },
   {
-    id: 'tracking-total',
+    id: 'shipments-monitoring',
     variant: '3xChart',
     props: {
-      title: 'Tracking',
-      domainIcon: trackingIcon,
-      value: '57897',
-      label: 'Total Trackings',
-      chartSegments: trackingSegments,
-      rows: trackingRows,
-      goToLabel: 'Go to Tracking',
-      onGoToClick: handleRow('tracking-total'),
+      title: 'Shipments - Monitoring',
+      domainIcon: shipmentsIcon,
+      value: '824',
+      label: 'Total Shipments in Monitoring',
+      chartSegments: shipmentsMonitoringSegments,
+      rows: shipmentsMonitoringRows,
+      goToLabel: 'Go to Shipments Monitoring',
+      onGoToClick: handleRow('shipments-monitoring'),
     },
   },
   {
-    id: 'home-quick-actions',
-    variant: '3xCta',
+    id: 'shipments-po-ipgr',
+    variant: '3xChart',
     props: {
-      title: 'What would you like to do?',
-      ctaRows: ctaRowsStub,
+      title: 'Shipments - PO/IPGR',
+      domainIcon: shipmentsIcon,
+      value: '115',
+      label: 'Total PO/IPGR',
+      chartSegments: shipmentsPoIpgrSegments,
+      rows: shipmentsPoIpgrRows,
+      goToLabel: 'Go to Shipments PO/IPGR',
+      onGoToClick: handleRow('shipments-po-ipgr'),
     },
   },
 ]
@@ -261,12 +335,24 @@ const initialWidgets = [
 // `widgetIds` is converted to `placements` lazily on Home mount via auto-pack
 // (see the useState init), so the file-level constant stays declarative.
 const initialSections = [
-  { id: 'sec-orders', name: 'Orders', widgetIds: ['order-exceptions'] },
-  { id: 'sec-carriers', name: 'Carriers', widgetIds: ['carriers-active'] },
-  { id: 'sec-um', name: 'User Management', widgetIds: ['um-locked', 'um-pending'] },
-  { id: 'sec-shipments', name: 'Shipments', widgetIds: ['shipments-exceptions'] },
-  { id: 'sec-tracking', name: 'Tracking', widgetIds: ['tracking-total'] },
-  { id: 'sec-quick-actions', name: 'Quick Actions', widgetIds: ['home-quick-actions'] },
+  {
+    id: 'sec-overview',
+    name: 'Overview',
+    widgetIds: [
+      'order-exceptions',
+      'um-locked',
+      'um-pending',
+      'home-quick-actions',
+      'carriers-active',
+      'um-account-reviews',
+      'um-rejected',
+    ],
+  },
+  {
+    id: 'sec-shipments',
+    name: 'Shipments',
+    widgetIds: ['shipments-exceptions', 'shipments-monitoring', 'shipments-po-ipgr'],
+  },
 ]
 
 const initialCatalog = [
@@ -433,6 +519,12 @@ function gridStyleFor(row, col, colSpan = 1, rowSpan = 1) {
   }
 }
 
+// Stagger window for the initial mount entry animation (ms). Each widget
+// picks a random delay in [0, ENTER_DELAY_MAX) once on its own mount via
+// useState init, so the order is fresh each page load but stable across
+// re-renders (edit mode, DnD, etc.).
+const ENTER_DELAY_MAX_MS = 700
+
 // Place a widget so it COVERS the target (row, col) with minimal slide from
 // its current position. The widget keeps its full size; only the anchor moves.
 //
@@ -503,9 +595,22 @@ function GhostCell() {
   )
 }
 
-function SortableWidget({ widget, placement, sectionId, isEditMode, onRemove, justInserted = false }) {
+function SortableWidget({ widget, placement, sectionId, isEditMode, onRemove, justInserted = false, mountAnimating = false }) {
   const cellRef = useRef(null)
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+  // Random entry delay captured once on mount — different per page load,
+  // stable across re-renders for this widget instance.
+  const [enterDelayMs] = useState(() => Math.floor(Math.random() * ENTER_DELAY_MAX_MS))
+  // Skip the entry animation if this cell is below the fold at mount time.
+  // Animating off-screen cells wastes GPU work the user never sees; with
+  // many widgets this also makes the visible stagger more legible.
+  const [isAboveFold, setIsAboveFold] = useState(true)
+  useLayoutEffect(() => {
+    if (!cellRef.current) return
+    const rect = cellRef.current.getBoundingClientRect()
+    if (rect.top > window.innerHeight) setIsAboveFold(false)
+  }, [])
+  const shouldAnimateEntry = mountAnimating && isAboveFold
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging, isOver } = useSortable({
     id: `section:${sectionId}:${widget.id}`,
     disabled: !isEditMode,
     animateLayoutChanges: () => false,
@@ -533,11 +638,19 @@ function SortableWidget({ widget, placement, sectionId, isEditMode, onRemove, ju
     opacity: isDragging ? 0.3 : 1,
   }
   const dragProps = isEditMode ? { ...attributes, ...listeners } : {}
+  // Highlight as a swap target when another widget is dragged over this cell
+  // (but not when this cell itself is the one being dragged).
+  const showSwapHighlight = isOver && !isDragging
   return (
     <div
       ref={mergedRef}
-      style={style}
-      className={`home-widget-cell home-widget-cell--${widget.variant}`}
+      style={shouldAnimateEntry ? { ...style, '--enter-delay': `${enterDelayMs}ms` } : style}
+      className={[
+        'home-widget-cell',
+        `home-widget-cell--${widget.variant}`,
+        showSwapHighlight && 'home-widget-cell--swap-target',
+        shouldAnimateEntry && 'home-widget-cell--enter',
+      ].filter(Boolean).join(' ')}
       data-just-inserted={justInserted || undefined}
       {...dragProps}
     >
@@ -618,6 +731,33 @@ function SectionRenameInput({ initialValue, onSave, onCancel }) {
 export default function Home() {
   const { isEditMode, enterEditMode } = useEditMode()
   const navigate = useNavigate()
+
+  // Edit mode always opens at the top; on exit, restore the scroll the user
+  // was at before entering edit. AppShell's <main> owns the scroll.
+  const savedHomeScrollRef = useRef(0)
+  const prevIsEditModeRef = useRef(isEditMode)
+  useEffect(() => {
+    const main = document.querySelector('main')
+    if (!main) return
+    const wasEdit = prevIsEditModeRef.current
+    if (!wasEdit && isEditMode) {
+      savedHomeScrollRef.current = main.scrollTop
+      main.scrollTop = 0
+    } else if (wasEdit && !isEditMode) {
+      main.scrollTop = savedHomeScrollRef.current
+    }
+    prevIsEditModeRef.current = isEditMode
+  }, [isEditMode])
+
+  // Initial mount: widgets slide up + fade in with a staggered delay (see
+  // .home-widget-cell--enter in Home.css). Stagger window is 0-700ms; each
+  // cell takes 600ms; total entry settles by ~1.3s. After that we drop the
+  // class so subsequent re-renders (edit mode, DnD) don't re-animate.
+  const [isMountAnimating, setIsMountAnimating] = useState(true)
+  useEffect(() => {
+    const t = setTimeout(() => setIsMountAnimating(false), 1500)
+    return () => clearTimeout(t)
+  }, [])
 
   const ctaRows = useMemo(
     () => [
@@ -1105,34 +1245,37 @@ export default function Home() {
 
   return (
     <AppShell>
+      <div className={`home-content ${isEditMode ? 'home-content--edit' : ''}`.trim()}>
+        {/* Hero background — port-at-dusk image + 900→50 gradient overlay
+            anchored at the top of the scrollable content. Scrolls with the
+            rest of Home so foreground text stays in lockstep with the bg
+            it sits on. */}
+        <div className="home-background" aria-hidden="true" />
       {!isEditMode && (
         <>
-          <PageHeader title="Home" className="home-page-header" />
+          <PageHeader title="Home" className="home-page-header home-on-dark" />
           <SectionHeader
             title="Welcome Amy!"
             supportingText="Last update: 04/24/2026 03:51 PM"
-            leadingActions={
-              <Button
-                variant="primary"
-                size="md"
-                icon={<Plus />}
-                onClick={handleAddWidgets}
-              >
-                {widgets.length === 0 ? 'Add Widgets' : 'Edit Dashboard View'}
-              </Button>
-            }
-            trailingActions={
-              <EntityChip
-                name={selectedIds.size === 0 ? 'Add Customers' : 'Customers'}
-                count={selectedIds.size}
-                showAddButton={selectedIds.size === 0}
-                onAddClick={() => {
-                  handleAddWidgets()
-                  handleOpenCustomersModal()
-                }}
-              />
-            }
+            className="home-on-dark"
           />
+          {/* Welcome-row actions, extracted out of SectionHeader so they can
+              stick at top:32 while the title row scrolls away. */}
+          <div className="home-sticky-actions">
+            <Button
+              variant="primary"
+              size="md"
+              icon={<Plus />}
+              onClick={handleAddWidgets}
+            >
+              {widgets.length === 0 ? 'Add Widgets' : 'Edit Dashboard View'}
+            </Button>
+            <EntityChip
+              name={selectedIds.size === 0 ? 'Add Customers' : 'Customers'}
+              count={selectedIds.size}
+              onAddClick={handleOpenCustomersModal}
+            />
+          </div>
         </>
       )}
       {isEditMode && (
@@ -1171,7 +1314,7 @@ export default function Home() {
                 message="No sections yet. Switch to edit mode to add one."
               />
             )}
-            {sections.map((section) => {
+            {sections.map((section, sectionIdx) => {
               const isRenaming = renamingSectionId === section.id
               // Resolve placements → render data (widget + placement).
               const placedWidgets = section.placements
@@ -1188,6 +1331,10 @@ export default function Home() {
               // mode also uses the same rows count so placeholders + widgets
               // align in the same grid.
               const gridRows = computeGridRows(section.placements, widgetsById_render)
+              // The first section sits over the dark portion of the home
+              // background gradient — its label needs white text for
+              // contrast. Lower sections sit over the lighter portion.
+              const isOnDark = !isEditMode && sectionIdx === 0
               return (
                 <div
                   key={section.id}
@@ -1202,6 +1349,7 @@ export default function Home() {
                     />
                   ) : (
                     <SectionLabel
+                      className={isOnDark ? 'home-on-dark' : ''}
                       label={section.name}
                       mode={isEditMode ? 'edit' : 'default'}
                       onEdit={isEditMode ? () => handleStartRename(section.id) : undefined}
@@ -1223,6 +1371,7 @@ export default function Home() {
                         isEditMode={isEditMode}
                         onRemove={handleRemoveWidget}
                         justInserted={widget.id === lastInsertedId}
+                        mountAnimating={isMountAnimating}
                       />
                     ))}
                     {emptyCells.map((cell) => (
@@ -1290,6 +1439,7 @@ export default function Home() {
           </SortableContext>
         </aside>
       </DndContext>
+      </div>
 
       {configurator && configurator.step === 1 && (
         <ModalLarge

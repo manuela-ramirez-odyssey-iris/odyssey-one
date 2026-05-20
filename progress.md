@@ -3303,6 +3303,112 @@ The `useState` lazy init now also wraps each matched widget's `onGoToClick` with
 
 **Two prod deploys** — both via `npx vercel --prod`. Live URLs unchanged (`odyssey-one-stage.vercel.app`).
 
+## Session 28 — May 19–20, 2026
+
+Closing out the Home domain — the "flashy attractive part" pre-flagged in Session 27. Background treatment, sticky actions that survive scroll, edit-mode polish (grid-behind-widgets, swap-target highlight, scroll save/restore, bg fade), a staggered mount entry animation that respects below-fold cells, and a cleanup of the default widget seed to match Efrain's reference. **No new normalized atoms** — Session 27 closed those out; this was all consumer-level Home work plus two one-line atom hygiene migrations (PageHeader + SectionHeader inline colors → CSS classes). Library unchanged at **33 normalized components**, **38 Code Connect mappings**.
+
+### Thread 1 — Home background + on-dark text
+
+User dropped a port-at-dusk freight photo (`bg.webp`, ~314 KB, originally placed in `src/assets/`) plus the `Home_with_background.png` reference. Asset relocated to `apps/odyssey-one/public/bg.webp` (CSS `url('/bg.webp')` reference, no Vite hash, smaller bundle). First iteration was viewport-locked (`position: fixed`) — user vetoed mid-session ("I regret the background to stick idea, lets make it scroll too"), so it became `position: absolute; height: 100vh` inside `.home-content` and now scrolls with the rest of Home. Z-index lessons learned the hard way:
+
+- First pass: bg at `z-index: 0` inside `.home-content` (which has `z-index: 1`) — bg painted ON TOP of content because positioned z-0 children paint after non-positioned siblings in the stacking-context order. Fix: `z-index: -1` on bg, paints below content but still above main's DSN/50 bg.
+- White gutters around the image: bg was respecting `<main>`'s padding (32/24/24). Fix: negative top/left/right offsets (`top: calc(-1 * var(--spacing-8))`, `left: calc(-1 * var(--spacing-6))`, etc.) so the bg breaks out to main's actual edges. Edit mode variant shifts left to `calc(-1 * (var(--edit-panel-width) + var(--spacing-6)))`.
+- Gradient overlay tuned to 4 stops `rgba(900, 0.55) → rgba(900, 0.35) at 25% → rgba(50, 0.85) at 75% → DSN/50 at 100%` so the bottom edge blends invisibly into the page bg and there's no visible seam where the bg ends.
+
+`home-on-dark` className modifier added to PageHeader ("Home"), the Welcome SectionHeader (title + supporting text at 70% white for the "Last update" line), and the **first** SectionLabel only ("Overview" — subsequent SectionLabels stay default DSN dark on the lighter portion of the gradient). To make the modifier work, **PageHeader.jsx and SectionHeader.jsx had to migrate their inline `color: var(--text-primary)` to CSS classes in `components.css`** (`.page-header__title`, `.section-header__title`, `.section-header__supporting`) — inline styles win over class selectors so the override would have been blocked otherwise. Two-line atom refactor, no API change.
+
+### Thread 2 — Sticky page actions + scroll fixes
+
+Welcome row's leading "Add Widgets" / "Edit Dashboard View" Button + trailing "Customers" EntityChip extracted out of SectionHeader's row 2 into a sibling `.home-sticky-actions` div positioned after the SectionHeader (still rendering visually below the welcome title row, but now its own DOM node so it can stick independently). Three iterations to nail the sticky behavior:
+
+1. **Stuck-at-32 issue** (user reported "way too low"): `top: var(--spacing-8)` plus `<main>` already has `padding-top: 32px` → stuck at 64 below nav. Fixed by setting `top: 0` then later `top: calc(-1 * var(--spacing-2))` (= −8px) so the rendered position is 32 (padding) − 8 = **24px below navbar**, which is what the user wanted.
+2. **Sticky losing grip at ~100vh scroll**: `.home-content` had `display: flex; flex-direction: column; min-height: 100%`. The column-flex container shrinks to intrinsic content height, capping the sticky's containing-block height. Switched to plain block layout (`position: relative; z-index: 1` only) — `.home-content` now extends naturally to the full scroll-content height, sticky stays pinned all the way down.
+3. **Container click-through**: `.home-sticky-actions` has `pointer-events: none` with children re-enabling so the empty gap between the Button and the Chip doesn't block clicks to widgets scrolling underneath.
+
+**Scroll save/restore on edit mode toggle** — `useEffect([isEditMode])` with a `prevIsEditModeRef`: entering edit mode saves `main.scrollTop` to a ref and snaps to 0; exiting restores. Implementation queries `document.querySelector('main')` since AppShell owns the scroll container and doesn't expose a ref. Intentional snap (not smooth) — animating scroll while the edit panel slides in feels laggy.
+
+### Thread 3 — Edit-mode UX polish
+
+- **Bg fades on edit-mode entry / re-enters on exit** — `.home-content--edit .home-background { opacity: 0 }` with `transition: opacity var(--transition-panel)` (220ms cubic-bezier 0.22, 1, 0.36, 1, same easing as the panel slide so they animate in lockstep). Also transitions the `top` / `left` offsets so when the bg re-enters, it slides into the edit-mode position smoothly. Reduced-motion users get an instant swap.
+- **Grid frame behind populated widgets** — In edit mode, every widget cell renders a `::before` pseudo at `inset: -3px; border: 1px dashed DSN/400; border-radius: calc(var(--radius-xl) + 3px)` so users see the grid running BEHIND their widgets (not just around empty placeholders). 3px outset is enough visual separation that the frame doesn't kiss the widget border. `.home-widget-cell` set to `position: relative; z-index: 0` (creates stacking context) so the pseudo's `z-index: -1` paints behind the widget but still above main's bg. User initially asked for 2px outset, then bumped to 3px ("more separation"). Iterated to land at the right gap.
+- **Swap-target highlight** — `useSortable` already returns `isOver` but `SortableWidget` wasn't destructuring it. Added `isOver` + a `showSwapHighlight = isOver && !isDragging` flag → cell gets `home-widget-cell--swap-target` class → pseudo border switches to CB/600 + CB/50 fill, AND the resident widget fades to `opacity: 0` with a `var(--transition-fast)` tween. Result: dragging a widget onto another shows the same affordance as dragging onto an empty cell, plus the target widget "disappears" to signal "this slot is about to be replaced". One CSS-specificity gotcha: the base `::before` rule used `:not(.home-widget-cell--ghost)` which gave it 3 classes vs the override's 2 — override was losing. Fix: added the same `:not(.home-widget-cell--ghost)` to the override selector for equal specificity, later-defined wins.
+
+### Thread 4 — Default widget setup
+
+Reworked `initialWidgets` and `initialSections` to match Efrain's reference (`Home_with_background.png`). **Two sections** (was 6): **Overview** with 7 widgets across 2 rows, **Shipments** with 3 chart widgets in one row.
+
+Overview row 1: Order (2x donut 25%) · UM Locked 1x (8) · UM Pending 1x (10) · "What would you like to do?" 3xCta (spans 2x2).
+Overview row 2: Carriers (2x donut 89%) · UM Account Reviews 1x (12) · UM Rejected 1x (4) · [CTA continuing].
+Shipments: Exceptions 3xChart (376, 4 breakdown rows) · Monitoring 3xChart (824) · PO/IPGR 3xChart (115).
+
+Added 4 new widget defs (`um-account-reviews`, `um-rejected`, `shipments-monitoring`, `shipments-po-ipgr`) with their chart segment/row data. `tracking-total` stays in `initialWidgets` (still available via picker logic) but isn't auto-placed. Added new entries to `widgetGoToPaths` for the new widgets.
+
+Order in `initialWidgets` matters — `autoPackFromWidgetIds` places widgets in array order so the resulting grid layout matches the reference exactly. Documented the dependency with a comment.
+
+### Thread 5 — Mount entry animation
+
+User: *"widgets show animated, im thinking something like they are comming from the bottom in a slide in type of animation, but not all at once but in a random fashion"*. After invoking the `web-motion-design` skill briefly to confirm easing recommendations, settled on:
+
+- **Transform**: `translateY(80px) scale(0.98) opacity(0)` → identity over 600ms. Initial pass was 24px translate (too subtle per user feedback), bumped to 80px for a clearer "from below" feel.
+- **Easing**: `cubic-bezier(0.22, 1, 0.36, 1)` — same as `--transition-panel`, project-consistent motion tone.
+- **`animation-fill-mode: backwards`** holds cells invisible during their delay (otherwise they'd flash visible before their turn).
+- **Random delays per page load** — each `SortableWidget` does `useState(() => Math.floor(Math.random() * ENTER_DELAY_MAX_MS))`. Captured once on mount → stable across re-renders for the same widget, but each page load shuffles. User explicitly wanted random-per-load, not deterministic-hash (my first attempt). `ENTER_DELAY_MAX_MS = 700` so total entry settles by ~1.3s (600ms duration + 700ms max stagger window).
+- **`isMountAnimating` parent state** — Home tracks a top-level flag flipped false after 1500ms (via `setTimeout` in mount `useEffect`). Cells only get the `--enter` class while this is true; subsequent re-renders (edit mode toggle, DnD, widget add/remove) don't re-trigger the animation. New `mountAnimating` prop added to SortableWidget.
+- **Below-fold optimization** — `useLayoutEffect` in each SortableWidget measures `cellRef.current.getBoundingClientRect()` and if `rect.top > window.innerHeight`, sets `isAboveFold = false`. Cells below the initial viewport skip the `--enter` class entirely → no GPU work for invisible animations. With 30 widgets this matters: stagger stays legible because only the ~16 visible cells animate, and you avoid 30 simultaneous transform+opacity tweens. useLayoutEffect runs before paint so off-screen cells never flash.
+- **`prefers-reduced-motion`** override — fades to opacity 1 over 200ms with no transform.
+
+### Thread 6 — Add Customers chip decoupled from edit mode
+
+User: *"Add customers modal should not auto open edit mode, make it open also on top of default view"*. Default-mode chip's `onAddClick` no longer wraps `handleAddWidgets()` (which was the edit-mode trigger) — clicks the chip → modal opens directly over default view. Also dropped `showAddButton={selectedIds.size === 0}` so the + button is always shown regardless of customer count. Chip label still toggles "Add Customers" ↔ "Customers" based on count for clarity. Edit-mode chip behavior unchanged.
+
+### Files / commits
+
+**Modified (code):**
+- `apps/odyssey-one/src/routes/Home.jsx` — `useState`/`useEffect`/`useLayoutEffect` for mount animation + scroll save/restore, 4 new widget definitions + chart data arrays, sticky-actions extraction, new `mountAnimating` + `enterDelayMs` + `isAboveFold` in SortableWidget, `home-content` wrapper with `--edit` modifier, Customer chip decoupling
+- `apps/odyssey-one/src/routes/Home.css` — `.home-background` + gradient overlay + edit-mode position/opacity, `.home-content` block layout, `.home-sticky-actions` (sticky at top: -8px with pointer-events trick), `.home-on-dark` modifier rules for PageHeader/SectionHeader/SectionLabel, edit-mode `::before` grid frame + swap-target highlight, `@keyframes home-widget-enter` + reduced-motion variant
+- `apps/odyssey-one/src/styles/components.css` — added `.page-header__title`, `.section-header__title`, `.section-header__supporting` color rules so consumer modifiers can override
+- `packages/ui/src/PageHeader.jsx` — removed inline `color: var(--text-primary)` from h1 style
+- `packages/ui/src/SectionHeader.jsx` — removed inline color from h2 title + supporting span
+
+**New asset:**
+- `apps/odyssey-one/public/bg.webp` — port-at-dusk freight photo (314 KB, was first placed in `src/assets/` then moved)
+
+### State of `@odyssey/ui` after Session 28
+
+**33 normalized components** (unchanged). No new atoms; PageHeader + SectionHeader received one-line color migrations (inline → class) so the on-dark Home variant could be wired without changing atom APIs.
+
+**Code Connect:** 38 mappings (unchanged).
+
+**Tokens added this session:** none.
+
+### Carry-forward to Session 29
+
+**Pre-flagged for next session** — user said: *"next session we will normalize the login view and also hook customers and dashboards view to database so its saved"*. Two parallel tracks:
+
+1. **Login view normalize** — fresh `/normalize` cycle on a Figma login screen (URL TBD). New domain start outside the Home/Shipments cluster. Likely surfaces: form atoms (input, label, button states already normalized — but a login layout may need new molecules like FormField, FormGroup).
+2. **Persistence layer** — hook the Home dashboard state (sections, placements, widget order, customer selections) AND the customers list to a real backend. Resumes the parked Supabase migration (see [project_supabase_deferred.md](/Users/manuelramirez/.claude/projects/-Users-manuelramirez-Documents-iris-Odyssey-Shipments-odyssey-one/memory/project_supabase_deferred.md)). Will need: `@odyssey/db` package populated, schema design for `dashboards` + `customers` tables, RLS or equivalent for the prototype, hook integration in Home.jsx (replacing the file-level `initialSections` / `initialCatalog` constants).
+
+**Standing backlog (unchanged from Session 27):**
+- Task #16 — Migrate `customer-row__action`, `widget__grip` (edit-mode subset), `menu-dropdown__header` to compose `.icon-action`
+- Task #17 — DS follow-ups: light-surface Ghost Button variant + SectionPickerRow atom normalization
+- SHP-66 — generic dropdown popover (separate from MenuDropdown)
+- SHP-67 — responsive normalization pass
+- ButtonLink — full size × state matrix in Figma
+- StatusBadge / TypeBadge / HazmatTag / Appointment / History action badges / Tab count pills normalizations
+- Off-token off-scale paddings (6 / 14 / 18) still raw across several components
+- Sidebar Selected variant Figma icon-color encoding
+- MenuDropdown / SearchField additional state variants in Figma (hover, focus, pressed)
+- IconButton size matrix (Size=md/lg) + 25×25 (code) vs 24×24 (Figma) reconciliation
+- Cognizant repo access + 3–5 component proof-of-concept Angular port
+
+**Parked:**
+- Mode-based Figma theming for Button icon colors
+- Purge legacy `icons/Npx/*` masters
+- Convert any remaining Lucide FRAMEs to proper COMPONENTs
+- Real customer data (Home `customers` array still 50 placeholders — addressed by the persistence track above)
+- "Add Section" inline-between-sections affordance
+- IntersectionObserver-driven entry animation for cells scrolled INTO view later (separate from the initial-mount stagger)
+
 ## Session 27 — May 19, 2026
 
 Five threads. Started with a focused Button-Disabled re-normalize, paused for a permission-allowlist audit, then a triple /normalize cycle for the three atoms needed by the Home sections feature (SectionLabel, AddSectionDivider, AddSectionButton), then the big Phase B feature work — the Home page refactored around explicit-position sections with full cross-section drag, a 2-step "Add to section" modal, a preview row at the bottom, and a pile of edge-case refinements (minimal-slide placement, DragOverlay, pointerWithin collision, ghost cell drop targets). Library now at **33 normalized components (+3)**, **38 Code Connect mappings (+3)**, **1 new shared utility (`.icon-action`)**, and **zero new tokens / icons / text styles added** — all values reused from the existing system.
