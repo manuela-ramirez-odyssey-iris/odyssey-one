@@ -9150,6 +9150,1308 @@ function getAddSectionButtonComponentHTML() {
   '</div>';
 }
 
+/* ── OdysseyLogo — inline SVG (dark variant) ──
+   Mirrors packages/ui/src/OdysseyLogo.jsx exactly. Dark variant fills:
+     • "Odyssey" paths (first 7) → var(--deep-sea-neutral-900)
+     • "One" paths (last 3) → var(--carolina-blue-400)
+   Rendered at the atom's natural 172×24. Used by the AuthModal shell. */
+function getOdysseyLogoDarkSVG() {
+  return '<svg width="172" height="24" viewBox="0 0 172 24" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Odyssey One">' +
+    '<g clip-path="url(#odyssey-logo-clip-dsm)">' +
+      '<path d="M12.8985 5.26607C10.9236 5.26607 9.26832 5.97702 7.9326 7.40072C6.59687 8.82442 5.92901 10.591 5.92901 12.697C5.92901 14.5623 6.46222 16.0524 7.52685 17.1673C8.59148 18.2804 10.0116 18.837 11.7872 18.837C13.7297 18.837 15.3796 18.1009 16.7369 16.6287C18.096 15.1548 18.7746 13.3594 18.7746 11.2409C18.7746 9.49767 18.2216 8.065 17.1193 6.94471C16.017 5.82442 14.6076 5.26607 12.8985 5.26607ZM11.4658 24.0004C9.83565 24.0004 8.35809 23.7777 7.02416 23.3307C5.69202 22.8855 4.5071 22.2158 3.4694 21.3235C2.37963 20.3702 1.53044 19.1925 0.918234 17.7921C0.306025 16.3935 -0.000976562 14.9052 -0.000976562 13.3271C-0.000976562 11.6251 0.261142 10.0363 0.785379 8.56051C1.30782 7.08295 2.08879 5.74184 3.12649 4.53896C4.34014 3.10629 5.81949 2.01114 7.56814 1.24991C9.3168 0.485103 11.2109 0.104492 13.254 0.104492C16.6759 0.104492 19.4425 1.08833 21.5538 3.05961C23.6651 5.02909 24.719 7.59103 24.719 10.7436C24.719 12.4348 24.4514 14.0237 23.9164 15.5138C23.3832 17.0022 22.6023 18.3415 21.5771 19.5336C20.3222 20.9968 18.8374 22.1063 17.1265 22.8621C15.4155 23.6198 13.5286 23.9986 11.464 23.9986" fill="var(--deep-sea-neutral-900)" />' +
+      '<path d="M29.3146 12.7433C29.3146 13.5099 29.548 14.1257 30.0148 14.5925C30.4798 15.0592 31.0956 15.2908 31.8622 15.2908C32.7006 15.2908 33.399 14.9641 33.9591 14.3124C34.5211 13.6607 34.8012 12.8456 34.8012 11.8653C34.8012 11.1221 34.566 10.5189 34.0956 10.0575C33.6252 9.59605 33.0202 9.36445 32.2751 9.36445C31.4152 9.36445 30.706 9.68223 30.1494 10.3178C29.5929 10.9551 29.3128 11.7612 29.3128 12.7433M40.5283 0L37.636 18.3716H33.6521L33.9017 16.8205C33.3074 17.4919 32.6593 18 31.9502 18.3429C31.2446 18.6858 30.4834 18.8582 29.6683 18.8582C28.2931 18.8582 27.1656 18.3375 26.2841 17.298C25.4008 16.2603 24.9609 14.9174 24.9609 13.2729C24.9609 11.2029 25.5552 9.48833 26.7455 8.12926C27.934 6.7702 29.4259 6.09156 31.2195 6.09156C32.0256 6.09156 32.7545 6.25853 33.4062 6.59425C34.0579 6.92998 34.6737 7.45781 35.2482 8.17774V7.83303C35.2482 7.59605 35.2608 7.35009 35.2841 7.09336C35.3092 6.83662 35.3398 6.57451 35.381 6.30521L36.3793 0H40.5283Z" fill="var(--deep-sea-neutral-900)" />' +
+      '<path d="M62.8551 7.27838L61.6217 9.96958C61.0777 9.58179 60.575 9.29992 60.1172 9.12398C59.6576 8.94624 59.2034 8.85647 58.7528 8.85647C58.3722 8.85647 58.0598 8.94265 57.812 9.11859C57.5625 9.29094 57.4368 9.50459 57.4368 9.75773C57.4368 10.1222 57.8479 10.4615 58.6702 10.7757C59.0329 10.9103 59.3183 11.0234 59.523 11.1204C60.6684 11.6177 61.4709 12.133 61.9287 12.668C62.3865 13.2012 62.6163 13.8672 62.6163 14.6644C62.6163 15.9211 62.128 16.9301 61.1567 17.6931C60.1837 18.4561 58.8892 18.8367 57.2698 18.8367C56.3524 18.8367 55.4763 18.7164 54.6433 18.4759C53.8102 18.2353 53.0005 17.869 52.2178 17.3789L53.6289 14.51C54.4368 15.0073 55.1101 15.361 55.6576 15.5656C56.2034 15.7721 56.7169 15.8726 57.198 15.8726C57.6163 15.8726 57.9539 15.7811 58.2052 15.5944C58.4566 15.4094 58.584 15.1689 58.584 14.878C58.584 14.4274 58.0041 13.966 56.8425 13.492C56.4943 13.3502 56.2267 13.2389 56.0346 13.1599C55.11 12.7488 54.4548 12.3035 54.067 11.8206C53.6792 11.3376 53.4853 10.738 53.4853 10.0198C53.4853 8.87263 53.9646 7.9211 54.9197 7.16168C55.8767 6.40225 57.1065 6.02344 58.6074 6.02344C59.365 6.02344 60.1029 6.12936 60.8246 6.3448C61.5427 6.55845 62.2196 6.86904 62.8515 7.28017" fill="var(--deep-sea-neutral-900)" />' +
+      '<path d="M73.7908 7.27838L72.5556 9.96958C72.0099 9.58179 71.509 9.29992 71.0529 9.12398C70.5933 8.94624 70.1373 8.85647 69.6867 8.85647C69.3097 8.85647 68.9955 8.94265 68.7459 9.11859C68.4982 9.29094 68.3725 9.50459 68.3725 9.75773C68.3725 10.1222 68.7836 10.4615 69.6059 10.7757C69.9686 10.9103 70.254 11.0234 70.4587 11.1204C71.6041 11.6177 72.4048 12.133 72.8644 12.668C73.3222 13.2012 73.552 13.8672 73.552 14.6644C73.552 15.9211 73.0637 16.9301 72.0924 17.6931C71.1194 18.4561 69.8249 18.8367 68.2038 18.8367C67.2863 18.8367 66.412 18.7164 65.579 18.4759C64.7441 18.2353 63.9362 17.869 63.1553 17.3789L64.5646 14.51C65.3725 15.0073 66.0458 15.361 66.5933 15.5656C67.1391 15.7721 67.6508 15.8726 68.1337 15.8726C68.552 15.8726 68.8878 15.7811 69.1409 15.5944C69.3923 15.4094 69.5197 15.1689 69.5197 14.878C69.5197 14.4274 68.938 13.966 67.7783 13.492C67.43 13.3502 67.1607 13.2389 66.9704 13.1599C66.0458 12.7488 65.3887 12.3035 65.0027 11.8206C64.6149 11.3376 64.421 10.738 64.421 10.0198C64.421 8.87263 64.9003 7.9211 65.8555 7.16168C66.8124 6.40225 68.0404 6.02344 69.5413 6.02344C70.3007 6.02344 71.0386 6.12936 71.7603 6.3448C72.4784 6.55845 73.1553 6.86904 73.7872 7.28017" fill="var(--deep-sea-neutral-900)" />' +
+      '<path d="M83.7976 10.9666C83.7564 10.3185 83.5409 9.80327 83.1459 9.42446C82.7492 9.04385 82.2285 8.85534 81.5822 8.85534C80.9969 8.85534 80.4745 9.04026 80.0131 9.41189C79.5517 9.78352 79.1998 10.3006 78.9628 10.9649H83.7994L83.7976 10.9666ZM78.6774 13.3957V13.6668C78.6774 14.4245 78.8713 15.0044 79.259 15.3975C79.645 15.7943 80.2106 15.9918 80.9538 15.9918C81.4763 15.9918 81.9682 15.8823 82.4296 15.665C82.891 15.4478 83.3883 15.0977 83.9179 14.6166L86.1926 16.9164C85.5122 17.5627 84.7276 18.0492 83.8407 18.3724C82.952 18.6973 81.9592 18.8589 80.8605 18.8589C78.9072 18.8589 77.3937 18.3383 76.3147 17.2988C75.2357 16.2611 74.6953 14.8033 74.6953 12.9307C74.6953 10.8841 75.3362 9.21799 76.6217 7.93972C77.9054 6.66144 79.5678 6.02051 81.6073 6.02051C83.4565 6.02051 84.9449 6.58424 86.0705 7.7153C87.1962 8.84636 87.7599 10.3437 87.7599 12.2072C87.7599 12.3742 87.7348 12.674 87.6881 13.1085C87.6702 13.2431 87.6612 13.3365 87.6522 13.3939H78.6774V13.3957Z" fill="var(--deep-sea-neutral-900)" />' +
+      '<path d="M97.5775 6.30566L93.9402 14.1979L92.0174 6.30566H87.985L90.4662 14.7276C90.4662 14.7276 92.3226 20.8137 88.9366 20.8137C87.8486 20.8137 60.3118 20.8155 47.2938 20.8155L47.1753 21.0382C47.0407 21.3254 46.3208 22.7724 44.9814 23.855C59.0694 23.855 87.8791 23.8532 89.6673 23.8532C92.5793 23.8532 94.0694 20.496 94.0694 20.496L101.556 6.30746H97.5775V6.30566Z" fill="var(--deep-sea-neutral-900)" />' +
+      '<path d="M49.584 6.30554L45.9466 14.1978L44.022 6.30554H39.9897L42.4727 14.7274C42.4727 14.7274 44.3273 20.8136 40.9413 20.8136C40.0849 20.8136 29.2483 20.8154 22.1657 20.8154C20.961 22.0991 19.5606 23.117 17.9951 23.8549C26.1441 23.8531 40.1208 23.8531 41.672 23.8531C44.584 23.8531 46.0741 20.4958 46.0741 20.4958L53.5606 6.30734H49.5822L49.584 6.30554Z" fill="var(--deep-sea-neutral-900)" />' +
+      '<path d="M131.466 0.845703H138.227L145.625 16.5369H145.688L147.889 0.845703H152.864L149.706 23.4256H143.2L135.577 7.35199H135.514L133.282 23.4256H128.308L131.466 0.845703Z" fill="var(--carolina-blue-400)" />' +
+      '<path d="M155.289 0.845703H170.628L169.991 5.43816H159.627L159.02 9.64822H168.811L168.174 14.2407H158.382L157.745 18.8331H168.684L168.047 23.4256H152.133L155.289 0.845703Z" fill="var(--carolina-blue-400)" />' +
+      '<path d="M116.516 5.19592C114.541 5.19592 112.886 5.90687 111.55 7.33057C110.214 8.75427 109.546 10.5209 109.546 12.6268C109.546 14.4921 110.079 15.9823 111.144 17.0972C112.209 18.2103 113.629 18.7668 115.404 18.7668C117.347 18.7668 118.997 18.0308 120.354 16.5586C121.713 15.0846 122.392 13.2893 122.392 11.1708C122.392 9.42752 121.839 7.99484 120.736 6.87455C119.634 5.75427 118.225 5.19592 116.516 5.19592ZM115.083 23.9302C113.453 23.9302 111.975 23.7076 110.641 23.2606C109.309 22.8153 108.124 22.1456 107.087 21.2534C105.997 20.3 105.148 19.1223 104.535 17.722C103.923 16.3234 103.616 14.8351 103.616 13.257C103.616 11.555 103.878 9.96612 104.403 8.49035C104.925 7.01279 105.706 5.67168 106.744 4.46881C107.957 3.03613 109.437 1.94098 111.185 1.17976C112.932 0.414948 114.826 0.0361328 116.869 0.0361328C120.291 0.0361328 123.058 1.01997 125.169 2.99125C127.28 4.96073 128.334 7.52267 128.334 10.6753C128.334 12.3665 128.067 13.9553 127.532 15.4455C126.999 16.9338 126.218 18.2731 125.193 19.4652C123.938 20.9284 122.453 22.0379 120.742 22.7938C119.031 23.5514 117.144 23.9302 115.079 23.9302" fill="var(--carolina-blue-400)" />' +
+    '</g>' +
+    '<defs>' +
+      '<clipPath id="odyssey-logo-clip-dsm">' +
+        '<rect width="172" height="24" fill="white" />' +
+      '</clipPath>' +
+    '</defs>' +
+  '</svg>';
+}
+
+/* ── AuthModal (organism shell) — IN-PROGRESS normalize cycle ──
+   Pre-auth screen card. White 416-wide card on a dark backdrop. Single content
+   slot — consumer composes Login / MFA / password-setup content. Shell now
+   bakes in OdysseyLogo (dark variant) as the header. No footer, no close
+   button (modal can't be dismissed before auth). Figma master 2244:1373 in
+   Components-Organisms / Modals next to ModalLarge + ModalMedium. Renders in
+   the Normalize tab WITHOUT a NORMALIZED pill until GATE B-DSM sign-off. */
+function getAuthModalNormalizeHTML() {
+  return '' +
+  /* ── Scoped styles ── */
+  '<style>' +
+    '.auth-norm-section { margin-bottom: 48px; }' +
+    '.auth-norm-info-callout {' +
+      'background: #F7F8FA; border: 1px solid #E4E6EB; border-left: 3px solid #296DE7;' +
+      'padding: 12px 16px; border-radius: 6px; margin-bottom: 24px;' +
+      'font-size: 13px; color: #384253; line-height: 1.6;' +
+    '}' +
+    '.auth-norm-info-callout strong { color: #1B2537; }' +
+    '.auth-norm-info-callout code {' +
+      'background: rgba(40, 49, 66, 0.06); padding: 1px 6px; border-radius: 4px;' +
+      'font-size: 12px; color: #1B2537;' +
+    '}' +
+
+    /* compDetails block — light surface, key/value rows. */
+    '.auth-norm-details {' +
+      'background: var(--white, #FFFFFF);' +
+      'border: 1px solid var(--border-subtle, #E4E6EB);' +
+      'border-radius: var(--radius-md, 6px);' +
+      'padding: 16px 20px; margin-bottom: 24px;' +
+      'font-size: 13px; color: #384253; line-height: 1.6;' +
+    '}' +
+    '.auth-norm-details dl { display: grid; grid-template-columns: 140px 1fr; gap: 6px 16px; margin: 0; }' +
+    '.auth-norm-details dt { font-weight: 600; color: #1B2537; }' +
+    '.auth-norm-details dd { margin: 0; color: #384253; }' +
+    '.auth-norm-details code {' +
+      'background: #F2F3F5; padding: 1px 6px; border-radius: 4px;' +
+      'font-size: 12px; color: #1B2537;' +
+    '}' +
+
+    /* Demo card backdrop — darkish gray, like the Figma backdrop. The white
+       AuthModal card sits centered inside. */
+    '.auth-norm-backdrop {' +
+      'background: #626262;' +
+      'padding: 40px;' +
+      'border-radius: var(--radius-md, 6px);' +
+      'display: flex; align-items: flex-start; justify-content: center;' +
+    '}' +
+
+    /* AuthModal shell — token-bound. */
+    '.auth-norm-card {' +
+      'background: var(--white, #FFFFFF);' +
+      'width: 416px;' +
+      'padding: var(--spacing-8, 32px);' +
+      'border-radius: var(--radius-2xl, 16px);' +
+      'display: flex; flex-direction: column; align-items: flex-start;' +
+      'gap: var(--spacing-8, 32px);' +
+      'box-sizing: border-box;' +
+    '}' +
+
+    /* Card 1 — animated dashed content slot placeholder. */
+    '.auth-norm-slot {' +
+      'width: 100%; min-height: 320px;' +
+      'display: flex; align-items: center; justify-content: center;' +
+      'padding: 24px; box-sizing: border-box;' +
+      'color: var(--text-tertiary, #6B7280);' +
+      'font-family: \'Inter\', sans-serif; font-size: 13px; line-height: 1.5;' +
+      'text-align: center;' +
+      'border-radius: var(--radius-md, 6px);' +
+      /* SVG-backed dashed border that animates via stroke-dashoffset — using a
+         background-image keeps the dashes evenly spaced and lets us animate. */
+      'background-image: url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'100%25\' height=\'100%25\'%3E%3Crect width=\'100%25\' height=\'100%25\' fill=\'none\' stroke=\'%239DA3B0\' stroke-width=\'2\' stroke-dasharray=\'8 6\' rx=\'6\' ry=\'6\'/%3E%3C/svg%3E");' +
+      'animation: authNormSlotPulse 2s ease-in-out infinite;' +
+    '}' +
+    '@keyframes authNormSlotPulse {' +
+      '0%, 100% { opacity: 0.55; }' +
+      '50% { opacity: 1; }' +
+    '}' +
+
+    /* Header — OdysseyLogo (dark variant) rendered at its natural 172x24,
+       centered horizontally inside the shell. Now part of the shell, not the
+       consumer composition. */
+    '.auth-norm-logo {' +
+      'align-self: center;' +
+      'display: flex; align-items: center; justify-content: center;' +
+    '}' +
+    '.auth-norm-form {' +
+      'width: 100%;' +
+      'display: flex; flex-direction: column;' +
+      'gap: var(--spacing-4, 16px);' +
+    '}' +
+    '.auth-norm-field {' +
+      'display: flex; flex-direction: column;' +
+      'gap: var(--spacing-1, 4px);' +
+    '}' +
+    '.auth-norm-label {' +
+      'font-family: \'Inter\', sans-serif;' +
+      'font-size: 14px; line-height: 20px; font-weight: 500;' +
+      'color: var(--text-secondary, #384253);' +
+    '}' +
+    '.auth-norm-input {' +
+      'width: 100%; box-sizing: border-box;' +
+      'background: var(--white, #FFFFFF);' +
+      'border: 1px solid var(--deep-sea-neutral-300, #D0D4DB);' +
+      'border-radius: var(--radius-md, 6px);' +
+      'padding: 8px 13px;' +
+      'box-shadow: var(--shadow-sm, 0px 1px 2px 0px rgba(0, 0, 0, 0.05));' +
+      'font-family: \'Inter\', sans-serif; font-size: 14px; line-height: 20px; font-weight: 400;' +
+      'color: var(--text-primary, #1B2537);' +
+    '}' +
+    '.auth-norm-input::placeholder { color: var(--text-placeholder, #9DA3B0); }' +
+    '.auth-norm-submit {' +
+      'width: 100%; box-sizing: border-box;' +
+      'background: var(--deep-sea-neutral-800, #283142);' +
+      'color: var(--white, #FFFFFF);' +
+      'border: none; border-radius: var(--radius-lg, 8px);' +
+      'padding: 8px 18px;' +
+      'font-family: \'Inter\', sans-serif; font-size: 16px; line-height: 24px; font-weight: 500;' +
+      'cursor: pointer; text-align: center;' +
+      'box-shadow: var(--shadow-sm, 0px 1px 2px 0px rgba(0, 0, 0, 0.05));' +
+    '}' +
+    '.auth-norm-forgot {' +
+      'align-self: flex-start;' +
+      'background: transparent; border: 0; padding: 0;' +
+      'font-family: \'Inter\', sans-serif; font-size: 14px; line-height: 20px; font-weight: 500;' +
+      'color: var(--text-link, #276DA2);' +
+      'cursor: pointer;' +
+    '}' +
+    '.auth-norm-account {' +
+      'font-family: \'Inter\', sans-serif; font-size: 14px; line-height: 20px; font-weight: 500;' +
+      'color: var(--text-primary, #1B2537);' +
+    '}' +
+    '.auth-norm-account a {' +
+      'color: var(--text-primary, #1B2537);' +
+      'text-decoration: underline; font-weight: 500;' +
+    '}' +
+
+    /* Two-up grid for the cards. */
+    '.auth-norm-card-grid {' +
+      'display: grid; grid-template-columns: repeat(auto-fit, minmax(520px, 1fr)); gap: 24px;' +
+    '}' +
+    '.auth-norm-card-hint {' +
+      'font-size: 11px; color: #6B7280; font-style: italic; line-height: 1.4; margin-top: 12px;' +
+    '}' +
+    '.auth-norm-card-hint strong { color: #384253; font-style: normal; font-weight: 600; }' +
+  '</style>' +
+
+  /* ── Section ── (no NORMALIZED pill — mid-cycle) */
+  '<div class="auth-norm-section">' +
+    '<div class="comp-section-title">AuthModal</div>' +
+    '<div class="comp-section-subtitle">packages/ui/src/AuthModal.jsx (planned) &middot; Figma node 2244:1373</div>' +
+
+    /* Info callout — what this is + cycle status */
+    '<div class="auth-norm-info-callout">' +
+      '<strong>In-progress normalize cycle.</strong> Pre-auth screen card. The shell is a single-state organism &mdash; consumer composes the content (Login for this cycle; MFA setup and password setup later). Sits next to <code>ModalLarge</code> and <code>ModalMedium</code> in the <em>Modals</em> family. Marked complete after <strong>GATE B-DSM</strong> sign-off &mdash; <em>then</em> the NORMALIZED pill gets added and the section moves to the Components tab.' +
+    '</div>' +
+
+    /* compDetails — quick summary block */
+    '<div class="auth-norm-details">' +
+      '<dl>' +
+        '<dt>Component</dt><dd>AuthModal</dd>' +
+        '<dt>Type</dt><dd>Organism (shell)</dd>' +
+        '<dt>Figma node</dt><dd><code>2244:1373</code> &mdash; Components-Organisms / Modals</dd>' +
+        '<dt>Purpose</dt><dd>Pre-auth screen card. Holds Login (and later MFA, password setup) content.</dd>' +
+        '<dt>Slot model</dt><dd>Single <code>children</code> slot; no header / footer chrome; no close button.</dd>' +
+        '<dt>Tokens</dt><dd><code>--white</code> bg &middot; <code>--spacing-8</code> (32) padding + gap &middot; <code>--radius-2xl</code> (16) &middot; fixed <strong>416px</strong> wide, HUG height &middot; no shadow (sits on dark backdrop).</dd>' +
+        '<dt>Composition</dt><dd>Shell bakes in <strong>OdysseyLogo</strong> (dark variant) as the header. Consumer content composes <strong>Button</strong> + <strong>ButtonLink</strong> + inline form fields + inline link text. Lives next to <code>ModalLarge</code> / <code>ModalMedium</code> as a Modals-family organism.</dd>' +
+      '</dl>' +
+    '</div>' +
+
+    /* Demo cards — two side-by-side */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Shell + intended consumer composition</div>' +
+      '<div class="auth-norm-card-grid">' +
+
+        /* Card 1 — Shell with OdysseyLogo header + animated dashed content slot.
+           The header is part of the shell, so even the "empty" shell renders it. */
+        '<div class="comp-card">' +
+          '<div class="auth-norm-backdrop">' +
+            '<div class="auth-norm-card">' +
+              /* Header — real OdysseyLogo (dark variant) */
+              '<div class="auth-norm-logo">' + getOdysseyLogoDarkSVG() + '</div>' +
+              '<div class="auth-norm-slot">Content slot &mdash; compose with form, button, etc. in consumer</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="comp-card-code">&lt;AuthModal&gt;{children}&lt;/AuthModal&gt;</div>' +
+          '<div class="comp-card-note">' +
+            '<strong>Shell.</strong> 416 fixed width, HUG height, <code>--spacing-8</code> padding + gap, <code>--radius-2xl</code> corner, <code>--white</code> background, no shadow, no close button. <code>counterAxis START</code> (items-start), vertical auto-layout. <strong>OdysseyLogo</strong> (dark variant, 172&times;24, centered) is baked into the shell as the header. The dashed placeholder is a <em>preview-state indicator</em> for the content slot &mdash; it pulses so it doesn\'t read as a real design element.' +
+          '</div>' +
+        '</div>' +
+
+        /* Card 2 — Login composition (intended consumer content) */
+        '<div class="comp-card">' +
+          '<div class="auth-norm-backdrop">' +
+            '<div class="auth-norm-card">' +
+              /* Header — real OdysseyLogo (dark variant) */
+              '<div class="auth-norm-logo">' + getOdysseyLogoDarkSVG() + '</div>' +
+              /* Form */
+              '<div class="auth-norm-form">' +
+                '<div class="auth-norm-field">' +
+                  '<label class="auth-norm-label" for="auth-norm-email">Email Address</label>' +
+                  '<input class="auth-norm-input" id="auth-norm-email" type="email" placeholder="Enter Email ID" autocomplete="off" />' +
+                '</div>' +
+                '<div class="auth-norm-field">' +
+                  '<label class="auth-norm-label" for="auth-norm-password">Password</label>' +
+                  '<input class="auth-norm-input" id="auth-norm-password" type="password" placeholder="Enter Password" autocomplete="off" />' +
+                '</div>' +
+                '<button type="button" class="auth-norm-submit">Log In</button>' +
+              '</div>' +
+              /* Forgot password link */
+              '<button type="button" class="auth-norm-forgot">Forgot password?</button>' +
+              /* Account link */
+              '<div class="auth-norm-account">Don\'t have an account yet? <a href="#" onclick="event.preventDefault();">Create an account.</a></div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="comp-card-code">&lt;AuthModal&gt;&lt;LoginForm /&gt;&lt;/AuthModal&gt;</div>' +
+          '<div class="comp-card-note">' +
+            '<strong>Login composition.</strong> What a consumer renders inside the shell for this cycle &mdash; the <strong>OdysseyLogo</strong> at the top is already provided by the shell, not the consumer. Form fields: label <code>--text-secondary</code> 14/20 Inter Medium, input <code>1px --deep-sea-neutral-300</code> border, <code>--radius-md</code> (6), <code>8/13</code> padding, <code>--shadow-sm</code>, placeholder <code>--text-placeholder</code>. Label-to-input gap <code>--spacing-1</code> (4); field-to-field gap <code>--spacing-4</code> (16). Submit: full-width, <code>--deep-sea-neutral-800</code> bg, <code>--radius-lg</code> (8), white 16/24 Medium. Forgot link <code>--text-link</code>. Account link uses underlined inline span in <code>--text-primary</code>.' +
+          '</div>' +
+        '</div>' +
+
+      '</div>' +
+      '<div class="auth-norm-card-hint"><strong>Backdrop</strong> is rendered <code>#626262</code> so the white card visually separates &mdash; mirrors how the Figma file presents the AuthModal master.</div>' +
+    '</div>' +
+
+  '</div>';
+}
+
+/* ── FormField (atom) — IN-PROGRESS normalize cycle ──
+   Label + native text input pair. The primary form-input primitive for the
+   Odyssey-One system. First consumer is AuthModal's Login form; future
+   consumers include MFA, password setup, Settings forms, etc. Figma master
+   2255:98 on Components-Molecules (Default / Focus / Error variants). Renders
+   in the Normalize tab WITHOUT a NORMALIZED pill until GATE B-DSM sign-off. */
+function getFormFieldNormalizeHTML() {
+  return '' +
+  /* ── Scoped styles ── */
+  '<style>' +
+    '.ff-norm-section { margin-bottom: 48px; }' +
+    '.ff-norm-info-callout {' +
+      'background: #F7F8FA; border: 1px solid #E4E6EB; border-left: 3px solid #296DE7;' +
+      'padding: 12px 16px; border-radius: 6px; margin-bottom: 24px;' +
+      'font-size: 13px; color: #384253; line-height: 1.6;' +
+    '}' +
+    '.ff-norm-info-callout strong { color: #1B2537; }' +
+    '.ff-norm-info-callout code {' +
+      'background: rgba(40, 49, 66, 0.06); padding: 1px 6px; border-radius: 4px;' +
+      'font-size: 12px; color: #1B2537;' +
+    '}' +
+
+    /* compDetails block — light surface, key/value rows. */
+    '.ff-norm-details {' +
+      'background: var(--white, #FFFFFF);' +
+      'border: 1px solid var(--border-subtle, #E4E6EB);' +
+      'border-radius: var(--radius-md, 6px);' +
+      'padding: 16px 20px; margin-bottom: 24px;' +
+      'font-size: 13px; color: #384253; line-height: 1.6;' +
+    '}' +
+    '.ff-norm-details dl { display: grid; grid-template-columns: 140px 1fr; gap: 6px 16px; margin: 0; }' +
+    '.ff-norm-details dt { font-weight: 600; color: #1B2537; }' +
+    '.ff-norm-details dd { margin: 0; color: #384253; }' +
+    '.ff-norm-details code {' +
+      'background: #F2F3F5; padding: 1px 6px; border-radius: 4px;' +
+      'font-size: 12px; color: #1B2537;' +
+    '}' +
+
+    /* Demo surface — neutral wash so the white input sits on a slight tint
+       (matches how Figma frames render the FormField master). */
+    '.ff-norm-surface {' +
+      'background: #F2F3F5;' +
+      'padding: 32px;' +
+      'border-radius: var(--radius-md, 6px);' +
+      'display: flex; align-items: flex-start; justify-content: center;' +
+    '}' +
+
+    /* FormField shell — VERTICAL stack, label over input. Width fills parent
+       (consumer governs the field width via the parent container). */
+    '.ff-norm-field {' +
+      'display: flex; flex-direction: column;' +
+      'gap: var(--spacing-1, 4px);' +
+      'width: 100%; max-width: 320px;' +
+    '}' +
+    '.ff-norm-label {' +
+      'font-family: \'Inter\', sans-serif;' +
+      'font-size: 14px; line-height: 20px; font-weight: 500;' +
+      'color: var(--text-secondary, #384253);' +
+    '}' +
+    '.ff-norm-input {' +
+      'width: 100%; box-sizing: border-box;' +
+      'background: var(--white, #FFFFFF);' +
+      'border: 1px solid var(--deep-sea-neutral-300, #D0D4DB);' +
+      'border-radius: var(--radius-md, 6px);' +
+      'padding: 8px 13px;' +
+      'box-shadow: var(--shadow-sm, 0px 1px 2px 0px rgba(0, 0, 0, 0.05));' +
+      'font-family: \'Inter\', sans-serif; font-size: 14px; line-height: 20px; font-weight: 400;' +
+      'color: var(--text-primary, #1B2537);' +
+      /* New: flex row so trailing-icon slot can sit at right edge. */
+      'display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-2, 8px);' +
+    '}' +
+    '.ff-norm-input::placeholder { color: var(--text-placeholder, #9DA3B0); }' +
+    /* Placeholder-text span (used in non-input demo wrappers so the flex row can
+       host an icon next to text — mirrors the space-between layout in Figma). */
+    '.ff-norm-input-placeholder { color: var(--text-placeholder, #9DA3B0); }' +
+    /* Trailing icon slot — 16x16, stroke inherits via currentColor. */
+    '.ff-norm-icon { display: inline-flex; width: 16px; height: 16px; flex: 0 0 16px; }' +
+    '.ff-norm-icon svg { width: 16px; height: 16px; display: block; }' +
+    '.ff-norm-icon--default { color: var(--deep-sea-neutral-500, #6B7280); }' +
+    '.ff-norm-icon--focus { color: var(--deep-sea-neutral-900, #1B2537); }' +
+    '.ff-norm-icon--error { color: var(--bittersweet-600, #D23930); }' +
+    /* Focus state — emulated visually (no real :focus styling needed since
+       we want all three demo cards visible at once). Border swaps to the
+       darker neutral. */
+    '.ff-norm-input--focus {' +
+      'border-color: var(--deep-sea-neutral-900, #1B2537);' +
+    '}' +
+    /* Error state — bittersweet border + below-input error message. */
+    '.ff-norm-input--error {' +
+      'border-color: var(--bittersweet-600, #D23930);' +
+      'border-width: 2px;' +
+    '}' +
+    '.ff-norm-error-msg {' +
+      'font-family: \'Inter\', sans-serif;' +
+      'font-size: 12px; line-height: 16px; font-weight: 400;' +
+      'color: var(--text-error, #D23930);' +
+      'margin-top: var(--spacing-1, 4px);' +
+    '}' +
+    /* Faux blinking caret for the focus card — a thin | character that pulses
+       so the focus state reads as active without us hijacking real focus. */
+    '.ff-norm-caret {' +
+      'display: inline-block;' +
+      'color: var(--text-primary, #1B2537);' +
+      'animation: ffNormCaretBlink 1s steps(2, start) infinite;' +
+    '}' +
+    '@keyframes ffNormCaretBlink {' +
+      '0%, 100% { opacity: 1; }' +
+      '50% { opacity: 0; }' +
+    '}' +
+
+    /* Three-up grid for the state cards. */
+    '.ff-norm-card-grid {' +
+      'display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px;' +
+    '}' +
+    '.ff-norm-card-hint {' +
+      'font-size: 11px; color: #6B7280; font-style: italic; line-height: 1.4; margin-top: 12px;' +
+    '}' +
+    '.ff-norm-card-hint strong { color: #384253; font-style: normal; font-weight: 600; }' +
+  '</style>' +
+
+  /* ── Section ── (no NORMALIZED pill — mid-cycle) */
+  '<div class="ff-norm-section">' +
+    '<div class="comp-section-title">FormField</div>' +
+    '<div class="comp-section-subtitle">packages/ui/src/FormField.jsx (planned) &middot; Figma node 2255:98</div>' +
+
+    /* Info callout — what this is + cycle status */
+    '<div class="ff-norm-info-callout">' +
+      '<strong>In-progress normalize cycle.</strong> Label + native input atom &mdash; the primary form-input primitive for the Odyssey-One system. Three states (<code>Default</code>, <code>Focus</code>, <code>Error</code>). First consumer is <strong>AuthModal</strong>\'s Login form; future consumers include MFA, password setup, Settings forms. Marked complete after <strong>GATE B-DSM</strong> sign-off &mdash; <em>then</em> the NORMALIZED pill gets added and the section moves to the Components tab.' +
+    '</div>' +
+
+    /* compDetails — quick summary block */
+    '<div class="ff-norm-details">' +
+      '<dl>' +
+        '<dt>Component</dt><dd>FormField</dd>' +
+        '<dt>Type</dt><dd>Molecule (atom-ish &mdash; label + input pair)</dd>' +
+        '<dt>Figma node</dt><dd><code>2255:98</code> &mdash; Components-Molecules / State=Default/Focus/Error</dd>' +
+        '<dt>Purpose</dt><dd>Label + text input pair. Primary form-input primitive. Consumed by <strong>AuthModal</strong> (Login form). Future: any auth view (MFA, password setup), Settings forms, etc.</dd>' +
+        '<dt>API sketch</dt><dd><code>label</code>, <code>placeholder</code>, <code>value</code>, <code>onChange</code>, <code>type</code> (text|email|password|&hellip;), <code>error</code> (string &mdash; when truthy, switches to error state + renders message; when truthy AND no <code>trailingIcon</code> is passed, auto-defaults the slot to <code>&lt;CircleAlert /&gt;</code> in red), <code>trailingIcon</code> (ReactNode &mdash; when provided, renders on the right edge of the input; stroke color follows the state via <code>currentColor</code>), <code>id</code>, <code>name</code>, <code>autoComplete</code>, <code>required</code>, <code>disabled</code> (deferred to a later cycle).</dd>' +
+        '<dt>Figma props</dt><dd><code>State</code> VARIANT (Default / Focus / Error) &middot; <code>Show icon</code> BOOLEAN (default <code>false</code>) &middot; <code>Icon</code> INSTANCE_SWAP (default <code>placeholder-16</code> &mdash; consumer swaps to any 16&times;16 lucide icon).</dd>' +
+        '<dt>Tokens</dt><dd><code>--text-secondary</code> (label) &middot; <code>--text-placeholder</code> (placeholder) &middot; <code>--deep-sea-neutral-300</code> / <code>--deep-sea-neutral-900</code> / <code>--bittersweet-600</code> (borders) &middot; <code>--deep-sea-neutral-500</code> / <code>--deep-sea-neutral-900</code> / <code>--bittersweet-600</code> (trailing-icon stroke per state) &middot; <code>--white</code> (bg) &middot; <code>--shadow-sm</code> &middot; <code>--radius-md</code> (6) &middot; <code>--spacing-1</code> (label&rarr;input gap) &middot; <code>--spacing-2</code> (text&rarr;icon gap) &middot; padding <code>8/13</code> raw (small component-internal geometry &mdash; acceptable per strategic-tokens convention).</dd>' +
+        '<dt>Composition</dt><dd>Composes a <strong>Label</strong> + native <code>&lt;input&gt;</code> element. Switchable trailing-icon slot (16px) &mdash; <code>INSTANCE_SWAP</code> in Figma, ReactNode <code>trailingIcon</code> prop in code. Stroke color follows state. Input box uses <code>justify-content: space-between</code> so placeholder text fills available space and icon sits on the right. Consumed by <strong>AuthModal</strong> (Login form). Future consumers: any auth view (MFA, password setup), Settings forms, etc.</dd>' +
+      '</dl>' +
+    '</div>' +
+
+    /* Demo cards — three side-by-side, one per state */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">States &mdash; Default / Focus / Error</div>' +
+      '<div class="ff-norm-card-grid">' +
+
+        /* Card 1 — Default (with neutral Search icon at --deep-sea-neutral-500) */
+        '<div class="comp-card">' +
+          '<div class="ff-norm-surface">' +
+            '<div class="ff-norm-field">' +
+              '<label class="ff-norm-label" for="ff-norm-default">Email Address</label>' +
+              '<div class="ff-norm-input" id="ff-norm-default" role="textbox" aria-label="Email Address (default state demo)">' +
+                '<span class="ff-norm-input-placeholder">Enter Email ID</span>' +
+                '<span class="ff-norm-icon ff-norm-icon--default" aria-hidden="true">' +
+                  /* lucide Search — circle + diagonal handle */
+                  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>' +
+                '</span>' +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="comp-card-code">&lt;FormField label="Email Address" placeholder="Enter Email ID" trailingIcon={&lt;Search /&gt;} /&gt;</div>' +
+          '<div class="comp-card-note">' +
+            '<strong>Default.</strong> Border <code>1px --deep-sea-neutral-300</code>. Resting state, no focus, no error. Label <code>--text-secondary</code> 14/20 Inter Medium. Placeholder <code>--text-placeholder</code>. <code>--shadow-sm</code> elevation, <code>--radius-md</code> (6) corners, <code>8/13</code> padding. Trailing icon stroke: <code>--deep-sea-neutral-500</code> (text-tertiary, neutral).' +
+          '</div>' +
+        '</div>' +
+
+        /* Card 2 — Focus (visual emulation; faux caret + Search icon at neutral-900) */
+        '<div class="comp-card">' +
+          '<div class="ff-norm-surface">' +
+            '<div class="ff-norm-field">' +
+              '<label class="ff-norm-label" for="ff-norm-focus">Email Address</label>' +
+              '<div class="ff-norm-input ff-norm-input--focus" id="ff-norm-focus" aria-label="Email Address (focus state demo)">' +
+                '<span class="ff-norm-caret">|</span>' +
+                '<span class="ff-norm-icon ff-norm-icon--focus" aria-hidden="true">' +
+                  /* lucide Search */
+                  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>' +
+                '</span>' +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="comp-card-code">&lt;FormField label="Email Address" placeholder="Enter Email ID" trailingIcon={&lt;Search /&gt;} /&gt; <em>(focused)</em></div>' +
+          '<div class="comp-card-note">' +
+            '<strong>Focus.</strong> Border swaps to <code>1px --deep-sea-neutral-900</code> &mdash; intentionally a darker neutral, <em>not</em> the project-wide CB focus ring (matches the existing <code>--input-border-focus</code> token convention). Trailing icon stroke darkens to <code>--deep-sea-neutral-900</code> in sync. Blinking caret is a <em>preview-state indicator</em> so the focus state reads as active in a static grid.' +
+          '</div>' +
+        '</div>' +
+
+        /* Card 3 — Error (CircleAlert icon at --bittersweet-600) */
+        '<div class="comp-card">' +
+          '<div class="ff-norm-surface">' +
+            '<div class="ff-norm-field">' +
+              '<label class="ff-norm-label" for="ff-norm-error">Email Address</label>' +
+              '<div class="ff-norm-input ff-norm-input--error" id="ff-norm-error" role="textbox" aria-label="Email Address (error state demo)">' +
+                '<span class="ff-norm-input-placeholder">Enter Email ID</span>' +
+                '<span class="ff-norm-icon ff-norm-icon--error" aria-hidden="true">' +
+                  /* lucide CircleAlert — circle + vertical line + dot */
+                  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>' +
+                '</span>' +
+              '</div>' +
+              '<div class="ff-norm-error-msg">Invalid email</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="comp-card-code">&lt;FormField label="Email Address" placeholder="Enter Email ID" error="Invalid email" /&gt;</div>' +
+          '<div class="comp-card-note">' +
+            '<strong>Error.</strong> Border swaps to <code>2px --bittersweet-600</code> (<code>#D23930</code>). Trailing icon <em>auto-defaults</em> to <code>&lt;CircleAlert /&gt;</code> at <code>--bittersweet-600</code> when <code>error</code> is truthy and no explicit <code>trailingIcon</code> is passed &mdash; canonical error indicator pattern. Below-input message: 12px Inter Regular, color <code>--text-error</code> (= <code>--bittersweet-600</code>), <code>--spacing-1</code> top gap.' +
+          '</div>' +
+        '</div>' +
+
+      '</div>' +
+      '<div class="ff-norm-card-hint"><strong>Surface</strong> is rendered <code>#F2F3F5</code> so the white input visually separates &mdash; mirrors how the Figma file frames the FormField master. The label / placeholder copy is identical across cards so the eye picks up the border-state difference.</div>' +
+    '</div>' +
+
+  '</div>';
+}
+
+/* ── AuthContent (organism — inner body of AuthModal) — IN-PROGRESS normalize cycle ──
+   AuthContent is the composed body that slots into the AuthModal shell as its
+   children prop. Variant axis (currently single value: `Login`) will gain
+   `MfaSetup`, `PasswordSetup`, etc. in future cycles. Composes 2 × FormField
+   + 2 × Button instances + an account-link text. Figma master 2264:712 on
+   Components-Organisms / Modals. Rendered INSIDE a faux AuthModal card on a
+   dark backdrop so the visual context matches the production usage. No
+   NORMALIZED pill — cycle mid-flight. */
+function getAuthContentNormalizeHTML() {
+  return '' +
+  /* ── Scoped styles ── */
+  '<style>' +
+    '.ac-norm-section { margin-bottom: 48px; }' +
+    '.ac-norm-info-callout {' +
+      'background: #F7F8FA; border: 1px solid #E4E6EB; border-left: 3px solid #296DE7;' +
+      'padding: 12px 16px; border-radius: 6px; margin-bottom: 24px;' +
+      'font-size: 13px; color: #384253; line-height: 1.6;' +
+    '}' +
+    '.ac-norm-info-callout strong { color: #1B2537; }' +
+    '.ac-norm-info-callout code {' +
+      'background: rgba(40, 49, 66, 0.06); padding: 1px 6px; border-radius: 4px;' +
+      'font-size: 12px; color: #1B2537;' +
+    '}' +
+
+    /* compDetails block — light surface, key/value rows. */
+    '.ac-norm-details {' +
+      'background: var(--white, #FFFFFF);' +
+      'border: 1px solid var(--border-subtle, #E4E6EB);' +
+      'border-radius: var(--radius-md, 6px);' +
+      'padding: 16px 20px; margin-bottom: 24px;' +
+      'font-size: 13px; color: #384253; line-height: 1.6;' +
+    '}' +
+    '.ac-norm-details dl { display: grid; grid-template-columns: 140px 1fr; gap: 6px 16px; margin: 0; }' +
+    '.ac-norm-details dt { font-weight: 600; color: #1B2537; }' +
+    '.ac-norm-details dd { margin: 0; color: #384253; }' +
+    '.ac-norm-details code {' +
+      'background: #F2F3F5; padding: 1px 6px; border-radius: 4px;' +
+      'font-size: 12px; color: #1B2537;' +
+    '}' +
+
+    /* Demo backdrop — darkish gray to mirror the AuthModal preview context.
+       The faux AuthModal card (white, 416 wide) sits centered inside. */
+    '.ac-norm-backdrop {' +
+      'background: #626262;' +
+      'padding: 40px;' +
+      'border-radius: var(--radius-md, 6px);' +
+      'display: flex; align-items: flex-start; justify-content: center;' +
+    '}' +
+
+    /* Faux AuthModal shell — token-bound (mirrors the AuthModal spec
+       finalized in the previous cycle). 416 wide, 32 padding, radius 16,
+       white bg, vertical auto-layout with 32 gap between header and
+       AuthContent body. */
+    '.ac-norm-shell {' +
+      'background: var(--white, #FFFFFF);' +
+      'width: 416px;' +
+      'padding: var(--spacing-8, 32px);' +
+      'border-radius: var(--radius-2xl, 16px);' +
+      'display: flex; flex-direction: column; align-items: flex-start;' +
+      'gap: var(--spacing-8, 32px);' +
+      'box-sizing: border-box;' +
+    '}' +
+
+    /* OdysseyLogo placeholder — centered, sits at the top of the shell. */
+    '.ac-norm-logo {' +
+      'align-self: center;' +
+      'display: flex; align-items: center; justify-content: center;' +
+    '}' +
+
+    /* AuthContent body — vertical flex with --spacing-8 (32) between the
+       three major sections (form, forgot link, account link). */
+    '.ac-norm-body {' +
+      'width: 100%;' +
+      'display: flex; flex-direction: column;' +
+      'gap: var(--spacing-8, 32px);' +
+    '}' +
+
+    /* Form section — vertical flex of FormFields + Log In button, gap 16. */
+    '.ac-norm-form {' +
+      'width: 100%;' +
+      'display: flex; flex-direction: column;' +
+      'gap: var(--spacing-4, 16px);' +
+    '}' +
+
+    /* FormField composition — matches the Default state from the FormField
+       section. Local flavor (`.ac-norm-field-*`) keeps this section
+       self-contained, but the visual must mirror `.ff-comp-*`. */
+    '.ac-norm-field {' +
+      'display: flex; flex-direction: column;' +
+      'gap: var(--spacing-1, 4px);' +
+    '}' +
+    '.ac-norm-field-label {' +
+      'font-family: \'Inter\', sans-serif;' +
+      'font-size: 14px; line-height: 20px; font-weight: 500;' +
+      'color: var(--text-secondary, #384253);' +
+    '}' +
+    '.ac-norm-field-input {' +
+      'width: 100%; box-sizing: border-box;' +
+      'background: var(--white, #FFFFFF);' +
+      'border: 1px solid var(--deep-sea-neutral-300, #D0D4DB);' +
+      'border-radius: var(--radius-md, 6px);' +
+      'padding: 8px 13px;' +
+      'box-shadow: var(--shadow-sm, 0px 1px 2px 0px rgba(0, 0, 0, 0.05));' +
+      'font-family: \'Inter\', sans-serif; font-size: 14px; line-height: 20px; font-weight: 400;' +
+      'color: var(--text-primary, #1B2537);' +
+    '}' +
+    '.ac-norm-field-input::placeholder { color: var(--text-placeholder, #9DA3B0); }' +
+
+    /* Log In button — Primary, lg, full-width. */
+    '.ac-norm-submit {' +
+      'width: 100%; box-sizing: border-box;' +
+      'background: var(--deep-sea-neutral-800, #283142);' +
+      'color: var(--white, #FFFFFF);' +
+      'border: none; border-radius: var(--radius-lg, 8px);' +
+      'padding: 8px 18px;' +
+      'font-family: \'Inter\', sans-serif; font-size: 16px; line-height: 24px; font-weight: 500;' +
+      'cursor: pointer; text-align: center;' +
+      'box-shadow: var(--shadow-sm, 0px 1px 2px 0px rgba(0, 0, 0, 0.05));' +
+    '}' +
+
+    /* Forgot password — link-style button, left-aligned, --text-link color. */
+    '.ac-norm-forgot {' +
+      'align-self: flex-start;' +
+      'background: transparent; border: 0; padding: 0;' +
+      'font-family: \'Inter\', sans-serif; font-size: 14px; line-height: 20px; font-weight: 500;' +
+      'color: var(--text-link, #276DA2);' +
+      'cursor: pointer;' +
+    '}' +
+
+    /* Account text — body 14/20 Inter Medium, --text-primary. Underlined
+       inline span for "Create an account.". */
+    '.ac-norm-account {' +
+      'font-family: \'Inter\', sans-serif; font-size: 14px; line-height: 20px; font-weight: 500;' +
+      'color: var(--text-primary, #1B2537);' +
+    '}' +
+    '.ac-norm-account a {' +
+      'color: var(--text-primary, #1B2537);' +
+      'text-decoration: underline; font-weight: 500;' +
+    '}' +
+
+    /* Single-card layout (only one variant for this cycle). */
+    '.ac-norm-card-grid {' +
+      'display: grid; grid-template-columns: repeat(auto-fit, minmax(520px, 1fr)); gap: 24px;' +
+    '}' +
+    '.ac-norm-card-hint {' +
+      'font-size: 11px; color: #6B7280; font-style: italic; line-height: 1.4; margin-top: 12px;' +
+    '}' +
+    '.ac-norm-card-hint strong { color: #384253; font-style: normal; font-weight: 600; }' +
+  '</style>' +
+
+  /* ── Section ── (no NORMALIZED pill — mid-cycle) */
+  '<div class="ac-norm-section">' +
+    '<div class="comp-section-title">AuthContent</div>' +
+    '<div class="comp-section-subtitle">packages/ui/src/AuthContent.jsx (planned) &middot; Figma node 2264:712</div>' +
+
+    /* Info callout — what this is + cycle status */
+    '<div class="ac-norm-info-callout">' +
+      '<strong>In-progress normalize cycle.</strong> Inner body of the <code>AuthModal</code> shell &mdash; slots in as the modal&rsquo;s <code>children</code>. Variant axis (currently single value: <code>Login</code>) will gain <code>MfaSetup</code>, <code>PasswordSetup</code>, etc. in future cycles. Composes 2 &times; <strong>FormField</strong> + 2 &times; <strong>Button</strong> instances + an account-link text. Marked complete after <strong>GATE B-DSM</strong> sign-off &mdash; <em>then</em> the NORMALIZED pill gets added and the section moves to the Components tab.' +
+    '</div>' +
+
+    /* compDetails — quick summary block */
+    '<div class="ac-norm-details">' +
+      '<dl>' +
+        '<dt>Component</dt><dd>AuthContent</dd>' +
+        '<dt>Type</dt><dd>Organism</dd>' +
+        '<dt>Figma node</dt><dd><code>2264:712</code> &mdash; Components-Organisms / Modals</dd>' +
+        '<dt>Purpose</dt><dd>Body of the <strong>AuthModal</strong> shell. Variant axis (currently single value: <code>Login</code>) will gain <code>MfaSetup</code>, <code>PasswordSetup</code>, etc. in future cycles.</dd>' +
+        '<dt>API sketch</dt><dd><code>variant</code> (currently only <code>"login"</code>), <code>onLogin({email, password})</code>, <code>onForgotPassword</code>, <code>onCreateAccount</code>. State (email + password values) is owned internally per user direction.</dd>' +
+        '<dt>Future variants</dt><dd>MFA setup, Password setup, etc. (deferred).</dd>' +
+        '<dt>Tokens</dt><dd><code>--spacing-8</code> (outer gap between major sections) &middot; <code>--spacing-4</code> (form internal gap) &middot; <code>--deep-sea-neutral-800</code> + <code>--radius-lg</code> (Log In button) &middot; <code>--text-link</code> (forgot link) &middot; <code>--text-primary</code> (account text). FormField tokens already documented in its own section.</dd>' +
+        '<dt>Composition</dt><dd>AuthContent composes 2 &times; <strong>FormField</strong> + 2 &times; <strong>Button</strong> instances + an account-link text. Slots inside the <strong>AuthModal</strong> shell as its <code>children</code> prop. Variant axis (currently <code>Login</code>) will gain <code>MfaSetup</code>, <code>PasswordSetup</code>, etc. in future cycles.</dd>' +
+      '</dl>' +
+    '</div>' +
+
+    /* Demo card — Login variant rendered INSIDE a faux AuthModal shell so
+       the visual context matches production usage. */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Variant = Login &mdash; rendered inside the AuthModal shell</div>' +
+      '<div class="ac-norm-card-grid">' +
+
+        '<div class="comp-card">' +
+          '<div class="ac-norm-backdrop">' +
+            '<div class="ac-norm-shell">' +
+              /* Header — real OdysseyLogo (dark variant) baked into the shell */
+              '<div class="ac-norm-logo">' + getOdysseyLogoDarkSVG() + '</div>' +
+              /* AuthContent body — Login variant composition */
+              '<div class="ac-norm-body">' +
+                /* Form: Email FormField + Password FormField + Log In Button */
+                '<div class="ac-norm-form">' +
+                  '<div class="ac-norm-field">' +
+                    '<label class="ac-norm-field-label" for="ac-norm-email">Email Address</label>' +
+                    '<input class="ac-norm-field-input" id="ac-norm-email" type="email" placeholder="Enter Email ID" autocomplete="off" />' +
+                  '</div>' +
+                  '<div class="ac-norm-field">' +
+                    '<label class="ac-norm-field-label" for="ac-norm-password">Password</label>' +
+                    '<input class="ac-norm-field-input" id="ac-norm-password" type="password" placeholder="Enter Password" autocomplete="off" />' +
+                  '</div>' +
+                  '<button type="button" class="ac-norm-submit">Log In</button>' +
+                '</div>' +
+                /* Forgot password link */
+                '<button type="button" class="ac-norm-forgot">Forgot password?</button>' +
+                /* Account link */
+                '<div class="ac-norm-account">Don\'t have an account yet? <a href="#" onclick="event.preventDefault();">Create an account.</a></div>' +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="comp-card-code">&lt;AuthModal&gt;&lt;AuthContent variant="login" /&gt;&lt;/AuthModal&gt;</div>' +
+          '<div class="comp-card-note">' +
+            '<strong>Login variant.</strong> Body of the AuthModal shell. Vertical flex with <code>--spacing-8</code> (32) between the three major sections: (1) <strong>Form</strong> &mdash; vertical flex of Email FormField + Password FormField + Log In Button, internal gap <code>--spacing-4</code> (16); (2) <strong>Forgot password</strong> link &mdash; <code>--text-link</code>, 14/20 Inter Medium, left-aligned; (3) <strong>Account text</strong> &mdash; 14/20 Inter Medium, <code>--text-primary</code>, with an underlined "Create an account." span (same color). Log In Button: Primary, <code>size="lg"</code> look, full-width, <code>--deep-sea-neutral-800</code> bg, <code>--radius-lg</code> (8), white 16/24 Medium. FormFields reuse the Default state visual already finalized in the FormField section.' +
+          '</div>' +
+        '</div>' +
+
+      '</div>' +
+      '<div class="ac-norm-card-hint"><strong>Backdrop</strong> is rendered <code>#626262</code> so the white AuthModal card visually separates &mdash; mirrors how the Figma file presents the modal master. The OdysseyLogo at the top is provided by the AuthModal <em>shell</em>, not by AuthContent &mdash; AuthContent owns only the body composition below the logo.</div>' +
+    '</div>' +
+
+  '</div>';
+}
+
+/* ── AuthModal (organism shell) — NORMALIZED ──
+   Promoted from the Normalize tab to the Components tab after GATE B-DSM
+   sign-off. Pre-auth screen card. White 416-wide card on a dark backdrop.
+   Single content slot — consumer composes Login / MFA / password-setup
+   content. Shell bakes in OdysseyLogo (dark variant) as the header. No
+   footer, no close button (modal can't be dismissed before auth). Figma
+   master 2244:1373 in Components-Organisms / Modals next to ModalLarge +
+   ModalMedium. CSS classes reuse the `.auth-norm-*` prefix from the
+   original Normalize-tab cycle (identical styling — kept for parity). */
+function getAuthModalComponentHTML() {
+  return '' +
+  /* ── Scoped styles ── */
+  '<style>' +
+    /* compDetails block — light surface, key/value rows. */
+    '.auth-comp-details {' +
+      'background: var(--white, #FFFFFF);' +
+      'border: 1px solid var(--border-subtle, #E4E6EB);' +
+      'border-radius: var(--radius-md, 6px);' +
+      'padding: 16px 20px; margin-bottom: 24px;' +
+      'font-size: 13px; color: #384253; line-height: 1.6;' +
+    '}' +
+    '.auth-comp-details dl { display: grid; grid-template-columns: 140px 1fr; gap: 6px 16px; margin: 0; }' +
+    '.auth-comp-details dt { font-weight: 600; color: #1B2537; }' +
+    '.auth-comp-details dd { margin: 0; color: #384253; }' +
+    '.auth-comp-details code {' +
+      'background: #F2F3F5; padding: 1px 6px; border-radius: 4px;' +
+      'font-size: 12px; color: #1B2537;' +
+    '}' +
+
+    /* Demo card backdrop — darkish gray, like the Figma backdrop. The white
+       AuthModal card sits centered inside. */
+    '.auth-comp-backdrop {' +
+      'background: #626262;' +
+      'padding: 40px;' +
+      'border-radius: var(--radius-md, 6px);' +
+      'display: flex; align-items: flex-start; justify-content: center;' +
+    '}' +
+
+    /* AuthModal shell — token-bound. */
+    '.auth-comp-card {' +
+      'background: var(--white, #FFFFFF);' +
+      'width: 416px;' +
+      'padding: var(--spacing-8, 32px);' +
+      'border-radius: var(--radius-2xl, 16px);' +
+      'display: flex; flex-direction: column; align-items: flex-start;' +
+      'gap: var(--spacing-8, 32px);' +
+      'box-sizing: border-box;' +
+    '}' +
+
+    /* Card 1 — animated dashed content slot placeholder. */
+    '.auth-comp-slot {' +
+      'width: 100%; min-height: 320px;' +
+      'display: flex; align-items: center; justify-content: center;' +
+      'padding: 24px; box-sizing: border-box;' +
+      'color: var(--text-tertiary, #6B7280);' +
+      'font-family: \'Inter\', sans-serif; font-size: 13px; line-height: 1.5;' +
+      'text-align: center;' +
+      'border-radius: var(--radius-md, 6px);' +
+      /* SVG-backed dashed border that animates via opacity — using a
+         background-image keeps the dashes evenly spaced. */
+      'background-image: url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'100%25\' height=\'100%25\'%3E%3Crect width=\'100%25\' height=\'100%25\' fill=\'none\' stroke=\'%239DA3B0\' stroke-width=\'2\' stroke-dasharray=\'8 6\' rx=\'6\' ry=\'6\'/%3E%3C/svg%3E");' +
+      'animation: authCompSlotPulse 2s ease-in-out infinite;' +
+    '}' +
+    '@keyframes authCompSlotPulse {' +
+      '0%, 100% { opacity: 0.55; }' +
+      '50% { opacity: 1; }' +
+    '}' +
+
+    /* Header — OdysseyLogo (dark variant) rendered at its natural 172x24,
+       centered horizontally inside the shell. */
+    '.auth-comp-logo {' +
+      'align-self: center;' +
+      'display: flex; align-items: center; justify-content: center;' +
+    '}' +
+    '.auth-comp-form {' +
+      'width: 100%;' +
+      'display: flex; flex-direction: column;' +
+      'gap: var(--spacing-4, 16px);' +
+    '}' +
+    '.auth-comp-field {' +
+      'display: flex; flex-direction: column;' +
+      'gap: var(--spacing-1, 4px);' +
+    '}' +
+    '.auth-comp-label {' +
+      'font-family: \'Inter\', sans-serif;' +
+      'font-size: 14px; line-height: 20px; font-weight: 500;' +
+      'color: var(--text-secondary, #384253);' +
+    '}' +
+    '.auth-comp-input {' +
+      'width: 100%; box-sizing: border-box;' +
+      'background: var(--white, #FFFFFF);' +
+      'border: 1px solid var(--deep-sea-neutral-300, #D0D4DB);' +
+      'border-radius: var(--radius-md, 6px);' +
+      'padding: 8px 13px;' +
+      'box-shadow: var(--shadow-sm, 0px 1px 2px 0px rgba(0, 0, 0, 0.05));' +
+      'font-family: \'Inter\', sans-serif; font-size: 14px; line-height: 20px; font-weight: 400;' +
+      'color: var(--text-primary, #1B2537);' +
+    '}' +
+    '.auth-comp-input::placeholder { color: var(--text-placeholder, #9DA3B0); }' +
+    '.auth-comp-submit {' +
+      'width: 100%; box-sizing: border-box;' +
+      'background: var(--deep-sea-neutral-800, #283142);' +
+      'color: var(--white, #FFFFFF);' +
+      'border: none; border-radius: var(--radius-lg, 8px);' +
+      'padding: 8px 18px;' +
+      'font-family: \'Inter\', sans-serif; font-size: 16px; line-height: 24px; font-weight: 500;' +
+      'cursor: pointer; text-align: center;' +
+      'box-shadow: var(--shadow-sm, 0px 1px 2px 0px rgba(0, 0, 0, 0.05));' +
+    '}' +
+    '.auth-comp-forgot {' +
+      'align-self: flex-start;' +
+      'background: transparent; border: 0; padding: 0;' +
+      'font-family: \'Inter\', sans-serif; font-size: 14px; line-height: 20px; font-weight: 500;' +
+      'color: var(--text-link, #276DA2);' +
+      'cursor: pointer;' +
+    '}' +
+    '.auth-comp-account {' +
+      'font-family: \'Inter\', sans-serif; font-size: 14px; line-height: 20px; font-weight: 500;' +
+      'color: var(--text-primary, #1B2537);' +
+    '}' +
+    '.auth-comp-account a {' +
+      'color: var(--text-primary, #1B2537);' +
+      'text-decoration: underline; font-weight: 500;' +
+    '}' +
+
+    /* Two-up grid for the cards. */
+    '.auth-comp-card-grid {' +
+      'display: grid; grid-template-columns: repeat(auto-fit, minmax(520px, 1fr)); gap: 24px;' +
+    '}' +
+    '.auth-comp-card-hint {' +
+      'font-size: 11px; color: #6B7280; font-style: italic; line-height: 1.4; margin-top: 12px;' +
+    '}' +
+    '.auth-comp-card-hint strong { color: #384253; font-style: normal; font-weight: 600; }' +
+  '</style>' +
+
+  /* ── Section ── (NORMALIZED — promoted from Normalize tab after GATE B-DSM sign-off) */
+  '<div class="comp-section">' +
+    '<div class="comp-section-title">AuthModal <span class="comp-normalized-label">NORMALIZED</span></div>' +
+    '<div class="comp-section-subtitle">packages/ui/src/AuthModal.jsx &middot; Figma node 2244:1373</div>' +
+    '<div style="font-size:13px; color:#6B7280; margin-bottom:18px; line-height:1.5;">Organism shell &mdash; pre-auth screen card. White 416-wide surface on a dark backdrop, single content slot for consumer composition (Login this cycle; MFA setup and password setup later). Shell bakes in <strong>OdysseyLogo</strong> (dark variant) as the header. No footer, no close button (modal can&rsquo;t be dismissed before auth). Sits next to <code>ModalLarge</code> and <code>ModalMedium</code> in the <em>Modals</em> family.</div>' +
+
+    /* compDetails — quick summary block */
+    '<div class="auth-comp-details">' +
+      '<dl>' +
+        '<dt>Component</dt><dd>AuthModal</dd>' +
+        '<dt>Type</dt><dd>Organism (shell)</dd>' +
+        '<dt>Figma node</dt><dd><code>2244:1373</code> &mdash; Components-Organisms / Modals</dd>' +
+        '<dt>Purpose</dt><dd>Pre-auth screen card. Holds Login (and later MFA, password setup) content.</dd>' +
+        '<dt>Slot model</dt><dd>Single <code>children</code> slot; no header / footer chrome; no close button.</dd>' +
+        '<dt>Tokens</dt><dd><code>--white</code> bg &middot; <code>--spacing-8</code> (32) padding + gap &middot; <code>--radius-2xl</code> (16) &middot; fixed <strong>416px</strong> wide, HUG height &middot; no shadow (sits on dark backdrop).</dd>' +
+        '<dt>Composition</dt><dd>Shell bakes in <strong>OdysseyLogo</strong> (dark variant) as the header. Consumer content composes <strong>Button</strong> + <strong>ButtonLink</strong> + inline form fields + inline link text. Lives next to <code>ModalLarge</code> / <code>ModalMedium</code> as a Modals-family organism.</dd>' +
+      '</dl>' +
+    '</div>' +
+
+    /* Demo cards — two side-by-side */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Shell + intended consumer composition</div>' +
+      '<div class="auth-comp-card-grid">' +
+
+        /* Card 1 — Shell with OdysseyLogo header + animated dashed content slot. */
+        '<div class="comp-card">' +
+          '<div class="auth-comp-backdrop">' +
+            '<div class="auth-comp-card">' +
+              /* Header — real OdysseyLogo (dark variant) */
+              '<div class="auth-comp-logo">' + getOdysseyLogoDarkSVG() + '</div>' +
+              '<div class="auth-comp-slot">Content slot &mdash; compose with form, button, etc. in consumer</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="comp-card-code">&lt;AuthModal&gt;{children}&lt;/AuthModal&gt;</div>' +
+          '<div class="comp-card-note">' +
+            '<strong>Shell.</strong> 416 fixed width, HUG height, <code>--spacing-8</code> padding + gap, <code>--radius-2xl</code> corner, <code>--white</code> background, no shadow, no close button. <code>counterAxis START</code> (items-start), vertical auto-layout. <strong>OdysseyLogo</strong> (dark variant, 172&times;24, centered) is baked into the shell as the header. The dashed placeholder is a <em>preview-state indicator</em> for the content slot &mdash; it pulses so it doesn\'t read as a real design element.' +
+          '</div>' +
+        '</div>' +
+
+        /* Card 2 — Login composition (intended consumer content) */
+        '<div class="comp-card">' +
+          '<div class="auth-comp-backdrop">' +
+            '<div class="auth-comp-card">' +
+              /* Header — real OdysseyLogo (dark variant) */
+              '<div class="auth-comp-logo">' + getOdysseyLogoDarkSVG() + '</div>' +
+              /* Form */
+              '<div class="auth-comp-form">' +
+                '<div class="auth-comp-field">' +
+                  '<label class="auth-comp-label" for="auth-comp-email">Email Address</label>' +
+                  '<input class="auth-comp-input" id="auth-comp-email" type="email" placeholder="Enter Email ID" autocomplete="off" />' +
+                '</div>' +
+                '<div class="auth-comp-field">' +
+                  '<label class="auth-comp-label" for="auth-comp-password">Password</label>' +
+                  '<input class="auth-comp-input" id="auth-comp-password" type="password" placeholder="Enter Password" autocomplete="off" />' +
+                '</div>' +
+                '<button type="button" class="auth-comp-submit">Log In</button>' +
+              '</div>' +
+              /* Forgot password link */
+              '<button type="button" class="auth-comp-forgot">Forgot password?</button>' +
+              /* Account link */
+              '<div class="auth-comp-account">Don\'t have an account yet? <a href="#" onclick="event.preventDefault();">Create an account.</a></div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="comp-card-code">&lt;AuthModal&gt;&lt;LoginForm /&gt;&lt;/AuthModal&gt;</div>' +
+          '<div class="comp-card-note">' +
+            '<strong>Login composition.</strong> What a consumer renders inside the shell for this cycle &mdash; the <strong>OdysseyLogo</strong> at the top is already provided by the shell, not the consumer. Form fields: label <code>--text-secondary</code> 14/20 Inter Medium, input <code>1px --deep-sea-neutral-300</code> border, <code>--radius-md</code> (6), <code>8/13</code> padding, <code>--shadow-sm</code>, placeholder <code>--text-placeholder</code>. Label-to-input gap <code>--spacing-1</code> (4); field-to-field gap <code>--spacing-4</code> (16). Submit: full-width, <code>--deep-sea-neutral-800</code> bg, <code>--radius-lg</code> (8), white 16/24 Medium. Forgot link <code>--text-link</code>. Account link uses underlined inline span in <code>--text-primary</code>.' +
+          '</div>' +
+        '</div>' +
+
+      '</div>' +
+      '<div class="auth-comp-card-hint"><strong>Backdrop</strong> is rendered <code>#626262</code> so the white card visually separates &mdash; mirrors how the Figma file presents the AuthModal master.</div>' +
+    '</div>' +
+
+  '</div>';
+}
+
+/* ── AuthContent (organism body) — NORMALIZED ──
+   Promoted from the Normalize tab to the Components tab after GATE B-DSM
+   sign-off. Inner body of the AuthModal shell — slots in as the modal's
+   children. Variant axis currently single value `Login`; future cycles add
+   `MfaSetup`, `PasswordSetup`, etc. Composes 2 × FormField + 2 × Button
+   instances + an account-link text node. Demo renders the Login body
+   inside a faux AuthModal shell on a dark backdrop so the visual context
+   matches production usage. CSS classes use the `.ac-comp-*` prefix to
+   avoid colliding with the original Normalize cycle styles (`.ac-norm-*`,
+   kept as dead code for reference). Figma master 2264:712. */
+function getAuthContentComponentHTML() {
+  return '' +
+  /* ── Scoped styles ── */
+  '<style>' +
+    /* compDetails block — light surface, key/value rows. */
+    '.ac-comp-details {' +
+      'background: var(--white, #FFFFFF);' +
+      'border: 1px solid var(--border-subtle, #E4E6EB);' +
+      'border-radius: var(--radius-md, 6px);' +
+      'padding: 16px 20px; margin-bottom: 24px;' +
+      'font-size: 13px; color: #384253; line-height: 1.6;' +
+    '}' +
+    '.ac-comp-details dl { display: grid; grid-template-columns: 140px 1fr; gap: 6px 16px; margin: 0; }' +
+    '.ac-comp-details dt { font-weight: 600; color: #1B2537; }' +
+    '.ac-comp-details dd { margin: 0; color: #384253; }' +
+    '.ac-comp-details code {' +
+      'background: #F2F3F5; padding: 1px 6px; border-radius: 4px;' +
+      'font-size: 12px; color: #1B2537;' +
+    '}' +
+
+    /* Demo backdrop — darkish gray to mirror the AuthModal preview context.
+       The faux AuthModal card (white, 416 wide) sits centered inside. */
+    '.ac-comp-backdrop {' +
+      'background: #626262;' +
+      'padding: 40px;' +
+      'border-radius: var(--radius-md, 6px);' +
+      'display: flex; align-items: flex-start; justify-content: center;' +
+    '}' +
+
+    /* Faux AuthModal shell — token-bound (mirrors the AuthModal spec). 416
+       wide, 32 padding, radius 16, white bg, vertical auto-layout with 32
+       gap between header and AuthContent body. */
+    '.ac-comp-shell {' +
+      'background: var(--white, #FFFFFF);' +
+      'width: 416px;' +
+      'padding: var(--spacing-8, 32px);' +
+      'border-radius: var(--radius-2xl, 16px);' +
+      'display: flex; flex-direction: column; align-items: flex-start;' +
+      'gap: var(--spacing-8, 32px);' +
+      'box-sizing: border-box;' +
+    '}' +
+
+    /* OdysseyLogo placeholder — centered, sits at the top of the shell. */
+    '.ac-comp-logo {' +
+      'align-self: center;' +
+      'display: flex; align-items: center; justify-content: center;' +
+    '}' +
+
+    /* AuthContent body — vertical flex with --spacing-8 (32) between the
+       three major sections (form, forgot link, account link). */
+    '.ac-comp-body {' +
+      'width: 100%;' +
+      'display: flex; flex-direction: column;' +
+      'gap: var(--spacing-8, 32px);' +
+    '}' +
+
+    /* Form section — vertical flex of FormFields + Log In button, gap 16. */
+    '.ac-comp-form {' +
+      'width: 100%;' +
+      'display: flex; flex-direction: column;' +
+      'gap: var(--spacing-4, 16px);' +
+    '}' +
+
+    /* FormField composition — matches the Default state from the FormField
+       section. Local flavor keeps this section self-contained, but the
+       visual mirrors `.ff-comp-*`. */
+    '.ac-comp-field {' +
+      'display: flex; flex-direction: column;' +
+      'gap: var(--spacing-1, 4px);' +
+    '}' +
+    '.ac-comp-field-label {' +
+      'font-family: \'Inter\', sans-serif;' +
+      'font-size: 14px; line-height: 20px; font-weight: 500;' +
+      'color: var(--text-secondary, #384253);' +
+    '}' +
+    '.ac-comp-field-input {' +
+      'width: 100%; box-sizing: border-box;' +
+      'background: var(--white, #FFFFFF);' +
+      'border: 1px solid var(--deep-sea-neutral-300, #D0D4DB);' +
+      'border-radius: var(--radius-md, 6px);' +
+      'padding: 8px 13px;' +
+      'box-shadow: var(--shadow-sm, 0px 1px 2px 0px rgba(0, 0, 0, 0.05));' +
+      'font-family: \'Inter\', sans-serif; font-size: 14px; line-height: 20px; font-weight: 400;' +
+      'color: var(--text-primary, #1B2537);' +
+    '}' +
+    '.ac-comp-field-input::placeholder { color: var(--text-placeholder, #9DA3B0); }' +
+
+    /* Log In button — Primary, lg, full-width. */
+    '.ac-comp-submit {' +
+      'width: 100%; box-sizing: border-box;' +
+      'background: var(--deep-sea-neutral-800, #283142);' +
+      'color: var(--white, #FFFFFF);' +
+      'border: none; border-radius: var(--radius-lg, 8px);' +
+      'padding: 8px 18px;' +
+      'font-family: \'Inter\', sans-serif; font-size: 16px; line-height: 24px; font-weight: 500;' +
+      'cursor: pointer; text-align: center;' +
+      'box-shadow: var(--shadow-sm, 0px 1px 2px 0px rgba(0, 0, 0, 0.05));' +
+    '}' +
+
+    /* Forgot password — link-style button, left-aligned, --text-link. */
+    '.ac-comp-forgot {' +
+      'align-self: flex-start;' +
+      'background: transparent; border: 0; padding: 0;' +
+      'font-family: \'Inter\', sans-serif; font-size: 14px; line-height: 20px; font-weight: 500;' +
+      'color: var(--text-link, #276DA2);' +
+      'cursor: pointer;' +
+    '}' +
+
+    /* Account text — body 14/20 Inter Medium, --text-primary. Underlined
+       inline span for "Create an account.". */
+    '.ac-comp-account {' +
+      'font-family: \'Inter\', sans-serif; font-size: 14px; line-height: 20px; font-weight: 500;' +
+      'color: var(--text-primary, #1B2537);' +
+    '}' +
+    '.ac-comp-account a {' +
+      'color: var(--text-primary, #1B2537);' +
+      'text-decoration: underline; font-weight: 500;' +
+    '}' +
+
+    /* Single-card layout (only one variant for this cycle). */
+    '.ac-comp-card-grid {' +
+      'display: grid; grid-template-columns: repeat(auto-fit, minmax(520px, 1fr)); gap: 24px;' +
+    '}' +
+    '.ac-comp-card-hint {' +
+      'font-size: 11px; color: #6B7280; font-style: italic; line-height: 1.4; margin-top: 12px;' +
+    '}' +
+    '.ac-comp-card-hint strong { color: #384253; font-style: normal; font-weight: 600; }' +
+  '</style>' +
+
+  /* ── Section ── (NORMALIZED — promoted from Normalize tab after GATE B-DSM sign-off) */
+  '<div class="comp-section">' +
+    '<div class="comp-section-title">AuthContent <span class="comp-normalized-label">NORMALIZED</span></div>' +
+    '<div class="comp-section-subtitle">packages/ui/src/AuthContent.jsx &middot; Figma node 2264:712</div>' +
+    '<div style="font-size:13px; color:#6B7280; margin-bottom:18px; line-height:1.5;">Organism body &mdash; inner content of the <strong>AuthModal</strong> shell. Slots in as the modal&rsquo;s <code>children</code>. Variant axis currently single value <code>Login</code> (future cycles will add <code>MfaSetup</code>, <code>PasswordSetup</code>, etc.). Composes 2 &times; <strong>FormField</strong> + 2 &times; <strong>Button</strong> instances + an account-link text node.</div>' +
+
+    /* compDetails — quick summary block */
+    '<div class="ac-comp-details">' +
+      '<dl>' +
+        '<dt>Component</dt><dd>AuthContent</dd>' +
+        '<dt>Type</dt><dd>Organism</dd>' +
+        '<dt>Figma node</dt><dd><code>2264:712</code> &mdash; Components-Organisms / Modals</dd>' +
+        '<dt>Purpose</dt><dd>Body of the <strong>AuthModal</strong> shell. Variant axis currently single value <code>Login</code>; future cycles add <code>MfaSetup</code>, <code>PasswordSetup</code>, etc.</dd>' +
+        '<dt>API sketch</dt><dd><code>variant</code> (currently only <code>"login"</code>), <code>onLogin({email, password})</code>, <code>onForgotPassword</code>, <code>onCreateAccount</code>. State (email + password values) is owned internally.</dd>' +
+        '<dt>Future variants</dt><dd>MFA setup, Password setup, etc. (deferred).</dd>' +
+        '<dt>Tokens</dt><dd><code>--spacing-8</code> (outer gap between major sections) &middot; <code>--spacing-4</code> (form internal gap) &middot; <code>--deep-sea-neutral-800</code> + <code>--radius-lg</code> (Log In button) &middot; <code>--text-link</code> (forgot link) &middot; <code>--text-primary</code> (account text). FormField tokens already documented in its own section.</dd>' +
+        '<dt>Composition</dt><dd>AuthContent composes 2 &times; <strong>FormField</strong> + 2 &times; <strong>Button</strong> instances + an account-link text node. Slots inside the <strong>AuthModal</strong> shell as children. Variant axis currently <code>Login</code>.</dd>' +
+      '</dl>' +
+    '</div>' +
+
+    /* Demo card — Login variant rendered INSIDE a faux AuthModal shell so
+       the visual context matches production usage. */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Variant = Login &mdash; rendered inside the AuthModal shell</div>' +
+      '<div class="ac-comp-card-grid">' +
+
+        '<div class="comp-card">' +
+          '<div class="ac-comp-backdrop">' +
+            '<div class="ac-comp-shell">' +
+              /* Header — real OdysseyLogo (dark variant) baked into the shell */
+              '<div class="ac-comp-logo">' + getOdysseyLogoDarkSVG() + '</div>' +
+              /* AuthContent body — Login variant composition */
+              '<div class="ac-comp-body">' +
+                /* Form: Email FormField + Password FormField + Log In Button */
+                '<div class="ac-comp-form">' +
+                  '<div class="ac-comp-field">' +
+                    '<label class="ac-comp-field-label" for="ac-comp-email">Email Address</label>' +
+                    '<input class="ac-comp-field-input" id="ac-comp-email" type="email" placeholder="Enter Email ID" autocomplete="off" />' +
+                  '</div>' +
+                  '<div class="ac-comp-field">' +
+                    '<label class="ac-comp-field-label" for="ac-comp-password">Password</label>' +
+                    '<input class="ac-comp-field-input" id="ac-comp-password" type="password" placeholder="Enter Password" autocomplete="off" />' +
+                  '</div>' +
+                  '<button type="button" class="ac-comp-submit">Log In</button>' +
+                '</div>' +
+                /* Forgot password link */
+                '<button type="button" class="ac-comp-forgot">Forgot password?</button>' +
+                /* Account link */
+                '<div class="ac-comp-account">Don\'t have an account yet? <a href="#" onclick="event.preventDefault();">Create an account.</a></div>' +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="comp-card-code">&lt;AuthModal&gt;&lt;AuthContent variant="login" /&gt;&lt;/AuthModal&gt;</div>' +
+          '<div class="comp-card-note">' +
+            '<strong>Login variant.</strong> Body of the AuthModal shell. Vertical flex with <code>--spacing-8</code> (32) between the three major sections: (1) <strong>Form</strong> &mdash; vertical flex of Email FormField + Password FormField + Log In Button, internal gap <code>--spacing-4</code> (16); (2) <strong>Forgot password</strong> link &mdash; <code>--text-link</code>, 14/20 Inter Medium, left-aligned; (3) <strong>Account text</strong> &mdash; 14/20 Inter Medium, <code>--text-primary</code>, with an underlined "Create an account." span (same color). Log In Button: Primary, <code>size="lg"</code> look, full-width, <code>--deep-sea-neutral-800</code> bg, <code>--radius-lg</code> (8), white 16/24 Medium. FormFields reuse the Default state visual already finalized in the FormField section.' +
+          '</div>' +
+        '</div>' +
+
+      '</div>' +
+      '<div class="ac-comp-card-hint"><strong>Backdrop</strong> is rendered <code>#626262</code> so the white AuthModal card visually separates &mdash; mirrors how the Figma file presents the modal master. The OdysseyLogo at the top is provided by the AuthModal <em>shell</em>, not by AuthContent &mdash; AuthContent owns only the body composition below the logo.</div>' +
+    '</div>' +
+
+  '</div>';
+}
+
+/* ── FormField (molecule) — NORMALIZED ──
+   Promoted from the Normalize tab to the Components tab after GATE B-DSM
+   sign-off. Label + native text input pair. The primary form-input
+   primitive for the Odyssey-One system. First consumer is AuthModal's
+   Login form; future consumers include MFA, password setup, Settings
+   forms. Figma master 2255:98 on Components-Molecules (Default / Focus /
+   Error variants). CSS classes use the `.ff-comp-*` prefix to avoid
+   colliding with the original Normalize cycle styles. */
+function getFormFieldComponentHTML() {
+  return '' +
+  /* ── Scoped styles ── */
+  '<style>' +
+    /* compDetails block — light surface, key/value rows. */
+    '.ff-comp-details {' +
+      'background: var(--white, #FFFFFF);' +
+      'border: 1px solid var(--border-subtle, #E4E6EB);' +
+      'border-radius: var(--radius-md, 6px);' +
+      'padding: 16px 20px; margin-bottom: 24px;' +
+      'font-size: 13px; color: #384253; line-height: 1.6;' +
+    '}' +
+    '.ff-comp-details dl { display: grid; grid-template-columns: 140px 1fr; gap: 6px 16px; margin: 0; }' +
+    '.ff-comp-details dt { font-weight: 600; color: #1B2537; }' +
+    '.ff-comp-details dd { margin: 0; color: #384253; }' +
+    '.ff-comp-details code {' +
+      'background: #F2F3F5; padding: 1px 6px; border-radius: 4px;' +
+      'font-size: 12px; color: #1B2537;' +
+    '}' +
+
+    /* Demo surface — neutral wash so the white input sits on a slight tint
+       (matches how Figma frames render the FormField master). */
+    '.ff-comp-surface {' +
+      'background: #F2F3F5;' +
+      'padding: 32px;' +
+      'border-radius: var(--radius-md, 6px);' +
+      'display: flex; align-items: flex-start; justify-content: center;' +
+    '}' +
+
+    /* FormField shell — VERTICAL stack, label over input. */
+    '.ff-comp-field {' +
+      'display: flex; flex-direction: column;' +
+      'gap: var(--spacing-1, 4px);' +
+      'width: 100%; max-width: 320px;' +
+    '}' +
+    '.ff-comp-label {' +
+      'font-family: \'Inter\', sans-serif;' +
+      'font-size: 14px; line-height: 20px; font-weight: 500;' +
+      'color: var(--text-secondary, #384253);' +
+    '}' +
+    '.ff-comp-input {' +
+      'width: 100%; box-sizing: border-box;' +
+      'background: var(--white, #FFFFFF);' +
+      'border: 1px solid var(--deep-sea-neutral-300, #D0D4DB);' +
+      'border-radius: var(--radius-md, 6px);' +
+      'padding: 8px 13px;' +
+      'box-shadow: var(--shadow-sm, 0px 1px 2px 0px rgba(0, 0, 0, 0.05));' +
+      'font-family: \'Inter\', sans-serif; font-size: 14px; line-height: 20px; font-weight: 400;' +
+      'color: var(--text-primary, #1B2537);' +
+      /* Flex row so trailing-icon slot can sit at right edge. */
+      'display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-2, 8px);' +
+    '}' +
+    '.ff-comp-input::placeholder { color: var(--text-placeholder, #9DA3B0); }' +
+    '.ff-comp-input-placeholder { color: var(--text-placeholder, #9DA3B0); }' +
+    /* Trailing icon slot — 16x16, stroke inherits via currentColor. */
+    '.ff-comp-icon { display: inline-flex; width: 16px; height: 16px; flex: 0 0 16px; }' +
+    '.ff-comp-icon svg { width: 16px; height: 16px; display: block; }' +
+    '.ff-comp-icon--default { color: var(--deep-sea-neutral-500, #6B7280); }' +
+    '.ff-comp-icon--focus { color: var(--deep-sea-neutral-900, #1B2537); }' +
+    '.ff-comp-icon--error { color: var(--bittersweet-600, #D23930); }' +
+    /* Focus state — emulated visually. Border swaps to the darker neutral. */
+    '.ff-comp-input--focus {' +
+      'border-color: var(--deep-sea-neutral-900, #1B2537);' +
+    '}' +
+    /* Error state — bittersweet border + below-input error message. 2px border. */
+    '.ff-comp-input--error {' +
+      'border-color: var(--bittersweet-600, #D23930);' +
+      'border-width: 2px;' +
+    '}' +
+    '.ff-comp-error-msg {' +
+      'font-family: \'Inter\', sans-serif;' +
+      'font-size: 12px; line-height: 16px; font-weight: 400;' +
+      'color: var(--text-error, #D23930);' +
+      'margin-top: var(--spacing-1, 4px);' +
+    '}' +
+    /* Faux blinking caret for the focus card. */
+    '.ff-comp-caret {' +
+      'display: inline-block;' +
+      'color: var(--text-primary, #1B2537);' +
+      'animation: ffCompCaretBlink 1s steps(2, start) infinite;' +
+    '}' +
+    '@keyframes ffCompCaretBlink {' +
+      '0%, 100% { opacity: 1; }' +
+      '50% { opacity: 0; }' +
+    '}' +
+
+    /* Three-up grid for the state cards. */
+    '.ff-comp-card-grid {' +
+      'display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px;' +
+    '}' +
+    '.ff-comp-card-hint {' +
+      'font-size: 11px; color: #6B7280; font-style: italic; line-height: 1.4; margin-top: 12px;' +
+    '}' +
+    '.ff-comp-card-hint strong { color: #384253; font-style: normal; font-weight: 600; }' +
+  '</style>' +
+
+  /* ── Section ── (NORMALIZED — promoted from Normalize tab after GATE B-DSM sign-off) */
+  '<div class="comp-section">' +
+    '<div class="comp-section-title">FormField <span class="comp-normalized-label">NORMALIZED</span></div>' +
+    '<div class="comp-section-subtitle">packages/ui/src/FormField.jsx &middot; Figma node 2255:98</div>' +
+    '<div style="font-size:13px; color:#6B7280; margin-bottom:18px; line-height:1.5;">Molecule &mdash; label + native input atom. The primary form-input primitive for the Odyssey-One system. Three states (<code>Default</code>, <code>Focus</code>, <code>Error</code>). First consumer is <strong>AuthModal</strong>&rsquo;s Login form; future consumers include MFA, password setup, Settings forms.</div>' +
+
+    /* compDetails — quick summary block */
+    '<div class="ff-comp-details">' +
+      '<dl>' +
+        '<dt>Component</dt><dd>FormField</dd>' +
+        '<dt>Type</dt><dd>Molecule (atom-ish &mdash; label + input pair)</dd>' +
+        '<dt>Figma node</dt><dd><code>2255:98</code> &mdash; Components-Molecules / State=Default/Focus/Error</dd>' +
+        '<dt>Purpose</dt><dd>Label + text input pair. Primary form-input primitive. Consumed by <strong>AuthModal</strong> (Login form). Future: any auth view (MFA, password setup), Settings forms, etc.</dd>' +
+        '<dt>API sketch</dt><dd><code>label</code>, <code>placeholder</code>, <code>value</code>, <code>onChange</code>, <code>type</code> (text|email|password|&hellip;), <code>error</code> (string &mdash; when truthy, switches to error state + renders message; when truthy AND no <code>trailingIcon</code> is passed, auto-defaults the slot to <code>&lt;CircleAlert /&gt;</code> in red), <code>trailingIcon</code> (ReactNode &mdash; when provided, renders on the right edge of the input; stroke color follows the state via <code>currentColor</code>), <code>id</code>, <code>name</code>, <code>autoComplete</code>, <code>required</code>, <code>disabled</code> (deferred to a later cycle).</dd>' +
+        '<dt>Figma props</dt><dd><code>State</code> VARIANT (Default / Focus / Error) &middot; <code>Show icon</code> BOOLEAN (default <code>false</code>) &middot; <code>Icon</code> INSTANCE_SWAP (default <code>placeholder-16</code> &mdash; consumer swaps to any 16&times;16 lucide icon).</dd>' +
+        '<dt>Tokens</dt><dd><code>--text-secondary</code> (label) &middot; <code>--text-placeholder</code> (placeholder) &middot; <code>--deep-sea-neutral-300</code> / <code>--deep-sea-neutral-900</code> / <code>--bittersweet-600</code> (borders) &middot; <code>--deep-sea-neutral-500</code> / <code>--deep-sea-neutral-900</code> / <code>--bittersweet-600</code> (trailing-icon stroke per state) &middot; <code>--white</code> (bg) &middot; <code>--shadow-sm</code> &middot; <code>--radius-md</code> (6) &middot; <code>--spacing-1</code> (label&rarr;input gap) &middot; <code>--spacing-2</code> (text&rarr;icon gap) &middot; padding <code>8/13</code> raw (small component-internal geometry &mdash; acceptable per strategic-tokens convention).</dd>' +
+        '<dt>Composition</dt><dd>Composes a <strong>Label</strong> + native <code>&lt;input&gt;</code> element. Switchable trailing-icon slot (16px) &mdash; <code>INSTANCE_SWAP</code> in Figma, ReactNode <code>trailingIcon</code> prop in code. Stroke color follows state. Input box uses <code>justify-content: space-between</code> so placeholder text fills available space and icon sits on the right. Consumed by <strong>AuthModal</strong> (Login form). Future consumers: any auth view (MFA, password setup), Settings forms, etc.</dd>' +
+      '</dl>' +
+    '</div>' +
+
+    /* Demo cards — three side-by-side, one per state */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">States &mdash; Default / Focus / Error</div>' +
+      '<div class="ff-comp-card-grid">' +
+
+        /* Card 1 — Default (with neutral Search icon at --deep-sea-neutral-500) */
+        '<div class="comp-card">' +
+          '<div class="ff-comp-surface">' +
+            '<div class="ff-comp-field">' +
+              '<label class="ff-comp-label" for="ff-comp-default">Email Address</label>' +
+              '<div class="ff-comp-input" id="ff-comp-default" role="textbox" aria-label="Email Address (default state demo)">' +
+                '<span class="ff-comp-input-placeholder">Enter Email ID</span>' +
+                '<span class="ff-comp-icon ff-comp-icon--default" aria-hidden="true">' +
+                  /* lucide Search — circle + diagonal handle */
+                  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>' +
+                '</span>' +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="comp-card-code">&lt;FormField label="Email Address" placeholder="Enter Email ID" trailingIcon={&lt;Search /&gt;} /&gt;</div>' +
+          '<div class="comp-card-note">' +
+            '<strong>Default.</strong> Border <code>1px --deep-sea-neutral-300</code>. Resting state, no focus, no error. Label <code>--text-secondary</code> 14/20 Inter Medium. Placeholder <code>--text-placeholder</code>. <code>--shadow-sm</code> elevation, <code>--radius-md</code> (6) corners, <code>8/13</code> padding. Trailing icon stroke: <code>--deep-sea-neutral-500</code> (text-tertiary, neutral).' +
+          '</div>' +
+        '</div>' +
+
+        /* Card 2 — Focus (visual emulation; faux caret + Search icon at neutral-900) */
+        '<div class="comp-card">' +
+          '<div class="ff-comp-surface">' +
+            '<div class="ff-comp-field">' +
+              '<label class="ff-comp-label" for="ff-comp-focus">Email Address</label>' +
+              '<div class="ff-comp-input ff-comp-input--focus" id="ff-comp-focus" aria-label="Email Address (focus state demo)">' +
+                '<span class="ff-comp-caret">|</span>' +
+                '<span class="ff-comp-icon ff-comp-icon--focus" aria-hidden="true">' +
+                  /* lucide Search */
+                  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>' +
+                '</span>' +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="comp-card-code">&lt;FormField label="Email Address" placeholder="Enter Email ID" trailingIcon={&lt;Search /&gt;} /&gt; <em>(focused)</em></div>' +
+          '<div class="comp-card-note">' +
+            '<strong>Focus.</strong> Border swaps to <code>1px --deep-sea-neutral-900</code> &mdash; intentionally a darker neutral, <em>not</em> the project-wide CB focus ring (matches the existing <code>--input-border-focus</code> token convention). Trailing icon stroke darkens to <code>--deep-sea-neutral-900</code> in sync. Blinking caret is a <em>preview-state indicator</em> so the focus state reads as active in a static grid.' +
+          '</div>' +
+        '</div>' +
+
+        /* Card 3 — Error (CircleAlert icon at --bittersweet-600) */
+        '<div class="comp-card">' +
+          '<div class="ff-comp-surface">' +
+            '<div class="ff-comp-field">' +
+              '<label class="ff-comp-label" for="ff-comp-error">Email Address</label>' +
+              '<div class="ff-comp-input ff-comp-input--error" id="ff-comp-error" role="textbox" aria-label="Email Address (error state demo)">' +
+                '<span class="ff-comp-input-placeholder">Enter Email ID</span>' +
+                '<span class="ff-comp-icon ff-comp-icon--error" aria-hidden="true">' +
+                  /* lucide CircleAlert — circle + vertical line + dot */
+                  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>' +
+                '</span>' +
+              '</div>' +
+              '<div class="ff-comp-error-msg">Invalid email</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="comp-card-code">&lt;FormField label="Email Address" placeholder="Enter Email ID" error="Invalid email" /&gt;</div>' +
+          '<div class="comp-card-note">' +
+            '<strong>Error.</strong> Border swaps to <code>2px --bittersweet-600</code> (<code>#D23930</code>). Trailing icon <em>auto-defaults</em> to <code>&lt;CircleAlert /&gt;</code> at <code>--bittersweet-600</code> when <code>error</code> is truthy and no explicit <code>trailingIcon</code> is passed &mdash; canonical error indicator pattern. Below-input message: 12px Inter Regular, color <code>--text-error</code> (= <code>--bittersweet-600</code>), <code>--spacing-1</code> top gap.' +
+          '</div>' +
+        '</div>' +
+
+      '</div>' +
+      '<div class="ff-comp-card-hint"><strong>Surface</strong> is rendered <code>#F2F3F5</code> so the white input visually separates &mdash; mirrors how the Figma file frames the FormField master. The label / placeholder copy is identical across cards so the eye picks up the border-state difference.</div>' +
+    '</div>' +
+
+  '</div>';
+}
+
 function showCompDetails(componentName) {
   var entry = compDetails[componentName];
   if (!entry) return;
@@ -9174,15 +10476,18 @@ function showCompDetails(componentName) {
 document.addEventListener('DOMContentLoaded', function() {
   /* Populate Components tab */
   var compTab = document.getElementById('componentsTabBadgeContent');
-  if (compTab) compTab.innerHTML = getBadgeComponentHTML() + getButtonComponentHTML() + getIconButtonComponentHTML() + getIconButtonGhostComponentHTML() + getSidebarButtonComponentHTML() + getSidebarComponentHTML() + getGlobalSearchComponentHTML() + getLeadNavComponentHTML() + getTrailNavComponentHTML() + getNavbarComponentHTML() + getPageHeaderComponentHTML() + getSectionHeaderComponentHTML() + getSectionLabelComponentHTML() + getAddSectionDividerComponentHTML() + getAddSectionButtonComponentHTML() + getEntityChipComponentHTML() + getSearchFieldComponentHTML() + getWidgetMetricRowComponentHTML() + getWidgetPieChartComponentHTML() + getWidgetComponentHTML() + getWidgetCtaRowComponentHTML() + getWidgetVariantPickerComponentHTML() + getMenuRowComponentHTML() + getCustomerRowComponentHTML() + getMenuDropdownComponentHTML() + getEditModeOverviewHTML() + getWidgetsLeftMenuComponentHTML() + getEmptyStateComponentHTML() + getModalLargeComponentHTML() + getModalMediumComponentHTML();
+  if (compTab) compTab.innerHTML = getBadgeComponentHTML() + getButtonComponentHTML() + getIconButtonComponentHTML() + getIconButtonGhostComponentHTML() + getSidebarButtonComponentHTML() + getSidebarComponentHTML() + getGlobalSearchComponentHTML() + getLeadNavComponentHTML() + getTrailNavComponentHTML() + getNavbarComponentHTML() + getPageHeaderComponentHTML() + getSectionHeaderComponentHTML() + getSectionLabelComponentHTML() + getAddSectionDividerComponentHTML() + getAddSectionButtonComponentHTML() + getEntityChipComponentHTML() + getSearchFieldComponentHTML() + getFormFieldComponentHTML() + getWidgetMetricRowComponentHTML() + getWidgetPieChartComponentHTML() + getWidgetComponentHTML() + getWidgetCtaRowComponentHTML() + getWidgetVariantPickerComponentHTML() + getMenuRowComponentHTML() + getCustomerRowComponentHTML() + getMenuDropdownComponentHTML() + getEditModeOverviewHTML() + getWidgetsLeftMenuComponentHTML() + getEmptyStateComponentHTML() + getModalLargeComponentHTML() + getModalMediumComponentHTML() + getAuthModalComponentHTML() + getAuthContentComponentHTML();
 
-  /* No active normalization cycle. The Normalize tab shows its default empty
-     state (the inline "No active normalization" placeholder rendered in the
-     #normalizeContent container). Earlier cycles
-     (`getWidgetCtaNormalizeHTML()`, `getWidgetFamilyNormalizeHTML()`) remain
-     defined as references — re-activate manually via the console with
-     `activateNormalizeTab(getWidgetCtaNormalizeHTML())` + `switchTab('normalize')`
+  /* No active normalization cycle. AuthContent (Variant=Login) was promoted
+     to the Components tab after GATE B-DSM sign-off — see
+     `getAuthContentComponentHTML()` above. Earlier cycle functions
+     (`getAuthContentNormalizeHTML`, `getAuthModalNormalizeHTML`,
+     `getFormFieldNormalizeHTML`, `getWidgetCtaNormalizeHTML`,
+     `getWidgetFamilyNormalizeHTML`) remain defined as references —
+     re-activate manually via the console with
+     `activateNormalizeTab(getAuthContentNormalizeHTML())` + `switchTab('normalize')`
      if you need to revisit those validation surfaces. */
+  deactivateNormalizeTab();
 
   /* Click on backdrop closes the comp details dialog */
   var compDialog = document.getElementById('comp-details-dialog');

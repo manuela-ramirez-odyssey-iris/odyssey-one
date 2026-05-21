@@ -388,11 +388,11 @@ input[type="radio"].odyssey-radio {
 /* Shared interactive utility — bare clickable icon color ladder.
    Compose with a component class that sets layout + idle color + reset
    (border/padding/background:transparent). Idle color stays per-component
-   because consumers vary: SectionLabel uses --text-tertiary, CustomerRow
-   uses --text-secondary. Hover/active are uniform across the system:
-   build up on hover (--text-primary), release on press (--text-placeholder).
-   Used by: .section-label__action. Pending migration: .customer-row__action,
-   .widget__grip (edit-mode subset). */
+   because consumers vary; both SectionLabel and CustomerRow use
+   --text-tertiary. Hover/active are uniform across the system: build up
+   on hover (--text-primary), release on press (--text-placeholder).
+   Used by: .section-label__action, .customer-row__action (List-mode trash).
+   Pending migration: .widget__grip (edit-mode subset), .menu-dropdown__header. */
 .icon-action {
   cursor: pointer;
   transition: color var(--transition-fast);
@@ -1657,12 +1657,8 @@ input[type="radio"].odyssey-radio {
   padding: 0;
   border: none;
   background: transparent;
-  cursor: pointer;
-  color: var(--text-secondary);
-  transition: color var(--transition-fast);
+  color: var(--text-tertiary);
 }
-.customer-row__action:hover { color: var(--text-primary); }
-.customer-row__action:active { color: var(--text-placeholder); }
 
 /* Result mode — search-dropdown row. Smaller logo (24×24) + smaller icons (16),
    star toggle instead of trash, no bottom border, clickable row for selection. */
@@ -1831,4 +1827,138 @@ input[type="radio"].odyssey-radio {
   .odyssey-table th {
     position: static;
   }
+}
+
+/* === FormField ===========================================================
+   Label + text input pair. States derived from props: default, focus (via
+   :focus-within), error (parent --error modifier). Optional trailing icon
+   slot (consumer-provided ReactNode; auto-defaults to CircleAlert when error
+   is truthy and no explicit slot is passed). */
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  width: 100%;
+}
+.form-field__label {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--text-secondary);
+}
+.form-field__input {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: 8px 13px;
+  background: var(--white);
+  border: 1px solid var(--deep-sea-neutral-300);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  transition: border-color var(--transition-fast);
+}
+.form-field__input:focus-within {
+  border-color: var(--input-border-focus);
+}
+.form-field__input > input {
+  flex: 1 1 0;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  color: var(--text-primary);
+  padding: 0;
+}
+.form-field__input > input::placeholder {
+  color: var(--text-placeholder);
+}
+.form-field__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+.form-field--error .form-field__input {
+  border-color: var(--bittersweet-600);
+  border-width: 2px;
+}
+.form-field--error .form-field__icon {
+  color: var(--bittersweet-600);
+}
+/* Locked / read-only — value visible, input not editable. Muted surface +
+   not-allowed cursor signal non-interactivity without graying the value. */
+.form-field--locked .form-field__input {
+  background: var(--bg-secondary);
+  cursor: not-allowed;
+}
+.form-field--locked .form-field__input > input {
+  cursor: not-allowed;
+  color: var(--text-tertiary);
+}
+.form-field--locked .form-field__icon {
+  color: var(--text-tertiary);
+}
+.form-field__error {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+  color: var(--text-error);
+  margin: 0;
+  margin-top: var(--spacing-1);
+}
+
+/* === AuthModal ===========================================================
+   Pre-auth screen card. White card with OdysseyLogo (dark variant) baked
+   into the header. Consumer (e.g. Login route) handles the surrounding
+   page layout — positioning, bg, overlay — so the visual matches Home and
+   the image stays in the same screen position before/after auth. */
+.auth-modal {
+  width: 416px;
+  background: var(--white);
+  padding: var(--spacing-8);
+  border-radius: var(--radius-2xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+  align-items: stretch;
+}
+.auth-modal__header {
+  display: flex;
+  justify-content: center;
+}
+
+/* === AuthContent =========================================================
+   Inner body of AuthModal. Variant axis (currently Login). Composes
+   FormField + Button atoms. */
+.auth-content__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  width: 100%;
+}
+.auth-content__forgot {
+  align-self: flex-start;
+}
+.auth-content__account {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--text-primary);
+  margin: 0;
+}
+.auth-content__account-link {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.auth-content__account-link:hover {
+  color: var(--text-link);
 }

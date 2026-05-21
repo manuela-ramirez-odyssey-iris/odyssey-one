@@ -50,6 +50,10 @@ export default function Widget({
   // 2x only — hide the donut for stat-only widgets (e.g. Users Enrolled: 142
   // with no percentage). Maps to the Figma `Show chart` BOOLEAN on WidgetContent 2x.
   showChart = true,
+  // Defer the donut grow-in animation by N ms after mount. Consumers (e.g. Home's
+  // mount-stagger) set this so charts start blooming only after their parent
+  // widget's entry transform has settled. Default 0 = animate on next frame.
+  chartDelayMs = 0,
   // Edit mode — Home dashboard "Add Widgets" flow. Forces grip on, dims CTAs to
   // non-interactive, and overlays a top-right close button wired to onRemove.
   editMode = false,
@@ -78,6 +82,7 @@ export default function Widget({
         chartSegments={chartSegments}
         chartTotal={chartTotal}
         showChart={showChart}
+        chartDelayMs={chartDelayMs}
         onGoToClick={onGoToClick}
       />
       {variant !== '1x' && variant !== '3xCta' && onGoToClick && goToLabel && (
@@ -127,7 +132,7 @@ function Header({ variant, title, domainIcon, showGrip, onClose }) {
   )
 }
 
-function Content({ variant, value, label, percentage, rows, ctaRows, chartSegments, chartTotal, showChart, onGoToClick }) {
+function Content({ variant, value, label, percentage, rows, ctaRows, chartSegments, chartTotal, showChart, chartDelayMs, onGoToClick }) {
   if (variant === '1x') {
     return (
       <button
@@ -152,7 +157,7 @@ function Content({ variant, value, label, percentage, rows, ctaRows, chartSegmen
           <span className="text-label-sm-medium widget__label">{label}</span>
         </div>
         {showChart && (
-          <WidgetPieChart segments={chartSegments} total={chartTotal} centerText={percentage} size="md" />
+          <WidgetPieChart segments={chartSegments} total={chartTotal} centerText={percentage} size="md" delayMs={chartDelayMs} />
         )}
       </div>
     )
@@ -194,7 +199,7 @@ function Content({ variant, value, label, percentage, rows, ctaRows, chartSegmen
             <span className="text-display-4xl-semibold widget__value">{value}</span>
             <span className="text-label-sm-medium widget__label">{label}</span>
           </div>
-          <WidgetPieChart segments={chartSegments} total={chartTotal} size="lg" />
+          <WidgetPieChart segments={chartSegments} total={chartTotal} size="lg" delayMs={chartDelayMs} />
         </div>
         <div className="widget__data-section">
           {rows.map((row, i) => (

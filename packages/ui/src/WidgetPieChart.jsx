@@ -18,7 +18,7 @@ import { useEffect, useState } from 'react'
  * Figma master: `WidgetPieChart` component set (1881:77) with `Size=md|lg`,
  * `Show center text` BOOLEAN, `Center text` TEXT.
  */
-export default function WidgetPieChart({ segments = [], centerText, size = 'md', total }) {
+export default function WidgetPieChart({ segments = [], centerText, size = 'md', total, delayMs = 0 }) {
   const px = size === 'md' ? 72 : size === 'lg' ? 96 : size
   const segmentSum = segments.reduce((sum, s) => sum + (s.value || 0), 0)
   const denominator = total ?? segmentSum ?? 1
@@ -28,6 +28,10 @@ export default function WidgetPieChart({ segments = [], centerText, size = 'md',
   const circumference = 2 * Math.PI * innerRadius
   const [animatedIn, setAnimatedIn] = useState(false)
   useEffect(() => {
+    if (delayMs > 0) {
+      const t = setTimeout(() => setAnimatedIn(true), delayMs)
+      return () => clearTimeout(t)
+    }
     const id = requestAnimationFrame(() => setAnimatedIn(true))
     return () => cancelAnimationFrame(id)
   }, [])

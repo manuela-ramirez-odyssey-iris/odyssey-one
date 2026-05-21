@@ -497,6 +497,99 @@ function findFirstFreePosition(placements, widgetsById, variant) {
   return { row: 0, col: 0 } // shouldn't reach — fallback
 }
 
+// Clamp a target (row, col) so a widget of the given variant fits in the
+// grid. Just enforces grid bounds — no minimal-slide preference. Used by
+// widget→widget drops where the user explicitly aimed at a target widget,
+// so the anchor should land as close to the target as the grid allows.
+function clampToGrid(targetRow, targetCol, variant) {
+  const cw = VARIANT_COLS[variant] || 1
+  const col = Math.max(0, Math.min(targetCol, GRID_COLS - cw))
+  const row = Math.max(0, targetRow)
+  return { row, col }
+}
+
+// Place activeId at newAnchor in `placements`. Every widget (other than
+// active) whose footprint overlaps activeId's new footprint is removed from
+// its slot and re-packed to the next free position — so dropping a 2x onto
+// a row of 1x widgets shoves every overlapped 1x out of the way, not just
+// the one directly under the cursor.
+//
+// `previousActiveAnchor` (optional): when exactly one widget is displaced
+// AND a previous anchor is provided AND it fits cleanly, the displaced
+// widget takes that vacated slot — preserves the natural swap UX for
+// 1x↔1x reorders. For multi-cell collisions or cross-section drops, falls
+// back to reading-order repack via findFirstFreePosition.
+function placeWithDisplacement(placements, widgetsById, activeId, newAnchor, previousActiveAnchor = null) {
+  const w = widgetsById[activeId]
+  if (!w) return placements
+  const cw = VARIANT_COLS[w.variant] || 1
+  const rh = VARIANT_ROWS[w.variant] || 1
+  const newCells = new Set()
+  for (let dr = 0; dr < rh; dr++) {
+    for (let dc = 0; dc < cw; dc++) {
+      newCells.add(KEY(newAnchor.row + dr, newAnchor.col + dc))
+    }
+  }
+  const displaced = []
+  const surviving = []
+  for (const p of placements) {
+    if (p.id === activeId) continue
+    const pw = widgetsById[p.id]
+    if (!pw) { surviving.push(p); continue }
+    const pcw = VARIANT_COLS[pw.variant] || 1
+    const prh = VARIANT_ROWS[pw.variant] || 1
+    let hit = false
+    for (let dr = 0; dr < prh && !hit; dr++) {
+      for (let dc = 0; dc < pcw && !hit; dc++) {
+        if (newCells.has(KEY(p.row + dr, p.col + dc))) hit = true
+      }
+    }
+    ;(hit ? displaced : surviving).push(p)
+  }
+  const next = [...surviving, { id: activeId, row: newAnchor.row, col: newAnchor.col }]
+  if (displaced.length === 1 && previousActiveAnchor) {
+    const p = displaced[0]
+    const pw = widgetsById[p.id]
+    if (pw) {
+      const pcw = VARIANT_COLS[pw.variant] || 1
+      const prh = VARIANT_ROWS[pw.variant] || 1
+      if (previousActiveAnchor.col + pcw <= GRID_COLS && previousActiveAnchor.row >= 0) {
+        const oldCells = new Set()
+        for (let dr = 0; dr < prh; dr++) {
+          for (let dc = 0; dc < pcw; dc++) {
+            oldCells.add(KEY(previousActiveAnchor.row + dr, previousActiveAnchor.col + dc))
+          }
+        }
+        let conflict = false
+        for (const np of next) {
+          if (np.id === activeId) continue
+          const npw = widgetsById[np.id]
+          if (!npw) continue
+          const npcw = VARIANT_COLS[npw.variant] || 1
+          const npr = VARIANT_ROWS[npw.variant] || 1
+          for (let dr = 0; dr < npr && !conflict; dr++) {
+            for (let dc = 0; dc < npcw && !conflict; dc++) {
+              if (oldCells.has(KEY(np.row + dr, np.col + dc))) conflict = true
+            }
+          }
+        }
+        if (!conflict) {
+          next.push({ id: p.id, row: previousActiveAnchor.row, col: previousActiveAnchor.col })
+          return next
+        }
+      }
+    }
+  }
+  displaced.sort((a, b) => a.row - b.row || a.col - b.col)
+  for (const p of displaced) {
+    const pw = widgetsById[p.id]
+    if (!pw) continue
+    const pos = findFirstFreePosition(next, widgetsById, pw.variant)
+    next.push({ id: p.id, row: pos.row, col: pos.col })
+  }
+  return next
+}
+
 // Seed a placements array from an ordered list of widget ids using auto-pack.
 // Used once at mount to convert the legacy widgetIds-style initialSections.
 function autoPackFromWidgetIds(widgetIds, widgetsById) {
@@ -519,11 +612,18 @@ function gridStyleFor(row, col, colSpan = 1, rowSpan = 1) {
   }
 }
 
-// Stagger window for the initial mount entry animation (ms). Each widget
-// picks a random delay in [0, ENTER_DELAY_MAX) once on its own mount via
-// useState init, so the order is fresh each page load but stable across
-// re-renders (edit mode, DnD, etc.).
-const ENTER_DELAY_MAX_MS = 700
+// Stagger window for the initial mount entry animation (ms). Widgets are
+// assigned slots in a shuffled order at Home-level mount; each slot's delay
+// is `slot * ENTER_STEP_MS + jitter` where jitter ∈ [0, ENTER_JITTER_MS].
+// This guarantees a minimum gap of (STEP - JITTER) ms between any two
+// widgets' start times so none ever look simultaneous, while keeping the
+// order fresh per page load. Total stagger window for N widgets is
+// (N-1)*STEP + JITTER ms; add the 600ms transform duration for the full
+// settle time. The MOUNT_ANIMATION_GATE_MS below must cover that window.
+const ENTER_STEP_MS = 90
+const ENTER_JITTER_MS = 40
+const ENTER_DURATION_MS = 600
+const MOUNT_ANIMATION_GATE_MS = 1800
 
 // Place a widget so it COVERS the target (row, col) with minimal slide from
 // its current position. The widget keeps its full size; only the anchor moves.
@@ -595,11 +695,8 @@ function GhostCell() {
   )
 }
 
-function SortableWidget({ widget, placement, sectionId, isEditMode, onRemove, justInserted = false, mountAnimating = false }) {
+function SortableWidget({ widget, placement, sectionId, isEditMode, onRemove, justInserted = false, mountAnimating = false, bgLoaded = true, enterDelayMs = 0 }) {
   const cellRef = useRef(null)
-  // Random entry delay captured once on mount — different per page load,
-  // stable across re-renders for this widget instance.
-  const [enterDelayMs] = useState(() => Math.floor(Math.random() * ENTER_DELAY_MAX_MS))
   // Skip the entry animation if this cell is below the fold at mount time.
   // Animating off-screen cells wastes GPU work the user never sees; with
   // many widgets this also makes the visible stagger more legible.
@@ -609,7 +706,11 @@ function SortableWidget({ widget, placement, sectionId, isEditMode, onRemove, ju
     const rect = cellRef.current.getBoundingClientRect()
     if (rect.top > window.innerHeight) setIsAboveFold(false)
   }, [])
-  const shouldAnimateEntry = mountAnimating && isAboveFold
+  // While the bg image is still downloading, hold widgets invisible (waiting
+  // class) so they don't flash in before bg paints. Once bgLoaded, swap to
+  // the --enter class which runs the stagger animation.
+  const isMountWaiting = mountAnimating && !bgLoaded && isAboveFold
+  const shouldAnimateEntry = mountAnimating && bgLoaded && isAboveFold
   const { attributes, listeners, setNodeRef, transform, transition, isDragging, isOver } = useSortable({
     id: `section:${sectionId}:${widget.id}`,
     disabled: !isEditMode,
@@ -649,6 +750,7 @@ function SortableWidget({ widget, placement, sectionId, isEditMode, onRemove, ju
         'home-widget-cell',
         `home-widget-cell--${widget.variant}`,
         showSwapHighlight && 'home-widget-cell--swap-target',
+        isMountWaiting && 'home-widget-cell--mount-waiting',
         shouldAnimateEntry && 'home-widget-cell--enter',
       ].filter(Boolean).join(' ')}
       data-just-inserted={justInserted || undefined}
@@ -658,6 +760,7 @@ function SortableWidget({ widget, placement, sectionId, isEditMode, onRemove, ju
         variant={widget.variant}
         editMode={isEditMode}
         onRemove={() => onRemove(widget.id)}
+        chartDelayMs={shouldAnimateEntry ? enterDelayMs + ENTER_DURATION_MS : 0}
         {...widget.props}
       />
     </div>
@@ -749,15 +852,65 @@ export default function Home() {
     prevIsEditModeRef.current = isEditMode
   }, [isEditMode])
 
-  // Initial mount: widgets slide up + fade in with a staggered delay (see
-  // .home-widget-cell--enter in Home.css). Stagger window is 0-700ms; each
-  // cell takes 600ms; total entry settles by ~1.3s. After that we drop the
-  // class so subsequent re-renders (edit mode, DnD) don't re-animate.
+  // Initial mount: widgets slide up + fade in with staggered delays (see
+  // .home-widget-cell--enter in Home.css). Each initially-placed widget gets
+  // assigned a slot via a Fisher-Yates shuffle, then delay = slot * STEP +
+  // jitter. Stratified slots guarantee no two widgets ever start within
+  // (STEP - JITTER) ms of each other → no "simultaneous" feel, but order
+  // stays random per page load. After MOUNT_ANIMATION_GATE_MS we drop the
+  // --enter class so subsequent re-renders (edit mode, DnD) don't re-animate.
+  const [enterDelayMap] = useState(() => {
+    const ids = initialSections.flatMap((s) => s.widgetIds)
+    // Fisher-Yates shuffle (in-place on a copy).
+    const shuffled = [...ids]
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+    }
+    return Object.fromEntries(
+      shuffled.map((id, i) => [id, i * ENTER_STEP_MS + Math.floor(Math.random() * ENTER_JITTER_MS)]),
+    )
+  })
+  // Background image gates the mount stagger. The widget cells have CSS
+  // `animation-fill-mode: backwards` so they sit invisibly at the start frame
+  // until --enter is applied. We hold off applying --enter until bg.webp has
+  // finished decoding, so widgets and bg appear in lockstep — no flash of
+  // already-animating widgets against a plain white background (which would
+  // also briefly clash with the on-dark white text styles). Image() picks up
+  // the <link rel="preload"> in index.html if already cached. Worst case is
+  // a slightly delayed entry on first uncached load.
+  const [bgLoaded, setBgLoaded] = useState(() => {
+    if (typeof Image === 'undefined') return true
+    const img = new Image()
+    img.src = '/bg.webp'
+    return img.complete // cached → true synchronously, skip the waiting state entirely
+  })
+  useEffect(() => {
+    if (bgLoaded) return
+    const img = new Image()
+    img.src = '/bg.webp'
+    if (img.complete) {
+      setBgLoaded(true)
+      return
+    }
+    const onDone = () => setBgLoaded(true)
+    img.addEventListener('load', onDone)
+    img.addEventListener('error', onDone) // don't strand the page on a 404
+    // Safety net: never block widgets longer than 1.5s even on a slow network.
+    const fallback = setTimeout(onDone, 1500)
+    return () => {
+      img.removeEventListener('load', onDone)
+      img.removeEventListener('error', onDone)
+      clearTimeout(fallback)
+    }
+  }, [])
+
   const [isMountAnimating, setIsMountAnimating] = useState(true)
   useEffect(() => {
-    const t = setTimeout(() => setIsMountAnimating(false), 1500)
+    if (!bgLoaded) return
+    const t = setTimeout(() => setIsMountAnimating(false), MOUNT_ANIMATION_GATE_MS)
     return () => clearTimeout(t)
-  }, [])
+  }, [bgLoaded])
 
   const ctaRows = useMemo(
     () => [
@@ -799,14 +952,19 @@ export default function Home() {
   const [searchValue, setSearchValue] = useState('')
   const [collapsedGroupIds, setCollapsedGroupIds] = useState(new Set())
   const [gridKey, setGridKey] = useState(0)
-  const [customers, setCustomers] = useState(() =>
-    Array.from({ length: 50 }, (_, i) => ({
+  const [customers, setCustomers] = useState(() => {
+    // Partial customer list — full list will be provided later.
+    const names = [
+      'Kemira NA', 'Kemira EU', 'Geon', 'Valtris', 'USALCO',
+      'Dubois', 'Solenis', 'Etex', 'Monument', 'Grace', 'IMCD',
+    ]
+    return names.map((label, i) => ({
       id: `c${i + 1}`,
-      label: `Customer ${i + 1}`,
+      label,
       favorite: i < 3,
-    })),
-  )
-  const [selectedIds, setSelectedIds] = useState(() => new Set())
+    }))
+  })
+  const [selectedIds, setSelectedIds] = useState(() => new Set(['c1', 'c2', 'c3']))
   const [customersModalOpen, setCustomersModalOpen] = useState(false)
   const [customersFilter, setCustomersFilter] = useState('')
   const [customersResultsOpen, setCustomersResultsOpen] = useState(false)
@@ -1118,54 +1276,50 @@ export default function Home() {
     const activeId = String(active.id)
     const overId = String(over.id)
 
-    // Widget drag → widget drag (swap positions).
+    // Widget drag → widget drag. Active lands at the target widget's anchor
+    // (clamped to grid bounds); every existing widget whose footprint overlaps
+    // active's new footprint is repacked out of the way via placeWithDisplacement.
     // IDs: `section:<sectionId>:<widgetId>`.
     if (activeId.startsWith('section:') && overId.startsWith('section:')) {
       const [, aSec, aWid] = activeId.split(':')
       const [, oSec, oWid] = overId.split(':')
+      const draggedWidget = widgets.find((w) => w.id === aWid)
+      if (!draggedWidget) return
       setSections((current) => {
+        const wbi = {}
+        for (const w of widgets) wbi[w.id] = w
         if (aSec === oSec) {
-          // Reorder within the same section — swap the two widgets' (row, col).
           return current.map((s) => {
             if (s.id !== aSec) return s
-            const ai = s.placements.findIndex((p) => p.id === aWid)
-            const oi = s.placements.findIndex((p) => p.id === oWid)
-            if (ai === -1 || oi === -1) return s
-            const next = s.placements.map((p) => p)
-            const a = next[ai], o = next[oi]
-            next[ai] = { ...a, row: o.row, col: o.col }
-            next[oi] = { ...o, row: a.row, col: a.col }
-            return { ...s, placements: next }
+            const targetP = s.placements.find((p) => p.id === oWid)
+            const activeP = s.placements.find((p) => p.id === aWid)
+            if (!targetP || !activeP) return s
+            const newAnchor = clampToGrid(targetP.row, targetP.col, draggedWidget.variant)
+            return {
+              ...s,
+              placements: placeWithDisplacement(
+                s.placements,
+                wbi,
+                aWid,
+                newAnchor,
+                { row: activeP.row, col: activeP.col },
+              ),
+            }
           })
         }
-        // Cross-section drop on a widget — take the target widget's position
-        // and push the target to the next free cell.
+        // Cross-section: remove from source, place in target with displacement.
         return current.map((s) => {
           if (s.id === aSec) {
             return { ...s, placements: s.placements.filter((p) => p.id !== aWid) }
           }
           if (s.id === oSec) {
-            const tIdx = s.placements.findIndex((p) => p.id === oWid)
-            if (tIdx === -1) return s
-            const targetPos = { row: s.placements[tIdx].row, col: s.placements[tIdx].col }
-            // Build widgetsById lookup (closure access to widgets state).
-            const wbi = {}
-            for (const w of widgets) wbi[w.id] = w
-            // Remove the active id from anywhere in placements (defensive).
-            const remaining = s.placements.filter((p) => p.id !== aWid)
-            // Find where the displaced target should go (next free cell after the move).
-            const tempWithoutTarget = remaining.filter((p) => p.id !== oWid)
-            const newTargetPos = findFirstFreePosition(
-              [...tempWithoutTarget, { id: aWid, row: targetPos.row, col: targetPos.col }],
-              wbi,
-              wbi[oWid]?.variant || '1x',
-            )
-            const nextPlacements = [
-              ...tempWithoutTarget,
-              { id: aWid, row: targetPos.row, col: targetPos.col },
-              { id: oWid, row: newTargetPos.row, col: newTargetPos.col },
-            ]
-            return { ...s, placements: nextPlacements }
+            const targetP = s.placements.find((p) => p.id === oWid)
+            if (!targetP) return s
+            const newAnchor = clampToGrid(targetP.row, targetP.col, draggedWidget.variant)
+            return {
+              ...s,
+              placements: placeWithDisplacement(s.placements, wbi, aWid, newAnchor, null),
+            }
           }
           return s
         })
@@ -1191,19 +1345,29 @@ export default function Home() {
         sourcePlacement?.row,
       )
       setSections((current) => {
-        // Same-section: just move the widget to the (clamped) drop position.
+        const wbi = {}
+        for (const w of widgets) wbi[w.id] = w
+        const newAnchor = { row: targetRow, col: targetCol }
+        // Same-section: move active to drop position; any widgets the clamped
+        // anchor overlaps are repacked. clampPlacement's minimal-slide might
+        // still land active on top of unrelated widgets (it only knows about
+        // grid bounds + target cell), so displacement is needed here too.
         if (aSec === targetSec) {
           return current.map((s) => {
             if (s.id !== aSec) return s
             return {
               ...s,
-              placements: s.placements.map((p) =>
-                p.id === aWid ? { ...p, row: targetRow, col: targetCol } : p,
+              placements: placeWithDisplacement(
+                s.placements,
+                wbi,
+                aWid,
+                newAnchor,
+                sourcePlacement ? { row: sourcePlacement.row, col: sourcePlacement.col } : null,
               ),
             }
           })
         }
-        // Cross-section: remove from source, add to target at the clamped position.
+        // Cross-section: remove from source, place in target with displacement.
         return current.map((s) => {
           if (s.id === aSec) {
             return { ...s, placements: s.placements.filter((p) => p.id !== aWid) }
@@ -1211,7 +1375,7 @@ export default function Home() {
           if (s.id === targetSec) {
             return {
               ...s,
-              placements: [...s.placements, { id: aWid, row: targetRow, col: targetCol }],
+              placements: placeWithDisplacement(s.placements, wbi, aWid, newAnchor, null),
             }
           }
           return s
@@ -1247,9 +1411,9 @@ export default function Home() {
     <AppShell>
       <div className={`home-content ${isEditMode ? 'home-content--edit' : ''}`.trim()}>
         {/* Hero background — port-at-dusk image + 900→50 gradient overlay
-            anchored at the top of the scrollable content. Scrolls with the
-            rest of Home so foreground text stays in lockstep with the bg
-            it sits on. */}
+            anchored at the top of the scrollable Home content. Scrolls with
+            the rest of Home so foreground text stays in lockstep with the
+            bg it sits on. */}
         <div className="home-background" aria-hidden="true" />
       {!isEditMode && (
         <>
@@ -1372,6 +1536,8 @@ export default function Home() {
                         onRemove={handleRemoveWidget}
                         justInserted={widget.id === lastInsertedId}
                         mountAnimating={isMountAnimating}
+                        bgLoaded={bgLoaded}
+                        enterDelayMs={enterDelayMap[widget.id] ?? 0}
                       />
                     ))}
                     {emptyCells.map((cell) => (

@@ -27,3 +27,6 @@ export { default as EmptyState } from './EmptyState.jsx';
 export { default as SectionLabel } from './SectionLabel.jsx';
 export { default as AddSectionDivider } from './AddSectionDivider.jsx';
 export { default as AddSectionButton } from './AddSectionButton.jsx';
+export { default as FormField } from './FormField.jsx';
+export { default as AuthModal } from './AuthModal.jsx';
+export { default as AuthContent } from './AuthContent.jsx';

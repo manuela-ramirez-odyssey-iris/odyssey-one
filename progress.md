@@ -3303,6 +3303,181 @@ The `useState` lazy init now also wraps each matched widget's `onGoToClick` with
 
 **Two prod deploys** — both via `npx vercel --prod`. Live URLs unchanged (`odyssey-one-stage.vercel.app`).
 
+## Session 29 — May 20, 2026
+
+The Login domain start. Three /normalize cycles in rapid succession (AuthModal shell, FormField atom with switchable+toggleable trailing icon, AuthContent organism with `Variant=Login`), conditional auth gate at `/`, and a full Login → IntroMessage → Home transition driven by a phase machine in App.jsx. Heavy iteration on visual continuity, transition timing, and stacking-context bugs. Library now at **36 normalized components (+3)**, **41 Code Connect mappings (+3)**. No new tokens.
+
+### Thread 1 — AuthModal /normalize (shell only)
+
+Pulled node `2233:10788` (Modals staging frame with three views: Login, MFA setup, Password setup) via `get_design_context`. GATE A locked: scope is the **SHELL only**; the three "cases" are content, normalized separately as variants of a future AuthContent organism. Drift tokens decided: label color `#314158` → `--text-secondary` (DSN/700), footer body `#27272a` → `--text-primary` (DSN/900), no new DSN scale step.
+
+**Figma writes:**
+- New COMPONENT master `AuthModal` (`2244:1373`) on Components-Organisms in the canonical Modals artboard (`1997:434`), sibling to ModalLarge/ModalMedium. White card, w=416, padding 32, gap 32, radius-2xl, VERTICAL hug.
+- Inserted a centered HEADER frame as first child with an instance of `Property 1=Dark` OdysseyLogo variant (resized 172×24 → 258×36 → 229×32 over user iterations). Per user direction: "stop complicating yourself use our logo component period" — kept the existing logo atom, just sized it up for the card.
+- A `Content` slot frame below the header — placeholder for child composition.
+
+**Code:**
+- `packages/ui/src/AuthModal.jsx` — single-state shell. Renders `<OdysseyLogo variant="dark" width={229} height={32} />` in header + `{children}` slot. No internal backdrop (consumer owns surrounding layout) after several iterations realigned scope.
+- `packages/ui/src/AuthModal.figma.tsx` — Code Connect mapping with `children: figma.children('Content')`.
+- `apps/odyssey-one/src/styles/components.css` — `.auth-modal` (white card spec) + `.auth-modal__header` (centered logo).
+
+### Thread 2 — FormField /normalize
+
+After AuthModal was approved, broke off a focused cycle for the form-input atom. GATE A locked: name **FormField**, 3 states (`Default` / `Focus` / `Error`). All tokens validated against the existing scale (no new drift beyond the AuthModal-decided label color).
+
+**Figma writes:**
+- New COMPONENT_SET `FormField` (`2255:98`) on Components-Molecules.
+- Each variant: Container (gap 4 = spacing-1, VERTICAL) → Label (Inter Medium 14/20 bound to DSN/700) → Input box (padding 13/8 raw — small-internal-geometry per strategic-tokens convention, radius-md, shadow-sm, FILL-horizontal). Default border DSN/300, Focus border DSN/900 (= `--input-border-focus`), Error border Bittersweet/600 (later bumped to 2px width per manual Figma adjustment).
+- Component properties added: `Label` TEXT, `Placeholder` TEXT, `Show icon` BOOLEAN (default false), `Icon` INSTANCE_SWAP (default `placeholder-16` at `213:2`). Per-variant icon stroke colors (DSN/500 / DSN/900 / Bittersweet/600) added later when user called out the trailing icon need.
+- Layout switched to `primaryAxisAlignItems: SPACE_BETWEEN` so placeholder text fills available space and icon sits on the right.
+
+**Code:**
+- `packages/ui/src/FormField.jsx` — props: `label`, `placeholder`, `value`, `onChange`, `type`, `error`, `trailingIcon`, `id`, `name`, `autoComplete`, `required`, plus the post-cycle additions documented below. Auto-defaults `trailingIcon` to `<CircleAlert />` when `error` truthy and no explicit slot. Native input wrapped in a styled `.form-field__input` container; bare `<input>` with no border/bg of its own.
+- `packages/ui/src/FormField.figma.tsx` — maps `label`, `placeholder`, `trailingIcon` (via `Show icon` + `Icon`), and `error` via State enum (Default/Focus → undefined, Error → "Invalid input" example).
+- CSS in `apps/odyssey-one/src/styles/components.css` — full state styles. Error state: `border-width: 2px` (matches the manual Figma adjustment). `:focus-within` triggers Focus state.
+
+**Post-cycle additions (out-of-cycle, no Figma write yet — flagged in carry-forward):**
+- **`locked` prop** — for prefilled-non-editable fields. Sets `readOnly={true}` + adds `.form-field--locked` modifier (muted bg via `--bg-secondary`, `cursor: not-allowed`, slightly lighter text). Auto-defaults `trailingIcon` to `<Lock size={16} />`. **Non-focusable** — `tabIndex={-1}` removes from keyboard tab order; `onMouseDown={preventDefault}` blocks click-focus. Text color in locked state: `--text-tertiary` (DSN/500) — one tone lighter than `--text-secondary` to communicate non-editable.
+
+### Thread 3 — AuthContent /normalize
+
+User direction after AuthModal landed: "ok lets create the AuthModal contents as component with variants. Lets create the first variant with AuthModal content". GATE A locked: name `AuthContent`, state owned internally, callbacks for actions.
+
+**Figma writes:**
+- COMPONENT master `AuthContent` (`2264:712`) on Components-Organisms / Modals artboard next to AuthModal. Single variant for now (`Login`); future variants (MfaSetup, PasswordSetup, etc.) extend the same master.
+- Composes: Form group (VERTICAL, gap-4 = spacing-4) containing 2 × FormField default instances (Email Address + Password) + Log In Button (Variant=Primary, Size=lg, Show icon=false, label "Log In"), then Forgot password Link Button (Show icon=false, label "Forgot password?"), then an account-link TEXT node with the "Create an account." span underlined via `setRangeTextDecoration`. Two iterations needed — first attempt failed on the wrong INSTANCE_SWAP property keys (`Placeholder#2255:1` was wrong; actual key is `Placeholder#2255:4`); second failed on `setRangeTextDecoration` index miscount — fixed by computing range from `indexOf`.
+
+**Code:**
+- `packages/ui/src/AuthContent.jsx` — owns email/password state. `variant="login"` branch renders the form + buttons + inline `<a>` link for "Create an account.". Callbacks: `onLogin({ email, password })`, `onForgotPassword`, `onCreateAccount`. Future variants stub returns null.
+- `packages/ui/src/AuthContent.figma.tsx` — Code Connect mapping, single example for now (no enum mapping until more variants exist).
+- `Login.jsx` slimmed to 7 lines — just `<AuthModal><AuthContent variant="login" onLogin={onLogin} /></AuthModal>`. Old verbose composition + `Login.css` deleted; consumer-level login styles moved to `.auth-content__*` in `components.css`.
+
+**Login prefill + lock:**
+- Both AuthContent FormFields seeded with `test@odyssey.com` + sample password and `locked={true}` so reviewers click Log In without typing. Lock icons later replaced with green `Check` icons (`var(--text-success)` = Caribbean Green/600) via explicit `trailingIcon` prop — signals "valid/saved" rather than "locked".
+
+### Thread 4 — Login route + auth gate
+
+`apps/odyssey-one/src/routes/Login.jsx` + `Login.css`. Route is full-viewport (`.login-page { position: fixed; inset: 0 }`) with the bg.webp asset behind everything (same asset Home uses — preload tag in index.html shared between routes) + DSN/900 @ 70% overlay via a `::before` pseudo-element (token-bound, not hardcoded rgba). `z-index: 1000` on `.login-page` so the surface sits above Home's `.home-content` (z-index: 1) stacking context — critical for the crossfade. Modal centered via flex.
+
+**Auth gate in App.jsx** — prototype-level in-memory `phase` state (no persistence; refresh resets). Gated only on `/`; other routes (Shipments, Orders, etc.) skip auth so deep-links work.
+
+### Thread 5 — Intro message + transition (many iterations)
+
+After Login landed, user asked for a post-Login intro sequence with the `MessageIntro.png` asset (160px tall, centered). What this should be visually went through several rounds before settling — captured here in full so future-me doesn't repeat the journey:
+
+**False starts:**
+1. First built `IntroMessage.jsx` as a full-viewport white-screen overlay with its own CSS keyframes. User: *"the idea was to make the login modal to dissapear and show in its place that message with a height of 160px tall, that means modal background should stay"*. Deleted.
+2. Rebuilt with two `.login-page__layer` wrappers inside `.login-page` that crossfade. Image didn't show + sidebar appeared "broken for a second". User: *"rollback i dont know whats going on"*. Rolled back the whole intro work + App.jsx phase machine.
+3. Restarted with a clear spec: image-in-place swap, bg/overlay stay, then whole surface fades. Built the final version.
+
+**Final phase machine** (in App.jsx):
+- `'login'` → modal visible
+- `'intro'` (t=0) → `.login-page--intro` class applied. Modal opacity transitions 1→0 (400ms); MessageIntro image opacity transitions 0→1 (same 400ms, in-place via absolute centering with `translate(-50%, -50%)`). Image is height 160px width auto. bg + overlay stay visible.
+- `'exiting'` (t=900) → `.login-page--exiting` class applied. Image stays at opacity 1 (via parent compositing) but the whole `.login-page` fades opacity 1→0 over 400ms. Body bg is `var(--bg-inverse)` (DSN/900, set globally in `index.css`) — same color as the overlay — so the fade reveals a backdrop that matches, no color flash.
+- `'home'` (t=1300) → Login unmounts.
+
+**Home preload (200ms head-start → bumped to 400ms):**
+Separate `mountHome` state flipped true at t=900 (same moment as `exiting` starts, full 400ms head-start). Home mounts behind the still-fading Login so its `bg.webp` (already cached from Login's preload) + widget DOM are ready by the time Login is fully transparent. User specifically asked for this: *"home takes a while to load its image and components but not enough to overlap the widget animations"*. Widget stagger naturally has tiny delays for the first few slots, so animations barely overlap with Login's tail fade.
+
+**Iterations on hold time** (image visible duration) — user ratcheted down: 1000ms → 800ms → 700ms → 600ms → **500ms** (final).
+
+**Stacking-context bug fix** (key learning, would have wasted hours without naming it):
+Home's `.home-content` has `position: relative; z-index: 1`. Login's `.login-page` was z-auto. During `exiting` (when Home becomes visible behind), `.home-content`'s z-index: 1 stacking context paints **above** Login at z-auto in the document root — so widget DOM appeared on top of the still-fading Login while navbar/sidebar (at z-auto inside Home, NOT inside .home-content) stayed beneath Login. Result: "broken sidebar appearing late" — widgets popped through Login instantly, chrome faded in last. Fix: `z-index: 1000` on `.login-page` so the entire Login surface stays above everything in Home until it's fully gone.
+
+### Thread 6 — Customer list
+
+User: "lets use this list of customers for now Kemira NA, Kemira EU, Geon, Valtris, USALCO, Dubois, Solenis, Etex, Monument, Grace and IMCD. Later i will provide the full list". Replaced the 50-placeholder `Array.from({ length: 50 }, ...)` init in Home.jsx with a literal 11-name array. First 3 marked `favorite: true` to match the seeded `selectedIds = ['c1', 'c2', 'c3']`.
+
+### Files / commits
+
+**New files (code):**
+- `packages/ui/src/AuthModal.jsx` + `.figma.tsx`
+- `packages/ui/src/FormField.jsx` + `.figma.tsx`
+- `packages/ui/src/AuthContent.jsx` + `.figma.tsx`
+- `apps/odyssey-one/src/routes/Login.jsx`
+
+**Modified files:**
+- `packages/ui/src/index.js` — 3 new exports (`AuthModal`, `FormField`, `AuthContent`)
+- `packages/ui/src/AuthModal.jsx` — logo sized 229×32 (final after iterations)
+- `apps/odyssey-one/src/App.jsx` — phase machine (`login` / `intro` / `exiting` / `home`), separate `mountHome` state for the 400ms Home head-start, conditional rendering only on `/`
+- `apps/odyssey-one/src/styles/components.css` — `.auth-modal*`, `.form-field*` (default/focus/error/locked states), `.auth-content__form` / `.auth-content__forgot` / `.auth-content__account` / `.auth-content__account-link` (consumer composition styles, migrated from the deleted Login.css), `.icon-action` doc comment updated
+- `apps/odyssey-one/src/components/layout/AppShell.jsx` — added `transparentMain` boolean prop (default false). Added during the bg-continuity exploration; ended up unused after we reverted Home's bg to its session-28 in-content position. Left in place as harmless infrastructure.
+- `apps/odyssey-one/src/routes/Home.jsx` — customer list replaced (50 placeholders → 11 real names)
+- `apps/odyssey-one/src/routes/Login.css` — full-viewport bg + overlay + crossfade modifiers (`--intro`, `--exiting`) + z-index: 1000
+
+**Deleted files:**
+- `apps/odyssey-one/src/routes/Login.css` (original — recreated with the route's bg layout)
+- `apps/odyssey-one/src/routes/IntroMessage.jsx` + `.css` (false-start full-viewport overlay)
+
+**Figma masters created:**
+- `AuthModal` `2244:1373` on Components-Organisms / Modals
+- `FormField` set `2255:98` on Components-Molecules (3 variants × Show icon × Icon)
+- `AuthContent` `2264:712` on Components-Organisms / Modals
+
+**Figma masters modified:**
+- `AuthModal` `2244:1373` — added centered HEADER with OdysseyLogo dark variant instance (resized 258×36)
+- `FormField` `2255:98` — added icon slot + properties post-cycle; Error border width raised to 2px (user manual adjustment, mirrored in code)
+
+**DSM updates** (delegated to subagents per the always-subagent-for-DSM rule):
+- AuthModal + FormField sections promoted Normalize tab → Components tab with `NORMALIZED` pill
+- AuthContent section added to Normalize tab, then promoted to Components tab
+- Multiple subagent runs (one socket dropped mid-task — verified the work landed by inspecting the file after)
+
+**normalization-tracker.md updates:**
+- 3 new rows in Normalized Components (FormField, AuthModal, AuthContent)
+- 3 new rows in Pushed to Figma (FormField set, AuthModal component, AuthContent component)
+- 3 new rows in Pushed to Code Connect
+- AuthModal row annotated with the `Login.css → .auth-content__*` migration note
+
+**Asset (already existed in public/):**
+- `apps/odyssey-one/public/MessageIntro.png` — intro illustration shown at 160px height post-Login
+
+### State of `@odyssey/ui` after Session 29
+
+**36 normalized components** (was 33):
+- Atoms: Badge, Button, IconButton, IconButtonGhost, OdysseyLogo, SidebarButton, EmptyState, SectionLabel, AddSectionDivider, AddSectionButton
+- Molecules: GlobalSearch, LeadNav, TrailNav, PageHeader, SectionHeader, EntityChip, WidgetMetricRow, WidgetPieChart, WidgetCtaRow, SearchField, MenuRow, MenuDropdown, CustomerRow, **FormField** (NEW)
+- Organisms: Navbar, Widget, WidgetsLeftMenu, ModalLarge, ModalMedium, WidgetVariantPicker, **AuthModal** (NEW), **AuthContent** (NEW)
+
+**Code Connect:** 41 mappings live (was 38). Added: AuthModal, FormField, AuthContent.
+
+**Tokens added this session:** none.
+
+**Library publish:** mappings published via `npx figma connect publish` from `packages/ui/`.
+
+### Carry-forward to Session 30
+
+**Pre-flagged for next session** — user said: *"tomorrow we will do the propper project tree setup to work with obsidian because we have the need to separate documentation for each domain and visualize their relation between each other"*. So Session 30 starts with:
+
+1. **Obsidian project tree restructure** — separate per-domain documentation, set up so Obsidian's graph view visualizes inter-domain relations. Probably involves rearranging `shipments-documentation/`, the (future) other-domain docs, the design-system docs, decision logs, etc. into a folder layout Obsidian's vault model understands. May need front-matter conventions for cross-doc links.
+
+**Sync-back debt from Session 29:**
+- **FormField `locked` state** not yet in Figma master — `2255:98` only has Default/Focus/Error State variants. The locked-visual treatment (muted bg, lighter text, Lock/Check icon) is code-only. Need to either add a `Locked` State variant or a separate `Locked` BOOLEAN property in Figma, mirror in DSM Components-tab section, and extend the Code Connect mapping.
+- DSM section for FormField needs a 4th demo card showing the locked appearance.
+
+**Standing backlog** (most unchanged from Session 28):
+- Task #16 — `.icon-action` migration for remaining consumers (widget-grip edit subset, menu-dropdown header)
+- Task #17 — DS follow-ups: light-surface Ghost Button variant + SectionPickerRow atom
+- SHP-66 — generic dropdown popover
+- SHP-67 — responsive normalization pass
+- ButtonLink — full size × state matrix in Figma
+- StatusBadge / TypeBadge / HazmatTag / Appointment / History action badges / Tab count pills normalizations
+- Off-token off-scale paddings (6 / 14 / 18) still raw across several components
+- Sidebar Selected variant Figma icon-color encoding
+- MenuDropdown / SearchField additional state variants in Figma (hover, focus, pressed)
+- IconButton size matrix (Size=md/lg) + 25×25 (code) vs 24×24 (Figma) reconciliation
+- Cognizant repo access + 3–5 component proof-of-concept Angular port
+- AuthContent additional variants (MfaSetup, PasswordSetup, etc. — covered by the staging frame at `2233:10788`)
+- Real customers list expansion (current 11 names is a partial list per user)
+- Resume Supabase persistence (now pushed further back behind the Obsidian setup + remaining auth views)
+
+**Parked (unchanged):**
+- Mode-based Figma theming for Button icon colors
+- Purge legacy `icons/Npx/*` masters
+- Convert any remaining Lucide FRAMEs to proper COMPONENTs
+- IntersectionObserver-driven entry animation for cells scrolled into view later
+- AppShell `transparentMain` prop currently unused — keep, drop, or document
+
 ## Session 28 — May 19–20, 2026
 
 Closing out the Home domain — the "flashy attractive part" pre-flagged in Session 27. Background treatment, sticky actions that survive scroll, edit-mode polish (grid-behind-widgets, swap-target highlight, scroll save/restore, bg fade), a staggered mount entry animation that respects below-fold cells, and a cleanup of the default widget seed to match Efrain's reference. **No new normalized atoms** — Session 27 closed those out; this was all consumer-level Home work plus two one-line atom hygiene migrations (PageHeader + SectionHeader inline colors → CSS classes). Library unchanged at **33 normalized components**, **38 Code Connect mappings**.

@@ -13,11 +13,11 @@
   position: absolute;
   /* Break out of the AppShell <main>'s padding so the bg meets the navbar
      bottom and main's left/right edges with no light gutters. .home-content
-     is the relative ancestor; main's padding is 32px top / 24px sides in
-     default mode (52px top / 264px left in edit mode — handled below). */
+     is the relative ancestor; main's padding is 32px top / 32px sides in
+     default mode (52px top / 272px left in edit mode — handled below). */
   top: calc(-1 * var(--spacing-8));
-  left: calc(-1 * var(--spacing-6));
-  right: calc(-1 * var(--spacing-6));
+  left: calc(-1 * var(--spacing-8));
+  right: calc(-1 * var(--spacing-8));
   height: 100vh;
   /* z-index: -1 paints below the stacking context's content (PageHeader,
      sections, etc.) while still rendering above main's DSN/50 bg, since
@@ -37,7 +37,7 @@
 }
 .home-content--edit .home-background {
   top: calc(-1 * var(--main-padding-top-edit));
-  left: calc(-1 * (var(--edit-panel-width) + var(--spacing-6)));
+  left: calc(-1 * (var(--edit-panel-width) + var(--spacing-8)));
   opacity: 0;
 }
 @media (prefers-reduced-motion: reduce) {
@@ -76,6 +76,7 @@
 .home-content {
   position: relative;
   z-index: 1;
+  padding-bottom: var(--spacing-8);
 }
 
 /* === Sticky page-level actions =========================================
@@ -421,6 +422,13 @@
    `animation-fill-mode: backwards` holds the widget at the `from` state
    during its delay so it stays invisible until its turn arrives.
    Easing matches --transition-panel for a consistent project motion tone. */
+/* Pre-animation hold: while we're waiting for bg.webp to finish loading,
+   keep widgets invisible. The transform jump to the animation's `from`
+   keyframe state is hidden behind opacity: 0, so the class swap to --enter
+   produces no flash. */
+.home-widget-cell--mount-waiting > .widget {
+  opacity: 0;
+}
 .home-widget-cell--enter > .widget {
   animation: home-widget-enter 600ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
   animation-delay: var(--enter-delay, 0ms);

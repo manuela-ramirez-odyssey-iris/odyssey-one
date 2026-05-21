@@ -1,0 +1,77 @@
+/* Login route — full-viewport bg + DSN/900 @ 70% overlay + centered modal.
+   bg + overlay stay visible across the modal → intro-image swap. The whole
+   .login-page unmounts at the end of the 'intro' phase (App.jsx), revealing
+   the preloaded Home behind. */
+
+.login-page {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Above Home's .home-content stacking context (z-index: 1) so the
+     entire Login surface covers Home cleanly while it's mounted —
+     including during the exit-fade, so chrome (sidebar/navbar) and Home
+     widgets all crossfade in together. */
+  z-index: 1000;
+  transition: opacity 400ms ease-out;
+}
+/* End of intro: the whole surface fades out while Home becomes visible
+   behind it, then App.jsx unmounts the component. */
+.login-page--exiting {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.login-page__bg {
+  position: absolute;
+  inset: 0;
+  background-image: url('/bg.webp');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  pointer-events: none;
+}
+
+/* DSN/900 @ 70% overlay — token-bound via background-color + opacity on a
+   pseudo-element instead of a hardcoded rgba(). */
+.login-page__bg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-color: var(--deep-sea-neutral-900);
+  opacity: 0.7;
+}
+
+/* === Auth modal card — visible in 'login' phase, fades out in 'intro' === */
+.login-page .auth-modal {
+  position: relative;
+  z-index: 1;
+  transition: opacity 400ms ease-out;
+}
+.login-page--intro .auth-modal,
+.login-page--exiting .auth-modal {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* === Intro image — invisible in 'login' phase, fades in on 'intro' ===
+   Absolutely positioned so it overlaps the modal at the same screen
+   center; pointer-events: none keeps it click-through while invisible. */
+.login-page__intro-image {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  height: 160px;
+  width: auto;
+  display: block;
+  z-index: 2;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 400ms ease-out;
+}
+.login-page--intro .login-page__intro-image,
+.login-page--exiting .login-page__intro-image {
+  opacity: 1;
+}

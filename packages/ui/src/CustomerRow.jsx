@@ -72,7 +72,7 @@ export default function CustomerRow({
           onDelete && (
             <button
               type="button"
-              className="customer-row__action"
+              className="icon-action customer-row__action"
               onClick={(e) => {
                 e.stopPropagation()
                 onDelete()
