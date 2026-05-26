@@ -3303,6 +3303,172 @@ The `useState` lazy init now also wraps each matched widget's `onGoToClick` with
 
 **Two prod deploys** — both via `npx vercel --prod`. Live URLs unchanged (`odyssey-one-stage.vercel.app`).
 
+## Session 30 — May 21–25, 2026
+
+The Cognizant POC arc. A four-day single-thread sprint orchestrated across this session + a sister Claude session running inside the cloned Cognizant Angular repo. Six gates from end-to-end repo analysis through a meeting-ready presentation outline, plus a live-data widget integration demoed to Cognizant on 2026-05-22, plus a side-by-side React/Angular Button demo built across the weekend, plus three cross-stack font-rendering bugs debugged once both demos were running. No new normalized components, no new tokens; this session's deliverable is the *workflow* — proof that the canonical design system + alignment machinery can move into Angular without compromise.
+
+### Thread 1 — POC briefing + sister session orchestration
+
+`cognizant-poc/POC-PROMPT.md` written as the handoff briefing for a fresh Claude session invoked inside the newly-cloned `linx-odyssey-usermanagement-ui` repo (sibling of `odyssey-one`, set to `no_push` on origin). Six gates specced upfront: GATE 1 inventory, GATE 2 POC1 plan, GATE 3 POC1 implementation, GATE 4 POC2 plan, GATE 5 POC2 implementation, GATE 6 presentation outline. Hard rules baked in: no commits to Cognizant repo, no credentials in any file, spec-before-code at every gate, drift framing not reconciliation framing.
+
+User onboarded onto `gh auth login` (web browser flow → installed and SSO-cleared for OneOdyssey org) to actually clone the repo. Disabled push to Cognizant origin via `git remote set-url --push origin no_push` as belt-and-suspenders on top of the prompt-level no-write rule.
+
+### Thread 2 — GATE 1: Cognizant repo inventory
+
+Sister session produced `cognizant-poc/cognizant-analysis.md`. Stack: Angular **17.2.0**, NgModule (not standalone), classic `@Input()` decorators, no signals, RxJS + `BehaviorSubject` (no NgRx). Module Federation remote at `linxUserManagement.js`. The repo is the **User Management microfrontend** — one feature inside a larger federated host, not a greenfield Angular shell. Critical finding flagged: `@oneodyssey/components` v2.5.17 already exists as an Odyssey-owned Angular library. Sister session originally framed Alt B as "reconcile two systems"; corrected during review to drift evidence framing per the political objective. ~40 API endpoints catalogued, candidate `/users/locked` chosen.
+
+### Thread 3 — GATE 2: POC 1 plan + pivot
+
+Sister session wrote the initial POC 1 plan targeting `POST /user-service/v1/users/locked` mapped to the `um-locked` 1x widget. Auth strategy: cookie paste + Vite proxy. Validation curl spec'd. **Then everything pivoted overnight.**
+
+Manuela's access to `dev.linx.odysseylogistics.com` was revoked by admin during cookie-capture diagnostics on Thu 2026-05-21 night. Investigation through Safari DevTools surfaced that her remaining access was to `odyssey-one.com/tracking/dashboard` — a different platform on a different domain, OAuth/OIDC via Keycloak realm `oneodyssey` (issuer `trapi-prd-serv01.odysseylogistics.com:8443`). Curl test against `POST odyssey-one.com/tracking/api/uiapi/loads/statistics` returned a rich multi-status payload with 6 entries (Scheduled P/U Today / EnRoute / Delivered / At Risk / All shipments / No Tracking Data) and `--compressed` resolved a "binary output" gotcha on first try. Counts shifted between Safari capture and curl run (2363→2365, 65020→65023, 85235→85241) — concrete proof of live data, became a key demo talking point.
+
+Plan pivoted in place: endpoint, widget target (`shipments-exceptions` 3xChart at `Home.jsx:290`, repurposed at runtime to show Tracking data while keeping the existing widget ID), data shape mapping (12-row table), auth strategy (Bearer JWT + SESSION cookie both required), Vite proxy renamed `/odyssey-tracking-api`. Empty `{}` body assumption flagged for GATE 3 verification.
+
+### Thread 4 — GATE 3: POC 1 implementation
+
+New files:
+- `apps/odyssey-one/src/hooks/useTrackingLoadStatistics.js` — fetch hook returning `{data, error}`, no loading flag (caller keeps mock visible), cancellation guard, error logged as `console.warn`.
+- `apps/odyssey-one/.env.local.example` — committed template with `<TOKEN>` / `<SESSION>` placeholders.
+- `cognizant-poc/poc1-runbook.md` — Manuela-facing morning routine: token recapture procedure, smoke-test curl one-liner, dev-server start, expected visuals, demo-time talking points (live + fallback narratives), `eyJ` pre-commit grep documented as a manual one-liner (deliberately not installed as a hook).
+
+Modified:
+- `apps/odyssey-one/vite.config.js` — wrapped in `defineConfig(({ mode }) => …)` + `loadEnv(mode, process.cwd(), '')` so the Node-side proxy reads non-`VITE_` env vars without exposing them to the client bundle. Proxy injects `Authorization: Bearer <JWT>`, `Cookie: SESSION=<uuid>`, and `Origin: https://odyssey-one.com`.
+- `apps/odyssey-one/src/routes/Home.jsx` — hook + `useEffect` patches the `shipments-exceptions` widget's props on fetch success: title → "Tracking — Load Status", value → `'All shipments'` count formatted via `toLocaleString()`, four rows mapped from selected statuses with chart-1..chart-4 indicator colors, chartSegments + chartTotal derived from the same four counts. On fetch failure, the static `shipmentsExceptionsRows` + `shipmentsExceptionsSegments` from `:144`/`:151` remain visible — the widget never knows whether it's live or mock.
+
+### Thread 5 — 2026-05-22 meeting + critical signal
+
+POC 1 demoed live to Cognizant. Widget rendered live load statistics from the real Odyssey backend. Counts shifted on refresh, exactly as planned. Meeting outcome documented in memory `project_poc1_meeting_outcome.md`:
+
+- **Both paths still open** — "integrate (don't migrate)" AND "migrate, design system survives." Pending Cognizant response over the week.
+- **Follow-up meeting Mon 2026-05-25.**
+- **Cookie-paste explicitly flagged as scaffolding, NOT the production pattern.** Cognizant signaled they want direct API integration — interpreted as real OIDC client against the `oneodyssey` realm, not the env-var hack. Added to backlog as future work.
+- No pushback on the design-system-ownership framing — the case landed implicitly via the live demo, not explicitly via rhetoric.
+
+### Thread 6 — Alt B: drift evidence (visual + alignment workflow)
+
+GitHub Packages tarball access for `@oneodyssey/components` was blocked (403 — no read permission on the package). Sister session bypassed by inferring drift from the consumer side instead: inspected `linx-odyssey-usermanagement-ui` directly. Findings (appended to `cognizant-analysis.md` under "Alternative B"):
+
+- **23 PrimeNG override files** in `src/styles/components/*.scss` — every shipped component bent at the consumer
+- **`!important` specificity hacks** throughout
+- **Palette bifurcation:** DSN-900 `#1B2537` still matches the canonical React `--deep-sea-neutral-900` (proof alignment once existed). Drifted colors with no React equivalents: `#063A83` (alternate "primary blue", 4+ uses), `#1F5E88` (accordion), `#42AD98` (near-but-not React's `#237E70` success green), `#c64535` (near-but-not React's `#D23930` error red)
+- **Zero Code Connect artifacts. Zero Figma URL references. No `/normalize`-like CI gate.**
+- Magnitude: **medium-to-large drift**
+
+Sister session's strategic call: "POC 2's pitch should lead with workflow discipline (Code Connect + `/normalize`), not just token files, since the missing piece on the Angular side is the alignment machinery, not the variables." Folded into the GATE 6 framing.
+
+### Thread 7 — GATE 4 + 5: POC 2 Button port to Angular
+
+**Environment:** nvm installed on Manuela's machine (touches `~/.zshrc` only). Node 20.20.2 LTS pulled via `nvm install 20`. Then `nvm alias default 20` to make it the new default (Node 25 was her Homebrew system Node — newer but odd-numbered = no LTS; 20 LTS picked for stability + Angular 17 compatibility). Angular CLI NOT installed globally — `npx -p @angular/cli@17.2 ng new` scaffolded the project without polluting global node_modules.
+
+**New sibling project:** `/Users/manuelramirez/Documents/iris/Odyssey/Shipments/odyssey-angular-button-demo/` (visible separately from this repo). Stack: Angular 17.2 + NgModule + Karma/Jasmine matching Cognizant's conventions. Tokens ported as a 1:1 CSS-custom-property re-emit at `src/styles/_tokens.scss` (single-layer strategy — no SCSS variable mirror, justified by Alt B's drift-via-mutation finding). Button component at `src/app/components/odyssey-button/` follows Cognizant's `user-status` split-file pattern: `.component.ts` + `.html` + `.scss` + `.module.ts`. Selector `odyssey-button` — explicit brand prefix to differentiate from Cognizant's `linx-usermanagement-*`.
+
+**Alignment artifact** at `src/app/components/odyssey-button/Button.figma-link.md` — frontmatter with `figma_file_key: vodiHJU38YWZYmTz81uOk7`, `canonical_react_source: packages/ui/src/Button.jsx`, `last_synced: 2026-05-25`. Pins the component to Figma node `1307:333` (main set) + `1895:7` (link variant) + the canonical React Code Connect file. Drift discipline rule baked in: any change to the Figma master propagates Figma → React Code Connect → Angular component; any change to the Angular component verifies against the Figma master first, never reverse.
+
+Code Connect Angular support determined to be partial (HTML adapter only, not first-class per `@figma/code-connect` v1.4.5) — markdown alignment artifact chosen as the canonical form, with `.figma.ts` deferred to a future Code Connect Angular release.
+
+### Thread 8 — Side-by-side React demo + cross-stack font parity debug
+
+For the meeting comparison, built `apps/odyssey-one/src/routes/ButtonDemo.jsx` + `.css` at the route `/button-demo`. Imports the canonical `Button` from `@odyssey/ui` (workspace, NOT a copy) + `lucide-react` icons. Subagent built the first cut, then the layout was rewritten to mirror the Angular `app.component.html` literally — section-for-section, label-for-label, token-for-token: section heads "Idle" / "States" / "Slots" (not "Idle States"/"Icon Slots"), button labels "Label" / "Hover me" / "Click + hold" / "Tab here" / "Disabled", 4-button Slots row (Search / Continue / Both slots / Go to Tracking). Stack badges top-right of both demos showing `React 19.2.4 · Vite 8.0.1` and `Angular 17.2.0 · Node 20.20.2`.
+
+One CSS gotcha caught: the global `<body>` in `apps/odyssey-one/src/index.css` sets `background: var(--bg-inverse)` (DSN/900 dark) for the Login→Home transition (Session 29). The demo route bypasses AppShell but the centered 1100px page would show dark gutters either side. Added `.demo-root { position: fixed; inset: 0; background: var(--bg-primary); overflow: auto; }` wrapper to override.
+
+**Then the font weights deviated.** Three bugs found in succession by side-by-side compare — none visible from either demo alone:
+
+1. **CDN vs self-hosted Inter.** React uses `@fontsource/inter` static 400/500/600 weight files (npm-served). Angular originally used Google Fonts CDN with `wght@400;500;600` (variable font subset). Different rendering of the "same" weights. Fix: swap Angular to `@fontsource/inter`, remove the Google Fonts `<link>` tags from `index.html`.
+2. **Missing typography utility classes.** The React Button references `.text-label-base-medium` / `.text-label-sm-medium` for typography. These classes live in `apps/odyssey-one/src/styles/components.css:1029-1039` (not in the Button component itself — separate global utility layer). Sister session's "verbatim `.btn*` port" missed them. Fix: ported the full text-label utility family to `src/styles/_typography.scss`, imported in `styles.scss` after `_tokens`.
+3. **Missing font-smoothing.** React's `body` rule in `index.css:89-93` sets `-webkit-font-smoothing: antialiased` + `-moz-osx-font-smoothing: grayscale` — switches macOS from subpixel (default, heavier-looking) to grayscale antialiasing. Angular had no equivalent. Fix: added the same `body` rule to Angular's `styles.scss`.
+
+After fix #3 the two demos rendered with indistinguishable text weight. All three bugs landed in the "Post-GATE-5 corrections" section of `cognizant-poc/poc2-button-migration.md`. They became Slide 8 of GATE 6 — "exactly the kind of drift the alignment workflow catches, that token files alone don't."
+
+### Thread 9 — GATE 6: Presentation outline
+
+Sister session produced `cognizant-poc/presentation-outline.md` — 11 slides + Q&A appendix, ~1080 words, within target range:
+
+1. Title — "Two POCs. One question."
+2. Status today — 36 components, Code Connect, `/normalize`
+3. POC 1 demo
+4. POC 1 implication (don't migrate — needs OIDC follow-up)
+5. POC 2 demo (side-by-side)
+6. POC 2 implication (if migrate, design system survives — `Button.figma-link.md` as deliverable)
+7. Drift evidence (Alt B findings)
+8. Cross-stack parity gotchas (the three font bugs from Thread 8)
+9. Proposed `/normalize-angular` skill follow-up
+10. Two paths decision table (5 rows × 2 columns, honest tradeoffs)
+11. Recommendation (ownership case, leadership owns the migrate-vs-integrate call)
+
+Plus four Q&A anchors on credential hygiene, future Code Connect Angular support, why `@oneodyssey/components` didn't solve this, and the cost of building the skill.
+
+### Files / commits
+
+**New (Odyssey React project — committed):**
+- `cognizant-poc/POC-PROMPT.md`
+- `cognizant-poc/cognizant-analysis.md` (GATE 1 + Alt B sections)
+- `cognizant-poc/poc1-data-integration.md` (GATE 2, rewritten end-to-end during the pivot)
+- `cognizant-poc/poc1-runbook.md` (Manuela's morning checklist)
+- `cognizant-poc/poc2-button-migration.md` (GATE 4 + GATE 5 diff doc + post-GATE-5 corrections)
+- `cognizant-poc/presentation-outline.md` (GATE 6)
+- `apps/odyssey-one/.env.local.example`
+- `apps/odyssey-one/src/hooks/useTrackingLoadStatistics.js`
+- `apps/odyssey-one/src/routes/ButtonDemo.jsx`
+- `apps/odyssey-one/src/routes/ButtonDemo.css`
+
+**Modified (Odyssey React project — committed):**
+- `apps/odyssey-one/vite.config.js` — `loadEnv` + `/odyssey-tracking-api` proxy with header injection
+- `apps/odyssey-one/src/App.jsx` — added `/button-demo` route alongside the AppShell-wrapped block
+- `apps/odyssey-one/src/routes/Home.jsx` — hook import + `useEffect` patcher for the `shipments-exceptions` widget
+- `.claude/settings.local.json` — incidental permission grants accumulated through the session
+
+**New (sibling — separate project, NOT committed in this repo):**
+- `/Users/manuelramirez/Documents/iris/Odyssey/Shipments/odyssey-angular-button-demo/` — entire Angular 17 demo project. Lives outside this repo; tracked separately under its own git origin (initialized by `ng new`).
+- `/Users/manuelramirez/Documents/iris/Odyssey/Shipments/linx-odyssey-usermanagement-ui/` — Cognizant clone, read-only reference, push disabled.
+
+**Memory updates:**
+- New: `project_poc_political_objective.md`, `feedback_design_system_positioning.md`, `feedback_design_system_scope_visual_only.md`, `feedback_design_system_workflow_ownership.md`, `project_normalize_angular_skill_concept.md`, `project_poc2_demo_project_location.md`, `project_poc1_meeting_outcome.md`
+- `MEMORY.md` index updated.
+
+**Tooling change:**
+- `nvm` installed (`~/.zshrc` modified to load nvm). Node 20.20.2 LTS installed via nvm and set as default (`nvm alias default 20`). Node 25 (Homebrew system Node) remains available via `nvm use system`. Angular CLI not installed globally — used `npx -p @angular/cli@17.2`.
+
+### State of `@odyssey/ui` after Session 30
+
+Unchanged from Session 29: **36 normalized components**, **41 Code Connect mappings**, no new tokens. This session's deliverable is the *workflow* and the cross-stack port, not new components.
+
+### Carry-forward to Session 31
+
+**Pre-flagged by Manuela:**
+1. **Shipments domain audit** — sweep the route end-to-end to confirm normalized `@odyssey/ui` components (especially Button) are being used everywhere they should be. Some places may still use older ad-hoc patterns predating normalization.
+2. **Home overlay improvement** — clarify scope at session start (edit-mode scrim? hover overlay? widget-pick affordance?).
+
+**Backlog from this session:**
+3. **POC 1 OIDC migration** — replace the cookie/JWT-paste hack with a proper Keycloak OIDC client integration against the `oneodyssey` realm. The cookie-paste is demo scaffolding only, per the meeting feedback. Likely uses `oidc-client-ts` or a Keycloak JS adapter; assumes CORS gets opened by the backend team OR proxy stays in place with token refresh handled client-side.
+4. **`/normalize-angular` skill design doc** — explicitly deferred per Manuela. Memory captures the procedural recipe + the three font gotchas + the typography utility trap as inputs. Hard rule: test internally on 2–3 additional component ports before any handoff to Cognizant.
+5. **POC 2 next-step depends on Mon 2026-05-25 meeting outcome** — if Path A (integrate), POC 2 stays as a portable artifact; if Path B (migrate), continue Angular ports and ship the skill.
+
+**Sync-back debt from Session 29 (still pending):**
+6. **FormField `locked` state** not yet in Figma master `2255:98` — currently code-only. Need to add a Locked State variant or a separate Locked BOOLEAN property in Figma, mirror in DSM Components-tab section, extend Code Connect mapping.
+
+**Standing backlog (unchanged):**
+- Task #16 — `.icon-action` migration for remaining consumers
+- Task #17 — DS follow-ups: light-surface Ghost Button variant + SectionPickerRow atom
+- SHP-66 — generic dropdown popover
+- SHP-67 — responsive normalization pass
+- ButtonLink — full size × state matrix in Figma
+- StatusBadge / TypeBadge / HazmatTag / Appointment / History action badges / Tab count pills normalizations
+- Sidebar Selected variant Figma icon-color encoding
+- MenuDropdown / SearchField additional state variants in Figma
+- IconButton size matrix (Size=md/lg) + 25×25 (code) vs 24×24 (Figma) reconciliation
+- AuthContent additional variants (MfaSetup, PasswordSetup, etc.)
+- Real customers list expansion (current 11 names is partial)
+- Resume Supabase persistence (still parked behind Obsidian setup + remaining auth views)
+
+**Parked (unchanged):**
+- Obsidian project tree restructure (deferred from Session 30 start when the Cognizant POC arc took over)
+- Mode-based Figma theming for Button icon colors
+- Purge legacy `icons/Npx/*` masters
+- IntersectionObserver-driven entry animation for cells scrolled into view
+- AppShell `transparentMain` prop currently unused
+
 ## Session 29 — May 20, 2026
 
 The Login domain start. Three /normalize cycles in rapid succession (AuthModal shell, FormField atom with switchable+toggleable trailing icon, AuthContent organism with `Variant=Login`), conditional auth gate at `/`, and a full Login → IntroMessage → Home transition driven by a phase machine in App.jsx. Heavy iteration on visual continuity, transition timing, and stacking-context bugs. Library now at **36 normalized components (+3)**, **41 Code Connect mappings (+3)**. No new tokens.

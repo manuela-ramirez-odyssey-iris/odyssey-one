@@ -51,6 +51,7 @@ import {
 } from '@dnd-kit/sortable'
 import AppShell from '../components/layout/AppShell'
 import { useEditMode } from '../contexts/EditModeContext.jsx'
+import { useTrackingLoadStatistics } from '../hooks/useTrackingLoadStatistics'
 import './Home.css'
 
 const domainIcon = <TriangleAlert {...ICON_LG} />
@@ -934,6 +935,52 @@ export default function Home() {
       return w
     }),
   )
+
+  // On fetch success, override the shipments-exceptions widget props with
+  // live load-statistics from the Odyssey Tracking platform. The static
+  // mock from initialWidgets stays visible on failure (network, auth,
+  // schema) — the widget never knows whether it is showing live or mock.
+  const { data: trackingData } = useTrackingLoadStatistics()
+  useEffect(() => {
+    if (!trackingData?.statuses) return
+    const countOf = (status) =>
+      trackingData.statuses.find((s) => s.status === status)?.count ?? 0
+    const sched = countOf('Scheduled P/U Today')
+    const enroute = countOf('EnRoute')
+    const delivered = countOf('Delivered')
+    const atRisk = countOf('At Risk')
+    const total = countOf('All shipments')
+    setWidgets((prev) =>
+      prev.map((w) =>
+        w.id === 'shipments-exceptions'
+          ? {
+              ...w,
+              props: {
+                ...w.props,
+                title: 'Tracking — Load Status',
+                value: total.toLocaleString(),
+                label: 'Total Loads (Last 30 Days)',
+                rows: [
+                  { label: 'Scheduled P/U Today', value: sched.toLocaleString(), indicatorColor: 'var(--chart-1)', onClick: handleRow('scheduled-pu') },
+                  { label: 'EnRoute', value: enroute.toLocaleString(), indicatorColor: 'var(--chart-2)', onClick: handleRow('enroute') },
+                  { label: 'Delivered', value: delivered.toLocaleString(), indicatorColor: 'var(--chart-3)', onClick: handleRow('delivered') },
+                  { label: 'At Risk', value: atRisk.toLocaleString(), indicatorColor: 'var(--chart-4)', onClick: handleRow('at-risk') },
+                ],
+                chartSegments: [
+                  { value: sched, color: 'var(--chart-1)' },
+                  { value: enroute, color: 'var(--chart-2)' },
+                  { value: delivered, color: 'var(--chart-3)' },
+                  { value: atRisk, color: 'var(--chart-4)' },
+                ],
+                chartTotal: sched + enroute + delivered + atRisk,
+                goToLabel: 'Go to Tracking',
+              },
+            }
+          : w,
+      ),
+    )
+  }, [trackingData])
+
   // Sections seeded from initialSections — widgetIds auto-packed into
   // explicit (row, col) placements so the grid layout is position-aware
   // from the start (vs. CSS auto-flow packing).

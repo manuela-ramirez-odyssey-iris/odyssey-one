@@ -112,7 +112,13 @@
       "Bash(xargs -0 jq -c 'select\\(.message?.content?\\) | .message.content[]? | select\\(.type==\"tool_use\"\\) | {name: .name, cmd: \\(.input.command // null\\)}')",
       "Bash(echo \"exit: $?\")",
       "Bash(npx figma *)",
-      "Bash(Customer\\\\|Array.from.*customer\\\\|customers.*=.*useState\" /Users/manuelramirez/Documents/iris/Odyssey/Shipments/odyssey-one/apps/odyssey-one/src/routes/Home.jsx | head -5)"
+      "Bash(Customer\\\\|Array.from.*customer\\\\|customers.*=.*useState\" /Users/manuelramirez/Documents/iris/Odyssey/Shipments/odyssey-one/apps/odyssey-one/src/routes/Home.jsx | head -5)",
+      "Bash(gh --version)",
+      "Bash(gh auth *)",
+      "Bash(ssh -T git@github.com)",
+      "Bash(brew --version)",
+      "Bash(ng version *)",
+      "Bash(command -v nvm)"
     ]
   }
 }
