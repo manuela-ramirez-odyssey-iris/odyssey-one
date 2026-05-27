@@ -118,7 +118,15 @@
       "Bash(ssh -T git@github.com)",
       "Bash(brew --version)",
       "Bash(ng version *)",
-      "Bash(command -v nvm)"
+      "Bash(command -v nvm)",
+      "Bash(zip -r odyssey-react-button-demo.zip odyssey-react-button-demo -x \"odyssey-react-button-demo/node_modules/*\" \"odyssey-react-button-demo/dist/*\" \"odyssey-react-button-demo/.vite/*\" \"odyssey-react-button-demo/*.log\")",
+      "Bash(pyenv versions *)",
+      "Read(//Users/manuelramirez/.pyenv/versions/**)",
+      "Bash(brew list *)",
+      "Bash(/opt/homebrew/bin/python3.13 -m venv /tmp/pptx_env)",
+      "Bash(/tmp/pptx_env/bin/markitdown --help)",
+      "Bash(/tmp/pptx_env/bin/pip show *)",
+      "Bash(chmod +x /Users/manuelramirez/Documents/iris/Odyssey/Shipments/odyssey-one/tools/convert-docs.sh)"
     ]
   }
 }

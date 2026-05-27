@@ -1,7 +1,7 @@
-import React, { useState, useCallback } from 'react'
-import { Upload, Trash2, X, RefreshCw, Download, FileText, Sheet, File } from 'lucide-react'
+import React, { useState, useCallback, useRef } from 'react'
+import { Upload, Trash2, RefreshCw, Download, FileText, Sheet, File } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
-import { Button } from '@odyssey/ui'
+import { Button, FormField, ModalMedium } from '@odyssey/ui'
 
 const TYPE_STYLES = {
   BoL:            { bg: 'var(--badge-blue-bg)', color: 'var(--badge-blue-text)' },
@@ -92,6 +92,7 @@ const DocumentsTab = React.memo(function DocumentsTab({ data }) {
   const [formFile, setFormFile] = useState(null)
   const [formDesc, setFormDesc] = useState('')
   const [previewDoc, setPreviewDoc] = useState(null)
+  const fileInputRef = useRef(null)
 
   const handleDelete = useCallback((idx) => {
     setDocuments((prev) => prev.filter((_, i) => i !== idx))
@@ -239,185 +240,96 @@ const DocumentsTab = React.memo(function DocumentsTab({ data }) {
       {previewDoc && (() => {
         const ext = getFileExtension(previewDoc.fileName)
         return (
-          <div
-            style={{
-              position: 'fixed',
-              inset: 0,
-              zIndex: 9999,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              backdropFilter: 'blur(4px)',
-              background: 'rgba(0,0,0,0.3)',
-            }}
-            onClick={() => setPreviewDoc(null)}
-          >
-            <div
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                background: 'var(--bg-primary)',
-                borderRadius: 'var(--radius-lg)',
-                boxShadow: '0 8px 30px rgba(0,0,0,0.2)',
-                padding: 24,
-                width: 520,
-                fontFamily: 'var(--font-primary)',
-              }}
-            >
-              {/* Header */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-                <TypeBadge type={previewDoc.type} />
-                <span
-                  style={{
-                    fontSize: 14,
-                    fontWeight: 600,
-                    color: 'var(--text-primary)',
-                    flex: 1,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {previewDoc.fileName}
-                </span>
-                <button
-                  onClick={() => setPreviewDoc(null)}
-                  className="flex items-center justify-center bg-transparent border-none cursor-pointer"
-                  style={{ color: 'var(--text-placeholder)', padding: 0, transition: 'color 0.15s ease' }}
-                  onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
-                  onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-placeholder)'}
-                >
-                  <X size={18} />
-                </button>
-              </div>
-
-              {/* Body */}
-              {previewDoc.description && (
-                <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: '0 0 16px', lineHeight: 1.5 }}>
-                  {previewDoc.description}
-                </p>
-              )}
-              <DocMockup doc={previewDoc} ext={ext} />
-
-              {/* Footer */}
-              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
-                <Button variant="secondary" onClick={() => setPreviewDoc(null)}>
+          <ModalMedium
+            title={previewDoc.fileName}
+            onClose={() => setPreviewDoc(null)}
+            footer={
+              <>
+                <Button variant="secondary" size="lg" onClick={() => setPreviewDoc(null)}>
                   Close
                 </Button>
-                <Button variant="primary" icon={<Download size={20} />}>
+                <Button variant="primary" size="lg" icon={<Download size={20} />}>
                   Download
                 </Button>
-              </div>
-            </div>
-          </div>
+              </>
+            }
+          >
+            {previewDoc.description && (
+              <p className="text-label-sm-regular" style={{ color: 'var(--text-tertiary)', margin: 0 }}>
+                {previewDoc.description}
+              </p>
+            )}
+            <DocMockup doc={previewDoc} ext={ext} />
+          </ModalMedium>
         )
       })()}
 
       {/* Upload Modal */}
       {showModal && (
-        <div
-          onClick={handleCloseModal}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 9999,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            backdropFilter: 'blur(4px)',
-            background: 'rgba(0,0,0,0.3)',
-          }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              background: 'var(--bg-primary)',
-              borderRadius: 'var(--radius-lg)',
-              boxShadow: '0 8px 30px rgba(0,0,0,0.2)',
-              padding: 24,
-              width: 400,
-              fontFamily: 'var(--font-primary)',
-            }}
-          >
-            {/* Header */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-              <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>
-                Upload Attachment
-              </span>
-              <button
-                onClick={handleCloseModal}
-                className="flex items-center justify-center bg-transparent border-none cursor-pointer"
-                style={{ color: 'var(--text-placeholder)', padding: 0, transition: 'color 0.15s ease' }}
-                onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
-                onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-placeholder)'}
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            {/* Body */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <label style={{ fontSize: 13, fontWeight: 500, color: 'var(--input-label)' }}>Type</label>
-                <select
-                  value={formType}
-                  onChange={(e) => setFormType(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    background: 'var(--input-bg)',
-                    border: '1px solid var(--input-border)',
-                    borderRadius: 'var(--radius-md)',
-                    fontFamily: 'var(--font-primary)',
-                    fontSize: 13,
-                    color: 'var(--input-text)',
-                  }}
-                >
-                  {DOC_TYPES.map((t) => (
-                    <option key={t} value={t}>{t}</option>
-                  ))}
-                </select>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <label style={{ fontSize: 13, fontWeight: 500, color: 'var(--input-label)' }}>File</label>
-                <input
-                  type="file"
-                  onChange={(e) => setFormFile(e.target.files[0] || null)}
-                  accept=".pdf,.xlsx,.xls,.docx,.doc,.csv,.msg"
-                  style={{ fontFamily: 'var(--font-primary)', fontSize: 13, color: 'var(--text-secondary)' }}
-                />
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <label style={{ fontSize: 13, fontWeight: 500, color: 'var(--input-label)' }}>Description</label>
-                <input
-                  type="text"
-                  value={formDesc}
-                  onChange={(e) => setFormDesc(e.target.value)}
-                  placeholder="Enter description..."
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    background: 'var(--input-bg)',
-                    border: '1px solid var(--input-border)',
-                    borderRadius: 'var(--radius-md)',
-                    fontFamily: 'var(--font-primary)',
-                    fontSize: 13,
-                    color: 'var(--input-text)',
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
-              <Button variant="secondary" onClick={handleCloseModal}>
+        <ModalMedium
+          title="Upload Attachment"
+          onClose={handleCloseModal}
+          footer={
+            <>
+              <Button variant="secondary" size="lg" onClick={handleCloseModal}>
                 Cancel
               </Button>
-              <Button variant="primary" onClick={handleUpload} disabled={!formFile}>
+              <Button variant="primary" size="lg" onClick={handleUpload} disabled={!formFile}>
                 Upload
               </Button>
+            </>
+          }
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label className="text-label-sm-medium" style={{ color: 'var(--input-label)' }}>Type</label>
+              <select
+                value={formType}
+                onChange={(e) => setFormType(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  background: 'var(--input-bg)',
+                  border: '1px solid var(--input-border)',
+                  borderRadius: 'var(--radius-md)',
+                  fontFamily: 'var(--font-primary)',
+                  fontSize: 13,
+                  color: 'var(--input-text)',
+                }}
+              >
+                {DOC_TYPES.map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
             </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label className="text-label-sm-medium" style={{ color: 'var(--input-label)' }}>File</label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                onChange={(e) => setFormFile(e.target.files[0] || null)}
+                accept=".pdf,.xlsx,.xls,.docx,.doc,.csv,.msg"
+                style={{ display: 'none' }}
+              />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)' }}>
+                <Button variant="link" onClick={() => fileInputRef.current?.click()}>
+                  {formFile ? 'Replace file' : 'Choose file'}
+                </Button>
+                {formFile && (
+                  <span className="text-label-sm-regular" style={{ color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {formFile.name}
+                  </span>
+                )}
+              </div>
+            </div>
+            <FormField
+              label="Description"
+              placeholder="Enter description..."
+              value={formDesc}
+              onChange={(e) => setFormDesc(e.target.value)}
+            />
           </div>
-        </div>
+        </ModalMedium>
       )}
     </div>
   )

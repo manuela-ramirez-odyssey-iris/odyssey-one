@@ -10,12 +10,17 @@ import IconButtonGhost from './IconButtonGhost.jsx'
  *
  * Mirrors Figma component `ModalMedium` at 2032:915. Content / Footer SLOT properties
  * map to React children / footer props respectively.
+ *
+ * `scrollableContent` — implementation-only flag (not in Figma): set true when the
+ * content slot contains its own vertically-scrolling region. Removes the default
+ * 20px bottom padding so the scroller runs flush against the footer divider.
  */
 export default function ModalMedium({
   title,
   onClose,
   children,
   footer,
+  scrollableContent = false,
   className = '',
   ariaLabel,
 }) {
@@ -46,7 +51,9 @@ export default function ModalMedium({
             />
           )}
         </header>
-        <div className="modal-medium__content">{children}</div>
+        <div className={`modal-medium__content${scrollableContent ? ' modal-medium__content--scroll' : ''}`}>
+          {children}
+        </div>
         {footer && <footer className="modal-medium__footer">{footer}</footer>}
       </div>
     </div>

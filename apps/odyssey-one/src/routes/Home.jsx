@@ -1772,6 +1772,7 @@ export default function Home() {
       )}
       {customersModalOpen && (
         <ModalMedium
+          scrollableContent
           title="Add Customers"
           onClose={handleCloseCustomersModal}
           footer={

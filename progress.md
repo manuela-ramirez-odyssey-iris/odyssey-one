@@ -3303,6 +3303,217 @@ The `useState` lazy init now also wraps each matched widget's `onGoToClick` with
 
 **Two prod deploys** — both via `npx vercel --prod`. Live URLs unchanged (`odyssey-one-stage.vercel.app`).
 
+## Session 31 — May 26–27, 2026
+
+Two main arcs in one session. **Arc 1**: a Slice-A audit of the Shipments route surfaces ~45 normalization gaps; instead of grinding through native-button swaps one-by-one, the session pivots to swapping 4 inline modals to canonical `ModalMedium` (a much larger win — kills ~120 lines of duplicated backdrop/dialog/close-X boilerplate, adds ESC-handling for free, transitively normalizes 4 close X buttons). The swap pass surfaces iterative refinements: `ModalMedium.scrollableContent` prop, body-level typography token discipline, a Button canonical update (text-only link gets underline), a new link-button + hidden-input pattern for file pickers. **Arc 2**: a structural change — `shipments-documentation/` (the misnamed catch-all folder where the OdysseyMarketingGuidelines.pdf and home-domain-analysis.md were both incongruously filed) is retired and replaced with `vault/`, a 7-folder Obsidian-native knowledge base built for multi-domain work + future RAG ingestion. 98 files migrated with history preserved via `git mv`. Plus MarkItDown installation + convert-docs.sh rewrite, plus a standalone Cognizant React Button demo zipped for handoff.
+
+Library remains at **36 normalized components**. The session's deliverables are: a normalized modal pattern across Shipments, a Button canonical refinement (link underline), a Microsoft MarkItDown-powered binary-doc intake pipeline, and a structural vault for everything that isn't code.
+
+### Thread 1 — Shipments audit + Slice-A pivot to modal swaps
+
+Delegated audit (Explore subagent) on `apps/odyssey-one/src/routes/shipments/` + `apps/odyssey-one/src/components/` produced ~45 findings across 12 files. Initial framing was "Slice A = Button sweep, ~15 native `<button>` → canonical Button/IconButton/IconButtonGhost." User pushed back on the framing — *Shipments was made on a rush, the audit's job is to replace rushed UI with components we already have, not invent new normalizations to absorb edge cases*. Recalibration: only 8 of the "button" findings are clean Button/IconButtonGhost swaps; the rest are tab patterns (`Tab` doesn't exist yet — defer to Slice D), outlined-icon patterns (no canonical match), or sub-components of larger un-normalized units (search bar).
+
+The reframe surfaced **4 inline modal patterns** as the highest-ROI target: `TableControls` Export modal, `DocumentsTab` Preview modal, `DocumentsTab` Upload modal, `CostAllocationTab` CompareModal. Each was a hand-rolled `<div style={position:fixed, inset:0, backdrop, dialog card, close-X>` ~30-line block. Canonical `ModalMedium` already exists (organism shell at Figma `2032:915`, 540-wide, header with close X via `IconButtonGhost`, content + footer slots, ESC + overlay-click dismiss). Swapping = retiring all four blocks at once.
+
+### Thread 2 — 4 modal swaps + per-modal refinement
+
+All 4 modals swapped to `<ModalMedium title=… onClose={…} footer={…}>`. Net effects:
+- ~120 lines of duplicated backdrop/dialog boilerplate retired
+- ESC dismiss now works on all four (didn't before)
+- 4 close-X buttons retired (now part of ModalMedium shell)
+- All widened to canonical 540px (Export was 380, Upload was 400, Preview was 520, Compare was 520)
+
+User pushed back on early decisions — the `Export` modal kept a `FileSpreadsheet` icon in its title (passed as JSX), the `Preview` modal kept a `TypeBadge` inline with the filename. User's rule: *"please do not try to salvage our previous code when we are trying to use our component, otherwise the idea to have a component is lost altogether."* Stripped both back to plain string titles. Saved as memory `feedback_conform_to_component_api` so future swap cycles default to the canonical API instead of preserving rushed-code quirks via JSX-prop escape hatches.
+
+Per-modal iterations:
+- **Export modal**: buttons hoisted into `footer={…}` prop instead of inline body; renamed `Export all columns` → `All Columns`, `Export visible columns` → `Visible Columns`; paragraph copy made conditional on count (`≤ 10000`: shows record count inline, `> 10000`: shows the 10K-cap note). Both footer buttons `size="lg"` per Home's established pattern.
+- **Preview modal**: title became plain `previewDoc.fileName` (TypeBadge already renders inside DocMockup body — title doesn't need to double-show). Footer: Close (secondary) + Download (primary) at `size="lg"`.
+- **Upload modal**: title plain `"Upload Attachment"`. Form fields (initially native `<select>` / `<input type=file>` / `<input type=text>`) audited mid-session — see Thread 4.
+- **CompareModal**: title plain `"Compare AP / AR"`. Cleanest swap structurally.
+
+### Thread 3 — `ModalMedium.scrollableContent` extension
+
+Default behavior added: 20px (`var(--spacing-5)`) bottom padding on `.modal-medium__content` so short content never sits flush against the footer divider / modal edge. First attempt used a `ResizeObserver` to *detect* whether content was scrolling; user caught the edge case where Add Customers' inner `home-customers-list` scrolling at its 240px cap fooled the detector ("the padding is now disappearing when we pass that threshold"). Detection-based approach reverted.
+
+Final: explicit `scrollableContent` boolean prop on `ModalMedium`. Default false → 20px bottom padding. Consumer opt-in (`<ModalMedium scrollableContent>`) → padding 0 → inner scroller runs flush to the footer divider. Only Add Customers (`Home.jsx`) opts in today; the 5 other consumers (4 Shipments swaps + Home's Delete Section) keep the default. Canonical addition: `.modal-medium__content--scroll { padding-bottom: 0; }` modifier class in `components.css`.
+
+### Thread 4 — Audit of modal bodies (post-swap) + token discipline sweep
+
+User: *"please audit the other modals to the minimum detail, not only the shell, we need to use our design system, no loose rules are allowed."* Delegated audit (Explore subagent) of all four modal bodies (excluding the canonical shell). Findings:
+- Export + Preview paragraphs: had raw `fontSize: 13, lineHeight: 1.5` → swapped to `className="text-label-sm-regular"` + minimal inline `color`/`margin`
+- Upload labels: raw `fontSize: 13, fontWeight: 500` → `className="text-label-sm-medium"`
+- Upload Description field: native `<input type="text">` → canonical `<FormField label="Description" …>` (1:1 swap, FormField molecule already exists)
+- CompareModal: margin span `fontSize: 13, fontWeight: 600` → `text-label-sm-semibold`; table headers raw uppercase typography → `text-label-xs-medium-uppercase`; body cells → `text-label-sm-regular`; label cells → `text-label-sm-medium`; Total row → `text-label-sm-semibold`. The `compareTh`/`compareTd` JS style objects stripped of all `fontSize`/`fontWeight`/`textTransform`/`letterSpacing` (now class-driven).
+
+Three normalization gaps acknowledged as future backlog items, not faked with inline preservation:
+1. **`SelectField`** — Upload modal Type dropdown still uses native `<select>` because `FormField` is text-input-only. Needs new normalization cycle.
+2. **`FileField`** — Upload modal File input swapped to a *new pattern*: hidden native `<input type="file" style={{display:'none'}}>` + visible `<Button variant="link">` ("Choose file" / "Replace file" after selection) + filename display. If this pattern repeats elsewhere, promote to a `FileField` molecule.
+3. **`Tabs` / `SegmentedControl`** — CompareModal order picker (badge-colored segmented buttons) is hand-rolled. Defer to a future normalization cycle covering all the tab-like patterns across Shipments (ShipmentTabs, FilterPanel tabs, BottomBar tabs).
+
+### Thread 5 — Button canonical update: text-only link gets underline
+
+User request: "Add underline to it" (referring to the new "Choose file" link button). Picked the per-variant scope question: all `.btn--link`, only text-only ones (no icon), or only on hover. User chose **only text-only link Buttons** — iconic link CTAs (e.g. Widget "Go to Tracking →") still rely on the arrow for affordance, plain text links read more like web links with the underline.
+
+CSS rule added: `.btn--link:not(.btn--has-icon):not(.btn--has-icon-right) { text-decoration: underline; }`. Code-only canonical update; needs Figma sync to the Button master `1307:333` later (added to backlog).
+
+### Thread 6 — MarkItDown installation + convert-docs.sh full rewrite
+
+User: *"install MarkItDown by Microsoft and we will use that every time we read through a pdf"*. Two install forms (CLI vs MCP server); user picked **CLI + `[all]` extras** (markitdown covers PDF, DOCX, PPTX, XLSX, HTML, images, audio transcription, more).
+
+System Python (3.9.6) too old — MarkItDown requires 3.10+. Bootstrapped venv at `/tmp/pptx_env` (name preserved for backwards compat with the existing convention) using `/opt/homebrew/bin/python3.13`. Installed `markitdown[all]` v0.1.6.
+
+`tools/convert-docs.sh` fully rewritten:
+- Single tool now (replaces the prior python-pptx + python-docx custom extraction scripts)
+- Auto-bootstraps venv with Homebrew python3.13 if missing
+- Default scope: `vault/00-inbox/` (per the new vault structure — see Thread 8)
+- Single-file invocation: `bash tools/convert-docs.sh some.pdf` produces `some.md` next to the source
+- Recursive invocation: `bash tools/convert-docs.sh <dir>` walks the dir
+- Skips files whose `.md` output is newer than the source
+
+`CLAUDE.md` doc-reading section updated. Memory `feedback_markitdown_for_pdfs` saved — always route PDF/DOCX/PPTX/XLSX reads through MarkItDown, never `Read` the binary directly.
+
+First test: converted `OdysseyGuidelines 2026.pdf` (48 pages, 4.6 MB) → 928-line `.md` in ~1 second. Output ended up at `vault/20-cross-cutting/brand-marketing/odyssey-guidelines-2026.md` (after Thread 8's migration).
+
+### Thread 7 — Standalone Cognizant React Button demo + zip handoff
+
+User wanted to ship the Cognizant team a working React version of the Button demo to test alongside the Angular port (`odyssey-angular-button-demo/`). The React demo embedded in `apps/odyssey-one/src/routes/ButtonDemo.jsx` consumes `Button` from `@odyssey/ui` (workspace package) — not portable as-is.
+
+Built standalone project at sibling `/Users/manuelramirez/Documents/iris/Odyssey/Shipments/odyssey-react-button-demo/`:
+- React 19.2.4 + Vite 8.0.1 + lucide-react + `@fontsource/inter` (matching the Angular demo's parity baseline)
+- `src/components/Button.jsx` — 1:1 portable copy of the canonical Odyssey Button (annotated as a copy, with the canonical source in the comment header)
+- `src/styles/{tokens.css,typography.css,button.css,base.css}` — trimmed subset of the design system tokens + the `.btn-*` classes + the two `.text-label-*-medium` utilities the Button needs + a body reset with the font-smoothing rule (from the Session 30 cross-stack font-parity fix)
+- `src/ButtonDemo.jsx + .css` — copied from the umbrella app's route
+- `Button.figma-link.md` — alignment artifact (mirrors the Angular demo's drift-discipline doc; points to canonical React source + Figma master `1307:333`)
+- `README.md` — `npm install && npm run dev` instructions
+
+`npm install` clean (68 packages, 0 vulnerabilities). `npm run build` clean (195KB JS / 16KB CSS in 663ms). Zipped to `/Users/manuelramirez/Documents/iris/Odyssey/Shipments/odyssey-react-button-demo.zip` (25 KB) — node_modules + dist excluded. Ready to send to Cognizant.
+
+### Thread 8 — Vault migration: `shipments-documentation/` → `vault/`
+
+The structural change of the session. User flagged that `shipments-documentation/Documentation/` was a misnamed catch-all — `OdysseyGuidelines 2026.pdf` (marketing) and `home-domain-analysis.md` (Home domain) both incongruously lived inside Shipments-named folders. Needed: a multi-domain Obsidian-native vault that also supports the future RAG ingestion path (NotebookLM access never materialized, so the 3-layer model collapsed to 2 — raw → Claude+user-curated → vault).
+
+Plan written at `docs/superpowers/plans/vault-migration.md` (8 sections, ~280 lines) with full source→destination mapping for every file. Plan iterations during sign-off:
+- User clarified: **OdysseyGuidelines PDF in `20-cross-cutting/brand-marketing/`** (binary + .md kept together)
+- Generic `error*.png` / `issue.png` screenshots → `99-archive/screenshots-unsorted/` (cheap to keep, context-lost, re-tag later)
+- User correction: **backlog is domain-agnostic** — one unified list, items tagged by domain, NOT per-domain backlogs (saved as `project_backlog_is_domain_agnostic` memory). Renamed `60-tasks/` → `60-backlog/` to make this the canonical name.
+
+Executed as one batch (single commit at session end):
+
+**Final structure:**
+```
+vault/
+├── 00-inbox/                  drop zone + README
+├── 10-domains/                home, shipments, tracking, orders, carriers, users (each has _moc.md)
+├── 20-cross-cutting/          brand-marketing, gateway, design-system, operations, stakeholders
+├── 30-ideas/                  speculative (user-authored)
+├── 40-decisions/              cross-domain decisions
+├── 50-sources/                external raw inputs not domain-attached
+├── 60-backlog/                THE unified domain-agnostic backlog
+└── 99-archive/                first-prototype/, code-reference/, screenshots-unsorted/
+```
+
+**Migration mechanics:**
+- 75 tracked files moved via `git mv` (preserves history)
+- 9 untracked files moved via plain `mv` (the recently-converted `.md` files in `converted/` + today's OdysseyGuidelines PDF)
+- 12 First-prototype files moved to `vault/99-archive/first-prototype/` (`node_modules/` deleted — reproducible from `package.json`)
+- 40 screenshots triaged across domains: 22 → Shipments, 6 → Home, 1 → Tracking, 2 → Orders, 3 → cross-cutting/design-system, 6 → archive-unsorted
+- 14 new placeholder files written (MOCs per domain + cross-cutting topic + READMEs for inbox / backlog / ideas / decisions / sources / archive)
+- 3 Word lock files (`~$*.docx/pptx`) `git rm`'d (were tracked, shouldn't have been)
+- `.DS_Store` files removed
+- `shipments-documentation/` directory fully removed
+
+**Reference updates:**
+- `CLAUDE.md` — directory map references `vault/` not `shipments-documentation/`; "Where context lives" entries updated; new "Vault" section
+- `tools/convert-docs.sh` — `DOCS_DIR` default changed to `vault/00-inbox/`; converted files now written next to source (no central `converted/` folder)
+
+### Thread 9 — Two intake workflows + the "vault is understanding, backlog is tasks" rule
+
+User articulated the intake model that closes the loop: when a VTT / PDF / PPTX is dropped in `vault/00-inbox/`, Claude analyzes it (extracts key points, contradictions, cross-domain references), proposes the cleaned `.md` with frontmatter + destination, user approves, file lands. Cross-domain content gets wikilinked into the other domains where it applies. Graph view surfaces the cross-domain bridges.
+
+User named the two workflows explicitly:
+
+**Workflow A — Discovery / pre-design** (e.g., Carriers today). Drop docs, analyze, file in vault. **Backlog NOT touched.** Goal: build understanding first → designer mocks up → normalize components → THEN decisions seed the backlog. Premature backlog items in the discovery phase are noise.
+
+**Workflow B — Active-domain update** (e.g., Shipments today). Drop docs, analyze, file in vault. **Backlog IS updated** with any actionable items the analysis surfaces. Items don't have to be executed immediately — they're captured so they don't get lost.
+
+The user explicitly chooses A or B per drop (or per batch). Default: A for new/exploratory domains, B for active ones. Saved as `project_vault_intake_workflows` memory so future sessions ask the right question at intake time.
+
+Companion rule: **vault holds understanding, backlog holds tasks. Never mix.** Even canonical own-documentation (`design.md`, `progress.md`, CLAUDE.md, `playground/normalization-tracker.md`) stays near the code, not in vault. The vault is exclusively for ingested + analyzed material + the user's ideas in `30-ideas/`. Saved as `feedback_vault_is_understanding_not_tasks`.
+
+Discussed authorship split — user writes `30-ideas/` content (their voice), Claude writes everything analysis-derived (with user-approval gate before filing).
+
+### Files / commits
+
+**New (Odyssey React project — committed):**
+- `docs/superpowers/plans/vault-migration.md` — the full migration plan + sign-off contract
+- `vault/` — entire 7-folder structure, 98 files (mix of `git mv` renames + 14 new MOC/README placeholders + 9 untracked-then-staged files)
+
+**Modified (Odyssey React project — committed):**
+- `apps/odyssey-one/src/components/shipments/TableControls.jsx` — Export modal → ModalMedium; footer prop; conditional paragraph; "All Columns" / "Visible Columns" buttons; removed inline modal markup + dead X import
+- `apps/odyssey-one/src/components/detail/DocumentsTab.jsx` — Preview modal → ModalMedium (plain filename title); Upload modal → ModalMedium (text labels via `text-label-sm-medium`); Description field → `<FormField>`; File field → hidden input + `<Button variant="link">` pattern; dead X + ICON_LG imports removed
+- `apps/odyssey-one/src/components/detail/CostAllocationTab.jsx` — CompareModal → ModalMedium; margin span + table headers/cells/labels/totals migrated to text-label utilities; `compareTh`/`compareTd` style objects stripped of typography keys
+- `apps/odyssey-one/src/routes/Home.jsx` — Add Customers modal gets `scrollableContent` prop
+- `apps/odyssey-one/src/styles/components.css` — `.btn--link:not(.btn--has-icon):not(.btn--has-icon-right) { text-decoration: underline; }`; `.modal-medium__content` gets `padding-bottom: var(--spacing-5)`; `.modal-medium__content--scroll { padding-bottom: 0 }` modifier
+- `packages/ui/src/ModalMedium.jsx` — added `scrollableContent` prop + modifier-class application
+- `tools/convert-docs.sh` — full rewrite for MarkItDown (single tool covers PDF/DOCX/PPTX/XLSX); Python 3.13 bootstrap; default scope `vault/00-inbox/`; converted output next to source
+- `CLAUDE.md` — MarkItDown section; vault paths in directory map + "Where context lives"; new "Vault" section
+- `.claude/settings.local.json` — incidental permission grants accumulated through the session
+
+**Deleted (Odyssey React project — committed):**
+- `shipments-documentation/` — entire folder retired (75 tracked files moved via `git mv` + 3 lock files via `git rm`)
+
+**New (sibling — separate project, NOT in this repo):**
+- `/Users/manuelramirez/Documents/iris/Odyssey/Shipments/odyssey-react-button-demo/` — standalone React Button demo (mirror of Angular demo). Tracked separately; not committed to this repo.
+- `/Users/manuelramirez/Documents/iris/Odyssey/Shipments/odyssey-react-button-demo.zip` — 25 KB handoff artifact for Cognizant
+
+**Memory updates:**
+- New: `feedback_conform_to_component_api.md`, `feedback_markitdown_for_pdfs.md`, `project_backlog_is_domain_agnostic.md`, `project_vault_structure.md`, `project_vault_intake_workflows.md`, `feedback_vault_is_understanding_not_tasks.md`
+- Updated: `project_vault_migration_parked.md` (now "completed" — supersedes the parked status)
+- `MEMORY.md` index updated.
+
+### State of `@odyssey/ui` after Session 31
+
+Unchanged from Session 30: **36 normalized components**. One canonical extension this session: `ModalMedium` gained a `scrollableContent` prop. One canonical refinement: Button `.btn--link` text-only variant now underlines by default. No new components.
+
+### Carry-forward to Session 32
+
+**Pre-flagged by Manuela:**
+1. **`SearchBar` normalization** — cross-domain component (Home / Shipments / Tracking / Orders / Carriers / Users all want search). Normalize first per the design-system-ownership pattern, then wire consumers. May be a refinement/extension of the existing `SearchField` molecule, or a new larger composition — TBD at intake.
+2. **First vault ingestion exercise** — first real test of the inbox → analyze → propose → approve → file workflow. Likely on Carriers materials (Workflow A — discovery, backlog NOT touched).
+3. **Obsidian vault verification** — Manuela installing Obsidian; needs to open `vault/` and confirm graph + wikilinks work. Task #6 still pending.
+
+**Backlog from this session:**
+4. **`SelectField` normalization** — Upload modal Type dropdown remains native `<select>` because FormField is text-input-only. Either extend FormField with `type="select" + options` or create a new SelectField molecule.
+5. **`FileField` promotion (maybe)** — if the link-button + hidden-input pattern from Upload modal repeats elsewhere, promote it to a `FileField` molecule.
+6. **`Tabs` / `SegmentedControl` normalization** — CompareModal order picker + Shipments tab patterns (ShipmentTabs, FilterPanel tabs, BottomBar tabs). Single cycle covers all.
+7. **`backlog.html` → `backlog.md`** — convert the unified backlog to Markdown when we re-spec the backlog format (deliberate hold to avoid losing structured table rendering).
+8. **Button `variant="link"` Figma sync** — add underline to the Button link master `1307:333` (and to the IconButtonGhost-paired link variants where relevant). Code shipped; Figma master lags by one increment.
+
+**Sync-back debt from prior sessions (still pending):**
+9. **FormField `locked` state** in Figma master `2255:98` (Session 29 carry-forward)
+
+**Standing backlog (unchanged):**
+- Task #16 — `.icon-action` migration for remaining consumers
+- Task #17 — DS follow-ups: light-surface Ghost Button variant + SectionPickerRow atom
+- SHP-66 — generic dropdown popover
+- SHP-67 — responsive normalization pass
+- ButtonLink — full size × state matrix in Figma
+- StatusBadge / TypeBadge / HazmatTag / Appointment / History action badges / Tab count pills normalizations
+- Sidebar Selected variant Figma icon-color encoding
+- MenuDropdown / SearchField additional state variants in Figma
+- IconButton size matrix (Size=md/lg) + 25×25 (code) vs 24×24 (Figma) reconciliation
+- AuthContent additional variants (MfaSetup, PasswordSetup, etc.)
+- Real customers list expansion (current 11 names is partial)
+- Resume Supabase persistence (still parked behind Obsidian setup + remaining auth views)
+- POC 1 OIDC migration (replace cookie/JWT-paste with real Keycloak OIDC) — from Session 30
+- `/normalize-angular` skill design doc — from Session 30
+
+**Parked (unchanged):**
+- Mode-based Figma theming for Button icon colors
+- Purge legacy `icons/Npx/*` masters
+- IntersectionObserver-driven entry animation for cells scrolled into view
+- AppShell `transparentMain` prop currently unused
+
 ## Session 30 — May 21–25, 2026
 
 The Cognizant POC arc. A four-day single-thread sprint orchestrated across this session + a sister Claude session running inside the cloned Cognizant Angular repo. Six gates from end-to-end repo analysis through a meeting-ready presentation outline, plus a live-data widget integration demoed to Cognizant on 2026-05-22, plus a side-by-side React/Angular Button demo built across the weekend, plus three cross-stack font-rendering bugs debugged once both demos were running. No new normalized components, no new tokens; this session's deliverable is the *workflow* — proof that the canonical design system + alignment machinery can move into Angular without compromise.

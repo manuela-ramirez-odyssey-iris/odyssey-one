@@ -1,9 +1,9 @@
 import React, { useState, useRef, useCallback } from 'react'
-import { Search, Bookmark, ArrowUpDown, Upload, ChevronDown, X, FileSpreadsheet } from 'lucide-react'
-import { ICON_MD, ICON_LG } from '@odyssey/tokens'
+import { Search, Bookmark, ArrowUpDown, Upload, ChevronDown, X } from 'lucide-react'
+import { ICON_MD } from '@odyssey/tokens'
 import SearchChipPanel from './SearchChipPanel'
 import DarkTooltip from '../ui/DarkTooltip'
-import { Button } from '@odyssey/ui'
+import { Button, ModalMedium } from '@odyssey/ui'
 
 const TableControls = React.memo(function TableControls({
   itemCount,
@@ -206,72 +206,40 @@ const TableControls = React.memo(function TableControls({
 
       {/* Export modal */}
       {exportModalOpen && (
-        <div
-          onClick={() => setExportModalOpen(false)}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 9999,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            backdropFilter: 'blur(4px)',
-            background: 'rgba(0,0,0,0.3)',
-          }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              background: 'var(--bg-primary)',
-              borderRadius: 'var(--radius-lg)',
-              boxShadow: '0 8px 30px rgba(0,0,0,0.2)',
-              padding: '24px',
-              width: 380,
-              fontFamily: 'var(--font-primary)',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <FileSpreadsheet {...ICON_LG} style={{ color: 'var(--text-tertiary)' }} />
-                <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Export to CSV</span>
-              </div>
-              <button
-                onClick={() => setExportModalOpen(false)}
-                className="flex items-center justify-center bg-transparent border-none cursor-pointer"
-                style={{ color: 'var(--text-placeholder)', padding: 0, transition: 'color 0.15s ease' }}
-                onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
-                onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-placeholder)'}
-              >
-                <X size={18} />
-              </button>
-            </div>
-            <p style={{ fontSize: 13, color: 'var(--text-tertiary)', margin: '0 0 20px', lineHeight: 1.5 }}>
-              Choose which columns to include in the export. Only the first 10,000 records will be exported.
-            </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <Button variant="secondary"
+        <ModalMedium
+          title="Export to CSV"
+          onClose={() => setExportModalOpen(false)}
+          footer={
+            <>
+              <Button
+                variant="secondary"
+                size="lg"
                 onClick={() => {
                   if (onExport) onExport('all')
                   setExportModalOpen(false)
                 }}
-                style={{ width: '100%', justifyContent: 'space-between' }}
               >
-                <span>Export all columns</span>
-                <span style={{ fontSize: 12, color: 'var(--text-placeholder)' }}>{itemCount} records</span>
+                All Columns
               </Button>
-              <Button variant="secondary"
+              <Button
+                variant="secondary"
+                size="lg"
                 onClick={() => {
                   if (onExport) onExport('filtered')
                   setExportModalOpen(false)
                 }}
-                style={{ width: '100%', justifyContent: 'space-between' }}
               >
-                <span>Export visible columns</span>
-                <span style={{ fontSize: 12, color: 'var(--text-placeholder)' }}>{itemCount} records</span>
+                Visible Columns
               </Button>
-            </div>
-          </div>
-        </div>
+            </>
+          }
+        >
+          <p className="text-label-sm-regular" style={{ color: 'var(--text-tertiary)', margin: 0 }}>
+            {itemCount > 10000
+              ? 'Choose which columns to include in the export. Only the first 10,000 records will be exported.'
+              : `${itemCount.toLocaleString()} records will be exported, choose which columns to include in the export.`}
+          </p>
+        </ModalMedium>
       )}
     </div>
   )

@@ -25,9 +25,9 @@ odyssey-one/                            (repo; GitHub: manuela-ramirez-odyssey-i
 │   ├── tokens/tokens.css               (shared design tokens)
 │   └── db/                             (placeholder — Supabase client goes here)
 ├── playground/                         (design-system visualization, tracker, name migration tracker)
-├── shipments-documentation/            (domain analysis, grooming transcripts, backlog)
+├── vault/                              (Obsidian knowledge base — see "Vault" section below)
 ├── docs/superpowers/plans/             (implementation plans)
-├── tools/convert-docs.sh               (cross-cutting: .docx/.pptx → Markdown)
+├── tools/convert-docs.sh               (cross-cutting: PDF/DOCX/PPTX/XLSX → Markdown via MarkItDown)
 ├── .claude/skills/                     (/normalize, /wrap)
 ├── progress.md                         (session log)
 ├── CLAUDE.md                           (this file)
@@ -68,11 +68,27 @@ Do not bulk-move un-normalized components into `@odyssey/ui` — they will be re
 ## Where context lives
 
 - `progress.md` — session-by-session project log; read the latest session to understand current state.
-- `shipments-documentation/Documentation/shipments-domain-analysis.md` — source of truth for the Shipments domain.
-- `shipments-documentation/Documentation/decision-log.md` — every implemented decision traced to source + previous state.
-- `shipments-documentation/Documentation/backlog.html` — current backlog with statuses.
+- `vault/10-domains/shipments/domain-analysis.md` — source of truth for the Shipments domain.
+- `vault/10-domains/shipments/decisions/decision-log.md` — every implemented Shipments decision traced to source + previous state.
+- `vault/10-domains/home/domain-analysis.md` — Home domain shape (cross-domain dashboard, widget model).
+- `vault/60-backlog/backlog.html` — unified domain-agnostic backlog (Shipments items tagged SHP-, Home tagged HOM-, etc.).
 - `playground/normalization-tracker.md` — design system sync state (what's normalized, what's ad-hoc, what's pending Figma push).
 - `docs/superpowers/plans/` — implementation plans for multi-step work.
+
+## Vault
+
+`vault/` is the Obsidian knowledge base — a 7-folder taxonomy designed for multi-domain work + future RAG ingestion:
+
+- `00-inbox/` — drop zone; drag a file, ping Claude, validate, file it
+- `10-domains/` — per-product-domain canon (home, shipments, tracking, orders, carriers, users)
+- `20-cross-cutting/` — brand-marketing, gateway, design-system, operations, stakeholders
+- `30-ideas/` — speculative content (your commentary, brainstorms — NOT facts)
+- `40-decisions/` — canonical cross-domain decisions (per-domain decisions live in `10-domains/<domain>/decisions/`)
+- `50-sources/` — external raw inputs not domain-attached
+- `60-backlog/` — unified domain-agnostic backlog; future Jira mirror
+- `99-archive/` — parked, superseded, deferred (includes `first-prototype/` and unsorted screenshots)
+
+Every `.md` carries YAML frontmatter (`domain`, `type`, `tags`, `date`, `status`) for RAG-readiness. Open `vault/` (not the repo root) in Obsidian to use it as a vault.
 
 ## Skills
 
@@ -81,24 +97,20 @@ Located in `.claude/skills/`:
 - `/normalize <figma-url>` — intake a Figma component, align against design tokens, classify, update playground, implement after approval.
 - `/wrap` — end-of-session routine. Summarize, update `progress.md`, commit, push.
 
-## Reading `.docx` and `.pptx` files
+## Reading `.pdf`, `.docx`, `.pptx`, and `.xlsx` files
 
-Before analyzing any `.docx` or `.pptx` file, run the conversion script first:
+Before analyzing any binary document, run the conversion script first:
 
 ```bash
-bash tools/convert-docs.sh
+bash tools/convert-docs.sh                # convert everything in vault/00-inbox/
+bash tools/convert-docs.sh <file-or-dir>  # one-off (path can be anywhere in vault/)
 ```
 
-This converts all documents in `shipments-documentation/` to readable Markdown in `shipments-documentation/Documentation/converted/`:
+This converts all supported documents to Markdown next to the source. Then read the `.md` files instead of the originals.
 
-- `.pptx` → Markdown (text + tables)
-- `.docx` → Markdown (text + tables + extracted images in `<name>_images/`)
+The script skips files whose `.md` output is newer than the source, so re-running is fast.
 
-Then read the `.md` files instead of the originals. For docx images, read the extracted `.png` files from the `<name>_images/` folder.
-
-The script skips files already converted (checks timestamps), so re-running is fast.
-
-**Dependencies:** python-pptx + python-docx (venv auto-created at `/tmp/pptx_env` if missing).
+**Powered by Microsoft MarkItDown** ([github.com/microsoft/markitdown](https://github.com/microsoft/markitdown)) — single tool covering `.pdf`, `.docx`, `.pptx`, `.xlsx`, `.html`, images, audio (with transcription), and more. Venv auto-bootstraps at `/tmp/pptx_env` (name kept for backwards compat) using Homebrew `python3.13`. **Always use this for PDF reads** — never `Read` a PDF directly when MarkItDown can produce a Markdown view of it.
 
 ## Stakeholders
 

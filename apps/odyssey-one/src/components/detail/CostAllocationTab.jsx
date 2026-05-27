@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Lock, X } from 'lucide-react'
-import { Button } from '@odyssey/ui'
+import { Lock } from 'lucide-react'
+import { Button, ModalMedium } from '@odyssey/ui'
 
 const BADGE_COLORS = ['amber', 'blue', 'green', 'red', 'purple']
 
@@ -316,19 +316,13 @@ function CompareModal({ orders, defaultOrderIdx, onClose }) {
     padding: '8px 14px',
     textAlign: 'right',
     whiteSpace: 'nowrap',
-    fontSize: 'var(--font-size-xs)',
-    fontWeight: 600,
     color: 'var(--text-placeholder)',
-    textTransform: 'uppercase',
-    letterSpacing: '0.03em',
     borderBottom: '1px solid var(--border-subtle)',
   }
 
   const compareTd = {
     padding: '8px 14px',
     whiteSpace: 'nowrap',
-    fontSize: 13,
-    fontWeight: 400,
     color: 'var(--text-secondary)',
     borderBottom: '1px solid var(--bg-tertiary)',
     textAlign: 'right',
@@ -345,46 +339,9 @@ function CompareModal({ orders, defaultOrderIdx, onClose }) {
   const totalDiff = arTotal != null && apTotal != null ? arTotal - apTotal : null
 
   return (
-    <div
-      onClick={onClose}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 9999,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backdropFilter: 'blur(4px)',
-        background: 'rgba(0,0,0,0.3)',
-      }}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          background: 'var(--bg-primary)',
-          borderRadius: 'var(--radius-lg)',
-          boxShadow: '0 8px 30px rgba(0,0,0,0.2)',
-          padding: 24,
-          width: 520,
-          fontFamily: 'var(--font-primary)',
-        }}
-      >
-        {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-          <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Compare AP / AR</span>
-          <button
-            onClick={onClose}
-            className="flex items-center justify-center bg-transparent border-none cursor-pointer"
-            style={{ color: 'var(--text-placeholder)', padding: 0, transition: 'color 0.15s ease' }}
-            onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
-            onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-placeholder)'}
-          >
-            <X size={18} />
-          </button>
-        </div>
-
-        {/* Order tabs */}
-        <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+    <ModalMedium title="Compare AP / AR" onClose={onClose}>
+      {/* Order tabs */}
+      <div style={{ display: 'flex', gap: 6 }}>
           {orders.map((ord, i) => {
             const isActive = i === activeIdx
             const color = BADGE_COLORS[i % BADGE_COLORS.length]
@@ -425,7 +382,7 @@ function CompareModal({ orders, defaultOrderIdx, onClose }) {
 
         {/* Margin */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginBottom: 16 }}>
-          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--caribbean-green-600)' }}>
+          <span className="text-label-sm-semibold" style={{ color: 'var(--caribbean-green-600)' }}>
             Margin: {fmtDollar(marginVal)} ({marginPct}%)
           </span>
         </div>
@@ -434,19 +391,19 @@ function CompareModal({ orders, defaultOrderIdx, onClose }) {
         <table className="w-full border-collapse" style={{ fontSize: 13 }}>
           <thead>
             <tr>
-              <th style={{ ...compareTh, textAlign: 'left' }}>Component</th>
-              <th style={compareTh}>AP (Carrier)</th>
-              <th style={compareTh}>AR (Customer)</th>
-              <th style={compareTh}>Diff</th>
+              <th className="text-label-xs-medium-uppercase" style={{ ...compareTh, textAlign: 'left' }}>Component</th>
+              <th className="text-label-xs-medium-uppercase" style={compareTh}>AP (Carrier)</th>
+              <th className="text-label-xs-medium-uppercase" style={compareTh}>AR (Customer)</th>
+              <th className="text-label-xs-medium-uppercase" style={compareTh}>Diff</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((row) => (
               <tr key={row.label}>
-                <td style={{ ...compareTd, textAlign: 'left', fontWeight: 500, color: 'var(--text-primary)' }}>{row.label}</td>
-                <td style={compareTd}><CostValue value={row.ap} /></td>
-                <td style={compareTd}><CostValue value={row.ar} /></td>
-                <td style={compareTd}>
+                <td className="text-label-sm-medium" style={{ ...compareTd, textAlign: 'left', color: 'var(--text-primary)' }}>{row.label}</td>
+                <td className="text-label-sm-regular" style={compareTd}><CostValue value={row.ap} /></td>
+                <td className="text-label-sm-regular" style={compareTd}><CostValue value={row.ar} /></td>
+                <td className="text-label-sm-regular" style={compareTd}>
                   {row.bothEmpty ? (
                     <span>--</span>
                   ) : (
@@ -459,10 +416,10 @@ function CompareModal({ orders, defaultOrderIdx, onClose }) {
             ))}
             {/* Total row */}
             <tr>
-              <td style={{ ...compareTd, textAlign: 'left', fontWeight: 700, color: 'var(--text-primary)', borderTop: '2px solid var(--border-default)', borderBottom: 'none' }}>Total</td>
-              <td style={{ ...compareTd, fontWeight: 700, borderTop: '2px solid var(--border-default)', borderBottom: 'none' }}>{order.apCost}</td>
-              <td style={{ ...compareTd, fontWeight: 700, borderTop: '2px solid var(--border-default)', borderBottom: 'none' }}>{order.arCost}</td>
-              <td style={{ ...compareTd, fontWeight: 700, borderTop: '2px solid var(--border-default)', borderBottom: 'none' }}>
+              <td className="text-label-sm-semibold" style={{ ...compareTd, textAlign: 'left', color: 'var(--text-primary)', borderTop: '2px solid var(--border-default)', borderBottom: 'none' }}>Total</td>
+              <td className="text-label-sm-semibold" style={{ ...compareTd, borderTop: '2px solid var(--border-default)', borderBottom: 'none' }}>{order.apCost}</td>
+              <td className="text-label-sm-semibold" style={{ ...compareTd, borderTop: '2px solid var(--border-default)', borderBottom: 'none' }}>{order.arCost}</td>
+              <td className="text-label-sm-semibold" style={{ ...compareTd, borderTop: '2px solid var(--border-default)', borderBottom: 'none' }}>
                 {totalDiff != null ? (
                   <span style={{ color: totalDiff >= 0 ? 'var(--caribbean-green-600)' : 'var(--text-error)' }}>
                     {totalDiff >= 0 ? '+' : ''}{fmtDollar(totalDiff)}
@@ -472,7 +429,6 @@ function CompareModal({ orders, defaultOrderIdx, onClose }) {
             </tr>
           </tbody>
         </table>
-      </div>
-    </div>
+    </ModalMedium>
   )
 }

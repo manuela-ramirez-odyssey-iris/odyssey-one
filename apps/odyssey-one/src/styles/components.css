@@ -652,6 +652,12 @@ input[type="radio"].odyssey-radio {
   align-self: flex-start;
   height: auto;
 }
+/* Text-only link Buttons (no leading/trailing icon) get underline to read as a
+   link. Iconic link CTAs (e.g. Widget arrows "Go to X →") skip this — the icon
+   already signals affordance. */
+.btn--link:not(.btn--has-icon):not(.btn--has-icon-right) {
+  text-decoration: underline;
+}
 .btn--link:hover:not(:disabled) {
   background: transparent;
   color: var(--carolina-blue-400);
@@ -1574,11 +1580,13 @@ input[type="radio"].odyssey-radio {
 .modal-medium__title { color: var(--text-primary); }
 
 .modal-medium__content {
-  padding: 0 var(--spacing-6);
+  padding: 0 var(--spacing-6) var(--spacing-5);
   display: flex;
   flex-direction: column;
   gap: var(--spacing-3);
 }
+
+.modal-medium__content--scroll { padding-bottom: 0; }
 
 .modal-medium__footer {
   display: flex;
