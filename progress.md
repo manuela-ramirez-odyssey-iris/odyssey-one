@@ -3303,6 +3303,176 @@ The `useState` lazy init now also wraps each matched widget's `onGoToClick` with
 
 **Two prod deploys** — both via `npx vercel --prod`. Live URLs unchanged (`odyssey-one-stage.vercel.app`).
 
+## Session 32 — May 28, 2026
+
+Single-theme session: stand up the **GlobalSearch** cross-cutting topic from raw design materials (Tracking-demo screenshots + transcript + scenarios) to a synthesized vault knowledge artifact, then build the **`/analyze` skill** as the formal procedure for future multi-artifact intake. Two architectural decisions land along the way: (1) the vault is **synthesis-only** — raw artifacts get archived to `vault-sources/` outside Obsidian's indexed scope; (2) analysis **always uses a subagent** for step-3 synthesis so image/transcript token bloat happens in the subagent's context, not the main thread's. The skill is tested end-to-end by re-running it against the just-completed work, which adds three new decisions, refines four prior ones, and reframes the project's deployment target.
+
+Library unchanged at **36 normalized components**. This session produces no React code — it's pure knowledge-architecture work that sets up the next phase (normalization of chips + filter button + suggestions dropdown + filters drawer + save modal + saved-filter row).
+
+### Thread 1 — GlobalSearch current-state analysis
+
+Two false starts on what was being asked: I initially analyzed the navbar `GlobalSearch.jsx` (the scrapped scope-dropdown component), then was corrected — the relevant prior art is the **gray table searchbar above the Shipment table**, composed of three app-local components:
+
+- `apps/odyssey-one/src/components/shipments/TableControls.jsx` — 420px input + saved-query inline pill + clear X + bookmark; sort/export action buttons; renders chips below when query active
+- `apps/odyssey-one/src/components/shipments/SearchChipPanel.jsx` — type-based chip suggestions (digits → number fields, letters → text fields, dropdown-value matches); **exclusive** (one chip active at a time); 15 of ~40 attributes from the CSV implemented
+- `apps/odyssey-one/src/components/shipments/FilterPanel.jsx` — 354px side drawer with All/Saved pill tabs; 4 hardcoded sections (Location, Status, Carrier, Date Range); 6 hardcoded saved queries; parser exists (`parseSavedQuery`) but no save UI
+
+The CSV at `vault/10-domains/shipments/data/attributes-progression-grouping.csv` is the canonical intent-progression taxonomy (Find → Who → Where → When → How → Status → Cargo → Financial → Load → Edges) — only tiers 1–3 plus partial 5/6 are in code. Gap diagnosed: spec calls for chip + drawer + saved profiles + progression-ordered suggestions + multi-domain reuse; current Shipments is exclusive, progression-blind, 15-of-40 coverage, no save UI.
+
+### Thread 2 — Naming + vault folder created
+
+Initial proposal: `GuidedSearch` (avoid colliding with scrapped navbar `GlobalSearch`; "guided" captures the intent-progression model). User pushed back — stakeholders (Jana, David, design team) already call this "global search" and the existing navbar component owns the name + the slot. **Final naming:** keep `GlobalSearch`. The component at `packages/ui/src/GlobalSearch.jsx` (currently navbar chrome) is being **expanded** — not rebuilt or renamed — into the canonical agnostic search.
+
+Created `vault/20-cross-cutting/global-search/` (peer to `design-system/`, not nested — search progression model + attribute schema is conceptual machinery beyond "design pattern"):
+- `_moc.md` — index
+- `global-search.md` — canon
+- `decisions/decision-log.md` — uses `GS-` prefix
+- `data/attribute-schema.md` — contract each consuming domain implements
+
+Per-domain attribute schemas + caveats stay in `vault/10-domains/<domain>/`; the cross-cutting doc owns mechanics only.
+
+### Thread 3 — Tracking-demo intake (iterative, multi-artifact)
+
+User dropped Efrain's Tracking-demo materials into `vault/00-inbox/`: 44 screenshots across 7 scenario folders + transcript + scenarios txt. First pass read 18 frames inline (token budget concern flagged early). Synthesized v1 of the canon with anatomy / states / behaviors / saved-filter model. Iteratively refined:
+
+- Sc 1 a-branch read: `Tracking #: C814 + Status: Delivered + Carrier: ABC Logistic` end-to-end save flow
+- Sc 5 identified as **Add Customers popover** — NOT GlobalSearch; separate navbar component for customer-context scoping
+- Transcript first paste was stub bookend-only; second paste contained substantive 20:57–26:56 design discussion (NL future vision, default-scope-as-all-shipments, drawer-bound-to-chips, filter-button-direct-access, bulk-paste)
+- Sc 1 expanded mid-session: Efrain added b-branch frames (216b/217b/218b/219b/219b2-results) demonstrating the **Location** combined-criteria flow alongside the original Carrier branch; ambiguous-location case folded under Sc 1 in updated `UsabilityScenarios.txt`
+- Frames 220-222 revealed: Filters drawer = modal popover anchored below bar (not side drawer); Save modal pre-fills title from active chips; Saved tab drag-reorderable; the `C814 - ABC Logistic` chip in Sc 1 frame 223 is the **applied saved filter** collapsed to a single named chip
+
+### Thread 4 — Canon v1 + 10 decisions
+
+Wrote the full canon: Purpose, Scope, Out of scope, Location in UI, Anatomy (inside-bar + suggestions dropdown + filter button + filters drawer + save modal), States (8), Behaviors (11 rules), Saved-filter model (structured object replacing the prior `key:value` DSL string), Future v2 (NL parsing per Efrain), Adjacent Add Customers callout, Open/TBD, Reference scenarios (Sc 1-7 mapped).
+
+**10 first-batch decisions** GS-01 through GS-10, each traced to source:
+- GS-01 default scope = full universe (Kathleen 26:48)
+- GS-02 drawer ↔ chip stream bidirectional (Efrain 24:24)
+- GS-03 Filter button = direct drawer entry (Efrain 25:29)
+- GS-04 chips additive (AND across chips)
+- GS-05 location ambiguity offers Origin AND Destination (Sc 4 + Sc 1 b-branch)
+- GS-06 bulk paste → compact chip + enumerated in drawer (Sc 2 + Kathleen 24:33)
+- GS-07 panel-tab strip prunes to populated categories (Sc 1)
+- GS-08 NL parsing = v2 future (Efrain 20:57)
+- GS-09 saved filter renders as single named chip (Sc 1/223 + Desktop-221)
+- GS-10 saved filters structured, not DSL string (inferred from save-modal UX)
+
+### Thread 5 — Architectural cleanup (vault = synthesis only)
+
+User raised the principle: if I drop unrelated files later, the inbox is polluted by un-filed sources. Realized the deeper architectural point: **the vault should hold synthesized markdown, not raw source files** — binaries pollute Obsidian's RAG-friendly index. Established the **synthesis/raw split**:
+
+- `vault/` — markdown only. Frontmatter + wiki-links + citations. *What we know.*
+- `vault-sources/` (NEW, sibling of `vault/` at repo root) — raw artifact archive. Outside Obsidian's index. *What we learned from.* Folder structure mirrors `vault/` so the source for any topic is findable by path analogy.
+- `vault/00-inbox/` — ephemeral drop zone. Empty between intakes.
+
+Moved 44 screenshots + 2 txts from `vault/00-inbox/` → first to `vault/20-cross-cutting/global-search/screenshots/` (initial mistake — inside vault), then to `vault-sources/20-cross-cutting/global-search/screenshots/` and `sources/` (correct, outside Obsidian). Canon citations updated to reference the new archive root.
+
+### Thread 6 — `/analyze` skill built
+
+Built the formal multi-artifact intake procedure at `~/.claude/skills/analyze/SKILL.md` (user-level skill, peer to `/normalize` and `/wrap`).
+
+Seven-step procedure:
+1. **Inbox scan** — enumerate + classify; run MarkItDown on binary docs first
+2. **Classification (STOP for approval)** — propose topic slug + vault destination + artifact role map + deliverables; check for existing topic (update mode)
+3. **Subagent synthesis (always-subagent rule)** — general-purpose agent reads all artifacts, writes canon + _moc + decision-log + schema, returns ≤500-word summary
+4. **Review (STOP for approval)** — user accepts, corrects, or edits
+5. **Archive** — `mv` raw artifacts to `vault-sources/<mirror-path>/`
+6. **Inbox cleanup** — verify empty (only README.md remains)
+7. **Report** — files created, raw archived, decisions logged, TBDs, recommended next step
+
+Hard rules baked in: vault is synthesis-only, always-subagent for step 3, multi-source triangulation (never elevate one artifact), STOP gates at steps 2 + 4, iteration > perfection.
+
+`vault/00-inbox/README.md` rewritten to describe the `/analyze` workflow + the synthesis/raw architecture.
+
+### Thread 7 — Skill test: `/analyze global-search update`
+
+End-to-end test. Moved raw artifacts back from `vault-sources/` to inbox, ran `/analyze global-search update` with added context: "Tracking domain doesn't exist yet; v1 deployment target is **Shipments**; Shipments UI/UX nearly identical to Tracking design but bit more complex (~55 attributes vs ~15, three panel types, entity hierarchy Order→Load→Shipment, Shipments-unique pooling attributes)."
+
+Step 1 inventory reported. Step 2 classification approved (update mode). Step 3 general-purpose subagent dispatched with self-contained mission — read all 44 frames + 2 txts in its own context (image-token bloat stayed out of main thread); produced 4 updated vault files. Step 4 review approved. Step 5 archived back to `vault-sources/`. Inbox clean.
+
+**Subagent additions:**
+- **3 new decisions:** GS-11 (Shipments-target adaptation contract — `shipmentType`, `shipmentSequenceLeg`, `nextShipmentId` are Shipments-unique); GS-12 (multi-value attributes Origin/Destination remain in Suggested Filters after being chipped — backed by frames 217b + 237 vs counter-example frame 216); GS-13 (result-card variation driven by row shape / multi-stop entity, not Customer-scope or density toggle — flagged as hypothesis, deferred to Tracking-domain build per user direction)
+- **4 revised sources:** GS-04/05/06/07 with b-branch evidence + counter-examples (frame 213 generalizes value-overlap beyond locations — typing `del` surfaces Status/Client/Carrier matches; frames 231→233 detail bulk-paste lifecycle)
+- **Schema additions:** `multiValue`, `valueOverlapsWith`, `defaultValue` fields; `duration-shortcut` type (enumerated: Today / Yesterday / 7 / 30 / 60 / 90 / 180 / 365 Days per frame 247) and `location` type (carries city/state/country structure)
+- **New evidence:** bulk-paste lifecycle (raw multi-line in input → compact `Trackings Set • N IDs` with `^` chevron expandable to comma-separated popover); Date Range Picker UI (single-month calendar, frames 229b/244); empty-bar Suggested Filters default content (frame 211 — identifier types); `Customer Name:` vs `Customer:` label drift (frame 232); bar-wrap at chip overflow (frame 216 two-line layout)
+- **Reframe applied:** new top-level "Design source vs. deployment target" section in canon — Tracking-demo = design canvas, Shipments = v1 deploy, Tracking-domain = future. Earlier canon versions oscillated; this run locks the final framing.
+
+### Thread 8 — Memory updates
+
+Three new memory entries:
+- `project_global_search.md` — what GlobalSearch is, canon location, Shipments-deploy framing
+- `feedback_multi_source_truth.md` — design intake = screenshots + transcript + scenarios + code together; never elevate one artifact; iterate, don't try for perfection in turn 1
+- `project_vault_architecture.md` — vault = synthesis MD only; vault-sources/ holds raw; analysis always subagent-first
+
+MEMORY.md index updated.
+
+### Files / commits
+
+**New (vault):**
+- `vault/20-cross-cutting/global-search/_moc.md`
+- `vault/20-cross-cutting/global-search/global-search.md` (canon, ~320 lines after subagent pass)
+- `vault/20-cross-cutting/global-search/decisions/decision-log.md` (13 decisions: GS-01–GS-13)
+- `vault/20-cross-cutting/global-search/data/attribute-schema.md`
+
+**New (raw archive, outside Obsidian):**
+- `vault-sources/20-cross-cutting/global-search/screenshots/` — 44 images across 7 scenario folders + standalone starting-point image
+- `vault-sources/20-cross-cutting/global-search/sources/` — UsabilityScenarios.txt + TranscriptGuidedSearch.txt
+
+**New skill (user-level, not in repo):**
+- `~/.claude/skills/analyze/SKILL.md`
+
+**Modified:**
+- `vault/00-inbox/README.md` — workflow rewritten to describe `/analyze` + synthesis/raw architecture
+
+**Memory (user-level, not in repo):** 3 new + MEMORY.md index updated
+
+### State of `@odyssey/ui` after Session 32
+
+**36 normalized components** — unchanged from Session 31. No React code produced this session.
+
+**Code Connect:** 36 mappings — unchanged.
+
+**Tokens added:** none.
+
+**Library publish:** not required.
+
+### Carry-forward to Session 33
+
+**Pre-flagged for next session:**
+- **First normalization target** — chip variants are the foundational atom (standard / range / duration-shortcut / compound-bulk-with-chevron / saved-filter-named-collapse). Worth an Explore subagent pass first to audit existing chip-shaped atoms in `@odyssey/ui` (Badge has 9 variants, SidebarButton, tab pills inside Tab, CustomerRow's internal Badge-favorite chip) before any new component is built.
+- **GS-13 card-variation hypothesis** — deferred to Tracking-domain build per user direction; not blocking Shipments v1.
+
+**Open / TBD from canon** (capture-only, address as specific points come up):
+- Per-chip remove/edit affordance
+- Watchlist tab content (sibling of All Shipments)
+- Best-Match ↔ Suggested-Filters toggle chevron (Efrain 26:23 ambiguous)
+- `Show N results` semantics on Saved tab (frame 222)
+- Bar-wrap exact threshold (frame 216 two-line layout)
+- Customer / Customer Name / Client label drift (frame 232)
+- Saved-filter edit / delete affordances
+- List/map toggle (never demonstrated)
+- Default `Last Days: 30 Days` modeling (silent attribute vs separate primitive)
+
+**Standing backlog (unchanged from Session 31):**
+- SHP-66 — generic dropdown menu component
+- SHP-67 — responsive normalization pass
+- ButtonLink — full size × state matrix in Figma
+- StatusBadge / TypeBadge / HazmatTag / Appointment / Tab count pills normalizations
+- Sidebar Selected variant Figma icon-color encoding
+- MenuDropdown / SearchField additional state variants in Figma
+- IconButton size matrix
+- AuthContent additional variants (MfaSetup, PasswordSetup, etc.)
+- Real customers list expansion (current 11 partial)
+- Resume Supabase persistence
+- POC 1 OIDC migration (replace cookie/JWT-paste with real Keycloak)
+- `/normalize-angular` skill design doc
+
+**Parked (unchanged):**
+- Mode-based Figma theming for Button icon colors
+- Purge legacy `icons/Npx/*` masters
+- IntersectionObserver-driven entry animation
+- AppShell `transparentMain` prop currently unused
+
 ## Session 31 — May 26–27, 2026
 
 Two main arcs in one session. **Arc 1**: a Slice-A audit of the Shipments route surfaces ~45 normalization gaps; instead of grinding through native-button swaps one-by-one, the session pivots to swapping 4 inline modals to canonical `ModalMedium` (a much larger win — kills ~120 lines of duplicated backdrop/dialog/close-X boilerplate, adds ESC-handling for free, transitively normalizes 4 close X buttons). The swap pass surfaces iterative refinements: `ModalMedium.scrollableContent` prop, body-level typography token discipline, a Button canonical update (text-only link gets underline), a new link-button + hidden-input pattern for file pickers. **Arc 2**: a structural change — `shipments-documentation/` (the misnamed catch-all folder where the OdysseyMarketingGuidelines.pdf and home-domain-analysis.md were both incongruously filed) is retired and replaced with `vault/`, a 7-folder Obsidian-native knowledge base built for multi-domain work + future RAG ingestion. 98 files migrated with history preserved via `git mv`. Plus MarkItDown installation + convert-docs.sh rewrite, plus a standalone Cognizant React Button demo zipped for handoff.

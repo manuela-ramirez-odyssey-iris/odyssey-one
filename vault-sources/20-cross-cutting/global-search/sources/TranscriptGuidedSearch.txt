@@ -1,0 +1,176 @@
+
+Efrain Hernandez
+0 minutes 14 seconds0:14
+Efrain Hernandez 0 minutes 14 seconds
+OK, sure.
+Efrain Hernandez 0 minutes 16 seconds
+Okay.
+Efrain Hernandez 0 minutes 18 seconds
+This is the...
+Efrain Hernandez 0 minutes 21 seconds
+The research I created based on on Excel. This is the manual Excel created for all attributes that the user can search on the achievement right now. Also an example description.
+Efrain Hernandez 0 minutes 40 seconds
+Yeah.
+Efrain Hernandez 20 minutes 57 seconds
+We can, in the future, I mean, next step with this kind of search, it can be like a natural language stream, for example, the user tipping tracking delayed today, and the system compared those philtre to last day today, and it starts delayed.
+Efrain Hernandez 21 minutes 16 seconds
+For example, imagine the user taping carriers operating in Texas. The system convert this string to the status active and location in Texas. Imagine the user tape user without MFA.
+Efrain Hernandez 21 minutes 37 seconds
+The platform compared all this string in status with no MFA.
+Efrain Hernandez 21 minutes 44 seconds
+Imagine the user tape, for example, last treatment in Texas, the status convert this string to the status delayed or location and location in Texas, right? Imagine the user tape treatments arriving this week, the system compared this string into the...
+Efrain Hernandez 22 minutes 3 seconds
+It starts delivery pickup ranch and delivery ranch with some dates selected, right? And then next one could be where is the tracking, this kind of tracking number, the system convert.
+Efrain Hernandez 22 minutes 22 seconds
+the tracking number chip and create another chip like location Baltimore, US. So this is an example that you that we can, for example, improve our searching.
+
+Kathleen O'Donnell
+22 minutes 29 seconds22:29
+Kathleen O'Donnell 22 minutes 29 seconds
+Just.
+
+Efrain Hernandez
+22 minutes 41 seconds22:41
+Efrain Hernandez 22 minutes 41 seconds
+or the next step to improve our search. But so far, this is the improvements or proposal that I have so far. And also, I want to know that I couldn't
+Efrain Hernandez 23 minutes
+worth too much time with Manuela to include achievements scenarios, but I consider that with this logic, new logic, it will be easy.
+Efrain Hernandez 23 minutes 18 seconds
+to include all those scenarios that she has, because this is the similar logic that I follow with the he/her.
+Efrain Hernandez 23 minutes 33 seconds
+Hair Excel, right? So that's all. I want to know your opinions.
+
+Kathleen O'Donnell
+23 minutes 43 seconds23:43
+Kathleen O'Donnell 23 minutes 43 seconds
+I like it. Can you go, I'm trying to figure out where you have the, with the filter. Like if you just wanted to come in and go to the filter, you just click on that top area.
+
+Efrain Hernandez
+23 minutes 53 seconds23:53
+Efrain Hernandez 23 minutes 53 seconds
+Yeah, you can, for example, click here in now philtre or click here. It's the axis. So if you click in now, it's keep the same square, but it combined to this screen. Let me.
+
+Kathleen O'Donnell
+24 minutes 1 second24:01
+Kathleen O'Donnell 24 minutes 1 second
+Okay.
+Kathleen O'Donnell 24 minutes 2 seconds
+So...
+
+Efrain Hernandez
+24 minutes 13 seconds24:13
+Efrain Hernandez 24 minutes 13 seconds
+Back to this screen.
+Efrain Hernandez 24 minutes 15 seconds
+Here, and you can continue to select and put more chip in your streams.
+
+Kathleen O'Donnell
+24 minutes 24 seconds24:24
+Kathleen O'Donnell 24 minutes 24 seconds
+So, the philtre will automatically contain everything from the top that the user put in there, OK?
+
+Efrain Hernandez
+24 minutes 29 seconds24:29
+Efrain Hernandez 24 minutes 29 seconds
+Yeah.
+Efrain Hernandez 24 minutes 31 seconds
+Yeah, yeah, definitely.
+
+Kathleen O'Donnell
+24 minutes 33 seconds24:33
+Kathleen O'Donnell 24 minutes 33 seconds
+So right now our philtre is very restricted, but like so if we had the 12, the example of 12 shipment numbers, now those would all show in this filter.
+
+Efrain Hernandez
+24 minutes 44 seconds24:44
+Efrain Hernandez 24 minutes 44 seconds
+Yeah.
+
+Kathleen O'Donnell
+24 minutes 44 seconds24:44
+Kathleen O'Donnell 24 minutes 44 seconds
+Find.
+Kathleen O'Donnell 24 minutes 46 seconds
+Okay.
+Kathleen O'Donnell 24 minutes 48 seconds
+Where does the data show up under by default? So if I have this very specific search, what is it under one of the quick philtres or is it under all shipments?
+
+Efrain Hernandez
+24 minutes 54 seconds24:54
+Efrain Hernandez 24 minutes 54 seconds
+Arlena.
+Efrain Hernandez 25 minutes 2 seconds
+Yeah, it's your question is about to search for everything or to search in a specific domain.
+
+Kathleen O'Donnell
+25 minutes 9 seconds25:09
+Kathleen O'Donnell 25 minutes 9 seconds
+Well, when you start filtering, where are you on the screen? Right now, Irina has got to go into global search results, not to like a specific quick filter. So is this on all shipments by default?
+
+Efrain Hernandez
+25 minutes 13 seconds25:13
+Efrain Hernandez 25 minutes 13 seconds
+Yeah.
+Efrain Hernandez 25 minutes 19 seconds
+Okay.
+Efrain Hernandez 25 minutes 23 seconds
+Yeah.
+Efrain Hernandez 25 minutes 29 seconds
+Yeah, the idea is, for example, you can go to the filter, only click here without any typing here is possible. Because in corruption, I realised that actually they can keep in everything in this part.
+
+Kathleen O'Donnell
+25 minutes 49 seconds25:49
+Kathleen O'Donnell 25 minutes 49 seconds
+Yeah.
+
+Efrain Hernandez
+25 minutes 49 seconds25:49
+Efrain Hernandez 25 minutes 49 seconds
+It's possible to search, for example, shipment number, a status, or anyone, any bar that you want to search is possible in this in this case, and the goods the goods option that they have so far is that.
+Efrain Hernandez 26 minutes 8 seconds
+They can see the all philtre all the time, but we know that this is all version and all design.
+Efrain Hernandez 26 minutes 19 seconds
+All application.
+
+Kathleen O'Donnell
+26 minutes 20 seconds26:20
+Kathleen O'Donnell 26 minutes 20 seconds
+The.
+
+Efrain Hernandez
+26 minutes 23 seconds26:23
+Efrain Hernandez 26 minutes 23 seconds
+All the school application, and I think that the better way is to to switch between the best match with.
+
+Kathleen O'Donnell
+26 minutes 34 seconds26:34
+Kathleen O'Donnell 26 minutes 34 seconds
+Three.
+
+Efrain Hernandez
+26 minutes 35 seconds26:35
+Efrain Hernandez 26 minutes 35 seconds
+the filters. I mean, you can switch and then you come back, for example, in this leader chevron, and back to continue with creating your string. Yeah, that's what.
+
+Kathleen O'Donnell
+26 minutes 40 seconds26:40
+Kathleen O'Donnell 26 minutes 40 seconds
+Is.
+Kathleen O'Donnell 26 minutes 43 seconds
+Mhm.
+Kathleen O'Donnell 26 minutes 48 seconds
+OK, but the default goes to all all shipments, so to that it's taking that fifty-seven 1000 shipments and it's filtering that list.
+
+Efrain Hernandez
+26 minutes 56 seconds26:56
+Efrain Hernandez 26 minutes 56 seconds
+Yeah.
+Efrain Hernandez 51 minutes 35 seconds
+some stories I need to continue to work on that.
+Efrain Hernandez 51 minutes 43 seconds
+And also another question, Dave. Yeah, no, no, I will. I will write you. Sorry.
+DJ
+David Johns
+51 minutes 52 seconds51:52
+David Johns 51 minutes 52 seconds
+Okay, yep, sir. No problem.

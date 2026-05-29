@@ -1,0 +1,34 @@
+Scenario 1: Searching for a known customer's data In this scenario, a user (like a planner) already knows which customer they are working with (e.g., ERCO). When they need to find a specific reference number or value, they pre-filter their workspace to that specific customer and execute their search solely within that customer's data.
+
+Tracking-Specific Searches In the tracking module:
+ 
+Combined criteria: Users sometimes search by combining a specific Tracking # + Status + Location and ending with Save Filters
+Ambiguous Location Searches Users sometimes search for a specific location, such as "Canton, Ma." or "New York, NY". The challenge in this scenario is that the system cannot automatically determine whether the searched location should be applied to the "origin" filter or the "destination" filter, as the location could appear in either
+
+Scenario 2: Searching with an unknown customer (Cross-Customer Search) This is a critical, albeit smaller, use case where a carrier or a customer's customer calls with a reference number, but the internal user does not know which customer the shipment belongs to. This requires the ability to execute a global search across all customers simultaneously to locate the record.
+Scenario 3: Bulk / Multi-Search for Heavy Data Users Internal operations teams (like tracking data teams) frequently need to search for many items at once. They will copy and paste multiple identifiers (e.g., 10, 15, 25, or even 50+ bill of lading or shipment numbers) into the search bar at the same time. They do this to quickly get an overview of all statuses, see which ones fall into specific quick filters (like "en route"), or check if they need to update tracking messages from carriers.
+Scenario 4: Ambiguous Location Searches Users sometimes search for a specific location, such as "Canton, Mass" or "New York". The challenge in this scenario is that the system cannot automatically determine whether the searched location should be applied to the "origin" filter or the "destination" filter, as the location could appear in either.
+Scenario 5: Tracking-Specific Searches In the tracking module, users have a few specific search patterns:
+Tracking Number Only: If a user has a specific tracking number, they usually do not need to add the carrier name to find it.
+Origin/Destination specific: A user might want to search for all tracking numbers associated with a specific origin city, like Dallas, or a destination like France.
+Combined criteria: Users sometimes search by combining a specific Client + Date Range + Carrier.
+Alternative Identifiers: Searching by Delivery numbers, PRO numbers, Order numbers, or internal Shipment IDs.
+Scenario 6: Consolidated Multi-Customer Management Some users, such as group leaders or employees taking over a sick colleague's accounts, need to manage multiple customers simultaneously. The search and UI must accommodate a consolidated view showing combined data for all of a user's assigned customers (e.g., summing up data for ERCO, USALCO, and Tata together).
+
+
+Scenario 3.1 > 
+Search Customer (ERCO) + BOL#
+
+Scenario 3.2 > Search Customer (ERCO) + Pickup Date Range
+
+Scenario 4 >
+Search Origin and Destination
+
+Scenario 5 >
+Add Customer
+
+Scenario 6 >
+Search Pickup Date Range + Equipment
+
+Scenario 7 >
+Search Last Day: 7 Days

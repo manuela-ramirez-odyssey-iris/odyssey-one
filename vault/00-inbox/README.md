@@ -6,33 +6,35 @@ status: active
 
 # 00 — Inbox
 
-Drag any file here (PDF, DOCX, PPTX, XLSX, MD, image…) and ping Claude.
+Ephemeral drop zone for new artifacts (screenshots, transcripts, PDFs, DOCX, XLSX, CSV, MD, images, audio). Stays empty between intakes.
 
-## Workflow
+## Workflow — use `/analyze`
 
-1. **Drop** — drag the file into this folder.
-2. **Convert** — Claude runs MarkItDown if the file is binary (PDF / DOCX / PPTX / XLSX). The converted `.md` lands here too.
-3. **Validate** — Claude proposes:
-   - Destination folder (which domain or cross-cutting topic)
-   - Filename in lowercase-kebab
-   - Frontmatter (`domain`, `type`, `tags`, `date`)
-   - One-paragraph summary
-4. **Approve** — say yes or redirect.
-5. **File** — Claude moves the file to its final home. Inbox stays empty.
+1. **Drop** — drag artifacts here. Multiple files for one topic land together; multi-file intakes are normal.
+2. **Run `/analyze [topic-name]`** — Claude invokes the analyze skill (see `~/.claude/skills/analyze/SKILL.md`).
+3. **Confirm classification** — Claude proposes destination folder (`10-domains/<domain>/` or `20-cross-cutting/<topic>/` etc.); approve or redirect.
+4. **Synthesis** — a subagent reads all artifacts and produces structured vault markdown (canon + decision-log + schema if applicable). Main thread stays clean of image/transcript token bloat.
+5. **Review & archive** — confirm the synthesis; Claude archives raw artifacts to `vault-sources/<mirror-path>/` (outside Obsidian) and empties the inbox.
+
+## Architecture
+
+- **`vault/`** — synthesized markdown only. RAG-friendly. What we know.
+- **`vault-sources/`** (sibling of `vault/`, at repo root) — raw artifacts. Outside Obsidian's index. What we learned from.
+- **Inbox** — drop zone only. Never the destination.
 
 ## Frontmatter standard
 
-Every migrated `.md` gets:
+Every synthesized vault `.md` carries:
 
 ```yaml
 ---
 title: <human-readable>
 domain: <home | shipments | tracking | orders | carriers | users | cross-cutting | meta>
-type: <info | idea | decision | source | task>
+type: <info | canon | decision-log | spec | source | idea | task | moc>
 tags: [<topic>, <topic>]
 date: <YYYY-MM-DD>
-status: <active | archived | superseded>
+status: <active | draft | archived | superseded>
 ---
 ```
 
-Binary files (PDF, PPTX, DOCX, images, VTT) don't get frontmatter — they're referenced by their converted .md or by notes elsewhere.
+Raw binaries (PDF, PPTX, DOCX, images, VTT) in `vault-sources/` don't get frontmatter — they're referenced from synthesized vault MD by file name.
