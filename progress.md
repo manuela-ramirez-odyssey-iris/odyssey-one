@@ -3303,6 +3303,159 @@ The `useState` lazy init now also wraps each matched widget's `onGoToClick` with
 
 **Two prod deploys** — both via `npx vercel --prod`. Live URLs unchanged (`odyssey-one-stage.vercel.app`).
 
+## Session 33 — May 29, 2026
+
+Closing the gap between the cross-cutting GlobalSearch canon stood up in Session 32 and an actionable Shipments-target build plan. No React code produced — pure design-intake + spec work. Three threads land: (1) an Explore-subagent audit of existing chip-shaped atoms across `@odyssey/ui` + app-local code, identifying Badge as the foundation for 4 of 5 canon chip variants and CompoundChip as the only genuinely-new atom; (2) a Shipments-target adaptation doc capturing a 36-attribute coverage gap and 17 mechanism gaps between the current Shipments search trio and the canon's anatomy, with an 8-step build ladder; (3) a Figma MCP reauth + HQ design pull of node `2293:2253` that reveals a structurally-important canon revision — Best Match + Suggested Filters are **two separate floating panels**, not a single dropdown with side-by-side columns. One strategic decision lands: **GlobalSearch v1 is built app-local, normalization gate intentionally deferred** until the API surface stabilizes end-to-end.
+
+Library unchanged at **36 normalized components**. No commit shipped before `/wrap`.
+
+### Thread 1 — Chip atom audit (Explore subagent)
+
+Per Session 32 carry-forward, chip variants are the foundational atom of the GlobalSearch normalization. Dispatched an Explore subagent to map existing chip-shaped atoms in `@odyssey/ui` + `apps/odyssey-one/` before designing anything new.
+
+**Section 1 — Normalized atoms in `@odyssey/ui`:**
+- `Badge` (9 variants — amber/blue/green/red/purple/gray/notification/metric/favorite) — supports `leftIcon`/`rightIcon`/`statusDot`; no `dismissible` X yet
+- `EntityChip` — entity-picker pill (name + stacked dashed-ring icons + add-button); close to compound-bulk but non-dismissible
+
+**Section 2 — App-local chip shapes (un-normalized):**
+- `SearchChipPanel.jsx` lines 33-43 — pill-shaped toggle buttons with hardcoded inline styling
+- `FilterPanel.jsx` lines 206-244 — pill-tabs with count-badge; ad-hoc inline
+- `ShipmentTabs.jsx` lines 36-48 — rounded-pill count badges; ad-hoc inline
+
+**Section 3 — Mapping to canon's 5 variants:**
+
+| Variant | Path forward |
+|---|---|
+| standard | Badge + new `dismissible` prop + outline/ghost variant |
+| range | Badge with compound children |
+| duration-shortcut | Badge as-is |
+| compound-bulk (`Trackings Set • N IDs` + `^`) | **New atom** — `CompoundChip` (chevron + popover trigger); resist cramming into Badge as a layout mode |
+| saved-filter-named | Badge with new `variant="saved-filter"` |
+
+Read: Badge does most of the work; `CompoundChip` is the only structurally-new atom. Consolidation of the three un-normalized inline chip-shapes is opportunistic, not blocking.
+
+### Thread 2 — Shipments search gap analysis + adaptation doc
+
+Read the Shipments search trio + the CSV taxonomy + canon + schema contract in parallel. Synthesized a Shipments-target adaptation doc.
+
+**Coverage gap (attributes):** code has 15 attributes in `SEARCH_ATTRIBUTES` (`apps/odyssey-one/src/data/index.js:65`); CSV defines 51 across 10 progression tiers. **36 attributes missing.**
+
+| Tier | CSV | In code | Status |
+|---|---:|---:|---|
+| 1. Find — Identifiers | 4 | 4 | complete |
+| 2. Who — Customers & Parties | 4 | 4 | complete |
+| 3. Where — Route & Geography | 5 | 2 | missing Distance, Stops, Ship Direction |
+| 4. When — Schedule & Appointments | 6 | **0** | **all missing** (Pickup/Delivery + Earliest/Latest variants) |
+| 5. How — Transport & Equipment | 6 | 2 | missing Equipment #, Seal #, Incoterm, Freight Terms |
+| 6. Status — Carrier & Tender | 3 | 3 | complete |
+| 7. Cargo & Handling | 5 | **0** | **all missing** (weights, pkg count, hazmat) |
+| 8. Rates & Costs | 4 | **0** | **all missing** (AP/AR freight + direct) |
+| 9. Load Details | 3 | **0** | **all missing** |
+| 10. Edges — GS-11 unique | 3 | **0** | **all missing** (Shipment Type, Sequence Leg, Next Shipment ID) |
+
+**Mechanism gap (behaviors):** 17 deltas catalogued between current Shipments trio and canon. Headline items:
+- M-01 chip stream **under** the bar (canon: inside)
+- M-02 exclusive single-chip toggle on line `SearchChipPanel.jsx:26` (canon GS-04: additive AND)
+- M-06 filter icon **disabled until a chip is active** (`SearchChipPanel.jsx:64`) — inverted vs canon GS-03 (direct drawer access)
+- M-10 saved queries hardcoded as `key:value` DSL strings (canon GS-10: structured `AttributeCondition[]`)
+- M-15 native `<input type="date">` from/to pair (canon: single-month calendar popover)
+- M-16 no suggestions dropdown at all — major missing surface
+
+**Shipments-specific extras** (don't exist in Tracking design source):
+- Three-panel cardinality (Exceptions / Monitoring / PGI) multiplexing panel-type + status categorization
+- Entity hierarchy (Order → Load → Shipment, multi-stop, pooling, Rule 11) — **3 result-card options for Efrain**: A keep table-row, B new dropdown card surface, C dropdown-then-pivot-to-row
+- Locked-per-panel filter sets (per `domain-analysis §11`) — `locked: true` schema flag exists but nothing reads it
+- Cross-customer multi-value at the **data level** (CSV row 9 `Customer ID = *G20TECH_SYS_01, 2nd customer ID`) — distinct from `multiValue: true` on attribute
+- GS-11 unique attrs (Shipment Type / Sequence Leg / Next Shipment ID)
+
+**8-step build ladder:**
+1. `Chip` atom (5 variants)
+2. `SuggestionChip` atom (click-to-apply, multi-select)
+3. `SearchBar` composite (inside-bar chip stream + input + clear X)
+4. `SuggestionsDropdown` (revised post-Thread 3 to two separate panels)
+5. `FiltersDrawer` (replaces `FilterPanel.jsx` entirely)
+6. `SaveFilterModal`
+7. Schema migration — `SEARCH_ATTRIBUTES` from 15 to 51 + new fields (`progressionTier`, `multiValue`, `valueOverlapsWith`, `defaultValue`, `locked`, `hidden`)
+8. State wiring — `ShipmentsRoute` filter handling rewired
+
+**Strategic decision:** v1 is **app-local under `apps/odyssey-one/src/components/global-search/`**. No `/normalize` gate, no DSM Normalize tab, no Code Connect mappings, no Figma component publish for the new search atoms during v1. Rationale: 8-step structural rewrite with interdependent atoms — API surface won't stabilize until the system runs end-to-end. Normalizing now means re-normalizing. Scoped exception, not a workflow shift — tokens (`var(--…)`) and Figma-first-for-design still apply.
+
+### Thread 3 — Figma MCP reauth + HQ design pull + canon corrections
+
+Figma MCP reauthorized via the OAuth callback flow. `whoami` confirmed Manuela Ramirez @ Odyssey Logistics enterprise seat.
+
+Pulled `get_design_context` + HQ screenshot for node `2293:2253` in the **Design System - MCP** file. Context output was 90K chars — dispatched a general-purpose subagent to mine it so image/transcript token bloat stays out of the main thread. Subagent reported back: **the export is sparse** — geometry, structure, icon IDs only. **No fills, strokes, effects, typography, or Figma variable bindings.** A tokens-rich follow-up pass would require per-sub-node `get_design_context` calls. Deferred — the geometry is what's needed for build start; tokens get looked up per-node during implementation.
+
+HQ screenshot corroborated structural findings visually. **Canon revisions identified (not yet applied):**
+
+| Canon assertion | HQ reality |
+|---|---|
+| Dropdown is one container with `Best Match (left)` + `Suggested Filters (right)` side-by-side columns | **Two separate floating panels** (Best Match `720×464`, Suggested Filters `247×444`) rendered as siblings, each with its own shadow + radius |
+| Bar `~700–800px wide` | **`632px`** |
+| Dropdown anchored to bar | Dropdown is **wider than bar** (`720` vs `632`) and offset `-46px` left |
+| Clear "X" icon | **`circle-x`** (Lucide filled-circle X), not plain `x` |
+| Footer is `All Filters · Clear all · Show N results` inline | Footer lives **only on Best Match panel**; `All Filters` is its own 44h band, `Clear all` + `Show N results` is a second 68h row below |
+| Chips are one size | **Three distinct sizes** — `24h` inside bar, `20h` suggested-filter chips, `16h` status pills in Best Match rows |
+| Filter button inside bar (current Shipments code) | **Outside** bar; `90×32`; `sliders-horizontal` 16px icon; **blue count badge `1`** visible |
+
+Additional finding: hidden 16×16 chevron in every Best Match row geometry — undocumented drill-in affordance the JPEGs didn't reveal. Multi-attribute ambiguity (GS-05) confirmed live — typing `del` surfaces `Status: Delivered`, `Client: Delaware Inc.`, `Carrier: Delaware Logistic Service` interleaved.
+
+Memory entry written: `project_global_search_no_normalize_v1.md` — captures the Thread 2 strategic decision so future-me doesn't reflexively gate the build.
+
+### Files / commits
+
+**New (vault):**
+- `vault/10-domains/shipments/global-search-adaptation.md` — current state, attribute gap, mechanism gap, Shipments-specific extras (5), 8-step build ladder with normalization-deferred decision, 7 open questions for Jana/Efrain
+
+**Modified (vault):**
+- `vault/10-domains/shipments/_moc.md` — link added to adaptation doc
+
+**Memory (user-level, not in repo):** 1 new (`project_global_search_no_normalize_v1`) + MEMORY.md index updated
+
+**Other artifacts (ephemeral, not in repo):** Figma `get_design_context` JSON saved to harness tool-results dir (90K chars); HQ screenshot at `/tmp/figma-globalsearch.png`
+
+### State of `@odyssey/ui` after Session 33
+
+**36 normalized components** — unchanged from Sessions 31/32. No React code produced this session.
+
+**Code Connect:** 36 mappings — unchanged.
+
+**Tokens added:** none.
+
+**Library publish:** not required.
+
+### Carry-forward to Session 34
+
+**Pre-flagged for next session:**
+- **Decide canon-patching order:** patch canon + adaptation doc with HQ-revealed corrections (two-panel layout, bar width 632, footer split, three chip sizes, `circle-x` icon, hidden chevron) **before** code starts, vs. carry corrections in head and proceed to build. Recommendation noted in conversation: do the patches — the build will reference these docs and stale anatomy will mislead.
+- **First build step:** `Chip` atom (5 variants) under app-local namespace `apps/odyssey-one/src/components/global-search/`. The HQ revealed three chip sizes, not one — atom-design must respect this.
+- **Open before schema-migration step (build ladder #7) locks:** validate the 36-attribute gap-list + locked-per-panel rules with Jana; get Efrain's read on result-card options A/B/C for Shipments.
+
+**Standing backlog (unchanged from Session 32):**
+- SHP-66 — generic dropdown menu component
+- SHP-67 — responsive normalization pass
+- ButtonLink — full size × state matrix in Figma
+- StatusBadge / TypeBadge / HazmatTag / Appointment / Tab count pills normalizations
+- Sidebar Selected variant Figma icon-color encoding
+- MenuDropdown / SearchField additional state variants in Figma
+- IconButton size matrix
+- AuthContent additional variants (MfaSetup, PasswordSetup, etc.)
+- Real customers list expansion (current 11 partial)
+- Resume Supabase persistence
+- POC 1 OIDC migration (replace cookie/JWT-paste with real Keycloak)
+- `/normalize-angular` skill design doc
+
+**Parked (unchanged):**
+- Mode-based Figma theming for Button icon colors
+- Purge legacy `icons/Npx/*` masters
+- IntersectionObserver-driven entry animation
+- AppShell `transparentMain` prop currently unused
+
+**GlobalSearch open questions (from canon + adaptation doc):**
+- Jana — tier-4 date attribute distinctions (Earliest/Latest Pickup/Delivery), locked-per-panel rules from `domain-analysis §11`, `Customer ID` cross-customer comma-separated data shape
+- Efrain — result-card options A/B/C for Shipments; per-chip remove affordance; Best-Match ↔ Suggested-Filters toggle; Show N results on Saved tab; `Customer:` vs `Customer Name:` vs `Client:` label drift; bar-wrap threshold
+- Architecture — namespace `apps/odyssey-one/src/components/global-search/` vs. `…/shipments/global-search/`; `MonitorPanels` GS-07 pruning hook; incremental vs all-at-once swap
+
 ## Session 32 — May 28, 2026
 
 Single-theme session: stand up the **GlobalSearch** cross-cutting topic from raw design materials (Tracking-demo screenshots + transcript + scenarios) to a synthesized vault knowledge artifact, then build the **`/analyze` skill** as the formal procedure for future multi-artifact intake. Two architectural decisions land along the way: (1) the vault is **synthesis-only** — raw artifacts get archived to `vault-sources/` outside Obsidian's indexed scope; (2) analysis **always uses a subagent** for step-3 synthesis so image/transcript token bloat happens in the subagent's context, not the main thread's. The skill is tested end-to-end by re-running it against the just-completed work, which adds three new decisions, refines four prior ones, and reframes the project's deployment target.
