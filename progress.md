@@ -3303,6 +3303,109 @@ The `useState` lazy init now also wraps each matched widget's `onGoToClick` with
 
 **Two prod deploys** — both via `npx vercel --prod`. Live URLs unchanged (`odyssey-one-stage.vercel.app`).
 
+## Session 34 — May 30, 2026
+
+Single thread: ship a working quick-demo of the new GlobalSearch inside Shipments to validate the screenshot-driven UX flow end-to-end against real JSON data, *before* normalization. Three full rebuild cycles after explicit course-corrections from the user. The session's actual value isn't the code (which gets scrapped Session 35) — it's the validated understanding of the new GlobalSearch's behavior in the live Shipments context, plus the discovery that the normalized `GlobalSearch`'s "All" scope chip is no longer wanted across the app.
+
+Library count unchanged at **36 normalized components**, but the normalized `GlobalSearch` lost its `scope` prop and "All" chip — affects all 6 routes. App-local `NewGlobalSearch.jsx` exists and works but is **scheduled for deletion next session**.
+
+### Thread 1 — Quick-demo build (three rebuild passes)
+
+**Pass 1** — Initial build placed the component above `MonitorPanels` in a dashed-border DEMO wrapper. Wrong: should live inside the Shipments page experience, not visually quarantined, and didn't actually filter the table.
+
+**Pass 2** — Hoisted chip/query state into `ShipmentsRoute`, refactored `AppShell` + `Navbar` to accept a `searchSlot` prop, mounted the new bar in the navbar slot, wired chips to `filteredShipments`. Built from canon-doc prose memory rather than actual screenshots — got dropdown geometry wrong (centered vs. left-anchored), missed the Suggested-Filters-overlays-Best-Match behavior, missed the two-group enum-context layout, missed the date picker entirely.
+
+**Pass 3 (post screenshot analysis)** — Dispatched general-purpose subagent to walk every frame in flow order (StartingPoint → Sc1 19 frames → Sc2 9 → Sc3.1/3.2 6 → Sc4/5/6/7). Subagent returned a 4-part report: per-scenario UX flow, Shipments adaptation map, deltas vs. my current build, ordered to-do list. Rebuilt from that spec:
+
+- Dropdown anchored to bar's left edge (not centered)
+- Best Match panel + Suggested Filters as separate absolute-positioned panels with overlap, not flex side-by-side
+- Empty-focused dropdown opens with identifier set (Buy Shipment / Sell Shipment / Order # / Pro#)
+- Two-group suggestions: top group = value matches across attrs, bottom group = enum-context of matched attribute
+- Enum-prefix outranks identifier-prefix (typing `LT` → `Equipment: LTL` above identifier rows)
+- Real Save Filter modal (pre-fills title, removable chips, Cancel/Save)
+- Saved-filter named-chip apply (clicking saved row replaces chip stream with one named chip carrying `payload`)
+- Date Range Picker single-month calendar popover
+- Last Days routed through standard chip flow (external `<select>` removed)
+- Bulk-paste compaction (4+ tokens → `Shipments Set • N IDs` compound chip with line-per-ID dark popover)
+- Multi-value persistence (Origin/Destination/Customer ID/Consignor/Consignee stay in suggestions after chipped)
+- Drawer with real pill rows for Tender Status / Shipment Status / Mode / Equipment, bidirectional with chip stream
+
+### Thread 2 — Subagent screenshot analysis
+
+General-purpose subagent walked 41 frames across 8 scenarios. Key findings the canon doc had wrong or missing:
+
+- **Footer is a single row** (canon prose suggested two bands — screenshots show one: `All Filters` left, `Clear all` + `Show N results` right)
+- **Empty-focused state opens dropdown with identifier set** (canon implied dropdown only opens with query/chips)
+- **Two-group Suggested Filters layout** when query value-matches across attrs — top group = matches, bottom group = full enum of attribute hit (frame 213)
+- **Enum-prefix-rank-first** (frame 245)
+- **Dropdown anchored left edge of bar**, Suggested Filters floats absolute and overlaps Best Match's right side
+- **Compound popover is dark surface matching navbar fill**, IDs on separate lines (frame 233)
+- **Filter badge color likely state-dependent** — red default, blue when drawer open (needs Efrain confirmation)
+- **Card-variant trigger remains ambiguous** — every customer-scoped frame happens to be multi-stop; needs counter-example
+
+### Thread 3 — "All" scope chip removed from normalized GlobalSearch
+
+User flagged the leading "All" scope chip in `packages/ui/src/GlobalSearch.jsx` should be removed. Done — `scope` prop deleted, scope `<span>` removed, bar padding consolidated. Code Connect mapping doesn't reference `scope` so no `.figma.tsx` changes needed. Affects every route's navbar (Home, Orders, Carriers, Shipments, Tracking, Users).
+
+### Files / commits
+
+**New (app):**
+- `apps/odyssey-one/src/components/global-search/NewGlobalSearch.jsx` — full demo component (~1000 lines; will be deleted Session 35)
+
+**Modified (app):**
+- `apps/odyssey-one/src/components/layout/AppShell.jsx` — `searchSlot` prop added
+- `apps/odyssey-one/src/components/layout/Navbar.jsx` — `searchSlot` prop forwarding with default fallback to existing `GlobalSearch`
+- `apps/odyssey-one/src/routes/shipments/ShipmentsRoute.jsx` — `gsChips`/`gsQuery` state, `NewGlobalSearch` mounted via `searchSlot`, `filteredShipments` extended to apply chips + free-text
+
+**Modified (packages):**
+- `packages/ui/src/GlobalSearch.jsx` — removed `scope` prop + "All" chip + right border + scope `<span>`; consolidated bar padding to `0 var(--spacing-3)`
+
+### State of `@odyssey/ui` after Session 34
+
+**36 normalized components** — unchanged in count, but `GlobalSearch` API surface narrowed (`scope` prop removed).
+
+**Code Connect:** 36 mappings — unchanged.
+
+**Tokens added:** none.
+
+**Library publish:** GlobalSearch needs a republish to reflect the scope-chip removal in Figma (deferred to Session 35).
+
+### Carry-forward to Session 35
+
+**Explicit user directive:**
+- **Remove `NewGlobalSearch.jsx` + the navbar `searchSlot` wiring** in `ShipmentsRoute` / `AppShell` / `Navbar` — the demo is meant to be scrapped.
+- **Formalize what we learned** about new GlobalSearch behavior into proper normalized atoms before re-introducing functionality. The proper sequence: normalize first, then build.
+- **Re-introduce functionality** atom-by-atom following the 8-step build ladder from the adaptation doc (`Chip` → `SuggestionChip` → `SearchBar` → `SuggestionsDropdown` → `FiltersDrawer` → `SaveFilterModal` → schema migration → state wiring).
+
+**Validated by Session 34 demo (refined understanding to bake into normalization):**
+- Single-row footer (not two bands)
+- Empty-focused dropdown shows identifier set
+- Two-group suggestions layout (value matches + enum context)
+- Enum-prefix outranks identifier-prefix
+- Dropdown left-anchored to bar; Suggested Filters overlays Best Match
+- Compound popover surface is dark (matches navbar)
+- Saved filter applies as single named chip (replaces stream, `payload` carries underlying conditions)
+- Date range picker is a popover, not inline inputs
+- Last Days flows through normal chip pipeline (no external picker)
+
+**Canon docs needing update** (before normalize):
+- `vault/20-cross-cutting/global-search/global-search.md` — footer is one row; empty-focus identifier-set behavior; two-group suggestions; enum-rank rule; dropdown anchor + overlay
+- `vault/10-domains/shipments/global-search-adaptation.md` — same corrections + demo-validated mechanism notes
+
+**Standing backlog (unchanged from Session 33):**
+- SHP-66 generic dropdown menu component, SHP-67 responsive normalization pass
+- ButtonLink size × state matrix, StatusBadge / TypeBadge / HazmatTag / Appointment / Tab count pills normalizations
+- Sidebar Selected variant Figma icon-color encoding, MenuDropdown / SearchField state variants, IconButton size matrix
+- AuthContent additional variants
+- Real customers list expansion, Supabase persistence, POC 1 OIDC migration, `/normalize-angular` skill design doc
+
+**Parked (unchanged):** Mode-based Figma theming for Button icon colors, purge legacy `icons/Npx/*` masters, IntersectionObserver entry animation, AppShell `transparentMain` prop
+
+**GlobalSearch open questions (Session 33 + new):**
+- Jana — tier-4 date attribute distinctions, locked-per-panel rules, cross-customer comma-separated `Customer ID`
+- Efrain — result-card options A/B/C, per-chip remove affordance, Best-Match ↔ Suggested-Filters toggle, Show N results on Saved tab, Customer label drift, bar-wrap threshold, **filter badge color rule (red vs blue)**, **two-group split trigger**
+- Architecture — namespace decision, MonitorPanels GS-07 pruning hook, incremental vs all-at-once swap, **Figma republish for scope-chip removal**
+
 ## Session 33 — May 29, 2026
 
 Closing the gap between the cross-cutting GlobalSearch canon stood up in Session 32 and an actionable Shipments-target build plan. No React code produced — pure design-intake + spec work. Three threads land: (1) an Explore-subagent audit of existing chip-shaped atoms across `@odyssey/ui` + app-local code, identifying Badge as the foundation for 4 of 5 canon chip variants and CompoundChip as the only genuinely-new atom; (2) a Shipments-target adaptation doc capturing a 36-attribute coverage gap and 17 mechanism gaps between the current Shipments search trio and the canon's anatomy, with an 8-step build ladder; (3) a Figma MCP reauth + HQ design pull of node `2293:2253` that reveals a structurally-important canon revision — Best Match + Suggested Filters are **two separate floating panels**, not a single dropdown with side-by-side columns. One strategic decision lands: **GlobalSearch v1 is built app-local, normalization gate intentionally deferred** until the API surface stabilizes end-to-end.

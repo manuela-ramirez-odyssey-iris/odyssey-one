@@ -126,7 +126,15 @@
       "Bash(/opt/homebrew/bin/python3.13 -m venv /tmp/pptx_env)",
       "Bash(/tmp/pptx_env/bin/markitdown --help)",
       "Bash(/tmp/pptx_env/bin/pip show *)",
-      "Bash(chmod +x /Users/manuelramirez/Documents/iris/Odyssey/Shipments/odyssey-one/tools/convert-docs.sh)"
+      "Bash(chmod +x /Users/manuelramirez/Documents/iris/Odyssey/Shipments/odyssey-one/tools/convert-docs.sh)",
+      "Bash(mv vault-sources/20-cross-cutting/global-search/screenshots/* vault/00-inbox/)",
+      "Bash(mv vault-sources/20-cross-cutting/global-search/sources/* vault/00-inbox/)",
+      "Bash(jq -r '.[0].text' \"/Users/manuelramirez/.claude/projects/-Users-manuelramirez-Documents-iris-Odyssey-Shipments-odyssey-one/65a65400-54f8-42e9-b33a-1d38df77660a/tool-results/mcp-plugin_figma_figma-get_design_context-1780076275657.txt\")",
+      "Bash(jq -r '.[1].text' \"/Users/manuelramirez/.claude/projects/-Users-manuelramirez-Documents-iris-Odyssey-Shipments-odyssey-one/65a65400-54f8-42e9-b33a-1d38df77660a/tool-results/mcp-plugin_figma_figma-get_design_context-1780076275657.txt\")",
+      "Read(//private/tmp/**)",
+      "Bash(sed -n '849,852p' /tmp/figma_part0.txt)",
+      "Bash(sed -n '850,852p' /tmp/figma_part0.txt)",
+      "Bash(sed -n '982,991p' /tmp/figma_part0.txt)"
     ]
   }
 }

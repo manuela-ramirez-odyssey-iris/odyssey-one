@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { useCurrentUser } from '../../data/sso-mock'
 import { useEditMode } from '../../contexts/EditModeContext.jsx'
 
-const Navbar = React.memo(function Navbar() {
+const Navbar = React.memo(function Navbar({ searchSlot } = {}) {
   const [searchValue, setSearchValue] = useState('')
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false)
   const profileDropdownRef = useRef(null)
@@ -47,11 +47,13 @@ const Navbar = React.memo(function Navbar() {
     <NavbarShell
       lead={<LeadNav />}
       search={
-        <GlobalSearch
-          value={searchValue}
-          onChange={setSearchValue}
-          onClear={() => setSearchValue('')}
-        />
+        searchSlot ?? (
+          <GlobalSearch
+            value={searchValue}
+            onChange={setSearchValue}
+            onClear={() => setSearchValue('')}
+          />
+        )
       }
       trailRef={profileDropdownRef}
       trail={

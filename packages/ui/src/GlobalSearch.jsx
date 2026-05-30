@@ -32,7 +32,6 @@ function GlobalSearchTitle({
 }
 
 function GlobalSearchSearch({
-  scope = 'All',
   value = '',
   onChange,
   onClear,
@@ -79,24 +78,9 @@ function GlobalSearchSearch({
           boxShadow: 'var(--shadow-sm)',
           borderRadius: 'var(--radius-lg)',
           gap: 'var(--spacing-3)',
-          paddingRight: 'var(--spacing-3)',
+          padding: '0 var(--spacing-3)',
         }}
       >
-        <span
-          className="global-search-scope flex items-center shrink-0 whitespace-nowrap"
-          style={{
-            padding: '6px 12px',
-            background: 'var(--deep-sea-neutral-700)',
-            borderRight: '1px solid var(--deep-sea-neutral-600)',
-            color: accent,
-            fontFamily: 'var(--font-primary)',
-            fontSize: 'var(--font-size-sm)',
-            lineHeight: 'var(--line-height-sm)',
-          }}
-        >
-          {scope}
-        </span>
-
         <input
           type="text"
           value={value}

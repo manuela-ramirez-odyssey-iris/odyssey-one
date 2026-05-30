@@ -2,11 +2,11 @@ import Navbar from './Navbar'
 import Sidebar from './Sidebar'
 import { useEditMode } from '../../contexts/EditModeContext.jsx'
 
-export default function AppShell({ children, filterPanel, onMainClick, transparentMain = false }) {
+export default function AppShell({ children, filterPanel, onMainClick, transparentMain = false, searchSlot }) {
   const { isEditMode } = useEditMode()
   return (
     <div className="flex flex-col h-screen">
-      <Navbar />
+      <Navbar searchSlot={searchSlot} />
       <div className="flex flex-1 min-h-0">
         {!isEditMode && <Sidebar />}
         <main

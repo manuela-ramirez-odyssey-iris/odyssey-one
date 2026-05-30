@@ -4,11 +4,11 @@
     "type": "split",
     "children": [
       {
-        "id": "be72b502e9defb67",
+        "id": "24462b5a21594326",
         "type": "tabs",
         "children": [
           {
-            "id": "dcb120e125ac7d8f",
+            "id": "2f87f0e6721b8e5e",
             "type": "leaf",
             "state": {
               "type": "graph",
@@ -176,6 +176,29 @@
       "bases:Create new base": false
     }
   },
-  "active": "dcb120e125ac7d8f",
-  "lastOpenFiles": []
+  "active": "2f87f0e6721b8e5e",
+  "lastOpenFiles": [
+    "00-inbox/UsabilityScenarios.txt",
+    "00-inbox/TranscriptGuidedSearch.txt",
+    "00-inbox/ScenariosStartingPoint.jpg",
+    "00-inbox/Scenarios3.1 & 3.2/Desktop - 230b.jpg",
+    "00-inbox/Scenarios3.1 & 3.2/Desktop - 229b.jpg",
+    "00-inbox/Scenarios3.1 & 3.2/Desktop - 229a - results.jpg",
+    "00-inbox/Scenarios3.1 & 3.2/Desktop - 228b.jpg",
+    "00-inbox/Scenarios3.1 & 3.2/Desktop - 227.jpg",
+    "00-inbox/Scenarios3.1 & 3.2/Desktop - 228a.jpg",
+    "00-inbox/Scenarios3.1 & 3.2",
+    "00-inbox/Scenario7/Desktop - 248.jpg",
+    "00-inbox/Scenario7/Desktop - 249 - results.jpg",
+    "00-inbox/Scenario7/Desktop - 247.jpg",
+    "00-inbox/Scenario7",
+    "00-inbox/Scenario6",
+    "00-inbox/Scenario5",
+    "00-inbox/Scenario4",
+    "00-inbox/Scenario2",
+    "00-inbox/Scenario1",
+    "20-cross-cutting/global-search/sources/UsabilityScenarios.txt",
+    "20-cross-cutting/global-search/sources/TranscriptGuidedSearch.txt",
+    "20-cross-cutting/brand-marketing/odyssey-guidelines-2026.md"
+  ]
 }

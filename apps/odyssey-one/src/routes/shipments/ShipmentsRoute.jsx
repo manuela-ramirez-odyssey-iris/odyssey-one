@@ -10,6 +10,7 @@ import ColumnPanel, { ALL_COLUMNS, EXCEPTIONS_DEFAULT_COLUMNS, MONITORING_DEFAUL
 import { COLUMN_CONFIG } from '../../components/shipments/ShipmentTable'
 import { FileText } from 'lucide-react'
 import { PageHeader } from '@odyssey/ui'
+import NewGlobalSearch, { makeDefaultDurationChip } from '../../components/global-search/NewGlobalSearch'
 import { getAllShipments, fetchShipmentDetails, getCachedShipmentDetails, getShipmentsByPanel, getShipmentsByPanelAndCategory, getCategoryCount, SEARCH_ATTRIBUTES } from '../../data'
 
 function parseSavedQuery(queryStr) {
@@ -47,6 +48,10 @@ function ShipmentsRoute() {
   const [columnPanelOpen, setColumnPanelOpen] = useState(false)
   const [filters, setFilters] = useState({})
   const [appliedSavedQuery, setAppliedSavedQuery] = useState(null)
+  // New GlobalSearch demo (lives in the navbar). Chips include a silent
+  // `Last Days: 30 Days` default per canon — does not filter the table.
+  const [gsChips, setGsChips] = useState(() => [makeDefaultDurationChip()])
+  const [gsQuery, setGsQuery] = useState('')
   const [shipmentDetails, setShipmentDetails] = useState(null)
   const [detailsLoading, setDetailsLoading] = useState(false)
   const [metricsCollapsed, setMetricsCollapsed] = useState(false)
@@ -110,6 +115,31 @@ function ShipmentsRoute() {
           if (Array.isArray(fieldVal)) return fieldVal.some((v) => String(v).toLowerCase().includes(value.toLowerCase()))
           return String(fieldVal || '').toLowerCase().includes(value.toLowerCase())
         })
+      )
+    }
+
+    // Apply NEW GlobalSearch chips (excluding the silent duration default)
+    for (const c of gsChips) {
+      if (c.kind === 'duration') continue
+      const attr = SEARCH_ATTRIBUTES.find(a => a.key === c.key)
+      if (!attr) continue
+      const needle = String(c.value).toLowerCase()
+      result = result.filter(s => {
+        const raw = s[attr.dataKey]
+        const vals = Array.isArray(raw) ? raw : [raw]
+        return vals.some(v => String(v ?? '').toLowerCase().includes(needle))
+      })
+    }
+    // Apply NEW GlobalSearch free-text query (in addition to chip filtering)
+    if (gsQuery.trim()) {
+      const q = gsQuery.toLowerCase()
+      result = result.filter(s =>
+        s.buyShipment.toLowerCase().includes(q) ||
+        (s.customerName || '').toLowerCase().includes(q) ||
+        s.customerId.toLowerCase().includes(q) ||
+        (s.origin || '').toLowerCase().includes(q) ||
+        (s.destination || '').toLowerCase().includes(q) ||
+        (s.scac || '').toLowerCase().includes(q)
       )
     }
 
@@ -189,7 +219,7 @@ function ShipmentsRoute() {
     }
 
     return result
-  }, [allShipments, activePanel, activeTab, debouncedQuery, activeChipKey, filters, appliedSavedQuery])
+  }, [allShipments, activePanel, activeTab, debouncedQuery, activeChipKey, filters, appliedSavedQuery, gsChips, gsQuery])
 
   const metrics = useMemo(() => {
     return {
@@ -289,6 +319,16 @@ function ShipmentsRoute() {
         if (filtersOpen) setFiltersOpen(false)
         if (columnPanelOpen) setColumnPanelOpen(false)
       }, [filtersOpen, columnPanelOpen])}
+      searchSlot={
+        <NewGlobalSearch
+          chips={gsChips}
+          setChips={setGsChips}
+          query={gsQuery}
+          setQuery={setGsQuery}
+          shipments={filteredShipments}
+          filteredCount={filteredShipments.length}
+        />
+      }
       filterPanel={
         <>
           <FilterPanel
