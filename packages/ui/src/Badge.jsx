@@ -8,12 +8,14 @@ const variants = {
   purple: { bg: 'var(--badge-purple-bg)', color: 'var(--badge-purple-text)' },
   gray: { bg: 'var(--badge-gray-bg)', color: 'var(--badge-gray-text)', iconColor: 'var(--text-tertiary)' },
   notification: { bg: 'var(--bittersweet-600)', color: 'var(--text-inverse)', isDot: true },
+  count: { bg: 'var(--carolina-blue-400)', color: 'var(--text-inverse)', isCount: true },
   metric: { bg: 'var(--badge-gray-bg)', color: 'var(--text-primary)', isMetric: true },
   favorite: { bg: 'var(--caribbean-green-600)', color: 'var(--white)', isFavorite: true },
 }
 
-function getPadding(leftIcon, rightIcon, isDot, isMetric) {
+function getPadding(leftIcon, rightIcon, isDot, isMetric, isCount) {
   if (isDot) return '4px'
+  if (isCount) return '0 4px'
   if (isMetric) return '1px var(--spacing-2)'
   const left = leftIcon ? 8 : 10
   const right = rightIcon ? 8 : 10
@@ -23,6 +25,7 @@ function getPadding(leftIcon, rightIcon, isDot, isMetric) {
 export default function Badge({ children, variant = 'blue', leftIcon, rightIcon, statusDot }) {
   const v = variants[variant] || variants.blue
   const isDot = !!v.isDot
+  const isCount = !!v.isCount
   const isMetric = !!v.isMetric
   const isFavorite = !!v.isFavorite
 
@@ -52,7 +55,7 @@ export default function Badge({ children, variant = 'blue', leftIcon, rightIcon,
   const hasRight = !!rightIcon && !isMetric
   const hasDot = !!statusDot && !isMetric
   const iconColor = v.iconColor || 'currentColor'
-  const radius = isDot
+  const radius = isDot || isCount
     ? 'var(--radius-full)'
     : isMetric
       ? 'var(--radius-lg)'
@@ -68,18 +71,19 @@ export default function Badge({ children, variant = 'blue', leftIcon, rightIcon,
       style={{
         display: 'inline-flex',
         alignItems: 'center',
-        justifyContent: isDot ? 'center' : undefined,
+        justifyContent: isDot || isCount ? 'center' : undefined,
         gap: 4,
         borderRadius: radius,
-        padding: getPadding(hasLeft, hasRight, isDot, isMetric),
+        padding: getPadding(hasLeft, hasRight, isDot, isMetric, isCount),
         width: isDot ? 20 : undefined,
-        height: isDot ? 20 : undefined,
+        minWidth: isCount ? 20 : undefined,
+        height: isDot || isCount ? 20 : undefined,
         boxSizing: 'border-box',
         background: isMetric ? undefined : v.bg,
         color: v.color,
         whiteSpace: 'nowrap',
         flexShrink: 0,
-        fontVariantNumeric: isMetric ? 'tabular-nums' : undefined,
+        fontVariantNumeric: isMetric || isCount ? 'tabular-nums' : undefined,
       }}
     >
       {hasDot && (

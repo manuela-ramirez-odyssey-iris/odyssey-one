@@ -134,7 +134,9 @@
       "Read(//private/tmp/**)",
       "Bash(sed -n '849,852p' /tmp/figma_part0.txt)",
       "Bash(sed -n '850,852p' /tmp/figma_part0.txt)",
-      "Bash(sed -n '982,991p' /tmp/figma_part0.txt)"
+      "Bash(sed -n '982,991p' /tmp/figma_part0.txt)",
+      "Bash(sed -n '370,400p' apps/odyssey-one/src/styles/components.css)",
+      "Bash(sed -n '395,450p' apps/odyssey-one/src/styles/components.css)"
     ]
   }
 }

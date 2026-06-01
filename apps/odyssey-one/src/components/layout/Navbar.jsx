@@ -3,6 +3,7 @@ import { GlobalSearch, LeadNav, TrailNav, Navbar as NavbarShell } from '@odyssey
 import { useNavigate } from 'react-router-dom'
 import { useCurrentUser } from '../../data/sso-mock'
 import { useEditMode } from '../../contexts/EditModeContext.jsx'
+import { useCustomers } from '../../contexts/CustomersContext.jsx'
 
 const Navbar = React.memo(function Navbar({ searchSlot } = {}) {
   const [searchValue, setSearchValue] = useState('')
@@ -11,6 +12,7 @@ const Navbar = React.memo(function Navbar({ searchSlot } = {}) {
   const navigate = useNavigate()
   const currentUser = useCurrentUser()
   const { isEditMode, save, cancel } = useEditMode()
+  const { toggleModal, modalOpen } = useCustomers()
 
   useEffect(() => {
     function handleClickOutside(e) {
@@ -61,6 +63,8 @@ const Navbar = React.memo(function Navbar({ searchSlot } = {}) {
           <TrailNav
             name={currentUser.name}
             role={currentUser.role}
+            onCustomersClick={toggleModal}
+            customersActive={modalOpen}
             avatar={
               <img
                 src={currentUser.avatarUrl}

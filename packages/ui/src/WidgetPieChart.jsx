@@ -18,7 +18,7 @@ import { useEffect, useState } from 'react'
  * Figma master: `WidgetPieChart` component set (1881:77) with `Size=md|lg`,
  * `Show center text` BOOLEAN, `Center text` TEXT.
  */
-export default function WidgetPieChart({ segments = [], centerText, size = 'md', total, delayMs = 0 }) {
+export default function WidgetPieChart({ segments = [], centerText, size = 'md', total, delayMs = 0, play = true }) {
   const px = size === 'md' ? 72 : size === 'lg' ? 96 : size
   const segmentSum = segments.reduce((sum, s) => sum + (s.value || 0), 0)
   const denominator = total ?? segmentSum ?? 1
@@ -26,15 +26,22 @@ export default function WidgetPieChart({ segments = [], centerText, size = 'md',
   const strokeWidth = px * 0.18
   const innerRadius = radius - strokeWidth / 2
   const circumference = 2 * Math.PI * innerRadius
+  // Grow-in on mount: segments transition from "0 circumference" to their final
+  // length once `animatedIn` flips on the next frame. To replay the grow-in when
+  // the data changes asynchronously, the consumer remounts this component via a
+  // data-derived `key` (see Widget) — a fresh mount paints at 0 first, then animates.
+  // `play` gates the grow-in (set by the consumer once the widget scrolls into
+  // view — lazy-load behavior). Until play is true the segments stay at 0.
   const [animatedIn, setAnimatedIn] = useState(false)
   useEffect(() => {
+    if (!play) return
     if (delayMs > 0) {
       const t = setTimeout(() => setAnimatedIn(true), delayMs)
       return () => clearTimeout(t)
     }
     const id = requestAnimationFrame(() => setAnimatedIn(true))
     return () => cancelAnimationFrame(id)
-  }, [])
+  }, [play])
   let offset = 0
   return (
     <span className="widget__pie" style={{ width: px, height: px }}>

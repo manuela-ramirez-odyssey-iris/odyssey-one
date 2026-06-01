@@ -1,6 +1,8 @@
 import React, { useState } from 'react'
 import { ChevronLeft, ChevronRight, CircleX } from 'lucide-react'
 import { ICON_MD, ICON_LG } from '@odyssey/tokens'
+import FilterButton from './FilterButton.jsx'
+import Badge from './Badge.jsx'
 
 export default function GlobalSearch({ mode = 'search', ...rest }) {
   if (mode === 'title') return <GlobalSearchTitle {...rest} />
@@ -40,11 +42,33 @@ function GlobalSearchSearch({
   placeholder = 'Search',
   minWidth = 590,
   maxWidth = 900,
+  showFilter = true,
+  filterCount = 0,
+  filterActive,
+  onFilterClick,
 }) {
   const [focused, setFocused] = useState(false)
-  const accent = focused
+  const [internalActive, setInternalActive] = useState(false)
+
+  // `filterActive` is optional-controlled: when provided, the consumer owns the
+  // drawer-open state; otherwise GlobalSearch toggles it internally on click.
+  const controlled = filterActive !== undefined
+  const active = controlled ? filterActive : internalActive
+
+  const handleFilterClick = () => {
+    const next = !active
+    if (!controlled) setInternalActive(next)
+    onFilterClick?.(next)
+  }
+
+  // Bar reads as focused when the input is focused OR the filter is active.
+  const barFocused = focused || active
+  const accent = barFocused
     ? 'var(--deep-sea-neutral-200)'
     : 'var(--deep-sea-neutral-400)'
+
+  const showBadge = showFilter && filterCount > 0
+  const badgeLabel = filterCount > 99 ? '99+' : String(filterCount)
 
   return (
     <div className="flex items-center" style={{ gap: 'var(--spacing-2)', flex: 1, minWidth, maxWidth }}>
@@ -70,7 +94,7 @@ function GlobalSearchSearch({
       </div>
 
       <div
-        className={`global-search-wrapper relative flex items-center overflow-hidden${focused ? ' focused' : ''}`}
+        className={`global-search-wrapper relative flex items-center${barFocused ? ' focused' : ''}`}
         style={{
           flex: 1,
           minWidth: 0,
@@ -78,7 +102,9 @@ function GlobalSearchSearch({
           boxShadow: 'var(--shadow-sm)',
           borderRadius: 'var(--radius-lg)',
           gap: 'var(--spacing-3)',
-          padding: '0 var(--spacing-3)',
+          // FilterButton sits flush to the right edge (its own rounded corners
+          // follow the bar), so drop the right padding when it's shown.
+          padding: showFilter ? '0 0 0 var(--spacing-3)' : '0 var(--spacing-3)',
         }}
       >
         <input
@@ -107,6 +133,20 @@ function GlobalSearchSearch({
         >
           <CircleX {...ICON_MD} />
         </button>
+
+        {showFilter && (
+          <FilterButton active={active} onClick={handleFilterClick} />
+        )}
+
+        {/* Count badge — sibling overlay so it can overhang the bar's
+            top-right corner without the wrapper clipping it. Sits after
+            FilterButton so the press-pop can be driven via the sibling
+            combinator (.filter-button:active ~ .global-search-badge). */}
+        {showBadge && (
+          <span className="global-search-badge">
+            <Badge variant="count">{badgeLabel}</Badge>
+          </span>
+        )}
       </div>
     </div>
   )

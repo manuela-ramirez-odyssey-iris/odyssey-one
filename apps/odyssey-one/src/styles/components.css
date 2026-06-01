@@ -445,10 +445,119 @@ input[type="radio"].odyssey-radio {
   color: var(--deep-sea-neutral-100) !important;
 }
 
+/* Customers modal (global, mounted via AppShell) — scrollable selected-list
+   region + empty-state spacing. Moved out of Home.css since the modal is now
+   cross-domain (not Home-scoped). */
+.customers-modal-list {
+  max-height: 240px;
+  overflow-y: auto;
+}
+.customers-modal-empty {
+  margin-top: var(--spacing-3);
+  margin-bottom: var(--spacing-8);
+}
+
+/* Customers popover — anchored below the navbar, right-aligned, NO overlay
+   backdrop. Stays 14px clear of the window's right edge and is viewport-bounded
+   (max-width / max-height) so it can never be clipped off-screen. Mirrors the
+   ModalMedium chrome (header / scrolling content / footer) without the
+   centered-overlay behavior. */
+.customers-popover {
+  position: fixed;
+  /* Overlap the navbar by 7px (top sits 7px above the navbar's bottom edge). */
+  top: calc(var(--navbar-height) - 10px);
+  right: 14px;
+  /* Hug content (widest customer-name row sets the width), floored at 360px and
+     capped at the viewport (minus 14px each side) so it never clips. */
+  width: fit-content;
+  min-width: 360px;
+  max-width: calc(100vw - 28px);
+  max-height: calc(100vh - var(--navbar-height) - var(--spacing-6));
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  z-index: 9000;
+  overflow: hidden;
+}
+.customers-popover__header {
+  padding: var(--spacing-4) var(--spacing-5) var(--spacing-2);
+  color: var(--text-primary);
+}
+.customers-popover__content {
+  padding: 0 var(--spacing-5) var(--spacing-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  overflow-y: auto;
+  min-height: 0;
+  flex: 1 1 auto;
+}
+.customers-popover__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-3) var(--spacing-5);
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* FilterButton — filter trigger that sits at the right edge of the GlobalSearch
+   bar. Four states: Default (transparent, dsn-400) / Hover (surface lifts to
+   dsn-800, text dsn-200) / Pressed (color-only: dsn-800 surface + carolina-blue
+   text, plus the count badge pops) / Active (transparent + carolina-blue,
+   persistent — set via the is-active class = drawer open). Icon color tracks the
+   label via currentColor. */
+.filter-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  padding: 6px var(--spacing-3);
+  border: none;
+  border-left: 1px solid var(--border-inverse);
+  /* Right corners follow the search bar's rounded edge (left stays square,
+     attached to the search area via the divider). */
+  border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+  background: var(--deep-sea-neutral-950);
+  cursor: pointer;
+  position: relative;
+  color: var(--deep-sea-neutral-400);
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.filter-button:hover {
+  background: var(--deep-sea-neutral-800);
+  color: var(--deep-sea-neutral-200);
+}
+.filter-button:active {
+  background: var(--deep-sea-neutral-800);
+  color: var(--carolina-blue-400);
+}
+.filter-button.is-active,
+.filter-button.is-active:hover {
+  background: var(--deep-sea-neutral-950);
+  color: var(--carolina-blue-400);
+}
+/* Count badge — rendered by GlobalSearch as a sibling overlay (positioned
+   against the .global-search-wrapper, which is position:relative + overflow
+   visible) so it can overhang the bar's top-right corner. Pops when the
+   FilterButton is pressed, via the sibling combinator. */
+.global-search-badge {
+  position: absolute;
+  top: -5px;
+  right: -8px;
+  transition: transform var(--transition-fast);
+}
+.filter-button:active ~ .global-search-badge {
+  transform: scale(1.15);
+}
+
 /* TrailNav hover — bell brightens; profile (name + role + chevron) brightens
    together when the profile button is hovered. */
-.trail-nav-bell { transition: color var(--transition-fast); }
-.trail-nav-bell:hover {
+.trail-nav-bell,
+.trail-nav-customers { transition: color var(--transition-fast); }
+.trail-nav-bell:hover,
+.trail-nav-customers:hover,
+.trail-nav-customers.is-active {
   color: var(--deep-sea-neutral-200) !important;
 }
 

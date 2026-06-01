@@ -1,9 +1,12 @@
 import Navbar from './Navbar'
 import Sidebar from './Sidebar'
+import CustomersModal from '../CustomersModal'
 import { useEditMode } from '../../contexts/EditModeContext.jsx'
+import { useCustomers } from '../../contexts/CustomersContext.jsx'
 
 export default function AppShell({ children, filterPanel, onMainClick, transparentMain = false, searchSlot }) {
   const { isEditMode } = useEditMode()
+  const { modalOpen } = useCustomers()
   return (
     <div className="flex flex-col h-screen">
       <Navbar searchSlot={searchSlot} />
@@ -24,6 +27,7 @@ export default function AppShell({ children, filterPanel, onMainClick, transpare
         </main>
         {filterPanel}
       </div>
+      {modalOpen && <CustomersModal />}
     </div>
   )
 }

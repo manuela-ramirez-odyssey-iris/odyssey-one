@@ -12,12 +12,15 @@ import '@fontsource/inter/600.css'
 import './index.css'
 import App from './App.jsx'
 import { EditModeProvider } from './contexts/EditModeContext.jsx'
+import { CustomersProvider } from './contexts/CustomersContext.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
       <EditModeProvider>
-        <App />
+        <CustomersProvider>
+          <App />
+        </CustomersProvider>
       </EditModeProvider>
     </BrowserRouter>
     <Analytics />

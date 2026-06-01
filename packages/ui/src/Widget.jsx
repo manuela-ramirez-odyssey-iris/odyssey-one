@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef } from 'react'
 import { ArrowRight, GripVertical, X } from 'lucide-react'
 import { ICON_MD, ICON_LG } from '@odyssey/tokens'
 import Button from './Button.jsx'
@@ -63,8 +64,9 @@ export default function Widget({
 }) {
   const cls = `widget widget--${variant} ${className}`.trim()
   const editAttrs = editMode ? { 'data-edit-mode': 'true' } : {}
+  const [rootRef, inView] = useInView()
   return (
-    <div className={cls} {...editAttrs} {...rest}>
+    <div ref={rootRef} className={cls} {...editAttrs} {...rest}>
       <Header
         variant={variant}
         title={title}
@@ -84,6 +86,7 @@ export default function Widget({
         showChart={showChart}
         chartDelayMs={chartDelayMs}
         onGoToClick={onGoToClick}
+        play={inView}
       />
       {variant !== '1x' && variant !== '3xCta' && onGoToClick && goToLabel && (
         <Button
@@ -132,7 +135,84 @@ function Header({ variant, title, domainIcon, showGrip, onClose }) {
   )
 }
 
-function Content({ variant, value, label, percentage, rows, ctaRows, chartSegments, chartTotal, showChart, chartDelayMs, onGoToClick }) {
+// Counts numbers up from zero. Animates every numeric token in the string
+// (integer or decimal, comma-grouped or not) so values like "1,234" and
+// "99 (26.33%)" sweep up together. Re-runs whenever `value` changes — pairs
+// with the pie chart's grow-in on mount / data arrival.
+const COUNT_UP_MS = 900
+
+function formatNumbersWithProgress(value, progress) {
+  return String(value).replace(/\d[\d,]*(?:\.\d+)?/g, (match) => {
+    const decimals = match.includes('.') ? match.split('.')[1].length : 0
+    const hadComma = match.includes(',')
+    const target = parseFloat(match.replace(/,/g, ''))
+    if (!Number.isFinite(target)) return match
+    const current = target * progress
+    if (decimals > 0) {
+      const fixed = current.toFixed(decimals)
+      return hadComma
+        ? parseFloat(fixed).toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
+        : fixed
+    }
+    const rounded = Math.round(current)
+    return hadComma ? rounded.toLocaleString() : String(rounded)
+  })
+}
+
+function CountUp({ value, play = true }) {
+  const [progress, setProgress] = useState(0)
+  // `play` gates the count (set once the widget scrolls into view). Until then
+  // progress stays 0 so the numbers read as 0, then tick up on appear.
+  useEffect(() => {
+    if (!play) return
+    setProgress(0)
+    let raf
+    let start
+    const tick = (t) => {
+      if (start == null) start = t
+      const p = Math.min(1, (t - start) / COUNT_UP_MS)
+      setProgress(1 - Math.pow(1 - p, 3)) // ease-out-cubic
+      if (p < 1) raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [play, value])
+  return <>{formatNumbersWithProgress(value, progress)}</>
+}
+
+// Latches true once the element scrolls into the viewport, so entry animations
+// (chart grow-in + count-up) fire lazily as the user scrolls — and never while
+// the widget is hidden. Falls back to true where IntersectionObserver is absent.
+function useInView(threshold = 0.2) {
+  const ref = useRef(null)
+  const [inView, setInView] = useState(false)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    if (typeof IntersectionObserver === 'undefined') {
+      setInView(true)
+      return
+    }
+    const obs = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          setInView(true)
+          obs.disconnect() // latch — animate once on first appearance
+        }
+      },
+      { threshold },
+    )
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [threshold])
+  return [ref, inView]
+}
+
+function Content({ variant, value, label, percentage, rows, ctaRows, chartSegments, chartTotal, showChart, chartDelayMs, onGoToClick, play = true }) {
+  // Remount the pie chart whenever its data changes so the grow-in animation
+  // replays (e.g. tracking-load-status going from its 0/placeholder state to
+  // live fetched numbers). A fresh mount paints at 0 first, then animates.
+  const pieKey = (chartSegments || []).map((s) => `${s.value}:${s.color}`).join('|') + `|${chartTotal ?? ''}`
   if (variant === '1x') {
     return (
       <button
@@ -142,7 +222,7 @@ function Content({ variant, value, label, percentage, rows, ctaRows, chartSegmen
         disabled={!onGoToClick}
       >
         <span className="widget__value-row">
-          <span className="text-display-3xl-semibold widget__value">{value}</span>
+          <span className="text-display-3xl-semibold widget__value"><CountUp value={value} play={play} /></span>
           <ArrowRight {...ICON_MD} className="widget__inline-arrow" aria-hidden="true" />
         </span>
         <span className="text-label-sm-regular widget__label">{label}</span>
@@ -153,11 +233,11 @@ function Content({ variant, value, label, percentage, rows, ctaRows, chartSegmen
     return (
       <div className="widget__content widget__content--2x">
         <div className="widget__data-container">
-          <span className="text-display-3xl-semibold widget__value">{value}</span>
+          <span className="text-display-3xl-semibold widget__value"><CountUp value={value} play={play} /></span>
           <span className="text-label-sm-medium widget__label">{label}</span>
         </div>
         {showChart && (
-          <WidgetPieChart segments={chartSegments} total={chartTotal} centerText={percentage} size="md" delayMs={chartDelayMs} />
+          <WidgetPieChart key={pieKey} segments={chartSegments} total={chartTotal} centerText={percentage != null ? <CountUp value={percentage} play={play} /> : undefined} size="md" delayMs={chartDelayMs} play={play} />
         )}
       </div>
     )
@@ -196,17 +276,17 @@ function Content({ variant, value, label, percentage, rows, ctaRows, chartSegmen
       <div className="widget__content widget__content--3xChart">
         <div className="widget__chart-section">
           <div className="widget__info-container">
-            <span className="text-display-4xl-semibold widget__value">{value}</span>
+            <span className="text-display-4xl-semibold widget__value"><CountUp value={value} play={play} /></span>
             <span className="text-label-sm-medium widget__label">{label}</span>
           </div>
-          <WidgetPieChart segments={chartSegments} total={chartTotal} size="lg" delayMs={chartDelayMs} />
+          <WidgetPieChart key={pieKey} segments={chartSegments} total={chartTotal} size="lg" delayMs={chartDelayMs} play={play} />
         </div>
         <div className="widget__data-section">
           {rows.map((row, i) => (
             <WidgetMetricRow
               key={i}
               label={row.label}
-              value={row.value}
+              value={<CountUp value={row.value} play={play} />}
               showIndicator={true}
               indicatorColor={row.indicatorColor}
               onClick={row.onClick}

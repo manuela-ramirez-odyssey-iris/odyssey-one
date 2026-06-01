@@ -1980,6 +1980,20 @@ function getBadgeComponentHTML() {
       '</div>' +
     '</div>' +
 
+    /* Sub-section: Count (preset — circular Carolina Blue, applied-filter count) */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Count (preset variant &mdash; applied-filter count)</div>' +
+      '<div class="comp-card-grid">' +
+        '<div class="comp-card">' +
+          '<div style="padding:12px; background:#1B2537; border-radius:8px; display:inline-flex;">' +
+            '<span style="display:inline-flex; align-items:center; justify-content:center; min-width:20px; height:20px; box-sizing:border-box; padding:0 4px; border-radius:9999px; font-size:12px; font-weight:500; font-family:\'Inter\',sans-serif; background:#5BA4D4; color:#fff; line-height:16px; font-variant-numeric:tabular-nums;">6</span>' +
+          '</div>' +
+          '<div class="comp-card-code">&lt;Badge variant="count"&gt;6&lt;/Badge&gt;</div>' +
+          '<div class="comp-card-note"><code>--carolina-blue-400</code> bg + <code>--text-inverse</code> text + <code>--radius-full</code> + <strong>min-width 20, height 20</strong> (overflow allowed), tabular-nums. Owned by <code>GlobalSearch</code> as the applied-filter count overlay on the <code>FilterButton</code>.</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
     /* Sub-section: With Icon */
     '<div class="comp-subsection">' +
       '<div class="comp-subsection-title">With Icon (right side)</div>' +
@@ -6761,7 +6775,7 @@ var compDetails = {
       '<table class="comp-table">' +
         '<thead><tr><th>Prop</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>' +
         '<tbody>' +
-          '<tr><td><code>variant</code></td><td>string</td><td><code>"blue"</code></td><td>Color variant: amber, blue, green, red, purple, gray, <strong>notification</strong> (preset: solid red dot), <strong>metric</strong> (preset: inline numeric pill, parent-overridable bg), <strong>favorite</strong> (preset: 12&times;12 Caribbean Green circular disc with a centered 8px white Star &mdash; iconless / dotless; suppresses <code>children</code>, <code>leftIcon</code>, <code>rightIcon</code>, <code>statusDot</code>). <em>The Figma master <code>Variant=favorite</code> sits at <code>2096:294</code> inside the Badge set <code>213:27</code>.</em></td></tr>' +
+          '<tr><td><code>variant</code></td><td>string</td><td><code>"blue"</code></td><td>Color variant: amber, blue, green, red, purple, gray, <strong>notification</strong> (preset: solid red dot), <strong>count</strong> (preset: Carolina Blue/400 pill, white text, min-width 20 &mdash; applied-filter count owned by GlobalSearch), <strong>metric</strong> (preset: inline numeric pill, parent-overridable bg), <strong>favorite</strong> (preset: 12&times;12 Caribbean Green circular disc with a centered 8px white Star &mdash; iconless / dotless; suppresses <code>children</code>, <code>leftIcon</code>, <code>rightIcon</code>, <code>statusDot</code>). <em>The Figma master <code>Variant=favorite</code> sits at <code>2096:294</code> inside the Badge set <code>213:27</code>.</em></td></tr>' +
           '<tr><td><code>leftIcon</code></td><td>ReactNode</td><td>&mdash;</td><td>Optional leading icon. Suppressed in <code>metric</code> and <code>favorite</code> variants.</td></tr>' +
           '<tr><td><code>rightIcon</code></td><td>ReactNode</td><td>&mdash;</td><td>Optional trailing icon. Suppressed in <code>metric</code> and <code>favorite</code> variants.</td></tr>' +
           '<tr><td><code>statusDot</code></td><td>boolean</td><td><code>false</code></td><td>Animated 6x6 status dot on the left. Suppressed in <code>metric</code> and <code>favorite</code> variants.</td></tr>' +
@@ -6781,6 +6795,13 @@ var compDetails = {
           '<tr><td>Notification &mdash; text color</td><td><code>--text-inverse</code></td><td>#fff</td></tr>' +
           '<tr><td>Notification &mdash; size</td><td>min 20 &times; 20</td><td>Fixed dot dimensions (designed to overlay icons)</td></tr>' +
           '<tr><td>Notification &mdash; padding</td><td><code>4px</code></td><td>Centers the count number inside the 20&times;20 circle</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Count variant</td></tr>' +
+          '<tr><td>Count &mdash; background</td><td><code>--carolina-blue-400</code></td><td>#5BA4D4</td></tr>' +
+          '<tr><td>Count &mdash; text color</td><td><code>--text-inverse</code></td><td>#fff, tabular-nums</td></tr>' +
+          '<tr><td>Count &mdash; radius</td><td><code>--radius-full</code></td><td>9999px (circular pill)</td></tr>' +
+          '<tr><td>Count &mdash; size</td><td>min 20 &times; 20</td><td>min-width 20, height 20 (overflow allowed for &gt;1-digit values)</td></tr>' +
+          '<tr><td>Count &mdash; padding</td><td><code>0 4px</code></td><td>Horizontal breathing room for the number</td></tr>' +
+          '<tr><td>Count &mdash; owner</td><td><code>GlobalSearch</code></td><td>Applied-filter count, rendered as a sibling overlay on the <code>FilterButton</code> &mdash; not part of FilterButton itself.</td></tr>' +
           '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Metric variant</td></tr>' +
           '<tr><td>Metric &mdash; background</td><td><code>--badge-gray-bg</code> (DSN/100)</td><td>#F2F3F5. <strong>Set via the <code>.badge-metric</code> CSS class</strong> (not inline) so parent context can override &mdash; e.g. <code>.widget-metric-row--interactive:hover .badge-metric { background: --deep-sea-neutral-200; }</code>.</td></tr>' +
           '<tr><td>Metric &mdash; text color</td><td><code>--text-primary</code></td><td>#1B2537</td></tr>' +
@@ -6797,6 +6818,43 @@ var compDetails = {
           '<tr><td>Favorite &mdash; star fill / stroke</td><td>both <code>currentColor</code> with <code>strokeWidth=2</code></td><td>fill + stroke set to white via <code>color: var(--white)</code> on the wrapper. Both paints ensure crisp legibility at 8px.</td></tr>' +
           '<tr><td>Favorite &mdash; suppressed props</td><td><code>children</code> / <code>leftIcon</code> / <code>rightIcon</code> / <code>statusDot</code></td><td>The <code>isFavorite</code> branch in <code>Badge.jsx</code> returns its own <code>&lt;span&gt;</code> before the standard render path &mdash; no padding, gap, or label logic runs.</td></tr>' +
           '<tr><td>Favorite &mdash; a11y</td><td><code>aria-hidden="true"</code></td><td>decorative indicator; the parent context (e.g. <code>CustomerRow</code> at <code>mode="list"</code>) communicates the favorite state semantically via its Star button&rsquo;s <code>aria-pressed</code>.</td></tr>' +
+        '</tbody>' +
+      '</table>'
+  },
+  FilterButton: {
+    props:
+      '<table class="comp-table">' +
+        '<thead><tr><th>Prop</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>' +
+        '<tbody>' +
+          '<tr style="background:#F7F8FA;"><td colspan="4" style="font-style:italic; color:#384253;"><strong>Trigger-only atom.</strong> Renders just the icon + label. The applied-filter count <strong>Badge</strong> is owned by <code>GlobalSearch</code> (Badge <code>count</code> variant, rendered as a sibling overlay) &mdash; not part of this component.</td></tr>' +
+          '<tr><td><code>active</code></td><td>boolean</td><td><code>false</code></td><td>Drawer-open state &mdash; applies <code>.is-active</code> (Carolina Blue text/icon on a recessed <code>--deep-sea-neutral-950</code> surface). Also sets <code>aria-pressed</code>.</td></tr>' +
+          '<tr><td><code>onClick</code></td><td>function</td><td>&mdash;</td><td>Click handler &mdash; the consumer (<code>GlobalSearch</code>) toggles the filters drawer.</td></tr>' +
+          '<tr><td><code>label</code></td><td>string</td><td><code>"Filter"</code></td><td>Button label text, rendered with <code>text-label-sm-medium</code>.</td></tr>' +
+          '<tr><td>(hover)</td><td>&mdash;</td><td>&mdash;</td><td>Pure CSS <code>:hover</code> &mdash; surface lifts to <code>--deep-sea-neutral-800</code>, text/icon to <code>--deep-sea-neutral-200</code>. Not a prop.</td></tr>' +
+          '<tr><td>(pressed)</td><td>&mdash;</td><td>&mdash;</td><td>Pure CSS <code>:active</code> &mdash; color-only (surface stays lifted, text/icon turn <code>--carolina-blue-400</code>; no button scale). Not a prop.</td></tr>' +
+        '</tbody>' +
+      '</table>',
+    tokens:
+      '<table class="comp-table">' +
+        '<thead><tr><th>State / Property</th><th>Token / Value</th><th>Resolved</th></tr></thead>' +
+        '<tbody>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Color &mdash; state ladder</td></tr>' +
+          '<tr><td>Default &mdash; bg / text+icon</td><td><code>--deep-sea-neutral-950</code> / <code>--deep-sea-neutral-400</code></td><td>#0F182A / #9DA3B0</td></tr>' +
+          '<tr><td>Hover &mdash; bg / text+icon</td><td><code>--deep-sea-neutral-800</code> / <code>--deep-sea-neutral-200</code></td><td>#283142 / #E4E6EB</td></tr>' +
+          '<tr><td>Pressed (<code>:active</code>) &mdash; bg / text+icon</td><td><code>--deep-sea-neutral-800</code> / <code>--carolina-blue-400</code></td><td>#283142 / #5BA4D4 &mdash; color-only, no scale</td></tr>' +
+          '<tr><td>Active (<code>.is-active</code>) &mdash; bg / text+icon</td><td><code>--deep-sea-neutral-950</code> / <code>--carolina-blue-400</code></td><td>#0F182A / #5BA4D4 &mdash; persistent drawer-open state, wins over hover</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Geometry</td></tr>' +
+          '<tr><td>Left divider</td><td><code>--border-inverse</code> (<code>--deep-sea-neutral-600</code>)</td><td>1px, #4C5463</td></tr>' +
+          '<tr><td>Border radius (right corners)</td><td><code>--radius-lg</code></td><td>8px &mdash; left corners square (attaches to the search bar)</td></tr>' +
+          '<tr><td>Gap (icon &harr; label)</td><td><code>--spacing-3</code></td><td>12px</td></tr>' +
+          '<tr><td>Padding &mdash; horizontal</td><td><code>--spacing-3</code></td><td>12px</td></tr>' +
+          '<tr><td>Padding &mdash; vertical</td><td><code>6px</code> (raw)</td><td>hits 32px height (no Spacing token)</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Icon &amp; Type</td></tr>' +
+          '<tr><td>Icon</td><td>lucide <code>sliders-horizontal</code> (<code>ICON_MD</code>)</td><td>16px; stroke tracks label color via <code>currentColor</code></td></tr>' +
+          '<tr><td>Label typography</td><td><code>text-label-sm-medium</code></td><td>14 / 20 / 500</td></tr>' +
+          '<tr><td>Transition</td><td><code>background, color var(--transition-fast)</code></td><td>150ms ease</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Badge ownership</td></tr>' +
+          '<tr><td>Applied-filter count Badge</td><td>owned by <code>GlobalSearch</code></td><td>Badge <code>count</code> variant (Carolina Blue/400 bg, white text, <code>--radius-full</code>, min-width 20), rendered as a sibling overlay &mdash; <strong>not part of FilterButton</strong>.</td></tr>' +
         '</tbody>' +
       '</table>'
   },
@@ -9621,6 +9679,149 @@ function getFormFieldNormalizeHTML() {
   '</div>';
 }
 
+/* ── FilterButton (atom — filter trigger at the right edge of GlobalSearch) ──
+   IN-PROGRESS normalize cycle. Small button on the DARK search bar; opens the
+   filters drawer and shows a count Badge (applied-filter count, hidden at 0).
+   Three visual states (Default / Hover / Active) + toggleable badge. Figma node
+   2347:325. No NORMALIZED pill — cycle mid-flight (awaiting GATE B-DSM). */
+function getFilterButtonComponentHTML() {
+  return '' +
+  /* ── Scoped styles ── (.fb-norm-* prefix kept to avoid collisions) */
+  '<style>' +
+    /* Demo surface — DARK, mirrors the navbar/search-bar the button lives on. */
+    '.fb-norm-surface {' +
+      'background: var(--deep-sea-neutral-900, #1B2537);' +
+      'padding: 32px;' +
+      'border-radius: var(--radius-md, 6px);' +
+    '}' +
+
+    /* The FilterButton itself — trigger only (icon + label), no badge. */
+    '.fb-norm-btn {' +
+      'display: inline-flex; align-items: center; gap: var(--spacing-3, 12px);' +
+      'padding: 6px var(--spacing-3, 12px);' +
+      'border: none; border-left: 1px solid var(--deep-sea-neutral-600, #4C5463);' +
+      'border-radius: 0 var(--radius-lg, 8px) var(--radius-lg, 8px) 0;' +
+      'background: var(--deep-sea-neutral-950, #0F182A); cursor: pointer; position: relative;' +
+      'color: var(--deep-sea-neutral-400, #9DA3B0);' +
+      'font-family: \'Inter\', sans-serif; font-size: 14px; line-height: 20px; font-weight: 500;' +
+      'transition: background var(--transition-fast,150ms ease), color var(--transition-fast,150ms ease);' +
+    '}' +
+    '.fb-norm-btn:hover {' +
+      'background: var(--deep-sea-neutral-800, #283142);' +
+      'color: var(--deep-sea-neutral-200, #E4E6EB);' +
+    '}' +
+    /* Pressed (mouse down) — color-only; comes after :hover so press wins while held. No scale. */
+    '.fb-norm-btn:active { background:var(--deep-sea-neutral-800,#283142); color:var(--carolina-blue-400,#5BA4D4); }' +
+    /* Active (drawer open) wins even on hover — recessed 950 surface + Carolina Blue. */
+    '.fb-norm-btn.is-active {' +
+      'background: var(--deep-sea-neutral-950, #0F182A); color: var(--carolina-blue-400, #5BA4D4);' +
+    '}' +
+    '.fb-norm-btn.is-active:hover {' +
+      'background: var(--deep-sea-neutral-950, #0F182A); color: var(--carolina-blue-400, #5BA4D4);' +
+    '}' +
+
+    /* Icon slot — 16x16, stroke tracks button color via currentColor. */
+    '.fb-norm-ico { display: inline-flex; width: 16px; height: 16px; flex: 0 0 16px; }' +
+    '.fb-norm-ico svg { width: 16px; height: 16px; display: block; }' +
+
+    /* Static state classes — force a state regardless of :hover, for the
+       all-visible cards. Paired with a pointer-events-off wrapper so :hover
+       can never fight them. */
+    '.fb-norm-static-row .fb-norm-btn { pointer-events: none; }' +
+    '.fb-norm-static-default { background: var(--deep-sea-neutral-950, #0F182A); color: var(--deep-sea-neutral-400, #9DA3B0); }' +
+    '.fb-norm-static-hover { background: var(--deep-sea-neutral-800, #283142); color: var(--deep-sea-neutral-200, #E4E6EB); }' +
+    '.fb-norm-static-pressed { background:var(--deep-sea-neutral-800,#283142); color:var(--carolina-blue-400,#5BA4D4); }' +
+    '.fb-norm-static-active { background: var(--deep-sea-neutral-950, #0F182A); color: var(--carolina-blue-400, #5BA4D4); }' +
+
+    /* Card grid + dark inner card surfaces + muted captions. */
+    '.fb-norm-card-grid {' +
+      'display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 24px;' +
+    '}' +
+    '.fb-norm-card {' +
+      'display: flex; flex-direction: column; align-items: center; gap: 12px;' +
+      'padding: 24px 16px; border-radius: var(--radius-md, 6px);' +
+      'background: rgba(255, 255, 255, 0.03); border: 1px solid var(--deep-sea-neutral-800, #283142);' +
+    '}' +
+    '.fb-norm-caption { font-size: 12px; color: #9DA3B0; text-align: center; line-height: 1.4; }' +
+    '.fb-norm-owner-note {' +
+      'font-size: 12.5px; color: #384253; line-height: 1.55; background: #F7F8FA;' +
+      'border-left: 3px solid #296DE7; padding: 10px 14px; border-radius: 4px; margin-top: 10px;' +
+    '}' +
+    '.fb-norm-owner-note strong { color: #1B2537; }' +
+    '.fb-norm-owner-note code { background: #F2F3F5; padding: 1px 6px; border-radius: 4px; font-size: 12px; color: #1B2537; }' +
+  '</style>' +
+
+  /* ── Section ── (NORMALIZED) */
+  '<div class="comp-section">' +
+    '<div class="comp-section-title">FilterButton <span class="comp-normalized-label">NORMALIZED</span></div>' +
+    '<div class="comp-section-subtitle">packages/ui/src/FilterButton.jsx &middot; Figma node 2347:325</div>' +
+
+    /* Owner note — badge ownership */
+    '<div class="fb-norm-owner-note">' +
+      'Trigger-only atom (icon + <code>Filter</code> label) that opens the filters drawer for <strong>GlobalSearch</strong>. Default is a recessed <code>--deep-sea-neutral-950</code> surface (darker than the bar); <strong>hover</strong> and <strong>pressed</strong> lift to <code>--deep-sea-neutral-800</code>; <strong>active</strong> (drawer open) returns to <code>--deep-sea-neutral-950</code> with Carolina Blue text/icon. The applied-filter count <strong>Badge</strong> is owned by GlobalSearch (Badge <code>count</code> variant, sibling overlay) &mdash; not part of this atom.' +
+    '</div>' +
+
+    /* Demo 1 — Live interactive */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Live &mdash; hover &amp; click</div>' +
+      '<div class="fb-norm-surface">' +
+        '<div class="fb-norm-card-grid">' +
+          '<div class="fb-norm-card">' +
+            '<button class="fb-norm-btn" id="fbNormLive" onclick="this.classList.toggle(\'is-active\')">' +
+              '<span class="fb-norm-ico"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><line x1="21" x2="14" y1="4" y2="4"/><line x1="10" x2="3" y1="4" y2="4"/><line x1="21" x2="12" y1="12" y2="12"/><line x1="8" x2="3" y1="12" y2="12"/><line x1="21" x2="16" y1="20" y2="20"/><line x1="12" x2="3" y1="20" y2="20"/><line x1="14" x2="14" y1="2" y2="6"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="16" x2="16" y1="18" y2="22"/></svg></span>' +
+              'Filter' +
+            '</button>' +
+            '<div class="fb-norm-caption">Hover to preview, hold to feel Pressed, click to toggle Active (drawer open).</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    /* Demo 2 — Static states */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">States &mdash; Default / Hover / Pressed / Active</div>' +
+      '<div class="fb-norm-surface">' +
+        '<div class="fb-norm-card-grid fb-norm-static-row">' +
+          '<div class="fb-norm-card">' +
+            '<button class="fb-norm-btn fb-norm-static-default">' +
+              '<span class="fb-norm-ico"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><line x1="21" x2="14" y1="4" y2="4"/><line x1="10" x2="3" y1="4" y2="4"/><line x1="21" x2="12" y1="12" y2="12"/><line x1="8" x2="3" y1="12" y2="12"/><line x1="21" x2="16" y1="20" y2="20"/><line x1="12" x2="3" y1="20" y2="20"/><line x1="14" x2="14" y1="2" y2="6"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="16" x2="16" y1="18" y2="22"/></svg></span>' +
+              'Filter' +
+            '</button>' +
+            '<div class="fb-norm-caption">Default</div>' +
+          '</div>' +
+          '<div class="fb-norm-card">' +
+            '<button class="fb-norm-btn fb-norm-static-hover">' +
+              '<span class="fb-norm-ico"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><line x1="21" x2="14" y1="4" y2="4"/><line x1="10" x2="3" y1="4" y2="4"/><line x1="21" x2="12" y1="12" y2="12"/><line x1="8" x2="3" y1="12" y2="12"/><line x1="21" x2="16" y1="20" y2="20"/><line x1="12" x2="3" y1="20" y2="20"/><line x1="14" x2="14" y1="2" y2="6"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="16" x2="16" y1="18" y2="22"/></svg></span>' +
+              'Filter' +
+            '</button>' +
+            '<div class="fb-norm-caption">Hover</div>' +
+          '</div>' +
+          '<div class="fb-norm-card">' +
+            '<button class="fb-norm-btn fb-norm-static-pressed">' +
+              '<span class="fb-norm-ico"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><line x1="21" x2="14" y1="4" y2="4"/><line x1="10" x2="3" y1="4" y2="4"/><line x1="21" x2="12" y1="12" y2="12"/><line x1="8" x2="3" y1="12" y2="12"/><line x1="21" x2="16" y1="20" y2="20"/><line x1="12" x2="3" y1="20" y2="20"/><line x1="14" x2="14" y1="2" y2="6"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="16" x2="16" y1="18" y2="22"/></svg></span>' +
+              'Filter' +
+            '</button>' +
+            '<div class="fb-norm-caption">Pressed (mouse down &mdash; color-only)</div>' +
+          '</div>' +
+          '<div class="fb-norm-card">' +
+            '<button class="fb-norm-btn fb-norm-static-active">' +
+              '<span class="fb-norm-ico"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><line x1="21" x2="14" y1="4" y2="4"/><line x1="10" x2="3" y1="4" y2="4"/><line x1="21" x2="12" y1="12" y2="12"/><line x1="8" x2="3" y1="12" y2="12"/><line x1="21" x2="16" y1="20" y2="20"/><line x1="12" x2="3" y1="20" y2="20"/><line x1="14" x2="14" y1="2" y2="6"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="16" x2="16" y1="18" y2="22"/></svg></span>' +
+              'Filter' +
+            '</button>' +
+            '<div class="fb-norm-caption">Active (drawer open)</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    /* Props & Tokens — moved into modal */
+    '<div class="comp-subsection">' +
+      '<button class="comp-details-button" onclick="showCompDetails(\'FilterButton\')">Show props &amp; tokens</button>' +
+    '</div>' +
+
+  '</div>';
+}
+
 /* ── AuthContent (organism — inner body of AuthModal) — IN-PROGRESS normalize cycle ──
    AuthContent is the composed body that slots into the AuthModal shell as its
    children prop. Variant axis (currently single value: `Login`) will gain
@@ -10476,7 +10677,7 @@ function showCompDetails(componentName) {
 document.addEventListener('DOMContentLoaded', function() {
   /* Populate Components tab */
   var compTab = document.getElementById('componentsTabBadgeContent');
-  if (compTab) compTab.innerHTML = getBadgeComponentHTML() + getButtonComponentHTML() + getIconButtonComponentHTML() + getIconButtonGhostComponentHTML() + getSidebarButtonComponentHTML() + getSidebarComponentHTML() + getGlobalSearchComponentHTML() + getLeadNavComponentHTML() + getTrailNavComponentHTML() + getNavbarComponentHTML() + getPageHeaderComponentHTML() + getSectionHeaderComponentHTML() + getSectionLabelComponentHTML() + getAddSectionDividerComponentHTML() + getAddSectionButtonComponentHTML() + getEntityChipComponentHTML() + getSearchFieldComponentHTML() + getFormFieldComponentHTML() + getWidgetMetricRowComponentHTML() + getWidgetPieChartComponentHTML() + getWidgetComponentHTML() + getWidgetCtaRowComponentHTML() + getWidgetVariantPickerComponentHTML() + getMenuRowComponentHTML() + getCustomerRowComponentHTML() + getMenuDropdownComponentHTML() + getEditModeOverviewHTML() + getWidgetsLeftMenuComponentHTML() + getEmptyStateComponentHTML() + getModalLargeComponentHTML() + getModalMediumComponentHTML() + getAuthModalComponentHTML() + getAuthContentComponentHTML();
+  if (compTab) compTab.innerHTML = getBadgeComponentHTML() + getFilterButtonComponentHTML() + getButtonComponentHTML() + getIconButtonComponentHTML() + getIconButtonGhostComponentHTML() + getSidebarButtonComponentHTML() + getSidebarComponentHTML() + getGlobalSearchComponentHTML() + getLeadNavComponentHTML() + getTrailNavComponentHTML() + getNavbarComponentHTML() + getPageHeaderComponentHTML() + getSectionHeaderComponentHTML() + getSectionLabelComponentHTML() + getAddSectionDividerComponentHTML() + getAddSectionButtonComponentHTML() + getEntityChipComponentHTML() + getSearchFieldComponentHTML() + getFormFieldComponentHTML() + getWidgetMetricRowComponentHTML() + getWidgetPieChartComponentHTML() + getWidgetComponentHTML() + getWidgetCtaRowComponentHTML() + getWidgetVariantPickerComponentHTML() + getMenuRowComponentHTML() + getCustomerRowComponentHTML() + getMenuDropdownComponentHTML() + getEditModeOverviewHTML() + getWidgetsLeftMenuComponentHTML() + getEmptyStateComponentHTML() + getModalLargeComponentHTML() + getModalMediumComponentHTML() + getAuthModalComponentHTML() + getAuthContentComponentHTML();
 
   /* No active normalization cycle. AuthContent (Variant=Login) was promoted
      to the Components tab after GATE B-DSM sign-off — see
@@ -10486,7 +10687,9 @@ document.addEventListener('DOMContentLoaded', function() {
      `getWidgetFamilyNormalizeHTML`) remain defined as references —
      re-activate manually via the console with
      `activateNormalizeTab(getAuthContentNormalizeHTML())` + `switchTab('normalize')`
-     if you need to revisit those validation surfaces. */
+     if you need to revisit those validation surfaces. FilterButton was promoted
+     to the Components tab after GATE B-DSM sign-off — see
+     `getFilterButtonComponentHTML()` above. */
   deactivateNormalizeTab();
 
   /* Click on backdrop closes the comp details dialog */

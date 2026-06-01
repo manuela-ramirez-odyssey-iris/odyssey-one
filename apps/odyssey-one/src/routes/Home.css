@@ -67,44 +67,32 @@
 /* Home content layer — sits above .home-background. Position relative +
    explicit z-index lifts the non-positioned descendants above the fixed
    bg sibling (which would otherwise paint on top in source-order).
-
-   Plain block layout (no display:flex): a column flex container shrinks
-   to its content's intrinsic height, which would cut .home-sticky-actions's
-   sticky container short the moment scrolling pushes content above the
-   viewport. Block layout lets .home-content extend its full scroll height
-   so sticky keeps working until the very bottom of the page. */
+   Plain block layout (no display:flex) so .home-content extends to its full
+   scroll height rather than shrinking to its content's intrinsic height. */
 .home-content {
   position: relative;
   z-index: 1;
   padding-bottom: var(--spacing-8);
 }
 
-/* === Sticky page-level actions =========================================
-   Welcome row's leadingActions ("Add Widgets") + trailingActions
-   ("Customers" chip) are extracted out of SectionHeader and rendered as
-   their own sibling here. position: sticky pins them at top:32 once the
-   page scrolls past them — keeps the primary Home actions always
-   reachable while widgets scroll. Sticky parent is .home-content which
-   spans the full Home page height. */
+/* === Pinned Edit Dashboard View action =================================
+   Right-aligned button pulled up (negative margin-top) to sit on the "Home"
+   PageHeader row; the "Last update" slug stays on the Welcome row below as
+   SectionHeader supportingText (and scrolls). position: sticky keeps the
+   button reachable as widgets scroll — sticky parent is .home-content. */
 .home-sticky-actions {
   position: sticky;
-  /* `<main>` has padding-top: 32px (= --spacing-8) which sits between the
-     scrollport edge and the content. To stick at 24px below the navbar,
-     pull the sticky offset back by 8px so the rendered position is
-     32 (padding) − 8 = 24 from the navbar. */
   top: calc(-1 * var(--spacing-2));
   z-index: 2;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--spacing-3);
+  justify-content: flex-end;
   width: 100%;
-  margin-top: var(--spacing-8);
-  margin-bottom: var(--spacing-6);
+  margin-top: -56px;
+  margin-bottom: var(--spacing-4);
   pointer-events: none;
 }
-/* Children re-enable pointer events so the bar itself is click-through but
-   the buttons / chip remain interactive. */
+/* Children re-enable pointer events so the bar is click-through but the
+   button stays interactive. */
 .home-sticky-actions > * {
   pointer-events: auto;
 }
@@ -402,17 +390,6 @@
   margin: 0;
   padding: var(--spacing-2) 0;
   color: var(--text-secondary);
-}
-
-/* Add Customers modal — scrollable list region. */
-.home-customers-list {
-  max-height: 240px;
-  overflow-y: auto;
-}
-
-.home-customers-empty {
-  margin-top: var(--spacing-3);
-  margin-bottom: var(--spacing-8);
 }
 
 /* === Initial mount entry animation =====================================

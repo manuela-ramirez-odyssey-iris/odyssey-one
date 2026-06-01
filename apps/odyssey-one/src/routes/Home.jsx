@@ -4,7 +4,6 @@ import {
   ClipboardList,
   Container,
   Download,
-  Handshake,
   Plus,
   Route,
   TriangleAlert,
@@ -17,13 +16,10 @@ import {
   AddSectionButton,
   AddSectionDivider,
   Button,
-  CustomerRow,
   EmptyState,
-  EntityChip,
   ModalLarge,
   ModalMedium,
   PageHeader,
-  SearchField,
   SectionHeader,
   SectionLabel,
   Widget,
@@ -51,6 +47,7 @@ import {
 } from '@dnd-kit/sortable'
 import AppShell from '../components/layout/AppShell'
 import { useEditMode } from '../contexts/EditModeContext.jsx'
+import { useCustomers } from '../contexts/CustomersContext.jsx'
 import { useTrackingLoadStatistics } from '../hooks/useTrackingLoadStatistics'
 import './Home.css'
 
@@ -123,10 +120,19 @@ const widgetGoToPaths = {
   'um-pending': '/users',
   'um-account-reviews': '/users',
   'um-rejected': '/users',
-  'shipments-exceptions': '/shipments',
+  'tracking-load-status': '/tracking',
   'shipments-monitoring': '/shipments',
   'shipments-po-ipgr': '/shipments',
   'tracking-total': '/tracking',
+  'orders-exceptions-detail': '/orders',
+  'orders-fulfillment': '/orders',
+  'tracking-at-risk': '/tracking',
+  'tracking-on-time': '/tracking',
+  'carriers-performance': '/carriers',
+  'carriers-capacity': '/carriers',
+  'shipments-exceptions': '/shipments',
+  'users-activity': '/users',
+  'users-reviews': '/users',
 }
 
 const ctaRowsStub = [
@@ -141,20 +147,6 @@ const carriersIcon = <Truck {...ICON_LG} />
 const userMgmtIcon = <UserCog {...ICON_LG} />
 const shipmentsIcon = <Container {...ICON_LG} />
 const trackingIcon = <Route {...ICON_LG} />
-
-const shipmentsExceptionsRows = [
-  { label: 'Date Issues', value: '99 (26.33%)', indicatorColor: 'var(--chart-1)', onClick: handleRow('date-issues') },
-  { label: 'Routing Review', value: '72 (19.15%)', indicatorColor: 'var(--chart-2)', onClick: handleRow('routing-review') },
-  { label: 'Tender Issues', value: '161 (42.82%)', indicatorColor: 'var(--chart-3)', onClick: handleRow('tender-issues') },
-  { label: 'Bid Review', value: '44 (11.70%)', indicatorColor: 'var(--chart-4)', onClick: handleRow('bid-review') },
-]
-
-const shipmentsExceptionsSegments = [
-  { value: 99, color: 'var(--chart-1)' },
-  { value: 72, color: 'var(--chart-2)' },
-  { value: 161, color: 'var(--chart-3)' },
-  { value: 44, color: 'var(--chart-4)' },
-]
 
 const shipmentsMonitoringRows = [
   { label: 'Hold', value: '533 (64.93%)', indicatorColor: 'var(--chart-1)', onClick: handleRow('hold') },
@@ -288,17 +280,26 @@ const initialWidgets = [
   },
   // --- Shipments row ---
   {
-    id: 'shipments-exceptions',
+    id: 'tracking-load-status',
     variant: '3xChart',
     props: {
-      title: 'Shipments - Exceptions',
-      domainIcon: shipmentsIcon,
-      value: '376',
-      label: 'Total Shipments Exceptions',
-      chartSegments: shipmentsExceptionsSegments,
-      rows: shipmentsExceptionsRows,
-      goToLabel: 'Go to Shipments Exceptions',
-      onGoToClick: handleRow('shipments-exceptions'),
+      title: 'Tracking — Load Status',
+      domainIcon: trackingIcon,
+      // Zero/empty state shown until live load-statistics resolve (see the
+      // useTrackingLoadStatistics effect). Empty gray ring + 0 rows so nothing
+      // stale/confusing flashes before the real numbers arrive.
+      value: '0',
+      label: 'Total Loads (Last 30 Days)',
+      chartSegments: [{ value: 1, color: 'var(--chart-rest)' }],
+      chartTotal: 1,
+      rows: [
+        { label: 'Scheduled P/U Today', value: '0', indicatorColor: 'var(--chart-1)', onClick: handleRow('scheduled-pu') },
+        { label: 'EnRoute', value: '0', indicatorColor: 'var(--chart-2)', onClick: handleRow('enroute') },
+        { label: 'Delivered', value: '0', indicatorColor: 'var(--chart-3)', onClick: handleRow('delivered') },
+        { label: 'At Risk', value: '0', indicatorColor: 'var(--chart-4)', onClick: handleRow('at-risk') },
+      ],
+      goToLabel: 'Go to Tracking',
+      onGoToClick: handleRow('tracking-load-status'),
     },
   },
   {
@@ -329,6 +330,242 @@ const initialWidgets = [
       onGoToClick: handleRow('shipments-po-ipgr'),
     },
   },
+  // --- Dummy data, ready (NOT placed in the default layout) ----------------
+  // These mirror the live tracking-load-status shape (value, chartSegments,
+  // chartTotal, rows) so the count-up + pie-chart parsers already handle them.
+  // To surface one: add its id to a section's widgetIds (initialSections) — or,
+  // when its API lands, swap the static numbers for a live fetch the way the
+  // tracking-load-status useEffect does. NOTE: only tracking-load-status is
+  // wired to a real data source today; everything below is placeholder data.
+  {
+    id: 'orders-exceptions-detail',
+    variant: '3xChart',
+    props: {
+      title: 'Orders — Exceptions',
+      domainIcon: orderIcon,
+      value: '312',
+      label: 'Total Order Exceptions',
+      chartSegments: [
+        { value: 134, color: 'var(--chart-1)' },
+        { value: 88, color: 'var(--chart-2)' },
+        { value: 56, color: 'var(--chart-3)' },
+        { value: 34, color: 'var(--chart-4)' },
+      ],
+      chartTotal: 312,
+      rows: [
+        { label: 'Data Validation', value: '134 (42.95%)', indicatorColor: 'var(--chart-1)', onClick: handleRow('data-validation') },
+        { label: 'Interface Failures', value: '88 (28.21%)', indicatorColor: 'var(--chart-2)', onClick: handleRow('interface-failures') },
+        { label: 'Canceled', value: '56 (17.95%)', indicatorColor: 'var(--chart-3)', onClick: handleRow('canceled') },
+        { label: 'Duplicates', value: '34 (10.90%)', indicatorColor: 'var(--chart-4)', onClick: handleRow('duplicates') },
+      ],
+      goToLabel: 'Go to Orders',
+      onGoToClick: handleRow('orders-exceptions-detail'),
+    },
+  },
+  {
+    id: 'orders-fulfillment',
+    variant: '3xChart',
+    props: {
+      title: 'Orders — Fulfillment',
+      domainIcon: orderIcon,
+      value: '1,240',
+      label: 'Total Orders in Fulfillment',
+      chartSegments: [
+        { value: 418, color: 'var(--chart-1)' },
+        { value: 366, color: 'var(--chart-2)' },
+        { value: 281, color: 'var(--chart-3)' },
+        { value: 175, color: 'var(--chart-4)' },
+      ],
+      chartTotal: 1240,
+      rows: [
+        { label: 'Open', value: '418 (33.71%)', indicatorColor: 'var(--chart-1)', onClick: handleRow('open') },
+        { label: 'Picking', value: '366 (29.52%)', indicatorColor: 'var(--chart-2)', onClick: handleRow('picking') },
+        { label: 'Packed', value: '281 (22.66%)', indicatorColor: 'var(--chart-3)', onClick: handleRow('packed') },
+        { label: 'Shipped', value: '175 (14.11%)', indicatorColor: 'var(--chart-4)', onClick: handleRow('shipped') },
+      ],
+      goToLabel: 'Go to Orders',
+      onGoToClick: handleRow('orders-fulfillment'),
+    },
+  },
+  // --- Tracking section ---
+  {
+    id: 'tracking-at-risk',
+    variant: '3xChart',
+    props: {
+      title: 'Tracking — At Risk',
+      domainIcon: trackingIcon,
+      value: '287',
+      label: 'Total At Risk Loads',
+      chartSegments: [
+        { value: 96, color: 'var(--chart-1)' },
+        { value: 82, color: 'var(--chart-2)' },
+        { value: 71, color: 'var(--chart-3)' },
+        { value: 38, color: 'var(--chart-4)' },
+      ],
+      chartTotal: 287,
+      rows: [
+        { label: 'At Risk Pickup', value: '96 (33.45%)', indicatorColor: 'var(--chart-1)', onClick: handleRow('at-risk-pickup') },
+        { label: 'At Risk Delivery', value: '82 (28.57%)', indicatorColor: 'var(--chart-2)', onClick: handleRow('at-risk-delivery') },
+        { label: 'Delayed', value: '71 (24.74%)', indicatorColor: 'var(--chart-3)', onClick: handleRow('delayed') },
+        { label: 'Exception', value: '38 (13.24%)', indicatorColor: 'var(--chart-4)', onClick: handleRow('exception') },
+      ],
+      goToLabel: 'Go to Tracking',
+      onGoToClick: handleRow('tracking-at-risk'),
+    },
+  },
+  {
+    id: 'tracking-on-time',
+    variant: '3xChart',
+    props: {
+      title: 'Tracking — On Time',
+      domainIcon: trackingIcon,
+      value: '1,684',
+      label: 'Total On Time Loads',
+      chartSegments: [
+        { value: 612, color: 'var(--chart-1)' },
+        { value: 548, color: 'var(--chart-2)' },
+        { value: 327, color: 'var(--chart-3)' },
+        { value: 197, color: 'var(--chart-4)' },
+      ],
+      chartTotal: 1684,
+      rows: [
+        { label: 'On Time Pickup', value: '612 (36.34%)', indicatorColor: 'var(--chart-1)', onClick: handleRow('on-time-pickup') },
+        { label: 'On Time Delivery', value: '548 (32.54%)', indicatorColor: 'var(--chart-2)', onClick: handleRow('on-time-delivery') },
+        { label: 'Early', value: '327 (19.42%)', indicatorColor: 'var(--chart-3)', onClick: handleRow('early') },
+        { label: 'Late', value: '197 (11.70%)', indicatorColor: 'var(--chart-4)', onClick: handleRow('late') },
+      ],
+      goToLabel: 'Go to Tracking',
+      onGoToClick: handleRow('tracking-on-time'),
+    },
+  },
+  // --- Carriers section ---
+  {
+    id: 'carriers-performance',
+    variant: '3xChart',
+    props: {
+      title: 'Carriers — Performance',
+      domainIcon: carriersIcon,
+      value: '946',
+      label: 'Total Carrier Performance',
+      chartSegments: [
+        { value: 612, color: 'var(--chart-1)' },
+        { value: 188, color: 'var(--chart-2)' },
+        { value: 92, color: 'var(--chart-3)' },
+        { value: 54, color: 'var(--chart-4)' },
+      ],
+      chartTotal: 946,
+      rows: [
+        { label: 'On Time', value: '612 (64.69%)', indicatorColor: 'var(--chart-1)', onClick: handleRow('on-time') },
+        { label: 'Late', value: '188 (19.87%)', indicatorColor: 'var(--chart-2)', onClick: handleRow('late') },
+        { label: 'Rejected', value: '92 (9.73%)', indicatorColor: 'var(--chart-3)', onClick: handleRow('rejected') },
+        { label: 'No Response', value: '54 (5.71%)', indicatorColor: 'var(--chart-4)', onClick: handleRow('no-response') },
+      ],
+      goToLabel: 'Go to Carriers',
+      onGoToClick: handleRow('carriers-performance'),
+    },
+  },
+  {
+    id: 'carriers-capacity',
+    variant: '3xChart',
+    props: {
+      title: 'Carriers — Capacity',
+      domainIcon: carriersIcon,
+      value: '1,432',
+      label: 'Total Carrier Capacity',
+      chartSegments: [
+        { value: 724, color: 'var(--chart-1)' },
+        { value: 486, color: 'var(--chart-2)' },
+        { value: 142, color: 'var(--chart-3)' },
+        { value: 80, color: 'var(--chart-4)' },
+      ],
+      chartTotal: 1432,
+      rows: [
+        { label: 'Available', value: '724 (50.56%)', indicatorColor: 'var(--chart-1)', onClick: handleRow('available') },
+        { label: 'Booked', value: '486 (33.94%)', indicatorColor: 'var(--chart-2)', onClick: handleRow('booked') },
+        { label: 'Maintenance', value: '142 (9.92%)', indicatorColor: 'var(--chart-3)', onClick: handleRow('maintenance') },
+        { label: 'Inactive', value: '80 (5.59%)', indicatorColor: 'var(--chart-4)', onClick: handleRow('inactive') },
+      ],
+      goToLabel: 'Go to Carriers',
+      onGoToClick: handleRow('carriers-capacity'),
+    },
+  },
+  // --- Shipments (additional) ---
+  {
+    id: 'shipments-exceptions',
+    variant: '3xChart',
+    props: {
+      title: 'Shipments — Exceptions',
+      domainIcon: shipmentsIcon,
+      value: '376',
+      label: 'Total Shipments Exceptions',
+      chartSegments: [
+        { value: 99, color: 'var(--chart-1)' },
+        { value: 72, color: 'var(--chart-2)' },
+        { value: 161, color: 'var(--chart-3)' },
+        { value: 44, color: 'var(--chart-4)' },
+      ],
+      chartTotal: 376,
+      rows: [
+        { label: 'Date Issues', value: '99 (26.33%)', indicatorColor: 'var(--chart-1)', onClick: handleRow('date-issues') },
+        { label: 'Routing Review', value: '72 (19.15%)', indicatorColor: 'var(--chart-2)', onClick: handleRow('routing-review') },
+        { label: 'Tender Issues', value: '161 (42.82%)', indicatorColor: 'var(--chart-3)', onClick: handleRow('tender-issues') },
+        { label: 'Bid Review', value: '44 (11.70%)', indicatorColor: 'var(--chart-4)', onClick: handleRow('bid-review') },
+      ],
+      goToLabel: 'Go to Shipments',
+      onGoToClick: handleRow('shipments-exceptions'),
+    },
+  },
+  // --- Users section ---
+  {
+    id: 'users-activity',
+    variant: '3xChart',
+    props: {
+      title: 'Users — Activity',
+      domainIcon: userMgmtIcon,
+      value: '648',
+      label: 'Total User Activity',
+      chartSegments: [
+        { value: 421, color: 'var(--chart-1)' },
+        { value: 142, color: 'var(--chart-2)' },
+        { value: 53, color: 'var(--chart-3)' },
+        { value: 32, color: 'var(--chart-4)' },
+      ],
+      chartTotal: 648,
+      rows: [
+        { label: 'Active', value: '421 (64.97%)', indicatorColor: 'var(--chart-1)', onClick: handleRow('active') },
+        { label: 'Idle', value: '142 (21.91%)', indicatorColor: 'var(--chart-2)', onClick: handleRow('idle') },
+        { label: 'Locked', value: '53 (8.18%)', indicatorColor: 'var(--chart-3)', onClick: handleRow('locked') },
+        { label: 'Pending', value: '32 (4.94%)', indicatorColor: 'var(--chart-4)', onClick: handleRow('pending') },
+      ],
+      goToLabel: 'Go to Users',
+      onGoToClick: handleRow('users-activity'),
+    },
+  },
+  {
+    id: 'users-reviews',
+    variant: '3xChart',
+    props: {
+      title: 'Users — Reviews',
+      domainIcon: userMgmtIcon,
+      value: '218',
+      label: 'Total Account Reviews',
+      chartSegments: [
+        { value: 112, color: 'var(--chart-1)' },
+        { value: 41, color: 'var(--chart-2)' },
+        { value: 47, color: 'var(--chart-3)' },
+        { value: 18, color: 'var(--chart-4)' },
+      ],
+      chartTotal: 218,
+      rows: [
+        { label: 'Approved', value: '112 (51.38%)', indicatorColor: 'var(--chart-1)', onClick: handleRow('approved') },
+        { label: 'Rejected', value: '41 (18.81%)', indicatorColor: 'var(--chart-2)', onClick: handleRow('rejected') },
+        { label: 'In Review', value: '47 (21.56%)', indicatorColor: 'var(--chart-3)', onClick: handleRow('in-review') },
+        { label: 'Escalated', value: '18 (8.26%)', indicatorColor: 'var(--chart-4)', onClick: handleRow('escalated') },
+      ],
+      goToLabel: 'Go to Users',
+      onGoToClick: handleRow('users-reviews'),
+    },
+  },
 ]
 
 // Default sections seed — groups initial widgets by domain. The user can
@@ -352,7 +589,7 @@ const initialSections = [
   {
     id: 'sec-shipments',
     name: 'Shipments',
-    widgetIds: ['shipments-exceptions', 'shipments-monitoring', 'shipments-po-ipgr'],
+    widgetIds: ['tracking-load-status', 'shipments-monitoring', 'shipments-po-ipgr'],
   },
 ]
 
@@ -936,10 +1173,10 @@ export default function Home() {
     }),
   )
 
-  // On fetch success, override the shipments-exceptions widget props with
-  // live load-statistics from the Odyssey Tracking platform. The static
-  // mock from initialWidgets stays visible on failure (network, auth,
-  // schema) — the widget never knows whether it is showing live or mock.
+  // On fetch success, fill the tracking-load-status widget with live
+  // load-statistics from the Odyssey Tracking platform. The widget's own
+  // zero/empty state stays visible until then (and on failure — network,
+  // auth, schema) — so nothing stale flashes before the real numbers arrive.
   const { data: trackingData } = useTrackingLoadStatistics()
   useEffect(() => {
     if (!trackingData?.statuses) return
@@ -952,14 +1189,15 @@ export default function Home() {
     const total = countOf('All shipments')
     setWidgets((prev) =>
       prev.map((w) =>
-        w.id === 'shipments-exceptions'
+        w.id === 'tracking-load-status'
           ? {
               ...w,
               props: {
                 ...w.props,
-                title: 'Tracking — Load Status',
+                // Fill the zero-state tracking-load-status widget with live
+                // numbers. Title / label / goToLabel / onGoToClick already
+                // come from the widget's own definition (+ widgetGoToPaths).
                 value: total.toLocaleString(),
-                label: 'Total Loads (Last 30 Days)',
                 rows: [
                   { label: 'Scheduled P/U Today', value: sched.toLocaleString(), indicatorColor: 'var(--chart-1)', onClick: handleRow('scheduled-pu') },
                   { label: 'EnRoute', value: enroute.toLocaleString(), indicatorColor: 'var(--chart-2)', onClick: handleRow('enroute') },
@@ -973,7 +1211,6 @@ export default function Home() {
                   { value: atRisk, color: 'var(--chart-4)' },
                 ],
                 chartTotal: sched + enroute + delivered + atRisk,
-                goToLabel: 'Go to Tracking',
               },
             }
           : w,
@@ -999,34 +1236,10 @@ export default function Home() {
   const [searchValue, setSearchValue] = useState('')
   const [collapsedGroupIds, setCollapsedGroupIds] = useState(new Set())
   const [gridKey, setGridKey] = useState(0)
-  const [customers, setCustomers] = useState(() => {
-    // Partial customer list — full list will be provided later.
-    const names = [
-      'Kemira NA', 'Kemira EU', 'Geon', 'Valtris', 'USALCO',
-      'Dubois', 'Solenis', 'Etex', 'Monument', 'Grace', 'IMCD',
-    ]
-    return names.map((label, i) => ({
-      id: `c${i + 1}`,
-      label,
-      favorite: i < 3,
-    }))
-  })
-  const [selectedIds, setSelectedIds] = useState(() => new Set(['c1', 'c2', 'c3']))
-  const [customersModalOpen, setCustomersModalOpen] = useState(false)
-  const [customersFilter, setCustomersFilter] = useState('')
-  const [customersResultsOpen, setCustomersResultsOpen] = useState(false)
-  const customersSearchRef = useRef(null)
-
-  useEffect(() => {
-    if (!customersResultsOpen) return
-    function onMouseDown(e) {
-      if (customersSearchRef.current && !customersSearchRef.current.contains(e.target)) {
-        setCustomersResultsOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', onMouseDown)
-    return () => document.removeEventListener('mousedown', onMouseDown)
-  }, [customersResultsOpen])
+  // Customer selection is global (owned by CustomersContext, triggered from the
+  // navbar handshake). Home is just a consumer: it reads selectedIds to gate
+  // widget data.
+  const { selectedIds } = useCustomers()
 
   // Configurator modal — also tracks which section the new widget should land in.
   const [configurator, setConfigurator] = useState(null)
@@ -1176,44 +1389,6 @@ export default function Home() {
     })
     setDeletingSectionId(null)
   }, [deletingSectionId])
-
-  // --- Customers (unchanged) ----------------------------------------------
-
-  const handleOpenCustomersModal = useCallback(() => {
-    setCustomersFilter('')
-    setCustomersModalOpen(true)
-  }, [])
-  const handleCloseCustomersModal = useCallback(() => {
-    setCustomersModalOpen(false)
-  }, [])
-  const handleToggleCustomerFavorite = useCallback((id) => {
-    setCustomers((cs) => cs.map((c) => (c.id === id ? { ...c, favorite: !c.favorite } : c)))
-  }, [])
-  const handleToggleCustomerSelect = useCallback((id) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-  }, [])
-  const handleDeleteCustomer = useCallback((id) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev)
-      next.delete(id)
-      return next
-    })
-  }, [])
-  const selectedCustomers = useMemo(
-    () => customers.filter((c) => selectedIds.has(c.id)),
-    [customers, selectedIds],
-  )
-  const searchMatches = useMemo(() => {
-    const q = customersFilter.trim().toLowerCase()
-    const available = customers.filter((c) => !selectedIds.has(c.id))
-    if (!q) return available
-    return available.filter((c) => c.label.toLowerCase().includes(q))
-  }, [customers, customersFilter, selectedIds])
 
   // --- Panel + item picker -------------------------------------------------
 
@@ -1465,13 +1640,9 @@ export default function Home() {
       {!isEditMode && (
         <>
           <PageHeader title="Home" className="home-page-header home-on-dark" />
-          <SectionHeader
-            title="Welcome Amy!"
-            supportingText="Last update: 04/24/2026 03:51 PM"
-            className="home-on-dark"
-          />
-          {/* Welcome-row actions, extracted out of SectionHeader so they can
-              stick at top:32 while the title row scrolls away. */}
+          {/* Edit Dashboard View — pinned, right-aligned, pulled up to sit on
+              the "Home" PageHeader row. position: sticky keeps it reachable as
+              widgets scroll (sticky parent is .home-content, full page height). */}
           <div className="home-sticky-actions">
             <Button
               variant="primary"
@@ -1481,12 +1652,12 @@ export default function Home() {
             >
               {widgets.length === 0 ? 'Add Widgets' : 'Edit Dashboard View'}
             </Button>
-            <EntityChip
-              name={selectedIds.size === 0 ? 'Add Customers' : 'Customers'}
-              count={selectedIds.size}
-              onAddClick={handleOpenCustomersModal}
-            />
           </div>
+          <SectionHeader
+            title="Welcome Amy!"
+            supportingText="Last update: 04/24/2026 03:51 PM"
+            className="home-on-dark"
+          />
         </>
       )}
       {isEditMode && (
@@ -1498,11 +1669,6 @@ export default function Home() {
           >
             Add Section
           </Button>
-          <EntityChip
-            name="Add Customers"
-            count={selectedIds.size}
-            onAddClick={handleOpenCustomersModal}
-          />
         </div>
       )}
 
@@ -1768,82 +1934,6 @@ export default function Home() {
             <strong>{deletingSection.placements.length}</strong>{' '}
             {deletingSection.placements.length === 1 ? 'widget' : 'widgets'} inside it. This cannot be undone.
           </p>
-        </ModalMedium>
-      )}
-      {customersModalOpen && (
-        <ModalMedium
-          scrollableContent
-          title="Add Customers"
-          onClose={handleCloseCustomersModal}
-          footer={
-            <>
-              <Button variant="secondary" size="lg" onClick={handleCloseCustomersModal}>
-                Cancel
-              </Button>
-              <Button variant="primary" size="lg" onClick={handleCloseCustomersModal}>
-                Save
-              </Button>
-            </>
-          }
-        >
-          <div
-            ref={customersSearchRef}
-            onFocus={() => setCustomersResultsOpen(true)}
-          >
-          <SearchField
-            value={customersFilter}
-            onChange={(v) => { setCustomersFilter(v); setCustomersResultsOpen(true) }}
-            onClear={() => { setCustomersFilter(''); setCustomersResultsOpen(false) }}
-            placeholder="Search Customers"
-            showLabel
-            showInfoIcon
-            label="Set your Customers"
-            results={
-              customersResultsOpen ? (
-                <>
-                  <div className="search-field__results-header text-label-sm-medium">
-                    All Customers
-                  </div>
-                  {searchMatches.length === 0 ? (
-                    <div className="search-field__results-empty text-label-sm-regular">
-                      No matches
-                    </div>
-                  ) : (
-                    searchMatches.map((c) => (
-                      <CustomerRow
-                        key={c.id}
-                        mode="result"
-                        label={c.label}
-                        favorite={c.favorite}
-                        onClick={() => handleToggleCustomerSelect(c.id)}
-                        onFavoriteToggle={() => handleToggleCustomerFavorite(c.id)}
-                      />
-                    ))
-                  )}
-                </>
-              ) : null
-            }
-          />
-          </div>
-          <div className="home-customers-list">
-            {selectedCustomers.length === 0 ? (
-              <EmptyState
-                className="home-customers-empty"
-                icon={<Handshake size={32} />}
-                message="No customer has been selected yet."
-              />
-            ) : (
-              selectedCustomers.map((c) => (
-                <CustomerRow
-                  key={c.id}
-                  mode="list"
-                  label={c.label}
-                  favorite={c.favorite}
-                  onDelete={() => handleDeleteCustomer(c.id)}
-                />
-              ))
-            )}
-          </div>
         </ModalMedium>
       )}
     </AppShell>

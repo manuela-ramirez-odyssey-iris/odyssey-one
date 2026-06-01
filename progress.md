@@ -3303,6 +3303,60 @@ The `useState` lazy init now also wraps each matched widget's `onGoToClick` with
 
 **Two prod deploys** — both via `npx vercel --prod`. Live URLs unchanged (`odyssey-one-stage.vercel.app`).
 
+## Session 35 — May 31, 2026
+
+Big multi-thread session: closed the FilterButton normalization cycle end-to-end, built a global cross-domain **Customers** feature (TrailNav handshake → popover; scrapped the Home-local impl), reworked the Home welcome header + the tracking-load-status widget, and added **lazy-load entry animations** (IntersectionObserver-gated chart grow-in + number count-up) with ready-but-unplaced dummy data for every domain.
+
+Library: **37 normalized components** (+1 FilterButton). New token `--deep-sea-neutral-950`. New Badge `count` variant. Code Connect republished (37 mappings). Figma library republished by user.
+
+### Thread 1 — FilterButton (full normalize cycle: GATE A → B-DSM → B-Project → Phase 3)
+- Extracted the filter trigger from the GlobalSearch Figma into a standalone **`FilterButton`** atom: 4 states — Default (`950`) / Hover (`800`) / Pressed (`800` + Carolina, CSS `:active`) / Active (`950` + Carolina, `.is-active`) — rounded right corners (`radius-lg`), left divider, `sliders-horizontal` icon, `label/sm medium`.
+- New token **`--deep-sea-neutral-950: #0F182A`** (tokens.css + Figma var) — the recessed default fill. (Reversed the earlier "no new color" call per user.)
+- New Badge **`count`** variant (carolina-blue-400 / white / pill / min-width) in code + Figma — replaced the per-instance fill-override drift.
+- Pressed is color-only; the count badge **pops** on press (sibling combinator). Proposed + approved in Figma, validated in the DSM Normalize tab, then promoted to the Components tab (NORMALIZED pill + modal + tables); Normalize tab reset; tracker updated.
+- Code Connect published (`FilterButton` State→`active`; the `Show badge` mapping dropped once the badge moved out).
+
+### Thread 2 — GlobalSearch integration + fixes
+- FilterButton wired into GlobalSearch (`showFilter` / `filterCount` / `filterActive` / `onFilterClick`); wrapper `overflow→visible` + flush right padding so the bar's rounded corner *and* the overhanging badge both render. Resolved the corner-clip ("dirty solution") via FilterButton's own rounded right corners + reset instance overrides.
+- Count badge moved OUT of FilterButton to a **GlobalSearch-level sibling overlay** (per user's Figma restructure); the `Show badge` toggle moved FilterButton → GlobalSearch; FilterButton instances exposed so `State` bubbles up.
+- Fixes: filter-active now also focuses the bar (Carolina border); `filterActive` works (optional-controlled + internal toggle); active fill = `950`.
+
+### Thread 3 — Global Customers feature (was Home-local)
+- New **`CustomersContext`** (provider in `main.jsx`) owns customers / `selectedIds` / modal state + favorite/select/delete/toggle. `useCustomers()`.
+- New **`CustomersModal`** — a **popover** (no overlay, anchored below the navbar, right-aligned, 14px from the window edge, viewport-bounded; click-outside / ESC; handshake toggles it). Not `ModalMedium`.
+- TrailNav: new **handshake "Customers" button** (left of the bell, `ICON_LG`, no badge, hover + active states); `onCustomersClick` / `customersActive` (lit while the modal is open).
+- **Scrapped the Home-local customers implementation** (state/handlers/modal + both `EntityChip` usages); Home now only *reads* `selectedIds`. **`EntityChip` kept** (consumer-less, pending Efrain). Modal list CSS moved Home.css → global `.customers-modal-*`.
+
+### Thread 4 — Home dashboard
+- **Edit Dashboard View** button repositioned: pinned (sticky) on the "Home" PageHeader row, right-aligned; "Last update" slug back as SectionHeader `supportingText` on the "Welcome" row (scrolls, not pinned). Old sticky-actions stack removed.
+- **`tracking-load-status`** is now a proper Tracking widget (own id, tracking icon, navigates to `/tracking`, zero/empty state until live data — no more hijacking `shipments-exceptions`). The `useTrackingLoadStatistics` effect fills live numbers only.
+- **Lazy-load entry animations:** `useInView` (IntersectionObserver, latched) gates the pie-chart grow-in + number count-up — hidden widgets stay at 0, animate on scroll-in. Numbers count up from 0 (`CountUp`, animates every numeric token incl. percentages; 2x donut percentage included). `WidgetPieChart` remounts via a data-derived `key` to replay the sweep on data arrival.
+- **Dummy data for every domain** (orders/tracking/carriers/shipments/users) in the working `3xChart` shape — **ready but NOT placed** (commented; only `tracking-load-status` is API-connected). Dashboard layout reverted to Overview + Shipments.
+
+### Files / commits
+**New:** `packages/ui/src/FilterButton.jsx` + `.figma.tsx`; `apps/odyssey-one/src/contexts/CustomersContext.jsx`; `apps/odyssey-one/src/components/CustomersModal.jsx`; `vault/00-inbox/Customers.png`
+**Modified (packages/ui):** `Badge.jsx` (count variant), `GlobalSearch.jsx` (FilterButton + badge sibling + active/focus), `TrailNav.jsx` (handshake), `Widget.jsx` (CountUp + useInView + pieKey remount), `WidgetPieChart.jsx` (play gating), `index.js` (FilterButton export)
+**Modified (app):** `AppShell.jsx` (CustomersModal mount), `Navbar.jsx` (handshake wiring), `main.jsx` (CustomersProvider), `Home.jsx` (welcome header, tracking-load-status, dummy data), `Home.css`, `components.css` (`.filter-button`, `.customers-popover`, `.trail-nav-customers`, `.customers-modal-*`, `.home-*`)
+**Modified (tokens):** `tokens.css` (`--deep-sea-neutral-950`)
+**Modified (playground):** `DesignSystemMap.html` (FilterButton promoted, Badge count), `normalization-tracker.md`
+
+### State of `@odyssey/ui` after Session 35
+**37 normalized components** (+FilterButton). **Code Connect:** 37 mappings (published). **Tokens:** +`--deep-sea-neutral-950`. **Badge:** +`count` variant. **Library publish:** done by user this session (FilterButton + GlobalSearch structural changes); the TrailNav handshake structural change still needs a republish.
+
+### Carry-forward to Session 36
+**Next up (user):** **background image effect + overlay** (Home hero).
+
+**Pending:**
+- **TrailNav handshake** — Code Connect (`.figma.tsx`) + DSM entry + library republish (the button + active state aren't mapped/documented yet).
+- **GlobalSearch Code Connect** — map the exposed `Show badge`/`State` → `filterCount`/`filterActive` (deferred).
+- **EntityChip** — consumer-less; awaiting Efrain's call to remove the component.
+- **Dummy domain widgets** — ready/unplaced; surface via `initialSections` or wire to catalog/API when needed.
+- **CustomersModal** — results-dropdown-open-on-mount UX (designer check); width `360` / top offset / `z-index 9000` are tweakable defaults.
+
+**Standing (unchanged):** SHP-66 generic dropdown menu, SHP-67 responsive normalization pass, normalizations backlog (StatusBadge/TypeBadge/HazmatTag/Appointment/Tab pills, IconButton size matrix, etc.), Supabase persistence, POC 1 OIDC migration, `/normalize-angular` skill.
+
+---
+
 ## Session 34 — May 30, 2026
 
 Single thread: ship a working quick-demo of the new GlobalSearch inside Shipments to validate the screenshot-driven UX flow end-to-end against real JSON data, *before* normalization. Three full rebuild cycles after explicit course-corrections from the user. The session's actual value isn't the code (which gets scrapped Session 35) — it's the validated understanding of the new GlobalSearch's behavior in the live Shipments context, plus the discovery that the normalized `GlobalSearch`'s "All" scope chip is no longer wanted across the app.

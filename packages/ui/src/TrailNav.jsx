@@ -1,4 +1,4 @@
-import { Bell, ChevronDown, ChevronUp, CircleHelp, X } from 'lucide-react'
+import { Bell, ChevronDown, ChevronUp, CircleHelp, Handshake, X } from 'lucide-react'
 import { ICON_MD, ICON_LG } from '@odyssey/tokens'
 import Badge from './Badge.jsx'
 import Button from './Button.jsx'
@@ -14,8 +14,11 @@ function TrailNavProfile({
   avatar,
   notificationCount = 0,
   showNotification,
+  showCustomers = true,
+  customersActive = false,
   chevron,
   dropdownOpen = false,
+  onCustomersClick,
   onNotificationClick,
   onProfileClick,
 }) {
@@ -24,6 +27,24 @@ function TrailNavProfile({
 
   return (
     <div className="flex items-stretch shrink-0" style={{ gap: 'var(--spacing-4)' }}>
+      {showCustomers && (
+        <button
+          type="button"
+          onClick={onCustomersClick}
+          aria-pressed={customersActive}
+          className={`trail-nav-customers relative flex items-center justify-center border-none bg-transparent cursor-pointer self-center${customersActive ? ' is-active' : ''}`}
+          style={{
+            width: 32,
+            height: 32,
+            padding: 'var(--spacing-1) 6px',
+            color: 'var(--deep-sea-neutral-500)',
+          }}
+          aria-label="Customers"
+        >
+          <Handshake {...ICON_LG} />
+        </button>
+      )}
+
       <button
         type="button"
         onClick={onNotificationClick}
