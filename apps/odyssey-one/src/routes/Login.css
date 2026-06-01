@@ -26,7 +26,8 @@
 .login-page__bg {
   position: absolute;
   inset: 0;
-  background-image: url('/bg.webp');
+  /* background-image set inline in Login.jsx to the shared HERO_INITIAL_INDEX
+     photo (same one Home opens on). */
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;

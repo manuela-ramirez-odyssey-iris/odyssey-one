@@ -1,4 +1,5 @@
 import { AuthModal, AuthContent } from '@odyssey/ui'
+import { HERO_IMAGES, HERO_INITIAL_INDEX } from '../heroImages'
 import './Login.css'
 
 /**
@@ -13,7 +14,13 @@ import './Login.css'
 export default function Login({ onLogin, phase = 'login' }) {
   return (
     <div className={`login-page login-page--${phase}`}>
-      <div className="login-page__bg" aria-hidden="true" />
+      {/* Same photo Home opens on (shared random index), so the login→home
+          crossfade lands on a matching background. */}
+      <div
+        className="login-page__bg"
+        aria-hidden="true"
+        style={{ backgroundImage: `url(${HERO_IMAGES[HERO_INITIAL_INDEX]})` }}
+      />
       <AuthModal>
         <AuthContent variant="login" onLogin={onLogin} />
       </AuthModal>

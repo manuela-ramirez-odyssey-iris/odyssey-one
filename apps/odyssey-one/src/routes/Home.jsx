@@ -49,6 +49,7 @@ import AppShell from '../components/layout/AppShell'
 import { useEditMode } from '../contexts/EditModeContext.jsx'
 import { useCustomers } from '../contexts/CustomersContext.jsx'
 import { useTrackingLoadStatistics } from '../hooks/useTrackingLoadStatistics'
+import { HERO_IMAGES, HERO_ROTATE_MS, HERO_INITIAL_INDEX, heroPosition } from '../heroImages'
 import './Home.css'
 
 const domainIcon = <TriangleAlert {...ICON_LG} />
@@ -863,6 +864,11 @@ const ENTER_JITTER_MS = 40
 const ENTER_DURATION_MS = 600
 const MOUNT_ANIMATION_GATE_MS = 1800
 
+// Hero background rotation. The .home-background photo layers cross-fade
+// through HERO_IMAGES, advancing every HERO_ROTATE_MS, starting from the
+// shared random HERO_INITIAL_INDEX (so Home opens on the same photo Login
+// showed). See src/heroImages.js.
+
 // Place a widget so it COVERS the target (row, col) with minimal slide from
 // its current position. The widget keeps its full size; only the anchor moves.
 //
@@ -1120,13 +1126,13 @@ export default function Home() {
   const [bgLoaded, setBgLoaded] = useState(() => {
     if (typeof Image === 'undefined') return true
     const img = new Image()
-    img.src = '/bg.webp'
+    img.src = HERO_IMAGES[HERO_INITIAL_INDEX]
     return img.complete // cached → true synchronously, skip the waiting state entirely
   })
   useEffect(() => {
     if (bgLoaded) return
     const img = new Image()
-    img.src = '/bg.webp'
+    img.src = HERO_IMAGES[HERO_INITIAL_INDEX]
     if (img.complete) {
       setBgLoaded(true)
       return
@@ -1148,6 +1154,19 @@ export default function Home() {
     if (!bgLoaded) return
     const t = setTimeout(() => setIsMountAnimating(false), MOUNT_ANIMATION_GATE_MS)
     return () => clearTimeout(t)
+  }, [bgLoaded])
+
+  // Rotate the hero photo every HERO_ROTATE_MS. All HERO_IMAGES layers stay
+  // mounted (stacked in .home-background); only the active one is opaque, so
+  // the swap is a CSS opacity cross-fade. Starts once the first image is in.
+  const [heroIndex, setHeroIndex] = useState(HERO_INITIAL_INDEX)
+  useEffect(() => {
+    if (!bgLoaded || HERO_IMAGES.length < 2) return
+    const id = setInterval(
+      () => setHeroIndex((i) => (i + 1) % HERO_IMAGES.length),
+      HERO_ROTATE_MS,
+    )
+    return () => clearInterval(id)
   }, [bgLoaded])
 
   const ctaRows = useMemo(
@@ -1632,11 +1651,25 @@ export default function Home() {
   return (
     <AppShell>
       <div className={`home-content ${isEditMode ? 'home-content--edit' : ''}`.trim()}>
-        {/* Hero background — port-at-dusk image + 900→50 gradient overlay
-            anchored at the top of the scrollable Home content. Scrolls with
-            the rest of Home so foreground text stays in lockstep with the
-            bg it sits on. */}
-        <div className="home-background" aria-hidden="true" />
+        {/* Hero background — composed port-at-dusk effect (see .home-background
+            in Home.css): each photo layer is masked to fade out, with a DSN/900
+            COLOR-blend tint band (::after) over a DSN/50 base — all image-
+            agnostic. The layers cross-fade through HERO_IMAGES every 2 min.
+            Anchored at the top of the scrollable Home content so foreground
+            text stays in lockstep with the bg it sits on. */}
+        <div className="home-background" aria-hidden="true">
+          {HERO_IMAGES.map((src, i) => (
+            <div
+              key={src}
+              className="home-background__photo"
+              style={{
+                backgroundImage: `url(${src})`,
+                backgroundPosition: heroPosition(src),
+                opacity: i === heroIndex ? 1 : 0,
+              }}
+            />
+          ))}
+        </div>
       {!isEditMode && (
         <>
           <PageHeader title="Home" className="home-page-header home-on-dark" />

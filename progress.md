@@ -3303,6 +3303,62 @@ The `useState` lazy init now also wraps each matched widget's `onGoToClick` with
 
 **Two prod deploys** — both via `npx vercel --prod`. Live URLs unchanged (`odyssey-one-stage.vercel.app`).
 
+## Session 36 — May 31, 2026
+
+Focused single-thread session: reworked the Home hero background. Replaced the old baked-in gradient overlay with the **composed effect from the Figma "Background" artboard** (Design System — MCP, node `2383:4114`), turned the static single image into a **5-image rotation** that cross-fades every 2 minutes, made the start image **random + shared with Login**, and added **per-image bottom-crop framing** on Home. No design-system/component changes; no normalization cycle. Library count unchanged at **37**.
+
+### Thread 1 — Composed background effect (Figma → code)
+
+Pulled node `2383:4114` via Figma MCP + read the raw paint data through the Plugin API (the MCP rasterizes the boolean-subtract mask layers, so `use_figma` was needed for exact gradient stops / blend modes). The artboard is two stacked groups:
+
+- **Background+Filter** — the photo, masked by a top→bottom alpha gradient (opaque to **31.4%** → 0.5 at **43.8%** → 0 by **62%**). The image *masks away* rather than getting a tint painted over it.
+- **ColorOverlay** — a solid **#1B2537** (`--deep-sea-neutral-900`) rect with **`blend mode: COLOR`**, masked into a soft band (0 → 0.6 at 43.9% → peak 0.8 at 62.6% → 0.6 at 73.5% → 0 at 100%). COLOR blend keeps the backdrop luminance and applies only hue → reads as a faint deep-sea tint, not a dark stripe.
+
+Rebuilt `.home-background` as **3 layers**: DSN/50 base + `isolation: isolate` (gives the COLOR blend a luminance to act on and a seamless page seam), photo layer(s) with the fade mask, and the color band on `::after` with `mix-blend-mode: color`. Mask stops mirror the Figma gradient-subtract layers 1:1. Key win: the fade + tint live on masks **independent of the image**, so swapping/adding a photo keeps the identical treatment.
+
+### Thread 2 — 5-image rotation + random start + Login match
+
+- New shared module **`apps/odyssey-one/src/heroImages.js`**: `HERO_IMAGES` (`/bg1…/bg5.webp`), `HERO_ROTATE_MS` (120 000), `HERO_INITIAL_INDEX` (`Math.random()`, evaluated once per page load so it's stable across the Login→Home handoff), `HERO_POSITIONS` + `heroPosition(src)` helper.
+- `.home-background` now renders one stacked `.home-background__photo` layer per image (inline `background-image`); only the active index is `opacity:1`, so rotation is a **1.5s opacity cross-fade**. Interval starts once `bgLoaded` is true; `heroIndex` seeds from `HERO_INITIAL_INDEX`.
+- **Random start**: Home opens on `HERO_INITIAL_INDEX`. **Login match**: Login imports the same constant and renders `HERO_IMAGES[HERO_INITIAL_INDEX]` inline, so the login backdrop and the first Home photo are identical.
+- All `/bg.webp` references migrated to `/bg1.webp` (preload `<link>` in `index.html`, `Login.css`, Home's `bgLoaded` preload gate). Login's static `background-image` moved from CSS to inline.
+
+### Thread 3 — Per-image framing (Home only)
+
+`HERO_POSITIONS` biases the `cover` crop toward the bottom for photos that frame better that way: **bg2 `center 95%`**, **bg3/bg5 `center 100%`** (clamped — 100% is the bottom floor; the user's "down 90%" would be 140% which only reveals empty space). bg1/bg4 stay centered. After an initial pass that also applied the offset to Login, the user clarified **offsets are Home-only** — Login reverted to centered.
+
+### Thread 4 — Assets
+
+- 4 dropped PNGs in `vault/00-inbox/` (bg2–bg5, 4–7 MB each) converted to **lossy WebP** via `cwebp -q 80 -resize 1833 0` (matching `bg1`'s ~314K / 1833px profile — no standalone compression-rule doc exists; the convention in evidence is "web image assets are lossy WebP"). Output 152K–492K into `apps/odyssey-one/public/`.
+- `public/bg.webp` → `public/bg1.webp` (`git mv`).
+- Raw PNG sources archived to **`vault-sources/10-domains/home/hero-images/`** (per the inbox workflow — raw artifacts live outside the Obsidian index); inbox emptied back to README + .DS_Store.
+
+### Files / commits
+
+**New:** `apps/odyssey-one/src/heroImages.js`; `apps/odyssey-one/public/bg2.webp`–`bg5.webp`; `vault-sources/10-domains/home/hero-images/bg2–bg5.png` (archived raw).
+**Renamed:** `apps/odyssey-one/public/bg.webp` → `bg1.webp`.
+**Modified:** `apps/odyssey-one/src/routes/Home.jsx` (heroImages import, `HERO_INITIAL_INDEX` seed, rotation interval, photo-layer render, preload gate → `bg1`), `Home.css` (3-layer `.home-background` rebuild + `.home-background__photo`), `Login.jsx` (shared image inline, centered), `Login.css` (static bg-image removed → inline), `index.html` (preload → `/bg1.webp`).
+
+**Build:** `npm run build:odyssey-one` clean (chunk-size warning pre-existing). Visual verification deferred to the user's open tab (no headless browser in env). Not deployed.
+
+### State of `@odyssey/ui` after Session 36
+
+**37 normalized components** — unchanged. No component, token, or Code Connect changes this session. Library publish: n/a.
+
+### Carry-forward to Session 37
+
+**Pending / open:**
+- **`index.html` preload** still preloads `bg1` specifically; with the random start it only "wins" 1-in-5 loads (others fall back to Login's own load + the 1.5s gate). Left as the safe default — revisit if first-paint flash shows on non-bg1 starts.
+- **bg3 heaviest at 492K** — re-convert at lower quality if asset weight matters.
+- **Home decision-log trace** — the hero rework isn't yet recorded in a Home decisions log (per the traceability rule); add if we want it canonical.
+- **Compression spec** — inferred (lossy WebP, ~1833px, q80). If there's an actual target (max-KB / quality / width), the conversions should be re-run.
+
+**Standing (unchanged from Session 35):** TrailNav handshake Code Connect + DSM + republish; GlobalSearch Code Connect mapping; EntityChip removal (Efrain); dummy domain widgets wiring; CustomersModal results-on-mount UX; SHP-66 generic dropdown; SHP-67 responsive pass; normalizations backlog; Supabase persistence; POC 1 OIDC; `/normalize-angular` skill.
+
+**Not committed this session (flagged, left in working tree):** `vault/00-inbox/Customers.png` deletion (predates this session, not ours) and `.claude/settings.local.json` (local permission tweaks).
+
+---
+
 ## Session 35 — May 31, 2026
 
 Big multi-thread session: closed the FilterButton normalization cycle end-to-end, built a global cross-domain **Customers** feature (TrailNav handshake → popover; scrapped the Home-local impl), reworked the Home welcome header + the tracking-load-status widget, and added **lazy-load entry animations** (IntersectionObserver-gated chart grow-in + number count-up) with ready-but-unplaced dummy data for every domain.

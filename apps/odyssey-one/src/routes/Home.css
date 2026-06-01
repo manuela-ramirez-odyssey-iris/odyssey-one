@@ -3,12 +3,25 @@
 }
 
 /* === Home background ====================================================
-   Port-at-dusk image + 900→50 gradient overlay anchored at the TOP of the
-   scrollable Home content. The bg lives inside .home-content (absolutely
-   positioned) so it scrolls with the rest of the content — when the user
-   scrolls down, both the bg image and the foreground text move up together.
-   The gradient blends to DSN/50 at its bottom edge so the seam where the
-   bg ends matches the page bg color seamlessly. */
+   Composed "port-at-dusk" hero, ported from the Figma "Background" artboard
+   (Design System — MCP, node 2383:4114). The effect is built from layers
+   that are INDEPENDENT of the photo, so swapping the image keeps the exact
+   same fade + color treatment:
+
+     1. Base fill — DSN/50. Gives the COLOR-blend overlay a luminance to act
+        on (COLOR blend keeps the backdrop's lightness, applies only hue), and
+        makes the bottom seam match the page bg seamlessly where the photo has
+        masked away.
+     2. ::before — the photo, masked by a top→bottom alpha gradient so it
+        fades OUT toward the middle (opaque → gone), revealing the base fill
+        rather than compositing a tint on top of it.
+     3. ::after — a solid DSN/900 band with mix-blend-mode: color, masked into
+        a soft mid-page band. Tints the photo (and the base below it) deep-sea
+        blue without darkening it.
+
+   Mask stops mirror the Figma gradient-subtract layers 1:1. The bg lives
+   inside .home-content (absolutely positioned) so it scrolls with the content
+   — image and foreground text move up together on scroll. */
 .home-background {
   position: absolute;
   /* Break out of the AppShell <main>'s padding so the bg meets the navbar
@@ -25,15 +38,66 @@
   z-index: -1;
   pointer-events: none;
   overflow: hidden;
-  background-image: url('/bg.webp');
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
+  /* Base fill (layer 1) + isolate so the ::after COLOR blend composites
+     against THIS layer (base fill + masked photo) and never bleeds onto the
+     page chrome above. */
+  background-color: var(--deep-sea-neutral-50);
+  isolation: isolate;
   /* Fades out when entering edit mode, back in when returning to default. */
   opacity: 1;
   transition: opacity var(--transition-panel),
               top var(--transition-panel),
               left var(--transition-panel);
+}
+/* Layer 2 — the photos. One stacked layer per HERO_IMAGES entry (set inline
+   in Home.jsx); only the active one is opacity:1, so rotation cross-fades.
+   Each is faded out by a shared top→bottom alpha mask, so swapping/adding an
+   image keeps the identical fade + tint treatment. */
+.home-background__photo {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: 0;
+  /* Slow cross-fade between rotated images. */
+  transition: opacity 1500ms ease-in-out;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 1) 31.4%,
+    rgba(0, 0, 0, 0.5) 43.8%,
+    rgba(0, 0, 0, 0) 62%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 1) 31.4%,
+    rgba(0, 0, 0, 0.5) 43.8%,
+    rgba(0, 0, 0, 0) 62%
+  );
+}
+/* Layer 3 — DSN/900 color cast, blended (hue only) and masked to a mid band. */
+.home-background::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-color: var(--deep-sea-neutral-900);
+  mix-blend-mode: color;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0) 35.3%,
+    rgba(0, 0, 0, 0.6) 43.9%,
+    rgba(0, 0, 0, 0.8) 62.6%,
+    rgba(0, 0, 0, 0.6) 73.5%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0) 35.3%,
+    rgba(0, 0, 0, 0.6) 43.9%,
+    rgba(0, 0, 0, 0.8) 62.6%,
+    rgba(0, 0, 0, 0.6) 73.5%,
+    rgba(0, 0, 0, 0) 100%
+  );
 }
 .home-content--edit .home-background {
   top: calc(-1 * var(--main-padding-top-edit));
@@ -44,20 +108,6 @@
   .home-background {
     transition: none;
   }
-}
-.home-background::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  /* 900 with alpha at top → fully opaque DSN/50 at the bottom so the page
-     bg blends seamlessly into the freight image. */
-  background: linear-gradient(
-    180deg,
-    rgba(27, 37, 55, 0.55) 0%,
-    rgba(27, 37, 55, 0.35) 25%,
-    rgba(247, 248, 250, 0.85) 75%,
-    var(--deep-sea-neutral-50) 100%
-  );
 }
 
 /* Reduced-motion: the bg + gradient are static; nothing to disable here.
@@ -134,7 +184,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-5);
-  margin-top: var(--spacing-6);
+  margin-top: var(--spacing-12);
 }
 .home-sections--edit {
   /* Slightly wider gap in edit mode so the dashed AddSectionDivider has
@@ -399,7 +449,7 @@
    `animation-fill-mode: backwards` holds the widget at the `from` state
    during its delay so it stays invisible until its turn arrives.
    Easing matches --transition-panel for a consistent project motion tone. */
-/* Pre-animation hold: while we're waiting for bg.webp to finish loading,
+/* Pre-animation hold: while we're waiting for the first hero image to load,
    keep widgets invisible. The transform jump to the animation's `from`
    keyframe state is hidden behind opacity: 0, so the class swap to --enter
    produces no flash. */
