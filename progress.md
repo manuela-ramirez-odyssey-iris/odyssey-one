@@ -3303,6 +3303,67 @@ The `useState` lazy init now also wraps each matched widget's `onGoToClick` with
 
 **Two prod deploys** — both via `npx vercel --prod`. Live URLs unchanged (`odyssey-one-stage.vercel.app`).
 
+## Session 37 — June 1, 2026
+
+Cognizant POC continuation. The goal landed this session: take the already-converted Angular Button (POC 2's `odyssey-angular-button-demo/`) and put it into the **real** Cognizant repo `linx-odyssey-usermanagement-ui` — bringing the design-system foundation (tokens, typography, Inter, lucide) along with it, then swapping real PrimeNG buttons. Because `npm install` on linx is blocked by a private package, this is a faithful **code-level** integration (Fallback B), not a running build. Plus a demo pitch doc, the standalone React demo running for the meeting, and a `/normalize-angular` skill brainstorm that was started then cancelled in favor of the manual integration. No `@odyssey/ui` / Figma / token changes — library count unchanged at **37**.
+
+### Thread 1 — `/normalize-angular` brainstorm (started, then cancelled)
+
+Began designing a two-skill converter: `/normalize` (React, existing) would append an entry to an Angular conversion backlog on every normalize; `/normalize-angular` would consume the backlog and port React→Angular using the User Management repo as context, with an initial **business-logic input gate** and a **side-by-side verify gate** (mirroring `/normalize`'s 3-phase gated shape). Two infra decisions were locked before the user cancelled to re-focus: **staging project = a new sibling**, with `odyssey-angular-button-demo/` frozen as the golden reference; **Angular backlog = a `playground/` markdown table**. Recommended Approach A (verbatim recipe-port, no intermediate spec — preserves the no-drift thesis). User then said "cancel, let's straighten ideas" and pivoted to the concrete goal below. **Converter automation is parked**; the two decisions + the POC-2 manual recipe (in `cognizant-poc/poc2-button-migration.md`) are the inputs when it resumes.
+
+### Thread 2 — Strategic framing (how Cognizant consumes the POC)
+
+Walked through how the Button POC settles workflow gaps: the token re-emit replaces their bifurcated palette (source of truth), `*.figma-link.md` is the missing Figma↔code linkage, the side-by-side verify step is the missing drift-catcher (the 3 font gotchas prove token files alone don't catch drift). The consumption path is a **documented adoption sequence**, not us mutating their repo. Open fork left for leadership: where the canonical Angular Button lives (`@oneodyssey/components` vs app-local vs new package) and who runs the conversion.
+
+### Thread 3 — Reversed decision + the access blocker
+
+- **Reversed the Session-30 "do NOT insert the Button into the User Management codebase" call.** Cognizant is aware changes are coming; the point is to align Figma ↔ React ↔ Angular and stop them manually re-coding design styles.
+- **`npm install` on linx is blocked.** `@oneodyssey/components` is a private GitHub Packages dep; the `gh` token has scopes `gist, read:org, repo, workflow` (no `read:packages`) → registry probe returns 403. So linx can't build/run locally. Chose **Fallback B**: a faithful code-level integration mirroring the golden `odyssey-angular-button-demo/` (which DOES build). User has since **requested package-read access** for real local testing later.
+
+### Thread 4 — Design-system foundation into linx (LOCAL, no_push)
+
+Brought the React foundation into `linx-odyssey-usermanagement-ui`, additive (their theme uses SCSS variables; ours are CSS custom properties — no collision):
+- `src/styles/_tokens.scss` (new) — 1:1 re-emit of canonical `tokens.css`.
+- `src/styles/_typography.scss` (new) — the `.text-label-*` utilities.
+- `src/styles.scss` (edited) — `@fontsource/inter` 400/500/600 + tokens + typography + `body` font-family/smoothing (full global adoption; documented how to scope to `odyssey-*` only).
+- `package.json` (edited) — added `@fontsource/inter`, `lucide-angular` (^1.0.0, matching the golden demo).
+- `src/app/shared/components/odyssey-button/` (new, 4 files) — the verbatim Button atom (NgModule, `odyssey-button` selector), placed beside their `user-status` atom.
+- `…/odyssey-button/Button.figma-link.md` (new) — the alignment/contract artifact.
+
+### Thread 5 — Button swap in add-users-modal
+
+`src/app/add-users-modal/add-users-modal.component.html` + `.module.ts` (edited): 3 PrimeNG buttons → `<odyssey-button>` in the Bulk Upload modal — Save→`primary`, Cancel→`secondary`, Download Template→`link` + `<i-lucide name="download">` (replacing the `<img>` asset). Module wired with `OdysseyButtonModule` + `LucideAngularModule.pick({ Download })`; all existing PrimeNG imports preserved. The "Choose File" p-button deliberately left (carries an error-state class). `ODYSSEY-DESIGN-SYSTEM.md` (new, linx root) documents everything + the honest caveat.
+
+### Thread 6 — Safety: the `no_push` guard was NOT in place
+
+Discovered linx's origin push URL was **live** to `github.com/OneOdyssey/linx-odyssey-usermanagement-ui.git` — the documented Session-30 `no_push` guard had been lost (reclone/rename). Nothing had been pushed or committed. Restored it via `git remote set-url --push origin no_push`. Also corrected an earlier in-session assurance that had wrongly claimed the guard was holding. `no_push` blocks only `git push` — `npm install`/`start`/fetch are unaffected.
+
+### Thread 7 — Demo pitch + React demo running
+
+- `cognizant-poc/demo-pitch.md` (new) — presentable inventory: one-liner, problem, **what we added & where** (table with exact paths), before/after swap, what it proves, scope discipline, honest caveat, leadership ask.
+- Started the standalone React Button demo (`odyssey-react-button-demo/`) — live at **http://localhost:5174/** (5173 was taken). Background server `bj1d9oosa`, still running. This is the canonical React side of the POC 2 side-by-side.
+
+### Files / commits
+
+**Committed to odyssey-one this session:**
+- `cognizant-poc/demo-pitch.md` (new)
+- `progress.md` (this entry)
+
+**LOCAL ONLY — uncommitted, in the Cognizant clone (no_push, not ours to commit/push):**
+- New: `src/styles/_tokens.scss`, `src/styles/_typography.scss`, `src/app/shared/components/odyssey-button/{*.ts,*.html,*.scss,*.module.ts,Button.figma-link.md}`, `ODYSSEY-DESIGN-SYSTEM.md`
+- Modified: `src/styles.scss`, `package.json`, `src/app/add-users-modal/add-users-modal.component.html`, `…/add-users-modal.module.ts`
+
+### Carry-forward to Session 38
+
+- **linx integration is uncommitted local working-tree changes** — a demo, not a delivery. To run for real: obtain `read:packages` + package-read grant on `@oneodyssey/components` → `gh auth refresh -s read:packages` → `npm install` → `npm start` (port 4201) → open the Bulk Upload modal.
+- **React demo server still running** at :5174 (bg process `bj1d9oosa`) — kill when the meeting's done.
+- **Parked:** `/normalize-angular` skill (2 infra decisions + POC-2 recipe captured); the broader converter automation.
+- **Possible next:** swap a 2nd linx screen (role-permission Create/Cancel) for a richer before/after; styled HTML deck of the pitch; POC 1 OIDC; resume the `/normalize-angular` design.
+- **Memory hygiene:** `project_poc2_demo_project_location.md` updated — the "don't insert into linx" decision is reversed and the `no_push` claim corrected.
+- **Standing (unchanged from Session 36):** TrailNav handshake Code Connect + republish; GlobalSearch Code Connect mapping; EntityChip removal (Efrain); dummy domain widgets wiring; CustomersModal results-on-mount UX; SHP-66 generic dropdown; SHP-67 responsive pass; normalizations backlog; Supabase persistence.
+
+---
+
 ## Session 36 — May 31, 2026
 
 Focused single-thread session: reworked the Home hero background. Replaced the old baked-in gradient overlay with the **composed effect from the Figma "Background" artboard** (Design System — MCP, node `2383:4114`), turned the static single image into a **5-image rotation** that cross-fades every 2 minutes, made the start image **random + shared with Login**, and added **per-image bottom-crop framing** on Home. No design-system/component changes; no normalization cycle. Library count unchanged at **37**.
