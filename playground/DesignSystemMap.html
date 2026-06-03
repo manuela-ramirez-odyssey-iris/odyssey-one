@@ -2345,6 +2345,112 @@ function getGlobalSearchComponentHTML() {
   '</div>';
 }
 
+/* ── FilterSuggestions (molecule) — NORMALIZED ──
+   Dropdown panel that surfaces selectable filter chips for GlobalSearch as the
+   user types. White panel (shadow-2xl) holding a title + a single vertical
+   column of gray Badge chips. Each chip is selectable (button): hover lifts it
+   with --shadow-base, press (:active) drops the shadow. Source: packages/ui/src/FilterSuggestions.jsx,
+   Figma node 2400:2. Scoped .fs-norm-* prefix to avoid collisions. */
+function getFilterSuggestionsComponentHTML() {
+  return '' +
+  /* ── Scoped styles ── (.fs-norm-* prefix kept to avoid collisions) */
+  '<style>' +
+    /* Demo surface — LIGHT gray, so the white panel + shadow read. */
+    '.fs-norm-surface {' +
+      'background: var(--bg-secondary, #F7F8FA);' +
+      'padding: 32px;' +
+      'border-radius: var(--radius-md, 6px);' +
+    '}' +
+
+    /* The panel itself — white, padded, rounded, elevated; hugs content. */
+    '.fs-norm-panel {' +
+      'display: inline-flex; flex-direction: column; align-items: flex-start;' +
+      'padding: var(--spacing-4, 16px);' +
+      'background: var(--bg-primary, #FFFFFF);' +
+      'border-radius: var(--radius-lg, 8px);' +
+      'box-shadow: var(--shadow-2xl, 0px 25px 50px -12px rgba(0,0,0,0.25));' +
+      'overflow: hidden;' +
+    '}' +
+
+    /* Inner section — vertical flex, gap 16, left-aligned. */
+    '.fs-norm-inner {' +
+      'display: flex; flex-direction: column; align-items: flex-start;' +
+      'gap: var(--spacing-4, 16px);' +
+    '}' +
+
+    /* Title — label/sm medium at --text-tertiary. */
+    '.fs-norm-title {' +
+      'font-family: \'Inter\', sans-serif;' +
+      'font-size: var(--font-size-sm, 14px); line-height: var(--line-height-sm, 20px); font-weight: var(--font-weight-medium, 500);' +
+      'color: var(--text-tertiary, #6B7B96);' +
+    '}' +
+
+    /* Chip wrapper — layout reset around the inner gray Badge. Button form is
+       interactive; hover LIFTS the chip with --shadow-base (the radius-sm on
+       the wrapper keeps the shadow following the Badge's rounded corners),
+       press (:active) drops the shadow back to none. */
+    '.fs-norm-chip {' +
+      'display: inline-flex; align-self: flex-start;' +
+      'padding: 0; border: none; background: transparent;' +
+      'border-radius: var(--radius-sm, 4px);' +
+    '}' +
+    'button.fs-norm-chip { cursor: pointer; transition: box-shadow var(--transition-fast, 150ms ease); }' +
+    'button.fs-norm-chip:hover { box-shadow: var(--shadow-base, 0 1px 2px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.10)); }' +
+    'button.fs-norm-chip:active { box-shadow: none; }' +
+
+    /* Inner gray Badge. */
+    '.fs-norm-badge {' +
+      'display: inline-flex; align-items: center; white-space: nowrap;' +
+      'background: var(--badge-gray-bg, #F2F3F5);' +
+      'color: var(--badge-gray-text, #384253);' +
+      'border-radius: var(--radius-sm, 4px);' +
+      'padding: 2px 10px;' +
+      'font-family: \'Inter\', sans-serif; font-size: 12px; line-height: 16px; font-weight: 500;' +
+    '}' +
+
+    /* Owner note — matches the .fb-norm-owner-note pattern. */
+    '.fs-norm-owner-note {' +
+      'font-size: 12.5px; color: #384253; line-height: 1.55; background: #F7F8FA;' +
+      'border-left: 3px solid #296DE7; padding: 10px 14px; border-radius: 4px; margin-top: 10px;' +
+    '}' +
+    '.fs-norm-owner-note strong { color: #1B2537; }' +
+    '.fs-norm-owner-note code { background: #F2F3F5; padding: 1px 6px; border-radius: 4px; font-size: 12px; color: #1B2537; }' +
+  '</style>' +
+
+  /* ── Section ── (NORMALIZED) */
+  '<div class="comp-section">' +
+    '<div class="comp-section-title">FilterSuggestions <span class="comp-normalized-label">NORMALIZED</span></div>' +
+    '<div class="comp-section-subtitle">packages/ui/src/FilterSuggestions.jsx &middot; Figma node 2400:2</div>' +
+
+    /* Owner note — what this is */
+    '<div class="fs-norm-owner-note">' +
+      'Dropdown panel that surfaces selectable filter chips for <strong>GlobalSearch</strong> as the user types. A title + a single vertical column of gray <strong>Badge</strong> chips. Each chip is selectable (<code>&lt;button&gt;</code>) with a <strong>hover</strong> that darkens the Badge bg one step (<code>--deep-sea-neutral-200</code>); when <code>onSelect</code> is omitted, chips render decoratively (no pointer / hover). Chip selection behavior wiring into GlobalSearch is a follow-up.' +
+    '</div>' +
+
+    /* Demo — panel on a light gray surface, real hoverable chips. */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Live &mdash; hover a chip to feel the selectable affordance</div>' +
+      '<div class="fs-norm-surface">' +
+        '<div class="fs-norm-panel">' +
+          '<div class="fs-norm-inner">' +
+            '<span class="fs-norm-title">Suggested Filters</span>' +
+            '<button type="button" class="fs-norm-chip"><span class="fs-norm-badge">Status: Delivered</span></button>' +
+            '<button type="button" class="fs-norm-chip"><span class="fs-norm-badge">Client: Delaware Inc.</span></button>' +
+            '<button type="button" class="fs-norm-chip"><span class="fs-norm-badge">Carrier: Delaware Logistic Service</span></button>' +
+            '<button type="button" class="fs-norm-chip"><span class="fs-norm-badge">Status: At Risk Delivery</span></button>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    /* Props & Tokens — moved into modal */
+    '<div class="comp-subsection">' +
+      '<button class="comp-details-button" onclick="showCompDetails(\'FilterSuggestions\')">Show props &amp; tokens</button>' +
+    '</div>' +
+
+  '</div>';
+}
+
 /* ── LeadNav (molecule) component reference HTML ── */
 function getLeadNavComponentHTML() {
   var codeChip = 'font-family:\'SF Mono\',\'Fira Code\',monospace; font-size:11px; background:#F3F4F6; padding:1px 5px; border-radius:3px; color:#6B7280;';
@@ -6858,6 +6964,52 @@ var compDetails = {
         '</tbody>' +
       '</table>'
   },
+  FilterSuggestions: {
+    props:
+      '<table class="comp-table">' +
+        '<thead><tr><th>Prop</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>' +
+        '<tbody>' +
+          '<tr style="background:#F7F8FA;"><td colspan="4" style="font-style:italic; color:#384253;">Dropdown panel that surfaces selectable filter chips for <code>GlobalSearch</code> as the user types. A title + a single vertical column of gray <strong>Badge</strong> chips. Each chip is selectable (button) when <code>onSelect</code> is supplied; otherwise chips render decoratively. Width-agnostic &mdash; the panel hugs its content; consumers position + size it.</td></tr>' +
+          '<tr><td><code>title</code></td><td>string</td><td><code>"Suggested Filters"</code></td><td>Section header label, rendered with <code>text-label-sm-medium</code> at <code>--text-tertiary</code>. Omit / pass empty to hide.</td></tr>' +
+          '<tr><td><code>items</code></td><td><code>(string | {label, value})[]</code></td><td><code>[]</code></td><td>Chip entries. Strings render as-is; objects use <code>label</code> for display and pass the whole object back through <code>onSelect</code>.</td></tr>' +
+          '<tr><td><code>onSelect</code></td><td><code>(item) =&gt; void</code></td><td>&mdash;</td><td>Called with the original item on chip click. When omitted, chips render decoratively (no pointer / hover affordance) &mdash; chip becomes a <code>&lt;span&gt;</code> instead of a <code>&lt;button&gt;</code>.</td></tr>' +
+          '<tr><td><code>className</code></td><td>string</td><td>&mdash;</td><td>Appended to the panel class.</td></tr>' +
+          '<tr><td><code>...rest</code></td><td>HTMLDivAttrs</td><td>&mdash;</td><td>Spread to the panel <code>&lt;div&gt;</code> (style, aria-*, etc.).</td></tr>' +
+        '</tbody>' +
+      '</table>',
+    tokens:
+      '<table class="comp-table">' +
+        '<thead><tr><th>Area / Property</th><th>Token / Value</th><th>Resolved</th></tr></thead>' +
+        '<tbody>' +
+          /* Surface */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Surface</td></tr>' +
+          '<tr><td>Panel bg</td><td><code>--bg-primary</code></td><td>white</td></tr>' +
+          '<tr><td>Panel radius</td><td><code>--radius-lg</code></td><td>8px</td></tr>' +
+          '<tr><td>Panel shadow</td><td><code>--shadow-2xl</code></td><td>elevated dropdown shadow</td></tr>' +
+          '<tr><td>Panel padding</td><td><code>--spacing-4</code></td><td>16px</td></tr>' +
+          '<tr><td>Overflow</td><td><code>hidden</code></td><td>clips chips to the rounded corners</td></tr>' +
+          /* Spacing */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Spacing</td></tr>' +
+          '<tr><td>Section gap (title &harr; chips, chip &harr; chip)</td><td><code>--spacing-4</code></td><td>16px</td></tr>' +
+          /* Typography */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Typography</td></tr>' +
+          '<tr><td>Title</td><td><code>label/sm medium</code> (<code>--font-size-sm</code> / <code>--line-height-sm</code> / <code>--font-weight-medium</code>)</td><td>14 / 20 / 500</td></tr>' +
+          '<tr><td>Title color</td><td><code>--text-tertiary</code></td><td>DSN/500</td></tr>' +
+          /* Chips */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Chips (Badge variant="gray")</td></tr>' +
+          '<tr><td>Chip bg</td><td><code>--badge-gray-bg</code></td><td>DSN/100 (#F2F3F5)</td></tr>' +
+          '<tr><td>Chip text</td><td><code>--badge-gray-text</code></td><td>DSN/700 (#384253)</td></tr>' +
+          '<tr><td>Chip radius</td><td><code>--radius-sm</code></td><td>4px</td></tr>' +
+          '<tr><td>Chip padding</td><td><code>2px 10px</code> (raw)</td><td>Badge internal geometry</td></tr>' +
+          '<tr><td>Chip typography</td><td><code>text-badge</code></td><td>12 / 16 / 500</td></tr>' +
+          /* Chip interaction (code-only) */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Chip interaction (code-only)</td></tr>' +
+          '<tr><td>Chip hover</td><td><code>box-shadow: var(--shadow-base)</code></td><td>Lift &mdash; 2-layer shadow (<code>0 1px 2px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.10)</code>) following the chip <code>--radius-sm</code> (4px). Only the <code>&lt;button&gt;</code> form is interactive; <code>transition: var(--transition-fast)</code>.</td></tr>' +
+          '<tr><td>Chip press (<code>:active</code>)</td><td><code>box-shadow: none</code></td><td>Click-and-hold drops the shadow back to flat.</td></tr>' +
+          '<tr><td>Pending Figma Sync</td><td>&mdash;</td><td>The hover/press lift is <strong>code-only</strong> &mdash; the FilterSuggestions Figma master is a static display and doesn\'t model these states. Tracked as a Pending Figma Sync item.</td></tr>' +
+        '</tbody>' +
+      '</table>'
+  },
   SidebarButton: {
     props:
       '<table class="comp-table">' +
@@ -10677,7 +10829,7 @@ function showCompDetails(componentName) {
 document.addEventListener('DOMContentLoaded', function() {
   /* Populate Components tab */
   var compTab = document.getElementById('componentsTabBadgeContent');
-  if (compTab) compTab.innerHTML = getBadgeComponentHTML() + getFilterButtonComponentHTML() + getButtonComponentHTML() + getIconButtonComponentHTML() + getIconButtonGhostComponentHTML() + getSidebarButtonComponentHTML() + getSidebarComponentHTML() + getGlobalSearchComponentHTML() + getLeadNavComponentHTML() + getTrailNavComponentHTML() + getNavbarComponentHTML() + getPageHeaderComponentHTML() + getSectionHeaderComponentHTML() + getSectionLabelComponentHTML() + getAddSectionDividerComponentHTML() + getAddSectionButtonComponentHTML() + getEntityChipComponentHTML() + getSearchFieldComponentHTML() + getFormFieldComponentHTML() + getWidgetMetricRowComponentHTML() + getWidgetPieChartComponentHTML() + getWidgetComponentHTML() + getWidgetCtaRowComponentHTML() + getWidgetVariantPickerComponentHTML() + getMenuRowComponentHTML() + getCustomerRowComponentHTML() + getMenuDropdownComponentHTML() + getEditModeOverviewHTML() + getWidgetsLeftMenuComponentHTML() + getEmptyStateComponentHTML() + getModalLargeComponentHTML() + getModalMediumComponentHTML() + getAuthModalComponentHTML() + getAuthContentComponentHTML();
+  if (compTab) compTab.innerHTML = getBadgeComponentHTML() + getFilterButtonComponentHTML() + getButtonComponentHTML() + getIconButtonComponentHTML() + getIconButtonGhostComponentHTML() + getSidebarButtonComponentHTML() + getSidebarComponentHTML() + getGlobalSearchComponentHTML() + getFilterSuggestionsComponentHTML() + getLeadNavComponentHTML() + getTrailNavComponentHTML() + getNavbarComponentHTML() + getPageHeaderComponentHTML() + getSectionHeaderComponentHTML() + getSectionLabelComponentHTML() + getAddSectionDividerComponentHTML() + getAddSectionButtonComponentHTML() + getEntityChipComponentHTML() + getSearchFieldComponentHTML() + getFormFieldComponentHTML() + getWidgetMetricRowComponentHTML() + getWidgetPieChartComponentHTML() + getWidgetComponentHTML() + getWidgetCtaRowComponentHTML() + getWidgetVariantPickerComponentHTML() + getMenuRowComponentHTML() + getCustomerRowComponentHTML() + getMenuDropdownComponentHTML() + getEditModeOverviewHTML() + getWidgetsLeftMenuComponentHTML() + getEmptyStateComponentHTML() + getModalLargeComponentHTML() + getModalMediumComponentHTML() + getAuthModalComponentHTML() + getAuthContentComponentHTML();
 
   /* No active normalization cycle. AuthContent (Variant=Login) was promoted
      to the Components tab after GATE B-DSM sign-off — see

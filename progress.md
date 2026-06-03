@@ -3303,6 +3303,82 @@ The `useState` lazy init now also wraps each matched widget's `onGoToClick` with
 
 **Two prod deploys** — both via `npx vercel --prod`. Live URLs unchanged (`odyssey-one-stage.vercel.app`).
 
+## Session 38 — June 2–3, 2026
+
+The GlobalSearch "search experience" session. Normalized **FilterSuggestions** (the suggestions dropdown) end-to-end, then built the **functional search layer** behind it (Shipments-only): a CSV-derived progression config, a lazy per-header value index, a domain adapter behind an agnostic contract, and an orchestration hook — wired into the live Shipments navbar. Iterated the suggestion logic hard (input-class gate → value-match ranking with a 3/2/1 case-aware scale + hide-non-matchers + a dev `console.table` debug log), realigned the fake DB to the CSV examples, and finished by normalizing the **second results panel (ResultsPreview) + MatchRow + a ButtonLink leading-icon** in Figma (published; code build deferred to next session).
+
+Library: **38 normalized components** in `@odyssey/ui` (+FilterSuggestions; ResultsPreview + MatchRow are Figma-only so far). New search module under `apps/odyssey-one/src/search/`.
+
+### Thread 1 — FilterSuggestions (`/normalize`, full cycle)
+
+- New component, Figma `FilterSuggestions` (`2400:2`) → `packages/ui/src/FilterSuggestions.jsx` + `.figma.tsx` + index export. Single titled list (`title` + `items` + `onSelect`); user simplified the Figma mid-GATE-A (removed the second "Filters List" container + divider + parent wrapper → flat panel).
+- **Nested audit / token fixes:** chips are real `Badge variant="gray"` instances (swapped from a legacy badge master `2293:2009`); `swapComponent` left **stale raw color overrides** on the instances — cleared via `resetOverrides()` so they inherit our `Gray/bg`/`Gray/text`. Title → local `label/sm medium` + `Text/tertiary`; panel shadow rebound external `/shadow/2xl` → local `shadow/2xl`. Full re-audit: 0 visible non-local colors (only hidden placeholder icon slots remain, inherent to Badge).
+- **UI refinements (Step 9, code-only → Pending Figma Sync):** width-hug (dropped the dropdown's `right:0` so the container hugs content); hover darkens inner Badge bg → `--deep-sea-neutral-200`, press mutes text → `--deep-sea-neutral-400` (via local `--badge-gray-bg`/`--badge-gray-text` overrides — reaches the Badge's inline `var()` without touching Badge); **9-chip scroll cap** (title pinned, list `maxHeight` = 9 rows then `overflow-y:auto`).
+- DSM section added (subagent) + later updated for the shadow→bg-darken→final hover. **Pending Phase 3:** Code Connect publish + normalization-tracker row (not yet run).
+
+### Thread 2 — Functional GlobalSearch layer (Shipments-only)
+
+Architecture: shared UI stays domain-agnostic; all domain knowledge lives behind an **adapter contract**.
+- `GlobalSearch` (`@odyssey/ui`) gained presentational dropdown props (`suggestionSections`, `suggestionsOpen`, `onSuggestionSelect`, `onFocus`/`onBlur`) and renders `<FilterSuggestions>` as a positioned dropdown (one per section). `onMouseDown preventDefault` keeps focus so a chip click survives blur. Zero domain data.
+- `apps/odyssey-one/src/search/useGlobalSearch.js` — agnostic hook (focus/query/debounce/open; stale-response guard). No adapter → inert bar.
+- `apps/odyssey-one/src/search/shipments/progression.js` — the CSV structured (group · order · `match` · dataKey), ordered by progression importance; first 5 = empty-focus entry-points.
+- `apps/odyssey-one/src/search/shipments/searchIndex.js` — the "sub-DB": lazy, memoized **distinct values per header**, only candidate headers consulted (the "indexing headers" idea). Stand-in for the future per-domain suggestions API.
+- `apps/odyssey-one/src/search/shipments/adapter.js` — `getInitial()` + `getSuggestions(q)` (async, mirrors future API).
+- `apps/odyssey-one/src/components/global-search/ShipmentsGlobalSearch.jsx` — binds hook+adapter to `GlobalSearch`; mounted via `ShipmentsRoute`'s `searchSlot`, **replacing the retired `NewGlobalSearch` demo**. Legacy table-from-search filtering (`gsChips`/`gsQuery`) made inert (table no longer live-filters — chip commit will feed the second panel instead).
+
+### Thread 3 — Suggestion ranking iterations
+
+- Started with an input-class gate (digits/letters/enum). User reported numeric identifiers (Buy Shipment #) surfacing for letter queries → corrected `match` per CSV type.
+- Pivoted to **pure value-match ranking** (dropped the gate — numbers never prefix "HUNT", text never prefixes "234", so type discrimination falls out of the match). **Hide score-0** (no value match) entirely.
+- Final **case-aware scale**: `3` = exact full-value match (e.g. typing `ERCO_SYS_01`) · `2` = case-**exact** prefix · `1` = case-**insensitive** prefix (e.g. `HUNT` → `Huntsman` camel-case). Progression order breaks ties.
+- **Dev debug log:** `console.groupCollapsed` + `console.table` per query (attribute · score · matched values), gated on `import.meta.env.DEV`.
+
+### Thread 4 — Data realigned to CSV examples
+
+- **CSV field types corrected** (`attributes-progression-grouping.csv`): Buy/Sell Shipment #, Pro#, Pickup #, Equipment #, Load # → `Number Input` (examples are bare numbers); Order #/Seal #/Next Shipment ID stay `Text Input`.
+- **Generator** (`tools/generate.mjs`): `buyShipment` `SHP-D…` → bare 8-digit; `pro` `PRO-…` → bare; `orders` `ORD-S…M` → `JAN6ERCO6`-style (3 letters + digit + 4 letters + digit); `genLoadId` `LOAD…` → bare. Regenerated 1200 shipments + detail files (seed 42; detail filenames track the new bare `buyShipment` key — verified consistent, 0 leftover prefixes). Trade-off accepted: buy/sell are now both bare numbers (faithful to the stakeholder CSV); `buyShipment` is the routing key but the generator rewrites keys + detail files together and no code hardcodes the format.
+
+### Thread 5 — ResultsPreview + MatchRow + ButtonLink leading-icon (`/normalize` — Figma only)
+
+GATE A approved + **Figma library published**; **code build deferred to next session**.
+- **`MatchRow`** (molecule, Components-Molecules `2460:2`) — built fresh from primitives: Avatar (40×40 `Gray/bg` `Radius/md`, **switchable** `placeholder-20` icon) · ID (`label/xs semibold`) + route (`label/xs regular`) · source **Badge instance** (blue default, exposed) · Customer | Carrier | BOL cells with `Border/default` dividers. Props: `Match ID`/`Route`/`Customer`/`Carrier`/`BOL` (TEXT) + `Icon` (INSTANCE_SWAP).
+- **`ResultsPreview`** (organism, Components-Organisms `2462:149`) — panel (`White`, local `shadow/2xl`, `Radius/xl`) · "Best Match" header · 4 `MatchRow` instances (row 2 = **purple "EDI 214"**, rest blue "FourKites") · "All Filters" ButtonLink · "Clear all" Button Secondary · "Show 4 results" Button Primary. Replaced legacy DSN collection / legacy badges / legacy buttons / legacy icons / raw `#374151` / `-0.12` tracking. Audit: 0 visible non-local colors.
+- **ButtonLink leading-icon** — added `Show leading icon` BOOLEAN + `Leading icon` INSTANCE_SWAP across all 3 ButtonLink variants (`1895:7`); "All Filters" uses it with `lucide/sliders-horizontal` lg. Existing ButtonLink consumers default it off (unaffected). Code already supports a leading `icon` on the link variant.
+- Decisions (AskUserQuestion): extract MatchRow as a molecule; source badge reuses existing Badge `blue`/`purple` (no new tokens); avatar icon switchable.
+
+### Files / commits
+
+**New (code):**
+- `packages/ui/src/FilterSuggestions.jsx` + `.figma.tsx`
+- `apps/odyssey-one/src/search/useGlobalSearch.js`
+- `apps/odyssey-one/src/search/shipments/{progression,searchIndex,adapter}.js`
+- `apps/odyssey-one/src/components/global-search/ShipmentsGlobalSearch.jsx`
+
+**Modified:**
+- `packages/ui/src/GlobalSearch.jsx` (suggestions dropdown), `packages/ui/src/index.js` (FilterSuggestions export)
+- `apps/odyssey-one/src/routes/shipments/ShipmentsRoute.jsx` (searchSlot → ShipmentsGlobalSearch; legacy gsChips inert)
+- `apps/odyssey-one/src/styles/components.css` (`.filter-suggestions__chip` hover/press)
+- `apps/odyssey-one/tools/generate.mjs` + `apps/odyssey-one/src/data/shipments.json` (CSV-aligned regen)
+- `vault/10-domains/shipments/data/attributes-progression-grouping.csv` (field-type corrections)
+- `playground/DesignSystemMap.html` (FilterSuggestions section)
+
+**Figma (published):** `FilterSuggestions` `2400:2`; `MatchRow` `2460:2`; `ResultsPreview` `2462:149`; ButtonLink set `1895:7` (leading-icon props).
+
+### Carry-forward to Session 39
+
+**Primary (user-stated): wire everything up + give the UI its characteristics (results limits, etc.).**
+- **Build ResultsPreview + MatchRow in code** (`.jsx` + `.figma.tsx`) — Phase 2/3 of that normalize. Plus ButtonLink leading-icon in code (verify `<Button variant="link" icon={…}>` renders leading; update `Button.figma.tsx` for the new ButtonLink props).
+- **Chip-commit flow:** clicking a FilterSuggestions chip commits a gray chip into the searchbar (running query, AND-chained criteria, e.g. "customers named X that also have this BOL#"). First commit reveals **ResultsPreview**, which previews matching results and re-runs on each new chip. Prod hits the index **only on commit**, never per-keystroke. Needs its own spec.
+- **UI characteristics:** results limit on ResultsPreview, etc.
+- The adapter's value-matching (second section / value chips) feeds ResultsPreview — its seam is marked in `adapter.js`.
+
+**Phase-3 sync owed (not yet run this session):**
+- Code Connect publish + normalization-tracker rows for **FilterSuggestions**, **MatchRow**, **ResultsPreview**, and the **ButtonLink leading-icon** extension.
+- FilterSuggestions Pending-Figma-Sync entries: hover (bg-200) / press (text-400) states, 9-chip scroll cap.
+- DSM sections for MatchRow + ResultsPreview.
+
+**Standing (unchanged):** GlobalSearch Code Connect mapping refresh; EntityChip removal (Efrain); dummy domain widgets wiring; CustomersModal results-on-mount UX; SHP-66 generic dropdown; SHP-67 responsive pass; normalizations backlog; Supabase persistence; POC 1 OIDC; `/normalize-angular` skill.
+
 ## Session 37 — June 1, 2026
 
 Cognizant POC continuation. The goal landed this session: take the already-converted Angular Button (POC 2's `odyssey-angular-button-demo/`) and put it into the **real** Cognizant repo `linx-odyssey-usermanagement-ui` — bringing the design-system foundation (tokens, typography, Inter, lucide) along with it, then swapping real PrimeNG buttons. Because `npm install` on linx is blocked by a private package, this is a faithful **code-level** integration (Fallback B), not a running build. Plus a demo pitch doc, the standalone React demo running for the meeting, and a `/normalize-angular` skill brainstorm that was started then cancelled in favor of the manual integration. No `@odyssey/ui` / Figma / token changes — library count unchanged at **37**.

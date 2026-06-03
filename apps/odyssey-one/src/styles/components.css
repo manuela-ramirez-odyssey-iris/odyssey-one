@@ -385,6 +385,30 @@ input[type="radio"].odyssey-radio {
   transition: background var(--transition-fast);
 }
 
+/* FilterSuggestions — selectable chip wrapper. Layout reset around a gray Badge.
+   Interactive (<button>) chips: hover darkens the inner Badge bg to DSN/200;
+   press additionally mutes the text to DSN/400 (bg stays 200 through the press
+   since :active is also :hover). Done by overriding the --badge-gray-bg /
+   --badge-gray-text custom properties locally — the Badge reads both inline, so
+   the cascade reaches them without touching the Badge component. No shadow. The
+   decorative <span> form gets the layout reset only. */
+.filter-suggestions__chip {
+  display: inline-flex;
+  align-self: flex-start;
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+button.filter-suggestions__chip {
+  cursor: pointer;
+}
+button.filter-suggestions__chip:hover {
+  --badge-gray-bg: var(--deep-sea-neutral-200);
+}
+button.filter-suggestions__chip:active {
+  --badge-gray-text: var(--deep-sea-neutral-400);
+}
+
 /* Shared interactive utility — bare clickable icon color ladder.
    Compose with a component class that sets layout + idle color + reset
    (border/padding/background:transparent). Idle color stays per-component

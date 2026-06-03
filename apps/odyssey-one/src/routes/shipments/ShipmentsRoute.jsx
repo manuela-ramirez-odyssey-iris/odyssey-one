@@ -10,7 +10,7 @@ import ColumnPanel, { ALL_COLUMNS, EXCEPTIONS_DEFAULT_COLUMNS, MONITORING_DEFAUL
 import { COLUMN_CONFIG } from '../../components/shipments/ShipmentTable'
 import { FileText } from 'lucide-react'
 import { PageHeader } from '@odyssey/ui'
-import NewGlobalSearch, { makeDefaultDurationChip } from '../../components/global-search/NewGlobalSearch'
+import ShipmentsGlobalSearch from '../../components/global-search/ShipmentsGlobalSearch'
 import { getAllShipments, fetchShipmentDetails, getCachedShipmentDetails, getShipmentsByPanel, getShipmentsByPanelAndCategory, getCategoryCount, SEARCH_ATTRIBUTES } from '../../data'
 
 function parseSavedQuery(queryStr) {
@@ -48,10 +48,12 @@ function ShipmentsRoute() {
   const [columnPanelOpen, setColumnPanelOpen] = useState(false)
   const [filters, setFilters] = useState({})
   const [appliedSavedQuery, setAppliedSavedQuery] = useState(null)
-  // New GlobalSearch demo (lives in the navbar). Chips include a silent
-  // `Last Days: 30 Days` default per canon — does not filter the table.
-  const [gsChips, setGsChips] = useState(() => [makeDefaultDurationChip()])
-  const [gsQuery, setGsQuery] = useState('')
+  // Legacy table-from-search filtering (gsChips/gsQuery) is now inert: per the
+  // new GlobalSearch design the search no longer live-filters the table — chip
+  // selection feeds the (pending) second panel. Kept as empty no-ops so the
+  // filteredShipments memo below stays unchanged until that panel lands.
+  const [gsChips] = useState([])
+  const [gsQuery] = useState('')
   const [shipmentDetails, setShipmentDetails] = useState(null)
   const [detailsLoading, setDetailsLoading] = useState(false)
   const [metricsCollapsed, setMetricsCollapsed] = useState(false)
@@ -319,16 +321,7 @@ function ShipmentsRoute() {
         if (filtersOpen) setFiltersOpen(false)
         if (columnPanelOpen) setColumnPanelOpen(false)
       }, [filtersOpen, columnPanelOpen])}
-      searchSlot={
-        <NewGlobalSearch
-          chips={gsChips}
-          setChips={setGsChips}
-          query={gsQuery}
-          setQuery={setGsQuery}
-          shipments={filteredShipments}
-          filteredCount={filteredShipments.length}
-        />
-      }
+      searchSlot={<ShipmentsGlobalSearch />}
       filterPanel={
         <>
           <FilterPanel

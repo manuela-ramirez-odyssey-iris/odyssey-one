@@ -1,10 +1,10 @@
 Progression,Stakeholder Group,Suggested Group,Attribute,Example,Description,Field Type,Notes
 "Find the shipment
-?",Find Shipment by,Shipment Identifiers,Buy Shipment #,28826319,-,Text/Number Input,
-,,,Sell Shipment #,25678981,-,Text/Number Input,
+?",Find Shipment by,Shipment Identifiers,Buy Shipment #,28826319,-,Number Input,
+,,,Sell Shipment #,25678981,-,Number Input,
 ,,,Order #,"JAN6ERCO6, JAN7ERCO7",Transportation Order #,Text Input,
-,,,Pro#/Booking #,345678,-,Text/Number Input,
-,,,Pickup # (skipped),41197,Operational pickup identifier missing from stakeholder grouping,Text/Number Input,Skipped attribute
+,,,Pro#/Booking #,345678,-,Number Input,
+,,,Pickup # (skipped),41197,Operational pickup identifier missing from stakeholder grouping,Number Input,Skipped attribute
 "Understand who it belongs to
 ?",Customer & Parties involved,Customers & Parties,Customer ID,"*G20TECH_SYS_01, 2nd customer ID",Cross customer IDs separated by comma,Autocomplete Text,
 ,,,Customer Name,*USALCO_SYS_01,-,Autocomplete Text,
@@ -26,7 +26,7 @@ Progression,Stakeholder Group,Suggested Group,Attribute,Example,Description,Fiel
 "Understand how it moves
 ?",Transportation Details,Transport & Equipment,Mode,LTL,-,Dropdown,
 ,,,Equipment Code,LTH,-,Dropdown,
-,,,Equipment #,8043,-,Text/Number Input,
+,,,Equipment #,8043,-,Number Input,
 ,,,Seal Number,S345676,-,Text Input,
 ,,,Incoterm Info,FOB,-,Dropdown,
 ,,,Freight Terms,Pre-Paid,-,Dropdown,
@@ -46,7 +46,7 @@ Progression,Stakeholder Group,Suggested Group,Attribute,Example,Description,Fiel
 ,,,AR Freight Cost,6000 USD,Total AR freight cost,Numeric Range,
 ,,,Preferred AR Direct Cost,1200 USD,Direct AR cost,Numeric Range,
 "Inspect load logistics
-?",Load information,Load Details,Load #,"23567, 45673",Load numbers in shipment,Text Input,
+?",Load information,Load Details,Load #,"23567, 45673",Load numbers in shipment,Number Input,
 ,,,Load Count,2,Count of loads in shipment,Numeric Range,
 ,,,Load Status,In Shipment,Load operational status,Dropdown,
 Edge cases,Others,Advanced / Rare Fields,Shipment Type,"Pooling, Cross customer, Line haul, Rule 11",Type of shipment,Dropdown,

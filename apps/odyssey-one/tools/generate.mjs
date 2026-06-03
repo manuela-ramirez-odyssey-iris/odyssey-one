@@ -191,16 +191,21 @@ function genShipmentId(prefix, i) {
 }
 
 function genOrderId() {
-  const num = faker.number.int({ min: 26000001, max: 26999999 });
-  return `ORD-S${num}M`;
+  // CSV example: JAN6ERCO6 — 3 letters + digit + 4 letters + digit (no prefix).
+  const L = () => 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[faker.number.int({ min: 0, max: 25 })];
+  const letters = (n) => Array.from({ length: n }, L).join('');
+  const d = () => faker.number.int({ min: 0, max: 9 });
+  return `${letters(3)}${d()}${letters(4)}${d()}`;
 }
 
 function genLoadId() {
-  return `LOAD${faker.number.int({ min: 200001, max: 299999 })}`;
+  // CSV example: 23567 — bare number (no LOAD prefix).
+  return String(faker.number.int({ min: 200001, max: 299999 }));
 }
 
 function genProNumber() {
-  return `PRO-${faker.number.int({ min: 440001, max: 449999 })}`;
+  // CSV example: 345678 — bare number (no PRO- prefix).
+  return String(faker.number.int({ min: 440001, max: 449999 }));
 }
 
 function genDate(baseDate, offsetDays) {
@@ -259,8 +264,9 @@ function fillTemplate(template, shipment) {
 // ============================================================
 
 function generateShipment(index) {
-  const prefix = pick(['D', 'B']);
-  const buyShipment = `SHP-${prefix}${faker.number.int({ min: 10000000, max: 99999999 })}`;
+  // CSV example: 28826319 — bare 8-digit number (no SHP- prefix). buyShipment is
+  // the primary key + per-shipment detail filename; the generator rewrites both.
+  const buyShipment = String(faker.number.int({ min: 10000000, max: 99999999 }));
   const sellShipment = String(faker.number.int({ min: 25690000, max: 25699999 }));
   const customer = pick(CUSTOMERS);
   const originLoc = pick(LOCATIONS);

@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, CircleX } from 'lucide-react'
 import { ICON_MD, ICON_LG } from '@odyssey/tokens'
 import FilterButton from './FilterButton.jsx'
 import Badge from './Badge.jsx'
+import FilterSuggestions from './FilterSuggestions.jsx'
 
 export default function GlobalSearch({ mode = 'search', ...rest }) {
   if (mode === 'title') return <GlobalSearchTitle {...rest} />
@@ -46,6 +47,11 @@ function GlobalSearchSearch({
   filterCount = 0,
   filterActive,
   onFilterClick,
+  onFocus,
+  onBlur,
+  suggestionSections = [],
+  suggestionsOpen = false,
+  onSuggestionSelect,
 }) {
   const [focused, setFocused] = useState(false)
   const [internalActive, setInternalActive] = useState(false)
@@ -112,8 +118,8 @@ function GlobalSearchSearch({
           value={value}
           placeholder={placeholder}
           onChange={(e) => onChange?.(e.target.value)}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
+          onFocus={() => { setFocused(true); onFocus?.() }}
+          onBlur={() => { setFocused(false); onBlur?.() }}
           className="global-search-input flex-1 bg-transparent border-none outline-none min-w-0"
           style={{
             color: 'var(--text-inverse)',
@@ -146,6 +152,39 @@ function GlobalSearchSearch({
           <span className="global-search-badge">
             <Badge variant="count">{badgeLabel}</Badge>
           </span>
+        )}
+
+        {/* Suggestions dropdown — anchored below the bar, spanning its width.
+            onMouseDown preventDefault keeps the input focused so a chip click
+            registers before blur would close the panel. Domain-agnostic: it just
+            renders whatever sections the consumer passes (one FilterSuggestions
+            per section). */}
+        {suggestionsOpen && suggestionSections.length > 0 && (
+          <div
+            className="global-search-dropdown"
+            onMouseDown={(e) => e.preventDefault()}
+            style={{
+              // left-anchored under the bar; no `right` so the container hugs
+              // its content width (the widest chip) instead of spanning the bar.
+              position: 'absolute',
+              top: 'calc(100% + var(--spacing-2))',
+              left: 0,
+              zIndex: 50,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'flex-start',
+              gap: 'var(--spacing-2)',
+            }}
+          >
+            {suggestionSections.map((section, i) => (
+              <FilterSuggestions
+                key={i}
+                title={section.title}
+                items={section.items}
+                onSelect={section.onSelect || onSuggestionSelect}
+              />
+            ))}
+          </div>
         )}
       </div>
     </div>
