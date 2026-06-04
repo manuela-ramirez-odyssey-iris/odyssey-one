@@ -51,13 +51,18 @@ figma.connect(
     imports: ["import { Button } from '@odyssey/ui'"],
     props: {
       label: figma.textContent('Label'),
+      // Leading-icon slot (added S38) — e.g. "All Filters" with a sliders icon.
+      icon: figma.boolean('Show leading icon', {
+        true: figma.instance('Leading icon'),
+        false: undefined,
+      }),
       iconRight: figma.boolean('Show icon', {
         true: figma.instance('Icon'),
         false: undefined,
       }),
     },
-    example: ({ label, iconRight }) => (
-      <Button variant="link" size="sm" iconRight={iconRight}>
+    example: ({ label, icon, iconRight }) => (
+      <Button variant="link" size="sm" icon={icon} iconRight={iconRight}>
         {label}
       </Button>
     ),

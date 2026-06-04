@@ -3303,6 +3303,103 @@ The `useState` lazy init now also wraps each matched widget's `onGoToClick` with
 
 **Two prod deploys** — both via `npx vercel --prod`. Live URLs unchanged (`odyssey-one-stage.vercel.app`).
 
+## Session 39 — June 3–4, 2026
+
+Three arcs: (1) closed the S38 normalization carry-forward — MatchRow + ResultsPreview built in code, all owed Phase-3 sync run; (2) shipped the full GlobalSearch chip-commit flow for Shipments — attribute suggestions formatted "Attribute: query", committed chips rendered inline in the bar, ResultsPreview opens on first commit with live indexed results; (3) full Figma↔code library audit + tier grouping sync across all three surfaces. Library at **39 normalized components** in `@odyssey/ui`.
+
+### Thread 1 — MatchRow + ResultsPreview Phase 2/3 (S38 carry-forward)
+
+- **`MatchRow.jsx`** (molecule) + `.figma.tsx` — 40×40 gray avatar (`Container` icon default), matchId semibold + route regular, real `Badge` source pill (blue/purple), Customer | Carrier | BOL meta cells with vertical dividers. Polymorphic `onClick` → hover affordance.
+- **`ResultsPreview.jsx`** (organism) + `.figma.tsx` — white `--shadow-2xl` panel; scrollable match list (4 rows visible, `max-height: 272px`); filters ButtonLink with leading `SlidersHorizontal` icon (exercises the S38 ButtonLink leading-icon slot); footer "Clear all" + "Show N results" (total count, singular/plural-aware).
+- **ButtonLink leading-icon** mapping added to `Button.figma.tsx` (`Show leading icon` BOOLEAN + `Leading icon` INSTANCE_SWAP).
+- **CSS:** `.match-row*` + `.results-preview*` blocks in `components.css`. Fixed 4 nested `overflow: hidden` declarations that were clipping row content (containers now clip-free; only text nodes use `overflow: hidden; text-overflow: ellipsis`). Removed `gap` from list (border-bottom provides separation, no partial rows at scroll boundary).
+- **DSM sections** (subagent) — MatchRow + ResultsPreview added to Components tab, comp-details modals, composition line updated.
+- **Code Connect publish** (`npm run connect:publish`) — all 4 owed: FilterSuggestions `2400:2`, MatchRow `2460:2`, ResultsPreview `2462:149`, ButtonLink `1895:7` (leading-icon mapping).
+- **Tracker** — Normalized-Components rows for FilterSuggestions, MatchRow, ResultsPreview; Pending-Figma-Sync, Pushed-to-Figma, and Code-Connect entries added.
+
+### Thread 2 — GlobalSearch chip-commit flow
+
+**Adapter (`apps/odyssey-one/src/search/shipments/adapter.js`):**
+- `getInitial()` now returns ALL attributes (no INITIAL_COUNT cap) — hook handles slicing, so progression walks forward naturally after each commit.
+- `getSuggestions(q)` formats each item as `"Attribute Name: query"` + carries `queryValue`.
+- New `searchShipments(chips)` — AND-filters the 1200 shipments by all committed criteria, returns `{ results (max 15), total }`. Location parsed from `"City STATE US ZIP"` format.
+- New `toStatusBadge(s)` — maps `tenderStatus: 'Sent'` → blue "Sent", `shipmentStatus: 'Done'` → green "Done", `'Review'` → amber "Review", fallback gray.
+
+**Hook (`apps/odyssey-one/src/search/useGlobalSearch.js`):**
+- Added `chips`, `results`, `resultTotal` state.
+- `onChipCommit(item)` — appends chip (deduped by key), clears input.
+- `onChipRemove(key)` — removes by key.
+- Filters committed keys from suggestion sections; slices to `INITIAL_COUNT=5` when input is empty (progression-walk behavior after commit).
+- Runs `adapter.searchShipments(chips)` in a `useEffect` whenever chips change.
+- `onClear` clears both value AND chips (same as "Clear all" button).
+
+**GlobalSearch (`packages/ui/src/GlobalSearch.jsx`):**
+- New `chips` + `onChipRemove` props.
+- Chips + input wrapped in an inner flex div with `gap: 4px`; outer wrapper keeps 12px gap for clear/filter buttons.
+- Each chip renders as `.global-search-chip` (DSN/700 bg, DSN/100 text) with an X `<button>` (proper interactive element, not `Badge.rightIcon`).
+- `onKeyDown` Backspace + empty input → remove last chip.
+- `wrapperRef` + `inputRef` + `useLayoutEffect` — measures input's `offsetLeft` after each chip change; dropdown `left` tracks the input's position (capped at `wrapperWidth`). FilterSuggestions repositions horizontally to align with the trailing edge of the last committed chip.
+- FilterSuggestions dropdown top: `calc(100% + 2px)` (was 8px, 6px closer to bar).
+- CircleX fires when `value || chips.length > 0`.
+
+**ShipmentsGlobalSearch (`apps/odyssey-one/src/components/global-search/ShipmentsGlobalSearch.jsx`):**
+- Full rewrite: wraps GlobalSearch + ResultsPreview in `.shipments-global-search` (position: relative).
+- `resultsOpen` state — opens when first chip committed, closes when all chips removed or click-outside.
+- Click-outside via `useRef` + `document.addEventListener('mousedown', ...)` scoped to the wrapper.
+- ResultsPreview absolutely positioned below the bar via `.shipments-results-panel`.
+- "Clear all" calls `chips.forEach(c => onChipRemove(c.key))`.
+
+**CSS additions / fixes:**
+- `.global-search-chip` + `.global-search-chip__remove` — dark bar styling (DSN/700/100).
+- `.shipments-global-search` (relative) + `.shipments-results-panel` (absolute, z-index 49).
+- `.results-preview__body` — `padding-bottom: 0`, gap `--spacing-2` (8px).
+- `.results-preview__list` — `max-height: 272px; overflow-y: auto` (no gap, 4 rows visible).
+- MatchRow overflow clipping fixed (removed container-level `overflow: hidden`).
+
+**MatchRow defaults:** avatar icon changed from `Package` → `Container`.
+
+### Thread 3 — Design system library audit + tier sync
+
+- **Full inventory:** enumerated all 39 Figma components (3 pages × use_figma) against 36 code components in `packages/ui/src/`. Result: **complete 1:1 parity**. Only two Figma-only entries — `ButtonLink` (folds into `Button variant="link"`) and `WidgetContent` (folds into `Widget`) — are intentional documented divergences.
+- **Figma renames (via use_figma):** `Odyssey-One Logo` → `OdysseyLogo` (node `484:2265`), `SideBar` → `Sidebar` (node `597:514`). Neither is Code Connect mapped — no publish breakage. Library republished by user.
+- **`packages/ui/src/index.js` regrouped** into `── Atoms ──` (11) / `── Molecules ──` (16) / `── Organisms ──` (9) sections with a header comment noting the foldings and app-local Sidebar exception. Build passes.
+- **`playground/normalization-tracker.md` → `## Normalized Components`** split into `### Atoms` / `### Molecules` / `### Organisms` sub-tables (subagent edit), alphabetized within each tier, all 39 rows preserved verbatim.
+- **Widget mislabeled `(molecule)`** — fixed to `(organism)` in tracker and moved into `### Organisms` (Figma page = source of truth).
+- **`/normalize` routine (`playground/figma-component-routine.md`) updated:**
+  - Step 3: new *Tier classification* subsection — tier must be stated at classification time, sourced from the Figma page it lives on. Lists the three surfaces that must all agree (Figma page · `index.js` group · tracker sub-table) and names the exact drift pattern (tracker label disagrees with Figma page) as the failure to prevent.
+  - Step 7: three checklist items updated — `index.js` export lands in the correct tier group (not appended to bottom), tracker row lands in the correct `###` sub-table with `Name (tier)` leading cell, explicit tier-consistency check required before declaring Phase 3 done.
+
+### Files / commits
+
+**New files:**
+- `packages/ui/src/MatchRow.jsx` + `.figma.tsx`
+- `packages/ui/src/ResultsPreview.jsx` + `.figma.tsx`
+- `apps/odyssey-one/src/components/global-search/ShipmentsGlobalSearch.jsx` (full rewrite)
+
+**Modified files:**
+- `packages/ui/src/Button.figma.tsx` — ButtonLink leading-icon mapping
+- `packages/ui/src/GlobalSearch.jsx` — chips + backspace + useLayoutEffect repositioning + onClear fix
+- `packages/ui/src/MatchRow.jsx` — Container avatar icon
+- `packages/ui/src/index.js` — regrouped by tier (Atoms / Molecules / Organisms)
+- `apps/odyssey-one/src/search/useGlobalSearch.js` — chips/results state, filtering, progression-walk, onClear
+- `apps/odyssey-one/src/search/shipments/adapter.js` — `getInitial` uncapped, formatted suggestions, `searchShipments`, `toStatusBadge`
+- `apps/odyssey-one/src/styles/components.css` — `.global-search-chip*`, `.shipments-global-search*`, `.results-preview__body/list` updates, MatchRow clip fix
+- `playground/DesignSystemMap.html` — MatchRow + ResultsPreview Components sections (subagent)
+- `playground/normalization-tracker.md` — tier sub-tables, Widget reclassified, all S38+S39 rows
+- `playground/figma-component-routine.md` — Step 3 tier subsection + Step 7 checklist
+
+---
+
+## What's Next
+
+### Session 40 Priorities
+
+1. **Continue GlobalSearch chip-commit flow** — next bits per the user's stated direction:
+   - **Value chips (second suggestions panel):** after an attribute chip is committed, a second `FilterSuggestions` section surfaces with actual matching values from the index (e.g. "Customer Name: Kemira Americas") so the user can narrow to an exact value.
+   - **Table filtering:** committed chips should filter the Shipments table (currently inert since S34 reset).
+   - **ResultsPreview "Show N results" navigation:** clicking "Show N results" routes to filtered Shipments table.
+2. **Standing backlog (unchanged):** GlobalSearch Code Connect mapping refresh; SHP-66 generic dropdown; SHP-67 responsive pass; normalizations backlog (StatusBadge/HazmatTag/Tab pills etc.); Supabase migration (resume conditions in `docs/supabase-migration-plan.md`); POC 1 OIDC.
+
 ## Session 38 — June 2–3, 2026
 
 The GlobalSearch "search experience" session. Normalized **FilterSuggestions** (the suggestions dropdown) end-to-end, then built the **functional search layer** behind it (Shipments-only): a CSV-derived progression config, a lazy per-header value index, a domain adapter behind an agnostic contract, and an orchestration hook — wired into the live Shipments navbar. Iterated the suggestion logic hard (input-class gate → value-match ranking with a 3/2/1 case-aware scale + hide-non-matchers + a dev `console.table` debug log), realigned the fake DB to the CSV examples, and finished by normalizing the **second results panel (ResultsPreview) + MatchRow + a ButtonLink leading-icon** in Figma (published; code build deferred to next session).

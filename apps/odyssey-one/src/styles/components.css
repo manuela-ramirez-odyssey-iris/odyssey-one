@@ -424,6 +424,38 @@ button.filter-suggestions__chip:active {
 .icon-action:hover { color: var(--text-primary); }
 .icon-action:active { color: var(--text-placeholder); }
 
+/* GlobalSearch — committed chip. Inline pill inside the dark bar. Uses its own
+   coloring (DSN/700 bg, DSN/100 text) since Badge gray is designed for light
+   surfaces. The X button uses a proper <button> (not Badge rightIcon) so it's
+   keyboard-focusable and accessible. The onMouseDown:preventDefault on the X
+   button keeps the input focused through the click. */
+.global-search-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  padding: 2px var(--spacing-2) 2px var(--spacing-2);
+  background: var(--deep-sea-neutral-700);
+  color: var(--deep-sea-neutral-100);
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.global-search-chip__remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--deep-sea-neutral-400);
+  cursor: pointer;
+  line-height: 0;
+  transition: color var(--transition-fast);
+}
+.global-search-chip__remove:hover {
+  color: var(--deep-sea-neutral-100);
+}
+
 /* GlobalSearch — placeholder color (cannot be set via inline styles) */
 .global-search-input::placeholder {
   color: var(--deep-sea-neutral-400);
@@ -2102,4 +2134,152 @@ button.filter-suggestions__chip:active {
 }
 .auth-content__account-link:hover {
   color: var(--text-link);
+}
+
+/* ----------------------------------------
+   SHIPMENTS GLOBAL SEARCH (consumer wrapper)
+   ShipmentsGlobalSearch wraps GlobalSearch + ResultsPreview in a relative
+   container so ResultsPreview can be absolutely positioned below the bar.
+   ---------------------------------------- */
+.shipments-global-search {
+  position: relative;
+  flex: 1;
+}
+.shipments-results-panel {
+  position: absolute;
+  top: calc(100% + var(--spacing-2));
+  left: 0;
+  z-index: 49; /* below FilterSuggestions dropdown at z-index: 50 */
+}
+
+/* ----------------------------------------
+   MATCH ROW (molecule) — Figma `MatchRow` 2460:2
+   One result row inside the GlobalSearch ResultsPreview panel.
+   ---------------------------------------- */
+.match-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: var(--spacing-3) var(--spacing-4);
+  border-bottom: 1px solid var(--border-subtle);
+  /* No overflow:hidden here — rows must size to their own content. Only the
+     text nodes (location, meta cells) clip horizontally with text-overflow. */
+}
+.match-row:last-child { border-bottom: none; }
+
+/* Selectable variant (onClick) — code-only hover affordance (Pending Figma Sync). */
+.match-row[role="button"] {
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+.match-row[role="button"]:hover { background: var(--bg-secondary); }
+
+.match-row__info {
+  display: flex;
+  flex: 1 1 0;
+  gap: var(--spacing-3);
+  align-items: center;
+  min-width: 0;
+}
+.match-row__avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: var(--radius-md);
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+.match-row__details {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  align-items: flex-start;
+  min-width: 0;
+}
+.match-row__main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-2);
+  width: 100%;
+  min-width: 0;
+}
+.match-row__location {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.match-row__meta {
+  display: flex;
+  width: 100%;
+  align-items: flex-start;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.match-row__meta-cell {
+  display: inline-flex;
+  gap: var(--spacing-1);
+  padding: 0 var(--spacing-2);
+  flex-shrink: 0;
+}
+.match-row__meta-cell:first-child { padding-left: 0; }
+.match-row__meta-cell:last-child { padding-right: 0; flex-shrink: 1; min-width: 0; }
+.match-row__meta-cell--divider { border-right: 1px solid var(--border-default); }
+.match-row__meta-cell > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ----------------------------------------
+   RESULTS PREVIEW (organism) — Figma `ResultsPreview` 2462:149
+   "Best Match" preview panel below the GlobalSearch bar.
+   ---------------------------------------- */
+.results-preview {
+  display: flex;
+  flex-direction: column;
+  width: 720px;
+  max-width: 100%;
+  background: var(--bg-primary);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-2xl);
+  overflow: hidden;
+}
+.results-preview__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  align-items: flex-start;
+  padding: var(--spacing-6) var(--spacing-6) 0;
+}
+.results-preview__title { color: var(--text-tertiary); }
+.results-preview__list {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  /* No gap — rows stack directly, border-bottom provides visual separation.
+     4 rows visible (~68px each incl. border); scrolls after that. */
+  max-height: 272px;
+  overflow-y: auto;
+}
+.results-preview__filters {
+  display: flex;
+  align-items: center;
+  /* 36px left indent aligns the link with the row content (off-scale; no token). */
+  padding: var(--spacing-3) 0 var(--spacing-3) 36px;
+}
+.results-preview__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-3) var(--spacing-4) var(--spacing-4);
+  border-top: 1px solid var(--border-default);
 }

@@ -82,6 +82,16 @@ Output the recommendation as: *"Figma calls this `X`. I'd suggest `Y` instead be
 
 After the name is confirmed, both the React component name **and** the Figma component name should match in PascalCase. Rename the Figma component as part of Phase 1 if needed.
 
+#### Tier classification — assign it now, carry it through Phase 3
+
+Every normalized component is an **atom**, **molecule**, or **organism**. Decide the tier as part of classification and state it out loud (e.g. *"MatchRow → molecule"*). It is NOT a loose label — it drives concrete placement in three synced surfaces (enforced in Step 7):
+
+1. The **Figma page** the master lives on: `Components-Atoms` / `Components-Molecules` / `Components-Organisms`. **This is the single source of truth.** If the master is on the wrong page, move it (Phase 1) — don't let the page and the code label disagree.
+2. The **`packages/ui/src/index.js` export group** (`── Atoms ──` / `── Molecules ──` / `── Organisms ──`).
+3. The **`playground/normalization-tracker.md` → `## Normalized Components` sub-table** (`### Atoms` / `### Molecules` / `### Organisms`), with the row's leading cell labeled `Name (tier)`.
+
+All three MUST agree. A mismatch (e.g. a tracker row labeled `(molecule)` for a master on the Organisms page) is the exact drift this step exists to prevent — it forces a later full audit. Rough guide: **atom** = indivisible primitive (Button, Badge, IconButton); **molecule** = a few atoms composed into one unit (SearchField, MatchRow, EntityChip); **organism** = a self-contained section composing molecules/atoms (Navbar, Widget, ModalLarge, ResultsPreview). When in doubt, the Figma page already reflects the designer's intent — match it.
+
 ### Step 3b: Apply Figma writes
 
 Do all the Figma changes the normalization requires:
@@ -214,7 +224,9 @@ A normalize cycle is **not done** until ALL of the following are updated. Treat 
 - [ ] `design.md` updated if new tokens / rules were introduced.
 - [ ] **`playground/DesignSystemMap.html` Components tab updated with the new component section** (NORMALIZED pill, layout/states demo, props table, token contract table, Figma reference, Code Connect note). **Always use a subagent** (general-purpose) — see "DesignSystemMap = always subagent" rule below. Add the new function to the composition line at the bottom (e.g. `... + getNewComponentHTML()`). Mirror the existing Badge / Button / SidebarButton / Sidebar / GlobalSearch / LeadNav / TrailNav sections for visual DNA.
 - [ ] Normalize tab cleared (any temporary preview content removed).
-- [ ] `playground/normalization-tracker.md` updated with a row in "Normalized Components" + (if applicable) entries in "Pushed to Figma" / "Pending Figma Sync" / "Pushed to Figma → Code Connect".
+- [ ] **`packages/ui/src/index.js` export added under the correct tier group** (`── Atoms ──` / `── Molecules ──` / `── Organisms ──`) — matching the tier assigned in Step 3. Don't append to the bottom; place it in its section.
+- [ ] **`playground/normalization-tracker.md` → `## Normalized Components` row added under the correct tier sub-table** (`### Atoms` / `### Molecules` / `### Organisms`), leading cell labeled `Name (tier)`. Plus (if applicable) entries in "Pushed to Figma" / "Pending Figma Sync" / "Pushed to Figma → Code Connect".
+- [ ] **Tier consistency check:** the Figma page, the `index.js` group, and the tracker sub-section all agree on the tier (per Step 3). If they don't, fix it now — this is what prevents a future full-library audit.
 - [ ] Old ad-hoc entries that are now solved → **remove from the ad-hoc list**.
 
 **Audit-the-code rule:** The DesignSystemMap demo is a **faithful HTML/CSS reproduction of the React component as it currently renders**, including any Step 9 refinements that landed before Phase 3. **Re-read the source files** (`packages/ui/src/<Component>.jsx` AND `apps/odyssey-one/src/styles/components.css` for any class-based hover/focus rules) before writing the section. Don't trust the spec, the screenshot, or earlier intent — diff against the actual code at HEAD. Common drift sources to verify:

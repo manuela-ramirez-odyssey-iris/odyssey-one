@@ -1,5 +1,16 @@
+import { getAllShipments } from '../../data'
 import { SHIPMENTS_ATTRIBUTES } from './progression'
 import { valueMatchDetail } from './searchIndex'
+
+// Parse "Phoenix AZ US 85001" → "Phoenix, AZ"
+function formatLocation(str) {
+  if (!str) return ''
+  const base = str.split(' US ')[0].trim()
+  const parts = base.split(' ')
+  const state = parts.pop()
+  const city = parts.join(' ')
+  return city ? `${city}, ${state}` : state
+}
 
 // Logs a per-query table of attributes (score + matching values) so you can see
 // WHY each chip is suggested. On in dev, silent in production builds.
@@ -27,15 +38,24 @@ const DEBUG_SEARCH = !!(import.meta.env && import.meta.env.DEV)
  * select; pending its own normalization (seam marked below).
  */
 
-const INITIAL_COUNT = 5
-
-function toItem(attr) {
-  return { key: attr.key, label: attr.label, group: attr.group, dataKey: attr.dataKey, kind: 'attribute' }
+function toItem(attr, queryValue) {
+  const label = queryValue ? `${attr.label}: ${queryValue}` : attr.label
+  return {
+    key: attr.key,
+    label,
+    attrLabel: attr.label,
+    queryValue: queryValue || null,
+    group: attr.group,
+    dataKey: attr.dataKey,
+    kind: 'attribute',
+  }
 }
 
 export const shipmentsSearchAdapter = {
+  // Returns ALL attributes (not capped) so the hook can filter committed ones
+  // then slice to its INITIAL_COUNT, naturally walking down the progression.
   async getInitial() {
-    const items = SHIPMENTS_ATTRIBUTES.slice(0, INITIAL_COUNT).map(toItem)
+    const items = SHIPMENTS_ATTRIBUTES.map((a) => toItem(a, null))
     return [{ title: 'Suggested Filters', items }]
   },
 
@@ -48,7 +68,7 @@ export const shipmentsSearchAdapter = {
         const { score, samples } = valueMatchDetail(attr.dataKey, q)
         return { attr, order, score, samples }
       })
-      .filter((s) => s.score > 0) // hide attributes whose values don't match at all
+      .filter((s) => s.score > 0)
       .sort((a, b) => b.score - a.score || a.order - b.order)
 
     if (DEBUG_SEARCH) {
@@ -56,16 +76,45 @@ export const shipmentsSearchAdapter = {
       console.table(
         scored.map((s) => ({
           attribute: s.attr.label,
-          score: s.score, // 3 = exact, 2 = case-exact prefix, 1 = case-insensitive prefix
+          score: s.score,
           matched: s.samples.join(', '),
         })),
       )
       console.groupEnd()
     }
 
-    return [{ title: 'Suggested Filters', items: scored.map((s) => toItem(s.attr)) }]
-
-    // FUTURE — a second section of VALUE chips (Origin: Bastrop, LA …) sourced from
-    // the same index, populating the SECOND panel on chip select (not the table).
+    return [{ title: 'Suggested Filters', items: scored.map((s) => toItem(s.attr, q)) }]
   },
+
+  // AND-filter all committed chip criteria; return up to 15 results + total count.
+  async searchShipments(chips) {
+    if (!chips || !chips.length) return { results: [], total: 0 }
+    const all = getAllShipments()
+    const matching = all.filter((s) =>
+      chips.every((chip) => {
+        const field = s[chip.dataKey]
+        if (field == null) return false
+        const str = (Array.isArray(field) ? field.join(' ') : String(field)).toLowerCase()
+        return str.includes((chip.queryValue || '').toLowerCase())
+      }),
+    )
+    const total = matching.length
+    const results = matching.slice(0, 15).map((s) => ({
+      id: s.buyShipment,
+      matchId: s.buyShipment,
+      route: `${formatLocation(s.origin)} → ${formatLocation(s.destination)}`,
+      customer: s.customerName,
+      carrier: s.scac,
+      bol: s.pro,
+      source: toStatusBadge(s),
+    }))
+    return { results, total }
+  },
+}
+
+function toStatusBadge(s) {
+  if (s.tenderStatus === 'Sent') return { label: 'Sent', variant: 'blue' }
+  if (s.shipmentStatus === 'Done') return { label: 'Done', variant: 'green' }
+  if (s.shipmentStatus === 'Review') return { label: 'Review', variant: 'amber' }
+  return { label: s.shipmentStatus || '—', variant: 'gray' }
 }

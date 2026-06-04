@@ -2451,6 +2451,109 @@ function getFilterSuggestionsComponentHTML() {
   '</div>';
 }
 
+/* ── MatchRow (molecule) — NORMALIZED ──
+   One result row inside the GlobalSearch ResultsPreview panel. A 40×40 gray avatar
+   (switchable icon) · a main line with matchId (semibold) + route (regular) on the
+   left and a source Badge (blue / purple) on the right · a meta line of
+   Customer | Carrier | BOL cells separated by vertical dividers.
+   Source: packages/ui/src/MatchRow.jsx, Figma node 2460:2. Scoped .mr-norm-* prefix. */
+function getMatchRowComponentHTML() {
+  var codeChip = 'font-family:\'SF Mono\',\'Fira Code\',monospace; font-size:11px; background:#F3F4F6; padding:1px 5px; border-radius:3px; color:#6B7280;';
+  /* lucide Package glyph (avatar icon, 20px) */
+  var svgPackage = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M3.3 7 12 12l8.7-5"/><path d="M12 22V12"/></svg>';
+  /* One row — args: matchId, route, customer, carrier, bol, badgeVariant, badgeLabel */
+  function row(matchId, route, customer, carrier, bol, badgeVariant, badgeLabel) {
+    return '' +
+    '<div class="mr-norm-row">' +
+      '<div class="mr-norm-info">' +
+        '<span class="mr-norm-avatar" aria-hidden="true">' + svgPackage + '</span>' +
+        '<div class="mr-norm-details">' +
+          '<div class="mr-norm-main">' +
+            '<span class="mr-norm-location text-label-xs-regular">' +
+              '<span class="text-label-xs-semibold">' + matchId + '</span>' +
+              '<span>&nbsp;' + route + '</span>' +
+            '</span>' +
+            '<span class="mr-norm-badge mr-norm-badge--' + badgeVariant + '">' + badgeLabel + '</span>' +
+          '</div>' +
+          '<div class="mr-norm-meta text-label-xs-regular">' +
+            '<span class="mr-norm-meta-cell mr-norm-meta-cell--divider"><span>Customer:</span><span>' + customer + '</span></span>' +
+            '<span class="mr-norm-meta-cell mr-norm-meta-cell--divider"><span>Carrier:</span><span>' + carrier + '</span></span>' +
+            '<span class="mr-norm-meta-cell"><span>BOL:</span><span>' + bol + '</span></span>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }
+  return '' +
+  '<style>' +
+    /* Demo surface — light gray so the white card reads. */
+    '.mr-norm-surface { background: var(--bg-secondary, #F7F8FA); padding: 32px; border-radius: var(--radius-md, 6px); }' +
+    /* Light card constrained to ~672px so the justify-between layout reads correctly. */
+    '.mr-norm-card { width: 672px; max-width: 100%; background: var(--bg-primary, #FFFFFF); border-radius: var(--radius-lg, 8px); box-shadow: var(--shadow-base, 0 1px 2px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.10)); overflow: hidden; }' +
+    /* Row — faithful to .match-row. */
+    '.mr-norm-row { display: flex; align-items: center; width: 100%; padding: var(--spacing-3, 12px) var(--spacing-4, 16px); border-bottom: 1px solid var(--border-subtle, #F2F3F5); overflow: hidden; }' +
+    '.mr-norm-row:last-child { border-bottom: none; }' +
+    '.mr-norm-info { display: flex; flex: 1 0 0; gap: var(--spacing-3, 12px); align-items: center; min-width: 0; overflow: hidden; }' +
+    '.mr-norm-avatar { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; flex-shrink: 0; border-radius: var(--radius-md, 6px); background: var(--bg-tertiary, #E4E6EB); color: var(--text-secondary, #283142); }' +
+    '.mr-norm-details { display: flex; flex: 1 0 0; flex-direction: column; gap: var(--spacing-1, 4px); align-items: flex-start; min-width: 0; overflow: hidden; }' +
+    '.mr-norm-main { display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-2, 8px); width: 100%; overflow: hidden; }' +
+    '.mr-norm-location { display: flex; align-items: center; min-width: 0; color: var(--text-secondary, #283142); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }' +
+    '.mr-norm-meta { display: flex; width: 100%; align-items: flex-start; color: var(--text-secondary, #283142); white-space: nowrap; }' +
+    '.mr-norm-meta-cell { display: inline-flex; gap: var(--spacing-1, 4px); padding: 0 var(--spacing-2, 8px); min-width: 0; overflow: hidden; }' +
+    '.mr-norm-meta-cell:first-child { padding-left: 0; }' +
+    '.mr-norm-meta-cell:last-child { padding-right: 0; }' +
+    '.mr-norm-meta-cell--divider { border-right: 1px solid var(--border-default, #D0D4DB); }' +
+    '.mr-norm-meta-cell > span:last-child { overflow: hidden; text-overflow: ellipsis; }' +
+    /* Source Badge (blue / purple) — matches the real Badge variants. */
+    '.mr-norm-badge { display: inline-flex; align-items: center; white-space: nowrap; flex-shrink: 0; border-radius: var(--radius-sm, 4px); padding: 2px 10px; font-family: \'Inter\', sans-serif; font-size: 12px; line-height: 16px; font-weight: 500; }' +
+    '.mr-norm-badge--blue { background: var(--badge-blue-bg, #D0F1FF); color: var(--badge-blue-text, #063A83); }' +
+    '.mr-norm-badge--purple { background: var(--badge-purple-bg, #EDE9FE); color: var(--badge-purple-text, #5B21B6); }' +
+    /* Owner note. */
+    '.mr-norm-owner-note { font-size: 12.5px; color: #384253; line-height: 1.55; background: #F7F8FA; border-left: 3px solid #296DE7; padding: 10px 14px; border-radius: 4px; margin-top: 10px; }' +
+    '.mr-norm-owner-note strong { color: #1B2537; }' +
+    '.mr-norm-owner-note code { background: #F2F3F5; padding: 1px 6px; border-radius: 4px; font-size: 12px; color: #1B2537; }' +
+  '</style>' +
+
+  '<div class="comp-section">' +
+    '<div class="comp-section-title">MatchRow <span class="comp-normalized-label">NORMALIZED</span></div>' +
+    '<div class="comp-section-subtitle">packages/ui/src/MatchRow.jsx &middot; Figma node 2460:2</div>' +
+
+    '<div class="mr-norm-owner-note">' +
+      'One result row inside the GlobalSearch <strong>ResultsPreview</strong> panel. A 40&times;40 gray avatar (switchable icon, defaults to a <code>Package</code> glyph) &middot; a main line with the match ID (semibold) + route (regular) on the left and a source <strong>Badge</strong> on the right (<code>blue</code> default; <code>purple</code> for EDI feeds) &middot; a meta line of Customer / Carrier / BOL cells split by vertical dividers. Passing <code>onClick</code> makes the whole row a selectable <code>&lt;button&gt;</code> with a hover affordance.' +
+    '</div>' +
+
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Live &mdash; blue source badge (FourKites) + purple source badge (EDI 214)</div>' +
+      '<div class="mr-norm-surface">' +
+        '<div class="mr-norm-card">' +
+          row('C814956', 'Allentown, PA &rarr; Henderson, KY', 'Kemira Americas', 'CAPITAL TRANSPORTATION', 'S378003JB3', 'blue', 'FourKites, Inc.') +
+          row('C7645814', 'Allentown, PA &rarr; Henderson, KY', 'A Hartrodt', 'AACT - AAA COOPER', 'TH545725', 'purple', 'EDI 214') +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    '<div class="comp-subsection">' +
+      '<button class="comp-details-button" onclick="showCompDetails(\'MatchRow\')">Show props &amp; tokens</button>' +
+    '</div>' +
+
+    /* Sub-section: Figma reference */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Figma Reference</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
+        'Component <code style="' + codeChip + '">MatchRow</code> set <code style="' + codeChip + '">2460:2</code> on Components-Molecules. The avatar icon is a switchable <code>INSTANCE_SWAP</code> slot (placeholder-20 in Figma); in code it defaults to a neutral <code>Package</code> glyph. The source pill is a real <code>Badge</code> instance.' +
+      '</div>' +
+    '</div>' +
+
+    /* Sub-section: Code Connect */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Code Connect</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
+        'Mapped via <code style="' + codeChip + '">packages/ui/src/MatchRow.figma.tsx</code> &mdash; TEXT props (matchId / route / customer / carrier / bol) plus a switchable <code>Icon</code> (avatar) slot.' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
 /* ── LeadNav (molecule) component reference HTML ── */
 function getLeadNavComponentHTML() {
   var codeChip = 'font-family:\'SF Mono\',\'Fira Code\',monospace; font-size:11px; background:#F3F4F6; padding:1px 5px; border-radius:3px; color:#6B7280;';
@@ -7010,6 +7113,90 @@ var compDetails = {
         '</tbody>' +
       '</table>'
   },
+  MatchRow: {
+    props:
+      '<table class="comp-table">' +
+        '<thead><tr><th>Prop</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>' +
+        '<tbody>' +
+          '<tr style="background:#F7F8FA;"><td colspan="4" style="font-style:italic; color:#384253;">One result row inside the GlobalSearch <code>ResultsPreview</code> panel. A 40&times;40 gray avatar (switchable icon) + a main line (matchId semibold + route regular &harr; source <strong>Badge</strong>) + a meta line of Customer / Carrier / BOL cells split by vertical dividers.</td></tr>' +
+          '<tr><td><code>matchId</code></td><td>string</td><td>&mdash;</td><td>Match identifier, rendered <code>text-label-xs-semibold</code> at the start of the main line.</td></tr>' +
+          '<tr><td><code>route</code></td><td>string</td><td>&mdash;</td><td>Origin &rarr; destination, rendered <code>text-label-xs-regular</code> after the matchId (space-prefixed).</td></tr>' +
+          '<tr><td><code>customer</code></td><td>string</td><td>&mdash;</td><td>Meta-line cell 1 (Customer:).</td></tr>' +
+          '<tr><td><code>carrier</code></td><td>string</td><td>&mdash;</td><td>Meta-line cell 2 (Carrier:).</td></tr>' +
+          '<tr><td><code>bol</code></td><td>string</td><td>&mdash;</td><td>Meta-line cell 3 (BOL:).</td></tr>' +
+          '<tr><td><code>source</code></td><td><code>{ label, variant }</code></td><td><code>{ label: "FourKites, Inc.", variant: "blue" }</code></td><td>Source pill, a real <code>Badge</code> instance. <code>blue</code> default; <code>purple</code> for EDI feeds.</td></tr>' +
+          '<tr><td><code>icon</code></td><td>ReactNode</td><td><code>&lt;Package /&gt;</code> glyph</td><td>Switchable avatar icon (INSTANCE_SWAP slot in Figma). Defaults to a neutral package glyph.</td></tr>' +
+          '<tr><td><code>onClick</code></td><td><code>() =&gt; void</code></td><td>&mdash;</td><td>When supplied, makes the whole row a selectable <code>&lt;button&gt;</code> (<code>role="button"</code>, <code>tabIndex=0</code>) and adds a hover affordance.</td></tr>' +
+          '<tr><td><code>className</code></td><td>string</td><td>&mdash;</td><td>Appended to the row class.</td></tr>' +
+          '<tr><td><code>...rest</code></td><td>HTMLDivAttrs</td><td>&mdash;</td><td>Spread to the row <code>&lt;div&gt;</code>.</td></tr>' +
+        '</tbody>' +
+      '</table>',
+    tokens:
+      '<table class="comp-table">' +
+        '<thead><tr><th>Area / Property</th><th>Token / Value</th><th>Resolved</th></tr></thead>' +
+        '<tbody>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Row</td></tr>' +
+          '<tr><td>Row padding</td><td><code>--spacing-3</code> / <code>--spacing-4</code></td><td>12px vertical / 16px horizontal</td></tr>' +
+          '<tr><td>Row divider</td><td><code>--border-subtle</code></td><td>1px bottom border (none on last row)</td></tr>' +
+          '<tr><td>Text color</td><td><code>--text-secondary</code></td><td>DSN/800 (#283142)</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Avatar</td></tr>' +
+          '<tr><td>Size</td><td><code>40&times;40</code></td><td>fixed, flex-shrink 0</td></tr>' +
+          '<tr><td>Background</td><td><code>--bg-tertiary</code></td><td>neutral gray surface</td></tr>' +
+          '<tr><td>Radius</td><td><code>--radius-md</code></td><td>6px</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Spacing</td></tr>' +
+          '<tr><td>Detail rows gap</td><td><code>--spacing-1</code></td><td>4px</td></tr>' +
+          '<tr><td>Main line gap (location &harr; badge)</td><td><code>--spacing-2</code></td><td>8px</td></tr>' +
+          '<tr><td>Info gap (avatar &harr; details)</td><td><code>--spacing-3</code></td><td>12px</td></tr>' +
+          '<tr><td>Meta cell padding / divider</td><td><code>--spacing-2</code> + <code>--border-default</code></td><td>8px horizontal, 1px right-border between cells</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Typography</td></tr>' +
+          '<tr><td>matchId</td><td><code>label/xs semibold</code></td><td>12 / 16 / 600</td></tr>' +
+          '<tr><td>route + meta</td><td><code>label/xs regular</code></td><td>12 / 16 / 400</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Selectable (code-only)</td></tr>' +
+          '<tr><td>Hover (onClick form)</td><td><code>background: var(--bg-secondary)</code></td><td>Only the <code>&lt;button&gt;</code> form; <code>transition: var(--transition-fast)</code>. <strong>Pending Figma Sync</strong> &mdash; the master is a static display.</td></tr>' +
+        '</tbody>' +
+      '</table>'
+  },
+  ResultsPreview: {
+    props:
+      '<table class="comp-table">' +
+        '<thead><tr><th>Prop</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>' +
+        '<tbody>' +
+          '<tr style="background:#F7F8FA;"><td colspan="4" style="font-style:italic; color:#384253;">The "Best Match" preview panel below the GlobalSearch bar. Composes a title, a list of <code>MatchRow</code> rows, a filters link, and a footer action bar (Clear all &middot; Show N results).</td></tr>' +
+          '<tr><td><code>title</code></td><td>string</td><td><code>"Best Match"</code></td><td>Panel header, rendered <code>text-label-sm-medium</code> at <code>--text-tertiary</code>. Omit / empty to hide.</td></tr>' +
+          '<tr><td><code>matches</code></td><td><code>MatchRow props[]</code></td><td><code>[]</code></td><td>Array of MatchRow prop objects (<code>{ matchId, route, customer, carrier, bol, source, icon, id }</code>). Each renders a <code>MatchRow</code>.</td></tr>' +
+          '<tr><td><code>resultCount</code></td><td>number</td><td><code>matches.length</code></td><td>Count shown in the footer "Show N results" button.</td></tr>' +
+          '<tr><td><code>filtersLabel</code></td><td>string</td><td><code>"All Filters"</code></td><td>Label of the filters link.</td></tr>' +
+          '<tr><td><code>filtersIcon</code></td><td>ReactNode</td><td><code>&lt;SlidersHorizontal /&gt;</code></td><td>Leading icon on the filters link (<code>Button variant="link"</code>).</td></tr>' +
+          '<tr><td><code>onFiltersClick</code></td><td><code>() =&gt; void</code></td><td>&mdash;</td><td>Filters link click handler.</td></tr>' +
+          '<tr><td><code>onClear</code></td><td><code>() =&gt; void</code></td><td>&mdash;</td><td>Secondary "Clear all" click handler.</td></tr>' +
+          '<tr><td><code>onShowResults</code></td><td><code>() =&gt; void</code></td><td>&mdash;</td><td>Primary "Show N results" click handler.</td></tr>' +
+          '<tr><td><code>onMatchClick</code></td><td><code>(match) =&gt; void</code></td><td>&mdash;</td><td>When supplied, passed down as each row\'s <code>onClick</code> (makes rows selectable).</td></tr>' +
+        '</tbody>' +
+      '</table>',
+    tokens:
+      '<table class="comp-table">' +
+        '<thead><tr><th>Area / Property</th><th>Token / Value</th><th>Resolved</th></tr></thead>' +
+        '<tbody>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Panel</td></tr>' +
+          '<tr><td>Background</td><td><code>--bg-primary</code></td><td>white</td></tr>' +
+          '<tr><td>Radius</td><td><code>--radius-xl</code></td><td>12px</td></tr>' +
+          '<tr><td>Shadow</td><td><code>--shadow-2xl</code></td><td>elevated dropdown shadow</td></tr>' +
+          '<tr><td>Width</td><td><code>720px</code></td><td>fixed (max-width 100%)</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Body</td></tr>' +
+          '<tr><td>Padding</td><td><code>--spacing-6</code></td><td>24px</td></tr>' +
+          '<tr><td>Gap (title &harr; list)</td><td><code>--spacing-4</code></td><td>16px</td></tr>' +
+          '<tr><td>Title</td><td><code>label/sm medium</code> at <code>--text-tertiary</code></td><td>14 / 20 / 500, DSN/500</td></tr>' +
+          '<tr><td>List gap (row &harr; row)</td><td><code>--spacing-2</code></td><td>8px</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Filters link</td></tr>' +
+          '<tr><td>Indent</td><td><code>36px</code> (off-scale, no token)</td><td>aligns the link with row content</td></tr>' +
+          '<tr><td>Padding</td><td><code>--spacing-3</code> top/bottom</td><td>12px</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Footer actions</td></tr>' +
+          '<tr><td>Top border</td><td><code>--border-default</code></td><td>1px</td></tr>' +
+          '<tr><td>Padding</td><td><code>--spacing-3</code> / <code>--spacing-4</code></td><td>12px top, 16px sides, 16px bottom</td></tr>' +
+          '<tr><td>Buttons</td><td><code>Button</code> secondary (Clear all) + primary (Show N results)</td><td>md size, justify-between</td></tr>' +
+        '</tbody>' +
+      '</table>'
+  },
   SidebarButton: {
     props:
       '<table class="comp-table">' +
@@ -10608,6 +10795,138 @@ function getAuthContentComponentHTML() {
   '</div>';
 }
 
+/* ── ResultsPreview (organism) — NORMALIZED ──
+   The "Best Match" preview panel that drops below the GlobalSearch bar once filter
+   criteria are committed. White rounded panel (shadow/2xl) with a title, a list of
+   MatchRow results, a filters link (Button variant="link" + leading sliders icon),
+   and a footer action bar (Clear all · Show N results).
+   Source: packages/ui/src/ResultsPreview.jsx, Figma node 2462:149. Scoped .rp-norm-* prefix. */
+function getResultsPreviewComponentHTML() {
+  var codeChip = 'font-family:\'SF Mono\',\'Fira Code\',monospace; font-size:11px; background:#F3F4F6; padding:1px 5px; border-radius:3px; color:#6B7280;';
+  var svgPackage = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M3.3 7 12 12l8.7-5"/><path d="M12 22V12"/></svg>';
+  var svgSliders = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="21" x2="14" y1="4" y2="4"/><line x1="10" x2="3" y1="4" y2="4"/><line x1="21" x2="12" y1="12" y2="12"/><line x1="8" x2="3" y1="12" y2="12"/><line x1="21" x2="16" y1="20" y2="20"/><line x1="12" x2="3" y1="20" y2="20"/><line x1="14" x2="14" y1="2" y2="6"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="16" x2="16" y1="18" y2="22"/></svg>';
+  function row(matchId, route, customer, carrier, bol, badgeVariant, badgeLabel) {
+    return '' +
+    '<div class="rp-norm-row">' +
+      '<div class="rp-norm-info">' +
+        '<span class="rp-norm-avatar" aria-hidden="true">' + svgPackage + '</span>' +
+        '<div class="rp-norm-details">' +
+          '<div class="rp-norm-main">' +
+            '<span class="rp-norm-location text-label-xs-regular">' +
+              '<span class="text-label-xs-semibold">' + matchId + '</span>' +
+              '<span>&nbsp;' + route + '</span>' +
+            '</span>' +
+            '<span class="rp-norm-badge rp-norm-badge--' + badgeVariant + '">' + badgeLabel + '</span>' +
+          '</div>' +
+          '<div class="rp-norm-meta text-label-xs-regular">' +
+            '<span class="rp-norm-meta-cell rp-norm-meta-cell--divider"><span>Customer:</span><span>' + customer + '</span></span>' +
+            '<span class="rp-norm-meta-cell rp-norm-meta-cell--divider"><span>Carrier:</span><span>' + carrier + '</span></span>' +
+            '<span class="rp-norm-meta-cell"><span>BOL:</span><span>' + bol + '</span></span>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }
+  return '' +
+  '<style>' +
+    /* Demo surface — light gray so the white panel + shadow read. */
+    '.rp-norm-surface { background: var(--bg-secondary, #F7F8FA); padding: 32px; border-radius: var(--radius-md, 6px); }' +
+    /* Panel — faithful to .results-preview. */
+    '.rp-norm-panel { display: flex; flex-direction: column; width: 720px; max-width: 100%; background: var(--bg-primary, #FFFFFF); border-radius: var(--radius-xl, 12px); box-shadow: var(--shadow-2xl, 0px 25px 50px -12px rgba(0,0,0,0.25)); overflow: hidden; }' +
+    '.rp-norm-body { display: flex; flex: 1; flex-direction: column; gap: var(--spacing-4, 16px); align-items: flex-start; min-height: 0; padding: var(--spacing-6, 24px); overflow-y: auto; }' +
+    '.rp-norm-title { color: var(--text-tertiary, #6B7B96); }' +
+    '.rp-norm-list { display: flex; flex-direction: column; gap: var(--spacing-2, 8px); width: 100%; }' +
+    /* Row internals (mirror MatchRow). */
+    '.rp-norm-row { display: flex; align-items: center; width: 100%; padding: var(--spacing-3, 12px) var(--spacing-4, 16px); border-bottom: 1px solid var(--border-subtle, #F2F3F5); overflow: hidden; }' +
+    '.rp-norm-row:last-child { border-bottom: none; }' +
+    '.rp-norm-info { display: flex; flex: 1 0 0; gap: var(--spacing-3, 12px); align-items: center; min-width: 0; overflow: hidden; }' +
+    '.rp-norm-avatar { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; flex-shrink: 0; border-radius: var(--radius-md, 6px); background: var(--bg-tertiary, #E4E6EB); color: var(--text-secondary, #283142); }' +
+    '.rp-norm-details { display: flex; flex: 1 0 0; flex-direction: column; gap: var(--spacing-1, 4px); align-items: flex-start; min-width: 0; overflow: hidden; }' +
+    '.rp-norm-main { display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-2, 8px); width: 100%; overflow: hidden; }' +
+    '.rp-norm-location { display: flex; align-items: center; min-width: 0; color: var(--text-secondary, #283142); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }' +
+    '.rp-norm-meta { display: flex; width: 100%; align-items: flex-start; color: var(--text-secondary, #283142); white-space: nowrap; }' +
+    '.rp-norm-meta-cell { display: inline-flex; gap: var(--spacing-1, 4px); padding: 0 var(--spacing-2, 8px); min-width: 0; overflow: hidden; }' +
+    '.rp-norm-meta-cell:first-child { padding-left: 0; }' +
+    '.rp-norm-meta-cell:last-child { padding-right: 0; }' +
+    '.rp-norm-meta-cell--divider { border-right: 1px solid var(--border-default, #D0D4DB); }' +
+    '.rp-norm-meta-cell > span:last-child { overflow: hidden; text-overflow: ellipsis; }' +
+    /* Source Badge. */
+    '.rp-norm-badge { display: inline-flex; align-items: center; white-space: nowrap; flex-shrink: 0; border-radius: var(--radius-sm, 4px); padding: 2px 10px; font-family: \'Inter\', sans-serif; font-size: 12px; line-height: 16px; font-weight: 500; }' +
+    '.rp-norm-badge--blue { background: var(--badge-blue-bg, #D0F1FF); color: var(--badge-blue-text, #063A83); }' +
+    '.rp-norm-badge--purple { background: var(--badge-purple-bg, #EDE9FE); color: var(--badge-purple-text, #5B21B6); }' +
+    /* Filters link row — 36px indent (off-scale, no token). */
+    '.rp-norm-filters { display: flex; align-items: center; padding: var(--spacing-3, 12px) 0 var(--spacing-3, 12px) 36px; }' +
+    '.rp-norm-link { display: inline-flex; align-items: center; gap: var(--spacing-2, 8px); background: transparent; border: none; padding: 0; cursor: pointer; color: var(--text-link, #276DA2); font-family: \'Inter\', sans-serif; font-size: var(--font-size-sm, 14px); line-height: var(--line-height-sm, 20px); font-weight: 500; transition: color var(--transition-fast, 150ms ease); }' +
+    '.rp-norm-link:hover { color: var(--carolina-blue-400, #5BA4D4); }' +
+    '.rp-norm-link__icon { display: inline-flex; align-items: center; justify-content: center; width: var(--icon-size-lg, 20px); height: var(--icon-size-lg, 20px); flex-shrink: 0; color: currentColor; }' +
+    /* Footer action bar — top border, justify-between. */
+    '.rp-norm-actions { display: flex; align-items: center; justify-content: space-between; padding: var(--spacing-3, 12px) var(--spacing-4, 16px) var(--spacing-4, 16px); border-top: 1px solid var(--border-default, #D0D4DB); }' +
+    /* Footer buttons — md secondary + md primary (mirror .btn-demo). */
+    '.rp-norm-btn { display: inline-flex; align-items: center; justify-content: center; height: 36px; padding: 6px 14px; border-radius: var(--radius-lg, 8px); border: 1px solid transparent; font-family: \'Inter\', sans-serif; font-size: var(--font-size-base, 16px); line-height: var(--line-height-base, 24px); font-weight: 500; cursor: pointer; white-space: nowrap; transition: background-color var(--transition-fast, 150ms ease), border-color var(--transition-fast, 150ms ease); }' +
+    '.rp-norm-btn--secondary { background: var(--white, #fff); color: var(--deep-sea-neutral-700, #384253); border-color: var(--deep-sea-neutral-300, #D0D4DB); box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.05)); }' +
+    '.rp-norm-btn--secondary:hover { background: var(--deep-sea-neutral-50, #F7F8FA); border-color: var(--deep-sea-neutral-400, #9DA3B0); }' +
+    '.rp-norm-btn--primary { background: var(--deep-sea-neutral-900, #1B2537); color: var(--white, #fff); border: 1px solid var(--deep-sea-neutral-500, #6B7280); box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.05)); }' +
+    '.rp-norm-btn--primary:hover { background: var(--deep-sea-neutral-600, #4C5463); }' +
+    /* Owner note. */
+    '.rp-norm-owner-note { font-size: 12.5px; color: #384253; line-height: 1.55; background: #F7F8FA; border-left: 3px solid #296DE7; padding: 10px 14px; border-radius: 4px; margin-top: 10px; }' +
+    '.rp-norm-owner-note strong { color: #1B2537; }' +
+    '.rp-norm-owner-note code { background: #F2F3F5; padding: 1px 6px; border-radius: 4px; font-size: 12px; color: #1B2537; }' +
+  '</style>' +
+
+  '<div class="comp-section">' +
+    '<div class="comp-section-title">ResultsPreview <span class="comp-normalized-label">NORMALIZED</span></div>' +
+    '<div class="comp-section-subtitle">packages/ui/src/ResultsPreview.jsx &middot; Figma node 2462:149</div>' +
+
+    '<div class="rp-norm-owner-note">' +
+      'The "Best Match" preview panel that drops below the GlobalSearch bar once filter criteria are committed. White rounded panel (<code>--shadow-2xl</code>) composing a title, a list of <strong>MatchRow</strong> results, a filters link (<code>Button variant="link"</code> with a leading <code>SlidersHorizontal</code> icon), and a footer action bar (<strong>Button</strong> secondary "Clear all" &middot; <strong>Button</strong> primary "Show N results"). The footer count defaults to <code>matches.length</code> unless <code>resultCount</code> is given.' +
+    '</div>' +
+
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Live &mdash; full panel with 4 MatchRow results (row 2 = purple EDI 214)</div>' +
+      '<div class="rp-norm-surface">' +
+        '<div class="rp-norm-panel">' +
+          '<div class="rp-norm-body">' +
+            '<span class="rp-norm-title text-label-sm-medium">Best Match</span>' +
+            '<div class="rp-norm-list">' +
+              row('C814956', 'Allentown, PA &rarr; Henderson, KY', 'Kemira Americas', 'CAPITAL TRANSPORTATION', 'S378003JB3', 'blue', 'FourKites, Inc.') +
+              row('C7645814', 'Allentown, PA &rarr; Henderson, KY', 'A Hartrodt', 'AACT - AAA COOPER', 'TH545725', 'purple', 'EDI 214') +
+              row('C0981487', 'Allentown, PA &rarr; Henderson, KY', 'ADP Global Logistics LLC', 'ABXN - AMX Trucking', 'H260003JB3', 'blue', 'FourKites, Inc.') +
+              row('C9781497', 'Allentown, PA &rarr; Henderson, KY', 'AM Stabilizers', 'AGVS - ATS LOGISTICS', 'C780003JB3', 'blue', 'FourKites, Inc.') +
+            '</div>' +
+          '</div>' +
+          '<div class="rp-norm-filters">' +
+            '<button type="button" class="rp-norm-link"><span class="rp-norm-link__icon">' + svgSliders + '</span><span>All Filters</span></button>' +
+          '</div>' +
+          '<div class="rp-norm-actions">' +
+            '<button type="button" class="rp-norm-btn rp-norm-btn--secondary">Clear all</button>' +
+            '<button type="button" class="rp-norm-btn rp-norm-btn--primary">Show 4 results</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    '<div class="comp-subsection">' +
+      '<button class="comp-details-button" onclick="showCompDetails(\'ResultsPreview\')">Show props &amp; tokens</button>' +
+    '</div>' +
+
+    /* Sub-section: Figma reference */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Figma Reference</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
+        'Component <code style="' + codeChip + '">ResultsPreview</code> <code style="' + codeChip + '">2462:149</code> on Components-Organisms (Modals artboard). Composes <code>MatchRow</code> rows + a <code>Badge</code> per row + the filters <code>Button variant="link"</code> + secondary &amp; primary footer <code>Button</code>s.' +
+      '</div>' +
+    '</div>' +
+
+    /* Sub-section: Code Connect */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Code Connect</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
+        'Mapped via <code style="' + codeChip + '">packages/ui/src/ResultsPreview.figma.tsx</code> &mdash; a static, data-driven example (composed organism, no top-level component properties).' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
 /* ── FormField (molecule) — NORMALIZED ──
    Promoted from the Normalize tab to the Components tab after GATE B-DSM
    sign-off. Label + native text input pair. The primary form-input
@@ -10829,7 +11148,7 @@ function showCompDetails(componentName) {
 document.addEventListener('DOMContentLoaded', function() {
   /* Populate Components tab */
   var compTab = document.getElementById('componentsTabBadgeContent');
-  if (compTab) compTab.innerHTML = getBadgeComponentHTML() + getFilterButtonComponentHTML() + getButtonComponentHTML() + getIconButtonComponentHTML() + getIconButtonGhostComponentHTML() + getSidebarButtonComponentHTML() + getSidebarComponentHTML() + getGlobalSearchComponentHTML() + getFilterSuggestionsComponentHTML() + getLeadNavComponentHTML() + getTrailNavComponentHTML() + getNavbarComponentHTML() + getPageHeaderComponentHTML() + getSectionHeaderComponentHTML() + getSectionLabelComponentHTML() + getAddSectionDividerComponentHTML() + getAddSectionButtonComponentHTML() + getEntityChipComponentHTML() + getSearchFieldComponentHTML() + getFormFieldComponentHTML() + getWidgetMetricRowComponentHTML() + getWidgetPieChartComponentHTML() + getWidgetComponentHTML() + getWidgetCtaRowComponentHTML() + getWidgetVariantPickerComponentHTML() + getMenuRowComponentHTML() + getCustomerRowComponentHTML() + getMenuDropdownComponentHTML() + getEditModeOverviewHTML() + getWidgetsLeftMenuComponentHTML() + getEmptyStateComponentHTML() + getModalLargeComponentHTML() + getModalMediumComponentHTML() + getAuthModalComponentHTML() + getAuthContentComponentHTML();
+  if (compTab) compTab.innerHTML = getBadgeComponentHTML() + getFilterButtonComponentHTML() + getButtonComponentHTML() + getIconButtonComponentHTML() + getIconButtonGhostComponentHTML() + getSidebarButtonComponentHTML() + getSidebarComponentHTML() + getGlobalSearchComponentHTML() + getFilterSuggestionsComponentHTML() + getMatchRowComponentHTML() + getLeadNavComponentHTML() + getTrailNavComponentHTML() + getNavbarComponentHTML() + getPageHeaderComponentHTML() + getSectionHeaderComponentHTML() + getSectionLabelComponentHTML() + getAddSectionDividerComponentHTML() + getAddSectionButtonComponentHTML() + getEntityChipComponentHTML() + getSearchFieldComponentHTML() + getFormFieldComponentHTML() + getWidgetMetricRowComponentHTML() + getWidgetPieChartComponentHTML() + getWidgetComponentHTML() + getWidgetCtaRowComponentHTML() + getWidgetVariantPickerComponentHTML() + getMenuRowComponentHTML() + getCustomerRowComponentHTML() + getMenuDropdownComponentHTML() + getEditModeOverviewHTML() + getWidgetsLeftMenuComponentHTML() + getEmptyStateComponentHTML() + getModalLargeComponentHTML() + getModalMediumComponentHTML() + getAuthModalComponentHTML() + getAuthContentComponentHTML() + getResultsPreviewComponentHTML();
 
   /* No active normalization cycle. AuthContent (Variant=Login) was promoted
      to the Components tab after GATE B-DSM sign-off — see

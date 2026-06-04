@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { ChevronLeft, ChevronRight, CircleX } from 'lucide-react'
+import React, { useState, useRef, useLayoutEffect } from 'react'
+import { ChevronLeft, ChevronRight, CircleX, X } from 'lucide-react'
 import { ICON_MD, ICON_LG } from '@odyssey/tokens'
 import FilterButton from './FilterButton.jsx'
 import Badge from './Badge.jsx'
@@ -49,12 +49,27 @@ function GlobalSearchSearch({
   onFilterClick,
   onFocus,
   onBlur,
+  chips = [],
+  onChipRemove,
   suggestionSections = [],
   suggestionsOpen = false,
   onSuggestionSelect,
 }) {
   const [focused, setFocused] = useState(false)
   const [internalActive, setInternalActive] = useState(false)
+  const [dropdownLeft, setDropdownLeft] = useState(0)
+  const wrapperRef = useRef(null)
+  const inputRef = useRef(null)
+
+  // Reposition the suggestions dropdown to align with the start of the input
+  // (trailing edge of the last committed chip). Caps at the wrapper's right
+  // edge so the panel never starts past the end of the field.
+  useLayoutEffect(() => {
+    if (!inputRef.current || !wrapperRef.current) return
+    const inputLeft = inputRef.current.offsetLeft
+    const wrapperWidth = wrapperRef.current.offsetWidth
+    setDropdownLeft(Math.min(inputLeft, wrapperWidth))
+  }, [chips])
 
   // `filterActive` is optional-controlled: when provided, the consumer owns the
   // drawer-open state; otherwise GlobalSearch toggles it internally on click.
@@ -100,6 +115,7 @@ function GlobalSearchSearch({
       </div>
 
       <div
+        ref={wrapperRef}
         className={`global-search-wrapper relative flex items-center${barFocused ? ' focused' : ''}`}
         style={{
           flex: 1,
@@ -113,26 +129,52 @@ function GlobalSearchSearch({
           padding: showFilter ? '0 0 0 var(--spacing-3)' : '0 var(--spacing-3)',
         }}
       >
-        <input
-          type="text"
-          value={value}
-          placeholder={placeholder}
-          onChange={(e) => onChange?.(e.target.value)}
-          onFocus={() => { setFocused(true); onFocus?.() }}
-          onBlur={() => { setFocused(false); onBlur?.() }}
-          className="global-search-input flex-1 bg-transparent border-none outline-none min-w-0"
-          style={{
-            color: 'var(--text-inverse)',
-            fontFamily: 'var(--font-primary)',
-            fontSize: 'var(--font-size-sm)',
-            lineHeight: 'var(--line-height-sm)',
-          }}
-        />
+        {/* Inner group: chips + input share a 4px gap. The outer wrapper's
+            12px gap then separates this group from the clear/filter buttons. */}
+        <div style={{ display: 'flex', alignItems: 'center', flex: 1, gap: 4, minWidth: 0 }}>
+          {chips.map((chip) => (
+            <span key={chip.key} className="global-search-chip text-label-xs-medium">
+              {chip.label}
+              <button
+                type="button"
+                className="global-search-chip__remove"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => onChipRemove?.(chip.key)}
+                aria-label={`Remove ${chip.label}`}
+              >
+                <X size={12} strokeWidth={2.25} />
+              </button>
+            </span>
+          ))}
+
+          <input
+            ref={inputRef}
+            type="text"
+            value={value}
+            placeholder={chips.length ? '' : placeholder}
+            onChange={(e) => onChange?.(e.target.value)}
+            onFocus={() => { setFocused(true); onFocus?.() }}
+            onBlur={() => { setFocused(false); onBlur?.() }}
+            onKeyDown={(e) => {
+              if (e.key === 'Backspace' && !value && chips.length > 0) {
+                onChipRemove?.(chips[chips.length - 1].key)
+              }
+            }}
+            className="global-search-input flex-1 bg-transparent border-none outline-none min-w-0"
+            style={{
+              color: 'var(--text-inverse)',
+              fontFamily: 'var(--font-primary)',
+              fontSize: 'var(--font-size-sm)',
+              lineHeight: 'var(--line-height-sm)',
+              minWidth: 80,
+            }}
+          />
+        </div>
 
         <button
           type="button"
           onMouseDown={(e) => e.preventDefault()}
-          onClick={() => { if (value) onClear?.() }}
+          onClick={() => { if (value || chips.length > 0) onClear?.() }}
           className="global-search-clear flex items-center justify-center border-none bg-transparent cursor-pointer p-0 shrink-0"
           style={{ color: accent }}
           aria-label="Clear search"
@@ -164,11 +206,12 @@ function GlobalSearchSearch({
             className="global-search-dropdown"
             onMouseDown={(e) => e.preventDefault()}
             style={{
-              // left-anchored under the bar; no `right` so the container hugs
-              // its content width (the widest chip) instead of spanning the bar.
+              // Aligns to the input's current left offset within the bar so the
+              // dropdown tracks the trailing edge of committed chips. Capped at
+              // wrapper width so it never starts past the end of the field.
               position: 'absolute',
-              top: 'calc(100% + var(--spacing-2))',
-              left: 0,
+              top: 'calc(100% + 2px)',
+              left: dropdownLeft,
               zIndex: 50,
               display: 'flex',
               flexDirection: 'column',

@@ -1,33 +1,70 @@
-import { GlobalSearch } from '@odyssey/ui'
+import { useRef, useState, useEffect } from 'react'
+import { GlobalSearch, ResultsPreview } from '@odyssey/ui'
 import { useGlobalSearch } from '../../search/useGlobalSearch'
 import { shipmentsSearchAdapter } from '../../search/shipments/adapter'
 
 /**
- * ShipmentsGlobalSearch — the Shipments-domain wiring of the shared GlobalSearch
- * bar. Binds the agnostic orchestration hook to the Shipments adapter and renders
- * the normalized `<GlobalSearch>` (with its FilterSuggestions dropdown). Mounted
- * only here via AppShell's `searchSlot` — other routes get the plain bar.
+ * ShipmentsGlobalSearch — Shipments-domain wiring of the GlobalSearch bar.
+ * Owns the search state (via hook + adapter), renders chips in the bar, and
+ * positions ResultsPreview below the bar once the first chip is committed.
+ * ResultsPreview closes on click-outside.
  */
 export default function ShipmentsGlobalSearch() {
   const {
     value, onChange, onClear, onFocus, onBlur,
+    chips, onChipCommit, onChipRemove,
     suggestionSections, suggestionsOpen,
+    results, resultTotal,
   } = useGlobalSearch(shipmentsSearchAdapter)
 
+  const wrapperRef = useRef(null)
+  const [resultsOpen, setResultsOpen] = useState(false)
+
+  // Open when the first chip is committed; close when all chips are removed.
+  useEffect(() => {
+    if (chips.length > 0) setResultsOpen(true)
+    else setResultsOpen(false)
+  }, [chips.length])
+
+  // Close on click outside the entire wrapper (bar + panel).
+  useEffect(() => {
+    if (!resultsOpen) return
+    const handleMouseDown = (e) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target)) {
+        setResultsOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleMouseDown)
+    return () => document.removeEventListener('mousedown', handleMouseDown)
+  }, [resultsOpen])
+
   return (
-    <GlobalSearch
-      value={value}
-      onChange={onChange}
-      onClear={onClear}
-      onFocus={onFocus}
-      onBlur={onBlur}
-      suggestionSections={suggestionSections}
-      suggestionsOpen={suggestionsOpen}
-      onSuggestionSelect={(item) => {
-        // First user intention. The indexed value results render in the SECOND
-        // panel (pending its own normalization) — not the table. No-op for now.
-        console.log('FilterSuggestions selected:', item)
-      }}
-    />
+    <div className="shipments-global-search" ref={wrapperRef}>
+      <GlobalSearch
+        value={value}
+        onChange={onChange}
+        onClear={onClear}
+        onFocus={onFocus}
+        onBlur={onBlur}
+        chips={chips}
+        onChipRemove={onChipRemove}
+        suggestionSections={suggestionSections}
+        suggestionsOpen={suggestionsOpen}
+        onSuggestionSelect={onChipCommit}
+      />
+
+      {resultsOpen && chips.length > 0 && (
+        <div className="shipments-results-panel">
+          <ResultsPreview
+            matches={results}
+            resultCount={resultTotal}
+            onClear={() => chips.forEach((c) => onChipRemove(c.key))}
+            onShowResults={() => {
+              console.log('Show all results:', resultTotal)
+            }}
+          />
+        </div>
+      )}
+    </div>
   )
 }
