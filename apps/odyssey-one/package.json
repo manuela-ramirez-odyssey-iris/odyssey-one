@@ -8,6 +8,7 @@
     "prebuild": "node tools/generate.mjs",
     "build": "vite build",
     "lint": "eslint .",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
     "preview": "vite preview",
     "generate-data": "node tools/generate.mjs",
     "test": "vitest run",
