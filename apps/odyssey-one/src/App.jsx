@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
+import { QueryClientProvider } from '@tanstack/react-query'
+import { queryClient } from './api/queryClient'
 import Home from './routes/Home.jsx'
 import Login from './routes/Login.jsx'
 import Orders from './routes/Orders.jsx'
@@ -49,24 +51,26 @@ export default function App() {
   const showHome = mountHome
 
   return (
-    <Routes>
-      <Route
-        path="/"
-        element={
-          <>
-            {showHome && <Home />}
-            {showLogin && <Login onLogin={handleLogin} phase={phase} />}
-          </>
-        }
-      />
-      <Route path="/orders" element={<Orders />} />
-      <Route path="/carriers" element={<Carriers />} />
-      <Route path="/shipments/*" element={<ShipmentsRoute />} />
-      <Route path="/tracking" element={<Tracking />} />
-      <Route path="/users" element={<Users />} />
-      <Route path="/partners" element={<Partners />} />
-      <Route path="/button-demo" element={<ButtonDemo />} />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <QueryClientProvider client={queryClient}>
+      <Routes>
+        <Route
+          path="/"
+          element={
+            <>
+              {showHome && <Home />}
+              {showLogin && <Login onLogin={handleLogin} phase={phase} />}
+            </>
+          }
+        />
+        <Route path="/orders" element={<Orders />} />
+        <Route path="/carriers" element={<Carriers />} />
+        <Route path="/shipments/*" element={<ShipmentsRoute />} />
+        <Route path="/tracking" element={<Tracking />} />
+        <Route path="/users" element={<Users />} />
+        <Route path="/partners" element={<Partners />} />
+        <Route path="/button-demo" element={<ButtonDemo />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </QueryClientProvider>
   )
 }
