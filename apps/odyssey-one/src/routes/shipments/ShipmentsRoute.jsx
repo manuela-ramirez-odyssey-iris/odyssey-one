@@ -11,7 +11,8 @@ import { COLUMN_CONFIG } from '../../components/shipments/ShipmentTable'
 import { FileText } from 'lucide-react'
 import { PageHeader } from '@odyssey/ui'
 import ShipmentsGlobalSearch from '../../components/global-search/ShipmentsGlobalSearch'
-import { getAllShipments, fetchShipmentDetails, getCachedShipmentDetails, getShipmentsByPanel, getShipmentsByPanelAndCategory, getCategoryCount, SEARCH_ATTRIBUTES } from '../../data'
+import { getAllShipments, getShipmentsByPanel, getShipmentsByPanelAndCategory, getCategoryCount, SEARCH_ATTRIBUTES } from '../../data'
+import { useShipmentDetail } from '../../api/queries/useShipmentDetail'
 
 function parseSavedQuery(queryStr) {
   const pairs = []
@@ -54,8 +55,6 @@ function ShipmentsRoute() {
   // filteredShipments memo below stays unchanged until that panel lands.
   const [gsChips] = useState([])
   const [gsQuery] = useState('')
-  const [shipmentDetails, setShipmentDetails] = useState(null)
-  const [detailsLoading, setDetailsLoading] = useState(false)
   const [metricsCollapsed, setMetricsCollapsed] = useState(false)
   const [columnsByPanel, setColumnsByPanel] = useState({
     exceptions: EXCEPTIONS_DEFAULT_COLUMNS,
@@ -68,31 +67,12 @@ function ShipmentsRoute() {
 
   const allShipments = useMemo(() => getAllShipments(), [])
 
+  const { data: shipmentDetails = null, isLoading: detailsLoading } = useShipmentDetail(selectedShipmentId)
+
+  // Collapse the metrics strip when a shipment is selected (was a side effect of
+  // the old detail-fetch effect).
   useEffect(() => {
-    if (selectedShipmentId) {
-      setMetricsCollapsed(true)
-      // Check cache first (instant)
-      const cached = getCachedShipmentDetails(selectedShipmentId)
-      if (cached) {
-        setShipmentDetails(cached)
-        setDetailsLoading(false)
-        return
-      }
-      // Fetch on demand (~30 KB per shipment)
-      setDetailsLoading(true)
-      let stale = false
-      fetchShipmentDetails(selectedShipmentId).then(data => {
-        if (!stale) {
-          setShipmentDetails(data)
-          setDetailsLoading(false)
-        }
-      }).catch(() => {
-        if (!stale) setDetailsLoading(false)
-      })
-      return () => { stale = true }
-    } else {
-      setShipmentDetails(null)
-    }
+    if (selectedShipmentId) setMetricsCollapsed(true)
   }, [selectedShipmentId])
 
   const selectedShipment = useMemo(() => {
