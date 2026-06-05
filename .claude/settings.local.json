@@ -136,7 +136,18 @@
       "Bash(sed -n '850,852p' /tmp/figma_part0.txt)",
       "Bash(sed -n '982,991p' /tmp/figma_part0.txt)",
       "Bash(sed -n '370,400p' apps/odyssey-one/src/styles/components.css)",
-      "Bash(sed -n '395,450p' apps/odyssey-one/src/styles/components.css)"
+      "Bash(sed -n '395,450p' apps/odyssey-one/src/styles/components.css)",
+      "Bash(file vault/00-inbox/*.png)",
+      "Bash(claude plugin *)",
+      "Bash(sed -n '2395,2407p' playground/DesignSystemMap.html)",
+      "Bash(sed -n '7005,7009p' playground/DesignSystemMap.html)",
+      "Bash(sed -n '/function genOrderId/,/^}/p' tools/generate.mjs)",
+      "Bash(sed -n '260,300p' tools/generate.mjs)",
+      "Bash(awk 'NR==45' playground/normalization-tracker.md)",
+      "Bash(awk 'NR==60' playground/normalization-tracker.md)",
+      "Bash(xargs -I{} basename {} .jsx)",
+      "Bash(sed -n '1,60p' apps/odyssey-one/src/data/index.js)",
+      "Bash(sed -n '1,12p' apps/odyssey-one/package.json)"
     ]
   }
 }

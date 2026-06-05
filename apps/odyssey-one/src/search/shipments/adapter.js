@@ -1,6 +1,13 @@
 import { getAllShipments } from '../../data'
-import { SHIPMENTS_ATTRIBUTES } from './progression'
+import { SHIPMENTS_ATTRIBUTES, SHIPMENTS_PROGRESSION } from './progression'
 import { valueMatchDetail } from './searchIndex'
+
+// How many entry-point attributes to show when the bar is empty + no chips.
+const INITIAL_COUNT = 5
+
+// dataKeys that drive avatar icon overrides in MatchRow
+const ORDER_KEYS    = new Set(['orders'])
+const CUSTOMER_KEYS = new Set(['customerId', 'customerName', 'consignor', 'consignee'])
 
 // Parse "Phoenix AZ US 85001" → "Phoenix, AZ"
 function formatLocation(str) {
@@ -52,11 +59,23 @@ function toItem(attr, queryValue) {
 }
 
 export const shipmentsSearchAdapter = {
-  // Returns ALL attributes (not capped) so the hook can filter committed ones
-  // then slice to its INITIAL_COUNT, naturally walking down the progression.
-  async getInitial() {
-    const items = SHIPMENTS_ATTRIBUTES.map((a) => toItem(a, null))
-    return [{ title: 'Suggested Filters', items }]
+  // Empty-input suggestions. No chips → entry points (top of the progression).
+  // With chips → the NEXT progression GROUP (drill forward; never repeat the
+  // entry set; on the last group, stay on it). Suggestions only — typing still
+  // matches ANY attribute regardless of group. See composed-criteria.md →
+  // "Empty-suggestion progression".
+  async getInitial(chips = []) {
+    if (!chips.length) {
+      const items = SHIPMENTS_ATTRIBUTES.slice(0, INITIAL_COUNT).map((a) => toItem(a, null))
+      return [{ title: 'Suggested Filters', items }]
+    }
+    const group = nextProgressionGroup(chips)
+    if (!group) return []
+    const committed = new Set(chips.map((c) => c.key))
+    const items = group.attributes
+      .filter((a) => !committed.has(a.key))
+      .map((a) => toItem({ ...a, group: group.group }, null))
+    return items.length ? [{ title: group.label, items }] : []
   },
 
   async getSuggestions(query) {
@@ -86,30 +105,152 @@ export const shipmentsSearchAdapter = {
     return [{ title: 'Suggested Filters', items: scored.map((s) => toItem(s.attr, q)) }]
   },
 
-  // AND-filter all committed chip criteria; return up to 15 results + total count.
+  // Composed-criteria search. The LEADING chip (chips[0]) determines the result
+  // ENTITY: an order-scoped leading chip returns ORDER rows (a shipment with 3
+  // matching orders → 3 rows); anything else returns SHIPMENT rows (1 per
+  // shipment). See vault/20-cross-cutting/global-search/composed-criteria.md.
   async searchShipments(chips) {
     if (!chips || !chips.length) return { results: [], total: 0 }
+
     const all = getAllShipments()
-    const matching = all.filter((s) =>
-      chips.every((chip) => {
-        const field = s[chip.dataKey]
-        if (field == null) return false
-        const str = (Array.isArray(field) ? field.join(' ') : String(field)).toLowerCase()
-        return str.includes((chip.queryValue || '').toLowerCase())
-      }),
-    )
-    const total = matching.length
-    const results = matching.slice(0, 15).map((s) => ({
-      id: s.buyShipment,
-      matchId: s.buyShipment,
-      route: `${formatLocation(s.origin)} → ${formatLocation(s.destination)}`,
-      customer: s.customerName,
-      carrier: s.scac,
-      bol: s.pro,
-      source: toStatusBadge(s),
-    }))
-    return { results, total }
+    const primaryKey = chips[0]?.dataKey ?? 'buyShipment'
+    const primaryQuery = (chips[0]?.queryValue || '').toLowerCase()
+
+    // Shipment-level AND filter: a shipment qualifies if every chip matches it.
+    // (An order-scoped chip "matches" when at least one order contains the value
+    // — it narrows which shipments survive; the explosion below picks the exact
+    // orders.)
+    const shipments = all.filter((s) => chips.every((chip) => matchChip(s, chip)))
+
+    // ---- Order entity: explode each shipment into its matching orders --------
+    if (ORDER_KEYS.has(primaryKey)) {
+      const orderChips = chips.filter((c) => ORDER_KEYS.has(c.dataKey))
+      const rows = []
+      for (const s of shipments) {
+        const orders = Array.isArray(s.orders) ? s.orders : []
+        for (const ord of orders) {
+          const o = String(ord)
+          const keep = orderChips.every((c) =>
+            o.toLowerCase().includes((c.queryValue || '').toLowerCase()),
+          )
+          if (keep) rows.push(buildOrderRow(s, o))
+        }
+      }
+      const sorted = primaryQuery
+        ? rows.sort((a, b) => scoreText(b.matchId, primaryQuery) - scoreText(a.matchId, primaryQuery))
+        : rows
+      return { results: sorted.slice(0, 15), total: rows.length }
+    }
+
+    // ---- Shipment entity: one row per shipment ------------------------------
+    const sorted = primaryQuery
+      ? [...shipments].sort((a, b) =>
+          scorePrimaryMatch(b, primaryKey, primaryQuery) -
+          scorePrimaryMatch(a, primaryKey, primaryQuery),
+        )
+      : shipments
+    const results = sorted.slice(0, 15).map((s) => buildShipmentRow(s, primaryKey, primaryQuery))
+    return { results, total: shipments.length }
   },
+}
+
+// The progression group to suggest next given committed chips: the group AFTER
+// the furthest group any chip belongs to. Past the end → stay on the last group
+// (user rule). Skips fully-committed groups so the panel is never empty; if the
+// tail is exhausted, falls back to any earlier group with room left.
+function nextProgressionGroup(chips) {
+  const idxByGroup = new Map(SHIPMENTS_PROGRESSION.map((g, i) => [g.group, i]))
+  const maxIdx = chips.reduce((m, c) => Math.max(m, idxByGroup.get(c.group) ?? -1), -1)
+  const lastIdx = SHIPMENTS_PROGRESSION.length - 1
+  const targetIdx = Math.min(maxIdx + 1, lastIdx)
+  const committed = new Set(chips.map((c) => c.key))
+  const hasRoom = (g) => g.attributes.some((a) => !committed.has(a.key))
+
+  for (let i = targetIdx; i <= lastIdx; i++) {
+    if (hasRoom(SHIPMENTS_PROGRESSION[i])) return SHIPMENTS_PROGRESSION[i]
+  }
+  for (let i = lastIdx; i >= 0; i--) {
+    if (hasRoom(SHIPMENTS_PROGRESSION[i])) return SHIPMENTS_PROGRESSION[i]
+  }
+  return null
+}
+
+// AND predicate for a single chip against a shipment (substring, case-insensitive).
+function matchChip(s, chip) {
+  const field = s[chip.dataKey]
+  if (field == null) return false
+  const str = (Array.isArray(field) ? field.join(' ') : String(field)).toLowerCase()
+  return str.includes((chip.queryValue || '').toLowerCase())
+}
+
+// One result row when the result entity is a SHIPMENT.
+function buildShipmentRow(s, primaryKey, primaryQuery) {
+  return {
+    id: s.buyShipment,
+    matchId: formatPrimaryField(s, primaryKey, primaryQuery),
+    route: `${formatLocation(s.origin)} → ${formatLocation(s.destination)}`,
+    customer: s.customerName,
+    carrier: s.scac,
+    bol: s.pro,
+    ...(CUSTOMER_KEYS.has(primaryKey) && { iconType: 'handshake' }),
+    source: toStatusBadge(s),
+  }
+}
+
+// One result row when the result entity is an ORDER. Inherits the parent
+// shipment's route/customer/carrier/BOL (only order IDs exist at the main-row
+// level — see composed-criteria.md Q3). Bold = order #; badge = tender status.
+function buildOrderRow(s, orderId) {
+  return {
+    id: `${s.buyShipment}-${orderId}`,
+    matchId: orderId,
+    route: `${formatLocation(s.origin)} → ${formatLocation(s.destination)}`,
+    customer: s.customerName,
+    carrier: s.scac,
+    bol: s.pro,
+    shipmentId: s.buyShipment,
+    iconType: 'package',
+    source: toTenderBadge(s),
+  }
+}
+
+// Relevance score for ordering: 3 = exact · 2 = starts-with · 1 = contains · 0 = none.
+function scoreText(text, query) {
+  const t = String(text).toLowerCase()
+  if (t === query) return 3
+  if (t.startsWith(query)) return 2
+  if (t.includes(query)) return 1
+  return 0
+}
+
+// Scores a shipment's primary field against the query for result ordering.
+// For array fields, takes the best score across all elements.
+function scorePrimaryMatch(s, dataKey, query) {
+  const val = s[dataKey]
+  if (val == null) return 0
+  const candidates = Array.isArray(val) ? val.map(String) : [String(val)]
+  let best = 0
+  for (const c of candidates) {
+    best = Math.max(best, scoreText(c, query))
+    if (best === 3) break
+  }
+  return best
+}
+
+// Returns the display value for the first chip's field. For arrays (e.g. orders),
+// finds the element that contains the query so the matching order ID is shown;
+// falls back to the first element. For location fields, normalises to "City, ST".
+function formatPrimaryField(s, dataKey, query) {
+  const val = s[dataKey]
+  if (val == null) return s.buyShipment
+  if (dataKey === 'origin' || dataKey === 'destination') return formatLocation(val)
+  if (Array.isArray(val)) {
+    const match = query
+      ? val.find((v) => String(v).toLowerCase().includes(query))
+      : null
+    return String(match ?? val[0] ?? s.buyShipment)
+  }
+  return String(val)
 }
 
 function toStatusBadge(s) {
@@ -117,4 +258,12 @@ function toStatusBadge(s) {
   if (s.shipmentStatus === 'Done') return { label: 'Done', variant: 'green' }
   if (s.shipmentStatus === 'Review') return { label: 'Review', variant: 'amber' }
   return { label: s.shipmentStatus || '—', variant: 'gray' }
+}
+
+function toTenderBadge(s) {
+  if (s.tenderStatus === 'Accepted')  return { label: 'Accepted',  variant: 'green' }
+  if (s.tenderStatus === 'Sent')      return { label: 'Sent',      variant: 'blue'  }
+  if (s.tenderStatus === 'Declined')  return { label: 'Declined',  variant: 'red'   }
+  if (s.tenderStatus === 'Cancelled') return { label: 'Cancelled', variant: 'gray'  }
+  return { label: s.tenderStatus || '—', variant: 'gray' }
 }

@@ -294,6 +294,12 @@
   }
 }
 
+@keyframes badge-pop {
+  0%   { transform: scale(0.5); opacity: 0; }
+  65%  { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(1);   opacity: 1; }
+}
+
 /* Utility classes for animations */
 .odyssey-animate-fade-in {
   animation: odyssey-fade-in 0.2s ease-out;
@@ -439,6 +445,14 @@ button.filter-suggestions__chip:active {
   border-radius: var(--radius-sm);
   white-space: nowrap;
   flex-shrink: 0;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+.global-search-chip:hover:not(:has(.global-search-chip__remove:hover)) {
+  background: var(--deep-sea-neutral-600);
+}
+.global-search-chip:active:not(:has(.global-search-chip__remove:hover)) {
+  background: var(--deep-sea-neutral-800);
 }
 .global-search-chip__remove {
   display: inline-flex;
@@ -601,6 +615,8 @@ button.filter-suggestions__chip:active {
   position: absolute;
   top: -5px;
   right: -8px;
+  z-index: 1;
+  animation: badge-pop 220ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
   transition: transform var(--transition-fast);
 }
 .filter-button:active ~ .global-search-badge {

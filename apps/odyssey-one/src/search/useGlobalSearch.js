@@ -11,20 +11,19 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
  * suggestions, no dropdown.
  *
  * Stale-response guard: each fetch is tagged; only the latest applies. Empty
- * focus fetches `getInitial()`; typing fetches `getSuggestions()` debounced.
+ * focus fetches `getInitial(chips)`; typing fetches `getSuggestions(query)` debounced.
  *
  * Committed chips:
  * - `onChipCommit(item)` — appends chip (one per key), clears input.
  * - `onChipRemove(key)` — removes by key.
  * - Committed attribute keys are filtered out of suggestions automatically.
- * - When no query is active (empty/initial), suggestions are sliced to
- *   INITIAL_COUNT after filtering — so each commit naturally advances to the
- *   next most-relevant attributes in the progression.
+ * - Empty-input suggestion CONTENT (entry points vs next progression group) is
+ *   the adapter's job — the hook just passes the committed chips to
+ *   `getInitial(chips)`. The hook stays domain-agnostic: it knows nothing about
+ *   progression order or group advancement.
  * - `adapter.searchShipments(chips)` is called whenever chips change (if the
  *   adapter implements it) to populate ResultsPreview results.
  */
-const INITIAL_COUNT = 5
-
 export function useGlobalSearch(adapter, { debounceMs = 120 } = {}) {
   const [value, setValue] = useState('')
   const [focused, setFocused] = useState(false)
@@ -34,21 +33,23 @@ export function useGlobalSearch(adapter, { debounceMs = 120 } = {}) {
   const [resultTotal, setResultTotal] = useState(0)
   const reqId = useRef(0)
 
-  const run = useCallback(async (q) => {
+  const run = useCallback(async (q, chipList = []) => {
     if (!adapter) { setSections([]); return }
     const id = ++reqId.current
     const result = q && q.trim()
       ? await adapter.getSuggestions(q)
-      : await adapter.getInitial()
+      : await adapter.getInitial(chipList)
     if (id === reqId.current) setSections(result || [])
   }, [adapter])
 
-  // Fetch suggestions while focused, debounced on value change.
+  // Fetch suggestions while focused, debounced on value change. Re-runs when
+  // chips change too, so committing a chip advances the empty-state suggestions
+  // to the next progression group.
   useEffect(() => {
     if (!focused) return
-    const t = setTimeout(() => run(value), debounceMs)
+    const t = setTimeout(() => run(value, chips), debounceMs)
     return () => clearTimeout(t)
-  }, [value, focused, run, debounceMs])
+  }, [value, focused, chips, run, debounceMs])
 
   // Run results search whenever committed chips change.
   useEffect(() => {
@@ -63,18 +64,17 @@ export function useGlobalSearch(adapter, { debounceMs = 120 } = {}) {
     })
   }, [chips, adapter])
 
-  // Filter committed keys out of sections; slice initial state to INITIAL_COUNT.
+  // Generic safety net: never suggest an already-committed attribute. (Counts +
+  // group advancement are the adapter's job — the hook doesn't slice.)
   const committedKeys = useMemo(() => new Set(chips.map((c) => c.key)), [chips])
-  const isInitial = !value.trim()
   const filteredSections = useMemo(() =>
     sections
-      .map((section) => {
-        let items = section.items.filter((item) => !committedKeys.has(item.key))
-        if (isInitial) items = items.slice(0, INITIAL_COUNT)
-        return { ...section, items }
-      })
+      .map((section) => ({
+        ...section,
+        items: section.items.filter((item) => !committedKeys.has(item.key)),
+      }))
       .filter((s) => s.items.length > 0),
-  [sections, committedKeys, isInitial])
+  [sections, committedKeys])
 
   const onFocus = useCallback(() => setFocused(true), [])
   const onBlur = useCallback(() => setFocused(false), [])

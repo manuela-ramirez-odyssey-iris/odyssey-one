@@ -1,6 +1,12 @@
-import { Container } from 'lucide-react'
+import { Container, Package, Handshake } from 'lucide-react'
 import { ICON_LG } from '@odyssey/tokens'
 import Badge from './Badge.jsx'
+
+const AVATAR_ICONS = {
+  container: <Container {...ICON_LG} />,
+  package: <Package {...ICON_LG} />,
+  handshake: <Handshake {...ICON_LG} />,
+}
 
 /**
  * MatchRow — molecule. One result row in the GlobalSearch `ResultsPreview` panel.
@@ -23,8 +29,10 @@ export default function MatchRow({
   customer,
   carrier,
   bol,
+  shipmentId,
   source = { label: 'FourKites, Inc.', variant: 'blue' },
   icon,
+  iconType,
   onClick,
   className = '',
   ...rest
@@ -39,7 +47,7 @@ export default function MatchRow({
     >
       <div className="match-row__info">
         <span className="match-row__avatar" aria-hidden="true">
-          {icon || <Container {...ICON_LG} />}
+          {icon || AVATAR_ICONS[iconType] || AVATAR_ICONS.container}
         </span>
         <div className="match-row__details">
           <div className="match-row__main">
@@ -58,10 +66,16 @@ export default function MatchRow({
               <span>Carrier:</span>
               <span>{carrier}</span>
             </span>
-            <span className="match-row__meta-cell">
+            <span className={`match-row__meta-cell${shipmentId ? ' match-row__meta-cell--divider' : ''}`}>
               <span>BOL:</span>
               <span>{bol}</span>
             </span>
+            {shipmentId && (
+              <span className="match-row__meta-cell">
+                <span>Shipment #:</span>
+                <span>{shipmentId}</span>
+              </span>
+            )}
           </div>
         </div>
       </div>

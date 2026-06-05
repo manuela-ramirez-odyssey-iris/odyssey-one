@@ -3390,15 +3390,94 @@ Three arcs: (1) closed the S38 normalization carry-forward — MatchRow + Result
 
 ---
 
+## Session 40 — June 4, 2026
+
+GlobalSearch **composed-criteria** session — the start of multi-chip search behavior. Refined ResultsPreview to reflect the *leading* search criteria, established the foundational abstraction (leading chip = result entity), shipped the empty-suggestion progression (drill by group, don't repeat the entry set), and — most durably — stood up the **first automated tests in the project** (Vitest) as a regression guard, plus a living functional spec for the whole composed system. The user did a lot of "thinking out loud" that clarified several core principles; those are captured in the new spec doc so we don't step on ourselves as cases accumulate.
+
+### Thread 1 — ResultsPreview reflects the leading criteria
+
+A run of refinements so the preview panel mirrors *what the user actually searched*, not a fixed shape:
+
+- **Filter count badge wired** — `ShipmentsGlobalSearch` passes `filterCount={chips.length}`; the FilterButton count Badge (already built into `GlobalSearch`) now shows 1 on first commit, increments per chip, vanishes at zero.
+- **Badge pop animation** — `@keyframes badge-pop` (spring overshoot, `cubic-bezier(0.34,1.56,0.64,1)`) + `key={badgeLabel}` on the badge span so it re-fires on every count change (mount + increment).
+- **Bold field follows the leading chip** — adapter `formatPrimaryField(s, dataKey, query)` derives `matchId` from `chips[0]`'s attribute (sell shipment #, customer name, the *matching* order id within an array, "City, ST" for locations). No longer always Buy Shipment #.
+- **Relevance-sorted results** — `scoreText` (3 exact / 2 starts-with / 1 contains) + `scorePrimaryMatch`; results sort by the leading field's match against the query before the 15-cap, so `650…` → starts-with-650 first, then contains-650.
+- **Chips reopen ResultsPreview** — chips are hoverable/clickable (`onChipClick`), toggling the panel open/closed (it used to be unreachable once click-outside closed it). CSS hover (DSN/600) + active (DSN/800); `:has()` suppresses chip hover while the X is hovered; X uses `stopPropagation` so removing ≠ toggling.
+
+### Thread 2 — Composed criteria: leading chip = result ENTITY (Case 1)
+
+The foundational abstraction. The user's case: `Order # (empty)` + `Buy Shipment # = X` should return *that shipment's orders* (3 rows), not one row with the first order.
+
+- **Rule:** the leading chip (`chips[0]`) determines the result **entity**. Order-scoped leading chip → results are **orders** (a shipment with 3 matching orders → 3 rows, `total` = orders). Anything else → **shipments** (1 row each).
+- `searchShipments` refactored into `matchChip` / `buildShipmentRow` / `buildOrderRow`. Order path qualifies shipments via the AND filter, then **explodes** each into its matching orders.
+- **Conventions by leading scope:** order → bold = order #, `package` avatar, **tender-status** badge (showing *shipment* status in an order search is misleading), `Shipment #:` meta cell (new `shipmentId` prop on `MatchRow`). Customer-scoped (Customer ID/Name/Consignor/Consignee) → `handshake` avatar. Default → `container`. Avatar icons resolved via an `AVATAR_ICONS` map keyed by an `iconType` string the adapter passes (objects can't carry React nodes).
+
+### Thread 3 — Composed criteria: empty-suggestion progression (Case 2)
+
+After the first chip, FilterSuggestions was re-showing the same entry-5 — reads as "you must reuse these." Fixed so empty-input suggestions **drill forward**:
+
+- **No chips** → entry points (top `INITIAL_COUNT=5` of the progression), titled "Suggested Filters".
+- **≥1 chip** → the **next progression group** (the group after the *furthest* group any committed chip belongs to), titled by the group's drill-stage **label** ("Who it belongs to", "Where it goes", …). On the last group, stay there; fully-committed groups skipped.
+- **Suggestions only, never enforced** — typing still value-matches *any* attribute regardless of group; all chip combinations stay valid (`Mode: LTL` then `Buy Shipment #: 25` is fine).
+- `progression.js` gained a narrative `label` per group. Adapter owns it all (`getInitial(chips)` + `nextProgressionGroup`); the hook just passes committed chips through and stays domain-agnostic (dropped its old client-side slice; kept the committed-key dedup safety net).
+- **Conceptual realizations captured** (the user's think-out-loud): the **domain is the implicit search context** (Customer ID first ≠ "find a customer"; it's shipment-scoped) while the leading chip picks entity *grain* within it; **all combinations valid**, progression only orders *suggestions*.
+
+### Thread 4 — First automated tests (Vitest) as a regression guard
+
+The user's stated fear: breaking earlier criteria while building new ones. The search adapter is pure logic → ideal first test target. Chose Vitest (vs no-dep script vs doc-only) via AskUserQuestion.
+
+- `apps/odyssey-one/vite.config.js` — `test` block (`globals`, node env, `src/**/*.test.js`, setup file).
+- `apps/odyssey-one/vitest.setup.js` — test-only `Map.groupBy`/`Object.groupBy` polyfill (test runtime is Node 20; the API ships in Node 22 / modern browsers — prod untouched).
+- `composed-criteria.test.js` — **9 tests, all green**: 4 invariants (no-chips → empty; shipment-leading → shipment rows; AND semantics; 15-cap with true total) + Case 1 (order explosion) + Case 2 (4 progression tests). Data-derived from seed-42 fixtures (no magic IDs; survives regen).
+- Scripts: app `test` / `test:watch`, root `test:odyssey-one`. `vitest` devDep (the user's `npm audit fix` bumped it to v4.1.8).
+- **Workflow established:** each case → a `test(...)` block (executable matrix); the spec doc describes the *why*; firm rules graduate to decision-log + canon. The user runs `npm run test:watch` alongside `bun dev`.
+
+### Thread 5 — Living functional spec
+
+`vault/20-cross-cutting/global-search/composed-criteria.md` (new) — the running overview that becomes the API spec. Holds the Core model (4 concepts incl. domain-as-context and all-combos-valid), the conventions table, the **Empty-suggestion progression** section with the group→label table, Cases 1 & 2, and Open Questions Q1–Q5 (full entity-scope taxonomy; customer-leading entity; per-order row data; order-row dedup/ordering; "Show N results" total semantics). Sits alongside the existing `global-search.md` canon (mechanics) + `decisions/decision-log.md` (GS-NN). Per the user: the separate functional md is deliberate — behavior lives there, not in the chronological log.
+
+### Debugging note
+
+After the progression change the user still saw the entry-5 — diagnosed as **stale Vite Fast Refresh** (it can't reliably hot-swap a custom hook's internals or a plain module). A hard refresh fixed it; logic was correct all along (unit tests proved it). A temporary dev `console.log` was added to force a reload + give evidence, then removed.
+
+### Files / commits
+
+**New:**
+- `apps/odyssey-one/src/search/shipments/composed-criteria.test.js`
+- `apps/odyssey-one/vitest.setup.js`
+- `vault/20-cross-cutting/global-search/composed-criteria.md`
+
+**Modified (code):**
+- `apps/odyssey-one/src/components/global-search/ShipmentsGlobalSearch.jsx` — `filterCount`, `onChipClick` (toggle panel)
+- `apps/odyssey-one/src/search/shipments/adapter.js` — entity-branching `searchShipments` (`matchChip`/`buildShipmentRow`/`buildOrderRow`), `formatPrimaryField`, `scoreText`/`scorePrimaryMatch`, `toTenderBadge`, `ORDER_KEYS`/`CUSTOMER_KEYS`, `getInitial(chips)` + `nextProgressionGroup`, `INITIAL_COUNT`
+- `apps/odyssey-one/src/search/shipments/progression.js` — per-group narrative `label`s + header doc
+- `apps/odyssey-one/src/search/useGlobalSearch.js` — passes chips to `getInitial`, dropped client slice, kept dedup
+- `packages/ui/src/GlobalSearch.jsx` — badge `key`, `onChipClick` prop + chip role/keyboard, X `stopPropagation`
+- `packages/ui/src/MatchRow.jsx` — `shipmentId` 4th meta cell, `iconType`/`AVATAR_ICONS` (container/package/handshake)
+- `apps/odyssey-one/src/styles/components.css` — `@keyframes badge-pop` + badge animation; chip hover/active + `:has()` X-guard
+- `apps/odyssey-one/vite.config.js` — Vitest `test` block
+- `apps/odyssey-one/package.json` + root `package.json` + `package-lock.json` — test scripts, `vitest` devDep
+
+### State of GlobalSearch composed search after Session 40
+
+- **Core model locked (working):** domain = context; leading chip = entity grain; entity scope per attribute; all combos valid; progression only suggests.
+- **Implemented:** filter count badge (+animation), leading-criteria-aware ResultsPreview (bold field, avatar, badge, meta), relevance sort, chip toggle-reopen, order-entity explosion (Case 1), empty-suggestion group progression (Case 2).
+- **Guarded:** 9 Vitest tests, green; `npm run test:watch` is the live guard.
+- **Documented:** `composed-criteria.md` is the running functional spec.
+
+---
+
 ## What's Next
 
-### Session 40 Priorities
+### Session 41 Priorities
 
-1. **Continue GlobalSearch chip-commit flow** — next bits per the user's stated direction:
-   - **Value chips (second suggestions panel):** after an attribute chip is committed, a second `FilterSuggestions` section surfaces with actual matching values from the index (e.g. "Customer Name: Kemira Americas") so the user can narrow to an exact value.
-   - **Table filtering:** committed chips should filter the Shipments table (currently inert since S34 reset).
-   - **ResultsPreview "Show N results" navigation:** clicking "Show N results" routes to filtered Shipments table.
-2. **Standing backlog (unchanged):** GlobalSearch Code Connect mapping refresh; SHP-66 generic dropdown; SHP-67 responsive pass; normalizations backlog (StatusBadge/HazmatTag/Tab pills etc.); Supabase migration (resume conditions in `docs/supabase-migration-plan.md`); POC 1 OIDC.
+1. **Continue composed criteria — more cases.** Strong candidates (from `composed-criteria.md` Open Questions): Order # *with* a value + a shipment chip (per-order narrowing); **customer-leading entity decision (Q2)** — shipment-grained vs customer-grained, the UX call that defines a class of cases; chip-removal / positional-entity behavior (entity follows the new `chips[0]`); confirm the empty-suggestion **anchoring** sub-decision (furthest-group-reached vs last-committed-chip).
+2. **Value chips (second suggestions panel)** — after an attribute chip is committed, surface a second `FilterSuggestions` with actual matching *values* from the index (e.g. "Customer Name: Kemira Americas") to narrow to an exact value.
+3. **Table filtering** — committed chips should filter the Shipments table (inert since S34 reset).
+4. **ResultsPreview "Show N results" navigation** — route to the filtered table (interacts with order-vs-shipment `total` semantics, Q5).
+5. **Standing backlog (unchanged):** GlobalSearch Code Connect mapping refresh; SHP-66 generic dropdown; SHP-67 responsive pass; normalizations backlog (StatusBadge/HazmatTag/Tab pills etc.); Supabase migration (resume conditions in `docs/supabase-migration-plan.md`); POC 1 OIDC.
+
+**Process note:** every new composed case → add a `test(...)` to `composed-criteria.test.js` + log it in `composed-criteria.md`; promote firm rules to the GS-NN decision log + canon.
 
 ## Session 38 — June 2–3, 2026
 

@@ -13,6 +13,7 @@
     "lint": "turbo run lint",
     "dev:odyssey-one": "turbo run dev --filter=odyssey-one-app",
     "build:odyssey-one": "turbo run build --filter=odyssey-one-app",
+    "test:odyssey-one": "npm run test -w odyssey-one-app",
     "connect:publish": "npm run connect:publish -w @odyssey/ui",
     "connect:parse": "npm run connect:parse -w @odyssey/ui"
   },

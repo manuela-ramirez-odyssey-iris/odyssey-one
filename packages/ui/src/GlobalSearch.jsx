@@ -51,6 +51,7 @@ function GlobalSearchSearch({
   onBlur,
   chips = [],
   onChipRemove,
+  onChipClick,
   suggestionSections = [],
   suggestionsOpen = false,
   onSuggestionSelect,
@@ -133,13 +134,20 @@ function GlobalSearchSearch({
             12px gap then separates this group from the clear/filter buttons. */}
         <div style={{ display: 'flex', alignItems: 'center', flex: 1, gap: 4, minWidth: 0 }}>
           {chips.map((chip) => (
-            <span key={chip.key} className="global-search-chip text-label-xs-medium">
+            <span
+              key={chip.key}
+              className="global-search-chip text-label-xs-medium"
+              role="button"
+              tabIndex={0}
+              onClick={() => onChipClick?.(chip)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onChipClick?.(chip) }}
+            >
               {chip.label}
               <button
                 type="button"
                 className="global-search-chip__remove"
                 onMouseDown={(e) => e.preventDefault()}
-                onClick={() => onChipRemove?.(chip.key)}
+                onClick={(e) => { e.stopPropagation(); onChipRemove?.(chip.key) }}
                 aria-label={`Remove ${chip.label}`}
               >
                 <X size={12} strokeWidth={2.25} />
@@ -191,7 +199,7 @@ function GlobalSearchSearch({
             FilterButton so the press-pop can be driven via the sibling
             combinator (.filter-button:active ~ .global-search-badge). */}
         {showBadge && (
-          <span className="global-search-badge">
+          <span key={badgeLabel} className="global-search-badge">
             <Badge variant="count">{badgeLabel}</Badge>
           </span>
         )}
