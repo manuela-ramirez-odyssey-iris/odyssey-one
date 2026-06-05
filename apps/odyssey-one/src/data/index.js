@@ -35,31 +35,6 @@ export function getCategoryCount(panel, category) {
   return panelMap.get(category)?.length ?? 0
 }
 
-// ─── Per-shipment detail loader (fetch on demand) ───────────
-
-const detailsCache = new Map()
-
-export async function fetchShipmentDetails(id) {
-  if (detailsCache.has(id)) return detailsCache.get(id)
-
-  const res = await fetch(`/details/${id}.json`)
-  if (!res.ok) throw new Error(`Failed to load details for ${id}`)
-  const data = await res.json()
-  detailsCache.set(id, data)
-
-  // Cap cache at 50 entries (~1.5 MB)
-  if (detailsCache.size > 50) {
-    const oldest = detailsCache.keys().next().value
-    detailsCache.delete(oldest)
-  }
-
-  return data
-}
-
-export function getCachedShipmentDetails(id) {
-  return detailsCache.get(id) || null
-}
-
 // ─── Search attributes ──────────────────────────────────────
 
 export const SEARCH_ATTRIBUTES = [
