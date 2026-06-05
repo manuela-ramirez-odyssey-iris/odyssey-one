@@ -42,10 +42,11 @@ describe('apiGet', () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 404, json: async () => ({}) })
     vi.stubGlobal('fetch', fetchMock)
 
-    await expect(apiGet('/missing')).rejects.toMatchObject({
-      name: 'ApiError',
-      status: 404,
-    })
-    await expect(apiGet('/missing')).rejects.toBeInstanceOf(ApiError)
+    const err = await apiGet('/missing').catch((e) => e)
+    expect(err).toBeInstanceOf(ApiError)
+    expect(err.name).toBe('ApiError')
+    expect(err.status).toBe(404)
+    expect(typeof err.correlationId).toBe('string')
+    expect(err.correlationId.length).toBeGreaterThan(0)
   })
 })

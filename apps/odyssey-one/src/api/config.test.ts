@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { getApiMode, getApiBaseUrl } from './config'
-import { getAuthToken } from './auth'
 
 afterEach(() => vi.unstubAllEnvs())
 
@@ -20,10 +19,8 @@ describe('api config', () => {
     expect(getApiBaseUrl()).toBe('')
   })
 
-  it('returns the configured token, or null when unset', () => {
-    vi.stubEnv('VITE_API_TOKEN', 'dev-token-123')
-    expect(getAuthToken()).toBe('dev-token-123')
-    vi.stubEnv('VITE_API_TOKEN', '')
-    expect(getAuthToken()).toBeNull()
+  it('returns the configured base url', () => {
+    vi.stubEnv('VITE_API_BASE_URL', 'https://api.example.com')
+    expect(getApiBaseUrl()).toBe('https://api.example.com')
   })
 })

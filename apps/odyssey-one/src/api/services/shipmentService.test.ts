@@ -31,4 +31,10 @@ describe('getSellShipmentDetail', () => {
     expect(url).toBe('/shipment-service/v1/sell-shipment-out/777')
     expect(init.headers['x-correlation-id']).toBeTruthy()
   })
+
+  it('mock mode throws when the detail file is missing', async () => {
+    vi.stubEnv('VITE_API_MODE', 'mock')
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 404, json: async () => ({}) }))
+    await expect(getSellShipmentDetail('999')).rejects.toThrow('Failed to load details for 999')
+  })
 })

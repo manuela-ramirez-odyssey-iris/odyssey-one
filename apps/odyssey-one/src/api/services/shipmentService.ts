@@ -11,6 +11,8 @@ export async function getSellShipmentDetail(id: string): Promise<ShipmentDetailR
   }
   // mock: the locally generated detail file (served from public/details)
   const res = await fetch(`/details/${id}.json`)
+  // Mock path is an app-internal static-file read; a plain Error is fine —
+  // TanStack Query surfaces any thrown error via isError (type-agnostic).
   if (!res.ok) throw new Error(`Failed to load details for ${id}`)
   return res.json()
 }
