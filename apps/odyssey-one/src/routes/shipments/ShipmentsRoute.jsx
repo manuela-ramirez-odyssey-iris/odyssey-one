@@ -67,7 +67,7 @@ function ShipmentsRoute() {
 
   const allShipments = useMemo(() => getAllShipments(), [])
 
-  const { data: shipmentDetails = null, isLoading: detailsLoading } = useShipmentDetail(selectedShipmentId)
+  const { data: shipmentDetails = null, isLoading: detailsLoading, isError: detailsError, refetch: refetchDetails } = useShipmentDetail(selectedShipmentId)
 
   // Collapse the metrics strip when a shipment is selected (was a side effect of
   // the old detail-fetch effect).
@@ -387,6 +387,8 @@ function ShipmentsRoute() {
         rightOffset={rightOffset}
         onToggleColumnPanel={handleToggleColumnPanel}
         detailsLoading={detailsLoading}
+        detailsError={detailsError}
+        onRetryDetails={refetchDetails}
       />
     </AppShell>
   )
