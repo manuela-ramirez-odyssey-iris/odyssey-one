@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { mapSellShipmentOutToDetail } from './mapSellShipmentOutToDetail'
 import { sellShipmentOutSample } from '../fixtures/sellShipmentOut.sample'
+import type { SellShipmentOut } from '../types/sellShipmentOut'
 
 describe('mapSellShipmentOutToDetail', () => {
   const vm = mapSellShipmentOutToDetail(sellShipmentOutSample)
@@ -45,15 +46,20 @@ describe('mapSellShipmentOutToDetail', () => {
     expect(vm.orderDetails[0].customField1).toBe('--')
   })
 
-  it('emits empty sibling sections so other tabs degrade gracefully', () => {
-    expect(vm.stopsData).toEqual({ summary: {}, stops: [] })
+  it('emits empty routing/cost/instructions/docs/notes/history sections', () => {
     expect(vm.productData).toEqual({ orders: [] })
-    expect(vm.costData).toEqual({ planned: { summary: {}, orders: [] } })
-    expect(vm.notesData).toEqual({ notes: [] })
     expect(vm.routingData).toEqual({ options: [] })
     expect(vm.instructionsData).toEqual({ orders: [] })
     expect(vm.documentsData).toEqual({ documents: [] })
+    expect(vm.notesData).toEqual({ notes: [] })
     expect(vm.historyData).toEqual({ entries: [] })
+  })
+
+  it('stops degrade gracefully when shipmentStopList absent', () => {
+    const dto: SellShipmentOut = { ...sellShipmentOutSample, shipmentStopList: undefined }
+    const result = mapSellShipmentOutToDetail(dto)
+    expect(result.stopsData.stops).toHaveLength(0)
+    expect(result.stopsData.summary.distance).toBe('--')
   })
 
   it('returns empty orderDetails for an empty orderList', () => {
@@ -64,5 +70,149 @@ describe('mapSellShipmentOutToDetail', () => {
   it('falls back to orderId when orderNumber is absent', () => {
     const dto = { ...sellShipmentOutSample, orderList: [{ orderId: 'ORD-X' }] }
     expect(mapSellShipmentOutToDetail(dto).orderDetails[0].orderNumber).toBe('ORD-X')
+  })
+
+  describe('stopsData', () => {
+    it('maps one stop per shipmentStopList entry', () => {
+      const dto: SellShipmentOut = {
+        ...sellShipmentOutSample,
+        shipmentStopList: [
+          {
+            stopSequence: 1,
+            stopType: 'pickup',
+            orderIds: ['ORD-1001'],
+            facilityName: 'Acme Houston Plant',
+            address1: '100 Refinery Rd',
+            city: 'Houston',
+            region: 'TX',
+            postal: '77001',
+            country: 'US',
+            scheduledDateTime: '06/10/2026 08:00 CST',
+            appointmentTime: '08:00 CST',
+            grossWeightValue: 18207,
+            grossWeightUomCode: 'LB',
+            volumeValue: 420,
+            volumeUomCode: 'cuft',
+            packageCount: 12,
+            pickupNumber: 'PU-820622',
+          },
+          {
+            stopSequence: 2,
+            stopType: 'delivery',
+            orderIds: ['ORD-1001'],
+            facilityName: 'Midwest Distribution Center',
+            address1: '8800 Industrial Ave',
+            city: 'Chicago',
+            region: 'IL',
+            postal: '60601',
+            country: 'US',
+            scheduledDateTime: '06/13/2026 09:00 CST',
+            appointmentTime: null,
+            grossWeightValue: 18207,
+            grossWeightUomCode: 'LB',
+            volumeValue: 420,
+            volumeUomCode: 'cuft',
+            packageCount: null,
+            pickupNumber: null,
+          },
+        ],
+      }
+      const result = mapSellShipmentOutToDetail(dto)
+      expect(result.stopsData.stops).toHaveLength(2)
+    })
+
+    it('formats stop fields into view-model strings', () => {
+      const dto: SellShipmentOut = {
+        ...sellShipmentOutSample,
+        shipmentStopList: [
+          {
+            stopSequence: 1,
+            stopType: 'pickup',
+            orderIds: ['ORD-1001'],
+            facilityName: 'Acme Houston Plant',
+            address1: '100 Refinery Rd',
+            city: 'Houston',
+            region: 'TX',
+            postal: '77001',
+            country: 'US',
+            scheduledDateTime: '06/10/2026 08:00 CST',
+            appointmentTime: '08:00 CST',
+            grossWeightValue: 18207,
+            grossWeightUomCode: 'LB',
+            volumeValue: 420,
+            volumeUomCode: 'cuft',
+            packageCount: 12,
+            pickupNumber: 'PU-820622',
+          },
+        ],
+      }
+      const stop = mapSellShipmentOutToDetail(dto).stopsData.stops[0]
+      expect(stop.type).toBe('pickup')
+      expect(stop.stopNumber).toBe(1)
+      expect(stop.order).toBe('ORD-1001')
+      expect(stop.location).toBe('Acme Houston Plant, Houston, TX 77001 US')
+      expect(stop.address).toBe('100 Refinery Rd')
+      expect(stop.date).toBe('06/10/2026 08:00 CST')
+      expect(stop.appointment).toBe('08:00 CST')
+      expect(stop.weight).toBe('18,207 LB')
+      expect(stop.volume).toBe('420 cuft')
+      expect(stop.packageCount).toBe('12')
+      expect(stop.pickupNo).toBe('PU-820622')
+    })
+
+    it('degrades null appointment and pickupNumber to "--"', () => {
+      const dto: SellShipmentOut = {
+        ...sellShipmentOutSample,
+        shipmentStopList: [
+          {
+            stopSequence: 1,
+            stopType: 'delivery',
+            appointmentTime: null,
+            pickupNumber: null,
+          },
+        ],
+      }
+      const stop = mapSellShipmentOutToDetail(dto).stopsData.stops[0]
+      expect(stop.appointment).toBe('--')
+      expect(stop.pickupNo).toBe('--')
+    })
+
+    it('builds summary from shipment header fields', () => {
+      const dto: SellShipmentOut = {
+        ...sellShipmentOutSample,
+        distanceMiles: 367.52,
+        totalVolumeValue: 600,
+        totalVolumeUomCode: 'cuft',
+        acceptedCarrierLabel: 'ABFS - TL',
+        seedEquipment: 'VAN',
+        utilizationPercent: 74,
+        orderList: [
+          { ...sellShipmentOutSample.orderList[0], grossWeightValue: 18207 },
+          { ...sellShipmentOutSample.orderList[1], grossWeightValue: 9050 },
+        ],
+      }
+      const summary = mapSellShipmentOutToDetail(dto).stopsData.summary
+      expect(summary.distance).toBe('367.52 mi')
+      expect(summary.grossWeight).toBe('27,257 LB')
+      expect(summary.volume).toBe('600 cuft')
+      expect(summary.acceptedCarrier).toBe('ABFS - TL')
+      expect(summary.seedEquipment).toBe('VAN')
+      expect(summary.utilization).toBe('74%')
+    })
+
+    it('degrades summary to "--" fields when header data absent', () => {
+      const dto: SellShipmentOut = {
+        ...sellShipmentOutSample,
+        orderList: [],
+        distanceMiles: undefined,
+        totalVolumeValue: undefined,
+        acceptedCarrierLabel: undefined,
+        seedEquipment: undefined,
+        utilizationPercent: undefined,
+      }
+      const summary = mapSellShipmentOutToDetail(dto).stopsData.summary
+      expect(summary.distance).toBe('--')
+      expect(summary.grossWeight).toBe('--')
+    })
   })
 })
