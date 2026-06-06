@@ -50,5 +50,19 @@ describe('mapSellShipmentOutToDetail', () => {
     expect(vm.productData).toEqual({ orders: [] })
     expect(vm.costData).toEqual({ planned: { summary: {}, orders: [] } })
     expect(vm.notesData).toEqual({ notes: [] })
+    expect(vm.routingData).toEqual({ options: [] })
+    expect(vm.instructionsData).toEqual({ orders: [] })
+    expect(vm.documentsData).toEqual({ documents: [] })
+    expect(vm.historyData).toEqual({ entries: [] })
+  })
+
+  it('returns empty orderDetails for an empty orderList', () => {
+    const empty = mapSellShipmentOutToDetail({ ...sellShipmentOutSample, orderList: [] })
+    expect(empty.orderDetails).toHaveLength(0)
+  })
+
+  it('falls back to orderId when orderNumber is absent', () => {
+    const dto = { ...sellShipmentOutSample, orderList: [{ orderId: 'ORD-X' }] }
+    expect(mapSellShipmentOutToDetail(dto).orderDetails[0].orderNumber).toBe('ORD-X')
   })
 })
