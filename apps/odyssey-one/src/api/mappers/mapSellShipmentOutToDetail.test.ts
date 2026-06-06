@@ -46,8 +46,7 @@ describe('mapSellShipmentOutToDetail', () => {
     expect(vm.orderDetails[0].customField1).toBe('--')
   })
 
-  it('emits empty instructions/docs/notes/history sections', () => {
-    expect(vm.instructionsData).toEqual({ orders: [] })
+  it('emits empty docs/notes/history sections', () => {
     expect(vm.documentsData).toEqual({ documents: [] })
     expect(vm.notesData).toEqual({ notes: [] })
     expect(vm.historyData).toEqual({ entries: [] })
@@ -331,6 +330,38 @@ describe('mapSellShipmentOutToDetail', () => {
       const order = mapSellShipmentOutToDetail(dto).costData.planned.orders[0]
       expect(order.apCost).toBe('--')
       expect(order.apBase).toBe('--')
+    })
+  })
+
+  describe('instructionsData', () => {
+    it('maps instructionList per order to InstructionOrderVM', () => {
+      const dto: SellShipmentOut = {
+        ...sellShipmentOutSample,
+        orderList: [
+          {
+            orderId: 'ORD-1001',
+            instructionList: [
+              { sequenceNumber: 1, text: 'Drivers must wear face coverings.' },
+              { sequenceNumber: 2, text: 'Deliver to dock 26B only.' },
+            ],
+          },
+        ],
+      }
+      const orders = mapSellShipmentOutToDetail(dto).instructionsData.orders
+      expect(orders).toHaveLength(1)
+      expect(orders[0].orderId).toBe('ORD-1001')
+      expect(orders[0].instructions).toHaveLength(2)
+      expect(orders[0].instructions[0].seq).toBe(1)
+      expect(orders[0].instructions[0].text).toBe('Drivers must wear face coverings.')
+    })
+
+    it('emits empty instructions array for orders with no instructionList', () => {
+      const dto: SellShipmentOut = {
+        ...sellShipmentOutSample,
+        orderList: [{ orderId: 'ORD-X' }],
+      }
+      const orders = mapSellShipmentOutToDetail(dto).instructionsData.orders
+      expect(orders[0].instructions).toHaveLength(0)
     })
   })
 

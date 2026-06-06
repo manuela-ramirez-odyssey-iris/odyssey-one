@@ -9,6 +9,7 @@ import type {
 import type {
   CostOrderVM,
   CostSummaryVM,
+  InstructionOrderVM,
   OrderDetailVM,
   ProductLineVM,
   ProductOrderVM,
@@ -356,6 +357,20 @@ function mapCost(dto: SellShipmentOut): ShipmentDetailVM['costData'] {
   }
 }
 
+// ── Instructions tab ──────────────────────────────────────────────────────────
+
+function mapInstructions(dto: SellShipmentOut): ShipmentDetailVM['instructionsData'] {
+  return {
+    orders: (dto.orderList ?? []).map(o => ({
+      orderId: o.orderId,
+      instructions: (o.instructionList ?? []).map(i => ({
+        seq: i.sequenceNumber,
+        text: i.text,
+      })),
+    })),
+  }
+}
+
 // ── Main export ───────────────────────────────────────────────────────────────
 
 export function mapSellShipmentOutToDetail(dto: SellShipmentOut): ShipmentDetailVM {
@@ -365,7 +380,7 @@ export function mapSellShipmentOutToDetail(dto: SellShipmentOut): ShipmentDetail
     productData: mapProducts(dto),
     routingData: mapRouting(dto),
     costData: mapCost(dto),
-    instructionsData: { orders: [] },
+    instructionsData: mapInstructions(dto),
     documentsData: { documents: [] },
     notesData: { notes: [] },
     historyData: { entries: [] },
