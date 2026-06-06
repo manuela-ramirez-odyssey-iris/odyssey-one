@@ -47,7 +47,6 @@ describe('mapSellShipmentOutToDetail', () => {
   })
 
   it('emits empty routing/cost/instructions/docs/notes/history sections', () => {
-    expect(vm.routingData).toEqual({ options: [] })
     expect(vm.instructionsData).toEqual({ orders: [] })
     expect(vm.documentsData).toEqual({ documents: [] })
     expect(vm.notesData).toEqual({ notes: [] })
@@ -260,6 +259,83 @@ describe('mapSellShipmentOutToDetail', () => {
       expect(line.packageCount).toBe('--')
       expect(line.hazmat).toBe(false)
       expect(line.declaredValue).toBe('--')
+    })
+  })
+
+  describe('routingData', () => {
+    it('maps one RoutingOptionVM per shippingOptionList entry', () => {
+      const dto: SellShipmentOut = {
+        ...sellShipmentOutSample,
+        shippingOptionList: [
+          {
+            rank: 1,
+            routeRank: 2,
+            scac: 'ABFS',
+            carrierName: 'ABF FREIGHT SYSTEM',
+            equipmentCode: 'VAN',
+            rateAmount: 395.33,
+            rateCurrency: 'USD',
+            totalCostAmount: 2162.72,
+            totalCostCurrency: 'USD',
+            rateDetails: {
+              baseRate: 916.96,
+              currency: 'USD',
+              markup: 165.19,
+              additionalCharges: [{ code: 'SOC', description: 'Stop-Off Charge', amount: 494.06, currency: 'USD' }],
+              apTotal: 2162.72,
+              arTotal: 2327.91,
+            },
+            status: 'Accepted',
+            pickupDateTime: '01/20/2026 14:30 CST',
+            pickupTZ: 'CST',
+            pickupOrgHours: '12:00 - 18:30',
+            pickupOrgDay: 'No',
+            deliveryDateTime: '01/24/2026 14:30 CST',
+            deliveryTZ: 'CST',
+            deliveryOrgHours: '08:00 - 14:59',
+            transitDays: 5,
+            distanceMiles: 1337.39,
+            serviceLevel: '97%',
+            routeGroup: 'Primary',
+            apiSource: 'API',
+            linehaul: 'Completed',
+          },
+        ],
+      }
+      const options = mapSellShipmentOutToDetail(dto).routingData.options
+      expect(options).toHaveLength(1)
+      expect(options[0].rank).toBe(1)
+      expect(options[0].carrierName).toBe('ABF FREIGHT SYSTEM')
+      expect(options[0].rate).toBe('$395.33')
+      expect(options[0].cost).toBe('$2,162.72 USD')
+      expect(options[0].transit).toBe('5 Days')
+      expect(options[0].distance).toBe('1,337.39 mi')
+      expect(options[0].status).toBe('Accepted')
+      expect(options[0].rateDetails.baseRate).toBe(916.96)
+    })
+
+    it('degrades absent numeric fields to "--"', () => {
+      const dto: SellShipmentOut = {
+        ...sellShipmentOutSample,
+        shippingOptionList: [{ rank: 1, status: null }],
+      }
+      const opt = mapSellShipmentOutToDetail(dto).routingData.options[0]
+      expect(opt.rate).toBe('--')
+      expect(opt.cost).toBe('--')
+      expect(opt.transit).toBe('--')
+      expect(opt.distance).toBe('--')
+    })
+
+    it('passes string fields through unchanged', () => {
+      const dto: SellShipmentOut = {
+        ...sellShipmentOutSample,
+        shippingOptionList: [{ rank: 1, routeGroup: 'Backup', apiSource: 'EDI', linehaul: 'Pending', sl: '92%' }],
+      }
+      const opt = mapSellShipmentOutToDetail(dto).routingData.options[0]
+      expect(opt.routeGroup).toBe('Backup')
+      expect(opt.api).toBe('EDI')
+      expect(opt.linehaul).toBe('Pending')
+      expect(opt.sl).toBe('92%')
     })
   })
 })

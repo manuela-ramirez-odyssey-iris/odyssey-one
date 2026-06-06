@@ -4,11 +4,13 @@ import type {
   SellShipmentAddress,
   SellShipmentStop,
   SellShipmentOrderLine,
+  SellShipmentRoutingOption,
 } from '../types/sellShipmentOut'
 import type {
   OrderDetailVM,
   ProductLineVM,
   ProductOrderVM,
+  RoutingOptionVM,
   ShipmentDetailVM,
   StopVM,
   StopsSummaryVM,
@@ -227,6 +229,83 @@ function mapProducts(dto: SellShipmentOut): ShipmentDetailVM['productData'] {
   }
 }
 
+// ── Routing guide tab ─────────────────────────────────────────────────────────
+
+function fmtDollarMin2(v: number): string {
+  return `$${v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+}
+
+function fmtDistance(v: number | undefined): string {
+  if (v == null) return DASH
+  return `${v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} mi`
+}
+
+function mapRoutingOption(o: SellShipmentRoutingOption): RoutingOptionVM {
+  return {
+    rank: o.rank,
+    routeRank: o.routeRank ?? o.rank,
+    scac: orDash(o.scac),
+    carrierName: orDash(o.carrierName),
+    equipment: orDash(o.equipmentCode),
+    rate: o.rateAmount != null ? fmtDollarMin2(o.rateAmount) : DASH,
+    cost: o.totalCostAmount != null ? `${fmtDollarMin2(o.totalCostAmount)} USD` : DASH,
+    rateDetails: o.rateDetails ?? { baseRate: 0, currency: 'USD', markup: 0, additionalCharges: [], apTotal: 0, arTotal: 0 },
+    status: o.status ?? null,
+    pickupDateTime: o.pickupDateTime ?? null,
+    pickupTZ: orDash(o.pickupTZ),
+    pickupOrgHours: orDash(o.pickupOrgHours),
+    pickupOrgDay: orDash(o.pickupOrgDay),
+    deliveryDateTime: o.deliveryDateTime ?? null,
+    deliveryTZ: orDash(o.deliveryTZ),
+    deliveryOrgHours: orDash(o.deliveryOrgHours),
+    transit: o.transitDays != null ? `${o.transitDays} Days` : DASH,
+    distance: fmtDistance(o.distanceMiles),
+    sl: orDash(o.sl ?? o.serviceLevel),
+    linehaul: orDash(o.linehaul),
+    routeGroup: orDash(o.routeGroup),
+    api: orDash(o.apiSource),
+    notifyDateTime: orDash(o.notifyDateTime),
+    responseMethod: orDash(o.responseMethod),
+    responseDateTime: orDash(o.responseDateTime),
+    carrierPickup: orDash(o.carrierPickup),
+    deliveryNum: orDash(o.deliveryNum),
+    transitTimeSource: orDash(o.transitTimeSource),
+    description: orDash(o.description),
+    responseUser: o.responseUser ?? null,
+    carrierQuoted: orDash(o.carrierQuoted),
+    networkLeverage: orDash(o.networkLeverage),
+    proNumber: o.proNumber ?? null,
+    transportingCarrier: orDash(o.transportingCarrier),
+    equipNumber: orDash(o.equipNumber),
+    commitment: o.commitment ?? null,
+    uom: o.uom ?? null,
+    vcEquipNumber: o.vcEquipNumber ?? null,
+    vcOpen: o.vcOpen ?? null,
+    vcAccept: o.vcAccept ?? null,
+    vcDecline: o.vcDecline ?? null,
+    carrierApiTenderId: o.carrierApiTenderId ?? null,
+    breakPoint: orDash(o.breakPoint),
+    rateSource: orDash(o.rateSource),
+    distanceSource: orDash(o.distanceSource),
+    transitTimeId: orDash(o.transitTimeId),
+    loadboardExpiry: orDash(o.loadboardExpiry),
+    rcpId: orDash(o.rcpId),
+    lcePkId: o.lcePkId ?? null,
+    modifyUser: orDash(o.modifyUser),
+    modifyDate: orDash(o.modifyDate),
+    indirectPoint: orDash(o.indirectPoint),
+    roundTrip: orDash(o.roundTrip),
+    customerPreferred: orDash(o.customerPreferred),
+    orderEquip: orDash(o.orderEquip),
+    contactExped: orDash(o.contactExped),
+    note: orDash(o.note),
+  }
+}
+
+function mapRouting(dto: SellShipmentOut): ShipmentDetailVM['routingData'] {
+  return { options: (dto.shippingOptionList ?? []).map(mapRoutingOption) }
+}
+
 // ── Main export ───────────────────────────────────────────────────────────────
 
 export function mapSellShipmentOutToDetail(dto: SellShipmentOut): ShipmentDetailVM {
@@ -234,7 +313,7 @@ export function mapSellShipmentOutToDetail(dto: SellShipmentOut): ShipmentDetail
     orderDetails: (dto.orderList ?? []).map((o) => mapOrder(o, dto)),
     stopsData: mapStops(dto),
     productData: mapProducts(dto),
-    routingData: { options: [] },
+    routingData: mapRouting(dto),
     costData: {
       planned: {
         summary: {
