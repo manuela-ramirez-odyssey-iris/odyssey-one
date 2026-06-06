@@ -53,7 +53,7 @@ export interface ShipmentErrorListParams {
   pageSize: number
   filter?: Record<string, string>
   searchTerm?: string
-  searchAttributeKey?: string | null   // scopes searchTerm to one attribute when set
+  searchAttributeKey?: string           // scopes searchTerm to one attribute when set; omit for all-fields search
   dateFilters?: {
     pickupDateFrom?: string
     pickupDateTo?: string
