@@ -1,15 +1,10 @@
 import { getApiMode } from '../config'
 import { apiGet } from '../client'
 import { mapSellShipmentOutToDetail } from '../mappers/mapSellShipmentOutToDetail'
-import { sellShipmentOutSample } from '../fixtures/sellShipmentOut.sample'
 import type { SellShipmentOut } from '../types/sellShipmentOut'
 import type { ShipmentDetailVM } from '../types/shipmentDetail'
 
-// mock returns the raw view-model JSON file (unknown until Plan 2b regenerates
-// it to SellShipmentOut); live + live-sim return a mapped view-model.
-export type ShipmentDetailResult = ShipmentDetailVM | unknown
-
-export async function getSellShipmentDetail(id: string): Promise<ShipmentDetailResult> {
+export async function getSellShipmentDetail(id: string): Promise<ShipmentDetailVM> {
   const mode = getApiMode()
 
   if (mode === 'live') {
@@ -17,14 +12,9 @@ export async function getSellShipmentDetail(id: string): Promise<ShipmentDetailR
     return mapSellShipmentOutToDetail(dto)
   }
 
-  if (mode === 'live-sim') {
-    // Visible proof: render the bundled SellShipmentOut fixture through the mapper.
-    // (id is ignored — single fixture stands in for the real endpoint.)
-    return mapSellShipmentOutToDetail(sellShipmentOutSample)
-  }
-
-  // mock: the locally generated detail file (served from public/details)
+  // mock: load the generated SellShipmentOut DTO file and run it through the mapper
   const res = await fetch(`/details/${id}.json`)
   if (!res.ok) throw new Error(`Failed to load details for ${id}`)
-  return res.json()
+  const dto = (await res.json()) as SellShipmentOut
+  return mapSellShipmentOutToDetail(dto)
 }

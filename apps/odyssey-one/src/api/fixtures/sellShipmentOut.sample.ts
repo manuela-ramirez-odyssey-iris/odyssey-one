@@ -1,7 +1,7 @@
 import type { SellShipmentOut } from '../types/sellShipmentOut'
 
 // Synthetic SellShipmentOut record (no real customer data). Two orders; the
-// second carries a hazmat line. Used by live-sim mode + mapper tests.
+// second carries a hazmat line. Used by mapper tests.
 export const sellShipmentOutSample: SellShipmentOut = {
   shipmentId: '25690001',
   shipmentType: 'sell',

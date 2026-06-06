@@ -8,15 +8,16 @@ afterEach(() => {
 })
 
 describe('getSellShipmentDetail', () => {
-  it('mock mode reads the local /details/{id}.json file', async () => {
+  it('mock mode fetches /details/{id}.json and maps the DTO to a view-model', async () => {
     vi.stubEnv('VITE_API_MODE', 'mock')
-    const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ id: '777' }) })
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => sellShipmentOutSample })
     vi.stubGlobal('fetch', fetchMock)
 
-    const data = await getSellShipmentDetail('777')
+    const data = await getSellShipmentDetail('25690001')
 
-    expect(data).toEqual({ id: '777' })
-    expect(fetchMock.mock.calls[0][0]).toBe('/details/777.json')
+    expect(fetchMock.mock.calls[0][0]).toBe('/details/25690001.json')
+    expect(data.orderDetails).toHaveLength(sellShipmentOutSample.orderList.length)
+    expect(data.orderDetails[0].orderNumber).toBe('SO-660001')
   })
 
   it('live mode calls sell-shipment-out with headers and maps the response', async () => {
@@ -25,7 +26,7 @@ describe('getSellShipmentDetail', () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => sellShipmentOutSample })
     vi.stubGlobal('fetch', fetchMock)
 
-    const data = (await getSellShipmentDetail('25690001')) as { orderDetails: { orderNumber: string }[] }
+    const data = await getSellShipmentDetail('25690001')
 
     const [url, init] = fetchMock.mock.calls[0]
     expect(url).toBe('/shipment-service/v1/sell-shipment-out/25690001')
@@ -38,12 +39,5 @@ describe('getSellShipmentDetail', () => {
     vi.stubEnv('VITE_API_MODE', 'mock')
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 404, json: async () => ({}) }))
     await expect(getSellShipmentDetail('999')).rejects.toThrow('Failed to load details for 999')
-  })
-
-  it('live-sim mode returns the fixture mapped to the view-model', async () => {
-    vi.stubEnv('VITE_API_MODE', 'live-sim')
-    const data = (await getSellShipmentDetail('anything')) as { orderDetails: { orderNumber: string }[] }
-    expect(data.orderDetails).toHaveLength(sellShipmentOutSample.orderList.length)
-    expect(data.orderDetails[0].orderNumber).toBe('SO-660001')
   })
 })

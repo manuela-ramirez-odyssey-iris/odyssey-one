@@ -14,11 +14,6 @@ describe('api config', () => {
     expect(getApiMode()).toBe('live')
   })
 
-  it('reads live-sim mode from env', () => {
-    vi.stubEnv('VITE_API_MODE', 'live-sim')
-    expect(getApiMode()).toBe('live-sim')
-  })
-
   it('returns empty base url when unset', () => {
     vi.stubEnv('VITE_API_BASE_URL', '')
     expect(getApiBaseUrl()).toBe('')

@@ -1,13 +1,12 @@
-// Runtime config for the API layer. `mock` reads local generated detail files;
-// `live` calls the real shipment-service; `live-sim` renders a bundled
-// SellShipmentOut fixture through the mapper (visible proof without real access).
+// Runtime config for the API layer. `mock` reads local generated SellShipmentOut
+// detail files and runs them through the mapper (default, no API access needed);
+// `live` calls the real shipment-service and maps the response.
 // Functions (not constants) so values are read at call time — testable via vi.stubEnv.
-export type ApiMode = 'mock' | 'live' | 'live-sim'
+export type ApiMode = 'mock' | 'live'
 
 export function getApiMode(): ApiMode {
   const m = import.meta.env.VITE_API_MODE
   if (m === 'live') return 'live'
-  if (m === 'live-sim') return 'live-sim'
   return 'mock'
 }
 
