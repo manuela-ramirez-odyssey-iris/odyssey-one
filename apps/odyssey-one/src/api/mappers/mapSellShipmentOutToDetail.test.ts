@@ -47,7 +47,6 @@ describe('mapSellShipmentOutToDetail', () => {
   })
 
   it('emits empty routing/cost/instructions/docs/notes/history sections', () => {
-    expect(vm.productData).toEqual({ orders: [] })
     expect(vm.routingData).toEqual({ options: [] })
     expect(vm.instructionsData).toEqual({ orders: [] })
     expect(vm.documentsData).toEqual({ documents: [] })
@@ -213,6 +212,54 @@ describe('mapSellShipmentOutToDetail', () => {
       const summary = mapSellShipmentOutToDetail(dto).stopsData.summary
       expect(summary.distance).toBe('--')
       expect(summary.grossWeight).toBe('--')
+    })
+  })
+
+  describe('productData', () => {
+    it('maps one ProductOrderVM per order in orderList', () => {
+      expect(vm.productData.orders).toHaveLength(2)
+    })
+
+    it('maps line count and lines array', () => {
+      expect(vm.productData.orders[0].lineCount).toBe(1)
+      expect(vm.productData.orders[0].lines).toHaveLength(1)
+      expect(vm.productData.orders[1].lineCount).toBe(2)
+    })
+
+    it('formats line weight and volume as strings', () => {
+      const line = vm.productData.orders[0].lines[0]
+      expect(line.grossWeight).toBe('5,000 LB')
+      expect(line.volume).toBe('100 cuft')
+      expect(line.tareWeight).toBe('1,000 LB')
+      expect(line.netWeight).toBe('4,000 LB')
+    })
+
+    it('formats package count as "N type"', () => {
+      const line = vm.productData.orders[0].lines[0]
+      expect(line.packageCount).toBe('10 Drums')
+    })
+
+    it('sets hazmat boolean from hazmatCode presence', () => {
+      expect(vm.productData.orders[0].lines[0].hazmat).toBe(false)
+      expect(vm.productData.orders[1].lines[1].hazmat).toBe(true)
+    })
+
+    it('formats declaredValue as "$X.XX USD"', () => {
+      const line = vm.productData.orders[0].lines[0]
+      expect(line.declaredValue).toBe('$25,000.00 USD')
+    })
+
+    it('degrades absent line fields to "--"', () => {
+      const dto: SellShipmentOut = {
+        ...sellShipmentOutSample,
+        orderList: [{ orderId: 'ORD-X', orderLines: [{ orderLineId: 'L1' }] }],
+      }
+      const line = mapSellShipmentOutToDetail(dto).productData.orders[0].lines[0]
+      expect(line.shipItem).toBe('--')
+      expect(line.description).toBe('--')
+      expect(line.packageCount).toBe('--')
+      expect(line.hazmat).toBe(false)
+      expect(line.declaredValue).toBe('--')
     })
   })
 })

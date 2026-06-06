@@ -3,9 +3,12 @@ import type {
   SellShipmentOrder,
   SellShipmentAddress,
   SellShipmentStop,
+  SellShipmentOrderLine,
 } from '../types/sellShipmentOut'
 import type {
   OrderDetailVM,
+  ProductLineVM,
+  ProductOrderVM,
   ShipmentDetailVM,
   StopVM,
   StopsSummaryVM,
@@ -159,13 +162,78 @@ function mapStops(dto: SellShipmentOut): ShipmentDetailVM['stopsData'] {
   }
 }
 
+// ── Product tab ───────────────────────────────────────────────────────────────
+
+function fmtDollar(v: number | undefined): string {
+  if (v == null) return DASH
+  return `$${v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+}
+
+function mapLine(l: SellShipmentOrderLine): ProductLineVM {
+  return {
+    lineNumber: orDash(l.lineNumber),
+    shipItem: orDash(l.itemCode),
+    description: orDash(l.itemDescription),
+    packageCount: l.packageCount != null && l.packageType
+      ? `${l.packageCount} ${l.packageType}`
+      : l.packageCount != null ? String(l.packageCount) : DASH,
+    grossWeight: l.grossWeightValue != null
+      ? `${fmtInt(l.grossWeightValue)} ${l.grossWeightUomCode ?? 'LB'}`
+      : DASH,
+    volume: l.volumeValue != null
+      ? `${l.volumeValue} ${l.volumeUomCode ?? 'cuft'}`
+      : DASH,
+    hazmat: l.hazmatCode != null,
+    tareWeight: l.tareWeightValue != null
+      ? `${fmtInt(l.tareWeightValue)} ${l.grossWeightUomCode ?? 'LB'}`
+      : DASH,
+    netWeight: l.netWeightValue != null
+      ? `${fmtInt(l.netWeightValue)} ${l.grossWeightUomCode ?? 'LB'}`
+      : DASH,
+    hazmatClass: orDash(l.hazmatClass),
+    hazmatGroup: orDash(l.hazmatGroup),
+    hazmatDescription: orDash(l.hazmatDescription),
+    hazmatUnNumber: orDash(l.hazmatUnNumber),
+    boilingPoint: orDash(l.boilingPoint),
+    marinePollutant: orDash(l.marinePollutant),
+    wgkClass: orDash(l.wgkClass),
+    tunnelCode: orDash(l.tunnelCode),
+    productClass: orDash(l.productClass),
+    shippingClass: orDash(l.shippingClass),
+    flashPoint: orDash(l.flashPoint),
+    countryOfOrigin: orDash(l.countryOfOrigin),
+    declaredValue: l.declaredValue != null
+      ? `${fmtDollar(l.declaredValue)} ${l.declaredValueCurrency ?? 'USD'}`
+      : DASH,
+    thirdPartRef: orDash(l.thirdPartRef),
+    batchLot: orDash(l.batchLot),
+    length: l.lengthValue != null ? `${l.lengthValue} FT` : DASH,
+    width: l.widthValue != null ? `${l.widthValue} FT` : DASH,
+    height: l.heightValue != null ? `${l.heightValue} FT` : DASH,
+    dimensions: orDash(l.dimensionsText),
+    loadConstraints: orDash(l.loadConstraints),
+    toPartnerRef: orDash(l.toPartnerRef),
+    thirdPartRefDate: orDash(l.thirdPartRefDate),
+  }
+}
+
+function mapProducts(dto: SellShipmentOut): ShipmentDetailVM['productData'] {
+  return {
+    orders: (dto.orderList ?? []).map((o): ProductOrderVM => ({
+      orderId: o.orderId,
+      lineCount: o.orderLines?.length ?? 0,
+      lines: (o.orderLines ?? []).map(mapLine),
+    })),
+  }
+}
+
 // ── Main export ───────────────────────────────────────────────────────────────
 
 export function mapSellShipmentOutToDetail(dto: SellShipmentOut): ShipmentDetailVM {
   return {
     orderDetails: (dto.orderList ?? []).map((o) => mapOrder(o, dto)),
     stopsData: mapStops(dto),
-    productData: { orders: [] },
+    productData: mapProducts(dto),
     routingData: { options: [] },
     costData: {
       planned: {
