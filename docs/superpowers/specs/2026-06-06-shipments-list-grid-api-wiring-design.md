@@ -81,12 +81,14 @@ generated grid store (shipments.json,    POST /pgi-pgr/v1/error/list
 
 | File | Change |
 |---|---|
-| `tools/generate.mjs` | Emit `shipments.json` as an array of grid-row DTOs (`ShipmentErrorRow` shape) instead of the current `mainRow` shape |
-| `src/api/services/shipmentService.ts` | Detail fetch keyed by `sellShipmentId` (was `buyShipment`) |
-| `src/routes/shipments/ShipmentsRoute.jsx` | Consume the hooks; manage `pageNumber`/`pageSize`/`sort`/`filter` state; pass a page of `ShipmentRowVM` to the table; counts from `useCategoryCounts`; row click uses `sellShipmentId` |
-| `src/components/shipments/ShipmentTable.jsx` | Render a page of VM rows; add pagination controls + loading/error states; column accessors read `ShipmentRowVM` |
-| `src/data/index.js` | Retire the **table/count** accessors (`getShipmentsByPanel`, `getShipmentsByPanelAndCategory`, `getCategoryCount`) — replaced by the service/hooks. **Keep `getAllShipments`** (now returns the reshaped grid-row DTOs) for the deferred client-side search index, and keep `SEARCH_ATTRIBUTES`. |
-| `src/search/shipments/searchIndex.js` + `adapter.js` (+ `composed-criteria.test.js`) | Mechanical field-accessor remap so the existing **client-side** suggestion index keeps working over the reshaped `shipments.json` (e.g. `buyShipment`→`buyShipmentId`, `orders`→`orderNumbers`). Behavior unchanged. This is "don't break the search," **not** the lookup-endpoint rewire (still deferred, §8). `SEARCH_ATTRIBUTES.dataKey` values updated to match the new row shape. |
+| `tools/generate.mjs` | Two changes only — (a) make `sellShipment` **unique** across all rows (Set-based dedup; current 10000-value range collides at 1200 rows); (b) key the per-shipment detail files by `sellShipment` instead of `buyShipment`, so the grid→detail link is contract-faithful. **The `shipments.json` row shape is unchanged** (see §5 rationale). |
+| `src/routes/shipments/ShipmentsRoute.jsx` | Consume the hooks; manage `pageNumber`/`pageSize`/`sort`/`filter` state; pass a page of `ShipmentRowVM` to the table; counts from `useCategoryCounts`; row click uses the VM `id` (= `sellShipment`); the big client-side `filteredShipments` memo is replaced by server `filter` params |
+| `src/components/shipments/ShipmentTable.jsx` | Render a page of VM rows; add pagination controls + loading/error states; column accessors read `ShipmentRowVM` (same field names it reads today) |
+| `src/data/index.js` | Retire the **table/count** accessors (`getShipmentsByPanel`, `getShipmentsByPanelAndCategory`, `getCategoryCount`) — replaced by the service/hooks. **Keep `getAllShipments`** + `SEARCH_ATTRIBUTES` (the deferred client-side search index still uses them, unchanged). |
+
+**Search layer (`src/search/shipments/*`) is intentionally NOT touched** — because `shipments.json` keeps its shape, the suggestion index and composed-criteria adapter keep working as-is. Their lookup-endpoint rewire stays deferred (§8).
+
+**`shipmentService.ts` is unchanged** — it already fetches `/details/{id}.json` for whatever id it's given. The re-key is achieved by (a) the generator naming files by `sellShipment` and (b) the caller passing the VM `id` (= `sellShipment`). The detail DTO's own `shipmentId` is already `sellShipment` (Plan 2b).
 
 ### 4.3 Detail-file re-keying
 
@@ -94,31 +96,37 @@ The mock detail files (`public/details/*.json`) are renamed from `{buyShipment}.
 
 ## 5. DTOs (best-effort, Swagger-pending)
 
+**Rationale for keeping the current row shape:** the LLD does **not** specify the `error/list` row fields ("TBD, confirm with Swagger"), so any "faithful" row DTO is a guess. Rather than invent contract field names and churn the (deferred) search layer that reads the current names, we treat the existing `shipments.json` row shape as the **provisional DTO** — it's an equally-valid guess and it's the shape the UI already needs. The unknown real field names are isolated behind `mapShipmentErrorRow`; when Swagger lands, that mapper is the single place to reconcile. So `ShipmentErrorRow` below mirrors the current row fields (not invented names).
+
 ```ts
 // src/api/types/shipmentErrorList.ts
+// Provisional row shape = current shipments.json row (mainRow). Field names are
+// placeholders pending Swagger; sellShipment is the contract link id.
 export interface ShipmentErrorRow {
-  sellShipmentId: string        // links to sell-shipment-out/{id}
-  buyShipmentId?: string         // displayed, not the fetch key
-  category: string               // 'date-issues' | 'routing-review' | ... (panel-scoped)
-  panel?: string                 // 'exceptions' | 'monitoring' | 'pgipgr'
-  customerId?: string
-  customerName?: string
-  consignor?: string
-  consignee?: string
-  origin?: string
-  destination?: string
-  pickupDate?: string
-  deliveryDate?: string
-  mode?: string
-  scac?: string
-  tenderStatus?: string
-  shipmentStatus?: string
-  equipmentCode?: string
-  proNumber?: string
-  orderNumbers?: string[]
-  orderCount?: number
-  validationMessage?: string | null   // exception reason
-  apFreightCost?: number
+  buyShipment: string
+  sellShipment: string            // links to sell-shipment-out/{id}; the detail fetch key
+  orders: string[]
+  pro: string
+  customerId: string
+  customerName: string
+  consignor: string
+  consignee: string
+  origin: string
+  destination: string
+  pickupDate: string
+  deliveryDate: string
+  mode: string
+  equipmentCode: string
+  scac: string
+  tenderStatus: string
+  shipmentStatus: string
+  panel: string                   // 'exceptions' | 'monitoring' | 'pgipgr'
+  category: string                // panel-scoped category key
+  validationMessage: string | null
+  grossWeight: string
+  loadCount: string
+  orderCount: string
+  apFreightCost: string
 }
 
 export interface ShipmentErrorListResponse {
