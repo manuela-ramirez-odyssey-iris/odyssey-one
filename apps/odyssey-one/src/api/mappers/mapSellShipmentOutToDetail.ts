@@ -231,10 +231,6 @@ function mapProducts(dto: SellShipmentOut): ShipmentDetailVM['productData'] {
 
 // ── Routing guide tab ─────────────────────────────────────────────────────────
 
-function fmtDollarMin2(v: number): string {
-  return `$${v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-}
-
 function fmtDistance(v: number | undefined): string {
   if (v == null) return DASH
   return `${v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} mi`
@@ -247,8 +243,8 @@ function mapRoutingOption(o: SellShipmentRoutingOption): RoutingOptionVM {
     scac: orDash(o.scac),
     carrierName: orDash(o.carrierName),
     equipment: orDash(o.equipmentCode),
-    rate: o.rateAmount != null ? fmtDollarMin2(o.rateAmount) : DASH,
-    cost: o.totalCostAmount != null ? `${fmtDollarMin2(o.totalCostAmount)} USD` : DASH,
+    rate: o.rateAmount != null ? fmtDollar(o.rateAmount) : DASH,
+    cost: o.totalCostAmount != null ? `${fmtDollar(o.totalCostAmount)} USD` : DASH,
     rateDetails: o.rateDetails ?? { baseRate: 0, currency: 'USD', markup: 0, additionalCharges: [], apTotal: 0, arTotal: 0 },
     status: o.status ?? null,
     pickupDateTime: o.pickupDateTime ?? null,
