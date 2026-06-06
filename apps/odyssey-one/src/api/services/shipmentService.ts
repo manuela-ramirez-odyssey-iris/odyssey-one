@@ -1,18 +1,30 @@
 import { getApiMode } from '../config'
 import { apiGet } from '../client'
+import { mapSellShipmentOutToDetail } from '../mappers/mapSellShipmentOutToDetail'
+import { sellShipmentOutSample } from '../fixtures/sellShipmentOut.sample'
+import type { SellShipmentOut } from '../types/sellShipmentOut'
+import type { ShipmentDetailVM } from '../types/shipmentDetail'
 
-// Plan 1: the detail object is returned AS-IS (current generated shape).
-// Plan 2 replaces this with a typed SellShipmentOut DTO + mapper.
-export type ShipmentDetailRaw = unknown
+// mock returns the raw view-model JSON file (unknown until Plan 2b regenerates
+// it to SellShipmentOut); live + live-sim return a mapped view-model.
+export type ShipmentDetailResult = ShipmentDetailVM | unknown
 
-export async function getSellShipmentDetail(id: string): Promise<ShipmentDetailRaw> {
-  if (getApiMode() === 'live') {
-    return apiGet<ShipmentDetailRaw>(`/shipment-service/v1/sell-shipment-out/${id}`)
+export async function getSellShipmentDetail(id: string): Promise<ShipmentDetailResult> {
+  const mode = getApiMode()
+
+  if (mode === 'live') {
+    const dto = await apiGet<SellShipmentOut>(`/shipment-service/v1/sell-shipment-out/${id}`)
+    return mapSellShipmentOutToDetail(dto)
   }
+
+  if (mode === 'live-sim') {
+    // Visible proof: render the bundled SellShipmentOut fixture through the mapper.
+    // (id is ignored — single fixture stands in for the real endpoint.)
+    return mapSellShipmentOutToDetail(sellShipmentOutSample)
+  }
+
   // mock: the locally generated detail file (served from public/details)
   const res = await fetch(`/details/${id}.json`)
-  // Mock path is an app-internal static-file read; a plain Error is fine —
-  // TanStack Query surfaces any thrown error via isError (type-agnostic).
   if (!res.ok) throw new Error(`Failed to load details for ${id}`)
   return res.json()
 }
