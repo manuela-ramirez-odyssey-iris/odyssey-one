@@ -53,7 +53,7 @@ describe('mapSellShipmentOutToDetail', () => {
   })
 
   it('stops degrade gracefully when shipmentStopList absent', () => {
-    const dto: SellShipmentOut = { ...sellShipmentOutSample, shipmentStopList: undefined }
+    const dto: SellShipmentOut = { ...sellShipmentOutSample, shipmentStopList: undefined, distanceMiles: undefined }
     const result = mapSellShipmentOutToDetail(dto)
     expect(result.stopsData.stops).toHaveLength(0)
     expect(result.stopsData.summary.distance).toBe('--')
