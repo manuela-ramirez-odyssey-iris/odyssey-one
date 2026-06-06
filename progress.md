@@ -3467,17 +3467,61 @@ After the progression change the user still saw the entry-5 — diagnosed as **s
 
 ---
 
+## Session 41 — June 5–6, 2026
+
+A **pivot session**: from GlobalSearch UI work into **backend-integration groundwork**, triggered by an architecture-review meeting. We analyzed the meeting, ingested the *real* OdysseyONE API contracts from Confluence, produced a production-readiness roadmap, checkpointed the working prototype, then shipped the **first two increments of real API wiring** — Plan 1 (the architecture pipe) and Plan 2a (the `SellShipmentOut` DTO + Order-tab mapper) — both on **PR #1**. Ran the full Superpowers flow end-to-end for the first time in this project (brainstorming → writing-plans → subagent-driven-development → finishing-a-development-branch), and used the **Atlassian Rovo MCP** to read the LLDs.
+
+### Thread 1 — Backend-strategy meeting analysis
+
+Digested the "Back End Strategy to support Front End AI efforts" transcript (newly-involved architects: **Thomas Quaile** — Principal Architect (Odyssey, ally on the React decision); **Hema Rambabu** — Cognizant Enterprise Architect (ran the critique)). Sorted the critique **fair / unfair / outdated**: the loudest claims ("no state management", "can't integrate a backend without Redux", "not even a single test") are the weakest (Redux ≠ state; she self-contradicts on integration; Vitest already exists). Captured the multi-party-corroborated **"hands tied"** evidence (real-data was a business directive, only a CSV was shared, API access was requested and unfulfilled, the API docs existed in a Wiki/LLD never shared). Digest → `vault/20-cross-cutting/production-strategy/backend-strategy-meeting-2026-06-05.md`; raw `.vtt` kept local in `vault-sources/` (not pushed).
+
+### Thread 2 — Real API contract ingestion (Atlassian Rovo MCP)
+
+Fetched the Confluence TMS LLDs (subagent-driven, to keep context clean) and synthesized them into `vault/20-cross-cutting/api-integration/`: `api-endpoints-and-owners.md` (master service/owner/framework matrix) + per-service notes (`shipment-service-api`, `order-service-api`, `carrier-service-api`, `auth-sso`). **Key findings:** React is the *sanctioned* prod UI for Orders/Shipments/Carrier/Home (Tracking + User Mgmt = Angular); the shipment detail read `GET /shipment-service/v1/sell-shipment-out/{id}` maps **~1:1 to the prototype's tabs**; every service shares a **JWT `Bearer` + `x-correlation-id`** header pattern + paginated `{pageNumber,pageSize,totalCount}` envelopes + `*/lookup` typeaheads; auth = **MSAL/Entra OIDC** (docs are image-only); the Shipments "list" is the **exception/monitoring grids** (`pgi-pgr/v1/error/list` + `error/category/count`), each row carrying `sellShipmentId` → detail. Honest gaps: no generic shipment-list endpoint; Documents/Notes tabs have no API.
+
+### Thread 3 — Production-readiness roadmap
+
+`docs/production-readiness-roadmap.md` — reframed (per user) from a "defense doc" into *Manuela's own engineering build-plan*. Anchored on a **seam-to-API map** (every `src/data/index.js` accessor / search adapter ↔ real endpoint ↔ effort) + a phased plan (data layer + auth → state/types/breadth → hardening). Establishes that the prototype→production transition is **wiring, not a rewrite**.
+
+### Thread 4 — `shipments-v1` milestone (rollback anchor)
+
+Decision: **git checkpoint, not a hidden-route clone** (a clone ships dead/duplicated code + forces two data shapes to coexist + drifts; git + Vercel previews give rollback *and* live comparison cleanly). Tagged **`shipments-v1`** + **GitHub Release** at the pristine pre-overhaul HEAD (`29bbd1e`); standing **`release/shipments-v1`** branch (deployable to a preview URL for side-by-side with Jana). All new work isolated on **`feat/shipments-api-wiring`**.
+
+### Thread 5 — Plan 1: Shipments detail API **pipe** (PR #1)
+
+A new app-local **`src/api/` TypeScript layer** — `config` (mock/live switch) · `auth` (token seam, MSAL-ready) · `client` (`apiGet` + `ApiError`, `Bearer` + `x-correlation-id`) · `services/shipmentService` · `queryClient` · `queries/useShipmentDetail`. **TanStack Query** replaces the hand-rolled `detailsCache`; `ShipmentsRoute` loads detail via the hook; detail **error state + retry** added. Incremental **TypeScript** (`tsconfig` `allowJs`/strict + a `typecheck` script). Mock mode runs against the existing `/details` (tabs untouched); `VITE_API_MODE=live` + token → real endpoint, **zero component changes**. Built via **subagent-driven-development** (4 batches, each spec + quality reviewed). 21 tests + build + strict `tsc` green.
+
+### Thread 6 — Plan 2a: `SellShipmentOut` DTO + Order-tab **mapper** (PR #1)
+
+Chosen slice: **one tab end-to-end** (vertical slice over mapper-complete/generator-first). Built the typed **`SellShipmentOut` DTO** + view-model types (`OrderDetailVM`/`ShipmentDetailVM`) + a synthetic **fixture** + **`mapSellShipmentOutToDetail`** (Order tab at *core fidelity* — formats weights/locations, derives hazmat/appointments, defaults the long tail to `'--'`; emits the 8 sibling sections empty so their tabs degrade gracefully). The mapper runs **in the service's `live`/`live-sim` paths** (not the hook); a new **`live-sim` mode** renders the fixture through the mapper — `VITE_API_MODE=live-sim` shows real-contract data in the Order tab **without API access**. 33 tests + typecheck + build green. (Per-task reviews caught + fixed: empty-string degradation, the `vite-env.d.ts` mode-union, a stale comment.)
+
+### Files / commits
+
+**New (vault/docs):** `vault/20-cross-cutting/{production-strategy,api-integration}/*` · `docs/production-readiness-roadmap.md` · `docs/superpowers/specs/2026-06-05-shipments-detail-api-wiring-design.md` · `docs/superpowers/plans/2026-06-05-shipments-detail-api-pipe.md` + `2026-06-06-shipments-mapper-order-tab.md`.
+**New (code, `apps/odyssey-one/src/api/`):** `config.ts` · `auth.ts` · `client.ts` · `services/shipmentService.ts` · `queryClient.ts` · `queries/useShipmentDetail.ts` · `types/sellShipmentOut.ts` · `types/shipmentDetail.ts` · `fixtures/sellShipmentOut.sample.ts` · `mappers/mapSellShipmentOutToDetail.ts` (+ test files) · `src/vite-env.d.ts` · `tsconfig.json`.
+**Modified:** `App.jsx` (QueryClientProvider) · `routes/shipments/ShipmentsRoute.jsx` (hook + error state) · `data/index.js` (retired detailsCache/fetchShipmentDetails) · `vite.config.js` (`.ts` test glob) · `package.json` (TanStack Query, typescript, `typecheck` script) · `.env.example`.
+**Git:** branch `feat/shipments-api-wiring` → **PR #1** (base `main`); tag `shipments-v1` + Release; branch `release/shipments-v1`. Nothing deployed (auto-deploy off).
+
+### State after Session 41
+
+- **Plan 1 + Plan 2a complete on PR #1.** Default `mock` mode unchanged (tabs render as before). `live-sim` renders the Order tab from a `SellShipmentOut` fixture through the real mapper. One env flip + a token from live.
+- **Tests:** 33 green (Vitest); strict `tsc` clean; build green.
+- **Rollback:** `shipments-v1` tag/Release + `release/shipments-v1` branch.
+- **Not yet done:** the original `issue1_FilterSuggestions` screenshot (dropped at session start, never addressed); live API access (pending David/Soni) + live Swagger reconciliation.
+
+---
+
 ## What's Next
 
-### Session 41 Priorities
+### Session 42 Priorities
 
-1. **Continue composed criteria — more cases.** Strong candidates (from `composed-criteria.md` Open Questions): Order # *with* a value + a shipment chip (per-order narrowing); **customer-leading entity decision (Q2)** — shipment-grained vs customer-grained, the UX call that defines a class of cases; chip-removal / positional-entity behavior (entity follows the new `chips[0]`); confirm the empty-suggestion **anchoring** sub-decision (furthest-group-reached vs last-committed-chip).
-2. **Value chips (second suggestions panel)** — after an attribute chip is committed, surface a second `FilterSuggestions` with actual matching *values* from the index (e.g. "Customer Name: Kemira Americas") to narrow to an exact value.
-3. **Table filtering** — committed chips should filter the Shipments table (inert since S34 reset).
-4. **ResultsPreview "Show N results" navigation** — route to the filtered table (interacts with order-vs-shipment `total` semantics, Q5).
-5. **Standing backlog (unchanged):** GlobalSearch Code Connect mapping refresh; SHP-66 generic dropdown; SHP-67 responsive pass; normalizations backlog (StatusBadge/HazmatTag/Tab pills etc.); Supabase migration (resume conditions in `docs/supabase-migration-plan.md`); POC 1 OIDC.
+1. **Plan 2b — finish the real-contract migration.** Extend `mapSellShipmentOutToDetail` to the other 8 tabs (Stops, Product, Routing, Cost, Instructions, Documents, Notes, History); rewrite `tools/generate.mjs` to emit all 1200 `/details/{id}.json` as `SellShipmentOut`; **final cutover** (mock mode also runs through the mapper; retire the `live-sim` scaffold). Then the prototype runs entirely on the real contract.
+2. **Flip to live data.** Take David's offered **API access** + pull the live **Swagger** (`shipment-swagger/v3/api-docs`) to reconcile the WIP DTO; set `VITE_API_MODE=live` + token (interim) — real `sell-shipment-out` rendering. Confirm the shipment-**list** source (exception grids) + Documents/Notes scope with Jana.
+3. **Real auth (MSAL/Entra).** Replace the cookie-paste/token stub with `@azure/msal-browser` + `@azure/msal-react` behind the existing `getAuthToken()` seam (needs `msalConfig` + redirect-URI registration — ties to the Soni infra request). Export the SSO diagrams to `vault/00-inbox/` to complete `auth-sso.md`.
+4. **The original `issue1_FilterSuggestions` issue** — return to the screenshot dropped at the very start of S41 (typing a value showed the full attribute list, not value-matched suggestions).
+5. **Standing backlog (unchanged):** GlobalSearch composed-criteria cases + value chips + table filtering + "Show N results" nav; Code Connect refresh; SHP-66 generic dropdown; SHP-67 responsive; normalizations backlog; POC 1 OIDC.
 
-**Process note:** every new composed case → add a `test(...)` to `composed-criteria.test.js` + log it in `composed-criteria.md`; promote firm rules to the GS-NN decision log + canon.
+**Process note:** the API-wiring work follows Superpowers (spec → plan → subagent-driven build with per-task spec+quality reviews). New mapper tabs → a `test(...)` per tab; promote firm contract decisions to the api-integration vault notes.
 
 ## Session 38 — June 2–3, 2026
 
