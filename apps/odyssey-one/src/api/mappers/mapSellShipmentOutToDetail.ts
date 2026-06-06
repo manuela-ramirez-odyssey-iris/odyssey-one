@@ -7,6 +7,8 @@ import type {
   SellShipmentRoutingOption,
 } from '../types/sellShipmentOut'
 import type {
+  CostOrderVM,
+  CostSummaryVM,
   OrderDetailVM,
   ProductLineVM,
   ProductOrderVM,
@@ -302,6 +304,58 @@ function mapRouting(dto: SellShipmentOut): ShipmentDetailVM['routingData'] {
   return { options: (dto.shippingOptionList ?? []).map(mapRoutingOption) }
 }
 
+// ── Cost allocation tab ───────────────────────────────────────────────────────
+
+function fmtCostAmt(v: number | undefined): string {
+  // Zero is a valid cost; show "$0.00" not "--"
+  if (v == null) return DASH
+  return fmtDollar(v)
+}
+
+function mapCostOrder(o: SellShipmentOrder): CostOrderVM {
+  const c = o.cost
+  return {
+    orderId: o.orderId,
+    directCost: c?.directCostAmount != null ? `${fmtDollar(c.directCostAmount)} USD` : DASH,
+    apCost: c?.apTotalAmount != null ? `${fmtDollar(c.apTotalAmount)} USD` : DASH,
+    arCost: c?.arTotalAmount != null ? `${fmtDollar(c.arTotalAmount)} USD` : DASH,
+    margin: (c?.arTotalAmount != null && c?.apTotalAmount != null)
+      ? fmtDollar(c.arTotalAmount - c.apTotalAmount)
+      : DASH,
+    apBase: fmtCostAmt(c?.apBaseAmount),
+    apFuel: fmtCostAmt(c?.apFuelAmount),
+    apDiscount: fmtCostAmt(c?.apDiscountAmount),
+    apHzc: c?.apHzcAmount ? fmtCostAmt(c.apHzcAmount) : DASH,
+    apSoc: c?.apSocAmount ? fmtCostAmt(c.apSocAmount) : DASH,
+    arBase: fmtCostAmt(c?.arBaseAmount),
+    arFuel: fmtCostAmt(c?.arFuelAmount),
+    arDiscount: fmtCostAmt(c?.arDiscountAmount),
+    arHzc: c?.arHzcAmount ? fmtCostAmt(c.arHzcAmount) : DASH,
+    arSoc: c?.arSocAmount ? fmtCostAmt(c.arSocAmount) : DASH,
+  }
+}
+
+function mapCost(dto: SellShipmentOut): ShipmentDetailVM['costData'] {
+  const cs = dto.costSummary
+  const summary: CostSummaryVM = {
+    base: fmtCostAmt(cs?.apBaseAmount),
+    discount: fmtCostAmt(cs?.apDiscountAmount),
+    fuel: fmtCostAmt(cs?.apFuelAmount),
+    accessorials: fmtCostAmt(cs?.apAccessorialsAmount),
+    apTotal: fmtCostAmt(cs?.apTotalAmount),
+    arTotal: fmtCostAmt(cs?.arTotalAmount),
+    margin: (cs?.marginAmount != null && cs?.marginPercent != null)
+      ? `${fmtDollar(cs.marginAmount)} (${cs.marginPercent.toFixed(1)}%)`
+      : DASH,
+  }
+  return {
+    planned: {
+      summary,
+      orders: (dto.orderList ?? []).map(mapCostOrder),
+    },
+  }
+}
+
 // ── Main export ───────────────────────────────────────────────────────────────
 
 export function mapSellShipmentOutToDetail(dto: SellShipmentOut): ShipmentDetailVM {
@@ -310,15 +364,7 @@ export function mapSellShipmentOutToDetail(dto: SellShipmentOut): ShipmentDetail
     stopsData: mapStops(dto),
     productData: mapProducts(dto),
     routingData: mapRouting(dto),
-    costData: {
-      planned: {
-        summary: {
-          base: DASH, discount: DASH, fuel: DASH, accessorials: DASH,
-          apTotal: DASH, arTotal: DASH, margin: DASH,
-        },
-        orders: [],
-      },
-    },
+    costData: mapCost(dto),
     instructionsData: { orders: [] },
     documentsData: { documents: [] },
     notesData: { notes: [] },

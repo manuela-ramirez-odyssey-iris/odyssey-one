@@ -46,7 +46,7 @@ describe('mapSellShipmentOutToDetail', () => {
     expect(vm.orderDetails[0].customField1).toBe('--')
   })
 
-  it('emits empty routing/cost/instructions/docs/notes/history sections', () => {
+  it('emits empty instructions/docs/notes/history sections', () => {
     expect(vm.instructionsData).toEqual({ orders: [] })
     expect(vm.documentsData).toEqual({ documents: [] })
     expect(vm.notesData).toEqual({ notes: [] })
@@ -259,6 +259,78 @@ describe('mapSellShipmentOutToDetail', () => {
       expect(line.packageCount).toBe('--')
       expect(line.hazmat).toBe(false)
       expect(line.declaredValue).toBe('--')
+    })
+  })
+
+  describe('costData', () => {
+    it('builds summary from costSummary header', () => {
+      const dto: SellShipmentOut = {
+        ...sellShipmentOutSample,
+        orderList: [],
+        costSummary: {
+          apBaseAmount: 1384.16,
+          apFuelAmount: 553.66,
+          apDiscountAmount: 0,
+          apAccessorialsAmount: 293.36,
+          apTotalAmount: 2231.18,
+          arTotalAmount: 2922.84,
+          marginAmount: 691.66,
+          marginPercent: 31.0,
+        },
+      }
+      const summary = mapSellShipmentOutToDetail(dto).costData.planned.summary
+      expect(summary.base).toBe('$1,384.16')
+      expect(summary.discount).toBe('$0.00')
+      expect(summary.fuel).toBe('$553.66')
+      expect(summary.accessorials).toBe('$293.36')
+      expect(summary.apTotal).toBe('$2,231.18')
+      expect(summary.arTotal).toBe('$2,922.84')
+      expect(summary.margin).toBe('$691.66 (31.0%)')
+    })
+
+    it('maps one CostOrderVM per order', () => {
+      const dto: SellShipmentOut = {
+        ...sellShipmentOutSample,
+        orderList: [
+          {
+            orderId: 'ORD-1001',
+            cost: {
+              apBaseAmount: 1384.16,
+              apFuelAmount: 553.66,
+              apDiscountAmount: 0,
+              apHzcAmount: 0,
+              apSocAmount: 293.36,
+              apTotalAmount: 2231.18,
+              arBaseAmount: 1813.25,
+              arFuelAmount: 725.29,
+              arDiscountAmount: 0,
+              arHzcAmount: 0,
+              arSocAmount: 0,
+              arTotalAmount: 2922.84,
+              directCostAmount: 2565.86,
+            },
+          },
+        ],
+      }
+      const order = mapSellShipmentOutToDetail(dto).costData.planned.orders[0]
+      expect(order.orderId).toBe('ORD-1001')
+      expect(order.apCost).toBe('$2,231.18 USD')
+      expect(order.arCost).toBe('$2,922.84 USD')
+      expect(order.apBase).toBe('$1,384.16')
+      expect(order.apFuel).toBe('$553.66')
+      expect(order.apDiscount).toBe('$0.00')
+      expect(order.apSoc).toBe('$293.36')
+      expect(order.apHzc).toBe('--')
+    })
+
+    it('degrades missing cost fields to "--"', () => {
+      const dto: SellShipmentOut = {
+        ...sellShipmentOutSample,
+        orderList: [{ orderId: 'ORD-X' }],
+      }
+      const order = mapSellShipmentOutToDetail(dto).costData.planned.orders[0]
+      expect(order.apCost).toBe('--')
+      expect(order.apBase).toBe('--')
     })
   })
 
