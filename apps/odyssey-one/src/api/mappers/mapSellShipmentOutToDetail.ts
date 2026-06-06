@@ -26,6 +26,9 @@ function fmtMeasure(value: number | undefined, uom: string | undefined, fallback
   return `${value.toLocaleString('en-US')} ${uom ?? fallbackUom}`
 }
 
+// Order-tab location format: "postal, city, region, country" (comma-separated).
+// Deliberately different from the Stops-tab format in mapStop ("city, region postal country") —
+// the two tabs display location differently; don't unify them.
 function fmtLocation(a?: SellShipmentAddress): string {
   if (!a) return DASH
   const parts = [a.postal, a.city, a.region, a.country].filter(Boolean)
@@ -323,14 +326,17 @@ function mapCostOrder(o: SellShipmentOrder): CostOrderVM {
     margin: (c?.arTotalAmount != null && c?.apTotalAmount != null)
       ? fmtDollar(c.arTotalAmount - c.apTotalAmount)
       : DASH,
+    // base/fuel always show ($0.00 if somehow zero); discount/hzc/soc are
+    // conditional accessorials — a zero/absent charge degrades to '--' (all three
+    // consistent, matching the original per-order breakdown).
     apBase: fmtCostAmt(c?.apBaseAmount),
     apFuel: fmtCostAmt(c?.apFuelAmount),
-    apDiscount: fmtCostAmt(c?.apDiscountAmount),
+    apDiscount: c?.apDiscountAmount ? fmtCostAmt(c.apDiscountAmount) : DASH,
     apHzc: c?.apHzcAmount ? fmtCostAmt(c.apHzcAmount) : DASH,
     apSoc: c?.apSocAmount ? fmtCostAmt(c.apSocAmount) : DASH,
     arBase: fmtCostAmt(c?.arBaseAmount),
     arFuel: fmtCostAmt(c?.arFuelAmount),
-    arDiscount: fmtCostAmt(c?.arDiscountAmount),
+    arDiscount: c?.arDiscountAmount ? fmtCostAmt(c.arDiscountAmount) : DASH,
     arHzc: c?.arHzcAmount ? fmtCostAmt(c.arHzcAmount) : DASH,
     arSoc: c?.arSocAmount ? fmtCostAmt(c.arSocAmount) : DASH,
   }

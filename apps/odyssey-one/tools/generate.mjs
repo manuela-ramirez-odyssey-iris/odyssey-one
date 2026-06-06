@@ -491,11 +491,11 @@ function generateShipment(index) {
       linehaul: pick(['Completed', 'In Progress', 'Pending']),
       routeGroup: pick(ROUTE_GROUPS),
       apiSource: pick(ROUTING_APIS),
-      notifyDateTime: wasTendered ? formatDateTime(genDate(baseDate, -1)) : '--',
-      responseMethod: wasTendered ? pick(RESPONSE_METHODS) : '--',
-      responseDateTime: isAccepted ? formatDateTime(genDate(baseDate, 0)) : '--',
-      carrierPickup: isAccepted ? `${faker.string.alphanumeric(3).toUpperCase()}${faker.number.int({ min: 10000, max: 99999 })}` : '--',
-      deliveryNum: isAccepted ? `${faker.string.alphanumeric(3).toUpperCase()}${faker.number.int({ min: 10000, max: 99999 })}` : '--',
+      notifyDateTime: wasTendered ? formatDateTime(genDate(baseDate, -1)) : null,
+      responseMethod: wasTendered ? pick(RESPONSE_METHODS) : null,
+      responseDateTime: isAccepted ? formatDateTime(genDate(baseDate, 0)) : null,
+      carrierPickup: isAccepted ? `${faker.string.alphanumeric(3).toUpperCase()}${faker.number.int({ min: 10000, max: 99999 })}` : null,
+      deliveryNum: isAccepted ? `${faker.string.alphanumeric(3).toUpperCase()}${faker.number.int({ min: 10000, max: 99999 })}` : null,
       transitTimeSource: 'SMC',
       description: faker.lorem.words({ min: 2, max: 4 }),
 
@@ -523,7 +523,7 @@ function generateShipment(index) {
       rateSource: pick(['Contract', 'Spot', 'Benchmark', 'Historical']),
       distanceSource: pick(['PC Miler', 'Google Maps', 'ALK', 'Manual']),
       transitTimeId: `TT-${faker.string.alphanumeric(8).toUpperCase()}`,
-      loadboardExpiry: faker.number.float({ min: 0, max: 1 }) < 0.7 ? formatDateTime(genDate(baseDate, faker.number.int({ min: 5, max: 30 }))) : '--',
+      loadboardExpiry: faker.number.float({ min: 0, max: 1 }) < 0.7 ? formatDateTime(genDate(baseDate, faker.number.int({ min: 5, max: 30 }))) : null,
       rcpId: `RCP-${faker.string.alphanumeric(6).toUpperCase()}`,
       lcePkId: faker.number.int({ min: 100000, max: 999999 }),
 
@@ -535,7 +535,7 @@ function generateShipment(index) {
       customerPreferred: pick(['Yes', 'No']),
       orderEquip: pick(EQUIPMENT_CODES),
       contactExped: `${faker.person.fullName()} ${faker.phone.number()}`,
-      note: faker.number.float({ min: 0, max: 1 }) < 0.5 ? faker.lorem.sentence() : '--',
+      note: faker.number.float({ min: 0, max: 1 }) < 0.5 ? faker.lorem.sentence() : null,
     };
   });
 

@@ -315,10 +315,12 @@ describe('mapSellShipmentOutToDetail', () => {
       expect(order.orderId).toBe('ORD-1001')
       expect(order.apCost).toBe('$2,231.18 USD')
       expect(order.arCost).toBe('$2,922.84 USD')
+      expect(order.margin).toBe('$691.66') // arTotal - apTotal = 2922.84 - 2231.18
       expect(order.apBase).toBe('$1,384.16')
       expect(order.apFuel).toBe('$553.66')
-      expect(order.apDiscount).toBe('$0.00')
       expect(order.apSoc).toBe('$293.36')
+      // conditional accessorials degrade to '--' when zero/absent (consistent with hzc/soc)
+      expect(order.apDiscount).toBe('--')
       expect(order.apHzc).toBe('--')
     })
 
