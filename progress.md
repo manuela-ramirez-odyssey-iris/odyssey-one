@@ -3511,17 +3511,62 @@ Chosen slice: **one tab end-to-end** (vertical slice over mapper-complete/genera
 
 ---
 
+## Session 42 — June 6–7, 2026
+
+The session that put the **entire Shipments surface — detail AND list — onto the real `SellShipmentOut`/grid API contract** behind the mock↔live seam, so the eventual live cutover is a flag flip, not a rewrite. Two full Superpowers cycles back-to-back: **Plan 2b** (finish the detail-contract migration) then **Plan 3** (list/grid API wiring, brainstormed → spec'd → planned → built). Ran the complete flow each time (brainstorm → writing-plans → subagent-driven-development with per-task spec+quality reviews + a final holistic review), with deliberate model tiering — Sonnet for mechanical/TDD tasks, Opus for the two judgment-heavy ones (generator rewrites, route rewire). Two real latent bugs were caught by the review gates. **23 commits on `feat/shipments-api-wiring` (PR #1); not pushed (held for user).**
+
+### Thread 1 — Plan 2b: full `SellShipmentOut` contract migration (detail)
+
+Finished what Plan 2a started — the detail now renders entirely from the real contract shape.
+- **Mapper extended to all data tabs** (`mapSellShipmentOutToDetail`): Stops, Product, Routing, Cost, Instructions — each TDD'd (one `describe` per tab). Documents/Notes/History intentionally **degrade to empty** (no API in the real contract — Session 41 finding).
+- **DTO + VM types** extended for all 8 sibling sections (`sellShipmentOut.ts`, `shipmentDetail.ts` — concrete interfaces replacing `unknown[]`).
+- **Generator rewritten** to emit each `/details/{id}.json` as the raw `SellShipmentOut` DTO (numeric/nullable fields, nested addresses, raw dates) instead of pre-formatted view-model strings. The trickiest part: the order *header* (addresses/dates/weights), previously generated as formatted strings in a separate `orderDetails` map, was restructured into the `SellShipmentOrder` shape and merged with lines/instructions/cost into one `orderList`.
+- **Mock cutover + `live-sim` retired:** mock mode now runs the loaded DTO through the mapper exactly like live; `ApiMode` is `'mock' | 'live'`. Default mock renders real-contract data across all 1200 shipments with no API access.
+- **Order tab at "core fidelity":** fields the DTO doesn't carry (orderDate, shipmentMode, serviceLevel, salesOrder, …) degrade to `'--'`.
+- Verified: full-corpus round-trip — all 1200 files map cleanly, every tab populated; tests + strict `tsc` + build green. Final-review fixes: generator emits `null` (not `'--'`) for absent routing fields (faithful raw shape; mapper still degrades to `'--'`); per-order discount/HZC/SOC consistently degrade to `'--'` when zero (matching the original breakdown).
+
+### Thread 2 — Plan 3: Shipments list/grid API wiring (the big one)
+
+The main table was the last synchronous, load-all-1200-client-side piece. The real backend has **no generic "all shipments" endpoint** — the list IS the exception/monitoring/PGI-PGR grids (`POST pgi-pgr/v1/error/list` + `GET shipment/error/category/count`), each row carrying a `sellShipmentId` → detail. Brainstormed the gap, **user chose faithful server-side pagination + real pagination UI** (over a client-side-preserving wrapper).
+- **`gridService`** (`getShipmentErrorList` paginated list + `getCategoryCounts` tab badges) behind the existing config/client seam: mock filters/sorts/paginates `shipments.json` in-memory to *simulate* the paginated server; live calls the real endpoints.
+- **Provisional row DTO = current `shipments.json` row shape** (a deviation from the spec's "invent contract names," decided during planning): the LLD doesn't specify the `error/list` row fields, so inventing names would churn the deferred search layer for guesses anyway. Isolate the unknown real names behind `mapShipmentErrorRow` — the single reconcile point when Swagger lands. Search layer left untouched.
+- **Grid→detail link via `sellShipment`** (the contract key): generator now makes `sellShipment` **unique** (Set dedup — the old 10k range collided at 1200 rows, which would have silently dropped detail files) and **keys detail files by `sellShipment`**; the table's selection id is the VM `id` (= `sellShipment`).
+- **Route rewired** (`ShipmentsRoute`): the ~120-line client-side `filteredShipments` memo replaced by `listParams` → `useShipmentErrorList`; counts from three `useCategoryCounts` hooks; pagination state; render-time page reset (React "adjust-state-on-change" pattern — no wasted stale-page fetch); CSV export async via the service.
+- **Table rewired** (`ShipmentTable`): renders one page, real **pagination UI** (range, page-size, prev/next, page X of Y), **loading/error** states, selects by `id`.
+- **Dead accessors retired** from `src/data/index.js` (`getShipmentsByPanel`/`…ByPanelAndCategory`/`getCategoryCount`/`getShipmentById`); `getAllShipments` + `SEARCH_ATTRIBUTES` kept (search index still uses them).
+- **Final-review caught a Critical regression:** saved-query filtering had been **substring** (`customer-name:G2O` → "G2O Technologies LLC") but was folded into the exact-equality `filter` bucket → 4 of 6 built-in saved searches returned zero rows. Fixed with a separate **`searchFilters`** param (per-field substring) distinct from the exact FilterPanel dropdown filters.
+- Verified: 67 tests + strict `tsc` + build green; full-corpus grid smoke (exceptions+monitoring paginate exhaustively, every row links via `sellShipment`, counts reconcile, `pgipgr` correctly empty/"Coming soon"); **0 of 1200 rows missing a detail file**; dev server boots clean.
+
+### Thread 3 — GlobalSearch open question (raised end-of-session)
+
+With the list now paginated, GlobalSearch's suggestion index (`searchIndex.js`) + composed-criteria adapter (`adapter.js`) **still read `getAllShipments()` over the full in-memory set** — deliberately kept, so GlobalSearch is **unblocked** and can keep being built on the current data shape. But it's not production-faithful: in live there's no client-side "all shipments" to index; the real path is `advanced-filter/{field}/lookup` (typeahead) + the grid `searchTerm`/`searchFilters` params (now built) for committed filtering. **Decision: keep building the GlobalSearch UX on the current shape; repointing the suggestion *source* to the lookup endpoints behind the existing adapter seam is the deferred wiring step** (the adapter already hides where suggestions come from, so the UI won't change).
+
+### Process / decisions
+
+- Full Superpowers flow twice (brainstorm → spec → plan → subagent-driven-development → final review). Specs at `docs/superpowers/specs/2026-06-06-shipments-list-grid-api-wiring-design.md`; plans at `docs/superpowers/plans/2026-06-06-plan-2b-full-contract-migration.md` + `…-shipments-list-grid-api-wiring.md`.
+- **Model tiering** validated: Sonnet for mechanical/TDD subagent tasks; Opus (controller-implemented directly) for the two judgment-heavy, tightly-coupled tasks (generator rewrites, the route+table rewire) — too much cross-file context to hand off cleanly. Independent spec+quality reviewers ran regardless.
+- The two review-caught bugs (sellShipment collisions; saved-query substring regression) are the case for the gates — both were demoable-feature breakers invisible to a quick glance.
+
+### State after Session 42
+
+- **Detail + list both run on the real contract shape, default `mock` mode, no API needed.** Live cutover = `VITE_API_MODE=live` + token + Swagger field reconciliation.
+- **Tests:** 67 green; strict `tsc` clean; build green.
+- **Git:** 23 commits on `feat/shipments-api-wiring` (PR #1). **Not pushed** — held for user's call (PR is open; push updates it; no deploy fires).
+- **Deferred (documented):** GlobalSearch suggestion-source repoint; live Swagger reconciliation of provisional field names (detail long-tail + grid row + `error/list` filter object); write-back actions (cost/routing/notes/docs are read-only); Documents/Notes/History (no API); real auth (MSAL/Entra); CSV via the real `error/download` endpoint; `issue1_FilterSuggestions`.
+
+---
+
 ## What's Next
 
-### Session 42 Priorities
+### Session 43 Priorities
 
-1. **Plan 2b — finish the real-contract migration.** Extend `mapSellShipmentOutToDetail` to the other 8 tabs (Stops, Product, Routing, Cost, Instructions, Documents, Notes, History); rewrite `tools/generate.mjs` to emit all 1200 `/details/{id}.json` as `SellShipmentOut`; **final cutover** (mock mode also runs through the mapper; retire the `live-sim` scaffold). Then the prototype runs entirely on the real contract.
-2. **Flip to live data.** Take David's offered **API access** + pull the live **Swagger** (`shipment-swagger/v3/api-docs`) to reconcile the WIP DTO; set `VITE_API_MODE=live` + token (interim) — real `sell-shipment-out` rendering. Confirm the shipment-**list** source (exception grids) + Documents/Notes scope with Jana.
-3. **Real auth (MSAL/Entra).** Replace the cookie-paste/token stub with `@azure/msal-browser` + `@azure/msal-react` behind the existing `getAuthToken()` seam (needs `msalConfig` + redirect-URI registration — ties to the Soni infra request). Export the SSO diagrams to `vault/00-inbox/` to complete `auth-sso.md`.
-4. **The original `issue1_FilterSuggestions` issue** — return to the screenshot dropped at the very start of S41 (typing a value showed the full attribute list, not value-matched suggestions).
-5. **Standing backlog (unchanged):** GlobalSearch composed-criteria cases + value chips + table filtering + "Show N results" nav; Code Connect refresh; SHP-66 generic dropdown; SHP-67 responsive; normalizations backlog; POC 1 OIDC.
+1. **GlobalSearch — continue the UX, plan the source repoint.** Keep building the GlobalSearch experience on the current client-side index (unblocked). Separately, scope repointing the suggestion *source* to `advanced-filter/{field}/lookup` behind the existing adapter seam, and route committed chips/search through the grid `searchTerm`/`searchFilters` params (now live). Revisit `issue1_FilterSuggestions` (value-matched suggestions, not the full attribute list) as part of this.
+2. **Flip to live data.** Take David's **API access** + pull the live **Swagger** (`shipment-swagger/v3/api-docs`) to reconcile the provisional field names in **three** places now: detail DTO long-tail, the grid **row** shape, and the `error/list` **filter** object (+ pagination indexing, response array name). Confirm Documents/Notes scope with Jana.
+3. **Real auth (MSAL/Entra).** Replace the token stub with `@azure/msal-browser` + `@azure/msal-react` behind `getAuthToken()` (needs `msalConfig` + redirect-URI registration — ties to the Soni infra request). Export SSO diagrams to `vault/00-inbox/` to complete `auth-sso.md`.
+4. **Decide push / PR #1.** All Session 42 work is committed locally, not pushed. Decide whether to push to update PR #1 (no deploy fires; auto-deploy off).
+5. **Standing backlog (unchanged):** Code Connect refresh; SHP-66 generic dropdown; SHP-67 responsive; normalizations backlog; POC 1 OIDC. Pre-existing minor gaps surfaced this session: `hazardous`/`stops` columns render blank (not on the row shape); CSV "all" export emits raw DTO field names.
 
-**Process note:** the API-wiring work follows Superpowers (spec → plan → subagent-driven build with per-task spec+quality reviews). New mapper tabs → a `test(...)` per tab; promote firm contract decisions to the api-integration vault notes.
+**Process note:** the API-wiring work follows Superpowers (spec → plan → subagent-driven build with per-task spec+quality reviews + final holistic review). Promote firm contract decisions to the `vault/20-cross-cutting/api-integration/` notes once the live Swagger confirms them.
 
 ## Session 38 — June 2–3, 2026
 
