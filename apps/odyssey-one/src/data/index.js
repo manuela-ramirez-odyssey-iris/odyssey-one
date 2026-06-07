@@ -6,35 +6,6 @@ export function getAllShipments() {
   return shipments
 }
 
-export function getShipmentById(id) {
-  return shipments.find(s => s.buyShipment === id) || null
-}
-
-// ─── Pre-built indexes for O(1) panel/category lookups ──────
-
-const byPanel = Map.groupBy(shipments, s => s.panel)
-
-const byPanelAndCategory = new Map()
-for (const [panel, items] of byPanel) {
-  byPanelAndCategory.set(panel, Map.groupBy(items, s => s.category))
-}
-
-export function getShipmentsByPanel(panel) {
-  return byPanel.get(panel) || []
-}
-
-export function getShipmentsByPanelAndCategory(panel, category) {
-  const panelMap = byPanelAndCategory.get(panel)
-  if (!panelMap) return []
-  return panelMap.get(category) || []
-}
-
-export function getCategoryCount(panel, category) {
-  const panelMap = byPanelAndCategory.get(panel)
-  if (!panelMap) return 0
-  return panelMap.get(category)?.length ?? 0
-}
-
 // ─── Search attributes ──────────────────────────────────────
 
 export const SEARCH_ATTRIBUTES = [
