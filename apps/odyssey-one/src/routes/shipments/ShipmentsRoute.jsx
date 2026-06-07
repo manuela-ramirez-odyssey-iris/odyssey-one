@@ -74,6 +74,17 @@ function ShipmentsRoute() {
     return allShipments.find(s => s.sellShipment === selectedShipmentId) || null
   }, [selectedShipmentId, allShipments])
 
+  // Reset to the first page whenever the query identity (panel/tab/filters/saved
+  // query/chip/search) changes. Done during render (React's documented "adjust state
+  // on change" pattern) rather than in an effect, so the stale-page query never fires
+  // — avoids a wasted round-trip on every filter interaction in live mode.
+  const queryIdentity = JSON.stringify([activePanel, activeTab, filters, appliedSavedQuery, activeChipKey, debouncedQuery])
+  const [prevQueryIdentity, setPrevQueryIdentity] = useState(queryIdentity)
+  if (queryIdentity !== prevQueryIdentity) {
+    setPrevQueryIdentity(queryIdentity)
+    if (pageNumber !== 0) setPageNumber(0)
+  }
+
   // Committed filter state → server params. The free-text search + FilterPanel
   // filters + applied saved query all become query params the grid service applies.
   const listParams = useMemo(() => {
@@ -115,11 +126,6 @@ function ShipmentsRoute() {
 
   const pageRows = listData?.rows ?? []
   const totalCount = listData?.totalCount ?? 0
-
-  // Any change to the query (panel/tab/filter/search) returns to the first page.
-  useEffect(() => {
-    setPageNumber(0)
-  }, [activePanel, activeTab, filters, appliedSavedQuery, activeChipKey, debouncedQuery])
 
   // Tab badges + metrics strip: counts come from the count endpoint per panel.
   const { data: exceptionCounts = [] } = useCategoryCounts('exceptions')

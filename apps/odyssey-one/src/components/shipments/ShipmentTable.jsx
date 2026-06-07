@@ -676,15 +676,16 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
         </div>
       </div>
 
-      {/* Pagination — server-side paging (one page at a time) */}
+      {/* Pagination — server-side paging (one page at a time). Hidden on error. */}
+      {!isError && (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 'var(--spacing-2) var(--spacing-4)', borderTop: '1px solid var(--border-subtle)', fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)', flexShrink: 0, background: 'var(--bg-primary)' }}>
         <span style={{ fontVariantNumeric: 'tabular-nums' }}>
           {totalCount === 0 ? '0 results' : `${pageNumber * pageSize + 1}–${Math.min((pageNumber + 1) * pageSize, totalCount)} of ${totalCount.toLocaleString('en-US')}`}
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-3)' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <label htmlFor="shipments-page-size" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             Rows
-            <select value={pageSize} onChange={(e) => onPageSizeChange && onPageSizeChange(Number(e.target.value))}
+            <select id="shipments-page-size" value={pageSize} onChange={(e) => onPageSizeChange && onPageSizeChange(Number(e.target.value))}
               style={{ padding: '2px 6px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', background: 'var(--bg-primary)', color: 'var(--text-secondary)' }}>
               {[25, 50, 100].map(n => <option key={n} value={n}>{n}</option>)}
             </select>
@@ -704,6 +705,7 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
           </button>
         </div>
       </div>
+      )}
     </div>
   )
 }
