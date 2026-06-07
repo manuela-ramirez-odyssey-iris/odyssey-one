@@ -3,6 +3,14 @@ import { writeFileSync, mkdirSync, existsSync, readdirSync, unlinkSync } from 'f
 
 faker.seed(42);
 
+const usedSellShipments = new Set();
+function genUniqueSellShipment() {
+  let v;
+  do { v = String(faker.number.int({ min: 25000000, max: 25999999 })); } while (usedSellShipments.has(v));
+  usedSellShipments.add(v);
+  return v;
+}
+
 // ============================================================
 // DOMAIN CONSTANTS (from grooming sessions + prototype)
 // ============================================================
@@ -267,7 +275,7 @@ function generateShipment(index) {
   // CSV example: 28826319 — bare 8-digit number (no SHP- prefix). buyShipment is
   // the primary key + per-shipment detail filename; the generator rewrites both.
   const buyShipment = String(faker.number.int({ min: 10000000, max: 99999999 }));
-  const sellShipment = String(faker.number.int({ min: 25690000, max: 25699999 }));
+  const sellShipment = genUniqueSellShipment();
   const customer = pick(CUSTOMERS);
   const originLoc = pick(LOCATIONS);
   const destLoc = pick(LOCATIONS.filter(l => l.city !== originLoc.city));
@@ -1044,7 +1052,7 @@ const shipmentDetails = {};
 for (let i = 0; i < TOTAL_SHIPMENTS; i++) {
   const { mainRow, detail } = generateShipment(i);
   shipments.push(mainRow);
-  shipmentDetails[mainRow.buyShipment] = detail;
+  shipmentDetails[mainRow.sellShipment] = detail;
 }
 
 // Write main table data (statically imported by app)
