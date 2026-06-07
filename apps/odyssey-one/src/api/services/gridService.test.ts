@@ -69,6 +69,15 @@ describe('gridService.getShipmentErrorList (mock)', () => {
     expect(res.rows[0].scac).toBe('ABFS')
   })
 
+  it('applies searchFilters as per-field substring matches (saved-query semantics)', async () => {
+    // customerName 'ERCO Systems Inc' must match the substring 'ERCO'
+    const res = await getShipmentErrorList({ panel: 'exceptions', pageNumber: 0, pageSize: 25, searchFilters: { customerName: 'ERCO' } })
+    expect(res.totalCount).toBe(2) // A + C
+    // an exact-equality filter would NOT match the substring
+    const exact = await getShipmentErrorList({ panel: 'exceptions', pageNumber: 0, pageSize: 25, filter: { customerName: 'ERCO' } })
+    expect(exact.totalCount).toBe(0)
+  })
+
   it('applies a free-text searchTerm across the default field set', async () => {
     const res = await getShipmentErrorList({ panel: 'exceptions', pageNumber: 0, pageSize: 25, searchTerm: 'erco' })
     expect(res.totalCount).toBe(2) // A + C both have ERCO in customerName

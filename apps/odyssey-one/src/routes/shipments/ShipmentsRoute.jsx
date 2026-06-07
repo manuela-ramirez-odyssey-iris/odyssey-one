@@ -88,15 +88,19 @@ function ShipmentsRoute() {
   // Committed filter state → server params. The free-text search + FilterPanel
   // filters + applied saved query all become query params the grid service applies.
   const listParams = useMemo(() => {
+    // FilterPanel dropdown selections → exact-equality filters.
     const filter = {}
     if (filters.origin) filter.origin = filters.origin
     if (filters.destination) filter.destination = filters.destination
     if (filters.shipmentStatus) filter.shipmentStatus = filters.shipmentStatus
     if (filters.scac) filter.scac = filters.scac
+    // Saved-query conditions are substring matches (e.g. customer-name:G2O matches
+    // "G2O Technologies LLC") — kept separate from the exact dropdown filters.
+    const searchFilters = {}
     if (appliedSavedQuery) {
       for (const { key, value } of parseSavedQuery(appliedSavedQuery.query)) {
         const attr = SEARCH_ATTRIBUTES.find(a => a.key === key)
-        if (attr) filter[attr.dataKey] = value
+        if (attr) searchFilters[attr.dataKey] = value
       }
     }
     const searchAttr = activeChipKey ? SEARCH_ATTRIBUTES.find(a => a.key === activeChipKey) : null
@@ -106,6 +110,7 @@ function ShipmentsRoute() {
       pageNumber,
       pageSize,
       filter,
+      searchFilters,
       searchTerm: debouncedQuery.trim() || undefined,
       searchAttributeKey: searchAttr ? searchAttr.dataKey : undefined,
       dateFilters: {

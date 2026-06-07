@@ -51,7 +51,8 @@ export interface ShipmentErrorListParams {
   category?: string             // omit or 'all' = whole panel
   pageNumber: number
   pageSize: number
-  filter?: Record<string, string>
+  filter?: Record<string, string>        // exact-equality (FilterPanel dropdown selections)
+  searchFilters?: Record<string, string> // substring match per field (saved-query conditions)
   searchTerm?: string
   searchAttributeKey?: string           // scopes searchTerm to one attribute when set; omit for all-fields search
   dateFilters?: {

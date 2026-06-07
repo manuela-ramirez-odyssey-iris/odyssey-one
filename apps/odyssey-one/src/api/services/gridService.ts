@@ -55,7 +55,7 @@ export async function getShipmentErrorList(
       {
         pageNumber: params.pageNumber,
         pageSize: params.pageSize,
-        filter: { panel: params.panel, category: params.category, ...params.filter, ...params.dateFilters, searchTerm: params.searchTerm },
+        filter: { panel: params.panel, category: params.category, ...params.filter, ...params.searchFilters, ...params.dateFilters, searchTerm: params.searchTerm },
         sortBy: params.sortBy,
         orderBy: params.orderBy,
       },
@@ -69,11 +69,19 @@ export async function getShipmentErrorList(
   let rows = (getAllShipments() as ShipmentErrorRow[]).filter(r => r.panel === params.panel)
   if (params.category && params.category !== 'all') rows = rows.filter(r => r.category === params.category)
 
-  // field-equality filters (FilterPanel + parsed saved query)
+  // exact-equality filters (FilterPanel dropdown selections)
   if (params.filter) {
     for (const [key, value] of Object.entries(params.filter)) {
       if (!value) continue
       rows = rows.filter(r => String((r as unknown as Record<string, unknown>)[key] ?? '') === value)
+    }
+  }
+
+  // substring filters per field (saved-query conditions, e.g. origin:Dallas → "Dallas TX US 75201")
+  if (params.searchFilters) {
+    for (const [key, value] of Object.entries(params.searchFilters)) {
+      if (!value) continue
+      rows = rows.filter(r => fieldContains(r, key as keyof ShipmentErrorRow, value.toLowerCase()))
     }
   }
 
