@@ -2243,6 +2243,187 @@ button.filter-suggestions__chip:active {
 }
 
 /* ----------------------------------------
+   SHIPMENTS FILTERS VIEW (prototype)
+   Swaps in over ResultsPreview from the "All Filters" button. Same panel shell
+   as .results-preview (720px white card). App-local, not normalized yet.
+   ---------------------------------------- */
+.shipments-filters {
+  display: flex;
+  flex-direction: column;
+  width: 720px;
+  max-width: 100%;
+  max-height: 70vh;
+  background: var(--bg-primary);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-2xl);
+  overflow: hidden;
+}
+.shipments-filters__header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-3) var(--spacing-4) var(--spacing-2) var(--spacing-4);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.shipments-filters__title { color: var(--text-primary); }
+.shipments-filters__close { margin-left: auto; }
+.shipments-filters__icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-md);
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.shipments-filters__icon-btn:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.shipments-filters__tabs {
+  display: flex;
+  gap: var(--spacing-2);
+  padding: var(--spacing-3) var(--spacing-4) 0 var(--spacing-4);
+}
+.shipments-filters__tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: 6px var(--spacing-3);
+  border: none;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.shipments-filters__tab.is-active {
+  background: var(--deep-sea-neutral-100);
+  color: var(--text-primary);
+}
+.shipments-filters__tab-count {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+}
+
+.shipments-filters__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-5);
+  padding: var(--spacing-4);
+  overflow-y: auto;
+  flex: 1;
+}
+.shipments-filters__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+.shipments-filters__section-title { color: var(--text-primary); }
+.shipments-filters__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.shipments-filters__label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-secondary);
+}
+
+.shipments-filters__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
+}
+.shipments-filters__chip {
+  padding: 4px var(--spacing-3);
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+}
+.shipments-filters__chip:hover { background: var(--deep-sea-neutral-100); }
+.shipments-filters__chip.is-selected {
+  background: var(--bg-primary);
+  border-color: var(--carolina-blue-400);
+  color: var(--text-primary);
+}
+
+.shipments-filters__dropdown,
+.shipments-filters__input {
+  width: 100%;
+  padding: 8px var(--spacing-3);
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius-md);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-primary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+}
+.shipments-filters__dropdown {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  text-align: left;
+}
+.shipments-filters__dropdown-placeholder { color: var(--text-placeholder); }
+.shipments-filters__input::placeholder { color: var(--text-placeholder); }
+
+.shipments-filters__daterange {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+.shipments-filters__daterange-sep { color: var(--text-tertiary); }
+
+.shipments-filters__saved {
+  display: flex;
+  flex-direction: column;
+}
+.shipments-filters__saved-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  padding: var(--spacing-3) 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.shipments-filters__saved-name { color: var(--text-primary); flex-shrink: 0; }
+.shipments-filters__saved-query {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  font-family: var(--font-mono, monospace);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.shipments-filters__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+  padding: var(--spacing-3) var(--spacing-4);
+  border-top: 1px solid var(--border-subtle);
+}
+.shipments-filters__footer-actions {
+  display: flex;
+  gap: var(--spacing-2);
+}
+
+/* ----------------------------------------
    MATCH ROW (molecule) — Figma `MatchRow` 2460:2
    One result row inside the GlobalSearch ResultsPreview panel.
    ---------------------------------------- */
