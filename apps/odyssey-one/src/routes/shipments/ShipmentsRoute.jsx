@@ -11,7 +11,11 @@ import { COLUMN_CONFIG } from '../../components/shipments/ShipmentTable'
 import { FileText } from 'lucide-react'
 import { PageHeader } from '@odyssey/ui'
 import ShipmentsGlobalSearch from '../../components/global-search/ShipmentsGlobalSearch'
-import { getAllShipments, fetchShipmentDetails, getCachedShipmentDetails, getShipmentsByPanel, getShipmentsByPanelAndCategory, getCategoryCount, SEARCH_ATTRIBUTES } from '../../data'
+import { getAllShipments, SEARCH_ATTRIBUTES } from '../../data'
+import { useShipmentDetail } from '../../api/queries/useShipmentDetail'
+import { useShipmentErrorList } from '../../api/queries/useShipmentErrorList'
+import { useCategoryCounts } from '../../api/queries/useCategoryCounts'
+import { getShipmentErrorList } from '../../api/services/gridService'
 
 function parseSavedQuery(queryStr) {
   const pairs = []
@@ -23,16 +27,6 @@ function parseSavedQuery(queryStr) {
     pairs.push({ key, value })
   }
   return pairs
-}
-
-function parseShipmentDate(dateStr) {
-  if (!dateStr) return null
-  // Format: "MM/DD/YYYY HH:MM TZ" → extract MM/DD/YYYY
-  const parts = dateStr.split(' ')
-  if (!parts[0]) return null
-  const [mm, dd, yyyy] = parts[0].split('/')
-  if (!mm || !dd || !yyyy) return null
-  return `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`
 }
 
 function ShipmentsRoute() {
@@ -48,14 +42,8 @@ function ShipmentsRoute() {
   const [columnPanelOpen, setColumnPanelOpen] = useState(false)
   const [filters, setFilters] = useState({})
   const [appliedSavedQuery, setAppliedSavedQuery] = useState(null)
-  // Legacy table-from-search filtering (gsChips/gsQuery) is now inert: per the
-  // new GlobalSearch design the search no longer live-filters the table — chip
-  // selection feeds the (pending) second panel. Kept as empty no-ops so the
-  // filteredShipments memo below stays unchanged until that panel lands.
-  const [gsChips] = useState([])
-  const [gsQuery] = useState('')
-  const [shipmentDetails, setShipmentDetails] = useState(null)
-  const [detailsLoading, setDetailsLoading] = useState(false)
+  const [pageNumber, setPageNumber] = useState(0)
+  const [pageSize, setPageSize] = useState(25)
   const [metricsCollapsed, setMetricsCollapsed] = useState(false)
   const [columnsByPanel, setColumnsByPanel] = useState({
     exceptions: EXCEPTIONS_DEFAULT_COLUMNS,
@@ -66,183 +54,107 @@ function ShipmentsRoute() {
     setColumnsByPanel(prev => ({ ...prev, [activePanel]: newCols }))
   }, [activePanel])
 
+  // Full set kept for: FilterPanel dropdown options, the grand-total count, and the
+  // selected-row lookup (BottomBar consumes the raw row shape). In live mode these
+  // become lookup endpoints / the grid row already in hand — deferred.
   const allShipments = useMemo(() => getAllShipments(), [])
 
+  const { data: shipmentDetails = null, isLoading: detailsLoading, isError: detailsError, refetch: refetchDetails } = useShipmentDetail(selectedShipmentId)
+
+  // Collapse the metrics strip when a shipment is selected (was a side effect of
+  // the old detail-fetch effect).
   useEffect(() => {
-    if (selectedShipmentId) {
-      setMetricsCollapsed(true)
-      // Check cache first (instant)
-      const cached = getCachedShipmentDetails(selectedShipmentId)
-      if (cached) {
-        setShipmentDetails(cached)
-        setDetailsLoading(false)
-        return
-      }
-      // Fetch on demand (~30 KB per shipment)
-      setDetailsLoading(true)
-      let stale = false
-      fetchShipmentDetails(selectedShipmentId).then(data => {
-        if (!stale) {
-          setShipmentDetails(data)
-          setDetailsLoading(false)
-        }
-      }).catch(() => {
-        if (!stale) setDetailsLoading(false)
-      })
-      return () => { stale = true }
-    } else {
-      setShipmentDetails(null)
-    }
+    if (selectedShipmentId) setMetricsCollapsed(true)
   }, [selectedShipmentId])
 
+  // Selection id = sellShipment (the contract detail-link key). Look the raw row up
+  // in the full set so BottomBar keeps its row summary even after paging away.
   const selectedShipment = useMemo(() => {
     if (!selectedShipmentId) return null
-    return allShipments.find(s => s.buyShipment === selectedShipmentId) || null
+    return allShipments.find(s => s.sellShipment === selectedShipmentId) || null
   }, [selectedShipmentId, allShipments])
 
-  const filteredShipments = useMemo(() => {
-    // O(1) panel lookup instead of O(n) filter
-    let result = activeTab === 'all'
-      ? getShipmentsByPanel(activePanel)
-      : getShipmentsByPanelAndCategory(activePanel, activeTab)
+  // Reset to the first page whenever the query identity (panel/tab/filters/saved
+  // query/chip/search) changes. Done during render (React's documented "adjust state
+  // on change" pattern) rather than in an effect, so the stale-page query never fires
+  // — avoids a wasted round-trip on every filter interaction in live mode.
+  const queryIdentity = JSON.stringify([activePanel, activeTab, filters, appliedSavedQuery, activeChipKey, debouncedQuery])
+  const [prevQueryIdentity, setPrevQueryIdentity] = useState(queryIdentity)
+  if (queryIdentity !== prevQueryIdentity) {
+    setPrevQueryIdentity(queryIdentity)
+    if (pageNumber !== 0) setPageNumber(0)
+  }
 
-    // Apply saved query filters
+  // Committed filter state → server params. The free-text search + FilterPanel
+  // filters + applied saved query all become query params the grid service applies.
+  const listParams = useMemo(() => {
+    // FilterPanel dropdown selections → exact-equality filters.
+    const filter = {}
+    if (filters.origin) filter.origin = filters.origin
+    if (filters.destination) filter.destination = filters.destination
+    if (filters.shipmentStatus) filter.shipmentStatus = filters.shipmentStatus
+    if (filters.scac) filter.scac = filters.scac
+    // Saved-query conditions are substring matches (e.g. customer-name:G2O matches
+    // "G2O Technologies LLC") — kept separate from the exact dropdown filters.
+    const searchFilters = {}
     if (appliedSavedQuery) {
-      const conditions = parseSavedQuery(appliedSavedQuery.query)
-      result = result.filter((s) =>
-        conditions.every(({ key, value }) => {
-          const attr = SEARCH_ATTRIBUTES.find((a) => a.key === key)
-          if (!attr) return true
-          const fieldVal = s[attr.dataKey]
-          if (Array.isArray(fieldVal)) return fieldVal.some((v) => String(v).toLowerCase().includes(value.toLowerCase()))
-          return String(fieldVal || '').toLowerCase().includes(value.toLowerCase())
-        })
-      )
-    }
-
-    // Apply NEW GlobalSearch chips (excluding the silent duration default)
-    for (const c of gsChips) {
-      if (c.kind === 'duration') continue
-      const attr = SEARCH_ATTRIBUTES.find(a => a.key === c.key)
-      if (!attr) continue
-      const needle = String(c.value).toLowerCase()
-      result = result.filter(s => {
-        const raw = s[attr.dataKey]
-        const vals = Array.isArray(raw) ? raw : [raw]
-        return vals.some(v => String(v ?? '').toLowerCase().includes(needle))
-      })
-    }
-    // Apply NEW GlobalSearch free-text query (in addition to chip filtering)
-    if (gsQuery.trim()) {
-      const q = gsQuery.toLowerCase()
-      result = result.filter(s =>
-        s.buyShipment.toLowerCase().includes(q) ||
-        (s.customerName || '').toLowerCase().includes(q) ||
-        s.customerId.toLowerCase().includes(q) ||
-        (s.origin || '').toLowerCase().includes(q) ||
-        (s.destination || '').toLowerCase().includes(q) ||
-        (s.scac || '').toLowerCase().includes(q)
-      )
-    }
-
-    // Apply text/chip search filtering
-    if (debouncedQuery.trim()) {
-      const q = debouncedQuery.toLowerCase()
-      if (activeChipKey) {
-        const attr = SEARCH_ATTRIBUTES.find((a) => a.key === activeChipKey)
-        if (attr) {
-          result = result.filter((s) => {
-            const val = s[attr.dataKey]
-            if (Array.isArray(val)) return val.some((v) => String(v).toLowerCase().includes(q))
-            return String(val || '').toLowerCase().includes(q)
-          })
-        }
-      } else {
-        result = result.filter((s) =>
-          s.buyShipment.toLowerCase().includes(q) ||
-          s.customerId.toLowerCase().includes(q) ||
-          s.orders.some((o) => o.toLowerCase().includes(q)) ||
-          s.origin.toLowerCase().includes(q) ||
-          s.pickupDate.toLowerCase().includes(q) ||
-          s.deliveryDate.toLowerCase().includes(q)
-        )
+      for (const { key, value } of parseSavedQuery(appliedSavedQuery.query)) {
+        const attr = SEARCH_ATTRIBUTES.find(a => a.key === key)
+        if (attr) searchFilters[attr.dataKey] = value
       }
     }
+    const searchAttr = activeChipKey ? SEARCH_ATTRIBUTES.find(a => a.key === activeChipKey) : null
+    return {
+      panel: activePanel,
+      category: activeTab,
+      pageNumber,
+      pageSize,
+      filter,
+      searchFilters,
+      searchTerm: debouncedQuery.trim() || undefined,
+      searchAttributeKey: searchAttr ? searchAttr.dataKey : undefined,
+      dateFilters: {
+        pickupDateFrom: filters.pickupDateFrom,
+        pickupDateTo: filters.pickupDateTo,
+        deliveryDateFrom: filters.deliveryDateFrom,
+        deliveryDateTo: filters.deliveryDateTo,
+      },
+    }
+  }, [activePanel, activeTab, pageNumber, pageSize, filters, appliedSavedQuery, activeChipKey, debouncedQuery])
 
-    // Apply panel filters
-    if (filters.origin) result = result.filter((s) => s.origin === filters.origin)
-    if (filters.destination) result = result.filter((s) => s.destination === filters.destination)
-    if (filters.shipmentStatus) result = result.filter((s) => s.shipmentStatus === filters.shipmentStatus)
-    if (filters.scac) result = result.filter((s) => s.scac === filters.scac)
+  const {
+    data: listData,
+    isLoading: listLoading,
+    isError: listError,
+    refetch: refetchList,
+  } = useShipmentErrorList(listParams)
 
-    // Date range filters
-    if (filters.pickupDateFrom) {
-      result = result.filter((s) => {
-        const d = parseShipmentDate(s.pickupDate)
-        return d && d >= filters.pickupDateFrom
-      })
-    }
-    if (filters.pickupDateTo) {
-      result = result.filter((s) => {
-        const d = parseShipmentDate(s.pickupDate)
-        return d && d <= filters.pickupDateTo
-      })
-    }
-    if (filters.deliveryDateFrom) {
-      result = result.filter((s) => {
-        const d = parseShipmentDate(s.deliveryDate)
-        return d && d >= filters.deliveryDateFrom
-      })
-    }
-    if (filters.deliveryDateTo) {
-      result = result.filter((s) => {
-        const d = parseShipmentDate(s.deliveryDate)
-        return d && d <= filters.deliveryDateTo
-      })
-    }
+  const pageRows = listData?.rows ?? []
+  const totalCount = listData?.totalCount ?? 0
 
-    // Sort by match relevance when chip search is active
-    if (debouncedQuery.trim() && activeChipKey) {
-      const q = debouncedQuery.toLowerCase()
-      const attr = SEARCH_ATTRIBUTES.find(a => a.key === activeChipKey)
-      if (attr) {
-        const getMatchPriority = (s) => {
-          const raw = s[attr.dataKey]
-          const val = Array.isArray(raw) ? raw.join(' ') : String(raw || '')
-          const lower = val.toLowerCase()
-          if (lower.startsWith(q)) return 0
-          // Word boundary: check if q appears after a space
-          const wordIdx = lower.indexOf(' ' + q)
-          if (wordIdx >= 0) return 1
-          return 2
-        }
-        result = [...result].sort((a, b) => getMatchPriority(a) - getMatchPriority(b))
-      }
-    }
-
-    return result
-  }, [allShipments, activePanel, activeTab, debouncedQuery, activeChipKey, filters, appliedSavedQuery, gsChips, gsQuery])
+  // Tab badges + metrics strip: counts come from the count endpoint per panel.
+  const { data: exceptionCounts = [] } = useCategoryCounts('exceptions')
+  const { data: monitoringCounts = [] } = useCategoryCounts('monitoring')
+  const { data: pgipgrCounts = [] } = useCategoryCounts('pgipgr')
 
   const metrics = useMemo(() => {
+    const c = (arr, cat) => arr.find(x => x.category === cat)?.count ?? 0
     return {
-      // Exception counts — O(1) lookups
-      dateIssues: getCategoryCount('exceptions', 'date-issues'),
-      routingReview: getCategoryCount('exceptions', 'routing-review'),
-      tenderIssues: getCategoryCount('exceptions', 'tender-issues'),
-      tenderReview: getCategoryCount('exceptions', 'tender-review'),
-      bidReview: getCategoryCount('exceptions', 'bid-review'),
-      // Monitoring counts
-      hold: getCategoryCount('monitoring', 'hold'),
-      consolidation: getCategoryCount('monitoring', 'consolidation'),
-      sent: getCategoryCount('monitoring', 'sent'),
-      spotBid: getCategoryCount('monitoring', 'spotbid'),
-      approved: getCategoryCount('monitoring', 'approved'),
-      // PGI/PGR counts
-      pgipgrErrors: getCategoryCount('pgipgr', 'pgipgr-errors'),
-      ratingFailure: getCategoryCount('pgipgr', 'rating-failure'),
-      manualPgipgr: getCategoryCount('pgipgr', 'manual-pgipgr'),
+      dateIssues: c(exceptionCounts, 'date-issues'),
+      routingReview: c(exceptionCounts, 'routing-review'),
+      tenderIssues: c(exceptionCounts, 'tender-issues'),
+      tenderReview: c(exceptionCounts, 'tender-review'),
+      bidReview: c(exceptionCounts, 'bid-review'),
+      hold: c(monitoringCounts, 'hold'),
+      consolidation: c(monitoringCounts, 'consolidation'),
+      sent: c(monitoringCounts, 'sent'),
+      spotBid: c(monitoringCounts, 'spotbid'),
+      approved: c(monitoringCounts, 'approved'),
+      pgipgrErrors: c(pgipgrCounts, 'pgipgr-errors'),
+      ratingFailure: c(pgipgrCounts, 'rating-failure'),
+      manualPgipgr: c(pgipgrCounts, 'manual-pgipgr'),
     }
-  }, [allShipments])
+  }, [exceptionCounts, monitoringCounts, pgipgrCounts])
 
   // Compute right offset for bottom bar based on open panels
   const rightOffset = (filtersOpen ? 354 : 0) + (columnPanelOpen ? 354 : 0)
@@ -327,7 +239,7 @@ function ShipmentsRoute() {
           <FilterPanel
             isOpen={filtersOpen}
             onClose={() => setFiltersOpen(false)}
-            itemCount={filteredShipments.length}
+            itemCount={totalCount}
             initialTab={filtersInitialTab}
             onApplyFilters={handleApplyFilters}
             onClearFilters={handleClearFilters}
@@ -347,7 +259,7 @@ function ShipmentsRoute() {
       <MonitorPanels activePanel={activePanel} onPanelSelect={handlePanelSelect} metrics={metrics} collapsed={metricsCollapsed} onToggleCollapsed={() => setMetricsCollapsed(c => !c)} />
       <ShipmentTabs activePanel={activePanel} activeTab={activeTab} onTabSelect={setActiveTab} badgeCounts={metrics} />
       <TableControls
-        itemCount={filteredShipments.length}
+        itemCount={totalCount}
         totalCount={allShipments.length}
         searchQuery={searchQuery}
         onSearchChange={handleSearchChange}
@@ -359,10 +271,16 @@ function ShipmentsRoute() {
         onClearSavedQuery={handleClearSavedQuery}
         savedSearchesOpen={filtersOpen && filtersInitialTab === 'saved'}
         filtersOpen={filtersOpen && filtersInitialTab === 'all'}
-        onExport={(mode) => {
-          const VISIBLE_COLUMNS = ['buyShipment', 'customerId', 'orders', 'orderCount', 'pickupDate', 'deliveryDate', 'origin']
-          const data = filteredShipments.slice(0, 10000)
-          const headers = mode === 'all' ? Object.keys(data[0] || {}) : VISIBLE_COLUMNS
+        onExport={async (mode) => {
+          // Export all matching rows (not just the current page) — fetch them through
+          // the grid service with the current filters and a large page size. In live
+          // mode the dedicated /error/download endpoint would replace this (deferred).
+          // "Visible columns" mode follows the user's live column profile (the same
+          // `visibleColumns` the table renders) — so reordering/toggling columns or
+          // switching panels changes the export, exactly as if done through the UI.
+          const res = await getShipmentErrorList({ ...listParams, pageNumber: 0, pageSize: 10000 })
+          const data = res.rows
+          const headers = mode === 'all' ? Object.keys(data[0] || {}) : visibleColumns
           const escapeCSV = (val) => {
             const str = Array.isArray(val) ? val.join('; ') : String(val ?? '')
             return (str.includes(',') || str.includes('"') || str.includes('\n'))
@@ -390,13 +308,21 @@ function ShipmentsRoute() {
         </div>
       ) : (
         <ShipmentTable
-          shipments={filteredShipments}
+          shipments={pageRows}
           selectedId={selectedShipmentId}
           onRowSelect={handleRowSelect}
           onToggleColumnPanel={handleToggleColumnPanel}
           visibleColumns={visibleColumns}
           onScrollStart={handleScrollStart}
           activeChipKey={activeChipKey}
+          pageNumber={pageNumber}
+          pageSize={pageSize}
+          totalCount={totalCount}
+          onPageChange={setPageNumber}
+          onPageSizeChange={(n) => { setPageSize(n); setPageNumber(0) }}
+          isLoading={listLoading}
+          isError={listError}
+          onRetry={refetchList}
         />
       )}
       <BottomBar
@@ -407,6 +333,8 @@ function ShipmentsRoute() {
         rightOffset={rightOffset}
         onToggleColumnPanel={handleToggleColumnPanel}
         detailsLoading={detailsLoading}
+        detailsError={detailsError}
+        onRetryDetails={refetchDetails}
       />
     </AppShell>
   )

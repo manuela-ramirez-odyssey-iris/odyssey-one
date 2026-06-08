@@ -72,6 +72,7 @@ function OrdersTooltip({ orders, children }) {
 }
 
 export const COLUMN_CONFIG = [
+  { key: 'sellShipment', label: 'Sell Shipment', width: 140 },
   { key: 'buyShipment', label: 'Buy Shipment', width: 140 },
   { key: 'customerId', label: 'Customer ID(s)', width: 130 },
   {
@@ -329,7 +330,7 @@ const ShipmentRow = React.memo(function ShipmentRow({ shipment, isSelected, isMe
             alignItems: 'center',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
-            ...(col.key === 'buyShipment' ? { fontWeight: 500, color: 'var(--text-secondary)' } : {}),
+            ...(col.key === 'buyShipment' || col.key === 'sellShipment' ? { fontWeight: 500, color: 'var(--text-secondary)' } : {}),
           }}>
             {configCol && configCol.render ? configCol.render(s) : <TruncatedText value={s[col.key]} />}
           </div>
@@ -350,8 +351,8 @@ const VirtualRow = React.memo(function VirtualRow({ index, style, shipments, sel
     <div style={style}>
       <ShipmentRow
         shipment={s}
-        isSelected={selectedId === s.buyShipment}
-        isMenuOpen={menuOpenId === s.buyShipment}
+        isSelected={selectedId === s.id}
+        isMenuOpen={menuOpenId === s.id}
         onSelect={handleSelect}
         orderedColumns={orderedColumns}
       />
@@ -372,7 +373,7 @@ const ActionCell = React.memo(function ActionCell({ shipment, isSelected, menuOp
         e.stopPropagation()
         const rect = e.currentTarget.getBoundingClientRect()
         setMenuPos({ top: rect.bottom + 4, left: rect.right })
-        onMenuToggle(menuOpen ? null : shipment.buyShipment)
+        onMenuToggle(menuOpen ? null : shipment.id)
       }}
       onMouseEnter={(e) => {
         if (!highlighted) e.currentTarget.style.background = 'var(--bg-secondary)'
@@ -383,7 +384,7 @@ const ActionCell = React.memo(function ActionCell({ shipment, isSelected, menuOp
       style={{ width: 56, height: ROW_HEIGHT, borderBottom: '1px solid var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: rowBg }}
     >
       <Zap {...ICON_MD} fill={menuOpen ? 'var(--text-primary)' : 'none'} style={{ color: menuOpen ? 'var(--text-primary)' : 'var(--text-placeholder)' }} />
-      {menuOpen && <ActionMenu shipmentId={shipment.buyShipment} position={menuPos} onClose={() => onMenuToggle(null)} />}
+      {menuOpen && <ActionMenu shipmentId={shipment.id} position={menuPos} onClose={() => onMenuToggle(null)} />}
     </div>
   )
 }, (prevProps, nextProps) => {
@@ -398,15 +399,15 @@ const VirtualActionRow = React.memo(function VirtualActionRow({ index, style, sh
     <div style={style}>
       <ActionCell
         shipment={s}
-        isSelected={selectedId === s.buyShipment}
-        menuOpen={menuOpenId === s.buyShipment}
+        isSelected={selectedId === s.id}
+        menuOpen={menuOpenId === s.id}
         onMenuToggle={setMenuOpenId}
       />
     </div>
   )
 })
 
-export default function ShipmentTable({ shipments, onRowSelect, selectedId, onToggleColumnPanel, visibleColumns, onScrollStart, activeChipKey }) {
+export default function ShipmentTable({ shipments, onRowSelect, selectedId, onToggleColumnPanel, visibleColumns, onScrollStart, activeChipKey, pageNumber = 0, pageSize = 25, totalCount = 0, onPageChange, onPageSizeChange, isLoading = false, isError = false, onRetry }) {
   const containerRef = useRef(null)
   const listRef = useRef(null)
   const actionsListRef = useRef(null)
@@ -478,13 +479,13 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
   }, [visibleColumns, activeChipKey, columnWidths])
 
   const handleSelect = useCallback((shipment) => {
-    onRowSelect(shipment.buyShipment)
+    onRowSelect(shipment.id)
   }, [onRowSelect])
 
   // Auto-scroll selected row into view above the bottom bar
   useEffect(() => {
     if (selectedId && listRef.current) {
-      const idx = shipments.findIndex(s => s.buyShipment === selectedId)
+      const idx = shipments.findIndex(s => s.id === selectedId)
       if (idx >= 0) {
         // Scroll within the virtual list — use 'start' to place row at top of list
         listRef.current?.scrollToRow({ index: Math.max(0, idx - 2), align: 'start' })
@@ -612,7 +613,23 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
             </div>
           </div>
           {/* Data list */}
-          {shipments.length === 0 ? (
+          {isError ? (
+            <div className="flex flex-col items-center justify-center gap-2" style={{ padding: '48px 0', color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)' }}>
+              <TriangleAlert size={24} style={{ color: 'var(--text-placeholder)' }} />
+              <div>Couldn't load shipments.</div>
+              {onRetry && (
+                <button type="button" onClick={onRetry}
+                  className="cursor-pointer"
+                  style={{ marginTop: 4, padding: '4px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', background: 'var(--bg-primary)', color: 'var(--text-secondary)' }}>
+                  Retry
+                </button>
+              )}
+            </div>
+          ) : isLoading && shipments.length === 0 ? (
+            <div className="flex items-center justify-center" style={{ padding: '48px 0', color: 'var(--text-placeholder)', fontSize: 'var(--font-size-sm)' }}>
+              Loading shipments…
+            </div>
+          ) : shipments.length === 0 ? (
             <div className="flex items-center justify-center" style={{ padding: '48px 0', color: 'var(--text-placeholder)', fontSize: 'var(--font-size-sm)' }}>
               No shipments found
             </div>
@@ -659,6 +676,37 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
           )}
         </div>
       </div>
+
+      {/* Pagination — server-side paging (one page at a time). Hidden on error. */}
+      {!isError && (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 'var(--spacing-2) var(--spacing-4)', borderTop: '1px solid var(--border-subtle)', fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)', flexShrink: 0, background: 'var(--bg-primary)' }}>
+        <span style={{ fontVariantNumeric: 'tabular-nums' }}>
+          {totalCount === 0 ? '0 results' : `${pageNumber * pageSize + 1}–${Math.min((pageNumber + 1) * pageSize, totalCount)} of ${totalCount.toLocaleString('en-US')}`}
+        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-3)' }}>
+          <label htmlFor="shipments-page-size" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            Rows
+            <select id="shipments-page-size" value={pageSize} onChange={(e) => onPageSizeChange && onPageSizeChange(Number(e.target.value))}
+              style={{ padding: '2px 6px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', background: 'var(--bg-primary)', color: 'var(--text-secondary)' }}>
+              {[25, 50, 100].map(n => <option key={n} value={n}>{n}</option>)}
+            </select>
+          </label>
+          <button type="button" disabled={pageNumber === 0} onClick={() => onPageChange && onPageChange(pageNumber - 1)}
+            className="cursor-pointer"
+            style={{ padding: '4px 10px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', background: 'var(--bg-primary)', color: 'var(--text-secondary)', opacity: pageNumber === 0 ? 0.5 : 1 }}>
+            Prev
+          </button>
+          <span style={{ fontVariantNumeric: 'tabular-nums' }}>
+            Page {pageNumber + 1} of {Math.max(1, Math.ceil(totalCount / pageSize))}
+          </span>
+          <button type="button" disabled={(pageNumber + 1) * pageSize >= totalCount} onClick={() => onPageChange && onPageChange(pageNumber + 1)}
+            className="cursor-pointer"
+            style={{ padding: '4px 10px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', background: 'var(--bg-primary)', color: 'var(--text-secondary)', opacity: (pageNumber + 1) * pageSize >= totalCount ? 0.5 : 1 }}>
+            Next
+          </button>
+        </div>
+      </div>
+      )}
     </div>
   )
 }

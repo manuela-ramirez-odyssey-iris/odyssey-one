@@ -50,20 +50,24 @@ export const ALL_COLUMNS = [
   { key: 'validationMessage', label: 'Validation Message' },
 ]
 
+// Sell Shipment # leads the default profiles, Buy Shipment # second. Sell is the
+// contract identity (grid row → detail link key = sellShipment); surfacing it first
+// is a deliberate reminder of that data decision. Buy stays prominent (second) since
+// it's the number users actually care about. See progress.md Session 43.
 const DEFAULT_COLUMNS = [
-  'buyShipment', 'customerId', 'shipmentStatus', 'orderCount',
+  'sellShipment', 'buyShipment', 'customerId', 'shipmentStatus', 'orderCount',
   'pickupDate', 'deliveryDate', 'origin', 'destination', 'grossWeight',
   'mode', 'equipmentCode', 'scac', 'orders', 'apFreightCost', 'validationMessage',
 ]
 
 export const EXCEPTIONS_DEFAULT_COLUMNS = [
-  'buyShipment', 'customerId', 'shipmentStatus', 'orderCount',
+  'sellShipment', 'buyShipment', 'customerId', 'shipmentStatus', 'orderCount',
   'pickupDate', 'deliveryDate', 'origin', 'destination', 'grossWeight',
   'mode', 'equipmentCode', 'scac', 'orders', 'apFreightCost', 'validationMessage',
 ]
 
 export const MONITORING_DEFAULT_COLUMNS = [
-  'buyShipment', 'customerId', 'shipmentStatus', 'tenderStatus', 'scac',
+  'sellShipment', 'buyShipment', 'customerId', 'shipmentStatus', 'tenderStatus', 'scac',
   'pickupDate', 'deliveryDate', 'origin', 'destination', 'stops',
   'grossWeight', 'mode', 'equipmentCode',
 ]

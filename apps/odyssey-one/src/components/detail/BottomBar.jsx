@@ -43,7 +43,7 @@ const STATES = {
   fullscreen: 'calc(100vh - var(--navbar-height))',
 }
 
-export default function BottomBar({ selectedShipmentId, shipmentDetails, shipment, onClose, rightOffset = 0, onToggleColumnPanel, detailsLoading }) {
+export default function BottomBar({ selectedShipmentId, shipmentDetails, shipment, onClose, rightOffset = 0, onToggleColumnPanel, detailsLoading, detailsError, onRetryDetails }) {
   const [barState, setBarState] = useState('collapsed')
   const [activeTab, setActiveTab] = useState('order')
   const [orderDropdownOpen, setOrderDropdownOpen] = useState(false)
@@ -92,6 +92,40 @@ export default function BottomBar({ selectedShipmentId, shipmentDetails, shipmen
   const height = STATES[barState]
 
   const renderTabContent = () => {
+    if (detailsError) {
+      return (
+        <div
+          style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center',
+            justifyContent: 'center', gap: 'var(--spacing-3)',
+            padding: 'var(--spacing-6)', color: 'var(--text-secondary)',
+          }}
+        >
+          <span>Couldn't load shipment details.</span>
+          <button
+            type="button"
+            onClick={onRetryDetails}
+            style={{
+              padding: '0 var(--spacing-3)',
+              height: 28,
+              cursor: 'pointer',
+              color: 'var(--text-secondary)',
+              background: 'transparent',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: 'var(--radius-sm)',
+              fontFamily: 'var(--font-primary)',
+              fontSize: 13,
+              fontWeight: 500,
+              transition: 'color 0.15s ease, background 0.15s ease',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.background = 'var(--bg-tertiary)' }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.background = 'transparent' }}
+          >
+            Retry
+          </button>
+        </div>
+      )
+    }
     if (detailsLoading && !shipmentDetails) {
       return <TabLoader />
     }
