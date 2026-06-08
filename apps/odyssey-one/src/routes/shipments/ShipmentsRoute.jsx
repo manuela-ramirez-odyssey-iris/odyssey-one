@@ -275,10 +275,12 @@ function ShipmentsRoute() {
           // Export all matching rows (not just the current page) — fetch them through
           // the grid service with the current filters and a large page size. In live
           // mode the dedicated /error/download endpoint would replace this (deferred).
-          const VISIBLE_COLUMNS = ['buyShipment', 'customerId', 'orders', 'orderCount', 'pickupDate', 'deliveryDate', 'origin']
+          // "Visible columns" mode follows the user's live column profile (the same
+          // `visibleColumns` the table renders) — so reordering/toggling columns or
+          // switching panels changes the export, exactly as if done through the UI.
           const res = await getShipmentErrorList({ ...listParams, pageNumber: 0, pageSize: 10000 })
           const data = res.rows
-          const headers = mode === 'all' ? Object.keys(data[0] || {}) : VISIBLE_COLUMNS
+          const headers = mode === 'all' ? Object.keys(data[0] || {}) : visibleColumns
           const escapeCSV = (val) => {
             const str = Array.isArray(val) ? val.join('; ') : String(val ?? '')
             return (str.includes(',') || str.includes('"') || str.includes('\n'))
