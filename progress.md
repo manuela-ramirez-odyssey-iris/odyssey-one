@@ -3556,15 +3556,66 @@ With the list now paginated, GlobalSearch's suggestion index (`searchIndex.js`) 
 
 ---
 
+## Session 43 — June 7–8, 2026
+
+Account switch, a Shipments cleanup pass, the **PR #1 merge to main**, then the start of the GlobalSearch "search panel" arc: shipped the vertical-growth searchbar, prototyped the Filters/Saved view, and landed the shell-architecture decision (`ResultsPreview` → `SearchPanel` shell + content slots, the modal pattern).
+
+### Thread 0 — Account / environment
+- Switched Claude Code to the personal **Claude Max** account (enterprise tokens nearly exhausted). Confirmed **Figma MCP + Atlassian Rovo auth are independent of the Claude account** (separate OAuth) — both kept working across the switch. 1M-context Sonnet needs usage credits on Max; used standard Sonnet 4.6, then Opus 4.8.
+
+### Thread 1 — Sell vs Buy Shipment # (data decision surfaced)
+- The BottomBar detail header shows the **sell** shipment number, not buy. Traced + explained: Session 42 made `sellShipment` the **contract identity** (grid row → detail link key; detail endpoint is `sell-shipment-out/{id}`; detail files keyed by it, deduped unique). The header renders `selectedShipmentId` (= sellShipment) literally — a side effect of the identity swap, not a deliberate header choice. User confirmed **Buy stays the human-facing number in the header** (UX decision).
+- **Default column profiles now lead with Sell Shipment #, Buy second** — the table self-documents the identity decision while Buy stays prominent. Added a `sellShipment` `COLUMN_CONFIG` entry (140px) + extended the id-emphasis cell styling. (`03cac52`)
+- **CSV "visible columns" export now follows the live column profile** — was a frozen hardcoded array that never reflected the user's actual columns (and missed sellShipment). Wired to the live `visibleColumns`. (`97ec144`)
+
+### Thread 2 — PR #1 merged to main
+- The entire Sessions 41–42 API-wiring effort (detail + list on the real `SellShipmentOut`/grid contract, 53 commits) merged to main via clean **fast-forward** (main was an ancestor, zero divergence). Behavior-preserving (default mock mode), 67 tests green, **no deploy** (auto-deploy off). PR #1 title/body rewritten to reflect true scope (was "Plan 1 of 2"). Feature branch deleted (remote + local). Rollback anchor `shipments-v1` intact. (`7a04dd7`)
+- Cut a fresh **`shipments/global-search`** branch off main for the GlobalSearch work. Clarified the branch topology for the user — the existing GlobalSearch code was always on main, never stranded; the new branch inherited everything.
+
+### Thread 3 — GlobalSearch searchbar grows vertically (shipped, approved)
+- When committed chips exceed the bar's max width, the bar **wraps to multiple lines and grows downward as an overlay** instead of overflowing horizontally — **navbar height stays fixed**. Mechanism: the bar stays in-flow inside a locked 32px row that lets it overflow downward (NOT `position:absolute`, which would kill the 590–900 content-width hug).
+- **At rest:** single line; overflowing chips fold into a measured **"+N"** pill (a hidden full-width measurer computes the count accurately on resize).
+- **Expanded** (focused / filter active / results open): chips wrap, bar grows down, **FilterButton fills full height** (`align-self: stretch` + negative margins), 6px vertical padding.
+- **Layering:** FilterSuggestions tracks the input (last chip) across wraps and stays **topmost**; the expanded bar **overlaps ResultsPreview** (z-order: suggestions > bar > results). ResultsPreview re-centered under the component (`left:50%`).
+- **Second-row chip bug fixed:** chip click was blurring the input → bar collapsed mid-click → the wrapped chip vanished before `onClick` fired (only first-row chips survived). Fixed with `onMouseDown preventDefault` on the chip (keeps focus). Chip click now reliably **opens** ResultsPreview (was a toggle that collapsed the bar). (`fc32740`)
+- Code-only responsive/interaction behavior → Pending Figma Sync (ties to SHP-67).
+
+### Thread 4 — Filters view prototype (`ShipmentsFiltersView`)
+- The ResultsPreview **"All Filters"** ButtonLink now swaps a **Filters panel** into the same overlay (back-arrow returns to results, × closes). App-local prototype (like GlobalSearch v1), per the user's "build the idea, fill the missing deps after."
+- Built from the **progression taxonomy** — each attribute renders by its `match` type: enum → selectable chips, date → date-range, letters → dropdown **stub**, digits → text input. All/Saved tabs; committed chips pre-fill the controls; **Save Filters** snapshots into a local profile; Clear all / Show N footer.
+- Stubs flagged for later: normalized Dropdown/Select (the letters control), saved-profile persistence/CRUD, two-way query↔filter binding, enum multi-select, section curation, normalization.
+
+### Thread 5 — Architecture decision: `ResultsPreview` → `SearchPanel` shell
+- Reviewed the user's two Figma frames — Filters·All (`2671:2786`) and Filters·Saved (`2671:2986`, draggable saved-filter rows: grip · name · ›). The panel has **3 content states** (Results / Filters·All / Filters·Saved) in one 720px card → the card is a **shell**, the inside is a **slot** (the modal pattern).
+- **Decided naming:** `ResultsPreview` → **`SearchPanel`** (shell = card + `Content` SLOT). Content components: **`SearchResults`** (Best Match list), **`SearchFilters`** (2-variant set, `Tab = All / Saved`). Sub-components to normalize: **`Select`** (the Client/Location field — the blocker; "Select" reserved vs the SHP-66 menu "Dropdown"), **`FilterChip`** (selectable enum pill, interactive so not a Badge), **`SavedFilterRow`** (grip · name · ›), optionally `PillTabs`.
+- Shell shape: single `Content` SLOT (each content owns its own header/footer since they diverge). Headers/footers differ per state, so the shell only standardizes the card (size, corners, shadow, scroll, drop position).
+- **Agreed to normalize the shell (`SearchPanel`) FIRST**, then `Select` → `FilterChip` → `SavedFilterRow` → `SearchResults` → `SearchFilters`. Each its own Figma-first `/normalize` cycle.
+
+### Files / commits
+- `03cac52` — default column profiles lead with Sell Shipment #, Buy second
+- `97ec144` — export "visible columns" follows live column profile
+- `7a04dd7` — merge PR #1 to main (Sessions 41–42 API wiring)
+- `fc32740` — searchbar grows vertically on chip overflow
+- (wrap) — `ShipmentsFiltersView` prototype + this progress entry
+- **New:** `apps/odyssey-one/src/components/global-search/ShipmentsFiltersView.jsx`
+- **Modified:** `packages/ui/src/GlobalSearch.jsx`, `apps/odyssey-one/src/styles/components.css`, `apps/odyssey-one/src/components/global-search/ShipmentsGlobalSearch.jsx`, `apps/odyssey-one/src/components/detail/ColumnPanel.jsx`, `apps/odyssey-one/src/components/shipments/ShipmentTable.jsx`, `apps/odyssey-one/src/routes/shipments/ShipmentsRoute.jsx`
+
+### State after Session 43
+- On **`shipments/global-search`** (off main). main = post-PR-#1 (API wiring + column fixes), fully synced.
+- GlobalSearch: vertical-growth searchbar **shipped**; Filters/Saved view **prototyped** (app-local, stubbed deps).
+- 67 tests green; build green.
+
+---
+
 ## What's Next
 
-### Session 43 Priorities
+### Session 44 Priorities
 
-1. **GlobalSearch — continue the UX, plan the source repoint.** Keep building the GlobalSearch experience on the current client-side index (unblocked). Separately, scope repointing the suggestion *source* to `advanced-filter/{field}/lookup` behind the existing adapter seam, and route committed chips/search through the grid `searchTerm`/`searchFilters` params (now live). Revisit `issue1_FilterSuggestions` (value-matched suggestions, not the full attribute list) as part of this.
-2. **Flip to live data.** Take David's **API access** + pull the live **Swagger** (`shipment-swagger/v3/api-docs`) to reconcile the provisional field names in **three** places now: detail DTO long-tail, the grid **row** shape, and the `error/list` **filter** object (+ pagination indexing, response array name). Confirm Documents/Notes scope with Jana.
-3. **Real auth (MSAL/Entra).** Replace the token stub with `@azure/msal-browser` + `@azure/msal-react` behind `getAuthToken()` (needs `msalConfig` + redirect-URI registration — ties to the Soni infra request). Export SSO diagrams to `vault/00-inbox/` to complete `auth-sso.md`.
-4. **Decide push / PR #1.** All Session 42 work is committed locally, not pushed. Decide whether to push to update PR #1 (no deploy fires; auto-deploy off).
-5. **Standing backlog (unchanged):** Code Connect refresh; SHP-66 generic dropdown; SHP-67 responsive; normalizations backlog; POC 1 OIDC. Pre-existing minor gaps surfaced this session: `hazardous`/`stops` columns render blank (not on the row shape); CSV "all" export emits raw DTO field names.
+1. **Normalize `SearchPanel` shell FIRST** — rename `ResultsPreview` → `SearchPanel` (card + `Content` slot), Figma-first `/normalize`. Then the dependency chain: **`Select`** (the blocker) → `FilterChip` → `SavedFilterRow` → `SearchResults` → `SearchFilters` (All/Saved set). Replace the `ShipmentsFiltersView` prototype's stubs as each lands.
+2. **GlobalSearch UX + source repoint.** Continue on the current client-side index (unblocked); separately scope repointing the suggestion *source* to `advanced-filter/{field}/lookup` behind the adapter seam, route committed chips/search through the grid `searchTerm`/`searchFilters` params (now live). Two-way query↔filter binding + Show-N wiring; saved-profile persistence; enum multi-select. Revisit `issue1_FilterSuggestions`.
+3. **Flip to live data.** David's **API access** + the live **Swagger** (`shipment-swagger/v3/api-docs`) to reconcile provisional field names in three places: detail DTO long-tail, grid **row** shape, `error/list` **filter** object (+ pagination indexing, response array name). Confirm Documents/Notes scope with Jana.
+4. **Real auth (MSAL/Entra).** Replace the token stub with `@azure/msal-browser` + `@azure/msal-react` behind `getAuthToken()` (needs `msalConfig` + redirect-URI registration — ties to the Soni infra request). Export SSO diagrams to `vault/00-inbox/` to complete `auth-sso.md`.
+5. **Standing backlog (unchanged):** Code Connect refresh; SHP-66 generic dropdown (the menu/popover, distinct from `Select`); SHP-67 responsive; normalizations backlog; POC 1 OIDC. Pre-existing minor gaps: `hazardous`/`stops` columns render blank (not on the row shape); CSV "all" export emits raw DTO field names.
 
 **Process note:** the API-wiring work follows Superpowers (spec → plan → subagent-driven build with per-task spec+quality reviews + final holistic review). Promote firm contract decisions to the `vault/20-cross-cutting/api-integration/` notes once the live Swagger confirms them.
 
