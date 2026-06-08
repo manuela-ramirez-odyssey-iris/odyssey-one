@@ -500,6 +500,77 @@ button.filter-suggestions__chip:active {
   border-width: 2px;
 }
 
+/* GlobalSearch — chips + input group. Collapsed: single line, overflow clipped
+   (trailing chips fold into the "+N" pill). Expanded (focused / filter active /
+   results open): wraps to multiple lines so the bar grows downward as an
+   overlay. The navbar height never changes — the outer row is fixed at 32px and
+   lets the bar overflow below it. */
+.global-search-chips {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  gap: 4px;
+  min-width: 0;
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+.global-search-wrapper.expanded .global-search-chips {
+  flex-wrap: wrap;
+  overflow: visible;
+  row-gap: 4px;
+}
+/* Expanded bar lifts above the ResultsPreview panel (z-index 49) so it overlaps
+   cleanly; the suggestions dropdown inside the bar stays on top of everything. */
+.global-search-wrapper.expanded {
+  z-index: 50;
+}
+.global-search-wrapper.expanded .global-search-input {
+  min-width: 80px;
+}
+/* FilterButton fills the full vertical space of the expanded bar (negative
+   margins cancel the wrapper's 6px vertical padding so it spans edge to edge,
+   its right rounded corners following the bar). */
+.global-search-wrapper.expanded .filter-button {
+  align-self: stretch;
+  margin-top: -6px;
+  margin-bottom: -6px;
+}
+
+/* Hidden chip measurer — a full-width copy of every chip, out of flow, used
+   only to compute the collapsed "+N" overflow count accurately as the bar
+   resizes (the visible row only renders the chips that fit). */
+.global-search-measurer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  pointer-events: none;
+  display: flex;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+/* "+N" overflow pill — folds the chips that don't fit on the collapsed line.
+   Styled like a chip; clicking it focuses the input, expanding the bar. */
+.global-search-overflow {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 2px var(--spacing-2);
+  border: none;
+  background: var(--deep-sea-neutral-700);
+  color: var(--deep-sea-neutral-100);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--transition-fast);
+}
+.global-search-overflow:hover {
+  background: var(--deep-sea-neutral-600);
+}
+
 /* GlobalSearch — interactive surfaces (scope dropdown + clear button) share
    the same hover behavior: brighten one step beyond the current accent
    (default 400 → hover 200; focused 200 → hover 100). Text + icon both
@@ -2164,7 +2235,10 @@ button.filter-suggestions__chip:active {
 .shipments-results-panel {
   position: absolute;
   top: calc(100% + var(--spacing-2));
-  left: 0;
+  /* Centered horizontally under the GlobalSearch component (stays put as the
+     bar grows vertically) rather than anchored to its left edge. */
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 49; /* below FilterSuggestions dropdown at z-index: 50 */
 }
 

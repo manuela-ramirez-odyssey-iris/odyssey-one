@@ -48,7 +48,8 @@ export default function ShipmentsGlobalSearch() {
         onBlur={onBlur}
         chips={chips}
         onChipRemove={onChipRemove}
-        onChipClick={() => setResultsOpen((prev) => !prev)}
+        onChipClick={() => setResultsOpen(true)}
+        resultsOpen={resultsOpen}
         filterCount={chips.length}
         suggestionSections={suggestionSections}
         suggestionsOpen={suggestionsOpen}

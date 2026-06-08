@@ -55,27 +55,78 @@ function GlobalSearchSearch({
   suggestionSections = [],
   suggestionsOpen = false,
   onSuggestionSelect,
+  // When the consumer's results panel is open the bar stays expanded so the
+  // committed chips stay fully visible while the user reads results.
+  resultsOpen = false,
 }) {
   const [focused, setFocused] = useState(false)
   const [internalActive, setInternalActive] = useState(false)
   const [dropdownLeft, setDropdownLeft] = useState(0)
+  // Number of trailing chips collapsed behind the "+N" pill at rest.
+  const [hiddenCount, setHiddenCount] = useState(0)
   const wrapperRef = useRef(null)
   const inputRef = useRef(null)
-
-  // Reposition the suggestions dropdown to align with the start of the input
-  // (trailing edge of the last committed chip). Caps at the wrapper's right
-  // edge so the panel never starts past the end of the field.
-  useLayoutEffect(() => {
-    if (!inputRef.current || !wrapperRef.current) return
-    const inputLeft = inputRef.current.offsetLeft
-    const wrapperWidth = wrapperRef.current.offsetWidth
-    setDropdownLeft(Math.min(inputLeft, wrapperWidth))
-  }, [chips])
+  const chipsRef = useRef(null)
+  const measurerRef = useRef(null)
 
   // `filterActive` is optional-controlled: when provided, the consumer owns the
   // drawer-open state; otherwise GlobalSearch toggles it internally on click.
   const controlled = filterActive !== undefined
   const active = controlled ? filterActive : internalActive
+
+  // Bar reads as focused when the input is focused OR the filter is active.
+  const barFocused = focused || active
+  // Expanded = the chips wrap to multiple lines and the bar grows downward as
+  // an overlay (navbar height stays fixed). Collapsed = single line + "+N".
+  const expanded = focused || active || resultsOpen
+
+  // Chips actually rendered in the bar: all of them when expanded; the leading
+  // ones that fit when collapsed (the rest fold into the "+N" pill).
+  const shownChips = expanded ? chips : chips.slice(0, chips.length - hiddenCount)
+
+  // Measure how many trailing chips overflow the single-line width when
+  // collapsed. Uses a hidden measurer that always holds every chip at full
+  // width, so the count stays correct regardless of how many are shown.
+  useLayoutEffect(() => {
+    if (expanded) {
+      if (hiddenCount !== 0) setHiddenCount(0)
+      return
+    }
+    const group = chipsRef.current
+    const measurer = measurerRef.current
+    if (!group || !measurer) return
+    const measure = () => {
+      const avail = group.clientWidth
+      const nodes = [...measurer.children]
+      const GAP = 4
+      const RESERVE = 48 // room for the "+N" pill
+      let total = 0
+      nodes.forEach((n, i) => { total += n.offsetWidth + (i ? GAP : 0) })
+      if (total <= avail) { setHiddenCount(0); return }
+      let used = 0
+      let count = 0
+      for (let i = 0; i < nodes.length; i++) {
+        const w = nodes[i].offsetWidth + (i ? GAP : 0)
+        if (used + w + RESERVE <= avail) { used += w; count++ } else break
+      }
+      setHiddenCount(Math.max(0, chips.length - count))
+    }
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(group)
+    return () => ro.disconnect()
+  }, [chips, expanded])
+
+  // Keep the suggestions dropdown aligned to the input (trailing edge of the
+  // last committed chip). Re-measures on expand/collapse and chip changes so it
+  // follows the input even after the chips wrap to a new line. Caps at the
+  // wrapper's right edge so the panel never starts past the end of the field.
+  useLayoutEffect(() => {
+    if (!inputRef.current || !wrapperRef.current) return
+    const inputLeft = inputRef.current.offsetLeft
+    const wrapperWidth = wrapperRef.current.offsetWidth
+    setDropdownLeft(Math.min(inputLeft, wrapperWidth))
+  }, [chips, expanded, hiddenCount])
 
   const handleFilterClick = () => {
     const next = !active
@@ -83,8 +134,6 @@ function GlobalSearchSearch({
     onFilterClick?.(next)
   }
 
-  // Bar reads as focused when the input is focused OR the filter is active.
-  const barFocused = focused || active
   const accent = barFocused
     ? 'var(--deep-sea-neutral-200)'
     : 'var(--deep-sea-neutral-400)'
@@ -92,8 +141,36 @@ function GlobalSearchSearch({
   const showBadge = showFilter && filterCount > 0
   const badgeLabel = filterCount > 99 ? '99+' : String(filterCount)
 
+  const renderChip = (chip) => (
+    <span
+      key={chip.key}
+      className="global-search-chip text-label-xs-medium"
+      role="button"
+      tabIndex={0}
+      // Keep the input focused on click so the bar doesn't collapse mid-click
+      // (which would remove a wrapped second-row chip before onClick fires).
+      onMouseDown={(e) => e.preventDefault()}
+      onClick={() => onChipClick?.(chip)}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onChipClick?.(chip) }}
+    >
+      {chip.label}
+      <button
+        type="button"
+        className="global-search-chip__remove"
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={(e) => { e.stopPropagation(); onChipRemove?.(chip.key) }}
+        aria-label={`Remove ${chip.label}`}
+      >
+        <X size={12} strokeWidth={2.25} />
+      </button>
+    </span>
+  )
+
   return (
-    <div className="flex items-center" style={{ gap: 'var(--spacing-2)', flex: 1, minWidth, maxWidth }}>
+    // Outer row is locked to 32px and aligns children to the top: the bar grows
+    // downward out of this row (overflow stays visible) so the navbar height
+    // never changes when chips wrap.
+    <div className="flex" style={{ gap: 'var(--spacing-2)', flex: 1, minWidth, maxWidth, height: 32, alignItems: 'flex-start' }}>
       <div className="flex items-center" style={{ gap: 'var(--spacing-1)', height: 32 }}>
         <button
           type="button"
@@ -117,43 +194,54 @@ function GlobalSearchSearch({
 
       <div
         ref={wrapperRef}
-        className={`global-search-wrapper relative flex items-center${barFocused ? ' focused' : ''}`}
+        className={`global-search-wrapper relative flex${barFocused ? ' focused' : ''}${expanded ? ' expanded' : ''}`}
         style={{
           flex: 1,
           minWidth: 0,
+          minHeight: 32,
+          // Content stays vertically centered; the bar's top is pinned by the
+          // outer row (align flex-start) so growth goes downward.
+          alignItems: 'center',
           background: 'var(--deep-sea-neutral-900)',
           boxShadow: 'var(--shadow-sm)',
           borderRadius: 'var(--radius-lg)',
           gap: 'var(--spacing-3)',
           // FilterButton sits flush to the right edge (its own rounded corners
-          // follow the bar), so drop the right padding when it's shown.
-          padding: showFilter ? '0 0 0 var(--spacing-3)' : '0 var(--spacing-3)',
+          // follow the bar), so drop the right padding when it's shown. Expanded
+          // adds 6px top/bottom so wrapped rows get breathing room.
+          padding: `${expanded ? '6px' : '0'} ${showFilter ? '0' : 'var(--spacing-3)'} ${expanded ? '6px' : '0'} var(--spacing-3)`,
         }}
       >
-        {/* Inner group: chips + input share a 4px gap. The outer wrapper's
-            12px gap then separates this group from the clear/filter buttons. */}
-        <div style={{ display: 'flex', alignItems: 'center', flex: 1, gap: 4, minWidth: 0 }}>
-          {chips.map((chip) => (
-            <span
-              key={chip.key}
-              className="global-search-chip text-label-xs-medium"
-              role="button"
-              tabIndex={0}
-              onClick={() => onChipClick?.(chip)}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onChipClick?.(chip) }}
+        {/* Hidden measurer: always holds every chip at natural width so the
+            "+N" overflow count stays accurate as the bar resizes. Out of flow,
+            so it never affects layout. Only needed while collapsed. */}
+        {!expanded && (
+          <div ref={measurerRef} className="global-search-measurer" aria-hidden="true">
+            {chips.map((chip) => (
+              <span key={chip.key} className="global-search-chip text-label-xs-medium">
+                {chip.label}
+                <span className="global-search-chip__remove"><X size={12} strokeWidth={2.25} /></span>
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Inner group: chips + input share a 4px gap. Collapsed = nowrap +
+            clipped; expanded = wraps to multiple lines. */}
+        <div ref={chipsRef} className="global-search-chips">
+          {shownChips.map(renderChip)}
+
+          {!expanded && hiddenCount > 0 && (
+            <button
+              type="button"
+              className="global-search-overflow text-label-xs-medium"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => inputRef.current?.focus()}
+              aria-label={`Show ${hiddenCount} more ${hiddenCount === 1 ? 'filter' : 'filters'}`}
             >
-              {chip.label}
-              <button
-                type="button"
-                className="global-search-chip__remove"
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={(e) => { e.stopPropagation(); onChipRemove?.(chip.key) }}
-                aria-label={`Remove ${chip.label}`}
-              >
-                <X size={12} strokeWidth={2.25} />
-              </button>
-            </span>
-          ))}
+              +{hiddenCount}
+            </button>
+          )}
 
           <input
             ref={inputRef}
@@ -174,7 +262,7 @@ function GlobalSearchSearch({
               fontFamily: 'var(--font-primary)',
               fontSize: 'var(--font-size-sm)',
               lineHeight: 'var(--line-height-sm)',
-              minWidth: 80,
+              minWidth: 0,
             }}
           />
         </div>
