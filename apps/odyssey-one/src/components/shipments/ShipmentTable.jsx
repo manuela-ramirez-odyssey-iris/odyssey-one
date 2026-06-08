@@ -72,6 +72,7 @@ function OrdersTooltip({ orders, children }) {
 }
 
 export const COLUMN_CONFIG = [
+  { key: 'sellShipment', label: 'Sell Shipment', width: 140 },
   { key: 'buyShipment', label: 'Buy Shipment', width: 140 },
   { key: 'customerId', label: 'Customer ID(s)', width: 130 },
   {
@@ -329,7 +330,7 @@ const ShipmentRow = React.memo(function ShipmentRow({ shipment, isSelected, isMe
             alignItems: 'center',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
-            ...(col.key === 'buyShipment' ? { fontWeight: 500, color: 'var(--text-secondary)' } : {}),
+            ...(col.key === 'buyShipment' || col.key === 'sellShipment' ? { fontWeight: 500, color: 'var(--text-secondary)' } : {}),
           }}>
             {configCol && configCol.render ? configCol.render(s) : <TruncatedText value={s[col.key]} />}
           </div>
