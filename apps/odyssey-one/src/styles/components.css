@@ -378,16 +378,22 @@ input[type="date"].odyssey-date-input::-webkit-calendar-picker-indicator:hover {
   cursor: not-allowed;
 }
 
-/* 16px box = component-internal geometry (no sizing token at 16). */
+/* 16px box = component-internal geometry (no sizing token at 16).
+   `display: block` + `line-height: 0` keep the box a clean 16×16 with no inline
+   baseline gap, so the absolutely-positioned `.control__mark` (inset:0) and the
+   visible input share the same origin — otherwise the indicator reads off-center. */
 .control__box {
   position: relative;
+  display: block;
   width: 16px;
   height: 16px;
+  line-height: 0;
   flex-shrink: 0;
 }
 .control__input {
   appearance: none;
   -webkit-appearance: none;
+  display: block;
   margin: 0;
   width: 16px;
   height: 16px;
@@ -437,13 +443,19 @@ input[type="date"].odyssey-date-input::-webkit-calendar-picker-indicator:hover {
 .control__mark {
   position: absolute;
   inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   color: var(--control-indicator);
   pointer-events: none;
 }
-.control__mark > * { opacity: 0; }
+/* Each indicator is centered independently. They must NOT share a flex row:
+   a hidden sibling (opacity:0 still occupies space) would shove the visible
+   indicator off-center — that was the checkbox check sitting left of center. */
+.control__mark > * {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+}
 .control--checkbox .control__input:checked:not(:indeterminate) + .control__mark .control__check { opacity: 1; }
 .control--checkbox .control__input:indeterminate + .control__mark .control__dash { opacity: 1; }
 .control--radio .control__input:checked + .control__mark .control__dot { opacity: 1; }
@@ -485,6 +497,9 @@ input[type="date"].odyssey-date-input::-webkit-calendar-picker-indicator:hover {
   padding-left: 14px;
   border-left: 1px solid var(--field-select-divider);
 }
+/* hover — faint surface tint for affordance (code-only interaction state, not a
+   Figma variant; bg-only so it never fights the error/leading color ladder). */
+.field-select:not(:disabled):hover { background: var(--bg-secondary); }
 /* state ladder — divider color */
 .field-select--focus { --field-select-divider: var(--border-strong); }
 .field-select--disabled { --field-select-divider: var(--border-subtle); cursor: not-allowed; }
@@ -2319,9 +2334,16 @@ button.filter-suggestions__chip:active {
 
 /* Error — border 200 idle → 600 on focus; red field text + message below. */
 .form-field--error .form-field__input { border-color: var(--bittersweet-200); }
-.form-field--error .form-field__input:focus-within { border-color: var(--bittersweet-600); }
+/* Focused + error reads as a 2px ring without reflow: the 1px border plus a 1px
+   inset shadow of the same color stack into a 2px band (border-width stays 1px,
+   so the input doesn't shift). */
+.form-field--error .form-field__input:focus-within {
+  border-color: var(--bittersweet-600);
+  box-shadow: inset 0 0 0 1px var(--bittersweet-600), var(--shadow-sm);
+}
 .form-field--error .form-field__field { color: var(--text-error); }
 .form-field--error .form-field__field::placeholder { color: var(--text-error); }
+.form-field--error .form-field__clear { color: var(--bittersweet-600); }
 
 /* FieldSelect dividers track the field state (override the atom's CSS var). */
 .form-field__input:focus-within .field-select { --field-select-divider: var(--border-strong); }
