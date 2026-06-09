@@ -1,14 +1,18 @@
 import { useState } from 'react'
-import { ChevronLeft, X, Plus, ChevronDown, Info, Copy } from 'lucide-react'
-import { Button } from '@odyssey/ui'
-import { ICON_MD, ICON_LG } from '@odyssey/tokens'
+import { ChevronDown, Info, Copy } from 'lucide-react'
+import { SearchPanel, PillTab } from '@odyssey/ui'
 import { SHIPMENTS_PROGRESSION } from '../../search/shipments/progression'
 
 /**
- * ShipmentsFiltersView — PROTOTYPE (app-local, not normalized yet).
+ * ShipmentsFiltersView — the Filters *content* of the GlobalSearch overlay.
  *
- * The filters panel that swaps in over ResultsPreview when "All Filters" is
- * clicked in the GlobalSearch results overlay (back-arrow returns to results).
+ * Renders inside the normalized `<SearchPanel>` shell (same component as the
+ * Results state + Figma) — SearchPanel owns the card, the header (‹ back · Filters ·
+ * × close) and the footer (Save Filters link / Clear all / Show N). This component
+ * supplies only the content: the All/Saved tabs + the filter controls. Swaps in over
+ * the Results state when "All Filters" is clicked (back-arrow returns to results).
+ * The controls are still PROTOTYPE stubs (app-local) pending the normalized
+ * Select / FilterChip / SavedFilterRow.
  * Built from the shipments progression taxonomy: each attribute renders by its
  * `match` type — enum → selectable chips, date → date range, letters → dropdown
  * stub, digits → text input. The committed searchbar chips pre-fill the matching
@@ -144,28 +148,32 @@ export default function ShipmentsFiltersView({
   ]
 
   return (
-    <div className="shipments-filters">
-      <div className="shipments-filters__header">
-        <button type="button" className="shipments-filters__icon-btn" onClick={onBack} aria-label="Back to results">
-          <ChevronLeft {...ICON_LG} />
-        </button>
-        <span className="shipments-filters__title text-heading-lg-semibold">Filters</span>
-        <button type="button" className="shipments-filters__icon-btn shipments-filters__close" onClick={onClose} aria-label="Close">
-          <X {...ICON_LG} />
-        </button>
-      </div>
-
+    <SearchPanel
+      className="search-panel--filters"
+      showHeader
+      showBack
+      title="Filters"
+      onBack={onBack}
+      onClose={onClose}
+      showLink={activeTab === 'all'}
+      linkLabel="Save Filters"
+      onLink={handleSaveFilters}
+      showSecondary={activeTab !== 'all'}
+      showTrailSecondary={activeTab === 'all'}
+      secondaryLabel="Clear all"
+      onClear={onClearAll}
+      count={resultTotal}
+      onShowResults={onShowResults}
+    >
       <div className="shipments-filters__tabs">
         {tabs.map((tab) => (
-          <button
+          <PillTab
             key={tab.key}
-            type="button"
-            className={`shipments-filters__tab text-label-sm-medium${activeTab === tab.key ? ' is-active' : ''}`}
+            label={tab.label}
+            count={tab.count}
+            selected={activeTab === tab.key}
             onClick={() => setActiveTab(tab.key)}
-          >
-            {tab.label}
-            <span className="shipments-filters__tab-count">{tab.count}</span>
-          </button>
+          />
         ))}
       </div>
 
@@ -196,18 +204,6 @@ export default function ShipmentsFiltersView({
           </div>
         )}
       </div>
-
-      <div className="shipments-filters__footer">
-        <Button variant="link" size="sm" icon={<Plus {...ICON_MD} />} onClick={handleSaveFilters}>
-          Save Filters
-        </Button>
-        <div className="shipments-filters__footer-actions">
-          <Button variant="secondary" size="md" onClick={onClearAll}>Clear all</Button>
-          <Button variant="primary" size="md" onClick={onShowResults}>
-            Show {resultTotal} {resultTotal === 1 ? 'result' : 'results'}
-          </Button>
-        </div>
-      </div>
-    </div>
+    </SearchPanel>
   )
 }

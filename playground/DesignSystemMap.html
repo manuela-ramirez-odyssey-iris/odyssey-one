@@ -2452,7 +2452,7 @@ function getFilterSuggestionsComponentHTML() {
 }
 
 /* ── MatchRow (molecule) — NORMALIZED ──
-   One result row inside the GlobalSearch ResultsPreview panel. A 40×40 gray avatar
+   One result row inside the GlobalSearch SearchResults list. A 40×40 gray avatar
    (switchable icon) · a main line with matchId (semibold) + route (regular) on the
    left and a source Badge (blue / purple) on the right · a meta line of
    Customer | Carrier | BOL cells separated by vertical dividers.
@@ -2519,7 +2519,7 @@ function getMatchRowComponentHTML() {
     '<div class="comp-section-subtitle">packages/ui/src/MatchRow.jsx &middot; Figma node 2460:2</div>' +
 
     '<div class="mr-norm-owner-note">' +
-      'One result row inside the GlobalSearch <strong>ResultsPreview</strong> panel. A 40&times;40 gray avatar (switchable icon, defaults to a <code>Package</code> glyph) &middot; a main line with the match ID (semibold) + route (regular) on the left and a source <strong>Badge</strong> on the right (<code>blue</code> default; <code>purple</code> for EDI feeds) &middot; a meta line of Customer / Carrier / BOL cells split by vertical dividers. Passing <code>onClick</code> makes the whole row a selectable <code>&lt;button&gt;</code> with a hover affordance.' +
+      'One result row inside the GlobalSearch <strong>SearchResults</strong> list. A 40&times;40 gray avatar (switchable icon, defaults to a <code>Package</code> glyph) &middot; a main line with the match ID (semibold) + route (regular) on the left and a source <strong>Badge</strong> on the right (<code>blue</code> default; <code>purple</code> for EDI feeds) &middot; a meta line of Customer / Carrier / BOL cells split by vertical dividers. Passing <code>onClick</code> makes the whole row a selectable <code>&lt;button&gt;</code> with a hover affordance.' +
     '</div>' +
 
     '<div class="comp-subsection">' +
@@ -3290,6 +3290,12 @@ function getButtonComponentHTML() {
         'transition: transform var(--transition-fast, 150ms ease);' +
       '}' +
       '.btn-demo--link .btn-demo__icon-right > svg { width: 100%; height: 100%; }' +
+      /* Asymmetric leading icon — 20×20 (--icon-size-lg), no translate (only the trailing arrow animates). */
+      '.btn-demo--link .btn-demo__icon-left {' +
+        'display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;' +
+        'width: var(--icon-size-lg, 20px); height: var(--icon-size-lg, 20px);' +
+      '}' +
+      '.btn-demo--link .btn-demo__icon-left > svg { width: 100%; height: 100%; }' +
       '.btn-demo--link:hover:not(:disabled) .btn-demo__icon-right,' +
       '.btn-demo--link.btn-demo--force-hover .btn-demo__icon-right,' +
       '.btn-demo--link.btn-demo--force-pressed .btn-demo__icon-right {' +
@@ -3298,18 +3304,19 @@ function getButtonComponentHTML() {
       /* No :active reset on the icon — it STAYS at +4 through the press, returns only on hover-out. */
     '</style>' +
     '<div class="comp-subsection">' +
-      '<div class="comp-subsection-title">Link variant <span style="font-weight:400; font-size:13px; color:#6B7280;">&mdash; text-only tertiary action, light surfaces (the &ldquo;Go to X&rdquo; affordance)</span></div>' +
+      '<div class="comp-subsection-title">Link variant <span style="font-weight:400; font-size:13px; color:#6B7280;">&mdash; text-only tertiary action, light surfaces (the &ldquo;Go to X&rdquo; affordance) &middot; asymmetric icons: leading 20&times;20, trailing 16&times;16</span></div>' +
       /* Helper: a link-variant button with optional disabled + optional forceState */
       (function() { return ''; })() +
       '<div class="comp-card-grid">' +
         /* Idle */
         '<div class="comp-card">' +
           '<button type="button" class="btn-demo btn-demo--link btn-demo--md">' +
+            '<span class="btn-demo__icon-left"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/></svg></span>' +
             '<span>Go to Tracking</span>' +
             '<span class="btn-demo__icon-right"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span>' +
           '</button>' +
-          '<div class="comp-card-code">&lt;Button variant="link" iconRight={&lt;ArrowRight /&gt;}&gt;Go to Tracking&lt;/Button&gt;</div>' +
-          '<div class="comp-card-note"><strong>Idle</strong> &mdash; color <code>--text-link</code> (Carolina Blue 600 #276DA2) &middot; bg transparent &middot; no border &middot; no shadow &middot; <strong>padding 0</strong> (content-sized: label + 4px gap + 16px arrow) &middot; arrow at <code>translateX(0)</code>. <strong>Hover</strong> and <strong>hold mousedown</strong> on this card to see the ladder live.</div>' +
+          '<div class="comp-card-code">&lt;Button variant="link" icon={&lt;.../&gt;} iconRight={&lt;ArrowRight /&gt;}&gt;Go to Tracking&lt;/Button&gt;</div>' +
+          '<div class="comp-card-note"><strong>Idle</strong> &mdash; color <code>--text-link</code> (Carolina Blue 600 #276DA2) &middot; bg transparent &middot; no border &middot; no shadow &middot; <strong>padding 0</strong> (content-sized). <strong>Asymmetric icons</strong>: leading <strong>20&times;20</strong> (<code>--icon-size-lg</code>, base <code>.btn__icon</code>) + trailing arrow <strong>16&times;16</strong> (<code>--icon-size-md</code>, via <code>.btn--link .btn__icon--right</code>) at <code>translateX(0)</code>. <strong>Hover</strong> and <strong>hold mousedown</strong> on this card to see the ladder live.</div>' +
         '</div>' +
         /* Forced hover */
         '<div class="comp-card">' +
@@ -3343,7 +3350,10 @@ function getButtonComponentHTML() {
         '<strong>Ladder semantics &mdash; why Link inverts the standard pattern.</strong> Every other Button variant darkens its fill on hover and darkens further on press. Link has no fill, so it instead modulates text color: it <strong>lightens</strong> on hover to soften the affordance (a tertiary action shouldn&rsquo;t shout) and <strong>darkens to DSN/900</strong> on press to lock in the &ldquo;committed&rdquo; moment. The trailing arrow stays at +4px through the press so the forward motion reads as a follow-through, not a bounce. Primary use: Widget Go-to affordances (e.g. <code>&lt;Button variant="link" iconRight={&lt;ArrowRight /&gt;}&gt;Go to Tracking&lt;/Button&gt;</code>) inside Widget 2x / 3x / 3xChart footers.' +
       '</div>' +
       '<div class="comp-card-note" style="margin-top:10px; font-size:12.5px; color:#384253; line-height:1.55; background:#FFFBEB; border-left:3px solid #F8CE51; padding:10px 14px; border-radius:4px;">' +
-        '<strong>Padding = 0 &mdash; Link is the only Button variant without size padding.</strong> Idle / Hover / Pressed all render with <code>padding: 0</code> in Figma (was <code>14 / 12 / 6 / 6</code> pre-Session-23). The button is now content-sized: label + 4px gap + 16px arrow. <code>itemSpacing</code> stays per-variant in Figma &mdash; <strong>16</strong> Idle, <strong>20</strong> Hover, <strong>20</strong> Pressed &mdash; which is what gives the arrow its +4px translate on hover and the &ldquo;stays through press&rdquo; semantic (itemSpacing diff = +4 from Idle &rarr; Hover, then 0 from Hover &rarr; Pressed). Primary / Secondary / Outline / Ghost keep their size paddings (sm 14/12-14/6, md 14/12-14/6, lg 18/14-16/8).' +
+        '<strong>Padding = 0 &mdash; Link is the only Button variant without size padding.</strong> Idle / Hover / Pressed all render with <code>padding: 0</code> in Figma (was <code>14 / 12 / 6 / 6</code> pre-Session-23). The button is now content-sized: leading 20px icon + label + 4px gap + 16px trailing arrow. <code>itemSpacing</code> stays per-variant in Figma &mdash; <strong>16</strong> Idle, <strong>20</strong> Hover, <strong>20</strong> Pressed &mdash; which is what gives the arrow its +4px translate on hover and the &ldquo;stays through press&rdquo; semantic (itemSpacing diff = +4 from Idle &rarr; Hover, then 0 from Hover &rarr; Pressed). Primary / Secondary / Outline / Ghost keep their size paddings (sm 14/12-14/6, md 14/12-14/6, lg 18/14-16/8).' +
+      '</div>' +
+      '<div class="comp-card-note" style="margin-top:10px; font-size:12.5px; color:#384253; line-height:1.55; background:#F0FDF4; border-left:3px solid #16A34A; padding:10px 14px; border-radius:4px;">' +
+        '<strong>Asymmetric, toggleable icons (Phase-3 sync).</strong> The ButtonLink set <code style="' + codeChip + '">1895:7</code> (Components-Atoms) now carries two independent icon slots: a <strong>leading 20&times;20</strong> icon (props <code style="' + codeChip + '">Show leading icon</code> / <code style="' + codeChip + '">Leading icon</code>, default <code>placeholder-20</code>) and a <strong>trailing 16&times;16</strong> icon (props <code style="' + codeChip + '">Show trailing icon</code> / <code style="' + codeChip + '">Trailing icon</code>, default <code>arrow-right</code>). In code: leading uses the base <code>.btn__icon</code> at <code>--icon-size-lg</code> (20); trailing is shrunk by <code>.btn--link .btn__icon--right</code> to <code>--icon-size-md</code> (16). The set also adds a <code style="' + codeChip + '">Variant</code> axis: <code>Default</code> (blue) | <code>Black</code> &mdash; the Black variant is Figma-only for now; code <code>variant="link"</code> renders the blue style.' +
       '</div>' +
     '</div>' +
 
@@ -3364,7 +3374,7 @@ function getButtonComponentHTML() {
     '<div class="comp-subsection">' +
       '<div class="comp-subsection-title">Code Connect</div>' +
       '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
-        'Mapped via <code style="' + codeChip + '">packages/ui/src/Button.figma.tsx</code>. State variant maps Idle/Hover/Pressed to <code>disabled: false</code> (CSS handles those interactively); only <code>State=Disabled</code> sets <code>disabled: true</code>.' +
+        'Mapped via <code style="' + codeChip + '">packages/ui/src/Button.figma.tsx</code> &mdash; <strong>two</strong> <code>figma.connect</code> blocks on the same <code>Button</code> atom. (1) Main set <code style="' + codeChip + '">1307:333</code>: State variant maps Idle/Hover/Pressed to <code>disabled: false</code> (CSS handles those interactively); only <code>State=Disabled</code> sets <code>disabled: true</code>. (2) ButtonLink set <code style="' + codeChip + '">1895:7</code> &rarr; <code>variant="link"</code>, with <code style="' + codeChip + '">Show leading icon</code> &rarr; <code>icon</code> (<code>figma.instance(\'Leading icon\')</code>) and <code style="' + codeChip + '">Show trailing icon</code> &rarr; <code>iconRight</code> (<code>figma.instance(\'Trailing icon\')</code>).' +
       '</div>' +
     '</div>' +
   '</div>';
@@ -7067,6 +7077,53 @@ var compDetails = {
         '</tbody>' +
       '</table>'
   },
+  PillTab: {
+    props:
+      '<table class="comp-table">' +
+        '<thead><tr><th>Prop</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>' +
+        '<tbody>' +
+          '<tr style="background:#F7F8FA;"><td colspan="4" style="font-style:italic; color:#384253;">Pill-shaped tab atom &mdash; a <strong>label</strong> + an optional neutral count <strong>Badge</strong> (<code>variant="metric"</code>), with a selected / unselected state. Used for the All / Saved tabs in the SearchPanel filters body. Built from our primitives (Inter <code>label/sm medium</code> + our Badge <code>metric</code>) &mdash; <strong>not</strong> the foreign 36-variant UI-kit Tab set. Only <code>selected</code> is a prop; hover is CSS-only.</td></tr>' +
+          '<tr><td><code>label</code></td><td>string</td><td>&mdash;</td><td>Tab label text, rendered with <code>text-label-sm-medium</code>.</td></tr>' +
+          '<tr><td><code>count</code></td><td>number</td><td>&mdash;</td><td>Count rendered in the trailing metric <strong>Badge</strong>. Badge is omitted when <code>count == null</code>.</td></tr>' +
+          '<tr><td><code>selected</code></td><td>boolean</td><td><code>false</code></td><td>Selected state &mdash; applies <code>.pill-tab--selected</code> (<code>--tab-active-bg</code> surface + <code>--tab-active-text</code> label) and sets <code>aria-pressed</code>.</td></tr>' +
+          '<tr><td><code>showCount</code></td><td>boolean</td><td><code>true</code></td><td>When <code>false</code>, the count Badge is suppressed even if <code>count</code> is supplied.</td></tr>' +
+          '<tr><td><code>onClick</code></td><td>function</td><td>&mdash;</td><td>Click handler &mdash; the consumer (SearchPanel filters body) switches the active tab.</td></tr>' +
+          '<tr><td><code>className</code></td><td>string</td><td><code>""</code></td><td>Appended to the button class.</td></tr>' +
+          '<tr><td><code>...rest</code></td><td>HTMLButtonAttrs</td><td>&mdash;</td><td>Spread to the <code>&lt;button&gt;</code> (style, aria-*, etc.).</td></tr>' +
+          '<tr><td>(hover)</td><td>&mdash;</td><td>&mdash;</td><td>Pure CSS <code>:hover</code> on an unselected tab &mdash; surface lifts to <code>--bg-tertiary</code>, label to <code>--text-secondary</code>. Not a prop.</td></tr>' +
+        '</tbody>' +
+      '</table>',
+    tokens:
+      '<table class="comp-table">' +
+        '<thead><tr><th>State / Property</th><th>Token / Value</th><th>Resolved</th></tr></thead>' +
+        '<tbody>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Color &mdash; state ladder</td></tr>' +
+          '<tr><td>Default &mdash; bg / label</td><td><code>transparent</code> / <code>--tab-inactive-text</code></td><td>&mdash; / DSN/600 (#4C5463)</td></tr>' +
+          '<tr><td>Hover (unselected) &mdash; bg / label</td><td><code>--bg-tertiary</code> / <code>--text-secondary</code></td><td>DSN/100 (#F2F3F5) / DSN/700 (#384253) &mdash; CSS-only</td></tr>' +
+          '<tr><td>Selected &mdash; bg / label</td><td><code>--tab-active-bg</code> / <code>--tab-active-text</code></td><td>DSN/200 (#E4E6EB) / --text-primary (#1B2537) &mdash; wins over hover</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Geometry</td></tr>' +
+          '<tr><td>Border radius</td><td><code>--radius-md</code></td><td>6px</td></tr>' +
+          '<tr><td>Gap (label &harr; count)</td><td><code>--spacing-2</code></td><td>8px</td></tr>' +
+          '<tr><td>Padding &mdash; horizontal</td><td><code>--spacing-3</code></td><td>12px</td></tr>' +
+          '<tr><td>Padding &mdash; vertical</td><td><code>6px</code> (raw)</td><td>tiny component-internal geometry (no Spacing token at 6)</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Type</td></tr>' +
+          '<tr><td>Label typography</td><td><code>label/sm medium</code> (<code>text-label-sm-medium</code>)</td><td>14 / 20 / 500</td></tr>' +
+          '<tr><td>Transition</td><td><code>background, color var(--transition-fast)</code></td><td>150ms ease</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Count &mdash; Badge variant="metric"</td></tr>' +
+          '<tr><td>Count bg</td><td><code>--badge-gray-bg</code></td><td>DSN/100 (#F2F3F5)</td></tr>' +
+          '<tr><td>Count text</td><td><code>--text-primary</code></td><td>DSN/900 (#1B2537)</td></tr>' +
+          '<tr><td>Count radius</td><td><code>--radius-lg</code></td><td>8px</td></tr>' +
+          '<tr><td>Count padding</td><td><code>1px --spacing-2</code></td><td>1px vertical / 8px horizontal (Badge metric internal geometry)</td></tr>' +
+          '<tr><td>Count typography</td><td><code>label/xs semibold</code> + <code>tabular-nums</code></td><td>12 / 16 / 600</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Code Connect &mdash; PillTab.figma.tsx</td></tr>' +
+          '<tr><td>Figma master</td><td><code>PillTab 2787:330</code></td><td>Components-Atoms, tabs artboard</td></tr>' +
+          '<tr><td><code>Selected</code> VARIANT</td><td>&rarr; <code>selected</code> prop</td><td>True / False</td></tr>' +
+          '<tr><td><code>Label</code> TEXT</td><td>&rarr; <code>label</code> prop</td><td>&mdash;</td></tr>' +
+          '<tr><td><code>Show count</code> BOOLEAN</td><td>&rarr; <code>showCount</code> prop</td><td>&mdash;</td></tr>' +
+          '<tr><td>Count</td><td>nested exposed Badge <code>metric</code> instance</td><td>&rarr; <code>count</code> prop</td></tr>' +
+        '</tbody>' +
+      '</table>'
+  },
   FilterSuggestions: {
     props:
       '<table class="comp-table">' +
@@ -7118,7 +7175,7 @@ var compDetails = {
       '<table class="comp-table">' +
         '<thead><tr><th>Prop</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>' +
         '<tbody>' +
-          '<tr style="background:#F7F8FA;"><td colspan="4" style="font-style:italic; color:#384253;">One result row inside the GlobalSearch <code>ResultsPreview</code> panel. A 40&times;40 gray avatar (switchable icon) + a main line (matchId semibold + route regular &harr; source <strong>Badge</strong>) + a meta line of Customer / Carrier / BOL cells split by vertical dividers.</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="4" style="font-style:italic; color:#384253;">One result row inside the GlobalSearch <code>SearchResults</code> list. A 40&times;40 gray avatar (switchable icon) + a main line (matchId semibold + route regular &harr; source <strong>Badge</strong>) + a meta line of Customer / Carrier / BOL cells split by vertical dividers.</td></tr>' +
           '<tr><td><code>matchId</code></td><td>string</td><td>&mdash;</td><td>Match identifier, rendered <code>text-label-xs-semibold</code> at the start of the main line.</td></tr>' +
           '<tr><td><code>route</code></td><td>string</td><td>&mdash;</td><td>Origin &rarr; destination, rendered <code>text-label-xs-regular</code> after the matchId (space-prefixed).</td></tr>' +
           '<tr><td><code>customer</code></td><td>string</td><td>&mdash;</td><td>Meta-line cell 1 (Customer:).</td></tr>' +
@@ -7156,20 +7213,66 @@ var compDetails = {
         '</tbody>' +
       '</table>'
   },
-  ResultsPreview: {
+  SearchPanel: {
     props:
       '<table class="comp-table">' +
         '<thead><tr><th>Prop</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>' +
         '<tbody>' +
-          '<tr style="background:#F7F8FA;"><td colspan="4" style="font-style:italic; color:#384253;">The "Best Match" preview panel below the GlobalSearch bar. Composes a title, a list of <code>MatchRow</code> rows, a filters link, and a footer action bar (Clear all &middot; Show N results).</td></tr>' +
-          '<tr><td><code>title</code></td><td>string</td><td><code>"Best Match"</code></td><td>Panel header, rendered <code>text-label-sm-medium</code> at <code>--text-tertiary</code>. Omit / empty to hide.</td></tr>' +
-          '<tr><td><code>matches</code></td><td><code>MatchRow props[]</code></td><td><code>[]</code></td><td>Array of MatchRow prop objects (<code>{ matchId, route, customer, carrier, bol, source, icon, id }</code>). Each renders a <code>MatchRow</code>.</td></tr>' +
-          '<tr><td><code>resultCount</code></td><td>number</td><td><code>matches.length</code></td><td>Count shown in the footer "Show N results" button.</td></tr>' +
-          '<tr><td><code>filtersLabel</code></td><td>string</td><td><code>"All Filters"</code></td><td>Label of the filters link.</td></tr>' +
-          '<tr><td><code>filtersIcon</code></td><td>ReactNode</td><td><code>&lt;SlidersHorizontal /&gt;</code></td><td>Leading icon on the filters link (<code>Button variant="link"</code>).</td></tr>' +
-          '<tr><td><code>onFiltersClick</code></td><td><code>() =&gt; void</code></td><td>&mdash;</td><td>Filters link click handler.</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="4" style="font-style:italic; color:#384253;">Organism shell &mdash; the card below the GlobalSearch bar. Conditional header + content slot (<code>children</code>) + baked footer (link + secondary on the lead; primary alone on the trail).</td></tr>' +
+          '<tr><td><code>showHeader</code></td><td>boolean</td><td><code>false</code></td><td>Renders the header row (back + title + close X). The Results state has no header.</td></tr>' +
+          '<tr><td><code>showBack</code></td><td>boolean</td><td><code>false</code></td><td>Renders the leading <code>IconButtonGhost</code> back button (ChevronLeft) inside the header.</td></tr>' +
+          '<tr><td><code>title</code></td><td>string</td><td><code>"Filters"</code></td><td>Header title, rendered <code>text-heading-lg-semibold</code> at <code>--text-primary</code>.</td></tr>' +
+          '<tr><td><code>onBack</code></td><td><code>() =&gt; void</code></td><td>&mdash;</td><td>Back button click handler.</td></tr>' +
+          '<tr><td><code>onClose</code></td><td><code>() =&gt; void</code></td><td>&mdash;</td><td>Close X click handler. The X only renders when <code>onClose</code> is supplied.</td></tr>' +
+          '<tr><td><code>children</code></td><td>ReactNode</td><td>&mdash;</td><td>Content slot &mdash; the body for the active state (Results &rarr; <code>&lt;SearchResults&gt;</code>; Filters &rarr; <code>&lt;SearchFilters&gt;</code>).</td></tr>' +
+          '<tr><td><code>showLink</code></td><td>boolean</td><td><code>false</code></td><td>Renders the footer-left link (<code>Button variant="link"</code>).</td></tr>' +
+          '<tr><td><code>linkLabel</code></td><td>string</td><td><code>"Save Filters"</code></td><td>Label of the footer link.</td></tr>' +
+          '<tr><td><code>linkIcon</code></td><td>ReactNode</td><td><code>&lt;CirclePlus /&gt;</code></td><td>Leading 20px icon on the footer link.</td></tr>' +
+          '<tr><td><code>onLink</code></td><td><code>() =&gt; void</code></td><td>&mdash;</td><td>Footer link click handler.</td></tr>' +
+          '<tr><td><code>showSecondary</code></td><td>boolean</td><td><code>true</code></td><td>Renders the footer-left (lead) secondary "Clear all" button, after the link.</td></tr>' +
+          '<tr><td><code>secondaryLabel</code></td><td>string</td><td><code>"Clear all"</code></td><td>Label of the secondary button.</td></tr>' +
           '<tr><td><code>onClear</code></td><td><code>() =&gt; void</code></td><td>&mdash;</td><td>Secondary "Clear all" click handler.</td></tr>' +
-          '<tr><td><code>onShowResults</code></td><td><code>() =&gt; void</code></td><td>&mdash;</td><td>Primary "Show N results" click handler.</td></tr>' +
+          '<tr><td><code>count</code></td><td>number</td><td>&mdash;</td><td>Result count for the default primary label ("Show N results" / "Show 1 result"). Ignored if <code>primaryLabel</code> is given.</td></tr>' +
+          '<tr><td><code>primaryLabel</code></td><td>string</td><td><code>"Show {count} results"</code></td><td>Primary button label. Defaults from <code>count</code> with result/results pluralization.</td></tr>' +
+          '<tr><td><code>onShowResults</code></td><td><code>() =&gt; void</code></td><td>&mdash;</td><td>Primary button click handler.</td></tr>' +
+        '</tbody>' +
+      '</table>',
+    tokens:
+      '<table class="comp-table">' +
+        '<thead><tr><th>Area / Property</th><th>Token / Value</th><th>Resolved</th></tr></thead>' +
+        '<tbody>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Panel shell</td></tr>' +
+          '<tr><td>Background</td><td><code>--bg-primary</code></td><td>white</td></tr>' +
+          '<tr><td>Radius</td><td><code>--radius-xl</code></td><td>12px</td></tr>' +
+          '<tr><td>Shadow</td><td><code>--shadow-2xl</code></td><td>elevated dropdown shadow</td></tr>' +
+          '<tr><td>Width</td><td><code>720px</code></td><td>fixed (max-width 100%)</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Header (conditional)</td></tr>' +
+          '<tr><td>Bottom border</td><td><code>--border-subtle</code></td><td>1px</td></tr>' +
+          '<tr><td>Padding</td><td><code>--spacing-3</code> / <code>--spacing-6</code></td><td>12px top/bottom, 24px sides</td></tr>' +
+          '<tr><td>Left gap (back &harr; title)</td><td><code>--spacing-2</code></td><td>8px</td></tr>' +
+          '<tr><td>Title</td><td><code>heading/lg semibold</code> at <code>--text-primary</code></td><td>DSN/900 #1B2537</td></tr>' +
+          '<tr><td>Back / Close</td><td><code>IconButtonGhost</code> + <code>--icon-size-lg</code> (20) icons</td><td>ChevronLeft / X</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Footer (baked)</td></tr>' +
+          '<tr><td>Top border</td><td><code>--border-default</code></td><td>1px</td></tr>' +
+          '<tr><td>Padding</td><td><code>--spacing-3</code> / <code>--spacing-4</code></td><td>12px top, 16px sides, 16px bottom</td></tr>' +
+          '<tr><td>Lead gap (link &harr; secondary)</td><td><code>--spacing-2</code></td><td>8px</td></tr>' +
+          '<tr><td>Link</td><td><code>Button variant="link" size="sm"</code> + 20px <code>CirclePlus</code></td><td>footer-left (lead)</td></tr>' +
+          '<tr><td>Secondary</td><td><code>Button</code> secondary (Clear all)</td><td>md size, footer-left (lead, after link)</td></tr>' +
+          '<tr><td>Primary</td><td><code>Button</code> primary (Show N results)</td><td>md size, footer-right (trail, alone)</td></tr>' +
+        '</tbody>' +
+      '</table>'
+  },
+  SearchResults: {
+    props:
+      '<table class="comp-table">' +
+        '<thead><tr><th>Prop</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>' +
+        '<tbody>' +
+          '<tr style="background:#F7F8FA;"><td colspan="4" style="font-style:italic; color:#384253;">Organism content &mdash; the "Best Match" body for the SearchPanel content slot. Title + scrollable <code>MatchRow</code> list + an "All Filters" link row. Transparent (chrome lives on SearchPanel).</td></tr>' +
+          '<tr><td><code>title</code></td><td>string</td><td><code>"Best Match"</code></td><td>Title, rendered <code>text-label-sm-medium</code> at <code>--text-tertiary</code>. Omit / empty to hide.</td></tr>' +
+          '<tr><td><code>matches</code></td><td><code>MatchRow props[]</code></td><td><code>[]</code></td><td>Array of MatchRow prop objects (<code>{ matchId, route, customer, carrier, bol, source, icon, id }</code>). Each renders a <code>MatchRow</code>.</td></tr>' +
+          '<tr><td><code>filtersLabel</code></td><td>string</td><td><code>"All Filters"</code></td><td>Label of the filters link row.</td></tr>' +
+          '<tr><td><code>filtersIcon</code></td><td>ReactNode</td><td><code>&lt;SlidersHorizontal /&gt;</code></td><td>Leading 20px icon on the filters link (<code>Button variant="link"</code>).</td></tr>' +
+          '<tr><td><code>onFiltersClick</code></td><td><code>() =&gt; void</code></td><td>&mdash;</td><td>Filters link click handler.</td></tr>' +
           '<tr><td><code>onMatchClick</code></td><td><code>(match) =&gt; void</code></td><td>&mdash;</td><td>When supplied, passed down as each row\'s <code>onClick</code> (makes rows selectable).</td></tr>' +
         '</tbody>' +
       '</table>',
@@ -7177,23 +7280,16 @@ var compDetails = {
       '<table class="comp-table">' +
         '<thead><tr><th>Area / Property</th><th>Token / Value</th><th>Resolved</th></tr></thead>' +
         '<tbody>' +
-          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Panel</td></tr>' +
-          '<tr><td>Background</td><td><code>--bg-primary</code></td><td>white</td></tr>' +
-          '<tr><td>Radius</td><td><code>--radius-xl</code></td><td>12px</td></tr>' +
-          '<tr><td>Shadow</td><td><code>--shadow-2xl</code></td><td>elevated dropdown shadow</td></tr>' +
-          '<tr><td>Width</td><td><code>720px</code></td><td>fixed (max-width 100%)</td></tr>' +
           '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Body</td></tr>' +
-          '<tr><td>Padding</td><td><code>--spacing-6</code></td><td>24px</td></tr>' +
-          '<tr><td>Gap (title &harr; list)</td><td><code>--spacing-4</code></td><td>16px</td></tr>' +
-          '<tr><td>Title</td><td><code>label/sm medium</code> at <code>--text-tertiary</code></td><td>14 / 20 / 500, DSN/500</td></tr>' +
-          '<tr><td>List gap (row &harr; row)</td><td><code>--spacing-2</code></td><td>8px</td></tr>' +
-          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Filters link</td></tr>' +
+          '<tr><td>Background</td><td><code>transparent</code></td><td>chrome lives on SearchPanel</td></tr>' +
+          '<tr><td>Padding</td><td><code>--spacing-6</code> top/sides, 0 bottom</td><td>24px</td></tr>' +
+          '<tr><td>Gap (title &harr; list)</td><td><code>--spacing-2</code></td><td>8px</td></tr>' +
+          '<tr><td>Title</td><td><code>label/sm medium</code> at <code>--text-tertiary</code></td><td>14 / 20 / 500</td></tr>' +
+          '<tr><td>List</td><td><code>max-height: 272px</code>, overflow-y auto</td><td>~4 rows, then scrolls</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">All Filters link</td></tr>' +
           '<tr><td>Indent</td><td><code>36px</code> (off-scale, no token)</td><td>aligns the link with row content</td></tr>' +
           '<tr><td>Padding</td><td><code>--spacing-3</code> top/bottom</td><td>12px</td></tr>' +
-          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Footer actions</td></tr>' +
-          '<tr><td>Top border</td><td><code>--border-default</code></td><td>1px</td></tr>' +
-          '<tr><td>Padding</td><td><code>--spacing-3</code> / <code>--spacing-4</code></td><td>12px top, 16px sides, 16px bottom</td></tr>' +
-          '<tr><td>Buttons</td><td><code>Button</code> secondary (Clear all) + primary (Show N results)</td><td>md size, justify-between</td></tr>' +
+          '<tr><td>Component</td><td><code>Button variant="link"</code> + 20px <code>SlidersHorizontal</code></td><td>leading icon</td></tr>' +
         '</tbody>' +
       '</table>'
   },
@@ -10161,6 +10257,147 @@ function getFilterButtonComponentHTML() {
   '</div>';
 }
 
+/* ── PillTab (atom — NORMALIZED) ──
+   Pill-shaped tab button = a label + a neutral count Badge (metric variant),
+   with a selected / unselected state. Built from our primitives (Inter
+   label/sm medium + our Badge metric), reusing the existing tab tokens
+   (--tab-active-bg / --tab-active-text / --tab-inactive-text). Hover is
+   CSS-only. Figma master PillTab 2787:330 (Components-Atoms). Mirrors the
+   FilterButton ATOM section DNA but on a LIGHT surface (it lives in the
+   SearchPanel filters body). Scoped .pilltab-norm-* prefix. */
+function getPillTabComponentHTML() {
+  /* The count = a faithful metric-Badge pill, inlined as a span so the demo
+     has no React dependency. --badge-gray-bg / --radius-lg / label-xs-semibold
+     / tabular-nums, matching Badge.jsx variant="metric". */
+  var metricBadge = function (n) {
+    return '<span class="pilltab-norm-count">' + n + '</span>';
+  };
+  return '' +
+  /* ── Scoped styles ── */
+  '<style>' +
+    /* Demo surface — LIGHT, mirrors the SearchPanel filters body the tabs sit on. */
+    '.pilltab-norm-surface {' +
+      'background: var(--bg-primary, #FFFFFF);' +
+      'padding: 32px;' +
+      'border-radius: var(--radius-md, 6px);' +
+      'border: 1px solid var(--border-subtle, #E4E6EB);' +
+    '}' +
+
+    /* The PillTab itself — label + count, default (unselected) on transparent. */
+    '.pilltab-norm-tab {' +
+      'display: inline-flex; align-items: center; gap: var(--spacing-2, 8px);' +
+      /* 6px vertical = tiny component-internal geometry (no spacing token at 6). */
+      'padding: 6px var(--spacing-3, 12px);' +
+      'border: none; border-radius: var(--radius-md, 6px);' +
+      'background: transparent; cursor: pointer;' +
+      'color: var(--tab-inactive-text, #4C5463);' +
+      'font-family: \'Inter\', sans-serif; font-size: 14px; line-height: 20px; font-weight: 500;' +
+      'transition: background var(--transition-fast,150ms ease), color var(--transition-fast,150ms ease);' +
+    '}' +
+    /* Hover — unselected only — lift to --bg-tertiary surface + --text-secondary label. */
+    '.pilltab-norm-tab:hover:not(.pilltab-norm-selected) {' +
+      'background: var(--bg-tertiary, #F2F3F5); color: var(--text-secondary, #384253);' +
+    '}' +
+    /* Selected — DSN/200 surface + --tab-active-text label; wins over hover. */
+    '.pilltab-norm-selected {' +
+      'background: var(--tab-active-bg, #E4E6EB); color: var(--tab-active-text, #1B2537);' +
+    '}' +
+
+    /* Count pill — faithful metric-Badge: --badge-gray-bg / --radius-lg / label-xs-semibold / tabular-nums. */
+    '.pilltab-norm-count {' +
+      'display: inline-flex; align-items: center; justify-content: center;' +
+      'padding: 1px var(--spacing-2, 8px);' +
+      'border-radius: var(--radius-lg, 8px);' +
+      'background: var(--badge-gray-bg, #F2F3F5); color: var(--text-primary, #1B2537);' +
+      'font-family: \'Inter\', sans-serif; font-size: 12px; line-height: 16px; font-weight: 600;' +
+      'font-variant-numeric: tabular-nums; box-sizing: border-box; flex-shrink: 0;' +
+    '}' +
+
+    /* Static state classes — force a state regardless of :hover, for the all-visible
+       cards. Paired with a pointer-events-off wrapper so :hover can never fight them. */
+    '.pilltab-norm-static-row .pilltab-norm-tab { pointer-events: none; }' +
+    '.pilltab-norm-static-default { background: transparent; color: var(--tab-inactive-text, #4C5463); }' +
+    '.pilltab-norm-static-hover { background: var(--bg-tertiary, #F2F3F5); color: var(--text-secondary, #384253); }' +
+    '.pilltab-norm-static-selected { background: var(--tab-active-bg, #E4E6EB); color: var(--tab-active-text, #1B2537); }' +
+
+    /* Card grid + light inner card surfaces + muted captions. */
+    '.pilltab-norm-card-grid {' +
+      'display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 24px;' +
+    '}' +
+    '.pilltab-norm-card {' +
+      'display: flex; flex-direction: column; align-items: center; gap: 12px;' +
+      'padding: 24px 16px; border-radius: var(--radius-md, 6px);' +
+      'background: #FAFBFC; border: 1px solid var(--border-subtle, #E4E6EB);' +
+    '}' +
+    '.pilltab-norm-caption { font-size: 12px; color: #6B7280; text-align: center; line-height: 1.4; }' +
+    '.pilltab-norm-owner-note {' +
+      'font-size: 12.5px; color: #384253; line-height: 1.55; background: #F7F8FA;' +
+      'border-left: 3px solid #296DE7; padding: 10px 14px; border-radius: 4px; margin-top: 10px;' +
+    '}' +
+    '.pilltab-norm-owner-note strong { color: #1B2537; }' +
+    '.pilltab-norm-owner-note code { background: #F2F3F5; padding: 1px 6px; border-radius: 4px; font-size: 12px; color: #1B2537; }' +
+  '</style>' +
+
+  /* ── Section ── (NORMALIZED) */
+  '<div class="comp-section">' +
+    '<div class="comp-section-title">PillTab <span class="comp-normalized-label">NORMALIZED</span></div>' +
+    '<div class="comp-section-subtitle">packages/ui/src/PillTab.jsx &middot; Figma node 2787:330</div>' +
+
+    /* Owner note */
+    '<div class="pilltab-norm-owner-note">' +
+      'Pill-shaped tab atom &mdash; a <strong>label</strong> + a neutral count <strong>Badge</strong> (<code>variant="metric"</code>) &mdash; used for the All / Saved tabs in the SearchPanel filters body. Built from our primitives (Inter <code>label/sm medium</code> + our Badge <code>metric</code>), <strong>not</strong> the foreign 36-variant UI-kit Tab set. Reuses the existing <code>--tab-active-bg</code> / <code>--tab-active-text</code> / <code>--tab-inactive-text</code> tokens. Only <strong>selected</strong> is a prop; <strong>hover</strong> is pure CSS (lifts an unselected tab to <code>--bg-tertiary</code> + <code>--text-secondary</code>).' +
+    '</div>' +
+
+    /* Demo 1 — Live interactive (click to toggle selected) */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Live &mdash; hover &amp; click to select</div>' +
+      '<div class="pilltab-norm-surface">' +
+        '<div class="pilltab-norm-card-grid">' +
+          '<div class="pilltab-norm-card">' +
+            '<button class="pilltab-norm-tab pilltab-norm-selected" onclick="this.classList.toggle(\'pilltab-norm-selected\')">' +
+              'All' + metricBadge('3') +
+            '</button>' +
+            '<div class="pilltab-norm-caption">Click to toggle Selected. Hover an unselected tab to preview the gray lift.</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    /* Demo 2 — Static states */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">States &mdash; Selected / Default / Hover</div>' +
+      '<div class="pilltab-norm-surface">' +
+        '<div class="pilltab-norm-card-grid pilltab-norm-static-row">' +
+          '<div class="pilltab-norm-card">' +
+            '<button class="pilltab-norm-tab pilltab-norm-static-selected">' +
+              'All' + metricBadge('3') +
+            '</button>' +
+            '<div class="pilltab-norm-caption">Selected (<code>--tab-active-bg</code> DSN/200, <code>--tab-active-text</code>)</div>' +
+          '</div>' +
+          '<div class="pilltab-norm-card">' +
+            '<button class="pilltab-norm-tab pilltab-norm-static-default">' +
+              'Saved' + metricBadge('4') +
+            '</button>' +
+            '<div class="pilltab-norm-caption">Default (transparent, <code>--tab-inactive-text</code> DSN/600)</div>' +
+          '</div>' +
+          '<div class="pilltab-norm-card">' +
+            '<button class="pilltab-norm-tab pilltab-norm-static-hover">' +
+              'Saved' + metricBadge('4') +
+            '</button>' +
+            '<div class="pilltab-norm-caption">Hover (unselected &rarr; <code>--bg-tertiary</code> bg, <code>--text-secondary</code> label)</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    /* Props & Tokens — moved into modal */
+    '<div class="comp-subsection">' +
+      '<button class="comp-details-button" onclick="showCompDetails(\'PillTab\')">Show props &amp; tokens</button>' +
+    '</div>' +
+
+  '</div>';
+}
+
 /* ── AuthContent (organism — inner body of AuthModal) — IN-PROGRESS normalize cycle ──
    AuthContent is the composed body that slots into the AuthModal shell as its
    children prop. Variant axis (currently single value: `Login`) will gain
@@ -10795,125 +11032,126 @@ function getAuthContentComponentHTML() {
   '</div>';
 }
 
-/* ── ResultsPreview (organism) — NORMALIZED ──
-   The "Best Match" preview panel that drops below the GlobalSearch bar once filter
-   criteria are committed. White rounded panel (shadow/2xl) with a title, a list of
-   MatchRow results, a filters link (Button variant="link" + leading sliders icon),
-   and a footer action bar (Clear all · Show N results).
-   Source: packages/ui/src/ResultsPreview.jsx, Figma node 2462:149. Scoped .rp-norm-* prefix. */
-function getResultsPreviewComponentHTML() {
+/* ── SearchPanel (organism shell) — NORMALIZED ──
+   The card that drops below the GlobalSearch bar once search criteria are
+   committed (720px, --shadow-2xl). Follows the ModalLarge pattern: a conditional
+   header (back + title + close X), a single content slot (children), and a baked
+   footer (link + secondary on the lead; primary alone on the trail). Each search state fills
+   the content slot (Results → SearchResults; Filters → later cycle). Replaces the
+   retired ResultsPreview organism, which was split into SearchPanel (shell, the
+   renamed 2462:149 master) + SearchResults (content, new 2684:1040).
+   Scoped CSS prefix `.sp-norm-*` mirrors components.css `.search-panel*`. */
+function getSearchPanelComponentHTML() {
   var codeChip = 'font-family:\'SF Mono\',\'Fira Code\',monospace; font-size:11px; background:#F3F4F6; padding:1px 5px; border-radius:3px; color:#6B7280;';
-  var svgPackage = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M3.3 7 12 12l8.7-5"/><path d="M12 22V12"/></svg>';
-  var svgSliders = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="21" x2="14" y1="4" y2="4"/><line x1="10" x2="3" y1="4" y2="4"/><line x1="21" x2="12" y1="12" y2="12"/><line x1="8" x2="3" y1="12" y2="12"/><line x1="21" x2="16" y1="20" y2="20"/><line x1="12" x2="3" y1="20" y2="20"/><line x1="14" x2="14" y1="2" y2="6"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="16" x2="16" y1="18" y2="22"/></svg>';
-  function row(matchId, route, customer, carrier, bol, badgeVariant, badgeLabel) {
-    return '' +
-    '<div class="rp-norm-row">' +
-      '<div class="rp-norm-info">' +
-        '<span class="rp-norm-avatar" aria-hidden="true">' + svgPackage + '</span>' +
-        '<div class="rp-norm-details">' +
-          '<div class="rp-norm-main">' +
-            '<span class="rp-norm-location text-label-xs-regular">' +
-              '<span class="text-label-xs-semibold">' + matchId + '</span>' +
-              '<span>&nbsp;' + route + '</span>' +
-            '</span>' +
-            '<span class="rp-norm-badge rp-norm-badge--' + badgeVariant + '">' + badgeLabel + '</span>' +
-          '</div>' +
-          '<div class="rp-norm-meta text-label-xs-regular">' +
-            '<span class="rp-norm-meta-cell rp-norm-meta-cell--divider"><span>Customer:</span><span>' + customer + '</span></span>' +
-            '<span class="rp-norm-meta-cell rp-norm-meta-cell--divider"><span>Carrier:</span><span>' + carrier + '</span></span>' +
-            '<span class="rp-norm-meta-cell"><span>BOL:</span><span>' + bol + '</span></span>' +
-          '</div>' +
-        '</div>' +
-      '</div>' +
-    '</div>';
-  }
+  /* lucide chevron-left (20px) — back affordance */
+  var svgBack = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>';
+  /* lucide x (20px) — close */
+  var svgClose = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>';
+  /* lucide circle-plus (20px) — Save Filters leading icon */
+  var svgPlus = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></svg>';
   return '' +
   '<style>' +
     /* Demo surface — light gray so the white panel + shadow read. */
-    '.rp-norm-surface { background: var(--bg-secondary, #F7F8FA); padding: 32px; border-radius: var(--radius-md, 6px); }' +
-    /* Panel — faithful to .results-preview. */
-    '.rp-norm-panel { display: flex; flex-direction: column; width: 720px; max-width: 100%; background: var(--bg-primary, #FFFFFF); border-radius: var(--radius-xl, 12px); box-shadow: var(--shadow-2xl, 0px 25px 50px -12px rgba(0,0,0,0.25)); overflow: hidden; }' +
-    '.rp-norm-body { display: flex; flex: 1; flex-direction: column; gap: var(--spacing-4, 16px); align-items: flex-start; min-height: 0; padding: var(--spacing-6, 24px); overflow-y: auto; }' +
-    '.rp-norm-title { color: var(--text-tertiary, #6B7B96); }' +
-    '.rp-norm-list { display: flex; flex-direction: column; gap: var(--spacing-2, 8px); width: 100%; }' +
-    /* Row internals (mirror MatchRow). */
-    '.rp-norm-row { display: flex; align-items: center; width: 100%; padding: var(--spacing-3, 12px) var(--spacing-4, 16px); border-bottom: 1px solid var(--border-subtle, #F2F3F5); overflow: hidden; }' +
-    '.rp-norm-row:last-child { border-bottom: none; }' +
-    '.rp-norm-info { display: flex; flex: 1 0 0; gap: var(--spacing-3, 12px); align-items: center; min-width: 0; overflow: hidden; }' +
-    '.rp-norm-avatar { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; flex-shrink: 0; border-radius: var(--radius-md, 6px); background: var(--bg-tertiary, #E4E6EB); color: var(--text-secondary, #283142); }' +
-    '.rp-norm-details { display: flex; flex: 1 0 0; flex-direction: column; gap: var(--spacing-1, 4px); align-items: flex-start; min-width: 0; overflow: hidden; }' +
-    '.rp-norm-main { display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-2, 8px); width: 100%; overflow: hidden; }' +
-    '.rp-norm-location { display: flex; align-items: center; min-width: 0; color: var(--text-secondary, #283142); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }' +
-    '.rp-norm-meta { display: flex; width: 100%; align-items: flex-start; color: var(--text-secondary, #283142); white-space: nowrap; }' +
-    '.rp-norm-meta-cell { display: inline-flex; gap: var(--spacing-1, 4px); padding: 0 var(--spacing-2, 8px); min-width: 0; overflow: hidden; }' +
-    '.rp-norm-meta-cell:first-child { padding-left: 0; }' +
-    '.rp-norm-meta-cell:last-child { padding-right: 0; }' +
-    '.rp-norm-meta-cell--divider { border-right: 1px solid var(--border-default, #D0D4DB); }' +
-    '.rp-norm-meta-cell > span:last-child { overflow: hidden; text-overflow: ellipsis; }' +
-    /* Source Badge. */
-    '.rp-norm-badge { display: inline-flex; align-items: center; white-space: nowrap; flex-shrink: 0; border-radius: var(--radius-sm, 4px); padding: 2px 10px; font-family: \'Inter\', sans-serif; font-size: 12px; line-height: 16px; font-weight: 500; }' +
-    '.rp-norm-badge--blue { background: var(--badge-blue-bg, #D0F1FF); color: var(--badge-blue-text, #063A83); }' +
-    '.rp-norm-badge--purple { background: var(--badge-purple-bg, #EDE9FE); color: var(--badge-purple-text, #5B21B6); }' +
-    /* Filters link row — 36px indent (off-scale, no token). */
-    '.rp-norm-filters { display: flex; align-items: center; padding: var(--spacing-3, 12px) 0 var(--spacing-3, 12px) 36px; }' +
-    '.rp-norm-link { display: inline-flex; align-items: center; gap: var(--spacing-2, 8px); background: transparent; border: none; padding: 0; cursor: pointer; color: var(--text-link, #276DA2); font-family: \'Inter\', sans-serif; font-size: var(--font-size-sm, 14px); line-height: var(--line-height-sm, 20px); font-weight: 500; transition: color var(--transition-fast, 150ms ease); }' +
-    '.rp-norm-link:hover { color: var(--carolina-blue-400, #5BA4D4); }' +
-    '.rp-norm-link__icon { display: inline-flex; align-items: center; justify-content: center; width: var(--icon-size-lg, 20px); height: var(--icon-size-lg, 20px); flex-shrink: 0; color: currentColor; }' +
-    /* Footer action bar — top border, justify-between. */
-    '.rp-norm-actions { display: flex; align-items: center; justify-content: space-between; padding: var(--spacing-3, 12px) var(--spacing-4, 16px) var(--spacing-4, 16px); border-top: 1px solid var(--border-default, #D0D4DB); }' +
+    '.sp-norm-surface { background: var(--bg-secondary, #F7F8FA); padding: 32px; border-radius: var(--radius-md, 6px); }' +
+    /* Panel shell — faithful to .search-panel. */
+    '.sp-norm-panel { display: flex; flex-direction: column; width: 720px; max-width: 100%; background: var(--bg-primary, #FFFFFF); border-radius: var(--radius-xl, 12px); box-shadow: var(--shadow-2xl, 0px 25px 50px -12px rgba(0,0,0,0.25)); overflow: hidden; }' +
+    /* Header — conditional, border-bottom --border-subtle. */
+    '.sp-norm-header { display: flex; align-items: center; justify-content: space-between; padding: var(--spacing-3, 12px) var(--spacing-6, 24px); border-bottom: 1px solid var(--border-subtle, #F2F3F5); }' +
+    '.sp-norm-header-left { display: flex; align-items: center; gap: var(--spacing-2, 8px); min-width: 0; }' +
+    '.sp-norm-title { color: var(--text-primary, #1B2537); }' +
+    /* IconButtonGhost stand-in (28×28, --icon-size-lg). */
+    '.sp-norm-ghost { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; flex-shrink: 0; border: none; background: transparent; border-radius: var(--radius-md, 6px); cursor: pointer; color: var(--text-tertiary, #6B7280); transition: background var(--transition-fast, 150ms ease), color var(--transition-fast, 150ms ease); }' +
+    '.sp-norm-ghost:hover { background: var(--deep-sea-neutral-50, #F7F8FA); color: var(--text-primary, #1B2537); }' +
+    /* Content slot. */
+    '.sp-norm-content { display: flex; flex-direction: column; }' +
+    /* Placeholder for the content slot (animated dashed border = preview-state indicator). */
+    '.sp-norm-slot { display: flex; align-items: center; justify-content: center; margin: var(--spacing-6, 24px); min-height: 96px; border: 1.5px dashed var(--border-default, #D0D4DB); border-radius: var(--radius-md, 6px); color: var(--text-tertiary, #6B7280); font-family: \'Inter\', sans-serif; font-size: 13px; font-style: italic; background: repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(208,212,219,0.10) 8px, rgba(208,212,219,0.10) 16px); animation: sp-norm-slot-shift 1.4s linear infinite; }' +
+    '@keyframes sp-norm-slot-shift { from { background-position: 0 0; } to { background-position: 32px 0; } }' +
+    /* Footer — top border --border-default; lead = link + secondary, trail = primary alone. */
+    '.sp-norm-footer { display: flex; align-items: center; justify-content: space-between; padding: var(--spacing-3, 12px) var(--spacing-4, 16px) var(--spacing-4, 16px); border-top: 1px solid var(--border-default, #D0D4DB); }' +
+    '.sp-norm-footer-left { display: flex; align-items: center; gap: var(--spacing-2, 8px); }' +
+    '.sp-norm-footer-right { display: flex; align-items: center; gap: var(--spacing-2, 8px); }' +
+    /* Footer link (Button variant="link" sm, leading 20px icon). */
+    '.sp-norm-link { display: inline-flex; align-items: center; gap: var(--spacing-2, 8px); background: transparent; border: none; padding: 0; cursor: pointer; color: var(--text-link, #276DA2); font-family: \'Inter\', sans-serif; font-size: var(--font-size-sm, 14px); line-height: var(--line-height-sm, 20px); font-weight: 500; transition: color var(--transition-fast, 150ms ease); }' +
+    '.sp-norm-link:hover { color: var(--carolina-blue-400, #5BA4D4); }' +
+    '.sp-norm-link__icon { display: inline-flex; align-items: center; justify-content: center; width: var(--icon-size-lg, 20px); height: var(--icon-size-lg, 20px); flex-shrink: 0; color: currentColor; }' +
     /* Footer buttons — md secondary + md primary (mirror .btn-demo). */
-    '.rp-norm-btn { display: inline-flex; align-items: center; justify-content: center; height: 36px; padding: 6px 14px; border-radius: var(--radius-lg, 8px); border: 1px solid transparent; font-family: \'Inter\', sans-serif; font-size: var(--font-size-base, 16px); line-height: var(--line-height-base, 24px); font-weight: 500; cursor: pointer; white-space: nowrap; transition: background-color var(--transition-fast, 150ms ease), border-color var(--transition-fast, 150ms ease); }' +
-    '.rp-norm-btn--secondary { background: var(--white, #fff); color: var(--deep-sea-neutral-700, #384253); border-color: var(--deep-sea-neutral-300, #D0D4DB); box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.05)); }' +
-    '.rp-norm-btn--secondary:hover { background: var(--deep-sea-neutral-50, #F7F8FA); border-color: var(--deep-sea-neutral-400, #9DA3B0); }' +
-    '.rp-norm-btn--primary { background: var(--deep-sea-neutral-900, #1B2537); color: var(--white, #fff); border: 1px solid var(--deep-sea-neutral-500, #6B7280); box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.05)); }' +
-    '.rp-norm-btn--primary:hover { background: var(--deep-sea-neutral-600, #4C5463); }' +
+    '.sp-norm-btn { display: inline-flex; align-items: center; justify-content: center; height: 36px; padding: 6px 14px; border-radius: var(--radius-lg, 8px); border: 1px solid transparent; font-family: \'Inter\', sans-serif; font-size: var(--font-size-base, 16px); line-height: var(--line-height-base, 24px); font-weight: 500; cursor: pointer; white-space: nowrap; transition: background-color var(--transition-fast, 150ms ease), border-color var(--transition-fast, 150ms ease); }' +
+    '.sp-norm-btn--secondary { background: var(--white, #fff); color: var(--deep-sea-neutral-700, #384253); border-color: var(--deep-sea-neutral-300, #D0D4DB); box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.05)); }' +
+    '.sp-norm-btn--secondary:hover { background: var(--deep-sea-neutral-50, #F7F8FA); border-color: var(--deep-sea-neutral-400, #9DA3B0); }' +
+    '.sp-norm-btn--primary { background: var(--deep-sea-neutral-900, #1B2537); color: var(--white, #fff); border: 1px solid var(--deep-sea-neutral-500, #6B7280); box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.05)); }' +
+    '.sp-norm-btn--primary:hover { background: var(--deep-sea-neutral-600, #4C5463); }' +
     /* Owner note. */
-    '.rp-norm-owner-note { font-size: 12.5px; color: #384253; line-height: 1.55; background: #F7F8FA; border-left: 3px solid #296DE7; padding: 10px 14px; border-radius: 4px; margin-top: 10px; }' +
-    '.rp-norm-owner-note strong { color: #1B2537; }' +
-    '.rp-norm-owner-note code { background: #F2F3F5; padding: 1px 6px; border-radius: 4px; font-size: 12px; color: #1B2537; }' +
+    '.sp-norm-owner-note { font-size: 12.5px; color: #384253; line-height: 1.55; background: #F7F8FA; border-left: 3px solid #296DE7; padding: 10px 14px; border-radius: 4px; margin-top: 10px; }' +
+    '.sp-norm-owner-note strong { color: #1B2537; }' +
+    '.sp-norm-owner-note code { background: #F2F3F5; padding: 1px 6px; border-radius: 4px; font-size: 12px; color: #1B2537; }' +
   '</style>' +
 
   '<div class="comp-section">' +
-    '<div class="comp-section-title">ResultsPreview <span class="comp-normalized-label">NORMALIZED</span></div>' +
-    '<div class="comp-section-subtitle">packages/ui/src/ResultsPreview.jsx &middot; Figma node 2462:149</div>' +
+    '<div class="comp-section-title">SearchPanel <span class="comp-normalized-label">NORMALIZED</span></div>' +
+    '<div class="comp-section-subtitle">packages/ui/src/SearchPanel.jsx &middot; Figma node 2462:149</div>' +
 
-    '<div class="rp-norm-owner-note">' +
-      'The "Best Match" preview panel that drops below the GlobalSearch bar once filter criteria are committed. White rounded panel (<code>--shadow-2xl</code>) composing a title, a list of <strong>MatchRow</strong> results, a filters link (<code>Button variant="link"</code> with a leading <code>SlidersHorizontal</code> icon), and a footer action bar (<strong>Button</strong> secondary "Clear all" &middot; <strong>Button</strong> primary "Show N results"). The footer count defaults to <code>matches.length</code> unless <code>resultCount</code> is given.' +
+    '<div class="sp-norm-owner-note">' +
+      'Organism <strong>shell</strong> &mdash; the card that drops below the GlobalSearch bar once search criteria are committed. Follows the <strong>ModalLarge</strong> pattern: a <strong>conditional header</strong> (‹ back + title + × close), a single <strong>content slot</strong> (<code>children</code>), and a <strong>baked footer</strong> with a toggleable link plus the secondary action on the <strong>lead</strong> (left) and the primary action <strong>alone on the trail</strong> (right). Each search state fills the content slot with its own component: <strong>Results</strong> &rarr; <code>&lt;SearchResults&gt;</code>, <strong>Filters</strong> &rarr; <code>&lt;SearchFilters&gt;</code> (later cycle). Replaces the retired <strong>ResultsPreview</strong>, split into SearchPanel (this shell) + SearchResults (content).' +
     '</div>' +
 
     '<div class="comp-subsection">' +
-      '<div class="comp-subsection-title">Live &mdash; full panel with 4 MatchRow results (row 2 = purple EDI 214)</div>' +
-      '<div class="rp-norm-surface">' +
-        '<div class="rp-norm-panel">' +
-          '<div class="rp-norm-body">' +
-            '<span class="rp-norm-title text-label-sm-medium">Best Match</span>' +
-            '<div class="rp-norm-list">' +
-              row('C814956', 'Allentown, PA &rarr; Henderson, KY', 'Kemira Americas', 'CAPITAL TRANSPORTATION', 'S378003JB3', 'blue', 'FourKites, Inc.') +
-              row('C7645814', 'Allentown, PA &rarr; Henderson, KY', 'A Hartrodt', 'AACT - AAA COOPER', 'TH545725', 'purple', 'EDI 214') +
-              row('C0981487', 'Allentown, PA &rarr; Henderson, KY', 'ADP Global Logistics LLC', 'ABXN - AMX Trucking', 'H260003JB3', 'blue', 'FourKites, Inc.') +
-              row('C9781497', 'Allentown, PA &rarr; Henderson, KY', 'AM Stabilizers', 'AGVS - ATS LOGISTICS', 'C780003JB3', 'blue', 'FourKites, Inc.') +
+      '<div class="comp-subsection-title">Default / Results state &mdash; header off, content slot &rarr; SearchResults, footer <code>[ Clear all ] &hellip; [ Show 4 results ]</code></div>' +
+      '<div class="sp-norm-surface">' +
+        '<div class="sp-norm-panel">' +
+          '<div class="sp-norm-content">' +
+            '<div class="sp-norm-slot">content slot &rarr; SearchResults</div>' +
+          '</div>' +
+          '<div class="sp-norm-footer">' +
+            '<div class="sp-norm-footer-left">' +
+              '<button type="button" class="sp-norm-btn sp-norm-btn--secondary">Clear all</button>' +
             '</div>' +
-          '</div>' +
-          '<div class="rp-norm-filters">' +
-            '<button type="button" class="rp-norm-link"><span class="rp-norm-link__icon">' + svgSliders + '</span><span>All Filters</span></button>' +
-          '</div>' +
-          '<div class="rp-norm-actions">' +
-            '<button type="button" class="rp-norm-btn rp-norm-btn--secondary">Clear all</button>' +
-            '<button type="button" class="rp-norm-btn rp-norm-btn--primary">Show 4 results</button>' +
+            '<div class="sp-norm-footer-right">' +
+              '<button type="button" class="sp-norm-btn sp-norm-btn--primary">Show 4 results</button>' +
+            '</div>' +
           '</div>' +
         '</div>' +
       '</div>' +
+      '<div class="comp-card-note" style="margin-top:8px;"><code>showHeader=false</code> &middot; <code>showLink=false</code> &middot; <code>showSecondary=true</code>. No header chrome; <code>showLink</code> off leaves the lead with just the white secondary, while the primary sits alone on the trail.</div>' +
     '</div>' +
 
     '<div class="comp-subsection">' +
-      '<button class="comp-details-button" onclick="showCompDetails(\'ResultsPreview\')">Show props &amp; tokens</button>' +
+      '<div class="comp-subsection-title">Header on / Filters state &mdash; ‹ back + "Filters" title + × close, footer <code>[ ⊕ Save Filters ][ Clear all ] &hellip; [ Show N results ]</code></div>' +
+      '<div class="sp-norm-surface">' +
+        '<div class="sp-norm-panel">' +
+          '<div class="sp-norm-header">' +
+            '<div class="sp-norm-header-left">' +
+              '<button type="button" class="sp-norm-ghost" aria-label="Back">' + svgBack + '</button>' +
+              '<span class="sp-norm-title text-heading-lg-semibold">Filters</span>' +
+            '</div>' +
+            '<button type="button" class="sp-norm-ghost" aria-label="Close">' + svgClose + '</button>' +
+          '</div>' +
+          '<div class="sp-norm-content">' +
+            '<div class="sp-norm-slot">content slot &rarr; SearchFilters (later cycle)</div>' +
+          '</div>' +
+          '<div class="sp-norm-footer">' +
+            '<div class="sp-norm-footer-left">' +
+              '<button type="button" class="sp-norm-link"><span class="sp-norm-link__icon">' + svgPlus + '</span><span>Save Filters</span></button>' +
+              '<button type="button" class="sp-norm-btn sp-norm-btn--secondary">Clear all</button>' +
+            '</div>' +
+            '<div class="sp-norm-footer-right">' +
+              '<button type="button" class="sp-norm-btn sp-norm-btn--primary">Show 12 results</button>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="comp-card-note" style="margin-top:8px;"><code>showHeader=true</code> &middot; <code>showBack=true</code> &middot; <code>title="Filters"</code> &middot; <code>showLink=true</code> (<code>linkLabel="Save Filters"</code>, <code>CirclePlus</code> 20px leading icon) &middot; <code>showSecondary=true</code>. The link + white secondary share the <strong>lead</strong> (in that order); the primary sits <strong>alone on the trail</strong>. Header back + close are <strong>IconButtonGhost</strong> (20px icons); the footer link is a <code>Button variant="link" size="sm"</code>.</div>' +
+    '</div>' +
+
+    '<div class="comp-subsection">' +
+      '<button class="comp-details-button" onclick="showCompDetails(\'SearchPanel\')">Show props &amp; tokens</button>' +
     '</div>' +
 
     /* Sub-section: Figma reference */
     '<div class="comp-subsection">' +
       '<div class="comp-subsection-title">Figma Reference</div>' +
       '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
-        'Component <code style="' + codeChip + '">ResultsPreview</code> <code style="' + codeChip + '">2462:149</code> on Components-Organisms (Modals artboard). Composes <code>MatchRow</code> rows + a <code>Badge</code> per row + the filters <code>Button variant="link"</code> + secondary &amp; primary footer <code>Button</code>s.' +
+        'Component <code style="' + codeChip + '">SearchPanel</code> <code style="' + codeChip + '">2462:149</code> on Components-Organisms (Modals artboard &mdash; renamed master, formerly ResultsPreview). Composes the conditional header (<code>IconButtonGhost</code> back + title + <code>IconButtonGhost</code> close), the native <strong>Content SLOT</strong>, and the baked footer (<code>Button variant="link"</code> + secondary &amp; primary <code>Button</code>s). Toggles: <code style="' + codeChip + '">Show header</code> / <code style="' + codeChip + '">Show back</code> / <code style="' + codeChip + '">Show link</code> / <code style="' + codeChip + '">Show secondary</code> + a <code style="' + codeChip + '">Title</code> TEXT property.' +
       '</div>' +
     '</div>' +
 
@@ -10921,7 +11159,130 @@ function getResultsPreviewComponentHTML() {
     '<div class="comp-subsection">' +
       '<div class="comp-subsection-title">Code Connect</div>' +
       '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
-        'Mapped via <code style="' + codeChip + '">packages/ui/src/ResultsPreview.figma.tsx</code> &mdash; a static, data-driven example (composed organism, no top-level component properties).' +
+        'Mapped via <code style="' + codeChip + '">packages/ui/src/SearchPanel.figma.tsx</code> &mdash; native Content <strong>SLOT</strong> &rarr; <code>children</code>; <code style="' + codeChip + '">Show header</code> / <code style="' + codeChip + '">Show back</code> / <code style="' + codeChip + '">Show link</code> / <code style="' + codeChip + '">Show secondary</code> booleans + <code style="' + codeChip + '">Title</code> text property.' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+/* ── SearchResults (organism content) — NORMALIZED ──
+   The "Best Match" body that fills the SearchPanel content slot in the Results
+   state: title + scrollable MatchRow list + an "All Filters" link row. Transparent
+   background — the card / header / footer chrome lives on SearchPanel. Scoped CSS
+   prefix `.sr-norm-*` mirrors components.css `.search-results*`. */
+function getSearchResultsComponentHTML() {
+  var codeChip = 'font-family:\'SF Mono\',\'Fira Code\',monospace; font-size:11px; background:#F3F4F6; padding:1px 5px; border-radius:3px; color:#6B7280;';
+  var svgPackage = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M3.3 7 12 12l8.7-5"/><path d="M12 22V12"/></svg>';
+  var svgSliders = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="21" x2="14" y1="4" y2="4"/><line x1="10" x2="3" y1="4" y2="4"/><line x1="21" x2="12" y1="12" y2="12"/><line x1="8" x2="3" y1="12" y2="12"/><line x1="21" x2="16" y1="20" y2="20"/><line x1="12" x2="3" y1="20" y2="20"/><line x1="14" x2="14" y1="2" y2="6"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="16" x2="16" y1="18" y2="22"/></svg>';
+  function row(matchId, route, customer, carrier, bol, badgeVariant, badgeLabel) {
+    return '' +
+    '<div class="sr-norm-row">' +
+      '<div class="sr-norm-info">' +
+        '<span class="sr-norm-avatar" aria-hidden="true">' + svgPackage + '</span>' +
+        '<div class="sr-norm-details">' +
+          '<div class="sr-norm-main">' +
+            '<span class="sr-norm-location text-label-xs-regular">' +
+              '<span class="text-label-xs-semibold">' + matchId + '</span>' +
+              '<span>&nbsp;' + route + '</span>' +
+            '</span>' +
+            '<span class="sr-norm-badge sr-norm-badge--' + badgeVariant + '">' + badgeLabel + '</span>' +
+          '</div>' +
+          '<div class="sr-norm-meta text-label-xs-regular">' +
+            '<span class="sr-norm-meta-cell sr-norm-meta-cell--divider"><span>Customer:</span><span>' + customer + '</span></span>' +
+            '<span class="sr-norm-meta-cell sr-norm-meta-cell--divider"><span>Carrier:</span><span>' + carrier + '</span></span>' +
+            '<span class="sr-norm-meta-cell"><span>BOL:</span><span>' + bol + '</span></span>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }
+  return '' +
+  '<style>' +
+    /* Demo surface — light gray; SearchResults itself is transparent (chrome lives on SearchPanel). */
+    '.sr-norm-surface { background: var(--bg-secondary, #F7F8FA); padding: 32px; border-radius: var(--radius-md, 6px); }' +
+    /* A white card wrapper just to frame the transparent content for the demo. */
+    '.sr-norm-frame { background: var(--bg-primary, #FFFFFF); border-radius: var(--radius-xl, 12px); box-shadow: var(--shadow-2xl, 0px 25px 50px -12px rgba(0,0,0,0.25)); overflow: hidden; }' +
+    /* Content — transparent, faithful to .search-results. */
+    '.sr-norm-results { display: flex; flex-direction: column; background: transparent; }' +
+    '.sr-norm-body { display: flex; flex-direction: column; gap: var(--spacing-2, 8px); align-items: flex-start; padding: var(--spacing-6, 24px) var(--spacing-6, 24px) 0; }' +
+    '.sr-norm-title { color: var(--text-tertiary, #6B7B96); }' +
+    '.sr-norm-list { display: flex; flex-direction: column; width: 100%; max-height: 272px; overflow-y: auto; }' +
+    /* Row internals (mirror MatchRow). */
+    '.sr-norm-row { display: flex; align-items: center; width: 100%; padding: var(--spacing-3, 12px) var(--spacing-4, 16px); border-bottom: 1px solid var(--border-subtle, #F2F3F5); overflow: hidden; }' +
+    '.sr-norm-row:last-child { border-bottom: none; }' +
+    '.sr-norm-info { display: flex; flex: 1 0 0; gap: var(--spacing-3, 12px); align-items: center; min-width: 0; overflow: hidden; }' +
+    '.sr-norm-avatar { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; flex-shrink: 0; border-radius: var(--radius-md, 6px); background: var(--bg-tertiary, #E4E6EB); color: var(--text-secondary, #283142); }' +
+    '.sr-norm-details { display: flex; flex: 1 0 0; flex-direction: column; gap: var(--spacing-1, 4px); align-items: flex-start; min-width: 0; overflow: hidden; }' +
+    '.sr-norm-main { display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-2, 8px); width: 100%; overflow: hidden; }' +
+    '.sr-norm-location { display: flex; align-items: center; min-width: 0; color: var(--text-secondary, #283142); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }' +
+    '.sr-norm-meta { display: flex; width: 100%; align-items: flex-start; color: var(--text-secondary, #283142); white-space: nowrap; }' +
+    '.sr-norm-meta-cell { display: inline-flex; gap: var(--spacing-1, 4px); padding: 0 var(--spacing-2, 8px); min-width: 0; overflow: hidden; }' +
+    '.sr-norm-meta-cell:first-child { padding-left: 0; }' +
+    '.sr-norm-meta-cell:last-child { padding-right: 0; }' +
+    '.sr-norm-meta-cell--divider { border-right: 1px solid var(--border-default, #D0D4DB); }' +
+    '.sr-norm-meta-cell > span:last-child { overflow: hidden; text-overflow: ellipsis; }' +
+    /* Source Badge. */
+    '.sr-norm-badge { display: inline-flex; align-items: center; white-space: nowrap; flex-shrink: 0; border-radius: var(--radius-sm, 4px); padding: 2px 10px; font-family: \'Inter\', sans-serif; font-size: 12px; line-height: 16px; font-weight: 500; }' +
+    '.sr-norm-badge--blue { background: var(--badge-blue-bg, #D0F1FF); color: var(--badge-blue-text, #063A83); }' +
+    '.sr-norm-badge--purple { background: var(--badge-purple-bg, #EDE9FE); color: var(--badge-purple-text, #5B21B6); }' +
+    /* All Filters link row — 36px indent (off-scale, no token). */
+    '.sr-norm-filters { display: flex; align-items: center; padding: var(--spacing-3, 12px) 0 var(--spacing-3, 12px) 36px; }' +
+    '.sr-norm-link { display: inline-flex; align-items: center; gap: var(--spacing-2, 8px); background: transparent; border: none; padding: 0; cursor: pointer; color: var(--text-link, #276DA2); font-family: \'Inter\', sans-serif; font-size: var(--font-size-sm, 14px); line-height: var(--line-height-sm, 20px); font-weight: 500; transition: color var(--transition-fast, 150ms ease); }' +
+    '.sr-norm-link:hover { color: var(--carolina-blue-400, #5BA4D4); }' +
+    '.sr-norm-link__icon { display: inline-flex; align-items: center; justify-content: center; width: var(--icon-size-lg, 20px); height: var(--icon-size-lg, 20px); flex-shrink: 0; color: currentColor; }' +
+    /* Owner note. */
+    '.sr-norm-owner-note { font-size: 12.5px; color: #384253; line-height: 1.55; background: #F7F8FA; border-left: 3px solid #296DE7; padding: 10px 14px; border-radius: 4px; margin-top: 10px; }' +
+    '.sr-norm-owner-note strong { color: #1B2537; }' +
+    '.sr-norm-owner-note code { background: #F2F3F5; padding: 1px 6px; border-radius: 4px; font-size: 12px; color: #1B2537; }' +
+  '</style>' +
+
+  '<div class="comp-section">' +
+    '<div class="comp-section-title">SearchResults <span class="comp-normalized-label">NORMALIZED</span></div>' +
+    '<div class="comp-section-subtitle">packages/ui/src/SearchResults.jsx &middot; Figma node 2684:1040</div>' +
+
+    '<div class="sr-norm-owner-note">' +
+      'Organism <strong>content</strong> &mdash; the "Best Match" body that fills the <strong>SearchPanel</strong> content slot in the Results state: a <code>--text-tertiary</code> title + a scrollable list of <strong>MatchRow</strong> results (<code>max-height: 272px</code>, ~4 rows), followed by an <strong>"All Filters"</strong> link row (<code>Button variant="link"</code> with a leading <code>SlidersHorizontal</code> icon, 36px indent) that opens the Filters view. The panel chrome (card, header, footer) lives on SearchPanel; this component is <strong>transparent</strong> and owns only the body.' +
+    '</div>' +
+
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Live &mdash; "Best Match" title + 4 MatchRow results (row 2 = purple EDI 214) + All Filters link (framed in a white card for legibility; the component itself is transparent)</div>' +
+      '<div class="sr-norm-surface">' +
+        '<div class="sr-norm-frame">' +
+          '<div class="sr-norm-results">' +
+            '<div class="sr-norm-body">' +
+              '<span class="sr-norm-title text-label-sm-medium">Best Match</span>' +
+              '<div class="sr-norm-list">' +
+                row('C814956', 'Allentown, PA &rarr; Henderson, KY', 'Kemira Americas', 'CAPITAL TRANSPORTATION', 'S378003JB3', 'blue', 'FourKites, Inc.') +
+                row('C7645814', 'Allentown, PA &rarr; Henderson, KY', 'A Hartrodt', 'AACT - AAA COOPER', 'TH545725', 'purple', 'EDI 214') +
+                row('C0981487', 'Allentown, PA &rarr; Henderson, KY', 'ADP Global Logistics LLC', 'ABXN - AMX Trucking', 'H260003JB3', 'blue', 'FourKites, Inc.') +
+                row('C9781497', 'Allentown, PA &rarr; Henderson, KY', 'AM Stabilizers', 'AGVS - ATS LOGISTICS', 'C780003JB3', 'blue', 'FourKites, Inc.') +
+              '</div>' +
+            '</div>' +
+            '<div class="sr-norm-filters">' +
+              '<button type="button" class="sr-norm-link"><span class="sr-norm-link__icon">' + svgSliders + '</span><span>All Filters</span></button>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    '<div class="comp-subsection">' +
+      '<button class="comp-details-button" onclick="showCompDetails(\'SearchResults\')">Show props &amp; tokens</button>' +
+    '</div>' +
+
+    /* Sub-section: Figma reference */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Figma Reference</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
+        'Component <code style="' + codeChip + '">SearchResults</code> <code style="' + codeChip + '">2684:1040</code> on Components-Organisms (Modals artboard &mdash; new master). Composes the "Best Match" title + <code>MatchRow</code> rows (each with a <code>Badge</code>) + the "All Filters" <code>Button variant="link"</code> row. Designed to drop into the SearchPanel Content SLOT.' +
+      '</div>' +
+    '</div>' +
+
+    /* Sub-section: Code Connect */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Code Connect</div>' +
+      '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
+        'Mapped via <code style="' + codeChip + '">packages/ui/src/SearchResults.figma.tsx</code> &mdash; a static, data-driven example (composed organism, no top-level component properties).' +
       '</div>' +
     '</div>' +
   '</div>';
@@ -11148,7 +11509,7 @@ function showCompDetails(componentName) {
 document.addEventListener('DOMContentLoaded', function() {
   /* Populate Components tab */
   var compTab = document.getElementById('componentsTabBadgeContent');
-  if (compTab) compTab.innerHTML = getBadgeComponentHTML() + getFilterButtonComponentHTML() + getButtonComponentHTML() + getIconButtonComponentHTML() + getIconButtonGhostComponentHTML() + getSidebarButtonComponentHTML() + getSidebarComponentHTML() + getGlobalSearchComponentHTML() + getFilterSuggestionsComponentHTML() + getMatchRowComponentHTML() + getLeadNavComponentHTML() + getTrailNavComponentHTML() + getNavbarComponentHTML() + getPageHeaderComponentHTML() + getSectionHeaderComponentHTML() + getSectionLabelComponentHTML() + getAddSectionDividerComponentHTML() + getAddSectionButtonComponentHTML() + getEntityChipComponentHTML() + getSearchFieldComponentHTML() + getFormFieldComponentHTML() + getWidgetMetricRowComponentHTML() + getWidgetPieChartComponentHTML() + getWidgetComponentHTML() + getWidgetCtaRowComponentHTML() + getWidgetVariantPickerComponentHTML() + getMenuRowComponentHTML() + getCustomerRowComponentHTML() + getMenuDropdownComponentHTML() + getEditModeOverviewHTML() + getWidgetsLeftMenuComponentHTML() + getEmptyStateComponentHTML() + getModalLargeComponentHTML() + getModalMediumComponentHTML() + getAuthModalComponentHTML() + getAuthContentComponentHTML() + getResultsPreviewComponentHTML();
+  if (compTab) compTab.innerHTML = getBadgeComponentHTML() + getFilterButtonComponentHTML() + getPillTabComponentHTML() + getButtonComponentHTML() + getIconButtonComponentHTML() + getIconButtonGhostComponentHTML() + getSidebarButtonComponentHTML() + getSidebarComponentHTML() + getGlobalSearchComponentHTML() + getFilterSuggestionsComponentHTML() + getMatchRowComponentHTML() + getLeadNavComponentHTML() + getTrailNavComponentHTML() + getNavbarComponentHTML() + getPageHeaderComponentHTML() + getSectionHeaderComponentHTML() + getSectionLabelComponentHTML() + getAddSectionDividerComponentHTML() + getAddSectionButtonComponentHTML() + getEntityChipComponentHTML() + getSearchFieldComponentHTML() + getFormFieldComponentHTML() + getWidgetMetricRowComponentHTML() + getWidgetPieChartComponentHTML() + getWidgetComponentHTML() + getWidgetCtaRowComponentHTML() + getWidgetVariantPickerComponentHTML() + getMenuRowComponentHTML() + getCustomerRowComponentHTML() + getMenuDropdownComponentHTML() + getEditModeOverviewHTML() + getWidgetsLeftMenuComponentHTML() + getEmptyStateComponentHTML() + getModalLargeComponentHTML() + getModalMediumComponentHTML() + getAuthModalComponentHTML() + getAuthContentComponentHTML() + getSearchPanelComponentHTML() + getSearchResultsComponentHTML();
 
   /* No active normalization cycle. AuthContent (Variant=Login) was promoted
      to the Components tab after GATE B-DSM sign-off — see

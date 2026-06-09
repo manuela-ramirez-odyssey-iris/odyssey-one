@@ -22,7 +22,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
  *   `getInitial(chips)`. The hook stays domain-agnostic: it knows nothing about
  *   progression order or group advancement.
  * - `adapter.searchShipments(chips)` is called whenever chips change (if the
- *   adapter implements it) to populate ResultsPreview results.
+ *   adapter implements it) to populate SearchResults results.
  */
 export function useGlobalSearch(adapter, { debounceMs = 120 } = {}) {
   const [value, setValue] = useState('')

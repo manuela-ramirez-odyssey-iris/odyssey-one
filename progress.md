@@ -3607,15 +3607,54 @@ Account switch, a Shipments cleanup pass, the **PR #1 merge to main**, then the 
 
 ---
 
+## Session 44 — June 8, 2026
+
+The **GlobalSearch "search panel" arc lands**: normalized the `SearchPanel` shell (the modal-pattern card) + its first content/sub-components, kicked off the **Efrain component-alignment pass**, migrated the Filters prototype onto the real shell, and added a second GlobalSearch entry point. Closed with an honest audit of the API data layer (no code change). All on `shipments/global-search`; **green throughout (build + 67 tests)**.
+
+### Thread 1 — `SearchPanel` shell + `SearchResults` (normalized)
+- Shell shape: started from Session 43's "thin single-slot" plan, **revised to the ModalLarge-style shell** (baked conditional header + `children` content slot + baked footer) per user; footer baked, not slotted.
+- Renamed `ResultsPreview` → **`SearchPanel`** (master `2462:149`, native Content SLOT) and extracted the Best Match body into a new **`SearchResults`** organism (`2684:1040`). Header mirrors the Filters frame (‹ back · Title · × close).
+- Code: `SearchPanel.jsx` (header/footer toggles) + `SearchResults.jsx`; CSS split `.results-preview*` → `.search-panel*` + `.search-results*`; consumer rewired to `<SearchPanel><SearchResults/></SearchPanel>`; Code Connect for both; deleted `ResultsPreview.*`. DSM + tracker synced; published.
+
+### Thread 2 — `ButtonLink` Efrain-alignment (first of the pass)
+- Efrain had reshaped the ButtonLink set (`1895:7`) and **broken it** — the blue trio lacked a `Variant=` axis, which silently disabled the whole set's component properties. Repaired the axis.
+- Standardized icon slots: **leading 20×20** (`placeholder-20`, `Show leading icon`/`Leading icon`) + **trailing 16×16** (`arrow-right`, renamed `Show icon`/`Icon` → `Show trailing icon`/`Trailing icon`); bound the raw `#9747FF` leading stroke per-variant. Retired stale `1838:7`.
+- Code: `.btn--link .btn__icon--right` → 16 (`--icon-size-md`), leading stays 20; Code Connect names updated; Widget "Go to X" arrows corrected 20→16 (already passed `ICON_MD`). User added `lucide/circle-plus`.
+
+### Thread 3 — Filters view migrated onto the shell
+- Caught a real gap: the **Filters panel never used SearchPanel** — `ShipmentsFiltersView` was a duplicate hand-rolled card with the wrong `Plus` icon. Migrated it to render **inside `<SearchPanel>`** (header/footer/card/CirclePlus all from the shell); deleted the duplicate `.shipments-filters` card/header/footer CSS. Both overlay states now use one component.
+
+### Thread 4 — `PillTab` atom (filter tabs)
+- The linked "Filter Tabs" was a **foreign UI-kit `Tab`** (36-variant, Public Sans) + foreign Badge — drift. Declined to adopt it; built a clean **`PillTab`** atom (`2787:330`) from our primitives (Inter `label/sm medium`, `--tab-*` tokens, count = our Badge **`metric`** variant). Wired into the All/Saved tabs (active bg corrected DSN/100→DSN/200; count now a metric Badge). DSM + tracker + Code Connect; published.
+
+### Thread 5 — Footer + FilterButton refinements
+- **Footer layout**: moved the white secondary to the **lead** (with the link), restoring the original Results layout; then added an optional **trail** secondary (`showTrailSecondary` / Figma `Show trail secondary`) so **Filters·All** shows "Clear all" next to "Show N" while the link sits alone on the lead.
+- **FilterButton now opens the Filters view** (`GlobalSearch` already exposed `filterActive`/`onFilterClick`; wired in `ShipmentsGlobalSearch`). Its active state **binds** to the Filters view being open — via the button OR the SearchResults "All Filters" link. Filters can open with no chips. Fixed a state bug (chip effect re-opening a just-closed panel → moved `panelView` to a ref).
+
+### Thread 6 — API data-layer audit (no code change)
+- Reconciled skepticism about "ready to connect to APIs." Confirmed the real plumbing in `apps/odyssey-one/src/api/`: native **`fetch`** client (no axios) with typed **`ApiError`** + `res.ok` checks + Bearer + `x-correlation-id` (`client.ts`); **mock/live env switch** (`config.ts`) whose live branch calls real LLD endpoint paths (`sell-shipment-out/{id}`, `pgi-pgr/v1/error/list`, `error/category/count`); TanStack Query retry/caching; tests for both paths. **Honest gaps:** auth is a stub (`auth.ts` reads `VITE_API_TOKEN`, not MSAL/Entra); no live URL/creds configured; advanced-filter lookups + Orders/Carriers not wired. "Connecting" = env flip + credentials + MSAL swap (isolated to `auth.ts`).
+
+### New / modified
+- **New:** `packages/ui/src/SearchPanel.jsx` + `.figma.tsx`, `SearchResults.jsx` + `.figma.tsx`, `PillTab.jsx` + `.figma.tsx`. Deleted `ResultsPreview.jsx` + `.figma.tsx`.
+- **Modified:** `Button.figma.tsx`, Button link CSS, `packages/ui/src/index.js`, `components.css` (search-panel/search-results/pill-tab; removed dup filters-shell + tab CSS), `ShipmentsGlobalSearch.jsx`, `ShipmentsFiltersView.jsx`, `ButtonDemo.jsx`, `MatchRow.jsx`/`useGlobalSearch.js` (comments), `playground/DesignSystemMap.html`, `playground/normalization-tracker.md`.
+- **Figma libraries re-published by user** (SearchPanel restructure, ButtonLink properties, PillTab, trail-secondary). **No deploy** (auto-deploy off).
+
+### State after Session 44
+- On **`shipments/global-search`**. `SearchPanel` / `SearchResults` / `PillTab` normalized + Code-Connected; Filters view runs on the shell; ButtonLink aligned. Filters-body controls (`Select` / `FilterChip` / `SavedFilterRow`) **still app-local prototype stubs**.
+- 67 tests green; build green.
+
+---
+
 ## What's Next
 
-### Session 44 Priorities
+### Session 45 Priorities
 
-1. **Normalize `SearchPanel` shell FIRST** — rename `ResultsPreview` → `SearchPanel` (card + `Content` slot), Figma-first `/normalize`. Then the dependency chain: **`Select`** (the blocker) → `FilterChip` → `SavedFilterRow` → `SearchResults` → `SearchFilters` (All/Saved set). Replace the `ShipmentsFiltersView` prototype's stubs as each lands.
-2. **GlobalSearch UX + source repoint.** Continue on the current client-side index (unblocked); separately scope repointing the suggestion *source* to `advanced-filter/{field}/lookup` behind the adapter seam, route committed chips/search through the grid `searchTerm`/`searchFilters` params (now live). Two-way query↔filter binding + Show-N wiring; saved-profile persistence; enum multi-select. Revisit `issue1_FilterSuggestions`.
-3. **Flip to live data.** David's **API access** + the live **Swagger** (`shipment-swagger/v3/api-docs`) to reconcile provisional field names in three places: detail DTO long-tail, grid **row** shape, `error/list` **filter** object (+ pagination indexing, response array name). Confirm Documents/Notes scope with Jana.
-4. **Real auth (MSAL/Entra).** Replace the token stub with `@azure/msal-browser` + `@azure/msal-react` behind `getAuthToken()` (needs `msalConfig` + redirect-URI registration — ties to the Soni infra request). Export SSO diagrams to `vault/00-inbox/` to complete `auth-sso.md`.
-5. **Standing backlog (unchanged):** Code Connect refresh; SHP-66 generic dropdown (the menu/popover, distinct from `Select`); SHP-67 responsive; normalizations backlog; POC 1 OIDC. Pre-existing minor gaps: `hazardous`/`stops` columns render blank (not on the row shape); CSV "all" export emits raw DTO field names.
+1. **GlobalSearch filters-body normalizations (continue the SearchPanel body).** Normalize the remaining `ShipmentsFiltersView` prototype stubs, each its own Figma-first `/normalize` cycle: **"All" content** — **`Select`** (Client/Location field — the blocker; "Select" reserved vs the SHP-66 menu "Dropdown"), `FilterChip` (selectable enum pill), the date-range/text controls; **"Saved" content** — `SavedFilterRow` (grip · name · ›, draggable). (`PillTab` for the tabs shipped in S44.)
+2. **Efrain alignment pass (cont.)** — point at his other new/modified components; treat modified-existing ones as update cycles (validate-before-normalize). ButtonLink was the first (S44).
+3. **GlobalSearch UX wiring.** Two-way query↔filter binding + Show-N wiring; saved-profile persistence; enum multi-select; revisit `issue1_FilterSuggestions`; per-tab footer label (Saved → "Cancel"); repoint the suggestion *source* to `advanced-filter/{field}/lookup` behind the adapter seam.
+4. **Flip to live data.** David's **API access** + the live **Swagger** (`shipment-swagger/v3/api-docs`) to reconcile provisional field names: detail DTO long-tail, grid **row** shape, `error/list` **filter** object (+ pagination indexing, response array name). Confirm Documents/Notes scope with Jana.
+5. **Real auth (MSAL/Entra).** Replace the `getAuthToken()` stub with `@azure/msal-browser` + `@azure/msal-react` (needs `msalConfig` + redirect-URI registration — ties to the Soni infra request). Export SSO diagrams to `vault/00-inbox/` to complete `auth-sso.md`.
+6. **Standing backlog (unchanged):** Code Connect refresh; SHP-66 generic dropdown (the menu/popover, distinct from `Select`); SHP-67 responsive; normalizations backlog; POC 1 OIDC. Pre-existing minor gaps: `hazardous`/`stops` columns render blank (not on the row shape); CSV "all" export emits raw DTO field names.
 
 **Process note:** the API-wiring work follows Superpowers (spec → plan → subagent-driven build with per-task spec+quality reviews + final holistic review). Promote firm contract decisions to the `vault/20-cross-cutting/api-integration/` notes once the live Swagger confirms them.
 

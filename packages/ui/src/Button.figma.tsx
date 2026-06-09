@@ -40,10 +40,13 @@ figma.connect(
   },
 )
 
-// Separate Link Button variant set at 1895:7 (inside "Link Buttons" frame).
-// Maps to the same Button atom with variant="link" + iconRight slot.
-// State=Idle|Hover|Pressed — Hover/Pressed are CSS pseudo-classes at runtime,
-// no React `disabled` flip (ButtonLink doesn't have a Disabled variant yet).
+// ButtonLink variant set at 1895:7 (Components-Atoms). Maps to the same Button
+// atom with variant="link". Efrain's set has Variant=Default(blue)|Black ×
+// State=Idle|Hover|Pressed; Hover/Pressed are CSS pseudo-classes at runtime, no
+// React `disabled` flip (no Disabled variant yet). Asymmetric icon slots:
+// leading 20×20 (`Leading icon` / `Show leading icon`), trailing 16×16
+// (`Trailing icon` / `Show trailing icon`). The Black variant is Figma-only for
+// now — code `variant="link"` renders the blue style.
 figma.connect(
   Button,
   'https://www.figma.com/design/vodiHJU38YWZYmTz81uOk7/Design-System---MCP?node-id=1895-7',
@@ -51,13 +54,12 @@ figma.connect(
     imports: ["import { Button } from '@odyssey/ui'"],
     props: {
       label: figma.textContent('Label'),
-      // Leading-icon slot (added S38) — e.g. "All Filters" with a sliders icon.
       icon: figma.boolean('Show leading icon', {
         true: figma.instance('Leading icon'),
         false: undefined,
       }),
-      iconRight: figma.boolean('Show icon', {
-        true: figma.instance('Icon'),
+      iconRight: figma.boolean('Show trailing icon', {
+        true: figma.instance('Trailing icon'),
         false: undefined,
       }),
     },

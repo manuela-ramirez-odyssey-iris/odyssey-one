@@ -519,7 +519,7 @@ button.filter-suggestions__chip:active {
   overflow: visible;
   row-gap: 4px;
 }
-/* Expanded bar lifts above the ResultsPreview panel (z-index 49) so it overlaps
+/* Expanded bar lifts above the SearchPanel (z-index 49) so it overlaps
    cleanly; the suggestions dropdown inside the bar stays on top of everything. */
 .global-search-wrapper.expanded {
   z-index: 50;
@@ -925,8 +925,12 @@ button.filter-suggestions__chip:active {
 /* Trailing-icon arrow animation on ButtonLink — slides right on hover and
    STAYS there through press; only returns on hover-out. (Diverges from the
    Widget 1x arrow which snaps back on press — different semantic: ButtonLink
-   keeps the forward motion as the "committed" state.) */
+   keeps the forward motion as the "committed" state.)
+   ButtonLink icons are asymmetric by spec (Figma `ButtonLink` 1895:7): leading
+   20×20 (base .btn__icon = --icon-size-lg), trailing 16×16 (--icon-size-md). */
 .btn--link .btn__icon--right {
+  width: var(--icon-size-md);
+  height: var(--icon-size-md);
   transition: transform var(--transition-fast);
 }
 .btn--link:hover:not(:disabled) .btn__icon--right {
@@ -2225,8 +2229,8 @@ button.filter-suggestions__chip:active {
 
 /* ----------------------------------------
    SHIPMENTS GLOBAL SEARCH (consumer wrapper)
-   ShipmentsGlobalSearch wraps GlobalSearch + ResultsPreview in a relative
-   container so ResultsPreview can be absolutely positioned below the bar.
+   ShipmentsGlobalSearch wraps GlobalSearch + SearchPanel in a relative
+   container so the SearchPanel can be absolutely positioned below the bar.
    ---------------------------------------- */
 .shipments-global-search {
   position: relative;
@@ -2243,30 +2247,48 @@ button.filter-suggestions__chip:active {
 }
 
 /* ----------------------------------------
-   SHIPMENTS FILTERS VIEW (prototype)
-   Swaps in over ResultsPreview from the "All Filters" button. Same panel shell
-   as .results-preview (720px white card). App-local, not normalized yet.
+   PILL TAB (atom) — Figma `PillTab` 2787:330
+   Pill-shaped tab button: label + metric-count Badge. Selected / default; hover
+   is CSS-only. Reuses the --tab-* tokens. Used for the filters All/Saved tabs.
    ---------------------------------------- */
-.shipments-filters {
-  display: flex;
-  flex-direction: column;
-  width: 720px;
-  max-width: 100%;
-  max-height: 70vh;
-  background: var(--bg-primary);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-2xl);
-  overflow: hidden;
-}
-.shipments-filters__header {
-  display: flex;
+.pill-tab {
+  display: inline-flex;
   align-items: center;
   gap: var(--spacing-2);
-  padding: var(--spacing-3) var(--spacing-4) var(--spacing-2) var(--spacing-4);
-  border-bottom: 1px solid var(--border-subtle);
+  /* 6px vertical = tiny component-internal geometry (no spacing token at 6). */
+  padding: 6px var(--spacing-3);
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--tab-inactive-text);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
 }
-.shipments-filters__title { color: var(--text-primary); }
-.shipments-filters__close { margin-left: auto; }
+.pill-tab:hover:not(.pill-tab--selected) {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+.pill-tab--selected {
+  background: var(--tab-active-bg);
+  color: var(--tab-active-text);
+}
+.pill-tab:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+/* ----------------------------------------
+   SHIPMENTS FILTERS VIEW — content of the SearchPanel shell
+   The Filters content (All/Saved tabs + filter controls) that fills <SearchPanel>
+   when "All Filters" is clicked. The card / header / footer now come from
+   SearchPanel; `.search-panel--filters` caps the panel height so the body scrolls.
+   App-local prototype controls pending normalized Select / FilterChip / SavedFilterRow.
+   ---------------------------------------- */
+.search-panel--filters { max-height: 70vh; }
+.search-panel--filters .search-panel__content {
+  flex: 1;
+  min-height: 0;
+}
 .shipments-filters__icon-btn {
   display: inline-flex;
   align-items: center;
@@ -2288,34 +2310,16 @@ button.filter-suggestions__chip:active {
 .shipments-filters__tabs {
   display: flex;
   gap: var(--spacing-2);
-  padding: var(--spacing-3) var(--spacing-4) 0 var(--spacing-4);
-}
-.shipments-filters__tab {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--spacing-2);
-  padding: 6px var(--spacing-3);
-  border: none;
-  border-radius: var(--radius-pill);
-  background: transparent;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: background var(--transition-fast), color var(--transition-fast);
-}
-.shipments-filters__tab.is-active {
-  background: var(--deep-sea-neutral-100);
-  color: var(--text-primary);
-}
-.shipments-filters__tab-count {
-  font-variant-numeric: tabular-nums;
-  color: var(--text-tertiary);
+  /* Horizontal inset matches the SearchPanel header (--spacing-6) so the tabs
+     line up under the "Filters" title. */
+  padding: var(--spacing-3) var(--spacing-6) 0;
 }
 
 .shipments-filters__body {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-5);
-  padding: var(--spacing-4);
+  padding: var(--spacing-4) var(--spacing-6);
   overflow-y: auto;
   flex: 1;
 }
@@ -2410,22 +2414,9 @@ button.filter-suggestions__chip:active {
   text-overflow: ellipsis;
 }
 
-.shipments-filters__footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--spacing-3);
-  padding: var(--spacing-3) var(--spacing-4);
-  border-top: 1px solid var(--border-subtle);
-}
-.shipments-filters__footer-actions {
-  display: flex;
-  gap: var(--spacing-2);
-}
-
 /* ----------------------------------------
    MATCH ROW (molecule) — Figma `MatchRow` 2460:2
-   One result row inside the GlobalSearch ResultsPreview panel.
+   One result row inside the GlobalSearch SearchResults list.
    ---------------------------------------- */
 .match-row {
   display: flex;
@@ -2511,10 +2502,13 @@ button.filter-suggestions__chip:active {
 }
 
 /* ----------------------------------------
-   RESULTS PREVIEW (organism) — Figma `ResultsPreview` 2462:149
-   "Best Match" preview panel below the GlobalSearch bar.
+   SEARCH PANEL (organism shell) — Figma `SearchPanel` 2462:149
+   The card that drops below the GlobalSearch bar once criteria are committed.
+   Modal pattern (cf. .modal-large): conditional header + content slot (children)
+   + baked footer. Each search state fills the content slot (Results →
+   .search-results; Filters → later cycle).
    ---------------------------------------- */
-.results-preview {
+.search-panel {
   display: flex;
   flex-direction: column;
   width: 720px;
@@ -2524,15 +2518,60 @@ button.filter-suggestions__chip:active {
   box-shadow: var(--shadow-2xl);
   overflow: hidden;
 }
-.results-preview__body {
+.search-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-3) var(--spacing-6);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.search-panel__header-left {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  min-width: 0;
+}
+.search-panel__title { color: var(--text-primary); }
+.search-panel__content {
+  display: flex;
+  flex-direction: column;
+}
+.search-panel__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-3) var(--spacing-4) var(--spacing-4);
+  border-top: 1px solid var(--border-default);
+}
+.search-panel__footer-left {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+.search-panel__footer-right {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+/* ----------------------------------------
+   SEARCH RESULTS (organism content) — Figma `SearchResults` 2684:1040
+   The "Best Match" body that fills the SearchPanel content slot in the Results
+   state: title + scrollable MatchRow list + a link row that opens Filters.
+   ---------------------------------------- */
+.search-results {
+  display: flex;
+  flex-direction: column;
+}
+.search-results__body {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-2);
   align-items: flex-start;
   padding: var(--spacing-6) var(--spacing-6) 0;
 }
-.results-preview__title { color: var(--text-tertiary); }
-.results-preview__list {
+.search-results__title { color: var(--text-tertiary); }
+.search-results__list {
   display: flex;
   flex-direction: column;
   width: 100%;
@@ -2541,16 +2580,9 @@ button.filter-suggestions__chip:active {
   max-height: 272px;
   overflow-y: auto;
 }
-.results-preview__filters {
+.search-results__filters {
   display: flex;
   align-items: center;
   /* 36px left indent aligns the link with the row content (off-scale; no token). */
   padding: var(--spacing-3) 0 var(--spacing-3) 36px;
-}
-.results-preview__actions {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--spacing-3) var(--spacing-4) var(--spacing-4);
-  border-top: 1px solid var(--border-default);
 }

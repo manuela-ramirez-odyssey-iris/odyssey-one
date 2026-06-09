@@ -1,18 +1,17 @@
 import figma from '@figma/code-connect'
-import ResultsPreview from './ResultsPreview'
+import SearchResults from './SearchResults'
 
-// Master: Components-Organisms page (Modals artboard), `ResultsPreview` at 2462:149.
-// Composed organism — the result rows, filters link and footer buttons are all
-// nested instances with no ResultsPreview-level component properties. The React
-// API is data-driven (`matches` array + handlers), so the mapping uses a static
-// example that demonstrates the contract.
+// Master: Components-Organisms page (Modals artboard), `SearchResults` at 2684:1040.
+// The Best Match content that fills the SearchPanel Content slot. Composed organism
+// (MatchRow instances + a link row); the React API is data-driven (`matches` array
+// + handlers), so the mapping uses a static example that demonstrates the contract.
 figma.connect(
-  ResultsPreview,
-  'https://www.figma.com/design/vodiHJU38YWZYmTz81uOk7/Design-System---MCP?node-id=2462-149',
+  SearchResults,
+  'https://www.figma.com/design/vodiHJU38YWZYmTz81uOk7/Design-System---MCP?node-id=2684-1040',
   {
-    imports: ["import { ResultsPreview } from '@odyssey/ui'"],
+    imports: ["import { SearchResults } from '@odyssey/ui'"],
     example: () => (
-      <ResultsPreview
+      <SearchResults
         title="Best Match"
         matches={[
           {
@@ -32,8 +31,6 @@ figma.connect(
             source: { label: 'EDI 214', variant: 'purple' },
           },
         ]}
-        onClear={() => {}}
-        onShowResults={() => {}}
         onFiltersClick={() => {}}
       />
     ),

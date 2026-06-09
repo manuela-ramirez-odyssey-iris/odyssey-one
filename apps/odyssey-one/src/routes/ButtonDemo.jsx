@@ -113,7 +113,7 @@ export default function ButtonDemo() {
             <Button icon={<Search size={20} />} iconRight={<ArrowRight size={20} />}>
               Both slots
             </Button>
-            <Button variant="link" iconRight={<ArrowRight size={20} />}>
+            <Button variant="link" iconRight={<ArrowRight size={16} />}>
               Go to Tracking
             </Button>
           </div>
