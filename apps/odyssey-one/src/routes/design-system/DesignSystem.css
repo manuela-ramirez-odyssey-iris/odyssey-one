@@ -280,7 +280,9 @@
   top: calc(100% + var(--spacing-1));
   left: 0;
   z-index: 10;
-  min-width: 120px;
+  /* Width is set inline by each demo to track its FieldSelect trigger — so a
+     longer selected value that widens the trigger widens the menu too. Absent
+     that, an absolutely-positioned <ul> shrink-to-fits its content. */
   margin: 0;
   padding: var(--spacing-1);
   list-style: none;

@@ -39,7 +39,9 @@ function FieldSelectPicker({ variant, options, initial }) {
         onClick={() => setOpen((o) => !o)}
       />
       {open && (
-        <ul className="ds-menu" role="listbox">
+        // width:100% — the inline-block wrapper hugs the FieldSelect, so the menu
+        // tracks the trigger and widens when a longer value widens it.
+        <ul className="ds-menu" role="listbox" style={{ width: '100%' }}>
           {options.map((opt) => (
             <li key={opt} role="option" aria-selected={opt === value}>
               <button
@@ -73,7 +75,7 @@ export default function FieldSelectDemo() {
       <div className="ds-demo-section">
         <h4 className="ds-demo-section__title">Interactive — click to open (hover for the surface tint)</h4>
         <div className="ds-demo-row" style={{ alignItems: 'flex-start' }}>
-          <FieldSelectPicker variant="leading" initial="+1" options={['+1', '+44', '+52', '+91']} />
+          <FieldSelectPicker variant="leading" initial="+1" options={['+1', '+44', '+52', '+212', '+1671']} />
           <FieldSelectPicker variant="trailing" initial="kg" options={['kg', 'lb', 'ton', 'oz']} />
         </div>
       </div>

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect, useLayoutEffect } from 'react'
 import { FormField } from '@odyssey/ui'
 import { Search, Calendar } from 'lucide-react'
 
@@ -43,6 +43,71 @@ function LiveField({ initial = '', clearable = true, ...props }) {
       onChange={(e) => setV(e.target.value)}
       onClear={clearable && !props.disabled ? () => setV('') : undefined}
     />
+  )
+}
+
+// A FormField whose edge FieldSelect opens a working options menu — the leading/
+// trailing select is a real value picker (country code, unit), wired the way a
+// production consumer would wire the SHP-66 dropdown to FieldSelect's onClick.
+function ComposedField({ edge, label, placeholder, options, initial }) {
+  const [value, setValue] = useState('')
+  const [pick, setPick] = useState(initial)
+  const [open, setOpen] = useState(false)
+  const [triggerWidth, setTriggerWidth] = useState()
+  const ref = useRef(null)
+
+  useEffect(() => {
+    if (!open) return
+    const onDocClick = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false)
+    }
+    document.addEventListener('mousedown', onDocClick)
+    return () => document.removeEventListener('mousedown', onDocClick)
+  }, [open])
+
+  // Match the menu to the nested FieldSelect's actual width, re-measured when the
+  // selected value changes — so picking a longer code widens the trigger AND menu.
+  useLayoutEffect(() => {
+    const fs = ref.current?.querySelector('.field-select')
+    if (fs) setTriggerWidth(fs.offsetWidth)
+  }, [pick, open])
+
+  const select = { label: pick, onClick: () => setOpen((o) => !o) }
+  const selectProps = edge === 'leading' ? { leadingSelect: select } : { trailingSelect: select }
+
+  return (
+    <div ref={ref} style={{ position: 'relative', width: 280 }}>
+      <FormField
+        label={label}
+        placeholder={placeholder}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        {...selectProps}
+      />
+      {open && (
+        <ul
+          className="ds-menu"
+          role="listbox"
+          style={{ width: triggerWidth, ...(edge === 'trailing' ? { left: 'auto', right: 0 } : {}) }}
+        >
+          {options.map((opt) => (
+            <li key={opt} role="option" aria-selected={opt === pick}>
+              <button
+                type="button"
+                className="ds-menu__item"
+                aria-selected={opt === pick}
+                onClick={() => {
+                  setPick(opt)
+                  setOpen(false)
+                }}
+              >
+                {opt}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   )
 }
 
@@ -123,22 +188,20 @@ export default function FormFieldDemo() {
       <div className="ds-demo-section">
         <h4 className="ds-demo-section__title">Composed FieldSelect (leading / trailing)</h4>
         <div className="ds-demo-row" style={{ alignItems: 'flex-start' }}>
-          <div style={{ width: 280 }}>
-            <LiveField
-              label="Phone"
-              placeholder="555 0100"
-              clearable={false}
-              leadingSelect={{ label: '+1', onClick: () => {} }}
-            />
-          </div>
-          <div style={{ width: 280 }}>
-            <LiveField
-              label="Weight"
-              placeholder="0"
-              clearable={false}
-              trailingSelect={{ label: 'kg', onClick: () => {} }}
-            />
-          </div>
+          <ComposedField
+            edge="leading"
+            label="Phone"
+            placeholder="555 0100"
+            initial="+1"
+            options={['+1', '+44', '+52', '+212', '+1671']}
+          />
+          <ComposedField
+            edge="trailing"
+            label="Weight"
+            placeholder="0"
+            initial="kg"
+            options={['kg', 'lb', 'ton', 'oz']}
+          />
         </div>
       </div>
     </div>
