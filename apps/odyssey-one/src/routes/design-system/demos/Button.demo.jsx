@@ -19,6 +19,17 @@ export const props = [
   { name: 'type', type: 'string', desc: 'Native button type. Default "button".' },
 ]
 
+export const tokens = [
+  { token: '--deep-sea-neutral-900', resolves: 'DSN/900', usage: 'primary bg (idle/pressed)' },
+  { token: '--deep-sea-neutral-600', resolves: 'DSN/600', usage: 'primary hover bg' },
+  { token: '--deep-sea-neutral-700', resolves: 'DSN/700', usage: 'secondary label' },
+  { token: '--deep-sea-neutral-300', resolves: 'DSN/300', usage: 'secondary border / disabled label' },
+  { token: '--bg-error', resolves: 'Bittersweet/100', usage: 'error idle bg' },
+  { token: '--bittersweet-600', resolves: 'Bittersweet/600', usage: 'error label' },
+  { token: '--text-link', resolves: 'Carolina Blue/500', usage: 'link label' },
+  { token: '--shadow-sm', resolves: 'shadow/sm', usage: 'raised variants' },
+]
+
 const VARIANTS = ['primary', 'secondary', 'outline', 'ghost', 'error', 'link']
 const SIZES = ['sm', 'md', 'lg']
 const DARK = new Set(['outline', 'ghost'])
@@ -64,7 +75,7 @@ export default function ButtonDemo() {
             <Fragment key={`row-${v}`}>
               <div className="ds-demo-label" style={{ textAlign: 'right' }}>{v}</div>
               {['Hover me', 'Click + hold', 'Tab here', 'Disabled'].map((label, i) => (
-                <div key={i} className={`ds-demo-cell${DARK.has(v) ? ' ds-demo-cell--dark' : ''}`}>
+                <div key={label} className={`ds-demo-cell${DARK.has(v) ? ' ds-demo-cell--dark' : ''}`}>
                   <Button variant={v} disabled={i === 3}>{label}</Button>
                 </div>
               ))}

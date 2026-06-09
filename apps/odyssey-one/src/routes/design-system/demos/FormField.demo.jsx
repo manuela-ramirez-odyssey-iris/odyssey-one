@@ -41,10 +41,10 @@ export default function FormFieldDemo() {
       <div className="ds-demo-section">
         <h4 className="ds-demo-section__title">Interactive playground</h4>
         <div className="ds-demo-row" style={{ marginBottom: 'var(--spacing-4)' }}>
-          <label style={{ display: 'inline-flex', gap: '6px', alignItems: 'center', fontSize: 'var(--font-size-sm)' }}>
+          <label style={{ display: 'inline-flex', gap: 'var(--spacing-2)', alignItems: 'center', fontSize: 'var(--font-size-sm)' }}>
             <input type="checkbox" checked={error} onChange={(e) => setError(e.target.checked)} /> error
           </label>
-          <label style={{ display: 'inline-flex', gap: '6px', alignItems: 'center', fontSize: 'var(--font-size-sm)' }}>
+          <label style={{ display: 'inline-flex', gap: 'var(--spacing-2)', alignItems: 'center', fontSize: 'var(--font-size-sm)' }}>
             <input type="checkbox" checked={disabled} onChange={(e) => setDisabled(e.target.checked)} /> disabled
           </label>
         </div>
