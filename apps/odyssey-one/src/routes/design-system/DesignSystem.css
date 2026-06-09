@@ -272,3 +272,42 @@
   font-weight: var(--font-weight-semibold);
   color: var(--text-primary);
 }
+
+/* Fake dropdown — demo-only stand-in for the real options menu a consumer would
+   supply to a FieldSelect's onClick (the SHP-66 dropdown component). */
+.ds-menu {
+  position: absolute;
+  top: calc(100% + var(--spacing-1));
+  left: 0;
+  z-index: 10;
+  min-width: 120px;
+  margin: 0;
+  padding: var(--spacing-1);
+  list-style: none;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.ds-menu__item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: var(--spacing-2) var(--spacing-3);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-primary);
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.ds-menu__item:hover {
+  background: var(--bg-secondary);
+}
+
+.ds-menu__item[aria-selected='true'] {
+  font-weight: var(--font-weight-semibold);
+}

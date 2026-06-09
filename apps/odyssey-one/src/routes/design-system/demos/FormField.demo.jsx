@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { FormField } from '@odyssey/ui'
-import { Search } from 'lucide-react'
+import { Search, Calendar } from 'lucide-react'
 
 export const meta = {
   name: 'FormField',
@@ -30,6 +30,21 @@ export const tokens = [
   { token: '--bittersweet-600', resolves: 'Bittersweet/600', usage: 'error border — focused' },
   { token: '--border-strong', resolves: 'Border/strong', usage: 'focus border' },
 ]
+
+// Each showcase field owns its value so it is actually typeable — the explorer's
+// whole point is live components, not frozen controlled inputs. Disabled stays
+// non-typeable by design; `error` keeps showing its state as you type.
+function LiveField({ initial = '', clearable = true, ...props }) {
+  const [v, setV] = useState(initial)
+  return (
+    <FormField
+      {...props}
+      value={v}
+      onChange={(e) => setV(e.target.value)}
+      onClear={clearable && !props.disabled ? () => setV('') : undefined}
+    />
+  )
+}
 
 export default function FormFieldDemo() {
   const [value, setValue] = useState('Acme Logistics')
@@ -67,19 +82,40 @@ export default function FormFieldDemo() {
       </div>
 
       <div className="ds-demo-section">
-        <h4 className="ds-demo-section__title">States</h4>
+        <h4 className="ds-demo-section__title">States (all live — type to try)</h4>
         <div className="ds-demo-row" style={{ alignItems: 'flex-start' }}>
           <div style={{ width: 240 }}>
-            <FormField label="Empty" placeholder="Placeholder" value="" onChange={() => {}} />
+            <LiveField label="Empty" placeholder="Placeholder" />
           </div>
           <div style={{ width: 240 }}>
-            <FormField label="Filled" value="Hello" onChange={() => {}} onClear={() => {}} />
+            <LiveField label="Filled" initial="Hello" />
           </div>
           <div style={{ width: 240 }}>
-            <FormField label="Error" value="bad@" onChange={() => {}} error="Invalid email." />
+            <LiveField label="Error" initial="bad@" error="Invalid email." />
           </div>
           <div style={{ width: 240 }}>
-            <FormField label="Disabled" value="Locked" onChange={() => {}} disabled />
+            <LiveField label="Disabled" initial="Locked" disabled />
+          </div>
+        </div>
+      </div>
+
+      <div className="ds-demo-section">
+        <h4 className="ds-demo-section__title">Icon slots (leadingIcon / trailingIcon)</h4>
+        <div className="ds-demo-row" style={{ alignItems: 'flex-start' }}>
+          <div style={{ width: 240 }}>
+            <LiveField label="Leading" placeholder="Search" clearable={false} leadingIcon={<Search size={16} />} />
+          </div>
+          <div style={{ width: 240 }}>
+            <LiveField label="Trailing" placeholder="Pick a date" clearable={false} trailingIcon={<Calendar size={16} />} />
+          </div>
+          <div style={{ width: 240 }}>
+            <LiveField
+              label="Both"
+              placeholder="Search dates"
+              clearable={false}
+              leadingIcon={<Search size={16} />}
+              trailingIcon={<Calendar size={16} />}
+            />
           </div>
         </div>
       </div>
@@ -88,20 +124,18 @@ export default function FormFieldDemo() {
         <h4 className="ds-demo-section__title">Composed FieldSelect (leading / trailing)</h4>
         <div className="ds-demo-row" style={{ alignItems: 'flex-start' }}>
           <div style={{ width: 280 }}>
-            <FormField
+            <LiveField
               label="Phone"
               placeholder="555 0100"
-              value=""
-              onChange={() => {}}
+              clearable={false}
               leadingSelect={{ label: '+1', onClick: () => {} }}
             />
           </div>
           <div style={{ width: 280 }}>
-            <FormField
+            <LiveField
               label="Weight"
               placeholder="0"
-              value=""
-              onChange={() => {}}
+              clearable={false}
               trailingSelect={{ label: 'kg', onClick: () => {} }}
             />
           </div>
