@@ -28,7 +28,7 @@ PHASE 3 — Sync Back  (Step 8 + 8a + 8b)
 ### Hard rules
 
 1. **Never call `Edit`, `Write`, or `Bash` against `*.jsx`, `*.tsx`, `*.css`, `*.js`, `*.ts` until GATE A has been crossed.** If the user shared a Figma URL and you haven't yet (a) shown them the Figma changes and (b) received an explicit approval phrase, you are still in Phase 1. Code edits are forbidden.
-2. **Never call `connect:publish`, push to Figma library, or update `playground/DesignSystemMap.html` until GATE B has been crossed.** Phase 3 work is irreversible-ish (publish goes live, library push affects designers). Approval required.
+2. **Never call `connect:publish` or push to Figma library until GATE B has been crossed.** Phase 3 work is irreversible-ish (publish goes live, library push affects designers). Approval required.
 3. **Pre-flight check before every code-touching tool call**: ask yourself "did the user explicitly approve the Figma changes I made?" If you can't quote the phrase, stop and ask.
 4. **The default mode is Figma-first.** A Figma URL with no explicit override means: do Figma work first, screenshot, wait. The user opting into "code-first" is rare and must be stated in their words ("code-first", "skip Figma", "code only").
 
@@ -174,45 +174,50 @@ One small table, only mismatches. No need to list matching props.
 
 Before writing code, ask explicitly:
 
-> "DesignSystemMap.html validation first, or straight to wiring consumers in the project?"
+> "React explorer demo-first to validate states, or straight to wiring consumers in the project?"
 
-**Default suggestion for multi-state atoms** (Button, Input, Toggle, Select, etc., where hover/pressed/disabled live on the component) **is DesignSystemMap-first.** The reason: hover/pressed/focus states can't be exercised without consumers, and consumers may not exist yet for every state. Wiring consumers first risks shipping broken interactive states because no one tested them.
+**Default suggestion for multi-state atoms** (Button, Input, Toggle, Select, etc., where hover/pressed/disabled live on the component) **is demo-first.** The reason: hover/pressed/focus states can't be exercised without consumers, and consumers may not exist yet for every state. Wiring consumers first risks shipping broken interactive states because no one tested them.
 
 For single-state components or when the project already has consumers exercising every state, going straight to consumers is fine.
 
-The choice changes the Step 5 → Step 6 ordering, NOT what gets done. Phase 3 still updates the DesignSystemMap as a tracker entry regardless.
+The choice changes the Step 5 → Step 6 ordering, NOT what gets done. Phase 3 still adds the demo file as documentation regardless.
 
-#### Path A — DesignSystemMap-first (default for multi-state atoms)
+#### Path A — Demo-first (default for multi-state atoms)
 
-**The whole point of Path A is to validate the *design* before committing to *code*.** Do NOT write the React component or any production CSS until DSM validation passes. The DSM section uses self-contained scoped CSS (e.g. `.btn-demo` classes inside a `<style>` block within the section's HTML) so it stands alone, independent of any React work.
+**The whole point of Path A is to validate the *design* before committing to *code*.** Do NOT write the React component or any production CSS until demo validation passes. The demo file renders the REAL component in isolation, so hover/focus/click are fully exercisable without any app consumer.
 
-**Section placement:** In-progress sections live in the **Normalize tab** (`tab-nav-right`, activated via `activateNormalizeTab(content)`), NOT in the Components tab composition line. They render WITHOUT the green `NORMALIZED` pill — that pill is the post-validation marker. After GATE B-DSM passes, the section is *moved* to the Components tab and the pill is added.
+**Demo file location:** `apps/odyssey-one/src/routes/design-system/demos/<Component>.demo.jsx`. The page auto-registers it via `import.meta.glob` — no central-file edit needed.
 
-1. **Delegate to a subagent** to add the in-progress section to the **Normalize tab** of `playground/DesignSystemMap.html` with demo cards for every variant × size × state. The section ships its own scoped `<style>` block (no production CSS touched yet). NO `NORMALIZED` pill on the section title. Mirror existing Components-tab sections for visual DNA but skip the pill. (See "DesignSystemMap = always subagent" rule below.)
-2. **GATE B-DSM** — user opens the Normalize tab in a browser, hovers/clicks every state, signs off. If anything's off, iterate on the Normalize-tab section only — still no React.
-3. **Sync Figma masters with any spec deltas from DSM iterations.** Dispatch a subagent (`use_figma`) to update the Figma component set so the masters reflect the FINAL agreed spec — not the GATE-A-era spec. **This is non-negotiable: Figma is updated before any production code is written.** See the "Figma always before code" rule below.
-4. **Subagent moves the validated section** from Normalize tab → Components tab: removes from `activateNormalizeTab(...)` content, adds to the composition line `compTab.innerHTML = ... + getXyzComponentHTML() + ...`, adds the `NORMALIZED` pill to the section title, adds the `compDetails.<Name>` modal entry.
-5. Step 5: Write the React component + `.figma.tsx` + production CSS classes (the DSM scoped styles port to `components.css` cleanly here).
-6. Step 6: Wire consumers.
-7. **GATE B-Project** — user runs the dev server, reports any Step-9 refinements.
+1. **Write (or update) `<Component>.demo.jsx`.** The file must export:
+   - `meta` — `{ name, tier: 'atom'|'molecule'|'organism', figmaNode, codeConnect }`
+   - `props` — `[{ name, type, desc }]`
+   - `tokens` (optional) — `[{ token, resolves, usage }]`
+   - A default React component that renders a **states/variants grid** plus, for interactive components, a **`useState` playground** (controlled inputs, toggle states, etc.).
+   Import the component from `@odyssey/ui` — never from a relative path into `packages/`.
+   Delegating to a subagent is **optional** for demo files (they are small real-React modules, not token-heavy HTML concatenations).
+2. **GATE B-DSM** — user opens `/design-system` in the running dev server, exercises hover/focus/typing/click for every state, signs off. Because the demo renders the live component, there is no reproduction drift. If anything's off, iterate on the demo or component — still no wiring to consumers.
+3. **Sync Figma masters with any spec deltas from demo iterations.** Dispatch a subagent (`use_figma`) to update the Figma component set so the masters reflect the FINAL agreed spec — not the GATE-A-era spec. **This is non-negotiable: Figma is updated before any production code is written.** See the "Figma always before code" rule below.
+4. Step 5: Write the React component + `.figma.tsx` + production CSS classes.
+5. Step 6: Wire consumers.
+6. **GATE B-Project** — user runs the dev server, reports any Step-9 refinements.
 
 > **Path A common mistakes:**
-> - Writing the React component in step 1 alongside the DSM section — defeats the whole point. If you're going to write React anyway, do Path B.
-> - Dumping the in-progress section directly into the Components tab with the `NORMALIZED` pill — that lies to anyone scanning the page. Use the Normalize tab until GATE B-DSM passes.
+> - Writing the React component in step 1 alongside the demo — defeats the whole point. If you're going to write React anyway, do Path B.
 > - **Skipping step 3 (Figma sync) and going straight to React after GATE B-DSM** — the masters then lag the running app. Designers composing product screens get the wrong visuals. ALWAYS sync Figma between GATE B-DSM and Step 5.
-> - Editing DSM directly from the main thread instead of via a subagent — see the rule below. No exceptions, even for one-line bug fixes.
 
 ### Figma always before code (system-wide rule)
 
-**Whenever the spec changes — at GATE A, mid-Phase-2 during DSM iteration, or post-GATE-B refinements — the order is always: Figma → DSM → Code. Never reverse.**
+**Whenever the spec changes — at GATE A, mid-Phase-2 during demo iteration, or post-GATE-B refinements — the order is always: Figma → Demo → Code. Never reverse.**
 
 If you catch yourself about to edit production code (`packages/ui/`, `apps/odyssey-one/src/`) while the Figma component set is on an older spec, that's the violation. Stop, dispatch a subagent to update Figma first, then continue. This rule is what makes Code Connect publish meaningful — designers dragging instances see the same component the user runs.
+
+> This applies equally when iterating via the React explorer demo: if a demo iteration surfaces a spec delta, sync Figma before touching production code.
 
 #### Path B — Consumer-first
 1. Step 5: Write the component + `.figma.tsx`.
 2. Step 6: Wire consumers.
 3. **GATE B** — user runs the dev server.
-4. Phase 3 adds the DesignSystemMap section as documentation.
+4. Phase 3 adds the demo file as documentation.
 
 ### Step 5: Write the component
 
@@ -237,24 +242,20 @@ User runs the dev server, reviews the live behavior, reports any Step-9-style re
 
 > Only enter this phase after GATE B has been crossed.
 
-### Step 7: Update tracker + DesignSystemMap
+### Step 7: Update tracker + demo file
 
 A normalize cycle is **not done** until ALL of the following are updated. Treat this as a checklist; tick each item explicitly.
 
 - [ ] `design.md` updated if new tokens / rules were introduced.
-- [ ] **`playground/DesignSystemMap.html` Components tab updated with the new component section** (NORMALIZED pill, layout/states demo, props table, token contract table, Figma reference, Code Connect note). **Always use a subagent** (general-purpose) — see "DesignSystemMap = always subagent" rule below. Add the new function to the composition line at the bottom (e.g. `... + getNewComponentHTML()`). Mirror the existing Badge / Button / SidebarButton / Sidebar / GlobalSearch / LeadNav / TrailNav sections for visual DNA.
-- [ ] Normalize tab cleared (any temporary preview content removed).
+- [ ] **`apps/odyssey-one/src/routes/design-system/demos/<Component>.demo.jsx` added or updated.** The demo imports the real component from `@odyssey/ui` and exports `meta` (`{ name, tier, figmaNode, codeConnect }`), `props` (`[{ name, type, desc }]`), optional `tokens` (`[{ token, resolves, usage }]`), and a default React component rendering a states/variants grid plus (for interactive components) a `useState` playground. It auto-registers via the page's `import.meta.glob` — no central-file edit. Because it renders the live component, hover/focus/typing/click are real — no reproduction drift. Delegating to a subagent is **optional** for demo files (see "Demo files vs. DesignSystemMap" rule below). **Re-read the source files** (`packages/ui/src/<Component>.jsx` AND `apps/odyssey-one/src/styles/components.css`) before writing or updating the demo — include any Step 9 refinements (hover states, focus rings, disabled styles) that landed before Phase 3.
 - [ ] **`packages/ui/src/index.js` export added under the correct tier group** (`── Atoms ──` / `── Molecules ──` / `── Organisms ──`) — matching the tier assigned in Step 3. Don't append to the bottom; place it in its section.
 - [ ] **`playground/normalization-tracker.md` → `## Normalized Components` row added under the correct tier sub-table** (`### Atoms` / `### Molecules` / `### Organisms`), leading cell labeled `Name (tier)`. Plus (if applicable) entries in "Pushed to Figma" / "Pending Figma Sync" / "Pushed to Figma → Code Connect".
 - [ ] **Tier consistency check:** the Figma page, the `index.js` group, and the tracker sub-section all agree on the tier (per Step 3). If they don't, fix it now — this is what prevents a future full-library audit.
 - [ ] Old ad-hoc entries that are now solved → **remove from the ad-hoc list**.
 
-**Audit-the-code rule:** The DesignSystemMap demo is a **faithful HTML/CSS reproduction of the React component as it currently renders**, including any Step 9 refinements that landed before Phase 3. **Re-read the source files** (`packages/ui/src/<Component>.jsx` AND `apps/odyssey-one/src/styles/components.css` for any class-based hover/focus rules) before writing the section. Don't trust the spec, the screenshot, or earlier intent — diff against the actual code at HEAD. Common drift sources to verify:
-- Sizing primitives (`width`/`height`/`min-*`/`max-*`) — the Badge `notification` dot, for example, used `min-width`/`min-height` in v1 and switched to fixed `width`/`height` + `box-sizing: border-box` after Step 9. The DesignSystemMap demo must match the latest CSS.
-- Hover / focus / active states defined in `components.css` — these are usually code-only (per Step 9 batching); the DesignSystemMap is the only place they get documented, so add demo cards for each.
-- Default values of props that changed during the cycle.
+**The demo file is not optional and not a "nice-to-have"** — it is the living source of truth for what's been normalized. If `/design-system` doesn't show the new component (or shows a stale version), the normalization is invisible / misleading to anyone who didn't run it.
 
-**The DesignSystemMap update is not optional and not a "nice-to-have"** — it is the visible source of truth for what's been normalized. If the Components tab doesn't show the new component (or shows a stale version), the normalization is invisible / misleading to anyone who didn't run it.
+> **Note on `playground/DesignSystemMap.html`:** The static DSM file keeps ONLY its existing **Badges** and **Typography** inventory tabs going forward. Do NOT add new `getXComponentHTML` showcases there. All new component showcases live in the demo-file model above. (This replaces the old `getXComponentHTML` step that previously lived here.)
 
 ### Step 8: Code Connect Publish
 
@@ -331,9 +332,9 @@ When the user reports / requests a refinement after the implement step:
 
 ### Token inventory pre-flight (run FIRST, before any writing)
 
-**Before writing a single line of CSS, DSM section, or Figma master — inventory tokens.** This is non-negotiable. The token-discipline failures in past cycles all came from skipping this and discovering existing tokens *after* the work was done.
+**Before writing a single line of CSS, demo file, or Figma master — inventory tokens.** This is non-negotiable. The token-discipline failures in past cycles all came from skipping this and discovering existing tokens *after* the work was done.
 
-Required reads at the start of Phase 2 (and again at the start of any DSM/code work):
+Required reads at the start of Phase 2 (and again at the start of any demo/code work):
 
 1. **`packages/tokens/tokens.css`** — read top to bottom. Note every existing token by category:
    - Colors (DSN scale, brand colors, semantic colors)
@@ -383,7 +384,7 @@ Hardcoded values are normalization failures. The "no hardcoded hex/rgb/rgba" rul
 
 1. **Production code** (`packages/ui/<Component>.jsx`, `apps/odyssey-one/src/styles/components.css`): only `var(--token)` references. Pre-flight grep for `\d+px`, raw hex `#`, `rgb(`, `rgba(` on the changed files — every match is suspect.
 2. **Figma masters**: every fill/stroke/padding/gap/radius shows a bound variable in `boundVariables`. Every text node has a text-style applied or font properties bound to typography variables. Inspect via `use_figma` before screenshotting at GATE A.
-3. **DSM section**: even though demos are scoped HTML/CSS, prefer `var(--token, fallback)` references so the DSM stays in sync if tokens shift, and the in-file inspector can read them.
+3. **Demo file**: the demo is real React code consuming the live component — it inherits token usage from the component itself. Any inline styles in the demo wrapper (e.g. container padding) should also use `var(--token)` references.
 
 **Consumer migration is part of normalization.** When you wire consumers to the new component, also normalize their usage — icon sizes must match the new component's spec (e.g. `<Button>` expects 20px icons, so consumers passing `{...ICON_MD}` = 16 need to switch to `{...ICON_LG}` = 20 or migrate to the `icon` prop). Don't leave consumers calling the new API with old-API assumptions.
 
@@ -396,18 +397,10 @@ Hardcoded values are normalization failures. The "no hardcoded hex/rgb/rgba" rul
 - [ ] Consumer call sites updated to the new component's spec (icon sizes, prop API).
 - [ ] Any new tokens are in BOTH `tokens.css` AND the Figma variable collection.
 
-### DesignSystemMap = always subagent
+### Demo files vs. DesignSystemMap
 
-**Building or updating any section of `playground/DesignSystemMap.html` is always delegated to a subagent (`general-purpose`). No exceptions** — applies to both Phase 2 Path A and Phase 3.
+**`playground/DesignSystemMap.html` now keeps ONLY its existing Badges + Typography inventory tabs.** Do not add new `getXComponentHTML` showcases there. This was the old Phase 3 output; it is replaced by the demo-file model.
 
-Why:
-- DSM sections are token-heavy, repetitive HTML strings (long concatenations, demo card scaffolding, modal tables) that bloat the main conversation context with low-information bytes.
-- The main thread's job is to **spec** the section (what to demo, what tokens to surface, modal table contents) and **review** the result, not to type the concatenations.
-- Verification still requires the user to open the page in a browser regardless of who wrote the section — delegating doesn't slow the GATE loop.
+**All new component showcases live in `apps/odyssey-one/src/routes/design-system/demos/<Component>.demo.jsx`.** Because these are small real-React modules (not token-heavy HTML concatenations), delegating to a subagent is **optional** — use your judgment based on complexity. Simple atoms can be written inline; complex organisms with many state permutations benefit from delegation.
 
-How to dispatch:
-- Subagent type: `general-purpose`.
-- Hand it: the path to `DesignSystemMap.html`, the current insertion point or function to edit, the source-of-truth React component file (for the audit-the-code rule), the props + tokens content for the modal entry, and the composition-line update (`... + getNewComponentHTML() + ...`).
-- After it reports back, main thread verifies: section renders, modal trigger works, no broken HTML, composition line is correct.
-
-This rule applies retroactively to any future edits of existing sections (refinements, hover-state additions, tracker corrections) — they go through a subagent too.
+For any future edits to the existing DesignSystemMap Badges / Typography tabs (corrections, token drift fixes), continue to delegate those to a subagent — the always-subagent rule still applies to that static HTML file, just not to demo files.
