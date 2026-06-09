@@ -15,6 +15,7 @@ export const props = [
   { name: 'label', type: 'ReactNode', desc: 'Label text.' },
   { name: 'showLabel', type: 'boolean', desc: 'Toggle label visibility. Default true.' },
   { name: 'name', type: 'string', desc: 'Group radios by sharing a name.' },
+  { name: 'value', type: 'string', desc: 'Native input value; identifies the selected radio in a group.' },
   { name: 'onChange', type: '(e) => void', desc: 'Native change handler.' },
 ]
 
