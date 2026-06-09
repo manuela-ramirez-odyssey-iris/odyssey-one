@@ -11,6 +11,7 @@ import Users from './routes/Users.jsx'
 import Partners from './routes/Partners.jsx'
 import ShipmentsRoute from './routes/shipments/ShipmentsRoute.jsx'
 import ButtonDemo from './routes/ButtonDemo.jsx'
+import DesignSystem from './routes/design-system/DesignSystem.jsx'
 
 // Transition timeline (wall-clock ms from Log In click).
 //   0    → 'intro'   : modal fades out + image fades in (400ms).
@@ -69,6 +70,7 @@ export default function App() {
         <Route path="/users" element={<Users />} />
         <Route path="/partners" element={<Partners />} />
         <Route path="/button-demo" element={<ButtonDemo />} />
+        <Route path="/design-system" element={<DesignSystem />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </QueryClientProvider>

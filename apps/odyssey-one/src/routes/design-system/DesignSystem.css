@@ -1,0 +1,269 @@
+/* Design-System explorer — full-viewport sheet, no AppShell (like ButtonDemo).
+   The global <body> bg is dark (Login→Home transition); the root overrides it
+   with a white surface so the centered page has no dark gutters. */
+
+.ds-root {
+  position: fixed;
+  inset: 0;
+  background: var(--bg-primary);
+  overflow: auto;
+  z-index: 0;
+}
+
+.ds-page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: var(--spacing-8) var(--spacing-6) var(--spacing-12);
+  font-family: var(--font-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+.ds-header {
+  margin-bottom: var(--spacing-6);
+  padding-bottom: var(--spacing-5);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.ds-header h1 {
+  margin: 0 0 var(--spacing-3);
+  font-size: var(--font-size-2xl);
+  line-height: var(--line-height-2xl);
+  font-weight: var(--font-weight-semibold);
+}
+
+.ds-header p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+}
+
+.ds-header code,
+.ds-comp code,
+.ds-table code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.9em;
+  background: var(--bg-tertiary);
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+}
+
+/* Tabs */
+.ds-tabs {
+  display: flex;
+  gap: var(--spacing-2);
+  margin-bottom: var(--spacing-8);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.ds-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-3) var(--spacing-4);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  font-family: var(--font-primary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.ds-tab:hover {
+  color: var(--text-primary);
+}
+
+.ds-tab--active {
+  color: var(--text-primary);
+  border-bottom-color: var(--text-primary);
+}
+
+.ds-tab__count {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-tertiary);
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-full);
+  padding: 0 6px;
+  min-width: 18px;
+  text-align: center;
+}
+
+/* Component blocks */
+.ds-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+}
+
+.ds-empty {
+  color: var(--text-tertiary);
+  font-size: var(--font-size-sm);
+}
+
+.ds-comp {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.ds-comp__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-4) var(--spacing-5);
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.ds-comp__name {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  line-height: var(--line-height-lg);
+  font-weight: var(--font-weight-semibold);
+}
+
+.ds-comp__toggle {
+  background: transparent;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-1) var(--spacing-3);
+  font-family: var(--font-primary);
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.ds-comp__toggle:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.ds-comp__demo {
+  padding: var(--spacing-6) var(--spacing-5);
+  background: var(--bg-primary);
+}
+
+/* Details panel */
+.ds-details {
+  padding: var(--spacing-5);
+  border-top: 1px solid var(--border-subtle);
+  background: var(--bg-secondary);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-5);
+}
+
+.ds-details__refs {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-4);
+  flex-wrap: wrap;
+  font-size: var(--font-size-sm);
+}
+
+.ds-details__refs a {
+  color: var(--text-link);
+  text-decoration: none;
+}
+
+.ds-details__refs a:hover {
+  text-decoration: underline;
+}
+
+.ds-details__title {
+  margin: 0 0 var(--spacing-3);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.ds-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+}
+
+.ds-table th,
+.ds-table td {
+  text-align: left;
+  padding: var(--spacing-2) var(--spacing-3);
+  border-bottom: 1px solid var(--border-subtle);
+  vertical-align: top;
+}
+
+.ds-table th {
+  color: var(--text-tertiary);
+  font-weight: var(--font-weight-semibold);
+}
+
+.ds-table td {
+  color: var(--text-secondary);
+}
+
+/* Shared demo helpers — used by the demo files. */
+.ds-demo-grid {
+  display: grid;
+  gap: var(--spacing-4);
+  align-items: center;
+}
+
+.ds-demo-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-4);
+}
+
+.ds-demo-col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.ds-demo-label {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.ds-demo-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-4);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  min-height: 64px;
+}
+
+.ds-demo-cell--dark {
+  background: var(--bg-inverse);
+  border-color: var(--border-inverse);
+}
+
+.ds-demo-section {
+  margin-bottom: var(--spacing-6);
+}
+
+.ds-demo-section:last-child {
+  margin-bottom: 0;
+}
+
+.ds-demo-section__title {
+  margin: 0 0 var(--spacing-3);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
