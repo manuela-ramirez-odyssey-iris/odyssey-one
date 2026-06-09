@@ -3682,17 +3682,54 @@ The **Efrain component-alignment pass in depth** — two full atoms-then-molecul
 
 ---
 
+## Session 46 — June 9, 2026
+
+**The React Design-System Explorer — built, then immediately earning its keep.** Spec → `writing-plans` → `subagent-driven-development` build of a live `/design-system` route (Atoms/Molecules/Organisms tabs rendering the REAL `@odyssey/ui` components via co-located `<Component>.demo.jsx` files), seeded with Button/Checkbox/Radio/FieldSelect/FormField. Manual verification in the live explorer then surfaced a string of real interaction bugs the old static-HTML mirror could never show — all fixed the same session. Two design discussions closed (DSM-as-gate semantics; SearchField vs FormField). All on `shipments/global-search`; **green throughout (build + 74 tests)**.
+
+### Thread 1 — Explorer built (spec → plan → subagent-driven, 8 tasks)
+- Plan: `docs/superpowers/plans/2026-06-09-react-design-system-explorer.md`; executed via `subagent-driven-development` (fresh implementer + spec-compliance + code-quality review per task; final holistic review = **Ship**).
+- **`collectDemos.js`** — pure tier-grouping helper (glob result → Atoms/Molecules/Organisms, name-sorted), TDD with 7 node-env Vitest tests (the only unit-testable seam; env is node-only, no jsdom — deliberately NOT added).
+- **`DesignSystem.jsx`** + `.css` — full-viewport sheet (no AppShell, like `/button-demo`), tier tabs, `import.meta.glob('./demos/*.demo.jsx', { eager: true })` auto-collection, inline expandable **DetailsPanel** (props + token-contract tables + Figma deep-link + Code Connect path). Route registered in `App.jsx`.
+- **5 seed demos** (`demos/*.demo.jsx`) — each imports the REAL component + exports `meta`/`props`/`tokens`/default. Adding a component = one demo file; the glob picks it up, no central edit (success criterion met).
+
+### Thread 2 — `/normalize` routine updated for the demo-file model
+- **Phase 3** now = add/update `<Component>.demo.jsx` (real React) instead of a subagent writing `getXComponentHTML` static HTML in `DesignSystemMap.html`. Updated `playground/figma-component-routine.md` + the global `~/.claude/skills/normalize/SKILL.md` (outside the repo — edited, not committed). **DSM-always-subagent rule relaxed** for demo files; `DesignSystemMap.html` keeps ONLY the Badges + Typography inventory tabs.
+
+### Thread 3 — Live-verification refinements (the explorer's first payoff)
+Bugs/gaps caught by interacting with the REAL components — invisible in the old static mirror:
+- **Checkbox/Radio off-center indicator** — `.control__mark` was a flex row, so a hidden (`opacity:0`) sibling still occupied space and shoved the visible check left. Fix: center each indicator independently (absolute), no flex.
+- **FormField focused-error border → 2px** — 1px border + 1px inset shadow stack into a 2px ring, no reflow (error+focus only).
+- **FieldSelect hover** — code-only bg-tint affordance (not a Figma variant, per the control-state-model rule).
+- **clear-X red in error** — `.form-field--error .form-field__clear` → `--bittersweet-600`.
+- **FormField demo fields were frozen** — controlled with no-op `onChange` (read-only). Made each showcase field own its value (`LiveField`/`ComposedField`), so typing works (Disabled stays disabled).
+- **Icon slots shown** — leadingIcon/trailingIcon/both section (answering "do we have leading/trailing icons?" — yes; demonstrated for the Orders-domain production push).
+- **FieldSelect dropdowns** — working fake-option menus (standalone + composed), close on click-outside + selection. Menu **tracks the FieldSelect trigger width** (standalone via `width:100%` of the inline-block wrapper; composed via measured `offsetWidth`, re-measured on pick), so a longer code (`+1671`) widens trigger AND menu.
+
+### Thread 4 — Two design decisions
+- **DSM-as-gate:** the validation gate survives (`GATE B-DSM` now validates the live explorer — better: real component, no mirror drift); what's gone is the **separate HTML artifact** (removed from the gate's deliverables). Separation is now a **route**, not a file. Tradeoff: the component must exist before review (vs reviewing a mirror first). Flagged: the `GATE B-DSM` label carries stale "DSM = the HTML" baggage — candidate rename.
+- **SearchField vs FormField:** **keep separate.** Despite the "search = form + icon" surface, they diverge on `onChange` contract (value vs event), focus model (JS 2px vs CSS 1px), blur-preserving clear, and a `results` slot. Convention agreed: **merge components only on shared intent; share a primitive on shared structure.** If duplication bothers us later, extract a shared `InputShell` primitive (Figma-first) — NOT a merge.
+
+### Files / commits (all on `shipments/global-search`)
+- `7d43893` collectDemos · `2daac1f` shell+route · `606e871` ds-details__block · `ae4f89c` Button demo · `837ea93` Checkbox+Radio · `27e500c` Radio value prop · `a51d7ab` FieldSelect demo · `5f59903` FormField demo · `d4852f2` normalize Phase-3 docs · `1598304` Button polish · `91d4180` control-centering + 2px error + FieldSelect hover + clear-X red · `60ecedb` interactive FieldSelect dropdown + live FormField + icon slots · `261d4a6` composed dropdowns track trigger width · (wrap) plan + this entry.
+- **New:** `apps/odyssey-one/src/routes/design-system/{collectDemos.js, collectDemos.test.js, DesignSystem.jsx, DesignSystem.css, demos/*.demo.jsx}`; the plan doc.
+- **Modified:** `App.jsx`, `components.css` (`.control` centering, form-field 2px error + clear-X, `.field-select` hover), `playground/figma-component-routine.md`, global `normalize/SKILL.md`.
+
+### State after Session 46
+- On `shipments/global-search`. **React Design-System Explorer live** at `/design-system` with 5 interactive seed demos; `/normalize` Phase 3 now demo-file-based. FormField + FieldSelect refined & verified. 74 tests green; build green. **No deploy.** No Figma/library changes this session → no publish owed.
+
+---
+
 ## What's Next
 
-### Session 46 Priorities
+### Session 47 Priorities
 
-1. **Build the React Design-System Explorer** (spec ready — `docs/superpowers/specs/2026-06-09-react-design-system-explorer-design.md`). `writing-plans` → implement v1: `/design-system` route, **Atoms/Molecules/Organisms** tabs, per-component `<Component>.demo.jsx` rendering **live** components, seed Button/Checkbox/Radio/FieldSelect/FormField. Then update the `/normalize` routine for the demo-file model (replaces the `getXComponentHTML` static-HTML step). Backfill remaining ~35 component demos incrementally; retire the static Components tab once done.
+1. **Backfill the explorer demos.** Add `<Component>.demo.jsx` for the remaining ~35 normalized components (subagent-assisted batches; future `/normalize` cycles add theirs). Retire the static `DesignSystemMap.html` **Components/Normalize** tabs once backfill completes (Badges + Typography inventory stays). Optional housekeeping: rename `GATE B-DSM` → `GATE B-Demo`/`Explorer` in the routine docs (stale acronym).
 2. **GlobalSearch filters-body normalizations (still pending).** Figma-first `/normalize` per control: **"All"** — **`Select`** (Client/Location — the blocker; name reserved vs the SHP-66 menu "Dropdown"), `FilterChip` (selectable enum pill), date-range/text controls; **"Saved"** — `SavedFilterRow` (grip · name · ›, draggable). (`PillTab` shipped S44.)
-3. **Efrain alignment pass (cont.)** — remaining new/modified components; modified-existing = update cycles (validate-before-normalize, **read property defs first per new Step 1b**). ButtonLink (S44), Checkbox/Radio/Button-error/FieldSelect/FormField (S45) done.
+3. **Efrain alignment pass (cont.)** — remaining new/modified components; modified-existing = update cycles (validate-before-normalize, **read property defs first per Step 1b**). ButtonLink (S44), Checkbox/Radio/Button-error/FieldSelect/FormField (S45–46) done.
 4. **GlobalSearch UX wiring.** Two-way query↔filter binding + Show-N; saved-profile persistence; enum multi-select; revisit `issue1_FilterSuggestions`; per-tab footer label (Saved → "Cancel"); repoint suggestion *source* to `advanced-filter/{field}/lookup` behind the adapter seam.
 5. **Flip to live data.** David's **API access** + live **Swagger** (`shipment-swagger/v3/api-docs`) to reconcile provisional names (detail DTO long-tail, grid **row** shape, `error/list` **filter** object + pagination, response array name). Confirm Documents/Notes scope with Jana.
 6. **Real auth (MSAL/Entra).** Replace the `getAuthToken()` stub with `@azure/msal-browser` + `@azure/msal-react` (ties to the Soni infra request). Export SSO diagrams to `vault/00-inbox/` to complete `auth-sso.md`.
-7. **Standing backlog:** add `lucide/minus` → swap the Checkbox indeterminate dash; **library publish** (this session's Figma changes); run `npm run tokens:audit` after Efrain passes; Code Connect refresh; SHP-66 generic dropdown (menu/popover, distinct from `Select`/`FieldSelect`); SHP-67 responsive; pre-existing minor gaps (`hazardous`/`stops` blank columns; CSV "all" raw field names).
+7. **Standing backlog:** add `lucide/minus` → swap the Checkbox indeterminate dash; run `npm run tokens:audit` after Efrain passes; Code Connect refresh; SHP-66 generic dropdown (menu/popover, distinct from `Select`/`FieldSelect`); SHP-67 responsive; **future** shared `InputShell` primitive (SearchField/FormField, Figma-first, not a merge); pre-existing minor gaps (`hazardous`/`stops` blank columns; CSV "all" raw field names). Also: the dropped **"Back End Strategy to support Front End AI efforts"** transcript sits unprocessed in `vault-sources/20-cross-cutting/production-strategy/` — `/analyze` when ready.
 
 **Process note:** the API-wiring work follows Superpowers (spec → plan → subagent-driven build with per-task spec+quality reviews + final holistic review). Promote firm contract decisions to the `vault/20-cross-cutting/api-integration/` notes once the live Swagger confirms them.
 
