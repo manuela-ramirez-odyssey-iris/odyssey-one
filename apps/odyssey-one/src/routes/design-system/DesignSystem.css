@@ -161,6 +161,11 @@
   gap: var(--spacing-5);
 }
 
+.ds-details__block {
+  display: flex;
+  flex-direction: column;
+}
+
 .ds-details__refs {
   display: flex;
   align-items: center;
