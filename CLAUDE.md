@@ -42,6 +42,7 @@ From repo root:
 - `npm run dev:odyssey-one` — start dev server (preferred)
 - `npm run build:odyssey-one` — build the umbrella app
 - `cd apps/odyssey-one && node tools/generate.mjs` — regenerate the 1200 shipment JSONs (seed 42, reproducible)
+- `npm run tokens:audit` — diff `tokens.css` against the committed Figma variable snapshot (`packages/tokens/figma-tokens.snapshot.json`); reports gaps/drift, exits 1 on mismatch. Run after Efrain's token passes; refresh the snapshot by asking Claude to re-run the `use_figma` dump when Figma changes.
 
 ## Deploys
 

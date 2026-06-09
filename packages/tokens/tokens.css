@@ -27,6 +27,7 @@
 
   /* --- Primitives: Bittersweet --- */
   --bittersweet-100: #FDE5E3;
+  --bittersweet-200: #FBD0CD;
   --bittersweet-600: #D23930;
   --bittersweet-800: #922922;
 
@@ -122,10 +123,18 @@
   --input-placeholder: var(--text-placeholder);
   --input-label: var(--text-secondary);
 
-  /* --- Component: Radio / Checkbox --- */
-  --radio-border: var(--border-default);
-  --radio-selected-bg: var(--bg-inverse);
-  --radio-indicator: var(--text-inverse);
+  /* --- Component: Checkbox / Radio (selection controls) --- */
+  --control-bg: var(--bg-primary);
+  --control-border: var(--border-default);
+  --control-border-hover: var(--deep-sea-neutral-400);
+  --control-checked-bg: var(--bg-inverse);
+  --control-checked-hover-bg: var(--deep-sea-neutral-700);
+  --control-indicator: var(--text-inverse);
+  --control-border-disabled: var(--border-subtle);
+  --control-checked-bg-disabled: var(--border-default);
+  --control-label: var(--text-secondary);
+  --control-label-disabled: var(--text-placeholder);
+  --control-focus: var(--border-focus);
 
   /* --- Component: Tabs --- */
   --tab-active-bg: var(--deep-sea-neutral-200);

@@ -361,14 +361,140 @@ input[type="date"].odyssey-date-input::-webkit-calendar-picker-indicator:hover {
 }
 
 /* ----------------------------------------
-   CHECKBOX / RADIO ACCENT
+   SELECTION CONTROLS — Checkbox & Radio (atoms)
+   Native <input> with appearance:none — the input IS the visible 16×16 box;
+   the indicator (check / dash / dot) is overlaid. Shared structure; the
+   .control--checkbox / .control--radio modifiers only change the radius and
+   which indicator shows. Hover/focus/disabled are CSS-driven. All values bound
+   to the --control-* tokens. See packages/ui/src/{Checkbox,Radio}.jsx.
    ---------------------------------------- */
-input[type="checkbox"].odyssey-checkbox,
-input[type="radio"].odyssey-radio {
-  accent-color: var(--radio-selected-bg);
-  width: var(--spacing-4);
-  height: var(--spacing-4);
+.control {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-2);
   cursor: pointer;
+}
+.control[data-disabled] {
+  cursor: not-allowed;
+}
+
+/* 16px box = component-internal geometry (no sizing token at 16). */
+.control__box {
+  position: relative;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+.control__input {
+  appearance: none;
+  -webkit-appearance: none;
+  margin: 0;
+  width: 16px;
+  height: 16px;
+  box-sizing: border-box;
+  background: var(--control-bg);
+  border: 1px solid var(--control-border);
+  cursor: inherit;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+.control--checkbox .control__input { border-radius: var(--radius-sm); }
+.control--radio .control__input { border-radius: var(--radius-full); }
+
+/* hover — darken the unchecked border */
+.control__input:not(:checked):not(:indeterminate):not(:disabled):hover {
+  border-color: var(--control-border-hover);
+}
+/* checked / indeterminate — filled dark box */
+.control__input:checked,
+.control__input:indeterminate {
+  background: var(--control-checked-bg);
+  border-color: var(--control-checked-bg);
+}
+/* hover on a filled box — darken the fill */
+.control__input:checked:not(:disabled):hover,
+.control__input:indeterminate:not(:disabled):hover {
+  background: var(--control-checked-hover-bg);
+  border-color: var(--control-checked-hover-bg);
+}
+.control__input:focus-visible {
+  outline: 2px solid var(--control-focus);
+  outline-offset: 2px;
+}
+
+/* disabled */
+.control--checkbox .control__input:not(:checked):not(:indeterminate):disabled,
+.control--radio .control__input:not(:checked):disabled {
+  background: var(--control-bg);
+  border-color: var(--control-border-disabled);
+}
+.control__input:checked:disabled,
+.control__input:indeterminate:disabled {
+  background: var(--control-checked-bg-disabled);
+  border-color: var(--control-checked-bg-disabled);
+}
+
+/* indicator overlay — hidden by default, revealed per input state */
+.control__mark {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--control-indicator);
+  pointer-events: none;
+}
+.control__mark > * { opacity: 0; }
+.control--checkbox .control__input:checked:not(:indeterminate) + .control__mark .control__check { opacity: 1; }
+.control--checkbox .control__input:indeterminate + .control__mark .control__dash { opacity: 1; }
+.control--radio .control__input:checked + .control__mark .control__dot { opacity: 1; }
+
+.control__check { width: 16px; height: 16px; display: block; }
+/* dash / dot = tiny component-internal geometry (no token at 8/6/2px). */
+.control__dash { width: 8px; height: 2px; border-radius: 1px; background: currentColor; }
+.control__dot { width: 6px; height: 6px; border-radius: var(--radius-full); background: currentColor; }
+
+.control__label { color: var(--control-label); }
+.control[data-disabled] .control__label { color: var(--control-label-disabled); }
+
+/* ----------------------------------------
+   FIELD SELECT — edge-attached select trigger (atom)
+   Leading/trailing select that sits inside a FormField. The divider is a
+   one-sided border whose color is the state ladder; the chevron inherits the
+   label color via currentColor. Presentational — `state` is set by the parent
+   field. See packages/ui/src/FieldSelect.jsx.
+   ---------------------------------------- */
+.field-select {
+  --field-select-divider: var(--border-default);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  /* 14px = off-scale component-internal padding (matches the Button raw 14). */
+  padding: var(--spacing-2) var(--spacing-3);
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+.field-select--leading {
+  padding-right: 14px;
+  border-right: 1px solid var(--field-select-divider);
+}
+.field-select--trailing {
+  padding-left: 14px;
+  border-left: 1px solid var(--field-select-divider);
+}
+/* state ladder — divider color */
+.field-select--focus { --field-select-divider: var(--border-strong); }
+.field-select--disabled { --field-select-divider: var(--border-subtle); cursor: not-allowed; }
+.field-select--error-default { --field-select-divider: var(--bittersweet-200); }
+.field-select--error { --field-select-divider: var(--bittersweet-600); }
+/* leading reddens label + chevron on error (deliberate divergence from trailing,
+   which keeps the divider-only treatment). */
+.field-select--leading.field-select--error-default,
+.field-select--leading.field-select--error {
+  color: var(--bittersweet-600);
 }
 
 /* ----------------------------------------
@@ -882,6 +1008,30 @@ button.filter-suggestions__chip:active {
   box-shadow: none;
 }
 .btn--ghost:disabled {
+  background: var(--white);
+  color: var(--deep-sea-neutral-300);
+  border-color: var(--deep-sea-neutral-300);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Error — soft destructive action on light surfaces. Light-red fill + red text
+   (no border at idle). Hover/pressed deepen via the Bittersweet ladder; disabled
+   matches the universal treatment. Added 2026-06-09 from Efrain's Idle-only spec. */
+.btn--error {
+  background: var(--bg-error);
+  color: var(--bittersweet-600);
+  border-color: transparent;
+  box-shadow: var(--shadow-sm);
+}
+.btn--error:hover:not(:disabled) {
+  background: var(--bittersweet-200);
+}
+.btn--error:active:not(:disabled) {
+  background: var(--bittersweet-200);
+  color: var(--bittersweet-800);
+  box-shadow: none;
+}
+.btn--error:disabled {
   background: var(--white);
   color: var(--deep-sea-neutral-300);
   border-color: var(--deep-sea-neutral-300);
@@ -2104,43 +2254,48 @@ button.filter-suggestions__chip:active {
   gap: var(--spacing-1);
   width: 100%;
 }
-.form-field__label {
-  font-family: 'Inter', sans-serif;
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 20px;
-  color: var(--text-secondary);
-}
-.form-field__input {
+.form-field__label-row {
   display: flex;
   align-items: center;
-  gap: var(--spacing-2);
-  padding: 8px 13px;
+  gap: var(--spacing-1);
+}
+/* Typography via .text-label-sm-medium (applied in FormField.jsx). */
+.form-field__label { color: var(--text-secondary); }
+.form-field__info { color: var(--text-tertiary); flex-shrink: 0; }
+
+.form-field__input {
+  display: flex;
+  align-items: stretch;
   background: var(--white);
   border: 1px solid var(--deep-sea-neutral-300);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
+  overflow: hidden; /* clip flush FieldSelect corners to the container radius */
   transition: border-color var(--transition-fast);
 }
-.form-field__input:focus-within {
-  border-color: var(--input-border-focus);
+.form-field__input:focus-within { border-color: var(--input-border-focus); }
+
+/* Control = padded area holding the input + leading/trailing icons + clear.
+   FieldSelect slots sit OUTSIDE this padding, flush to the container edge. */
+.form-field__control {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  flex: 1 1 0;
+  min-width: 0;
+  /* 13px = off-scale component-internal padding (carried forward). */
+  padding: var(--spacing-2) 13px;
 }
-.form-field__input > input {
+.form-field__field {
   flex: 1 1 0;
   min-width: 0;
   border: none;
   outline: none;
   background: transparent;
-  font-family: 'Inter', sans-serif;
-  font-size: 14px;
-  font-weight: 400;
-  line-height: 20px;
-  color: var(--text-primary);
+  color: var(--text-primary); /* typography via .text-label-sm-regular */
   padding: 0;
 }
-.form-field__input > input::placeholder {
-  color: var(--text-placeholder);
-}
+.form-field__field::placeholder { color: var(--text-placeholder); }
 .form-field__icon {
   display: inline-flex;
   align-items: center;
@@ -2148,31 +2303,39 @@ button.filter-suggestions__chip:active {
   color: var(--text-tertiary);
   flex-shrink: 0;
 }
-.form-field--error .form-field__input {
-  border-color: var(--bittersweet-600);
-  border-width: 2px;
-}
-.form-field--error .form-field__icon {
-  color: var(--bittersweet-600);
-}
-/* Locked / read-only — value visible, input not editable. Muted surface +
-   not-allowed cursor signal non-interactivity without graying the value. */
-.form-field--locked .form-field__input {
-  background: var(--bg-secondary);
-  cursor: not-allowed;
-}
-.form-field--locked .form-field__input > input {
-  cursor: not-allowed;
+.form-field__clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
   color: var(--text-tertiary);
+  flex-shrink: 0;
+  transition: color var(--transition-fast);
 }
-.form-field--locked .form-field__icon {
-  color: var(--text-tertiary);
-}
+.form-field__clear:hover { color: var(--text-secondary); }
+
+/* Error — border 200 idle → 600 on focus; red field text + message below. */
+.form-field--error .form-field__input { border-color: var(--bittersweet-200); }
+.form-field--error .form-field__input:focus-within { border-color: var(--bittersweet-600); }
+.form-field--error .form-field__field { color: var(--text-error); }
+.form-field--error .form-field__field::placeholder { color: var(--text-error); }
+
+/* FieldSelect dividers track the field state (override the atom's CSS var). */
+.form-field__input:focus-within .field-select { --field-select-divider: var(--border-strong); }
+.form-field--error .field-select { --field-select-divider: var(--bittersweet-200); }
+.form-field--error .form-field__input:focus-within .field-select { --field-select-divider: var(--bittersweet-600); }
+.form-field--error .field-select--leading { color: var(--bittersweet-600); }
+
+/* Disabled — muted DSN/50 surface. */
+.form-field--disabled .form-field__input { background: var(--bg-secondary); }
+.form-field--disabled .form-field__field { color: var(--text-tertiary); cursor: not-allowed; }
+.form-field--disabled .form-field__icon { color: var(--text-placeholder); }
+
+/* Typography via .text-label-xs-regular (applied in FormField.jsx). */
 .form-field__error {
-  font-family: 'Inter', sans-serif;
-  font-size: 12px;
-  font-weight: 400;
-  line-height: 16px;
   color: var(--text-error);
   margin: 0;
   margin-top: var(--spacing-1);

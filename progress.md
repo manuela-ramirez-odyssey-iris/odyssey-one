@@ -3645,16 +3645,54 @@ The **GlobalSearch "search panel" arc lands**: normalized the `SearchPanel` shel
 
 ---
 
+## Session 45 — June 8–9, 2026
+
+The **Efrain component-alignment pass in depth** — two full atoms-then-molecule `/normalize` cycles plus a Button variant, hardened **token governance**, two `/normalize` routine upgrades, and an approved spec for a React-based design-system explorer. All on `shipments/global-search`; **green throughout (build + 67 tests + `tokens:audit` aligned)**.
+
+### Thread 1 — Checkbox + Radio (split from Efrain's combined set)
+- Split Efrain's combined "Component 1" set (`2741:2861`) into two Components-Atoms sets: **Checkbox** (`2821:330`, State {Unchecked/Checked/Indeterminate} × Disabled) + **Radio** (`2824:330`, State {Unchecked/Checked} × Disabled). Fixed the radio's foreign `gray/300` (#D1D5DB raw) → `Border/default`.
+- Built on **native `<input>`** (keyboard/focus/form for free), shared `.control` CSS, new `--control-*` token group (one new value: `--control-border-hover` = DSN/400). DSM section, Code Connect, tracker. **State-model decision:** appearance states in Figma; hover/focus code + DSM only.
+
+### Thread 2 — Button `error` variant
+- Efrain seeded an Idle-only Error variant; **completed the 4-state matrix** (Hover/Pressed/Disabled × sm/md/lg = 9 new variants in set `1307:333`). Idle `--bg-error` + `--bittersweet-600`; hover `--bittersweet-200`; pressed `--bittersweet-200` + `--bittersweet-800`, no shadow; disabled = universal. `.btn--error` CSS; Code Connect enum extended; DSM showcase + Figma-ref count 48→60. (Revert: ButtonDemo touch undone — it's a done artifact.)
+
+### Thread 3 — Token governance (the big process win)
+- **Audit:** pulled all 115 Figma variables + 7 effect styles, diffed vs `tokens.css` → fully aligned. The lone gap, **`Bittersweet/200`** (#FBD0CD), was the new primitive Efrain added; mirrored into `tokens.css` + `design.md`.
+- **`npm run tokens:audit`** — new Node script (`tools/tokens-audit.mjs`) diffs `tokens.css` vs a committed Figma snapshot (`packages/tokens/figma-tokens.snapshot.json`); reports gaps/drift, exits 1. Snapshot-based (Figma MCP is Claude-only; Variables REST is Enterprise-gated). Negative-tested (caught a hidden gap + a forced drift).
+- **Routine upgrade 1 — legal/illegal token discriminator** (routine + `SKILL.md`): a value not in `tokens.css` → **legal** (already in our Figma collections, e.g. an Efrain primitive) = mirror-with-mention, no gate; **illegal** (foreign/raw/external-library) or **brand-new** = flag + gate. The discriminator reads `boundVariables` + `remote`, not the heuristic style names.
+
+### Thread 4 — FieldSelect atom (FormField Cycle 1)
+- Normalized `FiledSelectMenu` (`2627:153`) → **`FieldSelect`** (typo fix + name). Edge-attached select **trigger** (Leading/Trailing × 5 states); divider = a one-sided border whose color is the state ladder. **Illegal-token fix:** foreign text style `text-sm/leading-5/font-normal` → local `label/sm regular`; Trailing disabled border unified DSN/300→DSN/200. **Deliberate Leading↔Trailing error divergence kept** (user call: leading reddens label+chevron, trailing divider-only). The `--field-select-divider` CSS var is designed so a parent field drives it. DSM, Code Connect, tracker.
+
+### Thread 5 — FormField molecule redesign (Cycle 2)
+- New master `2602:1424` **supersedes** `2255:98` (renamed `FormField (deprecated → 2602:1424)`). **Read `componentPropertyDefinitions`** to drive the React API. Rewrote `FormField.jsx`: filled/focused **derived**; explicit `error`/`disabled`; slots `showLabel`/`showInfo`/`leadingIcon`/`trailingIcon`/`onClear`/`leadingSelect`/`trailingSelect` (composed `FieldSelect`, divider driven by parent CSS). **`locked` → `disabled`** (the official Figma style); **AuthContent** migrated, DocumentsTab unaffected. Bound the one drift (Error border raw #FBD0CD → `Bittersweet/200`). DSM rewritten (6×3 matrix), Code Connect repointed + published, tracker + design.md.
+- **Routine upgrade 2 — Step 1b "read property definitions"** (routine + `SKILL.md`): read `componentPropertyDefinitions`/`componentPropertyReferences` up front — it IS the component's real API, and it distinguishes intentional toggle/swap slots from leftovers (a hidden node bound to a toggle is intentional; an unbound hidden node is a possible leftover).
+
+### Thread 6 — React Design-System Explorer (spec only)
+- Brainstormed + **spec'd** (`docs/superpowers/specs/2026-06-09-react-design-system-explorer-design.md`): a `/design-system` React route rendering **live** `@odyssey/ui` components in **Atoms/Molecules/Organisms** tabs via per-component `<Component>.demo.jsx` files (replacing the static `getXComponentHTML` HTML-repro step + its drift). Supersedes the static Components+Normalize tabs; static Badges/Typography inventory stays. v1 seeds the 5 components above. **Approved; build deferred to a fresh session** (writing-plans next).
+
+### New / modified
+- **New:** `Checkbox` / `Radio` / `FieldSelect` (`.jsx` + `.figma.tsx`); `tools/tokens-audit.mjs`; `packages/tokens/figma-tokens.snapshot.json`; the React-DSM spec.
+- **Modified:** `FormField.jsx` + `.figma.tsx` (redesign + repoint), `Button.jsx`/`.figma.tsx` (+error), `AuthContent.jsx` (locked→disabled), `index.js`, `components.css` (`.control` / `.field-select` / `.form-field` rewrite + `.btn--error`), `tokens.css` (`--control-*`, `--bittersweet-200`), `design.md`, `package.json` (`tokens:audit`), `CLAUDE.md`, `playground/{DesignSystemMap.html, normalization-tracker.md, icon-tracker.html, figma-component-routine.md}`, `.claude/skills/normalize/SKILL.md`.
+- **Figma:** Checkbox/Radio/FieldSelect built/renamed/cleaned, Button error +9 variants, FormField error-border bound + old master deprecated. **Library publish needed** (user). **Pending icon:** `lucide/minus` (checkbox indeterminate dash → swap once added).
+
+### State after Session 45
+- On `shipments/global-search`. **41 normalized components** (+Checkbox, Radio, FieldSelect; FormField redesigned & superseded). Token governance hardened (audit script + legal/illegal discriminator). `/normalize` routine gained **Step 1b** (read property definitions) + the **token discriminator**. React-DSM spec approved, unbuilt.
+- 67 tests green; build green; `npm run tokens:audit` aligned.
+
+---
+
 ## What's Next
 
-### Session 45 Priorities
+### Session 46 Priorities
 
-1. **GlobalSearch filters-body normalizations (continue the SearchPanel body).** Normalize the remaining `ShipmentsFiltersView` prototype stubs, each its own Figma-first `/normalize` cycle: **"All" content** — **`Select`** (Client/Location field — the blocker; "Select" reserved vs the SHP-66 menu "Dropdown"), `FilterChip` (selectable enum pill), the date-range/text controls; **"Saved" content** — `SavedFilterRow` (grip · name · ›, draggable). (`PillTab` for the tabs shipped in S44.)
-2. **Efrain alignment pass (cont.)** — point at his other new/modified components; treat modified-existing ones as update cycles (validate-before-normalize). ButtonLink was the first (S44).
-3. **GlobalSearch UX wiring.** Two-way query↔filter binding + Show-N wiring; saved-profile persistence; enum multi-select; revisit `issue1_FilterSuggestions`; per-tab footer label (Saved → "Cancel"); repoint the suggestion *source* to `advanced-filter/{field}/lookup` behind the adapter seam.
-4. **Flip to live data.** David's **API access** + the live **Swagger** (`shipment-swagger/v3/api-docs`) to reconcile provisional field names: detail DTO long-tail, grid **row** shape, `error/list` **filter** object (+ pagination indexing, response array name). Confirm Documents/Notes scope with Jana.
-5. **Real auth (MSAL/Entra).** Replace the `getAuthToken()` stub with `@azure/msal-browser` + `@azure/msal-react` (needs `msalConfig` + redirect-URI registration — ties to the Soni infra request). Export SSO diagrams to `vault/00-inbox/` to complete `auth-sso.md`.
-6. **Standing backlog (unchanged):** Code Connect refresh; SHP-66 generic dropdown (the menu/popover, distinct from `Select`); SHP-67 responsive; normalizations backlog; POC 1 OIDC. Pre-existing minor gaps: `hazardous`/`stops` columns render blank (not on the row shape); CSV "all" export emits raw DTO field names.
+1. **Build the React Design-System Explorer** (spec ready — `docs/superpowers/specs/2026-06-09-react-design-system-explorer-design.md`). `writing-plans` → implement v1: `/design-system` route, **Atoms/Molecules/Organisms** tabs, per-component `<Component>.demo.jsx` rendering **live** components, seed Button/Checkbox/Radio/FieldSelect/FormField. Then update the `/normalize` routine for the demo-file model (replaces the `getXComponentHTML` static-HTML step). Backfill remaining ~35 component demos incrementally; retire the static Components tab once done.
+2. **GlobalSearch filters-body normalizations (still pending).** Figma-first `/normalize` per control: **"All"** — **`Select`** (Client/Location — the blocker; name reserved vs the SHP-66 menu "Dropdown"), `FilterChip` (selectable enum pill), date-range/text controls; **"Saved"** — `SavedFilterRow` (grip · name · ›, draggable). (`PillTab` shipped S44.)
+3. **Efrain alignment pass (cont.)** — remaining new/modified components; modified-existing = update cycles (validate-before-normalize, **read property defs first per new Step 1b**). ButtonLink (S44), Checkbox/Radio/Button-error/FieldSelect/FormField (S45) done.
+4. **GlobalSearch UX wiring.** Two-way query↔filter binding + Show-N; saved-profile persistence; enum multi-select; revisit `issue1_FilterSuggestions`; per-tab footer label (Saved → "Cancel"); repoint suggestion *source* to `advanced-filter/{field}/lookup` behind the adapter seam.
+5. **Flip to live data.** David's **API access** + live **Swagger** (`shipment-swagger/v3/api-docs`) to reconcile provisional names (detail DTO long-tail, grid **row** shape, `error/list` **filter** object + pagination, response array name). Confirm Documents/Notes scope with Jana.
+6. **Real auth (MSAL/Entra).** Replace the `getAuthToken()` stub with `@azure/msal-browser` + `@azure/msal-react` (ties to the Soni infra request). Export SSO diagrams to `vault/00-inbox/` to complete `auth-sso.md`.
+7. **Standing backlog:** add `lucide/minus` → swap the Checkbox indeterminate dash; **library publish** (this session's Figma changes); run `npm run tokens:audit` after Efrain passes; Code Connect refresh; SHP-66 generic dropdown (menu/popover, distinct from `Select`/`FieldSelect`); SHP-67 responsive; pre-existing minor gaps (`hazardous`/`stops` blank columns; CSV "all" raw field names).
 
 **Process note:** the API-wiring work follows Superpowers (spec → plan → subagent-driven build with per-task spec+quality reviews + final holistic review). Promote firm contract decisions to the `vault/20-cross-cutting/api-integration/` notes once the live Swagger confirms them.
 

@@ -3046,6 +3046,11 @@ function getButtonComponentHTML() {
     '.btn-demo--ghost:hover:not(:disabled), .btn-demo--ghost.btn-demo--force-hover { background: rgba(255,255,255,0.1); }' +
     '.btn-demo--ghost:active:not(:disabled), .btn-demo--ghost.btn-demo--force-pressed { background: rgba(255,255,255,0.2); color: var(--deep-sea-neutral-200, #E4E6EB); box-shadow: none; }' +
     '.btn-demo--ghost:disabled { background: var(--white, #fff); color: var(--deep-sea-neutral-300, #D0D4DB); border-color: var(--deep-sea-neutral-300, #D0D4DB); box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.05)); }' +
+    /* Error (soft destructive, light surface) — light-red fill + red text, no border at idle. Hover/pressed deepen via the Bittersweet ladder; disabled = universal treatment. */
+    '.btn-demo--error { background: var(--bg-error, #FDE5E3); color: var(--bittersweet-600, #D23930); border-color: transparent; box-shadow: var(--shadow-sm, 0px 1px 2px 0px rgba(0,0,0,0.05)); }' +
+    '.btn-demo--error:hover:not(:disabled), .btn-demo--error.btn-demo--force-hover { background: var(--bittersweet-200, #FBD0CD); }' +
+    '.btn-demo--error:active:not(:disabled), .btn-demo--error.btn-demo--force-pressed { background: var(--bittersweet-200, #FBD0CD); color: var(--bittersweet-800, #922922); box-shadow: none; }' +
+    '.btn-demo--error:disabled { background: var(--white, #FFFFFF); color: var(--deep-sea-neutral-300, #D0D4DB); border-color: var(--deep-sea-neutral-300, #D0D4DB); box-shadow: var(--shadow-sm, 0px 1px 2px 0px rgba(0,0,0,0.05)); }' +
     '.btn-demo-dark-surface { background: var(--deep-sea-neutral-900, #1B2537); padding: 16px; border-radius: var(--radius-lg, 8px); display: inline-flex; gap: var(--spacing-2, 8px); flex-wrap: wrap; }' +
     /* Padding-guide visualization for the with/without-icon comparison */
     '.btn-demo-padding-guide { display: inline-flex; padding: 2px; border: 1px dashed var(--carolina-blue-400, #5BA4D4); border-radius: 10px; }' +
@@ -3058,7 +3063,7 @@ function getButtonComponentHTML() {
 
     /* Sub-section: Variants */
     '<div class="comp-subsection">' +
-      '<div class="comp-subsection-title">Variants (md, with icon)</div>' +
+      '<div class="comp-subsection-title">Variants (md, with icon) <span style="font-weight:400; font-size:13px; color:#6B7280;">&mdash; 6 variants: primary, secondary, outline, ghost, error, link (Link shown in its own sub-section below)</span></div>' +
       '<div class="comp-card-grid">' +
         '<div class="comp-card">' +
           btn('primary', 'md') +
@@ -3079,6 +3084,11 @@ function getButtonComponentHTML() {
           dark(btn('ghost', 'md')) +
           '<div class="comp-card-code">&lt;Button variant="ghost"&gt;Button&lt;/Button&gt;</div>' +
           '<div class="comp-card-note">Ghost is designed for <strong>dark surfaces</strong> — transparent + <strong>no border</strong> + white text. Lighter visual weight than Outline (use Ghost when the button should recede until hovered, e.g. a Cancel button next to a primary Save). Wrapped here in a dark cell for visibility.</div>' +
+        '</div>' +
+        '<div class="comp-card">' +
+          btn('error', 'md') +
+          '<div class="comp-card-code">&lt;Button variant="error"&gt;Button&lt;/Button&gt;</div>' +
+          '<div class="comp-card-note"><strong>Soft destructive</strong> action for <strong>light surfaces</strong> — light-red <code>--bg-error</code> fill + <code>--bittersweet-600</code> text, no border at idle. Hover/pressed deepen via the Bittersweet ladder (bg → <code>--bittersweet-200</code>, pressed text → <code>--bittersweet-800</code>); disabled = the universal treatment (white + DSN/300).</div>' +
         '</div>' +
       '</div>' +
     '</div>' +
@@ -3193,6 +3203,28 @@ function getButtonComponentHTML() {
           dark(btn('ghost', 'md', { disabled: true })) +
           '<div class="comp-card-code">Disabled</div>' +
           '<div class="comp-card-note">White fill, DSN/300 text + 1px DSN/300 border — same universal disabled as the other variants (Ghost takes a visible border only in this state for affordance parity)</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="comp-card-grid" style="margin-top:12px;">' +
+        '<div class="comp-card">' +
+          btn('error', 'md') +
+          '<div class="comp-card-code">Idle</div>' +
+          '<div class="comp-card-note"><code>--bg-error</code> (#FDE5E3) fill, <code>--bittersweet-600</code> (#D23930) text + icon, no border, shadow-sm</div>' +
+        '</div>' +
+        '<div class="comp-card">' +
+          btn('error', 'md', { forceState: 'hover' }) +
+          '<div class="comp-card-code">Hover (forced)</div>' +
+          '<div class="comp-card-note">bg deepens to <code>--bittersweet-200</code> (#FBD0CD), text unchanged</div>' +
+        '</div>' +
+        '<div class="comp-card">' +
+          btn('error', 'md', { forceState: 'pressed' }) +
+          '<div class="comp-card-code">Pressed (forced)</div>' +
+          '<div class="comp-card-note">bg <code>--bittersweet-200</code>, text → <code>--bittersweet-800</code> (#922922), no shadow</div>' +
+        '</div>' +
+        '<div class="comp-card">' +
+          btn('error', 'md', { disabled: true }) +
+          '<div class="comp-card-code">Disabled</div>' +
+          '<div class="comp-card-note">White fill, DSN/300 text + 1px DSN/300 border, shadow stays — same universal disabled as the other variants</div>' +
         '</div>' +
       '</div>' +
     '</div>' +
@@ -3366,7 +3398,7 @@ function getButtonComponentHTML() {
     '<div class="comp-subsection">' +
       '<div class="comp-subsection-title">Figma Reference</div>' +
       '<div class="comp-card-note" style="font-size:13px; color:#384253; line-height:1.6;">' +
-        'Component <code style="' + codeChip + '">1307:333</code> in Design System &mdash; MCP. <strong>48 variants</strong> (4 <code style="' + codeChip + '">Variant</code> &times; 3 <code style="' + codeChip + '">Size</code> &times; 4 <code style="' + codeChip + '">State</code>). Variant axes: <code style="' + codeChip + '">Variant</code> (Primary/Secondary/Outline/Ghost), <code style="' + codeChip + '">Size</code> (sm/md/lg), <code style="' + codeChip + '">State</code> (Idle/Hover/Pressed/Disabled). Ghost was added in Phase 1 of the Ghost rollout (12 new variants). Non-variant component properties: <code style="' + codeChip + '">Show icon</code> (BOOLEAN, default <code>true</code>), <code style="' + codeChip + '">Icon</code> (INSTANCE_SWAP, default <code>placeholder-20</code>), <code style="' + codeChip + '">Label</code> (TEXT, default <code>"Button"</code>). Layout: each variant&rsquo;s auto-layout is [Icon &rarr; TextGroup[Spacer(2px) &rarr; Label]] with <code style="' + codeChip + '">itemSpacing=6</code> between Icon and TextGroup, 0 between Spacer and Label. The 2px Spacer compensates the asymmetric <code style="' + codeChip + '">pl=12</code> padding when the icon is hidden, so the label visually centers regardless of <code style="' + codeChip + '">Show icon</code> state &mdash; Figma matches the running app exactly. All paint colors bound to DSN tokens; effects bound to the local <code style="' + codeChip + '">shadow/sm</code> Effect Style. Typography bound to Figma typography variables: <code style="' + codeChip + '">Font Size/sm</code> + <code style="' + codeChip + '">base</code>, <code style="' + codeChip + '">Line Height/sm</code> + <code style="' + codeChip + '">base</code>, <code style="' + codeChip + '">Font Weight/medium</code>.' +
+        'Component <code style="' + codeChip + '">1307:333</code> in Design System &mdash; MCP. <strong>60 variants</strong> (5 <code style="' + codeChip + '">Variant</code> &times; 3 <code style="' + codeChip + '">Size</code> &times; 4 <code style="' + codeChip + '">State</code>). Variant axes: <code style="' + codeChip + '">Variant</code> (Primary/Secondary/Outline/Ghost/Error), <code style="' + codeChip + '">Size</code> (sm/md/lg), <code style="' + codeChip + '">State</code> (Idle/Hover/Pressed/Disabled). Ghost was added in Phase 1 of the Ghost rollout (12 new variants); Error added 2026-06-09 (12 new variants &mdash; Efrain seeded Idle, Hover/Pressed/Disabled completed to match). Non-variant component properties: <code style="' + codeChip + '">Show icon</code> (BOOLEAN, default <code>true</code>), <code style="' + codeChip + '">Icon</code> (INSTANCE_SWAP, default <code>placeholder-20</code>), <code style="' + codeChip + '">Label</code> (TEXT, default <code>"Button"</code>). Layout: each variant&rsquo;s auto-layout is [Icon &rarr; TextGroup[Spacer(2px) &rarr; Label]] with <code style="' + codeChip + '">itemSpacing=6</code> between Icon and TextGroup, 0 between Spacer and Label. The 2px Spacer compensates the asymmetric <code style="' + codeChip + '">pl=12</code> padding when the icon is hidden, so the label visually centers regardless of <code style="' + codeChip + '">Show icon</code> state &mdash; Figma matches the running app exactly. All paint colors bound to DSN tokens; effects bound to the local <code style="' + codeChip + '">shadow/sm</code> Effect Style. Typography bound to Figma typography variables: <code style="' + codeChip + '">Font Size/sm</code> + <code style="' + codeChip + '">base</code>, <code style="' + codeChip + '">Line Height/sm</code> + <code style="' + codeChip + '">base</code>, <code style="' + codeChip + '">Font Weight/medium</code>.' +
       '</div>' +
     '</div>' +
 
@@ -6906,7 +6938,7 @@ var compDetails = {
         '<thead><tr><th>Prop</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>' +
         '<tbody>' +
           '<tr style="background:#F7F8FA;"><td colspan="4" style="font-style:italic; color:#384253;"><strong>Surface guidance:</strong> Secondary is designed for light surfaces. On dark surfaces, use Outline or Ghost &mdash; Secondary&rsquo;s hover (DSN/50) and pressed (DSN/100) fills lose contrast on dark backdrops. Outline (with border) and Ghost (no border) both use white-tint overlays + white text for dark contexts; Ghost is lighter visual weight and recedes until hovered.</td></tr>' +
-          '<tr><td><code>variant</code></td><td><code>"primary" | "secondary" | "outline" | "ghost"</code></td><td><code>"primary"</code></td><td>Visual style. <code>outline</code> and <code>ghost</code> are intended for dark surfaces &mdash; <code>ghost</code> = <code>outline</code> minus the border, so it recedes until hovered.</td></tr>' +
+          '<tr><td><code>variant</code></td><td><code>"primary" | "secondary" | "outline" | "ghost" | "error" | "link"</code></td><td><code>"primary"</code></td><td>Visual style. <code>outline</code> and <code>ghost</code> are intended for dark surfaces &mdash; <code>ghost</code> = <code>outline</code> minus the border, so it recedes until hovered. <code>error</code> is a soft destructive action for light surfaces &mdash; light-red fill + red text that deepens via the Bittersweet ladder on hover/pressed; disabled = the universal treatment.</td></tr>' +
           '<tr><td><code>size</code></td><td><code>"sm" | "md" | "lg"</code></td><td><code>"md"</code></td><td>32 / 36 / 40 height respectively.</td></tr>' +
           '<tr><td><code>disabled</code></td><td>boolean</td><td><code>false</code></td><td>Native HTML <code>disabled</code>. All four main variants render as white fill + DSN/300 text + 1px DSN/300 border + shadow-sm when disabled (uniform universal disabled). Link is the special case: DSN/300 text, transparent bg, no border/shadow.</td></tr>' +
           '<tr><td><code>icon</code></td><td>ReactNode</td><td>&mdash;</td><td>Optional left-side 20&times;20 icon (e.g. <code>&lt;Plus size={20} /&gt;</code> from lucide-react). Color inherits text via <code>currentColor</code>. Icon dimensions are forced to 20&times;20 by <code>.btn__icon</code> regardless of inner SVG size. Maps to Figma&rsquo;s <code>Show icon</code> BOOLEAN + <code>Icon</code> INSTANCE_SWAP. When omitted in code, the button renders without <code>.btn--has-icon</code>; in Figma, toggling Show icon = false collapses the icon and the 2px Spacer in TextGroup keeps the label centered. Both produce a visually-centered no-icon button.</td></tr>' +
@@ -6968,6 +7000,12 @@ var compDetails = {
           '<tr><td>Hover bg / border / text+icon</td><td><code>rgba(255,255,255,0.1)</code> / transparent / <code>--white</code></td><td>component-scoped tint / &mdash; / #FFFFFF</td></tr>' +
           '<tr><td>Pressed bg / border / text+icon</td><td><code>rgba(255,255,255,0.2)</code> / transparent / <code>--deep-sea-neutral-200</code></td><td>component-scoped tint / &mdash; / #E4E6EB</td></tr>' +
           '<tr><td>Disabled bg / border / text+icon</td><td><code>--white</code> / <code>--deep-sea-neutral-300</code> / <code>--deep-sea-neutral-300</code></td><td>#FFFFFF / #D0D4DB / #D0D4DB (universal disabled &mdash; Ghost takes a visible border only in this state for affordance parity)</td></tr>' +
+          /* Color — Error */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Color &mdash; Error (soft destructive, light surface)</td></tr>' +
+          '<tr><td>Idle bg / border / text+icon</td><td><code>--bg-error</code> / transparent / <code>--bittersweet-600</code></td><td>#FDE5E3 / &mdash; / #D23930</td></tr>' +
+          '<tr><td>Hover bg / border / text+icon</td><td><code>--bittersweet-200</code> / transparent / <code>--bittersweet-600</code></td><td>#FBD0CD <strong>(NEW primitive)</strong> / &mdash; / #D23930</td></tr>' +
+          '<tr><td>Pressed bg / border / text+icon</td><td><code>--bittersweet-200</code> / transparent / <code>--bittersweet-800</code></td><td>#FBD0CD <strong>(NEW primitive)</strong> / &mdash; / #922922</td></tr>' +
+          '<tr><td>Disabled bg / border / text+icon</td><td><code>--white</code> / <code>--deep-sea-neutral-300</code> / <code>--deep-sea-neutral-300</code></td><td>#FFFFFF / #D0D4DB / #D0D4DB (universal disabled &mdash; same as the other variants)</td></tr>' +
           /* Border */
           '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Border</td></tr>' +
           '<tr><td>Width (all)</td><td>1px (raw)</td><td>no Border-Width token in current scale</td></tr>' +
@@ -6976,7 +7014,7 @@ var compDetails = {
           '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Effect (shadow)</td></tr>' +
           '<tr><td>Idle / hover / disabled (all variants)</td><td><code>--shadow-sm</code></td><td>0 1px 2px rgba(0,0,0,0.05)</td></tr>' +
           '<tr><td>Pressed &mdash; Primary (inset)</td><td><code>inset 0 1px 3px rgba(0,0,0,0.4)</code> (raw)</td><td>replaces outer shadow on press</td></tr>' +
-          '<tr><td>Pressed &mdash; Secondary / Outline / Ghost</td><td>none</td><td>shadow drops</td></tr>' +
+          '<tr><td>Pressed &mdash; Secondary / Outline / Ghost / Error</td><td>none</td><td>shadow drops</td></tr>' +
           '<tr><td>Transition</td><td><code>--transition-fast</code></td><td>150ms ease</td></tr>' +
           /* Outline */
           '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Outline (focus ring)</td></tr>' +
@@ -7121,6 +7159,197 @@ var compDetails = {
           '<tr><td><code>Label</code> TEXT</td><td>&rarr; <code>label</code> prop</td><td>&mdash;</td></tr>' +
           '<tr><td><code>Show count</code> BOOLEAN</td><td>&rarr; <code>showCount</code> prop</td><td>&mdash;</td></tr>' +
           '<tr><td>Count</td><td>nested exposed Badge <code>metric</code> instance</td><td>&rarr; <code>count</code> prop</td></tr>' +
+        '</tbody>' +
+      '</table>'
+  },
+  CheckboxRadio: {
+    props:
+      '<table class="comp-table">' +
+        '<thead><tr><th>Prop</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>' +
+        '<tbody>' +
+          '<tr style="background:#F7F8FA;"><td colspan="4" style="font-style:italic; color:#384253;">Two selection atoms (<code>Checkbox</code>, <code>Radio</code>) built on a native <code>&lt;input&gt;</code> with <code>appearance: none</code> &mdash; the input <em>is</em> the visible 16&times;16 box; the indicator (check / dash / dot) is overlaid as a sibling. Keyboard, focus, label association, and form submission come for free from the native input. Hover / focus / disabled are CSS-driven, not props. They share the <code>--control-*</code> token set; the API is identical except <code>Checkbox</code> adds <code>indeterminate</code>.</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="4" style="font-weight:600; color:#283142;">Checkbox</td></tr>' +
+          '<tr><td><code>checked</code></td><td>boolean</td><td>&mdash;</td><td>Controlled checked state. (<code>defaultChecked</code> available for the uncontrolled form.)</td></tr>' +
+          '<tr><td><code>indeterminate</code></td><td>boolean</td><td><code>false</code></td><td>Renders the dash indicator. Set as a DOM-only property via a <code>useEffect</code> (it can\'t be set via an attribute). Visually overrides the check.</td></tr>' +
+          '<tr><td><code>disabled</code></td><td>boolean</td><td><code>false</code></td><td>Native HTML <code>disabled</code> &mdash; subtle border when unchecked, DSN/300 fill when checked / indeterminate, placeholder-color label, <code>cursor: not-allowed</code>.</td></tr>' +
+          '<tr><td><code>label</code></td><td>string</td><td>&mdash;</td><td>Adjacent label text, rendered <code>text-label-sm-medium</code>. The whole <code>&lt;label&gt;</code> wraps the box + text so the entire row is clickable.</td></tr>' +
+          '<tr><td><code>showLabel</code></td><td>boolean</td><td><code>true</code></td><td>When <code>false</code> (or <code>label == null</code>), the label span is omitted &mdash; box-only control.</td></tr>' +
+          '<tr><td><code>onChange</code></td><td>function</td><td>&mdash;</td><td>Native change handler, passed straight to the <code>&lt;input&gt;</code>.</td></tr>' +
+          '<tr><td><code>name</code></td><td>string</td><td>&mdash;</td><td>Form field name, passed to the <code>&lt;input&gt;</code>.</td></tr>' +
+          '<tr><td><code>value</code></td><td>string</td><td>&mdash;</td><td>Form field value, passed to the <code>&lt;input&gt;</code>.</td></tr>' +
+          '<tr><td><code>id</code></td><td>string</td><td>&mdash;</td><td>DOM id, passed to the <code>&lt;input&gt;</code>.</td></tr>' +
+          '<tr><td><code>className</code> / <code>...rest</code></td><td>string / HTMLInputAttrs</td><td>&mdash;</td><td><code>className</code> appends to the <code>.control</code> wrapper; <code>...rest</code> spreads to the <code>&lt;input&gt;</code>.</td></tr>' +
+          '<tr style="background:#F7F8FA;"><td colspan="4" style="font-weight:600; color:#283142;">Radio (same API minus <code>indeterminate</code>)</td></tr>' +
+          '<tr><td><code>checked</code></td><td>boolean</td><td>&mdash;</td><td>Controlled checked state. (<code>defaultChecked</code> for the uncontrolled form.)</td></tr>' +
+          '<tr><td><code>disabled</code></td><td>boolean</td><td><code>false</code></td><td>Native HTML <code>disabled</code> &mdash; same visual ladder as Checkbox.</td></tr>' +
+          '<tr><td><code>label</code></td><td>string</td><td>&mdash;</td><td>Adjacent label text, rendered <code>text-label-sm-medium</code>.</td></tr>' +
+          '<tr><td><code>showLabel</code></td><td>boolean</td><td><code>true</code></td><td>When <code>false</code> (or <code>label == null</code>), the label span is omitted.</td></tr>' +
+          '<tr><td><code>onChange</code></td><td>function</td><td>&mdash;</td><td>Native change handler.</td></tr>' +
+          '<tr><td><code>name</code></td><td>string</td><td>&mdash;</td><td>Shared <code>name</code> groups radios; native arrow-key group navigation comes for free.</td></tr>' +
+          '<tr><td><code>value</code></td><td>string</td><td>&mdash;</td><td>Form field value.</td></tr>' +
+          '<tr><td><code>id</code></td><td>string</td><td>&mdash;</td><td>DOM id.</td></tr>' +
+          '<tr><td><code>className</code> / <code>...rest</code></td><td>string / HTMLInputAttrs</td><td>&mdash;</td><td>Same handling as Checkbox.</td></tr>' +
+        '</tbody>' +
+      '</table>',
+    tokens:
+      '<table class="comp-table">' +
+        '<thead><tr><th>Area / Property</th><th>Token / Value</th><th>Resolved</th></tr></thead>' +
+        '<tbody>' +
+          /* Geometry */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Geometry</td></tr>' +
+          '<tr><td>Box size</td><td><code>16&times;16</code> (raw)</td><td>component-internal geometry (no Sizing token at 16)</td></tr>' +
+          '<tr><td>Gap (box &harr; label)</td><td><code>--spacing-2</code></td><td>8px</td></tr>' +
+          '<tr><td>Checkbox radius</td><td><code>--radius-sm</code></td><td>4px</td></tr>' +
+          '<tr><td>Radio radius</td><td><code>--radius-full</code></td><td>9999px</td></tr>' +
+          '<tr><td>Indeterminate dash</td><td><code>8&times;2</code>, radius 1px (raw)</td><td>component-internal geometry</td></tr>' +
+          '<tr><td>Radio dot</td><td><code>6&times;6</code>, <code>--radius-full</code> (raw size)</td><td>component-internal geometry</td></tr>' +
+          /* Color — control-* token contract */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Color &mdash; <code>--control-*</code> contract</td></tr>' +
+          '<tr><td>Unchecked bg / border</td><td><code>--control-bg</code> / <code>--control-border</code></td><td>--bg-primary (#FFFFFF) / --border-default (#D0D4DB)</td></tr>' +
+          '<tr><td>Hover (unchecked) border</td><td><code>--control-border-hover</code></td><td>DSN/400 (#9DA3B0)</td></tr>' +
+          '<tr><td>Checked / indeterminate bg + border</td><td><code>--control-checked-bg</code></td><td>--bg-inverse (#1B2537)</td></tr>' +
+          '<tr><td>Checked hover bg + border</td><td><code>--control-checked-hover-bg</code></td><td>--deep-sea-neutral-700 (#384253)</td></tr>' +
+          '<tr><td>Indicator (check / dash / dot)</td><td><code>--control-indicator</code></td><td>--text-inverse (#FFFFFF) &mdash; via <code>currentColor</code></td></tr>' +
+          '<tr><td>Disabled + unchecked border</td><td><code>--control-border-disabled</code></td><td>--border-subtle (#E4E6EB)</td></tr>' +
+          '<tr><td>Disabled + checked / indeterminate fill</td><td><code>--control-checked-bg-disabled</code></td><td>--border-default / DSN/300 (#D0D4DB)</td></tr>' +
+          '<tr><td>Label color</td><td><code>--control-label</code></td><td>--text-secondary (#384253)</td></tr>' +
+          '<tr><td>Disabled label color</td><td><code>--control-label-disabled</code></td><td>--text-placeholder (#9DA3B0)</td></tr>' +
+          '<tr><td>Focus ring color</td><td><code>--control-focus</code></td><td>--border-focus (#5BA4D4)</td></tr>' +
+          /* Type / Effect */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Type &amp; Effect</td></tr>' +
+          '<tr><td>Label typography</td><td><code>label/sm medium</code> (<code>text-label-sm-medium</code>)</td><td>14 / 20 / 500</td></tr>' +
+          '<tr><td>Border width</td><td>1px (raw)</td><td>no Border-Width token in current scale</td></tr>' +
+          '<tr><td>Focus ring</td><td><code>outline: 2px solid --control-focus</code>, offset 2px</td><td>via <code>:focus-visible</code> (border kept)</td></tr>' +
+          '<tr><td>Transition</td><td><code>background, border-color var(--transition-fast)</code></td><td>150ms ease</td></tr>' +
+          /* Figma reference */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Figma reference</td></tr>' +
+          '<tr><td>Checkbox master</td><td><code>2821:330</code></td><td>Components-Atoms &mdash; <code>State</code> &times; <code>Disabled</code></td></tr>' +
+          '<tr><td>Radio master</td><td><code>2824:330</code></td><td>Components-Atoms &mdash; <code>State</code> &times; <code>Disabled</code></td></tr>' +
+          '<tr><td>Hover / focus</td><td>CSS-driven (not Figma variants)</td><td>modeled in code only</td></tr>' +
+          /* Code Connect */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Code Connect &mdash; Checkbox.figma.tsx / Radio.figma.tsx</td></tr>' +
+          '<tr><td><code>State</code> VARIANT</td><td>&rarr; <code>checked</code> / <code>indeterminate</code> props</td><td>Unchecked / Checked / Indeterminate (Checkbox); Unchecked / Checked (Radio)</td></tr>' +
+          '<tr><td><code>Disabled</code> VARIANT</td><td>&rarr; <code>disabled</code> prop</td><td>True / False</td></tr>' +
+          '<tr><td><code>Show label</code> BOOLEAN</td><td>&rarr; <code>showLabel</code> prop</td><td>&mdash;</td></tr>' +
+          '<tr><td><code>Label</code> TEXT</td><td>&rarr; <code>label</code> prop</td><td>&mdash;</td></tr>' +
+        '</tbody>' +
+      '</table>'
+  },
+  FieldSelect: {
+    props:
+      '<table class="comp-table">' +
+        '<thead><tr><th>Prop</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>' +
+        '<tbody>' +
+          '<tr style="background:#F7F8FA;"><td colspan="4" style="font-style:italic; color:#384253;">Edge-attached select trigger (label + <code>lucide/chevron-down</code>) that sits on the leading or trailing side of a form field. The divider is a <strong>one-sided border</strong> &mdash; <code>border-right</code> for <code>leading</code>, <code>border-left</code> for <code>trailing</code>. Chevron inherits the label color via <code>currentColor</code>. Presentational: <code>state</code> is set by the parent field (it reflects the field\'s focus / error), so the component exposes <code>variant</code> + <code>state</code> rather than owning interaction.</td></tr>' +
+          '<tr><td><code>variant</code></td><td><code>"leading" | "trailing"</code></td><td><code>"trailing"</code></td><td>Which side of the field the trigger attaches to &mdash; sets the one-sided divider (<code>leading</code> &rarr; <code>border-right</code>; <code>trailing</code> &rarr; <code>border-left</code>) and the off-scale 14px padding on the divider side.</td></tr>' +
+          '<tr><td><code>state</code></td><td><code>"default" | "focus" | "disabled" | "error-default" | "error"</code></td><td><code>"default"</code></td><td>Divider color ladder. <code>disabled</code> also sets <code>cursor: not-allowed</code> + native <code>disabled</code>. On <code>error-default</code> / <code>error</code>, <strong>leading</strong> reddens the label + chevron too; <strong>trailing</strong> keeps them neutral (divider-only) &mdash; deliberate divergence.</td></tr>' +
+          '<tr><td><code>label</code></td><td>string</td><td><code>"Select"</code></td><td>Trigger label, rendered with <code>text-label-sm-regular</code>. Sits before the chevron.</td></tr>' +
+          '<tr><td><code>onClick</code></td><td>function</td><td>&mdash;</td><td>Click handler &mdash; the consumer opens the select menu / picker.</td></tr>' +
+          '<tr><td><code>className</code></td><td>string</td><td><code>""</code></td><td>Appended to the button class.</td></tr>' +
+          '<tr><td><code>...rest</code></td><td>HTMLButtonAttrs</td><td>&mdash;</td><td>Spread to the <code>&lt;button&gt;</code> (style, aria-*, etc.).</td></tr>' +
+        '</tbody>' +
+      '</table>',
+    tokens:
+      '<table class="comp-table">' +
+        '<thead><tr><th>State / Property</th><th>Token / Value</th><th>Resolved</th></tr></thead>' +
+        '<tbody>' +
+          /* Divider — state ladder */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Divider &mdash; one-sided border, state ladder</td></tr>' +
+          '<tr><td>Default</td><td><code>--border-default</code></td><td>DSN/300 (#D0D4DB)</td></tr>' +
+          '<tr><td>Focus</td><td><code>--border-strong</code></td><td>--text-primary (#1B2537)</td></tr>' +
+          '<tr><td>Disabled</td><td><code>--border-subtle</code></td><td>DSN/200 (#E4E6EB) &mdash; + <code>cursor: not-allowed</code></td></tr>' +
+          '<tr><td>Error Default</td><td><code>--bittersweet-200</code></td><td>#FBD0CD</td></tr>' +
+          '<tr><td>Error</td><td><code>--bittersweet-600</code></td><td>#D23930</td></tr>' +
+          '<tr><td>Border side</td><td><code>border-right</code> (leading) / <code>border-left</code> (trailing)</td><td>1px (raw &mdash; no Border-Width token)</td></tr>' +
+          /* Label + chevron color */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Label + chevron color (chevron via currentColor)</td></tr>' +
+          '<tr><td>Default / focus / disabled / both error states</td><td><code>--text-tertiary</code></td><td>#6B7280 &mdash; neutral</td></tr>' +
+          '<tr><td><strong>Leading</strong> &mdash; error-default / error</td><td><code>--bittersweet-600</code></td><td>#D23930 &mdash; label + chevron redden</td></tr>' +
+          '<tr><td><strong>Trailing</strong> &mdash; error-default / error</td><td><code>--text-tertiary</code> (unchanged)</td><td>#6B7280 &mdash; <strong>divider-only</strong> (deliberate divergence)</td></tr>' +
+          /* Geometry */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Geometry</td></tr>' +
+          '<tr><td>Gap (label &harr; chevron)</td><td><code>--spacing-1</code></td><td>4px</td></tr>' +
+          '<tr><td>Padding &mdash; vertical / horizontal</td><td><code>--spacing-2</code> / <code>--spacing-3</code></td><td>8px / 12px</td></tr>' +
+          '<tr><td>Padding &mdash; divider side</td><td>14px (raw)</td><td>off-scale component-internal padding (matches Button raw 14)</td></tr>' +
+          '<tr><td>Chevron size</td><td>16px</td><td><code>lucide/chevron-down</code></td></tr>' +
+          /* Type / transition */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Type &amp; Transition</td></tr>' +
+          '<tr><td>Label typography</td><td><code>label/sm regular</code> (<code>text-label-sm-regular</code>)</td><td>14 / 20 / 400</td></tr>' +
+          '<tr><td>Transition</td><td><code>color, border-color var(--transition-fast)</code></td><td>150ms ease</td></tr>' +
+          /* Figma reference */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Figma reference</td></tr>' +
+          '<tr><td>FieldSelect master</td><td><code>2627:153</code></td><td>Components-Atoms &mdash; <code>Variant</code> &times; <code>State</code></td></tr>' +
+          /* Code Connect */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Code Connect &mdash; FieldSelect.figma.tsx</td></tr>' +
+          '<tr><td><code>Variant</code> VARIANT</td><td>&rarr; <code>variant</code> prop</td><td>Leading / Trailing</td></tr>' +
+          '<tr><td><code>State</code> VARIANT</td><td>&rarr; <code>state</code> prop</td><td>Default / Focus / Disabled / Error Default / Error</td></tr>' +
+        '</tbody>' +
+      '</table>'
+  },
+  FormField: {
+    props:
+      '<table class="comp-table">' +
+        '<thead><tr><th>Prop</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>' +
+        '<tbody>' +
+          '<tr style="background:#F7F8FA;"><td colspan="4" style="font-style:italic; color:#384253;">Title label (+ optional <code>lucide/info</code>) over an input row, with an optional error message below. The primary form-input molecule. <code>filled</code> / <code>focused</code> derive automatically (value present / <code>:focus-within</code>); <code>error</code> + <code>disabled</code> are explicit. Edge slots compose a <strong>FieldSelect</strong> whose divider tracks the field state via a CSS override of <code>--field-select-divider</code>.</td></tr>' +
+          '<tr><td><code>label</code></td><td>string</td><td>&mdash;</td><td>Title label, rendered with <code>text-label-sm-medium</code> at <code>--text-secondary</code>.</td></tr>' +
+          '<tr><td><code>showLabel</code></td><td>boolean</td><td><code>true</code></td><td>Toggles the whole label row (<code>Show label</code> in Figma). Hidden when false or <code>label</code> is empty.</td></tr>' +
+          '<tr><td><code>showInfo</code></td><td>boolean</td><td><code>false</code></td><td><code>Show info icon</code> &mdash; renders a 16px <code>lucide/info</code> beside the title at <code>--text-tertiary</code>.</td></tr>' +
+          '<tr><td><code>placeholder</code></td><td>string</td><td>&mdash;</td><td>Placeholder copy, shown at <code>--text-placeholder</code> in the Default state.</td></tr>' +
+          '<tr><td><code>value</code></td><td>string</td><td>&mdash;</td><td>Controlled value. When non-empty the field reads as <code>Filled</code> (<code>--text-primary</code>).</td></tr>' +
+          '<tr><td><code>onChange</code></td><td>function</td><td>&mdash;</td><td>Native input change handler.</td></tr>' +
+          '<tr><td><code>type</code></td><td>string</td><td><code>"text"</code></td><td>Native input type (<code>text</code> | <code>email</code> | <code>password</code> | &hellip;).</td></tr>' +
+          '<tr><td><code>error</code></td><td>string</td><td>&mdash;</td><td>When truthy, switches to the <strong>error</strong> state (border <code>--bittersweet-200</code> idle &rarr; <code>--bittersweet-600</code> on focus) and renders the string as a red message below (<code>label/xs regular</code>, <code>--text-error</code>).</td></tr>' +
+          '<tr><td><code>disabled</code></td><td>boolean</td><td><code>false</code></td><td>Mutes the field &mdash; bg <code>--bg-secondary</code>, text <code>--text-tertiary</code>, <code>cursor: not-allowed</code>. Also drives the FieldSelect into its <code>disabled</code> state.</td></tr>' +
+          '<tr><td><code>leadingIcon</code></td><td>ReactNode</td><td>&mdash;</td><td><code>Show/Leading Icon</code> &mdash; 16px swap slot inside the control, before the input (placeholder-16 in Figma).</td></tr>' +
+          '<tr><td><code>trailingIcon</code></td><td>ReactNode</td><td>&mdash;</td><td><code>Show/Trailing Icon</code> &mdash; 16px swap slot inside the control, after the input (placeholder-16 in Figma).</td></tr>' +
+          '<tr><td><code>leadingSelect</code></td><td><code>{ label, onClick }</code></td><td>&mdash;</td><td>Renders a <strong>FieldSelect</strong> (<code>variant="leading"</code>) flush to the left edge with a right divider (e.g. a <code>+1 &#9662;</code> country code).</td></tr>' +
+          '<tr><td><code>trailingSelect</code></td><td><code>{ label, onClick }</code></td><td>&mdash;</td><td>Renders a <strong>FieldSelect</strong> (<code>variant="trailing"</code>) flush to the right edge with a left divider (e.g. a <code>Select &#9662;</code> unit picker).</td></tr>' +
+          '<tr><td><code>onClear</code></td><td>function</td><td>&mdash;</td><td><code>Show X Icon</code> &mdash; when supplied, renders a <code>lucide/circle-x</code> clear button shown only when the field is focused + filled (and not disabled).</td></tr>' +
+          '<tr><td><code>id</code></td><td>string</td><td>&mdash;</td><td>Input id; wires <code>label htmlFor</code> + the error message <code>aria-describedby</code>.</td></tr>' +
+          '<tr><td><code>name</code></td><td>string</td><td>&mdash;</td><td>Native input name.</td></tr>' +
+          '<tr><td><code>required</code></td><td>boolean</td><td><code>false</code></td><td>Native required flag.</td></tr>' +
+          '<tr><td><code>className</code></td><td>string</td><td><code>""</code></td><td>Appended to the root class.</td></tr>' +
+          '<tr><td><code>...rest</code></td><td>HTMLInputAttrs</td><td>&mdash;</td><td>Spread to the native <code>&lt;input&gt;</code> (autoComplete, aria-*, etc.).</td></tr>' +
+        '</tbody>' +
+      '</table>',
+    tokens:
+      '<table class="comp-table">' +
+        '<thead><tr><th>State / Property</th><th>Token / Value</th><th>Resolved</th></tr></thead>' +
+        '<tbody>' +
+          /* Label */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Label + info</td></tr>' +
+          '<tr><td>Label color</td><td><code>--text-secondary</code></td><td>#384253 &mdash; <code>label/sm medium</code></td></tr>' +
+          '<tr><td>Info icon</td><td><code>--text-tertiary</code></td><td>#6B7280 &mdash; <code>lucide/info</code> 16px</td></tr>' +
+          /* Input border ladder */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Input border &mdash; state ladder</td></tr>' +
+          '<tr><td>Default / Filled</td><td><code>--deep-sea-neutral-300</code></td><td>#D0D4DB (1px)</td></tr>' +
+          '<tr><td>Focused</td><td><code>--input-border-focus</code></td><td>DSN/900 (#1B2537) &mdash; via <code>:focus-within</code></td></tr>' +
+          '<tr><td>Error (idle)</td><td><code>--bittersweet-200</code></td><td>#FBD0CD</td></tr>' +
+          '<tr><td>Error (focused)</td><td><code>--bittersweet-600</code></td><td>#D23930</td></tr>' +
+          /* Field text */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Field text</td></tr>' +
+          '<tr><td>Placeholder</td><td><code>--text-placeholder</code></td><td>#9DA3B0</td></tr>' +
+          '<tr><td>Value (Filled)</td><td><code>--text-primary</code></td><td>#1B2537 &mdash; <code>label/sm regular</code></td></tr>' +
+          '<tr><td>Error text + message</td><td><code>--text-error</code></td><td>#D23930 (message <code>label/xs regular</code>)</td></tr>' +
+          '<tr><td>Disabled text</td><td><code>--text-tertiary</code></td><td>#6B7280</td></tr>' +
+          /* Surface */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Surface</td></tr>' +
+          '<tr><td>Background</td><td><code>--white</code></td><td>#FFFFFF</td></tr>' +
+          '<tr><td>Disabled background</td><td><code>--bg-secondary</code></td><td>DSN/50 (#F7F8FA)</td></tr>' +
+          '<tr><td>Radius</td><td><code>--radius-md</code></td><td>6px</td></tr>' +
+          '<tr><td>Shadow</td><td><code>--shadow-sm</code></td><td>0 1px 2px rgba(0,0,0,0.05)</td></tr>' +
+          /* FieldSelect divider */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">FieldSelect divider &mdash; driven by parent state</td></tr>' +
+          '<tr><td>Mechanism</td><td><code>--field-select-divider</code></td><td>parent CSS overrides the atom\'s var</td></tr>' +
+          '<tr><td>Focused</td><td><code>--border-strong</code></td><td>DSN/900 (#1B2537)</td></tr>' +
+          '<tr><td>Error idle / focused</td><td><code>--bittersweet-200</code> / <code>--bittersweet-600</code></td><td>#FBD0CD / #D23930</td></tr>' +
+          /* Figma reference */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Figma reference</td></tr>' +
+          '<tr><td>FormField master</td><td><code>2602:1424</code></td><td>Components-Molecules &mdash; <strong>supersedes</strong> the old <code>2255:98</code></td></tr>' +
+          /* Code Connect */
+          '<tr style="background:#F7F8FA;"><td colspan="3" style="font-weight:600; color:#283142;">Code Connect &mdash; FormField.figma.tsx (repointed to 2602:1424)</td></tr>' +
+          '<tr><td>Slot / state props</td><td>&rarr; <code>showLabel</code> / <code>showInfo</code> / <code>leadingIcon</code> / <code>trailingIcon</code> / <code>onClear</code> / <code>error</code> / <code>disabled</code></td><td>map to the Figma boolean + variant properties</td></tr>' +
         '</tbody>' +
       '</table>'
   },
@@ -10398,6 +10627,850 @@ function getPillTabComponentHTML() {
   '</div>';
 }
 
+/* ── Checkbox + Radio (atoms) — NORMALIZED ──
+   Promoted from the Normalize tab to the Components tab after GATE B-DSM
+   sign-off. Two selection atoms built on native `<input type="checkbox">` /
+   `<input type="radio">` with `appearance: none` + a styled 16×16 box and an
+   adjacent label. Shared `.control*` structure (here scoped as `.cbr-comp-*`
+   to avoid colliding with the real `.control*` CSS); the
+   `--checkbox` / `--radio` modifier only changes the radius + which indicator
+   shows. Hover / focus / disabled are CSS-driven. All values bound to the
+   `--control-*` tokens. Live row is really interactive; the matrices use
+   `.is-hover` / `.is-focus` modifier classes so the un-forceable pseudo-states
+   show side-by-side. Figma masters: Checkbox set 2821:330, Radio set 2824:330
+   (both Components-Atoms). See packages/ui/src/{Checkbox,Radio}.jsx +
+   the SELECTION CONTROLS block in apps/odyssey-one/src/styles/components.css. */
+function getFieldSelectComponentHTML() {
+  /* lucide/chevron-down, stroke currentColor so it inherits the label color
+     (neutral by default; reddens with the label on leading error). 16px. */
+  var chevron = '<svg class="fsel-chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>';
+  return '' +
+  /* ── Scoped styles (mirror the real .field-select* CSS; .fsel-* prefix) ── */
+  '<style>' +
+    /* Demo surface — neutral wash so the white field cards read against it. */
+    '.fsel-surface {' +
+      'background: #F2F3F5;' +
+      'padding: 32px;' +
+      'border-radius: var(--radius-md, 6px);' +
+    '}' +
+
+    /* .field-select base — inline-flex trigger, neutral label, currentColor chevron. */
+    '.fsel-trigger {' +
+      '--fsel-divider: var(--border-default, #D0D4DB);' +
+      'display: inline-flex; align-items: center;' +
+      'gap: var(--spacing-1, 4px);' +
+      /* 14px on the divider side = component-internal padding (matches Button raw 14). */
+      'padding: var(--spacing-2, 8px) var(--spacing-3, 12px);' +
+      'border: none; background: transparent;' +
+      'color: var(--text-tertiary, #6B7280);' +
+      'cursor: pointer; white-space: nowrap;' +
+      'font-family: \'Inter\', sans-serif; font-size: 14px; line-height: 20px; font-weight: 400;' +
+      'transition: color var(--transition-fast, 150ms ease), border-color var(--transition-fast, 150ms ease);' +
+    '}' +
+    '.fsel-chev { display: block; flex-shrink: 0; }' +
+    /* Variant — one-sided divider. Leading = border-right; trailing = border-left. */
+    '.fsel-trigger--leading {' +
+      'padding-right: 14px;' +
+      'border-right: 1px solid var(--fsel-divider);' +
+    '}' +
+    '.fsel-trigger--trailing {' +
+      'padding-left: 14px;' +
+      'border-left: 1px solid var(--fsel-divider);' +
+    '}' +
+    /* State ladder — divider color. */
+    '.fsel-trigger--focus { --fsel-divider: var(--border-strong, #1B2537); }' +
+    '.fsel-trigger--disabled { --fsel-divider: var(--border-subtle, #E4E6EB); cursor: not-allowed; }' +
+    '.fsel-trigger--error-default { --fsel-divider: var(--bittersweet-200, #FBD0CD); }' +
+    '.fsel-trigger--error { --fsel-divider: var(--bittersweet-600, #D23930); }' +
+    /* Leading reddens label + chevron on error (deliberate divergence — trailing
+       keeps the neutral label/chevron, divider-only). */
+    '.fsel-trigger--leading.fsel-trigger--error-default,' +
+    '.fsel-trigger--leading.fsel-trigger--error {' +
+      'color: var(--bittersweet-600, #D23930);' +
+    '}' +
+
+    /* The neighboring field edge — a thin neutral stub so the one-sided divider
+       reads as "attached to a field" rather than a floating border. */
+    '.fsel-field {' +
+      'display: inline-flex; align-items: stretch;' +
+      'background: var(--bg-primary, #FFFFFF);' +
+      'border: 1px solid var(--border-default, #D0D4DB);' +
+      'border-radius: var(--radius-md, 6px);' +
+      'overflow: hidden;' +
+    '}' +
+    '.fsel-field-stub {' +
+      'display: inline-flex; align-items: center;' +
+      'padding: var(--spacing-2, 8px) var(--spacing-3, 12px);' +
+      'min-width: 96px;' +
+      'color: var(--text-placeholder, #9DA3B0);' +
+      'font-family: \'Inter\', sans-serif; font-size: 14px; line-height: 20px; font-weight: 400;' +
+    '}' +
+
+    /* Matrix layout. */
+    '.fsel-matrix {' +
+      'display: grid;' +
+      'grid-template-columns: 110px repeat(5, 1fr);' +
+      'gap: 20px 16px; align-items: center;' +
+      'background: var(--white, #FFFFFF);' +
+      'border: 1px solid var(--border-subtle, #E4E6EB);' +
+      'border-radius: var(--radius-md, 6px);' +
+      'padding: 24px;' +
+    '}' +
+    '.fsel-matrix-colhead {' +
+      'font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;' +
+      'color: #6B7280; text-align: center;' +
+    '}' +
+    '.fsel-matrix-rowhead { font-size: 12px; font-weight: 600; color: #384253; }' +
+    '.fsel-matrix-cell { display: flex; align-items: center; justify-content: center; }' +
+    '.fsel-card-hint {' +
+      'font-size: 11px; color: #6B7280; font-style: italic; line-height: 1.4; margin-top: 12px;' +
+    '}' +
+    '.fsel-card-hint strong { color: #384253; font-style: normal; font-weight: 600; }' +
+    '.fsel-card-hint code { background: #F2F3F5; padding: 1px 5px; border-radius: 4px; font-size: 11px; color: #1B2537; font-style: normal; }' +
+  '</style>' +
+
+  /* ── Section ── (NORMALIZED — promoted atom) */
+  '<div class="comp-section">' +
+    '<div class="comp-section-title">FieldSelect <span class="comp-normalized-label">NORMALIZED</span></div>' +
+    '<div class="comp-section-subtitle">packages/ui/src/FieldSelect.jsx &middot; Figma node 2627:153</div>' +
+    '<div style="font-size:13px; color:#6B7280; margin-bottom:18px; line-height:1.5;">An edge-attached select trigger (label + <code>lucide/chevron-down</code>) that sits on the <strong>leading</strong> or <strong>trailing</strong> side of a form field. The divider is a <strong>one-sided border</strong> &mdash; <code>border-right</code> for leading, <code>border-left</code> for trailing &mdash; whose color is the state ladder. The chevron inherits the label color via <code>currentColor</code>. Presentational: <code>state</code> is set by the parent field, not owned here. <strong>Deliberate divergence:</strong> on <code>error-default</code> / <code>error</code>, the <em>leading</em> variant reddens the label + chevron too; the <em>trailing</em> variant keeps the label/chevron neutral (<code>--text-tertiary</code>) and reddens the divider only.</div>' +
+
+    /* ── 1. STATES MATRIX ── rows = Leading / Trailing, cols = the 5 states. */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">States matrix &mdash; one-sided divider against a field edge</div>' +
+      '<div class="fsel-surface">' +
+        '<div class="fsel-matrix">' +
+          /* header row */
+          '<div></div>' +
+          '<div class="fsel-matrix-colhead">Default</div>' +
+          '<div class="fsel-matrix-colhead">Focus</div>' +
+          '<div class="fsel-matrix-colhead">Disabled</div>' +
+          '<div class="fsel-matrix-colhead">Error Default</div>' +
+          '<div class="fsel-matrix-colhead">Error</div>' +
+
+          /* Leading row — "+1 ▾" on the lead, border-right divider, field stub trails it. */
+          '<div class="fsel-matrix-rowhead">Leading</div>' +
+          '<div class="fsel-matrix-cell"><span class="fsel-field"><span class="fsel-trigger fsel-trigger--leading">+1' + chevron + '</span><span class="fsel-field-stub">Phone</span></span></div>' +
+          '<div class="fsel-matrix-cell"><span class="fsel-field"><span class="fsel-trigger fsel-trigger--leading fsel-trigger--focus">+1' + chevron + '</span><span class="fsel-field-stub">Phone</span></span></div>' +
+          '<div class="fsel-matrix-cell"><span class="fsel-field"><span class="fsel-trigger fsel-trigger--leading fsel-trigger--disabled">+1' + chevron + '</span><span class="fsel-field-stub">Phone</span></span></div>' +
+          '<div class="fsel-matrix-cell"><span class="fsel-field"><span class="fsel-trigger fsel-trigger--leading fsel-trigger--error-default">+1' + chevron + '</span><span class="fsel-field-stub">Phone</span></span></div>' +
+          '<div class="fsel-matrix-cell"><span class="fsel-field"><span class="fsel-trigger fsel-trigger--leading fsel-trigger--error">+1' + chevron + '</span><span class="fsel-field-stub">Phone</span></span></div>' +
+
+          /* Trailing row — "Select ▾" on the trail, border-left divider, field stub leads it. */
+          '<div class="fsel-matrix-rowhead">Trailing</div>' +
+          '<div class="fsel-matrix-cell"><span class="fsel-field"><span class="fsel-field-stub">0.00</span><span class="fsel-trigger fsel-trigger--trailing">Select' + chevron + '</span></span></div>' +
+          '<div class="fsel-matrix-cell"><span class="fsel-field"><span class="fsel-field-stub">0.00</span><span class="fsel-trigger fsel-trigger--trailing fsel-trigger--focus">Select' + chevron + '</span></span></div>' +
+          '<div class="fsel-matrix-cell"><span class="fsel-field"><span class="fsel-field-stub">0.00</span><span class="fsel-trigger fsel-trigger--trailing fsel-trigger--disabled">Select' + chevron + '</span></span></div>' +
+          '<div class="fsel-matrix-cell"><span class="fsel-field"><span class="fsel-field-stub">0.00</span><span class="fsel-trigger fsel-trigger--trailing fsel-trigger--error-default">Select' + chevron + '</span></span></div>' +
+          '<div class="fsel-matrix-cell"><span class="fsel-field"><span class="fsel-field-stub">0.00</span><span class="fsel-trigger fsel-trigger--trailing fsel-trigger--error">Select' + chevron + '</span></span></div>' +
+        '</div>' +
+        '<div class="fsel-card-hint">Divider ladder: <strong>Default</strong> <code>--border-default</code> &middot; <strong>Focus</strong> <code>--border-strong</code> &middot; <strong>Disabled</strong> <code>--border-subtle</code> &middot; <strong>Error Default</strong> <code>--bittersweet-200</code> &middot; <strong>Error</strong> <code>--bittersweet-600</code>. Note the <strong>leading</strong> error columns redden the &ldquo;+1&rdquo; label + chevron, while the <strong>trailing</strong> error columns keep &ldquo;Select&rdquo; neutral &mdash; divider-only. The thin field stub is demo-only scaffolding to show the edge the divider attaches to.</div>' +
+      '</div>' +
+    '</div>' +
+
+    /* Props & Tokens — moved into modal */
+    '<div class="comp-subsection">' +
+      '<button class="comp-details-button" onclick="showCompDetails(\'FieldSelect\')">Show props &amp; tokens</button>' +
+    '</div>' +
+
+  '</div>';
+}
+
+function getCheckboxRadioComponentHTML() {
+  /* The check glyph reused across the live row + matrices — lucide/check
+     path, stroke currentColor (inherits --control-indicator white). */
+  var checkSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+  return '' +
+  /* ── Scoped styles (mirror the real .control* CSS; .cbr-comp-* prefix) ── */
+  '<style>' +
+    /* Demo surface — neutral wash so the white boxes sit on a slight tint. */
+    '.cbr-comp-surface {' +
+      'background: #F2F3F5;' +
+      'padding: 32px;' +
+      'border-radius: var(--radius-md, 6px);' +
+    '}' +
+
+    /* .control — label wraps box + text; horizontal flex, --spacing-2 gap. */
+    '.cbr-comp-control {' +
+      'position: relative;' +
+      'display: inline-flex; align-items: center;' +
+      'gap: var(--spacing-2, 8px);' +
+      'cursor: pointer; user-select: none;' +
+    '}' +
+    '.cbr-comp-control:has(.cbr-comp-box:disabled) { cursor: not-allowed; }' +
+
+    /* .control__input — the 16×16 box; native input with UA appearance stripped. */
+    '.cbr-comp-box {' +
+      'appearance: none; -webkit-appearance: none; margin: 0;' +
+      'box-sizing: border-box;' +
+      'width: 16px; height: 16px; flex: 0 0 16px;' +
+      'display: inline-flex; align-items: center; justify-content: center;' +
+      'background: var(--control-bg, #FFFFFF);' +
+      'border: 1px solid var(--control-border, #D0D4DB);' +
+      'color: var(--control-indicator, #FFFFFF);' + /* indicator inherits via currentColor */
+      'cursor: inherit;' +
+      'position: relative;' +
+      'transition: background var(--transition-fast, 150ms ease), border-color var(--transition-fast, 150ms ease);' +
+    '}' +
+    '.cbr-comp-box--checkbox { border-radius: var(--radius-sm, 4px); }' +
+    '.cbr-comp-box--radio { border-radius: var(--radius-full, 9999px); }' +
+
+    /* .control__mark — indicator overlay (sibling of the input, pinned to it). */
+    '.cbr-comp-indicator {' +
+      'display: none;' +
+      'position: absolute;' +
+      'left: 0; top: 50%; transform: translateY(-50%);' +
+      'width: 16px; height: 16px;' +
+      'align-items: center; justify-content: center;' +
+      'color: var(--control-indicator, #FFFFFF);' +
+      'pointer-events: none;' +
+    '}' +
+    '.cbr-comp-indicator svg { width: 16px; height: 16px; display: block; }' +
+    /* .control__dash — indeterminate dash, 8×2 rounded. */
+    '.cbr-comp-dash {' +
+      'width: 8px; height: 2px; border-radius: 1px;' +
+      'background: var(--control-indicator, #FFFFFF);' +
+    '}' +
+    /* .control__dot — radio dot, 6×6 circle. */
+    '.cbr-comp-dot {' +
+      'width: 6px; height: 6px; border-radius: var(--radius-full, 9999px);' +
+      'background: var(--control-indicator, #FFFFFF);' +
+    '}' +
+
+    /* .control__label — text. */
+    '.cbr-comp-label {' +
+      'color: var(--control-label, #384253);' +
+    '}' +
+
+    /* ── States — real pseudo-classes + duplicated .is-* modifiers ── */
+    /* hover (unchecked) — darken the border. */
+    '.cbr-comp-box:not(:checked):not(:indeterminate):not(:disabled):hover,' +
+    '.cbr-comp-box.is-hover:not(.is-checked):not(.is-indeterminate):not(.is-disabled) {' +
+      'border-color: var(--control-border-hover, #9DA3B0);' +
+    '}' +
+    /* focus-visible — keep border, add focus ring. */
+    '.cbr-comp-box:focus-visible,' +
+    '.cbr-comp-box.is-focus {' +
+      'outline: 2px solid var(--control-focus, #5BA4D4);' +
+      'outline-offset: 2px;' +
+    '}' +
+    /* checked / indeterminate — dark fill, matching border. */
+    '.cbr-comp-box:checked,' +
+    '.cbr-comp-box:indeterminate,' +
+    '.cbr-comp-box.is-checked,' +
+    '.cbr-comp-box.is-indeterminate {' +
+      'background: var(--control-checked-bg, #1B2537);' +
+      'border-color: var(--control-checked-bg, #1B2537);' +
+    '}' +
+    /* reveal the matching indicator when on. */
+    '.cbr-comp-box:checked + .cbr-comp-indicator--check,' +
+    '.cbr-comp-box.is-checked + .cbr-comp-indicator--check {' +
+      'display: inline-flex;' +
+    '}' +
+    '.cbr-comp-box:indeterminate + .cbr-comp-indicator--check,' +
+    '.cbr-comp-box.is-indeterminate + .cbr-comp-indicator--check {' +
+      'display: none;' + /* indeterminate hides the check, shows the dash */
+    '}' +
+    '.cbr-comp-box:indeterminate + .cbr-comp-indicator--dash,' +
+    '.cbr-comp-box.is-indeterminate + .cbr-comp-indicator--dash {' +
+      'display: inline-flex;' +
+    '}' +
+    '.cbr-comp-box:checked + .cbr-comp-indicator--dot,' +
+    '.cbr-comp-box.is-checked + .cbr-comp-indicator--dot {' +
+      'display: inline-flex;' +
+    '}' +
+    /* checked hover — darken the fill. */
+    '.cbr-comp-box:checked:not(:disabled):hover,' +
+    '.cbr-comp-box:indeterminate:not(:disabled):hover,' +
+    '.cbr-comp-box.is-checked.is-hover:not(.is-disabled),' +
+    '.cbr-comp-box.is-indeterminate.is-hover:not(.is-disabled) {' +
+      'background: var(--control-checked-hover-bg, #384253);' +
+      'border-color: var(--control-checked-hover-bg, #384253);' +
+    '}' +
+    /* disabled + unchecked — subtle border. */
+    '.cbr-comp-box:disabled:not(:checked):not(:indeterminate),' +
+    '.cbr-comp-box.is-disabled:not(.is-checked):not(.is-indeterminate) {' +
+      'background: var(--control-bg, #FFFFFF);' +
+      'border-color: var(--control-border-disabled, #E4E6EB);' +
+      'cursor: not-allowed;' +
+    '}' +
+    /* disabled + checked / indeterminate — DSN/300 fill, white indicator. */
+    '.cbr-comp-box:disabled:checked,' +
+    '.cbr-comp-box:disabled:indeterminate,' +
+    '.cbr-comp-box.is-disabled.is-checked,' +
+    '.cbr-comp-box.is-disabled.is-indeterminate {' +
+      'background: var(--control-checked-bg-disabled, #D0D4DB);' +
+      'border-color: var(--control-checked-bg-disabled, #D0D4DB);' +
+      'cursor: not-allowed;' +
+    '}' +
+    /* disabled label color (any disabled control). */
+    '.cbr-comp-box:disabled ~ .cbr-comp-label,' +
+    '.cbr-comp-control--disabled .cbr-comp-label {' +
+      'color: var(--control-label-disabled, #9DA3B0);' +
+    '}' +
+
+    /* Live row — horizontal cluster of interactive controls. */
+    '.cbr-comp-live {' +
+      'background: var(--white, #FFFFFF);' +
+      'border: 1px solid var(--border-subtle, #E4E6EB);' +
+      'border-radius: var(--radius-md, 6px);' +
+      'padding: 24px;' +
+      'display: flex; flex-wrap: wrap; gap: 28px; align-items: center;' +
+    '}' +
+
+    /* Matrix layout. */
+    '.cbr-comp-matrix {' +
+      'display: grid;' +
+      'grid-template-columns: 120px repeat(4, 1fr);' +
+      'gap: 18px 16px; align-items: center;' +
+      'background: var(--white, #FFFFFF);' +
+      'border: 1px solid var(--border-subtle, #E4E6EB);' +
+      'border-radius: var(--radius-md, 6px);' +
+      'padding: 24px;' +
+    '}' +
+    '.cbr-comp-matrix-colhead {' +
+      'font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;' +
+      'color: #6B7280; text-align: center;' +
+    '}' +
+    '.cbr-comp-matrix-rowhead {' +
+      'font-size: 12px; font-weight: 600; color: #384253;' +
+    '}' +
+    '.cbr-comp-matrix-cell {' +
+      'display: flex; align-items: center; justify-content: center;' +
+    '}' +
+    /* Positioned 16×16 slot so the absolute indicator overlays the box. */
+    '.cbr-comp-slot {' +
+      'position: relative; display: inline-flex;' +
+      'width: 16px; height: 16px;' +
+    '}' +
+    '.cbr-comp-card-hint {' +
+      'font-size: 11px; color: #6B7280; font-style: italic; line-height: 1.4; margin-top: 12px;' +
+    '}' +
+    '.cbr-comp-card-hint strong { color: #384253; font-style: normal; font-weight: 600; }' +
+  '</style>' +
+
+  /* ── Section ── (NORMALIZED — promoted from Normalize tab after GATE B-DSM sign-off) */
+  '<div class="comp-section">' +
+    '<div class="comp-section-title">Checkbox &amp; Radio <span class="comp-normalized-label">NORMALIZED</span></div>' +
+    '<div class="comp-section-subtitle">packages/ui/src/Checkbox.jsx + Radio.jsx &middot; Figma nodes 2821:330 / 2824:330</div>' +
+    '<div style="font-size:13px; color:#6B7280; margin-bottom:18px; line-height:1.5;">Two selection atoms built on native <code>&lt;input&gt;</code> with <code>appearance: none</code> &mdash; the input <em>is</em> the visible 16&times;16 box; the indicator (check / dash / dot) is overlaid. Shared <code>.control*</code> structure; the <code>--checkbox</code> / <code>--radio</code> modifier only changes the radius and which indicator shows. Hover / focus / disabled are CSS-driven. All values bound to the <code>--control-*</code> tokens.</div>' +
+
+    /* ── 1. LIVE ROW — really interactive ── */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Live &mdash; hover, Tab to focus, click to toggle</div>' +
+      '<div class="cbr-comp-live">' +
+        /* checkbox — interactive */
+        '<label class="cbr-comp-control">' +
+          '<input type="checkbox" class="cbr-comp-box cbr-comp-box--checkbox" />' +
+          '<span class="cbr-comp-indicator cbr-comp-indicator--check">' + checkSvg + '</span>' +
+          '<span class="cbr-comp-label text-label-sm-medium">Checkbox</span>' +
+        '</label>' +
+        /* checkbox — pre-checked */
+        '<label class="cbr-comp-control">' +
+          '<input type="checkbox" class="cbr-comp-box cbr-comp-box--checkbox" checked />' +
+          '<span class="cbr-comp-indicator cbr-comp-indicator--check">' + checkSvg + '</span>' +
+          '<span class="cbr-comp-label text-label-sm-medium">Checked</span>' +
+        '</label>' +
+        /* checkbox — indeterminate (set via inline script below) */
+        '<label class="cbr-comp-control">' +
+          '<input type="checkbox" class="cbr-comp-box cbr-comp-box--checkbox" id="cbr-comp-indeterminate" />' +
+          '<span class="cbr-comp-indicator cbr-comp-indicator--check">' + checkSvg + '</span>' +
+          '<span class="cbr-comp-indicator cbr-comp-indicator--dash"><span class="cbr-comp-dash"></span></span>' +
+          '<span class="cbr-comp-label text-label-sm-medium">Indeterminate</span>' +
+        '</label>' +
+        /* checkbox — disabled */
+        '<label class="cbr-comp-control cbr-comp-control--disabled">' +
+          '<input type="checkbox" class="cbr-comp-box cbr-comp-box--checkbox" disabled checked />' +
+          '<span class="cbr-comp-indicator cbr-comp-indicator--check">' + checkSvg + '</span>' +
+          '<span class="cbr-comp-label text-label-sm-medium">Disabled</span>' +
+        '</label>' +
+        /* radio group — interactive, shared name */
+        '<label class="cbr-comp-control">' +
+          '<input type="radio" name="cbr-comp-live-radio" class="cbr-comp-box cbr-comp-box--radio" />' +
+          '<span class="cbr-comp-indicator cbr-comp-indicator--dot"><span class="cbr-comp-dot"></span></span>' +
+          '<span class="cbr-comp-label text-label-sm-medium">Radio A</span>' +
+        '</label>' +
+        '<label class="cbr-comp-control">' +
+          '<input type="radio" name="cbr-comp-live-radio" class="cbr-comp-box cbr-comp-box--radio" checked />' +
+          '<span class="cbr-comp-indicator cbr-comp-indicator--dot"><span class="cbr-comp-dot"></span></span>' +
+          '<span class="cbr-comp-label text-label-sm-medium">Radio B</span>' +
+        '</label>' +
+        /* radio — disabled */
+        '<label class="cbr-comp-control cbr-comp-control--disabled">' +
+          '<input type="radio" name="cbr-comp-live-radio-disabled" class="cbr-comp-box cbr-comp-box--radio" disabled checked />' +
+          '<span class="cbr-comp-indicator cbr-comp-indicator--dot"><span class="cbr-comp-dot"></span></span>' +
+          '<span class="cbr-comp-label text-label-sm-medium">Disabled</span>' +
+        '</label>' +
+      '</div>' +
+      /* inline script to force the .indeterminate DOM property (can\'t be set in markup) */
+      '<script>(function(){var i=document.getElementById("cbr-comp-indeterminate");if(i)i.indeterminate=true;})();<\/script>' +
+      '<div class="cbr-comp-card-hint"><strong>These are real native inputs.</strong> Hover the boxes, Tab through them to see the <code>:focus-visible</code> ring, and click to toggle. Radio A/B share a <code>name</code> so they behave as one group.</div>' +
+    '</div>' +
+
+    /* ── 2. STATIC STATES MATRIX — checkboxes ── */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Checkbox &mdash; states matrix</div>' +
+      '<div class="cbr-comp-matrix">' +
+        /* header row */
+        '<div></div>' +
+        '<div class="cbr-comp-matrix-colhead">Default</div>' +
+        '<div class="cbr-comp-matrix-colhead">Hover</div>' +
+        '<div class="cbr-comp-matrix-colhead">Focus</div>' +
+        '<div class="cbr-comp-matrix-colhead">Disabled</div>' +
+
+        /* Unchecked row */
+        '<div class="cbr-comp-matrix-rowhead">Unchecked</div>' +
+        '<div class="cbr-comp-matrix-cell"><span class="cbr-comp-slot"><span class="cbr-comp-box cbr-comp-box--checkbox"></span></span></div>' +
+        '<div class="cbr-comp-matrix-cell"><span class="cbr-comp-slot"><span class="cbr-comp-box cbr-comp-box--checkbox is-hover"></span></span></div>' +
+        '<div class="cbr-comp-matrix-cell"><span class="cbr-comp-slot"><span class="cbr-comp-box cbr-comp-box--checkbox is-focus"></span></span></div>' +
+        '<div class="cbr-comp-matrix-cell"><span class="cbr-comp-slot"><span class="cbr-comp-box cbr-comp-box--checkbox is-disabled"></span></span></div>' +
+
+        /* Checked row */
+        '<div class="cbr-comp-matrix-rowhead">Checked</div>' +
+        '<div class="cbr-comp-matrix-cell"><span class="cbr-comp-slot"><span class="cbr-comp-box cbr-comp-box--checkbox is-checked"></span><span class="cbr-comp-indicator cbr-comp-indicator--check">' + checkSvg + '</span></span></div>' +
+        '<div class="cbr-comp-matrix-cell"><span class="cbr-comp-slot"><span class="cbr-comp-box cbr-comp-box--checkbox is-checked is-hover"></span><span class="cbr-comp-indicator cbr-comp-indicator--check">' + checkSvg + '</span></span></div>' +
+        '<div class="cbr-comp-matrix-cell"><span class="cbr-comp-slot"><span class="cbr-comp-box cbr-comp-box--checkbox is-checked is-focus"></span><span class="cbr-comp-indicator cbr-comp-indicator--check">' + checkSvg + '</span></span></div>' +
+        '<div class="cbr-comp-matrix-cell"><span class="cbr-comp-slot"><span class="cbr-comp-box cbr-comp-box--checkbox is-checked is-disabled"></span><span class="cbr-comp-indicator cbr-comp-indicator--check">' + checkSvg + '</span></span></div>' +
+
+        /* Indeterminate row */
+        '<div class="cbr-comp-matrix-rowhead">Indeterminate</div>' +
+        '<div class="cbr-comp-matrix-cell"><span class="cbr-comp-slot"><span class="cbr-comp-box cbr-comp-box--checkbox is-indeterminate"></span><span class="cbr-comp-indicator cbr-comp-indicator--dash"><span class="cbr-comp-dash"></span></span></span></div>' +
+        '<div class="cbr-comp-matrix-cell"><span class="cbr-comp-slot"><span class="cbr-comp-box cbr-comp-box--checkbox is-indeterminate is-hover"></span><span class="cbr-comp-indicator cbr-comp-indicator--dash"><span class="cbr-comp-dash"></span></span></span></div>' +
+        '<div class="cbr-comp-matrix-cell"><span class="cbr-comp-slot"><span class="cbr-comp-box cbr-comp-box--checkbox is-indeterminate is-focus"></span><span class="cbr-comp-indicator cbr-comp-indicator--dash"><span class="cbr-comp-dash"></span></span></span></div>' +
+        '<div class="cbr-comp-matrix-cell"><span class="cbr-comp-slot"><span class="cbr-comp-box cbr-comp-box--checkbox is-indeterminate is-disabled"></span><span class="cbr-comp-indicator cbr-comp-indicator--dash"><span class="cbr-comp-dash"></span></span></span></div>' +
+      '</div>' +
+    '</div>' +
+
+    /* ── STATIC STATES MATRIX — radios ── */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Radio &mdash; states matrix</div>' +
+      '<div class="cbr-comp-matrix">' +
+        /* header row */
+        '<div></div>' +
+        '<div class="cbr-comp-matrix-colhead">Default</div>' +
+        '<div class="cbr-comp-matrix-colhead">Hover</div>' +
+        '<div class="cbr-comp-matrix-colhead">Focus</div>' +
+        '<div class="cbr-comp-matrix-colhead">Disabled</div>' +
+
+        /* Unchecked row */
+        '<div class="cbr-comp-matrix-rowhead">Unchecked</div>' +
+        '<div class="cbr-comp-matrix-cell"><span class="cbr-comp-slot"><span class="cbr-comp-box cbr-comp-box--radio"></span></span></div>' +
+        '<div class="cbr-comp-matrix-cell"><span class="cbr-comp-slot"><span class="cbr-comp-box cbr-comp-box--radio is-hover"></span></span></div>' +
+        '<div class="cbr-comp-matrix-cell"><span class="cbr-comp-slot"><span class="cbr-comp-box cbr-comp-box--radio is-focus"></span></span></div>' +
+        '<div class="cbr-comp-matrix-cell"><span class="cbr-comp-slot"><span class="cbr-comp-box cbr-comp-box--radio is-disabled"></span></span></div>' +
+
+        /* Checked row */
+        '<div class="cbr-comp-matrix-rowhead">Checked</div>' +
+        '<div class="cbr-comp-matrix-cell"><span class="cbr-comp-slot"><span class="cbr-comp-box cbr-comp-box--radio is-checked"></span><span class="cbr-comp-indicator cbr-comp-indicator--dot"><span class="cbr-comp-dot"></span></span></span></div>' +
+        '<div class="cbr-comp-matrix-cell"><span class="cbr-comp-slot"><span class="cbr-comp-box cbr-comp-box--radio is-checked is-hover"></span><span class="cbr-comp-indicator cbr-comp-indicator--dot"><span class="cbr-comp-dot"></span></span></span></div>' +
+        '<div class="cbr-comp-matrix-cell"><span class="cbr-comp-slot"><span class="cbr-comp-box cbr-comp-box--radio is-checked is-focus"></span><span class="cbr-comp-indicator cbr-comp-indicator--dot"><span class="cbr-comp-dot"></span></span></span></div>' +
+        '<div class="cbr-comp-matrix-cell"><span class="cbr-comp-slot"><span class="cbr-comp-box cbr-comp-box--radio is-checked is-disabled"></span><span class="cbr-comp-indicator cbr-comp-indicator--dot"><span class="cbr-comp-dot"></span></span></span></div>' +
+      '</div>' +
+      '<div class="cbr-comp-card-hint">Real <code>:hover</code> / <code>:focus-visible</code> can\'t be forced on static boxes, so the matrices use <code>.is-hover</code> / <code>.is-focus</code> modifier classes whose CSS duplicates the live pseudo-state rules.</div>' +
+    '</div>' +
+
+    /* Props & Tokens — moved into modal */
+    '<div class="comp-subsection">' +
+      '<button class="comp-details-button" onclick="showCompDetails(\'CheckboxRadio\')">Show props &amp; tokens</button>' +
+    '</div>' +
+
+  '</div>';
+}
+
+/* ── Checkbox + Radio (atoms) — Normalize-tab cycle (kept as a reference) ──
+   Native `<input type="checkbox">` / `<input type="radio">` with
+   `appearance: none` + a styled box and an adjacent label. Scoped CSS
+   (`.cbr-norm-*` prefix) so nothing leaks into the page. The Live row is
+   really interactive (hover / Tab-focus / toggle); the matrix uses
+   `.is-hover` / `.is-focus` modifier classes to make the un-forceable
+   pseudo-states visible side-by-side. Promoted to the Components tab after
+   GATE B-DSM sign-off — see `getCheckboxRadioComponentHTML()` above. Kept
+   defined here as a reference (re-activate via the console with
+   `activateNormalizeTab(getCheckboxRadioNormalizeHTML())` if needed). */
+function getCheckboxRadioNormalizeHTML() {
+  return '' +
+  /* ── Scoped styles ── */
+  '<style>' +
+    '.cbr-norm-section { margin-bottom: 48px; }' +
+    '.cbr-norm-info-callout {' +
+      'background: #F7F8FA; border: 1px solid #E4E6EB; border-left: 3px solid #296DE7;' +
+      'padding: 12px 16px; border-radius: 6px; margin-bottom: 24px;' +
+      'font-size: 13px; color: #384253; line-height: 1.6;' +
+    '}' +
+    '.cbr-norm-info-callout strong { color: #1B2537; }' +
+    '.cbr-norm-info-callout code {' +
+      'background: rgba(40, 49, 66, 0.06); padding: 1px 6px; border-radius: 4px;' +
+      'font-size: 12px; color: #1B2537;' +
+    '}' +
+
+    /* compDetails block — light surface, key/value rows. */
+    '.cbr-norm-details {' +
+      'background: var(--white, #FFFFFF);' +
+      'border: 1px solid var(--border-subtle, #E4E6EB);' +
+      'border-radius: var(--radius-md, 6px);' +
+      'padding: 16px 20px; margin-bottom: 24px;' +
+      'font-size: 13px; color: #384253; line-height: 1.6;' +
+    '}' +
+    '.cbr-norm-details dl { display: grid; grid-template-columns: 160px 1fr; gap: 6px 16px; margin: 0; }' +
+    '.cbr-norm-details dt { font-weight: 600; color: #1B2537; }' +
+    '.cbr-norm-details dd { margin: 0; color: #384253; }' +
+    '.cbr-norm-details code {' +
+      'background: #F2F3F5; padding: 1px 6px; border-radius: 4px;' +
+      'font-size: 12px; color: #1B2537;' +
+    '}' +
+
+    /* Demo surface — neutral wash so the white boxes sit on a slight tint
+       (matches how Figma frames render atoms). */
+    '.cbr-norm-surface {' +
+      'background: #F2F3F5;' +
+      'padding: 32px;' +
+      'border-radius: var(--radius-md, 6px);' +
+    '}' +
+
+    /* ── The control: native input, appearance:none, styled box + label ──
+       The `<label>` wraps the input + text so the whole row is clickable.
+       Box and label sit on a horizontal flex with --spacing-2 (8) gap,
+       vertically centered. This markup doubles as a faithful preview of the
+       real <Checkbox> / <Radio> implementation. */
+    '.cbr-norm-control {' +
+      'position: relative;' +
+      'display: inline-flex; align-items: center;' +
+      'gap: var(--spacing-2, 8px);' +
+      'cursor: pointer; user-select: none;' +
+    '}' +
+    '.cbr-norm-control:has(.cbr-norm-box:disabled) { cursor: not-allowed; }' +
+
+    /* The styled box — a native input with its UA appearance stripped. */
+    '.cbr-norm-box {' +
+      'appearance: none; -webkit-appearance: none; margin: 0;' +
+      'box-sizing: border-box;' +
+      'width: 16px; height: 16px; flex: 0 0 16px;' +
+      'display: inline-flex; align-items: center; justify-content: center;' +
+      'background: var(--bg-primary, #FFFFFF);' +
+      'border: 1px solid var(--border-default, #D0D4DB);' +
+      'color: var(--text-inverse, #FFFFFF);' + /* indicator inherits via currentColor */
+      'cursor: inherit;' +
+      'position: relative;' +
+    '}' +
+    '.cbr-norm-box--checkbox { border-radius: var(--radius-sm, 4px); }' +
+    '.cbr-norm-box--radio { border-radius: var(--radius-full, 9999px); }' +
+
+    /* The indicator (check / dash / dot) lives as a child element and is
+       hidden until the box is checked / indeterminate / .is-checked. */
+    /* Indicator overlays the 16x16 box (the box is the first child, so the
+       overlay is pinned to the box\'s top-left and sized to match). It is a
+       sibling of the box rather than a child because a native input can\'t
+       host child elements. */
+    '.cbr-norm-indicator {' +
+      'display: none;' +
+      'position: absolute;' +
+      'left: 0; top: 50%; transform: translateY(-50%);' +
+      'width: 16px; height: 16px;' +
+      'align-items: center; justify-content: center;' +
+      'color: var(--text-inverse, #FFFFFF);' +
+      'pointer-events: none;' +
+    '}' +
+    '.cbr-norm-indicator svg { width: 16px; height: 16px; display: block; }' +
+    /* indeterminate dash — 8x2, rounded. */
+    '.cbr-norm-dash {' +
+      'width: 8px; height: 2px; border-radius: 1px;' +
+      'background: var(--text-inverse, #FFFFFF);' +
+    '}' +
+    /* radio dot — 6x6 circle. */
+    '.cbr-norm-dot {' +
+      'width: 6px; height: 6px; border-radius: var(--radius-full, 9999px);' +
+      'background: var(--text-inverse, #FFFFFF);' +
+    '}' +
+
+    /* Label text. */
+    '.cbr-norm-label {' +
+      'color: var(--text-secondary, #384253);' +
+    '}' +
+
+    /* ── States ──
+       Real states key off the native input pseudo-classes; the static
+       matrix duplicates each rule under an .is-* modifier so it shows
+       without interaction. */
+
+    /* hover (unchecked) — border to the new control-border-hover token. */
+    '.cbr-norm-box:not(:checked):not(:indeterminate):not(:disabled):hover,' +
+    '.cbr-norm-box.is-hover:not(.is-checked):not(.is-indeterminate):not(.is-disabled) {' +
+      'border-color: var(--control-border-hover, #9DA3B0);' +
+    '}' +
+
+    /* focus-visible — keep border, add focus ring. */
+    '.cbr-norm-box:focus-visible,' +
+    '.cbr-norm-box.is-focus {' +
+      'outline: 2px solid var(--border-focus, #5BA4D4);' +
+      'outline-offset: 2px;' +
+    '}' +
+
+    /* checked / indeterminate — dark fill, no border, white indicator. */
+    '.cbr-norm-box:checked,' +
+    '.cbr-norm-box:indeterminate,' +
+    '.cbr-norm-box.is-checked,' +
+    '.cbr-norm-box.is-indeterminate {' +
+      'background: var(--bg-inverse, #1B2537);' +
+      'border-color: transparent;' +
+    '}' +
+    /* reveal the matching indicator when on. */
+    '.cbr-norm-box:checked + .cbr-norm-indicator--check,' +
+    '.cbr-norm-box.is-checked + .cbr-norm-indicator--check {' +
+      'display: inline-flex;' +
+    '}' +
+    '.cbr-norm-box:indeterminate + .cbr-norm-indicator--check,' +
+    '.cbr-norm-box.is-indeterminate + .cbr-norm-indicator--check {' +
+      'display: none;' + /* indeterminate hides the check, shows the dash */
+    '}' +
+    '.cbr-norm-box:indeterminate + .cbr-norm-indicator--dash,' +
+    '.cbr-norm-box.is-indeterminate + .cbr-norm-indicator--dash {' +
+      'display: inline-flex;' +
+    '}' +
+    '.cbr-norm-box:checked + .cbr-norm-indicator--dot,' +
+    '.cbr-norm-box.is-checked + .cbr-norm-indicator--dot {' +
+      'display: inline-flex;' +
+    '}' +
+
+    /* checked hover — darken fill. */
+    '.cbr-norm-box:checked:not(:disabled):hover,' +
+    '.cbr-norm-box:indeterminate:not(:disabled):hover,' +
+    '.cbr-norm-box.is-checked.is-hover:not(.is-disabled),' +
+    '.cbr-norm-box.is-indeterminate.is-hover:not(.is-disabled) {' +
+      'background: var(--deep-sea-neutral-700, #384253);' +
+    '}' +
+
+    /* disabled + unchecked — subtle border, placeholder label. */
+    '.cbr-norm-box:disabled:not(:checked):not(:indeterminate),' +
+    '.cbr-norm-box.is-disabled:not(.is-checked):not(.is-indeterminate) {' +
+      'background: var(--bg-primary, #FFFFFF);' +
+      'border-color: var(--border-subtle, #E4E6EB);' +
+      'cursor: not-allowed;' +
+    '}' +
+    /* disabled + checked / indeterminate — DSN/300 fill, white indicator. */
+    '.cbr-norm-box:disabled:checked,' +
+    '.cbr-norm-box:disabled:indeterminate,' +
+    '.cbr-norm-box.is-disabled.is-checked,' +
+    '.cbr-norm-box.is-disabled.is-indeterminate {' +
+      'background: var(--border-default, #D0D4DB);' +
+      'border-color: transparent;' +
+      'cursor: not-allowed;' +
+    '}' +
+    /* disabled label color (any disabled control). */
+    '.cbr-norm-box:disabled ~ .cbr-norm-label,' +
+    '.cbr-norm-control--disabled .cbr-norm-label {' +
+      'color: var(--text-placeholder, #9DA3B0);' +
+    '}' +
+
+    /* ── Matrix layout ── */
+    '.cbr-norm-matrix {' +
+      'display: grid;' +
+      'grid-template-columns: 120px repeat(4, 1fr);' +
+      'gap: 18px 16px; align-items: center;' +
+      'background: var(--white, #FFFFFF);' +
+      'border: 1px solid var(--border-subtle, #E4E6EB);' +
+      'border-radius: var(--radius-md, 6px);' +
+      'padding: 24px;' +
+    '}' +
+    '.cbr-norm-matrix-colhead {' +
+      'font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;' +
+      'color: #6B7280; text-align: center;' +
+    '}' +
+    '.cbr-norm-matrix-rowhead {' +
+      'font-size: 12px; font-weight: 600; color: #384253;' +
+    '}' +
+    '.cbr-norm-matrix-cell {' +
+      'display: flex; align-items: center; justify-content: center;' +
+    '}' +
+    /* Positioned 16x16 slot so the absolute indicator overlays the box
+       precisely (used in the static matrix where there is no label). */
+    '.cbr-norm-slot {' +
+      'position: relative; display: inline-flex;' +
+      'width: 16px; height: 16px;' +
+    '}' +
+
+    /* Live row — horizontal cluster of interactive controls. */
+    '.cbr-norm-live {' +
+      'background: var(--white, #FFFFFF);' +
+      'border: 1px solid var(--border-subtle, #E4E6EB);' +
+      'border-radius: var(--radius-md, 6px);' +
+      'padding: 24px;' +
+      'display: flex; flex-wrap: wrap; gap: 28px; align-items: center;' +
+    '}' +
+
+    '.cbr-norm-card-hint {' +
+      'font-size: 11px; color: #6B7280; font-style: italic; line-height: 1.4; margin-top: 12px;' +
+    '}' +
+    '.cbr-norm-card-hint strong { color: #384253; font-style: normal; font-weight: 600; }' +
+    '.cbr-norm-tokens { list-style: none; padding: 0; margin: 0; }' +
+    '.cbr-norm-tokens li {' +
+      'font-size: 12px; color: #384253; line-height: 1.7; padding-left: 16px; position: relative;' +
+    '}' +
+    '.cbr-norm-tokens li::before {' +
+      'content: "\\2192"; position: absolute; left: 0; color: #9DA3B0;' +
+    '}' +
+    '.cbr-norm-tokens code {' +
+      'background: #F2F3F5; padding: 1px 6px; border-radius: 4px;' +
+      'font-size: 11px; color: #1B2537;' +
+    '}' +
+  '</style>' +
+
+  /* ── Section ── (no NORMALIZED pill — mid-cycle) */
+  '<div class="cbr-norm-section">' +
+    '<div class="comp-section-title">Checkbox &amp; Radio</div>' +
+    '<div class="comp-section-subtitle">packages/ui/src/Checkbox.jsx + Radio.jsx (planned) &middot; native input + appearance:none</div>' +
+
+    /* Info callout — what this is + cycle status */
+    '<div class="cbr-norm-info-callout">' +
+      '<strong>In-progress normalize cycle.</strong> Two selection atoms built on native <code>&lt;input type="checkbox"&gt;</code> / <code>&lt;input type="radio"&gt;</code> with <code>appearance: none</code> + a styled 16&times;16 box and an adjacent label. The scoped CSS here doubles as a faithful preview of the real implementation. Marked complete after <strong>GATE B-DSM</strong> sign-off &mdash; <em>then</em> the NORMALIZED pill gets added and the section moves to the Components tab.' +
+    '</div>' +
+
+    /* compDetails — quick summary block */
+    '<div class="cbr-norm-details">' +
+      '<dl>' +
+        '<dt>Components</dt><dd>Checkbox, Radio</dd>' +
+        '<dt>Type</dt><dd>Atom</dd>' +
+        '<dt>Box</dt><dd>16&times;16 &mdash; checkbox <code>--radius-sm</code> (4), radio <code>--radius-full</code></dd>' +
+        '<dt>API sketch</dt><dd><code>checked</code>, <code>indeterminate</code> (checkbox only), <code>disabled</code>, <code>name</code> (radio group), <code>label</code>, <code>onChange</code>.</dd>' +
+        '<dt>States</dt><dd>Default &middot; Hover &middot; Focus-visible &middot; Checked &middot; Checked-hover &middot; Indeterminate (cb) &middot; Disabled (&times; checked/unchecked).</dd>' +
+        '<dt>Pending</dt><dd><code>--control-border-hover</code> token (code phase) &middot; indeterminate dash &rarr; <code>lucide/minus</code> in Figma.</dd>' +
+      '</dl>' +
+    '</div>' +
+
+    /* ── 1. LIVE ROW — really interactive ── */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Live &mdash; hover, Tab to focus, click to toggle</div>' +
+      '<div class="cbr-norm-live">' +
+        /* checkbox — interactive */
+        '<label class="cbr-norm-control">' +
+          '<input type="checkbox" class="cbr-norm-box cbr-norm-box--checkbox" />' +
+          '<span class="cbr-norm-indicator cbr-norm-indicator--check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>' +
+          '<span class="cbr-norm-label text-label-sm-medium">Checkbox</span>' +
+        '</label>' +
+        /* checkbox — pre-checked */
+        '<label class="cbr-norm-control">' +
+          '<input type="checkbox" class="cbr-norm-box cbr-norm-box--checkbox" checked />' +
+          '<span class="cbr-norm-indicator cbr-norm-indicator--check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>' +
+          '<span class="cbr-norm-label text-label-sm-medium">Checked</span>' +
+        '</label>' +
+        /* checkbox — indeterminate (set via inline script below) */
+        '<label class="cbr-norm-control">' +
+          '<input type="checkbox" class="cbr-norm-box cbr-norm-box--checkbox" id="cbr-norm-indeterminate" />' +
+          '<span class="cbr-norm-indicator cbr-norm-indicator--check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>' +
+          '<span class="cbr-norm-indicator cbr-norm-indicator--dash"><span class="cbr-norm-dash"></span></span>' +
+          '<span class="cbr-norm-label text-label-sm-medium">Indeterminate</span>' +
+        '</label>' +
+        /* checkbox — disabled */
+        '<label class="cbr-norm-control cbr-norm-control--disabled">' +
+          '<input type="checkbox" class="cbr-norm-box cbr-norm-box--checkbox" disabled checked />' +
+          '<span class="cbr-norm-indicator cbr-norm-indicator--check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>' +
+          '<span class="cbr-norm-label text-label-sm-medium">Disabled</span>' +
+        '</label>' +
+        /* radio group — interactive, shared name */
+        '<label class="cbr-norm-control">' +
+          '<input type="radio" name="cbr-norm-live-radio" class="cbr-norm-box cbr-norm-box--radio" />' +
+          '<span class="cbr-norm-indicator cbr-norm-indicator--dot"><span class="cbr-norm-dot"></span></span>' +
+          '<span class="cbr-norm-label text-label-sm-medium">Radio A</span>' +
+        '</label>' +
+        '<label class="cbr-norm-control">' +
+          '<input type="radio" name="cbr-norm-live-radio" class="cbr-norm-box cbr-norm-box--radio" checked />' +
+          '<span class="cbr-norm-indicator cbr-norm-indicator--dot"><span class="cbr-norm-dot"></span></span>' +
+          '<span class="cbr-norm-label text-label-sm-medium">Radio B</span>' +
+        '</label>' +
+        /* radio — disabled */
+        '<label class="cbr-norm-control cbr-norm-control--disabled">' +
+          '<input type="radio" name="cbr-norm-live-radio-disabled" class="cbr-norm-box cbr-norm-box--radio" disabled checked />' +
+          '<span class="cbr-norm-indicator cbr-norm-indicator--dot"><span class="cbr-norm-dot"></span></span>' +
+          '<span class="cbr-norm-label text-label-sm-medium">Disabled</span>' +
+        '</label>' +
+      '</div>' +
+      /* inline script to force the .indeterminate DOM property (can\'t be set in markup) */
+      '<script>(function(){var i=document.getElementById("cbr-norm-indeterminate");if(i)i.indeterminate=true;})();<\/script>' +
+      '<div class="cbr-norm-card-hint"><strong>These are real native inputs.</strong> Hover the boxes, Tab through them to see the <code>:focus-visible</code> ring, and click to toggle. Radio A/B share a <code>name</code> so they behave as one group. The indeterminate box has its DOM <code>.indeterminate</code> property set via a tiny inline script.</div>' +
+    '</div>' +
+
+    /* ── 2. STATIC STATES MATRIX — checkboxes ── */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Checkbox &mdash; states matrix</div>' +
+      '<div class="cbr-norm-matrix">' +
+        /* header row */
+        '<div></div>' +
+        '<div class="cbr-norm-matrix-colhead">Default</div>' +
+        '<div class="cbr-norm-matrix-colhead">Hover</div>' +
+        '<div class="cbr-norm-matrix-colhead">Focus</div>' +
+        '<div class="cbr-norm-matrix-colhead">Disabled</div>' +
+
+        /* Unchecked row */
+        '<div class="cbr-norm-matrix-rowhead">Unchecked</div>' +
+        '<div class="cbr-norm-matrix-cell"><span class="cbr-norm-slot"><span class="cbr-norm-box cbr-norm-box--checkbox"></span></span></div>' +
+        '<div class="cbr-norm-matrix-cell"><span class="cbr-norm-slot"><span class="cbr-norm-box cbr-norm-box--checkbox is-hover"></span></span></div>' +
+        '<div class="cbr-norm-matrix-cell"><span class="cbr-norm-slot"><span class="cbr-norm-box cbr-norm-box--checkbox is-focus"></span></span></div>' +
+        '<div class="cbr-norm-matrix-cell"><span class="cbr-norm-slot"><span class="cbr-norm-box cbr-norm-box--checkbox is-disabled"></span></span></div>' +
+
+        /* Checked row */
+        '<div class="cbr-norm-matrix-rowhead">Checked</div>' +
+        '<div class="cbr-norm-matrix-cell"><span class="cbr-norm-slot"><span class="cbr-norm-box cbr-norm-box--checkbox is-checked"></span><span class="cbr-norm-indicator cbr-norm-indicator--check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span></span></div>' +
+        '<div class="cbr-norm-matrix-cell"><span class="cbr-norm-slot"><span class="cbr-norm-box cbr-norm-box--checkbox is-checked is-hover"></span><span class="cbr-norm-indicator cbr-norm-indicator--check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span></span></div>' +
+        '<div class="cbr-norm-matrix-cell"><span class="cbr-norm-slot"><span class="cbr-norm-box cbr-norm-box--checkbox is-checked is-focus"></span><span class="cbr-norm-indicator cbr-norm-indicator--check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span></span></div>' +
+        '<div class="cbr-norm-matrix-cell"><span class="cbr-norm-slot"><span class="cbr-norm-box cbr-norm-box--checkbox is-checked is-disabled"></span><span class="cbr-norm-indicator cbr-norm-indicator--check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span></span></div>' +
+
+        /* Indeterminate row */
+        '<div class="cbr-norm-matrix-rowhead">Indeterminate</div>' +
+        '<div class="cbr-norm-matrix-cell"><span class="cbr-norm-slot"><span class="cbr-norm-box cbr-norm-box--checkbox is-indeterminate"></span><span class="cbr-norm-indicator cbr-norm-indicator--dash"><span class="cbr-norm-dash"></span></span></span></div>' +
+        '<div class="cbr-norm-matrix-cell"><span class="cbr-norm-slot"><span class="cbr-norm-box cbr-norm-box--checkbox is-indeterminate is-hover"></span><span class="cbr-norm-indicator cbr-norm-indicator--dash"><span class="cbr-norm-dash"></span></span></span></div>' +
+        '<div class="cbr-norm-matrix-cell"><span class="cbr-norm-slot"><span class="cbr-norm-box cbr-norm-box--checkbox is-indeterminate is-focus"></span><span class="cbr-norm-indicator cbr-norm-indicator--dash"><span class="cbr-norm-dash"></span></span></span></div>' +
+        '<div class="cbr-norm-matrix-cell"><span class="cbr-norm-slot"><span class="cbr-norm-box cbr-norm-box--checkbox is-indeterminate is-disabled"></span><span class="cbr-norm-indicator cbr-norm-indicator--dash"><span class="cbr-norm-dash"></span></span></span></div>' +
+      '</div>' +
+    '</div>' +
+
+    /* ── STATIC STATES MATRIX — radios ── */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Radio &mdash; states matrix</div>' +
+      '<div class="cbr-norm-matrix">' +
+        /* header row */
+        '<div></div>' +
+        '<div class="cbr-norm-matrix-colhead">Default</div>' +
+        '<div class="cbr-norm-matrix-colhead">Hover</div>' +
+        '<div class="cbr-norm-matrix-colhead">Focus</div>' +
+        '<div class="cbr-norm-matrix-colhead">Disabled</div>' +
+
+        /* Unchecked row */
+        '<div class="cbr-norm-matrix-rowhead">Unchecked</div>' +
+        '<div class="cbr-norm-matrix-cell"><span class="cbr-norm-slot"><span class="cbr-norm-box cbr-norm-box--radio"></span></span></div>' +
+        '<div class="cbr-norm-matrix-cell"><span class="cbr-norm-slot"><span class="cbr-norm-box cbr-norm-box--radio is-hover"></span></span></div>' +
+        '<div class="cbr-norm-matrix-cell"><span class="cbr-norm-slot"><span class="cbr-norm-box cbr-norm-box--radio is-focus"></span></span></div>' +
+        '<div class="cbr-norm-matrix-cell"><span class="cbr-norm-slot"><span class="cbr-norm-box cbr-norm-box--radio is-disabled"></span></span></div>' +
+
+        /* Checked row */
+        '<div class="cbr-norm-matrix-rowhead">Checked</div>' +
+        '<div class="cbr-norm-matrix-cell"><span class="cbr-norm-slot"><span class="cbr-norm-box cbr-norm-box--radio is-checked"></span><span class="cbr-norm-indicator cbr-norm-indicator--dot"><span class="cbr-norm-dot"></span></span></span></div>' +
+        '<div class="cbr-norm-matrix-cell"><span class="cbr-norm-slot"><span class="cbr-norm-box cbr-norm-box--radio is-checked is-hover"></span><span class="cbr-norm-indicator cbr-norm-indicator--dot"><span class="cbr-norm-dot"></span></span></span></div>' +
+        '<div class="cbr-norm-matrix-cell"><span class="cbr-norm-slot"><span class="cbr-norm-box cbr-norm-box--radio is-checked is-focus"></span><span class="cbr-norm-indicator cbr-norm-indicator--dot"><span class="cbr-norm-dot"></span></span></span></div>' +
+        '<div class="cbr-norm-matrix-cell"><span class="cbr-norm-slot"><span class="cbr-norm-box cbr-norm-box--radio is-checked is-disabled"></span><span class="cbr-norm-indicator cbr-norm-indicator--dot"><span class="cbr-norm-dot"></span></span></span></div>' +
+      '</div>' +
+      '<div class="cbr-norm-card-hint">Real <code>:hover</code> / <code>:focus-visible</code> can\'t be forced on static boxes, so the matrix uses <code>.is-hover</code> / <code>.is-focus</code> modifier classes whose CSS duplicates the live pseudo-state rules. The indicator sits as a sibling overlay centered on the box.</div>' +
+    '</div>' +
+
+    /* ── 3. TOKEN CONTRACT NOTE ── */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">Token contract</div>' +
+      '<ul class="cbr-norm-tokens">' +
+        '<li>box size <code>16&times;16</code> &middot; gap <code>--spacing-2</code> (8)</li>' +
+        '<li>checkbox radius <code>--radius-sm</code> (4) &middot; radio radius <code>--radius-full</code></li>' +
+        '<li>label <code>.text-label-sm-medium</code> &middot; color <code>--text-secondary</code> &rarr; <code>--text-placeholder</code> when disabled</li>' +
+        '<li>unchecked box <code>--bg-primary</code> + 1px <code>--border-default</code></li>' +
+        '<li>hover (unchecked) border <code>--control-border-hover</code> (= DSN/400 <code>#9DA3B0</code>)</li>' +
+        '<li>focus-visible <code>outline: 2px solid --border-focus</code>, offset 2px (border kept)</li>' +
+        '<li>checked box <code>--bg-inverse</code>, no border &middot; indicator white <code>--text-inverse</code></li>' +
+        '<li>checked hover <code>--deep-sea-neutral-700</code></li>' +
+        '<li>disabled + unchecked border <code>--border-subtle</code>, <code>cursor: not-allowed</code></li>' +
+        '<li>disabled + checked/indeterminate fill <code>--border-default</code> (DSN/300), white indicator</li>' +
+      '</ul>' +
+      '<div class="cbr-norm-card-hint"><strong>Pending:</strong> <code>--control-border-hover</code> token to be added in code phase; indeterminate uses <code>lucide/minus</code> in Figma (pending icon add).</div>' +
+    '</div>' +
+
+  '</div>';
+}
+
 /* ── AuthContent (organism — inner body of AuthModal) — IN-PROGRESS normalize cycle ──
    AuthContent is the composed body that slots into the AuthModal shell as its
    children prop. Variant axis (currently single value: `Login`) will gain
@@ -11288,198 +12361,245 @@ function getSearchResultsComponentHTML() {
   '</div>';
 }
 
-/* ── FormField (molecule) — NORMALIZED ──
-   Promoted from the Normalize tab to the Components tab after GATE B-DSM
-   sign-off. Label + native text input pair. The primary form-input
-   primitive for the Odyssey-One system. First consumer is AuthModal's
-   Login form; future consumers include MFA, password setup, Settings
-   forms. Figma master 2255:98 on Components-Molecules (Default / Focus /
-   Error variants). CSS classes use the `.ff-comp-*` prefix to avoid
-   colliding with the original Normalize cycle styles. */
+/* ── FormField (molecule) — NORMALIZED ── (REDESIGN — supersedes 2255:98)
+   Re-normalized molecule. Title label (+ optional lucide/info) over an input
+   row, with an optional red error message below. Rich set of toggleable slots
+   that mirror the Figma component (2602:1424): showInfo, leadingIcon /
+   trailingIcon (placeholder-16 swap slots), onClear (lucide/circle-x on
+   focus+filled), and leading/trailing FieldSelect edges whose one-sided
+   divider tracks the field state via a CSS override of --field-select-divider.
+   Demo grid = 6 states (rows) × 3 slot layouts (columns: plain / leading-select
+   / trailing-select). CSS classes use the `.ff-comp-*` prefix. */
 function getFormFieldComponentHTML() {
+  /* lucide/chevron-down for the FieldSelect edges — currentColor so it reddens
+     with a leading-error label. */
+  var chevron = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>';
+  /* lucide/circle-x clear glyph (shown on focus + filled). */
+  var circleX = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>';
+  /* lucide/info beside the title. */
+  var infoIcon = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>';
+
+  /* Builds one FormField demo instance for a given state + slot layout.
+       state: 'default' | 'filled' | 'focused' | 'disabled' | 'error' | 'error-focused'
+       slot:  'plain' | 'leading' | 'trailing'                                */
+  function field(state, slot) {
+    var isError = state === 'error' || state === 'error-focused';
+    var isFocus = state === 'focused' || state === 'error-focused';
+    var isFilled = state === 'filled' || isFocus;
+    var isDisabled = state === 'disabled';
+
+    var inputCls = 'ff-comp-input';
+    if (isFocus) inputCls += ' ff-comp-input--focus';
+    if (isError) inputCls += isFocus ? ' ff-comp-input--error-focus' : ' ff-comp-input--error';
+    if (isDisabled) inputCls += ' ff-comp-input--disabled';
+
+    /* divider state class for the FieldSelect edge — mirrors the parent override */
+    var divCls = '';
+    if (isFocus) divCls = ' ff-comp-fsel--focus';
+    else if (isError) divCls = ' ff-comp-fsel--error-default';
+    else if (isDisabled) divCls = ' ff-comp-fsel--disabled';
+    /* leading + error reddens the label/chevron too */
+    var leadErrCls = (slot === 'leading' && isError) ? ' ff-comp-fsel--lead-error' : '';
+
+    var leadingSel = slot === 'leading'
+      ? '<span class="ff-comp-fsel ff-comp-fsel--leading' + divCls + leadErrCls + '" aria-hidden="true">+1' + chevron + '</span>'
+      : '';
+    var trailingSel = slot === 'trailing'
+      ? '<span class="ff-comp-fsel ff-comp-fsel--trailing' + divCls + '" aria-hidden="true">Select' + chevron + '</span>'
+      : '';
+
+    /* control body — placeholder vs value text, plus optional clear on focus+filled */
+    var textCls = isError ? 'ff-comp-text--error' : (isFilled ? 'ff-comp-text--value' : 'ff-comp-text--placeholder');
+    var bodyText = isFilled ? 'jane@odyssey.com' : 'Enter Email ID';
+    var caret = isFocus ? '<span class="ff-comp-caret" aria-hidden="true">|</span>' : '';
+    var clearBtn = (isFocus && isFilled)
+      ? '<span class="ff-comp-clear" aria-hidden="true">' + circleX + '</span>'
+      : '';
+
+    return '' +
+      '<div class="ff-comp-field' + (isDisabled ? ' ff-comp-field--disabled' : '') + '">' +
+        '<div class="ff-comp-label-row">' +
+          '<span class="ff-comp-label">Email Address</span>' +
+          '<span class="ff-comp-info" aria-hidden="true">' + infoIcon + '</span>' +
+        '</div>' +
+        '<div class="' + inputCls + '">' +
+          leadingSel +
+          '<div class="ff-comp-control">' +
+            '<span class="ff-comp-body ' + textCls + '">' + bodyText + caret + '</span>' +
+            clearBtn +
+          '</div>' +
+          trailingSel +
+        '</div>' +
+        (isError ? '<div class="ff-comp-error-msg">Invalid email</div>' : '') +
+      '</div>';
+  }
+
+  var rows = [
+    ['Default', 'default', 'Placeholder copy, border <code>--deep-sea-neutral-300</code>.'],
+    ['Filled', 'filled', 'Value text at <code>--text-primary</code>.'],
+    ['Focused', 'focused', 'Border <code>--input-border-focus</code> (DSN/900); <code>onClear</code> circle-x appears on focus+filled; FieldSelect divider &rarr; <code>--border-strong</code>.'],
+    ['Disabled', 'disabled', 'Bg <code>--bg-secondary</code>, text <code>--text-tertiary</code>.'],
+    ['Error', 'error', 'Border <code>--bittersweet-200</code>, field text + message <code>--text-error</code>.'],
+    ['Focused Error', 'error-focused', 'Border <code>--bittersweet-600</code> (focused error).'],
+  ];
+
+  var gridRows = '';
+  rows.forEach(function (r) {
+    gridRows += '' +
+      '<div class="ff-comp-rowhead">' + r[0] + '<span class="ff-comp-rowhead-note">' + r[2] + '</span></div>' +
+      '<div class="ff-comp-cell">' + field(r[1], 'plain') + '</div>' +
+      '<div class="ff-comp-cell">' + field(r[1], 'leading') + '</div>' +
+      '<div class="ff-comp-cell">' + field(r[1], 'trailing') + '</div>';
+  });
+
   return '' +
   /* ── Scoped styles ── */
   '<style>' +
-    /* compDetails block — light surface, key/value rows. */
-    '.ff-comp-details {' +
-      'background: var(--white, #FFFFFF);' +
-      'border: 1px solid var(--border-subtle, #E4E6EB);' +
-      'border-radius: var(--radius-md, 6px);' +
-      'padding: 16px 20px; margin-bottom: 24px;' +
-      'font-size: 13px; color: #384253; line-height: 1.6;' +
-    '}' +
-    '.ff-comp-details dl { display: grid; grid-template-columns: 140px 1fr; gap: 6px 16px; margin: 0; }' +
-    '.ff-comp-details dt { font-weight: 600; color: #1B2537; }' +
-    '.ff-comp-details dd { margin: 0; color: #384253; }' +
-    '.ff-comp-details code {' +
-      'background: #F2F3F5; padding: 1px 6px; border-radius: 4px;' +
-      'font-size: 12px; color: #1B2537;' +
-    '}' +
-
-    /* Demo surface — neutral wash so the white input sits on a slight tint
-       (matches how Figma frames render the FormField master). */
+    /* Demo surface — neutral wash so the white input sits on a slight tint. */
     '.ff-comp-surface {' +
       'background: #F2F3F5;' +
-      'padding: 32px;' +
+      'padding: 28px;' +
       'border-radius: var(--radius-md, 6px);' +
-      'display: flex; align-items: flex-start; justify-content: center;' +
+      'overflow-x: auto;' +
     '}' +
+
+    /* 4-col grid: rowhead + 3 slot layouts. */
+    '.ff-comp-matrix {' +
+      'display: grid;' +
+      'grid-template-columns: 190px repeat(3, minmax(220px, 1fr));' +
+      'gap: 24px 20px; align-items: start;' +
+      'min-width: 880px;' +
+    '}' +
+    '.ff-comp-colhead {' +
+      'font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;' +
+      'color: #6B7280;' +
+    '}' +
+    '.ff-comp-rowhead { font-size: 13px; font-weight: 600; color: #1B2537; padding-top: 18px; }' +
+    '.ff-comp-rowhead-note { display: block; font-size: 11px; font-weight: 400; color: #6B7280; margin-top: 4px; line-height: 1.45; }' +
+    '.ff-comp-rowhead-note code { background: #FFFFFF; padding: 0 4px; border-radius: 3px; font-size: 10px; color: #1B2537; }' +
+    '.ff-comp-cell { display: flex; }' +
 
     /* FormField shell — VERTICAL stack, label over input. */
     '.ff-comp-field {' +
       'display: flex; flex-direction: column;' +
       'gap: var(--spacing-1, 4px);' +
-      'width: 100%; max-width: 320px;' +
+      'width: 100%;' +
     '}' +
+    '.ff-comp-field--disabled { opacity: 1; }' +
+    '.ff-comp-label-row { display: flex; align-items: center; gap: var(--spacing-1, 4px); }' +
     '.ff-comp-label {' +
       'font-family: \'Inter\', sans-serif;' +
       'font-size: 14px; line-height: 20px; font-weight: 500;' +
       'color: var(--text-secondary, #384253);' +
     '}' +
+    '.ff-comp-info { display: inline-flex; color: var(--text-tertiary, #6B7280); flex-shrink: 0; }' +
+    '.ff-comp-info svg { display: block; }' +
+
+    /* Input row — white, 1px DSN/300, radius-md, shadow-sm. FieldSelect edges
+       sit flush; overflow clips their corners to the container radius. */
     '.ff-comp-input {' +
-      'width: 100%; box-sizing: border-box;' +
+      'display: flex; align-items: stretch;' +
+      'box-sizing: border-box;' +
       'background: var(--white, #FFFFFF);' +
       'border: 1px solid var(--deep-sea-neutral-300, #D0D4DB);' +
       'border-radius: var(--radius-md, 6px);' +
-      'padding: 8px 13px;' +
-      'box-shadow: var(--shadow-sm, 0px 1px 2px 0px rgba(0, 0, 0, 0.05));' +
+      'box-shadow: var(--shadow-sm, 0px 1px 2px 0px rgba(0,0,0,0.05));' +
+      'overflow: hidden;' +
+    '}' +
+    /* Control = padded body holding the text + clear; FieldSelect sits outside it. */
+    '.ff-comp-control {' +
+      'display: flex; align-items: center; gap: var(--spacing-2, 8px);' +
+      'flex: 1 1 0; min-width: 0;' +
+      'padding: var(--spacing-2, 8px) 13px;' +
+    '}' +
+    '.ff-comp-body {' +
+      'flex: 1 1 0; min-width: 0;' +
       'font-family: \'Inter\', sans-serif; font-size: 14px; line-height: 20px; font-weight: 400;' +
-      'color: var(--text-primary, #1B2537);' +
-      /* Flex row so trailing-icon slot can sit at right edge. */
-      'display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-2, 8px);' +
+      'white-space: nowrap; overflow: hidden; text-overflow: ellipsis;' +
     '}' +
-    '.ff-comp-input::placeholder { color: var(--text-placeholder, #9DA3B0); }' +
-    '.ff-comp-input-placeholder { color: var(--text-placeholder, #9DA3B0); }' +
-    /* Trailing icon slot — 16x16, stroke inherits via currentColor. */
-    '.ff-comp-icon { display: inline-flex; width: 16px; height: 16px; flex: 0 0 16px; }' +
-    '.ff-comp-icon svg { width: 16px; height: 16px; display: block; }' +
-    '.ff-comp-icon--default { color: var(--deep-sea-neutral-500, #6B7280); }' +
-    '.ff-comp-icon--focus { color: var(--deep-sea-neutral-900, #1B2537); }' +
-    '.ff-comp-icon--error { color: var(--bittersweet-600, #D23930); }' +
-    /* Focus state — emulated visually. Border swaps to the darker neutral. */
-    '.ff-comp-input--focus {' +
-      'border-color: var(--deep-sea-neutral-900, #1B2537);' +
-    '}' +
-    /* Error state — bittersweet border + below-input error message. 2px border. */
-    '.ff-comp-input--error {' +
-      'border-color: var(--bittersweet-600, #D23930);' +
-      'border-width: 2px;' +
-    '}' +
+    '.ff-comp-text--placeholder { color: var(--text-placeholder, #9DA3B0); }' +
+    '.ff-comp-text--value { color: var(--text-primary, #1B2537); }' +
+    '.ff-comp-text--error { color: var(--text-error, #D23930); }' +
+    '.ff-comp-clear { display: inline-flex; flex-shrink: 0; color: var(--text-tertiary, #6B7280); }' +
+    '.ff-comp-clear svg { display: block; }' +
+
+    /* State — border ladder. */
+    '.ff-comp-input--focus { border-color: var(--input-border-focus, #1B2537); }' +
+    '.ff-comp-input--error { border-color: var(--bittersweet-200, #FBD0CD); }' +
+    '.ff-comp-input--error-focus { border-color: var(--bittersweet-600, #D23930); }' +
+    '.ff-comp-input--disabled { background: var(--bg-secondary, #F7F8FA); }' +
+    '.ff-comp-input--disabled .ff-comp-text--placeholder,' +
+    '.ff-comp-input--disabled .ff-comp-text--value { color: var(--text-tertiary, #6B7280); }' +
+
+    /* Below-input error message. */
     '.ff-comp-error-msg {' +
       'font-family: \'Inter\', sans-serif;' +
       'font-size: 12px; line-height: 16px; font-weight: 400;' +
       'color: var(--text-error, #D23930);' +
       'margin-top: var(--spacing-1, 4px);' +
     '}' +
-    /* Faux blinking caret for the focus card. */
+
+    /* Faux blinking caret for the focused cards (preview-state indicator). */
     '.ff-comp-caret {' +
-      'display: inline-block;' +
-      'color: var(--text-primary, #1B2537);' +
+      'display: inline-block; color: var(--text-primary, #1B2537);' +
       'animation: ffCompCaretBlink 1s steps(2, start) infinite;' +
     '}' +
-    '@keyframes ffCompCaretBlink {' +
-      '0%, 100% { opacity: 1; }' +
-      '50% { opacity: 0; }' +
-    '}' +
+    '@keyframes ffCompCaretBlink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }' +
 
-    /* Three-up grid for the state cards. */
-    '.ff-comp-card-grid {' +
-      'display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px;' +
+    /* FieldSelect edge — mirrors the real .field-select* CSS (one-sided divider,
+       --field-select-divider driven by the parent field state). */
+    '.ff-comp-fsel {' +
+      '--ff-comp-divider: var(--border-default, #D0D4DB);' +
+      'display: inline-flex; align-items: center; gap: var(--spacing-1, 4px);' +
+      'padding: var(--spacing-2, 8px) var(--spacing-3, 12px);' +
+      'background: transparent; color: var(--text-tertiary, #6B7280);' +
+      'white-space: nowrap;' +
+      'font-family: \'Inter\', sans-serif; font-size: 14px; line-height: 20px; font-weight: 400;' +
     '}' +
+    '.ff-comp-fsel svg { display: block; flex-shrink: 0; }' +
+    '.ff-comp-fsel--leading { padding-right: 14px; border-right: 1px solid var(--ff-comp-divider); }' +
+    '.ff-comp-fsel--trailing { padding-left: 14px; border-left: 1px solid var(--ff-comp-divider); }' +
+    /* divider ladder, set by parent field state */
+    '.ff-comp-fsel--focus { --ff-comp-divider: var(--border-strong, #1B2537); }' +
+    '.ff-comp-fsel--disabled { --ff-comp-divider: var(--border-subtle, #E4E6EB); }' +
+    '.ff-comp-fsel--error-default { --ff-comp-divider: var(--bittersweet-200, #FBD0CD); }' +
+    /* focused-error parent reddens the divider fully */
+    '.ff-comp-input--error-focus .ff-comp-fsel { --ff-comp-divider: var(--bittersweet-600, #D23930); }' +
+    /* leading + error reddens the label + chevron too (deliberate divergence) */
+    '.ff-comp-fsel--lead-error { color: var(--bittersweet-600, #D23930); }' +
+
     '.ff-comp-card-hint {' +
-      'font-size: 11px; color: #6B7280; font-style: italic; line-height: 1.4; margin-top: 12px;' +
+      'font-size: 11px; color: #6B7280; font-style: italic; line-height: 1.5; margin-top: 14px;' +
     '}' +
     '.ff-comp-card-hint strong { color: #384253; font-style: normal; font-weight: 600; }' +
+    '.ff-comp-card-hint code { background: #F2F3F5; padding: 1px 5px; border-radius: 4px; font-size: 11px; color: #1B2537; font-style: normal; }' +
   '</style>' +
 
-  /* ── Section ── (NORMALIZED — promoted from Normalize tab after GATE B-DSM sign-off) */
+  /* ── Section ── (NORMALIZED — redesign, supersedes 2255:98) */
   '<div class="comp-section">' +
     '<div class="comp-section-title">FormField <span class="comp-normalized-label">NORMALIZED</span></div>' +
-    '<div class="comp-section-subtitle">packages/ui/src/FormField.jsx &middot; Figma node 2255:98</div>' +
-    '<div style="font-size:13px; color:#6B7280; margin-bottom:18px; line-height:1.5;">Molecule &mdash; label + native input atom. The primary form-input primitive for the Odyssey-One system. Three states (<code>Default</code>, <code>Focus</code>, <code>Error</code>). First consumer is <strong>AuthModal</strong>&rsquo;s Login form; future consumers include MFA, password setup, Settings forms.</div>' +
+    '<div class="comp-section-subtitle">packages/ui/src/FormField.jsx &middot; Figma node 2602:1424 (supersedes 2255:98)</div>' +
+    '<div style="font-size:13px; color:#6B7280; margin-bottom:18px; line-height:1.5;">Molecule (redesign) &mdash; title label (+ optional <code>lucide/info</code>) over an input row, with an optional red error message below. The primary form-input primitive. <code>filled</code> / <code>focused</code> derive automatically; <code>error</code> + <code>disabled</code> are explicit. Toggleable slots mirror the Figma component: <code>showInfo</code>, <code>leadingIcon</code> / <code>trailingIcon</code> (placeholder-16 swaps), <code>onClear</code> (a <code>lucide/circle-x</code> shown when focused + filled), and leading / trailing <strong>FieldSelect</strong> edges whose one-sided divider tracks the field state.</div>' +
 
-    /* compDetails — quick summary block */
-    '<div class="ff-comp-details">' +
-      '<dl>' +
-        '<dt>Component</dt><dd>FormField</dd>' +
-        '<dt>Type</dt><dd>Molecule (atom-ish &mdash; label + input pair)</dd>' +
-        '<dt>Figma node</dt><dd><code>2255:98</code> &mdash; Components-Molecules / State=Default/Focus/Error</dd>' +
-        '<dt>Purpose</dt><dd>Label + text input pair. Primary form-input primitive. Consumed by <strong>AuthModal</strong> (Login form). Future: any auth view (MFA, password setup), Settings forms, etc.</dd>' +
-        '<dt>API sketch</dt><dd><code>label</code>, <code>placeholder</code>, <code>value</code>, <code>onChange</code>, <code>type</code> (text|email|password|&hellip;), <code>error</code> (string &mdash; when truthy, switches to error state + renders message; when truthy AND no <code>trailingIcon</code> is passed, auto-defaults the slot to <code>&lt;CircleAlert /&gt;</code> in red), <code>trailingIcon</code> (ReactNode &mdash; when provided, renders on the right edge of the input; stroke color follows the state via <code>currentColor</code>), <code>id</code>, <code>name</code>, <code>autoComplete</code>, <code>required</code>, <code>disabled</code> (deferred to a later cycle).</dd>' +
-        '<dt>Figma props</dt><dd><code>State</code> VARIANT (Default / Focus / Error) &middot; <code>Show icon</code> BOOLEAN (default <code>false</code>) &middot; <code>Icon</code> INSTANCE_SWAP (default <code>placeholder-16</code> &mdash; consumer swaps to any 16&times;16 lucide icon).</dd>' +
-        '<dt>Tokens</dt><dd><code>--text-secondary</code> (label) &middot; <code>--text-placeholder</code> (placeholder) &middot; <code>--deep-sea-neutral-300</code> / <code>--deep-sea-neutral-900</code> / <code>--bittersweet-600</code> (borders) &middot; <code>--deep-sea-neutral-500</code> / <code>--deep-sea-neutral-900</code> / <code>--bittersweet-600</code> (trailing-icon stroke per state) &middot; <code>--white</code> (bg) &middot; <code>--shadow-sm</code> &middot; <code>--radius-md</code> (6) &middot; <code>--spacing-1</code> (label&rarr;input gap) &middot; <code>--spacing-2</code> (text&rarr;icon gap) &middot; padding <code>8/13</code> raw (small component-internal geometry &mdash; acceptable per strategic-tokens convention).</dd>' +
-        '<dt>Composition</dt><dd>Composes a <strong>Label</strong> + native <code>&lt;input&gt;</code> element. Switchable trailing-icon slot (16px) &mdash; <code>INSTANCE_SWAP</code> in Figma, ReactNode <code>trailingIcon</code> prop in code. Stroke color follows state. Input box uses <code>justify-content: space-between</code> so placeholder text fills available space and icon sits on the right. Consumed by <strong>AuthModal</strong> (Login form). Future consumers: any auth view (MFA, password setup), Settings forms, etc.</dd>' +
-      '</dl>' +
+    /* ── States × slots matrix ── rows = 6 states, cols = plain / leading-select / trailing-select. */
+    '<div class="comp-subsection">' +
+      '<div class="comp-subsection-title">States &times; slots &mdash; rows: 6 states, columns: plain / leading select / trailing select</div>' +
+      '<div class="ff-comp-surface">' +
+        '<div class="ff-comp-matrix">' +
+          /* header row */
+          '<div></div>' +
+          '<div class="ff-comp-colhead">Plain</div>' +
+          '<div class="ff-comp-colhead">Leading select</div>' +
+          '<div class="ff-comp-colhead">Trailing select</div>' +
+          gridRows +
+        '</div>' +
+        '<div class="ff-comp-card-hint">Every cell shows the title label + <code>lucide/info</code> (<code>showInfo</code> on). The <strong>Leading select</strong> column carries a flush <code>+1 &#9662;</code> <strong>FieldSelect</strong> with a <em>right</em> divider; <strong>Trailing select</strong> a flush <code>Select &#9662;</code> with a <em>left</em> divider. The divider color tracks the parent field state (override of <code>--field-select-divider</code>): focus &rarr; <code>--border-strong</code>, error &rarr; <code>--bittersweet-200</code>/<code>600</code>; on a <em>leading</em> error the &ldquo;+1&rdquo; label + chevron redden too. The blinking caret + circle-x on the focused rows are <em>preview-state indicators</em>.</div>' +
+      '</div>' +
     '</div>' +
 
-    /* Demo cards — three side-by-side, one per state */
+    /* Props & Tokens — moved into modal */
     '<div class="comp-subsection">' +
-      '<div class="comp-subsection-title">States &mdash; Default / Focus / Error</div>' +
-      '<div class="ff-comp-card-grid">' +
-
-        /* Card 1 — Default (with neutral Search icon at --deep-sea-neutral-500) */
-        '<div class="comp-card">' +
-          '<div class="ff-comp-surface">' +
-            '<div class="ff-comp-field">' +
-              '<label class="ff-comp-label" for="ff-comp-default">Email Address</label>' +
-              '<div class="ff-comp-input" id="ff-comp-default" role="textbox" aria-label="Email Address (default state demo)">' +
-                '<span class="ff-comp-input-placeholder">Enter Email ID</span>' +
-                '<span class="ff-comp-icon ff-comp-icon--default" aria-hidden="true">' +
-                  /* lucide Search — circle + diagonal handle */
-                  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>' +
-                '</span>' +
-              '</div>' +
-            '</div>' +
-          '</div>' +
-          '<div class="comp-card-code">&lt;FormField label="Email Address" placeholder="Enter Email ID" trailingIcon={&lt;Search /&gt;} /&gt;</div>' +
-          '<div class="comp-card-note">' +
-            '<strong>Default.</strong> Border <code>1px --deep-sea-neutral-300</code>. Resting state, no focus, no error. Label <code>--text-secondary</code> 14/20 Inter Medium. Placeholder <code>--text-placeholder</code>. <code>--shadow-sm</code> elevation, <code>--radius-md</code> (6) corners, <code>8/13</code> padding. Trailing icon stroke: <code>--deep-sea-neutral-500</code> (text-tertiary, neutral).' +
-          '</div>' +
-        '</div>' +
-
-        /* Card 2 — Focus (visual emulation; faux caret + Search icon at neutral-900) */
-        '<div class="comp-card">' +
-          '<div class="ff-comp-surface">' +
-            '<div class="ff-comp-field">' +
-              '<label class="ff-comp-label" for="ff-comp-focus">Email Address</label>' +
-              '<div class="ff-comp-input ff-comp-input--focus" id="ff-comp-focus" aria-label="Email Address (focus state demo)">' +
-                '<span class="ff-comp-caret">|</span>' +
-                '<span class="ff-comp-icon ff-comp-icon--focus" aria-hidden="true">' +
-                  /* lucide Search */
-                  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>' +
-                '</span>' +
-              '</div>' +
-            '</div>' +
-          '</div>' +
-          '<div class="comp-card-code">&lt;FormField label="Email Address" placeholder="Enter Email ID" trailingIcon={&lt;Search /&gt;} /&gt; <em>(focused)</em></div>' +
-          '<div class="comp-card-note">' +
-            '<strong>Focus.</strong> Border swaps to <code>1px --deep-sea-neutral-900</code> &mdash; intentionally a darker neutral, <em>not</em> the project-wide CB focus ring (matches the existing <code>--input-border-focus</code> token convention). Trailing icon stroke darkens to <code>--deep-sea-neutral-900</code> in sync. Blinking caret is a <em>preview-state indicator</em> so the focus state reads as active in a static grid.' +
-          '</div>' +
-        '</div>' +
-
-        /* Card 3 — Error (CircleAlert icon at --bittersweet-600) */
-        '<div class="comp-card">' +
-          '<div class="ff-comp-surface">' +
-            '<div class="ff-comp-field">' +
-              '<label class="ff-comp-label" for="ff-comp-error">Email Address</label>' +
-              '<div class="ff-comp-input ff-comp-input--error" id="ff-comp-error" role="textbox" aria-label="Email Address (error state demo)">' +
-                '<span class="ff-comp-input-placeholder">Enter Email ID</span>' +
-                '<span class="ff-comp-icon ff-comp-icon--error" aria-hidden="true">' +
-                  /* lucide CircleAlert — circle + vertical line + dot */
-                  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>' +
-                '</span>' +
-              '</div>' +
-              '<div class="ff-comp-error-msg">Invalid email</div>' +
-            '</div>' +
-          '</div>' +
-          '<div class="comp-card-code">&lt;FormField label="Email Address" placeholder="Enter Email ID" error="Invalid email" /&gt;</div>' +
-          '<div class="comp-card-note">' +
-            '<strong>Error.</strong> Border swaps to <code>2px --bittersweet-600</code> (<code>#D23930</code>). Trailing icon <em>auto-defaults</em> to <code>&lt;CircleAlert /&gt;</code> at <code>--bittersweet-600</code> when <code>error</code> is truthy and no explicit <code>trailingIcon</code> is passed &mdash; canonical error indicator pattern. Below-input message: 12px Inter Regular, color <code>--text-error</code> (= <code>--bittersweet-600</code>), <code>--spacing-1</code> top gap.' +
-          '</div>' +
-        '</div>' +
-
-      '</div>' +
-      '<div class="ff-comp-card-hint"><strong>Surface</strong> is rendered <code>#F2F3F5</code> so the white input visually separates &mdash; mirrors how the Figma file frames the FormField master. The label / placeholder copy is identical across cards so the eye picks up the border-state difference.</div>' +
+      '<button class="comp-details-button" onclick="showCompDetails(\'FormField\')">Show props &amp; tokens</button>' +
     '</div>' +
 
   '</div>';
@@ -11509,7 +12629,7 @@ function showCompDetails(componentName) {
 document.addEventListener('DOMContentLoaded', function() {
   /* Populate Components tab */
   var compTab = document.getElementById('componentsTabBadgeContent');
-  if (compTab) compTab.innerHTML = getBadgeComponentHTML() + getFilterButtonComponentHTML() + getPillTabComponentHTML() + getButtonComponentHTML() + getIconButtonComponentHTML() + getIconButtonGhostComponentHTML() + getSidebarButtonComponentHTML() + getSidebarComponentHTML() + getGlobalSearchComponentHTML() + getFilterSuggestionsComponentHTML() + getMatchRowComponentHTML() + getLeadNavComponentHTML() + getTrailNavComponentHTML() + getNavbarComponentHTML() + getPageHeaderComponentHTML() + getSectionHeaderComponentHTML() + getSectionLabelComponentHTML() + getAddSectionDividerComponentHTML() + getAddSectionButtonComponentHTML() + getEntityChipComponentHTML() + getSearchFieldComponentHTML() + getFormFieldComponentHTML() + getWidgetMetricRowComponentHTML() + getWidgetPieChartComponentHTML() + getWidgetComponentHTML() + getWidgetCtaRowComponentHTML() + getWidgetVariantPickerComponentHTML() + getMenuRowComponentHTML() + getCustomerRowComponentHTML() + getMenuDropdownComponentHTML() + getEditModeOverviewHTML() + getWidgetsLeftMenuComponentHTML() + getEmptyStateComponentHTML() + getModalLargeComponentHTML() + getModalMediumComponentHTML() + getAuthModalComponentHTML() + getAuthContentComponentHTML() + getSearchPanelComponentHTML() + getSearchResultsComponentHTML();
+  if (compTab) compTab.innerHTML = getBadgeComponentHTML() + getFilterButtonComponentHTML() + getPillTabComponentHTML() + getCheckboxRadioComponentHTML() + getFieldSelectComponentHTML() + getButtonComponentHTML() + getIconButtonComponentHTML() + getIconButtonGhostComponentHTML() + getSidebarButtonComponentHTML() + getSidebarComponentHTML() + getGlobalSearchComponentHTML() + getFilterSuggestionsComponentHTML() + getMatchRowComponentHTML() + getLeadNavComponentHTML() + getTrailNavComponentHTML() + getNavbarComponentHTML() + getPageHeaderComponentHTML() + getSectionHeaderComponentHTML() + getSectionLabelComponentHTML() + getAddSectionDividerComponentHTML() + getAddSectionButtonComponentHTML() + getEntityChipComponentHTML() + getSearchFieldComponentHTML() + getFormFieldComponentHTML() + getWidgetMetricRowComponentHTML() + getWidgetPieChartComponentHTML() + getWidgetComponentHTML() + getWidgetCtaRowComponentHTML() + getWidgetVariantPickerComponentHTML() + getMenuRowComponentHTML() + getCustomerRowComponentHTML() + getMenuDropdownComponentHTML() + getEditModeOverviewHTML() + getWidgetsLeftMenuComponentHTML() + getEmptyStateComponentHTML() + getModalLargeComponentHTML() + getModalMediumComponentHTML() + getAuthModalComponentHTML() + getAuthContentComponentHTML() + getSearchPanelComponentHTML() + getSearchResultsComponentHTML();
 
   /* No active normalization cycle. AuthContent (Variant=Login) was promoted
      to the Components tab after GATE B-DSM sign-off — see
@@ -11521,7 +12641,10 @@ document.addEventListener('DOMContentLoaded', function() {
      `activateNormalizeTab(getAuthContentNormalizeHTML())` + `switchTab('normalize')`
      if you need to revisit those validation surfaces. FilterButton was promoted
      to the Components tab after GATE B-DSM sign-off — see
-     `getFilterButtonComponentHTML()` above. */
+     `getFilterButtonComponentHTML()` above. Checkbox + Radio were promoted to
+     the Components tab after GATE B-DSM sign-off — see
+     `getCheckboxRadioComponentHTML()` above; `getCheckboxRadioNormalizeHTML()`
+     remains defined as a reference. */
   deactivateNormalizeTab();
 
   /* Click on backdrop closes the comp details dialog */

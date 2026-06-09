@@ -12,6 +12,7 @@ figma.connect(
         Secondary: 'secondary',
         Outline: 'outline',
         Ghost: 'ghost',
+        Error: 'error',
       }),
       size: figma.enum('Size', {
         sm: 'sm',

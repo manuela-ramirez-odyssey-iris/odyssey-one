@@ -4,8 +4,7 @@ import FormField from './FormField.jsx'
 import Button from './Button.jsx'
 
 // Trailing icon for the prefilled Login fields — green check signals
-// "valid/saved" rather than the default Lock icon that the `locked` prop
-// auto-renders. Stays small (16px) per the FormField icon-slot convention.
+// "valid/saved". Stays small (16px) per the FormField icon-slot convention.
 const validCheckIcon = (
   <Check size={16} style={{ color: 'var(--text-success)' }} aria-hidden="true" />
 )
@@ -28,7 +27,7 @@ export default function AuthContent({
   onForgotPassword,
   onCreateAccount,
 }) {
-  // Prototype: prefilled + locked credentials so reviewers can click "Log In"
+  // Prototype: prefilled + disabled credentials so reviewers can click "Log In"
   // without real auth wiring. State is still kept locally so the flow mirrors
   // how a real implementation would work once the backend is in place.
   const [email, setEmail] = useState('test@odyssey.com')
@@ -51,7 +50,7 @@ export default function AuthContent({
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             autoComplete="email"
-            locked
+            disabled
             trailingIcon={validCheckIcon}
           />
           <FormField
@@ -63,7 +62,7 @@ export default function AuthContent({
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             autoComplete="current-password"
-            locked
+            disabled
             trailingIcon={validCheckIcon}
           />
           <Button type="submit" variant="primary" size="lg">Log In</Button>

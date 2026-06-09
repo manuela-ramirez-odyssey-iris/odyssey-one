@@ -1,7 +1,7 @@
 import React from 'react'
 
 /**
- * Button — atom (5 variants × 3 sizes, plus disabled).
+ * Button — atom (6 variants × 3 sizes, plus disabled).
  *
  * Variants and where to use them:
  * - `primary`   — main CTA. Dark fill, works on light surfaces.
@@ -9,6 +9,8 @@ import React from 'react'
  * - `outline`   — designed for dark surfaces. White text + transparent fill at idle, white@10/20%
  *                tint overlays on hover/pressed. Pair with DSN/700+ surfaces.
  * - `ghost`     — like outline but no border at idle. Quiet action on dark surfaces.
+ * - `error`     — soft destructive action on light surfaces. Light-red fill (Bittersweet/100) + red
+ *                text (Bittersweet/600); hover/pressed deepen via the Bittersweet ladder.
  * - `link`      — text-only affordance (no bg, no border, no shadow). Carolina-blue text. Used for
  *                "Go to X" jump links and similar tertiary actions on light surfaces.
  *

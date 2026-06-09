@@ -1,31 +1,41 @@
-import { CircleAlert, Lock } from 'lucide-react'
+import { Info, CircleX } from 'lucide-react'
+import FieldSelect from './FieldSelect.jsx'
 
 /**
- * FormField — molecule. Label + text input pair with optional trailing icon.
+ * FormField — molecule (redesign, supersedes the 2255:98 master). Title label +
+ * input row + optional error message, with a rich set of toggleable slots that
+ * mirror the Figma component's properties (2602:1424).
  *
- * States derived from props:
- *   default — idle
- *   focus   — :focus-within on the input wrapper
- *   error   — pass a non-empty `error` string
- *   locked  — pass `locked={true}` for read-only / prefilled fields
- *             (sets `readOnly` on the input + muted bg + cursor: not-allowed)
+ * States: `filled` / `focused` derive automatically (value present / :focus-within);
+ * `error` (pass a message string) and `disabled` are explicit. Error border is
+ * `--bittersweet-200` idle → `--bittersweet-600` on focus, with a red message below.
  *
- * Trailing icon priority (when no explicit `trailingIcon` slot is passed):
- *   locked → <Lock size={16} />
- *   error  → <CircleAlert size={16} />
- *   else   → none
+ * Slots (each maps to a Figma property):
+ *   showLabel / label    — `Show label` + `Label`
+ *   showInfo             — `Show info icon` (lucide/info beside the title)
+ *   leadingIcon / trailingIcon — `Show/Leading Icon` + `Show/Trailing Icon` (placeholder-16 slots)
+ *   onClear              — `Show X Icon` (clear button, shown when focused + filled)
+ *   leadingSelect / trailingSelect — `{ label, onClick }` → a `FieldSelect` on that edge.
+ *     The select's divider tracks the field's focus/error/disabled state via CSS
+ *     (the parent overrides `--field-select-divider`), so no state prop is threaded.
  *
- * Figma master: `FormField` component set (2255:98) on Components-Molecules.
+ * Figma master: `FormField` set 2602:1424 (Components-Molecules).
  */
 export default function FormField({
   label,
+  showLabel = true,
+  showInfo = false,
   placeholder,
   value,
   onChange,
   type = 'text',
   error,
-  locked = false,
+  disabled = false,
+  leadingIcon,
   trailingIcon,
+  leadingSelect,
+  trailingSelect,
+  onClear,
   id,
   name,
   autoComplete,
@@ -33,45 +43,68 @@ export default function FormField({
   className = '',
   ...rest
 }) {
-  const icon = trailingIcon ?? (
-    locked ? <Lock size={16} aria-hidden="true" /> :
-    error ? <CircleAlert size={16} aria-hidden="true" /> :
-    null
-  )
   const cls = [
     'form-field',
-    locked && 'form-field--locked',
     error && 'form-field--error',
+    disabled && 'form-field--disabled',
     className,
   ].filter(Boolean).join(' ')
   const errorId = error && id ? `${id}-error` : undefined
+  const selectState = disabled ? 'disabled' : 'default'
+  const showClear = !!onClear && !disabled && value != null && value !== ''
+
   return (
     <div className={cls}>
-      {label && (
-        <label htmlFor={id} className="form-field__label">{label}</label>
+      {showLabel && label && (
+        <div className="form-field__label-row">
+          <label htmlFor={id} className="form-field__label text-label-sm-medium">{label}</label>
+          {showInfo && <Info className="form-field__info" size={16} aria-hidden="true" />}
+        </div>
       )}
       <div className="form-field__input">
-        <input
-          id={id}
-          name={name}
-          type={type}
-          placeholder={placeholder}
-          value={value}
-          onChange={onChange}
-          autoComplete={autoComplete}
-          required={required}
-          readOnly={locked}
-          aria-readonly={locked ? 'true' : undefined}
-          aria-invalid={error ? 'true' : undefined}
-          aria-describedby={errorId}
-          tabIndex={locked ? -1 : undefined}
-          onMouseDown={locked ? (e) => e.preventDefault() : undefined}
-          {...rest}
-        />
-        {icon && <span className="form-field__icon" aria-hidden="true">{icon}</span>}
+        {leadingSelect && (
+          <FieldSelect
+            variant="leading"
+            state={selectState}
+            label={leadingSelect.label}
+            onClick={leadingSelect.onClick}
+          />
+        )}
+        <div className="form-field__control">
+          {leadingIcon && <span className="form-field__icon" aria-hidden="true">{leadingIcon}</span>}
+          <input
+            id={id}
+            name={name}
+            type={type}
+            placeholder={placeholder}
+            value={value}
+            onChange={onChange}
+            autoComplete={autoComplete}
+            required={required}
+            disabled={disabled}
+            className="form-field__field text-label-sm-regular"
+            aria-invalid={error ? 'true' : undefined}
+            aria-describedby={errorId}
+            {...rest}
+          />
+          {showClear && (
+            <button type="button" className="form-field__clear" aria-label="Clear" onClick={onClear}>
+              <CircleX size={16} aria-hidden="true" />
+            </button>
+          )}
+          {trailingIcon && <span className="form-field__icon" aria-hidden="true">{trailingIcon}</span>}
+        </div>
+        {trailingSelect && (
+          <FieldSelect
+            variant="trailing"
+            state={selectState}
+            label={trailingSelect.label}
+            onClick={trailingSelect.onClick}
+          />
+        )}
       </div>
       {error && (
-        <p className="form-field__error" id={errorId} role="alert">{error}</p>
+        <p className="form-field__error text-label-xs-regular" id={errorId} role="alert">{error}</p>
       )}
     </div>
   )

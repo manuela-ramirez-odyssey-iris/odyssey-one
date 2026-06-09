@@ -74,13 +74,16 @@ Unified neutral scale. Consolidated from DS-Gray-Neutral, Gray/*, gray/*, neutra
 | 400 | #5BA4D4 | `carolina-blue/400` |
 | 600 | #276DA2 | `carolina-blue/600` |
 
-#### Bittersweet (3 tokens) — Error, Red Badges
+#### Bittersweet (4 tokens) — Error, Red Badges
 
 | Step | Hex | Figma Token |
 |------|-----|-------------|
 | 100 | #FDE5E3 | `bittersweet/100` |
+| 200 | #FBD0CD | `bittersweet/200` |
 | 600 | #D23930 | `bittersweet/600` |
 | 800 | #922922 | `bittersweet/800` |
+
+> `bittersweet/200` (#FBD0CD) added 2026-06-09 (Efrain) for the Button `error` variant's hover/pressed bg.
 
 #### Caribbean Green (3 tokens) — Success, Green Badges
 
@@ -187,6 +190,8 @@ Component tokens are for Figma organization. In code, components consume semanti
 
 > Disabled state (all Button variants — uniform): `--white` bg + `--deep-sea-neutral-300` border (1px inside) + `--deep-sea-neutral-300` text/icon. Link variant special-cases to text-only DSN/300. No dedicated `btn/disabled-*` tokens — rules use the primitives directly.
 
+> `error` variant (added 2026-06-09 — soft destructive, light surfaces; no dedicated `btn/error-*` tokens, binds primitives/semantics directly): idle `--bg-error` (Bittersweet/100 #FDE5E3) bg + `--bittersweet-600` (#D23930) text + no border + `--shadow-sm`; hover bg → `--bittersweet-200` (#FBD0CD); pressed bg `--bittersweet-200` + text `--bittersweet-800` (#922922) + no shadow; disabled = the uniform treatment above.
+
 #### Input / Form Field
 
 | Figma Token | Resolves To | Hex |
@@ -198,13 +203,27 @@ Component tokens are for Figma organization. In code, components consume semanti
 | `input/placeholder` | `text/placeholder` | #9DA3B0 |
 | `input/label` | `text/secondary` | #384253 |
 
-#### Radio / Checkbox
+> FormField redesign (2026-06-09, master `2602:1424`): error border `--bittersweet-200` idle → `--bittersweet-600` on focus (1px; the old 2px treatment is retired) + `--text-error` field text & message; disabled = muted `--bg-secondary` (DSN/50). Leading/trailing `FieldSelect` slots get their divider from the parent (it overrides the atom's `--field-select-divider`). `locked` retired in favor of `disabled`.
 
-| Figma Token | Resolves To | Hex |
+#### Checkbox / Radio (selection controls)
+
+Shared `--control-*` token set for the `Checkbox` + `Radio` atoms (built on native
+`<input>`). Hover/focus are CSS-only (no Figma variants). `--control-border-hover`
+is the one new value introduced (DSN/400); the rest alias existing semantics.
+
+| Token | Resolves To | Hex |
 |-------------|-------------|-----|
-| `radio/border` | `border/default` | #D0D4DB |
-| `radio/selected-bg` | `bg/inverse` | #1B2537 |
-| `radio/indicator` | `text/inverse` | #FFFFFF |
+| `--control-bg` | `bg/primary` | #FFFFFF |
+| `--control-border` | `border/default` | #D0D4DB |
+| `--control-border-hover` | `deep-sea-neutral-400` | #9DA3B0 |
+| `--control-checked-bg` | `bg/inverse` | #1B2537 |
+| `--control-checked-hover-bg` | `deep-sea-neutral-700` | #384253 |
+| `--control-indicator` | `text/inverse` | #FFFFFF |
+| `--control-border-disabled` | `border/subtle` | #E4E6EB |
+| `--control-checked-bg-disabled` | `border/default` | #D0D4DB |
+| `--control-label` | `text/secondary` | #384253 |
+| `--control-label-disabled` | `text/placeholder` | #9DA3B0 |
+| `--control-focus` | `border/focus` | #5BA4D4 |
 
 #### Tabs
 

@@ -49,6 +49,16 @@ If you find yourself about to write code without a quotable approval phrase from
   - Size mapping: **16 = md, 20 = lg.** The size comes from the slot dimensions in the Figma component, not from a name suffix on the source icon.
   - Canonical examples: Badge (multi-slot switchable, defaults to placeholder), SidebarButton (single-slot switchable, defaults to `placeholder-20` at `512:2395`), Button (single-slot switchable, defaults to `placeholder-20`), TrailNav bell (static, real `lucide/bell` at lg).
 
+### Step 1b: Read the component's property definitions (its real API)
+
+**Before inferring anything from rendered geometry, read the contract.** Pull `componentSet.componentPropertyDefinitions` (and, on a representative variant, each node's `componentPropertyReferences`) via `use_figma`. This is the single most reliable source for:
+
+- **The component's real API** — every `VARIANT` / `BOOLEAN` / `INSTANCE_SWAP` / `TEXT` property with its default. Mirror these into the React prop API (e.g. `Show info icon` BOOLEAN → `showInfo`; `Leading Icon` INSTANCE_SWAP + `Show Leading Icon` BOOLEAN → a `leadingIcon` node prop; `Label` TEXT → `label`). The Figma property set IS the spec — don't guess props from pixels.
+- **Intentional slot vs leftover** — a hidden node whose `componentPropertyReferences` binds its `visible` to a BOOLEAN (or `mainComponent` to an INSTANCE_SWAP) is an **intentional, toggleable slot** (it just happens to be off in this variant), NOT a mistake. Only a hidden node with **no** property reference is a possible leftover worth flagging. (A `findAll` tree-walk surfaces hidden layers; without this check you'll mis-flag deliberate toggle slots as stray.)
+- **Composition that the variant axis encodes** — Figma often encodes "has a leading select" etc. as extra `State`/`Variant` values because it can't compose freely; in code those collapse to independent props. Read the axis options to see what's really one component vs separate states.
+
+Output a short prop-map (Figma property → React prop) as part of the Step 4 compare.
+
 ### Step 2: Token Validation
 
 Map every Figma value to a token in `tokens.css` / `design.md`. **Decide and proceed**; only stop when:
@@ -58,6 +68,16 @@ Map every Figma value to a token in `tokens.css` / `design.md`. **Decide and pro
 - The Figma file uses a different scale than ours (e.g. `DS-Gray-Neutral/950` vs our `Deep Sea Neutral/900`) — pick the closest match by intent, mention the substitution once, move on.
 
 For exact matches with different precision (e.g. raw `#9DA3B0` vs bound `Deep Sea Neutral/400`), bind silently — that's the whole point of the routine.
+
+#### Legal vs illegal tokens — the origin discriminator (run when a value doesn't map to an existing `tokens.css` token)
+
+Designers do two different things, and they get opposite treatment. The single question that decides it: **"Is the underlying variable already in OUR Figma variable collections (1. Color Primitives · 2. Semantic · 3. Badge · 4. Sizing · 5. Typography · 6. Icon)?"** Check via `use_figma` (`getVariableByIdAsync` on the node's `boundVariables`, or search the collections by name) — don't guess from the value.
+
+- **LEGAL — the variable IS in our Figma collections, just not yet mirrored to `tokens.css`** (e.g. a primitive Efrain added like `Bittersweet/200`). It's canonical by definition — it lives in our own design system. **Mirror it into `tokens.css` (and `design.md`) with a one-line mention, then bind and proceed. NO approval gate. NO "add it to Figma" (it's already there).** A legal token never blocks the cycle.
+- **ILLEGAL — the variable is NOT in our collections** (raw hex with no binding, a foreign-kit name like `gray/300` / `DS-Gray-Neutral`, or a text/paint style from an external library). This is drift. **Block, flag it, and either rebind to our closest existing token (mention the substitution) or propose a brand-new token — approval required.** This is "normalize as usual."
+- **BRAND-NEW to BOTH our Figma and our code** (exists nowhere yet). Propose the token (name + value + scope), add it to **both** `tokens.css` and the matching Figma collection, get approval, then bind.
+
+Mnemonic: *legal → mirror-with-mention (no gate); illegal/new → flag-and-gate.* The mistake to avoid is treating a legal-but-unmirrored token (already in our Figma) as if it were brand-new and stopping to ask — it only needs mirroring + a mention.
 
 ### Step 3: Component Classification & Naming
 
@@ -355,7 +375,9 @@ Hardcoded values are normalization failures. The "no hardcoded hex/rgb/rgba" rul
 | Outline | focus-ring color, width, offset |
 | Transition | duration, easing curves |
 
-**If a needed token doesn't exist:** stop, propose it (name + value + scope) to the user, add it to `packages/tokens/tokens.css` AND the matching Figma variable collection, then bind. Never hardcode and "tokenize later."
+**If a needed token isn't in `tokens.css`,** first apply the origin discriminator from Step 2:
+- **Legal** (the variable already exists in our Figma collections — e.g. an Efrain-added primitive): mirror it into `packages/tokens/tokens.css` (+ `design.md`) **with a one-line mention, no approval gate**, then bind. Don't re-add it to Figma — it's already there.
+- **Illegal / brand-new** (foreign token, or exists in neither our Figma nor code): **stop, propose it** (name + value + scope) to the user; for brand-new add it to `tokens.css` AND the matching Figma collection; for foreign rebind to our closest token or propose a replacement. Either way, approval required. Never hardcode and "tokenize later."
 
 **This rule applies in three places, not just one:**
 
