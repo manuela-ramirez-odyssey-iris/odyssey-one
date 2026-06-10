@@ -959,28 +959,47 @@ button.filter-suggestions__chip:active {
   box-shadow: var(--shadow-sm);
 }
 
-/* Secondary — best on light surfaces. For dark surfaces, prefer Outline. */
-.btn--secondary {
+/* Secondary — best on light surfaces. For dark surfaces, prefer Outline.
+   The Icon variant (icon-only) shares this exact ladder, so its icon tracks the
+   Secondary text color via currentColor (.btn__icon { color: currentColor }).
+   Geometry that makes it square lives in the .btn--icon block below. */
+.btn--secondary,
+.btn--icon {
   background: var(--white);
   color: var(--deep-sea-neutral-700);
   border-color: var(--deep-sea-neutral-300);
   box-shadow: var(--shadow-sm);
 }
-.btn--secondary:hover:not(:disabled) {
+.btn--secondary:hover:not(:disabled),
+.btn--icon:hover:not(:disabled) {
   background: var(--deep-sea-neutral-50);
   border-color: var(--deep-sea-neutral-400);
 }
-.btn--secondary:active:not(:disabled) {
+.btn--secondary:active:not(:disabled),
+.btn--icon:active:not(:disabled) {
   background: var(--deep-sea-neutral-100);
   color: var(--deep-sea-neutral-400);
   border-color: var(--deep-sea-neutral-400);
   box-shadow: none;
 }
-.btn--secondary:disabled {
+.btn--secondary:disabled,
+.btn--icon:disabled {
   background: var(--white);
   color: var(--deep-sea-neutral-300);
   border-color: var(--deep-sea-neutral-300);
   box-shadow: var(--shadow-sm);
+}
+
+/* Icon — icon-only button, Secondary visual treatment (shares the color/bg/border/
+   shadow ladder above, so the 20px icon adopts Secondary's text color per state via
+   currentColor: DSN/700 idle+hover → DSN/400 pressed → DSN/300 disabled). Square:
+   symmetric padding overrides .btn--has-icon's asymmetry; the icon centers in the 32h
+   sm frame → 36×32. sm only (Efrain's Figma Variant=Icon, Size=sm at 1307:333).
+   Consumers MUST pass aria-label — there is no text label. */
+.btn--icon.btn--sm,
+.btn--has-icon.btn--icon.btn--sm {
+  padding-left: var(--spacing-2);
+  padding-right: var(--spacing-2);
 }
 
 /* Outline — designed for dark surfaces. White text + transparent fill at idle. */
@@ -1125,6 +1144,97 @@ button.filter-suggestions__chip:active {
 .btn--link.btn--has-icon,
 .btn--link.btn--has-icon-right {
   padding: 0;
+}
+
+/* Link "Black" tone — Figma ButtonLink Variant=Black (set 1895:7). Neutral ladder
+   instead of the default carolina-blue: idle DSN/900 → hover DSN/500 (lightens) →
+   pressed DSN/950 (darkens), mirroring the Default link's lighten-on-hover/darken-on-
+   press semantic in the neutral scale. ALWAYS underlined (even with the trailing
+   arrow, unlike the default link). Composes with `.btn--link` so the arrow translate,
+   padding 0, and align-self all carry over. Placed AFTER the `.btn--link` state rules
+   so equal-specificity selectors win by cascade order. The arrow inherits via currentColor. */
+.btn--link-black {
+  color: var(--deep-sea-neutral-900);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.btn--link-black:hover:not(:disabled) {
+  color: var(--deep-sea-neutral-500);
+}
+.btn--link-black:active:not(:disabled) {
+  color: var(--deep-sea-neutral-950);
+}
+
+/* ----------------------------------------
+   ALERT (molecule) — normalized 2026-06-09 (Efrain's Figma 2569:1841)
+   Inline status banner. Tinted /200 surface per variant; text + icon are uniformly
+   DSN/900 (--alert-text), inherited by every child via currentColor.
+   ---------------------------------------- */
+.alert {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-8);
+  padding: var(--spacing-3) var(--spacing-4);
+  border-radius: var(--radius-xl);
+  color: var(--alert-text);
+}
+.alert--info { background: var(--alert-info-bg); }
+.alert--success { background: var(--alert-success-bg); }
+.alert--warning { background: var(--alert-warning-bg); }
+.alert--error { background: var(--alert-error-bg); }
+
+.alert__body {
+  display: flex;
+  flex: 1 0 0;
+  min-width: 0;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+.alert__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 6px; /* geometric breathing room around the 20px icon (Figma "Step" wrapper) */
+  color: currentColor;
+}
+.alert__text {
+  display: flex;
+  flex: 1 0 0;
+  min-width: 0;
+  align-items: center;
+  gap: var(--spacing-1);
+}
+.alert__message {
+  flex: 1 0 0;
+  min-width: 0;
+  color: currentColor;
+  word-break: break-word;
+}
+
+/* "Click here" link uses the Black ButtonLink tone (.btn--link-black, applied in
+   Alert.jsx) — full color ladder + underline live there. The alert only owns layout. */
+.alert__link.btn--link {
+  flex-shrink: 0;
+}
+
+.alert__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0;
+  background: transparent;
+  border: none;
+  color: currentColor;
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+.alert__close:hover { opacity: 0.65; }
+.alert__close:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
 }
 
 /* ----------------------------------------

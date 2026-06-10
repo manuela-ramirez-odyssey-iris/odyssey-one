@@ -1,6 +1,6 @@
 import { Fragment } from 'react'
 import { Button } from '@odyssey/ui'
-import { Search, ArrowRight } from 'lucide-react'
+import { Search, ArrowRight, Plus, MoreHorizontal } from 'lucide-react'
 
 export const meta = {
   name: 'Button',
@@ -10,7 +10,7 @@ export const meta = {
 }
 
 export const props = [
-  { name: 'variant', type: 'primary|secondary|outline|ghost|error|link', desc: 'Visual style. outline/ghost are dark-surface variants.' },
+  { name: 'variant', type: 'primary|secondary|outline|ghost|error|link|icon', desc: 'Visual style. outline/ghost are dark-surface variants. icon = icon-only, Secondary-styled (sm).' },
   { name: 'size', type: 'sm|md|lg', desc: 'Padding + label size. Default md.' },
   { name: 'disabled', type: 'boolean', desc: 'Native disabled; hover/active suppressed.' },
   { name: 'icon', type: 'ReactNode', desc: 'Leading icon slot (inherits currentColor).' },
@@ -90,7 +90,37 @@ export default function ButtonDemo() {
           <Button icon={<Search size={20} />}>Search</Button>
           <Button iconRight={<ArrowRight size={20} />}>Continue</Button>
           <Button icon={<Search size={20} />} iconRight={<ArrowRight size={20} />}>Both slots</Button>
+        </div>
+      </div>
+
+      <div className="ds-demo-section">
+        <h4 className="ds-demo-section__title">Link tones (variant="link")</h4>
+        <p style={{ marginTop: 0, color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)' }}>
+          Default = carolina-blue (hover lightens to CB/400, press → DSN/900). Black tone
+          (<code>.btn--link-black</code>, Figma ButtonLink <code>Variant=Black</code>) = underlined
+          neutral ladder DSN/900 → DSN/500 (hover) → DSN/950 (press). Hover/press each to compare.
+        </p>
+        <div className="ds-demo-row">
           <Button variant="link" iconRight={<ArrowRight size={16} />}>Go to Tracking</Button>
+          <Button variant="link" className="btn--link-black" iconRight={<ArrowRight size={16} />}>Click here</Button>
+        </div>
+      </div>
+
+      <div className="ds-demo-section">
+        <h4 className="ds-demo-section__title">
+          variant="icon" — icon-only (sm), Secondary treatment
+        </h4>
+        <p style={{ marginTop: 0, color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)' }}>
+          Icon-only button. Shares Secondary's bg/border/shadow ladder; the icon adopts
+          Secondary's text color per state via <code>currentColor</code> — DSN/700 idle &amp;
+          hover, DSN/400 pressed, DSN/300 disabled. Pass <code>aria-label</code> (no text label).
+          Hover &amp; press one to see the icon track the color.
+        </p>
+        <div className="ds-demo-row">
+          <Button variant="icon" size="sm" icon={<Plus size={20} />} aria-label="Add" />
+          <Button variant="icon" size="sm" icon={<Search size={20} />} aria-label="Search" />
+          <Button variant="icon" size="sm" icon={<MoreHorizontal size={20} />} aria-label="More" />
+          <Button variant="icon" size="sm" icon={<Plus size={20} />} aria-label="Add" disabled />
         </div>
       </div>
     </div>

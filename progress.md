@@ -3719,11 +3719,63 @@ Bugs/gaps caught by interacting with the REAL components — invisible in the ol
 
 ---
 
+## Session 47 — June 9, 2026
+
+Design-system breadth + polish session. Backfilled the entire React explorer (5 → 42 live demos), normalized two Efrain additions (Button `icon` variant + the `Alert` molecule), normalized the Black ButtonLink tone properly, fixed a ButtonLink font-size drift, and restored the in-progress "Normalizing" panel to the explorer. All on `shipments/global-search`; **build green, 80 tests green, `tokens:audit` aligned (117 vars)** throughout. `@odyssey/ui` now at **42 normalized components** (+Alert).
+
+### Thread 1 — Explorer demo backfill (5 → 41, then 42 with Alert)
+
+The S46 explorer only had 5 seed demos. Backfilled the remaining **36** `<Component>.demo.jsx` via **7 parallel general-purpose subagents** (batched by tier, each reading the real component `.jsx` + `.figma.tsx` for exact props + figmaNode, following the `FieldSelect.demo.jsx` template + the `ds-demo-*` CSS helpers). Result: every normalized component has a live demo. Verified: build green, 15/16/10 tier split matching `index.js`, all valid tiers + default exports, spot-audited the heaviest organisms (Widget, Navbar, WidgetsLeftMenu, SearchResults, SearchPanel) against their real APIs. Modals render behind triggers; dark-surface components sit in `ds-demo-cell--dark`; interactive ones are controlled.
+
+### Thread 2 — Button `icon` variant (Efrain's Figma)
+
+Efrain added `Variant=Icon, Size=sm` (4 states) to the Button set `1307:333` — an icon-only button styled as a **Secondary clone** (verified the per-state token bindings exactly match `.btn--secondary`, incl. the white-bg/DSN-300-border disabled). Normalized by **sharing Secondary's CSS selectors** — the four `.btn--secondary*` rules gained `, .btn--icon`, so bg/border/shadow AND the `color` ladder are identical, and the 20px icon adopts Secondary's text color per state via `currentColor` (DSN/700 idle+hover → DSN/400 pressed → DSN/300 disabled) — the literal "mimic Secondary" the user asked for. Square geometry via `.btn--icon.btn--sm` (symmetric `--spacing-2` padding, beats `.btn--has-icon` specificity) → 36×32. **sm only** (matches Figma; md/lg deferred). `aria-label` required. **Code-only** (Figma already complete); Code Connect enum extended (`Icon → icon`). No JSX change.
+
+### Thread 3 — Alert (new molecule, 4 variants)
+
+Normalized Efrain's `Alert` set `2569:1841` (Info / Success / Warning / Error) — tinted `/200` banner + leading status icon + message, optional trailing ButtonLink + X dismiss, **uniform DSN/900 text + icon** (`--alert-text`, everything via `currentColor`).
+
+- **Figma-first fixes (Phase 1):** renamed set `Alerts → Alert`; **Warning icon `info → triangle-alert`** (it was identical to Info); rebound the 4 message texts from raw `#1B2537` → DSN/900 (`VariableID:212:12`). Later (user request) **Error icon `triangle-alert → octagon-x`** so all 4 states are visually distinct (`lucide/octagon-x` master already existed at `2898:2383`, renamed to the `lucide/` convention). All verified by screenshot.
+- **Tokens:** 2 new **legal primitives** (Efrain-added to our Figma collection) — `--carolina-blue-200` (#C6DEF1), `--caribbean-green-200` (#A8E7D7) — mirrored to `tokens.css` + `index.css` @theme + audit snapshot (audit green). **Redefined the unused legacy `--alert-*` scaffold** (wrong lighter `/50–/100` tints + per-status text, 0 consumers) to `/200` bg + uniform DSN/900, and added the missing **Info** entry.
+- **Code:** `Alert.jsx` (variant/children/showLink/linkLabel/onLinkClick/showClose/onClose; `role="alert"` for warning/error, `status` otherwise) + `.alert*` CSS + `Alert.figma.tsx` (State enum + 2 BOOLEANs; message text variant-specific so `children` unmapped) + `index.js` export + `Alert.demo.jsx`. Code Connect published.
+
+### Thread 4 — Black ButtonLink tone normalized + link font fix
+
+- User disliked the Alert link's "dark states" — my first pass was a flat DSN/900 override, not the real Figma ladder. Pulled the **Figma ButtonLink `Variant=Black`** states (set `1895:7`) and implemented a reusable **`.btn--link-black`** tone: idle DSN/900 + underline → hover **DSN/500** (lightens) → pressed **DSN/950** (darkens), always underlined. Composes with `variant="link"` (arrow translate + currentColor carry over); placed after the `.btn--link` state rules for cascade-order win. Alert now uses it; Code Connect maps ButtonLink `Variant` → a `tone` className (`Default → ''`, `Black → 'btn--link-black'`). Button demo shows both tones.
+- **Font-size drift fix:** the `link` variant derived type from `size` (default `md` → 16/24), but Figma's ButtonLink is always `label/sm medium` (14/20) with no size axis. So consumers not passing `size="sm"` (Alert, AuthContent, DocumentsTab, demos) rendered 16px. Fixed in `Button.jsx` — `link` now always uses `text-label-sm-medium` regardless of `size`.
+
+### Thread 5 — Explorer "Normalizing" panel restored
+
+User wanted the old HTML-DSM in-progress lifecycle back. Added a **"Normalizing" tab** (subagent): a demo with `meta.normalizing: true` shows ONLY in that panel (pulsing tab, "NORMALIZING" pill, auto-selected when present), excluded from its tier tab; removing the flag returns it to its tier (the finished state). `collectDemos` gained a pure `collectNormalizing()` + tests (now 80 total); `DesignSystem.jsx`/`.css` updated; **`/normalize` routine** updated — Phase 2 sets the flag, Phase 3 removes it after GATE B-DSM. Tab labeled "Normalizing" per user.
+
+### Thread 6 — Code Connect verified (nothing scrapped)
+
+User worried the React-DSM migration broke Code Connect. Confirmed intact: `get_design_context` returns `import { Button } from '@odyssey/ui'` with real snippets; `connect:publish` reports **"All Code Connect files are valid"** across ~20 mappings. The S46 migration only retired the static HTML showcase (`getXComponentHTML`) — the `.figma.tsx` + publish pipeline was never touched.
+
+### Files / commits
+
+This `/wrap` commit includes:
+
+**New (code):** `packages/ui/src/Alert.jsx` + `Alert.figma.tsx`; 36 `apps/odyssey-one/src/routes/design-system/demos/*.demo.jsx` (every component except the 5 S46 seeds).
+**Modified:** `packages/ui/src/Button.jsx` (icon variant text + link font fix) + `Button.figma.tsx` (Icon enum + ButtonLink tone) + `index.js` (Alert export); `packages/tokens/tokens.css` (2 primitives + `--alert-*` redefine) + `figma-tokens.snapshot.json`; `apps/odyssey-one/src/index.css` (@theme parity); `apps/odyssey-one/src/styles/components.css` (`.btn--icon`, `.btn--link-black`, `.alert*`); `apps/odyssey-one/src/routes/design-system/{collectDemos.js,collectDemos.test.js,DesignSystem.jsx,DesignSystem.css,demos/Button.demo.jsx}`; `design.md`; `playground/{figma-component-routine.md,normalization-tracker.md}`; `.claude/settings.local.json`.
+**Figma writes:** Alert set rename + Warning/Error icon swaps + text rebind + `octagon-x` master rename. **Library publish owed** (Alert component, 2 new primitives, icon swaps).
+
+### State of `@odyssey/ui` after Session 47
+
+**42 normalized components** (was 41 at S46 demo-backfill, +Alert):
+- Atoms: Badge, Button (now 7 variants — `icon` added; `link` always 14/20; `.btn--link-black` tone), IconButton, IconButtonGhost, FilterButton, PillTab, Checkbox, Radio, FieldSelect, SidebarButton, OdysseyLogo, EmptyState, SectionLabel, AddSectionDivider, AddSectionButton
+- Molecules: LeadNav, GlobalSearch, TrailNav, PageHeader, SectionHeader, EntityChip, WidgetMetricRow, WidgetPieChart, WidgetCtaRow, MenuRow, MenuDropdown, SearchField, CustomerRow, FormField, FilterSuggestions, MatchRow, **Alert** (NEW)
+- Organisms: Navbar, Widget, WidgetsLeftMenu, ModalLarge, ModalMedium, WidgetVariantPicker, AuthModal, AuthContent, SearchPanel, SearchResults
+
+**Explorer:** 42 live demos + the **Normalizing** in-progress panel. **Code Connect** all valid (~20 mappings + Alert + ButtonLink tone). **tokens:audit** green (117 vars). Build + 80 tests green. **No deploy.**
+
+---
+
 ## What's Next
 
-### Session 47 Priorities
+### Session 48 Priorities
 
-1. **Backfill the explorer demos.** Add `<Component>.demo.jsx` for the remaining ~35 normalized components (subagent-assisted batches; future `/normalize` cycles add theirs). Retire the static `DesignSystemMap.html` **Components/Normalize** tabs once backfill completes (Badges + Typography inventory stays). Optional housekeeping: rename `GATE B-DSM` → `GATE B-Demo`/`Explorer` in the routine docs (stale acronym).
+1. **Explorer backfill — DONE (S47).** All 42 normalized components have live demos + the **Normalizing** in-progress panel is restored. Remaining optional housekeeping: rename `GATE B-DSM` → `GATE B-Demo`/`Explorer` in the routine docs (stale acronym). The user mentioned "a couple more" components to normalize — next Efrain/Figma additions go through the now-restored Normalizing-panel flow (set `meta.normalizing: true` during the cycle).
 2. **GlobalSearch filters-body normalizations (still pending).** Figma-first `/normalize` per control: **"All"** — **`Select`** (Client/Location — the blocker; name reserved vs the SHP-66 menu "Dropdown"), `FilterChip` (selectable enum pill), date-range/text controls; **"Saved"** — `SavedFilterRow` (grip · name · ›, draggable). (`PillTab` shipped S44.)
 3. **Efrain alignment pass (cont.)** — remaining new/modified components; modified-existing = update cycles (validate-before-normalize, **read property defs first per Step 1b**). ButtonLink (S44), Checkbox/Radio/Button-error/FieldSelect/FormField (S45–46) done.
 4. **GlobalSearch UX wiring.** Two-way query↔filter binding + Show-N; saved-profile persistence; enum multi-select; revisit `issue1_FilterSuggestions`; per-tab footer label (Saved → "Cancel"); repoint suggestion *source* to `advanced-filter/{field}/lookup` behind the adapter seam.

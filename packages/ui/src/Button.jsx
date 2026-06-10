@@ -13,6 +13,8 @@ import React from 'react'
  *                text (Bittersweet/600); hover/pressed deepen via the Bittersweet ladder.
  * - `link`      — text-only affordance (no bg, no border, no shadow). Carolina-blue text. Used for
  *                "Go to X" jump links and similar tertiary actions on light surfaces.
+ * - `icon`      — icon-only button (sm), Secondary visual treatment. Pass `icon` and no children;
+ *                the icon adopts Secondary's text color per state via currentColor. Requires `aria-label`.
  *
  * Hover/active are CSS-driven via `:hover` / `:active`. Only `disabled` is exposed as a prop.
  *
@@ -32,8 +34,13 @@ export default function Button({
   type = 'button',
   ...props
 }) {
+  // The `link` variant is always label/sm medium (14/20) — Figma's ButtonLink set
+  // (1895:7) has no size axis. So link ignores `size` for typography; other variants
+  // map sm → 14/20, md+lg → 16/24.
   const textClass =
-    size === 'sm' ? 'text-label-sm-medium' : 'text-label-base-medium'
+    variant === 'link' || size === 'sm'
+      ? 'text-label-sm-medium'
+      : 'text-label-base-medium'
 
   const classes = [
     'btn',

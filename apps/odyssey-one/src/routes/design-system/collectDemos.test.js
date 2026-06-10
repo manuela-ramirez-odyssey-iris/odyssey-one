@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { TIERS, groupDemosByTier } from './collectDemos.js'
+import { TIERS, groupDemosByTier, collectNormalizing } from './collectDemos.js'
 
 // Minimal fake of the import.meta.glob({ eager: true }) result:
 // { '<path>': { meta, props?, tokens?, default } }
@@ -59,11 +59,64 @@ describe('groupDemosByTier', () => {
     ).toThrow(/missing a meta\.name/)
   })
 
+  it('excludes a normalizing demo from its tier bucket', () => {
+    const result = groupDemosByTier({
+      './demos/Button.demo.jsx': fakeModule('Button', 'atom'),
+      './demos/Badge.demo.jsx': fakeModule('Badge', 'atom', { meta: { name: 'Badge', tier: 'atom', normalizing: true } }),
+    })
+    expect(result.find((t) => t.key === 'atom').demos.map((d) => d.meta.name)).toEqual(['Button'])
+  })
+
   it('exposes the tier labels', () => {
     expect(TIERS).toEqual([
       { key: 'atom', label: 'Atoms' },
       { key: 'molecule', label: 'Molecules' },
       { key: 'organism', label: 'Organisms' },
     ])
+  })
+})
+
+describe('collectNormalizing', () => {
+  it('returns demos flagged normalizing, in the tier-entry shape', () => {
+    const cmp = () => null
+    const result = collectNormalizing({
+      './demos/Badge.demo.jsx': {
+        meta: { name: 'Badge', tier: 'atom', normalizing: true },
+        default: cmp,
+      },
+    })
+    expect(result).toHaveLength(1)
+    expect(result[0].meta.name).toBe('Badge')
+    expect(result[0].props).toEqual([])
+    expect(result[0].tokens).toEqual([])
+    expect(result[0].Component).toBe(cmp)
+  })
+
+  it('does not return a normal (non-normalizing) demo', () => {
+    const result = collectNormalizing({
+      './demos/Button.demo.jsx': fakeModule('Button', 'atom'),
+    })
+    expect(result).toEqual([])
+  })
+
+  it('sorts normalizing demos alphabetically by name', () => {
+    const result = collectNormalizing({
+      './demos/Radio.demo.jsx': { meta: { name: 'Radio', tier: 'atom', normalizing: true }, default: () => null },
+      './demos/Badge.demo.jsx': { meta: { name: 'Badge', tier: 'molecule', normalizing: true }, default: () => null },
+    })
+    expect(result.map((d) => d.meta.name)).toEqual(['Badge', 'Radio'])
+  })
+
+  it('returns an empty array when nothing is in progress', () => {
+    expect(collectNormalizing({
+      './demos/Button.demo.jsx': fakeModule('Button', 'atom'),
+      './demos/FormField.demo.jsx': fakeModule('FormField', 'molecule'),
+    })).toEqual([])
+  })
+
+  it('still validates meta on normalizing demos', () => {
+    expect(() =>
+      collectNormalizing({ './demos/X.demo.jsx': { meta: { tier: 'atom', normalizing: true }, default: () => null } })
+    ).toThrow(/missing a meta\.name/)
   })
 })

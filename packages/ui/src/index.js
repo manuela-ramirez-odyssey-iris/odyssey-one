@@ -41,6 +41,7 @@ export { default as CustomerRow } from './CustomerRow.jsx';
 export { default as FormField } from './FormField.jsx';
 export { default as FilterSuggestions } from './FilterSuggestions.jsx';
 export { default as MatchRow } from './MatchRow.jsx';
+export { default as Alert } from './Alert.jsx';
 
 // ── Organisms ──────────────────────────────────────────
 export { default as Navbar } from './Navbar.jsx';

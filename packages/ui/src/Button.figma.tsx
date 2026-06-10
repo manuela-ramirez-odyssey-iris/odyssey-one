@@ -13,6 +13,7 @@ figma.connect(
         Outline: 'outline',
         Ghost: 'ghost',
         Error: 'error',
+        Icon: 'icon',
       }),
       size: figma.enum('Size', {
         sm: 'sm',
@@ -46,8 +47,8 @@ figma.connect(
 // State=Idle|Hover|Pressed; Hover/Pressed are CSS pseudo-classes at runtime, no
 // React `disabled` flip (no Disabled variant yet). Asymmetric icon slots:
 // leading 20×20 (`Leading icon` / `Show leading icon`), trailing 16×16
-// (`Trailing icon` / `Show trailing icon`). The Black variant is Figma-only for
-// now — code `variant="link"` renders the blue style.
+// (`Trailing icon` / `Show trailing icon`). Variant=Black → the `.btn--link-black`
+// tone modifier (underlined, neutral DSN/900→500→950 ladder); Default → blue.
 figma.connect(
   Button,
   'https://www.figma.com/design/vodiHJU38YWZYmTz81uOk7/Design-System---MCP?node-id=1895-7',
@@ -55,6 +56,10 @@ figma.connect(
     imports: ["import { Button } from '@odyssey/ui'"],
     props: {
       label: figma.textContent('Label'),
+      tone: figma.enum('Variant', {
+        Default: '',
+        Black: 'btn--link-black',
+      }),
       icon: figma.boolean('Show leading icon', {
         true: figma.instance('Leading icon'),
         false: undefined,
@@ -64,8 +69,8 @@ figma.connect(
         false: undefined,
       }),
     },
-    example: ({ label, icon, iconRight }) => (
-      <Button variant="link" size="sm" icon={icon} iconRight={iconRight}>
+    example: ({ label, tone, icon, iconRight }) => (
+      <Button variant="link" size="sm" className={tone} icon={icon} iconRight={iconRight}>
         {label}
       </Button>
     ),

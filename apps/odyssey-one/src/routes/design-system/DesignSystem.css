@@ -95,6 +95,42 @@
   text-align: center;
 }
 
+/* Normalize tab — "in progress" cue: the tab gets a warning-toned underline and
+   a gently pulsing count chip whenever there are components being normalized. */
+.ds-tab--pulse {
+  color: var(--text-warning);
+}
+
+.ds-tab--pulse:hover {
+  color: var(--text-warning);
+}
+
+.ds-tab--pulse.ds-tab--active {
+  border-bottom-color: var(--sunrise-yellow-300);
+}
+
+.ds-tab--pulse .ds-tab__count {
+  color: var(--badge-yellow-text);
+  background: var(--badge-yellow-bg);
+  animation: ds-normalize-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes ds-normalize-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-tab--pulse .ds-tab__count {
+    animation: none;
+  }
+}
+
 /* Component blocks */
 .ds-list {
   display: flex;
@@ -122,11 +158,30 @@
   border-bottom: 1px solid var(--border-subtle);
 }
 
+.ds-comp__heading {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
 .ds-comp__name {
   margin: 0;
   font-size: var(--font-size-lg);
   line-height: var(--line-height-lg);
   font-weight: var(--font-weight-semibold);
+}
+
+/* In-progress marker on a Normalize-panel section header. */
+.ds-comp__pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 var(--spacing-2);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-wide);
+  color: var(--badge-yellow-text);
+  background: var(--badge-yellow-bg);
+  border-radius: var(--radius-full);
 }
 
 .ds-comp__toggle {

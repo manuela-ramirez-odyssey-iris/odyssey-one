@@ -1,11 +1,15 @@
 import { useState } from 'react'
-import { TIERS, groupDemosByTier } from './collectDemos.js'
+import { TIERS, groupDemosByTier, collectNormalizing } from './collectDemos.js'
 import './DesignSystem.css'
 
 // Eagerly collect every co-located demo. Adding a new component to the
 // explorer = adding one ./demos/<Component>.demo.jsx — no edit here.
 const modules = import.meta.glob('./demos/*.demo.jsx', { eager: true })
 const tiers = groupDemosByTier(modules)
+const normalizing = collectNormalizing(modules)
+
+// The Normalize panel is a pseudo-tier appended after the real tiers.
+const NORMALIZE_KEY = '__normalize__'
 
 const FIGMA_FILE =
   'https://www.figma.com/design/vodiHJU38YWZYmTz81uOk7/Design-System---MCP'
@@ -71,10 +75,52 @@ function DetailsPanel({ meta, props, tokens }) {
   )
 }
 
+// One component section — used by both the tier lists and the Normalize panel.
+function DemoSection({ meta, props, tokens, Component, open, onToggle, normalizing: isNormalizing }) {
+  return (
+    <section className="ds-comp">
+      <div className="ds-comp__head">
+        <div className="ds-comp__heading">
+          <h2 className="ds-comp__name">{meta.name}</h2>
+          {isNormalizing && <span className="ds-comp__pill">NORMALIZING</span>}
+        </div>
+        <button
+          type="button"
+          className="ds-comp__toggle"
+          aria-expanded={open}
+          onClick={onToggle}
+        >
+          {open ? 'Hide details' : 'Details'}
+        </button>
+      </div>
+
+      <div className="ds-comp__demo">
+        <Component />
+      </div>
+
+      {open && <DetailsPanel meta={meta} props={props} tokens={tokens} />}
+    </section>
+  )
+}
+
 export default function DesignSystem() {
-  const [activeTier, setActiveTier] = useState(TIERS[0].key)
+  const hasNormalizing = normalizing.length > 0
+  // When something is in progress, open the Normalize panel by default so it's
+  // immediately visible; otherwise fall back to the first tier (Atoms).
+  const [activeTier, setActiveTier] = useState(hasNormalizing ? NORMALIZE_KEY : TIERS[0].key)
   const [openDetails, setOpenDetails] = useState(null) // meta.name | null
-  const active = tiers.find((t) => t.key === activeTier)
+  const onNormalize = activeTier === NORMALIZE_KEY
+  const active = onNormalize ? null : tiers.find((t) => t.key === activeTier)
+
+  const renderSection = (demo) => (
+    <DemoSection
+      key={demo.meta.name}
+      {...demo}
+      open={openDetails === demo.meta.name}
+      onToggle={() => setOpenDetails(openDetails === demo.meta.name ? null : demo.meta.name)}
+      normalizing={demo.meta.normalizing === true}
+    />
+  )
 
   return (
     <div className="ds-root">
@@ -101,36 +147,38 @@ export default function DesignSystem() {
               <span className="ds-tab__count">{t.demos.length}</span>
             </button>
           ))}
+          <button
+            type="button"
+            role="tab"
+            aria-selected={onNormalize}
+            className={
+              `ds-tab${onNormalize ? ' ds-tab--active' : ''}` +
+              (hasNormalizing ? ' ds-tab--pulse' : '')
+            }
+            onClick={() => setActiveTier(NORMALIZE_KEY)}
+          >
+            Normalizing
+            <span className="ds-tab__count">{normalizing.length}</span>
+          </button>
         </nav>
 
         <div className="ds-list">
-          {active.demos.length === 0 && (
-            <p className="ds-empty">No {active.label.toLowerCase()} demos yet.</p>
-          )}
-          {active.demos.map(({ meta, props, tokens, Component }) => {
-            const open = openDetails === meta.name
-            return (
-              <section key={meta.name} className="ds-comp">
-                <div className="ds-comp__head">
-                  <h2 className="ds-comp__name">{meta.name}</h2>
-                  <button
-                    type="button"
-                    className="ds-comp__toggle"
-                    aria-expanded={open}
-                    onClick={() => setOpenDetails(open ? null : meta.name)}
-                  >
-                    {open ? 'Hide details' : 'Details'}
-                  </button>
-                </div>
-
-                <div className="ds-comp__demo">
-                  <Component />
-                </div>
-
-                {open && <DetailsPanel meta={meta} props={props} tokens={tokens} />}
-              </section>
+          {onNormalize ? (
+            normalizing.length === 0 ? (
+              <p className="ds-empty">
+                Nothing in progress — components appear here during a /normalize cycle.
+              </p>
+            ) : (
+              normalizing.map(renderSection)
             )
-          })}
+          ) : (
+            <>
+              {active.demos.length === 0 && (
+                <p className="ds-empty">No {active.label.toLowerCase()} demos yet.</p>
+              )}
+              {active.demos.map(renderSection)}
+            </>
+          )}
         </div>
       </main>
     </div>

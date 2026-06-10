@@ -189,11 +189,12 @@ The choice changes the Step 5 → Step 6 ordering, NOT what gets done. Phase 3 s
 **Demo file location:** `apps/odyssey-one/src/routes/design-system/demos/<Component>.demo.jsx`. The page auto-registers it via `import.meta.glob` — no central-file edit needed.
 
 1. **Write (or update) `<Component>.demo.jsx`.** The file must export:
-   - `meta` — `{ name, tier: 'atom'|'molecule'|'organism', figmaNode, codeConnect }`
+   - `meta` — `{ name, tier: 'atom'|'molecule'|'organism', figmaNode, codeConnect, normalizing: true }`
    - `props` — `[{ name, type, desc }]`
    - `tokens` (optional) — `[{ token, resolves, usage }]`
    - A default React component that renders a **states/variants grid** plus, for interactive components, a **`useState` playground** (controlled inputs, toggle states, etc.).
    Import the component from `@odyssey/ui` — never from a relative path into `packages/`.
+   Set `meta.normalizing: true` while the cycle is in flight — this keeps the component out of its tier tab and surfaces it in the explorer's **Normalize** panel (the pulsing tab) as the in-progress, pre-approval state, so GATE B-DSM has a dedicated place to review it.
    Delegating to a subagent is **optional** for demo files (they are small real-React modules, not token-heavy HTML concatenations).
 2. **GATE B-DSM** — user opens `/design-system` in the running dev server, exercises hover/focus/typing/click for every state, signs off. Because the demo renders the live component, there is no reproduction drift. If anything's off, iterate on the demo or component — still no wiring to consumers.
 3. **Sync Figma masters with any spec deltas from demo iterations.** Dispatch a subagent (`use_figma`) to update the Figma component set so the masters reflect the FINAL agreed spec — not the GATE-A-era spec. **This is non-negotiable: Figma is updated before any production code is written.** See the "Figma always before code" rule below.
@@ -248,6 +249,7 @@ A normalize cycle is **not done** until ALL of the following are updated. Treat 
 
 - [ ] `design.md` updated if new tokens / rules were introduced.
 - [ ] **`apps/odyssey-one/src/routes/design-system/demos/<Component>.demo.jsx` added or updated.** The demo imports the real component from `@odyssey/ui` and exports `meta` (`{ name, tier, figmaNode, codeConnect }`), `props` (`[{ name, type, desc }]`), optional `tokens` (`[{ token, resolves, usage }]`), and a default React component rendering a states/variants grid plus (for interactive components) a `useState` playground. It auto-registers via the page's `import.meta.glob` — no central-file edit. Because it renders the live component, hover/focus/typing/click are real — no reproduction drift. Delegating to a subagent is **optional** for demo files (see "Demo files vs. DesignSystemMap" rule below). **Re-read the source files** (`packages/ui/src/<Component>.jsx` AND `apps/odyssey-one/src/styles/components.css`) before writing or updating the demo — include any Step 9 refinements (hover states, focus rings, disabled styles) that landed before Phase 3.
+- [ ] **Remove `meta.normalizing: true` from the demo file.** GATE B-DSM is signed off by Phase 3, so the component is approved/normalized — clearing the flag moves it out of the explorer's Normalize panel and into its tier tab (Atoms/Molecules/Organisms), the finished state. Leaving the flag set would strand a shipped component in the in-progress panel.
 - [ ] **`packages/ui/src/index.js` export added under the correct tier group** (`── Atoms ──` / `── Molecules ──` / `── Organisms ──`) — matching the tier assigned in Step 3. Don't append to the bottom; place it in its section.
 - [ ] **`playground/normalization-tracker.md` → `## Normalized Components` row added under the correct tier sub-table** (`### Atoms` / `### Molecules` / `### Organisms`), leading cell labeled `Name (tier)`. Plus (if applicable) entries in "Pushed to Figma" / "Pending Figma Sync" / "Pushed to Figma → Code Connect".
 - [ ] **Tier consistency check:** the Figma page, the `index.js` group, and the tracker sub-section all agree on the tier (per Step 3). If they don't, fix it now — this is what prevents a future full-library audit.

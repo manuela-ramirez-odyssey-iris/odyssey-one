@@ -71,8 +71,11 @@ Unified neutral scale. Consolidated from DS-Gray-Neutral, Gray/*, gray/*, neutra
 
 | Step | Hex | Figma Token |
 |------|-----|-------------|
+| 200 | #C6DEF1 | `carolina-blue/200` |
 | 400 | #5BA4D4 | `carolina-blue/400` |
 | 600 | #276DA2 | `carolina-blue/600` |
+
+> `carolina-blue/200` (#C6DEF1) added 2026-06-09 (Efrain) for the Alert `info` variant's surface.
 
 #### Bittersweet (4 tokens) — Error, Red Badges
 
@@ -90,8 +93,11 @@ Unified neutral scale. Consolidated from DS-Gray-Neutral, Gray/*, gray/*, neutra
 | Step | Hex | Figma Token |
 |------|-----|-------------|
 | 100 | #D4F3EB | `caribbean-green/100` |
+| 200 | #A8E7D7 | `caribbean-green/200` |
 | 600 | #237E70 | `caribbean-green/600` |
 | 800 | #1D524A | `caribbean-green/800` |
+
+> `caribbean-green/200` (#A8E7D7) added 2026-06-09 (Efrain) for the Alert `success` variant's surface.
 
 #### Sunrise Yellow (5 tokens) — Warning, Yellow Badges
 
@@ -275,17 +281,19 @@ is the one new value introduced (DSN/400); the rest alias existing semantics.
 | `dropdown/border` | `border/subtle` | #E4E6EB |
 | `dropdown/hover-bg` | `bg/tertiary` | #F2F3F5 |
 
-#### Alert / Banner
+#### Alert (normalized 2026-06-09 — Efrain's Figma `2569:1841`)
 
-| Figma Token | Resolves To | Hex |
-|-------------|-------------|-----|
-| `alert/warning-bg` | `bg/warning` | #FFFBEB |
-| `alert/warning-border` | `sunrise-yellow/200` | #FADF7E |
-| `alert/warning-text` | `text/warning` | #8F3F11 |
-| `alert/error-bg` | `bg/error` | #FDE5E3 |
-| `alert/error-text` | `text/error` | #D23930 |
-| `alert/success-bg` | `bg/success` | #D4F3EB |
-| `alert/success-text` | `text/success` | #237E70 |
+4-state inline banner. Tinted `/200` surface per state; **text + icon are uniformly DSN/900** (`--alert-text`) across all states. Supersedes the earlier unused `/50–/100` scaffold.
+
+| Token | Resolves To | Hex |
+|-------|-------------|-----|
+| `alert/info-bg` | `carolina-blue/200` | #C6DEF1 |
+| `alert/success-bg` | `caribbean-green/200` | #A8E7D7 |
+| `alert/warning-bg` | `sunrise-yellow/200` | #FADF7E |
+| `alert/error-bg` | `bittersweet/200` | #FBD0CD |
+| `alert/text` | `deep-sea-neutral/900` | #1B2537 |
+
+Icons (lucide): info → `Info`, success → `CircleCheck`, warning → `TriangleAlert`, error → `OctagonX` (all four states visually distinct). Optional trailing ButtonLink (`variant="link"`) rendered DSN/900 + underline (Efrain's Black-ButtonLink style) as an alert-scoped perk, plus an optional X dismiss.
 
 ---
 
