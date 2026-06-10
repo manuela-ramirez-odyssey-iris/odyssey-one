@@ -52,7 +52,7 @@ source: "Gaps surfaced by [[10-domains/orders/domain-analysis|Orders domain anal
 
 ## From the screenshots correlation (added 2026-06-10)
 
-- [ ] **Q25 — Overview tabs: which version is current?** Stories spec **Data Validation Errors + Technical Errors** tabs (LINX-11180/11181); the live Angular UI shows **All · Saved · Canceled · Interface Failures** (screen 0). Story-version planned-but-unbuilt, or screenshot outdated? (Ramesh/Priya/David)
+- [ ] **Q25 — Overview tabs: Jira stories vs Efrain's design.** Stories spec **Data Validation Errors + Technical Errors** tabs (LINX-11180/11181); **Efrain's design** shows **All · Saved · Canceled · Interface Failures** (screen 0). Is the Jira version planned-but-not-yet-designed, or has Efrain's design superseded those stories? (Ramesh/Priya/David)
 - [ ] **Q26 — Product grid required columns.** The grid asterisks Product ID, Description, Gross Weight, Volume AND Ship Class all as required (screen 4 missing-field alert), contradicting the either/or rule "(Product ID + Description) OR (Shipping Class + ID)" (LINX-9874). Which validation is implemented? Also: the class column is labeled three different ways across states. (Ramesh/Efrain)
 - [ ] **Q27 — Auto-save model.** The banner "Required fields will complete steps. They are automatically saved" (screens 1–5) describes auto-save + auto-step-completion no text source mentions. What exactly is persisted, when, and how does it interact with Save / Save-for-Later / Discard? (Ramesh/Efrain)
 - [ ] **Q28 — Shipment Mode on confirmation.** Confirmation header shows "Shipment Mode: Ground" but Mode is never captured in the Quick form (screens 6/7). Derived from Equipment? Defaulted? (Ramesh)

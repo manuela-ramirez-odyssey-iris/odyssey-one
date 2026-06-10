@@ -1,15 +1,17 @@
 ---
 domain: orders
 type: reference
-tags: [orders, screenshots, ui-reference, angular-legacy]
+tags: [orders, screenshots, ui-reference, figma-design]
 date: 2026-06-10
 status: active
-source: "18 Angular UI captures, dropped 2026-06-10; correlated vs domain-analysis + Efrain + section-map"
+source: "18 Figma design JPG exports from Efrain (designer), dropped 2026-06-10; correlated vs domain-analysis + Efrain descriptions + section-map"
 ---
 
-# Orders — Screens Reference (Angular legacy UI)
+# Orders — Screens Reference (Efrain's Figma design)
 
-> Visual ground truth of the **already-built Angular Orders capability** in OdysseyONE, correlated against the synthesized canon. The React rebuild specs from the canon; these screens are the as-implemented reality the canon must agree with. Each H2 lists what the screen shows, its canon coordinates ([[10-domains/orders/section-map|section-map]] row, [[10-domains/orders/domain-analysis|domain-analysis]] §, Efrain §), **Confirms** (canon now visually verified), **Discrepancies** (image contradicts or exceeds canon), and **Component mapping** (have / gaps). A consolidated gap list closes the note.
+> **Provenance correction (2026-06-10, Manuela):** The 18 numbered JPGs in `screenshots/` are **Figma design exports from Efrain (designer)** — they represent design intent, not captured behavior from the shipped Angular app. The Orders Angular project can be cloned later as a business-logic reference; its frontend is explicitly **not** a design reference. Any finding attributed to these screens reflects **Efrain's design**, not the Angular implementation.
+
+> Visual design reference for the Orders domain, correlated against the synthesized canon. The React rebuild specs from the canon; these screens represent Efrain's design intent that the canon should agree with. Each H2 lists what the screen shows, its canon coordinates ([[10-domains/orders/section-map|section-map]] row, [[10-domains/orders/domain-analysis|domain-analysis]] §, Efrain §), **Confirms** (canon now visually confirmed in design), **Discrepancies** (design contradicts or exceeds canon), and **Component mapping** (have / gaps). A consolidated gap list closes the note.
 >
 > Open-question answers found in these screens are tagged inline as **[Answers Qn]** and cross-referenced in [[10-domains/orders/open-questions|open-questions]].
 
@@ -30,10 +32,10 @@ source: "18 Angular UI captures, dropped 2026-06-10; correlated vs domain-analys
 - Order ID column shows an order-number-like value as a link (§5: "Order ID column should display the Order Number when present", LINX-11013).
 
 **Discrepancies.**
-- **Tab labels differ from canon.** Canon §5 names the tabs *"successfully created orders + Data Validation Errors + Technical Errors"*. The UI shows **All · Saved · Canceled · Interface Failures** — four tabs, not three. "Saved" (= Draft orders, §3.5) and "Canceled" (§4 status) are **status-filter tabs the canon never listed as Overview tabs**; "Interface Failures" appears to **collapse the two error surfaces (Data Validation + Technical) into one tab**. → revise section-map row 3 and analysis §5. **[partially Answers Q-tabs / relates to error-surface model in §7]**
+- **Tab labels differ from canon.** Canon §5 names the tabs *"successfully created orders + Data Validation Errors + Technical Errors"*. Efrain's design shows **All · Saved · Canceled · Interface Failures** — four tabs, not three. "Saved" (= Draft orders, §3.5) and "Canceled" (§4 status) are **status-filter tabs the canon never listed as Overview tabs**; "Interface Failures" appears to **collapse the two error surfaces (Data Validation + Technical) into one tab**. → revise section-map row 3 and analysis §5. **[partially Answers Q-tabs / relates to error-surface model in §7]**
 - **Column set differs / is reordered.** UI columns: ID, Customer, Origin, Destination, Weight, Volume, Commodity, Equipment, Early Pickup, Action. Canon §5 lists a much longer default set (Order Source, Freight Terms, Consignor/Consignee Location ID, Latest dates, Ship Direction, Order Status…). The visible grid is a **leaner default** than the CSV-export column set the canon equates it to (LINX-11165). → note that grid default ≠ export default.
 - **Origin/Destination rendered as `CODE: City, ST`** (`RGC: St Louis, MO`) — a location-code prefix the canon's column list ("Origin City/State/Country") doesn't mention. The code is the Consignor/Consignee Location ID folded into the Origin cell.
-- **No visible Order Status column** in the captured viewport (may be off-screen right, past "Early P…"); status is instead surfaced via the tab structure.
+- **No visible Order Status column** in the visible design area (may be off-screen right, past "Early P…"); status is instead surfaced via the tab structure.
 - Two **sort/filter affordances** ("sort icon" + "Filters" button) plus the navbar Filter `6` badge — three filter entry points; canon describes filters generically (§5) without this triple-surface layout.
 
 **Component mapping.**
@@ -206,7 +208,7 @@ source: "18 Angular UI captures, dropped 2026-06-10; correlated vs domain-analys
 - Columns include Product ID, Product Description, Gross Weight, Volume, Ship Class (§3.4 column list). ✓
 
 **Discrepancies (significant).**
-- **Product Information is NOT actually halted — it has a working UI.** Efrain §4 + analysis §10 say Product is "Under Construction" / undescribed, treated as the weakest-specced surface. The screens show a **fully interactive editable product grid** (search, UoM toggle, sort, add/edit/save rows, column management). → The "🚧 Under Construction" is a **label still on the section header**, but the section is **substantially built**. Major update for §3.4 / section-map row 4 / §10 — Product is far more specced *in the running app* than the canon claims. **[Answers/reframes the §10 "Product Information halted" gap]**
+- **Product Information is NOT actually halted — it is fully designed.** Efrain §4 + analysis §10 say Product is "Under Construction" / undescribed, treated as the weakest-specced surface. Efrain's design shows a **fully interactive editable product grid** (search, UoM toggle, sort, add/edit/save rows, column management). → The "🚧 Under Construction" is a **label still on the section header** in the design, but the section is **substantially specified**. Major update for §3.4 / section-map row 4 / §10 — Product is far more specced *in Efrain's design* than the canon claims. **[Answers/reframes the §10 "Product Information halted" gap]**
 - **Mandatory product columns marked with \***: Product ID, Product Description, Gross Weight, Volume, Ship Class are **all required** here — contradicts §3.3's "either (Product ID + Description) OR (Shipping Class + Shipping Class ID)" rule (LINX-9874). The grid asterisks **all** of them. → reconcile the either/or rule vs the UI's all-required asterisks.
 - Visible default columns are **6** (#, Product ID, Description, Gross Weight, Volume, Ship Class) — matches the "min 6" floor (§3.4, LINX-6101). Confirms min-6.
 
@@ -445,4 +447,4 @@ Un-normalized UI elements seen across the captures, with the screens that need e
 | **Confirmation modal (compact two-button)** | 3 (modal) | ModalMedium + Button (verify compact footer support) |
 | **Status / status-filter tabs with count Badge in a page header** (All / Saved / Canceled / Interface Failures) | 0 | PillTab + Badge (verify count-badge slot) |
 
-> AI-generated correlation. Validate against Jana / the Orders team (Ramesh/Priya/Efrain) before treating any discrepancy as a canon change. Status: active.
+> AI-generated correlation against Efrain's Figma design exports. Validate against Jana / the Orders team (Ramesh/Priya/Efrain) before treating any discrepancy as a canon change. Status: active.

@@ -16,7 +16,7 @@ Hub for the Orders domain canon in OdysseyONE. Orders create the customer order 
 - [[10-domains/orders/domain-analysis|Orders domain analysis]] — the synthesized Orders domain analysis (entity model, three creation paths, lifecycle, overview grid, actions, fallout review, audit trail, cross-domain touchpoints, open gaps). *(Path-qualified link: three vault files share the name `domain-analysis` — a bare wikilink resolves to the wrong domain.)*
 - [[10-domains/orders/section-map|Section map]] — UI section ↔ data ↔ endpoint matrix + suggested vertical-slice order. The GATE 0 artifact.
 - [[10-domains/orders/open-questions|Open questions]] — the question list for Ramesh / Priya / the Orders team.
-- [[10-domains/orders/screens-reference|Screens reference]] — 18 Angular legacy UI captures correlated against the canon (per-screen confirms/discrepancies + consolidated component-gap list for the React rebuild).
+- [[10-domains/orders/screens-reference|Screens reference]] — 18 Figma design JPG exports from Efrain correlated against the canon (per-screen confirms/discrepancies + consolidated component-gap list for the React rebuild).
 
 ## API & integration
 
