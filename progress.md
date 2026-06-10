@@ -3881,12 +3881,72 @@ Only `progress.md` (this entry). No code, Figma, token, or Code Connect changes 
 
 ---
 
+## Session 50 — June 10, 2026
+
+**Orders Phase 0 — the full four-source intake, executed end-to-end with model gateways.** The Session 49 plan ran exactly as designed: Jira stories (the primary context source, not the inbox as originally assumed), Efrain's UX descriptions, David's PRD, and 18 Angular UI screenshots all landed in one session, synthesized into a cited, RAG-ready Orders canon. GATE 0 passed (slice order blessed). No code changes — vault, docs, settings, memory only; library unchanged at **44 normalized components**.
+
+### Thread 0 — Alignment + model gateways operationalized
+
+Two correction rounds before any tool ran (the gateway discipline earning its keep):
+- **Source correction:** Phase 0's primary context = **Jira user stories** (project `LINX` = "OdysseyONE"), available immediately via the Atlassian Rovo MCP — not the inbox drop. Efrain's writings are complementary UX descriptions; they don't block.
+- **Strategic context captured** (new memory `project_orders_strategic_context`): Orders (and the other domains) were **already built in Angular** by a full team (PMs Jana/Kathleen/David/Steve/Niranjara, PM Priya, PO Ramesh, devs incl. Utkarsh) — the LINX stories document **settled behavior**, not aspirations. Manuela's mandate: redo Orders in React production-grade, then the rest; later split the monorepo along microservices lines. Orders is the best-documented domain → it's the **pivot/reference corpus** for all future domains and the seed for a future NotebookLM team RAG system.
+- **Gateway tiering + effort rubric:** Fable (main thread, high) = judgment/gates/section map; Opus (high for coupled implementation, medium for synthesis-from-clean-sources); Sonnet (medium mechanical, low trivial). Tier enforced via the Agent `model` param — the user never has to `/model`-switch for subagent work; effort defaults save per-model. Token-economy pattern: **Sonnet pays the MCP fetch once and dumps to disk; Opus reads cheap local files; Fable sees only distilled returns.**
+
+### Thread 1 — Jira intake (Sonnet) + canon synthesis (Opus)
+
+- Sonnet subagent pulled **852 stories across 12 UI-facing epics** (LINX-7552/7553/8026/7554/7555/7556/7557/7939/7958/448/5943/5415) → raw per-epic markdown in `vault-sources/10-domains/orders/jira-stories/` (+ `_inventory.md`). Backend epics (billing events, queues, NN integration) excluded by design. Quick Orders (LINX-7553, 319 stories) = richest UI source; Integrated (LINX-7552, 381) = mostly BE; Edit/Cancel/Delete underspecced; LINX-7958 is the live audit epic (7939 is a dead stub).
+- Opus subagent synthesized `vault/10-domains/orders/domain-analysis.md` — 10 sections, **every claim cited inline to its story ID**, conflicts and gaps honest in §10 — plus the `_moc.md` hub.
+- Load-bearing facts: order identity = `orderNumber` + `owningOrganizationId`; three creation paths converge on one model (manual validates as-you-type, integrated validates after receipt → OIF fallout UI); draft→`DRAFT`, submit→`RD_4_PLNNG` ("New" skipped); Overview = landing page with badge-counted error tabs; Hold resumes the previous status, Cancelled is terminal.
+
+### Thread 2 — Section map + GATE 0 (Fable)
+
+- `vault/10-domains/orders/section-map.md` — **12 UI sections ↔ data ↔ endpoint** with per-section spec-coverage ratings, the Orders seam-to-API map. Suggested vertical-slice order: Overview grid → Order detail → create form → Audit Trail → error tabs/OIF → actions + Product sub-sections. **User blessed the slice order.**
+- User clarification folded into §2: `owningOrganizationId` is the **customer owner** — the same customer concept as the navbar/Home **EntityChip** scope; customer is the system of record for orders; the composite key prevents number reuse across customers. UI implication: selected-customer scope is a first-class filter dimension on every Orders surface.
+- **Obsidian wikilink collision found + fixed:** three vault files are named `domain-analysis.md`, so bare `[[domain-analysis]]` links resolved to the *Home* doc (the user saw widgets instead of Orders). All Orders links now path-qualified (`[[10-domains/orders/...]]`); rule applies to future cross-domain links.
+
+### Thread 3 — Phase 0b: Efrain + PRD merge
+
+- Sonnet fetched David's PRD (Confluence `2366406657` "Order Domain" + 3 children — CRUD requirements, integration, batch→event migration) → `vault-sources/10-domains/orders/prd/`; archived Efrain's inbox file → `vault-sources/10-domains/orders/efrain/`.
+- Opus merged both additively into the canon. **Headline: Quick + Long are ONE progressive-disclosure form** — "Add More Details" expands in place (section map rows 7/8 restructured; row 7 now Strong+). Also: dynamic Freight Term default (Outbound→Pre-Paid / Inbound→COL), Save/Save-for-Later/Discard semantics, PRD preconditions (**Edit = anything except Customer; Delete = not on a Shipment**), synthetic orders (CX Platform), TEMPLATE=Y future mode, async create info-message state.
+- **4 unresolved source conflicts kept side-by-side:** Consolidatable (checkbox vs derived flag), Order Number (optional vs mandatory-to-save), Instruction Type (lookup vs removed-from-UI), Date Anchor (2-way radio vs PRD's "Both").
+
+### Thread 4 — Screenshots correlation (Opus) + canon updates
+
+- User dropped **18 Angular UI captures** (numbered 0–7, matching Efrain's sections) into the inbox. Opus viewed all, correlated against the canon + Efrain + section map, filed them to `vault/10-domains/orders/screenshots/`, and wrote `screens-reference.md` (per-screen correlation, embedded images, consolidated **component-gap table**).
+- **Canon-changing findings:** the Product grid is **fully built** (editable grid: search, US/Metric toggle, inline add/edit rows, per-row Save/Cancel, three-dot menus, expand-to-modal, column management) despite the thinnest written spec; live Overview tabs = **All · Saved · Canceled · Interface Failures** (conflicts with the stories' Data-Validation/Technical tabs); References lives in the **Quick view**, not behind Add More Details, pre-seeded with guided types; an undocumented **auto-save/step-completion model** ("Required fields will complete steps. They are automatically saved").
+- **Component gaps for Phase 2 `/normalize` planning** (full table in screens-reference): date picker, time picker, async searchable master-data select, editable data-grid, accordion-stepper composition, sticky form footer, KeyValue/DescriptionList, value+UoM composite input, and more.
+- **7 open questions advanced by the screens** (Consolidatable checkbox confirmed; Instruction Type removal confirmed; Date Anchor 2-way confirmed; async state confirmed; etc.). A Sonnet edit pass applied all findings to `domain-analysis.md` additively with `(Screens: N)` citations.
+
+### Thread 5 — Open questions + housekeeping
+
+- `vault/10-domains/orders/open-questions.md` — **28 checkbox questions grouped by owner** (contract → Ramesh/devs; behavior → Ramesh/Jana/Priya/David; scope → Priya/David), with screen-sourced partial answers recorded inline. User will push for answers; **Q25 (which Overview tab set is current) blocks slice 1's tabs.**
+- `/fewer-permission-prompts` ran: **11 entries** added to `.claude/settings.json` — `Bash(npm run test:odyssey-one)`, `Bash(npm run typecheck)`, `Bash(npm run tokens:audit)` + 8 read-only Atlassian Rovo tools (Jira/Confluence reads — what the intake subagents hammer). Writes stay prompted.
+- Following the S41 precedent, **`vault-sources/` stays untracked** (raw Jira/PRD dumps not pushed); vault canon + screenshots are committed.
+
+### Token economy
+
+~660k subagent tokens across 6 dispatches (Sonnet: jira pull 99k, prd fetch 37k, canon edits 60k; Opus: synthesis 170k, merge 74k, screens 123k... ≈563k + overhead). Main thread (Fable) carried only orchestration, the section map, and the gates.
+
+### Files
+
+**New (vault):** `vault/10-domains/orders/{domain-analysis.md, section-map.md, open-questions.md, screens-reference.md}` + 18 screenshots in `screenshots/`; `_moc.md` updated. **New (vault-sources, untracked):** `jira-stories/` (13 files), `prd/` (5), `efrain/` (1). **Modified:** `.claude/settings.json` (11 permissions). **Memory:** `project_orders_strategic_context.md` (new) + `MEMORY.md` index. **Inbox:** clean (Efrain file + screenshots filed out).
+
+### Carry-forward to Session 51
+
+- **⛩ Phase 1 gateway — spec + contract for slice 1 (Overview grid + filters + pagination).** Fable main-thread, high effort: Superpowers brainstorm → spec; typed `OrderListRow` DTO + fixture + `orderService` on the existing `src/api/` seam (only the service is new — config/client/auth/queryClient already exist). GATE A before any implementation code.
+- **Push the 28 questions** — Q25 (Overview tab set) first; it's the one slice 1 depends on.
+- **Efrain's §0 (Summary Page) description** still pending from him — fold in as an update cycle when it lands.
+- Phase 2 `/normalize` cycles will draw from the screens-reference component-gap table (date/time pickers, async select, editable grid are the big ones).
+
+---
+
 ## What's Next
 
-### Session 50 Priorities
+### Session 51 Priorities
 
-1. **Orders domain — Phase 0 intake.** User stories + Efrain's descriptions from `vault/00-inbox/` (`/analyze` intake, subagent-first) + the Order service API notes/LLD → domain analysis + **section map** (UI section ↔ data ↔ endpoint). GATE 0 validation, then Phase 1 spec. Apply the **model gateway** at each phase boundary (see `feedback_model_gateways`).
-2. **Remaining Orders normalizations** — slot into Phase 2 vertical slices as each section needs its components.
+1. **Orders Phase 1 — spec + contract for slice 1 (Overview grid).** See Session 50 carry-forward. Model gateway at the boundary; GATE A before code.
+2. **Question push** — bring `vault/10-domains/orders/open-questions.md` to the team; record answers inline; graduate resolved items into the canon with sources.
+3. **Remaining Orders normalizations** — slot into Phase 2 vertical slices per the screens-reference component-gap table.
 
 ### Prior priorities (carried, now behind the Orders arc)
 

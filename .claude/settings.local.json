@@ -196,7 +196,13 @@
       "Bash(sed -n '1,60p' packages/ui/src/FormField.jsx)",
       "Bash(sed -n '1,40p' packages/ui/src/Checkbox.jsx)",
       "Bash(sed -n '1,55p' packages/ui/src/FormField.jsx)",
-      "Bash(sed -n '1,45p' packages/ui/src/Checkbox.jsx)"
+      "Bash(sed -n '1,45p' packages/ui/src/Checkbox.jsx)",
+      "mcp__claude_ai_Atlassian_Rovo__atlassianUserInfo",
+      "mcp__claude_ai_Atlassian_Rovo__getAccessibleAtlassianResources",
+      "mcp__claude_ai_Atlassian_Rovo__getVisibleJiraProjects",
+      "mcp__claude_ai_Atlassian_Rovo__searchJiraIssuesUsingJql",
+      "Bash(grep -c '\\\\.\\\\./shipments/domain-analysis' domain-analysis.md _moc.md section-map.md)",
+      "Bash(sed -i '' 's|\\\\[\\\\[\\\\.\\\\./shipments/domain-analysis|[[10-domains/shipments/domain-analysis|g' domain-analysis.md _moc.md)"
     ]
   }
 }

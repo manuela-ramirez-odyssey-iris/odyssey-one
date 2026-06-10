@@ -19,7 +19,18 @@
       "mcp__plugin_vercel_vercel__list_projects",
       "mcp__plugin_vercel_vercel__list_teams",
       "mcp__plugin_vercel_vercel__get_deployment_build_logs",
-      "mcp__plugin_vercel_vercel__get_runtime_logs"
+      "mcp__plugin_vercel_vercel__get_runtime_logs",
+      "Bash(npm run test:odyssey-one)",
+      "Bash(npm run typecheck)",
+      "Bash(npm run tokens:audit)",
+      "mcp__claude_ai_Atlassian_Rovo__getVisibleJiraProjects",
+      "mcp__claude_ai_Atlassian_Rovo__searchJiraIssuesUsingJql",
+      "mcp__claude_ai_Atlassian_Rovo__getJiraIssue",
+      "mcp__claude_ai_Atlassian_Rovo__search",
+      "mcp__claude_ai_Atlassian_Rovo__getConfluencePage",
+      "mcp__claude_ai_Atlassian_Rovo__getConfluencePageDescendants",
+      "mcp__claude_ai_Atlassian_Rovo__getAccessibleAtlassianResources",
+      "mcp__claude_ai_Atlassian_Rovo__atlassianUserInfo"
     ]
   },
   "hooks": {
