@@ -3838,9 +3838,57 @@ A single `/normalize` cycle that produced **two** new components — `StepIndica
 
 ---
 
+## Session 49 — June 10, 2026
+
+Short **planning-only session** — no code changes. Set the strategy for the Orders domain build and the model-tier discipline for the project process, then wrapped early because the user is switching from the personal Max account to the enterprise account. Two memories persist the decisions across the switch.
+
+### Thread 1 — Orders domain kickoff strategy (decided)
+
+The user framed the goal: yesterday's normalizations were mostly Orders-domain components, so today starts the **Orders domain implementation from scratch** — built as the closest-to-production-ready domain to avoid the Thomas/Hema architecture pushback again. The open question: UI first, API documentation first, or context (business logic + user stories) first?
+
+**Decision: context first → API contract immediately behind → UI last, but contract-aware from day one.** Rationale: Shipments was UI-first and required a 4-plan retrofit (Sessions 41–42, pipe → DTO → mapper → grid rewire); Orders builds on the real `order-service` shape from the first component — the production-ready posture stops being a defense document and becomes how the domain was built.
+
+**Phase plan with gates:**
+- **Phase 0 — Intake (parallel subagents):** (a) user stories + Efrain's descriptions — user will drop them in `vault/00-inbox/` — `/analyze` intake → synthesized `vault/10-domains/orders/domain-analysis.md`; (b) re-read `vault/20-cross-cutting/api-integration/order-service-api.md` + re-fetch the Order service LLD via Rovo if thin → DTO sketch. **Output: section map** (UI section ↔ data needed ↔ endpoint). **GATE 0:** user validates domain analysis + section map.
+- **Phase 1 — Spec + contract:** Superpowers brainstorm → spec; typed `OrderOut` DTO + fixture + mapper reusing the existing `src/api/` seam (only `orderService` is new). **GATE A:** explicit spec approval before code.
+- **Phase 2 — Vertical slices:** one section end-to-end at a time (the Plan 2a pattern): normalized components + mock-mode data through the real mapper + tests; remaining `/normalize` cycles slot in per section. **GATE per slice:** demo in the running app.
+- **Phase 3 — Hardening:** live-mode config, error/loading states, holistic review.
+
+### Thread 2 — "Model gateways" (new process rule)
+
+The user defined **model gateways**: explicit checkpoints in the complete project process where we stop and justify which model tier the next chunk of work needs, instead of defaulting to the most capable model. (Nothing to do with the Gateway integration project — that is closed.) Applied at every phase boundary. Working rubric:
+
+| Work | Model |
+|---|---|
+| Main-session judgment: brainstorming, specs, domain synthesis, architecture calls, plan writing, final reviews | **Fable 5** |
+| Judgment-heavy implementation subagents: route rewires, mapper design, generator work, tightly-coupled multi-file tasks | **Opus 4.8** |
+| Mechanical subagents: TDD with clear specs, demo backfills, tracker edits, Explore searches, intake summarization | **Sonnet** |
+
+### Memory updates
+
+**Created:**
+- `feedback_model_gateways.md` — the model-gateway checkpoint rule + rubric.
+- `project_orders_domain_kickoff.md` — the decided approach + Phase 0–3 plan with gates; flags that the approach is decided and not to be re-litigated.
+
+### Files / commits
+
+Only `progress.md` (this entry). No code, Figma, token, or Code Connect changes — library unchanged at **44 normalized components**.
+
+### Carry-forward to Session 50
+
+- **Phase 0 intake** fires as soon as the user stories + Efrain's descriptions land in `vault/00-inbox/`.
+- Session continues on the **enterprise account** (memories + vault carry the context; both are account-independent).
+
+---
+
 ## What's Next
 
-### Session 49 Priorities
+### Session 50 Priorities
+
+1. **Orders domain — Phase 0 intake.** User stories + Efrain's descriptions from `vault/00-inbox/` (`/analyze` intake, subagent-first) + the Order service API notes/LLD → domain analysis + **section map** (UI section ↔ data ↔ endpoint). GATE 0 validation, then Phase 1 spec. Apply the **model gateway** at each phase boundary (see `feedback_model_gateways`).
+2. **Remaining Orders normalizations** — slot into Phase 2 vertical slices as each section needs its components.
+
+### Prior priorities (carried, now behind the Orders arc)
 
 1. **Explorer backfill — DONE (S47).** All normalized components have live demos + the **Normalizing** in-progress panel is restored (exercised cleanly in S48's Accordion/StepIndicator cycle). Remaining optional housekeeping: rename `GATE B-DSM` → `GATE B-Demo`/`Explorer` in the routine docs (stale acronym). The user mentioned "a couple more" components to normalize — next Efrain/Figma additions go through the now-restored Normalizing-panel flow (set `meta.normalizing: true` during the cycle).
 2. **GlobalSearch filters-body normalizations (still pending).** Figma-first `/normalize` per control: **"All"** — **`Select`** (Client/Location — the blocker; name reserved vs the SHP-66 menu "Dropdown"), `FilterChip` (selectable enum pill), date-range/text controls; **"Saved"** — `SavedFilterRow` (grip · name · ›, draggable). (`PillTab` shipped S44.)
