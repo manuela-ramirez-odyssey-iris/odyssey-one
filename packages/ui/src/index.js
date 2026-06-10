@@ -23,6 +23,7 @@ export { default as EmptyState } from './EmptyState.jsx';
 export { default as SectionLabel } from './SectionLabel.jsx';
 export { default as AddSectionDivider } from './AddSectionDivider.jsx';
 export { default as AddSectionButton } from './AddSectionButton.jsx';
+export { default as StepIndicator } from './StepIndicator.jsx';
 
 // ── Molecules ──────────────────────────────────────────
 export { default as LeadNav } from './LeadNav.jsx';
@@ -42,6 +43,7 @@ export { default as FormField } from './FormField.jsx';
 export { default as FilterSuggestions } from './FilterSuggestions.jsx';
 export { default as MatchRow } from './MatchRow.jsx';
 export { default as Alert } from './Alert.jsx';
+export { default as Accordion } from './Accordion.jsx';
 
 // ── Organisms ──────────────────────────────────────────
 export { default as Navbar } from './Navbar.jsx';

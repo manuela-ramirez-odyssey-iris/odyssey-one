@@ -2881,3 +2881,172 @@ button.filter-suggestions__chip:active {
   /* 36px left indent aligns the link with the row content (off-scale; no token). */
   padding: var(--spacing-3) 0 var(--spacing-3) 36px;
 }
+
+/* === StepIndicator (atom) — Figma 2909:13, normalized 2026-06-09 ===
+   Vertical stepper node: connector lines + 40px status circle.
+   Hidden lines use visibility (not display) so every position keeps the
+   uniform 40×72 footprint — mirrors the Figma opacity-0 model. */
+.step-indicator {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  width: 40px;
+  flex-shrink: 0;
+}
+
+.step-indicator__line {
+  width: 1px;
+  height: 16px;
+  background: var(--deep-sea-neutral-300);
+}
+
+.step-indicator__line--hidden {
+  visibility: hidden;
+}
+
+.step-indicator__circle {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-full);
+  background: var(--deep-sea-neutral-300);
+  color: var(--white);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  /* status flips (off→on) tint smoothly when validation lands */
+  transition: background var(--transition-base), border-color var(--transition-base);
+}
+
+.step-indicator--on .step-indicator__circle {
+  background: var(--caribbean-green-600);
+  border: 1px solid var(--caribbean-green-100);
+}
+
+/* === Accordion (molecule) — Figma 2850:612, normalized 2026-06-09 ===
+   Expandable form-section card composing StepIndicator. The reveal animates
+   grid-template-rows 0fr→1fr (animates to auto height, no JS measuring). */
+.accordion {
+  position: relative; /* anchors .accordion__travel-line to the card's bottom edge */
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-2xl);
+  padding: 0 var(--spacing-6);
+}
+
+.accordion__header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+
+.accordion__text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.accordion__title {
+  color: var(--text-primary);
+}
+
+.accordion__description {
+  color: var(--text-tertiary);
+}
+
+.accordion__icon-wrapper {
+  display: inline-flex;
+  align-items: center;
+  /* 6px geometric padding around the 20px chevron (off-scale; component-internal) */
+  padding: 6px;
+  color: var(--text-tertiary);
+}
+
+.accordion__chevron {
+  transition: transform var(--transition-reveal);
+}
+
+.accordion--expanded .accordion__chevron {
+  /* rendered geometry at rest matches the Figma chevron-up master exactly;
+     rotating (vs swapping masters) is what makes the flip animatable */
+  transform: rotate(180deg);
+}
+
+.accordion__reveal {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--transition-reveal);
+}
+
+.accordion--expanded .accordion__reveal {
+  grid-template-rows: 1fr;
+}
+
+.accordion__reveal-inner {
+  overflow: hidden;
+  min-height: 0;
+  /* Bottom-anchor the stack: as the reveal window grows/shrinks, the content
+     (and the bottom line stub) rides its bottom edge — the stub line visibly
+     travels down on expand and back up on collapse, clipped at the top under
+     the header. This is what sells "the content splits the stepper line". */
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.accordion__content {
+  margin-top: var(--spacing-8);
+}
+
+/* Reserves the stub's footprint in the flow (32 gap + 16 line slot) for
+   start/mid positions. The visible line itself is .accordion__travel-line. */
+.accordion__bottom-line {
+  margin-top: var(--spacing-8);
+  height: 16px;
+}
+
+/* End position: breathing room below content instead of the line stub. */
+.accordion__end-spacer {
+  height: var(--spacing-8);
+}
+
+/* THE traveling line — one element playing both roles for true continuity.
+   Glued to the card's bottom edge: collapsed, the card ends right under the
+   circle, so this paints exactly where the indicator's bottom segment sits;
+   expanding, the card's bottom edge moves with the reveal and the line rides
+   it down (and back up on collapse). No opacity handoff, nothing to flicker.
+   The StepIndicator's own bottom segment is suppressed inside the Accordion
+   header (below) — this element replaces it in BOTH states. */
+.accordion__travel-line {
+  position: absolute;
+  bottom: 0;
+  /* card padding-left (24) + centered 1px line in the 40px indicator column */
+  left: calc(var(--spacing-6) + 19.5px);
+  width: 1px;
+  height: 16px;
+  background: var(--deep-sea-neutral-300);
+}
+
+.accordion__header .step-indicator__line--bottom {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .accordion__reveal,
+  .accordion__chevron,
+  .step-indicator__circle {
+    transition: none;
+  }
+}

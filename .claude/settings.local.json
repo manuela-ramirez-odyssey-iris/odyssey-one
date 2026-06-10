@@ -192,7 +192,11 @@
       "Bash(sed -n '2251,2295p' apps/odyssey-one/src/styles/components.css)",
       "Bash(sed -n '320,345p' apps/odyssey-one/src/components/detail/DocumentsTab.jsx)",
       "Bash(xargs -n1 basename)",
-      "Bash(echo \"---exit:$?---\")"
+      "Bash(echo \"---exit:$?---\")",
+      "Bash(sed -n '1,60p' packages/ui/src/FormField.jsx)",
+      "Bash(sed -n '1,40p' packages/ui/src/Checkbox.jsx)",
+      "Bash(sed -n '1,55p' packages/ui/src/FormField.jsx)",
+      "Bash(sed -n '1,45p' packages/ui/src/Checkbox.jsx)"
     ]
   }
 }

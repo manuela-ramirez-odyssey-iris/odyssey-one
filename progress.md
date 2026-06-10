@@ -3771,11 +3771,78 @@ This `/wrap` commit includes:
 
 ---
 
+## Session 48 — June 9–10, 2026
+
+A single `/normalize` cycle that produced **two** new components — `StepIndicator` (atom) + `Accordion` (molecule) — from a deceptively simple Figma node ("an accordion that validates filled sections"). The cycle's value was the iteration: the Figma component only modeled the collapsed header, so the full expand/validation/stepper model was discovered through the user's expanded mock + three rounds of Figma-side restructuring, then a four-pass animation refinement to land a flicker-free "the content splits the stepper line" interaction. Library at **44 normalized components** (+StepIndicator, +Accordion); Code Connect published; `tokens:audit` green (117 vars), build + 80 tests green. All on `shipments/global-search`. **No deploy.**
+
+### Thread 1 — Pull + classification (the node didn't tell the full story)
+
+`/normalize` on Figma `Accordion` set `2850:612` (Components-Molecules). The pull (`get_design_context` + `componentPropertyDefinitions` via `use_figma`) showed only a **collapsed header**: `Title` TEXT · `Description` TEXT · `State` INSTANCE_SWAP (default "Start Off") · `Property 1` VARIANT (only "Default"). The `State` slot's `preferredValues` resolved to a **6-component validation-indicator family** ("Checks" frame on the **Icons** page): `Start / Mid / End` × `Off / On` — a vertical stepper showing position (Start = line below, Mid = both, End = line above) + validation (Off = gray `DSN/300` circle, On = green check). Nested-audit caught drift: the "On" green `#237E70` was a **raw unbound fill** that exactly matches `--caribbean-green-600`; the ring `~#D4E4D3` and some connector lines were also unbound; the Accordion's bg/border were raw too.
+
+**Decisions (AskUserQuestion):** scope = **Accordion + StepIndicator** (the indicator is the validation mechanism + has drift); name = **StepIndicator** (Position × Status). Validation is **consumer-driven** (the accordion reflects a `status`, the form decides validity).
+
+### Thread 2 — Figma Phase 1 (three restructuring rounds)
+
+1. **StepIndicator** — bound the drift (On fill → Caribbean Green/600, ring → Caribbean Green/100, lines → DSN/300, circle radius → Radius/full), then `combineAsVariants` the 6 loose "Checks" components into a `Position × Status` set, **moved off the Icons page → Components-Atoms** (`2909:13`). Accordion bound clean (bg → White, border → DSN/200, gaps → Spacing/3; removed a stray green stroke on the Title).
+2. **Swap broke** — after consolidation the `State` INSTANCE_SWAP no longer toggled (its `preferredValues` pointed at pre-consolidation keys). Fixed by **deleting the dead INSTANCE_SWAP** and **exposing the nested StepIndicator instance** so `Position`/`Status` bubble up. Then the user flagged the exposed controls render *below* the component's own props (Figma pins them there).
+3. **Promoted Position/Status to the Accordion's own variant axes** → `Position × Status × State` = **12 variants** (panel reads Position · Status · State · Title · Description · Content). Un-exposed the nested instances (each variant bakes the right combo). Built the **`State=Expanded`** variant from the user's expanded mock (`2898:3001`): native **Content SLOT** (ModalLarge pattern) + a **bottom-line stub** re-anchoring the stepper below the content (Start/Mid) or bottom padding (End). User manually polished the End-expanded variants; expanded in-header `LineBottom` set transparent (opacity 0) so the content "splits" the line.
+
+### Thread 3 — Phase 2 code (the animation arc)
+
+`StepIndicator.jsx` (lines + circle + baked `lucide/check`, visibility-hidden lines keep the 40×72 footprint) + `Accordion.jsx` (uncontrolled `defaultExpanded` / controlled `expanded`+`onToggle`; `inert` collapsed content; real `<button>` header with `aria-expanded`/`aria-controls`). Reveal animates `grid-template-rows 0fr→1fr` (animates to natural height, no JS measuring). Four refinement rounds on the "split" motion:
+
+- **Linear → curve:** new token **`--transition-reveal`** (300ms `cubic-bezier(0.22,1,0.36,1)` ease-out-quart) — 220ms read too quick.
+- **Fade → travel:** the line had to *move* with the reveal, not fade in place. First attempt (bottom-anchored inner stack + opacity handoff between header segment and stub) **flickered** — the quart curve front-loads progress, so the handoff timing (which assumed linear) double-drew on expand and left a blank beat on collapse.
+- **Flicker killed geometrically:** replaced the handoff with **one single line element** (`.accordion__travel-line`), absolutely glued to the card's bottom edge (`bottom:0`). Collapsed, the card ends under the circle (line sits in the indicator's bottom-segment slot); expanding, the card's bottom edge rides the reveal and the line rides with it — zero opacity/transition logic on the line, so nothing *can* flicker regardless of curve/duration. The StepIndicator's own bottom segment is suppressed in-header; the travel line plays both roles. User: **"perfect finally. Approved."**
+
+### Thread 4 — Phase 3 sync-back
+
+- Demos: `StepIndicator.demo.jsx` (atom) + `Accordion.demo.jsx` (molecule, with a 3-section validated stack using real FormField + Checkbox) — `meta.normalizing` cleared (moved from the Normalizing panel into their tier tabs).
+- `index.js`: StepIndicator under Atoms, Accordion under Molecules.
+- Code Connect: `StepIndicator.figma.tsx` + `Accordion.figma.tsx` written + **published** ("All Code Connect files are valid"). Accordion maps `State` enum → `defaultExpanded`, `Content` SLOT → children.
+- Tracker: rows in Atoms/Molecules sub-tables + Pushed-to-Figma + Code Connect entries.
+- `tokens:audit` aligned (117 vars), build green, **80/80 tests** green. User published the Figma library.
+
+### Files / commits
+
+**New (code):**
+- `packages/ui/src/StepIndicator.jsx` + `.figma.tsx`
+- `packages/ui/src/Accordion.jsx` + `.figma.tsx`
+- `apps/odyssey-one/src/routes/design-system/demos/{StepIndicator,Accordion}.demo.jsx`
+
+**Modified:**
+- `packages/ui/src/index.js` — StepIndicator (atom) + Accordion (molecule) exports
+- `packages/tokens/tokens.css` — `--transition-reveal` (new, code-only)
+- `apps/odyssey-one/src/styles/components.css` — `.step-indicator*` + `.accordion*` blocks (incl. `.accordion__travel-line`)
+- `playground/normalization-tracker.md` — 2 component rows + Pushed-to-Figma + Code Connect entries
+- `.claude/settings.local.json` — session permission grants
+
+**Figma:** StepIndicator set `2909:13` (consolidated, moved to Components-Atoms); Accordion set `2850:612` (12 variants, Content SLOT, drift rebound). Library re-published by user.
+
+### State of `@odyssey/ui` after Session 48
+
+**44 normalized components** (was 42):
+- Atoms: + **StepIndicator** (`Position × Status`)
+- Molecules: + **Accordion** (`Position × Status × State`, Content SLOT, animated expand/collapse + traveling stepper line)
+
+**New token:** `--transition-reveal` (300ms ease-out-quart; code-only — transitions aren't pushed to Figma). Code Connect published. `tokens:audit` green (117 vars). Build + 80 tests green. **No deploy.**
+
+### Carry-forward to Session 49
+
+**Flagged this cycle (out of scope, no action taken):**
+- Check-icon master is named `check`, not `lucide/check`, in `Icons lg` — pre-existing naming nit; left untouched (renaming a shared master is risky). Future icon-hygiene pass.
+- Standalone "Acordion expanded" mock `2898:3001` is full of legacy-kit content — was the user's reference for the idea; its hand-copied header could later be swapped for a real instance of the new Expanded variant.
+- `--transition-reveal` vs reusing `--transition-slow` — user didn't veto the new token; revisit if the transition scale is ever consolidated.
+
+(Standing backlog + parked items carry forward unchanged from the What's Next below.)
+
+---
+
 ## What's Next
 
-### Session 48 Priorities
+### Session 49 Priorities
 
-1. **Explorer backfill — DONE (S47).** All 42 normalized components have live demos + the **Normalizing** in-progress panel is restored. Remaining optional housekeeping: rename `GATE B-DSM` → `GATE B-Demo`/`Explorer` in the routine docs (stale acronym). The user mentioned "a couple more" components to normalize — next Efrain/Figma additions go through the now-restored Normalizing-panel flow (set `meta.normalizing: true` during the cycle).
+1. **Explorer backfill — DONE (S47).** All normalized components have live demos + the **Normalizing** in-progress panel is restored (exercised cleanly in S48's Accordion/StepIndicator cycle). Remaining optional housekeeping: rename `GATE B-DSM` → `GATE B-Demo`/`Explorer` in the routine docs (stale acronym). The user mentioned "a couple more" components to normalize — next Efrain/Figma additions go through the now-restored Normalizing-panel flow (set `meta.normalizing: true` during the cycle).
 2. **GlobalSearch filters-body normalizations (still pending).** Figma-first `/normalize` per control: **"All"** — **`Select`** (Client/Location — the blocker; name reserved vs the SHP-66 menu "Dropdown"), `FilterChip` (selectable enum pill), date-range/text controls; **"Saved"** — `SavedFilterRow` (grip · name · ›, draggable). (`PillTab` shipped S44.)
 3. **Efrain alignment pass (cont.)** — remaining new/modified components; modified-existing = update cycles (validate-before-normalize, **read property defs first per Step 1b**). ButtonLink (S44), Checkbox/Radio/Button-error/FieldSelect/FormField (S45–46) done.
 4. **GlobalSearch UX wiring.** Two-way query↔filter binding + Show-N; saved-profile persistence; enum multi-select; revisit `issue1_FilterSuggestions`; per-tab footer label (Saved → "Cancel"); repoint suggestion *source* to `advanced-filter/{field}/lookup` behind the adapter seam.
