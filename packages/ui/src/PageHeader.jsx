@@ -1,8 +1,11 @@
 /**
  * PageHeader — molecule. Top-of-route H1 with a flex shell that fills the container.
  *
- * Used as the page identifier (e.g. "Shipments", "Orders"). The right side of the flex
- * shell is reserved space — actions can be added later by passing children.
+ * Used as the page identifier (e.g. "Shipments", "Orders"). The right side is an
+ * actions cluster (flex, 16px gap) — pass actions as children (ButtonToggle,
+ * Button variant="link", Button, …). The Figma master's Show toggle / Show link /
+ * Show button BOOLEANs map to children presence in code: passing or omitting an
+ * action IS the toggle.
  */
 export default function PageHeader({ title, children, className = '', style, ...rest }) {
   return (
@@ -23,7 +26,14 @@ export default function PageHeader({ title, children, className = '', style, ...
       >
         {title}
       </h1>
-      {children}
+      {children != null && (
+        <div
+          className="page-header__actions"
+          style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-4)' }}
+        >
+          {children}
+        </div>
+      )}
     </header>
   )
 }

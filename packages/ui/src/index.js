@@ -44,6 +44,7 @@ export { default as FilterSuggestions } from './FilterSuggestions.jsx';
 export { default as MatchRow } from './MatchRow.jsx';
 export { default as Alert } from './Alert.jsx';
 export { default as Accordion } from './Accordion.jsx';
+export { default as ButtonToggle } from './ButtonToggle.jsx';
 
 // ── Organisms ──────────────────────────────────────────
 export { default as Navbar } from './Navbar.jsx';

@@ -1085,7 +1085,10 @@ button.filter-suggestions__chip:active {
   color: var(--text-link);
   border-color: transparent;
   box-shadow: none;
-  align-self: flex-start;
+  /* No align-self here: the link must follow its parent's alignment (row clusters
+     center it — PageHeader actions, Alert, SearchPanel footer). Column parents
+     that need left-hugging opt in locally (.widget > .btn--link,
+     .auth-content__forgot). */
   height: auto;
 }
 /* Text-only link Buttons (no leading/trailing icon) get underline to read as a
@@ -1625,6 +1628,12 @@ button.filter-suggestions__chip:active {
    Home dashboard widget — shell + content combined. Variant prop selects layout:
    1x / 2x / 3x / 3xChart. Mirrors Figma component set `Widget` at 1825:7.
    ---------------------------------------- */
+/* Column context: the Go-to CTA link hugs left instead of stretching.
+   (Opt-in here since .btn--link no longer sets align-self globally.) */
+.widget > .btn--link {
+  align-self: flex-start;
+}
+
 .widget {
   position: relative;
   display: flex;
@@ -3043,10 +3052,91 @@ button.filter-suggestions__chip:active {
   opacity: 0;
 }
 
+/* === ButtonToggle (molecule) — Figma 2978:330, normalized 2026-06-10 ===
+   Two-option icon toggle (Apple-style segmented control). A white raised thumb
+   slides under the selected segment; the selected segment widens 32→36px via
+   its h-padding (6→8) in sync, so thumb travel = unselected width + gap.
+   In Figma the selected segment IS a nested Button (Icon/sm) instance; in code
+   the thumb mirrors that variant's full state ladder (.btn--icon idle/hover/
+   pressed) so the two stay visually identical while the slide is preserved. */
+.button-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  padding: var(--spacing-1);
+  border-radius: var(--radius-lg);
+  background: var(--bg-tertiary);
+}
+.button-toggle__thumb {
+  position: absolute;
+  top: var(--spacing-1);
+  left: var(--spacing-1);
+  /* 36×32 = selected segment: 20px icon + 2×8px h-pad / 2×6px v-pad */
+  width: 36px;
+  height: 32px;
+  border-radius: var(--radius-lg);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-default);
+  box-shadow: var(--shadow-sm);
+  transition:
+    transform var(--transition-base),
+    background var(--transition-fast),
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+.button-toggle__thumb--second {
+  /* travel = unselected segment width (32px) + gap (4px) */
+  transform: translateX(36px);
+}
+/* State ladder mirrored from .btn--icon (Button Variant=Icon, the nested
+   instance in the Figma master) — hover/pressed land on the thumb because
+   it carries the chrome the Button would own. */
+.button-toggle:has(.button-toggle__segment--selected:hover) .button-toggle__thumb {
+  background: var(--deep-sea-neutral-50);
+  border-color: var(--deep-sea-neutral-400);
+}
+.button-toggle:has(.button-toggle__segment--selected:active) .button-toggle__thumb {
+  background: var(--deep-sea-neutral-100);
+  border-color: var(--deep-sea-neutral-400);
+  box-shadow: none;
+}
+.button-toggle__segment--selected:active {
+  color: var(--deep-sea-neutral-400);
+}
+.button-toggle__segment {
+  position: relative; /* paints above the absolute thumb (later in DOM order) */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px; /* component-internal geometry, matches the Figma master */
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-md);
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition:
+    padding var(--transition-base),
+    color var(--transition-fast);
+}
+/* Unselected hover affordance: icon darkens to the same color Button's icon
+   variant idles at. Interaction state — code + DSM only, per the control
+   state model (Figma keeps appearance states: the Selected axis). */
+.button-toggle__segment:not(.button-toggle__segment--selected):hover {
+  color: var(--text-secondary);
+}
+.button-toggle__segment--selected {
+  padding-left: var(--spacing-2);
+  padding-right: var(--spacing-2);
+  cursor: default;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .accordion__reveal,
   .accordion__chevron,
-  .step-indicator__circle {
+  .step-indicator__circle,
+  .button-toggle__thumb,
+  .button-toggle__segment {
     transition: none;
   }
 }

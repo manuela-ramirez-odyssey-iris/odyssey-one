@@ -202,7 +202,15 @@
       "mcp__claude_ai_Atlassian_Rovo__getVisibleJiraProjects",
       "mcp__claude_ai_Atlassian_Rovo__searchJiraIssuesUsingJql",
       "Bash(grep -c '\\\\.\\\\./shipments/domain-analysis' domain-analysis.md _moc.md section-map.md)",
-      "Bash(sed -i '' 's|\\\\[\\\\[\\\\.\\\\./shipments/domain-analysis|[[10-domains/shipments/domain-analysis|g' domain-analysis.md _moc.md)"
+      "Bash(sed -i '' 's|\\\\[\\\\[\\\\.\\\\./shipments/domain-analysis|[[10-domains/shipments/domain-analysis|g' domain-analysis.md _moc.md)",
+      "Bash(sed -n '85,100p' packages/ui/src/Widget.jsx)",
+      "Bash(sed -n '45,60p' packages/ui/src/Alert.jsx)",
+      "Bash(sed -n '60,80p' packages/ui/src/AuthContent.jsx)",
+      "Bash(sed -n '70,90p' packages/ui/src/SearchPanel.jsx)",
+      "Bash(sed -n '38,50p' packages/ui/src/SearchResults.jsx)",
+      "Bash(sed -n '224,236p' playground/normalization-tracker.md)",
+      "Bash(sed -n '115,122p' playground/normalization-tracker.md)",
+      "mcp__claude_ai_Atlassian_Rovo__searchConfluenceUsingCql"
     ]
   }
 }

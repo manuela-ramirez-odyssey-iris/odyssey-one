@@ -21,6 +21,8 @@
       "mcp__plugin_vercel_vercel__get_deployment_build_logs",
       "mcp__plugin_vercel_vercel__get_runtime_logs",
       "Bash(npm run test:odyssey-one)",
+      "Bash(npm run test -w odyssey-one-app)",
+      "Bash(npm run test -w odyssey-one-app *)",
       "Bash(npm run typecheck)",
       "Bash(npm run tokens:audit)",
       "mcp__claude_ai_Atlassian_Rovo__getVisibleJiraProjects",
