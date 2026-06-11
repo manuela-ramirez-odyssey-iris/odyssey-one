@@ -1,6 +1,6 @@
 import { ArrowDownWideNarrow, ArrowUpNarrowWide } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
-import { FilterButton, IconButton } from '@odyssey/ui'
+import { Button } from '@odyssey/ui'
 
 /**
  * OrdersToolbar — count · sort-direction toggle · Filters (inert).
@@ -16,13 +16,14 @@ export default function OrdersToolbar({ totalCount, sortDirection, onToggleSort,
         {totalCount == null ? '—' : `${totalCount.toLocaleString('en-US')} items`}
       </span>
       <div className="orders-toolbar__right">
-        <IconButton
+        <Button
+          variant="icon"
           icon={<SortIcon {...ICON_MD} />}
           onClick={onToggleSort}
-          ariaLabel={`Sorted ${sortDirection === 'desc' ? 'descending' : 'ascending'} — toggle direction`}
+          aria-label={`Sorted ${sortDirection === 'desc' ? 'descending' : 'ascending'} — toggle direction`}
           disabled={disabled}
         />
-        <FilterButton label="Filters" onClick={() => {}} />
+        <Button variant="secondary" size="sm" onClick={() => {}}>Filters</Button>
       </div>
     </div>
   )
