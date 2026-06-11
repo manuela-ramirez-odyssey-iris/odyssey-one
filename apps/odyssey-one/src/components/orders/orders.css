@@ -3,20 +3,28 @@
    normalization (Phase 2); these classes are the seam it re-skins. */
 
 .orders-page {
+  /* Stuck toolbar height: top pad + 32px button row + bottom pad — the table
+     header sticks right below it */
+  --orders-toolbar-stuck-h: calc(var(--spacing-6) + 32px + var(--spacing-3));
   display: flex;
   flex-direction: column;
-  flex: 1; /* fill the AppShell main so the table gets the full vertical real estate */
-  min-height: 0;
   padding-bottom: var(--spacing-8);
 }
 
 /* ── Toolbar ─────────────────────────────────────────────── */
 
+/* Anchors at the top of the page scroll: PageHeader scrolls away, the count +
+   buttons stay. Margins became padding so the stuck bar is solid (rows pass
+   underneath on the main's bg, no see-through gaps). */
 .orders-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  background: var(--bg-secondary);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin: var(--spacing-6) 0 var(--spacing-3);
+  padding: var(--spacing-6) 0 var(--spacing-3);
 }
 
 .orders-toolbar__count {
@@ -31,10 +39,10 @@
 
 /* ── Table ───────────────────────────────────────────────── */
 
+/* No overflow here ON PURPOSE: the page (AppShell main) is the scroll
+   container, so the sticky toolbar/table-header work against the window-style
+   scroll. An overflow value would hijack them. */
 .orders-table-wrap {
-  flex: 1; /* the table is the scroll container — pagination stays pinned below it */
-  min-height: 0;
-  overflow: auto;
   background: var(--bg-primary);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
@@ -46,8 +54,8 @@
 }
 
 .orders-table th {
-  position: sticky; /* header survives the wrap's vertical scroll */
-  top: 0;
+  position: sticky; /* stays while the page scrolls, tucked under the stuck toolbar */
+  top: var(--orders-toolbar-stuck-h);
   z-index: 2;
   text-align: left;
   padding: var(--spacing-3) var(--spacing-4);
@@ -138,11 +146,8 @@
 /* ── Pagination footer ───────────────────────────────────── */
 
 /* Lives INSIDE .orders-table-wrap, after the table: it sits at the end of
-   the scroll (reached after the last row), never anchored to the window.
-   sticky left keeps it in place if the table ever scrolls horizontally. */
+   the page scroll (reached after the last row), never anchored to the window. */
 .orders-pagination {
-  position: sticky;
-  left: 0;
   display: flex;
   align-items: center;
   justify-content: flex-end;
