@@ -5,12 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "prebuild": "node tools/generate.mjs",
+    "prebuild": "node tools/generate.mjs && node tools/generate-orders.mjs",
     "build": "vite build",
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "preview": "vite preview",
     "generate-data": "node tools/generate.mjs",
+    "generate-orders": "node tools/generate-orders.mjs",
     "test": "vitest run",
     "test:watch": "vitest"
   },
