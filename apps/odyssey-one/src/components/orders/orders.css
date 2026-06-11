@@ -5,6 +5,7 @@
 .orders-page {
   display: flex;
   flex-direction: column;
+  flex: 1; /* fill the AppShell main so the table gets the full vertical real estate */
   min-height: 0;
   padding-bottom: var(--spacing-8);
 }
@@ -25,13 +26,15 @@
 .orders-toolbar__right {
   display: flex;
   align-items: center;
-  gap: var(--spacing-4);
+  gap: var(--spacing-3);
 }
 
 /* ── Table ───────────────────────────────────────────────── */
 
 .orders-table-wrap {
-  overflow-x: auto;
+  flex: 1; /* the table is the scroll container — pagination stays pinned below it */
+  min-height: 0;
+  overflow: auto;
   background: var(--bg-primary);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
@@ -43,6 +46,9 @@
 }
 
 .orders-table th {
+  position: sticky; /* header survives the wrap's vertical scroll */
+  top: 0;
+  z-index: 2;
   text-align: left;
   padding: var(--spacing-3) var(--spacing-4);
   color: var(--text-secondary);
@@ -72,7 +78,14 @@
 .orders-table .orders-table__cell--action {
   position: sticky;
   right: 0;
+  z-index: 1;
+  text-align: center; /* the ⋮ trigger centers under the Action header */
   box-shadow: -2px 0 4px rgba(0, 0, 0, 0.06);
+}
+
+/* Corner cell: sticky top AND right — stays above both scrolling axes */
+.orders-table th.orders-table__cell--action {
+  z-index: 3;
 }
 
 /* ── Row action menu (three-dot) ─────────────────────────── */
