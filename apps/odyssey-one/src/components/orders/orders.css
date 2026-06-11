@@ -1,0 +1,166 @@
+/* Orders Summary Page — app-local styles.
+   Deliberately NOT in @odyssey/ui: the grid skin gets replaced by the table
+   normalization (Phase 2); these classes are the seam it re-skins. */
+
+.orders-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding-bottom: var(--spacing-8);
+}
+
+/* ── Toolbar ─────────────────────────────────────────────── */
+
+.orders-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: var(--spacing-6) 0 var(--spacing-3);
+}
+
+.orders-toolbar__count {
+  color: var(--text-tertiary);
+}
+
+.orders-toolbar__right {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-4);
+}
+
+/* ── Table ───────────────────────────────────────────────── */
+
+.orders-table-wrap {
+  overflow-x: auto;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+}
+
+.orders-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.orders-table th {
+  text-align: left;
+  padding: var(--spacing-3) var(--spacing-4);
+  color: var(--text-secondary);
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-default);
+  white-space: nowrap;
+}
+
+.orders-table td {
+  padding: var(--spacing-3) var(--spacing-4);
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-subtle);
+  white-space: nowrap;
+}
+
+.orders-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.orders-table tbody tr:hover td,
+.orders-table tbody tr[data-selected] td {
+  background: var(--bg-secondary);
+}
+
+/* Action column pinned right (survives horizontal scroll) */
+.orders-table .orders-table__cell--action {
+  position: sticky;
+  right: 0;
+}
+
+/* ── Row action menu (three-dot) ─────────────────────────── */
+
+.order-row-actions__trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+
+.order-row-actions__trigger:hover {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+
+.order-row-actions__menu {
+  position: fixed;
+  z-index: 1000;
+  min-width: 140px;
+  display: flex;
+  flex-direction: column;
+  padding: var(--spacing-1) 0;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+}
+
+.order-row-actions__item {
+  border: none;
+  background: transparent;
+  text-align: left;
+  padding: var(--spacing-2) var(--spacing-4);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.order-row-actions__item:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+/* ── Pagination footer ───────────────────────────────────── */
+
+.orders-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--spacing-6);
+  margin-top: var(--spacing-4);
+}
+
+.orders-pagination__size {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  color: var(--text-tertiary);
+}
+
+.orders-pagination__select {
+  padding: var(--spacing-1) var(--spacing-2);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.orders-pagination__page {
+  color: var(--text-tertiary);
+}
+
+.orders-pagination__nav {
+  display: inline-flex;
+  gap: var(--spacing-2);
+}
+
+/* ── Page status (loading / error) ───────────────────────── */
+
+.orders-page__status {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-4);
+  padding: var(--spacing-8);
+  color: var(--text-tertiary);
+}
