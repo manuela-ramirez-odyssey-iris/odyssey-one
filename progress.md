@@ -4053,14 +4053,54 @@ Window-scroll + in-card horizontal scroll + a vertically-stuck `<th>` can't coex
 
 ---
 
+## Session 53 — June 11, 2026
+
+**Normalization triple-header, live-iterated with Manuela:** ButtonToggle grew its **`Content=Icon|Text`** axis (Figma → code → Code Connect, full cycle), the **table cell contract** landed from the Figma `Cell` set (read-only intake — TanStack owns the markup, we normalized how cells look) including the **split sticky header** the S52 carry-forward deferred, and **Tab** (underline filter tab) shipped as our own atom — including building **our own Figma master** after discovering the screens were referencing a foreign Tailwind-kit component. Library: **47 normalized** (+Cell contract, +Tab). All Code Connect published. No deploy. A `SESSION-HANDOFF.md` (temporal, repo root) orients the parallel session.
+
+### Thread 1 — ButtonToggle `Content=Icon|Text` (update cycle, full Figma→DSM→code)
+
+- **Figma `2978:330`:** existing variants renamed to `Content=Icon, …` (instances unaffected); Text variants cloned — selected segment = nested exposed **Button Secondary/sm** (`Show icon` false, icon-mode Spacing/2 pad override cleared → native 14), unselected icon → `label/sm medium` text node; **both labels DSN/500** (user call — mirrors icon mode; Button Secondary's DSN/700 overridden per-instance). New `First label`/`Second label` TEXT props reach the *unselected* label (nested-instance constraint, same as the icon swaps). Published by user.
+- **Code:** `firstLabel`/`secondLabel` props → whole-component text mode (never mixed with icons). Thumb geometry **computed from measured label widths** (`useLayoutEffect` + constants mirroring the CSS pads 12→14) — stable targets mid-transition; icon mode keeps the fixed 36px CSS path untouched. `width` joins the thumb transition.
+- **Code Connect split** into two variant-restricted connects (Icon → icon props, Text → label props); published.
+
+### Thread 2 — Cell → the `.odyssey-table` contract (+ the sticky-header saga)
+
+Figma `Cell` set `2714:505` (13 variants × White/Gray) intaken **read-only by design**: tables are TanStack-rendered, so normalization = the cell-visual contract. The dormant `.odyssey-table` block (zero consumers) was rewritten to it; **OrdersTable migrated** (per-column looks via TanStack `meta.cellClass`/`headClass`; Customer = Title emphasis, select = 48px control cells — Figma-exact; "Action" header label **kept** per Manuela, Blind Head not applied). `orders.css` reduced to page plumbing. `Cell.demo.jsx` (subagent-built): composed table + 14-variant reference. **4 Figma-side flags for Efrain** in the tracker (foreign `gray/300` radio border, raw "Component 1" checkbox/radio nesting instead of our masters, unbound `#E4E6EB`/`#1B2537`, Head icon visibility-only not INSTANCE_SWAP).
+
+**Live iteration with Manuela (the bulk of the session):**
+- **Container:** `--radius-2xl` 16px, **no outer border** (page bg contrasts).
+- **Sticky header:** JS-translateY tried first → **rejected** (composited scrolling lags any transform-sync by a frame; visible gap on scroll-up). Final: **split sticky header** (ShipmentTable-proven) — thead in its own natively-sticky strip; both halves in `.orders-table-card` (`overflow: clip` ≠ scroll container, so sticky binds to the AppShell `<main>` — **the page scroller is `<main>`, not the window**; scroll listeners need `capture: true`). Column widths: two-pass shrink-to-fit measure → shared `<colgroup>` + `table-layout: fixed`; container surplus to data columns only (Action snug ~76px, select 48px); re-measure on rows/resize. Body wrap drives strip `scrollLeft`; strip = gray outer + rounded white inner so the 16px radius holds while stuck. **Headless-verified** (playwright-core + cached Chromium): anchor exact at all scroll states, 0/11 columns misaligned, sync exact.
+- **Chrome fixes:** `border-collapse: separate` + `border-spacing: 0` (Chrome won't paint cell box-shadows in collapsed tables — action-column shadow was Safari-only); `overscroll-behavior-x: none` (horizontal rubber-band desynced the header).
+
+### Thread 3 — Tab (underline filter tab): foreign-kit discovery → our own master
+
+- `/normalize` on the Tabs frame `3050:1838` revealed the master (`2671:1212`) is a **REMOTE Tailwind-kit component** — foreign text styles, Tailwind indigo/gray filler variants, foreign nested Badge, a State axis. Manuela's line: provenance is irrelevant — *the whole point is our own component in Figma and code, aligned.*
+- **Built OUR master:** `Tab` set **`3057:362`** on Components-Atoms — `Current=False|True` + `Label` TEXT + `Show count` BOOLEAN, nested **exposed Badge (metric)** carries the count, everything variable-bound (DSN/500/900, Spacing/1/2/4, `label/sm medium`), no State axis (control state model). Description set. **Approved + published.**
+- **Code:** `Tab` atom in `@odyssey/ui` (`label`, `count` → Badge metric per conform-to-API, `current`, `onClick`); selected text **DSN/900** (canon frame override; kit's DSN/800 = remnant); hover DSN/800 + DSN/300 underline (code + DSM only); `.tab-group` 24px row. Code Connect → `3057:362`, published.
+- **Process correction (Manuela):** the demo initially landed straight in Atoms — moved to the **Normalizing tab** until approval (`meta.normalizing: true`), promoted after her sign-off. The gate convention stands: new demos ALWAYS enter via Normalizing.
+
+### Files
+
+**New:** `packages/ui/src/{Tab.jsx,Tab.figma.tsx}`, `demos/{Cell,Tab}.demo.jsx`, `SESSION-HANDOFF.md` (temporal). **Modified:** `packages/ui/src/{ButtonToggle.jsx,ButtonToggle.figma.tsx,index.js}`, `apps/.../styles/components.css` (table contract, button-toggle text, tab), `components/orders/{OrdersTable.jsx,orders.css}` (split sticky header + plumbing), `demos/ButtonToggle.demo.jsx`, `playground/normalization-tracker.md`.
+
+### Carry-forward to Session 54
+
+- **Swap screen instances to our Tab master** (with Efrain) — frames like `3050:1838` still instance the foreign kit `2671:1212`; stop using the kit. Tracker row exists.
+- **Shipments migration pass (user-confirmed, later):** ShipmentTabs → `Tab` AND ShipmentTable → `.odyssey-table` contract — one deliberate pass, don't touch Shipments UI before it.
+- **Cell Figma-side flags** for Efrain (tracker, Pending Figma Sync).
+- Any AppShell scroll refactor must re-test `/orders` (header anchors against `<main>`).
+- Delete `SESSION-HANDOFF.md` once the parallel session absorbs it.
+
+---
+
 ## What's Next
 
-### Session 53 Priorities
+### Session 54 Priorities
 
-1. **Orders Create Order flow — the priority pages.** Context/spec → contract-aware build, same Superpowers arc (spec → plan → subagent-driven build with reviews). Screenshots in `vault/10-domains/orders/screenshots/` (1–4+).
+1. **Orders Create Order flow — the priority pages** (carried from S52). Context/spec → contract-aware build, same Superpowers arc. Screenshots in `vault/10-domains/orders/screenshots/` (1–4+).
 2. **Question push** — Q25/Q29/Q31/Q33/Q34/Q35 to the team; record answers inline; graduate Q30/Q32 (+ resolved) into canon with sources.
 3. **Canon merge of the S51 LLD pull** (Opus pass) — `domain-analysis.md`/`section-map.md` + Shipments DTO reconciliation.
-4. **Screen-0 follow-ups (low priority, batch when convenient):** table normalization w/ Efrain (incl. JS-synced sticky header), dynamic-import mock json for live, wire inert affordances as their builds land.
+4. **Design-system follow-ups:** Tab instance swap in Figma screens (w/ Efrain), Cell's 4 Figma-side flags, the Shipments migration pass (tabs + table). Screen-0 leftovers: dynamic-import mock json for live, wire inert affordances as their builds land. (S52's "JS-synced sticky header" — **done in S53**, as the split-header architecture.)
 
 ### Prior priorities (carried, now behind the Orders arc)
 

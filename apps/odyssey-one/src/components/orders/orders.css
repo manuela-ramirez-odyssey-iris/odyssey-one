@@ -1,6 +1,7 @@
 /* Orders Summary Page — app-local styles.
-   Deliberately NOT in @odyssey/ui: the grid skin gets replaced by the table
-   normalization (Phase 2); these classes are the seam it re-skins. */
+   The grid skin moved to the normalized `.odyssey-table` Cell contract in
+   components.css (Figma Cell set 2714:505). What stays here is page
+   plumbing: toolbar, scroll wrap, sticky action column, row menu, pagination. */
 
 .orders-page {
   display: flex;
@@ -37,50 +38,50 @@
 
 /* ── Table ───────────────────────────────────────────────── */
 
-/* Horizontal scroll lives here; vertical scroll is the page's. CSS limitation
-   accepted: because this wrap is a scroll container, the column headers can't
-   ALSO stick vertically against the page scroll (sticky binds to the nearest
-   scroller) — a JS-synced sticky header is a table-normalization concern. */
-.orders-table-wrap {
-  overflow-x: auto;
+/* Split sticky header (see OrdersTable.jsx). The card carries the 16px
+   radius and clips both halves; overflow: clip is NOT a scroll container,
+   so the header strip inside can still stick natively against the page
+   scroller — zero lag, unlike a JS-translated thead. No outer border —
+   the page bg (--bg-secondary) already contrasts with the white table. */
+.orders-table-card {
   background: var(--bg-primary);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-2xl);
+  overflow: clip;
 }
 
-.orders-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.orders-table th {
-  text-align: left;
-  padding: var(--spacing-3) var(--spacing-4);
-  color: var(--text-secondary);
-  background: var(--bg-primary);
-  border-bottom: 1px solid var(--border-default);
-  white-space: nowrap;
-}
-
-.orders-table td {
-  padding: var(--spacing-3) var(--spacing-4);
-  color: var(--text-primary);
-  background: var(--bg-primary);
-  border-bottom: 1px solid var(--border-subtle);
-  white-space: nowrap;
-}
-
-.orders-table tbody tr:last-child td {
-  border-bottom: none;
-}
-
-.orders-table tbody tr:hover td,
-.orders-table tbody tr[data-selected] td {
+/* Header strip: sticks under the toolbar (top set inline from the measured
+   toolbar); scrollLeft on the inner is driven programmatically from the body
+   wrap. The strip paints page-bg behind the inner's rounded top corners so
+   the radius holds while stuck (rows can't peek through the notches); at
+   rest those gray notches coincide with the card's own corners and are
+   clipped away by its overflow: clip. */
+.orders-table-head {
+  position: sticky;
+  z-index: 3; /* above body cells incl. the sticky action column */
   background: var(--bg-secondary);
 }
 
-/* Action column pinned right (survives horizontal scroll) */
-.orders-table .orders-table__cell--action {
+.orders-table-head__inner {
+  overflow: hidden;
+  border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
+  background: var(--bg-primary);
+}
+
+/* Body horizontal scroller; vertical scroll is the page's. No rubber-band
+   on the x-axis: the bounce translates past the real scroll position, which
+   the synced sticky header can't follow (and it chains to the page). */
+.orders-table-wrap {
+  overflow-x: auto;
+  overscroll-behavior-x: none;
+  background: var(--bg-primary);
+}
+
+/* Cell skin comes from the normalized `.odyssey-table` contract
+   (components.css). Only page plumbing remains below. */
+
+/* Action column pinned right (survives horizontal scroll) — applies in both
+   halves of the split table (header strip + body wrap) */
+.orders-table-card .orders-table__cell--action {
   position: sticky;
   right: 0;
   z-index: 1;

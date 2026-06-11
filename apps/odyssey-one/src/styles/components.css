@@ -69,80 +69,88 @@
 }
 
 /* ----------------------------------------
-   TABLE BASE STYLES
-   Complex table patterns from the prototype
+   TABLE — Cell contract
+   Normalized from the Figma `Cell` set (2714:505, Panels) as a CSS contract,
+   not a packaged component: tables are TanStack-rendered, so normalization
+   defines how cells look. Figma is read-only reference here (nothing pushed).
+   48px cells = 14px v-pad + 20px label/sm line; the 14px is cell-internal
+   geometry (same class as Button's 14px h-pad), not a token.
+   Typography comes from the .text-label-sm-* utilities applied per cell:
+     th → .text-label-sm-semibold        (Cell Variant=Head)
+     td → .text-label-sm-regular         (Variant=Text, default data cell)
+     td.--title → .text-label-sm-medium  (Variant=Title, emphasis columns)
+   Link/Badge/Field/icon-head cells are compositions (ButtonLink, Badge,
+   FormField, Button icon inside the cell) — no CSS of their own.
    ---------------------------------------- */
 .odyssey-table {
   width: 100%;
-  border-collapse: collapse;
+  /* separate (not collapse): Chrome refuses to paint box-shadow on cells in
+     collapsed tables (sticky action column's shadow vanished; Safari was
+     fine). With only bottom borders per cell, separate + 0 spacing renders
+     identically. */
+  border-collapse: separate;
+  border-spacing: 0;
   font-family: var(--font-primary);
-  font-size: var(--font-size-sm);
-  color: var(--text-secondary);
 }
 
+/* Supports the JS-synced sticky header (consumers translate the thead to
+   anchor it against the page scroll — see OrdersTable): the header must
+   paint above body cells, including sticky/elevated columns. */
 .odyssey-table thead {
-  background: var(--bg-primary);
-}
-
-.odyssey-table th {
-  padding: 0 var(--spacing-4);
-  height: var(--bottombar-collapsed);
-  text-align: left;
-  font-weight: 600;
-  font-size: var(--font-size-sm);
-  color: var(--text-placeholder);
-  border-bottom: 1px solid var(--border-subtle);
-  white-space: nowrap;
-  position: sticky;
-  top: 0;
-  background: var(--bg-primary);
+  position: relative;
   z-index: 2;
 }
 
+.odyssey-table th,
 .odyssey-table td {
-  padding: 0 var(--spacing-4);
-  height: 56px;
-  border-bottom: 1px solid var(--bg-tertiary);
-  white-space: nowrap;
-  font-weight: 400;
-}
-
-.odyssey-table tbody tr {
+  text-align: left;
+  padding: 14px var(--spacing-4);
   background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-subtle);
+  white-space: nowrap;
   transition: background var(--transition-fast);
 }
 
-.odyssey-table tbody tr:hover {
+.odyssey-table th {
+  color: var(--text-primary);
+}
+
+.odyssey-table td {
+  color: var(--text-tertiary);
+}
+
+/* Variant=Title — emphasis columns (pair with .text-label-sm-medium) */
+.odyssey-table__cell--title {
+  color: var(--text-primary);
+}
+
+/* Variant=Checkbox/Radio input — 16px all sides: 48px square with a 16px control */
+.odyssey-table__cell--control {
+  padding: var(--spacing-4);
+}
+
+/* Background=Gray axis */
+.odyssey-table__cell--gray {
+  background: var(--bg-secondary);
+}
+
+/* Variant=Head with Subtitle — tight 12/12 unit line stacked above the label */
+.odyssey-table__th-sub {
+  display: block;
+  font-size: var(--font-size-xs);
+  line-height: 12px; /* label/xs regular tight */
+  font-weight: var(--font-weight-regular);
+}
+
+/* Interaction states — code + DSM only (the Figma Cell set keeps appearance
+   axes; it has no hover/selected variants, per the control state model). */
+.odyssey-table tbody tr:hover td,
+.odyssey-table tbody tr[data-selected] td {
   background: var(--bg-secondary);
 }
 
 .odyssey-table tbody tr:last-child td {
   border-bottom: none;
-}
-
-.odyssey-table tbody tr.selected {
-  background: var(--badge-blue-bg);
-}
-
-.odyssey-table tbody tr.selected:hover {
-  background: var(--badge-blue-bg);
-}
-
-/* Product / nested table variant */
-.odyssey-table-nested th {
-  padding: 10px 14px;
-  font-size: var(--font-size-xs);
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-}
-
-.odyssey-table-nested thead {
-  background: var(--bg-secondary);
-}
-
-.odyssey-table-nested td {
-  padding: 10px 14px;
-  height: auto;
 }
 
 /* ----------------------------------------
@@ -2581,6 +2589,61 @@ button.filter-suggestions__chip:active {
   outline-offset: 2px;
 }
 
+/* === Tab (atom) — underline filter tab, normalized 2026-06-11 ===
+   Figma source: remote Tailwind-kit `Tab` set 2671:1212, Style=Underline only
+   (Pill = our PillTab); local master rebuild pending. Label label/sm medium
+   over a 2px underline; optional count Badge (metric) keeps its own colors in
+   every tab state. Selected text = DSN/900 per the canon Tabs frame override
+   (user call — the kit master's DSN/800 is a remnant). Hover (not current) =
+   DSN/800 text + DSN/300 underline — code + DSM only; the kit's State axis
+   is NOT mirrored, per the control state model. */
+.tab {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+.tab__content {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: 0 var(--spacing-1) var(--spacing-4);
+}
+.tab__underline {
+  height: 2px;
+  background: transparent;
+  transition: background var(--transition-fast);
+}
+.tab--current {
+  color: var(--text-primary);
+  cursor: default;
+}
+.tab--current .tab__underline {
+  background: var(--text-tertiary);
+}
+.tab:hover:not(.tab--current) {
+  color: var(--deep-sea-neutral-800);
+}
+.tab:hover:not(.tab--current) .tab__underline {
+  background: var(--border-default);
+}
+.tab:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+/* Tab row — the plain "Tabs" frame in Figma: 24px gap, baseline-aligned */
+.tab-group {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--spacing-6);
+}
+
 /* ----------------------------------------
    SHIPMENTS FILTERS VIEW — content of the SearchPanel shell
    The Filters content (All/Saved tabs + filter controls) that fills <SearchPanel>
@@ -3052,13 +3115,17 @@ button.filter-suggestions__chip:active {
   opacity: 0;
 }
 
-/* === ButtonToggle (molecule) — Figma 2978:330, normalized 2026-06-10 ===
-   Two-option icon toggle (Apple-style segmented control). A white raised thumb
-   slides under the selected segment; the selected segment widens 32→36px via
-   its h-padding (6→8) in sync, so thumb travel = unselected width + gap.
-   In Figma the selected segment IS a nested Button (Icon/sm) instance; in code
-   the thumb mirrors that variant's full state ladder (.btn--icon idle/hover/
-   pressed) so the two stay visually identical while the slide is preserved. */
+/* === ButtonToggle (molecule) — Figma 2978:330, normalized 2026-06-10,
+   Content=Icon|Text axis added 2026-06-11 ===
+   Two-option toggle (Apple-style segmented control). A white raised thumb
+   slides under the selected segment; the selected segment widens via its
+   h-padding in sync (icon 6→8, text 12→14), so thumb travel = unselected
+   width + gap. Icon mode keeps fixed CSS geometry (36px thumb/travel); text
+   mode gets thumb width/transform inline from ButtonToggle.jsx (computed off
+   the measured label widths). In Figma the selected segment IS a nested
+   Button instance (Icon/sm or Secondary/sm — same chrome, one state ladder);
+   in code the thumb mirrors that ladder (.btn--icon/.btn--secondary) so the
+   two stay visually identical while the slide is preserved. */
 .button-toggle {
   position: relative;
   display: inline-flex;
@@ -3081,6 +3148,7 @@ button.filter-suggestions__chip:active {
   box-shadow: var(--shadow-sm);
   transition:
     transform var(--transition-base),
+    width var(--transition-base),
     background var(--transition-fast),
     border-color var(--transition-fast),
     box-shadow var(--transition-fast);
@@ -3129,6 +3197,19 @@ button.filter-suggestions__chip:active {
   padding-left: var(--spacing-2);
   padding-right: var(--spacing-2);
   cursor: default;
+}
+/* Content=Text — label segments (typography via .text-label-sm-medium in JSX,
+   matching the nested Button Secondary/sm). Pads 12→14 mirror icon's 6→8;
+   ButtonToggle.jsx keeps these as constants for the thumb geometry. */
+.button-toggle__segment--text {
+  padding: 6px 12px;
+}
+.button-toggle__segment--text.button-toggle__segment--selected {
+  padding-left: 14px;
+  padding-right: 14px;
+}
+.button-toggle__label {
+  white-space: nowrap;
 }
 
 @media (prefers-reduced-motion: reduce) {
