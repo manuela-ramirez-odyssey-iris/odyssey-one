@@ -4002,14 +4002,65 @@ User asked for the broader engineering pull while Rovo was healthy. Sonnet disco
 
 ---
 
+## Session 52 — June 11, 2026
+
+**Orders Summary Page built end-to-end (screen 0), mock-mode on an LLD-shaped data layer.** The S51 spec → implementation plan (`writing-plans`) → GATE A → subagent-driven build (3 batches, each implementer + spec-compliance review + code-quality review, then a final holistic integration review) → a round of Manuela's live design-conformance corrections. **20 commits on `shipments/global-search`, build green, 88/88 tests, `tsc` clean. No deploy.** Library unchanged at **45** (no normalization this session — app-local by design, GlobalSearch-v1 playbook).
+
+### Effort calibration (new constraint)
+
+Manuela: the Summary Page (screen 0) was scoped as the **lowest-priority** Orders screen and its design may change — build it lean, don't gold-plate. **Next session moves to the more important pages** (Create Order flow). The durable investment here is the data layer (LLD-verbatim contract); the visual skin is provisional until the table normalization + a stable design land. (Saved to memory: `project_orders_screen0_low_priority`.)
+
+### The plan
+
+`docs/superpowers/plans/2026-06-11-orders-summary-page.md` — 13 tasks, full code in every step, mirroring the Shipments `src/api/` seam (verified by an Explore pass first: `gridService` mock/live branches, import-after-mock vitest idiom, react-query v5 `placeholderData: keepPreviousData`, the generator pools). Three planning-time corrections to the spec, all logged in the plan's "Plan-level decisions": pagination **1-based** (LLD list example, Q29), page-size options **[20,50,100]** (default 20 supersedes spec §3's 25), and Origin/Destination show the **full `locationId`** (`"RGC-STL-001: St Louis, MO"`).
+
+### What shipped
+
+- **Data foundation:** `@tanstack/react-table` v8 added (headless — logic only, we own the markup so Phase-2 normalization re-skins without touching logic). Master-data pools **extracted** from `tools/generate.mjs` → `tools/data-pools.mjs` (A7: master data is shared cross-domain; both generators now draw the same customers/locations/equipment/commodities), proven safe by a byte-identical `shipments.json` regen. New `tools/generate-orders.mjs` — seed 42, **4,509 rows** in the LLD row shape (role-nested consignor/consignee, `{value,uom}` measures, display-label `orderStatus`), committed `src/data/orders.json` + `getAllOrders()`; `prebuild` runs both generators.
+- **Data layer** (`src/api/`, all TS, TDD on mapper + service): `types/orderList.ts` + `orderRowVm.ts` (field names **verbatim from the Order Service Phase-2 LLD**), `fixtures/orderListRow.sample.ts`, `mappers/mapOrderListRow.ts` (LLD row → flat VM, formats place/measure/datetime, null-safe), `services/orderService.ts` (live → `POST /order-service/v3/order/list`; mock → filter AND-across/OR-within → sort → 1-based paginate), `queries/useOrderList.ts`.
+- **UI** (app-local `src/components/orders/` + `routes/orders/OrdersRoute.jsx`, replaced the stub): PageHeader + inert Create Order, toolbar (count · sort · Filters), headless `OrdersTable` (lean 11-column set), `OrdersTablePagination`, `OrderRowActionMenu`, loading/error/empty states.
+
+### Key build decision — the three-dot menu is NOT `MenuDropdown`
+
+`@odyssey/ui`'s `MenuDropdown` is a **sidebar accordion group** (inline collapsible, used in `WidgetsLeftMenu`), not a floating popover — the name misled the spec. The Action-column `⋮` menu is therefore an **app-local `OrderRowActionMenu`** (portal + fixed positioning, the ShipmentTable tooltip idiom, so it escapes the table's overflow clip). This is the standing **SHP-66** generic-dropdown candidate; it normalizes there when that component is designed. Six inert items (View/Edit/Copy/Cancel/Restore/Delete).
+
+### Review loop (caught + fixed before it reached Manuela)
+
+- **Batch A** (`7e9762c`→`2135562`): approved, Minor notes only.
+- **Batch B** (`d6956a5`→`6e4e747`): quality review found the OR-semantics test was **non-discriminating** (3 ERCO + 2 BASF = 5 either way → passes even if the filter were broken). Fixed with a single-customer narrowing assertion (`2e9ec63`).
+- **Batch C** (`436681b`→`1a5e350`): quality review found a no-op `useMemo` and **zero keyboard path** into the action menu (no Escape, no focus-in). Fixed + sticky-edge shadow + null guard (`068e297`).
+- **Final integration review:** READY. Verified the contract chain holds route→hook→service→data, every generated row carries every field the mapper reads, 4,509 unique `orderNumber`s (no `getRowId` collisions), live-flip path coherent. Flagged (roadmap, not blockers): live mode still bundles the 3.5 MB mock json (static import, same as shipments — dynamic-import fix later); `OrderStatusCode` exported-but-unused-until-filters-bind (intentional).
+
+### Manuela's design-conformance corrections (live, post-build)
+
+- **Toolbar components** (`c17727b`, `8ef3b1a`): sort = `Button variant="icon" size="sm"` (icon Button is **sm-only**; 20px icon; color via `currentColor` = Secondary); Filters = `Button variant="secondary" size="sm"` with leading `SlidersHorizontal` icon. (Dropped the `FilterButton`/`IconButton` the plan had penciled — spec §3 errata.)
+- **Layout** (`29b7164`, `339a69a`, `0061af5`, `26a6514`): 12px toolbar gap (`--spacing-3`); pagination moved **inside** the table card after the last row (end-of-scroll, not window-anchored); **window-style page scroll** — PageHeader scrolls away, toolbar sticks at `top: -32px` (offsets the AppShell main's top padding → no transparent gap), pagination waits at the scroll end; horizontal table scroll restored (`overflow-x: auto` on the card).
+
+### Known CSS limitation (deferred, by design)
+
+Window-scroll + in-card horizontal scroll + a vertically-stuck `<th>` can't coexist in pure CSS (sticky binds to the nearest scroller; the card becomes that scroller on horizontal scroll). **Column headers therefore scroll away** — a JS-synced sticky header is the fix and belongs to the table normalization with Efrain (where we own the grid skin). Flagged in `orders.css`.
+
+### Files
+
+**New:** plan `2026-06-11-orders-summary-page.md`; `tools/data-pools.mjs`, `tools/generate-orders.mjs`, `src/data/orders.json` + `orders.js`; `src/api/{types/orderList,types/orderRowVm,fixtures/orderListRow.sample,mappers/mapOrderListRow(+test),services/orderService(+test),queries/useOrderList}`; `src/components/orders/{orders.css,OrderRowActionMenu,OrdersTable,OrdersToolbar,OrdersTablePagination}.jsx`; `src/routes/orders/OrdersRoute.jsx`. **Modified:** `tools/generate.mjs` (import pools), `package.json` (dep + scripts), `App.jsx` (route rewire). **Deleted:** `src/routes/Orders.jsx` (stub). **Commits:** `7e9762c`…`26a6514` (20).
+
+### Carry-forward to Session 53
+
+- **Move to the higher-priority Orders pages — the Create Order flow** (screens 1–4+: General Info quick/long, Pickup & Delivery, Product Information, discard/save modal — all in `vault/10-domains/orders/screenshots/`). Same arc: context/spec → contract-aware build. This is where the real effort goes.
+- **Screen 0 follow-ups (low priority, batch later):** JS-synced sticky header (table normalization w/ Efrain); dynamic-import the mock json for live mode; wire the inert affordances as their feature builds land (ID→detail, Create Order→form, row actions).
+- **Question push still open:** Q25 (tabs), Q29 (1- vs 0-based + max page size), Q31 (date sort field for newest-first), Q33/Q34 + filter-panel export (Efrain), Q35 (badge counts). Q30/Q32 resolved — graduate into canon w/ LLD citations on the next canon pass.
+- **Canon merge of the S51 LLD pull (still pending Opus pass):** fold Thread-5 findings into `domain-analysis.md`/`section-map.md`; reconcile Shipments DTO names against `shipment-service-linx-lld.md`.
+
+---
+
 ## What's Next
 
-### Session 52 Priorities
+### Session 53 Priorities
 
-1. **Orders Summary Page — implementation plan + build.** writing-plans → GATE A → TanStack grid + data layer + generator (see S51 carry-forward).
-2. **Question push** — Q25/Q29/Q31/Q33/Q34/Q35 to the team; record answers inline; graduate Q30/Q32 (+ resolved ones) into the canon with sources.
-3. **Table normalization** cycle when Efrain's Figma lands — re-skin of the TanStack rendering layer.
-4. **Remaining Orders normalizations** — Phase 2 per the screens-reference component-gap table.
+1. **Orders Create Order flow — the priority pages.** Context/spec → contract-aware build, same Superpowers arc (spec → plan → subagent-driven build with reviews). Screenshots in `vault/10-domains/orders/screenshots/` (1–4+).
+2. **Question push** — Q25/Q29/Q31/Q33/Q34/Q35 to the team; record answers inline; graduate Q30/Q32 (+ resolved) into canon with sources.
+3. **Canon merge of the S51 LLD pull** (Opus pass) — `domain-analysis.md`/`section-map.md` + Shipments DTO reconciliation.
+4. **Screen-0 follow-ups (low priority, batch when convenient):** table normalization w/ Efrain (incl. JS-synced sticky header), dynamic-import mock json for live, wire inert affordances as their builds land.
 
 ### Prior priorities (carried, now behind the Orders arc)
 
