@@ -137,12 +137,18 @@
 
 /* ── Pagination footer ───────────────────────────────────── */
 
+/* Lives INSIDE .orders-table-wrap, after the table: it sits at the end of
+   the scroll (reached after the last row), never anchored to the window.
+   sticky left keeps it in place if the table ever scrolls horizontally. */
 .orders-pagination {
+  position: sticky;
+  left: 0;
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: var(--spacing-6);
-  margin-top: var(--spacing-4);
+  padding: var(--spacing-3) var(--spacing-4);
+  border-top: 1px solid var(--border-subtle);
 }
 
 .orders-pagination__size {

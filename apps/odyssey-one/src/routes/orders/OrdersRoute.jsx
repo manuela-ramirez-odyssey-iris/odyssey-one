@@ -63,12 +63,11 @@ export default function OrdersRoute() {
         ) : (data?.rows.length ?? 0) === 0 ? (
           <EmptyState icon={<Inbox size={32} />} message="No orders found" />
         ) : (
-          <>
-            <OrdersTable
-              rows={data.rows}
-              rowSelection={rowSelection}
-              onRowSelectionChange={setRowSelection}
-            />
+          <OrdersTable
+            rows={data.rows}
+            rowSelection={rowSelection}
+            onRowSelectionChange={setRowSelection}
+          >
             <OrdersTablePagination
               pageNumber={pageNumber}
               pageSize={pageSize}
@@ -77,7 +76,7 @@ export default function OrdersRoute() {
               onPageSizeChange={handlePageSizeChange}
               disabled={isFetching}
             />
-          </>
+          </OrdersTable>
         )}
       </div>
     </AppShell>

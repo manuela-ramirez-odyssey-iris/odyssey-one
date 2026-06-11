@@ -58,7 +58,10 @@ const COLUMNS = [
   }),
 ]
 
-export default function OrdersTable({ rows, rowSelection, onRowSelectionChange }) {
+// `children` renders inside the scroll container after the table — the
+// pagination footer lives there so it sits at the END of the scroll
+// (never anchored to the window).
+export default function OrdersTable({ rows, rowSelection, onRowSelectionChange, children }) {
   const table = useReactTable({
     data: rows,
     columns: COLUMNS,
@@ -109,6 +112,7 @@ export default function OrdersTable({ rows, rowSelection, onRowSelectionChange }
           ))}
         </tbody>
       </table>
+      {children}
     </div>
   )
 }
