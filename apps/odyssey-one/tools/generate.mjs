@@ -1,5 +1,6 @@
 import { faker } from '@faker-js/faker';
 import { writeFileSync, mkdirSync, existsSync, readdirSync, unlinkSync } from 'fs';
+import { CUSTOMERS, LOCATIONS, EQUIPMENT_CODES, CHEMICAL_PRODUCTS } from './data-pools.mjs'
 
 faker.seed(42);
 
@@ -18,7 +19,6 @@ function genUniqueSellShipment() {
 const MODES = ['TL', 'LTL', 'RR', 'IMD', 'AIR'];
 const MODE_WEIGHTS = { TL: 40, LTL: 40, RR: 5, IMD: 5, AIR: 10 };
 const RR_CUSTOMERS = ['BASF_CHM_01'];
-const EQUIPMENT_CODES = ['FLT', 'LTH', 'VAN', 'REEFER'];
 const TENDER_STATUSES = ['Sent', 'Accepted', 'Declined', 'Cancelled'];
 const DOC_TYPES = ['BoL', 'MBoL', 'POD', 'SL', 'Packing List', 'Other'];
 const ROUTING_APIS = ['API', 'EDI', 'Email', 'Fax'];
@@ -56,80 +56,6 @@ const CARRIERS = [
   { scac: 'ABFS', name: 'ABF FREIGHT SYSTEM' },
   { scac: 'CNWY', name: 'CONWAY FREIGHT' },
   { scac: 'WARD', name: 'WARD TRUCKING' },
-];
-
-const CUSTOMERS = [
-  { id: 'ERCO_SYS_01', name: 'ERCO Systems Inc' },
-  { id: 'G20TECH_SYS_01', name: 'G2O Technologies LLC' },
-  { id: 'USALCO_SYS_01', name: 'USALCO LLC' },
-  { id: 'ACME_LOG_01', name: 'ACME Logistics Corp' },
-  { id: 'BASF_CHM_01', name: 'BASF Chemical Corp' },
-  { id: 'DOW_IND_01', name: 'DOW Industrial Solutions' },
-  { id: 'SHELL_OIL_01', name: 'Shell Oil Products US' },
-  { id: 'HUNT_REF_01', name: 'Huntsman Refining LLC' },
-  { id: 'LYOND_PET_01', name: 'LyondellBasell Industries' },
-  { id: 'COVES_PLY_01', name: 'Covestro Polymers LLC' },
-  { id: 'INEOS_STY_01', name: 'INEOS Styrolution America' },
-  { id: 'CELANESE_01', name: 'Celanese Corporation' },
-  { id: 'EAST_CHM_01', name: 'Eastman Chemical Company' },
-  { id: 'NOURYON_01', name: 'Nouryon Surface Chemistry' },
-  { id: 'WEYERH_01', name: 'Weyerhaeuser Company' },
-];
-
-const LOCATIONS = [
-  { city: 'Houston', state: 'TX', zip: '77001', facility: 'ERCO WORLDWIDE' },
-  { city: 'Bastrop', state: 'LA', zip: '71202', facility: 'G2O TECH SOLUTIONS' },
-  { city: 'Geismar', state: 'LA', zip: '70734', facility: 'USALCO CHEMICALS' },
-  { city: 'Dallas', state: 'TX', zip: '75201', facility: 'ACME DISTRIBUTION CTR' },
-  { city: 'Lake Charles', state: 'LA', zip: '70601', facility: 'WESTLAKE CHEMICAL PL' },
-  { city: 'Baton Rouge', state: 'LA', zip: '70801', facility: 'BAYOU CHEMICAL PLANT' },
-  { city: 'Freeport', state: 'TX', zip: '77541', facility: 'DOW CHEMICAL FREEPORT' },
-  { city: 'Baytown', state: 'TX', zip: '77520', facility: 'COVESTRO BAYTOWN PL' },
-  { city: 'Channelview', state: 'TX', zip: '77530', facility: 'LYONDELLBASELL CHANN' },
-  { city: 'Odessa', state: 'TX', zip: '79761', facility: 'HUNTSMAN CORP ODESSA' },
-  { city: 'Atlanta', state: 'GA', zip: '30301', facility: 'ERCO GLOBAL LOGISTICS' },
-  { city: 'Columbus', state: 'GA', zip: '31907', facility: 'INEOS STYROLUTION PL' },
-  { city: 'Chicago', state: 'IL', zip: '60601', facility: 'CELANESE MIDWEST HUB' },
-  { city: 'Miami', state: 'FL', zip: '33101', facility: 'ACME FREIGHT SERVICES' },
-  { city: 'San Antonio', state: 'TX', zip: '78201', facility: 'GULF COAST RECEIVING' },
-  { city: 'Kingsport', state: 'TN', zip: '37660', facility: 'EASTMAN CHEMICAL RECV' },
-  { city: 'Wyandotte', state: 'MI', zip: '48192', facility: 'BASF CORP WYANDOTTE' },
-  { city: 'Phoenix', state: 'AZ', zip: '85001', facility: 'ERCO SOUTHWEST' },
-  { city: 'Denver', state: 'CO', zip: '80201', facility: 'USALCO MOUNTAIN DIV' },
-  { city: 'Seattle', state: 'WA', zip: '98101', facility: 'ACME PACIFIC NW' },
-  { city: 'Portland', state: 'OR', zip: '97201', facility: 'USALCO PACIFIC' },
-  { city: 'Minneapolis', state: 'MN', zip: '55401', facility: 'NOURYON NORTH CENTRAL' },
-  { city: 'Detroit', state: 'MI', zip: '48201', facility: 'DOW MIDLAND COMPLEX' },
-  { city: 'New Orleans', state: 'LA', zip: '70112', facility: 'CF INDUSTRIES DONALDSV' },
-  { city: 'Salt Lake City', state: 'UT', zip: '84101', facility: 'WEYERHAEUSER WEST' },
-  { city: 'Kansas City', state: 'MO', zip: '64101', facility: 'NOURYON COLUMBUS PL' },
-  { city: 'San Diego', state: 'CA', zip: '92101', facility: 'SEMPRA ENERGY OTAY' },
-  { city: 'Neenah', state: 'WI', zip: '54956', facility: 'SHIPTUSLA NEENAH' },
-  { city: 'McIntosh', state: 'AL', zip: '36553', facility: 'OLIN CORP MCINTOSH' },
-  { city: 'Green River', state: 'WY', zip: '82935', facility: 'SOLVAY CHEMICALS PL' },
-];
-
-const CHEMICAL_PRODUCTS = [
-  { item: '32041H1D', desc: 'Sodium Hydroxide Solution 50%', hazmat: true, hClass: 'Class 8', hGroup: 'II', unNumber: 'UN1824' },
-  { item: '28103A2K', desc: 'Hydrochloric Acid 32%', hazmat: true, hClass: 'Class 8', hGroup: 'II', unNumber: 'UN1789' },
-  { item: '76201C5M', desc: 'Calcium Chloride Flakes 77%', hazmat: false },
-  { item: '76201C5N', desc: 'Calcium Chloride Liquid 35%', hazmat: false },
-  { item: '31052D8J', desc: 'Ferric Chloride Solution 42%', hazmat: true, hClass: 'Class 8', hGroup: 'III', unNumber: 'UN2582' },
-  { item: '55129P3R', desc: 'Reprocessed Polyethylene Pellets', hazmat: false },
-  { item: '29051A7F', desc: 'Methanol Technical Grade', hazmat: true, hClass: 'Class 3', hGroup: 'II', unNumber: 'UN1230' },
-  { item: '28042B9G', desc: 'Sulfuric Acid 93%', hazmat: true, hClass: 'Class 8', hGroup: 'II', unNumber: 'UN1830' },
-  { item: '38089C2H', desc: 'Herbicide Concentrate 2,4-D', hazmat: true, hClass: 'Class 6', hGroup: 'III', unNumber: 'UN3082' },
-  { item: '27101D4J', desc: 'Petroleum Distillate', hazmat: true, hClass: 'Class 3', hGroup: 'III', unNumber: 'UN1268' },
-  { item: '39011E6K', desc: 'Polyethylene Resin HD', hazmat: false },
-  { item: '39021F8L', desc: 'Polypropylene Copolymer', hazmat: false },
-  { item: '28112G3M', desc: 'Hydrogen Peroxide 35%', hazmat: true, hClass: 'Class 5', hGroup: 'I', unNumber: 'UN2014' },
-  { item: '22071H5N', desc: 'Ethylene Glycol Industrial', hazmat: false },
-  { item: '28151J7P', desc: 'Potassium Hydroxide 45%', hazmat: true, hClass: 'Class 8', hGroup: 'II', unNumber: 'UN1814' },
-  { item: '29031K9Q', desc: 'Vinyl Chloride Monomer', hazmat: true, hClass: 'Class 2', hGroup: 'I', unNumber: 'UN1086' },
-  { item: '38089L2R', desc: 'Insecticide Emulsifiable', hazmat: true, hClass: 'Class 6', hGroup: 'II', unNumber: 'UN2902' },
-  { item: '34021M4S', desc: 'Surfactant Non-ionic', hazmat: false },
-  { item: '28070N6T', desc: 'Phosphoric Acid 75%', hazmat: true, hClass: 'Class 8', hGroup: 'III', unNumber: 'UN1805' },
-  { item: '39076P8U', desc: 'PVC Compound Rigid', hazmat: false },
 ];
 
 const HAZMAT_DESCRIPTIONS = {
