@@ -3981,9 +3981,21 @@ A `/normalize` cycle run alongside the Orders session: **ButtonToggle** (new mol
 
 **New:** spec `2026-06-10-orders-summary-page-design.md`; `vault-sources/10-domains/orders/lld/order-service-phase-2.md` (untracked). **Modified:** 5 Orders vault files (provenance), `open-questions.md` (Q29–Q35 + reminder), spec (two reconciliation rounds), `progress.md`. **Commits:** `51e209e` spec · `f5e623d` provenance · `7325c95` A-resolutions + Q29–34 · `2e7163c` LLD reconciliation.
 
+### Thread 5 (post-wrap) — Full implementation-docs pull
+
+User asked for the broader engineering pull while Rovo was healthy. Sonnet discovery pass mapped the TMS-space LLD tree (~16 relevant docs, inventory in the agent return), then two parallel Sonnet agents dumped **12 pages** verbatim:
+
+- **`vault-sources/10-domains/orders/lld/`** (+7): Phase-1 `order-service-linx-lld-phase1.md` (125KB — v2 create/edit, SQS/Lambda, payload v7 changelog, **Swagger URLs**: `dev|qa.order.linx.odysseylogistics.com/order-swagger/v3/api-docs`), `order-domain-design-lld-v1.md` (51KB — v1 nested-party contract, lookup proxies, `hasNext` lookup envelope), `qcp-invocation-lld.md` (XML routing, "Routing error" status, first-carrier rule), `rating-cost-allocation-lld.md` (AP/AR rate-order contract), `order-error-retry-mechanism.md` (circuit breaker; no-carrier/no-AR → stays "Ready To Plan"; validation errors → **user-review-from-UI state**), `order-shipment-flow-phase2.md` (Boomi→SQS O2 path, Option-1 queue separation), `tms-nn-linx-mappings.md` + `nn-order-integration.md` (thin; field mappings live in SharePoint).
+- **`vault-sources/20-cross-cutting/api-integration/`** (+2): `master-data-design-lld.md` (49KB, ~30 endpoints + migration paths) and `master-services-api-consumption-mapping.md` (who-consumes-what; Order MFE consumes only `utc-timezones` — all master lookups proxy through order-service).
+- **`vault-sources/10-domains/shipments/lld/`** (new dir): **`shipment-service-linx-lld.md` (360KB)** — full `sell-shipment-out/{id}` response schema + the complete PGI/PGR error surface (`error/list`, `/download`, `/details`, `/purge`) → directly unblocks the **Shipments "flip to live data" reconciliation** without waiting for Swagger access.
+- **`team-open-questions-linx.md`** — the team's own 12 open questions (TenderStatus values overlaps our `project_tender_status_question`; status enumerations, pooling/consolidation, PGI-triggered order creation).
+
+**Version flag:** listing exists as v1 (`pageNo`), v2 (`/v2/order/listing`), v3 (Phase-2, our spec) — Swagger says v3 is current; folded into Q29's confirmation ask. All dumps untracked (S41 precedent).
+
 ### Carry-forward to Session 52
 
 - **Implementation plan (writing-plans) → GATE A → build.** Spec is approved-in-conversation and LLD-reconciled; plan the build (TanStack Table dep, generator, data layer, page) and execute via subagent-driven development. Create Order goes in PageHeader's new actions cluster (`Show button`, S50b).
+- **Canon merge of the LLD pull (Opus pass):** fold Thread-5 findings into `domain-analysis.md`/`section-map.md` (lifecycle statuses "Routing error"/user-review state; lookup contracts; Swagger URLs) + reconcile Shipments' provisional DTO names against `shipment-service-linx-lld.md`; cross-check team-open-questions against our Q-list.
 - **Table normalization with Efrain** expected ~today — lands as the re-skin of the TanStack rendering layer.
 - **Question push with the team:** Q25 (tabs — blocks the tab strip), Q29 (1- vs 0-based + max page size), Q31 (date sort field for newest-first), Q33/Q34 + filter-panel export (Efrain), Q35 (badge counts). Q30/Q32 resolved — graduate into canon with LLD citations during the next canon pass.
 - **Optional:** clone Orders Angular repo (business-logic reference only).
