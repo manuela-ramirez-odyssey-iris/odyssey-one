@@ -44,6 +44,10 @@ export default function OrderRowActionMenu() {
     }
   }, [open])
 
+  useEffect(() => {
+    if (open) menuRef.current?.querySelector('button')?.focus()
+  }, [open])
+
   return (
     <div className="order-row-actions">
       <button
@@ -54,6 +58,7 @@ export default function OrderRowActionMenu() {
         aria-expanded={open}
         aria-label="Order actions"
         onClick={toggle}
+        onKeyDown={e => { if (e.key === 'Escape') setOpen(false) }}
       >
         <EllipsisVertical {...ICON_MD} />
       </button>
@@ -62,7 +67,14 @@ export default function OrderRowActionMenu() {
           ref={menuRef}
           className="order-row-actions__menu"
           role="menu"
+          tabIndex={-1}
           style={{ top: pos.top, left: pos.left, transform: 'translateX(-100%)' }}
+          onKeyDown={e => {
+            if (e.key === 'Escape') {
+              setOpen(false)
+              triggerRef.current?.focus()
+            }
+          }}
         >
           {ACTIONS.map(action => (
             <button

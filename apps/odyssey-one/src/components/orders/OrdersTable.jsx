@@ -1,4 +1,3 @@
-import { useMemo } from 'react'
 import {
   useReactTable,
   getCoreRowModel,
@@ -60,10 +59,8 @@ const COLUMNS = [
 ]
 
 export default function OrdersTable({ rows, rowSelection, onRowSelectionChange }) {
-  const data = useMemo(() => rows, [rows])
-
   const table = useReactTable({
-    data,
+    data: rows,
     columns: COLUMNS,
     state: { rowSelection },
     onRowSelectionChange,

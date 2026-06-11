@@ -60,7 +60,7 @@ export default function OrdersRoute() {
             <span className="text-label-sm-regular">Something went wrong loading orders.</span>
             <Button variant="secondary" size="sm" onClick={() => refetch()}>Retry</Button>
           </div>
-        ) : data.rows.length === 0 ? (
+        ) : (data?.rows.length ?? 0) === 0 ? (
           <EmptyState icon={<Inbox size={32} />} message="No orders found" />
         ) : (
           <>
