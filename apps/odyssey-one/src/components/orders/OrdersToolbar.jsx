@@ -1,4 +1,4 @@
-import { ArrowDownWideNarrow, ArrowUpNarrowWide } from 'lucide-react'
+import { ArrowDownWideNarrow, ArrowUpNarrowWide, SlidersHorizontal } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
 import { Button } from '@odyssey/ui'
 
@@ -18,12 +18,15 @@ export default function OrdersToolbar({ totalCount, sortDirection, onToggleSort,
       <div className="orders-toolbar__right">
         <Button
           variant="icon"
-          icon={<SortIcon {...ICON_MD} />}
+          size="sm"
+          icon={<SortIcon size={20} />}
           onClick={onToggleSort}
           aria-label={`Sorted ${sortDirection === 'desc' ? 'descending' : 'ascending'} — toggle direction`}
           disabled={disabled}
         />
-        <Button variant="secondary" size="sm" onClick={() => {}}>Filters</Button>
+        <Button variant="secondary" size="sm" icon={<SlidersHorizontal {...ICON_MD} />} onClick={() => {}}>
+          Filters
+        </Button>
       </div>
     </div>
   )
