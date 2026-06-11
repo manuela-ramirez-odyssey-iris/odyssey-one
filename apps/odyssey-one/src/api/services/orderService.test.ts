@@ -76,7 +76,10 @@ describe('orderService.getOrderList (mock)', () => {
   })
 
   it('ANDs across filter fields, ORs within an array', async () => {
-    // OR within: two customers
+    // single-value array narrows…
+    const basf = await getOrderList({ ...page(), filters: { customers: ['BASF_CHM_01'] } })
+    expect(basf.pagination.totalCount).toBe(2)
+    // …two values widen back to all 5 (OR within the array)
     const or = await getOrderList({ ...page(), filters: { customers: ['ERCO_SYS_01', 'BASF_CHM_01'] } })
     expect(or.pagination.totalCount).toBe(5)
     // AND across: BASF + Cancelled narrows to one
