@@ -4,7 +4,7 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClient } from './api/queryClient'
 import Home from './routes/Home.jsx'
 import Login from './routes/Login.jsx'
-import Orders from './routes/Orders.jsx'
+import OrdersRoute from './routes/orders/OrdersRoute.jsx'
 import Carriers from './routes/Carriers.jsx'
 import Tracking from './routes/Tracking.jsx'
 import Users from './routes/Users.jsx'
@@ -63,7 +63,7 @@ export default function App() {
             </>
           }
         />
-        <Route path="/orders" element={<Orders />} />
+        <Route path="/orders" element={<OrdersRoute />} />
         <Route path="/carriers" element={<Carriers />} />
         <Route path="/shipments/*" element={<ShipmentsRoute />} />
         <Route path="/tracking" element={<Tracking />} />
