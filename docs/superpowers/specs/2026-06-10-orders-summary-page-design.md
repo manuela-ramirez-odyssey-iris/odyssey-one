@@ -67,73 +67,74 @@ Rejected: AG Grid / MUI DataGrid (ship their own design systems, fight ours); ha
 
 ## 5. Data layer (`apps/odyssey-one/src/api/`)
 
-All TypeScript, mirroring the Shipments file pattern. **All field names provisional until live Swagger** — the mapper is the single reconciliation point.
+All TypeScript, mirroring the Shipments file pattern. Field names are **verbatim from the Order Service Phase-2 LLD** (fetched 2026-06-11); final confirmation against live Swagger remains, with the mapper as the single reconciliation point.
 
 ### `types/orderList.ts`
 
-Field names aligned to the **evidenced `/order/view` payload** (LINX-10700) — the list-row payload itself lives in the Confluence "Order Service Phase-2" LLD (not yet fetched; see Q30). The view payload establishes the service's naming conventions: flat `*Value`/`*UomCode` pairs, `origin*`/`destination*` prefixes, `customerId` as the owning-org key, status as a code/name object.
+Field names taken **verbatim from the "Order Service Phase-2" LLD** (Confluence 3401056276, fetched 2026-06-11; raw dump at `vault-sources/10-domains/orders/lld/order-service-phase-2.md`). The row is **role-nested** (consignor/consignee objects), exactly as section-map row 1 predicted.
 
 ```ts
-interface OrderListRow {            // raw API row — names per LINX-10700 conventions; list-row
-                                    // payload pending LLD (Q30)
-  orderId: number
-  orderNumber: string | null        // ID column displays this when present (LINX-11013)
-  customerId: string                // owning organization in payload terms (LINX-10700);
-                                    // composite key with orderNumber (LINX-9279)
-  orderDate: string                 // ISO creation timestamp (LINX-10700) — default sort anchor
-  orderSource: string               // provisional flattening of sourceApplication.sourceApplicationCode
-  shipDirectionCode: string
-  freightTermCode: string
-  equipmentNumber: string
-  originPartnerId: string           // = "Consignor Location ID" column (provisional mapping)
-  originCity: string; originRegion: string; originCountry: string
-  earliestPickupDateTime: string    // ISO — not evidenced in payloads yet (provisional)
-  latestPickupDateTime: string
-  destinationPartnerId: string      // = "Consignee Location ID" column (provisional mapping)
-  destinationCity: string; destinationRegion: string; destinationCountry: string
-  earliestDeliveryDateTime: string
-  latestDeliveryDateTime: string
-  grossWeightValue: number          // flat value+UomCode pairs per LINX-10700 (not nested objects)
-  grossWeightUomCode: string
-  volumeValue: number
-  volumeUomCode: string
-  commodity: string                 // provisional — no payload evidence
-  orderStatus: {                    // nested object per LINX-10700
-    orderStatusCode: OrderStatusCode
-    orderStatusName: string
+interface OrderListRow {            // verbatim from LLD /order/list response example
+  orderNumber: string               // "SUT355123" — the ID column value
+  orderSource: string               // "INTEGRATED"
+  customer: string                  // "SABIC_CLT" — display key; no separate customerId on the row
+  shipDirection: string             // "Inbound"
+  freightTerms: string              // "Pre-Paid"
+  equipment: string                 // "TL"
+  consignor: {
+    locationId: string              // "RGC-STL-001" — Origin cell prefix code
+    city: string; state: string; country: string
+    earliestPickupDateTime: string  // ISO
+    latestPickupDateTime: string
   }
+  consignee: {
+    locationId: string
+    city: string; state: string; country: string
+    earliestDeliveryDateTime: string
+    latestDeliveryDateTime: string
+  }
+  grossWeight: { value: number; uom: string }   // { 4300, "lbs" }
+  volume: { value: number; uom: string }        // { 730, "cbf" }
+  commodity: string                 // "Plastic"
+  orderStatus: string               // DISPLAY LABEL on the row ("Ready For Plan"), not a code
 }
 
-type OrderStatusCode =              // DA §4 (LINX-7555); "New" intentionally absent.
-                                    // Evidenced literals: 'HOLD' (LINX-9730 audit diff),
-                                    // 'DRAFT' (LINX-9282), 'RD_4_PLNNG' (LINX-8049).
-                                    // The other four are provisional names (Q32).
-  | 'DRAFT' | 'RD_4_PLNNG' | 'PLANNED_LOAD' | 'PLANNING_FAILED'
-  | 'PLANNED_SHIPMENT' | 'SHIPMENT_FAILED' | 'HOLD' | 'CANCELLED'
+type OrderStatusCode =              // /order-status/lookup enum (LLD) + DRAFT (create-order remark).
+                                    // NOTE: HOLD is NOT a status — it's a boolean orderHoldStatus
+                                    // flag on the order (LLD; resolves the old Hold-status question)
+  | 'DRAFT' | 'RD_4_PLNNG' | 'PLN_LD' | 'PLNED_SHIP'
+  | 'PLNNG_FAIL' | 'SHIP_FAIL' | 'CAN'
 
-interface OrderListParams {
-  pageNumber: number                // 0-based — confirmed (Manuela; LINX-6109 example "pageNumber": 0)
-  pageSize: number                  // 25 | 50 | 100, default 25 — interim (Q29: real max/default)
-  sortBy?: string                   // literal param names confirmed by LINX-11165
-  sortOrder?: 'asc' | 'desc'
-  statusScope?: OrderStatusCode[]   // future tab strip binds here (Q25)
-  filter?: {                        // Basic tier (LINX-10798/10809); supported by the service for tests +
-                                    // the future panel — the page sends no filter in THIS build
-    orderNumber?: string
-    orderStatus?: OrderStatusCode[] // OR within field
-    customerId?: string[]           // OR within field; EntityChip scope binds here later
-  }                                 // AND across fields
+interface OrderListRequest {        // verbatim request shape from LLD
+  pagination: {
+    pageNumber: number              // LLD list example is 1-BASED ("pageNumber": 1) but the sibling
+                                    // lookup example is 0-based — discrepancy tracked in Q29
+    pageSize: number                // LLD examples use 20; max not stated (Q29)
+  }
+  filters?: {                       // all-array filter object; the page sends none in THIS build.
+    customers?: string[]            // EntityChip scope binds here later
+    orderStatuses?: string[]        // future tab strip binds here (Q25)
+    orderNumbers?: string[]
+    originCities?: string[]; originStates?: string[]; originCountries?: string[]
+    destinationCities?: string[]; destinationStates?: string[]; destinationCountries?: string[]
+    earliestPickupDateFrom?: string; earliestPickupDateTo?: string
+    latestPickupDateFrom?: string; latestPickupDateTo?: string
+    earliestDeliveryDateFrom?: string; earliestDeliveryDateTo?: string
+    latestDeliveryDateFrom?: string; latestDeliveryDateTo?: string
+  }
+  sort?: { field: string; direction: 'asc' | 'desc' }  // LLD example default: orderNumber asc;
+                                                        // valid field list not stated (Q31)
 }
 
-interface OrderListResponse {
-  rows: OrderListRow[]              // envelope field names provisional (Q29) —
-  totalCount: number                // no story names the list envelope
-  pageNumber: number
-  pageSize: number
+interface OrderListResponse {       // verbatim envelope from LLD
+  success: boolean
+  orders: OrderListRow[]
+  pagination: { pageNumber: number; pageSize: number; totalCount: number }
+  error: string | null
 }
 ```
 
-Caveat: section-map row 1 describes the live response as "compact **role-nested** grid rows" — if rows nest consignor/consignee objects, only `types/` + `mapper/` change. **Default request:** `{ pageNumber: 0, pageSize: 25, sortBy: 'orderDate', sortOrder: 'desc' }` (newest first — A3 resolved).
+**Default request:** `{ pagination: { pageNumber: 1, pageSize: 20 }, sort: { field: 'orderNumber', direction: 'desc' } }`. The list row has **no `orderDate`**, so Manuela's newest-first default can't bind to a creation timestamp yet — `orderNumber desc` is the interim proxy; Q31 asks whether a date sort field is supported. Equipment/commodity/weight filters (advanced tier, LINX-10803/10810) are absent from the LLD filter object — flagged in Q30's residual.
 
 ### `mappers/mapOrderListRow.ts`
 
@@ -175,17 +176,19 @@ src/components/orders/
 - **Error:** message + Retry (`refetch`), Shipments pattern.
 - **Empty:** `EmptyState` component ("No orders found").
 
-## 8. Assumptions — status after review (Manuela 2026-06-10 + raw-dump evidence pass)
+## 8. Assumptions — status after review (Manuela 2026-06-10) + LLD fetch (2026-06-11)
 
 | # | Status | Resolution / what remains |
 | --- | --- | --- |
-| A1 | ✅ Resolved | `pageNumber` 0-based — confirmed by Manuela; corroborated by LINX-6109 sibling-API example (`"pageNumber": 0`) |
-| A2 | ⏳ Interim 25 | Pagination-only API confirmed (no full-list endpoint in stories). OPEN → Q29: real max/default page size + response envelope names; lives in the Confluence "Order Service Phase-2" LLD |
-| A3 | ✅ Resolved | **Newest first** (`orderDate` desc) per Manuela; `orderDate` evidenced on the view payload. OPEN → Q31: confirm it's on list rows + a valid `sortBy` |
-| A4 | ⏳ Open → Efrain | Single toolbar toggle feels limiting (Manuela) — header-click sorting intended? Build ships toggle-only meanwhile |
-| A5 | 🔶 Partially resolved | Row field names now aligned to the evidenced `/order/view` payload (LINX-10700). OPEN → Q30/Q32: list-row payload + full status-code value set |
-| A6 | ⏳ Open → Efrain | Loading/empty/error designs pending; provisional patterns (`EmptyState`, retry) meanwhile |
+| A1 | 🔶 Reopened, narrow | LLD `/order/list` example is **1-based** (`"pageNumber": 1`); sibling lookup example is 0-based. Build uses 1-based per the list example; confirm in Q29. One-line fix either way |
+| A2 | 🔶 Interim **20** | LLD examples use `pageSize: 20` → adopted as default (supersedes interim 25). Max + page-size options still open (Q29) |
+| A3 | 🔶 Blocked on Q31 | Manuela wants **newest first**, but the LLD list row has **no `orderDate`** and the example sort is `orderNumber asc`. Interim: `orderNumber desc` as newest-first proxy; Q31 asks for a date sort field |
+| A4 | ⏳ Open → Efrain | Single toolbar toggle feels limiting (Manuela) — header-click sorting intended? Build ships toggle-only meanwhile (Q33) |
+| A5 | ✅ Resolved | Full request/response payloads verbatim from the LLD (page 3401056276); types in §5 are no longer provisional. Status enum resolved incl. **HOLD = boolean flag, not a status** (Q32 ✓) |
+| A6 | ⏳ Open → Efrain | Loading/empty/error designs pending; provisional patterns (`EmptyState`, retry) meanwhile (Q34) |
 | A7 | ✅ Resolved in principle | Master data is **shared cross-domain** — order-service lookups proxy `/master-data/v1/*` (≈12 stories, e.g. LINX-6010/6011/6099/11163). Generator mirrors the Shipments pools (same customers/locations/equipment) for cross-domain consistency |
+
+LLD bonus finding for the deferred tab strip: **no count/badge endpoint exists** in the LLD — tab badge counts have no documented data source yet (folded into Q25's eventual answer).
 
 ## 9. Testing
 
