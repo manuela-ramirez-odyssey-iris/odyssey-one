@@ -71,59 +71,69 @@ All TypeScript, mirroring the Shipments file pattern. **All field names provisio
 
 ### `types/orderList.ts`
 
+Field names aligned to the **evidenced `/order/view` payload** (LINX-10700) — the list-row payload itself lives in the Confluence "Order Service Phase-2" LLD (not yet fetched; see Q30). The view payload establishes the service's naming conventions: flat `*Value`/`*UomCode` pairs, `origin*`/`destination*` prefixes, `customerId` as the owning-org key, status as a code/name object.
+
 ```ts
-interface OrderListRow {            // raw API row — names from LINX stories
-  orderId: string
+interface OrderListRow {            // raw API row — names per LINX-10700 conventions; list-row
+                                    // payload pending LLD (Q30)
+  orderId: number
   orderNumber: string | null        // ID column displays this when present (LINX-11013)
-  owningOrganizationId: string      // customer owner — composite key with orderNumber (LINX-9279)
-  customerName: string
-  orderSource: string
-  shipDirection: string
-  freightTerms: string
-  equipment: string
-  consignorLocationId: string
-  originCity: string; originState: string; originCountry: string
-  earliestPickupDateTime: string    // ISO
+  customerId: string                // owning organization in payload terms (LINX-10700);
+                                    // composite key with orderNumber (LINX-9279)
+  orderDate: string                 // ISO creation timestamp (LINX-10700) — default sort anchor
+  orderSource: string               // provisional flattening of sourceApplication.sourceApplicationCode
+  shipDirectionCode: string
+  freightTermCode: string
+  equipmentNumber: string
+  originPartnerId: string           // = "Consignor Location ID" column (provisional mapping)
+  originCity: string; originRegion: string; originCountry: string
+  earliestPickupDateTime: string    // ISO — not evidenced in payloads yet (provisional)
   latestPickupDateTime: string
-  consigneeLocationId: string
-  destinationCity: string; destinationState: string; destinationCountry: string
+  destinationPartnerId: string      // = "Consignee Location ID" column (provisional mapping)
+  destinationCity: string; destinationRegion: string; destinationCountry: string
   earliestDeliveryDateTime: string
   latestDeliveryDateTime: string
-  grossWeight: { value: number; uom: string }
-  volume: { value: number; uom: string }
-  commodity: string
-  orderStatus: OrderStatus
+  grossWeightValue: number          // flat value+UomCode pairs per LINX-10700 (not nested objects)
+  grossWeightUomCode: string
+  volumeValue: number
+  volumeUomCode: string
+  commodity: string                 // provisional — no payload evidence
+  orderStatus: {                    // nested object per LINX-10700
+    orderStatusCode: OrderStatusCode
+    orderStatusName: string
+  }
 }
 
-type OrderStatus =                  // DA §4 (LINX-7555); "New" intentionally absent.
-                                    // Only DRAFT/RD_4_PLNNG codes are confirmed; the rest are
-                                    // provisional names pending Swagger (see A5)
+type OrderStatusCode =              // DA §4 (LINX-7555); "New" intentionally absent.
+                                    // Evidenced literals: 'HOLD' (LINX-9730 audit diff),
+                                    // 'DRAFT' (LINX-9282), 'RD_4_PLNNG' (LINX-8049).
+                                    // The other four are provisional names (Q32).
   | 'DRAFT' | 'RD_4_PLNNG' | 'PLANNED_LOAD' | 'PLANNING_FAILED'
   | 'PLANNED_SHIPMENT' | 'SHIPMENT_FAILED' | 'HOLD' | 'CANCELLED'
 
 interface OrderListParams {
-  pageNumber: number                // 0-based (assumption A1)
-  pageSize: number                  // 25 | 50 | 100 (assumption A2)
-  sortBy?: string                   // OrderListRow key
+  pageNumber: number                // 0-based — confirmed (Manuela; LINX-6109 example "pageNumber": 0)
+  pageSize: number                  // 25 | 50 | 100, default 25 — interim (Q29: real max/default)
+  sortBy?: string                   // literal param names confirmed by LINX-11165
   sortOrder?: 'asc' | 'desc'
-  statusScope?: OrderStatus[]       // future tab strip binds here (Q25)
+  statusScope?: OrderStatusCode[]   // future tab strip binds here (Q25)
   filter?: {                        // Basic tier (LINX-10798/10809); supported by the service for tests +
                                     // the future panel — the page sends no filter in THIS build
     orderNumber?: string
-    orderStatus?: OrderStatus[]     // OR within field
+    orderStatus?: OrderStatusCode[] // OR within field
     customerId?: string[]           // OR within field; EntityChip scope binds here later
   }                                 // AND across fields
 }
 
 interface OrderListResponse {
-  rows: OrderListRow[]
-  totalCount: number                // toolbar item count
+  rows: OrderListRow[]              // envelope field names provisional (Q29) —
+  totalCount: number                // no story names the list envelope
   pageNumber: number
   pageSize: number
 }
 ```
 
-Caveat: section-map row 1 describes the live response as "compact **role-nested** grid rows" — actual nesting (e.g. consignor/consignee objects) unknown until Swagger. If nested, only `types/` + `mapper/` change.
+Caveat: section-map row 1 describes the live response as "compact **role-nested** grid rows" — if rows nest consignor/consignee objects, only `types/` + `mapper/` change. **Default request:** `{ pageNumber: 0, pageSize: 25, sortBy: 'orderDate', sortOrder: 'desc' }` (newest first — A3 resolved).
 
 ### `mappers/mapOrderListRow.ts`
 
@@ -143,7 +153,7 @@ Pure `mapOrderListRow(row: OrderListRow): OrderRowVM`. VM = flat display strings
 ### Fixture & generator
 
 - `fixtures/orderListRow.sample.ts` — small typed sample for mapper/service tests.
-- `tools/generate-orders.mjs` (new, separate from the shipments generator) — faker, **seed 42**, **4,509 rows** → `src/data/orders.json`; realistic distributions across the 8 statuses, ~15 customers, US city pairs, the 5 equipment types, chemical-leaning commodities. `src/data/orders.js` exports `getAllOrders()`.
+- `tools/generate-orders.mjs` (new, separate from the shipments generator) — faker, **seed 42**, **4,509 rows** → `src/data/orders.json`; realistic distribution across the 8 statuses. **Master-data pools (customers, locations, equipment, commodities) mirror the Shipments generator's pools** — master data is shared cross-domain in the real system (A7), so the fake data should be too. `src/data/orders.js` exports `getAllOrders()`.
 
 ## 6. UI structure (app-local)
 
@@ -165,17 +175,17 @@ src/components/orders/
 - **Error:** message + Retry (`refetch`), Shipments pattern.
 - **Empty:** `EmptyState` component ("No orders found").
 
-## 8. Assumptions (flagged — canon is silent; confirm with team)
+## 8. Assumptions — status after review (Manuela 2026-06-10 + raw-dump evidence pass)
 
-| # | Assumption | Basis |
+| # | Status | Resolution / what remains |
 | --- | --- | --- |
-| A1 | `pageNumber` 0-based | Shipments seam precedent |
-| A2 | Page sizes 25/50/100, default 25 | Shipments precedent |
-| A3 | Default sort: Earliest Pickup ascending | Operational guess — confirm |
-| A4 | Sorting = toolbar direction toggle on the default sort column only; no per-column header sorting this build | Design shows a lone direction icon, no header sort affordances |
-| A5 | Response envelope field names (`rows`/`totalCount`/…) | Provisional until Swagger |
-| A6 | Loading/empty/error visuals | No design; our patterns |
-| A7 | Fake-data status distribution | Invented, reproducible |
+| A1 | ✅ Resolved | `pageNumber` 0-based — confirmed by Manuela; corroborated by LINX-6109 sibling-API example (`"pageNumber": 0`) |
+| A2 | ⏳ Interim 25 | Pagination-only API confirmed (no full-list endpoint in stories). OPEN → Q29: real max/default page size + response envelope names; lives in the Confluence "Order Service Phase-2" LLD |
+| A3 | ✅ Resolved | **Newest first** (`orderDate` desc) per Manuela; `orderDate` evidenced on the view payload. OPEN → Q31: confirm it's on list rows + a valid `sortBy` |
+| A4 | ⏳ Open → Efrain | Single toolbar toggle feels limiting (Manuela) — header-click sorting intended? Build ships toggle-only meanwhile |
+| A5 | 🔶 Partially resolved | Row field names now aligned to the evidenced `/order/view` payload (LINX-10700). OPEN → Q30/Q32: list-row payload + full status-code value set |
+| A6 | ⏳ Open → Efrain | Loading/empty/error designs pending; provisional patterns (`EmptyState`, retry) meanwhile |
+| A7 | ✅ Resolved in principle | Master data is **shared cross-domain** — order-service lookups proxy `/master-data/v1/*` (≈12 stories, e.g. LINX-6010/6011/6099/11163). Generator mirrors the Shipments pools (same customers/locations/equipment) for cross-domain consistency |
 
 ## 9. Testing
 

@@ -57,6 +57,34 @@ source: "Gaps surfaced by [[10-domains/orders/domain-analysis|Orders domain anal
 - [ ] **Q27 — Auto-save model.** The banner "Required fields will complete steps. They are automatically saved" (screens 1–5) describes auto-save + auto-step-completion no text source mentions. What exactly is persisted, when, and how does it interact with Save / Save-for-Later / Discard? (Ramesh/Efrain)
 - [ ] **Q28 — Shipment Mode on confirmation.** Confirmation header shows "Shipment Mode: Ground" but Mode is never captured in the Quick form (screens 6/7). Derived from Equipment? Defaulted? (Ramesh)
 
+## From the Summary Page build review (added 2026-06-10, spec `2026-06-10-orders-summary-page-design.md`)
+
+Raised while reviewing the build assumptions with Manuela; raw-dump evidence already gathered where noted. **Lead for Q29/Q30/Q32:** the filter/list stories (LINX-10798/10799/10802/10803/10805) all anchor-link the Confluence **"Order Service Phase-2" LLD** for the `/order/list` payload — fetching that page may answer all three without a meeting.
+
+### Contract — Ramesh, devs
+- [ ] **Q29 — List pagination envelope + page size.** `pageNumber` (0-based) + `pageSize` naming confirmed via sibling API (LINX-6109); pagination-only confirmed (no full-list endpoint in stories). Remaining: response envelope field names (total count, rows array name) and default/max page size for `/order/list`. Interim build uses 25/50/100, default 25.
+- [ ] **Q30 — List-row payload shape.** No inline payload example for `POST /v3/order/list` exists in the story dumps; build aligns field names to the `/order/view` payload conventions (LINX-10700: flat `*Value`/`*UomCode`, `origin*`/`destination*`, `customerId`, nested `orderStatus{orderStatusCode,orderStatusName}`). Confirm against the LLD/Swagger; also whether rows are "role-nested" (section-map row 1).
+- [ ] **Q31 — Default sort + sortable fields.** Manuela chose **newest first** as the UX default. `sortBy`/`sortOrder` param names confirmed (LINX-11165); `orderDate` exists on the view payload. Confirm `orderDate` is on list rows, is a valid `sortBy`, and which other columns are sortable.
+- [ ] **Q32 — Status code value set.** Evidenced literals: `HOLD` (LINX-9730), `DRAFT` (LINX-9282), `RD_4_PLNNG` (LINX-8049). The remaining codes (Planned Load, Planning Failed, Planned Shipment, Shipment Failed, Cancelled) have no evidenced string values — build uses provisional names. Get the full enum (backend docs or business logic).
+
+### Design — Efrain
+- [ ] **Q33 — Grid sorting affordance.** Screen 0 shows a single toolbar sort-direction toggle — Manuela finds toggle-only limiting. Header-click column sorting intended? Build ships toggle-only meanwhile.
+- [ ] **Q34 — Grid loading / empty / error states.** Not in the design exports; build uses provisional patterns (`EmptyState`, retry button) until designed.
+- [ ] *(also for Efrain, from the build scope)*: export of the **open filter panel** — blocks the filter-panel build that follows the Summary Page.
+
+### 📌 Reminder — Summary Page deferred list (not questions; build follow-ups)
+
+From the approved spec §2 — each is rendered-but-inert (✋) or absent (∅) in build #1:
+1. ✋ **Filter panel** — next build, after Efrain's open-panel export
+2. ∅ **Tab strip** — blocked on Q25
+3. ✋ **Create Order** button — create-form build (#3)
+4. ✋ **Row three-dot actions** (View/Edit/Copy/Cancel/Restore/Delete) — per-action builds
+5. ✋ **ID link navigation** — order detail build (#2)
+6. ∅ **Column management** — partly blocked on Q1 (saved-views API)
+7. ✋ **Bulk actions** (checkboxes select; no action bar) — Q5
+8. ∅ **CSV export** — contract known; quick follow-up
+9. ∅ **EntityChip ↔ customer scope wiring** — param exists in the data layer
+
 ## Known defects (confirm fix-in-rebuild, don't replicate)
 
 - Location dropdown lookups inconsistent (LINX-11155/11156/11157, LINX-10246)
