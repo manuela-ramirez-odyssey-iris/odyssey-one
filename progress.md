@@ -3940,13 +3940,64 @@ Two correction rounds before any tool ran (the gateway discipline earning its ke
 
 ---
 
+## Session 50b — June 10–11, 2026 (parallel normalization session)
+
+A `/normalize` cycle run alongside the Orders session: **ButtonToggle** (new molecule) + **PageHeader** update (node `1693:49`). Library at **45 normalized components** (+ButtonToggle); Code Connect published (ButtonToggle new + PageHeader extended); build green. On `shipments/global-search`. **No deploy.** Figma library published by user.
+
+- **ButtonToggle** (`2978:330`, Components-Molecules) — Apple-style two-option icon toggle, componentized from Efrain's hand-built frame inside PageHeader. `Selected=First|Second` set + `First icon`/`Second icon` INSTANCE_SWAP (placeholder-20). **Composition contract:** the selected segment is a nested **Button (Icon/sm)** instance in Figma (exposed; icon + State set there — the swap props only reach the unselected bare icon since Figma can't pierce nested-instance props); in code a sliding thumb mirrors `.btn--icon`'s state ladder via `:has()` so the slide survives (user-decided trade-off). Unselected hover darkens icon DSN/500→700 — code+DSM only per the control state model (logged in Pending Figma Sync). Token wins: track fill was raw `#F2F3F5` with a foreign hyphenated label → bound to our DSN/100; everything else mapped to existing tokens, zero new tokens.
+- **PageHeader** — API grew 3 BOOLEANs (`Show toggle`/`Show link`/`Show button`, default true) wired to the Actions children's visibility; cluster renamed (was "Frame 7178") + gap rebound 18→Spacing/4. In code, children render in a `.page-header__actions` flex cluster (gap `--spacing-4`); booleans = children presence. Nested instances deliberately NOT exposed (panel = Title + 3 toggles, per user). 7 title-only route consumers unaffected.
+- **Drift repairs along the way:** (1) Button master — all four `Variant=Icon` states had unwired `Icon`/`Show icon` property references (Efrain had deep-swapped as a workaround); mirrored Primary's refs so the swap finally propagates. (2) `.btn--link`'s blanket `align-self: flex-start` (session 22) broke centering in row clusters — removed; column consumers opt in (`.widget > .btn--link`, `.auth-content__forgot`). Alert/DocumentsTab links now center correctly too.
+- **Code Connect pattern note:** boolean-gated **JSX literals** (`figma.boolean('Show toggle', { true: <ButtonToggle …/> })`) parse fine — ternaries in `example` still don't (FieldSelect lesson).
+
+---
+
+## Session 51 — June 10–11, 2026
+
+**Orders Phase 1 opened — the Order Summary Page spec, from brainstorm to LLD-verbatim contract.** Fable main-thread per the gateway (user `/model`-switched at the boundary). Superpowers brainstorm → approved design → committed spec → assumption review with Manuela → raw-dump evidence pass → **the Order Service Phase-2 LLD fetched and reconciled**, so the contract types are now verbatim from engineering docs, not inferences. A major provenance error in the S50 canon was caught and fixed. No code changes this session (Session 50b ran in parallel: ButtonToggle + PageHeader actions → library at **45**).
+
+### Thread 1 — Brainstorm + scope corrections (Superpowers)
+
+- Parallel Sonnet Explore pass (canon + API seam) fed the brainstorm. Scope settled through Q&A: **build the Summary Page (screen 0) end-to-end in mock mode** — the docs exist so backend wiring works later, *not* to redesign (the design exists); **grid + pagination first** (filter panel deferred until Efrain exports the open panel); **app-local first** (normalize grid pieces in Phase 2, GlobalSearch-v1 playbook).
+- **User corrections that reshaped the plan:** (1) the 18 screenshots are **Efrain's Figma design JPG exports, not Angular captures** — see Thread 2; (2) it's the **"Order Summary Page"**, not "landing page"; dropped "slice" wording; (3) **don't clone the rushed ShipmentTable** — picked **TanStack Table v8** (headless: logic only, we own markup/tokens; re-skins cleanly when table normalization lands; `manualPagination`/`manualSorting` matching the server-shaped service).
+- Angular Orders project: clone later as **business-logic reference only** (may answer open questions from code); its frontend is explicitly not a reference.
+
+### Thread 2 — Vault provenance correction (Sonnet)
+
+- S50 had recorded the screens as "live Angular UI captures" → every "fully built in Angular" claim was wrong; they are **design intent**. Sonnet edit pass across 5 canon files (`screens-reference` — dated correction note, `domain-analysis`, `section-map`, `open-questions`, `_moc`): "fully built" → "fully specified in Efrain's design", Q25 reframed as **stories vs Efrain's design**, all `(Screens: N)` citations preserved. The "Orders already built in Angular by full team" fact itself still stands.
+
+### Thread 3 — Spec written + assumption review
+
+- `docs/superpowers/specs/2026-06-10-orders-summary-page-design.md` — page composition (PageHeader + Create Order inert · toolbar count/sort/Filters-inert · 11-column lean grid · pagination), TanStack foundation, full data-layer plan (`types/mappers/services/queries/fixtures` mirroring Shipments), seeded ~4,509-row generator, 9-item deferred list, 7 flagged assumptions A1–A7.
+- Manuela's resolutions: A1 page-0 ✓ (later reopened by LLD), A2 keep 25 interim (later → 20), A3 **newest first**, A4 → ask Efrain (toggle-only feels limiting), A5 → check backend docs, A6 provisional states ✓, A7 → check docs + data likely shared.
+- **Raw-dump evidence pass (Sonnet, no MCP):** pagination-only API confirmed (no full-list endpoint); `sortBy`/`sortOrder` literals (LINX-11165); `/order/view` payload conventions (LINX-10700); **master data confirmed shared cross-domain** (~12 stories, order-service proxies `/master-data/v1/*`) → generator will reuse the Shipments customer/location/equipment pools. Spec types realigned; **Q29–Q34** added to open-questions (grouped Ramesh/devs vs Efrain) + 📌 deferred-list reminder section.
+
+### Thread 4 — LLD fetch + contract reconciliation
+
+- Rovo MCP died mid-session (Atlassian 404 → OAuth token loss); user `/login` re-auth fixed it. Sonnet then fetched **"Order Service Phase-2"** (Confluence 3401056276) → verbatim dump at `vault-sources/10-domains/orders/lld/` (untracked, S41 precedent).
+- **Spec §5 now verbatim from the LLD:** role-nested row (`consignor{}`/`consignee{}`, `grossWeight/volume {value,uom}`, `orderStatus` = **display string**, no `orderId`/`customerId`/`orderDate` on the row); envelope `{success, orders[], pagination{pageNumber,pageSize,totalCount}, error}`; request `{pagination, filters{all-array}, sort{field,direction}}`; pageSize **20**.
+- **Q32 ✓ resolved:** status enum `CAN/PLN_LD/PLNED_SHIP/PLNNG_FAIL/RD_4_PLNNG/SHIP_FAIL` + `DRAFT`; **HOLD is a boolean `orderHoldStatus` flag, not a status** — resolves the old Hold-status question. **Q30 ✓** (payload shape; residual: advanced-filter fields absent from LLD filter object). **Q29 narrowed** (list example 1-based vs lookup 0-based; max page size unknown). **Q31 narrowed** (no `orderDate` on row → newest-first needs a date sort field; interim proxy `orderNumber desc`). **Q35 new** (no tab-badge count endpoint exists).
+
+### Files
+
+**New:** spec `2026-06-10-orders-summary-page-design.md`; `vault-sources/10-domains/orders/lld/order-service-phase-2.md` (untracked). **Modified:** 5 Orders vault files (provenance), `open-questions.md` (Q29–Q35 + reminder), spec (two reconciliation rounds), `progress.md`. **Commits:** `51e209e` spec · `f5e623d` provenance · `7325c95` A-resolutions + Q29–34 · `2e7163c` LLD reconciliation.
+
+### Carry-forward to Session 52
+
+- **Implementation plan (writing-plans) → GATE A → build.** Spec is approved-in-conversation and LLD-reconciled; plan the build (TanStack Table dep, generator, data layer, page) and execute via subagent-driven development. Create Order goes in PageHeader's new actions cluster (`Show button`, S50b).
+- **Table normalization with Efrain** expected ~today — lands as the re-skin of the TanStack rendering layer.
+- **Question push with the team:** Q25 (tabs — blocks the tab strip), Q29 (1- vs 0-based + max page size), Q31 (date sort field for newest-first), Q33/Q34 + filter-panel export (Efrain), Q35 (badge counts). Q30/Q32 resolved — graduate into canon with LLD citations during the next canon pass.
+- **Optional:** clone Orders Angular repo (business-logic reference only).
+
+---
+
 ## What's Next
 
-### Session 51 Priorities
+### Session 52 Priorities
 
-1. **Orders Phase 1 — spec + contract for slice 1 (Overview grid).** See Session 50 carry-forward. Model gateway at the boundary; GATE A before code.
-2. **Question push** — bring `vault/10-domains/orders/open-questions.md` to the team; record answers inline; graduate resolved items into the canon with sources.
-3. **Remaining Orders normalizations** — slot into Phase 2 vertical slices per the screens-reference component-gap table.
+1. **Orders Summary Page — implementation plan + build.** writing-plans → GATE A → TanStack grid + data layer + generator (see S51 carry-forward).
+2. **Question push** — Q25/Q29/Q31/Q33/Q34/Q35 to the team; record answers inline; graduate Q30/Q32 (+ resolved ones) into the canon with sources.
+3. **Table normalization** cycle when Efrain's Figma lands — re-skin of the TanStack rendering layer.
+4. **Remaining Orders normalizations** — Phase 2 per the screens-reference component-gap table.
 
 ### Prior priorities (carried, now behind the Orders arc)
 
