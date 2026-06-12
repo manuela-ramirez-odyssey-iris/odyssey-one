@@ -34,11 +34,18 @@ export default function GeneralInformationSection() {
   // overwrite (Q20 bug fix, 2026-06-11).
   const freightTouched = useRef(false)
 
-  // Draft reopen: a hydrated draft that carries Long-only data should open Long
+  // Draft reopen: a hydrated draft that carries Long-only data should open Long.
+  // Also re-arms freightTouched when the hydrated freightTerm diverges from the
+  // Q20 direction default — meaning the user made a deliberate pick in a prior
+  // session and that pick must survive future Ship Direction changes.
   useEffect(() => {
     const g = getValues('general')
     if (g.carrierScac || g.equipmentReferenceNumber || g.instructions.length > 0) {
       setIsLongMode(true)
+    }
+    const directionDefault = g.shipDirection === 'Inbound' ? 'COL' : 'Pre-Paid'
+    if (g.freightTerm && g.freightTerm !== directionDefault) {
+      freightTouched.current = true // re-arm: hydrated value was a deliberate user pick
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -60,6 +67,7 @@ export default function GeneralInformationSection() {
           render={({ field }) => (
             <div>
               <FormField
+                id="co-general-orderNumber"
                 label="Order Number"
                 placeholder="Enter an ID"
                 value={field.value}
@@ -75,6 +83,7 @@ export default function GeneralInformationSection() {
           control={control}
           render={({ field, fieldState }) => (
             <TypeaheadSelect
+              id="co-general-owningOrganization"
               label="Owning Organization *"
               placeholder="Search an organization"
               lookupType="owning-org"
@@ -95,6 +104,7 @@ export default function GeneralInformationSection() {
           control={control}
           render={({ field, fieldState }) => (
             <TypeaheadSelect
+              id="co-general-equipment"
               label="Equipment *"
               placeholder={owningOrg ? 'Search equipment' : 'Pick an Owning Organization first'}
               lookupType="equipment"
@@ -112,6 +122,7 @@ export default function GeneralInformationSection() {
           control={control}
           render={({ field, fieldState }) => (
             <SelectField
+              id="co-general-freightTerm"
               label="Freight Term *"
               options={FREIGHT_TERMS}
               value={field.value}
@@ -129,6 +140,7 @@ export default function GeneralInformationSection() {
           control={control}
           render={({ field, fieldState }) => (
             <SelectField
+              id="co-general-shipDirection"
               label="Ship Direction *"
               options={SHIP_DIRECTIONS}
               value={field.value}
@@ -207,6 +219,7 @@ export default function GeneralInformationSection() {
                 control={control}
                 render={({ field }) => (
                   <TypeaheadSelect
+                    id="co-general-carrierScac"
                     label="Customer Required Carrier"
                     placeholder="Select a Carrier"
                     lookupType="carrier"
@@ -221,6 +234,7 @@ export default function GeneralInformationSection() {
                 control={control}
                 render={({ field }) => (
                   <FormField
+                    id="co-general-equipmentReferenceNumber"
                     label="Equipment Reference Number"
                     placeholder="Enter the Equipment Numbers"
                     value={field.value}

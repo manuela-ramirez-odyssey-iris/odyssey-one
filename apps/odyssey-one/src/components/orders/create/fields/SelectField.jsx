@@ -7,6 +7,12 @@ import { FormField } from '@odyssey/ui'
  * as the trigger; FormField spreads unknown props onto its <input>, so
  * readOnly/onMouseDown/onKeyDown land there). Lean stand-in for the future
  * normalized dropdown (SHP-66); options: [{ value, label }].
+ *
+ * Keyboard: ArrowDown on closed trigger opens; ArrowDown/Up move active option
+ * (wrapping); Enter/Space select active; Escape closes + returns focus to
+ * trigger. ARIA: role=combobox on trigger, role=listbox on list, role=option
+ * + ids on items, aria-activedescendant tracks active item (mirrors
+ * OrderRowActionMenu aria discipline, S52).
  */
 export default function SelectField({
   label,
@@ -20,13 +26,37 @@ export default function SelectField({
   id,
 }) {
   const [open, setOpen] = useState(false)
+  const [activeIdx, setActiveIdx] = useState(-1)
   const wrapRef = useRef(null)
   const selectedOption = options.find((o) => o.value === value)
+
+  // Stable ids for ARIA wiring
+  const listId = id ? `${id}-listbox` : undefined
+  const getOptionId = (idx) => (id ? `${id}-option-${idx}` : undefined)
+
+  // Seed active index to the currently selected option when opening
+  const openDropdown = () => {
+    const idx = options.findIndex((o) => o.value === value)
+    setActiveIdx(idx >= 0 ? idx : 0)
+    setOpen(true)
+  }
+
+  const closeDropdown = () => {
+    setOpen(false)
+    setActiveIdx(-1)
+  }
+
+  const selectActive = () => {
+    if (activeIdx >= 0 && activeIdx < options.length) {
+      onChange(options[activeIdx].value)
+      closeDropdown()
+    }
+  }
 
   useEffect(() => {
     if (!open) return
     const onDown = (e) => {
-      if (!wrapRef.current?.contains(e.target)) setOpen(false)
+      if (!wrapRef.current?.contains(e.target)) closeDropdown()
     }
     document.addEventListener('mousedown', onDown)
     return () => document.removeEventListener('mousedown', onDown)
@@ -46,28 +76,54 @@ export default function SelectField({
         trailingIcon={<ChevronDown size={16} />}
         readOnly
         style={{ cursor: disabled ? 'default' : 'pointer' }}
+        role="combobox"
+        aria-expanded={open}
+        aria-haspopup="listbox"
+        aria-controls={open ? listId : undefined}
+        aria-activedescendant={activeIdx >= 0 ? getOptionId(activeIdx) : undefined}
         onMouseDown={(e) => {
           e.preventDefault()
-          if (!disabled) setOpen(o => !o)
+          if (!disabled) open ? closeDropdown() : openDropdown()
         }}
         onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
+          if (disabled) return
+          if (e.key === 'ArrowDown') {
             e.preventDefault()
-            if (!disabled) setOpen(o => !o)
+            if (!open) { openDropdown(); return }
+            setActiveIdx((i) => (i + 1) % options.length)
+          } else if (e.key === 'ArrowUp') {
+            e.preventDefault()
+            if (!open) { openDropdown(); return }
+            setActiveIdx((i) => (i <= 0 ? options.length - 1 : i - 1))
+          } else if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            if (!open) { openDropdown(); return }
+            selectActive()
+          } else if (e.key === 'Escape') {
+            e.preventDefault()
+            closeDropdown()
+            // focus returns to the trigger automatically (it's already focused)
           }
-          if (e.key === 'Escape') setOpen(false)
         }}
       />
       {open && !disabled && (
-        <div className="co-dropdown" onMouseDown={(e) => e.preventDefault()}>
-          {options.map((opt) => (
+        <div
+          id={listId}
+          role="listbox"
+          className="co-dropdown"
+          onMouseDown={(e) => e.preventDefault()}
+        >
+          {options.map((opt, idx) => (
             <button
               key={opt.value}
+              id={getOptionId(idx)}
               type="button"
-              className="co-dropdown__item"
+              role="option"
+              aria-selected={opt.value === value}
+              className={`co-dropdown__item${activeIdx === idx ? ' co-dropdown__item--active' : ''}`}
               onClick={() => {
                 onChange(opt.value)
-                setOpen(false)
+                closeDropdown()
               }}
             >
               <span className="text-label-sm-regular">{opt.label}</span>
