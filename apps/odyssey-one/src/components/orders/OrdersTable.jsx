@@ -56,8 +56,16 @@ const COLUMNS = [
   }),
   columnHelper.accessor('idLabel', {
     header: 'ID',
-    // Link-styled, navigates nowhere yet — order detail build wires it (spec §2)
-    cell: info => <Button variant="link">{info.getValue()}</Button>,
+    // Link-styled. Draft rows navigate to the create-form reopen; other rows
+    // stay inert until the order-detail build (spec §2).
+    cell: info => (
+      <Button
+        variant="link"
+        onClick={() => info.table.options.meta?.onRowIdClick?.(info.row.original)}
+      >
+        {info.getValue()}
+      </Button>
+    ),
   }),
   columnHelper.accessor('customer', {
     header: 'Customer',
@@ -81,7 +89,7 @@ const COLUMNS = [
 // `children` renders inside the scroll container after the table — the
 // pagination footer lives there so it sits at the END of the scroll
 // (never anchored to the window).
-export default function OrdersTable({ rows, rowSelection, onRowSelectionChange, children }) {
+export default function OrdersTable({ rows, rowSelection, onRowSelectionChange, onRowIdClick, children }) {
   const headRef = useRef(null)       // sticky strip (overflow hidden, programmatic scrollLeft)
   const wrapRef = useRef(null)       // body horizontal scroller
   const headTableRef = useRef(null)
@@ -159,6 +167,7 @@ export default function OrdersTable({ rows, rowSelection, onRowSelectionChange, 
     getCoreRowModel: getCoreRowModel(),
     manualPagination: true,
     manualSorting: true,
+    meta: { onRowIdClick },
   })
 
   const totalWidth = colWidths ? colWidths.reduce((a, b) => a + b, 0) : 0

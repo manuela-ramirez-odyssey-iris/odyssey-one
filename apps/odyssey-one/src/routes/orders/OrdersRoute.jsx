@@ -70,6 +70,12 @@ export default function OrdersRoute() {
             rows={data.rows}
             rowSelection={rowSelection}
             onRowSelectionChange={setRowSelection}
+            onRowIdClick={(row) => {
+              // Draft rows reopen in the create form (spec §4); others stay
+              // inert until the order-detail build. Draft key = orderNumber
+              // (plan decision 17 — the save-gate guarantees one).
+              if (row.status === 'Draft') navigate(`/orders/create?draft=${encodeURIComponent(row.id)}`)
+            }}
           >
             <OrdersTablePagination
               pageNumber={pageNumber}
