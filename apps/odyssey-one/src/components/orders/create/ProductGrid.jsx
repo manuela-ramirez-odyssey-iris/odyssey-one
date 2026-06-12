@@ -175,7 +175,9 @@ export default function ProductGrid({ products, system, search, sortDir, onChang
         <tbody>
           {visible.length === 0 && editing !== 'new' && (
             <tr>
-              <td colSpan={7} className="co-product-empty text-label-sm-regular">0 products added</td>
+              <td colSpan={7} className="co-product-empty text-label-sm-regular">
+                {products.length > 0 ? 'No products match your search.' : '0 products added'}
+              </td>
             </tr>
           )}
           {visible.map((p, i) =>
