@@ -1,0 +1,388 @@
+/* Create Order flow — app-local styles (spec §2; normalization candidates
+   land in the parallel session, so every class here is a swap seam).
+   Token discipline: colors/radii/type/shadows via tokens only. */
+
+.create-order-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  gap: var(--spacing-4);
+}
+
+.co-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  color: var(--text-tertiary);
+}
+
+.co-breadcrumb a {
+  color: var(--text-tertiary);
+  text-decoration: none;
+}
+
+.co-breadcrumb a:hover {
+  color: var(--text-secondary);
+  text-decoration: underline;
+}
+
+/* ── Sections (accordion stack — the Accordion owns the rail) ── */
+
+.co-sections {
+  display: flex;
+  flex-direction: column;
+}
+
+.co-section-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+}
+
+.co-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-4) var(--spacing-6);
+  align-items: start;
+}
+
+.co-subhead {
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.co-field-hint {
+  margin: var(--spacing-1) 0 0;
+  color: var(--text-tertiary);
+}
+
+.co-field-warning {
+  margin: var(--spacing-1) 0 0;
+  color: var(--badge-yellow-text);
+}
+
+.co-link-row {
+  display: flex;
+  align-items: center;
+}
+
+/* ── Typeahead / select dropdowns ───────────────────────── */
+
+.co-typeahead {
+  position: relative;
+}
+
+.co-dropdown {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0;
+  right: 0;
+  z-index: 60;
+  max-height: 280px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  padding: var(--spacing-1) 0;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+}
+
+.co-dropdown__item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  border: none;
+  background: transparent;
+  text-align: left;
+  padding: var(--spacing-2) var(--spacing-4);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.co-dropdown__item:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.co-dropdown__item-desc {
+  color: var(--text-tertiary);
+}
+
+.co-dropdown__status {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-2) var(--spacing-4);
+  color: var(--text-tertiary);
+}
+
+/* ── Repeatable rows (references / instructions) ────────── */
+
+.co-rep {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  align-items: flex-start;
+}
+
+.co-rep__grid {
+  display: grid;
+  gap: var(--spacing-2) var(--spacing-3);
+  align-items: center;
+  width: 100%;
+}
+
+.co-rep__head {
+  color: var(--text-secondary);
+}
+
+.co-rep__num,
+.co-rep__locked {
+  color: var(--text-primary);
+}
+
+/* ── Pickup & Delivery ──────────────────────────────────── */
+
+.co-party-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-8);
+  align-items: start;
+}
+
+.co-party {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  align-items: flex-start;
+}
+
+.co-party > .co-typeahead {
+  width: 100%;
+}
+
+.co-party__title {
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.co-address-grid,
+.co-contact-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-4);
+  width: 100%;
+}
+
+.co-planning {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.co-radio-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-8);
+}
+
+.co-date-groups {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-6);
+}
+
+.co-triad {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: var(--spacing-3);
+  align-items: start;
+}
+
+/* ── Product Information ────────────────────────────────── */
+
+.co-product-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-4);
+}
+
+.co-product-search {
+  width: 280px;
+}
+
+.co-product-toolbar__right {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-4);
+}
+
+.co-product-count {
+  margin: 0;
+  color: var(--text-tertiary);
+}
+
+.co-product-table-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  align-items: flex-start;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-2) var(--spacing-4) var(--spacing-4);
+  background: var(--bg-primary);
+  width: 100%;
+  overflow-x: auto;
+}
+
+.co-product-table-wrap .odyssey-table {
+  min-width: 880px;
+}
+
+.co-product-empty {
+  color: var(--text-tertiary);
+  text-align: center;
+}
+
+.co-cell-measure {
+  display: grid;
+  grid-template-columns: minmax(72px, 1fr) minmax(88px, auto);
+  gap: var(--spacing-2);
+  align-items: start;
+}
+
+.co-inline-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+/* Editor-row cells host inputs; loosen the read-row nowrap */
+.co-product-editor td {
+  white-space: normal;
+  vertical-align: top;
+}
+
+/* ── Special Services ───────────────────────────────────── */
+
+.co-services {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  align-items: stretch;
+}
+
+.co-services .co-typeahead {
+  max-width: 480px;
+}
+
+.co-services-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.co-services-table th,
+.co-services-table td {
+  text-align: left;
+  padding: var(--spacing-3) var(--spacing-4);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.co-services-table th {
+  color: var(--text-secondary);
+}
+
+.co-services-table td {
+  color: var(--text-primary);
+}
+
+.co-dropdown--table .co-services-table tbody tr {
+  cursor: pointer;
+}
+
+.co-dropdown--table .co-services-table tbody tr:hover td {
+  background: var(--bg-secondary);
+}
+
+/* ── Sticky footer ──────────────────────────────────────── */
+
+.co-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 30;
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-4);
+  padding: var(--spacing-4) var(--spacing-6);
+  background: var(--bg-primary);
+  border-top: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-md);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+.co-footer__right {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
+/* ── Modal footer ───────────────────────────────────────── */
+
+.co-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--spacing-3);
+}
+
+.co-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  color: var(--text-secondary);
+}
+
+/* ── Confirmation (screens 6/7) ─────────────────────────── */
+
+.co-confirm-strip {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-10);
+  padding: var(--spacing-4) var(--spacing-6);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+}
+
+.co-kv {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--spacing-4) var(--spacing-6);
+}
+
+.co-kv__item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.co-kv__label {
+  color: var(--text-tertiary);
+}
+
+.co-kv__value {
+  color: var(--text-primary);
+}
+
+.co-confirm-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
