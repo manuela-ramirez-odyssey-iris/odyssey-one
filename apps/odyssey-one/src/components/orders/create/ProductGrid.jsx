@@ -127,7 +127,16 @@ function ProductRowEditor({ index, initial, onSave, onCancel }) {
         <div className="co-product-actions">
           <Button variant="secondary" size="sm" onClick={onCancel}>Cancel</Button>
           <Button variant="primary" size="sm" onClick={handleSave}>Save</Button>
-          <Button variant="icon" size="sm" icon={<Maximize2 size={16} />} aria-label="Expand row (coming soon)" disabled />
+          {/* ⤢ is a bare clickable icon (icon-hover convention), not an icon-button
+              variant. Inert for now — expand-to-full-editor is coming soon. */}
+          <button
+            type="button"
+            className="co-product-edit-btn"
+            aria-label="Expand row (coming soon)"
+            disabled
+          >
+            <Maximize2 size={16} aria-hidden="true" />
+          </button>
         </div>
       </td>
     </tr>

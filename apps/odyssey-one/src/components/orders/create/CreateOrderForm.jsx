@@ -43,7 +43,7 @@ export default function CreateOrderForm({ draftKey, onSubmitted }) {
   const [expanded, setExpanded] = useState({
     general: true, pickupDelivery: false, products: false, specialServices: false,
   })
-  const [bannerOpen, setBannerOpen] = useState(true)
+  const [bannerOpen, setBannerOpen] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
   const [saveGateError, setSaveGateError] = useState('')
   const [saveNotice, setSaveNotice] = useState('')
@@ -52,6 +52,14 @@ export default function CreateOrderForm({ draftKey, onSubmitted }) {
   const status = useSectionStatus(control)
   const createOrderMutation = useCreateOrder()
   const saveDraftMutation = useSaveDraft()
+
+  // The intro banner slides in 1s after the screen mounts (not on first paint),
+  // so it reads as a deliberate hint rather than chrome. Once dismissed it stays
+  // closed — the timer only fires once.
+  useEffect(() => {
+    const t = setTimeout(() => setBannerOpen(true), 1000)
+    return () => clearTimeout(t)
+  }, [])
 
   // ── Draft reopen (spec §4): /orders/create?draft=<orderNumber> ──
   useEffect(() => {
@@ -188,9 +196,11 @@ export default function CreateOrderForm({ draftKey, onSubmitted }) {
         </PageHeader>
 
         {bannerOpen && (
-          <Alert variant="warning" onClose={() => setBannerOpen(false)}>
-            Required fields will complete steps.
-          </Alert>
+          <div className="co-banner-enter">
+            <Alert variant="warning" onClose={() => setBannerOpen(false)}>
+              Required fields will complete steps.
+            </Alert>
+          </div>
         )}
 
         {saveGateError && (

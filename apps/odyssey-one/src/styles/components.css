@@ -3051,6 +3051,13 @@ button.filter-suggestions__chip:active {
   /* 6px geometric padding around the 20px chevron (off-scale; component-internal) */
   padding: 6px;
   color: var(--text-tertiary);
+  transition: color var(--transition-fast);
+}
+
+/* Icon-hover convention (matches .icon-action): tertiary → primary when the
+   header is hovered. */
+.accordion__header:hover .accordion__icon-wrapper {
+  color: var(--text-primary);
 }
 
 .accordion__chevron {
@@ -3086,7 +3093,7 @@ button.filter-suggestions__chip:active {
 }
 
 .accordion__content {
-  margin-top: var(--spacing-8);
+  margin-top: var(--spacing-6);
 }
 
 /* Reserves the stub's footprint in the flow (32 gap + 16 line slot) for

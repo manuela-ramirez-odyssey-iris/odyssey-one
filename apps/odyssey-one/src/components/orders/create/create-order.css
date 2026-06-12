@@ -20,6 +20,30 @@
   gap: var(--spacing-4);
 }
 
+/* Intro banner reveal — mounts 1s after the screen (CreateOrderForm timer).
+   Animates its own HEIGHT open (grid-rows 0fr→1fr, the accordion-reveal
+   mechanism) + a fade, so the content below eases down instead of snapping —
+   no layout jolt. Same timing curve as the accordion reveal for consistency. */
+@keyframes co-banner-in {
+  from { grid-template-rows: 0fr; opacity: 0; }
+  to { grid-template-rows: 1fr; opacity: 1; }
+}
+
+.co-banner-enter {
+  display: grid;
+  grid-template-rows: 1fr;
+  animation: co-banner-in var(--transition-reveal) both;
+}
+
+.co-banner-enter > * {
+  overflow: hidden;
+  min-height: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .co-banner-enter { animation: none; }
+}
+
 .co-breadcrumb {
   display: flex;
   align-items: center;
@@ -605,7 +629,7 @@
   background: var(--bg-primary);
   border-top: 1px solid var(--border-subtle);
   /* No box-shadow (Efrain screenshot 1) */
-  margin-bottom: 30px;
+  margin-top: 30px;
 }
 
 /* Inner row: Cancel left · Save+Create right — aligns with the form's
