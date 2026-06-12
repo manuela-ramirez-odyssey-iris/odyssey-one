@@ -212,11 +212,23 @@
 
 /* ── Pickup & Delivery ──────────────────────────────────── */
 
+/* Vertical divider between Consignor | Consignee lives on the first column's
+   right edge; the gap is split into per-column padding so the line sits
+   centered in the gutter (Efrain: P&D lines, inbox 2026-06-12). */
 .co-party-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--spacing-8);
-  align-items: start;
+  /* columns stretch to equal height so the divider spans the full block
+     regardless of which side is expanded */
+}
+
+.co-party-grid > .co-party:first-child {
+  padding-right: var(--spacing-8);
+  border-right: 1px solid var(--border-subtle);
+}
+
+.co-party-grid > .co-party:last-child {
+  padding-left: var(--spacing-8);
 }
 
 .co-party {

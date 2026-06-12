@@ -71,7 +71,13 @@ function PartyColumn({ side, title }) {
           Add Location Manually
         </Button>
       )}
-      {manualMode && <AddressFields basePath={base} />}
+      {manualMode && (
+        <>
+          <hr className="co-divider" />
+          <AddressFields basePath={base} />
+        </>
+      )}
+      <hr className="co-divider" />
       <Button
         variant="link"
         iconRight={showContact ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
@@ -189,6 +195,8 @@ export default function PickupDeliverySection() {
         <PartyColumn side="consignor" title="Consignor" />
         <PartyColumn side="consignee" title="Consignee" />
       </div>
+
+      <hr className="co-divider" />
 
       <div className="co-planning">
         <h3 id="co-pickupDelivery-planning-subhead" className="co-subhead text-label-base-medium">Planning Date/Time</h3>
