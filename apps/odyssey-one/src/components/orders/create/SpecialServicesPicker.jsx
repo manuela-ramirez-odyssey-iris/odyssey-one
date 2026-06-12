@@ -3,7 +3,7 @@ import { Trash2 } from 'lucide-react'
 import { Badge, Button, SearchField } from '@odyssey/ui'
 import { useLookup } from '../../../api/queries/useLookup'
 import { useDebouncedValue } from './fields/useDebouncedValue.js'
-import { useAnchoredPortal } from './fields/useAnchoredPortal.js'
+import { useAnchoredPortal } from './fields/useAnchoredPortal.jsx'
 
 /**
  * SpecialServicesPicker (spec §3.4, screens 5): search typeahead whose
