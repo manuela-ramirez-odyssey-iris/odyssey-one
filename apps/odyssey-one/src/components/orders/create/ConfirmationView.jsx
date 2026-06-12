@@ -218,8 +218,9 @@ export default function ConfirmationView({ data, values, variant }) {
             <tbody>
               {specialServices.length === 0 ? (
                 <tr>
-                  <td className="text-label-sm-regular" style={{ color: 'var(--text-tertiary)' }}>–</td>
-                  <td className="text-label-sm-regular" style={{ color: 'var(--text-tertiary)' }}>–</td>
+                  <td colSpan={2} className="text-label-sm-regular co-cell--empty">
+                    No special services added
+                  </td>
                 </tr>
               ) : (
                 specialServices.map((s) => (

@@ -310,6 +310,17 @@
   background: var(--bg-secondary);
 }
 
+/* Active (keyboard-highlighted) row in the services dropdown */
+.co-dropdown--table .co-services-table tbody tr.co-services-row--active td {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+/* Empty-state cell — used in services picker + confirmation view */
+.co-cell--empty {
+  color: var(--text-tertiary);
+}
+
 /* ── Sticky footer ──────────────────────────────────────── */
 
 .co-footer {

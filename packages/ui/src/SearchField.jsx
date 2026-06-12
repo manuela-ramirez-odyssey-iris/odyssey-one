@@ -23,6 +23,18 @@ export default function SearchField({
   onInfoClick,
   results = null,
   className = '',
+  // NOTE(normalization): onFocus/onBlur/onKeyDown/ARIA forwarded post-Figma — flag in tracker on next sync
+  onFocus,
+  onBlur,
+  onKeyDown,
+  // ARIA + role props forwarded to the input, not the wrapper div
+  role,
+  'aria-expanded': ariaExpanded,
+  'aria-controls': ariaControls,
+  'aria-activedescendant': ariaActiveDescendant,
+  'aria-autocomplete': ariaAutocomplete,
+  'aria-haspopup': ariaHasPopup,
+  id,
   ...rest
 }) {
   const [focused, setFocused] = useState(false)
@@ -54,12 +66,20 @@ export default function SearchField({
         aria-hidden="true"
       />
       <input
+        id={id}
         type="text"
         value={value}
         placeholder={placeholder}
         onChange={(e) => onChange?.(e.target.value)}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
+        onFocus={(e) => { setFocused(true); onFocus?.(e) }}
+        onBlur={(e) => { setFocused(false); onBlur?.(e) }}
+        onKeyDown={onKeyDown}
+        role={role}
+        aria-expanded={ariaExpanded}
+        aria-controls={ariaControls}
+        aria-activedescendant={ariaActiveDescendant}
+        aria-autocomplete={ariaAutocomplete}
+        aria-haspopup={ariaHasPopup}
         spellCheck={false}
         autoCorrect="off"
         autoCapitalize="off"
