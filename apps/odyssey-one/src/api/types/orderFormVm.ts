@@ -88,7 +88,10 @@ export interface OrderFormValues {
 }
 
 export function makeEmptyTriad(): DateTimeTriad {
-  return { date: '', time: '00:00', timezone: '' }
+  // time starts empty so the "Select Time" placeholder shows (fix capture
+  // 2026-06-12); the 00:00 default (LINX-7634) is applied at the wire by the
+  // mapper (`triad.time || '00:00'`), not here.
+  return { date: '', time: '', timezone: '' }
 }
 
 export function makeEmptyParty(): PartyValues {

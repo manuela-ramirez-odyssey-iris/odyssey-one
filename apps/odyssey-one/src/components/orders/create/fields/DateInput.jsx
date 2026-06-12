@@ -65,7 +65,7 @@ export default function DateInput({ label, showLabel = true, value, onChange, er
         id={id}
         label={label}
         showLabel={showLabel}
-        placeholder="MM/DD/YYYY"
+        placeholder="Select Date"
         value={value}
         onChange={(e) => onChange(maskDate(e.target.value))}
         error={error}

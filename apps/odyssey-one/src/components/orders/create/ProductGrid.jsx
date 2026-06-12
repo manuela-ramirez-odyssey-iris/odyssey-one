@@ -1,9 +1,8 @@
 import { useState } from 'react'
-import { Columns3, Maximize2, Plus } from 'lucide-react'
+import { Columns3, EllipsisVertical, Maximize2, Plus } from 'lucide-react'
 import { Button, FormField } from '@odyssey/ui'
 import TypeaheadSelect from './fields/TypeaheadSelect.jsx'
 import SelectField from './fields/SelectField.jsx'
-import OrderRowActionMenu from '../OrderRowActionMenu.jsx'
 import { productRowSchema } from './schema'
 import { convertMeasureDisplay } from './productMath'
 import { SHIP_CLASSES, UOM_WEIGHT, UOM_VOLUME } from '../../../data/master-data'
@@ -135,7 +134,8 @@ function ProductRowEditor({ index, initial, onSave, onCancel }) {
  * ProductGrid — `.odyssey-table` contract skin (S-handoff 2026-06-11); a
  * simple in-section table, deliberately NOT the OrdersTable sticky-header
  * architecture. Read rows show display-converted measures (US|Metric);
- * saved rows re-edit in place; three-dot menu = Edit/Delete.
+ * the row ⋮ directly enters inline edit (Cancel · Save · ⤢ — spec
+ * 2026-06-12 §B.2). Row Delete has no entry point yet (Efrain residual).
  * Class column label is the interim constant "Ship Class" (Q26 residual).
  */
 export default function ProductGrid({ products, system, search, sortDir, onChange }) {
@@ -156,7 +156,6 @@ export default function ProductGrid({ products, system, search, sortDir, onChang
     else onChange(products.map((p) => (p.id === editing ? row : p)))
     setEditing(null)
   }
-  const deleteRow = (id) => onChange(products.filter((p) => p.id !== id))
 
   return (
     <div className="co-product-table-wrap">
@@ -210,10 +209,18 @@ export default function ProductGrid({ products, system, search, sortDir, onChang
                   <span className="co-product-readbox text-label-sm-regular">{p.shipClass}</span>
                 </td>
                 <td className="co-product-col-manage">
-                  <OrderRowActionMenu
-                    actions={['Edit', 'Delete']}
-                    onAction={(action) => (action === 'Edit' ? setEditing(p.id) : deleteRow(p.id))}
-                  />
+                  {/* ⋮ is a direct edit trigger (spec 2026-06-12 §B.2): the row
+                      "expands" into the inline editor (Cancel · Save · ⤢).
+                      Delete entry point pending design — Efrain/Jana residual. */}
+                  <button
+                    type="button"
+                    className="co-product-edit-btn"
+                    aria-label="Edit product"
+                    aria-expanded={false}
+                    onClick={() => setEditing(p.id)}
+                  >
+                    <EllipsisVertical size={20} aria-hidden="true" />
+                  </button>
                 </td>
               </tr>
             ),

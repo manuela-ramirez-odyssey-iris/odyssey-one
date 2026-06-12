@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { ChevronDown, ChevronUp, Plus } from 'lucide-react'
 import { Controller, useFormContext, useWatch } from 'react-hook-form'
 import { Alert, Button, Radio } from '@odyssey/ui'
@@ -98,48 +98,54 @@ function DateTimeGroup({ basePath, label, required, warning }) {
   // basePath e.g. "pickupDelivery.earlyPickup" → "co-pickupDelivery-earlyPickup"
   const idPrefix = `co-${basePath.replace(/\./g, '-')}`
 
+  // PlanningDate fix capture (2026-06-12): group heading carries the
+  // Earliest/Latest wording (+ star when Q22-required); field labels are
+  // bare Date / Time / Time Zone in a three-equal-column triad.
   return (
-    <div className="co-triad">
-      <Controller
-        name={`${basePath}.date`}
-        control={control}
-        render={({ field, fieldState }) => (
-          <DateInput
-            id={`${idPrefix}-date`}
-            label={`${label} Date${star}`}
-            value={field.value}
-            onChange={field.onChange}
-            error={fieldState.error?.message}
-            warning={warning}
-          />
-        )}
-      />
-      <Controller
-        name={`${basePath}.time`}
-        control={control}
-        render={({ field, fieldState }) => (
-          <TimeSelect
-            id={`${idPrefix}-time`}
-            label={`Time${star}`}
-            value={field.value}
-            onChange={field.onChange}
-            error={fieldState.error?.message}
-          />
-        )}
-      />
-      <Controller
-        name={`${basePath}.timezone`}
-        control={control}
-        render={({ field, fieldState }) => (
-          <TimezoneSelect
-            id={`${idPrefix}-timezone`}
-            label={`Time Zone${star}`}
-            value={field.value}
-            onChange={field.onChange}
-            error={fieldState.error?.message}
-          />
-        )}
-      />
+    <div className="co-dt-group">
+      <p className="co-dt-group__heading text-label-sm-medium">{`${label}${star}`}</p>
+      <div className="co-triad">
+        <Controller
+          name={`${basePath}.date`}
+          control={control}
+          render={({ field, fieldState }) => (
+            <DateInput
+              id={`${idPrefix}-date`}
+              label={`Date${star}`}
+              value={field.value}
+              onChange={field.onChange}
+              error={fieldState.error?.message}
+              warning={warning}
+            />
+          )}
+        />
+        <Controller
+          name={`${basePath}.time`}
+          control={control}
+          render={({ field, fieldState }) => (
+            <TimeSelect
+              id={`${idPrefix}-time`}
+              label={`Time${star}`}
+              value={field.value}
+              onChange={field.onChange}
+              error={fieldState.error?.message}
+            />
+          )}
+        />
+        <Controller
+          name={`${basePath}.timezone`}
+          control={control}
+          render={({ field, fieldState }) => (
+            <TimezoneSelect
+              id={`${idPrefix}-timezone`}
+              label={`Time Zone${star}`}
+              value={field.value}
+              onChange={field.onChange}
+              error={fieldState.error?.message}
+            />
+          )}
+        />
+      </div>
     </div>
   )
 }
@@ -151,6 +157,7 @@ function DateTimeGroup({ basePath, label, required, warning }) {
 export default function PickupDeliverySection() {
   const { control, watch, getValues, setValue } = useFormContext()
   const planningDateType = watch('pickupDelivery.planningDateType')
+  const [planningAlertOpen, setPlanningAlertOpen] = useState(true)
   const consignorCity = watch('pickupDelivery.consignor.city')
   const consigneeCity = watch('pickupDelivery.consignee.city')
 
@@ -200,9 +207,11 @@ export default function PickupDeliverySection() {
 
       <div className="co-planning">
         <h3 id="co-pickupDelivery-planning-subhead" className="co-subhead text-label-base-medium">Planning Date/Time</h3>
-        <Alert variant="info" showClose={false}>
-          Please enter one of the following fields: 'Late Pickup' or 'Late Delivery.'
-        </Alert>
+        {planningAlertOpen && (
+          <Alert variant="info" onClose={() => setPlanningAlertOpen(false)}>
+            Please enter one of the following fields: 'Late Pickup' or 'Late Delivery.'
+          </Alert>
+        )}
         <Controller
           name="pickupDelivery.planningDateType"
           control={control}
@@ -229,31 +238,37 @@ export default function PickupDeliverySection() {
             </div>
           )}
         />
-        <div className="co-date-groups">
-          <DateTimeGroup
-            basePath="pickupDelivery.earlyPickup"
-            label="Early Pickup"
-            required={false}
-            warning={warnings.earlyPickup}
-          />
-          <DateTimeGroup
-            basePath="pickupDelivery.latePickup"
-            label="Late Pickup"
-            required={planningDateType === 'SHIP'}
-            warning={warnings.latePickup}
-          />
-          <DateTimeGroup
-            basePath="pickupDelivery.earlyDelivery"
-            label="Early Delivery"
-            required={false}
-            warning={warnings.earlyDelivery}
-          />
-          <DateTimeGroup
-            basePath="pickupDelivery.lateDelivery"
-            label="Late Delivery"
-            required={planningDateType === 'DELIVERY'}
-            warning={warnings.lateDelivery}
-          />
+        {/* PlanningDate fix capture: pickup column | delivery column with a
+            vertical separator (same split-gutter mechanism as co-party-grid) */}
+        <div className="co-planning-grid">
+          <div className="co-planning-col">
+            <DateTimeGroup
+              basePath="pickupDelivery.earlyPickup"
+              label="Earliest Pickup Date and Time"
+              required={false}
+              warning={warnings.earlyPickup}
+            />
+            <DateTimeGroup
+              basePath="pickupDelivery.latePickup"
+              label="Latest Pickup Date and Time"
+              required={planningDateType === 'SHIP'}
+              warning={warnings.latePickup}
+            />
+          </div>
+          <div className="co-planning-col">
+            <DateTimeGroup
+              basePath="pickupDelivery.earlyDelivery"
+              label="Earliest Delivery Date and Time"
+              required={false}
+              warning={warnings.earlyDelivery}
+            />
+            <DateTimeGroup
+              basePath="pickupDelivery.lateDelivery"
+              label="Latest Delivery Date and Time"
+              required={planningDateType === 'DELIVERY'}
+              warning={warnings.lateDelivery}
+            />
+          </div>
         </div>
       </div>
     </div>

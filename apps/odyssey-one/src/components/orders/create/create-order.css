@@ -269,15 +269,45 @@
   gap: var(--spacing-8);
 }
 
-.co-date-groups {
+/* Planning Date/Time: pickup column | delivery column with a centered
+   vertical separator (split-gutter mechanism, same as .co-party-grid).
+   Spec: 2026-06-12-planning-date-and-product-grid-corrections.md §A. */
+.co-planning-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
+  /* columns stretch equal height so the separator spans the block */
+}
+
+.co-planning-grid > .co-planning-col:first-child {
+  padding-right: var(--spacing-8);
+  border-right: 1px solid var(--border-subtle);
+}
+
+.co-planning-grid > .co-planning-col:last-child {
+  padding-left: var(--spacing-8);
+}
+
+.co-planning-col {
+  display: flex;
+  flex-direction: column;
   gap: var(--spacing-6);
 }
 
+.co-dt-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.co-dt-group__heading {
+  margin: 0;
+  color: var(--text-primary);
+}
+
+/* Date / Time / Time Zone — three equal columns (fix capture) */
 .co-triad {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: var(--spacing-3);
   align-items: start;
 }
@@ -434,13 +464,32 @@
   text-align: center;
 }
 
-/* Last column — holds column-manage icon (header) + action menu / expand
-   icon (body rows). Vertical separator on the left (Efrain screens 4). */
+/* Last column — holds column-manage icon (header) + row ⋮ / editor actions
+   (body rows). Vertical separator on the left (Efrain screens 4). */
 .co-product-col-manage {
   border-left: 1px solid var(--border-subtle);
   text-align: center;
   width: 1%;        /* shrink-wrap to content */
   white-space: nowrap;
+}
+
+/* Row ⋮ — direct edit trigger (spec 2026-06-12 §B.2), no popover */
+.co-product-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: var(--spacing-1);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  color: var(--text-tertiary);
+  line-height: 0;
+}
+
+.co-product-edit-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-secondary);
 }
 
 /* Read-row values: bordered field-box appearance matching FormField inputs */
