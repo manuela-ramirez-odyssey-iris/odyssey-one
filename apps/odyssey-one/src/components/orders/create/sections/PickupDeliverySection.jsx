@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { ChevronDown, ChevronUp, Plus } from 'lucide-react'
-import { Controller, useFormContext } from 'react-hook-form'
+import { Controller, useFormContext, useWatch } from 'react-hook-form'
 import { Alert, Button, Radio } from '@odyssey/ui'
 import TypeaheadSelect from '../fields/TypeaheadSelect.jsx'
 import DateInput from '../fields/DateInput.jsx'
@@ -13,6 +13,12 @@ import { deriveTimezone } from '../../../../data/master-data'
 
 // Lookup pick hydrates the manual fields from master data, so the mapper
 // reads ONE set of address fields regardless of entry path.
+//
+// KNOWN LIMITATION: after a lookup hydrates address fields, manually editing
+// any hydrated field (address1, city, etc.) does NOT clear locationId, so
+// the typeahead display label can desync from the actual edited address.
+// Candidate fix: clear locationId on any manual edit of a hydrated field.
+// Deferred pending spec decision (confirm with Jana).
 function applyLocation(setValue, base, opt) {
   if (!opt) {
     setValue(`${base}.locationId`, '', { shouldValidate: true })
@@ -36,7 +42,6 @@ function PartyColumn({ side, title }) {
   const manualMode = watch(`${base}.manualMode`)
   const showContact = watch(`${base}.showContact`)
   const longName = watch(`${base}.longName`)
-  const locationId = watch(`${base}.locationId`)
 
   // id prefix following co-pickupDelivery-<side> pattern (Batch 3 parity)
   const idPrefix = `co-pickupDelivery-${side}`
@@ -142,7 +147,19 @@ export default function PickupDeliverySection() {
   const planningDateType = watch('pickupDelivery.planningDateType')
   const consignorCity = watch('pickupDelivery.consignor.city')
   const consigneeCity = watch('pickupDelivery.consignee.city')
-  const warnings = getPastDateWarnings(watch('pickupDelivery'))
+
+  // Narrow subscription to only the four date/time triads so that keystrokes
+  // in address, contact, or other fields don't re-render the full section.
+  const [earlyPickup, latePickup, earlyDelivery, lateDelivery] = useWatch({
+    control,
+    name: [
+      'pickupDelivery.earlyPickup',
+      'pickupDelivery.latePickup',
+      'pickupDelivery.earlyDelivery',
+      'pickupDelivery.lateDelivery',
+    ],
+  })
+  const warnings = getPastDateWarnings({ earlyPickup, latePickup, earlyDelivery, lateDelivery })
 
   // TZ auto-derive (spec §10): pickup TZs from the consignor city, delivery
   // TZs from the consignee city — only when the field is still empty.
@@ -174,7 +191,7 @@ export default function PickupDeliverySection() {
       </div>
 
       <div className="co-planning">
-        <h3 className="co-subhead text-label-base-medium">Planning Date/Time</h3>
+        <h3 id="co-pickupDelivery-planning-subhead" className="co-subhead text-label-base-medium">Planning Date/Time</h3>
         <Alert variant="info" showClose={false}>
           Please enter one of the following fields: 'Late Pickup' or 'Late Delivery.'
         </Alert>
@@ -182,7 +199,11 @@ export default function PickupDeliverySection() {
           name="pickupDelivery.planningDateType"
           control={control}
           render={({ field }) => (
-            <div className="co-radio-row">
+            <div
+              className="co-radio-row"
+              role="radiogroup"
+              aria-labelledby="co-pickupDelivery-planning-subhead"
+            >
               <Radio
                 name="planningDateType"
                 value="SHIP"

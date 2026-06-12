@@ -41,6 +41,8 @@ export default function FormField({
   autoComplete,
   required = false,
   className = '',
+  // NOTE(normalization): describedBy added post-Figma — flag in tracker on next sync
+  describedBy,
   ...rest
 }) {
   const cls = [
@@ -50,6 +52,7 @@ export default function FormField({
     className,
   ].filter(Boolean).join(' ')
   const errorId = error && id ? `${id}-error` : undefined
+  const ariaDescribedBy = [errorId, describedBy].filter(Boolean).join(' ') || undefined
   const selectState = disabled ? 'disabled' : 'default'
   const showClear = !!onClear && !disabled && value != null && value !== ''
 
@@ -84,7 +87,7 @@ export default function FormField({
             disabled={disabled}
             className="form-field__field text-label-sm-regular"
             aria-invalid={error ? 'true' : undefined}
-            aria-describedby={errorId}
+            aria-describedby={ariaDescribedBy}
             {...rest}
           />
           {showClear && (
