@@ -55,10 +55,12 @@
   flex-direction: column;
 }
 
-/* Expand scroll target: the accordion top lands a few px below the navbar
-   (main is the scroller; its top edge sits right under the navbar). */
+/* Expand scroll margins: top gap below the navbar when a taller-than-viewport
+   section aligns to 'start'; bottom breathing room for the minimal 'nearest'
+   reveal. Collapse never scrolls (see CreateOrderForm toggle). */
 .co-sections > div {
   scroll-margin-top: var(--spacing-2);
+  scroll-margin-bottom: var(--spacing-4);
 }
 
 .co-section-body {

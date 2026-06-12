@@ -157,21 +157,27 @@ export default function CreateOrderForm({ draftKey, onSubmitted }) {
     specialServices: useRef(null),
   }
 
+  // Scroll philosophy: the user must not lose the spot they clicked.
+  // Expand scrolls the MINIMUM needed to show the opened content:
+  //   - content already fully visible  → no scroll at all
+  //   - content taller than the viewport → align section top below the navbar
+  //     (the most content a single viewport can show)
+  //   - content runs below the fold but fits → nudge just enough to reveal it
+  //     (block: 'nearest' — the header barely moves)
+  // Collapse never scrolls: the clicked header stays under the cursor.
   const toggle = (key) => (next) => {
     setExpanded(e => ({ ...e, [key]: next }))
-    if (next) {
-      // Expanding: pin the section header a few px below the navbar
-      // (block: 'start' + the .co-sections scroll-margin-top)
-      requestAnimationFrame(() => {
-        sectionRefs[key].current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      })
-    } else {
-      // Collapsing: bring the collapsed accordion as close to the vertical
-      // center of the viewport as scroll constraints allow
-      requestAnimationFrame(() => {
-        sectionRefs[key].current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      })
-    }
+    if (!next) return
+    requestAnimationFrame(() => {
+      const el = sectionRefs[key].current
+      if (!el) return
+      const scroller = el.closest('main')
+      const view = scroller ? scroller.getBoundingClientRect() : { top: 0, bottom: window.innerHeight }
+      const rect = el.getBoundingClientRect()
+      if (rect.top >= view.top && rect.bottom <= view.bottom) return
+      const block = rect.height > view.bottom - view.top ? 'start' : 'nearest'
+      el.scrollIntoView({ behavior: 'smooth', block })
+    })
   }
 
   return (
