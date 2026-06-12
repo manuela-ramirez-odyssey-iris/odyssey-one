@@ -291,6 +291,9 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-6);
+  /* grid item must allow shrink below content, else the triad fields keep
+     their intrinsic width and the right column overflows the viewport */
+  min-width: 0;
 }
 
 .co-dt-group {
@@ -310,6 +313,13 @@
   grid-template-columns: 1fr 1fr 1fr;
   gap: var(--spacing-3);
   align-items: start;
+}
+
+/* Each field shrinks to its 1fr share (min-width: auto would refuse, forcing
+   overflow). Inputs are width:100%, so they truncate placeholders like Efrain's
+   "Select Time…" rather than clip the column. */
+.co-triad > * {
+  min-width: 0;
 }
 
 /* ── Date input field ───────────────────────────────────── */
@@ -442,15 +452,14 @@
   color: var(--text-tertiary);
 }
 
+/* No outer frame (Efrain captures 4.1/4.3): the table reads as header underline
+   + row separators only, like the References table. overflow-x keeps narrow
+   viewports usable without a bordered card. */
 .co-product-table-wrap {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-3);
   align-items: flex-start;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  padding: var(--spacing-2) var(--spacing-4) var(--spacing-4);
-  background: var(--bg-primary);
   width: 100%;
   overflow-x: auto;
 }

@@ -16,6 +16,12 @@ separator.
 1. Heading `Planning Date/Time` — unchanged.
 2. Blue info Alert — text unchanged, **dismissible** (shows ✕; was `showClose={false}`).
 3. Radio row `Ship Date & Time | Delivery Date & Time` — unchanged.
+   **Overflow fix (verified in-browser 2026-06-12):** the triad columns and the
+   planning columns are CSS grid items; `min-width: auto` (the default) refuses to
+   shrink below the fields' intrinsic width, so the right (Delivery) column
+   overflowed the viewport by ~390px. Fix: `min-width: 0` on `.co-planning-col`
+   and `.co-triad > *` lets the `1fr` columns share width and the inputs truncate
+   their placeholders ("Select Timezon…") instead of clipping. No scrollbar.
 4. **Two-column grid** (`.co-planning-grid`): left column = pickup, right = delivery.
    **Vertical separator** between the columns: same mechanism as `.co-party-grid`
    (first column `border-right: 1px solid var(--border-subtle)`, the gutter split
@@ -45,12 +51,13 @@ separator.
 
 ## B. Product Information grid (ProductGrid)
 
-1. **Outer frame:** the table is enclosed in a visible border —
-   `.co-product-table-wrap` gets `border: 1px solid var(--border-subtle)`,
-   `border-radius: var(--radius-lg)`, `overflow: hidden` (corners clip the inner
-   cell borders). The count line above and `+ Add Product` below stay **outside**
-   the frame. The last body row drops its bottom border inside the frame
-   (no double line with the frame edge).
+1. **No outer frame** (CORRECTED 2026-06-12 — captures 4.1/4.3 show no bordered
+   card; an earlier reading added one, which Manuela flagged as wrong). The table
+   reads as **header underline + row separators only** (the `.odyssey-table` cell
+   contract), exactly like the References table — `.co-product-table-wrap` carries
+   no border/radius/padding, only `overflow-x: auto` for narrow viewports.
+   Read-row VALUES keep their input-style boxes (`.co-product-readbox`, captures
+   4.3); that is a per-cell box, not a table frame.
 2. **⋮ is a direct edit trigger, not a popover menu.** Clicking a read row's ⋮
    flips that row into the inline editor whose controls are
    `Cancel · Save · ⤢` — "the three dots expand into save/cancel/icon"
