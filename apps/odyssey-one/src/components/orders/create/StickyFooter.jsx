@@ -8,10 +8,12 @@ import { Button } from '@odyssey/ui'
 export default function StickyFooter({ onCancel, onSave, onCreate, createDisabled, saving }) {
   return (
     <div className="co-footer">
-      <Button variant="secondary" size="lg" onClick={onCancel}>Cancel</Button>
-      <div className="co-footer__right">
-        <Button variant="secondary" size="lg" onClick={onSave} disabled={saving}>Save</Button>
-        <Button variant="primary" size="lg" onClick={onCreate} disabled={createDisabled}>Create Order</Button>
+      <div className="co-footer__inner">
+        <Button variant="secondary" size="lg" onClick={onCancel}>Cancel</Button>
+        <div className="co-footer__right">
+          <Button variant="secondary" size="lg" onClick={onSave} disabled={saving}>Save</Button>
+          <Button variant="primary" size="lg" onClick={onCreate} disabled={createDisabled}>Create Order</Button>
+        </div>
       </div>
     </div>
   )

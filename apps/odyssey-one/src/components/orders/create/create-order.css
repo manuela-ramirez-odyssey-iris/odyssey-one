@@ -29,6 +29,7 @@
 /* ── Sections (accordion stack — the Accordion owns the rail) ── */
 
 .co-sections {
+  row-gap: var(--spacing-3);
   display: flex;
   flex-direction: column;
 }
@@ -327,16 +328,23 @@
   position: sticky;
   bottom: 0;
   z-index: 30;
-  margin-top: auto;
+  /* Bleed to full main-content width by cancelling AppShell's side padding */
+  margin-inline: calc(-1 * var(--spacing-8));
+  background: var(--bg-primary);
+  border-top: 1px solid var(--border-subtle);
+  /* No box-shadow (Efrain screenshot 1) */
+}
+
+/* Inner row: Cancel left · Save+Create right — aligns with the form's
+   1080px content column (Task 2) */
+.co-footer__inner {
+  max-width: 1080px;
+  margin-inline: auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--spacing-4);
   padding: var(--spacing-4) var(--spacing-6);
-  background: var(--bg-primary);
-  border-top: 1px solid var(--border-subtle);
-  box-shadow: var(--shadow-md);
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
 }
 
 .co-footer__right {
