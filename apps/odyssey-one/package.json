@@ -21,6 +21,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@faker-js/faker": "^9.3.0",
     "@fontsource/inter": "^5.2.8",
+    "@hookform/resolvers": "^5.4.0",
     "@odyssey/tokens": "*",
     "@odyssey/ui": "*",
     "@tailwindcss/vite": "^4.2.2",
@@ -31,9 +32,11 @@
     "lucide-react": "^1.6.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
+    "react-hook-form": "^7.78.0",
     "react-router-dom": "^6.30.3",
     "react-window": "^2.2.7",
-    "tailwindcss": "^4.2.2"
+    "tailwindcss": "^4.2.2",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
