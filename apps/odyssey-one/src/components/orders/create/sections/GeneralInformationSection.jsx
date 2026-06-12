@@ -22,15 +22,17 @@ export default function GeneralInformationSection() {
 
   const owningOrg = watch('general.owningOrganization')
   const owningOrgName = watch('general.owningOrganizationName')
-  const shipDirection = watch('general.shipDirection')
 
   // Q20: dynamic Freight Term default — Outbound→Pre-Paid, Inbound→COL.
   // Never overwrites once the user touched the Freight Term field.
+  //
+  // WHY this lives in onChange (not a useEffect watching shipDirection):
+  // reset() — used to hydrate a saved draft — never fires onChange, so keeping
+  // the re-default here means draft hydration can NEVER clobber a saved
+  // freightTerm.  A useEffect would fire on every render where shipDirection
+  // changes, including the render triggered by reset(), causing a spurious
+  // overwrite (Q20 bug fix, 2026-06-11).
   const freightTouched = useRef(false)
-  useEffect(() => {
-    if (freightTouched.current) return
-    setValue('general.freightTerm', shipDirection === 'Inbound' ? 'COL' : 'Pre-Paid')
-  }, [shipDirection, setValue])
 
   // Draft reopen: a hydrated draft that carries Long-only data should open Long
   useEffect(() => {
@@ -130,7 +132,15 @@ export default function GeneralInformationSection() {
               label="Ship Direction *"
               options={SHIP_DIRECTIONS}
               value={field.value}
-              onChange={field.onChange}
+              onChange={(v) => {
+                field.onChange(v)
+                // Q20: apply Freight Term default only when the user is the one
+                // changing Ship Direction and has not already picked a Freight Term.
+                // reset() never calls this handler, so draft hydration is safe.
+                if (!freightTouched.current) {
+                  setValue('general.freightTerm', v === 'Inbound' ? 'COL' : 'Pre-Paid', { shouldValidate: true })
+                }
+              }}
               error={fieldState.error?.message}
             />
           )}
