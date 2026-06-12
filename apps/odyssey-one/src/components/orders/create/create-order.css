@@ -349,6 +349,10 @@
   color: var(--text-secondary);
 }
 
+.co-modal-body p {
+  margin: 0;
+}
+
 /* ── Confirmation (screens 6/7) ─────────────────────────── */
 
 .co-confirm-strip {

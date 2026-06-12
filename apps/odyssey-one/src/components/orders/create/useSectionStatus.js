@@ -9,6 +9,8 @@ import { generalInfoSchema, pickupDeliverySchema, productsSchema } from './schem
  * decision 20; a pure schema check would render it green from first paint).
  */
 export function useSectionStatus(control) {
+  // PERF(batch-3+): bare useWatch subscribes to the whole form — every keystroke re-renders the shell.
+  // Before heavy section bodies land: narrow to gating fields or React.memo the section bodies.
   const values = useWatch({ control })
   const [status, setStatus] = useState({
     general: false,

@@ -84,18 +84,32 @@ export default function CreateOrderForm({ draftKey, onSubmitted }) {
           setDraftId(res.draftId)
           setSaveNotice(`Draft saved (${res.orderNumber}). It stays open here and appears on the Orders grid.`)
         },
+        onError: () => {
+          setSaveGateError("Couldn't save the draft. Please try again.")
+        },
       },
     )
   }, [passesSaveGate, saveDraftMutation, getValues, draftId])
 
-  const handleSaveForLater = useCallback(() => {
+  const handleSaveForLater = useCallback((onModalError) => {
     if (!passesSaveGate()) {
       setModalOpen(false) // surface the red alert in the form behind the modal
       return
     }
     saveDraftMutation.mutate(
       { values: getValues(), draftId },
-      { onSuccess: () => navigate('/orders') },
+      {
+        onSuccess: () => navigate('/orders'),
+        onError: () => {
+          // If called from the modal, surface the error inside it (keep modal open).
+          // If called from the navbar, surface the error in the form alert area.
+          if (typeof onModalError === 'function') {
+            onModalError("Couldn't save the draft. Please try again.")
+          } else {
+            setSaveGateError("Couldn't save the draft. Please try again.")
+          }
+        },
+      },
     )
   }, [passesSaveGate, saveDraftMutation, getValues, draftId, navigate])
 
