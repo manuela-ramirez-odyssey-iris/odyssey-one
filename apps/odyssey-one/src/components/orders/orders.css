@@ -176,6 +176,17 @@
   gap: var(--spacing-2);
 }
 
+/* ── ID column link: no underline (item 4) ──────────────── */
+/* The ID cell's Button variant="link" inherits underline from
+   .btn--link:not(.btn--has-icon). Scope removal to this table only
+   so the shared Button component is untouched. */
+.orders-table-card .btn--link {
+  text-decoration: none;
+}
+.orders-table-card .btn--link:hover {
+  text-decoration: none;
+}
+
 /* ── Page status (loading / error) ───────────────────────── */
 
 .orders-page__status {
