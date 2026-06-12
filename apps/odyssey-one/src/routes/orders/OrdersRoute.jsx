@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Inbox, Plus } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
 import { Button, EmptyState, PageHeader } from '@odyssey/ui'
@@ -16,6 +17,7 @@ import '../../components/orders/orders.css'
  * POST /order-service/v3/order/list (Phase-2 LLD) — live flip is an env var.
  */
 export default function OrdersRoute() {
+  const navigate = useNavigate()
   const [pageNumber, setPageNumber] = useState(1) // 1-based (LLD list example; Q29)
   const [pageSize, setPageSize] = useState(20)
   const [sortDirection, setSortDirection] = useState('desc') // newest-first proxy (A3/Q31)
@@ -42,8 +44,9 @@ export default function OrdersRoute() {
     <AppShell>
       <div className="orders-page">
         <PageHeader title="Orders">
-          {/* Inert until the create-form build (spec §2) */}
-          <Button variant="primary" icon={<Plus {...ICON_MD} />}>Create Order</Button>
+          <Button variant="primary" icon={<Plus {...ICON_MD} />} onClick={() => navigate('/orders/create')}>
+            Create Order
+          </Button>
         </PageHeader>
 
         <OrdersToolbar
