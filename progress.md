@@ -4093,14 +4093,65 @@ Figma `Cell` set `2714:505` (13 variants × White/Gray) intaken **read-only by d
 
 ---
 
+## Session 54 — June 11–12, 2026
+
+**The Create Order flow, built end-to-end (screens 1–7), then made design-conformant against Efrain's captures.** Full Superpowers arc — brainstorm → spec → 25-task plan → **subagent-driven build (6 batches, per-task spec + quality reviews, final holistic integration review)** → multiple live design-conformance rounds with Manuela. **~55 commits on `shipments/global-search`, 141/141 tests, `tsc` clean, build green. No deploy.** Library unchanged at **47** (app-local by design — GlobalSearch-v1 playbook; normalization runs in Manuela's parallel session). Methodology correction mid-session: after repeated visual misses from working off screenshots alone, switched to **in-browser verification** (playwright-core + cached Chromium against the live dev server) — measure the defect, fix, re-measure.
+
+### Seven open questions resolved live with the team (2026-06-11)
+
+Recorded in `vault/10-domains/orders/open-questions.md` with sources; **Efrain + David in the room.**
+- **Q15 Consolidatable** — header-only, the checkbox IS the value (old TMS line-duplication is fixed; LINX-9473 describes the dead structure).
+- **Q16 / Q27 Save semantics** — **no auto-save** (the banner was Efrain's proposal; dropped). Manual only: **Save** = in-place draft, UI open; **Save-for-Later** (via Cancel→modal or navbar) = draft + close to grid; **Discard** = explicit-confirm, nothing kept. **Save precondition:** Order Number + Owning Organization both required, red error otherwise.
+- **Q17 Async create** — system-determined, **no polling**; the final order number arrives via the navbar bell. Async confirmation is render-only (Order Number `–`).
+- **Q20 Freight Term** — dynamic default Outbound→Pre-Paid, **Inbound→COL** (Efrain's texts beat LINX-6012's static Pre-Paid).
+- **Q21 References** — guided rows (PO/Pickup Number) write the **dedicated header fields**; free-form rows → generic reference list.
+- **Q26 Product columns** — **all five required** (design supersedes LINX-9874's either/or).
+- **New source-precedence rule (Efrain):** his description texts carry the client transcripts, so they **outrank Ramesh's Jira story texts** on conflicts. Saved to memory (`project_orders_source_precedence`).
+
+### The build (Superpowers, 6 batches + reviews)
+
+- **Spec + plan:** `docs/superpowers/specs/2026-06-11-create-order-flow-design.md`, `docs/superpowers/plans/2026-06-11-create-order-flow.md` (25 tasks). Stack: **react-hook-form + zod + @hookform/resolvers** (form state + one composed schema), **react-day-picker v9** (date popover). Three planning-time LLD corrections logged as plan decisions (payload root is `manualOrder` not `orderInterface`; no LLD home for Early/Late dates + consolidatable + free-form refs → provisional `*Appointment`/`userFieldList` mapping, residuals for Ramesh).
+- **Data seam (TDD, mirrors S52's `src/api/`):** `types/{createOrder,orderFormVm}`, `mappers/mapFormToOrderInterface`, `services/orderService` write layer (in-memory overlay over `orders.json` — `createOrder`/`saveDraft`/`getDraft`, the **fake backend** so drafts really appear in the Summary grid), `services/lookupService` (typeahead contract over `data-pools`), query hooks.
+- **UI (app-local `src/components/orders/create/`):** route `/orders/create` + **`CreateOrderModeContext`** (the Home edit-mode navbar pattern — title + Save for Later + ✕); four-section stepper accordion; **General Information** (quick + "Add More Details" long expansion, Q20 onChange re-default, guided/free-form References); **Pickup & Delivery** (mirrored Consignor|Consignee, manual address + contact, Q22 two-way planning radio, TZ auto-derive); **Product Information** grid (`.odyssey-table` contract, inline editor, US|Metric ButtonToggle); **Special Services** (tabular typeahead); **Confirmation** (sync/async, renders-what-was-filled); **draft reopen loop** (Draft grid row → `?draft=` → rehydrate).
+- **Review loops caught real defects:** the Q20 freight-term would have clobbered a hydrated draft (moved the re-default to onChange + a hydration re-arm); a whole-form `useWatch` re-rendering ~30 fields per keystroke (narrowed); **keyboard/ARIA combobox gaps on three new dropdown surfaces** (TypeaheadSelect, SelectField, Special Services picker — all brought to the S52 OrderRowActionMenu bar). Final integration review: READY — every contract chain code-verified.
+
+### Design-conformance rounds (live, browser-verified)
+
+- **Layout/chrome:** footer **full-bleed then static** (sits after the accordions, not anchored); content column **1080px centered**; **Expand All ↔ Collapse All** toggle (ListChevrons icons); link underlines removed via the **`.odyssey-table` cell contract** (covers any odyssey-table, not just orders).
+- **Date picker:** react-day-picker as a **separate portal component** (the SearchField precedent — answered Manuela's architecture question: yes, separate), **token-styled compact 32px grid** with the Button-Primary selected day.
+- **Dropdown clipping fix:** shared **`useAnchoredPortal`** hook — TypeaheadSelect/SelectField/Special-Services dropdowns portal to body, overlapping accordions/table-wraps (also closed the Product-editor clipping limitation).
+- **Border lines (Efrain captures):** References/Instructions as real tables with header + row separators; Pickup & Delivery column rule + address/contact/planning dividers.
+- **Planning Date/Time** — the recurring miss, finally fixed by **measuring**: a CSS-grid `min-width: auto` trap let the Delivery column overflow the viewport by ~390px. Fix = `min-width: 0` on the planning/triad grid items (fields share width, placeholders truncate like Efrain's "Select Time…"). Rebuilt as **two columns (pickup | delivery) with the vertical separator**, bare Date/Time/Time Zone labels under group headings, dismissible alert, "Select …" placeholders, empty time default (00:00 still applied at the wire).
+- **Product Information** — ⋮ is now a **direct edit trigger** (no popover; row expands to the inline editor); **no outer table frame** (header underline + row separators only — corrected a wrong earlier reading); **anchored sticky-right action column** (odyssey-table pattern); **Cancel/Save/⤢ as one group** that **grows the column on open** (table scroll grows, fields scroll behind) and **shrinks back** on collapse.
+
+### Flagged for the team / residuals
+
+- **Product row Delete lost its entry point** in the ⋮-direct-edit design — confirm where deletion lives (Efrain/Jana).
+- **Two normalized `@odyssey/ui` components got additive props** — `FormField.describedBy` and `SearchField.onFocus/onKeyDown/ARIA forwarding`; both carry `NOTE(normalization)` comments and **need a tracker flag on the next Figma sync**.
+- **Mapper residuals for Ramesh** (single-point in `mapFormToOrderInterface`): Early/Late date field homes, `userFieldList` for consolidatable + free-form refs, `poDate`'s whereabouts, Q28 Shipment-Mode derivation.
+
+### Files
+
+**Specs:** `2026-06-11-create-order-flow-design.md`, `2026-06-12-planning-date-and-product-grid-corrections.md` (Fable-written from captures). **Plans:** `2026-06-11-create-order-flow.md` (25 tasks), `2026-06-12-create-order-design-conformance.md`. **New code:** `src/api/{types,mappers,services,queries,fixtures}/…` (create-order seam), `src/components/orders/create/**` (form, sections, fields, ProductGrid, SpecialServicesPicker, ConfirmationView, useAnchoredPortal, DatePickerPopover, create-order.css), `src/contexts/CreateOrderModeContext.jsx`, `src/routes/orders/CreateOrderRoute.jsx`, `src/data/master-data.js`. **Modified:** `App.jsx`, `Navbar.jsx`, `OrdersTable.jsx` + `OrdersRoute.jsx` (draft reopen), `OrderRowActionMenu.jsx`, `packages/ui/src/{FormField,SearchField}.jsx` (additive props), `styles/components.css` (table-contract link underline), `package.json` (+rhf/zod/resolvers/react-day-picker).
+
+### Carry-forward to Session 55
+
+- **Browser-smoke the Create Order flow** the few items code-paths couldn't cover (Long-mode walkthrough, validation feel, console cleanliness) — `npm run dev:odyssey-one`, walk Create→Confirm, Save-for-Later→reopen, Discard.
+- **`/analyze` the dropped artifacts** still in `vault/00-inbox/` (5 Efrain captures) + the older `vault-sources/` raws (production-strategy transcript) when ready.
+- **Take the residuals back to the team:** Product Delete entry point (Efrain), the two normalized-component prop additions → tracker flag (Manuela's session), the mapper residuals (Ramesh).
+- **Higher-priority Orders screens** carry on from here; the Summary Page (screen 0) leftovers stay low-priority.
+
+---
+
 ## What's Next
 
-### Session 54 Priorities
+### Session 55 Priorities
 
-1. **Orders Create Order flow — the priority pages** (carried from S52). Context/spec → contract-aware build, same Superpowers arc. Screenshots in `vault/10-domains/orders/screenshots/` (1–4+).
-2. **Question push** — Q25/Q29/Q31/Q33/Q34/Q35 to the team; record answers inline; graduate Q30/Q32 (+ resolved) into canon with sources.
+1. **Orders Create Order flow — built in S54.** Remaining: **browser-smoke** the items code-paths couldn't cover (Long-mode walkthrough, validation feel, console); take the S54 residuals back to the team (Product Delete entry point → Efrain; the two `@odyssey/ui` additive props → tracker flag in Manuela's session; mapper residuals → Ramesh). Then continue with the **next higher-priority Orders screens**.
+2. **Question push** — remaining Q25/Q29/Q31/Q33/Q34/Q35 to the team; record answers inline; graduate Q30/Q32 (+ the S54-resolved Q15/Q16/Q17/Q20/Q21/Q26/Q27) into canon with sources.
 3. **Canon merge of the S51 LLD pull** (Opus pass) — `domain-analysis.md`/`section-map.md` + Shipments DTO reconciliation.
-4. **Design-system follow-ups:** Tab instance swap in Figma screens (w/ Efrain), Cell's 4 Figma-side flags, the Shipments migration pass (tabs + table). Screen-0 leftovers: dynamic-import mock json for live, wire inert affordances as their builds land. (S52's "JS-synced sticky header" — **done in S53**, as the split-header architecture.)
+4. **Design-system follow-ups:** Tab instance swap in Figma screens (w/ Efrain), Cell's 4 Figma-side flags, the Shipments migration pass (tabs + table). Screen-0 leftovers: dynamic-import mock json for live, wire inert affordances as their builds land.
+5. **`/analyze` the dropped artifacts** in `vault/00-inbox/` (5 Efrain Create-Order captures) + the older `vault-sources/` raws when ready.
 
 ### Prior priorities (carried, now behind the Orders arc)
 
