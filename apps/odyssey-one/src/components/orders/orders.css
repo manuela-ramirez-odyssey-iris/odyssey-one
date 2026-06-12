@@ -177,15 +177,8 @@
 }
 
 /* ── ID column link: no underline (item 4) ──────────────── */
-/* The ID cell's Button variant="link" inherits underline from
-   .btn--link:not(.btn--has-icon). Scope removal to this table only
-   so the shared Button component is untouched. */
-.orders-table-card .btn--link {
-  text-decoration: none;
-}
-.orders-table-card .btn--link:hover {
-  text-decoration: none;
-}
+/* ID-cell link underline removal moved to the .odyssey-table cell contract
+   (components.css) — applies to link Buttons in any odyssey-table. */
 
 /* ── Page status (loading / error) ───────────────────────── */
 

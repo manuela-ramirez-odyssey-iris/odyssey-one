@@ -157,27 +157,12 @@ export default function CreateOrderForm({ draftKey, onSubmitted }) {
     specialServices: useRef(null),
   }
 
-  // Scroll philosophy: the user must not lose the spot they clicked.
-  // Expand scrolls the MINIMUM needed to show the opened content:
-  //   - content already fully visible  → no scroll at all
-  //   - content taller than the viewport → align section top below the navbar
-  //     (the most content a single viewport can show)
-  //   - content runs below the fold but fits → nudge just enough to reveal it
-  //     (block: 'nearest' — the header barely moves)
-  // Collapse never scrolls: the clicked header stays under the cursor.
+  // PARKED (Manuela 2026-06-12): accordion auto-scroll disabled — the
+  // minimal-reveal approach didn't feel right in practice. Revisit later;
+  // the goal stands: never lose the click anchor, but show the opened
+  // content (not just a glimpse). sectionRefs kept for that revisit.
   const toggle = (key) => (next) => {
     setExpanded(e => ({ ...e, [key]: next }))
-    if (!next) return
-    requestAnimationFrame(() => {
-      const el = sectionRefs[key].current
-      if (!el) return
-      const scroller = el.closest('main')
-      const view = scroller ? scroller.getBoundingClientRect() : { top: 0, bottom: window.innerHeight }
-      const rect = el.getBoundingClientRect()
-      if (rect.top >= view.top && rect.bottom <= view.bottom) return
-      const block = rect.height > view.bottom - view.top ? 'start' : 'nearest'
-      el.scrollIntoView({ behavior: 'smooth', block })
-    })
   }
 
   return (
@@ -251,7 +236,7 @@ export default function CreateOrderForm({ draftKey, onSubmitted }) {
             <Accordion
               position="mid"
               status={status.products ? 'on' : 'off'}
-              title="Product Information 🚧 Under Construction"
+              title="Product Information 🚧"
               description="Products on this order"
               expanded={expanded.products}
               onToggle={toggle('products')}

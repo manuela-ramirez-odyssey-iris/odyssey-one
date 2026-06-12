@@ -101,6 +101,13 @@
   z-index: 2;
 }
 
+/* Cell contract: link Buttons inside table cells render without underline
+   (Manuela 2026-06-12 — table-scoped override of .btn--link). */
+.odyssey-table .btn--link,
+.odyssey-table .btn--link:hover {
+  text-decoration: none;
+}
+
 .odyssey-table th,
 .odyssey-table td {
   text-align: left;

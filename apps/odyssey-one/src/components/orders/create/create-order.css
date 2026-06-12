@@ -498,12 +498,9 @@
   color: var(--text-tertiary);
 }
 
-/* ── Sticky footer ──────────────────────────────────────── */
+/* ── Form footer (static — sits in flow after the accordions) ── */
 
 .co-footer {
-  position: sticky;
-  bottom: 0;
-  z-index: 30;
   /* Bleed to full main-content width by cancelling AppShell's side padding */
   margin-inline: calc(-1 * var(--spacing-8));
   background: var(--bg-primary);
