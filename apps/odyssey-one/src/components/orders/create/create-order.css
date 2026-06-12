@@ -155,22 +155,59 @@
   flex-direction: column;
   gap: var(--spacing-3);
   align-items: flex-start;
-}
-
-.co-rep__grid {
-  display: grid;
-  gap: var(--spacing-2) var(--spacing-3);
-  align-items: center;
   width: 100%;
 }
 
+.co-rep__table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+/* Header row bottom border */
+.co-rep__head-row {
+  border-bottom: 1px solid var(--border-subtle);
+}
+
 .co-rep__head {
+  text-align: left;
   color: var(--text-secondary);
+  padding: var(--spacing-2) var(--spacing-3) var(--spacing-2) 0;
+  vertical-align: middle;
+}
+
+/* Data rows — bottom border + min-height via padding */
+.co-rep__row {
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.co-rep__row td {
+  padding: var(--spacing-2) var(--spacing-3) var(--spacing-2) 0;
+  vertical-align: middle;
+  /* Achieves ~48–56px row height via FormField's natural height + padding */
 }
 
 .co-rep__num,
 .co-rep__locked {
   color: var(--text-primary);
+}
+
+.co-rep__cell--num {
+  width: 32px;
+  text-align: center;
+}
+
+.co-rep__cell--action {
+  width: 40px;
+  text-align: right;
+  padding-right: 0;
+}
+
+/* ── Section dividers (item 8) ──────────────────────────── */
+.co-divider {
+  width: 100%;
+  border: none;
+  border-top: 1px solid var(--border-subtle);
+  margin: 0;
 }
 
 /* ── Pickup & Delivery ──────────────────────────────────── */

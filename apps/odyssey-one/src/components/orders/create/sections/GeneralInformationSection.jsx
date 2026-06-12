@@ -173,6 +173,8 @@ export default function GeneralInformationSection() {
         />
       </div>
 
+      <hr className="co-divider" />
+
       {/* References sit in Quick, ABOVE Add More Details (screen 1 discrepancy note) */}
       <div className="co-confirm-block">
         <h3 className="co-subhead text-label-base-medium">References</h3>
@@ -244,6 +246,8 @@ export default function GeneralInformationSection() {
               />
             </div>
           </div>
+
+          <hr className="co-divider" />
 
           <div className="co-confirm-block">
             <h3 className="co-subhead text-label-base-medium">Add Instructions</h3>
