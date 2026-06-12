@@ -1,14 +1,15 @@
 import { useState } from 'react'
-import { ArrowDownWideNarrow, ArrowUpNarrowWide, Columns3 } from 'lucide-react'
+import { ArrowDownWideNarrow, ArrowUpNarrowWide } from 'lucide-react'
 import { Controller, useFormContext } from 'react-hook-form'
 import { Button, ButtonToggle, SearchField } from '@odyssey/ui'
 import ProductGrid from '../ProductGrid.jsx'
 
 /**
  * Product Information (spec §3.3, screens 4). Toolbar: search · US|Metric
- * ButtonToggle (text mode — display conversion only) · sort direction ·
- * column-manage affordance (inert this build). The RHF `products` array
- * holds saved rows; ProductGrid owns the in-flight editor row.
+ * ButtonToggle (text mode — display conversion only) · sort direction.
+ * Column-manage icon moved to the table header's last column (inert, per
+ * Efrain screenshots — 2026-06-12 design conformance). The RHF `products`
+ * array holds saved rows; ProductGrid owns the in-flight editor row.
  */
 export default function ProductInformationSection() {
   const { control } = useFormContext()
@@ -46,15 +47,10 @@ export default function ProductInformationSection() {
                 aria-label="Toggle sort by Product ID"
                 onClick={() => setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))}
               />
-              <Button
-                variant="icon"
-                size="sm"
-                icon={<Columns3 size={20} />}
-                aria-label="Manage columns (coming soon)"
-                disabled
-              />
             </div>
           </div>
+
+          <hr className="co-product-divider" />
 
           <p className="co-product-count text-label-sm-regular">
             {field.value.length} products added

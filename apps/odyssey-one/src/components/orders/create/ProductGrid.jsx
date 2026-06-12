@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Maximize2, Plus } from 'lucide-react'
+import { Columns3, Maximize2, Plus } from 'lucide-react'
 import { Button, FormField } from '@odyssey/ui'
 import TypeaheadSelect from './fields/TypeaheadSelect.jsx'
 import SelectField from './fields/SelectField.jsx'
@@ -120,7 +120,7 @@ function ProductRowEditor({ index, initial, onSave, onCancel }) {
           error={errors.shipClass}
         />
       </td>
-      <td>
+      <td className="co-product-col-manage">
         <div className="co-inline-actions">
           <Button variant="secondary" size="sm" onClick={onCancel}>Cancel</Button>
           <Button variant="primary" size="sm" onClick={handleSave}>Save</Button>
@@ -169,14 +169,22 @@ export default function ProductGrid({ products, system, search, sortDir, onChang
             <th className="text-label-sm-medium">Gross Weight *</th>
             <th className="text-label-sm-medium">Volume *</th>
             <th className="text-label-sm-medium">Ship Class *</th>
-            <th aria-hidden="true" />
+            <th className="co-product-col-manage" aria-label="Manage columns (coming soon)">
+              <Button
+                variant="icon"
+                size="sm"
+                icon={<Columns3 size={20} />}
+                aria-label="Manage columns (coming soon)"
+                disabled
+              />
+            </th>
           </tr>
         </thead>
         <tbody>
-          {visible.length === 0 && editing !== 'new' && (
+          {visible.length === 0 && editing !== 'new' && products.length > 0 && (
             <tr>
               <td colSpan={7} className="co-product-empty text-label-sm-regular">
-                {products.length > 0 ? 'No products match your search.' : '0 products added'}
+                No products match your search.
               </td>
             </tr>
           )}
@@ -186,12 +194,22 @@ export default function ProductGrid({ products, system, search, sortDir, onChang
             ) : (
               <tr key={p.id}>
                 <td className="text-label-sm-regular">{i + 1}</td>
-                <td className="odyssey-table__cell--title text-label-sm-medium">{p.productId}</td>
-                <td className="text-label-sm-regular">{p.description}</td>
-                <td className="text-label-sm-regular">{convertMeasureDisplay(p.grossWeight, system)}</td>
-                <td className="text-label-sm-regular">{convertMeasureDisplay(p.volume, system)}</td>
-                <td className="text-label-sm-regular">{p.shipClass}</td>
-                <td>
+                <td className="text-label-sm-medium">
+                  <span className="co-product-readbox text-label-sm-medium">{p.productId}</span>
+                </td>
+                <td className="text-label-sm-regular">
+                  <span className="co-product-readbox text-label-sm-regular">{p.description}</span>
+                </td>
+                <td className="text-label-sm-regular">
+                  <span className="co-product-readbox text-label-sm-regular">{convertMeasureDisplay(p.grossWeight, system)}</span>
+                </td>
+                <td className="text-label-sm-regular">
+                  <span className="co-product-readbox text-label-sm-regular">{convertMeasureDisplay(p.volume, system)}</span>
+                </td>
+                <td className="text-label-sm-regular">
+                  <span className="co-product-readbox text-label-sm-regular">{p.shipClass}</span>
+                </td>
+                <td className="co-product-col-manage">
                   <OrderRowActionMenu
                     actions={['Edit', 'Delete']}
                     onAction={(action) => (action === 'Edit' ? setEditing(p.id) : deleteRow(p.id))}

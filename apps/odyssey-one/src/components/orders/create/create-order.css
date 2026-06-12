@@ -399,6 +399,14 @@
   gap: var(--spacing-4);
 }
 
+/* Divider between toolbar and count line (Efrain design — screens 4) */
+.co-product-divider {
+  border: none;
+  border-top: 1px solid var(--border-subtle);
+  margin: 0;
+  width: 100%;
+}
+
 .co-product-count {
   margin: 0;
   color: var(--text-tertiary);
@@ -424,6 +432,27 @@
 .co-product-empty {
   color: var(--text-tertiary);
   text-align: center;
+}
+
+/* Last column — holds column-manage icon (header) + action menu / expand
+   icon (body rows). Vertical separator on the left (Efrain screens 4). */
+.co-product-col-manage {
+  border-left: 1px solid var(--border-subtle);
+  text-align: center;
+  width: 1%;        /* shrink-wrap to content */
+  white-space: nowrap;
+}
+
+/* Read-row values: bordered field-box appearance matching FormField inputs */
+.co-product-readbox {
+  display: inline-block;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-2) var(--spacing-3);
+  color: var(--text-secondary);
+  background: var(--bg-primary);
+  white-space: nowrap;
+  min-width: 80px;
 }
 
 .co-cell-measure {
