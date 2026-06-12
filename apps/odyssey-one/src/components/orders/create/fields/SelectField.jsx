@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { FormField } from '@odyssey/ui'
+import { useAnchoredPortal } from './useAnchoredPortal.js'
 
 /**
  * SelectField — static-option select on the FormField skin (read-only input
@@ -29,6 +30,14 @@ export default function SelectField({
   const [activeIdx, setActiveIdx] = useState(-1)
   const wrapRef = useRef(null)
   const selectedOption = options.find((o) => o.value === value)
+  const { triggerRef: portalTriggerRef, dropdownRef, AnchoredPortal } = useAnchoredPortal({
+    open,
+    onClose: () => { setOpen(false); setActiveIdx(-1) },
+  })
+  const setWrapRef = (el) => {
+    wrapRef.current = el
+    portalTriggerRef.current = el
+  }
 
   // Stable ids for ARIA wiring
   const listId = id ? `${id}-listbox` : undefined
@@ -53,17 +62,8 @@ export default function SelectField({
     }
   }
 
-  useEffect(() => {
-    if (!open) return
-    const onDown = (e) => {
-      if (!wrapRef.current?.contains(e.target)) closeDropdown()
-    }
-    document.addEventListener('mousedown', onDown)
-    return () => document.removeEventListener('mousedown', onDown)
-  }, [open])
-
   return (
-    <div className="co-typeahead" ref={wrapRef}>
+    <div className="co-typeahead" ref={setWrapRef}>
       <FormField
         id={id}
         label={label}
@@ -107,29 +107,32 @@ export default function SelectField({
         }}
       />
       {open && !disabled && (
-        <div
-          id={listId}
-          role="listbox"
-          className="co-dropdown"
-          onMouseDown={(e) => e.preventDefault()}
-        >
-          {options.map((opt, idx) => (
-            <button
-              key={opt.value}
-              id={getOptionId(idx)}
-              type="button"
-              role="option"
-              aria-selected={opt.value === value}
-              className={`co-dropdown__item${activeIdx === idx ? ' co-dropdown__item--active' : ''}`}
-              onClick={() => {
-                onChange(opt.value)
-                closeDropdown()
-              }}
-            >
-              <span className="text-label-sm-regular">{opt.label}</span>
-            </button>
-          ))}
-        </div>
+        <AnchoredPortal>
+          <div
+            ref={dropdownRef}
+            id={listId}
+            role="listbox"
+            className="co-dropdown"
+            onMouseDown={(e) => e.preventDefault()}
+          >
+            {options.map((opt, idx) => (
+              <button
+                key={opt.value}
+                id={getOptionId(idx)}
+                type="button"
+                role="option"
+                aria-selected={opt.value === value}
+                className={`co-dropdown__item${activeIdx === idx ? ' co-dropdown__item--active' : ''}`}
+                onClick={() => {
+                  onChange(opt.value)
+                  closeDropdown()
+                }}
+              >
+                <span className="text-label-sm-regular">{opt.label}</span>
+              </button>
+            ))}
+          </div>
+        </AnchoredPortal>
       )}
     </div>
   )

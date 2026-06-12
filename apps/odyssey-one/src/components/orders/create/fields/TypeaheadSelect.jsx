@@ -3,6 +3,7 @@ import { ChevronDown } from 'lucide-react'
 import { Button, FormField } from '@odyssey/ui'
 import { useLookup } from '../../../../api/queries/useLookup'
 import { useDebouncedValue } from './useDebouncedValue.js'
+import { useAnchoredPortal } from './useAnchoredPortal.js'
 
 /**
  * TypeaheadSelect — generic async lookup field (spec §8). FormField skin +
@@ -35,6 +36,14 @@ export default function TypeaheadSelect({
   const [open, setOpen] = useState(false)
   const [activeIdx, setActiveIdx] = useState(-1)
   const wrapRef = useRef(null)
+  const { triggerRef: portalTriggerRef, dropdownRef, AnchoredPortal } = useAnchoredPortal({
+    open,
+    onClose: () => { setOpen(false); setActiveIdx(-1) },
+  })
+  const setWrapRef = (el) => {
+    wrapRef.current = el
+    portalTriggerRef.current = el
+  }
   const debounced = useDebouncedValue(inputText, 250)
   const lookup = useLookup(lookupType, debounced, { orgId, enabled: open && !disabled })
   const options = lookup.data ?? []
@@ -51,15 +60,6 @@ export default function TypeaheadSelect({
   useEffect(() => {
     setInputText(selected?.label ?? '')
   }, [selected?.value, selected?.label])
-
-  useEffect(() => {
-    if (!open) return
-    const onDown = (e) => {
-      if (!wrapRef.current?.contains(e.target)) setOpen(false)
-    }
-    document.addEventListener('mousedown', onDown)
-    return () => document.removeEventListener('mousedown', onDown)
-  }, [open])
 
   const commitFreeText = () => {
     if (!allowFreeText) return
@@ -100,7 +100,7 @@ export default function TypeaheadSelect({
   }
 
   return (
-    <div className="co-typeahead" ref={wrapRef}>
+    <div className="co-typeahead" ref={setWrapRef}>
       <FormField
         id={id}
         label={label}
@@ -134,46 +134,49 @@ export default function TypeaheadSelect({
         onKeyDown={handleKeyDown}
       />
       {open && !disabled && (
-        <div
-          id={listId}
-          role="listbox"
-          className="co-dropdown"
-          // Prevent mousedown from stealing focus away from the input — this is
-          // what keeps the blur handler from firing before pick() on item click.
-          onMouseDown={(e) => e.preventDefault()}
-        >
-          {lookup.isError ? (
-            <div className="co-dropdown__status text-label-sm-regular">
-              Couldn't load options.
-              <Button variant="link" onClick={() => lookup.refetch()}>Retry</Button>
-            </div>
-          ) : options.length > 0 ? (
-            options.map((opt, idx) => (
-              <button
-                key={opt.value}
-                id={getOptionId(idx)}
-                type="button"
-                role="option"
-                aria-selected={selected?.value === opt.value}
-                className={`co-dropdown__item${activeIdx === idx ? ' co-dropdown__item--active' : ''}`}
-                onClick={() => pick(opt)}
-              >
-                <span className="text-label-sm-regular">{opt.label}</span>
-                {opt.description && (
-                  <span className="co-dropdown__item-desc text-label-xs-regular">{opt.description}</span>
-                )}
-              </button>
-            ))
-          ) : (
-            <div className="co-dropdown__status text-label-sm-regular">
-              {lookup.isFetching
-                ? 'Searching…'
-                : minCharsPending && lookupType !== 'equipment'
-                  ? 'Type at least 2 characters'
-                  : 'No matches'}
-            </div>
-          )}
-        </div>
+        <AnchoredPortal>
+          <div
+            ref={dropdownRef}
+            id={listId}
+            role="listbox"
+            className="co-dropdown"
+            // Prevent mousedown from stealing focus away from the input — this is
+            // what keeps the blur handler from firing before pick() on item click.
+            onMouseDown={(e) => e.preventDefault()}
+          >
+            {lookup.isError ? (
+              <div className="co-dropdown__status text-label-sm-regular">
+                Couldn't load options.
+                <Button variant="link" onClick={() => lookup.refetch()}>Retry</Button>
+              </div>
+            ) : options.length > 0 ? (
+              options.map((opt, idx) => (
+                <button
+                  key={opt.value}
+                  id={getOptionId(idx)}
+                  type="button"
+                  role="option"
+                  aria-selected={selected?.value === opt.value}
+                  className={`co-dropdown__item${activeIdx === idx ? ' co-dropdown__item--active' : ''}`}
+                  onClick={() => pick(opt)}
+                >
+                  <span className="text-label-sm-regular">{opt.label}</span>
+                  {opt.description && (
+                    <span className="co-dropdown__item-desc text-label-xs-regular">{opt.description}</span>
+                  )}
+                </button>
+              ))
+            ) : (
+              <div className="co-dropdown__status text-label-sm-regular">
+                {lookup.isFetching
+                  ? 'Searching…'
+                  : minCharsPending && lookupType !== 'equipment'
+                    ? 'Type at least 2 characters'
+                    : 'No matches'}
+              </div>
+            )}
+          </div>
+        </AnchoredPortal>
       )}
     </div>
   )

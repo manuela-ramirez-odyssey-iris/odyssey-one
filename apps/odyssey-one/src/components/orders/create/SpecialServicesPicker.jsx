@@ -3,6 +3,7 @@ import { Trash2 } from 'lucide-react'
 import { Badge, Button, SearchField } from '@odyssey/ui'
 import { useLookup } from '../../../api/queries/useLookup'
 import { useDebouncedValue } from './fields/useDebouncedValue.js'
+import { useAnchoredPortal } from './fields/useAnchoredPortal.js'
 
 /**
  * SpecialServicesPicker (spec §3.4, screens 5): search typeahead whose
@@ -21,6 +22,14 @@ export default function SpecialServicesPicker({ value, onChange, id }) {
   const [open, setOpen] = useState(false)
   const [activeIdx, setActiveIdx] = useState(-1)
   const wrapRef = useRef(null)
+  const { triggerRef: portalTriggerRef, dropdownRef, AnchoredPortal } = useAnchoredPortal({
+    open,
+    onClose: () => { setOpen(false); setActiveIdx(-1) },
+  })
+  const setWrapRef = (el) => {
+    wrapRef.current = el
+    portalTriggerRef.current = el
+  }
   const debounced = useDebouncedValue(query, 250)
   const lookup = useLookup('special-service', debounced, { enabled: open })
   const minCharsPending = debounced.replace(/\s/g, '').length < 2
@@ -33,15 +42,6 @@ export default function SpecialServicesPicker({ value, onChange, id }) {
 
   // Reset active index whenever options change
   useEffect(() => { setActiveIdx(-1) }, [options])
-
-  useEffect(() => {
-    if (!open) return
-    const onDown = (e) => {
-      if (!wrapRef.current?.contains(e.target)) setOpen(false)
-    }
-    document.addEventListener('mousedown', onDown)
-    return () => document.removeEventListener('mousedown', onDown)
-  }, [open])
 
   const add = (opt) => {
     onChange([...value, { code: opt.value, description: opt.description ?? '' }])
@@ -73,7 +73,7 @@ export default function SpecialServicesPicker({ value, onChange, id }) {
 
   return (
     <div className="co-services">
-      <div className="co-typeahead" ref={wrapRef}>
+      <div className="co-typeahead" ref={setWrapRef}>
         <SearchField
           id={inputId}
           showLabel
@@ -93,52 +93,55 @@ export default function SpecialServicesPicker({ value, onChange, id }) {
           aria-haspopup="listbox"
         />
         {open && (
-          <div
-            className="co-dropdown co-dropdown--table"
-            onMouseDown={(e) => e.preventDefault()}
-          >
-            {lookup.isError ? (
-              <div className="co-dropdown__status text-label-sm-regular">
-                Couldn't load services.
-                <Button variant="link" onClick={() => lookup.refetch()}>Retry</Button>
-              </div>
-            ) : minCharsPending ? (
-              <div className="co-dropdown__status text-label-sm-regular">Type at least 2 characters</div>
-            ) : options.length === 0 ? (
-              <div className="co-dropdown__status text-label-sm-regular">
-                {lookup.isFetching ? 'Searching…' : 'No matches'}
-              </div>
-            ) : (
-              <table
-                id={listId}
-                role="listbox"
-                aria-label="Special services options"
-                className="co-services-table"
-              >
-                <thead>
-                  <tr>
-                    <th className="text-label-sm-medium">Service Category</th>
-                    <th className="text-label-sm-medium">Description</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {options.map((opt, idx) => (
-                    <tr
-                      key={opt.value}
-                      id={getRowId(idx)}
-                      role="option"
-                      aria-selected={false}
-                      className={activeIdx === idx ? 'co-services-row--active' : undefined}
-                      onClick={() => add(opt)}
-                    >
-                      <td className="text-label-sm-regular">{opt.value}</td>
-                      <td className="text-label-sm-regular">{opt.description}</td>
+          <AnchoredPortal>
+            <div
+              ref={dropdownRef}
+              className="co-dropdown co-dropdown--table"
+              onMouseDown={(e) => e.preventDefault()}
+            >
+              {lookup.isError ? (
+                <div className="co-dropdown__status text-label-sm-regular">
+                  Couldn't load services.
+                  <Button variant="link" onClick={() => lookup.refetch()}>Retry</Button>
+                </div>
+              ) : minCharsPending ? (
+                <div className="co-dropdown__status text-label-sm-regular">Type at least 2 characters</div>
+              ) : options.length === 0 ? (
+                <div className="co-dropdown__status text-label-sm-regular">
+                  {lookup.isFetching ? 'Searching…' : 'No matches'}
+                </div>
+              ) : (
+                <table
+                  id={listId}
+                  role="listbox"
+                  aria-label="Special services options"
+                  className="co-services-table"
+                >
+                  <thead>
+                    <tr>
+                      <th className="text-label-sm-medium">Service Category</th>
+                      <th className="text-label-sm-medium">Description</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
+                  </thead>
+                  <tbody>
+                    {options.map((opt, idx) => (
+                      <tr
+                        key={opt.value}
+                        id={getRowId(idx)}
+                        role="option"
+                        aria-selected={false}
+                        className={activeIdx === idx ? 'co-services-row--active' : undefined}
+                        onClick={() => add(opt)}
+                      >
+                        <td className="text-label-sm-regular">{opt.value}</td>
+                        <td className="text-label-sm-regular">{opt.description}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </AnchoredPortal>
         )}
       </div>
 
