@@ -6,6 +6,17 @@
   display: flex;
   flex-direction: column;
   min-height: 100%;
+}
+
+/* ── Content column: 1080px centered (item 2) ─────────── */
+/* Wraps breadcrumb, PageHeader, alerts, and section accordions.
+   StickyFooter is a sibling (outside this wrapper) so it can bleed full-width. */
+.co-content {
+  max-width: 1080px;
+  margin-inline: auto;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
   gap: var(--spacing-4);
 }
 

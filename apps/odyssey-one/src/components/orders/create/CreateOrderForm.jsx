@@ -143,85 +143,87 @@ export default function CreateOrderForm({ draftKey, onSubmitted }) {
 
   return (
     <FormProvider {...methods}>
-      <nav className="co-breadcrumb text-label-sm-regular" aria-label="Breadcrumb">
-        <Link to="/orders">Orders</Link>
-        <span aria-hidden="true">›</span>
-        <span>Create new order</span>
-      </nav>
+      <div className="co-content">
+        <nav className="co-breadcrumb text-label-sm-regular" aria-label="Breadcrumb">
+          <Link to="/orders">Orders</Link>
+          <span aria-hidden="true">›</span>
+          <span>Create new order</span>
+        </nav>
 
-      <PageHeader title="Create New Order">
-        <Button variant="link" onClick={expandAll}>Expand All</Button>
-      </PageHeader>
+        <PageHeader title="Create New Order">
+          <Button variant="link" onClick={expandAll}>Expand All</Button>
+        </PageHeader>
 
-      {bannerOpen && (
-        <Alert variant="warning" onClose={() => setBannerOpen(false)}>
-          Required fields will complete steps.
-        </Alert>
-      )}
+        {bannerOpen && (
+          <Alert variant="warning" onClose={() => setBannerOpen(false)}>
+            Required fields will complete steps.
+          </Alert>
+        )}
 
-      {saveGateError && (
-        <Alert variant="error" onClose={() => setSaveGateError('')}>
-          {saveGateError}
-        </Alert>
-      )}
+        {saveGateError && (
+          <Alert variant="error" onClose={() => setSaveGateError('')}>
+            {saveGateError}
+          </Alert>
+        )}
 
-      {saveNotice && (
-        <Alert variant="success" onClose={() => setSaveNotice('')}>
-          {saveNotice}
-        </Alert>
-      )}
+        {saveNotice && (
+          <Alert variant="success" onClose={() => setSaveNotice('')}>
+            {saveNotice}
+          </Alert>
+        )}
 
-      <div className="co-sections">
-        <Accordion
-          position="start"
-          status={status.general ? 'on' : 'off'}
-          title="General Information"
-          description="Order identifiers, organization, equipment, and references"
-          expanded={expanded.general}
-          onToggle={toggle('general')}
-        >
-          <GeneralInformationSection />
-        </Accordion>
+        <div className="co-sections">
+          <Accordion
+            position="start"
+            status={status.general ? 'on' : 'off'}
+            title="General Information"
+            description="Order identifiers, organization, equipment, and references"
+            expanded={expanded.general}
+            onToggle={toggle('general')}
+          >
+            <GeneralInformationSection />
+          </Accordion>
 
-        <Accordion
-          position="mid"
-          status={status.pickupDelivery ? 'on' : 'off'}
-          title="Pickup and Delivery"
-          description="Consignor, consignee, and planning dates"
-          expanded={expanded.pickupDelivery}
-          onToggle={toggle('pickupDelivery')}
-        >
-          <PickupDeliverySection />
-        </Accordion>
+          <Accordion
+            position="mid"
+            status={status.pickupDelivery ? 'on' : 'off'}
+            title="Pickup and Delivery"
+            description="Consignor, consignee, and planning dates"
+            expanded={expanded.pickupDelivery}
+            onToggle={toggle('pickupDelivery')}
+          >
+            <PickupDeliverySection />
+          </Accordion>
 
-        <Accordion
-          position="mid"
-          status={status.products ? 'on' : 'off'}
-          title="Product Information 🚧 Under Construction"
-          description="Products on this order"
-          expanded={expanded.products}
-          onToggle={toggle('products')}
-        >
-          <ProductInformationSection />
-        </Accordion>
+          <Accordion
+            position="mid"
+            status={status.products ? 'on' : 'off'}
+            title="Product Information 🚧 Under Construction"
+            description="Products on this order"
+            expanded={expanded.products}
+            onToggle={toggle('products')}
+          >
+            <ProductInformationSection />
+          </Accordion>
 
-        <Accordion
-          position="end"
-          status={status.specialServices ? 'on' : 'off'}
-          title="Special Services (Optional)"
-          description="Service requirements pulled from master data"
-          expanded={expanded.specialServices}
-          onToggle={toggle('specialServices')}
-        >
-          <SpecialServicesSection />
-        </Accordion>
+          <Accordion
+            position="end"
+            status={status.specialServices ? 'on' : 'off'}
+            title="Special Services (Optional)"
+            description="Service requirements pulled from master data"
+            expanded={expanded.specialServices}
+            onToggle={toggle('specialServices')}
+          >
+            <SpecialServicesSection />
+          </Accordion>
+        </div>
+
+        {createOrderMutation.isError && (
+          <Alert variant="error" showClose={false}>
+            Something went wrong creating the order. Your entries are intact — try again.
+          </Alert>
+        )}
       </div>
-
-      {createOrderMutation.isError && (
-        <Alert variant="error" showClose={false}>
-          Something went wrong creating the order. Your entries are intact — try again.
-        </Alert>
-      )}
 
       <StickyFooter
         onCancel={() => setModalOpen(true)}
