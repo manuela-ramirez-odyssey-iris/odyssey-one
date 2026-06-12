@@ -55,10 +55,10 @@
   flex-direction: column;
 }
 
-/* Scroll margin so expanded section header doesn't glue to the viewport top.
-   Accounts for any sticky elements (Navbar is not sticky inside main scroll context). */
+/* Expand scroll target: the accordion top lands a few px below the navbar
+   (main is the scroller; its top edge sits right under the navbar). */
 .co-sections > div {
-  scroll-margin-top: var(--spacing-6);
+  scroll-margin-top: var(--spacing-2);
 }
 
 .co-section-body {

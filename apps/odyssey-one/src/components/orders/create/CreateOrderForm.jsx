@@ -160,19 +160,16 @@ export default function CreateOrderForm({ draftKey, onSubmitted }) {
   const toggle = (key) => (next) => {
     setExpanded(e => ({ ...e, [key]: next }))
     if (next) {
-      // Expanding: scroll the section header into view after DOM update
+      // Expanding: pin the section header a few px below the navbar
+      // (block: 'start' + the .co-sections scroll-margin-top)
       requestAnimationFrame(() => {
         sectionRefs[key].current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
       })
     } else {
-      // Collapsing: if the section top is above the viewport, scroll it into view
+      // Collapsing: bring the collapsed accordion as close to the vertical
+      // center of the viewport as scroll constraints allow
       requestAnimationFrame(() => {
-        const el = sectionRefs[key].current
-        if (!el) return
-        const rect = el.getBoundingClientRect()
-        if (rect.top < 0) {
-          el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-        }
+        sectionRefs[key].current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
       })
     }
   }
