@@ -37,6 +37,16 @@
   text-decoration: underline;
 }
 
+/* Expand/Collapse All toggle: suppress link underline at this usage (item 3).
+   btn--link normally underlines; the icon-bearing variant suppresses it already
+   via btn--has-icon in components.css, but we make this explicit here. */
+.co-expand-toggle.btn--link {
+  text-decoration: none;
+}
+.co-expand-toggle.btn--link:hover {
+  text-decoration: none;
+}
+
 /* ── Sections (accordion stack — the Accordion owns the rail) ── */
 
 .co-sections {

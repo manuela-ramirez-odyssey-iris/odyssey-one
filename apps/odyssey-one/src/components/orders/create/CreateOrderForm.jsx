@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { FormProvider, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Accordion, Alert, Button, PageHeader } from '@odyssey/ui'
+import { ListChevronsUpDown, ListChevronsDownUp } from 'lucide-react'
 import { useCreateOrderMode } from '../../../contexts/CreateOrderModeContext.jsx'
 import { useCreateOrder } from '../../../api/queries/useCreateOrder'
 import { useSaveDraft } from '../../../api/queries/useSaveDraft'
@@ -138,8 +139,18 @@ export default function CreateOrderForm({ draftKey, onSubmitted }) {
     })
   })
 
+  const SECTION_KEYS = ['general', 'pickupDelivery', 'products', 'specialServices']
+  const allExpanded = SECTION_KEYS.every((k) => expanded[k])
+
+  const handleExpandCollapse = () => {
+    if (allExpanded) {
+      setExpanded({ general: false, pickupDelivery: false, products: false, specialServices: false })
+    } else {
+      setExpanded({ general: true, pickupDelivery: true, products: true, specialServices: true })
+    }
+  }
+
   const toggle = (key) => (next) => setExpanded(e => ({ ...e, [key]: next }))
-  const expandAll = () => setExpanded({ general: true, pickupDelivery: true, products: true, specialServices: true })
 
   return (
     <FormProvider {...methods}>
@@ -151,7 +162,16 @@ export default function CreateOrderForm({ draftKey, onSubmitted }) {
         </nav>
 
         <PageHeader title="Create New Order">
-          <Button variant="link" onClick={expandAll}>Expand All</Button>
+          <Button
+            variant="link"
+            className="co-expand-toggle"
+            icon={allExpanded
+              ? <ListChevronsDownUp size={16} />
+              : <ListChevronsUpDown size={16} />}
+            onClick={handleExpandCollapse}
+          >
+            {allExpanded ? 'Collapse All' : 'Expand All'}
+          </Button>
         </PageHeader>
 
         {bannerOpen && (
