@@ -1,0 +1,121 @@
+import { useEffect, useRef, useState } from 'react'
+import { Trash2 } from 'lucide-react'
+import { Badge, Button, SearchField } from '@odyssey/ui'
+import { useLookup } from '../../../api/queries/useLookup'
+import { useDebouncedValue } from './fields/useDebouncedValue.js'
+
+/**
+ * SpecialServicesPicker (spec §3.4, screens 5): search typeahead whose
+ * dropdown is a TABLE (Service Category code + Description, frequency-
+ * sorted, searchable by either). Click-to-add; selected rows render the
+ * code as a gray Badge + auto description + trash. Entirely optional.
+ * `value`/`onChange` come from the parent Controller.
+ */
+export default function SpecialServicesPicker({ value, onChange }) {
+  const [query, setQuery] = useState('')
+  const [open, setOpen] = useState(false)
+  const wrapRef = useRef(null)
+  const debounced = useDebouncedValue(query, 250)
+  const lookup = useLookup('special-service', debounced, { enabled: open })
+  const minCharsPending = debounced.replace(/\s/g, '').length < 2
+  const options = (lookup.data ?? []).filter((o) => !value.some((s) => s.code === o.value))
+
+  useEffect(() => {
+    if (!open) return
+    const onDown = (e) => {
+      if (!wrapRef.current?.contains(e.target)) setOpen(false)
+    }
+    document.addEventListener('mousedown', onDown)
+    return () => document.removeEventListener('mousedown', onDown)
+  }, [open])
+
+  const add = (opt) => {
+    onChange([...value, { code: opt.value, description: opt.description ?? '' }])
+    setQuery('')
+  }
+
+  return (
+    <div className="co-services">
+      <div className="co-typeahead" ref={wrapRef}>
+        <SearchField
+          showLabel
+          label="Special Services"
+          showInfoIcon
+          placeholder="Search a special services"
+          value={query}
+          onChange={(v) => { setQuery(v); setOpen(true) }}
+          onClear={() => setQuery('')}
+          onFocus={() => setOpen(true)}
+        />
+        {open && (
+          <div className="co-dropdown co-dropdown--table" onMouseDown={(e) => e.preventDefault()}>
+            {lookup.isError ? (
+              <div className="co-dropdown__status text-label-sm-regular">
+                Couldn't load services.
+                <Button variant="link" onClick={() => lookup.refetch()}>Retry</Button>
+              </div>
+            ) : minCharsPending ? (
+              <div className="co-dropdown__status text-label-sm-regular">Type at least 2 characters</div>
+            ) : options.length === 0 ? (
+              <div className="co-dropdown__status text-label-sm-regular">
+                {lookup.isFetching ? 'Searching…' : 'No matches'}
+              </div>
+            ) : (
+              <table className="co-services-table">
+                <thead>
+                  <tr>
+                    <th className="text-label-sm-medium">Service Category</th>
+                    <th className="text-label-sm-medium">Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {options.map((opt) => (
+                    <tr key={opt.value} onClick={() => add(opt)}>
+                      <td className="text-label-sm-regular">{opt.value}</td>
+                      <td className="text-label-sm-regular">{opt.description}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        )}
+      </div>
+
+      <table className="co-services-table co-services-table--selected">
+        <thead>
+          <tr>
+            <th className="text-label-sm-medium">Service Category</th>
+            <th className="text-label-sm-medium">Description</th>
+            <th aria-hidden="true" />
+          </tr>
+        </thead>
+        <tbody>
+          {value.length === 0 ? (
+            <tr>
+              <td className="text-label-sm-regular" style={{ color: 'var(--text-tertiary)' }}>–</td>
+              <td className="text-label-sm-regular" style={{ color: 'var(--text-tertiary)' }}>–</td>
+              <td aria-hidden="true" />
+            </tr>
+          ) : (
+            value.map((s) => (
+              <tr key={s.code}>
+                <td><Badge variant="gray">{s.code}</Badge></td>
+                <td className="text-label-sm-regular">{s.description}</td>
+                <td>
+                  <Button
+                    variant="icon"
+                    size="sm"
+                    icon={<Trash2 size={16} />}
+                    aria-label={`Remove ${s.code}`}
+                    onClick={() => onChange(value.filter((v) => v.code !== s.code))}
+                  />
+                </td>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
+    </div>
+  )
+}

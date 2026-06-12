@@ -1,3 +1,15 @@
+import { Controller, useFormContext } from 'react-hook-form'
+import SpecialServicesPicker from '../SpecialServicesPicker.jsx'
+
 export default function SpecialServicesSection() {
-  return <p className="text-label-sm-regular" style={{ color: 'var(--text-tertiary)', margin: 0 }}>Section content lands in its build batch.</p>
+  const { control } = useFormContext()
+  return (
+    <Controller
+      name="specialServices"
+      control={control}
+      render={({ field }) => (
+        <SpecialServicesPicker value={field.value} onChange={field.onChange} />
+      )}
+    />
+  )
 }
