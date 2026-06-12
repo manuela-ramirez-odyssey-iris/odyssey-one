@@ -1,0 +1,134 @@
+// OrderFormValues — the UI-friendly form shape react-hook-form holds.
+// Everything is strings/booleans the inputs bind to directly; the mapper
+// (mapFormToOrderInterface) owns the translation to the LLD wire shape.
+
+export interface MeasureValue {
+  value: string   // raw input text; validated numeric by productRowSchema
+  uom: string     // stored code ('lb'|'kg'|'cuft'|'m3') — US|Metric toggle converts DISPLAY only
+}
+
+export interface ReferenceRowValues {
+  id: string
+  guided: boolean // guided rows (Pickup Number / PO Number) → dedicated header fields (Q21)
+  type: string
+  value: string
+}
+
+export interface InstructionRowValues {
+  id: string
+  description: string // ≤2,000 chars; instructionType defaults "0012" in the mapper (Q19)
+}
+
+export interface DateTimeTriad {
+  date: string      // MM/DD/YYYY
+  time: string      // HH:MM 24h, defaults 00:00
+  timezone: string  // auto-derived from city when possible
+}
+
+export interface PartyValues {
+  locationId: string   // lookup pick; empty when manual-only
+  manualMode: boolean  // "+ Add Location Manually" toggled
+  idOrgName: string
+  longName: string
+  address1: string
+  address2: string
+  city: string
+  state: string
+  postal: string
+  country: string
+  showContact: boolean
+  contactName: string
+  contactPhone: string // display format free; validated E.164 after normalization
+  contactEmail: string
+}
+
+export interface GeneralInfoValues {
+  orderNumber: string
+  owningOrganization: string      // org id
+  owningOrganizationName: string  // display label (confirmation page); not validated
+  equipment: string
+  freightTerm: string
+  shipDirection: string
+  consolidatable: boolean         // header checkbox, checked by default (Q15)
+  carrierScac: string             // Customer Required Carrier (Long)
+  equipmentReferenceNumber: string
+  instructions: InstructionRowValues[]
+  references: ReferenceRowValues[]
+}
+
+export interface ProductRowValues {
+  id: string
+  productId: string
+  description: string
+  grossWeight: MeasureValue
+  volume: MeasureValue
+  shipClass: string
+}
+
+export interface SpecialServiceValues {
+  code: string
+  description: string
+}
+
+export interface PickupDeliveryValues {
+  consignor: PartyValues
+  consignee: PartyValues
+  planningDateType: 'SHIP' | 'DELIVERY' // Q22 two-way radio
+  earlyPickup: DateTimeTriad
+  latePickup: DateTimeTriad
+  earlyDelivery: DateTimeTriad
+  lateDelivery: DateTimeTriad
+}
+
+export interface OrderFormValues {
+  general: GeneralInfoValues
+  pickupDelivery: PickupDeliveryValues
+  products: ProductRowValues[]
+  specialServices: SpecialServiceValues[]
+}
+
+export function makeEmptyTriad(): DateTimeTriad {
+  return { date: '', time: '00:00', timezone: '' }
+}
+
+export function makeEmptyParty(): PartyValues {
+  return {
+    locationId: '', manualMode: false,
+    idOrgName: '', longName: '', address1: '', address2: '',
+    city: '', state: '', postal: '', country: '',
+    showContact: false, contactName: '', contactPhone: '', contactEmail: '',
+  }
+}
+
+export function makeDefaultOrderFormValues(): OrderFormValues {
+  return {
+    general: {
+      orderNumber: '',
+      owningOrganization: '',
+      owningOrganizationName: '',
+      equipment: '',
+      freightTerm: 'Pre-Paid',   // Q20: Outbound default → Pre-Paid
+      shipDirection: 'Outbound', // default per Efrain §1
+      consolidatable: true,      // Q15: checked by default
+      carrierScac: '',
+      equipmentReferenceNumber: '',
+      instructions: [],
+      // Guided rows pre-seeded (screen 1-Long); free-form rows added by the user
+      references: [
+        { id: 'ref-pickup', guided: true, type: 'Pickup Number', value: '' },
+        { id: 'ref-po', guided: true, type: 'PO Number', value: '' },
+      ],
+    },
+    pickupDelivery: {
+      consignor: makeEmptyParty(),
+      consignee: makeEmptyParty(),
+      planningDateType: 'SHIP', // screen 2 default selection
+      earlyPickup: makeEmptyTriad(),
+      latePickup: makeEmptyTriad(),
+      earlyDelivery: makeEmptyTriad(),
+      lateDelivery: makeEmptyTriad(),
+    },
+    products: [],
+    specialServices: [],
+  }
+}
