@@ -41,7 +41,7 @@ Resolutions baked in from the spec (Q numbers from `vault/10-domains/orders/open
 21. **`getDraft` live branch throws** (`order/view` → form hydration needs an inverse mapper — out of scope; mock-only this build). `createOrder`/`saveDraft` live branches are real `apiPost` calls.
 22. **Lookup live endpoint:** `POST /order-service/v1/<type>/lookup` per spec §2.3, with the LLD's lookup *request* shape (`{ lookup, pageNumber, pageSize }` — the only lookup examples in the LLD are `/v3/order-status/lookup` & `/v3/order-number/lookup`; v1-vs-v3 path is a flip-time reconciliation, single constant).
 23. **Consignor ≠ Consignee identical-address validation (Efrain §2 note) is NOT built** — spec §2.4's validation model omits it; logged as a residual, one `superRefine` away if it lands.
-24. **The 🚧 Under Construction label on Product Information is dropped** — Efrain's design shows the label, but the section is fully designed (screens-reference §4) and the label would read as broken UI in a demo. One-string change if the team wants it back.
+24. **The Under Construction label on Product Information is KEPT, rendered with the 🚧 emoji** (user call 2026-06-11, reversing the planner's drop): the form section's Accordion title is `Product Information 🚧 Under Construction`. The ConfirmationView's Product Information accordion does NOT carry it (screens 6/7 show no label).
 25. **Confirmation page exits create-order navbar mode** (normal navbar returns; the form unmounts, spec §5) and renders on the same route.
 
 ---
@@ -2864,7 +2864,7 @@ export default function CreateOrderForm({ draftKey, onSubmitted }) {
         <Accordion
           position="mid"
           status={status.products ? 'on' : 'off'}
-          title="Product Information"
+          title="Product Information 🚧 Under Construction"
           description="Products on this order"
           expanded={expanded.products}
           onToggle={toggle('products')}
