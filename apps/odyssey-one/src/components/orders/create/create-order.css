@@ -489,24 +489,15 @@
   white-space: nowrap;
 }
 
-/* Editor Cancel/Save: float leftward out of the anchored cell, overlapping the
-   row's other cells like a left-opening dropdown (Efrain capture 4.3). The ⤢
-   stays in-cell at the right edge; this cluster hangs off the cell's left edge. */
-.co-product-edit-actions {
-  position: absolute;
-  right: 100%;                 /* anchor to the cell's left edge */
-  top: 50%;
-  transform: translateY(-50%);
-  margin-right: var(--spacing-2);
+/* Cancel / Save / ⤢ as ONE in-flow group. Because the cell shrink-wraps
+   (width: 1%) and the table is auto-layout, opening the editor grows this
+   column to fit the group — widening the row and the horizontal scroll.
+   Collapsing back to the read-row ⋮ returns it to the initial narrow width. */
+.co-product-actions {
   display: flex;
   align-items: center;
   gap: var(--spacing-2);
   white-space: nowrap;
-  padding: var(--spacing-1) var(--spacing-2);
-  background: var(--bg-primary);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-md);
-  z-index: 2;
 }
 
 /* Row ⋮ — direct edit trigger (spec 2026-06-12 §B.2), no popover */
@@ -614,6 +605,7 @@
   background: var(--bg-primary);
   border-top: 1px solid var(--border-subtle);
   /* No box-shadow (Efrain screenshot 1) */
+  margin-bottom: 30px;
 }
 
 /* Inner row: Cancel left · Save+Create right — aligns with the form's

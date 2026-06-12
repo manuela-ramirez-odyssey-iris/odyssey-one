@@ -119,15 +119,16 @@ function ProductRowEditor({ index, initial, onSave, onCancel }) {
           error={errors.shipClass}
         />
       </td>
-      {/* Anchored action column (sticky-right, like odyssey-table). The ⤢ stays
-          pinned at the right edge; Cancel/Save float leftward over the row's
-          other cells — dropdown-like, left-wise (Efrain capture 4.3). */}
+      {/* Anchored action column (sticky-right, like odyssey-table). Cancel / Save
+          / ⤢ are ONE group; in edit mode the cell grows to fit them, widening
+          the row → the horizontal scroll grows. Collapsing back to the read-row
+          ⋮ returns the column to its initial narrow width. */}
       <td className="co-product-col-manage">
-        <div className="co-product-edit-actions">
+        <div className="co-product-actions">
           <Button variant="secondary" size="sm" onClick={onCancel}>Cancel</Button>
           <Button variant="primary" size="sm" onClick={handleSave}>Save</Button>
+          <Button variant="icon" size="sm" icon={<Maximize2 size={16} />} aria-label="Expand row (coming soon)" disabled />
         </div>
-        <Button variant="icon" size="sm" icon={<Maximize2 size={16} />} aria-label="Expand row (coming soon)" disabled />
       </td>
     </tr>
   )
