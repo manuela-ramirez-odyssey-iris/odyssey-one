@@ -150,7 +150,32 @@ export default function CreateOrderForm({ draftKey, onSubmitted }) {
     }
   }
 
-  const toggle = (key) => (next) => setExpanded(e => ({ ...e, [key]: next }))
+  const sectionRefs = {
+    general: useRef(null),
+    pickupDelivery: useRef(null),
+    products: useRef(null),
+    specialServices: useRef(null),
+  }
+
+  const toggle = (key) => (next) => {
+    setExpanded(e => ({ ...e, [key]: next }))
+    if (next) {
+      // Expanding: scroll the section header into view after DOM update
+      requestAnimationFrame(() => {
+        sectionRefs[key].current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      })
+    } else {
+      // Collapsing: if the section top is above the viewport, scroll it into view
+      requestAnimationFrame(() => {
+        const el = sectionRefs[key].current
+        if (!el) return
+        const rect = el.getBoundingClientRect()
+        if (rect.top < 0) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }
+      })
+    }
+  }
 
   return (
     <FormProvider {...methods}>
@@ -193,49 +218,57 @@ export default function CreateOrderForm({ draftKey, onSubmitted }) {
         )}
 
         <div className="co-sections">
-          <Accordion
-            position="start"
-            status={status.general ? 'on' : 'off'}
-            title="General Information"
-            description="Order identifiers, organization, equipment, and references"
-            expanded={expanded.general}
-            onToggle={toggle('general')}
-          >
-            <GeneralInformationSection />
-          </Accordion>
+          <div ref={sectionRefs.general}>
+            <Accordion
+              position="start"
+              status={status.general ? 'on' : 'off'}
+              title="General Information"
+              description="Order identifiers, organization, equipment, and references"
+              expanded={expanded.general}
+              onToggle={toggle('general')}
+            >
+              <GeneralInformationSection />
+            </Accordion>
+          </div>
 
-          <Accordion
-            position="mid"
-            status={status.pickupDelivery ? 'on' : 'off'}
-            title="Pickup and Delivery"
-            description="Consignor, consignee, and planning dates"
-            expanded={expanded.pickupDelivery}
-            onToggle={toggle('pickupDelivery')}
-          >
-            <PickupDeliverySection />
-          </Accordion>
+          <div ref={sectionRefs.pickupDelivery}>
+            <Accordion
+              position="mid"
+              status={status.pickupDelivery ? 'on' : 'off'}
+              title="Pickup and Delivery"
+              description="Consignor, consignee, and planning dates"
+              expanded={expanded.pickupDelivery}
+              onToggle={toggle('pickupDelivery')}
+            >
+              <PickupDeliverySection />
+            </Accordion>
+          </div>
 
-          <Accordion
-            position="mid"
-            status={status.products ? 'on' : 'off'}
-            title="Product Information 🚧 Under Construction"
-            description="Products on this order"
-            expanded={expanded.products}
-            onToggle={toggle('products')}
-          >
-            <ProductInformationSection />
-          </Accordion>
+          <div ref={sectionRefs.products}>
+            <Accordion
+              position="mid"
+              status={status.products ? 'on' : 'off'}
+              title="Product Information 🚧 Under Construction"
+              description="Products on this order"
+              expanded={expanded.products}
+              onToggle={toggle('products')}
+            >
+              <ProductInformationSection />
+            </Accordion>
+          </div>
 
-          <Accordion
-            position="end"
-            status={status.specialServices ? 'on' : 'off'}
-            title="Special Services (Optional)"
-            description="Service requirements pulled from master data"
-            expanded={expanded.specialServices}
-            onToggle={toggle('specialServices')}
-          >
-            <SpecialServicesSection />
-          </Accordion>
+          <div ref={sectionRefs.specialServices}>
+            <Accordion
+              position="end"
+              status={status.specialServices ? 'on' : 'off'}
+              title="Special Services (Optional)"
+              description="Service requirements pulled from master data"
+              expanded={expanded.specialServices}
+              onToggle={toggle('specialServices')}
+            >
+              <SpecialServicesSection />
+            </Accordion>
+          </div>
         </div>
 
         {createOrderMutation.isError && (
