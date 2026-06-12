@@ -225,6 +225,37 @@
   align-items: start;
 }
 
+/* ── Date input field ───────────────────────────────────── */
+
+/* Calendar trigger button inside DateInput — inherits no button chrome */
+.co-date-cal-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: inherit;
+  line-height: 0;
+}
+.co-date-cal-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* ── Date picker popover (item 5) ──────────────────────── */
+/* Wraps react-day-picker in Odyssey token container.
+   DayPicker's internal day-grid styles intentionally left as default —
+   they will be styled against design tokens in a future normalization pass. */
+.co-datepicker {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: var(--spacing-3);
+}
+
 /* ── Product Information ────────────────────────────────── */
 
 .co-product-toolbar {
