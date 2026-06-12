@@ -10,10 +10,9 @@ import 'react-day-picker/style.css'
  * OrderRowActionMenu). Escape and click-outside close; picking a day calls
  * onSelect with a JS Date, which DateInput converts to MM/DD/YYYY.
  *
- * DayPicker internal day-grid styling uses react-day-picker's default CSS.
- * A normalization pass will style it against design tokens; see TODO below.
- * TODO(normalize): style DayPicker internals with Odyssey design tokens once
- * the date-picker component enters the normalization pipeline.
+ * DayPicker internals are token-styled in create-order.css (.co-datepicker
+ * .rdp-* overrides): compact 32px day grid, selected day = Button Primary
+ * treatment. Formal Figma-first normalization still pending (parallel session).
  */
 export default function DatePickerPopover({ triggerRect, selected, defaultMonth, onSelect, onClose }) {
   const popoverRef = useRef(null)

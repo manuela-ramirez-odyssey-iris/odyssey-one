@@ -301,14 +301,81 @@
 
 /* ── Date picker popover (item 5) ──────────────────────── */
 /* Wraps react-day-picker in Odyssey token container.
-   DayPicker's internal day-grid styles intentionally left as default —
-   they will be styled against design tokens in a future normalization pass. */
+   DayPicker internals token-styled below (compact 32px day grid; selected day
+   follows the Button Primary treatment). react-day-picker v9 declares its
+   variables on .rdp-root, so overrides target .co-datepicker .rdp-root. */
 .co-datepicker {
   background: var(--bg-primary);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
   padding: var(--spacing-3);
+  font-family: var(--font-primary);
+}
+
+.co-datepicker .rdp-root {
+  --rdp-accent-color: var(--bg-inverse);
+  --rdp-accent-background-color: var(--bg-secondary);
+  --rdp-today-color: var(--text-primary);
+  --rdp-day-width: 32px;
+  --rdp-day-height: 32px;
+  --rdp-day_button-width: 30px;
+  --rdp-day_button-height: 30px;
+  --rdp-day_button-border-radius: var(--radius-md);
+  --rdp-nav_button-width: 28px;
+  --rdp-nav_button-height: 28px;
+  --rdp-nav-height: 32px;
+  --rdp-weekday-padding: var(--spacing-1) 0;
+}
+
+.co-datepicker .rdp-month_caption {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.co-datepicker .rdp-weekday {
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+
+.co-datepicker .rdp-day_button {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+}
+
+.co-datepicker .rdp-day_button:hover:not([disabled]) {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+}
+
+.co-datepicker .rdp-selected .rdp-day_button {
+  background: var(--bg-inverse);
+  color: var(--text-inverse);
+  border: none;
+  font-weight: 500;
+}
+
+.co-datepicker .rdp-today:not(.rdp-selected) .rdp-day_button {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.co-datepicker .rdp-outside .rdp-day_button {
+  color: var(--text-placeholder);
+}
+
+.co-datepicker .rdp-chevron {
+  fill: var(--text-tertiary);
+  width: 16px;
+  height: 16px;
+}
+
+.co-datepicker .rdp-button_previous:hover,
+.co-datepicker .rdp-button_next:hover {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
 }
 
 /* ── Product Information ────────────────────────────────── */
