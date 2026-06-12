@@ -12,8 +12,9 @@ const ACTIONS = ['View', 'Edit', 'Copy', 'Cancel', 'Restore', 'Delete']
  * NOT @odyssey/ui's MenuDropdown (that's a sidebar accordion group). This is
  * the SHP-66 generic-dropdown candidate; normalize it there when that lands.
  * Portal + fixed positioning so the menu escapes the table wrap's overflow.
+ * Consumers may pass actions/onAction (Product grid rows use ['Edit','Delete']).
  */
-export default function OrderRowActionMenu() {
+export default function OrderRowActionMenu({ actions = ACTIONS, onAction }) {
   const [open, setOpen] = useState(false)
   const [pos, setPos] = useState(null)
   const triggerRef = useRef(null)
@@ -76,13 +77,13 @@ export default function OrderRowActionMenu() {
             }
           }}
         >
-          {ACTIONS.map(action => (
+          {actions.map(action => (
             <button
               key={action}
               type="button"
               role="menuitem"
               className="order-row-actions__item text-label-sm-regular"
-              onClick={() => setOpen(false)}
+              onClick={() => { setOpen(false); onAction?.(action) }}
             >
               {action}
             </button>
