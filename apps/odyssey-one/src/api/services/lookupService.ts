@@ -43,6 +43,15 @@ export interface LookupOption {
 
 export const TYPEAHEAD_MIN_CHARS = 2
 
+/**
+ * Canonical query normalizer for lookup gating and matching.
+ * Trims surrounding whitespace, collapses internal runs to one space, lowercases.
+ * The gate length is computed on the collapsed form EXCLUDING spaces (LINX-7553).
+ */
+export function normalizeLookupQuery(query: string): string {
+  return query.trim().replace(/\s+/g, ' ').toLowerCase()
+}
+
 // Plain selects return their full list; only true typeaheads gate on length
 // (plan decision 14). Equipment gates on org instead (decision 15).
 const TYPEAHEAD_TYPES = new Set<LookupType>([
@@ -121,6 +130,7 @@ export async function getLookupOptions(
     // Path per spec §2.3 (v1 catalog); request body per the LLD lookup shape
     // ({ lookup, pageNumber, pageSize }). Response-shape reconciliation is a
     // flip-time task against live Swagger (plan decision 22).
+    // TODO(flip): map LLD lookup response envelope → LookupOption[] — response shape unverified, reconcile at live flip (see plan decision 22)
     return apiPost<LookupOption[]>(`/order-service/v1/${type}/lookup`, {
       lookup: query,
       pageNumber: 0,
@@ -129,10 +139,10 @@ export async function getLookupOptions(
     })
   }
 
-  const gateLength = query.replace(/\s+/g, '').length // spaces excluded (LINX-7553)
+  const q = normalizeLookupQuery(query)
+  const gateLength = q.replace(/ /g, '').length // spaces excluded (LINX-7553)
   if (TYPEAHEAD_TYPES.has(type) && gateLength < TYPEAHEAD_MIN_CHARS) return []
 
-  const q = query.trim().toLowerCase()
   return poolFor(type, params)
     .filter(o =>
       q === '' ||
