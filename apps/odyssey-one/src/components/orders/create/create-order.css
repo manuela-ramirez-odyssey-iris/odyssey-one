@@ -473,13 +473,40 @@
   text-align: center;
 }
 
-/* Last column — holds column-manage icon (header) + row ⋮ / editor actions
-   (body rows). Vertical separator on the left (Efrain screens 4). */
+/* Last column — anchored right (sticky, like odyssey-table's action column):
+   stays pinned on top while the table scrolls horizontally. Holds the
+   column-manage icon (header) and the row ⋮ / editor ⤢ (body). The white bg +
+   left shadow + separator make it read as floating above the scrolled cells. */
 .co-product-col-manage {
+  position: sticky;
+  right: 0;
+  z-index: 1;
+  background: var(--bg-primary);
   border-left: 1px solid var(--border-subtle);
+  box-shadow: -2px 0 4px rgba(0, 0, 0, 0.06);
   text-align: center;
   width: 1%;        /* shrink-wrap to content */
   white-space: nowrap;
+}
+
+/* Editor Cancel/Save: float leftward out of the anchored cell, overlapping the
+   row's other cells like a left-opening dropdown (Efrain capture 4.3). The ⤢
+   stays in-cell at the right edge; this cluster hangs off the cell's left edge. */
+.co-product-edit-actions {
+  position: absolute;
+  right: 100%;                 /* anchor to the cell's left edge */
+  top: 50%;
+  transform: translateY(-50%);
+  margin-right: var(--spacing-2);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  white-space: nowrap;
+  padding: var(--spacing-1) var(--spacing-2);
+  background: var(--bg-primary);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  z-index: 2;
 }
 
 /* Row ⋮ — direct edit trigger (spec 2026-06-12 §B.2), no popover */
@@ -518,12 +545,6 @@
   grid-template-columns: minmax(72px, 1fr) minmax(88px, auto);
   gap: var(--spacing-2);
   align-items: start;
-}
-
-.co-inline-actions {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-2);
 }
 
 /* Editor-row cells host inputs; loosen the read-row nowrap */
