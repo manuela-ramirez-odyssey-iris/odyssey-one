@@ -4143,11 +4143,46 @@ Recorded in `vault/10-domains/orders/open-questions.md` with sources; **Efrain +
 
 ---
 
+## Session 55 — June 12, 2026
+
+**A short polish-and-ship session: four Create-Order detail fixes, then the first production deploy since S54 so the team (incl. Efrain) can review the flow live.** Also a scope audit — confirmed the confirmation pages are complete and mapped the remaining Orders work against the 12-section canon. Code committed in `c51a99a`; build green, **141/141 tests**.
+
+### Create Order detail polish (browser-conformance, 4 fixes)
+
+- **Intro warning banner — delayed + smooth reveal.** The yellow "Required fields will complete steps." banner now starts hidden and **mounts 1s after the screen** (mount-only timer, cleared on unmount; once dismissed it stays closed). First pass animated it with `opacity + translateY(-8px)` — read as a glitch because siblings *snapped* down while the banner slid in. Rebuilt it to animate its **own height open** (`grid-template-rows: 0fr→1fr`, the accordion-reveal mechanism) + fade on the same `--transition-reveal` curve, so the content below **eases down** with it — no layout jolt. Reduced-motion guarded. (`CreateOrderForm.jsx`, `create-order.css`)
+- **Accordion chevron hover.** Header chevron now follows the established **icon-hover convention** (`.icon-action`): `--text-tertiary → --text-primary` on header hover, `transition: color var(--transition-fast)`. (`components.css` — shared `@odyssey/ui` Accordion skin)
+- **Product editor ⤢ = bare clickable icon.** Swapped the `Button variant="icon"` for a plain `<button className="co-product-edit-btn">` (the same bare-icon pattern the read-row ⋮ uses), since it isn't an icon-button variant — just a clickable icon. Still inert/disabled (expand-to-full-editor is the future Long Product sub-section work). (`ProductGrid.jsx`)
+- **🚧 marker kept** on "Product Information" (user's call — a deliberate "still being detailed" signal for the team review).
+
+### Production deploy
+
+- **`npx vercel --prod` from repo root** (CLI 54.12.2, project `odyssey-shipments` linked) — first deploy since S54. `readyState: READY`, deployment `dpl_4ipSo3oAAxYfYWxH48QZsCFsmrNw`.
+- **Verified publicly reachable:** `odyssey-one-stage.vercel.app` → 200, `/orders/create` → 200, no deployment-protection wall (team can open directly, no Vercel login). Legacy alias `odyssey-shipments.vercel.app` 308→200 → `/shipments`.
+- **No risk, but flagged to the team:** the Create Order backend is an **in-memory overlay** — drafts/created orders don't survive a reload or carry between people (by design); the gitignored data JSONs are **regenerated on Vercel** by the `prebuild` script (why prior deploys worked).
+
+### Scope audit — Orders
+
+- **Confirmation pages = done.** Verified in `ConfirmationView.jsx`: all three variants render — **6 Quick/Success** (green Alert + header strip + 4 read-only accordions + product roll-ups), **6 Long** (References/Instructions tables + Equipment Ref #/Carrier + contact rows, all conditional on "what was filled"), **7 Async** (blue info Alert, Order Number `–`, full summary). Known residuals: Shipment Mode is a mock `"Ground"` (Q28 derivation), "Payment terms" = Freight Term (design's own label drift), confirmation product table is US-units-only (not toggle-aware), and the design's `🚧` on the confirmation Product section isn't carried over (form-only) — offered to sync.
+- **What's left for Orders (slice board vs section-map's 12 sections):** Create flow (§7/§8/§9) = ✅ done (S54). Remaining: **Overview grid finish** (filters/pagination/Manage Columns/CSV — §1,2,4,5; only the lean screen-0 stub exists), **Order Detail / View Order** (§6, unbuilt, "Strong" spec — *recommended next slice*), **Audit Trail tab** (§12), **Error tabs / Interface Failures + OIF fallout** (§3,11 — blocked on Q25), **Order actions** Edit/Cancel/Copy/Delete/Hold (§10 — row-menu shell only), **Long Product sub-sections** Packaging/Hazmat (§8 — what the inert ⤢ is reserved for).
+
+### Files
+
+**Modified (committed `c51a99a`):** `apps/odyssey-one/src/components/orders/create/CreateOrderForm.jsx`, `ProductGrid.jsx`, `create-order.css`, `apps/odyssey-one/src/styles/components.css`. **Deploy:** production via Vercel CLI.
+
+### Carry-forward to Session 56
+
+- **Gather the team's feedback** on the deployed Create flow (the reason for the deploy) before committing to the next slice.
+- **Recommended next slice: Order Detail / View Order (§6)** — read-only, contract-rich, exercises the flat `manualOrder` view DTO + a mapper; prerequisite for the Audit Trail tab. Same Superpowers arc (brainstorm → spec → plan → subagent build).
+- **Optional quick win:** sync the `🚧` onto the confirmation Product section to match the form.
+- **S54 residuals still owed to the team:** Product-row Delete entry point (Efrain), the two `@odyssey/ui` additive props → tracker flag (Manuela's session), mapper residuals (Ramesh).
+
+---
+
 ## What's Next
 
-### Session 55 Priorities
+### Session 56 Priorities
 
-1. **Orders Create Order flow — built in S54.** Remaining: **browser-smoke** the items code-paths couldn't cover (Long-mode walkthrough, validation feel, console); take the S54 residuals back to the team (Product Delete entry point → Efrain; the two `@odyssey/ui` additive props → tracker flag in Manuela's session; mapper residuals → Ramesh). Then continue with the **next higher-priority Orders screens**.
+1. **Orders Create Order flow — built S54, polished + deployed to prod S55.** Now **live for team review** (`odyssey-one-stage.vercel.app/orders/create`) — gather Efrain/team feedback before the next slice. Confirmation pages verified complete (3 variants). **Next slice (recommended): Order Detail / View Order (§6)** — read-only, contract-rich, prerequisite for Audit Trail; Superpowers arc. Still owed to the team: Product Delete entry point → Efrain; the two `@odyssey/ui` additive props → tracker flag (Manuela's session); mapper residuals → Ramesh. Optional quick win: sync the `🚧` onto the confirmation Product section.
 2. **Question push** — remaining Q25/Q29/Q31/Q33/Q34/Q35 to the team; record answers inline; graduate Q30/Q32 (+ the S54-resolved Q15/Q16/Q17/Q20/Q21/Q26/Q27) into canon with sources.
 3. **Canon merge of the S51 LLD pull** (Opus pass) — `domain-analysis.md`/`section-map.md` + Shipments DTO reconciliation.
 4. **Design-system follow-ups:** Tab instance swap in Figma screens (w/ Efrain), Cell's 4 Figma-side flags, the Shipments migration pass (tabs + table). Screen-0 leftovers: dynamic-import mock json for live, wire inert affordances as their builds land.
