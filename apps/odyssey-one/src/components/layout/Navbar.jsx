@@ -3,6 +3,7 @@ import { GlobalSearch, LeadNav, TrailNav, Navbar as NavbarShell } from '@odyssey
 import { useNavigate } from 'react-router-dom'
 import { useCurrentUser } from '../../data/sso-mock'
 import { useEditMode } from '../../contexts/EditModeContext.jsx'
+import { useCreateOrderMode } from '../../contexts/CreateOrderModeContext.jsx'
 import { useCustomers } from '../../contexts/CustomersContext.jsx'
 
 const Navbar = React.memo(function Navbar({ searchSlot } = {}) {
@@ -12,6 +13,7 @@ const Navbar = React.memo(function Navbar({ searchSlot } = {}) {
   const navigate = useNavigate()
   const currentUser = useCurrentUser()
   const { isEditMode, save, cancel } = useEditMode()
+  const { isCreateOrderMode, saveForLater, close } = useCreateOrderMode()
   const { toggleModal, modalOpen } = useCustomers()
 
   useEffect(() => {
@@ -39,6 +41,26 @@ const Navbar = React.memo(function Navbar({ searchSlot } = {}) {
             secondaryButtonLabel="Save"
             onSecondaryButtonClick={save}
             onHelpClick={() => console.log('help')}
+          />
+        }
+      />
+    )
+  }
+
+  if (isCreateOrderMode) {
+    return (
+      <NavbarShell
+        compact
+        lead={<LeadNav />}
+        search={<GlobalSearch mode="title" title="Create New Order" />}
+        trail={
+          <TrailNav
+            mode="editor"
+            showPrimaryButton={false}
+            secondaryButtonLabel="Save for Later"
+            onSecondaryButtonClick={saveForLater}
+            onHelpClick={() => {}} // inert this build (spec §2.1)
+            onRightIconClick={close}
           />
         }
       />

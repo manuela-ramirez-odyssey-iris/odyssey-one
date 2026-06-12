@@ -12,15 +12,18 @@ import '@fontsource/inter/600.css'
 import './index.css'
 import App from './App.jsx'
 import { EditModeProvider } from './contexts/EditModeContext.jsx'
+import { CreateOrderModeProvider } from './contexts/CreateOrderModeContext.jsx'
 import { CustomersProvider } from './contexts/CustomersContext.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
       <EditModeProvider>
-        <CustomersProvider>
-          <App />
-        </CustomersProvider>
+        <CreateOrderModeProvider>
+          <CustomersProvider>
+            <App />
+          </CustomersProvider>
+        </CreateOrderModeProvider>
       </EditModeProvider>
     </BrowserRouter>
     <Analytics />
