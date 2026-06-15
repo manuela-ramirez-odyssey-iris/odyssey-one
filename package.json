@@ -15,7 +15,9 @@
     "build:odyssey-one": "turbo run build --filter=odyssey-one-app",
     "test:odyssey-one": "npm run test -w odyssey-one-app",
     "connect:publish": "npm run connect:publish -w @odyssey/ui",
-    "connect:parse": "npm run connect:parse -w @odyssey/ui"
+    "connect:parse": "npm run connect:parse -w @odyssey/ui",
+    "connect:publish-angular": "npm run connect:publish -w @odyssey/ui-angular",
+    "connect:parse-angular": "npm run connect:parse -w @odyssey/ui-angular"
   },
   "devDependencies": {
     "turbo": "^2.3.0"
