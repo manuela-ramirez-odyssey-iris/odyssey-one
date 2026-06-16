@@ -17,6 +17,8 @@ Hub for the Orders domain canon in OdysseyONE. Orders create the customer order 
 - [[10-domains/orders/section-map|Section map]] — UI section ↔ data ↔ endpoint matrix + suggested vertical-slice order. The GATE 0 artifact.
 - [[10-domains/orders/open-questions|Open questions]] — the question list for Ramesh / Priya / the Orders team.
 - [[10-domains/orders/screens-reference|Screens reference]] — 18 Figma design JPG exports from Efrain correlated against the canon (per-screen confirms/discrepancies + consolidated component-gap list for the React rebuild).
+- [[10-domains/orders/requirements-tracker|Requirements tracker]] — synthesized story matrix from Ramesh's master FR tracker (LINX-5943), with a per-story **Prototype state** column (Built / Partial / Stub / Absent / backend) and a UI coverage summary.
+- [[10-domains/orders/decisions/decision-log|Decision log]] — implemented Orders decisions + PO-conformance observations (`ORD-` prefix). ORD-01 = Ramesh's 2026-06-15 prototype gap report.
 
 ## API & integration
 
