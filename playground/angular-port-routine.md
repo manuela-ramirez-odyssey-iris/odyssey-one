@@ -49,6 +49,33 @@ These are standing rules, not a wishlist. A subagent generating a port applies a
 
 ---
 
+## React → Angular translation reference
+
+| React construct | Angular translation |
+|---|---|
+| functional component + props | `@Component` + one typed `@Input()` per prop |
+| `{children}` | `<ng-content>` (named: `<ng-content select="[slot=x]">`) |
+| `useState(x)` | a component property (+ `@Output()` if the consumer observes it) |
+| `useEffect(fn, [])` (mount) | `ngOnInit` / `ngAfterViewInit` |
+| `useEffect(fn, [dep])` | a setter on the `@Input()`, or `ngOnChanges` |
+| `useEffect` DOM listener (e.g. ESC) | `@HostListener` or addEventListener in `ngOnInit` + cleanup in `ngOnDestroy` |
+| `useRef` (DOM) | `@ViewChild(...)` |
+| `useLayoutEffect` (measure before paint) | `ngAfterViewInit` (+ `ChangeDetectorRef.detectChanges()` if it sets state) |
+| custom hook (useInView, CountUp) | an Angular service or directive (IntersectionObserver / `requestAnimationFrame`) |
+| `ResizeObserver` in an effect | a `ResizeObserver` created in `ngAfterViewInit`, disconnected in `ngOnDestroy` |
+| `variants` map (JS object) | a `readonly` component property (object/Map), referenced in the template |
+| computed inline `style={{…}}` | `[ngStyle]="styleGetter"` (getter returns the style object) or `[style.prop]` bindings |
+| conditional `className` | `[ngClass]` / `[class.x]="cond"` |
+| `{cond && <X/>}` / ternary | `*ngIf` / `*ngIf; else` |
+| `arr.map(...)` | `*ngFor` |
+| many shape branches (isDot/isMetric/…) | `*ngSwitch` on a derived key, or `*ngIf` branches |
+| render-prop (consumer wraps items) | `@ContentChild(TemplateRef)` + `*ngTemplateOutlet` |
+| polymorphic tag (`<button>` vs `<span>` by prop) | define content ONCE in an `<ng-template #body>` and `*ngTemplateOutlet` it into either host (`*ngIf` two-host) — avoids the "two un-selected `<ng-content>`" error |
+
+Tokens rule applies everywhere: colors go through `var(--token)` whether in SCSS or in an inline-style / variants map (the parity-lint enforces this in both). Raw px for component-internal geometry is allowed; colors/radii/type/shadow are always tokens.
+
+---
+
 ## Phase 1 — Gather
 
 Read the React canonical. This is research-only — no files are written in Phase 1.
@@ -74,7 +101,9 @@ Read the React canonical. This is research-only — no files are written in Phas
 
 ## Phase 2 — Generate
 
-> Delegate to a subagent (Sonnet). Provide it the Phase 1 readiness summary + the relevant source files. The subagent generates everything in the list below, applying all 12 gotcha rules.
+> Delegate to a subagent (Sonnet for Tier 1–2; Opus for Tier 3–4). Provide it the Phase 1 readiness summary + the relevant source files. The subagent generates everything in the list below, applying all 12 gotcha rules.
+
+**Faithfully translate the full React component into an idiomatic Angular twin** — JSX → template, props → `@Input()`, logic → component members, styling mirroring React's mechanism. For **className-based components**, port the `.<class>` rules verbatim from `components.css` into the component SCSS (the Button is the template). For **inline/computed-styled components** (e.g. Badge), there are NO classes in `components.css` — instead translate the JS: the `variants` map becomes a component property, computed `style={{}}` becomes `[ngStyle]` bound to a getter (or `[style.x]` bindings), helper functions become component methods. Either way the visual output + behavior must match the React original. See the **React → Angular translation reference** below for construct-by-construct mappings.
 
 The subagent produces, inside `odyssey-angular-dsm/`:
 
@@ -214,13 +243,27 @@ Output: `Port complete: <Component> (tier) — Angular twin in lib/<c>/, both DS
 
 ---
 
+## Component tiers (port order)
+
+Components are classified by translation complexity. Run the batch **tier-ordered (1 → 4)** — broad fast validation first, escalating to judgment-heavy DOM/observer work.
+
+- **Tier 1 — pure-class, presentational/conditional (~24):** template + `[ngClass]`, classes copied verbatim from `components.css`. Fastest to port; do these first. Examples: Button, Checkbox (appearance states), Badge (pure-class variant), most layout wrappers.
+- **Tier 2 — simple state (~6: Accordion, AuthContent, SearchField, Checkbox, ModalLarge, ModalMedium):** `@Input/@Output` + property binding. Slightly more logic, but no DOM measurement. Example: Checkbox's `[indeterminate]` DOM property binding.
+- **Tier 3 — DOM measurement / side-effects (~5: ButtonToggle, WidgetPieChart, FormField, MenuDropdown):** require `ngAfterViewInit` + `@ViewChild` to replicate `useRef` + `useLayoutEffect` patterns.
+- **Tier 4 — observers / complex state (~3: GlobalSearch, Widget, WidgetsLeftMenu):** RxJS, `ResizeObserver`/`IntersectionObserver` lifted into Angular services or directives, `@ContentChild` projection for render-prop patterns.
+- **Plus inline/computed-styled (8: Badge, FilterSuggestions, Navbar, PageHeader, OdysseyLogo, SidebarButton, MenuRow, LeadNav):** these use `[ngStyle]` + variants-map translation (orthogonal to the tier above — a Tier 1 component can still be inline-styled).
+
+**Model scaling by tier:** Tier 1–2 generation uses Sonnet (code output from clear spec). Tier 3–4 uses the most capable model — DOM and observer translation requires judgment. Reviews (Phase 4) always use the most capable model regardless of tier.
+
+---
+
 ## Throughput & Order
 
 **First 2–3 ports: one-at-a-time.** Prove the routine, lint, and gotcha rules generalize before batching. Include at least one slotted molecule among the first 3 to validate G7/G9 in a real scenario. The HARD RULE: do not hand off to Cognizant until at least 2–3 ports have passed the full routine.
 
-**Then batches of 3–5.** The Angular DSM's Normalizing tab holds the cluster naturally. Run Phase 1 for all components in the batch, then a single Phase 2 subagent dispatch for the batch, then Phase 3 sequentially per component, then Phase 4 two-window showing all in the Normalizing tab.
+**Then batches of 3–5, tier-ordered.** The Angular DSM's Normalizing tab holds the cluster naturally. Run Phase 1 for all components in the batch, then a single Phase 2 subagent dispatch for the batch (Tier 1–2 batches together; Tier 3–4 batches separately with a higher-capability model), then Phase 3 sequentially per component, then Phase 4 two-window showing all in the Normalizing tab.
 
-**Tier order: atoms → molecules → organisms.** Molecules and organisms compose atoms — atoms must land in the library before their dependents are ported.
+**Tier order within batches: Tier 1 → Tier 2 → Tier 3 → Tier 4.** Molecules and organisms compose atoms — atoms must land in the library before their dependents are ported.
 
 ---
 
@@ -229,12 +272,13 @@ Output: `Port complete: <Component> (tier) — Angular twin in lib/<c>/, both DS
 | Phase | Model | Reason |
 |---|---|---|
 | Phase 1 (Gather) | Sonnet | Reads, diffs, checklist work |
-| Phase 2 (Generate) | Sonnet subagent | Code generation from clear spec |
+| Phase 2 (Generate) — Tier 1–2 | Sonnet subagent | Code generation from clear spec; className-based + simple-state components |
+| Phase 2 (Generate) — Tier 3–4 | Opus subagent | DOM/observer translation is judgment-heavy; `@ViewChild`, RxJS, `@ContentChild` patterns |
 | Phase 3 (Verify) | — | Mechanical (lint + build + test) |
-| Phase 4 (Review) | Opus | Drift/parity judgment across two live surfaces |
+| Phase 4 (Review) | Opus | Drift/parity judgment across two live surfaces — always most capable, regardless of tier |
 | Phase 5 (Pass) | Sonnet | File updates, tracker entries |
 
-Default to Sonnet. Escalate to Opus only for Phase 4 visual parity judgment and any cross-file architectural decision (e.g. "should this slot be projected content or a rendered child?"). Do not default to Opus for generation — Sonnet is the right tier for code output from a well-specified routine.
+Default to Sonnet. Escalate to Opus for: Phase 4 visual parity judgment; Tier 3–4 Phase 2 generation (DOM measurement, observer wiring, complex projection); any cross-file architectural decision (e.g. "should this slot be projected content or a rendered child?"). Do not default to Opus for Tier 1–2 generation — Sonnet is the right tier for className-based + simple-state output from a well-specified routine.
 
 ---
 
