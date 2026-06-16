@@ -291,10 +291,6 @@ OR
 
 This is a Claude-side reminder, not an action Claude takes — Figma library publish is Figma-UI-only.
 
-### Step 9 — Hand off to the Angular port gate
-
-The React component is now approved + published. Run `playground/angular-port-routine.md` (`/port-to-angular <Component>`) to generate + review the Angular twin. The React `meta.normalizing` flag clears there, on Angular pass — completing the full (React + Angular) normalization.
-
 ### Step 8b: Icon Tracking (code → Figma, one-way)
 
 Only run this when icons are baked into the component (not when icons are passed as props by callers).
@@ -306,6 +302,10 @@ Only run this when icons are baked into the component (not when icons are passed
    - Not listed → add a `pending` card with kebab plugin name, size, stroke (`--icon-stroke-md` 2.25 / `--icon-stroke-lg` 2).
 3. List the **new pending** icons and which frame to add them to: md → `Icons md` (`230:1054`), lg → `Icons lg` (`366:619`). User adds via Lucide plugin. **Placeholders are never "new pending"** — `placeholder-16` and `placeholder-20` already exist in the separate `Icons Placeholder` frame; if you think you need a new placeholder size, stop and ask first.
 4. When user confirms ("X added"): verify the icon is in the right frame at the right size and stroke, update the card to `done`. **Don't rename** — keep `lucide/<kebab-name>` as produced by the plugin; size differentiation comes from the parent frame.
+
+### Step 8d — Hand off to the Angular port gate
+
+The React component is now approved + published. Run `playground/angular-port-routine.md` (`/port-to-angular <Component>`) to generate + review the Angular twin. The React `meta.normalizing` flag clears there, on Angular pass — completing the full (React + Angular) normalization.
 
 ---
 
