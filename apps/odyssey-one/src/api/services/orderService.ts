@@ -3,6 +3,7 @@ import { apiPost } from '../client'
 import { getAllOrders } from '../../data/orders'
 import type { OrderListRequest, OrderListResponse, OrderListRow } from '../types/orderList'
 import { mapFormToOrderInterface } from '../mappers/mapFormToOrderInterface'
+import { mapOrderViewToFormVm } from '../mappers/mapOrderViewToFormVm'
 import type { CreateOrderRequest, CreateOrderResponse, ManualOrder } from '../types/createOrder'
 import type { OrderFormValues } from '../types/orderFormVm'
 
@@ -197,4 +198,82 @@ export async function getDraft(key: string): Promise<DraftRecord | null> {
   if (!draftId) return null
   const values = draftValues.get(draftId)
   return values ? { draftId, values: structuredClone(values) } : null
+}
+
+// ─── Order detail / View Order (spec §3.2) ──────────────────────────────────
+// Inverse of manualOrderToListRow: promotes a lean grid row to the DTO subset
+// it can fill, so getOrderView feeds the same reverse mapper for every tier.
+// commodity → one product line carrying the row's header weight/volume.
+function listRowToManualOrder(row: OrderListRow): ManualOrder {
+  return {
+    orderNumber: row.orderNumber,
+    customerId: row.customer,
+    freightTermCode: row.freightTerms,
+    shipDirectionCode: row.shipDirection,
+    requestedPickupDate: row.consignor?.earliestPickupDateTime,
+    pickupAppointment: row.consignor?.latestPickupDateTime,
+    requestedDeliveryDate: row.consignee?.earliestDeliveryDateTime,
+    deliveryAppointment: row.consignee?.latestDeliveryDateTime,
+    originPartnerId: row.consignor?.locationId,
+    originCity: row.consignor?.city,
+    originRegion: row.consignor?.state,
+    originCountry: row.consignor?.country,
+    destinationPartnerId: row.consignee?.locationId,
+    destinationCity: row.consignee?.city,
+    destinationRegion: row.consignee?.state,
+    destinationCountry: row.consignee?.country,
+    grossWeightValue: row.grossWeight?.value,
+    grossWeightUomCode: row.grossWeight?.uom,
+    volumeValue: row.volume?.value,
+    volumeUomCode: row.volume?.uom,
+    orderStatus: { orderStatusCode: '', orderStatusName: row.orderStatus ?? '' },
+    orderCarrierEquipDetailList: row.equipment ? [{ carrierSequence: 1, equipmentCode: row.equipment }] : [],
+    orderLines: row.commodity
+      ? [{
+          lineIdentifier: 1,
+          shipItemIdentifier: '',
+          productDescription: row.commodity,
+          grossWeightValue: row.grossWeight?.value ?? 0,
+          grossWeightUomCode: row.grossWeight?.uom ?? 'lbs',
+          volumeValue: row.volume?.value ?? 0,
+          volumeUomCode: row.volume?.uom ?? 'cbf',
+          shipClass: '',
+        }]
+      : [],
+  }
+}
+
+/**
+ * View Order detail (LINX-10233/10700). live → POST /order-service/v3/order/view
+ * → reverse-map the manualOrder. mock → resolution precedence:
+ *   1) draft form values (full fidelity)  2) overlay grid row (lean)
+ *   3) seeded orders.json (lean)          not found → null.
+ * Returns the form-VM shape the read view consumes (OrderReadView, when built).
+ */
+export async function getOrderView(
+  orderNumber: string,
+  customerId?: string,
+): Promise<OrderFormValues | null> {
+  if (getApiMode() === 'live') {
+    if (!customerId) {
+      // customerId is mandatory (LINX-10700 AC) but not yet sourceable from the
+      // grid row (Q30) — gate the live path, like getDraft's live branch.
+      throw new Error('getOrderView: live customerId sourcing pending (Q30); mock-mode only')
+    }
+    const { manualOrder } = await apiPost<{ manualOrder: ManualOrder }>(
+      '/order-service/v3/order/view', { orderNumber, customerId },
+    )
+    return mapOrderViewToFormVm(manualOrder)
+  }
+
+  const draftId = draftValues.has(orderNumber) ? orderNumber : draftIdByOrderNumber.get(orderNumber)
+  if (draftId) {
+    const values = draftValues.get(draftId)
+    if (values) return structuredClone(values) // full fidelity
+  }
+  const row =
+    overlayRows.find(r => r.orderNumber === orderNumber) ??
+    (getAllOrders() as OrderListRow[]).find(r => r.orderNumber === orderNumber)
+  if (!row) return null
+  return mapOrderViewToFormVm(listRowToManualOrder(row))
 }
