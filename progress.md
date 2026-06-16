@@ -4178,15 +4178,53 @@ Recorded in `vault/10-domains/orders/open-questions.md` with sources; **Efrain +
 
 ---
 
+## Session 56 — June 15, 2026
+
+**Orders intake (`/analyze`) → §6 View Order data-seam built TDD (plumbing only, zero UI) → the whole branch landed in `main`; next session pivots to an Angular DSM.** A reconciliation-heavy session driven by Ramesh's (PO) morning feedback on the deployed Create flow. **5 commits pushed to `origin/main`, full suite 164 green (+23), tsc clean, build green.**
+
+### Thread 1 — Inbox `/analyze` (Orders intake)
+Ramesh's **Functional Req. Status Tracker 1.xlsx** + 5 screenshots → synthesized to vault (subagent): `requirements-tracker.md` (full LINX story matrix — UI/Backend × tracker-status × **prototype-state**), `decisions/decision-log.md` **ORD-01** (Ramesh 2026-06-15 conformance gap report), `_moc.md` links. Raws archived to `vault-sources/10-domains/orders/{screenshots,data}`; inbox cleared.
+
+### Thread 2 — Gap reconciliation vs Ramesh's feedback
+- Ramesh's ~15 flagged items: **0 net-new stories** — all pre-existing LINX/section-map. His contribution = the authoritative tracker + a **priority push** on the Overview epic we'd deprioritized as screen-0.
+- **PlanningDate fix already shipped** (S54) — verified, not rebuilt.
+- **Product Information (LINX-8121)** scoped against the found FE ACs (LINX-9874–9878): most IS specified (either/or validation, Shipping Class ID, Handling Unit, TL warning); opens = PO decisions + column-order Figma. Traced edit/remove-row to LINX-9874 verbatim when challenged; flagged ⋮-menu as inference, not spec.
+
+### Thread 3 — §6 View Order spec (ultracode workflow)
+11-agent workflow (gather→draft→3-lens adversarial critique→finalize), 30 fixes → `docs/superpowers/specs/2026-06-15-order-detail-view-order-design.md`. Caught a forward∘reverse double-loss trap.
+
+### Thread 4 — Constraint correction (memory)
+User tightened scope mid-session: **Orders is plumbing-only until Figma — no new UI / additions.** So §6's detail page IS new UI → Efrain; only its data seam is plumbing. (`project_orders_plumbing_only_phase`; corrected Jana=Shipments, Orders PM=Ramesh.)
+
+### Thread 5 — §6 data seam (TDD, plumbing only, zero UI)
+- `api/mappers/mapOrderViewToFormVm.ts` (+ net-new `fromIsoTimestamp`) — inverse of `mapFormToOrderInterface`; lossy fields documented + locked by tests.
+- `api/services/orderService.ts` — `getOrderView(orderNumber, customerId?)` (mock precedence draft→overlay→seeded→null; live **gated** on customerId, Q30) + `listRowToManualOrder`.
+- `api/queries/useOrderView.ts` — query hook (glue).
+- Contract **POST /order-service/v3/order/view** (LINX-10700). +23 tests; **164 green**, tsc clean, build green. No route/component/generator change.
+
+### Thread 6 — Branch/main fix
+Orders work (S50–55) had accreted on the misnamed `shipments/global-search`. Committed seam + docs, **fast-forwarded `main`** (strict ancestor — clean ff), tracked the Orders `vault-sources/` raws (reversed a gitignore call — home/global-search raws already tracked + `/analyze` moved these out of inbox), deleted stray `Untitled.*`, **pushed `main` to origin**. Going forward: Orders work on `orders/<feature>` off main.
+
+### Thread 7 — Backlog
+Added the **Orders** section to `vault/60-backlog/backlog.html`: **ORD-1..10** — all *Needs spec* (UI pending Figma/Efrain + PO decisions).
+
+### Files
+**New:** `api/mappers/mapOrderViewToFormVm.ts`(+`.test.ts`), `api/services/orderService.getOrderView.test.ts`, `api/queries/useOrderView.ts`, the §6 spec, `vault/10-domains/orders/{requirements-tracker.md,decisions/decision-log.md}`, `vault-sources/10-domains/orders/**` (now tracked). **Modified:** `api/services/orderService.ts`, `vault/10-domains/orders/_moc.md`, `vault/60-backlog/backlog.html`. **Commits:** `23d61bf`, `8f55c36`, `6dc63df`, `a199574` (+ this wrap) → `origin/main`. **Memory:** +`feedback_cite_provenance_inline`, +`feedback_no_fable_use_opus_ultracode`, +`project_orders_plumbing_only_phase`; firmed `project_normalize_angular_skill_concept`.
+
+### Carry-forward to Session 57
+- **PIVOT → Angular DSM** (see What's Next #1).
+- **Orders paused, fully captured in repo** — ORD-1..10 + `requirements-tracker.md` + `decision-log.md` + §6 spec. Data seam built; UI awaits Efrain; contract/live-flip await Ramesh + live Swagger.
+- Optional: delete stale `shipments/global-search` (== main).
+
+---
+
 ## What's Next
 
-### Session 56 Priorities
+### Session 57 Priorities
 
-1. **Orders Create Order flow — built S54, polished + deployed to prod S55.** Now **live for team review** (`odyssey-one-stage.vercel.app/orders/create`) — gather Efrain/team feedback before the next slice. Confirmation pages verified complete (3 variants). **Next slice (recommended): Order Detail / View Order (§6)** — read-only, contract-rich, prerequisite for Audit Trail; Superpowers arc. Still owed to the team: Product Delete entry point → Efrain; the two `@odyssey/ui` additive props → tracker flag (Manuela's session); mapper residuals → Ramesh. Optional quick win: sync the `🚧` onto the confirmation Product section.
-2. **Question push** — remaining Q25/Q29/Q31/Q33/Q34/Q35 to the team; record answers inline; graduate Q30/Q32 (+ the S54-resolved Q15/Q16/Q17/Q20/Q21/Q26/Q27) into canon with sources.
-3. **Canon merge of the S51 LLD pull** (Opus pass) — `domain-analysis.md`/`section-map.md` + Shipments DTO reconciliation.
-4. **Design-system follow-ups:** Tab instance swap in Figma screens (w/ Efrain), Cell's 4 Figma-side flags, the Shipments migration pass (tabs + table). Screen-0 leftovers: dynamic-import mock json for live, wire inert affordances as their builds land.
-5. **`/analyze` the dropped artifacts** in `vault/00-inbox/` (5 Efrain Create-Order captures) + the older `vault-sources/` raws when ready.
+1. **PIVOT — Angular DSM (the main thrust).** Turn the POC Angular Button (`odyssey-angular-button-demo/`) into the Angular analogue of the React `/design-system` route. Extend `/normalize` so that **after a component's React normalization completes, it ALSO generates the Angular component** into that DSM (React-first, then Angular). The DSM seeds an **Angular component library** to hand Cognizant the UI layer — **visual-only** ownership; they keep data/state/service patterns. See memory `project_normalize_angular_skill_concept` (firmed 2026-06-15) + its encoded POC-2 port gotchas (typography utility classes, static-weight fonts, font-smoothing, 1:1 token re-emit, alignment artifact, side-by-side verify). **HARD RULE:** test internally on 2–3 component ports before any Cognizant handoff.
+2. **Orders — PAUSED, fully captured in repo.** `vault/60-backlog/backlog.html` **ORD-1..10** (UI pending Figma/Efrain + PO decisions) + `requirements-tracker.md` + `decisions/decision-log.md` ORD-01 + the §6 spec. §6 **data seam built (S56)** — when Efrain's View Order design lands, ORD-1 wires onto `useOrderView` with no data work. Contract/live-flip (mapper residuals, customerId Q30, `/order/view` envelope/not-found) await Ramesh + live Swagger. Owed: Product Delete entry → Efrain; 2 `@odyssey/ui` additive-prop flags → Manuela's normalization session.
+3. **Carried (behind the Angular pivot):** question push (Q25/Q29/Q31/Q33/Q34/Q35; graduate resolved Qs into canon); S51 LLD canon merge (`domain-analysis.md`/`section-map.md` + Shipments DTO reconciliation); design-system follow-ups (Tab instance swap, Cell's 4 Figma flags, Shipments migration pass). The S55-flagged `/analyze` of inbox artifacts is **DONE (S56)**.
 
 ### Prior priorities (carried, now behind the Orders arc)
 
