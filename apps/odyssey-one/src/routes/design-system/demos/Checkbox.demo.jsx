@@ -6,6 +6,11 @@ export const meta = {
   tier: 'atom',
   figmaNode: '2821:330',
   codeConnect: 'packages/ui/src/Checkbox.figma.tsx',
+  // Temporarily re-flagged into the Normalizing tab while the Angular twin is being
+  // ported (sub-project B proof port) — so the React DSM ‖ Angular DSM two-window
+  // review is symmetric (both show Checkbox in Normalizing). The Angular port routine
+  // (playground/angular-port-routine.md) clears this flag on Angular pass.
+  normalizing: true,
 }
 
 export const props = [

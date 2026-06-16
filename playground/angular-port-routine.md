@@ -28,6 +28,8 @@
 
 **The parity-lint (`tools/angular-parity-lint.mjs`) mechanically enforces the machine-checkable subset below. A port that fails the lint is not done.**
 
+**Where each rule is enforced** (don't expect the lint to catch all 12): the parity-lint mechanically checks the per-component subset — **G4, G5, G7, G8, G9, G12** + the Cognizant conventions (selector `odyssey-<kebab>`, per-component module). **G6** (typed `@Input()`) is enforced by TypeScript strict mode at build (Phase 3), not the lint. **G1, G2, G3, G10, G11** are workspace-level (typography utilities, fonts, font-smoothing, packaging, test config) — established in sub-project A and guarded by the Phase 3 build/test steps, not the per-component lint. "Lint green + Phase 3 builds/tests green" together cover all 12.
+
 ### The 12 Generation Rules (MUST-follow, apply to every port)
 
 These are standing rules, not a wishlist. A subagent generating a port applies all 12. The parity-lint asserts the machine-checkable subset.
@@ -97,9 +99,16 @@ The subagent produces, inside `odyssey-angular-dsm/`:
 - **`demos.registry.ts`** — append the new demo entry.
 - **`app.module.ts`** — declare/import the new demo component and `Odyssey<C>Module`.
 
+**React side — put the React component in its Normalizing tab too (for a symmetric two-window review):** ensure the React demo `apps/odyssey-one/src/routes/design-system/demos/<C>.demo.jsx` has `meta.normalizing: true`.
+- **Backlog ports** (already-normalized components — the flag was cleared when they first shipped): ADD `normalizing: true` back temporarily now; it clears again on Phase 5 pass.
+- **New components** coming straight through `/normalize`: the flag is already set — `/normalize` Phase 3 defers clearing it (Step 8d hands off here), so the React component already sits in its Normalizing tab.
+Either way, Phase 4 then shows the component in BOTH DSMs' Normalizing tabs.
+
 **Typography utilities (if any were flagged in Phase 1):** port missing `.text-*` classes from `apps/odyssey-one/src/styles/components.css` into `projects/odyssey-ui/src/styles/_typography.scss` before the component SCSS references them (G1).
 
 **Token additions (if any were flagged in Phase 1):** add missing `--token` entries to `projects/odyssey-ui/src/styles/_tokens.scss` (G4). Use the exact same name and value as in `packages/tokens/tokens.css` — no renames.
+
+**Shared primitive CSS (components that share a base class):** some components share a CSS base — e.g. Checkbox + Radio both use `.control` / `.control__*`. Policy: the **first** component to use a shared base **self-contains** those rules in its own component SCSS (component-scoped). When the **second** component sharing that base is ported, **extract** the shared rules into `projects/odyssey-ui/src/lib/_shared/<base>.scss` and `@use` it from both component SCSSes (rules stay component-scoped per import; source stays DRY). Never silently duplicate a shared base across 3+ components. (Checkbox — the first control — self-contains `.control` today; Radio's port performs the extraction.)
 
 ---
 
