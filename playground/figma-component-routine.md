@@ -249,7 +249,7 @@ A normalize cycle is **not done** until ALL of the following are updated. Treat 
 
 - [ ] `design.md` updated if new tokens / rules were introduced.
 - [ ] **`apps/odyssey-one/src/routes/design-system/demos/<Component>.demo.jsx` added or updated.** The demo imports the real component from `@odyssey/ui` and exports `meta` (`{ name, tier, figmaNode, codeConnect }`), `props` (`[{ name, type, desc }]`), optional `tokens` (`[{ token, resolves, usage }]`), and a default React component rendering a states/variants grid plus (for interactive components) a `useState` playground. It auto-registers via the page's `import.meta.glob` — no central-file edit. Because it renders the live component, hover/focus/typing/click are real — no reproduction drift. Delegating to a subagent is **optional** for demo files (see "Demo files vs. DesignSystemMap" rule below). **Re-read the source files** (`packages/ui/src/<Component>.jsx` AND `apps/odyssey-one/src/styles/components.css`) before writing or updating the demo — include any Step 9 refinements (hover states, focus rings, disabled styles) that landed before Phase 3.
-- [ ] **Remove `meta.normalizing: true` from the demo file.** GATE B-DSM is signed off by Phase 3, so the component is approved/normalized — clearing the flag moves it out of the explorer's Normalize panel and into its tier tab (Atoms/Molecules/Organisms), the finished state. Leaving the flag set would strand a shipped component in the in-progress panel.
+- [ ] **Do NOT clear `meta.normalizing` here.** The component stays in the React DSM's Normalizing tab until its Angular twin is approved — the Angular port routine (`playground/angular-port-routine.md`) clears BOTH flags together on Angular pass. (Reason: enables the two-window React‖Angular side-by-side review.)
 - [ ] **`packages/ui/src/index.js` export added under the correct tier group** (`── Atoms ──` / `── Molecules ──` / `── Organisms ──`) — matching the tier assigned in Step 3. Don't append to the bottom; place it in its section.
 - [ ] **`playground/normalization-tracker.md` → `## Normalized Components` row added under the correct tier sub-table** (`### Atoms` / `### Molecules` / `### Organisms`), leading cell labeled `Name (tier)`. Plus (if applicable) entries in "Pushed to Figma" / "Pending Figma Sync" / "Pushed to Figma → Code Connect".
 - [ ] **Tier consistency check:** the Figma page, the `index.js` group, and the tracker sub-section all agree on the tier (per Step 3). If they don't, fix it now — this is what prevents a future full-library audit.
@@ -290,6 +290,10 @@ OR
 > "Library publish: not needed this cycle (only internal binding cleanup)."
 
 This is a Claude-side reminder, not an action Claude takes — Figma library publish is Figma-UI-only.
+
+### Step 9 — Hand off to the Angular port gate
+
+The React component is now approved + published. Run `playground/angular-port-routine.md` (`/port-to-angular <Component>`) to generate + review the Angular twin. The React `meta.normalizing` flag clears there, on Angular pass — completing the full (React + Angular) normalization.
 
 ### Step 8b: Icon Tracking (code → Figma, one-way)
 
