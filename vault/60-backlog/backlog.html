@@ -78,6 +78,74 @@
   <td>Product tab: remove separate Hazmat Class and Hazmat Group columns. Show their values in a hover tooltip on the Hazardous badge instead. Reduces product table width by 2 columns. DEC-39. <strong>Roll back if stakeholders don't approve.</strong></td>
 </tr>
 
+<!-- Orders Domain — UI pending Figma (Efrain). Behavior settled by LINX stories; §6 data-seam plumbing landed 2026-06-15. -->
+<tr class="priority-group"><td colspan="6">Orders — Overview, Detail &amp; Actions (UI pending Figma / Efrain)</td></tr>
+
+<tr>
+  <td></td>
+  <td class="id">ORD-1</td>
+  <td>Order Detail / View Order page</td>
+  <td><span class="size-m">M</span></td>
+  <td><span class="status-spec">Needs spec</span></td>
+  <td>Read-only detail reached from the grid (row View / ID link). <strong>Data seam DONE 2026-06-15</strong> (getOrderView + mapOrderViewToFormVm + useOrderView); UI (header, Detail | Audit Trail tab shell) needs Figma. LINX-10233 / LINX-10700. Spec: docs/superpowers/specs/2026-06-15-order-detail-view-order-design.md.</td>
+</tr>
+<tr>
+  <td></td>
+  <td class="id">ORD-2</td>
+  <td>Audit Trail tab (order detail)</td>
+  <td><span class="size-m">M</span></td>
+  <td><span class="status-spec">Needs spec</span></td>
+  <td>Reverse-chronological actions/events on the order detail (single + multi line item). Lives in the ORD-1 tab shell. LINX-8091 / LINX-9128.</td>
+</tr>
+<tr>
+  <td></td>
+  <td class="id">ORD-3</td>
+  <td>Post-creation actions — Edit / Cancel / Copy</td>
+  <td><span class="size-l">L</span></td>
+  <td><span class="status-spec">Needs spec</span></td>
+  <td>Wire the Order Actions row menu (currently inert stubs). Edit is underspecced (Architecture/Tech Design). View = ORD-1. LINX-10248 / LINX-10258 / LINX-10259.</td>
+</tr>
+<tr>
+  <td></td>
+  <td class="id">ORD-4</td>
+  <td>Overview — View / Apply Filters</td>
+  <td><span class="size-m">M</span></td>
+  <td><span class="status-spec">Needs spec</span></td>
+  <td>Filter button on the summary grid is a no-op stub today. Basic + advanced filters. LINX-10285.</td>
+</tr>
+<tr>
+  <td></td>
+  <td class="id">ORD-5</td>
+  <td>Overview — Manage Columns + Export CSV</td>
+  <td><span class="size-m">M</span></td>
+  <td><span class="status-spec">Needs spec</span></td>
+  <td>Show/hide + reorder columns; CSV export. Both absent today (Ramesh feedback). LINX-10300 (+ CSV export).</td>
+</tr>
+<tr>
+  <td></td>
+  <td class="id">ORD-6</td>
+  <td>Overview — Custom Views (display/create/edit/delete)</td>
+  <td><span class="size-l">L</span></td>
+  <td><span class="status-spec">Needs spec</span></td>
+  <td>Per-customer saved views over manage-columns + filters. LINX-10788 / LINX-10814 / LINX-10825 / LINX-10838.</td>
+</tr>
+<tr>
+  <td></td>
+  <td class="id">ORD-7</td>
+  <td>Overview — Summary columns expansion + tabs</td>
+  <td><span class="size-m">M</span></td>
+  <td><span class="status-spec">Needs spec</span></td>
+  <td>Grid shows lean/wrong columns today; add Order Number, Source, Ship Direction, Freight Terms, Consignor/Consignee, Latest Pickup/Delivery, Status. Summary tabs unresolved (Q25). Ramesh feedback. LINX-9896.</td>
+</tr>
+<tr>
+  <td></td>
+  <td class="id">ORD-8</td>
+  <td>OIF UI — fix validation errors for integrated orders</td>
+  <td><span class="size-m">M</span></td>
+  <td><span class="status-spec">Needs spec</span></td>
+  <td>UI to surface/repair validation errors on integrated orders. Absent today; tab-set conflict ties to Q25. LINX-11137.</td>
+</tr>
+
 <!-- Search & Filtering — Priority 2 -->
 <tr class="priority-group"><td colspan="6">Priority 2 — Search &amp; Filtering (SHP-19 decomposed)</td></tr>
 
