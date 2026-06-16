@@ -4218,13 +4218,44 @@ Added the **Orders** section to `vault/60-backlog/backlog.html`: **ORD-1..10** �
 
 ---
 
+## Session 57 — June 16, 2026
+
+**PIVOT executed — the Angular design-system delivery line.** Built the `odyssey-angular-dsm` workspace (sub-project **A**) AND the `/port-to-angular` gate (sub-project **B**) end-to-end via Superpowers (brainstorm → spec → plan → subagent-driven TDD + per-task two-stage reviews + final holistic review), then **generalized the gate for the real component mix**. Strategic reframe (Manuela, from her phone planning): not an Angular *analogue* of the React DSM but a **versioned `odyssey-ui` Angular library that replaces Cognizant's PrimeNG** — visual-only ownership; they keep data/state/services. Two repos, green throughout; **B docs merged to `main` + pushed**; Angular work parked local on `build/angular-dsm` pending the Checkbox two-window review.
+
+### Thread A — `odyssey-angular-dsm` workspace (sub-project A, BUILT)
+POC `odyssey-angular-button-demo/` → standalone two-project workspace `odyssey-angular-dsm/` (own git, branch `build/angular-dsm`, **local-only no remote**): `projects/odyssey-ui/` (the shippable library) + a `dsm-explorer` app that is a **verbatim Angular port of the React `/design-system` route** (Atoms/Molecules/Organisms/**Normalizing** tabs) for two-window parity review. 10-task TDD plan, **20 specs green**, both builds green. Token layer = Sass that **re-emits `:root{--token}` 1:1** from `packages/tokens/tokens.css` (no `$sass` mirror). Button migrated + **caught up to the drifted React canonical** (added `error`/`icon`/`link-black` + link-typography fix + reconciled 3 stale `.btn--link` divergences).
+
+### Thread B — parity bugs (caught by the human side-by-side)
+Three real divergences fixed: **icon vertical-centering** (component-scoped `.btn__icon > svg` can't reach projected lucide `<i-lucide><svg>` → `::ng-deep` descendant rules); **link-black ≡ default** (`[class]` clobbers host classes → React-faithful `@Input() className` passthrough); **ARIA** (`aria-selected`/`aria-expanded` bound to booleans dropped the attribute → bind `'true'`/`'false'`, restoring React-DOM parity + a11y).
+
+### Thread C — self-contained packaging
+`odyssey-ui` ships everything on install: `@fontsource/inter` as a real **dependency** (via a `_fonts` partial @used first in `styles/index`, `allowedNonPeerDependencies`), `lucide-angular` as an **optional peer**, font-smoothing in the styles entry. Proven: the explorer (its own font import dropped) gets Inter via `odyssey-ui/styles/index` exactly as a consumer would.
+
+### Thread D — the `/port-to-angular` gate (sub-project B, BUILT)
+Spec + plan, then 6-task build: per-component `Odyssey<C>Module` + aggregate `OdysseyUiModule` (PrimeNG-native, matches the inserted Button POC); a **parity-lint** (`tools/angular-parity-lint.mjs`, pure `checkComponent` core, 14 tests) that BLOCKS gotcha/Cognizant-convention violations (selector `odyssey-<kebab>`, `className` passthrough, `var(--token)`-only in SCSS **and** inline styles/variants maps, `::ng-deep` for slots, per-component module, figma-link, public-api + aggregate); the `angular-port-routine.md` gate; the `/normalize` hook (Phase 3 **defers** the React flag-clear + Step 8d handoff). Final holistic review → fixed 4 batch-readiness items. **Proof port (Checkbox, visual-only, no CVA)** run through the gate: lint ✓, builds + tests green, fidelity-reviewed — **in both Normalizing tabs pending Manuela's two-window review**.
+
+### Thread E — generalized porting approach (Manuela's correction)
+Survey of the 46 React components: **only 15 (33%) are pure HTML/CSS**; ~2/3 need real React→Angular *logic* translation (8 inline/computed-styled, 14 mixed, 10 stateful). Badge *is* its JS (`variants` map + computed `getPadding` + inline `[style]`) — unsuitable as a proof port (swapped to Checkbox). **Generalized the gate** from "copy CSS classes" to **faithful full-component translation**: a React→Angular construct-translation reference (hooks→lifecycle/services, `variants`→component property, computed `style`→`[ngStyle]`, render-prop→`@ContentChild`/`*ngTemplateOutlet`, polymorphic tag→`ng-template`+outlet) + a **4-tier port model** (pure-class → simple-state → DOM-measurement → observers), batch tier-ordered with model tier scaling by complexity. Lint extended to enforce tokens in inline styles too.
+
+### Files / repos
+**odyssey-one (`main`, pushed):** new `docs/superpowers/specs/2026-06-15-angular-dsm-design.md` + `…/plans/2026-06-15-angular-dsm.md` + `…/specs/2026-06-16-angular-port-gate-design.md` + `…/plans/2026-06-16-angular-port-gate.md` + `playground/angular-port-routine.md`; modified `playground/figma-component-routine.md` (defer + Step 8d), `apps/odyssey-one/src/routes/design-system/demos/Checkbox.demo.jsx` (temp `normalizing:true`). **odyssey-angular-dsm (`build/angular-dsm`, local):** the full workspace (library + explorer + Button + Checkbox + parity-lint + tests). **Memory:** updated `project_normalize_angular_skill_concept` (A built; gotchas 7–12) + `project_poc2_demo_project_location` (renamed → odyssey-angular-dsm).
+
+### Carry-forward to Session 58
+- **Checkbox two-window review owed** (Manuela): Angular `:4200` ‖ React `/design-system`, both Normalizing → Checkbox. Approval → Phase 5 (clear both flags, promote, finalize); reject → re-port (Angular only).
+- **Sub-project C = run the batch** through the generalized gate, tier-ordered (Tier 1 pure-class → Tier 4 observers); shared-`.control` base extraction lands on the Radio port; Badge & the inline-styled set use the `[ngStyle]`/variants-map path.
+- Angular work is **local-only** (`build/angular-dsm`, no remote) — registry/publish decision deferred (Cognizant conversation). The linx clone's git push URL is the LIVE repo — re-set `no_push` before touching it.
+
+---
+
 ## What's Next
 
-### Session 57 Priorities
+### Session 58 Priorities
 
-1. **PIVOT — Angular DSM (the main thrust).** Turn the POC Angular Button (`odyssey-angular-button-demo/`) into the Angular analogue of the React `/design-system` route. Extend `/normalize` so that **after a component's React normalization completes, it ALSO generates the Angular component** into that DSM (React-first, then Angular). The DSM seeds an **Angular component library** to hand Cognizant the UI layer — **visual-only** ownership; they keep data/state/service patterns. See memory `project_normalize_angular_skill_concept` (firmed 2026-06-15) + its encoded POC-2 port gotchas (typography utility classes, static-weight fonts, font-smoothing, 1:1 token re-emit, alignment artifact, side-by-side verify). **HARD RULE:** test internally on 2–3 component ports before any Cognizant handoff.
-2. **Orders — PAUSED, fully captured in repo.** `vault/60-backlog/backlog.html` **ORD-1..10** (UI pending Figma/Efrain + PO decisions) + `requirements-tracker.md` + `decisions/decision-log.md` ORD-01 + the §6 spec. §6 **data seam built (S56)** — when Efrain's View Order design lands, ORD-1 wires onto `useOrderView` with no data work. Contract/live-flip (mapper residuals, customerId Q30, `/order/view` envelope/not-found) await Ramesh + live Swagger. Owed: Product Delete entry → Efrain; 2 `@odyssey/ui` additive-prop flags → Manuela's normalization session.
-3. **Carried (behind the Angular pivot):** question push (Q25/Q29/Q31/Q33/Q34/Q35; graduate resolved Qs into canon); S51 LLD canon merge (`domain-analysis.md`/`section-map.md` + Shipments DTO reconciliation); design-system follow-ups (Tab instance swap, Cell's 4 Figma flags, Shipments migration pass). The S55-flagged `/analyze` of inbox artifacts is **DONE (S56)**.
+1. **Checkbox two-window review → Phase 5 (owed from S57).** Manuela compares Angular `:4200` ‖ React `/design-system` (both Normalizing → Checkbox). On approval, run the routine's Phase 5: clear **both** `normalizing` flags, promote Checkbox to Atoms in both DSMs, finalize the library export, update the tracker. On reject, re-run the Angular generation only (React frozen).
+2. **Sub-project C — batch the remaining ~36 components** through `/port-to-angular`, **tier-ordered** (Tier 1 pure-class → Tier 2 simple-state → Tier 3 DOM-measurement → Tier 4 observers; the inline/computed-styled set via `[ngStyle]` + variants-map). HARD-RULE proving started (Button + Checkbox); continue 2–3 one-at-a-time, then batches. **Radio's port performs the shared-`.control`-base extraction** (`src/lib/_shared/`). Gate is at `playground/angular-port-routine.md`; lint at `odyssey-angular-dsm/tools/angular-parity-lint.mjs`.
+3. **Angular library delivery follow-ups:** registry vs versioned-`dist/` handoff (Cognizant conversation); the install-into-a-Cognizant-like-app integration test (`npm pack`/link `odyssey-ui` into a clone, swap a PrimeNG component, verify); **re-set `no_push` on the linx clone** (push URL reverted to the live repo) before touching it.
+4. **Orders — PAUSED, fully captured in repo** (unchanged from S56). `vault/60-backlog/backlog.html` **ORD-1..10** + `requirements-tracker.md` + `decisions/decision-log.md` ORD-01 + §6 spec + the built data seam (`useOrderView`). UI awaits Efrain; contract/live-flip awaits Ramesh + live Swagger. Owed: Product Delete entry → Efrain; 2 `@odyssey/ui` additive-prop flags → Manuela's normalization session.
+5. **Carried (behind the Angular line):** Shipments question push (Q25/Q29/Q31/Q33/Q34/Q35; graduate resolved Qs into canon); S51 LLD canon merge (`domain-analysis.md`/`section-map.md` + Shipments DTO reconciliation); design-system follow-ups (Tab instance swap, Cell's 4 Figma flags, Shipments migration pass).
 
 ### Prior priorities (carried, now behind the Orders arc)
 
