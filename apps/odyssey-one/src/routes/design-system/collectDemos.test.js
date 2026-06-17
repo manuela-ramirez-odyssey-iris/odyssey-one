@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest'
-import { TIERS, groupDemosByTier, collectNormalizing } from './collectDemos.js'
+import { describe, it, expect, test } from 'vitest'
+import { TIERS, groupDemosByTier, collectNormalizing, DOMAINS, filterTiersByDomain, filterDemosByDomain } from './collectDemos.js'
 
 // Minimal fake of the import.meta.glob({ eager: true }) result:
 // { '<path>': { meta, props?, tokens?, default } }
@@ -119,4 +119,31 @@ describe('collectNormalizing', () => {
       collectNormalizing({ './demos/X.demo.jsx': { meta: { tier: 'atom', normalizing: true }, default: () => null } })
     ).toThrow(/missing a meta\.name/)
   })
+})
+
+const usage = { orders: ['Button', 'EmptyState'], shipments: ['PageHeader'] }
+const tiers = [
+  { key: 'atom', label: 'Atoms', demos: [
+    { meta: { name: 'Button' } }, { meta: { name: 'Badge' } }, { meta: { name: 'EmptyState' } },
+  ] },
+]
+
+test('DOMAINS lists All first then the 7 domains', () => {
+  expect(DOMAINS[0]).toEqual({ key: 'all', label: 'All' })
+  expect(DOMAINS.map((d) => d.key)).toEqual(
+    ['all', 'home', 'orders', 'shipments', 'carriers', 'tracking', 'users', 'global-search'])
+})
+
+test('filterTiersByDomain: all returns every demo', () => {
+  const out = filterTiersByDomain(tiers, usage, 'all')
+  expect(out[0].demos.map((d) => d.meta.name)).toEqual(['Button', 'Badge', 'EmptyState'])
+})
+
+test('filterTiersByDomain: orders keeps only orders demos', () => {
+  const out = filterTiersByDomain(tiers, usage, 'orders')
+  expect(out[0].demos.map((d) => d.meta.name)).toEqual(['Button', 'EmptyState'])
+})
+
+test('filterDemosByDomain: unknown domain → empty', () => {
+  expect(filterDemosByDomain(tiers[0].demos, usage, 'carriers')).toEqual([])
 })

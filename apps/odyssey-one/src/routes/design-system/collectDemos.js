@@ -56,6 +56,32 @@ export function groupDemosByTier(modules) {
   return TIERS.map((t) => ({ ...t, demos: buckets.get(t.key) }))
 }
 
+export const DOMAINS = [
+  { key: 'all', label: 'All' },
+  { key: 'home', label: 'Home' },
+  { key: 'orders', label: 'Orders' },
+  { key: 'shipments', label: 'Shipments' },
+  { key: 'carriers', label: 'Carriers' },
+  { key: 'tracking', label: 'Tracking' },
+  { key: 'users', label: 'Users' },
+  { key: 'global-search', label: 'Global Search' },
+]
+
+// True if the component should show under the active domain. 'all' shows everything.
+export function inDomain(usage, domain, name) {
+  return domain === 'all' || (usage[domain]?.includes(name) ?? false)
+}
+
+export function filterDemosByDomain(demos, usage, domain) {
+  if (domain === 'all') return demos
+  return demos.filter((d) => inDomain(usage, domain, d.meta.name))
+}
+
+export function filterTiersByDomain(tiers, usage, domain) {
+  if (domain === 'all') return tiers
+  return tiers.map((t) => ({ ...t, demos: filterDemosByDomain(t.demos, usage, domain) }))
+}
+
 // Returns the demos currently flagged meta.normalizing === true, name-sorted,
 // in the same entry shape as a tier's demos.
 export function collectNormalizing(modules) {
