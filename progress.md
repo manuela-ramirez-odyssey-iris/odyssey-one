@@ -4247,13 +4247,48 @@ Survey of the 46 React components: **only 15 (33%) are pure HTML/CSS**; ~2/3 nee
 
 ---
 
+## Session 58 — June 16–17, 2026
+
+**The Angular atom library COMPLETED + packaged for delivery, plus two new DSM features built via Superpowers.** Cleared the owed Checkbox two-window review (→ Phase 5 promote), then ran **sub-project C end-to-end**: four `/port-to-angular` batches landed **all 17 atoms** (+ the Alert molecule that jumped the queue) into the versioned `odyssey-ui` Angular library. Added DSM identity + governance affordances (dual-name headers, DEPRECATED pill in both DSMs). Then brainstorm→spec→plan→subagent-built **two DSM features** (Details-in-modal + per-domain "lego list" filter) across both explorers. Finally **packaged the library + DSM as a deliverable zip** (proper repo upload unavailable; first version ships by hand). Both repos committed; odyssey-one pushed.
+
+### Thread A — Checkbox promote + the atom batches (sub-project C — ALL 17 ATOMS DONE)
+Checkbox cleared GATE B → Phase 5 (both `normalizing` flags cleared, promoted to Atoms in both DSMs, tracker's new **Angular Ports** section seeded). Then four batches through the gate (Phase 1 gather → single Sonnet Phase 2 generate → Phase 3 verify → Phase 4 two-window → Phase 5 promote), each green:
+- **B1:** Radio (+ the **shared-`.control` extraction** → `lib/_shared/control.scss`, Checkbox refactored onto it), SectionLabel, **Alert** (molecule — first slotted/projection + composes `odyssey-button`).
+- **B2:** **Badge** (first inline/variants-map port — `variants`→property, `getPadding`→getter, `[ngStyle]`, `*ngSwitch shapeKey`; favorite star filled via scoped `::ng-deep svg{fill}`), IconButton, IconButtonGhost (polymorphic `<button>`/`<span>` two-host `*ngTemplateOutlet`).
+- **B3:** Tab, PillTab (both compose the ported `odyssey-badge` — atoms-first paying off), FilterButton, FieldSelect, EmptyState (G7 projected `[slot=icon]`).
+- **B4:** StepIndicator, OdysseyLogo (SVG `VARIANT_FILLS`→getter), SidebarButton (Tailwind-in-React → `:host` SCSS + `[ngStyle]`), AddSectionButton (polymorphic), AddSectionDivider.
+
+**Library = 18 components, 121 specs green.** Manuela's mid-stream correction: **strict atoms-first** (all atoms before molecules) + **never skip a central atom** (Badge) for being inline-styled — saved as feedback.
+
+### Thread B — DSM identity + governance
+**Dual-name headers** (Angular DSM): `odyssey-radio → Radio` (React/Figma name muted; `angularName` on `DemoMeta`; arrow separator — brand-icons trialed then reverted on request). **DEPRECATED pill** added to **both** DSMs (`deprecated?` on the meta); **IconButton + EntityChip flagged `@deprecated`** (IconButton's sole consumer is EntityChip, also retiring) → skip EntityChip in future porting.
+
+### Thread C — two DSM features (brainstorm → spec → plan → subagent-driven build)
+Specced + planned (`docs/superpowers/specs|plans/2026-06-16-dsm-modal-and-domain-filter*`), then built per-unit with spec+quality review:
+1. **Details → modal** (both DSMs): the per-component Details button opens the props/token tables in one top-level modal (✕/backdrop/Esc), not inline.
+2. **Per-domain filter** (both DSMs): a `tools/domain-usage.mjs` scanner reads each domain's **direct** `@odyssey/ui` imports (library-consumer model — Sidebar listed, not its internal SidebarButton) → `domain-usage.json` in both DSMs, regenerated on every app build via the `apps/odyssey-one` **prebuild** (so prod stays current). A header dropdown (All + 7 domains) filters Atoms/Molecules/Organisms + counts. Review caught a real **regex bug** (`[\s\S]*?` matched across import statements, dropping names after a preceding non-odyssey import) — fixed (`[^{}]*`) + regression-tested.
+
+### Thread D — delivery package
+`odyssey-ui` is a real ng-packagr library → built + `npm pack`ed **`odyssey-ui-0.1.0.tgz`** (self-contained: ships tokens, typography, Inter font; lucide optional). Assembled **`Shipments/odyssey-ui-delivery-2026-06-17.zip`** = the tarball + canonical **source** (git-archive) + a **built static DSM** + a README (install/test the lib, run the DSM, the conventions). First version ships by hand.
+
+### Files / repos
+**odyssey-one (`main`, pushed):** scanner `tools/domain-usage.mjs` (+test, +`domain-usage` script, +prebuild hook), `domain-usage.json`, React DSM filter+modal (`DesignSystem.jsx`/`.css`, `collectDemos.js`/test), tracker Angular Ports rows, React DSM DEPRECATED pill, IconButton/EntityChip `@deprecated`, the spec+plan docs, `progress.md`. **odyssey-angular-dsm (`build/angular-dsm`, local-only):** full atom library (16 new component dirs + `_shared/control.scss`), DSM dual-name + DEPRECATED pill + domain filter + `ds-modal`, demos/registry/module wiring, `domain-usage.json`. **Memory:** +`feedback_angular_port_atoms_first`, +`project_angular_dsm_dual_name`, +`project_iconbutton_entitychip_deprecating`, +`project_odyssey_ui_delivery`.
+
+### Carry-forward to Session 59
+- **Deliver the zip** (`Shipments/odyssey-ui-delivery-2026-06-17.zip`) to Cognizant — owed.
+- **Molecules then organisms** remain (atoms-first complete); the gate is proven; **skip EntityChip** (deprecating).
+- Angular stays **local-only** (`build/angular-dsm`, no remote); registry/publish decision deferred. `domain-usage.json` auto-refreshes on the React app's prod build.
+- Minor: the "restart a wedged `ng serve` watcher / rebuild dist before review" practice was applied manually all session but not yet folded into `angular-port-routine.md` Phase 4.
+
+---
+
 ## What's Next
 
-### Session 58 Priorities
+### Session 59 Priorities
 
-1. **Checkbox two-window review → Phase 5 (owed from S57).** Manuela compares Angular `:4200` ‖ React `/design-system` (both Normalizing → Checkbox). On approval, run the routine's Phase 5: clear **both** `normalizing` flags, promote Checkbox to Atoms in both DSMs, finalize the library export, update the tracker. On reject, re-run the Angular generation only (React frozen).
-2. **Sub-project C — batch the remaining ~36 components** through `/port-to-angular`, **tier-ordered** (Tier 1 pure-class → Tier 2 simple-state → Tier 3 DOM-measurement → Tier 4 observers; the inline/computed-styled set via `[ngStyle]` + variants-map). HARD-RULE proving started (Button + Checkbox); continue 2–3 one-at-a-time, then batches. **Radio's port performs the shared-`.control`-base extraction** (`src/lib/_shared/`). Gate is at `playground/angular-port-routine.md`; lint at `odyssey-angular-dsm/tools/angular-parity-lint.mjs`.
-3. **Angular library delivery follow-ups:** registry vs versioned-`dist/` handoff (Cognizant conversation); the install-into-a-Cognizant-like-app integration test (`npm pack`/link `odyssey-ui` into a clone, swap a PrimeNG component, verify); **re-set `no_push` on the linx clone** (push URL reverted to the live repo) before touching it.
+1. **Deliver the library + DSM zip** — `Shipments/odyssey-ui-delivery-2026-06-17.zip` (installable `odyssey-ui-0.1.0.tgz` + canonical source + built DSM showcase + README) to Cognizant for testing. Owed from S58 (no repo upload available → ships by hand).
+2. **Port the molecules, then organisms** (atoms-first complete: 17 atoms + Alert in the library). Tier-ordered through `/port-to-angular` (`playground/angular-port-routine.md`; lint `odyssey-angular-dsm/tools/angular-parity-lint.mjs`); **SKIP EntityChip** (deprecating). Candidates: Cell, Accordion, FormField, PageHeader, CustomerRow, SearchField, ButtonToggle, MenuDropdown, the Widget rows… → then organisms (Navbar, Widget, Modals, SearchPanel, …).
+3. **Angular library handoff follow-ups:** registry vs versioned-`dist/` decision (Cognizant conversation); **re-set `no_push` on the linx clone** before touching it; fold the "restart a wedged `ng serve` / rebuild dist before review" practice into `angular-port-routine.md` Phase 4.
 4. **Orders — PAUSED, fully captured in repo** (unchanged from S56). `vault/60-backlog/backlog.html` **ORD-1..10** + `requirements-tracker.md` + `decisions/decision-log.md` ORD-01 + §6 spec + the built data seam (`useOrderView`). UI awaits Efrain; contract/live-flip awaits Ramesh + live Swagger. Owed: Product Delete entry → Efrain; 2 `@odyssey/ui` additive-prop flags → Manuela's normalization session.
 5. **Carried (behind the Angular line):** Shipments question push (Q25/Q29/Q31/Q33/Q34/Q35; graduate resolved Qs into canon); S51 LLD canon merge (`domain-analysis.md`/`section-map.md` + Shipments DTO reconciliation); design-system follow-ups (Tab instance swap, Cell's 4 Figma flags, Shipments migration pass).
 
