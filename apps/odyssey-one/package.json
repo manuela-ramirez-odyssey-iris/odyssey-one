@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "prebuild": "node tools/generate.mjs && node tools/generate-orders.mjs",
+    "prebuild": "node tools/generate.mjs && node tools/generate-orders.mjs && node ../../tools/domain-usage.mjs",
     "build": "vite build",
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.json --noEmit",
