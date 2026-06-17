@@ -374,3 +374,13 @@
 .ds-menu__item[aria-selected='true'] {
   font-weight: var(--font-weight-semibold);
 }
+
+/* Domain filter dropdown */
+.ds-header__row { display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-4); }
+.ds-domain { display: inline-flex; align-items: center; gap: var(--spacing-2); }
+.ds-domain__label { font-size: var(--font-size-sm); color: var(--text-secondary); }
+.ds-domain__select {
+  font: inherit; font-size: var(--font-size-sm); color: var(--text-primary);
+  padding: var(--spacing-1) var(--spacing-2); border: 1px solid var(--border-default);
+  border-radius: var(--radius-md); background: var(--white); cursor: pointer;
+}

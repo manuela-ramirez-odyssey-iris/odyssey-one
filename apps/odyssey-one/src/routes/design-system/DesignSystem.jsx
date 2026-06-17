@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { TIERS, groupDemosByTier, collectNormalizing } from './collectDemos.js'
+import { TIERS, groupDemosByTier, collectNormalizing, DOMAINS, filterTiersByDomain, filterDemosByDomain } from './collectDemos.js'
+import domainUsage from './domain-usage.json'
 import './DesignSystem.css'
 
 // Eagerly collect every co-located demo. Adding a new component to the
@@ -110,8 +111,11 @@ export default function DesignSystem() {
   // immediately visible; otherwise fall back to the first tier (Atoms).
   const [activeTier, setActiveTier] = useState(hasNormalizing ? NORMALIZE_KEY : TIERS[0].key)
   const [openDetails, setOpenDetails] = useState(null) // meta.name | null
+  const [activeDomain, setActiveDomain] = useState('all')
+  const viewTiers = filterTiersByDomain(tiers, domainUsage, activeDomain)
+  const viewNormalizing = filterDemosByDomain(normalizing, domainUsage, activeDomain)
   const onNormalize = activeTier === NORMALIZE_KEY
-  const active = onNormalize ? null : tiers.find((t) => t.key === activeTier)
+  const active = onNormalize ? null : viewTiers.find((t) => t.key === activeTier)
 
   const renderSection = (demo) => (
     <DemoSection
@@ -127,7 +131,21 @@ export default function DesignSystem() {
     <div className="ds-root">
       <main className="ds-page">
         <header className="ds-header">
-          <h1>Odyssey Design System</h1>
+          <div className="ds-header__row">
+            <h1>Odyssey Design System</h1>
+            <label className="ds-domain">
+              <span className="ds-domain__label">Domain</span>
+              <select
+                className="ds-domain__select"
+                value={activeDomain}
+                onChange={(e) => setActiveDomain(e.target.value)}
+              >
+                {DOMAINS.map((d) => (
+                  <option key={d.key} value={d.key}>{d.label}</option>
+                ))}
+              </select>
+            </label>
+          </div>
           <p>
             Live <code>@odyssey/ui</code> components — hover, focus, type. The real
             thing, not a static reproduction.
@@ -135,7 +153,7 @@ export default function DesignSystem() {
         </header>
 
         <nav className="ds-tabs" role="tablist" aria-label="Component tiers">
-          {tiers.map((t) => (
+          {viewTiers.map((t) => (
             <button
               key={t.key}
               type="button"
@@ -159,18 +177,18 @@ export default function DesignSystem() {
             onClick={() => setActiveTier(NORMALIZE_KEY)}
           >
             Normalizing
-            <span className="ds-tab__count">{normalizing.length}</span>
+            <span className="ds-tab__count">{viewNormalizing.length}</span>
           </button>
         </nav>
 
         <div className="ds-list">
           {onNormalize ? (
-            normalizing.length === 0 ? (
+            viewNormalizing.length === 0 ? (
               <p className="ds-empty">
                 Nothing in progress — components appear here during a /normalize cycle.
               </p>
             ) : (
-              normalizing.map(renderSection)
+              viewNormalizing.map(renderSection)
             )
           ) : (
             <>
