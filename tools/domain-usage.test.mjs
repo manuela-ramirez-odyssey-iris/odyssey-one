@@ -30,3 +30,12 @@ test('multiple @odyssey/ui imports in one file are unioned', () => {
 test('ignores imports from other packages and returns [] when none', () => {
   assert.deepEqual(extractOdysseyImports(`import { useState } from 'react'`), [])
 })
+
+test('does not span across a preceding non-odyssey import (real-world)', () => {
+  // A React named import BEFORE the @odyssey/ui import must not be swallowed.
+  const src =
+    `import { useState, useMemo, useEffect } from 'react'\n` +
+    `import AppShell from '../layout/AppShell'\n` +
+    `import { PageHeader } from '@odyssey/ui'`
+  assert.deepEqual(extractOdysseyImports(src), ['PageHeader'])
+})

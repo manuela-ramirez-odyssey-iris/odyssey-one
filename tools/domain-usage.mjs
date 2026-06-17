@@ -3,7 +3,10 @@
 // string. Handles single- and multi-line `import { ... } from '@odyssey/ui'`,
 // strips `X as Y` aliases to the export name X, and unions repeated imports.
 export function extractOdysseyImports(source) {
-  const re = /import\s*\{([\s\S]*?)\}\s*from\s*['"]@odyssey\/ui['"]/g
+  // `[^{}]*` (not `[\s\S]*?`) so a match cannot span across other import
+  // statements — otherwise a preceding `import { … } from 'react'` would be
+  // swallowed up to the @odyssey/ui import and lose the real names.
+  const re = /import\s*\{([^{}]*)\}\s*from\s*['"]@odyssey\/ui['"]/g
   const names = new Set()
   let m
   while ((m = re.exec(source)) !== null) {

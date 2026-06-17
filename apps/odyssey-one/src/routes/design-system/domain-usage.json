@@ -1,5 +1,6 @@
 {
   "home": [
+    "AddSectionButton",
     "AddSectionDivider",
     "Button",
     "EmptyState",
@@ -13,6 +14,7 @@
     "WidgetsLeftMenu"
   ],
   "orders": [
+    "Accordion",
     "Alert",
     "Badge",
     "Button",
@@ -26,8 +28,11 @@
     "SearchField"
   ],
   "shipments": [
+    "Badge",
+    "Button",
     "FormField",
-    "ModalMedium"
+    "ModalMedium",
+    "PageHeader"
   ],
   "carriers": [
     "PageHeader"
@@ -39,9 +44,12 @@
     "Button",
     "CustomerRow",
     "EmptyState",
-    "PageHeader"
+    "PageHeader",
+    "SearchField"
   ],
   "global-search": [
+    "Button",
+    "GlobalSearch",
     "PillTab",
     "SearchPanel",
     "SearchResults"
