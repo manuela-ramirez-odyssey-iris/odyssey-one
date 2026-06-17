@@ -384,3 +384,20 @@
   padding: var(--spacing-1) var(--spacing-2); border: 1px solid var(--border-default);
   border-radius: var(--radius-md); background: var(--white); cursor: pointer;
 }
+
+/* Details modal */
+.ds-modal__backdrop {
+  position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,0.4); padding: var(--spacing-6);
+}
+.ds-modal {
+  background: var(--white); border-radius: var(--radius-lg); box-shadow: var(--shadow-2xl);
+  max-width: 720px; width: 100%; max-height: 80vh; display: flex; flex-direction: column;
+}
+.ds-modal__head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: var(--spacing-4) var(--spacing-6); border-bottom: 1px solid var(--border-default);
+}
+.ds-modal__title { margin: 0; font-size: var(--font-size-lg); font-weight: var(--font-weight-semibold); }
+.ds-modal__close { background: transparent; border: 0; cursor: pointer; font-size: var(--font-size-lg); color: var(--text-tertiary); line-height: 1; }
+.ds-modal__body { padding: var(--spacing-6); overflow-y: auto; }

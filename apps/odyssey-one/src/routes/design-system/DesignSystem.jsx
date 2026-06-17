@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { TIERS, groupDemosByTier, collectNormalizing, DOMAINS, filterTiersByDomain, filterDemosByDomain } from './collectDemos.js'
 import domainUsage from './domain-usage.json'
 import './DesignSystem.css'
@@ -89,18 +89,15 @@ function DemoSection({ meta, props, tokens, Component, open, onToggle, normalizi
         <button
           type="button"
           className="ds-comp__toggle"
-          aria-expanded={open}
           onClick={onToggle}
         >
-          {open ? 'Hide details' : 'Details'}
+          Details
         </button>
       </div>
 
       <div className="ds-comp__demo">
         <Component />
       </div>
-
-      {open && <DetailsPanel meta={meta} props={props} tokens={tokens} />}
     </section>
   )
 }
@@ -117,12 +114,22 @@ export default function DesignSystem() {
   const onNormalize = activeTier === NORMALIZE_KEY
   const active = onNormalize ? null : viewTiers.find((t) => t.key === activeTier)
 
+  const allDemos = [...tiers.flatMap((t) => t.demos), ...normalizing]
+  const detailsDemo = openDetails ? allDemos.find((d) => d.meta.name === openDetails) : null
+
+  useEffect(() => {
+    if (!openDetails) return
+    const onKey = (e) => { if (e.key === 'Escape') setOpenDetails(null) }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [openDetails])
+
   const renderSection = (demo) => (
     <DemoSection
       key={demo.meta.name}
       {...demo}
       open={openDetails === demo.meta.name}
-      onToggle={() => setOpenDetails(openDetails === demo.meta.name ? null : demo.meta.name)}
+      onToggle={() => setOpenDetails(demo.meta.name)}
       normalizing={demo.meta.normalizing === true}
     />
   )
@@ -200,6 +207,19 @@ export default function DesignSystem() {
           )}
         </div>
       </main>
+      {detailsDemo && (
+        <div className="ds-modal__backdrop" onClick={() => setOpenDetails(null)}>
+          <div className="ds-modal" role="dialog" aria-modal="true" aria-label={`${detailsDemo.meta.name} details`} onClick={(e) => e.stopPropagation()}>
+            <div className="ds-modal__head">
+              <h2 className="ds-modal__title">{detailsDemo.meta.name}</h2>
+              <button type="button" className="ds-modal__close" aria-label="Close" onClick={() => setOpenDetails(null)}>✕</button>
+            </div>
+            <div className="ds-modal__body">
+              <DetailsPanel meta={detailsDemo.meta} props={detailsDemo.props} tokens={detailsDemo.tokens} />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
