@@ -6,6 +6,9 @@ import IconButton from './IconButton.jsx'
  * EntityChip — molecule. Pill that names a scope (e.g. "Customers") and shows how many
  * entities are currently selected via stacked dashed-border icon slots.
  *
+ * @deprecated Slated for removal (along with its IconButton dependency). Not planned
+ * for an Angular port.
+ *
  * Display rules:
  *   count 0    → no handshakes (chip shows only name + add affordance)
  *   count 1–3  → that many handshake icons

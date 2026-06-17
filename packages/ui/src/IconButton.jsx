@@ -1,6 +1,8 @@
 /**
  * IconButton — atom. 24×24 circular surface with shadow-base, holds a single icon.
  *
+ * @deprecated Slated for removal — sole consumer is EntityChip (also deprecating).
+ *
  * Polymorphic: renders as `<button>` when an `onClick` handler is provided,
  * otherwise as `<span>` (purely decorative). Avoids invalid nested-button
  * markup when used inside another interactive component (e.g. EntityChip).

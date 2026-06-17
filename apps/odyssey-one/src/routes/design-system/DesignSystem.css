@@ -184,6 +184,12 @@
   border-radius: var(--radius-full);
 }
 
+/* DEPRECATED pill — component slated for removal (e.g. IconButton; sole consumer EntityChip). */
+.ds-comp__pill--deprecated {
+  color: var(--text-error);
+  background: var(--bg-error);
+}
+
 .ds-comp__toggle {
   background: transparent;
   border: 1px solid var(--border-default);

@@ -7,6 +7,7 @@ export const meta = {
   tier: 'atom',
   figmaNode: '1754:295',
   codeConnect: 'packages/ui/src/IconButton.figma.tsx',
+  deprecated: true,
 }
 
 export const props = [

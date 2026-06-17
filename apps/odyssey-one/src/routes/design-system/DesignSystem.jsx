@@ -83,6 +83,7 @@ function DemoSection({ meta, props, tokens, Component, open, onToggle, normalizi
         <div className="ds-comp__heading">
           <h2 className="ds-comp__name">{meta.name}</h2>
           {isNormalizing && <span className="ds-comp__pill">NORMALIZING</span>}
+          {meta.deprecated && <span className="ds-comp__pill ds-comp__pill--deprecated">DEPRECATED</span>}
         </div>
         <button
           type="button"
