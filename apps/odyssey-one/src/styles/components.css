@@ -1288,8 +1288,9 @@ button.filter-suggestions__chip:active {
   color: var(--text-primary);
 }
 
-/* SectionHeader — molecule. Two-row header (title + actions). Colors on the
-   text leaves so consumers can override via a modifier on the header root. */
+/* SectionHeader — molecule. Single-row header (title + supporting text). Colors on the
+   text leaves so consumers can override via a modifier on the header root.
+   (Actions row removed 2026-06-17 — dropped from the Figma master.) */
 .section-header__title {
   color: var(--text-primary);
 }

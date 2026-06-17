@@ -56,13 +56,24 @@ export default function ButtonToggle({
 
   useLayoutEffect(() => {
     if (!isText) return
-    const first = firstContentRef.current
-    const second = secondContentRef.current
-    if (first && second) {
-      setContentW({
-        first: first.getBoundingClientRect().width,
-        second: second.getBoundingClientRect().width,
-      })
+    const measure = () => {
+      const first = firstContentRef.current
+      const second = secondContentRef.current
+      if (first && second) {
+        setContentW({
+          first: first.getBoundingClientRect().width,
+          second: second.getBoundingClientRect().width,
+        })
+      }
+    }
+    measure()
+    // Re-measure once webfonts are ready — the first measurement can run against a
+    // fallback font (FOUT) before Inter loads, which sizes the thumb wrong and leaves
+    // the label off-center under the pill. document.fonts.ready resolves after load.
+    if (typeof document !== 'undefined' && document.fonts) {
+      let cancelled = false
+      document.fonts.ready.then(() => { if (!cancelled) measure() })
+      return () => { cancelled = true }
     }
   }, [isText, firstLabel, secondLabel])
 

@@ -49,7 +49,7 @@ export default function PageHeaderDemo() {
               secondAriaLabel="Route view"
             />
             <Button variant="link" iconRight={<ArrowRight size={16} />}>Go to Tracking</Button>
-            <Button icon={<Plus size={16} />}>Button</Button>
+            <Button icon={<Plus size={20} />}>Button</Button>
           </PageHeader>
         </div>
       </div>
@@ -65,7 +65,7 @@ export default function PageHeaderDemo() {
         <h4 className="ds-demo-section__title">Title + single action</h4>
         <div className="ds-demo-cell" style={{ justifyContent: 'flex-start' }}>
           <PageHeader title="Orders" style={{ width: '100%' }}>
-            <Button icon={<Plus size={16} />}>New order</Button>
+            <Button icon={<Plus size={20} />}>New order</Button>
           </PageHeader>
         </div>
       </div>
@@ -74,8 +74,8 @@ export default function PageHeaderDemo() {
         <h4 className="ds-demo-section__title">Title + multiple actions</h4>
         <div className="ds-demo-cell" style={{ justifyContent: 'flex-start' }}>
           <PageHeader title="Carriers" style={{ width: '100%' }}>
-            <Button variant="secondary" icon={<Download size={16} />}>Export</Button>
-            <Button icon={<Plus size={16} />}>Add carrier</Button>
+            <Button variant="secondary" icon={<Download size={20} />}>Export</Button>
+            <Button icon={<Plus size={20} />}>Add carrier</Button>
           </PageHeader>
         </div>
       </div>

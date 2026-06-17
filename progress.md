@@ -4282,15 +4282,45 @@ Specced + planned (`docs/superpowers/specs|plans/2026-06-16-dsm-modal-and-domain
 
 ---
 
+## Session 59 — June 17, 2026
+
+**The Angular molecule line — 13 molecules ported across three batches + ButtonToggle; library 18 → 31 components.** Finalized the S58 delivery zip, then ran the `/port-to-angular` gate at pace: **Batch 5** (5 molecules + the deferred shared-base extraction + two React spec changes), the **ButtonToggle** queue-jump (Tier 3, needed by PageHeader's cluster), **Batch 6** (5 dependency-safe molecules), **Batch 7** (Accordion + TrailNav). Every batch: parallel Sonnet Phase-1 gathers → single Phase-2 generate → independent Phase-3 verify → two-window GATE B → Phase-5 promote. Both repos green throughout; odyssey-one pushed; Angular parked local on `build/angular-dsm`.
+
+### Thread A — delivery package finalized
+Verified `Shipments/odyssey-ui-delivery-2026-06-17.zip` (tarball + canonical source + built DSM + README); **fixed the README serve path** (`dsm-explorer` → `dsm-explorer/browser/`, the Angular-17 output layout) so the static DSM actually serves; repackaged + integrity-checked. Ready for hand-delivery (still owed).
+
+### Thread B — Batch 5 (5 molecules + shared extraction + 2 spec changes)
+CustomerRow · PageHeader · SectionHeader · WidgetCtaRow · MenuRow. **Performed the deferred `.icon-action` → `_shared/` extraction** (`lib/_shared/icon-action.scss`; SectionLabel refactored onto it — the Radio/`.control` precedent). Added 2 typography utils to the Angular `_typography.scss` (`.text-display-3xl-semibold`, `.text-heading-2xl-semibold`). **Two React-canonical spec changes** (Figma-first): SectionHeader's **actions row removed** (SectionAction dropped from the master — React + Angular); PageHeader nested Primary/Secondary button icons **16 → 20px** (the Button icon spec — both repos).
+
+### Thread C — ButtonToggle (Tier 3, queue-jump)
+PageHeader's master cluster needs a ButtonToggle, so it jumped the queue (Opus) for an exact match — sliding thumb (icon mode fixed-geometry, text mode `@ViewChild`-measured) + `:has()` state ladder + string-bound ARIA. Text-mode off-centering traced to a **FOUT measurement** (thumb sized before Inter loads) → **`document.fonts.ready` re-measure**, applied to **both** React and Angular (parity, not a deviation).
+
+### Thread D — Batch 6 (5 dependency-safe molecules)
+SearchField (no deps) · WidgetMetricRow · MatchRow · FilterSuggestions (all compose `odyssey-badge`) · LeadNav (`odyssey-logo`). Manuela's standing rule applied: **pick components whose composed deps are already ported** (avoid the PageHeader→ButtonToggle trap). Zero typography/token additions.
+
+### Thread E — Batch 7 (Accordion + TrailNav)
+Accordion composes `odyssey-step-indicator` (pure-CSS grid-rows reveal, travel-line, controlled/uncontrolled, `inert`); added `.text-heading-lg-semibold`. TrailNav 2-variant (profile/editor) composing `odyssey-badge` + `odyssey-button`; React's internal helpers folded into `*ngIf` branches. Review fixes: **Accordion width** (Angular demo's stray `max-width:560px` removed — fills like React now); **TrailNav profile** flattened the redundant `.trail-nav__profile-group` wrapper (→ `.trail-nav--profile`, React's single flex root) + role `line-height:12px` (the xs-utility's 16px had made the identity stack 4px too tall).
+
+### Files / repos
+**odyssey-one (`main`, pushed):** React spec changes (`packages/ui/SectionHeader.jsx` actions removed, `ButtonToggle.jsx` fonts.ready), demo updates (PageHeader icons, SectionHeader), `components.css` SectionHeader comment, **13 new Angular Ports rows** + React-row updates in `normalization-tracker.md`, `progress.md`. **odyssey-angular-dsm (`build/angular-dsm`, local-only):** 13 new component dirs + `_shared/icon-action.scss` + 3 `_typography.scss` utils + module/public-api/demo wiring; SectionLabel SCSS refactor. **odyssey-ui tests 121 → 235; dsm-explorer 17.**
+
+### Carry-forward to Session 60
+- **Remaining molecules in ONE batch (move faster — Manuela):** **FormField · MenuDropdown · WidgetPieChart** (Tier 3 → Opus); all dependency-safe (FieldSelect ✓; none; none). Then **GlobalSearch** (Tier 4, in flux) + **Cell** (CSS table-skin, special — no component); **skip EntityChip**.
+- Then **organisms** (ordered by molecule deps; see priorities).
+- **Deliver the zip** (still owed); consider re-packaging at the 31-component state. Angular stays local-only; re-set `no_push` on the linx clone before touching it.
+
+---
+
 ## What's Next
 
-### Session 59 Priorities
+### Session 60 Priorities
 
-1. **Deliver the library + DSM zip** — `Shipments/odyssey-ui-delivery-2026-06-17.zip` (installable `odyssey-ui-0.1.0.tgz` + canonical source + built DSM showcase + README) to Cognizant for testing. Owed from S58 (no repo upload available → ships by hand).
-2. **Port the molecules, then organisms** (atoms-first complete: 17 atoms + Alert in the library). Tier-ordered through `/port-to-angular` (`playground/angular-port-routine.md`; lint `odyssey-angular-dsm/tools/angular-parity-lint.mjs`); **SKIP EntityChip** (deprecating). Candidates: Cell, Accordion, FormField, PageHeader, CustomerRow, SearchField, ButtonToggle, MenuDropdown, the Widget rows… → then organisms (Navbar, Widget, Modals, SearchPanel, …).
-3. **Angular library handoff follow-ups:** registry vs versioned-`dist/` decision (Cognizant conversation); **re-set `no_push` on the linx clone** before touching it; fold the "restart a wedged `ng serve` / rebuild dist before review" practice into `angular-port-routine.md` Phase 4.
-4. **Orders — PAUSED, fully captured in repo** (unchanged from S56). `vault/60-backlog/backlog.html` **ORD-1..10** + `requirements-tracker.md` + `decisions/decision-log.md` ORD-01 + §6 spec + the built data seam (`useOrderView`). UI awaits Efrain; contract/live-flip awaits Ramesh + live Swagger. Owed: Product Delete entry → Efrain; 2 `@odyssey/ui` additive-prop flags → Manuela's normalization session.
-5. **Carried (behind the Angular line):** Shipments question push (Q25/Q29/Q31/Q33/Q34/Q35; graduate resolved Qs into canon); S51 LLD canon merge (`domain-analysis.md`/`section-map.md` + Shipments DTO reconciliation); design-system follow-ups (Tab instance swap, Cell's 4 Figma flags, Shipments migration pass).
+1. **Finish the remaining molecules in ONE batch (move faster — Manuela):** **FormField · MenuDropdown · WidgetPieChart** (Tier 3 → Opus generation) through `/port-to-angular` (`playground/angular-port-routine.md`; lint `odyssey-angular-dsm/tools/angular-parity-lint.mjs`); all dependency-safe (FieldSelect ✓; none; none). Then **GlobalSearch** (Tier 4, in flux) + **Cell** (CSS table-skin — special, no component); **SKIP EntityChip** (deprecating). Library is at **31 components** (17 atoms + 14 molecules).
+2. **Then organisms** (ordered by molecule deps): AuthContent (needs FormField) → AuthModal, ModalLarge/Medium, Navbar (needs GlobalSearch; LeadNav✓/TrailNav✓), SearchPanel/SearchResults (MatchRow✓), Widget (needs WidgetPieChart; widget rows✓), WidgetsLeftMenu (needs MenuDropdown; MenuRow✓/SearchField✓), WidgetVariantPicker (needs Widget). Sidebar stays app-local.
+3. **Deliver the library + DSM zip** — `Shipments/odyssey-ui-delivery-2026-06-17.zip` (README serve-path fixed S59) to Cognizant; consider re-packaging at the current 31-component state. Owed.
+4. **Angular library handoff follow-ups:** registry vs versioned-`dist/` decision (Cognizant conversation); **re-set `no_push` on the linx clone** before touching it; fold the "restart a wedged `ng serve` / rebuild dist before review" practice into `angular-port-routine.md` Phase 4.
+5. **Orders — PAUSED, fully captured in repo** (unchanged from S56). `vault/60-backlog/backlog.html` **ORD-1..10** + `requirements-tracker.md` + `decisions/decision-log.md` ORD-01 + §6 spec + the built data seam (`useOrderView`). UI awaits Efrain; contract/live-flip awaits Ramesh + live Swagger. Owed: Product Delete entry → Efrain; 2 `@odyssey/ui` additive-prop flags → Manuela's normalization session.
+6. **Carried (behind the Angular line):** Shipments question push (Q25/Q29/Q31/Q33/Q34/Q35; graduate resolved Qs into canon); S51 LLD canon merge (`domain-analysis.md`/`section-map.md` + Shipments DTO reconciliation); design-system follow-ups (Tab instance swap, Cell's 4 Figma flags, Shipments migration pass).
 
 ### Prior priorities (carried, now behind the Orders arc)
 
