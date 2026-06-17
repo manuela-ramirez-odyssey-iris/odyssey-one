@@ -16,7 +16,8 @@
     "test:odyssey-one": "npm run test -w odyssey-one-app",
     "connect:publish": "npm run connect:publish -w @odyssey/ui",
     "connect:parse": "npm run connect:parse -w @odyssey/ui",
-    "tokens:audit": "node tools/tokens-audit.mjs"
+    "tokens:audit": "node tools/tokens-audit.mjs",
+    "domain-usage": "node tools/domain-usage.mjs"
   },
   "devDependencies": {
     "turbo": "^2.3.0"

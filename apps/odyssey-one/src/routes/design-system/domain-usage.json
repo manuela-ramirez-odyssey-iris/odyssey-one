@@ -1,0 +1,49 @@
+{
+  "home": [
+    "AddSectionDivider",
+    "Button",
+    "EmptyState",
+    "ModalLarge",
+    "ModalMedium",
+    "PageHeader",
+    "SectionHeader",
+    "SectionLabel",
+    "Widget",
+    "WidgetVariantPicker",
+    "WidgetsLeftMenu"
+  ],
+  "orders": [
+    "Alert",
+    "Badge",
+    "Button",
+    "ButtonToggle",
+    "Checkbox",
+    "EmptyState",
+    "FormField",
+    "ModalMedium",
+    "PageHeader",
+    "Radio",
+    "SearchField"
+  ],
+  "shipments": [
+    "FormField",
+    "ModalMedium"
+  ],
+  "carriers": [
+    "PageHeader"
+  ],
+  "tracking": [
+    "PageHeader"
+  ],
+  "users": [
+    "Button",
+    "CustomerRow",
+    "EmptyState",
+    "PageHeader"
+  ],
+  "global-search": [
+    "PillTab",
+    "SearchPanel",
+    "SearchResults"
+  ]
+}
