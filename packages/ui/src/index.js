@@ -49,6 +49,7 @@ export { default as ButtonToggle } from './ButtonToggle.jsx';
 
 // ── Organisms ──────────────────────────────────────────
 export { default as Navbar } from './Navbar.jsx';
+export { default as Sidebar } from './Sidebar.jsx';
 export { default as Widget } from './Widget.jsx';
 export { default as WidgetsLeftMenu } from './WidgetsLeftMenu.jsx';
 export { default as ModalLarge } from './ModalLarge.jsx';
