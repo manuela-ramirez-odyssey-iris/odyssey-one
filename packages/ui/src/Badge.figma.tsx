@@ -15,7 +15,16 @@ figma.connect(
         red: 'red',
         purple: 'purple',
         gray: 'gray',
+        // "gray selected" is the SELECTED (toggle-on) state of the gray badge,
+        // not a separate React variant — it maps to `gray`. The selected look is
+        // driven in code by `aria-pressed="true"` on the `.badge-interactive`
+        // toggle button wrapping the Badge.
+        // ('gray focused' kept transitionally until Efrain renames the Figma
+        // variant to 'gray selected'; remove once Figma is renamed.)
+        'gray selected': 'gray',
+        'gray focused': 'gray',
         notification: 'notification',
+        count: 'count',
         metric: 'metric',
       }),
       statusDot: figma.boolean('Show dot'),

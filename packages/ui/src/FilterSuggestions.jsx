@@ -71,7 +71,7 @@ export default function FilterSuggestions({
               <button
                 key={i}
                 type="button"
-                className="filter-suggestions__chip"
+                className="filter-suggestions__chip badge-interactive"
                 onClick={() => onSelect(raw)}
               >
                 <Badge variant="gray">{label}</Badge>

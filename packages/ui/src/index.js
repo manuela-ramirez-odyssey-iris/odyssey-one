@@ -13,6 +13,7 @@ export { default as Button } from './Button.jsx';
 export { default as IconButton } from './IconButton.jsx';
 export { default as IconButtonGhost } from './IconButtonGhost.jsx';
 export { default as FilterButton } from './FilterButton.jsx';
+export { default as PaginationButton } from './PaginationButton.jsx';
 export { default as PillTab } from './PillTab.jsx';
 export { default as Tab } from './Tab.jsx';
 export { default as Checkbox } from './Checkbox.jsx';

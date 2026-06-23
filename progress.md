@@ -4412,14 +4412,49 @@ Consolidated into **PR #3** (closed PR #2 as superseded). **PR #3 is BLOCKED** �
 
 ---
 
+## Session 63 — June 22–23, 2026
+
+**Token sync + three normalizations (Badge selected-toggle · Button per-variant disabled · PaginationButton new atom) — React + Angular each — plus the table strategy decision (drop PrimeNG → headless TanStack on both sides). Batch is committed locally but NOT pushed; `@oneodyssey/ui` version bump deferred to batch-end.**
+
+### Token sync (2026-06-22)
+- Pulled the live Figma variables via the **enterprise (plugin) connector** — the personal claude.ai connector lacks edit access (see [[user_two_claude_accounts]]). Efrain's manual changes since 2026-06-09: **+`Bittersweet/300`** (#F7AEAA), **−`Carolina Blue/200`**, **−`Caribbean Green/200`**, +text style `label/base semibold`.
+- `packages/tokens/tokens.css` + `figma-tokens.snapshot.json` refreshed; the two removed `/200`s kept **code-side** (annotated) because the Alert uses them as raw-hex surfaces (Alert is unbound in Figma). `npm run tokens:audit` → green (116 vars). **Open:** Alert re-tokenization question for Efrain.
+
+### Badge — gray-selected toggle (React + Angular)
+- New reusable **`.badge-interactive`** utility (React `components.css`; Angular **GLOBAL** `projects/odyssey-ui/src/styles/_utilities.scss`, `@forward`ed from `index.scss`): hover → DSN/200, active → DSN/400 text, **`aria-pressed="true"` selected → DSN/200 bg + 1px DSN/900 inset ring**, `:focus-visible` → `--border-focus`. From Efrain's Figma `gray selected` (renamed from the misleading `gray focused`). **Selected is a toggle STATE via `aria-pressed`, not a variant.** `FilterSuggestions` migrated to compose it (both sides). Δ=0 (puppeteer computed-style parity). Angular deviation: descendant selector (vs React `>`) since the Angular Badge nests `.text-badge` deeper.
+
+### Button — per-variant disabled (React + Angular)
+- Disabled split from the universal `white / DSN-300` into **per-variant**: Primary DSN/900 + DSN/600; Outline white@10% (`--btn-outline-disabled-tint`) + DSN/400; Ghost transparent + DSN/400; Error `--bg-error` + **`--bittersweet-300`** label + DSN/300 border; Secondary + Icon unchanged. Fixes the prior bug where disabled Outline/Ghost (dark-surface variants) rendered as solid white boxes. **This is Bittersweet/300's consumer** (closes that token-sync open item). CSS-only, no API/token-collection change. Δ=0.
+
+### PaginationButton — NEW atom (React + Angular) — first paginator piece
+- Segment of the Paginator's joined bar (`[‹][1][2]…[›]`): `variant` = page/prev/next, `current` (page → Primary look + `aria-current="page"`), native `disabled`, `className`. Prev/next bake lucide chevrons (20px). Segmented geometry (shared right divider; prev/next end-cap rounding). Color ladders mirror Button. **Caught + fixed a parity miss during the Angular port: the arrow chevron is `DSN/500` (not the DSN/700 page-text color I'd assumed) — corrected both sides, verified DSN/500 arrow / DSN/700 page in both DSMs.** Disabled = **arrow-only** (page numbers never disable). New atom in `@odyssey/ui` + `odyssey-one-library-ui/lib/pagination-button/` (+ 8 specs). Δ=0.
+- **Figma:** created the missing `State=Disabled` arrow variants (`3572:2` Icon Left, `3572:5` Icon Right) — White bg + DSN/300 chevron/divider, bound variables. Set `3234:3857` `State` now Idle/Hover/Pressed/Disabled.
+
+### Decisions
+- **Drop PrimeNG → `@oneodyssey/ui`.** Headless **TanStack** on both sides (React already `@tanstack/react-table` + react-virtual; Angular adds `@tanstack/angular-table`). We own the presentation (Cell contract + Paginator); Cognizant owns engine wiring. Paginator = a real **molecule** (deferred — has many deps). See [[project_table_strategy_tanstack]].
+- New memories: [[project_token_sync_2026_06_22]], [[project_table_strategy_tanstack]].
+
+### Files / state (committed locally, NOT pushed)
+- **odyssey-one (React):** `packages/tokens/{tokens.css,figma-tokens.snapshot.json}`; `apps/.../components.css` (`.badge-interactive`, per-variant `.btn--*:disabled`, `.pagination-btn`); `FilterSuggestions.jsx`; `Badge.figma.tsx`; `PaginationButton.jsx` + `.figma.tsx` (new); `index.js`; demos (Badge/Button/PaginationButton); `normalization-tracker.md`.
+- **odyssey-one-library-ui (Angular):** `_utilities.scss` (new), `_tokens.scss` (+`--bittersweet-300`), `index.scss`; badge / button / filter-suggestions edits (+ spec); **`lib/pagination-button/` (new component + module + spec + figma-link)**; wiring (`public-api.ts`, `odyssey-ui.module.ts`, `demos.registry.ts`, `app.module.ts`); demos. **No `@oneodyssey/ui` version bump** (deferred).
+- All four `normalizing` flags cleared on pass; lint + builds + tests green throughout (Angular library **369** specs, explorer **17**).
+
+### Carry-forward to Session 64
+- **FINISH THE BATCH then release:** bump `@oneodyssey/ui` **0.2.0 → 0.3.0** (new `.badge-interactive` utility + Button/PaginationButton changes) + CHANGELOG, **push** odyssey-one, and open **one PR** into `odyssey-one-library-ui` covering Badge + Button + PaginationButton. (Held this session per user.)
+- **Next components:** the **dropdown molecule**, then the **Paginator molecule** (composes PaginationButton + the dropdown + rows-per-page Select + range label; page-number/ellipsis logic; wires to TanStack pagination API). Paginator has many deps — sequence them first.
+- **Figma `Icon Left/Pressed` drift** (DSN/500 vs Icon Right's DSN/400) — pending decision to correct Efrain's existing variant; code already uses the intended DSN/400 for both.
+- **Alert re-tokenization** question for Efrain (the two removed `/200` primitives).
+
+---
+
 ## What's Next
 
-### Session 63 Priorities
+### Session 64 Priorities
 
-1. **START: next normalizations — new components + updates** (user-directed; lots queued). Per the updated `/normalize`: React-first → **GATE 1** (React final-approved + implemented) → Angular twin via `/port-to-angular`, **DSM-confirmed at GATE B**, landed in **`odyssey-one-library-ui`** by PR. Watch the **wrapper-host trap** + the **dsm-explorer `AppComponent` spec graph** (each new demo with `*ngIf`/`*ngFor` needs CommonModule scope in the manually-built test module). After any library-component change, `/wrap` step 6 prompts the `@oneodyssey/ui` bump + republish. Puppeteer harness re-installs from `/tmp/dsm-measure` (gets cleaned between days — `npm install puppeteer-core`).
-2. **Unblock + merge PR #3** (DSM-explorer features: filter reposition · Shared domain · collapsible sections · divider · disabled tabs). Blocked by `main` protection (review + a "Build Check" status). **Then delete the retired `odyssey-angular-dsm`** (no remote; everything preserved in the official repo).
-3. **PR #1 / branch-protection chicken-and-egg** — the required "Build Check" comes from PR #1's `.github/workflows/pr-check.yml`, which isn't on `main` yet, so it blocks **every** PR. Merging PR #1 (or relaxing protection in repo settings) unblocks the whole flow. Needs repo-admin/owner.
-4. **Push odyssey-one** — this session's commit (DSM React side + routine docs + progress).
+1. **CLOSE THE NORMALIZATION BATCH + RELEASE.** The S63 batch (Badge selected-toggle · Button per-variant disabled · PaginationButton) is committed locally but **not pushed** and **not version-bumped**. When the batch is judged complete: bump `@oneodyssey/ui` **0.2.0 → 0.3.0** + CHANGELOG, **push odyssey-one**, open **one PR** into `odyssey-one-library-ui`. (Ask before pushing — standing rule this session.)
+2. **Next components — the dropdown molecule, then the Paginator molecule.** Paginator composes PaginationButton + the dropdown + a rows-per-page Select + a range label, plus page-number/ellipsis logic, wired to the TanStack pagination API — it has many deps, so sequence the dropdown (and any other atoms) first. React-first → GATE 1 → Angular twin → GATE B, per `/normalize` + `/port-to-angular`. Puppeteer harness re-installs from `/tmp/dsm-measure` (`npm install puppeteer-core`).
+3. **Figma `Icon Left/Pressed` drift** (DSN/500 vs Icon Right's DSN/400) — decide whether to correct Efrain's existing variant. **Alert re-tokenization** question for Efrain (the two removed `/200` primitives kept code-side).
+4. **Unblock + merge PR #3** (DSM-explorer features). Blocked by `main` protection (review + a "Build Check" status from PR #1's `pr-check.yml`). Merging PR #1 (or relaxing protection) unblocks every PR — incl. the S63 batch PR. Needs repo-admin/owner. **Then delete the retired `odyssey-angular-dsm`.**
 5. **Orders — PAUSED, fully captured in repo** (unchanged from S56). `vault/60-backlog/backlog.html` **ORD-1..10** + `requirements-tracker.md` + `decisions/decision-log.md` ORD-01 + §6 spec + the built data seam (`useOrderView`). UI awaits Efrain; contract/live-flip awaits Ramesh + live Swagger. Owed: Product Delete entry → Efrain; 2 `@odyssey/ui` additive-prop flags → Manuela's normalization session.
 6. **Carried (behind the Angular line):** Shipments question push (Q25/Q29/Q31/Q33/Q34/Q35; graduate resolved Qs into canon); S51 LLD canon merge (`domain-analysis.md`/`section-map.md` + Shipments DTO reconciliation); design-system follow-ups (Tab instance swap, Cell's 4 Figma flags, Shipments migration pass).
 

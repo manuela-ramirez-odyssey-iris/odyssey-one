@@ -547,28 +547,149 @@ input[type="date"].odyssey-date-input::-webkit-calendar-picker-indicator:hover {
   transition: background var(--transition-fast);
 }
 
+/* Badge — interactive / toggleable affordance (opt-in). The gray Badge is
+   decorative by default (a plain <span>); ONLY when it's used as a toggle button
+   (e.g. a filter chip that turns a search filter on/off in a panel) does it gain
+   interaction + a selected state. Compose `.badge-interactive` onto the focusable
+   wrapper (a <button aria-pressed={on}> around a `Badge variant="gray"`):
+   - hover (unselected)            → darken the Badge bg to DSN/200
+   - active (:active, press-down)  → mute the text to DSN/400 (momentary)
+   - SELECTED (aria-pressed="true") → DSN/200 bg + a 1px DSN/900 inset ring on the
+                    Badge box. This is Efrain's Figma "gray selected" variant — a
+                    persistent on/off appearance state (NOT a focus state). Inset
+                    box-shadow = no layout shift, follows the Badge's radius; goes
+                    on the inner `.text-badge` box (not the zero-padding wrapper)
+                    so the corners stay rounded.
+   - focus-visible (keyboard)      → a `--border-focus` outline for a11y, kept
+                    DISTINCT from the DSN/900 selected ring (outline vs box-shadow,
+                    so they coexist when a selected chip is also focused).
+   Mechanism: override the --badge-gray-bg / --badge-gray-text custom properties
+   locally — the Badge reads both inline, so the cascade reaches them without
+   touching the Badge component. The toggle owns its on/off state via aria-pressed
+   (the standard a11y attribute for a toggle button); CSS keys off it directly. */
+.badge-interactive {
+  cursor: pointer;
+}
+.badge-interactive:hover {
+  --badge-gray-bg: var(--deep-sea-neutral-200);
+}
+.badge-interactive:active {
+  --badge-gray-text: var(--deep-sea-neutral-400);
+}
+.badge-interactive[aria-pressed="true"] {
+  --badge-gray-bg: var(--deep-sea-neutral-200);
+}
+.badge-interactive[aria-pressed="true"] > .text-badge {
+  box-shadow: inset 0 0 0 1px var(--deep-sea-neutral-900);
+}
+.badge-interactive:focus-visible {
+  outline: none;
+}
+.badge-interactive:focus-visible > .text-badge {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 1px;
+}
+
+/* PaginationButton — atom. A segment of the Paginator's joined bar
+   ([‹][1][2]…[›]). Segments share a 1px right divider; the arrow end-caps round
+   the outer corners (prev = left, next = right; page = square). Color ladders
+   mirror Button (primary/secondary) via the same DSN tokens. Hover/pressed are
+   CSS-driven; `.is-current` (active page) + `:disabled` are the prop-driven looks.
+   label/sm medium, tabular-nums, shadow-sm per segment (they blend into one bar
+   shadow when joined). py 6 raw (matches Button/FilterButton). */
+.pagination-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  height: 32px;
+  padding-top: 6px;
+  padding-bottom: 6px;
+  border: none;
+  border-right: 1px solid var(--deep-sea-neutral-300);
+  background: var(--white);
+  color: var(--deep-sea-neutral-700);
+  font-family: var(--font-primary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+  font-weight: var(--font-weight-medium);
+  font-variant-numeric: tabular-nums;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast),
+    border-color var(--transition-fast);
+}
+.pagination-btn--page {
+  padding-left: var(--spacing-3);
+  padding-right: 14px;
+}
+.pagination-btn--prev,
+.pagination-btn--next {
+  padding-left: var(--spacing-2);
+  padding-right: var(--spacing-2);
+  /* Arrow chevron is DSN/500 (lighter than the DSN/700 page text) at idle+hover;
+     pressed → DSN/400 and disabled → DSN/300 inherit from the shared rules below. */
+  color: var(--deep-sea-neutral-500);
+}
+.pagination-btn--prev {
+  border-top-left-radius: var(--radius-lg);
+  border-bottom-left-radius: var(--radius-lg);
+}
+.pagination-btn--next {
+  border-right: none;
+  border-top-right-radius: var(--radius-lg);
+  border-bottom-right-radius: var(--radius-lg);
+}
+/* Secondary ladder — inactive page + both arrows (White → DSN/50 → DSN/100). */
+.pagination-btn:hover:not(:disabled):not(.is-current) {
+  background: var(--deep-sea-neutral-50);
+  border-right-color: var(--deep-sea-neutral-400);
+}
+.pagination-btn:active:not(:disabled):not(.is-current) {
+  background: var(--deep-sea-neutral-100);
+  color: var(--deep-sea-neutral-400);
+  border-right-color: var(--deep-sea-neutral-400);
+}
+/* Primary ladder — active/current page (DSN/900 → DSN/600 → DSN/900 + DSN/400 text). */
+.pagination-btn.is-current {
+  background: var(--deep-sea-neutral-900);
+  color: var(--white);
+}
+.pagination-btn.is-current:hover:not(:disabled) {
+  background: var(--deep-sea-neutral-600);
+  border-right-color: var(--deep-sea-neutral-400);
+}
+.pagination-btn.is-current:active:not(:disabled) {
+  background: var(--deep-sea-neutral-900);
+  color: var(--deep-sea-neutral-400);
+  border-right-color: var(--deep-sea-neutral-400);
+}
+/* Keyboard focus ring — a11y (not in Figma's Idle/Hover/Pressed set). Inset so it
+   doesn't break the joined bar; z-index lifts it above neighbours' borders. */
+.pagination-btn:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: -2px;
+  z-index: 1;
+}
+/* Disabled — arrows only (Paginator disables prev/next at bounds): muted DSN/300
+   chevron, White bg + DSN/300 divider retained. Matches the Figma disabled arrow
+   variants (Icon Left/Right, State=Disabled — `3572:2` / `3572:5`). */
+.pagination-btn:disabled {
+  cursor: not-allowed;
+  color: var(--deep-sea-neutral-300);
+}
+
 /* FilterSuggestions — selectable chip wrapper. Layout reset around a gray Badge.
-   Interactive (<button>) chips: hover darkens the inner Badge bg to DSN/200;
-   press additionally mutes the text to DSN/400 (bg stays 200 through the press
-   since :active is also :hover). Done by overriding the --badge-gray-bg /
-   --badge-gray-text custom properties locally — the Badge reads both inline, so
-   the cascade reaches them without touching the Badge component. No shadow. The
-   decorative <span> form gets the layout reset only. */
+   The interactive <button> form composes `.badge-interactive` (above) for its
+   hover / active / focus states; the decorative <span> form gets the layout
+   reset only. (These suggestion chips are single-action "apply this filter"
+   buttons, not toggles — they don't set aria-pressed, so no selected look.) */
 .filter-suggestions__chip {
   display: inline-flex;
   align-self: flex-start;
   padding: 0;
   border: none;
   background: transparent;
-}
-button.filter-suggestions__chip {
-  cursor: pointer;
-}
-button.filter-suggestions__chip:hover {
-  --badge-gray-bg: var(--deep-sea-neutral-200);
-}
-button.filter-suggestions__chip:active {
-  --badge-gray-text: var(--deep-sea-neutral-400);
 }
 
 /* Shared interactive utility — bare clickable icon color ladder.
@@ -967,10 +1088,12 @@ button.filter-suggestions__chip:active {
   color: var(--deep-sea-neutral-400);
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
 }
+/* Disabled (Efrain rework 2026-06-22): per-variant, not universal — Primary keeps
+   its dark DSN/900 surface and dims the text + border to DSN/600. */
 .btn--primary:disabled {
-  background: var(--white);
-  color: var(--deep-sea-neutral-300);
-  border-color: var(--deep-sea-neutral-300);
+  background: var(--deep-sea-neutral-900);
+  color: var(--deep-sea-neutral-600);
+  border-color: var(--deep-sea-neutral-600);
   box-shadow: var(--shadow-sm);
 }
 
@@ -997,6 +1120,8 @@ button.filter-suggestions__chip:active {
   border-color: var(--deep-sea-neutral-400);
   box-shadow: none;
 }
+/* Disabled (per-variant): Secondary + Icon keep white surface, dim to DSN/300
+   text + border. (Unchanged by the 2026-06-22 rework — already matched Figma.) */
 .btn--secondary:disabled,
 .btn--icon:disabled {
   background: var(--white);
@@ -1021,6 +1146,7 @@ button.filter-suggestions__chip:active {
 .btn--outline {
   --btn-outline-hover-tint: rgba(255, 255, 255, 0.1);
   --btn-outline-pressed-tint: rgba(255, 255, 255, 0.2);
+  --btn-outline-disabled-tint: rgba(255, 255, 255, 0.1);
   background: transparent;
   color: var(--white);
   border-color: var(--deep-sea-neutral-300);
@@ -1033,10 +1159,12 @@ button.filter-suggestions__chip:active {
   border-color: var(--deep-sea-neutral-400);
   box-shadow: none;
 }
+/* Disabled (per-variant): stays surface-appropriate for dark backdrops — a faint
+   white@10% fill (NOT a solid white box) + DSN/400 text + border. */
 .btn--outline:disabled {
-  background: var(--white);
-  color: var(--deep-sea-neutral-300);
-  border-color: var(--deep-sea-neutral-300);
+  background: var(--btn-outline-disabled-tint);
+  color: var(--deep-sea-neutral-400);
+  border-color: var(--deep-sea-neutral-400);
   box-shadow: var(--shadow-sm);
 }
 
@@ -1056,16 +1184,19 @@ button.filter-suggestions__chip:active {
   border-color: transparent;
   box-shadow: none;
 }
+/* Disabled (per-variant): stays ghost-like — transparent, borderless — just
+   DSN/400 text. (Keeps shadow-sm per Figma even though idle Ghost has none.) */
 .btn--ghost:disabled {
-  background: var(--white);
-  color: var(--deep-sea-neutral-300);
-  border-color: var(--deep-sea-neutral-300);
+  background: transparent;
+  color: var(--deep-sea-neutral-400);
+  border-color: transparent;
   box-shadow: var(--shadow-sm);
 }
 
 /* Error — soft destructive action on light surfaces. Light-red fill + red text
    (no border at idle). Hover/pressed deepen via the Bittersweet ladder; disabled
-   matches the universal treatment. Added 2026-06-09 from Efrain's Idle-only spec. */
+   keeps the red tint (see per-variant disabled rule below). Added 2026-06-09 from
+   Efrain's Idle-only spec; disabled re-normalized 2026-06-22. */
 .btn--error {
   background: var(--bg-error);
   color: var(--bittersweet-600);
@@ -1080,9 +1211,12 @@ button.filter-suggestions__chip:active {
   color: var(--bittersweet-800);
   box-shadow: none;
 }
+/* Disabled (per-variant): keeps the soft-red surface (--bg-error / Bittersweet/100)
+   + DSN/300 border, dims the label to Bittersweet/300 (#F7AEAA — Efrain's new
+   primitive, added in the 2026-06-22 token sync; this is its consumer). */
 .btn--error:disabled {
-  background: var(--white);
-  color: var(--deep-sea-neutral-300);
+  background: var(--bg-error);
+  color: var(--bittersweet-300);
   border-color: var(--deep-sea-neutral-300);
   box-shadow: var(--shadow-sm);
 }
