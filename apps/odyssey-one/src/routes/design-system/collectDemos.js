@@ -65,6 +65,7 @@ export const DOMAINS = [
   { key: 'tracking', label: 'Tracking' },
   { key: 'users', label: 'Users' },
   { key: 'global-search', label: 'Global Search' },
+  { key: 'shared', label: 'Shared' },
 ]
 
 // True if the component should show under the active domain. 'all' shows everything.

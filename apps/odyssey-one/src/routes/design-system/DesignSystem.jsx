@@ -77,11 +77,19 @@ function DetailsPanel({ meta, props, tokens }) {
 }
 
 // One component section — used by both the tier lists and the Normalize panel.
-function DemoSection({ meta, props, tokens, Component, open, onToggle, normalizing: isNormalizing }) {
+function DemoSection({ meta, props, tokens, Component, open, onToggle, collapsed, onToggleCollapse, normalizing: isNormalizing }) {
   return (
-    <section className="ds-comp">
-      <div className="ds-comp__head">
+    <section className={`ds-comp${collapsed ? ' ds-comp--collapsed' : ''}`}>
+      <div
+        className="ds-comp__head"
+        role="button"
+        tabIndex={0}
+        aria-expanded={!collapsed}
+        onClick={onToggleCollapse}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggleCollapse() } }}
+      >
         <div className="ds-comp__heading">
+          <span className="ds-comp__chevron" aria-hidden="true">{collapsed ? '▸' : '▾'}</span>
           <h2 className="ds-comp__name">{meta.name}</h2>
           {isNormalizing && <span className="ds-comp__pill">NORMALIZING</span>}
           {meta.deprecated && <span className="ds-comp__pill ds-comp__pill--deprecated">DEPRECATED</span>}
@@ -89,15 +97,17 @@ function DemoSection({ meta, props, tokens, Component, open, onToggle, normalizi
         <button
           type="button"
           className="ds-comp__toggle"
-          onClick={onToggle}
+          onClick={(e) => { e.stopPropagation(); onToggle() }}
         >
           Details
         </button>
       </div>
 
-      <div className="ds-comp__demo">
-        <Component />
-      </div>
+      {!collapsed && (
+        <div className="ds-comp__demo">
+          <Component />
+        </div>
+      )}
     </section>
   )
 }
@@ -109,10 +119,30 @@ export default function DesignSystem() {
   const [activeTier, setActiveTier] = useState(hasNormalizing ? NORMALIZE_KEY : TIERS[0].key)
   const [openDetails, setOpenDetails] = useState(null) // meta.name | null
   const [activeDomain, setActiveDomain] = useState('all')
+  // Section collapse state — a set of expanded component names. Empty = all
+  // collapsed (the default, on load and whenever the page re-mounts).
+  const [expanded, setExpanded] = useState(() => new Set())
   const viewTiers = filterTiersByDomain(tiers, domainUsage, activeDomain)
   const viewNormalizing = filterDemosByDomain(normalizing, domainUsage, activeDomain)
   const onNormalize = activeTier === NORMALIZE_KEY
   const active = onNormalize ? null : viewTiers.find((t) => t.key === activeTier)
+
+  // Sections visible in the current tab — drives the Expand/Collapse-all toggle.
+  const visibleDemos = onNormalize ? viewNormalizing : (active?.demos ?? [])
+  const allExpanded = visibleDemos.length > 0 && visibleDemos.every((d) => expanded.has(d.meta.name))
+  const toggleCollapse = (name) =>
+    setExpanded((prev) => {
+      const next = new Set(prev)
+      if (next.has(name)) next.delete(name)
+      else next.add(name)
+      return next
+    })
+  const toggleAll = () =>
+    setExpanded((prev) => {
+      const next = new Set(prev)
+      visibleDemos.forEach((d) => (allExpanded ? next.delete(d.meta.name) : next.add(d.meta.name)))
+      return next
+    })
 
   const allDemos = [...tiers.flatMap((t) => t.demos), ...normalizing]
   const detailsDemo = openDetails ? allDemos.find((d) => d.meta.name === openDetails) : null
@@ -124,12 +154,27 @@ export default function DesignSystem() {
     return () => document.removeEventListener('keydown', onKey)
   }, [openDetails])
 
+  // When the domain filter changes, never strand the user on an empty tab —
+  // jump to the first tab that still has components (tiers first, then Normalizing).
+  useEffect(() => {
+    const activeEmpty = onNormalize
+      ? viewNormalizing.length === 0
+      : (active?.demos.length ?? 0) === 0
+    if (!activeEmpty) return
+    const firstTier = viewTiers.find((t) => t.demos.length > 0)
+    if (firstTier) setActiveTier(firstTier.key)
+    else if (viewNormalizing.length > 0) setActiveTier(NORMALIZE_KEY)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeDomain])
+
   const renderSection = (demo) => (
     <DemoSection
       key={demo.meta.name}
       {...demo}
       open={openDetails === demo.meta.name}
       onToggle={() => setOpenDetails(demo.meta.name)}
+      collapsed={!expanded.has(demo.meta.name)}
+      onToggleCollapse={() => toggleCollapse(demo.meta.name)}
       normalizing={demo.meta.normalizing === true}
     />
   )
@@ -147,9 +192,16 @@ export default function DesignSystem() {
                 value={activeDomain}
                 onChange={(e) => setActiveDomain(e.target.value)}
               >
-                {DOMAINS.map((d) => (
-                  <option key={d.key} value={d.key}>{d.label}</option>
-                ))}
+                {DOMAINS.flatMap((d) =>
+                  // Divider before the cross-cutting domains (Global Search, Shared)
+                  // to set them apart from the product domains.
+                  d.key === 'global-search'
+                    ? [
+                        <option key="__sep" disabled>──────────</option>,
+                        <option key={d.key} value={d.key}>{d.label}</option>,
+                      ]
+                    : [<option key={d.key} value={d.key}>{d.label}</option>]
+                )}
               </select>
             </label>
           </div>
@@ -166,6 +218,7 @@ export default function DesignSystem() {
               type="button"
               role="tab"
               aria-selected={t.key === activeTier}
+              disabled={t.demos.length === 0}
               className={`ds-tab${t.key === activeTier ? ' ds-tab--active' : ''}`}
               onClick={() => setActiveTier(t.key)}
             >
@@ -177,6 +230,7 @@ export default function DesignSystem() {
             type="button"
             role="tab"
             aria-selected={onNormalize}
+            disabled={viewNormalizing.length === 0}
             className={
               `ds-tab${onNormalize ? ' ds-tab--active' : ''}` +
               (hasNormalizing ? ' ds-tab--pulse' : '')
@@ -189,6 +243,13 @@ export default function DesignSystem() {
         </nav>
 
         <div className="ds-list">
+          {visibleDemos.length > 0 && (
+            <div className="ds-list__toolbar">
+              <button type="button" className="ds-collapse-all" onClick={toggleAll}>
+                {allExpanded ? 'Collapse all' : 'Expand all'}
+              </button>
+            </div>
+          )}
           {onNormalize ? (
             viewNormalizing.length === 0 ? (
               <p className="ds-empty">

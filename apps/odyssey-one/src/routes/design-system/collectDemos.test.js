@@ -128,10 +128,10 @@ const tiers = [
   ] },
 ]
 
-test('DOMAINS lists All first then the 7 domains', () => {
+test('DOMAINS lists All first then the domains incl. Shared', () => {
   expect(DOMAINS[0]).toEqual({ key: 'all', label: 'All' })
   expect(DOMAINS.map((d) => d.key)).toEqual(
-    ['all', 'home', 'orders', 'shipments', 'carriers', 'tracking', 'users', 'global-search'])
+    ['all', 'home', 'orders', 'shipments', 'carriers', 'tracking', 'users', 'global-search', 'shared'])
 })
 
 test('filterTiersByDomain: all returns every demo', () => {

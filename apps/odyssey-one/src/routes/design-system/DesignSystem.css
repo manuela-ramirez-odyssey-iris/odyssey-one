@@ -75,8 +75,14 @@
   transition: color 0.15s ease, border-color 0.15s ease;
 }
 
-.ds-tab:hover {
+.ds-tab:hover:not(:disabled) {
   color: var(--text-primary);
+}
+
+/* Empty tab (0 components for the active domain) — not selectable. */
+.ds-tab:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
 }
 
 .ds-tab--active {
@@ -156,12 +162,27 @@
   padding: var(--spacing-4) var(--spacing-5);
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-subtle);
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Collapsed: head has no demo below it, so drop the divider. */
+.ds-comp--collapsed .ds-comp__head {
+  border-bottom: none;
 }
 
 .ds-comp__heading {
   display: flex;
   align-items: center;
   gap: var(--spacing-3);
+}
+
+.ds-comp__chevron {
+  display: inline-flex;
+  justify-content: center;
+  width: 0.9em;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
 }
 
 .ds-comp__name {
@@ -203,6 +224,29 @@
 }
 
 .ds-comp__toggle:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+/* Expand/Collapse-all toolbar — top of the active tab's list. */
+.ds-list__toolbar {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.ds-collapse-all {
+  background: transparent;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-1) var(--spacing-3);
+  font-family: var(--font-primary);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.ds-collapse-all:hover {
   background: var(--bg-tertiary);
   color: var(--text-primary);
 }

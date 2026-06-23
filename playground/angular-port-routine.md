@@ -2,7 +2,9 @@
 
 > Triggered by `/port-to-angular <Component>`. Also reached from `/normalize` Phase 3 after the React component is approved + Figma library published. Be **concise** — one short status line per phase, batch decisions, only block on genuinely unknown values.
 
-**What this does:** ports an already-normalized React component to its Angular twin in the `odyssey-angular-dsm` workspace — correct-by-construction, two-window reviewed, and inserted into the library on pass.
+**What this does:** ports an already-normalized React component to its Angular twin **directly in the official Angular library repo `odyssey-one-library-ui`** (sibling of `odyssey-one`; GitHub `OneOdyssey/odyssey-one-library-ui`) — correct-by-construction, two-window reviewed, and inserted into the library on pass.
+
+> **Workspace & landing (updated 2026-06-22).** The Angular library now lives in the **official repo `odyssey-one-library-ui`** and is published to GitHub Packages as **`@oneodyssey/ui`**. The old local-only `odyssey-angular-dsm` dev workspace is **retired** — develop the Angular twin directly in `odyssey-one-library-ui`. Its `main` branch is **protected** (PR + review + a "Build Check" status required), so a port lands via a **feature branch → PR** (admin-merge or teammate approval), never a direct push to `main`. When a port changes the **library** (not just a demo), cut a new `@oneodyssey/ui` version (bump `projects/odyssey-ui/package.json` + CHANGELOG, `ng build odyssey-ui`, `npm publish` from `dist/odyssey-ui`) so consumers can adopt it. See [[project_odyssey_ui_delivery]].
 
 **Inputs (per component):**
 - `packages/ui/src/<C>.jsx` — the normalized React component (props, variants, slots)
@@ -24,7 +26,7 @@
 - Tokens via `var(--token)` only — never hardcoded hex, rgb, rgba, raw px for design values
 - No standalone components — Angular 17 NgModule pattern (matches Cognizant's app)
 
-**The canonical template is `projects/odyssey-ui/src/lib/button/` in `odyssey-angular-dsm`.** Copy its file/module/spec structure for every port.
+**The canonical template is `projects/odyssey-ui/src/lib/button/` in `odyssey-one-library-ui`.** Copy its file/module/spec structure for every port.
 
 **The parity-lint (`tools/angular-parity-lint.mjs`) mechanically enforces the machine-checkable subset below. A port that fails the lint is not done.**
 
@@ -91,7 +93,7 @@ Read the React canonical. This is research-only — no files are written in Phas
    - `tokens` array — the token list the component consumes
    - The states/variants grid structure — the Angular DSM explorer demo must mirror this grid
 
-4. **Check `.text-*` typography utilities** — grep `_typography.scss` in `odyssey-angular-dsm/projects/odyssey-ui/src/styles/` for every `.text-*` class referenced in the React component or its CSS. List any missing classes — they must be ported in Phase 2 before the component is generated (G1).
+4. **Check `.text-*` typography utilities** — grep `_typography.scss` in `odyssey-one-library-ui/projects/odyssey-ui/src/styles/` for every `.text-*` class referenced in the React component or its CSS. List any missing classes — they must be ported in Phase 2 before the component is generated (G1).
 
 5. **Check `_tokens.scss`** — confirm every `var(--…)` in the component's CSS has a matching entry. List any missing tokens — they must be added in Phase 2 (G4).
 
@@ -105,7 +107,7 @@ Read the React canonical. This is research-only — no files are written in Phas
 
 **Faithfully translate the full React component into an idiomatic Angular twin** — JSX → template, props → `@Input()`, logic → component members, styling mirroring React's mechanism. For **className-based components**, port the `.<class>` rules verbatim from `components.css` into the component SCSS (the Button is the template). For **inline/computed-styled components** (e.g. Badge), there are NO classes in `components.css` — instead translate the JS: the `variants` map becomes a component property, computed `style={{}}` becomes `[ngStyle]` bound to a getter (or `[style.x]` bindings), helper functions become component methods. Either way the visual output + behavior must match the React original. See the **React → Angular translation reference** below for construct-by-construct mappings.
 
-The subagent produces, inside `odyssey-angular-dsm/`:
+The subagent produces, inside `odyssey-one-library-ui/`:
 
 ### Library output (`projects/odyssey-ui/src/lib/<c>/`)
 
@@ -162,7 +164,7 @@ npx ng test odyssey-ui --watch=false --browsers=ChromeHeadless
 npx ng test dsm-explorer --watch=false --browsers=ChromeHeadless
 ```
 
-All commands run from the `odyssey-angular-dsm/` repo root.
+All commands run from the `odyssey-one-library-ui/` repo root.
 
 **A port that fails lint or any build/test is not done.** Fix the underlying violation (not the lint), re-run. Common failure patterns:
 
@@ -180,7 +182,7 @@ All commands run from the `odyssey-angular-dsm/` repo root.
 Build the library and bring up both DSMs:
 
 ```bash
-# In odyssey-angular-dsm/
+# In odyssey-one-library-ui/
 npx ng build odyssey-ui
 
 # Restart Angular DSM (fresh dist — library changes require a serve restart)
@@ -220,7 +222,7 @@ Only enter after GATE B approval phrase received.
 ### Clear both `normalizing` flags
 
 1. **React demo:** `apps/odyssey-one/src/routes/design-system/demos/<C>.demo.jsx` — set `meta.normalizing` to `false` (or remove the property). This promotes the component out of the React DSM's Normalizing tab into its tier tab (Atoms/Molecules/Organisms).
-2. **Angular demo:** `odyssey-angular-dsm/src/app/demos/<c>/<c>.demo.meta.ts` — set `normalizing: false`. Same promotion effect in the Angular DSM explorer.
+2. **Angular demo:** `odyssey-one-library-ui/src/app/demos/<c>/<c>.demo.meta.ts` — set `normalizing: false`. Same promotion effect in the Angular DSM explorer.
 
 ### Finalize library export
 
@@ -235,7 +237,19 @@ Add or update the component's row with the Angular column filled in:
 
 ### Update `figma-link.md` `last_synced`
 
-Set `last_synced` to today's ISO date in `odyssey-angular-dsm/projects/odyssey-ui/src/lib/<c>/<C>.figma-link.md`.
+Set `last_synced` to today's ISO date in `odyssey-one-library-ui/projects/odyssey-ui/src/lib/<c>/<C>.figma-link.md`.
+
+### Land it on the official repo (PR — `main` is protected)
+
+The Angular twin is committed in `odyssey-one-library-ui` but `main` is protected, so it lands via a PR:
+
+1. `git checkout -b port/<c>` → commit the new `lib/<c>/` + demo + wiring.
+2. `git push -u origin port/<c>` → `gh pr create --base main` (describe the port + Δ=0 verification).
+3. Merge: a teammate approval + the "Build Check" status, **or** `gh pr merge --squash --admin` if you have repo-admin bypass. (If the "Build Check" required status can't run, that's a repo-settings blocker — flag it; don't fight the CLI.)
+
+### Publish a new `@oneodyssey/ui` version (library changes only)
+
+If the port added/changed a **library** component (not just a demo): bump `projects/odyssey-ui/package.json` `version` + add a CHANGELOG entry, then `npx ng build odyssey-ui && cd dist/odyssey-ui && NODE_AUTH_TOKEN=<PAT w/ write:packages> npm publish`. Demo-only changes don't need a publish. See [[project_odyssey_ui_delivery]] for the registry/auth details.
 
 ### One-line confirmation
 
