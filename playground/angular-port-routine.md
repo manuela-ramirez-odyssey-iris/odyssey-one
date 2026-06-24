@@ -239,6 +239,10 @@ Add or update the component's row with the Angular column filled in:
 
 Set `last_synced` to today's ISO date in `odyssey-one-library-ui/projects/odyssey-ui/src/lib/<c>/<C>.figma-link.md`.
 
+### Refresh the DSM domain filter
+
+From the **odyssey-one** repo root, run `npm run domain-usage`. It regenerates `domain-usage.json` for BOTH the React DSM and this Angular library repo (`tools/domain-usage.mjs` writes both — the Angular target is `../odyssey-one-library-ui/src/app/dsm/domain-usage.json`). Without this, the Angular DSM's Domain dropdown filters against a stale snapshot and won't reflect newly added/rewired components.
+
 ### Land it on the official repo (PR — `main` is protected)
 
 The Angular twin is committed in `odyssey-one-library-ui` but `main` is protected, so it lands via a PR:

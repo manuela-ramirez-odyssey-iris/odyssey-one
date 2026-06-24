@@ -2172,19 +2172,105 @@ input[type="date"].odyssey-date-input::-webkit-calendar-picker-indicator:hover {
   color: var(--text-placeholder);
 }
 
-.menu-row { cursor: pointer; transition: background var(--transition-fast); }
-.menu-row__grip { opacity: 0; transition: opacity 120ms ease-out; color: var(--text-tertiary); display: inline-flex; }
+/* MenuRow — row inside menus / dropdowns / panels (Figma set 1973:87).
+   variant = semantic role (select | navigate | draggable); selected look is
+   per-variant; hover/pressed are runtime CSS (not Figma variants). */
+.menu-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  height: 36px;
+  padding: var(--spacing-2) var(--spacing-3);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background var(--transition-fast), box-shadow var(--transition-fast);
+}
+.menu-row__leading { display: flex; align-items: center; gap: var(--spacing-3); flex: 1 1 0; min-width: 0; }
+.menu-row__icon { display: inline-flex; flex-shrink: 0; color: var(--text-secondary); }
+.menu-row__label {
+  flex: 1 1 0; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  color: var(--text-secondary);
+  font-family: var(--font-primary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+  font-weight: var(--font-weight-regular);
+}
+.menu-row__trailing { display: inline-flex; flex-shrink: 0; color: var(--text-tertiary); }
+
+/* interaction states (runtime) */
 .menu-row:hover { background: var(--deep-sea-neutral-100); }
-.menu-row:hover .menu-row__grip { opacity: 1; }
 .menu-row:active { background: var(--deep-sea-neutral-200); }
+
+/* draggable affordance */
+.menu-row--draggable { cursor: grab; }
+.menu-row--draggable:active { cursor: grabbing; }
 [data-dragging="true"] .menu-row { background: var(--deep-sea-neutral-200); }
-[data-dragging="true"] .menu-row__grip { opacity: 1; }
-.menu-row[data-disabled="true"] { opacity: 0.4; cursor: not-allowed; }
-.menu-row[data-disabled="true"]:hover { background: transparent; }
-.menu-row[data-disabled="true"] .menu-row__grip { opacity: 0 !important; }
+
+/* bordered (navigate, standalone) — persistent DSN/300 outline */
+.menu-row--bordered { box-shadow: inset 0 0 0 1px var(--deep-sea-neutral-300); }
+
+/* selected — per variant (navigate-plain has no selected state by design) */
+.menu-row--select[data-selected] { background: var(--deep-sea-neutral-100); }
+.menu-row--draggable[data-selected] { box-shadow: inset 0 0 0 1px var(--deep-sea-neutral-900); }
+.menu-row--navigate.menu-row--bordered[data-selected] { box-shadow: inset 0 0 0 1px var(--deep-sea-neutral-900); }
+
+/* disabled */
+.menu-row[data-disabled] { opacity: 0.4; cursor: not-allowed; }
+.menu-row[data-disabled]:hover { background: transparent; }
 
 .menu-dropdown__header { color: var(--text-tertiary); transition: color var(--transition-fast); }
 .menu-dropdown__header:hover { color: var(--text-primary); }
+
+/* Dropdown — value-select molecule (DropdownButton trigger + anchored DropdownMenu). Figma set 3644:549. */
+.dropdown { display: inline-flex; }
+.dropdown__trigger { display: inline-flex; }
+
+/* DropdownButton — dropdown trigger (value + chevron), opens a DropdownMenu (Figma set 3272:3880).
+   Hover/pressed are CSS-driven; .dropdown-button--open mirrors the pressed look while the menu is open. */
+.dropdown-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px var(--spacing-2) 6px var(--spacing-3);
+  border: 1px solid var(--deep-sea-neutral-300);
+  border-radius: var(--radius-lg);
+  background: var(--white);
+  color: var(--deep-sea-neutral-700);
+  box-shadow: var(--shadow-sm);
+  font-family: var(--font-primary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+.dropdown-button__chevron { flex-shrink: 0; }
+.dropdown-button:hover { background: var(--deep-sea-neutral-50); border-color: var(--deep-sea-neutral-400); }
+.dropdown-button:active,
+.dropdown-button--open { background: var(--deep-sea-neutral-100); border-color: var(--deep-sea-neutral-400); }
+.dropdown-button:disabled { opacity: 0.4; cursor: not-allowed; }
+.dropdown-button:disabled:hover { background: var(--white); border-color: var(--deep-sea-neutral-300); }
+
+/* DropdownMenu — popover/menu surface holding MenuRows / a MenuDropdown (Figma set 3600:1879).
+   State=Content (children) vs State=Empty (centered message) is derived from children in code. */
+.dropdown-menu {
+  display: flex;
+  flex-direction: column;
+  padding: var(--spacing-3);
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-panel);
+}
+.dropdown-menu__empty {
+  text-align: center;
+  color: var(--text-tertiary);
+  font-family: var(--font-primary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+  font-weight: var(--font-weight-regular);
+}
 
 /* ----------------------------------------
    MODAL LARGE (organism shell)

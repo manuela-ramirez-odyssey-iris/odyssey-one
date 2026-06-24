@@ -26,6 +26,8 @@ export { default as SectionLabel } from './SectionLabel.jsx';
 export { default as AddSectionDivider } from './AddSectionDivider.jsx';
 export { default as AddSectionButton } from './AddSectionButton.jsx';
 export { default as StepIndicator } from './StepIndicator.jsx';
+export { default as MenuRow } from './MenuRow.jsx';
+export { default as DropdownButton } from './DropdownButton.jsx';
 
 // ── Molecules ──────────────────────────────────────────
 export { default as LeadNav } from './LeadNav.jsx';
@@ -37,8 +39,9 @@ export { default as EntityChip } from './EntityChip.jsx';
 export { default as WidgetMetricRow } from './WidgetMetricRow.jsx';
 export { default as WidgetPieChart } from './WidgetPieChart.jsx';
 export { default as WidgetCtaRow } from './WidgetCtaRow.jsx';
-export { default as MenuRow } from './MenuRow.jsx';
 export { default as MenuDropdown } from './MenuDropdown.jsx';
+export { default as DropdownMenu } from './DropdownMenu.jsx';
+export { default as Dropdown } from './Dropdown.jsx';
 export { default as SearchField } from './SearchField.jsx';
 export { default as CustomerRow } from './CustomerRow.jsx';
 export { default as FormField } from './FormField.jsx';

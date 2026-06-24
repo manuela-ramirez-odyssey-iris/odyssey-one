@@ -254,6 +254,7 @@ A normalize cycle is **not done** until ALL of the following are updated. Treat 
 - [ ] **`playground/normalization-tracker.md` → `## Normalized Components` row added under the correct tier sub-table** (`### Atoms` / `### Molecules` / `### Organisms`), leading cell labeled `Name (tier)`. Plus (if applicable) entries in "Pushed to Figma" / "Pending Figma Sync" / "Pushed to Figma → Code Connect".
 - [ ] **Tier consistency check:** the Figma page, the `index.js` group, and the tracker sub-section all agree on the tier (per Step 3). If they don't, fix it now — this is what prevents a future full-library audit.
 - [ ] Old ad-hoc entries that are now solved → **remove from the ad-hoc list**.
+- [ ] **Run `npm run domain-usage`** (repo root) so the DSM domain filter stays current. It regenerates `domain-usage.json` for BOTH the React DSM and the official Angular library repo (`odyssey-one-library-ui`). New components must be picked up by the domain dropdown — skipping this leaves the filter stale. (The Angular copy only updates if `../odyssey-one-library-ui` exists; the script logs which targets it wrote.)
 
 **The demo file is not optional and not a "nice-to-have"** — it is the living source of truth for what's been normalized. If `/design-system` doesn't show the new component (or shows a stale version), the normalization is invisible / misleading to anyone who didn't run it.
 

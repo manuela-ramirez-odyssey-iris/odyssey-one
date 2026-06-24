@@ -53,11 +53,5 @@
     "PillTab",
     "SearchPanel",
     "SearchResults"
-  ],
-  "shared": [
-    "AuthContent",
-    "AuthModal",
-    "Navbar",
-    "Sidebar"
   ]
 }

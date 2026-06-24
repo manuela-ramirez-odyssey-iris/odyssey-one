@@ -27,7 +27,9 @@ const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..
 const APP_SRC = path.join(REPO_ROOT, 'apps/odyssey-one/src')
 const DEMOS_DIR = path.join(APP_SRC, 'routes/design-system/demos')
 const REACT_OUT = path.join(APP_SRC, 'routes/design-system/domain-usage.json')
-const ANGULAR_OUT = path.resolve(REPO_ROOT, '../odyssey-angular-dsm/src/app/dsm/domain-usage.json')
+// Official Angular library repo (the local-only odyssey-angular-dsm is retired —
+// see project_odyssey_ui_delivery). Keep this in sync with the DSM explorer's path.
+const ANGULAR_OUT = path.resolve(REPO_ROOT, '../odyssey-one-library-ui/src/app/dsm/domain-usage.json')
 
 // domain -> source roots under apps/odyssey-one/src. dirs walked recursively;
 // files read directly. routes/design-system is NEVER a source. Globs for the

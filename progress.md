@@ -4447,12 +4447,49 @@ Consolidated into **PR #3** (closed PR #2 as superseded). **PR #3 is BLOCKED** �
 
 ---
 
+## Session 64 — June 23–24, 2026
+
+**The full dropdown stack, normalized end-to-end (React + Angular): MenuRow (re-normalized + reclassified to atom) · DropdownMenu (new molecule) · DropdownButton (new atom) · Dropdown (new molecule) — plus Angular DSM feature-parity with React and a domain-usage generator fix. All Δ=0 two-window. Batch committed locally, NOT pushed (held with the S63 batch).**
+
+### MenuRow — semantic rewrite + molecule→atom (React + Angular)
+- Replaced the old label+always-on-grip API with a **semantic `variant: 'select' | 'navigate' | 'draggable'`** (role drives trailing affordance + cursor + click intent) + `bordered?` (navigate-only DSN/300 outline) + `selected?` (per-variant: select→DSN/100 bg, draggable/navigate-bordered→DSN/900 ring, navigate-plain→none **by design**) + `leadingIcon?` (20px slot; Angular = `showLeadingIcon` + `[slot=leading]` projection). Padding fixed to `--spacing-2`/`--spacing-3`, added `--radius-md`. **No focus ring** (internal product — user direction).
+- **Reclassified molecule → atom** across all four surfaces (Figma page→Components-Atoms, `index.js` Atoms group, tracker Atoms sub-table, both demo metas).
+- Figma renamed: `Type` Default/Chevron-right/Chevron-right-line → **Select/Navigate/Navigate-bordered**; `State` **Focused → Selected** (Efrain mislabel — same pattern as the S63 Badge; saved as memory). `WidgetsLeftMenu` consumer → `variant="draggable"`.
+- A **proposed lean restructure** (Type variant + Bordered/Selected booleans, hover/pressed out of Figma) was authored as a review frame (`3587:515`) but **deferred** to an Efrain file-wide convention conversation. See [[project_menurow_restructure_proposal]].
+
+### DropdownMenu — new molecule (React + Angular)
+- Popover/menu surface (`--white`/`--spacing-3`/`--radius-lg`/`--shadow-panel`) holding `MenuRow`s. Content vs empty **derived from children** (React `Children.count`; Angular `ngAfterContentInit` projected-DOM check); `emptyMessage` default "No items". Figma: converted Efrain's single component → **`State=Content/Empty`** variant set + `Empty message` TEXT prop, moved to Components-Molecules. (A scare where it "couldn't instance" turned out to be the user's copy-paste method, not corruption.)
+
+### DropdownButton — new atom (React + Angular)
+- Compact dropdown trigger (value + chevron). `value` · `open` (pressed/active look + **flips chevron-down→chevron-up**, prop-driven not `:active`) · `disabled` · `onClick` · `className`. Figma renamed `ButtonDropDown → DropdownButton`, `Property 1 → State`, added `Value` TEXT prop + **`State=Disabled`** variant (Idle @ 40% opacity), moved to Components-Atoms. Mid-cycle Figma layout update (paddings → `spacing-3`/`spacing-2`) synced to both code sides.
+
+### Dropdown — new molecule (React + Angular) — the paginator dependency
+- **Value-selecting dropdown**: `DropdownButton` trigger opens an anchored `DropdownMenu` of `MenuRow` options; pick → `onChange`/`valueChange` + close; closes on outside-click/scroll/resize. `value` controlled, open/close internal. Positioning via a new **`useAnchoredPortal`** hook ported into `@odyssey/ui` (body portal, `position:fixed` below trigger, min-width=trigger). Angular twin mirrors it **without @angular/cdk** (`position:fixed` + getBoundingClientRect + capture-phase scroll listener + `runOutsideAngular`). Figma: authored as an **interactive** `State=Closed/Open` variant set with ON_CLICK CHANGE_TO **reactions** (clickable in Present mode). First consumer = the Paginator.
+- Architecture decided: trigger + menu stay **separate primitives**; `Dropdown` is the composing molecule (not merged). [[project_menurow_restructure_proposal]]-adjacent reasoning.
+
+### Angular DSM — feature parity with React (+ generator fix)
+- Ported the 7 session-62 React explorer features the Angular DSM lacked: collapsible component sections, Expand/Collapse-all, **Shared** domain + the cross-cutting divider, disabled empty-tier tabs, Escape-to-close, auto-tab-switch, and the trailing-header domain dropdown layout.
+- **Root-caused the stale domain filter:** `tools/domain-usage.mjs` was writing its Angular copy to the **retired `odyssey-angular-dsm`** repo. Repointed `ANGULAR_OUT` → `odyssey-one-library-ui`, regenerated, and **wired `npm run domain-usage` into both `/normalize` (Phase 3) and `/port-to-angular` (Phase 5)** so the filter stays current.
+
+### State / verification
+- Angular library **403 specs** + DSM-explorer **17** green; parity-lint + both Angular builds + the React build green throughout. Δ=0 two-window parity for all four components.
+- New memories: [[feedback_efrain_state_mislabel]], [[project_menurow_restructure_proposal]].
+- **Committed locally, NOT pushed.** odyssey-one (React) + odyssey-one-library-ui (Angular) both carry this session's work on top of the unpushed S63 batch.
+
+### Carry-forward to Session 65
+- **THE PAGINATOR** (the whole point of this arc) — compose `PaginationButton` (S63) + `Dropdown` (rows-per-page) + a range label ("1–25 of 240"), page-number/ellipsis logic, wired to the TanStack pagination API. All deps now exist.
+- **Close + release the batch** (S63 + S64): bump `@oneodyssey/ui` **0.2.0 → 0.3.0** + CHANGELOG, push odyssey-one, open the `odyssey-one-library-ui` PR, run `connect:publish`. Held per the standing ask-before-pushing rule.
+- **Figma library publish needed** (manual): new components (DropdownMenu, DropdownButton, Dropdown), new variants (MenuRow renames, DropdownButton Disabled), renames — Assets → Publish.
+- Deferred: MenuRow lean-restructure conversation with Efrain; the `Navigate, Selected` redundant Figma variant.
+
+---
+
 ## What's Next
 
-### Session 64 Priorities
+### Session 65 Priorities
 
-1. **CLOSE THE NORMALIZATION BATCH + RELEASE.** The S63 batch (Badge selected-toggle · Button per-variant disabled · PaginationButton) is committed locally but **not pushed** and **not version-bumped**. When the batch is judged complete: bump `@oneodyssey/ui` **0.2.0 → 0.3.0** + CHANGELOG, **push odyssey-one**, open **one PR** into `odyssey-one-library-ui`. (Ask before pushing — standing rule this session.)
-2. **Next components — the dropdown molecule, then the Paginator molecule.** Paginator composes PaginationButton + the dropdown + a rows-per-page Select + a range label, plus page-number/ellipsis logic, wired to the TanStack pagination API — it has many deps, so sequence the dropdown (and any other atoms) first. React-first → GATE 1 → Angular twin → GATE B, per `/normalize` + `/port-to-angular`. Puppeteer harness re-installs from `/tmp/dsm-measure` (`npm install puppeteer-core`).
+1. **THE PAGINATOR — build it.** Compose `PaginationButton` (S63) + `Dropdown` (rows-per-page) + a range label ("1–25 of 240"), with page-number/ellipsis logic, wired to the **TanStack** pagination API (React `@tanstack/react-table`, Angular `@tanstack/angular-table`). Every dependency now exists (MenuRow · DropdownMenu · DropdownButton · Dropdown · PaginationButton). React-first → GATE 1 → Angular twin → GATE B, per `/normalize` + `/port-to-angular`. Puppeteer harness re-installs at `/tmp/dsm-measure` (`npm install puppeteer-core`; entry is now `lib/cjs`, import by package name).
+2. **CLOSE THE NORMALIZATION BATCH + RELEASE** (S63 + S64). Bump `@oneodyssey/ui` **0.2.0 → 0.3.0** + CHANGELOG, **push odyssey-one**, open **one PR** into `odyssey-one-library-ui`, run `connect:publish`. **Figma library publish** also needed (manual). (Ask before pushing — standing rule.)
 3. **Figma `Icon Left/Pressed` drift** (DSN/500 vs Icon Right's DSN/400) — decide whether to correct Efrain's existing variant. **Alert re-tokenization** question for Efrain (the two removed `/200` primitives kept code-side).
 4. **Unblock + merge PR #3** (DSM-explorer features). Blocked by `main` protection (review + a "Build Check" status from PR #1's `pr-check.yml`). Merging PR #1 (or relaxing protection) unblocks every PR — incl. the S63 batch PR. Needs repo-admin/owner. **Then delete the retired `odyssey-angular-dsm`.**
 5. **Orders — PAUSED, fully captured in repo** (unchanged from S56). `vault/60-backlog/backlog.html` **ORD-1..10** + `requirements-tracker.md` + `decisions/decision-log.md` ORD-01 + §6 spec + the built data seam (`useOrderView`). UI awaits Efrain; contract/live-flip awaits Ramesh + live Swagger. Owed: Product Delete entry → Efrain; 2 `@odyssey/ui` additive-prop flags → Manuela's normalization session.
