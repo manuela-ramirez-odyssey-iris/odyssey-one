@@ -5,6 +5,7 @@ import { Package } from 'lucide-react'
 export const meta = {
   name: 'WidgetVariantPicker',
   tier: 'organism',
+  version: '0.2.0',
   figmaNode: '2005:554',
   codeConnect: 'packages/ui/src/WidgetVariantPicker.figma.tsx',
 }

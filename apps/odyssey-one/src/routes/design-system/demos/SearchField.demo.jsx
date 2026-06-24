@@ -4,6 +4,7 @@ import { SearchField } from '@odyssey/ui'
 export const meta = {
   name: 'SearchField',
   tier: 'molecule',
+  version: '0.2.0',
   figmaNode: '1959:76',
   codeConnect: 'packages/ui/src/SearchField.figma.tsx',
 }

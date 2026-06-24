@@ -3,6 +3,7 @@ import { OdysseyLogo } from '@odyssey/ui'
 export const meta = {
   name: 'OdysseyLogo',
   tier: 'atom',
+  version: '0.2.0',
   // No figma.tsx for OdysseyLogo
 }
 

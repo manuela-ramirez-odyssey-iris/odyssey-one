@@ -5,6 +5,7 @@ import { Home, Package, Truck } from 'lucide-react'
 export const meta = {
   name: 'SidebarButton',
   tier: 'atom',
+  version: '0.2.0',
   figmaNode: '514:2479',
   codeConnect: 'packages/ui/src/SidebarButton.figma.tsx',
 }

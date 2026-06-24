@@ -4,6 +4,7 @@ import { TrailNav } from '@odyssey/ui'
 export const meta = {
   name: 'TrailNav',
   tier: 'molecule',
+  version: '0.2.0',
   figmaNode: '1565:648',
   codeConnect: 'packages/ui/src/TrailNav.figma.tsx',
 }

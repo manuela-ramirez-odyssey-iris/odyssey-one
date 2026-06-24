@@ -4,6 +4,7 @@ import { Radio } from '@odyssey/ui'
 export const meta = {
   name: 'Radio',
   tier: 'atom',
+  version: '0.2.0',
   figmaNode: '2824:330',
   codeConnect: 'packages/ui/src/Radio.figma.tsx',
 }

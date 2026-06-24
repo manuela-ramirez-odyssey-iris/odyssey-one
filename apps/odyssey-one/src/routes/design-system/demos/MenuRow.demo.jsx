@@ -6,6 +6,7 @@ import { Truck } from 'lucide-react'
 export const meta = {
   name: 'MenuRow',
   tier: 'atom',
+  version: '0.3.0',
   figmaNode: '1973:87',
   codeConnect: 'packages/ui/src/MenuRow.figma.tsx',
 }

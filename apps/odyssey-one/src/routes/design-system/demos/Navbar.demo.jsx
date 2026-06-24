@@ -4,6 +4,7 @@ import { Navbar, LeadNav, GlobalSearch, TrailNav } from '@odyssey/ui'
 export const meta = {
   name: 'Navbar',
   tier: 'organism',
+  version: '0.2.0',
   figmaNode: '1661:206',
   codeConnect: 'packages/ui/src/Navbar.figma.tsx',
 }

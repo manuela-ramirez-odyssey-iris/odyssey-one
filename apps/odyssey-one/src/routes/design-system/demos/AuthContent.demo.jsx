@@ -4,6 +4,7 @@ import { AuthContent } from '@odyssey/ui'
 export const meta = {
   name: 'AuthContent',
   tier: 'organism',
+  version: '0.2.0',
   figmaNode: '2264:712',
   codeConnect: 'packages/ui/src/AuthContent.figma.tsx',
 }

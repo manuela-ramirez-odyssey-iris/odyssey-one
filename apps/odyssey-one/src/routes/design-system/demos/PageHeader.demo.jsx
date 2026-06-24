@@ -5,6 +5,7 @@ import { Plus, Download, ArrowRight, SlidersHorizontal, Route } from 'lucide-rea
 export const meta = {
   name: 'PageHeader',
   tier: 'molecule',
+  version: '0.2.0',
   figmaNode: '1693:49',
   codeConnect: 'packages/ui/src/PageHeader.figma.tsx',
 }

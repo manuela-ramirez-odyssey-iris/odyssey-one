@@ -3,6 +3,7 @@ import { PaginationButton } from '@odyssey/ui'
 export const meta = {
   name: 'PaginationButton',
   tier: 'atom',
+  version: '0.3.0',
   figmaNode: '3234:3857',
   codeConnect: 'packages/ui/src/PaginationButton.figma.tsx',
 }

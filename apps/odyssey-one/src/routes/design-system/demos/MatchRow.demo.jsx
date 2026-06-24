@@ -4,6 +4,7 @@ import { MatchRow } from '@odyssey/ui'
 export const meta = {
   name: 'MatchRow',
   tier: 'molecule',
+  version: '0.2.0',
   figmaNode: '2460:2',
   codeConnect: 'packages/ui/src/MatchRow.figma.tsx',
 }

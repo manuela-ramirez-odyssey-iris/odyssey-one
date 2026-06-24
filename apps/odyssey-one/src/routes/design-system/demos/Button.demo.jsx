@@ -5,6 +5,7 @@ import { Search, ArrowRight, Plus, MoreHorizontal } from 'lucide-react'
 export const meta = {
   name: 'Button',
   tier: 'atom',
+  version: '0.3.0',
   figmaNode: '1307:333',
   codeConnect: 'packages/ui/src/Button.figma.tsx',
 }

@@ -4,6 +4,7 @@ import { SectionLabel } from '@odyssey/ui'
 export const meta = {
   name: 'SectionLabel',
   tier: 'atom',
+  version: '0.2.0',
   figmaNode: '2198:308',
   codeConnect: 'packages/ui/src/SectionLabel.figma.tsx',
 }
