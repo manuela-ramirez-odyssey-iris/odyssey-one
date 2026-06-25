@@ -2414,6 +2414,39 @@ input[type="date"].odyssey-date-input::-webkit-calendar-picker-indicator:hover {
 }
 
 /* ----------------------------------------
+   ActionMenu — a customizable icon trigger that opens a DropdownMenu of
+   row/toolbar actions. The menu surface is the normalized .dropdown-menu;
+   only the trigger + the destructive-item color live here.
+   ---------------------------------------- */
+.action-menu {
+  display: inline-flex;
+  vertical-align: middle; /* center the trigger in a table action cell's line box */
+}
+
+.action-menu__trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+
+.action-menu__trigger:hover {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+
+/* Destructive menu item — applied to a MenuRow via className. */
+.menu-row--danger .menu-row__label {
+  color: var(--text-error);
+}
+
+/* ----------------------------------------
    MODAL LARGE (organism shell)
    Mirrors Figma `ModalLarge` at 2006:663. Reusable shell with header (title +
    subtitle + close), content slot (children), and footer slot. ESC + overlay
