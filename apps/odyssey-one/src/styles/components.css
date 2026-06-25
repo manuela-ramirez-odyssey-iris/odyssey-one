@@ -204,6 +204,20 @@
   box-shadow: -2px 0 4px rgba(0, 0, 0, 0.06);
 }
 
+/* Action-cell affordance — lives on the cell, not the icon, so the glyph can
+   change without re-styling: the body cell reads as the click target (pointer),
+   and a bare icon centers vertically. Scoped to a direct <svg> child so cells
+   that wrap their own interactive trigger (e.g. Orders' OrderRowActionMenu
+   button) are left exactly as they were. The header cell keeps centering but
+   not the pointer. */
+.odyssey-data-table td.odyssey-table__cell--sticky-right {
+  cursor: pointer;
+}
+
+.odyssey-data-table .odyssey-table__cell--sticky-right > svg {
+  vertical-align: middle;
+}
+
 /* Footer band (the Paginator slot): lives inside the body scroller after the
    table; sticky-left keeps it put during horizontal scroll. */
 .odyssey-data-table__footer {
