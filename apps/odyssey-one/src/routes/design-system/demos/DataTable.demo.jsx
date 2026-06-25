@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState } from 'react'
 import {
   useReactTable,
   getCoreRowModel,
@@ -7,7 +7,7 @@ import {
 } from '@tanstack/react-table'
 import { EllipsisVertical } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
-import { DataTable, Paginator, Checkbox, Badge, DropdownMenu, MenuRow, useAnchoredPortal } from '@odyssey/ui'
+import { DataTable, Paginator, Checkbox, Badge, ActionMenu } from '@odyssey/ui'
 
 export const meta = {
   name: 'DataTable',
@@ -38,47 +38,7 @@ export const tokens = [
 //   fixedWidth: true      → excluded from flex-width distribution (stays snug)
 
 // Per-table row actions — the option SET is the consumer's (Orders ~3, Shipments ~5).
-const ROW_ACTIONS = ['View', 'Edit', 'Duplicate', 'Delete']
-
-// Thin-shell row-action menu: composed by the CONSUMER from library primitives
-// (the ellipsis trigger + useAnchoredPortal + DropdownMenu + MenuRow) — there is
-// no library "RowActions" component. The menu inherits the Dropdown flip, so on a
-// low row it opens upward.
-function RowActionsCell({ options, onAction }) {
-  const [open, setOpen] = useState(false)
-  const close = useCallback(() => setOpen(false), [])
-  const { triggerRef, dropdownRef, AnchoredPortal } = useAnchoredPortal({ open, onClose: close })
-  return (
-    <>
-      <button
-        ref={triggerRef}
-        type="button"
-        aria-label="Row actions"
-        aria-haspopup="menu"
-        onClick={() => setOpen((o) => !o)}
-        style={{
-          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-          verticalAlign: 'middle', width: 28, height: 28, padding: 0, border: 'none',
-          background: 'transparent', color: 'var(--text-tertiary)', cursor: 'pointer',
-          borderRadius: 'var(--radius-md)',
-        }}
-      >
-        <EllipsisVertical {...ICON_MD} />
-      </button>
-      {open && (
-        <AnchoredPortal>
-          <div ref={dropdownRef}>
-            <DropdownMenu>
-              {options.map((label) => (
-                <MenuRow key={label} label={label} onClick={() => { onAction?.(label); close() }} />
-              ))}
-            </DropdownMenu>
-          </div>
-        </AnchoredPortal>
-      )}
-    </>
-  )
-}
+const ROW_ACTIONS = ['View', 'Edit', 'Duplicate', 'Delete'].map((label) => ({ label, onSelect: () => {} }))
 
 const columnHelper = createColumnHelper()
 const COLUMNS = [
@@ -118,8 +78,10 @@ const COLUMNS = [
   columnHelper.display({
     id: 'action',
     header: 'Action',
-    // Thin-shell row-action menu (consumer composition — see RowActionsCell).
-    cell: () => <RowActionsCell options={ROW_ACTIONS} />,
+    // Row-action menu — the normalized ActionMenu.
+    cell: () => (
+      <ActionMenu icon={<EllipsisVertical {...ICON_MD} />} options={ROW_ACTIONS} align="left" ariaLabel="Row actions" />
+    ),
     meta: { sticky: 'right', fixedWidth: true },
   }),
 ]
@@ -167,9 +129,9 @@ export default function DataTableDemo() {
         colgroup width-lock, horizontal scroll-sync, a <strong>sticky-right</strong> action column
         (<code>meta.sticky:'right'</code>), and a <strong>Paginator</strong> footer. The consumer
         owns columns / data / state. Scroll the table horizontally — the header tracks the body and
-        the Action column stays pinned. Each row's action cell is a <strong>thin-shell menu</strong>
-        (ellipsis trigger + <code>DropdownMenu</code> + <code>MenuRow</code>, composed by the consumer —
-        no library RowActions component) with a per-table option set. It inherits the Dropdown
+        the Action column stays pinned. Each row's action cell is the normalized <strong>ActionMenu</strong>
+        molecule (ellipsis trigger + anchored <code>DropdownMenu</code> + <code>MenuRow</code> options —
+        composes library primitives internally) with a per-table option set. It inherits the Dropdown
         <strong> boundary flip</strong>: open a menu on a low row (or the rows-per-page menu near the
         viewport bottom) and it opens upward instead of clipping.
       </p>
