@@ -224,6 +224,15 @@ Only enter after GATE B approval phrase received.
 1. **React demo:** `apps/odyssey-one/src/routes/design-system/demos/<C>.demo.jsx` — set `meta.normalizing` to `false` (or remove the property). This promotes the component out of the React DSM's Normalizing tab into its tier tab (Atoms/Molecules/Organisms).
 2. **Angular demo:** `odyssey-one-library-ui/src/app/demos/<c>/<c>.demo.meta.ts` — set `normalizing: false`. Same promotion effect in the Angular DSM explorer.
 
+### Stamp the release version on both demos
+
+When this port bumps `projects/odyssey-ui/package.json` to `x.y.z` (see "Publish a new `@oneodyssey/ui` version" below), stamp that same version onto **both** demo metas:
+
+1. **React demo:** `apps/odyssey-one/src/routes/design-system/demos/<C>.demo.jsx` — set `version: 'x.y.z'` in the exported `meta`.
+2. **Angular demo:** `odyssey-one-library-ui/src/app/demos/<c>.demo.meta.ts` — set `version: 'x.y.z'` in the exported `<c>Meta`.
+
+For a re-normalized/changed component this **advances** an existing `version` (last-touched semantics). The DSM derives the version badge, the header chip, and the "Latest only" filter from this field — skipping it leaves the component invisible to the "latest" view. (Demo-only ports that don't bump the library carry no new version.)
+
 ### Finalize library export
 
 Verify `public-api.ts` exports are present (should be set in Phase 2, confirm nothing was accidentally reverted during Phase 3 fixes).
@@ -234,6 +243,7 @@ Add or update the component's row with the Angular column filled in:
 - Angular column: `done` (with the port date ISO)
 - `figma-link.md` path (relative from repo root)
 - Any deviations from the React spec noted in `<C>.figma-link.md`
+- The `@oneodyssey/ui` version stamped on the demos this release (e.g. `v0.3.0`)
 
 ### Update `figma-link.md` `last_synced`
 
