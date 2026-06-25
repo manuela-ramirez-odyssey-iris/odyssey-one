@@ -7,7 +7,7 @@ import {
 } from '@tanstack/react-table'
 import { EllipsisVertical } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
-import { DataTable, Paginator, Checkbox, Badge, IconButtonGhost } from '@odyssey/ui'
+import { DataTable, Paginator, Checkbox, Badge } from '@odyssey/ui'
 
 export const meta = {
   name: 'DataTable',
@@ -75,9 +75,9 @@ const COLUMNS = [
   columnHelper.display({
     id: 'action',
     header: 'Action',
-    // The three-dot row-action trigger — same affordance teams see in real
-    // tables (Orders' OrderRowActionMenu), so the pattern reads consistently.
-    cell: () => <IconButtonGhost icon={<EllipsisVertical {...ICON_MD} />} ariaLabel="Row actions" onClick={() => {}} />,
+    // The three-dot row-action icon — same affordance teams see in real tables
+    // (Orders' OrderRowActionMenu trigger), so the pattern reads consistently.
+    cell: () => <EllipsisVertical {...ICON_MD} />,
     meta: { sticky: 'right', fixedWidth: true },
   }),
 ]
