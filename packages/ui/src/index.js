@@ -65,3 +65,9 @@ export { default as AuthModal } from './AuthModal.jsx';
 export { default as AuthContent } from './AuthContent.jsx';
 export { default as SearchPanel } from './SearchPanel.jsx';
 export { default as SearchResults } from './SearchResults.jsx';
+
+// ── Hooks ──────────────────────────────────────────────
+// Anchored, flip-aware popover positioning. Used internally by Dropdown;
+// exported so consumers can compose their own anchored menus (e.g. a table
+// row-action menu) and inherit the viewport-boundary flip.
+export { useAnchoredPortal } from './useAnchoredPortal.jsx';
