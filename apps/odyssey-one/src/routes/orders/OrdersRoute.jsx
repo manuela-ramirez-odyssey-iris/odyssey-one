@@ -6,38 +6,42 @@ import { Button, EmptyState, PageHeader } from '@odyssey/ui'
 import AppShell from '../../components/layout/AppShell'
 import OrdersToolbar from '../../components/orders/OrdersToolbar'
 import OrdersTable from '../../components/orders/OrdersTable'
-import OrdersTablePagination from '../../components/orders/OrdersTablePagination'
 import { useOrderList } from '../../api/queries/useOrderList'
 import '../../components/orders/orders.css'
 
 /**
  * OrdersRoute — the Order Summary Page (screen 0 of Efrain's Orders design).
  * PageHeader (+ inert Create Order in the S50b actions cluster) · toolbar ·
- * TanStack grid · 1-based pagination. Mock-mode data layer shaped like
- * POST /order-service/v3/order/list (Phase-2 LLD) — live flip is an env var.
+ * TanStack grid · pagination via the @odyssey/ui Paginator (driven by the table
+ * instance). Mock-mode data layer shaped like POST /order-service/v3/order/list
+ * (Phase-2 LLD) — live flip is an env var.
  */
 export default function OrdersRoute() {
   const navigate = useNavigate()
-  const [pageNumber, setPageNumber] = useState(1) // 1-based (LLD list example; Q29)
-  const [pageSize, setPageSize] = useState(20)
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 20 }) // pageIndex 0-based (TanStack)
   const [sortDirection, setSortDirection] = useState('desc') // newest-first proxy (A3/Q31)
   const [rowSelection, setRowSelection] = useState({})
 
   const request = useMemo(() => ({
-    pagination: { pageNumber, pageSize },
+    pagination: { pageNumber: pagination.pageIndex + 1, pageSize: pagination.pageSize },
     sort: { field: 'orderNumber', direction: sortDirection },
-  }), [pageNumber, pageSize, sortDirection])
+  }), [pagination, sortDirection])
 
   const { data, isPending, isError, isFetching, refetch } = useOrderList(request)
 
-  // Reset to page 1 whenever the query identity changes (Shipments-proven pattern).
+  // Reset to the first page whenever the query identity changes (Shipments-proven pattern).
   const handleToggleSort = () => {
     setSortDirection(d => (d === 'desc' ? 'asc' : 'desc'))
-    setPageNumber(1)
+    setPagination(p => ({ ...p, pageIndex: 0 }))
   }
-  const handlePageSizeChange = (n) => {
-    setPageSize(n)
-    setPageNumber(1)
+  // Paginator drives setPageSize on the table → onPaginationChange. Reset to the
+  // first page on a page-size change (preserves the prior UX, regardless of
+  // TanStack's internal pageIndex math).
+  const handlePaginationChange = (updater) => {
+    setPagination(prev => {
+      const next = typeof updater === 'function' ? updater(prev) : updater
+      return next.pageSize !== prev.pageSize ? { ...next, pageIndex: 0 } : next
+    })
   }
 
   return (
@@ -70,22 +74,16 @@ export default function OrdersRoute() {
             rows={data.rows}
             rowSelection={rowSelection}
             onRowSelectionChange={setRowSelection}
+            pagination={pagination}
+            onPaginationChange={handlePaginationChange}
+            totalCount={data.totalCount}
             onRowIdClick={(row) => {
               // Draft rows reopen in the create form (spec §4); others stay
               // inert until the order-detail build. Draft key = orderNumber
               // (plan decision 17 — the save-gate guarantees one).
               if (row.status === 'Draft') navigate(`/orders/create?draft=${encodeURIComponent(row.id)}`)
             }}
-          >
-            <OrdersTablePagination
-              pageNumber={pageNumber}
-              pageSize={pageSize}
-              totalCount={data.totalCount}
-              onPageChange={setPageNumber}
-              onPageSizeChange={handlePageSizeChange}
-              disabled={isFetching}
-            />
-          </OrdersTable>
+          />
         )}
       </div>
     </AppShell>
