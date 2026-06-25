@@ -215,6 +215,10 @@
 }
 
 .odyssey-data-table .odyssey-table__cell--sticky-right > svg {
+  /* Tailwind preflight forces svg { display: block } — restore inline-block so
+     the cell's text-align:center (horizontal) + vertical-align:middle (vertical)
+     actually center the glyph. */
+  display: inline-block;
   vertical-align: middle;
 }
 
