@@ -42,6 +42,7 @@ export { default as WidgetCtaRow } from './WidgetCtaRow.jsx';
 export { default as MenuDropdown } from './MenuDropdown.jsx';
 export { default as DropdownMenu } from './DropdownMenu.jsx';
 export { default as Dropdown } from './Dropdown.jsx';
+export { default as ActionMenu } from './ActionMenu.jsx';
 export { default as Paginator } from './Paginator.jsx';
 export { default as DataTable } from './DataTable.jsx';
 export { default as SearchField } from './SearchField.jsx';
