@@ -47,7 +47,10 @@ export default defineConfig(({ mode }) => {
     test: {
       globals: true,
       environment: 'node',
-      include: ['src/**/*.test.{js,jsx,ts,tsx}'],
+      include: [
+        'src/**/*.test.{js,jsx,ts,tsx}',
+        '../../packages/ui/src/**/*.test.{js,jsx}',
+      ],
       setupFiles: ['./vitest.setup.js'],
     },
   }
