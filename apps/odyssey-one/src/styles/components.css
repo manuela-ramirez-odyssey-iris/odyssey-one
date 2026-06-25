@@ -161,6 +161,58 @@
 }
 
 /* ----------------------------------------
+   TABLE — DataTable shell (chrome + scroll)
+   The generic chrome for the @odyssey/ui DataTable molecule: a card that
+   clips both halves of a split sticky header, a body horizontal scroller, a
+   sticky-right column modifier, and a sticky-left footer band. Extracted
+   verbatim from the Orders table (the proven split-sticky-header pattern);
+   `overflow: clip` on the card is NOT a scroll container, so the header strip
+   still sticks natively against the page scroller (zero lag).
+   ---------------------------------------- */
+.odyssey-data-table {
+  background: var(--bg-primary);
+  border-radius: var(--radius-2xl);
+  overflow: clip;
+}
+
+.odyssey-data-table__head {
+  position: sticky;
+  z-index: 3; /* above body cells incl. the sticky-right column */
+  background: var(--bg-secondary);
+}
+
+.odyssey-data-table__head-inner {
+  overflow: hidden;
+  border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
+  background: var(--bg-primary);
+}
+
+.odyssey-data-table__body {
+  overflow-x: auto;
+  overscroll-behavior-x: none;
+  background: var(--bg-primary);
+}
+
+/* A column pinned to the right edge (survives horizontal scroll) — applies in
+   both halves of the split table (header strip + body). Set per column via
+   TanStack `column.meta.sticky === 'right'`. */
+.odyssey-data-table .odyssey-table__cell--sticky-right {
+  position: sticky;
+  right: 0;
+  z-index: 1;
+  text-align: center;
+  box-shadow: -2px 0 4px rgba(0, 0, 0, 0.06);
+}
+
+/* Footer band (the Paginator slot): lives inside the body scroller after the
+   table; sticky-left keeps it put during horizontal scroll. */
+.odyssey-data-table__footer {
+  position: sticky;
+  left: 0;
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* ----------------------------------------
    BOTTOM BAR TRANSITIONS
    Slide-up panel with multiple states
    ---------------------------------------- */
