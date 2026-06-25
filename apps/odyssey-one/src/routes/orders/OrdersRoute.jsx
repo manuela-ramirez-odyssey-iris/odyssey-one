@@ -28,6 +28,11 @@ export default function OrdersRoute() {
   }), [pagination, sortDirection])
 
   const { data, isPending, isError, isFetching, refetch } = useOrderList(request)
+  // `isFetching` gates only the toolbar's sort toggle. It is intentionally NOT
+  // threaded to the Paginator footer: the @odyssey/ui Paginator disables nav via
+  // getCan{Previous,Next}Page(), and `placeholderData: keepPreviousData` keeps the
+  // current page visible during an in-flight refetch — so free mid-fetch paging is
+  // fine (the standard TanStack pattern; accepted over the old freeze-while-fetching).
 
   // Reset to the first page whenever the query identity changes (Shipments-proven pattern).
   const handleToggleSort = () => {
