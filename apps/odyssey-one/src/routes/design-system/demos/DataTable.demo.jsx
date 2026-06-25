@@ -19,7 +19,7 @@ export const props = [
   { name: 'table', type: 'Table (TanStack v8)', desc: 'A TanStack table instance — duck-typed (the library takes no TanStack dependency). The shell renders headers/rows from it; the consumer owns columns, data, and state.' },
   { name: 'stickyTop', type: 'number', desc: 'Px offset where the sticky header parks (the consumer measures its own toolbar/header). Default 0.' },
   { name: 'footer', type: 'ReactNode', desc: 'Rendered in a sticky-left footer band below the body — put a <Paginator table={table}/> here.' },
-  { name: 'ariaLabel', type: 'string', desc: 'Optional aria-label on the data table.' },
+  { name: 'ariaLabel', type: 'string', desc: 'Optional aria-label applied to the body <table> element (per ARIA table semantics).' },
   { name: 'className', type: 'string', desc: 'Merged onto the root.' },
 ]
 

@@ -63,7 +63,7 @@ export function cellClassName(meta, isStickyRight) {
 }
 
 export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, className = '' }) {
-  const headRef = useRef(null)       // sticky strip inner (overflow hidden; scrollLeft set programmatically)
+  const headRef = useRef(null)       // head-inner (overflow:hidden); scrollLeft set on it mirrors the body — the split-header trick, NOT a bug
   const wrapRef = useRef(null)       // body horizontal scroller
   const headTableRef = useRef(null)
   const bodyTableRef = useRef(null)
@@ -82,6 +82,9 @@ export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, cla
     if (colWidths) return
     const ths = headTableRef.current?.querySelectorAll('thead th')
     const tds = bodyTableRef.current?.querySelectorAll('tbody tr:first-child td')
+    // No body rows to measure (e.g. an empty result set) → skip the lock; the
+    // table renders at width:auto. Consumers render their own empty state in
+    // place of a 0-row DataTable (as OrdersRoute does), so this stays an edge.
     if (!ths?.length || !tds?.length) return
     const headerWidths = Array.from(ths).map((th) => th.getBoundingClientRect().width)
     const bodyWidths = Array.from(tds).map((td) => td.getBoundingClientRect().width)
@@ -99,6 +102,8 @@ export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, cla
   }, [])
 
   // Horizontal sync: the body wrap drives the header strip's scrollLeft.
+  // (Setting scrollLeft on the overflow:hidden head-inner is intentional — it
+  //  keeps the header columns aligned with the body with no second scrollbar.)
   useEffect(() => {
     const wrap = wrapRef.current
     const head = headRef.current
