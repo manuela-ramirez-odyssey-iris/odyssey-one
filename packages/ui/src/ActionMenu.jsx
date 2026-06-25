@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import DropdownMenu from './DropdownMenu'
 import MenuRow from './MenuRow'
@@ -24,7 +24,7 @@ import { computeVerticalPlacement } from './useAnchoredPortal.jsx'
  *
  * Props:
  *   - `icon` — the trigger glyph (required), e.g. <EllipsisVertical {...ICON_MD}/>.
- *   - `options` — { label, onSelect, disabled?, danger? }[].
+ *   - `options` — { label, onSelect, disabled?, danger?, id? }[] (id only needed to disambiguate duplicate labels).
  *   - `align` — 'right' (default) | 'left'.
  *   - `ariaLabel` — the icon-only trigger's accessible name.
  *   - `className` — merged onto the root.
@@ -37,7 +37,10 @@ export default function ActionMenu({ icon, options = [], align = 'right', ariaLa
   const triggerRef = useRef(null)
   const menuRef = useRef(null)
 
-  const close = () => setOpen(false)
+  const close = useCallback(() => setOpen(false), [])
+  // Escape returns focus to the trigger (standard menu behavior); option-select
+  // uses plain `close` (the action was taken — no focus restore, matches prior UX).
+  const closeAndReturn = useCallback(() => { setOpen(false); triggerRef.current?.focus() }, [])
 
   // Measure + place before paint (flash-free). Vertical flips via the shared
   // helper (gap 4); horizontal aligns the menu's right or left edge to the trigger.
@@ -86,24 +89,25 @@ export default function ActionMenu({ icon, options = [], align = 'right', ariaLa
         aria-expanded={open}
         aria-label={ariaLabel}
         onClick={() => setOpen((o) => !o)}
-        onKeyDown={(e) => { if (e.key === 'Escape') setOpen(false) }}
+        onKeyDown={(e) => { if (e.key === 'Escape') closeAndReturn() }}
       >
         {icon}
       </button>
       {open && createPortal(
         <div
           ref={menuRef}
+          // zIndex 200 = the project's portal/overlay layer (matches useAnchoredPortal + modals).
           style={pos
-            ? { position: 'fixed', top: pos.top, left: pos.left, zIndex: 1000 }
-            : { position: 'fixed', top: 0, left: 0, visibility: 'hidden', zIndex: 1000 }}
+            ? { position: 'fixed', top: pos.top, left: pos.left, zIndex: 200 }
+            : { position: 'fixed', top: 0, left: 0, visibility: 'hidden', zIndex: 200 }}
           onKeyDown={(e) => {
-            if (e.key === 'Escape') { setOpen(false); triggerRef.current?.focus() }
+            if (e.key === 'Escape') closeAndReturn()
           }}
         >
           <DropdownMenu>
             {options.map((opt) => (
               <MenuRow
-                key={opt.label}
+                key={opt.id ?? opt.label}
                 label={opt.label}
                 variant="select"
                 disabled={opt.disabled}
