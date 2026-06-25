@@ -27,3 +27,28 @@ export function getColWidths(headerWidths, bodyWidths, containerWidth, flexFlags
   }
   return widths
 }
+
+/** Inlined flexRender: call a function renderer with its context, else return
+ *  the value (a plain header string, a number, etc.). Nullish → null. Keeps the
+ *  library free of any @tanstack import. */
+export function renderCell(renderer, context) {
+  if (renderer == null) return null
+  return typeof renderer === 'function' ? renderer(context) : renderer
+}
+
+/** `<th>` classes: semibold label + optional meta.headClass + sticky-right. */
+export function headClassName(meta, isStickyRight) {
+  return [
+    'text-label-sm-semibold',
+    meta?.headClass,
+    isStickyRight && 'odyssey-table__cell--sticky-right',
+  ].filter(Boolean).join(' ')
+}
+
+/** `<td>` classes: meta.cellClass (or the regular-label default) + sticky-right. */
+export function cellClassName(meta, isStickyRight) {
+  return [
+    meta?.cellClass ?? 'text-label-sm-regular',
+    isStickyRight && 'odyssey-table__cell--sticky-right',
+  ].filter(Boolean).join(' ')
+}

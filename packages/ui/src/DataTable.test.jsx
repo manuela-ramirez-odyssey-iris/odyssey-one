@@ -1,4 +1,4 @@
-import { getColWidths } from './DataTable.jsx'
+import { getColWidths, renderCell, cellClassName, headClassName } from './DataTable.jsx'
 
 describe('getColWidths', () => {
   it('takes the per-column max of header vs first-row width and rounds up', () => {
@@ -28,5 +28,38 @@ describe('getColWidths', () => {
   it('distributes nothing when content already exceeds the container', () => {
     expect(getColWidths([200, 200], [0, 0], 100, [true, true]))
       .toEqual([200, 200])
+  })
+})
+
+describe('renderCell (inlined flexRender)', () => {
+  it('calls a function renderer with the context', () => {
+    expect(renderCell((ctx) => ctx.value, { value: 'Jane' })).toBe('Jane')
+  })
+  it('returns a non-function renderer as-is (e.g. a header string)', () => {
+    expect(renderCell('ID', {})).toBe('ID')
+  })
+  it('returns null for a nullish renderer', () => {
+    expect(renderCell(undefined, {})).toBeNull()
+    expect(renderCell(null, {})).toBeNull()
+  })
+})
+
+describe('headClassName', () => {
+  it('defaults to the semibold label utility', () => {
+    expect(headClassName(undefined, false)).toBe('text-label-sm-semibold')
+  })
+  it('appends meta.headClass and the sticky-right modifier', () => {
+    expect(headClassName({ headClass: 'odyssey-table__cell--control' }, true))
+      .toBe('text-label-sm-semibold odyssey-table__cell--control odyssey-table__cell--sticky-right')
+  })
+})
+
+describe('cellClassName', () => {
+  it('defaults to the regular label utility', () => {
+    expect(cellClassName(undefined, false)).toBe('text-label-sm-regular')
+  })
+  it('uses meta.cellClass when present and adds the sticky-right modifier', () => {
+    expect(cellClassName({ cellClass: 'odyssey-table__cell--title text-label-sm-medium' }, true))
+      .toBe('odyssey-table__cell--title text-label-sm-medium odyssey-table__cell--sticky-right')
   })
 })
