@@ -78,7 +78,9 @@ const COLUMNS = [
   columnHelper.display({
     id: 'action',
     header: 'Action',
-    // Row-action menu — the normalized ActionMenu.
+    // Row-action menu — the normalized ActionMenu. align="left" here because the
+    // demo table is centered in a 720px frame (not flush to the viewport's right
+    // edge like Orders, which uses align="right").
     cell: () => (
       <ActionMenu icon={<EllipsisVertical {...ICON_MD} />} options={ROW_ACTIONS} align="left" ariaLabel="Row actions" />
     ),
