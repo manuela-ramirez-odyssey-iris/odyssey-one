@@ -38,7 +38,9 @@ export default function DropdownDemo() {
         Value-selecting dropdown — a <code>DropdownButton</code> trigger that opens a{' '}
         <code>DropdownMenu</code> of <code>MenuRow</code> options anchored below it. Picking an
         option fires <code>onChange</code> + closes; it also closes on outside-click, scroll, or
-        resize. First consumer: the Paginator rows-per-page selector.
+        resize. First consumer: the Paginator rows-per-page selector. The menu is{' '}
+        <strong>boundary-aware</strong> — when there's no room below the trigger (near the viewport
+        bottom) it flips and opens <strong>upward</strong> instead of clipping.
       </p>
 
       <div className="ds-demo-section">
@@ -49,6 +51,7 @@ export default function DropdownDemo() {
         </div>
         <div style={{ marginTop: 'var(--spacing-3)', fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)' }}>
           Selected: <strong style={{ color: 'var(--text-secondary)' }}>{rows}</strong> — click the trigger, pick a value, click outside to dismiss.
+          Scroll this dropdown near the bottom of the window and open it to see the upward flip.
         </div>
       </div>
 
