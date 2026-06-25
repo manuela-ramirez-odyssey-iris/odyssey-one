@@ -4517,16 +4517,46 @@ Consolidated into **PR #3** (closed PR #2 as superseded). **PR #3 is BLOCKED** �
 
 ---
 
+## Session 66 — June 24–25, 2026
+
+**THE DATATABLE SHELL shipped (React, Δ=0) — the foundation of the Cognizant table deliverable — then two follow-on components: the Dropdown boundary-aware FLIP and the ActionMenu molecule (unifying three divergent row-action menus, closing SHP-66). Each ran brainstorm → spec → plan → subagent-driven build (two-stage reviews + a final holistic pass). All on `main`; held with the 0.3.0 batch (no push).**
+
+### THE DATATABLE SHELL — `@odyssey/ui` molecule (the arc)
+- Spec (`docs/superpowers/specs/2026-06-25-datatable-shell-design.md`) → plan → subagent build (3 units, spec+quality reviews each + final holistic review).
+- **Thin shell** (chosen over thick): owns ONLY the chrome — split-sticky-header + two-pass colgroup width-lock + horizontal scroll-sync — extracted **verbatim** from `OrdersTable`. Driven by a **structural TanStack `table` interface (duck-typed, NO `@tanstack` dep** — `flexRender` inlined; the Paginator pattern). Composes the `.odyssey-table` Cell contract (reconciled Figma Cell `2714:505` — no drift, no Cell-component needed). New global `.odyssey-data-table*` CSS contract.
+- **Refinements the user's extensibility Qs surfaced:** R1 — flex-width distribution by `column.meta.fixedWidth`, **not by index** (unblocks reorder/resize); R2 — re-measure on a **column signature** (count+order), not just rows. Documented extension seams (colgroup→resize, `columnOrder`→reorder, cell-renderer/`onRowClick`→cell interaction); **per-domain feature opt-in is free** (Shipments reorder, Orders not — same shell).
+- **`OrdersTable` refactored as the first consumer** + **`@odyssey/ui` Paginator wired in** (retired app-local `OrdersTablePagination`; pagination moved onto the table instance — `manualPagination`, `rowCount` from the server, **0-based pageIndex ↔ 1-based server pageNumber**, reset-to-page-1 on size/sort). `isFetching`-not-on-Paginator delta accepted (keepPreviousData). **GATE: Δ=0 at `/orders` confirmed by user.** Vitest now scans `packages/ui/src`; TDD `getColWidths`/`renderCell`/`cell|headClassName`.
+
+### Dropdown boundary-aware FLIP — `useAnchoredPortal`
+- Spec (`2026-06-25-dropdown-flip-and-row-actions-design.md`) → built directly (TDD). The shared hook now **flips the popover UP when it won't fit below** the viewport — measure-then-place (mounts hidden until measured → no flash); the pure `computeVerticalPlacement` is TDD'd. **Exported `useAnchoredPortal` + `computeVerticalPlacement`** (enables consumer-composed anchored menus). Fixes the Paginator rows-per-page clip; also fixed Orders' menu flip via the helper.
+
+### ActionMenu — `@odyssey/ui` molecule (unify the row-action menus, closes SHP-66)
+- Recon found **three** divergent menus: Orders `OrderRowActionMenu` (⋮, right, full a11y), the demo's `RowActionsCell` (⋮, left), and Shipments' own `ActionMenu` in `ShipmentTable` (**⚡ Zap**). User chose to unify (Shipments needs it + Cognizant deadline). Discussion → spec (`2026-06-25-action-menu-design.md`) → plan → subagent build (2 units + final review).
+- **`ActionMenu`**: a customizable **icon trigger** (⋮/⚡/any — library stays icon-agnostic, no lucide dep) → anchored, **flipping** `DropdownMenu` of `options` (`{label,onSelect,disabled?,danger?}`); owns trigger + positioning + flip (reuses `computeVerticalPlacement`) + a11y (focus-first, Escape+restore, Enter/Space on the `MenuRow` divs, outside/scroll/resize close) + `align` (right default | left). `MenuRow` needed **no change** (already had `disabled` + `className`); `danger` = `.menu-row--danger`.
+- **Migrated** Orders (deleted `OrderRowActionMenu` — **closes SHP-66**; menu surface intentionally **normalizes** to `DropdownMenu`/`MenuRow`; behavior Δ=0, a11y equal-or-better) + the DSM DataTable demo (deleted `RowActionsCell`). New **`ActionMenu` DSM demo** (⋮/⚡, align, disabled/danger). Live virtualized `ShipmentTable` menu left as-is (retires with its DataTable migration).
+
+### Decisions / notes
+- DataTable + ActionMenu are **code-first**; Figma retro-sync **deferred** — user proposed they may get **no Figma master at all** (they compose Cell/Paginator/DropdownMenu, already in Figma) → next session add a DSM **"no Figma" badge** to flag intentionally-code-only components.
+- Full suite **192 green**. Memory: [[project_datatable_followups]] (both follow-ups DONE), [[project_table_strategy_tanstack]].
+
+### Carry-forward to Session 67
+- **ANGULAR PORTS (Cognizant)** — port `DataTable` + `ActionMenu` + the `useAnchoredPortal` flip to `@oneodyssey/ui` (Δ=0 parity) so Cognizant uses the table in Angular as we have it in React. The gate for cutting 0.3.0.
+- **DSM "no Figma" badge** for intentionally-code-only components (DataTable, ActionMenu).
+- **Cut the held 0.3.0** (dropdown stack + DSM versioning + Paginator + DataTable + flip + ActionMenu) — after the Angular ports.
+
+---
+
 ## What's Next
 
-### Session 66 Priorities
+### Session 67 Priorities
 
-1. **THE DATATABLE SHELL — the next arc** (full sequence + rationale in [[project_table_strategy_tanstack]]): (1) reconcile Efrain's Cell `2714-505` vs the `.odyssey-table` contract; (2) brainstorm + spec the shell; (3) build React `DataTable` (`<table>` + the split-sticky-header **extracted verbatim from `OrdersTable`** + Cell contract + sticky action column + density + Paginator slot; driven by a structural TanStack `table` interface, no dep — the Paginator pattern) + **refactor `OrdersTable` to be its first consumer** + wire the `@odyssey/ui` Paginator (retire app-local `OrdersTablePagination`; `manualPagination` table feeds `rowCount`/`pageCount` from the server); (4) GATE (Δ=0 vs today, scroll behavior preserved); (5) Angular twin (Cognizant deliverable); (6) retro-sync a Figma `DataTable` master + Code Connect. **React-consumed AND Cognizant Angular deliverable** — not Angular-only.
-2. **CUT THE 0.3.0 RELEASE** (held across S63–S65). Bump `@oneodyssey/ui` **0.2.0 → 0.3.0** + CHANGELOG, **push `odyssey-one`** (main), open the PR into `odyssey-one-library-ui` from `batch/s63-component-normalizations`, `npx ng build odyssey-ui && npm publish`, `connect:publish`, **Figma library publish** (manual). Wave = S63/S64 dropdown stack + DSM versioning + Paginator. (Ask before pushing — standing rule.)
-3. **Figma `Icon Left/Pressed` drift** (DSN/500 vs Icon Right's DSN/400) — decide whether to correct Efrain's existing variant. **Alert re-tokenization** question for Efrain (the two removed `/200` primitives kept code-side).
-4. **Unblock + merge PR #3** (DSM-explorer features). Blocked by `main` protection (review + a "Build Check" status from PR #1's `pr-check.yml`). Merging PR #1 (or relaxing protection) unblocks every PR — incl. the S63 batch PR. Needs repo-admin/owner. **Then delete the retired `odyssey-angular-dsm`.**
-5. **Orders — PAUSED, fully captured in repo** (unchanged from S56). `vault/60-backlog/backlog.html` **ORD-1..10** + `requirements-tracker.md` + `decisions/decision-log.md` ORD-01 + §6 spec + the built data seam (`useOrderView`). UI awaits Efrain; contract/live-flip awaits Ramesh + live Swagger. Owed: Product Delete entry → Efrain; 2 `@odyssey/ui` additive-prop flags → Manuela's normalization session.
-6. **Carried (behind the Angular line):** Shipments question push (Q25/Q29/Q31/Q33/Q34/Q35; graduate resolved Qs into canon); S51 LLD canon merge (`domain-analysis.md`/`section-map.md` + Shipments DTO reconciliation); design-system follow-ups (Tab instance swap, Cell's 4 Figma flags, Shipments migration pass).
+1. **ANGULAR PORTS — the Cognizant table deliverable.** Port to `odyssey-one-library-ui` (`@oneodyssey/ui`) via `/port-to-angular`, Δ=0 parity: (a) the `useAnchoredPortal` **boundary flip** (+ `computeVerticalPlacement`); (b) **`DataTable`** shell (structural TanStack interface, split-sticky-header, the `.odyssey-data-table` SCSS); (c) **`ActionMenu`** molecule. Goal: Cognizant uses the table in Angular exactly as the React app does. Deps-first per [[feedback_port_dependency_order]].
+2. **DSM "no Figma" badge.** Flag components that **intentionally have no Figma master** because they compose already-in-Figma primitives (DataTable = Cell+Paginator; ActionMenu = icon+DropdownMenu). Decide the policy with the user/Efrain; otherwise the Figma retro-sync for these is dropped.
+3. **CUT THE 0.3.0 RELEASE** (held S63–S66) — **after the Angular ports.** Bump `@oneodyssey/ui` **0.2.0 → 0.3.0** + CHANGELOG, **push `odyssey-one`** (main — 44 commits ahead), open the `odyssey-one-library-ui` PR, `npx ng build odyssey-ui && npm publish`, `connect:publish`, **Figma library publish** (manual). Wave = dropdown stack + DSM versioning + Paginator + DataTable + flip + ActionMenu. **(Ask before pushing — standing rule.)**
+4. **Figma `Icon Left/Pressed` drift** (DSN/500 vs Icon Right's DSN/400). **Alert re-tokenization** question for Efrain (the two removed `/200` primitives kept code-side).
+5. **Unblock + merge PR #3** (DSM-explorer) — blocked by `main` protection; needs repo-admin. Then delete the retired `odyssey-angular-dsm`.
+6. **Orders — PAUSED, fully captured.** `vault/60-backlog/backlog.html` ORD-1..10 + the built data seam (`useOrderView`). UI awaits Efrain; contract/live-flip awaits Ramesh + live Swagger. Owed: Product Delete → Efrain; 2 `@odyssey/ui` additive-prop flags.
+7. **Carried follow-ups:** de-dup the app-local `useAnchoredPortal` copy (order-create selects) onto the library hook; migrate the live `ShipmentTable` menu to `ActionMenu` when Shipments moves to `DataTable`; the ⋮-vs-⚡ action-affordance reconciliation for Efrain; Shipments question push (Q25/Q29/Q31/Q33/Q34/Q35); S51 LLD canon merge.
 
 ### Prior priorities (carried, now behind the Orders arc)
 
