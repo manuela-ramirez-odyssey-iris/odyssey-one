@@ -1,3 +1,5 @@
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+
 /**
  * DataTable — a thin presentation shell for a TanStack v8 table. It owns the
  * table chrome (split sticky header + colgroup width-lock + horizontal
@@ -58,4 +60,107 @@ export function cellClassName(meta, isStickyRight) {
     meta?.cellClass ?? 'text-label-sm-regular',
     isStickyRight && 'odyssey-table__cell--sticky-right',
   ].filter(Boolean).join(' ')
+}
+
+export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, className = '' }) {
+  const headRef = useRef(null)       // sticky strip inner (overflow hidden; scrollLeft set programmatically)
+  const wrapRef = useRef(null)       // body horizontal scroller
+  const headTableRef = useRef(null)
+  const bodyTableRef = useRef(null)
+  const [colWidths, setColWidths] = useState(null)
+
+  const rowModel = table.getRowModel()
+  // R2 — re-measure when the column set changes (add/remove/reorder), not just
+  // when rows change. A by-value string keeps this stable across renders.
+  const columnSignature = table.getVisibleLeafColumns().map((c) => c.id).join('|')
+
+  // Two-pass sizing: render shrink-to-fit (colWidths null) so each column
+  // reports its true content width, then lock max(header, firstRow) per column
+  // into a shared <colgroup> and hand leftover space to flex columns.
+  useLayoutEffect(() => { setColWidths(null) }, [rowModel.rows, columnSignature])
+  useLayoutEffect(() => {
+    if (colWidths) return
+    const ths = headTableRef.current?.querySelectorAll('thead th')
+    const tds = bodyTableRef.current?.querySelectorAll('tbody tr:first-child td')
+    if (!ths?.length || !tds?.length) return
+    const headerWidths = Array.from(ths).map((th) => th.getBoundingClientRect().width)
+    const bodyWidths = Array.from(tds).map((td) => td.getBoundingClientRect().width)
+    const container = wrapRef.current?.clientWidth ?? 0
+    const flexFlags = table.getVisibleLeafColumns().map((c) => !c.columnDef.meta?.fixedWidth)
+    setColWidths(getColWidths(headerWidths, bodyWidths, container, flexFlags))
+  }, [colWidths, rowModel.rows, columnSignature]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Re-measure on resize (debounced).
+  useEffect(() => {
+    let t = 0
+    const onResize = () => { clearTimeout(t); t = setTimeout(() => setColWidths(null), 150) }
+    window.addEventListener('resize', onResize)
+    return () => { window.removeEventListener('resize', onResize); clearTimeout(t) }
+  }, [])
+
+  // Horizontal sync: the body wrap drives the header strip's scrollLeft.
+  useEffect(() => {
+    const wrap = wrapRef.current
+    const head = headRef.current
+    if (!wrap || !head) return
+    const onScroll = () => { head.scrollLeft = wrap.scrollLeft }
+    wrap.addEventListener('scroll', onScroll, { passive: true })
+    return () => wrap.removeEventListener('scroll', onScroll)
+  }, [])
+
+  const totalWidth = colWidths ? colWidths.reduce((a, b) => a + b, 0) : 0
+  const tableStyle = colWidths
+    ? { tableLayout: 'fixed', width: '100%', minWidth: `${totalWidth}px` }
+    : { width: 'auto' }
+  const colgroup = colWidths && (
+    <colgroup>
+      {colWidths.map((w, i) => <col key={i} style={{ width: `${w}px` }} />)}
+    </colgroup>
+  )
+
+  return (
+    <div className={`odyssey-data-table${className ? ` ${className}` : ''}`}>
+      <div className="odyssey-data-table__head" style={{ top: `${stickyTop}px` }}>
+        <div className="odyssey-data-table__head-inner" ref={headRef}>
+          <table className="odyssey-table" ref={headTableRef} style={tableStyle}>
+            {colgroup}
+            <thead>
+              {table.getHeaderGroups().map((hg) => (
+                <tr key={hg.id}>
+                  {hg.headers.map((header) => {
+                    const meta = header.column.columnDef.meta
+                    return (
+                      <th key={header.id} className={headClassName(meta, meta?.sticky === 'right')}>
+                        {renderCell(header.column.columnDef.header, header.getContext())}
+                      </th>
+                    )
+                  })}
+                </tr>
+              ))}
+            </thead>
+          </table>
+        </div>
+      </div>
+      <div className="odyssey-data-table__body" ref={wrapRef}>
+        <table className="odyssey-table" ref={bodyTableRef} style={tableStyle} aria-label={ariaLabel}>
+          {colgroup}
+          <tbody>
+            {rowModel.rows.map((row) => (
+              <tr key={row.id} data-selected={row.getIsSelected() || undefined}>
+                {row.getVisibleCells().map((cell) => {
+                  const meta = cell.column.columnDef.meta
+                  return (
+                    <td key={cell.id} className={cellClassName(meta, meta?.sticky === 'right')}>
+                      {renderCell(cell.column.columnDef.cell, cell.getContext())}
+                    </td>
+                  )
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {footer && <div className="odyssey-data-table__footer">{footer}</div>}
+      </div>
+    </div>
+  )
 }

@@ -43,6 +43,7 @@ export { default as MenuDropdown } from './MenuDropdown.jsx';
 export { default as DropdownMenu } from './DropdownMenu.jsx';
 export { default as Dropdown } from './Dropdown.jsx';
 export { default as Paginator } from './Paginator.jsx';
+export { default as DataTable } from './DataTable.jsx';
 export { default as SearchField } from './SearchField.jsx';
 export { default as CustomerRow } from './CustomerRow.jsx';
 export { default as FormField } from './FormField.jsx';
