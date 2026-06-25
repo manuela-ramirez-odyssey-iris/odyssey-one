@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { EllipsisVertical } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
+import { computeVerticalPlacement } from '@odyssey/ui'
 
 // Canonical row actions (spec §2): all inert this build — each wires up with
 // its own feature build (detail page, edit, copy, cancel/restore, delete).
@@ -20,12 +21,22 @@ export default function OrderRowActionMenu({ actions = ACTIONS, onAction }) {
   const triggerRef = useRef(null)
   const menuRef = useRef(null)
 
-  const toggle = () => {
-    if (open) { setOpen(false); return }
-    const rect = triggerRef.current.getBoundingClientRect()
-    setPos({ top: rect.bottom + 4, left: rect.right })
-    setOpen(true)
-  }
+  const toggle = () => setOpen(o => !o)
+
+  // Measure the menu + trigger, then place with a vertical flip when it would
+  // overflow the viewport bottom (computeVerticalPlacement, gap 4). Horizontal
+  // stays right-aligned (menu right edge at the trigger right, via the
+  // translateX(-100%) below). Runs before paint, so the menu — rendered hidden
+  // until `pos` is set — never flashes at a provisional spot.
+  useLayoutEffect(() => {
+    if (!open) { setPos(null); return }
+    const trigger = triggerRef.current
+    const menu = menuRef.current
+    if (!trigger || !menu) return
+    const r = trigger.getBoundingClientRect()
+    const { top } = computeVerticalPlacement(r.top, r.bottom, menu.offsetHeight, window.innerHeight, 4)
+    setPos({ top, left: r.right })
+  }, [open])
 
   useEffect(() => {
     if (!open) return
@@ -63,13 +74,15 @@ export default function OrderRowActionMenu({ actions = ACTIONS, onAction }) {
       >
         <EllipsisVertical {...ICON_MD} />
       </button>
-      {open && pos && createPortal(
+      {open && createPortal(
         <div
           ref={menuRef}
           className="order-row-actions__menu"
           role="menu"
           tabIndex={-1}
-          style={{ top: pos.top, left: pos.left, transform: 'translateX(-100%)' }}
+          style={pos
+            ? { top: pos.top, left: pos.left, transform: 'translateX(-100%)' }
+            : { top: 0, left: 0, visibility: 'hidden' }}
           onKeyDown={e => {
             if (e.key === 'Escape') {
               setOpen(false)
