@@ -5,7 +5,9 @@ import {
   getPaginationRowModel,
   createColumnHelper,
 } from '@tanstack/react-table'
-import { DataTable, Paginator, Checkbox, Badge, Button } from '@odyssey/ui'
+import { EllipsisVertical } from 'lucide-react'
+import { ICON_MD } from '@odyssey/tokens'
+import { DataTable, Paginator, Checkbox, Badge, IconButtonGhost } from '@odyssey/ui'
 
 export const meta = {
   name: 'DataTable',
@@ -73,7 +75,9 @@ const COLUMNS = [
   columnHelper.display({
     id: 'action',
     header: 'Action',
-    cell: () => <Button variant="link">View</Button>,
+    // The three-dot row-action trigger — same affordance teams see in real
+    // tables (Orders' OrderRowActionMenu), so the pattern reads consistently.
+    cell: () => <IconButtonGhost icon={<EllipsisVertical {...ICON_MD} />} ariaLabel="Row actions" onClick={() => {}} />,
     meta: { sticky: 'right', fixedWidth: true },
   }),
 ]
