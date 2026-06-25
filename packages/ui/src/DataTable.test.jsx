@@ -48,6 +48,10 @@ describe('headClassName', () => {
   it('defaults to the semibold label utility', () => {
     expect(headClassName(undefined, false)).toBe('text-label-sm-semibold')
   })
+  it('adds meta.headClass additively without sticky-right (the common header cell)', () => {
+    expect(headClassName({ headClass: 'odyssey-table__cell--control' }, false))
+      .toBe('text-label-sm-semibold odyssey-table__cell--control')
+  })
   it('appends meta.headClass and the sticky-right modifier', () => {
     expect(headClassName({ headClass: 'odyssey-table__cell--control' }, true))
       .toBe('text-label-sm-semibold odyssey-table__cell--control odyssey-table__cell--sticky-right')

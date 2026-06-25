@@ -12,6 +12,9 @@
  * container width is split evenly among the FLEX columns (flexFlags[i] === true).
  * Flex membership is by flag, not by position — so column reorder/resize never
  * mis-targets the distribution (Refinement R1).
+ *
+ * `headerWidths`/`bodyWidths` are raw `getBoundingClientRect().width` values
+ * (subpixel floats) measured by the caller — hence the per-column `Math.ceil`.
  */
 export function getColWidths(headerWidths, bodyWidths, containerWidth, flexFlags) {
   const widths = headerWidths.map((hw, i) =>
@@ -36,7 +39,9 @@ export function renderCell(renderer, context) {
   return typeof renderer === 'function' ? renderer(context) : renderer
 }
 
-/** `<th>` classes: semibold label + optional meta.headClass + sticky-right. */
+/** `<th>` classes: the `text-label-sm-semibold` base is ALWAYS included;
+ *  `meta.headClass` is additive on top of it; `odyssey-table__cell--sticky-right`
+ *  when the column is pinned right. */
 export function headClassName(meta, isStickyRight) {
   return [
     'text-label-sm-semibold',
@@ -45,7 +50,9 @@ export function headClassName(meta, isStickyRight) {
   ].filter(Boolean).join(' ')
 }
 
-/** `<td>` classes: meta.cellClass (or the regular-label default) + sticky-right. */
+/** `<td>` classes: `meta.cellClass` REPLACES the `text-label-sm-regular` default
+ *  entirely (a Title cell passes `'odyssey-table__cell--title text-label-sm-medium'`);
+ *  `odyssey-table__cell--sticky-right` when the column is pinned right. */
 export function cellClassName(meta, isStickyRight) {
   return [
     meta?.cellClass ?? 'text-label-sm-regular',
