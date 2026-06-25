@@ -155,8 +155,8 @@ Pagination **is** the performance strategy:
 
 ## 11. Testing & GATE
 
-- **Vitest (jsdom):** renders headers/rows from a mock `DataTableTable`; applies `cellClass`/`headClass`/`sticky` from `meta`; sets `stickyTop`; `data-selected` on selected rows; renders the `footer`; inlined flexRender handles function vs value renderers. (Layout-dependent measure/scroll-sync is not jsdom-testable — covered by the GATE.)
-- **GATE = Δ=0.** Computed-style + screenshot of OrdersTable before vs after the refactor; confirm horizontal scroll, sticky header parking, sticky-right action column, and footer behavior are identical. This is the explicit "preserve scroll behavior" requirement.
+- **Vitest (node env — the project's config; no jsdom / testing-library, matching how the library is tested today).** The app's vitest `include` is extended to also scan `packages/ui/src`, so the shell's logic is testable. TDD the **pure helpers** exported from `DataTable.jsx`: `getColWidths` (R1 distribution + edges: no-slack, no-flex-columns, fixed-only), the inlined `renderCell` (function vs value vs null), and `cellClassName` / `headClassName` (defaults + meta + sticky-right). Rendering + the measure pass + scroll-sync + sticky positioning need real layout and are **not** node-testable — verified via the DataTable DSM demo + the GATE (same split as Paginator: `getPageItems` logic + demo).
+- **GATE = Δ=0.** Capture an OrdersTable baseline (screenshot + key computed styles at `/orders`) **before** the refactor; after, confirm horizontal scroll, sticky header parking, sticky-right action column, and footer behavior are identical. This is the explicit "preserve scroll behavior" requirement.
 
 ---
 
@@ -170,6 +170,6 @@ Pagination **is** the performance strategy:
 
 ## 13. Files touched (React phase)
 
-- **New:** `packages/ui/src/DataTable.jsx` (+ `index.js` export) · `packages/ui/src/DataTable.figma.tsx` (after Figma retro-sync) · `apps/odyssey-one/src/routes/design-system/demos/DataTable.demo.jsx` · vitest spec.
-- **Edited:** `apps/odyssey-one/src/styles/components.css` (new `.odyssey-data-table*` contract + `--sticky-right`) · `apps/odyssey-one/src/components/orders/orders.css` (drop table-chrome rules; keep toolbar/menu) · `apps/odyssey-one/src/components/orders/OrdersTable.jsx` (consume `DataTable`) · `apps/odyssey-one/src/routes/orders/OrdersRoute.jsx` (pagination → table instance) · normalization-tracker.
+- **New:** `packages/ui/src/DataTable.jsx` (+ `index.js` export) · `packages/ui/src/DataTable.test.jsx` (pure-helper TDD) · `packages/ui/src/DataTable.figma.tsx` (after Figma retro-sync) · `apps/odyssey-one/src/routes/design-system/demos/DataTable.demo.jsx`.
+- **Edited:** `apps/odyssey-one/vite.config.js` (extend test `include` to `packages/ui/src`) · `apps/odyssey-one/src/styles/components.css` (new `.odyssey-data-table*` contract + `--sticky-right`) · `apps/odyssey-one/src/components/orders/orders.css` (drop table-chrome rules; keep toolbar/menu) · `apps/odyssey-one/src/components/orders/OrdersTable.jsx` (consume `DataTable`) · `apps/odyssey-one/src/routes/orders/OrdersRoute.jsx` (pagination → table instance) · normalization-tracker.
 - **Removed:** `apps/odyssey-one/src/components/orders/OrdersTablePagination.jsx`.
