@@ -718,9 +718,18 @@ input[type="date"].odyssey-date-input::-webkit-calendar-picker-indicator:hover {
   font-weight: var(--font-weight-medium);
   white-space: nowrap;
 }
+/* The joined page bar gets the enclosing border + rounding (Figma "Page Buttons"
+   3235:4075): outer border DSN/300 + radius-lg + shadow-sm, overflow-hidden so the
+   segments clip to the rounded corners (their per-cell shadows are absorbed, the
+   internal border-right dividers remain). */
 .paginator__pages {
   display: inline-flex;
   align-items: center;
+  background: var(--white);
+  border: 1px solid var(--deep-sea-neutral-300);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
 }
 /* Ellipsis gap cell — looks like an inactive (Secondary) page segment but is
    non-interactive: shares the segment height, right divider, shadow + DSN/700 text. */
