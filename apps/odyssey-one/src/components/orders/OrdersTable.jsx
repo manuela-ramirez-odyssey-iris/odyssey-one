@@ -1,7 +1,8 @@
 import { useLayoutEffect, useState } from 'react'
 import { useReactTable, getCoreRowModel, createColumnHelper } from '@tanstack/react-table'
-import { Button, Checkbox, DataTable, Paginator } from '@odyssey/ui'
-import OrderRowActionMenu from './OrderRowActionMenu'
+import { EllipsisVertical } from 'lucide-react'
+import { ICON_MD } from '@odyssey/tokens'
+import { Button, Checkbox, DataTable, Paginator, ActionMenu } from '@odyssey/ui'
 
 /**
  * OrdersTable — the Orders-specific configuration of the normalized DataTable
@@ -14,6 +15,12 @@ import OrderRowActionMenu from './OrderRowActionMenu'
  */
 
 const columnHelper = createColumnHelper()
+
+// Canonical row actions (spec §2) — inert this build; each wires up with its
+// own feature (detail page, edit, copy, cancel/restore, delete).
+const ORDER_ACTIONS = ['View', 'Edit', 'Copy', 'Cancel', 'Restore', 'Delete'].map(
+  (label) => ({ label, onSelect: () => {} }),
+)
 
 const COLUMNS = [
   columnHelper.display({
@@ -69,7 +76,14 @@ const COLUMNS = [
   columnHelper.display({
     id: 'action',
     header: 'Action',
-    cell: () => <OrderRowActionMenu />,
+    cell: () => (
+      <ActionMenu
+        icon={<EllipsisVertical {...ICON_MD} />}
+        options={ORDER_ACTIONS}
+        align="right"
+        ariaLabel="Order actions"
+      />
+    ),
     meta: { sticky: 'right', fixedWidth: true },
   }),
 ]

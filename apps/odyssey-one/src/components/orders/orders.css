@@ -3,7 +3,7 @@
    components.css (Figma Cell set 2714:505); the table chrome (card, sticky
    header, scroll wrap, sticky action column, footer band) lives in the generic
    `.odyssey-data-table` shell contract in components.css. What stays here is
-   Orders page plumbing: toolbar, row menu, page status. */
+   Orders page plumbing: toolbar, page status. */
 
 .orders-page {
   display: flex;
@@ -36,53 +36,6 @@
   display: flex;
   align-items: center;
   gap: var(--spacing-3);
-}
-
-/* ── Row action menu (three-dot) ─────────────────────────── */
-
-.order-row-actions__trigger {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border: none;
-  border-radius: var(--radius-md);
-  background: transparent;
-  color: var(--text-tertiary);
-  cursor: pointer;
-}
-
-.order-row-actions__trigger:hover {
-  background: var(--bg-secondary);
-  color: var(--text-secondary);
-}
-
-.order-row-actions__menu {
-  position: fixed;
-  z-index: 1000;
-  min-width: 140px;
-  display: flex;
-  flex-direction: column;
-  padding: var(--spacing-1) 0;
-  background: var(--bg-primary);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-md);
-}
-
-.order-row-actions__item {
-  border: none;
-  background: transparent;
-  text-align: left;
-  padding: var(--spacing-2) var(--spacing-4);
-  color: var(--text-secondary);
-  cursor: pointer;
-}
-
-.order-row-actions__item:hover {
-  background: var(--bg-secondary);
-  color: var(--text-primary);
 }
 
 /* ── Page status (loading / error) ───────────────────────── */
