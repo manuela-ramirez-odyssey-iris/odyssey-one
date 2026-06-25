@@ -679,6 +679,68 @@ input[type="date"].odyssey-date-input::-webkit-calendar-picker-indicator:hover {
   color: var(--deep-sea-neutral-300);
 }
 
+/* Paginator — molecule. Full-width table pagination bar: results summary (left)
+   + rows-per-page Dropdown and the joined PaginationButton page bar (right).
+   Composes PaginationButton + Dropdown; only layout + the ellipsis cell here. */
+.paginator {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-4);
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--spacing-3) var(--spacing-4) var(--spacing-4);
+}
+.paginator__summary {
+  margin: 0;
+  color: var(--text-tertiary);
+  font-family: var(--font-primary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+  font-weight: var(--font-weight-regular);
+  font-variant-numeric: tabular-nums;
+}
+.paginator__controls {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-8);
+}
+.paginator__page-size {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+.paginator__page-size-label {
+  color: var(--text-secondary);
+  font-family: var(--font-primary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+}
+.paginator__pages {
+  display: inline-flex;
+  align-items: center;
+}
+/* Ellipsis gap cell — looks like an inactive (Secondary) page segment but is
+   non-interactive: shares the segment height, right divider, shadow + DSN/700 text. */
+.paginator__ellipsis {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  height: 32px;
+  padding: 6px var(--spacing-3);
+  border-right: 1px solid var(--deep-sea-neutral-300);
+  background: var(--white);
+  color: var(--deep-sea-neutral-700);
+  font-family: var(--font-primary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+  font-weight: var(--font-weight-medium);
+  box-shadow: var(--shadow-sm);
+}
+
 /* FilterSuggestions — selectable chip wrapper. Layout reset around a gray Badge.
    The interactive <button> form composes `.badge-interactive` (above) for its
    hover / active / focus states; the decorative <span> form gets the layout
