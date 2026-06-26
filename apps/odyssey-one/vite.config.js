@@ -42,12 +42,15 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
-    // Vitest — pure-logic unit tests (search adapter, etc). Node env, no DOM.
-    // `globals: true` exposes test/expect/describe without imports.
+    // Vitest — pure-logic unit tests (search adapter, @odyssey/ui helpers, etc).
+    // Node env, no DOM. `globals: true` exposes test/expect/describe without imports.
     test: {
       globals: true,
       environment: 'node',
-      include: ['src/**/*.test.{js,jsx,ts,tsx}'],
+      include: [
+        'src/**/*.test.{js,jsx,ts,tsx}',
+        '../../packages/ui/src/**/*.test.{js,jsx}',
+      ],
       setupFiles: ['./vitest.setup.js'],
     },
   }

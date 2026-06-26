@@ -33,7 +33,7 @@ export const tokens = [
 ]
 
 // No outer border — the page bg already contrasts with the white table;
-// the 16px radius alone defines the container (mirrors orders-table-wrap).
+// the 16px radius alone defines the container (mirrors .odyssey-data-table).
 const wrapStyle = {
   borderRadius: 'var(--radius-2xl)',
   overflow: 'hidden',
@@ -118,7 +118,7 @@ export default function CellDemo() {
         </div>
         <span className="ds-demo-label" style={{ display: 'block', marginTop: 'var(--spacing-2)' }}>
           Second row carries <code>data-selected</code>; hover any row for the same --bg-secondary treatment.
-          Wrapper div mirrors orders-table-wrap (16px radius, no outer border — page bg provides the contrast).
+          Wrapper div mirrors .odyssey-data-table (16px radius, no outer border — page bg provides the contrast).
         </span>
       </div>
 

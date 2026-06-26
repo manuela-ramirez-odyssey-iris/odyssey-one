@@ -4,6 +4,7 @@ import { WidgetMetricRow } from '@odyssey/ui'
 export const meta = {
   name: 'WidgetMetricRow',
   tier: 'molecule',
+  version: '0.2.0',
   figmaNode: '1814:7',
   codeConnect: 'packages/ui/src/WidgetMetricRow.figma.tsx',
 }

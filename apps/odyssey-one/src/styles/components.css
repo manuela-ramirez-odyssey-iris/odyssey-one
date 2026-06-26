@@ -115,6 +115,10 @@
   background: var(--bg-primary);
   border-bottom: 1px solid var(--border-subtle);
   white-space: nowrap;
+  /* When a column is resized narrower than its content, clip with an ellipsis instead of
+     letting the text bleed into (overlap) the neighbouring cell. */
+  overflow: hidden;
+  text-overflow: ellipsis;
   transition: background var(--transition-fast);
 }
 
@@ -159,6 +163,113 @@
 .odyssey-table tbody tr:last-child td {
   border-bottom: none;
 }
+
+/* ----------------------------------------
+   TABLE — DataTable shell (chrome + scroll)
+   The generic chrome for the @odyssey/ui DataTable molecule: a card that
+   clips both halves of a split sticky header, a body horizontal scroller, a
+   sticky-right column modifier, and a sticky-left footer band. Extracted
+   verbatim from the Orders table (the proven split-sticky-header pattern);
+   `overflow: clip` on the card is NOT a scroll container, so the header strip
+   still sticks natively against the page scroller (zero lag).
+   ---------------------------------------- */
+.odyssey-data-table {
+  background: var(--bg-primary);
+  border-radius: var(--radius-2xl);
+  overflow: clip;
+}
+
+.odyssey-data-table__head {
+  position: sticky;
+  z-index: 3; /* above body cells incl. the sticky-right column */
+  background: var(--bg-secondary);
+}
+
+.odyssey-data-table__head-inner {
+  overflow: hidden;
+  border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
+  background: var(--bg-primary);
+}
+
+.odyssey-data-table__body {
+  overflow-x: auto;
+  overscroll-behavior-x: none;
+  background: var(--bg-primary);
+}
+
+/* A column pinned to the right edge (survives horizontal scroll) — applies in
+   both halves of the split table (header strip + body). Set per column via
+   TanStack `column.meta.sticky === 'right'`. */
+.odyssey-data-table .odyssey-table__cell--sticky-right {
+  position: sticky;
+  right: 0;
+  z-index: 1;
+  text-align: center;
+  box-shadow: -2px 0 4px rgba(0, 0, 0, 0.06);
+}
+
+/* Action-cell affordance — lives on the cell, not the icon, so the glyph can
+   change without re-styling: the body cell reads as the click target (pointer),
+   and a bare icon centers vertically. Scoped to a direct <svg> child so cells
+   that wrap their own interactive trigger (e.g. an ActionMenu's trigger button)
+   are left exactly as they were. The header cell keeps centering but
+   not the pointer. */
+.odyssey-data-table td.odyssey-table__cell--sticky-right {
+  cursor: pointer;
+}
+
+.odyssey-data-table .odyssey-table__cell--sticky-right > svg {
+  /* Tailwind preflight forces svg { display: block } — restore inline-block so
+     the cell's text-align:center (horizontal) + vertical-align:middle (vertical)
+     actually center the glyph. */
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* Footer band (the Paginator slot): lives inside the body scroller after the
+   table; sticky-left keeps it put during horizontal scroll. */
+.odyssey-data-table__footer {
+  position: sticky;
+  left: 0;
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* Header cells anchor the resize grip — but NOT the sticky-right action header: a
+   `position: sticky` cell already establishes a containing block for the absolutely
+   positioned grip, and forcing `position: relative` here would override its sticky pin
+   (the grip-anchor rule out-specifies the sticky-right rule), detaching the header cell
+   from its still-pinned body cell on horizontal scroll. */
+.odyssey-data-table .odyssey-table th:not(.odyssey-table__cell--sticky-right) { position: relative; }
+
+/* Resize grip — a thin hit-area on the header's right edge, wired to TanStack's
+   getResizeHandler. The hair-line indicator brightens on hover / while dragging. */
+.odyssey-data-table__resize-grip {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 8px;
+  height: 100%;
+  cursor: col-resize;
+  user-select: none;
+  touch-action: none;
+}
+.odyssey-data-table__resize-grip::after {
+  content: '';
+  position: absolute;
+  top: 25%;
+  right: 3px;
+  width: 1px;
+  height: 50%;
+  background: var(--border-subtle);
+  transition: background var(--transition-fast);
+}
+.odyssey-data-table__resize-grip:hover::after,
+.odyssey-data-table__resize-grip.is-resizing::after {
+  background: var(--deep-sea-neutral-500);
+}
+
+/* Cell-clickable affordance — pointer on body cells when onCellClick is wired. */
+.odyssey-data-table--cell-clickable tbody td { cursor: pointer; }
 
 /* ----------------------------------------
    BOTTOM BAR TRANSITIONS
@@ -547,28 +658,220 @@ input[type="date"].odyssey-date-input::-webkit-calendar-picker-indicator:hover {
   transition: background var(--transition-fast);
 }
 
+/* Badge — interactive / toggleable affordance (opt-in). The gray Badge is
+   decorative by default (a plain <span>); ONLY when it's used as a toggle button
+   (e.g. a filter chip that turns a search filter on/off in a panel) does it gain
+   interaction + a selected state. Compose `.badge-interactive` onto the focusable
+   wrapper (a <button aria-pressed={on}> around a `Badge variant="gray"`):
+   - hover (unselected)            → darken the Badge bg to DSN/200
+   - active (:active, press-down)  → mute the text to DSN/400 (momentary)
+   - SELECTED (aria-pressed="true") → DSN/200 bg + a 1px DSN/900 inset ring on the
+                    Badge box. This is Efrain's Figma "gray selected" variant — a
+                    persistent on/off appearance state (NOT a focus state). Inset
+                    box-shadow = no layout shift, follows the Badge's radius; goes
+                    on the inner `.text-badge` box (not the zero-padding wrapper)
+                    so the corners stay rounded.
+   - focus-visible (keyboard)      → a `--border-focus` outline for a11y, kept
+                    DISTINCT from the DSN/900 selected ring (outline vs box-shadow,
+                    so they coexist when a selected chip is also focused).
+   Mechanism: override the --badge-gray-bg / --badge-gray-text custom properties
+   locally — the Badge reads both inline, so the cascade reaches them without
+   touching the Badge component. The toggle owns its on/off state via aria-pressed
+   (the standard a11y attribute for a toggle button); CSS keys off it directly. */
+.badge-interactive {
+  cursor: pointer;
+}
+.badge-interactive:hover {
+  --badge-gray-bg: var(--deep-sea-neutral-200);
+}
+.badge-interactive:active {
+  --badge-gray-text: var(--deep-sea-neutral-400);
+}
+.badge-interactive[aria-pressed="true"] {
+  --badge-gray-bg: var(--deep-sea-neutral-200);
+}
+.badge-interactive[aria-pressed="true"] > .text-badge {
+  box-shadow: inset 0 0 0 1px var(--deep-sea-neutral-900);
+}
+.badge-interactive:focus-visible {
+  outline: none;
+}
+.badge-interactive:focus-visible > .text-badge {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 1px;
+}
+
+/* PaginationButton — atom. A segment of the Paginator's joined bar
+   ([‹][1][2]…[›]). Segments share a 1px right divider; the arrow end-caps round
+   the outer corners (prev = left, next = right; page = square). Color ladders
+   mirror Button (primary/secondary) via the same DSN tokens. Hover/pressed are
+   CSS-driven; `.is-current` (active page) + `:disabled` are the prop-driven looks.
+   label/sm medium, tabular-nums, shadow-sm per segment (they blend into one bar
+   shadow when joined). py 6 raw (matches Button/FilterButton). */
+.pagination-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  height: 32px;
+  padding-top: 6px;
+  padding-bottom: 6px;
+  border: none;
+  border-right: 1px solid var(--deep-sea-neutral-300);
+  background: var(--white);
+  color: var(--deep-sea-neutral-700);
+  font-family: var(--font-primary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+  font-weight: var(--font-weight-medium);
+  font-variant-numeric: tabular-nums;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast),
+    border-color var(--transition-fast);
+}
+.pagination-btn--page {
+  padding-left: var(--spacing-3);
+  padding-right: 14px;
+}
+.pagination-btn--prev,
+.pagination-btn--next {
+  padding-left: var(--spacing-2);
+  padding-right: var(--spacing-2);
+  /* Arrow chevron is DSN/500 (lighter than the DSN/700 page text) at idle+hover;
+     pressed → DSN/400 and disabled → DSN/300 inherit from the shared rules below. */
+  color: var(--deep-sea-neutral-500);
+}
+.pagination-btn--prev {
+  border-top-left-radius: var(--radius-lg);
+  border-bottom-left-radius: var(--radius-lg);
+}
+.pagination-btn--next {
+  border-right: none;
+  border-top-right-radius: var(--radius-lg);
+  border-bottom-right-radius: var(--radius-lg);
+}
+/* Secondary ladder — inactive page + both arrows (White → DSN/50 → DSN/100). */
+.pagination-btn:hover:not(:disabled):not(.is-current) {
+  background: var(--deep-sea-neutral-50);
+  border-right-color: var(--deep-sea-neutral-400);
+}
+.pagination-btn:active:not(:disabled):not(.is-current) {
+  background: var(--deep-sea-neutral-100);
+  color: var(--deep-sea-neutral-400);
+  border-right-color: var(--deep-sea-neutral-400);
+}
+/* Primary ladder — active/current page (DSN/900 → DSN/600 → DSN/900 + DSN/400 text). */
+.pagination-btn.is-current {
+  background: var(--deep-sea-neutral-900);
+  color: var(--white);
+}
+.pagination-btn.is-current:hover:not(:disabled) {
+  background: var(--deep-sea-neutral-600);
+  border-right-color: var(--deep-sea-neutral-400);
+}
+.pagination-btn.is-current:active:not(:disabled) {
+  background: var(--deep-sea-neutral-900);
+  color: var(--deep-sea-neutral-400);
+  border-right-color: var(--deep-sea-neutral-400);
+}
+/* Keyboard focus ring — a11y (not in Figma's Idle/Hover/Pressed set). Inset so it
+   doesn't break the joined bar; z-index lifts it above neighbours' borders. */
+.pagination-btn:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: -2px;
+  z-index: 1;
+}
+/* Disabled — arrows only (Paginator disables prev/next at bounds): muted DSN/300
+   chevron, White bg + DSN/300 divider retained. Matches the Figma disabled arrow
+   variants (Icon Left/Right, State=Disabled — `3572:2` / `3572:5`). */
+.pagination-btn:disabled {
+  cursor: not-allowed;
+  color: var(--deep-sea-neutral-300);
+}
+
+/* Paginator — molecule. Full-width table pagination bar: results summary (left)
+   + rows-per-page Dropdown and the joined PaginationButton page bar (right).
+   Composes PaginationButton + Dropdown; only layout + the ellipsis cell here. */
+.paginator {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-4);
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--spacing-3) var(--spacing-4) var(--spacing-4);
+}
+.paginator__summary {
+  margin: 0;
+  color: var(--text-tertiary);
+  font-family: var(--font-primary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+  font-weight: var(--font-weight-regular);
+  font-variant-numeric: tabular-nums;
+}
+.paginator__controls {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-8);
+}
+.paginator__page-size {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+.paginator__page-size-label {
+  color: var(--text-secondary);
+  font-family: var(--font-primary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+}
+/* The joined page bar gets the enclosing border + rounding (Figma "Page Buttons"
+   3235:4075): outer border DSN/300 + radius-lg + shadow-sm, overflow-hidden so the
+   segments clip to the rounded corners (their per-cell shadows are absorbed, the
+   internal border-right dividers remain). */
+.paginator__pages {
+  display: inline-flex;
+  align-items: center;
+  background: var(--white);
+  border: 1px solid var(--deep-sea-neutral-300);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+/* Ellipsis gap cell — looks like an inactive (Secondary) page segment but is
+   non-interactive: shares the segment height, right divider, shadow + DSN/700 text. */
+.paginator__ellipsis {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  height: 32px;
+  padding: 6px var(--spacing-3);
+  border-right: 1px solid var(--deep-sea-neutral-300);
+  background: var(--white);
+  color: var(--deep-sea-neutral-700);
+  font-family: var(--font-primary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+  font-weight: var(--font-weight-medium);
+  box-shadow: var(--shadow-sm);
+}
+
 /* FilterSuggestions — selectable chip wrapper. Layout reset around a gray Badge.
-   Interactive (<button>) chips: hover darkens the inner Badge bg to DSN/200;
-   press additionally mutes the text to DSN/400 (bg stays 200 through the press
-   since :active is also :hover). Done by overriding the --badge-gray-bg /
-   --badge-gray-text custom properties locally — the Badge reads both inline, so
-   the cascade reaches them without touching the Badge component. No shadow. The
-   decorative <span> form gets the layout reset only. */
+   The interactive <button> form composes `.badge-interactive` (above) for its
+   hover / active / focus states; the decorative <span> form gets the layout
+   reset only. (These suggestion chips are single-action "apply this filter"
+   buttons, not toggles — they don't set aria-pressed, so no selected look.) */
 .filter-suggestions__chip {
   display: inline-flex;
   align-self: flex-start;
   padding: 0;
   border: none;
   background: transparent;
-}
-button.filter-suggestions__chip {
-  cursor: pointer;
-}
-button.filter-suggestions__chip:hover {
-  --badge-gray-bg: var(--deep-sea-neutral-200);
-}
-button.filter-suggestions__chip:active {
-  --badge-gray-text: var(--deep-sea-neutral-400);
 }
 
 /* Shared interactive utility — bare clickable icon color ladder.
@@ -967,10 +1270,12 @@ button.filter-suggestions__chip:active {
   color: var(--deep-sea-neutral-400);
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
 }
+/* Disabled (Efrain rework 2026-06-22): per-variant, not universal — Primary keeps
+   its dark DSN/900 surface and dims the text + border to DSN/600. */
 .btn--primary:disabled {
-  background: var(--white);
-  color: var(--deep-sea-neutral-300);
-  border-color: var(--deep-sea-neutral-300);
+  background: var(--deep-sea-neutral-900);
+  color: var(--deep-sea-neutral-600);
+  border-color: var(--deep-sea-neutral-600);
   box-shadow: var(--shadow-sm);
 }
 
@@ -997,6 +1302,8 @@ button.filter-suggestions__chip:active {
   border-color: var(--deep-sea-neutral-400);
   box-shadow: none;
 }
+/* Disabled (per-variant): Secondary + Icon keep white surface, dim to DSN/300
+   text + border. (Unchanged by the 2026-06-22 rework — already matched Figma.) */
 .btn--secondary:disabled,
 .btn--icon:disabled {
   background: var(--white);
@@ -1021,6 +1328,7 @@ button.filter-suggestions__chip:active {
 .btn--outline {
   --btn-outline-hover-tint: rgba(255, 255, 255, 0.1);
   --btn-outline-pressed-tint: rgba(255, 255, 255, 0.2);
+  --btn-outline-disabled-tint: rgba(255, 255, 255, 0.1);
   background: transparent;
   color: var(--white);
   border-color: var(--deep-sea-neutral-300);
@@ -1033,10 +1341,12 @@ button.filter-suggestions__chip:active {
   border-color: var(--deep-sea-neutral-400);
   box-shadow: none;
 }
+/* Disabled (per-variant): stays surface-appropriate for dark backdrops — a faint
+   white@10% fill (NOT a solid white box) + DSN/400 text + border. */
 .btn--outline:disabled {
-  background: var(--white);
-  color: var(--deep-sea-neutral-300);
-  border-color: var(--deep-sea-neutral-300);
+  background: var(--btn-outline-disabled-tint);
+  color: var(--deep-sea-neutral-400);
+  border-color: var(--deep-sea-neutral-400);
   box-shadow: var(--shadow-sm);
 }
 
@@ -1056,16 +1366,19 @@ button.filter-suggestions__chip:active {
   border-color: transparent;
   box-shadow: none;
 }
+/* Disabled (per-variant): stays ghost-like — transparent, borderless — just
+   DSN/400 text. (Keeps shadow-sm per Figma even though idle Ghost has none.) */
 .btn--ghost:disabled {
-  background: var(--white);
-  color: var(--deep-sea-neutral-300);
-  border-color: var(--deep-sea-neutral-300);
+  background: transparent;
+  color: var(--deep-sea-neutral-400);
+  border-color: transparent;
   box-shadow: var(--shadow-sm);
 }
 
 /* Error — soft destructive action on light surfaces. Light-red fill + red text
    (no border at idle). Hover/pressed deepen via the Bittersweet ladder; disabled
-   matches the universal treatment. Added 2026-06-09 from Efrain's Idle-only spec. */
+   keeps the red tint (see per-variant disabled rule below). Added 2026-06-09 from
+   Efrain's Idle-only spec; disabled re-normalized 2026-06-22. */
 .btn--error {
   background: var(--bg-error);
   color: var(--bittersweet-600);
@@ -1080,9 +1393,12 @@ button.filter-suggestions__chip:active {
   color: var(--bittersweet-800);
   box-shadow: none;
 }
+/* Disabled (per-variant): keeps the soft-red surface (--bg-error / Bittersweet/100)
+   + DSN/300 border, dims the label to Bittersweet/300 (#F7AEAA — Efrain's new
+   primitive, added in the 2026-06-22 token sync; this is its consumer). */
 .btn--error:disabled {
-  background: var(--white);
-  color: var(--deep-sea-neutral-300);
+  background: var(--bg-error);
+  color: var(--bittersweet-300);
   border-color: var(--deep-sea-neutral-300);
   box-shadow: var(--shadow-sm);
 }
@@ -2038,19 +2354,138 @@ button.filter-suggestions__chip:active {
   color: var(--text-placeholder);
 }
 
-.menu-row { cursor: pointer; transition: background var(--transition-fast); }
-.menu-row__grip { opacity: 0; transition: opacity 120ms ease-out; color: var(--text-tertiary); display: inline-flex; }
+/* MenuRow — row inside menus / dropdowns / panels (Figma set 1973:87).
+   variant = semantic role (select | navigate | draggable); selected look is
+   per-variant; hover/pressed are runtime CSS (not Figma variants). */
+.menu-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  height: 36px;
+  padding: var(--spacing-2) var(--spacing-3);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background var(--transition-fast), box-shadow var(--transition-fast);
+}
+.menu-row__leading { display: flex; align-items: center; gap: var(--spacing-3); flex: 1 1 0; min-width: 0; }
+.menu-row__icon { display: inline-flex; flex-shrink: 0; color: var(--text-secondary); }
+.menu-row__label {
+  flex: 1 1 0; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  color: var(--text-secondary);
+  font-family: var(--font-primary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+  font-weight: var(--font-weight-regular);
+}
+.menu-row__trailing { display: inline-flex; flex-shrink: 0; color: var(--text-tertiary); }
+
+/* interaction states (runtime) */
 .menu-row:hover { background: var(--deep-sea-neutral-100); }
-.menu-row:hover .menu-row__grip { opacity: 1; }
 .menu-row:active { background: var(--deep-sea-neutral-200); }
+
+/* draggable affordance */
+.menu-row--draggable { cursor: grab; }
+.menu-row--draggable:active { cursor: grabbing; }
 [data-dragging="true"] .menu-row { background: var(--deep-sea-neutral-200); }
-[data-dragging="true"] .menu-row__grip { opacity: 1; }
-.menu-row[data-disabled="true"] { opacity: 0.4; cursor: not-allowed; }
-.menu-row[data-disabled="true"]:hover { background: transparent; }
-.menu-row[data-disabled="true"] .menu-row__grip { opacity: 0 !important; }
+
+/* bordered (navigate, standalone) — persistent DSN/300 outline */
+.menu-row--bordered { box-shadow: inset 0 0 0 1px var(--deep-sea-neutral-300); }
+
+/* selected — per variant (navigate-plain has no selected state by design) */
+.menu-row--select[data-selected] { background: var(--deep-sea-neutral-100); }
+.menu-row--draggable[data-selected] { box-shadow: inset 0 0 0 1px var(--deep-sea-neutral-900); }
+.menu-row--navigate.menu-row--bordered[data-selected] { box-shadow: inset 0 0 0 1px var(--deep-sea-neutral-900); }
+
+/* disabled */
+.menu-row[data-disabled] { opacity: 0.4; cursor: not-allowed; }
+.menu-row[data-disabled]:hover { background: transparent; }
 
 .menu-dropdown__header { color: var(--text-tertiary); transition: color var(--transition-fast); }
 .menu-dropdown__header:hover { color: var(--text-primary); }
+
+/* Dropdown — value-select molecule (DropdownButton trigger + anchored DropdownMenu). Figma set 3644:549. */
+.dropdown { display: inline-flex; }
+.dropdown__trigger { display: inline-flex; }
+
+/* DropdownButton — dropdown trigger (value + chevron), opens a DropdownMenu (Figma set 3272:3880).
+   Hover/pressed are CSS-driven; .dropdown-button--open mirrors the pressed look while the menu is open. */
+.dropdown-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px var(--spacing-2) 6px var(--spacing-3);
+  border: 1px solid var(--deep-sea-neutral-300);
+  border-radius: var(--radius-lg);
+  background: var(--white);
+  color: var(--deep-sea-neutral-700);
+  box-shadow: var(--shadow-sm);
+  font-family: var(--font-primary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+.dropdown-button__chevron { flex-shrink: 0; }
+.dropdown-button:hover { background: var(--deep-sea-neutral-50); border-color: var(--deep-sea-neutral-400); }
+.dropdown-button:active,
+.dropdown-button--open { background: var(--deep-sea-neutral-100); border-color: var(--deep-sea-neutral-400); }
+.dropdown-button:disabled { opacity: 0.4; cursor: not-allowed; }
+.dropdown-button:disabled:hover { background: var(--white); border-color: var(--deep-sea-neutral-300); }
+
+/* DropdownMenu — popover/menu surface holding MenuRows / a MenuDropdown (Figma set 3600:1879).
+   State=Content (children) vs State=Empty (centered message) is derived from children in code. */
+.dropdown-menu {
+  display: flex;
+  flex-direction: column;
+  padding: var(--spacing-3);
+  background: var(--white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-panel);
+}
+.dropdown-menu__empty {
+  text-align: center;
+  color: var(--text-tertiary);
+  font-family: var(--font-primary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+  font-weight: var(--font-weight-regular);
+}
+
+/* ----------------------------------------
+   ActionMenu — a customizable icon trigger that opens a DropdownMenu of
+   row/toolbar actions. The menu surface is the normalized .dropdown-menu;
+   only the trigger + the destructive-item color live here.
+   ---------------------------------------- */
+.action-menu {
+  display: inline-flex;
+  vertical-align: middle; /* center the trigger in a table action cell's line box */
+}
+
+.action-menu__trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+
+.action-menu__trigger:hover {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+
+/* Destructive menu item — applied to a MenuRow via className. */
+.menu-row--danger .menu-row__label {
+  color: var(--text-error);
+}
 
 /* ----------------------------------------
    MODAL LARGE (organism shell)

@@ -22,19 +22,20 @@
 
   /* --- Primitives: Carolina Blue --- */
   --carolina-blue-50: #F3F7FC;
-  --carolina-blue-200: #C6DEF1;
+  --carolina-blue-200: #C6DEF1;  /* Figma-deprecated as a variable (Efrain, 2026-06-22) — kept code-side; still the Alert "info" surface (raw hex in Figma). Pending Alert re-tokenization confirmation. */
   --carolina-blue-400: #5BA4D4;
   --carolina-blue-600: #276DA2;
 
   /* --- Primitives: Bittersweet --- */
   --bittersweet-100: #FDE5E3;
   --bittersweet-200: #FBD0CD;
+  --bittersweet-300: #F7AEAA;  /* Added by Efrain 2026-06-22 — not yet consumed by any component. */
   --bittersweet-600: #D23930;
   --bittersweet-800: #922922;
 
   /* --- Primitives: Caribbean Green --- */
   --caribbean-green-100: #D4F3EB;
-  --caribbean-green-200: #A8E7D7;
+  --caribbean-green-200: #A8E7D7;  /* Figma-deprecated as a variable (Efrain, 2026-06-22) — kept code-side; still the Alert "success" surface (raw hex in Figma). Pending Alert re-tokenization confirmation. */
   --caribbean-green-600: #237E70;
   --caribbean-green-800: #1D524A;
 

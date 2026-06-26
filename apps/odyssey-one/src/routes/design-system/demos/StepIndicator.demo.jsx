@@ -4,6 +4,7 @@ import { StepIndicator } from '@odyssey/ui'
 export const meta = {
   name: 'StepIndicator',
   tier: 'atom',
+  version: '0.2.0',
   figmaNode: '2909:13',
   codeConnect: 'packages/ui/src/StepIndicator.figma.tsx',
 }

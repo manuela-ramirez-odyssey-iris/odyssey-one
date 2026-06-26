@@ -91,6 +91,7 @@ export default function WidgetsLeftMenu({
                   <MenuRow
                     key={item.id}
                     label={item.label}
+                    variant="draggable"
                     onClick={() => onItemClick?.(item.id, group.id)}
                     disabled={disabled}
                   />

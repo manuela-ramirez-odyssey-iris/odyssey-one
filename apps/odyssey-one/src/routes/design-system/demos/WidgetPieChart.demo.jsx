@@ -3,6 +3,7 @@ import { WidgetPieChart } from '@odyssey/ui'
 export const meta = {
   name: 'WidgetPieChart',
   tier: 'molecule',
+  version: '0.2.0',
   figmaNode: '1881:77',
   codeConnect: 'packages/ui/src/WidgetPieChart.figma.tsx',
 }

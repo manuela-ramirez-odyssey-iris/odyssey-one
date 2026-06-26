@@ -4,6 +4,7 @@ import { SearchPanel } from '@odyssey/ui'
 export const meta = {
   name: 'SearchPanel',
   tier: 'organism',
+  version: '0.2.0',
   figmaNode: '2462:149',
   codeConnect: 'packages/ui/src/SearchPanel.figma.tsx',
 }

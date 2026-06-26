@@ -211,6 +211,12 @@
   background: var(--bg-error);
 }
 
+/* CODE-ONLY pill — code-unique component with no Figma master (composes primitives already in Figma). */
+.ds-comp__pill--code-only {
+  color: var(--badge-purple-text);
+  background: var(--badge-purple-bg);
+}
+
 .ds-comp__toggle {
   background: transparent;
   border: 1px solid var(--border-default);
@@ -228,10 +234,18 @@
   color: var(--text-primary);
 }
 
-/* Expand/Collapse-all toolbar — top of the active tab's list. */
+/* Expand/Collapse-all toolbar — search on the lead side, Expand-all trailing. */
 .ds-list__toolbar {
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-4);
+}
+
+/* Component search input — constrained so it doesn't stretch across the toolbar. */
+.ds-list__search {
+  flex: 0 1 240px;
+  max-width: 240px;
 }
 
 .ds-collapse-all {
@@ -427,6 +441,17 @@
   font: inherit; font-size: var(--font-size-sm); color: var(--text-primary);
   padding: var(--spacing-1) var(--spacing-2); border: 1px solid var(--border-default);
   border-radius: var(--radius-md); background: var(--white); cursor: pointer;
+}
+
+/* "Latest only" filter toggle (sits next to the domain dropdown). */
+.ds-header__controls { display: inline-flex; align-items: center; gap: var(--spacing-3); }
+.ds-latest-toggle {
+  font: inherit; font-size: var(--font-size-sm); color: var(--text-secondary);
+  padding: var(--spacing-1) var(--spacing-3); border: 1px solid var(--border-default);
+  border-radius: var(--radius-full); background: var(--white); cursor: pointer;
+}
+.ds-latest-toggle.is-on {
+  color: var(--badge-blue-text); background: var(--badge-blue-bg); border-color: var(--badge-blue-bg);
 }
 
 /* Details modal */

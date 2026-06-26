@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { TIERS, groupDemosByTier, collectNormalizing, DOMAINS, filterTiersByDomain, filterDemosByDomain } from './collectDemos.js'
+import { SearchField } from '@odyssey/ui'
+import { TIERS, groupDemosByTier, collectNormalizing, DOMAINS, filterTiersByDomain, filterDemosByDomain, latestVersion, filterTiersByLatest } from './collectDemos.js'
 import domainUsage from './domain-usage.json'
 import './DesignSystem.css'
 
@@ -8,6 +9,8 @@ import './DesignSystem.css'
 const modules = import.meta.glob('./demos/*.demo.jsx', { eager: true })
 const tiers = groupDemosByTier(modules)
 const normalizing = collectNormalizing(modules)
+// Newest library version across all demos — drives the "Latest only" filter.
+const latestVer = latestVersion([...tiers.flatMap((t) => t.demos), ...normalizing])
 
 // The Normalize panel is a pseudo-tier appended after the real tiers.
 const NORMALIZE_KEY = '__normalize__'
@@ -93,6 +96,7 @@ function DemoSection({ meta, props, tokens, Component, open, onToggle, collapsed
           <h2 className="ds-comp__name">{meta.name}</h2>
           {isNormalizing && <span className="ds-comp__pill">NORMALIZING</span>}
           {meta.deprecated && <span className="ds-comp__pill ds-comp__pill--deprecated">DEPRECATED</span>}
+          {meta.codeOnly && <span className="ds-comp__pill ds-comp__pill--code-only">CODE-ONLY</span>}
         </div>
         <button
           type="button"
@@ -119,17 +123,24 @@ export default function DesignSystem() {
   const [activeTier, setActiveTier] = useState(hasNormalizing ? NORMALIZE_KEY : TIERS[0].key)
   const [openDetails, setOpenDetails] = useState(null) // meta.name | null
   const [activeDomain, setActiveDomain] = useState('all')
+  const [latestOnly, setLatestOnly] = useState(false)
+  const [query, setQuery] = useState('')
   // Section collapse state — a set of expanded component names. Empty = all
   // collapsed (the default, on load and whenever the page re-mounts).
   const [expanded, setExpanded] = useState(() => new Set())
-  const viewTiers = filterTiersByDomain(tiers, domainUsage, activeDomain)
+  const domainTiers = filterTiersByDomain(tiers, domainUsage, activeDomain)
+  const viewTiers = latestOnly ? filterTiersByLatest(domainTiers, latestVer) : domainTiers
   const viewNormalizing = filterDemosByDomain(normalizing, domainUsage, activeDomain)
   const onNormalize = activeTier === NORMALIZE_KEY
   const active = onNormalize ? null : viewTiers.find((t) => t.key === activeTier)
 
   // Sections visible in the current tab — drives the Expand/Collapse-all toggle.
   const visibleDemos = onNormalize ? viewNormalizing : (active?.demos ?? [])
-  const allExpanded = visibleDemos.length > 0 && visibleDemos.every((d) => expanded.has(d.meta.name))
+  // Final case-insensitive name filter (search bar). Expand-all + the rendered
+  // list both operate on the searched set, so Expand-all acts on matches only.
+  const q = query.trim().toLowerCase()
+  const searchedDemos = q ? visibleDemos.filter((d) => d.meta.name.toLowerCase().includes(q)) : visibleDemos
+  const allExpanded = searchedDemos.length > 0 && searchedDemos.every((d) => expanded.has(d.meta.name))
   const toggleCollapse = (name) =>
     setExpanded((prev) => {
       const next = new Set(prev)
@@ -140,7 +151,7 @@ export default function DesignSystem() {
   const toggleAll = () =>
     setExpanded((prev) => {
       const next = new Set(prev)
-      visibleDemos.forEach((d) => (allExpanded ? next.delete(d.meta.name) : next.add(d.meta.name)))
+      searchedDemos.forEach((d) => (allExpanded ? next.delete(d.meta.name) : next.add(d.meta.name)))
       return next
     })
 
@@ -165,7 +176,7 @@ export default function DesignSystem() {
     if (firstTier) setActiveTier(firstTier.key)
     else if (viewNormalizing.length > 0) setActiveTier(NORMALIZE_KEY)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeDomain])
+  }, [activeDomain, latestOnly])
 
   const renderSection = (demo) => (
     <DemoSection
@@ -185,25 +196,35 @@ export default function DesignSystem() {
         <header className="ds-header">
           <div className="ds-header__row">
             <h1>Odyssey Design System</h1>
-            <label className="ds-domain">
-              <span className="ds-domain__label">Domain</span>
-              <select
-                className="ds-domain__select"
-                value={activeDomain}
-                onChange={(e) => setActiveDomain(e.target.value)}
+            <div className="ds-header__controls">
+              <label className="ds-domain">
+                <span className="ds-domain__label">Domain</span>
+                <select
+                  className="ds-domain__select"
+                  value={activeDomain}
+                  onChange={(e) => setActiveDomain(e.target.value)}
+                >
+                  {DOMAINS.flatMap((d) =>
+                    // Divider before the cross-cutting domains (Global Search, Shared)
+                    // to set them apart from the product domains.
+                    d.key === 'global-search'
+                      ? [
+                          <option key="__sep" disabled>──────────</option>,
+                          <option key={d.key} value={d.key}>{d.label}</option>,
+                        ]
+                      : [<option key={d.key} value={d.key}>{d.label}</option>]
+                  )}
+                </select>
+              </label>
+              <button
+                type="button"
+                className={`ds-latest-toggle${latestOnly ? ' is-on' : ''}`}
+                aria-pressed={latestOnly}
+                onClick={() => setLatestOnly((v) => !v)}
               >
-                {DOMAINS.flatMap((d) =>
-                  // Divider before the cross-cutting domains (Global Search, Shared)
-                  // to set them apart from the product domains.
-                  d.key === 'global-search'
-                    ? [
-                        <option key="__sep" disabled>──────────</option>,
-                        <option key={d.key} value={d.key}>{d.label}</option>,
-                      ]
-                    : [<option key={d.key} value={d.key}>{d.label}</option>]
-                )}
-              </select>
-            </label>
+                Latest only
+              </button>
+            </div>
           </div>
           <p>
             Live <code>@odyssey/ui</code> components — hover, focus, type. The real
@@ -245,6 +266,14 @@ export default function DesignSystem() {
         <div className="ds-list">
           {visibleDemos.length > 0 && (
             <div className="ds-list__toolbar">
+              <SearchField
+                className="ds-list__search"
+                value={query}
+                onChange={setQuery}
+                onClear={() => setQuery('')}
+                placeholder="Search components"
+                showLabel={false}
+              />
               <button type="button" className="ds-collapse-all" onClick={toggleAll}>
                 {allExpanded ? 'Collapse all' : 'Expand all'}
               </button>
@@ -255,15 +284,20 @@ export default function DesignSystem() {
               <p className="ds-empty">
                 Nothing in progress — components appear here during a /normalize cycle.
               </p>
+            ) : searchedDemos.length === 0 ? (
+              <p className="ds-empty">No components match "{query}".</p>
             ) : (
-              viewNormalizing.map(renderSection)
+              searchedDemos.map(renderSection)
             )
           ) : (
             <>
-              {active.demos.length === 0 && (
+              {active.demos.length === 0 ? (
                 <p className="ds-empty">No {active.label.toLowerCase()} demos yet.</p>
+              ) : searchedDemos.length === 0 ? (
+                <p className="ds-empty">No components match "{query}".</p>
+              ) : (
+                searchedDemos.map(renderSection)
               )}
-              {active.demos.map(renderSection)}
             </>
           )}
         </div>

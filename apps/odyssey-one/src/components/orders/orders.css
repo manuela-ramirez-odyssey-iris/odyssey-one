@@ -1,7 +1,9 @@
 /* Orders Summary Page — app-local styles.
-   The grid skin moved to the normalized `.odyssey-table` Cell contract in
-   components.css (Figma Cell set 2714:505). What stays here is page
-   plumbing: toolbar, scroll wrap, sticky action column, row menu, pagination. */
+   The grid skin lives in the normalized `.odyssey-table` Cell contract in
+   components.css (Figma Cell set 2714:505); the table chrome (card, sticky
+   header, scroll wrap, sticky action column, footer band) lives in the generic
+   `.odyssey-data-table` shell contract in components.css. What stays here is
+   Orders page plumbing: toolbar, page status. */
 
 .orders-page {
   display: flex;
@@ -35,150 +37,6 @@
   align-items: center;
   gap: var(--spacing-3);
 }
-
-/* ── Table ───────────────────────────────────────────────── */
-
-/* Split sticky header (see OrdersTable.jsx). The card carries the 16px
-   radius and clips both halves; overflow: clip is NOT a scroll container,
-   so the header strip inside can still stick natively against the page
-   scroller — zero lag, unlike a JS-translated thead. No outer border —
-   the page bg (--bg-secondary) already contrasts with the white table. */
-.orders-table-card {
-  background: var(--bg-primary);
-  border-radius: var(--radius-2xl);
-  overflow: clip;
-}
-
-/* Header strip: sticks under the toolbar (top set inline from the measured
-   toolbar); scrollLeft on the inner is driven programmatically from the body
-   wrap. The strip paints page-bg behind the inner's rounded top corners so
-   the radius holds while stuck (rows can't peek through the notches); at
-   rest those gray notches coincide with the card's own corners and are
-   clipped away by its overflow: clip. */
-.orders-table-head {
-  position: sticky;
-  z-index: 3; /* above body cells incl. the sticky action column */
-  background: var(--bg-secondary);
-}
-
-.orders-table-head__inner {
-  overflow: hidden;
-  border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
-  background: var(--bg-primary);
-}
-
-/* Body horizontal scroller; vertical scroll is the page's. No rubber-band
-   on the x-axis: the bounce translates past the real scroll position, which
-   the synced sticky header can't follow (and it chains to the page). */
-.orders-table-wrap {
-  overflow-x: auto;
-  overscroll-behavior-x: none;
-  background: var(--bg-primary);
-}
-
-/* Cell skin comes from the normalized `.odyssey-table` contract
-   (components.css). Only page plumbing remains below. */
-
-/* Action column pinned right (survives horizontal scroll) — applies in both
-   halves of the split table (header strip + body wrap) */
-.orders-table-card .orders-table__cell--action {
-  position: sticky;
-  right: 0;
-  z-index: 1;
-  text-align: center; /* the ⋮ trigger centers under the Action header */
-  box-shadow: -2px 0 4px rgba(0, 0, 0, 0.06);
-}
-
-/* ── Row action menu (three-dot) ─────────────────────────── */
-
-.order-row-actions__trigger {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border: none;
-  border-radius: var(--radius-md);
-  background: transparent;
-  color: var(--text-tertiary);
-  cursor: pointer;
-}
-
-.order-row-actions__trigger:hover {
-  background: var(--bg-secondary);
-  color: var(--text-secondary);
-}
-
-.order-row-actions__menu {
-  position: fixed;
-  z-index: 1000;
-  min-width: 140px;
-  display: flex;
-  flex-direction: column;
-  padding: var(--spacing-1) 0;
-  background: var(--bg-primary);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-md);
-}
-
-.order-row-actions__item {
-  border: none;
-  background: transparent;
-  text-align: left;
-  padding: var(--spacing-2) var(--spacing-4);
-  color: var(--text-secondary);
-  cursor: pointer;
-}
-
-.order-row-actions__item:hover {
-  background: var(--bg-secondary);
-  color: var(--text-primary);
-}
-
-/* ── Pagination footer ───────────────────────────────────── */
-
-/* Lives INSIDE .orders-table-wrap, after the table: it sits at the end of
-   the page scroll (reached after the last row), never anchored to the window.
-   sticky left keeps it put while the table scrolls horizontally. */
-.orders-pagination {
-  position: sticky;
-  left: 0;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: var(--spacing-6);
-  padding: var(--spacing-3) var(--spacing-4);
-  border-top: 1px solid var(--border-subtle);
-}
-
-.orders-pagination__size {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--spacing-2);
-  color: var(--text-tertiary);
-}
-
-.orders-pagination__select {
-  padding: var(--spacing-1) var(--spacing-2);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  background: var(--bg-primary);
-  color: var(--text-primary);
-}
-
-.orders-pagination__page {
-  color: var(--text-tertiary);
-}
-
-.orders-pagination__nav {
-  display: inline-flex;
-  gap: var(--spacing-2);
-}
-
-/* ── ID column link: no underline (item 4) ──────────────── */
-/* ID-cell link underline removal moved to the .odyssey-table cell contract
-   (components.css) — applies to link Buttons in any odyssey-table. */
 
 /* ── Page status (loading / error) ───────────────────────── */
 

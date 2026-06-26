@@ -97,3 +97,37 @@ export function collectNormalizing(modules) {
   out.sort((a, b) => a.meta.name.localeCompare(b.meta.name))
   return out
 }
+
+// ── Versioning ──────────────────────────────────────────────────────────────
+// Each demo meta may carry version: "x.y.z" — the @oneodyssey/ui release it was
+// created or last changed in. "Latest" = the semver-max across all demos.
+
+function parseVersion(v) {
+  return String(v).split('.').map((n) => parseInt(n, 10) || 0)
+}
+
+function cmpVersion(a, b) {
+  const pa = parseVersion(a)
+  const pb = parseVersion(b)
+  for (let i = 0; i < 3; i++) {
+    if ((pa[i] || 0) !== (pb[i] || 0)) return (pa[i] || 0) - (pb[i] || 0)
+  }
+  return 0
+}
+
+// Highest version across a flat demo list, or null if none carry one.
+export function latestVersion(demos) {
+  let max = null
+  for (const d of demos) {
+    const v = d.meta && d.meta.version
+    if (!v) continue
+    if (max === null || cmpVersion(v, max) > 0) max = v
+  }
+  return max
+}
+
+// Keep only demos whose version === latest. No-op when latest is falsy.
+export function filterTiersByLatest(tiers, latest) {
+  if (!latest) return tiers
+  return tiers.map((t) => ({ ...t, demos: t.demos.filter((d) => d.meta.version === latest) }))
+}

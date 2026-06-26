@@ -5,6 +5,7 @@ import { Truck, BarChart2, AlertTriangle, FileText, Package } from 'lucide-react
 export const meta = {
   name: 'WidgetCtaRow',
   tier: 'molecule',
+  version: '0.2.0',
   figmaNode: '1927:84',
   codeConnect: 'packages/ui/src/WidgetCtaRow.figma.tsx',
 }

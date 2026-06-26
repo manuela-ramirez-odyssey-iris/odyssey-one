@@ -4,6 +4,7 @@ import { Tab } from '@odyssey/ui'
 export const meta = {
   name: 'Tab',
   tier: 'atom',
+  version: '0.2.0',
   figmaNode: '3057:362',
   codeConnect: 'packages/ui/src/Tab.figma.tsx',
 }

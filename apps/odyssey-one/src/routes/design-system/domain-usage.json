@@ -15,15 +15,18 @@
   ],
   "orders": [
     "Accordion",
+    "ActionMenu",
     "Alert",
     "Badge",
     "Button",
     "ButtonToggle",
     "Checkbox",
+    "DataTable",
     "EmptyState",
     "FormField",
     "ModalMedium",
     "PageHeader",
+    "Paginator",
     "Radio",
     "SearchField"
   ],
@@ -53,11 +56,5 @@
     "PillTab",
     "SearchPanel",
     "SearchResults"
-  ],
-  "shared": [
-    "AuthContent",
-    "AuthModal",
-    "Navbar",
-    "Sidebar"
   ]
 }

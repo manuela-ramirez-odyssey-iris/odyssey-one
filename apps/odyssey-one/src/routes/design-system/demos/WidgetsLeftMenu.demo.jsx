@@ -4,6 +4,7 @@ import { WidgetsLeftMenu } from '@odyssey/ui'
 export const meta = {
   name: 'WidgetsLeftMenu',
   tier: 'organism',
+  version: '0.2.0',
   figmaNode: '1961:393',
   codeConnect: 'packages/ui/src/WidgetsLeftMenu.figma.tsx',
 }

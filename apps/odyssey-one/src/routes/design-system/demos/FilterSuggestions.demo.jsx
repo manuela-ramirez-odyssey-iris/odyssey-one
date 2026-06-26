@@ -4,6 +4,7 @@ import { FilterSuggestions } from '@odyssey/ui'
 export const meta = {
   name: 'FilterSuggestions',
   tier: 'molecule',
+  version: '0.2.0',
   figmaNode: '2400:2',
   codeConnect: 'packages/ui/src/FilterSuggestions.figma.tsx',
 }

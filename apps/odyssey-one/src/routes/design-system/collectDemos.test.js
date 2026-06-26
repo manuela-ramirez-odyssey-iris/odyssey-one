@@ -1,5 +1,5 @@
 import { describe, it, expect, test } from 'vitest'
-import { TIERS, groupDemosByTier, collectNormalizing, DOMAINS, filterTiersByDomain, filterDemosByDomain } from './collectDemos.js'
+import { TIERS, groupDemosByTier, collectNormalizing, DOMAINS, filterTiersByDomain, filterDemosByDomain, latestVersion, filterTiersByLatest } from './collectDemos.js'
 
 // Minimal fake of the import.meta.glob({ eager: true }) result:
 // { '<path>': { meta, props?, tokens?, default } }
@@ -146,4 +146,48 @@ test('filterTiersByDomain: orders keeps only orders demos', () => {
 
 test('filterDemosByDomain: unknown domain → empty', () => {
   expect(filterDemosByDomain(tiers[0].demos, usage, 'carriers')).toEqual([])
+})
+
+describe('latestVersion', () => {
+  it('returns the highest semver among demo metas', () => {
+    expect(latestVersion([
+      { meta: { name: 'A', version: '0.2.0' } },
+      { meta: { name: 'B', version: '0.3.0' } },
+      { meta: { name: 'C', version: '0.1.0' } },
+    ])).toBe('0.3.0')
+  })
+
+  it('ignores demos without a version', () => {
+    expect(latestVersion([
+      { meta: { name: 'A', version: '0.2.0' } },
+      { meta: { name: 'B' } },
+    ])).toBe('0.2.0')
+  })
+
+  it('returns null when no demo has a version', () => {
+    expect(latestVersion([{ meta: { name: 'A' } }])).toBe(null)
+  })
+
+  it('compares numerically, not lexically (0.10.0 > 0.9.0)', () => {
+    expect(latestVersion([
+      { meta: { name: 'A', version: '0.9.0' } },
+      { meta: { name: 'B', version: '0.10.0' } },
+    ])).toBe('0.10.0')
+  })
+})
+
+describe('filterTiersByLatest', () => {
+  const tiered = [
+    { key: 'atom', label: 'Atoms', demos: [
+      { meta: { name: 'New', version: '0.3.0' } },
+      { meta: { name: 'Old', version: '0.2.0' } },
+    ] },
+  ]
+  it('keeps only demos whose version equals latest', () => {
+    const out = filterTiersByLatest(tiered, '0.3.0')
+    expect(out[0].demos.map((d) => d.meta.name)).toEqual(['New'])
+  })
+  it('returns tiers unchanged when latest is null', () => {
+    expect(filterTiersByLatest(tiered, null)).toBe(tiered)
+  })
 })

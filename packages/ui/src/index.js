@@ -13,6 +13,7 @@ export { default as Button } from './Button.jsx';
 export { default as IconButton } from './IconButton.jsx';
 export { default as IconButtonGhost } from './IconButtonGhost.jsx';
 export { default as FilterButton } from './FilterButton.jsx';
+export { default as PaginationButton } from './PaginationButton.jsx';
 export { default as PillTab } from './PillTab.jsx';
 export { default as Tab } from './Tab.jsx';
 export { default as Checkbox } from './Checkbox.jsx';
@@ -25,6 +26,8 @@ export { default as SectionLabel } from './SectionLabel.jsx';
 export { default as AddSectionDivider } from './AddSectionDivider.jsx';
 export { default as AddSectionButton } from './AddSectionButton.jsx';
 export { default as StepIndicator } from './StepIndicator.jsx';
+export { default as MenuRow } from './MenuRow.jsx';
+export { default as DropdownButton } from './DropdownButton.jsx';
 
 // ── Molecules ──────────────────────────────────────────
 export { default as LeadNav } from './LeadNav.jsx';
@@ -36,8 +39,12 @@ export { default as EntityChip } from './EntityChip.jsx';
 export { default as WidgetMetricRow } from './WidgetMetricRow.jsx';
 export { default as WidgetPieChart } from './WidgetPieChart.jsx';
 export { default as WidgetCtaRow } from './WidgetCtaRow.jsx';
-export { default as MenuRow } from './MenuRow.jsx';
 export { default as MenuDropdown } from './MenuDropdown.jsx';
+export { default as DropdownMenu } from './DropdownMenu.jsx';
+export { default as Dropdown } from './Dropdown.jsx';
+export { default as ActionMenu } from './ActionMenu.jsx';
+export { default as Paginator } from './Paginator.jsx';
+export { default as DataTable } from './DataTable.jsx';
 export { default as SearchField } from './SearchField.jsx';
 export { default as CustomerRow } from './CustomerRow.jsx';
 export { default as FormField } from './FormField.jsx';
@@ -59,3 +66,12 @@ export { default as AuthModal } from './AuthModal.jsx';
 export { default as AuthContent } from './AuthContent.jsx';
 export { default as SearchPanel } from './SearchPanel.jsx';
 export { default as SearchResults } from './SearchResults.jsx';
+
+// ── Hooks / positioning ────────────────────────────────
+// Anchored, flip-aware popover positioning. `useAnchoredPortal` is used
+// internally by Dropdown and exported so consumers can compose their own
+// anchored menus (e.g. a table row-action menu) and inherit the boundary flip.
+// `computeVerticalPlacement` is the pure up/down decision — exported for
+// consumers that own their own positioning (right-aligned menus, etc.) but want
+// the same flip math.
+export { useAnchoredPortal, computeVerticalPlacement } from './useAnchoredPortal.jsx';

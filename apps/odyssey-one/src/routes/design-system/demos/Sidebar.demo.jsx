@@ -6,6 +6,7 @@ import { Sidebar } from '@odyssey/ui'
 export const meta = {
   name: 'Sidebar',
   tier: 'organism',
+  version: '0.2.0',
   figmaNode: '597:514',
 }
 

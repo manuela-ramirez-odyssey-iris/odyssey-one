@@ -4,6 +4,7 @@ import { FilterButton } from '@odyssey/ui'
 export const meta = {
   name: 'FilterButton',
   tier: 'atom',
+  version: '0.2.0',
   figmaNode: '2347:325',
   codeConnect: 'packages/ui/src/FilterButton.figma.tsx',
 }

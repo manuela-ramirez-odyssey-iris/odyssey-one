@@ -1,9 +1,30 @@
+import { useState } from 'react'
 import { Package, ArrowRight } from 'lucide-react'
 import { Badge } from '@odyssey/ui'
+
+/* Live toggle chip — gray Badge wrapped in an aria-pressed toggle button. */
+function SelectableChip({ label }) {
+  const [on, setOn] = useState(false)
+  return (
+    <div className="ds-demo-col" style={{ alignItems: 'center' }}>
+      <button
+        type="button"
+        aria-pressed={on}
+        className="badge-interactive"
+        onClick={() => setOn((v) => !v)}
+        style={{ display: 'inline-flex', padding: 0, border: 'none', background: 'transparent' }}
+      >
+        <Badge variant="gray">{label}</Badge>
+      </button>
+      <span className="ds-demo-label">live — click to toggle</span>
+    </div>
+  )
+}
 
 export const meta = {
   name: 'Badge',
   tier: 'atom',
+  version: '0.3.0',
   figmaNode: '213:27',
   codeConnect: 'packages/ui/src/Badge.figma.tsx',
 }
@@ -25,6 +46,9 @@ export const tokens = [
   { token: '--bittersweet-600', resolves: 'Bittersweet/600', usage: 'notification bg' },
   { token: '--carolina-blue-400', resolves: 'Carolina Blue/400', usage: 'count bg' },
   { token: '--radius-sm', resolves: '4px', usage: 'standard badge radius' },
+  { token: '--deep-sea-neutral-200', resolves: 'DSN/200', usage: 'toggle gray badge — hover + selected bg' },
+  { token: '--deep-sea-neutral-900', resolves: 'DSN/900', usage: 'toggle gray badge — selected ring' },
+  { token: '--border-focus', resolves: 'Carolina Blue/400', usage: 'toggle gray badge — keyboard focus ring' },
 ]
 
 const TEXT_VARIANTS = ['amber', 'blue', 'green', 'red', 'purple', 'gray']
@@ -103,6 +127,50 @@ export default function BadgeDemo() {
               <span className="ds-demo-label">{v}</span>
             </div>
           ))}
+        </div>
+      </div>
+
+      <div className="ds-demo-section">
+        <h4 className="ds-demo-section__title">Toggle (used as a selectable filter chip)</h4>
+        <p style={{ marginTop: 0, color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)' }}>
+          The gray Badge is decorative by default. When it's used as a toggle
+          button (e.g. a filter chip in a panel that turns a search filter on/off),
+          wrap it in a <code>&lt;button aria-pressed&gt;</code> with{' '}
+          <code>.badge-interactive</code> — opt-in, so non-clickable gray badges
+          stay plain. Hover darkens the bg, press mutes the text, and the{' '}
+          <strong>selected</strong> state (<code>aria-pressed="true"</code>) shows
+          the DSN/200 bg + 1px DSN/900 ring — Efrain's Figma <code>gray selected</code>{' '}
+          variant. Keyboard focus adds a separate <code>--border-focus</code> ring.
+          The first chip below is a live toggle — click it.
+        </p>
+        <div className="ds-demo-row">
+          <SelectableChip label="Live toggle" />
+          <div className="ds-demo-col" style={{ alignItems: 'center' }}>
+            <button
+              type="button"
+              aria-pressed="false"
+              className="badge-interactive"
+              style={{ display: 'inline-flex', padding: 0, border: 'none', background: 'transparent' }}
+            >
+              <Badge variant="gray">Filter chip</Badge>
+            </button>
+            <span className="ds-demo-label">unselected</span>
+          </div>
+          <div className="ds-demo-col" style={{ alignItems: 'center' }}>
+            <button
+              type="button"
+              aria-pressed="true"
+              className="badge-interactive"
+              style={{ display: 'inline-flex', padding: 0, border: 'none', background: 'transparent' }}
+            >
+              <Badge variant="gray">Filter chip</Badge>
+            </button>
+            <span className="ds-demo-label">selected (gray selected)</span>
+          </div>
+          <div className="ds-demo-col" style={{ alignItems: 'center' }}>
+            <Badge variant="gray">Filter chip</Badge>
+            <span className="ds-demo-label">decorative (no states)</span>
+          </div>
         </div>
       </div>
     </div>
