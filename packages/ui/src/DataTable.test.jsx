@@ -1,4 +1,5 @@
-import { getColWidths, renderCell, cellClassName, headClassName } from './DataTable.jsx'
+// @vitest-environment jsdom
+import { getColWidths, renderCell, cellClassName, headClassName, isInteractiveTarget } from './DataTable.jsx'
 
 describe('getColWidths', () => {
   it('takes the per-column max of header vs first-row width and rounds up', () => {
@@ -28,6 +29,56 @@ describe('getColWidths', () => {
   it('distributes nothing when content already exceeds the container', () => {
     expect(getColWidths([200, 200], [0, 0], 100, [true, true]))
       .toEqual([200, 200])
+  })
+
+  it('uses the provided size for a sized column and excludes it from flex', () => {
+    // col0 sized=120; cols 1,2 auto+flex. widths=[120,100,50] total 270; container 320 →
+    // slack 50 over the 2 flex+unsized cols → +25 each.
+    expect(getColWidths([50, 100, 50], [0, 0, 0], 320, [false, true, true], [120, null, null]))
+      .toEqual([120, 125, 75])
+  })
+  it('a sized column is never widened by flex even if flagged flex', () => {
+    // widths=[80(sized), 50]; total 130; container 400 → slack 270 to the one flex+unsized col.
+    expect(getColWidths([50, 50], [0, 0], 400, [true, true], [80, null]))
+      .toEqual([80, 320])
+  })
+  it('ignores sizes when none are provided (back-compat)', () => {
+    expect(getColWidths([50, 100, 50], [0, 0, 0], 260, [false, true, true]))
+      .toEqual([50, 130, 80])
+  })
+})
+
+describe('isInteractiveTarget', () => {
+  const cellWith = (html, targetSelector) => {
+    const cell = document.createElement('td')
+    cell.innerHTML = html
+    const target = targetSelector ? cell.querySelector(targetSelector) : cell
+    return [cell, target]
+  }
+
+  it('is false for a plain text cell (click should fire onCellClick)', () => {
+    const [cell, target] = cellWith('<span>Atlanta</span>', 'span')
+    expect(isInteractiveTarget(target, cell)).toBe(false)
+  })
+  it('is true when the target is a button (ActionMenu trigger)', () => {
+    const [cell, target] = cellWith('<button type="button">⋮</button>', 'button')
+    expect(isInteractiveTarget(target, cell)).toBe(true)
+  })
+  it('is true for a checkbox input', () => {
+    const [cell, target] = cellWith('<input type="checkbox" />', 'input')
+    expect(isInteractiveTarget(target, cell)).toBe(true)
+  })
+  it('is true for an anchor with href (link cell)', () => {
+    const [cell, target] = cellWith('<a href="/x">open</a>', 'a')
+    expect(isInteractiveTarget(target, cell)).toBe(true)
+  })
+  it('is true for a custom clickable marked [data-no-cell-click]', () => {
+    const [cell, target] = cellWith('<span data-no-cell-click><i>x</i></span>', 'i')
+    expect(isInteractiveTarget(target, cell)).toBe(true)
+  })
+  it('is true for [role="menuitem"] (open DropdownMenu rows)', () => {
+    const [cell, target] = cellWith('<div role="menuitem">View</div>', 'div')
+    expect(isInteractiveTarget(target, cell)).toBe(true)
   })
 })
 

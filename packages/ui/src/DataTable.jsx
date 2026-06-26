@@ -5,26 +5,43 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
  * table chrome (split sticky header + colgroup width-lock + horizontal
  * scroll-sync) and applies the normalized `.odyssey-table` Cell contract.
  * Driven by a duck-typed `table` instance — this package takes NO @tanstack
- * dependency. The consumer owns columns / data / state. See the design spec
- * 2026-06-25-datatable-shell-design.md.
+ * dependency. The consumer owns columns / data / state. See the design specs
+ * 2026-06-25-datatable-shell-design.md + 2026-06-26-datatable-extensibility-design.md.
+ *
+ * Opt-in extensibility (per-table): column RESIZE (the consumer enables TanStack
+ * `columnSizing` → grips render where `column.getCanResize()` is true) and per-cell
+ * CLICK (`onCellClick(cell,row)`, suppressed on interactive cells). Reorder + column
+ * visibility are reflected automatically (the shell renders from the table's
+ * visible/ordered columns); the driver UI is a separate RightPanel.
  */
 
+/** Selector for elements that "own" a click — a cell containing one of these is an
+ *  interactive cell, so onCellClick is suppressed for it. `[data-no-cell-click]` is the
+ *  escape hatch for custom clickable components (e.g. a ButtonLink). */
+const INTERACTIVE_SELECTOR =
+  'button, a[href], input, select, textarea, label, [role="button"], [role="menuitem"], [role="link"], [contenteditable="true"], [data-no-cell-click]'
+
+/** True when a cell click originated inside an interactive/clickable element within the cell. */
+export function isInteractiveTarget(target, cellEl) {
+  if (!(target instanceof Element) || !cellEl) return false
+  const hit = target.closest(INTERACTIVE_SELECTOR)
+  return hit != null && cellEl.contains(hit)
+}
+
 /**
- * Per-column locked widths: max(header, body) per column, then any leftover
- * container width is split evenly among the FLEX columns (flexFlags[i] === true).
- * Flex membership is by flag, not by position — so column reorder/resize never
- * mis-targets the distribution (Refinement R1).
- *
- * `headerWidths`/`bodyWidths` are raw `getBoundingClientRect().width` values
- * (subpixel floats) measured by the caller — hence the per-column `Math.ceil`.
+ * Per-column locked widths. A column with a non-null `sizes[i]` is "sized" (user-dragged
+ * via TanStack columnSizing, or an explicit columnDef.size) — it uses that width verbatim
+ * and is excluded from flex distribution. Every other column is max(header, firstRow) and
+ * shares leftover container width if its flexFlag is true (Refinement R1: flex by flag,
+ * not position). `headerWidths`/`bodyWidths` are raw `getBoundingClientRect().width` floats.
  */
-export function getColWidths(headerWidths, bodyWidths, containerWidth, flexFlags) {
+export function getColWidths(headerWidths, bodyWidths, containerWidth, flexFlags, sizes = []) {
   const widths = headerWidths.map((hw, i) =>
-    Math.ceil(Math.max(hw, bodyWidths[i] ?? 0))
+    sizes[i] != null ? Math.ceil(sizes[i]) : Math.ceil(Math.max(hw, bodyWidths[i] ?? 0))
   )
   const total = widths.reduce((a, b) => a + b, 0)
   if (total < containerWidth) {
-    const flexIdxs = widths.map((_, i) => i).filter((i) => flexFlags[i])
+    const flexIdxs = widths.map((_, i) => i).filter((i) => flexFlags[i] && sizes[i] == null)
     if (flexIdxs.length) {
       const extra = Math.floor((containerWidth - total) / flexIdxs.length)
       flexIdxs.forEach((i) => { widths[i] += extra })
@@ -62,7 +79,7 @@ export function cellClassName(meta, isStickyRight) {
   ].filter(Boolean).join(' ')
 }
 
-export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, className = '' }) {
+export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, onCellClick, className = '' }) {
   const headRef = useRef(null)       // head-inner (overflow:hidden); scrollLeft set on it mirrors the body — the split-header trick, NOT a bug
   const wrapRef = useRef(null)       // body horizontal scroller
   const headTableRef = useRef(null)
@@ -70,27 +87,34 @@ export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, cla
   const [colWidths, setColWidths] = useState(null)
 
   const rowModel = table.getRowModel()
-  // R2 — re-measure when the column set changes (add/remove/reorder), not just
-  // when rows change. A by-value string keeps this stable across renders.
-  const columnSignature = table.getVisibleLeafColumns().map((c) => c.id).join('|')
+  // R2 — re-measure when the column set OR the active sizing changes (resize re-locks widths),
+  // not just when rows change. A by-value string keeps this stable across renders.
+  const columnSignature =
+    table.getVisibleLeafColumns().map((c) => c.id).join('|') +
+    '::' + JSON.stringify(table.getState().columnSizing ?? {})
 
-  // Two-pass sizing: render shrink-to-fit (colWidths null) so each column
-  // reports its true content width, then lock max(header, firstRow) per column
-  // into a shared <colgroup> and hand leftover space to flex columns.
+  // Two-pass sizing: render shrink-to-fit (colWidths null) so each column reports its true
+  // content width, then lock max(header, firstRow) per column into a shared <colgroup> and
+  // hand leftover space to flex columns — except user-sized columns, which use their
+  // TanStack `getSize()` verbatim (see getColWidths `sizes`).
   useLayoutEffect(() => { setColWidths(null) }, [rowModel.rows, columnSignature])
   useLayoutEffect(() => {
     if (colWidths) return
     const ths = headTableRef.current?.querySelectorAll('thead th')
     const tds = bodyTableRef.current?.querySelectorAll('tbody tr:first-child td')
-    // No body rows to measure (e.g. an empty result set) → skip the lock; the
-    // table renders at width:auto. Consumers render their own empty state in
-    // place of a 0-row DataTable (as OrdersRoute does), so this stays an edge.
     if (!ths?.length || !tds?.length) return
     const headerWidths = Array.from(ths).map((th) => th.getBoundingClientRect().width)
     const bodyWidths = Array.from(tds).map((td) => td.getBoundingClientRect().width)
     const container = wrapRef.current?.clientWidth ?? 0
-    const flexFlags = table.getVisibleLeafColumns().map((c) => !c.columnDef.meta?.fixedWidth)
-    setColWidths(getColWidths(headerWidths, bodyWidths, container, flexFlags))
+    const leafCols = table.getVisibleLeafColumns()
+    const flexFlags = leafCols.map((c) => !c.columnDef.meta?.fixedWidth)
+    // A column is "sized" (use TanStack getSize, skip auto-measure) when the user dragged it
+    // (its id is in columnSizing) or it declares an explicit columnDef.size.
+    const sizing = table.getState().columnSizing ?? {}
+    const sizes = leafCols.map((c) =>
+      sizing[c.id] != null || c.columnDef.size != null ? c.getSize() : null
+    )
+    setColWidths(getColWidths(headerWidths, bodyWidths, container, flexFlags, sizes))
   }, [colWidths, rowModel.rows, columnSignature]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Re-measure on resize (debounced).
@@ -102,8 +126,6 @@ export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, cla
   }, [])
 
   // Horizontal sync: the body wrap drives the header strip's scrollLeft.
-  // (Setting scrollLeft on the overflow:hidden head-inner is intentional — it
-  //  keeps the header columns aligned with the body with no second scrollbar.)
   useEffect(() => {
     const wrap = wrapRef.current
     const head = headRef.current
@@ -124,7 +146,7 @@ export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, cla
   )
 
   return (
-    <div className={`odyssey-data-table${className ? ` ${className}` : ''}`}>
+    <div className={`odyssey-data-table${onCellClick ? ' odyssey-data-table--cell-clickable' : ''}${className ? ` ${className}` : ''}`}>
       <div className="odyssey-data-table__head" style={{ top: `${stickyTop}px` }}>
         <div className="odyssey-data-table__head-inner" ref={headRef}>
           <table className="odyssey-table" ref={headTableRef} style={tableStyle}>
@@ -134,9 +156,23 @@ export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, cla
                 <tr key={hg.id}>
                   {hg.headers.map((header) => {
                     const meta = header.column.columnDef.meta
+                    const headerLabel = typeof header.column.columnDef.header === 'string'
+                      ? header.column.columnDef.header
+                      : header.column.id
                     return (
                       <th key={header.id} className={headClassName(meta, meta?.sticky === 'right')}>
                         {renderCell(header.column.columnDef.header, header.getContext())}
+                        {header.column.getCanResize?.() && (
+                          <span
+                            className={`odyssey-data-table__resize-grip${header.column.getIsResizing?.() ? ' is-resizing' : ''}`}
+                            onMouseDown={header.getResizeHandler()}
+                            onTouchStart={header.getResizeHandler()}
+                            onClick={(e) => e.stopPropagation()}
+                            role="separator"
+                            aria-orientation="vertical"
+                            aria-label={`Resize ${headerLabel}`}
+                          />
+                        )}
                       </th>
                     )
                   })}
@@ -155,7 +191,13 @@ export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, cla
                 {row.getVisibleCells().map((cell) => {
                   const meta = cell.column.columnDef.meta
                   return (
-                    <td key={cell.id} className={cellClassName(meta, meta?.sticky === 'right')}>
+                    <td
+                      key={cell.id}
+                      className={cellClassName(meta, meta?.sticky === 'right')}
+                      onClick={onCellClick
+                        ? (e) => { if (!isInteractiveTarget(e.target, e.currentTarget)) onCellClick(cell, row) }
+                        : undefined}
+                    >
                       {renderCell(cell.column.columnDef.cell, cell.getContext())}
                     </td>
                   )
