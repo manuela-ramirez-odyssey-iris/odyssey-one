@@ -1,107 +1,49 @@
-# Shipments legacy fork — design
+# Shipments legacy snapshot — design
 
 **Date:** 2026-06-26 (Session 69)
-**Status:** approved (design) → spec for review
-**Type:** structural fork / refactor (no new product behavior)
+**Status:** implemented
+**Type:** structural fork (no new product behavior)
 
 ## Goal
 
-The Shipments domain is being redesigned **from scratch** — table first, then everything else (tabs, detail panel, search). Before that work begins, freeze the **current** Shipments as a disposable, unchanging snapshot so it can be A/B-compared with the new design in front of stakeholders. Once the new design is approved, the snapshot is deleted.
+The Shipments domain is being redesigned **from scratch** — table first, then everything else (tabs, detail panel, search). Before that begins, freeze the **current** Shipments as a disposable, unchanging snapshot to A/B against the new design in front of stakeholders. After approval, the snapshot is deleted.
 
-Hard requirement from the user: the snapshot must stay **visually identical to today**, even as the new work edits shared things (design **tokens**, components). A plain file copy is not enough — global token edits/prunes would still move (or break) the snapshot.
+Hard requirement: the snapshot must stay **visually identical to today**, even as the redesign edits shared things (design **tokens**, components).
 
-## Decision — Approach 2: view-fork + frozen scoped tokens
+## Decision — separate frozen project (chosen)
 
-Two other options were considered and rejected:
-- **View-layer fork only** — copies the view files but leaves the snapshot on live global tokens; a token pass during the redesign would shift it. Rejected: fails the "stays identical" requirement.
-- **Full vendored snapshot** — the snapshot vendors namespaced copies of every token *and* shared `@odyssey/ui` component it uses. Bulletproof but heavy for a throwaway. Rejected: overkill.
+Considered an **in-repo fork** (copy the view tree into `shipments-legacy/` + a scoped frozen-token block + a `/shipments-legacy` route). Rejected in favor of a **separate project**, because:
 
-**Approach 2** copies the Shipments **view tree** into a self-contained, disposable directory, and pins today's **token values** under a scoped root so the snapshot is immune to later `tokens.css` edits. The canonical design system is **never touched**.
+| | in-repo fork | separate project (chosen) |
+|---|---|---|
+| Isolation | partial — shares `@odyssey/ui`, tokens, api/data; needs a frozen-token trick + tag to backstop | **total** — different codebase, shares nothing; cannot be corrupted by main |
+| Surgery | rewrite imports across ~25 files + hand-build a frozen-token block | **none** — verbatim snapshot |
+| Main repo | a `shipments-legacy/` dir sits beside the redesign | **main stays pristine** — zero legacy code |
+| Cost | light | a second repo + its own Vercel deploy; full app copy on disk |
 
-## Freeze set vs shared set
+The separate project gives a **guarantee** (not a mitigation) that the old design never moves, and keeps `main` free of legacy baggage while it's torn apart.
 
-Determined by tracing the transitive app-local imports of `routes/shipments/ShipmentsRoute.jsx`.
+## What was built
 
-**Frozen (copied into the snapshot):**
-- `routes/shipments/ShipmentsRoute.jsx`
-- `components/shipments/*` — ShipmentTable, FilterPanel, MonitorPanels, TableControls, ShipmentTabs, SearchChipPanel
-- `components/detail/*` — BottomBar, ColumnPanel, and all 10 detail tabs (Order, Product, Stops, CostAllocation, Documents, Notes, RoutingGuide, History, Instructions, TenderHistory)
-- `components/global-search/*` — ShipmentsGlobalSearch, NewGlobalSearch, ShipmentsFiltersView
-- `components/ui/DarkTooltip` — the tooltip util used by ShipmentTable cells
-- `search/shipments/*` — the shipments-specific search adapter + progression
+A new sibling repo **`odyssey-shipments-legacy/`** (sits beside `odyssey-one`, matching the existing sibling-repo pattern):
 
-**Shared (NOT copied — both designs use the canonical version):**
-- `api/*` (queries, services, mappers) and `data/*` — the data layer is identical for both designs
-- `components/layout/AppShell` (+ Sidebar/Navbar) — app chrome
-- `search/useGlobalSearch` — the domain-agnostic search hook (infra)
-- `@odyssey/ui`, `@odyssey/tokens` — the canonical design system
+- **Source:** `git archive` of `odyssey-one` @ `85fda1e` — the pristine pre-redesign tree. Because the S69 DataTable migration was uncommitted, the snapshot's `ShipmentTable` is the original **react-window two-panel** table (the migration stays in `main` as the seed of the new design).
+- **Slimmed:** dropped `vault/`, `vault-sources/`, `docs/`, `playground/`, and main-repo docs (77M → 9M). Kept the buildable monorepo: `apps/odyssey-one` + `packages/{ui,tokens,db}` + configs. `@odyssey/ui` + tokens are **vendored** by virtue of being the copied workspace packages → truly frozen, no shared coupling.
+- **Trimmed to Shipments only:** `App.jsx` routes `/shipments/*` → `ShipmentsRoute`, everything else `Navigate → /shipments` (login/Home/Orders/etc. removed). `Sidebar.jsx` shows only the Shipments item.
+- **Independent git repo:** `git init` + initial commit `07afbf0` (no link to `odyssey-one`'s remote — can't accidentally push to main).
+- **Verified:** `npm install` + `node tools/generate.mjs` (1200 rows) + `build:odyssey-one` clean (1885 modules); dev server renders the old design at `/shipments`.
 
-> Caveat: shared `api/data` changes during the redesign should be **additive**. A breaking change to a shared service the snapshot calls would affect it — backstopped by the milestone tag; fork that service too if it ever happens.
+## Main repo
 
-## Directory layout — one self-contained, disposable folder
+- The DataTable migration stays uncommitted in `components/shipments/ShipmentTable.jsx` as the redesign seed.
+- Milestone tag **`shipments-design-v1`** on `85fda1e` marks the frozen point (matches the snapshot source).
+- No legacy code added to `main`.
 
-```
-apps/odyssey-one/src/shipments-legacy/
-├── ShipmentsLegacyRoute.jsx          (copy of ShipmentsRoute, PRISTINE HEAD)
-├── shipments-legacy.tokens.css       (NEW — frozen token values, scoped)
-└── components/
-    ├── shipments/   (6 files)
-    ├── detail/      (12 files)
-    ├── global-search/ (3 files)
-    ├── ui/          (DarkTooltip)
-    └── search/      (shipments adapter + progression)
-```
+## Disposal
 
-- All internal imports in the copies are rewritten to resolve **inside** `shipments-legacy/`. Shared imports (`api`, `data`, `layout/AppShell`, `search/useGlobalSearch`, `@odyssey/*`) continue to point at the canonical locations.
-- Disposal later = delete `shipments-legacy/` + one route line + one frozen-tokens import. Zero residue.
+Delete the `odyssey-shipments-legacy/` repo (+ its Vercel project, if deployed) once the redesign is approved. Zero residue in `main`.
 
-## Frozen tokens
+## Deferred
 
-`shipments-legacy.tokens.css` redeclares **today's** token values under a `.shipments-legacy-root` selector:
-
-```css
-.shipments-legacy-root {
-  --text-primary: <today's value>;
-  --bg-secondary: <today's value>;
-  /* …every token the snapshot uses… */
-}
-```
-
-`ShipmentsLegacyRoute` wraps its rendered content in `<div class="shipments-legacy-root">`. CSS variable cascade makes everything inside resolve to the **frozen** values — immune to any later `tokens.css` edit or prune. The canonical `tokens.css` and every `@odyssey/ui` component are **unchanged**.
-
-> Portaled elements (DarkTooltip, ActionMenu menus) render at `document.body`, outside the wrapper, so they pick up live tokens — but the old tooltips already carry hardcoded color fallbacks, so they are effectively frozen too. Acceptable for a disposable artifact.
-
-## Routing + sidebar
-
-- `App.jsx`: add `<Route path="/shipments-legacy/*" element={<ShipmentsLegacyRoute />} />`. `/shipments` stays mapped to the canonical (evolving) `ShipmentsRoute`.
-- `Sidebar.jsx`: **unchanged** — Shipments → `/shipments` (the new design). The snapshot is reachable only by direct URL (`/shipments-legacy`) for stakeholder A/B.
-
-## Handling the current WIP
-
-The Session-69 DataTable migration is uncommitted in `components/shipments/ShipmentTable.jsx` (working tree) — it is the **seed of the new design** and **stays** in the canonical tree.
-
-The snapshot's `ShipmentTable` must be the **pristine pre-migration** version → copied from `git show HEAD:apps/odyssey-one/src/components/shipments/ShipmentTable.jsx` (HEAD is `85fda1e`, which still has the original react-window table). Every other view-tree file is identical at HEAD vs working tree, so those copy from either.
-
-## Milestone
-
-After the fork is in place and verified, tag the commit **`shipments-design-v1`** — the pristine old design preserved both as the live snapshot and as a git tag fallback.
-
-## Out of scope
-
-- Any new-design work (that begins after this fork lands).
-- The normalized RightPanel (separate Figma-first arc).
-- Touching the design system, `api/`, or `data/`.
-
-## Verification
-
-- `npm run build:odyssey-one` clean.
-- `/shipments-legacy` renders **pixel-identical** to today's `/shipments` (visual diff via screenshot).
-- A deliberate temporary edit to a `tokens.css` value visibly changes `/shipments` but **not** `/shipments-legacy` (proves the freeze); revert the probe after.
-- `/shipments` still renders (now showing the WIP DataTable migration).
-- Sidebar unchanged; `/shipments-legacy` reachable only by URL.
-
-## Risks
-
-- **Import-rewrite errors** in the ~25 copied files → caught by the build.
-- **Missed token** in the frozen block → the snapshot drifts on that one var. Mitigation: copy the entire `:root` token block, not a hand-picked subset.
-- **Breaking shared api/data change** later → affects the snapshot; backstopped by the tag, fork-on-demand if it occurs.
+- **Push to GitHub + deploy to its own Vercel project** — only when a stable stakeholder URL is needed ("later if necessary").
+- The new-design work itself (begins now in `main`/`/shipments`).
