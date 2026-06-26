@@ -131,3 +131,21 @@ export function filterTiersByLatest(tiers, latest) {
   if (!latest) return tiers
   return tiers.map((t) => ({ ...t, demos: t.demos.filter((d) => d.meta.version === latest) }))
 }
+
+// ── Search filter ─────────────────────────────────────────────────────────────
+// The search query is a THIRD filter dimension, layered on top of domain +
+// "Latest only". It mirrors filterTiersByDomain / filterTiersByLatest: a
+// case-insensitive name match that narrows each tier IN PLACE — the tab
+// structure stays, tab counts reflect the query, and you still view one tier at
+// a time. (No-op for a blank query.)
+export function filterDemosBySearch(demos, query) {
+  const q = String(query || '').trim().toLowerCase()
+  if (!q) return demos
+  return demos.filter((d) => d.meta.name.toLowerCase().includes(q))
+}
+
+export function filterTiersBySearch(tiers, query) {
+  const q = String(query || '').trim().toLowerCase()
+  if (!q) return tiers
+  return tiers.map((t) => ({ ...t, demos: filterDemosBySearch(t.demos, q) }))
+}

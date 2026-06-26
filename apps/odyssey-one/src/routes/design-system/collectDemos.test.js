@@ -1,5 +1,5 @@
 import { describe, it, expect, test } from 'vitest'
-import { TIERS, groupDemosByTier, collectNormalizing, DOMAINS, filterTiersByDomain, filterDemosByDomain, latestVersion, filterTiersByLatest } from './collectDemos.js'
+import { TIERS, groupDemosByTier, collectNormalizing, DOMAINS, filterTiersByDomain, filterDemosByDomain, latestVersion, filterTiersByLatest, filterTiersBySearch, filterDemosBySearch } from './collectDemos.js'
 
 // Minimal fake of the import.meta.glob({ eager: true }) result:
 // { '<path>': { meta, props?, tokens?, default } }
@@ -189,5 +189,50 @@ describe('filterTiersByLatest', () => {
   })
   it('returns tiers unchanged when latest is null', () => {
     expect(filterTiersByLatest(tiered, null)).toBe(tiered)
+  })
+})
+
+describe('filterDemosBySearch / filterTiersBySearch', () => {
+  const searchTiers = [
+    { key: 'atom', label: 'Atoms', demos: [
+      { meta: { name: 'Button' } }, { meta: { name: 'Badge' } },
+    ] },
+    { key: 'molecule', label: 'Molecules', demos: [
+      { meta: { name: 'FormField' } }, { meta: { name: 'ButtonToggle' } },
+    ] },
+    { key: 'organism', label: 'Organisms', demos: [
+      { meta: { name: 'Navbar' } },
+    ] },
+  ]
+
+  it('returns the input unchanged for a blank query (no-op, like the other filters)', () => {
+    expect(filterTiersBySearch(searchTiers, '')).toBe(searchTiers)
+    expect(filterTiersBySearch(searchTiers, '   ')).toBe(searchTiers)
+    const demos = searchTiers[0].demos
+    expect(filterDemosBySearch(demos, '')).toBe(demos)
+  })
+
+  it('narrows each tier IN PLACE, keeping the tier structure + order', () => {
+    const result = filterTiersBySearch(searchTiers, 'bad')
+    expect(result.map((t) => t.key)).toEqual(['atom', 'molecule', 'organism'])
+    expect(result.map((t) => t.demos.map((d) => d.meta.name))).toEqual([
+      ['Badge'], [], [],
+    ])
+  })
+
+  it('matches case-insensitively on substrings', () => {
+    const result = filterTiersBySearch(searchTiers, 'BUTTON')
+    expect(result[0].demos.map((d) => d.meta.name)).toEqual(['Button'])
+    expect(result[1].demos.map((d) => d.meta.name)).toEqual(['ButtonToggle'])
+  })
+
+  it('empties every tier when nothing matches', () => {
+    const result = filterTiersBySearch(searchTiers, 'zzz')
+    expect(result.every((t) => t.demos.length === 0)).toBe(true)
+  })
+
+  it('filterDemosBySearch matches a flat demo list (the Normalizing tier)', () => {
+    const normalizing = [{ meta: { name: 'BadgeGroup' } }, { meta: { name: 'Navbar' } }]
+    expect(filterDemosBySearch(normalizing, 'badge').map((d) => d.meta.name)).toEqual(['BadgeGroup'])
   })
 })

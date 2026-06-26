@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { SearchField } from '@odyssey/ui'
-import { TIERS, groupDemosByTier, collectNormalizing, DOMAINS, filterTiersByDomain, filterDemosByDomain, latestVersion, filterTiersByLatest } from './collectDemos.js'
+import { TIERS, groupDemosByTier, collectNormalizing, DOMAINS, filterTiersByDomain, filterDemosByDomain, latestVersion, filterTiersByLatest, filterTiersBySearch, filterDemosBySearch } from './collectDemos.js'
 import domainUsage from './domain-usage.json'
 import './DesignSystem.css'
 
@@ -128,19 +128,23 @@ export default function DesignSystem() {
   // Section collapse state — a set of expanded component names. Empty = all
   // collapsed (the default, on load and whenever the page re-mounts).
   const [expanded, setExpanded] = useState(() => new Set())
+  // The three filters compose, in order: domain → "Latest only" → search. The
+  // search is just a third query layer on top of the other two — it narrows each
+  // tier in place, so the tab structure stays and the tab counts reflect it.
   const domainTiers = filterTiersByDomain(tiers, domainUsage, activeDomain)
-  const viewTiers = latestOnly ? filterTiersByLatest(domainTiers, latestVer) : domainTiers
-  const viewNormalizing = filterDemosByDomain(normalizing, domainUsage, activeDomain)
+  const latestTiers = latestOnly ? filterTiersByLatest(domainTiers, latestVer) : domainTiers
+  const viewTiers = filterTiersBySearch(latestTiers, query)
+  const viewNormalizing = filterDemosBySearch(
+    filterDemosByDomain(normalizing, domainUsage, activeDomain),
+    query
+  )
   const onNormalize = activeTier === NORMALIZE_KEY
   const active = onNormalize ? null : viewTiers.find((t) => t.key === activeTier)
+  const searching = query.trim().length > 0
 
-  // Sections visible in the current tab — drives the Expand/Collapse-all toggle.
+  // Sections shown in the active tab (already domain + latest + search filtered).
   const visibleDemos = onNormalize ? viewNormalizing : (active?.demos ?? [])
-  // Final case-insensitive name filter (search bar). Expand-all + the rendered
-  // list both operate on the searched set, so Expand-all acts on matches only.
-  const q = query.trim().toLowerCase()
-  const searchedDemos = q ? visibleDemos.filter((d) => d.meta.name.toLowerCase().includes(q)) : visibleDemos
-  const allExpanded = searchedDemos.length > 0 && searchedDemos.every((d) => expanded.has(d.meta.name))
+  const allExpanded = visibleDemos.length > 0 && visibleDemos.every((d) => expanded.has(d.meta.name))
   const toggleCollapse = (name) =>
     setExpanded((prev) => {
       const next = new Set(prev)
@@ -151,7 +155,7 @@ export default function DesignSystem() {
   const toggleAll = () =>
     setExpanded((prev) => {
       const next = new Set(prev)
-      searchedDemos.forEach((d) => (allExpanded ? next.delete(d.meta.name) : next.add(d.meta.name)))
+      visibleDemos.forEach((d) => (allExpanded ? next.delete(d.meta.name) : next.add(d.meta.name)))
       return next
     })
 
@@ -165,8 +169,9 @@ export default function DesignSystem() {
     return () => document.removeEventListener('keydown', onKey)
   }, [openDetails])
 
-  // When the domain filter changes, never strand the user on an empty tab —
-  // jump to the first tab that still has components (tiers first, then Normalizing).
+  // When any filter (domain / latest / search) empties the active tab, never
+  // strand the user — jump to the first tab that still has components (tiers
+  // first, then Normalizing).
   useEffect(() => {
     const activeEmpty = onNormalize
       ? viewNormalizing.length === 0
@@ -176,7 +181,7 @@ export default function DesignSystem() {
     if (firstTier) setActiveTier(firstTier.key)
     else if (viewNormalizing.length > 0) setActiveTier(NORMALIZE_KEY)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeDomain, latestOnly])
+  }, [activeDomain, latestOnly, query])
 
   const renderSection = (demo) => (
     <DemoSection
@@ -194,8 +199,26 @@ export default function DesignSystem() {
     <div className="ds-root">
       <main className="ds-page">
         <header className="ds-header">
-          <div className="ds-header__row">
-            <h1>Odyssey Design System</h1>
+          <h1>Odyssey Design System</h1>
+          <p>
+            Live <code>@odyssey/ui</code> components — hover, focus, type. The real
+            thing, not a static reproduction.
+          </p>
+          {/* Filter row: the search query (left) sits alongside the Domain +
+              "Latest only" filters (right). All three compose — search is a
+              third query layer on top of the dropdown + button filters, applied
+              within the current tab. */}
+          <div className="ds-header__filters">
+            <div className="ds-header__search">
+              <SearchField
+                className="ds-header__search-field"
+                value={query}
+                onChange={setQuery}
+                onClear={() => setQuery('')}
+                placeholder="Search components"
+                showLabel={false}
+              />
+            </div>
             <div className="ds-header__controls">
               <label className="ds-domain">
                 <span className="ds-domain__label">Domain</span>
@@ -226,10 +249,6 @@ export default function DesignSystem() {
               </button>
             </div>
           </div>
-          <p>
-            Live <code>@odyssey/ui</code> components — hover, focus, type. The real
-            thing, not a static reproduction.
-          </p>
         </header>
 
         <nav className="ds-tabs" role="tablist" aria-label="Component tiers">
@@ -266,39 +285,21 @@ export default function DesignSystem() {
         <div className="ds-list">
           {visibleDemos.length > 0 && (
             <div className="ds-list__toolbar">
-              <SearchField
-                className="ds-list__search"
-                value={query}
-                onChange={setQuery}
-                onClear={() => setQuery('')}
-                placeholder="Search components"
-                showLabel={false}
-              />
               <button type="button" className="ds-collapse-all" onClick={toggleAll}>
                 {allExpanded ? 'Collapse all' : 'Expand all'}
               </button>
             </div>
           )}
-          {onNormalize ? (
-            viewNormalizing.length === 0 ? (
-              <p className="ds-empty">
-                Nothing in progress — components appear here during a /normalize cycle.
-              </p>
-            ) : searchedDemos.length === 0 ? (
-              <p className="ds-empty">No components match "{query}".</p>
-            ) : (
-              searchedDemos.map(renderSection)
-            )
+          {visibleDemos.length > 0 ? (
+            visibleDemos.map(renderSection)
+          ) : searching ? (
+            <p className="ds-empty">No components match "{query}".</p>
+          ) : onNormalize ? (
+            <p className="ds-empty">
+              Nothing in progress — components appear here during a /normalize cycle.
+            </p>
           ) : (
-            <>
-              {active.demos.length === 0 ? (
-                <p className="ds-empty">No {active.label.toLowerCase()} demos yet.</p>
-              ) : searchedDemos.length === 0 ? (
-                <p className="ds-empty">No components match "{query}".</p>
-              ) : (
-                searchedDemos.map(renderSection)
-              )}
-            </>
+            <p className="ds-empty">No {(active?.label ?? 'component').toLowerCase()} demos yet.</p>
           )}
         </div>
       </main>

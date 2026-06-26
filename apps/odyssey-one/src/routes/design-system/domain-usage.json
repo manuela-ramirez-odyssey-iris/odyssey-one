@@ -31,11 +31,14 @@
     "SearchField"
   ],
   "shipments": [
+    "ActionMenu",
     "Badge",
     "Button",
+    "DataTable",
     "FormField",
     "ModalMedium",
-    "PageHeader"
+    "PageHeader",
+    "Paginator"
   ],
   "carriers": [
     "PageHeader"

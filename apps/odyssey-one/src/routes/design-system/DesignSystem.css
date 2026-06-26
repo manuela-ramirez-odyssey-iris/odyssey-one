@@ -234,18 +234,13 @@
   color: var(--text-primary);
 }
 
-/* Expand/Collapse-all toolbar — search on the lead side, Expand-all trailing. */
+/* Expand/Collapse-all toolbar — search now lives in the header, so the only
+   control left here is the trailing Expand-all button. */
 .ds-list__toolbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: var(--spacing-4);
-}
-
-/* Component search input — constrained so it doesn't stretch across the toolbar. */
-.ds-list__search {
-  flex: 0 1 240px;
-  max-width: 240px;
 }
 
 .ds-collapse-all {
@@ -433,8 +428,17 @@
   font-weight: var(--font-weight-semibold);
 }
 
+/* Filter row: search (left) + Domain/"Latest only" cluster (right), one line.
+   Wraps on narrow widths so the controls drop below the search. */
+.ds-header__filters {
+  display: flex; align-items: center; gap: var(--spacing-4);
+  margin-top: var(--spacing-5); flex-wrap: wrap;
+}
+/* Global component search — the query layer that composes with the two filters. */
+.ds-header__search { flex: 1 1 280px; max-width: 480px; }
+.ds-header__search-field { width: 100%; }
+
 /* Domain filter dropdown */
-.ds-header__row { display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-4); }
 .ds-domain { display: inline-flex; align-items: center; gap: var(--spacing-2); }
 .ds-domain__label { font-size: var(--font-size-sm); color: var(--text-secondary); }
 .ds-domain__select {
@@ -443,8 +447,8 @@
   border-radius: var(--radius-md); background: var(--white); cursor: pointer;
 }
 
-/* "Latest only" filter toggle (sits next to the domain dropdown). */
-.ds-header__controls { display: inline-flex; align-items: center; gap: var(--spacing-3); }
+/* Domain + "Latest only" filter cluster — pinned to the right of the search. */
+.ds-header__controls { display: flex; align-items: center; gap: var(--spacing-3); margin-left: auto; }
 .ds-latest-toggle {
   font: inherit; font-size: var(--font-size-sm); color: var(--text-secondary);
   padding: var(--spacing-1) var(--spacing-3); border: 1px solid var(--border-default);
