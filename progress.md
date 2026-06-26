@@ -4578,15 +4578,43 @@ Consolidated into **PR #3** (closed PR #2 as superseded). **PR #3 is BLOCKED** �
 
 ---
 
+## Session 68 — June 26, 2026
+
+**Cut 0.3.0 — then caught that it had shipped FIVE DataTable regressions to Cognizant, root-caused them (read-only investigation workflow + verified the contested cause against TanStack source), fixed the React canonical (TDD) + the Angular twin (Δ=0), VERIFIED IN-BROWSER on both stacks, and shipped 0.3.1. Plus: DSM component-search + CODE-ONLY badge in both explorers, DataTable reclassified molecule→organism, React app deployed to prod, React PR #2 merged to main, and the Angular PR reconciled against a +14-commit divergent main (our 0.3.1 wins).**
+
+### 0.3.0 release cut (then superseded by 0.3.1)
+- Published `@oneodyssey/ui@0.3.0` (held S63–S68 wave); pushed Angular `batch/s63-component-normalizations` (tag v0.3.0, PR #7) + React `feat/datatable-extensibility` (PR #2). Publish auth = `gh auth token` (already carries `write:packages`) → temp `dist/.npmrc`, removed after (no PAT juggling). **`connect:publish` BLOCKED by pre-existing Figma drift** in 5 untouched components (SearchResults/SearchPanel/MatchRow/EmptyState/CustomerRow — props renamed in Figma; a separate Efrain reconciliation, NOT a release blocker; DataTable/ActionMenu have no `.figma.tsx` by design).
+
+### DataTable regressions — the extensibility work shipped FIVE bugs to BOTH stacks
+- User caught them in-browser. A read-only **investigation workflow** (4 parallel agents) root-caused them; the two bug agents disagreed on RC-1's mechanism — verified against installed `@tanstack/table-core` source (React agent right, Angular agent wrong). Puppeteer screenshot of the **live Angular DSM** confirmed they shipped in 0.3.0.
+- **RC-1** every column locked to 150px — TanStack ColumnSizing writes a default `columnDef.size = 150` onto EVERY column, so the shell's `columnDef.size != null` "is-sized" test is always true (action/select too wide, content-measure + flex dead). Fix: `getSizesFromState` keys off live `columnSizing` ONLY.
+- **RC-2** sticky-right action header detaches on h-scroll — grip-anchor `th{position:relative}` (0,2,1) out-specifies the sticky-right pin (0,2,0). Fix: `th:not(.odyssey-table__cell--sticky-right){position:relative}`.
+- **RC-3/S4** resize laggy — `columnSignature` embedded `JSON.stringify(columnSizing)` → per-mousemove full DOM re-measure. Fix: decouple the measure (column-set/rows only) from sizing; derive colWidths from a cached content measure each render.
+- **RC-4/S3** resize on-by-default (Orders) — gated on `getCanResize()` which TanStack defaults TRUE. Fix: `showResizeGrip` gates on `table.options.enableColumnResizing`; pinned select/action set `enableResizing:false` (**data columns only** — the rule the future RightPanel also follows).
+- **S5** cell overlap → `overflow:hidden;text-overflow:ellipsis` clip.
+- **TDD:** `getSizesFromState` + `showResizeGrip` exported helpers, RED→GREEN proven (React) + Angular parity specs + a component opt-out guard. Demo throwaway buttons removed. **Verified in-browser both stacks** — identical content widths `[48,121,87,109,80,111,89,76]`, action header re-attached (`858==858`, holds on scroll), 6 data-only grips, drag 121→67, ellipsis clip. React **207** vitest, Angular **479** lib + **30** dsm specs.
+
+### DSM features (both explorers) + reclassification
+- **Component search bar** — name-filter (`<SearchField>` / `<odyssey-search-field>`) on the LEAD of "Expand all" (Angular also matches `angularName`). **CODE-ONLY badge** (purple `--badge-purple-*`) on DataTable + ActionMenu (the carried "no Figma" flag, now `codeOnly: true`). **DataTable molecule → organism.** Built by parallel subagents, verified visually on both DSMs.
+
+### 0.3.1 patch + integration
+- `@oneodyssey/ui@0.3.1` **published** (CHANGELOG `### Fixed`). **React PR #2 merged to `main`.** **React app deployed to Vercel prod** so the search bar is live (`odyssey-one-stage.vercel.app/design-system`). **Angular PR #7 reconciled** against a +14-commit divergent `main` (CI/CD setup, dsm-collapsible-sections PR#3, 0.2.0→0.2.1 bumps, reviewer config): per user direction "our 0.3.1 is the source of truth, scrap everything else", all conflicts resolved `--ours`, versions aligned to 0.3.1 (no stale 0.2.1), collapsible-sections scrapped, CI/CD kept → now **`MERGEABLE`**. **Lesson:** unit tests on the pure helpers were blind to all five — only in-browser / real-table rendering surfaced them. [[feedback_avoid_branch_divergence]]
+
+### Carry-forward to Session 69
+- **RightPanel (Figma-first) — THE #1.** The reorder + show/hide column UI driving `setColumnOrder`/`setColumnVisibility`; **data columns only** (select/action stay pinned). Complements DataTable + other components. Needs its Figma design first.
+- **Angular PR #7** — needs a **OneOdyssey teammate to review + approve** (user has push-not-admin, can't self-approve; CI "Build Check" should pass). Source-into-`main` only — 0.3.1 already published, so it gates nothing.
+- **Code Connect refresh** still blocked by the 5-component Figma drift (Efrain reconciliation).
+
+---
+
 ## What's Next
 
-### Session 68 Priorities
+### Session 69 Priorities
 
-1. **CUT THE 0.3.0 RELEASE** (held since S63; Angular ports + DataTable extensibility DONE S67 — this is the one remaining step). Bump `@oneodyssey/ui` **0.2.0 → 0.3.0** + CHANGELOG, `npx ng build odyssey-ui && (cd dist/odyssey-ui && npm publish)`, open the `odyssey-one-library-ui` PR from `batch/s63-component-normalizations`, push/merge `odyssey-one`'s `feat/datatable-extensibility`, `connect:publish`, **Figma library publish** (manual). Wave = dropdown stack + DSM versioning + Paginator + DataTable (+ resize/cell-click) + flip + ActionMenu. **(Ask before pushing — standing rule.)**
-2. **RightPanel** normalization (**Figma-first**) — the reorder + add/remove (show/hide) column UI that drives the DataTable's `setColumnOrder`/`setColumnVisibility`. The DataTable already reflects both; this is the missing driver. Needs its Figma design first.
-3. **DSM "no Figma" badge** (carried from S67 — not done). Flag components that **intentionally have no Figma master** because they compose already-in-Figma primitives (DataTable = Cell+Paginator+ActionMenu; ActionMenu = icon+DropdownMenu).
+1. **RightPanel (Figma-first) — THE #1** (complements DataTable + other components, per the user). The reorder + add/remove (show/hide) column UI that drives the DataTable's `setColumnOrder`/`setColumnVisibility`. The DataTable already reflects both; this is the missing driver. **Scope: DATA columns only** — the select + action columns stay pinned (never reordered/removed), matching the `enableResizing:false` rule the shell now enforces. Needs its Figma design first.
+2. **0.3.0/0.3.1 release — DONE (S68).** `@oneodyssey/ui@0.3.1` published (0.3.0 had shipped 5 DataTable regressions — fixed both stacks). React PR #2 merged to `main`; React app deployed to prod; **Angular PR #7 reconciled + `MERGEABLE`**, awaiting a **OneOdyssey teammate's review approval** (user has push-not-admin; CI "Build Check" should pass). DSM "no Figma" badge → shipped as the **CODE-ONLY** pill (both DSMs). `odyssey-angular-dsm` retired (its DSM work is on `main` now) — safe to delete.
+3. **Code Connect refresh** blocked by **pre-existing Figma drift** in 5 untouched components (SearchResults/SearchPanel/MatchRow/EmptyState/CustomerRow — props renamed in Figma). Needs Figma→DSM→code reconciliation with Efrain before `connect:publish` will pass (atomic).
 4. **Figma `Icon Left/Pressed` drift** (DSN/500 vs Icon Right's DSN/400). **Alert re-tokenization** question for Efrain (the two removed `/200` primitives kept code-side).
-5. **Unblock + merge PR #3** (DSM-explorer) — blocked by `main` protection; needs repo-admin. Then delete the retired `odyssey-angular-dsm`.
 6. **Orders — PAUSED, fully captured.** `vault/60-backlog/backlog.html` ORD-1..10 + the built data seam (`useOrderView`). UI awaits Efrain; contract/live-flip awaits Ramesh + live Swagger. Owed: Product Delete → Efrain; 2 `@odyssey/ui` additive-prop flags.
 7. **Carried follow-ups:** de-dup the app-local `useAnchoredPortal` copy (order-create selects) onto the library hook; migrate the live `ShipmentTable` menu to `ActionMenu` when Shipments moves to `DataTable`; the ⋮-vs-⚡ action-affordance reconciliation for Efrain; Shipments question push (Q25/Q29/Q31/Q33/Q34/Q35); S51 LLD canon merge.
 
