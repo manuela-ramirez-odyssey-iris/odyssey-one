@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { getColWidths, renderCell, cellClassName, headClassName, isInteractiveTarget } from './DataTable.jsx'
+import { getColWidths, getSizesFromState, showResizeGrip, renderCell, cellClassName, headClassName, isInteractiveTarget } from './DataTable.jsx'
 
 describe('getColWidths', () => {
   it('takes the per-column max of header vs first-row width and rounds up', () => {
@@ -45,6 +45,46 @@ describe('getColWidths', () => {
   it('ignores sizes when none are provided (back-compat)', () => {
     expect(getColWidths([50, 100, 50], [0, 0, 0], 260, [false, true, true]))
       .toEqual([50, 130, 80])
+  })
+})
+
+describe('getSizesFromState (which columns are user-sized)', () => {
+  // TanStack's ColumnSizing feature writes a default `columnDef.size = 150` onto EVERY
+  // column, so columnDef.size can never mean "the user sized this". Only the live
+  // columnSizing state (set by a drag) counts — otherwise every column locks to 150px.
+  const col = (id, defSize, sizeReturn) => ({ id, columnDef: { size: defSize }, getSize: () => sizeReturn })
+
+  it('treats NO column as sized when columnSizing is empty, even with columnDef.size=150', () => {
+    const cols = [col('a', 150, 150), col('b', 150, 150)]
+    expect(getSizesFromState(cols, {})).toEqual([null, null])
+  })
+
+  it('returns getSize() only for a column the user dragged (present in columnSizing)', () => {
+    const cols = [col('a', 150, 220), col('b', 150, 150)]
+    expect(getSizesFromState(cols, { a: 220 })).toEqual([220, null])
+  })
+
+  it('defaults to an empty columnSizing (treats nothing as sized)', () => {
+    const cols = [col('a', 150, 150)]
+    expect(getSizesFromState(cols)).toEqual([null])
+  })
+})
+
+describe('showResizeGrip (resize is per-table opt-in)', () => {
+  const table = (enableColumnResizing) => ({ options: { enableColumnResizing } })
+  const column = (canResize) => ({ getCanResize: () => canResize })
+
+  it('hides the grip when the table has not opted in (getCanResize defaults true in TanStack)', () => {
+    expect(showResizeGrip(table(undefined), column(true))).toBe(false)
+    expect(showResizeGrip(table(false), column(true))).toBe(false)
+  })
+
+  it('shows the grip when the table opts in AND the column allows resize', () => {
+    expect(showResizeGrip(table(true), column(true))).toBe(true)
+  })
+
+  it('hides the grip on a pinned column that opts out (select/action: enableResizing:false → getCanResize false)', () => {
+    expect(showResizeGrip(table(true), column(false))).toBe(false)
   })
 })
 

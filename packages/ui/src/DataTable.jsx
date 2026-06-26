@@ -8,11 +8,13 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
  * dependency. The consumer owns columns / data / state. See the design specs
  * 2026-06-25-datatable-shell-design.md + 2026-06-26-datatable-extensibility-design.md.
  *
- * Opt-in extensibility (per-table): column RESIZE (the consumer enables TanStack
- * `columnSizing` → grips render where `column.getCanResize()` is true) and per-cell
+ * Opt-in extensibility (per-table): column RESIZE (the consumer turns on
+ * `enableColumnResizing` on the table → grips render on resizable columns; pinned system
+ * columns like select/action set `enableResizing:false` and never get one) and per-cell
  * CLICK (`onCellClick(cell,row)`, suppressed on interactive cells). Reorder + column
  * visibility are reflected automatically (the shell renders from the table's
- * visible/ordered columns); the driver UI is a separate RightPanel.
+ * visible/ordered columns); the driver UI is a separate RightPanel — and it should touch
+ * DATA columns only (the select + action columns stay pinned).
  */
 
 /** Selector for elements that "own" a click — a cell containing one of these is an
@@ -50,6 +52,30 @@ export function getColWidths(headerWidths, bodyWidths, containerWidth, flexFlags
   return widths
 }
 
+/**
+ * Which columns are "user-sized" (use TanStack `getSize()` verbatim + skip auto-measure +
+ * exclude from flex). A column counts as sized ONLY when its id is present in the live
+ * `columnSizing` state — i.e. the user dragged it. We deliberately do NOT key off
+ * `columnDef.size`: TanStack's ColumnSizing feature injects a default `size: 150` onto
+ * EVERY column, so `columnDef.size != null` is always true and would lock every column to
+ * 150px (killing content-measure + flex). Returns one entry per column: the dragged width or null.
+ */
+export function getSizesFromState(leafCols, columnSizing = {}) {
+  return leafCols.map((c) => (columnSizing[c.id] != null ? c.getSize() : null))
+}
+
+/**
+ * Whether a column shows a resize grip. Resize is a per-table OPT-IN feature: the grip
+ * appears only when the consumer turned resizing on at the table level
+ * (`table.options.enableColumnResizing === true`) AND the column itself allows it
+ * (`getCanResize()`). `getCanResize()` defaults to true in TanStack, so it cannot be the
+ * switch on its own — the table-level flag is. Pinned system columns (select/action) opt
+ * out with `enableResizing: false`, so `getCanResize()` is false and they never get a grip.
+ */
+export function showResizeGrip(table, column) {
+  return table?.options?.enableColumnResizing === true && column?.getCanResize?.() === true
+}
+
 /** Inlined flexRender: call a function renderer with its context, else return
  *  the value (a plain header string, a number, etc.). Nullish → null. Keeps the
  *  library free of any @tanstack import. */
@@ -84,43 +110,34 @@ export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, onC
   const wrapRef = useRef(null)       // body horizontal scroller
   const headTableRef = useRef(null)
   const bodyTableRef = useRef(null)
-  const [colWidths, setColWidths] = useState(null)
+  const [measured, setMeasured] = useState(null) // { headerWidths, bodyWidths, container } — the content-width pass
 
   const rowModel = table.getRowModel()
-  // R2 — re-measure when the column set OR the active sizing changes (resize re-locks widths),
-  // not just when rows change. A by-value string keeps this stable across renders.
-  const columnSignature =
-    table.getVisibleLeafColumns().map((c) => c.id).join('|') +
-    '::' + JSON.stringify(table.getState().columnSizing ?? {})
+  // Re-measure only when the column SET/ORDER or the rows change — NOT when sizing changes.
+  // A resize drag updates the derived widths below without a DOM re-measure (re-measuring
+  // per mouse-move was the resize lag). A by-value string keeps this stable across renders.
+  const columnSignature = table.getVisibleLeafColumns().map((c) => c.id).join('|')
 
-  // Two-pass sizing: render shrink-to-fit (colWidths null) so each column reports its true
-  // content width, then lock max(header, firstRow) per column into a shared <colgroup> and
-  // hand leftover space to flex columns — except user-sized columns, which use their
-  // TanStack `getSize()` verbatim (see getColWidths `sizes`).
-  useLayoutEffect(() => { setColWidths(null) }, [rowModel.rows, columnSignature])
+  // Pass 1: with `measured` null the table renders width:auto so each column reports its true
+  // content width; capture those raw widths once. Pass 2 (derived, below) locks them into a
+  // shared <colgroup> and hands leftover space to flex columns — recomputed cheaply on every
+  // render so a drag updates the colgroup live without re-reading the DOM.
+  useLayoutEffect(() => { setMeasured(null) }, [rowModel.rows, columnSignature])
   useLayoutEffect(() => {
-    if (colWidths) return
+    if (measured) return
     const ths = headTableRef.current?.querySelectorAll('thead th')
     const tds = bodyTableRef.current?.querySelectorAll('tbody tr:first-child td')
     if (!ths?.length || !tds?.length) return
     const headerWidths = Array.from(ths).map((th) => th.getBoundingClientRect().width)
     const bodyWidths = Array.from(tds).map((td) => td.getBoundingClientRect().width)
     const container = wrapRef.current?.clientWidth ?? 0
-    const leafCols = table.getVisibleLeafColumns()
-    const flexFlags = leafCols.map((c) => !c.columnDef.meta?.fixedWidth)
-    // A column is "sized" (use TanStack getSize, skip auto-measure) when the user dragged it
-    // (its id is in columnSizing) or it declares an explicit columnDef.size.
-    const sizing = table.getState().columnSizing ?? {}
-    const sizes = leafCols.map((c) =>
-      sizing[c.id] != null || c.columnDef.size != null ? c.getSize() : null
-    )
-    setColWidths(getColWidths(headerWidths, bodyWidths, container, flexFlags, sizes))
-  }, [colWidths, rowModel.rows, columnSignature]) // eslint-disable-line react-hooks/exhaustive-deps
+    setMeasured({ headerWidths, bodyWidths, container })
+  }, [measured, rowModel.rows, columnSignature]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Re-measure on resize (debounced).
+  // Re-measure on window resize (debounced) — the container width changed.
   useEffect(() => {
     let t = 0
-    const onResize = () => { clearTimeout(t); t = setTimeout(() => setColWidths(null), 150) }
+    const onResize = () => { clearTimeout(t); t = setTimeout(() => setMeasured(null), 150) }
     window.addEventListener('resize', onResize)
     return () => { window.removeEventListener('resize', onResize); clearTimeout(t) }
   }, [])
@@ -134,6 +151,17 @@ export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, onC
     wrap.addEventListener('scroll', onScroll, { passive: true })
     return () => wrap.removeEventListener('scroll', onScroll)
   }, [])
+
+  // Derived each render (cheap, no DOM read): lock measured content widths into the colgroup,
+  // but let user-dragged columns use their live `getSize()` so a resize tracks the cursor
+  // smoothly. `sizes` is keyed off columnSizing only (see getSizesFromState) — un-dragged
+  // columns auto-fit their content and flex; they are NOT all forced to 150px.
+  const leafCols = table.getVisibleLeafColumns()
+  const flexFlags = leafCols.map((c) => !c.columnDef.meta?.fixedWidth)
+  const sizes = getSizesFromState(leafCols, table.getState().columnSizing ?? {})
+  const colWidths = measured
+    ? getColWidths(measured.headerWidths, measured.bodyWidths, measured.container, flexFlags, sizes)
+    : null
 
   const totalWidth = colWidths ? colWidths.reduce((a, b) => a + b, 0) : 0
   const tableStyle = colWidths
@@ -162,7 +190,7 @@ export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, onC
                     return (
                       <th key={header.id} className={headClassName(meta, meta?.sticky === 'right')}>
                         {renderCell(header.column.columnDef.header, header.getContext())}
-                        {header.column.getCanResize?.() && (
+                        {showResizeGrip(table, header.column) && (
                           <span
                             className={`odyssey-data-table__resize-grip${header.column.getIsResizing?.() ? ' is-resizing' : ''}`}
                             onMouseDown={header.getResizeHandler()}

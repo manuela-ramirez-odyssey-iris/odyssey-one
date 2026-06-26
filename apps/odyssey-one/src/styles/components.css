@@ -115,6 +115,10 @@
   background: var(--bg-primary);
   border-bottom: 1px solid var(--border-subtle);
   white-space: nowrap;
+  /* When a column is resized narrower than its content, clip with an ellipsis instead of
+     letting the text bleed into (overlap) the neighbouring cell. */
+  overflow: hidden;
+  text-overflow: ellipsis;
   transition: background var(--transition-fast);
 }
 
@@ -230,8 +234,12 @@
   border-top: 1px solid var(--border-subtle);
 }
 
-/* Header cells anchor the resize grip. */
-.odyssey-data-table .odyssey-table th { position: relative; }
+/* Header cells anchor the resize grip — but NOT the sticky-right action header: a
+   `position: sticky` cell already establishes a containing block for the absolutely
+   positioned grip, and forcing `position: relative` here would override its sticky pin
+   (the grip-anchor rule out-specifies the sticky-right rule), detaching the header cell
+   from its still-pinned body cell on horizontal scroll. */
+.odyssey-data-table .odyssey-table th:not(.odyssey-table__cell--sticky-right) { position: relative; }
 
 /* Resize grip — a thin hit-area on the header's right edge, wired to TanStack's
    getResizeHandler. The hair-line indicator brightens on hover / while dragging. */

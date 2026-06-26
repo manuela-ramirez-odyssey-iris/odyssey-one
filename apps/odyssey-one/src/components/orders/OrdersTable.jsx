@@ -25,6 +25,7 @@ const ORDER_ACTIONS = ['View', 'Edit', 'Copy', 'Cancel', 'Restore', 'Delete'].ma
 const COLUMNS = [
   columnHelper.display({
     id: 'select',
+    enableResizing: false, // pinned system column — never resized or reordered
     header: ({ table }) => (
       <Checkbox
         checked={table.getIsAllRowsSelected()}
@@ -75,6 +76,7 @@ const COLUMNS = [
   columnHelper.accessor('earlyPickup', { header: 'Early Pickup' }),
   columnHelper.display({
     id: 'action',
+    enableResizing: false, // pinned system column — never resized or reordered
     header: 'Action',
     cell: () => (
       <ActionMenu

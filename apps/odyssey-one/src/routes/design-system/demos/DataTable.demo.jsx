@@ -7,12 +7,13 @@ import {
 } from '@tanstack/react-table'
 import { EllipsisVertical } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
-import { DataTable, Paginator, Checkbox, Badge, ActionMenu, Button } from '@odyssey/ui'
+import { DataTable, Paginator, Checkbox, Badge, ActionMenu } from '@odyssey/ui'
 
 export const meta = {
   name: 'DataTable',
-  tier: 'molecule',
+  tier: 'organism',
   version: '0.3.0',
+  codeOnly: true,
   // Code-first molecule (composes Cell + Paginator + ActionMenu — no standalone Figma master).
   // React shell S66 + resize/cell-click extensibility S68; Angular twin shipped → full cycle complete.
   normalizing: false,
@@ -45,6 +46,7 @@ const columnHelper = createColumnHelper()
 const COLUMNS = [
   columnHelper.display({
     id: 'select',
+    enableResizing: false, // pinned system column — never resized or reordered
     header: ({ table }) => (
       <Checkbox
         checked={table.getIsAllRowsSelected()}
@@ -78,6 +80,7 @@ const COLUMNS = [
   }),
   columnHelper.display({
     id: 'action',
+    enableResizing: false, // pinned system column — never resized or reordered
     header: 'Action',
     // Row-action menu — the normalized ActionMenu. align="left" here because the
     // demo table is centered in a 720px frame (not flush to the viewport's right
@@ -124,29 +127,12 @@ function LiveDataTable() {
     getPaginationRowModel: getPaginationRowModel(),
   })
   return (
-    <>
-      {/* Throwaway proof controls — NOT the RightPanel (a separate Figma-first arc). They
-          demonstrate the shell reflecting columnOrder / columnVisibility driven externally. */}
-      <div style={{ display: 'flex', gap: 'var(--spacing-2)', marginBottom: 'var(--spacing-3)' }}>
-        <Button
-          variant="secondary"
-          onClick={() => table.setColumnOrder(
-            table.getState().columnOrder.length
-              ? []
-              : ['action', 'status', 'commodity', 'weight', 'destination', 'origin', 'name', 'select']
-          )}
-        >Toggle reverse order</Button>
-        <Button variant="secondary" onClick={() => table.getColumn('commodity').toggleVisibility()}>
-          Toggle Commodity column
-        </Button>
-      </div>
-      <DataTable
-        table={table}
-        ariaLabel="Sample data"
-        onCellClick={(cell, row) => console.log('cell click →', cell.column.id, '·', row.original.name)}
-        footer={<Paginator table={table} pageSizeOptions={[10, 25, 50]} />}
-      />
-    </>
+    <DataTable
+      table={table}
+      ariaLabel="Sample data"
+      onCellClick={(cell, row) => console.log('cell click →', cell.column.id, '·', row.original.name)}
+      footer={<Paginator table={table} pageSizeOptions={[10, 25, 50]} />}
+    />
   )
 }
 
