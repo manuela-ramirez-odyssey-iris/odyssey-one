@@ -13,8 +13,9 @@ export const meta = {
   name: 'DataTable',
   tier: 'molecule',
   version: '0.3.0',
-  // React shell built S66; Angular twin + Figma retro-sync pending → clears at the full-cycle GATE.
-  normalizing: true,
+  // Code-first molecule (composes Cell + Paginator + ActionMenu — no standalone Figma master).
+  // React shell S66 + resize/cell-click extensibility S68; Angular twin shipped → full cycle complete.
+  normalizing: false,
 }
 
 export const props = [

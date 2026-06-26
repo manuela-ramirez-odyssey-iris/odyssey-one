@@ -6,8 +6,9 @@ export const meta = {
   name: 'ActionMenu',
   tier: 'molecule',
   version: '0.3.0',
-  // React built S66; Angular twin + Figma retro-sync pending → clears at the full-cycle GATE.
-  normalizing: true,
+  // Code-first molecule — composes DropdownMenu + MenuRow (both already in Figma), so no
+  // standalone Figma master. React built S66; Angular twin shipped S67 → full cycle complete.
+  normalizing: false,
 }
 
 export const props = [
