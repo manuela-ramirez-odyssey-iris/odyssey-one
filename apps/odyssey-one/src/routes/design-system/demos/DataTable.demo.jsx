@@ -7,7 +7,7 @@ import {
 } from '@tanstack/react-table'
 import { EllipsisVertical } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
-import { DataTable, Paginator, Checkbox, Badge, ActionMenu } from '@odyssey/ui'
+import { DataTable, Paginator, Checkbox, Badge, ActionMenu, Button } from '@odyssey/ui'
 
 export const meta = {
   name: 'DataTable',
@@ -103,23 +103,49 @@ const DATA = Array.from({ length: 32 }, (_, i) => ({
 function LiveDataTable() {
   const [rowSelection, setRowSelection] = useState({})
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 })
+  const [columnOrder, setColumnOrder] = useState([])
+  const [columnVisibility, setColumnVisibility] = useState({})
+  const [columnSizing, setColumnSizing] = useState({})
   const table = useReactTable({
     data: DATA,
     columns: COLUMNS,
-    state: { rowSelection, pagination },
+    state: { rowSelection, pagination, columnOrder, columnVisibility, columnSizing },
     onRowSelectionChange: setRowSelection,
     onPaginationChange: setPagination,
+    onColumnOrderChange: setColumnOrder,
+    onColumnVisibilityChange: setColumnVisibility,
+    onColumnSizingChange: setColumnSizing,
+    enableColumnResizing: true,
+    columnResizeMode: 'onChange',
     enableRowSelection: true,
     getRowId: (row) => row.id,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
   })
   return (
-    <DataTable
-      table={table}
-      ariaLabel="Sample data"
-      footer={<Paginator table={table} pageSizeOptions={[10, 25, 50]} />}
-    />
+    <>
+      {/* Throwaway proof controls — NOT the RightPanel (a separate Figma-first arc). They
+          demonstrate the shell reflecting columnOrder / columnVisibility driven externally. */}
+      <div style={{ display: 'flex', gap: 'var(--spacing-2)', marginBottom: 'var(--spacing-3)' }}>
+        <Button
+          variant="secondary"
+          onClick={() => table.setColumnOrder(
+            table.getState().columnOrder.length
+              ? []
+              : ['action', 'status', 'commodity', 'weight', 'destination', 'origin', 'name', 'select']
+          )}
+        >Toggle reverse order</Button>
+        <Button variant="secondary" onClick={() => table.getColumn('commodity').toggleVisibility()}>
+          Toggle Commodity column
+        </Button>
+      </div>
+      <DataTable
+        table={table}
+        ariaLabel="Sample data"
+        onCellClick={(cell, row) => console.log('cell click →', cell.column.id, '·', row.original.name)}
+        footer={<Paginator table={table} pageSizeOptions={[10, 25, 50]} />}
+      />
+    </>
   )
 }
 

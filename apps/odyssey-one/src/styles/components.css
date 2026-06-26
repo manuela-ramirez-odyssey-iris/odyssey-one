@@ -230,6 +230,39 @@
   border-top: 1px solid var(--border-subtle);
 }
 
+/* Header cells anchor the resize grip. */
+.odyssey-data-table .odyssey-table th { position: relative; }
+
+/* Resize grip — a thin hit-area on the header's right edge, wired to TanStack's
+   getResizeHandler. The hair-line indicator brightens on hover / while dragging. */
+.odyssey-data-table__resize-grip {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 8px;
+  height: 100%;
+  cursor: col-resize;
+  user-select: none;
+  touch-action: none;
+}
+.odyssey-data-table__resize-grip::after {
+  content: '';
+  position: absolute;
+  top: 25%;
+  right: 3px;
+  width: 1px;
+  height: 50%;
+  background: var(--border-subtle);
+  transition: background var(--transition-fast);
+}
+.odyssey-data-table__resize-grip:hover::after,
+.odyssey-data-table__resize-grip.is-resizing::after {
+  background: var(--deep-sea-neutral-500);
+}
+
+/* Cell-clickable affordance — pointer on body cells when onCellClick is wired. */
+.odyssey-data-table--cell-clickable tbody td { cursor: pointer; }
+
 /* ----------------------------------------
    BOTTOM BAR TRANSITIONS
    Slide-up panel with multiple states
