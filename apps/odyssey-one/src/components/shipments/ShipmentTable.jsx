@@ -1,12 +1,28 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { List } from 'react-window'
+import { useReactTable, getCoreRowModel, createColumnHelper } from '@tanstack/react-table'
 import { Zap, Columns3Cog, Info, TriangleAlert } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
-import { Badge } from '@odyssey/ui'
+import { Badge, DataTable, Paginator, ActionMenu } from '@odyssey/ui'
 import DarkTooltip from '../ui/DarkTooltip'
 import { ALL_COLUMNS } from '../detail/ColumnPanel'
 import { SEARCH_ATTRIBUTES } from '../../data'
+
+/**
+ * ShipmentTable — Shipments configuration of the normalized @odyssey/ui DataTable
+ * shell (S69 QA migration off the retired react-window two-panel grid). The shell
+ * owns the chrome (split sticky header + colgroup width-lock + horizontal scroll
+ * sync + sticky-right column); this file owns the column defs + the TanStack
+ * instance (single-row selection + server-side pagination + opt-in column resize).
+ *
+ * Server-paginated: `shipments` is one page (25/50/100 rows) — small enough to
+ * render without virtualization (the DataTable design assumption). Selection is
+ * single-row, CONTROLLED by the parent's `selectedId`: clicking a row fires
+ * onCellClick → onRowSelect (toggle lives in the parent). The decorative radio is
+ * a non-input visual on purpose — a real <input> would count as an interactive
+ * cell and suppress the row's onCellClick. (Gap: DataTable has no built-in
+ * accessible single-select/radio pattern — hand-rolled here for the QA pass.)
+ */
 
 function formatDateOnly(raw) {
   if (!raw) return '--'
@@ -71,177 +87,6 @@ function OrdersTooltip({ orders, children }) {
   )
 }
 
-export const COLUMN_CONFIG = [
-  { key: 'sellShipment', label: 'Sell Shipment', width: 140 },
-  { key: 'buyShipment', label: 'Buy Shipment', width: 140 },
-  { key: 'customerId', label: 'Customer ID(s)', width: 130 },
-  {
-    key: 'shipmentStatus',
-    label: 'Shipment Status',
-    width: 130,
-    render: (s) => (
-      <DarkTooltip text={s.tenderStatus ? `Tender Status: ${s.tenderStatus}` : null} width="auto">
-        <span>{s.shipmentStatus ? (
-          <Badge variant={s.shipmentStatus === 'Done' ? 'green' : 'red'} rightIcon={<Info {...ICON_MD} />}>{s.shipmentStatus}</Badge>
-        ) : '\u2014'}</span>
-      </DarkTooltip>
-    ),
-  },
-  {
-    key: 'orders',
-    label: 'Order #',
-    width: 150,
-    render: (s) => (
-      <OrdersTooltip orders={s.orders}>
-        <div style={{ display: 'flex', flexWrap: 'nowrap', gap: 6, overflow: 'hidden', maxWidth: 192 }}>
-          {s.orders.map((ord, i) => (
-            <Badge key={ord} variant={BADGE_COLORS[i]}>{ord}</Badge>
-          ))}
-        </div>
-      </OrdersTooltip>
-    ),
-  },
-  {
-    key: 'orderCount',
-    label: 'Order Count',
-    width: 80,
-    render: (s) => (
-      <OrdersTooltip orders={s.orders}>
-        <span>{s.orderCount}</span>
-      </OrdersTooltip>
-    ),
-  },
-  { key: 'pickupDate', label: 'Pickup Date', width: 120, render: (s) => (
-    <DarkTooltip text={s.pickupDate || null} width="auto">
-      <span>{formatDateOnly(s.pickupDate)}</span>
-    </DarkTooltip>
-  )},
-  { key: 'deliveryDate', label: 'Delivery Date', width: 120, render: (s) => (
-    <DarkTooltip text={s.deliveryDate || null} width="auto">
-      <span>{formatDateOnly(s.deliveryDate)}</span>
-    </DarkTooltip>
-  )},
-  { key: 'origin', label: 'Origin', width: 160 },
-  { key: 'destination', label: 'Destination', width: 160 },
-  {
-    key: 'grossWeight',
-    label: 'Gross Weight',
-    width: 120,
-    render: (s) => (
-      <span style={{ fontVariantNumeric: 'tabular-nums' }}>
-        {s.grossWeight ? `${Number(s.grossWeight).toLocaleString()} LB` : '--'}
-      </span>
-    ),
-  },
-  { key: 'mode', label: 'Mode', width: 70 },
-  { key: 'equipmentCode', label: 'Equipment', width: 100 },
-  { key: 'scac', label: 'SCAC', width: 80 },
-  {
-    key: 'apFreightCost',
-    label: 'AP Freight Cost',
-    width: 130,
-    render: (s) => (
-      <span style={{ fontVariantNumeric: 'tabular-nums' }}>
-        {s.apFreightCost ? `$${Number(s.apFreightCost.replace(/,/g, '')).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '--'}
-      </span>
-    ),
-  },
-  { key: 'hazardous', label: 'Hazardous', width: 100, render: (s) => {
-    const val = s.hazardous
-    if (val === true || val === 'Yes' || val === 'Y') {
-      return (
-        <span style={{
-          display: 'inline-flex', alignItems: 'center', gap: 4,
-          fontSize: 12, fontWeight: 600, padding: '2px 8px',
-          borderRadius: 'var(--radius-sm)',
-          background: 'rgba(245, 158, 11, 0.12)', color: 'rgb(180, 110, 5)',
-        }}>
-          <TriangleAlert size={12} />
-          Hazmat
-        </span>
-      )
-    }
-    return <span style={{ color: 'var(--text-placeholder)' }}>--</span>
-  }},
-  {
-    key: 'validationMessage',
-    label: 'Message',
-    width: 200,
-    render: (s) => s.validationMessage || '',
-  },
-]
-
-const stickyLastCol = {
-  position: 'sticky',
-  right: 0,
-  zIndex: 3,
-  background: 'var(--bg-primary)',
-  boxShadow: '-2px 0 4px rgba(0,0,0,0.06)',
-}
-
-function ActionMenu({ shipmentId, position, onClose }) {
-  const menuRef = useRef(null)
-
-  useEffect(() => {
-    const handleClick = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) onClose()
-    }
-    document.addEventListener('click', handleClick)
-    return () => document.removeEventListener('click', handleClick)
-  }, [onClose])
-
-  const items = [
-    { label: 'Edit', key: 'edit' },
-    { label: 'Tender by Preferred Carrier', key: 'tender' },
-  ]
-
-  return createPortal(
-    <div
-      ref={menuRef}
-      style={{
-        position: 'fixed',
-        top: position.top,
-        left: position.left,
-        transform: 'translateX(-100%)',
-        background: 'var(--bg-primary)',
-        border: '1px solid var(--border-subtle)',
-        borderRadius: 'var(--radius-md)',
-        boxShadow: 'var(--shadow-md)',
-        zIndex: 9999,
-        minWidth: 220,
-        padding: '4px 0',
-        fontFamily: 'var(--font-primary)',
-      }}
-    >
-      {items.map((item) => (
-        <button
-          key={item.key}
-          onClick={() => onClose()}
-          style={{
-            display: 'block',
-            width: '100%',
-            padding: '8px 14px',
-            background: 'transparent',
-            border: 'none',
-            textAlign: 'left',
-            fontSize: 13,
-            fontWeight: 500,
-            color: 'var(--text-secondary)',
-            cursor: 'pointer',
-            fontFamily: 'var(--font-primary)',
-            transition: 'background 0.12s ease',
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-secondary)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
-        >
-          {item.label}
-        </button>
-      ))}
-    </div>,
-    document.body
-  )
-}
-
 function TruncatedText({ value }) {
   const ref = useRef(null)
   const [showTip, setShowTip] = useState(false)
@@ -279,433 +124,338 @@ function TruncatedText({ value }) {
   )
 }
 
+/** Decorative single-select indicator. Intentionally NOT an <input> — see the
+ *  file header. The whole cell/row is the click target (onCellClick). */
+function RadioDot({ checked }) {
+  return (
+    <span aria-hidden="true" style={{
+      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+      width: 16, height: 16, borderRadius: '50%', boxSizing: 'border-box',
+      border: `1.5px solid ${checked ? 'var(--text-primary)' : 'var(--text-placeholder)'}`,
+    }}>
+      {checked && <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--text-primary)' }} />}
+    </span>
+  )
+}
+
+// Per-column custom cell renderers, keyed by column key. Each receives the raw
+// shipment row. Columns without an entry fall back to <TruncatedText> over the
+// accessor value.
+export const COLUMN_CONFIG = [
+  { key: 'sellShipment', label: 'Sell Shipment' },
+  { key: 'buyShipment', label: 'Buy Shipment' },
+  { key: 'customerId', label: 'Customer ID(s)' },
+  {
+    key: 'shipmentStatus',
+    label: 'Shipment Status',
+    render: (s) => (
+      <DarkTooltip text={s.tenderStatus ? `Tender Status: ${s.tenderStatus}` : null} width="auto">
+        <span>{s.shipmentStatus ? (
+          <Badge variant={s.shipmentStatus === 'Done' ? 'green' : 'red'} rightIcon={<Info {...ICON_MD} />}>{s.shipmentStatus}</Badge>
+        ) : '—'}</span>
+      </DarkTooltip>
+    ),
+  },
+  {
+    key: 'orders',
+    label: 'Order #',
+    render: (s) => (
+      <OrdersTooltip orders={s.orders}>
+        <div style={{ display: 'flex', flexWrap: 'nowrap', gap: 6, overflow: 'hidden', maxWidth: 192 }}>
+          {s.orders.map((ord, i) => (
+            <Badge key={ord} variant={BADGE_COLORS[i]}>{ord}</Badge>
+          ))}
+        </div>
+      </OrdersTooltip>
+    ),
+  },
+  {
+    key: 'orderCount',
+    label: 'Order Count',
+    render: (s) => (
+      <OrdersTooltip orders={s.orders}>
+        <span>{s.orderCount}</span>
+      </OrdersTooltip>
+    ),
+  },
+  { key: 'pickupDate', label: 'Pickup Date', render: (s) => (
+    <DarkTooltip text={s.pickupDate || null} width="auto">
+      <span>{formatDateOnly(s.pickupDate)}</span>
+    </DarkTooltip>
+  )},
+  { key: 'deliveryDate', label: 'Delivery Date', render: (s) => (
+    <DarkTooltip text={s.deliveryDate || null} width="auto">
+      <span>{formatDateOnly(s.deliveryDate)}</span>
+    </DarkTooltip>
+  )},
+  { key: 'origin', label: 'Origin' },
+  { key: 'destination', label: 'Destination' },
+  {
+    key: 'grossWeight',
+    label: 'Gross Weight',
+    render: (s) => (
+      <span style={{ fontVariantNumeric: 'tabular-nums' }}>
+        {s.grossWeight ? `${Number(s.grossWeight).toLocaleString()} LB` : '--'}
+      </span>
+    ),
+  },
+  { key: 'mode', label: 'Mode' },
+  { key: 'equipmentCode', label: 'Equipment' },
+  { key: 'scac', label: 'SCAC' },
+  {
+    key: 'apFreightCost',
+    label: 'AP Freight Cost',
+    render: (s) => (
+      <span style={{ fontVariantNumeric: 'tabular-nums' }}>
+        {s.apFreightCost ? `$${Number(s.apFreightCost.replace(/,/g, '')).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '--'}
+      </span>
+    ),
+  },
+  { key: 'hazardous', label: 'Hazardous', render: (s) => {
+    const val = s.hazardous
+    if (val === true || val === 'Yes' || val === 'Y') {
+      return (
+        <span style={{
+          display: 'inline-flex', alignItems: 'center', gap: 4,
+          fontSize: 12, fontWeight: 600, padding: '2px 8px',
+          borderRadius: 'var(--radius-sm)',
+          background: 'rgba(245, 158, 11, 0.12)', color: 'rgb(180, 110, 5)',
+        }}>
+          <TriangleAlert size={12} />
+          Hazmat
+        </span>
+      )
+    }
+    return <span style={{ color: 'var(--text-placeholder)' }}>--</span>
+  }},
+  {
+    key: 'validationMessage',
+    label: 'Message',
+    render: (s) => s.validationMessage || '',
+  },
+]
+
 const COLUMN_CONFIG_MAP = Object.fromEntries(COLUMN_CONFIG.map(c => [c.key, c]))
 
-const ROW_HEIGHT = 56
+const columnHelper = createColumnHelper()
 
-// Data row (radio + data columns only — no actions)
-const ShipmentRow = React.memo(function ShipmentRow({ shipment, isSelected, isMenuOpen, onSelect, orderedColumns }) {
-  const s = shipment
-  const highlighted = isSelected || isMenuOpen
-  const rowBg = highlighted ? 'var(--deep-sea-neutral-200, #E4E6EB)' : 'var(--bg-primary)'
+// Inert until each wires to its feature (carried verbatim from the old menu).
+const SHIPMENT_ACTIONS = [
+  { label: 'Edit', onSelect: () => {} },
+  { label: 'Tender by Preferred Carrier', onSelect: () => {} },
+]
 
-  return (
-    <div
-      className="flex items-center cursor-pointer transition-colors duration-150"
-      style={{ background: rowBg, height: ROW_HEIGHT, minWidth: 'max-content' }}
-      onClick={() => onSelect(s)}
-      onMouseEnter={(e) => {
-        if (!highlighted) e.currentTarget.style.background = 'var(--bg-secondary)'
-      }}
-      onMouseLeave={(e) => {
-        if (!highlighted) e.currentTarget.style.background = 'var(--bg-primary)'
-      }}
-    >
-      {/* Radio */}
-      <div style={{ width: 48, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', height: ROW_HEIGHT, borderBottom: '1px solid var(--bg-tertiary)' }}
-        onClick={(e) => { e.stopPropagation(); onSelect(s) }}>
-        <input
-          type="radio"
-          name="shipment-select"
-          checked={isSelected}
-          readOnly
-          style={{ accentColor: 'var(--text-primary)', width: 16, height: 16, cursor: 'pointer', pointerEvents: 'none' }}
-        />
-      </div>
+const ALL_KEYS = ALL_COLUMNS.map((c) => c.key)
+const colLabel = (key) => COLUMN_CONFIG_MAP[key]?.label ?? ALL_COLUMNS.find((c) => c.key === key)?.label ?? key
 
-      {/* Data columns */}
-      {orderedColumns.map(col => {
-        const configCol = COLUMN_CONFIG_MAP[col.key]
-        const w = col._resolvedWidth || col.width || 120
-        return (
-          <div key={col.key} style={{
-            width: w,
-            minWidth: w,
-            flexShrink: 0,
-            padding: '0 var(--spacing-4)',
-            height: ROW_HEIGHT,
-            borderBottom: '1px solid var(--bg-tertiary)',
-            whiteSpace: 'nowrap',
-            display: 'flex',
-            alignItems: 'center',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            ...(col.key === 'buyShipment' || col.key === 'sellShipment' ? { fontWeight: 500, color: 'var(--text-secondary)' } : {}),
-          }}>
-            {configCol && configCol.render ? configCol.render(s) : <TruncatedText value={s[col.key]} />}
-          </div>
-        )
-      })}
-    </div>
-  )
-}, (prevProps, nextProps) => {
-  return prevProps.isSelected === nextProps.isSelected &&
-    prevProps.isMenuOpen === nextProps.isMenuOpen &&
-    prevProps.shipment === nextProps.shipment &&
-    prevProps.orderedColumns === nextProps.orderedColumns
-})
+// Translate the ColumnPanel's ordered `visibleColumns` (+ the SHP-33 active-search
+// promotion) into TanStack column state: which columns show (columnVisibility) and
+// in what order (columnOrder). This is the SAME state the future RightPanel will
+// drive — the old panel is just an early driver of it. The column SET is stable
+// (see the master `columns` below); only visibility + order change.
+function deriveColumnState(visibleColumns, activeChipKey) {
+  let visibleKeys = (visibleColumns && visibleColumns.length)
+    ? visibleColumns.filter((k) => ALL_KEYS.includes(k))
+    : COLUMN_CONFIG.map((c) => c.key)
 
-const VirtualRow = React.memo(function VirtualRow({ index, style, shipments, selectedId, handleSelect, orderedColumns, menuOpenId }) {
-  const s = shipments[index]
-  return (
-    <div style={style}>
-      <ShipmentRow
-        shipment={s}
-        isSelected={selectedId === s.id}
-        isMenuOpen={menuOpenId === s.id}
-        onSelect={handleSelect}
-        orderedColumns={orderedColumns}
-      />
-    </div>
-  )
-})
+  // SHP-33: promote the active search column to position 2 (after the first column),
+  // making it visible if it wasn't.
+  let promotedKey = null
+  if (activeChipKey) {
+    const attr = SEARCH_ATTRIBUTES.find((a) => a.key === activeChipKey)
+    if (attr && ALL_KEYS.includes(attr.dataKey)) {
+      promotedKey = attr.dataKey
+      visibleKeys = visibleKeys.filter((k) => k !== promotedKey)
+      visibleKeys.splice(1, 0, promotedKey)
+    }
+  }
 
-// Actions column row (fixed right panel)
-const ActionCell = React.memo(function ActionCell({ shipment, isSelected, menuOpen, onMenuToggle }) {
-  const [menuPos, setMenuPos] = useState({ top: 0, left: 0 })
-  const highlighted = isSelected || menuOpen
-  const rowBg = highlighted ? 'var(--deep-sea-neutral-200, #E4E6EB)' : 'var(--bg-primary)'
-
-  return (
-    <div
-      className="cursor-pointer transition-colors duration-150"
-      onClick={(e) => {
-        e.stopPropagation()
-        const rect = e.currentTarget.getBoundingClientRect()
-        setMenuPos({ top: rect.bottom + 4, left: rect.right })
-        onMenuToggle(menuOpen ? null : shipment.id)
-      }}
-      onMouseEnter={(e) => {
-        if (!highlighted) e.currentTarget.style.background = 'var(--bg-secondary)'
-      }}
-      onMouseLeave={(e) => {
-        if (!highlighted) e.currentTarget.style.background = rowBg
-      }}
-      style={{ width: 56, height: ROW_HEIGHT, borderBottom: '1px solid var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: rowBg }}
-    >
-      <Zap {...ICON_MD} fill={menuOpen ? 'var(--text-primary)' : 'none'} style={{ color: menuOpen ? 'var(--text-primary)' : 'var(--text-placeholder)' }} />
-      {menuOpen && <ActionMenu shipmentId={shipment.id} position={menuPos} onClose={() => onMenuToggle(null)} />}
-    </div>
-  )
-}, (prevProps, nextProps) => {
-  return prevProps.isSelected === nextProps.isSelected &&
-    prevProps.menuOpen === nextProps.menuOpen &&
-    prevProps.shipment === nextProps.shipment
-})
-
-const VirtualActionRow = React.memo(function VirtualActionRow({ index, style, shipments, selectedId, setMenuOpenId, menuOpenId }) {
-  const s = shipments[index]
-  return (
-    <div style={style}>
-      <ActionCell
-        shipment={s}
-        isSelected={selectedId === s.id}
-        menuOpen={menuOpenId === s.id}
-        onMenuToggle={setMenuOpenId}
-      />
-    </div>
-  )
-})
+  const columnVisibility = {}
+  for (const k of ALL_KEYS) columnVisibility[k] = visibleKeys.includes(k)
+  const hidden = ALL_KEYS.filter((k) => !visibleKeys.includes(k))
+  const columnOrder = ['select', ...visibleKeys, ...hidden, 'action']
+  return { columnVisibility, columnOrder, promotedKey }
+}
 
 export default function ShipmentTable({ shipments, onRowSelect, selectedId, onToggleColumnPanel, visibleColumns, onScrollStart, activeChipKey, pageNumber = 0, pageSize = 25, totalCount = 0, onPageChange, onPageSizeChange, isLoading = false, isError = false, onRetry }) {
   const containerRef = useRef(null)
-  const listRef = useRef(null)
-  const actionsListRef = useRef(null)
-  const headerRef = useRef(null)
-  const [listHeight, setListHeight] = useState(600)
-  const [menuOpenId, setMenuOpenId] = useState(null)
-  const [columnWidths, setColumnWidths] = useState({})
-  const [headerHeight, setHeaderHeight] = useState(null)
+  const [columnSizing, setColumnSizing] = useState({})
 
-  const handleResizeStart = useCallback((e, key, startWidth) => {
-    e.preventDefault()
-    const startX = e.clientX
-    const minWidth = 80
-    const handleMove = (moveE) => {
-      const delta = moveE.clientX - startX
-      setColumnWidths(prev => ({ ...prev, [key]: Math.max(minWidth, startWidth + delta) }))
-    }
-    const handleUp = () => {
-      document.removeEventListener('mousemove', handleMove)
-      document.removeEventListener('mouseup', handleUp)
-    }
-    document.addEventListener('mousemove', handleMove)
-    document.addEventListener('mouseup', handleUp)
-  }, [])
-
-  const orderedColumns = useMemo(() => {
-    let cols
-    if (!visibleColumns) {
-      cols = [...COLUMN_CONFIG]
-    } else {
-      cols = visibleColumns
-        .map(key => {
-          const fromConfig = COLUMN_CONFIG.find(c => c.key === key)
-          if (fromConfig) return fromConfig
-          const allCol = ALL_COLUMNS.find(c => c.key === key)
-          return { key, label: allCol ? allCol.label : key, width: 120 }
-        })
-        .filter(Boolean)
-    }
-
-    // SHP-33: Promote search column to position 2 when chip is active
-    if (activeChipKey) {
-      const attr = SEARCH_ATTRIBUTES.find(a => a.key === activeChipKey)
-      if (attr) {
-        const colKey = attr.dataKey
-        // Remove from current position if present
-        const existingIdx = cols.findIndex(c => c.key === colKey)
-        let promotedCol
-        if (existingIdx >= 0) {
-          promotedCol = cols.splice(existingIdx, 1)[0]
-        } else {
-          // Column not in visible set — find from COLUMN_CONFIG or ALL_COLUMNS
-          promotedCol = COLUMN_CONFIG.find(c => c.key === colKey)
-            || ALL_COLUMNS.find(c => c.key === colKey)
-            || { key: colKey, label: attr.label, width: 120 }
-        }
-        // Mark as promoted for styling, ensure width fits the label
-        const labelWidth = Math.max(promotedCol.width || 120, (promotedCol.label || '').length * 9 + 32)
-        promotedCol = { ...promotedCol, _promoted: true, width: labelWidth }
-        // Insert at position 1 (after Buy Shipment which is at 0)
-        cols.splice(1, 0, promotedCol)
-      }
-    }
-
-    return cols.map(col => ({
-      ...col,
-      _resolvedWidth: columnWidths[col.key] || col.width || 120,
-    }))
-  }, [visibleColumns, activeChipKey, columnWidths])
-
-  const handleSelect = useCallback((shipment) => {
-    onRowSelect(shipment.id)
-  }, [onRowSelect])
-
-  // Auto-scroll selected row into view above the bottom bar
-  useEffect(() => {
-    if (selectedId && listRef.current) {
-      const idx = shipments.findIndex(s => s.id === selectedId)
-      if (idx >= 0) {
-        // Scroll within the virtual list — use 'start' to place row at top of list
-        listRef.current?.scrollToRow({ index: Math.max(0, idx - 2), align: 'start' })
-        // After bottom bar finishes expanding, ensure row is above it in the page
-        setTimeout(() => {
-          const listEl = listRef.current?.element
-          if (!listEl) return
-          const rowTop = idx * ROW_HEIGHT - listEl.scrollTop
-          const listRect = listEl.getBoundingClientRect()
-          const rowScreenY = listRect.top + rowTop
-          const bottomBar = document.querySelector('[data-bottombar]')
-          const cutoff = bottomBar ? bottomBar.getBoundingClientRect().top : window.innerHeight * 0.5
-          const main = listEl.closest('main')
-          // Always scroll if the row is in the lower third of visible area
-          const threshold = cutoff - 150
-          if (main && rowScreenY > threshold) {
-            main.scrollBy({ top: rowScreenY - threshold + ROW_HEIGHT + 60, behavior: 'smooth' })
-          }
-        }, 600)
-      }
-    }
-  }, [selectedId, shipments])
-
-  // Dynamic height via ResizeObserver
-  useEffect(() => {
-    if (!containerRef.current) return
-    const ro = new ResizeObserver(([entry]) => {
-      setListHeight(Math.max(400, entry.contentRect.height - 48))
+  // Stable master column set — select + every possible data column (ALL_COLUMNS) +
+  // the sticky-right action column. The SET never changes; the ColumnPanel only
+  // toggles visibility + order (derived below). Built once (depends only on the panel toggle).
+  const columns = useMemo(() => {
+    const dataCols = ALL_COLUMNS.map((col) => {
+      const cfg = COLUMN_CONFIG_MAP[col.key]
+      const label = colLabel(col.key)
+      const meta = (col.key === 'sellShipment' || col.key === 'buyShipment')
+        ? { cellClass: 'odyssey-table__cell--title text-label-sm-medium' }
+        : {}
+      return columnHelper.accessor(col.key, {
+        id: col.key,
+        // Promoted (SHP-33) header reads the live promotedKey from table meta so the
+        // column def itself stays stable.
+        header: ({ table }) =>
+          table.options.meta?.promotedKey === col.key
+            ? <span style={{ color: 'var(--deep-sea-neutral-700, #384253)', fontWeight: 700 }}>{label}</span>
+            : label,
+        cell: cfg?.render
+          ? ({ row }) => cfg.render(row.original)
+          : ({ getValue }) => <TruncatedText value={getValue()} />,
+        meta,
+      })
     })
-    ro.observe(containerRef.current)
-    return () => ro.disconnect()
-  }, [])
 
-  // Track header height so actions column header matches
-  useEffect(() => {
-    if (!headerRef.current) return
-    const ro = new ResizeObserver(([entry]) => {
-      setHeaderHeight(entry.contentRect.height)
+    const selectColumn = columnHelper.display({
+      id: 'select',
+      enableResizing: false, // pinned system column
+      header: () => null,
+      cell: ({ row }) => <RadioDot checked={row.getIsSelected()} />,
+      meta: {
+        headClass: 'odyssey-table__cell--control',
+        cellClass: 'odyssey-table__cell--control',
+        fixedWidth: true,
+      },
     })
-    ro.observe(headerRef.current)
-    return () => ro.disconnect()
-  }, [])
 
-  // Sync horizontal scroll (data list → header) and vertical scroll (data list → actions list)
-  useEffect(() => {
-    const dataEl = listRef.current?.element
-    const actionsEl = actionsListRef.current?.element
-    const headerEl = headerRef.current
-    if (!dataEl) return
+    const actionColumn = columnHelper.display({
+      id: 'action',
+      enableResizing: false, // pinned system column
+      header: () => (
+        <button
+          type="button"
+          onClick={onToggleColumnPanel}
+          title="Column arrangement"
+          aria-label="Column arrangement"
+          style={{
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            background: 'transparent', border: 'none', cursor: 'pointer', padding: 4,
+            borderRadius: 'var(--radius-sm)', color: 'var(--text-placeholder)',
+          }}
+        >
+          <Columns3Cog size={18} />
+        </button>
+      ),
+      cell: () => (
+        <ActionMenu
+          icon={<Zap {...ICON_MD} />}
+          options={SHIPMENT_ACTIONS}
+          align="right"
+          ariaLabel="Shipment actions"
+        />
+      ),
+      meta: { sticky: 'right', fixedWidth: true },
+    })
 
-    let didNotify = false
-    const syncScroll = () => {
-      if (headerEl) headerEl.scrollLeft = dataEl.scrollLeft
-      if (actionsEl) actionsEl.scrollTop = dataEl.scrollTop
-      if (onScrollStart) {
-        if (dataEl.scrollTop > 0 && !didNotify) {
-          didNotify = true
-          onScrollStart()
-        } else if (dataEl.scrollTop === 0) {
-          didNotify = false
-        }
-      }
-    }
-    dataEl.addEventListener('scroll', syncScroll, { passive: true })
-    return () => dataEl.removeEventListener('scroll', syncScroll)
+    return [selectColumn, ...dataCols, actionColumn]
+  }, [onToggleColumnPanel])
+
+  // The ColumnPanel (and, later, the RightPanel) drives WHICH columns show + their
+  // ORDER via TanStack column state — the column SET above stays stable.
+  const { columnVisibility, columnOrder, promotedKey } = useMemo(
+    () => deriveColumnState(visibleColumns, activeChipKey),
+    [visibleColumns, activeChipKey]
+  )
+
+  // Selection is CONTROLLED by the parent: rowSelection mirrors selectedId, and
+  // the click path (onCellClick → onRowSelect) drives the parent's toggle. We pass
+  // a no-op onRowSelectionChange so TanStack treats the state as controlled.
+  const rowSelection = useMemo(() => (selectedId ? { [selectedId]: true } : {}), [selectedId])
+  const pagination = useMemo(() => ({ pageIndex: pageNumber, pageSize }), [pageNumber, pageSize])
+
+  const handlePaginationChange = useCallback((updater) => {
+    const next = typeof updater === 'function' ? updater({ pageIndex: pageNumber, pageSize }) : updater
+    if (next.pageSize !== pageSize) onPageSizeChange?.(next.pageSize)
+    else if (next.pageIndex !== pageNumber) onPageChange?.(next.pageIndex)
+  }, [pageNumber, pageSize, onPageChange, onPageSizeChange])
+
+  const table = useReactTable({
+    data: shipments,
+    columns,
+    state: { rowSelection, pagination, columnSizing, columnVisibility, columnOrder },
+    onRowSelectionChange: () => {},
+    onColumnSizingChange: setColumnSizing,
+    onColumnVisibilityChange: () => {}, // controlled by the ColumnPanel via visibleColumns
+    onColumnOrderChange: () => {},      // controlled by the ColumnPanel via visibleColumns
+    onPaginationChange: handlePaginationChange,
+    enableRowSelection: true,
+    enableMultiRowSelection: false,
+    enableColumnResizing: true,
+    columnResizeMode: 'onChange',
+    getRowId: (row) => row.id,
+    getCoreRowModel: getCoreRowModel(),
+    manualPagination: true,
+    manualSorting: true,
+    rowCount: totalCount,
+    meta: { promotedKey },
   })
 
-  // Shared data for data rows
-  const rowProps = useMemo(() => ({
-    shipments,
-    selectedId,
-    handleSelect,
-    orderedColumns,
-    menuOpenId,
-  }), [shipments, selectedId, handleSelect, orderedColumns, menuOpenId])
+  const handleCellClick = useCallback((_cell, row) => {
+    onRowSelect(row.original.id)
+  }, [onRowSelect])
 
-  // Shared data for action rows
-  const actionRowProps = useMemo(() => ({
-    shipments,
-    selectedId,
-    handleSelect,
-    setMenuOpenId,
-    menuOpenId,
-  }), [shipments, selectedId, handleSelect, menuOpenId])
+  // Collapse the metrics strip the first time the page is scrolled (parity with
+  // the old internal-list onScrollStart). The shipments page scrolls in <main>.
+  useEffect(() => {
+    if (!onScrollStart) return
+    const main = containerRef.current?.closest('main')
+    if (!main) return
+    let notified = false
+    const onScroll = () => {
+      if (main.scrollTop > 0 && !notified) { notified = true; onScrollStart() }
+      else if (main.scrollTop === 0) notified = false
+    }
+    main.addEventListener('scroll', onScroll, { passive: true })
+    return () => main.removeEventListener('scroll', onScroll)
+  }, [onScrollStart])
+
+  // Auto-scroll the selected row into view (above the BottomBar) — parity with the
+  // old virtual-list scrollToRow, now over real DOM rows.
+  useEffect(() => {
+    if (!selectedId || !containerRef.current) return
+    const t = setTimeout(() => {
+      const row = containerRef.current?.querySelector('tr[data-selected]')
+      if (row) row.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    }, 600)
+    return () => clearTimeout(t)
+  }, [selectedId])
 
   return (
-    <div ref={containerRef} className="flex-1 min-h-0 overflow-hidden flex flex-col text-sm"
-      style={{ borderRadius: 'var(--radius-lg)', paddingBottom: 'var(--bottombar-collapsed)', minHeight: 560, color: 'var(--text-secondary)', fontFamily: 'var(--font-primary)' }}>
-
-      {/* Two-panel layout: scrollable data (left) + fixed actions (right) */}
-      <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-        {/* Left: scrollable data columns */}
-        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          {/* Data header */}
-          <div ref={headerRef} style={{ flexShrink: 0, overflowX: 'scroll' }}
-            className="top-scrollbar"
-            onScroll={(e) => {
-              const dataEl = listRef.current?.element
-              if (dataEl && Math.abs(dataEl.scrollLeft - e.currentTarget.scrollLeft) > 1) {
-                dataEl.scrollLeft = e.currentTarget.scrollLeft
-              }
-            }}
-          >
-            <div
-              className="flex"
-              style={{ minWidth: 'max-content', background: 'var(--bg-primary)', borderBottom: '1px solid var(--border-subtle)' }}
-              onMouseEnter={(e) => { e.currentTarget.querySelectorAll('[data-resize-handle]').forEach(h => { h.style.background = 'var(--border-subtle)' }) }}
-              onMouseLeave={(e) => { e.currentTarget.querySelectorAll('[data-resize-handle]').forEach(h => { h.style.background = 'transparent' }) }}
-            >
-              <div style={{ width: 48, flexShrink: 0, padding: '10px var(--spacing-4)', minHeight: 'var(--bottombar-collapsed)', background: 'var(--bg-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} />
-              {orderedColumns.map(col => {
-                const w = columnWidths[col.key] || col.width || 120
-                return (
-                  <div key={col.key} className="text-left"
-                    style={{ width: w, minWidth: w, flexShrink: 0, padding: '10px var(--spacing-4)', minHeight: 'var(--bottombar-collapsed)', background: 'var(--bg-primary)', color: col._promoted ? 'var(--deep-sea-neutral-700, #384253)' : 'var(--text-placeholder)', fontWeight: col._promoted ? 700 : 600, fontSize: 'var(--font-size-sm)', display: 'flex', alignItems: 'center', position: 'relative', whiteSpace: 'normal', overflowWrap: 'break-word', lineHeight: 1.3 }}>
-                    {col.label}
-                    <div
-                      data-resize-handle
-                      onMouseDown={(e) => handleResizeStart(e, col.key, w)}
-                      style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 4, cursor: 'col-resize', background: 'transparent', transition: 'background var(--transition-fast)' }}
-                    />
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-          {/* Data list */}
-          {isError ? (
-            <div className="flex flex-col items-center justify-center gap-2" style={{ padding: '48px 0', color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)' }}>
-              <TriangleAlert size={24} style={{ color: 'var(--text-placeholder)' }} />
-              <div>Couldn't load shipments.</div>
-              {onRetry && (
-                <button type="button" onClick={onRetry}
-                  className="cursor-pointer"
-                  style={{ marginTop: 4, padding: '4px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', background: 'var(--bg-primary)', color: 'var(--text-secondary)' }}>
-                  Retry
-                </button>
-              )}
-            </div>
-          ) : isLoading && shipments.length === 0 ? (
-            <div className="flex items-center justify-center" style={{ padding: '48px 0', color: 'var(--text-placeholder)', fontSize: 'var(--font-size-sm)' }}>
-              Loading shipments…
-            </div>
-          ) : shipments.length === 0 ? (
-            <div className="flex items-center justify-center" style={{ padding: '48px 0', color: 'var(--text-placeholder)', fontSize: 'var(--font-size-sm)' }}>
-              No shipments found
-            </div>
-          ) : (
-            <List
-              listRef={listRef}
-              className="hide-scrollbar-x"
-              style={{ height: listHeight, width: '100%', overflowX: 'auto' }}
-              rowCount={shipments.length}
-              rowHeight={ROW_HEIGHT}
-              overscanCount={10}
-              rowComponent={VirtualRow}
-              rowProps={rowProps}
-            />
-          )}
-        </div>
-
-        {/* Right: fixed actions column — single div with shadow spanning full height */}
-        <div style={{ width: 56, flexShrink: 0, boxShadow: '-2px 0 4px rgba(0,0,0,0.06)', background: 'var(--bg-primary)', display: 'flex', flexDirection: 'column', position: 'relative', zIndex: 2 }}>
-          {/* Actions header */}
-          <div style={{ height: headerHeight || 'var(--bottombar-collapsed)', flexShrink: 0, borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <button
-              className="flex items-center justify-center mx-auto bg-transparent border-none cursor-pointer p-1 rounded"
-              style={{ color: 'var(--text-placeholder)' }}
-              onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
-              onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-placeholder)'}
-              onClick={() => { if (onToggleColumnPanel) onToggleColumnPanel() }}
-              title="Column arrangement"
-            >
-              <Columns3Cog size={18} />
+    <div
+      ref={containerRef}
+      className="shipment-table"
+      // DataTable owns its own chrome/scroll — no fixed-height accommodation. Only
+      // reserve clearance so the collapsed BottomBar (detail panel) doesn't cover the
+      // Paginator.
+      style={{ paddingBottom: 'var(--bottombar-collapsed)' }}
+    >
+      {isError ? (
+        <div className="flex flex-col items-center justify-center gap-2" style={{ padding: '48px 0', color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)' }}>
+          <TriangleAlert size={24} style={{ color: 'var(--text-placeholder)' }} />
+          <div>Couldn't load shipments.</div>
+          {onRetry && (
+            <button type="button" onClick={onRetry}
+              className="cursor-pointer"
+              style={{ marginTop: 4, padding: '4px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', background: 'var(--bg-primary)', color: 'var(--text-secondary)' }}>
+              Retry
             </button>
-          </div>
-          {/* Actions list — vertical scroll synced from data list */}
-          {shipments.length > 0 && (
-            <List
-              listRef={actionsListRef}
-              style={{ height: listHeight, width: 56, overflow: 'hidden' }}
-              rowCount={shipments.length}
-              rowHeight={ROW_HEIGHT}
-              overscanCount={10}
-              rowComponent={VirtualActionRow}
-              rowProps={actionRowProps}
-            />
           )}
         </div>
-      </div>
-
-      {/* Pagination — server-side paging (one page at a time). Hidden on error. */}
-      {!isError && (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 'var(--spacing-2) var(--spacing-4)', borderTop: '1px solid var(--border-subtle)', fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)', flexShrink: 0, background: 'var(--bg-primary)' }}>
-        <span style={{ fontVariantNumeric: 'tabular-nums' }}>
-          {totalCount === 0 ? '0 results' : `${pageNumber * pageSize + 1}–${Math.min((pageNumber + 1) * pageSize, totalCount)} of ${totalCount.toLocaleString('en-US')}`}
-        </span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-3)' }}>
-          <label htmlFor="shipments-page-size" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            Rows
-            <select id="shipments-page-size" value={pageSize} onChange={(e) => onPageSizeChange && onPageSizeChange(Number(e.target.value))}
-              style={{ padding: '2px 6px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', background: 'var(--bg-primary)', color: 'var(--text-secondary)' }}>
-              {[25, 50, 100].map(n => <option key={n} value={n}>{n}</option>)}
-            </select>
-          </label>
-          <button type="button" disabled={pageNumber === 0} onClick={() => onPageChange && onPageChange(pageNumber - 1)}
-            className="cursor-pointer"
-            style={{ padding: '4px 10px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', background: 'var(--bg-primary)', color: 'var(--text-secondary)', opacity: pageNumber === 0 ? 0.5 : 1 }}>
-            Prev
-          </button>
-          <span style={{ fontVariantNumeric: 'tabular-nums' }}>
-            Page {pageNumber + 1} of {Math.max(1, Math.ceil(totalCount / pageSize))}
-          </span>
-          <button type="button" disabled={(pageNumber + 1) * pageSize >= totalCount} onClick={() => onPageChange && onPageChange(pageNumber + 1)}
-            className="cursor-pointer"
-            style={{ padding: '4px 10px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', background: 'var(--bg-primary)', color: 'var(--text-secondary)', opacity: (pageNumber + 1) * pageSize >= totalCount ? 0.5 : 1 }}>
-            Next
-          </button>
+      ) : isLoading && shipments.length === 0 ? (
+        <div className="flex items-center justify-center" style={{ padding: '48px 0', color: 'var(--text-placeholder)', fontSize: 'var(--font-size-sm)' }}>
+          Loading shipments…
         </div>
-      </div>
+      ) : shipments.length === 0 ? (
+        <div className="flex items-center justify-center" style={{ padding: '48px 0', color: 'var(--text-placeholder)', fontSize: 'var(--font-size-sm)' }}>
+          No shipments found
+        </div>
+      ) : (
+        <DataTable
+          table={table}
+          ariaLabel="Shipments"
+          onCellClick={handleCellClick}
+          footer={<Paginator table={table} pageSizeOptions={[25, 50, 100]} />}
+        />
       )}
     </div>
   )

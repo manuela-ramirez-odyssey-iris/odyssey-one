@@ -4607,11 +4607,42 @@ Consolidated into **PR #3** (closed PR #2 as superseded). **PR #3 is BLOCKED** �
 
 ---
 
+## Session 69 — June 26, 2026
+
+**DSM search reworked into a global 3rd filter (both DSMs, pushed) + a standing version-sync rule; the `@odyssey/ui` DataTable migrated into Shipments as the redesign's QA foundation (native column state, RightPanel-ready); and the OLD Shipments design frozen as a SEPARATE disposable project (`odyssey-shipments-legacy`) instead of an in-repo fork — total isolation, `main` stays free of legacy code.**
+
+### DSM search → global 3rd filter + version sync (React + Angular, pushed)
+- The search field moved from the per-tab toolbar into the **header, beside Domain + "Latest only."** It's now a **composing filter** that narrows each tier IN PLACE (tab counts reflect the query; you keep viewing one tier) — NOT the cross-tier merged list the first pass shipped. React: `searchAcrossTiers` replaced by `filterTiersBySearch`/`filterDemosBySearch` (71 vitest). Angular parity: folded into `filteredTiers`/`filteredNormalizing`; 31 specs (+1 search test).
+- **DataTable version → 0.3.1** in both DSM demo metas (last changed in the 0.3.1 release) → header chip reads **v0.3.1**.
+- **Pushed:** React `main` (`85fda1e`); Angular PR #7 branch `batch/s63-component-normalizations` (`b23334f`).
+- **New standing rule [[feedback_dsm_version_sync]]:** auto-label each component with the release it last changed in, per batch, in BOTH DSMs — the user never specifies versions. Releases ship in batches: complete the batch → push → bump.
+
+### DataTable → Shipments (QA migration, `main`)
+- **Replaced** the react-window two-panel `ShipmentTable` with the `@odyssey/ui` **DataTable**. All ~17 cell renderers + tooltips (app-local `DarkTooltip`/`OrdersTooltip`/`TruncatedText`) kept; single-row **radio select** (controlled by `selectedId`, click+toggle via `onCellClick`); ⚡ Zap → **`@odyssey/ui` `ActionMenu`**; **Paginator**; column **resize**.
+- **Column management → native TanStack `columnVisibility` + `columnOrder`** against a **stable master column set** (`ALL_COLUMNS`), driven by the existing **ColumnPanel** — the SAME state the future **RightPanel** will drive (drop-in next). SHP-33 search-column promotion via table `meta` (columns stay stable). Old fixed-height layout dropped — **DataTable drives** (page-scroll, sticky header, footer Paginator). Decision (user): *DataTable is the driver of change; do not accommodate the old layout/style.*
+- **Gaps surfaced (the QA goal):** no normalized **Tooltip** in `@odyssey/ui` (rides on app-local for now); **RightPanel** still the app-local ColumnPanel.
+
+### Old Shipments frozen as a SEPARATE project — `odyssey-shipments-legacy`
+- Chose a **separate disposable sibling repo** over an in-repo fork (the frozen-scoped-token "Approach 2" was specced, then rejected): total isolation (different codebase, vendored design system — can't be corrupted by main's redesign) and **`main` carries zero legacy code**. Spec: `docs/superpowers/specs/2026-06-26-shipments-legacy-fork-design.md`.
+- Snapshot of `odyssey-one` @ **`85fda1e`** (pristine — original react-window table; the DataTable migration stays in `main` as the redesign seed). Slimmed 77M→9M; trimmed to `/shipments` only (`App.jsx` redirects, sidebar one item). Independent git repo (initial commit `07afbf0`, **no remote** — can't push to main by accident). **Verified:** `npm install` + `generate` (1200 rows) + build (1885 modules) + renders the old design.
+- Milestone tag **`shipments-design-v1`** @ `85fda1e`. **Deferred:** push to GitHub + its own Vercel project (stable stakeholder URL) — "later if needed."
+
+### Notes / state
+- **No `@oneodyssey/ui` publish** — this session changed only DSM-explorer + demo metadata (no `projects/odyssey-ui/src/lib/` change). Library stays **0.3.1**.
+- Live for A/B: `5173` main (DataTable migration), `5174` legacy (old react-window), `4200` Angular DSM.
+
+### Carry-forward to Session 70
+- **Normalize the new components Shipments' redesign needs — RightPanel first.** The user provides a **BATCH LIST** at the start of S70. RightPanel wires straight into the DataTable's `columnVisibility`/`columnOrder` (already driven by the app-local ColumnPanel → drop-in). A normalized **Tooltip** is also owed.
+- The DataTable-in-Shipments migration is the QA foundation; refine as the redesign proceeds.
+- Standing: Angular PR #7 awaits a teammate's approval; Code Connect refresh blocked by Figma drift; legacy-repo GitHub push + Vercel deferred.
+
+---
+
 ## What's Next
 
-### Session 69 Priorities
+### Session 70 Priorities
 
-1. **RightPanel (Figma-first) — THE #1** (complements DataTable + other components, per the user). The reorder + add/remove (show/hide) column UI that drives the DataTable's `setColumnOrder`/`setColumnVisibility`. The DataTable already reflects both; this is the missing driver. **Scope: DATA columns only** — the select + action columns stay pinned (never reordered/removed), matching the `enableResizing:false` rule the shell now enforces. Needs its Figma design first.
+1. **Normalize the components Shipments' redesign needs — RightPanel first; user provides the BATCH LIST at session start.** RightPanel = the reorder + show/hide **data-column** UI that drives the DataTable's `columnVisibility`/`columnOrder` — which the migrated Shipments table already consumes via the app-local ColumnPanel, so the normalized RightPanel is a **drop-in**. Run the Figma-first `/normalize` routine; the batch is completed → pushed → version-bumped together ([[feedback_dsm_version_sync]]). A normalized **Tooltip** is also owed (Shipments rides on app-local ones). **Scope reminder:** RightPanel touches DATA columns only — select/action stay pinned.
 2. **0.3.0/0.3.1 release — DONE (S68).** `@oneodyssey/ui@0.3.1` published (0.3.0 had shipped 5 DataTable regressions — fixed both stacks). React PR #2 merged to `main`; React app deployed to prod; **Angular PR #7 reconciled + `MERGEABLE`**, awaiting a **OneOdyssey teammate's review approval** (user has push-not-admin; CI "Build Check" should pass). DSM "no Figma" badge → shipped as the **CODE-ONLY** pill (both DSMs). `odyssey-angular-dsm` retired (its DSM work is on `main` now) — safe to delete.
 3. **Code Connect refresh** blocked by **pre-existing Figma drift** in 5 untouched components (SearchResults/SearchPanel/MatchRow/EmptyState/CustomerRow — props renamed in Figma). Needs Figma→DSM→code reconciliation with Efrain before `connect:publish` will pass (atomic).
 4. **Figma `Icon Left/Pressed` drift** (DSN/500 vs Icon Right's DSN/400). **Alert re-tokenization** question for Efrain (the two removed `/200` primitives kept code-side).
