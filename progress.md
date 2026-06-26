@@ -4546,13 +4546,45 @@ Consolidated into **PR #3** (closed PR #2 as superseded). **PR #3 is BLOCKED** �
 
 ---
 
+## Session 67 — June 25–26, 2026
+
+**The Cognizant table deliverable, finished. Ported the boundary FLIP + ActionMenu + DataTable to `@oneodyssey/ui` (Δ=0), caught + fixed THREE real in-browser bugs the unit tests missed (the two-window review earning its keep), then ran a fresh brainstorm→spec→plan→build arc for DataTable EXTENSIBILITY (column resize + per-cell click + reorder/visibility), React canonical + Angular twin. All committed on branches; held for the 0.3.0 release cut (next session). No push.**
+
+### Angular ports (S67 priority #1) — flip, ActionMenu, DataTable
+- **Boundary flip** → Angular `Dropdown`: new shared `_shared/anchored-position.ts` (`computeVerticalPlacement`, exported, 5 TDD specs, Δ=0 with React); `Dropdown` positioning rewritten to measure-then-place (mount hidden → `ngAfterViewChecked` → flip up near the viewport bottom). Fixes the Paginator rows-per-page clip. `menu-row--danger` added.
+- **`ActionMenu`** molecule (`odyssey-action-menu`): icon-agnostic projected trigger → anchored, flipping `odyssey-dropdown-menu` of `options`; `align`; full a11y. GATE B approved.
+- **`DataTable`** shell: structural `DataTableInstance` interface (no `@tanstack` dep) + dep-free `[odysseyFlexRender]` directive (string/TemplateRef/component) + split-sticky-header + global `_table.scss` Cell+chrome contract; `OrdersTable`-parity. GATE B approved.
+
+### Three in-browser bugs the tests missed (systematic-debugging each)
+1. **ActionMenu dead in the DataTable demo** — the demo's hand-rolled mock returned fresh `getRowModel`/`getContext` refs every CD (a real TanStack table memoizes), so every CD rebuilt the cells and reset the menu's open state. Fix: **memoize the mock** (per-page row model, stable contexts).
+2. **ActionMenu menu clipped inside the table** — the sticky-right action cell (`z-index:1`) is a stacking context that trapped the in-template `position:fixed` menu. Fix: **body-portal the ActionMenu** (dep-free `TemplateRef` + `ApplicationRef.attachView` → `document.body`, matching React's `createPortal`).
+3. **Rows-per-page selection dropped (and page nav)** — the Paginator's `sizeOptions`/`pageItems` getters return a new array every CD; with no `trackBy`, a real click's `mousedown`-triggered CD (the always-mounted Dropdown's `document:mousedown`) recreated the option element mid-click → the click missed. (Synthetic test clicks are atomic → hid it.) Fix: **`trackBy` on Dropdown options, Paginator page-items, ActionMenu options, DataTable rows/cells** (React's `key` parity) + two reproduction tests.
+
+### DataTable EXTENSIBILITY arc (new — brainstorm → spec → plan → build)
+- Driven by the Cognizant requirement: column reorder/removal/introduction (Shipments), resize (Shipments), and cell-click — **opt-in per table** (Shipments on, Orders off). Spec `docs/superpowers/specs/2026-06-26-datatable-extensibility-design.md`; plan `…/plans/2026-06-26-datatable-extensibility.md`.
+- **Column resize**: consumer enables TanStack `columnSizing` → drag-grips wired to `header.getResizeHandler()`; `getColWidths` gains a `sizes` arg (user-dragged columns use `getSize()`, excluded from flex); colgroup re-locks on a sizing-inclusive signature.
+- **Per-cell click**: `onCellClick`/`(cellClick)` emits `{cell,row}`, suppressed on interactive cells via `isInteractiveTarget` (native interactives + `[data-no-cell-click]` for custom clickables — "a cell with a clickable component is interactive"). Per-cell granularity; "all except interactive" (user calls).
+- **Reorder + add/remove**: already reflected by the shell (renders the table's visible/ordered columns + R2 re-measure); the **RightPanel** that drives `setColumnOrder`/`setColumnVisibility` is deferred to its own Figma-first arc. Demo proves it with throwaway buttons.
+- **TanStack as a `peerDependency`** of `@oneodyssey/ui` (auto-installed, single shared copy, version-enforced — Cognizant doesn't install it separately). Demo migrated from the mock to a **real `createAngularTable`** (signal-held controlled state — the documented reactivity pattern). **Cognizant usage guide** at `lib/data-table/DataTable.usage.md`.
+- **Decisions:** kept the **structural interface** (Option 2 — no `@tanstack` type coupling, no Paginator rework, vs typing against `Table<TData>`); RightPanel = separate Figma-first arc; cell-click per-cell + content-driven interactive detection.
+
+### Verification + state
+- React **201** vitest green (+9 DataTable). Angular **472** odyssey-ui + **30** dsm-explorer green; parity-lint + both builds clean. DataTable + ActionMenu **promoted** (normalizing flags cleared; tracker + `domain-usage` updated both DSMs).
+- **Committed, NOT pushed:** React `feat/datatable-extensibility` (3 commits, off `main`); Angular `batch/s63-component-normalizations` (the S66–S68 wave in one commit). `@oneodyssey/ui` still published at 0.2.0.
+
+### Carry-forward to Session 68
+- **CUT THE 0.3.0 RELEASE** — the one remaining step (held since S63). Bump `@oneodyssey/ui` 0.2.0 → 0.3.0 + CHANGELOG → `ng build odyssey-ui` → `npm publish`; open the `odyssey-one-library-ui` PR + push `odyssey-one`'s `feat/datatable-extensibility` (or merge to `main`); `connect:publish`; Figma library publish (manual). **Ask before pushing.**
+- **RightPanel** normalization (Figma-first) — the reorder + add/remove UI that drives the DataTable's `setColumnOrder`/`setColumnVisibility`.
+
+---
+
 ## What's Next
 
-### Session 67 Priorities
+### Session 68 Priorities
 
-1. **ANGULAR PORTS — the Cognizant table deliverable.** Port to `odyssey-one-library-ui` (`@oneodyssey/ui`) via `/port-to-angular`, Δ=0 parity: (a) the `useAnchoredPortal` **boundary flip** (+ `computeVerticalPlacement`); (b) **`DataTable`** shell (structural TanStack interface, split-sticky-header, the `.odyssey-data-table` SCSS); (c) **`ActionMenu`** molecule. Goal: Cognizant uses the table in Angular exactly as the React app does. Deps-first per [[feedback_port_dependency_order]].
-2. **DSM "no Figma" badge.** Flag components that **intentionally have no Figma master** because they compose already-in-Figma primitives (DataTable = Cell+Paginator; ActionMenu = icon+DropdownMenu). Decide the policy with the user/Efrain; otherwise the Figma retro-sync for these is dropped.
-3. **CUT THE 0.3.0 RELEASE** (held S63–S66) — **after the Angular ports.** Bump `@oneodyssey/ui` **0.2.0 → 0.3.0** + CHANGELOG, **push `odyssey-one`** (main — 44 commits ahead), open the `odyssey-one-library-ui` PR, `npx ng build odyssey-ui && npm publish`, `connect:publish`, **Figma library publish** (manual). Wave = dropdown stack + DSM versioning + Paginator + DataTable + flip + ActionMenu. **(Ask before pushing — standing rule.)**
+1. **CUT THE 0.3.0 RELEASE** (held since S63; Angular ports + DataTable extensibility DONE S67 — this is the one remaining step). Bump `@oneodyssey/ui` **0.2.0 → 0.3.0** + CHANGELOG, `npx ng build odyssey-ui && (cd dist/odyssey-ui && npm publish)`, open the `odyssey-one-library-ui` PR from `batch/s63-component-normalizations`, push/merge `odyssey-one`'s `feat/datatable-extensibility`, `connect:publish`, **Figma library publish** (manual). Wave = dropdown stack + DSM versioning + Paginator + DataTable (+ resize/cell-click) + flip + ActionMenu. **(Ask before pushing — standing rule.)**
+2. **RightPanel** normalization (**Figma-first**) — the reorder + add/remove (show/hide) column UI that drives the DataTable's `setColumnOrder`/`setColumnVisibility`. The DataTable already reflects both; this is the missing driver. Needs its Figma design first.
+3. **DSM "no Figma" badge** (carried from S67 — not done). Flag components that **intentionally have no Figma master** because they compose already-in-Figma primitives (DataTable = Cell+Paginator+ActionMenu; ActionMenu = icon+DropdownMenu).
 4. **Figma `Icon Left/Pressed` drift** (DSN/500 vs Icon Right's DSN/400). **Alert re-tokenization** question for Efrain (the two removed `/200` primitives kept code-side).
 5. **Unblock + merge PR #3** (DSM-explorer) — blocked by `main` protection; needs repo-admin. Then delete the retired `odyssey-angular-dsm`.
 6. **Orders — PAUSED, fully captured.** `vault/60-backlog/backlog.html` ORD-1..10 + the built data seam (`useOrderView`). UI awaits Efrain; contract/live-flip awaits Ramesh + live Swagger. Owed: Product Delete → Efrain; 2 `@odyssey/ui` additive-prop flags.
