@@ -8,8 +8,7 @@ figma.connect(
     imports: ["import { Breadcrumb } from '@odyssey/ui'"],
     props: {
       label: figma.string('Label'),
-      // Figma variant property is slash-prefixed ("Breadcrumb/Current") — match it verbatim.
-      current: figma.enum('Breadcrumb/Current', {
+      current: figma.enum('Current', {
         True: true,
         False: false,
       }),
