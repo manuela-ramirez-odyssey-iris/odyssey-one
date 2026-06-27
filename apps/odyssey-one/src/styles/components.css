@@ -2453,9 +2453,10 @@ button.breadcrumb__label:focus-visible {
   color: var(--text-placeholder);
 }
 
-/* MenuRow — row inside menus / dropdowns / panels (Figma set 1973:87).
-   variant = semantic role (select | navigate | draggable); selected look is
-   per-variant; hover/pressed are runtime CSS (not Figma variants). */
+/* MenuRow — plain selectable row inside menus / dropdowns / panels (Figma set
+   1973:87, Type=Select only — navigate → MenuRowRadio, draggable → MenuRowCheckbox).
+   The `.menu-row*` base chrome is shared by the whole Row family.
+   selected = DSN/100 bg; hover/pressed are runtime CSS (not Figma variants). */
 .menu-row {
   display: flex;
   align-items: center;
@@ -2483,22 +2484,23 @@ button.breadcrumb__label:focus-visible {
 .menu-row:hover { background: var(--deep-sea-neutral-100); }
 .menu-row:active { background: var(--deep-sea-neutral-200); }
 
-/* draggable affordance */
+/* draggable affordance (Figma Draggable boolean → trailing grip + grab cursor) */
 .menu-row--draggable { cursor: grab; }
 .menu-row--draggable:active { cursor: grabbing; }
+/* dragging — set by a consumer's DnD wrapper (e.g. WidgetsLeftMenu catalog rows) */
 [data-dragging="true"] .menu-row { background: var(--deep-sea-neutral-200); }
 
-/* bordered (navigate, standalone) — persistent DSN/300 outline */
-.menu-row--bordered { box-shadow: inset 0 0 0 1px var(--deep-sea-neutral-300); }
+/* selected — base select row only (Row-family rows carry their own selected look). */
+.menu-row:not(.menu-row-radio):not(.menu-row-checkbox)[data-selected] {
+  background: var(--deep-sea-neutral-100);
+}
 
-/* selected — per variant (navigate-plain has no selected state by design) */
-.menu-row--select[data-selected] { background: var(--deep-sea-neutral-100); }
-.menu-row--draggable[data-selected] { box-shadow: inset 0 0 0 1px var(--deep-sea-neutral-900); }
-.menu-row--navigate.menu-row--bordered[data-selected] { box-shadow: inset 0 0 0 1px var(--deep-sea-neutral-900); }
-
-/* disabled */
-.menu-row[data-disabled] { opacity: 0.4; cursor: not-allowed; }
+/* disabled — muted label + icon + grip (DSN/400), no opacity dim (Figma 3788:3394). */
+.menu-row[data-disabled] { cursor: not-allowed; }
 .menu-row[data-disabled]:hover { background: transparent; }
+.menu-row[data-disabled] .menu-row__label,
+.menu-row[data-disabled] .menu-row__icon,
+.menu-row[data-disabled] .menu-row__trailing { color: var(--text-placeholder); }
 
 /* ── Row family — MenuRowRadio (molecule) ────────────────
    Shares the .menu-row base chrome; adds a leading control slot + a white/
@@ -2572,7 +2574,10 @@ button.breadcrumb__label:focus-visible {
 .menu-row-checkbox .menu-row__control {
   cursor: pointer;
 }
-/* disabled — muted label + disabled checkbox, non-interactive (no hover/press/drag) */
+/* disabled — muted label + disabled checkbox, non-interactive (no hover/press/drag).
+   opacity:1 opts out of the base .menu-row[data-disabled] dim — the Row family uses a
+   muted DSN/400 label instead of opacity dimming (matches MenuRowRadio + Figma 3784:4613). */
+.menu-row-checkbox[data-disabled] { opacity: 1; }
 .menu-row-checkbox[data-disabled],
 .menu-row-checkbox[data-disabled] .menu-row__control {
   cursor: not-allowed;

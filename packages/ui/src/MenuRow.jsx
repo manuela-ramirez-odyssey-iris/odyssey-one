@@ -1,31 +1,28 @@
-import { GripVertical, ChevronRight } from 'lucide-react'
+import { GripVertical } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
 
 /**
- * MenuRow — atom. A row inside menus, dropdowns, and panels (e.g. the
- * Paginator rows-per-page dropdown, WidgetsLeftMenu, panel profiles).
+ * MenuRow — atom. A single-select row inside menus, dropdowns, and panels
+ * (e.g. the Paginator rows-per-page dropdown, MenuDropdown groups, the
+ * WidgetsLeftMenu catalog). Optional leading icon + a truncating label.
  *
- * `variant` is a semantic role that drives the trailing affordance, cursor,
- * and click intent — not just an icon:
- *   - 'select'    → plain selectable option (dropdown / static panel); no trailing icon.
- *   - 'navigate'  → drills into another view (iOS-style disclosure); chevron, pointer.
- *   - 'draggable' → reorderable; grip handle, grab cursor (wrap with a DnD adapter).
+ * Selection intent picks the component: single → MenuRow, single + drill-in →
+ * MenuRowRadio, multi-select + reorder → MenuRowCheckbox. `draggable` is an
+ * orthogonal capability (a trailing grip + grab cursor) for single-select rows
+ * that can be reordered/dragged — e.g. the WidgetsLeftMenu catalog. It composes
+ * with `selected` + `disabled`; it is NOT a competing semantic variant.
  *
- * `bordered` adds the standalone DSN/300 outline (intended for `navigate` in a
- * standalone panel). `selected` marks the chosen row — its look is per-variant
- * (navigate has no selected state by design: clicking navigates away).
- *
+ * `selected` marks the chosen row (DSN/100 bg). `disabled` mutes the label/icon
+ * (DSN/400) and suppresses the click. Hover / pressed are runtime CSS.
  * Library-pure: renders a `<div>` (not a button) so consumers can wrap it with a
- * DnD adapter and still get drag-from-anywhere behavior. Hover / pressed /
- * selected are CSS-driven via `.menu-row` rules in `components.css`.
- * Figma master: `MenuRow` set at `1973:87` on Components-Molecules.
+ * DnD adapter. Figma master: `MenuRow` set 1973:87 (Type=Select + Draggable
+ * boolean), Components-Molecules.
  */
 export default function MenuRow({
   label,
-  variant = 'select',
-  bordered = false,
   selected = false,
   leadingIcon = null,
+  draggable = false,
   onClick,
   disabled = false,
   className = '',
@@ -33,8 +30,7 @@ export default function MenuRow({
 }) {
   const cls = [
     'menu-row',
-    `menu-row--${variant}`,
-    bordered && variant === 'navigate' ? 'menu-row--bordered' : '',
+    draggable ? 'menu-row--draggable' : '',
     className,
   ].filter(Boolean).join(' ')
 
@@ -53,12 +49,7 @@ export default function MenuRow({
         )}
         <span className="menu-row__label">{label}</span>
       </span>
-      {variant === 'navigate' && (
-        <span className="menu-row__trailing" aria-hidden="true">
-          <ChevronRight {...ICON_MD} />
-        </span>
-      )}
-      {variant === 'draggable' && (
+      {draggable && (
         <span className="menu-row__trailing" aria-hidden="true">
           <GripVertical {...ICON_MD} />
         </span>

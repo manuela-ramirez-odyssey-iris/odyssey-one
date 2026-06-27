@@ -24,7 +24,7 @@ function SelectableChip({ label }) {
 export const meta = {
   name: 'Badge',
   tier: 'atom',
-  version: '0.3.0',
+  version: '0.4.0',
   figmaNode: '213:27',
   codeConnect: 'packages/ui/src/Badge.figma.tsx',
 }

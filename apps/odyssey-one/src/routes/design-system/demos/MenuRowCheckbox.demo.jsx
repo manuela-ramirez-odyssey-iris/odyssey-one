@@ -4,9 +4,10 @@ import { MenuRowCheckbox } from '@odyssey/ui'
 export const meta = {
   name: 'MenuRowCheckbox',
   tier: 'atom',
+  version: '0.4.0',
   figmaNode: '3447:6592',
   codeConnect: 'packages/ui/src/MenuRowCheckbox.figma.tsx',
-  normalizing: true,
+  normalizing: false,
 }
 
 export const props = [
