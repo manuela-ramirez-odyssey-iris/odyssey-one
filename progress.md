@@ -4673,17 +4673,64 @@ Consolidated into **PR #3** (closed PR #2 as superseded). **PR #3 is BLOCKED** �
 
 ---
 
+## Session 71 — June 27, 2026
+
+**Closed the S70 batch: MenuRow realigned (select-only + Disable + Draggable), PillTab/Tab validated, `@oneodyssey/ui@0.4.0` released, and the long-standing Code Connect 5-component drift finally unblocked. Plus a hard lesson on stale dev servers.**
+
+### MenuRow — realigned to Figma + new Draggable capability (React + Angular + both DSMs)
+- **Removed the `variant` (select/navigate/draggable) + `bordered` API** — MenuRow is now the lean **select-only base**. navigate → MenuRowRadio, multi-select → MenuRowCheckbox (the Row family). Trailing chevron/grip + lucide imports dropped from the base.
+- **`State=Disable`** added — Figma master uses a **muted DSN/400 label/icon, full opacity** (NOT the old `opacity:0.4` dim). Realigned both stacks; the radio/checkbox `opacity:1` overrides become harmless no-ops.
+- **`Draggable` boolean** (new, after a design discussion) — single-select rows that are also draggable (WidgetsLeftMenu catalog). Orthogonal capability flag (trailing grip + grab cursor), NOT a revived variant — composes with `selected`/`disabled`. Decided via merge-on-intent ([[feedback_component_merge_vs_primitive]]): a catalog row *is* a single-select MenuRow, so same component + a flag, not a new component.
+- **Figma (via MCP):** added the `Draggable` BOOLEAN property + cloned the checkbox grip into all 5 variants (bound to `Draggable`, hidden by default); verified with a screenshot. Deleted two **orphaned property defs** (`Icon#3621:37`, `Message#3621:38`) after confirming zero references.
+- Selected rule rescoped to the base only (`:not(.menu-row-radio):not(.menu-row-checkbox)` in React's global CSS; Angular is component-scoped so no guard). Code Connect remapped (`Draggable` boolean, `State=Disable`).
+
+### Batch finish
+- **MenuRowCheckbox** — disabled label was double-dimmed (inherited the base `opacity:0.4` the radio opted out of but the checkbox didn't); fixed in both stacks. **Normalizing flag cleared** (both DSMs).
+- **PillTab + Tab** — validate-before-normalize: pulled Figma (props, variant sets, variable bindings, nested Badge) — **zero drift**. No code change; correctly **held at 0.2.0** (per-component version = last change, not package version).
+- **0.4.0 release** — demos version-stamped 0.4.0 (Breadcrumb, Badge, Tooltip, MenuRow, MenuRowRadio, MenuRowCheckbox; PillTab/Tab stay 0.2.0); `@oneodyssey/ui` + root `0.3.1→0.4.0`; CHANGELOG 0.4.0 entry. **Published by user.** No lib source changed after the release commit, so the published 0.4.0 carries all fixes.
+
+### Code Connect drift — UNBLOCKED (carry-forward #3, finally)
+- `connect:publish` is atomic; was failing on 5 (really 6) components. Reconciled each to current Figma and **published successfully**:
+  - **SearchPanel** simplified to `Header`/`Content`/`Footer` → mapped Header+Content, dropped removed prop refs.
+  - **EmptyState** lost all props → static example.
+  - **CustomerRow** `Mode`→`Type`, `Favorite` removed → mapped `Type`, dropped favorite.
+  - **MatchRow** / **SearchResults** now variant-in-set → pointed at parent sets (`3548:6994`, `3237:3439`).
+  - **Breadcrumb** prop was slash-prefixed `Breadcrumb/Current` (then user renamed to `Current`) → mapped `figma.enum('Current')`.
+- ⚠️ **Deeper divergence flagged (NOT redoing this batch, user call):** SearchPanel/EmptyState/CustomerRow Figma were genuinely restructured while React kept the richer API — a per-component design decision for later.
+
+### The stale-dev-server saga (4 rounds → root cause)
+- User kept seeing MenuRowCheckbox in the **Angular DSM Normalizing tab** despite the source being correct every time. Root cause: a **long-running `ng serve` frozen by `.angular/cache`** serving a pre-fix build — incognito didn't help (server, not browser). Proven by curling the live bundle bytes (`normalizing: true ×1` vs source `×0`). **Fix:** kill the serve, `rm -rf .angular/cache`, restart → live bundle now `×0`. New memory [[feedback_stale_devserver_diagnosis]].
+
+### Angular git / PR reality
+- **`origin/main` is a PROTECTED branch** — direct push rejected ("protected branch hook declined"); Angular work *must* land via PR even though the user works solo. Local `main` fast-forwarded to carry everything (for local serving).
+- **PR #7** (`batch/s63-component-normalizations → main`, MERGEABLE) carries **0.3.0 + 0.3.1 + 0.4.0 cumulatively** (one branch, three stacked releases) — retitled + described accordingly. Blocked only on Cognizant review. npm packages for all three are already published; their source lands on `origin/main` when #7 merges.
+
+### Memories
+- [[feedback_clear_normalizing_flag_on_done]] — clear `normalizing` in BOTH DSMs the moment a component is done; never propose a release while one is flagged.
+- [[feedback_stale_devserver_diagnosis]] — UI stale but source correct → it's the running `ng serve` + `.angular/cache`; curl the live bytes, kill+clear+restart.
+- Both note the OneOdyssey protected-main / PR-only constraint.
+
+### Verification
+- React `build:odyssey-one` ✓; Angular lib build ✓, explorer build ✓, **parity-lint 57/57**, **529** lib specs; `connect:publish` ✓.
+
+### Carry-forward to Session 72 — READ FIRST
+- **Angular PR #7** (cumulative 0.3.0·0.3.1·0.4.0) awaits Cognizant approval. When merged: delete `batch/s63-component-normalizations`, confirm `origin/main` has it, go branch-free on Angular.
+- **Next batch undefined** — to be defined next session (user's call).
+- **Deeper Figma↔React divergence** on SearchPanel / EmptyState / CustomerRow (Figma restructured, React still richer) — per-component design decision pending; Code Connect is band-aided/valid for now.
+- Odd Figma node name `MenuRow/EmptyState` (EmptyState node) — cosmetic cleanup.
+
+---
+
 ## What's Next
 
-### Session 71 Priorities
+### Session 72 Priorities
 
-0. **FIRST: fix the Figma MenuRowRadio + MenuRowCheckbox variant OVERLAP** (S70 carry-forward) — cloned Pressed/Disabled kept the source x/y, so variants stack (nothing deleted; reposition into a clean grid + recheck the Disabled-radio box-bg), then library-publish the menu-row masters.
-0b. **Batch release `0.4.0`** — version-stamp all S70 components' demos (both stacks), bump `@oneodyssey/ui`→0.4.0 + CHANGELOG + publish; Code Connect publish still blocked by the 5-component drift; land the Angular feature branch / PR.
-0c. **Finish the S70 batch: #4 PillTab + #5 Tab** — validate/update of existing components.
+0. **Watch Angular PR #7** — once Cognizant approves the cumulative (0.3.0·0.3.1·0.4.0) PR, merge it, delete the batch branch, and verify `origin/main` is current (then Angular is main-only).
+0b. **Define the next normalization batch** — deferred to S72 (user will scope it).
 
 1. **(Carried) Normalize the components Shipments' redesign needs — RightPanel.** The reorder + show/hide **data-column** UI that drives the DataTable's `columnVisibility`/`columnOrder` (the migrated Shipments table already consumes it via the app-local ColumnPanel → drop-in). Figma-first `/normalize`. **Scope:** DATA columns only — select/action stay pinned. (Tooltip — DONE S70.)
-2. **0.3.0/0.3.1 release — DONE (S68).** `@oneodyssey/ui@0.3.1` published (0.3.0 had shipped 5 DataTable regressions — fixed both stacks). React PR #2 merged to `main`; React app deployed to prod; **Angular PR #7 reconciled + `MERGEABLE`**, awaiting a **OneOdyssey teammate's review approval** (user has push-not-admin; CI "Build Check" should pass). DSM "no Figma" badge → shipped as the **CODE-ONLY** pill (both DSMs). `odyssey-angular-dsm` retired (its DSM work is on `main` now) — safe to delete.
-3. **Code Connect refresh** blocked by **pre-existing Figma drift** in 5 untouched components (SearchResults/SearchPanel/MatchRow/EmptyState/CustomerRow — props renamed in Figma). Needs Figma→DSM→code reconciliation with Efrain before `connect:publish` will pass (atomic).
+2. **0.3.0/0.3.1/0.4.0 releases — published.** All three `@oneodyssey/ui` versions are published to GitHub Packages. Their **source is stacked on the single Angular PR #7** (`batch/s63-component-normalizations → main`, `MERGEABLE`, retitled cumulative) — `origin/main` is a **protected branch**, so it lands only when Cognizant approves #7. React side is direct-to-main (no PR). (S71)
+3. **Code Connect refresh — RESOLVED (S71).** The 5-component drift (+ Breadcrumb) was reconciled and `connect:publish` now passes. Remaining: the *deeper* Figma↔React divergence on SearchPanel/EmptyState/CustomerRow (Figma restructured, React still richer) is a per-component design decision, not a Code Connect blocker.
 4. **Figma `Icon Left/Pressed` drift** (DSN/500 vs Icon Right's DSN/400). **Alert re-tokenization** question for Efrain (the two removed `/200` primitives kept code-side).
 6. **Orders — PAUSED, fully captured.** `vault/60-backlog/backlog.html` ORD-1..10 + the built data seam (`useOrderView`). UI awaits Efrain; contract/live-flip awaits Ramesh + live Swagger. Owed: Product Delete → Efrain; 2 `@odyssey/ui` additive-prop flags.
 7. **Carried follow-ups:** de-dup the app-local `useAnchoredPortal` copy (order-create selects) onto the library hook; migrate the live `ShipmentTable` menu to `ActionMenu` when Shipments moves to `DataTable`; the ⋮-vs-⚡ action-affordance reconciliation for Efrain; Shipments question push (Q25/Q29/Q31/Q33/Q34/Q35); S51 LLD canon merge.
