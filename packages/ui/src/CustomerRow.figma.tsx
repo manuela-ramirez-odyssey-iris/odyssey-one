@@ -2,22 +2,24 @@ import figma from '@figma/code-connect'
 import CustomerRow from './CustomerRow'
 
 // Master: Components-Molecules page, set `CustomerRow` at 2029:461.
-// Variant axes: Mode=List|Result × Favorite=False|True (4 variants total).
-// Mode drives row size + which trailing action shows (Trash vs Star toggle);
-// Favorite drives the green Badge overlay (List mode) or filled star (Result mode).
+// Variant axes (current Figma): Type=List|Result × State=Default|Hover|Pressed|Focus.
+// Type drives row size + trailing action; State = interaction states (code-only).
+// (The old Favorite axis was removed in Figma; `favorite` remains a React prop.)
 figma.connect(
   CustomerRow,
   'https://www.figma.com/design/vodiHJU38YWZYmTz81uOk7/Design-System---MCP?node-id=2029-461',
   {
     imports: ["import { CustomerRow } from '@odyssey/ui'"],
     props: {
-      mode: figma.enum('Mode', { List: 'list', Result: 'result' }),
-      favorite: figma.enum('Favorite', { True: true, False: false }),
+      // Figma axis renamed Mode → Type; the Favorite axis was removed (replaced
+      // by interaction State variants, which are code-only). `favorite` stays a
+      // React prop, defaulted in the example.
+      mode: figma.enum('Type', { List: 'list', Result: 'result' }),
       label: figma.string('Label'),
       icon: figma.instance('Icon'),
     },
-    example: ({ mode, favorite, label, icon }) => (
-      <CustomerRow mode={mode} favorite={favorite} label={label} icon={icon} />
+    example: ({ mode, label, icon }) => (
+      <CustomerRow mode={mode} label={label} icon={icon} />
     ),
   },
 )

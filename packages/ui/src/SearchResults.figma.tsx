@@ -1,13 +1,14 @@
 import figma from '@figma/code-connect'
 import SearchResults from './SearchResults'
 
-// Master: Components-Organisms page (Modals artboard), `SearchResults` at 2684:1040.
-// The Best Match content that fills the SearchPanel Content slot. Composed organism
-// (MatchRow instances + a link row); the React API is data-driven (`matches` array
+// Master: Components-Organisms page (Modals artboard), `SearchResultsLarge` set at
+// 3237:3439 (now a State=SearchMainResults|SearchNoMatch set; connect to the set, not a
+// variant child). The Best Match content that fills the SearchPanel Content slot. Composed
+// organism (MatchRow instances + a link row); the React API is data-driven (`matches` array
 // + handlers), so the mapping uses a static example that demonstrates the contract.
 figma.connect(
   SearchResults,
-  'https://www.figma.com/design/vodiHJU38YWZYmTz81uOk7/Design-System---MCP?node-id=2684-1040',
+  'https://www.figma.com/design/vodiHJU38YWZYmTz81uOk7/Design-System---MCP?node-id=3237-3439',
   {
     imports: ["import { SearchResults } from '@odyssey/ui'"],
     example: () => (

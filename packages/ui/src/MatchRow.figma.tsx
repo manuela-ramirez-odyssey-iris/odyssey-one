@@ -1,14 +1,14 @@
 import figma from '@figma/code-connect'
 import MatchRow from './MatchRow'
 
-// Master: Components-Molecules page, `MatchRow` at 2460:2.
-// TEXT properties (Match ID / Route / Customer / Carrier / BOL) map to props;
-// the avatar `Icon` is a switchable INSTANCE_SWAP slot. The source pill is a
-// nested `Badge` instance — its variant/label aren't MatchRow-level properties,
-// so the `source` prop is supplied via the example default.
+// Master: Components-Molecules page, `MatchRow` set at 3548:6994 (now a State=True|False
+// set; connect to the set, not a variant child). TEXT properties (Match ID / Route /
+// Customer / Carrier / BOL) map to props; the avatar `Icon` is a switchable INSTANCE_SWAP
+// slot. The source pill is a nested `Badge` instance — its variant/label aren't
+// MatchRow-level properties, so the `source` prop is supplied via the example default.
 figma.connect(
   MatchRow,
-  'https://www.figma.com/design/vodiHJU38YWZYmTz81uOk7/Design-System---MCP?node-id=2460-2',
+  'https://www.figma.com/design/vodiHJU38YWZYmTz81uOk7/Design-System---MCP?node-id=3548-6994',
   {
     imports: ["import { MatchRow } from '@odyssey/ui'"],
     props: {
