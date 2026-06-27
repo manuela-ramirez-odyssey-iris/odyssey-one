@@ -28,6 +28,9 @@ export { default as AddSectionButton } from './AddSectionButton.jsx';
 export { default as StepIndicator } from './StepIndicator.jsx';
 export { default as MenuRow } from './MenuRow.jsx';
 export { default as DropdownButton } from './DropdownButton.jsx';
+export { default as Breadcrumb } from './Breadcrumb.jsx';
+export { default as MenuRowRadio } from './MenuRowRadio.jsx';
+export { default as MenuRowCheckbox } from './MenuRowCheckbox.jsx';
 
 // ── Molecules ──────────────────────────────────────────
 export { default as LeadNav } from './LeadNav.jsx';
@@ -53,6 +56,7 @@ export { default as MatchRow } from './MatchRow.jsx';
 export { default as Alert } from './Alert.jsx';
 export { default as Accordion } from './Accordion.jsx';
 export { default as ButtonToggle } from './ButtonToggle.jsx';
+export { default as Tooltip } from './Tooltip.jsx';
 
 // ── Organisms ──────────────────────────────────────────
 export { default as Navbar } from './Navbar.jsx';

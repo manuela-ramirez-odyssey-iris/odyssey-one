@@ -4638,11 +4638,50 @@ Consolidated into **PR #3** (closed PR #2 as superseded). **PR #3 is BLOCKED** �
 
 ---
 
+## Session 70 — June 26–27, 2026
+
+**The S70 component-normalization batch — five components through the full Figma-first → React → Angular routine (per-component), plus a Badge extension and two foundational bug fixes. Settled the "Row family" convention. Batch release (0.4.0) deferred to S71; one Figma-grid cleanup outstanding.**
+
+### Normalized this batch (React + Angular, both DSMs)
+- **Breadcrumb (atom)** — single segment (label + always-on `chevron-right`), `Current` axis; chevron always **DSN/400** even on the current segment (user call; Figma master rebound 700→400) + a `Label` TEXT property added. Angular `interactive` derives from `clicked.observed`.
+- **Tooltip (molecule)** — built from 3 loose Figma frames into a real `Tooltip` component (Components-Molecules). Dark card; optional header (composes a real **Badge** `iconOnly` time/info) + label + status; body = data-driven `groups:[{subtitle?,content}]`. **Hug width + minimum gap** via `gap:30px` + `space-between` (the Figma "Minimum Gap" transparent rect expressed natively). Drift fixed (foreign Gray/400→DSN/400, foreign text style→`label/xs regular`, hand-built badge→real Badge instance).
+- **MenuRowRadio (atom)** + **MenuRowCheckbox (atom)** — the **Row family**: distinct components (distinct intent) sharing the `.menu-row` chrome. MenuRowRadio = single-select + navigate, **two click zones** (radio area selects / row body navigates), **chevron always present** (no no-chevron). MenuRowCheckbox = multi-select + reorder, **only the checkbox area toggles** (row body = grab/drag handle), `bordered` (Type=Bordered), `disabled`. Both got a **Pressed** state (DSN/200; Hover=DSN/100). Compose the real Radio/Checkbox atoms. Tier = **atom** (matches the Figma Components-Atoms page, with MenuRow) — corrected mid-session from an initial molecule mislabel.
+
+### Badge extension (dependency for Tooltip's header badge)
+- New **`Shape` VARIANT axis** (`Pill`|`Icon`|`Circular`|`SmallPill`) — Efrain reorg: text→Pill, metric→SmallPill, notification/favorite/count→Circular, + new **`Shape=Icon`** `time` (green clock) / `info` (blue info) semantic icon-badges (square `--radius-sm`, baked clock/info decoupled from the shared swap property). Code: `iconOnly` prop + `time`/`info` variants. New tokens `--badge-info-bg` (Carolina Blue/200) + `--badge-info-text` (/600) + `Info/bg`/`Info/text` Figma vars.
+
+### Foundational fixes (surfaced by MenuRowRadio)
+- **Radio `:indeterminate` dark bug** — per spec a radio is natively `:indeterminate` when no sibling is checked; the shared `.control` CSS filled `:indeterminate` dark, so every unselected radio rendered dark. Scoped all `:indeterminate` fill rules to `.control--checkbox` (React `components.css` + Angular `_shared/control.scss`). Fixes radios everywhere.
+- **Angular menu-row label font regression** — the `_shared/menu-row.scss` extraction dropped the label font props, regressing MenuRow + MenuRowRadio. Restored `label/sm regular` in the shared base.
+- **`_shared/menu-row.scss` extraction** — MenuRowRadio's port extracted the `.menu-row` chrome to a shared partial; MenuRow refactored to `@use` it (mirrors Radio's `.control` extraction).
+
+### Decisions / conventions
+- **Row family convention** ([[project_menurow_restructure_proposal]] updated): separate components on distinct intent, shared chrome on shared structure ([[feedback_component_merge_vs_primitive]]). MenuRow stays the base; CustomerRow stays its own entity row.
+- **Tier follows the Figma page**, not composition count (MenuRowRadio/Checkbox = atoms because they're on Components-Atoms).
+- **Angular per-component** sequencing (twin right after each React component); npm **release + version stamp batched** to the batch end.
+
+### Figma (pushed)
+- Breadcrumb chevron recolor + `Label` prop; Badge `Shape` axis + `time`/`info` Icon variants + `Info` vars; Tooltip component built; MenuRowRadio/Checkbox: `Focused`→`Selected` rename, **Pressed** variants (DSN/200, after Hover), chevron boolean removed (radio = always chevron), **Disabled** variants (checkbox), `Line`→`Bordered` (user). **Library published by user** for Breadcrumb/Badge/Tooltip.
+
+### Verification
+- React: all modules transform clean (Vite). Angular Phase 3 green throughout — final: parity-lint (menu-row, menu-row-radio, menu-row-checkbox) ✓, both builds ✓, **531** lib specs, **31** explorer specs.
+
+### Carry-forward to Session 71 — READ FIRST
+- **🐞 Figma MenuRowRadio + MenuRowCheckbox variants OVERLAP.** Cloning Hover→Pressed and Default→Disabled kept the source variant's x/y, so `Pressed` sits on top of `Hover` and `Disabled` on top of `Default` → the sets *look* like Default/Hover are missing (they are NOT — all 5 radio / 10 checkbox variants exist; colors correct: Hover=DSN/100, Pressed=DSN/200). **Fix:** reposition the variants into a clean grid. Also recheck the **Disabled radio's box-bg binding** (the audit showed it empty). Then **library-publish** the menu-row changes.
+- **Batch release 0.4.0** ([[feedback_dsm_version_sync]]): stamp `0.4.0` on BOTH demos (React + Angular) for every touched component — Breadcrumb, Badge, Tooltip, MenuRowRadio, MenuRowCheckbox (+ PillTab/Tab if their validation changes anything); bump `@oneodyssey/ui` → 0.4.0 + CHANGELOG + publish; **Code Connect publish still blocked** by the pre-existing 5-component Figma drift; Angular work lands via the open feature branch / PR.
+- **#4 PillTab + #5 Tab** — the last two batch items; both are **validate/update** of existing components (already in `@odyssey/ui`).
+
+---
+
 ## What's Next
 
-### Session 70 Priorities
+### Session 71 Priorities
 
-1. **Normalize the components Shipments' redesign needs — RightPanel first; user provides the BATCH LIST at session start.** RightPanel = the reorder + show/hide **data-column** UI that drives the DataTable's `columnVisibility`/`columnOrder` — which the migrated Shipments table already consumes via the app-local ColumnPanel, so the normalized RightPanel is a **drop-in**. Run the Figma-first `/normalize` routine; the batch is completed → pushed → version-bumped together ([[feedback_dsm_version_sync]]). A normalized **Tooltip** is also owed (Shipments rides on app-local ones). **Scope reminder:** RightPanel touches DATA columns only — select/action stay pinned.
+0. **FIRST: fix the Figma MenuRowRadio + MenuRowCheckbox variant OVERLAP** (S70 carry-forward) — cloned Pressed/Disabled kept the source x/y, so variants stack (nothing deleted; reposition into a clean grid + recheck the Disabled-radio box-bg), then library-publish the menu-row masters.
+0b. **Batch release `0.4.0`** — version-stamp all S70 components' demos (both stacks), bump `@oneodyssey/ui`→0.4.0 + CHANGELOG + publish; Code Connect publish still blocked by the 5-component drift; land the Angular feature branch / PR.
+0c. **Finish the S70 batch: #4 PillTab + #5 Tab** — validate/update of existing components.
+
+1. **(Carried) Normalize the components Shipments' redesign needs — RightPanel.** The reorder + show/hide **data-column** UI that drives the DataTable's `columnVisibility`/`columnOrder` (the migrated Shipments table already consumes it via the app-local ColumnPanel → drop-in). Figma-first `/normalize`. **Scope:** DATA columns only — select/action stay pinned. (Tooltip — DONE S70.)
 2. **0.3.0/0.3.1 release — DONE (S68).** `@oneodyssey/ui@0.3.1` published (0.3.0 had shipped 5 DataTable regressions — fixed both stacks). React PR #2 merged to `main`; React app deployed to prod; **Angular PR #7 reconciled + `MERGEABLE`**, awaiting a **OneOdyssey teammate's review approval** (user has push-not-admin; CI "Build Check" should pass). DSM "no Figma" badge → shipped as the **CODE-ONLY** pill (both DSMs). `odyssey-angular-dsm` retired (its DSM work is on `main` now) — safe to delete.
 3. **Code Connect refresh** blocked by **pre-existing Figma drift** in 5 untouched components (SearchResults/SearchPanel/MatchRow/EmptyState/CustomerRow — props renamed in Figma). Needs Figma→DSM→code reconciliation with Efrain before `connect:publish` will pass (atomic).
 4. **Figma `Icon Left/Pressed` drift** (DSN/500 vs Icon Right's DSN/400). **Alert re-tokenization** question for Efrain (the two removed `/200` primitives kept code-side).

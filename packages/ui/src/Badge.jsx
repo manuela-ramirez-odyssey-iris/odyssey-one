@@ -1,4 +1,5 @@
-import { Star } from 'lucide-react'
+import { Star, Clock, Info } from 'lucide-react'
+import { ICON_MD } from '@odyssey/tokens'
 
 const variants = {
   amber: { bg: 'var(--badge-yellow-bg)', color: 'var(--badge-yellow-text)' },
@@ -11,6 +12,16 @@ const variants = {
   count: { bg: 'var(--carolina-blue-400)', color: 'var(--text-inverse)', isCount: true },
   metric: { bg: 'var(--badge-gray-bg)', color: 'var(--text-primary)', isMetric: true },
   favorite: { bg: 'var(--caribbean-green-600)', color: 'var(--white)', isFavorite: true },
+  // Icon-only (Shape=Icon) semantic badges — square soft-tint tile, fixed icon by meaning.
+  time: { bg: 'var(--badge-green-bg)', color: 'var(--badge-green-text)' },
+  info: { bg: 'var(--badge-info-bg)', color: 'var(--badge-info-text)' },
+}
+
+// Baked default icon per icon-only variant (the icon IS the variant's identity).
+// Consumers may still override via `leftIcon`.
+const ICON_BADGE_DEFAULTS = {
+  time: <Clock {...ICON_MD} />,
+  info: <Info {...ICON_MD} />,
 }
 
 function getPadding(leftIcon, rightIcon, isDot, isMetric, isCount) {
@@ -22,12 +33,36 @@ function getPadding(leftIcon, rightIcon, isDot, isMetric, isCount) {
   return `2px ${right}px 2px ${left}px`
 }
 
-export default function Badge({ children, variant = 'blue', leftIcon, rightIcon, statusDot }) {
+export default function Badge({ children, variant = 'blue', leftIcon, rightIcon, statusDot, iconOnly = false }) {
   const v = variants[variant] || variants.blue
   const isDot = !!v.isDot
   const isCount = !!v.isCount
   const isMetric = !!v.isMetric
   const isFavorite = !!v.isFavorite
+
+  if (iconOnly) {
+    // Shape=Icon — square soft-tint tile, icon-only (no text). Icon defaults to
+    // the variant's baked glyph (time→Clock, info→Info); `leftIcon` overrides.
+    const icon = leftIcon || ICON_BADGE_DEFAULTS[variant]
+    return (
+      <span
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 2,
+          borderRadius: 'var(--radius-sm)',
+          background: v.bg,
+          color: v.iconColor || v.color,
+          flexShrink: 0,
+          boxSizing: 'border-box',
+        }}
+        aria-hidden="true"
+      >
+        {icon}
+      </span>
+    )
+  }
 
   if (isFavorite) {
     return (

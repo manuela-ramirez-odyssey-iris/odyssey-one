@@ -163,6 +163,8 @@
   --badge-purple-text: var(--purple-800);
   --badge-gray-bg: var(--deep-sea-neutral-100);
   --badge-gray-text: var(--deep-sea-neutral-700);
+  --badge-info-bg: var(--carolina-blue-200);   /* icon-badge "info" surface (= --alert-info-bg) */
+  --badge-info-text: var(--carolina-blue-600);  /* icon-badge "info" icon */
 
   /* --- Component: Dropdown --- */
   --dropdown-bg: var(--bg-primary);

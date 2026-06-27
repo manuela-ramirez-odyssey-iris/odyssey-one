@@ -532,19 +532,22 @@ input[type="date"].odyssey-date-input::-webkit-calendar-picker-indicator:hover {
 .control--checkbox .control__input { border-radius: var(--radius-sm); }
 .control--radio .control__input { border-radius: var(--radius-full); }
 
-/* hover — darken the unchecked border */
-.control__input:not(:checked):not(:indeterminate):not(:disabled):hover {
+/* hover — darken the unchecked border (radios included; checkbox-indeterminate
+   has its own fill-darken hover below, which wins by specificity) */
+.control__input:not(:checked):not(:disabled):hover {
   border-color: var(--control-border-hover);
 }
-/* checked / indeterminate — filled dark box */
+/* checked / indeterminate — filled dark box.
+   `:indeterminate` is scoped to checkbox: a radio with no checked sibling in its
+   group is natively `:indeterminate` too, which would wrongly fill it dark. */
 .control__input:checked,
-.control__input:indeterminate {
+.control--checkbox .control__input:indeterminate {
   background: var(--control-checked-bg);
   border-color: var(--control-checked-bg);
 }
 /* hover on a filled box — darken the fill */
 .control__input:checked:not(:disabled):hover,
-.control__input:indeterminate:not(:disabled):hover {
+.control--checkbox .control__input:indeterminate:not(:disabled):hover {
   background: var(--control-checked-hover-bg);
   border-color: var(--control-checked-hover-bg);
 }
@@ -560,7 +563,7 @@ input[type="date"].odyssey-date-input::-webkit-calendar-picker-indicator:hover {
   border-color: var(--control-border-disabled);
 }
 .control__input:checked:disabled,
-.control__input:indeterminate:disabled {
+.control--checkbox .control__input:indeterminate:disabled {
   background: var(--control-checked-bg-disabled);
   border-color: var(--control-checked-bg-disabled);
 }
@@ -1649,6 +1652,102 @@ input[type="date"].odyssey-date-input::-webkit-calendar-picker-indicator:hover {
   color: var(--text-tertiary);
 }
 
+/* Breadcrumb — atom. One trail segment: label + trailing chevron-right.
+   Compose multiple in a flex row to form a trail (Figma `Breadcrumb` 3141:732,
+   axis `Current`). The chevron is ALWAYS DSN/400 — it never tracks the label
+   color, including on the current segment (whose label is DSN/700). */
+.breadcrumb {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-1);
+}
+.breadcrumb__label {
+  color: var(--deep-sea-neutral-400);
+  white-space: nowrap;
+}
+.breadcrumb--current .breadcrumb__label {
+  color: var(--deep-sea-neutral-700);
+}
+/* Interactive link label (non-current segment given an onClick). */
+button.breadcrumb__label {
+  appearance: none;
+  -webkit-appearance: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+button.breadcrumb__label:hover {
+  color: var(--deep-sea-neutral-700);
+}
+button.breadcrumb__label:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+/* lucide chevron inherits via currentColor — pinned to the light token. */
+.breadcrumb__chevron {
+  display: block;
+  flex-shrink: 0;
+  color: var(--deep-sea-neutral-400);
+}
+
+/* Tooltip — molecule. Dark info card (Figma `Tooltip` 3762:237). Width hugs
+   content. Header uses `gap` (the minimum separation) + space-between so the
+   status keeps a guaranteed gap when narrow and is pushed to the edge when the
+   body forces a wider card — the native form of the Figma "Minimum Gap" shape. */
+.tooltip {
+  display: inline-flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  max-width: 264px;
+  padding: var(--spacing-3);
+  background: var(--deep-sea-neutral-900);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-lg);
+  color: var(--white);
+  box-sizing: border-box;
+}
+.tooltip__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 30px; /* "Minimum Gap" — off-scale; min separation between label and status */
+}
+.tooltip__header-lead {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  min-width: 0;
+}
+.tooltip__label {
+  color: var(--white);
+  white-space: nowrap;
+}
+.tooltip__status {
+  color: var(--white);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.tooltip__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+.tooltip__group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+.tooltip__subtitle {
+  color: var(--deep-sea-neutral-400);
+}
+.tooltip__content {
+  color: var(--white);
+}
+
 /* AddSectionDivider — atom. Purely decorative row separator that announces
    the start of the "to be added" section above the AddSectionButton in Home
    edit mode. Mirrors Figma `AddSectionDivider` 2203:297. NOT a button — no
@@ -2400,6 +2499,91 @@ input[type="date"].odyssey-date-input::-webkit-calendar-picker-indicator:hover {
 /* disabled */
 .menu-row[data-disabled] { opacity: 0.4; cursor: not-allowed; }
 .menu-row[data-disabled]:hover { background: transparent; }
+
+/* ── Row family — MenuRowRadio (molecule) ────────────────
+   Shares the .menu-row base chrome; adds a leading control slot + a white/
+   bordered surface. Leading Radio (single-select) + chevron (navigate).
+   Figma `MenuRowRadio` set 3447:6593. */
+/* Two click zones: the control (radio) selects; the nav zone navigates. */
+.menu-row__control {
+  display: inline-flex;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.menu-row-radio__nav {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  flex: 1 1 0;
+  min-width: 0;
+  cursor: pointer;
+}
+.menu-row-radio__nav .menu-row__label {
+  flex: 1 1 0;
+}
+.menu-row-radio {
+  background: var(--white);
+  box-shadow: inset 0 0 0 1px var(--deep-sea-neutral-300);
+}
+.menu-row-radio:hover {
+  background: var(--deep-sea-neutral-100);
+}
+/* pressed — hover's DSN/300 border + DSN/200 bg */
+.menu-row-radio:active {
+  background: var(--deep-sea-neutral-200);
+}
+.menu-row-radio--selected,
+.menu-row-radio--selected:hover {
+  box-shadow: inset 0 0 0 1px var(--deep-sea-neutral-900);
+}
+/* disabled — placeholder label (Figma shows muted text, not the base opacity dim) */
+.menu-row-radio[data-disabled] {
+  opacity: 1;
+  background: var(--white);
+  box-shadow: inset 0 0 0 1px var(--deep-sea-neutral-300);
+}
+.menu-row-radio[data-disabled]:hover {
+  background: var(--white);
+}
+.menu-row-radio[data-disabled] .menu-row__label {
+  color: var(--text-placeholder);
+}
+
+/* ── Row family — MenuRowCheckbox (atom) ─────────────────
+   Shares the .menu-row base chrome; multi-select (whole row toggles the
+   checkbox) + draggable (grip = drag handle). `--bordered` = Figma Type=Line.
+   Figma `MenuRowCheckbox` set 3447:6592. */
+/* The whole row is the drag handle (grab); only the checkbox area is pointer. */
+.menu-row-checkbox {
+  cursor: grab;
+}
+.menu-row-checkbox:hover {
+  background: var(--deep-sea-neutral-100);
+}
+/* pressed — DSN/200 (bordered + non-bordered) */
+.menu-row-checkbox:active {
+  background: var(--deep-sea-neutral-200);
+  cursor: grabbing;
+}
+.menu-row-checkbox--bordered {
+  box-shadow: inset 0 0 0 1px var(--deep-sea-neutral-300);
+}
+/* only the checkbox area is clickable + pointer (toggles) */
+.menu-row-checkbox .menu-row__control {
+  cursor: pointer;
+}
+/* disabled — muted label + disabled checkbox, non-interactive (no hover/press/drag) */
+.menu-row-checkbox[data-disabled],
+.menu-row-checkbox[data-disabled] .menu-row__control {
+  cursor: not-allowed;
+}
+.menu-row-checkbox[data-disabled]:hover,
+.menu-row-checkbox[data-disabled]:active {
+  background: transparent;
+}
+.menu-row-checkbox[data-disabled] .menu-row__label {
+  color: var(--text-placeholder);
+}
 
 .menu-dropdown__header { color: var(--text-tertiary); transition: color var(--transition-fast); }
 .menu-dropdown__header:hover { color: var(--text-primary); }

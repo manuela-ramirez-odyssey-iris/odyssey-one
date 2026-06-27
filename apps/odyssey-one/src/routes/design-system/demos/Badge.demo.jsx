@@ -30,9 +30,10 @@ export const meta = {
 }
 
 export const props = [
-  { name: 'variant', type: 'amber|blue|green|red|purple|gray|notification|metric|count|favorite', desc: 'Color + shape preset. Default blue.' },
-  { name: 'children', type: 'ReactNode', desc: 'Label text (not used by notification/favorite).' },
-  { name: 'leftIcon', type: 'ReactNode', desc: 'Leading icon slot (ignored by metric variants).' },
+  { name: 'variant', type: 'amber|blue|green|red|purple|gray|notification|metric|count|favorite|time|info', desc: 'Color + shape preset. Default blue. time/info are icon-only (Shape=Icon) semantic badges.' },
+  { name: 'iconOnly', type: 'boolean', desc: 'Shape=Icon — square (--radius-sm) soft-tint tile, icon-only. time→Clock, info→Info baked by default; leftIcon overrides. Default false.' },
+  { name: 'children', type: 'ReactNode', desc: 'Label text (not used by notification/favorite/iconOnly).' },
+  { name: 'leftIcon', type: 'ReactNode', desc: 'Leading icon slot (ignored by metric; for iconOnly it overrides the baked default — pass a 16px icon).' },
   { name: 'rightIcon', type: 'ReactNode', desc: 'Trailing icon slot (ignored by metric variants).' },
   { name: 'statusDot', type: 'boolean', desc: 'Renders an animated 6px pulse dot before the label (ignored by metric).' },
 ]
@@ -45,6 +46,9 @@ export const tokens = [
   { token: '--badge-gray-bg', resolves: 'DSN/100', usage: 'gray + metric background' },
   { token: '--bittersweet-600', resolves: 'Bittersweet/600', usage: 'notification bg' },
   { token: '--carolina-blue-400', resolves: 'Carolina Blue/400', usage: 'count bg' },
+  { token: '--badge-info-bg', resolves: 'Carolina Blue/200', usage: 'info icon-badge bg' },
+  { token: '--badge-info-text', resolves: 'Carolina Blue/600', usage: 'info icon-badge icon' },
+  { token: '--badge-green-text', resolves: 'Caribbean Green/800', usage: 'time icon-badge icon' },
   { token: '--radius-sm', resolves: '4px', usage: 'standard badge radius' },
   { token: '--deep-sea-neutral-200', resolves: 'DSN/200', usage: 'toggle gray badge — hover + selected bg' },
   { token: '--deep-sea-neutral-900', resolves: 'DSN/900', usage: 'toggle gray badge — selected ring' },
@@ -114,6 +118,30 @@ export default function BadgeDemo() {
           <div className="ds-demo-col" style={{ alignItems: 'center' }}>
             <Badge variant="gray" leftIcon={<Package size={12} />}>Gray icon</Badge>
             <span className="ds-demo-label">gray (icon tertiary)</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="ds-demo-section">
+        <h4 className="ds-demo-section__title">Icon-only (Shape=Icon) — semantic badges</h4>
+        <p style={{ marginTop: 0, color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)' }}>
+          Square (<code>--radius-sm</code>) soft-tint tiles, 20×20, icon-only. The
+          icon is the variant's identity — <code>time</code> bakes a Clock, <code>info</code>{' '}
+          bakes Info — so <code>&lt;Badge variant="time" iconOnly /&gt;</code> needs no icon
+          passed. <code>leftIcon</code> still overrides for one-offs.
+        </p>
+        <div className="ds-demo-row">
+          <div className="ds-demo-col" style={{ alignItems: 'center' }}>
+            <Badge variant="time" iconOnly />
+            <span className="ds-demo-label">time (baked Clock)</span>
+          </div>
+          <div className="ds-demo-col" style={{ alignItems: 'center' }}>
+            <Badge variant="info" iconOnly />
+            <span className="ds-demo-label">info (baked Info)</span>
+          </div>
+          <div className="ds-demo-col" style={{ alignItems: 'center' }}>
+            <Badge variant="info" iconOnly leftIcon={<Package size={16} />} />
+            <span className="ds-demo-label">leftIcon override</span>
           </div>
         </div>
       </div>

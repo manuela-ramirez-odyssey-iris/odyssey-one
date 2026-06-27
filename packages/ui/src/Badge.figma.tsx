@@ -61,3 +61,17 @@ figma.connect(
     example: () => <Badge variant="favorite" />,
   },
 )
+
+// Shape=Icon — square soft-tint, icon-only semantic badges (baked clock/info).
+figma.connect(
+  Badge,
+  'https://www.figma.com/design/vodiHJU38YWZYmTz81uOk7/Design-System---MCP?node-id=213-27',
+  {
+    variant: { Shape: 'Icon' },
+    imports: ["import { Badge } from '@odyssey/ui'"],
+    props: {
+      variant: figma.enum('Variant', { time: 'time', info: 'info' }),
+    },
+    example: ({ variant }) => <Badge variant={variant} iconOnly />,
+  },
+)
