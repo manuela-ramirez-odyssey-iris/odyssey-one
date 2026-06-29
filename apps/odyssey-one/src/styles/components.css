@@ -2777,6 +2777,100 @@ button.breadcrumb__label:focus-visible {
 }
 
 /* ----------------------------------------
+   RIGHT PANEL (organism shell)
+   Mirrors Figma `RightPanel` 3449:10701. Self-contained right-side drawer card:
+   header (back · title · edit · subtitle · close) + content slot + optional footer.
+   Presentational — no overlay/ESC; the consumer positions it and wires dismissal.
+   Content slot has no padding; slotted content brings its own (matches the Figma Slot).
+   ---------------------------------------- */
+.right-panel {
+  display: flex;
+  flex-direction: column;
+  width: var(--right-panel-width);
+  max-height: 100%;
+  background: var(--bg-primary);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-panel);
+  overflow: hidden;
+}
+
+.right-panel__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-2);
+  padding: var(--spacing-3) var(--spacing-6) var(--spacing-2);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.right-panel__header-lead {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-2);
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.right-panel__header-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  min-width: 0;
+  flex: 1 1 0;
+}
+
+.right-panel__title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.right-panel__title { color: var(--text-primary); }
+
+.right-panel__subtitle {
+  color: var(--text-tertiary);
+  font-family: var(--font-primary);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-xs);
+  font-weight: var(--font-weight-regular);
+}
+
+/* Bare icon affordances (back chevron, edit pencil) — transparent, color tracks
+   text-tertiary, icons inherit via currentColor. (Close uses IconButtonGhost.) */
+.right-panel__icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-tertiary);
+  transition: color var(--transition-fast);
+}
+.right-panel__back { margin-top: 2px; } /* nudge the 20px chevron onto the 24px title line */
+.right-panel__icon-btn:hover { color: var(--text-primary); }
+.right-panel__icon-btn:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.right-panel__content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.right-panel__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-3) var(--spacing-6) var(--spacing-4);
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* ----------------------------------------
    CUSTOMER ROW (molecule)
    Mirrors Figma `CustomerRow` set at 2029:461. Icon container (24×24, 2px ring) +
    label + favorite Star + Trash. Border-bottom DSN/200; :last-child clears it.

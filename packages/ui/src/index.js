@@ -70,6 +70,7 @@ export { default as AuthModal } from './AuthModal.jsx';
 export { default as AuthContent } from './AuthContent.jsx';
 export { default as SearchPanel } from './SearchPanel.jsx';
 export { default as SearchResults } from './SearchResults.jsx';
+export { default as RightPanel } from './RightPanel.jsx';
 
 // ── Hooks / positioning ────────────────────────────────
 // Anchored, flip-aware popover positioning. `useAnchoredPortal` is used
