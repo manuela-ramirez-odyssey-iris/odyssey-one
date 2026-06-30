@@ -10,7 +10,7 @@ export default function AppShell({ children, filterPanel, onMainClick, transpare
   return (
     <div className="flex flex-col h-screen">
       <Navbar searchSlot={searchSlot} />
-      <div className="flex flex-1 min-h-0">
+      <div className="flex flex-1 min-h-0 overflow-hidden">
         {!isEditMode && <Sidebar />}
         <main
           className="flex-1 min-w-0 overflow-x-hidden overflow-y-auto flex flex-col"

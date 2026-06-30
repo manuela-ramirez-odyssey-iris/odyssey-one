@@ -1,6 +1,8 @@
-import { useState, useMemo } from 'react'
-import { X, ChevronRight, ChevronLeft, Search, GripVertical } from 'lucide-react'
-import { ICON_MD } from '@odyssey/tokens'
+import { useState, useMemo, useRef, useEffect, useLayoutEffect } from 'react'
+import { createPortal } from 'react-dom'
+import { RightPanel, MenuRowRadio, MenuRowCheckbox, SearchField, IconButtonGhost, DropdownMenu, MenuRow } from '@odyssey/ui'
+import { EllipsisVertical } from 'lucide-react'
+import { ICON_LG } from '@odyssey/tokens'
 
 export const ALL_COLUMNS = [
   { key: 'buyShipment', label: 'Buy Shipment #' },
@@ -99,231 +101,351 @@ function getPresetByColumns(columns) {
   })
 }
 
+const arraysEqual = (a, b) => a.length === b.length && a.every((x, i) => x === b[i])
+
+/** Uppercase section label — matches the RightPanel preset-group header style.
+ *  Optional `action` renders on the trailing side (e.g. the ⋮ preset-actions menu). */
+function GroupLabel({ children, action }) {
+  return (
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 'var(--spacing-2)',
+      minHeight: 28,
+      padding: 'var(--spacing-1) 0',
+      marginBottom: 'var(--spacing-1)',
+    }}>
+      <span style={{
+        color: 'var(--text-tertiary)',
+        fontFamily: 'var(--font-primary)',
+        fontSize: 'var(--font-size-xs)',
+        lineHeight: 'var(--line-height-xs)',
+        fontWeight: 'var(--font-weight-medium)',
+        letterSpacing: 'var(--letter-spacing-wide)',
+        textTransform: 'uppercase',
+      }}>
+        {children}
+      </span>
+      {action}
+    </div>
+  )
+}
+
+/**
+ * PresetActionsMenu — the ⋮ IconButtonGhost in the Custom Presets header. Opens an
+ * anchored DropdownMenu of preset actions (right-aligned to the trigger, flips up near
+ * the viewport bottom). Composes IconButtonGhost + DropdownMenu + MenuRow; closes on
+ * select / outside-click / scroll / resize.
+ */
+function PresetActionsMenu({ options }) {
+  const [open, setOpen] = useState(false)
+  const [pos, setPos] = useState(null)
+  const triggerRef = useRef(null)
+  const menuRef = useRef(null)
+
+  useLayoutEffect(() => {
+    if (!open) { setPos(null); return }
+    const t = triggerRef.current
+    const m = menuRef.current
+    if (!t || !m) return
+    const r = t.getBoundingClientRect()
+    const gap = 4
+    const mh = m.offsetHeight
+    const openUp = r.bottom + gap + mh > window.innerHeight && r.top - gap - mh > 0
+    setPos({
+      top: openUp ? r.top - gap - mh : r.bottom + gap,
+      left: r.right - m.offsetWidth, // right-align the menu to the trigger
+    })
+  }, [open])
+
+  useEffect(() => {
+    if (!open) return
+    const onDown = (e) => {
+      if (triggerRef.current?.contains(e.target)) return
+      if (menuRef.current?.contains(e.target)) return
+      setOpen(false)
+    }
+    const onScrollResize = () => setOpen(false)
+    document.addEventListener('mousedown', onDown)
+    window.addEventListener('scroll', onScrollResize, true)
+    window.addEventListener('resize', onScrollResize)
+    return () => {
+      document.removeEventListener('mousedown', onDown)
+      window.removeEventListener('scroll', onScrollResize, true)
+      window.removeEventListener('resize', onScrollResize)
+    }
+  }, [open])
+
+  return (
+    <>
+      <span ref={triggerRef} style={{ display: 'inline-flex' }}>
+        <IconButtonGhost
+          icon={<EllipsisVertical {...ICON_LG} aria-hidden="true" />}
+          ariaLabel="Preset actions"
+          onClick={() => setOpen((o) => !o)}
+          aria-haspopup="menu"
+          aria-expanded={open}
+        />
+      </span>
+      {open && createPortal(
+        <div
+          ref={menuRef}
+          style={pos
+            ? { position: 'fixed', top: pos.top, left: pos.left, zIndex: 200 }
+            : { position: 'fixed', top: 0, left: 0, visibility: 'hidden', zIndex: 200 }}
+        >
+          <DropdownMenu>
+            {options.map((opt) => (
+              <MenuRow
+                key={opt.label}
+                label={opt.label}
+                variant="select"
+                role="menuitem"
+                tabIndex={0}
+                onClick={() => { opt.onSelect?.(); setOpen(false) }}
+              />
+            ))}
+          </DropdownMenu>
+        </div>,
+        document.body,
+      )}
+    </>
+  )
+}
+
+/**
+ * ColumnPanel — Shipments data-column arrange feature, built on the normalized RightPanel
+ * shell + Row-family controls (MenuRowRadio / MenuRowCheckbox) + SearchField + Button.
+ *
+ * Two views inside the same RightPanel (a directional slide animates the transition):
+ *  - **presets**: Custom + Odyssey preset groups. The radio area selects/applies a preset
+ *    (live); the row body (chevron) opens that preset for editing → arrangement.
+ *  - **arrangement (editing a preset)**: the header title becomes the preset name + a
+ *    pencil to rename it. "Selected columns" (drag-reorder, uncheck-remove) + "Available
+ *    columns" (search, check-add) edit a DRAFT. Any pending change (column toggle/move OR
+ *    a name edit) raises the RightPanel footer with Cancel / Save — Save commits the draft
+ *    to the table (+ the new name), Cancel reverts.
+ *
+ * Public API unchanged (drop-in for ShipmentsRoute): `{ isOpen, onClose, visibleColumns,
+ * onColumnsChange }` + the exported column/preset constants.
+ */
 export default function ColumnPanel({ isOpen, onClose, visibleColumns, onColumnsChange }) {
   const [view, setView] = useState('presets')
   const [activePresetId, setActivePresetId] = useState('default-exceptions')
   const [searchQuery, setSearchQuery] = useState('')
   const [dragOverIndex, setDragOverIndex] = useState(null)
+  const [slideDir, setSlideDir] = useState('forward')
+
+  // Editing session drafts — staged until Save (the ModalFooter).
+  const [draftColumns, setDraftColumns] = useState(visibleColumns)
+  const [presetNames, setPresetNames] = useState(() => {
+    const m = {}
+    ;[...PRESETS.custom, ...PRESETS.odyssey].forEach(p => { m[p.id] = p.name })
+    return m
+  })
+  const [editingName, setEditingName] = useState(false)
+  const [draftName, setDraftName] = useState('')
 
   const activePreset = getPresetById(activePresetId)
-  const matchedPreset = getPresetByColumns(visibleColumns)
-  const activePresetName = matchedPreset ? matchedPreset.name : (activePreset ? activePreset.name : 'Custom')
+  const currentName = presetNames[activePresetId] || (activePreset ? activePreset.name : 'Preset')
 
-  const selectedColumns = useMemo(() => {
-    return visibleColumns
-      .map(key => ALL_COLUMNS.find(c => c.key === key))
-      .filter(Boolean)
-  }, [visibleColumns])
+  const columnsDirty = !arraysEqual(draftColumns, visibleColumns)
+  const showFooter = view === 'arrangement' && (columnsDirty || editingName)
 
+  // Arrangement lists reflect the DRAFT (pending) columns, not the committed table.
+  const selectedColumns = useMemo(
+    () => draftColumns.map(key => ALL_COLUMNS.find(c => c.key === key)).filter(Boolean),
+    [draftColumns],
+  )
   const availableColumns = useMemo(() => {
-    const visibleSet = new Set(visibleColumns)
-    let cols = ALL_COLUMNS.filter(c => !visibleSet.has(c.key))
+    const draftSet = new Set(draftColumns)
+    let cols = ALL_COLUMNS.filter(c => !draftSet.has(c.key))
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase()
       cols = cols.filter(c => c.label.toLowerCase().includes(q))
     }
     return cols
-  }, [visibleColumns, searchQuery])
+  }, [draftColumns, searchQuery])
 
   const handlePresetSelect = (presetId) => {
     setActivePresetId(presetId)
     const preset = getPresetById(presetId)
-    if (preset) {
-      onColumnsChange(preset.columns)
-    }
-  }
-
-  const handleToggleColumn = (key, checked) => {
-    if (checked) {
-      // Add to end of visible
-      onColumnsChange([...visibleColumns, key])
-    } else {
-      // Remove from visible
-      onColumnsChange(visibleColumns.filter(k => k !== key))
-    }
-  }
-
-  const handleDrop = (e, toIndex) => {
-    e.preventDefault()
-    setDragOverIndex(null)
-    const fromIndex = parseInt(e.dataTransfer.getData('text/plain'))
-    if (isNaN(fromIndex) || fromIndex === toIndex) return
-    const newCols = [...visibleColumns]
-    const [moved] = newCols.splice(fromIndex, 1)
-    newCols.splice(toIndex, 0, moved)
-    onColumnsChange(newCols)
+    if (preset) onColumnsChange(preset.columns)
   }
 
   const handleNavigateToArrangement = (presetId) => {
     setActivePresetId(presetId)
     const preset = getPresetById(presetId)
-    if (preset) {
-      onColumnsChange(preset.columns)
-    }
-    setView('arrangement')
+    const cols = preset ? preset.columns : visibleColumns
+    if (preset) onColumnsChange(preset.columns) // opening a preset loads it
+    setDraftColumns(cols)
+    setEditingName(false)
     setSearchQuery('')
+    setSlideDir('forward')
+    setView('arrangement')
   }
 
-  const renderPresets = () => (
-    <div className="flex-1 min-h-0 overflow-y-auto" style={{ padding: '0 16px 16px' }}>
-      {/* Custom Presets */}
-      <div style={{ marginTop: 16 }}>
-        <div style={{
-          fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em',
-          color: 'var(--text-placeholder)', marginBottom: 8,
-        }}>
-          Custom Presets
-        </div>
-        {PRESETS.custom.map(preset => (
-          <PresetRow
-            key={preset.id}
-            preset={preset}
-            isActive={!!matchedPreset && matchedPreset.id === preset.id}
-            onSelect={() => handlePresetSelect(preset.id)}
-            onNavigate={() => handleNavigateToArrangement(preset.id)}
-          />
-        ))}
-      </div>
+  const handleBack = () => {
+    setDraftColumns(visibleColumns)
+    setEditingName(false)
+    setSearchQuery('')
+    setSlideDir('back')
+    setView('presets')
+  }
 
-      {/* Odyssey Presets */}
-      <div style={{ marginTop: 20 }}>
-        <div style={{
-          fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em',
-          color: 'var(--text-placeholder)', marginBottom: 8,
-        }}>
-          Odyssey Presets
+  const handleToggleColumn = (key, checked) => {
+    setDraftColumns(checked ? [...draftColumns, key] : draftColumns.filter(k => k !== key))
+  }
+
+  const handleDrop = (e, toIndex) => {
+    e.preventDefault()
+    setDragOverIndex(null)
+    const fromIndex = parseInt(e.dataTransfer.getData('text/plain'), 10)
+    if (isNaN(fromIndex) || fromIndex === toIndex) return
+    const newCols = [...draftColumns]
+    const [moved] = newCols.splice(fromIndex, 1)
+    newCols.splice(toIndex, 0, moved)
+    setDraftColumns(newCols)
+  }
+
+  const handleEditName = () => {
+    setDraftName(currentName)
+    setEditingName(true)
+  }
+
+  const handleSave = () => {
+    if (editingName) {
+      setPresetNames(prev => ({ ...prev, [activePresetId]: draftName.trim() || currentName }))
+      setEditingName(false)
+    }
+    if (columnsDirty) onColumnsChange(draftColumns)
+  }
+
+  const handleCancel = () => {
+    setDraftColumns(visibleColumns)
+    setEditingName(false)
+    setDraftName('')
+  }
+
+  // Closing always returns to the presets list and cancels any in-flight title edit.
+  // Deferred past the slide-out so the view doesn't visibly swap while the panel closes;
+  // activePresetId is intentionally NOT reset, so the same preset stays selected on reopen.
+  const handleClose = () => {
+    onClose()
+    setTimeout(() => {
+      setView('presets')
+      setSearchQuery('')
+      setSlideDir('back')
+      setEditingName(false)
+      setDraftName('')
+    }, 320)
+  }
+
+  // Custom-preset actions (UI only — behaviour to be specced next session).
+  const presetMenuOptions = [
+    { label: 'New Preset', onSelect: () => {} },
+    { label: 'Delete Presets', onSelect: () => {} },
+  ]
+
+  const presetsView = (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-5)', padding: 'var(--spacing-4) var(--spacing-6)' }}>
+      <div>
+        <GroupLabel action={<PresetActionsMenu options={presetMenuOptions} />}>Custom Presets</GroupLabel>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-1)' }}>
+          {PRESETS.custom.map(preset => (
+            <MenuRowRadio
+              key={preset.id}
+              label={presetNames[preset.id]}
+              selected={preset.id === activePresetId}
+              onSelect={() => handlePresetSelect(preset.id)}
+              onNavigate={() => handleNavigateToArrangement(preset.id)}
+            />
+          ))}
         </div>
-        {PRESETS.odyssey.map(preset => (
-          <PresetRow
-            key={preset.id}
-            preset={preset}
-            isActive={!!matchedPreset && matchedPreset.id === preset.id}
-            onSelect={() => handlePresetSelect(preset.id)}
-            onNavigate={() => handleNavigateToArrangement(preset.id)}
-          />
-        ))}
+      </div>
+      <div>
+        <GroupLabel>Odyssey Presets</GroupLabel>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-1)' }}>
+          {PRESETS.odyssey.map(preset => (
+            <MenuRowRadio
+              key={preset.id}
+              label={presetNames[preset.id]}
+              selected={preset.id === activePresetId}
+              onSelect={() => handlePresetSelect(preset.id)}
+              onNavigate={() => handleNavigateToArrangement(preset.id)}
+            />
+          ))}
+        </div>
       </div>
     </div>
   )
 
-  const renderArrangement = () => (
-    <div className="flex-1 min-h-0 overflow-y-auto" style={{ padding: '0 16px 16px' }}>
-      {/* Back button */}
-      <button
-        onClick={() => { setView('presets'); setSearchQuery('') }}
-        className="flex items-center gap-1 bg-transparent border-none cursor-pointer"
-        style={{ color: 'var(--text-primary)', fontSize: 13, fontWeight: 500, padding: '12px 0 8px', fontFamily: 'var(--font-primary)' }}
-      >
-        <ChevronLeft size={14} />
-        Back
-      </button>
-
-      {/* Selected columns */}
-      <div style={{ marginBottom: 4 }}>
-        <div style={{
-          fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em',
-          color: 'var(--text-placeholder)', marginBottom: 8,
-        }}>
-          Selected columns ({selectedColumns.length})
+  const arrangementView = (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-4)', padding: 'var(--spacing-4) var(--spacing-6)' }}>
+      {/* Selected columns — drag to reorder, uncheck to remove */}
+      <div>
+        <GroupLabel>Selected columns ({selectedColumns.length})</GroupLabel>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-1)' }}>
+          {selectedColumns.map((col, index) => (
+            <div
+              key={col.key}
+              draggable
+              onDragStart={(e) => {
+                e.dataTransfer.setData('text/plain', String(index))
+                e.dataTransfer.effectAllowed = 'move'
+              }}
+              onDragOver={(e) => {
+                e.preventDefault()
+                e.dataTransfer.dropEffect = 'move'
+                setDragOverIndex(index)
+              }}
+              onDragLeave={() => setDragOverIndex(null)}
+              onDrop={(e) => handleDrop(e, index)}
+              style={{
+                borderTop: dragOverIndex === index ? '2px solid var(--border-focus)' : '2px solid transparent',
+                transition: 'border-top-color var(--transition-fast)',
+              }}
+            >
+              <MenuRowCheckbox
+                label={col.label}
+                checked
+                draggable
+                value={col.key}
+                onToggle={() => handleToggleColumn(col.key, false)}
+              />
+            </div>
+          ))}
         </div>
-        {selectedColumns.map((col, index) => (
-          <div
-            key={col.key}
-            draggable
-            onDragStart={(e) => {
-              e.dataTransfer.setData('text/plain', index)
-              e.dataTransfer.effectAllowed = 'move'
-            }}
-            onDragOver={(e) => {
-              e.preventDefault()
-              e.dataTransfer.dropEffect = 'move'
-              setDragOverIndex(index)
-            }}
-            onDragLeave={() => setDragOverIndex(null)}
-            onDrop={(e) => handleDrop(e, index)}
-            className="flex items-center gap-2"
-            style={{
-              padding: '8px 10px',
-              borderRadius: 'var(--radius-md)',
-              background: 'var(--bg-primary)',
-              border: '1px solid var(--border-subtle)',
-              marginBottom: 4,
-              cursor: 'grab',
-              borderTop: dragOverIndex === index ? '2px solid var(--border-focus)' : '1px solid var(--border-subtle)',
-              transition: 'border-top 0.1s ease',
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-secondary)' }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--bg-primary)' }}
-          >
-            <input
-              type="checkbox"
-              checked
-              onChange={() => handleToggleColumn(col.key, false)}
-              style={{ accentColor: 'var(--text-primary)', width: 15, height: 15, cursor: 'pointer', flexShrink: 0 }}
-            />
-            <span style={{ fontSize: 13, color: 'var(--text-secondary)', flex: 1 }}>{col.label}</span>
-            <GripVertical size={14} style={{ color: 'var(--text-placeholder)', flexShrink: 0 }} />
-          </div>
-        ))}
       </div>
 
-      {/* Divider */}
-      <div style={{ height: 1, background: 'var(--border-subtle)', margin: '12px 0' }} />
+      <div style={{ height: 1, background: 'var(--border-subtle)' }} />
 
-      {/* Available columns */}
+      {/* Available columns — search + check to add */}
       <div>
-        <div style={{
-          fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em',
-          color: 'var(--text-placeholder)', marginBottom: 8,
-        }}>
-          Available columns
-        </div>
-
-        {/* Search */}
-        <div className="flex items-center gap-2" style={{
-          padding: '6px 10px', borderRadius: 'var(--radius-md)',
-          border: '1px solid var(--border-subtle)', marginBottom: 8,
-          background: 'var(--bg-primary)',
-        }}>
-          <Search size={14} style={{ color: 'var(--text-placeholder)', flexShrink: 0 }} />
-          <input
-            type="text"
-            placeholder="Search columns"
+        <GroupLabel>Available columns</GroupLabel>
+        <div style={{ marginBottom: 'var(--spacing-2)' }}>
+          <SearchField
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            style={{
-              border: 'none', outline: 'none', background: 'transparent',
-              fontSize: 13, color: 'var(--text-secondary)', width: '100%',
-              fontFamily: 'var(--font-primary)',
-            }}
+            placeholder="Search columns"
+            onChange={setSearchQuery}
+            onClear={() => setSearchQuery('')}
           />
         </div>
-
-        {availableColumns.map(col => (
-          <div
-            key={col.key}
-            className="flex items-center gap-2"
-            style={{
-              padding: '8px 10px',
-              borderRadius: 'var(--radius-md)',
-              marginBottom: 4,
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-secondary)' }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
-          >
-            <input
-              type="checkbox"
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-1)' }}>
+          {availableColumns.map(col => (
+            <MenuRowCheckbox
+              key={col.key}
+              label={col.label}
               checked={false}
-              onChange={() => handleToggleColumn(col.key, true)}
-              style={{ accentColor: 'var(--text-primary)', width: 15, height: 15, cursor: 'pointer', flexShrink: 0 }}
+              draggable={false}
+              value={col.key}
+              onToggle={() => handleToggleColumn(col.key, true)}
             />
-            <span style={{ fontSize: 13, color: 'var(--text-secondary)', flex: 1 }}>{col.label}</span>
-            <GripVertical size={14} style={{ color: 'var(--text-placeholder)', flexShrink: 0, opacity: 0.4 }} />
-          </div>
-        ))}
-
+          ))}
+        </div>
         {availableColumns.length === 0 && searchQuery.trim() && (
-          <div style={{ fontSize: 13, color: 'var(--text-placeholder)', padding: '8px 10px' }}>
+          <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-placeholder)', padding: 'var(--spacing-2) var(--spacing-3)' }}>
             No columns match "{searchQuery}"
           </div>
         )}
@@ -331,74 +453,33 @@ export default function ColumnPanel({ isOpen, onClose, visibleColumns, onColumns
     </div>
   )
 
+  // In arrangement the title shows the (draft) preset name; the shell renders the in-place
+  // editable title + pencil + slide-in. The name value lives here (draftName/currentName)
+  // and is handed to the shell via title/onTitleChange.
+  const headerTitle = view !== 'arrangement'
+    ? 'Fixed columns'
+    : (editingName ? draftName : currentName)
+
   return (
-    <div
-      className="flex flex-col shrink-0"
-      style={{
-        width: isOpen ? 354 : 0,
-        minWidth: isOpen ? 354 : 0,
-        background: 'var(--bg-primary)',
-        borderLeft: isOpen ? '1px solid var(--border-subtle)' : '0px solid var(--border-subtle)',
-        overflow: 'hidden',
-        transition: 'width var(--transition-slow), min-width var(--transition-slow), border-left-width var(--transition-slow)',
-      }}
+    <RightPanel
+      open={isOpen}
+      title={headerTitle}
+      subtitle="Column Arrangement"
+      editableTitle={view === 'arrangement'}
+      editingTitle={editingName}
+      onEditTitle={handleEditName}
+      onTitleChange={setDraftName}
+      onTitleCommit={handleSave}
+      onTitleCancel={handleCancel}
+      onClose={handleClose}
+      onBack={view === 'arrangement' ? handleBack : undefined}
+      footer={showFooter}
+      onCancel={handleCancel}
+      onSave={handleSave}
     >
-      {/* Header */}
-      <div
-        className="flex items-center justify-between shrink-0"
-        style={{ padding: '14px 16px', borderBottom: '1px solid var(--border-subtle)' }}
-      >
-        <div>
-          <div className="text-sm font-semibold" style={{ color: 'var(--text-primary)', fontSize: 16 }}>
-            Fixed columns
-          </div>
-          <div style={{ fontSize: 13, color: 'var(--text-placeholder)', marginTop: 2 }}>
-            {activePresetName}
-          </div>
-        </div>
-        <button
-          onClick={onClose}
-          className="flex items-center justify-center bg-transparent border-none cursor-pointer"
-          style={{ color: 'var(--text-placeholder)' }}
-        >
-          <X {...ICON_MD} />
-        </button>
+      <div key={view} className={`column-arrange-view column-arrange-view--${slideDir}`}>
+        {view === 'presets' ? presetsView : arrangementView}
       </div>
-
-      {/* Body */}
-      {view === 'presets' ? renderPresets() : renderArrangement()}
-    </div>
-  )
-}
-
-function PresetRow({ preset, isActive, onSelect, onNavigate }) {
-  return (
-    <div
-      className="flex items-center gap-3"
-      style={{
-        padding: '10px 12px',
-        borderRadius: 'var(--radius-md)',
-        background: 'var(--bg-primary)',
-        border: '1px solid var(--border-subtle)',
-        marginBottom: 6,
-        cursor: 'pointer',
-      }}
-      onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-secondary)' }}
-      onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--bg-primary)' }}
-      onClick={onNavigate}
-    >
-      <input
-        type="radio"
-        name="preset-select"
-        checked={isActive}
-        onClick={(e) => { e.stopPropagation(); onSelect() }}
-        readOnly
-        style={{ accentColor: 'var(--text-primary)', width: 16, height: 16, cursor: 'pointer', flexShrink: 0 }}
-      />
-      <span style={{ fontSize: 13, color: 'var(--text-secondary)', flex: 1, fontWeight: 500 }}>
-        {preset.name}
-      </span>
-      <ChevronRight {...ICON_MD} style={{ color: 'var(--text-placeholder)', flexShrink: 0 }} />
-    </div>
+    </RightPanel>
   )
 }

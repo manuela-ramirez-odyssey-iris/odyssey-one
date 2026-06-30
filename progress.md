@@ -4721,14 +4721,55 @@ Consolidated into **PR #3** (closed PR #2 as superseded). **PR #3 is BLOCKED** �
 
 ---
 
+## Session 72 — June 29–30, 2026
+
+**Normalized `RightPanel` (React + Angular twin), rebuilt the Shipments Column Arrangement feature on it (slide-in drawer · preset select/rename · draft→Save/Cancel footer · ⋮ preset menu), then finalized the RightPanel shell to OWN the animation + editable header with Figma-parity footer. Also: unblocked Angular PR #7 CI, published `@oneodyssey/ui@0.4.0`, and established that Cognizant owns npm publishing.**
+
+### Angular PR #7 CI unblocked + npm ownership clarified
+- PR #7 (`@oneodyssey/ui` cumulative 0.3.0·0.3.1·0.4.0) CI was red on a **stale `dsm-explorer` spec** asserting `0.3.1` as latest; the 0.4.0 release bumped `latestVersion` (badge/breadcrumb/menu-row/tooltip demos). Fixed assertion → `0.4.0`; repointed the "Latest-only toggle" test from the now-vacuous organism tab to the atom tab + added a `toBeGreaterThan(0)` guard. 31/31 green; pushed `2999d15`.
+- **0.4.0 wasn't actually in the registry** (latest was 0.3.1) — `build_release.yml` is a manual `workflow_dispatch` (PR #6 by Cognizant removed the auto-on-merge trigger). Dispatched during the session → **0.4.0 published**. **Standing rule: Cognizant owns npm publishing** — never `npm publish` / dispatch release workflows / bump-to-publish ourselves. Memory [[feedback_cognizant_owns_npm_publish]].
+
+### RightPanel — normalized (React + Angular twin)
+- New organism shell `RightPanel` (`@odyssey/ui`, Figma `3449:10701`): header (back · title · edit · subtitle · close `IconButtonGhost`) + content Slot + Footer; composed from existing primitives + lucide. User pre-normalized the dependency molecules (ModalHeader, ModalFooter) in Figma. New layout token `--right-panel-width: 343px`. Demo + Code Connect published; pushed to React main (`3e2725f`).
+- **Angular twin** generated in `odyssey-one-library-ui` (`lib/right-panel/`) — parity-lint + both builds + 539 lib + 31 explorer specs ✓, two-window Δ=0, GATE B approved → **PR #8** (`port/right-panel`, **draft** — Angular ships batched, not now).
+
+### Shipments Column Arrangement — rebuilt on RightPanel
+- `apps/odyssey-one/src/components/detail/ColumnPanel.jsx` rewritten on RightPanel + Row-family controls (same public API → drop-in). **Presets view** (`MenuRowRadio`: radio selects/applies, chevron opens) + **Arrangement view** (`MenuRowCheckbox` draggable reorder + uncheck-remove; `SearchField` filter; check-add).
+- **Editing session**: toggles/reorder + name edits stage in **drafts**; any pending change raises the **footer (Cancel/Save)** — Save commits to the grid, Cancel reverts.
+- **Always-selected preset** (hard rule): selection tracks `activePresetId`, not an exact column match — survives edits / empty.
+- **In-place rename** (UC-3): opening a preset → title = preset name + pencil → title becomes an in-place input (caret after the name); footer confirms; closing mid-edit cancels it.
+- **⋮ preset-actions menu** in the Custom Presets header (`IconButtonGhost` + `DropdownMenu` + `MenuRow`, right-aligned/flip) → **New Preset / Delete Presets** (UI only; behavior = next session).
+- **Animations**: drawer slides in from the right (`transform` + new `--transition-drawer` ease-out-expo); directional view-slide presets↔arrangement; footer rises in. Reopen always returns to the presets list.
+
+### RightPanel shell — finalized (owns the shell behaviors)
+- **Animation**: `open` (boolean) → animated right-dock drawer (shell owns the dock + slide); omit `open` → static card (back-compat).
+- **Editable header**: `editableTitle` + `editingTitle` (controlled) + `title`/`onTitleChange` (the value lives in the consumer's variable — transferable to any consumer) + `onTitleCommit`/`onTitleCancel`/`onEditTitle`; shell keeps the title focused through content interactions (e.g. a column drag).
+- **Footer = Figma parity FIX**: corrected from a ReactNode slot → a **`footer` BOOLEAN** rendering the baked **ModalFooter1 (Cancel secondary + Save primary)** with `onCancel`/`onSave` — matching the Figma `Footer` BOOLEAN, **separate from the Slot**. Code Connect re-aligned (`footer: figma.boolean('Footer')`). *Root cause: had adapted the ModalMedium/old-filters footer-slot pattern instead of the Figma RightPanel as source of truth.*
+- ColumnPanel re-wired onto the finalized shell (dropped its own dock + header-input + focus logic); `AppShell` content row got `overflow-hidden` to clip the off-screen slide while preserving `--shadow-panel` (the dock's `overflow:hidden` had been eating the panel's border/shadow — fixed).
+
+### Column Arrangement user story (Cognizant handoff)
+- `docs/userstories/column-arrangement.md` — UC-1 Column Arrangement · UC-2 Preset selection · UC-3 Preset renaming defined; UC-4 New Preset / UC-5 Delete Presets stubbed.
+
+### Verification
+- React `build:odyssey-one` ✓ at every step. Angular (port): parity-lint + 2 builds + 539 lib + 31 explorer specs ✓.
+
+### Carry-forward to Session 73 — READ FIRST
+- **Port RightPanel to Angular with the LATEST updates** — PR #8's twin predates the shell finalization; re-port `open` / `editableTitle` / `editingTitle` / `onTitle*` + the **footer-as-BOOLEAN (Cancel/Save)** correction + the slide-in. **Library is being republished by Cognizant** (npm publish is theirs).
+- **Define UC-4 (New Preset) + UC-5 (Delete Presets)** behavior, and write the **RightPanel implementation descriptions** (the component contract for Cognizant's agent — like the table story).
+- **Re-publish Code Connect** for the corrected RightPanel `.figma.tsx` (footer boolean) when finalizing (held this session).
+- **Angular PR #7** (cumulative release) — merge when Cognizant approves; **PR #8** (RightPanel twin, draft) — update with the latest shell API + un-draft when the Angular batch ships.
+- Unrelated local change in `apps/odyssey-one/src/index.css` (body background commented out) — NOT mine; left untouched.
+
+---
+
 ## What's Next
 
-### Session 72 Priorities
+### Session 73 Priorities
 
 0. **Watch Angular PR #7** — once Cognizant approves the cumulative (0.3.0·0.3.1·0.4.0) PR, merge it, delete the batch branch, and verify `origin/main` is current (then Angular is main-only).
 0b. **Define the next normalization batch** — deferred to S72 (user will scope it).
 
-1. **(Carried) Normalize the components Shipments' redesign needs — RightPanel.** The reorder + show/hide **data-column** UI that drives the DataTable's `columnVisibility`/`columnOrder` (the migrated Shipments table already consumes it via the app-local ColumnPanel → drop-in). Figma-first `/normalize`. **Scope:** DATA columns only — select/action stay pinned. (Tooltip — DONE S70.)
+1. **RightPanel — DONE (S72).** Normalized the right-side drawer shell (React + Angular twin PR #8 draft) and rebuilt the Shipments **Column Arrangement** feature on it (ColumnPanel consumer: preset select/rename + column show/hide/reorder + draft→Save/Cancel + ⋮ preset menu). Shell finalized to own the slide-in animation + editable header + Figma-parity footer boolean. **Next: re-port to Angular with the latest shell updates; define UC-4/UC-5; write the RightPanel implementation descriptions for Cognizant.**
 2. **0.3.0/0.3.1/0.4.0 releases — published.** All three `@oneodyssey/ui` versions are published to GitHub Packages. Their **source is stacked on the single Angular PR #7** (`batch/s63-component-normalizations → main`, `MERGEABLE`, retitled cumulative) — `origin/main` is a **protected branch**, so it lands only when Cognizant approves #7. React side is direct-to-main (no PR). (S71)
 3. **Code Connect refresh — RESOLVED (S71).** The 5-component drift (+ Breadcrumb) was reconciled and `connect:publish` now passes. Remaining: the *deeper* Figma↔React divergence on SearchPanel/EmptyState/CustomerRow (Figma restructured, React still richer) is a per-component design decision, not a Code Connect blocker.
 4. **Figma `Icon Left/Pressed` drift** (DSN/500 vs Icon Right's DSN/400). **Alert re-tokenization** question for Efrain (the two removed `/200` primitives kept code-side).

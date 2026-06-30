@@ -157,7 +157,7 @@ function ShipmentsRoute() {
   }, [exceptionCounts, monitoringCounts, pgipgrCounts])
 
   // Compute right offset for bottom bar based on open panels
-  const rightOffset = (filtersOpen ? 354 : 0) + (columnPanelOpen ? 354 : 0)
+  const rightOffset = (filtersOpen ? 354 : 0) + (columnPanelOpen ? 343 : 0)
 
   const handlePanelSelect = useCallback((key) => {
     setActivePanel(key)

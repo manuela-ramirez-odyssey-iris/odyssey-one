@@ -35,10 +35,17 @@
     "Badge",
     "Button",
     "DataTable",
+    "DropdownMenu",
     "FormField",
+    "IconButtonGhost",
+    "MenuRow",
+    "MenuRowCheckbox",
+    "MenuRowRadio",
     "ModalMedium",
     "PageHeader",
-    "Paginator"
+    "Paginator",
+    "RightPanel",
+    "SearchField"
   ],
   "carriers": [
     "PageHeader"

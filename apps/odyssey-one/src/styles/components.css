@@ -2868,6 +2868,86 @@ button.breadcrumb__label:focus-visible {
   justify-content: space-between;
   padding: var(--spacing-3) var(--spacing-6) var(--spacing-4);
   border-top: 1px solid var(--border-subtle);
+  animation: right-panel-footer-in 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes right-panel-footer-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Drawer mode (RightPanel `open` is boolean): the dock is a flex child that reserves
+   width + animates 0↔width; the absolutely right-anchored .right-panel slides in via
+   transform from the window's right edge — a rigid slide, no content squish. No
+   overflow:hidden here (it would clip --shadow-panel); clip the off-screen slide at an
+   app-level ancestor instead (the AppShell content row). */
+.right-panel-dock {
+  position: relative;
+  flex-shrink: 0;
+  align-self: stretch;
+  width: 0;
+  transition: width var(--transition-drawer);
+}
+.right-panel-dock--open {
+  width: var(--right-panel-width);
+}
+.right-panel-dock .right-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  transform: translateX(100%);
+  transition: transform var(--transition-drawer);
+}
+.right-panel-dock--open .right-panel {
+  transform: translateX(0);
+}
+
+/* In-place editable title: the heading text becomes an input — transparent, no field
+   chrome; typography + color come from the text-heading-lg-semibold + right-panel__title
+   classes on the same element, so the caret sits right after the name. */
+.right-panel__title-input {
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  min-width: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .right-panel-dock,
+  .right-panel-dock .right-panel {
+    transition: none;
+  }
+  .right-panel__footer {
+    animation: none;
+  }
+}
+
+/* ----------------------------------------
+   COLUMN ARRANGE (Shipments consumer of RightPanel)
+   Only content-level animations live here; the drawer slide + editable title are
+   shell-owned (RightPanel) above.
+   ---------------------------------------- */
+/* View transition (presets ↔ arrangement) — directional slide, keyed by `view` so it
+   replays on each navigation. Forward = entering a preset; back = returning. */
+.column-arrange-view--forward { animation: column-view-in-right 280ms cubic-bezier(0.16, 1, 0.3, 1); }
+.column-arrange-view--back { animation: column-view-in-left 280ms cubic-bezier(0.16, 1, 0.3, 1); }
+@keyframes column-view-in-right {
+  from { opacity: 0; transform: translateX(16px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes column-view-in-left {
+  from { opacity: 0; transform: translateX(-16px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .column-arrange-view--forward,
+  .column-arrange-view--back {
+    animation: none;
+  }
 }
 
 /* ----------------------------------------
