@@ -1607,6 +1607,14 @@ input[type="date"].odyssey-date-input::-webkit-calendar-picker-indicator:hover {
   color: var(--text-primary);
 }
 
+/* PageHeader Type=Last update — trailing supporting text (label/sm regular, tertiary,
+   right-aligned). Same style as SectionHeader's supporting text; mutually exclusive with
+   the actions cluster. Figma master 3965:5034. */
+.page-header__supporting {
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
 /* SectionHeader — molecule. Single-row header (title + supporting text). Colors on the
    text leaves so consumers can override via a modifier on the header root.
    (Actions row removed 2026-06-17 — dropped from the Figma master.) */
@@ -1615,6 +1623,63 @@ input[type="date"].odyssey-date-input::-webkit-calendar-picker-indicator:hover {
 }
 .section-header__supporting {
   color: var(--text-tertiary);
+}
+
+/* TitleSubtitle — molecule. Compact stacked section header: subtitle eyebrow (label/xs
+   tertiary) over a title (label/sm primary) with an optional trailing copy icon. Fills its
+   parent width; both lines wrap (no truncation). Figma master 3016:2056. Typography comes
+   from the .text-label-xs-medium / .text-label-sm-medium utilities on the leaves. */
+.title-subtitle {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px; /* raw — tiny component-internal geometry (no token) */
+  width: 100%;
+  min-width: 0;
+}
+.title-subtitle__subtitle {
+  color: var(--text-tertiary);
+  width: 100%;
+  overflow-wrap: anywhere;
+}
+.title-subtitle__title-row {
+  display: flex;
+  align-items: center;
+  gap: 4px; /* raw — icon-to-title gap */
+  width: 100%;
+  min-width: 0;
+}
+.title-subtitle__title {
+  color: var(--text-primary);
+  min-width: 0;
+  overflow-wrap: anywhere; /* wrap long titles (both lines wrap per design) */
+}
+/* Icon slot — static, non-interactive; muted (text-tertiary), inherits via currentColor. */
+.title-subtitle__icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+}
+
+/* StepperButtonsFooter — molecule. Full-width page/stepper footer bar: border-top + page
+   padding, Cancel (secondary) pushed left and the primary action group pushed right
+   (space-between). Composes the Button atom. Figma master 3164:2169 — asymmetric vertical
+   padding 12 top / 20 bottom, 24 horizontal (Figma binds top/bottom to radius/xl + size/lg;
+   code uses the value-equal spacing tokens). */
+.stepper-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-4);
+  width: 100%;
+  padding: var(--spacing-3) var(--spacing-6) var(--spacing-5);
+  background: var(--bg-primary);
+  border-top: 1px solid var(--border-subtle);
+}
+.stepper-footer__end {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3); /* Figma right-group gap 12 (radius/xl) */
 }
 
 /* SectionLabel — atom. Header row for a widget section on Home. Two modes

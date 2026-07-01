@@ -1,6 +1,6 @@
 # Angular Port Routine (`/port-to-angular`)
 
-> Triggered by `/port-to-angular <Component>`. Also reached from `/normalize` Phase 3 after the React component is approved + Figma library published. Be **concise** — one short status line per phase, batch decisions, only block on genuinely unknown values.
+> Triggered by `/port-to-angular <Component>`. Reached from `/normalize` at **batch approval** — the port is **batched** (run for the whole APPROVED batch at once, NOT per-component right after each React GATE B). Its output is the **PORTED** state; the batch closes later at **final approval** (Phase 6). Be **concise** — one short status line per phase, batch decisions, only block on genuinely unknown values.
 
 **What this does:** ports an already-normalized React component to its Angular twin **directly in the official Angular library repo `odyssey-one-library-ui`** (sibling of `odyssey-one`; GitHub `OneOdyssey/odyssey-one-library-ui`) — correct-by-construction, two-window reviewed, and inserted into the library on pass.
 
@@ -125,7 +125,7 @@ The subagent produces, inside `odyssey-one-library-ui/`:
 
 ### Explorer demo (`src/app/demos/<c>/`)
 
-- **`<c>.demo.component.ts/.html/.scss`** — mirrors the React demo grid. Uses `Odyssey<C>Module` in the demo module (or declared in `AppModule` via the demo entry). Sets `meta.normalizing: true` in the meta file so the component surfaces in the Normalizing tab of the Angular DSM explorer (not promoted to its tier tab until GATE B passes).
+- **`<c>.demo.component.ts/.html/.scss`** — **must REPLICATE the React demo's presentation section-for-section, not just render the component.** Open the React `<C>.demo.jsx` and mirror its exact structure: the same `ds-demo-section` titles in the same order (e.g. **"Schematic — anatomy"** then **"Playground"** — the post-S73 pattern), the Schematic's annotated instance + the **legend** (2-column `max-content 1fr` grid, tier badges, `#comp-<Child>` deep-links for composed atoms/molecules), and the same Playground controls. Port the React demo's inline styles into a scoped `<c>.demo.component.scss` (`<prefix>-schem__*` classes — copy the pattern from `right-panel.demo.component.scss`) and wire it via `styleUrls`. **A "States"/"Anatomy" grid when React shows a Schematic+legend is the #1 recurring two-window drift — match React exactly.** Uses `Odyssey<C>Module`. Sets `meta.normalizing: true`.
 - **`<c>.demo.meta.ts`** — `{ name, tier, figmaNode, normalizing: true }`. Mirrors the React `meta` object shape.
 - **`demos.registry.ts`** — append the new demo entry.
 - **`app.module.ts`** — declare/import the new demo component and `Odyssey<C>Module`.
@@ -215,35 +215,22 @@ On reject: Manuela states what's wrong → re-run Phase 2 (Angular generation on
 
 ---
 
-## Phase 5 — On Pass
+## Phase 5 — On Pass (twin reviewed → PORTED)
 
-Only enter after GATE B approval phrase received.
+> **When does the port run?** The Angular port is **batched**: it runs after the whole React batch is **APPROVED** and you give **batch approval** — NOT per-component right after each React GATE B. React components are already `approved: true` when this routine runs.
 
-### Clear both `normalizing` flags
+Only enter after the twin's two-window GATE B passes. The port's output is the **PORTED** state — NOT clearing, NOT versioning.
 
-1. **React demo:** `apps/odyssey-one/src/routes/design-system/demos/<C>.demo.jsx` — set `meta.normalizing` to `false` (or remove the property). This promotes the component out of the React DSM's Normalizing tab into its tier tab (Atoms/Molecules/Organisms).
-2. **Angular demo:** `odyssey-one-library-ui/src/app/demos/<c>/<c>.demo.meta.ts` — set `normalizing: false`. Same promotion effect in the Angular DSM explorer.
+### Mark ported (both DSMs) — keep it staged
 
-### Stamp the release version on both demos
+1. **React demo:** `apps/odyssey-one/src/routes/design-system/demos/<C>.demo.jsx` — set `ported: true` (KEEP `normalizing: true` + `approved: true`). Renders the **PORTED** badge (blue).
+2. **Angular demo:** `odyssey-one-library-ui/src/app/demos/<c>.demo.meta.ts` — set `ported: true` (KEEP `normalizing: true` + `approved: true`). Same PORTED badge in the Angular explorer.
 
-When this port bumps `projects/odyssey-ui/package.json` to `x.y.z` (see "Publish a new `@oneodyssey/ui` version" below), stamp that same version onto **both** demo metas:
-
-1. **React demo:** `apps/odyssey-one/src/routes/design-system/demos/<C>.demo.jsx` — set `version: 'x.y.z'` in the exported `meta`.
-2. **Angular demo:** `odyssey-one-library-ui/src/app/demos/<c>.demo.meta.ts` — set `version: 'x.y.z'` in the exported `<c>Meta`.
-
-For a re-normalized/changed component this **advances** an existing `version` (last-touched semantics). The DSM derives the version badge, the header chip, and the "Latest only" filter from this field — skipping it leaves the component invisible to the "latest" view. (Demo-only ports that don't bump the library carry no new version.)
+Both DSMs now show PORTED — the shared drift-review window (review the Angular twin for drift + a final React re-check). Still no `version`.
 
 ### Finalize library export
 
 Verify `public-api.ts` exports are present (should be set in Phase 2, confirm nothing was accidentally reverted during Phase 3 fixes).
-
-### Update `playground/normalization-tracker.md`
-
-Add or update the component's row with the Angular column filled in:
-- Angular column: `done` (with the port date ISO)
-- `figma-link.md` path (relative from repo root)
-- Any deviations from the React spec noted in `<C>.figma-link.md`
-- The `@oneodyssey/ui` version stamped on the demos this release (e.g. `v0.3.0`)
 
 ### Update `figma-link.md` `last_synced`
 
@@ -251,23 +238,44 @@ Set `last_synced` to today's ISO date in `odyssey-one-library-ui/projects/odysse
 
 ### Refresh the DSM domain filter
 
-From the **odyssey-one** repo root, run `npm run domain-usage`. It regenerates `domain-usage.json` for BOTH the React DSM and this Angular library repo (`tools/domain-usage.mjs` writes both — the Angular target is `../odyssey-one-library-ui/src/app/dsm/domain-usage.json`). Without this, the Angular DSM's Domain dropdown filters against a stale snapshot and won't reflect newly added/rewired components.
+From the **odyssey-one** repo root, run `npm run domain-usage`. It regenerates `domain-usage.json` for BOTH the React DSM and this Angular library repo (`tools/domain-usage.mjs` writes both — the Angular target is `../odyssey-one-library-ui/src/app/dsm/domain-usage.json`).
 
-### Land it on the official repo (PR — `main` is protected)
+### Commit locally (no PR, no push yet)
 
-The Angular twin is committed in `odyssey-one-library-ui` but `main` is protected, so it lands via a PR:
-
-1. `git checkout -b port/<c>` → commit the new `lib/<c>/` + demo + wiring.
-2. `git push -u origin port/<c>` → `gh pr create --base main` (describe the port + Δ=0 verification).
-3. Merge: a teammate approval + the "Build Check" status, **or** `gh pr merge --squash --admin` if you have repo-admin bypass. (If the "Build Check" required status can't run, that's a repo-settings blocker — flag it; don't fight the CLI.)
-
-### Publish a new `@oneodyssey/ui` version (library changes only)
-
-If the port added/changed a **library** component (not just a demo): bump `projects/odyssey-ui/package.json` `version` + add a CHANGELOG entry, then `npx ng build odyssey-ui && cd dist/odyssey-ui && NODE_AUTH_TOKEN=<PAT w/ write:packages> npm publish`. Demo-only changes don't need a publish. See [[project_odyssey_ui_delivery]] for the registry/auth details.
+Commit the new `lib/<c>/` + demo + wiring locally on the batch branch. **Do NOT push or open the PR** — that happens at final approval (below). Local commits only ([[feedback_no_push_angular_without_approval]]).
 
 ### One-line confirmation
 
-Output: `Port complete: <Component> (tier) — Angular twin in lib/<c>/, both DSMs promoted. Normalizing flags cleared.`
+Output: `Ported: <Component> (tier) — Angular twin in lib/<c>/, PORTED badge in both DSMs. Awaiting final approval.`
+
+---
+
+## Phase 6 — Final approval (close: clear + version + commit + push)
+
+Triggered by a **separate explicit command** to finally approve the whole PORTED batch. Applies to EVERY component staged (`normalizing: true`) in the batch.
+
+### 1. Clear all three flags + assign the version — every component, BOTH DSMs
+
+For each component, in BOTH DSMs (`<C>.demo.jsx` + `<c>.demo.meta.ts`):
+- remove `approved` + `ported` and set `normalizing: false` (promotes out of staging into its tier tab), and
+- stamp `version: 'x.y.z'` — the batch's release version (same for all). For a re-normalized/changed component this **advances** its `version` ([[feedback_version_on_modification]]). Drives the version badge + header chip + "Latest only" filter.
+
+### 2. Update `playground/normalization-tracker.md`
+
+Add/update each row — Angular column `done` (batch date ISO), `figma-link.md` path, deviations, `@oneodyssey/ui` version.
+
+### 3. Commit + push BOTH repos
+
+- **React (`odyssey-one`):** commit + push (its own branch/PR flow).
+- **Angular (`odyssey-one-library-ui`):** bump `projects/odyssey-ui/package.json` `version` + CHANGELOG, commit, `git push` the batch branch → `gh pr create --base main` (protected). Merge via teammate approval + "Build Check", or `--admin`.
+
+### 4. NO npm publish
+
+Do **not** `npm publish` / dispatch the release workflow. Publishing is **Cognizant's** ([[feedback_cognizant_owns_npm_publish]]) — hand off the publish-ready version + CHANGELOG.
+
+### One-line confirmation
+
+Output: `Batch <x.y.z> closed: N components promoted (flags cleared, version stamped), both repos committed + pushed. Publish is Cognizant's.`
 
 ---
 

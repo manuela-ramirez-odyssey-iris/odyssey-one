@@ -4,8 +4,9 @@ import { ModalHeader } from '@odyssey/ui'
 export const meta = {
   name: 'ModalHeader',
   tier: 'molecule',
-  normalizing: false,
-  version: '0.5.0',
+  normalizing: true,
+  approved: true,
+  ported: true,
   figmaNode: '3447:7661',
   codeConnect: 'packages/ui/src/ModalHeader.figma.tsx',
 }

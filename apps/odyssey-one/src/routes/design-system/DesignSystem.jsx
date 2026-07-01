@@ -94,7 +94,9 @@ function DemoSection({ meta, props, tokens, Component, open, onToggle, collapsed
         <div className="ds-comp__heading">
           <span className="ds-comp__chevron" aria-hidden="true">{collapsed ? '▸' : '▾'}</span>
           <h2 className="ds-comp__name">{meta.name}</h2>
-          {isNormalizing && <span className="ds-comp__pill">NORMALIZING</span>}
+          {isNormalizing && meta.ported && <span className="ds-comp__pill ds-comp__pill--ported">PORTED</span>}
+          {isNormalizing && meta.approved && !meta.ported && <span className="ds-comp__pill ds-comp__pill--approved">APPROVED</span>}
+          {isNormalizing && !meta.approved && !meta.ported && <span className="ds-comp__pill">NORMALIZING</span>}
           {meta.deprecated && <span className="ds-comp__pill ds-comp__pill--deprecated">DEPRECATED</span>}
           {meta.codeOnly && <span className="ds-comp__pill ds-comp__pill--code-only">CODE-ONLY</span>}
         </div>

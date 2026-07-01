@@ -1,13 +1,17 @@
 /**
  * PageHeader — molecule. Top-of-route H1 with a flex shell that fills the container.
  *
- * Used as the page identifier (e.g. "Shipments", "Orders"). The right side is an
- * actions cluster (flex, 16px gap) — pass actions as children (ButtonToggle,
- * Button variant="link", Button, …). The Figma master's Show toggle / Show link /
- * Show button BOOLEANs map to children presence in code: passing or omitting an
- * action IS the toggle.
+ * Two trailing modes (Figma `Type` variant, mutually exclusive):
+ *  - **Default** — an actions cluster (flex, 16px gap): pass actions as `children`
+ *    (ButtonToggle, Button variant="link", Button, …). The Show toggle / Show link /
+ *    Show button BOOLEANs map to children presence: passing or omitting an action IS the toggle.
+ *  - **Last update** — a supporting-text label (`supportingText`, e.g. "Last update: …"),
+ *    label/sm regular · text-tertiary · right-aligned — same style as SectionHeader.
+ *
+ * The modes are exclusive: when `supportingText` is set it renders and the actions never
+ * render (mirrors the Figma variant — you can't get both).
  */
-export default function PageHeader({ title, children, className = '', style, ...rest }) {
+export default function PageHeader({ title, supportingText, children, className = '', style, ...rest }) {
   return (
     <header
       className={`page-header ${className}`.trim()}
@@ -26,13 +30,17 @@ export default function PageHeader({ title, children, className = '', style, ...
       >
         {title}
       </h1>
-      {children != null && (
-        <div
-          className="page-header__actions"
-          style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-4)' }}
-        >
-          {children}
-        </div>
+      {supportingText != null ? (
+        <span className="page-header__supporting text-label-sm-regular">{supportingText}</span>
+      ) : (
+        children != null && (
+          <div
+            className="page-header__actions"
+            style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-4)' }}
+          >
+            {children}
+          </div>
+        )
       )}
     </header>
   )

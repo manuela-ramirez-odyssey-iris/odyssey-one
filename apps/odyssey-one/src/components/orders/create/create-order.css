@@ -624,30 +624,10 @@
 /* ── Form footer (static — sits in flow after the accordions) ── */
 
 .co-footer {
-  /* Bleed to full main-content width by cancelling AppShell's side padding */
+  /* Bleed to full main-content width by cancelling AppShell's side padding. The normalized
+     StepperButtonsFooter (@odyssey/ui) provides the border-top + surface + padding + layout. */
   margin-inline: calc(-1 * var(--spacing-8));
-  background: var(--bg-primary);
-  border-top: 1px solid var(--border-subtle);
-  /* No box-shadow (Efrain screenshot 1) */
   margin-top: 30px;
-}
-
-/* Inner row: Cancel left · Save+Create right — aligns with the form's
-   1080px content column (Task 2) */
-.co-footer__inner {
-  max-width: 1080px;
-  margin-inline: auto;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--spacing-4);
-  padding: var(--spacing-4) var(--spacing-6);
-}
-
-.co-footer__right {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-3);
 }
 
 /* ── Modal footer ───────────────────────────────────────── */

@@ -28,7 +28,8 @@
     "PageHeader",
     "Paginator",
     "Radio",
-    "SearchField"
+    "SearchField",
+    "StepperButtonsFooter"
   ],
   "shipments": [
     "ActionMenu",

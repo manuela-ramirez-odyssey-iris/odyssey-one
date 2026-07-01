@@ -1,20 +1,22 @@
-import { Button } from '@odyssey/ui'
+import { StepperButtonsFooter } from '@odyssey/ui'
 
 /**
- * StickyFooter — Cancel (left) · Save · Create Order (right, primary,
- * disabled until the full-form schema passes). Spec §2.2 / Q27: Save keeps
- * the UI open; Cancel routes through the discard/save modal.
+ * StickyFooter — the order-create footer. Consumes the normalized StepperButtonsFooter
+ * (Cancel · Save · Create Order), bled to the full main-content width. Spec §2.2 / Q27:
+ * Save keeps the UI open; Cancel routes through the discard/save modal.
  */
 export default function StickyFooter({ onCancel, onSave, onCreate, createDisabled, saving }) {
   return (
     <div className="co-footer">
-      <div className="co-footer__inner">
-        <Button variant="secondary" size="lg" onClick={onCancel}>Cancel</Button>
-        <div className="co-footer__right">
-          <Button variant="secondary" size="lg" onClick={onSave} disabled={saving}>Save</Button>
-          <Button variant="primary" size="lg" onClick={onCreate} disabled={createDisabled}>Create Order</Button>
-        </div>
-      </div>
+      <StepperButtonsFooter
+        primaryLabel="Create Order"
+        showSave
+        onCancel={onCancel}
+        onSave={onSave}
+        onPrimary={onCreate}
+        primaryDisabled={createDisabled}
+        saving={saving}
+      />
     </div>
   )
 }

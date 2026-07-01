@@ -205,6 +205,20 @@
   border-radius: var(--radius-full);
 }
 
+/* APPROVED badge — a staged component that passed its per-component GATE B review. It stays in
+   the Normalizing (staging) tab; batch approval then triggers the Angular port. */
+.ds-comp__pill--approved {
+  color: var(--badge-green-text);
+  background: var(--badge-green-bg);
+}
+
+/* PORTED badge — the batch was approved + its Angular twins generated. Both DSMs show PORTED
+   during the shared drift-review window; final Angular approval clears the tab in both. */
+.ds-comp__pill--ported {
+  color: var(--badge-blue-text);
+  background: var(--badge-blue-bg);
+}
+
 /* DEPRECATED pill — component slated for removal (e.g. IconButton; sole consumer EntityChip). */
 .ds-comp__pill--deprecated {
   color: var(--text-error);

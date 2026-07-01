@@ -4799,12 +4799,51 @@ Consolidated into **PR #3** (closed PR #2 as superseded). **PR #3 is BLOCKED** �
 
 ---
 
+## Session 74 — July 1, 2026
+
+**Overhauled the normalize workflow into a 3-badge STAGING model kept in React↔Angular DSM parity, then normalized three components into the 0.5.0 batch — `TitleSubtitle`, `StepperButtonsFooter` (+ rewired the order-create `StickyFooter` onto it), and a new `PageHeader` `Type=Last update` variant (Figma variant-set surgery). Batch is now 6 components, all at PORTED.**
+
+### Normalize workflow — 3-badge STAGING model (the through-line)
+- The DSM **Normalizing tab is now a STAGING playground** with three badges (meta fields `normalizing` + `approved` + `ported`, mirrored in BOTH DSMs): **NORMALIZING** (yellow, in progress) → **APPROVED** (green, per-component GATE B) → **PORTED** (blue, batch approved + Angular twins built). Only **final approval** clears all three, stamps the `version`, and commits + pushes both repos. **No npm publish — Cognizant's.**
+- **Angular port is now BATCHED** — runs for the whole APPROVED batch at batch approval, not per-component. Implemented the PORTED badge in both DSMs (React `DesignSystem.jsx`+CSS; Angular `ds-comp` + `demo.types` + `app.component.html` + `design-system.css`).
+- Rewrote the process docs to match: `SKILL.md` (GATE B / Batch-Approval / Ported / Final-Approval), `figma-component-routine.md`, `angular-port-routine.md` (Phase 5 → PORTED, Phase 6 → final approval = clear + version + commit + push). Memories: rewrote [[feedback_clear_normalizing_flag_on_done]] to the 3-badge model; added [[feedback_version_on_modification]], [[feedback_angular_demo_mirrors_react]], [[feedback_demo_playground_not_cases]].
+- **0.5.0 batch re-staged** — ModalHeader/ModalFooter/RightPanel/TitleSubtitle (+ later StepperButtonsFooter, PageHeader) moved back into staging at PORTED. Staged components carry **no version** (assigned at final approval), so the DSM "latest" chip correctly reads the last released **0.4.0**. **RightPanel version-stamped 0.5.0** (was unstamped + never in 0.4.0 — it debuts here) and moved to CHANGELOG **Added**.
+
+### TitleSubtitle — normalized (React + Angular)
+- New molecule (`@odyssey/ui` / `@oneodyssey/ui`, Figma `3016:2056`): subtitle eyebrow (label/xs, tertiary) over a title (label/sm, primary) + optional trailing **static `info` glyph** (`showIcon`, non-interactive). Fills parent width; both lines wrap (user flipped the Figma title layer truncate→wrap). Distinct from SectionHeader. Demo + Code Connect (`Title`/`Subtitle`→string, `Show Icon`→boolean); Angular twin (leaf) + 7 lib specs. (Copy icon + interaction removed per user — "no copy functionality here".)
+
+### StepperButtonsFooter — normalized (React + Angular) + StickyFooter rewired
+- New molecule (Figma `3164:2169`): full-width page/stepper footer — Cancel (secondary) left · optional Save + primary right, `space-between`, `border-top`, padding **12/24/20**. Composes the Button atom; labels are code props (ModalFooter precedent), primary default **"Continue"** (user changed the Figma baked label). Angular twin (`:host` is the bar, @HostBinding) + 5 lib specs.
+- **Drift check that started it:** compared the app-local `StickyFooter` vs Figma `StepperButtonsFooter`, found the footer padding drifted (16/16 vs Figma 12/20) → fixed. Then **normalized the footer into `@odyssey/ui` and rewired `StickyFooter`** to consume it (`primaryLabel="Create Order"`, `showSave`), dropping the hand-rolled layout + dead `.co-footer__inner/__right` CSS. Order-create footer now renders full-width per Figma.
+
+### PageHeader — new `Type=Last update` variant (Figma surgery + React + Angular)
+- **Figma-first surgery via `use_figma`**: converted the lone `PageHeader` component into a variant SET (`3965:5034`) — `Type = Default` (title + actions) | `Type = Last update` (title + a "Last update: …" trailing text in exactly SectionHeader's `label/sm regular` + text-tertiary style). Added a `Last update` TEXT property. Mutual exclusion is **structural** (separate frames — can't get both), per user's requirement.
+- **React** `PageHeader.jsx` — `supportingText` prop; set → Last-update label renders and the actions never render (`.page-header__supporting`). Code Connect remapped to the set (`Type` enum → `supportingText`, no ternary). **Angular** — `supportingText` input + `*ngIf="supportingText == null && hasActions"` exclusion; figma-link updated. Both re-staged (normalizing/approved/ported), version dropped.
+
+### Demo polish (both DSMs)
+- **Playground-not-cases** ([[feedback_demo_playground_not_cases]]): rebuilt the PageHeader demo from 5 static case sections into **Schematic + one interactive Playground** (Type `<select>`, action toggles, supportingText field).
+- **Angular demo drift fix** ([[feedback_angular_demo_mirrors_react]]): the TitleSubtitle + StepperButtonsFooter Angular demos had used a "States" grid while React showed a Schematic + legend — realigned to mirror React section-for-section (scoped `*-schem__*` SCSS). Root-caused + codified in the port routine (the PORTED review window caught it).
+- **`└` nested tree markers**: added the RightPanel-style nested legend (indent + `└`) to PageHeader, StepperButtonsFooter, TitleSubtitle in BOTH DSMs, signalling composed children. PageHeader legend also split the link button (`Button (link)`) out from the primary (no separate `ButtonLink` — folds into `Button variant="link"`).
+
+### Verification
+- React `build:odyssey-one` ✓ at every step; 71 DSM collect tests ✓.
+- Angular: parity-lint **62** ✓, lib build ✓, explorer build ✓, **582** lib specs ✓, **31** explorer specs ✓ (fixed 2 pre-existing stale version assertions).
+- Diagnosed + recovered the wedged `ng serve` twice (stale `dist/odyssey-ui` + esbuild not watching newly-created files) — kill + clear `.angular/cache` + rebuild + restart, verify live `main.js` bytes ([[feedback_stale_devserver_diagnosis]]).
+
+### Carry-forward to Session 75 — READ FIRST
+- **0.5.0 batch = 6 components at PORTED**, in parity across both DSMs: ModalHeader · ModalFooter · RightPanel · TitleSubtitle · StepperButtonsFooter · PageHeader. Awaiting **final approval** → clears badges both DSMs, stamps 0.5.0, commits + pushes both. **Cognizant publishes** `@oneodyssey/ui@0.5.0`.
+- **User plan for S75: keep ADDING to the 0.5.0 batch + FIX RightPanel** (the S74-priority Shipments Column-Arrangement panel issues were deferred — still owed; investigate against the molecule-composed RightPanel).
+- **Angular is on `port/right-panel`** (0.5.0 batch branch) — S74 Angular commit is **local-only, NOT pushed** (awaits explicit go). It carries StepperButtonsFooter + TitleSubtitle (new lib components) + PageHeader change + the staging/PORTED DSM plumbing.
+- **Code Connect** for TitleSubtitle, StepperButtonsFooter, PageHeader (set `3965:5034`) was **published by the user** this session.
+
+---
+
 ## What's Next
 
-### Session 74 Priorities
+### Session 75 Priorities
 
-0. **Shipments panel implementation (RightPanel consumer)** — the user found issues in the live Column-Arrangement panel that may need RightPanel/ModalHeader/ModalFooter updates. Investigate + fix against the newly molecule-composed shell.
-0a. **Commit + land** — commit React on `main`; open the Angular `port/modal-header-footer` PR (protected main). Cognizant publishes `@oneodyssey/ui@0.5.0`.
+0. **Continue the 0.5.0 batch** — keep normalizing components into staging (React → APPROVED → port → PORTED). Then **final approval**: clear badges both DSMs, stamp `0.5.0`, commit + push both, open the Angular PR; Cognizant publishes.
+0a. **Fix RightPanel** — the deferred Shipments Column-Arrangement panel issues (S74 priority 0, never reached). Investigate + fix against the molecule-composed RightPanel/ModalHeader/ModalFooter.
 
 ### Prior Session 73 Priorities (now done / carried)
 
