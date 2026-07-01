@@ -5,9 +5,8 @@ import { Plus, ArrowRight, SlidersHorizontal, Route } from 'lucide-react'
 export const meta = {
   name: 'PageHeader',
   tier: 'molecule',
-  normalizing: true,
-  approved: true,
-  ported: true,
+  version: '0.5.0',
+  normalizing: false,
   figmaNode: '3965:5034',
   codeConnect: 'packages/ui/src/PageHeader.figma.tsx',
 }

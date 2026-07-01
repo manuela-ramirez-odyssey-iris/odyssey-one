@@ -4,9 +4,8 @@ import { ModalFooter } from '@odyssey/ui'
 export const meta = {
   name: 'ModalFooter',
   tier: 'molecule',
-  normalizing: true,
-  approved: true,
-  ported: true,
+  version: '0.5.0',
+  normalizing: false,
   figmaNode: '3170:3649',
   codeConnect: 'packages/ui/src/ModalFooter.figma.tsx',
 }

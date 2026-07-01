@@ -4,9 +4,8 @@ import { TitleSubtitle } from '@odyssey/ui'
 export const meta = {
   name: 'TitleSubtitle',
   tier: 'molecule',
-  normalizing: true,
-  approved: true,
-  ported: true,
+  version: '0.5.0',
+  normalizing: false,
   figmaNode: '3016:2056',
   codeConnect: 'packages/ui/src/TitleSubtitle.figma.tsx',
 }

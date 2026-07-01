@@ -4,9 +4,8 @@ import { StepperButtonsFooter } from '@odyssey/ui'
 export const meta = {
   name: 'StepperButtonsFooter',
   tier: 'molecule',
-  normalizing: true,
-  approved: true,
-  ported: true,
+  version: '0.5.0',
+  normalizing: false,
   figmaNode: '3164:2169',
   codeConnect: 'packages/ui/src/StepperButtonsFooter.figma.tsx',
 }

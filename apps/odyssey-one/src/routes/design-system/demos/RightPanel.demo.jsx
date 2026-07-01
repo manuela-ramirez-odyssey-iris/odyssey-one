@@ -6,9 +6,8 @@ import { ICON_LG } from '@odyssey/tokens'
 export const meta = {
   name: 'RightPanel',
   tier: 'organism',
-  normalizing: true,
-  approved: true,
-  ported: true,
+  version: '0.5.0',
+  normalizing: false,
   figmaNode: '3449:10701',
   codeConnect: 'packages/ui/src/RightPanel.figma.tsx',
 }
