@@ -82,7 +82,7 @@ function DetailsPanel({ meta, props, tokens }) {
 // One component section — used by both the tier lists and the Normalize panel.
 function DemoSection({ meta, props, tokens, Component, open, onToggle, collapsed, onToggleCollapse, normalizing: isNormalizing }) {
   return (
-    <section className={`ds-comp${collapsed ? ' ds-comp--collapsed' : ''}`}>
+    <section id={`comp-${meta.name}`} className={`ds-comp${collapsed ? ' ds-comp--collapsed' : ''}`}>
       <div
         className="ds-comp__head"
         role="button"
@@ -168,6 +168,30 @@ export default function DesignSystem() {
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
   }, [openDetails])
+
+  // Deep-link to a component: a `#comp-<Name>` hash (e.g. from a schematic child link
+  // opened in a new tab) switches to that component's tier tab, expands its section, and
+  // scrolls to it. Runs on mount and on every hashchange.
+  useEffect(() => {
+    const applyHash = () => {
+      const m = window.location.hash.match(/^#comp-(.+)$/)
+      if (!m) return
+      const name = decodeURIComponent(m[1])
+      const tier = tiers.find((t) => t.demos.some((d) => d.meta.name === name))
+      const inNormalizing = normalizing.some((d) => d.meta.name === name)
+      if (tier) setActiveTier(tier.key)
+      else if (inNormalizing) setActiveTier(NORMALIZE_KEY)
+      else return
+      setExpanded((prev) => new Set(prev).add(name))
+      // Scroll after the tab switch + expand have rendered.
+      setTimeout(() => {
+        document.getElementById(`comp-${name}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }, 120)
+    }
+    applyHash()
+    window.addEventListener('hashchange', applyHash)
+    return () => window.removeEventListener('hashchange', applyHash)
+  }, [])
 
   // When any filter (domain / latest / search) empties the active tab, never
   // strand the user — jump to the first tab that still has components (tiers

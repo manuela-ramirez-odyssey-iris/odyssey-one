@@ -2794,16 +2794,22 @@ button.breadcrumb__label:focus-visible {
   overflow: hidden;
 }
 
-.right-panel__header {
+/* ----------------------------------------
+   MODAL HEADER (molecule)
+   Header band for modal / panel shells (back · title · edit · subtitle · close).
+   Composed by RightPanel. Mirrors Figma `ModalHeader` 3447:7661 (BOOLEANs Show Back /
+   Editable / Subtitle / Show Close gate the four optional parts).
+   ---------------------------------------- */
+.modal-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center; /* close X vertically centered against the title block */
   justify-content: space-between;
   gap: var(--spacing-2);
   padding: var(--spacing-3) var(--spacing-6) var(--spacing-2);
   border-bottom: 1px solid var(--border-subtle);
 }
 
-.right-panel__header-lead {
+.modal-header__lead {
   display: flex;
   align-items: flex-start;
   gap: var(--spacing-2);
@@ -2811,7 +2817,7 @@ button.breadcrumb__label:focus-visible {
   min-width: 0;
 }
 
-.right-panel__header-text {
+.modal-header__text {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-1);
@@ -2819,15 +2825,28 @@ button.breadcrumb__label:focus-visible {
   flex: 1 1 0;
 }
 
-.right-panel__title-row {
+.modal-header__title-row {
   display: flex;
   align-items: center;
   gap: var(--spacing-2);
 }
 
-.right-panel__title { color: var(--text-primary); }
+.modal-header__title { color: var(--text-primary); }
 
-.right-panel__subtitle {
+/* In-place editable title: the heading becomes a chrome-less input (typography + color come
+   from text-heading-lg-semibold + modal-header__title on the same element, so the caret sits
+   right after the name). */
+.modal-header__title-input {
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  min-width: 0;
+}
+
+.modal-header__subtitle {
   color: var(--text-tertiary);
   font-family: var(--font-primary);
   font-size: var(--font-size-xs);
@@ -2837,7 +2856,7 @@ button.breadcrumb__label:focus-visible {
 
 /* Bare icon affordances (back chevron, edit pencil) — transparent, color tracks
    text-tertiary, icons inherit via currentColor. (Close uses IconButtonGhost.) */
-.right-panel__icon-btn {
+.modal-header__icon-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -2848,26 +2867,69 @@ button.breadcrumb__label:focus-visible {
   color: var(--text-tertiary);
   transition: color var(--transition-fast);
 }
-.right-panel__back { margin-top: 2px; } /* nudge the 20px chevron onto the 24px title line */
-.right-panel__icon-btn:hover { color: var(--text-primary); }
-.right-panel__icon-btn:focus-visible {
+.modal-header__back { margin-top: 2px; } /* nudge the 20px chevron onto the 24px title line */
+.modal-header__icon-btn:hover { color: var(--text-primary); }
+.modal-header__icon-btn:focus-visible {
   outline: 2px solid var(--border-focus);
   outline-offset: 2px;
   border-radius: var(--radius-sm);
 }
 
-.right-panel__content {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
-}
-
-.right-panel__footer {
+/* ----------------------------------------
+   MODAL FOOTER (molecule)
+   Footer bar for modal / panel shells. Three types (Figma `ModalFooter` 3170:3649):
+   confirm (Cancel/Save + optional tertiary) · filters (Save-Filters link + Clear + results)
+   · link (helper text + action link). Composes the Button atom.
+   ---------------------------------------- */
+.modal-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: var(--spacing-3) var(--spacing-6) var(--spacing-4);
   border-top: 1px solid var(--border-subtle);
+}
+
+/* Link type is a shorter bar (symmetric vertical padding). */
+.modal-footer--link {
+  padding: var(--spacing-3) var(--spacing-6);
+}
+
+/* Right-hand button cluster (Save + tertiary, or Clear + results). */
+.modal-footer__group {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
+/* Helper text (link type). */
+.modal-footer__text {
+  color: var(--text-secondary);
+  font-family: var(--font-primary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+.right-panel__content {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* Edit-mode veil over the content — white translucent scrim that signals focus lives in the
+   header title and blocks content interaction until the edit is committed/cancelled. */
+.right-panel__content-veil {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.6);
+  pointer-events: auto;
+  cursor: default;
+}
+
+/* RightPanel composes ModalFooter (type="confirm") for its footer; this class only adds the
+   rise-in animation (layout / padding / border come from .modal-footer). */
+.right-panel__footer {
   animation: right-panel-footer-in 220ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 @keyframes right-panel-footer-in {
@@ -2900,19 +2962,6 @@ button.breadcrumb__label:focus-visible {
 }
 .right-panel-dock--open .right-panel {
   transform: translateX(0);
-}
-
-/* In-place editable title: the heading text becomes an input — transparent, no field
-   chrome; typography + color come from the text-heading-lg-semibold + right-panel__title
-   classes on the same element, so the caret sits right after the name. */
-.right-panel__title-input {
-  background: transparent;
-  border: none;
-  outline: none;
-  padding: 0;
-  margin: 0;
-  width: 100%;
-  min-width: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {

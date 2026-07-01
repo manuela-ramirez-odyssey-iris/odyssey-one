@@ -70,6 +70,8 @@ export { default as AuthModal } from './AuthModal.jsx';
 export { default as AuthContent } from './AuthContent.jsx';
 export { default as SearchPanel } from './SearchPanel.jsx';
 export { default as SearchResults } from './SearchResults.jsx';
+export { default as ModalHeader } from './ModalHeader.jsx';
+export { default as ModalFooter } from './ModalFooter.jsx';
 export { default as RightPanel } from './RightPanel.jsx';
 
 // ── Hooks / positioning ────────────────────────────────

@@ -4762,9 +4762,51 @@ Consolidated into **PR #3** (closed PR #2 as superseded). **PR #3 is BLOCKED** �
 
 ---
 
+## Session 73 — July 1, 2026
+
+**Normalized `ModalHeader` + `ModalFooter` as real molecules (React + Figma + Angular twin @0.5.0), refactored RightPanel in BOTH stacks to compose them, redesigned the DSM demos into a Schematic + Playground pattern with `#comp-` deep-linking, and shipped editable-title UX (focus-on-enter, content veil, close/outside-click dismissal).**
+
+### Angular RightPanel re-port (to the finalized shell)
+- Re-ported the PR #8 twin to the S72-finalized API: `open` slide-in drawer, `editableTitle`/`editingTitle` + `(titleChange)`/`(titleCommit)`/`(titleCancel)`/`(editTitle)`, footer-as-BOOLEAN (baked Cancel/Save via `<odyssey-button>`), `[(title)]` two-way.
+- **Root-cause fix: the drawer animation wasn't firing** — `--transition-drawer` existed in React `tokens.css` but was missing from Angular `_tokens.scss`, so `transition: … var(--transition-drawer)` resolved to nothing. Added the token. (Also diagnosed a stale `ng serve` serving pre-rebuild `dist`.)
+- **Close-button alignment fix** (both stacks): `.right-panel__header`/`.modal-header` → `align-items: center` (Figma-confirmed: the ModalHeader master is `h-64 items-center`).
+
+### DSM demo redesign — Schematic + Playground + deep-linking (both DSMs)
+- Replaced the scattered per-demo sections with **two**: a **Schematic** (static anatomy — pink dashed Slot placeholder + a tier-badged, `max-content`-grid legend of nested components, underlined links) and a single interactive **Playground**.
+- Added **`#comp-<Name>` deep-linking** to both the React DSM (`DesignSystem.jsx`) and the Angular explorer (`AppComponent` `@HostListener('window:hashchange')` + `[id]` on `ds-comp`): switch tab → expand → scroll. Child links in the schematic open a component's DSM entry in a new tab.
+- Icon names shown in `ui-monospace` via `<code>`; molecule/atom tier badges; label column auto-sizes to the widest item.
+
+### Editable-title UX (RightPanel shell, both stacks)
+- **Focus once on enter** (not a focus-trap — that broke Cancel/Save); a **white translucent veil** over the content while editing (blocks content from stealing focus); **close (X) and drawer-close cancel an in-progress edit**; new opt-in **`closeOnOutsideClick`** (mousedown outside → close, cancelling any edit; inactive while the drawer is closed).
+
+### ModalHeader — normalized (React + Figma + Angular)
+- **Figma-first** (added to master `3447:7661`): TEXT `Title`/`Subtitle` + BOOLEAN `Show Back`/`Show Subtitle`/`Editable`; **close + subtitle-visibility** kept simple (close always shown; subtitle gated by `Show Subtitle`).
+- **React** `packages/ui/src/ModalHeader.jsx` — the header extracted into a molecule that owns the editable title + focus. `.right-panel__header*` CSS → `.modal-header*`. **RightPanel refactored to compose it** (close now always shown; dropped the `onClose &&` gate). Demo + Code Connect (`Title`/`Subtitle` → `figma.string`, `Show Subtitle` value-map, `Show Back`/`Editable` → props).
+
+### ModalFooter — normalized (React + Figma + Angular)
+- **Figma** master `3170:3649`: kept the `Type` variant (ModalFooter1/2/3); removed the `Tertiary Button` BOOLEAN. Explored per-label text exposure — **Figma plugin API can't expose only a nested instance's text** (`isExposedInstance` is all-or-nothing; can't bind instance-sublayer text); left as **`Type`-variant-only** per user decision.
+- **React** `packages/ui/src/ModalFooter.jsx` — one molecule, 3 `type`s (`confirm`/`filters`/`link`) composed from the Button atom; every label is a prop; "Clear all" is **text-gated** (`tertiaryLabel`), no booleans. **RightPanel footer composes `type="confirm"`.** Demo + Code Connect (`Type` enum → `type`).
+
+### Angular port of both molecules + RightPanel refactor (v0.5.0)
+- `/port-to-angular` — two parallel subagents generated `odyssey-modal-header` + `odyssey-modal-footer` (component/module/spec/figma-link/demo); orchestrator did the shared wiring (public-api, `OdysseyUiModule`, `app.module`, demos registry) + the **RightPanel refactor** (composes both; `showClose` removed — close always; kept dock/veil/outside-click/open-cancel; spec rewritten to composition-level).
+- **Phase 3 green:** parity-lint 60 ✓, lib build ✓, explorer build ✓, **570** lib specs, **31** explorer specs. **Δ=0 two-window, GATE B approved.** Normalizing flags cleared; `@oneodyssey/ui` bumped **0.4.0 → 0.5.0** (package.json + CHANGELOG); tracker rows added; domain-usage refreshed.
+
+### Carry-forward to Session 74 — READ FIRST
+- **Everything is uncommitted.** React (`odyssey-one`, `main`): ModalHeader/ModalFooter + demos + Code Connect + RightPanel refactor + flag/version stamps. Angular (`odyssey-one-library-ui`, protected `main`): the two molecules + RightPanel refactor + wiring + tracker/CHANGELOG — lands via a **`port/modal-header-footer` PR**.
+- **Publish `@oneodyssey/ui@0.5.0` is Cognizant's** (version + CHANGELOG are publish-ready; do not `npm publish` ourselves).
+- **Code Connect for the 3 components was republished by the user** this session.
+- **NEXT: Shipments panel implementation** — user found issues in the live Shipments Column-Arrangement panel that **may require RightPanel component updates**. Investigate against the (now molecule-composed) RightPanel.
+
+---
+
 ## What's Next
 
-### Session 73 Priorities
+### Session 74 Priorities
+
+0. **Shipments panel implementation (RightPanel consumer)** — the user found issues in the live Column-Arrangement panel that may need RightPanel/ModalHeader/ModalFooter updates. Investigate + fix against the newly molecule-composed shell.
+0a. **Commit + land** — commit React on `main`; open the Angular `port/modal-header-footer` PR (protected main). Cognizant publishes `@oneodyssey/ui@0.5.0`.
+
+### Prior Session 73 Priorities (now done / carried)
 
 0. **Watch Angular PR #7** — once Cognizant approves the cumulative (0.3.0·0.3.1·0.4.0) PR, merge it, delete the batch branch, and verify `origin/main` is current (then Angular is main-only).
 0b. **Define the next normalization batch** — deferred to S72 (user will scope it).
