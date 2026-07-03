@@ -1661,6 +1661,46 @@ input[type="date"].odyssey-date-input::-webkit-calendar-picker-indicator:hover {
   color: var(--text-tertiary);
 }
 
+/* ----------------------------------------
+   SUB SECTION HEADER (molecule) — Figma 3303:3665
+   Single 24px row: title (label/base semibold) + optional info glyph on the left,
+   optional dropdown chevron right-aligned. Distinct from SectionHeader (big H2 +
+   timestamp) and TitleSubtitle (stacked label pair). Icons are static.
+   ---------------------------------------- */
+.sub-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: var(--line-height-base); /* 24px — the title's natural line box */
+}
+.sub-section-header__lead {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  min-width: 0;
+}
+.sub-section-header__title {
+  color: var(--text-primary);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Info glyph — static, non-interactive; DSN/400 (text-placeholder), inherits via currentColor. */
+.sub-section-header__info {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--text-placeholder);
+}
+/* Dropdown chevron — static; DSN/500 (text-tertiary). Spacing/1 padding per Figma. */
+.sub-section-header__dropdown {
+  display: inline-flex;
+  flex-shrink: 0;
+  padding: var(--spacing-1);
+  color: var(--text-tertiary);
+}
+
 /* StepperButtonsFooter — molecule. Full-width page/stepper footer bar: border-top + page
    padding, Cancel (secondary) pushed left and the primary action group pushed right
    (space-between). Composes the Button atom. Figma master 3164:2169 — asymmetric vertical
@@ -2067,6 +2107,12 @@ button.breadcrumb__label:focus-visible {
   font-size: var(--font-size-base);
   line-height: var(--line-height-base);
   font-weight: var(--font-weight-medium);
+}
+.text-label-base-semibold {
+  font-family: var(--font-primary);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-base);
+  font-weight: var(--font-weight-semibold);
 }
 .text-label-sm-medium {
   font-family: var(--font-primary);
@@ -3164,22 +3210,10 @@ button.breadcrumb__label:focus-visible {
 
 /* Search-field results dropdown — appears below the input bar when a `results`
    slot is passed. Bounded list with shadow. */
+/* Transparent passthrough — the results content (e.g. FieldSearchResults) carries its own
+   card chrome (bg / radius / shadow). The slot just holds it below the input. */
 .search-field__results {
-  margin-top: var(--spacing-1);
-  background: var(--bg-primary);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-2xl);
-  max-height: 240px;
-  overflow-y: auto;
-}
-.search-field__results-header {
-  padding: var(--spacing-3) var(--spacing-4) var(--spacing-2);
-  color: var(--text-tertiary);
-}
-.search-field__results-empty {
-  padding: var(--spacing-3) var(--spacing-4);
-  color: var(--text-tertiary);
+  display: contents;
 }
 
 /* ----------------------------------------
@@ -3568,11 +3602,11 @@ button.breadcrumb__label:focus-visible {
    SHIPMENTS FILTERS VIEW — content of the SearchPanel shell
    The Filters content (All/Saved tabs + filter controls) that fills <SearchPanel>
    when "All Filters" is clicked. The card / header / footer now come from
-   SearchPanel; `.search-panel--filters` caps the panel height so the body scrolls.
+   SearchPanel; `.global-search-panel--filters` caps the panel height so the body scrolls.
    App-local prototype controls pending normalized Select / FilterChip / SavedFilterRow.
    ---------------------------------------- */
-.search-panel--filters { max-height: 70vh; }
-.search-panel--filters .search-panel__content {
+.global-search-panel--filters { max-height: 70vh; }
+.global-search-panel--filters .global-search-panel__content {
   flex: 1;
   min-height: 0;
 }
@@ -3716,12 +3750,14 @@ button.breadcrumb__label:focus-visible {
 }
 .match-row:last-child { border-bottom: none; }
 
-/* Selectable variant (onClick) — code-only hover affordance (Pending Figma Sync). */
+/* Selectable variant (onClick) — interaction ladder (Figma State = Default | Hover | Pressed).
+   rest transparent → hover DSN/100 → pressed DSN/200 (pressed more pronounced than hover). */
 .match-row[role="button"] {
   cursor: pointer;
   transition: background var(--transition-fast);
 }
-.match-row[role="button"]:hover { background: var(--bg-secondary); }
+.match-row[role="button"]:hover { background: var(--bg-tertiary); }
+.match-row[role="button"]:active { background: var(--deep-sea-neutral-200); }
 
 .match-row__info {
   display: flex;
@@ -3789,13 +3825,83 @@ button.breadcrumb__label:focus-visible {
 }
 
 /* ----------------------------------------
+   MATCH SIMPLE ROW (molecule) — Figma 3169:2821
+   A compact match row: 40×40 avatar (DSN/200 surface, switchable 20px icon) · a
+   two-line details column — main line (match ID semibold + customer medium),
+   sub line (address, label/xs regular). Simpler sibling of MatchRow (no route,
+   no meta cells, no source Badge). Rounded (radius-lg); same interaction ladder
+   (Figma State = Default | Hover | Pressed): rest transparent → hover DSN/100 →
+   pressed DSN/200.
+   ---------------------------------------- */
+.match-simple-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  width: 100%;
+  min-width: 0;
+  padding: var(--spacing-3) var(--spacing-4);
+  border-radius: var(--radius-lg);
+}
+.match-simple-row[role="button"] {
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+.match-simple-row[role="button"]:hover { background: var(--bg-tertiary); }
+.match-simple-row[role="button"]:active { background: var(--deep-sea-neutral-200); }
+.match-simple-row__avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: var(--radius-md);
+  background: var(--deep-sea-neutral-200);
+  color: var(--text-secondary);
+}
+.match-simple-row__details {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  align-items: flex-start;
+  min-width: 0;
+}
+.match-simple-row__main {
+  display: flex;
+  align-items: baseline;
+  gap: var(--spacing-2);
+  width: 100%;
+  min-width: 0;
+}
+.match-simple-row__id {
+  color: var(--text-primary);
+  flex-shrink: 0;
+}
+.match-simple-row__customer {
+  color: var(--text-secondary);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.match-simple-row__address {
+  color: var(--text-secondary);
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ----------------------------------------
    SEARCH PANEL (organism shell) — Figma `SearchPanel` 2462:149
    The card that drops below the GlobalSearch bar once criteria are committed.
    Modal pattern (cf. .modal-large): conditional header + content slot (children)
    + baked footer. Each search state fills the content slot (Results →
-   .search-results; Filters → later cycle).
+   .global-search-results; Filters → later cycle).
    ---------------------------------------- */
-.search-panel {
+.global-search-panel {
   display: flex;
   flex-direction: column;
   width: 720px;
@@ -3805,74 +3911,124 @@ button.breadcrumb__label:focus-visible {
   box-shadow: var(--shadow-2xl);
   overflow: hidden;
 }
-.search-panel__header {
+.global-search-panel__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: var(--spacing-3) var(--spacing-6);
   border-bottom: 1px solid var(--border-subtle);
 }
-.search-panel__header-left {
+.global-search-panel__header-left {
   display: flex;
   align-items: center;
   gap: var(--spacing-2);
   min-width: 0;
 }
-.search-panel__title { color: var(--text-primary); }
-.search-panel__content {
+.global-search-panel__title { color: var(--text-primary); }
+.global-search-panel__content {
   display: flex;
   flex-direction: column;
 }
-.search-panel__footer {
+.global-search-panel__footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: var(--spacing-3) var(--spacing-4) var(--spacing-4);
   border-top: 1px solid var(--border-default);
 }
-.search-panel__footer-left {
+.global-search-panel__footer-left {
   display: flex;
   align-items: center;
   gap: var(--spacing-2);
 }
-.search-panel__footer-right {
+.global-search-panel__footer-right {
   display: flex;
   align-items: center;
   gap: var(--spacing-2);
 }
 
 /* ----------------------------------------
-   SEARCH RESULTS (organism content) — Figma `SearchResults` 2684:1040
-   The "Best Match" body that fills the SearchPanel content slot in the Results
-   state: title + scrollable MatchRow list + a link row that opens Filters.
+   GLOBAL SEARCH RESULTS (organism content) — Figma `GlobalSearchResults` 3237:3439
+   The global-search results body that fills the GlobalSearchPanel content slot. The
+   WHOLE body is one scroll area — the "Best N Matches" header and the "Filter More"
+   link scroll along with the rows (up to 12), so the link reads as an end-of-list CTA.
    ---------------------------------------- */
-.search-results {
+.global-search-results {
   display: flex;
   flex-direction: column;
-}
-.search-results__body {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-2);
   align-items: flex-start;
-  padding: var(--spacing-6) var(--spacing-6) 0;
+  gap: var(--spacing-2);
+  padding: var(--spacing-6) var(--spacing-6) var(--spacing-3);
+  /* Scroll window (Figma main-results frame height): header + ~4 rows + Filter More CTA
+     visible; scrolls together past that, up to the 12-row cap. Raw — no size token. */
+  max-height: 398px;
+  overflow-y: auto;
 }
-.search-results__title { color: var(--text-tertiary); }
-.search-results__list {
+.global-search-results__title { color: var(--text-tertiary); }
+.global-search-results__list {
   display: flex;
   flex-direction: column;
   width: 100%;
-  /* No gap — rows stack directly, border-bottom provides visual separation.
-     4 rows visible (~68px each incl. border); scrolls after that. */
-  max-height: 272px;
-  overflow-y: auto;
+  /* No gap — rows stack directly; MatchRow border-bottom separates. The scroll lives on
+     the root (.global-search-results), so the header + CTA scroll with the rows. */
 }
-.search-results__filters {
+/* The last row keeps its divider (the "Filter More" CTA follows it) — overrides
+   MatchRow's default :last-child border removal. */
+.global-search-results__list .match-row:last-child { border-bottom: 1px solid var(--border-subtle); }
+.global-search-results__filters {
   display: flex;
   align-items: center;
-  /* 36px left indent aligns the link with the row content (off-scale; no token). */
-  padding: var(--spacing-3) 0 var(--spacing-3) 36px;
+  /* Left inset = the MatchRow horizontal padding (--spacing-4), so the "Filter More" link
+     aligns with the row content (avatar) above it. */
+  padding: var(--spacing-3) 0 var(--spacing-3) var(--spacing-4);
 }
+/* Non-result states (Figma SearchNoMatch / SearchAlert) — centered message, no rows. */
+.global-search-results__empty,
+.global-search-results__alert {
+  width: 100%;
+  margin: 0;
+  padding: var(--spacing-5) var(--spacing-6);
+  text-align: center;
+}
+.global-search-results__empty { color: var(--text-tertiary); }
+.global-search-results__alert { color: var(--text-error); }
+
+/* ----------------------------------------
+   FIELD SEARCH RESULTS (organism) — Figma `SearchResultsMedium` 3170:2989
+   Compact results body for a focalized field lookup: MatchSimpleRow rows (4px-gapped;
+   each row carries its own radius + hover), a centered no-match message, and a centered
+   red alert message. Sibling of SearchResults (global) — same shape, different intent.
+   ---------------------------------------- */
+.field-search-results {
+  display: flex;
+  flex-direction: column;
+  padding: var(--spacing-3);
+  /* The card chrome lives here (per variant), not on the SearchField slot (which is a
+     transparent passthrough). Lets FieldSearchResults be a self-contained dropdown card. */
+  background: var(--bg-primary);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-2xl);
+}
+.field-search-results__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  width: 100%;
+}
+/* No-match / alert — a centered message block ~one row tall (40px + the 12px body
+   padding = the Figma 490×64 SearchNoMatch / SearchAlert state). */
+.field-search-results__empty,
+.field-search-results__alert {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  width: 100%;
+  margin: 0;
+  text-align: center;
+}
+.field-search-results__empty { color: var(--text-tertiary); }
+.field-search-results__alert { color: var(--text-error); }
 
 /* === StepIndicator (atom) — Figma 2909:13, normalized 2026-06-09 ===
    Vertical stepper node: connector lines + 40px status circle.

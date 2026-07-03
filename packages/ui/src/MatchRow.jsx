@@ -9,7 +9,7 @@ const AVATAR_ICONS = {
 }
 
 /**
- * MatchRow — molecule. One result row in the GlobalSearch `SearchResults` list.
+ * MatchRow — molecule. One result row in the GlobalSearch `GlobalSearchResults` list.
  *
  * Layout: 40×40 avatar (gray surface, switchable icon) · a main line with the
  * match ID (semibold) + route (regular) on the left and a source Badge on the

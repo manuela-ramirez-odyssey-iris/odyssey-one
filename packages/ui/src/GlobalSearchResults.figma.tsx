@@ -1,19 +1,19 @@
 import figma from '@figma/code-connect'
-import SearchResults from './SearchResults'
+import GlobalSearchResults from './GlobalSearchResults'
 
-// Master: Components-Organisms page (Modals artboard), `SearchResultsLarge` set at
-// 3237:3439 (now a State=SearchMainResults|SearchNoMatch set; connect to the set, not a
-// variant child). The Best Match content that fills the SearchPanel Content slot. Composed
-// organism (MatchRow instances + a link row); the React API is data-driven (`matches` array
-// + handlers), so the mapping uses a static example that demonstrates the contract.
+// Master: `GlobalSearchResults` set at 3237:3439 (Components-Organisms). Three states:
+// State=SearchMainResults (scrollable "Best N Matches" header + up to 12 MatchRow rows +
+// a trailing "Filter More" CTA) | SearchNoMatch (matches=[] → empty message) | SearchAlert
+// (the `error` prop → red alert message). The React API is data-driven (`matches` + handlers);
+// the example shows the populated contract. The compact field-lookup variant is a separate
+// component — see FieldSearchResults (3170:2989).
 figma.connect(
-  SearchResults,
+  GlobalSearchResults,
   'https://www.figma.com/design/vodiHJU38YWZYmTz81uOk7/Design-System---MCP?node-id=3237-3439',
   {
-    imports: ["import { SearchResults } from '@odyssey/ui'"],
+    imports: ["import { GlobalSearchResults } from '@odyssey/ui'"],
     example: () => (
-      <SearchResults
-        title="Best Match"
+      <GlobalSearchResults
         matches={[
           {
             matchId: 'C814956',

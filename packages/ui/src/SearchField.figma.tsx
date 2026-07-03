@@ -11,8 +11,11 @@ figma.connect(
       showLabel: figma.boolean('Show label'),
       label: figma.string('Label'),
       showInfoIcon: figma.boolean('Show info icon'),
+      // `Content` SLOT (gated by the `Show results` boolean) → the `results` dropdown slot.
+      // Typically a <FieldSearchResults>; the shell chrome lives on .search-field__results.
+      results: figma.instance('Content'),
     },
-    example: ({ placeholder, showLabel, label, showInfoIcon }) => (
+    example: ({ placeholder, showLabel, label, showInfoIcon, results }) => (
       <SearchField
         placeholder={placeholder}
         showLabel={showLabel}
@@ -20,6 +23,7 @@ figma.connect(
         showInfoIcon={showInfoIcon}
         value=""
         onChange={() => {}}
+        results={results}
       />
     ),
   },

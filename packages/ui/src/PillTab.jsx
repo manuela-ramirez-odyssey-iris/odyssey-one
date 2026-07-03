@@ -3,7 +3,7 @@ import Badge from './Badge.jsx'
 /**
  * PillTab — atom. A pill-shaped tab button: a label + an optional neutral count
  * Badge (`variant="metric"`), with a selected / unselected state. Used for the
- * All / Saved tabs in the SearchPanel filters body. Hover is CSS-driven; only the
+ * All / Saved tabs in the GlobalSearchPanel filters body. Hover is CSS-driven; only the
  * selected state is a prop.
  *
  * Figma master: `PillTab` set 2787:330 (Components-Atoms), `Selected=True|False`.

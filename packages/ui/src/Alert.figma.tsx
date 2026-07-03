@@ -7,8 +7,8 @@ figma.connect(
   {
     imports: ["import { Alert } from '@odyssey/ui'"],
     props: {
-      // State VARIANT → variant. Warning + Error both render lucide/triangle-alert
-      // (differentiated by background tint).
+      // State VARIANT → variant. Each state has its own icon + tinted surface:
+      // info/circle-check/triangle-alert/octagon-x over Status/{info,success,warning,error}-message.
       variant: figma.enum('State', {
         'Info Message': 'info',
         'Success Message': 'success',

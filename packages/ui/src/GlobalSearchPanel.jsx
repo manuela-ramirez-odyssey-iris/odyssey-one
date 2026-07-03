@@ -4,7 +4,7 @@ import Button from './Button.jsx'
 import IconButtonGhost from './IconButtonGhost.jsx'
 
 /**
- * SearchPanel — organism shell. The card that drops below the GlobalSearch bar
+ * GlobalSearchPanel — organism shell. The card that drops below the GlobalSearch bar
  * (720px, shadow/2xl) once search criteria are committed. Follows the modal
  * pattern (cf. ModalLarge / ModalMedium): a conditional header (back + title +
  * close X), a single content slot (`children`), and a baked footer with the
@@ -14,13 +14,13 @@ import IconButtonGhost from './IconButtonGhost.jsx'
  * "Clear all" sits next to "Show N".)
  *
  * Each search state fills the content slot with its own component:
- * Results → <SearchResults>, Filters → <SearchFilters> (later cycle).
+ * Results → <GlobalSearchResults>, Filters → <SearchFilters> (later cycle).
  *
- * Figma master: `SearchPanel` 2462:149 on Components-Organisms (Modals artboard).
+ * Figma master: `GlobalSearchPanel` 2462:149 on Components-Organisms (Modals artboard).
  * Content SLOT → `children`. The header / footer toggles map to the Show header /
  * Show back / Show link / Show secondary booleans on the master.
  */
-export default function SearchPanel({
+export default function GlobalSearchPanel({
   // Header — hidden by default (the Results state has no header).
   showHeader = false,
   showBack = false,
@@ -47,12 +47,12 @@ export default function SearchPanel({
   ...rest
 }) {
   const primary =
-    primaryLabel ?? `Show ${count ?? 0} ${count === 1 ? 'result' : 'results'}`
+    primaryLabel ?? `Show all ${count ?? 0} ${count === 1 ? 'result' : 'results'}`
   return (
-    <div className={`search-panel ${className}`.trim()} style={style} {...rest}>
+    <div className={`global-search-panel ${className}`.trim()} style={style} {...rest}>
       {showHeader && (
-        <header className="search-panel__header">
-          <div className="search-panel__header-left">
+        <header className="global-search-panel__header">
+          <div className="global-search-panel__header-left">
             {showBack && (
               <IconButtonGhost
                 icon={<ChevronLeft {...ICON_LG} aria-hidden="true" />}
@@ -60,7 +60,7 @@ export default function SearchPanel({
                 ariaLabel="Back"
               />
             )}
-            <span className="text-heading-lg-semibold search-panel__title">{title}</span>
+            <span className="text-heading-lg-semibold global-search-panel__title">{title}</span>
           </div>
           {onClose && (
             <IconButtonGhost
@@ -72,10 +72,10 @@ export default function SearchPanel({
         </header>
       )}
 
-      <div className="search-panel__content">{children}</div>
+      <div className="global-search-panel__content">{children}</div>
 
-      <div className="search-panel__footer">
-        <div className="search-panel__footer-left">
+      <div className="global-search-panel__footer">
+        <div className="global-search-panel__footer-left">
           {showLink && (
             <Button variant="link" size="sm" icon={linkIcon} onClick={onLink}>
               {linkLabel}
@@ -87,7 +87,7 @@ export default function SearchPanel({
             </Button>
           )}
         </div>
-        <div className="search-panel__footer-right">
+        <div className="global-search-panel__footer-right">
           {showTrailSecondary && (
             <Button variant="secondary" size="md" onClick={onClear}>
               {secondaryLabel}

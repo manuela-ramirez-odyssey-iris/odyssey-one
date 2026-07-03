@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { ChevronDown, Info, Copy } from 'lucide-react'
-import { SearchPanel, PillTab } from '@odyssey/ui'
+import { GlobalSearchPanel, PillTab } from '@odyssey/ui'
 import { SHIPMENTS_PROGRESSION } from '../../search/shipments/progression'
 
 /**
  * ShipmentsFiltersView — the Filters *content* of the GlobalSearch overlay.
  *
- * Renders inside the normalized `<SearchPanel>` shell (same component as the
- * Results state + Figma) — SearchPanel owns the card, the header (‹ back · Filters ·
+ * Renders inside the normalized `<GlobalSearchPanel>` shell (same component as the
+ * Results state + Figma) — GlobalSearchPanel owns the card, the header (‹ back · Filters ·
  * × close) and the footer (Save Filters link / Clear all / Show N). This component
  * supplies only the content: the All/Saved tabs + the filter controls. Swaps in over
  * the Results state when "All Filters" is clicked (back-arrow returns to results).
@@ -148,8 +148,8 @@ export default function ShipmentsFiltersView({
   ]
 
   return (
-    <SearchPanel
-      className="search-panel--filters"
+    <GlobalSearchPanel
+      className="global-search-panel--filters"
       showHeader
       showBack
       title="Filters"
@@ -204,6 +204,6 @@ export default function ShipmentsFiltersView({
           </div>
         )}
       </div>
-    </SearchPanel>
+    </GlobalSearchPanel>
   )
 }

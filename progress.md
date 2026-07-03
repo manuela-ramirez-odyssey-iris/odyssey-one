@@ -4838,12 +4838,70 @@ Consolidated into **PR #3** (closed PR #2 as superseded). **PR #3 is BLOCKED** �
 
 ---
 
+## Session 75 — July 2–3, 2026
+
+**Two arcs: (1) closed the 0.5.0 batch (final approval — both repos pushed, Angular PR #9); (2) a large new normalization batch across the search/results domain + row molecules — 8 components, ending 7/8 APPROVED (SubSectionHeader parked pending an Efrain question). Nothing was committed until `/wrap`.**
+
+### Arc 1 — 0.5.0 batch final approval (close)
+- Cleared the 3 staging badges + stamped `version: 0.5.0` on all 6 components (ModalHeader · ModalFooter · RightPanel · TitleSubtitle · StepperButtonsFooter · PageHeader) in BOTH DSMs.
+- Angular CHANGELOG 0.5.0: added StepperButtonsFooter (Added) + PageHeader `Type=Last update` (Changed); advanced the explorer version-chip + latest-only specs to 0.5.0 (latest tier is now molecule, not atom).
+- React committed + pushed to `main` (`36e1ab3`). Angular committed (`5bf6698`) + pushed `port/right-panel` + opened **PR #9** (base `main`, protected). Verified: React build + 212 tests; Angular parity-lint 62 + 582 lib specs + 31 explorer specs + lib build. **Cognizant publishes `@oneodyssey/ui@0.5.0`.**
+
+### Arc 2 — new normalization batch (search/results + rows)
+8 components. **7 APPROVED**, SubSectionHeader parked. React build + 212 tests stayed green throughout; all Figma edits via `use_figma` subagents.
+
+**Row molecules**
+- **MatchRow** (existing → updated) — `State` axis `True/False` → **`Default | Hover | Pressed`** ladder (user clarified True=hover). Hover DSN/100, Pressed DSN/200 (CSS `:active`); reconciled code hover DSN/50→DSN/100; last-row divider restored before the CTA. Figma axis rename + Pressed variant.
+- **MatchSimpleRow** (NEW) — compact match row: 40×40 avatar (DSN/200) + id (label/sm semibold) + customer (medium) + address (label/xs), radius-lg, same Default/Hover/Pressed ladder. Rebuilt its drifted Figma API (was ModalHeader-leftover props + hardcoded text).
+
+**Alert** (existing → token adoption) — Efrain re-tokenized the 4 backgrounds to `Status/*-message` semantic vars (resolves the long-pending Alert re-tokenization). Added `--status-{info,success,warning,error}-message` to tokens.css + rebound `--alert-*-bg`; refreshed stale primitive + `.figma.tsx` comments. No visual change.
+
+**Search/results cluster**
+- **GlobalSearchResults** (renamed from `SearchResults`; Figma `SearchResultsLarge` → `GlobalSearchResults` 3237:3439) — global-search results body. **Fully scrollable**: dynamic "Best N Matches" header + up to **12** MatchRow rows + filter CTA in one `max-height:398px` window. 3 states (populated / no-match / alert). **Filter CTA renders in every state** — "Filter More" populated, **"Edit Filters"** on empty/error (`editFiltersLabel`). Anatomy legend trimmed to **3 entries**; Schematic shows a compact 3-row illustration.
+- **FieldSearchResults** (NEW; Figma `SearchResultsMedium` 3170:2989) — **split out** of the results (different intent: a focalized field lookup, not "the medium size"). Compact MatchSimpleRow results + no-match + alert. **Self-contained card** (bg white / radius-md / shadow-2xl per variant — chrome moved here off the SearchField slot).
+- **GlobalSearchPanel** (renamed from `SearchPanel` 2462:149) — the global-search shell; kept separate from the results (shell ↔ content, not merged). Demo reworked to Schematic + Playground with the **pink slot marker**; footer primary → "Show all N results"; header/footer legend = molecule.
+- **SearchField** (existing molecule → **promoted to ORGANISM**) — the field-lookup shell. Added a **real Figma `Content` SLOT** (same mechanism as GlobalSearchPanel); its `results` slot is now a **transparent passthrough** (`display:contents`) — chrome lives on FieldSearchResults. Demo reworked to Schematic + Playground (pink slot + live FieldSearchResults typeahead). Moved to the Components-Organisms Figma page + `index.js` Organisms group.
+
+**SubSectionHeader** (NEW — **PARKED**) — single-row subsection header (title `label/base-semibold` + optional info glyph + dropdown chevron). Built React + Figma (added `Title` TEXT prop, bound lucide `info`/`chevron-down`, renamed). Left at **NORMALIZING** (not approved) — user needs to confirm its interaction use with Efrain.
+
+**Dropped:** FormField — pulled in initially, showed no Figma delta → dropped.
+
+### Key architecture decisions
+- **Split over merge (twice).** SearchResults/SearchResultsMedium were first unified behind a `size` prop, then SPLIT into `GlobalSearchResults` + `FieldSearchResults` — *different intent* (the `size` prop toggled row component + title + footer + state model = "two components in a trenchcoat"). Row molecule shared as a primitive; container not.
+- **SearchPanel stays the global shell**, NOT merged with results (they're nested shell↔content). The field lookup uses **SearchField's own dropdown slot** as its shell, not GlobalSearchPanel (whose "Show all N results" footer is global-specific).
+- **Chrome location** moved from the SearchField slot → onto each **FieldSearchResults** variant; SearchField's slot is transparent.
+- **Renames:** `SearchResults`→`GlobalSearchResults`, `SearchPanel`→`GlobalSearchPanel` (symmetry with `GlobalSearch` + `FieldSearchResults`).
+
+### New convention + tokens
+- **`feedback_signal_slots_pink_placeholder`** memory — signal a content slot in the DSM Schematic with the RightPanel pink-dashed `SlotPlaceholder` (#e85aad); Playground fills the same slot with real content. Applied to GlobalSearchPanel + SearchField.
+- Tokens: `--status-{info,success,warning,error}-message` (semantic layer mirroring Efrain's Figma `Status/*-message`).
+
+### NOT done (carried — the batch isn't closed)
+- **SubSectionHeader** parked (Efrain interaction Q).
+- **Phase 3 sync-back deferred:** tracker rows for all 8, `npm run domain-usage`, `connect:publish` (lots of new/changed Code Connect this session).
+- **Angular port not started** (batch step after full approval → PORTED → final approval stamps version + commits both repos).
+- Figma throwaway preview instance left on canvas: `4048:4622` (SearchField); SearchField slot has a harmless leftover `cornerRadius:6`.
+
+### Carry-forward to Session 76 — READ FIRST
+- **Batch = 8 components, 7 APPROVED + SubSectionHeader parked.** APPROVED: MatchRow · MatchSimpleRow · Alert · GlobalSearchResults · FieldSearchResults · GlobalSearchPanel · SearchField.
+- **First thing S76:** resolve **SubSectionHeader** (user asks Efrain about its interaction) → approve or drop. Then the batch is fully APPROVED.
+- **Then:** Phase 3 sync-back (tracker + `domain-usage` + `connect:publish`), then GATE Batch-Approval → `/port-to-angular` for the whole batch → PORTED → final approval (stamp version, commit + push both repos; Cognizant publishes).
+
+---
+
 ## What's Next
 
-### Session 75 Priorities
+### Session 76 Priorities
 
-0. **Continue the 0.5.0 batch** — keep normalizing components into staging (React → APPROVED → port → PORTED). Then **final approval**: clear badges both DSMs, stamp `0.5.0`, commit + push both, open the Angular PR; Cognizant publishes.
-0a. **Fix RightPanel** — the deferred Shipments Column-Arrangement panel issues (S74 priority 0, never reached). Investigate + fix against the molecule-composed RightPanel/ModalHeader/ModalFooter.
+0. **SubSectionHeader** — user confirms its interaction with Efrain, then approve it (or drop from the batch). Unblocks full batch approval.
+1. **Phase 3 sync-back** for the batch — `playground/normalization-tracker.md` rows for all 8 (new: MatchSimpleRow, SubSectionHeader, FieldSearchResults; renamed: GlobalSearchResults, GlobalSearchPanel; promoted: SearchField→organism; updated: MatchRow, Alert), `npm run domain-usage`, and `npm run connect:publish` (SubSectionHeader, MatchSimpleRow, FieldSearchResults, GlobalSearchResults, SearchField `Content` slot, the GlobalSearch* renames).
+2. **Angular batch port** — `/port-to-angular` for the whole APPROVED batch → PORTED (both DSMs), then **final approval**: clear flags + stamp the release version + commit + push both repos. Cognizant publishes.
+3. **Fix RightPanel** — the deferred Shipments Column-Arrangement panel issues (S74 priority 0, still owed; never reached in S75).
+
+### Prior Session 73 Priorities (now done / carried)
+
+0. **Watch Angular PR #7** — once Cognizant approves the cumulative (0.3.0·0.3.1·0.4.0) PR, merge it, delete the batch branch, and verify `origin/main` is current (then Angular is main-only).
+0b. **Define the next normalization batch** — deferred to S72 (user will scope it).
 
 ### Prior Session 73 Priorities (now done / carried)
 

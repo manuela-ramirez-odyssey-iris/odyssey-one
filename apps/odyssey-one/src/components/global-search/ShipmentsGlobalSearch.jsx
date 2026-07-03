@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from 'react'
-import { GlobalSearch, SearchPanel, SearchResults } from '@odyssey/ui'
+import { GlobalSearch, GlobalSearchPanel, GlobalSearchResults } from '@odyssey/ui'
 import { useGlobalSearch } from '../../search/useGlobalSearch'
 import { shipmentsSearchAdapter } from '../../search/shipments/adapter'
 import ShipmentsFiltersView from './ShipmentsFiltersView'
@@ -7,7 +7,7 @@ import ShipmentsFiltersView from './ShipmentsFiltersView'
 /**
  * ShipmentsGlobalSearch — Shipments-domain wiring of the GlobalSearch bar.
  * Owns the search state (via hook + adapter), renders chips in the bar, and
- * positions the SearchPanel below the bar. Two entry points: committing a chip
+ * positions the GlobalSearchPanel below the bar. Two entry points: committing a chip
  * opens the Results preview, and the FilterButton opens the Filters view (its
  * active state is bound to the Filters view being open, however it was reached).
  * The panel closes on click-outside.
@@ -72,7 +72,7 @@ export default function ShipmentsGlobalSearch() {
         filterCount={chips.length}
         // FilterButton opens the Filters view; its active state is bound to the
         // Filters view being open — whether reached via the button or the
-        // SearchResults "All Filters" link.
+        // GlobalSearchResults "All Filters" link.
         filterActive={resultsOpen && panelView === 'filters'}
         onFilterClick={(next) => { if (next) openFilters(); else closePanel() }}
         suggestionSections={suggestionSections}
@@ -85,18 +85,18 @@ export default function ShipmentsGlobalSearch() {
       {resultsOpen && (panelView === 'filters' || chips.length > 0) && (
         <div className="shipments-results-panel">
           {panelView === 'results' ? (
-            <SearchPanel
+            <GlobalSearchPanel
               count={resultTotal}
               onClear={() => chips.forEach((c) => onChipRemove(c.key))}
               onShowResults={() => {
                 console.log('Show all results:', resultTotal)
               }}
             >
-              <SearchResults
+              <GlobalSearchResults
                 matches={results}
                 onFiltersClick={() => setPanelView('filters')}
               />
-            </SearchPanel>
+            </GlobalSearchPanel>
           ) : (
             <ShipmentsFiltersView
               chips={chips}

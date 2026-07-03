@@ -43,7 +43,7 @@ export default function PillTabDemo() {
     <div>
       <p style={{ marginTop: 0, color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)' }}>
         Pill-shaped tab with optional metric <code>Badge</code> count. Used for
-        the All / Saved filter tabs in SearchPanel. Hover is CSS-only; only{' '}
+        the All / Saved filter tabs in GlobalSearchPanel. Hover is CSS-only; only{' '}
         <code>selected</code> is a prop.
       </p>
 

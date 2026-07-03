@@ -64,8 +64,8 @@
   "global-search": [
     "Button",
     "GlobalSearch",
-    "PillTab",
-    "SearchPanel",
-    "SearchResults"
+    "GlobalSearchPanel",
+    "GlobalSearchResults",
+    "PillTab"
   ]
 }

@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { Alert, Button } from '@odyssey/ui'
+import { Alert } from '@odyssey/ui'
 
 export const meta = {
   name: 'Alert',
   tier: 'molecule',
-  version: '0.2.0',
+  normalizing: true,
+  approved: true,
   figmaNode: '2569:1841',
   codeConnect: 'packages/ui/src/Alert.figma.tsx',
 }
@@ -20,76 +21,119 @@ export const props = [
 ]
 
 export const tokens = [
-  { token: '--alert-info-bg', resolves: 'Carolina Blue/200', usage: 'info surface' },
-  { token: '--alert-success-bg', resolves: 'Caribbean Green/200', usage: 'success surface' },
-  { token: '--alert-warning-bg', resolves: 'Sunrise Yellow/200', usage: 'warning surface' },
-  { token: '--alert-error-bg', resolves: 'Bittersweet/200', usage: 'error surface' },
+  { token: '--alert-info-bg', resolves: '--status-info-message', usage: 'info surface' },
+  { token: '--alert-success-bg', resolves: '--status-success-message', usage: 'success surface' },
+  { token: '--alert-warning-bg', resolves: '--status-warning-message', usage: 'warning surface' },
+  { token: '--alert-error-bg', resolves: '--status-error-message', usage: 'error surface' },
+  { token: '--status-*-message', resolves: 'DSN-backed Status semantics', usage: 'new semantic layer (mirrors Figma Status/*-message)' },
   { token: '--alert-text', resolves: 'DSN/900', usage: 'uniform text + icon color (via currentColor)' },
   { token: '--radius-xl', resolves: 'radius/xl (12px)', usage: 'banner corner radius' },
 ]
 
+// ── Schematic ───────────────────────────────────────────────────────────────
+function TierBadge({ tier }) {
+  return (
+    <span style={{ display: 'inline-block', padding: '0 6px', borderRadius: 'var(--radius-full)', background: 'var(--bg-tertiary)', color: 'var(--text-secondary)', border: '1px solid var(--border-subtle)', fontFamily: 'var(--font-primary)', fontSize: '11px', fontWeight: 'var(--font-weight-medium)', whiteSpace: 'nowrap' }}>{tier}</span>
+  )
+}
+function ChildLink({ to, children }) {
+  return <a href={`#comp-${to}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-link)', textDecoration: 'underline', fontWeight: 'var(--font-weight-semibold)', whiteSpace: 'nowrap' }}>{children}</a>
+}
+function LegendRow({ part, tier, nested = false, children }) {
+  const cell = { padding: 'var(--spacing-2) 0', borderBottom: '1px solid var(--border-subtle)', fontFamily: 'var(--font-primary)', fontSize: 'var(--font-size-sm)' }
+  return (
+    <li style={{ display: 'contents' }}>
+      <span style={{ ...cell, display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)', whiteSpace: 'nowrap', paddingLeft: nested ? 'var(--spacing-6)' : 0, color: 'var(--text-primary)', fontWeight: nested ? 'var(--font-weight-medium)' : 'var(--font-weight-semibold)' }}>
+        {nested && <span style={{ color: 'var(--text-tertiary)' }} aria-hidden="true">└</span>}
+        {part}{tier && <TierBadge tier={tier} />}
+      </span>
+      <span style={{ ...cell, color: 'var(--text-secondary)' }}>{children}</span>
+    </li>
+  )
+}
+
+function Schematic() {
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-8)', alignItems: 'flex-start', background: 'var(--bg-secondary)', padding: 'var(--spacing-6)', borderRadius: 'var(--radius-md)' }}>
+      <div style={{ flex: '1 1 420px', minWidth: 320, background: 'var(--bg-primary)', borderRadius: 'var(--radius-md)', padding: 'var(--spacing-4)' }}>
+        <Alert variant="info" showLink linkLabel="Click here" onLinkClick={() => {}}>
+          A new shipment needs your attention.
+        </Alert>
+      </div>
+      <ul style={{ flex: '1 1 320px', minWidth: 280, display: 'grid', gridTemplateColumns: 'max-content 1fr', columnGap: '10px', listStyle: 'none', margin: 0, padding: 0 }}>
+        <LegendRow part="root" tier="molecule">Full-width flex banner, <code>--radius-xl</code>. Surface is the tinted <code>/200</code> per <code>variant</code> (all 4 route through <code>--status-*-message</code>).</LegendRow>
+        <LegendRow part="status icon" nested>Per-variant lucide (info / circle-check / triangle-alert / octagon-x), 20px, uniform DSN/900 via <code>currentColor</code>.</LegendRow>
+        <LegendRow part="message" nested>Body text, <code>label/sm regular</code>, DSN/900.</LegendRow>
+        <LegendRow part={<ChildLink to="Button">Button (link)</ChildLink>} tier="atom" nested>Optional — the trailing "Click here →" ButtonLink (Black tone). Shown when <code>showLink</code>.</LegendRow>
+        <LegendRow part="close X" nested>Optional — trailing dismiss button (<code>lucide/x</code>, 20px). Shown when <code>showClose</code> (default true).</LegendRow>
+      </ul>
+    </div>
+  )
+}
+
+// ── Playground ──────────────────────────────────────────────────────────────
+function Toggle({ label, value, set, disabled }) {
+  return (
+    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-sm)', cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.4 : 1 }}>
+      <input type="checkbox" checked={value} onChange={(e) => set(e.target.checked)} disabled={disabled} />
+      {label}
+    </label>
+  )
+}
 const VARIANTS = [
-  { variant: 'info', message: 'Info Message' },
-  { variant: 'success', message: 'Success Message!' },
-  { variant: 'warning', message: 'Warning Message!' },
-  { variant: 'error', message: 'Error Message!' },
+  { variant: 'info', message: 'A new shipment needs your attention.' },
+  { variant: 'success', message: 'Shipment created successfully.' },
+  { variant: 'warning', message: 'This shipment is missing a BOL.' },
+  { variant: 'error', message: 'Failed to save the shipment. Try again.' },
 ]
 
-export default function AlertDemo() {
-  const [open, setOpen] = useState(() => VARIANTS.map(() => true))
-  const allClosed = open.every((v) => !v)
+function Playground() {
+  const [showLink, setShowLink] = useState(false)
+  const [showClose, setShowClose] = useState(true)
 
   return (
     <div>
+      <div className="ds-demo-row" style={{ gap: 'var(--spacing-4)', marginBottom: 'var(--spacing-3)', flexWrap: 'wrap', alignItems: 'center' }}>
+        <Toggle label="showLink" value={showLink} set={setShowLink} />
+        <Toggle label="showClose" value={showClose} set={setShowClose} />
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-3)' }}>
+        {VARIANTS.map((v) => (
+          <Alert
+            key={v.variant}
+            variant={v.variant}
+            showLink={showLink}
+            linkLabel="Click here"
+            onLinkClick={() => {}}
+            showClose={showClose}
+            onClose={() => {}}
+          >
+            {v.message}
+          </Alert>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+export default function AlertDemo() {
+  return (
+    <div>
       <p style={{ marginTop: 0, color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)' }}>
-        Inline status banner. Tinted <code>/200</code> background per variant; text and icon
-        are uniformly DSN/900. Warning and Error share <code>triangle-alert</code>, separated by
-        color.
+        Inline status banner. Tinted <code>/200</code> background per variant (all four
+        route through <code>--status-*-message</code>); text and icon are uniformly
+        DSN/900. Each variant has its own lucide glyph — info / circle-check /
+        triangle-alert / octagon-x. Optional trailing <code>ButtonLink</code> and X dismiss.
       </p>
 
       <div className="ds-demo-section">
-        <h4 className="ds-demo-section__title">Variants</h4>
-        <div className="ds-demo-col" style={{ gap: 'var(--spacing-3)' }}>
-          {VARIANTS.map(({ variant, message }) => (
-            <Alert key={variant} variant={variant} showClose={false}>
-              {message}
-            </Alert>
-          ))}
-        </div>
+        <h4 className="ds-demo-section__title">Schematic — anatomy</h4>
+        <Schematic />
       </div>
 
       <div className="ds-demo-section">
-        <h4 className="ds-demo-section__title">With link + dismiss (showLink, showClose)</h4>
-        <div className="ds-demo-col" style={{ gap: 'var(--spacing-3)' }}>
-          <Alert variant="info" showLink linkLabel="Click here" onLinkClick={() => {}}>
-            A new shipment needs your attention.
-          </Alert>
-          <Alert variant="warning" showLink linkLabel="Review now" onLinkClick={() => {}}>
-            3 tenders are about to expire.
-          </Alert>
-        </div>
-      </div>
-
-      <div className="ds-demo-section">
-        <h4 className="ds-demo-section__title">Dismissible — click the X</h4>
-        <div className="ds-demo-col" style={{ gap: 'var(--spacing-3)' }}>
-          {VARIANTS.map(({ variant, message }, i) =>
-            open[i] ? (
-              <Alert
-                key={variant}
-                variant={variant}
-                onClose={() => setOpen((s) => s.map((v, j) => (j === i ? false : v)))}
-              >
-                {message}
-              </Alert>
-            ) : null
-          )}
-          {allClosed && (
-            <Button variant="secondary" size="sm" onClick={() => setOpen(VARIANTS.map(() => true))}>
-              Reset
-            </Button>
-          )}
-        </div>
+        <h4 className="ds-demo-section__title">Playground — all 4 variants; toggle link + close</h4>
+        <Playground />
       </div>
     </div>
   )

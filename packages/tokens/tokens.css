@@ -22,7 +22,7 @@
 
   /* --- Primitives: Carolina Blue --- */
   --carolina-blue-50: #F3F7FC;
-  --carolina-blue-200: #C6DEF1;  /* Figma-deprecated as a variable (Efrain, 2026-06-22) — kept code-side; still the Alert "info" surface (raw hex in Figma). Pending Alert re-tokenization confirmation. */
+  --carolina-blue-200: #C6DEF1;  /* Figma-deprecated as a primitive (Efrain, 2026-06-22) — kept code-side; backs --status-info-message (Alert "info" surface). Alert re-tokenization confirmed 2026-07-01. */
   --carolina-blue-400: #5BA4D4;
   --carolina-blue-600: #276DA2;
 
@@ -35,7 +35,7 @@
 
   /* --- Primitives: Caribbean Green --- */
   --caribbean-green-100: #D4F3EB;
-  --caribbean-green-200: #A8E7D7;  /* Figma-deprecated as a variable (Efrain, 2026-06-22) — kept code-side; still the Alert "success" surface (raw hex in Figma). Pending Alert re-tokenization confirmation. */
+  --caribbean-green-200: #A8E7D7;  /* Figma-deprecated as a primitive (Efrain, 2026-06-22) — kept code-side; backs --status-success-message (Alert "success" surface). Alert re-tokenization confirmed 2026-07-01. */
   --caribbean-green-600: #237E70;
   --caribbean-green-800: #1D524A;
 
@@ -97,6 +97,16 @@
   --border-strong: var(--deep-sea-neutral-900);
   --border-focus: var(--carolina-blue-400);
   --border-inverse: var(--deep-sea-neutral-600);
+
+  /* --- Semantic: Status (message surfaces) ---
+     Mirrors Efrain's Figma `Status/{info,success,warning,error}-message` semantic
+     variables (added 2026-07-01), which Alert's backgrounds are now bound to. Values
+     are unchanged (identical hex) — this just introduces the semantic layer so the
+     token graph matches Figma (Alert surface → Status semantic → primitive). */
+  --status-info-message: var(--carolina-blue-200);
+  --status-success-message: var(--caribbean-green-200);
+  --status-warning-message: var(--sunrise-yellow-200);
+  --status-error-message: var(--bittersweet-200);
 
   /* --- Component: Navbar --- */
   --navbar-bg: var(--bg-inverse);
@@ -172,12 +182,13 @@
   --dropdown-hover-bg: var(--bg-tertiary);
 
   /* --- Component: Alert (normalized 2026-06-09 — Efrain's Figma 2569:1841) ---
-     Tinted /200 surface per state; uniform DSN/900 text + icon across all states.
-     (Supersedes the earlier unused /50–/100 scaffold + per-status text colors.) */
-  --alert-info-bg: var(--carolina-blue-200);
-  --alert-success-bg: var(--caribbean-green-200);
-  --alert-warning-bg: var(--sunrise-yellow-200);
-  --alert-error-bg: var(--bittersweet-200);
+     Tinted surface per state; uniform DSN/900 text + icon across all states.
+     Surfaces now route through the `--status-*-message` semantic layer (2026-07-01),
+     mirroring Efrain's Figma re-tokenization from raw primitives → `Status/*-message`. */
+  --alert-info-bg: var(--status-info-message);
+  --alert-success-bg: var(--status-success-message);
+  --alert-warning-bg: var(--status-warning-message);
+  --alert-error-bg: var(--status-error-message);
   --alert-text: var(--deep-sea-neutral-900);
 
   /* --- Typography ---

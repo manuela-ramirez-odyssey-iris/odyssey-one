@@ -4,8 +4,9 @@ import { MatchRow } from '@odyssey/ui'
 export const meta = {
   name: 'MatchRow',
   tier: 'molecule',
-  version: '0.2.0',
-  figmaNode: '2460:2',
+  normalizing: true,
+  approved: true,
+  figmaNode: '3548:6994',
   codeConnect: 'packages/ui/src/MatchRow.figma.tsx',
 }
 
@@ -23,99 +24,105 @@ export const props = [
 ]
 
 export const tokens = [
-  { token: '--match-row-bg', resolves: 'var(--bg-primary)', usage: 'row background' },
-  { token: '--match-row-bg-hover', resolves: 'var(--bg-secondary)', usage: 'row hover tint (when onClick set)' },
-  { token: '--bg-secondary', resolves: 'Bg/secondary', usage: 'avatar container fill' },
+  { token: '--bg-tertiary', resolves: 'DSN/100', usage: 'avatar container fill + row hover background (interactive)' },
+  { token: '--deep-sea-neutral-200', resolves: 'DSN/200', usage: 'row pressed background (interactive)' },
   { token: '--text-primary', resolves: 'Text/primary', usage: 'matchId + meta label text' },
   { token: '--text-secondary', resolves: 'Text/secondary', usage: 'route + meta value text' },
   { token: '--border-subtle', resolves: 'Border/subtle', usage: 'row bottom divider + panel border' },
-  { token: '--font-size-xs', resolves: '11px', usage: 'all row text' },
 ]
 
+// ── Schematic ───────────────────────────────────────────────────────────────
+function TierBadge({ tier }) {
+  return (
+    <span style={{ display: 'inline-block', padding: '0 6px', borderRadius: 'var(--radius-full)', background: 'var(--bg-tertiary)', color: 'var(--text-secondary)', border: '1px solid var(--border-subtle)', fontFamily: 'var(--font-primary)', fontSize: '11px', fontWeight: 'var(--font-weight-medium)', whiteSpace: 'nowrap' }}>{tier}</span>
+  )
+}
+function ChildLink({ to, children }) {
+  return <a href={`#comp-${to}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-link)', textDecoration: 'underline', fontWeight: 'var(--font-weight-semibold)', whiteSpace: 'nowrap' }}>{children}</a>
+}
+function LegendRow({ part, tier, nested = false, children }) {
+  const cell = { padding: 'var(--spacing-2) 0', borderBottom: '1px solid var(--border-subtle)', fontFamily: 'var(--font-primary)', fontSize: 'var(--font-size-sm)' }
+  return (
+    <li style={{ display: 'contents' }}>
+      <span style={{ ...cell, display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)', whiteSpace: 'nowrap', paddingLeft: nested ? 'var(--spacing-6)' : 0, color: 'var(--text-primary)', fontWeight: nested ? 'var(--font-weight-medium)' : 'var(--font-weight-semibold)' }}>
+        {nested && <span style={{ color: 'var(--text-tertiary)' }} aria-hidden="true">└</span>}
+        {part}{tier && <TierBadge tier={tier} />}
+      </span>
+      <span style={{ ...cell, color: 'var(--text-secondary)' }}>{children}</span>
+    </li>
+  )
+}
+
+function Schematic() {
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-8)', alignItems: 'flex-start', background: 'var(--bg-secondary)', padding: 'var(--spacing-6)', borderRadius: 'var(--radius-md)' }}>
+      <div style={{ flex: '1 1 500px', minWidth: 380, background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
+        <MatchRow
+          matchId="M-20481"
+          route="Chicago, IL → Atlanta, GA"
+          customer="Delaware Inc."
+          carrier="XPO Logistics"
+          bol="BOL-994821"
+          source={{ label: 'FourKites, Inc.', variant: 'blue' }}
+          iconType="container"
+        />
+      </div>
+      <ul style={{ flex: '1 1 320px', minWidth: 280, display: 'grid', gridTemplateColumns: 'max-content 1fr', columnGap: '10px', listStyle: 'none', margin: 0, padding: 0 }}>
+        <LegendRow part="root" tier="molecule">Flex row with bottom divider (<code>--border-subtle</code>): avatar left, details column right.</LegendRow>
+        <LegendRow part="avatar" nested>40×40, DSN/100 surface, switchable 20px icon (container / package / handshake).</LegendRow>
+        <LegendRow part="details → main" nested>matchId (<code>label/xs semibold</code>) + route (regular) on the left; <ChildLink to="Badge">Badge</ChildLink> <TierBadge tier="atom" /> source pill on the right.</LegendRow>
+        <LegendRow part="details → meta" nested>Customer | Carrier | BOL cells (<code>label/xs regular</code>) separated by vertical dividers; optional Shipment # cell.</LegendRow>
+        <LegendRow part="interaction ladder" nested><strong>Default</strong> (transparent) · <strong>Hover</strong> (DSN/100) · <strong>Pressed</strong> (DSN/200) — active only when <code>onClick</code> is passed.</LegendRow>
+      </ul>
+    </div>
+  )
+}
+
+// ── Playground ──────────────────────────────────────────────────────────────
 const ROWS = [
-  {
-    matchId: 'M-20481',
-    route: 'Chicago, IL → Atlanta, GA',
-    customer: 'Delaware Inc.',
-    carrier: 'XPO Logistics',
-    bol: 'BOL-994821',
-    source: { label: 'FourKites, Inc.', variant: 'blue' },
-    iconType: 'container',
-  },
-  {
-    matchId: 'M-20479',
-    route: 'Memphis, TN → Dallas, TX',
-    customer: 'Midwest Freight Co.',
-    carrier: 'Werner Enterprises',
-    bol: 'BOL-993107',
-    shipmentId: 'SHP-00215',
-    source: { label: 'EDI 214', variant: 'purple' },
-    iconType: 'package',
-  },
-  {
-    matchId: 'M-20466',
-    route: 'Los Angeles, CA → Phoenix, AZ',
-    customer: 'Pacific Cargo Group',
-    carrier: 'Old Dominion',
-    bol: 'BOL-991044',
-    source: { label: 'FourKites, Inc.', variant: 'blue' },
-    iconType: 'handshake',
-  },
+  { matchId: 'M-20481', route: 'Chicago, IL → Atlanta, GA', customer: 'Delaware Inc.', carrier: 'XPO Logistics', bol: 'BOL-994821', source: { label: 'FourKites, Inc.', variant: 'blue' }, iconType: 'container' },
+  { matchId: 'M-20479', route: 'Memphis, TN → Dallas, TX', customer: 'Midwest Freight Co.', carrier: 'Werner Enterprises', bol: 'BOL-993107', shipmentId: 'SHP-00215', source: { label: 'EDI 214', variant: 'purple' }, iconType: 'package' },
+  { matchId: 'M-20466', route: 'Los Angeles, CA → Phoenix, AZ', customer: 'Pacific Cargo Group', carrier: 'Old Dominion', bol: 'BOL-991044', source: { label: 'FourKites, Inc.', variant: 'blue' }, iconType: 'handshake' },
 ]
 
-export default function MatchRowDemo() {
+function Playground() {
   const [lastClicked, setLastClicked] = useState(null)
 
   return (
     <div>
+      <div style={{ width: 520, maxWidth: '100%', background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
+        {ROWS.map((row) => (
+          <MatchRow key={row.matchId} {...row} onClick={() => setLastClicked(row.matchId)} />
+        ))}
+      </div>
+      {lastClicked && (
+        <p style={{ marginTop: 'var(--spacing-2)', fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)' }}>
+          Row clicked: <strong style={{ color: 'var(--text-primary)' }}>{lastClicked}</strong>
+        </p>
+      )}
+    </div>
+  )
+}
+
+export default function MatchRowDemo() {
+  return (
+    <div>
       <p style={{ marginTop: 0, color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)' }}>
-        Search-result row for GlobalSearch. A 40×40 avatar sits left; the main
-        line shows the match ID + route with a source <code>Badge</code> on the
-        right; the meta line surfaces Customer, Carrier, and BOL cells. Pass{' '}
-        <code>onClick</code> to make rows interactive (hover tint + role=button).
+        Search-result row for GlobalSearch. A 40×40 avatar sits left; the main line shows
+        the match ID + route with a source <code>Badge</code> on the right; the meta line
+        surfaces Customer, Carrier, and BOL cells (+ an optional Shipment #). The rows
+        below are interactive — <strong>hover</strong> (DSN/100) then <strong>press</strong>{' '}
+        (DSN/200) to exercise the Default | Hover | Pressed ladder.
       </p>
 
       <div className="ds-demo-section">
-        <h4 className="ds-demo-section__title">3 rows — blue source (FourKites) and purple (EDI 214), one with shipmentId</h4>
-        <div style={{ width: 520, border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
-          {ROWS.map((row) => (
-            <MatchRow
-              key={row.matchId}
-              matchId={row.matchId}
-              route={row.route}
-              customer={row.customer}
-              carrier={row.carrier}
-              bol={row.bol}
-              shipmentId={row.shipmentId}
-              source={row.source}
-              iconType={row.iconType}
-              onClick={() => setLastClicked(row.matchId)}
-            />
-          ))}
-        </div>
-        {lastClicked && (
-          <p style={{ marginTop: 'var(--spacing-2)', fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)' }}>
-            Row clicked: <strong style={{ color: 'var(--text-primary)' }}>{lastClicked}</strong>
-          </p>
-        )}
+        <h4 className="ds-demo-section__title">Schematic — anatomy</h4>
+        <Schematic />
       </div>
 
       <div className="ds-demo-section">
-        <h4 className="ds-demo-section__title">Non-interactive rows — no onClick (no hover affordance)</h4>
-        <div style={{ width: 520, border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
-          {ROWS.slice(0, 2).map((row) => (
-            <MatchRow
-              key={row.matchId}
-              matchId={row.matchId}
-              route={row.route}
-              customer={row.customer}
-              carrier={row.carrier}
-              bol={row.bol}
-              source={row.source}
-              iconType={row.iconType}
-            />
-          ))}
-        </div>
+        <h4 className="ds-demo-section__title">Playground — hover + press the rows (Default | Hover | Pressed)</h4>
+        <Playground />
       </div>
     </div>
   )
