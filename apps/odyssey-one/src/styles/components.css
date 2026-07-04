@@ -1662,43 +1662,93 @@ input[type="date"].odyssey-date-input::-webkit-calendar-picker-indicator:hover {
 }
 
 /* ----------------------------------------
-   SUB SECTION HEADER (molecule) — Figma 3303:3665
-   Single 24px row: title (label/base semibold) + optional info glyph on the left,
-   optional dropdown chevron right-aligned. Distinct from SectionHeader (big H2 +
-   timestamp) and TitleSubtitle (stacked label pair). Icons are static.
+   SUB ACCORDION (molecule) — Figma set 4083:5044, State=Collapsed|Expanded
+   Simplified Accordion: collapsible white card (radius-2xl, shadow/sm,
+   16/24 padding) with a single-row header (heading/lg semibold title +
+   optional info glyph + 20px chevron) and a content slot. No stepper.
+   Reveal mechanics shared with .accordion (grid-rows 0fr→1fr + chevron
+   rotation). Distinct from SectionHeader (big H2 + timestamp) and
+   TitleSubtitle (stacked label pair).
    ---------------------------------------- */
-.sub-section-header {
+.sub-accordion {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-sm);
+  padding: var(--spacing-4) var(--spacing-6);
+}
+.sub-accordion__header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: var(--spacing-3);
   width: 100%;
-  min-height: var(--line-height-base); /* 24px — the title's natural line box */
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
 }
-.sub-section-header__lead {
+.sub-accordion__lead {
   display: flex;
   align-items: center;
   gap: var(--spacing-1);
   min-width: 0;
+  flex: 1;
 }
-.sub-section-header__title {
+.sub-accordion__title {
   color: var(--text-primary);
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-/* Info glyph — static, non-interactive; DSN/400 (text-placeholder), inherits via currentColor. */
-.sub-section-header__info {
+/* Header icon — swappable slot (Figma INSTANCE_SWAP `Icon`, placeholder-20 default;
+   code defaults to lucide/info). Non-interactive; DSN/400 via currentColor. */
+.sub-accordion__info {
   display: inline-flex;
   flex-shrink: 0;
   color: var(--text-placeholder);
 }
-/* Dropdown chevron — static; DSN/500 (text-tertiary). Spacing/1 padding per Figma. */
-.sub-section-header__dropdown {
+/* Chevron — 20px, DSN/500 (text-tertiary); spacing/1 padding per Figma.
+   Icon-hover convention (matches .accordion__icon-wrapper): tertiary → primary. */
+.sub-accordion__chevron-wrapper {
   display: inline-flex;
   flex-shrink: 0;
   padding: var(--spacing-1);
   color: var(--text-tertiary);
+  transition: color var(--transition-fast);
+}
+.sub-accordion__header:hover .sub-accordion__chevron-wrapper {
+  color: var(--text-primary);
+}
+.sub-accordion__chevron {
+  transition: transform var(--transition-reveal);
+}
+.sub-accordion--expanded .sub-accordion__chevron {
+  /* rendered geometry at rest matches the Figma chevron-up master exactly;
+     rotating (vs swapping masters) is what makes the flip animatable */
+  transform: rotate(180deg);
+}
+.sub-accordion__reveal {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--transition-reveal);
+}
+.sub-accordion--expanded .sub-accordion__reveal {
+  grid-template-rows: 1fr;
+}
+.sub-accordion__reveal-inner {
+  overflow: hidden;
+  min-height: 0;
+}
+/* The 24px (spacing/6) header↔content gap lives here so the collapsed card
+   keeps its symmetric 16px vertical padding. */
+.sub-accordion__content {
+  margin-top: var(--spacing-6);
 }
 
 /* StepperButtonsFooter — molecule. Full-width page/stepper footer bar: border-top + page
@@ -4298,6 +4348,8 @@ button.breadcrumb__label:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .accordion__reveal,
   .accordion__chevron,
+  .sub-accordion__reveal,
+  .sub-accordion__chevron,
   .step-indicator__circle,
   .button-toggle__thumb,
   .button-toggle__segment {

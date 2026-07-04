@@ -38,7 +38,6 @@ export { default as GlobalSearch } from './GlobalSearch.jsx';
 export { default as TrailNav } from './TrailNav.jsx';
 export { default as PageHeader } from './PageHeader.jsx';
 export { default as SectionHeader } from './SectionHeader.jsx';
-export { default as SubSectionHeader } from './SubSectionHeader.jsx';
 export { default as TitleSubtitle } from './TitleSubtitle.jsx';
 export { default as StepperButtonsFooter } from './StepperButtonsFooter.jsx';
 export { default as EntityChip } from './EntityChip.jsx';
@@ -58,6 +57,7 @@ export { default as MatchRow } from './MatchRow.jsx';
 export { default as MatchSimpleRow } from './MatchSimpleRow.jsx';
 export { default as Alert } from './Alert.jsx';
 export { default as Accordion } from './Accordion.jsx';
+export { default as SubAccordion } from './SubAccordion.jsx';
 export { default as ButtonToggle } from './ButtonToggle.jsx';
 export { default as Tooltip } from './Tooltip.jsx';
 

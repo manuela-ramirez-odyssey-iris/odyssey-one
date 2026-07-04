@@ -4889,14 +4889,52 @@ Consolidated into **PR #3** (closed PR #2 as superseded). **PR #3 is BLOCKED** �
 
 ---
 
+## Session 76 — July 3–4, 2026
+
+**Closed the S75 batch at 8/8 APPROVED (SubSectionHeader reborn as `SubAccordion`), ran the full Phase 3 sync-back, then took the whole batch through the Angular port to PORTED (GATE B passed after one Alert-demo drift fix). The batch stays OPEN — S77 adds the missing Shipments components before final approval. Also root-caused + fixed the DataTable "delivered with a border" issue (React DSM demo harness, not the component).**
+
+### SubSectionHeader → SubAccordion (update cycle → APPROVED, closes the batch at 8/8)
+- User clarification reframed it: not a header row — a **simplified Accordion** (no stepper) that expands/collapses big info sections (created-orders summary in the Shipments orders tab). Efrain's expanded mock: 4077:3120 (a frame, not a component).
+- **Figma** (use_figma subagents): master 3303:3665 → component **SET `SubAccordion` 4083:5044** (Components-Molecules): `State=Collapsed|Expanded`, card chrome on the component (White · Radius/2xl · shadow/sm · Spacing/6 h · **Spacing/4 v — fixed the mock's radius-var padding mis-binding**), native **Content SLOT** cloned from Accordion's mechanism, chevrons 20px from Icons lg (down/up per variant). Then two user iterations: **`Icon` INSTANCE_SWAP** (default placeholder-20 per the swap-slot convention; boolean renamed `Show Icon`) and **`Dropdown` boolean DELETED** (chevron always visible). ~21 existing instances inherited cleanly; ones meant to show a real icon need their `Icon` swap set (eyeball w/ Efrain).
+- **React**: `packages/ui/src/SubAccordion.jsx` (SubSectionHeader files deleted) — Accordion mechanics (controlled/uncontrolled `expanded`, grid-rows 0fr→1fr reveal, chevron rotate 180°, full a11y incl. `inert`), title fixed to **heading/lg semibold** (18px — S75 had 16px, Figma drifted), `icon` prop defaults to lucide/info 20px, `children` slot. CSS block rebuilt (+reduced-motion), `.figma.tsx` repointed (`State`→expanded, `Icon` instance→icon), demo = Schematic (pink slot marker) + Playground (icon picker info/package/clipboard-list). Build + tests green throughout (212 app / 675 full).
+
+### DataTable border (reopened + fixed)
+- The delivered Angular DataTable carried `border: 1px solid var(--border-subtle)` — root-caused to the **React DSM demo's resize harness** (`DataTable.demo.jsx`): a wrapper div border flush around the card read as component chrome and was replicated into the port. The component itself is borderless (white card + radius + clip; cells bottom-divider only). Fix: harness restyled to the standard gray `--bg-secondary` backdrop + padding, with a warning comment. App consumers (OrdersTable/ShipmentTable) verified clean. **Angular twin still carries the border — deferred fix** (can ride this batch's PR).
+
+### Phase 3 sync-back (all 8)
+- **Tracker** (subagent): +3 component rows (MatchSimpleRow, SubAccordion, FieldSearchResults), 7 updated (renames in place, SearchField moved to Organisms table, MatchRow/Alert stamped), +8 Code Connect entries, 2 Pending-Figma-Sync items resolved/superseded. All rows: "Staging APPROVED 2026-07-03; Angular port pending" (now PORTED, see below). Flagged: **ModalHeader/ModalFooter have no React/CC tracker rows** (backfill owed); "Pushed to Figma" section still pre-rename.
+- `npm run domain-usage` (both DSMs) + `npm run connect:publish` clean — SubAccordion 4083:5044, MatchRow repoint 3548:6994, Global* renames all live.
+
+### Angular batch port (GATE Batch-Approval → PORTED)
+- **PR #9 MERGED** (Cognizant approved; user republished the library). New branch **`port/s76-search-batch`** off fresh `main`; old `port/right-panel` deleted.
+- **Phase 1** (Explore subagent): full readiness — only 4 missing tokens (`--status-*-message`) + demo-only `.text-label-base-semibold`; concrete per-twin deltas incl. the full rename checklists.
+- **Phase 2** (two sequential Sonnet subagents — wiring files are shared, no parallel dispatch): groundwork (`_tokens.scss` +4 status tokens, `--alert-*-bg` rerouted; `_typography.scss` +`text-label-base-semibold`) then: **Alert** tokens-only · **MatchRow** hover DSN/50→100 + NEW pressed DSN/200 + demo rebuilt from stale States-grid · **MatchSimpleRow** NEW · **SubAccordion** NEW (Accordion mechanics minus stepper) · **search-results→global-search-results** renamed + REBUILT (398px single scroll window, 12-row cap, dynamic "Best N Matches", CTA in every state, `filtersClick.observed` gate) · **search-panel→global-search-panel** renamed + "Show **all** N results" fix · **FieldSearchResults** NEW (self-contained card chrome) · **SearchField** +6 ARIA inputs + `keydownEvent` + transparent results slot, tier→organism.
+- **Phase 3 green**: 8/8 parity-lint, lib + explorer builds, **610 + 31 specs**.
+- **Phase 4 two-window** (Angular :4200 — after killing a stale leftover `ng serve`; React :5176): user caught **Alert demo drift** (old 3-section grid vs React's Schematic+Playground — the #1 recurring drift; dispatch omission) → re-mirrored; all-8 section-title sweep clean → **approved**.
+- **Phase 5**: `ported: true` in BOTH DSMs (all 8 show NORMALIZING+APPROVED+PORTED), figma-links `last_synced: 2026-07-04`, domain-usage refreshed, Angular committed **locally** as `2162d7b` on `port/s76-search-batch` — **NOT pushed** (needs explicit approval, always).
+
+### NOT done (carried)
+- **GATE Final-Approval NOT run — deliberately.** The batch stays OPEN: S77 adds the missing Shipments components to it first. Final approval then closes everything: clear 3 flags + stamp the release version (**0.6.0**, or higher if S77 grows it) in both DSMs, tracker Angular columns, CHANGELOG + `projects/odyssey-ui/package.json` bump, commit + push BOTH repos, Angular PR to protected `main`. **No npm publish — Cognizant's.**
+- **Angular DataTable border** — locate + remove the wrapper border in `odyssey-one-library-ui` (twin component or its demo).
+- Tracker backfills: ModalHeader/ModalFooter React+CC rows; "Pushed to Figma" section refresh.
+- Figma follow-ups: SubAccordion instances needing real `Icon` overrides (Efrain); S75's throwaway SearchField preview instance 4048:4622.
+- **RightPanel Shipments Column-Arrangement fixes** (S74 priority, still owed — never reached in S75/76).
+
+### Carry-forward to Session 77 — READ FIRST
+- **Batch = 8 components, all PORTED (staging, 3 badges in both DSMs). Angular branch `port/s76-search-batch`, local commit `2162d7b`, unpushed.**
+- **First thing S77:** user scopes the **missing Shipments components** → they join THIS batch (normalize → approve → port), then ONE final approval closes the whole thing.
+
+---
+
 ## What's Next
 
-### Session 76 Priorities
+### Session 77 Priorities
 
-0. **SubSectionHeader** — user confirms its interaction with Efrain, then approve it (or drop from the batch). Unblocks full batch approval.
-1. **Phase 3 sync-back** for the batch — `playground/normalization-tracker.md` rows for all 8 (new: MatchSimpleRow, SubSectionHeader, FieldSearchResults; renamed: GlobalSearchResults, GlobalSearchPanel; promoted: SearchField→organism; updated: MatchRow, Alert), `npm run domain-usage`, and `npm run connect:publish` (SubSectionHeader, MatchSimpleRow, FieldSearchResults, GlobalSearchResults, SearchField `Content` slot, the GlobalSearch* renames).
-2. **Angular batch port** — `/port-to-angular` for the whole APPROVED batch → PORTED (both DSMs), then **final approval**: clear flags + stamp the release version + commit + push both repos. Cognizant publishes.
-3. **Fix RightPanel** — the deferred Shipments Column-Arrangement panel issues (S74 priority 0, still owed; never reached in S75).
+0. **Extend the open batch with the missing Shipments components** (user scopes which). Each goes through `/normalize` → GATE B → APPROVED, then the Angular port for the additions → PORTED.
+1. **GATE Final-Approval for the whole batch** — clear flags + stamp the release version in both DSMs, tracker Angular columns, CHANGELOG + version bump, commit + push both repos, Angular PR to `main`. Cognizant publishes.
+2. **Angular DataTable border fix** — remove the inherited wrapper border in `odyssey-one-library-ui`; ride it on the batch PR.
+3. **Fix RightPanel** — the deferred Shipments Column-Arrangement panel issues (S74, still owed).
+4. **Housekeeping:** tracker backfill (ModalHeader/ModalFooter rows, "Pushed to Figma" section); SubAccordion instance icon overrides with Efrain.
 
 ### Prior Session 73 Priorities (now done / carried)
 

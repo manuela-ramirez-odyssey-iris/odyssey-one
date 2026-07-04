@@ -6,6 +6,7 @@ export const meta = {
   tier: 'organism',
   normalizing: true,
   approved: true,
+  ported: true,
   figmaNode: '1959:76',
   codeConnect: 'packages/ui/src/SearchField.figma.tsx',
 }

@@ -6,6 +6,7 @@ export const meta = {
   tier: 'organism',
   normalizing: true,
   approved: true,
+  ported: true,
   figmaNode: '2462:149',
   codeConnect: 'packages/ui/src/GlobalSearchPanel.figma.tsx',
 }

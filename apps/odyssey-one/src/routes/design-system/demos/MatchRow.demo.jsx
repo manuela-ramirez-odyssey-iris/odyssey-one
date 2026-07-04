@@ -6,6 +6,7 @@ export const meta = {
   tier: 'molecule',
   normalizing: true,
   approved: true,
+  ported: true,
   figmaNode: '3548:6994',
   codeConnect: 'packages/ui/src/MatchRow.figma.tsx',
 }

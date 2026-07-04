@@ -152,7 +152,11 @@ export default function DataTableDemo() {
       </p>
       <div className="ds-demo-section">
         <h4 className="ds-demo-section__title">Live — selection · sticky action · pagination</h4>
-        <div style={{ resize: 'horizontal', overflow: 'hidden', maxWidth: '100%', width: 720, border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-2xl)' }}>
+        {/* Resize harness — demo scaffolding only. Deliberately styled as a gray
+            backdrop (NOT a border on the card): the DataTable card itself has no
+            outer border, and a flush border here previously read as component
+            chrome and leaked into the Angular port. */}
+        <div style={{ resize: 'horizontal', overflow: 'hidden', maxWidth: '100%', width: 752, background: 'var(--bg-secondary)', padding: 'var(--spacing-4)', borderRadius: 'var(--radius-md)' }}>
           <LiveDataTable />
         </div>
       </div>

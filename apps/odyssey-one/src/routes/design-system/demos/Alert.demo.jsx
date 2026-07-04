@@ -6,6 +6,7 @@ export const meta = {
   tier: 'molecule',
   normalizing: true,
   approved: true,
+  ported: true,
   figmaNode: '2569:1841',
   codeConnect: 'packages/ui/src/Alert.figma.tsx',
 }
