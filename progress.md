@@ -4926,7 +4926,7 @@ Consolidated into **PR #3** (closed PR #2 as superseded). **PR #3 is BLOCKED** �
 
 ---
 
-## Session 77 — July 4, 2026
+## Session 77–78 — July 4–5, 2026
 
 **AUTONOMOUS SESSION — user scoped the batch extension (5 Figma nodes + 2 inbox mocks: "ShipmentsBar", 2 "mini widgets", a "section divider", a "tab group") then left ("solve this on your own; I want to see what you resolved"). Ran the full /normalize intake→Figma-componentization→implement→demo→consumer-rewire cycle for what turned out to be 2 NEW components (`ShipmentsBar`, `WidgetMini`) + a Shipments page-header restructure composed entirely of already-normalized components. Both new components sit at NORMALIZING — GATE B deliberately NOT self-approved; Code Connect publish + commit deliberately held for the user. Build green, 212/212 tests. NOTHING COMMITTED — the whole session is in the working tree for review.**
 
@@ -5040,15 +5040,24 @@ Consolidated into **PR #3** (closed PR #2 as superseded). **PR #3 is BLOCKED** �
 
 ---
 
+### Session close (S78, July 5)
+
+- **0.6.0 batch CLOSED end-to-end**: 11 components released out of staging in both DSMs (stamps incl. `createdVersion`), tracker/CHANGELOG/`package.json` updated, React `main` pushed (`0e361a4`, then `ae75fd0`), Angular `port/s76-search-batch` pushed (`855d4ac`, then `2e95c25`) → **PR #10** https://github.com/OneOdyssey/odyssey-one-library-ui/pull/10 awaiting Cognizant. **`@oneodyssey/ui` 0.6.0 published to GitHub Packages BY THE USER.** `connect:publish` done.
+- **DSM chrome finale**: "Newest" toggle back in BOTH explorers (filters current version == latest; disables the Created-in select while active). Final counts: React **225** tests · Angular lib **650** · explorer **51** · parity-lint **68/68**.
+- **Process canon established this session** (all memory'd + codified): asymmetric badges (React NORMALIZING→APPROVED→PORTING purple→PORTED gray; Angular REVIEW yellow→APPROVED green), PORTED = "landed on Angular", modification→demotion rule, port-via-subagents, context-sensitive "approve batch", `createdVersion` (stamped once) vs `version` (bumps on modification), Figma parent-frame intake rule, `component.createSlot()` API, stale-`ng serve` restart+verify habit.
+- Flagged to Cognizant-land: GitHub reports **52 Dependabot vulnerabilities** (25 high) on the Angular repo's default branch.
+
+---
+
 ## What's Next
 
-### Session 78 Priorities
+### Session 79 Priorities
 
-0. **User review of the autonomous S77 work** — GATE B for `WidgetMini` + `ShipmentsBar` (DSM demos + the restructured Shipments page live), revisit decision log items 1/4/5/6, then commit + `connect:publish`.
-1. **Angular port for the batch extension** (WidgetMini, ShipmentsBar + the WidgetPieChart strokeWidth delta) onto `port/s76-search-batch`, then **GATE Final-Approval for the whole batch** — clear flags + stamp the release version in both DSMs, tracker Angular columns, CHANGELOG + version bump, commit + push both repos, Angular PR to `main`. Cognizant publishes.
-2. **Angular DataTable border fix** — remove the inherited wrapper border in `odyssey-one-library-ui`; ride it on the batch PR.
-3. **Fix RightPanel** — the deferred Shipments Column-Arrangement panel issues (S74, still owed).
-4. **Housekeeping:** tracker backfill (ModalHeader/ModalFooter rows, "Pushed to Figma" section); SubAccordion instance icon overrides with Efrain; Efrain asks from the S77 log.
+0. **Update Shipments** (user-scoped). Fold in the still-owed **visual pass of the S77 page restructure** (ShipmentsPanelTabs pill/widget modes, ShipmentsBar in the live app, prev/next stepping, order-switcher dropdown tab) — component demos were reviewed, the in-app wiring never was.
+1. **Watch PR #10** — on Cognizant approval: merge, delete `port/s76-search-batch`, verify `origin/main` current.
+2. **Fix RightPanel** — the deferred Shipments Column-Arrangement panel issues (S74, still owed).
+3. **Housekeeping:** tracker backfill (ModalHeader/ModalFooter React+CC rows; "Pushed to Figma" refresh; scrub stale mid-row "GATE B pending" phrasing in the ShipmentsBar/WidgetMini rows); Figma token pass (CurrentShipment arrow unbound white fills 4106:1767/1769); useAnchoredPortal app-local de-dup.
+4. **Efrain asks (accumulated):** SubAccordion instance icon overrides; WidgetMini 24/24 leading + donut % semantics; ShipmentsBar Figma gaps (50vh height, Order-segment spec, 2-col+cog icon, mock scratch layers); TextArea state variants + 32px footer pad + AI-assist roadmap?; "Last Days: 30 Days" header helper text; Alert re-tokenization (carried).
 
 ### Prior Session 73 Priorities (now done / carried)
 
