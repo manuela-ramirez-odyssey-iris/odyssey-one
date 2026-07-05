@@ -4,6 +4,7 @@ import { Badge, Button, Checkbox, FormField, Radio } from '@odyssey/ui'
 export const meta = {
   name: 'Cell',
   tier: 'molecule',
+  codeOnly: true,
   figmaNode: '2714:505',
 }
 

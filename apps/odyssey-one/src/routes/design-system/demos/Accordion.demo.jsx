@@ -5,6 +5,7 @@ export const meta = {
   name: 'Accordion',
   tier: 'molecule',
   version: '0.2.0',
+  createdVersion: '0.2.0',
   figmaNode: '2850:612',
   codeConnect: 'packages/ui/src/Accordion.figma.tsx',
 }

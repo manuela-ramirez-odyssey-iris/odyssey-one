@@ -5,6 +5,7 @@ export const meta = {
   name: 'GlobalSearch',
   tier: 'molecule',
   version: '0.2.0',
+  createdVersion: '0.2.0',
   figmaNode: '658:18',
   codeConnect: 'packages/ui/src/GlobalSearch.figma.tsx',
 }

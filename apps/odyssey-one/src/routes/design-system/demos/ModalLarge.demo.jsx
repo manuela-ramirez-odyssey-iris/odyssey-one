@@ -5,6 +5,7 @@ export const meta = {
   name: 'ModalLarge',
   tier: 'organism',
   version: '0.2.0',
+  createdVersion: '0.2.0',
   figmaNode: '2006:663',
   codeConnect: 'packages/ui/src/ModalLarge.figma.tsx',
 }

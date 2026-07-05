@@ -5,6 +5,7 @@ export const meta = {
   name: 'AuthModal',
   tier: 'organism',
   version: '0.2.0',
+  createdVersion: '0.2.0',
   figmaNode: '2244:1373',
   codeConnect: 'packages/ui/src/AuthModal.figma.tsx',
 }

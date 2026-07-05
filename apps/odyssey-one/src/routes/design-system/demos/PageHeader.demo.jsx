@@ -6,6 +6,7 @@ export const meta = {
   name: 'PageHeader',
   tier: 'molecule',
   version: '0.5.0',
+  createdVersion: '0.2.0',
   normalizing: false,
   figmaNode: '3965:5034',
   codeConnect: 'packages/ui/src/PageHeader.figma.tsx',

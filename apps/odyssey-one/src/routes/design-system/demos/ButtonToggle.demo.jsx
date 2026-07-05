@@ -6,6 +6,7 @@ export const meta = {
   name: 'ButtonToggle',
   tier: 'molecule',
   version: '0.2.0',
+  createdVersion: '0.2.0',
   figmaNode: '2978:330',
   codeConnect: 'packages/ui/src/ButtonToggle.figma.tsx',
 }

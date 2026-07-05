@@ -6,6 +6,7 @@ export const meta = {
   name: 'FormField',
   tier: 'molecule',
   version: '0.2.0',
+  createdVersion: '0.2.0',
   figmaNode: '2602:1424',
   codeConnect: 'packages/ui/src/FormField.figma.tsx',
 }

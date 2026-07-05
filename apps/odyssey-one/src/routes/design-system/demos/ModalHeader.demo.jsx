@@ -5,6 +5,7 @@ export const meta = {
   name: 'ModalHeader',
   tier: 'molecule',
   version: '0.5.0',
+  createdVersion: '0.5.0',
   normalizing: false,
   figmaNode: '3447:7661',
   codeConnect: 'packages/ui/src/ModalHeader.figma.tsx',

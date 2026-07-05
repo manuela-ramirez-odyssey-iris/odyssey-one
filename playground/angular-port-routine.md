@@ -259,6 +259,7 @@ Triggered by a **separate explicit command** to finally approve the whole PORTED
 For each component, in BOTH DSMs (`<C>.demo.jsx` + `<c>.demo.meta.ts`):
 - remove `approved` + `ported` and set `normalizing: false` (promotes out of staging into its tier tab), and
 - stamp `version: 'x.y.z'` — the batch's release version (same for all). For a re-normalized/changed component this **advances** its `version` ([[feedback_version_on_modification]]). Drives the version badge + header chip + "Latest only" filter.
+- stamp `createdVersion: 'x.y.z'` — **only for components NEW in this batch** (set it to the same batch release). For a re-normalized/changed component `createdVersion` is **never touched** — it stays the release the component first shipped in. Drives the DSM "Created in" dropdown, which filters by creation release (falling back to `version` for metas that predate the field).
 
 ### 2. Update `playground/normalization-tracker.md`
 

@@ -212,11 +212,20 @@
   background: var(--badge-green-bg);
 }
 
-/* PORTED badge — the batch was approved + its Angular twins generated. Both DSMs show PORTED
-   during the shared drift-review window; final Angular approval clears the tab in both. */
+/* PORTING badge (purple, React-only) — the port process is in flight (meta.porting set at
+   batch approval / port kickoff, replaced by ported when the twin lands + verifies). */
+.ds-comp__pill--porting {
+  color: var(--badge-purple-text);
+  background: var(--badge-purple-bg);
+}
+
+/* PORTED badge (gray, React-only) — the React canon LANDED/UPDATED SUCCESSFULLY on the
+   Angular side (twin generated/updated + machine-verified). Not just a label: gray means
+   the handoff completed. The Angular explorer renders its own twin-review lifecycle
+   (REVIEW yellow → APPROVED green); final approval clears the tab in both DSMs. */
 .ds-comp__pill--ported {
-  color: var(--badge-blue-text);
-  background: var(--badge-blue-bg);
+  color: var(--badge-gray-text);
+  background: var(--badge-gray-bg);
 }
 
 /* DEPRECATED pill — component slated for removal (e.g. IconButton; sole consumer EntityChip). */
@@ -442,7 +451,7 @@
   font-weight: var(--font-weight-semibold);
 }
 
-/* Filter row: search (left) + Domain/"Latest only" cluster (right), one line.
+/* Filter row: search (left) + Domain/Version dropdown cluster (right), one line.
    Wraps on narrow widths so the controls drop below the search. */
 .ds-header__filters {
   display: flex; align-items: center; gap: var(--spacing-4);
@@ -452,7 +461,7 @@
 .ds-header__search { flex: 1 1 280px; max-width: 480px; }
 .ds-header__search-field { width: 100%; }
 
-/* Domain filter dropdown */
+/* Filter dropdowns (Domain + Version share the same chrome) */
 .ds-domain { display: inline-flex; align-items: center; gap: var(--spacing-2); }
 .ds-domain__label { font-size: var(--font-size-sm); color: var(--text-secondary); }
 .ds-domain__select {
@@ -461,16 +470,8 @@
   border-radius: var(--radius-md); background: var(--white); cursor: pointer;
 }
 
-/* Domain + "Latest only" filter cluster — pinned to the right of the search. */
+/* Domain + Version filter cluster — pinned to the right of the search. */
 .ds-header__controls { display: flex; align-items: center; gap: var(--spacing-3); margin-left: auto; }
-.ds-latest-toggle {
-  font: inherit; font-size: var(--font-size-sm); color: var(--text-secondary);
-  padding: var(--spacing-1) var(--spacing-3); border: 1px solid var(--border-default);
-  border-radius: var(--radius-full); background: var(--white); cursor: pointer;
-}
-.ds-latest-toggle.is-on {
-  color: var(--badge-blue-text); background: var(--badge-blue-bg); border-color: var(--badge-blue-bg);
-}
 
 /* Details modal */
 .ds-modal__backdrop {

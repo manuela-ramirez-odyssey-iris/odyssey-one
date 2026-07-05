@@ -6,9 +6,8 @@ import { SubAccordion, TitleSubtitle } from '@odyssey/ui'
 export const meta = {
   name: 'SubAccordion',
   tier: 'molecule',
-  normalizing: true,
-  approved: true,
-  ported: true,
+  version: '0.6.0',
+  createdVersion: '0.6.0',
   figmaNode: '4083:5044',
   codeConnect: 'packages/ui/src/SubAccordion.figma.tsx',
 }
@@ -17,7 +16,8 @@ export const props = [
   { name: 'title', type: 'string', desc: 'The section title, heading/lg semibold. (Figma: Title TEXT prop.)' },
   { name: 'showIcon', type: 'boolean', desc: 'Renders the trailing header icon (20px, DSN/400, non-interactive) beside the title. Default true. (Figma: Show Icon BOOLEAN.)' },
   { name: 'icon', type: 'node', desc: 'Swaps the header icon. Defaults to lucide/info. (Figma: Icon INSTANCE_SWAP, placeholder-20 default.)' },
-  { name: 'expanded', type: 'boolean', desc: 'Controlled expansion. Omit for uncontrolled (defaultExpanded). (Figma: State VARIANT Collapsed|Expanded.)' },
+  { name: 'collapsible', type: 'boolean', desc: 'Default true. False renders the NON-COLLAPSIBLE flavor: plain heading row (no button/chevron/aria-expanded), content always revealed. (Figma: State=Static.)' },
+  { name: 'expanded', type: 'boolean', desc: 'Controlled expansion. Omit for uncontrolled (defaultExpanded). Ignored when collapsible={false}. (Figma: State VARIANT Collapsed|Expanded|Static.)' },
   { name: 'defaultExpanded', type: 'boolean', desc: 'Uncontrolled initial state. Default false.' },
   { name: 'onToggle', type: '(next: boolean) => void', desc: 'Fires on header click with the next expansion state.' },
   { name: 'children', type: 'node', desc: 'The section body, revealed on expand. (Figma: Content SLOT.)' },
@@ -140,6 +140,7 @@ function Playground() {
   const [title, setTitle] = useState('Order Summary')
   const [showIcon, setShowIcon] = useState(true)
   const [iconKey, setIconKey] = useState('info (default)')
+  const [collapsible, setCollapsible] = useState(true)
   const [expanded, setExpanded] = useState(true)
 
   return (
@@ -153,14 +154,16 @@ function Playground() {
             {Object.keys(ICON_OPTIONS).map((k) => <option key={k} value={k}>{k}</option>)}
           </select>
         </label>
-        <Toggle label="expanded" value={expanded} set={setExpanded} />
+        <Toggle label="collapsible" value={collapsible} set={setCollapsible} />
+        <Toggle label="expanded" value={expanded} set={setExpanded} disabled={!collapsible} />
       </div>
       <div style={{ background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', padding: 'var(--spacing-6)' }}>
         <SubAccordion
           title={title}
           showIcon={showIcon}
           icon={ICON_OPTIONS[iconKey]}
-          expanded={expanded}
+          collapsible={collapsible}
+          expanded={collapsible ? expanded : undefined}
           onToggle={setExpanded}
         >
           <ExampleBody />

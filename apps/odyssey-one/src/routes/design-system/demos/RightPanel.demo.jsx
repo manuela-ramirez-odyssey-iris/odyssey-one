@@ -7,6 +7,7 @@ export const meta = {
   name: 'RightPanel',
   tier: 'organism',
   version: '0.5.0',
+  createdVersion: '0.5.0',
   normalizing: false,
   figmaNode: '3449:10701',
   codeConnect: 'packages/ui/src/RightPanel.figma.tsx',

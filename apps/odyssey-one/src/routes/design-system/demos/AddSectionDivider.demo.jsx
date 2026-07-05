@@ -4,6 +4,7 @@ export const meta = {
   name: 'AddSectionDivider',
   tier: 'atom',
   version: '0.2.0',
+  createdVersion: '0.2.0',
   figmaNode: '2203:297',
   codeConnect: 'packages/ui/src/AddSectionDivider.figma.tsx',
 }

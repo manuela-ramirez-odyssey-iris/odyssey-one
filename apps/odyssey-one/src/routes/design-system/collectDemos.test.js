@@ -1,5 +1,5 @@
 import { describe, it, expect, test } from 'vitest'
-import { TIERS, groupDemosByTier, collectNormalizing, DOMAINS, filterTiersByDomain, filterDemosByDomain, latestVersion, filterTiersByLatest, filterTiersBySearch, filterDemosBySearch } from './collectDemos.js'
+import { TIERS, groupDemosByTier, collectNormalizing, DOMAINS, filterTiersByDomain, filterDemosByDomain, allVersions, filterTiersByVersion, filterTiersBySearch, filterDemosBySearch } from './collectDemos.js'
 
 // Minimal fake of the import.meta.glob({ eager: true }) result:
 // { '<path>': { meta, props?, tokens?, default } }
@@ -148,47 +148,71 @@ test('filterDemosByDomain: unknown domain → empty', () => {
   expect(filterDemosByDomain(tiers[0].demos, usage, 'carriers')).toEqual([])
 })
 
-describe('latestVersion', () => {
-  it('returns the highest semver among demo metas', () => {
-    expect(latestVersion([
+describe('allVersions', () => {
+  it('returns distinct versions, semver-sorted descending (newest first)', () => {
+    expect(allVersions([
       { meta: { name: 'A', version: '0.2.0' } },
       { meta: { name: 'B', version: '0.3.0' } },
       { meta: { name: 'C', version: '0.1.0' } },
-    ])).toBe('0.3.0')
+      { meta: { name: 'D', version: '0.2.0' } },
+    ])).toEqual(['0.3.0', '0.2.0', '0.1.0'])
   })
 
-  it('ignores demos without a version', () => {
-    expect(latestVersion([
+  it('ignores demos without a version (staging/normalizing)', () => {
+    expect(allVersions([
       { meta: { name: 'A', version: '0.2.0' } },
       { meta: { name: 'B' } },
-    ])).toBe('0.2.0')
+    ])).toEqual(['0.2.0'])
   })
 
-  it('returns null when no demo has a version', () => {
-    expect(latestVersion([{ meta: { name: 'A' } }])).toBe(null)
+  it('returns an empty list when no demo has a version', () => {
+    expect(allVersions([{ meta: { name: 'A' } }])).toEqual([])
   })
 
-  it('compares numerically, not lexically (0.10.0 > 0.9.0)', () => {
-    expect(latestVersion([
+  it('sorts numerically, not lexically (0.10.0 > 0.9.0)', () => {
+    expect(allVersions([
       { meta: { name: 'A', version: '0.9.0' } },
       { meta: { name: 'B', version: '0.10.0' } },
-    ])).toBe('0.10.0')
+    ])).toEqual(['0.10.0', '0.9.0'])
+  })
+
+  it('collects createdVersion over version (creation release, not last-modified)', () => {
+    expect(allVersions([
+      // Modified in 0.5.0 but created in 0.2.0 → the dropdown lists 0.2.0
+      { meta: { name: 'A', version: '0.5.0', createdVersion: '0.2.0' } },
+      // No createdVersion (pre-backfill meta) → falls back to version
+      { meta: { name: 'B', version: '0.3.0' } },
+    ])).toEqual(['0.3.0', '0.2.0'])
   })
 })
 
-describe('filterTiersByLatest', () => {
+describe('filterTiersByVersion', () => {
   const tiered = [
     { key: 'atom', label: 'Atoms', demos: [
       { meta: { name: 'New', version: '0.3.0' } },
       { meta: { name: 'Old', version: '0.2.0' } },
+      // Created in 0.2.0, last modified in 0.3.0 — filters as a 0.2.0 component
+      { meta: { name: 'Veteran', version: '0.3.0', createdVersion: '0.2.0' } },
+      { meta: { name: 'Unstamped' } },
     ] },
   ]
-  it('keeps only demos whose version equals latest', () => {
-    const out = filterTiersByLatest(tiered, '0.3.0')
+  it('keeps only demos created in the selected version', () => {
+    const out = filterTiersByVersion(tiered, '0.3.0')
     expect(out[0].demos.map((d) => d.meta.name)).toEqual(['New'])
   })
-  it('returns tiers unchanged when latest is null', () => {
-    expect(filterTiersByLatest(tiered, null)).toBe(tiered)
+  it('resolves createdVersion over version (last-modified stamp is ignored)', () => {
+    const out = filterTiersByVersion(tiered, '0.2.0')
+    expect(out[0].demos.map((d) => d.meta.name)).toEqual(['Old', 'Veteran'])
+  })
+  it('drops unstamped demos when a version is selected', () => {
+    const out = filterTiersByVersion(tiered, '0.2.0')
+    expect(out[0].demos.map((d) => d.meta.name)).not.toContain('Unstamped')
+  })
+  it("returns tiers unchanged for 'all' (the dropdown default)", () => {
+    expect(filterTiersByVersion(tiered, 'all')).toBe(tiered)
+  })
+  it('returns tiers unchanged for a falsy version', () => {
+    expect(filterTiersByVersion(tiered, null)).toBe(tiered)
   })
 })
 

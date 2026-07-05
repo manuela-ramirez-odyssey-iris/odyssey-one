@@ -6,6 +6,7 @@ export const meta = {
   name: 'IconButton',
   tier: 'atom',
   version: '0.2.0',
+  createdVersion: '0.2.0',
   figmaNode: '1754:295',
   codeConnect: 'packages/ui/src/IconButton.figma.tsx',
   deprecated: true,

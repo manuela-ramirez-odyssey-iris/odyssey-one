@@ -7,6 +7,7 @@ export const meta = {
   name: 'MenuRow',
   tier: 'atom',
   version: '0.4.0',
+  createdVersion: '0.2.0',
   figmaNode: '1973:87',
   codeConnect: 'packages/ui/src/MenuRow.figma.tsx',
 }

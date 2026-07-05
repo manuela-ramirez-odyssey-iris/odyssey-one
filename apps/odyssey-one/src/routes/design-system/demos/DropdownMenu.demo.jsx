@@ -4,6 +4,7 @@ export const meta = {
   name: 'DropdownMenu',
   tier: 'molecule',
   version: '0.3.0',
+  createdVersion: '0.3.0',
   figmaNode: '3600:1879',
   codeConnect: 'packages/ui/src/DropdownMenu.figma.tsx',
 }

@@ -5,6 +5,7 @@ export const meta = {
   name: 'AddSectionButton',
   tier: 'atom',
   version: '0.2.0',
+  createdVersion: '0.2.0',
   figmaNode: '2210:302',
   codeConnect: 'packages/ui/src/AddSectionButton.figma.tsx',
 }

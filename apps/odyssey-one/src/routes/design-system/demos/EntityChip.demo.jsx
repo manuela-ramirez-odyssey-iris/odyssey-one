@@ -5,6 +5,7 @@ import { Truck, Package } from 'lucide-react'
 export const meta = {
   name: 'EntityChip',
   tier: 'molecule',
+  deprecated: true,
   figmaNode: '1716:60',
   codeConnect: 'packages/ui/src/EntityChip.figma.tsx',
 }

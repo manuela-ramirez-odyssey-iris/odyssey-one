@@ -1,0 +1,2581 @@
+WEBVTT
+
+588754e1-5d7f-49dc-b20f-2e799e411947/187-0
+00:00:03.612 --> 00:00:03.692
+<v David Johns>The.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/192-0
+00:00:04.812 --> 00:00:05.772
+<v Thomas Quaile>Yeah, I think there's a...</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/191-0
+00:00:04.892 --> 00:00:05.452
+<v Hemalatha Rambabu (Cognizant)>Hey, I...</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/208-0
+00:00:06.492 --> 00:00:09.572
+<v Hemalatha Rambabu (Cognizant)>Oh, sorry, I think Thomas, yeah,
+please Thomas, go ahead.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/208-1
+00:00:09.572 --> 00:00:12.652
+<v Hemalatha Rambabu (Cognizant)>I have one thought to add to that. Yeah,
+please go ahead.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/254-0
+00:00:12.492 --> 00:00:17.428
+<v Thomas Quaile>Yeah, there's a couple of things.
+So just to give everybody a brief,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/254-1
+00:00:17.428 --> 00:00:23.150
+<v Thomas Quaile>I know we've talked quite a bit about it
+and decisions were made while I was on</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/254-2
+00:00:23.150 --> 00:00:26.441
+<v Thomas Quaile>vacation,
+but we went back through them again</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/254-3
+00:00:26.441 --> 00:00:30.089
+<v Thomas Quaile>yesterday.
+Because of the process that Manuela has</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/254-4
+00:00:30.089 --> 00:00:33.452
+<v Thomas Quaile>created of generating React UI components
+from</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/310-0
+00:00:34.172 --> 00:00:38.539
+<v Thomas Quaile>from Figma designs and the process that
+we feel that's going to be easier to</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/310-1
+00:00:38.539 --> 00:00:41.942
+<v Thomas Quaile>continue with doing React than to try to
+switch to Angular,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/310-2
+00:00:41.942 --> 00:00:46.365
+<v Thomas Quaile>just because it would require quite a bit
+of reworking of the process itself.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/310-3
+00:00:46.365 --> 00:00:50.959
+<v Thomas Quaile>So we've kind of made that decision. Now,
+that doesn't mean that everything that</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/310-4
+00:00:50.959 --> 00:00:53.852
+<v Thomas Quaile>we've already done,
+we're going to initially redo.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/351-0
+00:00:54.492 --> 00:00:57.880
+<v Thomas Quaile>You know,
+there are some things that we've built in</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/351-1
+00:00:57.880 --> 00:01:03.289
+<v Thomas Quaile>Angular that we're going to leave for now.
+And we'll figure out ways to route them</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/351-2
+00:01:03.289 --> 00:01:07.460
+<v Thomas Quaile>from the React homepage that we've built
+so far. But, you know,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/351-3
+00:01:07.460 --> 00:01:11.174
+<v Thomas Quaile>so the idea would be we would still do
+micro front ends,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/351-4
+00:01:11.174 --> 00:01:14.172
+<v Thomas Quaile>but we'll be doing React micro front ends.
+So</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/400-0
+00:01:14.452 --> 00:01:18.310
+<v Thomas Quaile>We'll have a homepage front end project.
+We'll have an orders project,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/400-1
+00:01:18.310 --> 00:01:21.570
+<v Thomas Quaile>a shipment project.
+And then we'll have to figure out a way</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/400-2
+00:01:21.570 --> 00:01:25.754
+<v Thomas Quaile>to handle the routing from within the
+React home application to route to the</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/400-3
+00:01:25.754 --> 00:01:29.014
+<v Thomas Quaile>different applications.
+There are quite a bit of strategies</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/400-4
+00:01:29.014 --> 00:01:32.492
+<v Thomas Quaile>around that we'll have to talk about
+beyond the back end stuff.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/452-0
+00:01:33.612 --> 00:01:37.522
+<v Thomas Quaile>There can be some conflicts within
+routing. I've been doing some research on,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/452-1
+00:01:37.522 --> 00:01:41.382
+<v Thomas Quaile>you know, micro front ends with React.
+It's not something I've done in React</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/452-2
+00:01:41.382 --> 00:01:44.140
+<v Thomas Quaile>before. I've done it in Angular before,
+but not React.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/419-0
+00:01:42.092 --> 00:01:42.412
+<v Hemalatha Rambabu (Cognizant)>Just.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/452-3
+00:01:44.140 --> 00:01:48.150
+<v Thomas Quaile>So there will be some strategies that
+we'll have to figure out around how we're</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/432-0
+00:01:48.132 --> 00:01:48.252
+<v Hemalatha Rambabu (Cognizant)>And.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/452-4
+00:01:48.150 --> 00:01:52.412
+<v Thomas Quaile>going to do routing. You know, typically,
+to give you an example, typically every...</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/503-0
+00:01:52.652 --> 00:01:56.354
+<v Thomas Quaile>micro front end will have an index, right?
+Well, if all of them have an index,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/503-1
+00:01:56.354 --> 00:01:59.587
+<v Thomas Quaile>there could be conflicts there.
+So you have to figure out a strategy</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/503-2
+00:01:59.587 --> 00:02:01.930
+<v Thomas Quaile>around that.
+And then there's the back end stuff.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/503-3
+00:02:01.930 --> 00:02:05.305
+<v Thomas Quaile>So each micro front end will have to have
+connect to the back end APIs,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/503-4
+00:02:05.305 --> 00:02:08.023
+<v Thomas Quaile>and then we'll have to decide how we're
+going to do that.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/503-5
+00:02:08.023 --> 00:02:10.553
+<v Thomas Quaile>So I think that's kind of what this
+meeting is about.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/489-0
+00:02:09.132 --> 00:02:09.572
+<v Hemalatha Rambabu (Cognizant)>No.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/503-6
+00:02:10.553 --> 00:02:11.772
+<v Thomas Quaile>So there's definitely some</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/498-0
+00:02:11.452 --> 00:02:12.612
+<v Hemalatha Rambabu (Cognizant)>Thank you.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/518-0
+00:02:12.012 --> 00:02:14.739
+<v Thomas Quaile>Beyond the generation of the React code
+itself,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/518-1
+00:02:14.739 --> 00:02:19.001
+<v Thomas Quaile>there are quite a bit of things that
+we're going to have to figure out how</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/518-2
+00:02:19.001 --> 00:02:20.252
+<v Thomas Quaile>we're going to handle.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/579-0
+00:02:23.772 --> 00:02:27.297
+<v Hemalatha Rambabu (Cognizant)>Thomas,
+I would like to take a minute actually.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/579-1
+00:02:27.297 --> 00:02:31.117
+<v Hemalatha Rambabu (Cognizant)>Thanks for providing the detail, Thomas.
+Yesterday,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/579-2
+00:02:31.117 --> 00:02:35.598
+<v Hemalatha Rambabu (Cognizant)>evening after we had a meeting with
+Manuela, you and myself,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/579-3
+00:02:35.598 --> 00:02:40.813
+<v Hemalatha Rambabu (Cognizant)>so I had been back and looked at
+Manuela's code and I did an extensive</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/557-0
+00:02:40.572 --> 00:02:41.052
+<v Thomas Quaile>Yep.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/579-4
+00:02:40.813 --> 00:02:45.955
+<v Hemalatha Rambabu (Cognizant)>homework yesterday evening.
+I just wanted to take 10 minutes and then</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/579-5
+00:02:45.955 --> 00:02:48.012
+<v Hemalatha Rambabu (Cognizant)>just present the challenges.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/621-0
+00:02:48.332 --> 00:02:52.095
+<v Hemalatha Rambabu (Cognizant)>But still that homework,
+so I was going to set up a call on Monday</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/621-1
+00:02:52.095 --> 00:02:54.903
+<v Hemalatha Rambabu (Cognizant)>morning,
+but still I'm in the process of doing an</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/621-2
+00:02:54.903 --> 00:02:59.284
+<v Hemalatha Rambabu (Cognizant)>extensive analysis. But before that,
+I would just like to flash my screen and</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/621-3
+00:02:59.284 --> 00:03:03.103
+<v Hemalatha Rambabu (Cognizant)>then present my findings.
+Whatever I have done the research so far,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/621-4
+00:03:03.103 --> 00:03:07.372
+<v Hemalatha Rambabu (Cognizant)>the detailed meeting is to follow.
+Let me quickly share my screen actually.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/624-0
+00:03:09.452 --> 00:03:11.052
+<v Hemalatha Rambabu (Cognizant)>Let me know when you see my screen.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/627-0
+00:03:12.092 --> 00:03:12.812
+<v Thomas Quaile>I see it.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/649-0
+00:03:13.132 --> 00:03:18.242
+<v Hemalatha Rambabu (Cognizant)>Okay, so yeah,
+so I kind of from yesterday's meeting,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/631-0
+00:03:13.532 --> 00:03:14.092
+<v Josh Thomas>Visible.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/649-1
+00:03:18.242 --> 00:03:20.892
+<v Hemalatha Rambabu (Cognizant)>what I understood was, yeah.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/703-0
+00:03:23.292 --> 00:03:26.510
+<v Hemalatha Rambabu (Cognizant)>So this, yeah,
+I think let me know when you, yeah.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/703-1
+00:03:26.510 --> 00:03:30.801
+<v Hemalatha Rambabu (Cognizant)>So from yesterday's meeting,
+what I understood was that this is the</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/703-2
+00:03:30.801 --> 00:03:33.957
+<v Hemalatha Rambabu (Cognizant)>proposed architecture that we are looking,
+right?</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/703-3
+00:03:33.957 --> 00:03:37.491
+<v Hemalatha Rambabu (Cognizant)>So we would like to develop a new React
+host shell app,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/703-4
+00:03:37.491 --> 00:03:41.972
+<v Hemalatha Rambabu (Cognizant)>and then the shipment orders and carrier
+application will be in React.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/716-0
+00:03:42.372 --> 00:03:46.252
+<v Hemalatha Rambabu (Cognizant)>And the tracking and user management will
+be in Angular. That is the proposed.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/725-0
+00:03:45.372 --> 00:03:47.698
+<v Thomas Quaile>Well,
+the React host is what is what Manuela</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/725-1
+00:03:47.698 --> 00:03:49.612
+<v Thomas Quaile>has already created. That's the host.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/728-0
+00:03:50.572 --> 00:03:51.412
+<v Thomas Quaile>That, that.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/729-0
+00:03:50.572 --> 00:03:52.452
+<v Hemalatha Rambabu (Cognizant)>That, but that is not micro front end.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/813-0
+00:03:53.492 --> 00:03:57.353
+<v Thomas Quaile>Well, it can be. I mean,
+the code that was generated from that,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/813-1
+00:03:57.353 --> 00:04:01.879
+<v Thomas Quaile>the outer shell with the header bar and
+the sidebar and then the main bar,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/748-0
+00:03:59.852 --> 00:04:00.332
+<v Hemalatha Rambabu (Cognizant)>Mhm.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/813-2
+00:04:01.879 --> 00:04:06.404
+<v Thomas Quaile>that is, I mean, it is the basic.
+We're going to have to rework it to be a</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/756-0
+00:04:03.412 --> 00:04:03.892
+<v Hemalatha Rambabu (Cognizant)>Mhm.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/813-3
+00:04:06.404 --> 00:04:09.904
+<v Thomas Quaile>micro front end,
+but it would be the homepage micro front</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/813-4
+00:04:09.904 --> 00:04:13.585
+<v Thomas Quaile>end, the shell, right?
+We'll have to pull some of the pieces</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/786-0
+00:04:10.492 --> 00:04:12.332
+<v Hemalatha Rambabu (Cognizant)>Yes, yeah, yeah, yeah.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/813-5
+00:04:13.585 --> 00:04:17.085
+<v Thomas Quaile>that were created,
+like the placeholders for shipment and</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/813-6
+00:04:17.085 --> 00:04:18.292
+<v Thomas Quaile>orders and carriers.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/833-0
+00:04:18.412 --> 00:04:22.223
+<v Thomas Quaile>We'll have to replace those with the
+actual routing to shipment orders and</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/833-1
+00:04:22.223 --> 00:04:24.662
+<v Thomas Quaile>carriers,
+but the outer shell pieces will still</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/833-2
+00:04:24.662 --> 00:04:26.492
+<v Thomas Quaile>stay the same. Does that make sense?</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/837-0
+00:04:26.252 --> 00:04:28.092
+<v Hemalatha Rambabu (Cognizant)>Yeah, yeah, yep, yep.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/848-0
+00:04:27.852 --> 00:04:31.411
+<v Thomas Quaile>So that's been built.
+We just have to modify it to make it an</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/848-1
+00:04:31.411 --> 00:04:32.732
+<v Thomas Quaile>actual micro front end.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/919-0
+00:04:33.132 --> 00:04:36.180
+<v Hemalatha Rambabu (Cognizant)>Yes,
+and one thing I see the problem was like</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/919-1
+00:04:36.180 --> 00:04:40.886
+<v Hemalatha Rambabu (Cognizant)>the routing, as you mentioned,
+the routing would be a problem if we go</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/919-2
+00:04:40.886 --> 00:04:45.261
+<v Hemalatha Rambabu (Cognizant)>with that route. And also,
+if we have that React and Angular host</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/919-3
+00:04:45.261 --> 00:04:48.773
+<v Hemalatha Rambabu (Cognizant)>together, the browser, that Angular,
+the core files,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/919-4
+00:04:48.773 --> 00:04:52.220
+<v Hemalatha Rambabu (Cognizant)>that the Angular libraries and the React
+libraries,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/919-5
+00:04:52.220 --> 00:04:55.932
+<v Hemalatha Rambabu (Cognizant)>both we will have to do and that will
+have some impact.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/978-0
+00:04:56.212 --> 00:05:02.295
+<v Hemalatha Rambabu (Cognizant)>but yet I still have to do some kind of
+POC to see whether this statement is true,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/978-1
+00:05:02.295 --> 00:05:07.645
+<v Hemalatha Rambabu (Cognizant)>but it looks like we will have like the
+mix and match of the React host,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/978-2
+00:05:07.645 --> 00:05:12.629
+<v Hemalatha Rambabu (Cognizant)>React host and Angular will have some
+impact on the page. And also,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/978-3
+00:05:12.629 --> 00:05:17.174
+<v Hemalatha Rambabu (Cognizant)>and it looks like a hot sharing is also a
+fragile workaround.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/978-4
+00:05:17.174 --> 00:05:20.692
+<v Hemalatha Rambabu (Cognizant)>And if we have to share the states
+between two,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/985-0
+00:05:20.812 --> 00:05:22.972
+<v Hemalatha Rambabu (Cognizant)>application, we will have a challenge.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/990-0
+00:05:24.132 --> 00:05:25.612
+<v Hemalatha Rambabu (Cognizant)>It looks like there are few.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1050-0
+00:05:24.732 --> 00:05:28.897
+<v Thomas Quaile>Well, I don't think we're going to have,
+the only thing that we'd have to share</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1050-1
+00:05:28.897 --> 00:05:32.334
+<v Thomas Quaile>state on would be the token, right?
+That would be the only thing.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1015-0
+00:05:30.892 --> 00:05:33.492
+<v Hemalatha Rambabu (Cognizant)>We would, yes, yes,
+that would be the token.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1050-2
+00:05:32.334 --> 00:05:35.198
+<v Thomas Quaile>Other than that,
+I don't necessarily know that there's</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1050-3
+00:05:35.198 --> 00:05:38.114
+<v Thomas Quaile>going to be mixed state across the
+different, you know,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1050-4
+00:05:38.114 --> 00:05:41.395
+<v Thomas Quaile>the different applications.
+And really when we think about the</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1050-5
+00:05:41.395 --> 00:05:44.572
+<v Thomas Quaile>Angular piece of it,
+tracking is really the only one, right?</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1104-0
+00:05:44.972 --> 00:05:49.574
+<v Thomas Quaile>That's the one that we currently have in
+prod that is all angular that we would</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1104-1
+00:05:49.574 --> 00:05:53.429
+<v Thomas Quaile>have to come out a way around to figure
+out how to do that, right?</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1104-2
+00:05:53.429 --> 00:05:57.801
+<v Thomas Quaile>And that's if we don't if we don't
+regenerate the tracking application from</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1104-3
+00:05:57.801 --> 00:06:02.288
+<v Thomas Quaile>Figma designs in and of itself and then
+reuse the back end services that they</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1104-4
+00:06:02.288 --> 00:06:03.612
+<v Thomas Quaile>built for tracking, so.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1163-0
+00:06:04.732 --> 00:06:08.025
+<v Thomas Quaile>But I agree with you.
+That is definitely going to be something</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1163-1
+00:06:08.025 --> 00:06:12.207
+<v Thomas Quaile>we're going to have to POC and see how
+well that works out. Because I've, yeah,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1128-0
+00:06:10.812 --> 00:06:12.572
+<v Hemalatha Rambabu (Cognizant)>Exactly, yeah, we will have to.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1163-2
+00:06:12.207 --> 00:06:14.978
+<v Thomas Quaile>mixing the two,
+it's not something I've done before.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1163-3
+00:06:14.978 --> 00:06:17.853
+<v Thomas Quaile>So you said you had,
+but you've done it the other way.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1163-4
+00:06:17.853 --> 00:06:21.564
+<v Thomas Quaile>You mixed React into Angular.
+And then just to give everybody an idea,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1163-5
+00:06:21.564 --> 00:06:23.969
+<v Thomas Quaile>you know,
+if you're not familiar with the two</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1163-6
+00:06:23.969 --> 00:06:24.492
+<v Thomas Quaile>things. So</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1220-0
+00:06:25.852 --> 00:06:30.112
+<v Thomas Quaile>React does not consider itself to be a
+framework. It's A JavaScript library,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1220-1
+00:06:30.112 --> 00:06:32.436
+<v Thomas Quaile>right?
+So that means that it is just a UI</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1220-2
+00:06:32.436 --> 00:06:35.866
+<v Thomas Quaile>JavaScript library.
+And if there's other things that you need</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1220-3
+00:06:35.866 --> 00:06:38.799
+<v Thomas Quaile>to do, you pull in other libraries,
+such as routing,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1220-4
+00:06:38.799 --> 00:06:41.288
+<v Thomas Quaile>such as back-end services,
+things like that,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1220-5
+00:06:41.288 --> 00:06:44.332
+<v Thomas Quaile>or you build them in JavaScript,
+or you use a library.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1273-0
+00:06:44.532 --> 00:06:46.934
+<v Thomas Quaile>Whereas Angular is a full around
+framework.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1273-1
+00:06:46.934 --> 00:06:50.046
+<v Thomas Quaile>It has those things built into it.
+It has routing in it.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1273-2
+00:06:50.046 --> 00:06:53.868
+<v Thomas Quaile>It has database interactivity,
+things like that, you know, API calls,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1273-3
+00:06:53.868 --> 00:06:56.653
+<v Thomas Quaile>you know,
+the ability to call APIs and things like</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1273-4
+00:06:56.653 --> 00:06:59.274
+<v Thomas Quaile>that.
+So there are some definitely considerable</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1273-5
+00:06:59.274 --> 00:07:03.096
+<v Thomas Quaile>differences between the two.
+And so there are going to be some things</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1273-6
+00:07:03.096 --> 00:07:05.772
+<v Thomas Quaile>that we're going to have to look at
+potentially.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1280-0
+00:07:06.572 --> 00:07:09.059
+<v Thomas Quaile>you know,
+adding to the React to be able to support</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1280-1
+00:07:09.059 --> 00:07:10.972
+<v Thomas Quaile>some of the features that we want to do.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1360-0
+00:07:12.572 --> 00:07:15.807
+<v Hemalatha Rambabu (Cognizant)>And yeah,
+I think earlier in my career I worked as</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1360-1
+00:07:15.807 --> 00:07:19.931
+<v Hemalatha Rambabu (Cognizant)>a React developer for two years, Thomas.
+So what I did was, see,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1360-2
+00:07:19.931 --> 00:07:25.261
+<v Hemalatha Rambabu (Cognizant)>there is no stat state management current.
+I just looked at the code actually. See,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1360-3
+00:07:25.261 --> 00:07:28.052
+<v Hemalatha Rambabu (Cognizant)>whatever the UX,
+the JSX files that we see,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1360-4
+00:07:28.052 --> 00:07:32.937
+<v Hemalatha Rambabu (Cognizant)>the UX is perfectly, it's amazing.
+Whatever the Figma JSX files we have used</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1360-5
+00:07:32.937 --> 00:07:35.792
+<v Hemalatha Rambabu (Cognizant)>it,
+I don't see a Redux or any kind of React</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1360-6
+00:07:35.792 --> 00:07:37.252
+<v Hemalatha Rambabu (Cognizant)>Redux state management.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1409-0
+00:07:37.332 --> 00:07:40.406
+<v Hemalatha Rambabu (Cognizant)>management is currently following the
+code. Okay,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1353-0
+00:07:38.172 --> 00:07:39.612
+<v Thomas Quaile>I agree. Yep.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1409-1
+00:07:40.406 --> 00:07:45.326
+<v Hemalatha Rambabu (Cognizant)>so we definitely have to have a state
+management and also the props that in the</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1409-2
+00:07:45.326 --> 00:07:50.061
+<v Hemalatha Rambabu (Cognizant)>react actually when I'm having a button
+actually it should be bounded to the</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1409-3
+00:07:50.061 --> 00:07:53.566
+<v Hemalatha Rambabu (Cognizant)>props actually,
+but none of the code has been bounded to</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1409-4
+00:07:53.566 --> 00:07:57.932
+<v Hemalatha Rambabu (Cognizant)>the props and there is no TypeScript at
+all. Everything is a JSX file.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1404-0
+00:07:58.492 --> 00:07:59.292
+<v Thomas Quaile>That is correct.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1457-0
+00:07:59.412 --> 00:08:04.921
+<v Hemalatha Rambabu (Cognizant)>And that is embedded in the back end.
+That is, see, everything is a JSX files,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1457-1
+00:08:04.921 --> 00:08:09.942
+<v Hemalatha Rambabu (Cognizant)>which contains a business logic,
+UI data and everything together. Okay,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1457-2
+00:08:09.942 --> 00:08:13.639
+<v Hemalatha Rambabu (Cognizant)>but I see UX is perfect and it is like
+all JSX code.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1457-3
+00:08:13.639 --> 00:08:18.172
+<v Hemalatha Rambabu (Cognizant)>But is this ready for production?
+But I think there is no react.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1525-0
+00:08:19.372 --> 00:08:23.648
+<v Hemalatha Rambabu (Cognizant)>I think we need to modify the React code
+in such a way that it should be</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1525-1
+00:08:23.648 --> 00:08:26.693
+<v Hemalatha Rambabu (Cognizant)>production ready,
+meaning without state management,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1525-2
+00:08:26.693 --> 00:08:29.329
+<v Hemalatha Rambabu (Cognizant)>we cannot go.
+Because when I bind a back end</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1525-3
+00:08:29.329 --> 00:08:32.785
+<v Hemalatha Rambabu (Cognizant)>application itself,
+the state management is the main thing</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1525-4
+00:08:32.785 --> 00:08:37.413
+<v Hemalatha Rambabu (Cognizant)>that we have to do in React. And also,
+we have to find out that services layer</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1525-5
+00:08:37.413 --> 00:08:41.279
+<v Hemalatha Rambabu (Cognizant)>wherein we will have, say,
+year earlier I have used Axios or some</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1525-6
+00:08:41.279 --> 00:08:41.572
+<v Hemalatha Rambabu (Cognizant)>kind.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1610-0
+00:08:41.652 --> 00:08:45.033
+<v Hemalatha Rambabu (Cognizant)>kind of a service layer or back end
+framework should be there,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1524-0
+00:08:44.492 --> 00:08:45.052
+<v Thomas Quaile>Correct.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1610-1
+00:08:45.033 --> 00:08:47.878
+<v Hemalatha Rambabu (Cognizant)>I should be in a position to call the
+back end APIs.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1610-2
+00:08:47.878 --> 00:08:50.669
+<v Hemalatha Rambabu (Cognizant)>That is also not that that framework was
+not there.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1610-3
+00:08:50.669 --> 00:08:55.017
+<v Hemalatha Rambabu (Cognizant)>And there is no separation of concern.
+And also how we did the React development</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1610-4
+00:08:55.017 --> 00:08:59.043
+<v Hemalatha Rambabu (Cognizant)>earlier was we will have a mock data and
+we will have a testing framework.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1610-5
+00:08:59.043 --> 00:09:03.176
+<v Hemalatha Rambabu (Cognizant)>Whenever we do some changes, right,
+we will just make sure we do the changes</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1610-6
+00:09:03.176 --> 00:09:06.612
+<v Hemalatha Rambabu (Cognizant)>in the mock data and we run the complete
+test so that the user.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1675-0
+00:09:06.612 --> 00:09:10.026
+<v Hemalatha Rambabu (Cognizant)>UI doesn't break.
+That is how we promoted the code earlier,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1675-1
+00:09:10.026 --> 00:09:14.124
+<v Hemalatha Rambabu (Cognizant)>but I don't see not even a single test
+cases with the mock data or any,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1675-2
+00:09:14.124 --> 00:09:16.913
+<v Hemalatha Rambabu (Cognizant)>not even a single karma or some kind of
+Jasmine.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1675-3
+00:09:16.913 --> 00:09:19.417
+<v Hemalatha Rambabu (Cognizant)>I think earlier I used to Jasmine
+actually,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1637-0
+00:09:19.372 --> 00:09:19.852
+<v Thomas Quaile>Yep.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1675-4
+00:09:19.417 --> 00:09:23.401
+<v Hemalatha Rambabu (Cognizant)>but I think now we have a lot of
+frameworks available and that is not</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1675-5
+00:09:23.401 --> 00:09:27.214
+<v Hemalatha Rambabu (Cognizant)>there. See, the POC is good and yes,
+we can take it to the market,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1675-6
+00:09:27.214 --> 00:09:30.572
+<v Hemalatha Rambabu (Cognizant)>but it is just still,
+I feel that it is just the JSX file.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1735-0
+00:09:31.452 --> 00:09:34.167
+<v Hemalatha Rambabu (Cognizant)>to the UI,
+but there is no React architecture or</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1735-1
+00:09:34.167 --> 00:09:38.490
+<v Hemalatha Rambabu (Cognizant)>there is no React code is being followed
+as what we will have to generate the</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1735-2
+00:09:38.490 --> 00:09:42.924
+<v Hemalatha Rambabu (Cognizant)>complete code or we will have to give a
+prompt if at all we were planning to go</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1735-3
+00:09:42.924 --> 00:09:46.416
+<v Hemalatha Rambabu (Cognizant)>with the React, right?
+We will have to come up with a complete</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1735-4
+00:09:46.416 --> 00:09:50.295
+<v Hemalatha Rambabu (Cognizant)>architecture to enhance how to generate
+the code so that it will be a</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1735-5
+00:09:50.295 --> 00:09:53.732
+<v Hemalatha Rambabu (Cognizant)>full-fledged application.
+And also there is no pagination and</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1739-0
+00:09:54.052 --> 00:09:56.492
+<v Hemalatha Rambabu (Cognizant)>That is,
+that is a concept of lazy loading.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1767-0
+00:10:08.332 --> 00:10:09.692
+<v Thomas Quaile>I agree with you there.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1801-0
+00:10:09.732 --> 00:10:13.054
+<v Hemalatha Rambabu (Cognizant)>It is a UX.
+The prototype is absolutely amazing. Yes,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1801-1
+00:10:13.054 --> 00:10:16.007
+<v Hemalatha Rambabu (Cognizant)>it is.
+I would still consider it still has a UX</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1801-2
+00:10:16.007 --> 00:10:18.898
+<v Hemalatha Rambabu (Cognizant)>code,
+but I think we need to consider all this</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1801-3
+00:10:18.898 --> 00:10:21.052
+<v Hemalatha Rambabu (Cognizant)>if it has to be a production ready.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1821-0
+00:10:21.932 --> 00:10:25.382
+<v Hemalatha Rambabu (Cognizant)>OK, a lot of work needs to be done. See,
+it doesn't say, as you say,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1821-1
+00:10:25.382 --> 00:10:28.332
+<v Hemalatha Rambabu (Cognizant)>it doesn't matter whether we go with the
+Angular or React.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1874-0
+00:10:29.292 --> 00:10:32.169
+<v Hemalatha Rambabu (Cognizant)>Okay, but the code,
+whatever we have right now,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1874-1
+00:10:32.169 --> 00:10:36.724
+<v Hemalatha Rambabu (Cognizant)>though we say it is like ready to ship,
+it's not even go to the production.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1874-2
+00:10:36.724 --> 00:10:39.421
+<v Hemalatha Rambabu (Cognizant)>When we integrate it back end itself,
+right?</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1874-3
+00:10:39.421 --> 00:10:42.718
+<v Hemalatha Rambabu (Cognizant)>Without the React Redux and without the
+service layer,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1874-4
+00:10:42.718 --> 00:10:46.793
+<v Hemalatha Rambabu (Cognizant)>we cannot even integrate the back end API.
+We will have to revisit.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1874-5
+00:10:46.793 --> 00:10:48.412
+<v Hemalatha Rambabu (Cognizant)>This is one thing actually.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1930-0
+00:10:48.772 --> 00:10:53.311
+<v Hemalatha Rambabu (Cognizant)>But we have to know a lot of changes to
+the code. And also apart from that,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1930-1
+00:10:53.311 --> 00:10:58.268
+<v Hemalatha Rambabu (Cognizant)>we will have to consider all these issues
+because the routing and routing is a big</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1930-2
+00:10:58.268 --> 00:11:02.747
+<v Hemalatha Rambabu (Cognizant)>thing and routing is a big thing.
+Everybody is saying we will have to do a</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1930-3
+00:11:02.747 --> 00:11:05.255
+<v Hemalatha Rambabu (Cognizant)>POC,
+how we will handle Angular and React</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1930-4
+00:11:05.255 --> 00:11:10.033
+<v Hemalatha Rambabu (Cognizant)>routing. See, given the time yesterday,
+even I just had a little bit of shorter</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1930-5
+00:11:10.033 --> 00:11:10.332
+<v Hemalatha Rambabu (Cognizant)>time.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1996-0
+00:11:11.132 --> 00:11:15.804
+<v Hemalatha Rambabu (Cognizant)>Maybe I can work on a little bit on the
+weekend and do some homework and then</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1996-1
+00:11:15.804 --> 00:11:20.416
+<v Hemalatha Rambabu (Cognizant)>come back come back with a detailed
+analysis of how the React coded standard</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1996-2
+00:11:20.416 --> 00:11:24.190
+<v Hemalatha Rambabu (Cognizant)>and everything should be followed.
+I can still do my analysis,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1996-3
+00:11:24.190 --> 00:11:28.443
+<v Hemalatha Rambabu (Cognizant)>but I just wanted to present it,
+still present it today before we talk</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1996-4
+00:11:28.443 --> 00:11:33.055
+<v Hemalatha Rambabu (Cognizant)>about the back end strategy. This is like,
+I'm half the way in working on it</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/1996-5
+00:11:33.055 --> 00:11:35.332
+<v Hemalatha Rambabu (Cognizant)>actually. I'm yet to start a POC also.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2013-0
+00:11:35.852 --> 00:11:40.533
+<v Hemalatha Rambabu (Cognizant)>So I just wanted to get my thoughts,
+Thomas, before we start this meeting.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2064-0
+00:11:39.852 --> 00:11:43.458
+<v Thomas Quaile>Yeah, I mean, like I said,
+there is a lot that we have to talk about</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2013-1
+00:11:40.533 --> 00:11:41.532
+<v Hemalatha Rambabu (Cognizant)>Are you with me?</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2064-1
+00:11:43.458 --> 00:11:46.855
+<v Thomas Quaile>around leveraging React, right?
+Like you said, state management,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2064-2
+00:11:46.855 --> 00:11:50.775
+<v Thomas Quaile>we need to figure that out. API layers,
+we need to figure that out, right?</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2064-3
+00:11:50.775 --> 00:11:53.701
+<v Thomas Quaile>Testing, automated testing,
+we have to figure that out.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2064-4
+00:11:53.701 --> 00:11:58.092
+<v Thomas Quaile>All of this stuff that you have here are
+things that we need to think about, right?</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2081-0
+00:11:58.732 --> 00:12:02.625
+<v Thomas Quaile>It's easy to create a POC.
+It's another thing to create a</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2081-1
+00:12:02.625 --> 00:12:04.572
+<v Thomas Quaile>production-ready application.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2133-0
+00:12:04.812 --> 00:12:08.751
+<v Hemalatha Rambabu (Cognizant)>Exactly, that's what I wanted to make.
+So if that is the case,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2133-1
+00:12:08.751 --> 00:12:13.503
+<v Hemalatha Rambabu (Cognizant)>so one thing I was doing in another
+analysis was yesterday after talking to</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2133-2
+00:12:13.503 --> 00:12:18.193
+<v Hemalatha Rambabu (Cognizant)>Manuela, that Figma Connect, right?
+Why we say that, yes, all the AI code,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2133-3
+00:12:18.193 --> 00:12:22.008
+<v Hemalatha Rambabu (Cognizant)>either we take a cloud or we take a
+cursor, we take a Devin,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2133-4
+00:12:22.008 --> 00:12:24.572
+<v Hemalatha Rambabu (Cognizant)>all the AI tools have an edge over React.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2191-0
+00:12:24.892 --> 00:12:28.114
+<v Hemalatha Rambabu (Cognizant)>because all these models are trained more
+towards React,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2191-1
+00:12:28.114 --> 00:12:31.846
+<v Hemalatha Rambabu (Cognizant)>there are less availability on the
+Angular. So whatever the tool,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2191-2
+00:12:31.846 --> 00:12:36.143
+<v Hemalatha Rambabu (Cognizant)>it is going to generate a better code for
+React. Actually, that is a one H.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2191-3
+00:12:36.143 --> 00:12:40.214
+<v Hemalatha Rambabu (Cognizant)>But coming to that Figma Connect,
+I did a little bit of research on the</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2191-4
+00:12:40.214 --> 00:12:43.154
+<v Hemalatha Rambabu (Cognizant)>Figma Connect.
+So when we are taking the JXX files,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2191-5
+00:12:43.154 --> 00:12:44.172
+<v Hemalatha Rambabu (Cognizant)>right, we need to.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2228-0
+00:12:44.212 --> 00:12:51.123
+<v Hemalatha Rambabu (Cognizant)>to kind of write a mapper and tell LLM
+how to convert that JSX to the two-way</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2228-1
+00:12:51.123 --> 00:12:56.883
+<v Hemalatha Rambabu (Cognizant)>binding for Angular file.
+If we train the LLM to do that kind of</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2228-2
+00:12:56.883 --> 00:13:01.845
+<v Hemalatha Rambabu (Cognizant)>analysis, right?
+And it is easy to generate the Angular</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2228-3
+00:13:01.845 --> 00:13:02.732
+<v Hemalatha Rambabu (Cognizant)>code also.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2283-0
+00:13:03.252 --> 00:13:07.561
+<v Hemalatha Rambabu (Cognizant)>But as I said earlier,
+I need a little bit of time to do a POC,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2283-1
+00:13:07.561 --> 00:13:13.083
+<v Hemalatha Rambabu (Cognizant)>how to convert that Figma code connector
+so that we can train or we could provide</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2283-2
+00:13:13.083 --> 00:13:17.190
+<v Hemalatha Rambabu (Cognizant)>samples so that the Figma code,
+the JSX that we are getting,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2283-3
+00:13:17.190 --> 00:13:22.442
+<v Hemalatha Rambabu (Cognizant)>we can convert it to a two-way binding
+with the Angular code so that we could</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2283-4
+00:13:22.442 --> 00:13:24.732
+<v Hemalatha Rambabu (Cognizant)>generate the code in Angular also.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2339-0
+00:13:25.132 --> 00:13:30.258
+<v Hemalatha Rambabu (Cognizant)>If we prove that, we can,
+so we can avoid all these issues that I'm</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2339-1
+00:13:30.258 --> 00:13:34.933
+<v Hemalatha Rambabu (Cognizant)>showing in this presentation.
+That is one way to go about it,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2339-2
+00:13:34.933 --> 00:13:39.909
+<v Hemalatha Rambabu (Cognizant)>but still we have to do a POC.
+But the second thing is that, see,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2339-3
+00:13:39.909 --> 00:13:44.357
+<v Hemalatha Rambabu (Cognizant)>we are in the assumption that or maybe
+shipping to market,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2339-4
+00:13:44.357 --> 00:13:48.052
+<v Hemalatha Rambabu (Cognizant)>I totally understand all the AI tools
+have edge.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2398-0
+00:13:48.172 --> 00:13:51.242
+<v Hemalatha Rambabu (Cognizant)>towards React,
+but still it is not a production ready</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2398-1
+00:13:51.242 --> 00:13:55.451
+<v Hemalatha Rambabu (Cognizant)>code. We need to prompt or we need to,
+even if we are using the AI tools,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2398-2
+00:13:55.451 --> 00:13:59.887
+<v Hemalatha Rambabu (Cognizant)>we need to make sure that all these
+architectural concerns and everything has</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2398-3
+00:13:59.887 --> 00:14:04.436
+<v Hemalatha Rambabu (Cognizant)>been followed when we are generating a
+code. Otherwise, it will be a nightmare,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2398-4
+00:14:04.436 --> 00:14:08.360
+<v Hemalatha Rambabu (Cognizant)>not even go to production.
+When we are integrating with the back end</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2398-5
+00:14:08.360 --> 00:14:10.692
+<v Hemalatha Rambabu (Cognizant)>API itself, it will be nightmare is what.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2400-0
+00:14:10.812 --> 00:14:12.252
+<v Hemalatha Rambabu (Cognizant)>From my experience, I'm thinking.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2402-0
+00:14:13.132 --> 00:14:14.572
+<v Thomas Quaile>Yeah, I agree with you.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2451-0
+00:14:14.972 --> 00:14:19.308
+<v Hemalatha Rambabu (Cognizant)>Okay, yeah, thanks. Thanks, Thomas.
+I just wanted to take this moment and</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2451-1
+00:14:19.308 --> 00:14:22.999
+<v Hemalatha Rambabu (Cognizant)>then present it before.
+I think I'll set up a call sometime on</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2451-2
+00:14:22.999 --> 00:14:26.046
+<v Hemalatha Rambabu (Cognizant)>Monday to go over this along with some
+kind of POC,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2451-3
+00:14:26.046 --> 00:14:29.269
+<v Hemalatha Rambabu (Cognizant)>maybe Monday or maybe probably I'm
+thinking on Monday,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2451-4
+00:14:29.269 --> 00:14:32.492
+<v Hemalatha Rambabu (Cognizant)>I'll come up with more details. Okay,
+yeah, thank you.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2446-0
+00:14:31.932 --> 00:14:32.052
+<v Thomas Quaile>Yeah.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2452-0
+00:14:34.652 --> 00:14:36.252
+<v Thomas Quaile>I think Janardhana has a question.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2519-0
+00:14:37.172 --> 00:14:40.288
+<v Janardhana Soundararajan (Cognizant)>Yeah, Thomas,
+I just have a general question regarding</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2519-1
+00:14:40.288 --> 00:14:44.595
+<v Janardhana Soundararajan (Cognizant)>how does it all work, right? See,
+I said POC is good, we can see all these,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2519-2
+00:14:44.595 --> 00:14:49.128
+<v Janardhana Soundararajan (Cognizant)>but there are a lot of things in the back
+end that needs to drive the rules and</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2519-3
+00:14:49.128 --> 00:14:53.548
+<v Janardhana Soundararajan (Cognizant)>need to bring it in the front, right?
+So are we going to do piece by piece or</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2519-4
+00:14:53.548 --> 00:14:58.195
+<v Janardhana Soundararajan (Cognizant)>is it like we're going to build the front
+end and then slowly do the back end and</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2519-5
+00:14:58.195 --> 00:14:58.932
+<v Janardhana Soundararajan (Cognizant)>then connect?</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2524-0
+00:14:59.052 --> 00:15:01.372
+<v Janardhana Soundararajan (Cognizant)>then one by one,
+how is it all going to work?</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2584-0
+00:15:01.772 --> 00:15:05.494
+<v Thomas Quaile>Well, typically what we want to do,
+that's why we want to do micro front ends.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2584-1
+00:15:05.494 --> 00:15:08.179
+<v Thomas Quaile>Typically the, like,
+let's say take orders, for example,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2584-2
+00:15:08.179 --> 00:15:11.807
+<v Thomas Quaile>we would be building the UI components
+for order at the same time that we're</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2584-3
+00:15:11.807 --> 00:15:15.152
+<v Thomas Quaile>building the back end services for order,
+right? The same for carrier.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2584-4
+00:15:15.152 --> 00:15:17.507
+<v Thomas Quaile>We would be doing each of the individual
+domains,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2584-5
+00:15:17.507 --> 00:15:21.229
+<v Thomas Quaile>we'd be building the micro front ends at
+the same time that we're building the</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2584-6
+00:15:21.229 --> 00:15:22.172
+<v Thomas Quaile>back end so that the</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2597-0
+00:15:22.452 --> 00:15:26.104
+<v Thomas Quaile>The 2 teams can work in conjunction with
+each other to build the UI components and</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2597-1
+00:15:26.104 --> 00:15:28.172
+<v Thomas Quaile>the APIs that are needed for those
+components.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2611-0
+00:15:28.732 --> 00:15:34.486
+<v Janardhana Soundararajan (Cognizant)>Yeah, it looks like the way, you know,
+it looks like the design is already ready,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2611-1
+00:15:34.486 --> 00:15:36.732
+<v Janardhana Soundararajan (Cognizant)>right? So my understanding is...</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2654-0
+00:15:37.532 --> 00:15:42.475
+<v Janardhana Soundararajan (Cognizant)>The front end might come out pretty quick
+because of all the tools that is</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2654-1
+00:15:42.475 --> 00:15:46.298
+<v Janardhana Soundararajan (Cognizant)>available and the design that is there.
+But the back end,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2654-2
+00:15:46.298 --> 00:15:50.978
+<v Janardhana Soundararajan (Cognizant)>which needs to support the front end in
+terms of data and getting that</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2654-3
+00:15:50.978 --> 00:15:56.252
+<v Janardhana Soundararajan (Cognizant)>information from the API and all those
+things, would take a longer time, right?</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2714-0
+00:15:56.972 --> 00:16:00.459
+<v Thomas Quaile>Right. So I mean,
+obviously we still have we have teams</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2714-1
+00:16:00.459 --> 00:16:04.694
+<v Thomas Quaile>that are working on the back end side of
+it, which is our back end,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2714-2
+00:16:04.694 --> 00:16:08.119
+<v Thomas Quaile>our back end services,
+the technology has not changed.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2714-3
+00:16:08.119 --> 00:16:12.603
+<v Thomas Quaile>We're still using Java and Spring Boot
+with AWS RDS databases or Oracle</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2714-4
+00:16:12.603 --> 00:16:16.652
+<v Thomas Quaile>databases is needed, right,
+depending on the services, right? So</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2758-0
+00:16:17.452 --> 00:16:20.341
+<v Thomas Quaile>You know,
+if it's if it's new data that we're that</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2758-1
+00:16:20.341 --> 00:16:23.116
+<v Thomas Quaile>we're supporting,
+then it's an AWS RDS database.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2758-2
+00:16:23.116 --> 00:16:26.175
+<v Thomas Quaile>If it's existing data,
+such as some of the, you know,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2758-3
+00:16:26.175 --> 00:16:30.254
+<v Thomas Quaile>some of the master data tables that we
+didn't want to have to recreate,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2758-4
+00:16:30.254 --> 00:16:33.823
+<v Thomas Quaile>we are just directly,
+we have a new master data service that's</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2758-5
+00:16:33.823 --> 00:16:37.052
+<v Thomas Quaile>reading the tables from TMS's Oracle
+database for those.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2773-0
+00:16:37.612 --> 00:16:39.953
+<v Thomas Quaile>There are things that we just can't get
+from, you know,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2773-1
+00:16:39.953 --> 00:16:42.630
+<v Thomas Quaile>that we didn't want to recreate from a
+master data perspective,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2773-2
+00:16:42.630 --> 00:16:44.972
+<v Thomas Quaile>so we've decided to use the Oracle
+databases for those.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2781-0
+00:16:47.212 --> 00:16:47.932
+<v Janardhana Soundararajan (Cognizant)>Okay, so.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2833-0
+00:16:47.272 --> 00:16:50.608
+<v Thomas Quaile>But the UI, the UI components are,
+you know,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2833-1
+00:16:50.608 --> 00:16:56.466
+<v Thomas Quaile>it's taking a Figma design and creating a
+JavaScript UI for it, right? I mean,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2833-2
+00:16:56.466 --> 00:17:00.618
+<v Thomas Quaile>that's basically what it is,
+and we're using, you know,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2804-0
+00:16:57.052 --> 00:16:57.532
+<v Janardhana Soundararajan (Cognizant)>Correct.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2833-3
+00:17:00.618 --> 00:17:06.846
+<v Thomas Quaile>Manuela created a process of creating the
+designs in Figma and then using using MCP</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2833-4
+00:17:06.846 --> 00:17:08.552
+<v Thomas Quaile>Model Context Protocol.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2879-0
+00:17:08.772 --> 00:17:13.636
+<v Thomas Quaile>which is a way of connecting an AI model
+to Figma to generate UI code.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2879-1
+00:17:13.636 --> 00:17:18.158
+<v Thomas Quaile>And then also with that,
+there is the ability to do some checking</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2845-0
+00:17:15.692 --> 00:17:16.132
+<v Janardhana Soundararajan (Cognizant)>Correct.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2879-2
+00:17:18.158 --> 00:17:23.365
+<v Thomas Quaile>to make sure that what you created
+actually is the same thing that what you</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2879-3
+00:17:23.365 --> 00:17:27.202
+<v Thomas Quaile>designed, right?
+And I think that's the piece where the</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2879-4
+00:17:27.202 --> 00:17:29.052
+<v Thomas Quaile>React comes in really well.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2927-0
+00:17:29.372 --> 00:17:33.411
+<v Thomas Quaile>that Angular doesn't have.
+So you can't do that check to make sure</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2927-1
+00:17:33.411 --> 00:17:37.691
+<v Thomas Quaile>that the component that you built,
+the button, the list, the whatever,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2927-2
+00:17:37.691 --> 00:17:42.092
+<v Thomas Quaile>looks like what you've designed.
+And so that was one of the main reasons</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2927-3
+00:17:42.092 --> 00:17:46.553
+<v Thomas Quaile>that the decision was to go with React
+was because Manuela has built that</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2927-4
+00:17:46.553 --> 00:17:50.412
+<v Thomas Quaile>process of not only generating the code,
+but also being able to</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2938-0
+00:17:50.652 --> 00:17:56.023
+<v Thomas Quaile>to check to make sure the code looks like
+and is exactly like what was designed in</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2938-1
+00:17:56.023 --> 00:17:56.412
+<v Thomas Quaile>Figma.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/2939-0
+00:17:58.172 --> 00:17:58.532
+<v Janardhana Soundararajan (Cognizant)>Okay.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3003-0
+00:18:01.932 --> 00:18:04.643
+<v Thomas Quaile>But,
+and as and and and and we brought this up</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3003-1
+00:18:04.643 --> 00:18:07.528
+<v Thomas Quaile>and and and and again,
+Hema just brought this up,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3003-2
+00:18:07.528 --> 00:18:11.567
+<v Thomas Quaile>there are other pieces around,
+not just the UI components themselves,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3003-3
+00:18:11.567 --> 00:18:15.144
+<v Thomas Quaile>not just the buttons,
+the the the you know, the the the list,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3003-4
+00:18:15.144 --> 00:18:19.587
+<v Thomas Quaile>the buttons, the things like that.
+There are a lot of pieces within building</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3003-5
+00:18:19.587 --> 00:18:22.126
+<v Thomas Quaile>a UI that you need to to take into
+account.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3003-6
+00:18:22.126 --> 00:18:24.492
+<v Thomas Quaile>State management is a very important one.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3061-0
+00:18:24.812 --> 00:18:28.480
+<v Thomas Quaile>Do we need to manage state,
+such as if you load a list of something,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3061-1
+00:18:28.480 --> 00:18:32.840
+<v Thomas Quaile>do we need to pass that list around from
+one component, one page to another page?</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3061-2
+00:18:32.840 --> 00:18:37.253
+<v Thomas Quaile>Or are there pieces of the things that we
+need to pass around from them? The user,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3061-3
+00:18:37.253 --> 00:18:40.071
+<v Thomas Quaile>you know, the user who's, you know,
+who's logged in,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3061-4
+00:18:40.071 --> 00:18:44.537
+<v Thomas Quaile>do we need to pass their credentials from
+page to page to page as we click through,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3061-5
+00:18:44.537 --> 00:18:46.452
+<v Thomas Quaile>as we click through the different...</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3104-0
+00:18:46.612 --> 00:18:51.640
+<v Thomas Quaile>the different, you know, micro front ends.
+And so you need state management to do</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3104-1
+00:18:51.640 --> 00:18:54.951
+<v Thomas Quaile>that. Also,
+you need the ability to call the back end</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3104-2
+00:18:54.951 --> 00:18:58.446
+<v Thomas Quaile>APIs from the React code. So like, like,
+like Hema said,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3104-3
+00:18:58.446 --> 00:19:01.573
+<v Thomas Quaile>typically you use something like Axios to
+do that,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3104-4
+00:19:01.573 --> 00:19:06.294
+<v Thomas Quaile>which is another JavaScript library.
+That would give you the ability to call</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3104-5
+00:19:06.294 --> 00:19:07.092
+<v Thomas Quaile>the back end.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3162-0
+00:19:07.332 --> 00:19:10.189
+<v Thomas Quaile>So,
+you have to add that to React to be able</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3162-1
+00:19:10.189 --> 00:19:13.491
+<v Thomas Quaile>to do that,
+and then there's the ability to do unit</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3162-2
+00:19:13.491 --> 00:19:18.254
+<v Thomas Quaile>testing or automated unit testing,
+where you actually run through and make</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3162-3
+00:19:18.254 --> 00:19:22.762
+<v Thomas Quaile>sure that every component you built is
+unit tested, that it, you know,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3162-4
+00:19:22.762 --> 00:19:27.525
+<v Thomas Quaile>it conforms to the standards that you
+want, and then it also is, you know,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3162-5
+00:19:27.525 --> 00:19:28.732
+<v Thomas Quaile>it tests correctly.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3183-0
+00:19:29.532 --> 00:19:33.375
+<v Thomas Quaile>So there's other things around just the
+generating of the UI components that make</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3183-1
+00:19:33.375 --> 00:19:36.562
+<v Thomas Quaile>something production ready.
+And then there's all the CICD stuff and</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3183-2
+00:19:36.562 --> 00:19:38.812
+<v Thomas Quaile>all that,
+the building and deploying it in AWS.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3185-0
+00:19:40.652 --> 00:19:41.372
+<v Thomas Quaile>Yes, Manuela.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3186-0
+00:19:44.652 --> 00:19:45.532
+<v Manuela Ramirez (Iris Software)>Okay, um...</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3201-0
+00:19:47.052 --> 00:19:52.967
+<v Manuela Ramirez (Iris Software)>Let's talk step by step.
+There is a lot that I need to follow up</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3198-0
+00:19:50.972 --> 00:19:51.372
+<v Thomas Quaile>Yep.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3201-1
+00:19:52.967 --> 00:19:54.332
+<v Manuela Ramirez (Iris Software)>on that. But...</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3235-0
+00:19:56.332 --> 00:20:01.973
+<v Manuela Ramirez (Iris Software)>First of all, yes,
+we have data binding with different</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3235-1
+00:20:01.973 --> 00:20:09.050
+<v Manuela Ramirez (Iris Software)>components that change data,
+like they are binding it to each other,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3235-2
+00:20:09.050 --> 00:20:14.692
+<v Manuela Ramirez (Iris Software)>right? We have it in shipments,
+we have it in the new.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3241-0
+00:20:15.492 --> 00:20:19.332
+<v Manuela Ramirez (Iris Software)>in the new global search that we are
+doing. That's what's happening.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3278-0
+00:20:21.172 --> 00:20:26.925
+<v Manuela Ramirez (Iris Software)>So it's not as loose as you are actually
+saying. Yes, the thing,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3278-1
+00:20:26.925 --> 00:20:33.918
+<v Manuela Ramirez (Iris Software)>the only thing that I still missing is
+the structure to connect to a database.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3278-2
+00:20:33.918 --> 00:20:40.292
+<v Manuela Ramirez (Iris Software)>But that's because I was trying to
+request access through the database.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3318-0
+00:20:40.612 --> 00:20:44.105
+<v Manuela Ramirez (Iris Software)>Actually,
+business and shipment told us that it</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3318-1
+00:20:44.105 --> 00:20:47.963
+<v Manuela Ramirez (Iris Software)>would be better to have real data in this
+prototype.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3318-2
+00:20:47.963 --> 00:20:53.276
+<v Manuela Ramirez (Iris Software)>So I was trying to get access for that,
+but it's really difficult, guys.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3318-3
+00:20:53.276 --> 00:20:58.662
+<v Manuela Ramirez (Iris Software)>I don't know why it's too bureaucratic.
+And I just need documentation and</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3318-4
+00:20:58.662 --> 00:20:59.972
+<v Manuela Ramirez (Iris Software)>understanding. And</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3345-0
+00:21:00.532 --> 00:21:05.263
+<v Manuela Ramirez (Iris Software)>That's it.
+Nothing else to being able to solve this.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3345-1
+00:21:05.263 --> 00:21:10.441
+<v Manuela Ramirez (Iris Software)>It doesn't need to be a big problem.
+As I said initially,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3345-2
+00:21:10.441 --> 00:21:12.852
+<v Manuela Ramirez (Iris Software)>we have to sort things out.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3356-0
+00:21:15.412 --> 00:21:21.496
+<v Manuela Ramirez (Iris Software)>It's on our on our on our choice that
+that process is going to take a lot or</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3356-1
+00:21:21.496 --> 00:21:21.812
+<v Manuela Ramirez (Iris Software)>not.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3376-0
+00:21:28.692 --> 00:21:32.427
+<v Thomas Quaile>So you were trying to get access to the
+databases or the APIs?</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3376-1
+00:21:32.427 --> 00:21:33.732
+<v Thomas Quaile>I'm maybe I missed it.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3396-0
+00:21:33.092 --> 00:21:38.890
+<v Manuela Ramirez (Iris Software)>The API, the API, sorry,
+the APIs to have real data and to,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3380-0
+00:21:35.812 --> 00:21:36.212
+<v Thomas Quaile>OK.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3386-0
+00:21:38.452 --> 00:21:38.772
+<v Thomas Quaile>Yep.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3396-1
+00:21:38.890 --> 00:21:42.852
+<v Manuela Ramirez (Iris Software)>but more than that, trying to understand.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3419-0
+00:21:44.012 --> 00:21:46.751
+<v Manuela Ramirez (Iris Software)>because you have all this documented,
+right?</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3419-1
+00:21:46.751 --> 00:21:51.622
+<v Manuela Ramirez (Iris Software)>You have all this architecture backend
+wise. So I'm trying to get downstanding,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3419-2
+00:21:51.622 --> 00:21:56.372
+<v Manuela Ramirez (Iris Software)>but it's really difficult because the
+only thing that I've got is a CSV file.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3428-0
+00:21:57.492 --> 00:22:04.852
+<v Manuela Ramirez (Iris Software)>And that's not actually, you know, it's,
+we need better communication, I think.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3477-0
+00:22:12.292 --> 00:22:16.419
+<v Thomas Quaile>Well, and Manuela,
+I'm going to be perfectly honest with you.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3477-1
+00:22:16.419 --> 00:22:21.944
+<v Thomas Quaile>I didn't even know you were doing the UI,
+redoing the UI until about a month and a</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3477-2
+00:22:21.944 --> 00:22:25.472
+<v Thomas Quaile>half ago. So I mean, the communication is,
+you know,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3452-0
+00:22:22.612 --> 00:22:23.172
+<v Manuela Ramirez (Iris Software)>Yeah.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3477-3
+00:22:25.472 --> 00:22:30.398
+<v Thomas Quaile>there is a lot of communication
+breakdowns across the org overall, right?</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3477-4
+00:22:30.398 --> 00:22:30.532
+<v Thomas Quaile>So</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3474-0
+00:22:30.612 --> 00:22:31.572
+<v Manuela Ramirez (Iris Software)>Yeah, of course.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3535-0
+00:22:30.692 --> 00:22:32.782
+<v Thomas Quaile>I mean,
+I think that that is that not just,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3535-1
+00:22:32.782 --> 00:22:35.443
+<v Thomas Quaile>I mean, obviously,
+we've had teams that were working on</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3535-2
+00:22:35.443 --> 00:22:39.435
+<v Thomas Quaile>orders and shipments and things like that.
+And if there's somebody that you need to</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3535-3
+00:22:39.435 --> 00:22:42.856
+<v Thomas Quaile>connect with to get an API or something
+to be able to do what you want.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3502-0
+00:22:40.772 --> 00:22:40.812
+<v David Johns>I.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3535-4
+00:22:42.856 --> 00:22:45.802
+<v Thomas Quaile>But I mean, beyond that,
+I think that some of the things that</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3535-5
+00:22:45.802 --> 00:22:48.653
+<v Thomas Quaile>Hemalatha has brought up are very
+important, right? I mean,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3535-6
+00:22:48.653 --> 00:22:51.172
+<v Thomas Quaile>React by default is one way binding,
+right? It's so.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3588-0
+00:22:51.372 --> 00:22:55.306
+<v Thomas Quaile>you read data from an API and it loads
+into the virtual DOM, right? Or the DOM.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3588-1
+00:22:55.306 --> 00:22:57.667
+<v Thomas Quaile>And it does, you know,
+it doesn't manage state.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3588-2
+00:22:57.667 --> 00:23:01.454
+<v Thomas Quaile>So if you change something in there,
+then it doesn't get written back to the</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3588-3
+00:23:01.454 --> 00:23:04.306
+<v Thomas Quaile>back end database.
+It doesn't call an API and write that.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3588-4
+00:23:04.306 --> 00:23:07.454
+<v Thomas Quaile>It's single one-way binding, right?
+We need to talk about that.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3588-5
+00:23:07.454 --> 00:23:11.093
+<v Thomas Quaile>We need to understand what UIs are going
+to have to have two-way binding.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3588-6
+00:23:11.093 --> 00:23:13.012
+<v Thomas Quaile>How are we going to solve that problem?</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3626-0
+00:23:13.332 --> 00:23:15.644
+<v Thomas Quaile>Orders would be one, right?
+We have an order form.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3626-1
+00:23:15.644 --> 00:23:18.365
+<v Thomas Quaile>We're going to have to have two-way
+binding on that, right?</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3626-2
+00:23:18.365 --> 00:23:21.857
+<v Thomas Quaile>There are things that we need to talk
+about beyond just how the screens look</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3626-3
+00:23:21.857 --> 00:23:24.034
+<v Thomas Quaile>and feel.
+There's going to have to be real data</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3626-4
+00:23:24.034 --> 00:23:26.529
+<v Thomas Quaile>behind them,
+and we're going to have to understand how</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3626-5
+00:23:26.529 --> 00:23:27.572
+<v Thomas Quaile>we manage those things.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3625-0
+00:23:29.172 --> 00:23:29.852
+<v David Johns>Is a.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3699-0
+00:23:29.332 --> 00:23:32.392
+<v Hemalatha Rambabu (Cognizant)>And I know Thomas,
+I would like to add one point here.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3632-0
+00:23:29.492 --> 00:23:31.492
+<v Manuela Ramirez (Iris Software)>Yes, sugar, let's.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3699-1
+00:23:32.392 --> 00:23:36.008
+<v Hemalatha Rambabu (Cognizant)>Without the state management and without
+the Taxios integration,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3699-2
+00:23:36.008 --> 00:23:40.292
+<v Hemalatha Rambabu (Cognizant)>I think we need to talk about that before
+even we go further with the AC API</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3699-3
+00:23:40.292 --> 00:23:44.798
+<v Hemalatha Rambabu (Cognizant)>integration. I can just using the JSX,
+I can integrate an API and then fetch the</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3699-4
+00:23:44.798 --> 00:23:48.248
+<v Hemalatha Rambabu (Cognizant)>data from database and then show it in
+the React application.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3699-5
+00:23:48.248 --> 00:23:52.087
+<v Hemalatha Rambabu (Cognizant)>That is not the goal here, right?
+And the whole purpose of having an</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3684-0
+00:23:51.092 --> 00:23:51.652
+<v Thomas Quaile>No.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3699-6
+00:23:52.087 --> 00:23:53.812
+<v Hemalatha Rambabu (Cognizant)>enterprise application is like.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3713-0
+00:23:54.052 --> 00:23:59.507
+<v Hemalatha Rambabu (Cognizant)>How am I going to do a state management?
+Because applications like a shipments,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3692-0
+00:23:54.172 --> 00:23:54.292
+<v Thomas Quaile>Yeah.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3713-1
+00:23:59.507 --> 00:24:02.372
+<v Hemalatha Rambabu (Cognizant)>we cannot go without the state management.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3729-0
+00:24:03.372 --> 00:24:07.978
+<v Hemalatha Rambabu (Cognizant)>And I think without the state management,
+there is, I think React application,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3716-0
+00:24:03.572 --> 00:24:03.812
+<v Thomas Quaile>Bye.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3729-1
+00:24:07.978 --> 00:24:11.652
+<v Hemalatha Rambabu (Cognizant)>it will be a night.
+I think we cannot go with that without it.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3750-0
+00:24:13.652 --> 00:24:18.117
+<v David Johns>So are we trying to list problems or are
+we trying to solve them? Like,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3789-0
+00:24:17.732 --> 00:24:20.948
+<v Thomas Quaile>Well,
+I think we need a list of problems before</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3750-1
+00:24:18.117 --> 00:24:19.172
+<v David Johns>I'm not really...</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3789-1
+00:24:20.948 --> 00:24:26.241
+<v Thomas Quaile>we can try to solve them, right? I mean,
+we need a list of the challenges that</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3759-0
+00:24:21.252 --> 00:24:22.772
+<v Hemalatha Rambabu (Cognizant)>Exactly, exactly.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3789-2
+00:24:26.241 --> 00:24:31.132
+<v Thomas Quaile>we're going to run into beyond.
+So when you think about what Manuela has</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3789-3
+00:24:31.132 --> 00:24:34.281
+<v Thomas Quaile>created,
+which takes the designs and creates a</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3789-4
+00:24:34.281 --> 00:24:36.492
+<v Thomas Quaile>basic React front end, right? But</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3849-0
+00:24:36.852 --> 00:24:40.359
+<v Thomas Quaile>There's a lot of to an enterprise
+application beyond just the look and feel</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3849-1
+00:24:40.359 --> 00:24:43.036
+<v Thomas Quaile>of the front end.
+There's a lot of pieces that we have to</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3849-2
+00:24:43.036 --> 00:24:45.390
+<v Thomas Quaile>talk about.
+And then we're going to have to figure</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3849-3
+00:24:45.390 --> 00:24:47.790
+<v Thomas Quaile>out how we're going to solve those
+problems, right?</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3849-4
+00:24:47.790 --> 00:24:51.298
+<v Thomas Quaile>And I think we have to understand what
+the problems we're going to run into</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3849-5
+00:24:51.298 --> 00:24:54.252
+<v Thomas Quaile>before we can actually start picking it.
+Like state management,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3849-6
+00:24:54.252 --> 00:24:56.052
+<v Thomas Quaile>we can decide we want to go with Redux.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3907-0
+00:24:56.372 --> 00:24:59.203
+<v Thomas Quaile>Redux comes with its own challenges.
+Redux is not easy.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3907-1
+00:24:59.203 --> 00:25:03.147
+<v Thomas Quaile>And somebody who's never done Redux
+before is going to have a lot of problems</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3907-2
+00:25:03.147 --> 00:25:07.192
+<v Thomas Quaile>with Redux. It's not easy to manage Redux.
+It's a whole thing in and of itself.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3907-3
+00:25:07.192 --> 00:25:10.580
+<v Thomas Quaile>And then we have to decide,
+do we want to build a Redux, you know,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3907-4
+00:25:10.580 --> 00:25:13.563
+<v Thomas Quaile>a state management for all of the micro
+front ends, right?</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3907-5
+00:25:13.563 --> 00:25:17.255
+<v Thomas Quaile>Are we going to have to manage state
+across all of the micro front ends?</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3907-6
+00:25:17.255 --> 00:25:18.772
+<v Thomas Quaile>So that means we have to build</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3930-0
+00:25:18.972 --> 00:25:22.070
+<v Thomas Quaile>the state management as the main and the
+main application,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3930-1
+00:25:22.070 --> 00:25:26.324
+<v Thomas Quaile>and then somehow figure out how to manage
+that across multiple micro front ends.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3930-2
+00:25:26.324 --> 00:25:29.896
+<v Thomas Quaile>There's a lot of challenges there.
+We have to figure that part out.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3930-3
+00:25:29.896 --> 00:25:31.892
+<v Thomas Quaile>And we're going to have to solve that.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3982-0
+00:25:34.772 --> 00:25:37.362
+<v Thomas Quaile>Two-way data binding,
+that's another thing. Obviously,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3982-1
+00:25:37.362 --> 00:25:41.130
+<v Thomas Quaile>the Redux can handle that because you're
+managing state in Redux, but you know,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3982-2
+00:25:41.130 --> 00:25:44.993
+<v Thomas Quaile>we'll have to figure those pieces out.
+Pagination, we'll have to figure that out.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3982-3
+00:25:44.993 --> 00:25:47.866
+<v Thomas Quaile>You know, you know, API,
+how we're going to manage different</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3982-4
+00:25:47.866 --> 00:25:50.268
+<v Thomas Quaile>environments, properties, files,
+things like that.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3982-5
+00:25:50.268 --> 00:25:52.529
+<v Thomas Quaile>Those are things we're going to have to
+figure.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3982-6
+00:25:52.529 --> 00:25:55.732
+<v Thomas Quaile>There's a lot of challenges that we're
+going to have to figure out.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3988-0
+00:25:56.052 --> 00:26:00.197
+<v Thomas Quaile>beyond the basic designs and the basic
+creation of the look and feel of the</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/3988-1
+00:26:00.197 --> 00:26:00.852
+<v Thomas Quaile>application.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4016-0
+00:26:04.612 --> 00:26:06.717
+<v Thomas Quaile>So I think what we need to do is we need
+to start,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4000-0
+00:26:04.692 --> 00:26:06.532
+<v Manuela Ramirez (Iris Software)>OK, let.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4016-1
+00:26:06.717 --> 00:26:09.360
+<v Thomas Quaile>we need to start figuring out what the
+problems we're going to,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4016-2
+00:26:09.360 --> 00:26:12.704
+<v Thomas Quaile>what are the challenges that we're going
+to have to come up with and then figure</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4016-3
+00:26:12.704 --> 00:26:13.572
+<v Thomas Quaile>out a solve for them.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4023-0
+00:26:16.932 --> 00:26:19.132
+<v Manuela Ramirez (Iris Software)>Okay, let's start solving then.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4083-0
+00:26:21.652 --> 00:26:23.870
+<v Thomas Quaile>Well,
+I think what Hemalatha and I was wanting</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4031-0
+00:26:22.812 --> 00:26:23.052
+<v Manuela Ramirez (Iris Software)>Yeah.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4083-1
+00:26:23.870 --> 00:26:26.182
+<v Thomas Quaile>to do,
+and Hemalatha was going to come up with a</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4083-2
+00:26:26.182 --> 00:26:29.485
+<v Thomas Quaile>list of what we think the challenges are,
+and then we can start have,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4083-3
+00:26:29.485 --> 00:26:33.119
+<v Thomas Quaile>we can have a meeting and discuss them
+and start coming up with solutions to</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4083-4
+00:26:33.119 --> 00:26:35.384
+<v Thomas Quaile>them.
+I don't necessarily know if doing that in</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4060-0
+00:26:34.372 --> 00:26:34.772
+<v Manuela Ramirez (Iris Software)>Okay.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4083-5
+00:26:35.384 --> 00:26:37.649
+<v Thomas Quaile>an ad hoc way like this is going to make
+sense.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4083-6
+00:26:37.649 --> 00:26:40.292
+<v Thomas Quaile>It probably makes more sense for me and
+Hemalatha to go</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4097-0
+00:26:40.532 --> 00:26:42.840
+<v Thomas Quaile>off and come up with what we think are
+the problem,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4097-1
+00:26:42.840 --> 00:26:46.213
+<v Thomas Quaile>the challenges we're going to run into
+and then come back and discuss them.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4097-2
+00:26:46.213 --> 00:26:47.412
+<v Thomas Quaile>Would you agree, Hemalatha?</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4110-0
+00:26:48.012 --> 00:26:50.432
+<v Hemalatha Rambabu (Cognizant)>Yeah, I understood you.
+I think I was going to, yeah,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4110-1
+00:26:50.432 --> 00:26:52.852
+<v Hemalatha Rambabu (Cognizant)>thanks Thomas. Yeah,
+I think we are on the same page.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4109-0
+00:26:53.012 --> 00:26:53.292
+<v Thomas Quaile>Yeah.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4111-0
+00:26:53.492 --> 00:26:53.652
+<v David Johns>Yeah.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4129-0
+00:26:55.892 --> 00:26:59.292
+<v David Johns>So you're going to discuss the challenges,
+isn't that what was in the PowerPoint?</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4142-0
+00:26:58.532 --> 00:27:00.653
+<v Thomas Quaile>We're going to get,
+we're going to create the list.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4142-1
+00:27:00.653 --> 00:27:02.694
+<v Thomas Quaile>We're going to create the list of the
+challenges,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4142-2
+00:27:02.694 --> 00:27:04.612
+<v Thomas Quaile>and then we can discuss the solutions to
+them.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4152-0
+00:27:05.732 --> 00:27:07.795
+<v David Johns>Okay,
+so the PowerPoint is not comprehensive is</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4152-1
+00:27:07.795 --> 00:27:08.612
+<v David Johns>what you're saying.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4172-0
+00:27:08.852 --> 00:27:12.018
+<v Hemalatha Rambabu (Cognizant)>Exactly, I will just, yeah,
+given the time yesterday, yeah,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4174-0
+00:27:08.852 --> 00:27:11.765
+<v Thomas Quaile>Not yet, right? I mean,
+we just went through it yesterday,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4174-1
+00:27:11.765 --> 00:27:13.692
+<v Thomas Quaile>so yesterday was the first day we went.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4172-1
+00:27:12.018 --> 00:27:13.812
+<v Hemalatha Rambabu (Cognizant)>yesterday evening only I spent it.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4208-0
+00:27:15.252 --> 00:27:18.437
+<v Hemalatha Rambabu (Cognizant)>With five of us,
+I think I analyzing the code and then</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4208-1
+00:27:18.437 --> 00:27:21.274
+<v Hemalatha Rambabu (Cognizant)>doing some,
+this is what I can come up with five</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4208-2
+00:27:21.274 --> 00:27:24.749
+<v Hemalatha Rambabu (Cognizant)>hours of my work.
+I need to spend some more time to come up</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4208-3
+00:27:24.749 --> 00:27:26.892
+<v Hemalatha Rambabu (Cognizant)>with a comprehensive list to go over.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4254-0
+00:27:27.292 --> 00:27:30.833
+<v Thomas Quaile>Yeah. And then we can discuss,
+and I don't necessarily know if we need</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4254-1
+00:27:30.833 --> 00:27:34.473
+<v Thomas Quaile>everybody on this call in those meetings
+to discuss the solutions to it.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4254-2
+00:27:34.473 --> 00:27:38.364
+<v Thomas Quaile>We probably need a base list of people to
+come up with them, right? You know,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4227-0
+00:27:38.052 --> 00:27:38.372
+<v Hemalatha Rambabu (Cognizant)>Yup.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4254-3
+00:27:38.364 --> 00:27:41.955
+<v Thomas Quaile>and there were things that Hemalatha has
+on hers that I'm going to add,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4233-0
+00:27:40.372 --> 00:27:40.692
+<v David Johns>Yeah.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4254-4
+00:27:41.955 --> 00:27:44.797
+<v Thomas Quaile>I'm going to add to her list also.
+Routing is a big one.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4254-5
+00:27:44.797 --> 00:27:47.092
+<v Thomas Quaile>I don't know if you had that on there or
+not.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4253-0
+00:27:47.412 --> 00:27:48.932
+<v Hemalatha Rambabu (Cognizant)>I think I have it, Thomas.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4256-0
+00:27:47.892 --> 00:27:48.132
+<v Thomas Quaile>The.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4259-0
+00:27:49.172 --> 00:27:49.972
+<v Thomas Quaile>Okay, yeah.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4273-0
+00:27:50.132 --> 00:27:52.538
+<v Hemalatha Rambabu (Cognizant)>But I have it at level,
+but you can add it. Yeah,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4273-1
+00:27:52.538 --> 00:27:55.810
+<v Hemalatha Rambabu (Cognizant)>I'll share the presentation.
+But the work in progress presentation,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4273-2
+00:27:55.810 --> 00:27:56.532
+<v Hemalatha Rambabu (Cognizant)>you can add it.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4275-0
+00:27:57.972 --> 00:27:58.372
+<v Thomas Quaile>Yep.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4294-0
+00:27:59.452 --> 00:28:03.912
+<v Thomas Quaile>So I think what would make sense for me
+and Hemalatha to go off and build our</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4294-1
+00:28:03.912 --> 00:28:06.772
+<v Thomas Quaile>list and then for us to come back and
+discuss it.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4300-0
+00:28:07.692 --> 00:28:09.892
+<v David Johns>What timeline are we looking at for that?</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4307-0
+00:28:10.532 --> 00:28:13.892
+<v Thomas Quaile>I would say early next week.
+Would you agree?</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4306-0
+00:28:13.052 --> 00:28:13.572
+<v David Johns>Okay.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4308-0
+00:28:15.772 --> 00:28:16.132
+<v Thomas Quaile>Nima.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4316-0
+00:28:17.572 --> 00:28:20.052
+<v Hemalatha Rambabu (Cognizant)>Yeah, yeah, sure, Thomas.
+A yearly next week should work out.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4322-0
+00:28:20.572 --> 00:28:22.212
+<v Thomas Quaile>All right, so let's...</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4326-0
+00:28:21.652 --> 00:28:23.892
+<v David Johns>We don't have Laurie Thomas.
+Are you scheduling that?</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4329-0
+00:28:25.012 --> 00:28:26.132
+<v Thomas Quaile>Yeah, I'll schedule it.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4334-0
+00:28:30.492 --> 00:28:31.772
+<v Thomas Quaile>Yeah, I'll schedule it. Yeah.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4333-0
+00:28:30.532 --> 00:28:30.932
+<v David Johns>OK.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4337-0
+00:28:33.812 --> 00:28:34.772
+<v Manuela Ramirez (Iris Software)>That's a good plan.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4339-0
+00:28:36.452 --> 00:28:36.852
+<v Thomas Quaile>Okay.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4347-0
+00:28:37.812 --> 00:28:40.729
+<v David Johns>In the meantime, Manuela,
+would it help for you to get that access</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4347-1
+00:28:40.729 --> 00:28:41.252
+<v David Johns>to the APIs?</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4363-0
+00:28:42.452 --> 00:28:46.843
+<v Manuela Ramirez (Iris Software)>Yeah, of course. I mean,
+if you want to pull me in those meetings,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4363-1
+00:28:46.843 --> 00:28:47.892
+<v Manuela Ramirez (Iris Software)>I'll be glad to.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4370-0
+00:28:48.372 --> 00:28:50.654
+<v David Johns>No,
+I'm at the API access you requested a</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4370-1
+00:28:50.654 --> 00:28:51.252
+<v David Johns>while back.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4367-0
+00:28:50.772 --> 00:28:51.012
+<v Saikat Ghosh (Cognizant)>You.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4388-0
+00:28:51.092 --> 00:28:56.372
+<v Manuela Ramirez (Iris Software)>Oh yeah, yeah, of course.
+I still need those anyways for shipments.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4373-0
+00:28:52.412 --> 00:28:52.932
+<v David Johns>SLNU.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4400-0
+00:28:52.892 --> 00:28:56.955
+<v Saikat Ghosh (Cognizant)>Right, no,
+I think the the is already there in the</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4381-0
+00:28:55.172 --> 00:28:55.652
+<v David Johns>So.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4400-1
+00:28:56.955 --> 00:29:00.381
+<v Saikat Ghosh (Cognizant)>LLD,
+and I think I can share you that Viki</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4400-2
+00:29:00.381 --> 00:29:02.772
+<v Saikat Ghosh (Cognizant)>links where we have all those.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4402-0
+00:29:03.012 --> 00:29:04.612
+<v Manuela Ramirez (Iris Software)>Okay, yeah.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4407-0
+00:29:03.452 --> 00:29:06.852
+<v Thomas Quaile>We're having a hard time understanding
+you, Saikat. You said you share the links.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4418-0
+00:29:08.292 --> 00:29:11.884
+<v Saikat Ghosh (Cognizant)>I'll share the Wiki links where we have
+all the API endpoints, request response,</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4418-1
+00:29:11.884 --> 00:29:12.372
+<v Saikat Ghosh (Cognizant)>everything.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4420-0
+00:29:13.012 --> 00:29:13.492
+<v Thomas Quaile>Okay.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4419-0
+00:29:13.252 --> 00:29:13.412
+<v Josh Thomas>Big.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4425-0
+00:29:15.332 --> 00:29:17.492
+<v Thomas Quaile>Okay. Thank you, Saikat.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4424-0
+00:29:16.932 --> 00:29:17.332
+<v David Johns>Okay.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4432-0
+00:29:19.172 --> 00:29:21.092
+<v David Johns>Awesome. All right. Thanks, everybody.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4431-0
+00:29:20.292 --> 00:29:21.172
+<v Manuela Ramirez (Iris Software)>Thanks, Saikat.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4433-0
+00:29:21.572 --> 00:29:22.052
+<v Thomas Quaile>Thank you.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4437-0
+00:29:22.572 --> 00:29:23.252
+<v Manuela Ramirez (Iris Software)>Thank you.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4439-0
+00:29:23.412 --> 00:29:23.812
+<v Thomas Quaile>Bye.</v>
+
+588754e1-5d7f-49dc-b20f-2e799e411947/4445-0
+00:29:24.532 --> 00:29:25.012
+<v Manuela Ramirez (Iris Software)>Bye.</v>

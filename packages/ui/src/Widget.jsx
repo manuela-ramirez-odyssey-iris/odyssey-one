@@ -159,7 +159,9 @@ function formatNumbersWithProgress(value, progress) {
   })
 }
 
-function CountUp({ value, play = true }) {
+// Exported for WidgetMini (shared animation primitive — same sweep, same easing);
+// not in the public index.
+export function CountUp({ value, play = true }) {
   const [progress, setProgress] = useState(0)
   // `play` gates the count (set once the widget scrolls into view). Until then
   // progress stays 0 so the numbers read as 0, then tick up on appear.

@@ -44,6 +44,7 @@ export { default as EntityChip } from './EntityChip.jsx';
 export { default as WidgetMetricRow } from './WidgetMetricRow.jsx';
 export { default as WidgetPieChart } from './WidgetPieChart.jsx';
 export { default as WidgetCtaRow } from './WidgetCtaRow.jsx';
+export { default as WidgetMini } from './WidgetMini.jsx';
 export { default as MenuDropdown } from './MenuDropdown.jsx';
 export { default as DropdownMenu } from './DropdownMenu.jsx';
 export { default as Dropdown } from './Dropdown.jsx';
@@ -52,6 +53,7 @@ export { default as Paginator } from './Paginator.jsx';
 export { default as DataTable } from './DataTable.jsx';
 export { default as CustomerRow } from './CustomerRow.jsx';
 export { default as FormField } from './FormField.jsx';
+export { default as TextArea } from './TextArea.jsx';
 export { default as FilterSuggestions } from './FilterSuggestions.jsx';
 export { default as MatchRow } from './MatchRow.jsx';
 export { default as MatchSimpleRow } from './MatchSimpleRow.jsx';
@@ -78,6 +80,7 @@ export { default as FieldSearchResults } from './FieldSearchResults.jsx';
 export { default as ModalHeader } from './ModalHeader.jsx';
 export { default as ModalFooter } from './ModalFooter.jsx';
 export { default as RightPanel } from './RightPanel.jsx';
+export { default as ShipmentsBar } from './ShipmentsBar.jsx';
 
 // ── Hooks / positioning ────────────────────────────────
 // Anchored, flip-aware popover positioning. `useAnchoredPortal` is used

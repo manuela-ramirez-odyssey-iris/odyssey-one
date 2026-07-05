@@ -4,9 +4,8 @@ import { Alert } from '@odyssey/ui'
 export const meta = {
   name: 'Alert',
   tier: 'molecule',
-  normalizing: true,
-  approved: true,
-  ported: true,
+  version: '0.6.0',
+  createdVersion: '0.2.0',
   figmaNode: '2569:1841',
   codeConnect: 'packages/ui/src/Alert.figma.tsx',
 }

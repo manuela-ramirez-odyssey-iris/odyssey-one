@@ -5,6 +5,7 @@ export const meta = {
   name: 'TitleSubtitle',
   tier: 'molecule',
   version: '0.5.0',
+  createdVersion: '0.5.0',
   normalizing: false,
   figmaNode: '3016:2056',
   codeConnect: 'packages/ui/src/TitleSubtitle.figma.tsx',

@@ -5,6 +5,7 @@ export const meta = {
   name: 'PillTab',
   tier: 'atom',
   version: '0.2.0',
+  createdVersion: '0.2.0',
   figmaNode: '2787:330',
   codeConnect: 'packages/ui/src/PillTab.figma.tsx',
 }

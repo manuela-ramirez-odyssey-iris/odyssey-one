@@ -6,6 +6,7 @@ apps/odyssey-one/public/details/
 shipments-documentation/Documentation/converted/
 .vercel
 .worktrees/
+.claude/worktrees/
 .turbo/
 .superpowers/
 .env

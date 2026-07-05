@@ -5,6 +5,7 @@ export const meta = {
   name: 'ModalFooter',
   tier: 'molecule',
   version: '0.5.0',
+  createdVersion: '0.5.0',
   normalizing: false,
   figmaNode: '3170:3649',
   codeConnect: 'packages/ui/src/ModalFooter.figma.tsx',

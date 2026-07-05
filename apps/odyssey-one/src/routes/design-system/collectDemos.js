@@ -99,8 +99,17 @@ export function collectNormalizing(modules) {
 }
 
 // ── Versioning ──────────────────────────────────────────────────────────────
-// Each demo meta may carry version: "x.y.z" — the @oneodyssey/ui release it was
-// created or last changed in. "Latest" = the semver-max across all demos.
+// Each demo meta may carry two release stamps:
+//   version        — the @oneodyssey/ui release it was created OR last changed
+//                    in (bumped on every batch that touches it; shown on cards).
+//   createdVersion — the release it FIRST shipped in (stamped once, never bumped).
+// The version-history dropdown filters by createdVersion — "what did this
+// release introduce?" — falling back to version for metas that predate the
+// createdVersion field, so nothing vanishes. Staging demos carry neither.
+
+function releaseCreatedIn(meta) {
+  return (meta && (meta.createdVersion || meta.version)) || null
+}
 
 function parseVersion(v) {
   return String(v).split('.').map((n) => parseInt(n, 10) || 0)
@@ -115,26 +124,28 @@ function cmpVersion(a, b) {
   return 0
 }
 
-// Highest version across a flat demo list, or null if none carry one.
-export function latestVersion(demos) {
-  let max = null
+// Distinct creation versions (createdVersion ?? version) across a flat demo
+// list, semver-sorted descending (newest first). Demos without either stamp
+// are ignored; empty list → [].
+export function allVersions(demos) {
+  const seen = new Set()
   for (const d of demos) {
-    const v = d.meta && d.meta.version
-    if (!v) continue
-    if (max === null || cmpVersion(v, max) > 0) max = v
+    const v = releaseCreatedIn(d.meta)
+    if (v) seen.add(v)
   }
-  return max
+  return [...seen].sort((a, b) => cmpVersion(b, a))
 }
 
-// Keep only demos whose version === latest. No-op when latest is falsy.
-export function filterTiersByLatest(tiers, latest) {
-  if (!latest) return tiers
-  return tiers.map((t) => ({ ...t, demos: t.demos.filter((d) => d.meta.version === latest) }))
+// Keep only demos CREATED in the selected version (createdVersion ?? version).
+// 'all' (the dropdown's default) or a falsy version is a no-op.
+export function filterTiersByVersion(tiers, version) {
+  if (!version || version === 'all') return tiers
+  return tiers.map((t) => ({ ...t, demos: t.demos.filter((d) => releaseCreatedIn(d.meta) === version) }))
 }
 
 // ── Search filter ─────────────────────────────────────────────────────────────
 // The search query is a THIRD filter dimension, layered on top of domain +
-// "Latest only". It mirrors filterTiersByDomain / filterTiersByLatest: a
+// version. It mirrors filterTiersByDomain / filterTiersByVersion: a
 // case-insensitive name match that narrows each tier IN PLACE — the tab
 // structure stays, tab counts reflect the query, and you still view one tier at
 // a time. (No-op for a blank query.)

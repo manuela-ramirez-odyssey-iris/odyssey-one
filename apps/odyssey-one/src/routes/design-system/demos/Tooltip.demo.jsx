@@ -4,6 +4,7 @@ export const meta = {
   name: 'Tooltip',
   tier: 'molecule',
   version: '0.4.0',
+  createdVersion: '0.4.0',
   figmaNode: '3762:237',
   codeConnect: 'packages/ui/src/Tooltip.figma.tsx',
 }

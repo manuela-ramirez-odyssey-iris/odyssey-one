@@ -5,6 +5,7 @@ export const meta = {
   name: 'Checkbox',
   tier: 'atom',
   version: '0.2.0',
+  createdVersion: '0.2.0',
   figmaNode: '2821:330',
   codeConnect: 'packages/ui/src/Checkbox.figma.tsx',
 }

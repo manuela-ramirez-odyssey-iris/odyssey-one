@@ -5,6 +5,7 @@ export const meta = {
   name: 'Breadcrumb',
   tier: 'atom',
   version: '0.4.0',
+  createdVersion: '0.4.0',
   figmaNode: '3141:732',
   codeConnect: 'packages/ui/src/Breadcrumb.figma.tsx',
 }

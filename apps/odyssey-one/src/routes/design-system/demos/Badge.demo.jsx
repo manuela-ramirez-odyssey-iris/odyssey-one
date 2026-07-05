@@ -25,6 +25,7 @@ export const meta = {
   name: 'Badge',
   tier: 'atom',
   version: '0.4.0',
+  createdVersion: '0.2.0',
   figmaNode: '213:27',
   codeConnect: 'packages/ui/src/Badge.figma.tsx',
 }

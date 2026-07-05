@@ -10,6 +10,8 @@ import { useEffect, useState } from 'react'
  *   segments       — array of { value, color }. `color` is a Chart/* token (e.g. 'var(--chart-1)').
  *   centerText     — optional text rendered in the donut center (Widget 2x percentage).
  *   size           — 'md' | 'lg' | number. md=72, lg=96. Number passes through for ad-hoc sizes.
+ *   strokeWidth    — optional ring thickness in px. Defaults to 18% of size (the Widget
+ *                    md/lg look); WidgetMini passes 9 to match its slimmer 64px donut.
  *   total          — optional denominator. When the sum of segment values does NOT cover the
  *                    whole circle (e.g. 2x single-data: one 42-value segment of an implied 100),
  *                    pass `total={100}` so the segment renders as 42% of the ring and the rest
@@ -18,12 +20,12 @@ import { useEffect, useState } from 'react'
  * Figma master: `WidgetPieChart` component set (1881:77) with `Size=md|lg`,
  * `Show center text` BOOLEAN, `Center text` TEXT.
  */
-export default function WidgetPieChart({ segments = [], centerText, size = 'md', total, delayMs = 0, play = true }) {
+export default function WidgetPieChart({ segments = [], centerText, size = 'md', total, delayMs = 0, play = true, strokeWidth: strokeWidthProp }) {
   const px = size === 'md' ? 72 : size === 'lg' ? 96 : size
   const segmentSum = segments.reduce((sum, s) => sum + (s.value || 0), 0)
   const denominator = total ?? segmentSum ?? 1
   const radius = px / 2
-  const strokeWidth = px * 0.18
+  const strokeWidth = strokeWidthProp ?? px * 0.18
   const innerRadius = radius - strokeWidth / 2
   const circumference = 2 * Math.PI * innerRadius
   // Grow-in on mount: segments transition from "0 circumference" to their final

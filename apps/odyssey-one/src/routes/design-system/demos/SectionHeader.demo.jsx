@@ -4,6 +4,7 @@ export const meta = {
   name: 'SectionHeader',
   tier: 'molecule',
   version: '0.2.0',
+  createdVersion: '0.2.0',
   figmaNode: '1696:49',
   codeConnect: 'packages/ui/src/SectionHeader.figma.tsx',
 }

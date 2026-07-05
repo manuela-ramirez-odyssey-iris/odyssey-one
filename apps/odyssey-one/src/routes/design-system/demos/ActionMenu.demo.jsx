@@ -6,6 +6,7 @@ export const meta = {
   name: 'ActionMenu',
   tier: 'molecule',
   version: '0.3.0',
+  createdVersion: '0.3.0',
   codeOnly: true,
   // Code-first molecule — composes DropdownMenu + MenuRow (both already in Figma), so no
   // standalone Figma master. React built S66; Angular twin shipped S67 → full cycle complete.

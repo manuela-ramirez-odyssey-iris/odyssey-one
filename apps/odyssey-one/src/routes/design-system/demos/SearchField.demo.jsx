@@ -4,9 +4,8 @@ import { SearchField, FieldSearchResults } from '@odyssey/ui'
 export const meta = {
   name: 'SearchField',
   tier: 'organism',
-  normalizing: true,
-  approved: true,
-  ported: true,
+  version: '0.6.0',
+  createdVersion: '0.2.0',
   figmaNode: '1959:76',
   codeConnect: 'packages/ui/src/SearchField.figma.tsx',
 }

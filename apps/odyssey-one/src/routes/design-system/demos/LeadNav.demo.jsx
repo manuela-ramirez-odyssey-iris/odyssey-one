@@ -5,6 +5,7 @@ export const meta = {
   name: 'LeadNav',
   tier: 'molecule',
   version: '0.2.0',
+  createdVersion: '0.2.0',
   figmaNode: '639:564',
   codeConnect: 'packages/ui/src/LeadNav.figma.tsx',
 }

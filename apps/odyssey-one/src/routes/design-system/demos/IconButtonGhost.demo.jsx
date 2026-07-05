@@ -6,6 +6,7 @@ export const meta = {
   name: 'IconButtonGhost',
   tier: 'atom',
   version: '0.2.0',
+  createdVersion: '0.2.0',
   figmaNode: '2138:304',
   codeConnect: 'packages/ui/src/IconButtonGhost.figma.tsx',
 }

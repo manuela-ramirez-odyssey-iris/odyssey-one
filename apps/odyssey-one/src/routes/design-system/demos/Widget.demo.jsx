@@ -6,6 +6,7 @@ export const meta = {
   name: 'Widget',
   tier: 'organism',
   version: '0.2.0',
+  createdVersion: '0.2.0',
   figmaNode: '1825:7',
   codeConnect: 'packages/ui/src/Widget.figma.tsx',
 }

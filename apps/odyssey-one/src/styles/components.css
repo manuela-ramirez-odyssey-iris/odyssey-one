@@ -1692,6 +1692,11 @@ input[type="date"].odyssey-date-input::-webkit-calendar-picker-indicator:hover {
   font: inherit;
   color: inherit;
 }
+/* Static (non-collapsible, Figma State=Static): the header is a plain heading
+   row — no chevron, no toggle affordance. */
+.sub-accordion--static .sub-accordion__header {
+  cursor: default;
+}
 .sub-accordion__lead {
   display: flex;
   align-items: center;
@@ -4353,6 +4358,319 @@ button.breadcrumb__label:focus-visible {
   .step-indicator__circle,
   .button-toggle__thumb,
   .button-toggle__segment {
+    transition: none;
+  }
+}
+
+/* ============================================================
+   WIDGET MINI — compact metric filter card (Figma WidgetMini 4103:5027)
+   Card: White / Radius/xl / Border/subtle · padding Spacing/3 v Spacing/4 h ·
+   gap Spacing/3. Selected: border DSN/900 + shadow/sm (the Figma State axis).
+   Hover (code-only): border darkens one step.
+   ============================================================ */
+.widget-mini {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  padding: var(--spacing-3) var(--spacing-4);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  cursor: pointer;
+  font-family: var(--font-primary);
+  text-align: left;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+.widget-mini:hover:not(.widget-mini--selected) {
+  border-color: var(--deep-sea-neutral-300);
+}
+.widget-mini--selected {
+  border-color: var(--deep-sea-neutral-900);
+  box-shadow: var(--shadow-sm);
+}
+.widget-mini__metric {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: var(--spacing-1);
+  flex: 1;
+  min-width: 0;
+}
+/* Value type mirrors the Figma variable-composed pairing: Font Size/2xl over
+   Line Height/lg (24/24 — deliberate 1.0 leading, flagged with design). */
+.widget-mini__value {
+  font-size: var(--font-size-2xl);
+  line-height: var(--line-height-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.widget-mini__label {
+  color: var(--deep-sea-neutral-600);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.widget-mini .widget__pie-center {
+  color: var(--deep-sea-neutral-600);
+}
+/* The donut grows with the CARD hover, not its own — WidgetPieChart's self-hover
+   scale is neutralized inside the card so the whole widget reads as one target. */
+.widget-mini .widget__pie:hover {
+  transform: none;
+}
+.widget-mini:hover .widget__pie {
+  transform: scale(1.05);
+}
+
+/* ============================================================
+   SHIPMENTS BAR — docked bottom detail bar (Figma ShipmentsBar 4106:1765,
+   ShipmentsBarTab set 4105:1770, Components-Organisms)
+   48px strip (--bottombar-collapsed): current-shipment segment (arrows + ID) +
+   scrollable tab slots + PanelActions (TabArrangement + CollapseExpand as
+   Button Icon/sm — the ONLY controls; a replacement for the old bar, not a
+   preservation of its chrome). Selected tab = DSN/100 fill (real Selected
+   state — Figma mock faked it with Cell State=Hover); hover code-only.
+   Expanded height (50vh) is code-side (no Figma axis).
+   ============================================================ */
+.shipments-bar {
+  position: fixed;
+  bottom: 0;
+  left: var(--sidebar-width);
+  /* DSN/100 canvas behind the Content slot (per the designer's master edit);
+     the strip paints itself white on top. */
+  background: var(--deep-sea-neutral-100);
+  border-top: 1px solid var(--border-subtle);
+  transition: height var(--transition-slow), right var(--transition-base);
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+}
+.shipments-bar--expanded {
+  box-shadow: var(--shadow-up-md);
+}
+/* The hairline lives per segment (CurrentShipment + unselected tabs), NOT on
+   the strip — the selected tab's DSN/100 fill breaks the line (master edit).
+   position:relative anchors the PanelActions overlay. */
+.shipments-bar__strip {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  height: var(--bottombar-collapsed);
+  background: var(--bg-primary);
+  position: relative;
+}
+.shipments-bar__current {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: 0 var(--spacing-4);
+  height: 100%;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.shipments-bar__id {
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+.shipments-bar--disabled .shipments-bar__id {
+  color: var(--text-placeholder);
+}
+.shipments-bar__nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--deep-sea-neutral-500);
+  transition: color var(--transition-fast);
+}
+.shipments-bar__nav:hover:not(:disabled) {
+  color: var(--text-primary);
+}
+.shipments-bar__nav:disabled {
+  color: var(--text-placeholder);
+  opacity: 0.5;
+  cursor: default;
+}
+.shipments-bar__tabs {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  /* Overflow scrolls natively — the old bar's scroll-chevron buttons are gone.
+     The right padding lets the last tab scroll clear of the PanelActions
+     overlay (its ~120px footprint). */
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-right: 120px;
+}
+.shipments-bar__tabs::-webkit-scrollbar {
+  display: none;
+}
+.shipments-bar__tab {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  padding: 0 var(--spacing-4);
+  height: 100%;
+  flex-shrink: 0;
+  background: var(--bg-primary);
+  border: none;
+  border-bottom: 1px solid var(--border-subtle);
+  cursor: pointer;
+  color: var(--text-primary);
+  white-space: nowrap;
+  transition: background var(--transition-fast);
+}
+.shipments-bar__tab:hover:not(:disabled):not(.shipments-bar__tab--selected) {
+  background: var(--deep-sea-neutral-50);
+}
+.shipments-bar__tab--selected {
+  background: var(--deep-sea-neutral-100);
+  border-bottom-color: transparent;
+}
+/* Dropdown tab face (Figma ShipmentsBarTab State=Selected, Dropdown=True):
+   prelabel (12/12 regular, Text/tertiary) stacked over the value, 4px gap to a
+   16px chevron; padding 10/12/6/16. Chevron rotates 180° while the menu is
+   open (menu-open is code-only, like hover — no Figma axis). */
+.shipments-bar__tab--dropdown {
+  padding: 10px var(--spacing-3) 6px var(--spacing-4);
+  gap: 4px;
+}
+.shipments-bar__tab-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+}
+.shipments-bar__tab-prelabel {
+  font-size: var(--font-size-xs);
+  line-height: 12px;
+  font-weight: var(--font-weight-regular);
+  color: var(--text-tertiary);
+}
+.shipments-bar__tab-chevron {
+  color: var(--deep-sea-neutral-500);
+  transition: transform var(--transition-fast);
+}
+.shipments-bar__tab--dropdown[aria-expanded="true"] .shipments-bar__tab-chevron {
+  transform: rotate(180deg);
+}
+.shipments-bar__tab:disabled {
+  color: var(--text-placeholder);
+  opacity: 0.6;
+  cursor: default;
+}
+/* PanelActions (Figma mock 4095:3070): gap Spacing/3, padding 24 left / 12 right,
+   composing Button Icon/sm — TabArrangement + CollapseExpand only (the old bar's
+   X / scroll chevrons / fullscreen buttons are gone: this is a replacement).
+   OVERLAY: absolutely pinned to the strip's right edge (the mock's original
+   positioning) with a transparent→white gradient, so when the bar narrows and
+   the tab strip scrolls, tabs slide UNDER the actions and dissolve in the fade.
+   pointer-events pass through the container (the fade zone stays clickable);
+   only the buttons themselves catch clicks. */
+.shipments-bar__panel-actions {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  padding: 0 var(--spacing-3) 0 var(--spacing-6);
+  background: linear-gradient(to right, rgba(255, 255, 255, 0) 0%, var(--white) 20%);
+  pointer-events: none;
+}
+.shipments-bar__panel-actions > * {
+  pointer-events: auto;
+}
+.shipments-bar__content {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  position: relative;
+  padding: var(--spacing-4) var(--spacing-5);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shipments-bar,
+  .shipments-bar__tab-chevron,
+  .widget-mini {
+    transition: none;
+  }
+}
+
+/* ============================================================
+   TEXT AREA — FormField's multiline sibling (Figma TextArea, Fields section)
+   Box: White / Border/default / Radius/md / shadow/sm; borderless <textarea>
+   (padding Spacing/3) over an in-box count footer (Spacing/8 right — clears
+   the grip — / Spacing/4 bottom, label/xs regular Text/tertiary). `resize`
+   lives on the BOX so the native grip sits at the corner, below the footer.
+   States mirror FormField (single Default state in Figma — Efrain ask).
+   ============================================================ */
+.text-area {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  width: 100%;
+}
+.text-area__label-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+}
+.text-area__label { color: var(--text-secondary); }
+.text-area__info { color: var(--text-tertiary); flex-shrink: 0; }
+
+.text-area__box {
+  display: flex;
+  flex-direction: column;
+  background: var(--white);
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  transition: border-color var(--transition-fast);
+  resize: vertical;
+  overflow: auto;
+  min-height: 64px;
+}
+.text-area__box--fixed { resize: none; }
+.text-area__box:focus-within { border-color: var(--input-border-focus); }
+.text-area__field {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  padding: var(--spacing-3);
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--input-text);
+  font-family: var(--font-primary);
+  resize: none; /* the box resizes, not the field */
+}
+.text-area__field::placeholder { color: var(--text-placeholder); }
+.text-area__footer {
+  display: flex;
+  justify-content: flex-end;
+  flex-shrink: 0;
+  padding: 0 var(--spacing-8) var(--spacing-4) 0;
+}
+.text-area__count { color: var(--text-tertiary); }
+.text-area__error { color: var(--text-error); margin: 0; }
+
+.text-area--error .text-area__box { border-color: var(--bittersweet-200); }
+.text-area--error .text-area__box:focus-within { border-color: var(--bittersweet-600); }
+.text-area--error .text-area__field { color: var(--text-error); }
+.text-area--error .text-area__field::placeholder { color: var(--text-error); }
+.text-area--disabled .text-area__box { background: var(--bg-secondary); }
+.text-area--disabled .text-area__field { color: var(--text-tertiary); cursor: not-allowed; }
+
+@media (prefers-reduced-motion: reduce) {
+  .text-area__box {
     transition: none;
   }
 }

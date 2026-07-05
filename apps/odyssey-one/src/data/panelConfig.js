@@ -1,5 +1,5 @@
 // Single source of truth for panel names and category labels.
-// MonitorPanels and ShipmentTabs both derive from this config.
+// ShipmentsPanelTabs (panel tabs + category pill/widget rows) derives from this config.
 
 export const PANEL_CONFIG = {
   exceptions: {

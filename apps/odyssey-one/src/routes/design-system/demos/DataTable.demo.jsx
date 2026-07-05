@@ -13,6 +13,7 @@ export const meta = {
   name: 'DataTable',
   tier: 'organism',
   version: '0.3.1',
+  createdVersion: '0.3.0',
   codeOnly: true,
   // Code-first molecule (composes Cell + Paginator + ActionMenu — no standalone Figma master).
   // React shell S66 + resize/cell-click extensibility S68; Angular twin shipped → full cycle complete.

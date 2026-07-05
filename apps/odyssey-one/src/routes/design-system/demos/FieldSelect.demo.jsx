@@ -5,6 +5,7 @@ export const meta = {
   name: 'FieldSelect',
   tier: 'atom',
   version: '0.2.0',
+  createdVersion: '0.2.0',
   figmaNode: '2627:153',
   codeConnect: 'packages/ui/src/FieldSelect.figma.tsx',
 }

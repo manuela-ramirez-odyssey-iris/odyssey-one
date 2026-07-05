@@ -35,6 +35,7 @@
     "ActionMenu",
     "Badge",
     "Button",
+    "ButtonToggle",
     "DataTable",
     "DropdownMenu",
     "FormField",
@@ -45,8 +46,13 @@
     "ModalMedium",
     "PageHeader",
     "Paginator",
+    "PillTab",
     "RightPanel",
-    "SearchField"
+    "SearchField",
+    "ShipmentsBar",
+    "Tab",
+    "TextArea",
+    "WidgetMini"
   ],
   "carriers": [
     "PageHeader"

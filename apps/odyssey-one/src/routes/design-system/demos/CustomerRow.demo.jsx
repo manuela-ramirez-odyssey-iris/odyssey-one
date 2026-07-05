@@ -5,6 +5,7 @@ export const meta = {
   name: 'CustomerRow',
   tier: 'molecule',
   version: '0.2.0',
+  createdVersion: '0.2.0',
   figmaNode: '2029:461',
   codeConnect: 'packages/ui/src/CustomerRow.figma.tsx',
 }

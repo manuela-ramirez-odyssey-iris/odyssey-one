@@ -5,6 +5,7 @@ export const meta = {
   name: 'EmptyState',
   tier: 'atom',
   version: '0.2.0',
+  createdVersion: '0.2.0',
   figmaNode: '2159:295',
   codeConnect: 'packages/ui/src/EmptyState.figma.tsx',
 }

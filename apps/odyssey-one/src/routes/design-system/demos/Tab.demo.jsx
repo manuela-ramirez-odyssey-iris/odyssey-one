@@ -5,6 +5,7 @@ export const meta = {
   name: 'Tab',
   tier: 'atom',
   version: '0.2.0',
+  createdVersion: '0.2.0',
   figmaNode: '3057:362',
   codeConnect: 'packages/ui/src/Tab.figma.tsx',
 }
@@ -49,7 +50,8 @@ export default function TabDemo() {
         remote Tailwind kit restyled to our palette — only the Underline
         style is normalized, and a clean local master rebuild is pending.
         Hover (text DSN/800 + DSN/300 underline) is code + DSM only.
-        ShipmentTabs migrates to this atom in a later Shipments pass.
+        The Shipments panel tabs migrated onto this atom in S77
+        (ShipmentsPanelTabs — the old app-local ShipmentTabs is retired).
       </p>
 
       <div className="ds-demo-section">

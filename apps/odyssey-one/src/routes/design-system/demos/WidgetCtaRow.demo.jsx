@@ -6,6 +6,7 @@ export const meta = {
   name: 'WidgetCtaRow',
   tier: 'molecule',
   version: '0.2.0',
+  createdVersion: '0.2.0',
   figmaNode: '1927:84',
   codeConnect: 'packages/ui/src/WidgetCtaRow.figma.tsx',
 }

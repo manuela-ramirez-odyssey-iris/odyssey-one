@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react'
 import { Pencil, Trash2 } from 'lucide-react'
-import { Button } from '@odyssey/ui'
+import { Button, TextArea } from '@odyssey/ui'
 
 let noteIdCounter = 100
 
@@ -87,21 +87,11 @@ function NoteItem({ note, onEdit, onDelete }) {
       {/* Body */}
       {editing ? (
         <div className="flex flex-col gap-2" style={{ marginTop: 8 }}>
-          <textarea
+          <TextArea
+            showLabel={false}
             value={editText}
             onChange={(e) => setEditText(e.target.value)}
-            className="text-sm"
-            style={{
-              width: '100%',
-              minHeight: 80,
-              padding: '8px 10px',
-              borderRadius: 'var(--radius-md)',
-              border: '1px solid var(--input-border)',
-              background: 'var(--input-bg)',
-              color: 'var(--input-text)',
-              fontFamily: 'var(--font-primary)',
-              resize: 'vertical',
-            }}
+            rows={3}
           />
           <div className="flex items-center gap-2 justify-end">
             <Button variant="secondary" onClick={handleCancel}>
@@ -175,21 +165,13 @@ const NotesTab = React.memo(function NotesTab({ data }) {
         >
           AC
         </div>
-        <textarea
+        <TextArea
+          showLabel={false}
           value={newText}
           onChange={(e) => setNewText(e.target.value)}
           placeholder="Add a note..."
-          className="flex-1 text-sm"
-          style={{
-            minHeight: 60,
-            padding: '8px 10px',
-            borderRadius: 'var(--radius-md)',
-            border: '1px solid var(--input-border)',
-            background: 'var(--input-bg)',
-            color: 'var(--input-text)',
-            fontFamily: 'var(--font-primary)',
-            resize: 'vertical',
-          }}
+          rows={2}
+          className="flex-1"
         />
         <Button variant="primary" onClick={handleAdd} disabled={!newText.trim()}>
           Add Note

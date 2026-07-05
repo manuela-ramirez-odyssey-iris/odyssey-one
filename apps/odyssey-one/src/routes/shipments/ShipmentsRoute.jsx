@@ -1,7 +1,6 @@
-import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
+import { useState, useMemo, useCallback, useRef } from 'react'
 import AppShell from '../../components/layout/AppShell'
-import MonitorPanels from '../../components/shipments/MonitorPanels'
-import ShipmentTabs from '../../components/shipments/ShipmentTabs'
+import ShipmentsPanelTabs from '../../components/shipments/ShipmentsPanelTabs'
 import TableControls from '../../components/shipments/TableControls'
 import ShipmentTable from '../../components/shipments/ShipmentTable'
 import BottomBar from '../../components/detail/BottomBar'
@@ -44,7 +43,9 @@ function ShipmentsRoute() {
   const [appliedSavedQuery, setAppliedSavedQuery] = useState(null)
   const [pageNumber, setPageNumber] = useState(0)
   const [pageSize, setPageSize] = useState(25)
-  const [metricsCollapsed, setMetricsCollapsed] = useState(false)
+  // 'pills' | 'widgets' — how the category row renders (PillTabs vs WidgetMini
+  // cards), toggled by the header ButtonToggle. Pill mode is the Figma default.
+  const [viewMode, setViewMode] = useState('pills')
   const [columnsByPanel, setColumnsByPanel] = useState({
     exceptions: EXCEPTIONS_DEFAULT_COLUMNS,
     monitoring: MONITORING_DEFAULT_COLUMNS,
@@ -60,12 +61,6 @@ function ShipmentsRoute() {
   const allShipments = useMemo(() => getAllShipments(), [])
 
   const { data: shipmentDetails = null, isLoading: detailsLoading, isError: detailsError, refetch: refetchDetails } = useShipmentDetail(selectedShipmentId)
-
-  // Collapse the metrics strip when a shipment is selected (was a side effect of
-  // the old detail-fetch effect).
-  useEffect(() => {
-    if (selectedShipmentId) setMetricsCollapsed(true)
-  }, [selectedShipmentId])
 
   // Selection id = sellShipment (the contract detail-link key). Look the raw row up
   // in the full set so BottomBar keeps its row summary even after paging away.
@@ -168,10 +163,6 @@ function ShipmentsRoute() {
     setSelectedShipmentId(prev => prev === id ? null : id)
   }, [])
 
-  const handleBottomBarClose = useCallback(() => {
-    setSelectedShipmentId(null)
-  }, [])
-
   const handleToggleFilters = useCallback(() => {
     setFiltersInitialTab('all')
     setFiltersOpen((prev) => !prev)
@@ -190,7 +181,21 @@ function ShipmentsRoute() {
     setVisibleColumns(newVisibleColumns)
   }, [setVisibleColumns])
 
-  const handleScrollStart = useCallback(() => setMetricsCollapsed(true), [])
+  // Prev/next shipment navigation for the ShipmentsBar arrows — steps the
+  // selection through the rows of the current page (Figma adds the affordance;
+  // page-boundary crossing deferred until the interaction is specced).
+  const selectedRowIndex = useMemo(
+    () => (selectedShipmentId ? pageRows.findIndex(r => r.sellShipment === selectedShipmentId) : -1),
+    [pageRows, selectedShipmentId],
+  )
+  const handlePrevShipment = useCallback(() => {
+    if (selectedRowIndex > 0) setSelectedShipmentId(pageRows[selectedRowIndex - 1].sellShipment)
+  }, [selectedRowIndex, pageRows])
+  const handleNextShipment = useCallback(() => {
+    if (selectedRowIndex !== -1 && selectedRowIndex < pageRows.length - 1) {
+      setSelectedShipmentId(pageRows[selectedRowIndex + 1].sellShipment)
+    }
+  }, [selectedRowIndex, pageRows])
 
   const handleApplyFilters = useCallback((newFilters) => {
     setFilters(newFilters)
@@ -256,8 +261,15 @@ function ShipmentsRoute() {
       }
     >
       <PageHeader title="Shipments" style={{ marginBottom: 25 }} />
-      <MonitorPanels activePanel={activePanel} onPanelSelect={handlePanelSelect} metrics={metrics} collapsed={metricsCollapsed} onToggleCollapsed={() => setMetricsCollapsed(c => !c)} />
-      <ShipmentTabs activePanel={activePanel} activeTab={activeTab} onTabSelect={setActiveTab} badgeCounts={metrics} />
+      <ShipmentsPanelTabs
+        activePanel={activePanel}
+        onPanelSelect={handlePanelSelect}
+        activeTab={activeTab}
+        onTabSelect={setActiveTab}
+        metrics={metrics}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+      />
       <TableControls
         itemCount={totalCount}
         totalCount={allShipments.length}
@@ -313,7 +325,6 @@ function ShipmentsRoute() {
           onRowSelect={handleRowSelect}
           onToggleColumnPanel={handleToggleColumnPanel}
           visibleColumns={visibleColumns}
-          onScrollStart={handleScrollStart}
           activeChipKey={activeChipKey}
           pageNumber={pageNumber}
           pageSize={pageSize}
@@ -329,12 +340,15 @@ function ShipmentsRoute() {
         selectedShipmentId={selectedShipmentId}
         shipmentDetails={shipmentDetails}
         shipment={selectedShipment}
-        onClose={handleBottomBarClose}
         rightOffset={rightOffset}
         onToggleColumnPanel={handleToggleColumnPanel}
         detailsLoading={detailsLoading}
         detailsError={detailsError}
         onRetryDetails={refetchDetails}
+        onPrevShipment={handlePrevShipment}
+        onNextShipment={handleNextShipment}
+        prevDisabled={selectedRowIndex <= 0}
+        nextDisabled={selectedRowIndex === -1 || selectedRowIndex >= pageRows.length - 1}
       />
     </AppShell>
   )

@@ -5,6 +5,7 @@ export const meta = {
   name: 'StepperButtonsFooter',
   tier: 'molecule',
   version: '0.5.0',
+  createdVersion: '0.5.0',
   normalizing: false,
   figmaNode: '3164:2169',
   codeConnect: 'packages/ui/src/StepperButtonsFooter.figma.tsx',

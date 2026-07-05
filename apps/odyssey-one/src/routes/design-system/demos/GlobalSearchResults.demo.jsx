@@ -4,9 +4,8 @@ import { GlobalSearchResults } from '@odyssey/ui'
 export const meta = {
   name: 'GlobalSearchResults',
   tier: 'organism',
-  normalizing: true,
-  approved: true,
-  ported: true,
+  version: '0.6.0',
+  createdVersion: '0.2.0',
   figmaNode: '3237:3439',
   codeConnect: 'packages/ui/src/GlobalSearchResults.figma.tsx',
 }

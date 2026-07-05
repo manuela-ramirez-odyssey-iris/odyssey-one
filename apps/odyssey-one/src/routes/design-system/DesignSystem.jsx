@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { SearchField } from '@odyssey/ui'
-import { TIERS, groupDemosByTier, collectNormalizing, DOMAINS, filterTiersByDomain, filterDemosByDomain, latestVersion, filterTiersByLatest, filterTiersBySearch, filterDemosBySearch } from './collectDemos.js'
+import { TIERS, groupDemosByTier, collectNormalizing, DOMAINS, filterTiersByDomain, filterDemosByDomain, allVersions, filterTiersByVersion, filterTiersBySearch, filterDemosBySearch } from './collectDemos.js'
 import domainUsage from './domain-usage.json'
 import './DesignSystem.css'
 
@@ -9,8 +9,10 @@ import './DesignSystem.css'
 const modules = import.meta.glob('./demos/*.demo.jsx', { eager: true })
 const tiers = groupDemosByTier(modules)
 const normalizing = collectNormalizing(modules)
-// Newest library version across all demos — drives the "Latest only" filter.
-const latestVer = latestVersion([...tiers.flatMap((t) => t.demos), ...normalizing])
+// Every distinct CREATION release across the demo metas (createdVersion,
+// falling back to version), newest first — drives the "Created in" dropdown.
+// Staging (Normalizing) demos carry no version stamps.
+const versions = allVersions([...tiers.flatMap((t) => t.demos), ...normalizing])
 
 // The Normalize panel is a pseudo-tier appended after the real tiers.
 const NORMALIZE_KEY = '__normalize__'
@@ -95,8 +97,9 @@ function DemoSection({ meta, props, tokens, Component, open, onToggle, collapsed
           <span className="ds-comp__chevron" aria-hidden="true">{collapsed ? '▸' : '▾'}</span>
           <h2 className="ds-comp__name">{meta.name}</h2>
           {isNormalizing && meta.ported && <span className="ds-comp__pill ds-comp__pill--ported">PORTED</span>}
-          {isNormalizing && meta.approved && !meta.ported && <span className="ds-comp__pill ds-comp__pill--approved">APPROVED</span>}
-          {isNormalizing && !meta.approved && !meta.ported && <span className="ds-comp__pill">NORMALIZING</span>}
+          {isNormalizing && meta.porting && !meta.ported && <span className="ds-comp__pill ds-comp__pill--porting">PORTING</span>}
+          {isNormalizing && meta.approved && !meta.porting && !meta.ported && <span className="ds-comp__pill ds-comp__pill--approved">APPROVED</span>}
+          {isNormalizing && !meta.approved && !meta.porting && !meta.ported && <span className="ds-comp__pill">NORMALIZING</span>}
           {meta.deprecated && <span className="ds-comp__pill ds-comp__pill--deprecated">DEPRECATED</span>}
           {meta.codeOnly && <span className="ds-comp__pill ds-comp__pill--code-only">CODE-ONLY</span>}
         </div>
@@ -125,17 +128,19 @@ export default function DesignSystem() {
   const [activeTier, setActiveTier] = useState(hasNormalizing ? NORMALIZE_KEY : TIERS[0].key)
   const [openDetails, setOpenDetails] = useState(null) // meta.name | null
   const [activeDomain, setActiveDomain] = useState('all')
-  const [latestOnly, setLatestOnly] = useState(false)
+  const [activeVersion, setActiveVersion] = useState('all')
   const [query, setQuery] = useState('')
   // Section collapse state — a set of expanded component names. Empty = all
   // collapsed (the default, on load and whenever the page re-mounts).
   const [expanded, setExpanded] = useState(() => new Set())
-  // The three filters compose, in order: domain → "Latest only" → search. The
-  // search is just a third query layer on top of the other two — it narrows each
-  // tier in place, so the tab structure stays and the tab counts reflect it.
+  // The three filters compose, in order: domain → version → search. The search
+  // is just a third query layer on top of the other two — it narrows each tier
+  // in place, so the tab structure stays and the tab counts reflect it. The
+  // version filter only applies to the tier tabs — Normalizing (staging) demos
+  // have no version yet, so they stay untouched by it.
   const domainTiers = filterTiersByDomain(tiers, domainUsage, activeDomain)
-  const latestTiers = latestOnly ? filterTiersByLatest(domainTiers, latestVer) : domainTiers
-  const viewTiers = filterTiersBySearch(latestTiers, query)
+  const versionTiers = filterTiersByVersion(domainTiers, activeVersion)
+  const viewTiers = filterTiersBySearch(versionTiers, query)
   const viewNormalizing = filterDemosBySearch(
     filterDemosByDomain(normalizing, domainUsage, activeDomain),
     query
@@ -144,7 +149,7 @@ export default function DesignSystem() {
   const active = onNormalize ? null : viewTiers.find((t) => t.key === activeTier)
   const searching = query.trim().length > 0
 
-  // Sections shown in the active tab (already domain + latest + search filtered).
+  // Sections shown in the active tab (already domain + version + search filtered).
   const visibleDemos = onNormalize ? viewNormalizing : (active?.demos ?? [])
   const allExpanded = visibleDemos.length > 0 && visibleDemos.every((d) => expanded.has(d.meta.name))
   const toggleCollapse = (name) =>
@@ -195,7 +200,7 @@ export default function DesignSystem() {
     return () => window.removeEventListener('hashchange', applyHash)
   }, [])
 
-  // When any filter (domain / latest / search) empties the active tab, never
+  // When any filter (domain / version / search) empties the active tab, never
   // strand the user — jump to the first tab that still has components (tiers
   // first, then Normalizing).
   useEffect(() => {
@@ -207,7 +212,7 @@ export default function DesignSystem() {
     if (firstTier) setActiveTier(firstTier.key)
     else if (viewNormalizing.length > 0) setActiveTier(NORMALIZE_KEY)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeDomain, latestOnly, query])
+  }, [activeDomain, activeVersion, query])
 
   const renderSection = (demo) => (
     <DemoSection
@@ -231,9 +236,9 @@ export default function DesignSystem() {
             thing, not a static reproduction.
           </p>
           {/* Filter row: the search query (left) sits alongside the Domain +
-              "Latest only" filters (right). All three compose — search is a
-              third query layer on top of the dropdown + button filters, applied
-              within the current tab. */}
+              Version dropdowns (right). All three compose — search is a third
+              query layer on top of the two dropdown filters, applied within
+              the current tab. */}
           <div className="ds-header__filters">
             <div className="ds-header__search">
               <SearchField
@@ -265,14 +270,23 @@ export default function DesignSystem() {
                   )}
                 </select>
               </label>
-              <button
-                type="button"
-                className={`ds-latest-toggle${latestOnly ? ' is-on' : ''}`}
-                aria-pressed={latestOnly}
-                onClick={() => setLatestOnly((v) => !v)}
-              >
-                Latest only
-              </button>
+              {/* Version history — every creation release stamped in the demo
+                  metas (createdVersion, falling back to version), newest first.
+                  Selecting one shows the components that FIRST shipped in that
+                  release; "All versions" is the no-op. */}
+              <label className="ds-domain">
+                <span className="ds-domain__label">Created in</span>
+                <select
+                  className="ds-domain__select"
+                  value={activeVersion}
+                  onChange={(e) => setActiveVersion(e.target.value)}
+                >
+                  <option value="all">All versions</option>
+                  {versions.map((v) => (
+                    <option key={v} value={v}>{v}</option>
+                  ))}
+                </select>
+              </label>
             </div>
           </div>
         </header>
