@@ -473,6 +473,19 @@
 /* Domain + Version filter cluster — pinned to the right of the search. */
 .ds-header__controls { display: flex; align-items: center; gap: var(--spacing-3); margin-left: auto; }
 
+/* Ignored while the "Newest" toggle supersedes the "Created in" filter. */
+.ds-domain__select:disabled { cursor: not-allowed; color: var(--text-tertiary); background: var(--bg-tertiary); }
+
+/* "Newest" pill toggle (sits next to the "Created in" dropdown). */
+.ds-latest-toggle {
+  font: inherit; font-size: var(--font-size-sm); color: var(--text-secondary);
+  padding: var(--spacing-1) var(--spacing-3); border: 1px solid var(--border-default);
+  border-radius: var(--radius-full); background: var(--white); cursor: pointer;
+}
+.ds-latest-toggle.is-on {
+  color: var(--badge-blue-text); background: var(--badge-blue-bg); border-color: var(--badge-blue-bg);
+}
+
 /* Details modal */
 .ds-modal__backdrop {
   position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center;

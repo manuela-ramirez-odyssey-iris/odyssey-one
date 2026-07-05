@@ -124,6 +124,19 @@ function cmpVersion(a, b) {
   return 0
 }
 
+// Highest CURRENT version (meta.version) across a flat demo list, or null if
+// none carry one — "the latest release". Demos without a version stamp
+// (staging/normalizing) are ignored.
+export function latestVersion(demos) {
+  let max = null
+  for (const d of demos) {
+    const v = d.meta && d.meta.version
+    if (!v) continue
+    if (max === null || cmpVersion(v, max) > 0) max = v
+  }
+  return max
+}
+
 // Distinct creation versions (createdVersion ?? version) across a flat demo
 // list, semver-sorted descending (newest first). Demos without either stamp
 // are ignored; empty list → [].
@@ -141,6 +154,16 @@ export function allVersions(demos) {
 export function filterTiersByVersion(tiers, version) {
   if (!version || version === 'all') return tiers
   return tiers.map((t) => ({ ...t, demos: t.demos.filter((d) => releaseCreatedIn(d.meta) === version) }))
+}
+
+// Keep only demos whose CURRENT version (meta.version — the release that
+// created OR last changed them) equals the given version. This is the "Newest"
+// toggle's filter: pass latestVersion(demos) to show everything created or
+// updated in the newest release. Deliberately NOT the createdVersion
+// resolution used by filterTiersByVersion. A falsy version is a no-op.
+export function filterTiersByCurrentVersion(tiers, version) {
+  if (!version) return tiers
+  return tiers.map((t) => ({ ...t, demos: t.demos.filter((d) => d.meta.version === version) }))
 }
 
 // ── Search filter ─────────────────────────────────────────────────────────────

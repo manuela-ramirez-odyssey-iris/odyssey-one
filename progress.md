@@ -5027,6 +5027,7 @@ Consolidated into **PR #3** (closed PR #2 as superseded). **PR #3 is BLOCKED** �
 - Angular: CHANGELOG 0.6.0 section (Added ×6 / Changed ×6 / Fixed DataTable demo border); `projects/odyssey-ui/package.json` → 0.6.0; two stale dsm-explorer release-assertion specs updated to 0.6.0 (latest-version chip + "Created in" list). **No npm publish — Cognizant's.**
 - **Verification**: React build green + **216/216** tests; Angular `ng build` odyssey-ui + dsm-explorer green, **650/650** lib + **45/45** explorer specs, `lint:parity` **68/68**.
 - **Commits / PR**: Angular `855d4ac` on `port/s76-search-batch` (pushed, with `2162d7b` beneath) → **PR #10** https://github.com/OneOdyssey/odyssey-one-library-ui/pull/10 to protected `main`. React: this session's final-approval commit on `main` (pushed).
+- **0.6.0 published to GitHub Packages by the user (2026-07-05).**
 
 ### NOT done / for the user
 

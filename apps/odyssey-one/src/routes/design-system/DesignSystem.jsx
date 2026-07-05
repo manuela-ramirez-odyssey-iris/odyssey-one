@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { SearchField } from '@odyssey/ui'
-import { TIERS, groupDemosByTier, collectNormalizing, DOMAINS, filterTiersByDomain, filterDemosByDomain, allVersions, filterTiersByVersion, filterTiersBySearch, filterDemosBySearch } from './collectDemos.js'
+import { TIERS, groupDemosByTier, collectNormalizing, DOMAINS, filterTiersByDomain, filterDemosByDomain, allVersions, filterTiersByVersion, latestVersion, filterTiersByCurrentVersion, filterTiersBySearch, filterDemosBySearch } from './collectDemos.js'
 import domainUsage from './domain-usage.json'
 import './DesignSystem.css'
 
@@ -13,6 +13,9 @@ const normalizing = collectNormalizing(modules)
 // falling back to version), newest first — drives the "Created in" dropdown.
 // Staging (Normalizing) demos carry no version stamps.
 const versions = allVersions([...tiers.flatMap((t) => t.demos), ...normalizing])
+// Newest library release — the semver-max of every meta's CURRENT version
+// stamp. Drives the "Newest" toggle (everything created OR updated in it).
+const latestVer = latestVersion([...tiers.flatMap((t) => t.demos), ...normalizing])
 
 // The Normalize panel is a pseudo-tier appended after the real tiers.
 const NORMALIZE_KEY = '__normalize__'
@@ -129,6 +132,10 @@ export default function DesignSystem() {
   const [openDetails, setOpenDetails] = useState(null) // meta.name | null
   const [activeDomain, setActiveDomain] = useState('all')
   const [activeVersion, setActiveVersion] = useState('all')
+  // "Newest" toggle — while on, the tier tabs show only components whose
+  // CURRENT version equals the latest release, and the "Created in" filter is
+  // ignored (its selection is kept, so releasing the toggle restores it).
+  const [newestOnly, setNewestOnly] = useState(false)
   const [query, setQuery] = useState('')
   // Section collapse state — a set of expanded component names. Empty = all
   // collapsed (the default, on load and whenever the page re-mounts).
@@ -136,10 +143,13 @@ export default function DesignSystem() {
   // The three filters compose, in order: domain → version → search. The search
   // is just a third query layer on top of the other two — it narrows each tier
   // in place, so the tab structure stays and the tab counts reflect it. The
-  // version filter only applies to the tier tabs — Normalizing (staging) demos
-  // have no version yet, so they stay untouched by it.
+  // version layer is EITHER the "Newest" toggle (current version === latest
+  // release) OR the "Created in" dropdown — Newest wins while on. Neither
+  // applies to Normalizing (staging) demos — they have no version yet.
   const domainTiers = filterTiersByDomain(tiers, domainUsage, activeDomain)
-  const versionTiers = filterTiersByVersion(domainTiers, activeVersion)
+  const versionTiers = newestOnly
+    ? filterTiersByCurrentVersion(domainTiers, latestVer)
+    : filterTiersByVersion(domainTiers, activeVersion)
   const viewTiers = filterTiersBySearch(versionTiers, query)
   const viewNormalizing = filterDemosBySearch(
     filterDemosByDomain(normalizing, domainUsage, activeDomain),
@@ -212,7 +222,7 @@ export default function DesignSystem() {
     if (firstTier) setActiveTier(firstTier.key)
     else if (viewNormalizing.length > 0) setActiveTier(NORMALIZE_KEY)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeDomain, activeVersion, query])
+  }, [activeDomain, activeVersion, newestOnly, query])
 
   const renderSection = (demo) => (
     <DemoSection
@@ -279,6 +289,7 @@ export default function DesignSystem() {
                 <select
                   className="ds-domain__select"
                   value={activeVersion}
+                  disabled={newestOnly}
                   onChange={(e) => setActiveVersion(e.target.value)}
                 >
                   <option value="all">All versions</option>
@@ -287,6 +298,17 @@ export default function DesignSystem() {
                   ))}
                 </select>
               </label>
+              {/* "Newest" pill — current version === latest release (created OR
+                  updated in it). While on it supersedes "Created in" (disabled,
+                  selection preserved for when the toggle is released). */}
+              <button
+                type="button"
+                className={`ds-latest-toggle${newestOnly ? ' is-on' : ''}`}
+                aria-pressed={newestOnly}
+                onClick={() => setNewestOnly((v) => !v)}
+              >
+                Newest
+              </button>
             </div>
           </div>
         </header>
