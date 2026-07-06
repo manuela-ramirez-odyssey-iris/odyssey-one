@@ -18,6 +18,17 @@ export const meta = {
   // is gone). Consumer-side (BottomBar): click-outside + Escape close, and tab
   // switches ride useTransition so the auto-height bar never collapses to the
   // Suspense fallback. All code-only, no Figma axis.
+  // S79d: height-model rebuild — all height motion is JS-measured px→px on
+  // the drawer curve (interpolate-size retired: its auto endpoint resolves
+  // UNCAPPED, so panes taller than the dvh cap slammed into the max-height
+  // clamp — the "two-step" open / snap close). min-height RATCHET (while open
+  // the bar holds the largest height reached; shorter panes never shrink it;
+  // resets on close), eased content GROWTH (data landing / taller tab), and
+  // animated CLOSE (last pane stays mounted, inert, while shrinking to 48).
+  // Consumer-side (BottomBar): loader is a proper ~320px pane held through
+  // the open transition (no mid-flight retarget); stale-details hold + tab
+  // preservation across prev/next switches (only a fresh null→id open resets
+  // to Orders). All code-only, no Figma axis.
   normalizing: true,
   figmaNode: '4120:4623',
   codeConnect: 'packages/ui/src/ShipmentsBar.figma.tsx',
@@ -29,8 +40,8 @@ export const props = [
   { name: 'onPrevShipment / onNextShipment', type: '() => void', desc: 'Prev/next arrows (20px, DSN/500) beside the ID — render only when provided; pair with prevDisabled/nextDisabled at list bounds.' },
   { name: 'tabs', type: '[{ key, label, dropdown? }]', desc: "The tab slots; overflow scrolls natively. A tab with dropdown = { prelabel, value?, menu } is a DROPDOWN TAB: selected it shows prelabel over value + a chevron; clicking it while active opens a DropdownMenu of preset values (menu node, or ({ close }) => node), chevron rotating while open. (Figma: ShipmentsBarTab State=Default|Selected|Selected Dropdown, Label + Prelabel TEXT.)" },
   { name: 'activeTab / onTabChange', type: 'string / (key) => void', desc: 'Controlled selection. Selected tab = DSN/100 fill — a real Selected state (the mock faked it with Cell State=Hover). (Figma: State VARIANT Default|Selected.)' },
-  { name: 'expanded / onExpandedChange', type: 'boolean / (next) => void', desc: 'Controlled expansion: 48px strip ↔ content-height pane (auto, capped at 100dvh − --bottombar-top-clearance; content scrolls when capped). CollapseExpand fires onExpandedChange(true) only in the expand direction — closing goes through onClose.' },
-  { name: 'onClose', type: '() => void', desc: "CLOSE (S79c): fired by CollapseExpand while expanded (chevrons-down, aria-label 'Close panel') — the consumer deselects the entity, returning the bar to the placeholder strip. No 'collapsed with selection' state exists. Falls back to onExpandedChange(false) when not provided." },
+  { name: 'expanded / onExpandedChange', type: 'boolean / (next) => void', desc: 'Controlled expansion: 48px strip ↔ content-height pane (auto, capped at 100dvh − --bottombar-top-clearance; content scrolls when capped). While open a min-height RATCHET holds the largest height reached — switching to a shorter pane never shrinks the bar (it resets on close). CollapseExpand fires onExpandedChange(true) only in the expand direction — closing goes through onClose.' },
+  { name: 'onClose', type: '() => void', desc: "CLOSE (S79c): fired by CollapseExpand while expanded (chevrons-down, aria-label 'Close panel') — the consumer deselects the entity, returning the bar to the placeholder strip. The close ANIMATES (S79d): the last-rendered pane stays mounted (inert) while the height eases back to 48px on the drawer curve. No 'collapsed with selection' state exists. Falls back to onExpandedChange(false) when not provided." },
   { name: 'onTabArrangement', type: '() => void', desc: 'The TabArrangement PanelAction (Button Icon/sm, columns+cog) — e.g. opens the column-arrangement panel. Renders only when provided. (Figma: PanelActions.)' },
   { name: 'rightOffset', type: 'number', desc: 'Pixel inset when side panels (filters/columns) are open.' },
   { name: 'children', type: 'node', desc: "The active tab's pane, rendered in the Content slot while expanded — each tab is a content slot. This bar REPLACES the old BottomBar chrome (no close X, no scroll chevrons, no fullscreen)." },
@@ -49,7 +60,7 @@ export const tokens = [
   { token: '--spacing-3 / --spacing-6', resolves: '12 / 24', usage: 'PanelActions gap + padding (24 left / 12 right)' },
   { token: '--shadow-up-lg', resolves: '0 -5px 30px rgba(0,0,0,.2)', usage: 'expanded bar (Figma shadow/up-lg) — clipped up-only via clip-path: inset(-40px 0 0 0) so it never paints over the sidebar/side panels (code-only)' },
   { token: '--bottombar-top-clearance', resolves: '104px', usage: 'expanded-height cap: max-height 100dvh − clearance — the bar top opens to mid page-title row (S79c); height itself is auto (content-driven), scrolling internally when capped' },
-  { token: '--transition-drawer / --transition-base', resolves: '300ms cubic-bezier(0.16,1,0.3,1) / 200ms ease', usage: 'height eases on the non-linear drawer curve (S79c); right (panel inset) on base; height ↔ auto animates via interpolate-size: allow-keywords where supported (non-animated fallback elsewhere)' },
+  { token: '--transition-drawer / --transition-base', resolves: '300ms cubic-bezier(0.16,1,0.3,1) / 200ms ease', usage: 'height eases on the non-linear drawer curve in BOTH directions plus content growth (S79d: JS-measured length→length transitions — interpolate-size retired, its uncapped auto endpoint slammed into the max-height clamp; close keeps the last pane mounted, inert, while shrinking); right (panel inset) on base; reduced-motion snaps' },
 ]
 
 // Slot-marker pink — DSM annotation device (NOT a product token). RightPanel convention.
@@ -162,7 +173,7 @@ function Playground() {
   return (
     <div>
       <div className="ds-demo-row" style={{ gap: 'var(--spacing-4)', marginBottom: 'var(--spacing-3)', flexWrap: 'wrap', alignItems: 'center' }}>
-        <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-tertiary)' }}>arrows step shipments · tabs switch the slot · click the active Orders tab to open its preset-values menu · chevrons-down = CLOSE (in the app it deselects the row; here it just collapses so chevrons-up can re-expand)</span>
+        <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-tertiary)' }}>arrows step shipments · tabs switch the slot · click the active Orders tab to open its preset-values menu · chevrons-down = CLOSE (in the app it deselects the row; here it just collapses so chevrons-up can re-expand) · open/close both ease on the drawer curve; while open the height ratchets — shorter slots don't shrink the bar</span>
       </div>
       <div style={{ border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
         <ShipmentsBar

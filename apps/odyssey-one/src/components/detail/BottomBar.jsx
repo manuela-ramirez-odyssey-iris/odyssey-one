@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, useTransition, Suspense } from 'react'
+import React, { useState, useEffect, useCallback, useMemo, useRef, useTransition, Suspense } from 'react'
 import { Loader2 } from 'lucide-react'
 import { Badge, ShipmentsBar } from '@odyssey/ui'
 
@@ -15,9 +15,13 @@ const NotesTab = React.lazy(() => import('./NotesTab'))
 const HistoryTab = React.lazy(() => import('./HistoryTab'))
 const TenderHistoryTab = React.lazy(() => import('./TenderHistoryTab'))
 
+// The loader is a PROPER PANE (min-height a few hundred px), not a thin strip:
+// with the auto-height bar, a fresh open animates 48px → the loader pane in
+// ONE motion and holds there until data lands (S79d — the old fixed-height bar
+// gave the loader this canvas for free; auto height must provide it).
 function TabLoader() {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'var(--spacing-12)', color: 'var(--text-placeholder)' }}>
+    <div style={{ minHeight: 320, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'var(--spacing-12)', color: 'var(--text-placeholder)' }}>
       <Loader2 size={24} className="animate-spin" />
     </div>
   )
@@ -68,9 +72,42 @@ export default function BottomBar({
   const [activeTab, setActiveTab] = useState('order')
   const [, startTransition] = useTransition()
 
+  // Only a FRESH open (null → id) resets to the Orders tab; a selected →
+  // selected switch (prev/next arrows, row-to-row click) keeps the bar open on
+  // the same tab (S79d — resetting on every id change lost the user's tab).
+  //
+  // holdLoader: when a fresh open starts WITHOUT data, the open animates to
+  // the loader pane — hold that loader slightly past the drawer transition
+  // (300ms) even if data lands earlier. Swapping content mid-transition makes
+  // Chrome retarget the running 48px→auto animation and the elapsed easing
+  // progress applies to the new larger range in one frame — the "two-step"
+  // leap (S79d; proven with a throttled-network trace). After the hold, the
+  // swap is a plain post-settle growth, which the bar eases on its own.
+  const prevIdRef = useRef(null)
+  const [holdLoader, setHoldLoader] = useState(false)
   useEffect(() => {
-    if (selectedShipmentId) setActiveTab('order')
+    const fresh = selectedShipmentId && !prevIdRef.current
+    prevIdRef.current = selectedShipmentId
+    if (!fresh) return
+    setActiveTab('order')
+    if (!shipmentDetails) {
+      setHoldLoader(true)
+      const t = setTimeout(() => setHoldLoader(false), 380)
+      return () => { clearTimeout(t); setHoldLoader(false) }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- shipmentDetails read once at open
   }, [selectedShipmentId])
+
+  // Stale-while-loading: across a selected → selected switch the detail query
+  // drops to null while the new shipment loads — hold the LAST shipment's
+  // details so the pane shows stale content instead of flashing the loader
+  // (the ratchet keeps the height; data swaps in place when it lands). Cleared
+  // on close so a fresh open still gets the loader pane, never another
+  // shipment's data (S79d).
+  const lastDetailsRef = useRef(null)
+  if (shipmentDetails) lastDetailsRef.current = shipmentDetails
+  else if (!selectedShipmentId) lastDetailsRef.current = null
+  const shownDetails = shipmentDetails ?? lastDetailsRef.current
 
   // Tab switches ride a transition so the PREVIOUS pane stays mounted while
   // the next lazy chunk loads — the auto-height bar never collapses to the
@@ -118,9 +155,9 @@ export default function BottomBar({
   const [selectedOrderIndex, setSelectedOrderIndex] = useState(0)
 
   const orders = useMemo(() => {
-    if (!shipmentDetails?.orderDetails) return []
-    return shipmentDetails.orderDetails.map(od => od.orderNumber)
-  }, [shipmentDetails])
+    if (!shownDetails?.orderDetails) return []
+    return shownDetails.orderDetails.map(od => od.orderNumber)
+  }, [shownDetails])
 
   // Reset selected order when shipment changes
   useEffect(() => {
@@ -149,7 +186,7 @@ export default function BottomBar({
         prelabel: 'Order',
         value: orders[selectedOrderIndex],
         menu: ({ close }) => orders.map((ord, i) => {
-          const orderDetail = shipmentDetails?.orderDetails?.[i]
+          const orderDetail = shownDetails?.orderDetails?.[i]
           const originLoc = orderDetail?.shipFrom?.location || ''
           const destLoc = orderDetail?.shipTo?.location || ''
           const origin = originLoc.split(', ')[1] || '—'
@@ -191,7 +228,7 @@ export default function BottomBar({
         }),
       },
     } : tab))
-  }, [orderedTabs, orders, selectedOrderIndex, shipmentDetails])
+  }, [orderedTabs, orders, selectedOrderIndex, shownDetails])
 
   const renderTabContent = () => {
     if (detailsError) {
@@ -228,30 +265,30 @@ export default function BottomBar({
         </div>
       )
     }
-    if (detailsLoading && !shipmentDetails) {
+    if (holdLoader || (detailsLoading && !shownDetails)) {
       return <TabLoader />
     }
-    if (!shipmentDetails) return null
+    if (!shownDetails) return null
     switch (shownTab) {
       case 'order': return (
         <OrderTab
-          data={shipmentDetails.orderDetails?.[selectedOrderIndex]}
+          data={shownDetails.orderDetails?.[selectedOrderIndex]}
           orders={orders}
           selectedOrderIndex={selectedOrderIndex}
           onSelectOrder={setSelectedOrderIndex}
           // slices are index-aligned with orderDetails (all map over the same orderList)
-          instructions={shipmentDetails.instructionsData?.orders?.[selectedOrderIndex]?.instructions ?? []}
-          productLines={shipmentDetails.productData?.orders?.[selectedOrderIndex]?.lines ?? []}
+          instructions={shownDetails.instructionsData?.orders?.[selectedOrderIndex]?.instructions ?? []}
+          productLines={shownDetails.productData?.orders?.[selectedOrderIndex]?.lines ?? []}
         />
       )
-      case 'stops': return <StopsTab data={shipmentDetails.stopsData} />
-      case 'product': return <ProductTab data={shipmentDetails.productData} />
-      case 'routing': return <RoutingGuideTab data={shipmentDetails.routingData} shipmentDetails={shipmentDetails} shipment={shipment} onToggleColumnPanel={onToggleColumnPanel} />
-      case 'cost': return <CostAllocationTab data={shipmentDetails.costData} selectedOrderIdx={selectedOrderIndex} />
-      case 'instructions': return <InstructionsTab data={shipmentDetails.instructionsData} />
-      case 'documents': return <DocumentsTab data={shipmentDetails.documentsData} />
-      case 'notes': return <NotesTab data={shipmentDetails.notesData} />
-      case 'history': return <HistoryTab data={shipmentDetails.historyData} />
+      case 'stops': return <StopsTab data={shownDetails.stopsData} />
+      case 'product': return <ProductTab data={shownDetails.productData} />
+      case 'routing': return <RoutingGuideTab data={shownDetails.routingData} shipmentDetails={shownDetails} shipment={shipment} onToggleColumnPanel={onToggleColumnPanel} />
+      case 'cost': return <CostAllocationTab data={shownDetails.costData} selectedOrderIdx={selectedOrderIndex} />
+      case 'instructions': return <InstructionsTab data={shownDetails.instructionsData} />
+      case 'documents': return <DocumentsTab data={shownDetails.documentsData} />
+      case 'notes': return <NotesTab data={shownDetails.notesData} />
+      case 'history': return <HistoryTab data={shownDetails.historyData} />
       case 'tender': return <TenderHistoryTab />
       default: return null
     }
@@ -272,6 +309,10 @@ export default function BottomBar({
         onTabArrangement={onTabArrangement}
         rightOffset={rightOffset}
       >
+        {/* key stays for data freshness (pane-local state resets per shipment)
+            — on a switch it remounts SYNCHRONOUSLY with the held stale details
+            (chunks already loaded), so no loader flash and, with the bar's
+            ratchet, no height dip (S79d). */}
         <div key={selectedShipmentId}>
           <Suspense fallback={<TabLoader />}>
             {renderTabContent()}

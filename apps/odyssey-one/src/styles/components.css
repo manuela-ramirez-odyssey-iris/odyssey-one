@@ -4446,11 +4446,12 @@ button.breadcrumb__label:focus-visible {
      the strip paints itself white on top. */
   background: var(--deep-sea-neutral-100);
   border-top: 1px solid var(--border-subtle);
-  /* Open/close eases non-linearly (drawer curve — S79c decision 2). */
+  /* Open/close eases non-linearly (drawer curve — S79c decision 2). The
+     component drives all height motion as measured length→length pixel
+     transitions (S79d) — interpolate-size was retired: its `auto` endpoint
+     resolves UNCAPPED, so panes taller than the max-height cap made the
+     animation slam into the clamp (the "two-step" open / snap close). */
   transition: height var(--transition-drawer), right var(--transition-base);
-  /* Lets height ↔ auto animate in supporting browsers (Chrome 129+);
-     elsewhere the height snap is the accepted non-animated fallback. */
-  interpolate-size: allow-keywords;
   z-index: 40;
   display: flex;
   flex-direction: column;
@@ -4458,9 +4459,17 @@ button.breadcrumb__label:focus-visible {
 }
 .shipments-bar--expanded {
   /* Content-driven height, capped so the top edge never rises above the
-     page title row (S79b decision 2). */
+     page title row (S79b decision 2). While open, an inline min-height
+     RATCHET (set by the component) holds the largest height reached so
+     shorter panes never shrink the bar (S79d). */
   height: auto;
   max-height: calc(100dvh - var(--bottombar-top-clearance));
+}
+/* --closing keeps the expanded chrome (shadow) while the height eases back
+   to the strip with the last pane still mounted (S79d) — without it the
+   shadow would vanish a full bar-height early. */
+.shipments-bar--expanded,
+.shipments-bar--closing {
   /* up-lg per the Orders-tab wireframe (1210:38232 carried the raw value;
      tokenized S79 — Figma effect style shadow/up-lg pairs with this). */
   box-shadow: var(--shadow-up-lg);
@@ -4615,6 +4624,10 @@ button.breadcrumb__label:focus-visible {
   position: relative;
   /* Panes own their canvas (.pane-canvas/.pane-col — S79b decision 4). */
   padding: 0;
+}
+/* No scrollbar flash while the shrinking bar squeezes the held pane (S79d). */
+.shipments-bar--closing .shipments-bar__content {
+  overflow: hidden;
 }
 
 @media (prefers-reduced-motion: reduce) {

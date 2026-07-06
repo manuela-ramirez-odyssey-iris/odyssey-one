@@ -1,27 +1,37 @@
 import { createContext, useContext, useState, useCallback, useMemo } from 'react'
 // Shared master-data customer pool (tools/data-pools.mjs re-exported through
-// src/data/master-data.js) — the SAME 15 customers the shipment generator
+// src/data/master-data.js) — the SAME 25 customers the shipment generator
 // stamps onto rows as customerId/customerName.
 import { CUSTOMERS as DATA_CUSTOMERS } from '../data/master-data.js'
 
 const CustomersContext = createContext(null)
 
-// Planner's book — the original partial customer list (S-Home). These names have
-// no shipment data behind them; selecting one legitimately contributes 0 rows to
-// the Shipments grid (S79c decision 10 — that IS the feature, not a bug).
+// Planner's book — the original partial customer list (S-Home). Every entry is
+// now data-backed (S79 data fix — 10 new ids added to CUSTOMERS pool).
 const LEGACY_NAMES = [
   'Kemira NA', 'Kemira EU', 'Geon', 'Valtris', 'USALCO',
   'Dubois', 'Solenis', 'Etex', 'Monument', 'Grace', 'IMCD',
 ]
 
-// Legacy label → data-pool id, for entries that exist in BOTH lists. The merged
-// entry becomes the data-backed one (keeps its favorite/selection slot).
-const LEGACY_TO_DATA = { USALCO: 'USALCO_SYS_01' }
+// Legacy label → data-pool id. All 11 entries are now mapped (S79 data fix).
+const LEGACY_TO_DATA = {
+  'Kemira NA': 'KEMIRA_NA_01',
+  'Kemira EU': 'KEMIRA_EU_01',
+  'Geon':      'GEON_01',
+  'Valtris':   'VALTRIS_01',
+  'USALCO':    'USALCO_SYS_01',
+  'Dubois':    'DUBOIS_01',
+  'Solenis':   'SOLENIS_01',
+  'Etex':      'ETEX_01',
+  'Monument':  'MONUMENT_01',
+  'Grace':     'GRACE_01',
+  'IMCD':      'IMCD_01',
+}
 
 // Union of the planner's book + the data-pool customers, deduped (S79c decision
-// 10). Data-backed entries carry `dataId` — the customerId stamped on shipment
-// rows — which is what the grid/search scoping filters on. Entries without a
-// dataId are selectable but data-less.
+// 10). All legacy entries are now data-backed (S79 data fix), so every entry
+// carries `dataId` — the customerId stamped on shipment rows — which is what
+// the grid/search scoping filters on.
 function initialCustomers() {
   const list = []
   const merged = new Set()
@@ -30,7 +40,8 @@ function initialCustomers() {
     const data = dataId ? DATA_CUSTOMERS.find((c) => c.id === dataId) : null
     if (data) {
       merged.add(data.id)
-      list.push({ id: data.id, label: data.name, dataId: data.id, favorite: i < 3 })
+      // Keep the short legacy label ("Kemira NA") in the popover; dataId links to pool rows.
+      list.push({ id: data.id, label, dataId: data.id, favorite: i < 3 })
     } else {
       list.push({ id: `c${i + 1}`, label, favorite: i < 3 })
     }
@@ -45,9 +56,9 @@ function initialCustomers() {
 
 export function CustomersProvider({ children }) {
   const [customers, setCustomers] = useState(initialCustomers)
-  // Default selection = the original c1/c2/c3 (Kemira NA/EU, Geon — data-less)
-  // + ERCO (data-backed), so the default Shipments table shows ERCO's rows.
-  const [selectedIds, setSelectedIds] = useState(() => new Set(['c1', 'c2', 'c3', 'ERCO_SYS_01']))
+  // Default selection = Kemira NA, Kemira EU, Geon + ERCO — all now data-backed
+  // (S79 data fix), so the default Shipments table shows rows for all four.
+  const [selectedIds, setSelectedIds] = useState(() => new Set(['KEMIRA_NA_01', 'KEMIRA_EU_01', 'GEON_01', 'ERCO_SYS_01']))
   const [modalOpen, setModalOpen] = useState(false)
 
   const openModal = useCallback(() => {

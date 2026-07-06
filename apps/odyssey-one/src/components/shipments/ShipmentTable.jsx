@@ -401,10 +401,11 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
           table={table}
           // AppShell's <main> has --spacing-8 (32px) padding-top; sticky insets resolve
           // against the content edge, not the viewport edge (S79b header-gap fix).
-          // S79c decision 11: TableControls is now a sticky toolbar that occupies 48px
-          // (36px controls row + 12px paddingBottom / --spacing-3). The header must sit
-          // below the toolbar, so we add those 48px back: -32px + 48px = +16px.
-          stickyTop="calc(-1 * var(--spacing-8) + 48px)"
+          // S79c decision 11: TableControls is a sticky toolbar that occupies 72px
+          // (24px paddingTop / --spacing-6 + 36px controls row + 12px paddingBottom /
+          // --spacing-3 — matching the Orders toolbar breathing-room treatment).
+          // The header must sit below the toolbar: -32px + 72px = +40px.
+          stickyTop="calc(-1 * var(--spacing-8) + 72px)"
           ariaLabel="Shipments"
           onCellClick={handleCellClick}
           footer={<Paginator table={table} pageSizeOptions={[25, 50, 100]} />}

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { ArrowLeft, ArrowRight, ChevronDown, ChevronsDown, ChevronsUp, Columns3Cog } from 'lucide-react'
 import Button from './Button.jsx'
 import DropdownMenu from './DropdownMenu.jsx'
@@ -56,6 +56,12 @@ import { useAnchoredPortal } from './useAnchoredPortal.jsx'
  *                       arrangement panel); button renders only when provided.
  *   rightOffset       — px inset when side panels are open.
  *   children          — the active tab's pane (the Content slot), rendered while expanded.
+ *
+ * Height model (S79d): expanded height is content-driven (auto, dvh-capped)
+ * with a min-height RATCHET — while open the bar holds the largest height
+ * reached, so shorter panes never shrink it (ratchet resets on close). Close
+ * keeps the last-rendered pane mounted (inert) while the height eases back to
+ * the 48px strip, so both directions animate on the drawer curve.
  */
 export default function ShipmentsBar({
   shipmentId,
@@ -79,6 +85,153 @@ export default function ShipmentsBar({
 }) {
   const isDisabled = !shipmentId
   const isExpanded = expanded && !isDisabled
+
+  // --- Height model (S79d) -------------------------------------------------
+  const rootRef = useRef(null)
+
+  // All height motion is JS-measured length→length (pin the old height,
+  // measure the new used height — WITH the dvh cap applied — animate between
+  // the two pixel values, then release back to `auto` under a suppressed
+  // transition). CSS `interpolate-size` transitions to `auto` were retired:
+  // the keyword endpoint resolves to the UNCAPPED intrinsic content height,
+  // so with a pane taller than the max-height cap the animated value crosses
+  // the clamp almost immediately and the bar visually snaps (S79d root
+  // cause). Measured pixels animate the true visible range in every engine.
+  //
+  // The expanded ResizeObserver drives two behaviors:
+  //
+  // RATCHET — an inline min-height tracks the largest height the bar has
+  // reached (clamped to the dvh cap so a viewport shrink can't wedge it open
+  // past the clearance). Switching to a shorter pane therefore never shrinks
+  // the bar — short panes just show more canvas below their content. Resets
+  // only on close.
+  //
+  // GROWTH EASING — `height: auto` means content-driven growth (data landing
+  // in a pane, switching to a taller tab) never transitions on its own; the
+  // RO replays any growth seen while no height animation is running as an
+  // eased prev→target transition on the same drawer curve. Under reduced
+  // motion the pin/animate degrades to the same instant snap (the 400ms
+  // release fallback un-pins when no transitionend will come).
+  //
+  // The effect cleanup doubles as the CLOSE animation: it pins the last
+  // tracked height in the same commit the --expanded class drops, then
+  // releases to the CSS 48px rule — so the shrink eases too (the `closing`
+  // flag below keeps the pane mounted while it does).
+  useLayoutEffect(() => {
+    const el = rootRef.current
+    if (!el || !isExpanded) return
+    let max = 0
+    let prev = 0
+    let animating = false
+    let releaseTimer = 0
+    let startRaf = 0
+
+    // Un-pin: back to content-driven auto (same used height — no motion),
+    // so the RO can see the next content growth.
+    const release = () => {
+      clearTimeout(releaseTimer)
+      animating = false
+      el.style.transition = 'none'
+      el.style.height = ''
+      void el.offsetHeight
+      el.style.transition = ''
+      prev = el.offsetHeight
+    }
+    // Ease fromPx → the current used height (auto laid out under the cap).
+    // The pin lands pre-paint; the transition starts on the NEXT frame — a
+    // heavy commit (big pane mounting) backdates a same-frame transition's
+    // start time and the bezier's head gets eaten (measured ~70ms → the bar
+    // leapt to ~80% before the first painted frame).
+    const animateFrom = (fromPx) => {
+      clearTimeout(releaseTimer)
+      cancelAnimationFrame(startRaf)
+      el.style.transition = 'none'
+      el.style.height = ''
+      const target = el.offsetHeight
+      if (target <= fromPx + 1) { el.style.transition = ''; return } // grow-only
+      el.style.height = `${fromPx}px`
+      void el.offsetHeight // reflow at the pinned start height
+      animating = true
+      startRaf = requestAnimationFrame(() => {
+        el.style.transition = ''
+        el.style.height = `${target}px`
+        releaseTimer = setTimeout(release, 400) // reduced-motion fallback
+      })
+    }
+    const onEnd = (e) => {
+      if (e.target === el && e.propertyName === 'height') release()
+    }
+    el.addEventListener('transitionend', onEnd)
+    el.addEventListener('transitioncancel', onEnd)
+
+    // OPEN: from the strip height (pinned pre-paint — no flash of the tall
+    // state) to the first pane's measured height, in one motion.
+    animateFrom(el.firstElementChild?.offsetHeight ?? 48)
+    prev = el.offsetHeight
+
+    const ro = new ResizeObserver(() => {
+      const h = el.offsetHeight
+      if (!animating && h > prev + 1) animateFrom(prev)
+      prev = el.offsetHeight
+      if (prev > max) {
+        max = prev // ratchet follows the ANIMATED height, never the jump target
+        el.style.minHeight = `min(${prev}px, 100dvh - var(--bottombar-top-clearance))`
+      }
+    })
+    ro.observe(el)
+
+    return () => {
+      ro.disconnect()
+      el.removeEventListener('transitionend', onEnd)
+      el.removeEventListener('transitioncancel', onEnd)
+      clearTimeout(releaseTimer)
+      cancelAnimationFrame(startRaf)
+      el.style.minHeight = ''
+      // CLOSE: pin the last height, release to the CSS 48px strip → eased
+      // shrink (class is already off in this commit; recalc stays suppressed
+      // until the pin is in place, so no auto→48 snap sneaks in first; the
+      // next-frame start dodges commit backdating, same as animateFrom).
+      el.style.transition = 'none'
+      el.style.height = `${prev}px`
+      void el.offsetHeight
+      requestAnimationFrame(() => {
+        el.style.transition = ''
+        el.style.height = ''
+      })
+    }
+  }, [isExpanded])
+
+  // CLOSING: when expansion drops (close = deselect, so `children` empties in
+  // the same commit), keep the LAST-RENDERED pane mounted while the height
+  // eases back to the strip — otherwise the content vanishes and the bar
+  // snaps shut. Cleared on the root's height transitionend, with a timeout
+  // fallback for reduced-motion (where the height snaps instead). `isClosing`
+  // is DERIVED for the just-closed render — the state flag only flips in the
+  // effect, one commit later, and waiting for it would unmount the pane (and
+  // drop the shadow) for a frame.
+  const [closing, setClosing] = useState(false)
+  const wasExpandedRef = useRef(isExpanded)
+  const isClosing = closing || (!isExpanded && wasExpandedRef.current)
+  const lastChildrenRef = useRef(null)
+  if (isExpanded) lastChildrenRef.current = children
+  else if (!isClosing) lastChildrenRef.current = null
+  useEffect(() => {
+    const was = wasExpandedRef.current
+    wasExpandedRef.current = isExpanded
+    if (isExpanded) { setClosing(false); return }
+    if (!was) return
+    setClosing(true)
+    const el = rootRef.current
+    const done = () => setClosing(false)
+    const onEnd = (e) => { if (e.target === el && e.propertyName === 'height') done() }
+    el?.addEventListener('transitionend', onEnd)
+    const t = setTimeout(done, 400)
+    return () => {
+      el?.removeEventListener('transitionend', onEnd)
+      clearTimeout(t)
+    }
+  }, [isExpanded])
+  // --------------------------------------------------------------------------
 
   // Expanded → CLOSE (deselection at the consumer); collapsed (placeholder
   // strip — the button is disabled without a selection) → expand.
@@ -112,12 +265,14 @@ export default function ShipmentsBar({
   const classes = [
     'shipments-bar',
     isExpanded && 'shipments-bar--expanded',
+    isClosing && 'shipments-bar--closing',
     isDisabled && 'shipments-bar--disabled',
     className,
   ].filter(Boolean).join(' ')
 
   return (
     <div
+      ref={rootRef}
       data-bottombar
       className={classes}
       style={{ right: rightOffset, ...style }}
@@ -211,9 +366,9 @@ export default function ShipmentsBar({
           />
         </div>
       </div>
-      {isExpanded && (
-        <div className="shipments-bar__content">
-          {children}
+      {(isExpanded || isClosing) && (
+        <div className="shipments-bar__content" inert={isClosing || undefined}>
+          {isExpanded ? children : lastChildrenRef.current}
         </div>
       )}
       {menuOpen && activeDropdownTab && (

@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
-import { Lock, ChevronRight, ChevronDown } from 'lucide-react'
+import { Lock, ChevronRight, ChevronDown, ChevronsUpDown } from 'lucide-react'
+import { ICON_MD } from '@odyssey/tokens'
 import { Tab, Button } from '@odyssey/ui'
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -239,6 +240,7 @@ const CostAllocationTab = React.memo(function CostAllocationTab({ data }) {
                 {planned?.orders?.length > 0 && (
                   <Button
                     variant="link"
+                    iconRight={<ChevronsUpDown {...ICON_MD} />}
                     onClick={() => setAllExpanded(v => !v)}
                     aria-pressed={allExpanded}
                   >

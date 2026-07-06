@@ -25,6 +25,17 @@ export const CUSTOMERS = [
   { id: 'EAST_CHM_01', name: 'Eastman Chemical Company' },
   { id: 'NOURYON_01', name: 'Nouryon Surface Chemistry' },
   { id: 'WEYERH_01', name: 'Weyerhaeuser Company' },
+  // Legacy planner customers — now data-backed (S79 data fix)
+  { id: 'KEMIRA_NA_01', name: 'Kemira North America' },
+  { id: 'KEMIRA_EU_01', name: 'Kemira Europe' },
+  { id: 'GEON_01', name: 'Geon Performance Solutions' },
+  { id: 'VALTRIS_01', name: 'Valtris Specialty Chemicals' },
+  { id: 'DUBOIS_01', name: 'DuBois Chemicals' },
+  { id: 'SOLENIS_01', name: 'Solenis LLC' },
+  { id: 'ETEX_01', name: 'Etex Building Performance' },
+  { id: 'MONUMENT_01', name: 'Monument Chemical' },
+  { id: 'GRACE_01', name: 'W.R. Grace & Co' },
+  { id: 'IMCD_01', name: 'IMCD US' },
 ];
 
 export const LOCATIONS = [

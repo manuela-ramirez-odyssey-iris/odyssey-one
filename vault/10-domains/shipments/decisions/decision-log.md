@@ -354,6 +354,20 @@ Every implemented decision with its previous state, source, and rationale. This 
 - **Decision:** TableControls root is sticky (top −32px content-edge compensation, z 4, bg-secondary, paddingBottom instead of margin so the surface paints); DataTable stickyTop pushed down 48px (toolbar height) — toolbar + header clamp as one unit, zero seam.
 - **Source:** Manuela, Jul 6 (S79c)
 
+### DEC-61: ShipmentsBar height animation v3 — JS-measured, ratcheted, hold-on-switch
+- **Previous:** `interpolate-size: allow-keywords` + `height:auto` under a `max-height` cap — broken by design: the transition's `auto` endpoint resolves to the UNCAPPED content height, so the eased value crossed the visible clamp in 1–2 frames (open slammed, close hung); data landing mid-open retargeted the running transition ("two steps"); closing unmounted content instantly (no transition)
+- **Decision:** all bar motion is JS-measured length→length (pin → measure used height under the cap → animate → release to auto), next-frame start, drawer easing — works cross-browser (interpolate-size retired). Height RATCHET while open (never shrinks on tab switch; resets on close). Close keeps the last pane mounted (`inert`) while easing to 48px. Loader is a real 320px pane held ≥380ms so the content swap can't retarget mid-flight. Selected→selected shipment switches (arrows or row clicks) keep the bar open, preserve the active tab, and hold stale details until the new ones land; only null→id resets to Orders.
+- **Source:** Manuela, Jul 6 (S79d) — "two steps glitched… no closing transition… maintain the bigger expansion… maintain the tab when switching shipments"
+
+### DEC-62: Every selectable customer has data
+- **Previous:** 10 legacy customers (Kemira NA/EU, Geon, Valtris, Dubois, Solenis, Etex, Monument, Grace, IMCD) existed only as popover entries — zero shipment rows
+- **Decision:** pool grown 15 → 25 (KEMIRA_NA_01 'Kemira North America' etc.); 1200 shipments redistribute ~36–61/customer; all legacy context entries are data-backed via LEGacy→data id mapping (labels stay short); default selection (Kemira NA/EU, Geon, ERCO) now shows ~200 rows across panels. Synthetic c1–c3 ids retired.
+- **Source:** Manuela, Jul 6 (S79d) — "make sure our database includes all customers we have available to select"
+
+### DEC-63: Toolbar clamp matches the Orders route
+- **Decision:** sticky TableControls gains 24px paddingTop (the tabs' bottom spacing absorbed, mirroring .orders-toolbar `24/0/12`); DataTable stickyTop +72px total. Both routes clamp identically at the navbar edge. Also: Compare AP/AR "Expand All" gains the ChevronsUpDown icon (parity with Orders/Product panes).
+- **Source:** Manuela, Jul 6 (S79d) — "export row too tight… needs to look like orders does"; "Compare AP/AR expand collapse button missing the icon"
+
 ---
 
 ## Changelog

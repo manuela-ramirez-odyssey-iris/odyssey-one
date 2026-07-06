@@ -28,6 +28,10 @@ const TableControls = React.memo(function TableControls({
       top: 'calc(-1 * var(--spacing-8))',
       zIndex: 4,
       background: 'var(--bg-secondary)',
+      // paddingTop matches --spacing-6 used by .orders-toolbar so the stuck bar
+      // has the same breathing room above the controls row as Orders does.
+      // Background paints that gap, hiding rows that scroll underneath.
+      paddingTop: 'var(--spacing-6)',
       paddingBottom: 'var(--spacing-3)',
     }}>
       {/* Row 1: Controls */}
