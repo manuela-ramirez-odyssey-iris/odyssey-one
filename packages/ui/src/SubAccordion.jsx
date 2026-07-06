@@ -1,5 +1,5 @@
 import { useId, useState } from 'react'
-import { Info, ChevronDown, ChevronsUpDown, ChevronsDownUp } from 'lucide-react'
+import { Info, ChevronDown, ListChevronsUpDown, ListChevronsDownUp } from 'lucide-react'
 import { ICON_LG } from '@odyssey/tokens'
 import Button from './Button.jsx'
 
@@ -89,7 +89,7 @@ export default function SubAccordion({
         {onToggleAll && (
           <Button
             variant="link"
-            icon={allExpanded ? <ChevronsDownUp size={16} /> : <ChevronsUpDown size={16} />}
+            icon={allExpanded ? <ListChevronsDownUp size={16} /> : <ListChevronsUpDown size={16} />}
             onClick={(e) => {
               e.stopPropagation()
               onToggleAll(!allExpanded)
