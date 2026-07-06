@@ -1,7 +1,7 @@
 import figma from '@figma/code-connect'
 import SummaryStrip from './SummaryStrip'
 
-// Master: `SummaryStrip` COMPONENT 4248:1310 (Components-Molecules › Sections;
+// Master: `SummaryStrip` COMPONENT 4254:904 (Components-Molecules › Sections;
 // né `Overview` frame 4178:8365 — componentized by us 2026-07-06 with Label
 // 1–6 / Value 1–6 TEXT props, value fills bound Text/primary, band flattened
 // to Background/primary). The master's 6 fixed cells map onto the `items`
@@ -9,7 +9,7 @@ import SummaryStrip from './SummaryStrip'
 // code-only extension (no Figma axis). STAGING — publish with the batch.
 figma.connect(
   SummaryStrip,
-  'https://www.figma.com/design/vodiHJU38YWZYmTz81uOk7/Design-System---MCP?node-id=4248-1310',
+  'https://www.figma.com/design/vodiHJU38YWZYmTz81uOk7/Design-System---MCP?node-id=4254-904',
   {
     imports: ["import { SummaryStrip } from '@odyssey/ui'"],
     props: {

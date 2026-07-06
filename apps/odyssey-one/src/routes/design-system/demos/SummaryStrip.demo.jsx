@@ -8,14 +8,14 @@ export const meta = {
   version: '0.7.0',
   createdVersion: '0.7.0',
   // NEW STAGING (S79e; normalization pass 2026-07-06): the tab-summary band.
-  // Figma master `SummaryStrip` 4248:1310 on Components-Molecules › Sections —
+  // Figma master `SummaryStrip` 4254:904 on Components-Molecules › Sections —
   // componentized by us from the `Overview` frame (4178:8365) with Label 1–6 /
   // Value 1–6 TEXT props; value fills bound Text/primary, band gradient
   // artifact flattened to Background/primary. Replaces the ad-hoc
   // `.pane-kpis*` utilities (deleted). Tones remain a code extension (no
   // Figma axis — design decision pending).
   normalizing: true,
-  figmaNode: '4248:1310',
+  figmaNode: '4254:904',
   codeConnect: 'packages/ui/src/SummaryStrip.figma.tsx',
 }
 
@@ -56,7 +56,7 @@ function LegendRow({ part, tier, nested = false, children }) {
   )
 }
 
-// The master's own sample content (Figma `SummaryStrip` 4248:1310, verbatim).
+// The master's own sample content (Figma `SummaryStrip` 4254:904, verbatim).
 const MASTER_ITEMS = [
   { label: 'Distance',         value: '364.14 mi' },
   { label: 'Gross Weight',     value: '54,907 LB' },
