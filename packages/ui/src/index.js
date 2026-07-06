@@ -51,6 +51,7 @@ export { default as Dropdown } from './Dropdown.jsx';
 export { default as ActionMenu } from './ActionMenu.jsx';
 export { default as Paginator } from './Paginator.jsx';
 export { default as DataTable } from './DataTable.jsx';
+export { default as GroupTable } from './GroupTable.jsx';
 export { default as CustomerRow } from './CustomerRow.jsx';
 export { default as FormField } from './FormField.jsx';
 export { default as TextArea } from './TextArea.jsx';
@@ -60,6 +61,7 @@ export { default as MatchSimpleRow } from './MatchSimpleRow.jsx';
 export { default as Alert } from './Alert.jsx';
 export { default as Accordion } from './Accordion.jsx';
 export { default as SubAccordion } from './SubAccordion.jsx';
+export { default as SummaryStrip } from './SummaryStrip.jsx';
 export { default as ButtonToggle } from './ButtonToggle.jsx';
 export { default as Tooltip } from './Tooltip.jsx';
 

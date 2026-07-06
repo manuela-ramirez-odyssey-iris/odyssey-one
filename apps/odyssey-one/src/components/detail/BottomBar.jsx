@@ -15,13 +15,13 @@ const NotesTab = React.lazy(() => import('./NotesTab'))
 const HistoryTab = React.lazy(() => import('./HistoryTab'))
 const TenderHistoryTab = React.lazy(() => import('./TenderHistoryTab'))
 
-// The loader is a PROPER PANE (min-height a few hundred px), not a thin strip:
-// with the auto-height bar, a fresh open animates 48px → the loader pane in
-// ONE motion and holds there until data lands (S79d — the old fixed-height bar
-// gave the loader this canvas for free; auto height must provide it).
+// Loader fills the full expanded canvas so the bar animates once (48→cap) and
+// the spinner sits centered in the available height. height:100% works because
+// ShipmentsBar pins the element to the cap height before the open animation
+// measures, giving the flex child a real height to expand into (S79e).
 function TabLoader() {
   return (
-    <div style={{ minHeight: 320, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'var(--spacing-12)', color: 'var(--text-placeholder)' }}>
+    <div style={{ height: '100%', minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-placeholder)' }}>
       <Loader2 size={24} className="animate-spin" />
     </div>
   )
@@ -75,26 +75,12 @@ export default function BottomBar({
   // Only a FRESH open (null → id) resets to the Orders tab; a selected →
   // selected switch (prev/next arrows, row-to-row click) keeps the bar open on
   // the same tab (S79d — resetting on every id change lost the user's tab).
-  //
-  // holdLoader: when a fresh open starts WITHOUT data, the open animates to
-  // the loader pane — hold that loader slightly past the drawer transition
-  // (300ms) even if data lands earlier. Swapping content mid-transition makes
-  // Chrome retarget the running 48px→auto animation and the elapsed easing
-  // progress applies to the new larger range in one frame — the "two-step"
-  // leap (S79d; proven with a throttled-network trace). After the hold, the
-  // swap is a plain post-settle growth, which the bar eases on its own.
   const prevIdRef = useRef(null)
-  const [holdLoader, setHoldLoader] = useState(false)
   useEffect(() => {
     const fresh = selectedShipmentId && !prevIdRef.current
     prevIdRef.current = selectedShipmentId
     if (!fresh) return
     setActiveTab('order')
-    if (!shipmentDetails) {
-      setHoldLoader(true)
-      const t = setTimeout(() => setHoldLoader(false), 380)
-      return () => { clearTimeout(t); setHoldLoader(false) }
-    }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- shipmentDetails read once at open
   }, [selectedShipmentId])
 
@@ -265,7 +251,7 @@ export default function BottomBar({
         </div>
       )
     }
-    if (holdLoader || (detailsLoading && !shownDetails)) {
+    if (detailsLoading && !shownDetails) {
       return <TabLoader />
     }
     if (!shownDetails) return null
@@ -294,6 +280,12 @@ export default function BottomBar({
     }
   }
 
+  // openToCapHeight: true while no data is available for the current shipment
+  // (fresh open with loading content). Computed synchronously from props so
+  // ShipmentsBar's useLayoutEffect captures the correct value in the same
+  // render that expanded first becomes true — no useEffect timing gap (S79e).
+  const openToCapHeight = detailsLoading && !shownDetails
+
   return (
     <ShipmentsBar
         shipmentId={selectedShipmentId}
@@ -308,6 +300,7 @@ export default function BottomBar({
         onClose={onClose}
         onTabArrangement={onTabArrangement}
         rightOffset={rightOffset}
+        openToCapHeight={openToCapHeight}
       >
         {/* key stays for data freshness (pane-local state resets per shipment)
             — on a switch it remounts SYNCHRONOUSLY with the held stale details

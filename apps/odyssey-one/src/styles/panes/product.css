@@ -5,7 +5,9 @@
    the wrapper's own border/radius; the table header bg (.bg-secondary) and
    hairline row borders are kept because they're table-internal. */
 .product-pane__table-scroll {
-  overflow: auto;
+  /* NOT a scroll container — the GroupTable root owns horizontal scroll;
+     `clip` keeps the radius trim without capturing the scroll. */
+  overflow: clip;
   /* negative side margins let the table reach the card's inner edge while
      padding is still on the card — cancel the card's left/right padding
      so the scroll track touches the card boundary. */

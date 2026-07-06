@@ -368,6 +368,16 @@ Every implemented decision with its previous state, source, and rationale. This 
 - **Decision:** sticky TableControls gains 24px paddingTop (the tabs' bottom spacing absorbed, mirroring .orders-toolbar `24/0/12`); DataTable stickyTop +72px total. Both routes clamp identically at the navbar edge. Also: Compare AP/AR "Expand All" gains the ChevronsUpDown icon (parity with Orders/Product panes).
 - **Source:** Manuela, Jul 6 (S79d) — "export row too tight… needs to look like orders does"; "Compare AP/AR expand collapse button missing the icon"
 
+### DEC-64: GroupTable + SummaryStrip enter the library (staging); grouped-table boundary vs DataTable
+- **Previous:** Product tab kept the old 19-col sticky-left expand-button table; Compare AP/AR + Stops/Cost KPI bands were ad-hoc app CSS (.pane-kpis)
+- **Decision (owner call, Manuela):** two NEW staging components. **GroupTable** (molecule) = read-only presentational grouped table (chevron group-header rows + striped child rows + optional TOTAL footer), boundary documented both DSMs: DataTable = interactive TanStack grid, GroupTable = detail-pane presentation, no TanStack. Consumers: ProductTab (per the Product mock — square expand buttons retired) + Compare AP/AR. Figma master created (4183:773, GroupHeaderRow set 4182:787, token-bound). **SummaryStrip** (molecule) = the tab-summary band per DS master 4178:8365 — intake corrected 6 visual deltas vs our ad-hoc band (fixed 152px centered cells, 0/48 band padding, trailing divider on every cell, untracked labels, 16/24 values); .pane-kpis utilities deleted. Consumers: Stops + Cost Allocation. Both NORMALIZING; Angular twins + CC at batch close. Figma flags: the Overview master is a FRAME not COMPONENT; raw #1B2537 value fills; gradient artifact; tone axis is code-only.
+- **Source:** Manuela, Jul 6 (S79e) — "it would be a new table component with collapsible rows"; Figma 4178:8365; mock Product.png (archived 2026-07-06-tab-panes/Product-grouptable.png)
+
+### DEC-65: Bar fresh-open goes straight to the cap
+- **Previous:** fresh open animated to a 320px loader pane, then grew when data landed (a partial opening)
+- **Decision:** a fresh open animates ONCE 48→cap with the loader centered in the fully-expanded canvas; data swaps in place with zero height movement (ratchet holds). Loader hold timer removed (dead).
+- **Source:** Manuela, Jul 6 (S79e) — "no more partial opening, expand and load data while expanded"
+
 ---
 
 ## Changelog
@@ -381,4 +391,5 @@ Every implemented decision with its previous state, source, and rationale. This 
 | Apr 13, 2026 | DEC-39 — Merge Hazmat Class/Group into Hazardous column with hover tooltip (PENDING stakeholder approval) |
 | Jul 5, 2026 | DEC-40 through DEC-47 — S79 Shipments update: Orders tab SubAccordion rebuild, shadow-up-lg token, tab arrangement panel, radio removal, GlobalSearch as table search, Tooltip migration, icon-button standardization, sidebar-shift fix |
 | Jul 6, 2026 | DEC-48 through DEC-55 — S79b: pane column tiers, content-proportional bar height, up-only shadow clip, search glimpse/commit/open flow, DataTable external footer + Paginator restyle (React+Angular, demoted), sticky-header gap root cause, Orders canon fake data + orphaned documents/notes/history wired, all 7 tab panes restyled |
+| Jul 6, 2026 | DEC-61 through DEC-65 — S79d/e: bar animation v3 + open-to-cap, customers data-backed, toolbar parity, GroupTable + SummaryStrip staging components |
 | Jul 6, 2026 | DEC-56 through DEC-60 — S79c: bar interaction model v2 (104px cap, drawer easing, useTransition tab switch, close=deselect, outside-click close), unified search criteria + search-aware counts, zero-count tab hiding (PGI/PGR exempt), customer-list first-order scoping (+ERCO assigned), sticky toolbar clamp |

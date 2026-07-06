@@ -1,9 +1,10 @@
 import React from 'react'
 import { Check } from 'lucide-react'
+import { SummaryStrip } from '@odyssey/ui'
 
-// ── KPI strip ──────────────────────────────────────────────────────────────
+// ── KPI strip (SummaryStrip staging, S79e — Figma `Overview` 4178:8365) ─────
 function KpiStrip({ summary }) {
-  const cells = [
+  const items = [
     { label: 'Distance',         value: summary.distance },
     { label: 'Gross Weight',     value: summary.grossWeight },
     { label: 'Volume',           value: summary.volume },
@@ -11,16 +12,7 @@ function KpiStrip({ summary }) {
     { label: 'Seed Equipment',   value: summary.seedEquipment },
     { label: 'Utilization',      value: summary.utilization },
   ]
-  return (
-    <div className="pane-kpis" role="region" aria-label="Shipment KPIs">
-      {cells.map((cell) => (
-        <div key={cell.label} className="pane-kpis__cell">
-          <span className="pane-kpis__label">{cell.label}</span>
-          <span className="pane-kpis__value">{cell.value || '--'}</span>
-        </div>
-      ))}
-    </div>
-  )
+  return <SummaryStrip items={items} aria-label="Shipment KPIs" />
 }
 
 // ── Field (label + value pair) ─────────────────────────────────────────────

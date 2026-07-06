@@ -81,6 +81,12 @@ export default function ShipmentsBar({
   children,
   className = '',
   style,
+  // openToCapHeight: when true the OPEN animation targets the dvh cap height
+  // instead of the loader's intrinsic height — prevents the two-phase
+  // expansion on a fresh open with loading content (S79e). The consumer sets
+  // this while detailsLoading && !shownDetails (fresh open only); it clears
+  // once data arrives so the ratchet takes over naturally.
+  openToCapHeight = false,
   ...rest
 }) {
   const isDisabled = !shipmentId
@@ -137,17 +143,17 @@ export default function ShipmentsBar({
       el.style.transition = ''
       prev = el.offsetHeight
     }
-    // Ease fromPx → the current used height (auto laid out under the cap).
+    // Ease fromPx → toPx (or the current used height when toPx is omitted).
     // The pin lands pre-paint; the transition starts on the NEXT frame — a
     // heavy commit (big pane mounting) backdates a same-frame transition's
     // start time and the bezier's head gets eaten (measured ~70ms → the bar
     // leapt to ~80% before the first painted frame).
-    const animateFrom = (fromPx) => {
+    const animateFrom = (fromPx, toPx) => {
       clearTimeout(releaseTimer)
       cancelAnimationFrame(startRaf)
       el.style.transition = 'none'
       el.style.height = ''
-      const target = el.offsetHeight
+      const target = toPx !== undefined ? toPx : el.offsetHeight
       if (target <= fromPx + 1) { el.style.transition = ''; return } // grow-only
       el.style.height = `${fromPx}px`
       void el.offsetHeight // reflow at the pinned start height
@@ -164,10 +170,27 @@ export default function ShipmentsBar({
     el.addEventListener('transitionend', onEnd)
     el.addEventListener('transitioncancel', onEnd)
 
-    // OPEN: from the strip height (pinned pre-paint — no flash of the tall
-    // state) to the first pane's measured height, in one motion.
-    animateFrom(el.firstElementChild?.offsetHeight ?? 48)
-    prev = el.offsetHeight
+    // OPEN: from the strip height to the content height in one motion.
+    // When openToCapHeight is true (fresh open with loading content), animate
+    // directly to the dvh cap so the bar expands fully in one shot and the
+    // loader fills the available canvas — no second expansion when data lands
+    // (the ratchet at cap holds; content swaps in-place). The cap is the
+    // same value the CSS max-height uses: 100dvh − --bottombar-top-clearance
+    // (104px, measured as window.innerHeight at open time — S79e).
+    //
+    // Pre-set min-height to capPx so that release() (called on transitionend)
+    // reads max(auto, capPx) = capPx from offsetHeight — not the loader's
+    // intrinsic height. Without this, transitionend fires before the ratchet
+    // RO can record the peak, so prev = loader height and the RO triggers a
+    // second rising animation when min-height finally snaps in (S79e).
+    const stripH = el.firstElementChild?.offsetHeight ?? 48
+    const capPx = openToCapHeight ? window.innerHeight - 104 : undefined
+    if (capPx !== undefined) {
+      max = capPx
+      el.style.minHeight = `min(${capPx}px, 100dvh - var(--bottombar-top-clearance))`
+    }
+    animateFrom(stripH, capPx)
+    prev = capPx ?? el.offsetHeight
 
     const ro = new ResizeObserver(() => {
       const h = el.offsetHeight
@@ -199,6 +222,10 @@ export default function ShipmentsBar({
         el.style.height = ''
       })
     }
+  // openToCapHeight is read only at mount (open) time, so it's safe to keep
+  // the dep on isExpanded only. Adding openToCapHeight would re-run the whole
+  // effect (including the close cleanup) every time loading state changes.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isExpanded])
 
   // CLOSING: when expansion drops (close = deselect, so `children` empties in

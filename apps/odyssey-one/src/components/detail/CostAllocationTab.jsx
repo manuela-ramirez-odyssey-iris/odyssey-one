@@ -1,7 +1,7 @@
-import React, { useState } from 'react'
-import { Lock, ChevronRight, ChevronDown, ChevronsUpDown } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { Lock, ChevronsUpDown } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
-import { Tab, Button } from '@odyssey/ui'
+import { Tab, Button, SummaryStrip, GroupTable } from '@odyssey/ui'
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -33,18 +33,18 @@ function diffIsPositive(diffStr) {
   return !diffStr.startsWith('-')
 }
 
-// ── sub-components ────────────────────────────────────────────────────────────
-
-function KpiCell({ label, value, modifier }) {
-  return (
-    <div className="pane-kpis__cell">
-      <span className="pane-kpis__label">{label}</span>
-      <span className={['pane-kpis__value', modifier].filter(Boolean).join(' ')}>
-        {value || '--'}
-      </span>
-    </div>
-  )
+// Child charge lines from the order VM fields (the rows of a GroupTable group).
+function chargeLines(order) {
+  return [
+    { label: 'Base',     ap: order.apBase,     ar: order.arBase },
+    { label: 'Fuel',     ap: order.apFuel,     ar: order.arFuel },
+    { label: 'Discount', ap: order.apDiscount, ar: order.arDiscount },
+    { label: 'HZC',      ap: order.apHzc,      ar: order.arHzc },
+    { label: 'SOC',      ap: order.apSoc,      ar: order.arSoc },
+  ].filter(line => line.ap !== '--' || line.ar !== '--')
 }
+
+// ── sub-components ────────────────────────────────────────────────────────────
 
 function DiffCell({ value }) {
   const positive = diffIsPositive(value)
@@ -54,120 +54,53 @@ function DiffCell({ value }) {
   return <span className={cls}>{value || '--'}</span>
 }
 
-/**
- * A single expandable order row + its charge-line children.
- */
-function OrderRow({ order, expanded, onToggle, isFirst }) {
-  const diff = computeDiff(order.apCost, order.arCost)
+// ── Compare AP/AR (GroupTable, staging S79e) ─────────────────────────────────
 
-  // Build child charge lines from the order VM fields
-  const chargeLines = [
-    { label: 'Base',     ap: order.apBase,     ar: order.arBase },
-    { label: 'Fuel',     ap: order.apFuel,     ar: order.arFuel },
-    { label: 'Discount', ap: order.apDiscount, ar: order.arDiscount },
-    { label: 'HZC',      ap: order.apHzc,      ar: order.arHzc },
-    { label: 'SOC',      ap: order.apSoc,      ar: order.arSoc },
-  ].filter(line => line.ap !== '--' || line.ar !== '--')
+const COST_COLUMNS = [
+  { key: 'label', label: 'Order' },
+  { key: 'ap',    label: 'AP (Carrier)',  align: 'right' },
+  { key: 'ar',    label: 'AR (Customer)', align: 'right' },
+  { key: 'diff',  label: 'Diff',          align: 'right' },
+]
 
-  return (
-    <>
-      {/* Parent (order) row */}
-      <tr
-        className={`cost-table__order-row${isFirst ? ' cost-table__order-row--first' : ''}`}
-        onClick={onToggle}
-        aria-expanded={expanded}
-      >
-        <td className="cost-table__cell cost-table__cell--order">
-          <span className="cost-table__chevron" aria-hidden="true">
-            {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-          </span>
-          {order.orderId}
-        </td>
-        <td className="cost-table__cell cost-table__cell--num">{order.apCost}</td>
-        <td className="cost-table__cell cost-table__cell--num">{order.arCost}</td>
-        <td className="cost-table__cell cost-table__cell--num">
-          <DiffCell value={diff} />
-        </td>
-      </tr>
-
-      {/* Child charge-line rows */}
-      {expanded && chargeLines.map((line, i) => {
-        const childDiff = computeDiff(line.ap, line.ar)
-        return (
-          <tr key={line.label} className={`cost-table__charge-row${i % 2 === 0 ? ' cost-table__charge-row--stripe' : ''}`}>
-            <td className="cost-table__cell cost-table__cell--charge">{line.label}</td>
-            <td className="cost-table__cell cost-table__cell--num cost-table__cell--muted">{line.ap}</td>
-            <td className="cost-table__cell cost-table__cell--num cost-table__cell--muted">{line.ar}</td>
-            <td className="cost-table__cell cost-table__cell--num cost-table__cell--muted">
-              <DiffCell value={childDiff} />
-            </td>
-          </tr>
-        )
-      })}
-    </>
-  )
+function renderCostCell(row, col) {
+  if (col.key === 'diff') return <DiffCell value={computeDiff(row.ap, row.ar)} />
+  return row[col.key] ?? '--'
 }
 
 /**
- * The full Compare AP/AR table: order parent rows + charge-line children + TOTAL.
+ * The Compare AP/AR table — a GroupTable: one group per order (label = the
+ * order id), charge lines as child rows, TOTAL (order-level AP/AR sums,
+ * Diff = AR − AP) as the bold footer row.
  */
-function CompareTable({ orders, allExpanded }) {
-  const [expandedSet, setExpandedSet] = useState(new Set())
-
-  // Sync allExpanded toggle: derive actual expanded state
-  const isExpanded = (orderId) => allExpanded || expandedSet.has(orderId)
-
-  const toggle = (orderId) => {
-    setExpandedSet(prev => {
-      const next = new Set(prev)
-      if (next.has(orderId)) next.delete(orderId)
-      else next.add(orderId)
-      return next
-    })
-  }
-
-  // TOTAL row: sum AP and AR across all orders; Diff = AR − AP
-  const totalAp = orders.reduce((sum, o) => {
-    const n = parseDollar(o.apCost)
-    return sum + (n ?? 0)
-  }, 0)
-  const totalAr = orders.reduce((sum, o) => {
-    const n = parseDollar(o.arCost)
-    return sum + (n ?? 0)
-  }, 0)
+function CompareTable({ orders, expanded, onToggle }) {
+  const totalAp = orders.reduce((sum, o) => sum + (parseDollar(o.apCost) ?? 0), 0)
+  const totalAr = orders.reduce((sum, o) => sum + (parseDollar(o.arCost) ?? 0), 0)
   const totalDiff = totalAr - totalAp
 
+  const groups = orders.map((order) => ({
+    id: order.orderId,
+    label: order.orderId,
+    rows: chargeLines(order),
+  }))
+
+  const footerRow = {
+    label: 'TOTAL',
+    ap: `${fmtDollar(totalAp)} USD`,
+    ar: `${fmtDollar(totalAr)} USD`,
+    diff: <DiffCell value={(totalDiff >= 0 ? '+' : '') + fmtDollar(totalDiff)} />,
+  }
+
   return (
-    <table className="cost-table" role="table">
-      <thead>
-        <tr className="cost-table__head-row">
-          <th className="cost-table__th cost-table__th--order">Order</th>
-          <th className="cost-table__th cost-table__th--num">AP (Carrier)</th>
-          <th className="cost-table__th cost-table__th--num">AR (Customer)</th>
-          <th className="cost-table__th cost-table__th--num">Diff</th>
-        </tr>
-      </thead>
-      <tbody>
-        {orders.map((order, i) => (
-          <OrderRow
-            key={order.orderId}
-            order={order}
-            expanded={isExpanded(order.orderId)}
-            onToggle={() => toggle(order.orderId)}
-            isFirst={i === 0}
-          />
-        ))}
-        {/* TOTAL row */}
-        <tr className="cost-table__total-row">
-          <td className="cost-table__cell cost-table__cell--total-label">TOTAL</td>
-          <td className="cost-table__cell cost-table__cell--num cost-table__cell--total">{fmtDollar(totalAp)} USD</td>
-          <td className="cost-table__cell cost-table__cell--num cost-table__cell--total">{fmtDollar(totalAr)} USD</td>
-          <td className="cost-table__cell cost-table__cell--num cost-table__cell--total">
-            <DiffCell value={(totalDiff >= 0 ? '+' : '') + fmtDollar(totalDiff)} />
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <GroupTable
+      columns={COST_COLUMNS}
+      groups={groups}
+      renderCell={renderCostCell}
+      footerRow={footerRow}
+      expanded={expanded}
+      onToggle={onToggle}
+      aria-label="Compare AP/AR by order"
+    />
   )
 }
 
@@ -175,7 +108,13 @@ function CompareTable({ orders, allExpanded }) {
 
 const CostAllocationTab = React.memo(function CostAllocationTab({ data }) {
   const [subTab, setSubTab] = useState('planned')
-  const [allExpanded, setAllExpanded] = useState(false)
+  // Expanded map keyed by orderId — controlled into GroupTable so Expand All
+  // and the per-order row toggles share one source of truth. Starts collapsed.
+  const [expandedOrders, setExpandedOrders] = useState({})
+
+  useEffect(() => {
+    setExpandedOrders({})
+  }, [data])
 
   if (!data) return (
     <div className="pane-canvas">
@@ -188,6 +127,15 @@ const CostAllocationTab = React.memo(function CostAllocationTab({ data }) {
   )
 
   const planned = data.planned
+  const orders = planned?.orders ?? []
+  const allExpanded = orders.length > 0 && orders.every((o) => !!expandedOrders[o.orderId])
+
+  const toggleAll = () => {
+    const next = !allExpanded
+    const updated = {}
+    orders.forEach((o) => { updated[o.orderId] = next })
+    setExpandedOrders(updated)
+  }
 
   return (
     <div className="pane-canvas cost-pane">
@@ -219,17 +167,20 @@ const CostAllocationTab = React.memo(function CostAllocationTab({ data }) {
         </div>
       ) : (
         <>
-          {/* Row 2: full-width KPI band */}
+          {/* Row 2: full-width KPI band (SummaryStrip staging, S79e — Figma `Overview` 4178:8365) */}
           {planned?.summary && (
-            <div className="pane-kpis" role="region" aria-label="Cost summary">
-              <KpiCell label="BASE"          value={planned.summary.base} />
-              <KpiCell label="DISCOUNT"      value={planned.summary.discount}    modifier="pane-kpis__value--negative" />
-              <KpiCell label="FUEL (FSC)"    value={planned.summary.fuel} />
-              <KpiCell label="ACCESSORIALS"  value={planned.summary.accessorials} />
-              <KpiCell label="AP TOTAL"      value={planned.summary.apTotal} />
-              <KpiCell label="AR TOTAL"      value={planned.summary.arTotal} />
-              <KpiCell label="MARGIN"        value={planned.summary.margin}       modifier="pane-kpis__value--positive" />
-            </div>
+            <SummaryStrip
+              aria-label="Cost summary"
+              items={[
+                { label: 'Base',         value: planned.summary.base },
+                { label: 'Discount',     value: planned.summary.discount, tone: 'negative' },
+                { label: 'Fuel (FSC)',   value: planned.summary.fuel },
+                { label: 'Accessorials', value: planned.summary.accessorials },
+                { label: 'AP Total',     value: planned.summary.apTotal },
+                { label: 'AR Total',     value: planned.summary.arTotal },
+                { label: 'Margin',       value: planned.summary.margin, tone: 'positive' },
+              ]}
+            />
           )}
 
           {/* Row 3: narrow card with Compare AP/AR table */}
@@ -237,11 +188,11 @@ const CostAllocationTab = React.memo(function CostAllocationTab({ data }) {
             <div className="pane-card">
               <div className="pane-card__header">
                 <h2 className="pane-card__title">Compare AP/AR</h2>
-                {planned?.orders?.length > 0 && (
+                {orders.length > 0 && (
                   <Button
                     variant="link"
                     iconRight={<ChevronsUpDown {...ICON_MD} />}
-                    onClick={() => setAllExpanded(v => !v)}
+                    onClick={toggleAll}
                     aria-pressed={allExpanded}
                   >
                     {allExpanded ? 'Collapse All' : 'Expand All'}
@@ -249,10 +200,13 @@ const CostAllocationTab = React.memo(function CostAllocationTab({ data }) {
                 )}
               </div>
 
-              {planned?.orders?.length > 0 ? (
+              {orders.length > 0 ? (
                 <CompareTable
-                  orders={planned.orders}
-                  allExpanded={allExpanded}
+                  orders={orders}
+                  expanded={expandedOrders}
+                  onToggle={(orderId, next) =>
+                    setExpandedOrders((prev) => ({ ...prev, [orderId]: next }))
+                  }
                 />
               ) : (
                 <p style={{ color: 'var(--text-placeholder)', fontSize: 'var(--font-size-sm)' }}>

@@ -40,6 +40,7 @@
     "DataTable",
     "DropdownMenu",
     "FormField",
+    "GroupTable",
     "IconButtonGhost",
     "MenuRow",
     "MenuRowCheckbox",
@@ -52,6 +53,7 @@
     "SearchField",
     "ShipmentsBar",
     "SubAccordion",
+    "SummaryStrip",
     "Tab",
     "TextArea",
     "WidgetMini"

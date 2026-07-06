@@ -4900,38 +4900,158 @@ button.breadcrumb__label:focus-visible {
   color: var(--text-primary);
 }
 
-/* Full-width KPI stat band (Stops, Cost Allocation) */
-.pane-kpis {
+/* ── SummaryStrip (@odyssey/ui, STAGING S79e) ──────────────────────────────
+   The full-width tab-summary band (Stops KPIs, Cost Allocation summary).
+   Figma master: `Overview` 4178:8365 (Components-Molecules › Sections) —
+   centered row of fixed-152px cells inside 48px band padding, every cell
+   (incl. the last) closing with a DSN/200 right divider; band closes with a
+   Border/subtle bottom hairline. Replaces the ad-hoc `.pane-kpis*` utilities
+   (fluid cells / interior-left dividers / 14px values / tracked labels). */
+.summary-strip {
   display: flex;
+  justify-content: center;         /* Figma: primaryAxisAlignItems CENTER */
   align-items: stretch;
+  margin: 0;                       /* <dl> reset */
   background: var(--bg-primary);
   border-bottom: 1px solid var(--border-subtle);
-  padding: var(--spacing-4) var(--spacing-6);
+  padding: 0 var(--spacing-12);    /* Figma: 48px band padding, 0 vertical */
+  overflow-x: auto;                /* many/long cells never break the band */
 }
-.pane-kpis__cell {
-  flex: 1;
-  min-width: 0;
-  padding-inline: var(--spacing-6);
+.summary-strip__cell {
+  flex: 0 0 auto;
+  min-width: 152px;                /* Figma: fixed 152px cells — we grow, never truncate */
+  padding: var(--spacing-4) var(--spacing-3); /* Figma: 16px / 12px */
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-1);
+  gap: var(--spacing-1);           /* Figma: 4px label↔value */
+  border-right: 1px solid var(--deep-sea-neutral-200); /* on EVERY cell, last included */
 }
-.pane-kpis__cell + .pane-kpis__cell { border-left: 1px solid var(--border-subtle); }
-.pane-kpis__label {
-  font-size: var(--font-size-xs);
+.summary-strip__label {
+  font-size: var(--font-size-xs);      /* label/xs medium */
   line-height: var(--line-height-xs);
   font-weight: var(--font-weight-medium);
   color: var(--text-tertiary);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  text-transform: uppercase;           /* Figma bakes uppercase into content; letter-spacing 0 */
   white-space: nowrap;
 }
-.pane-kpis__value {
+.summary-strip__value {
+  margin: 0;                           /* <dd> reset */
+  font-size: var(--font-size-base);    /* label/base semibold — 16/24 */
+  line-height: var(--line-height-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);          /* DSN/900 (raw #1b2537 in the master — flagged) */
+  white-space: nowrap;
+}
+/* Tones — code extension, no Figma axis yet (Pending Figma Sync) */
+.summary-strip__value--negative { color: var(--bittersweet-600); }
+.summary-strip__value--positive { color: var(--caribbean-green-600); }
+
+/* ----------------------------------------
+   TABLE — GroupTable (presentational grouped table)
+   The @odyssey/ui GroupTable molecule (STAGING, S79e). Boundary: DataTable =
+   the interactive TanStack grid (sort/resize/paginate/select); GroupTable =
+   the READ-ONLY presentational grouped table for ShipmentsBar detail panes —
+   no TanStack. Anatomy per the Product pane mock (vault/00-inbox/Product.png):
+   plain muted column-header row over a hairline; per group a white GROUP
+   HEADER ROW (chevron + bold group id, full row = the toggle); child rows as
+   light-gray bands separated by white hairline gaps; optional bold TOTAL
+   footer above a heavy rule. The ROOT owns horizontal scroll (the mock's last
+   column clips); the consumer's card owns the white surface.
+   ---------------------------------------- */
+.odyssey-group-table {
+  overflow-x: auto;
+  overscroll-behavior-x: none;
+  font-family: var(--font-primary);
+}
+
+.odyssey-group-table__table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+/* Column header row — muted labels, hairline below */
+.odyssey-group-table th {
+  padding: var(--spacing-3) var(--spacing-4);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
+  text-align: left;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+/* Group header row — white band, the whole row toggles */
+.odyssey-group-table__group-row {
+  background: var(--bg-primary);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+.odyssey-group-table__group-row:hover { background: var(--bg-secondary); }
+.odyssey-group-table__group-row > td { padding: 0; }
+
+/* The real a11y toggle — fills the row so focus/click cover the full band */
+.odyssey-group-table__group-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  width: 100%;
+  padding: var(--spacing-3) var(--spacing-4);
+  border: 0;
+  background: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.odyssey-group-table__chevron {
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+  transition: transform var(--transition-fast);
+}
+.odyssey-group-table__group-toggle[aria-expanded='false'] .odyssey-group-table__chevron {
+  transform: rotate(-90deg);
+}
+
+/* Child rows — light-gray bands; the 2px --bg-primary border is the white
+   gap between bands from the mock */
+.odyssey-group-table__row td {
+  padding: var(--spacing-3) var(--spacing-4);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+  font-weight: var(--font-weight-regular);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  background: var(--bg-secondary);
+  border-bottom: 2px solid var(--bg-primary);
+}
+/* Lead cell emphasized (mock: 001 / Base / Fuel bold-dark) */
+.odyssey-group-table__row td:first-child {
+  color: var(--text-primary);
+  font-weight: var(--font-weight-semibold);
+}
+/* striped={false} — flat white rows with hairlines instead of gray bands */
+.odyssey-group-table--flat .odyssey-group-table__row td {
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--bg-tertiary);
+}
+
+/* Footer row (TOTAL) — bold over a heavy rule */
+.odyssey-group-table__footer-row td {
+  padding: var(--spacing-3) var(--spacing-4);
   font-size: var(--font-size-sm);
   line-height: var(--line-height-sm);
   font-weight: var(--font-weight-semibold);
   color: var(--text-primary);
   white-space: nowrap;
+  border-top: 2px solid var(--border-default);
 }
-.pane-kpis__value--negative { color: var(--bittersweet-600); }
-.pane-kpis__value--positive { color: var(--caribbean-green-600); }
+
+/* Column alignment (columns[].align) — header + cells */
+.odyssey-group-table .odyssey-group-table__cell--right  { text-align: right; }
+.odyssey-group-table .odyssey-group-table__cell--center { text-align: center; }

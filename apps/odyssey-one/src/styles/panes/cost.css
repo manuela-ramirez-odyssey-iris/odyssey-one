@@ -1,6 +1,7 @@
 /* cost pane — S79b W2-4. Layout per vault-sources 2026-07-06-tab-panes mock #7.
-   Shared utilities (.pane-canvas / .pane-col--narrow / .pane-card / .pane-kpis*)
-   live in components.css — don't redefine here.
+   Shared utilities (.pane-canvas / .pane-col--narrow / .pane-card) live in
+   components.css — don't redefine here. The KPI band is the @odyssey/ui
+   SummaryStrip (.summary-strip*, staging S79e — absorbed the old .pane-kpis*).
    ------------------------------------------------------------------ */
 
 /* ── Canvas + tab row ──────────────────────────────────────────────── */
@@ -26,100 +27,8 @@
 }
 
 /* ── Compare AP/AR table ───────────────────────────────────────────── */
-
-.cost-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-family: var(--font-primary);
-}
-
-/* Header row */
-.cost-table__head-row {}
-
-.cost-table__th {
-  padding: var(--spacing-3) var(--spacing-4);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-semibold);
-  color: var(--text-placeholder);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  border-bottom: 1px solid var(--border-subtle);
-  white-space: nowrap;
-}
-.cost-table__th--order { text-align: left; }
-.cost-table__th--num   { text-align: right; }
-
-/* Shared cell base */
-.cost-table__cell {
-  padding: var(--spacing-3) var(--spacing-4);
-  font-size: var(--font-size-sm);
-  line-height: var(--line-height-sm);
-  white-space: nowrap;
-  border-bottom: 1px solid var(--bg-tertiary);
-}
-.cost-table__cell--num   { text-align: right; }
-.cost-table__cell--muted { color: var(--text-tertiary); }
-
-/* Order (parent) row */
-.cost-table__order-row {
-  cursor: pointer;
-  background: var(--bg-primary);
-  transition: background var(--transition-fast);
-}
-.cost-table__order-row:hover { background: var(--bg-secondary); }
-.cost-table__order-row--first { border-top: 1px solid var(--border-subtle); }
-
-.cost-table__cell--order {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-2);
-  font-weight: var(--font-weight-semibold);
-  color: var(--text-primary);
-  text-align: left;
-}
-
-.cost-table__chevron {
-  display: inline-flex;
-  align-items: center;
-  color: var(--text-tertiary);
-  flex-shrink: 0;
-}
-
-/* Charge (child) rows */
-.cost-table__charge-row {
-  background: var(--bg-primary);
-}
-.cost-table__charge-row--stripe {
-  background: var(--bg-secondary);
-}
-
-.cost-table__cell--charge {
-  padding-left: calc(var(--spacing-4) + 22px); /* indent under chevron */
-  color: var(--text-secondary);
-  text-align: left;
-}
-
-/* TOTAL row */
-.cost-table__total-row {
-  background: var(--bg-primary);
-}
-.cost-table__total-row .cost-table__cell {
-  border-top: 2px solid var(--border-default);
-  border-bottom: none;
-}
-
-.cost-table__cell--total-label {
-  font-weight: var(--font-weight-semibold);
-  color: var(--text-primary);
-  text-align: left;
-  text-transform: uppercase;
-  font-size: var(--font-size-xs);
-  letter-spacing: 0.04em;
-}
-.cost-table__cell--total {
-  font-weight: var(--font-weight-semibold);
-  color: var(--text-primary);
-}
+/* Structure is the @odyssey/ui GroupTable (staging S79e — `.odyssey-group-table*`
+   in components.css). Only the Diff value coloring stays cost-specific. */
 
 /* Diff value coloring */
 .cost-table__diff           { color: var(--text-secondary); }
