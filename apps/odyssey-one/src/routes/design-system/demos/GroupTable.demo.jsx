@@ -21,13 +21,17 @@ function DiffCell({ value }) {
   )
 }
 
-// STAGING (S79e). Figma master 4183:773 (GroupHeaderRow set 4182:787) in
-// Components-Molecules › Sections; Code Connect mapping lands at batch close.
+// STAGING (S79e). Figma master 4183:773 (GroupHeaderRow atom set 4182:787,
+// GroupTableGroup set 4204:1243) in Components-Molecules › Sections; Code
+// Connect mapping lands at batch close. APPROVED 2026-07-06 (user) after the
+// S79e–h iteration (48px rows, header values Show Values#4224:0, medium
+// header weights, value-cell padding fix).
 export const meta = {
   name: 'GroupTable',
   tier: 'molecule',
   figmaNode: '4183:773',
   normalizing: true,
+  approved: true,
 }
 
 export const props = [
