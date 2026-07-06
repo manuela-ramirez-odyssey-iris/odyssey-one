@@ -15,6 +15,7 @@ export const meta = {
   // `.pane-kpis*` utilities (deleted). Tones remain a code extension (no
   // Figma axis — design decision pending).
   normalizing: true,
+  approved: true,
   figmaNode: '4254:904',
   codeConnect: 'packages/ui/src/SummaryStrip.figma.tsx',
 }

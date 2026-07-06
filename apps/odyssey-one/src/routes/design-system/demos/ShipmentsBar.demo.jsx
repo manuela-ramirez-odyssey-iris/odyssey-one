@@ -30,6 +30,7 @@ export const meta = {
   // preservation across prev/next switches (only a fresh null→id open resets
   // to Orders). All code-only, no Figma axis.
   normalizing: true,
+  approved: true,
   figmaNode: '4120:4623',
   codeConnect: 'packages/ui/src/ShipmentsBar.figma.tsx',
 }

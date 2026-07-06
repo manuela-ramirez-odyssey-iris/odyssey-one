@@ -19,6 +19,7 @@ export const meta = {
   // React shell S66 + resize/cell-click extensibility S68; Angular twin shipped.
   // DEMOTED S79b: footer externalized below the bordered card + paginator restyle (decision 6) — pending re-approval.
   normalizing: true,
+  approved: true,
 }
 
 export const props = [

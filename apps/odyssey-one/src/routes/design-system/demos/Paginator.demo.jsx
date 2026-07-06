@@ -16,6 +16,7 @@ export const meta = {
   // DEMOTED S79b: restyled per the tab-panes mock (external to the DataTable card, on-canvas,
   // "Rows per page" label) — Figma master sync pending (Efrain ask); pending re-approval.
   normalizing: true,
+  approved: true,
 }
 
 export const props = [

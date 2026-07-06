@@ -12,6 +12,7 @@ export const meta = {
   // right-aligned ButtonLink in a new header-row wrapper; Figma `Show Expand
   // All` BOOLEAN) — back to NORMALIZING pending re-approval.
   normalizing: true,
+  approved: true,
   figmaNode: '4083:5044',
   codeConnect: 'packages/ui/src/SubAccordion.figma.tsx',
 }
