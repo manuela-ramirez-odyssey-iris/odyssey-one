@@ -4986,6 +4986,12 @@ button.breadcrumb__label:focus-visible {
   color: var(--text-primary);
   text-align: left;
   white-space: nowrap;
+}
+/* Per-label underline segments (design 4217:14427) — the header row has no
+   full-width hairline; each label carries its own short underline. */
+.odyssey-group-table__th-label {
+  display: inline-block;
+  padding-bottom: var(--spacing-1);
   border-bottom: 1px solid var(--border-subtle);
 }
 

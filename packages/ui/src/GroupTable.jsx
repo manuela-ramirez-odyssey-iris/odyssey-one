@@ -90,7 +90,7 @@ export default function GroupTable({
                   className={alignClass(col.align) || undefined}
                   style={col.width != null ? { width: col.width } : undefined}
                 >
-                  {col.label}
+                  <span className="odyssey-group-table__th-label">{col.label}</span>
                 </th>
               ))}
             </tr>
