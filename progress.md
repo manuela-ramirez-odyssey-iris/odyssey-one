@@ -5049,9 +5049,112 @@ Consolidated into **PR #3** (closed PR #2 as superseded). **PR #3 is BLOCKED** �
 
 ---
 
+## Session 79 — July 5–6, 2026
+
+**Shipments page overhaul + two new staging components (GroupTable, SummaryStrip) + 24 design-decision cycles (DEC-40..DEC-66+). Ran in waves: S79 (Orders tab rebuild + 8 page fixes), S79b (all tab panes + paginator), S79c (bar interaction model v2 + unified search + customer scoping), S79d (bar animation v3), S79e (GroupTable + SummaryStrip staging + bar open-to-cap), S79f–h (iteration rounds on both new components), ending with SubAccordion expand-all action. Ponytail plugin installed. Angular NOT ported this session (user scoped ports to next session).**
+
+### Plugin
+- **Ponytail `4.8.4`** installed (`/plugin marketplace add DietrichGebert/ponytail` + `/plugin install ponytail@ponytail`). Active from next session — YAGNI ladder: does it need to exist? → reuse codebase → stdlib → native → installed dep → one line → minimum.
+- Stale plugin deduplication: removed superpowers 5.0.7 (stale `odyssey-shipments` record), stale `frontend-design` project entry; settings.local.json permission paths updated; MEMORY.md remains accurate.
+
+### S79 — Shipments update (Orders tab + 8 page fixes)
+- **Orders tab** rebuilt to mirror Order Creation visuals: order-number underline Tabs + Expand/Collapse All + 4 SubAccordion cards (General Information / Pickup & Delivery / Product Information 🚧 dimmed / Special Services). Fields without a data equivalent render `--`. Figma: frame `1210:36974`.
+- **`--shadow-up-lg`** token (`0 -5px 30px rgba(0,0,0,.2)`) created; Figma effect style `shadow/up-lg` bound on ShipmentsBar Expanded master `4106:1765`. Bar demoted to NORMALIZING.
+- **TabArrangementPanel**: new RightPanel-based tab-order/visibility panel; replaces the column-panel hack; Orders tab pinned.
+- **Sidebar-shift glitch root-caused**: `scrollIntoView` was horizontally scrolling AppShell's `overflow:hidden` wrapper (96px). Fix: `overflow:clip`. Proven via Playwright boundingBox measurements.
+- **Radio-dot column** deleted (decorative span; row click already selected).
+- **GlobalSearch drives table** (S79 wiring, later refined in S79c): table search box hidden.
+- **Tooltip migration**: app-local `TooltipTrigger` portals the normalized `Tooltip`; DarkTooltip deleted.
+- **Sort + column-arrangement** → `Button variant=icon`; row actions `zap` → `ellipsis-vertical`.
+- **DSM demotion rule**: ShipmentsBar NORMALIZING in both DSMs; Angular local commit only.
+- **Decisions:** DEC-40…DEC-47. Build green, 225/225 tests.
+
+### S79b — Tab panes redesign + fix batch
+- **Pane layout system**: three centered column tiers pixel-measured from mocks (wide 1280 / medium 1106 / narrow 760); shared `.pane-canvas`, `.pane-col`, `.pane-card`, `.pane-kpis` utilities.
+- **Bar height model**: `50vh` retired → auto, capped at `100dvh − --bottombar-top-clearance` (146→104px next session). Stops pane had the 2-step glitch fixed with `useTransition` for lazy-pane tab switches.
+- **Shadow clipped up-only**: `clip-path: inset(-40px 0 0 0)`.
+- **DataTable footer externalized**: Paginator sits below the bordered card. Paginator restyled per mock 1 (summary left, segmented pager right). Sticky-header gap root-caused (`<main>` 32px padding; stickyTop now accepts CSS strings). DataTable + Paginator demoted to NORMALIZING. Angular mirrored on `port/s76-search-batch`.
+- **Search (S79b initial wiring)**: shared matcher module `criteria.js` drives both adapter glimpse and gridService; commit payload `{chips,text}`; counts criteria-aware; zero-count tabs hide (PGI/PGR exempt); sub-tab always-selected invariant.
+- **Customer scoping (first-order)**: CustomersContext list = 11 legacy + 15 data-pool (USALCO deduped); ERCO + original 3 default-selected; gridService + adapter + counts all pre-filter by `customerIds`.
+- **All 7 panes restyled** to inbox mocks (layout-only): Stops KPI + timeline, Product wide card, Tender underline sub-tabs (surgical), Cost Allocation Compare AP/AR + KPI band, Instructions groups card, Documents checkbox/kebab, Notes avatar items + 200-char composer with 10-note limit. History/Tender History untouched.
+- **Orders fake data per canon** (LINX-8118/8126/8127/8124; Q15/Q20/Q21): owningOrganization, consolidatable, equipment, special services LFT/PALEXG/PJC+. Documents/Notes/History were always empty (generator emitted data but mapper stubbed them) — now wired through.
+- **Toolbar sticky**: TableControls sticky (top −32px, z 4, bg-secondary); DataTable stickyTop +48px.
+- **Decisions:** DEC-48…DEC-55. Build green, 242/242 tests.
+
+### S79c — Bar interaction model v2 + unified search + customer scoping
+- **Bar `--bottombar-top-clearance`**: 146→104px (bar opens to mid page-title row).
+- **Animation**: `--transition-drawer` (cubic-bezier 0.16,1,0.3,1).
+- **Tab-switch glitch** root-caused: React.lazy Suspense fallback collapsed auto-height. `useTransition` wraps `setActiveTab`.
+- **Close semantics**: CollapseExpand = CLOSE (collapses + deselects row). No more collapsed-with-selection state.
+- **Click-outside closes**: document mousedown, excluded targets (bar, table rows, panels, portals, Escape).
+- **SearchChipPanel row** removed from TableControls.
+- **Unified search** (final): shared matcher, `{chips,text}` commit payload, criteria-aware counts. Glimpse total = Σ panel totals (tested as invariant). Panel Clear all / bar X reset criteria. FilterPanel drawer now trigger-less (opener was the chips row — flag for future spec).
+- **Zero-count tab hiding** while search active; PGI/PGR always visible.
+- **Customer pool** grown 15→25: all 10 legacy planner names now data-backed (KEMIRA_NA_01, KEMIRA_EU_01, GEON_01, etc.). Default 4-customer selection shows real data on load.
+- **Decisions:** DEC-56…DEC-60. Build green, 256/256 tests.
+
+### S79d — Bar animation v3 + toolbar parity + data fixes
+- **Bar open root cause (S79e pre-fix)**: `interpolate-size + max-height` model was fundamentally broken (animated value crossed the visible clamp in 1–2 frames). Replaced with JS-measured length→length transitions (pin → measure used height under cap → animate → release to auto), `requestAnimationFrame` start, drawer easing — cross-browser.
+- **Height ratchet**: bar never shrinks on tab switch while open; resets on close.
+- **Close holds content mounted** (`inert`) while easing to 48px.
+- **Loader as proper 320px pane** held ≥380ms (data swap can't retarget mid-flight).
+- **Shipment switching (prev/next)**: bar stays open, active tab preserved, stale details held; only null→id resets to Orders.
+- **Customer pool**: 1200 shipments regenerated across 25 customers (~36–61 each); default 4 selections show ~200 rows.
+- **Toolbar**: `paddingTop: spacing-6` added to sticky TableControls (mirrors `.orders-toolbar`); DataTable stickyTop +72px; Compare AP/AR Expand All icon added.
+- **Decisions:** DEC-61…DEC-63. Build green, 256/256 tests.
+
+### S79e — GroupTable + SummaryStrip staging components
+- **GroupTable** (molecule, NORMALIZING): read-only presentational grouped table. Chevron group-header rows (full-row toggle, `aria-expanded`), striped child rows, optional TOTAL footer, h-scroll. Boundary vs DataTable documented in both DSMs and JSDoc. Figma master `4183:773` (GroupHeaderRow atom set `4182:787`, GroupTableGroup set `4204:1243`) in Components-Molecules › Sections, fully token-bound. Consumers: ProductTab (old 19-col sticky-left table replaced per mock) + Compare AP/AR (groups=orders, TOTAL footer). +6 helper tests.
+- **SummaryStrip** (molecule, NORMALIZING): the tab-summary band per DS master `4178:8365`. S79e intake found it was a plain FRAME — componentized as `4234:1291`. Intake corrected 6 deltas vs our ad-hoc band; `.pane-kpis*` utilities deleted. Consumers: Stops + Cost Allocation. Figma flags: value fills raw `#1B2537`, gradient artifact, no tone axis.
+- **Bar fresh-open**: animates once to the full cap with the loader inside; data swaps in place.
+- **Decisions:** DEC-64…DEC-65. Build green, 266/266 tests (+11 total).
+
+### S79f–h — Iteration rounds on new components
+- **Bar open transition regression** (S79f): S79e pre-set `el.style.minHeight` before the transition — `min-height` overrides `height`, so the bar was full-size from frame one. Fix: ratchet floor applied at `transitionend`. 9 eased intermediate samples confirmed.
+- **GroupTable**: borders normalized (uniform 1px `--border-subtle` everywhere, no thick rules, no white gaps), table inset within card slot padding, last-row border hides when collapsed, group header values (`groups[].values`) for AP/AR flavor, header values toggle (`Show Values#4224:0`), totals toggleable (`footerRow`). GroupHeaderRow moved to Components-Atoms › Panels. ShipmentsBarTab moved to Components-Atoms › Panels. All rows fixed at 48px (Figma master 336px uniform, ColumnHeaderRow drift corrected). Group header weight: medium (not semibold). GroupTable header values padding fixed (specificity bug). Column headers: per-label underline (4217:14427 reference). Group header now has per-column value cells (both variants, wired to `Show Values`). Real Figma collapse: GroupTableGroup set owns its rows — State flip genuinely reflows. `groups[].values` API: any non-first column with a matching key renders; convention = numeric/money totals.
+- **SummaryStrip** (S79g–h): previous agent hallucinated a solid `Background/primary` fill, deleting the linear gradient. Re-read via `use_figma` — actual fill is `GRADIENT_LINEAR` (transparent→white, bottom-fade). Correct CSS: `linear-gradient(to bottom, rgba(255,255,255,0) 50%, var(--white) 196%)`. New master `4248:1310` (original deleted); **`Cells` variant property** (`4|5|6|7|8`, default 6) added as set `4254:904` — designers get a dropdown to pick cell count. Band is now HUG-width. Consumers Stops/Cost still match pixel-for-pixel.
+- **SubAccordion expand-all action** (S79h): new `allExpanded` + `onToggleAll` props. The action is a ButtonLink sibling of the header toggle (no nested buttons — `__header-row` flex wrapper). Icons: `ListChevronsUpDown`/`ListChevronsDownUp` (correct lucide names). Only renders in Static (`collapsible=false`) flavor. Figma: `Show Expand All#4259:0` BOOLEAN on set `4083:5044`, action element on Static variant only (`4264:4927`). Consumers: ProductTab + CostAllocationTab now use `SubAccordion collapsible={false}` + `onToggleAll` (replaced manual `pane-card` + external ButtonLink). OrderTab global button stays separate (controls SubAccordions themselves) with corrected icons. SubAccordion demoted to NORMALIZING.
+- Decisions: DEC-66+ (GroupTable border/containment, SummaryStrip gradient, Cells variant, SubAccordion expand-all).
+
+### APPROVED this session
+- **GroupTable** — GATE B passed (after S79e–h iteration: 48px rows, header values, medium weights, value-cell padding, real Figma collapse). `approved: true` stamped in demo meta + tracker.
+- **SummaryStrip** — awaiting final sign-off on the tone axis decision (code-only positive/negative tones, no Figma axis yet). Continue next session.
+
+### Component library state after Session 79
+
+| Component | Status | Notes |
+|---|---|---|
+| GroupTable | **APPROVED** | Angular twin + CC at next batch close |
+| SummaryStrip | **NORMALIZING** | Gradient fixed, componentized 4248:1310/4254:904; tone axis TBD |
+| SubAccordion | **NORMALIZING** | expand-all action added; Angular update at batch close |
+| ShipmentsBar | **NORMALIZING** | shadow-up-lg, content-proportional height — Angular update at batch close |
+| DataTable | **NORMALIZING** | External footer — Angular mirrored `4bb2159` (local) |
+| Paginator | **NORMALIZING** | Restyle — Angular mirrored `4bb2159` (local) |
+
+React tests: **266/266**. Angular `port/s76-search-batch` at commit `4bb2159` (local, not pushed — awaiting user go-ahead).
+
+### Angular
+**Nothing ported this session** (user scoped porting to next session). The `port/s76-search-batch` branch in `odyssey-one-library-ui` holds prior work (`4bb2159`). All S79-era modifications to React components are staged for the next port wave.
+
+### Decisions logged
+DEC-40 through DEC-65+ in `vault/10-domains/shipments/decisions/decision-log.md`.
+
+---
+
 ## What's Next
 
-### Session 79 Priorities
+### Session 80 Priorities
+
+0. **SummaryStrip GATE B**: resolve tone axis (design decision — add a Figma `tone` axis or keep code-only); approve + demote → APPROVED.
+1. **Angular port batch**: SubAccordion expand-all + ShipmentsBar + DataTable/Paginator + GroupTable + SummaryStrip — all the S79 modifications. Push `port/s76-search-batch`, open PR.
+2. **PR #10 watch** — Cognizant still has the 0.6.0 batch open; on approval merge + clean up the branch.
+3. **Shipments visual pass** — the S79/79b page restructure was never formally GATE-B'd in the live app (bar height, tab pane layouts, search flow, customer scoping).
+4. **RightPanel / Column-Arrangement fixes** — deferred from S74, still owed.
+5. **FilterPanel trigger** — its only opener was the chips row (removed in S79c); needs a new trigger (search panel Filters view per DEC-57).
+6. **Figma flags to resolve**: SubAccordion instance icon overrides; WidgetMini 24/24 leading + donut % semantics; SummaryStrip tone axis; CurrentShipment arrow unbound white fills (4106:1767/1769); "Last Days: 30 Days" header helper text.
+7. **GroupTable Code Connect + `.figma.tsx`** — master exists (`4183:773`/`4204:1243`); write the CC file and publish.
+
+### Prior Session 79 Priorities (done / carried)
 
 0. **Update Shipments** (user-scoped). Fold in the still-owed **visual pass of the S77 page restructure** (ShipmentsPanelTabs pill/widget modes, ShipmentsBar in the live app, prev/next stepping, order-switcher dropdown tab) — component demos were reviewed, the in-app wiring never was.
 1. **Watch PR #10** — on Cognizant approval: merge, delete `port/s76-search-batch`, verify `origin/main` current.
