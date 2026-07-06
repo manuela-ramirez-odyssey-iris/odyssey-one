@@ -86,7 +86,7 @@ export default function SubAccordion({
             </span>
           )}
         </HeaderTag>
-        {onToggleAll && (
+        {!collapsible && onToggleAll && (
           <Button
             variant="link"
             icon={allExpanded ? <ListChevronsDownUp size={16} /> : <ListChevronsUpDown size={16} />}
