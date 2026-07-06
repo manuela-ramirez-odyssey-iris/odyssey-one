@@ -5004,11 +5004,12 @@ button.breadcrumb__label:focus-visible {
   border-bottom: 1px solid var(--border-subtle);
 }
 
-/* Value cells on the group header (columns 1+) — semibold money/data values
+/* Value cells on the group header (columns 1+) — medium money/data values
    that appear both collapsed and expanded (Compare AP/AR flavor). The first
-   column's padding=0 is correct since the <button> fills it; value cells get
-   the standard cell padding applied directly. */
-.odyssey-group-table__group-value {
+   column's padding=0 is correct since the <button> fills it; value cells need
+   the child-combinator selector to outrank `__group-row > td { padding: 0 }`
+   so they align with the 16px cell grid of the child rows. */
+.odyssey-group-table__group-row > td.odyssey-group-table__group-value {
   padding: 0 var(--spacing-4);
   font-size: var(--font-size-sm);
   line-height: var(--line-height-sm);
