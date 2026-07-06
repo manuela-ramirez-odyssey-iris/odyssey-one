@@ -19,7 +19,7 @@ export const props = [
   { name: 'expanded', type: '{ [groupId]: boolean }', desc: 'Controlled expansion map (missing key = collapsed) — pair with onToggle; lets a consumer drive Expand All.' },
   { name: 'defaultExpanded', type: 'boolean', desc: 'Uncontrolled initial state for every group. Default true.' },
   { name: 'onToggle', type: '(groupId, next) => void', desc: 'Fires on any group toggle (row click or keyboard on the header button).' },
-  { name: 'striped', type: 'boolean', desc: 'Default true — child rows as light-gray bands separated by white hairline gaps (the Product mock). False = white rows with hairlines.' },
+  { name: 'striped', type: 'boolean', desc: 'Default true — child rows as contiguous light-gray bands with 1px --border-subtle hairlines between them (no white gaps). False = white rows with hairlines.' },
   { name: 'className', type: 'string', desc: 'Extra class(es) on the root scroll element.' },
 ]
 
@@ -27,9 +27,9 @@ export const tokens = [
   { token: '--text-secondary / --border-subtle', resolves: 'DSN/700 / DSN/200', usage: 'column-header labels + hairline below' },
   { token: '--text-primary + semibold', resolves: 'DSN/900 / 600', usage: 'group id, child lead cell, footer row' },
   { token: '--text-tertiary', resolves: 'DSN/500', usage: 'chevron (rotates −90° collapsed)' },
-  { token: '--bg-secondary / --bg-primary', resolves: 'DSN/50 / white', usage: 'child-row band / the 2px white gap between bands + group rows' },
+  { token: '--bg-secondary / --bg-primary', resolves: 'DSN/50 / white', usage: 'child-row band background / group-row + card surface' },
   { token: '--spacing-3 / --spacing-4', resolves: '12 / 16', usage: 'cell padding (v/h)' },
-  { token: '--border-default', resolves: 'DSN/300', usage: '2px rule above the footer (TOTAL) row' },
+  { token: '--border-subtle', resolves: 'DSN/200', usage: '1px hairline on col-header, group rows, child rows, footer row — uniform in all states' },
   { token: '--transition-fast', resolves: '150ms ease', usage: 'group-row hover + chevron rotation' },
 ]
 
@@ -105,8 +105,8 @@ function Schematic() {
         <LegendRow part="root" tier="molecule">Presentational grouped table — <strong>read-only</strong> (vs <code>DataTable</code> = the interactive TanStack grid: sort/resize/paginate/select). Root owns horizontal scroll; the consumer&apos;s card owns the white surface.</LegendRow>
         <LegendRow part="header row" nested>Plain muted column labels (<code>--text-secondary</code> semibold) over a <code>--border-subtle</code> hairline.</LegendRow>
         <LegendRow part="group header row" nested>White band per group: chevron (<code>--text-tertiary</code>, rotates −90° collapsed) + bold group id. The FULL row is the toggle — a row-filling <code>&lt;button aria-expanded aria-controls&gt;</code> carries focus + Enter/Space.</LegendRow>
-        <LegendRow part="child rows" nested>Light-gray bands (<code>--bg-secondary</code>) separated by 2px white gaps; lead cell emphasized. <code>renderCell</code> injects nodes (Badge, Diff).</LegendRow>
-        <LegendRow part="footer row" nested>Optional bold TOTAL keyed by <code>col.key</code>, above a 2px <code>--border-default</code> rule.</LegendRow>
+        <LegendRow part="child rows" nested>Contiguous light-gray bands (<code>--bg-secondary</code>), separated by 1px <code>--border-subtle</code> hairlines — no white gaps. Lead cell emphasized. <code>renderCell</code> injects nodes (Badge, Diff).</LegendRow>
+        <LegendRow part="footer row" nested>Optional bold TOTAL keyed by <code>col.key</code>; separated from the last child row by a 1px <code>--border-subtle</code> hairline (same as all other rows).</LegendRow>
       </ul>
     </div>
   )

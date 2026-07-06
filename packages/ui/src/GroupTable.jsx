@@ -31,8 +31,9 @@ import { ICON_MD } from '@odyssey/tokens'
  * @param expanded       map of groupId → bool (controlled; missing = collapsed)
  * @param defaultExpanded bool — uncontrolled initial state for every group (default true)
  * @param onToggle       (groupId, next: bool) — fires on any group toggle
- * @param striped        bool (default true) — child rows as gray bands separated by
- *                       white hairline gaps; false = white rows with hairline borders
+ * @param striped        bool (default true) — child rows as contiguous gray bands
+ *                       with 1px --border-subtle hairlines (no white gaps);
+ *                       false = white rows with hairlines
  * @param className      extra class(es) on the root scroll element
  */
 export default function GroupTable({

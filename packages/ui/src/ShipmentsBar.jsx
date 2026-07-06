@@ -131,12 +131,27 @@ export default function ShipmentsBar({
     let animating = false
     let releaseTimer = 0
     let startRaf = 0
+    // Ratchet floor waiting to be applied at release time (cap-height open).
+    // min-height must NOT be set while the open animation runs — min-height
+    // overrides the pinned inline height, so a pre-set floor at capPx makes
+    // the used height capPx from frame one and the 48→cap transition never
+    // paints (the S79e pre-set snapped the open). Deferred to release(), the
+    // floor lands exactly when the animated height reaches it: no motion.
+    let pendingMinPx = null
 
     // Un-pin: back to content-driven auto (same used height — no motion),
-    // so the RO can see the next content growth.
+    // so the RO can see the next content growth. Applies any deferred ratchet
+    // floor FIRST so the post-release measurement reads the ratcheted height
+    // (capPx on a cap-height open), not the pane's intrinsic height — without
+    // it, prev = loader height and the min-height snap-in would replay as a
+    // second rising animation (S79e symptom).
     const release = () => {
       clearTimeout(releaseTimer)
       animating = false
+      if (pendingMinPx !== null) {
+        el.style.minHeight = `min(${pendingMinPx}px, 100dvh - var(--bottombar-top-clearance))`
+        pendingMinPx = null
+      }
       el.style.transition = 'none'
       el.style.height = ''
       void el.offsetHeight
@@ -154,7 +169,7 @@ export default function ShipmentsBar({
       el.style.transition = 'none'
       el.style.height = ''
       const target = toPx !== undefined ? toPx : el.offsetHeight
-      if (target <= fromPx + 1) { el.style.transition = ''; return } // grow-only
+      if (target <= fromPx + 1) { el.style.transition = ''; release(); return } // grow-only
       el.style.height = `${fromPx}px`
       void el.offsetHeight // reflow at the pinned start height
       animating = true
@@ -178,16 +193,19 @@ export default function ShipmentsBar({
     // same value the CSS max-height uses: 100dvh − --bottombar-top-clearance
     // (104px, measured as window.innerHeight at open time — S79e).
     //
-    // Pre-set min-height to capPx so that release() (called on transitionend)
-    // reads max(auto, capPx) = capPx from offsetHeight — not the loader's
-    // intrinsic height. Without this, transitionend fires before the ratchet
-    // RO can record the peak, so prev = loader height and the RO triggers a
-    // second rising animation when min-height finally snaps in (S79e).
+    // The capPx ratchet floor is DEFERRED (pendingMinPx → applied by
+    // release() on transitionend / the reduced-motion fallback): setting
+    // min-height up front would override the pinned 48px start height and
+    // snap the bar open (min-height beats height — S79f regression). `max`
+    // is still seeded to capPx immediately so the RO can't apply its own
+    // mid-animation floor and cause the same snap; release() then measures
+    // the floored height, so prev = capPx and data landing swaps in place
+    // with no second rise (the S79e goal, kept).
     const stripH = el.firstElementChild?.offsetHeight ?? 48
     const capPx = openToCapHeight ? window.innerHeight - 104 : undefined
     if (capPx !== undefined) {
       max = capPx
-      el.style.minHeight = `min(${capPx}px, 100dvh - var(--bottombar-top-clearance))`
+      pendingMinPx = capPx
     }
     animateFrom(stripH, capPx)
     prev = capPx ?? el.offsetHeight

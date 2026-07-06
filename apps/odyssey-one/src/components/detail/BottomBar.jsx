@@ -16,9 +16,10 @@ const HistoryTab = React.lazy(() => import('./HistoryTab'))
 const TenderHistoryTab = React.lazy(() => import('./TenderHistoryTab'))
 
 // Loader fills the full expanded canvas so the bar animates once (48→cap) and
-// the spinner sits centered in the available height. height:100% works because
-// ShipmentsBar pins the element to the cap height before the open animation
-// measures, giving the flex child a real height to expand into (S79e).
+// the spinner sits centered in the available height. height:100% resolves
+// because the pane wrapper below is absolutely pinned to the content area
+// while loading (S79f) — definite both mid-animation (inline px height on
+// the bar) and after release (auto + min-height ratchet at the cap).
 function TabLoader() {
   return (
     <div style={{ height: '100%', minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-placeholder)' }}>
@@ -305,8 +306,14 @@ export default function BottomBar({
         {/* key stays for data freshness (pane-local state resets per shipment)
             — on a switch it remounts SYNCHRONOUSLY with the held stale details
             (chunks already loaded), so no loader flash and, with the bar's
-            ratchet, no height dip (S79d). */}
-        <div key={selectedShipmentId}>
+            ratchet, no height dip (S79d). While the fresh-open loader shows,
+            the wrapper is absolutely pinned to the content area (position:
+            relative on .shipments-bar__content) so TabLoader's height:100%
+            resolves and the spinner centers in the growing canvas — absolute
+            inset works in BOTH phases, unlike height:100%, which loses its
+            definite chain once the bar releases to auto + min-height (S79f);
+            real panes go back to normal flow (they own their canvas/scroll). */}
+        <div key={selectedShipmentId} style={openToCapHeight ? { position: 'absolute', inset: 0 } : undefined}>
           <Suspense fallback={<TabLoader />}>
             {renderTabContent()}
           </Suspense>

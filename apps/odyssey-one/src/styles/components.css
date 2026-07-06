@@ -4954,9 +4954,11 @@ button.breadcrumb__label:focus-visible {
    no TanStack. Anatomy per the Product pane mock (vault/00-inbox/Product.png):
    plain muted column-header row over a hairline; per group a white GROUP
    HEADER ROW (chevron + bold group id, full row = the toggle); child rows as
-   light-gray bands separated by white hairline gaps; optional bold TOTAL
-   footer above a heavy rule. The ROOT owns horizontal scroll (the mock's last
-   column clips); the consumer's card owns the white surface.
+   contiguous light-gray bands separated by 1px hairlines (no white gaps);
+   optional bold TOTAL footer above a 1px --border-subtle hairline. The ROOT
+   owns horizontal scroll (the mock's last column clips); the consumer's card
+   owns the white surface; the table sits INSIDE the card's content padding
+   (no full-bleed negative-margin reach).
    ---------------------------------------- */
 .odyssey-group-table {
   overflow-x: auto;
@@ -4981,14 +4983,18 @@ button.breadcrumb__label:focus-visible {
   border-bottom: 1px solid var(--border-subtle);
 }
 
-/* Group header row — white band, the whole row toggles */
+/* Group header row — white band, the whole row toggles; hairline below in
+   BOTH expanded and collapsed state (no thick border, no state difference). */
 .odyssey-group-table__group-row {
   background: var(--bg-primary);
   cursor: pointer;
   transition: background var(--transition-fast);
 }
 .odyssey-group-table__group-row:hover { background: var(--bg-secondary); }
-.odyssey-group-table__group-row > td { padding: 0; }
+.odyssey-group-table__group-row > td {
+  padding: 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
 
 /* The real a11y toggle — fills the row so focus/click cover the full band */
 .odyssey-group-table__group-toggle {
@@ -5018,8 +5024,9 @@ button.breadcrumb__label:focus-visible {
   transform: rotate(-90deg);
 }
 
-/* Child rows — light-gray bands; the 2px --bg-primary border is the white
-   gap between bands from the mock */
+/* Child rows — contiguous light-gray bands, hairline separator only.
+   No white gaps between rows (border-bottom is a 1px --border-subtle hairline,
+   not a white gap). */
 .odyssey-group-table__row td {
   padding: var(--spacing-3) var(--spacing-4);
   font-size: var(--font-size-sm);
@@ -5028,7 +5035,7 @@ button.breadcrumb__label:focus-visible {
   color: var(--text-secondary);
   white-space: nowrap;
   background: var(--bg-secondary);
-  border-bottom: 2px solid var(--bg-primary);
+  border-bottom: 1px solid var(--border-subtle);
 }
 /* Lead cell emphasized (mock: 001 / Base / Fuel bold-dark) */
 .odyssey-group-table__row td:first-child {
@@ -5038,10 +5045,11 @@ button.breadcrumb__label:focus-visible {
 /* striped={false} — flat white rows with hairlines instead of gray bands */
 .odyssey-group-table--flat .odyssey-group-table__row td {
   background: var(--bg-primary);
-  border-bottom: 1px solid var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
-/* Footer row (TOTAL) — bold over a heavy rule */
+/* Footer row (TOTAL) — bold, separated by the same 1px hairline as all
+   other rows (no thick rule — consistent with the group/child row treatment). */
 .odyssey-group-table__footer-row td {
   padding: var(--spacing-3) var(--spacing-4);
   font-size: var(--font-size-sm);
@@ -5049,7 +5057,7 @@ button.breadcrumb__label:focus-visible {
   font-weight: var(--font-weight-semibold);
   color: var(--text-primary);
   white-space: nowrap;
-  border-top: 2px solid var(--border-default);
+  border-top: 1px solid var(--border-subtle);
 }
 
 /* Column alignment (columns[].align) — header + cells */
