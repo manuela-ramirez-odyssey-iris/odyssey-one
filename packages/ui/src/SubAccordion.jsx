@@ -4,9 +4,9 @@ import { ICON_LG } from '@odyssey/tokens'
 
 /**
  * SubAccordion (molecule) — a simplified Accordion: a collapsible white card
- * (radius-2xl, shadow/sm, 16/24 padding) with a single-row header and a content
- * slot. No stepper — this is the flavor for big read-only information sections
- * (e.g. a created-orders summary in the Shipments orders tab).
+ * (radius-2xl, shadow/sm, 16/24/20 padding; Static 20/24/20) with a single-row
+ * header and a content slot. No stepper — this is the flavor for big read-only
+ * information sections (e.g. a created-orders summary in the Shipments orders tab).
  *
  * Figma: SubAccordion set 4083:5044 (Components-Molecules),
  * State=Collapsed|Expanded|Static. `Title` TEXT → title; `Show Icon` BOOLEAN →

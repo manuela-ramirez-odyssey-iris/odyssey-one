@@ -1662,10 +1662,10 @@ input[type="date"].odyssey-date-input::-webkit-calendar-picker-indicator:hover {
 }
 
 /* ----------------------------------------
-   SUB ACCORDION (molecule) — Figma set 4083:5044, State=Collapsed|Expanded
+   SUB ACCORDION (molecule) — Figma set 4083:5044, State=Collapsed|Expanded|Static
    Simplified Accordion: collapsible white card (radius-2xl, shadow/sm,
-   16/24 padding) with a single-row header (heading/lg semibold title +
-   optional info glyph + 20px chevron) and a content slot. No stepper.
+   16/24/20 padding — Static is 20/24/20) with a single-row header (heading/lg
+   semibold title + optional info glyph + 20px chevron) and a content slot.
    Reveal mechanics shared with .accordion (grid-rows 0fr→1fr + chevron
    rotation). Distinct from SectionHeader (big H2 + timestamp) and
    TitleSubtitle (stacked label pair).
@@ -1676,7 +1676,7 @@ input[type="date"].odyssey-date-input::-webkit-calendar-picker-indicator:hover {
   background: var(--bg-primary);
   border-radius: var(--radius-2xl);
   box-shadow: var(--shadow-sm);
-  padding: var(--spacing-4) var(--spacing-6);
+  padding: var(--spacing-4) var(--spacing-6) var(--spacing-5);
 }
 .sub-accordion__header {
   display: flex;
@@ -1693,7 +1693,11 @@ input[type="date"].odyssey-date-input::-webkit-calendar-picker-indicator:hover {
   color: inherit;
 }
 /* Static (non-collapsible, Figma State=Static): the header is a plain heading
-   row — no chevron, no toggle affordance. */
+   row — no chevron, no toggle affordance. Top padding 20 (spacing/5) — without
+   the 28px chevron container the header is shorter; 20/20 balances the card. */
+.sub-accordion--static {
+  padding-top: var(--spacing-5);
+}
 .sub-accordion--static .sub-accordion__header {
   cursor: default;
 }
@@ -1751,7 +1755,7 @@ input[type="date"].odyssey-date-input::-webkit-calendar-picker-indicator:hover {
   min-height: 0;
 }
 /* The 24px (spacing/6) header↔content gap lives here so the collapsed card
-   keeps its symmetric 16px vertical padding. */
+   keeps its own 16/20 vertical padding. */
 .sub-accordion__content {
   margin-top: var(--spacing-6);
 }
