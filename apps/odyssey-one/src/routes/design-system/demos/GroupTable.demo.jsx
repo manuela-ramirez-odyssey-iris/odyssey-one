@@ -32,9 +32,9 @@ export const meta = {
 
 export const props = [
   { name: 'columns', type: '[{ key, label, align?, width? }]', desc: "Column definitions. `align`: 'left' (default) | 'right' | 'center'; `width` pins a column (number = px)." },
-  { name: 'groups', type: '[{ id, label, rows: object[], values?: object }]', desc: 'One collapsible band per group. `values` is optional: an object keyed by col.key whose entries appear on the group header row in matching columns (semibold, col.align respected) — visible both collapsed and expanded. Omit for label-only headers (Product tab style).' },
+  { name: 'groups', type: '[{ id, label, rows: object[], values?: object }]', desc: 'One collapsible band per group. `values` is optional: an object keyed by col.key whose entries appear on the group header row in matching columns (medium weight, col.align respected) — visible both collapsed and expanded. Omit for label-only headers (Product tab style).' },
   { name: 'renderCell', type: '(row, col) => node', desc: 'Optional cell renderer for CHILD rows (e.g. a hazmat Badge, a colored Diff). Default: `row[col.key] ?? "—"`.' },
-  { name: 'footerRow', type: 'object', desc: 'Optional bold TOTAL row keyed by col.key (values may be nodes). Pass to show; omit to hide. Not passed through renderCell.' },
+  { name: 'footerRow', type: 'object', desc: 'Optional TOTAL row (medium weight) keyed by col.key (values may be nodes). Pass to show; omit to hide. Not passed through renderCell.' },
   { name: 'expanded', type: '{ [groupId]: boolean }', desc: 'Controlled expansion map (missing key = collapsed) — pair with onToggle; lets a consumer drive Expand All.' },
   { name: 'defaultExpanded', type: 'boolean', desc: 'Uncontrolled initial state for every group. Default true.' },
   { name: 'onToggle', type: '(groupId, next) => void', desc: 'Fires on any group toggle (row click or keyboard on the header button).' },
@@ -43,7 +43,7 @@ export const props = [
 ]
 
 export const tokens = [
-  { token: '--text-primary + semibold', resolves: 'DSN/900 / 600', usage: 'column-header labels + group id' },
+  { token: '--text-primary', resolves: 'DSN/900', usage: 'column-header labels (semibold) · group id + header values + TOTAL (medium)' },
   { token: '--text-primary + medium', resolves: 'DSN/900 / 500', usage: 'child lead cell + footer (TOTAL) row' },
   { token: '--text-tertiary', resolves: 'DSN/500', usage: 'child-row body text + chevron (rotates −90° collapsed)' },
   { token: '--bg-secondary / --bg-primary', resolves: 'DSN/50 / white', usage: 'child-row band background / group-row + card surface' },

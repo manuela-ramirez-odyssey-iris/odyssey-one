@@ -5012,7 +5012,7 @@ button.breadcrumb__label:focus-visible {
   padding: 0 var(--spacing-4);
   font-size: var(--font-size-sm);
   line-height: var(--line-height-sm);
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-medium); /* header-row cells are medium, like the label */
   color: var(--text-primary);
   white-space: nowrap;
 }
@@ -5032,7 +5032,7 @@ button.breadcrumb__label:focus-visible {
   font-family: inherit;
   font-size: var(--font-size-sm);
   line-height: var(--line-height-sm);
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-medium); /* label/sm medium per the master */
   color: var(--text-primary);
   text-align: left;
   white-space: nowrap;
