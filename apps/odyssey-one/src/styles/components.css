@@ -4952,10 +4952,10 @@ button.breadcrumb__label:focus-visible {
    the interactive TanStack grid (sort/resize/paginate/select); GroupTable =
    the READ-ONLY presentational grouped table for ShipmentsBar detail panes —
    no TanStack. Anatomy per the Product pane mock (vault/00-inbox/Product.png):
-   plain muted column-header row over a hairline; per group a white GROUP
+   dark semibold column-header row over a hairline; per group a white GROUP
    HEADER ROW (chevron + bold group id, full row = the toggle); child rows as
    contiguous light-gray bands separated by 1px hairlines (no white gaps);
-   optional bold TOTAL footer above a 1px --border-subtle hairline. The ROOT
+   optional medium-weight TOTAL footer (no own border). All rows 48px. The ROOT
    owns horizontal scroll (the mock's last column clips); the consumer's card
    owns the white surface; the table sits INSIDE the card's content padding
    (no full-bleed negative-margin reach).
@@ -4971,13 +4971,19 @@ button.breadcrumb__label:focus-visible {
   border-collapse: collapse;
 }
 
-/* Column header row — muted labels, hairline below */
+/* Column header row — dark semibold labels (Figma: Text/primary), hairline
+   below. 48px row height per the designer's all-rows-48 directive (raw 48px —
+   no row-height token exists; matches the DataTable/Cell family convention).
+   NOTE: the Figma master's ColumnHeaderRow still measures 44px (HUG, 12px py)
+   — flagged as Figma drift vs the directive; code follows the directive. */
 .odyssey-group-table th {
-  padding: var(--spacing-3) var(--spacing-4);
+  height: 48px;
+  padding: 0 var(--spacing-4);
+  vertical-align: middle;
   font-size: var(--font-size-sm);
   line-height: var(--line-height-sm);
   font-weight: var(--font-weight-semibold);
-  color: var(--text-secondary);
+  color: var(--text-primary);
   text-align: left;
   white-space: nowrap;
   border-bottom: 1px solid var(--border-subtle);
@@ -4992,7 +4998,9 @@ button.breadcrumb__label:focus-visible {
 }
 .odyssey-group-table__group-row:hover { background: var(--bg-secondary); }
 .odyssey-group-table__group-row > td {
+  height: 48px; /* Figma HeaderRow: fixed 48px */
   padding: 0;
+  vertical-align: middle;
   border-bottom: 1px solid var(--border-subtle);
 }
 
@@ -5001,7 +5009,7 @@ button.breadcrumb__label:focus-visible {
    column's padding=0 is correct since the <button> fills it; value cells get
    the standard cell padding applied directly. */
 .odyssey-group-table__group-value {
-  padding: var(--spacing-3) var(--spacing-4);
+  padding: 0 var(--spacing-4);
   font-size: var(--font-size-sm);
   line-height: var(--line-height-sm);
   font-weight: var(--font-weight-semibold);
@@ -5015,7 +5023,9 @@ button.breadcrumb__label:focus-visible {
   align-items: center;
   gap: var(--spacing-2);
   width: 100%;
-  padding: var(--spacing-3) var(--spacing-4);
+  height: 100%; /* fills the fixed 48px group row (fixed 48px here would add
+                   to the cell's collapsed border and push the row to 49px) */
+  padding: 0 var(--spacing-4);
   border: 0;
   background: none;
   cursor: pointer;
@@ -5041,19 +5051,21 @@ button.breadcrumb__label:focus-visible {
    No white gaps between rows (border-bottom is a 1px --border-subtle hairline,
    not a white gap). */
 .odyssey-group-table__row td {
-  padding: var(--spacing-3) var(--spacing-4);
+  height: 48px; /* Figma ChildRow: fixed 48px */
+  padding: 0 var(--spacing-4);
+  vertical-align: middle;
   font-size: var(--font-size-sm);
   line-height: var(--line-height-sm);
   font-weight: var(--font-weight-regular);
-  color: var(--text-secondary);
+  color: var(--text-tertiary);
   white-space: nowrap;
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-subtle);
 }
-/* Lead cell emphasized (mock: 001 / Base / Fuel bold-dark) */
+/* Lead cell emphasized (Figma: label/sm medium, Text/primary) */
 .odyssey-group-table__row td:first-child {
   color: var(--text-primary);
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-medium);
 }
 /* striped={false} — flat white rows with hairlines instead of gray bands */
 .odyssey-group-table--flat .odyssey-group-table__row td {
@@ -5061,16 +5073,19 @@ button.breadcrumb__label:focus-visible {
   border-bottom: 1px solid var(--border-subtle);
 }
 
-/* Footer row (TOTAL) — bold, separated by the same 1px hairline as all
-   other rows (no thick rule — consistent with the group/child row treatment). */
+/* Footer row (TOTAL) — Figma TotalsRow: 48px, label/sm medium, Text/primary,
+   NO own border (strokes: 0) — the hairline above it is the preceding row's
+   border-bottom, which persists because that tbody is not :last-child when a
+   tfoot follows. */
 .odyssey-group-table__footer-row td {
-  padding: var(--spacing-3) var(--spacing-4);
+  height: 48px;
+  padding: 0 var(--spacing-4);
+  vertical-align: middle;
   font-size: var(--font-size-sm);
   line-height: var(--line-height-sm);
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-medium);
   color: var(--text-primary);
   white-space: nowrap;
-  border-top: 1px solid var(--border-subtle);
 }
 
 /* Last visible row — no bottom border (the consumer's card edge is the visual

@@ -43,12 +43,12 @@ export const props = [
 ]
 
 export const tokens = [
-  { token: '--text-secondary / --border-subtle', resolves: 'DSN/700 / DSN/200', usage: 'column-header labels + hairline below' },
-  { token: '--text-primary + semibold', resolves: 'DSN/900 / 600', usage: 'group id, child lead cell, footer row' },
-  { token: '--text-tertiary', resolves: 'DSN/500', usage: 'chevron (rotates −90° collapsed)' },
+  { token: '--text-primary + semibold', resolves: 'DSN/900 / 600', usage: 'column-header labels + group id' },
+  { token: '--text-primary + medium', resolves: 'DSN/900 / 500', usage: 'child lead cell + footer (TOTAL) row' },
+  { token: '--text-tertiary', resolves: 'DSN/500', usage: 'child-row body text + chevron (rotates −90° collapsed)' },
   { token: '--bg-secondary / --bg-primary', resolves: 'DSN/50 / white', usage: 'child-row band background / group-row + card surface' },
-  { token: '--spacing-3 / --spacing-4', resolves: '12 / 16', usage: 'cell padding (v/h)' },
-  { token: '--border-subtle', resolves: 'DSN/200', usage: '1px hairline on col-header, group rows, child rows, footer row — uniform in all states' },
+  { token: '--spacing-4 + 48px row', resolves: '16 / raw 48px', usage: 'cell h-padding; every row fixed 48px tall (no row-height token — Cell family convention)' },
+  { token: '--border-subtle', resolves: 'DSN/200', usage: '1px hairline on col-header, group rows, child rows — uniform in all states (footer has no own border)' },
   { token: '--transition-fast', resolves: '150ms ease', usage: 'group-row hover + chevron rotation' },
 ]
 
@@ -165,11 +165,11 @@ function Schematic() {
       </div>
       <ul style={{ flex: '1 1 320px', minWidth: 280, display: 'grid', gridTemplateColumns: 'max-content 1fr', columnGap: '10px', listStyle: 'none', margin: 0, padding: 0 }}>
         <LegendRow part="root" tier="molecule">Presentational grouped table — <strong>read-only</strong> (vs <code>DataTable</code> = the interactive TanStack grid: sort/resize/paginate/select). Root owns horizontal scroll; the consumer&apos;s card owns the white surface.</LegendRow>
-        <LegendRow part="header row" nested>Plain muted column labels (<code>--text-secondary</code> semibold) over a <code>--border-subtle</code> hairline.</LegendRow>
+        <LegendRow part="header row" nested>Dark column labels (<code>--text-primary</code> semibold) over a <code>--border-subtle</code> hairline. 48px tall like every other row.</LegendRow>
         <LegendRow part="group header row" nested>White band per group: chevron (<code>--text-tertiary</code>, rotates −90° collapsed) + bold group id. The FULL row is the toggle — a row-filling <code>&lt;button aria-expanded aria-controls&gt;</code> carries focus + Enter/Space.</LegendRow>
         <LegendRow part="group.values" nested>Optional per-column values on the group header (e.g. per-order AP/AR/Diff). Semibold, <code>col.align</code> respected; visible both collapsed and expanded. Omit for label-only headers (Product tab style).</LegendRow>
-        <LegendRow part="child rows" nested>Contiguous light-gray bands (<code>--bg-secondary</code>), separated by 1px <code>--border-subtle</code> hairlines — no white gaps. Lead cell emphasized. <code>renderCell</code> injects nodes (Badge, Diff).</LegendRow>
-        <LegendRow part="footer row" nested>Optional bold TOTAL keyed by <code>col.key</code> — pass <code>footerRow</code> to show, omit to hide. Values may be nodes. Not passed through <code>renderCell</code>. The last visible row (footer or last child/header) carries no bottom border.</LegendRow>
+        <LegendRow part="child rows" nested>Contiguous light-gray bands (<code>--bg-secondary</code>, <code>--text-tertiary</code> body), separated by 1px <code>--border-subtle</code> hairlines — no white gaps. Lead cell emphasized (<code>--text-primary</code> medium). <code>renderCell</code> injects nodes (Badge, Diff).</LegendRow>
+        <LegendRow part="footer row" nested>Optional TOTAL (medium, <code>--text-primary</code>) keyed by <code>col.key</code> — pass <code>footerRow</code> to show, omit to hide. Values may be nodes. Not passed through <code>renderCell</code>. The last visible row (footer or last child/header) carries no bottom border.</LegendRow>
       </ul>
     </div>
   )

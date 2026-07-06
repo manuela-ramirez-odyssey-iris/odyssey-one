@@ -30,7 +30,7 @@ import { ICON_MD } from '@odyssey/tokens'
  *                       in the Compare AP/AR flavor). Absent = label-only header (Product tab style).
  * @param renderCell     (row, col) => node — optional cell renderer for CHILD rows;
  *                       default renders `row[col.key] ?? '—'`
- * @param footerRow      object keyed by col.key (values may be nodes) — rendered bold above-ruled
+ * @param footerRow      object keyed by col.key (values may be nodes) — rendered medium-weight
  *                       (the TOTAL row). Pass `footerRow` to show it; omit to hide it. Values may be
  *                       nodes (e.g. a styled DiffCell). Not passed through renderCell.
  * @param expanded       map of groupId → bool (controlled; missing = collapsed)
