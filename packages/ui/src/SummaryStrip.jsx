@@ -5,15 +5,18 @@
  * on a white band closed by a bottom hairline. Sits directly on the pane
  * canvas above the tab's content column (Stops KPIs, Cost Allocation summary).
  *
- * Figma: `Overview` frame 4178:8365 (Components-Molecules › Sections). The
- * master is a plain FRAME today — no variants/props; cells are fixed 152px and
- * the row is horizontally CENTERED inside 48px band padding (Spacing/12). Cell:
- * 12/16 padding (Spacing/3 / Spacing/4), 4px label↔value gap (Spacing/1),
- * divider Deep Sea Neutral/200. Label = label/xs medium, Text/tertiary,
- * letter-spacing 0 (uppercase is content in Figma; code uses text-transform so
- * consumers pass natural-case labels). Value = label/base semibold, DSN/900.
+ * Figma: `SummaryStrip` COMPONENT 4234:1291 (Components-Molecules › Sections;
+ * né `Overview` frame 4178:8365 — componentized by us 2026-07-06 with Label
+ * 1–6 / Value 1–6 TEXT props, per the SectionHeader convention). Cells are
+ * fixed 152px and the row is horizontally CENTERED inside 48px band padding
+ * (Spacing/12). Cell: 12/16 padding (Spacing/3 / Spacing/4), 4px label↔value
+ * gap (Spacing/1), divider Deep Sea Neutral/200. Label = label/xs medium,
+ * Text/tertiary, letter-spacing 0 (uppercase is content in Figma; code uses
+ * text-transform so consumers pass natural-case labels). Value = label/base
+ * semibold, Text/primary (bound 2026-07-06 — was raw #1B2537); band fill
+ * Background/primary (the white→transparent gradient artifact flattened).
  *
- * Code extensions over the master (no Figma axis yet — flagged in tracker):
+ * Code extensions over the master (no Figma axis — flagged in tracker):
  * - `tone` per item ('positive' | 'negative') colors the value — Caribbean
  *   Green/600 / Bittersweet/600 (carried over from the ad-hoc `.pane-kpis`).
  * - Cells grow past 152px rather than truncate (`min-width`, not `width`).

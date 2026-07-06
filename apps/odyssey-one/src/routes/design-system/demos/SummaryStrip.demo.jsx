@@ -7,13 +7,15 @@ export const meta = {
   // Provisional — stamped at release when the S79 staging batch ships.
   version: '0.7.0',
   createdVersion: '0.7.0',
-  // NEW STAGING (S79e): the tab-summary band. Figma master `Overview`
-  // 4178:8365 is a plain FRAME on Components-Molecules › Sections — no
-  // variants/props yet (componentization = Efrain ask). Replaces the ad-hoc
-  // `.pane-kpis*` utilities (deleted). Tones are a code extension (no Figma
-  // axis). GATE B pending.
+  // NEW STAGING (S79e; normalization pass 2026-07-06): the tab-summary band.
+  // Figma master `SummaryStrip` 4234:1291 on Components-Molecules › Sections —
+  // componentized by us from the `Overview` frame (4178:8365) with Label 1–6 /
+  // Value 1–6 TEXT props; value fills bound Text/primary, band gradient
+  // artifact flattened to Background/primary. Replaces the ad-hoc
+  // `.pane-kpis*` utilities (deleted). Tones remain a code extension (no
+  // Figma axis — design decision pending).
   normalizing: true,
-  figmaNode: '4178:8365',
+  figmaNode: '4234:1291',
   codeConnect: 'packages/ui/src/SummaryStrip.figma.tsx',
 }
 
@@ -24,14 +26,14 @@ export const props = [
 ]
 
 export const tokens = [
-  { token: '--bg-primary', resolves: 'white', usage: 'band background (master carries an unbound white gradient — flattened)' },
+  { token: '--bg-primary', resolves: 'white', usage: 'band background (Figma: Background/primary — gradient artifact flattened 2026-07-06)' },
   { token: '--border-subtle', resolves: 'DSN/200', usage: 'band bottom hairline (Figma: Border/subtle)' },
   { token: '--deep-sea-neutral-200', resolves: '#E4E6EB', usage: 'cell right divider — on EVERY cell incl. the last (Figma: Deep Sea Neutral/200)' },
   { token: '--spacing-12', resolves: '48px', usage: 'band horizontal padding (row centered inside it)' },
   { token: '--spacing-4 / --spacing-3', resolves: '16 / 12', usage: 'cell padding (v/h)' },
   { token: '--spacing-1', resolves: '4px', usage: 'label↔value gap' },
   { token: 'label/xs medium', resolves: '12 / 16 / 500', usage: 'label typography, --text-tertiary, letter-spacing 0' },
-  { token: 'label/base semibold', resolves: '16 / 24 / 600', usage: 'value typography, --text-primary (raw #1b2537 in the master — flagged)' },
+  { token: 'label/base semibold', resolves: '16 / 24 / 600', usage: 'value typography, --text-primary (Figma: Text/primary — bound 2026-07-06)' },
   { token: '--caribbean-green-600 / --bittersweet-600', resolves: 'green / red', usage: "tone: 'positive' / 'negative' value color (code-only)" },
 ]
 
@@ -54,7 +56,7 @@ function LegendRow({ part, tier, nested = false, children }) {
   )
 }
 
-// The master's own sample content (Figma `Overview` 4178:8365, verbatim).
+// The master's own sample content (Figma `SummaryStrip` 4234:1291, verbatim).
 const MASTER_ITEMS = [
   { label: 'Distance',         value: '364.14 mi' },
   { label: 'Gross Weight',     value: '54,907 LB' },
