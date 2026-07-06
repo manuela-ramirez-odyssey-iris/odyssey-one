@@ -5116,20 +5116,24 @@ Consolidated into **PR #3** (closed PR #2 as superseded). **PR #3 is BLOCKED** �
 - **SubAccordion expand-all action** (S79h): new `allExpanded` + `onToggleAll` props. The action is a ButtonLink sibling of the header toggle (no nested buttons — `__header-row` flex wrapper). Icons: `ListChevronsUpDown`/`ListChevronsDownUp` (correct lucide names). Only renders in Static (`collapsible=false`) flavor. Figma: `Show Expand All#4259:0` BOOLEAN on set `4083:5044`, action element on Static variant only (`4264:4927`). Consumers: ProductTab + CostAllocationTab now use `SubAccordion collapsible={false}` + `onToggleAll` (replaced manual `pane-card` + external ButtonLink). OrderTab global button stays separate (controls SubAccordions themselves) with corrected icons. SubAccordion demoted to NORMALIZING.
 - Decisions: DEC-66+ (GroupTable border/containment, SummaryStrip gradient, Cells variant, SubAccordion expand-all).
 
-### APPROVED this session
-- **GroupTable** — GATE B passed (after S79e–h iteration: 48px rows, header values, medium weights, value-cell padding, real Figma collapse). `approved: true` stamped in demo meta + tracker.
-- **SummaryStrip** — awaiting final sign-off on the tone axis decision (code-only positive/negative tones, no Figma axis yet). Continue next session.
+### APPROVED this session (end-of-session batch — all 6 React NORMALIZING components)
+- **GroupTable** — GATE B passed mid-session (48px rows, header values, medium weights, real Figma collapse).
+- **SummaryStrip** — tone axis stays code-only (design decision deferred); approved at session close.
+- **SubAccordion** — expand-all action (`ListChevronsUpDown`/`ListChevronsDownUp`, Static-only) included.
+- **ShipmentsBar** — shadow-up-lg + content-proportional height + open-to-cap.
+- **DataTable** — external footer + stickyTop CSS-string support.
+- **Paginator** — restyle (summary left, segmented pager right, transparent on canvas).
 
 ### Component library state after Session 79
 
 | Component | Status | Notes |
 |---|---|---|
-| GroupTable | **APPROVED** | Angular twin + CC at next batch close |
-| SummaryStrip | **NORMALIZING** | Gradient fixed, componentized 4248:1310/4254:904; tone axis TBD |
-| SubAccordion | **NORMALIZING** | expand-all action added; Angular update at batch close |
-| ShipmentsBar | **NORMALIZING** | shadow-up-lg, content-proportional height — Angular update at batch close |
-| DataTable | **NORMALIZING** | External footer — Angular mirrored `4bb2159` (local) |
-| Paginator | **NORMALIZING** | Restyle — Angular mirrored `4bb2159` (local) |
+| GroupTable | **APPROVED** | Angular twin + CC next batch |
+| SummaryStrip | **APPROVED** | Gradient fixed, componentized 4254:904 (Cells variant); tone axis code-only |
+| SubAccordion | **APPROVED** | expand-all action (Static-only, ListChevronsUpDown/DownUp) |
+| ShipmentsBar | **APPROVED** | shadow-up-lg, open-to-cap, content-proportional |
+| DataTable | **APPROVED** | External footer, stickyTop CSS-string |
+| Paginator | **APPROVED** | Restyle (external on canvas) |
 
 React tests: **266/266**. Angular `port/s76-search-batch` at commit `4bb2159` (local, not pushed — awaiting user go-ahead).
 
@@ -5145,14 +5149,12 @@ DEC-40 through DEC-65+ in `vault/10-domains/shipments/decisions/decision-log.md`
 
 ### Session 80 Priorities
 
-0. **SummaryStrip GATE B**: resolve tone axis (design decision — add a Figma `tone` axis or keep code-only); approve + demote → APPROVED.
-1. **Angular port batch**: SubAccordion expand-all + ShipmentsBar + DataTable/Paginator + GroupTable + SummaryStrip — all the S79 modifications. Push `port/s76-search-batch`, open PR.
-2. **PR #10 watch** — Cognizant still has the 0.6.0 batch open; on approval merge + clean up the branch.
-3. **Shipments visual pass** — the S79/79b page restructure was never formally GATE-B'd in the live app (bar height, tab pane layouts, search flow, customer scoping).
-4. **RightPanel / Column-Arrangement fixes** — deferred from S74, still owed.
-5. **FilterPanel trigger** — its only opener was the chips row (removed in S79c); needs a new trigger (search panel Filters view per DEC-57).
-6. **Figma flags to resolve**: SubAccordion instance icon overrides; WidgetMini 24/24 leading + donut % semantics; SummaryStrip tone axis; CurrentShipment arrow unbound white fills (4106:1767/1769); "Last Days: 30 Days" header helper text.
-7. **GroupTable Code Connect + `.figma.tsx`** — master exists (`4183:773`/`4204:1243`); write the CC file and publish.
+0. **Angular port batch** (6 APPROVED components) — SubAccordion, ShipmentsBar, DataTable, Paginator, GroupTable, SummaryStrip. Push `port/s76-search-batch`, open PR. GroupTable and SummaryStrip are new twins (no existing Angular counterpart). DataTable/Paginator were mirrored at `4bb2159` for the S79b external-footer changes — those are already in the branch; the new props (stickyTop string etc.) need verifying.
+1. **PR #10 watch** — Cognizant 0.6.0 batch; on approval merge + clean up `port/s76-search-batch`.
+2. **GroupTable Code Connect + `.figma.tsx`** — master `4183:773`/`4204:1243`, sub-components `4182:787`/`4264:4927`; write and publish.
+3. **RightPanel / Column-Arrangement fixes** — deferred from S74, still owed.
+4. **FilterPanel trigger** — removed opener in S79c (DEC-57); needs a new entry point (search-panel Filters view).
+5. **Figma flags**: SubAccordion instance icon overrides; WidgetMini 24/24 leading + donut % semantics; SummaryStrip tone axis (code-only approved; Figma axis still TBD); CurrentShipment arrow unbound white fills (`4106:1767/1769`); "Last Days: 30 Days" header helper text.
 
 ### Prior Session 79 Priorities (done / carried)
 
