@@ -1,8 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { TriangleAlert, ChevronsUpDown } from 'lucide-react'
-import { Button, Badge, GroupTable } from '@odyssey/ui'
-import { ICON_MD } from '@odyssey/tokens'
+import { TriangleAlert } from 'lucide-react'
+import { Badge, GroupTable, SubAccordion } from '@odyssey/ui'
 
 // Column order per the Product pane mock (vault/00-inbox/Product.png): the 9
 // mock columns first, then the remaining data columns — kept, reached via the
@@ -82,17 +81,13 @@ const ProductTab = React.memo(function ProductTab({ data }) {
   return (
     <div className="pane-canvas">
       <div className="pane-col pane-col--wide">
-        <div className="pane-card">
-          <div className="pane-card__header">
-            <span className="pane-card__title">Product</span>
-            <Button
-              variant="link"
-              iconRight={<ChevronsUpDown {...ICON_MD} />}
-              onClick={toggleAll}
-            >
-              {allExpanded ? 'Collapse All' : 'Expand All'}
-            </Button>
-          </div>
+        <SubAccordion
+          title="Product"
+          showIcon={false}
+          collapsible={false}
+          allExpanded={allExpanded}
+          onToggleAll={toggleAll}
+        >
           <div className="product-pane__table-scroll">
             <GroupTable
               columns={COLUMNS}
@@ -103,7 +98,7 @@ const ProductTab = React.memo(function ProductTab({ data }) {
               aria-label="Product lines by order"
             />
           </div>
-        </div>
+        </SubAccordion>
       </div>
     </div>
   )

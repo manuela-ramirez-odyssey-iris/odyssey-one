@@ -1,5 +1,5 @@
 import React, { useId, useState } from 'react'
-import { ChevronDown, ChevronsUpDown } from 'lucide-react'
+import { ChevronDown, ListChevronsUpDown, ListChevronsDownUp } from 'lucide-react'
 import { Badge, Button, SubAccordion, Tab } from '@odyssey/ui'
 import { ICON_MD } from '@odyssey/tokens'
 
@@ -141,7 +141,7 @@ const OrderTab = React.memo(function OrderTab({
       )}
 
       <div className="order-pane__expand-row">
-        <Button variant="link" iconRight={<ChevronsUpDown {...ICON_MD} />} onClick={toggleAll}>
+        <Button variant="link" iconRight={allOpen ? <ListChevronsDownUp size={16} /> : <ListChevronsUpDown size={16} />} onClick={toggleAll}>
           {allOpen ? 'Collapse All' : 'Expand All'}
         </Button>
       </div>

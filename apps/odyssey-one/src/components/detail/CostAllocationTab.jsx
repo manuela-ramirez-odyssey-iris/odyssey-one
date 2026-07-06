@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import { Lock, ChevronsUpDown } from 'lucide-react'
-import { ICON_MD } from '@odyssey/tokens'
-import { Tab, Button, SummaryStrip, GroupTable } from '@odyssey/ui'
+import { Lock } from 'lucide-react'
+import { Tab, Button, SummaryStrip, GroupTable, SubAccordion } from '@odyssey/ui'
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -197,21 +196,13 @@ const CostAllocationTab = React.memo(function CostAllocationTab({ data }) {
 
           {/* Row 3: narrow card with Compare AP/AR table */}
           <div className="pane-col pane-col--narrow">
-            <div className="pane-card">
-              <div className="pane-card__header">
-                <h2 className="pane-card__title">Compare AP/AR</h2>
-                {orders.length > 0 && (
-                  <Button
-                    variant="link"
-                    iconRight={<ChevronsUpDown {...ICON_MD} />}
-                    onClick={toggleAll}
-                    aria-pressed={allExpanded}
-                  >
-                    {allExpanded ? 'Collapse All' : 'Expand All'}
-                  </Button>
-                )}
-              </div>
-
+            <SubAccordion
+              title="Compare AP/AR"
+              showIcon={false}
+              collapsible={false}
+              allExpanded={orders.length > 0 ? allExpanded : undefined}
+              onToggleAll={orders.length > 0 ? toggleAll : undefined}
+            >
               {orders.length > 0 ? (
                 <CompareTable
                   orders={orders}
@@ -225,7 +216,7 @@ const CostAllocationTab = React.memo(function CostAllocationTab({ data }) {
                   No order cost data available.
                 </p>
               )}
-            </div>
+            </SubAccordion>
           </div>
         </>
       )}
