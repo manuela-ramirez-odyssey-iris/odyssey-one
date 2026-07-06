@@ -1677,10 +1677,25 @@ input[type="date"].odyssey-date-input::-webkit-calendar-picker-indicator:hover {
   box-shadow: var(--shadow-sm);
   padding: var(--spacing-4) var(--spacing-6) var(--spacing-5);
 }
+/* Header row (S79h) — flex wrapper so the optional expand-all ButtonLink sits
+   as a SIBLING of the header toggle (never a nested button), always right-
+   aligned. The ButtonLink itself is styled by the Button atom. */
+.sub-accordion__header-row {
+  display: flex;
+  align-items: center;
+}
+/* Expand-all action icon is 16px by spec (chevrons-up-down/down-up) — override
+   the Button atom's 20px leading-icon wrapper, scoped to this molecule. */
+.sub-accordion__header-row .btn__icon {
+  width: var(--icon-size-md);
+  height: var(--icon-size-md);
+}
 .sub-accordion__header {
   display: flex;
   align-items: center;
   gap: var(--spacing-3);
+  flex: 1;
+  min-width: 0;
   width: 100%;
   background: none;
   border: none;

@@ -1,6 +1,7 @@
 import { useId, useState } from 'react'
-import { Info, ChevronDown } from 'lucide-react'
+import { Info, ChevronDown, ChevronsUpDown, ChevronsDownUp } from 'lucide-react'
 import { ICON_LG } from '@odyssey/tokens'
+import Button from './Button.jsx'
 
 /**
  * SubAccordion (molecule) — a simplified Accordion: a collapsible white card
@@ -24,6 +25,13 @@ import { ICON_LG } from '@odyssey/tokens'
  * 0fr→1fr (animates to auto height, no JS measuring), same as Accordion.
  * The chevron rotates 180° on expand — at rest the rendered geometry matches
  * the Figma chevron-down / chevron-up masters exactly.
+ *
+ * Optional expand-all action (S79h): pass `onToggleAll` to render a
+ * `Button variant="link"` on the right of the header row ("Expand All"
+ * chevrons-up-down / "Collapse All" chevrons-down-up, 16px), a SIBLING of the
+ * header toggle (never a nested button). Consumer-controlled via `allExpanded`
+ * — the consumer tracks what's expanded inside the slot. (Figma: `Show Expand
+ * All` BOOLEAN, default false.)
  */
 export default function SubAccordion({
   title,
@@ -33,6 +41,8 @@ export default function SubAccordion({
   expanded,
   defaultExpanded = false,
   onToggle,
+  allExpanded = false,
+  onToggleAll,
   children,
   className = '',
 }) {
@@ -53,28 +63,42 @@ export default function SubAccordion({
     <section
       className={`sub-accordion${isExpanded ? ' sub-accordion--expanded' : ''}${collapsible ? '' : ' sub-accordion--static'}${className ? ` ${className}` : ''}`}
     >
-      <HeaderTag
-        type={collapsible ? 'button' : undefined}
-        className="sub-accordion__header"
-        id={headerId}
-        aria-expanded={collapsible ? isExpanded : undefined}
-        aria-controls={collapsible ? contentId : undefined}
-        onClick={collapsible ? handleToggle : undefined}
-      >
-        <span className="sub-accordion__lead">
-          <span className="sub-accordion__title text-heading-lg-semibold">{title}</span>
-          {showIcon && (
-            <span className="sub-accordion__info" aria-hidden="true">
-              {icon || <Info {...ICON_LG} />}
+      <div className="sub-accordion__header-row">
+        <HeaderTag
+          type={collapsible ? 'button' : undefined}
+          className="sub-accordion__header"
+          id={headerId}
+          aria-expanded={collapsible ? isExpanded : undefined}
+          aria-controls={collapsible ? contentId : undefined}
+          onClick={collapsible ? handleToggle : undefined}
+        >
+          <span className="sub-accordion__lead">
+            <span className="sub-accordion__title text-heading-lg-semibold">{title}</span>
+            {showIcon && (
+              <span className="sub-accordion__info" aria-hidden="true">
+                {icon || <Info {...ICON_LG} />}
+              </span>
+            )}
+          </span>
+          {collapsible && (
+            <span className="sub-accordion__chevron-wrapper" aria-hidden="true">
+              <ChevronDown {...ICON_LG} className="sub-accordion__chevron" />
             </span>
           )}
-        </span>
-        {collapsible && (
-          <span className="sub-accordion__chevron-wrapper" aria-hidden="true">
-            <ChevronDown {...ICON_LG} className="sub-accordion__chevron" />
-          </span>
+        </HeaderTag>
+        {onToggleAll && (
+          <Button
+            variant="link"
+            icon={allExpanded ? <ChevronsDownUp size={16} /> : <ChevronsUpDown size={16} />}
+            onClick={(e) => {
+              e.stopPropagation()
+              onToggleAll(!allExpanded)
+            }}
+          >
+            {allExpanded ? 'Collapse All' : 'Expand All'}
+          </Button>
         )}
-      </HeaderTag>
+      </div>
       <div
         className="sub-accordion__reveal"
         role="region"
