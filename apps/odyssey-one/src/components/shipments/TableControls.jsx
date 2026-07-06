@@ -1,28 +1,35 @@
 import React, { useState } from 'react'
 import { ArrowUpDown, Upload } from 'lucide-react'
-import SearchChipPanel from './SearchChipPanel'
 import TooltipTrigger from '../ui/TooltipTrigger'
 import { Button, ModalMedium } from '@odyssey/ui'
 
+// The SearchChipPanel chips row (pre-S79c per-attribute scoping) was removed —
+// search scoping now lives entirely in the navbar GlobalSearch, which commits
+// { chips, text } criteria to the table pipeline (S79c decision 6).
 const TableControls = React.memo(function TableControls({
   itemCount,
-  totalCount,
-  searchQuery,
-  onSearchChange,
-  activeChipKey,
-  onChipSelect,
-  onToggleFilters,
-  onToggleSavedSearches,
-  appliedSavedQuery,
-  onClearSavedQuery,
-  savedSearchesOpen,
   onExport,
   filtersOpen,
 }) {
   const [exportModalOpen, setExportModalOpen] = useState(false)
 
   return (
-    <div style={{ marginBottom: 'var(--spacing-3)' }}>
+    <div style={{
+      // Sticky toolbar: clamps under the navbar as the table scrolls.
+      // top compensates for AppShell <main> padding-top (--spacing-8 = 32px) so the
+      // element parks flush with the scroller's visible clip edge — same reasoning as
+      // DataTable's stickyTop prop (S79b header-gap fix, S79c decision 11).
+      // z-index 4 sits above the table header (z-index 3).
+      // Background must match <main> so rows scrolling underneath are hidden.
+      // paddingBottom replaces marginBottom: margins don't paint background, so the
+      // gap between the controls row and the table header would be transparent —
+      // rows would peek through.
+      position: 'sticky',
+      top: 'calc(-1 * var(--spacing-8))',
+      zIndex: 4,
+      background: 'var(--bg-secondary)',
+      paddingBottom: 'var(--spacing-3)',
+    }}>
       {/* Row 1: Controls */}
       <div className="flex items-center justify-between">
         {/* Left: item count */}
@@ -45,17 +52,6 @@ const TableControls = React.memo(function TableControls({
           </TooltipTrigger>
         </div>
       </div>
-
-      {/* Row 2: Chips row — only visible when there's a search query */}
-      {searchQuery && searchQuery.trim() && itemCount > 0 && (
-        <SearchChipPanel
-          query={searchQuery}
-          activeChipKey={activeChipKey}
-          onChipSelect={onChipSelect}
-          onToggleFilters={onToggleFilters}
-          filtersOpen={filtersOpen}
-        />
-      )}
 
       {/* Export modal */}
       {exportModalOpen && (

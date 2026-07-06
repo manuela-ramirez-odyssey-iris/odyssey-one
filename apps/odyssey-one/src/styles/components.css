@@ -4446,7 +4446,8 @@ button.breadcrumb__label:focus-visible {
      the strip paints itself white on top. */
   background: var(--deep-sea-neutral-100);
   border-top: 1px solid var(--border-subtle);
-  transition: height var(--transition-slow), right var(--transition-base);
+  /* Open/close eases non-linearly (drawer curve — S79c decision 2). */
+  transition: height var(--transition-drawer), right var(--transition-base);
   /* Lets height ↔ auto animate in supporting browsers (Chrome 129+);
      elsewhere the height snap is the accepted non-animated fallback. */
   interpolate-size: allow-keywords;

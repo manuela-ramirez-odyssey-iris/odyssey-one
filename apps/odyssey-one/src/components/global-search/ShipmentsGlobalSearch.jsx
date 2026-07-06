@@ -1,7 +1,8 @@
-import { useRef, useState, useEffect, useCallback } from 'react'
+import { useRef, useState, useEffect, useCallback, useMemo } from 'react'
 import { GlobalSearch, GlobalSearchPanel, GlobalSearchResults } from '@odyssey/ui'
 import { useGlobalSearch } from '../../search/useGlobalSearch'
 import { shipmentsSearchAdapter } from '../../search/shipments/adapter'
+import { useCustomers } from '../../contexts/CustomersContext.jsx'
 import ShipmentsFiltersView from './ShipmentsFiltersView'
 
 /**
@@ -15,18 +16,32 @@ import ShipmentsFiltersView from './ShipmentsFiltersView'
  *
  * TYPING NEVER FILTERS THE TABLE (decision 5, S79b). The table pipeline is fed
  * only by explicit commits:
- * - `onCommitQuery(query)` — "Show all N results" click or Enter in the input.
- *   The host route feeds it into listParams.searchTerm.
+ * - `onCommitQuery({ chips, text })` — "Show all N results" click or Enter in
+ *   the input (S79c decision 7: chips + text commit as ONE criteria set; a
+ *   chips-only commit works, and committing with empty text no longer clears
+ *   the criteria — only Clear all does, via `onCommitQuery(null)`). The host
+ *   route feeds it into listParams.searchCriteria.
  * - `onSelectShipment(sellShipmentId)` — a match-row click. The host route
  *   selects that shipment (opens the docked ShipmentsBar with its details).
  */
 export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment }) {
+  // Customer scoping (S79c decision 10): the glimpse must respect the selected
+  // customer list, so the domain adapter is wrapped with the selection's dataIds
+  // baked into searchShipments. The hook stays domain-agnostic — a selection
+  // change produces a new adapter identity, which re-runs the results search.
+  const { selectedDataIds } = useCustomers()
+  const scopedAdapter = useMemo(() => ({
+    ...shipmentsSearchAdapter,
+    searchShipments: (chips, query) =>
+      shipmentsSearchAdapter.searchShipments(chips, query, selectedDataIds),
+  }), [selectedDataIds])
+
   const {
     value, query, onChange, onClear, onFocus, onBlur,
     chips, onChipCommit, onChipRemove,
     suggestionSections, suggestionsOpen,
     results, resultTotal,
-  } = useGlobalSearch(shipmentsSearchAdapter)
+  } = useGlobalSearch(scopedAdapter)
 
   const wrapperRef = useRef(null)
   const [resultsOpen, setResultsOpen] = useState(false)
@@ -54,12 +69,22 @@ export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment 
   const openFilters = () => { setPanelView('filters'); setResultsOpen(true) }
   const closePanel = useCallback(() => { setResultsOpen(false); setPanelView('results') }, [])
 
-  // Commit the typed query to the host's table-search pipeline and close the
-  // glimpse. The bar keeps its text — it represents the active table search.
+  // Commit the current criteria set — committed chips + typed text — to the
+  // host's table-search pipeline and close the glimpse. The bar keeps its chips
+  // and text: they represent the active table search. Chips-only commits work
+  // (Enter with chips and an empty input commits the chips).
   const commitQuery = useCallback(() => {
-    onCommitQuery?.(value.trim())
+    onCommitQuery?.({ chips, text: value.trim() })
     closePanel()
-  }, [value, onCommitQuery, closePanel])
+  }, [chips, value, onCommitQuery, closePanel])
+
+  // Explicit Clear all — wipes the bar (chips + text, via the hook's onClear)
+  // AND the committed table criteria. This is the only gesture that clears the
+  // committed criteria (decision 7); an empty commit does not.
+  const handleClearAll = useCallback(() => {
+    onClear()
+    onCommitQuery?.(null)
+  }, [onClear, onCommitQuery])
 
   // Match-row click → select that shipment (docked bar opens with its details,
   // whether or not the row is on the current table page) and close the glimpse.
@@ -75,8 +100,8 @@ export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment 
   // by the INPUT check.
   const handleKeyDown = useCallback((e) => {
     if (e.key === 'Escape') { closePanel(); return }
-    if (e.key === 'Enter' && e.target.tagName === 'INPUT' && value.trim()) commitQuery()
-  }, [closePanel, commitQuery, value])
+    if (e.key === 'Enter' && e.target.tagName === 'INPUT' && (value.trim() || chips.length > 0)) commitQuery()
+  }, [closePanel, commitQuery, value, chips.length])
 
   // Close on click outside the entire wrapper (bar + panel).
   useEffect(() => {
@@ -96,7 +121,9 @@ export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment 
       <GlobalSearch
         value={value}
         onChange={onChange}
-        onClear={onClear}
+        // The bar's X wipes chips + text — an explicit clear-all gesture, so it
+        // clears the committed table criteria too.
+        onClear={handleClearAll}
         onFocus={onFocus}
         onBlur={onBlur}
         chips={chips}
@@ -122,9 +149,10 @@ export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment 
             <GlobalSearchPanel
               count={resultTotal}
               // "Clear all" wipes chips AND the typed query (the hook's onClear
-              // does both) — with query-driven results, clearing only chips
-              // would leave the glimpse open on the residual query.
-              onClear={onClear}
+              // does both) AND the committed table criteria — with query-driven
+              // results, clearing only chips would leave the glimpse open on
+              // the residual query.
+              onClear={handleClearAll}
               onShowResults={commitQuery}
             >
               <GlobalSearchResults

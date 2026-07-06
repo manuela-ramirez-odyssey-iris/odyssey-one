@@ -153,3 +153,27 @@ describe('Case 2 — empty-input suggestions advance by progression group', () =
     )
   })
 })
+
+describe('Customer scoping — the glimpse respects the selected customer list (S79c decision 10)', () => {
+  // Every generated origin carries " US " — free text 'us' matches every row,
+  // so the scope alone determines the total. Data-derived, survives regen.
+  const SCOPE_ID = 'ERCO_SYS_01'
+
+  test('customerIds pre-scope searchShipments (first-order, before chips/text)', async () => {
+    const scopedRows = ALL.filter((s) => s.customerId === SCOPE_ID)
+    expect(scopedRows.length).toBeGreaterThan(0)
+
+    const unscoped = await adapter.searchShipments([], 'us')
+    expect(unscoped.total).toBe(ALL.length)
+
+    const scoped = await adapter.searchShipments([], 'us', [SCOPE_ID])
+    expect(scoped.total).toBe(scopedRows.length)
+    expect(scoped.results.every((r) => scopedRows.some((s) => s.buyShipment === r.id))).toBe(true)
+  })
+
+  test('empty scope ([]) → honest empty glimpse; undefined → unscoped (legacy)', async () => {
+    expect(await adapter.searchShipments([], 'us', [])).toEqual({ results: [], total: 0 })
+    const legacy = await adapter.searchShipments([], 'us', undefined)
+    expect(legacy.total).toBe(ALL.length)
+  })
+})

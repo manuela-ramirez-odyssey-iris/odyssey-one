@@ -44,6 +44,21 @@ export interface CategoryCount {
   count: number
 }
 
+// Committed GlobalSearch criteria (S79c decision 7) — chips ANDed (substring per
+// dataKey), free text ANDed and ORed across the shared field list. Matching is
+// implemented once in src/search/shipments/criteria.js and shared with the
+// search-panel glimpse.
+export interface SearchCriteriaChip {
+  key?: string
+  dataKey: string
+  queryValue?: string | null
+}
+
+export interface SearchCriteria {
+  chips: SearchCriteriaChip[]
+  text?: string
+}
+
 // Request params. `filter` carries committed filter state keyed by SEARCH_ATTRIBUTES
 // dataKey; `searchTerm` is free-text; `dateFilters` are ISO yyyy-mm-dd bounds.
 export interface ShipmentErrorListParams {
@@ -51,8 +66,16 @@ export interface ShipmentErrorListParams {
   category?: string             // omit or 'all' = whole panel
   pageNumber: number
   pageSize: number
+  // Customer scoping (S79c decision 10) — the FIRST-order filter, applied before
+  // panel/category/search. Values are shipment-row customerIds (the selected
+  // customers' dataIds). Omit = unscoped (legacy callers/tests); [] = an honest
+  // empty result (the user's selection has no data-backed customers).
+  customerIds?: string[]
   filter?: Record<string, string>        // exact-equality (FilterPanel dropdown selections)
   searchFilters?: Record<string, string> // substring match per field (saved-query conditions)
+  searchCriteria?: SearchCriteria       // committed GlobalSearch chips+text (the S79c path)
+  // Legacy free-text path (pre-S79c). Still supported by the service (and tested),
+  // but the Shipments route no longer sends it — it sends searchCriteria instead.
   searchTerm?: string
   searchAttributeKey?: string           // scopes searchTerm to one attribute when set; omit for all-fields search
   dateFilters?: {

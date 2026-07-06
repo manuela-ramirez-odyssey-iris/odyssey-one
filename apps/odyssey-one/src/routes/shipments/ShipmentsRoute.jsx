@@ -12,6 +12,8 @@ import { FileText } from 'lucide-react'
 import { PageHeader } from '@odyssey/ui'
 import ShipmentsGlobalSearch from '../../components/global-search/ShipmentsGlobalSearch'
 import { getAllShipments, SEARCH_ATTRIBUTES } from '../../data'
+import { PANEL_CONFIG } from '../../data/panelConfig'
+import { useCustomers } from '../../contexts/CustomersContext.jsx'
 import { useShipmentDetail } from '../../api/queries/useShipmentDetail'
 import { useShipmentErrorList } from '../../api/queries/useShipmentErrorList'
 import { useCategoryCounts } from '../../api/queries/useCategoryCounts'
@@ -30,12 +32,19 @@ function parseSavedQuery(queryStr) {
 }
 
 function ShipmentsRoute() {
+  // Customer scoping (S79c decision 10) — the FIRST-order data filter. The
+  // navbar Customers popover drives the selection; its data-backed dataIds
+  // pre-scope the list, the category counts and the search glimpse. A selection
+  // with no data-backed customers (empty array) = an honest empty table.
+  const { selectedDataIds } = useCustomers()
   const [selectedShipmentId, setSelectedShipmentId] = useState(null)
   const [activePanel, setActivePanel] = useState('exceptions')
   const [activeTab, setActiveTab] = useState('all')
-  const [searchQuery, setSearchQuery] = useState('')
-  const [debouncedQuery, setDebouncedQuery] = useState('')
-  const [activeChipKey, setActiveChipKey] = useState(null)
+  // Committed GlobalSearch criteria — { chips, text } or null (S79c decision 7).
+  // Set only by an explicit commit in the navbar search (Show all / Enter);
+  // cleared only by an explicit Clear all. Feeds listParams.searchCriteria AND
+  // the category-count queries, so table, tab badges and pills stay coherent.
+  const [searchCriteria, setSearchCriteria] = useState(null)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [columnPanelOpen, setColumnPanelOpen] = useState(false)
   const [tabPanelOpen, setTabPanelOpen] = useState(false)
@@ -76,7 +85,7 @@ function ShipmentsRoute() {
   // query/chip/search) changes. Done during render (React's documented "adjust state
   // on change" pattern) rather than in an effect, so the stale-page query never fires
   // — avoids a wasted round-trip on every filter interaction in live mode.
-  const queryIdentity = JSON.stringify([activePanel, activeTab, filters, appliedSavedQuery, activeChipKey, debouncedQuery])
+  const queryIdentity = JSON.stringify([activePanel, activeTab, filters, appliedSavedQuery, searchCriteria, selectedDataIds])
   const [prevQueryIdentity, setPrevQueryIdentity] = useState(queryIdentity)
   if (queryIdentity !== prevQueryIdentity) {
     setPrevQueryIdentity(queryIdentity)
@@ -101,16 +110,21 @@ function ShipmentsRoute() {
         if (attr) searchFilters[attr.dataKey] = value
       }
     }
-    const searchAttr = activeChipKey ? SEARCH_ATTRIBUTES.find(a => a.key === activeChipKey) : null
     return {
       panel: activePanel,
       category: activeTab,
       pageNumber,
       pageSize,
+      // FIRST-order customer scope (S79c decision 10) — the selected customers'
+      // shipment dataIds, applied by gridService before panel/category/search.
+      customerIds: selectedDataIds,
       filter,
       searchFilters,
-      searchTerm: debouncedQuery.trim() || undefined,
-      searchAttributeKey: searchAttr ? searchAttr.dataKey : undefined,
+      // Committed GlobalSearch criteria (S79c). The legacy searchTerm /
+      // searchAttributeKey params are still supported by gridService (and
+      // tested) but the route no longer sends them — searchCriteria replaces
+      // that path with the shared chip+text matcher.
+      searchCriteria: searchCriteria ?? undefined,
       dateFilters: {
         pickupDateFrom: filters.pickupDateFrom,
         pickupDateTo: filters.pickupDateTo,
@@ -118,7 +132,7 @@ function ShipmentsRoute() {
         deliveryDateTo: filters.deliveryDateTo,
       },
     }
-  }, [activePanel, activeTab, pageNumber, pageSize, filters, appliedSavedQuery, activeChipKey, debouncedQuery])
+  }, [activePanel, activeTab, pageNumber, pageSize, filters, appliedSavedQuery, searchCriteria, selectedDataIds])
 
   const {
     data: listData,
@@ -130,10 +144,14 @@ function ShipmentsRoute() {
   const pageRows = listData?.rows ?? []
   const totalCount = listData?.totalCount ?? 0
 
-  // Tab badges + metrics strip: counts come from the count endpoint per panel.
-  const { data: exceptionCounts = [] } = useCategoryCounts('exceptions')
-  const { data: monitoringCounts = [] } = useCategoryCounts('monitoring')
-  const { data: pgipgrCounts = [] } = useCategoryCounts('pgipgr')
+  // Tab badges + metrics strip: counts come from the count endpoint per panel,
+  // scoped to the selected customers (decision 10) and filtered by the committed
+  // search criteria (decision 7) so panel totals, category pills and the glimpse
+  // total all agree.
+  const { data: exceptionCounts = [], isLoading: exceptionsCountsLoading } = useCategoryCounts('exceptions', searchCriteria ?? undefined, selectedDataIds)
+  const { data: monitoringCounts = [], isLoading: monitoringCountsLoading } = useCategoryCounts('monitoring', searchCriteria ?? undefined, selectedDataIds)
+  const { data: pgipgrCounts = [], isLoading: pgipgrCountsLoading } = useCategoryCounts('pgipgr', searchCriteria ?? undefined, selectedDataIds)
+  const countsReady = !exceptionsCountsLoading && !monitoringCountsLoading && !pgipgrCountsLoading
 
   const metrics = useMemo(() => {
     const c = (arr, cat) => arr.find(x => x.category === cat)?.count ?? 0
@@ -154,6 +172,32 @@ function ShipmentsRoute() {
     }
   }, [exceptionCounts, monitoringCounts, pgipgrCounts])
 
+  // Zero-count hiding while committed criteria exist (S79c decision 8):
+  // panel tabs with a 0 criteria-filtered total hide — EXCEPT PGI/PGR, which
+  // always shows (demo); category pills hide via ShipmentsPanelTabs's
+  // hideZeroCategories. Gated on searchActive so no-search = today's full
+  // display; countsReady stops a not-yet-loaded [] from hiding everything.
+  const searchActive = !!searchCriteria && countsReady
+  const visiblePanels = useMemo(() => {
+    const keys = Object.keys(PANEL_CONFIG)
+    if (!searchActive) return keys
+    const panelTotal = (key) =>
+      (PANEL_CONFIG[key]?.categories ?? []).reduce((sum, c) => sum + (metrics[c.badgeKey] ?? 0), 0)
+    return keys.filter(key => key === 'pgipgr' || panelTotal(key) > 0)
+  }, [searchActive, metrics])
+
+  // Selection fallbacks for the hiding (decision 8), adjusted during render
+  // (same "adjust state on change" pattern as the page reset above): hidden
+  // selected panel → first visible; hidden selected category → 'all'. The
+  // subtab stays always-selected through both (decision 9).
+  if (!visiblePanels.includes(activePanel)) {
+    setActivePanel(visiblePanels[0] ?? 'exceptions')
+    setActiveTab('all')
+  } else if (searchActive && activeTab !== 'all') {
+    const activeCat = (PANEL_CONFIG[activePanel]?.categories ?? []).find(c => c.key === activeTab)
+    if (!activeCat || (metrics[activeCat.badgeKey] ?? 0) === 0) setActiveTab('all')
+  }
+
   // Compute right offset for bottom bar based on the open panel (the three right
   // panels — filters, column arrangement, tab arrangement — are mutually exclusive).
   const rightOffset = (filtersOpen ? 354 : 0) + (columnPanelOpen ? 343 : 0) + (tabPanelOpen ? 343 : 0)
@@ -168,12 +212,10 @@ function ShipmentsRoute() {
   }, [])
 
   // Only one right panel at a time — opening any of the three closes the others.
-  const handleToggleFilters = useCallback(() => {
-    setFiltersOpen((prev) => !prev)
-    setColumnPanelOpen(false)
-    setTabPanelOpen(false)
-  }, [])
-
+  // NOTE (S79c decision 6): the FilterPanel's toggle lived on the SearchChipPanel
+  // row that was removed from TableControls; the drawer currently has no open
+  // trigger (its successor is the GlobalSearch panel's Filters view). The
+  // filtersOpen state + drawer stay wired for the follow-up that re-homes it.
   const handleToggleColumnPanel = useCallback(() => {
     setColumnPanelOpen((prev) => !prev)
     setFiltersOpen(false)
@@ -220,14 +262,14 @@ function ShipmentsRoute() {
   }, [])
 
   // Fed by the NAVBAR GlobalSearch (the table's search box was retired in S79).
-  // S79b (decision 5): typing no longer filters the table — the query reaches
-  // listParams.searchTerm only on an explicit commit ("Show all N results" /
-  // Enter in the bar), so no debounce is needed here anymore.
-  const handleCommitQuery = useCallback((value) => {
-    const v = (value ?? '').trim()
-    setSearchQuery(v)
-    setDebouncedQuery(v)
-    if (!v) setActiveChipKey(null)
+  // S79b (decision 5): typing never filters the table. S79c (decision 7): the
+  // commit is a { chips, text } criteria SET — chips-only commits work, and an
+  // empty text no longer clears anything; only an explicit Clear all (null /
+  // empty criteria) does.
+  const handleCommitQuery = useCallback((criteria) => {
+    const chips = criteria?.chips ?? []
+    const text = (criteria?.text ?? '').trim()
+    setSearchCriteria(chips.length || text ? { chips, text } : null)
   }, [])
 
   // Match-row click in the navbar search glimpse → select that shipment. The
@@ -237,10 +279,6 @@ function ShipmentsRoute() {
   // to it.
   const handleSelectShipment = useCallback((id) => {
     if (id) setSelectedShipmentId(id)
-  }, [])
-
-  const handleChipSelect = useCallback((key) => {
-    setActiveChipKey(key)
   }, [])
 
   return (
@@ -287,13 +325,11 @@ function ShipmentsRoute() {
         metrics={metrics}
         viewMode={viewMode}
         onViewModeChange={setViewMode}
+        visiblePanels={visiblePanels}
+        hideZeroCategories={searchActive}
       />
       <TableControls
         itemCount={totalCount}
-        searchQuery={searchQuery}
-        activeChipKey={activeChipKey}
-        onChipSelect={handleChipSelect}
-        onToggleFilters={handleToggleFilters}
         filtersOpen={filtersOpen}
         onExport={async (mode) => {
           // Export all matching rows (not just the current page) — fetch them through
@@ -337,7 +373,6 @@ function ShipmentsRoute() {
           onRowSelect={handleRowSelect}
           onToggleColumnPanel={handleToggleColumnPanel}
           visibleColumns={visibleColumns}
-          activeChipKey={activeChipKey}
           pageNumber={pageNumber}
           pageSize={pageSize}
           totalCount={totalCount}
@@ -350,6 +385,7 @@ function ShipmentsRoute() {
       )}
       <BottomBar
         selectedShipmentId={selectedShipmentId}
+        onClose={() => setSelectedShipmentId(null)}
         shipmentDetails={shipmentDetails}
         shipment={selectedShipment}
         rightOffset={rightOffset}

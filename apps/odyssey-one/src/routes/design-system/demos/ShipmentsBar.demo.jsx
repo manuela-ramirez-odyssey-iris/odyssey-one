@@ -12,6 +12,12 @@ export const meta = {
   // 100dvh − --bottombar-top-clearance; shadow clipped up-only via
   // clip-path: inset(-40px 0 0 0); content slot padding → 0 (panes own their
   // canvas). All code-only, no Figma axis.
+  // S79c: clearance 146→104px (bar top reaches mid page-title row); height
+  // eases via --transition-drawer (non-linear); CollapseExpand while expanded
+  // is now CLOSE (`onClose` — consumer deselects; 'collapsed with selection'
+  // is gone). Consumer-side (BottomBar): click-outside + Escape close, and tab
+  // switches ride useTransition so the auto-height bar never collapses to the
+  // Suspense fallback. All code-only, no Figma axis.
   normalizing: true,
   figmaNode: '4120:4623',
   codeConnect: 'packages/ui/src/ShipmentsBar.figma.tsx',
@@ -23,7 +29,8 @@ export const props = [
   { name: 'onPrevShipment / onNextShipment', type: '() => void', desc: 'Prev/next arrows (20px, DSN/500) beside the ID — render only when provided; pair with prevDisabled/nextDisabled at list bounds.' },
   { name: 'tabs', type: '[{ key, label, dropdown? }]', desc: "The tab slots; overflow scrolls natively. A tab with dropdown = { prelabel, value?, menu } is a DROPDOWN TAB: selected it shows prelabel over value + a chevron; clicking it while active opens a DropdownMenu of preset values (menu node, or ({ close }) => node), chevron rotating while open. (Figma: ShipmentsBarTab State=Default|Selected|Selected Dropdown, Label + Prelabel TEXT.)" },
   { name: 'activeTab / onTabChange', type: 'string / (key) => void', desc: 'Controlled selection. Selected tab = DSN/100 fill — a real Selected state (the mock faked it with Cell State=Hover). (Figma: State VARIANT Default|Selected.)' },
-  { name: 'expanded / onExpandedChange', type: 'boolean / (next) => void', desc: 'Controlled expansion: 48px strip ↔ content-height pane (auto, capped at 100dvh − --bottombar-top-clearance so the page title row stays visible; content scrolls when capped). Toggled by the CollapseExpand PanelAction — expanded shows chevrons-down (click collapses), collapsed shows chevrons-up (click expands).' },
+  { name: 'expanded / onExpandedChange', type: 'boolean / (next) => void', desc: 'Controlled expansion: 48px strip ↔ content-height pane (auto, capped at 100dvh − --bottombar-top-clearance; content scrolls when capped). CollapseExpand fires onExpandedChange(true) only in the expand direction — closing goes through onClose.' },
+  { name: 'onClose', type: '() => void', desc: "CLOSE (S79c): fired by CollapseExpand while expanded (chevrons-down, aria-label 'Close panel') — the consumer deselects the entity, returning the bar to the placeholder strip. No 'collapsed with selection' state exists. Falls back to onExpandedChange(false) when not provided." },
   { name: 'onTabArrangement', type: '() => void', desc: 'The TabArrangement PanelAction (Button Icon/sm, columns+cog) — e.g. opens the column-arrangement panel. Renders only when provided. (Figma: PanelActions.)' },
   { name: 'rightOffset', type: 'number', desc: 'Pixel inset when side panels (filters/columns) are open.' },
   { name: 'children', type: 'node', desc: "The active tab's pane, rendered in the Content slot while expanded — each tab is a content slot. This bar REPLACES the old BottomBar chrome (no close X, no scroll chevrons, no fullscreen)." },
@@ -41,8 +48,8 @@ export const tokens = [
   { token: '--deep-sea-neutral-500', resolves: '#6b7280', usage: 'prev/next arrows' },
   { token: '--spacing-3 / --spacing-6', resolves: '12 / 24', usage: 'PanelActions gap + padding (24 left / 12 right)' },
   { token: '--shadow-up-lg', resolves: '0 -5px 30px rgba(0,0,0,.2)', usage: 'expanded bar (Figma shadow/up-lg) — clipped up-only via clip-path: inset(-40px 0 0 0) so it never paints over the sidebar/side panels (code-only)' },
-  { token: '--bottombar-top-clearance', resolves: '146px', usage: 'expanded-height cap: max-height 100dvh − clearance — the bar top never rises above the page title row; height itself is auto (content-driven), scrolling internally when capped' },
-  { token: '--transition-slow / --transition-base', resolves: 'height / right', usage: 'expansion + panel-inset animation; height ↔ auto animates via interpolate-size: allow-keywords where supported (non-animated fallback elsewhere)' },
+  { token: '--bottombar-top-clearance', resolves: '104px', usage: 'expanded-height cap: max-height 100dvh − clearance — the bar top opens to mid page-title row (S79c); height itself is auto (content-driven), scrolling internally when capped' },
+  { token: '--transition-drawer / --transition-base', resolves: '300ms cubic-bezier(0.16,1,0.3,1) / 200ms ease', usage: 'height eases on the non-linear drawer curve (S79c); right (panel inset) on base; height ↔ auto animates via interpolate-size: allow-keywords where supported (non-animated fallback elsewhere)' },
 ]
 
 // Slot-marker pink — DSM annotation device (NOT a product token). RightPanel convention.
@@ -115,7 +122,7 @@ function Schematic() {
         <LegendRow part="current shipment" nested>Lead segment: prev/next arrows (<code>lucide/arrow-left|right</code>, 20px, <code>--deep-sea-neutral-500</code>) + shipment ID (<code>label/sm semibold</code>, <code>--text-primary</code>). (Figma: Shipment ID TEXT.)</LegendRow>
         <LegendRow part="tab slots" nested>Strip of <code>ShipmentsBarTab</code>s — <code>label/sm semibold</code>, padding 14/16; selected = <code>DSN/100</code> fill (real Selected state, not Hover); hover <code>DSN/50</code> code-only; overflow scrolls natively. Each tab is a content slot.</LegendRow>
         <LegendRow part="dropdown tab" nested>Figma <code>State=Selected Dropdown</code> variant: prelabel (12/12 regular, <code>--text-tertiary</code>) over the value + 16px <code>chevron-down</code>, padding 10/12/6/16, 4px gap (the Gap-shape hack retired). Click-when-active opens a <code>DropdownMenu</code> of preset values anchored to the tab (flips above the docked bar); chevron rotates 180° while open (code-only, like hover).</LegendRow>
-        <LegendRow part="PanelActions" nested>The ONLY controls (Figma 4095:3070), composing <code>Button Icon/sm</code>: <strong>TabArrangement</strong> (columns+cog — closest lucide is <code>columns-3-cog</code>; the mock draws 2 columns) + <strong>CollapseExpand</strong> (expanded → <code>chevrons-down</code>, collapsed → <code>chevrons-up</code>). Gap <code>--spacing-3</code>, padding 24/12.</LegendRow>
+        <LegendRow part="PanelActions" nested>The ONLY controls (Figma 4095:3070), composing <code>Button Icon/sm</code>: <strong>TabArrangement</strong> (columns+cog — closest lucide is <code>columns-3-cog</code>; the mock draws 2 columns) + <strong>CollapseExpand</strong> — expanded → <code>chevrons-down</code> is a <strong>CLOSE</strong> gesture (fires <code>onClose</code>; the app deselects the row — S79c); the placeholder strip shows <code>chevrons-up</code>, disabled without a selection. Gap <code>--spacing-3</code>, padding 24/12.</LegendRow>
         <LegendRow part="Content slot" nested><code>children</code> — the active pane, rendered while expanded (see Playground). (Figma: native Content slot below the strip.)</LegendRow>
       </ul>
     </div>
@@ -155,7 +162,7 @@ function Playground() {
   return (
     <div>
       <div className="ds-demo-row" style={{ gap: 'var(--spacing-4)', marginBottom: 'var(--spacing-3)', flexWrap: 'wrap', alignItems: 'center' }}>
-        <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-tertiary)' }}>arrows step shipments · tabs switch the slot · click the active Orders tab to open its preset-values menu · CollapseExpand (chevrons) opens/closes the pane</span>
+        <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-tertiary)' }}>arrows step shipments · tabs switch the slot · click the active Orders tab to open its preset-values menu · chevrons-down = CLOSE (in the app it deselects the row; here it just collapses so chevrons-up can re-expand)</span>
       </div>
       <div style={{ border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
         <ShipmentsBar
@@ -169,6 +176,7 @@ function Playground() {
           onTabChange={setActiveTab}
           expanded={expanded}
           onExpandedChange={setExpanded}
+          onClose={() => setExpanded(false)}
           onTabArrangement={() => {}}
           style={INLINE}
         >

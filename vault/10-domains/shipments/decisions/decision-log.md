@@ -331,6 +331,29 @@ Every implemented decision with its previous state, source, and rationale. This 
 - **Decision:** Stops (KPI band + timeline card) · Product (wide card + Expand All) · Tender (underline sub-tabs + primary "+ Add Quote", table on canvas; mechanics untouched) · Cost Allocation (underline tabs + KPI band + single expandable Compare AP/AR table, Diff = AR−AP computed, CompareModal deleted) · Instructions (medium card, per-order groups) · Documents (wide card, "+ Add Document", checkbox/File/Creation Time/File Size/kebab columns) · Notes (narrow card, avatar items, hover edit/delete, 200-char composer with 10-note limit). History/Tender History untouched (no mocks; Jana deprioritized). Normalization candidates listed, not built: KpiStatStrip, StopTimeline, CopyValueField, Avatar, NoteItem/NoteComposer, SummaryTotalsPanel, FieldGrid/DescriptionList, DataTable grouping/frozen-columns extensions.
 - **Source:** Manuela, Jul 5 (S79b) — "do the rest of the tabs… layout guidance only… use our components; list new components"
 
+### DEC-56: ShipmentsBar interaction model v2
+- **Previous:** cap 146px; linear-ish height ease; lazy tab switch collapsed the bar to the Suspense loader and re-grew (glitch); chevrons toggled collapse (keeping selection); no outside-click close
+- **Decision:** cap → 104px (`--bottombar-top-clearance`, bar top mid page-title); height animates with `--transition-drawer` (cubic-bezier 0.16,1,0.3,1); tab changes wrapped in `useTransition` (previous pane holds while the next lazy chunk loads — no collapse); the CollapseExpand action is now CLOSE (collapses + deselects the row — 'collapsed with selection' no longer exists); clicking outside the bar (or Escape) also closes+deselects, with exclusions for the bar, table rows, right panels, modals and body-portal popovers.
+- **Source:** Manuela, Jul 6 (S79c) — items 1–5 of the fix list
+
+### DEC-57: Global search is THE table search — one shared matcher, committed criteria
+- **Previous:** commit sent text only (chips never left the search component; chips-only commit sent '' and CLEARED criteria → all rows); glimpse counted all panels while the table filtered the active panel; panel/category counts search-blind; SearchChipPanel row lingered above the table
+- **Decision:** shared matcher module (`src/search/shipments/criteria.js`) used by both the adapter (glimpse) and gridService (table + counts). Commit payload = `{ chips, text }`; `listParams.searchCriteria`; counts are criteria-aware (invariant tested: Σ panel totals == glimpse total). SearchChipPanel row + activeChipKey plumbing removed. Bar X / panel Clear all clear committed criteria. FilterPanel drawer is now trigger-less (its opener was the removed chips row) — successor = search panel Filters view, flagged.
+- **Source:** Manuela, Jul 6 (S79c) — "chips is part of the query… global search needs to be an integral part of the table search"
+
+### DEC-58: Zero-count tabs hide under active search; a subtab is always selected
+- **Decision:** while committed criteria exist, category pills/widgets with 0 hide ('All' stays); panel tabs with 0 hide EXCEPT PGI/PGR (always visible — demo). Hidden selected category → 'all'; hidden selected panel → first visible. Pills remain non-deselectable (already true; preserved through the fallbacks).
+- **Source:** Manuela, Jul 6 (S79c)
+
+### DEC-59: Customer list = first-order data scope
+- **Previous:** CustomersContext (navbar popover) held 11 placeholder names (Kemira…IMCD) matching zero shipment data; selection scoped only Home widgets
+- **Decision:** list = union of the 11 legacy names + the 15 data-pool customers (dedup: USALCO → USALCO_SYS_01); data-backed entries carry `dataId`. Assigned/favorites = original 3 + ERCO Systems Inc; default selected = Kemira NA/EU + Geon (legacy, 0 rows — legitimately) + ERCO (the default view shows ERCO's shipments). Selection pre-scopes gridService list + counts AND the search glimpse (`customerIds` first-order param); empty data-backed selection = honest empty table. Home consumption unchanged.
+- **Source:** Manuela, Jul 6 (S79c) — "customer list is the first thing that filters data… add Erco to the assigned list"
+
+### DEC-60: Table toolbar clamps with the header
+- **Decision:** TableControls root is sticky (top −32px content-edge compensation, z 4, bg-secondary, paddingBottom instead of margin so the surface paints); DataTable stickyTop pushed down 48px (toolbar height) — toolbar + header clamp as one unit, zero seam.
+- **Source:** Manuela, Jul 6 (S79c)
+
 ---
 
 ## Changelog
@@ -344,3 +367,4 @@ Every implemented decision with its previous state, source, and rationale. This 
 | Apr 13, 2026 | DEC-39 — Merge Hazmat Class/Group into Hazardous column with hover tooltip (PENDING stakeholder approval) |
 | Jul 5, 2026 | DEC-40 through DEC-47 — S79 Shipments update: Orders tab SubAccordion rebuild, shadow-up-lg token, tab arrangement panel, radio removal, GlobalSearch as table search, Tooltip migration, icon-button standardization, sidebar-shift fix |
 | Jul 6, 2026 | DEC-48 through DEC-55 — S79b: pane column tiers, content-proportional bar height, up-only shadow clip, search glimpse/commit/open flow, DataTable external footer + Paginator restyle (React+Angular, demoted), sticky-header gap root cause, Orders canon fake data + orphaned documents/notes/history wired, all 7 tab panes restyled |
+| Jul 6, 2026 | DEC-56 through DEC-60 — S79c: bar interaction model v2 (104px cap, drawer easing, useTransition tab switch, close=deselect, outside-click close), unified search criteria + search-aware counts, zero-count tab hiding (PGI/PGR exempt), customer-list first-order scoping (+ERCO assigned), sticky toolbar clamp |

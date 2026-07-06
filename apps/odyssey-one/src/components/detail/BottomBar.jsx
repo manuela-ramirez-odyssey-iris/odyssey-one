@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, Suspense } from 'react'
+import React, { useState, useEffect, useCallback, useMemo, useTransition, Suspense } from 'react'
 import { Loader2 } from 'lucide-react'
 import { Badge, ShipmentsBar } from '@odyssey/ui'
 
@@ -59,18 +59,61 @@ export default function BottomBar({
   onNextShipment,
   prevDisabled,
   nextDisabled,
+  onClose,
 }) {
-  const [expanded, setExpanded] = useState(false)
+  // Expansion is derived: selection ⇒ open. Close = deselect (`onClose`, wired
+  // upstream to clear the selected row) — the 'collapsed with selection' state
+  // no longer exists (S79c decision 4).
+  const expanded = !!selectedShipmentId
   const [activeTab, setActiveTab] = useState('order')
+  const [, startTransition] = useTransition()
 
   useEffect(() => {
-    if (selectedShipmentId) {
-      setExpanded(true)
-      setActiveTab('order')
-    } else {
-      setExpanded(false)
-    }
+    if (selectedShipmentId) setActiveTab('order')
   }, [selectedShipmentId])
+
+  // Tab switches ride a transition so the PREVIOUS pane stays mounted while
+  // the next lazy chunk loads — the auto-height bar never collapses to the
+  // Suspense fallback mid-switch (S79c decision 3). The fallback still covers
+  // the FIRST pane after a row select (fresh mount via key={selectedShipmentId}).
+  // ponytail: upgrade path = measure old→new pane heights and transition
+  // between the two for an animated height change on tab switch.
+  const handleTabChange = useCallback((key) => {
+    startTransition(() => setActiveTab(key))
+  }, [])
+
+  // Click-outside closes (S79c decision 5) — document-level mousedown, active
+  // only while a shipment is selected. Exempt (do NOT deselect): the bar
+  // itself, table rows (they own selection toggling), right panels, inline
+  // modal dialogs/overlays, and anything portaled to document.body outside
+  // <main> (dropdown menus, popovers, tooltips, navbar/sidebar chrome).
+  // Escape also closes — unless a modal is open (its own Escape wins) or focus
+  // sits in an overlay/chrome region outside <main>.
+  useEffect(() => {
+    if (!selectedShipmentId || !onClose) return
+    const EXEMPT = '[data-bottombar], .shipment-table tr, .right-panel, [aria-modal="true"], .modal-medium-overlay, .modal-large-overlay'
+    const inChrome = (t) =>
+      !t.closest('main') && t !== document.body && t !== document.documentElement
+    const onDown = (e) => {
+      const t = e.target
+      if (!(t instanceof Element)) return
+      if (t.closest(EXEMPT) || inChrome(t)) return
+      onClose()
+    }
+    const onKey = (e) => {
+      if (e.key !== 'Escape' || e.defaultPrevented) return
+      if (document.querySelector('[aria-modal="true"]')) return
+      const t = e.target
+      if (t instanceof Element && inChrome(t)) return
+      onClose()
+    }
+    document.addEventListener('mousedown', onDown)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [selectedShipmentId, onClose])
 
   const [selectedOrderIndex, setSelectedOrderIndex] = useState(0)
 
@@ -223,9 +266,9 @@ export default function BottomBar({
         nextDisabled={nextDisabled}
         tabs={tabs}
         activeTab={selectedShipmentId ? shownTab : null}
-        onTabChange={setActiveTab}
+        onTabChange={handleTabChange}
         expanded={expanded}
-        onExpandedChange={setExpanded}
+        onClose={onClose}
         onTabArrangement={onTabArrangement}
         rightOffset={rightOffset}
       >

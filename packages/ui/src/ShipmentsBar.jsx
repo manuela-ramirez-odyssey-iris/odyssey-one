@@ -16,9 +16,11 @@ import { useAnchoredPortal } from './useAnchoredPortal.jsx'
  *
  * PanelActions (Figma 4095:3070 in the mock, in-master 4110:5003): two
  * `Button variant="icon" size="sm"` — TabArrangement (columns+cog,
- * `onTabArrangement`) and CollapseExpand, the ONLY expansion control: content
- * expanded → `chevrons-down` (click collapses), collapsed → `chevrons-up`
- * (click expands).
+ * `onTabArrangement`) and CollapseExpand: content expanded → `chevrons-down`
+ * is a CLOSE gesture — it fires `onClose` (the consumer deselects the entity,
+ * returning the bar to the placeholder strip; S79c decision 4). Collapsed →
+ * `chevrons-up` (click expands via `onExpandedChange`; with no selection the
+ * strip shows it disabled). There is no 'collapsed with selection' state.
  *
  * Selected tab = Deep Sea Neutral/100 fill (real Selected state — the Figma
  * mock faked it with Cell State=Hover); hover/pressed are CSS-only per our
@@ -45,8 +47,11 @@ import { useAnchoredPortal } from './useAnchoredPortal.jsx'
  *                       `({ close }) => node` to close on item pick. The chevron rotates
  *                       180° while the menu is open.
  *   activeTab / onTabChange — controlled tab selection.
- *   expanded / onExpandedChange — controlled expansion (boolean); the CollapseExpand
- *                       PanelAction toggles it.
+ *   expanded / onExpandedChange — controlled expansion (boolean); CollapseExpand fires
+ *                       `onExpandedChange(true)` only in the expand direction.
+ *   onClose           — CLOSE: fired by CollapseExpand while expanded; the consumer
+ *                       deselects the entity (falls back to `onExpandedChange(false)`
+ *                       when not provided).
  *   onTabArrangement  — the TabArrangement PanelAction (e.g. opens the column/tab
  *                       arrangement panel); button renders only when provided.
  *   rightOffset       — px inset when side panels are open.
@@ -64,6 +69,7 @@ export default function ShipmentsBar({
   onTabChange,
   expanded = false,
   onExpandedChange,
+  onClose,
   onTabArrangement,
   rightOffset = 0,
   children,
@@ -74,10 +80,14 @@ export default function ShipmentsBar({
   const isDisabled = !shipmentId
   const isExpanded = expanded && !isDisabled
 
-  const toggleCollapseExpand = useCallback(() => {
-    if (isDisabled || !onExpandedChange) return
-    onExpandedChange(!expanded)
-  }, [isDisabled, onExpandedChange, expanded])
+  // Expanded → CLOSE (deselection at the consumer); collapsed (placeholder
+  // strip — the button is disabled without a selection) → expand.
+  const handleCollapseExpand = useCallback(() => {
+    if (isDisabled) return
+    if (!isExpanded) onExpandedChange?.(true)
+    else if (onClose) onClose()
+    else onExpandedChange?.(false)
+  }, [isDisabled, isExpanded, onClose, onExpandedChange])
 
   // Dropdown-tab menu — one menu at a time, only the ACTIVE dropdown tab can
   // open it (click-when-active toggles). Closes on tab/shipment change plus the
@@ -194,10 +204,10 @@ export default function ShipmentsBar({
             variant="icon"
             size="sm"
             icon={isExpanded ? <ChevronsDown size={20} /> : <ChevronsUp size={20} />}
-            onClick={toggleCollapseExpand}
+            onClick={handleCollapseExpand}
             disabled={isDisabled}
-            aria-label={isExpanded ? 'Collapse panel' : 'Expand panel'}
-            title={isExpanded ? 'Collapse' : 'Expand'}
+            aria-label={isExpanded ? 'Close panel' : 'Expand panel'}
+            title={isExpanded ? 'Close' : 'Expand'}
           />
         </div>
       </div>

@@ -12,6 +12,14 @@ import { PANEL_CONFIG } from '../../data/panelConfig'
 //      rendered as PillTabs (pill mode) or WidgetMini cards (widget mode).
 // WidgetMini percentage = the category's share of the panel total (the Figma
 // mock's uniform 24% is a placeholder).
+//
+// Zero-count hiding (S79c decision 8): while committed search criteria exist,
+// the route passes `visiblePanels` (zero-total panels dropped, PGI/PGR always
+// kept — demo) and `hideZeroCategories` (zero-count pills/widgets dropped, All
+// stays with count = panel total). No search → both default to showing all.
+// Selection fallbacks for hidden panel/category live in the route, next to the
+// state they adjust. Pills stay non-deselectable: clicking the selected one
+// re-sets the same key (decision 9).
 const ShipmentsPanelTabs = React.memo(function ShipmentsPanelTabs({
   activePanel,
   onPanelSelect,
@@ -20,23 +28,28 @@ const ShipmentsPanelTabs = React.memo(function ShipmentsPanelTabs({
   metrics,
   viewMode = 'pills',
   onViewModeChange,
+  visiblePanels = null,
+  hideZeroCategories = false,
 }) {
   const counts = metrics || {}
   const panelTotal = (key) =>
     (PANEL_CONFIG[key]?.categories ?? []).reduce((sum, c) => sum + (counts[c.badgeKey] ?? 0), 0)
+
+  const panelEntries = Object.entries(PANEL_CONFIG)
+    .filter(([key]) => !visiblePanels || visiblePanels.includes(key))
 
   const categories = PANEL_CONFIG[activePanel]?.categories ?? []
   const total = panelTotal(activePanel)
   const rows = [
     { key: 'all', label: 'All', count: total },
     ...categories.map(c => ({ key: c.key, label: c.label, count: counts[c.badgeKey] ?? 0 })),
-  ]
+  ].filter(row => !hideZeroCategories || row.key === 'all' || row.count > 0)
 
   return (
     <div style={{ marginBottom: 'var(--spacing-4)' }}>
       <div className="flex items-center justify-between" style={{ marginBottom: 'var(--spacing-4)' }}>
         <div className="flex items-center" style={{ gap: 'var(--spacing-6)' }}>
-          {Object.entries(PANEL_CONFIG).map(([key, panel]) => (
+          {panelEntries.map(([key, panel]) => (
             <Tab
               key={key}
               label={panel.title}

@@ -1,27 +1,52 @@
 import { getApiMode } from '../config'
 import { apiGet, apiPost } from '../client'
 import { getAllShipments } from '../../data'
+// Shared chip+text matcher — the SAME predicate the GlobalSearch glimpse uses
+// (adapter.searchShipments), so criteria-filtered panel totals always sum to the
+// glimpse total (S79c decision 7).
+import { hasCriteria, matchesCriteria } from '../../search/shipments/criteria'
 import type {
   ShipmentErrorRow,
   ShipmentErrorListResponse,
   ShipmentErrorListParams,
   CategoryCount,
+  SearchCriteria,
 } from '../types/shipmentErrorList'
 
 interface CategoryCountParams {
   panel: string
+  // Committed GlobalSearch criteria — counts filter BEFORE counting so tab badges,
+  // category pills and metrics reflect the active search (S79c decision 7).
+  searchCriteria?: SearchCriteria
+  // Customer scoping (S79c decision 10) — FIRST-order filter, applied before the
+  // panel. Omit = unscoped; [] = zero counts (no data-backed customers selected).
+  customerIds?: string[]
+}
+
+// FIRST-order customer scope (S79c decision 10): rows outside the selected
+// customers' dataIds don't exist for this user — applied before panel, category,
+// search criteria and filters. `undefined` = unscoped (legacy callers/tests);
+// `[]` honestly yields nothing.
+function scopeToCustomers(rows: ShipmentErrorRow[], customerIds?: string[]): ShipmentErrorRow[] {
+  if (!customerIds) return rows
+  const ids = new Set(customerIds)
+  return rows.filter(r => ids.has(r.customerId))
 }
 
 export async function getCategoryCounts(params: CategoryCountParams): Promise<CategoryCount[]> {
   if (getApiMode() === 'live') {
     // Real: GET /shipment-service/v1/shipment/error/category/count → { errorOverview, total }
+    // (criteria-aware counts are a mock-side feature until the real endpoint grows a filter)
     const res = await apiGet<{ errorOverview: CategoryCount[] }>(
       `/shipment-service/v1/shipment/error/category/count?panel=${encodeURIComponent(params.panel)}`,
     )
     return res.errorOverview ?? []
   }
-  // mock: group the panel's rows by category
-  const rows = (getAllShipments() as ShipmentErrorRow[]).filter(r => r.panel === params.panel)
+  // mock: group the panel's rows by category (after applying the customer scope
+  // and committed search criteria)
+  let rows = scopeToCustomers(getAllShipments() as ShipmentErrorRow[], params.customerIds)
+    .filter(r => r.panel === params.panel)
+  if (hasCriteria(params.searchCriteria)) rows = rows.filter(r => matchesCriteria(r, params.searchCriteria))
   const counts = new Map<string, number>()
   for (const r of rows) counts.set(r.category, (counts.get(r.category) ?? 0) + 1)
   return [...counts].map(([category, count]) => ({ category, count }))
@@ -55,7 +80,7 @@ export async function getShipmentErrorList(
       {
         pageNumber: params.pageNumber,
         pageSize: params.pageSize,
-        filter: { panel: params.panel, category: params.category, ...params.filter, ...params.searchFilters, ...params.dateFilters, searchTerm: params.searchTerm },
+        filter: { panel: params.panel, category: params.category, customerIds: params.customerIds, ...params.filter, ...params.searchFilters, ...params.dateFilters, searchTerm: params.searchTerm, searchCriteria: params.searchCriteria },
         sortBy: params.sortBy,
         orderBy: params.orderBy,
       },
@@ -66,8 +91,14 @@ export async function getShipmentErrorList(
   }
 
   // ── mock: simulate the paginated server over shipments.json ──
-  let rows = (getAllShipments() as ShipmentErrorRow[]).filter(r => r.panel === params.panel)
+  // Customer scope first (decision 10), then panel/category.
+  let rows = scopeToCustomers(getAllShipments() as ShipmentErrorRow[], params.customerIds)
+    .filter(r => r.panel === params.panel)
   if (params.category && params.category !== 'all') rows = rows.filter(r => r.category === params.category)
+
+  // committed GlobalSearch criteria (chips ANDed + free text) — applied after
+  // panel/category scoping with the SAME matcher as the search-panel glimpse
+  if (hasCriteria(params.searchCriteria)) rows = rows.filter(r => matchesCriteria(r, params.searchCriteria))
 
   // exact-equality filters (FilterPanel dropdown selections)
   if (params.filter) {

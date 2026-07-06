@@ -1,6 +1,10 @@
 import { getAllShipments } from '../../data'
 import { SHIPMENTS_ATTRIBUTES, SHIPMENTS_PROGRESSION } from './progression'
 import { valueMatchDetail } from './searchIndex'
+// Shared chip+text matcher (S79c) — the SAME predicates the grid service applies
+// to listParams.searchCriteria, so the glimpse previews exactly what committing
+// the criteria will show in the table.
+import { matchesChip, matchesFreeText } from './criteria'
 
 // How many entry-point attributes to show when the bar is empty + no chips.
 const INITIAL_COUNT = 5
@@ -8,13 +12,6 @@ const INITIAL_COUNT = 5
 // dataKeys that drive avatar icon overrides in MatchRow
 const ORDER_KEYS    = new Set(['orders'])
 const CUSTOMER_KEYS = new Set(['customerId', 'customerName', 'consignor', 'consignee'])
-
-// Fields the free-text query matches against (OR semantics) — mirrors the grid
-// service's SEARCH_FIELDS so the panel glimpse previews exactly what committing
-// the query to listParams.searchTerm will show in the table.
-const FREE_TEXT_KEYS = [
-  'buyShipment', 'sellShipment', 'customerId', 'customerName', 'origin', 'destination', 'scac', 'orders',
-]
 
 // Parse "Phoenix AZ US 85001" → "Phoenix, AZ"
 function formatLocation(str) {
@@ -120,12 +117,19 @@ export const shipmentsSearchAdapter = {
   // `query` (optional) is the UNCOMMITTED free text in the bar — an implicit
   // criterion ANDed with the chips, matched OR-wise across FREE_TEXT_KEYS (same
   // fields the grid service's searchTerm uses). Chips-only calls are unchanged.
-  async searchShipments(chips, query = '') {
+  //
+  // `customerIds` (optional) is the FIRST-order customer scope (S79c decision
+  // 10) — the selected customers' shipment dataIds. Same semantics as the grid
+  // service: undefined = unscoped, [] = nothing (honest empty glimpse), so the
+  // glimpse total keeps equaling the sum of the scoped panel totals.
+  async searchShipments(chips, query = '', customerIds) {
     const q = (query || '').trim().toLowerCase()
     const chipList = chips || []
     if (!chipList.length && !q) return { results: [], total: 0 }
 
-    const all = getAllShipments()
+    const all = customerIds
+      ? getAllShipments().filter((s) => customerIds.includes(s.customerId))
+      : getAllShipments()
     const primaryKey = chipList[0]?.dataKey ?? 'buyShipment'
     // No chips → the free-text query drives relevance ordering instead.
     const primaryQuery = (chipList[0]?.queryValue || (chipList.length ? '' : q)).toLowerCase()
@@ -135,15 +139,9 @@ export const shipmentsSearchAdapter = {
     // (An order-scoped chip "matches" when at least one order contains the value
     // — it narrows which shipments survive; the explosion below picks the exact
     // orders.)
-    const matchesQuery = (s) =>
-      !q ||
-      FREE_TEXT_KEYS.some((key) => {
-        const field = s[key]
-        if (field == null) return false
-        const str = (Array.isArray(field) ? field.join(' ') : String(field)).toLowerCase()
-        return str.includes(q)
-      })
-    const shipments = all.filter((s) => matchesQuery(s) && chipList.every((chip) => matchChip(s, chip)))
+    const shipments = all.filter(
+      (s) => matchesFreeText(s, q) && chipList.every((chip) => matchesChip(s, chip)),
+    )
 
     // ---- Order entity: explode each shipment into its matching orders --------
     if (ORDER_KEYS.has(primaryKey)) {
@@ -196,14 +194,6 @@ function nextProgressionGroup(chips) {
     if (hasRoom(SHIPMENTS_PROGRESSION[i])) return SHIPMENTS_PROGRESSION[i]
   }
   return null
-}
-
-// AND predicate for a single chip against a shipment (substring, case-insensitive).
-function matchChip(s, chip) {
-  const field = s[chip.dataKey]
-  if (field == null) return false
-  const str = (Array.isArray(field) ? field.join(' ') : String(field)).toLowerCase()
-  return str.includes((chip.queryValue || '').toLowerCase())
 }
 
 // One result row when the result entity is a SHIPMENT.
