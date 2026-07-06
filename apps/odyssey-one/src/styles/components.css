@@ -4902,7 +4902,7 @@ button.breadcrumb__label:focus-visible {
 
 /* ── SummaryStrip (@odyssey/ui, STAGING S79e) ──────────────────────────────
    The full-width tab-summary band (Stops KPIs, Cost Allocation summary).
-   Figma master: `SummaryStrip` COMPONENT 4234:1291 (Components-Molecules ›
+   Figma master: `SummaryStrip` COMPONENT 4248:1310 (Components-Molecules ›
    Sections; né `Overview` frame 4178:8365, componentized 2026-07-06) —
    centered row of fixed-152px cells inside 48px band padding, every cell
    (incl. the last) closing with a DSN/200 right divider; band closes with a
@@ -4913,7 +4913,7 @@ button.breadcrumb__label:focus-visible {
   justify-content: center;         /* Figma: primaryAxisAlignItems CENTER */
   align-items: stretch;
   margin: 0;                       /* <dl> reset */
-  background: var(--bg-primary);
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0) 50%, var(--white) 196%); /* Figma: white fade-in — transparent to 50% height, ~34% white at bottom edge */
   border-bottom: 1px solid var(--border-subtle);
   padding: 0 var(--spacing-12);    /* Figma: 48px band padding, 0 vertical */
   overflow-x: auto;                /* many/long cells never break the band */
