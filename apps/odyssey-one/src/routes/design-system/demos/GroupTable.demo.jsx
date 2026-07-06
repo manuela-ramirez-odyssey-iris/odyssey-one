@@ -39,7 +39,6 @@ export const props = [
   { name: 'defaultExpanded', type: 'boolean', desc: 'Uncontrolled initial state for every group. Default true.' },
   { name: 'onToggle', type: '(groupId, next) => void', desc: 'Fires on any group toggle (row click or keyboard on the header button).' },
   { name: 'striped', type: 'boolean', desc: 'Default true — child rows as contiguous light-gray bands with 1px --border-subtle hairlines between them (no white gaps). False = white rows with hairlines.' },
-  { name: 'showColumnHeaders', type: 'boolean', desc: 'Default true — render the column-header row. Off = headerless flavor. (Figma: Show Column Headers BOOLEAN, paired with Show Totals.)' },
   { name: 'className', type: 'string', desc: 'Extra class(es) on the root scroll element.' },
 ]
 

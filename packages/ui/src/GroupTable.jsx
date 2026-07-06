@@ -39,8 +39,6 @@ import { ICON_MD } from '@odyssey/tokens'
  * @param striped        bool (default true) — child rows as contiguous gray bands
  *                       with 1px --border-subtle hairlines (no white gaps);
  *                       false = white rows with hairlines
- * @param showColumnHeaders  bool (default true) — render the column-header row.
- *                       (Figma: Show Column Headers BOOLEAN on the master.)
  * @param className      extra class(es) on the root scroll element
  */
 export default function GroupTable({
@@ -52,7 +50,6 @@ export default function GroupTable({
   defaultExpanded = true,
   onToggle,
   striped = true,
-  showColumnHeaders = true,
   className = '',
   ...rest
 }) {
@@ -80,22 +77,20 @@ export default function GroupTable({
   return (
     <div className={rootClasses} {...rest}>
       <table className="odyssey-group-table__table">
-        {showColumnHeaders && (
-          <thead>
-            <tr>
-              {columns.map((col) => (
-                <th
-                  key={col.key}
-                  scope="col"
-                  className={alignClass(col.align) || undefined}
-                  style={col.width != null ? { width: col.width } : undefined}
-                >
-                  <span className="odyssey-group-table__th-label">{col.label}</span>
-                </th>
-              ))}
-            </tr>
-          </thead>
-        )}
+        <thead>
+          <tr>
+            {columns.map((col) => (
+              <th
+                key={col.key}
+                scope="col"
+                className={alignClass(col.align) || undefined}
+                style={col.width != null ? { width: col.width } : undefined}
+              >
+                {col.label}
+              </th>
+            ))}
+          </tr>
+        </thead>
 
         {groups.map((group) => {
           const open = isOpen(group.id)
