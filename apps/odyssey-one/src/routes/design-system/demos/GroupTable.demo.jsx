@@ -2,6 +2,25 @@ import { useState } from 'react'
 import { TriangleAlert } from 'lucide-react'
 import { GroupTable, Badge, Button } from '@odyssey/ui'
 
+// Lightweight colored Diff cell (mirrors CostAllocationTab's DiffCell).
+function DiffCell({ value }) {
+  const positive = !value || value === '--' ? null : !value.startsWith('-')
+  return (
+    <span
+      style={{
+        color: positive === true
+          ? 'var(--text-success)'
+          : positive === false
+          ? 'var(--text-error)'
+          : undefined,
+        fontWeight: 'var(--font-weight-semibold)',
+      }}
+    >
+      {value || '--'}
+    </span>
+  )
+}
+
 // STAGING (S79e). Figma master 4183:773 (GroupHeaderRow set 4182:787) in
 // Components-Molecules › Sections; Code Connect mapping lands at batch close.
 export const meta = {
@@ -13,9 +32,9 @@ export const meta = {
 
 export const props = [
   { name: 'columns', type: '[{ key, label, align?, width? }]', desc: "Column definitions. `align`: 'left' (default) | 'right' | 'center'; `width` pins a column (number = px)." },
-  { name: 'groups', type: '[{ id, label, rows: object[] }]', desc: 'One collapsible band per group: a white GROUP HEADER ROW (chevron + bold label, the full row toggles, aria-expanded) over gray child rows.' },
+  { name: 'groups', type: '[{ id, label, rows: object[], values?: object }]', desc: 'One collapsible band per group. `values` is optional: an object keyed by col.key whose entries appear on the group header row in matching columns (semibold, col.align respected) — visible both collapsed and expanded. Omit for label-only headers (Product tab style).' },
   { name: 'renderCell', type: '(row, col) => node', desc: 'Optional cell renderer for CHILD rows (e.g. a hazmat Badge, a colored Diff). Default: `row[col.key] ?? "—"`.' },
-  { name: 'footerRow', type: 'object', desc: 'Optional bold footer row keyed by col.key (values may be nodes) — the Compare AP/AR TOTAL. Not passed through renderCell.' },
+  { name: 'footerRow', type: 'object', desc: 'Optional bold TOTAL row keyed by col.key (values may be nodes). Pass to show; omit to hide. Not passed through renderCell.' },
   { name: 'expanded', type: '{ [groupId]: boolean }', desc: 'Controlled expansion map (missing key = collapsed) — pair with onToggle; lets a consumer drive Expand All.' },
   { name: 'defaultExpanded', type: 'boolean', desc: 'Uncontrolled initial state for every group. Default true.' },
   { name: 'onToggle', type: '(groupId, next) => void', desc: 'Fires on any group toggle (row click or keyboard on the header button).' },
@@ -33,7 +52,7 @@ export const tokens = [
   { token: '--transition-fast', resolves: '150ms ease', usage: 'group-row hover + chevron rotation' },
 ]
 
-// ── Sample data ─────────────────────────────────────────────────────────────
+// ── Sample data — Product flavor (label-only group headers) ─────────────────
 const COLUMNS = [
   { key: 'lineNumber', label: 'Line #' },
   { key: 'shipItem', label: 'Ship Item' },
@@ -71,6 +90,49 @@ function renderSampleCell(row, col) {
   return row[col.key] ?? '—'
 }
 
+// ── Sample data — Compare AP/AR flavor (group headers carry per-order values) ─
+const COST_COLUMNS = [
+  { key: 'label', label: 'Order' },
+  { key: 'ap',    label: 'AP (Carrier)',  align: 'right' },
+  { key: 'ar',    label: 'AR (Customer)', align: 'right' },
+  { key: 'diff',  label: 'Diff',          align: 'right' },
+]
+
+function renderCostCell(row, col) {
+  if (col.key === 'diff') return <DiffCell value={row.diff} />
+  return row[col.key] ?? '--'
+}
+
+const COST_GROUPS = [
+  {
+    id: 'UOI1XMWP6',
+    label: 'UOI1XMWP6',
+    values: { ap: '$1,240.00', ar: '$1,350.00', diff: <DiffCell value="+$110.00" /> },
+    rows: [
+      { label: 'Base',     ap: '$1,000.00', ar: '$1,100.00', diff: '+$100.00' },
+      { label: 'Fuel',     ap: '$200.00',   ar: '$210.00',   diff: '+$10.00' },
+      { label: 'HZC',      ap: '$40.00',    ar: '$40.00',    diff: '$0.00' },
+    ],
+  },
+  {
+    id: 'QQY0GYYS7',
+    label: 'QQY0GYYS7',
+    values: { ap: '$2,580.00', ar: '$2,430.00', diff: <DiffCell value="-$150.00" /> },
+    rows: [
+      { label: 'Base',     ap: '$2,100.00', ar: '$2,000.00', diff: '-$100.00' },
+      { label: 'Fuel',     ap: '$380.00',   ar: '$350.00',   diff: '-$30.00' },
+      { label: 'Discount', ap: '$100.00',   ar: '$80.00',    diff: '-$20.00' },
+    ],
+  },
+]
+
+const COST_FOOTER = {
+  label: 'TOTAL',
+  ap: '$3,820.00 USD',
+  ar: '$3,780.00 USD',
+  diff: <DiffCell value="-$40.00" />,
+}
+
 // ── Schematic ───────────────────────────────────────────────────────────────
 function TierBadge({ tier }) {
   return (
@@ -105,8 +167,9 @@ function Schematic() {
         <LegendRow part="root" tier="molecule">Presentational grouped table — <strong>read-only</strong> (vs <code>DataTable</code> = the interactive TanStack grid: sort/resize/paginate/select). Root owns horizontal scroll; the consumer&apos;s card owns the white surface.</LegendRow>
         <LegendRow part="header row" nested>Plain muted column labels (<code>--text-secondary</code> semibold) over a <code>--border-subtle</code> hairline.</LegendRow>
         <LegendRow part="group header row" nested>White band per group: chevron (<code>--text-tertiary</code>, rotates −90° collapsed) + bold group id. The FULL row is the toggle — a row-filling <code>&lt;button aria-expanded aria-controls&gt;</code> carries focus + Enter/Space.</LegendRow>
+        <LegendRow part="group.values" nested>Optional per-column values on the group header (e.g. per-order AP/AR/Diff). Semibold, <code>col.align</code> respected; visible both collapsed and expanded. Omit for label-only headers (Product tab style).</LegendRow>
         <LegendRow part="child rows" nested>Contiguous light-gray bands (<code>--bg-secondary</code>), separated by 1px <code>--border-subtle</code> hairlines — no white gaps. Lead cell emphasized. <code>renderCell</code> injects nodes (Badge, Diff).</LegendRow>
-        <LegendRow part="footer row" nested>Optional bold TOTAL keyed by <code>col.key</code>; separated from the last child row by a 1px <code>--border-subtle</code> hairline (same as all other rows).</LegendRow>
+        <LegendRow part="footer row" nested>Optional bold TOTAL keyed by <code>col.key</code> — pass <code>footerRow</code> to show, omit to hide. Values may be nodes. Not passed through <code>renderCell</code>. The last visible row (footer or last child/header) carries no bottom border.</LegendRow>
       </ul>
     </div>
   )
@@ -125,38 +188,63 @@ function Toggle({ label, value, set }) {
 function Playground() {
   const [striped, setStriped] = useState(true)
   const [showFooter, setShowFooter] = useState(true)
+  const [showValues, setShowValues] = useState(false)
   const [narrow, setNarrow] = useState(false)
-  // Controlled expansion — the consumer pattern that drives "Expand All".
+
+  // When values mode is active, switch to the AP/AR sample (its groups carry
+  // `values`). Expansion key set changes too, so keep the maps separate.
+  const activeGroups = showValues ? COST_GROUPS : GROUPS
   const [expanded, setExpanded] = useState(() =>
-    Object.fromEntries(GROUPS.map((g) => [g.id, true]))
+    Object.fromEntries(activeGroups.map((g) => [g.id, true]))
   )
-  const allExpanded = GROUPS.every((g) => expanded[g.id])
+  const allExpanded = activeGroups.every((g) => expanded[g.id])
+
+  // Reset expansion when switching flavors.
+  const handleShowValues = (next) => {
+    const src = next ? COST_GROUPS : GROUPS
+    setExpanded(Object.fromEntries(src.map((g) => [g.id, true])))
+    setShowValues(next)
+  }
 
   return (
     <div>
       <div className="ds-demo-row" style={{ gap: 'var(--spacing-4)', marginBottom: 'var(--spacing-3)', flexWrap: 'wrap', alignItems: 'center' }}>
         <Toggle label="striped" value={striped} set={setStriped} />
-        <Toggle label="footerRow" value={showFooter} set={setShowFooter} />
+        <Toggle label="footerRow (totals row — pass to show, omit to hide)" value={showFooter} set={setShowFooter} />
+        <Toggle label="group.values (Compare AP/AR flavor)" value={showValues} set={handleShowValues} />
         <Toggle label="narrow container (h-scroll)" value={narrow} set={setNarrow} />
         <Button
           variant="link"
-          onClick={() => setExpanded(Object.fromEntries(GROUPS.map((g) => [g.id, !allExpanded])))}
+          onClick={() => setExpanded(Object.fromEntries(activeGroups.map((g) => [g.id, !allExpanded])))}
         >
           {allExpanded ? 'Collapse All' : 'Expand All'}
         </Button>
       </div>
       <div style={{ background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', padding: 'var(--spacing-6)' }}>
         <div style={{ maxWidth: narrow ? 480 : undefined, background: 'var(--bg-primary)', borderRadius: 'var(--radius-2xl)', padding: 'var(--spacing-4) var(--spacing-6)' }}>
-          <GroupTable
-            columns={COLUMNS}
-            groups={GROUPS}
-            renderCell={renderSampleCell}
-            footerRow={showFooter ? { lineNumber: 'TOTAL', packageCount: '193 Totes', grossWeight: '9,423 LB' } : undefined}
-            expanded={expanded}
-            onToggle={(id, next) => setExpanded((prev) => ({ ...prev, [id]: next }))}
-            striped={striped}
-            aria-label="Sample product lines"
-          />
+          {showValues ? (
+            <GroupTable
+              columns={COST_COLUMNS}
+              groups={COST_GROUPS}
+              renderCell={renderCostCell}
+              footerRow={showFooter ? COST_FOOTER : undefined}
+              expanded={expanded}
+              onToggle={(id, next) => setExpanded((prev) => ({ ...prev, [id]: next }))}
+              striped={striped}
+              aria-label="Compare AP/AR by order"
+            />
+          ) : (
+            <GroupTable
+              columns={COLUMNS}
+              groups={GROUPS}
+              renderCell={renderSampleCell}
+              footerRow={showFooter ? { lineNumber: 'TOTAL', packageCount: '193 Totes', grossWeight: '9,423 LB' } : undefined}
+              expanded={expanded}
+              onToggle={(id, next) => setExpanded((prev) => ({ ...prev, [id]: next }))}
+              striped={striped}
+              aria-label="Sample product lines"
+            />
+          )}
         </div>
       </div>
     </div>
@@ -182,7 +270,7 @@ export default function GroupTableDemo() {
       </div>
 
       <div className="ds-demo-section">
-        <h4 className="ds-demo-section__title">Playground — striping, footer, controlled Expand All, h-scroll</h4>
+        <h4 className="ds-demo-section__title">Playground — striping, group.values (AP/AR flavor), footerRow totals toggle, controlled Expand All, h-scroll</h4>
         <Playground />
       </div>
     </div>

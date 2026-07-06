@@ -23,11 +23,16 @@ import { ICON_MD } from '@odyssey/tokens'
  * it, or omit `expanded` for uncontrolled state seeded by `defaultExpanded`.
  *
  * @param columns        [{ key, label, align?: 'left'|'right'|'center', width?: number|string }]
- * @param groups         [{ id, label, rows: object[] }] — one collapsible band per group
+ * @param groups         [{ id, label, rows: object[], values?: object }] — one collapsible band per group.
+ *                       `values` is an optional object keyed by col.key: when present those values appear
+ *                       on the group header row in the matching columns (semibold, col.align respected),
+ *                       visible in both expanded AND collapsed state (e.g. per-order AP/AR/Diff totals
+ *                       in the Compare AP/AR flavor). Absent = label-only header (Product tab style).
  * @param renderCell     (row, col) => node — optional cell renderer for CHILD rows;
  *                       default renders `row[col.key] ?? '—'`
- * @param footerRow      object keyed by col.key (values may be nodes) — rendered
- *                       bold above-ruled (the TOTAL row). Not passed through renderCell.
+ * @param footerRow      object keyed by col.key (values may be nodes) — rendered bold above-ruled
+ *                       (the TOTAL row). Pass `footerRow` to show it; omit to hide it. Values may be
+ *                       nodes (e.g. a styled DiffCell). Not passed through renderCell.
  * @param expanded       map of groupId → bool (controlled; missing = collapsed)
  * @param defaultExpanded bool — uncontrolled initial state for every group (default true)
  * @param onToggle       (groupId, next: bool) — fires on any group toggle
@@ -94,30 +99,46 @@ export default function GroupTable({
             <tbody key={group.id} id={bodyId}>
               {/* Group header row — the WHOLE row toggles; the button carries
                   the a11y contract (focus, Enter/Space, aria-expanded). Button
-                  clicks stop propagation so activation toggles exactly once. */}
+                  clicks stop propagation so activation toggles exactly once.
+                  When group.values is present the non-first columns render the
+                  matching value (semibold, col.align) — visible collapsed + expanded. */}
               <tr
                 className="odyssey-group-table__group-row"
                 onClick={() => toggle(group.id)}
               >
-                <td colSpan={columns.length || 1}>
-                  <button
-                    type="button"
-                    className="odyssey-group-table__group-toggle"
-                    aria-expanded={open}
-                    aria-controls={bodyId}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      toggle(group.id)
-                    }}
-                  >
-                    <ChevronDown
-                      {...ICON_MD}
-                      className="odyssey-group-table__chevron"
-                      aria-hidden="true"
-                    />
-                    {group.label}
-                  </button>
-                </td>
+                {columns.map((col, colIdx) =>
+                  colIdx === 0 ? (
+                    <td key={col.key}>
+                      <button
+                        type="button"
+                        className="odyssey-group-table__group-toggle"
+                        aria-expanded={open}
+                        aria-controls={bodyId}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          toggle(group.id)
+                        }}
+                      >
+                        <ChevronDown
+                          {...ICON_MD}
+                          className="odyssey-group-table__chevron"
+                          aria-hidden="true"
+                        />
+                        {group.label}
+                      </button>
+                    </td>
+                  ) : (
+                    <td
+                      key={col.key}
+                      className={[
+                        'odyssey-group-table__group-value',
+                        alignClass(col.align) || undefined,
+                      ].filter(Boolean).join(' ') || undefined}
+                    >
+                      {groupHeaderValue(group, col.key)}
+                    </td>
+                  )
+                )}
               </tr>
 
               {open &&
@@ -161,4 +182,17 @@ export function alignClass(align) {
  *  every group falls back to `defaultExpanded`. */
 export function isGroupExpanded(overrides, defaultExpanded, id) {
   return overrides[id] ?? !!defaultExpanded
+}
+
+/**
+ * Resolves the value to render in a non-first column of a group header row.
+ * Returns `group.values[colKey]` when `group.values` is present and the key
+ * exists; otherwise returns `''` (empty — label-only header style).
+ *
+ * @param {object} group   — the group object (may have an optional `values` map)
+ * @param {string} colKey  — the column key to look up
+ * @returns {*} the value (string, node, …) or '' when absent
+ */
+export function groupHeaderValue(group, colKey) {
+  return group.values?.[colKey] ?? ''
 }

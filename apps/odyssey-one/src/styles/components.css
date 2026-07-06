@@ -4996,6 +4996,19 @@ button.breadcrumb__label:focus-visible {
   border-bottom: 1px solid var(--border-subtle);
 }
 
+/* Value cells on the group header (columns 1+) — semibold money/data values
+   that appear both collapsed and expanded (Compare AP/AR flavor). The first
+   column's padding=0 is correct since the <button> fills it; value cells get
+   the standard cell padding applied directly. */
+.odyssey-group-table__group-value {
+  padding: var(--spacing-3) var(--spacing-4);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
 /* The real a11y toggle — fills the row so focus/click cover the full band */
 .odyssey-group-table__group-toggle {
   display: flex;
@@ -5058,6 +5071,18 @@ button.breadcrumb__label:focus-visible {
   color: var(--text-primary);
   white-space: nowrap;
   border-top: 1px solid var(--border-subtle);
+}
+
+/* Last visible row — no bottom border (the consumer's card edge is the visual
+   boundary; a dangling hairline at the card bottom looks like double-border).
+   Applies to:
+   - The tfoot TOTAL row when it's the last element (footerRow present).
+   - The last tbody's last tr when there is no tfoot (footerRow absent):
+     covers both the last child row (expanded) and the group header row
+     (collapsed, which is the only tr in that tbody). */
+.odyssey-group-table__table > tfoot:last-child > tr:last-child > td,
+.odyssey-group-table__table > tbody:last-child > tr:last-child > td {
+  border-bottom: 0;
 }
 
 /* Column alignment (columns[].align) — header + cells */

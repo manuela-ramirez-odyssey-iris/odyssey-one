@@ -78,11 +78,23 @@ function CompareTable({ orders, expanded, onToggle }) {
   const totalAr = orders.reduce((sum, o) => sum + (parseDollar(o.arCost) ?? 0), 0)
   const totalDiff = totalAr - totalAp
 
-  const groups = orders.map((order) => ({
-    id: order.orderId,
-    label: order.orderId,
-    rows: chargeLines(order),
-  }))
+  const groups = orders.map((order) => {
+    // Per-order header values: AP/AR from the order VM's top-level cost fields;
+    // Diff = AR − AP, shown on the group header row (visible collapsed + expanded).
+    const orderApStr = order.apCost ?? '--'
+    const orderArStr = order.arCost ?? '--'
+    const orderDiffStr = computeDiff(orderApStr, orderArStr)
+    return {
+      id: order.orderId,
+      label: order.orderId,
+      rows: chargeLines(order),
+      values: {
+        ap: orderApStr,
+        ar: orderArStr,
+        diff: <DiffCell value={orderDiffStr} />,
+      },
+    }
+  })
 
   const footerRow = {
     label: 'TOTAL',
