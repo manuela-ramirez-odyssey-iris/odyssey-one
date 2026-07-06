@@ -6,6 +6,9 @@ export const meta = {
   tier: 'organism',
   version: '0.6.0',
   createdVersion: '0.6.0',
+  // S79 demotion: expanded-bar shadow --shadow-up-md → new --shadow-up-lg token
+  // (Figma effect style shadow/up-lg) — back to NORMALIZING pending re-approval.
+  normalizing: true,
   figmaNode: '4120:4623',
   codeConnect: 'packages/ui/src/ShipmentsBar.figma.tsx',
 }
@@ -33,7 +36,7 @@ export const tokens = [
   { token: '--deep-sea-neutral-50', resolves: '#f7f8fa', usage: 'tab hover fill (code-only)' },
   { token: '--deep-sea-neutral-500', resolves: '#6b7280', usage: 'prev/next arrows' },
   { token: '--spacing-3 / --spacing-6', resolves: '12 / 24', usage: 'PanelActions gap + padding (24 left / 12 right)' },
-  { token: '--shadow-up-md', resolves: 'upward elevation', usage: 'expanded bar' },
+  { token: '--shadow-up-lg', resolves: '0 -5px 30px rgba(0,0,0,.2)', usage: 'expanded bar (Figma shadow/up-lg)' },
   { token: '--transition-slow / --transition-base', resolves: 'height / right', usage: 'expansion + panel-inset animation' },
 ]
 

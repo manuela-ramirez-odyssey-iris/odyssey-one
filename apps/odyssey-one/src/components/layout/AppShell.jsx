@@ -10,7 +10,11 @@ export default function AppShell({ children, filterPanel, onMainClick, transpare
   return (
     <div className="flex flex-col h-screen">
       <Navbar searchSlot={searchSlot} />
-      <div className="flex flex-1 min-h-0 overflow-hidden">
+      {/* overflow-clip (not hidden): hidden boxes are still scroll containers, so a
+          scrollIntoView/focus on wide content (e.g. a shipment-table row) could
+          horizontally scroll this wrapper and push the Sidebar off-screen with no
+          scrollbar to recover. clip renders identically but is unscrollable. */}
+      <div className="flex flex-1 min-h-0 overflow-clip">
         {!isEditMode && <Sidebar />}
         <main
           className="flex-1 min-w-0 overflow-x-hidden overflow-y-auto flex flex-col"

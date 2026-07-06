@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
 import { useReactTable, getCoreRowModel, createColumnHelper } from '@tanstack/react-table'
-import { Zap, Columns3Cog, Info, TriangleAlert } from 'lucide-react'
+import { EllipsisVertical, Columns3Cog, Info, TriangleAlert } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
-import { Badge, DataTable, Paginator, ActionMenu } from '@odyssey/ui'
-import DarkTooltip from '../ui/DarkTooltip'
+import { Badge, Button, DataTable, Paginator, ActionMenu } from '@odyssey/ui'
+import TooltipTrigger from '../ui/TooltipTrigger'
 import { ALL_COLUMNS } from '../detail/ColumnPanel'
 import { SEARCH_ATTRIBUTES } from '../../data'
 
@@ -36,105 +35,59 @@ function formatDateOnly(raw) {
 
 const BADGE_COLORS = ['amber', 'blue', 'green', 'red', 'purple']
 
+// Orders tooltip: shows all order badges on hover/focus.
 function OrdersTooltip({ orders, children }) {
-  const [show, setShow] = useState(false)
-  const ref = useRef(null)
-  const [pos, setPos] = useState(null)
-
-  const handleEnter = () => {
-    if (ref.current) {
-      const child = ref.current.firstElementChild || ref.current
-      const rect = child.getBoundingClientRect()
-      setPos({ top: rect.top, left: rect.left + rect.width / 2 })
-    }
-    setShow(true)
-  }
-
-  return (
-    <div
-      ref={ref}
-      onMouseEnter={handleEnter}
-      onMouseLeave={() => setShow(false)}
-      style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}
-    >
-      {children}
-      {show && orders.length > 0 && pos && createPortal(
-        <div style={{
-          position: 'fixed',
-          top: pos.top - 8,
-          left: pos.left,
-          transform: 'translate(-50%, -100%)',
-          background: 'var(--deep-sea-neutral-900, #1B2537)',
-          borderRadius: 'var(--radius-md)',
-          padding: '10px 14px',
-          zIndex: 9999,
-          whiteSpace: 'nowrap',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
-          pointerEvents: 'none',
-        }}>
-          <div style={{ fontSize: 12, color: 'var(--deep-sea-neutral-300, #D0D4DB)', marginBottom: 8 }}>
-            Order numbers on this shipment:
-          </div>
-          <div style={{ display: 'flex', gap: 6 }}>
-            {orders.map((ord, i) => (
-              <Badge key={ord} variant={BADGE_COLORS[i]}>{ord}</Badge>
-            ))}
-          </div>
-        </div>,
-        document.body
-      )}
+  if (!orders.length) return children
+  const content = (
+    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+      {orders.map((ord, i) => (
+        <Badge key={ord} variant={BADGE_COLORS[i % BADGE_COLORS.length]}>{ord}</Badge>
+      ))}
     </div>
   )
-}
-
-function TruncatedText({ value }) {
-  const ref = useRef(null)
-  const [showTip, setShowTip] = useState(false)
-  const [pos, setPos] = useState({ top: 0, left: 0 })
-
-  const handleEnter = () => {
-    const el = ref.current
-    if (!el || el.scrollWidth <= el.clientWidth) return
-    const text = String(value || '')
-    const words = text.split(/\s+/)
-    if (words.length < 3) return // only tooltip if 2+ words hidden
-    const rect = el.getBoundingClientRect()
-    setPos({ top: rect.top - 8, left: rect.left + rect.width / 2 })
-    setShowTip(true)
-  }
-
   return (
-    <>
-      <span ref={ref} onMouseEnter={handleEnter} onMouseLeave={() => setShowTip(false)}
-        style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-        {value ?? '—'}
-      </span>
-      {showTip && createPortal(
-        <div style={{
-          position: 'fixed', top: pos.top, left: pos.left, transform: 'translate(-50%, -100%)',
-          background: 'var(--deep-sea-neutral-900, #1B2537)', color: 'var(--deep-sea-neutral-300, #D0D4DB)',
-          borderRadius: 'var(--radius-md)', padding: '8px 12px', fontSize: 13,
-          boxShadow: '0 4px 12px rgba(0,0,0,0.25)', zIndex: 99999, maxWidth: 300, whiteSpace: 'normal',
-        }}>
-          {value}
-        </div>,
-        document.body
-      )}
-    </>
+    <TooltipTrigger tooltipProps={{ label: 'Order numbers on this shipment:', groups: [{ content }] }}>
+      {children}
+    </TooltipTrigger>
   )
 }
 
-/** Decorative single-select indicator. Intentionally NOT an <input> — see the
- *  file header. The whole cell/row is the click target (onCellClick). */
-function RadioDot({ checked }) {
-  return (
-    <span aria-hidden="true" style={{
-      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-      width: 16, height: 16, borderRadius: '50%', boxSizing: 'border-box',
-      border: `1.5px solid ${checked ? 'var(--text-primary)' : 'var(--text-placeholder)'}`,
-    }}>
-      {checked && <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--text-primary)' }} />}
+// Truncated cell text: shows full value tooltip only when text overflows.
+function TruncatedText({ value }) {
+  const ref = useRef(null)
+  const [overflow, setOverflow] = useState(false)
+
+  // Check overflow on mount and window resize
+  const checkOverflow = useCallback(() => {
+    const el = ref.current
+    if (!el) return
+    const isOverflowing = el.scrollWidth > el.clientWidth
+    const text = String(value || '')
+    const words = text.split(/\s+/)
+    setOverflow(isOverflowing && words.length >= 3)
+  }, [value])
+
+  useEffect(() => {
+    checkOverflow()
+    window.addEventListener('resize', checkOverflow, { passive: true })
+    return () => window.removeEventListener('resize', checkOverflow)
+  }, [checkOverflow])
+
+  const inner = (
+    <span ref={ref} style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+      {value ?? '—'}
     </span>
+  )
+
+  if (!overflow) return inner
+
+  return (
+    <TooltipTrigger
+      asSpan
+      tooltipProps={{ groups: [{ content: value }] }}
+    >
+      {inner}
+    </TooltipTrigger>
   )
 }
 
@@ -148,13 +101,17 @@ export const COLUMN_CONFIG = [
   {
     key: 'shipmentStatus',
     label: 'Shipment Status',
-    render: (s) => (
-      <DarkTooltip text={s.tenderStatus ? `Tender Status: ${s.tenderStatus}` : null} width="auto">
-        <span>{s.shipmentStatus ? (
-          <Badge variant={s.shipmentStatus === 'Done' ? 'green' : 'red'} rightIcon={<Info {...ICON_MD} />}>{s.shipmentStatus}</Badge>
-        ) : '—'}</span>
-      </DarkTooltip>
-    ),
+    render: (s) => {
+      const badge = s.shipmentStatus ? (
+        <Badge variant={s.shipmentStatus === 'Done' ? 'green' : 'red'} rightIcon={<Info {...ICON_MD} />}>{s.shipmentStatus}</Badge>
+      ) : '—'
+      if (!s.tenderStatus) return <span>{badge}</span>
+      return (
+        <TooltipTrigger tooltipProps={{ groups: [{ subtitle: 'Tender Status', content: s.tenderStatus }] }}>
+          <span>{badge}</span>
+        </TooltipTrigger>
+      )
+    },
   },
   {
     key: 'orders',
@@ -178,16 +135,24 @@ export const COLUMN_CONFIG = [
       </OrdersTooltip>
     ),
   },
-  { key: 'pickupDate', label: 'Pickup Date', render: (s) => (
-    <DarkTooltip text={s.pickupDate || null} width="auto">
-      <span>{formatDateOnly(s.pickupDate)}</span>
-    </DarkTooltip>
-  )},
-  { key: 'deliveryDate', label: 'Delivery Date', render: (s) => (
-    <DarkTooltip text={s.deliveryDate || null} width="auto">
-      <span>{formatDateOnly(s.deliveryDate)}</span>
-    </DarkTooltip>
-  )},
+  { key: 'pickupDate', label: 'Pickup Date', render: (s) => {
+    const formatted = formatDateOnly(s.pickupDate)
+    if (!s.pickupDate) return <span>{formatted}</span>
+    return (
+      <TooltipTrigger tooltipProps={{ badgeVariant: 'time', label: 'Pickup Date', groups: [{ content: s.pickupDate }] }}>
+        <span>{formatted}</span>
+      </TooltipTrigger>
+    )
+  }},
+  { key: 'deliveryDate', label: 'Delivery Date', render: (s) => {
+    const formatted = formatDateOnly(s.deliveryDate)
+    if (!s.deliveryDate) return <span>{formatted}</span>
+    return (
+      <TooltipTrigger tooltipProps={{ badgeVariant: 'time', label: 'Delivery Date', groups: [{ content: s.deliveryDate }] }}>
+        <span>{formatted}</span>
+      </TooltipTrigger>
+    )
+  }},
   { key: 'origin', label: 'Origin' },
   { key: 'destination', label: 'Destination' },
   {
@@ -273,7 +238,7 @@ function deriveColumnState(visibleColumns, activeChipKey) {
   const columnVisibility = {}
   for (const k of ALL_KEYS) columnVisibility[k] = visibleKeys.includes(k)
   const hidden = ALL_KEYS.filter((k) => !visibleKeys.includes(k))
-  const columnOrder = ['select', ...visibleKeys, ...hidden, 'action']
+  const columnOrder = [...visibleKeys, ...hidden, 'action']
   return { columnVisibility, columnOrder, promotedKey }
 }
 
@@ -306,39 +271,21 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
       })
     })
 
-    const selectColumn = columnHelper.display({
-      id: 'select',
-      enableResizing: false, // pinned system column
-      header: () => null,
-      cell: ({ row }) => <RadioDot checked={row.getIsSelected()} />,
-      meta: {
-        headClass: 'odyssey-table__cell--control',
-        cellClass: 'odyssey-table__cell--control',
-        fixedWidth: true,
-      },
-    })
-
     const actionColumn = columnHelper.display({
       id: 'action',
       enableResizing: false, // pinned system column
       header: () => (
-        <button
-          type="button"
-          onClick={onToggleColumnPanel}
-          title="Column arrangement"
+        <Button
+          variant="icon"
+          size="sm"
+          icon={<Columns3Cog size={18} />}
           aria-label="Column arrangement"
-          style={{
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            background: 'transparent', border: 'none', cursor: 'pointer', padding: 4,
-            borderRadius: 'var(--radius-sm)', color: 'var(--text-placeholder)',
-          }}
-        >
-          <Columns3Cog size={18} />
-        </button>
+          onClick={onToggleColumnPanel}
+        />
       ),
       cell: () => (
         <ActionMenu
-          icon={<Zap {...ICON_MD} />}
+          icon={<EllipsisVertical {...ICON_MD} />}
           options={SHIPMENT_ACTIONS}
           align="right"
           ariaLabel="Shipment actions"
@@ -347,7 +294,7 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
       meta: { sticky: 'right', fixedWidth: true },
     })
 
-    return [selectColumn, ...dataCols, actionColumn]
+    return [...dataCols, actionColumn]
   }, [onToggleColumnPanel])
 
   // The ColumnPanel (and, later, the RightPanel) drives WHICH columns show + their

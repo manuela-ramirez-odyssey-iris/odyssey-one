@@ -25,7 +25,8 @@ function TabLoader() {
 
 // Tab order + labels follow the Figma ShipmentsBar master (4106:1765):
 // Orders first, History before Tender History. Keys are the pane ids.
-const TABS = [
+// Exported for TabArrangementPanel (the arrange feature's item source).
+export const TABS = [
   { key: 'order', label: 'Orders' },
   { key: 'product', label: 'Product' },
   { key: 'stops', label: 'Stops' },
@@ -38,6 +39,8 @@ const TABS = [
   { key: 'tender', label: 'Tender History' },
 ]
 
+export const DEFAULT_TAB_ORDER = TABS.map(t => t.key)
+
 // Shipments detail bar — composes the normalized ShipmentsBar shell (strip +
 // expansion + controls) and keeps the app wiring: lazy panes per tab slot, the
 // multi-order switcher inside the Orders tab, loading/error/retry states.
@@ -47,6 +50,8 @@ export default function BottomBar({
   shipment,
   rightOffset = 0,
   onToggleColumnPanel,
+  onTabArrangement,
+  tabOrder = DEFAULT_TAB_ORDER,
   detailsLoading,
   detailsError,
   onRetryDetails,
@@ -79,12 +84,23 @@ export default function BottomBar({
     setSelectedOrderIndex(0)
   }, [selectedShipmentId])
 
+  // Strip tabs follow the user's arrangement (`tabOrder` = ordered visible keys,
+  // owned by ShipmentsRoute / TabArrangementPanel). The Orders tab is pinned:
+  // if an order array somehow omits it, it's restored to the first position.
+  const orderedTabs = useMemo(() => {
+    const keys = tabOrder.includes('order') ? tabOrder : ['order', ...tabOrder]
+    return keys.map(k => TABS.find(t => t.key === k)).filter(Boolean)
+  }, [tabOrder])
+
+  // If the active pane's tab was hidden by the arrangement, fall back to Orders.
+  const shownTab = orderedTabs.some(t => t.key === activeTab) ? activeTab : 'order'
+
   // The Orders tab is the multi-order switcher: a ShipmentsBar DROPDOWN TAB —
   // prelabel "Order" over the selected order number; its DropdownMenu lists the
   // shipment's orders as preset values (badge + route + weight rows).
   const tabs = useMemo(() => {
-    if (orders.length === 0) return TABS
-    return TABS.map(tab => (tab.key === 'order' ? {
+    if (orders.length === 0) return orderedTabs
+    return orderedTabs.map(tab => (tab.key === 'order' ? {
       ...tab,
       dropdown: {
         prelabel: 'Order',
@@ -132,7 +148,7 @@ export default function BottomBar({
         }),
       },
     } : tab))
-  }, [orders, selectedOrderIndex, shipmentDetails])
+  }, [orderedTabs, orders, selectedOrderIndex, shipmentDetails])
 
   const renderTabContent = () => {
     if (detailsError) {
@@ -173,8 +189,18 @@ export default function BottomBar({
       return <TabLoader />
     }
     if (!shipmentDetails) return null
-    switch (activeTab) {
-      case 'order': return <OrderTab data={shipmentDetails.orderDetails?.[selectedOrderIndex]} />
+    switch (shownTab) {
+      case 'order': return (
+        <OrderTab
+          data={shipmentDetails.orderDetails?.[selectedOrderIndex]}
+          orders={orders}
+          selectedOrderIndex={selectedOrderIndex}
+          onSelectOrder={setSelectedOrderIndex}
+          // slices are index-aligned with orderDetails (all map over the same orderList)
+          instructions={shipmentDetails.instructionsData?.orders?.[selectedOrderIndex]?.instructions ?? []}
+          productLines={shipmentDetails.productData?.orders?.[selectedOrderIndex]?.lines ?? []}
+        />
+      )
       case 'stops': return <StopsTab data={shipmentDetails.stopsData} />
       case 'product': return <ProductTab data={shipmentDetails.productData} />
       case 'routing': return <RoutingGuideTab data={shipmentDetails.routingData} shipmentDetails={shipmentDetails} shipment={shipment} onToggleColumnPanel={onToggleColumnPanel} />
@@ -196,11 +222,11 @@ export default function BottomBar({
         prevDisabled={prevDisabled}
         nextDisabled={nextDisabled}
         tabs={tabs}
-        activeTab={selectedShipmentId ? activeTab : null}
+        activeTab={selectedShipmentId ? shownTab : null}
         onTabChange={setActiveTab}
         expanded={expanded}
         onExpandedChange={setExpanded}
-        onTabArrangement={onToggleColumnPanel}
+        onTabArrangement={onTabArrangement}
         rightOffset={rightOffset}
       >
         <div key={selectedShipmentId}>

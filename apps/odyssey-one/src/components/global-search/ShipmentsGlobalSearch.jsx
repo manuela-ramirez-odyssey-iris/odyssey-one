@@ -11,14 +11,23 @@ import ShipmentsFiltersView from './ShipmentsFiltersView'
  * opens the Results preview, and the FilterButton opens the Filters view (its
  * active state is bound to the Filters view being open, however it was reached).
  * The panel closes on click-outside.
+ *
+ * `onQueryChange(value)` reports every raw query change (typing, clear, the
+ * hook's own resets on chip commit) to the host route — on Shipments it feeds
+ * the table's debounced searchTerm pipeline, making the navbar bar THE table
+ * search (the in-table search box was retired in S79).
  */
-export default function ShipmentsGlobalSearch() {
+export default function ShipmentsGlobalSearch({ onQueryChange }) {
   const {
     value, onChange, onClear, onFocus, onBlur,
     chips, onChipCommit, onChipRemove,
     suggestionSections, suggestionsOpen,
     results, resultTotal,
   } = useGlobalSearch(shipmentsSearchAdapter)
+
+  // Effect (not an onChange wrapper) so internal value resets — e.g. the hook
+  // clearing the input on chip commit — also reach the host.
+  useEffect(() => { onQueryChange?.(value) }, [value, onQueryChange])
 
   const wrapperRef = useRef(null)
   const [resultsOpen, setResultsOpen] = useState(false)

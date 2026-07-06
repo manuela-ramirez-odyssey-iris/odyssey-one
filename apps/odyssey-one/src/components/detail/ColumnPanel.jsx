@@ -104,8 +104,9 @@ function getPresetByColumns(columns) {
 const arraysEqual = (a, b) => a.length === b.length && a.every((x, i) => x === b[i])
 
 /** Uppercase section label — matches the RightPanel preset-group header style.
- *  Optional `action` renders on the trailing side (e.g. the ⋮ preset-actions menu). */
-function GroupLabel({ children, action }) {
+ *  Optional `action` renders on the trailing side (e.g. the ⋮ preset-actions menu).
+ *  Exported for sibling arrangement panels (TabArrangementPanel). */
+export function GroupLabel({ children, action }) {
   return (
     <div style={{
       display: 'flex',

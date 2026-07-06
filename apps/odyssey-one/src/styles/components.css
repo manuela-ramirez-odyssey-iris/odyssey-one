@@ -4451,7 +4451,9 @@ button.breadcrumb__label:focus-visible {
   flex-direction: column;
 }
 .shipments-bar--expanded {
-  box-shadow: var(--shadow-up-md);
+  /* up-lg per the Orders-tab wireframe (1210:38232 carried the raw value;
+     tokenized S79 — Figma effect style shadow/up-lg pairs with this). */
+  box-shadow: var(--shadow-up-lg);
 }
 /* The hairline lives per segment (CurrentShipment + unselected tabs), NOT on
    the strip — the selected tab's DSN/100 fill breaks the line (master edit).
@@ -4677,4 +4679,152 @@ button.breadcrumb__label:focus-visible {
   .text-area__box {
     transition: none;
   }
+}
+
+/* ----------------------------------------
+   ORDERS TAB PANE — the ShipmentsBar Orders pane rebuilt to mirror Order
+   Creation (Figma wireframe 1210:36974, S79): order-number Tabs +
+   Expand/Collapse All ButtonLink over four SubAccordion cards on the bar's
+   DSN/100 canvas. Cards keep SubAccordion defaults (white, radius-2xl,
+   shadow-sm — the wireframe's 0 1px 1px rgba(0,0,0,.05) ≈ shadow-sm, drift
+   flagged for Efrain). Wireframe raw values normalized to tokens (plan
+   decision #2); pb 180 stays plain px (scroll headroom — the Figma
+   Radius/2xl binding on it was a mis-binding, not replicated).
+   ---------------------------------------- */
+.order-pane {
+  max-width: 1106px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  /* scroll headroom under the last card */
+  padding-bottom: 180px;
+}
+.order-pane__expand-row {
+  display: flex;
+  justify-content: flex-end;
+}
+/* inside a card: sub-blocks (General / Requested Transportation / …) */
+.order-pane__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+}
+.order-pane__block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+.order-pane__subheading {
+  margin: 0;
+  color: var(--text-primary);
+}
+/* field columns — wireframe fixes them at 220px */
+.order-pane__fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-4) var(--spacing-6);
+}
+.order-pane__fields > .order-pane__field {
+  width: 220px;
+}
+.order-pane__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px; /* label→value gap per spec — component-internal geometry */
+}
+.order-pane__field-label {
+  font-family: var(--font-primary);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-tertiary);
+}
+.order-pane__field-value {
+  font-family: var(--font-primary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+/* link-blue values (References / Product ID) — tinted spans, no nav target yet */
+.order-pane__link {
+  color: var(--text-link);
+}
+.order-pane__col-seq {
+  width: 48px;
+}
+.order-pane__cell-wrap {
+  white-space: normal; /* instructions are sentences — override the Cell nowrap */
+}
+/* Pickup and Delivery: two 50% party columns */
+.order-pane__cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-6);
+  align-items: start;
+}
+.order-pane__details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+.order-pane__details-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-2);
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--text-primary);
+  font-family: var(--font-primary);
+  text-align: left;
+}
+.order-pane__details-chevron {
+  color: var(--text-tertiary);
+  transition: transform var(--transition-base);
+}
+.order-pane__details-chevron--open {
+  transform: rotate(180deg);
+}
+/* party columns pair label/value fields two-up */
+.order-pane__party-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-4) var(--spacing-6);
+}
+/* Product Information — dimmed, non-interactive (🚧 plan decision #1) */
+.order-pane__under-construction {
+  opacity: 0.25;
+  pointer-events: none;
+  user-select: none;
+}
+.order-pane__product-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-4);
+}
+/* static US/Metric segmented visual — the wireframe's raw hexes tokenized
+   (bg-secondary track, bg-primary active pill); non-interactive by design */
+.order-pane__uom-toggle {
+  display: inline-flex;
+  padding: 2px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+}
+.order-pane__uom-seg {
+  padding: 2px var(--spacing-3);
+  border-radius: var(--radius-sm);
+  color: var(--text-tertiary);
+}
+.order-pane__uom-seg--active {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-sm);
+}
+.order-pane__product-count {
+  color: var(--text-tertiary);
 }

@@ -251,6 +251,46 @@ Every implemented decision with its previous state, source, and rationale. This 
 - **Source:** Manuela, Apr 13 — "we can actually merge these"
 - **Status:** PENDING — roll back if stakeholders don't approve. Original columns: `hazmatClass` (label: "Hazmat Class"), `hazmatGroup` (label: "Hazmat Group") in COLUMNS array of ProductTab.jsx
 
+### DEC-40: Orders tab rebuilt to mirror Order Creation (SubAccordion sections)
+- **Previous:** OrderTab = 4-column grid of sections (General, Transportation, Ship From/To, Schedule, Products, Totals, References, Contacts)
+- **Decision:** Replace entirely with the Order-Creation visual language: order-number underline Tabs + Expand/Collapse All + 4 SubAccordion cards (General Information / Pickup and Delivery / Product Information 🚧 dimmed per wireframe / Special Services) on the bar's DSN/100 canvas. Fields without a data equivalent render `--`.
+- **Source:** Manuela, Jul 5 (S79) — business ask "same visuals as order creation"; Figma `x38TOJGsNryYl3LsKhCtSc` frame `1210:36974` + `vault-sources` mock OrdersTab.png
+
+### DEC-41: ShipmentsBar expanded shadow → new `--shadow-up-lg` token
+- **Previous:** `--shadow-up-md` (0 -4 16 8%)
+- **Decision:** New token `--shadow-up-lg: 0 -5px 30px rgba(0,0,0,.2)` (blur 30 per the wireframe's raw effect — an earlier intake read of 15 was corrected against the Plugin-API effects). Figma effect style `shadow/up-lg` created + bound on the ShipmentsBar master Expanded variant. ShipmentsBar demoted to NORMALIZING in both DSMs (modification rule).
+- **Source:** Manuela, Jul 5 (S79) — "new drop-shadow up lg for the ShipmentsBar"; raw effect on wireframe node `1210:38232`
+
+### DEC-42: TabArrangement button opens a real tab-order panel
+- **Previous:** ShipmentsBar's TabArrangement button opened the table's Column Arrangement panel (cross-concern hack, S77)
+- **Decision:** New `TabArrangementPanel` (RightPanel shell, ColumnPanel's arrangement UX: reorder + show/hide + draft Save/Cancel). Orders tab pinned first/non-removable. Route state only; filters/columns/tabs panels mutually exclusive.
+- **Source:** Manuela, Jul 5 (S79) — "works exactly the same as in the main table but by arranging the tab order"
+
+### DEC-43: Row-selection radio dots removed
+- **Previous:** Decorative radio-dot column (non-interactive spans; row click did the selecting since S-earlier)
+- **Decision:** Column deleted; row click remains the selection affordance.
+- **Source:** Manuela, Jul 5 (S79) — "having them for selecting rows is not a good ux pattern"
+
+### DEC-44: GlobalSearch replaces the table search bar
+- **Previous:** Two parallel searches — navbar GlobalSearch (results preview) + table-level search box feeding `listParams.searchTerm`
+- **Decision:** Table search box hidden (TableControls keeps counter/sort/export); the navbar GlobalSearch query now feeds the same debounced `searchTerm` pipeline. Chips keep their existing preview behavior (not mapped to table filters yet).
+- **Source:** Manuela, Jul 5 (S79) — "hide the old table searchbar and lets use global search component functionality"
+
+### DEC-45: Hand-rolled tooltips → normalized Tooltip (+ app-local TooltipTrigger)
+- **Previous:** DarkTooltip + OrdersTooltip + TruncatedText hand-rolled hover cards; Tooltip (normalized S70) had zero consumers
+- **Decision:** One app-local `TooltipTrigger` hover/focus wrapper portals the `@odyssey/ui` Tooltip card (dates use badgeVariant="time"). DarkTooltip deleted. Sites: tender status, pickup/delivery dates, orders hover, truncated text, Export button.
+- **Source:** Manuela, Jul 5 (S79) — "use our new Tooltip component to replace the old tooltips"
+
+### DEC-46: Table control icons standardized on Button variant="icon"
+- **Previous:** Sort + column-arrangement header buttons hand-rolled (no hover/proper color); row actions used lucide `zap`
+- **Decision:** Sort and column-arrangement become `Button variant="icon" size="sm"` (proper color/hover/focus); row-actions icon → `ellipsis-vertical`.
+- **Source:** Manuela, Jul 5 (S79) — "sort button is supposed to be icon button" / "use vertical 3 dots instead of lucide-zap"
+
+### DEC-47: Sidebar-shift glitch root cause — AppShell wrapper overflow-clip
+- **Previous:** Selecting a second row could horizontally scroll AppShell's `overflow-hidden` wrapper (the selected row's `scrollIntoView` walks scrollable ancestors; `overflow:hidden` boxes are programmatically scrollable) → sidebar pushed off-screen 96px
+- **Decision:** Wrapper → `overflow-clip` (not a scroll container; renders identically). Row auto-scroll on `<main>` preserved.
+- **Source:** Manuela's bug report, Jul 5 (S79); DOM-evidence diagnosis (wrapperScrollLeft 96 → 0)
+
 ---
 
 ## Changelog
@@ -262,3 +302,4 @@ Every implemented decision with its previous state, source, and rationale. This 
 | Apr 1, 2026 | DEC-21 through DEC-27 — Major corrections from grooming with Jana: Monitoring = same screen as Exceptions, PPT slides were one split table, tender statuses reduced to 4, shipment status mapping, actions in both panels, shipment status column |
 | Apr 13, 2026 | DEC-28 through DEC-38 — David's written feedback review + Apr 9 grooming with Jana/David/Manuela: hazmat badges, column auto-fit/wrapping, cost visibility from tender tab, panel-aware presets, date-only display, "Tender Sent" rename, order tab overhaul, TenderSummary removal, Order # deprioritized |
 | Apr 13, 2026 | DEC-39 — Merge Hazmat Class/Group into Hazardous column with hover tooltip (PENDING stakeholder approval) |
+| Jul 5, 2026 | DEC-40 through DEC-47 — S79 Shipments update: Orders tab SubAccordion rebuild, shadow-up-lg token, tab arrangement panel, radio removal, GlobalSearch as table search, Tooltip migration, icon-button standardization, sidebar-shift fix |

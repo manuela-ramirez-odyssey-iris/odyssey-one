@@ -3,9 +3,10 @@ import AppShell from '../../components/layout/AppShell'
 import ShipmentsPanelTabs from '../../components/shipments/ShipmentsPanelTabs'
 import TableControls from '../../components/shipments/TableControls'
 import ShipmentTable from '../../components/shipments/ShipmentTable'
-import BottomBar from '../../components/detail/BottomBar'
+import BottomBar, { DEFAULT_TAB_ORDER } from '../../components/detail/BottomBar'
 import FilterPanel from '../../components/shipments/FilterPanel'
 import ColumnPanel, { ALL_COLUMNS, EXCEPTIONS_DEFAULT_COLUMNS, MONITORING_DEFAULT_COLUMNS } from '../../components/detail/ColumnPanel'
+import TabArrangementPanel from '../../components/detail/TabArrangementPanel'
 import { COLUMN_CONFIG } from '../../components/shipments/ShipmentTable'
 import { FileText } from 'lucide-react'
 import { PageHeader } from '@odyssey/ui'
@@ -37,8 +38,11 @@ function ShipmentsRoute() {
   const [activeChipKey, setActiveChipKey] = useState(null)
   const debounceRef = useRef(null)
   const [filtersOpen, setFiltersOpen] = useState(false)
-  const [filtersInitialTab, setFiltersInitialTab] = useState('all')
   const [columnPanelOpen, setColumnPanelOpen] = useState(false)
+  const [tabPanelOpen, setTabPanelOpen] = useState(false)
+  // Ordered visible ShipmentsBar tab keys (hidden = absent; Orders pinned first).
+  // Route-state lifespan only — same persistence as the column arrangement.
+  const [tabOrder, setTabOrder] = useState(DEFAULT_TAB_ORDER)
   const [filters, setFilters] = useState({})
   const [appliedSavedQuery, setAppliedSavedQuery] = useState(null)
   const [pageNumber, setPageNumber] = useState(0)
@@ -151,8 +155,9 @@ function ShipmentsRoute() {
     }
   }, [exceptionCounts, monitoringCounts, pgipgrCounts])
 
-  // Compute right offset for bottom bar based on open panels
-  const rightOffset = (filtersOpen ? 354 : 0) + (columnPanelOpen ? 343 : 0)
+  // Compute right offset for bottom bar based on the open panel (the three right
+  // panels — filters, column arrangement, tab arrangement — are mutually exclusive).
+  const rightOffset = (filtersOpen ? 354 : 0) + (columnPanelOpen ? 343 : 0) + (tabPanelOpen ? 343 : 0)
 
   const handlePanelSelect = useCallback((key) => {
     setActivePanel(key)
@@ -163,18 +168,23 @@ function ShipmentsRoute() {
     setSelectedShipmentId(prev => prev === id ? null : id)
   }, [])
 
+  // Only one right panel at a time — opening any of the three closes the others.
   const handleToggleFilters = useCallback(() => {
-    setFiltersInitialTab('all')
     setFiltersOpen((prev) => !prev)
-  }, [])
-
-  const handleToggleSavedSearches = useCallback(() => {
-    setFiltersInitialTab('saved')
-    setFiltersOpen((prev) => !prev)
+    setColumnPanelOpen(false)
+    setTabPanelOpen(false)
   }, [])
 
   const handleToggleColumnPanel = useCallback(() => {
     setColumnPanelOpen((prev) => !prev)
+    setFiltersOpen(false)
+    setTabPanelOpen(false)
+  }, [])
+
+  const handleToggleTabPanel = useCallback(() => {
+    setTabPanelOpen((prev) => !prev)
+    setFiltersOpen(false)
+    setColumnPanelOpen(false)
   }, [])
 
   const handleColumnsChange = useCallback((newVisibleColumns) => {
@@ -210,10 +220,8 @@ function ShipmentsRoute() {
     setFiltersOpen(false)
   }, [])
 
-  const handleClearSavedQuery = useCallback(() => {
-    setAppliedSavedQuery(null)
-  }, [])
-
+  // Fed by the NAVBAR GlobalSearch (the table's search box was retired in S79) —
+  // same debounce pipeline as before, ending in listParams.searchTerm.
   const handleSearchChange = useCallback((value) => {
     setSearchQuery(value)
     if (!value.trim()) {
@@ -237,15 +245,16 @@ function ShipmentsRoute() {
       onMainClick={useCallback(() => {
         if (filtersOpen) setFiltersOpen(false)
         if (columnPanelOpen) setColumnPanelOpen(false)
-      }, [filtersOpen, columnPanelOpen])}
-      searchSlot={<ShipmentsGlobalSearch />}
+        if (tabPanelOpen) setTabPanelOpen(false)
+      }, [filtersOpen, columnPanelOpen, tabPanelOpen])}
+      searchSlot={<ShipmentsGlobalSearch onQueryChange={handleSearchChange} />}
       filterPanel={
         <>
           <FilterPanel
             isOpen={filtersOpen}
             onClose={() => setFiltersOpen(false)}
             itemCount={totalCount}
-            initialTab={filtersInitialTab}
+            initialTab="all"
             onApplyFilters={handleApplyFilters}
             onClearFilters={handleClearFilters}
             onApplySavedQuery={handleApplySavedQuery}
@@ -256,6 +265,12 @@ function ShipmentsRoute() {
             onClose={() => setColumnPanelOpen(false)}
             visibleColumns={visibleColumns}
             onColumnsChange={handleColumnsChange}
+          />
+          <TabArrangementPanel
+            isOpen={tabPanelOpen}
+            onClose={() => setTabPanelOpen(false)}
+            tabOrder={tabOrder}
+            onTabOrderChange={setTabOrder}
           />
         </>
       }
@@ -272,17 +287,11 @@ function ShipmentsRoute() {
       />
       <TableControls
         itemCount={totalCount}
-        totalCount={allShipments.length}
         searchQuery={searchQuery}
-        onSearchChange={handleSearchChange}
         activeChipKey={activeChipKey}
         onChipSelect={handleChipSelect}
         onToggleFilters={handleToggleFilters}
-        onToggleSavedSearches={handleToggleSavedSearches}
-        appliedSavedQuery={appliedSavedQuery}
-        onClearSavedQuery={handleClearSavedQuery}
-        savedSearchesOpen={filtersOpen && filtersInitialTab === 'saved'}
-        filtersOpen={filtersOpen && filtersInitialTab === 'all'}
+        filtersOpen={filtersOpen}
         onExport={async (mode) => {
           // Export all matching rows (not just the current page) — fetch them through
           // the grid service with the current filters and a large page size. In live
@@ -342,6 +351,8 @@ function ShipmentsRoute() {
         shipment={selectedShipment}
         rightOffset={rightOffset}
         onToggleColumnPanel={handleToggleColumnPanel}
+        onTabArrangement={handleToggleTabPanel}
+        tabOrder={tabOrder}
         detailsLoading={detailsLoading}
         detailsError={detailsError}
         onRetryDetails={refetchDetails}
