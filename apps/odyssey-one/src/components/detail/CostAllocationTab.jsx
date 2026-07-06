@@ -1,44 +1,8 @@
 import React, { useState } from 'react'
-import { createPortal } from 'react-dom'
-import { Lock } from 'lucide-react'
-import { Button, ModalMedium } from '@odyssey/ui'
+import { Lock, ChevronRight, ChevronDown } from 'lucide-react'
+import { Tab, Button } from '@odyssey/ui'
 
-const BADGE_COLORS = ['amber', 'blue', 'green', 'red', 'purple']
-
-const thStyle = {
-  padding: '10px 14px',
-  textAlign: 'left',
-  whiteSpace: 'nowrap',
-  fontSize: 'var(--font-size-xs)',
-  fontWeight: 600,
-  color: 'var(--text-placeholder)',
-  background: 'var(--bg-secondary)',
-  borderBottom: '1px solid var(--border-subtle)',
-  textTransform: 'uppercase',
-  letterSpacing: '0.03em',
-  position: 'sticky',
-  top: 0,
-  zIndex: 2,
-}
-
-const tdStyle = {
-  padding: '10px 14px',
-  whiteSpace: 'nowrap',
-  fontSize: 13,
-  fontWeight: 400,
-  color: 'var(--text-secondary)',
-  borderBottom: '1px solid var(--bg-tertiary)',
-}
-
-function isNegative(val) {
-  return typeof val === 'string' && val.includes('-')
-}
-
-function CostValue({ value }) {
-  if (!value || value === '--') return <span>--</span>
-  if (isNegative(value)) return <span style={{ color: 'var(--text-error)' }}>{value}</span>
-  return <span>{value}</span>
-}
+// ── helpers ──────────────────────────────────────────────────────────────────
 
 function parseDollar(val) {
   if (!val || val === '--') return null
@@ -52,383 +16,253 @@ function fmtDollar(n) {
   return n < 0 ? `-$${formatted}` : `$${formatted}`
 }
 
-const BADGE_BG = {
-  amber: 'rgba(245, 158, 11, 0.12)',
-  blue: 'rgba(59, 130, 246, 0.12)',
-  green: 'rgba(16, 185, 129, 0.12)',
-  red: 'rgba(239, 68, 68, 0.12)',
-  purple: 'rgba(139, 92, 246, 0.12)',
+/**
+ * Diff = AR − AP.  Returns a formatted string with sign prefix (+/-) or '--'.
+ */
+function computeDiff(apStr, arStr) {
+  const ap = parseDollar(apStr)
+  const ar = parseDollar(arStr)
+  if (ap == null && ar == null) return '--'
+  const diff = (ar ?? 0) - (ap ?? 0)
+  return (diff >= 0 ? '+' : '') + fmtDollar(diff)
 }
 
-const BADGE_TEXT = {
-  amber: 'rgb(180, 110, 5)',
-  blue: 'rgb(37, 99, 235)',
-  green: 'rgb(5, 150, 105)',
-  red: 'rgb(220, 38, 38)',
-  purple: 'rgb(109, 40, 217)',
+function diffIsPositive(diffStr) {
+  if (!diffStr || diffStr === '--') return null
+  return !diffStr.startsWith('-')
 }
 
-const CostAllocationTab = React.memo(function CostAllocationTab({ data, selectedOrderIdx = 0 }) {
-  const [subTab, setSubTab] = useState('planned')
-  const [compareOpen, setCompareOpen] = useState(false)
+// ── sub-components ────────────────────────────────────────────────────────────
 
-  if (!data) return <div className="text-sm" style={{ color: 'var(--text-placeholder)' }}>No cost data available.</div>
-
-  const planned = data.planned
-
-  const apColumns = [
-    { key: 'orderId', label: 'Order #' },
-    { key: 'directCost', label: 'Direct Cost' },
-    { key: 'apBase', label: 'Base' },
-    { key: 'apFuel', label: 'Fuel Charge' },
-    { key: 'apDiscount', label: 'Discount' },
-    { key: 'apHzc', label: 'Stop Off (HZC)' },
-    { key: 'apSoc', label: 'Stop Off (SOC)' },
-    { key: 'apCost', label: 'AP Total' },
-  ]
-
-  const arColumns = [
-    { key: 'orderId', label: 'Order #' },
-    { key: 'arBase', label: 'Base' },
-    { key: 'arFuel', label: 'Fuel Charge' },
-    { key: 'arDiscount', label: 'Discount' },
-    { key: 'arHzc', label: 'Stop Off (HZC)' },
-    { key: 'arSoc', label: 'Stop Off (SOC)' },
-    { key: 'arCost', label: 'AR Total' },
-  ]
-
+function KpiCell({ label, value, modifier }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', margin: 'calc(-1 * var(--spacing-4)) calc(-1 * var(--spacing-5))' }}>
-      {/* Header: Cost Information label + pill tab group */}
-      <div
-        className="flex items-center shrink-0"
-        style={{
-          padding: '14px 20px',
-          borderBottom: '1px solid var(--border-subtle)',
-          gap: 'var(--spacing-6)',
-        }}
-      >
-        <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 700, color: 'var(--text-primary)' }}>
-          Cost Information
-        </span>
-        <div
-          className="flex"
-          style={{
-            border: '1px solid var(--border-default)',
-            borderRadius: 'var(--radius-md)',
-            overflow: 'hidden',
-          }}
-        >
-          <button
-            onClick={() => setSubTab('planned')}
-            className="border-none cursor-pointer"
-            style={{
-              padding: '6px 16px',
-              fontSize: 13,
-              fontWeight: 500,
-              fontFamily: 'var(--font-primary)',
-              background: subTab === 'planned' ? 'var(--bg-inverse)' : 'var(--bg-primary)',
-              color: subTab === 'planned' ? 'var(--text-inverse)' : 'var(--text-tertiary)',
-              borderRight: '1px solid var(--border-default)',
-              transition: 'background var(--transition-fast), color var(--transition-fast)',
-            }}
-          >
-            Planned Cost
-          </button>
-          <button
-            onClick={() => setSubTab('completed')}
-            className="border-none cursor-pointer"
-            style={{
-              padding: '6px 16px',
-              fontSize: 13,
-              fontWeight: 500,
-              fontFamily: 'var(--font-primary)',
-              background: subTab === 'completed' ? 'var(--bg-inverse)' : 'var(--bg-primary)',
-              color: subTab === 'completed' ? 'var(--text-inverse)' : 'var(--text-tertiary)',
-              transition: 'background var(--transition-fast), color var(--transition-fast)',
-            }}
-          >
-            Completed Cost
-          </button>
-        </div>
-      </div>
-
-      {subTab === 'completed' ? (
-        <div
-          className="flex flex-col items-center justify-center gap-3 flex-1"
-          style={{ color: 'var(--text-tertiary)', fontSize: 'var(--font-size-sm)' }}
-        >
-          <Lock size={32} style={{ color: 'var(--text-placeholder)' }} />
-          <p>Available after PGI/PGR is received</p>
-        </div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-          {/* Summary bar with Compare button */}
-          {planned?.summary && (
-            <div
-              className="flex shrink-0"
-              style={{ borderBottom: '1px solid var(--border-subtle)', alignItems: 'stretch' }}
-            >
-              <SummaryCell label="BASE" value={planned.summary.base} />
-              <SummaryCell label="DISCOUNT" value={planned.summary.discount} negative />
-              <SummaryCell label="FUEL (FSC)" value={planned.summary.fuel} />
-              <SummaryCell label="ACCESSORIALS" value={planned.summary.accessorials} />
-              <SummaryCell label="AP TOTAL" value={planned.summary.apTotal} total />
-              <SummaryCell label="AR TOTAL" value={planned.summary.arTotal} total />
-              <SummaryCell label="MARGIN" value={planned.summary.margin} success />
-              <div style={{ display: 'flex', alignItems: 'center', padding: '0 16px', marginLeft: 'auto' }}>
-                <Button variant="secondary" onClick={() => setCompareOpen(true)}>
-                  Compare AP/AR
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {/* Both tables stacked vertically */}
-          <div style={{ overflow: 'auto', flex: 1 }}>
-            {/* AP Breakdown */}
-            <div style={{ padding: '16px 20px 4px 20px' }}>
-              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>
-                AP Breakdown (Carrier Cost)
-              </span>
-            </div>
-            <CostTable columns={apColumns} orders={planned?.orders} />
-
-            {/* AR Breakdown */}
-            <div style={{ padding: '20px 20px 4px 20px' }}>
-              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>
-                AR Breakdown (Customer Cost)
-              </span>
-            </div>
-            <CostTable columns={arColumns} orders={planned?.orders} />
-          </div>
-        </div>
-      )}
-
-      {/* Compare AP/AR Modal */}
-      {compareOpen && planned?.orders && createPortal(
-        <CompareModal
-          orders={planned.orders}
-          defaultOrderIdx={selectedOrderIdx}
-          onClose={() => setCompareOpen(false)}
-        />,
-        document.body,
-      )}
-    </div>
-  )
-})
-export default CostAllocationTab
-
-function CostTable({ columns, orders }) {
-  return (
-    <table className="w-full border-collapse" style={{ fontFamily: 'var(--font-primary)', fontSize: 13, color: 'var(--text-secondary)' }}>
-      <thead>
-        <tr>
-          {columns.map((col) => (
-            <th key={col.key} style={thStyle}>{col.label}</th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {orders?.map((order) => (
-          <tr key={order.orderId} style={{ background: 'var(--bg-primary)' }}>
-            {columns.map((col) => {
-              const val = order[col.key]
-              if (col.key === 'orderId') {
-                return <td key={col.key} style={{ ...tdStyle, fontWeight: 500, color: 'var(--text-primary)' }}>{val}</td>
-              }
-              if (col.key === 'apCost' || col.key === 'arCost') {
-                return <td key={col.key} style={{ ...tdStyle, fontWeight: 600 }}>{val}</td>
-              }
-              if (col.key === 'apDiscount' || col.key === 'arDiscount' || col.key === 'apHzc' || col.key === 'apSoc' || col.key === 'arHzc' || col.key === 'arSoc') {
-                return <td key={col.key} style={tdStyle}><CostValue value={val} /></td>
-              }
-              return <td key={col.key} style={tdStyle}>{val}</td>
-            })}
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  )
-}
-
-function SummaryCell({ label, value, negative, total, success, last }) {
-  let valueColor = 'var(--text-primary)'
-  if (negative || isNegative(value)) valueColor = 'var(--text-error)'
-  if (success) valueColor = 'var(--caribbean-green-600)'
-
-  return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 2,
-        padding: '12px 20px',
-        borderRight: last ? 'none' : '1px solid var(--border-subtle)',
-        background: total ? 'var(--bg-secondary)' : 'transparent',
-      }}
-    >
-      <span style={{
-        fontSize: 11,
-        fontWeight: 500,
-        color: 'var(--text-tertiary)',
-        textTransform: 'uppercase',
-        letterSpacing: '0.03em',
-        lineHeight: '14px',
-        whiteSpace: 'nowrap',
-      }}>
-        {label}
-      </span>
-      <span style={{
-        fontSize: 'var(--font-size-sm)',
-        fontWeight: 600,
-        color: valueColor,
-        lineHeight: '20px',
-        whiteSpace: 'nowrap',
-      }}>
+    <div className="pane-kpis__cell">
+      <span className="pane-kpis__label">{label}</span>
+      <span className={['pane-kpis__value', modifier].filter(Boolean).join(' ')}>
         {value || '--'}
       </span>
     </div>
   )
 }
 
-function CompareModal({ orders, defaultOrderIdx, onClose }) {
-  const [activeIdx, setActiveIdx] = useState(
-    defaultOrderIdx < orders.length ? defaultOrderIdx : 0
-  )
+function DiffCell({ value }) {
+  const positive = diffIsPositive(value)
+  let cls = 'cost-table__diff'
+  if (positive === true) cls += ' cost-table__diff--positive'
+  if (positive === false) cls += ' cost-table__diff--negative'
+  return <span className={cls}>{value || '--'}</span>
+}
 
-  const order = orders[activeIdx]
+/**
+ * A single expandable order row + its charge-line children.
+ */
+function OrderRow({ order, expanded, onToggle, isFirst }) {
+  const diff = computeDiff(order.apCost, order.arCost)
 
-  const components = [
-    { label: 'Base', apKey: 'apBase', arKey: 'arBase' },
-    { label: 'Fuel', apKey: 'apFuel', arKey: 'arFuel' },
-    { label: 'Discount', apKey: 'apDiscount', arKey: 'arDiscount' },
-    { label: 'HZC', apKey: 'apHzc', arKey: 'arHzc' },
-    { label: 'SOC', apKey: 'apSoc', arKey: 'arSoc' },
-  ]
-
-  const apTotal = parseDollar(order.apCost)
-  const arTotal = parseDollar(order.arCost)
-  const marginVal = parseDollar(order.margin)
-  const marginPct = apTotal && apTotal > 0 ? ((marginVal / apTotal) * 100).toFixed(1) : '0.0'
-
-  const compareTh = {
-    padding: '8px 14px',
-    textAlign: 'right',
-    whiteSpace: 'nowrap',
-    color: 'var(--text-placeholder)',
-    borderBottom: '1px solid var(--border-subtle)',
-  }
-
-  const compareTd = {
-    padding: '8px 14px',
-    whiteSpace: 'nowrap',
-    color: 'var(--text-secondary)',
-    borderBottom: '1px solid var(--bg-tertiary)',
-    textAlign: 'right',
-  }
-
-  const rows = components.map(({ label, apKey, arKey }) => {
-    const ap = parseDollar(order[apKey])
-    const ar = parseDollar(order[arKey])
-    const bothEmpty = ap == null && ar == null
-    const diff = bothEmpty ? null : (ar || 0) - (ap || 0)
-    return { label, ap: order[apKey], ar: order[arKey], diff, bothEmpty }
-  })
-
-  const totalDiff = arTotal != null && apTotal != null ? arTotal - apTotal : null
+  // Build child charge lines from the order VM fields
+  const chargeLines = [
+    { label: 'Base',     ap: order.apBase,     ar: order.arBase },
+    { label: 'Fuel',     ap: order.apFuel,     ar: order.arFuel },
+    { label: 'Discount', ap: order.apDiscount, ar: order.arDiscount },
+    { label: 'HZC',      ap: order.apHzc,      ar: order.arHzc },
+    { label: 'SOC',      ap: order.apSoc,      ar: order.arSoc },
+  ].filter(line => line.ap !== '--' || line.ar !== '--')
 
   return (
-    <ModalMedium title="Compare AP / AR" onClose={onClose}>
-      {/* Order tabs */}
-      <div style={{ display: 'flex', gap: 6 }}>
-          {orders.map((ord, i) => {
-            const isActive = i === activeIdx
-            const color = BADGE_COLORS[i % BADGE_COLORS.length]
-            return (
-              <button
-                key={ord.orderId}
-                onClick={() => setActiveIdx(i)}
-                className="border-none cursor-pointer"
-                style={{
-                  padding: '4px 10px',
-                  fontSize: 12,
-                  fontWeight: isActive ? 600 : 500,
-                  fontFamily: 'var(--font-primary)',
-                  borderRadius: 'var(--radius-sm)',
-                  background: isActive ? BADGE_BG[color] : 'var(--bg-secondary)',
-                  color: isActive ? BADGE_TEXT[color] : 'var(--text-tertiary)',
-                  border: isActive ? `1px solid ${BADGE_TEXT[color]}30` : '1px solid transparent',
-                  transition: 'all 0.15s ease',
-                }}
-                onMouseEnter={(e) => {
-                  if (!isActive) {
-                    e.currentTarget.style.background = BADGE_BG[color]
-                    e.currentTarget.style.color = BADGE_TEXT[color]
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!isActive) {
-                    e.currentTarget.style.background = 'var(--bg-secondary)'
-                    e.currentTarget.style.color = 'var(--text-tertiary)'
-                  }
-                }}
-              >
-                {ord.orderId}
-              </button>
-            )
-          })}
-        </div>
-
-        {/* Margin */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginBottom: 16 }}>
-          <span className="text-label-sm-semibold" style={{ color: 'var(--caribbean-green-600)' }}>
-            Margin: {fmtDollar(marginVal)} ({marginPct}%)
+    <>
+      {/* Parent (order) row */}
+      <tr
+        className={`cost-table__order-row${isFirst ? ' cost-table__order-row--first' : ''}`}
+        onClick={onToggle}
+        aria-expanded={expanded}
+      >
+        <td className="cost-table__cell cost-table__cell--order">
+          <span className="cost-table__chevron" aria-hidden="true">
+            {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
           </span>
-        </div>
+          {order.orderId}
+        </td>
+        <td className="cost-table__cell cost-table__cell--num">{order.apCost}</td>
+        <td className="cost-table__cell cost-table__cell--num">{order.arCost}</td>
+        <td className="cost-table__cell cost-table__cell--num">
+          <DiffCell value={diff} />
+        </td>
+      </tr>
 
-        {/* Table */}
-        <table className="w-full border-collapse" style={{ fontSize: 13 }}>
-          <thead>
-            <tr>
-              <th className="text-label-xs-medium-uppercase" style={{ ...compareTh, textAlign: 'left' }}>Component</th>
-              <th className="text-label-xs-medium-uppercase" style={compareTh}>AP (Carrier)</th>
-              <th className="text-label-xs-medium-uppercase" style={compareTh}>AR (Customer)</th>
-              <th className="text-label-xs-medium-uppercase" style={compareTh}>Diff</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row) => (
-              <tr key={row.label}>
-                <td className="text-label-sm-medium" style={{ ...compareTd, textAlign: 'left', color: 'var(--text-primary)' }}>{row.label}</td>
-                <td className="text-label-sm-regular" style={compareTd}><CostValue value={row.ap} /></td>
-                <td className="text-label-sm-regular" style={compareTd}><CostValue value={row.ar} /></td>
-                <td className="text-label-sm-regular" style={compareTd}>
-                  {row.bothEmpty ? (
-                    <span>--</span>
-                  ) : (
-                    <span style={{ color: row.diff >= 0 ? 'var(--caribbean-green-600)' : 'var(--text-error)' }}>
-                      {row.diff >= 0 ? '+' : ''}{fmtDollar(row.diff)}
-                    </span>
-                  )}
-                </td>
-              </tr>
-            ))}
-            {/* Total row */}
-            <tr>
-              <td className="text-label-sm-semibold" style={{ ...compareTd, textAlign: 'left', color: 'var(--text-primary)', borderTop: '2px solid var(--border-default)', borderBottom: 'none' }}>Total</td>
-              <td className="text-label-sm-semibold" style={{ ...compareTd, borderTop: '2px solid var(--border-default)', borderBottom: 'none' }}>{order.apCost}</td>
-              <td className="text-label-sm-semibold" style={{ ...compareTd, borderTop: '2px solid var(--border-default)', borderBottom: 'none' }}>{order.arCost}</td>
-              <td className="text-label-sm-semibold" style={{ ...compareTd, borderTop: '2px solid var(--border-default)', borderBottom: 'none' }}>
-                {totalDiff != null ? (
-                  <span style={{ color: totalDiff >= 0 ? 'var(--caribbean-green-600)' : 'var(--text-error)' }}>
-                    {totalDiff >= 0 ? '+' : ''}{fmtDollar(totalDiff)}
-                  </span>
-                ) : '--'}
-              </td>
-            </tr>
-          </tbody>
-        </table>
-    </ModalMedium>
+      {/* Child charge-line rows */}
+      {expanded && chargeLines.map((line, i) => {
+        const childDiff = computeDiff(line.ap, line.ar)
+        return (
+          <tr key={line.label} className={`cost-table__charge-row${i % 2 === 0 ? ' cost-table__charge-row--stripe' : ''}`}>
+            <td className="cost-table__cell cost-table__cell--charge">{line.label}</td>
+            <td className="cost-table__cell cost-table__cell--num cost-table__cell--muted">{line.ap}</td>
+            <td className="cost-table__cell cost-table__cell--num cost-table__cell--muted">{line.ar}</td>
+            <td className="cost-table__cell cost-table__cell--num cost-table__cell--muted">
+              <DiffCell value={childDiff} />
+            </td>
+          </tr>
+        )
+      })}
+    </>
   )
 }
+
+/**
+ * The full Compare AP/AR table: order parent rows + charge-line children + TOTAL.
+ */
+function CompareTable({ orders, allExpanded }) {
+  const [expandedSet, setExpandedSet] = useState(new Set())
+
+  // Sync allExpanded toggle: derive actual expanded state
+  const isExpanded = (orderId) => allExpanded || expandedSet.has(orderId)
+
+  const toggle = (orderId) => {
+    setExpandedSet(prev => {
+      const next = new Set(prev)
+      if (next.has(orderId)) next.delete(orderId)
+      else next.add(orderId)
+      return next
+    })
+  }
+
+  // TOTAL row: sum AP and AR across all orders; Diff = AR − AP
+  const totalAp = orders.reduce((sum, o) => {
+    const n = parseDollar(o.apCost)
+    return sum + (n ?? 0)
+  }, 0)
+  const totalAr = orders.reduce((sum, o) => {
+    const n = parseDollar(o.arCost)
+    return sum + (n ?? 0)
+  }, 0)
+  const totalDiff = totalAr - totalAp
+
+  return (
+    <table className="cost-table" role="table">
+      <thead>
+        <tr className="cost-table__head-row">
+          <th className="cost-table__th cost-table__th--order">Order</th>
+          <th className="cost-table__th cost-table__th--num">AP (Carrier)</th>
+          <th className="cost-table__th cost-table__th--num">AR (Customer)</th>
+          <th className="cost-table__th cost-table__th--num">Diff</th>
+        </tr>
+      </thead>
+      <tbody>
+        {orders.map((order, i) => (
+          <OrderRow
+            key={order.orderId}
+            order={order}
+            expanded={isExpanded(order.orderId)}
+            onToggle={() => toggle(order.orderId)}
+            isFirst={i === 0}
+          />
+        ))}
+        {/* TOTAL row */}
+        <tr className="cost-table__total-row">
+          <td className="cost-table__cell cost-table__cell--total-label">TOTAL</td>
+          <td className="cost-table__cell cost-table__cell--num cost-table__cell--total">{fmtDollar(totalAp)} USD</td>
+          <td className="cost-table__cell cost-table__cell--num cost-table__cell--total">{fmtDollar(totalAr)} USD</td>
+          <td className="cost-table__cell cost-table__cell--num cost-table__cell--total">
+            <DiffCell value={(totalDiff >= 0 ? '+' : '') + fmtDollar(totalDiff)} />
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  )
+}
+
+// ── main component ────────────────────────────────────────────────────────────
+
+const CostAllocationTab = React.memo(function CostAllocationTab({ data }) {
+  const [subTab, setSubTab] = useState('planned')
+  const [allExpanded, setAllExpanded] = useState(false)
+
+  if (!data) return (
+    <div className="pane-canvas">
+      <div className="pane-col pane-col--narrow">
+        <span style={{ color: 'var(--text-placeholder)', fontSize: 'var(--font-size-sm)' }}>
+          No cost data available.
+        </span>
+      </div>
+    </div>
+  )
+
+  const planned = data.planned
+
+  return (
+    <div className="pane-canvas cost-pane">
+      {/* Row 1: underline Tab group */}
+      <div className="cost-pane__tab-row">
+        <div className="tab-group" role="tablist" aria-label="Cost view">
+          <Tab
+            label="Planned Cost"
+            current={subTab === 'planned'}
+            onClick={() => setSubTab('planned')}
+            aria-selected={subTab === 'planned'}
+            role="tab"
+          />
+          <Tab
+            label="Completed Cost"
+            current={subTab === 'completed'}
+            onClick={() => setSubTab('completed')}
+            aria-selected={subTab === 'completed'}
+            role="tab"
+          />
+        </div>
+      </div>
+
+      {subTab === 'completed' ? (
+        /* Completed — locked state */
+        <div className="cost-pane__locked" role="status">
+          <Lock size={32} aria-hidden="true" style={{ color: 'var(--text-placeholder)' }} />
+          <p>Available after PGI/PGR is received</p>
+        </div>
+      ) : (
+        <>
+          {/* Row 2: full-width KPI band */}
+          {planned?.summary && (
+            <div className="pane-kpis" role="region" aria-label="Cost summary">
+              <KpiCell label="BASE"          value={planned.summary.base} />
+              <KpiCell label="DISCOUNT"      value={planned.summary.discount}    modifier="pane-kpis__value--negative" />
+              <KpiCell label="FUEL (FSC)"    value={planned.summary.fuel} />
+              <KpiCell label="ACCESSORIALS"  value={planned.summary.accessorials} />
+              <KpiCell label="AP TOTAL"      value={planned.summary.apTotal} />
+              <KpiCell label="AR TOTAL"      value={planned.summary.arTotal} />
+              <KpiCell label="MARGIN"        value={planned.summary.margin}       modifier="pane-kpis__value--positive" />
+            </div>
+          )}
+
+          {/* Row 3: narrow card with Compare AP/AR table */}
+          <div className="pane-col pane-col--narrow">
+            <div className="pane-card">
+              <div className="pane-card__header">
+                <h2 className="pane-card__title">Compare AP/AR</h2>
+                {planned?.orders?.length > 0 && (
+                  <Button
+                    variant="link"
+                    onClick={() => setAllExpanded(v => !v)}
+                    aria-pressed={allExpanded}
+                  >
+                    {allExpanded ? 'Collapse All' : 'Expand All'}
+                  </Button>
+                )}
+              </div>
+
+              {planned?.orders?.length > 0 ? (
+                <CompareTable
+                  orders={planned.orders}
+                  allExpanded={allExpanded}
+                />
+              ) : (
+                <p style={{ color: 'var(--text-placeholder)', fontSize: 'var(--font-size-sm)' }}>
+                  No order cost data available.
+                </p>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  )
+})
+
+export default CostAllocationTab

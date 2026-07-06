@@ -110,7 +110,7 @@ export default function ShipmentsBar({
     <div
       data-bottombar
       className={classes}
-      style={{ height: isExpanded ? '50vh' : 'var(--bottombar-collapsed)', right: rightOffset, ...style }}
+      style={{ right: rightOffset, ...style }}
       {...rest}
     >
       <div className="shipments-bar__strip">

@@ -4,123 +4,59 @@ import { ChevronDown, ChevronRight } from 'lucide-react'
 function InstructionGroup({ order }) {
   const [expanded, setExpanded] = useState(true)
 
+  const headingId = `instr-group-heading-${order.orderId}`
+
   return (
-    <div style={{ marginBottom: 'var(--spacing-5)' }}>
-      {/* Order header */}
+    <div className="instr-group">
+      {/* Group header — chevron left of orderId, hairline bottom */}
       <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 'var(--spacing-2)',
-          marginBottom: expanded ? 'var(--spacing-2)' : 0,
-          cursor: 'pointer',
+        className="instr-group__header"
+        role="button"
+        tabIndex={0}
+        aria-expanded={expanded}
+        aria-controls={`instr-group-body-${order.orderId}`}
+        id={headingId}
+        onClick={() => setExpanded((v) => !v)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            setExpanded((v) => !v)
+          }
         }}
-        onClick={() => setExpanded(!expanded)}
       >
-        <button
-          type="button"
-          aria-label="Toggle"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: '22px',
-            height: '22px',
-            border: '1px solid var(--border-default)',
-            borderRadius: 'var(--radius-sm)',
-            background: 'var(--bg-primary)',
-            color: 'var(--text-tertiary)',
-            cursor: 'pointer',
-            flexShrink: 0,
-            padding: 0,
-            transition: 'background var(--transition-fast)',
-          }}
-          onClick={(e) => {
-            e.stopPropagation()
-            setExpanded(!expanded)
-          }}
-        >
-          {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-        </button>
-        <span
-          style={{
-            fontFamily: 'var(--font-primary)',
-            fontSize: '13px',
-            fontWeight: 600,
-            color: 'var(--text-primary)',
-          }}
-        >
-          {order.orderId}
+        <span className="instr-group__chevron" aria-hidden="true">
+          {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
         </span>
-        <span
-          style={{
-            fontFamily: 'var(--font-primary)',
-            fontSize: 'var(--font-size-xs)',
-            fontWeight: 400,
-            color: 'var(--text-placeholder)',
-          }}
-        >
-          {order.instructions.length} {order.instructions.length === 1 ? 'instruction' : 'instructions'}
-        </span>
+        <span className="instr-group__id">{order.orderId}</span>
       </div>
 
-      {/* Instruction list */}
-      {expanded && (
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '6px',
-            paddingLeft: 'var(--spacing-1)',
-          }}
+      {/* Mini-table — hidden when collapsed */}
+      {expanded && order.instructions.length > 0 && (
+        <table
+          className="instr-table"
+          id={`instr-group-body-${order.orderId}`}
+          aria-labelledby={headingId}
         >
-          {order.instructions.map((instr) => (
-            <div
-              key={`${order.orderId}-${instr.seq}`}
-              style={{
-                display: 'flex',
-                gap: '10px',
-                alignItems: 'flex-start',
-                padding: 'var(--spacing-2) var(--spacing-3)',
-                background: 'var(--bg-secondary)',
-                borderLeft: '3px solid var(--border-default)',
-                borderRadius: '0 var(--radius-sm) var(--radius-sm) 0',
-              }}
-            >
-              <span
-                style={{
-                  fontFamily: 'var(--font-primary)',
-                  fontSize: '11px',
-                  fontWeight: 600,
-                  color: 'var(--text-placeholder)',
-                  background: 'var(--bg-tertiary)',
-                  borderRadius: 'var(--radius-full)',
-                  width: '20px',
-                  height: '20px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                  marginTop: '1px',
-                }}
-              >
-                {instr.seq}
-              </span>
-              <p
-                style={{
-                  fontFamily: 'var(--font-primary)',
-                  fontSize: '13px',
-                  fontWeight: 400,
-                  color: 'var(--text-secondary)',
-                  lineHeight: '19px',
-                  margin: 0,
-                }}
-              >
-                {instr.text}
-              </p>
-            </div>
-          ))}
-        </div>
+          <thead>
+            <tr>
+              <th className="instr-table__seq-col" scope="col">#</th>
+              <th scope="col">Instruction Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            {order.instructions.map((instr) => (
+              <tr key={`${order.orderId}-${instr.seq}`}>
+                <td className="instr-table__seq-cell">{instr.seq}</td>
+                <td>{instr.text}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      {/* Empty collapsed-but-shown state when the group has no instructions */}
+      {expanded && order.instructions.length === 0 && (
+        <p className="instr-empty">No instructions for this order.</p>
       )}
     </div>
   )
@@ -129,46 +65,33 @@ function InstructionGroup({ order }) {
 const InstructionsTab = React.memo(function InstructionsTab({ data }) {
   if (!data?.orders?.length) {
     return (
-      <div
-        style={{
-          padding: 'var(--spacing-5) var(--spacing-6)',
-          fontFamily: 'var(--font-primary)',
-          fontSize: 'var(--font-size-sm)',
-          color: 'var(--text-placeholder)',
-        }}
-      >
-        No instructions available.
+      <div className="pane-canvas">
+        <div className="pane-col pane-col--medium">
+          <div className="pane-card">
+            <div className="pane-card__header">
+              <span className="pane-card__title">Instructions</span>
+            </div>
+            <p className="instr-empty" style={{ padding: 0 }}>No instructions available.</p>
+          </div>
+        </div>
       </div>
     )
   }
 
   return (
-    <div
-      style={{
-        padding: 'var(--spacing-5) var(--spacing-6)',
-        overflowY: 'auto',
-        height: '100%',
-      }}
-    >
-      <div
-        style={{
-          fontFamily: 'var(--font-primary)',
-          fontSize: 'var(--font-size-sm)',
-          fontWeight: 700,
-          textTransform: 'uppercase',
-          color: 'var(--text-primary)',
-          letterSpacing: '0.04em',
-          paddingBottom: 'var(--spacing-3)',
-          borderBottom: '1px solid var(--border-subtle)',
-          marginBottom: 'var(--spacing-4)',
-        }}
-      >
-        Instructions
+    <div className="pane-canvas">
+      <div className="pane-col pane-col--medium">
+        <div className="pane-card">
+          <div className="pane-card__header">
+            <span className="pane-card__title">Instructions</span>
+          </div>
+          {data.orders.map((order) => (
+            <InstructionGroup key={order.orderId} order={order} />
+          ))}
+        </div>
       </div>
-      {data.orders.map((order) => (
-        <InstructionGroup key={order.orderId} order={order} />
-      ))}
     </div>
   )
 })
+
 export default InstructionsTab

@@ -1,57 +1,9 @@
 import React, { useState, useCallback, useRef } from 'react'
-import { Upload, Trash2, RefreshCw, Download, FileText, Sheet, File } from 'lucide-react'
+import { Download, Trash2, FileText, Sheet, File, EllipsisVertical, Plus } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
-import { Button, FormField, ModalMedium } from '@odyssey/ui'
-
-const TYPE_STYLES = {
-  BoL:            { bg: 'var(--badge-blue-bg)', color: 'var(--badge-blue-text)' },
-  MBoL:           { bg: 'var(--badge-blue-bg)', color: 'var(--badge-blue-text)' },
-  POD:            { bg: 'var(--badge-yellow-bg)', color: 'var(--badge-yellow-text)' },
-  SL:             { bg: 'var(--badge-green-bg)', color: 'var(--badge-green-text)' },
-  'Packing List': { bg: 'var(--badge-purple-bg)', color: 'var(--badge-purple-text)' },
-  Other:          { bg: 'var(--bg-tertiary)', color: 'var(--text-secondary)' },
-}
+import { Button, FormField, ModalMedium, Checkbox, ActionMenu } from '@odyssey/ui'
 
 const DOC_TYPES = ['BoL', 'MBoL', 'POD', 'SL', 'Packing List', 'Other']
-
-/* ---- Shared inline styles matching the prototype CSS exactly ---- */
-
-const thStyle = {
-  padding: '10px 14px',
-  textAlign: 'left',
-  whiteSpace: 'nowrap',
-  fontSize: 12,
-  fontWeight: 600,
-  color: 'var(--text-placeholder)',
-  textTransform: 'uppercase',
-  letterSpacing: '0.03em',
-  background: 'var(--bg-secondary)',
-  borderBottom: '1px solid var(--border-subtle)',
-}
-
-const tdStyle = {
-  padding: '10px 14px',
-  whiteSpace: 'nowrap',
-  fontSize: 13,
-  fontWeight: 400,
-  color: 'var(--text-secondary)',
-  borderBottom: '1px solid var(--bg-tertiary)',
-}
-
-const deleteBtnStyle = {
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  width: 28,
-  height: 28,
-  background: 'none',
-  border: '1px solid transparent',
-  borderRadius: 'var(--radius-sm)',
-  cursor: 'pointer',
-  color: 'var(--text-placeholder)',
-  transition: 'color 0.15s ease, border-color 0.15s ease, background 0.15s ease',
-  margin: '0 auto',
-}
 
 function getFileExtension(fileName) {
   const parts = (fileName || '').split('.')
@@ -65,26 +17,6 @@ function FileIcon({ extension, size = 48 }) {
   return <File size={size} />
 }
 
-function TypeBadge({ type }) {
-  const style = TYPE_STYLES[type] || { bg: 'var(--badge-blue-bg)', color: 'var(--badge-blue-text)' }
-  return (
-    <span
-      style={{
-        display: 'inline-block',
-        fontFamily: 'var(--font-primary)',
-        fontSize: 12,
-        fontWeight: 600,
-        padding: '1px 8px',
-        borderRadius: 'var(--radius-sm)',
-        background: style.bg,
-        color: style.color,
-      }}
-    >
-      {type}
-    </span>
-  )
-}
-
 const DocumentsTab = React.memo(function DocumentsTab({ data }) {
   const [documents, setDocuments] = useState(() => data?.documents || [])
   const [showModal, setShowModal] = useState(false)
@@ -92,10 +24,37 @@ const DocumentsTab = React.memo(function DocumentsTab({ data }) {
   const [formFile, setFormFile] = useState(null)
   const [formDesc, setFormDesc] = useState('')
   const [previewDoc, setPreviewDoc] = useState(null)
+
+  // Local selection state — UI only, no bulk actions yet
+  const [selected, setSelected] = useState(new Set())
   const fileInputRef = useRef(null)
 
+  const allSelected = documents.length > 0 && selected.size === documents.length
+  const someSelected = selected.size > 0 && !allSelected
+
+  const handleSelectAll = useCallback((e) => {
+    setSelected(e.target.checked ? new Set(documents.map((_, i) => i)) : new Set())
+  }, [documents])
+
+  const handleSelectRow = useCallback((idx, checked) => {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      checked ? next.add(idx) : next.delete(idx)
+      return next
+    })
+  }, [])
+
   const handleDelete = useCallback((idx) => {
-    setDocuments((prev) => prev.filter((_, i) => i !== idx))
+    setDocuments((prev) => {
+      const next = prev.filter((_, i) => i !== idx)
+      // Rebuild selection indices after removal
+      setSelected((prevSel) => {
+        const nextSel = new Set()
+        prevSel.forEach((sel) => { if (sel < idx) nextSel.add(sel); else if (sel > idx) nextSel.add(sel - 1) })
+        return nextSel
+      })
+      return next
+    })
   }, [])
 
   const handleUpload = useCallback(() => {
@@ -120,123 +79,110 @@ const DocumentsTab = React.memo(function DocumentsTab({ data }) {
   }, [])
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100%',
-        margin: 'calc(-1 * var(--spacing-4)) calc(-1 * var(--spacing-5))',
-      }}
-    >
-      {/* Toolbar */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          padding: '12px 20px',
-          borderBottom: '1px solid var(--border-subtle)',
-        }}
-      >
-        <Button variant="secondary" icon={<Upload size={20} />} onClick={() => setShowModal(true)}>
-          Upload Attachment
-        </Button>
-        <Button variant="secondary" icon={<RefreshCw size={20} />}>
-          Refresh
-        </Button>
+    <div className="pane-canvas">
+      <div className="pane-col pane-col--wide">
+        <div className="pane-card">
+          {/* Card header */}
+          <div className="pane-card__header">
+            <h2 className="pane-card__title">All Documents</h2>
+            <Button
+              variant="primary"
+              icon={<Plus {...ICON_MD} />}
+              onClick={() => setShowModal(true)}
+            >
+              Add Document
+            </Button>
+          </div>
+
+          {/* Table */}
+          <div className="docs-table-wrap">
+            <table className="docs-table" aria-label="Documents">
+              <thead>
+                <tr>
+                  <th className="docs-th docs-th--cb">
+                    <Checkbox
+                      checked={allSelected}
+                      indeterminate={someSelected}
+                      onChange={handleSelectAll}
+                      aria-label="Select all documents"
+                    />
+                  </th>
+                  <th className="docs-th docs-th--file">File</th>
+                  <th className="docs-th">Creation Time</th>
+                  <th className="docs-th docs-th--size">File Size (KB)</th>
+                  <th className="docs-th docs-th--action">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {documents.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="docs-td docs-empty">
+                      No documents uploaded.
+                    </td>
+                  </tr>
+                ) : (
+                  documents.map((doc, idx) => (
+                    <tr key={idx} className="docs-row" data-selected={selected.has(idx) || undefined}>
+                      <td className="docs-td docs-td--cb">
+                        <Checkbox
+                          checked={selected.has(idx)}
+                          onChange={(e) => handleSelectRow(idx, e.target.checked)}
+                          aria-label={`Select ${doc.fileName}`}
+                        />
+                      </td>
+                      <td className="docs-td docs-td--file">
+                        <a
+                          href="#"
+                          className="docs-file-link"
+                          onClick={(e) => { e.preventDefault(); setPreviewDoc(doc) }}
+                        >
+                          {doc.fileName}
+                        </a>
+                        {doc.description && doc.description !== doc.fileName && (
+                          <span className="docs-file-desc">{doc.description}</span>
+                        )}
+                      </td>
+                      <td className="docs-td docs-td--muted">
+                        {doc.createdAt
+                          ? new Date(doc.createdAt).toLocaleString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZoneName: 'short' })
+                          : <span className="docs-dash">—</span>
+                        }
+                      </td>
+                      <td className="docs-td docs-td--muted">
+                        {doc.fileSize != null
+                          ? `${doc.fileSize} KB`
+                          : <span className="docs-dash">—</span>
+                        }
+                      </td>
+                      <td className="docs-td docs-td--action">
+                        <ActionMenu
+                          icon={<EllipsisVertical {...ICON_MD} />}
+                          ariaLabel="Document actions"
+                          align="right"
+                          options={[
+                            {
+                              label: 'Download',
+                              // No-op stub — real download requires signed URL from backend
+                              onSelect: () => { /* TODO: wire to presigned download URL */ },
+                            },
+                            {
+                              label: 'Delete',
+                              danger: true,
+                              onSelect: () => handleDelete(idx),
+                            },
+                          ]}
+                        />
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
-      {/* Table */}
-      <div style={{ overflow: 'auto', height: '100%' }}>
-        <table
-          style={{
-            width: '100%',
-            borderCollapse: 'collapse',
-            fontFamily: 'var(--font-primary)',
-            fontSize: 13,
-            color: 'var(--text-secondary)',
-          }}
-        >
-          <thead style={{ background: 'var(--bg-secondary)', position: 'sticky', top: 0, zIndex: 1 }}>
-            <tr>
-              <th style={thStyle}>Type</th>
-              <th style={thStyle}>Description</th>
-              <th style={thStyle}>File</th>
-              <th style={{ ...thStyle, width: 48, textAlign: 'center' }} />
-            </tr>
-          </thead>
-          <tbody>
-            {documents.length === 0 && (
-              <tr>
-                <td
-                  colSpan={4}
-                  style={{
-                    ...tdStyle,
-                    color: 'var(--text-placeholder)',
-                    padding: 'var(--spacing-6)',
-                    textAlign: 'center',
-                    fontSize: 'var(--font-size-sm)',
-                  }}
-                >
-                  No documents uploaded.
-                </td>
-              </tr>
-            )}
-            {documents.map((doc, idx) => (
-              <tr
-                key={idx}
-                style={{ transition: 'background 0.15s ease' }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-secondary)' }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = '' }}
-              >
-                <td style={tdStyle}>
-                  <TypeBadge type={doc.type} />
-                </td>
-                <td style={tdStyle}>{doc.description}</td>
-                <td style={tdStyle}>
-                  <a
-                    href="#"
-                    onClick={(e) => { e.preventDefault(); setPreviewDoc(doc) }}
-                    style={{
-                      fontFamily: 'var(--font-primary)',
-                      fontSize: 13,
-                      fontWeight: 500,
-                      color: 'var(--text-link)',
-                      textDecoration: 'none',
-                      cursor: 'pointer',
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.textDecoration = 'underline' }}
-                    onMouseLeave={(e) => { e.currentTarget.style.textDecoration = 'none' }}
-                  >
-                    {doc.fileName}
-                  </a>
-                </td>
-                <td style={{ ...tdStyle, textAlign: 'center', width: 48 }}>
-                  <button
-                    onClick={() => handleDelete(idx)}
-                    style={deleteBtnStyle}
-                    title="Delete document"
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.color = 'var(--text-error)'
-                      e.currentTarget.style.borderColor = 'var(--border-subtle)'
-                      e.currentTarget.style.background = 'var(--bg-error)'
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.color = 'var(--text-placeholder)'
-                      e.currentTarget.style.borderColor = 'transparent'
-                      e.currentTarget.style.background = 'none'
-                    }}
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Preview Modal */}
+      {/* Preview Modal — mechanics unchanged */}
       {previewDoc && (() => {
         const ext = getFileExtension(previewDoc.fileName)
         return (
@@ -264,7 +210,7 @@ const DocumentsTab = React.memo(function DocumentsTab({ data }) {
         )
       })()}
 
-      {/* Upload Modal */}
+      {/* Upload Modal — trigger renamed, mechanics unchanged */}
       {showModal && (
         <ModalMedium
           title="Upload Attachment"
@@ -336,7 +282,7 @@ const DocumentsTab = React.memo(function DocumentsTab({ data }) {
 })
 export default DocumentsTab
 
-/* ---- Mock document preview ---- */
+/* ---- Mock document preview (unchanged) ---- */
 
 const mockLine = (width) => ({
   height: 8,
@@ -361,8 +307,6 @@ function DocMockup({ doc, ext }) {
   }
 
   if (isSpreadsheet) {
-    const cols = 4
-    const rows = 6
     const cellStyle = {
       padding: '6px 10px',
       fontSize: 10,
@@ -386,7 +330,7 @@ function DocMockup({ doc, ext }) {
             </tr>
           </thead>
           <tbody>
-            {Array.from({ length: rows }, (_, r) => (
+            {Array.from({ length: 6 }, (_, r) => (
               <tr key={r}>
                 <td style={cellStyle}>ORD-{String(4200 + r).padStart(6, '0')}</td>
                 <td style={cellStyle}>Chemical product {r + 1}</td>
@@ -400,10 +344,8 @@ function DocMockup({ doc, ext }) {
     )
   }
 
-  // PDF / Word / generic — looks like a BoL or shipping doc
   return (
     <div style={pageStyle}>
-      {/* Fake letterhead */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid var(--text-primary)', paddingBottom: 12 }}>
         <div>
           <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '0.04em' }}>ODYSSEY LOGISTICS</div>
@@ -414,8 +356,6 @@ function DocMockup({ doc, ext }) {
           <div style={{ fontSize: 9, color: 'var(--text-tertiary)', marginTop: 2 }}>Date: 03/28/2026</div>
         </div>
       </div>
-
-      {/* Info grid */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 24px', fontSize: 10 }}>
         {[
           ['Shipper', 'Odyssey Chemical Corp.'],
@@ -431,8 +371,6 @@ function DocMockup({ doc, ext }) {
           </div>
         ))}
       </div>
-
-      {/* Fake items table */}
       <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid var(--border-subtle)', fontSize: 10 }}>
         <thead>
           <tr>
@@ -454,15 +392,11 @@ function DocMockup({ doc, ext }) {
           ))}
         </tbody>
       </table>
-
-      {/* Fake text lines */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
         <div style={mockLine(90)} />
         <div style={mockLine(75)} />
         <div style={mockLine(60)} />
       </div>
-
-      {/* Signature line */}
       <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'space-between', paddingTop: 16, borderTop: '1px solid var(--border-subtle)' }}>
         <div style={{ fontSize: 9, color: 'var(--text-placeholder)' }}>
           <div style={{ width: 140, borderBottom: '1px solid var(--text-placeholder)', marginBottom: 4, height: 20 }} />

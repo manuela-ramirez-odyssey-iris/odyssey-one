@@ -2,10 +2,13 @@ import PaginationButton from './PaginationButton'
 import Dropdown from './Dropdown'
 
 /**
- * Paginator — molecule. The table's pagination bar: a results summary on the
- * left, and on the right a rows-per-page Dropdown + the joined PaginationButton
- * page bar (`‹ 1 2 3 … 10 ›`). Composes PaginationButton (atom) + Dropdown
- * (molecule); no new visuals of its own.
+ * Paginator — molecule. The table's pagination bar: a muted results summary
+ * (`Showing X to Y of Z results`) on the left, and on the right a "Rows per
+ * page" bordered Dropdown + the separate bordered segmented PaginationButton
+ * page bar (`‹ 1 2 3 … 10 ›`, current page filled dark). Composes
+ * PaginationButton (atom) + Dropdown (molecule); no new visuals of its own.
+ * Transparent — sits on the page canvas BELOW the DataTable card (S79b,
+ * decision 6; the DataTable `footer` slot places it there).
  *
  * Presentation-only: it is driven entirely by a TanStack table instance passed
  * via `table` (duck-typed — this package takes no dependency on TanStack; the
@@ -86,7 +89,7 @@ export default function Paginator({
       </p>
       <div className="paginator__controls">
         <div className="paginator__page-size">
-          <span className="paginator__page-size-label">Row per page</span>
+          <span className="paginator__page-size-label">Rows per page</span>
           <Dropdown
             value={String(pageSize)}
             options={sizeOptions}

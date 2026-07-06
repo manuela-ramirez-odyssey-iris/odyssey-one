@@ -291,6 +291,46 @@ Every implemented decision with its previous state, source, and rationale. This 
 - **Decision:** Wrapper → `overflow-clip` (not a scroll container; renders identically). Row auto-scroll on `<main>` preserved.
 - **Source:** Manuela's bug report, Jul 5 (S79); DOM-evidence diagnosis (wrapperScrollLeft 96 → 0)
 
+### DEC-48: Pane layout system — three centered column tiers
+- **Previous:** Each bar tab pane managed its own width/padding (mostly full-bleed with negative-margin hacks); Orders column left-aligned
+- **Decision:** Shared utilities (`.pane-canvas`, `.pane-col--wide|medium|narrow` = 1280/1106/760 centered, `.pane-card`, `.pane-kpis`) drive every pane. Tier per tab: Product/Tender/Documents wide · Orders/Stops/Instructions medium · Cost/Notes narrow.
+- **Source:** Manuela, Jul 5 (S79b) — "orders tab content is horizontally centered"; pixel-measured from the 12 tab mocks (vault-sources 2026-07-06-tab-panes)
+
+### DEC-49: ShipmentsBar partial/full states retired — content-proportional height
+- **Previous:** Expanded = fixed 50vh
+- **Decision:** Expanded height is auto (content-driven), capped at `100dvh − --bottombar-top-clearance` (146px — the page title row stays visible; Orders hits the cap, short tabs open shorter). `interpolate-size: allow-keywords` animates where supported.
+- **Source:** Manuela, Jul 5 (S79b) — "no more partial and full open, it opens proportional to each tab contents… max opening covers half the Shipments header"; mock 3 measured (bar top y146)
+
+### DEC-50: Bar shadow clipped up-only
+- **Previous:** `--shadow-up-lg` blur bled sideways over the sidebar (bar looked "above" it)
+- **Decision:** `clip-path: inset(-40px 0 0 0)` on the expanded bar — shadow casts upward only. Token unchanged; code-only.
+- **Source:** Manuela, Jul 5 (S79b)
+
+### DEC-51: Global search = glimpse → commit → open
+- **Previous:** Typing filtered the table live (S79 wiring); results panel chips-only; match rows unclickable; "Show all N results" logged to console
+- **Decision:** Typing shows a top-12 match glimpse panel only. "Show all N results" / Enter commits the query to the table filter. Clicking a match selects that shipment (bar opens with details even if the row is filtered/paginated out). Match ids display buyShipment but SELECT by sellShipment (row/detail key — plan originally said buyShipment; corrected against ground truth).
+- **Source:** Manuela, Jul 5 (S79b) — "results not showing on typing but on clicking show results… top 12 matches… each row clickable opens the corresponding shipment row"
+
+### DEC-52: DataTable footer externalized + Paginator restyle (both libraries)
+- **Previous:** Paginator rendered inside the bordered table card
+- **Decision:** DataTable root = transparent wrapper: bordered card (table only) + footer sibling below on canvas. Paginator: summary text left; "Rows per page" select + segmented pager right, current page filled DSN/900. Mirrored in Angular (`4bb2159`, local, PR #10 branch). DataTable + Paginator demoted to NORMALIZING in both DSMs. Figma master sync = Efrain ask.
+- **Source:** Manuela, Jul 5 (S79b) + mock 1-Shipments.png
+
+### DEC-53: Table sticky-header gap root cause
+- **Previous:** Transparent strip above the sticky header when scrolled — header parked 32px too low
+- **Decision:** Sticky insets resolve against the scroller's content edge; `<main>`'s 32px padding-top offset the header. `stickyTop` now accepts CSS lengths; ShipmentTable passes `calc(-1 * var(--spacing-8))`.
+- **Source:** Manuela's bug report, Jul 5 (S79b); Playwright DOM-evidence diagnosis
+
+### DEC-54: Orders tab fake data per Orders-domain canon + orphaned pane data wired
+- **Previous:** Owning Organization/Equipment/Consolidatable/Special Services etc. rendered '--'; generator built documents/notes/history but never emitted them (mapper stubbed all three empty — Documents/Notes/History panes always started blank)
+- **Decision:** Generator emits the canon-backed order fields (owningOrganization, consolidatable ~70%, equipmentCode, equipmentReferenceNumber ~25%, customerRequiredCarrier ~20%, pickupNumber ~60%, specialServices from the LFT/PALEXG/PJC(+INSD/APPT) pool, address2, destination contacts) + `documentList`/`noteList`/`historyList` DTO passthroughs; mapper surfaces all. Documents gain createdAt/fileSize.
+- **Source:** Manuela, Jul 5 (S79b) — "wire fake data… check our orders domain, you have the jiras there"; canon citations in the intake report (LINX-8118/8126/8127/8124…, Q15/Q20/Q21 resolutions)
+
+### DEC-55: All tab panes restyled to the redesign language (mocks 4–10, layout-only)
+- **Previous:** Panes carried the pre-redesign chrome (pill sub-tabs, stacked AP/AR tables + CompareModal, toolbar-style Documents, inline-styled Notes)
+- **Decision:** Stops (KPI band + timeline card) · Product (wide card + Expand All) · Tender (underline sub-tabs + primary "+ Add Quote", table on canvas; mechanics untouched) · Cost Allocation (underline tabs + KPI band + single expandable Compare AP/AR table, Diff = AR−AP computed, CompareModal deleted) · Instructions (medium card, per-order groups) · Documents (wide card, "+ Add Document", checkbox/File/Creation Time/File Size/kebab columns) · Notes (narrow card, avatar items, hover edit/delete, 200-char composer with 10-note limit). History/Tender History untouched (no mocks; Jana deprioritized). Normalization candidates listed, not built: KpiStatStrip, StopTimeline, CopyValueField, Avatar, NoteItem/NoteComposer, SummaryTotalsPanel, FieldGrid/DescriptionList, DataTable grouping/frozen-columns extensions.
+- **Source:** Manuela, Jul 5 (S79b) — "do the rest of the tabs… layout guidance only… use our components; list new components"
+
 ---
 
 ## Changelog
@@ -303,3 +343,4 @@ Every implemented decision with its previous state, source, and rationale. This 
 | Apr 13, 2026 | DEC-28 through DEC-38 — David's written feedback review + Apr 9 grooming with Jana/David/Manuela: hazmat badges, column auto-fit/wrapping, cost visibility from tender tab, panel-aware presets, date-only display, "Tender Sent" rename, order tab overhaul, TenderSummary removal, Order # deprioritized |
 | Apr 13, 2026 | DEC-39 — Merge Hazmat Class/Group into Hazardous column with hover tooltip (PENDING stakeholder approval) |
 | Jul 5, 2026 | DEC-40 through DEC-47 — S79 Shipments update: Orders tab SubAccordion rebuild, shadow-up-lg token, tab arrangement panel, radio removal, GlobalSearch as table search, Tooltip migration, icon-button standardization, sidebar-shift fix |
+| Jul 6, 2026 | DEC-48 through DEC-55 — S79b: pane column tiers, content-proportional bar height, up-only shadow clip, search glimpse/commit/open flow, DataTable external footer + Paginator restyle (React+Angular, demoted), sticky-header gap root cause, Orders canon fake data + orphaned documents/notes/history wired, all 7 tab panes restyled |

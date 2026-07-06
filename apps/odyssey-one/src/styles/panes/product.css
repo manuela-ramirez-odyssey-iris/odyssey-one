@@ -1,0 +1,17 @@
+/* product pane — owned by its tab executor (S79b). Layout per vault-sources 2026-07-06-tab-panes mocks. */
+
+/* The table scroll container sits inside .pane-card which provides the
+   white surface + radius + shadow. Remove the double-frame by stripping
+   the wrapper's own border/radius; the table header bg (.bg-secondary) and
+   hairline row borders are kept because they're table-internal. */
+.product-pane__table-scroll {
+  overflow: auto;
+  /* negative side margins let the table reach the card's inner edge while
+     padding is still on the card — cancel the card's left/right padding
+     so the scroll track touches the card boundary. */
+  margin-inline: calc(-1 * var(--spacing-6));
+  /* pull flush to the card's bottom padding too */
+  margin-bottom: calc(-1 * var(--spacing-5));
+  /* radius clip so the table doesn't bleed outside the card corners */
+  border-radius: 0 0 var(--radius-2xl) var(--radius-2xl);
+}

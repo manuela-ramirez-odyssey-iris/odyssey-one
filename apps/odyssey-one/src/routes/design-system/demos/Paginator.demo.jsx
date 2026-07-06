@@ -13,6 +13,9 @@ export const meta = {
   createdVersion: '0.3.0',
   figmaNode: '3272:3890',
   codeConnect: 'packages/ui/src/Paginator.figma.tsx',
+  // DEMOTED S79b: restyled per the tab-panes mock (external to the DataTable card, on-canvas,
+  // "Rows per page" label) — Figma master sync pending (Efrain ask); pending re-approval.
+  normalizing: true,
 }
 
 export const props = [
@@ -24,11 +27,11 @@ export const props = [
 
 export const tokens = [
   { token: '--text-tertiary', resolves: 'Deep Sea Neutral/500 (#6b7280)', usage: 'results summary text' },
-  { token: '--text-secondary', resolves: 'Deep Sea Neutral/700 (#384253)', usage: '"Row per page" label' },
+  { token: '--text-secondary', resolves: 'Deep Sea Neutral/700 (#384253)', usage: '"Rows per page" label' },
   { token: '--spacing-8', resolves: '32px', usage: 'gap between the rows-per-page group and the page bar' },
   { token: '--spacing-4', resolves: '16px', usage: 'root horizontal padding + bottom padding' },
   { token: '--spacing-3', resolves: '12px', usage: 'root top padding; ellipsis horizontal padding' },
-  { token: '--spacing-2', resolves: '8px', usage: 'gap between "Row per page" and the Dropdown' },
+  { token: '--spacing-2', resolves: '8px', usage: 'gap between "Rows per page" and the Dropdown' },
   { token: '--deep-sea-neutral-300', resolves: 'DSN/300 (#d0d4db)', usage: 'ellipsis-cell right divider' },
   { token: '--shadow-sm', resolves: 'shadow/sm', usage: 'ellipsis cell (matches the PaginationButton segments)' },
 ]
@@ -63,33 +66,35 @@ export default function PaginatorDemo() {
         Presentation-only — driven entirely by a <code>@tanstack/react-table</code> instance
         passed as <code>table</code>. Composes the <strong>PaginationButton</strong> bar +
         the <strong>Dropdown</strong> rows-per-page selector. Click the pages and change the
-        rows-per-page below — it really paginates.
+        rows-per-page below — it really paginates. Since S79b it is <strong>transparent, on
+        the page canvas</strong> — the DataTable renders it below the bordered card, not inside
+        it (the gray backdrops here are that canvas, not component chrome).
       </p>
 
       <div className="ds-demo-section">
         <h4 className="ds-demo-section__title">Interactive — 97 rows</h4>
-        <div style={{ width: '100%', maxWidth: 920, border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-lg)' }}>
+        <div style={{ width: '100%', maxWidth: 920, background: 'var(--bg-secondary)', padding: 'var(--spacing-4)', borderRadius: 'var(--radius-md)' }}>
           <LivePaginator data={DATA_97} pageSize={10} />
         </div>
       </div>
 
       <div className="ds-demo-section">
         <h4 className="ds-demo-section__title">Windowing — both ellipses (page 5 of 24)</h4>
-        <div style={{ width: '100%', maxWidth: 920, border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-lg)' }}>
+        <div style={{ width: '100%', maxWidth: 920, background: 'var(--bg-secondary)', padding: 'var(--spacing-4)', borderRadius: 'var(--radius-md)' }}>
           <LivePaginator data={DATA_240} pageSize={10} pageIndex={4} />
         </div>
       </div>
 
       <div className="ds-demo-section">
         <h4 className="ds-demo-section__title">Single page (5 rows) · prev/next disabled</h4>
-        <div style={{ width: '100%', maxWidth: 920, border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-lg)' }}>
+        <div style={{ width: '100%', maxWidth: 920, background: 'var(--bg-secondary)', padding: 'var(--spacing-4)', borderRadius: 'var(--radius-md)' }}>
           <LivePaginator data={DATA_5} pageSize={10} />
         </div>
       </div>
 
       <div className="ds-demo-section">
         <h4 className="ds-demo-section__title">Empty (0 rows)</h4>
-        <div style={{ width: '100%', maxWidth: 920, border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-lg)' }}>
+        <div style={{ width: '100%', maxWidth: 920, background: 'var(--bg-secondary)', padding: 'var(--spacing-4)', borderRadius: 'var(--radius-md)' }}>
           <LivePaginator data={DATA_0} pageSize={10} />
         </div>
       </div>

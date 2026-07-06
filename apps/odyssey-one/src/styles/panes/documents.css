@@ -1,0 +1,85 @@
+/* documents pane — W2-6 (S79b). Layout per vault-sources 2026-07-06-tab-panes mocks 9 + 9.2. */
+
+/* ── Table wrapper ─────────────────────────────────────── */
+.docs-table-wrap {
+  overflow-x: auto;
+}
+
+.docs-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-primary);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+/* ── Header row ───────────────────────────────────────── */
+.docs-th {
+  padding: var(--spacing-3) var(--spacing-4);
+  text-align: left;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-placeholder);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-primary);
+}
+
+.docs-th--cb { width: 40px; }
+.docs-th--file { /* grows */ }
+.docs-th--size { width: 140px; }
+.docs-th--action { width: 64px; text-align: center; }
+
+/* ── Body rows ─────────────────────────────────────────── */
+.docs-td {
+  padding: var(--spacing-3) var(--spacing-4);
+  vertical-align: middle;
+  border-bottom: 1px solid var(--border-subtle);
+  white-space: nowrap;
+}
+
+.docs-row:last-child .docs-td { border-bottom: none; }
+
+.docs-row:hover { background: var(--bg-secondary); }
+.docs-row[data-selected] { background: var(--control-checked-bg-faint, color-mix(in srgb, var(--control-checked-bg) 8%, transparent)); }
+
+.docs-td--cb { width: 40px; }
+.docs-td--file { white-space: normal; min-width: 200px; }
+.docs-td--muted { color: var(--text-tertiary); }
+.docs-td--action { width: 64px; text-align: center; }
+
+/* ── File cell ─────────────────────────────────────────── */
+.docs-file-link {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-link);
+  text-decoration: none;
+  cursor: pointer;
+}
+.docs-file-link:hover { text-decoration: underline; }
+
+.docs-file-desc {
+  display: block;
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  margin-top: var(--spacing-1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 360px;
+}
+
+/* ── Empty state ───────────────────────────────────────── */
+.docs-empty {
+  padding: var(--spacing-8) var(--spacing-6);
+  text-align: center;
+  color: var(--text-placeholder);
+  font-size: var(--font-size-sm);
+}
+
+/* ── Dash placeholder ──────────────────────────────────── */
+.docs-dash {
+  color: var(--text-placeholder);
+}

@@ -118,13 +118,12 @@ const OrderTab = React.memo(function OrderTab({
     ['Confirmation Number', d.confirmationNumber],
   ].filter(([, v]) => v && v !== DASH)
 
-  // specialServices is a single mapper string today ('--' or comma-joined codes).
-  const services = (d.specialServices || '')
-    .split(',')
-    .map((s) => s.trim())
-    .filter((s) => s && s !== DASH)
+  // specialServices is an array of {code, desc} objects from the mapper.
+  const services = Array.isArray(d.specialServices) ? d.specialServices : []
 
   return (
+    <div className="pane-canvas">
+    <div className="pane-col pane-col--medium">
     <div className="order-pane">
       {/* Tab exposes aria-pressed (filter-tab convention) — no tablist role,
           matching the other .tab-group rows in the app */}
@@ -157,7 +156,7 @@ const OrderTab = React.memo(function OrderTab({
           <div className="order-pane__block">
             <SubHeading>General</SubHeading>
             <div className="order-pane__fields">
-              <Field label="Owning Organization" value="" />
+              <Field label="Owning Organization" value={d.owningOrganization} />
               <Field label="Freight Term" value={d.paymentTerms} />
               <Field label="Ship Direction" value={d.shipDirection} />
               <Field label="Consolidatable" value={d.consolidatable} />
@@ -168,7 +167,7 @@ const OrderTab = React.memo(function OrderTab({
             <SubHeading>Requested Transportation</SubHeading>
             <div className="order-pane__fields">
               <Field label="Equipment" value={d.equipment} />
-              <Field label="Equipment Reference Number" value="" />
+              <Field label="Equipment Reference Number" value={d.equipmentReferenceNumber} />
               <Field label="Customer Required Carrier" value={d.carrier} />
             </div>
           </div>
@@ -245,8 +244,11 @@ const OrderTab = React.memo(function OrderTab({
               party={d.shipFrom}
               contact={{ name: d.contactName, phone: d.contactPhone, email: d.contactEmail }}
             />
-            {/* order-level contact is sourced from the origin — no consignee contact in the VM */}
-            <PartyColumn title="Consignee details" party={d.shipTo} contact={null} />
+            <PartyColumn
+              title="Consignee details"
+              party={d.shipTo}
+              contact={{ name: d.destContactName, phone: d.destContactPhone, email: d.destContactEmail }}
+            />
           </div>
 
           <div className="order-pane__block">
@@ -349,15 +351,16 @@ const OrderTab = React.memo(function OrderTab({
               </tr>
             )}
             {services.map((svc) => (
-              <tr key={svc}>
-                <td><Badge variant="gray">{svc}</Badge></td>
-                {/* the VM carries no per-service description */}
-                <td className="text-label-sm-regular">{DASH}</td>
+              <tr key={svc.code}>
+                <td><Badge variant="gray">{svc.code}</Badge></td>
+                <td className="text-label-sm-regular">{svc.desc}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </SubAccordion>
+    </div>
+    </div>
     </div>
   )
 })

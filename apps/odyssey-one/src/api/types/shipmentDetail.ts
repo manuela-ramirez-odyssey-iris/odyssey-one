@@ -7,6 +7,11 @@ export interface AddressVM {
   address: string
 }
 
+export interface SpecialServiceVM {
+  code: string
+  desc: string
+}
+
 export interface OrderDetailVM {
   orderNumber: string
   shipDirection: string
@@ -14,9 +19,11 @@ export interface OrderDetailVM {
   paymentTerms: string
   shipmentMode: string
   expedited: string
+  owningOrganization: string
   consolidatable: string
   equipment: string
-  specialServices: string
+  equipmentReferenceNumber: string
+  specialServices: SpecialServiceVM[]
   lsp: string
   carrier: string
   serviceLevel: string
@@ -48,6 +55,9 @@ export interface OrderDetailVM {
   contactName: string
   contactEmail: string
   contactPhone: string
+  destContactName: string
+  destContactPhone: string
+  destContactEmail: string
   customField1: string
   customField2: string
 }

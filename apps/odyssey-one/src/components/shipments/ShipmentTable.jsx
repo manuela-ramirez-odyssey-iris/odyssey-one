@@ -399,6 +399,11 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
       ) : (
         <DataTable
           table={table}
+          // AppShell's <main> (the page scroller) has --spacing-8 padding-top, and sticky
+          // insets resolve against the scroller's CONTENT edge — top:0 would park the
+          // header 32px below the visible clip edge, with rows scrolling through the
+          // transparent strip above it (S79b header-gap fix). Compensate to park flush.
+          stickyTop="calc(-1 * var(--spacing-8))"
           ariaLabel="Shipments"
           onCellClick={handleCellClick}
           footer={<Paginator table={table} pageSizeOptions={[25, 50, 100]} />}

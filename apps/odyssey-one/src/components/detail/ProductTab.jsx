@@ -1,6 +1,8 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { TriangleAlert, ChevronDown, ChevronRight } from 'lucide-react'
+import { TriangleAlert, ChevronDown, ChevronRight, ChevronsUpDown } from 'lucide-react'
+import { Button } from '@odyssey/ui'
+import { ICON_MD } from '@odyssey/tokens'
 
 const COLUMNS = [
   { key: 'lineNumber', label: 'Line #' },
@@ -25,13 +27,6 @@ const COLUMNS = [
 ]
 
 /* ── Styles matching prototype CSS exactly ── */
-
-const wrapperStyle = {
-  overflow: 'auto',
-  height: 'auto',
-  border: '1px solid var(--border-subtle)',
-  borderRadius: 'var(--radius-md)',
-}
 
 const tableStyle = {
   width: '100%',
@@ -178,37 +173,63 @@ const ProductTab = React.memo(function ProductTab({ data }) {
     setExpandedOrders((prev) => ({ ...prev, [orderId]: !prev[orderId] }))
   }, [])
 
+  const allExpanded = data?.orders?.length > 0 && data.orders.every((o) => !!expandedOrders[o.orderId])
+
+  const toggleAll = useCallback(() => {
+    if (!data?.orders) return
+    const next = !allExpanded
+    const updated = {}
+    data.orders.forEach((o) => { updated[o.orderId] = next })
+    setExpandedOrders(updated)
+  }, [data, allExpanded])
+
   if (!data?.orders) return <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-placeholder)' }}>No product data available.</div>
 
   return (
-    <div style={{ ...wrapperStyle, marginTop: 'var(--spacing-3)' }}>
-      <table style={tableStyle}>
-        <thead style={theadStyle}>
-          <tr>
-            <th style={thExpandStyle}></th>
-            {COLUMNS.map((col) => (
-              <th key={col.key} style={col.key === 'lineNumber' ? thLineNumStyle : thStyle}>
-                {col.label}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {data.orders.map((order, orderIdx) => {
-            const isExpanded = !!expandedOrders[order.orderId]
-            return (
-              <React.Fragment key={order.orderId}>
-                <OrderGroup
-                  order={order}
-                  isExpanded={isExpanded}
-                  onToggle={() => toggleOrder(order.orderId)}
-                  isFirst={orderIdx === 0}
-                />
-              </React.Fragment>
-            )
-          })}
-        </tbody>
-      </table>
+    <div className="pane-canvas">
+      <div className="pane-col pane-col--wide">
+        <div className="pane-card">
+          <div className="pane-card__header">
+            <span className="pane-card__title">Product</span>
+            <Button
+              variant="link"
+              iconRight={<ChevronsUpDown {...ICON_MD} />}
+              onClick={toggleAll}
+            >
+              {allExpanded ? 'Collapse All' : 'Expand All'}
+            </Button>
+          </div>
+          <div className="product-pane__table-scroll">
+            <table style={tableStyle}>
+              <thead style={theadStyle}>
+                <tr>
+                  <th style={thExpandStyle}></th>
+                  {COLUMNS.map((col) => (
+                    <th key={col.key} style={col.key === 'lineNumber' ? thLineNumStyle : thStyle}>
+                      {col.label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {data.orders.map((order, orderIdx) => {
+                  const isExpanded = !!expandedOrders[order.orderId]
+                  return (
+                    <React.Fragment key={order.orderId}>
+                      <OrderGroup
+                        order={order}
+                        isExpanded={isExpanded}
+                        onToggle={() => toggleOrder(order.orderId)}
+                        isFirst={orderIdx === 0}
+                      />
+                    </React.Fragment>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </div>
   )
 })

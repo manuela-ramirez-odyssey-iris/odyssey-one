@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { TruckElectric, Columns3Cog, X, Trash2, FoldHorizontal, UnfoldHorizontal } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
-import { Button } from '@odyssey/ui'
+import { Button, Tab } from '@odyssey/ui'
 
 /* ═══════════════════════════════════════════════════════════
    Section 1 — Constants
@@ -1526,30 +1526,34 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
   )
 
   return (
-    <div
-      style={{
-        margin: 'calc(-1 * var(--spacing-4)) calc(-1 * var(--spacing-5))',
-        padding: 'var(--spacing-4) var(--spacing-5)',
-        height: 'calc(100% + var(--spacing-4) * 2)',
-        overflow: 'auto',
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'flex-end', marginTop: 4, marginBottom: 12 }}>
-        <div style={{ flex: 1 }}>
-          <RoutingSubTabs activeSubTab={activeSubTab} onTabChange={setActiveSubTab} />
+    <div className="pane-canvas tender-pane">
+      <div className="pane-col pane-col--wide tender-pane__col">
+        {/* Row 1: underline sub-tabs + right-aligned actions */}
+        <div className="tender-pane__tab-row">
+          <div className="tab-group">
+            {SUB_TABS.map((tab) => (
+              <Tab
+                key={tab.key}
+                label={tab.label}
+                current={activeSubTab === tab.key}
+                onClick={() => setActiveSubTab(tab.key)}
+              />
+            ))}
+          </div>
+          <div className="tender-pane__tab-actions">
+            <Button variant="secondary" onClick={() => setIsDetailModalOpen(true)}>
+              View Shipment Details
+            </Button>
+            <Button variant="primary" onClick={() => setQuoteModal({ isOpen: true, mode: 'add', carrierData: null })}>
+              + Add Quote
+            </Button>
+          </div>
         </div>
-        <div style={{ display: 'flex', gap: 8, marginLeft: 16, marginBottom: 4 }}>
-          <Button variant="secondary" onClick={() => setIsDetailModalOpen(true)}>
-            View Shipment Details
-          </Button>
-          <Button variant="secondary" onClick={() => setQuoteModal({ isOpen: true, mode: 'add', carrierData: null })}>
-            Add Quote
-          </Button>
-        </div>
-      </div>
 
-      <div ref={tableRef}>
-        <RoutingTable
+        {/* Row 2: table in a wide bordered container directly on canvas */}
+        <div className="tender-pane__table-card">
+          <div ref={tableRef}>
+            <RoutingTable
           options={optionsWithPos}
           columns={activeColumns}
           tabColumns={activeTabColumns}
@@ -1567,7 +1571,9 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
           onExpand={handleExpand}
           onViewRateDetails={(carrier) => setQuoteModal({ isOpen: true, mode: 'view', carrierData: carrier })}
         />
-      </div>
+          </div>
+        </div>{/* /tender-pane__table-card */}
+      </div>{/* /pane-col */}
 
       {isDetailModalOpen && (
         <TenderDetailModal

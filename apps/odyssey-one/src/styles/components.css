@@ -166,14 +166,16 @@
 
 /* ----------------------------------------
    TABLE — DataTable shell (chrome + scroll)
-   The generic chrome for the @odyssey/ui DataTable molecule: a card that
-   clips both halves of a split sticky header, a body horizontal scroller, a
-   sticky-right column modifier, and a sticky-left footer band. Extracted
-   verbatim from the Orders table (the proven split-sticky-header pattern);
-   `overflow: clip` on the card is NOT a scroll container, so the header strip
-   still sticks natively against the page scroller (zero lag).
+   The generic chrome for the @odyssey/ui DataTable molecule: a transparent
+   root wrapping (a) a bordered white CARD that clips both halves of a split
+   sticky header + the body horizontal scroller (+ a sticky-right column
+   modifier) and (b) the footer band (Paginator) BELOW the card, transparent
+   on the page canvas (S79b, decision 6). Extracted verbatim from the Orders
+   table (the proven split-sticky-header pattern); `overflow: clip` on the
+   card is NOT a scroll container, so the header strip still sticks natively
+   against the page scroller (zero lag).
    ---------------------------------------- */
-.odyssey-data-table {
+.odyssey-data-table__card {
   background: var(--bg-primary);
   border-radius: var(--radius-2xl);
   overflow: clip;
@@ -226,13 +228,9 @@
   vertical-align: middle;
 }
 
-/* Footer band (the Paginator slot): lives inside the body scroller after the
-   table; sticky-left keeps it put during horizontal scroll. */
-.odyssey-data-table__footer {
-  position: sticky;
-  left: 0;
-  border-top: 1px solid var(--border-subtle);
-}
+/* Footer band (the Paginator slot): a sibling BELOW the card, transparent on
+   the page canvas (S79b, decision 6) — no chrome of its own; the Paginator
+   brings its layout. Outside the body scroller, so no sticky-left needed. */
 
 /* Header cells anchor the resize grip — but NOT the sticky-right action header: a
    `position: sticky` cell already establishes a containing block for the absolutely
@@ -795,7 +793,8 @@ input[type="date"].odyssey-date-input::-webkit-calendar-picker-indicator:hover {
 
 /* Paginator — molecule. Full-width table pagination bar: results summary (left)
    + rows-per-page Dropdown and the joined PaginationButton page bar (right).
-   Composes PaginationButton + Dropdown; only layout + the ellipsis cell here. */
+   Composes PaginationButton + Dropdown; only layout + the ellipsis cell here.
+   Transparent — sits on the page canvas below the DataTable card (S79b). */
 .paginator {
   display: flex;
   align-items: center;
@@ -4435,7 +4434,9 @@ button.breadcrumb__label:focus-visible {
    Button Icon/sm — the ONLY controls; a replacement for the old bar, not a
    preservation of its chrome). Selected tab = DSN/100 fill (real Selected
    state — Figma mock faked it with Cell State=Hover); hover code-only.
-   Expanded height (50vh) is code-side (no Figma axis).
+   Expanded height is code-side (no Figma axis): auto (content-driven),
+   capped at 100dvh − --bottombar-top-clearance so the bar's top edge never
+   rises above the page title row (S79b decision 2 — 50vh retired).
    ============================================================ */
 .shipments-bar {
   position: fixed;
@@ -4446,14 +4447,26 @@ button.breadcrumb__label:focus-visible {
   background: var(--deep-sea-neutral-100);
   border-top: 1px solid var(--border-subtle);
   transition: height var(--transition-slow), right var(--transition-base);
+  /* Lets height ↔ auto animate in supporting browsers (Chrome 129+);
+     elsewhere the height snap is the accepted non-animated fallback. */
+  interpolate-size: allow-keywords;
   z-index: 40;
   display: flex;
   flex-direction: column;
+  height: var(--bottombar-collapsed);
 }
 .shipments-bar--expanded {
+  /* Content-driven height, capped so the top edge never rises above the
+     page title row (S79b decision 2). */
+  height: auto;
+  max-height: calc(100dvh - var(--bottombar-top-clearance));
   /* up-lg per the Orders-tab wireframe (1210:38232 carried the raw value;
      tokenized S79 — Figma effect style shadow/up-lg pairs with this). */
   box-shadow: var(--shadow-up-lg);
+  /* Up-only shadow: clip sideways so the blur (offset -5 + blur 30 ≈ 35px
+     visual extent; -40px clears it) never paints over the sidebar/side
+     panels (S79b decision 3 — code-only, token unchanged). */
+  clip-path: inset(-40px 0 0 0);
 }
 /* The hairline lives per segment (CurrentShipment + unselected tabs), NOT on
    the strip — the selected tab's DSN/100 fill breaks the line (master edit).
@@ -4599,7 +4612,8 @@ button.breadcrumb__label:focus-visible {
   min-height: 0;
   overflow: auto;
   position: relative;
-  padding: var(--spacing-4) var(--spacing-5);
+  /* Panes own their canvas (.pane-canvas/.pane-col — S79b decision 4). */
+  padding: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -4692,7 +4706,9 @@ button.breadcrumb__label:focus-visible {
    Radius/2xl binding on it was a mis-binding, not replicated).
    ---------------------------------------- */
 .order-pane {
-  max-width: 1106px;
+  /* centering: .pane-canvas > .pane-col.pane-col--medium now owns column
+     width, horizontal centering, and block padding (decision 1 + W1-B).
+     Keep only pane-specific styles here. */
   display: flex;
   flex-direction: column;
   gap: var(--spacing-3);
@@ -4828,3 +4844,80 @@ button.breadcrumb__label:focus-visible {
 .order-pane__product-count {
   color: var(--text-tertiary);
 }
+
+/* ============================================================
+   PANE UTILITIES (S79b) — shared layout for ShipmentsBar tab panes.
+   Three centered content-column tiers measured from the 2026-07-06 mocks
+   (vault-sources/10-domains/shipments/2026-07-06-tab-panes):
+   wide 1280 · medium 1106 · narrow 760. Full-width bands (KPI strips)
+   sit OUTSIDE .pane-col, directly on .pane-canvas.
+   ============================================================ */
+.pane-canvas {
+  min-height: 100%;
+}
+.pane-col {
+  margin-inline: auto;
+  padding: var(--spacing-4) var(--spacing-6) var(--spacing-8);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+.pane-col--wide { max-width: calc(1280px + 2 * var(--spacing-6)); }
+.pane-col--medium { max-width: calc(1106px + 2 * var(--spacing-6)); }
+.pane-col--narrow { max-width: calc(760px + 2 * var(--spacing-6)); }
+
+.pane-card {
+  background: var(--bg-primary);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-sm);
+  padding: var(--spacing-4) var(--spacing-6) var(--spacing-5);
+}
+.pane-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+  margin-bottom: var(--spacing-6);
+}
+.pane-card__title {
+  font-size: var(--font-size-lg);
+  line-height: 24px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+/* Full-width KPI stat band (Stops, Cost Allocation) */
+.pane-kpis {
+  display: flex;
+  align-items: stretch;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-subtle);
+  padding: var(--spacing-4) var(--spacing-6);
+}
+.pane-kpis__cell {
+  flex: 1;
+  min-width: 0;
+  padding-inline: var(--spacing-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+.pane-kpis__cell + .pane-kpis__cell { border-left: 1px solid var(--border-subtle); }
+.pane-kpis__label {
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+.pane-kpis__value {
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+.pane-kpis__value--negative { color: var(--bittersweet-600); }
+.pane-kpis__value--positive { color: var(--caribbean-green-600); }

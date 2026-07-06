@@ -4,6 +4,9 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
  * DataTable — a thin presentation shell for a TanStack v8 table. It owns the
  * table chrome (split sticky header + colgroup width-lock + horizontal
  * scroll-sync) and applies the normalized `.odyssey-table` Cell contract.
+ * Structure (S79b, decision 6): a transparent root wrapping the bordered
+ * white CARD (table only) + the `footer` slot (Paginator) as a sibling BELOW
+ * the card, transparent on the page canvas.
  * Driven by a duck-typed `table` instance — this package takes NO @tanstack
  * dependency. The consumer owns columns / data / state. See the design specs
  * 2026-06-25-datatable-shell-design.md + 2026-06-26-datatable-extensibility-design.md.
@@ -106,6 +109,13 @@ export function cellClassName(meta, isStickyRight) {
 }
 
 export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, onCellClick, className = '' }) {
+  // stickyTop: number (px) or any CSS length expression (string). The sticky reference is
+  // the page scroller's CONTENT edge — a padded scroller (e.g. an app shell <main> with
+  // padding-top) parks a `top: 0` header padding-top BELOW the visible clip edge, letting
+  // rows scroll through the strip above it. Consumers compensate with a negative offset
+  // (e.g. `stickyTop="calc(-1 * var(--spacing-8))"`); a measured-toolbar consumer keeps
+  // passing its number and stays consistent with its own equally-offset toolbar.
+  const stickyTopValue = typeof stickyTop === 'number' ? `${stickyTop}px` : stickyTop
   const headRef = useRef(null)       // head-inner (overflow:hidden); scrollLeft set on it mirrors the body — the split-header trick, NOT a bug
   const wrapRef = useRef(null)       // body horizontal scroller
   const headTableRef = useRef(null)
@@ -175,67 +185,71 @@ export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, onC
 
   return (
     <div className={`odyssey-data-table${onCellClick ? ' odyssey-data-table--cell-clickable' : ''}${className ? ` ${className}` : ''}`}>
-      <div className="odyssey-data-table__head" style={{ top: `${stickyTop}px` }}>
-        <div className="odyssey-data-table__head-inner" ref={headRef}>
-          <table className="odyssey-table" ref={headTableRef} style={tableStyle}>
+      {/* The bordered white card holds the table ONLY; the footer (Paginator) sits
+          below it as a sibling, transparent on the page canvas (S79b, decision 6). */}
+      <div className="odyssey-data-table__card">
+        <div className="odyssey-data-table__head" style={{ top: stickyTopValue }}>
+          <div className="odyssey-data-table__head-inner" ref={headRef}>
+            <table className="odyssey-table" ref={headTableRef} style={tableStyle}>
+              {colgroup}
+              <thead>
+                {table.getHeaderGroups().map((hg) => (
+                  <tr key={hg.id}>
+                    {hg.headers.map((header) => {
+                      const meta = header.column.columnDef.meta
+                      const headerLabel = typeof header.column.columnDef.header === 'string'
+                        ? header.column.columnDef.header
+                        : header.column.id
+                      return (
+                        <th key={header.id} className={headClassName(meta, meta?.sticky === 'right')}>
+                          {renderCell(header.column.columnDef.header, header.getContext())}
+                          {showResizeGrip(table, header.column) && (
+                            <span
+                              className={`odyssey-data-table__resize-grip${header.column.getIsResizing?.() ? ' is-resizing' : ''}`}
+                              onMouseDown={header.getResizeHandler()}
+                              onTouchStart={header.getResizeHandler()}
+                              onClick={(e) => e.stopPropagation()}
+                              role="separator"
+                              aria-orientation="vertical"
+                              aria-label={`Resize ${headerLabel}`}
+                            />
+                          )}
+                        </th>
+                      )
+                    })}
+                  </tr>
+                ))}
+              </thead>
+            </table>
+          </div>
+        </div>
+        <div className="odyssey-data-table__body" ref={wrapRef}>
+          <table className="odyssey-table" ref={bodyTableRef} style={tableStyle} aria-label={ariaLabel}>
             {colgroup}
-            <thead>
-              {table.getHeaderGroups().map((hg) => (
-                <tr key={hg.id}>
-                  {hg.headers.map((header) => {
-                    const meta = header.column.columnDef.meta
-                    const headerLabel = typeof header.column.columnDef.header === 'string'
-                      ? header.column.columnDef.header
-                      : header.column.id
+            <tbody>
+              {rowModel.rows.map((row) => (
+                <tr key={row.id} data-selected={row.getIsSelected() || undefined}>
+                  {row.getVisibleCells().map((cell) => {
+                    const meta = cell.column.columnDef.meta
                     return (
-                      <th key={header.id} className={headClassName(meta, meta?.sticky === 'right')}>
-                        {renderCell(header.column.columnDef.header, header.getContext())}
-                        {showResizeGrip(table, header.column) && (
-                          <span
-                            className={`odyssey-data-table__resize-grip${header.column.getIsResizing?.() ? ' is-resizing' : ''}`}
-                            onMouseDown={header.getResizeHandler()}
-                            onTouchStart={header.getResizeHandler()}
-                            onClick={(e) => e.stopPropagation()}
-                            role="separator"
-                            aria-orientation="vertical"
-                            aria-label={`Resize ${headerLabel}`}
-                          />
-                        )}
-                      </th>
+                      <td
+                        key={cell.id}
+                        className={cellClassName(meta, meta?.sticky === 'right')}
+                        onClick={onCellClick
+                          ? (e) => { if (!isInteractiveTarget(e.target, e.currentTarget)) onCellClick(cell, row) }
+                          : undefined}
+                      >
+                        {renderCell(cell.column.columnDef.cell, cell.getContext())}
+                      </td>
                     )
                   })}
                 </tr>
               ))}
-            </thead>
+            </tbody>
           </table>
         </div>
       </div>
-      <div className="odyssey-data-table__body" ref={wrapRef}>
-        <table className="odyssey-table" ref={bodyTableRef} style={tableStyle} aria-label={ariaLabel}>
-          {colgroup}
-          <tbody>
-            {rowModel.rows.map((row) => (
-              <tr key={row.id} data-selected={row.getIsSelected() || undefined}>
-                {row.getVisibleCells().map((cell) => {
-                  const meta = cell.column.columnDef.meta
-                  return (
-                    <td
-                      key={cell.id}
-                      className={cellClassName(meta, meta?.sticky === 'right')}
-                      onClick={onCellClick
-                        ? (e) => { if (!isInteractiveTarget(e.target, e.currentTarget)) onCellClick(cell, row) }
-                        : undefined}
-                    >
-                      {renderCell(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
-                  )
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {footer && <div className="odyssey-data-table__footer">{footer}</div>}
-      </div>
+      {footer && <div className="odyssey-data-table__footer">{footer}</div>}
     </div>
   )
 }

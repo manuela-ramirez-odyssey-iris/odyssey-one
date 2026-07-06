@@ -2,8 +2,14 @@ import React, { useState, useCallback } from 'react'
 import { Pencil, Trash2 } from 'lucide-react'
 import { Button, TextArea } from '@odyssey/ui'
 
+/* ─── Constants ─────────────────────────────────────────── */
+const NOTE_LIMIT = 10
+const CURRENT_USER = 'Amy Cook'
+const CURRENT_USER_INITIALS = 'AC'
+
 let noteIdCounter = 100
 
+/* ─── Helpers ────────────────────────────────────────────── */
 function formatNoteDate() {
   const now = new Date()
   const mm = String(now.getMonth() + 1).padStart(2, '0')
@@ -14,124 +20,141 @@ function formatNoteDate() {
   return `${mm}/${dd}/${yyyy} ${hh}:${min} CST`
 }
 
-function NoteItem({ note, onEdit, onDelete }) {
+/* ─── App-local Avatar chip (normalization candidate) ────── */
+/**
+ * InitialsAvatar — app-local atom (S79b, W2-7).
+ * Normalization candidate: move to @odyssey/ui once shape stabilises.
+ * Props: initials (string), size (number, default 32)
+ */
+function InitialsAvatar({ initials, size = 32 }) {
+  return (
+    <div
+      className="notes-avatar"
+      aria-hidden="true"
+      style={{ width: size, height: size }}
+    >
+      {initials}
+    </div>
+  )
+}
+
+/* ─── NoteItem ───────────────────────────────────────────── */
+function NoteItem({ note, isOwnNote, onEdit, onDelete, isAnyEditing, onEditingChange }) {
   const [editing, setEditing] = useState(false)
   const [editText, setEditText] = useState(note.body)
+
+  const startEdit = () => {
+    setEditing(true)
+    setEditText(note.body)
+    onEditingChange(true)
+  }
 
   const handleSave = () => {
     const trimmed = editText.trim()
     if (trimmed) onEdit(note.id, trimmed)
     setEditing(false)
+    onEditingChange(false)
   }
 
   const handleCancel = () => {
     setEditText(note.body)
     setEditing(false)
+    onEditingChange(false)
   }
 
   return (
     <div
-      style={{
-        padding: 'var(--spacing-3) var(--spacing-4)',
-        background: 'var(--bg-primary)',
-        border: '1px solid var(--border-subtle)',
-        borderRadius: 'var(--radius-md)',
-      }}
+      className={`notes-item${isOwnNote ? ' notes-item--own' : ''}${editing ? ' notes-item--editing' : ''}`}
+      data-testid="note-item"
     >
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-2">
-        <div
-          className="flex items-center justify-center text-xs font-bold shrink-0"
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: 'var(--radius-lg)',
-            background: note.avatarClass === 'jd' ? 'var(--caribbean-green-100)' :
-                         note.avatarClass === 'ls' ? 'var(--bay-of-many-100)' :
-                         'var(--deep-sea-neutral-200)',
-            color: note.avatarClass === 'jd' ? 'var(--caribbean-green-600)' :
-                   note.avatarClass === 'ls' ? 'var(--bay-of-many-950)' :
-                   'var(--text-tertiary)',
-          }}
-        >
-          {note.authorInitials}
-        </div>
-        <div className="flex flex-col flex-1 min-w-0">
-          <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-            {note.author}
-          </span>
-          <span className="text-xs" style={{ color: 'var(--text-placeholder)' }}>
-            {note.date}
-          </span>
-        </div>
-        <div className="flex items-center gap-1 shrink-0">
-          <button
-            onClick={() => setEditing(true)}
-            className="flex items-center justify-center bg-transparent border-none cursor-pointer"
-            style={{ width: 28, height: 28, color: 'var(--text-placeholder)' }}
-            title="Edit note"
-          >
-            <Pencil size={14} />
-          </button>
-          <button
-            onClick={() => onDelete(note.id)}
-            className="flex items-center justify-center bg-transparent border-none cursor-pointer"
-            style={{ width: 28, height: 28, color: 'var(--text-placeholder)' }}
-            title="Delete note"
-          >
-            <Trash2 size={14} />
-          </button>
-        </div>
-      </div>
-
-      {/* Body */}
       {editing ? (
-        <div className="flex flex-col gap-2" style={{ marginTop: 8 }}>
-          <TextArea
-            showLabel={false}
-            value={editText}
-            onChange={(e) => setEditText(e.target.value)}
-            rows={3}
-          />
-          <div className="flex items-center gap-2 justify-end">
-            <Button variant="secondary" onClick={handleCancel}>
-              Cancel
-            </Button>
-            <Button variant="primary" onClick={handleSave}>
-              Save
-            </Button>
+        /* ── Inline edit state (mock 10.1) ── */
+        <div className="notes-item__edit-row">
+          <InitialsAvatar initials={note.authorInitials} />
+          <div className="notes-item__edit-body">
+            <TextArea
+              showLabel={false}
+              value={editText}
+              onChange={(e) => setEditText(e.target.value)}
+              maxLength={200}
+              showCount
+              rows={3}
+              autoFocus
+              aria-label={`Edit note by ${note.author}`}
+            />
+            <div className="notes-item__edit-actions">
+              <Button variant="primary" size="sm" onClick={handleSave} disabled={!editText.trim()}>
+                Save
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleCancel}>
+                Cancel
+              </Button>
+            </div>
           </div>
         </div>
       ) : (
-        <div className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-          {note.body}
-        </div>
+        /* ── View state ── */
+        <>
+          <div className="notes-item__header">
+            <InitialsAvatar initials={note.authorInitials} />
+            <div className="notes-item__meta">
+              <span className="notes-item__author">{note.author}</span>
+              <span className="notes-item__date">{note.date}</span>
+            </div>
+            {isOwnNote && (
+              <div className="notes-item__actions" role="toolbar" aria-label="Note actions">
+                <Button
+                  variant="icon"
+                  size="sm"
+                  icon={<Pencil size={14} />}
+                  aria-label="Edit note"
+                  onClick={startEdit}
+                  disabled={isAnyEditing}
+                />
+                <Button
+                  variant="icon"
+                  size="sm"
+                  icon={<Trash2 size={14} />}
+                  aria-label="Delete note"
+                  onClick={() => onDelete(note.id)}
+                />
+              </div>
+            )}
+          </div>
+          <p className="notes-item__body">{note.body}</p>
+        </>
       )}
     </div>
   )
 }
 
+/* ─── NotesTab ───────────────────────────────────────────── */
 const NotesTab = React.memo(function NotesTab({ data }) {
   const [notes, setNotes] = useState(() => {
     if (!data?.notes) return []
     return data.notes.map((n, i) => ({ ...n, id: `existing-${i}` }))
   })
   const [newText, setNewText] = useState('')
+  const [anyEditing, setAnyEditing] = useState(false)
+
+  const userNoteCount = notes.filter((n) => n.author === CURRENT_USER).length
+  const remaining = NOTE_LIMIT - userNoteCount
+  const atLimit = remaining <= 0
 
   const handleAdd = useCallback(() => {
     const trimmed = newText.trim()
-    if (!trimmed) return
+    if (!trimmed || atLimit) return
     const note = {
       id: `note-${noteIdCounter++}`,
-      author: 'Amy Cook',
-      authorInitials: 'AC',
+      author: CURRENT_USER,
+      authorInitials: CURRENT_USER_INITIALS,
       avatarClass: 'ac',
       date: formatNoteDate(),
       body: trimmed,
     }
     setNotes((prev) => [note, ...prev])
     setNewText('')
-  }, [newText])
+  }, [newText, atLimit])
 
   const handleEdit = useCallback((id, newBody) => {
     setNotes((prev) => prev.map((n) => (n.id === id ? { ...n, body: newBody } : n)))
@@ -141,55 +164,82 @@ const NotesTab = React.memo(function NotesTab({ data }) {
     setNotes((prev) => prev.filter((n) => n.id !== id))
   }, [])
 
-  return (
-    <div>
-      {/* Add note area */}
-      <div
-        className="flex items-start gap-3"
-        style={{
-          padding: 'var(--spacing-3) var(--spacing-4)',
-          background: 'var(--bg-secondary)',
-          borderRadius: 'var(--radius-lg)',
-          marginBottom: 'var(--spacing-4)',
-        }}
-      >
-        <div
-          className="flex items-center justify-center text-xs font-bold shrink-0"
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: 'var(--radius-lg)',
-            background: 'var(--deep-sea-neutral-200)',
-            color: 'var(--text-tertiary)',
-          }}
-        >
-          AC
-        </div>
-        <TextArea
-          showLabel={false}
-          value={newText}
-          onChange={(e) => setNewText(e.target.value)}
-          placeholder="Add a note..."
-          rows={2}
-          className="flex-1"
-        />
-        <Button variant="primary" onClick={handleAdd} disabled={!newText.trim()}>
-          Add Note
-        </Button>
-      </div>
+  const handleEditingChange = useCallback((isEditing) => {
+    setAnyEditing(isEditing)
+  }, [])
 
-      {/* Notes list */}
-      <div className="flex flex-col gap-2">
-        {notes.length === 0 && (
-          <div className="text-sm text-center" style={{ color: 'var(--text-placeholder)', padding: 'var(--spacing-6)' }}>
-            No notes yet.
+  return (
+    <div className="pane-canvas" data-testid="notes-tab">
+      <div className="pane-col pane-col--narrow">
+        <div className="pane-card">
+          {/* Card header */}
+          <div className="pane-card__header">
+            <h2 className="pane-card__title">All Notes</h2>
           </div>
-        )}
-        {notes.map((note) => (
-          <NoteItem key={note.id} note={note} onEdit={handleEdit} onDelete={handleDelete} />
-        ))}
+
+          {/* Note list */}
+          <div className="notes-list" role="list" aria-label="Notes">
+            {notes.length === 0 && (
+              <p className="notes-empty">No notes yet.</p>
+            )}
+            {notes.map((note, idx) => (
+              <React.Fragment key={note.id}>
+                {idx > 0 && <div className="notes-divider" role="separator" />}
+                <div role="listitem">
+                  <NoteItem
+                    note={note}
+                    isOwnNote={note.author === CURRENT_USER}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                    isAnyEditing={anyEditing}
+                    onEditingChange={handleEditingChange}
+                  />
+                </div>
+              </React.Fragment>
+            ))}
+          </div>
+
+          {/* Composer — hidden while any note is in inline-edit mode */}
+          {!anyEditing && (
+            <div className="notes-composer" data-testid="notes-composer">
+              <div className="notes-composer__avatar-col">
+                <InitialsAvatar initials={CURRENT_USER_INITIALS} />
+              </div>
+              <div className="notes-composer__body">
+                <TextArea
+                  showLabel={false}
+                  value={newText}
+                  onChange={(e) => setNewText(e.target.value)}
+                  placeholder="Type your note"
+                  maxLength={200}
+                  showCount
+                  rows={3}
+                  aria-label="New note text"
+                />
+                <div className="notes-composer__footer">
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={handleAdd}
+                    disabled={!newText.trim() || atLimit}
+                    data-testid="add-note-btn"
+                  >
+                    Add Note
+                  </Button>
+                  <span className="notes-composer__limit" data-testid="notes-limit-text">
+                    {atLimit
+                      ? `You've reached the limit (10 per user).`
+                      : `You can add ${remaining} more note${remaining === 1 ? '' : 's'} (limit: ${NOTE_LIMIT} per user).`
+                    }
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
 })
+
 export default NotesTab

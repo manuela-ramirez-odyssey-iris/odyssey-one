@@ -5,6 +5,7 @@ import type {
   SellShipmentStop,
   SellShipmentOrderLine,
   SellShipmentRoutingOption,
+  SellShipmentSpecialService,
 } from '../types/sellShipmentOut'
 import type {
   CostOrderVM,
@@ -15,6 +16,7 @@ import type {
   ProductOrderVM,
   RoutingOptionVM,
   ShipmentDetailVM,
+  SpecialServiceVM,
   StopVM,
   StopsSummaryVM,
 } from '../types/shipmentDetail'
@@ -37,6 +39,7 @@ function fmtLocation(a?: SellShipmentAddress): string {
 
 function fmtAddress(a?: SellShipmentAddress): string {
   if (!a) return DASH
+  // address2 now populated by generator (~30%); join with address1 when present
   const parts = [a.address1, a.address2, a.address3].filter(Boolean)
   return parts.length ? parts.join(', ') : DASH
 }
@@ -60,6 +63,11 @@ function orDash(v: string | null | undefined): string {
   return v != null && v !== '' ? v : DASH
 }
 
+function mapSpecialServices(services?: SellShipmentSpecialService[]): SpecialServiceVM[] {
+  if (!services || services.length === 0) return []
+  return services.map((s) => ({ code: s.code, desc: s.desc }))
+}
+
 function mapOrder(order: SellShipmentOrder, header: SellShipmentOut): OrderDetailVM {
   const uom = order.grossWeightUomCode
   return {
@@ -69,11 +77,13 @@ function mapOrder(order: SellShipmentOrder, header: SellShipmentOut): OrderDetai
     paymentTerms: header.freightTerms || DASH,
     shipmentMode: DASH,
     expedited: DASH,
-    consolidatable: DASH,
-    equipment: DASH,
-    specialServices: DASH,
+    owningOrganization: order.owningOrganization || DASH,
+    consolidatable: order.consolidatable != null ? (order.consolidatable ? 'Yes' : 'No') : DASH,
+    equipment: order.equipmentCode || DASH,
+    equipmentReferenceNumber: order.equipmentReferenceNumber || DASH,
+    specialServices: mapSpecialServices(order.specialServices),
     lsp: DASH,
-    carrier: DASH,
+    carrier: order.customerRequiredCarrier || DASH,
     serviceLevel: DASH,
     transportPriority: DASH,
     shipFrom: {
@@ -108,11 +118,14 @@ function mapOrder(order: SellShipmentOrder, header: SellShipmentOut): OrderDetai
     deliveryNumber: DASH,
     poNumber: order.poNumber || DASH,
     proBooking: DASH,
-    pickupNumber: DASH,
+    pickupNumber: order.pickupNumber || DASH,
     confirmationNumber: DASH,
     contactName: order.origin?.contactName || DASH,
     contactEmail: order.origin?.email || DASH,
     contactPhone: order.origin?.phone || DASH,
+    destContactName: order.destination?.contactName || DASH,
+    destContactPhone: order.destination?.phone || DASH,
+    destContactEmail: order.destination?.email || DASH,
     customField1: DASH,
     customField2: DASH,
   }
@@ -387,8 +400,8 @@ export function mapSellShipmentOutToDetail(dto: SellShipmentOut): ShipmentDetail
     routingData: mapRouting(dto),
     costData: mapCost(dto),
     instructionsData: mapInstructions(dto),
-    documentsData: { documents: [] },
-    notesData: { notes: [] },
-    historyData: { entries: [] },
+    documentsData: { documents: dto.documentList ?? [] },
+    notesData: { notes: dto.noteList ?? [] },
+    historyData: { entries: dto.historyList ?? [] },
   }
 }

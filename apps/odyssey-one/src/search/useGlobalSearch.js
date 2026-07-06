@@ -21,17 +21,28 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
  *   the adapter's job — the hook just passes the committed chips to
  *   `getInitial(chips)`. The hook stays domain-agnostic: it knows nothing about
  *   progression order or group advancement.
- * - `adapter.searchShipments(chips)` is called whenever chips change (if the
- *   adapter implements it) to populate GlobalSearchResults results.
+ * - `adapter.searchShipments(chips, query)` is called whenever chips or the
+ *   DEBOUNCED query change (if the adapter implements it) to populate
+ *   GlobalSearchResults results — a non-empty query alone is enough (the
+ *   results-panel "glimpse"); the hook exposes the debounced query as `query`.
  */
 export function useGlobalSearch(adapter, { debounceMs = 120 } = {}) {
   const [value, setValue] = useState('')
+  const [debouncedValue, setDebouncedValue] = useState('')
   const [focused, setFocused] = useState(false)
   const [sections, setSections] = useState([])
   const [chips, setChips] = useState([])
   const [results, setResults] = useState([])
   const [resultTotal, setResultTotal] = useState(0)
   const reqId = useRef(0)
+  const searchReqId = useRef(0)
+
+  // Debounced mirror of the raw input — drives the results search (and is
+  // exposed to consumers, e.g. to open the results panel on non-empty query).
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedValue(value), debounceMs)
+    return () => clearTimeout(t)
+  }, [value, debounceMs])
 
   const run = useCallback(async (q, chipList = []) => {
     if (!adapter) { setSections([]); return }
@@ -51,18 +62,23 @@ export function useGlobalSearch(adapter, { debounceMs = 120 } = {}) {
     return () => clearTimeout(t)
   }, [value, focused, chips, run, debounceMs])
 
-  // Run results search whenever committed chips change.
+  // Run results search whenever committed chips OR the debounced query change.
+  // Stale-response guarded (same pattern as suggestions) so a slow earlier
+  // search can't overwrite a newer one.
   useEffect(() => {
-    if (!adapter?.searchShipments || !chips.length) {
+    const q = debouncedValue.trim()
+    if (!adapter?.searchShipments || (!chips.length && !q)) {
       setResults([])
       setResultTotal(0)
       return
     }
-    adapter.searchShipments(chips).then(({ results: r, total }) => {
+    const id = ++searchReqId.current
+    adapter.searchShipments(chips, q).then(({ results: r, total }) => {
+      if (id !== searchReqId.current) return
       setResults(r)
       setResultTotal(total)
     })
-  }, [chips, adapter])
+  }, [chips, debouncedValue, adapter])
 
   // Generic safety net: never suggest an already-committed attribute. (Counts +
   // group advancement are the adapter's job — the hook doesn't slice.)
@@ -97,6 +113,7 @@ export function useGlobalSearch(adapter, { debounceMs = 120 } = {}) {
 
   return {
     value,
+    query: debouncedValue,
     onChange,
     onClear,
     onFocus,

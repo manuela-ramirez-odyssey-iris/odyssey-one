@@ -1,0 +1,37 @@
+/* tender pane — owned by its tab executor (S79b). Layout per vault-sources 2026-07-06-tab-panes mocks. */
+
+/* Canvas override: overflow visible so the split-table's portal ActionDropdown
+   can break out; the ShipmentsBar content scroll handles overflow. */
+.tender-pane {
+  overflow: visible;
+}
+
+/* Remove top gap from the pane-col so the tab row sits flush at the top */
+.tender-pane__col {
+  padding-top: var(--spacing-5);
+}
+
+/* Row 1: tab-group left, action buttons right, baseline-aligned */
+.tender-pane__tab-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--spacing-4);
+}
+
+.tender-pane__tab-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  /* nudge down to align with tab underline bottom edge */
+  padding-bottom: var(--spacing-1);
+}
+
+/* Row 2: bordered table container — white bg, 2xl radius, shadow-sm, no title.
+   Uses .pane-card geometry; overflow-hidden clips the table border corners. */
+.tender-pane__table-card {
+  background: var(--bg-primary);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}

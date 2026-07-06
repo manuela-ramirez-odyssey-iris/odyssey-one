@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useRef } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import AppShell from '../../components/layout/AppShell'
 import ShipmentsPanelTabs from '../../components/shipments/ShipmentsPanelTabs'
 import TableControls from '../../components/shipments/TableControls'
@@ -36,7 +36,6 @@ function ShipmentsRoute() {
   const [searchQuery, setSearchQuery] = useState('')
   const [debouncedQuery, setDebouncedQuery] = useState('')
   const [activeChipKey, setActiveChipKey] = useState(null)
-  const debounceRef = useRef(null)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [columnPanelOpen, setColumnPanelOpen] = useState(false)
   const [tabPanelOpen, setTabPanelOpen] = useState(false)
@@ -220,20 +219,24 @@ function ShipmentsRoute() {
     setFiltersOpen(false)
   }, [])
 
-  // Fed by the NAVBAR GlobalSearch (the table's search box was retired in S79) —
-  // same debounce pipeline as before, ending in listParams.searchTerm.
-  const handleSearchChange = useCallback((value) => {
-    setSearchQuery(value)
-    if (!value.trim()) {
-      setActiveChipKey(null)
-      setDebouncedQuery('')
-      clearTimeout(debounceRef.current)
-      return
-    }
-    clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(() => {
-      setDebouncedQuery(value)
-    }, 150)
+  // Fed by the NAVBAR GlobalSearch (the table's search box was retired in S79).
+  // S79b (decision 5): typing no longer filters the table — the query reaches
+  // listParams.searchTerm only on an explicit commit ("Show all N results" /
+  // Enter in the bar), so no debounce is needed here anymore.
+  const handleCommitQuery = useCallback((value) => {
+    const v = (value ?? '').trim()
+    setSearchQuery(v)
+    setDebouncedQuery(v)
+    if (!v) setActiveChipKey(null)
+  }, [])
+
+  // Match-row click in the navbar search glimpse → select that shipment. The
+  // docked ShipmentsBar opens with its details regardless of table visibility
+  // (detail fetch + row summary are keyed off allShipments, not the page); if
+  // the row IS on the current page, the table's selectedId effect auto-scrolls
+  // to it.
+  const handleSelectShipment = useCallback((id) => {
+    if (id) setSelectedShipmentId(id)
   }, [])
 
   const handleChipSelect = useCallback((key) => {
@@ -247,7 +250,7 @@ function ShipmentsRoute() {
         if (columnPanelOpen) setColumnPanelOpen(false)
         if (tabPanelOpen) setTabPanelOpen(false)
       }, [filtersOpen, columnPanelOpen, tabPanelOpen])}
-      searchSlot={<ShipmentsGlobalSearch onQueryChange={handleSearchChange} />}
+      searchSlot={<ShipmentsGlobalSearch onCommitQuery={handleCommitQuery} onSelectShipment={handleSelectShipment} />}
       filterPanel={
         <>
           <FilterPanel

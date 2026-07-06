@@ -16,6 +16,15 @@ function genUniqueSellShipment() {
 // DOMAIN CONSTANTS (from grooming sessions + prototype)
 // ============================================================
 
+const ORDER_EQUIPMENT_CODES = ['TL', 'LTL', 'VAN', 'REEFER', 'TANK', 'FLATBED'];
+const SPECIAL_SERVICES_POOL = [
+  { code: 'LFT',   desc: 'Lift gate' },
+  { code: 'PALEXG', desc: 'Pallet Jack' },
+  { code: 'PJC',   desc: 'Pallet Exchange' },
+  { code: 'INSD',  desc: 'Inside Delivery' },
+  { code: 'APPT',  desc: 'Appointment Required' },
+];
+
 const MODES = ['TL', 'LTL', 'RR', 'IMD', 'AIR'];
 const MODE_WEIGHTS = { TL: 40, LTL: 40, RR: 5, IMD: 5, AIR: 10 };
 const RR_CUSTOMERS = ['BASF_CHM_01'];
@@ -619,6 +628,8 @@ function generateShipment(index) {
       type: docType,
       description: `${docType} — ${buyShipment}${d > 0 ? ` (${faker.lorem.words(2)})` : ''}`,
       fileName: `${docType.replace('/', '_')}_${buyShipment}${ext}`,
+      createdAt: faker.date.recent({ days: 90 }).toISOString(),
+      fileSize: faker.number.int({ min: 8, max: 2048 }), // KB
     });
   }
 
@@ -807,10 +818,33 @@ function generateShipment(index) {
     const orderDeliveryLate = genDate(baseDate, deliveryEarlyOffset + deliveryLateOffset);
     orderDeliveryLate.setHours(faker.number.int({ min: 8, max: 20 }), pick([0, 15, 30, 45]), 0, 0);
 
+    // New order-level fields (decision 11 / W1-B)
+    const orderEquipCode = pick(ORDER_EQUIPMENT_CODES);
+    const orderEquipRef = faker.number.float({ min: 0, max: 1 }) < 0.25
+      ? `TANK-${faker.number.int({ min: 1000, max: 9999 })}`
+      : null;
+    const orderCarrier = faker.number.float({ min: 0, max: 1 }) < 0.20
+      ? pick(CARRIERS).scac
+      : null;
+    const orderPickupNumber = faker.number.float({ min: 0, max: 1 }) < 0.60
+      ? `PU-${faker.number.int({ min: 100000, max: 999999 })}`
+      : null;
+    const orderHasSpecial = faker.number.float({ min: 0, max: 1 }) < 0.40;
+    const orderSpecialServices = orderHasSpecial
+      ? faker.helpers.arrayElements(SPECIAL_SERVICES_POOL, faker.number.int({ min: 1, max: 3 }))
+      : [];
+
     return {
       orderId: ord.orderId,
       orderNumber: ord.orderId,
       customerId: shipFromCustomer.id,
+      owningOrganization: shipFromCustomer.name,
+      consolidatable: faker.number.float({ min: 0, max: 1 }) < 0.70,
+      equipmentCode: orderEquipCode,
+      equipmentReferenceNumber: orderEquipRef,
+      customerRequiredCarrier: orderCarrier,
+      pickupNumber: orderPickupNumber,
+      specialServices: orderSpecialServices,
       poNumber: `PO-${faker.number.int({ min: 100000, max: 999999 })}`,
       bolNo: `BOL-${faker.number.int({ min: 100000, max: 999999 })}`,
       shipDirectionCode: pick(['O', 'I']),
@@ -818,22 +852,27 @@ function generateShipment(index) {
         externalIdentifier: shipFromLoc.facility,
         fullName: shipFromCustomer.name,
         address1: faker.location.streetAddress(),
+        address2: faker.number.float({ min: 0, max: 1 }) < 0.30 ? faker.location.secondaryAddress() : undefined,
         city: shipFromLoc.city,
         region: shipFromLoc.state,
         postal: shipFromLoc.zip,
         country: 'US',
         contactName: faker.person.fullName(),
-        phone: faker.phone.number({ style: 'national' }),
+        phone: faker.phone.number({ style: 'international' }),
         email: faker.internet.email(),
       },
       destination: {
         externalIdentifier: shipToLoc.facility,
         fullName: shipToLoc.facility,
         address1: faker.location.streetAddress(),
+        address2: faker.number.float({ min: 0, max: 1 }) < 0.30 ? faker.location.secondaryAddress() : undefined,
         city: shipToLoc.city,
         region: shipToLoc.state,
         postal: shipToLoc.zip,
         country: 'US',
+        contactName: faker.person.fullName(),
+        phone: faker.phone.number({ style: 'international' }),
+        email: faker.internet.email(),
       },
       scheduledShipDate: formatDateTime(orderPickupBase),
       requestedShipDate: formatDateTime(orderPickupLate),
@@ -923,6 +962,9 @@ function generateShipment(index) {
     orderList,
     shipmentStopList: stops,
     shippingOptionList: routingOptions,
+    documentList: documents,
+    noteList: notes,
+    historyList: historyEntries,
   };
 
   return { mainRow, detail };

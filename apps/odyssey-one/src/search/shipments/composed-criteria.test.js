@@ -23,9 +23,10 @@ const groupChip = (groupIdx, attrIdx = 0, queryValue = '') => {
 }
 
 describe('searchShipments — invariants (must always hold)', () => {
-  test('no chips → empty results', async () => {
+  test('no chips + no query → empty results', async () => {
     expect(await adapter.searchShipments([])).toEqual({ results: [], total: 0 })
     expect(await adapter.searchShipments(null)).toEqual({ results: [], total: 0 })
+    expect(await adapter.searchShipments([], '   ')).toEqual({ results: [], total: 0 })
   })
 
   test('leading shipment-scoped chip → one row per shipment (shipment entity)', async () => {
@@ -53,6 +54,42 @@ describe('searchShipments — invariants (must always hold)', () => {
     ])
     expect(results.length).toBeLessThanOrEqual(15)
     expect(total).toBeGreaterThanOrEqual(results.length)
+  })
+})
+
+describe('free-text query — the S79b results-panel glimpse (decision 5)', () => {
+  test('query alone (no chips) finds shipments across free-text fields', async () => {
+    const { results, total } = await adapter.searchShipments([], MULTI.buyShipment)
+    expect(total).toBeGreaterThanOrEqual(1)
+    expect(results.some((r) => r.matchId === MULTI.buyShipment)).toBe(true)
+  })
+
+  test('every row carries the SELECTION key (sellShipment) as data-shipment-key', async () => {
+    const byQuery = await adapter.searchShipments([], MULTI.buyShipment)
+    const hit = byQuery.results.find((r) => r.matchId === MULTI.buyShipment)
+    expect(hit['data-shipment-key']).toBe(MULTI.sellShipment)
+
+    // Order rows carry it too (parent shipment's sellShipment).
+    const byOrder = await adapter.searchShipments([
+      chip('order', 'orders', ''),
+      chip('buy-shipment', 'buyShipment', MULTI.buyShipment),
+    ])
+    expect(byOrder.results.every((r) => r['data-shipment-key'] === MULTI.sellShipment)).toBe(true)
+  })
+
+  test('query is ANDed with committed chips', async () => {
+    const other = ALL.find((s) => s.customerName !== MULTI.customerName)
+    const { total } = await adapter.searchShipments(
+      [chip('customer-name', 'customerName', other.customerName)],
+      MULTI.buyShipment, // unique to MULTI → cannot co-occur with other's customer
+    )
+    expect(total).toBe(0)
+  })
+
+  test('chips-only calls are unchanged (query param optional)', async () => {
+    const withQ = await adapter.searchShipments([chip('buy-shipment', 'buyShipment', MULTI.buyShipment)], '')
+    const withoutQ = await adapter.searchShipments([chip('buy-shipment', 'buyShipment', MULTI.buyShipment)])
+    expect(withQ).toEqual(withoutQ)
   })
 })
 

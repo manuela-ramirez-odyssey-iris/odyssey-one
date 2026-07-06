@@ -36,6 +36,7 @@
     "Badge",
     "Button",
     "ButtonToggle",
+    "Checkbox",
     "DataTable",
     "DropdownMenu",
     "FormField",

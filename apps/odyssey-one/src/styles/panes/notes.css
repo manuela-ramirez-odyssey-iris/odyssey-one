@@ -1,0 +1,156 @@
+/* notes pane — owned by its tab executor (S79b). Layout per vault-sources 2026-07-06-tab-panes mocks. */
+
+/* ─── Avatar chip (app-local; normalization candidate) ─────────────────── */
+.notes-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: var(--radius-md);          /* rounded square per mock */
+  background: var(--deep-sea-neutral-200);
+  color: var(--text-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  line-height: 1;
+  user-select: none;
+}
+
+/* ─── Note list ────────────────────────────────────────────────────────── */
+.notes-list {
+  display: flex;
+  flex-direction: column;
+  /* No gap — hairlines own the rhythm. First/last items flush to card. */
+}
+
+.notes-empty {
+  font-size: var(--font-size-sm);
+  color: var(--text-placeholder);
+  text-align: center;
+  padding: var(--spacing-6) 0;
+  margin: 0;
+}
+
+.notes-divider {
+  height: 1px;
+  background: var(--border-subtle);
+  margin: 0;
+}
+
+/* ─── Note item ────────────────────────────────────────────────────────── */
+.notes-item {
+  padding: var(--spacing-4) 0;
+  position: relative;
+}
+
+/* Own-note: reveal edit/delete toolbar on hover OR any child focus */
+.notes-item__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.notes-item--own:hover .notes-item__actions,
+.notes-item--own:focus-within .notes-item__actions {
+  opacity: 1;
+}
+
+/* Header row: avatar + meta + actions */
+.notes-item__header {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-3);
+  margin-bottom: var(--spacing-2);
+}
+
+.notes-item__meta {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  gap: 2px;
+}
+
+.notes-item__author {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  line-height: var(--line-height-tight);
+}
+
+.notes-item__date {
+  font-size: var(--font-size-xs);
+  color: var(--text-placeholder);
+  line-height: var(--line-height-tight);
+}
+
+.notes-item__body {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  line-height: var(--line-height-base);
+  margin: 0;
+  /* indent to align with author name (avatar width 32 + gap 12 = 44px) */
+  padding-left: calc(32px + var(--spacing-3));
+}
+
+/* ─── Inline edit state (mock 10.1) ───────────────────────────────────── */
+.notes-item--editing {
+  /* no visual change to item container itself */
+}
+
+.notes-item__edit-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-3);
+}
+
+.notes-item__edit-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.notes-item__edit-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+/* ─── Composer ─────────────────────────────────────────────────────────── */
+.notes-composer {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-3);
+  margin-top: var(--spacing-4);
+  padding-top: var(--spacing-4);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.notes-composer__avatar-col {
+  padding-top: var(--spacing-1); /* optical top-align with textarea */
+}
+
+.notes-composer__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.notes-composer__footer {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-4);
+  flex-wrap: wrap;
+}
+
+.notes-composer__limit {
+  font-size: var(--font-size-xs);
+  color: var(--text-placeholder);
+  flex: 1;
+  text-align: right;
+}

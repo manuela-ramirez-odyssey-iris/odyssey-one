@@ -2,6 +2,14 @@
 @source "../../../packages/ui/src/**/*.{js,jsx,ts,tsx}";
 @import "@odyssey/tokens/tokens.css";
 @import "./styles/components.css";
+/* Per-pane styles for the ShipmentsBar tab redesign (S79b) — one file per pane */
+@import "./styles/panes/stops.css";
+@import "./styles/panes/product.css";
+@import "./styles/panes/tender.css";
+@import "./styles/panes/cost.css";
+@import "./styles/panes/instructions.css";
+@import "./styles/panes/documents.css";
+@import "./styles/panes/notes.css";
 
 /* ========================================
    Tailwind v4 CSS-first theme extension

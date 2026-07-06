@@ -232,6 +232,7 @@
   --navbar-height: 64px;
   --sidebar-width: 64px;
   --bottombar-collapsed: 48px;
+  --bottombar-top-clearance: 146px; /* bar's max opening: top edge never rises above this (page title stays visible) */
   --edit-panel-width: 240px;
   --right-panel-width: 343px;
   --main-padding-top-edit: 52px;

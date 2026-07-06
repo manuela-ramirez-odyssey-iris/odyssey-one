@@ -16,14 +16,15 @@ export const meta = {
   createdVersion: '0.3.0',
   codeOnly: true,
   // Code-first molecule (composes Cell + Paginator + ActionMenu — no standalone Figma master).
-  // React shell S66 + resize/cell-click extensibility S68; Angular twin shipped → full cycle complete.
-  normalizing: false,
+  // React shell S66 + resize/cell-click extensibility S68; Angular twin shipped.
+  // DEMOTED S79b: footer externalized below the bordered card + paginator restyle (decision 6) — pending re-approval.
+  normalizing: true,
 }
 
 export const props = [
   { name: 'table', type: 'Table (TanStack v8)', desc: 'A TanStack table instance — duck-typed (the library takes no TanStack dependency). The shell renders headers/rows from it; the consumer owns columns, data, and state.' },
-  { name: 'stickyTop', type: 'number', desc: 'Px offset where the sticky header parks (the consumer measures its own toolbar/header). Default 0.' },
-  { name: 'footer', type: 'ReactNode', desc: 'Rendered in a sticky-left footer band below the body — put a <Paginator table={table}/> here.' },
+  { name: 'stickyTop', type: 'number | string', desc: 'Offset where the sticky header parks — px number or any CSS length (the consumer measures its own toolbar/header, or compensates a padded page scroller with a negative calc()). Default 0.' },
+  { name: 'footer', type: 'ReactNode', desc: 'Rendered BELOW the bordered card, transparent on the page canvas (S79b) — put a <Paginator table={table}/> here.' },
   { name: 'ariaLabel', type: 'string', desc: 'Optional aria-label applied to the body <table> element (per ARIA table semantics).' },
   { name: 'className', type: 'string', desc: 'Merged onto the root.' },
 ]
@@ -32,7 +33,6 @@ export const tokens = [
   { token: '--radius-2xl', resolves: '16px', usage: 'card radius + the header strip top corners' },
   { token: '--bg-primary', resolves: 'White', usage: 'card / header-inner / body background' },
   { token: '--bg-secondary', resolves: 'Deep Sea Neutral/50', usage: 'sticky header strip background' },
-  { token: '--border-subtle', resolves: 'Deep Sea Neutral/200', usage: 'footer top border' },
 ]
 
 // Per-column behavior is set on the consumer's TanStack column.meta:
@@ -143,7 +143,8 @@ export default function DataTableDemo() {
       <p style={{ marginTop: 0, color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)' }}>
         Thin chrome over a <code>@tanstack/react-table</code> instance: split sticky header,
         colgroup width-lock, horizontal scroll-sync, a <strong>sticky-right</strong> action column
-        (<code>meta.sticky:'right'</code>), and a <strong>Paginator</strong> footer. The consumer
+        (<code>meta.sticky:'right'</code>), and a <strong>Paginator</strong> footer rendered
+        <strong> below the bordered card</strong>, transparent on the page canvas (S79b). The consumer
         owns columns / data / state. Scroll the table horizontally — the header tracks the body and
         the Action column stays pinned. Each row's action cell is the normalized <strong>ActionMenu</strong>
         molecule (ellipsis trigger + anchored <code>DropdownMenu</code> + <code>MenuRow</code> options —

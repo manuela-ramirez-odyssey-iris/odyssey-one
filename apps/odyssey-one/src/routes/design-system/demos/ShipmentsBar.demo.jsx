@@ -8,6 +8,10 @@ export const meta = {
   createdVersion: '0.6.0',
   // S79 demotion: expanded-bar shadow --shadow-up-md → new --shadow-up-lg token
   // (Figma effect style shadow/up-lg) — back to NORMALIZING pending re-approval.
+  // S79b: 50vh retired — expanded height is auto (content-driven), capped at
+  // 100dvh − --bottombar-top-clearance; shadow clipped up-only via
+  // clip-path: inset(-40px 0 0 0); content slot padding → 0 (panes own their
+  // canvas). All code-only, no Figma axis.
   normalizing: true,
   figmaNode: '4120:4623',
   codeConnect: 'packages/ui/src/ShipmentsBar.figma.tsx',
@@ -19,7 +23,7 @@ export const props = [
   { name: 'onPrevShipment / onNextShipment', type: '() => void', desc: 'Prev/next arrows (20px, DSN/500) beside the ID — render only when provided; pair with prevDisabled/nextDisabled at list bounds.' },
   { name: 'tabs', type: '[{ key, label, dropdown? }]', desc: "The tab slots; overflow scrolls natively. A tab with dropdown = { prelabel, value?, menu } is a DROPDOWN TAB: selected it shows prelabel over value + a chevron; clicking it while active opens a DropdownMenu of preset values (menu node, or ({ close }) => node), chevron rotating while open. (Figma: ShipmentsBarTab State=Default|Selected|Selected Dropdown, Label + Prelabel TEXT.)" },
   { name: 'activeTab / onTabChange', type: 'string / (key) => void', desc: 'Controlled selection. Selected tab = DSN/100 fill — a real Selected state (the mock faked it with Cell State=Hover). (Figma: State VARIANT Default|Selected.)' },
-  { name: 'expanded / onExpandedChange', type: 'boolean / (next) => void', desc: 'Controlled expansion: 48px strip ↔ 50vh pane. Toggled by the CollapseExpand PanelAction — expanded shows chevrons-down (click collapses), collapsed shows chevrons-up (click expands).' },
+  { name: 'expanded / onExpandedChange', type: 'boolean / (next) => void', desc: 'Controlled expansion: 48px strip ↔ content-height pane (auto, capped at 100dvh − --bottombar-top-clearance so the page title row stays visible; content scrolls when capped). Toggled by the CollapseExpand PanelAction — expanded shows chevrons-down (click collapses), collapsed shows chevrons-up (click expands).' },
   { name: 'onTabArrangement', type: '() => void', desc: 'The TabArrangement PanelAction (Button Icon/sm, columns+cog) — e.g. opens the column-arrangement panel. Renders only when provided. (Figma: PanelActions.)' },
   { name: 'rightOffset', type: 'number', desc: 'Pixel inset when side panels (filters/columns) are open.' },
   { name: 'children', type: 'node', desc: "The active tab's pane, rendered in the Content slot while expanded — each tab is a content slot. This bar REPLACES the old BottomBar chrome (no close X, no scroll chevrons, no fullscreen)." },
@@ -36,8 +40,9 @@ export const tokens = [
   { token: '--deep-sea-neutral-50', resolves: '#f7f8fa', usage: 'tab hover fill (code-only)' },
   { token: '--deep-sea-neutral-500', resolves: '#6b7280', usage: 'prev/next arrows' },
   { token: '--spacing-3 / --spacing-6', resolves: '12 / 24', usage: 'PanelActions gap + padding (24 left / 12 right)' },
-  { token: '--shadow-up-lg', resolves: '0 -5px 30px rgba(0,0,0,.2)', usage: 'expanded bar (Figma shadow/up-lg)' },
-  { token: '--transition-slow / --transition-base', resolves: 'height / right', usage: 'expansion + panel-inset animation' },
+  { token: '--shadow-up-lg', resolves: '0 -5px 30px rgba(0,0,0,.2)', usage: 'expanded bar (Figma shadow/up-lg) — clipped up-only via clip-path: inset(-40px 0 0 0) so it never paints over the sidebar/side panels (code-only)' },
+  { token: '--bottombar-top-clearance', resolves: '146px', usage: 'expanded-height cap: max-height 100dvh − clearance — the bar top never rises above the page title row; height itself is auto (content-driven), scrolling internally when capped' },
+  { token: '--transition-slow / --transition-base', resolves: 'height / right', usage: 'expansion + panel-inset animation; height ↔ auto animates via interpolate-size: allow-keywords where supported (non-animated fallback elsewhere)' },
 ]
 
 // Slot-marker pink — DSM annotation device (NOT a product token). RightPanel convention.
@@ -106,7 +111,7 @@ function Schematic() {
         />
       </div>
       <ul style={{ display: 'grid', gridTemplateColumns: 'max-content 1fr', columnGap: '10px', listStyle: 'none', margin: 0, padding: 0 }}>
-        <LegendRow part="bar" tier="organism">Docked bottom detail bar — 48px white strip (<code>--bottombar-collapsed</code>) over a <code>DSN/100</code> canvas; hairline per segment (selected tab breaks it). Expands to a 50vh pane (Figma: <code>State=Collapsed|Expanded</code>). <strong>Replaces the old BottomBar chrome</strong> — no close X, no scroll chevrons, no fullscreen.</LegendRow>
+        <LegendRow part="bar" tier="organism">Docked bottom detail bar — 48px white strip (<code>--bottombar-collapsed</code>) over a <code>DSN/100</code> canvas; hairline per segment (selected tab breaks it). Expands to a content-height pane, capped at <code>100dvh − --bottombar-top-clearance</code> (Figma: <code>State=Collapsed|Expanded</code>). <strong>Replaces the old BottomBar chrome</strong> — no close X, no scroll chevrons, no fullscreen.</LegendRow>
         <LegendRow part="current shipment" nested>Lead segment: prev/next arrows (<code>lucide/arrow-left|right</code>, 20px, <code>--deep-sea-neutral-500</code>) + shipment ID (<code>label/sm semibold</code>, <code>--text-primary</code>). (Figma: Shipment ID TEXT.)</LegendRow>
         <LegendRow part="tab slots" nested>Strip of <code>ShipmentsBarTab</code>s — <code>label/sm semibold</code>, padding 14/16; selected = <code>DSN/100</code> fill (real Selected state, not Hover); hover <code>DSN/50</code> code-only; overflow scrolls natively. Each tab is a content slot.</LegendRow>
         <LegendRow part="dropdown tab" nested>Figma <code>State=Selected Dropdown</code> variant: prelabel (12/12 regular, <code>--text-tertiary</code>) over the value + 16px <code>chevron-down</code>, padding 10/12/6/16, 4px gap (the Gap-shape hack retired). Click-when-active opens a <code>DropdownMenu</code> of preset values anchored to the tab (flips above the docked bar); chevron rotates 180° while open (code-only, like hover).</LegendRow>
@@ -165,7 +170,7 @@ function Playground() {
           expanded={expanded}
           onExpandedChange={setExpanded}
           onTabArrangement={() => {}}
-          style={{ ...INLINE, height: expanded ? 260 : undefined }}
+          style={INLINE}
         >
           <SlotPlaceholder tab={activeLabel} />
         </ShipmentsBar>

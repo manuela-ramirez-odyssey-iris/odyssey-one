@@ -9,6 +9,13 @@ const INITIAL_COUNT = 5
 const ORDER_KEYS    = new Set(['orders'])
 const CUSTOMER_KEYS = new Set(['customerId', 'customerName', 'consignor', 'consignee'])
 
+// Fields the free-text query matches against (OR semantics) — mirrors the grid
+// service's SEARCH_FIELDS so the panel glimpse previews exactly what committing
+// the query to listParams.searchTerm will show in the table.
+const FREE_TEXT_KEYS = [
+  'buyShipment', 'sellShipment', 'customerId', 'customerName', 'origin', 'destination', 'scac', 'orders',
+]
+
 // Parse "Phoenix AZ US 85001" → "Phoenix, AZ"
 function formatLocation(str) {
   if (!str) return ''
@@ -109,22 +116,38 @@ export const shipmentsSearchAdapter = {
   // ENTITY: an order-scoped leading chip returns ORDER rows (a shipment with 3
   // matching orders → 3 rows); anything else returns SHIPMENT rows (1 per
   // shipment). See vault/20-cross-cutting/global-search/composed-criteria.md.
-  async searchShipments(chips) {
-    if (!chips || !chips.length) return { results: [], total: 0 }
+  //
+  // `query` (optional) is the UNCOMMITTED free text in the bar — an implicit
+  // criterion ANDed with the chips, matched OR-wise across FREE_TEXT_KEYS (same
+  // fields the grid service's searchTerm uses). Chips-only calls are unchanged.
+  async searchShipments(chips, query = '') {
+    const q = (query || '').trim().toLowerCase()
+    const chipList = chips || []
+    if (!chipList.length && !q) return { results: [], total: 0 }
 
     const all = getAllShipments()
-    const primaryKey = chips[0]?.dataKey ?? 'buyShipment'
-    const primaryQuery = (chips[0]?.queryValue || '').toLowerCase()
+    const primaryKey = chipList[0]?.dataKey ?? 'buyShipment'
+    // No chips → the free-text query drives relevance ordering instead.
+    const primaryQuery = (chipList[0]?.queryValue || (chipList.length ? '' : q)).toLowerCase()
 
-    // Shipment-level AND filter: a shipment qualifies if every chip matches it.
+    // Shipment-level AND filter: a shipment qualifies if every chip matches it
+    // AND (when present) the free-text query matches any free-text field.
     // (An order-scoped chip "matches" when at least one order contains the value
     // — it narrows which shipments survive; the explosion below picks the exact
     // orders.)
-    const shipments = all.filter((s) => chips.every((chip) => matchChip(s, chip)))
+    const matchesQuery = (s) =>
+      !q ||
+      FREE_TEXT_KEYS.some((key) => {
+        const field = s[key]
+        if (field == null) return false
+        const str = (Array.isArray(field) ? field.join(' ') : String(field)).toLowerCase()
+        return str.includes(q)
+      })
+    const shipments = all.filter((s) => matchesQuery(s) && chipList.every((chip) => matchChip(s, chip)))
 
     // ---- Order entity: explode each shipment into its matching orders --------
     if (ORDER_KEYS.has(primaryKey)) {
-      const orderChips = chips.filter((c) => ORDER_KEYS.has(c.dataKey))
+      const orderChips = chipList.filter((c) => ORDER_KEYS.has(c.dataKey))
       const rows = []
       for (const s of shipments) {
         const orders = Array.isArray(s.orders) ? s.orders : []
@@ -184,9 +207,14 @@ function matchChip(s, chip) {
 }
 
 // One result row when the result entity is a SHIPMENT.
+// `data-shipment-key` = sellShipment — the SELECTION id (ShipmentsRoute's
+// setSelectedShipmentId / the table row id / the /details/{id}.json key are all
+// keyed by sellShipment). Carried as a data-attribute because MatchRow spreads
+// unknown props onto its DOM node (a camelCase extra would warn in dev).
 function buildShipmentRow(s, primaryKey, primaryQuery) {
   return {
     id: s.buyShipment,
+    'data-shipment-key': s.sellShipment,
     matchId: formatPrimaryField(s, primaryKey, primaryQuery),
     route: `${formatLocation(s.origin)} → ${formatLocation(s.destination)}`,
     customer: s.customerName,
@@ -203,6 +231,7 @@ function buildShipmentRow(s, primaryKey, primaryQuery) {
 function buildOrderRow(s, orderId) {
   return {
     id: `${s.buyShipment}-${orderId}`,
+    'data-shipment-key': s.sellShipment,
     matchId: orderId,
     route: `${formatLocation(s.origin)} → ${formatLocation(s.destination)}`,
     customer: s.customerName,

@@ -1,0 +1,88 @@
+/* instructions pane — owned by W2-5 executor (S79b). Layout per vault-sources 2026-07-06-tab-panes mock 8. */
+
+/* ── Group header ─────────────────────────────────────────────── */
+.instr-group {
+  /* no extra margin — .pane-col gap handles spacing between groups */
+}
+
+.instr-group__header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding-block: var(--spacing-3);
+  border-bottom: 1px solid var(--border-subtle);
+  cursor: pointer;
+  /* inherit card horizontal padding context — button is flush */
+  user-select: none;
+}
+
+.instr-group__chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+  /* no button chrome — handled in JSX with type=button + reset styles */
+}
+
+.instr-group__id {
+  font-family: var(--font-primary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  line-height: var(--line-height-sm);
+}
+
+/* ── Mini-table ───────────────────────────────────────────────── */
+.instr-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-primary);
+}
+
+.instr-table thead tr {
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.instr-table th {
+  padding: var(--spacing-3) var(--spacing-4);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  line-height: var(--line-height-sm);
+  text-align: left;
+}
+
+.instr-table th.instr-table__seq-col {
+  width: 48px;
+  text-align: center;
+  padding-inline: var(--spacing-3);
+}
+
+.instr-table td {
+  padding: var(--spacing-3) var(--spacing-4);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-regular);
+  color: var(--text-secondary);
+  line-height: var(--line-height-sm);
+  vertical-align: top;
+}
+
+.instr-table td.instr-table__seq-cell {
+  text-align: center;
+  padding-inline: var(--spacing-3);
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.instr-table tbody tr + tr {
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* ── Empty state ──────────────────────────────────────────────── */
+.instr-empty {
+  font-family: var(--font-primary);
+  font-size: var(--font-size-sm);
+  color: var(--text-placeholder);
+  padding: var(--spacing-5) var(--spacing-6);
+}

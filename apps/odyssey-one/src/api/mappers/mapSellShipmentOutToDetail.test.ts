@@ -27,7 +27,7 @@ describe('mapSellShipmentOutToDetail', () => {
     const o = vm.orderDetails[0]
     expect(o.shipFrom.company).toBe('Acme Houston Plant')
     expect(o.shipFrom.location).toBe('77001, Houston, TX, US')
-    expect(o.shipFrom.address).toBe('100 Refinery Rd')
+    expect(o.shipFrom.address).toBe('100 Refinery Rd, Suite 200') // fixture now has address2
     expect(o.shipTo.location).toBe('60601, Chicago, IL, US')
   })
 
@@ -44,6 +44,85 @@ describe('mapSellShipmentOutToDetail', () => {
   it('defaults unmapped fields to "--" (graceful degradation)', () => {
     expect(vm.orderDetails[0].salesOrder).toBe('--')
     expect(vm.orderDetails[0].customField1).toBe('--')
+  })
+
+  describe('W1-B new order fields', () => {
+    it('maps owningOrganization from order', () => {
+      expect(vm.orderDetails[0].owningOrganization).toBe('Acme Chemicals')
+    })
+
+    it('maps consolidatable boolean to Yes/No', () => {
+      expect(vm.orderDetails[0].consolidatable).toBe('Yes')
+      expect(vm.orderDetails[1].consolidatable).toBe('No')
+    })
+
+    it('maps equipmentCode to equipment', () => {
+      expect(vm.orderDetails[0].equipment).toBe('VAN')
+      expect(vm.orderDetails[1].equipment).toBe('REEFER')
+    })
+
+    it('maps equipmentReferenceNumber, falls back to "--" when null', () => {
+      expect(vm.orderDetails[0].equipmentReferenceNumber).toBe('TANK-4321')
+      expect(vm.orderDetails[1].equipmentReferenceNumber).toBe('--')
+    })
+
+    it('maps customerRequiredCarrier to carrier, falls back to "--" when null', () => {
+      expect(vm.orderDetails[0].carrier).toBe('ABFS')
+      expect(vm.orderDetails[1].carrier).toBe('--')
+    })
+
+    it('maps pickupNumber, falls back to "--" when null', () => {
+      expect(vm.orderDetails[0].pickupNumber).toBe('PU-820622')
+      expect(vm.orderDetails[1].pickupNumber).toBe('--')
+    })
+
+    it('maps specialServices as [{code, desc}] array', () => {
+      expect(vm.orderDetails[0].specialServices).toEqual([
+        { code: 'LFT', desc: 'Lift gate' },
+        { code: 'APPT', desc: 'Appointment Required' },
+      ])
+    })
+
+    it('returns empty specialServices array when none present', () => {
+      expect(vm.orderDetails[1].specialServices).toEqual([])
+    })
+
+    it('maps destination contact trio (name/phone/email)', () => {
+      expect(vm.orderDetails[0].destContactName).toBe('Sam Ortiz')
+      expect(vm.orderDetails[0].destContactPhone).toBe('+1-312-555-0199')
+      expect(vm.orderDetails[0].destContactEmail).toBe('sam.ortiz@example.com')
+    })
+
+    it('destination contact falls back to "--" when absent', () => {
+      const dto: SellShipmentOut = {
+        ...sellShipmentOutSample,
+        orderList: [{ orderId: 'ORD-X', destination: { address1: '1 Main St' } }],
+      }
+      const o = mapSellShipmentOutToDetail(dto).orderDetails[0]
+      expect(o.destContactName).toBe('--')
+      expect(o.destContactPhone).toBe('--')
+      expect(o.destContactEmail).toBe('--')
+    })
+
+    it('folds address2 into fmtAddress when present', () => {
+      expect(vm.orderDetails[0].shipFrom.address).toBe('100 Refinery Rd, Suite 200')
+    })
+
+    it('owningOrganization falls back to "--" when absent', () => {
+      const dto: SellShipmentOut = {
+        ...sellShipmentOutSample,
+        orderList: [{ orderId: 'ORD-X' }],
+      }
+      expect(mapSellShipmentOutToDetail(dto).orderDetails[0].owningOrganization).toBe('--')
+    })
+
+    it('consolidatable falls back to "--" when absent', () => {
+      const dto: SellShipmentOut = {
+        ...sellShipmentOutSample,
+        orderList: [{ orderId: 'ORD-X' }],
+      }
+      expect(mapSellShipmentOutToDetail(dto).orderDetails[0].consolidatable).toBe('--')
+    })
   })
 
   it('emits empty docs/notes/history sections', () => {

@@ -78,10 +78,22 @@ export interface SellShipmentOrderCost {
   directCostAmount?: number
 }
 
+export interface SellShipmentSpecialService {
+  code: string
+  desc: string
+}
+
 export interface SellShipmentOrder {
   orderId: string
   orderNumber?: string
   customerId?: string
+  owningOrganization?: string
+  consolidatable?: boolean
+  equipmentCode?: string
+  equipmentReferenceNumber?: string | null
+  customerRequiredCarrier?: string | null
+  pickupNumber?: string | null
+  specialServices?: SellShipmentSpecialService[]
   poNumber?: string
   bolNo?: string
   shipDirectionCode?: string // 'O' | 'I'
@@ -235,4 +247,9 @@ export interface SellShipmentOut {
   orderList: SellShipmentOrder[]
   shipmentStopList?: SellShipmentStop[]
   shippingOptionList?: SellShipmentRoutingOption[]
+  /* Fake-data-only attachments (no real-contract equivalent yet): passed through
+     verbatim to the Documents / Notes / History panes. */
+  documentList?: unknown[]
+  noteList?: unknown[]
+  historyList?: unknown[]
 }
