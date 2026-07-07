@@ -1,4 +1,5 @@
 {
+  "buildCommand": "node tools/generate.mjs && vite build",
   "redirects": [
     {
       "source": "/",

@@ -1,0 +1,35 @@
+# Deploy payload diet (S81): the CLI archives the whole repo root as build
+# context (Root Directory only scopes the build). Without this file the upload
+# was ~1.1GB of knowledge base + generated data. Everything here is either
+# not needed to build the app, or regenerated during the Vercel build
+# (vercel.json buildCommand runs `node tools/generate.mjs` — seed 42, so cloud
+# data is byte-identical to local).
+
+# A custom .vercelignore REPLACES the CLI's built-in ignore list, so the
+# defaults must be restated here.
+node_modules
+.git
+dist
+.turbo
+.DS_Store
+
+# Stale/parallel working copies — full repo clones, hundreds of MB
+/.worktrees
+
+# Knowledge base / session artifacts — never needed by the build
+/.claude
+/vault
+/vault-sources
+/docs
+/playground
+/cognizant-poc
+/cognizant-handoff-presentation.html
+/progress.md
+/CLAUDE.md
+/tools
+
+# Generated data — recreated at build time by apps/odyssey-one/tools/generate.mjs
+apps/odyssey-one/public/details
+apps/odyssey-one/src/data/shipments.json
+apps/odyssey-one/src/data/orders.json
+apps/odyssey-one/src/data/order-details.json
