@@ -5145,6 +5145,59 @@ DEC-40 through DEC-65+ in `vault/10-domains/shipments/decisions/decision-log.md`
 
 ---
 
+## Session 81 — July 7, 2026
+
+**Bug-fix + polish session: the Orders row-click "randomness" root-caused and fixed (ORD-02), row actions View/Edit wired, the Customers panel rebuilt around staged-save + two modes, the four S80 NORMALIZING components re-approved and ported onto PR #11 (plus DataTable/PillTab S81 mods — CI green twice), and a Vercel deploy-payload diet (1.1GB → 723KB). Heavy subagent parallelization; prod deployed.**
+
+### Orders
+- **ORD-02 — every row click opens the Order Summary.** The "random" navigation was the spec-§4 Draft detour catching ~110 *generated* `Draft`-status rows (S80 data unification seeded `Draft` into `UNSHIPPED_STATUS_POOL` 20/100) that `getDraft` could never hydrate → blank create form. Detour removed; `?draft=` stays as a documented dev trigger. Companion latent-bug fix: `getOrderList` overlay rows now **shadow** same-numbered base rows (a saved draft no longer duplicates its generated original / collides TanStack row ids). Logged in the Orders decision log with previous state.
+- **Row actions wired**: View → summary (mirrors row click); **Edit → create flow hydrated for ANY order** — `CreateOrderForm`'s draft-reopen falls back to `getOrderView` when `getDraft` misses (first Save mints a session draft; the overlay shadow replaces the base row). Copy/Cancel/Restore/Delete stay inert. Table stays presentational via an `onRowAction(label, row)` callback.
+- **Order Summary slide-in**: CSS mount animation on `.order-summary-page` (32px right-slide + fade, `--transition-drawer`, reduced-motion safe) — fires on row-click AND create-confirmation entries.
+
+### DataTable (0.7.0, two S81 mods — the Edit-action bug's real home)
+- **Portal-click guard**: React portals bubble synthetic events through the REACT tree, so portaled ActionMenu item clicks reached the cell's onClick with an out-of-cell DOM target → `onCellClick` double-fired and the Edit action landed on the summary. `isInteractiveTarget` now treats out-of-cell targets as interactive.
+- **`meta.forwardClick` whole-cell action click**: the ⋮ trigger alone is too small — a click on the non-interactive part of an opted-in cell forwards to its first interactive element (new pure `resolveCellClick`; `--forward-click` cursor class; Orders + Shipments + DSM demo action columns opted in). Known nuance: with the menu open, a second cell-padding click flickers (close→reopen) instead of toggling — ActionMenu follow-up if it bothers.
+
+### Customers panel (staged-save rework, iterated to final shape)
+- **Selection is STAGED**: live context (table scoping) changes only on **Save → confirmation modal** (lists added/removed by name) → Apply; every dismissal discards. Save dirty-gated by set equality.
+- **Two modes**, static "Customers" title (ModalHeader adopted — back chevron gates on search mode and exits it; the X closes always): default = "Search more customers" label + Cancel/Save footer; search (results open) = "Select new customers" label, **no footer**. Selecting a result closes the list AND defocuses the bar; refocus/typing reopens. Outside-close moved mousedown→click (footer swaps with the mode — a mousedown-time swap invited Back→Cancel mis-clicks).
+- Focus bug fixed (mousedown-steals-focus), spacing pass (content top pad; "All Customers" results-header air), and a **carolina-blue pulse on the just-added row** (700ms ×2, reduced-motion safe). 13 CustomersModal tests.
+
+### Shipments polish
+- Export button md→sm (+ `stickyTop` recalibrated 72→68px — the offset comment now documents the derivation; consider migrating to Orders' measured-toolbar approach if it drifts again).
+- **Export modal portaled to `<body>`** — rendered inside the sticky toolbar its fixed overlay painted UNDER the navbar/sidebar (stacking-context trap). ModalMedium itself untouched (CustomersModal renders it in-popover deliberately).
+- **TooltipTrigger squeeze fix**: fixed-position auto width shrinks-to-fit right of `left` BEFORE the -50% transform — right-edge anchors (Export) squeezed the card to button width. Now `width: max-content` + viewport-edge clamping (fixes all edge-adjacent tooltips).
+- **PillTab hover fix (0.7.0)**: the metric Badge's DSN/100 bg matched the hover surface exactly (badge vanished) — unselected hover darkens it to DSN/200 via local `--badge-gray-bg` override.
+
+### 0.7.0 re-approval arc → PR #11 (two waves, both CI green)
+- **Wave 1**: GlobalSearch (combobox keyboard nav: `moveHighlight`, aria-activedescendant, Enter-on-highlight), FilterSuggestions (`optionId`/`activeIndex` option wiring + `.is-active`), RightPanel (veil removal + `saveDisabled`), ModalFooter (`saveDisabled`) — approved, ported (+16 specs), stamped 0.7.0, CHANGELOG, both DSMs cleared, PR body "S81 addendum".
+- **Wave 2**: DataTable (portal guard mirrored as *defensive parity* — unreachable via Angular real-DOM bubbling — + forwardClick, +9 specs) and PillTab hover — same routine, "S81 addendum 2".
+- **Angular 690/690 specs** (665→690), parity-lint 72 ✓. All pushed to `port/s76-search-batch`; **PR #11 green, awaiting Cognizant**. Left out: the pre-existing uncommitted `domain-usage.json` edit (orders usage list) — awaiting a call.
+
+### Deploy (prod) + payload diet
+- React `main` pushed (`e51bf7f` session work, `e425f00` deploy config) and **deployed to odyssey-one-stage.vercel.app** (CLI 54 — the old global v52 crashed).
+- **Upload 1.1GB → 723KB**: the payload was the 2.5GB `.turbo` cache + `.worktrees/` repo copies + `.claude` + vault — NOT the 46MB shipment JSONs. New root `.vercelignore` (gotcha: it REPLACES the CLI defaults — `node_modules`/`.git` restated) + `vercel.json` `buildCommand: node tools/generate.mjs && vite build` (seed 42 → cloud data byte-identical, 2.2s). Smoke-checked live: app 200 + detail JSON serves.
+
+### State
+- React tests **319/319** (+25) · Angular **690/690** (+25) · builds clean · PR #11 green (0.7.0 + both S81 addenda) · prod deployed.
+- Both DSM Normalizing tabs **empty**; all six S81-touched components stamped 0.7.0.
+
+---
+
+## What's Next
+
+### Session 82 Priorities
+
+1. **Customers modal remaining UX** (user's list — partially consumed in S81; ask what's left).
+2. **+500 more entries** (2200 → 2700 shipments; regenerate — now also exercises the build-time generation path).
+3. **PR #11 watch** — on Cognizant approval: merge, they publish 0.7.0 npm (their action); clean up `port/s76-search-batch`; decide the parked `domain-usage.json` edit.
+4. **I1 — wire the Filters view for real** (structured filters + saved queries unreachable; FilterPanel re-home-or-delete decision).
+5. **I2 — Tender pane normalization** (65KB, pre-token-discipline, modals lack dialog semantics).
+6. **Small follow-ups:** ActionMenu open-state cell-click toggle flicker; ShipmentTable stickyTop → measured-toolbar approach; 9.3MB main chunk code-split (route-level dynamic imports); local disk cleanup (`.worktrees/` 284M + stale `.claude/worktrees` copy ≈ 430MB, confirm dead first); PillTab demo token-table drift (`--tab-active-bg` documented DSN/900, actually DSN/200).
+7. **Deferred Figma flags** (carried): SummaryStrip tone axis, WidgetMini semantics, new-preset drag grips, Instructions mock duplicate `#` column, timeline in-between statuses 4274:15672; Sort button decision; tab a11y convention.
+
+---
+
 ## Session 80 — July 6–8, 2026
 
 **Marathon session: the full S79→0.7.0 release arc (approve → Angular port → PR #11 green), two new library components (StopBadge, Timeline), Stops/Documents/Notes/Orders-sections pane redesigns to fresh Figma mocks, GlobalSearch UX batch, Column Arrangement completion, the Orders row→summary feature, and Orders↔Shipments data unification (single generator, 9 invariants, 2200 shipments). Heavy subagent parallelization throughout.**
@@ -5197,9 +5250,7 @@ Domain-wide review (zero reproduced bugs, zero console errors): GlobalSearch pip
 
 ---
 
-## What's Next
-
-### Session 81 Priorities
+### Prior Session 81 Priorities (done in S81 / carried to S82)
 
 0. **BUG: order row click opens the creation flow** (user repro: clicking a row on a non-ID cell) — likely the `row.status === 'Draft'` branch catching more than intended, or draft-row semantics misfiring; investigate + fix.
 1. **Customers modal UX issues** (user has a list).
