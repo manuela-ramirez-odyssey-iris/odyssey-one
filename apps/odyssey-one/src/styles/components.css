@@ -268,6 +268,10 @@
 
 /* Cell-clickable affordance — pointer on body cells when onCellClick is wired. */
 .odyssey-data-table--cell-clickable tbody td { cursor: pointer; }
+/* Forward-click cell (column meta.forwardClick — e.g. the ⋮ action column): the whole
+   cell is a click target that forwards to its interactive element, so it shows the
+   pointer even on tables WITHOUT onCellClick (no --cell-clickable root class). */
+.odyssey-data-table tbody td.odyssey-table__cell--forward-click { cursor: pointer; }
 
 /* ----------------------------------------
    BOTTOM BAR TRANSITIONS
@@ -1065,6 +1069,32 @@ input[type="date"].odyssey-date-input::-webkit-calendar-picker-indicator:hover {
   margin-bottom: var(--spacing-8);
 }
 
+/* "All Customers" results header — breathing room from the search input above
+   and the first result row below. */
+.search-field__results-header {
+  padding: var(--spacing-2) 0 var(--spacing-1);
+}
+
+/* Just-added row pulse — a newly staged customer is easy to miss in the list,
+   so it flashes a subtle carolina-blue glow twice (column-footer-pulse
+   precedent). The wrapper carries the class; the consumer clears it on
+   animationend. */
+.customers-row-pulse {
+  border-radius: var(--radius-md);
+  animation: customers-added-pulse 700ms ease-in-out 2;
+}
+@keyframes customers-added-pulse {
+  50% {
+    background: var(--carolina-blue-50);
+    box-shadow: 0 0 6px 0 var(--carolina-blue-400);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .customers-row-pulse {
+    animation: none;
+  }
+}
+
 /* Customers popover — anchored below the navbar, right-aligned, NO overlay
    backdrop. Stays 14px clear of the window's right edge and is viewport-bounded
    (max-width / max-height) so it can never be clipped off-screen. Mirrors the
@@ -1089,12 +1119,9 @@ input[type="date"].odyssey-date-input::-webkit-calendar-picker-indicator:hover {
   z-index: 9000;
   overflow: hidden;
 }
-.customers-popover__header {
-  padding: var(--spacing-4) var(--spacing-5) var(--spacing-2);
-  color: var(--text-primary);
-}
 .customers-popover__content {
-  padding: 0 var(--spacing-5) var(--spacing-4);
+  /* top padding separates the search label from the ModalHeader band */
+  padding: var(--spacing-3) var(--spacing-5) var(--spacing-4);
   display: flex;
   flex-direction: column;
   gap: var(--spacing-3);
@@ -1108,6 +1135,28 @@ input[type="date"].odyssey-date-input::-webkit-calendar-picker-indicator:hover {
   justify-content: space-between;
   padding: var(--spacing-3) var(--spacing-5);
   border-top: 1px solid var(--border-subtle);
+}
+
+/* Customers save-confirmation (ModalMedium content) — staged-diff summary:
+   intro line + "Adding" / "Removing" name groups. */
+.customers-confirm__intro {
+  margin: 0 0 var(--spacing-3);
+  color: var(--text-primary);
+}
+.customers-confirm__group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  margin-bottom: var(--spacing-3);
+  color: var(--text-primary);
+}
+.customers-confirm__group:last-child {
+  margin-bottom: 0;
+}
+.customers-confirm__names {
+  margin: 0;
+  padding-left: var(--spacing-5);
+  color: var(--text-secondary);
 }
 
 /* FilterButton — filter trigger that sits at the right edge of the GlobalSearch
@@ -3638,9 +3687,15 @@ button.breadcrumb__label:focus-visible {
   cursor: pointer;
   transition: background var(--transition-fast), color var(--transition-fast);
 }
-.pill-tab:hover:not(.pill-tab--selected) {
+.pill-tab:hover:not(.pill-tab--selected):not(:disabled) {
   background: var(--bg-tertiary);
   color: var(--text-secondary);
+  /* S81 — strengthen the hover: the inner metric Badge (bg DSN/100, same as the
+     hover surface) darkens one step so it doesn't vanish into the pill. Same
+     local CSS-var override mechanism as .badge-interactive / WidgetMetricRow —
+     .badge-metric reads --badge-gray-bg; Badge itself is untouched. Scoped to
+     unselected + enabled; the selected pill's Badge keeps its default treatment. */
+  --badge-gray-bg: var(--deep-sea-neutral-200);
 }
 .pill-tab--selected {
   background: var(--tab-active-bg);

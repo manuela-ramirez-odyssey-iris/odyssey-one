@@ -35,9 +35,18 @@ export default function TooltipTrigger({ children, tooltipProps = {}, asSpan = f
     if (!anchor || !card) return
 
     const r = anchor.getBoundingClientRect()
-    const centerX = r.left + r.width / 2
     const CARD_GAP = 6
+    const EDGE_MARGIN = 8
     const cardH = card.offsetHeight
+    const cardW = card.offsetWidth
+
+    // Clamp the center so the card never clips the viewport sides — needed now
+    // that the card keeps its natural width (see width: max-content below).
+    const rawCenterX = r.left + r.width / 2
+    const centerX = Math.min(
+      Math.max(rawCenterX, EDGE_MARGIN + cardW / 2),
+      window.innerWidth - EDGE_MARGIN - cardW / 2,
+    )
 
     const openAbove = r.top >= cardH + CARD_GAP
     setStyle({
@@ -45,6 +54,11 @@ export default function TooltipTrigger({ children, tooltipProps = {}, asSpan = f
       left: centerX,
       top: openAbove ? r.top - CARD_GAP : r.bottom + CARD_GAP,
       transform: openAbove ? 'translate(-50%, -100%)' : 'translate(-50%, 0)',
+      // Fixed-position auto width shrinks-to-fit the space right of `left`
+      // BEFORE the -50% transform — an anchor near the right viewport edge
+      // squeezed the card to roughly the anchor's width. max-content keeps
+      // the card at its natural size (the .tooltip max-width still caps it).
+      width: 'max-content',
       zIndex: 9999,
       pointerEvents: 'none',
     })
@@ -84,7 +98,7 @@ export default function TooltipTrigger({ children, tooltipProps = {}, asSpan = f
         <div
           ref={cardRef}
           id={id}
-          style={placed ? style : { position: 'fixed', top: 0, left: 0, visibility: 'hidden', zIndex: 9999 }}
+          style={placed ? style : { position: 'fixed', top: 0, left: 0, width: 'max-content', visibility: 'hidden', zIndex: 9999 }}
         >
           <Tooltip {...tooltipProps} />
         </div>,

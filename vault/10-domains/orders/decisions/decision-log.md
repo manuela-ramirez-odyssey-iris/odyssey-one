@@ -53,6 +53,14 @@ Ramesh also asked (a) whether a **separate grooming session** will be organized,
 - **Code:** OrdersRoute (`/orders` Summary page) — columns, tabs, Filter, Export, Manage Columns, Custom Views, row-action handlers; Create flow Product Information section.
 - **Canon:** [[../requirements-tracker|requirements-tracker]], [[../domain-analysis|domain-analysis]] §5–§8.
 
+### ORD-02 — Every Orders row click opens the Order Summary (Draft detour removed)
+**Decided:** 2026-07-07
+**Previous state:** `OrdersRoute` row click branched on status: `Draft` rows navigated to `/orders/create?draft=<orderNumber>` (spec §4 / plan decision 17 — reopen a session draft in the create form); all other rows opened `/orders/<orderNumber>` (Order Summary). After the S80 data unification, the shared generator seeds `'Draft'` into the unshipped-order status pool (`tools/generate.mjs` `UNSHIPPED_STATUS_POOL`, weight 20/100 ≈ 110 rows), so those generated rows also hit the create-form branch — but `getDraft()` only knows session drafts, so the form opened blank. Users experienced "random" navigation: same click, sometimes summary, sometimes an empty create flow.
+**Decision / Finding:** Row click **always** opens the Order Summary page — every row, Draft included (Manuela, 2026-07-07: "Every row should open order summary when clicked"). The `?draft=` reopen path in `CreateOrderForm` is retained as a documented dev trigger; nothing navigates to it from the grid anymore. Supersedes plan decision 17's row-click detour (draft reopen as a grid behavior); a future explicit "Edit" row action can restore form-editing for drafts.
+**Rationale:** Uniform, predictable navigation; the summary page renders any order (session drafts at full fidelity via `getOrderView`). Companion fix: `getOrderList`'s mock merge now has overlay rows **shadow** base rows sharing an `orderNumber` (previously `[...overlay, ...base]` with no dedupe — a draft saved over a generated row would duplicate it and collide TanStack row ids).
+**Source:** User bug report + repro (S80 wrap → S81 priority 0); root-cause trace this session (generator status pool → `OrdersRoute.jsx` status branch → `getDraft` miss).
+**Affects:** `apps/odyssey-one/src/routes/orders/OrdersRoute.jsx` (onRowClick), `apps/odyssey-one/src/api/services/orderService.ts` (`getOrderList` overlay shadowing), `orderService.test.ts` (+1 shadow test). Stories: LINX-10233 (View Order — the row-click target), LINX-10248 (Edit Order — where draft-reopen semantics move next).
+
 ## TBDs / open items
 
 - **Grooming session** — Ramesh asks whether a separate grooming session will be organized for the gap items. Pending.

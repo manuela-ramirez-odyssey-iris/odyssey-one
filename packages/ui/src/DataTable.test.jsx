@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { getColWidths, getSizesFromState, showResizeGrip, renderCell, cellClassName, headClassName, isInteractiveTarget } from './DataTable.jsx'
+import { getColWidths, getSizesFromState, showResizeGrip, renderCell, cellClassName, headClassName, isInteractiveTarget, resolveCellClick } from './DataTable.jsx'
 
 describe('getColWidths', () => {
   it('takes the per-column max of header vs first-row width and rounds up', () => {
@@ -120,6 +120,59 @@ describe('isInteractiveTarget', () => {
     const [cell, target] = cellWith('<div role="menuitem">View</div>', 'div')
     expect(isInteractiveTarget(target, cell)).toBe(true)
   })
+  it('is true when the DOM target is outside the cell (portaled overlay — React-tree bubbling)', () => {
+    // ActionMenu portals its menu to document.body; the item click bubbles to the
+    // cell through the React tree with a DOM target the cell does not contain.
+    const [cell] = cellWith('<button type="button">⋮</button>')
+    const portaled = document.createElement('div')
+    portaled.innerHTML = '<div role="menuitem">Edit</div>'
+    const target = portaled.querySelector('div')
+    expect(isInteractiveTarget(target, cell)).toBe(true)
+  })
+})
+
+describe('resolveCellClick (whole-cell click delegation — meta.forwardClick)', () => {
+  const cellWith = (html, targetSelector) => {
+    const cell = document.createElement('td')
+    cell.innerHTML = html
+    const target = targetSelector ? cell.querySelector(targetSelector) : cell
+    return [cell, target]
+  }
+
+  it('is "native" when the click lands on the interactive element itself (button handles it)', () => {
+    const [cell, target] = cellWith('<button type="button">⋮</button>', 'button')
+    expect(resolveCellClick(target, cell, true)).toEqual({ type: 'native' })
+  })
+  it('is "native" for out-of-cell DOM targets (portaled ActionMenu items) — the S81 fix must not regress', () => {
+    const [cell] = cellWith('<button type="button">⋮</button>')
+    const portaled = document.createElement('div')
+    portaled.innerHTML = '<div role="menuitem">Edit</div>'
+    expect(resolveCellClick(portaled.querySelector('div'), cell, true)).toEqual({ type: 'native' })
+  })
+  it('is "cell" for a plain cell without forwardClick (fires onCellClick)', () => {
+    const [cell, target] = cellWith('<span>Atlanta</span>', 'span')
+    expect(resolveCellClick(target, cell, false)).toEqual({ type: 'cell' })
+  })
+  it('is "cell" when forwardClick is omitted (default false)', () => {
+    const [cell, target] = cellWith('<span>Atlanta</span>', 'span')
+    expect(resolveCellClick(target, cell)).toEqual({ type: 'cell' })
+  })
+  it('forwards a non-interactive click in a forwardClick cell to the first interactive element', () => {
+    const [cell, target] = cellWith('<span class="pad">pad</span><button type="button">⋮</button>', 'span')
+    const action = resolveCellClick(target, cell, true)
+    expect(action.type).toBe('forward')
+    expect(action.el).toBe(cell.querySelector('button'))
+  })
+  it('forwards a click on the cell element itself (the padding around the trigger)', () => {
+    const [cell, target] = cellWith('<button type="button">⋮</button>') // target = the <td>
+    const action = resolveCellClick(target, cell, true)
+    expect(action.type).toBe('forward')
+    expect(action.el).toBe(cell.querySelector('button'))
+  })
+  it('is "none" for a forwardClick cell with nothing interactive inside (never falls through to onCellClick)', () => {
+    const [cell, target] = cellWith('<span>empty</span>', 'span')
+    expect(resolveCellClick(target, cell, true)).toEqual({ type: 'none' })
+  })
 })
 
 describe('renderCell (inlined flexRender)', () => {
@@ -156,5 +209,9 @@ describe('cellClassName', () => {
   it('uses meta.cellClass when present and adds the sticky-right modifier', () => {
     expect(cellClassName({ cellClass: 'odyssey-table__cell--title text-label-sm-medium' }, true))
       .toBe('odyssey-table__cell--title text-label-sm-medium odyssey-table__cell--sticky-right')
+  })
+  it('adds the forward-click modifier when the column opts into meta.forwardClick (drives cursor:pointer)', () => {
+    expect(cellClassName({ forwardClick: true }, true))
+      .toBe('text-label-sm-regular odyssey-table__cell--sticky-right odyssey-table__cell--forward-click')
   })
 })

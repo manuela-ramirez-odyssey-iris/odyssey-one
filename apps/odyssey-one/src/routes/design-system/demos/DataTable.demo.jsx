@@ -16,7 +16,10 @@ export const meta = {
   createdVersion: '0.3.0',
   codeOnly: true,
   // Code-first (composes Cell + Paginator + ActionMenu — no standalone Figma master).
-  normalizing: false,
+  // S81 mods (approved + ported S81): isInteractiveTarget portal guard (out-of-cell
+  // DOM targets are interactive — React portals bubble synthetic events through the
+  // React tree, double-firing onCellClick) + `meta.forwardClick` whole-cell click
+  // forwarding to the first interactive element (⋮ trigger alone is too small).
 }
 
 export const props = [
@@ -37,6 +40,8 @@ export const tokens = [
 //   cellClass / headClass → Cell contract classes
 //   sticky: 'right'       → pinned action column
 //   fixedWidth: true      → excluded from flex-width distribution (stays snug)
+//   forwardClick: true    → whole-cell click target — non-interactive clicks forward
+//                           to the cell's first interactive element (⋮ trigger)
 
 // Per-table row actions — the option SET is the consumer's (Orders ~3, Shipments ~5).
 const ROW_ACTIONS = ['View', 'Edit', 'Duplicate', 'Delete'].map((label) => ({ label, onSelect: () => {} }))
@@ -87,7 +92,8 @@ const COLUMNS = [
     cell: () => (
       <ActionMenu icon={<EllipsisVertical {...ICON_MD} />} options={ROW_ACTIONS} align="left" ariaLabel="Row actions" />
     ),
-    meta: { sticky: 'right', fixedWidth: true },
+    // forwardClick (S81): clicking anywhere in the cell forwards to the ⋮ trigger.
+    meta: { sticky: 'right', fixedWidth: true, forwardClick: true },
   }),
 ]
 

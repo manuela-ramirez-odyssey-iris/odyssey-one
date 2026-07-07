@@ -44,7 +44,8 @@ const STORE = [
 
 vi.mock('../../data/orders', () => ({ getAllOrders: () => STORE, getOrderEnrichment: () => null }))
 
-import { getOrderList } from './orderService'
+import { getOrderList, saveDraft, __resetOrderWriteState } from './orderService'
+import { orderFormValuesSample } from '../fixtures/orderFormValues.sample'
 
 const page = (pageNumber = 1, pageSize = 20) => ({ pagination: { pageNumber, pageSize } })
 
@@ -121,6 +122,26 @@ describe('orderService.getOrderList (mock)', () => {
       expect(asc.orders[asc.orders.length - 1].orderNumber).toBe('') // pending last
     } finally {
       STORE.pop()
+    }
+  })
+
+  // Overlay rows SHADOW base rows sharing an orderNumber — a session draft
+  // saved over a generated row must replace it in the grid, never duplicate it
+  // (duplicate ids would collide as TanStack row keys).
+  it('overlay rows shadow same-numbered base rows — no duplicates', async () => {
+    __resetOrderWriteState()
+    try {
+      const v = structuredClone(orderFormValuesSample)
+      v.general.orderNumber = 'AAA100001' // same number as a base STORE row
+      await saveDraft(v)
+
+      const list = await getOrderList(page())
+      const matches = list.orders.filter(o => o.orderNumber === 'AAA100001')
+      expect(matches).toHaveLength(1)
+      expect(matches[0].orderStatus).toBe('Draft') // the overlay version won
+      expect(list.pagination.totalCount).toBe(5) // replaced, not appended
+    } finally {
+      __resetOrderWriteState()
     }
   })
 })

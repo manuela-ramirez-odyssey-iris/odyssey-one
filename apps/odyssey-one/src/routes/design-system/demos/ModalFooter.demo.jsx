@@ -4,11 +4,8 @@ import { ModalFooter } from '@odyssey/ui'
 export const meta = {
   name: 'ModalFooter',
   tier: 'molecule',
-  version: '0.5.0',
+  version: '0.7.0', // S80 saveDisabled prop (re-approved + ported S81)
   createdVersion: '0.5.0',
-  // S80 modification — new saveDisabled prop (primary button disabled state,
-  // e.g. empty new preset) — back to NORMALIZING pending re-approval.
-  normalizing: true,
   figmaNode: '3170:3649',
   codeConnect: 'packages/ui/src/ModalFooter.figma.tsx',
 }
@@ -18,6 +15,7 @@ export const props = [
   { name: 'cancelLabel / saveLabel', type: 'string', desc: 'confirm labels (default Cancel / Save).' },
   { name: 'tertiaryLabel', type: 'string', desc: "confirm only: pass it to show a 'Clear all' secondary button beside Save (omit → hidden). No boolean." },
   { name: 'onCancel / onSave / onTertiary', type: '() => void', desc: 'confirm handlers.' },
+  { name: 'saveDisabled', type: 'boolean', desc: 'confirm only: disables the primary Save button (e.g. nothing to save yet). Default false.' },
   { name: 'saveFiltersLabel / clearLabel / resultsLabel', type: 'string', desc: 'filters labels (default Save Filters / Clear all / Show results).' },
   { name: 'onSaveFilters / onClear / onResults', type: '() => void', desc: 'filters handlers.' },
   { name: 'text / linkLabel', type: 'string', desc: 'link helper text + action label (default "Don’t see your address?" / Add manually).' },

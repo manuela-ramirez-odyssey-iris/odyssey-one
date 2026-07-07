@@ -4,6 +4,15 @@
    1070px column of the shared `.order-pane` SubAccordion cards (styles in
    styles/components.css). */
 
+/* Route-entry reveal — the page slides in from the right with a fade on
+   mount (row click from the grid OR create-flow confirmation both mount this
+   container, so one keyframe covers both). Same ease-out-expo curve as the
+   drawer slide-in so lateral motion feels consistent across the app. */
+@keyframes order-summary-in {
+  from { transform: translateX(var(--spacing-8)); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
 /* Full-bleed under AppShell main's 32px padding so the info band spans
    edge-to-edge like the mock. */
 .order-summary-page {
@@ -11,6 +20,11 @@
   flex-direction: column;
   flex: 1;
   margin: calc(-1 * var(--spacing-8)) calc(-1 * var(--spacing-8)) 0;
+  animation: order-summary-in var(--transition-drawer) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .order-summary-page { animation: none; }
 }
 
 /* Breadcrumb row — 48px left inset from the sidebar edge per the mock

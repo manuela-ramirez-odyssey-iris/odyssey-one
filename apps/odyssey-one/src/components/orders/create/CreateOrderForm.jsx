@@ -7,7 +7,7 @@ import { ListChevronsUpDown, ListChevronsDownUp } from 'lucide-react'
 import { useCreateOrderMode } from '../../../contexts/CreateOrderModeContext.jsx'
 import { useCreateOrder } from '../../../api/queries/useCreateOrder'
 import { useSaveDraft } from '../../../api/queries/useSaveDraft'
-import { getDraft } from '../../../api/services/orderService'
+import { getDraft, getOrderView } from '../../../api/services/orderService'
 import { makeDefaultOrderFormValues } from '../../../api/types/orderFormVm'
 import { createOrderSchema, saveGateSchema } from './schema'
 import { useSectionStatus } from './useSectionStatus.js'
@@ -62,13 +62,24 @@ export default function CreateOrderForm({ draftKey, onSubmitted }) {
   }, [])
 
   // ── Draft reopen (spec §4): /orders/create?draft=<orderNumber> ──
+  // Session drafts resolve at full fidelity via getDraft. Any other order (a
+  // generated or pending grid row — the grid's Edit action) falls back to
+  // getOrderView. draftId stays null on the fallback: the first Save Draft
+  // mints a session draft, and getOrderList's overlay shadowing replaces the
+  // base row instead of duplicating it.
   useEffect(() => {
     if (!draftKey) return
     let cancelled = false
     getDraft(draftKey).then((draft) => {
-      if (cancelled || !draft) return
-      reset(draft.values)
-      setDraftId(draft.draftId)
+      if (cancelled) return
+      if (draft) {
+        reset(draft.values)
+        setDraftId(draft.draftId)
+        return
+      }
+      return getOrderView(draftKey).then((values) => {
+        if (!cancelled && values) reset(values)
+      })
     })
     return () => { cancelled = true }
   }, [draftKey, reset])

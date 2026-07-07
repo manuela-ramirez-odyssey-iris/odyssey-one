@@ -4,15 +4,10 @@ import { FilterSuggestions } from '@odyssey/ui'
 export const meta = {
   name: 'FilterSuggestions',
   tier: 'molecule',
-  version: '0.2.0',
+  version: '0.7.0', // S80 optional combobox wiring (re-approved + ported S81)
   createdVersion: '0.2.0',
   figmaNode: '2400:2',
   codeConnect: 'packages/ui/src/FilterSuggestions.figma.tsx',
-  // S80 behavior additions — back to NORMALIZING pending re-approval: optional
-  // combobox wiring (`optionId` + `activeIndex` props → role="option" chips,
-  // aria-selected, `.is-active` keyboard highlight mirroring hover). Angular
-  // twin needs the same at next port.
-  normalizing: true,
 }
 
 export const props = [

@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { ArrowUpDown, Upload } from 'lucide-react'
 import TooltipTrigger from '../ui/TooltipTrigger'
 import { Button, ModalMedium } from '@odyssey/ui'
@@ -50,15 +51,17 @@ const TableControls = React.memo(function TableControls({
           />
           <TooltipTrigger tooltipProps={{ groups: [{ content: 'Only the first 10,000 records will be exported to Excel' }] }}>
             {/* Nothing to export at 0 results — keep the control visible but inert */}
-            <Button variant="secondary" icon={<Upload size={20} />} disabled={itemCount === 0} onClick={() => setExportModalOpen(true)}>
+            <Button variant="secondary" size="sm" icon={<Upload size={20} />} disabled={itemCount === 0} onClick={() => setExportModalOpen(true)}>
               Export
             </Button>
           </TooltipTrigger>
         </div>
       </div>
 
-      {/* Export modal */}
-      {exportModalOpen && (
+      {/* Export modal — portaled to <body>: rendered in place it sits inside the
+          sticky toolbar's stacking context, so its fixed overlay paints UNDER the
+          navbar/sidebar. From <body> the z-200 overlay dims the whole viewport. */}
+      {exportModalOpen && createPortal(
         <ModalMedium
           title="Export to CSV"
           onClose={() => setExportModalOpen(false)}
@@ -92,7 +95,8 @@ const TableControls = React.memo(function TableControls({
               ? 'Choose which columns to include in the export. Only the first 10,000 records will be exported.'
               : `${itemCount.toLocaleString()} records will be exported, choose which columns to include in the export.`}
           </p>
-        </ModalMedium>
+        </ModalMedium>,
+        document.body,
       )}
     </div>
   )

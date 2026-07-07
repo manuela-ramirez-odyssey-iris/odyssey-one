@@ -6,12 +6,8 @@ import { ICON_LG } from '@odyssey/tokens'
 export const meta = {
   name: 'RightPanel',
   tier: 'organism',
-  version: '0.5.0',
+  version: '0.7.0', // S80 veil removal + saveDisabled (re-approved + ported S81)
   createdVersion: '0.5.0',
-  // S80 modification — editingTitle content veil REMOVED (blocked editing in
-  // consumers that auto-activate the title edit, e.g. ColumnPanel New Preset);
-  // saveDisabled pass-through added — back to NORMALIZING pending re-approval.
-  normalizing: true,
   figmaNode: '3449:10701',
   codeConnect: 'packages/ui/src/RightPanel.figma.tsx',
 }
@@ -34,6 +30,7 @@ export const props = [
   { name: 'onSave', type: '() => void', desc: 'Footer Save pressed.' },
   { name: 'cancelLabel', type: 'string', desc: "Footer Cancel label. Default 'Cancel'." },
   { name: 'saveLabel', type: 'string', desc: "Footer Save label. Default 'Save'." },
+  { name: 'saveDisabled', type: 'boolean', desc: 'Disables the footer Save button (passes through to the baked ModalFooter) — e.g. while a new preset has no changes. Default false.' },
   { name: 'children', type: 'ReactNode', desc: 'Content slot. Brings its own padding (the shell adds none).' },
   { name: 'className', type: 'string', desc: 'Extra class(es) on the panel element.' },
   { name: 'ariaLabel', type: 'string', desc: 'Accessible label override. Defaults to title.' },

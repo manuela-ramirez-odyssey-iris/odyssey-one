@@ -273,7 +273,9 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
           ariaLabel="Shipment actions"
         />
       ),
-      meta: { sticky: 'right', fixedWidth: true },
+      // forwardClick: the ⋮ trigger alone is too small a target — clicking anywhere
+      // in the cell forwards to it (DataTable whole-cell click delegation, S81).
+      meta: { sticky: 'right', fixedWidth: true, forwardClick: true },
     })
 
     return [...dataCols, actionColumn]
@@ -367,11 +369,12 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
           table={table}
           // AppShell's <main> has --spacing-8 (32px) padding-top; sticky insets resolve
           // against the content edge, not the viewport edge (S79b header-gap fix).
-          // S79c decision 11: TableControls is a sticky toolbar that occupies 72px
-          // (24px paddingTop / --spacing-6 + 36px controls row + 12px paddingBottom /
-          // --spacing-3 — matching the Orders toolbar breathing-room treatment).
-          // The header must sit below the toolbar: -32px + 72px = +40px.
-          stickyTop="calc(-1 * var(--spacing-8) + 72px)"
+          // S79c decision 11: TableControls is a sticky toolbar (24px paddingTop /
+          // --spacing-6 + controls row + 12px paddingBottom / --spacing-3 — matching
+          // the Orders toolbar breathing-room treatment). S81: the Export button went
+          // md→sm, shrinking the controls row 36px→32px, so the toolbar occupies 68px.
+          // The header must sit below the toolbar: -32px + 68px = +36px.
+          stickyTop="calc(-1 * var(--spacing-8) + 68px)"
           ariaLabel="Shipments"
           onCellClick={handleCellClick}
           footer={<Paginator table={table} pageSizeOptions={[25, 50, 100]} />}

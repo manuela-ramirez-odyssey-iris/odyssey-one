@@ -1,4 +1,4 @@
-import { useLayoutEffect, useState } from 'react'
+import { useLayoutEffect, useMemo, useState } from 'react'
 import { useReactTable, getCoreRowModel, createColumnHelper } from '@tanstack/react-table'
 import { EllipsisVertical } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
@@ -16,13 +16,18 @@ import { Checkbox, DataTable, Paginator, ActionMenu } from '@odyssey/ui'
 
 const columnHelper = createColumnHelper()
 
-// Canonical row actions (spec §2) — inert this build; each wires up with its
-// own feature (detail page, edit, copy, cancel/restore, delete).
-const ORDER_ACTIONS = ['View', 'Edit', 'Copy', 'Cancel', 'Restore', 'Delete'].map(
-  (label) => ({ label, onSelect: () => {} }),
-)
+// Canonical row actions (spec §2). Each selection reports (label, row) to the
+// route via onRowAction — View/Edit navigate today; Copy/Cancel/Restore/Delete
+// stay no-ops there until their features land.
+const ORDER_ACTION_LABELS = ['View', 'Edit', 'Copy', 'Cancel', 'Restore', 'Delete']
 
-const COLUMNS = [
+const buildOrderActions = (row, onRowAction) =>
+  ORDER_ACTION_LABELS.map((label) => ({
+    label,
+    onSelect: () => onRowAction?.(label, row),
+  }))
+
+const DATA_COLUMNS = [
   columnHelper.display({
     id: 'select',
     enableResizing: false, // pinned system column — never resized or reordered
@@ -64,20 +69,6 @@ const COLUMNS = [
   columnHelper.accessor('commodity', { header: 'Commodity' }),
   columnHelper.accessor('equipment', { header: 'Equipment' }),
   columnHelper.accessor('earlyPickup', { header: 'Early Pickup' }),
-  columnHelper.display({
-    id: 'action',
-    enableResizing: false, // pinned system column — never resized or reordered
-    header: 'Action',
-    cell: () => (
-      <ActionMenu
-        icon={<EllipsisVertical {...ICON_MD} />}
-        options={ORDER_ACTIONS}
-        align="right"
-        ariaLabel="Order actions"
-      />
-    ),
-    meta: { sticky: 'right', fixedWidth: true },
-  }),
 ]
 
 export default function OrdersTable({
@@ -88,8 +79,31 @@ export default function OrdersTable({
   onPaginationChange,
   totalCount,
   onRowClick,
+  onRowAction,
 }) {
   const [stickyTop, setStickyTop] = useState(0)
+
+  // The action column needs row context (its options close over the row), so it
+  // is built here rather than at module level (Shipments-style columns memo).
+  const columns = useMemo(() => [
+    ...DATA_COLUMNS,
+    columnHelper.display({
+      id: 'action',
+      enableResizing: false, // pinned system column — never resized or reordered
+      header: 'Action',
+      cell: ({ row }) => (
+        <ActionMenu
+          icon={<EllipsisVertical {...ICON_MD} />}
+          options={buildOrderActions(row.original, onRowAction)}
+          align="right"
+          ariaLabel={`Actions for order ${row.original.idLabel}`}
+        />
+      ),
+      // forwardClick: the ⋮ trigger alone is too small a target — clicking anywhere
+      // in the cell forwards to it (DataTable whole-cell click delegation, S81).
+      meta: { sticky: 'right', fixedWidth: true, forwardClick: true },
+    }),
+  ], [onRowAction])
 
   // Anchor line = the stuck toolbar's bottom edge: its sticky `top` is negative
   // (scrolls partially away), so stuck bottom = height + top.
@@ -105,7 +119,7 @@ export default function OrdersTable({
 
   const table = useReactTable({
     data: rows,
-    columns: COLUMNS,
+    columns,
     state: { rowSelection, pagination },
     onRowSelectionChange,
     onPaginationChange,

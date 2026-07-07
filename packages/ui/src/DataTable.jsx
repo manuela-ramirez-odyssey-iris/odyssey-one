@@ -13,8 +13,12 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
  *
  * Opt-in extensibility (per-table): column RESIZE (the consumer turns on
  * `enableColumnResizing` on the table → grips render on resizable columns; pinned system
- * columns like select/action set `enableResizing:false` and never get one) and per-cell
- * CLICK (`onCellClick(cell,row)`, suppressed on interactive cells). Reorder + column
+ * columns like select/action set `enableResizing:false` and never get one), per-cell
+ * CLICK (`onCellClick(cell,row)`, suppressed on interactive cells), and per-column
+ * WHOLE-CELL CLICK FORWARDING (`meta.forwardClick: true` — a click on the non-interactive
+ * part of the cell is forwarded to the first interactive element inside it, e.g. the ⋮
+ * ActionMenu trigger, instead of firing onCellClick; the whole cell becomes the tap
+ * target and shows `cursor: pointer` even when the table has no onCellClick). Reorder + column
  * visibility are reflected automatically (the shell renders from the table's
  * visible/ordered columns); the driver UI is a separate RightPanel — and it should touch
  * DATA columns only (the select + action columns stay pinned).
@@ -29,8 +33,33 @@ const INTERACTIVE_SELECTOR =
 /** True when a cell click originated inside an interactive/clickable element within the cell. */
 export function isInteractiveTarget(target, cellEl) {
   if (!(target instanceof Element) || !cellEl) return false
+  // React portals bubble synthetic events through the REACT tree, so a click on
+  // portaled overlay content (e.g. an ActionMenu item rendered into document.body)
+  // reaches the cell's onClick with a DOM target outside the cell. That is never
+  // a cell click — without this guard it double-fires alongside the menu action.
+  if (!cellEl.contains(target)) return true
   const hit = target.closest(INTERACTIVE_SELECTOR)
   return hit != null && cellEl.contains(hit)
+}
+
+/**
+ * Decide what a cell click does. Pure decision logic for the <td> onClick:
+ *   - 'native'  → the click landed on (or bubbled from) an interactive element —
+ *                 do nothing, the element handles it itself (isInteractiveTarget path).
+ *   - 'forward' → non-interactive part of a `meta.forwardClick` cell — forward to the
+ *                 first interactive element inside the cell (`el.click()`), making the
+ *                 whole cell the tap target (the ⋮ alone is too small).
+ *   - 'cell'    → plain cell click → fire onCellClick(cell, row).
+ *   - 'none'    → forwardClick cell with nothing interactive inside — swallow (a
+ *                 forwardClick cell never falls through to onCellClick).
+ */
+export function resolveCellClick(target, cellEl, forwardClick = false) {
+  if (isInteractiveTarget(target, cellEl)) return { type: 'native' }
+  if (forwardClick) {
+    const el = cellEl?.querySelector(INTERACTIVE_SELECTOR)
+    return el ? { type: 'forward', el } : { type: 'none' }
+  }
+  return { type: 'cell' }
 }
 
 /**
@@ -100,11 +129,14 @@ export function headClassName(meta, isStickyRight) {
 
 /** `<td>` classes: `meta.cellClass` REPLACES the `text-label-sm-regular` default
  *  entirely (a Title cell passes `'odyssey-table__cell--title text-label-sm-medium'`);
- *  `odyssey-table__cell--sticky-right` when the column is pinned right. */
+ *  `odyssey-table__cell--sticky-right` when the column is pinned right;
+ *  `odyssey-table__cell--forward-click` when the column opts into whole-cell click
+ *  forwarding (drives the pointer cursor independently of onCellClick). */
 export function cellClassName(meta, isStickyRight) {
   return [
     meta?.cellClass ?? 'text-label-sm-regular',
     isStickyRight && 'odyssey-table__cell--sticky-right',
+    meta?.forwardClick && 'odyssey-table__cell--forward-click',
   ].filter(Boolean).join(' ')
 }
 
@@ -231,12 +263,20 @@ export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, onC
                 <tr key={row.id} data-selected={row.getIsSelected() || undefined}>
                   {row.getVisibleCells().map((cell) => {
                     const meta = cell.column.columnDef.meta
+                    const forwardClick = meta?.forwardClick === true
+                    // The handler attaches when the TABLE has onCellClick OR the COLUMN
+                    // opted into forwarding — a forwardClick action column works even on
+                    // tables with no cell-click behavior at all.
                     return (
                       <td
                         key={cell.id}
                         className={cellClassName(meta, meta?.sticky === 'right')}
-                        onClick={onCellClick
-                          ? (e) => { if (!isInteractiveTarget(e.target, e.currentTarget)) onCellClick(cell, row) }
+                        onClick={(onCellClick || forwardClick)
+                          ? (e) => {
+                              const action = resolveCellClick(e.target, e.currentTarget, forwardClick)
+                              if (action.type === 'forward') action.el.click()
+                              else if (action.type === 'cell') onCellClick?.(cell, row)
+                            }
                           : undefined}
                       >
                         {renderCell(cell.column.columnDef.cell, cell.getContext())}

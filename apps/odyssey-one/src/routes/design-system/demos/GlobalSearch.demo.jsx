@@ -4,15 +4,10 @@ import { GlobalSearch } from '@odyssey/ui'
 export const meta = {
   name: 'GlobalSearch',
   tier: 'molecule',
-  version: '0.2.0',
+  version: '0.7.0', // S80 combobox keyboard navigation (re-approved + ported S81)
   createdVersion: '0.2.0',
   figmaNode: '658:18',
   codeConnect: 'packages/ui/src/GlobalSearch.figma.tsx',
-  // S80 behavior additions — back to NORMALIZING pending re-approval:
-  // combobox arrow-key navigation of suggestion chips (aria-activedescendant,
-  // input role="combobox", dropdown role="listbox", Enter-on-highlight selects
-  // + stops propagation). Angular twin needs the same at next port.
-  normalizing: true,
 }
 
 export const props = [

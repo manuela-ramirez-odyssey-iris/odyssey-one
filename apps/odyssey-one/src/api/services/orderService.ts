@@ -47,7 +47,14 @@ export async function getOrderList(
     return apiPost<OrderListResponse>('/order-service/v3/order/list', body)
   }
 
-  let rows = [...overlayRows, ...(getAllOrders() as OrderListRow[])]
+  // Overlay rows SHADOW base rows with the same order number (a session draft
+  // saved over a generated Draft row must not duplicate it — duplicate ids
+  // would also collide as TanStack row keys).
+  const overlayNumbers = new Set(overlayRows.map(r => r.orderNumber).filter(Boolean))
+  let rows = [
+    ...overlayRows,
+    ...(getAllOrders() as OrderListRow[]).filter(r => !overlayNumbers.has(r.orderNumber)),
+  ]
 
   if (customerIds) {
     const scope = new Set(customerIds)

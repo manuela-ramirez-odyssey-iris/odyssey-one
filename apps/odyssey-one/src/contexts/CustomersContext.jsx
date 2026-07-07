@@ -73,20 +73,12 @@ export function CustomersProvider({ children }) {
   const toggleFavorite = useCallback((id) => {
     setCustomers((cs) => cs.map((c) => (c.id === id ? { ...c, favorite: !c.favorite } : c)))
   }, [])
-  const toggleSelect = useCallback((id) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-  }, [])
-  const deleteCustomer = useCallback((id) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev)
-      next.delete(id)
-      return next
-    })
+  // Replace the applied selection wholesale. The picker (CustomersModal) stages
+  // its edits locally and only commits here after the user confirms the change —
+  // per-id toggle mutators were removed with the staged-selection rework so the
+  // live scope can never drift mid-edit.
+  const applySelection = useCallback((ids) => {
+    setSelectedIds(new Set(ids))
   }, [])
 
   // The selected customers' shipment-data ids — the first-order scope the grid
@@ -100,7 +92,7 @@ export function CustomersProvider({ children }) {
 
   return (
     <CustomersContext.Provider
-      value={{ customers, selectedIds, selectedDataIds, modalOpen, openModal, closeModal, toggleModal, toggleFavorite, toggleSelect, deleteCustomer }}
+      value={{ customers, selectedIds, selectedDataIds, modalOpen, openModal, closeModal, toggleModal, toggleFavorite, applySelection }}
     >
       {children}
     </CustomersContext.Provider>

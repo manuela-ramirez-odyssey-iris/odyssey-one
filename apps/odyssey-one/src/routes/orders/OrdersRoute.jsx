@@ -94,16 +94,23 @@ export default function OrdersRoute() {
             onPaginationChange={handlePaginationChange}
             totalCount={data.totalCount}
             onRowClick={(row) => {
-              // Full-row click target (Shipments-style). Number-less pending
-              // rows (async create still processing — idLabel '-') open the
-              // summary too, addressed by their synthetic `pending-<orderId>`
-              // key — the page shows the blue processing Alert and '-' for the
-              // number. Draft rows keep the spec §4 behavior — reopen in the
-              // create form (draft key = orderNumber, plan decision 17); every
-              // other row opens the Order Summary page (Figma 4317:20483 —
-              // the shared order-pane card stack under an info band).
-              if (row.status === 'Draft') navigate(`/orders/create?draft=${encodeURIComponent(row.id)}`)
-              else navigate(`/orders/${encodeURIComponent(row.id)}`)
+              // Full-row click target (Shipments-style): EVERY row opens the
+              // Order Summary page (Figma 4317:20483 — the shared order-pane
+              // card stack under an info band), Draft rows included (S81
+              // decision — the old spec-§4 detour to the create form caught
+              // generated Draft-status rows it could never hydrate). Number-less
+              // pending rows (async create still processing — idLabel '-') are
+              // addressed by their synthetic `pending-<orderId>` key — the page
+              // shows the blue processing Alert and '-' for the number.
+              navigate(`/orders/${encodeURIComponent(row.id)}`)
+            }}
+            onRowAction={(action, row) => {
+              // View mirrors the full-row click; Edit reopens the order in the
+              // create flow (?draft hydrates via getDraft, falling back to
+              // getOrderView for non-session rows). Copy/Cancel/Restore/Delete
+              // stay no-ops until their features land.
+              if (action === 'View') navigate(`/orders/${encodeURIComponent(row.id)}`)
+              else if (action === 'Edit') navigate(`/orders/create?draft=${encodeURIComponent(row.id)}`)
             }}
           />
         )}

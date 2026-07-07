@@ -4,7 +4,7 @@ import { PillTab } from '@odyssey/ui'
 export const meta = {
   name: 'PillTab',
   tier: 'atom',
-  version: '0.2.0',
+  version: '0.7.0', // S81 hover fix — inner metric Badge darkens (approved + ported S81)
   createdVersion: '0.2.0',
   figmaNode: '2787:330',
   codeConnect: 'packages/ui/src/PillTab.figma.tsx',
@@ -26,6 +26,7 @@ export const tokens = [
   { token: '--tab-hover-bg', resolves: 'DSN/100', usage: 'unselected hover surface' },
   { token: '--radius-full', resolves: '9999px', usage: 'pill shape' },
   { token: '--badge-gray-bg', resolves: 'DSN/100', usage: 'metric Badge background (from Badge component)' },
+  { token: '--deep-sea-neutral-200', resolves: 'DSN/200', usage: 'metric Badge background on unselected hover (local --badge-gray-bg override)' },
 ]
 
 const TABS_WITH_COUNTS = [
@@ -45,7 +46,10 @@ export default function PillTabDemo() {
       <p style={{ marginTop: 0, color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)' }}>
         Pill-shaped tab with optional metric <code>Badge</code> count. Used for
         the All / Saved filter tabs in GlobalSearchPanel. Hover is CSS-only; only{' '}
-        <code>selected</code> is a prop.
+        <code>selected</code> is a prop. On unselected hover the inner metric
+        Badge darkens one step (DSN/100 → DSN/200 via a local{' '}
+        <code>--badge-gray-bg</code> override) so it stays visible against the
+        hover surface; the selected pill's Badge keeps its default treatment.
       </p>
 
       <div className="ds-demo-section">

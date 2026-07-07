@@ -29,7 +29,7 @@ const SEEDED = [
 
 vi.mock('../../data/orders', () => ({ getAllOrders: () => SEEDED, getOrderEnrichment: () => null }))
 
-import { createOrder, getOrderView, saveDraft, __resetOrderWriteState } from './orderService'
+import { createOrder, getDraft, getOrderView, saveDraft, __resetOrderWriteState } from './orderService'
 import { mapFormToOrderInterface } from '../mappers/mapFormToOrderInterface'
 import { orderFormValuesSample } from '../fixtures/orderFormValues.sample'
 
@@ -73,6 +73,16 @@ describe('orderService.getOrderView (mock)', () => {
     expect(vm!.general.owningOrganizationName).toBe('ERCO Systems Inc')
     expect(vm!.specialServices).toEqual([{ code: 'LFT', description: 'Lift gate' }])
     expect(vm!.products).toHaveLength(2)
+  })
+
+  // The CreateOrderForm draft-reopen fallback contract (grid Edit action):
+  // getDraft only knows session drafts, so a seeded row must miss there but
+  // still hydrate through getOrderView.
+  it('resolves a seeded order that getDraft cannot (the Edit fallback)', async () => {
+    expect(await getDraft('AAA100001')).toBeNull()
+    const vm = await getOrderView('AAA100001')
+    expect(vm).not.toBeNull()
+    expect(vm!.general.orderNumber).toBe('AAA100001')
   })
 
   it('returns a defensive copy of draft values (caller mutation does not leak)', async () => {
