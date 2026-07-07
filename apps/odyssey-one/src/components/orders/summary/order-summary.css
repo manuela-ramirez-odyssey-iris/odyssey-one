@@ -1,0 +1,70 @@
+/* Order Summary page (Figma 4317:20483) — app-local styles.
+   Structure: breadcrumb row on the page bg → full-bleed DSN/100 info band
+   (Order Number · Order Date · Shipment Mode · Payment terms) → centered
+   1070px column of the shared `.order-pane` SubAccordion cards (styles in
+   styles/components.css). */
+
+/* Full-bleed under AppShell main's 32px padding so the info band spans
+   edge-to-edge like the mock. */
+.order-summary-page {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  margin: calc(-1 * var(--spacing-8)) calc(-1 * var(--spacing-8)) 0;
+}
+
+/* Breadcrumb row — 48px left inset from the sidebar edge per the mock
+   (4317:20812: crumbs at x 48 inside the 32px-tall row). */
+.order-summary__crumbs {
+  display: flex;
+  align-items: center;
+  padding: var(--spacing-2) var(--spacing-12);
+}
+
+/* Info band (mock: DSN/100 strip under the breadcrumb, KVs on the same
+   1070px column as the cards). */
+.order-summary__band {
+  background: var(--bg-tertiary);
+  padding: var(--spacing-6);
+}
+/* Alert slot (create-flow confirmation only) — the mock places the
+   success/info Alert inside the grey band, above the KV strip, on the same
+   1070px column as the cards. */
+.order-summary__alert {
+  max-width: 1070px;
+  margin-inline: auto;
+  width: 100%;
+  margin-bottom: var(--spacing-6);
+}
+.order-summary__strip {
+  max-width: 1070px;
+  margin-inline: auto;
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--spacing-8);
+}
+.order-summary__kv {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+.order-summary__kv-label {
+  color: var(--text-secondary);
+}
+.order-summary__kv-value {
+  font-size: var(--font-size-lg);
+  line-height: var(--line-height-lg);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+}
+
+/* Content column — the mock's 1070px card stack, centered. The stack itself
+   reuses `.order-pane` (gap + scroll headroom parity with the Shipments pane). */
+.order-summary__content {
+  padding: var(--spacing-8) var(--spacing-6) 0;
+}
+.order-summary__col {
+  max-width: 1070px;
+  margin-inline: auto;
+}

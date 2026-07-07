@@ -1,18 +1,28 @@
-/* notes pane — owned by its tab executor (S79b). Layout per vault-sources 2026-07-06-tab-panes mocks. */
+/* notes pane — owned by its tab executor (S79b; restyled S80 per Figma
+   "Notes SubAccordion" 4292:17050, Design System - MCP). */
 
 /* ─── Avatar chip (app-local; normalization candidate) ─────────────────── */
+/* Figma "User Avatar" 4292:17056 — 32px rounded square, radius/lg, DSN/200 */
 .notes-avatar {
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  border-radius: var(--radius-md);          /* rounded square per mock */
+  border-radius: var(--radius-lg);
   background: var(--deep-sea-neutral-200);
-  color: var(--text-secondary);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-bold);
+  color: var(--text-tertiary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
   line-height: 1;
   user-select: none;
+  overflow: hidden;
+}
+
+.notes-avatar--photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 /* ─── Note list ────────────────────────────────────────────────────────── */
@@ -37,12 +47,62 @@
 }
 
 /* ─── Note item ────────────────────────────────────────────────────────── */
+/* Figma "Note" row 4292:17054 — avatar | content column, 12px gap, 24px py */
 .notes-item {
-  padding: var(--spacing-4) 0;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-3);
+  padding: var(--spacing-6) 0;
   position: relative;
 }
 
-/* Own-note: reveal edit/delete toolbar on hover OR any child focus */
+/* First note sits flush under the card header (Figma: first Note pb-only) */
+.notes-list > [role='listitem']:first-child .notes-item {
+  padding-top: 0;
+}
+
+/* Content column: user-info row + body, 8px gap (Figma "Note Content") */
+.notes-item__content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+/* User info row: author + timestamp inline, 8px gap (Figma 4292:17059) */
+.notes-item__meta {
+  display: flex;
+  align-items: baseline;
+  gap: var(--spacing-2);
+  min-width: 0;
+}
+
+.notes-item__author {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-tertiary);
+  line-height: var(--line-height-xs);
+  white-space: nowrap;
+}
+
+.notes-item__date {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-regular);
+  color: var(--text-tertiary);
+  line-height: var(--line-height-xs);
+  white-space: nowrap;
+}
+
+.notes-item__body {
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  line-height: var(--line-height-sm);
+  margin: 0;
+  overflow-wrap: break-word;
+}
+
+/* Own-note actions (Figma hidden "Actions" frame 4292:17063 — hover reveal) */
 .notes-item__actions {
   display: flex;
   align-items: center;
@@ -56,81 +116,25 @@
   opacity: 1;
 }
 
-/* Header row: avatar + meta + actions */
-.notes-item__header {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--spacing-3);
-  margin-bottom: var(--spacing-2);
-}
-
-.notes-item__meta {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-width: 0;
-  gap: 2px;
-}
-
-.notes-item__author {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
-  color: var(--text-primary);
-  line-height: var(--line-height-tight);
-}
-
-.notes-item__date {
-  font-size: var(--font-size-xs);
-  color: var(--text-placeholder);
-  line-height: var(--line-height-tight);
-}
-
-.notes-item__body {
-  font-size: var(--font-size-sm);
-  color: var(--text-secondary);
-  line-height: var(--line-height-base);
-  margin: 0;
-  /* indent to align with author name (avatar width 32 + gap 12 = 44px) */
-  padding-left: calc(32px + var(--spacing-3));
-}
-
-/* ─── Inline edit state (mock 10.1) ───────────────────────────────────── */
-.notes-item--editing {
-  /* no visual change to item container itself */
-}
-
-.notes-item__edit-row {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--spacing-3);
-}
-
-.notes-item__edit-body {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
+/* ─── Inline edit state (Figma 4292:17082) ─────────────────────────────── */
+/* Textarea + Save/Cancel row; 12px gap between them (Figma Note Content) */
+.notes-item--editing .notes-item__content {
   gap: var(--spacing-3);
 }
 
 .notes-item__edit-actions {
   display: flex;
   align-items: center;
-  gap: var(--spacing-2);
+  gap: var(--spacing-3);
 }
 
-/* ─── Composer ─────────────────────────────────────────────────────────── */
+/* ─── Composer (Figma hidden "Container" 4292:17116) ───────────────────── */
 .notes-composer {
   display: flex;
   align-items: flex-start;
   gap: var(--spacing-3);
-  margin-top: var(--spacing-4);
-  padding-top: var(--spacing-4);
+  padding-top: var(--spacing-6);
   border-top: 1px solid var(--border-subtle);
-}
-
-.notes-composer__avatar-col {
-  padding-top: var(--spacing-1); /* optical top-align with textarea */
 }
 
 .notes-composer__body {

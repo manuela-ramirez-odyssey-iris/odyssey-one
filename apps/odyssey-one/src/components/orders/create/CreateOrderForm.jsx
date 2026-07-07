@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { FormProvider, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Accordion, Alert, Button, PageHeader } from '@odyssey/ui'
+import { Accordion, Alert, Breadcrumb, Button, PageHeader } from '@odyssey/ui'
 import { ListChevronsUpDown, ListChevronsDownUp } from 'lucide-react'
 import { useCreateOrderMode } from '../../../contexts/CreateOrderModeContext.jsx'
 import { useCreateOrder } from '../../../api/queries/useCreateOrder'
@@ -176,10 +176,9 @@ export default function CreateOrderForm({ draftKey, onSubmitted }) {
   return (
     <FormProvider {...methods}>
       <div className="co-content">
-        <nav className="co-breadcrumb text-label-sm-regular" aria-label="Breadcrumb">
-          <Link to="/orders">Orders</Link>
-          <span aria-hidden="true">›</span>
-          <span>Create new order</span>
+        <nav className="co-breadcrumb" aria-label="Breadcrumb">
+          <Breadcrumb label="Orders" onClick={() => navigate('/orders')} />
+          <Breadcrumb label="Create new order" current />
         </nav>
 
         <PageHeader title="Create New Order">

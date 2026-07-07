@@ -1,8 +1,60 @@
+// tools/generate.mjs — the SINGLE seeded generator for the Shipments AND Orders
+// mock datasets. Orders are not a parallel universe: every order carried by a
+// shipment (detail orderList / stops / cost allocation) is ALSO a row in
+// src/data/orders.json with the same orderNumber, customer and facts, plus a
+// tail of not-yet-shipped orders that exist only on the Orders side.
+//
+// ── Orders ↔ Shipments correlation invariants ──────────────────────────────
+//  I1 Identity   — every orderId inside a shipment detail appears EXACTLY once
+//                  in orders.json as orderNumber (globally unique, customer-
+//                  prefixed sequence: "KEM100042").
+//  I2 Customer   — order.customer === shipment.customerId === detail
+//                  orderList[].customerId. A shipment never carries another
+//                  customer's orders.
+//  I3 Locations  — order.consignor = the pickup stop the order is assigned to;
+//                  order.consignee = the shipment's delivery stop (same
+//                  facility/city/state/zip + shared locationIdFor id).
+//  I4 Dates      — earliestPickup ≤ shipment pickup ≤ latestPickup <
+//                  earliestDelivery ≤ shipment delivery ≤ latestDelivery; the
+//                  detail's scheduled/requested dates render the SAME instants.
+//  I5 Weights    — order gross/tare/net/volume ROLL UP from its lines; stop
+//                  weight = Σ of its orders; shipment grossWeight = Σ orders.
+//  I6 Status     — shipped orders derive status from the tender outcome
+//                  (Accepted→Shipment Planned, Sent→Load Planned, exceptions→
+//                  Shipment Failed); unshipped orders keep pre-plan statuses
+//                  (Ready For Plan / Draft / Planning Failed / Cancelled).
+//  I7 Commodity  — order row commodity = first order line's description;
+//                  equipment = the detail order header's equipmentCode.
+//  I8 Enrichment — src/data/order-details.json holds ManualOrder-shaped detail
+//                  (lines, instructions, services, contacts, references) for a
+//                  subset of orders; its line sums equal the row totals and its
+//                  instruction/service content equals the shipment detail's.
+//  I9 Pending    — a few Orders-only rows have NO orderNumber yet (async
+//                  create still processing): orderNumber '' + numeric orderId;
+//                  they can never appear on a shipment.
 import { faker } from '@faker-js/faker';
 import { writeFileSync, mkdirSync, existsSync, readdirSync, unlinkSync } from 'fs';
-import { CUSTOMERS, LOCATIONS, EQUIPMENT_CODES, CHEMICAL_PRODUCTS } from './data-pools.mjs'
+import { CUSTOMERS, LOCATIONS, EQUIPMENT_CODES, CHEMICAL_PRODUCTS, locationIdFor } from './data-pools.mjs'
 
 faker.seed(42);
+
+// ── Orders accumulator (I1) ──────────────────────────────────────────────────
+// Globally unique customer-prefixed order numbers, shared by shipped and
+// unshipped orders so "orderNumber desc" stays a sane newest-first proxy.
+let orderSeq = 0;
+function genOrderNumber(customer) {
+  const prefix = customer.id.replace(/[^A-Z]/g, '').slice(0, 3).padEnd(3, 'X');
+  return `${prefix}${100000 + orderSeq++}`;
+}
+const orderRows = [];        // → src/data/orders.json  (OrderListRow shape)
+const orderEnrichments = {}; // → src/data/order-details.json (partial ManualOrder by orderNumber)
+
+// Local-naive ISO ("2026-06-15T08:00:00") — the LLD datetime shape; list/view
+// mappers string-slice it, so no timezone shifting.
+function toIsoLocal(d) {
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}:00`;
+}
 
 const usedSellShipments = new Set();
 function genUniqueSellShipment() {
@@ -34,7 +86,9 @@ const ROUTING_APIS = ['API', 'EDI', 'Email', 'Fax'];
 const RESPONSE_METHODS = ['API Update', 'EDI Update', 'Manual Update', 'Automatic Update'];
 const ROUTE_GROUPS = ['Primary', 'Backup', 'Spot'];
 const PACKAGE_TYPES = ['Boxes', 'Pallets', 'Bags', 'Drums', 'Totes', 'Crates'];
-const PAYMENT_TERMS = ['Prepaid', 'Collect', 'Third Party'];
+// Unified freight-term vocabulary — same labels the Orders LLD rows and the
+// create-order form use, so shipment detail and order rows agree verbatim.
+const PAYMENT_TERMS = ['Pre-Paid', 'Collect', 'Third Party'];
 const SHIP_DIRECTIONS = ['Outbound', 'Inbound'];
 const HAZMAT_CLASSES = ['Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 8', 'Class 9'];
 const HAZMAT_GROUPS = ['I', 'II', 'III'];
@@ -98,12 +152,15 @@ const INSTRUCTION_TEMPLATES = [
   { type: 'ZD02', text: 'CUSTOMS: Export documentation required. EEI filing mandatory for shipments over $2,500. ECCN classification: {eccn}.' },
 ];
 
+// avatarUrl: stable per-author dummy portrait (randomuser.me static CDN — deterministic,
+// no runtime API call beyond the image fetch). Amy Cook's URL is mirrored by
+// CURRENT_USER_AVATAR in src/components/detail/NotesTab.jsx — keep in sync.
 const NOTE_AUTHORS = [
-  { name: 'Amy Cook', initials: 'AC', css: '' },
-  { name: 'Jana Dharma', initials: 'JD', css: 'jd' },
-  { name: 'Lucas Smith', initials: 'LS', css: 'ls' },
-  { name: 'David Chen', initials: 'DC', css: 'jd' },
-  { name: 'Sarah Kim', initials: 'SK', css: 'ls' },
+  { name: 'Amy Cook', initials: 'AC', css: '', avatarUrl: 'https://randomuser.me/api/portraits/women/44.jpg' },
+  { name: 'Jana Dharma', initials: 'JD', css: 'jd', avatarUrl: 'https://randomuser.me/api/portraits/women/68.jpg' },
+  { name: 'Lucas Smith', initials: 'LS', css: 'ls', avatarUrl: 'https://randomuser.me/api/portraits/men/32.jpg' },
+  { name: 'David Chen', initials: 'DC', css: 'jd', avatarUrl: 'https://randomuser.me/api/portraits/men/75.jpg' },
+  { name: 'Sarah Kim', initials: 'SK', css: 'ls', avatarUrl: 'https://randomuser.me/api/portraits/women/17.jpg' },
 ];
 
 const NOTE_TEMPLATES = [
@@ -131,14 +188,6 @@ function fmtInt(n) { return n.toLocaleString('en-US'); }
 function genShipmentId(prefix, i) {
   const num = faker.number.int({ min: 10000000, max: 99999999 });
   return `SHP-${prefix}${num}`;
-}
-
-function genOrderId() {
-  // CSV example: JAN6ERCO6 — 3 letters + digit + 4 letters + digit (no prefix).
-  const L = () => 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[faker.number.int({ min: 0, max: 25 })];
-  const letters = (n) => Array.from({ length: n }, L).join('');
-  const d = () => faker.number.int({ min: 0, max: 9 });
-  return `${letters(3)}${d()}${letters(4)}${d()}`;
 }
 
 function genLoadId() {
@@ -233,15 +282,26 @@ function generateShipment(index) {
   baseDate.setHours(faker.number.int({ min: 6, max: 16 }), pick([0, 30]), 0, 0);
   const transitDays = faker.number.int({ min: 1, max: 7 });
   const deliveryDate = genDate(baseDate, transitDays);
-  const grossWeight = faker.number.int({ min: 2000, max: 45000 });
+  // Shared per-shipment facts the order rows must agree with (I2)
+  const shipDirection = pick(SHIP_DIRECTIONS);
+  const freightTerms = pick(PAYMENT_TERMS);
 
-  // Orders (1-4 per shipment)
-  const orderCount = faker.number.int({ min: 1, max: 4 });
+  // Orders per shipment — business rule: AT MOST 5 orders with a valid id
+  // (the badge palette and order tabs assume this cap). The cap is NOT the
+  // norm: real freight skews to single-order shipments, consolidations taper
+  // off — weighted 1:45% · 2:25% · 3:15% · 4:10% · 5:5%.
+  const orderCount = faker.helpers.weightedArrayElement([
+    { value: 1, weight: 45 },
+    { value: 2, weight: 25 },
+    { value: 3, weight: 15 },
+    { value: 4, weight: 10 },
+    { value: 5, weight: 5 },
+  ]);
   const orders = [];
   const packageType = pick(PACKAGE_TYPES); // consistent per shipment
 
   for (let o = 0; o < orderCount; o++) {
-    const orderId = genOrderId();
+    const orderId = genOrderNumber(customer); // I1 — globally unique, customer-prefixed
     const lineCount = faker.number.int({ min: 1, max: 3 });
     const lines = [];
 
@@ -292,20 +352,35 @@ function generateShipment(index) {
       });
     }
 
-    orders.push({ orderId, lineCount, lines });
+    // I5 — order totals ROLL UP from the lines (never independent randoms)
+    const orderGross = lines.reduce((s, l) => s + l.grossWeightValue, 0);
+    const orderTare = lines.reduce((s, l) => s + l.tareWeightValue, 0);
+    const orderVolume = lines.reduce((s, l) => s + l.volumeValue, 0);
+    const orderPackages = lines.reduce((s, l) => s + l.packageCount, 0);
+    orders.push({ orderId, lineCount, lines, orderGross, orderTare, orderVolume, orderPackages });
   }
+
+  // I5 — shipment gross weight = Σ of its orders' gross weights
+  const grossWeight = orders.reduce((s, o) => s + o.orderGross, 0);
+  const totalVolume = orders.reduce((s, o) => s + o.orderVolume, 0);
 
   // Stops
   // TL can have multi-stop; LTL, RR, IMD, AIR are always 1 pickup + 1 delivery (2 stops total)
-  const pickupStopCount = mode === 'TL' ? faker.number.int({ min: 1, max: 2 }) : 1;
+  const pickupStopCount = Math.min(orders.length, mode === 'TL' ? faker.number.int({ min: 1, max: 2 }) : 1);
+  // I3 — each order is assigned to exactly one pickup stop (contiguous chunks)
+  const chunkSize = Math.ceil(orders.length / pickupStopCount);
+  orders.forEach((o, oi) => { o.pickupStopIdx = Math.min(Math.floor(oi / chunkSize), pickupStopCount - 1); });
+  const stopLocs = [];
   const stops = [];
   for (let s = 0; s < pickupStopCount; s++) {
     const stopLoc = s === 0 ? originLoc : pick(LOCATIONS.filter(l => l.city !== originLoc.city && l.city !== destLoc.city));
+    stopLocs.push(stopLoc);
+    const stopOrders = orders.filter(o => o.pickupStopIdx === s);
     // SellShipmentStop DTO shape — raw fields (the mapper builds location/weight strings)
     stops.push({
       stopSequence: s + 1,
       stopType: 'pickup',
-      orderIds: orders.slice(s, s + Math.ceil(orders.length / pickupStopCount)).map(o => o.orderId),
+      orderIds: stopOrders.map(o => o.orderId),
       facilityName: stopLoc.facility,
       address1: faker.location.streetAddress(),
       city: stopLoc.city,
@@ -314,11 +389,12 @@ function generateShipment(index) {
       country: 'US',
       scheduledDateTime: `${formatDate(baseDate)} ${String(baseDate.getHours()).padStart(2, '0')}:00 CST`,
       appointmentTime: `${String(baseDate.getHours()).padStart(2, '0')}:00 CST`,
-      grossWeightValue: Math.round(grossWeight / pickupStopCount),
+      // I5 — stop weight/volume/packages = Σ of the orders picked up here
+      grossWeightValue: stopOrders.reduce((t, o) => t + o.orderGross, 0),
       grossWeightUomCode: 'LB',
-      volumeValue: faker.number.int({ min: 40, max: 300 }),
+      volumeValue: stopOrders.reduce((t, o) => t + o.orderVolume, 0),
       volumeUomCode: 'cuft',
-      packageCount: faker.number.int({ min: 5, max: 80 }),
+      packageCount: stopOrders.reduce((t, o) => t + o.orderPackages, 0),
       pickupNumber: faker.datatype.boolean() ? `PU-${faker.number.int({ min: 100000, max: 999999 })}` : null,
     });
   }
@@ -336,7 +412,7 @@ function generateShipment(index) {
     appointmentTime: `${String(deliveryDate.getHours()).padStart(2, '0')}:00 CST`,
     grossWeightValue: grossWeight,
     grossWeightUomCode: 'LB',
-    volumeValue: faker.number.int({ min: 40, max: 300 }),
+    volumeValue: totalVolume,
     volumeUomCode: 'cuft',
     packageCount: null,
     pickupNumber: null,
@@ -781,6 +857,7 @@ function generateShipment(index) {
       author: author.name,
       authorInitials: author.initials,
       avatarClass: author.css,
+      avatarUrl: author.avatarUrl,
       date: formatDateTime(noteDate),
       body: fillTemplate(pick(NOTE_TEMPLATES), null),
     });
@@ -790,33 +867,38 @@ function generateShipment(index) {
   // SellShipmentOrder headers — one raw-DTO order header per order (the mapper formats).
   // The Order tab maps at "core fidelity": fields not present here (orderDate, shipmentMode,
   // serviceLevel, salesOrder, etc.) degrade to '--' in the mapper, matching the real contract.
-  const orderHeaders = orders.map((ord, oi) => {
-    // Each order gets its own independent weight values
-    const orderGrossWeight = faker.number.int({ min: 1000, max: 40000 });
-    const orderTareRatio = faker.number.float({ min: 0.08, max: 0.22, fractionDigits: 2 });
-    const orderTareWeight = Math.round(orderGrossWeight * orderTareRatio);
+  const orderHeaders = orders.map((ord) => {
+    // I5 — header weights are the line roll-ups computed above
+    const orderGrossWeight = ord.orderGross;
+    const orderTareWeight = ord.orderTare;
     const orderTotalWeight = orderGrossWeight - orderTareWeight;
-    const orderVolume = faker.number.int({ min: 30, max: 600 });
-    const shipFromLoc = oi === 0 ? originLoc : pick(LOCATIONS.filter(l => l.city !== destLoc.city));
-    const shipToLoc = oi === 0 ? destLoc : pick(LOCATIONS.filter(l => l.city !== shipFromLoc.city));
-    const shipFromCustomer = oi === 0 ? customer : pick(CUSTOMERS);
+    const orderVolume = ord.orderVolume;
+    // I3 — ship-from = the pickup stop this order is assigned to; ship-to =
+    // the shipment's delivery stop. I2 — the order belongs to the shipment's
+    // customer, never a random one.
+    const shipFromLoc = stopLocs[ord.pickupStopIdx];
+    const shipToLoc = destLoc;
+    const shipFromCustomer = customer;
 
-    // Each order gets its own schedule offsets
-    const pickupOffsetDays = faker.number.int({ min: 0, max: 2 });
-    const pickupEarlyHourOffset = faker.number.int({ min: -2, max: 2 });
-    const pickupLateHourOffset = faker.number.int({ min: 1, max: 4 });
-    const deliveryEarlyOffset = faker.number.int({ min: 2, max: 6 });
-    const deliveryLateOffset = faker.number.int({ min: 1, max: 3 });
+    // I4 — pickup window CONTAINS the shipment pickup instant (baseDate);
+    // delivery window CONTAINS the shipment delivery instant (deliveryDate).
+    const orderPickupBase = new Date(baseDate);
+    orderPickupBase.setHours(baseDate.getHours() - faker.number.int({ min: 1, max: 5 }), pick([0, 15, 30, 45]), 0, 0);
+    const orderPickupLate = new Date(baseDate);
+    orderPickupLate.setHours(baseDate.getHours() + faker.number.int({ min: 2, max: 8 }), pick([0, 30]), 0, 0);
 
-    const orderPickupBase = genDate(baseDate, pickupOffsetDays);
-    orderPickupBase.setHours(Math.max(6, Math.min(18, baseDate.getHours() + pickupEarlyHourOffset)), pick([0, 15, 30, 45]), 0, 0);
-    const orderPickupLate = new Date(orderPickupBase);
-    orderPickupLate.setHours(orderPickupBase.getHours() + pickupLateHourOffset);
-
-    const orderDeliveryEarly = genDate(baseDate, deliveryEarlyOffset);
-    orderDeliveryEarly.setHours(faker.number.int({ min: 6, max: 16 }), pick([0, 15, 30, 45]), 0, 0);
-    const orderDeliveryLate = genDate(baseDate, deliveryEarlyOffset + deliveryLateOffset);
-    orderDeliveryLate.setHours(faker.number.int({ min: 8, max: 20 }), pick([0, 15, 30, 45]), 0, 0);
+    const orderDeliveryEarly = new Date(deliveryDate);
+    orderDeliveryEarly.setHours(deliveryDate.getHours() - faker.number.int({ min: 1, max: 4 }), pick([0, 15, 30, 45]), 0, 0);
+    const orderDeliveryLate = new Date(deliveryDate.getTime() + faker.number.int({ min: 4, max: 24 }) * 60 * 60 * 1000);
+    // Stash the window instants for the orders.json row emission (same facts)
+    ord.window = {
+      earliestPickup: orderPickupBase,
+      latestPickup: orderPickupLate,
+      earliestDelivery: orderDeliveryEarly,
+      latestDelivery: orderDeliveryLate,
+    };
+    ord.shipFromLocIdx = LOCATIONS.indexOf(shipFromLoc);
+    ord.shipToLocIdx = LOCATIONS.indexOf(shipToLoc);
 
     // New order-level fields (decision 11 / W1-B)
     const orderEquipCode = pick(ORDER_EQUIPMENT_CODES);
@@ -847,7 +929,7 @@ function generateShipment(index) {
       specialServices: orderSpecialServices,
       poNumber: `PO-${faker.number.int({ min: 100000, max: 999999 })}`,
       bolNo: `BOL-${faker.number.int({ min: 100000, max: 999999 })}`,
-      shipDirectionCode: pick(['O', 'I']),
+      shipDirectionCode: shipDirection === 'Outbound' ? 'O' : 'I', // I2 — matches the shipment + order row
       origin: {
         externalIdentifier: shipFromLoc.facility,
         fullName: shipFromCustomer.name,
@@ -937,14 +1019,14 @@ function generateShipment(index) {
     shipmentType: 'sell',
     customerId: customer.id,
     customerName: customer.name,
-    shipDirection: pick(SHIP_DIRECTIONS),
-    freightTerms: pick(PAYMENT_TERMS),
+    shipDirection,
+    freightTerms,
     incotermInfo: pick(['FOB', 'CIF', 'EXW', 'DDP', 'FCA']),
     numberOfStops: stops.length,
     pgiFlag: faker.datatype.boolean(),
     ratingStatus: pick(['Rated', 'Not Rated', 'Pending']),
     distanceMiles: parseFloat(distance.toFixed(2)),
-    totalVolumeValue: faker.number.int({ min: 50, max: 500 }),
+    totalVolumeValue: totalVolume, // I5 — Σ order volumes
     totalVolumeUomCode: 'cuft',
     acceptedCarrierLabel: acceptedOption ? `${acceptedOption.scac} - ${mode}` : `${carrier.scac} - ${mode}`,
     seedEquipment: equipmentCode,
@@ -967,7 +1049,122 @@ function generateShipment(index) {
     historyList: historyEntries,
   };
 
+  // ── Orders-side emission (I1–I8): every order this shipment carries becomes
+  // an orders.json row with the SAME id, customer, locations, dates, weights.
+  const orderStatusLabel = hasAccepted ? 'Shipment Planned' : hasSent ? 'Load Planned' : 'Shipment Failed'; // I6
+  orders.forEach((ord, oi) => {
+    const h = orderHeaders[oi];
+    const w = ord.window;
+    const from = LOCATIONS[ord.shipFromLocIdx];
+    const to = LOCATIONS[ord.shipToLocIdx];
+    orderRows.push({
+      orderNumber: ord.orderId,
+      orderSource: faker.number.float({ min: 0, max: 1 }) < 0.85 ? 'INTEGRATED' : 'MANUAL',
+      customer: customer.id, // I2
+      shipDirection,
+      freightTerms,
+      equipment: h.equipmentCode, // I7
+      consignor: {
+        locationId: locationIdFor(from, ord.shipFromLocIdx),
+        city: from.city, state: from.state, country: 'US',
+        earliestPickupDateTime: toIsoLocal(w.earliestPickup),
+        latestPickupDateTime: toIsoLocal(w.latestPickup),
+      },
+      consignee: {
+        locationId: locationIdFor(to, ord.shipToLocIdx),
+        city: to.city, state: to.state, country: 'US',
+        earliestDeliveryDateTime: toIsoLocal(w.earliestDelivery),
+        latestDeliveryDateTime: toIsoLocal(w.latestDelivery),
+      },
+      grossWeight: { value: ord.orderGross, uom: 'lbs' }, // I5
+      volume: { value: ord.orderVolume, uom: 'cbf' },
+      commodity: ord.lines[0].itemDescription, // I7
+      orderStatus: orderStatusLabel,
+    });
+    // I8 — a subset of shipped orders gets full ManualOrder enrichment so the
+    // Order Summary shows the SAME lines/instructions/services as the shipment
+    // detail; the rest resolve through the lean row (consistent aggregates).
+    if (faker.number.float({ min: 0, max: 1 }) < 0.25) {
+      orderEnrichments[ord.orderId] = buildOrderEnrichment({
+        orderNumber: ord.orderId,
+        customer, freightTerms, shipDirection,
+        header: h, lines: ord.lines, window: w,
+        instructionList: instrOrders[oi].instructionList,
+        fromIdx: ord.shipFromLocIdx, toIdx: ord.shipToLocIdx,
+      });
+    }
+  });
+
   return { mainRow, detail };
+}
+
+// ManualOrder-shaped enrichment (the /order/view DTO subset) derived from the
+// SAME header/lines/instructions objects the shipment detail embeds (I8).
+function buildOrderEnrichment({ orderNumber, customer, freightTerms, shipDirection, header, lines, window: w, instructionList, fromIdx, toIdx }) {
+  const from = LOCATIONS[fromIdx];
+  const to = LOCATIONS[toIdx];
+  return {
+    orderNumber,
+    customerId: customer.id,
+    freightTermCode: freightTerms,
+    shipDirectionCode: shipDirection,
+    pickupNumber: header.pickupNumber ?? undefined,
+    poNumber: header.poNumber ?? undefined,
+    requestedDateType: 'SHIP',
+    requestedPickupDate: toIsoLocal(w.earliestPickup), requestedPickupTimeZoneCode: 'CST',
+    pickupAppointment: toIsoLocal(w.latestPickup), pickupAppointmentTimeZoneCode: 'CST',
+    requestedDeliveryDate: toIsoLocal(w.earliestDelivery), requestedDeliveryTimeZoneCode: 'CST',
+    deliveryAppointment: toIsoLocal(w.latestDelivery), deliveryAppointmentTimeZoneCode: 'CST',
+    equipmentNumber: header.equipmentReferenceNumber ?? undefined,
+    originPartnerId: locationIdFor(from, fromIdx),
+    originFullName: header.origin.fullName,
+    originAddress1: header.origin.address1,
+    originAddress2: header.origin.address2 ?? undefined,
+    originCity: from.city, originRegion: from.state, originPostal: from.zip, originCountry: 'US',
+    originContactName: header.origin.contactName,
+    originPhone: header.origin.phone,
+    originEmail: header.origin.email,
+    destinationPartnerId: locationIdFor(to, toIdx),
+    destinationFullName: header.destination.fullName,
+    destinationAddress1: header.destination.address1,
+    destinationAddress2: header.destination.address2 ?? undefined,
+    destinationCity: to.city, destinationRegion: to.state, destinationPostal: to.zip, destinationCountry: 'US',
+    destinationContactName: header.destination.contactName,
+    destinationPhone: header.destination.phone,
+    destinationEmail: header.destination.email,
+    grossWeightValue: lines.reduce((s, l) => s + l.grossWeightValue, 0),
+    grossWeightUomCode: 'lb',
+    volumeValue: lines.reduce((s, l) => s + l.volumeValue, 0),
+    volumeUomCode: 'cuft',
+    orderCarrierEquipDetailList: [{
+      carrierSequence: 1,
+      equipmentCode: header.equipmentCode,
+      ...(header.customerRequiredCarrier ? { scacCode: header.customerRequiredCarrier } : {}),
+    }],
+    orderLines: lines.map((l, i) => ({
+      lineIdentifier: i + 1,
+      shipItemIdentifier: l.itemCode,
+      productDescription: l.itemDescription,
+      grossWeightValue: l.grossWeightValue,
+      grossWeightUomCode: 'lb',
+      volumeValue: l.volumeValue,
+      volumeUomCode: 'cuft',
+      shipClass: l.productClass,
+    })),
+    orderAccessorialDetails: (header.specialServices ?? []).map((s, i) => ({
+      accessorialCode: s.code,
+      orderAccessorialDetailSequence: i + 1,
+    })),
+    orderInstructionList: instructionList.map((ins) => ({
+      instructionNumber: ins.sequenceNumber,
+      instructionType: '0012',
+      instructionDetail: ins.text,
+    })),
+    userFieldList: [
+      { userfieldType: 'FLAG', name: 'CONSOLIDATABLE', value: header.consolidatable ? 'Y' : 'N' },
+      ...(header.bolNo ? [{ userfieldType: 'REFERENCE', name: 'BOL Number', value: header.bolNo }] : []),
+    ],
+  };
 }
 
 // ============================================================
@@ -1008,12 +1205,12 @@ const CATEGORY_WEIGHTS = {
 };
 
 // ============================================================
-// GENERATE 1000 SHIPMENTS
+// GENERATE SHIPMENTS
 // ============================================================
 
-console.log('Generating 1200 shipments...');
+console.log('Generating 2200 shipments...');
 
-const TOTAL_SHIPMENTS = 1200;
+const TOTAL_SHIPMENTS = 2200;
 const shipments = [];
 const shipmentDetails = {};
 
@@ -1046,7 +1243,170 @@ for (const [id, detail] of Object.entries(shipmentDetails)) {
   writeFileSync(detailsDirPath + id + '.json', JSON.stringify(detail));
 }
 
+// ============================================================
+// UNSHIPPED ORDERS (Orders-side only — I6/I9)
+// ============================================================
+// Orders that exist but are NOT on any shipment yet: awaiting planning, drafts,
+// failures, cancellations, and a few number-less async creations (I9). Facts
+// follow the same invariants (line roll-ups, ordered date windows, shared
+// location ids) so the create-form contract can explain every row.
+
+const shippedOrderCount = orderRows.length;
+// Scaled with TOTAL_SHIPMENTS (~25% of shipments' order volume stays pre-plan)
+// so the status mix reads like a living system at any database size.
+const UNSHIPPED_ORDERS = 550;
+const PENDING_ORDERS = 20; // orderNumber not assigned yet (async create processing)
+
+// Weighted pre-plan statuses (I6) — HOLD is a flag, not a status.
+const UNSHIPPED_STATUS_POOL = [
+  ...Array(50).fill('Ready For Plan'),
+  ...Array(20).fill('Draft'),
+  ...Array(18).fill('Planning Failed'),
+  ...Array(12).fill('Cancelled'),
+];
+
+// Long, MULTILINE-worthy instruction bodies for the rich unshipped orders.
+const LONG_INSTRUCTIONS = [
+  'RECEIVING PROTOCOL:\n1. Check in at the guard shack with BOL and photo ID — no exceptions.\n2. Tarps remain ON until a dock door is assigned by the receiving supervisor.\n3. Hazmat loads stage in the marked lane only; placards verified before unload.\n4. Overages, shortages and damages must be noted on the POD before the driver leaves the yard.',
+  'PLANT SHUTDOWN WINDOW: The Geismar facility is dark June 28 – July 6 for turnaround.\nNo deliveries will be received during that window.\nLoads arriving early must be scheduled through central dispatch at least 48 hours in advance; detention will not be honored for unscheduled arrivals.',
+  'TEMPERATURE LOG REQUIREMENT:\nMaintain product between 40F and 75F for the entire transit.\nRecord readings at pickup, every 4 hours in transit, and at delivery.\nSubmit the complete log with the POD — invoices without a temperature log will be short-paid per the quality agreement.',
+];
+
+function generateUnshippedOrder(n, pending) {
+  const customer = pick(CUSTOMERS);
+  const originIdx = faker.number.int({ min: 0, max: LOCATIONS.length - 1 });
+  let destIdx = faker.number.int({ min: 0, max: LOCATIONS.length - 1 });
+  if (destIdx === originIdx) destIdx = (destIdx + 1) % LOCATIONS.length;
+  const from = LOCATIONS[originIdx];
+  const to = LOCATIONS[destIdx];
+
+  // Lines first; totals roll up (I5 applies Orders-side too)
+  const lineCount = faker.number.int({ min: 1, max: 3 });
+  const lines = [];
+  for (let l = 0; l < lineCount; l++) {
+    const product = pick(CHEMICAL_PRODUCTS);
+    lines.push({
+      itemCode: product.item,
+      itemDescription: product.desc,
+      grossWeightValue: faker.number.int({ min: 1000, max: 15000 }),
+      volumeValue: faker.number.int({ min: 20, max: 200 }),
+      productClass: pick(PRODUCT_CLASSES),
+    });
+  }
+  const gross = lines.reduce((s, l) => s + l.grossWeightValue, 0);
+  const volume = lines.reduce((s, l) => s + l.volumeValue, 0);
+
+  // Future-leaning ordered windows (I4 without a shipment instant)
+  const earliestPickup = faker.date.between({ from: '2026-06-20T06:00:00', to: '2026-09-30T16:00:00' });
+  earliestPickup.setMinutes(pick([0, 30]), 0, 0);
+  const latestPickup = new Date(earliestPickup.getTime() + faker.number.int({ min: 4, max: 48 }) * 60 * 60 * 1000);
+  const earliestDelivery = new Date(latestPickup.getTime() + faker.number.int({ min: 1, max: 5 }) * 24 * 60 * 60 * 1000);
+  const latestDelivery = new Date(earliestDelivery.getTime() + faker.number.int({ min: 4, max: 48 }) * 60 * 60 * 1000);
+
+  const orderNumber = pending ? '' : genOrderNumber(customer);
+  const row = {
+    orderNumber,
+    // Pending rows came through the async manual-create flow (I9)
+    orderSource: pending ? 'MANUAL' : pick(['INTEGRATED', 'INTEGRATED', 'MANUAL']),
+    customer: customer.id,
+    shipDirection: pick(SHIP_DIRECTIONS),
+    freightTerms: pick(PAYMENT_TERMS),
+    equipment: pick(EQUIPMENT_CODES),
+    consignor: {
+      locationId: locationIdFor(from, originIdx),
+      city: from.city, state: from.state, country: 'US',
+      earliestPickupDateTime: toIsoLocal(earliestPickup),
+      latestPickupDateTime: toIsoLocal(latestPickup),
+    },
+    consignee: {
+      locationId: locationIdFor(to, destIdx),
+      city: to.city, state: to.state, country: 'US',
+      earliestDeliveryDateTime: toIsoLocal(earliestDelivery),
+      latestDeliveryDateTime: toIsoLocal(latestDelivery),
+    },
+    grossWeight: { value: gross, uom: 'lbs' },
+    volume: { value: volume, uom: 'cbf' },
+    commodity: lines[0].itemDescription,
+    orderStatus: pending ? 'Ready For Plan' : pick(UNSHIPPED_STATUS_POOL),
+  };
+  if (pending) row.orderId = 91000 + n; // internal id — the only handle a number-less row has
+
+  // ~half of the numbered unshipped orders are RICH: every optional create-form
+  // field populated (references, long multiline instructions, services,
+  // contacts, appointments). The rest stay LEAN — minimum required fields only.
+  if (!pending && faker.number.float({ min: 0, max: 1 }) < 0.5) {
+    const serviceCount = faker.number.int({ min: 1, max: 3 });
+    const instructions = [
+      pick(LONG_INSTRUCTIONS),
+      ...Array.from({ length: faker.number.int({ min: 0, max: 2 }) }, () => fillTemplate(pick(INSTRUCTION_TEMPLATES).text, null)),
+    ];
+    orderEnrichments[orderNumber] = {
+      orderNumber,
+      customerId: customer.id,
+      freightTermCode: row.freightTerms,
+      shipDirectionCode: row.shipDirection,
+      pickupNumber: `PU-${faker.number.int({ min: 100000, max: 999999 })}`,
+      poNumber: `PO-${faker.number.int({ min: 100000, max: 999999 })}`,
+      requestedDateType: 'SHIP',
+      requestedPickupDate: toIsoLocal(earliestPickup), requestedPickupTimeZoneCode: 'CST',
+      pickupAppointment: toIsoLocal(latestPickup), pickupAppointmentTimeZoneCode: 'CST',
+      requestedDeliveryDate: toIsoLocal(earliestDelivery), requestedDeliveryTimeZoneCode: 'CST',
+      deliveryAppointment: toIsoLocal(latestDelivery), deliveryAppointmentTimeZoneCode: 'CST',
+      equipmentNumber: faker.number.float({ min: 0, max: 1 }) < 0.4 ? `TANK-${faker.number.int({ min: 1000, max: 9999 })}` : undefined,
+      originPartnerId: locationIdFor(from, originIdx),
+      originFullName: from.facility,
+      originAddress1: faker.location.streetAddress(),
+      originCity: from.city, originRegion: from.state, originPostal: from.zip, originCountry: 'US',
+      originContactName: faker.person.fullName(),
+      originPhone: faker.phone.number({ style: 'international' }),
+      originEmail: faker.internet.email(),
+      destinationPartnerId: locationIdFor(to, destIdx),
+      destinationFullName: to.facility,
+      destinationAddress1: faker.location.streetAddress(),
+      destinationCity: to.city, destinationRegion: to.state, destinationPostal: to.zip, destinationCountry: 'US',
+      destinationContactName: faker.person.fullName(),
+      destinationPhone: faker.phone.number({ style: 'international' }),
+      destinationEmail: faker.internet.email(),
+      grossWeightValue: gross, grossWeightUomCode: 'lb',
+      volumeValue: volume, volumeUomCode: 'cuft',
+      orderCarrierEquipDetailList: [{
+        carrierSequence: 1,
+        equipmentCode: row.equipment,
+        ...(faker.number.float({ min: 0, max: 1 }) < 0.4 ? { scacCode: pick(CARRIERS).scac } : {}),
+      }],
+      orderLines: lines.map((l, i) => ({
+        lineIdentifier: i + 1,
+        shipItemIdentifier: l.itemCode,
+        productDescription: l.itemDescription,
+        grossWeightValue: l.grossWeightValue,
+        grossWeightUomCode: 'lb',
+        volumeValue: l.volumeValue,
+        volumeUomCode: 'cuft',
+        shipClass: l.productClass,
+      })),
+      orderAccessorialDetails: faker.helpers.arrayElements(SPECIAL_SERVICES_POOL, serviceCount)
+        .map((s, i) => ({ accessorialCode: s.code, orderAccessorialDetailSequence: i + 1 })),
+      orderInstructionList: instructions.map((text, i) => ({
+        instructionNumber: i + 1, instructionType: '0012', instructionDetail: text,
+      })),
+      userFieldList: [
+        { userfieldType: 'FLAG', name: 'CONSOLIDATABLE', value: pick(['Y', 'N']) },
+        { userfieldType: 'REFERENCE', name: 'Sales Order', value: `SO-${faker.number.int({ min: 100000, max: 999999 })}` },
+        { userfieldType: 'REFERENCE', name: 'Delivery Note', value: `DN-${faker.number.int({ min: 100000, max: 999999 })}` },
+      ],
+    };
+  }
+  return row;
+}
+
+for (let n = 0; n < UNSHIPPED_ORDERS; n++) orderRows.push(generateUnshippedOrder(n, false));
+for (let n = 0; n < PENDING_ORDERS; n++) orderRows.push(generateUnshippedOrder(n, true));
+
+writeFileSync(new URL('orders.json', outDir), JSON.stringify(orderRows, null, 1));
+writeFileSync(new URL('order-details.json', outDir), JSON.stringify(orderEnrichments));
+
 console.log(`Done! Generated ${shipments.length} shipments.`);
 console.log(`  shipments.json: ${shipments.length} rows`);
 console.log(`  public/details/: ${Object.keys(shipmentDetails).length} detail files`);
-console.log(`  Total orders: ${shipments.reduce((s, r) => s + r.orders.length, 0)}`);
+console.log(`  orders.json: ${orderRows.length} rows (${shippedOrderCount} shipped + ${UNSHIPPED_ORDERS} unshipped + ${PENDING_ORDERS} pending/number-less)`);
+console.log(`  order-details.json: ${Object.keys(orderEnrichments).length} enriched orders`);

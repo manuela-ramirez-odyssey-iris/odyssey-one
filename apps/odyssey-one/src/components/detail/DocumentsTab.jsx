@@ -1,13 +1,21 @@
 import React, { useState, useCallback, useRef } from 'react'
-import { Download, Trash2, FileText, Sheet, File, EllipsisVertical, Plus } from 'lucide-react'
-import { ICON_MD } from '@odyssey/tokens'
-import { Button, FormField, ModalMedium, Checkbox, ActionMenu } from '@odyssey/ui'
+import { Download, FileText, Sheet, File, EllipsisVertical, Plus } from 'lucide-react'
+import { ICON_MD, ICON_LG } from '@odyssey/tokens'
+import { Button, FormField, ModalMedium, Checkbox, ActionMenu, SubAccordion } from '@odyssey/ui'
 
 const DOC_TYPES = ['BoL', 'MBoL', 'POD', 'SL', 'Packing List', 'Other']
 
 function getFileExtension(fileName) {
   const parts = (fileName || '').split('.')
   return parts.length > 1 ? '.' + parts.pop().toLowerCase() : ''
+}
+
+// Figma 4288:16622 — "12/16/2025 6:48 EST" (no comma, numeric hour)
+function formatCreationTime(iso) {
+  const d = new Date(iso)
+  const date = d.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })
+  const time = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZoneName: 'short' })
+  return `${date} ${time}`
 }
 
 function FileIcon({ extension, size = 48 }) {
@@ -81,19 +89,23 @@ const DocumentsTab = React.memo(function DocumentsTab({ data }) {
   return (
     <div className="pane-canvas">
       <div className="pane-col pane-col--wide">
-        <div className="pane-card">
-          {/* Card header */}
-          <div className="pane-card__header">
-            <h2 className="pane-card__title">All Documents</h2>
+        {/* Static SubAccordion card — header action = primary sm Button
+            (Figma SubAccordion `Show Button`, S80) */}
+        <SubAccordion
+          title="All Documents"
+          showIcon={false}
+          collapsible={false}
+          action={
             <Button
               variant="primary"
+              size="sm"
               icon={<Plus {...ICON_MD} />}
               onClick={() => setShowModal(true)}
             >
               Add Document
             </Button>
-          </div>
-
+          }
+        >
           {/* Table */}
           <div className="docs-table-wrap">
             <table className="docs-table" aria-label="Documents">
@@ -108,7 +120,7 @@ const DocumentsTab = React.memo(function DocumentsTab({ data }) {
                     />
                   </th>
                   <th className="docs-th docs-th--file">File</th>
-                  <th className="docs-th">Creation Time</th>
+                  <th className="docs-th docs-th--time">Creation Time</th>
                   <th className="docs-th docs-th--size">File Size (KB)</th>
                   <th className="docs-th docs-th--action">Action</th>
                 </tr>
@@ -131,20 +143,20 @@ const DocumentsTab = React.memo(function DocumentsTab({ data }) {
                         />
                       </td>
                       <td className="docs-td docs-td--file">
+                        {/* Figma 4288:16618 — single-line file name (label/sm regular);
+                            description surfaced via title tooltip, link opens preview */}
                         <a
                           href="#"
                           className="docs-file-link"
+                          title={doc.description && doc.description !== doc.fileName ? doc.description : undefined}
                           onClick={(e) => { e.preventDefault(); setPreviewDoc(doc) }}
                         >
                           {doc.fileName}
                         </a>
-                        {doc.description && doc.description !== doc.fileName && (
-                          <span className="docs-file-desc">{doc.description}</span>
-                        )}
                       </td>
                       <td className="docs-td docs-td--muted">
                         {doc.createdAt
-                          ? new Date(doc.createdAt).toLocaleString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZoneName: 'short' })
+                          ? formatCreationTime(doc.createdAt)
                           : <span className="docs-dash">—</span>
                         }
                       </td>
@@ -156,7 +168,7 @@ const DocumentsTab = React.memo(function DocumentsTab({ data }) {
                       </td>
                       <td className="docs-td docs-td--action">
                         <ActionMenu
-                          icon={<EllipsisVertical {...ICON_MD} />}
+                          icon={<EllipsisVertical {...ICON_LG} />}
                           ariaLabel="Document actions"
                           align="right"
                           options={[
@@ -179,7 +191,7 @@ const DocumentsTab = React.memo(function DocumentsTab({ data }) {
               </tbody>
             </table>
           </div>
-        </div>
+        </SubAccordion>
       </div>
 
       {/* Preview Modal — mechanics unchanged */}

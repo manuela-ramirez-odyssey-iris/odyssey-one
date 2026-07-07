@@ -34,8 +34,7 @@ export default function ModalHeader({
 }) {
   const titleInputRef = useRef(null)
 
-  // Focus the title input when editing starts (one-shot; the consumer's veil, if any, blocks
-  // content from stealing it).
+  // Focus the title input when editing starts (one-shot).
   useEffect(() => {
     if (editingTitle) titleInputRef.current?.focus()
   }, [editingTitle])

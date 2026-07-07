@@ -9,14 +9,11 @@ import { Paginator } from '@odyssey/ui'
 export const meta = {
   name: 'Paginator',
   tier: 'molecule',
-  version: '0.3.0',
+  version: '0.7.0',
   createdVersion: '0.3.0',
+  normalizing: false,
   figmaNode: '3272:3890',
   codeConnect: 'packages/ui/src/Paginator.figma.tsx',
-  // DEMOTED S79b: restyled per the tab-panes mock (external to the DataTable card, on-canvas,
-  // "Rows per page" label) — Figma master sync pending (Efrain ask); pending re-approval.
-  normalizing: true,
-  approved: true,
 }
 
 export const props = [

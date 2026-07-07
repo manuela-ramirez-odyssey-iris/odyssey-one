@@ -5145,16 +5145,70 @@ DEC-40 through DEC-65+ in `vault/10-domains/shipments/decisions/decision-log.md`
 
 ---
 
+## Session 80 — July 6–8, 2026
+
+**Marathon session: the full S79→0.7.0 release arc (approve → Angular port → PR #11 green), two new library components (StopBadge, Timeline), Stops/Documents/Notes/Orders-sections pane redesigns to fresh Figma mocks, GlobalSearch UX batch, Column Arrangement completion, the Orders row→summary feature, and Orders↔Shipments data unification (single generator, 9 invariants, 2200 shipments). Heavy subagent parallelization throughout.**
+
+### ShipmentsBar tab-content system
+- **Orders info band** (Figma 4270:15081): ShipmentsBarTab dropdown face RETIRED (Figma `State=Selected Dropdown` removed; React + Angular stripped — plain `[{key,label}]` tabs); Orders pane got the route/weight + Expand All row instead. Bands use the mock's **fixed-inset model**: `--shipmentsbar-lead-offset: 168px` aligns band content with the strip's Orders tab (Playwright-measured to sub-pixel).
+- **Official tabs band** (`.pane-tabs-band` + `.pane-band-inner--{wide,medium,narrow}`): white-fade gradient (alpha 0→0.35, read from the real GRADIENT_LINEAR transform), border-subtle rule, applied to Orders/Tender/Cost. Cost tier custom-aligned to the SummaryStrip's first cell (7×152px math). `.pane-col` gained 16px margin-top (all panes); ShipmentsPanelTabs wrapper margin-bottom removed.
+
+### New library components (0.7.0)
+- **StopBadge** (atom, Figma set `4279:5101` — componentized from staging "NewBadge"): 32×20 pill + 10px status circle (completed=CG/600 check, issue=BS/600 "!", pending=outline, NO circle). Bespoke micro-SVG glyphs (lucide degrades at 10px). `Label` TEXT + `Show Status Badge` BOOLEAN in Figma.
+- **Timeline** (molecule, Figma `4280:642`): composes StopBadge over a DSN/100 track with DSN/400 fill; segments derive from adjacent statuses (reached→pending = partial + truck marker). **Mount choreography**: 800ms beats, ease-in-out cubic fills, badges hold pending skin then light up with a 1.15 scale pulse exactly when the line lands, circle fades in, reduced-motion safe.
+- Code Connect published for both + GroupTable (83 mappings) — publish surfaced and repaired the stale SummaryStrip mapping (pre-Cells-set).
+
+### 0.7.0 release arc (Angular `port/s76-search-batch`, PR #11)
+- All NORMALIZING approved → 8-component port batch (StopBadge/Timeline/SummaryStrip/GroupTable new twins; SubAccordion/ShipmentsBar/DataTable/Paginator updates) with section-for-section DSM demo parity; 665 Angular specs.
+- Final approval: versions stamped 0.7.0, CHANGELOG, both DSMs cleared; PR #11 opened. Then unblocked three CI failures: branch behind main (merged), **parity-lint** (wrote the 4 missing `*.figma-link.md` artifacts), explorer-shell specs hardcoding 0.6.0. **PR #11 GREEN — awaits Cognizant review.**
+- Angular parity fixes: Timeline animation dead under emulated encapsulation (`:host(.—animate)` rewrite) + pulse no-op (Angular scopes only the FIRST keyframe name in a shorthand — merged pulse into status keyframes); GroupTable header/footer cells gained `valueCellTemplate`/`footerCellTemplate` (Diff coloring parity, +5 specs).
+
+### Pane redesigns (new Figma mocks, subagents)
+- **Stops** (4273:15227): Timeline-based All Stops card, animated on tab load; both type badges green; field grid unboxed; old rail CSS retired.
+- **Documents** (4288:16605): single-line file cells (desc → tooltip), sm-semibold headers, no-comma timestamps, 20px kebab. Card = **SubAccordion Static + `action`** (new prop; Figma `Show Button` boolean, real ButtonLink + Button Primary/sm instances bound in the master).
+- **Notes** (4292:17050): photo avatars (**generator authors carry stable avatarUrls**, 1200→ regenerated), inline author+timestamp row, hover actions, secondary Cancel.
+- **Orders sections** (4292:17658/17716/17948): TitleSubtitle 4-col grids, ruled sub-blocks, static party columns w/ vertical rule + real Address 1/2 (mapper extended), badge-pair services. Instructions **multiline wrap** fixed (specificity: `.odyssey-table td.order-pane__cell-wrap`).
+
+### GlobalSearch UX batch (GlobalSearch + FilterSuggestions → NORMALIZING)
+Empty input clears glimpse instantly · **free-text Enter renders a query badge** (every committed search is visible; last-chip/badge removal = full clear) · refocus reopens the panel for in-progress text · Enter commits while the panel has focus · **combobox arrow-key navigation** of suggestion chips (aria-activedescendant). +16 tests (jsdom + @testing-library/react added).
+
+### Column Arrangement completion (S74 debt paid)
+- New Preset (auto title-edit, centered placeholder, "Save New Preset" disabled-not-hidden while empty, closes on save/cancel) + Delete Presets (bordered checkboxes on ALL custom rows per mock 4301-19405, dimmed Odyssey group, "Delete (N)" + confirm dialog) — corrected twice against mocks 4301-18937/19405.
+- Close guard on every dismissal path (X, outside, Back, panel toggles) with unsaved-changes dialog (Cancel=primary); cancel pulses the footer (carolina-blue glow + 1.04 scale). **RightPanel content veil removed** (blocked editing) + ModalFooter `saveDisabled` → both NORMALIZING.
+- **Right-panel scrim**: invisible z-60 overlay — the first outside click only dismisses (guarded), never click-through.
+
+### Orders domain
+- **Row-click → Order Summary** (`/orders/:orderId`, Figma 4317:20483): breadcrumb (component; audit swapped the create-flow's hand-rolled one) → grey KV band → the SAME four SubAccordion cards as the Shipments Orders pane (**extracted to shared `OrderPaneSections`**, OrderTab byte-identical). ID cells plain text.
+- **Create confirmation = the summary view** with Alert states: green "created successfully" / blue async "being processed…" + Order Number "-" (keyed off number absence; `?confirm=async` dev trigger). Old ConfirmationView retired.
+- **Pending (number-less) rows clickable** → summary with the blue alert, addressed by `pending-<orderId>` keys.
+
+### Data unification (Fable audit)
+- **Single seeded generator** for Orders + Shipments (generate-orders.mjs deleted): orders inside shipments ARE the Orders-table rows — same ids (customer-prefixed `KEM100018` style), same customers, weights roll up line→order→stop→shipment, dates/locations from real stops. **9 machine-verified invariants** (0 violations).
+- **2200 shipments** (+1000), orders/shipment **weighted 45/25/15/10/5%** (5 = cap, not the norm) → 5,048 orders (4,478 shipped + 550 unshipped + 20 pending); rich/lean variety, multiline instructions, `order-details.json` enrichment tier.
+- **Customer scoping in Orders**: navbar selection filters the Orders table exactly like Shipments (verified: Kemira NA → 513→133 orders, both tables agree).
+
+### QA sweep + cleanup batch
+Domain-wide review (zero reproduced bugs, zero console errors): GlobalSearch pipeline verified coherent (glimpse total = Σ panel counts). Cleanup: dead files (SearchChipPanel, NewGlobalSearch, useAnchoredPortal dupe), dead props, shared `PaneEmpty` (7 panes) + `money.js`, HistoryTab tokenized via Badge, inert FilterPanel pipeline removed from the route (component kept, pending I1), prev/next stepping survives filtered-out selection, Export disabled at 0 rows, zero-result panel-restore (falls to PGI/PGR, returns on clear).
+
+### State
+- React tests **294/294** · Angular **665/665** · builds clean · PR #11 green awaiting Cognizant.
+- NORMALIZING (re-approval + Angular port pending): **GlobalSearch, FilterSuggestions, RightPanel, ModalFooter**.
+- Data regenerable: `node tools/generate.mjs` (seed 42).
+
+---
+
 ## What's Next
 
-### Session 80 Priorities
+### Session 81 Priorities
 
-0. **Angular port batch** (6 APPROVED components) — SubAccordion, ShipmentsBar, DataTable, Paginator, GroupTable, SummaryStrip. Push `port/s76-search-batch`, open PR. GroupTable and SummaryStrip are new twins (no existing Angular counterpart). DataTable/Paginator were mirrored at `4bb2159` for the S79b external-footer changes — those are already in the branch; the new props (stickyTop string etc.) need verifying.
-1. **PR #10 watch** — Cognizant 0.6.0 batch; on approval merge + clean up `port/s76-search-batch`.
-2. **GroupTable Code Connect + `.figma.tsx`** — master `4183:773`/`4204:1243`, sub-components `4182:787`/`4264:4927`; write and publish.
-3. **RightPanel / Column-Arrangement fixes** — deferred from S74, still owed.
-4. **FilterPanel trigger** — removed opener in S79c (DEC-57); needs a new entry point (search-panel Filters view).
-5. **Figma flags**: SubAccordion instance icon overrides; WidgetMini 24/24 leading + donut % semantics; SummaryStrip tone axis (code-only approved; Figma axis still TBD); CurrentShipment arrow unbound white fills (`4106:1767/1769`); "Last Days: 30 Days" header helper text.
+0. **BUG: order row click opens the creation flow** (user repro: clicking a row on a non-ID cell) — likely the `row.status === 'Draft'` branch catching more than intended, or draft-row semantics misfiring; investigate + fix.
+1. **Customers modal UX issues** (user has a list).
+2. **+500 more entries** (2200 → 2700 shipments; regenerate).
+3. **Transition when entering Order Summary** (route-level animation).
+4. **I1 — wire the Filters view for real** (structured filters + saved queries are unreachable; FilterPanel re-home-or-delete decision).
+5. **Re-approve the 4 NORMALIZING components** (GlobalSearch, FilterSuggestions, RightPanel, ModalFooter) → next Angular port wave (combobox keyboard/ARIA, veil removal, saveDisabled) → 0.8.0.
+6. **PR #11 watch** — on Cognizant approval: merge, they publish 0.7.0 npm; then clean up `port/s76-search-batch`.
+7. **I2 — Tender pane normalization** (65KB, pre-token-discipline, modals lack dialog semantics). Deferred: Sort button decision; tab a11y convention; Figma flags (SummaryStrip tone axis, WidgetMini semantics, drag grips in the new-preset mock — confirm intent, mock header underline artifact, duplicate `#` column in the Instructions mock, timeline in-between statuses 4274:15672).
 
 ### Prior Session 79 Priorities (done / carried)
 

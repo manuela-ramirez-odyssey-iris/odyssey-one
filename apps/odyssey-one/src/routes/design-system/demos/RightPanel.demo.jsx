@@ -8,7 +8,10 @@ export const meta = {
   tier: 'organism',
   version: '0.5.0',
   createdVersion: '0.5.0',
-  normalizing: false,
+  // S80 modification — editingTitle content veil REMOVED (blocked editing in
+  // consumers that auto-activate the title edit, e.g. ColumnPanel New Preset);
+  // saveDisabled pass-through added — back to NORMALIZING pending re-approval.
+  normalizing: true,
   figmaNode: '3449:10701',
   codeConnect: 'packages/ui/src/RightPanel.figma.tsx',
 }

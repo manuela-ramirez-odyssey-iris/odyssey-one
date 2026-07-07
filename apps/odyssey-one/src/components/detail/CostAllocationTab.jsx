@@ -1,20 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import { Lock } from 'lucide-react'
-import { Tab, Button, SummaryStrip, GroupTable, SubAccordion } from '@odyssey/ui'
+import { Tab, SummaryStrip, GroupTable, SubAccordion } from '@odyssey/ui'
+import { parseDollar, fmtDollar } from '../../utils/money'
+import PaneEmpty from './PaneEmpty'
 
 // ── helpers ──────────────────────────────────────────────────────────────────
-
-function parseDollar(val) {
-  if (!val || val === '--') return null
-  return parseFloat(val.replace(/[^0-9.\-]/g, ''))
-}
-
-function fmtDollar(n) {
-  if (n == null) return '--'
-  const abs = Math.abs(n)
-  const formatted = abs.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-  return n < 0 ? `-$${formatted}` : `$${formatted}`
-}
 
 /**
  * Diff = AR − AP.  Returns a formatted string with sign prefix (+/-) or '--'.
@@ -127,15 +117,7 @@ const CostAllocationTab = React.memo(function CostAllocationTab({ data }) {
     setExpandedOrders({})
   }, [data])
 
-  if (!data) return (
-    <div className="pane-canvas">
-      <div className="pane-col pane-col--narrow">
-        <span style={{ color: 'var(--text-placeholder)', fontSize: 'var(--font-size-sm)' }}>
-          No cost data available.
-        </span>
-      </div>
-    </div>
-  )
+  if (!data) return <PaneEmpty message="No cost data available." />
 
   const planned = data.planned
   const orders = planned?.orders ?? []
@@ -150,9 +132,10 @@ const CostAllocationTab = React.memo(function CostAllocationTab({ data }) {
 
   return (
     <div className="pane-canvas cost-pane">
-      {/* Row 1: underline Tab group */}
-      <div className="cost-pane__tab-row">
-        <div className="tab-group" role="tablist" aria-label="Cost view">
+      {/* Row 1: full-width tabs band (official ShipmentsBar tab-content styling),
+          tabs aligned to the SummaryStrip's first cell (cost.css custom tier) */}
+      <div className="pane-tabs-band">
+        <div className="pane-band-inner cost-pane__band-inner tab-group" role="tablist" aria-label="Cost view">
           <Tab
             label="Planned Cost"
             current={subTab === 'planned'}

@@ -1,18 +1,14 @@
 import { useState } from 'react'
-import { Info, Package, ClipboardList } from 'lucide-react'
-import { ICON_LG } from '@odyssey/tokens'
-import { SubAccordion, TitleSubtitle } from '@odyssey/ui'
+import { Info, Package, ClipboardList, Plus } from 'lucide-react'
+import { ICON_LG, ICON_MD } from '@odyssey/tokens'
+import { Button, SubAccordion, TitleSubtitle } from '@odyssey/ui'
 
 export const meta = {
   name: 'SubAccordion',
   tier: 'molecule',
-  version: '0.6.0',
+  version: '0.7.0',
   createdVersion: '0.6.0',
-  // S79h modification — expand-all action added (allExpanded + onToggleAll →
-  // right-aligned ButtonLink in a new header-row wrapper; Figma `Show Expand
-  // All` BOOLEAN) — back to NORMALIZING pending re-approval.
-  normalizing: true,
-  approved: true,
+  normalizing: false,
   figmaNode: '4083:5044',
   codeConnect: 'packages/ui/src/SubAccordion.figma.tsx',
 }
@@ -27,6 +23,7 @@ export const props = [
   { name: 'onToggle', type: '(next: boolean) => void', desc: 'Fires on header click with the next expansion state.' },
   { name: 'allExpanded', type: 'boolean', desc: 'Whether ALL slot content is currently expanded — picks the action label/icon ("Collapse All" chevrons-down-up vs "Expand All" chevrons-up-down). Default false. Consumer-tracked.' },
   { name: 'onToggleAll', type: '(next: boolean) => void', desc: 'When provided, renders the expand-all Button variant="link" on the right of the header row (a sibling of the header toggle — clicks never bubble to it). Fires with !allExpanded. (Figma: Show Expand All BOOLEAN, default false.)' },
+  { name: 'action', type: 'node', desc: 'Static-only primary action rendered at the end of the header row, after the expand-all link — by convention a Button variant="primary" size="sm" (e.g. the Documents card’s "Add Document"). (Figma: Show Button BOOLEAN, default false.)' },
   { name: 'children', type: 'node', desc: 'The section body, revealed on expand. (Figma: Content SLOT.)' },
   { name: 'className', type: 'string', desc: 'Extra class(es) on the root element.' },
 ]
@@ -80,8 +77,20 @@ function Schematic() {
   const [allExpanded, setAllExpanded] = useState(false)
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-8)', alignItems: 'flex-start', background: 'var(--bg-secondary)', padding: 'var(--spacing-6)', borderRadius: 'var(--radius-md)' }}>
-      <div style={{ flex: '1 1 420px', minWidth: 340 }}>
-        <SubAccordion title="Order Summary" defaultExpanded allExpanded={allExpanded} onToggleAll={setAllExpanded}>
+      <div style={{ flex: '1 1 420px', minWidth: 340, display: 'flex', flexDirection: 'column', gap: 'var(--spacing-4)' }}>
+        {/* Collapsible flavor — header toggle + chevron */}
+        <SubAccordion title="Order Summary" defaultExpanded>
+          <SlotPlaceholder />
+        </SubAccordion>
+        {/* Static flavor — both header actions (expand-all link + primary sm) */}
+        <SubAccordion
+          title="All Documents"
+          showIcon={false}
+          collapsible={false}
+          allExpanded={allExpanded}
+          onToggleAll={setAllExpanded}
+          action={<Button variant="primary" size="sm" icon={<Plus {...ICON_MD} />}>Add Document</Button>}
+        >
           <SlotPlaceholder />
         </SubAccordion>
       </div>
@@ -89,8 +98,9 @@ function Schematic() {
         <LegendRow part="card" tier="molecule">Collapsible shell: <code>--bg-primary</code>, <code>--radius-2xl</code>, <code>--shadow-sm</code>, padding 16/24 — the simplified Accordion (no stepper).</LegendRow>
         <LegendRow part="header" nested>Full-width toggle button — title (<code>heading/lg semibold</code>) + optional info glyph left, chevron right.</LegendRow>
         <LegendRow part="header icon" nested>Swap slot (<code>icon</code>, default <code>lucide/info</code>), 20px, <code>--text-placeholder</code> — optional (<code>showIcon</code>). (Figma: Icon INSTANCE_SWAP, placeholder-20.)</LegendRow>
-        <LegendRow part="chevron" nested><code>lucide/chevron-down</code>, 20px, <code>--text-tertiary</code>; rotates 180° on expand — always present.</LegendRow>
-        <LegendRow part="expand-all action" tier="atom" nested>Optional <code>Button variant="link"</code> right of the header row — renders when <code>onToggleAll</code> is provided; <code>allExpanded</code> flips "Expand All" <code>chevrons-up-down</code> ↔ "Collapse All" <code>chevrons-down-up</code> (16px). A SIBLING of the header toggle, not nested. (Figma: Show Expand All BOOLEAN.)</LegendRow>
+        <LegendRow part="chevron" nested><code>lucide/chevron-down</code>, 20px, <code>--text-tertiary</code>; rotates 180° on expand — collapsible states only.</LegendRow>
+        <LegendRow part="expand-all action" tier="atom" nested>Static-only optional <code>Button variant="link"</code> right of the header row — renders when <code>onToggleAll</code> is provided; <code>allExpanded</code> flips "Expand All" <code>chevrons-up-down</code> ↔ "Collapse All" <code>chevrons-down-up</code> (16px). A SIBLING of the header heading, never nested in a button. (Figma: Show Expand All BOOLEAN.)</LegendRow>
+        <LegendRow part="primary action" tier="atom" nested>Static-only optional <code>action</code> node at the end of the header row, after the expand-all link — by convention <code>Button variant="primary" size="sm"</code> (e.g. Documents "Add Document"). Both actions toggle independently. (Figma: Show Button BOOLEAN, S80.)</LegendRow>
         <LegendRow part="content slot" nested><code>children</code>, revealed via grid-rows 0fr→1fr; 24px gap under the header. (Figma: Content SLOT.)</LegendRow>
       </ul>
     </div>
@@ -153,6 +163,7 @@ function Playground() {
   const [expanded, setExpanded] = useState(true)
   const [showToggleAll, setShowToggleAll] = useState(true)
   const [allExpanded, setAllExpanded] = useState(false)
+  const [showAction, setShowAction] = useState(false)
 
   return (
     <div>
@@ -167,7 +178,8 @@ function Playground() {
         </label>
         <Toggle label="collapsible" value={collapsible} set={setCollapsible} />
         <Toggle label="expanded" value={expanded} set={setExpanded} disabled={!collapsible} />
-        <Toggle label="onToggleAll (expand-all action)" value={showToggleAll} set={setShowToggleAll} />
+        <Toggle label="onToggleAll (expand-all action, Static-only)" value={showToggleAll} set={setShowToggleAll} disabled={collapsible} />
+        <Toggle label="action (primary sm, Static-only)" value={showAction} set={setShowAction} disabled={collapsible} />
       </div>
       <div style={{ background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', padding: 'var(--spacing-6)' }}>
         <SubAccordion
@@ -179,6 +191,7 @@ function Playground() {
           onToggle={setExpanded}
           allExpanded={allExpanded}
           onToggleAll={showToggleAll ? setAllExpanded : undefined}
+          action={showAction ? <Button variant="primary" size="sm" icon={<Plus {...ICON_MD} />}>Add Document</Button> : undefined}
         >
           <ExampleBody />
         </SubAccordion>

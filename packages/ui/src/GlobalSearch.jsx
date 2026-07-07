@@ -1,9 +1,20 @@
-import React, { useState, useRef, useLayoutEffect } from 'react'
+import React, { useState, useRef, useLayoutEffect, useEffect, useMemo, useId } from 'react'
 import { ChevronLeft, ChevronRight, CircleX, X } from 'lucide-react'
 import { ICON_MD, ICON_LG } from '@odyssey/tokens'
 import FilterButton from './FilterButton.jsx'
 import Badge from './Badge.jsx'
 import FilterSuggestions from './FilterSuggestions.jsx'
+
+/**
+ * Combobox highlight movement (S80 keyboard navigation). Pure so it's directly
+ * unit-testable: wraps at both ends; from "no highlight" (-1) ArrowDown enters
+ * the list at the top and ArrowUp at the bottom.
+ */
+export function moveHighlight(count, current, delta) {
+  if (count <= 0) return -1
+  if (current < 0) return delta > 0 ? 0 : count - 1
+  return (current + delta + count) % count
+}
 
 export default function GlobalSearch({ mode = 'search', ...rest }) {
   if (mode === 'title') return <GlobalSearchTitle {...rest} />
@@ -64,6 +75,11 @@ function GlobalSearchSearch({
   const [dropdownLeft, setDropdownLeft] = useState(0)
   // Number of trailing chips collapsed behind the "+N" pill at rest.
   const [hiddenCount, setHiddenCount] = useState(0)
+  // Keyboard highlight over the suggestion chips (S80): flat index across all
+  // sections, -1 = none. aria-activedescendant pattern — DOM focus stays on the
+  // input; the highlighted chip is only pointed at.
+  const [activeIdx, setActiveIdx] = useState(-1)
+  const listboxId = useId()
   const wrapperRef = useRef(null)
   const inputRef = useRef(null)
   const chipsRef = useRef(null)
@@ -132,6 +148,57 @@ function GlobalSearchSearch({
     const next = !active
     if (!controlled) setInternalActive(next)
     onFilterClick?.(next)
+  }
+
+  // ---- Suggestion keyboard navigation (S80) --------------------------------
+  const dropdownVisible = suggestionsOpen && suggestionSections.length > 0
+  // Flat list of every suggestion item (visual order) + its select handler.
+  const flatItems = useMemo(
+    () => suggestionSections.flatMap((section) =>
+      section.items.map((item) => ({ item, onSelect: section.onSelect || onSuggestionSelect }))),
+    [suggestionSections, onSuggestionSelect],
+  )
+  // Flat-index offset of each section's first item, for per-section option ids.
+  const sectionOffsets = useMemo(() => {
+    const offsets = []
+    let acc = 0
+    for (const s of suggestionSections) { offsets.push(acc); acc += s.items.length }
+    return offsets
+  }, [suggestionSections])
+  const optionId = (i) => `${listboxId}-option-${i}`
+
+  // Standard combobox behavior: the highlight resets whenever the suggestions
+  // change or the dropdown closes.
+  useEffect(() => { setActiveIdx(-1) }, [suggestionSections, dropdownVisible])
+
+  // Keep the highlighted chip visible inside the capped, scrollable list.
+  useEffect(() => {
+    if (activeIdx < 0) return
+    document.getElementById(`${listboxId}-option-${activeIdx}`)?.scrollIntoView?.({ block: 'nearest' })
+  }, [activeIdx, listboxId])
+
+  const handleInputKeyDown = (e) => {
+    if (dropdownVisible && flatItems.length > 0) {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault()
+        const delta = e.key === 'ArrowDown' ? 1 : -1
+        setActiveIdx((cur) => moveHighlight(flatItems.length, cur, delta))
+        return
+      }
+      if (e.key === 'Enter' && activeIdx >= 0 && activeIdx < flatItems.length) {
+        // A highlighted suggestion owns Enter: select it (same as clicking) and
+        // stop the event so consumer commit-on-Enter handlers don't also fire.
+        e.preventDefault()
+        e.stopPropagation()
+        const { item, onSelect } = flatItems[activeIdx]
+        onSelect?.(item)
+        setActiveIdx(-1)
+        return
+      }
+    }
+    if (e.key === 'Backspace' && !value && chips.length > 0) {
+      onChipRemove?.(chips[chips.length - 1].key)
+    }
   }
 
   const accent = barFocused
@@ -251,11 +318,12 @@ function GlobalSearchSearch({
             onChange={(e) => onChange?.(e.target.value)}
             onFocus={() => { setFocused(true); onFocus?.() }}
             onBlur={() => { setFocused(false); onBlur?.() }}
-            onKeyDown={(e) => {
-              if (e.key === 'Backspace' && !value && chips.length > 0) {
-                onChipRemove?.(chips[chips.length - 1].key)
-              }
-            }}
+            onKeyDown={handleInputKeyDown}
+            role="combobox"
+            aria-expanded={dropdownVisible}
+            aria-controls={dropdownVisible ? listboxId : undefined}
+            aria-autocomplete="list"
+            aria-activedescendant={activeIdx >= 0 ? optionId(activeIdx) : undefined}
             className="global-search-input flex-1 bg-transparent border-none outline-none min-w-0"
             style={{
               color: 'var(--text-inverse)',
@@ -297,9 +365,12 @@ function GlobalSearchSearch({
             registers before blur would close the panel. Domain-agnostic: it just
             renders whatever sections the consumer passes (one FilterSuggestions
             per section). */}
-        {suggestionsOpen && suggestionSections.length > 0 && (
+        {dropdownVisible && (
           <div
             className="global-search-dropdown"
+            id={listboxId}
+            role="listbox"
+            aria-label="Suggested filters"
             onMouseDown={(e) => e.preventDefault()}
             style={{
               // Aligns to the input's current left offset within the bar so the
@@ -321,6 +392,10 @@ function GlobalSearchSearch({
                 title={section.title}
                 items={section.items}
                 onSelect={section.onSelect || onSuggestionSelect}
+                // Combobox wiring (S80): option ids + which chip carries the
+                // keyboard highlight, translated into this section's local index.
+                optionId={(j) => optionId(sectionOffsets[i] + j)}
+                activeIndex={activeIdx - sectionOffsets[i]}
               />
             ))}
           </div>

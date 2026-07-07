@@ -2,7 +2,7 @@ import { useLayoutEffect, useState } from 'react'
 import { useReactTable, getCoreRowModel, createColumnHelper } from '@tanstack/react-table'
 import { EllipsisVertical } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
-import { Button, Checkbox, DataTable, Paginator, ActionMenu } from '@odyssey/ui'
+import { Checkbox, DataTable, Paginator, ActionMenu } from '@odyssey/ui'
 
 /**
  * OrdersTable — the Orders-specific configuration of the normalized DataTable
@@ -49,19 +49,9 @@ const COLUMNS = [
       fixedWidth: true,
     },
   }),
-  columnHelper.accessor('idLabel', {
-    header: 'ID',
-    // Link-styled. Draft rows navigate to the create-form reopen; other rows
-    // stay inert until the order-detail build (spec §2).
-    cell: info => (
-      <Button
-        variant="link"
-        onClick={() => info.table.options.meta?.onRowIdClick?.(info.row.original)}
-      >
-        {info.getValue()}
-      </Button>
-    ),
-  }),
+  // Plain text — the ROW is the click target (order summary / draft reopen);
+  // the old per-ID link affordance is gone.
+  columnHelper.accessor('idLabel', { header: 'ID' }),
   columnHelper.accessor('customer', {
     header: 'Customer',
     // Cell Variant=Title — the row's emphasis column
@@ -97,7 +87,7 @@ export default function OrdersTable({
   pagination,
   onPaginationChange,
   totalCount,
-  onRowIdClick,
+  onRowClick,
 }) {
   const [stickyTop, setStickyTop] = useState(0)
 
@@ -125,7 +115,6 @@ export default function OrdersTable({
     manualPagination: true,
     manualSorting: true,
     rowCount: totalCount,
-    meta: { onRowIdClick },
   })
 
   return (
@@ -133,6 +122,10 @@ export default function OrdersTable({
       table={table}
       stickyTop={stickyTop}
       ariaLabel="Orders"
+      // Row click (Shipments-style full-row target): the shell's onCellClick fires
+      // for every non-interactive cell, so the checkbox + action-menu cells keep
+      // their own clicks and everything else opens the order.
+      onCellClick={onRowClick ? (_cell, row) => onRowClick(row.original) : undefined}
       footer={<Paginator table={table} pageSizeOptions={[20, 50, 100]} />}
     />
   )

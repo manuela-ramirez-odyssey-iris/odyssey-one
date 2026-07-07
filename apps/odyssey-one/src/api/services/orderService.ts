@@ -1,6 +1,6 @@
 import { getApiMode } from '../config'
 import { apiPost } from '../client'
-import { getAllOrders } from '../../data/orders'
+import { getAllOrders, getOrderEnrichment } from '../../data/orders'
 import type { OrderListRequest, OrderListResponse, OrderListRow } from '../types/orderList'
 import { mapFormToOrderInterface } from '../mappers/mapFormToOrderInterface'
 import { mapOrderViewToFormVm } from '../mappers/mapOrderViewToFormVm'
@@ -25,12 +25,34 @@ function dateInRange(iso: string | undefined, from?: string, to?: string): boole
 const oneOf = (values: string[] | undefined, v: string | undefined) =>
   !values?.length || values.includes(v ?? '')
 
-export async function getOrderList(request: OrderListRequest): Promise<OrderListResponse> {
+/**
+ * Order list. `customerIds` is the navbar-customer FIRST-order scope — the same
+ * semantics gridService applies to Shipments (S79c decision 10): `undefined` =
+ * unscoped (legacy callers/tests), `[]` honestly yields nothing, otherwise rows
+ * outside the selected customers don't exist for this user. Applied before the
+ * LLD filters; in live mode it folds into `filters.customers`.
+ */
+export async function getOrderList(
+  request: OrderListRequest,
+  customerIds?: string[],
+): Promise<OrderListResponse> {
+  if (customerIds && customerIds.length === 0) {
+    const { pageNumber, pageSize } = request.pagination
+    return { success: true, orders: [], pagination: { pageNumber, pageSize, totalCount: 0 }, error: null }
+  }
   if (getApiMode() === 'live') {
-    return apiPost<OrderListResponse>('/order-service/v3/order/list', request)
+    const body = customerIds
+      ? { ...request, filters: { ...request.filters, customers: customerIds } }
+      : request
+    return apiPost<OrderListResponse>('/order-service/v3/order/list', body)
   }
 
   let rows = [...overlayRows, ...(getAllOrders() as OrderListRow[])]
+
+  if (customerIds) {
+    const scope = new Set(customerIds)
+    rows = rows.filter(r => scope.has(r.customer))
+  }
 
   const f = request.filters
   if (f) {
@@ -62,6 +84,10 @@ export async function getOrderList(request: OrderListRequest): Promise<OrderList
   rows = [...rows].sort((a, b) => {
     const av = String((a as unknown as Record<string, unknown>)[sort.field] ?? '')
     const bv = String((b as unknown as Record<string, unknown>)[sort.field] ?? '')
+    // Number-less pending rows (async create in flight) are the NEWEST orders —
+    // treat the empty orderNumber as greatest so the default "orderNumber desc"
+    // (the newest-first proxy) surfaces them first.
+    if (sort.field === 'orderNumber' && !av !== !bv) return (av === '' ? 1 : -1) * dir
     return av.localeCompare(bv) * dir
   })
 
@@ -271,9 +297,21 @@ export async function getOrderView(
     const values = draftValues.get(draftId)
     if (values) return structuredClone(values) // full fidelity
   }
-  const row =
-    overlayRows.find(r => r.orderNumber === orderNumber) ??
-    (getAllOrders() as OrderListRow[]).find(r => r.orderNumber === orderNumber)
+  // Number-less pending orders (async create in flight) are addressed by their
+  // synthetic grid key `pending-<orderId>` — resolve by internal orderId.
+  const pendingId = orderNumber.startsWith('pending-') ? orderNumber.slice('pending-'.length) : null
+  const row = pendingId
+    ? (getAllOrders() as OrderListRow[]).find(r => !r.orderNumber && String(r.orderId) === pendingId)
+    : overlayRows.find(r => r.orderNumber === orderNumber) ??
+      (getAllOrders() as OrderListRow[]).find(r => r.orderNumber === orderNumber)
   if (!row) return null
-  return mapOrderViewToFormVm(listRowToManualOrder(row))
+  // Seeded enrichment (order-details.json — generator invariant I8): the full
+  // ManualOrder detail (real lines, instructions, services, contacts) layered
+  // over the lean row; enrichment line sums equal the row's header totals, so
+  // both tiers tell the same story at different fidelity.
+  const enrichment = getOrderEnrichment(orderNumber) as Partial<ManualOrder> | null
+  const manualOrder = enrichment
+    ? { ...listRowToManualOrder(row), ...enrichment }
+    : listRowToManualOrder(row)
+  return mapOrderViewToFormVm(manualOrder)
 }

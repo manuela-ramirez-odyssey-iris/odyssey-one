@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { FormField } from '@odyssey/ui'
-import { useAnchoredPortal } from './useAnchoredPortal.jsx'
+import { useAnchoredPortal } from '@odyssey/ui'
 
 /**
  * SelectField — static-option select on the FormField skin (read-only input

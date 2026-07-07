@@ -4,7 +4,7 @@ import ModalFooter from './ModalFooter.jsx'
 
 /**
  * RightPanel — organism shell: a right-side drawer / panel card. Composes ModalHeader for its
- * header band and owns the rest of the chrome (content slot + veil, optional footer, the
+ * header band and owns the rest of the chrome (content slot, optional footer, the
  * slide-in-from-right animation, and outside-click dismissal).
  *
  * Render modes:
@@ -15,12 +15,14 @@ import ModalFooter from './ModalFooter.jsx'
  *
  * Header (delegated to ModalHeader): back (`onBack`) · title + editable name (`editableTitle`
  * / `editingTitle` / `onTitle*`) · subtitle · close (`onClose`). RightPanel wraps `onClose`
- * so closing cancels an in-progress title edit first, and veils the content while editing.
+ * so closing cancels an in-progress title edit first. Content stays interactive while the
+ * title is being edited (Figma 4301:18937 — no scrim).
  *
  * Footer (mirrors the Figma `Footer` BOOLEAN → a baked ModalFooter, NOT a content slot):
  *  - `footer` (boolean) toggles the built-in footer = Cancel (secondary, md) + Save
  *    (primary, md), space-between. Handlers `onCancel` / `onSave`; labels `cancelLabel` /
- *    `saveLabel`. Separate from the content `Slot` (children).
+ *    `saveLabel`; `saveDisabled` disables the primary action. Separate from the content
+ *    `Slot` (children).
  *
  * `closeOnOutsideClick` (opt-in): a mousedown outside the panel calls `onClose` (cancelling
  * any title edit first). Inactive while the drawer is closed.
@@ -45,6 +47,7 @@ export default function RightPanel({
   onSave,
   cancelLabel = 'Cancel',
   saveLabel = 'Save',
+  saveDisabled = false,
   children,
   className = '',
   ariaLabel,
@@ -96,9 +99,6 @@ export default function RightPanel({
 
       <div className="right-panel__content">
         {children}
-        {/* While editing the title, veil the content — a cue that focus lives in the header,
-            and it blocks content interaction until the edit is committed/cancelled. */}
-        {editingTitle && <div className="right-panel__content-veil" aria-hidden="true" />}
       </div>
 
       {footer && (
@@ -107,6 +107,7 @@ export default function RightPanel({
           className="right-panel__footer"
           cancelLabel={cancelLabel}
           saveLabel={saveLabel}
+          saveDisabled={saveDisabled}
           onCancel={onCancel}
           onSave={onSave}
         />

@@ -1,6 +1,13 @@
+// NOTE: unreached since S79c DEC-57 — the FilterPanel's open trigger was removed
+// with the SearchChipPanel row; re-home into the GlobalSearch panel's Filters
+// view or delete, pending I1 (next session's call).
 import { useState, useCallback, useEffect, useMemo } from 'react'
 import { X, Copy, Check, Info, ChevronDown } from 'lucide-react'
 import { Button } from '@odyssey/ui'
+
+// Drawer width when open (px) — the filters drawer is wider than the 343px
+// right panels (see RIGHT_PANEL_WIDTH / --right-panel-width).
+export const FILTER_PANEL_WIDTH = 354
 
 const SAVED_QUERIES = [
   { name: 'Review Shipments -- West Coast', query: 'mode:LTL shipment-status:Review destination:CA delivery:<2026-01-15' },
@@ -174,8 +181,8 @@ export default function FilterPanel({ isOpen, onClose, itemCount, onApplyFilters
     <div
       className="flex flex-col shrink-0"
       style={{
-        width: isOpen ? 354 : 0,
-        minWidth: isOpen ? 354 : 0,
+        width: isOpen ? FILTER_PANEL_WIDTH : 0,
+        minWidth: isOpen ? FILTER_PANEL_WIDTH : 0,
         background: 'var(--bg-primary)',
         borderLeft: isOpen ? '1px solid var(--border-subtle)' : '0px solid var(--border-subtle)',
         overflow: 'hidden',

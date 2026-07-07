@@ -8,12 +8,19 @@ export const meta = {
   createdVersion: '0.2.0',
   figmaNode: '2400:2',
   codeConnect: 'packages/ui/src/FilterSuggestions.figma.tsx',
+  // S80 behavior additions — back to NORMALIZING pending re-approval: optional
+  // combobox wiring (`optionId` + `activeIndex` props → role="option" chips,
+  // aria-selected, `.is-active` keyboard highlight mirroring hover). Angular
+  // twin needs the same at next port.
+  normalizing: true,
 }
 
 export const props = [
   { name: 'title', type: 'string', desc: "Section heading shown above the chip list. Default 'Suggested Filters'." },
   { name: 'items', type: 'string[] | {label: string, value: any}[]', desc: 'Chip content. Strings are used as-is; objects expose a separate value passed to onSelect.' },
   { name: 'onSelect', type: '(item) => void', desc: 'Called when a chip is clicked. When omitted, chips render decoratively (no pointer / hover affordance).' },
+  { name: 'optionId', type: '(i: number) => string', desc: 'Combobox wiring (S80, optional): id factory for each chip. When provided, chips render as role="option" with aria-selected and the panel becomes a listbox group — used by GlobalSearch for aria-activedescendant keyboard navigation.' },
+  { name: 'activeIndex', type: 'number', desc: 'Combobox wiring (S80): index of the keyboard-highlighted chip (-1 = none). The highlighted chip gets `.is-active` (mirrors hover). Default -1.' },
   { name: 'className', type: 'string', desc: 'Extra class names forwarded to the root element.' },
   { name: 'style', type: 'CSSProperties', desc: 'Inline styles merged onto the root element.' },
 ]

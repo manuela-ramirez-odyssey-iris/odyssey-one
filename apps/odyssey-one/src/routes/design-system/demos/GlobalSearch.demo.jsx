@@ -8,6 +8,11 @@ export const meta = {
   createdVersion: '0.2.0',
   figmaNode: '658:18',
   codeConnect: 'packages/ui/src/GlobalSearch.figma.tsx',
+  // S80 behavior additions — back to NORMALIZING pending re-approval:
+  // combobox arrow-key navigation of suggestion chips (aria-activedescendant,
+  // input role="combobox", dropdown role="listbox", Enter-on-highlight selects
+  // + stops propagation). Angular twin needs the same at next port.
+  normalizing: true,
 }
 
 export const props = [

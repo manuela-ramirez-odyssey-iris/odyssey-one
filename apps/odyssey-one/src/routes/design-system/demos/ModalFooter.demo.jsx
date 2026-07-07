@@ -6,7 +6,9 @@ export const meta = {
   tier: 'molecule',
   version: '0.5.0',
   createdVersion: '0.5.0',
-  normalizing: false,
+  // S80 modification — new saveDisabled prop (primary button disabled state,
+  // e.g. empty new preset) — back to NORMALIZING pending re-approval.
+  normalizing: true,
   figmaNode: '3170:3649',
   codeConnect: 'packages/ui/src/ModalFooter.figma.tsx',
 }

@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef, useTransition, Suspense } from 'react'
 import { Loader2 } from 'lucide-react'
-import { Badge, ShipmentsBar } from '@odyssey/ui'
-
-const BADGE_COLORS = ['amber', 'blue', 'green', 'red', 'purple']
+import { ShipmentsBar } from '@odyssey/ui'
 
 const OrderTab = React.lazy(() => import('./OrderTab'))
 const StopsTab = React.lazy(() => import('./StopsTab'))
@@ -162,60 +160,10 @@ export default function BottomBar({
   // If the active pane's tab was hidden by the arrangement, fall back to Orders.
   const shownTab = orderedTabs.some(t => t.key === activeTab) ? activeTab : 'order'
 
-  // The Orders tab is the multi-order switcher: a ShipmentsBar DROPDOWN TAB —
-  // prelabel "Order" over the selected order number; its DropdownMenu lists the
-  // shipment's orders as preset values (badge + route + weight rows).
-  const tabs = useMemo(() => {
-    if (orders.length === 0) return orderedTabs
-    return orderedTabs.map(tab => (tab.key === 'order' ? {
-      ...tab,
-      dropdown: {
-        prelabel: 'Order',
-        value: orders[selectedOrderIndex],
-        menu: ({ close }) => orders.map((ord, i) => {
-          const orderDetail = shownDetails?.orderDetails?.[i]
-          const originLoc = orderDetail?.shipFrom?.location || ''
-          const destLoc = orderDetail?.shipTo?.location || ''
-          const origin = originLoc.split(', ')[1] || '—'
-          const dest = destLoc.split(', ')[1] || '—'
-          const weightDisplay = orderDetail?.grossWeight || ''
-          return (
-            <button
-              key={ord}
-              type="button"
-              role="menuitem"
-              onClick={() => { setSelectedOrderIndex(i); close() }}
-              style={{
-                width: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-                padding: '8px 12px',
-                background: selectedOrderIndex === i ? 'var(--bg-secondary)' : 'transparent',
-                border: 'none',
-                cursor: 'pointer',
-                borderRadius: 'var(--radius-sm)',
-                fontFamily: 'var(--font-primary)',
-                transition: 'background 0.15s ease',
-              }}
-              onMouseEnter={(e) => { if (selectedOrderIndex !== i) e.currentTarget.style.background = 'var(--bg-tertiary)' }}
-              onMouseLeave={(e) => { if (selectedOrderIndex !== i) e.currentTarget.style.background = 'transparent' }}
-            >
-              <Badge variant={BADGE_COLORS[i]}>{ord}</Badge>
-              <span style={{ fontSize: 12, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-                {origin} → {dest}
-              </span>
-              {weightDisplay && (
-                <span style={{ fontSize: 11, color: 'var(--text-tertiary)', marginLeft: 'auto', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
-                  {weightDisplay}
-                </span>
-              )}
-            </button>
-          )
-        }),
-      },
-    } : tab))
-  }, [orderedTabs, orders, selectedOrderIndex, shownDetails])
+  // Orders tab is now a plain tab — the order switcher lives inside the OrderTab
+  // pane as underline tabs, and the location/weight header row replaces the old
+  // dropdown label (S79 Figma: State=Selected Dropdown removed from ShipmentsBarTab).
+  const tabs = orderedTabs
 
   const renderTabContent = () => {
     if (detailsError) {
@@ -271,7 +219,7 @@ export default function BottomBar({
       case 'stops': return <StopsTab data={shownDetails.stopsData} />
       case 'product': return <ProductTab data={shownDetails.productData} />
       case 'routing': return <RoutingGuideTab data={shownDetails.routingData} shipmentDetails={shownDetails} shipment={shipment} onToggleColumnPanel={onToggleColumnPanel} />
-      case 'cost': return <CostAllocationTab data={shownDetails.costData} selectedOrderIdx={selectedOrderIndex} />
+      case 'cost': return <CostAllocationTab data={shownDetails.costData} />
       case 'instructions': return <InstructionsTab data={shownDetails.instructionsData} />
       case 'documents': return <DocumentsTab data={shownDetails.documentsData} />
       case 'notes': return <NotesTab data={shownDetails.notesData} />

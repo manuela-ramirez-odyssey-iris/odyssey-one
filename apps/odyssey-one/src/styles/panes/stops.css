@@ -1,137 +1,63 @@
-/* stops pane — owned by its tab executor (S79b). Layout per vault-sources 2026-07-06-tab-panes mocks. */
+/* stops pane — owned by its tab executor (S80). Layout per Figma 4273:15227
+   (All Stops card from Tracking, re-tokenized). The timeline rail lives in
+   @odyssey/ui Timeline/StopBadge (.odyssey-timeline* / .stop-badge* in
+   components.css) — only the per-stop content styling stays here. */
 
-/* ── Timeline ─────────────────────────────────────────────────── */
-.stops-timeline {
+/* Per-stop content: header + field grid; hairline between stops (content
+   column only — the rail stays continuous, per the mock). */
+.stops-timeline .odyssey-timeline__content {
   display: flex;
   flex-direction: column;
-  gap: 0;
-}
-
-/* Each stop row = track column + content column */
-.stops-item {
-  display: flex;
   gap: var(--spacing-4);
+  padding-bottom: var(--spacing-6);
 }
-
-/* Connector track */
-.stops-item__track {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 32px;
-  flex-shrink: 0;
-}
-
-/* Circle node badge */
-.stops-item__node {
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-full);
-  flex-shrink: 0;
-  margin-top: var(--spacing-1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-}
-.stops-item__node--pickup {
-  background: var(--caribbean-green-600);
-  color: #fff;
-}
-.stops-item__node--delivery {
-  background: var(--bay-of-many-950);
-  color: #fff;
-}
-
-.stops-item__node-label {
-  font-family: var(--font-primary);
-  font-size: 10px;
-  font-weight: 700;
-  line-height: 1;
-  color: inherit;
-}
-
-/* Vertical connector line between nodes */
-.stops-item__connector {
-  width: 2px;
-  flex: 1;
-  min-height: var(--spacing-4);
-  background: var(--border-default);
-}
-
-/* Content area */
-.stops-item__content {
-  flex: 1;
-  min-width: 0;
-  padding-bottom: var(--spacing-5);
-}
-
-/* Hairline between stops — on the content area only (not the track) */
-.stops-item:not(:first-child) .stops-item__content {
-  padding-top: var(--spacing-5);
+.stops-timeline .odyssey-timeline__row:not(:first-child) .odyssey-timeline__content {
+  padding-top: var(--spacing-6);
   border-top: 1px solid var(--border-subtle);
 }
+/* Rail badge on later rows drops to sit level with its content header; the
+   previous row's connector extends (negative margin) across the divider band
+   so the line runs unbroken badge-to-badge (mock: rail crosses the hairline,
+   which spans the content column only). */
+.stops-timeline .odyssey-timeline__row:not(:first-child) .stop-badge {
+  margin-top: var(--spacing-6);
+}
+.stops-timeline .odyssey-timeline__row:not(:last-child) .odyssey-timeline__segment {
+  margin-bottom: calc(-1 * var(--spacing-6));
+}
 
-/* Stop header: "stop N" label + Pickup/Delivery badge */
+/* Stop header: "stop N" label + Pickup/Delivery badge (both green, mock) */
 .stops-item__header {
   display: flex;
   align-items: center;
   gap: var(--spacing-3);
-  margin-bottom: var(--spacing-3);
 }
-
 .stops-item__stop-label {
   font-family: var(--font-primary);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-medium);
   color: var(--text-tertiary);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
   line-height: var(--line-height-xs);
 }
 
-/* Type badge pill */
-.stops-item__badge {
-  display: inline-flex;
-  align-items: center;
-  font-family: var(--font-primary);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-semibold);
-  line-height: var(--line-height-xs);
-  padding: 2px var(--spacing-3);
-  border-radius: var(--radius-sm);
-}
-.stops-item__badge--pickup {
-  background: var(--badge-green-bg);
-  color: var(--badge-green-text);
-}
-.stops-item__badge--delivery {
-  background: var(--badge-blue-bg);
-  color: var(--badge-blue-text);
-}
-
-/* Field grid — 3 columns */
+/* Field grid — 3 columns on the white card (mock: no boxed background) */
 .stops-item__fields {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: var(--spacing-3) var(--spacing-5);
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  padding: var(--spacing-4);
 }
 
 /* Individual field: label + value */
 .stops-field {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: var(--spacing-1);
   min-width: 0;
 }
 .stops-field__label {
   font-family: var(--font-primary);
   font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-regular);
+  font-weight: var(--font-weight-medium);
   color: var(--text-tertiary);
   line-height: var(--line-height-xs);
 }
@@ -142,7 +68,4 @@
   color: var(--text-primary);
   line-height: var(--line-height-sm);
   word-break: break-word;
-}
-.stops-field__value--primary {
-  font-weight: var(--font-weight-semibold);
 }

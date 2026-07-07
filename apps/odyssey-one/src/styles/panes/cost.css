@@ -4,11 +4,14 @@
    SummaryStrip (.summary-strip*, staging S79e — absorbed the old .pane-kpis*).
    ------------------------------------------------------------------ */
 
-/* ── Canvas + tab row ──────────────────────────────────────────────── */
-
-.cost-pane__tab-row {
-  padding: var(--spacing-4) var(--spacing-6) 0;
-  border-bottom: 1px solid var(--border-subtle);
+/* Tab row uses the shared .pane-tabs-band + .pane-band-inner
+   (official ShipmentsBar tab-content styling — components.css).
+   Custom tier: align the tabs to the SummaryStrip's FIRST CELL — the strip
+   centers its fixed 152px cells (7 for cost), so first-cell left edge =
+   (100% − 7·152px)/2. Inner content edge = (100% − max-width)/2 + padding,
+   hence max-width = 7·152px + 2·padding. */
+.cost-pane__band-inner {
+  max-width: calc(7 * 152px + 2 * var(--spacing-6));
 }
 
 /* ── Locked state (Completed Cost) ────────────────────────────────── */

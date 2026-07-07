@@ -9,6 +9,7 @@ describe('mapOrderListRow', () => {
     expect(vm).toEqual({
       id: 'SUT355123',
       idLabel: 'SUT355123',
+      pending: false,
       customer: 'SABIC_CLT',
       origin: 'RGC-STL-001: St Louis, MO',
       destination: 'SAB-CLT-001: Charlotte, NC',
@@ -32,6 +33,19 @@ describe('mapOrderListRow', () => {
     expect(vm.volume).toBe('')
     expect(vm.earlyPickup).toBe('')
     expect(vm.status).toBe('')
+  })
+
+  it('renders a number-less async row as pending with a "-" label and an orderId-keyed row id', () => {
+    const vm = mapOrderListRow({ ...orderListRowSample, orderNumber: '', orderId: 91004 })
+    expect(vm.pending).toBe(true)
+    expect(vm.idLabel).toBe('-')
+    expect(vm.id).toBe('pending-91004') // unique row key despite the missing number
+  })
+
+  it('does NOT mark a sparse row without an orderId as pending', () => {
+    const vm = mapOrderListRow({} as OrderListRow)
+    expect(vm.pending).toBe(false)
+    expect(vm.idLabel).toBe('')
   })
 
   it('degrades the place format gracefully when parts are missing', () => {

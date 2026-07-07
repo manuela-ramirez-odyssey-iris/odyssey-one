@@ -36,14 +36,23 @@ export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment 
       shipmentsSearchAdapter.searchShipments(chips, query, selectedDataIds),
   }), [selectedDataIds])
 
+  // Removing the LAST remaining committed item (final attribute chip or the
+  // free-text query badge) is the explicit full clear — same as the bar's X:
+  // the hook wipes its own state and this callback clears the committed table
+  // criteria so the table restores. Removing a chip while others remain keeps
+  // the deliberate no-recommit behavior (the hook only fires this on empty).
+  const handleLastRemoved = useCallback(() => onCommitQuery?.(null), [onCommitQuery])
+
   const {
     value, query, onChange, onClear, onFocus, onBlur,
     chips, onChipCommit, onChipRemove,
+    textChip, onTextCommit, onTextRemove,
     suggestionSections, suggestionsOpen,
     results, resultTotal,
-  } = useGlobalSearch(scopedAdapter)
+  } = useGlobalSearch(scopedAdapter, { onLastRemoved: handleLastRemoved })
 
   const wrapperRef = useRef(null)
+  const panelRef = useRef(null)
   const [resultsOpen, setResultsOpen] = useState(false)
   // Which view the overlay shows: the results list or the filters panel.
   const [panelView, setPanelView] = useState('results')
@@ -55,28 +64,43 @@ export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment 
   const panelViewRef = useRef('results')
   useEffect(() => { panelViewRef.current = panelView }, [panelView])
 
-  // A non-empty debounced query or a committed chip → open the Results glimpse.
-  // Emptying both closes it — but only while the Results view is showing; the
-  // Filters view stays open (you can build filters with no chips committed yet,
-  // e.g. opened via the FilterButton). Keyed to the query STRING (not a boolean)
-  // so continued typing re-opens the glimpse after an explicit close.
+  // A non-empty debounced query or a NEWLY committed chip → open the Results
+  // glimpse. Emptying everything closes it — but only while the Results view is
+  // showing; the Filters view stays open (you can build filters with no chips
+  // committed yet, e.g. opened via the FilterButton). Keyed to the query STRING
+  // (not a boolean) so continued typing re-opens the glimpse after an explicit
+  // close. Compared against the PREVIOUS chips/query (S80): a commit now clears
+  // the input (the text becomes a query badge), and without the delta check
+  // that query change would re-open the panel right after commitQuery closed it.
   const hasQuery = query.trim().length > 0
+  const prevOpenKeyRef = useRef({ chipCount: 0, query: '' })
   useEffect(() => {
-    if (chips.length > 0 || query.trim()) setResultsOpen(true)
-    else if (panelViewRef.current === 'results') setResultsOpen(false)
-  }, [chips.length, query])
+    const prev = prevOpenKeyRef.current
+    prevOpenKeyRef.current = { chipCount: chips.length, query }
+    const q = query.trim()
+    if ((q && query !== prev.query) || chips.length > prev.chipCount) {
+      setResultsOpen(true)
+    } else if (!q && chips.length === 0 && !textChip && panelViewRef.current === 'results') {
+      setResultsOpen(false)
+    }
+  }, [chips.length, query, textChip])
 
   const openFilters = () => { setPanelView('filters'); setResultsOpen(true) }
   const closePanel = useCallback(() => { setResultsOpen(false); setPanelView('results') }, [])
 
-  // Commit the current criteria set — committed chips + typed text — to the
-  // host's table-search pipeline and close the glimpse. The bar keeps its chips
-  // and text: they represent the active table search. Chips-only commits work
-  // (Enter with chips and an empty input commits the chips).
+  // Commit the current criteria set — committed chips + free text — to the
+  // host's table-search pipeline and close the glimpse. Chips-only commits work
+  // (Enter with chips and an empty input commits the chips). S80 req 2 ("every
+  // entered search is a query"): typed text turns into a query BADGE in the bar
+  // on commit (onTextCommit) instead of lingering as raw input text; with an
+  // empty input, the existing badge's term recommits. The `{ chips, text }`
+  // contract is unchanged — the badge is presentation, `text` stays a string.
   const commitQuery = useCallback(() => {
-    onCommitQuery?.({ chips, text: value.trim() })
+    const text = value.trim() || textChip?.value || ''
+    onCommitQuery?.({ chips, text })
+    if (value.trim()) onTextCommit()
     closePanel()
-  }, [chips, value, onCommitQuery, closePanel])
+  }, [chips, value, textChip, onCommitQuery, onTextCommit, closePanel])
 
   // Explicit Clear all — wipes the bar (chips + text, via the hook's onClear)
   // AND the committed table criteria. This is the only gesture that clears the
@@ -97,11 +121,29 @@ export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment 
   // Keyboard: Enter in the input commits the query (same as "Show all N
   // results"); Escape closes the panel. Listens on the wrapper so we don't
   // reach into the GlobalSearch internals; chip Enter presses are scoped out
-  // by the INPUT check.
+  // by the INPUT check, and GlobalSearch stops propagation when Enter selects a
+  // highlighted suggestion (S80 req 5), so that case never reaches here.
+  // S80 req 4: Enter also commits while the RESULTS PANEL has focus (the user
+  // clicked into it, de-focusing the input — still "in search context"). The
+  // panel is focusable (tabIndex -1) so clicks land focus inside the wrapper;
+  // interactive descendants (rows, links, buttons) keep their own Enter.
+  const canCommit = !!(value.trim() || chips.length > 0 || textChip)
   const handleKeyDown = useCallback((e) => {
     if (e.key === 'Escape') { closePanel(); return }
-    if (e.key === 'Enter' && e.target.tagName === 'INPUT' && (value.trim() || chips.length > 0)) commitQuery()
-  }, [closePanel, commitQuery, value, chips.length])
+    if (e.key !== 'Enter' || !canCommit) return
+    const inInput = e.target.tagName === 'INPUT'
+    const inPanel = panelRef.current?.contains(e.target) &&
+      !e.target.closest('button, a, input, textarea, select, [role="button"], [role="option"]')
+    if (inInput || inPanel) commitQuery()
+  }, [closePanel, commitQuery, canCommit])
+
+  // S80 req 3: clicking back into the bar while there's in-progress text (or
+  // committed chips / a query badge) re-opens the panel with the current
+  // glimpse — closing via click-outside doesn't discard the composition.
+  const handleFocus = useCallback(() => {
+    onFocus()
+    if (canCommit) setResultsOpen(true)
+  }, [onFocus, canCommit])
 
   // Close on click outside the entire wrapper (bar + panel).
   useEffect(() => {
@@ -116,6 +158,18 @@ export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment 
     return () => document.removeEventListener('mousedown', handleMouseDown)
   }, [resultsOpen])
 
+  // Bar chips = committed attribute chips + (when present) the free-text query
+  // badge (S80 req 2) — same visual treatment, quoted label to read as a query
+  // term. Removal routes by key: the text badge clears via onTextRemove.
+  const barChips = useMemo(
+    () => (textChip ? [...chips, { ...textChip, label: `"${textChip.label}"` }] : chips),
+    [chips, textChip],
+  )
+  const handleChipRemove = useCallback((key) => {
+    if (textChip && key === textChip.key) onTextRemove()
+    else onChipRemove(key)
+  }, [textChip, onTextRemove, onChipRemove])
+
   return (
     <div className="shipments-global-search" ref={wrapperRef} onKeyDown={handleKeyDown}>
       <GlobalSearch
@@ -124,13 +178,13 @@ export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment 
         // The bar's X wipes chips + text — an explicit clear-all gesture, so it
         // clears the committed table criteria too.
         onClear={handleClearAll}
-        onFocus={onFocus}
+        onFocus={handleFocus}
         onBlur={onBlur}
-        chips={chips}
-        onChipRemove={onChipRemove}
+        chips={barChips}
+        onChipRemove={handleChipRemove}
         onChipClick={() => setResultsOpen(true)}
         resultsOpen={resultsOpen}
-        filterCount={chips.length}
+        filterCount={barChips.length}
         // FilterButton opens the Filters view; its active state is bound to the
         // Filters view being open — whether reached via the button or the
         // GlobalSearchResults "All Filters" link.
@@ -141,10 +195,12 @@ export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment 
         onSuggestionSelect={onChipCommit}
       />
 
-      {/* Results needs a query or committed chips; Filters can show on its own
-          (opened via the FilterButton even before any chip is committed). */}
-      {resultsOpen && (panelView === 'filters' || chips.length > 0 || hasQuery) && (
-        <div className="shipments-results-panel">
+      {/* Results needs a query (typed or committed as the text badge) or
+          committed chips; Filters can show on its own (opened via the
+          FilterButton even before any chip is committed). tabIndex -1 makes the
+          panel focusable so a click inside it keeps Enter working (req 4). */}
+      {resultsOpen && (panelView === 'filters' || chips.length > 0 || hasQuery || textChip) && (
+        <div className="shipments-results-panel" ref={panelRef} tabIndex={-1}>
           {panelView === 'results' ? (
             <GlobalSearchPanel
               count={resultTotal}

@@ -21,6 +21,7 @@ export default function ModalFooter({
   // confirm (ModalFooter1)
   cancelLabel = 'Cancel',
   saveLabel = 'Save',
+  saveDisabled = false,
   onCancel,
   onSave,
   tertiaryLabel, // optional — pass it to show the "Clear all" button
@@ -74,7 +75,7 @@ export default function ModalFooter({
       <Button variant="secondary" size="md" onClick={onCancel}>{cancelLabel}</Button>
       <div className="modal-footer__group">
         {tertiaryLabel && <Button variant="secondary" size="md" onClick={onTertiary}>{tertiaryLabel}</Button>}
-        <Button variant="primary" size="md" onClick={onSave}>{saveLabel}</Button>
+        <Button variant="primary" size="md" disabled={saveDisabled} onClick={onSave}>{saveLabel}</Button>
       </div>
     </footer>
   )

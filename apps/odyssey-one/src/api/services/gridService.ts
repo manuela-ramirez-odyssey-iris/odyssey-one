@@ -4,7 +4,7 @@ import { getAllShipments } from '../../data'
 // Shared chip+text matcher — the SAME predicate the GlobalSearch glimpse uses
 // (adapter.searchShipments), so criteria-filtered panel totals always sum to the
 // glimpse total (S79c decision 7).
-import { hasCriteria, matchesCriteria } from '../../search/shipments/criteria'
+import { hasCriteria, matchesCriteria, FREE_TEXT_KEYS } from '../../search/shipments/criteria'
 import type {
   ShipmentErrorRow,
   ShipmentErrorListResponse,
@@ -52,9 +52,9 @@ export async function getCategoryCounts(params: CategoryCountParams): Promise<Ca
   return [...counts].map(([category, count]) => ({ category, count }))
 }
 
-const SEARCH_FIELDS: (keyof ShipmentErrorRow)[] = [
-  'buyShipment', 'sellShipment', 'customerId', 'customerName', 'origin', 'destination', 'scac', 'orders',
-]
+// Legacy free-text search fields — same single-source list the shared criteria
+// matcher uses (S79c decision 7); keeps the legacy searchTerm path coherent.
+const SEARCH_FIELDS = FREE_TEXT_KEYS as (keyof ShipmentErrorRow)[]
 
 function toISO(dateStr: string): string | null {
   if (!dateStr) return null

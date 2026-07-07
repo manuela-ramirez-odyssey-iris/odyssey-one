@@ -5,6 +5,10 @@ export interface AddressVM {
   company: string
   location: string
   address: string
+  /* split lines for the Orders-tab party columns (Figma 4292:17716) —
+     `address` stays the joined form for existing consumers */
+  address1: string
+  address2: string
 }
 
 export interface SpecialServiceVM {

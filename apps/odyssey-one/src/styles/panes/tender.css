@@ -6,12 +6,13 @@
   overflow: visible;
 }
 
-/* Remove top gap from the pane-col so the tab row sits flush at the top */
+/* Gap between the full-width tabs band and the table card */
 .tender-pane__col {
   padding-top: var(--spacing-5);
 }
 
-/* Row 1: tab-group left, action buttons right, baseline-aligned */
+/* Row 1 inner (inside .pane-tabs-band > .pane-band-inner--wide):
+   tab-group left, action buttons right, baseline-aligned */
 .tender-pane__tab-row {
   display: flex;
   align-items: flex-end;

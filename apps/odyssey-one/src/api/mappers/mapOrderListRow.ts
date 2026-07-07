@@ -33,9 +33,14 @@ function formatMeasure(m: { value: number; uom: string } | undefined): string {
 }
 
 export function mapOrderListRow(row: OrderListRow): OrderRowVM {
+  // Pending = async creation still processing: no orderNumber yet, but the row
+  // carries the internal orderId (LINX-11013) so it stays addressable. The grid
+  // renders '-' for the ID; row key falls back to the internal id.
+  const pending = !row.orderNumber && row.orderId != null
   return {
-    id: s(row.orderNumber),
-    idLabel: s(row.orderNumber), // LLD row has no orderId — LINX-11013 fallback collapses to orderNumber
+    id: s(row.orderNumber) || (pending ? `pending-${row.orderId}` : ''),
+    idLabel: s(row.orderNumber) || (pending ? '-' : ''),
+    pending,
     customer: s(row.customer),
     origin: formatPlace(row.consignor),
     destination: formatPlace(row.consignee),

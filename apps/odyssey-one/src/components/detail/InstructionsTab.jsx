@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { ChevronDown, ChevronRight } from 'lucide-react'
+import PaneEmpty from './PaneEmpty'
 
 function InstructionGroup({ order }) {
   const [expanded, setExpanded] = useState(true)
@@ -64,18 +65,7 @@ function InstructionGroup({ order }) {
 
 const InstructionsTab = React.memo(function InstructionsTab({ data }) {
   if (!data?.orders?.length) {
-    return (
-      <div className="pane-canvas">
-        <div className="pane-col pane-col--medium">
-          <div className="pane-card">
-            <div className="pane-card__header">
-              <span className="pane-card__title">Instructions</span>
-            </div>
-            <p className="instr-empty" style={{ padding: 0 }}>No instructions available.</p>
-          </div>
-        </div>
-      </div>
-    )
+    return <PaneEmpty message="No instructions available." col="medium" />
   }
 
   return (

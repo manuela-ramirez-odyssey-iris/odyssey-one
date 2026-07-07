@@ -4,7 +4,7 @@
 // only the create flow needs (freight terms, ship classes, special services,
 // carriers, timezones, UoMs) are defined here. `frequency` drives the
 // LINX-7553 frequency sort in lookupService; values are PROVISIONAL fakes.
-import { CUSTOMERS, LOCATIONS, EQUIPMENT_CODES, CHEMICAL_PRODUCTS } from '../../tools/data-pools.mjs'
+import { CUSTOMERS, LOCATIONS, EQUIPMENT_CODES, CHEMICAL_PRODUCTS, locationIdFor } from '../../tools/data-pools.mjs'
 
 export { CUSTOMERS, LOCATIONS, EQUIPMENT_CODES, CHEMICAL_PRODUCTS }
 
@@ -74,12 +74,11 @@ export const CITY_TIMEZONES = {
 export const deriveTimezone = (city) => CITY_TIMEZONES[city] ?? ''
 
 // ── Location addresses (org-address typeahead; hydrates the manual grid) ──
-// locationId formula is IDENTICAL to generate-orders.mjs LOCATION_IDS, so
-// lookup picks match the ids already on the Summary grid.
+// locationId comes from the SHARED data-pools formula (locationIdFor), so
+// lookup picks match the ids on the Orders grid AND the shipment stops.
 export const LOCATION_ADDRESSES = LOCATIONS.map((loc, i) => {
-  const initials = loc.facility.split(/\s+/).map(w => w[0]).join('').slice(0, 3).toUpperCase()
   return {
-    locationId: `${initials}-${loc.state}-${String(i + 1).padStart(3, '0')}`,
+    locationId: locationIdFor(loc, i),
     longName: loc.facility,
     address1: `${100 + i} Industrial Blvd`, // synthetic street — pools carry no street line
     city: loc.city,

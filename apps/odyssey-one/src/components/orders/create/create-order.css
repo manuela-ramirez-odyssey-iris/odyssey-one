@@ -44,21 +44,11 @@
   .co-banner-enter { animation: none; }
 }
 
+/* Trail wrapper only — segment styling (label colors, chevron, hover) is owned
+   by the @odyssey/ui Breadcrumb atom (.breadcrumb in styles/components.css). */
 .co-breadcrumb {
   display: flex;
   align-items: center;
-  gap: var(--spacing-2);
-  color: var(--text-tertiary);
-}
-
-.co-breadcrumb a {
-  color: var(--text-tertiary);
-  text-decoration: none;
-}
-
-.co-breadcrumb a:hover {
-  color: var(--text-secondary);
-  text-decoration: underline;
 }
 
 /* Expand/Collapse All toggle: suppress link underline at this usage (item 3).
@@ -650,37 +640,11 @@
   margin: 0;
 }
 
-/* ── Confirmation (screens 6/7) ─────────────────────────── */
-
-.co-confirm-strip {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-10);
-  padding: var(--spacing-4) var(--spacing-6);
-  background: var(--bg-primary);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-}
-
-.co-kv {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: var(--spacing-4) var(--spacing-6);
-}
-
-.co-kv__item {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.co-kv__label {
-  color: var(--text-tertiary);
-}
-
-.co-kv__value {
-  color: var(--text-primary);
-}
+/* ── Confirmation-era section blocks ────────────────────────
+   The confirmation itself now reuses the Order Summary layout
+   (summary/order-summary.css + OrderSummaryView); .co-confirm-strip and
+   .co-kv* retired with it. The blocks below survive via the form sections
+   (GeneralInformationSection, PickupDeliverySection, SpecialServicesPicker). */
 
 .co-confirm-block {
   display: flex;

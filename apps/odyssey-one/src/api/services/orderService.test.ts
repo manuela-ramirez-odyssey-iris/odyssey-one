@@ -42,7 +42,7 @@ const STORE = [
   }),
 ]
 
-vi.mock('../../data/orders', () => ({ getAllOrders: () => STORE }))
+vi.mock('../../data/orders', () => ({ getAllOrders: () => STORE, getOrderEnrichment: () => null }))
 
 import { getOrderList } from './orderService'
 
@@ -95,5 +95,32 @@ describe('orderService.getOrderList (mock)', () => {
       filters: { earliestPickupDateFrom: '2026-06-30', earliestPickupDateTo: '2026-07-02' },
     })
     expect(range.orders.map(o => o.orderNumber)).toEqual(['BBB100003'])
+  })
+
+  // Navbar customer scope — gridService semantics (S79c decision 10)
+  it('scopes to the selected customers before everything else', async () => {
+    const scoped = await getOrderList(page(), ['BASF_CHM_01'])
+    expect(scoped.pagination.totalCount).toBe(2)
+    expect(scoped.orders.every(o => o.customer === 'BASF_CHM_01')).toBe(true)
+  })
+
+  it('yields an honestly empty page for an empty customer scope, everything when unscoped', async () => {
+    const none = await getOrderList(page(), [])
+    expect(none.pagination.totalCount).toBe(0)
+    expect(none.orders).toEqual([])
+    const all = await getOrderList(page(), undefined)
+    expect(all.pagination.totalCount).toBe(5)
+  })
+
+  it('sorts number-less pending rows as the NEWEST under the desc newest-first proxy', async () => {
+    STORE.push(mk('', { orderId: 91001 }))
+    try {
+      const desc = await getOrderList({ ...page(), sort: { field: 'orderNumber', direction: 'desc' } })
+      expect(desc.orders[0].orderNumber).toBe('') // pending first — newest
+      const asc = await getOrderList({ ...page(), sort: { field: 'orderNumber', direction: 'asc' } })
+      expect(asc.orders[asc.orders.length - 1].orderNumber).toBe('') // pending last
+    } finally {
+      STORE.pop()
+    }
   })
 })

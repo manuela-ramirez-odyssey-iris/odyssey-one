@@ -3,11 +3,14 @@ import { getOrderList } from '../services/orderService'
 import { mapOrderListRow } from '../mappers/mapOrderListRow'
 import type { OrderListRequest } from '../types/orderList'
 
-export function useOrderList(request: OrderListRequest) {
+// `customerIds` = the navbar customer scope (CustomersContext.selectedDataIds)
+// — same first-order semantics as the Shipments grid: undefined unscoped,
+// [] honestly empty. Part of the query key so selection changes refetch.
+export function useOrderList(request: OrderListRequest, customerIds?: string[]) {
   return useQuery({
-    queryKey: ['order-list', request],
+    queryKey: ['order-list', request, customerIds],
     queryFn: async () => {
-      const res = await getOrderList(request)
+      const res = await getOrderList(request, customerIds)
       return {
         rows: res.orders.map(mapOrderListRow),
         totalCount: res.pagination.totalCount,

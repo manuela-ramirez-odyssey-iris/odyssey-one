@@ -15,6 +15,12 @@ import Badge from './Badge'
  * Width-agnostic: the panel hugs its content (Figma width-hug). The chip list is
  * capped at MAX_VISIBLE_CHIPS rows — beyond that it scrolls vertically instead
  * of overflowing the viewport; the title stays pinned above the scroll area.
+ *
+ * Combobox wiring (S80, optional): when the parent (GlobalSearch) drives
+ * keyboard navigation via aria-activedescendant, it passes `optionId(i)` and
+ * `activeIndex`. The panel then renders as a listbox `group` — chips become
+ * `role="option"` with ids, `aria-selected`, and an `.is-active` highlight that
+ * mirrors the hover styling. Omit both props for the standalone behavior.
  */
 const MAX_VISIBLE_CHIPS = 9
 
@@ -22,13 +28,17 @@ export default function FilterSuggestions({
   title = 'Suggested Filters',
   items = [],
   onSelect,
+  optionId,
+  activeIndex = -1,
   className = '',
   style,
   ...rest
 }) {
+  const combobox = typeof optionId === 'function'
   return (
     <div
       className={`filter-suggestions ${className}`.trim()}
+      {...(combobox && { role: 'group', 'aria-label': title || undefined })}
       style={{
         display: 'flex',
         flexDirection: 'column',
@@ -47,12 +57,14 @@ export default function FilterSuggestions({
         <span
           className="text-label-sm-medium"
           style={{ color: 'var(--text-tertiary)' }}
+          {...(combobox && { 'aria-hidden': true })}
         >
           {title}
         </span>
       )}
       <div
         className="filter-suggestions__list"
+        {...(combobox && { role: 'presentation' })}
         style={{
           display: 'flex',
           flexDirection: 'column',
@@ -66,13 +78,22 @@ export default function FilterSuggestions({
       >
         {items.map((raw, i) => {
           const label = typeof raw === 'string' ? raw : raw.label
+          const isActive = combobox && i === activeIndex
           if (onSelect) {
             return (
               <button
                 key={i}
                 type="button"
-                className="filter-suggestions__chip badge-interactive"
+                className={`filter-suggestions__chip badge-interactive${isActive ? ' is-active' : ''}`}
                 onClick={() => onSelect(raw)}
+                // Keyboard highlight (aria-activedescendant target) — the chip
+                // never takes DOM focus; the input keeps it.
+                {...(combobox && {
+                  id: optionId(i),
+                  role: 'option',
+                  'aria-selected': i === activeIndex,
+                  tabIndex: -1,
+                })}
               >
                 <Badge variant="gray">{label}</Badge>
               </button>

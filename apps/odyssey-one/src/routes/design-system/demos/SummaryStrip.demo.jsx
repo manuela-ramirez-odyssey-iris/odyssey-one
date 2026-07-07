@@ -4,18 +4,9 @@ import { SummaryStrip } from '@odyssey/ui'
 export const meta = {
   name: 'SummaryStrip',
   tier: 'molecule',
-  // Provisional — stamped at release when the S79 staging batch ships.
   version: '0.7.0',
   createdVersion: '0.7.0',
-  // NEW STAGING (S79e; normalization pass 2026-07-06): the tab-summary band.
-  // Figma master `SummaryStrip` 4254:904 on Components-Molecules › Sections —
-  // componentized by us from the `Overview` frame (4178:8365) with Label 1–6 /
-  // Value 1–6 TEXT props; value fills bound Text/primary, band gradient
-  // artifact flattened to Background/primary. Replaces the ad-hoc
-  // `.pane-kpis*` utilities (deleted). Tones remain a code extension (no
-  // Figma axis — design decision pending).
-  normalizing: true,
-  approved: true,
+  normalizing: false,
   figmaNode: '4254:904',
   codeConnect: 'packages/ui/src/SummaryStrip.figma.tsx',
 }

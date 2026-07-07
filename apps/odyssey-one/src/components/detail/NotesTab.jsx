@@ -6,6 +6,8 @@ import { Button, TextArea } from '@odyssey/ui'
 const NOTE_LIMIT = 10
 const CURRENT_USER = 'Amy Cook'
 const CURRENT_USER_INITIALS = 'AC'
+// Mirrors Amy Cook's avatarUrl in tools/generate.mjs NOTE_AUTHORS — keep in sync.
+const CURRENT_USER_AVATAR = 'https://randomuser.me/api/portraits/women/44.jpg'
 
 let noteIdCounter = 100
 
@@ -22,18 +24,25 @@ function formatNoteDate() {
 
 /* ─── App-local Avatar chip (normalization candidate) ────── */
 /**
- * InitialsAvatar — app-local atom (S79b, W2-7).
+ * NoteAvatar — app-local atom (S79b, restyled per Figma 4292:17056 S80).
+ * Renders the author photo when `avatarUrl` is present; falls back to the
+ * initials chip (the Figma "User Avatar" initials style) otherwise.
  * Normalization candidate: move to @odyssey/ui once shape stabilises.
- * Props: initials (string), size (number, default 32)
  */
-function InitialsAvatar({ initials, size = 32 }) {
+function NoteAvatar({ initials, avatarUrl, name, size = 32 }) {
+  const [imgFailed, setImgFailed] = useState(false)
+  const showPhoto = avatarUrl && !imgFailed
   return (
     <div
-      className="notes-avatar"
+      className={`notes-avatar${showPhoto ? ' notes-avatar--photo' : ''}`}
       aria-hidden="true"
       style={{ width: size, height: size }}
     >
-      {initials}
+      {showPhoto ? (
+        <img src={avatarUrl} alt="" onError={() => setImgFailed(true)} />
+      ) : (
+        initials
+      )}
     </div>
   )
 }
@@ -67,61 +76,59 @@ function NoteItem({ note, isOwnNote, onEdit, onDelete, isAnyEditing, onEditingCh
       className={`notes-item${isOwnNote ? ' notes-item--own' : ''}${editing ? ' notes-item--editing' : ''}`}
       data-testid="note-item"
     >
+      <NoteAvatar initials={note.authorInitials} avatarUrl={note.avatarUrl} name={note.author} />
+
       {editing ? (
-        /* ── Inline edit state (mock 10.1) ── */
-        <div className="notes-item__edit-row">
-          <InitialsAvatar initials={note.authorInitials} />
-          <div className="notes-item__edit-body">
-            <TextArea
-              showLabel={false}
-              value={editText}
-              onChange={(e) => setEditText(e.target.value)}
-              maxLength={200}
-              showCount
-              rows={3}
-              autoFocus
-              aria-label={`Edit note by ${note.author}`}
-            />
-            <div className="notes-item__edit-actions">
-              <Button variant="primary" size="sm" onClick={handleSave} disabled={!editText.trim()}>
-                Save
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleCancel}>
-                Cancel
-              </Button>
-            </div>
+        /* ── Inline edit state (Figma 4292:17082) ── */
+        <div className="notes-item__content">
+          <TextArea
+            showLabel={false}
+            value={editText}
+            onChange={(e) => setEditText(e.target.value)}
+            maxLength={200}
+            showCount
+            rows={3}
+            autoFocus
+            aria-label={`Edit note by ${note.author}`}
+          />
+          <div className="notes-item__edit-actions">
+            <Button variant="primary" size="sm" onClick={handleSave} disabled={!editText.trim()}>
+              Save
+            </Button>
+            <Button variant="secondary" size="sm" onClick={handleCancel}>
+              Cancel
+            </Button>
           </div>
         </div>
       ) : (
-        /* ── View state ── */
+        /* ── View state (Figma 4292:17054) ── */
         <>
-          <div className="notes-item__header">
-            <InitialsAvatar initials={note.authorInitials} />
+          <div className="notes-item__content">
             <div className="notes-item__meta">
               <span className="notes-item__author">{note.author}</span>
               <span className="notes-item__date">{note.date}</span>
             </div>
-            {isOwnNote && (
-              <div className="notes-item__actions" role="toolbar" aria-label="Note actions">
-                <Button
-                  variant="icon"
-                  size="sm"
-                  icon={<Pencil size={14} />}
-                  aria-label="Edit note"
-                  onClick={startEdit}
-                  disabled={isAnyEditing}
-                />
-                <Button
-                  variant="icon"
-                  size="sm"
-                  icon={<Trash2 size={14} />}
-                  aria-label="Delete note"
-                  onClick={() => onDelete(note.id)}
-                />
-              </div>
-            )}
+            <p className="notes-item__body">{note.body}</p>
           </div>
-          <p className="notes-item__body">{note.body}</p>
+          {isOwnNote && (
+            <div className="notes-item__actions" role="toolbar" aria-label="Note actions">
+              <Button
+                variant="icon"
+                size="sm"
+                icon={<Pencil size={14} />}
+                aria-label="Edit note"
+                onClick={startEdit}
+                disabled={isAnyEditing}
+              />
+              <Button
+                variant="icon"
+                size="sm"
+                icon={<Trash2 size={14} />}
+                aria-label="Delete note"
+                onClick={() => onDelete(note.id)}
+              />
+            </div>
+          )}
         </>
       )}
     </div>
@@ -149,6 +156,7 @@ const NotesTab = React.memo(function NotesTab({ data }) {
       author: CURRENT_USER,
       authorInitials: CURRENT_USER_INITIALS,
       avatarClass: 'ac',
+      avatarUrl: CURRENT_USER_AVATAR,
       date: formatNoteDate(),
       body: trimmed,
     }
@@ -199,12 +207,10 @@ const NotesTab = React.memo(function NotesTab({ data }) {
             ))}
           </div>
 
-          {/* Composer — hidden while any note is in inline-edit mode */}
+          {/* Composer (Figma 4292:17116) — hidden while any note is in inline-edit mode */}
           {!anyEditing && (
             <div className="notes-composer" data-testid="notes-composer">
-              <div className="notes-composer__avatar-col">
-                <InitialsAvatar initials={CURRENT_USER_INITIALS} />
-              </div>
+              <NoteAvatar initials={CURRENT_USER_INITIALS} avatarUrl={CURRENT_USER_AVATAR} name={CURRENT_USER} />
               <div className="notes-composer__body">
                 <TextArea
                   showLabel={false}

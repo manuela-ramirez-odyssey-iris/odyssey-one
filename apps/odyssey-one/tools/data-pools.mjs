@@ -71,6 +71,15 @@ export const LOCATIONS = [
   { city: 'Green River', state: 'WY', zip: '82935', facility: 'SOLVAY CHEMICALS PL' },
 ];
 
+// Deterministic location ids in the LLD "RGC-STL-001" shape: facility initials
+// (≤3) – state – sequence. Single source for the generators AND the
+// master-data LOCATION_ADDRESSES lookup, so an order's consignor.locationId,
+// the create-form location picks and the shipment stops all agree.
+export const locationIdFor = (loc, i) => {
+  const initials = loc.facility.split(/\s+/).map(w => w[0]).join('').slice(0, 3).toUpperCase()
+  return `${initials}-${loc.state}-${String(i + 1).padStart(3, '0')}`
+}
+
 export const CHEMICAL_PRODUCTS = [
   { item: '32041H1D', desc: 'Sodium Hydroxide Solution 50%', hazmat: true, hClass: 'Class 8', hGroup: 'II', unNumber: 'UN1824' },
   { item: '28103A2K', desc: 'Hydrochloric Acid 32%', hazmat: true, hClass: 'Class 8', hGroup: 'II', unNumber: 'UN1789' },

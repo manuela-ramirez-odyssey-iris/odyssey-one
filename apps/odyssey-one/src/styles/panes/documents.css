@@ -14,27 +14,36 @@
 }
 
 /* ── Header row ───────────────────────────────────────── */
+/* Figma 4288:16606+ header cells: label/sm semibold, text/primary,
+   sentence case (no uppercase), px 16 / py 14 (14px vertical is
+   component-internal geometry from Figma — untokenized there too). */
 .docs-th {
-  padding: var(--spacing-3) var(--spacing-4);
+  padding: 14px var(--spacing-4);
   text-align: left;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
   font-weight: var(--font-weight-semibold);
-  color: var(--text-placeholder);
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
+  color: var(--text-primary);
   white-space: nowrap;
   border-bottom: 1px solid var(--border-subtle);
   background: var(--bg-primary);
 }
 
-.docs-th--cb { width: 40px; }
-.docs-th--file { /* grows */ }
-.docs-th--size { width: 140px; }
+.docs-th--cb { width: 52px; padding: var(--spacing-4); }
+/* Figma: File / Creation Time / File Size columns share the flexible width equally */
+.docs-th--file,
+.docs-th--time,
+.docs-th--size { width: 31%; }
 .docs-th--action { width: 64px; text-align: center; }
 
 /* ── Body rows ─────────────────────────────────────────── */
+/* Figma body cells: label/sm regular, text/tertiary, px 16 / py 14 */
 .docs-td {
-  padding: var(--spacing-3) var(--spacing-4);
+  padding: 14px var(--spacing-4);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+  font-weight: var(--font-weight-regular);
+  color: var(--text-tertiary);
   vertical-align: middle;
   border-bottom: 1px solid var(--border-subtle);
   white-space: nowrap;
@@ -45,30 +54,25 @@
 .docs-row:hover { background: var(--bg-secondary); }
 .docs-row[data-selected] { background: var(--control-checked-bg-faint, color-mix(in srgb, var(--control-checked-bg) 8%, transparent)); }
 
-.docs-td--cb { width: 40px; }
+.docs-td--cb { width: 52px; padding: var(--spacing-4); }
 .docs-td--file { white-space: normal; min-width: 200px; }
 .docs-td--muted { color: var(--text-tertiary); }
-.docs-td--action { width: 64px; text-align: center; }
+/* Figma action cells: px 16 / py 8 (kebab is a 36px hit target) */
+.docs-td--action { width: 64px; text-align: center; padding: var(--spacing-2) var(--spacing-4); }
 
 /* ── File cell ─────────────────────────────────────────── */
+/* Figma 4288:16618: file name renders as label/sm regular text/tertiary
+   (no blue link styling). Kept clickable — preview affordance on hover. */
 .docs-file-link {
   font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-  color: var(--text-link);
+  font-weight: var(--font-weight-regular);
+  color: var(--text-tertiary);
   text-decoration: none;
   cursor: pointer;
 }
-.docs-file-link:hover { text-decoration: underline; }
-
-.docs-file-desc {
-  display: block;
-  font-size: var(--font-size-xs);
-  color: var(--text-tertiary);
-  margin-top: var(--spacing-1);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 360px;
+.docs-file-link:hover {
+  color: var(--text-link);
+  text-decoration: underline;
 }
 
 /* ── Empty state ───────────────────────────────────────── */

@@ -685,6 +685,12 @@ input[type="date"].odyssey-date-input::-webkit-calendar-picker-indicator:hover {
 .badge-interactive:hover {
   --badge-gray-bg: var(--deep-sea-neutral-200);
 }
+/* Keyboard highlight (S80 combobox navigation in GlobalSearch suggestions):
+   the aria-activedescendant target chip mirrors the hover look — DOM focus
+   stays on the search input, so :hover/:focus can't drive it. */
+.badge-interactive.is-active {
+  --badge-gray-bg: var(--deep-sea-neutral-200);
+}
 .badge-interactive:active {
   --badge-gray-text: var(--deep-sea-neutral-400);
 }
@@ -1683,10 +1689,12 @@ input[type="date"].odyssey-date-input::-webkit-calendar-picker-indicator:hover {
 .sub-accordion__header-row {
   display: flex;
   align-items: center;
+  gap: var(--spacing-3);
 }
 /* Expand-all action icon is 16px by spec (chevrons-up-down/down-up) — override
-   the Button atom's 20px leading-icon wrapper, scoped to this molecule. */
-.sub-accordion__header-row .btn__icon {
+   the Button atom's 20px leading-icon wrapper, scoped to the LINK button only
+   (the optional primary `action` keeps the atom's 20px icon). */
+.sub-accordion__header-row .btn--link .btn__icon {
   width: var(--icon-size-md);
   height: var(--icon-size-md);
 }
@@ -3101,16 +3109,6 @@ button.breadcrumb__label:focus-visible {
   overflow-y: auto;
 }
 
-/* Edit-mode veil over the content — white translucent scrim that signals focus lives in the
-   header title and blocks content interaction until the edit is committed/cancelled. */
-.right-panel__content-veil {
-  position: absolute;
-  inset: 0;
-  background: rgba(255, 255, 255, 0.6);
-  pointer-events: auto;
-  cursor: default;
-}
-
 /* RightPanel composes ModalFooter (type="confirm") for its footer; this class only adds the
    rise-in animation (layout / padding / border come from .modal-footer). */
 .right-panel__footer {
@@ -3135,6 +3133,16 @@ button.breadcrumb__label:focus-visible {
 }
 .right-panel-dock--open {
   width: var(--right-panel-width);
+  /* above the outside-click scrim (60) so the panel stays interactive */
+  z-index: 61;
+}
+/* Invisible full-viewport scrim while a right panel is open — swallows the
+   first outside mousedown (close-only, no click-through). Rendered by the
+   consumer (ShipmentsRoute) so the dismissal routes through its close guard. */
+.right-panel-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
 }
 .right-panel-dock .right-panel {
   position: absolute;
@@ -3179,6 +3187,27 @@ button.breadcrumb__label:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .column-arrange-view--forward,
   .column-arrange-view--back {
+    animation: none;
+  }
+}
+
+/* Footer attention pulse — after "stay" in the exit-without-save dialog, the footer's
+   Cancel/Save borders flash carolina blue (2 pulses) + a subtle scale to say "your
+   unsaved changes live here". Applied via .column-panel--footer-pulse on the RightPanel
+   section (className passthrough); the consumer removes the class after the animation. */
+.column-panel--footer-pulse .right-panel__footer .btn {
+  animation: column-footer-pulse 700ms ease-in-out 2;
+}
+@keyframes column-footer-pulse {
+  50% {
+    border-color: var(--carolina-blue-400);
+    box-shadow: 0 0 6px 0 var(--carolina-blue-400);
+    transform: scale(1.04); /* subtle grow per pulse: 1 → 1.04 → 1 */
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .column-panel--footer-pulse .right-panel__footer .btn {
     animation: none;
   }
 }
@@ -3583,6 +3612,12 @@ button.breadcrumb__label:focus-visible {
   left: 50%;
   transform: translateX(-50%);
   z-index: 49; /* below FilterSuggestions dropdown at z-index: 50 */
+}
+/* The panel is programmatically focusable (tabIndex -1) so clicking inside it
+   keeps Enter committing the search (S80 req 4) — no visible focus ring: focus
+   here is a side-effect of clicking, not keyboard navigation. */
+.shipments-results-panel:focus {
+  outline: none;
 }
 
 /* ----------------------------------------
@@ -4454,6 +4489,12 @@ button.breadcrumb__label:focus-visible {
    rises above the page title row (S79b decision 2 — 50vh retired).
    ============================================================ */
 .shipments-bar {
+  /* Left offset of the strip's FIRST TAB LABEL ("Orders") from the bar edge:
+     lead segment (16px pad + 20px arrow + 8 gap + ~64px 8-digit id + 8 gap +
+     20px arrow + 16px pad = 152px) + 16px tab padding. Pane bands reference
+     this to left-align their content with the Orders tab (Figma 4270:15055
+     fixed-inset model). Re-measure if the shipment-id format changes. */
+  --shipmentsbar-lead-offset: 168px;
   position: fixed;
   bottom: 0;
   left: var(--sidebar-width);
@@ -4577,33 +4618,8 @@ button.breadcrumb__label:focus-visible {
   background: var(--deep-sea-neutral-100);
   border-bottom-color: transparent;
 }
-/* Dropdown tab face (Figma ShipmentsBarTab State=Selected, Dropdown=True):
-   prelabel (12/12 regular, Text/tertiary) stacked over the value, 4px gap to a
-   16px chevron; padding 10/12/6/16. Chevron rotates 180° while the menu is
-   open (menu-open is code-only, like hover — no Figma axis). */
-.shipments-bar__tab--dropdown {
-  padding: 10px var(--spacing-3) 6px var(--spacing-4);
-  gap: 4px;
-}
-.shipments-bar__tab-stack {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  text-align: left;
-}
-.shipments-bar__tab-prelabel {
-  font-size: var(--font-size-xs);
-  line-height: 12px;
-  font-weight: var(--font-weight-regular);
-  color: var(--text-tertiary);
-}
-.shipments-bar__tab-chevron {
-  color: var(--deep-sea-neutral-500);
-  transition: transform var(--transition-fast);
-}
-.shipments-bar__tab--dropdown[aria-expanded="true"] .shipments-bar__tab-chevron {
-  transform: rotate(180deg);
-}
+/* Dropdown tab face retired S80 — Figma ShipmentsBarTab is Default|Selected
+   only; in-pane switchers live in the pane content (e.g. Orders order tabs). */
 .shipments-bar__tab:disabled {
   color: var(--text-placeholder);
   opacity: 0.6;
@@ -4647,7 +4663,6 @@ button.breadcrumb__label:focus-visible {
 
 @media (prefers-reduced-motion: reduce) {
   .shipments-bar,
-  .shipments-bar__tab-chevron,
   .widget-mini {
     transition: none;
   }
@@ -4744,9 +4759,28 @@ button.breadcrumb__label:focus-visible {
   /* scroll headroom under the last card */
   padding-bottom: 180px;
 }
-.order-pane__expand-row {
+/* Orders bands (Figma 4270:15055/15060) — fixed-inset content, NOT column-
+   centered: left edge aligns with the strip's "Orders" tab label via
+   --shipmentsbar-lead-offset; right inset 152px per the mock. The tabs band
+   shell is the shared .pane-tabs-band. */
+.order-pane__band-inner {
+  padding-inline: var(--shipmentsbar-lead-offset, 168px) 152px;
+}
+.order-pane__info-band {
+  padding-block: var(--spacing-3);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.order-pane__info-row {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
+}
+.order-pane__info-title {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-sm);
+  color: var(--text-primary);
+  white-space: nowrap;
 }
 /* inside a card: sub-blocks (General / Requested Transportation / …) */
 .order-pane__section {
@@ -4758,6 +4792,27 @@ button.breadcrumb__label:focus-visible {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-3);
+}
+/* Planning Date/Time keeps a roomier heading→field gap (Figma 4292:17779) */
+.order-pane__block--loose {
+  gap: var(--spacing-6);
+}
+/* ruled sub-blocks (Figma 4292:17664/17722) — 32px padding around each rule
+   instead of the plain 24px section gap */
+.order-pane__section--divided {
+  gap: 0;
+}
+.order-pane__section--divided > .order-pane__block {
+  padding-block: var(--spacing-8);
+}
+.order-pane__section--divided > .order-pane__block:first-child {
+  padding-top: 0;
+}
+.order-pane__section--divided > .order-pane__block:last-child {
+  padding-bottom: 0;
+}
+.order-pane__section--divided > .order-pane__block + .order-pane__block {
+  border-top: 1px solid var(--border-subtle);
 }
 .order-pane__subheading {
   margin: 0;
@@ -4799,46 +4854,53 @@ button.breadcrumb__label:focus-visible {
 .order-pane__col-seq {
   width: 48px;
 }
-.order-pane__cell-wrap {
-  white-space: normal; /* instructions are sentences — override the Cell nowrap */
+/* References — type/value each ~⅓, third column an empty filler (4292:17695) */
+.order-pane__col-third {
+  width: 33.33%;
 }
-/* Pickup and Delivery: two 50% party columns */
+/* TitleSubtitle rows on the 4-column rhythm (Figma 4292:17668 justify-between
+   with 220px fields ≈ four equal columns at the medium-column width) */
+.order-pane__fields-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--spacing-6) var(--spacing-3);
+}
+/* instructions are sentences — outrank `.odyssey-table td`'s nowrap
+   (plain .order-pane__cell-wrap lost the specificity contest and never wrapped) */
+.odyssey-table td.order-pane__cell-wrap {
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+/* Pickup and Delivery: two 50% party columns split by a vertical rule
+   (Figma 4292:17724/17751 — consignor pr-20 + border-right, consignee pl-20) */
 .order-pane__cols {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--spacing-6);
   align-items: start;
 }
-.order-pane__details {
+.order-pane__cols > :first-child {
+  border-right: 1px solid var(--border-subtle);
+  padding-right: var(--spacing-5);
+}
+.order-pane__cols > :last-child {
+  padding-left: var(--spacing-5);
+}
+/* party column: static "Consignor/Consignee details" header (the mock hides
+   the chevron — DetailsCollapsible retired) over ruled field groups */
+.order-pane__party {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-3);
+  gap: var(--spacing-6);
 }
-.order-pane__details-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--spacing-2);
-  padding: 0;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  color: var(--text-primary);
-  font-family: var(--font-primary);
-  text-align: left;
+.order-pane__party-extra {
+  border-top: 1px solid var(--border-subtle);
+  padding-top: var(--spacing-6);
 }
-.order-pane__details-chevron {
-  color: var(--text-tertiary);
-  transition: transform var(--transition-base);
-}
-.order-pane__details-chevron--open {
-  transform: rotate(180deg);
-}
-/* party columns pair label/value fields two-up */
+/* party columns pair TitleSubtitle fields two-up (row 24 / col 12 per mock) */
 .order-pane__party-fields {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--spacing-4) var(--spacing-6);
+  gap: var(--spacing-6) var(--spacing-3);
 }
 /* Product Information — dimmed, non-interactive (🚧 plan decision #1) */
 .order-pane__under-construction {
@@ -4886,6 +4948,8 @@ button.breadcrumb__label:focus-visible {
 }
 .pane-col {
   margin-inline: auto;
+  /* breathing room below the tabs/info bands (S80) */
+  margin-top: var(--spacing-4);
   padding: var(--spacing-4) var(--spacing-6) var(--spacing-8);
   display: flex;
   flex-direction: column;
@@ -4894,6 +4958,24 @@ button.breadcrumb__label:focus-visible {
 .pane-col--wide { max-width: calc(1280px + 2 * var(--spacing-6)); }
 .pane-col--medium { max-width: calc(1106px + 2 * var(--spacing-6)); }
 .pane-col--narrow { max-width: calc(760px + 2 * var(--spacing-6)); }
+
+/* Official ShipmentsBar tab-content tab row (Figma 4270:15055 "Tab Container"):
+   a full-width band with a bottom-anchored white fade over the bar bg
+   (GRADIENT_LINEAR: white a=0 at top → a≈0.35 at the bottom edge) and a
+   border-subtle bottom rule. Inner content aligns to the pane's column tier
+   via .pane-band-inner--{wide,medium,narrow} (same widths as .pane-col). */
+.pane-tabs-band {
+  padding-top: var(--spacing-4);
+  border-bottom: 1px solid var(--border-subtle);
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.35));
+}
+.pane-band-inner {
+  margin-inline: auto;
+  padding-inline: var(--spacing-6);
+}
+.pane-band-inner--wide { max-width: calc(1280px + 2 * var(--spacing-6)); }
+.pane-band-inner--medium { max-width: calc(1106px + 2 * var(--spacing-6)); }
+.pane-band-inner--narrow { max-width: calc(760px + 2 * var(--spacing-6)); }
 
 .pane-card {
   background: var(--bg-primary);
@@ -4961,6 +5043,174 @@ button.breadcrumb__label:focus-visible {
 /* Tones — code extension, no Figma axis yet (Pending Figma Sync) */
 .summary-strip__value--negative { color: var(--bittersweet-600); }
 .summary-strip__value--positive { color: var(--caribbean-green-600); }
+
+/* ----------------------------------------
+   STOP BADGE + TIMELINE (STAGING, S80) — Figma "NewBadge" (renamed StopBadge)
+   + Timeline staging frames 4274:15599 / 4273:15227 (plain frames, Figma
+   componentization pending). StopBadge = 32×20 min pill (radius-full,
+   12/16 medium) with a 10px status circle overlapping top-right (Figma
+   x27/y−4 on a 32w pill → right −5px / top −4px; 1.25px white ring).
+   Timeline = per-row rail (badge + 2px track DSN/100, fill DSN/400) +
+   content; partial fill ≈70% with a truck marker riding the tip.
+   ---------------------------------------- */
+.stop-badge {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 20px;
+  padding: 2px 6px;
+  border-radius: var(--radius-full);
+  font-family: var(--font-primary);
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+.stop-badge__label {
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-xs);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+}
+.stop-badge--completed { background: var(--caribbean-green-600); color: var(--white); }
+.stop-badge--issue     { background: var(--bittersweet-600);     color: var(--white); }
+.stop-badge--pending {
+  background: var(--white);
+  color: var(--deep-sea-neutral-400);
+  border: 1.5px solid var(--deep-sea-neutral-400);
+}
+.stop-badge__status {
+  position: absolute;
+  top: -4px;
+  right: -5px;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.25px solid var(--white);
+  box-sizing: border-box;
+}
+.stop-badge--completed .stop-badge__status { background: var(--caribbean-green-600); color: var(--white); }
+.stop-badge--issue     .stop-badge__status { background: var(--bittersweet-600);     color: var(--white); }
+/* pending renders no status circle (not reached yet — Figma Pending variant) */
+
+.odyssey-timeline {
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font-primary);
+}
+.odyssey-timeline__row {
+  display: flex;
+  gap: var(--spacing-3);
+}
+.odyssey-timeline__rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 32px;
+  flex-shrink: 0;
+}
+.odyssey-timeline__segment {
+  position: relative;
+  width: 2px;
+  flex: 1;
+  min-height: var(--spacing-6);
+  background: var(--deep-sea-neutral-100);
+}
+.odyssey-timeline__segment-fill {
+  position: absolute;
+  inset: 0;
+  background: var(--deep-sea-neutral-400);
+  transform-origin: top;
+}
+.odyssey-timeline__segment--none .odyssey-timeline__segment-fill { display: none; }
+.odyssey-timeline__segment--partial .odyssey-timeline__segment-fill { bottom: 30%; }
+.odyssey-timeline__marker {
+  position: absolute;
+  top: 70%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  padding: 2px 0;
+  background: var(--white);
+  color: var(--text-tertiary);
+}
+.odyssey-timeline__content {
+  flex: 1;
+  min-width: 0;
+}
+/* Mount choreography — one 800ms "beat" per segment (delays set inline by
+   Timeline.jsx: segment i at beat i, badge i lights at beat i — exactly when
+   the incoming fill lands; markers fade in at 75% of their segment's beat).
+   Fills grow with an ease-in-out cubic (slow-in, slow-out — not linear);
+   reached badges hold the pending skin (`both` fill-mode) until their beat,
+   then flip to status colors with a subtle scale pulse; the status circle
+   fades in on the same beat (animation-delay: inherit picks up the badge's
+   inline delay). */
+.odyssey-timeline--animate .odyssey-timeline__segment-fill {
+  transform: scaleY(0);
+  animation: odyssey-timeline-grow 0.8s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+.odyssey-timeline--animate .odyssey-timeline__marker {
+  opacity: 0;
+  animation: odyssey-timeline-appear 0.3s ease-out forwards;
+}
+.odyssey-timeline--animate .odyssey-timeline__badge.stop-badge--completed {
+  animation:
+    odyssey-timeline-badge-completed 0.45s ease-out both,
+    odyssey-timeline-badge-pulse 0.45s ease-out both;
+}
+.odyssey-timeline--animate .odyssey-timeline__badge.stop-badge--issue {
+  animation:
+    odyssey-timeline-badge-issue 0.45s ease-out both,
+    odyssey-timeline-badge-pulse 0.45s ease-out both;
+}
+.odyssey-timeline--animate .odyssey-timeline__badge .stop-badge__status {
+  opacity: 0;
+  animation: odyssey-timeline-appear 0.3s ease-out forwards;
+  animation-delay: inherit;
+}
+@keyframes odyssey-timeline-grow { to { transform: scaleY(1); } }
+@keyframes odyssey-timeline-appear { to { opacity: 1; } }
+/* pending skin → status colors (inset ring stands in for the pending border) */
+@keyframes odyssey-timeline-badge-completed {
+  from {
+    background: var(--white);
+    color: var(--deep-sea-neutral-400);
+    box-shadow: inset 0 0 0 1.5px var(--deep-sea-neutral-400);
+  }
+  to {
+    background: var(--caribbean-green-600);
+    color: var(--white);
+    box-shadow: inset 0 0 0 1.5px transparent;
+  }
+}
+@keyframes odyssey-timeline-badge-issue {
+  from {
+    background: var(--white);
+    color: var(--deep-sea-neutral-400);
+    box-shadow: inset 0 0 0 1.5px var(--deep-sea-neutral-400);
+  }
+  to {
+    background: var(--bittersweet-600);
+    color: var(--white);
+    box-shadow: inset 0 0 0 1.5px transparent;
+  }
+}
+@keyframes odyssey-timeline-badge-pulse {
+  0%   { transform: scale(1); }
+  55%  { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .odyssey-timeline--animate .odyssey-timeline__segment-fill { animation: none; transform: none; }
+  .odyssey-timeline--animate .odyssey-timeline__marker { animation: none; opacity: 1; }
+  .odyssey-timeline--animate .odyssey-timeline__badge.stop-badge--completed,
+  .odyssey-timeline--animate .odyssey-timeline__badge.stop-badge--issue { animation: none; }
+  .odyssey-timeline--animate .odyssey-timeline__badge .stop-badge__status { animation: none; opacity: 1; }
+}
 
 /* ----------------------------------------
    TABLE — GroupTable (presentational grouped table)

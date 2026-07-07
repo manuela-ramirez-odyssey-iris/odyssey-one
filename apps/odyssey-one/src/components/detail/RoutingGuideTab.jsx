@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { TruckElectric, Columns3Cog, X, Trash2, FoldHorizontal, UnfoldHorizontal } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
 import { Button, Tab } from '@odyssey/ui'
+import { parseDollar, fmtDollar } from '../../utils/money'
 
 /* ═══════════════════════════════════════════════════════════
    Section 1 — Constants
@@ -390,10 +391,11 @@ function TenderDetailModal({ isOpen, onClose, shipment, shipmentDetails }) {
           padding: '12px 16px',
           borderTop: '1px solid var(--border-subtle)',
         }}>
-          <Button variant="secondary" onClick={() => console.log('[Tender] Routing Query (QCP) clicked')}>
+          {/* No-op stubs — real actions require backend wiring */}
+          <Button variant="secondary" onClick={() => { /* TODO: wire Routing Query (QCP) */ }}>
             Routing Query (QCP)
           </Button>
-          <Button variant="secondary" onClick={() => console.log('[Tender] View Stops clicked')}>
+          <Button variant="secondary" onClick={() => { /* TODO: wire View Stops */ }}>
             View Stops
           </Button>
         </div>
@@ -505,8 +507,6 @@ function QuoteModal({ mode, carrierData, onSave, onClose }) {
     letterSpacing: '0.03em',
     marginBottom: 4,
   }
-
-  const fmt2 = (n) => Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
   return createPortal(
     <div
@@ -760,17 +760,17 @@ function QuoteModal({ mode, carrierData, onSave, onClose }) {
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--text-secondary)', marginBottom: 4 }}>
                 <span>Base Rate</span>
-                <span style={{ fontVariantNumeric: 'tabular-nums' }}>${fmt2(numBase)}</span>
+                <span style={{ fontVariantNumeric: 'tabular-nums' }}>{fmtDollar(numBase)}</span>
               </div>
               {additionalCharges.filter(c => c.code).map((c, i) => (
                 <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--text-secondary)', marginBottom: 4 }}>
                   <span>{c.code}</span>
-                  <span style={{ fontVariantNumeric: 'tabular-nums' }}>${fmt2(c.amount || 0)}</span>
+                  <span style={{ fontVariantNumeric: 'tabular-nums' }}>{fmtDollar(c.amount || 0)}</span>
                 </div>
               ))}
               <div style={{ borderTop: '1px solid var(--border-subtle)', marginTop: 6, paddingTop: 6, display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
                 <span>Total</span>
-                <span style={{ fontVariantNumeric: 'tabular-nums' }}>${fmt2(apTotal)}</span>
+                <span style={{ fontVariantNumeric: 'tabular-nums' }}>{fmtDollar(apTotal)}</span>
               </div>
             </div>
 
@@ -786,21 +786,21 @@ function QuoteModal({ mode, carrierData, onSave, onClose }) {
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--text-secondary)', marginBottom: 4 }}>
                 <span>Base Rate</span>
-                <span style={{ fontVariantNumeric: 'tabular-nums' }}>${fmt2(numBase)}</span>
+                <span style={{ fontVariantNumeric: 'tabular-nums' }}>{fmtDollar(numBase)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--text-secondary)', marginBottom: 4 }}>
                 <span>Markup</span>
-                <span style={{ fontVariantNumeric: 'tabular-nums' }}>${fmt2(numMarkup)}</span>
+                <span style={{ fontVariantNumeric: 'tabular-nums' }}>{fmtDollar(numMarkup)}</span>
               </div>
               {additionalCharges.filter(c => c.code).map((c, i) => (
                 <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--text-secondary)', marginBottom: 4 }}>
                   <span>{c.code}</span>
-                  <span style={{ fontVariantNumeric: 'tabular-nums' }}>${fmt2(c.amount || 0)}</span>
+                  <span style={{ fontVariantNumeric: 'tabular-nums' }}>{fmtDollar(c.amount || 0)}</span>
                 </div>
               ))}
               <div style={{ borderTop: '1px solid var(--border-subtle)', marginTop: 6, paddingTop: 6, display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
                 <span>Total</span>
-                <span style={{ fontVariantNumeric: 'tabular-nums' }}>${fmt2(arTotal)}</span>
+                <span style={{ fontVariantNumeric: 'tabular-nums' }}>{fmtDollar(arTotal)}</span>
               </div>
             </div>
           </div>
@@ -943,9 +943,9 @@ function CostTooltip({ carrier, onViewDetails }) {
 
   const apTotal = carrier.cost || carrier.apFreightCost || '--'
   const arTotal = carrier.arCost || carrier.arFreightCost || '--'
-  const apNum = parseFloat(String(apTotal).replace(/[^0-9.\-]/g, ''))
-  const arNum = parseFloat(String(arTotal).replace(/[^0-9.\-]/g, ''))
-  const margin = (!isNaN(apNum) && !isNaN(arNum)) ? arNum - apNum : null
+  const apNum = parseDollar(apTotal)
+  const arNum = parseDollar(arTotal)
+  const margin = (apNum != null && arNum != null) ? arNum - apNum : null
   const marginPct = (margin != null && apNum > 0) ? ((margin / apNum) * 100).toFixed(1) : null
 
   return (
@@ -997,7 +997,7 @@ function CostTooltip({ carrier, onViewDetails }) {
    Section 6 — RoutingTable
    ═══════════════════════════════════════════════════════════ */
 
-function RoutingTable({ options, columns, tabColumns, highlightedRank, openMenuRank, onOpenMenu, onCloseMenu, onAction, onToggleColumnPanel, isCollapsed, getCollapsedWidth, columnsCollapsed, collapsedWidths, onCollapse, onExpand, onViewRateDetails }) {
+function RoutingTable({ options, tabColumns, highlightedRank, openMenuRank, onOpenMenu, onCloseMenu, onAction, onToggleColumnPanel, isCollapsed, columnsCollapsed, collapsedWidths, onCollapse, onExpand, onViewRateDetails }) {
   const [hoveredRank, setHoveredRank] = useState(null)
   const [showToggle, setShowToggle] = useState(false)
   const rightTableRef = useRef(null)
@@ -1330,11 +1330,6 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
     return true
   }, [collapsedWidths, expandedWidths])
 
-  const getCollapsedWidth = useCallback((key) => {
-    if (!collapsedWidths || !collapsedWidths[key]) return null
-    return collapsedWidths[key]
-  }, [collapsedWidths])
-
   const handleCollapse = useCallback(() => {
     const container = document.querySelector('[data-routing-container]')
     const leftTable = document.querySelector('[data-left-table] table')
@@ -1517,7 +1512,6 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
     setOpenMenuRank(null)
   }, [options])
 
-  const activeColumns = [...LOCKED_COLUMNS, ...(TAB_COLUMNS[activeSubTab] || [])]
   const activeTabColumns = TAB_COLUMNS[activeSubTab] || []
 
   /* Attach _menuPos to the option that has its menu open */
@@ -1527,9 +1521,10 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
 
   return (
     <div className="pane-canvas tender-pane">
-      <div className="pane-col pane-col--wide tender-pane__col">
-        {/* Row 1: underline sub-tabs + right-aligned actions */}
-        <div className="tender-pane__tab-row">
+      {/* Row 1: full-width tabs band (official ShipmentsBar tab-content styling)
+          — underline sub-tabs left, actions right, content aligned to the wide column */}
+      <div className="pane-tabs-band">
+        <div className="pane-band-inner pane-band-inner--wide tender-pane__tab-row">
           <div className="tab-group">
             {SUB_TABS.map((tab) => (
               <Tab
@@ -1549,13 +1544,14 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
             </Button>
           </div>
         </div>
+      </div>
 
+      <div className="pane-col pane-col--wide tender-pane__col">
         {/* Row 2: table in a wide bordered container directly on canvas */}
         <div className="tender-pane__table-card">
           <div ref={tableRef}>
             <RoutingTable
           options={optionsWithPos}
-          columns={activeColumns}
           tabColumns={activeTabColumns}
           highlightedRank={highlightedRank}
           openMenuRank={openMenuRank}
@@ -1566,7 +1562,6 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
           isCollapsed={isCollapsed}
           columnsCollapsed={collapsedWidths !== null}
           collapsedWidths={collapsedWidths}
-          getCollapsedWidth={getCollapsedWidth}
           onCollapse={handleCollapse}
           onExpand={handleExpand}
           onViewRateDetails={(carrier) => setQuoteModal({ isOpen: true, mode: 'view', carrierData: carrier })}

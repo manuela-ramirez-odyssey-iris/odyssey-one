@@ -4,11 +4,14 @@ import AppShell from '../../components/layout/AppShell'
 import CreateOrderForm from '../../components/orders/create/CreateOrderForm.jsx'
 import ConfirmationView from '../../components/orders/create/ConfirmationView.jsx'
 import '../../components/orders/create/create-order.css'
+import '../../components/orders/summary/order-summary.css'
 
 /**
  * CreateOrderRoute — /orders/create inside AppShell (sidebar stays; the
  * navbar flips via CreateOrderModeContext). Post-submit, the form unmounts
- * and the confirmation renders on the same route (spec §5).
+ * and the confirmation renders on the same route (spec §5) — it reuses the
+ * Order Summary layout (`.order-summary-page` + OrderSummaryView) with the
+ * success/info Alert slotted into the info band (Figma 4317:20483).
  * Dev triggers: ?draft=<orderNumber> reopens a draft; ?confirm=async forces
  * the async confirmation variant (Q17 — mock always returns sync).
  */
@@ -20,7 +23,7 @@ export default function CreateOrderRoute() {
 
   return (
     <AppShell>
-      <div className="create-order-page">
+      <div className={submitted ? 'order-summary-page' : 'create-order-page'}>
         {submitted ? (
           <ConfirmationView
             data={submitted.response.data}

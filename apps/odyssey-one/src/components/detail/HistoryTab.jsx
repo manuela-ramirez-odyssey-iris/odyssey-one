@@ -1,18 +1,13 @@
 import React from 'react'
+import { Badge } from '@odyssey/ui'
+import PaneEmpty from './PaneEmpty'
 
 const HistoryTab = React.memo(function HistoryTab({ data }) {
   const entries = data?.entries
   // Use the newest entry as the reference point for relative times
   const refDate = entries?.length > 0 ? new Date(entries[0].timestamp) : new Date()
   if (!entries || entries.length === 0) {
-    return (
-      <div
-        className="flex flex-col items-center justify-center gap-3"
-        style={{ padding: '48px 0', color: 'var(--text-placeholder)' }}
-      >
-        <div className="text-sm font-medium">No history available</div>
-      </div>
-    )
+    return <PaneEmpty message="No history available." />
   }
 
   return (
@@ -31,7 +26,6 @@ const HistoryTab = React.memo(function HistoryTab({ data }) {
 
       {entries.map((entry, i) => {
         const dotColor = getDotColor(entry.category)
-        const badge = getBadge(entry.category)
 
         return (
           <div
@@ -72,22 +66,7 @@ const HistoryTab = React.memo(function HistoryTab({ data }) {
                 >
                   {entry.user}
                 </span>
-                <span
-                  style={{
-                    display: 'inline-block',
-                    fontSize: 11,
-                    fontWeight: 600,
-                    fontFamily: 'var(--font-primary)',
-                    padding: '1px 7px',
-                    borderRadius: 'var(--radius-full)',
-                    background: badge.bg,
-                    color: badge.fg,
-                    lineHeight: '18px',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {entry.action}
-                </span>
+                <Badge variant={BADGE_VARIANTS[entry.category] || 'gray'}>{entry.action}</Badge>
                 <span
                   style={{
                     marginLeft: 'auto',
@@ -150,28 +129,26 @@ export default HistoryTab
 
 // --- Helpers ---
 
-function getDotColor(category) {
-  switch (category) {
-    case 'create': return 'var(--badge-green-fg, #16a34a)'
-    case 'tender': return 'var(--badge-blue-fg, #2563eb)'
-    case 'update': return 'var(--badge-amber-fg, #d97706)'
-    case 'completion': return 'var(--badge-purple-fg, #7c3aed)'
-    default: return 'var(--text-tertiary)'
-  }
+// Action badge variant per entry category — the @odyssey/ui Badge owns the
+// bg/text token pair. "update" maps to the amber variant (--badge-yellow-*
+// tokens — the design system has no amber-named tokens; nearest match).
+const BADGE_VARIANTS = {
+  create: 'green',
+  tender: 'blue',
+  update: 'amber',
+  completion: 'purple',
 }
 
-function getBadge(category) {
+// Timeline dot color — the matching badge TEXT token (no dedicated dot/status
+// tokens exist yet; the badge text shade is the nearest saturated equivalent
+// of the old hardcoded hexes).
+function getDotColor(category) {
   switch (category) {
-    case 'create':
-      return { bg: 'var(--badge-green-bg, #dcfce7)', fg: 'var(--badge-green-fg, #16a34a)' }
-    case 'tender':
-      return { bg: 'var(--badge-blue-bg, #dbeafe)', fg: 'var(--badge-blue-fg, #2563eb)' }
-    case 'update':
-      return { bg: 'var(--badge-amber-bg, #fef3c7)', fg: 'var(--badge-amber-fg, #d97706)' }
-    case 'completion':
-      return { bg: 'var(--badge-purple-bg, #ede9fe)', fg: 'var(--badge-purple-fg, #7c3aed)' }
-    default:
-      return { bg: 'var(--bg-tertiary)', fg: 'var(--text-secondary)' }
+    case 'create': return 'var(--badge-green-text)'
+    case 'tender': return 'var(--badge-blue-text)'
+    case 'update': return 'var(--badge-yellow-text)'
+    case 'completion': return 'var(--badge-purple-text)'
+    default: return 'var(--text-tertiary)'
   }
 }
 

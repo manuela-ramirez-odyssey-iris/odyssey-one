@@ -32,6 +32,12 @@ import Button from './Button.jsx'
  * header toggle (never a nested button). Consumer-controlled via `allExpanded`
  * — the consumer tracks what's expanded inside the slot. (Figma: `Show Expand
  * All` BOOLEAN, default false.)
+ *
+ * Optional primary action (S80): pass `action` (a ReactNode — by convention a
+ * `Button variant="primary" size="sm"`) to render it at the end of the header
+ * row, after the expand-all link. Both actions are independently toggleable
+ * and Static-only, like the Figma master (`Show Button` BOOLEAN, default
+ * false — e.g. the Documents card's "Add Document").
  */
 export default function SubAccordion({
   title,
@@ -43,6 +49,7 @@ export default function SubAccordion({
   onToggle,
   allExpanded = false,
   onToggleAll,
+  action,
   children,
   className = '',
 }) {
@@ -98,6 +105,7 @@ export default function SubAccordion({
             {allExpanded ? 'Collapse All' : 'Expand All'}
           </Button>
         )}
+        {!collapsible && action}
       </div>
       <div
         className="sub-accordion__reveal"

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('../config', () => ({ getApiMode: vi.fn(() => 'mock') }))
-vi.mock('../../data/orders', () => ({ getAllOrders: () => [] }))
+vi.mock('../../data/orders', () => ({ getAllOrders: () => [], getOrderEnrichment: () => null }))
 
 import { createOrder, saveDraft, getDraft, getOrderList, __resetOrderWriteState } from './orderService'
 import { mapFormToOrderInterface } from '../mappers/mapFormToOrderInterface'

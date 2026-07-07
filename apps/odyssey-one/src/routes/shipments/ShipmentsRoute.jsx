@@ -1,35 +1,22 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useRef } from 'react'
 import AppShell from '../../components/layout/AppShell'
 import ShipmentsPanelTabs from '../../components/shipments/ShipmentsPanelTabs'
 import TableControls from '../../components/shipments/TableControls'
 import ShipmentTable from '../../components/shipments/ShipmentTable'
 import BottomBar, { DEFAULT_TAB_ORDER } from '../../components/detail/BottomBar'
-import FilterPanel from '../../components/shipments/FilterPanel'
-import ColumnPanel, { ALL_COLUMNS, EXCEPTIONS_DEFAULT_COLUMNS, MONITORING_DEFAULT_COLUMNS } from '../../components/detail/ColumnPanel'
+import ColumnPanel, { ALL_COLUMNS, EXCEPTIONS_DEFAULT_COLUMNS, MONITORING_DEFAULT_COLUMNS, RIGHT_PANEL_WIDTH } from '../../components/detail/ColumnPanel'
 import TabArrangementPanel from '../../components/detail/TabArrangementPanel'
 import { COLUMN_CONFIG } from '../../components/shipments/ShipmentTable'
 import { FileText } from 'lucide-react'
 import { PageHeader } from '@odyssey/ui'
 import ShipmentsGlobalSearch from '../../components/global-search/ShipmentsGlobalSearch'
-import { getAllShipments, SEARCH_ATTRIBUTES } from '../../data'
+import { getAllShipments } from '../../data'
 import { PANEL_CONFIG } from '../../data/panelConfig'
 import { useCustomers } from '../../contexts/CustomersContext.jsx'
 import { useShipmentDetail } from '../../api/queries/useShipmentDetail'
 import { useShipmentErrorList } from '../../api/queries/useShipmentErrorList'
 import { useCategoryCounts } from '../../api/queries/useCategoryCounts'
 import { getShipmentErrorList } from '../../api/services/gridService'
-
-function parseSavedQuery(queryStr) {
-  const pairs = []
-  const regex = /(\S+?):(\"[^\"]*\"|\S+)/g
-  let match
-  while ((match = regex.exec(queryStr)) !== null) {
-    const key = match[1]
-    const value = match[2].replace(/^"|"$/g, '')
-    pairs.push({ key, value })
-  }
-  return pairs
-}
 
 function ShipmentsRoute() {
   // Customer scoping (S79c decision 10) — the FIRST-order data filter. The
@@ -45,14 +32,11 @@ function ShipmentsRoute() {
   // cleared only by an explicit Clear all. Feeds listParams.searchCriteria AND
   // the category-count queries, so table, tab badges and pills stay coherent.
   const [searchCriteria, setSearchCriteria] = useState(null)
-  const [filtersOpen, setFiltersOpen] = useState(false)
   const [columnPanelOpen, setColumnPanelOpen] = useState(false)
   const [tabPanelOpen, setTabPanelOpen] = useState(false)
   // Ordered visible ShipmentsBar tab keys (hidden = absent; Orders pinned first).
   // Route-state lifespan only — same persistence as the column arrangement.
   const [tabOrder, setTabOrder] = useState(DEFAULT_TAB_ORDER)
-  const [filters, setFilters] = useState({})
-  const [appliedSavedQuery, setAppliedSavedQuery] = useState(null)
   const [pageNumber, setPageNumber] = useState(0)
   const [pageSize, setPageSize] = useState(25)
   // 'pills' | 'widgets' — how the category row renders (PillTabs vs WidgetMini
@@ -67,9 +51,9 @@ function ShipmentsRoute() {
     setColumnsByPanel(prev => ({ ...prev, [activePanel]: newCols }))
   }, [activePanel])
 
-  // Full set kept for: FilterPanel dropdown options, the grand-total count, and the
-  // selected-row lookup (BottomBar consumes the raw row shape). In live mode these
-  // become lookup endpoints / the grid row already in hand — deferred.
+  // Full set kept for: the grand-total count and the selected-row lookup
+  // (BottomBar consumes the raw row shape). In live mode these become lookup
+  // endpoints / the grid row already in hand — deferred.
   const allShipments = useMemo(() => getAllShipments(), [])
 
   const { data: shipmentDetails = null, isLoading: detailsLoading, isError: detailsError, refetch: refetchDetails } = useShipmentDetail(selectedShipmentId)
@@ -81,58 +65,32 @@ function ShipmentsRoute() {
     return allShipments.find(s => s.sellShipment === selectedShipmentId) || null
   }, [selectedShipmentId, allShipments])
 
-  // Reset to the first page whenever the query identity (panel/tab/filters/saved
-  // query/chip/search) changes. Done during render (React's documented "adjust state
-  // on change" pattern) rather than in an effect, so the stale-page query never fires
-  // — avoids a wasted round-trip on every filter interaction in live mode.
-  const queryIdentity = JSON.stringify([activePanel, activeTab, filters, appliedSavedQuery, searchCriteria, selectedDataIds])
+  // Reset to the first page whenever the query identity (panel/tab/search/customer
+  // scope) changes. Done during render (React's documented "adjust state on change"
+  // pattern) rather than in an effect, so the stale-page query never fires — avoids
+  // a wasted round-trip on every filter interaction in live mode.
+  const queryIdentity = JSON.stringify([activePanel, activeTab, searchCriteria, selectedDataIds])
   const [prevQueryIdentity, setPrevQueryIdentity] = useState(queryIdentity)
   if (queryIdentity !== prevQueryIdentity) {
     setPrevQueryIdentity(queryIdentity)
     if (pageNumber !== 0) setPageNumber(0)
   }
 
-  // Committed filter state → server params. The free-text search + FilterPanel
-  // filters + applied saved query all become query params the grid service applies.
-  const listParams = useMemo(() => {
-    // FilterPanel dropdown selections → exact-equality filters.
-    const filter = {}
-    if (filters.origin) filter.origin = filters.origin
-    if (filters.destination) filter.destination = filters.destination
-    if (filters.shipmentStatus) filter.shipmentStatus = filters.shipmentStatus
-    if (filters.scac) filter.scac = filters.scac
-    // Saved-query conditions are substring matches (e.g. customer-name:G2O matches
-    // "G2O Technologies LLC") — kept separate from the exact dropdown filters.
-    const searchFilters = {}
-    if (appliedSavedQuery) {
-      for (const { key, value } of parseSavedQuery(appliedSavedQuery.query)) {
-        const attr = SEARCH_ATTRIBUTES.find(a => a.key === key)
-        if (attr) searchFilters[attr.dataKey] = value
-      }
-    }
-    return {
-      panel: activePanel,
-      category: activeTab,
-      pageNumber,
-      pageSize,
-      // FIRST-order customer scope (S79c decision 10) — the selected customers'
-      // shipment dataIds, applied by gridService before panel/category/search.
-      customerIds: selectedDataIds,
-      filter,
-      searchFilters,
-      // Committed GlobalSearch criteria (S79c). The legacy searchTerm /
-      // searchAttributeKey params are still supported by gridService (and
-      // tested) but the route no longer sends them — searchCriteria replaces
-      // that path with the shared chip+text matcher.
-      searchCriteria: searchCriteria ?? undefined,
-      dateFilters: {
-        pickupDateFrom: filters.pickupDateFrom,
-        pickupDateTo: filters.pickupDateTo,
-        deliveryDateFrom: filters.deliveryDateFrom,
-        deliveryDateTo: filters.deliveryDateTo,
-      },
-    }
-  }, [activePanel, activeTab, pageNumber, pageSize, filters, appliedSavedQuery, searchCriteria, selectedDataIds])
+  // Committed query state → server params the grid service applies.
+  const listParams = useMemo(() => ({
+    panel: activePanel,
+    category: activeTab,
+    pageNumber,
+    pageSize,
+    // FIRST-order customer scope (S79c decision 10) — the selected customers'
+    // shipment dataIds, applied by gridService before panel/category/search.
+    customerIds: selectedDataIds,
+    // Committed GlobalSearch criteria (S79c). The legacy searchTerm /
+    // searchAttributeKey params are still supported by gridService (and
+    // tested) but the route no longer sends them — searchCriteria replaces
+    // that path with the shared chip+text matcher.
+    searchCriteria: searchCriteria ?? undefined,
+  }), [activePanel, activeTab, pageNumber, pageSize, searchCriteria, selectedDataIds])
 
   const {
     data: listData,
@@ -190,19 +148,35 @@ function ShipmentsRoute() {
   // (same "adjust state on change" pattern as the page reset above): hidden
   // selected panel → first visible; hidden selected category → 'all'. The
   // subtab stays always-selected through both (decision 9).
+  // The FORCED move is remembered (S80 QA nuance): when the user's panel comes
+  // back — search cleared or counts recovered — we return to it, unless the
+  // user manually picked a panel in between (handlePanelSelect clears the memo).
+  const fallbackPanelRef = useRef(null)
   if (!visiblePanels.includes(activePanel)) {
+    if (fallbackPanelRef.current === null) fallbackPanelRef.current = activePanel
     setActivePanel(visiblePanels[0] ?? 'exceptions')
     setActiveTab('all')
-  } else if (searchActive && activeTab !== 'all') {
-    const activeCat = (PANEL_CONFIG[activePanel]?.categories ?? []).find(c => c.key === activeTab)
-    if (!activeCat || (metrics[activeCat.badgeKey] ?? 0) === 0) setActiveTab('all')
+  } else {
+    if (fallbackPanelRef.current && visiblePanels.includes(fallbackPanelRef.current)) {
+      const restore = fallbackPanelRef.current
+      fallbackPanelRef.current = null
+      if (restore !== activePanel) {
+        setActivePanel(restore)
+        setActiveTab('all')
+      }
+    }
+    if (searchActive && activeTab !== 'all') {
+      const activeCat = (PANEL_CONFIG[activePanel]?.categories ?? []).find(c => c.key === activeTab)
+      if (!activeCat || (metrics[activeCat.badgeKey] ?? 0) === 0) setActiveTab('all')
+    }
   }
 
-  // Compute right offset for bottom bar based on the open panel (the three right
-  // panels — filters, column arrangement, tab arrangement — are mutually exclusive).
-  const rightOffset = (filtersOpen ? 354 : 0) + (columnPanelOpen ? 343 : 0) + (tabPanelOpen ? 343 : 0)
+  // Compute right offset for bottom bar based on the open panel (the two right
+  // panels — column arrangement, tab arrangement — are mutually exclusive).
+  const rightOffset = (columnPanelOpen ? RIGHT_PANEL_WIDTH : 0) + (tabPanelOpen ? RIGHT_PANEL_WIDTH : 0)
 
   const handlePanelSelect = useCallback((key) => {
+    fallbackPanelRef.current = null // a manual pick overrides the fallback memo
     setActivePanel(key)
     setActiveTab('all')
   }, [])
@@ -211,22 +185,29 @@ function ShipmentsRoute() {
     setSelectedShipmentId(prev => prev === id ? null : id)
   }, [])
 
-  // Only one right panel at a time — opening any of the three closes the others.
-  // NOTE (S79c decision 6): the FilterPanel's toggle lived on the SearchChipPanel
-  // row that was removed from TableControls; the drawer currently has no open
-  // trigger (its successor is the GlobalSearch panel's Filters view). The
-  // filtersOpen state + drawer stay wired for the follow-up that re-homes it.
-  const handleToggleColumnPanel = useCallback(() => {
-    setColumnPanelOpen((prev) => !prev)
-    setFiltersOpen(false)
-    setTabPanelOpen(false)
+  // Every ColumnPanel dismissal funnels through its requestClose() guard so pending
+  // (unsaved) changes can intercept with the exit-confirmation dialog. Returns false
+  // when the close was intercepted (the panel stayed open).
+  const columnPanelRef = useRef(null)
+  const closeColumnPanel = useCallback(() => {
+    if (columnPanelRef.current) return columnPanelRef.current.requestClose()
+    setColumnPanelOpen(false)
+    return true
   }, [])
 
+  // Only one right panel at a time — opening either closes the other.
+  const handleToggleColumnPanel = useCallback(() => {
+    if (columnPanelOpen) { closeColumnPanel(); return }
+    setColumnPanelOpen(true)
+    setTabPanelOpen(false)
+  }, [columnPanelOpen, closeColumnPanel])
+
   const handleToggleTabPanel = useCallback(() => {
+    // Opening the tab panel first asks the column panel to close — if it intercepts
+    // (unsaved changes), stay put; the user resolves the dialog first.
+    if (!tabPanelOpen && columnPanelOpen && !closeColumnPanel()) return
     setTabPanelOpen((prev) => !prev)
-    setFiltersOpen(false)
-    setColumnPanelOpen(false)
-  }, [])
+  }, [tabPanelOpen, columnPanelOpen, closeColumnPanel])
 
   const handleColumnsChange = useCallback((newVisibleColumns) => {
     setVisibleColumns(newVisibleColumns)
@@ -235,31 +216,23 @@ function ShipmentsRoute() {
   // Prev/next shipment navigation for the ShipmentsBar arrows — steps the
   // selection through the rows of the current page (Figma adds the affordance;
   // page-boundary crossing deferred until the interaction is specced).
+  // When the selected row isn't in the current list (e.g. a search filtered it
+  // out), prev/next re-enter the list at its edges: prev selects the last
+  // visible row, next selects the first. Arrows only fully die on an empty list.
   const selectedRowIndex = useMemo(
     () => (selectedShipmentId ? pageRows.findIndex(r => r.sellShipment === selectedShipmentId) : -1),
     [pageRows, selectedShipmentId],
   )
   const handlePrevShipment = useCallback(() => {
-    if (selectedRowIndex > 0) setSelectedShipmentId(pageRows[selectedRowIndex - 1].sellShipment)
+    if (!pageRows.length) return
+    if (selectedRowIndex === -1) setSelectedShipmentId(pageRows[pageRows.length - 1].sellShipment)
+    else if (selectedRowIndex > 0) setSelectedShipmentId(pageRows[selectedRowIndex - 1].sellShipment)
   }, [selectedRowIndex, pageRows])
   const handleNextShipment = useCallback(() => {
-    if (selectedRowIndex !== -1 && selectedRowIndex < pageRows.length - 1) {
-      setSelectedShipmentId(pageRows[selectedRowIndex + 1].sellShipment)
-    }
+    if (!pageRows.length) return
+    if (selectedRowIndex === -1) setSelectedShipmentId(pageRows[0].sellShipment)
+    else if (selectedRowIndex < pageRows.length - 1) setSelectedShipmentId(pageRows[selectedRowIndex + 1].sellShipment)
   }, [selectedRowIndex, pageRows])
-
-  const handleApplyFilters = useCallback((newFilters) => {
-    setFilters(newFilters)
-  }, [])
-
-  const handleClearFilters = useCallback(() => {
-    setFilters({})
-  }, [])
-
-  const handleApplySavedQuery = useCallback((query) => {
-    setAppliedSavedQuery(query)
-    setFiltersOpen(false)
-  }, [])
 
   // Fed by the NAVBAR GlobalSearch (the table's search box was retired in S79).
   // S79b (decision 5): typing never filters the table. S79c (decision 7): the
@@ -284,24 +257,30 @@ function ShipmentsRoute() {
   return (
     <AppShell
       onMainClick={useCallback(() => {
-        if (filtersOpen) setFiltersOpen(false)
-        if (columnPanelOpen) setColumnPanelOpen(false)
+        if (columnPanelOpen) closeColumnPanel() // guarded — may intercept with the unsaved dialog
         if (tabPanelOpen) setTabPanelOpen(false)
-      }, [filtersOpen, columnPanelOpen, tabPanelOpen])}
+      }, [columnPanelOpen, tabPanelOpen, closeColumnPanel])}
       searchSlot={<ShipmentsGlobalSearch onCommitQuery={handleCommitQuery} onSelectShipment={handleSelectShipment} />}
       filterPanel={
         <>
-          <FilterPanel
-            isOpen={filtersOpen}
-            onClose={() => setFiltersOpen(false)}
-            itemCount={totalCount}
-            initialTab="all"
-            onApplyFilters={handleApplyFilters}
-            onClearFilters={handleClearFilters}
-            onApplySavedQuery={handleApplySavedQuery}
-            allShipments={allShipments}
-          />
+          {/* Invisible scrim while a right panel is open — the first outside
+              click only DISMISSES the panel (guarded), it never reaches the
+              element underneath (no accidental row selects / button presses).
+              z-60: above the chrome (navbar/bar 40, search dropdowns 50),
+              below the lifted dock (61) and modal dialogs (9000). */}
+          {(columnPanelOpen || tabPanelOpen) && (
+            <div
+              className="right-panel-scrim"
+              aria-hidden="true"
+              onMouseDown={(e) => {
+                e.preventDefault()
+                if (columnPanelOpen) closeColumnPanel() // guarded — may intercept with the unsaved dialog
+                if (tabPanelOpen) setTabPanelOpen(false)
+              }}
+            />
+          )}
           <ColumnPanel
+            ref={columnPanelRef}
             isOpen={columnPanelOpen}
             onClose={() => setColumnPanelOpen(false)}
             visibleColumns={visibleColumns}
@@ -330,7 +309,6 @@ function ShipmentsRoute() {
       />
       <TableControls
         itemCount={totalCount}
-        filtersOpen={filtersOpen}
         onExport={async (mode) => {
           // Export all matching rows (not just the current page) — fetch them through
           // the grid service with the current filters and a large page size. In live
@@ -397,8 +375,8 @@ function ShipmentsRoute() {
         onRetryDetails={refetchDetails}
         onPrevShipment={handlePrevShipment}
         onNextShipment={handleNextShipment}
-        prevDisabled={selectedRowIndex <= 0}
-        nextDisabled={selectedRowIndex === -1 || selectedRowIndex >= pageRows.length - 1}
+        prevDisabled={pageRows.length === 0 || selectedRowIndex === 0}
+        nextDisabled={pageRows.length === 0 || selectedRowIndex === pageRows.length - 1}
       />
     </AppShell>
   )

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Inbox, Plus } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
@@ -7,6 +7,7 @@ import AppShell from '../../components/layout/AppShell'
 import OrdersToolbar from '../../components/orders/OrdersToolbar'
 import OrdersTable from '../../components/orders/OrdersTable'
 import { useOrderList } from '../../api/queries/useOrderList'
+import { useCustomers } from '../../contexts/CustomersContext'
 import '../../components/orders/orders.css'
 
 /**
@@ -18,6 +19,9 @@ import '../../components/orders/orders.css'
  */
 export default function OrdersRoute() {
   const navigate = useNavigate()
+  // Navbar customer scope — same first-order filter the Shipments grid applies
+  // (CustomersContext.selectedDataIds → gridService customerIds).
+  const { selectedDataIds } = useCustomers()
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 20 }) // pageIndex 0-based (TanStack)
   const [sortDirection, setSortDirection] = useState('desc') // newest-first proxy (A3/Q31)
   const [rowSelection, setRowSelection] = useState({})
@@ -27,7 +31,14 @@ export default function OrdersRoute() {
     sort: { field: 'orderNumber', direction: sortDirection },
   }), [pagination, sortDirection])
 
-  const { data, isPending, isError, isFetching, refetch } = useOrderList(request)
+  // Reset to the first page when the customer scope changes (query identity
+  // change — the Shipments-proven pattern).
+  const scopeKey = selectedDataIds.join(',')
+  useEffect(() => {
+    setPagination(p => (p.pageIndex === 0 ? p : { ...p, pageIndex: 0 }))
+  }, [scopeKey])
+
+  const { data, isPending, isError, isFetching, refetch } = useOrderList(request, selectedDataIds)
   // `isFetching` gates only the toolbar's sort toggle. It is intentionally NOT
   // threaded to the Paginator footer: the @odyssey/ui Paginator disables nav via
   // getCan{Previous,Next}Page(), and `placeholderData: keepPreviousData` keeps the
@@ -82,11 +93,17 @@ export default function OrdersRoute() {
             pagination={pagination}
             onPaginationChange={handlePaginationChange}
             totalCount={data.totalCount}
-            onRowIdClick={(row) => {
-              // Draft rows reopen in the create form (spec §4); others stay
-              // inert until the order-detail build. Draft key = orderNumber
-              // (plan decision 17 — the save-gate guarantees one).
+            onRowClick={(row) => {
+              // Full-row click target (Shipments-style). Number-less pending
+              // rows (async create still processing — idLabel '-') open the
+              // summary too, addressed by their synthetic `pending-<orderId>`
+              // key — the page shows the blue processing Alert and '-' for the
+              // number. Draft rows keep the spec §4 behavior — reopen in the
+              // create form (draft key = orderNumber, plan decision 17); every
+              // other row opens the Order Summary page (Figma 4317:20483 —
+              // the shared order-pane card stack under an info band).
               if (row.status === 'Draft') navigate(`/orders/create?draft=${encodeURIComponent(row.id)}`)
+              else navigate(`/orders/${encodeURIComponent(row.id)}`)
             }}
           />
         )}

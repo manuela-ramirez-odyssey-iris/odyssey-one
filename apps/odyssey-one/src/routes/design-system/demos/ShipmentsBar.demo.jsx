@@ -4,33 +4,9 @@ import { ShipmentsBar } from '@odyssey/ui'
 export const meta = {
   name: 'ShipmentsBar',
   tier: 'organism',
-  version: '0.6.0',
+  version: '0.7.0',
   createdVersion: '0.6.0',
-  // S79 demotion: expanded-bar shadow --shadow-up-md → new --shadow-up-lg token
-  // (Figma effect style shadow/up-lg) — back to NORMALIZING pending re-approval.
-  // S79b: 50vh retired — expanded height is auto (content-driven), capped at
-  // 100dvh − --bottombar-top-clearance; shadow clipped up-only via
-  // clip-path: inset(-40px 0 0 0); content slot padding → 0 (panes own their
-  // canvas). All code-only, no Figma axis.
-  // S79c: clearance 146→104px (bar top reaches mid page-title row); height
-  // eases via --transition-drawer (non-linear); CollapseExpand while expanded
-  // is now CLOSE (`onClose` — consumer deselects; 'collapsed with selection'
-  // is gone). Consumer-side (BottomBar): click-outside + Escape close, and tab
-  // switches ride useTransition so the auto-height bar never collapses to the
-  // Suspense fallback. All code-only, no Figma axis.
-  // S79d: height-model rebuild — all height motion is JS-measured px→px on
-  // the drawer curve (interpolate-size retired: its auto endpoint resolves
-  // UNCAPPED, so panes taller than the dvh cap slammed into the max-height
-  // clamp — the "two-step" open / snap close). min-height RATCHET (while open
-  // the bar holds the largest height reached; shorter panes never shrink it;
-  // resets on close), eased content GROWTH (data landing / taller tab), and
-  // animated CLOSE (last pane stays mounted, inert, while shrinking to 48).
-  // Consumer-side (BottomBar): loader is a proper ~320px pane held through
-  // the open transition (no mid-flight retarget); stale-details hold + tab
-  // preservation across prev/next switches (only a fresh null→id open resets
-  // to Orders). All code-only, no Figma axis.
-  normalizing: true,
-  approved: true,
+  normalizing: false,
   figmaNode: '4120:4623',
   codeConnect: 'packages/ui/src/ShipmentsBar.figma.tsx',
 }
@@ -39,7 +15,7 @@ export const props = [
   { name: 'shipmentId', type: 'string | null', desc: 'Current entity label in the lead segment; null renders the placeholder and disables the bar. (Figma: Shipment ID TEXT prop.)' },
   { name: 'placeholder', type: 'string', desc: "Lead label when nothing is selected. Default 'Select a Shipment'." },
   { name: 'onPrevShipment / onNextShipment', type: '() => void', desc: 'Prev/next arrows (20px, DSN/500) beside the ID — render only when provided; pair with prevDisabled/nextDisabled at list bounds.' },
-  { name: 'tabs', type: '[{ key, label, dropdown? }]', desc: "The tab slots; overflow scrolls natively. A tab with dropdown = { prelabel, value?, menu } is a DROPDOWN TAB: selected it shows prelabel over value + a chevron; clicking it while active opens a DropdownMenu of preset values (menu node, or ({ close }) => node), chevron rotating while open. (Figma: ShipmentsBarTab State=Default|Selected|Selected Dropdown, Label + Prelabel TEXT.)" },
+  { name: 'tabs', type: '[{ key, label }]', desc: "The tab slots; overflow scrolls natively. Plain tabs only — the dropdown-tab face (prelabel/value/chevron) retired S80 with the Figma State=Selected Dropdown variant; in-pane switchers live in the pane content. (Figma: ShipmentsBarTab State=Default|Selected, Label TEXT.)" },
   { name: 'activeTab / onTabChange', type: 'string / (key) => void', desc: 'Controlled selection. Selected tab = DSN/100 fill — a real Selected state (the mock faked it with Cell State=Hover). (Figma: State VARIANT Default|Selected.)' },
   { name: 'expanded / onExpandedChange', type: 'boolean / (next) => void', desc: 'Controlled expansion: 48px strip ↔ content-height pane (auto, capped at 100dvh − --bottombar-top-clearance; content scrolls when capped). While open a min-height RATCHET holds the largest height reached — switching to a shorter pane never shrinks the bar (it resets on close). CollapseExpand fires onExpandedChange(true) only in the expand direction — closing goes through onClose.' },
   { name: 'onClose', type: '() => void', desc: "CLOSE (S79c): fired by CollapseExpand while expanded (chevrons-down, aria-label 'Close panel') — the consumer deselects the entity, returning the bar to the placeholder strip. The close ANIMATES (S79d): the last-rendered pane stays mounted (inert) while the height eases back to 48px on the drawer curve. No 'collapsed with selection' state exists. Falls back to onExpandedChange(false) when not provided." },
@@ -133,7 +109,6 @@ function Schematic() {
         <LegendRow part="bar" tier="organism">Docked bottom detail bar — 48px white strip (<code>--bottombar-collapsed</code>) over a <code>DSN/100</code> canvas; hairline per segment (selected tab breaks it). Expands to a content-height pane, capped at <code>100dvh − --bottombar-top-clearance</code> (Figma: <code>State=Collapsed|Expanded</code>). <strong>Replaces the old BottomBar chrome</strong> — no close X, no scroll chevrons, no fullscreen.</LegendRow>
         <LegendRow part="current shipment" nested>Lead segment: prev/next arrows (<code>lucide/arrow-left|right</code>, 20px, <code>--deep-sea-neutral-500</code>) + shipment ID (<code>label/sm semibold</code>, <code>--text-primary</code>). (Figma: Shipment ID TEXT.)</LegendRow>
         <LegendRow part="tab slots" nested>Strip of <code>ShipmentsBarTab</code>s — <code>label/sm semibold</code>, padding 14/16; selected = <code>DSN/100</code> fill (real Selected state, not Hover); hover <code>DSN/50</code> code-only; overflow scrolls natively. Each tab is a content slot.</LegendRow>
-        <LegendRow part="dropdown tab" nested>Figma <code>State=Selected Dropdown</code> variant: prelabel (12/12 regular, <code>--text-tertiary</code>) over the value + 16px <code>chevron-down</code>, padding 10/12/6/16, 4px gap (the Gap-shape hack retired). Click-when-active opens a <code>DropdownMenu</code> of preset values anchored to the tab (flips above the docked bar); chevron rotates 180° while open (code-only, like hover).</LegendRow>
         <LegendRow part="PanelActions" nested>The ONLY controls (Figma 4095:3070), composing <code>Button Icon/sm</code>: <strong>TabArrangement</strong> (columns+cog — closest lucide is <code>columns-3-cog</code>; the mock draws 2 columns) + <strong>CollapseExpand</strong> — expanded → <code>chevrons-down</code> is a <strong>CLOSE</strong> gesture (fires <code>onClose</code>; the app deselects the row — S79c); the placeholder strip shows <code>chevrons-up</code>, disabled without a selection. Gap <code>--spacing-3</code>, padding 24/12.</LegendRow>
         <LegendRow part="Content slot" nested><code>children</code> — the active pane, rendered while expanded (see Playground). (Figma: native Content slot below the strip.)</LegendRow>
       </ul>
@@ -145,36 +120,17 @@ function Playground() {
   const [shipmentIdx, setShipmentIdx] = useState(0)
   const [activeTab, setActiveTab] = useState('orders')
   const [expanded, setExpanded] = useState(true)
-  const [orderIdx, setOrderIdx] = useState(0)
   const shipments = ['B28826319', 'B28826320', 'B28826321']
-  const orders = ['JAN6ERCO1', 'JAN6ERCO2', 'JAN6ERCO3']
   const activeLabel = TABS.find(t => t.key === activeTab)?.label
 
-  // Orders = the dropdown tab: prelabel + selected order as the value; the
-  // menu lists the preset orders (the app's real menu adds badge/route/weight).
-  const tabs = TABS.map(tab => (tab.key === 'orders' ? {
-    ...tab,
-    dropdown: {
-      prelabel: 'Order',
-      value: orders[orderIdx],
-      menu: ({ close }) => orders.map((ord, i) => (
-        <button
-          key={ord}
-          type="button"
-          role="menuitem"
-          onClick={() => { setOrderIdx(i); close() }}
-          style={{ display: 'flex', width: '100%', padding: '8px 12px', background: orderIdx === i ? 'var(--bg-secondary)' : 'transparent', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontFamily: 'var(--font-primary)', fontSize: 'var(--font-size-sm)', color: 'var(--text-primary)' }}
-        >
-          {ord}
-        </button>
-      )),
-    },
-  } : tab))
+  // Plain tabs only — the dropdown-tab face retired S80 with the Figma
+  // `State=Selected Dropdown` variant; in-pane switchers live in the panes.
+  const tabs = TABS
 
   return (
     <div>
       <div className="ds-demo-row" style={{ gap: 'var(--spacing-4)', marginBottom: 'var(--spacing-3)', flexWrap: 'wrap', alignItems: 'center' }}>
-        <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-tertiary)' }}>arrows step shipments · tabs switch the slot · click the active Orders tab to open its preset-values menu · chevrons-down = CLOSE (in the app it deselects the row; here it just collapses so chevrons-up can re-expand) · open/close both ease on the drawer curve; while open the height ratchets — shorter slots don't shrink the bar</span>
+        <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-tertiary)' }}>arrows step shipments · tabs switch the slot · chevrons-down = CLOSE (in the app it deselects the row; here it just collapses so chevrons-up can re-expand) · open/close both ease on the drawer curve; while open the height ratchets — shorter slots don't shrink the bar</span>
       </div>
       <div style={{ border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
         <ShipmentsBar

@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { TriangleAlert } from 'lucide-react'
 import { Badge, GroupTable, SubAccordion } from '@odyssey/ui'
+import PaneEmpty from './PaneEmpty'
 
 // Column order per the Product pane mock (vault/00-inbox/Product.png): the 9
 // mock columns first, then the remaining data columns — kept, reached via the
@@ -70,7 +71,7 @@ const ProductTab = React.memo(function ProductTab({ data }) {
     setExpandedOrders(updated)
   }, [data, allExpanded])
 
-  if (!data?.orders) return <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-placeholder)' }}>No product data available.</div>
+  if (!data?.orders) return <PaneEmpty message="No product data available." col="wide" />
 
   const groups = data.orders.map((order) => ({
     id: order.orderId,

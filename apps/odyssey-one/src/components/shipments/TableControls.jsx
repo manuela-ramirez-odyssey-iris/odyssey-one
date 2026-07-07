@@ -9,7 +9,6 @@ import { Button, ModalMedium } from '@odyssey/ui'
 const TableControls = React.memo(function TableControls({
   itemCount,
   onExport,
-  filtersOpen,
 }) {
   const [exportModalOpen, setExportModalOpen] = useState(false)
 
@@ -37,7 +36,7 @@ const TableControls = React.memo(function TableControls({
       {/* Row 1: Controls */}
       <div className="flex items-center justify-between">
         {/* Left: item count */}
-        <span className="text-sm shrink-0" style={{ color: filtersOpen ? 'var(--text-primary)' : 'var(--text-tertiary)', fontWeight: filtersOpen ? 600 : 400, transition: 'color 0.15s ease' }}>
+        <span className="text-sm shrink-0" style={{ color: 'var(--text-tertiary)', transition: 'color 0.15s ease' }}>
           {itemCount} items
         </span>
 
@@ -50,7 +49,8 @@ const TableControls = React.memo(function TableControls({
             aria-label="Sort"
           />
           <TooltipTrigger tooltipProps={{ groups: [{ content: 'Only the first 10,000 records will be exported to Excel' }] }}>
-            <Button variant="secondary" icon={<Upload size={20} />} onClick={() => setExportModalOpen(true)}>
+            {/* Nothing to export at 0 results — keep the control visible but inert */}
+            <Button variant="secondary" icon={<Upload size={20} />} disabled={itemCount === 0} onClick={() => setExportModalOpen(true)}>
               Export
             </Button>
           </TooltipTrigger>

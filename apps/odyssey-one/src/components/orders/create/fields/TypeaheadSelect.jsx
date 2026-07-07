@@ -3,7 +3,7 @@ import { ChevronDown } from 'lucide-react'
 import { Button, FormField } from '@odyssey/ui'
 import { useLookup } from '../../../../api/queries/useLookup'
 import { useDebouncedValue } from './useDebouncedValue.js'
-import { useAnchoredPortal } from './useAnchoredPortal.jsx'
+import { useAnchoredPortal } from '@odyssey/ui'
 
 /**
  * TypeaheadSelect — generic async lookup field (spec §8). FormField skin +

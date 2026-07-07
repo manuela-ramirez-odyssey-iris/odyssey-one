@@ -5,7 +5,6 @@ import { ICON_MD } from '@odyssey/tokens'
 import { Badge, Button, DataTable, Paginator, ActionMenu } from '@odyssey/ui'
 import TooltipTrigger from '../ui/TooltipTrigger'
 import { ALL_COLUMNS } from '../detail/ColumnPanel'
-import { SEARCH_ATTRIBUTES } from '../../data'
 
 /**
  * ShipmentTable — Shipments configuration of the normalized @odyssey/ui DataTable
@@ -213,36 +212,24 @@ const SHIPMENT_ACTIONS = [
 const ALL_KEYS = ALL_COLUMNS.map((c) => c.key)
 const colLabel = (key) => COLUMN_CONFIG_MAP[key]?.label ?? ALL_COLUMNS.find((c) => c.key === key)?.label ?? key
 
-// Translate the ColumnPanel's ordered `visibleColumns` (+ the SHP-33 active-search
-// promotion) into TanStack column state: which columns show (columnVisibility) and
-// in what order (columnOrder). This is the SAME state the future RightPanel will
-// drive — the old panel is just an early driver of it. The column SET is stable
-// (see the master `columns` below); only visibility + order change.
-function deriveColumnState(visibleColumns, activeChipKey) {
-  let visibleKeys = (visibleColumns && visibleColumns.length)
+// Translate the ColumnPanel's ordered `visibleColumns` into TanStack column state:
+// which columns show (columnVisibility) and in what order (columnOrder). This is
+// the SAME state the future RightPanel will drive — the old panel is just an early
+// driver of it. The column SET is stable (see the master `columns` below); only
+// visibility + order change.
+function deriveColumnState(visibleColumns) {
+  const visibleKeys = (visibleColumns && visibleColumns.length)
     ? visibleColumns.filter((k) => ALL_KEYS.includes(k))
     : COLUMN_CONFIG.map((c) => c.key)
-
-  // SHP-33: promote the active search column to position 2 (after the first column),
-  // making it visible if it wasn't.
-  let promotedKey = null
-  if (activeChipKey) {
-    const attr = SEARCH_ATTRIBUTES.find((a) => a.key === activeChipKey)
-    if (attr && ALL_KEYS.includes(attr.dataKey)) {
-      promotedKey = attr.dataKey
-      visibleKeys = visibleKeys.filter((k) => k !== promotedKey)
-      visibleKeys.splice(1, 0, promotedKey)
-    }
-  }
 
   const columnVisibility = {}
   for (const k of ALL_KEYS) columnVisibility[k] = visibleKeys.includes(k)
   const hidden = ALL_KEYS.filter((k) => !visibleKeys.includes(k))
   const columnOrder = [...visibleKeys, ...hidden, 'action']
-  return { columnVisibility, columnOrder, promotedKey }
+  return { columnVisibility, columnOrder }
 }
 
-export default function ShipmentTable({ shipments, onRowSelect, selectedId, onToggleColumnPanel, visibleColumns, onScrollStart, activeChipKey, pageNumber = 0, pageSize = 25, totalCount = 0, onPageChange, onPageSizeChange, isLoading = false, isError = false, onRetry }) {
+export default function ShipmentTable({ shipments, onRowSelect, selectedId, onToggleColumnPanel, visibleColumns, pageNumber = 0, pageSize = 25, totalCount = 0, onPageChange, onPageSizeChange, isLoading = false, isError = false, onRetry }) {
   const containerRef = useRef(null)
   const [columnSizing, setColumnSizing] = useState({})
 
@@ -258,12 +245,7 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
         : {}
       return columnHelper.accessor(col.key, {
         id: col.key,
-        // Promoted (SHP-33) header reads the live promotedKey from table meta so the
-        // column def itself stays stable.
-        header: ({ table }) =>
-          table.options.meta?.promotedKey === col.key
-            ? <span style={{ color: 'var(--deep-sea-neutral-700, #384253)', fontWeight: 700 }}>{label}</span>
-            : label,
+        header: label,
         cell: cfg?.render
           ? ({ row }) => cfg.render(row.original)
           : ({ getValue }) => <TruncatedText value={getValue()} />,
@@ -299,9 +281,9 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
 
   // The ColumnPanel (and, later, the RightPanel) drives WHICH columns show + their
   // ORDER via TanStack column state — the column SET above stays stable.
-  const { columnVisibility, columnOrder, promotedKey } = useMemo(
-    () => deriveColumnState(visibleColumns, activeChipKey),
-    [visibleColumns, activeChipKey]
+  const { columnVisibility, columnOrder } = useMemo(
+    () => deriveColumnState(visibleColumns),
+    [visibleColumns]
   )
 
   // Selection is CONTROLLED by the parent: rowSelection mirrors selectedId, and
@@ -334,27 +316,11 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
     manualPagination: true,
     manualSorting: true,
     rowCount: totalCount,
-    meta: { promotedKey },
   })
 
   const handleCellClick = useCallback((_cell, row) => {
     onRowSelect(row.original.id)
   }, [onRowSelect])
-
-  // Collapse the metrics strip the first time the page is scrolled (parity with
-  // the old internal-list onScrollStart). The shipments page scrolls in <main>.
-  useEffect(() => {
-    if (!onScrollStart) return
-    const main = containerRef.current?.closest('main')
-    if (!main) return
-    let notified = false
-    const onScroll = () => {
-      if (main.scrollTop > 0 && !notified) { notified = true; onScrollStart() }
-      else if (main.scrollTop === 0) notified = false
-    }
-    main.addEventListener('scroll', onScroll, { passive: true })
-    return () => main.removeEventListener('scroll', onScroll)
-  }, [onScrollStart])
 
   // Auto-scroll the selected row into view (above the BottomBar) — parity with the
   // old virtual-list scrollToRow, now over real DOM rows.

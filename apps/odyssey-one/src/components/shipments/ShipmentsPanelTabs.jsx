@@ -46,7 +46,7 @@ const ShipmentsPanelTabs = React.memo(function ShipmentsPanelTabs({
   ].filter(row => !hideZeroCategories || row.key === 'all' || row.count > 0)
 
   return (
-    <div style={{ marginBottom: 'var(--spacing-4)' }}>
+    <div>
       <div className="flex items-center justify-between" style={{ marginBottom: 'var(--spacing-4)' }}>
         <div className="flex items-center" style={{ gap: 'var(--spacing-6)' }}>
           {panelEntries.map(([key, panel]) => (

@@ -31,6 +31,7 @@ export { default as DropdownButton } from './DropdownButton.jsx';
 export { default as Breadcrumb } from './Breadcrumb.jsx';
 export { default as MenuRowRadio } from './MenuRowRadio.jsx';
 export { default as MenuRowCheckbox } from './MenuRowCheckbox.jsx';
+export { default as StopBadge } from './StopBadge.jsx';
 
 // ── Molecules ──────────────────────────────────────────
 export { default as LeadNav } from './LeadNav.jsx';
@@ -62,6 +63,7 @@ export { default as Alert } from './Alert.jsx';
 export { default as Accordion } from './Accordion.jsx';
 export { default as SubAccordion } from './SubAccordion.jsx';
 export { default as SummaryStrip } from './SummaryStrip.jsx';
+export { default as Timeline } from './Timeline.jsx';
 export { default as ButtonToggle } from './ButtonToggle.jsx';
 export { default as Tooltip } from './Tooltip.jsx';
 

@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { ArrowLeft, ArrowRight, ChevronDown, ChevronsDown, ChevronsUp, Columns3Cog } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ChevronsDown, ChevronsUp, Columns3Cog } from 'lucide-react'
 import Button from './Button.jsx'
-import DropdownMenu from './DropdownMenu.jsx'
-import { useAnchoredPortal } from './useAnchoredPortal.jsx'
 
 /**
  * ShipmentsBar — organism. The docked bottom detail bar for the Shipments page:
@@ -37,15 +35,11 @@ import { useAnchoredPortal } from './useAnchoredPortal.jsx'
  *   placeholder       — label when nothing is selected (default 'Select a Shipment').
  *   onPrevShipment / onNextShipment — arrow handlers; arrows render only when provided.
  *   prevDisabled / nextDisabled     — bound states for the arrows.
- *   tabs              — [{ key, label, dropdown? }]. A tab with a `dropdown` config is a
- *                       DROPDOWN TAB (Figma: ShipmentsBarTab `Dropdown=True`): when
- *                       selected it renders `dropdown.prelabel` (12/12 regular,
- *                       Text/tertiary) over `dropdown.value ?? label` + a 16px chevron;
- *                       clicking it while already active toggles a `DropdownMenu` of
- *                       preset values anchored to the tab (flips above the docked bar).
- *                       `dropdown.menu` is the menu content — a node, or a function
- *                       `({ close }) => node` to close on item pick. The chevron rotates
- *                       180° while the menu is open.
+ *   tabs              — [{ key, label }]. Plain tabs only — the dropdown-tab face
+ *                       (prelabel + value + chevron) was retired S80 with the Figma
+ *                       `State=Selected Dropdown` variant; ShipmentsBarTab is now
+ *                       just Default|Selected. In-pane switchers (e.g. the Orders
+ *                       pane's order tabs) live in the pane content instead.
  *   activeTab / onTabChange — controlled tab selection.
  *   expanded / onExpandedChange — controlled expansion (boolean); CollapseExpand fires
  *                       `onExpandedChange(true)` only in the expand direction.
@@ -287,23 +281,8 @@ export default function ShipmentsBar({
     else onExpandedChange?.(false)
   }, [isDisabled, isExpanded, onClose, onExpandedChange])
 
-  // Dropdown-tab menu — one menu at a time, only the ACTIVE dropdown tab can
-  // open it (click-when-active toggles). Closes on tab/shipment change plus the
-  // portal's own outside-click/scroll/resize handling.
-  const [menuOpen, setMenuOpen] = useState(false)
-  const closeMenu = useCallback(() => setMenuOpen(false), [])
-  const { triggerRef, dropdownRef, AnchoredPortal } = useAnchoredPortal({ open: menuOpen, onClose: closeMenu })
-  useEffect(() => { setMenuOpen(false) }, [activeTab, shipmentId])
-
-  const activeDropdownTab = tabs.find(t => t.key === activeTab && t.dropdown) || null
-
   const handleTabClick = useCallback((tab) => {
-    if (isDisabled) return
-    if (tab.key === activeTab) {
-      if (tab.dropdown) setMenuOpen(prev => !prev)
-      return
-    }
-    setMenuOpen(false)
+    if (isDisabled || tab.key === activeTab) return
     onTabChange?.(tab.key)
   }, [isDisabled, activeTab, onTabChange])
 
@@ -354,36 +333,21 @@ export default function ShipmentsBar({
         <div className="shipments-bar__tabs" role="tablist">
           {tabs.map((tab) => {
             const isActive = activeTab === tab.key && !isDisabled
-            const showDropdownFace = isActive && !!tab.dropdown
             return (
               <button
                 key={tab.key}
-                ref={showDropdownFace ? triggerRef : undefined}
                 type="button"
                 role="tab"
                 aria-selected={isActive}
-                aria-haspopup={tab.dropdown ? 'menu' : undefined}
-                aria-expanded={showDropdownFace ? menuOpen : undefined}
                 className={[
                   'shipments-bar__tab',
                   'text-label-sm-semibold',
                   isActive && 'shipments-bar__tab--selected',
-                  showDropdownFace && 'shipments-bar__tab--dropdown',
                 ].filter(Boolean).join(' ')}
                 disabled={isDisabled}
                 onClick={() => handleTabClick(tab)}
               >
-                {showDropdownFace ? (
-                  <>
-                    <span className="shipments-bar__tab-stack">
-                      <span className="shipments-bar__tab-prelabel">{tab.dropdown.prelabel}</span>
-                      <span className="shipments-bar__tab-value">{tab.dropdown.value ?? tab.label}</span>
-                    </span>
-                    <ChevronDown size={16} className="shipments-bar__tab-chevron" aria-hidden="true" />
-                  </>
-                ) : (
-                  tab.label
-                )}
+                {tab.label}
               </button>
             )
           })}
@@ -415,17 +379,6 @@ export default function ShipmentsBar({
         <div className="shipments-bar__content" inert={isClosing || undefined}>
           {isExpanded ? children : lastChildrenRef.current}
         </div>
-      )}
-      {menuOpen && activeDropdownTab && (
-        <AnchoredPortal>
-          <div ref={dropdownRef}>
-            <DropdownMenu>
-              {typeof activeDropdownTab.dropdown.menu === 'function'
-                ? activeDropdownTab.dropdown.menu({ close: closeMenu })
-                : activeDropdownTab.dropdown.menu}
-            </DropdownMenu>
-          </div>
-        </AnchoredPortal>
       )}
     </div>
   )

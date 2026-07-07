@@ -5,7 +5,10 @@
 // Swagger remains; mapOrderListRow is the single reconciliation point.
 
 export interface OrderListRow {
-  orderNumber: string               // "SUT355123" — the ID column value
+  orderNumber: string               // "SUT355123" — the ID column value; '' while an
+                                    // async creation is still processing (number unassigned)
+  orderId?: number                  // internal id (LINX-11013) — mock carries it ONLY on
+                                    // number-less pending rows so they stay addressable
   orderSource: string               // "INTEGRATED"
   customer: string                  // "SABIC_CLT" — display key; no separate customerId on the row
   shipDirection: string             // "Inbound"

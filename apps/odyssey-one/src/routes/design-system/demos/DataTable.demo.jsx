@@ -12,14 +12,11 @@ import { DataTable, Paginator, Checkbox, Badge, ActionMenu } from '@odyssey/ui'
 export const meta = {
   name: 'DataTable',
   tier: 'organism',
-  version: '0.3.1',
+  version: '0.7.0',
   createdVersion: '0.3.0',
   codeOnly: true,
-  // Code-first molecule (composes Cell + Paginator + ActionMenu — no standalone Figma master).
-  // React shell S66 + resize/cell-click extensibility S68; Angular twin shipped.
-  // DEMOTED S79b: footer externalized below the bordered card + paginator restyle (decision 6) — pending re-approval.
-  normalizing: true,
-  approved: true,
+  // Code-first (composes Cell + Paginator + ActionMenu — no standalone Figma master).
+  normalizing: false,
 }
 
 export const props = [

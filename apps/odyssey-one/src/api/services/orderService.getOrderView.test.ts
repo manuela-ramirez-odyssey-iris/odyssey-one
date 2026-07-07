@@ -27,7 +27,7 @@ const SEEDED = [
   },
 ]
 
-vi.mock('../../data/orders', () => ({ getAllOrders: () => SEEDED }))
+vi.mock('../../data/orders', () => ({ getAllOrders: () => SEEDED, getOrderEnrichment: () => null }))
 
 import { createOrder, getOrderView, saveDraft, __resetOrderWriteState } from './orderService'
 import { mapFormToOrderInterface } from '../mappers/mapFormToOrderInterface'
