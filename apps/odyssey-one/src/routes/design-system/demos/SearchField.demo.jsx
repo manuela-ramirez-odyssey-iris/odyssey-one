@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { SearchField, FieldSearchResults } from '@odyssey/ui'
 
 export const meta = {
@@ -8,6 +8,8 @@ export const meta = {
   createdVersion: '0.2.0',
   figmaNode: '1959:76',
   codeConnect: 'packages/ui/src/SearchField.figma.tsx',
+  normalizing: true,
+  approved: true,
 }
 
 export const props = [
@@ -19,7 +21,12 @@ export const props = [
   { name: 'label', type: 'string', desc: "Label text (only shown when showLabel=true). Default 'Label'." },
   { name: 'showInfoIcon', type: 'boolean', desc: 'Append an Info icon to the label row. Default false.' },
   { name: 'onInfoClick', type: '() => void', desc: 'When provided the Info icon becomes a clickable button; otherwise it is decorative.' },
-  { name: 'results', type: 'ReactNode', desc: 'Content slot (Figma Content SLOT, gated by Show results) — rendered below the input. A transparent passthrough: the content (e.g. <FieldSearchResults>) brings its own card chrome (bg / radius / shadow).' },
+  { name: 'results', type: 'ReactNode', desc: 'Content slot — rendered below the input. Wins over typeahead popover if passed alongside options/loadOptions.' },
+  { name: 'options', type: '{ value, label }[] | string[]', desc: 'Typeahead: static option list. Filtered synchronously (case-insensitive substring).' },
+  { name: 'loadOptions', type: '(query: string) => Promise<Option[]>', desc: 'Typeahead: async loader. Debounced 200ms, stale-response guarded. Replaces static options.' },
+  { name: 'onSelect', type: '(value: string | null) => void', desc: 'Typeahead: fired with the selected option value, or null on clear.' },
+  { name: 'emptyMessage', type: 'string', desc: "Typeahead: shown when filter matches nothing. Default 'No options'." },
+  { name: 'filter', type: '(inputText, option) => bool', desc: 'Typeahead: custom filter fn. Default case-insensitive substring.' },
   { name: 'className', type: 'string', desc: 'Extra class names forwarded to the root element.' },
 ]
 
@@ -32,16 +39,33 @@ export const tokens = [
   { token: '--text-secondary', resolves: 'Text/secondary', usage: 'label text' },
 ]
 
-const LOCATIONS = [
-  { matchId: '61-CU0000010352', customer: 'HERCULES CHILE LIMITADA', address: '1481 Dr. Carlos Charlin, 7500511 Providencia, Región Metropolitana, Chile', iconType: 'container' },
-  { matchId: '61-CU0000010419', customer: 'Delaware Inc.', address: '200 W Madison St, Chicago, IL 60606, USA', iconType: 'package' },
-  { matchId: '61-CU0000010488', customer: 'Pacific Cargo Group', address: '4200 W Valley Blvd, Los Angeles, CA 90032, USA', iconType: 'handshake' },
-  { matchId: '61-CU0000010512', customer: 'Kemira Americas', address: '90 State St, Albany, NY 12207, USA', iconType: 'container' },
-]
+// ── Shared helpers ───────────────────────────────────────────────────────────
 
-// ── Schematic ───────────────────────────────────────────────────────────────
-// Slot-marker pink — a DSM annotation device (NOT a product design token; there is no pink
-// in the palette). Kept local so it never reads as a real token. (RightPanel convention.)
+function TierBadge({ tier }) {
+  return (
+    <span style={{ display: 'inline-block', padding: '0 6px', borderRadius: 'var(--radius-full)', background: 'var(--bg-tertiary)', color: 'var(--text-secondary)', border: '1px solid var(--border-subtle)', fontFamily: 'var(--font-primary)', fontSize: '11px', fontWeight: 'var(--font-weight-medium)', whiteSpace: 'nowrap' }}>{tier}</span>
+  )
+}
+function ChildLink({ to, children }) {
+  return <a href={`#comp-${to}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-link)', textDecoration: 'underline', fontWeight: 'var(--font-weight-semibold)', whiteSpace: 'nowrap' }}>{children}</a>
+}
+function LegendRow({ part, tier, nested = false, depth, children }) {
+  // depth: explicit nesting level (1 = nested, 2 = nested-in-nested); `nested` = depth 1.
+  const level = depth ?? (nested ? 1 : 0)
+  const cell = { padding: 'var(--spacing-2) 0', borderBottom: '1px solid var(--border-subtle)', fontFamily: 'var(--font-primary)', fontSize: 'var(--font-size-sm)' }
+  return (
+    <li style={{ display: 'contents' }}>
+      <span style={{ ...cell, display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)', whiteSpace: 'nowrap', paddingLeft: level ? `calc(var(--spacing-6) * ${level})` : 0, color: 'var(--text-primary)', fontWeight: level ? 'var(--font-weight-medium)' : 'var(--font-weight-semibold)' }}>
+        {level > 0 && <span style={{ color: 'var(--text-tertiary)' }} aria-hidden="true">└</span>}
+        {part}{tier && <TierBadge tier={tier} />}
+      </span>
+      <span style={{ ...cell, color: 'var(--text-secondary)' }}>{children}</span>
+    </li>
+  )
+}
+
+// ── Section A — Slot (base) schematic ────────────────────────────────────────
+
 const SLOT_BORDER = '#e85aad'
 const SLOT_BG = 'rgba(232, 90, 173, 0.07)'
 const SLOT_TEXT = '#b03b81'
@@ -55,44 +79,31 @@ function SlotPlaceholder() {
   )
 }
 
-function TierBadge({ tier }) {
-  return (
-    <span style={{ display: 'inline-block', padding: '0 6px', borderRadius: 'var(--radius-full)', background: 'var(--bg-tertiary)', color: 'var(--text-secondary)', border: '1px solid var(--border-subtle)', fontFamily: 'var(--font-primary)', fontSize: '11px', fontWeight: 'var(--font-weight-medium)', whiteSpace: 'nowrap' }}>{tier}</span>
-  )
-}
-function ChildLink({ to, children }) {
-  return <a href={`#comp-${to}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-link)', textDecoration: 'underline', fontWeight: 'var(--font-weight-semibold)', whiteSpace: 'nowrap' }}>{children}</a>
-}
-function LegendRow({ part, tier, nested = false, children }) {
-  const cell = { padding: 'var(--spacing-2) 0', borderBottom: '1px solid var(--border-subtle)', fontFamily: 'var(--font-primary)', fontSize: 'var(--font-size-sm)' }
-  return (
-    <li style={{ display: 'contents' }}>
-      <span style={{ ...cell, display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)', whiteSpace: 'nowrap', paddingLeft: nested ? 'var(--spacing-6)' : 0, color: 'var(--text-primary)', fontWeight: nested ? 'var(--font-weight-medium)' : 'var(--font-weight-semibold)' }}>
-        {nested && <span style={{ color: 'var(--text-tertiary)' }} aria-hidden="true">└</span>}
-        {part}{tier && <TierBadge tier={tier} />}
-      </span>
-      <span style={{ ...cell, color: 'var(--text-secondary)' }}>{children}</span>
-    </li>
-  )
-}
-
-function Schematic() {
+function SlotSchematic() {
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-8)', alignItems: 'flex-start', background: 'var(--bg-secondary)', padding: 'var(--spacing-6)', borderRadius: 'var(--radius-md)' }}>
       <div style={{ flex: '1 1 380px', minWidth: 320 }}>
         <SearchField showLabel label="Location" showInfoIcon value="" onChange={() => {}} results={<SlotPlaceholder />} />
       </div>
       <ul style={{ flex: '1 1 320px', minWidth: 280, display: 'grid', gridTemplateColumns: 'max-content 1fr', columnGap: '10px', listStyle: 'none', margin: 0, padding: 0 }}>
-        <LegendRow part="root" tier="organism">A search input plus an optional results-dropdown slot below it.</LegendRow>
+        <LegendRow part="root" tier="organism">Search input + optional results-dropdown slot below it.</LegendRow>
         <LegendRow part="label + info" nested>Optional label row (<code>showLabel</code>) with an info glyph (<code>showInfoIcon</code>).</LegendRow>
         <LegendRow part="input bar" nested>Search icon + text input + optional clear <code>X</code>; border steps 1px → 2px on focus.</LegendRow>
-        <LegendRow part="Slot"><strong style={{ color: SLOT_TEXT }}>The pink region</strong> — the <code>results</code> slot, a <strong>transparent passthrough</strong>. The content brings its own card (e.g. <ChildLink to="FieldSearchResults">FieldSearchResults</ChildLink> = white bg, <code>radius-md</code>, <code>shadow-2xl</code>).</LegendRow>
+        <LegendRow part="Slot"><strong style={{ color: SLOT_TEXT }}>The pink region</strong> — the <code>results</code> slot, a <strong>transparent passthrough</strong>. The content brings its own card (e.g. <ChildLink to="FieldSearchResults">FieldSearchResults</ChildLink> = white bg, <code>radius-md</code>, <code>shadow-2xl</code>). Wins over the typeahead popover when passed alongside <code>options</code>/<code>loadOptions</code>.</LegendRow>
       </ul>
     </div>
   )
 }
 
-// ── Playground ──────────────────────────────────────────────────────────────
+// ── Section A — Slot playground (base mode) ──────────────────────────────────
+
+const LOCATIONS = [
+  { matchId: '61-CU0000010352', customer: 'HERCULES CHILE LIMITADA', address: '1481 Dr. Carlos Charlin, 7500511 Providencia, Región Metropolitana, Chile', iconType: 'container' },
+  { matchId: '61-CU0000010419', customer: 'Delaware Inc.', address: '200 W Madison St, Chicago, IL 60606, USA', iconType: 'package' },
+  { matchId: '61-CU0000010488', customer: 'Pacific Cargo Group', address: '4200 W Valley Blvd, Los Angeles, CA 90032, USA', iconType: 'handshake' },
+  { matchId: '61-CU0000010512', customer: 'Kemira Americas', address: '90 State St, Albany, NY 12207, USA', iconType: 'container' },
+]
+
 function Toggle({ label, value, set }) {
   return (
     <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-sm)', cursor: 'pointer' }}>
@@ -102,7 +113,7 @@ function Toggle({ label, value, set }) {
   )
 }
 
-function Playground() {
+function SlotPlayground() {
   const [value, setValue] = useState('Chile')
   const [showLabel, setShowLabel] = useState(true)
   const [showInfoIcon, setShowInfoIcon] = useState(true)
@@ -133,7 +144,6 @@ function Playground() {
         <Toggle label="simulate error" value={simulateError} set={setSimulateError} />
       </div>
       <div style={{ maxWidth: 420 }}>
-        {/* Live typeahead: typing filters LOCATIONS into a FieldSearchResults in the results slot. */}
         <SearchField
           value={value}
           onChange={setValue}
@@ -152,26 +162,134 @@ function Playground() {
   )
 }
 
+// ── Section B — Typeahead playground ─────────────────────────────────────────
+
+const inputStyle = { padding: '4px 8px', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', fontFamily: 'var(--font-primary)', fontSize: 'var(--font-size-sm)', cursor: 'pointer' }
+const labelStyle = { display: 'inline-flex', flexDirection: 'column', gap: 4, fontSize: 'var(--font-size-sm)', fontFamily: 'var(--font-primary)', color: 'var(--text-primary)' }
+
+const SIZES = [
+  { label: '10',   count: 10 },
+  { label: '100',  count: 100 },
+  { label: '1k',   count: 1000 },
+  { label: '10k',  count: 10000 },
+]
+
+const FRUITS = [
+  'Apple', 'Apricot', 'Avocado', 'Banana', 'Blackberry', 'Blueberry', 'Cherry', 'Clementine',
+  'Coconut', 'Cranberry', 'Date', 'Dragonfruit', 'Elderberry', 'Fig', 'Grape', 'Grapefruit',
+  'Guava', 'Jackfruit', 'Kiwi', 'Kumquat', 'Lemon', 'Lime', 'Lychee', 'Mango', 'Melon',
+  'Nectarine', 'Orange', 'Papaya', 'Passionfruit', 'Peach', 'Pear', 'Pineapple', 'Plum',
+  'Pomegranate', 'Raspberry', 'Starfruit', 'Strawberry', 'Tangerine', 'Watermelon',
+]
+
+function makeOptions(count) {
+  const opts = []
+  for (let i = 0; i < count; i++) {
+    const fruit = FRUITS[i % FRUITS.length]
+    const suffix = Math.floor(i / FRUITS.length)
+    const label = suffix === 0 ? fruit : `${fruit} ${suffix + 1}`
+    opts.push({ value: `${fruit.toLowerCase()}-${i}`, label })
+  }
+  return opts
+}
+
+function TypeaheadPlayground() {
+  const [sizeIdx, setSizeIdx] = useState(0)
+  const [source, setSource] = useState('static') // 'static' | 'async'
+  const [value, setValue] = useState(null)
+
+  const staticOptions = useMemo(() => makeOptions(SIZES[sizeIdx].count), [sizeIdx])
+
+  // ponytail: inline loadOptions — no abstraction needed for a single demo case
+  const loadOptions = useMemo(() => {
+    if (source !== 'async') return undefined
+    return (query) =>
+      new Promise((resolve) => {
+        setTimeout(() => {
+          const q = query.toLowerCase()
+          const filtered = staticOptions.filter((o) => o.label.toLowerCase().includes(q))
+          resolve(filtered)
+        }, 300)
+      })
+  }, [source, staticOptions])
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-4)' }}>
+      {/* Controls */}
+      <div className="ds-demo-row" style={{ gap: 'var(--spacing-4)', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+        <label style={labelStyle}>
+          Options size
+          <select value={sizeIdx} onChange={(e) => { setSizeIdx(Number(e.target.value)); setValue(null) }} style={inputStyle}>
+            {SIZES.map((s, i) => <option key={i} value={i}>{s.label}</option>)}
+          </select>
+        </label>
+        <label style={labelStyle}>
+          Source
+          <select value={source} onChange={(e) => { setSource(e.target.value); setValue(null) }} style={inputStyle}>
+            <option value="static">Static options</option>
+            <option value="async">Async (300ms)</option>
+          </select>
+        </label>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 'var(--font-size-sm)', fontFamily: 'var(--font-primary)', color: 'var(--text-secondary)' }}>
+          <span style={{ fontWeight: 'var(--font-weight-medium)', color: 'var(--text-primary)' }}>Selected value</span>
+          <code style={{ background: 'var(--bg-tertiary)', padding: '4px 8px', borderRadius: 'var(--radius-sm)', whiteSpace: 'nowrap' }}>{value ?? '—'}</code>
+        </div>
+      </div>
+
+      {/* SearchField in typeahead mode + anatomy legend */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-8)', alignItems: 'flex-start', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', padding: 'var(--spacing-6)', minHeight: 400 }}>
+        <div style={{ flex: '1 1 340px', minWidth: 280 }}>
+          <SearchField
+            id="ds-sf-typeahead-playground"
+            label="Fruit"
+            showLabel
+            placeholder="Type to filter…"
+            options={source === 'static' ? staticOptions : undefined}
+            loadOptions={source === 'async' ? loadOptions : undefined}
+            onSelect={setValue}
+            emptyMessage="No matching fruits"
+          />
+          <p style={{ marginTop: 'var(--spacing-2)', fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)', fontFamily: 'var(--font-primary)' }}>
+            ↑ ↓ navigate · Enter select · Esc close
+          </p>
+        </div>
+        <ul style={{ flex: '1 1 320px', minWidth: 280, display: 'grid', gridTemplateColumns: 'max-content 1fr', columnGap: '10px', listStyle: 'none', margin: 0, padding: 0 }}>
+          <LegendRow part="typeahead mode">Activated by passing <code>options</code> or <code>loadOptions</code>. No separate Autocomplete component.</LegendRow>
+          <LegendRow part="useFieldPopover" nested>Manages open/close lifecycle — focus opens, blur/click-outside closes, Tab/Esc/Enter handled.</LegendRow>
+          <LegendRow part="FieldSearchResults" tier="organism" nested>Renders ALL panel states (loading / empty / populated) — same card chrome as slot mode. Owns virtualization internally (@tanstack/react-virtual, ~320px max panel) for 10k+ options.</LegendRow>
+          <LegendRow part="MatchSimpleRow" tier="molecule" depth={2}>Each row, nested inside <ChildLink to="FieldSearchResults">FieldSearchResults</ChildLink>. <strong>Typeahead default is the compact row</strong>: <code>showAvatar</code> + <code>showInfo</code> are OFF (label line only) — pass <code>rowProps</code> to re-enable. Keyboard highlight via <code>is-active</code>; <code>aria-selected</code> + <code>aria-activedescendant</code> on the input.</LegendRow>
+        </ul>
+      </div>
+    </div>
+  )
+}
+
+// ── Demo root ────────────────────────────────────────────────────────────────
+
 export default function SearchFieldDemo() {
   return (
     <div>
       <p style={{ marginTop: 0, color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)' }}>
-        Light-surface search input with an optional results-dropdown <strong>slot</strong> for a
-        focalized field lookup. The border steps 1px → 2px on focus; an optional label row (with
-        info icon) sits above. The <code>results</code> slot is a transparent passthrough — the
-        content supplies its own card chrome, typically a live{' '}
-        <a href="#comp-FieldSearchResults" style={{ color: 'var(--text-link)', textDecoration: 'underline' }}>FieldSearchResults</a>{' '}
-        (white bg, <code>radius-md</code>, <code>shadow-2xl</code>).
+        Light-surface search input. Two modes:{' '}
+        <strong>slot mode</strong> (pass <code>results</code> — transparent passthrough, content supplies
+        its own card chrome) and <strong>typeahead mode</strong> (pass <code>options</code> or{' '}
+        <code>loadOptions</code> — built-in virtualised popover with keyboard nav, absorbed from the
+        former Autocomplete composite). With no typeahead props, behaviour is byte-identical to before.
       </p>
 
       <div className="ds-demo-section">
-        <h4 className="ds-demo-section__title">Schematic — anatomy &amp; slot</h4>
-        <Schematic />
+        <h4 className="ds-demo-section__title">Schematic — slot anatomy</h4>
+        <SlotSchematic />
       </div>
 
       <div className="ds-demo-section">
-        <h4 className="ds-demo-section__title">Playground — live typeahead (results slot = FieldSearchResults)</h4>
-        <Playground />
+        <h4 className="ds-demo-section__title">Playground — slot mode (results = FieldSearchResults)</h4>
+        <SlotPlayground />
+      </div>
+
+      <div className="ds-demo-section">
+        <h4 className="ds-demo-section__title">Typeahead — anatomy + playground (options size · static/async · live value readout)</h4>
+        <TypeaheadPlayground />
       </div>
     </div>
   )

@@ -23,6 +23,9 @@
  *
  * `dataKey` maps to the field in the fake JSON DB (shipments.json).
  *
+ * `exact: true` marks count-like fields whose chips match by full equality
+ * instead of substring — "Order Count: 2" must not match a count of 12.
+ *
  * NOTE: this is the ONLY place Shipments search data lives. GlobalSearch and the
  * orchestration hook never import it — the adapter is the seam. Other domains
  * provide their own progression + adapter behind the same contract.
@@ -35,6 +38,7 @@ export const SHIPMENTS_PROGRESSION = [
       { key: 'buy-shipment', label: 'Buy Shipment #', dataKey: 'buyShipment', match: 'digits' },
       { key: 'sell-shipment', label: 'Sell Shipment #', dataKey: 'sellShipment', match: 'digits' },
       { key: 'order', label: 'Order #', dataKey: 'orders', match: 'letters' },
+      { key: 'order-count', label: 'Order Count', dataKey: 'orderCount', match: 'digits', exact: true },
       { key: 'pro', label: 'Pro#/Booking #', dataKey: 'pro', match: 'digits' },
     ],
   },
@@ -102,7 +106,7 @@ export const SHIPMENTS_PROGRESSION = [
     label: 'Load logistics',
     attributes: [
       { key: 'load', label: 'Load #', dataKey: 'load', match: 'digits' },
-      { key: 'load-count', label: 'Load Count', dataKey: 'loadCount', match: 'digits' },
+      { key: 'load-count', label: 'Load Count', dataKey: 'loadCount', match: 'digits', exact: true },
     ],
   },
 ]

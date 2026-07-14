@@ -5,6 +5,7 @@ import { ICON_MD } from '@odyssey/tokens'
 import { Badge, Button, DataTable, Paginator, ActionMenu } from '@odyssey/ui'
 import TooltipTrigger from '../ui/TooltipTrigger'
 import { ALL_COLUMNS } from '../detail/ColumnPanel'
+import { CELL_TAB_MAP } from './cellTabMap'
 
 /**
  * ShipmentTable — Shipments configuration of the normalized @odyssey/ui DataTable
@@ -201,6 +202,9 @@ export const COLUMN_CONFIG = [
 
 const COLUMN_CONFIG_MAP = Object.fromEntries(COLUMN_CONFIG.map(c => [c.key, c]))
 
+// Cell→tab mapping — extracted to cellTabMap.js, shared with global search
+// (match-row click navigates by the same map).
+
 const columnHelper = createColumnHelper()
 
 // Inert until each wires to its feature (carried verbatim from the old menu).
@@ -240,9 +244,14 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
     const dataCols = ALL_COLUMNS.map((col) => {
       const cfg = COLUMN_CONFIG_MAP[col.key]
       const label = colLabel(col.key)
-      const meta = (col.key === 'sellShipment' || col.key === 'buyShipment')
-        ? { cellClass: 'odyssey-table__cell--title text-label-sm-medium' }
-        : {}
+      const cellClasses = []
+      if (col.key === 'sellShipment' || col.key === 'buyShipment') {
+        cellClasses.push('odyssey-table__cell--title', 'text-label-sm-medium')
+      }
+      // Mapped cells open a specific bar tab (CELL_TAB_MAP) — hover tint
+      // signals the link (S82).
+      if (CELL_TAB_MAP[col.key]) cellClasses.push('odyssey-table__cell--tab-link')
+      const meta = cellClasses.length ? { cellClass: cellClasses.join(' ') } : {}
       return columnHelper.accessor(col.key, {
         id: col.key,
         header: label,
@@ -320,17 +329,30 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
     rowCount: totalCount,
   })
 
-  const handleCellClick = useCallback((_cell, row) => {
-    onRowSelect(row.original.id)
+  const handleCellClick = useCallback((cell, row) => {
+    const mapping = CELL_TAB_MAP[cell.column.id]
+    const tab = typeof mapping === 'object' ? mapping?.tab : mapping
+    const expandGeneral = typeof mapping === 'object' ? mapping?.expandGeneral : false
+    onRowSelect(row.original.id, tab, expandGeneral)
   }, [onRowSelect])
 
-  // Auto-scroll the selected row into view (above the BottomBar) — parity with the
-  // old virtual-list scrollToRow, now over real DOM rows.
+  // Auto-scroll the selected row into view — parity with the old virtual-list
+  // scrollToRow, now over real DOM rows. The detail bar (fixed, 60dvh when
+  // partial) covers the lower page but <main> only reserves 48px, so 'nearest'
+  // alone can leave the origin row hidden BEHIND the open bar: when it
+  // overlaps, scroll the row up into the visible gap above the bar so the
+  // user sees where the pane came from (S82). The 600ms delay lets the bar's
+  // 300ms open animation land first, so its measured top is final.
   useEffect(() => {
     if (!selectedId || !containerRef.current) return
     const t = setTimeout(() => {
       const row = containerRef.current?.querySelector('tr[data-selected]')
-      if (row) row.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+      if (!row) return
+      const barTop = document.querySelector('[data-bottombar]')?.getBoundingClientRect().top
+        ?? window.innerHeight
+      const overlap = row.getBoundingClientRect().bottom - (barTop - 12) // 12px breathing room
+      if (overlap > 0) row.closest('main')?.scrollBy({ top: overlap, behavior: 'smooth' })
+      else row.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
     }, 600)
     return () => clearTimeout(t)
   }, [selectedId])
@@ -342,7 +364,11 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
       // DataTable owns its own chrome/scroll — no fixed-height accommodation. Only
       // reserve clearance so the collapsed BottomBar (detail panel) doesn't cover the
       // Paginator.
-      style={{ paddingBottom: 'var(--bottombar-collapsed)' }}
+      // Expand bottom padding to the partial bar height when a row is selected so
+      // the auto-scroll (600ms after open) has room to pull a bottom row into the
+      // visible gap above the bar. Without it the page is already at max-scroll and
+      // scrollBy() is a no-op. Collapses back to the strip height on deselect (S82).
+      style={{ paddingBottom: selectedId ? 'var(--bottombar-partial)' : 'var(--bottombar-collapsed)' }}
     >
       {isError ? (
         <div className="flex flex-col items-center justify-center gap-2" style={{ padding: '48px 0', color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)' }}>
@@ -365,20 +391,29 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
           No shipments found
         </div>
       ) : (
-        <DataTable
+        <>
+          {/* Gap filler: replaces the toolbar's paddingBottom (--spacing-3) that
+              used to paint bg-secondary over this 12px slot. Sticks at the content
+              edge so it stays flush above the scrollbar+header when scrolled. */}
+          <div style={{
+            position: 'sticky',
+            top: 'calc(-1 * var(--spacing-8))',
+            height: 'var(--spacing-3)',
+            background: 'var(--bg-secondary)',
+            zIndex: 5,
+          }} />
+          <DataTable
           table={table}
           // AppShell's <main> has --spacing-8 (32px) padding-top; sticky insets resolve
           // against the content edge, not the viewport edge (S79b header-gap fix).
-          // S79c decision 11: TableControls is a sticky toolbar (24px paddingTop /
-          // --spacing-6 + controls row + 12px paddingBottom / --spacing-3 — matching
-          // the Orders toolbar breathing-room treatment). S81: the Export button went
-          // md→sm, shrinking the controls row 36px→32px, so the toolbar occupies 68px.
-          // The header must sit below the toolbar: -32px + 68px = +36px.
-          stickyTop="calc(-1 * var(--spacing-8) + 68px)"
+          // S82: toolbar no longer sticky — scrolls away. Header sticks at spacing-3
+          // (12px) below the content edge; the gap filler above covers that slot.
+          stickyTop="calc(-1 * var(--spacing-8) + var(--spacing-3))"
           ariaLabel="Shipments"
           onCellClick={handleCellClick}
           footer={<Paginator table={table} pageSizeOptions={[25, 50, 100]} />}
         />
+        </>
       )}
     </div>
   )

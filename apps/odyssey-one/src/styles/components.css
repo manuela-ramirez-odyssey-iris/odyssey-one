@@ -35,6 +35,14 @@
 /* Hide horizontal scrollbar on data list (primary scrollbar is on header) */
 .hide-scrollbar-x::-webkit-scrollbar:horizontal { display: none; }
 
+/* Cells mapped to a detail-bar tab (ShipmentTable CELL_TAB_MAP, S82) — hover
+   tints the text link-blue to signal the cell opens a specific pane. Badge
+   cells (Shipment Status) keep their own colors; the tint covers the plain-
+   text mapped columns (mode/origin/destination/costs). */
+.shipment-table td.odyssey-table__cell--tab-link:hover {
+  color: var(--text-link);
+}
+
 /* Top scrollbar — shows horizontal scrollbar below header instead of at page bottom */
 .top-scrollbar {
   display: flex;
@@ -155,9 +163,12 @@
 
 /* Interaction states — code + DSM only (the Figma Cell set keeps appearance
    axes; it has no hover/selected variants, per the control state model). */
-.odyssey-table tbody tr:hover td,
-.odyssey-table tbody tr[data-selected] td {
+.odyssey-table tbody tr:hover td {
   background: var(--bg-secondary);
+}
+.odyssey-table tbody tr:active td,
+.odyssey-table tbody tr[data-selected] td {
+  background: var(--bg-tertiary);
 }
 
 .odyssey-table tbody tr:last-child td {
@@ -197,6 +208,35 @@
   overflow-x: auto;
   overscroll-behavior-x: none;
   background: var(--bg-primary);
+}
+
+/* Custom horizontal scrollbar (S82) — part of the DataTable chrome, sticky at
+   the consumer's stickyTop just above the column header (whose top the
+   component bumps +8px while the track renders). A real element because the
+   body's native bar sits at the bottom of the tall table AND hides in macOS
+   overlay mode (custom ::-webkit-scrollbar styling no longer opts out of
+   overlay scrollbars in current Chrome). Track click jumps; thumb drags.
+   Colors mirror the global scrollbar styling. Inline style carries `top`. */
+.odyssey-data-table__hscroll {
+  position: sticky;
+  z-index: 4; /* above the sticky head (3) — never overlaps it anyway */
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--deep-sea-neutral-100);
+  cursor: pointer;
+}
+.odyssey-data-table__hscroll-thumb {
+  height: 100%;
+  border-radius: var(--radius-full);
+  background: var(--deep-sea-neutral-300);
+  cursor: grab;
+}
+.odyssey-data-table__hscroll-thumb:hover,
+.odyssey-data-table__hscroll-thumb:active {
+  background: var(--deep-sea-neutral-400);
+}
+.odyssey-data-table__hscroll-thumb:active {
+  cursor: grabbing;
 }
 
 /* A column pinned to the right edge (survives horizontal scroll) — applies in
@@ -4005,12 +4045,14 @@ button.breadcrumb__label:focus-visible {
   padding: var(--spacing-3) var(--spacing-4);
   border-radius: var(--radius-lg);
 }
-.match-simple-row[role="button"] {
+.match-simple-row--clickable {
   cursor: pointer;
   transition: background var(--transition-fast);
 }
-.match-simple-row[role="button"]:hover { background: var(--bg-tertiary); }
-.match-simple-row[role="button"]:active { background: var(--deep-sea-neutral-200); }
+.match-simple-row--clickable:hover { background: var(--bg-tertiary); }
+.match-simple-row--clickable:active { background: var(--deep-sea-neutral-200); }
+/* Keyboard highlight (aria-activedescendant target) — same surface as hover */
+.match-simple-row.is-active { background: var(--bg-tertiary); }
 .match-simple-row__avatar {
   display: inline-flex;
   align-items: center;
@@ -4575,6 +4617,12 @@ button.breadcrumb__label:focus-visible {
      shorter panes never shrink the bar (S79d). */
   height: auto;
   max-height: calc(100dvh - var(--bottombar-top-clearance));
+}
+/* Partial (middle) stage of the S82 three-state bar: same auto height model,
+   lower cap. Stage full drops this class — the loosened cap lets content grow
+   and the component's growth easing animates the rise. */
+.shipments-bar--partial {
+  max-height: var(--bottombar-partial);
 }
 /* --closing keeps the expanded chrome (shadow) while the height eases back
    to the strip with the last pane still mounted (S79d) — without it the
@@ -5425,3 +5473,132 @@ button.breadcrumb__label:focus-visible {
 /* Column alignment (columns[].align) — header + cells */
 .odyssey-group-table .odyssey-group-table__cell--right  { text-align: right; }
 .odyssey-group-table .odyssey-group-table__cell--center { text-align: center; }
+
+/* === CalendarPicker (molecule) — Figma 4422:711, normalizing S83 ===========
+   Single-month date/date-range picker. 284px fixed-width card; month header
+   with prev/next Button variant="icon"; 7-column weekday labels; day grid.
+   Day-cell states: default, adjacent-month, hover (code-only), single-selected,
+   range-start/end/in-range/pending-start. */
+.calendar-picker {
+  width: 284px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  background: var(--white);
+  border: 1px solid var(--deep-sea-neutral-300);
+  border-radius: var(--radius-lg);
+  /* floats as a popover — same altitude as dropdown/right panels */
+  box-shadow: var(--shadow-panel);
+  box-sizing: border-box;
+}
+
+/* Header — prev · title · next, 32px tall */
+.calendar-picker__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 32px;
+}
+/* Typography via .text-label-sm-medium (applied in CalendarPicker.jsx). */
+.calendar-picker__month-title {
+  color: var(--text-primary);
+  flex: 1;
+  text-align: center;
+}
+
+/* Weekday label row — 7 equal columns, each 36px tall */
+.calendar-picker__weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+}
+.calendar-picker__weekday {
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Typography via .text-label-sm-regular (applied in CalendarPicker.jsx). */
+  color: var(--deep-sea-neutral-500);
+}
+
+/* Grid — weeks stacked; each week = 7 equal columns */
+.calendar-picker__grid {
+  display: flex;
+  flex-direction: column;
+}
+.calendar-picker__week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+}
+
+/* Day cell — base reset + 36px height */
+.calendar-picker__day {
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: var(--radius-lg);
+  color: var(--text-primary);
+  transition: background var(--transition-fast);
+  /* Typography via .text-label-sm-medium (applied in CalendarPicker.jsx). */
+  padding: 0;
+}
+.calendar-picker__day:hover {
+  background: var(--deep-sea-neutral-100);
+}
+
+/* Out of min/max bounds (code-only — no Figma state) */
+.calendar-picker__day:disabled {
+  color: var(--deep-sea-neutral-300);
+  cursor: default;
+}
+.calendar-picker__day:disabled:hover { background: transparent; }
+
+/* Adjacent-month days (outside the current month) */
+.calendar-picker__day--adjacent { color: var(--deep-sea-neutral-500); }
+
+/* Single-mode selected */
+.calendar-picker__day--selected {
+  background: var(--deep-sea-neutral-700);
+  color: var(--white);
+}
+.calendar-picker__day--selected:hover {
+  background: var(--deep-sea-neutral-700);
+}
+
+/* Range — start (rounded left only) */
+.calendar-picker__day--range-start {
+  background: var(--deep-sea-neutral-700);
+  color: var(--white);
+  border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+}
+.calendar-picker__day--range-start:hover {
+  background: var(--deep-sea-neutral-700);
+}
+
+/* Range — end (rounded right only) */
+.calendar-picker__day--range-end {
+  background: var(--deep-sea-neutral-700);
+  color: var(--white);
+  border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+}
+.calendar-picker__day--range-end:hover {
+  background: var(--deep-sea-neutral-700);
+}
+
+/* Range — in-range (strictly between start and end), no radius */
+.calendar-picker__day--in-range {
+  background: var(--deep-sea-neutral-200);
+  border-radius: 0;
+}
+.calendar-picker__day--in-range:hover {
+  background: var(--deep-sea-neutral-200);
+}
+
+/* Range — pending start (start set, no end yet) — 2px inset ring affordance */
+.calendar-picker__day--pending-start {
+  box-shadow: inset 0 0 0 2px var(--deep-sea-neutral-400);
+}

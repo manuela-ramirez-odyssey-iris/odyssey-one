@@ -5145,6 +5145,42 @@ DEC-40 through DEC-65+ in `vault/10-domains/shipments/decisions/decision-log.md`
 
 ---
 
+## Session 82–84 — July 9–14, 2026
+
+**Two-arc session. Arc 1 (Shipments search): Order Count added to the search progression (+ exact-match semantics for count chips) and search-result clicks now open the chip-mapped ShipmentsBar tab via a shared CELL_TAB_MAP (mirrors S82's cell→tab wiring, which this wrap also lands). Arc 2 (field components): CalendarPicker normalized end-to-end (Figma rebind + React + DSM, APPROVED), DatePicker + useFieldPopover extracted as code-only composites, and the Autocomplete saga — built on FormField, team-corrected onto SearchField, folded in as typeahead props, then reworked to render through FieldSearchResults with MatchSimpleRow (new Figma booleans + hover fix). All approved; 366/366 tests.**
+
+### Arc 1 — Shipments search wiring
+- **Order Count searchable** — was missing from `SHIPMENTS_PROGRESSION` entirely (data + grid had it, search vocabulary didn't). Added to Shipment Identifiers with `exact: true` — count chips (`orderCount`, `loadCount`) now match by full equality ("2" no longer matches 12) in both the glimpse and the committed table filter (shared `matchesChip`). +2 tests.
+- **Search-result → tab navigation** — `CELL_TAB_MAP` extracted from ShipmentTable into shared `cellTabMap.js` (+ dataKey aliases pro/equipment/seal/load → column keys). Match-row clicks derive the tab from the LEADING chip (same rule as the adapter's result entity): Order Count → Orders, SCAC → Tender, Consignor → Stops, etc.; customerId/Name carry expandGeneral. `handleSelectShipment` extended `(id, tab, expandGeneral)` — always selects, never toggles off.
+- Also lands the previously-unwrapped **S82 cell→tab work** (BottomBar/OrderTab/ShipmentTable `requestedTab` wiring, tab-link hover tint, mapping validated via cell-tab-mapping.xlsx round-trip).
+
+### Arc 2 — Field components (Efrain's Autocomplete / Calendar / Time / Multiselect ask)
+- **Strategy settled**: typeable field composites are FormField- or SearchField-shelled with shared popover behavior — NOT Dropdown variants (Dropdown stays button-select; the panel components are the shared part). TimePicker + MiniMultiselect PARKED awaiting Efrain (3-column panel master; chips-vs-count).
+- **CalendarPicker** (Figma 4422:711, `/normalize`d): 5 illegal/foreign tokens rebound at source (DSN palette, `label/sm` styles 15→14px, Radius/lg, shadow → `shadow/panel` after user pick), single/range modes (single = DSN/700 all-corners; range = pending-start ring → caps + DSN/200 band), minDate/maxDate (01/01/1900–01/01/2120, disabled days + nav stops), adjacent-month nav. **APPROVED.**
+- **`useFieldPopover`** — extracted hook: focus-open, mousedown guard, blur-outside/Tab/Esc close, Enter commit+defocus, aria-haspopup/expanded. Debugged live in the DSM before extraction (5 iterations: Safari blur race, caret restore, segment-carry mask, pair-deletion auto-01, Enter/Tab a11y).
+- **`DatePicker`** — code-only composite (FormField shell + CalendarPicker + dd/mm/yyyy mask with segment-carry/auto-01/caret-restore/bounds). 9 mask edge cases as unit tests.
+- **SearchField typeahead** (the Autocomplete arc): built as `Autocomplete` on FormField → Efrain/dev redirect → **folded into SearchField** as additive props (`options`/`loadOptions`/`onSelect`/`filter`/`emptyMessage`/`rowProps`) — zero impact on the 6 existing consumers. Rendering then reworked to go through **FieldSearchResults** (owns virtualization via new dep `@tanstack/react-virtual`, `activeIndex` + option ids, `rowProps` passthrough) with **MatchSimpleRow** rows — new Figma booleans `Show avatar`/`Show additional info` (bound across all 3 State variants) mirrored as `showAvatar`/`showInfo` props; typeahead rows default compact (both off). Root-cause fixes: hover gating moved `[role="button"]` → `--clickable` class (role="option" rows now hover/press), missing `.is-active` CSS added, virtualizer `scrollToIndex` follows keyboard highlight. Panel chrome unified on `.field-search-results` (8px gap per Efrain's updated 1959:76 layout).
+- **Conformance suite**: `SearchField.conformance.test.jsx` against a real apis.guru fixture (2,529 entries, committed at `packages/ui/src/__fixtures__/`) — WAI-ARIA combobox conformance, special-char robustness, virtualization regression guards. Caveat: jsdom renders 0 virtual rows (no layout) — true perf check is the DSM 10k playground in-browser.
+- **DSM**: CalendarPicker demo (Schematic + DatePicker-composite Playground), SearchField typeahead anatomy+playground merged (double-nested legend: FieldSearchResults → └ MatchSimpleRow, compact-default documented), MatchSimpleRow toggles.
+- **APPROVED (GATE B)**: CalendarPicker, SearchField, FieldSearchResults, MatchSimpleRow — all staged NORMALIZING+APPROVED awaiting the next Angular batch port.
+
+### State
+- React tests **366/366** (app-dir run; root-level vitest has pre-existing config/load noise from `.claude/worktrees` mirrors — cleanup still queued) · build clean · NOT deployed this session.
+- New dep: `@tanstack/react-virtual` (packages/ui) — consistent with the TanStack table strategy.
+- `domain-usage.json` edit still parked (awaiting the S81 call).
+
+---
+
+## What's Next (S85)
+
+1. **DataTable sorting** (user-named next theme) + continue component updates.
+2. **Angular batch port** — staged APPROVED set: CalendarPicker, DatePicker (code-only), useFieldPopover, SearchField typeahead, FieldSearchResults, MatchSimpleRow (+ their earlier S81-era leftovers). `@tanstack/virtual` Angular adapter for FieldSearchResults parity.
+3. **TimePicker + MiniMultiselect** — unblock on Efrain (3-column time panel master; chips vs count display).
+4. **PR #11 watch** (carried) — on Cognizant approval: merge + their 0.7.0 publish; clean `port/s76-search-batch`; decide `domain-usage.json`.
+5. Carried small follow-ups: root-vitest config noise + `.worktrees` disk cleanup, ActionMenu cell-click flicker, stickyTop measured-toolbar, 9.3MB chunk code-split.
+
+---
+
 ## Session 81 — July 7, 2026
 
 **Bug-fix + polish session: the Orders row-click "randomness" root-caused and fixed (ORD-02), row actions View/Edit wired, the Customers panel rebuilt around staged-save + two modes, the four S80 NORMALIZING components re-approved and ported onto PR #11 (plus DataTable/PillTab S81 mods — CI green twice), and a Vercel deploy-payload diet (1.1GB → 723KB). Heavy subagent parallelization; prod deployed.**

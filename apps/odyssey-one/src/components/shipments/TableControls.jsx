@@ -24,15 +24,10 @@ const TableControls = React.memo(function TableControls({
       // paddingBottom replaces marginBottom: margins don't paint background, so the
       // gap between the controls row and the table header would be transparent —
       // rows would peek through.
-      position: 'sticky',
-      top: 'calc(-1 * var(--spacing-8))',
-      zIndex: 4,
-      background: 'var(--bg-secondary)',
-      // paddingTop matches --spacing-6 used by .orders-toolbar so the stuck bar
-      // has the same breathing room above the controls row as Orders does.
-      // Background paints that gap, hiding rows that scroll underneath.
+      // S82: no longer sticky — the toolbar scrolls away so the table header
+      // and scrollbar are the only elements that stick (S79c decision 11 reversed).
+      // Bottom padding removed — the sticky gap filler div in ShipmentTable replaces it.
       paddingTop: 'var(--spacing-6)',
-      paddingBottom: 'var(--spacing-3)',
     }}>
       {/* Row 1: Controls */}
       <div className="flex items-center justify-between">

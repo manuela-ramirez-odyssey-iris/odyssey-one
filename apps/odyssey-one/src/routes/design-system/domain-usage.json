@@ -72,6 +72,8 @@
     "Button",
     "CustomerRow",
     "EmptyState",
+    "ModalHeader",
+    "ModalMedium",
     "PageHeader",
     "SearchField"
   ],

@@ -4,6 +4,7 @@ import { useGlobalSearch } from '../../search/useGlobalSearch'
 import { shipmentsSearchAdapter } from '../../search/shipments/adapter'
 import { useCustomers } from '../../contexts/CustomersContext.jsx'
 import ShipmentsFiltersView from './ShipmentsFiltersView'
+import { tabForDataKey } from '../shipments/cellTabMap'
 
 /**
  * ShipmentsGlobalSearch — Shipments-domain wiring of the GlobalSearch bar.
@@ -21,8 +22,10 @@ import ShipmentsFiltersView from './ShipmentsFiltersView'
  *   chips-only commit works, and committing with empty text no longer clears
  *   the criteria — only Clear all does, via `onCommitQuery(null)`). The host
  *   route feeds it into listParams.searchCriteria.
- * - `onSelectShipment(sellShipmentId)` — a match-row click. The host route
- *   selects that shipment (opens the docked ShipmentsBar with its details).
+ * - `onSelectShipment(sellShipmentId, tab?, expandGeneral?)` — a match-row
+ *   click. The host route selects that shipment (opens the docked ShipmentsBar
+ *   with its details); `tab` (from the leading chip via the shared
+ *   CELL_TAB_MAP) lands it on the mapped pane, mirroring table cell clicks.
  */
 export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment }) {
   // Customer scoping (S79c decision 10): the glimpse must respect the selected
@@ -112,11 +115,18 @@ export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment 
 
   // Match-row click → select that shipment (docked bar opens with its details,
   // whether or not the row is on the current table page) and close the glimpse.
+  // Mirrors the table's cell→tab wiring: the LEADING chip (the one that scoped
+  // the search, same rule as the adapter's result entity) picks the bar tab via
+  // the shared CELL_TAB_MAP — searching by Order Count lands on Orders, by SCAC
+  // on Tender, etc. No chips (free-text glimpse) → default tab.
   const handleMatchClick = useCallback((match) => {
     const key = match?.['data-shipment-key']
-    if (key) onSelectShipment?.(key)
+    if (key) {
+      const mapping = chips.length ? tabForDataKey(chips[0].dataKey) : null
+      onSelectShipment?.(key, mapping?.tab, mapping?.expandGeneral)
+    }
     closePanel()
-  }, [onSelectShipment, closePanel])
+  }, [onSelectShipment, closePanel, chips])
 
   // Keyboard: Enter in the input commits the query (same as "Show all N
   // results"); Escape closes the panel. Listens on the wrapper so we don't

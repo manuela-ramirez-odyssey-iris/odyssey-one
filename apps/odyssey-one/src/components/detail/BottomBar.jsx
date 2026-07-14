@@ -63,12 +63,19 @@ export default function BottomBar({
   prevDisabled,
   nextDisabled,
   onClose,
+  // requestedTab: { key } token from the table's cell→tab mapping (S82) — a
+  // fresh object per qualifying cell click so re-clicking the same column
+  // re-applies the tab even after the user switched away.
+  requestedTab,
 }) {
   // Expansion is derived: selection ⇒ open. Close = deselect (`onClose`, wired
   // upstream to clear the selected row) — the 'collapsed with selection' state
   // no longer exists (S79c decision 4).
   const expanded = !!selectedShipmentId
   const [activeTab, setActiveTab] = useState('order')
+  // Three-state bar (S82): selection opens PARTIAL (60dvh); the bar's
+  // CollapseExpand walks partial → full → closed (close = deselect).
+  const [stage, setStage] = useState('partial')
   const [, startTransition] = useTransition()
 
   // Only a FRESH open (null → id) resets to the Orders tab; a selected →
@@ -80,8 +87,21 @@ export default function BottomBar({
     prevIdRef.current = selectedShipmentId
     if (!fresh) return
     setActiveTab('order')
+    setStage('partial')
     // eslint-disable-next-line react-hooks/exhaustive-deps -- shipmentDetails read once at open
   }, [selectedShipmentId])
+
+  // Cell→tab mapping (S82): a qualifying cell click lands on its mapped tab.
+  // expandGeneralRef: when the Orders tab opens from a customer-identity cell
+  // (customerId/customerName), the General Information section should auto-expand.
+  // A ref (not state) so OrderTab can consume it once without triggering re-renders.
+  const expandGeneralRef = useRef(false)
+  useEffect(() => {
+    if (requestedTab?.key) {
+      expandGeneralRef.current = !!requestedTab.expandGeneral
+      startTransition(() => setActiveTab(requestedTab.key))
+    }
+  }, [requestedTab])
 
   // Stale-while-loading: across a selected → selected switch the detail query
   // drops to null while the new shipment loads — hold the LAST shipment's
@@ -205,17 +225,23 @@ export default function BottomBar({
     }
     if (!shownDetails) return null
     switch (shownTab) {
-      case 'order': return (
-        <OrderTab
-          data={shownDetails.orderDetails?.[selectedOrderIndex]}
-          orders={orders}
-          selectedOrderIndex={selectedOrderIndex}
-          onSelectOrder={setSelectedOrderIndex}
-          // slices are index-aligned with orderDetails (all map over the same orderList)
-          instructions={shownDetails.instructionsData?.orders?.[selectedOrderIndex]?.instructions ?? []}
-          productLines={shownDetails.productData?.orders?.[selectedOrderIndex]?.lines ?? []}
-        />
-      )
+      case 'order': {
+        // Consume the expandGeneral flag once — reset after handing it to the pane
+        // so subsequent manual tab switches don't re-expand.
+        const expand = expandGeneralRef.current
+        expandGeneralRef.current = false
+        return (
+          <OrderTab
+            data={shownDetails.orderDetails?.[selectedOrderIndex]}
+            orders={orders}
+            selectedOrderIndex={selectedOrderIndex}
+            onSelectOrder={setSelectedOrderIndex}
+            instructions={shownDetails.instructionsData?.orders?.[selectedOrderIndex]?.instructions ?? []}
+            productLines={shownDetails.productData?.orders?.[selectedOrderIndex]?.lines ?? []}
+            expandGeneral={expand}
+          />
+        )
+      }
       case 'stops': return <StopsTab data={shownDetails.stopsData} />
       case 'product': return <ProductTab data={shownDetails.productData} />
       case 'routing': return <RoutingGuideTab data={shownDetails.routingData} shipmentDetails={shownDetails} shipment={shipment} onToggleColumnPanel={onToggleColumnPanel} />
@@ -246,6 +272,8 @@ export default function BottomBar({
         activeTab={selectedShipmentId ? shownTab : null}
         onTabChange={handleTabChange}
         expanded={expanded}
+        stage={stage}
+        onStageChange={setStage}
         onClose={onClose}
         onTabArrangement={onTabArrangement}
         rightOffset={rightOffset}

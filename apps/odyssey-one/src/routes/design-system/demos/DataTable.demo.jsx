@@ -20,6 +20,10 @@ export const meta = {
   // DOM targets are interactive — React portals bubble synthetic events through the
   // React tree, double-firing onCellClick) + `meta.forwardClick` whole-cell click
   // forwarding to the first interactive element (⋮ trigger alone is too small).
+  // S82 mod: built-in custom horizontal scrollbar (sticky track + draggable thumb
+  // above the header, renders only on column overflow — macOS overlay scrollbars
+  // hide the body's native bar). Back to NORMALIZING until re-approval.
+  normalizing: true,
 }
 
 export const props = [

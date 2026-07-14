@@ -47,6 +47,23 @@ describe('searchShipments — invariants (must always hold)', () => {
     expect(total).toBe(0)
   })
 
+  test('exact chips (count fields) match by equality, not substring', async () => {
+    // "2" must find shipments with orderCount 2 and NOT count 12/20/etc.
+    const twos = ALL.filter((s) => String(s.orderCount) === '2').length
+    const { total } = await adapter.searchShipments([
+      { key: 'order-count', dataKey: 'orderCount', queryValue: '2', exact: true },
+    ])
+    expect(total).toBe(twos)
+    expect(twos).toBeGreaterThan(0)
+  })
+
+  test('typing "2" suggests Order Count (obvious value match, S82)', async () => {
+    const [{ items }] = await adapter.getSuggestions('2')
+    const oc = items.find((i) => i.key === 'order-count')
+    expect(oc).toBeDefined()
+    expect(oc.exact).toBe(true) // the flag rides the committed chip
+  })
+
   test('results are capped at 15 but total reflects the full match count', async () => {
     // A bare letter as a customer-name fragment matches many shipments.
     const { results, total } = await adapter.searchShipments([

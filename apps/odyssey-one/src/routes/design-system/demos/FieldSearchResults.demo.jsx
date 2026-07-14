@@ -8,13 +8,19 @@ export const meta = {
   createdVersion: '0.6.0',
   figmaNode: '3170:2989',
   codeConnect: 'packages/ui/src/FieldSearchResults.figma.tsx',
+  normalizing: true,
+  approved: true,
+  ported: false,
 }
 
 export const props = [
   { name: 'matches', type: 'Array<MatchSimpleRow props>', desc: 'MatchSimpleRow data objects ({ matchId, customer, address, icon, id }). Empty [] → the no-match state.' },
   { name: 'emptyMessage', type: 'string', desc: "Centered muted message when matches is empty (Figma SearchNoMatch). Default 'No matching locations found.'." },
   { name: 'error', type: 'string', desc: 'When set, renders a centered red alert message instead of rows/empty (Figma SearchAlert). Highest precedence.' },
-  { name: 'onMatchClick', type: '(match) => void', desc: 'Shared row click handler; overrides individual row onClick when provided.' },
+  { name: 'onMatchClick', type: '(match) => void', desc: 'Shared row click handler; overrides individual row onClick when provided. Also adds role="listbox" to the container.' },
+  { name: 'activeIndex', type: 'number', desc: 'Index of the highlighted row — gets .is-active + aria-selected=true. Rows get ids `${optionIdPrefix}-option-${i}`.' },
+  { name: 'optionIdPrefix', type: 'string', desc: 'Prefix for option node ids (used by combobox aria-controls + aria-activedescendant).' },
+  { name: 'rowProps', type: 'object', desc: 'Spread onto every MatchSimpleRow (e.g. { showAvatar: false, showInfo: false }).' },
 ]
 
 export const tokens = [
@@ -59,8 +65,8 @@ function Schematic() {
         <FieldSearchResults matches={MOCK} />
       </div>
       <ul style={{ flex: '1 1 320px', minWidth: 280, display: 'grid', gridTemplateColumns: 'max-content 1fr', columnGap: '10px', listStyle: 'none', margin: 0, padding: 0 }}>
-        <LegendRow part="root" tier="organism">Compact field-lookup results body (typeahead within a form field).</LegendRow>
-        <LegendRow part={<ChildLink to="MatchSimpleRow">MatchSimpleRow</ChildLink>} tier="molecule" nested>Compact rows (id + customer + address), 4px-gapped.</LegendRow>
+        <LegendRow part="root" tier="organism">Compact field-lookup results body (typeahead within a form field). Adds <code>role="listbox"</code> when <code>onMatchClick</code> is provided.</LegendRow>
+        <LegendRow part={<ChildLink to="MatchSimpleRow">MatchSimpleRow</ChildLink>} tier="molecule" nested>Compact rows (id + customer + address), 4px-gapped. Always virtualized via @tanstack/react-virtual — transparent for small sets.</LegendRow>
         <LegendRow part="empty state" nested>Figma SearchNoMatch — centered <code>emptyMessage</code>, <code>--text-tertiary</code>, when <code>matches</code> is empty.</LegendRow>
         <LegendRow part="alert state" nested>Figma SearchAlert — centered <code>error</code>, <code>--text-error</code>, highest precedence.</LegendRow>
       </ul>
@@ -108,6 +114,9 @@ export default function FieldSearchResultsDemo() {
         and a centered red alert when <code>error</code> is set. Sibling of{' '}
         <a href="#comp-GlobalSearchResults" style={{ color: 'var(--text-link)', textDecoration: 'underline' }}>GlobalSearchResults</a>{' '}
         (global search) — same shape, different intent, so a separate component (they share the row molecule, not the container).
+        The populated list is always virtualized via <code>@tanstack/react-virtual</code> — transparent for small sets,
+        DOM-bounded for large ones. Pass <code>activeIndex</code> + <code>optionIdPrefix</code> for keyboard navigation
+        in a combobox; <code>rowProps</code> spreads onto every row (e.g. <code>{'{ showAvatar: false }'}</code>).
       </p>
 
       <div className="ds-demo-section">

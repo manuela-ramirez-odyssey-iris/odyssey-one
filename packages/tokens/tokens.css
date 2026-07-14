@@ -232,6 +232,7 @@
   --navbar-height: 64px;
   --sidebar-width: 64px;
   --bottombar-collapsed: 48px;
+  --bottombar-partial: 60dvh; /* the bar's middle (partial) expansion height — S82 three-state bar */
   --bottombar-top-clearance: 104px; /* bar's max opening: top edge never rises above this (mid page-title row — S79c decision 1) */
   --edit-panel-width: 240px;
   --right-panel-width: 343px;

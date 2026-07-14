@@ -20,6 +20,8 @@ const AVATAR_ICONS = {
  * pressed DSN/200.
  *
  * `onClick` makes the whole row a selectable button (adds the hover/pressed affordance).
+ * New Figma booleans: `showAvatar` (default true) hides the avatar span when false;
+ * `showInfo` (default true) hides the address sub-line when false.
  */
 export default function MatchSimpleRow({
   matchId,
@@ -28,20 +30,27 @@ export default function MatchSimpleRow({
   icon,
   iconType,
   onClick,
+  showAvatar = true,
+  showInfo = true,
   className = '',
   ...rest
 }) {
+  // ponytail: --clickable class drives hover/pressed CSS instead of [role="button"] so
+  // role="option" rows (typeahead) get the same interaction affordance.
+  const clickable = !!onClick
   return (
     <div
-      className={`match-simple-row ${className}`.trim()}
+      className={`match-simple-row${clickable ? ' match-simple-row--clickable' : ''}${className ? ` ${className}` : ''}`}
       onClick={onClick}
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
       {...rest}
     >
-      <span className="match-simple-row__avatar" aria-hidden="true">
-        {icon || AVATAR_ICONS[iconType] || AVATAR_ICONS.container}
-      </span>
+      {showAvatar && (
+        <span className="match-simple-row__avatar" aria-hidden="true">
+          {icon || AVATAR_ICONS[iconType] || AVATAR_ICONS.container}
+        </span>
+      )}
       <div className="match-simple-row__details">
         <div className="match-simple-row__main">
           <span className="match-simple-row__id text-label-sm-semibold">{matchId}</span>
@@ -49,7 +58,7 @@ export default function MatchSimpleRow({
             <span className="match-simple-row__customer text-label-sm-medium">{customer}</span>
           )}
         </div>
-        {address && (
+        {showInfo && address && (
           <span className="match-simple-row__address text-label-xs-regular">{address}</span>
         )}
       </div>

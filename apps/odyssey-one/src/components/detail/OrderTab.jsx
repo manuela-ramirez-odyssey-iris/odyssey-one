@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { ListChevronsUpDown, ListChevronsDownUp } from 'lucide-react'
 import { Button, Tab } from '@odyssey/ui'
 import PaneEmpty from './PaneEmpty'
@@ -30,9 +30,16 @@ const OrderTab = React.memo(function OrderTab({
   onSelectOrder,
   instructions = [],
   productLines = [],
+  // When true (customer-identity cell click), force General Information open
+  // regardless of the user's last collapsed state (S82 cell-tab mapping).
+  expandGeneral = false,
 }) {
   // All four cards open by default (the wireframe renders the pane expanded).
   const [open, setOpen] = useState(() => Object.fromEntries(SECTIONS.map((k) => [k, true])))
+
+  useEffect(() => {
+    if (expandGeneral) setOpen((o) => ({ ...o, general: true }))
+  }, [expandGeneral])
   const allOpen = SECTIONS.every((k) => open[k])
   const setSection = (key) => (next) => setOpen((o) => ({ ...o, [key]: next }))
   const toggleAll = () => setOpen(Object.fromEntries(SECTIONS.map((k) => [k, !allOpen])))

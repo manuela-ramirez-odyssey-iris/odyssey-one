@@ -58,6 +58,7 @@ function toItem(attr, queryValue) {
     queryValue: queryValue || null,
     group: attr.group,
     dataKey: attr.dataKey,
+    ...(attr.exact && { exact: true }),
     kind: 'attribute',
   }
 }

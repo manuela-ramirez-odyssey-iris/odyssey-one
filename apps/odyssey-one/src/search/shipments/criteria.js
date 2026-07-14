@@ -26,8 +26,15 @@ function fieldIncludes(field, needle) {
 }
 
 // AND predicate for a single chip against a row (substring on chip.dataKey).
+// Chips flagged `exact` (count-like fields) require full equality — "2" must
+// not match a count of 12.
 export function matchesChip(row, chip) {
-  return fieldIncludes(row[chip.dataKey], (chip.queryValue || '').toLowerCase())
+  const needle = (chip.queryValue || '').toLowerCase()
+  if (chip.exact) {
+    const field = row[chip.dataKey]
+    return field != null && String(field).toLowerCase() === needle
+  }
+  return fieldIncludes(row[chip.dataKey], needle)
 }
 
 // Free-text predicate: empty text matches everything; otherwise OR across

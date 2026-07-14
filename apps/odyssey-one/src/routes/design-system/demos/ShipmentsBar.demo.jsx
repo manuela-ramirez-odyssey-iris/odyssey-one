@@ -6,7 +6,7 @@ export const meta = {
   tier: 'organism',
   version: '0.7.0',
   createdVersion: '0.6.0',
-  normalizing: false,
+  normalizing: true, // S82 mod: three-state expansion (stage partial|full) — back to NORMALIZING until re-approval
   figmaNode: '4120:4623',
   codeConnect: 'packages/ui/src/ShipmentsBar.figma.tsx',
 }
@@ -18,6 +18,7 @@ export const props = [
   { name: 'tabs', type: '[{ key, label }]', desc: "The tab slots; overflow scrolls natively. Plain tabs only — the dropdown-tab face (prelabel/value/chevron) retired S80 with the Figma State=Selected Dropdown variant; in-pane switchers live in the pane content. (Figma: ShipmentsBarTab State=Default|Selected, Label TEXT.)" },
   { name: 'activeTab / onTabChange', type: 'string / (key) => void', desc: 'Controlled selection. Selected tab = DSN/100 fill — a real Selected state (the mock faked it with Cell State=Hover). (Figma: State VARIANT Default|Selected.)' },
   { name: 'expanded / onExpandedChange', type: 'boolean / (next) => void', desc: 'Controlled expansion: 48px strip ↔ content-height pane (auto, capped at 100dvh − --bottombar-top-clearance; content scrolls when capped). While open a min-height RATCHET holds the largest height reached — switching to a shorter pane never shrinks the bar (it resets on close). CollapseExpand fires onExpandedChange(true) only in the expand direction — closing goes through onClose.' },
+  { name: 'stage / onStageChange', type: "'partial' | 'full' / (next) => void", desc: "S82 three-state expansion. 'partial' caps the open bar at --bottombar-partial (60dvh); 'full' at the 100dvh − clearance cap. CollapseExpand walks closed → partial (arrow-up-to-line, fires onExpandedChange(true)) → full (chevrons-up, fires onStageChange('full')) → closed (chevrons-down, fires onClose). Consumers reset to 'partial' on a fresh open. Default 'full' (two-state back-compat)." },
   { name: 'onClose', type: '() => void', desc: "CLOSE (S79c): fired by CollapseExpand while expanded (chevrons-down, aria-label 'Close panel') — the consumer deselects the entity, returning the bar to the placeholder strip. The close ANIMATES (S79d): the last-rendered pane stays mounted (inert) while the height eases back to 48px on the drawer curve. No 'collapsed with selection' state exists. Falls back to onExpandedChange(false) when not provided." },
   { name: 'onTabArrangement', type: '() => void', desc: 'The TabArrangement PanelAction (Button Icon/sm, columns+cog) — e.g. opens the column-arrangement panel. Renders only when provided. (Figma: PanelActions.)' },
   { name: 'rightOffset', type: 'number', desc: 'Pixel inset when side panels (filters/columns) are open.' },

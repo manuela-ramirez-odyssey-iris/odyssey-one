@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { ArrowLeft, ArrowRight, ChevronsDown, ChevronsUp, Columns3Cog } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ArrowUpToLine, ChevronsDown, ChevronsUp, Columns3Cog } from 'lucide-react'
 import Button from './Button.jsx'
 
 /**
@@ -69,6 +69,12 @@ export default function ShipmentsBar({
   onTabChange,
   expanded = false,
   onExpandedChange,
+  // stage: expansion size while expanded — 'partial' (60dvh, --bottombar-partial)
+  // or 'full' (the dvh cap). S82 three-state bar: the CollapseExpand button
+  // walks closed → partial (arrow-up-to-line) → full (chevrons-up) → closed
+  // (chevrons-down, fires onClose). Consumers open to 'partial' on selection.
+  stage = 'full',
+  onStageChange,
   onClose,
   onTabArrangement,
   rightOffset = 0,
@@ -88,6 +94,12 @@ export default function ShipmentsBar({
 
   // --- Height model (S79d) -------------------------------------------------
   const rootRef = useRef(null)
+
+  // The height effect below deliberately re-runs only on open/close; the RO
+  // callback reads the CURRENT stage through this ref so ratchet clamps track
+  // a partial→full change without re-running the effect (S82).
+  const stageRef = useRef(stage)
+  stageRef.current = stage
 
   // All height motion is JS-measured length→length (pin the old height,
   // measure the new used height — WITH the dvh cap applied — animate between
@@ -139,11 +151,15 @@ export default function ShipmentsBar({
     // (capPx on a cap-height open), not the pane's intrinsic height — without
     // it, prev = loader height and the min-height snap-in would replay as a
     // second rising animation (S79e symptom).
+    // Ratchet clamp: the current stage's height cap (matches the CSS max-height).
+    const capExpr = () => stageRef.current === 'partial'
+      ? 'var(--bottombar-partial)'
+      : '100dvh - var(--bottombar-top-clearance)'
     const release = () => {
       clearTimeout(releaseTimer)
       animating = false
       if (pendingMinPx !== null) {
-        el.style.minHeight = `min(${pendingMinPx}px, 100dvh - var(--bottombar-top-clearance))`
+        el.style.minHeight = `min(${pendingMinPx}px, ${capExpr()})`
         pendingMinPx = null
       }
       el.style.transition = 'none'
@@ -196,7 +212,9 @@ export default function ShipmentsBar({
     // the floored height, so prev = capPx and data landing swaps in place
     // with no second rise (the S79e goal, kept).
     const stripH = el.firstElementChild?.offsetHeight ?? 48
-    const capPx = openToCapHeight ? window.innerHeight - 104 : undefined
+    const capPx = openToCapHeight
+      ? (stageRef.current === 'partial' ? Math.round(window.innerHeight * 0.6) : window.innerHeight - 104)
+      : undefined
     if (capPx !== undefined) {
       max = capPx
       pendingMinPx = capPx
@@ -210,7 +228,7 @@ export default function ShipmentsBar({
       prev = el.offsetHeight
       if (prev > max) {
         max = prev // ratchet follows the ANIMATED height, never the jump target
-        el.style.minHeight = `min(${prev}px, 100dvh - var(--bottombar-top-clearance))`
+        el.style.minHeight = `min(${prev}px, ${capExpr()})`
       }
     })
     ro.observe(el)
@@ -272,14 +290,16 @@ export default function ShipmentsBar({
   }, [isExpanded])
   // --------------------------------------------------------------------------
 
-  // Expanded → CLOSE (deselection at the consumer); collapsed (placeholder
-  // strip — the button is disabled without a selection) → expand.
+  // S82 three-state walk: collapsed → expand (partial); partial → full;
+  // full → CLOSE (deselection at the consumer). The strip's button is
+  // disabled without a selection.
   const handleCollapseExpand = useCallback(() => {
     if (isDisabled) return
     if (!isExpanded) onExpandedChange?.(true)
+    else if (stage === 'partial' && onStageChange) onStageChange('full')
     else if (onClose) onClose()
     else onExpandedChange?.(false)
-  }, [isDisabled, isExpanded, onClose, onExpandedChange])
+  }, [isDisabled, isExpanded, stage, onStageChange, onClose, onExpandedChange])
 
   const handleTabClick = useCallback((tab) => {
     if (isDisabled || tab.key === activeTab) return
@@ -289,6 +309,7 @@ export default function ShipmentsBar({
   const classes = [
     'shipments-bar',
     isExpanded && 'shipments-bar--expanded',
+    isExpanded && stage === 'partial' && 'shipments-bar--partial',
     isClosing && 'shipments-bar--closing',
     isDisabled && 'shipments-bar--disabled',
     className,
@@ -367,11 +388,15 @@ export default function ShipmentsBar({
           <Button
             variant="icon"
             size="sm"
-            icon={isExpanded ? <ChevronsDown size={20} /> : <ChevronsUp size={20} />}
+            icon={
+              !isExpanded ? <ArrowUpToLine size={20} />
+                : stage === 'partial' ? <ChevronsUp size={20} />
+                : <ChevronsDown size={20} />
+            }
             onClick={handleCollapseExpand}
             disabled={isDisabled}
-            aria-label={isExpanded ? 'Close panel' : 'Expand panel'}
-            title={isExpanded ? 'Close' : 'Expand'}
+            aria-label={!isExpanded ? 'Expand panel' : stage === 'partial' ? 'Expand panel fully' : 'Close panel'}
+            title={!isExpanded ? 'Expand' : stage === 'partial' ? 'Expand fully' : 'Close'}
           />
         </div>
       </div>

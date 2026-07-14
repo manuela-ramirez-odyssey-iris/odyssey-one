@@ -66,6 +66,8 @@ export { default as SummaryStrip } from './SummaryStrip.jsx';
 export { default as Timeline } from './Timeline.jsx';
 export { default as ButtonToggle } from './ButtonToggle.jsx';
 export { default as Tooltip } from './Tooltip.jsx';
+export { default as CalendarPicker } from './CalendarPicker.jsx';
+export { default as DatePicker } from './DatePicker.jsx';
 
 // ── Organisms ──────────────────────────────────────────
 export { default as Navbar } from './Navbar.jsx';
@@ -94,3 +96,4 @@ export { default as ShipmentsBar } from './ShipmentsBar.jsx';
 // consumers that own their own positioning (right-aligned menus, etc.) but want
 // the same flip math.
 export { useAnchoredPortal, computeVerticalPlacement } from './useAnchoredPortal.jsx';
+export { useFieldPopover } from './useFieldPopover.js';

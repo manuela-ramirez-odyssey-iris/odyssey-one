@@ -25,6 +25,9 @@ function ShipmentsRoute() {
   // with no data-backed customers (empty array) = an honest empty table.
   const { selectedDataIds } = useCustomers()
   const [selectedShipmentId, setSelectedShipmentId] = useState(null)
+  // Cell→tab mapping (S82): { key } token minted per qualifying cell click,
+  // consumed by BottomBar to land the detail bar on the mapped tab.
+  const [requestedTab, setRequestedTab] = useState(null)
   const [activePanel, setActivePanel] = useState('exceptions')
   const [activeTab, setActiveTab] = useState('all')
   // Committed GlobalSearch criteria — { chips, text } or null (S79c decision 7).
@@ -181,8 +184,16 @@ function ShipmentsRoute() {
     setActiveTab('all')
   }, [])
 
-  const handleRowSelect = useCallback((id) => {
-    setSelectedShipmentId(prev => prev === id ? null : id)
+  const handleRowSelect = useCallback((id, tab, expandGeneral) => {
+    if (tab) {
+      // Mapped cell: open/keep the row selected AND land on the mapped tab —
+      // no toggle-off, so clicking a cost cell of the open row switches tabs
+      // instead of closing the bar.
+      setSelectedShipmentId(id)
+      setRequestedTab({ key: tab, expandGeneral: !!expandGeneral })
+    } else {
+      setSelectedShipmentId(prev => prev === id ? null : id)
+    }
   }, [])
 
   // Every ColumnPanel dismissal funnels through its requestClose() guard so pending
@@ -250,8 +261,13 @@ function ShipmentsRoute() {
   // (detail fetch + row summary are keyed off allShipments, not the page); if
   // the row IS on the current page, the table's selectedId effect auto-scrolls
   // to it.
-  const handleSelectShipment = useCallback((id) => {
-    if (id) setSelectedShipmentId(id)
+  // Search match-row click — always selects (never toggles off), and lands on
+  // the chip-mapped bar tab when the search carried one (same CELL_TAB_MAP as
+  // table cells).
+  const handleSelectShipment = useCallback((id, tab, expandGeneral) => {
+    if (!id) return
+    setSelectedShipmentId(id)
+    if (tab) setRequestedTab({ key: tab, expandGeneral: !!expandGeneral })
   }, [])
 
   return (
@@ -363,6 +379,7 @@ function ShipmentsRoute() {
       )}
       <BottomBar
         selectedShipmentId={selectedShipmentId}
+        requestedTab={requestedTab}
         onClose={() => setSelectedShipmentId(null)}
         shipmentDetails={shipmentDetails}
         shipment={selectedShipment}

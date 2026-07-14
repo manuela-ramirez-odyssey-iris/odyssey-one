@@ -194,6 +194,87 @@ export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, onC
     return () => wrap.removeEventListener('scroll', onScroll)
   }, [])
 
+  // Custom horizontal scrollbar (S82): a sticky track + draggable thumb ABOVE
+  // the header, part of the table chrome, rendered only when the body
+  // overflows. A real element because the body's NATIVE bar sits at the
+  // bottom of the tall table AND hides in macOS overlay mode (custom
+  // ::-webkit-scrollbar styling no longer opts out of overlay scrollbars in
+  // current Chrome). Track click jumps; thumb drags; body scroll paints the
+  // thumb position directly (no per-frame React state).
+  const trackRef = useRef(null)
+  const thumbRef = useRef(null)
+  const [hbar, setHbar] = useState(null) // { track, content } px — null when no overflow
+  const thumbW = hbar ? Math.max(40, (hbar.track / hbar.content) * hbar.track) : 0
+
+  useEffect(() => {
+    const wrap = wrapRef.current
+    if (!wrap) return
+    const measure = () => {
+      // Value-stable update: returning the SAME object when nothing changed is
+      // load-bearing — a fresh object each run + the hbar effect dep would
+      // re-render in a loop (starving transitions in the consumer).
+      setHbar((prev) => {
+        if (wrap.scrollWidth - wrap.clientWidth <= 1) return null
+        if (prev && prev.track === wrap.clientWidth && prev.content === wrap.scrollWidth) return prev
+        return { track: wrap.clientWidth, content: wrap.scrollWidth }
+      })
+    }
+    const ro = new ResizeObserver(measure)
+    ro.observe(wrap)
+    if (bodyTableRef.current) ro.observe(bodyTableRef.current) // column resize/visibility changes
+    measure()
+    const paint = () => {
+      const track = trackRef.current
+      const thumb = thumbRef.current
+      if (!track || !thumb) return
+      const max = wrap.scrollWidth - wrap.clientWidth
+      const range = track.clientWidth - thumb.offsetWidth
+      thumb.style.transform = `translateX(${max > 0 ? (wrap.scrollLeft / max) * range : 0}px)`
+    }
+    wrap.addEventListener('scroll', paint, { passive: true })
+    paint()
+    return () => {
+      ro.disconnect()
+      wrap.removeEventListener('scroll', paint)
+    }
+    // hbar dep: the track/thumb mount only once overflow is detected — re-run
+    // so the first paint() finds them (identity is value-stable, no loop).
+  }, [hbar])
+
+  const dragThumb = (e) => {
+    const wrap = wrapRef.current
+    const track = trackRef.current
+    const thumb = thumbRef.current
+    if (!wrap || !track || !thumb) return
+    e.preventDefault()
+    e.stopPropagation()
+    const startX = e.clientX
+    const startLeft = wrap.scrollLeft
+    const max = wrap.scrollWidth - wrap.clientWidth
+    const range = track.clientWidth - thumb.offsetWidth
+    if (range <= 0) return
+    const move = (ev) => { wrap.scrollLeft = startLeft + (ev.clientX - startX) * (max / range) }
+    const up = () => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', up)
+    }
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', up)
+  }
+
+  const jumpTrack = (e) => {
+    if (e.target !== trackRef.current) return // thumb handles its own drag
+    const wrap = wrapRef.current
+    const track = trackRef.current
+    const thumb = thumbRef.current
+    if (!wrap || !track || !thumb) return
+    const rect = track.getBoundingClientRect()
+    const range = rect.width - thumb.offsetWidth
+    if (range <= 0) return
+    const ratio = Math.min(1, Math.max(0, (e.clientX - rect.left - thumb.offsetWidth / 2) / range))
+    wrap.scrollLeft = ratio * (wrap.scrollWidth - wrap.clientWidth)
+  }
+
   // Derived each render (cheap, no DOM read): lock measured content widths into the colgroup,
   // but let user-dragged columns use their live `getSize()` so a resize tracks the cursor
   // smoothly. `sizes` is keyed off columnSizing only (see getSizesFromState) — un-dragged
@@ -217,10 +298,32 @@ export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, onC
 
   return (
     <div className={`odyssey-data-table${onCellClick ? ' odyssey-data-table--cell-clickable' : ''}${className ? ` ${className}` : ''}`}>
+      {/* Horizontal scrollbar: a sibling ABOVE the card so it's never clipped by
+          the card's border-radius + overflow:clip. Sticky at stickyTop; the card's
+          header shifts down +8px while it's present. */}
+      {hbar && (
+        <div
+          ref={trackRef}
+          className="odyssey-data-table__hscroll"
+          style={{ top: stickyTopValue }}
+          aria-hidden="true"
+          onPointerDown={jumpTrack}
+        >
+          <div
+            ref={thumbRef}
+            className="odyssey-data-table__hscroll-thumb"
+            style={{ width: thumbW }}
+            onPointerDown={dragThumb}
+          />
+        </div>
+      )}
       {/* The bordered white card holds the table ONLY; the footer (Paginator) sits
           below it as a sibling, transparent on the page canvas (S79b, decision 6). */}
       <div className="odyssey-data-table__card">
-        <div className="odyssey-data-table__head" style={{ top: stickyTopValue }}>
+        <div
+          className="odyssey-data-table__head"
+          style={{ top: hbar ? `calc(${stickyTopValue} + 8px)` : stickyTopValue }}
+        >
           <div className="odyssey-data-table__head-inner" ref={headRef}>
             <table className="odyssey-table" ref={headTableRef} style={tableStyle}>
               {colgroup}
