@@ -28,8 +28,11 @@ function figmaUrl(node) {
   return `${FIGMA_FILE}?node-id=${node.replace(':', '-')}`
 }
 
-function DetailsPanel({ meta, props, tokens }) {
+function DetailsPanel({ meta, props, tokens, apiDoc }) {
   const url = figmaUrl(meta.figmaNode)
+  // 'contract' = the Props + Token tables; 'api' = the usage snippet (only demos
+  // that export `apiDoc` get the tab bar — everything else renders as before).
+  const [tab, setTab] = useState('contract')
   return (
     <div className="ds-details">
       <div className="ds-details__refs">
@@ -41,7 +44,28 @@ function DetailsPanel({ meta, props, tokens }) {
         {meta.codeConnect && <code>{meta.codeConnect}</code>}
       </div>
 
-      {props.length > 0 && (
+      {apiDoc && (
+        <div className="ds-details__tabs" role="tablist">
+          {[['contract', 'Props & Tokens'], ['api', 'API']].map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              role="tab"
+              aria-selected={tab === key}
+              className={`ds-details__tab${tab === key ? ' is-active' : ''}`}
+              onClick={() => setTab(key)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {tab === 'api' && apiDoc && (
+        <pre className="ds-details__api"><code>{apiDoc}</code></pre>
+      )}
+
+      {tab === 'contract' && props.length > 0 && (
         <div className="ds-details__block">
           <h3 className="ds-details__title">Props</h3>
           <table className="ds-table">
@@ -61,7 +85,7 @@ function DetailsPanel({ meta, props, tokens }) {
         </div>
       )}
 
-      {tokens.length > 0 && (
+      {tab === 'contract' && tokens.length > 0 && (
         <div className="ds-details__block">
           <h3 className="ds-details__title">Token contract</h3>
           <table className="ds-table">
@@ -373,7 +397,7 @@ export default function DesignSystem() {
               <button type="button" className="ds-modal__close" aria-label="Close" onClick={() => setOpenDetails(null)}>✕</button>
             </div>
             <div className="ds-modal__body">
-              <DetailsPanel meta={detailsDemo.meta} props={detailsDemo.props} tokens={detailsDemo.tokens} />
+              <DetailsPanel meta={detailsDemo.meta} props={detailsDemo.props} tokens={detailsDemo.tokens} apiDoc={detailsDemo.apiDoc} />
             </div>
           </div>
         </div>

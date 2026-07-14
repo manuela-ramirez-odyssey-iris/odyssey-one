@@ -61,7 +61,13 @@ Output a short prop-map (Figma property → React prop) as part of the Step 4 co
 
 ### Step 2: Token Validation
 
-Map every Figma value to a token in `tokens.css` / `design.md`. **Decide and proceed**; only stop when:
+**SCRIPTED FIRST (S85):** after extracting the raw values in Step 1, dump them as JSON and run the classifier — it does the tokens.css + Figma-snapshot cross-reference mechanically (LEGAL → var names; LEGAL-FIGMA-ONLY → mirror candidate; UNKNOWN → nearest-token suggestions by RGB/scale distance):
+
+```bash
+node tools/token-check.mjs '{"card bg": "#FFFFFF", "pad": "16px", "title": "14px/600", …}'
+```
+
+The model's judgment starts FROM that table (origin discriminator below applies to the UNKNOWN rows). Map every Figma value to a token in `tokens.css` / `design.md`. **Decide and proceed**; only stop when:
 
 - A color is genuinely off-palette (no nearby Deep Sea Neutral / brand color).
 - A radius/spacing isn't in the existing scale and the design intent is unclear.
@@ -188,6 +194,14 @@ The choice changes the Step 5 → Step 6 ordering, NOT what gets done. Phase 3 s
 
 **Demo file location:** `apps/odyssey-one/src/routes/design-system/demos/<Component>.demo.jsx`. The page auto-registers it via `import.meta.glob` — no central-file edit needed.
 
+**SCRIPTED FIRST for NEW components (S85):** generate all the boilerplate in one shot, then fill only the design content:
+
+```bash
+node tools/scaffold-normalize.mjs <Component> --tier atom|molecule|organism --figma-node 1234:567
+```
+
+This creates the component stub (`packages/ui/src/<C>.jsx` with className passthrough), the `.figma.tsx` Code Connect stub, the `index.js` tier-group export, the `components.css` stub block, AND the demo skeleton (meta with `normalizing: true`, templated props/tokens arrays, TierBadge/LegendRow helpers, Schematic + Playground sections). The model fills the TODO(normalize) markers only.
+
 1. **Write (or update) `<Component>.demo.jsx`.** The file must export:
    - `meta` — `{ name, tier: 'atom'|'molecule'|'organism', figmaNode, codeConnect, normalizing: true }`
    - `props` — `[{ name, type, desc }]`
@@ -197,6 +211,8 @@ The choice changes the Step 5 → Step 6 ordering, NOT what gets done. Phase 3 s
    Set `meta.normalizing: true` while the cycle is in flight — this keeps the component out of its tier tab and surfaces it in the explorer's **Normalizing** panel (the pulsing tab). That panel is a **three-badge STAGING playground kept in React↔Angular parity** ([[feedback_clear_normalizing_flag_on_done]]): a component sits there **NORMALIZING** (un-badged/yellow) while in progress → earns an **APPROVED** badge (`meta.approved: true`) at per-component GATE B → becomes **PORTED** (`meta.ported: true`, both DSMs) once the batch is approved + its Angular twins are built → and only leaves at **final approval** (which clears all three flags, stamps the version, commits + pushes both repos). Never clear `normalizing` or stamp a `version` on per-component approval.
 
    **Demotion rule (2026-07-05):** any modification to an already-normalized component — approved and/or ported (new prop, new Figma variant, visual change) — immediately sends its badge **back to NORMALIZING**: clear `approved`/`ported` in **BOTH** DSM metas, unprompted, as part of the modification itself. The component re-runs GATE B, and the Angular twin picks up the delta in the next batch port. (S78 precedent: SubAccordion `collapsible`.)
+
+   **Badge edits are SCRIPTED (S85):** all staging-flag flips and version stamps run through `node tools/dsm-flags.mjs <Component…> --approve | --port | --release <ver>` (from the odyssey-one root; edits BOTH DSMs' metas in lockstep, `--dry-run` to preview). Final approval's whole mechanical close runs through `node tools/release.mjs <ver> --components <A,B,…>` (flags + versions + package.json bump + CHANGELOG skeleton — the model only writes prose). Don't hand-edit meta flags unless the script rejects an unusual case.
 
    **Port execution rule (2026-07-05):** the Angular port (`/port-to-angular`, `playground/angular-port-routine.md`) is **always executed via subagent(s)** — Phase 1 readiness by an Explore subagent, Phase 2 twin generation by general-purpose subagent(s) (sequential when wiring files like `_tokens.scss`/`_typography.scss` are shared); the main conversation only orchestrates and reviews. Never port inline.
 
@@ -275,7 +291,7 @@ A normalize cycle is **not done** until ALL of the following are updated. Treat 
 
 ### Step 8: Code Connect Publish
 
-If the component has a `.figma.tsx`, run `npm run connect:publish` from the repo root automatically (no need to ask — `.env` handles the token). Verify the success output lists the new mapping. Add to the "Pushed to Figma → Code Connect" sub-table in the tracker.
+If the component has a `.figma.tsx`, run `bash tools/connect-publish.sh` from the repo root automatically (no need to ask — `.env` handles the token). It wraps `npm run connect:publish` and prints only the mapping count + NEW mappings + errors (full log at /tmp/connect-publish.log). Add to the "Pushed to Figma → Code Connect" sub-table in the tracker.
 
 **Pre-flight:** if `packages/ui/.env` is missing, ask the user once to create it. That's the only blocking gate in this step.
 
@@ -320,6 +336,8 @@ Only run this when icons are baked into the component (not when icons are passed
 ### Step 8d — Hand off to the Angular port gate
 
 The React component is now approved + published. Run `playground/angular-port-routine.md` (`/port-to-angular <Component>`) to generate + review the Angular twin. The React `meta.normalizing` flag clears there, on Angular pass — completing the full (React + Angular) normalization.
+
+**S85 tooling shortcuts for the port:** `node tools/port-readiness.mjs <C>` (Phase 1 gather report), `node tools/scaffold-port.mjs <C>` (boilerplate + demo skeleton generated FROM the React demo — the twin demo starts structurally identical), `node tools/verify-all.mjs` (full verification matrix incl. `demo-parity-lint`, which fails on React↔Angular DSM presentation drift — sections/meta/props/tokens).
 
 ---
 

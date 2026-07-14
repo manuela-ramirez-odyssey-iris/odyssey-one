@@ -18,6 +18,7 @@ export const props = [
   { name: 'placeholder', type: 'string', desc: 'Input placeholder.' },
   { name: 'value', type: 'string|number', desc: 'Controlled value; drives the derived filled state.' },
   { name: 'onChange', type: '(e) => void', desc: 'Input change handler.' },
+  { name: 'type', type: 'text|email|password|number|tel|search|url', desc: 'Native input type. Default text.' },
   { name: 'error', type: 'string|false', desc: 'Error message; truthy reddens border + shows the message.' },
   { name: 'disabled', type: 'boolean', desc: 'Disables the input and all buttons.' },
   { name: 'leadingIcon', type: 'ReactNode', desc: 'Icon left of the input.' },

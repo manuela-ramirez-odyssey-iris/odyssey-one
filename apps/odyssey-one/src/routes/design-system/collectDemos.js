@@ -19,6 +19,7 @@ function toEntry(mod) {
     meta: mod.meta,
     props: mod.props || [],
     tokens: mod.tokens || [],
+    apiDoc: mod.apiDoc || null, // optional usage/API snippet — own tab in the details modal
     Component: mod.default,
   }
 }

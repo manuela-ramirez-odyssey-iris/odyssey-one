@@ -42,6 +42,10 @@ function ShipmentsRoute() {
   const [tabOrder, setTabOrder] = useState(DEFAULT_TAB_ORDER)
   const [pageNumber, setPageNumber] = useState(0)
   const [pageSize, setPageSize] = useState(25)
+  // Column sorting (S85) — one column always drives (DataTable flips asc↔desc, never
+  // unsorted). Default driver: the first default-visible column. Server-side: mapped
+  // to gridService sortBy/orderBy below (full dataset, before pagination).
+  const [sorting, setSorting] = useState([{ id: 'sellShipment', desc: false }])
   // 'pills' | 'widgets' — how the category row renders (PillTabs vs WidgetMini
   // cards), toggled by the header ButtonToggle. Pill mode is the Figma default.
   const [viewMode, setViewMode] = useState('pills')
@@ -72,7 +76,7 @@ function ShipmentsRoute() {
   // scope) changes. Done during render (React's documented "adjust state on change"
   // pattern) rather than in an effect, so the stale-page query never fires — avoids
   // a wasted round-trip on every filter interaction in live mode.
-  const queryIdentity = JSON.stringify([activePanel, activeTab, searchCriteria, selectedDataIds])
+  const queryIdentity = JSON.stringify([activePanel, activeTab, searchCriteria, selectedDataIds, sorting])
   const [prevQueryIdentity, setPrevQueryIdentity] = useState(queryIdentity)
   if (queryIdentity !== prevQueryIdentity) {
     setPrevQueryIdentity(queryIdentity)
@@ -93,7 +97,9 @@ function ShipmentsRoute() {
     // tested) but the route no longer sends them — searchCriteria replaces
     // that path with the shared chip+text matcher.
     searchCriteria: searchCriteria ?? undefined,
-  }), [activePanel, activeTab, pageNumber, pageSize, searchCriteria, selectedDataIds])
+    sortBy: sorting[0]?.id,
+    orderBy: sorting[0]?.desc ? 'desc' : 'asc',
+  }), [activePanel, activeTab, pageNumber, pageSize, searchCriteria, selectedDataIds, sorting])
 
   const {
     data: listData,
@@ -372,6 +378,8 @@ function ShipmentsRoute() {
           totalCount={totalCount}
           onPageChange={setPageNumber}
           onPageSizeChange={(n) => { setPageSize(n); setPageNumber(0) }}
+          sorting={sorting}
+          onSortingChange={setSorting}
           isLoading={listLoading}
           isError={listError}
           onRetry={refetchList}

@@ -290,7 +290,16 @@
   cursor: col-resize;
   user-select: none;
   touch-action: none;
+  /* Above the sticky-right action column (z-index 1) — the LAST data column's grip
+     sits exactly at the action column's left edge and was painted under it. */
+  z-index: 2;
 }
+/* Last resizable column (the one before the sticky action column): inset the grip so
+   its hairline sits clear of the sticky column's edge + shadow instead of flush under it. */
+.odyssey-data-table__resize-grip--edge {
+  right: 6px;
+}
+
 .odyssey-data-table__resize-grip::after {
   content: '';
   position: absolute;
@@ -312,6 +321,41 @@
    cell is a click target that forwards to its interactive element, so it shows the
    pointer even on tables WITHOUT onCellClick (no --cell-clickable root class). */
 .odyssey-data-table tbody td.odyssey-table__cell--forward-click { cursor: pointer; }
+
+/* Sortable header (per-table opt-in, mirrors resize): the whole header label is the
+   toggle button. Label ellipsizes; the sort icon never shrinks — together with the
+   SORT_MIN_WIDTH colgroup floor this keeps "X… ↕" visible at min drag width. */
+.odyssey-data-table__sort {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.odyssey-data-table__sort-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.odyssey-data-table__sort-icon {
+  flex-shrink: 0;
+  /* Neutral (non-driving) icon: one tone below --text-tertiary (DSN/500) so the
+     driving column's icon reads as the active one at a glance. */
+  color: var(--deep-sea-neutral-400);
+  transition: color var(--transition-fast);
+}
+
+.odyssey-data-table__sort:hover .odyssey-data-table__sort-icon,
+.odyssey-data-table__sort-icon.is-sorted {
+  color: var(--text-primary);
+}
 
 /* ----------------------------------------
    BOTTOM BAR TRANSITIONS

@@ -1,11 +1,21 @@
 // @vitest-environment jsdom
-import { getColWidths, getSizesFromState, showResizeGrip, renderCell, cellClassName, headClassName, isInteractiveTarget, resolveCellClick } from './DataTable.jsx'
+import { getColWidths, getSizesFromState, showResizeGrip, showSortButton, ariaSortValue, MIN_COL_WIDTH, SORT_MIN_WIDTH, MAX_COL_WIDTH, hiddenWordCount, renderCell, cellClassName, headClassName, isInteractiveTarget, resolveCellClick } from './DataTable.jsx'
 
-describe('getColWidths', () => {
-  it('takes the per-column max of header vs first-row width and rounds up', () => {
+describe('getColWidths (S85: default = max(header label, body) capped at MAX_COL_WIDTH)', () => {
+  it('defaults each column to max(header, body), rounded up', () => {
     // container small enough that no slack is distributed
     expect(getColWidths([40, 100, 30], [48, 90, 35.2], 0, [false, true, false]))
       .toEqual([48, 100, 36])
+  })
+
+  it('caps a body-driven default at MAX_COL_WIDTH (wider content ellipsizes)', () => {
+    expect(getColWidths([80, 80], [400, 100], 0, [false, false]))
+      .toEqual([MAX_COL_WIDTH, 100])
+  })
+
+  it('never caps the header label — the full column name always shows', () => {
+    expect(getColWidths([MAX_COL_WIDTH + 30, 80], [0, 0], 0, [false, false]))
+      .toEqual([MAX_COL_WIDTH + 30, 80])
   })
 
   it('distributes leftover container width evenly to flex columns only', () => {
@@ -42,9 +52,63 @@ describe('getColWidths', () => {
     expect(getColWidths([50, 50], [0, 0], 400, [true, true], [80, null]))
       .toEqual([80, 320])
   })
-  it('ignores sizes when none are provided (back-compat)', () => {
-    expect(getColWidths([50, 100, 50], [0, 0, 0], 260, [false, true, true]))
-      .toEqual([50, 130, 80])
+  it('a drag may exceed MAX_COL_WIDTH (the cap is on defaults only)', () => {
+    expect(getColWidths([50, 50], [0, 0], 0, [false, false], [400, null]))
+      .toEqual([400, 50])
+  })
+  it('clamps a DRAGGED column to its min (sortable columns floor at SORT_MIN_WIDTH)', () => {
+    // col0 dragged to 30 but min 74 → 74; col1 unclamped
+    expect(getColWidths([50, 100], [0, 0], 0, [false, false], [30, null], [SORT_MIN_WIDTH, 0]))
+      .toEqual([SORT_MIN_WIDTH, 100])
+  })
+  it('does NOT clamp a measured default — the label always fits by construction', () => {
+    expect(getColWidths([20, 100], [0, 0], 0, [false, false], [], [MIN_COL_WIDTH, 0]))
+      .toEqual([20, 100])
+  })
+  it('non-sortable dragged columns floor at MIN_COL_WIDTH', () => {
+    expect(getColWidths([100, 100], [0, 0], 0, [false, false], [10, null], [MIN_COL_WIDTH, MIN_COL_WIDTH]))
+      .toEqual([MIN_COL_WIDTH, 100])
+  })
+})
+
+describe('hiddenWordCount (S85 truncation-tooltip rule: show when > 1 word hidden)', () => {
+  it('is 0 when nothing is clipped', () => {
+    expect(hiddenWordCount('Lake Charles', 100, 100)).toBe(0)
+    expect(hiddenWordCount('Lake Charles', 100, 80)).toBe(0)
+  })
+  it('estimates the words past the visible share', () => {
+    // half visible → 'three four five six' hidden (> 1 word → tooltip)
+    expect(hiddenWordCount('one two three four five six', 50, 100)).toBeGreaterThan(1)
+  })
+  it('a short clipped tail stays under the threshold', () => {
+    // ~80% visible of a 2-word string → at most 1 hidden word → no tooltip
+    expect(hiddenWordCount('Lake Charleston', 80, 100)).toBeLessThanOrEqual(1)
+  })
+  it('handles empty text', () => {
+    expect(hiddenWordCount('', 10, 100)).toBe(0)
+  })
+})
+
+describe('showSortButton (sorting = the DataTable `sortable` feature switch)', () => {
+  const column = (canSort) => ({ getCanSort: () => canSort })
+
+  it('hides the sort button when the instance has not opted in (getCanSort defaults true in TanStack)', () => {
+    expect(showSortButton(undefined, column(true))).toBe(false)
+    expect(showSortButton(false, column(true))).toBe(false)
+  })
+  it('shows the button when the instance opts in AND the column allows sorting', () => {
+    expect(showSortButton(true, column(true))).toBe(true)
+  })
+  it('hides the button on a column that opts out (select/action: enableSorting:false)', () => {
+    expect(showSortButton(true, column(false))).toBe(false)
+  })
+})
+
+describe('ariaSortValue', () => {
+  it('maps TanStack getIsSorted() to aria-sort', () => {
+    expect(ariaSortValue('asc')).toBe('ascending')
+    expect(ariaSortValue('desc')).toBe('descending')
+    expect(ariaSortValue(false)).toBe('none')
   })
 })
 

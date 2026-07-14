@@ -136,12 +136,14 @@ export async function getShipmentErrorList(
     }
   }
 
-  // optional sort
+  // optional sort — numeric-aware ('10' sorts after '2', not before: orderCount etc.
+  // are numeric strings). ponytail: date columns sort lexically (values are display
+  // strings) — parse to Date here if that ever matters for the prototype.
   if (params.sortBy) {
     const key = params.sortBy as keyof ShipmentErrorRow
     const dir = params.orderBy === 'desc' ? -1 : 1
     rows = [...rows].sort((a, b) =>
-      String(a[key] ?? '').localeCompare(String(b[key] ?? '')) * dir)
+      String(a[key] ?? '').localeCompare(String(b[key] ?? ''), undefined, { numeric: true }) * dir)
   }
 
   const totalCount = rows.length

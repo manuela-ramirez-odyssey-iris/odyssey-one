@@ -1,4 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
+import { ArrowUpDown, MoveUp, MoveDown } from 'lucide-react'
+import Tooltip from './Tooltip.jsx'
 
 /**
  * DataTable — a thin presentation shell for a TanStack v8 table. It owns the
@@ -11,17 +14,19 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
  * dependency. The consumer owns columns / data / state. See the design specs
  * 2026-06-25-datatable-shell-design.md + 2026-06-26-datatable-extensibility-design.md.
  *
- * Opt-in extensibility (per-table): column RESIZE (the consumer turns on
- * `enableColumnResizing` on the table → grips render on resizable columns; pinned system
- * columns like select/action set `enableResizing:false` and never get one), per-cell
- * CLICK (`onCellClick(cell,row)`, suppressed on interactive cells), and per-column
- * WHOLE-CELL CLICK FORWARDING (`meta.forwardClick: true` — a click on the non-interactive
- * part of the cell is forwarded to the first interactive element inside it, e.g. the ⋮
- * ActionMenu trigger, instead of firing onCellClick; the whole cell becomes the tap
- * target and shows `cursor: pointer` even when the table has no onCellClick). Reorder + column
- * visibility are reflected automatically (the shell renders from the table's
- * visible/ordered columns); the driver UI is a separate RightPanel — and it should touch
- * DATA columns only (the select + action columns stay pinned).
+ * Per-instance FEATURE SWITCHES (all default off — mix freely; see DataTable.usage.md):
+ *   sortable          — header sort buttons, asc ↔ desc, one column always drives
+ *                       (auto-seeds the first sortable column when unseeded).
+ *   truncationTooltip — full-text Tooltip on cells whose ellipsis hides > 1 word.
+ *   onCellClick       — per-cell click callback (suppressed on interactive cells).
+ * Plus per-table column RESIZE (TanStack `enableColumnResizing` → grips on resizable
+ * columns; pinned system columns set `enableResizing:false`) and per-column WHOLE-CELL
+ * CLICK FORWARDING (`meta.forwardClick: true` — a click on the non-interactive part of
+ * the cell forwards to its first interactive element, e.g. the ⋮ ActionMenu trigger;
+ * the whole cell becomes the tap target). Reorder + column visibility are reflected
+ * automatically (the shell renders from the table's visible/ordered columns); the
+ * driver UI is a separate RightPanel — and it should touch DATA columns only (the
+ * select + action columns stay pinned).
  */
 
 /** Selector for elements that "own" a click — a cell containing one of these is an
@@ -62,16 +67,26 @@ export function resolveCellClick(target, cellEl, forwardClick = false) {
   return { type: 'cell' }
 }
 
+/** Default-width cap (S85): a column never defaults wider than this — wider content
+ *  ellipsizes (and can raise the truncation tooltip). A drag may exceed it. */
+export const MAX_COL_WIDTH = 290
+
 /**
  * Per-column locked widths. A column with a non-null `sizes[i]` is "sized" (user-dragged
- * via TanStack columnSizing, or an explicit columnDef.size) — it uses that width verbatim
- * and is excluded from flex distribution. Every other column is max(header, firstRow) and
- * shares leftover container width if its flexFlag is true (Refinement R1: flex by flag,
- * not position). `headerWidths`/`bodyWidths` are raw `getBoundingClientRect().width` floats.
+ * via TanStack columnSizing) — it uses that width verbatim (floored at `mins[i]`) and is
+ * excluded from flex distribution. Every other column defaults to
+ * min(MAX_COL_WIDTH, max(header label, cell content)) — S85 rule: whichever of the two
+ * is smaller would clip, so take the larger; past the cap, content ellipsizes and the
+ * user widens by drag. Un-sized columns share leftover container width if their flexFlag
+ * is true (Refinement R1: flex by flag, not position). `headerWidths` are label-content
+ * widths + cell padding; `bodyWidths` are natural column widths (see the measure pass).
  */
-export function getColWidths(headerWidths, bodyWidths, containerWidth, flexFlags, sizes = []) {
+export function getColWidths(headerWidths, bodyWidths, containerWidth, flexFlags, sizes = [], mins = []) {
   const widths = headerWidths.map((hw, i) =>
-    sizes[i] != null ? Math.ceil(sizes[i]) : Math.ceil(Math.max(hw, bodyWidths[i] ?? 0))
+    sizes[i] != null
+      ? Math.max(mins[i] ?? 0, Math.ceil(sizes[i]))
+      // header label always fits (never capped); body-driven width caps at MAX_COL_WIDTH
+      : Math.ceil(Math.max(hw, Math.min(MAX_COL_WIDTH, bodyWidths[i] ?? 0)))
   )
   const total = widths.reduce((a, b) => a + b, 0)
   if (total < containerWidth) {
@@ -108,6 +123,55 @@ export function showResizeGrip(table, column) {
   return table?.options?.enableColumnResizing === true && column?.getCanResize?.() === true
 }
 
+/**
+ * Whether a column header is a sort button: the table opted in via the DataTable
+ * `sortable` prop AND the column allows it (`getCanSort()` — system columns like
+ * select/action opt out with `enableSorting: false` on their columnDef).
+ */
+export function showSortButton(sortable, column) {
+  return sortable === true && column?.getCanSort?.() === true
+}
+
+/** aria-sort value for a sortable header. TanStack getIsSorted(): false | 'asc' | 'desc'. */
+export function ariaSortValue(sorted) {
+  return sorted === 'asc' ? 'ascending' : sorted === 'desc' ? 'descending' : 'none'
+}
+
+/** Lucide master per sort state: neutral (another column drives) → arrow-up-down;
+ *  asc → move-up; desc → move-down. */
+function SortIcon({ sorted }) {
+  const Icon = sorted === 'asc' ? MoveUp : sorted === 'desc' ? MoveDown : ArrowUpDown
+  return (
+    <Icon
+      size={16}
+      className={`odyssey-data-table__sort-icon${sorted ? ' is-sorted' : ''}`}
+      aria-hidden="true"
+    />
+  )
+}
+
+/** Resize drag floors — EVERY resizable column has one, sorting or not: cell padding
+ *  (2×16) + one character (~10) + ellipsis (~12) = 54; a sortable column adds its
+ *  icon (16) + gap (4). Keeps a drag from crushing the header past "X…" / "X… ↕".
+ *  Floors bind on DRAG only — default widths stay at measured header content. */
+// ponytail: px constants, not measured per-font — recompute if the table type scale changes
+export const MIN_COL_WIDTH = 54
+export const SORT_MIN_WIDTH = MIN_COL_WIDTH + 20
+
+/**
+ * Estimated count of words hidden behind a cell's ellipsis. The visible share of the
+ * text is proportional to clientWidth/scrollWidth (nowrap single line, one font — a
+ * good-enough linear estimate); whatever falls past it is the hidden tail.
+ * Drives the S85 truncation-tooltip rule: show the tooltip only when MORE than one
+ * word is hidden. Returns 0 when nothing is clipped.
+ */
+export function hiddenWordCount(text, clientWidth, scrollWidth) {
+  if (!text || scrollWidth <= clientWidth + 1) return 0
+  const visibleChars = Math.floor(text.length * (clientWidth / scrollWidth))
+  const hidden = text.slice(visibleChars).trim()
+  return hidden ? hidden.split(/\s+/).length : 0
+}
+
 /** Inlined flexRender: call a function renderer with its context, else return
  *  the value (a plain header string, a number, etc.). Nullish → null. Keeps the
  *  library free of any @tanstack import. */
@@ -140,7 +204,16 @@ export function cellClassName(meta, isStickyRight) {
   ].filter(Boolean).join(' ')
 }
 
-export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, onCellClick, className = '' }) {
+// Per-instance feature switches (all default OFF — a plain table needs none of them):
+//   sortable          — header sort buttons (asc↔desc, one column always drives; the
+//                       shell auto-seeds the first sortable column when the consumer
+//                       hasn't). Client tables also pass getSortedRowModel() to the
+//                       engine; server tables set manualSorting and map the sorting
+//                       state to their query.
+//   truncationTooltip — full-text Tooltip on cells whose ellipsis hides > 1 word.
+//   onCellClick       — per-cell click callback.
+//   (column resize stays a TanStack option: enableColumnResizing on the table.)
+export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, onCellClick, sortable = false, truncationTooltip = false, className = '' }) {
   // stickyTop: number (px) or any CSS length expression (string). The sticky reference is
   // the page scroller's CONTENT edge — a padded scroller (e.g. an app shell <main> with
   // padding-top) parks a `top: 0` header padding-top BELOW the visible clip edge, letting
@@ -152,7 +225,7 @@ export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, onC
   const wrapRef = useRef(null)       // body horizontal scroller
   const headTableRef = useRef(null)
   const bodyTableRef = useRef(null)
-  const [measured, setMeasured] = useState(null) // { headerWidths, bodyWidths, container } — the content-width pass
+  const [measured, setMeasured] = useState(null) // { headerWidths, bodyWidths, container } — the measure pass
 
   const rowModel = table.getRowModel()
   // Re-measure only when the column SET/ORDER or the rows change — NOT when sizing changes.
@@ -160,17 +233,28 @@ export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, onC
   // per mouse-move was the resize lag). A by-value string keeps this stable across renders.
   const columnSignature = table.getVisibleLeafColumns().map((c) => c.id).join('|')
 
-  // Pass 1: with `measured` null the table renders width:auto so each column reports its true
-  // content width; capture those raw widths once. Pass 2 (derived, below) locks them into a
-  // shared <colgroup> and hands leftover space to flex columns — recomputed cheaply on every
-  // render so a drag updates the colgroup live without re-reading the DOM.
+  // Pass 1: with `measured` null the table renders width:max-content (NOT auto — auto is
+  // shrink-to-fit, so a table wider than its container gets its columns COMPRESSED before
+  // we can measure, locking in pre-truncated headers). Two captures per column:
+  //   headerWidths — the header LABEL element (sort button, or the plain-header wrapper
+  //                  span) + cell padding: the guaranteed floor, the full column name
+  //                  always shows.
+  //   bodyWidths   — the first-row <td> rects; at max-content, table layout makes each
+  //                  td the column's NATURAL width (its widest rendered cell).
+  // Pass 2 (derived, below) locks min/max'd widths into a shared <colgroup> and hands
+  // leftover space to flex columns — recomputed cheaply per render, no re-read on drag.
   useLayoutEffect(() => { setMeasured(null) }, [rowModel.rows, columnSignature])
   useLayoutEffect(() => {
     if (measured) return
     const ths = headTableRef.current?.querySelectorAll('thead th')
     const tds = bodyTableRef.current?.querySelectorAll('tbody tr:first-child td')
     if (!ths?.length || !tds?.length) return
-    const headerWidths = Array.from(ths).map((th) => th.getBoundingClientRect().width)
+    const headerWidths = Array.from(ths).map((th) => {
+      const label = th.querySelector('.odyssey-data-table__sort, .odyssey-data-table__head-label')
+      if (!label) return th.getBoundingClientRect().width
+      const cs = window.getComputedStyle(th)
+      return label.getBoundingClientRect().width + parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight)
+    })
     const bodyWidths = Array.from(tds).map((td) => td.getBoundingClientRect().width)
     const container = wrapRef.current?.clientWidth ?? 0
     setMeasured({ headerWidths, bodyWidths, container })
@@ -182,6 +266,15 @@ export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, onC
     const onResize = () => { clearTimeout(t); t = setTimeout(() => setMeasured(null), 150) }
     window.addEventListener('resize', onResize)
     return () => { window.removeEventListener('resize', onResize); clearTimeout(t) }
+  }, [])
+
+  // Re-measure once the web font is in — a first paint on the fallback font measures
+  // NARROWER labels; locking those into the colgroup ellipsizes every header when the
+  // real font swaps in. (fonts.ready resolves immediately when already loaded.)
+  useEffect(() => {
+    let alive = true
+    document.fonts?.ready?.then(() => { if (alive) setMeasured(null) })
+    return () => { alive = false }
   }, [])
 
   // Horizontal sync: the body wrap drives the header strip's scrollLeft.
@@ -282,14 +375,72 @@ export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, onC
   const leafCols = table.getVisibleLeafColumns()
   const flexFlags = leafCols.map((c) => !c.columnDef.meta?.fixedWidth)
   const sizes = getSizesFromState(leafCols, table.getState().columnSizing ?? {})
+  // Per-column drag floor: every column gets the base min; sortable columns add the
+  // icon's width (see MIN_COL_WIDTH/SORT_MIN_WIDTH). Applied on drag only.
+  const mins = leafCols.map((c) => (showSortButton(sortable, c) ? SORT_MIN_WIDTH : MIN_COL_WIDTH))
   const colWidths = measured
-    ? getColWidths(measured.headerWidths, measured.bodyWidths, measured.container, flexFlags, sizes)
+    ? getColWidths(measured.headerWidths, measured.bodyWidths, measured.container, flexFlags, sizes, mins)
     : null
+
+  // Shell-owned resize drag. TanStack's getResizeHandler() captures `getSize()` as the
+  // start width — for a never-dragged column that's the injected default 150, NOT the
+  // visible measured width, so the column jumped to ~150px the moment a drag began.
+  // Instead we start from the rendered colgroup width and write deltas back through the
+  // official `setColumnSizing`, so consumer state/persistence stay TanStack-native.
+  const [resizingId, setResizingId] = useState(null)
+  const startResize = (e, colId, index) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const startW = colWidths?.[index] ?? e.currentTarget.closest('th')?.getBoundingClientRect().width ?? 0
+    const startX = e.clientX
+    const min = mins[index] ?? MIN_COL_WIDTH
+    setResizingId(colId)
+    const move = (ev) => {
+      const w = Math.max(min, Math.round(startW + ev.clientX - startX))
+      table.setColumnSizing((prev) => ({ ...prev, [colId]: w }))
+    }
+    const up = () => {
+      setResizingId(null)
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', up)
+    }
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', up)
+  }
+
+  // One column always drives the sort: when the consumer hasn't seeded a sorting state,
+  // seed the first sortable column asc. Works controlled (setSorting → onSortingChange)
+  // and uncontrolled (TanStack internal state) alike.
+  useEffect(() => {
+    if (!sortable || table.getState().sorting?.length) return
+    const first = table.getVisibleLeafColumns().find((c) => c.getCanSort?.())
+    if (first) table.setSorting?.([{ id: first.id, desc: false }])
+  }, [sortable, table]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Truncation tooltip (S85, opt-in via `truncationTooltip`): hovering a body cell whose
+  // ellipsis hides MORE than one word raises the normalized Tooltip with the full text.
+  // The clipped element may be the <td> itself OR an inner wrapper that owns its own
+  // overflow — check descendants too. Cells that bring their OWN tooltip (a
+  // [data-tooltip-trigger] wrapper — e.g. the complementary-data tooltips on
+  // date/status cells) are left alone.
+  const [truncTip, setTruncTip] = useState(null) // { text, left, top }
+  const onCellEnter = (e) => {
+    const td = e.currentTarget
+    if (td.querySelector('[data-tooltip-trigger]')) return
+    const clipped = [td, ...td.querySelectorAll('*')]
+      .find((el) => el.scrollWidth > el.clientWidth + 1)
+    if (!clipped) return
+    const text = clipped.textContent.trim()
+    if (hiddenWordCount(text, clipped.clientWidth, clipped.scrollWidth) <= 1) return
+    const r = td.getBoundingClientRect()
+    setTruncTip({ text, left: Math.max(8, r.left), top: r.top - 6 })
+  }
+  const onCellLeave = () => setTruncTip(null)
 
   const totalWidth = colWidths ? colWidths.reduce((a, b) => a + b, 0) : 0
   const tableStyle = colWidths
     ? { tableLayout: 'fixed', width: '100%', minWidth: `${totalWidth}px` }
-    : { width: 'auto' }
+    : { width: 'max-content' } // measure pass — never shrink-to-fit (see the measure effect)
   const colgroup = colWidths && (
     <colgroup>
       {colWidths.map((w, i) => <col key={i} style={{ width: `${w}px` }} />)}
@@ -330,19 +481,52 @@ export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, onC
               <thead>
                 {table.getHeaderGroups().map((hg) => (
                   <tr key={hg.id}>
-                    {hg.headers.map((header) => {
+                    {hg.headers.map((header, hi) => {
                       const meta = header.column.columnDef.meta
+                      // The LAST resizable column (next column is the sticky-right action
+                      // column, or there is none) gets an inset grip — flush at right:0 it
+                      // sat under / hard against the sticky column's edge shadow.
+                      const nextHeader = hg.headers[hi + 1]
+                      const edgeGrip = !nextHeader || nextHeader.column.columnDef.meta?.sticky === 'right'
                       const headerLabel = typeof header.column.columnDef.header === 'string'
                         ? header.column.columnDef.header
                         : header.column.id
+                      const sortBtn = showSortButton(sortable, header.column)
+                      const sorted = sortBtn ? header.column.getIsSorted() : false
                       return (
-                        <th key={header.id} className={headClassName(meta, meta?.sticky === 'right')}>
-                          {renderCell(header.column.columnDef.header, header.getContext())}
+                        <th
+                          key={header.id}
+                          className={headClassName(meta, meta?.sticky === 'right')}
+                          aria-sort={sortBtn ? ariaSortValue(sorted) : undefined}
+                        >
+                          {sortBtn ? (
+                            <button
+                              type="button"
+                              className="odyssey-data-table__sort"
+                              // asc ↔ desc only — never back to unsorted. One column always
+                              // drives the sort (getToggleSortingHandler's third "off" step
+                              // would leave the table driverless); clicking another column
+                              // moves the driver there (asc first).
+                              onClick={() => header.column.toggleSorting(sorted === 'asc')}
+                              aria-label={`Sort by ${headerLabel}`}
+                            >
+                              <span className="odyssey-data-table__sort-label">
+                                {renderCell(header.column.columnDef.header, header.getContext())}
+                              </span>
+                              <SortIcon sorted={sorted} />
+                            </button>
+                          ) : (
+                            // Wrapper span = the measure hook for the header-label
+                            // default width (the sort button plays this role on
+                            // sortable columns).
+                            <span className="odyssey-data-table__head-label">
+                              {renderCell(header.column.columnDef.header, header.getContext())}
+                            </span>
+                          )}
                           {showResizeGrip(table, header.column) && (
                             <span
-                              className={`odyssey-data-table__resize-grip${header.column.getIsResizing?.() ? ' is-resizing' : ''}`}
-                              onMouseDown={header.getResizeHandler()}
-                              onTouchStart={header.getResizeHandler()}
+                              className={`odyssey-data-table__resize-grip${edgeGrip ? ' odyssey-data-table__resize-grip--edge' : ''}${resizingId === header.column.id ? ' is-resizing' : ''}`}
+                              onPointerDown={(e) => startResize(e, header.column.id, header.index)}
                               onClick={(e) => e.stopPropagation()}
                               role="separator"
                               aria-orientation="vertical"
@@ -374,6 +558,8 @@ export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, onC
                       <td
                         key={cell.id}
                         className={cellClassName(meta, meta?.sticky === 'right')}
+                        onMouseEnter={truncationTooltip ? onCellEnter : undefined}
+                        onMouseLeave={truncationTooltip ? onCellLeave : undefined}
                         onClick={(onCellClick || forwardClick)
                           ? (e) => {
                               const action = resolveCellClick(e.target, e.currentTarget, forwardClick)
@@ -393,6 +579,22 @@ export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, onC
         </div>
       </div>
       {footer && <div className="odyssey-data-table__footer">{footer}</div>}
+      {truncTip && createPortal(
+        <div
+          style={{
+            position: 'fixed',
+            left: truncTip.left,
+            top: truncTip.top,
+            transform: 'translateY(-100%)',
+            width: 'max-content',
+            zIndex: 9999,
+            pointerEvents: 'none',
+          }}
+        >
+          <Tooltip groups={[{ content: truncTip.text }]} />
+        </div>,
+        document.body
+      )}
     </div>
   )
 }

@@ -12,6 +12,7 @@ export const meta = {
 export const props = [
   { name: 'segments', type: 'Array<{ value: number, color: string }>', desc: 'Segment data. color should be a Chart/* token (e.g. "var(--chart-1)").' },
   { name: 'size', type: "'md' | 'lg' | number", desc: 'Donut diameter. md=72px, lg=96px. Pass a number for ad-hoc sizes. Default md.' },
+  { name: 'strokeWidth', type: 'number', desc: 'Optional ring thickness in px. Defaults to 18% of size.' },
   { name: 'centerText', type: 'string', desc: 'Optional text rendered in the donut center (e.g. a percentage for a single-metric widget).' },
   { name: 'total', type: 'number', desc: 'Optional denominator. When segment values do not sum to 100%, pass total so the rest renders as --chart-rest.' },
   { name: 'delayMs', type: 'number', desc: 'Delay in ms before the grow-in animation fires. Default 0.' },

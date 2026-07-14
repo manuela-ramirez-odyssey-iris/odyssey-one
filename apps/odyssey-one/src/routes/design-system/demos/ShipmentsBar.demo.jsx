@@ -7,6 +7,7 @@ export const meta = {
   version: '0.7.0',
   createdVersion: '0.6.0',
   normalizing: true, // S82 mod: three-state expansion (stage partial|full) — back to NORMALIZING until re-approval
+  approved: true, // S85 — awaiting Angular port
   figmaNode: '4120:4623',
   codeConnect: 'packages/ui/src/ShipmentsBar.figma.tsx',
 }

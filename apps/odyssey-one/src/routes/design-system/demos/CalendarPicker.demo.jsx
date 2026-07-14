@@ -2,7 +2,9 @@ import { useState } from 'react'
 import { CalendarPicker, DatePicker } from '@odyssey/ui'
 
 export const meta = {
-  name: 'CalendarPicker',
+  // One demo, two exports: CalendarPicker (the Figma-mastered calendar card) +
+  // DatePicker (the code-only field composite devs actually reach for).
+  name: 'CalendarPicker + DatePicker',
   tier: 'molecule',
   version: null,
   createdVersion: null,
@@ -20,6 +22,10 @@ export const props = [
   { name: 'minDate',      type: 'Date',                                       desc: 'Lower bound — earlier days are disabled and month nav stops. Default 01/01/1900.' },
   { name: 'maxDate',      type: 'Date',                                       desc: 'Upper bound — later days are disabled and month nav stops. Default 01/01/2120.' },
   { name: 'className',    type: 'string',                                     desc: 'Extra class(es) on the root element.' },
+  // ── DatePicker (composite) — own props; mode/value/onChange/minDate/maxDate mirror CalendarPicker ──
+  { name: 'DatePicker: label',       type: 'string',  desc: 'FormField label above the input.' },
+  { name: 'DatePicker: placeholder', type: 'string',  desc: "Defaults 'Select Date' (single) / 'Select Range' (range)." },
+  { name: 'DatePicker: disabled / error / id', type: '…', desc: 'Passed through to the FormField shell.' },
 ]
 
 export const tokens = [
@@ -122,6 +128,14 @@ function Playground() {
           onChange={setValue}
         />
       </div>
+
+      {/* DatePicker anatomy + usage */}
+      <ul style={{ display: 'grid', gridTemplateColumns: 'max-content 1fr', columnGap: '10px', listStyle: 'none', margin: 0, padding: 0, width: '100%' }}>
+        <LegendRow part="DatePicker" tier="molecule (composite)">The component devs reach for — <code>import {'{ DatePicker }'} from '@odyssey/ui'</code>. Code-only (no Figma master); controlled <code>value</code>/<code>onChange</code> in the same single/range shapes as CalendarPicker. Never assemble FormField + CalendarPicker by hand.</LegendRow>
+        <LegendRow part="FormField" tier="molecule" nested>The input shell — <code>label</code>, <code>placeholder</code>, <code>disabled</code>, <code>error</code>, <code>id</code> pass straight through; trailing lucide <code>CalendarDays</code> icon.</LegendRow>
+        <LegendRow part="masked input" nested>Typeable <code>dd/mm/yyyy</code> (range: <code>dd/mm/yyyy - dd/mm/yyyy</code>) — auto-slashes, segment-carry on edit, emptied day/month pairs auto-resolve to "01", caret restore, min/max bounds clamp. Enter commits + defocuses.</LegendRow>
+        <LegendRow part="CalendarPicker" tier="molecule" nested>The popover panel (documented above) — opens on focus via <code>useFieldPopover</code> (outside-mousedown / Tab / Esc close); clicking a day syncs the input, typing a valid date syncs the calendar.</LegendRow>
+      </ul>
     </div>
   )
 }
@@ -130,12 +144,17 @@ export default function CalendarPickerDemo() {
   return (
     <div>
       <p style={{ marginTop: 0, color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)' }}>
-        Single-month date and date-range picker (Figma master 4422:711). 284px
-        fixed-width card with a prev/next month header, Su–Sa weekday labels,
-        and a 5-or-6-row day grid. Range mode: first click sets start, second
-        click sets end; clicking before start restarts the selection.
-        Adjacent-month padding cells are always shown and navigate the calendar
-        on click.
+        Two components, one demo. <strong>CalendarPicker</strong> (Figma master 4422:711) is the
+        single-month date / date-range panel: 284px fixed-width card with a prev/next month header,
+        Su–Sa weekday labels, and a 5-or-6-row day grid. Range mode: first click sets start, second
+        click sets end; clicking before start restarts. Adjacent-month padding cells are always
+        shown and navigate on click. <strong>DatePicker</strong> is the code-only <em>field composite</em>
+        built on it — FormField shell + typeable dd/mm/yyyy mask + CalendarPicker popover
+        (<code>useFieldPopover</code>) — and is what product code should use for date fields
+        (<code>{"import { DatePicker } from '@odyssey/ui'"}</code>). Use raw CalendarPicker only to
+        embed a calendar outside a field (e.g. inline in a panel). Contrast with SearchField
+        typeahead: that folded into an existing field component; dates had no field to fold into,
+        so the composite wraps FormField instead.
       </p>
 
       <div className="ds-demo-section">

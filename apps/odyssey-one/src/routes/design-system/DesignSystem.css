@@ -320,6 +320,46 @@
   text-decoration: underline;
 }
 
+/* Details modal tab bar — appears only when the demo exports an apiDoc. */
+.ds-details__tabs {
+  display: flex;
+  gap: var(--spacing-2);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.ds-details__tab {
+  padding: var(--spacing-2) var(--spacing-3);
+  border: 0;
+  background: none;
+  font-family: var(--font-primary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-tertiary);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  cursor: pointer;
+}
+
+.ds-details__tab:hover {
+  color: var(--text-primary);
+}
+
+.ds-details__tab.is-active {
+  color: var(--text-primary);
+  border-bottom-color: var(--deep-sea-neutral-900);
+}
+
+.ds-details__api {
+  margin: 0;
+  padding: var(--spacing-4);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-xs);
+  line-height: 1.6;
+  overflow-x: auto;
+}
+
 .ds-details__title {
   margin: 0 0 var(--spacing-3);
   font-size: var(--font-size-xs);

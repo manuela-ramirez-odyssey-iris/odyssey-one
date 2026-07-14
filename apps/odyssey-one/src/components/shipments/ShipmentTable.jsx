@@ -52,48 +52,11 @@ function OrdersTooltip({ orders, children }) {
   )
 }
 
-// Truncated cell text: shows full value tooltip only when text overflows.
-function TruncatedText({ value }) {
-  const ref = useRef(null)
-  const [overflow, setOverflow] = useState(false)
-
-  // Check overflow on mount and window resize
-  const checkOverflow = useCallback(() => {
-    const el = ref.current
-    if (!el) return
-    const isOverflowing = el.scrollWidth > el.clientWidth
-    const text = String(value || '')
-    const words = text.split(/\s+/)
-    setOverflow(isOverflowing && words.length >= 3)
-  }, [value])
-
-  useEffect(() => {
-    checkOverflow()
-    window.addEventListener('resize', checkOverflow, { passive: true })
-    return () => window.removeEventListener('resize', checkOverflow)
-  }, [checkOverflow])
-
-  const inner = (
-    <span ref={ref} style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-      {value ?? '—'}
-    </span>
-  )
-
-  if (!overflow) return inner
-
-  return (
-    <TooltipTrigger
-      asSpan
-      tooltipProps={{ groups: [{ content: value }] }}
-    >
-      {inner}
-    </TooltipTrigger>
-  )
-}
-
 // Per-column custom cell renderers, keyed by column key. Each receives the raw
-// shipment row. Columns without an entry fall back to <TruncatedText> over the
-// accessor value.
+// shipment row. Columns without an entry render the plain accessor value — the
+// DataTable `truncationTooltip` feature owns overflow tooltips at hover time
+// (the old app-local TruncatedText wrapper had a stale overflow state: it checked
+// only on mount/window-resize, so column drags never re-armed its tooltip; deleted S85).
 export const COLUMN_CONFIG = [
   { key: 'sellShipment', label: 'Sell Shipment' },
   { key: 'buyShipment', label: 'Buy Shipment' },
@@ -233,7 +196,7 @@ function deriveColumnState(visibleColumns) {
   return { columnVisibility, columnOrder }
 }
 
-export default function ShipmentTable({ shipments, onRowSelect, selectedId, onToggleColumnPanel, visibleColumns, pageNumber = 0, pageSize = 25, totalCount = 0, onPageChange, onPageSizeChange, isLoading = false, isError = false, onRetry }) {
+export default function ShipmentTable({ shipments, onRowSelect, selectedId, onToggleColumnPanel, visibleColumns, pageNumber = 0, pageSize = 25, totalCount = 0, onPageChange, onPageSizeChange, sorting, onSortingChange, isLoading = false, isError = false, onRetry }) {
   const containerRef = useRef(null)
   const [columnSizing, setColumnSizing] = useState({})
 
@@ -257,14 +220,15 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
         header: label,
         cell: cfg?.render
           ? ({ row }) => cfg.render(row.original)
-          : ({ getValue }) => <TruncatedText value={getValue()} />,
+          : ({ getValue }) => getValue() ?? '—',
         meta,
       })
     })
 
     const actionColumn = columnHelper.display({
       id: 'action',
-      enableResizing: false, // pinned system column
+      enableResizing: false, // pinned system column — never resized or sorted
+      enableSorting: false,
       header: () => (
         <Button
           variant="icon"
@@ -312,12 +276,13 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
   const table = useReactTable({
     data: shipments,
     columns,
-    state: { rowSelection, pagination, columnSizing, columnVisibility, columnOrder },
+    state: { rowSelection, pagination, columnSizing, columnVisibility, columnOrder, sorting },
     onRowSelectionChange: () => {},
     onColumnSizingChange: setColumnSizing,
     onColumnVisibilityChange: () => {}, // controlled by the ColumnPanel via visibleColumns
     onColumnOrderChange: () => {},      // controlled by the ColumnPanel via visibleColumns
     onPaginationChange: handlePaginationChange,
+    onSortingChange,
     enableRowSelection: true,
     enableMultiRowSelection: false,
     enableColumnResizing: true,
@@ -404,6 +369,10 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
           }} />
           <DataTable
           table={table}
+          // Feature switches: truncationTooltip = Tooltip on >1-word ellipsis.
+          // `sortable` OFF (S85 test) — the sorting plumbing (state → gridService
+          // sortBy/orderBy) stays wired; re-adding the prop turns the buttons back on.
+          truncationTooltip
           // AppShell's <main> has --spacing-8 (32px) padding-top; sticky insets resolve
           // against the content edge, not the viewport edge (S79b header-gap fix).
           // S82: toolbar no longer sticky — scrolls away. Header sticks at spacing-3

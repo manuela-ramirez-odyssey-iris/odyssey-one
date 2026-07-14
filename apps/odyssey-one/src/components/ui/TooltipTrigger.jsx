@@ -85,6 +85,7 @@ export default function TooltipTrigger({ children, tooltipProps = {}, asSpan = f
   return (
     <Wrap
       ref={anchorRef}
+      data-tooltip-trigger=""
       onMouseEnter={show}
       onMouseLeave={hide}
       onFocus={show}

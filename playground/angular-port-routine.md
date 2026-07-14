@@ -82,28 +82,38 @@ Tokens rule applies everywhere: colors go through `var(--token)` whether in SCSS
 
 Read the React canonical. This is research-only — no files are written in Phase 1.
 
-1. **Read `packages/ui/src/<C>.jsx`** — capture: props API (names, types, defaults), all variant axes, slot structure (children vs named slots), any internal icons (static vs passed-in), conditional class logic.
+**SCRIPTED (S85):** run the readiness script from the `odyssey-one` repo root — it performs the entire gather checklist mechanically and prints the readiness report (props/defaults, state-rule + token inventory, missing `_tokens.scss` / `_typography.scss` entries, complexity flags → tier suggestion, demo section titles):
 
-2. **Read the component's CSS blocks in `apps/odyssey-one/src/styles/components.css`** — capture ALL state rules: base, hover, focus, active, disabled, error, any dark/tone variants. Note every `var(--token)` reference — these must all exist in `_tokens.scss`.
+```bash
+node tools/port-readiness.mjs <Component>
+```
 
-3. **Read `apps/odyssey-one/src/routes/design-system/demos/<C>.demo.jsx`** — extract:
-   - `meta.figmaNode` — the Figma master URL
-   - `meta.tier` — atom / molecule / organism (carries through to Angular tracker entry)
-   - `props` array — the prop inventory to mirror as `@Input()` declarations
-   - `tokens` array — the token list the component consumes
-   - The states/variants grid structure — the Angular DSM explorer demo must mirror this grid
+Read the report, sanity-check anything flagged, and paste it into the Phase 2 subagent prompt. Only fall back to the manual checklist below if the script errors on an unusual component shape.
 
-4. **Check `.text-*` typography utilities** — grep `_typography.scss` in `odyssey-one-library-ui/projects/odyssey-ui/src/styles/` for every `.text-*` class referenced in the React component or its CSS. List any missing classes — they must be ported in Phase 2 before the component is generated (G1).
+<details><summary>Manual fallback checklist</summary>
 
-5. **Check `_tokens.scss`** — confirm every `var(--…)` in the component's CSS has a matching entry. List any missing tokens — they must be added in Phase 2 (G4).
+1. Read `packages/ui/src/<C>.jsx` — props API, variant axes, slots, icons, conditional class logic.
+2. Read the component's CSS blocks in `apps/odyssey-one/src/styles/components.css` — ALL state rules + every `var(--token)`.
+3. Read `apps/odyssey-one/src/routes/design-system/demos/<C>.demo.jsx` — `meta.figmaNode`, `meta.tier`, `props` array, `tokens` array, states grid.
+4. Grep `_typography.scss` for missing `.text-*` classes (G1).
+5. Grep `_tokens.scss` for missing tokens (G4).
+6. Output a short readiness summary.
 
-6. **Output a short readiness summary:** prop count, state count, typography utilities to add (if any), tokens to add (if any). One short paragraph. Do not start Phase 2 without this summary.
+</details>
 
 ---
 
 ## Phase 2 — Generate
 
-> Delegate to a subagent (Sonnet for Tier 1–2; Opus for Tier 3–4). Provide it the Phase 1 readiness summary + the relevant source files. The subagent generates everything in the list below, applying all 12 gotcha rules.
+**SCRIPTED FIRST (S85):** for a NEW port, scaffold the boilerplate before dispatching the subagent:
+
+```bash
+node tools/scaffold-port.mjs <Component>        # from odyssey-one root; --dry-run to preview
+```
+
+This generates the full 10-file skeleton (component ts/html/scss/spec + module + figma-link.md + all 4 demo files with meta/props/tokens translated and the demo HTML section skeleton extracted from the React demo) AND applies the 4 wiring edits (public-api, OdysseyUiModule, demos.registry, app.module) — structurally satisfying G5/G8/G12 up front. The React CSS rules land as a commented reference block inside the component SCSS.
+
+> Then delegate the FILL to a subagent (Sonnet for Tier 1–2; Opus for Tier 3–4 — the readiness report suggests the tier). Provide it the Phase 1 readiness report; its job is now only the `TODO(port)` markers: component logic, template, SCSS translation-in-place, spec behavior cases, and demo playground interactivity. For UPDATE ports (twin already exists) skip the scaffold and delegate as before. The subagent applies all 12 gotcha rules.
 
 **Faithfully translate the full React component into an idiomatic Angular twin** — JSX → template, props → `@Input()`, logic → component members, styling mirroring React's mechanism. For **className-based components**, port the `.<class>` rules verbatim from `components.css` into the component SCSS (the Button is the template). For **inline/computed-styled components** (e.g. Badge), there are NO classes in `components.css` — instead translate the JS: the `variants` map becomes a component property, computed `style={{}}` becomes `[ngStyle]` bound to a getter (or `[style.x]` bindings), helper functions become component methods. Either way the visual output + behavior must match the React original. See the **React → Angular translation reference** below for construct-by-construct mappings.
 
@@ -145,26 +155,29 @@ Either way, Phase 4 then shows the component in BOTH DSMs' Normalizing tabs.
 
 ## Phase 3 — Verify (BLOCKING)
 
-Run all five checks in order. All must be green. If any fail, fix and re-run from that step — do not proceed to Phase 4 with a red check.
+**SCRIPTED (S85):** one command from the `odyssey-one` repo root runs the whole matrix (React tests+build, Angular parity-lint, demo-parity-lint, both ng builds, both Karma suites) and prints a compact scoreboard — read only the scoreboard, not raw build output:
 
 ```bash
-# 1. Parity-lint (machine-checkable gotcha subset)
+node tools/verify-all.mjs                 # everything
+node tools/verify-all.mjs --angular-only  # port-only cycles
+```
+
+The matrix includes **`demo-parity-lint`** (odyssey-one-library-ui/tools/) — the structural React↔Angular DSM drift check (meta fields, props/tokens sets, section titles, playground control counts). Demo drift is now a lint failure, not a two-window discovery.
+
+All checks must be green. If any fail, fix and re-run — do not proceed to Phase 4 with a red check.
+
+<details><summary>Individual commands (fallback, from odyssey-one-library-ui/)</summary>
+
+```bash
 node tools/angular-parity-lint.mjs <c>
-
-# 2. Library build
+npm run lint:demo-parity -- <c>
 npx ng build odyssey-ui
-
-# 3. Explorer app build
 npx ng build
-
-# 4. Library unit tests
 npx ng test odyssey-ui --watch=false --browsers=ChromeHeadless
-
-# 5. Explorer app unit tests
 npx ng test dsm-explorer --watch=false --browsers=ChromeHeadless
 ```
 
-All commands run from the `odyssey-one-library-ui/` repo root.
+</details>
 
 **A port that fails lint or any build/test is not done.** Fix the underlying violation (not the lint), re-run. Common failure patterns:
 
@@ -223,8 +236,13 @@ Only enter after the twin's two-window GATE B passes. The port's output is the *
 
 ### Mark ported (both DSMs) — keep it staged
 
-1. **React demo:** `apps/odyssey-one/src/routes/design-system/demos/<C>.demo.jsx` — set `ported: true` (KEEP `normalizing: true` + `approved: true`). Renders the **PORTED** badge (blue).
-2. **Angular demo:** `odyssey-one-library-ui/src/app/demos/<c>.demo.meta.ts` — set `ported: true` (KEEP `normalizing: true` + `approved: true`). Same PORTED badge in the Angular explorer.
+**SCRIPTED (S85):** from the `odyssey-one` repo root:
+
+```bash
+node tools/dsm-flags.mjs <ComponentA> <ComponentB> … --port    # --dry-run to preview
+```
+
+Sets `ported: true` in BOTH DSMs' metas (keeps `normalizing` + `approved`) and prints the per-repo field diffs. (Manual fallback: edit `<C>.demo.jsx` + `<c>.demo.meta.ts` metas by hand.)
 
 Both DSMs now show PORTED — the shared drift-review window (review the Angular twin for drift + a final React re-check). Still no `version`.
 
@@ -254,16 +272,21 @@ Output: `Ported: <Component> (tier) — Angular twin in lib/<c>/, PORTED badge i
 
 Triggered by a **separate explicit command** to finally approve the whole PORTED batch. Applies to EVERY component staged (`normalizing: true`) in the batch.
 
-### 1. Clear all three flags + assign the version — every component, BOTH DSMs
+### 1. Run the release closer — every component, BOTH DSMs
 
-For each component, in BOTH DSMs (`<C>.demo.jsx` + `<c>.demo.meta.ts`):
-- remove `approved` + `ported` and set `normalizing: false` (promotes out of staging into its tier tab), and
-- stamp `version: 'x.y.z'` — the batch's release version (same for all). For a re-normalized/changed component this **advances** its `version` ([[feedback_version_on_modification]]). Drives the version badge + header chip + "Latest only" filter.
-- stamp `createdVersion: 'x.y.z'` — **only for components NEW in this batch** (set it to the same batch release). For a re-normalized/changed component `createdVersion` is **never touched** — it stays the release the component first shipped in. Drives the DSM "Created in" dropdown, which filters by creation release (falling back to `version` for metas that predate the field).
+**SCRIPTED (S85):** from the `odyssey-one` repo root:
+
+```bash
+node tools/release.mjs <x.y.z> --components <A,B,C,…>    # --dry-run first, review the diff summary
+```
+
+The script does the mechanical closing: in BOTH DSMs' metas it removes `approved` + `ported`, sets `normalizing: false`, stamps `version` (advancing it for modified components — [[feedback_version_on_modification]]) and stamps `createdVersion` ONLY where absent/null (never overwrites — new-in-batch components only); bumps `projects/odyssey-ui/package.json`; inserts the CHANGELOG `## <version> — <date>` section with per-component TODO bullets sorted into Added (createdVersion stamped this run) vs Changed.
+
+**Model then fills the prose:** CHANGELOG bullet descriptions + the tracker narrative.
 
 ### 2. Update `playground/normalization-tracker.md`
 
-Add/update each row — Angular column `done` (batch date ISO), `figma-link.md` path, deviations, `@oneodyssey/ui` version.
+Add/update each row — Angular column `done` (batch date ISO), `figma-link.md` path, deviations, `@oneodyssey/ui` version. (Prose — not scripted.)
 
 ### 3. Commit + push BOTH repos
 

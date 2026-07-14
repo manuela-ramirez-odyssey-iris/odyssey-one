@@ -5145,6 +5145,41 @@ DEC-40 through DEC-65+ in `vault/10-domains/shipments/decisions/decision-log.md`
 
 ---
 
+## Session 85 — July 14, 2026
+
+**Two-arc session. Arc 1 (DataTable sorting + width model): opt-in column sorting shipped and iterated to spec (3-icon signaling, asc↔desc with one column always driving, auto-seed), the whole column-width model rebuilt (header-fits default, 290px cap, drag floors, font-race + shrink-to-fit measurement fixes, resize-jump root-caused), a truncation Tooltip feature, and the per-instance feature-switch API (`sortable` / `truncationTooltip`) — APPROVED, live on Shipments, documented in usage.md + a new DSM details-modal API tab. Arc 2 (process automation): 10 scripts now own the mechanical normalize/port/release steps, and the Angular DSM presentation drift is measured, mostly repaired, and lint-guarded from here on.**
+
+### Arc 1 — DataTable sorting + width model + tooltip (all APPROVED, awaiting Angular port)
+- **Sorting (opt-in `sortable` prop):** header toggle buttons, asc ↔ desc only — **one column always drives** (no unsorted step; shell auto-seeds the first sortable column asc when the consumer hasn't). Icons per spec: `arrow-up-down` neutral (DSN/400 — one tone below tertiary) / `move-up` asc / `move-down` desc (driving+hover `--text-primary`); `aria-sort`; system columns opt out via `enableSorting: false`. Client tables need 2 touches (`sortable` + `getSortedRowModel`); server tables map `sorting` → query (ShipmentsRoute pattern: `sortBy`/`orderBy` → gridService, numeric-aware localeCompare, page-0 reset; date columns still sort lexically — flagged `ponytail:`).
+- **Width model (iterated to user criteria):** default = `max(header label, cell content)` with body-driven part capped at new `MAX_COL_WIDTH` (290 — past it content ellipsizes; header label never capped). Root-caused two real bugs: pass-1 `width:auto` is shrink-to-fit → columns compressed BEFORE measuring on overflow-wide tables (now `max-content`), and the web-font race locking fallback-font widths (now re-measures on `document.fonts.ready`). Header labels measured via a wrapper span/sort button + cell padding. Drag floors: `MIN_COL_WIDTH` 54 every resizable column / `SORT_MIN_WIDTH` 74 (drag-only, defaults untouched). **Resize drag rebuilt shell-owned** — starts from the VISIBLE colgroup width (TanStack's handler captured the injected default 150 → the "jump to preset" bug); `columnResizeMode` now inert.
+- **Truncation tooltip (opt-in `truncationTooltip` prop):** hover on a body cell whose ellipsis hides >1 word → normalized Tooltip with full text; checks descendants (inner wrappers); cells with own tooltips skipped via new `data-tooltip-trigger` stamp on TooltipTrigger. **App-local `TruncatedText` deleted** (stale mount-time overflow check — the "tooltips not showing" root cause).
+- **Grip fixes:** `z-index: 2` (last data column's grip painted under the sticky action column) + `--edge` modifier insets it 6px clear.
+- **Wiring/docs:** Shipments runs `truncationTooltip` (sorting plumbing wired but `sortable` currently OFF after the switch-test — one prop turns it back on). `DataTable.usage.md` written (React twin of the Angular usage doc); demo restructured to convention (Playground with feature-switch + data-population controls [rows 32–5000, long-content], Anatomy below); **DSM details modal grew a tab bar** — demos exporting `apiDoc` get a Props & Tokens | API split (collectDemos + DetailsPanel + CSS). CalendarPicker demo renamed "CalendarPicker + DatePicker" with DatePicker anatomy/docs (it's a standalone `@odyssey/ui` export — discoverability fix). ShipmentsBar APPROVED (S82 three-state mod).
+- All verified live via headless Chrome against localhost (resize/floors/tooltips/sorting/API toggles). React tests 372→**379/379**.
+
+### Arc 2 — Process automation (token-spend review of /normalize + /port-to-angular)
+- **10 scripts now own the mechanical steps** (all dep-free node/bash, dry-run modes, 65+ unit tests, routine docs updated to call them; memory `project_s85_port_automation_tooling` records the toolkit):
+  - `tools/dsm-flags.mjs` (badge lifecycle + version stamps, BOTH DSMs, createdVersion-only-if-new) · `tools/release.mjs` (batch closer: flags/versions/pkg bump/CHANGELOG skeleton) · `tools/port-readiness.mjs` (port Phase 1 gather) · `tools/scaffold-port.mjs` (10-file port skeleton + 4 wiring edits; Angular demo skeleton generated FROM the React demo) · `tools/verify-all.mjs` (full verification matrix → scoreboard) · `tools/scaffold-normalize.mjs` (new-component boilerplate: stub + .figma.tsx + index.js export + CSS block + demo skeleton) · `tools/token-check.mjs` (Figma-value → token classifier w/ nearest suggestions) · `tools/connect-publish.sh` · `tools/wrap-commit.sh` · Angular `tools/demo-parity-lint.mjs` (+ `npm run lint:demo-parity`, `--fix-tokens`).
+  - **Root vitest noise fixed** — root `vitest.config.mjs` excludes `.claude/worktrees` mirrors; root run now a clean 379/379.
+- **Angular DSM drift (user's named pain) measured + repaired:** lint baseline 64/72 demos drifting → approved convention exemptions (past-tense/`xChange`/`xClick` outputs, `has*/show*` gates, `interactive`, icon↔slot/`xIconName`, aria/style/rest passthroughs, TemplateRef↔render-prop, nested-handler hoists) → `--fix-tokens` rewrote **43 Angular token tables from React canon** → cleanup pass aligned 13 demo HTMLs' section titles + doc rows both sides. **Final: 8/72 failing = 5 pending-port components + 3 genuine API gaps** (checkbox `defaultChecked`, navbar `trailRef`, trail-nav `onMenuClick` — future port items). Drift is now a lint failure inside verify-all, not a two-window discovery.
+- Figma library published by user (post-CalendarPicker/MatchSimpleRow/ShipmentsBar edits).
+
+### State
+- React **379/379** · build clean · demo-parity 8 known-red · NOT deployed this session.
+- Angular repo: tooling + demo repairs committed **locally only** on `port/s76-search-batch` (no lib component changes → no version bump needed; PR #11 still awaiting Cognizant).
+- DataTable + ShipmentsBar stamped APPROVED — staged for the port batch.
+
+---
+
+## What's Next (S86)
+
+1. **Grow the batch** (user-named): add more components, then run the Angular batch port THROUGH the new automation as its validation run — staged APPROVED set: CalendarPicker, DatePicker (code-only), useFieldPopover, SearchField typeahead, FieldSearchResults, MatchSimpleRow, DataTable (S82 scrollbar + S85 sorting/width/tooltip), ShipmentsBar (S82 stages). `@tanstack/react-virtual` Angular adapter needed for FieldSearchResults parity.
+2. **Review the automations in use** — scaffold-port/dsm-flags/release/verify-all get their first real exercise; tune whatever chafes.
+3. Decide Shipments `sortable` on/off for the demo build; date-column sort parsing if it matters.
+4. Carried: PR #11 watch (merge → Cognizant 0.7.0 publish → branch cleanup → `domain-usage.json` call), TimePicker + MiniMultiselect (blocked on Efrain), ActionMenu cell-click flicker, stickyTop measured-toolbar, 9.3MB chunk code-split, `.worktrees` disk cleanup (~430MB, confirm dead first), 3 real API gaps from the drift audit (checkbox `defaultChecked`, navbar `trailRef`, trail-nav `onMenuClick`).
+
+---
+
 ## Session 82–84 — July 9–14, 2026
 
 **Two-arc session. Arc 1 (Shipments search): Order Count added to the search progression (+ exact-match semantics for count chips) and search-result clicks now open the chip-mapped ShipmentsBar tab via a shared CELL_TAB_MAP (mirrors S82's cell→tab wiring, which this wrap also lands). Arc 2 (field components): CalendarPicker normalized end-to-end (Figma rebind + React + DSM, APPROVED), DatePicker + useFieldPopover extracted as code-only composites, and the Autocomplete saga — built on FormField, team-corrected onto SearchField, folded in as typeahead props, then reworked to render through FieldSearchResults with MatchSimpleRow (new Figma booleans + hover fix). All approved; 366/366 tests.**
