@@ -53,6 +53,7 @@ if [[ "$DRY" == 1 ]]; then
 fi
 
 # trailer convention confirmed from `git log -3 --format=%B`
-git commit -m "$MSG" -m "Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"
+# ponytail: model name hardcoded — no reliable env source in a bash script; UPDATE this on model change (S87: was stale "Fable 5")
+git commit -m "$MSG" -m "Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
 echo
 echo "committed (not pushed)."

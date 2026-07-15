@@ -27,22 +27,6 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const CSS = readFileSync(join(ROOT, 'packages/tokens/tokens.css'), 'utf8')
 const SNAP = JSON.parse(readFileSync(join(ROOT, 'packages/tokens/figma-tokens.snapshot.json'), 'utf8'))
 
-// --- input ---
-const usage = () => {
-  console.error("usage: node tools/token-check.mjs '<json>' | --file <path.json>")
-  process.exit(2)
-}
-let input
-try {
-  const args = process.argv.slice(2)
-  if (args[0] === '--file') input = JSON.parse(readFileSync(args[1], 'utf8'))
-  else if (args[0]) input = JSON.parse(args[0])
-  else usage()
-} catch (e) {
-  console.error(`invalid JSON input: ${e.message}`)
-  usage()
-}
-
 // --- parse tokens.css → Map<--name, rawValue> (same regex as tokens-audit.mjs) ---
 const cssVars = new Map()
 for (const m of CSS.matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)) cssVars.set(m[1].trim(), m[2].trim())
@@ -116,7 +100,7 @@ const suggestPx = (n, prefix = SCALE) => {
 }
 
 // --- classifier ---
-function classify(raw) {
+export function classify(raw) {
   const v = String(raw).trim()
 
   // font shorthand "14px/600"
@@ -162,6 +146,9 @@ function classify(raw) {
     const n = +px[1]
     const hits = pxVars.filter((t) => t.px === n)
     if (hits.length) return { cls: 'LEGAL', detail: hits.slice(0, 4).map((t) => t.name).join(', ') }
+    // a bare number can be a font-weight — check before figmaNums, which also holds weight primitives
+    const weight = weightVars.find(([, val]) => val.trim() === px[1])
+    if (weight) return { cls: 'LEGAL', detail: weight[0] }
     if (figmaNums.has(n)) return { cls: 'LEGAL-FIGMA-ONLY', detail: `Figma: ${figmaNums.get(n).join(', ')} — mirror into tokens.css` }
     return { cls: 'UNKNOWN', detail: `nearest: ${suggestPx(n)}` }
   }
@@ -172,19 +159,36 @@ function classify(raw) {
   return { cls: 'UNKNOWN', detail: 'unrecognized value shape — classify manually' }
 }
 
-// --- table ---
-const rows = Object.entries(input).map(([prop, raw]) => ({ prop, raw: String(raw), ...classify(raw) }))
-const C = { red: '\x1b[31m', green: '\x1b[32m', yellow: '\x1b[33m', dim: '\x1b[2m', reset: '\x1b[0m', bold: '\x1b[1m' }
-const color = { LEGAL: C.green, 'LEGAL-FIGMA-ONLY': C.yellow, UNKNOWN: C.red }
-const w = (k) => Math.max(...rows.map((r) => r[k].length), k.length)
-const [wp, wr, wc] = [w('prop'), w('raw'), w('cls')]
+// --- CLI (skipped when imported for tests) ---
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  const usage = () => {
+    console.error("usage: node tools/token-check.mjs '<json>' | --file <path.json>")
+    process.exit(2)
+  }
+  let input
+  try {
+    const args = process.argv.slice(2)
+    if (args[0] === '--file') input = JSON.parse(readFileSync(args[1], 'utf8'))
+    else if (args[0]) input = JSON.parse(args[0])
+    else usage()
+  } catch (e) {
+    console.error(`invalid JSON input: ${e.message}`)
+    usage()
+  }
 
-console.log(`${C.bold}token-check${C.reset} — tokens.css + Figma snapshot (${SNAP._meta.pulledOn})\n`)
-console.log(`${C.dim}${'prop'.padEnd(wp)}  ${'raw'.padEnd(wr)}  ${'cls'.padEnd(wc)}  detail${C.reset}`)
-for (const r of rows) {
-  console.log(`${r.prop.padEnd(wp)}  ${r.raw.padEnd(wr)}  ${color[r.cls]}${r.cls.padEnd(wc)}${C.reset}  ${r.detail}`)
+  const rows = Object.entries(input).map(([prop, raw]) => ({ prop, raw: String(raw), ...classify(raw) }))
+  const C = { red: '\x1b[31m', green: '\x1b[32m', yellow: '\x1b[33m', dim: '\x1b[2m', reset: '\x1b[0m', bold: '\x1b[1m' }
+  const color = { LEGAL: C.green, 'LEGAL-FIGMA-ONLY': C.yellow, UNKNOWN: C.red }
+  const w = (k) => Math.max(...rows.map((r) => r[k].length), k.length)
+  const [wp, wr, wc] = [w('prop'), w('raw'), w('cls')]
+
+  console.log(`${C.bold}token-check${C.reset} — tokens.css + Figma snapshot (${SNAP._meta.pulledOn})\n`)
+  console.log(`${C.dim}${'prop'.padEnd(wp)}  ${'raw'.padEnd(wr)}  ${'cls'.padEnd(wc)}  detail${C.reset}`)
+  for (const r of rows) {
+    console.log(`${r.prop.padEnd(wp)}  ${r.raw.padEnd(wr)}  ${color[r.cls]}${r.cls.padEnd(wc)}${C.reset}  ${r.detail}`)
+  }
+  const unknown = rows.filter((r) => r.cls === 'UNKNOWN').length
+  const figmaOnly = rows.filter((r) => r.cls === 'LEGAL-FIGMA-ONLY').length
+  console.log(`\n${rows.length - unknown - figmaOnly} legal · ${figmaOnly} figma-only · ${unknown} unknown`)
+  process.exit(unknown ? 1 : 0)
 }
-const unknown = rows.filter((r) => r.cls === 'UNKNOWN').length
-const figmaOnly = rows.filter((r) => r.cls === 'LEGAL-FIGMA-ONLY').length
-console.log(`\n${rows.length - unknown - figmaOnly} legal · ${figmaOnly} figma-only · ${unknown} unknown`)
-process.exit(unknown ? 1 : 0)
