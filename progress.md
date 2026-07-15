@@ -2,20 +2,34 @@
 
 > **Note:** Sessions ≤81 are condensed to one-line summaries. Full narratives archived at `vault/99-archive/progress-full-archive-2026-07-14.md` (and in git history). Component detail lives in `playground/normalization-tracker.md` + the DSM route + vault decision logs.
 
-## Session 86 — July 14, 2026
+## Session 87 — July 14, 2026
 
-**Maintenance session — progress.md compaction.** progress.md cut 7,088 → ~330 lines: sessions ≤81 condensed to one-line summaries in a sorted "Session Index (condensed)", project foundations condensed at the bottom, stale duplicate "Current State"/"What's Next" sections dropped. Full pre-compaction narrative archived at `vault/99-archive/progress-full-archive-2026-07-14.md` (plus git history). Rationale: component detail already lives in `playground/normalization-tracker.md` + the DSM route + vault decision logs — progress.md now carries only session narrative + carry-forwards. `/wrap` skill updated with a rolling-compaction rule (3 newest sessions stay verbose; older ones collapse into the index at wrap time). No code or Angular library changes — no version bump/publish needed; not deployed.
+**Audit session — reviewed the S85 process automation (read-only; no code changes).** Fanned out a 3-cluster subagent audit of the 10 normalize/port/release scripts against the two routine docs (`figma-component-routine.md`, `angular-port-routine.md`) + the `/wrap` skill, asking the two questions the user posed: did automating steps break a judgment/approval gate (over-automation), and did we leave toil un-automated. **Verdict: no gate was broken.** Every script is advisory (`token-check` / `port-readiness` / `verify-all`), emits inert `TODO`-marked skeletons (`scaffold-*`), or stops cleanly before Angular push / npm publish (`release` / `wrap-commit` / `connect-publish`); the asymmetric badge model + `createdVersion`-only-if-new are encoded correctly; everything with a test is green (51/51). The real weakness is *under*-guarding, not over-reach. Confirmed live:
+
+- **`wrap-commit.sh:56` hardcodes the retired `Claude Fable 5` co-author trailer** — every scripted `/wrap` regresses it (should be the active model). *This wrap was committed manually with the correct trailer to avoid re-introducing the exact bug we just found.*
+- **`token-check.mjs` mislabels a bare font-weight** — `node tools/token-check.mjs '{"w":"600"}'` → "LEGAL-FIGMA-ONLY, mirror into tokens.css" while `--font-weight-semibold: 600` already exists (`tokens.css:218`); the plain-number branch never consults `weightVars`. One-line fix. And it has **no test** — the most branch-heavy pure-logic script in the set.
+- **`release.mjs` has no test** despite mutating 3 files incl. two external-format files in the Angular repo (`package.json` version + `CHANGELOG` insert) by string surgery — the clearest safety-net gap; the pure CHANGELOG/bucket logic is trivially fixture-testable.
+- **`PORTING` badge is half-built** — the React DSM renders it on `meta.porting` (`DesignSystem.jsx:127`) and the routine documents APPROVED→PORTING→PORTED, but no tool sets `porting` and `release` doesn't clear it (cleanup blind spot). Currently unreachable (no demo carries it). Decision: wire into `dsm-flags` or delete the badge.
+- **`scaffold-port.mjs insertAppModule`** is the least-guarded of the 4 wiring edits (no marker-idempotency on the imports-array insert; throws if the `} from 'odyssey-ui';` anchor is missing; `--force` can double-insert). The other 3 inserts are idempotent + verified against real files.
+- **`demoPrefix` collisions** (first-letter-per-kebab-segment → `sb` / `b` / `mr` / `fs` / `am` / `a` / `t` clashes across ~60 demos) — not a runtime bug (Angular view-encapsulation scopes the classes) but makes demo files look interchangeable during the two-window review; seed the prefix from the full kebab.
+- Minor: `verify-all` stat regexes are fragile (false-red on a 600s per-step timeout or an "error" substring in a passing build); `.connect-publish.last` isn't gitignored (`wrap-commit -A` would stage it); `scaffold-normalize --force` only half-guards (re-run appends a duplicate CSS block); dead string-prefix branch + bare `Inter` false-UNKNOWN in `token-check`.
+
+**Missed-automation opportunities** (cheap, data already in hand): a `dsm-flags --demote` action (the modification-reset — clear approved/ported, keep normalizing, both DSMs — is the one 100%-manual lifecycle step, easiest to forget); turn `port-readiness`'s dependency-order *print* into an `existsSync` **check** (catches the PageHeader→ButtonToggle trap mechanically); auto-stamp `figma-link.md` `last_synced` at Phase 5; generate the `normalization-tracker.md` rows from `scaffold` / `release`. Correctly left manual (good boundaries): the token-mirror action stays human-gated, `domain-usage` regen, Figma-page placement.
 
 ---
 
-## What's Next (S87)
+## What's Next (S88)
 
-Unchanged from S86 — the compaction consumed the session:
-
-1. **Grow the batch** (user-named): add more components, then run the Angular batch port THROUGH the new automation as its validation run — staged APPROVED set: CalendarPicker, DatePicker (code-only), useFieldPopover, SearchField typeahead, FieldSearchResults, MatchSimpleRow, DataTable (S82 scrollbar + S85 sorting/width/tooltip), ShipmentsBar (S82 stages). `@tanstack/react-virtual` Angular adapter needed for FieldSearchResults parity.
-2. **Review the automations in use** — scaffold-port/dsm-flags/release/verify-all get their first real exercise; tune whatever chafes.
+1. **Apply the S87 automation punch-list** (this session audited; fixes deferred to now): fix `wrap-commit.sh` trailer (active model, not Fable 5); `token-check` weight branch (consult `weightVars`) + add its first test; add a `release.mjs` test (CHANGELOG bucket/insert + `package.json` bump); decide the `PORTING` badge (wire into `dsm-flags` vs delete); guard `scaffold-port insertAppModule` + widen `demoPrefix`; add `dsm-flags --demote`; `port-readiness` dep-order `existsSync` check; auto-stamp `last_synced`; gitignore `.connect-publish.last`. (Full detail in the S87 entry above.)
+2. **Grow the batch, then run the Angular batch port THROUGH the automation** as its validation run — staged APPROVED set: CalendarPicker, DatePicker (code-only), useFieldPopover, SearchField typeahead, FieldSearchResults, MatchSimpleRow, DataTable (S82 scrollbar + S85 sorting/width/tooltip), ShipmentsBar (S82 stages). `@tanstack/react-virtual` Angular adapter needed for FieldSearchResults parity. (The S87 audit was the "review the automations" half of the old S87 item — done; this is the live-exercise half.)
 3. Decide Shipments `sortable` on/off for the demo build; date-column sort parsing if it matters.
 4. Carried: PR #11 watch (merge → Cognizant 0.7.0 publish → branch cleanup → `domain-usage.json` call), TimePicker + MiniMultiselect (blocked on Efrain), ActionMenu cell-click flicker, stickyTop measured-toolbar, 9.3MB chunk code-split, `.worktrees` disk cleanup (~430MB, confirm dead first), 3 real API gaps from the drift audit (checkbox `defaultChecked`, navbar `trailRef`, trail-nav `onMenuClick`).
+
+---
+
+## Session 86 — July 14, 2026
+
+**Maintenance session — progress.md compaction.** progress.md cut 7,088 → ~330 lines: sessions ≤81 condensed to one-line summaries in a sorted "Session Index (condensed)", project foundations condensed at the bottom, stale duplicate "Current State"/"What's Next" sections dropped. Full pre-compaction narrative archived at `vault/99-archive/progress-full-archive-2026-07-14.md` (plus git history). Rationale: component detail already lives in `playground/normalization-tracker.md` + the DSM route + vault decision logs — progress.md now carries only session narrative + carry-forwards. `/wrap` skill updated with a rolling-compaction rule (3 newest sessions stay verbose; older ones collapse into the index at wrap time). No code or Angular library changes — no version bump/publish needed; not deployed.
 
 ---
 
@@ -45,35 +59,10 @@ Unchanged from S86 — the compaction consumed the session:
 
 ---
 
-## Session 82–84 — July 9–14, 2026
-
-**Two-arc session. Arc 1 (Shipments search): Order Count added to the search progression (+ exact-match semantics for count chips) and search-result clicks now open the chip-mapped ShipmentsBar tab via a shared CELL_TAB_MAP (mirrors S82's cell→tab wiring, which this wrap also lands). Arc 2 (field components): CalendarPicker normalized end-to-end (Figma rebind + React + DSM, APPROVED), DatePicker + useFieldPopover extracted as code-only composites, and the Autocomplete saga — built on FormField, team-corrected onto SearchField, folded in as typeahead props, then reworked to render through FieldSearchResults with MatchSimpleRow (new Figma booleans + hover fix). All approved; 366/366 tests.**
-
-### Arc 1 — Shipments search wiring
-- **Order Count searchable** — was missing from `SHIPMENTS_PROGRESSION` entirely (data + grid had it, search vocabulary didn't). Added to Shipment Identifiers with `exact: true` — count chips (`orderCount`, `loadCount`) now match by full equality ("2" no longer matches 12) in both the glimpse and the committed table filter (shared `matchesChip`). +2 tests.
-- **Search-result → tab navigation** — `CELL_TAB_MAP` extracted from ShipmentTable into shared `cellTabMap.js` (+ dataKey aliases pro/equipment/seal/load → column keys). Match-row clicks derive the tab from the LEADING chip (same rule as the adapter's result entity): Order Count → Orders, SCAC → Tender, Consignor → Stops, etc.; customerId/Name carry expandGeneral. `handleSelectShipment` extended `(id, tab, expandGeneral)` — always selects, never toggles off.
-- Also lands the previously-unwrapped **S82 cell→tab work** (BottomBar/OrderTab/ShipmentTable `requestedTab` wiring, tab-link hover tint, mapping validated via cell-tab-mapping.xlsx round-trip).
-
-### Arc 2 — Field components (Efrain's Autocomplete / Calendar / Time / Multiselect ask)
-- **Strategy settled**: typeable field composites are FormField- or SearchField-shelled with shared popover behavior — NOT Dropdown variants (Dropdown stays button-select; the panel components are the shared part). TimePicker + MiniMultiselect PARKED awaiting Efrain (3-column panel master; chips-vs-count).
-- **CalendarPicker** (Figma 4422:711, `/normalize`d): 5 illegal/foreign tokens rebound at source (DSN palette, `label/sm` styles 15→14px, Radius/lg, shadow → `shadow/panel` after user pick), single/range modes (single = DSN/700 all-corners; range = pending-start ring → caps + DSN/200 band), minDate/maxDate (01/01/1900–01/01/2120, disabled days + nav stops), adjacent-month nav. **APPROVED.**
-- **`useFieldPopover`** — extracted hook: focus-open, mousedown guard, blur-outside/Tab/Esc close, Enter commit+defocus, aria-haspopup/expanded. Debugged live in the DSM before extraction (5 iterations: Safari blur race, caret restore, segment-carry mask, pair-deletion auto-01, Enter/Tab a11y).
-- **`DatePicker`** — code-only composite (FormField shell + CalendarPicker + dd/mm/yyyy mask with segment-carry/auto-01/caret-restore/bounds). 9 mask edge cases as unit tests.
-- **SearchField typeahead** (the Autocomplete arc): built as `Autocomplete` on FormField → Efrain/dev redirect → **folded into SearchField** as additive props (`options`/`loadOptions`/`onSelect`/`filter`/`emptyMessage`/`rowProps`) — zero impact on the 6 existing consumers. Rendering then reworked to go through **FieldSearchResults** (owns virtualization via new dep `@tanstack/react-virtual`, `activeIndex` + option ids, `rowProps` passthrough) with **MatchSimpleRow** rows — new Figma booleans `Show avatar`/`Show additional info` (bound across all 3 State variants) mirrored as `showAvatar`/`showInfo` props; typeahead rows default compact (both off). Root-cause fixes: hover gating moved `[role="button"]` → `--clickable` class (role="option" rows now hover/press), missing `.is-active` CSS added, virtualizer `scrollToIndex` follows keyboard highlight. Panel chrome unified on `.field-search-results` (8px gap per Efrain's updated 1959:76 layout).
-- **Conformance suite**: `SearchField.conformance.test.jsx` against a real apis.guru fixture (2,529 entries, committed at `packages/ui/src/__fixtures__/`) — WAI-ARIA combobox conformance, special-char robustness, virtualization regression guards. Caveat: jsdom renders 0 virtual rows (no layout) — true perf check is the DSM 10k playground in-browser.
-- **DSM**: CalendarPicker demo (Schematic + DatePicker-composite Playground), SearchField typeahead anatomy+playground merged (double-nested legend: FieldSearchResults → └ MatchSimpleRow, compact-default documented), MatchSimpleRow toggles.
-- **APPROVED (GATE B)**: CalendarPicker, SearchField, FieldSearchResults, MatchSimpleRow — all staged NORMALIZING+APPROVED awaiting the next Angular batch port.
-
-### State
-- React tests **366/366** (app-dir run; root-level vitest has pre-existing config/load noise from `.claude/worktrees` mirrors — cleanup still queued) · build clean · NOT deployed this session.
-- New dep: `@tanstack/react-virtual` (packages/ui) — consistent with the TanStack table strategy.
-- `domain-usage.json` edit still parked (awaiting the S81 call).
-
----
-
----
-
 # Session Index (condensed)
+
+## Session 82–84 — July 9–14, 2026
+Two-arc session. **Arc 1 (Shipments search):** Order Count added to `SHIPMENTS_PROGRESSION` with `exact: true` (count chips now match by full equality) and search-result clicks open the chip-mapped ShipmentsBar tab via a shared `CELL_TAB_MAP` (`cellTabMap.js`) — also lands the previously-unwrapped S82 cell→tab wiring. **Arc 2 (field components):** CalendarPicker normalized end-to-end (Figma rebind + React + DSM, APPROVED; 5 illegal tokens rebound, single/range + minDate/maxDate); DatePicker + `useFieldPopover` extracted as code-only composites; and the Autocomplete arc reworked to render through FieldSearchResults + MatchSimpleRow (folded into SearchField as additive typeahead props, `@tanstack/react-virtual`, new Figma show-avatar/show-info booleans, hover/is-active/scrollToIndex fixes, apis.guru conformance suite). All approved (GATE B), staged for the next Angular batch port. 366/366 tests · build clean · not deployed.
 
 ## Session 81 — July 7, 2026
 Bug-fix + polish session: the Orders row-click "randomness" root-caused and fixed (ORD-02), row actions View/Edit wired, the Customers panel rebuilt around staged-save + two modes, the four S80 NORMALIZING components re-approved and ported onto PR #11 (plus DataTable/PillTab S81 mods — CI green twice), and a Vercel deploy-payload diet (1.1GB → 723KB). Heavy subagent…
