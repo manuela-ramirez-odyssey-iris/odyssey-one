@@ -2,6 +2,23 @@
 
 > **Note:** Sessions ≤81 are condensed to one-line summaries. Full narratives archived at `vault/99-archive/progress-full-archive-2026-07-14.md` (and in git history). Component detail lives in `playground/normalization-tracker.md` + the DSM route + vault decision logs.
 
+## Session 86 — July 14, 2026
+
+**Maintenance session — progress.md compaction.** progress.md cut 7,088 → ~330 lines: sessions ≤81 condensed to one-line summaries in a sorted "Session Index (condensed)", project foundations condensed at the bottom, stale duplicate "Current State"/"What's Next" sections dropped. Full pre-compaction narrative archived at `vault/99-archive/progress-full-archive-2026-07-14.md` (plus git history). Rationale: component detail already lives in `playground/normalization-tracker.md` + the DSM route + vault decision logs — progress.md now carries only session narrative + carry-forwards. `/wrap` skill updated with a rolling-compaction rule (3 newest sessions stay verbose; older ones collapse into the index at wrap time). No code or Angular library changes — no version bump/publish needed; not deployed.
+
+---
+
+## What's Next (S87)
+
+Unchanged from S86 — the compaction consumed the session:
+
+1. **Grow the batch** (user-named): add more components, then run the Angular batch port THROUGH the new automation as its validation run — staged APPROVED set: CalendarPicker, DatePicker (code-only), useFieldPopover, SearchField typeahead, FieldSearchResults, MatchSimpleRow, DataTable (S82 scrollbar + S85 sorting/width/tooltip), ShipmentsBar (S82 stages). `@tanstack/react-virtual` Angular adapter needed for FieldSearchResults parity.
+2. **Review the automations in use** — scaffold-port/dsm-flags/release/verify-all get their first real exercise; tune whatever chafes.
+3. Decide Shipments `sortable` on/off for the demo build; date-column sort parsing if it matters.
+4. Carried: PR #11 watch (merge → Cognizant 0.7.0 publish → branch cleanup → `domain-usage.json` call), TimePicker + MiniMultiselect (blocked on Efrain), ActionMenu cell-click flicker, stickyTop measured-toolbar, 9.3MB chunk code-split, `.worktrees` disk cleanup (~430MB, confirm dead first), 3 real API gaps from the drift audit (checkbox `defaultChecked`, navbar `trailRef`, trail-nav `onMenuClick`).
+
+---
+
 ## Session 85 — July 14, 2026
 
 **Two-arc session. Arc 1 (DataTable sorting + width model): opt-in column sorting shipped and iterated to spec (3-icon signaling, asc↔desc with one column always driving, auto-seed), the whole column-width model rebuilt (header-fits default, 290px cap, drag floors, font-race + shrink-to-fit measurement fixes, resize-jump root-caused), a truncation Tooltip feature, and the per-instance feature-switch API (`sortable` / `truncationTooltip`) — APPROVED, live on Shipments, documented in usage.md + a new DSM details-modal API tab. Arc 2 (process automation): 10 scripts now own the mechanical normalize/port/release steps, and the Angular DSM presentation drift is measured, mostly repaired, and lint-guarded from here on.**
@@ -25,15 +42,6 @@
 - React **379/379** · build clean · demo-parity 8 known-red · NOT deployed this session.
 - Angular repo: tooling + demo repairs committed **locally only** on `port/s76-search-batch` (no lib component changes → no version bump needed; PR #11 still awaiting Cognizant).
 - DataTable + ShipmentsBar stamped APPROVED — staged for the port batch.
-
----
-
-## What's Next (S86)
-
-1. **Grow the batch** (user-named): add more components, then run the Angular batch port THROUGH the new automation as its validation run — staged APPROVED set: CalendarPicker, DatePicker (code-only), useFieldPopover, SearchField typeahead, FieldSearchResults, MatchSimpleRow, DataTable (S82 scrollbar + S85 sorting/width/tooltip), ShipmentsBar (S82 stages). `@tanstack/react-virtual` Angular adapter needed for FieldSearchResults parity.
-2. **Review the automations in use** — scaffold-port/dsm-flags/release/verify-all get their first real exercise; tune whatever chafes.
-3. Decide Shipments `sortable` on/off for the demo build; date-column sort parsing if it matters.
-4. Carried: PR #11 watch (merge → Cognizant 0.7.0 publish → branch cleanup → `domain-usage.json` call), TimePicker + MiniMultiselect (blocked on Efrain), ActionMenu cell-click flicker, stickyTop measured-toolbar, 9.3MB chunk code-split, `.worktrees` disk cleanup (~430MB, confirm dead first), 3 real API gaps from the drift audit (checkbox `defaultChecked`, navbar `trailRef`, trail-nav `onMenuClick`).
 
 ---
 
