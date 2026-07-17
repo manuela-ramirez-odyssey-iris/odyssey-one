@@ -4,17 +4,19 @@ import { FieldSearchResults } from '@odyssey/ui'
 export const meta = {
   name: 'FieldSearchResults',
   tier: 'organism',
-  version: '0.6.0',
+  version: '0.8.0',
   createdVersion: '0.6.0',
   figmaNode: '3170:2989',
   codeConnect: 'packages/ui/src/FieldSearchResults.figma.tsx',
-  normalizing: true,
-  approved: true,
-  ported: false,
+  // Demoted back to NORMALIZING (S89): added the additive `maxHeight` prop
+  // (default 320 preserves prior behavior) so MultiSelect can cap its dropdown
+  // to a 4-row viewport. Re-runs GATE B; the Angular twin picks up the delta.
+  normalizing: false,
 }
 
 export const props = [
   { name: 'matches', type: 'Array<MatchSimpleRow props>', desc: 'MatchSimpleRow data objects ({ matchId, customer, address, icon, id }). Empty [] → the no-match state.' },
+  { name: 'maxHeight', type: 'number', desc: 'Scroll-viewport cap in px (default 320). MultiSelect passes 4*56 to show a 4-row dropdown.' },
   { name: 'emptyMessage', type: 'string', desc: "Centered muted message when matches is empty (Figma SearchNoMatch). Default 'No matching locations found.'." },
   { name: 'error', type: 'string', desc: 'When set, renders a centered red alert message instead of rows/empty (Figma SearchAlert). Highest precedence.' },
   { name: 'onMatchClick', type: '(match) => void', desc: 'Shared row click handler; overrides individual row onClick when provided. Also adds role="listbox" to the container.' },

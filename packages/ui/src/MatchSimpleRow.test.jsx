@@ -44,6 +44,20 @@ describe('MatchSimpleRow', () => {
     expect(row.classList.contains('match-simple-row--clickable')).toBe(false)
   })
 
+  test('isSelected=true adds --selected class', () => {
+    const { container } = render(
+      <MatchSimpleRow matchId="61-X" isSelected={true} onClick={() => {}} />,
+    )
+    const row = container.querySelector('.match-simple-row')
+    expect(row.classList.contains('match-simple-row--selected')).toBe(true)
+  })
+
+  test('isSelected=false (default) does NOT add --selected class', () => {
+    const { container } = render(<MatchSimpleRow matchId="61-X" />)
+    const row = container.querySelector('.match-simple-row')
+    expect(row.classList.contains('match-simple-row--selected')).toBe(false)
+  })
+
   test('role=option (via rest) still gets --clickable when onClick provided', () => {
     const { container } = render(
       <MatchSimpleRow matchId="61-X" role="option" onClick={() => {}} />,

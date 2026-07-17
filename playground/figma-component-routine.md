@@ -442,3 +442,17 @@ Hardcoded values are normalization failures. The "no hardcoded hex/rgb/rgba" rul
 **All new component showcases live in `apps/odyssey-one/src/routes/design-system/demos/<Component>.demo.jsx`.** Because these are small real-React modules (not token-heavy HTML concatenations), delegating to a subagent is **optional** — use your judgment based on complexity. Simple atoms can be written inline; complex organisms with many state permutations benefit from delegation.
 
 For any future edits to the existing DesignSystemMap Badges / Typography tabs (corrections, token drift fixes), continue to delegate those to a subagent — the always-subagent rule still applies to that static HTML file, just not to demo files.
+
+---
+
+## Model Gateway (2026-07-15 policy)
+
+Ladder: **Opus low → Fable low → Fable med**. No Haiku, no Sonnet, no Opus high/xhigh/max. Escalate on failure only; never retry the same tier twice. Rule of thumb: a mechanical gate (token-check / tests / lint / measure) covers the step's failure mode → Opus low; pure judgment → Fable low.
+
+| Step | Model |
+|---|---|
+| Phase 1 intake — straightforward atom/molecule | Opus low |
+| Phase 1 intake — spec ambiguity, novel anatomy, classification judgment | Fable low |
+| Phase 2/3 implementation + DSM demo (gated by tests + token-check) | Opus low |
+| Novel architecture (DataTable-class interaction models) | Fable low |
+| Root-cause after an Opus-low attempt failed a gate twice | Fable low → Fable med |

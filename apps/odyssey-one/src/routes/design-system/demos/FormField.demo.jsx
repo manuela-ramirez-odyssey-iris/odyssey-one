@@ -1,14 +1,15 @@
-import { useState, useRef, useEffect, useLayoutEffect } from 'react'
-import { FormField } from '@odyssey/ui'
+import { useState, useCallback } from 'react'
+import { FormField, useAnchoredPortal } from '@odyssey/ui'
 import { Search, Calendar } from 'lucide-react'
 
 export const meta = {
   name: 'FormField',
   tier: 'molecule',
-  version: '0.2.0',
+  version: '0.8.0',
   createdVersion: '0.2.0',
   figmaNode: '2602:1424',
   codeConnect: 'packages/ui/src/FormField.figma.tsx',
+  normalizing: false,
 }
 
 export const props = [
@@ -26,6 +27,9 @@ export const props = [
   { name: 'leadingSelect', type: '{ label, onClick }', desc: 'Renders a leading FieldSelect.' },
   { name: 'trailingSelect', type: '{ label, onClick }', desc: 'Renders a trailing FieldSelect.' },
   { name: 'onClear', type: '() => void', desc: 'Clear-X handler; the button shows only when set, enabled, and value non-empty.' },
+  { name: 'required', type: 'boolean', desc: 'Marks the field required — renders a ` *` after the label and sets native required + aria-required.' },
+  { name: 'maxLength', type: 'number', desc: 'Native input maxLength; also the counter denominator.' },
+  { name: 'showCounter', type: 'boolean', desc: 'Show the in-box char counter (basic variants only — suppressed when a leading/trailing select is present). Default false.' },
 ]
 
 export const tokens = [
@@ -56,59 +60,56 @@ function ComposedField({ edge, label, placeholder, options, initial }) {
   const [value, setValue] = useState('')
   const [pick, setPick] = useState(initial)
   const [open, setOpen] = useState(false)
-  const [triggerWidth, setTriggerWidth] = useState()
-  const ref = useRef(null)
+  const close = useCallback(() => setOpen(false), [])
+  // Body-portal + boundary-aware flip: the menu overlays outside the section
+  // (un-clipped) and opens upward when there's no room below. triggerRef sits on
+  // the FieldSelect trigger so the menu tracks that edge, not the whole field.
+  const { triggerRef, dropdownRef, AnchoredPortal } = useAnchoredPortal({ open, onClose: close })
 
-  useEffect(() => {
-    if (!open) return
-    const onDocClick = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false)
-    }
-    document.addEventListener('mousedown', onDocClick)
-    return () => document.removeEventListener('mousedown', onDocClick)
-  }, [open])
-
-  // Match the menu to the nested FieldSelect's actual width, re-measured when the
-  // selected value changes — so picking a longer code widens the trigger AND menu.
-  useLayoutEffect(() => {
-    const fs = ref.current?.querySelector('.field-select')
-    if (fs) setTriggerWidth(fs.offsetWidth)
-  }, [pick, open])
+  // Anchor the portal to the FieldSelect trigger itself (not the 280px field), so
+  // the menu tracks that edge and widens with a longer value. `pick`/`open` in the
+  // deps re-point the ref after a re-render widens the trigger.
+  const wrapRef = useCallback(
+    (node) => {
+      triggerRef.current = node?.querySelector('.field-select') ?? node
+    },
+    [triggerRef],
+  )
 
   const select = { label: pick, onClick: () => setOpen((o) => !o) }
   const selectProps = edge === 'leading' ? { leadingSelect: select } : { trailingSelect: select }
 
   return (
-    <div ref={ref} style={{ position: 'relative', width: 280 }}>
-      <FormField
-        label={label}
-        placeholder={placeholder}
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        {...selectProps}
-      />
+    <div style={{ width: 280 }}>
+      <div ref={wrapRef}>
+        <FormField
+          label={label}
+          placeholder={placeholder}
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          {...selectProps}
+        />
+      </div>
       {open && (
-        <ul
-          className="ds-menu"
-          role="listbox"
-          style={{ width: triggerWidth, ...(edge === 'trailing' ? { left: 'auto', right: 0 } : {}) }}
-        >
-          {options.map((opt) => (
-            <li key={opt} role="option" aria-selected={opt === pick}>
-              <button
-                type="button"
-                className="ds-menu__item"
-                aria-selected={opt === pick}
-                onClick={() => {
-                  setPick(opt)
-                  setOpen(false)
-                }}
-              >
-                {opt}
-              </button>
-            </li>
-          ))}
-        </ul>
+        <AnchoredPortal>
+          <ul ref={dropdownRef} className="ds-menu" role="listbox">
+            {options.map((opt) => (
+              <li key={opt} role="option" aria-selected={opt === pick}>
+                <button
+                  type="button"
+                  className="ds-menu__item"
+                  aria-selected={opt === pick}
+                  onClick={() => {
+                    setPick(opt)
+                    setOpen(false)
+                  }}
+                >
+                  {opt}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </AnchoredPortal>
       )}
     </div>
   )
@@ -118,6 +119,8 @@ export default function FormFieldDemo() {
   const [value, setValue] = useState('Acme Logistics')
   const [error, setError] = useState(false)
   const [disabled, setDisabled] = useState(false)
+  const [required, setRequired] = useState(false)
+  const [showCounter, setShowCounter] = useState(false)
 
   return (
     <div>
@@ -129,6 +132,12 @@ export default function FormFieldDemo() {
           </label>
           <label style={{ display: 'inline-flex', gap: 'var(--spacing-2)', alignItems: 'center', fontSize: 'var(--font-size-sm)' }}>
             <input type="checkbox" checked={disabled} onChange={(e) => setDisabled(e.target.checked)} /> disabled
+          </label>
+          <label style={{ display: 'inline-flex', gap: 'var(--spacing-2)', alignItems: 'center', fontSize: 'var(--font-size-sm)' }}>
+            <input type="checkbox" checked={required} onChange={(e) => setRequired(e.target.checked)} /> required
+          </label>
+          <label style={{ display: 'inline-flex', gap: 'var(--spacing-2)', alignItems: 'center', fontSize: 'var(--font-size-sm)' }}>
+            <input type="checkbox" checked={showCounter} onChange={(e) => setShowCounter(e.target.checked)} /> showCounter (maxLength 30)
           </label>
         </div>
         <div style={{ maxWidth: 360 }}>
@@ -142,6 +151,9 @@ export default function FormFieldDemo() {
             leadingIcon={<Search size={16} />}
             error={error ? 'This customer is not recognized.' : false}
             disabled={disabled}
+            required={required}
+            showCounter={showCounter}
+            maxLength={showCounter ? 30 : undefined}
           />
         </div>
         <p style={{ color: 'var(--text-tertiary)', fontSize: 'var(--font-size-sm)' }}>

@@ -18,7 +18,11 @@ import { moveHighlight } from './GlobalSearch.jsx'
  * ── Typeahead / Autocomplete mode ──────────────────────────────────────────
  * Pass any of these props to activate the built-in typeahead popover:
  *   options       — { value, label }[] | string[]  static option list
- *   loadOptions   — (query: string) => Promise<Option[]>  async (debounced 200ms)
+ *   loadOptions   — (query, skip?) => Promise<Option[] | { options, total }>
+ *                   async (debounced 200ms). Resolving { options, total } enables
+ *                   paged mode: pages accumulate per query, and scrolling near the
+ *                   list end lazily fetches loadOptions(query, accumulated.length)
+ *                   until accumulated.length >= total. Plain arrays = legacy mode.
  *   onSelect      — (value: string | null) => void  fired on selection or clear
  *   emptyMessage  — string shown when filter matches nothing (default "No options")
  *   filter        — (inputText, option) => bool; default case-insensitive substring
@@ -94,6 +98,13 @@ export default function SearchField({
   const seqRef = useRef(0)
   const debounceRef = useRef(null)
 
+  // ── Paged (infinite scroll) state — inert for legacy plain-array loaders ──
+  // loadOptions(query, skip) may resolve { options, total }; totalRef null = legacy.
+  const [loadingMore, setLoadingMore] = useState(false)
+  const totalRef = useRef(null)
+  const queryRef = useRef('')
+  const loadingMoreRef = useRef(false)
+
   const { open, setOpen, wrapperProps, fieldProps, popoverProps, closeAndBlur } =
     useFieldPopover()
 
@@ -127,28 +138,75 @@ export default function SearchField({
     [onSelect, closeAndBlur],
   )
 
+  // Async load with stale-guard. Flips to loading SYNCHRONOUSLY: during the
+  // debounce window the panel must show "Loading…", not the empty state
+  // ("No matching fruits" flash while typing). Bumping seq also invalidates
+  // any in-flight response.
+  const runLoad = useCallback(
+    (rawValue, debounceMs) => {
+      if (!loadOptions) return
+      setLoading(true)
+      // New query/focus load: reset page accumulation + invalidate in-flight pages
+      // (the seq bump below also discards their responses).
+      queryRef.current = rawValue
+      totalRef.current = null
+      loadingMoreRef.current = false
+      setLoadingMore(false)
+      const seq = ++seqRef.current
+      clearTimeout(debounceRef.current)
+      debounceRef.current = setTimeout(async () => {
+        try {
+          const raw = await loadOptions(rawValue, 0)
+          if (seqRef.current !== seq) return // stale
+          if (raw && !Array.isArray(raw) && Array.isArray(raw.options)) {
+            // Paged mode: { options, total }
+            totalRef.current = raw.total
+            setAsyncOptions(raw.options.map(toOption))
+          } else {
+            setAsyncOptions((raw || []).map(toOption))
+          }
+        } finally {
+          if (seqRef.current === seq) setLoading(false)
+        }
+      }, debounceMs)
+    },
+    [loadOptions],
+  )
+
+  // Next-page fetch, fired by FieldSearchResults' onEndReached. Appends to the
+  // current query's accumulation; a seq bump mid-flight (new query) discards it.
+  const loadMore = useCallback(async () => {
+    if (!loadOptions || totalRef.current == null) return
+    if (loadingMoreRef.current) return
+    if (asyncOptions.length >= totalRef.current) return // no more pages
+    loadingMoreRef.current = true
+    setLoadingMore(true)
+    const seq = seqRef.current
+    try {
+      const raw = await loadOptions(queryRef.current, asyncOptions.length)
+      if (seqRef.current !== seq) return // stale page — query changed mid-flight
+      const opts = Array.isArray(raw) ? raw : raw?.options || []
+      if (raw && !Array.isArray(raw) && raw.total != null) totalRef.current = raw.total
+      setAsyncOptions((cur) => [...cur, ...opts.map(toOption)])
+    } finally {
+      if (seqRef.current === seq) {
+        loadingMoreRef.current = false
+        setLoadingMore(false)
+      }
+    }
+  }, [loadOptions, asyncOptions.length])
+
+  const hasMore =
+    totalRef.current != null && asyncOptions.length < totalRef.current
+
   const handleTypeaheadChange = useCallback(
     (rawValue) => {
       setInputText(rawValue)
       setActiveIdx(-1)
       setOpen(true)
-
-      if (!loadOptions) return
-
-      clearTimeout(debounceRef.current)
-      debounceRef.current = setTimeout(async () => {
-        const seq = ++seqRef.current
-        setLoading(true)
-        try {
-          const raw = await loadOptions(rawValue)
-          if (seqRef.current !== seq) return // stale
-          setAsyncOptions((raw || []).map(toOption))
-        } finally {
-          if (seqRef.current === seq) setLoading(false)
-        }
-      }, 200)
+      runLoad(rawValue, 200)
     },
-    [loadOptions, setOpen],
+    [runLoad, setOpen],
   )
 
   const handleTypeaheadKeyDown = useCallback(
@@ -233,7 +291,13 @@ export default function SearchField({
         }
         onFocus={(e) => {
           setFocused(true)
-          if (typeaheadMode) fieldProps.onFocus(e)
+          if (typeaheadMode) {
+            fieldProps.onFocus(e)
+            // Async mode: load for the CURRENT text (incl. empty) the moment the
+            // popover opens — without this the panel sits on the empty state
+            // until the first keystroke, while static mode shows options on focus.
+            runLoad(inputText, 0)
+          }
           onFocus?.(e)
         }}
         onBlur={(e) => {
@@ -297,6 +361,8 @@ export default function SearchField({
           optionIdPrefix={listboxId}
           onMatchClick={handleSelect}
           rowProps={rowProps}
+          onEndReached={hasMore ? loadMore : undefined}
+          loadingMore={loadingMore}
         />
       )}
     </div>
@@ -307,7 +373,7 @@ export default function SearchField({
   if (typeaheadMode) {
     return (
       <div
-        className={className}
+        className={`search-field ${className}`.trim()}
         style={{ position: 'relative' }}
         ref={wrapperProps.ref}
         onBlur={wrapperProps.onBlur}
@@ -352,7 +418,7 @@ export default function SearchField({
 
   if (!showLabel) {
     return (
-      <div className={className} {...rest}>
+      <div className={`search-field ${className}`.trim()} {...rest}>
         {inputBar}
         {results && <div className="search-field__results">{results}</div>}
       </div>
@@ -361,7 +427,7 @@ export default function SearchField({
 
   return (
     <div
-      className={`flex flex-col ${className}`.trim()}
+      className={`search-field flex flex-col ${className}`.trim()}
       style={{ gap: 'var(--spacing-2)', alignItems: 'stretch' }}
       {...rest}
     >

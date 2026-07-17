@@ -113,7 +113,7 @@ node tools/scaffold-port.mjs <Component>        # from odyssey-one root; --dry-r
 
 This generates the full 10-file skeleton (component ts/html/scss/spec + module + figma-link.md + all 4 demo files with meta/props/tokens translated and the demo HTML section skeleton extracted from the React demo) AND applies the 4 wiring edits (public-api, OdysseyUiModule, demos.registry, app.module) — structurally satisfying G5/G8/G12 up front. The React CSS rules land as a commented reference block inside the component SCSS.
 
-> Then delegate the FILL to a subagent (Sonnet for Tier 1–2; Opus for Tier 3–4 — the readiness report suggests the tier). Provide it the Phase 1 readiness report; its job is now only the `TODO(port)` markers: component logic, template, SCSS translation-in-place, spec behavior cases, and demo playground interactivity. For UPDATE ports (twin already exists) skip the scaffold and delegate as before. The subagent applies all 12 gotcha rules.
+> Then delegate the FILL to a subagent (Opus low for Tier 1–2; Fable low for Tier 3–4 — the readiness report suggests the tier). Provide it the Phase 1 readiness report; its job is now only the `TODO(port)` markers: component logic, template, SCSS translation-in-place, spec behavior cases, and demo playground interactivity. For UPDATE ports (twin already exists) skip the scaffold and delegate as before. The subagent applies all 12 gotcha rules.
 
 **Faithfully translate the full React component into an idiomatic Angular twin** — JSX → template, props → `@Input()`, logic → component members, styling mirroring React's mechanism. For **className-based components**, port the `.<class>` rules verbatim from `components.css` into the component SCSS (the Button is the template). For **inline/computed-styled components** (e.g. Badge), there are NO classes in `components.css` — instead translate the JS: the `variants` map becomes a component property, computed `style={{}}` becomes `[ngStyle]` bound to a getter (or `[style.x]` bindings), helper functions become component methods. Either way the visual output + behavior must match the React original. See the **React → Angular translation reference** below for construct-by-construct mappings.
 
@@ -187,6 +187,25 @@ npx ng test dsm-explorer --watch=false --browsers=ChromeHeadless
 - Lint: `Odyssey<C>Module` not in `OdysseyUiModule` → add to imports + exports array
 - Build: missing `public-api.ts` export → add both component + module exports
 - Test: wrong import path → use public-api re-exports, not relative component paths
+
+---
+
+## Phase 3b — Functional QA / React parity (BLOCKING, added S89)
+
+Builds and passing specs are NOT functional proof — the S89 batch shipped with green builds and 6 interaction bugs (checkbox clicks dead, DatePicker month un-editable, MultiSelect crashing the dev server, and 3 more found only under QA). For **every ported or modified component**, before Phase 4:
+
+1. **Read the React contract first** — the component's `.jsx` + `.test.jsx` define the behavior spec (keyboard model, focus/blur, edge cases), not the Angular code you just wrote.
+2. **Exercise every real interaction path** and assert parity: click/toggle, typing + deleting + retyping (controlled-input round-trip), keyboard (Arrow wrap/scroll-into-view, Enter, Escape, Tab), focus/blur open-close, disabled, bounds/edge cases.
+3. **Specs must tick change detection between steps** — event-sequence specs without `detectChanges()` between keystrokes pass while the real app breaks. For extra confidence, drive the live DSM with headless Chrome (CDP); remember the DSM serves the BUILT lib — `npx ng build odyssey-ui` first (specs importing from `'odyssey-ui'` also test `dist/`, so **always rebuild before trusting the Karma suite**).
+4. Every divergence found: root-cause, fix to match React, leave a permanent guarding spec.
+
+Recurring Angular-twin bug classes to check explicitly (all found in real ports):
+
+- **`@Output()` name colliding with a native bubbling DOM event** (`change`, `select`, …) when the template forwards that same native event → consumer handler fires twice. Swallow the native bubble (`stopPropagation`) before emitting, or rename the output.
+- **Host-wide `focusin`/`focusout` listeners** where React binds the input only → popover reopens when tabbing to inner buttons. Gate on `e.target`.
+- **Getters returning fresh arrays/objects each CD pass** feeding `ngOnChanges`-sensitive children (virtualizers) → infinite CD loop. Memoize keyed on inputs (the `useMemo` twin).
+- **`[value]` binding ≠ React controlled input** — when a mask/filter rejects input, the bound expression doesn't change, so the DOM keeps the raw string and diverges from the model. Write the filtered value back to the DOM manually (+ caret restore).
+- **Stale-measure invalidation keyed on the wrong signal** (row *count* vs row identity, `ngOnInit`-only derivations that ignore later input changes).
 
 ---
 
@@ -313,7 +332,7 @@ Components are classified by translation complexity. Run the batch **tier-ordere
 - **Tier 4 — observers / complex state (~3: GlobalSearch, Widget, WidgetsLeftMenu):** RxJS, `ResizeObserver`/`IntersectionObserver` lifted into Angular services or directives, `@ContentChild` projection for render-prop patterns.
 - **Plus inline/computed-styled (8: Badge, FilterSuggestions, Navbar, PageHeader, OdysseyLogo, SidebarButton, MenuRow, LeadNav):** these use `[ngStyle]` + variants-map translation (orthogonal to the tier above — a Tier 1 component can still be inline-styled).
 
-**Model scaling by tier:** Tier 1–2 generation uses Sonnet (code output from clear spec). Tier 3–4 uses the most capable model — DOM and observer translation requires judgment. Reviews (Phase 4) always use the most capable model regardless of tier.
+**Model scaling by tier (2026-07-15 policy):** Tier 1–2 generation uses Opus low (code output from clear spec, gated by lint + measure). Tier 3–4 uses Fable low — DOM and observer translation requires judgment no mechanical gate covers; escalate to Fable med only after a Fable-low failure.
 
 ---
 
@@ -321,7 +340,7 @@ Components are classified by translation complexity. Run the batch **tier-ordere
 
 **First 2–3 ports: one-at-a-time.** Prove the routine, lint, and gotcha rules generalize before batching. Include at least one slotted molecule among the first 3 to validate G7/G9 in a real scenario. The HARD RULE: do not hand off to Cognizant until at least 2–3 ports have passed the full routine.
 
-**Then batches of 3–5, tier-ordered.** The Angular DSM's Normalizing tab holds the cluster naturally. Run Phase 1 for all components in the batch, then a single Phase 2 subagent dispatch for the batch (Tier 1–2 batches together; Tier 3–4 batches separately with a higher-capability model), then Phase 3 sequentially per component, then Phase 4 two-window showing all in the Normalizing tab.
+**Then batches of 3–5, tier-ordered.** The Angular DSM's Normalizing tab holds the cluster naturally. Run Phase 1 for all components in the batch, then a single Phase 2 subagent dispatch for the batch (Tier 1–2 batches together on Opus low; Tier 3–4 batches separately on Fable low), then Phase 3 sequentially per component, then Phase 4 two-window showing all in the Normalizing tab.
 
 **Tier order within batches: Tier 1 → Tier 2 → Tier 3 → Tier 4.** Molecules and organisms compose atoms — atoms must land in the library before their dependents are ported.
 
@@ -329,16 +348,18 @@ Components are classified by translation complexity. Run the batch **tier-ordere
 
 ## Model Gateway
 
+> **Policy (2026-07-15):** ladder is Opus low → Fable low → Fable med. No Haiku, no Sonnet, no Opus high/xhigh/max. Escalate on failure only; never retry the same tier twice. Rule of thumb: a mechanical gate (lint / measure / tests) covers the phase's failure mode → Opus low; no gate (judgment) → Fable.
+
 | Phase | Model | Reason |
 |---|---|---|
-| Phase 1 (Gather) | Sonnet | Reads, diffs, checklist work |
-| Phase 2 (Generate) — Tier 1–2 | Sonnet subagent | Code generation from clear spec; className-based + simple-state components |
-| Phase 2 (Generate) — Tier 3–4 | Opus subagent | DOM/observer translation is judgment-heavy; `@ViewChild`, RxJS, `@ContentChild` patterns |
-| Phase 3 (Verify) | — | Mechanical (lint + build + test) |
-| Phase 4 (Review) | Opus | Drift/parity judgment across two live surfaces — always most capable, regardless of tier |
-| Phase 5 (Pass) | Sonnet | File updates, tracker entries |
+| Phase 1 (Gather) | Opus low | Reads, diffs, checklist work |
+| Phase 2 (Generate) — Tier 1–2 | Opus low subagent | Code generation from clear spec; gated by lint + measure |
+| Phase 2 (Generate) — Tier 3–4 | Fable low subagent | DOM/observer translation is judgment-heavy; `@ViewChild`, RxJS, `@ContentChild` patterns |
+| Phase 3 (Verify) | — | Mechanical (scripts: lint + build + test) |
+| Phase 4 (Review) | Fable low | Drift/parity judgment across two live surfaces — no mechanical gate |
+| Phase 5 (Pass) | Opus low | File updates, tracker entries (mostly scripts now) |
 
-Default to Sonnet. Escalate to Opus for: Phase 4 visual parity judgment; Tier 3–4 Phase 2 generation (DOM measurement, observer wiring, complex projection); any cross-file architectural decision (e.g. "should this slot be projected content or a rendered child?"). Do not default to Opus for Tier 1–2 generation — Sonnet is the right tier for className-based + simple-state output from a well-specified routine.
+Default to Opus low. Escalate to Fable for: Phase 4 visual parity judgment; Tier 3–4 Phase 2 generation (DOM measurement, observer wiring, complex projection); any cross-file architectural decision; any component where an Opus-low attempt failed a gate twice. Fable med only when Fable low itself fails once.
 
 ---
 

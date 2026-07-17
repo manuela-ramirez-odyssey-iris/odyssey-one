@@ -26,6 +26,10 @@ const ROW_HEIGHT = 56 // ponytail: matches SearchField's previous constant; cove
  *   activeIndex      — index of the highlighted row; gets .is-active + aria-selected.
  *   optionIdPrefix   — id prefix for option nodes (ids: `${optionIdPrefix}-option-${i}`).
  *   rowProps         — object spread onto every MatchSimpleRow (e.g. { showAvatar: false }).
+ *   maxHeight        — scroll-viewport cap in px (default 320); e.g. MultiSelect caps at 4 rows.
+ *   onEndReached     — fired when the last virtual row nears the end (index >= count - 5);
+ *                      re-fires only after matches.length changes, never while loadingMore.
+ *   loadingMore      — renders one extra 56px "Loading…" footer row inside the spacer.
  */
 export default function FieldSearchResults({
   matches = [],
@@ -35,6 +39,10 @@ export default function FieldSearchResults({
   activeIndex = -1,
   optionIdPrefix,
   rowProps,
+  maxHeight = 320,
+  selectedIds,
+  onEndReached,
+  loadingMore = false,
   className = '',
   ...rest
 }) {
@@ -42,11 +50,25 @@ export default function FieldSearchResults({
   const parentRef = useRef(null)
 
   const virtualizer = useVirtualizer({
-    count: hasMatches && !error ? matches.length : 0,
+    // +1 footer row while a next page is in flight — grows the spacer/scrollbar visibly
+    count: hasMatches && !error ? matches.length + (loadingMore ? 1 : 0) : 0,
     getScrollElement: () => parentRef.current,
     estimateSize: () => ROW_HEIGHT,
     overscan: 5,
   })
+
+  // Infinite scroll: notify when the rendered window nears the end. Guarded so we
+  // fire once per matches.length (no spam) and never while a page is in flight.
+  const virtualItems = virtualizer.getVirtualItems()
+  const lastIndex = virtualItems.length ? virtualItems[virtualItems.length - 1].index : -1
+  const lastFiredCountRef = useRef(-1)
+  useEffect(() => {
+    if (!onEndReached || loadingMore || !hasMatches || error) return
+    if (lastIndex < matches.length - 5) return
+    if (lastFiredCountRef.current === matches.length) return
+    lastFiredCountRef.current = matches.length
+    onEndReached()
+  }, [onEndReached, loadingMore, hasMatches, error, lastIndex, matches.length])
 
   // Keyboard nav: keep the highlighted row inside the scroll window —
   // without this, arrowing past the visible rows leaves the highlight
@@ -70,10 +92,37 @@ export default function FieldSearchResults({
         <div
           ref={parentRef}
           className="field-search-results__list"
-          style={{ maxHeight: 320, overflowY: 'auto' }}
+          style={{ maxHeight, overflowY: 'auto' }}
         >
-          <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
-            {virtualizer.getVirtualItems().map((vrow) => {
+          {/* flexShrink 0: __list is a column flexbox — without it the spacer
+              collapses to the 320px viewport and deep scroll is impossible. */}
+          <div style={{ height: virtualizer.getTotalSize(), position: 'relative', flexShrink: 0 }}>
+            {virtualItems.map((vrow) => {
+              // Footer "Loading…" row (index past the data) while a page is in flight
+              if (vrow.index >= matches.length) {
+                return (
+                  <div
+                    key={vrow.key}
+                    data-index={vrow.index}
+                    className="field-search-results__loading-more text-label-sm-regular"
+                    role="status"
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: ROW_HEIGHT,
+                      transform: `translateY(${vrow.start}px)`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'var(--text-tertiary)',
+                    }}
+                  >
+                    Loading…
+                  </div>
+                )
+              }
               const m = matches[vrow.index]
               const isActive = vrow.index === activeIndex
               const optId = optionIdPrefix ? `${optionIdPrefix}-option-${vrow.index}` : undefined
@@ -99,6 +148,7 @@ export default function FieldSearchResults({
                     role="option"
                     aria-selected={isActive}
                     className={isActive ? 'is-active' : ''}
+                    isSelected={selectedIds ? selectedIds.includes(m.id) : false}
                     onClick={onMatchClick ? () => onMatchClick(m) : m.onClick}
                   />
                 </div>

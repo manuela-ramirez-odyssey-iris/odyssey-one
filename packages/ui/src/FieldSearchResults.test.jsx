@@ -31,6 +31,17 @@ describe('FieldSearchResults', () => {
     expect(rendered).toBeLessThan(MATCHES.length)
   })
 
+  test('virtualizer spacer keeps full height + flex-shrink:0 (deep scroll works in flex list)', () => {
+    const { container } = render(
+      <FieldSearchResults matches={MATCHES} onMatchClick={() => {}} />,
+    )
+    const spacer = container.querySelector('.field-search-results__list > div')
+    // __list is a column flexbox; without flex-shrink:0 the spacer collapses to the
+    // 320px viewport and scrolling past the first window is impossible.
+    expect(spacer.style.flexShrink).toBe('0')
+    expect(parseInt(spacer.style.height, 10)).toBe(50 * 56)
+  })
+
   test('activeIndex row gets .is-active class and aria-selected=true when rendered', () => {
     const THREE = MATCHES.slice(0, 3)
 
@@ -59,6 +70,51 @@ describe('FieldSearchResults', () => {
     if (optRow) {
       expect(optRow.classList.contains('is-active')).toBe(true)
     }
+  })
+
+  test('loadingMore grows the spacer by one 56px footer row', () => {
+    const { container, rerender } = render(
+      <FieldSearchResults matches={MATCHES.slice(0, 10)} onMatchClick={() => {}} />,
+    )
+    const spacer = () => container.querySelector('.field-search-results__list > div')
+    expect(parseInt(spacer().style.height, 10)).toBe(10 * 56)
+    rerender(
+      <FieldSearchResults matches={MATCHES.slice(0, 10)} loadingMore onMatchClick={() => {}} />,
+    )
+    expect(parseInt(spacer().style.height, 10)).toBe(11 * 56)
+  })
+
+  test('onEndReached fires near the end, once per matches.length, never while loadingMore', () => {
+    // jsdom renders 0 virtual rows → lastIndex -1, which is >= length-5 for length<=4
+    const onEndReached = vi.fn()
+    const { rerender } = render(
+      <FieldSearchResults matches={MATCHES.slice(0, 3)} onEndReached={onEndReached} onMatchClick={() => {}} />,
+    )
+    expect(onEndReached).toHaveBeenCalledTimes(1)
+
+    // Same length → no re-fire
+    rerender(
+      <FieldSearchResults matches={MATCHES.slice(0, 3)} onEndReached={onEndReached} onMatchClick={() => {}} />,
+    )
+    expect(onEndReached).toHaveBeenCalledTimes(1)
+
+    // While loadingMore → suppressed even though length changed
+    rerender(
+      <FieldSearchResults matches={MATCHES.slice(0, 4)} loadingMore onEndReached={onEndReached} onMatchClick={() => {}} />,
+    )
+    expect(onEndReached).toHaveBeenCalledTimes(1)
+
+    // Page landed (loadingMore off, length changed) → fires again
+    rerender(
+      <FieldSearchResults matches={MATCHES.slice(0, 4)} onEndReached={onEndReached} onMatchClick={() => {}} />,
+    )
+    expect(onEndReached).toHaveBeenCalledTimes(2)
+
+    // Far from the end (length 50, lastIndex -1) → no fire
+    rerender(
+      <FieldSearchResults matches={MATCHES} onEndReached={onEndReached} onMatchClick={() => {}} />,
+    )
+    expect(onEndReached).toHaveBeenCalledTimes(2)
   })
 
   test('empty state renders status message', () => {

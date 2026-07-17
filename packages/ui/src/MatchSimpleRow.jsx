@@ -32,6 +32,7 @@ export default function MatchSimpleRow({
   onClick,
   showAvatar = true,
   showInfo = true,
+  isSelected = false,
   className = '',
   ...rest
 }) {
@@ -40,7 +41,7 @@ export default function MatchSimpleRow({
   const clickable = !!onClick
   return (
     <div
-      className={`match-simple-row${clickable ? ' match-simple-row--clickable' : ''}${className ? ` ${className}` : ''}`}
+      className={`match-simple-row${clickable ? ' match-simple-row--clickable' : ''}${isSelected ? ' match-simple-row--selected' : ''}${className ? ` ${className}` : ''}`}
       onClick={onClick}
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}

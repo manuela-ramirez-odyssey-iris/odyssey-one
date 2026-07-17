@@ -4,12 +4,11 @@ import { SearchField, FieldSearchResults } from '@odyssey/ui'
 export const meta = {
   name: 'SearchField',
   tier: 'organism',
-  version: '0.6.0',
+  version: '0.8.0',
   createdVersion: '0.2.0',
   figmaNode: '1959:76',
   codeConnect: 'packages/ui/src/SearchField.figma.tsx',
-  normalizing: true,
-  approved: true,
+  normalizing: false,
 }
 
 export const props = [
@@ -23,7 +22,7 @@ export const props = [
   { name: 'onInfoClick', type: '() => void', desc: 'When provided the Info icon becomes a clickable button; otherwise it is decorative.' },
   { name: 'results', type: 'ReactNode', desc: 'Content slot — rendered below the input. Wins over typeahead popover if passed alongside options/loadOptions.' },
   { name: 'options', type: '{ value, label }[] | string[]', desc: 'Typeahead: static option list. Filtered synchronously (case-insensitive substring).' },
-  { name: 'loadOptions', type: '(query: string) => Promise<Option[]>', desc: 'Typeahead: async loader. Debounced 200ms, stale-response guarded. Replaces static options.' },
+  { name: 'loadOptions', type: '(query, skip?) => Promise<Option[] | { options, total }>', desc: 'Typeahead: async loader. Debounced 200ms, stale-response guarded. Resolve { options, total } for paged mode: scrolling near the list end lazily fetches the next page (skip = accumulated count) until total is reached. Plain array = legacy single-shot.' },
   { name: 'onSelect', type: '(value: string | null) => void', desc: 'Typeahead: fired with the selected option value, or null on clear.' },
   { name: 'emptyMessage', type: 'string', desc: "Typeahead: shown when filter matches nothing. Default 'No options'." },
   { name: 'filter', type: '(inputText, option) => bool', desc: 'Typeahead: custom filter fn. Default case-insensitive substring.' },
@@ -200,18 +199,36 @@ function TypeaheadPlayground() {
 
   const staticOptions = useMemo(() => makeOptions(SIZES[sizeIdx].count), [sizeIdx])
 
+  const [chunk, setChunk] = useState(20)
+
   // ponytail: inline loadOptions — no abstraction needed for a single demo case
   const loadOptions = useMemo(() => {
-    if (source !== 'async') return undefined
-    return (query) =>
-      new Promise((resolve) => {
-        setTimeout(() => {
-          const q = query.toLowerCase()
-          const filtered = staticOptions.filter((o) => o.label.toLowerCase().includes(q))
-          resolve(filtered)
-        }, 300)
-      })
-  }, [source, staticOptions])
+    if (source === 'async')
+      // Paged like the API source: one `chunk`-sized slice per call after a 300ms delay.
+      return (query, skip = 0) =>
+        new Promise((resolve) => {
+          setTimeout(() => {
+            const q = query.toLowerCase()
+            const filtered = staticOptions.filter((o) => o.label.toLowerCase().includes(q))
+            resolve({ options: filtered.slice(skip, skip + chunk), total: filtered.length })
+          }, 300)
+        })
+    if (source === 'api')
+      // Real paged API: dummyjson products search, ONE `chunk`-sized page per call.
+      // Returning { options, total } puts SearchField in paged mode — scrolling the
+      // results near the end lazily fetches the next page (infinite scroll).
+      return async (query, skip = 0) => {
+        const res = await fetch(
+          `https://dummyjson.com/products/search?q=${encodeURIComponent(query)}&limit=${chunk}&skip=${skip}`,
+        )
+        const { products, total } = await res.json()
+        return {
+          options: products.map((p) => ({ value: String(p.id), label: p.title })),
+          total,
+        }
+      }
+    return undefined
+  }, [source, staticOptions, chunk])
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-4)' }}>
@@ -227,9 +244,18 @@ function TypeaheadPlayground() {
           Source
           <select value={source} onChange={(e) => { setSource(e.target.value); setValue(null) }} style={inputStyle}>
             <option value="static">Static options</option>
-            <option value="async">Async (300ms)</option>
+            <option value="async">Async paged (300ms)</option>
+            <option value="api">API (dummyjson products)</option>
           </select>
         </label>
+        {source !== 'static' && (
+          <label style={labelStyle}>
+            Chunk size (limit)
+            <select value={chunk} onChange={(e) => setChunk(Number(e.target.value))} style={inputStyle}>
+              {[10, 20, 50, 100].map((n) => <option key={n} value={n}>{n}</option>)}
+            </select>
+          </label>
+        )}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 'var(--font-size-sm)', fontFamily: 'var(--font-primary)', color: 'var(--text-secondary)' }}>
           <span style={{ fontWeight: 'var(--font-weight-medium)', color: 'var(--text-primary)' }}>Selected value</span>
           <code style={{ background: 'var(--bg-tertiary)', padding: '4px 8px', borderRadius: 'var(--radius-sm)', whiteSpace: 'nowrap' }}>{value ?? '—'}</code>
@@ -245,9 +271,9 @@ function TypeaheadPlayground() {
             showLabel
             placeholder="Type to filter…"
             options={source === 'static' ? staticOptions : undefined}
-            loadOptions={source === 'async' ? loadOptions : undefined}
+            loadOptions={source !== 'static' ? loadOptions : undefined}
             onSelect={setValue}
-            emptyMessage="No matching fruits"
+            emptyMessage={source === 'api' ? 'No matching products' : 'No matching fruits'}
           />
           <p style={{ marginTop: 'var(--spacing-2)', fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)', fontFamily: 'var(--font-primary)' }}>
             ↑ ↓ navigate · Enter select · Esc close

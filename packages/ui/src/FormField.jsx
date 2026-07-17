@@ -40,6 +40,8 @@ export default function FormField({
   name,
   autoComplete,
   required = false,
+  maxLength,
+  showCounter = false,
   className = '',
   // NOTE(normalization): describedBy added post-Figma — flag in tracker on next sync
   describedBy,
@@ -55,12 +57,16 @@ export default function FormField({
   const ariaDescribedBy = [errorId, describedBy].filter(Boolean).join(' ') || undefined
   const selectState = disabled ? 'disabled' : 'default'
   const showClear = !!onClear && !disabled && value != null && value !== ''
+  // Counter is a basic-variant affordance only — suppress when either select edge is present.
+  const showCharCounter = showCounter && maxLength && !leadingSelect && !trailingSelect
 
   return (
     <div className={cls}>
       {showLabel && label && (
         <div className="form-field__label-row">
-          <label htmlFor={id} className="form-field__label text-label-sm-medium">{label}</label>
+          <label htmlFor={id} className="form-field__label text-label-sm-medium">
+            {label}{required && <span className="form-field__required" aria-hidden="true"> *</span>}
+          </label>
           {showInfo && <Info className="form-field__info" size={16} aria-hidden="true" />}
         </div>
       )}
@@ -84,18 +90,28 @@ export default function FormField({
             onChange={onChange}
             autoComplete={autoComplete}
             required={required}
+            aria-required={required || undefined}
+            maxLength={maxLength}
             disabled={disabled}
             className="form-field__field text-label-sm-regular"
             aria-invalid={error ? 'true' : undefined}
             aria-describedby={ariaDescribedBy}
             {...rest}
           />
+          {showCharCounter && (
+            <span className="form-field__counter text-label-xs-regular">
+              {(value ?? '').length}/{maxLength}
+            </span>
+          )}
           {showClear && (
             <button type="button" className="form-field__clear" aria-label="Clear" onClick={onClear}>
               <CircleX size={16} aria-hidden="true" />
             </button>
           )}
-          {trailingIcon && <span className="form-field__icon" aria-hidden="true">{trailingIcon}</span>}
+          {/* No aria-hidden here: the trailing slot may hold an interactive
+              control (e.g. TimePicker/MultiSelect chevron toggle). Decorative
+              icons carry their own aria-hidden, so nothing leaks either way. */}
+          {trailingIcon && <span className="form-field__icon">{trailingIcon}</span>}
         </div>
         {trailingSelect && (
           <FieldSelect

@@ -322,19 +322,21 @@
    pointer even on tables WITHOUT onCellClick (no --cell-clickable root class). */
 .odyssey-data-table tbody td.odyssey-table__cell--forward-click { cursor: pointer; }
 
-/* Sortable header (per-table opt-in, mirrors resize): the whole header label is the
-   toggle button. Label ellipsizes; the sort icon never shrinks — together with the
-   SORT_MIN_WIDTH colgroup floor this keeps "X… ↕" visible at min drag width. */
+/* Sortable header (per-table opt-in, mirrors resize): the ENTIRE header cell is the
+   toggle button — the button fills the th (width:100%) so a click anywhere in the padded
+   cell sorts, not just on the label/icon. Label ellipsizes; the sort icon never shrinks —
+   together with the SORT_MIN_WIDTH colgroup floor this keeps "X… ↕" visible at min drag width. */
 .odyssey-data-table__sort {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: var(--spacing-1);
-  max-width: 100%;
+  width: 100%;
   padding: 0;
   border: 0;
   background: none;
   font: inherit;
   color: inherit;
+  text-align: left;
   cursor: pointer;
 }
 
@@ -2808,6 +2810,9 @@ button.breadcrumb__label:focus-visible {
 /* interaction states (runtime) */
 .menu-row:hover { background: var(--deep-sea-neutral-100); }
 .menu-row:active { background: var(--deep-sea-neutral-200); }
+/* Keyboard highlight (aria-activedescendant target) — same surface as hover,
+   mirrors .match-simple-row.is-active. Used by TimePicker's listbox rows. */
+.menu-row.is-active { background: var(--deep-sea-neutral-100); }
 
 /* draggable affordance (Figma Draggable boolean → trailing grip + grab cursor) */
 .menu-row--draggable { cursor: grab; }
@@ -3593,6 +3598,15 @@ button.breadcrumb__label:focus-visible {
 /* Typography via .text-label-sm-medium (applied in FormField.jsx). */
 .form-field__label { color: var(--text-secondary); }
 .form-field__info { color: var(--text-tertiary); flex-shrink: 0; }
+.form-field__required { color: inherit; }
+
+/* Char counter — inside the input box, right-aligned, DSN-500. Typography via
+   .text-label-xs-regular (12px/16) applied in FormField.jsx. */
+.form-field__counter {
+  color: var(--deep-sea-neutral-500);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
 
 .form-field__input {
   display: flex;
@@ -4097,6 +4111,8 @@ button.breadcrumb__label:focus-visible {
 .match-simple-row--clickable:active { background: var(--deep-sea-neutral-200); }
 /* Keyboard highlight (aria-activedescendant target) — same surface as hover */
 .match-simple-row.is-active { background: var(--bg-tertiary); }
+.match-simple-row--selected { background: var(--deep-sea-neutral-200); }
+.match-simple-row--selected:hover { background: var(--deep-sea-neutral-300); }
 .match-simple-row__avatar {
   display: inline-flex;
   align-items: center;
@@ -5645,4 +5661,60 @@ button.breadcrumb__label:focus-visible {
 /* Range — pending start (start set, no end yet) — 2px inset ring affordance */
 .calendar-picker__day--pending-start {
   box-shadow: inset 0 0 0 2px var(--deep-sea-neutral-400);
+}
+
+/* === TimePicker (molecule) — Figma 4534:5204, normalizing 2026-07-15 ===========
+   Pure composition of FormField + DropdownMenu/MenuRow + useFieldPopover; all
+   chrome comes from those primitives + inline positioning. No custom CSS. */
+
+/* === MultiSelect (molecule) — Figma 4536:5333, normalizing 2026-07-15 ===========
+   FormField + in-flow FieldSearchResults dropdown + a selected-items table
+   (gray Badge cells + IconButtonGhost trash). Only the table needs styling. */
+.multi-select__table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
+}
+.multi-select__th {
+  text-align: left;
+  padding: 14px var(--spacing-4);
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-primary);
+  white-space: nowrap;
+}
+.multi-select__th--actions {
+  width: 1%;
+}
+.multi-select__td {
+  padding: 14px var(--spacing-4);
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-primary);
+  vertical-align: middle;
+}
+.multi-select__td--actions,
+.multi-select__th--actions {
+  text-align: center;
+}
+.multi-select__td--actions {
+  padding: var(--spacing-2) var(--spacing-4);
+  width: 1%;
+}
+
+/* === Field min-widths (desktop) ==========================================
+   Field roots gain min-width: 150px at desktop viewports. DatePicker single
+   mode keeps its 250px floor below 1024px (was inline; range mode still
+   carries inline minWidth 250 / maxWidth 284, untouched). */
+.date-picker--single { min-width: 250px; }
+.time-picker { width: 320px; } /* was inline on TimePicker.jsx — moved so the media rule below can win */
+@media (min-width: 1024px) {
+  .form-field,
+  .search-field,
+  .time-picker {
+    min-width: 150px;
+    width: auto;
+  }
+  .date-picker--single {
+    min-width: 150px;
+  }
 }

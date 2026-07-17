@@ -13,7 +13,7 @@ import { DataTable, Paginator, Checkbox, Badge, ActionMenu } from '@odyssey/ui'
 export const meta = {
   name: 'DataTable',
   tier: 'organism',
-  version: '0.7.0',
+  version: '0.8.0',
   createdVersion: '0.3.0',
   codeOnly: true,
   // Code-first (composes Cell + Paginator + ActionMenu — no standalone Figma master).
@@ -31,8 +31,7 @@ export const meta = {
   // aria-sort, and a SORT_MIN_WIDTH resize floor (1 char + ellipsis + icon stay visible).
   // Resize drag also reworked: shell-owned, starts from the VISIBLE colgroup width
   // (TanStack's getResizeHandler started from the injected default 150 → jump).
-  normalizing: true,
-  approved: true, // S85 (covers the S82 scrollbar + S85 sorting/resize mods) — awaiting Angular port
+  normalizing: false,
 }
 
 export const props = [
@@ -42,7 +41,10 @@ export const props = [
   { name: 'ariaLabel', type: 'string', desc: 'Optional aria-label applied to the body <table> element (per ARIA table semantics).' },
   { name: 'sortable', type: 'boolean', desc: 'Feature switch (default false): header sort buttons, asc ↔ desc, one column always drives (the shell auto-seeds the first sortable column when the consumer hasn\'t). Client tables also pass getSortedRowModel() to the engine; server tables set manualSorting and map the sorting state to their query. Per-column opt-out: enableSorting: false on the columnDef.' },
   { name: 'truncationTooltip', type: 'boolean', desc: 'Feature switch (default false): hovering a body cell whose ellipsis hides MORE than one word shows the normalized Tooltip with the full text (inner-wrapper truncation detected too). Cells wrapped in their own [data-tooltip-trigger] (complementary-data tooltips, e.g. dates) are left alone. Default column widths = max(header label, cell content) capped at MAX_COL_WIDTH (290px) — past the cap content ellipsizes.' },
+  { name: 'onCellClick', type: '(cell, row) => void', desc: 'Per-cell click (opt-in): fires on a body-cell click, suppressed when the click is inside an interactive element (button/ActionMenu, checkbox, link, [role=menuitem], [data-no-cell-click]). Providing it also adds the pointer affordance.' },
+  { name: 'resize', type: '(engine)', desc: 'Column resize: enable enableColumnResizing + columnResizeMode on the TanStack table → a drag-grip renders in each resizable header; the colgroup uses the user-dragged size.' },
   { name: 'className', type: 'string', desc: 'Merged onto the root.' },
+  { name: 'selectable', type: 'boolean (consumer/demo control — not a shell prop)', desc: 'The leading selection-checkbox column is CONSUMER-OWNED: the DataTable shell renders no checkbox itself, so selection is opt-in/out by including or omitting the select column in the table\'s column array (the shell has nothing to gate). This Playground exposes it as a `selectable` toggle; default on. Product consumers add/drop the column directly (ShipmentTable uses single-row selection with no checkbox column; OrdersTable includes one).' },
 ]
 
 export const tokens = [
@@ -63,30 +65,36 @@ export const tokens = [
 const ROW_ACTIONS = ['View', 'Edit', 'Duplicate', 'Delete'].map((label) => ({ label, onSelect: () => {} }))
 
 const columnHelper = createColumnHelper()
-const COLUMNS = [
-  columnHelper.display({
-    id: 'select',
-    enableResizing: false, // pinned system column — never resized, reordered, or sorted
-    enableSorting: false,
-    header: ({ table }) => (
-      <Checkbox
-        checked={table.getIsAllRowsSelected()}
-        indeterminate={table.getIsSomeRowsSelected()}
-        onChange={table.getToggleAllRowsSelectedHandler()}
-        showLabel={false}
-        aria-label="Select all rows"
-      />
-    ),
-    cell: ({ row }) => (
-      <Checkbox
-        checked={row.getIsSelected()}
-        onChange={row.getToggleSelectedHandler()}
-        showLabel={false}
-        aria-label={`Select ${row.original.name}`}
-      />
-    ),
-    meta: { headClass: 'odyssey-table__cell--control', cellClass: 'odyssey-table__cell--control', fixedWidth: true },
-  }),
+
+// The leading selection-checkbox column is CONSUMER-OWNED (the DataTable shell renders no
+// checkbox of its own — it just renders whatever columns the table instance carries). So
+// `selectable` is a consumer/demo concern: include this column to opt IN, omit it to opt OUT.
+// Exposed as a Playground control here; product consumers simply add/drop it in their own arrays.
+const SELECT_COLUMN = columnHelper.display({
+  id: 'select',
+  enableResizing: false, // pinned system column — never resized, reordered, or sorted
+  enableSorting: false,
+  header: ({ table }) => (
+    <Checkbox
+      checked={table.getIsAllRowsSelected()}
+      indeterminate={table.getIsSomeRowsSelected()}
+      onChange={table.getToggleAllRowsSelectedHandler()}
+      showLabel={false}
+      aria-label="Select all rows"
+    />
+  ),
+  cell: ({ row }) => (
+    <Checkbox
+      checked={row.getIsSelected()}
+      onChange={row.getToggleSelectedHandler()}
+      showLabel={false}
+      aria-label={`Select ${row.original.name}`}
+    />
+  ),
+  meta: { headClass: 'odyssey-table__cell--control', cellClass: 'odyssey-table__cell--control', fixedWidth: true },
+})
+
+const DATA_COLUMNS = [
   columnHelper.accessor('name', {
     header: 'Customer',
     meta: { cellClass: 'odyssey-table__cell--title text-label-sm-medium' },
@@ -148,9 +156,12 @@ const labelStyle = { display: 'inline-flex', alignItems: 'center', gap: 6, fontS
 function LiveDataTable() {
   const [sortable, setSortable] = useState(true)
   const [truncationTooltip, setTruncationTooltip] = useState(true)
+  const [selectable, setSelectable] = useState(true)
   const [rowCount, setRowCount] = useState(32)
   const [longContent, setLongContent] = useState(false)
   const data = useMemo(() => makeData(rowCount, longContent), [rowCount, longContent])
+  // selectable → include the leading checkbox column (consumer-owned; opt in/out by add/drop).
+  const columns = useMemo(() => (selectable ? [SELECT_COLUMN, ...DATA_COLUMNS] : DATA_COLUMNS), [selectable])
 
   const [rowSelection, setRowSelection] = useState({})
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 })
@@ -162,7 +173,7 @@ function LiveDataTable() {
   const [sorting, setSorting] = useState([])
   const table = useReactTable({
     data,
-    columns: COLUMNS,
+    columns,
     state: { rowSelection, pagination, columnOrder, columnVisibility, columnSizing, sorting },
     onRowSelectionChange: setRowSelection,
     onPaginationChange: setPagination,
@@ -188,6 +199,10 @@ function LiveDataTable() {
         <label style={labelStyle}>
           <input type="checkbox" checked={truncationTooltip} onChange={(e) => setTruncationTooltip(e.target.checked)} />
           truncationTooltip
+        </label>
+        <label style={labelStyle}>
+          <input type="checkbox" checked={selectable} onChange={(e) => setSelectable(e.target.checked)} />
+          selectable
         </label>
         <label style={labelStyle}>
           rows

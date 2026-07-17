@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { FieldSelect } from '@odyssey/ui'
+import { useState, useCallback } from 'react'
+import { FieldSelect, useAnchoredPortal } from '@odyssey/ui'
 
 export const meta = {
   name: 'FieldSelect',
@@ -32,34 +32,40 @@ const STATES = ['default', 'focus', 'disabled', 'error-default', 'error']
 function FieldSelectPicker({ variant, options, initial }) {
   const [open, setOpen] = useState(false)
   const [value, setValue] = useState(initial)
+  const close = useCallback(() => setOpen(false), [])
+  // Body-portal + boundary-aware flip (same mechanism as the Dropdown molecule):
+  // the menu overlays outside the section un-clipped and opens upward with no room below.
+  const { triggerRef, dropdownRef, AnchoredPortal } = useAnchoredPortal({ open, onClose: close })
   return (
-    <div style={{ position: 'relative', display: 'inline-block' }}>
-      <FieldSelect
-        variant={variant}
-        state={open ? 'focus' : 'default'}
-        label={value}
-        onClick={() => setOpen((o) => !o)}
-      />
+    <div style={{ display: 'inline-block' }}>
+      <span ref={triggerRef} style={{ display: 'inline-block' }}>
+        <FieldSelect
+          variant={variant}
+          state={open ? 'focus' : 'default'}
+          label={value}
+          onClick={() => setOpen((o) => !o)}
+        />
+      </span>
       {open && (
-        // width:100% — the inline-block wrapper hugs the FieldSelect, so the menu
-        // tracks the trigger and widens when a longer value widens it.
-        <ul className="ds-menu" role="listbox" style={{ width: '100%' }}>
-          {options.map((opt) => (
-            <li key={opt} role="option" aria-selected={opt === value}>
-              <button
-                type="button"
-                className="ds-menu__item"
-                aria-selected={opt === value}
-                onClick={() => {
-                  setValue(opt)
-                  setOpen(false)
-                }}
-              >
-                {opt}
-              </button>
-            </li>
-          ))}
-        </ul>
+        <AnchoredPortal>
+          <ul ref={dropdownRef} className="ds-menu" role="listbox">
+            {options.map((opt) => (
+              <li key={opt} role="option" aria-selected={opt === value}>
+                <button
+                  type="button"
+                  className="ds-menu__item"
+                  aria-selected={opt === value}
+                  onClick={() => {
+                    setValue(opt)
+                    setOpen(false)
+                  }}
+                >
+                  {opt}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </AnchoredPortal>
       )}
     </div>
   )

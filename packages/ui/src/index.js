@@ -52,7 +52,6 @@ export { default as Dropdown } from './Dropdown.jsx';
 export { default as ActionMenu } from './ActionMenu.jsx';
 export { default as Paginator } from './Paginator.jsx';
 export { default as DataTable } from './DataTable.jsx';
-export { default as GroupTable } from './GroupTable.jsx';
 export { default as CustomerRow } from './CustomerRow.jsx';
 export { default as FormField } from './FormField.jsx';
 export { default as TextArea } from './TextArea.jsx';
@@ -68,8 +67,11 @@ export { default as ButtonToggle } from './ButtonToggle.jsx';
 export { default as Tooltip } from './Tooltip.jsx';
 export { default as CalendarPicker } from './CalendarPicker.jsx';
 export { default as DatePicker } from './DatePicker.jsx';
+export { default as TimePicker } from './TimePicker.jsx';
 
 // ── Organisms ──────────────────────────────────────────
+export { default as GroupTable } from './GroupTable.jsx';
+export { default as MultiSelect } from './MultiSelect.jsx';
 export { default as Navbar } from './Navbar.jsx';
 export { default as Sidebar } from './Sidebar.jsx';
 export { default as Widget } from './Widget.jsx';

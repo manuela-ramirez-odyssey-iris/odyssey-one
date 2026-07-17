@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { CalendarDays } from 'lucide-react'
 import CalendarPicker from './CalendarPicker.jsx'
 import FormField from './FormField.jsx'
@@ -30,49 +30,57 @@ export function fmtDDMMYYYY(d) {
   return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`
 }
 
-// Progressive dd/mm/yyyy mask: digits only, slashes auto-inserted. When the
-// string already carries slashes (an EDIT, not initial typing), segments are
-// preserved positionally — emptying the day or month pair with content after
-// it auto-resolves to "01" in place.
-export function maskDDMMYYYY(raw) {
-  if (raw.includes('/')) {
-    const segs = raw.split('/').slice(0, 3)
-    const lens = [2, 2, 4]
-    const out = ['', '', '']
-    let carry = ''
-    for (let i = 0; i < 3; i++) {
-      const d = carry + (segs[i] || '').replace(/\D/g, '')
-      out[i] = d.slice(0, lens[i])
-      carry = d.slice(lens[i])
-    }
-    if (out[0] === '' && (out[1] || out[2])) out[0] = '01'
-    if (out[1] === '' && out[2]) out[1] = '01'
-    while (out.length && out[out.length - 1] === '') out.pop()
-    return out.join('/')
+// While-typing filter for a single dd/mm/yyyy field. Editing is FREE except:
+// digit caps per segment (2/2/4); separators are structural rails (always emit
+// exactly 3 "/"-joined slots, empty segments kept — no reset-to-01). Any digit
+// value is accepted while typing; parseDDMMYYYY validates at commit (blur/Enter).
+//
+// Historic name `maskDDMMYYYY` kept for the Angular twin + call sites.
+export function maskDDMMYYYY(raw, prev = '') {
+  const lens = [2, 2, 4]
+  const cap = (s, i) => (s ?? '').replace(/\D/g, '').slice(0, lens[i])
+  const prevSegs = prev.split('/')
+  // No separators yet (fresh field being typed) → single free segment, capped.
+  // Once separators exist they are structural rails: always emit exactly 3
+  // "/"-joined slots (empty kept), and a deleted "/" (fewer than 3 segments)
+  // is restored from the prior split so rails never merge.
+  if (!raw.includes('/')) return cap(raw, 0)
+  const segs = raw.split('/')
+  // A "/" was deleted (rail removed) → no-op: keep the prior string. Separators
+  // are fixed; the caret skips across them instead of erasing them.
+  if (prevSegs.length >= 3 && segs.length < prevSegs.length) return prev
+  const out = []
+  for (let i = 0; i < 3; i++) {
+    out.push(cap(segs[i], i))
   }
-  const digits = raw.replace(/\D/g, '').slice(0, 8)
-  const parts = [digits.slice(0, 2), digits.slice(2, 4), digits.slice(4, 8)].filter(Boolean)
-  return parts.join('/')
+  return out.join('/')
 }
 
-// Range mask: two dates joined with " - ".
-export function maskRange(raw) {
-  if (raw.includes(' - ')) {
-    const [a, b = ''] = raw.split(' - ')
-    return b ? `${maskDDMMYYYY(a)} - ${maskDDMMYYYY(b)}` : maskDDMMYYYY(a)
-  }
-  const digits = raw.replace(/\D/g, '').slice(0, 16)
-  const first = maskDDMMYYYY(digits.slice(0, 8))
-  const rest = digits.slice(8)
-  return rest ? `${first} - ${maskDDMMYYYY(rest)}` : first
+// Range filter: two single fields joined with " - ". Free editing, digit caps
+// per segment on each side, same separator the display uses.
+export function maskRange(raw, prev = '') {
+  const [a, b] = raw.split(' - ')
+  const [pa = '', pb = ''] = prev.split(' - ')
+  if (b === undefined) return maskDDMMYYYY(a, pa)
+  return `${maskDDMMYYYY(a, pa)} - ${maskDDMMYYYY(b, pb)}`
 }
 
 const MIN_DATE = new Date(1900, 0, 1)
 const MAX_DATE = new Date(2120, 0, 1)
 
+// Commit-time normalization: zero-pad single-digit day/month ("4/7/2026" →
+// "04/07/2026") so a valid short draft parses. Year is left as typed.
+export function padSegments(text) {
+  const segs = text.split('/')
+  if (segs.length !== 3) return text
+  const [d, mo, y] = segs
+  const pad = (s) => (/^\d$/.test(s) ? '0' + s : s)
+  return `${pad(d)}/${pad(mo)}/${y}`
+}
+
 // Full masked string → Date, or null if incomplete/invalid or out of bounds.
 export function parseDDMMYYYY(text, minDate = MIN_DATE, maxDate = MAX_DATE) {
-  const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(text)
+  const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(padSegments(text))
   if (!m) return null
   const [, dd, mm, yyyy] = m.map(Number)
   const d = new Date(yyyy, mm - 1, dd)
@@ -95,50 +103,98 @@ export default function DatePicker({
   id,
 }) {
   const [text, setText] = useState('')
+  const [invalid, setInvalid] = useState(false)
+  const editingRef = useRef(false)
   const { open, setOpen, wrapperRef, wrapperProps, fieldProps, popoverProps, closeAndBlur } =
-    useFieldPopover()
+    useFieldPopover({ onCommit: () => commit() })
 
-  // Sync text when controlled value changes externally (e.g. reset)
+  // Trailing calendar icon toggles the popover (mirrors TimePicker's chevron button):
+  // a real button with aria-label + mousedown preventDefault so the field keeps focus.
+  const toggleOpen = () => {
+    setOpen(!open)
+    wrapperRef.current?.querySelector('input')?.focus()
+  }
+
+  // Sync text from the controlled value ONLY when not actively editing — an
+  // external change (reset, calendar pick) refreshes the display, but a mid-edit
+  // draft is never clobbered. (The TimePicker fix: value→text echo mid-keystroke
+  // was what snapped the field and blocked editing.)
+  const displayValue = () => {
+    if (mode === 'single') return value instanceof Date ? fmtDDMMYYYY(value) : ''
+    const parts = [value?.start, value?.end].filter(Boolean).map(fmtDDMMYYYY)
+    return parts.join(' - ')
+  }
   useEffect(() => {
-    if (mode === 'single') {
-      setText(value ? fmtDDMMYYYY(value) : '')
-    } else {
-      const parts = [value?.start, value?.end].filter(Boolean).map(fmtDDMMYYYY)
-      setText(parts.join(' - '))
-    }
-  }, [value, mode])
+    if (editingRef.current) return
+    setText(displayValue())
+    setInvalid(false)
+  }, [value, mode]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const defaultPlaceholder = placeholder ?? (mode === 'single' ? 'Select Date' : 'Select Range')
 
+  // Typing is free-form: only cap segment digits + keep separators, never parse
+  // or emit mid-keystroke. Caret is preserved because the filter only strips
+  // illegal chars / overflow, so digits-before-caret map 1:1 back.
   const handleText = (e) => {
+    editingRef.current = true
+    setInvalid(false)
     const input = e.target
-    const digitsBeforeCaret = input.value.slice(0, input.selectionStart).replace(/\D/g, '').length
-    const masked = mode === 'single' ? maskDDMMYYYY(input.value) : maskRange(input.value)
-    setText(masked)
+    const raw = input.value
+    const caret = input.selectionStart
+    const filtered = mode === 'single' ? maskDDMMYYYY(raw, text) : maskRange(raw, text)
+    setText(filtered)
 
-    // Caret restore after masking
+    // If the filter kept the string as-is (e.g. deleting digits leaves the
+    // separators the user didn't touch), the browser's caret is already correct —
+    // don't move it, or an emptied segment ("12/|/2026") snaps to the wrong side.
+    // Only re-anchor when the filter actually stripped chars: land after the Nth
+    // kept digit, where N = digits before the original caret.
+    if (filtered === raw) return
+    const digitsBeforeCaret = raw.slice(0, caret).replace(/\D/g, '').length
     requestAnimationFrame(() => {
       let pos = 0, seen = 0
-      while (pos < masked.length && seen < digitsBeforeCaret) {
-        if (/\d/.test(masked[pos])) seen++
+      while (pos < filtered.length && seen < digitsBeforeCaret) {
+        if (/\d/.test(filtered[pos])) seen++
         pos++
       }
       input.setSelectionRange(pos, pos)
     })
+  }
 
+  // Commit on blur/Enter: parse the draft, emit onChange + normalized display on
+  // valid, flag error on invalid. Empty clears. Guarded against the calendar
+  // pick's programmatic blur (pickedRef), which already committed the picked date.
+  const pickedRef = useRef(false)
+  const commit = () => {
+    editingRef.current = false
+    if (pickedRef.current) { pickedRef.current = false; return }
+    const raw = text.trim()
+    if (!raw) {
+      setInvalid(false)
+      if (mode === 'single') onChange?.(null)
+      else onChange?.({ start: null, end: null })
+      return
+    }
     if (mode === 'single') {
-      const parsed = parseDDMMYYYY(masked, minDate, maxDate)
-      if (parsed) onChange?.(parsed)
+      const parsed = parseDDMMYYYY(raw, minDate, maxDate)
+      if (parsed) { setInvalid(false); setText(fmtDDMMYYYY(parsed)); onChange?.(parsed) }
+      else setInvalid(true)
     } else {
-      const [a, b] = masked.split(' - ')
-      const start = parseDDMMYYYY(a || '', minDate, maxDate)
-      const end = parseDDMMYYYY(b || '', minDate, maxDate)
-      onChange?.(start && end && end < start ? { start: end, end: start } : { start: start ?? null, end: end ?? null })
+      const [a = '', b = ''] = raw.split(' - ')
+      const start = parseDDMMYYYY(a.trim(), minDate, maxDate)
+      const end = parseDDMMYYYY(b.trim(), minDate, maxDate)
+      if (!start || !end) { setInvalid(true); return }
+      const next = end < start ? { start: end, end: start } : { start, end }
+      setInvalid(false)
+      setText([next.start, next.end].map(fmtDDMMYYYY).join(' - '))
+      onChange?.(next)
     }
   }
 
   const handleClear = () => {
+    editingRef.current = false
     setText('')
+    setInvalid(false)
     if (mode === 'single') onChange?.(null)
     else onChange?.({ start: null, end: null })
   }
@@ -149,7 +205,12 @@ export default function DatePicker({
   return (
     <div
       {...wrapperProps}
-      style={{ position: 'relative', width: 240 }}
+      className={mode === 'single' ? 'date-picker date-picker--single' : 'date-picker date-picker--range'}
+      style={
+        mode === 'single'
+          ? { position: 'relative', maxWidth: 284 } // min-width via .date-picker--single (250px, 150px ≥1024px)
+          : { position: 'relative', minWidth: 250, maxWidth: 284 }
+      }
     >
       <FormField
         id={id}
@@ -157,10 +218,24 @@ export default function DatePicker({
         placeholder={defaultPlaceholder}
         value={text}
         onChange={handleText}
+        onBlur={commit}
         onClear={text ? handleClear : undefined}
-        trailingIcon={<CalendarDays size={20} />}
+        trailingIcon={
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={toggleOpen}
+            disabled={disabled}
+            aria-label={open ? 'Close calendar' : 'Open calendar'}
+            aria-expanded={open}
+            className="flex items-center justify-center border-none bg-transparent p-0"
+            style={{ color: 'inherit', cursor: disabled ? 'default' : 'pointer' }}
+          >
+            <CalendarDays size={20} aria-hidden="true" />
+          </button>
+        }
         disabled={disabled}
-        error={error}
+        error={error ?? (invalid ? 'Enter a valid date' : undefined)}
         {...fieldProps}
       />
       {open && (
@@ -173,7 +248,7 @@ export default function DatePicker({
               key={single ? fmtDDMMYYYY(single) : 'unset'}
               mode="single"
               value={single}
-              onChange={(d) => { onChange?.(d); setText(fmtDDMMYYYY(d)); closeAndBlur() }}
+              onChange={(d) => { pickedRef.current = true; editingRef.current = false; setInvalid(false); onChange?.(d); setText(fmtDDMMYYYY(d)); closeAndBlur() }}
               defaultMonth={single ?? new Date()}
               minDate={minDate}
               maxDate={maxDate}
@@ -183,9 +258,10 @@ export default function DatePicker({
               mode="range"
               value={range}
               onChange={(next) => {
+                setInvalid(false)
                 onChange?.(next)
                 setText([next.start, next.end].filter(Boolean).map(fmtDDMMYYYY).join(' - '))
-                if (next.start && next.end) closeAndBlur()
+                if (next.start && next.end) { pickedRef.current = true; editingRef.current = false; closeAndBlur() }
               }}
               defaultMonth={range?.start ?? new Date()}
               minDate={minDate}

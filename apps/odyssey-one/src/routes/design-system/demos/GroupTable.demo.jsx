@@ -23,7 +23,7 @@ function DiffCell({ value }) {
 
 export const meta = {
   name: 'GroupTable',
-  tier: 'molecule',
+  tier: 'organism',
   version: '0.7.0',
   createdVersion: '0.7.0',
   normalizing: false,

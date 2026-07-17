@@ -451,15 +451,11 @@
 }
 
 /* Fake dropdown — demo-only stand-in for the real options menu a consumer would
-   supply to a FieldSelect's onClick (the SHP-66 dropdown component). */
+   supply to a FieldSelect's onClick (the SHP-66 dropdown component). Positioning
+   is owned by useAnchoredPortal (body portal, position:fixed, boundary-aware
+   flip) so the menu overlays outside the section un-clipped and opens upward
+   when there's no room below — the .ds-menu is just the visual surface. */
 .ds-menu {
-  position: absolute;
-  top: calc(100% + var(--spacing-1));
-  left: 0;
-  z-index: 10;
-  /* Width is set inline by each demo to track its FieldSelect trigger — so a
-     longer selected value that widens the trigger widens the menu too. Absent
-     that, an absolutely-positioned <ul> shrink-to-fits its content. */
   margin: 0;
   padding: var(--spacing-1);
   list-style: none;
