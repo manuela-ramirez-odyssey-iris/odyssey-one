@@ -11,6 +11,14 @@
   padding-bottom: var(--spacing-8);
 }
 
+/* ── Main tabs (All / Draft / Validation Errors) ─────────── */
+
+.orders-tabs {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-6);
+}
+
 /* ── Toolbar ─────────────────────────────────────────────── */
 
 /* Anchors at the top of the page scroll: PageHeader scrolls away, the count +

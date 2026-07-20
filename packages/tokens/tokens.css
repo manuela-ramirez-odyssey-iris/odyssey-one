@@ -29,7 +29,7 @@
   /* --- Primitives: Bittersweet --- */
   --bittersweet-100: #FDE5E3;
   --bittersweet-200: #FBD0CD;
-  --bittersweet-300: #F7AEAA;  /* Added by Efrain 2026-06-22 — not yet consumed by any component. */
+  --bittersweet-300: #F7AEAA;  /* Added by Efrain 2026-06-22 — Alert error-list row dividers (S90). */
   --bittersweet-600: #D23930;
   --bittersweet-800: #922922;
 

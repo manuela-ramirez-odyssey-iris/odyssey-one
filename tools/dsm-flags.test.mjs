@@ -96,6 +96,17 @@ test('port flips ported: false → true and preserves the rest', () => {
   assert.match(source, /import \{ useState \} from 'react'/);
 });
 
+test('demote removes approved/ported and restores normalizing: true (modification-reset)', () => {
+  const released = applyAction(JSX_STAGED, 'release', '0.8.0').source;
+  const { source, changes } = applyAction(released, 'demote');
+  assert.match(source, /normalizing: true,/);
+  assert.doesNotMatch(source, /approved:/);
+  assert.doesNotMatch(source, /ported:/);
+  // version/createdVersion stay — demote only resets the staging flags
+  assert.match(source, /version: '0\.8\.0',/);
+  assert.ok(changes.some(c => c.field === 'normalizing' && c.to === 'true'));
+});
+
 test('port is a no-op when already ported', () => {
   const { changes } = applyAction(TS_META, 'port');
   assert.deepEqual(changes, []);

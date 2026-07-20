@@ -8,6 +8,8 @@ export const meta = {
   createdVersion: '0.2.0',
   figmaNode: '2569:1841',
   codeConnect: 'packages/ui/src/Alert.figma.tsx',
+  normalizing: true,
+  approved: true,
 }
 
 export const props = [
@@ -18,6 +20,12 @@ export const props = [
   { name: 'onLinkClick', type: '() => void', desc: 'Link click handler.' },
   { name: 'showClose', type: 'boolean', desc: 'Show the trailing X dismiss button. Default true.' },
   { name: 'onClose', type: '() => void', desc: 'Dismiss handler (wire to remove/hide the alert).' },
+  { name: 'errors', type: '{field, reason, resolved?}[]', desc: 'Non-empty → error-validation anatomy (replaces message/link/close): "N Errors: Validation Required" header (N = unresolved), Validate Errors link, chevron-collapsible per-field error list. resolved: true entries drop out of the count + the rows.' },
+  { name: 'contextText', type: 'string', desc: 'Header context after the count — e.g. "ORD-D78120458 · Integrated from ACME" (order id · source + customer).' },
+  { name: 'expanded / defaultExpanded / onToggle', type: 'boolean / boolean / (next) => void', desc: 'Error-list collapse state (chevron) — controlled or uncontrolled. Default collapsed.' },
+  { name: 'docked', type: 'boolean', desc: 'Sticky morph: full-width squared bar, header "resolved out of total errors resolved" (derived from the resolved flags), link becomes the ← Error i/N → stepper over the unresolved errors. The consumer owns position:sticky + the scroll trigger. Default false.' },
+  { name: 'errorIndex', type: 'number', desc: 'Current error (0-based, original-array index) for the docked stepper label + nav. Default 0.' },
+  { name: 'onErrorNav', type: '(index) => void', desc: 'Jump-to-error intent: Validate Errors click (current index), list-row click (row index), docked arrows (index ± 1). The consumer autoscrolls to the red field.' },
 ]
 
 export const tokens = [
@@ -27,7 +35,10 @@ export const tokens = [
   { token: '--alert-error-bg', resolves: '--status-error-message', usage: 'error surface' },
   { token: '--status-*-message', resolves: 'DSN-backed Status semantics', usage: 'new semantic layer (mirrors Figma Status/*-message)' },
   { token: '--alert-text', resolves: 'DSN/900', usage: 'uniform text + icon color (via currentColor)' },
-  { token: '--radius-xl', resolves: 'radius/xl (12px)', usage: 'banner corner radius' },
+  { token: '--radius-xl', resolves: 'radius/xl (12px)', usage: 'banner corner radius (docked: 0)' },
+  { token: '--text-error', resolves: 'Bittersweet/600', usage: 'error-list rows (field + reason)' },
+  { token: '--bittersweet-300', resolves: 'Bittersweet/300', usage: 'error-list row dividers (token\'s first consumer)' },
+  { token: '--spacing-1 / -3 / -12', resolves: '4 / 12 / 48px', usage: 'error-row padding (y / left / right)' },
 ]
 
 // ── Schematic ───────────────────────────────────────────────────────────────
@@ -87,6 +98,71 @@ const VARIANTS = [
   { variant: 'error', message: 'Failed to save the shipment. Try again.' },
 ]
 
+// Pool of fake field errors — the demo's errorCount control slices this to
+// emulate the domain, where the count = how many fields failed validation.
+const DEMO_ERROR_POOL = [
+  { field: 'Equipment *', reason: 'Invalid Data' },
+  { field: 'Freight Term *', reason: 'Missing Mandatory' },
+  { field: 'Ship Direction *', reason: 'Missing Mandatory' },
+  { field: 'ID/Org Name *', reason: 'No match found' },
+  { field: 'Address 1 *', reason: 'No match found' },
+  { field: 'State *', reason: 'No match found' },
+  { field: 'Postal Code *', reason: 'No match found' },
+  { field: 'Line 2 - Product Description *', reason: 'Please enter product description' },
+  { field: 'Line 4 - Gross Weight *', reason: 'Enter Gross Weight value' },
+]
+
+function ValidationPlayground() {
+  const [docked, setDocked] = useState(false)
+  const [expanded, setExpanded] = useState(true)
+  const [errorIndex, setErrorIndex] = useState(0)
+  const [errorCount, setErrorCount] = useState(5)
+  const [resolvedCount, setResolvedCount] = useState(0)
+  const [lastNav, setLastNav] = useState(null)
+  // errorCount emulates "how many fields have errors" (slices the pool);
+  // resolvedCount marks the FIRST N of those resolved — they leave the count/rows.
+  const errors = DEMO_ERROR_POOL
+    .slice(0, errorCount)
+    .map((e, i) => ({ ...e, resolved: i < resolvedCount }))
+
+  return (
+    <div>
+      <div className="ds-demo-row" style={{ gap: 'var(--spacing-4)', marginBottom: 'var(--spacing-3)', flexWrap: 'wrap', alignItems: 'center' }}>
+        <Toggle label="docked (sticky morph)" value={docked} set={setDocked} />
+        <Toggle label="expanded" value={expanded} set={setExpanded} disabled={docked} />
+        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-sm)' }}>
+          errored fields
+          <input type="number" min="1" max={DEMO_ERROR_POOL.length} value={errorCount} onChange={(e) => setErrorCount(Math.min(DEMO_ERROR_POOL.length, Math.max(1, Number(e.target.value))))} style={{ width: 56, padding: '2px 6px', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)' }} />
+        </label>
+        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-sm)' }}>
+          resolvedCount
+          <input type="number" min="0" max={errorCount} value={resolvedCount} onChange={(e) => setResolvedCount(Math.min(errorCount, Math.max(0, Number(e.target.value))))} style={{ width: 56, padding: '2px 6px', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)' }} />
+        </label>
+        <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-tertiary)' }}>
+          {lastNav == null ? 'onErrorNav: —' : `onErrorNav → ${lastNav}: ${errors[lastNav]?.field ?? '?'}`}
+        </span>
+      </div>
+      <Alert
+        errors={errors}
+        contextText="ORD-D78120458 · Integrated from ACME"
+        expanded={expanded}
+        onToggle={setExpanded}
+        docked={docked}
+        errorIndex={errorIndex}
+        onErrorNav={(i) => {
+          const next = Math.max(0, Math.min(errors.length - 1, i))
+          setErrorIndex(next)
+          setLastNav(next)
+          // Emulates the page behavior: any jump (Validate Errors / row click)
+          // autoscrolls to the field AND flips the alert into docked mode,
+          // where the ← Error i/N → stepper takes over.
+          if (!docked) setDocked(true)
+        }}
+      />
+    </div>
+  )
+}
+
 function Playground() {
   const [showLink, setShowLink] = useState(false)
   const [showClose, setShowClose] = useState(true)
@@ -134,6 +210,11 @@ export default function AlertDemo() {
       <div className="ds-demo-section">
         <h4 className="ds-demo-section__title">Playground — all 4 variants; toggle link + close</h4>
         <Playground />
+      </div>
+
+      <div className="ds-demo-section">
+        <h4 className="ds-demo-section__title">Error validation — errors list, chevron collapse, docked sticky morph (Figma Layout Default/Expanded/Sticky)</h4>
+        <ValidationPlayground />
       </div>
     </div>
   )

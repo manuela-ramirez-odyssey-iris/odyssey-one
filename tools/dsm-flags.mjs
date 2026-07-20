@@ -116,7 +116,7 @@ function removeField(block, key) {
 
 /**
  * @param {string} source  full demo-file contents (.jsx or .ts — same handling)
- * @param {'approve'|'port'|'release'} action
+ * @param {'approve'|'port'|'demote'|'release'} action
  * @param {string} [version]  required for release
  */
 export function applyAction(source, action, version) {
@@ -130,6 +130,13 @@ export function applyAction(source, action, version) {
     apply(setField(block, 'approved', 'true'));
   } else if (action === 'port') {
     apply(setField(block, 'ported', 'true'));
+  } else if (action === 'demote') {
+    // Modification-reset: a released/approved/ported component was changed →
+    // back to NORMALIZING in BOTH DSMs until re-approval (memory:
+    // feedback_modified_component_back_to_normalizing).
+    apply(removeField(block, 'approved'));
+    apply(removeField(block, 'ported'));
+    apply(setField(block, 'normalizing', 'true'));
   } else if (action === 'release') {
     if (!version) throw new Error('release requires a version');
     apply(removeField(block, 'approved'));
@@ -173,7 +180,7 @@ export function locate(component) {
 
 /**
  * @param {string[]} components  React demo file names (PascalCase)
- * @param {'approve'|'port'|'release'} action
+ * @param {'approve'|'port'|'demote'|'release'} action
  * @param {{version?: string, sides?: 'react'|'angular'|'both', dryRun?: boolean}} opts
  * @returns per-component results: { component, kebab, files: [{repo, path, changes}], createdVersionStamped }
  */
@@ -229,7 +236,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   let action = null, version, sides, dryRun = false;
   for (let i = 0; i < args.length; i++) {
     const a = args[i];
-    if (a === '--approve' || a === '--port') action = a.slice(2);
+    if (a === '--approve' || a === '--port' || a === '--demote') action = a.slice(2);
     else if (a === '--release') { action = 'release'; version = args[++i]; }
     else if (a === '--react-only') sides = 'react';
     else if (a === '--angular-only') sides = 'angular';
@@ -239,7 +246,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     else components.push(a);
   }
   if (!components.length || !action || (action === 'release' && !/^\d+\.\d+\.\d+$/.test(version ?? ''))) {
-    console.error('usage: node tools/dsm-flags.mjs <Component...> --approve|--port|--release <x.y.z> [--react-only|--angular-only|--both] [--dry-run]');
+    console.error('usage: node tools/dsm-flags.mjs <Component...> --approve|--port|--demote|--release <x.y.z> [--react-only|--angular-only|--both] [--dry-run]');
     process.exit(1);
   }
   try {

@@ -1,4 +1,4 @@
-import { Check } from 'lucide-react'
+import { Check, OctagonX } from 'lucide-react'
 import { ICON_LG } from '@odyssey/tokens'
 
 /**
@@ -10,8 +10,10 @@ import { ICON_LG } from '@odyssey/tokens'
  * Hidden lines keep their 16px slot (visibility, not display) so the indicator
  * is a uniform 40×72 across positions — mirrors the Figma opacity-0 model.
  *
- * status: 'off' (pending, gray) | 'on' (validated, green circle + ring).
- * The check renders in both states (white via currentColor).
+ * status: 'off' (pending, gray) | 'on' (validated, green circle + ring) |
+ * 'error' (validation failed, Bittersweet/600 circle, octagon-x, no ring —
+ * Figma 4593:1014). Off/on show the check; error swaps to OctagonX (white via
+ * currentColor either way).
  */
 export default function StepIndicator({ position = 'start', status = 'off', className = '' }) {
   return (
@@ -21,7 +23,7 @@ export default function StepIndicator({ position = 'start', status = 'off', clas
         aria-hidden="true"
       />
       <span className="step-indicator__circle">
-        <Check {...ICON_LG} />
+        {status === 'error' ? <OctagonX {...ICON_LG} /> : <Check {...ICON_LG} />}
       </span>
       <span
         className={`step-indicator__line step-indicator__line--bottom${position === 'end' ? ' step-indicator__line--hidden' : ''}`}

@@ -13,7 +13,7 @@ figma.connect(
     imports: ["import { Accordion } from '@odyssey/ui'"],
     props: {
       position: figma.enum('Position', { Start: 'start', Mid: 'mid', End: 'end' }),
-      status: figma.enum('Status', { Off: 'off', On: 'on' }),
+      status: figma.enum('Status', { Off: 'off', On: 'on', Error: 'error' }),
       expanded: figma.enum('State', { Collapsed: false, Expanded: true }),
       title: figma.textContent('Title'),
       description: figma.textContent('Description'),

@@ -6,14 +6,16 @@ export const meta = {
   tier: 'molecule',
   version: '0.8.0',
   createdVersion: '0.2.0',
-  normalizing: false,
+  normalizing: true,
   figmaNode: '2850:612',
   codeConnect: 'packages/ui/src/Accordion.figma.tsx',
+  approved: true,
 }
 
 export const props = [
   { name: 'position', type: 'start|mid|end', desc: 'Slot in the stepper stack — drives the connector lines and whether the expanded card shows the bottom line stub (end gets bottom padding instead). Default start.' },
-  { name: 'status', type: 'off|on', desc: 'Validation state, consumer-driven: flip to on when the section is correctly filled. Default off.' },
+  { name: 'status', type: 'off|on|error', desc: 'Validation state, consumer-driven: on when the section is correctly filled, error when at least one field inside has an error. Default off.' },
+  { name: 'errorCount', type: 'number', desc: 'Error total for the section — with status="error" renders the red "N Errors" Badge; with status="on" renders the green "Completed · N Errors validated" Badge (all errors solved — Figma "Show validated badge" BOOLEAN). 0/omitted = no badge. Default 0.' },
   { name: 'title', type: 'string', desc: 'Header title (heading/lg semibold).' },
   { name: 'description', type: 'string', desc: 'Supporting text under the title (label/sm regular). Optional — omit it and the header hugs to a single line (Figma master: "Show supporting text" BOOLEAN).' },
   { name: 'expanded', type: 'boolean', desc: 'Controlled expansion. Omit for uncontrolled.' },
@@ -73,15 +75,16 @@ function Schematic() {
       {/* A 3-card stepper stack so the connector lines are visible. The middle
           card is expanded to show the content slot cutting the line. */}
       <div style={{ flex: '1 1 420px', minWidth: 340, display: 'flex', flexDirection: 'column', gap: 'var(--spacing-4)' }}>
-        <Accordion position="start" status="on" title="Shipment Details" description="Origin, destination and schedule." />
+        <Accordion position="start" status="on" errorCount={3} title="Shipment Details" description="Origin, destination and schedule." />
         <Accordion position="mid" status="off" title="Products" description="Add the products this shipment carries." defaultExpanded>
           <SlotPlaceholder />
         </Accordion>
-        <Accordion position="end" status="off" title="Documents" description="Attach the BoL and supporting documents." />
+        <Accordion position="end" status="error" errorCount={3} title="Documents" description="Attach the BoL and supporting documents." />
       </div>
       <ul style={{ flex: '1 1 320px', minWidth: 280, display: 'grid', gridTemplateColumns: 'max-content 1fr', columnGap: '10px', listStyle: 'none', margin: 0, padding: 0 }}>
         <LegendRow part="card" tier="molecule">White shell: <code>--bg-primary</code>, <code>--radius-2xl</code>, <code>--border-subtle</code>, 24px horizontal padding — one stepper step.</LegendRow>
-        <LegendRow part="status indicator" tier="atom" nested><code>StepIndicator</code> circle on the left, driven by <code>status</code> (<code>off</code> pending → <code>on</code> validated/green). Consumer-driven; the Accordion only reflects it.</LegendRow>
+        <LegendRow part="status indicator" tier="atom" nested><code>StepIndicator</code> circle on the left, driven by <code>status</code> (<code>off</code> pending → <code>on</code> validated/green → <code>error</code> red/octagon-x). Consumer-driven; the Accordion only reflects it.</LegendRow>
+        <LegendRow part="error badge" tier="atom" nested>Red <code>Badge</code> (octagon-x + &ldquo;N Errors&rdquo;) next to the title when <code>status=&quot;error&quot;</code> and <code>errorCount &gt; 0</code> — how many fields inside the section need attention. With <code>status=&quot;on&quot;</code> the same <code>errorCount</code> flips it to the green &ldquo;Completed · N Errors validated&rdquo; Badge (all errors solved).</LegendRow>
         <LegendRow part="connector lines" nested>Vertical <code>travel-line</code> between steps, driven by <code>position</code>: <code>start</code>/<code>mid</code> continue the line down; <code>end</code> terminates it. The expanded content <strong>cuts</strong> the line and a bottom stub re-anchors it at the card edge.</LegendRow>
         <LegendRow part="title" nested><code>title</code>, <code>heading/lg semibold</code>, <code>--text-primary</code>.</LegendRow>
         <LegendRow part="supporting text" nested>Optional <code>description</code>, <code>label/sm regular</code>, <code>--text-tertiary</code>. Omit it and the header hugs to a single line. (Figma: "Show supporting text" BOOLEAN.)</LegendRow>
@@ -132,6 +135,7 @@ function ExampleBody({ onCollapse }) {
 function Playground() {
   const [position, setPosition] = useState('start')
   const [status, setStatus] = useState('off')
+  const [errorCount, setErrorCount] = useState(3)
   const [title, setTitle] = useState('Shipment Details')
   const [description, setDescription] = useState('Origin, destination and schedule for this shipment.')
   const [showDescription, setShowDescription] = useState(true)
@@ -149,6 +153,7 @@ function Playground() {
       key="controlled"
       position={position}
       status={status}
+      errorCount={errorCount}
       title={title}
       description={showDescription ? description : undefined}
       expanded={expanded}
@@ -183,8 +188,21 @@ function Playground() {
           <select value={status} onChange={(e) => setStatus(e.target.value)} style={inputStyle}>
             <option value="off">off</option>
             <option value="on">on</option>
+            <option value="error">error</option>
           </select>
         </label>
+        {status !== 'off' && (
+          <label style={{ display: 'inline-flex', flexDirection: 'column', gap: 4, fontSize: 'var(--font-size-sm)' }}>
+            errorCount
+            <input
+              type="number"
+              min="0"
+              value={errorCount}
+              onChange={(e) => setErrorCount(Math.max(0, Number(e.target.value)))}
+              style={{ ...inputStyle, width: 72 }}
+            />
+          </label>
+        )}
         <Field label="title" value={title} set={setTitle} />
         <Field label="description" value={description} set={setDescription} />
         <Toggle label="show supporting text" value={showDescription} set={setShowDescription} />

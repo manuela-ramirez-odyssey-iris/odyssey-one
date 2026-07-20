@@ -9,6 +9,9 @@ figma.connect(
     props: {
       // State VARIANT → variant. Each state has its own icon + tinted surface:
       // info/circle-check/triangle-alert/octagon-x over Status/{info,success,warning,error}-message.
+      // State=Error Validation (Layout Default/Expanded/Sticky) maps to the
+      // `errors`/`docked`/`expanded` prop cluster — data-driven, so only the
+      // plain message variants are enumerated here.
       variant: figma.enum('State', {
         'Info Message': 'info',
         'Success Message': 'success',

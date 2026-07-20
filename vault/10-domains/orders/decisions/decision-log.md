@@ -61,6 +61,14 @@ Ramesh also asked (a) whether a **separate grooming session** will be organized,
 **Source:** User bug report + repro (S80 wrap → S81 priority 0); root-cause trace this session (generator status pool → `OrdersRoute.jsx` status branch → `getDraft` miss).
 **Affects:** `apps/odyssey-one/src/routes/orders/OrdersRoute.jsx` (onRowClick), `apps/odyssey-one/src/api/services/orderService.ts` (`getOrderList` overlay shadowing), `orderService.test.ts` (+1 shadow test). Stories: LINX-10233 (View Order — the row-click target), LINX-10248 (Edit Order — where draft-reopen semantics move next).
 
+### ORD-03 — Orders main tabs: All / Draft / Validation Errors (status filters)
+**Decided:** 2026-07-20
+**Previous state:** The Orders Summary page had no tab row — one unfiltered grid under the PageHeader; the only filtering was the navbar customer scope. The toolbar's Filters button remains inert.
+**Decision / Finding:** Three main tabs above the toolbar, Shipments-pattern (the normalized `Tab` underline component with count chips): **All** (unfiltered), **Draft** (`orderStatus = 'Draft'`), **Validation Errors** (the failure statuses needing error validation). Tabs drive the existing `filters.orderStatuses` on the list query; selection resets pagination; counts come from a new `getOrderTabCounts` (customer-scoped, overlay-aware, mock-only until an LLD counts endpoint exists).
+**Rationale:** Mirrors the intake mock (`../screenshots/orders-main-tabs-2026-07-20.png` — All/Draft/Validation Errors with count chips) and reuses the proven Shipments tabs-as-filters pattern. **Inference flagged:** the mock's Validation Errors rows show "Rating/Routing Failed" badges, which don't exist in our status vocabulary — mapped to `['Planning Failed', 'Shipment Failed']` (`VALIDATION_ERROR_STATUSES`, `orderService.ts`); confirm the status set with Ramesh/Efrain.
+**Source:** Manuela, 2026-07-20 ("add 3 main tabs the same way we have on shipments… work as filters… drafted orders and validation errors orders") + inbox mock `Orders Tabs.png`.
+**Affects:** `OrdersRoute.jsx` (MAIN_TABS + tab row + filter wiring), `orderService.ts` (`getOrderTabCounts`, `VALIDATION_ERROR_STATUSES`, `mockScopedRows` extraction), `useOrderTabCounts.ts` (new), `orders.css` (`.orders-tabs`), `orderService.test.ts` (+1 counts test).
+
 ## TBDs / open items
 
 - **Grooming session** — Ramesh asks whether a separate grooming session will be organized for the gap items. Pending.

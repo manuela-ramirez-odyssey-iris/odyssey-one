@@ -25,6 +25,51 @@ function dateInRange(iso: string | undefined, from?: string, to?: string): boole
 const oneOf = (values: string[] | undefined, v: string | undefined) =>
   !values?.length || values.includes(v ?? '')
 
+// Mock row assembly shared by list + tab counts. Overlay rows SHADOW base rows
+// with the same order number (a session draft saved over a generated Draft row
+// must not duplicate it — duplicate ids would also collide as TanStack row keys).
+function mockScopedRows(customerIds?: string[]): OrderListRow[] {
+  const overlayNumbers = new Set(overlayRows.map(r => r.orderNumber).filter(Boolean))
+  let rows = [
+    ...overlayRows,
+    ...(getAllOrders() as OrderListRow[]).filter(r => !overlayNumbers.has(r.orderNumber)),
+  ]
+  if (customerIds) {
+    const scope = new Set(customerIds)
+    rows = rows.filter(r => scope.has(r.customer))
+  }
+  return rows
+}
+
+/**
+ * Statuses the "Validation Errors" main tab filters to (display labels — the
+ * mock service matches labels; code→label mapping deferred, plan decision 8).
+ * Inferred from the Orders Tabs mock: the failure statuses are the "orders that
+ * need error validation".
+ */
+export const VALIDATION_ERROR_STATUSES = ['Planning Failed', 'Shipment Failed']
+
+export interface OrderTabCounts {
+  all: number
+  draft: number
+  validationErrors: number
+}
+
+/**
+ * Counts for the Orders main tabs (All / Draft / Validation Errors), scoped by
+ * the navbar customer selection — same semantics as getOrderList's customerIds.
+ * Mock-only: the LLD has no counts endpoint yet; live wiring lands with it.
+ */
+export async function getOrderTabCounts(customerIds?: string[]): Promise<OrderTabCounts> {
+  if (customerIds && customerIds.length === 0) return { all: 0, draft: 0, validationErrors: 0 }
+  const rows = mockScopedRows(customerIds)
+  return {
+    all: rows.length,
+    draft: rows.filter(r => r.orderStatus === 'Draft').length,
+    validationErrors: rows.filter(r => VALIDATION_ERROR_STATUSES.includes(r.orderStatus ?? '')).length,
+  }
+}
+
 /**
  * Order list. `customerIds` is the navbar-customer FIRST-order scope — the same
  * semantics gridService applies to Shipments (S79c decision 10): `undefined` =
@@ -47,19 +92,7 @@ export async function getOrderList(
     return apiPost<OrderListResponse>('/order-service/v3/order/list', body)
   }
 
-  // Overlay rows SHADOW base rows with the same order number (a session draft
-  // saved over a generated Draft row must not duplicate it — duplicate ids
-  // would also collide as TanStack row keys).
-  const overlayNumbers = new Set(overlayRows.map(r => r.orderNumber).filter(Boolean))
-  let rows = [
-    ...overlayRows,
-    ...(getAllOrders() as OrderListRow[]).filter(r => !overlayNumbers.has(r.orderNumber)),
-  ]
-
-  if (customerIds) {
-    const scope = new Set(customerIds)
-    rows = rows.filter(r => scope.has(r.customer))
-  }
+  let rows = mockScopedRows(customerIds)
 
   const f = request.filters
   if (f) {

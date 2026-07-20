@@ -1695,6 +1695,147 @@ input[type="date"].odyssey-date-input::-webkit-calendar-picker-indicator:hover {
   flex-shrink: 0;
 }
 
+/* ── Error-validation anatomy (Figma State=Error Validation, 2026-07-20) ── */
+
+.alert--validation {
+  align-items: flex-start;
+  padding: var(--spacing-3) var(--spacing-6) var(--spacing-3) var(--spacing-4);
+}
+
+.alert__body--validation {
+  align-items: flex-start;
+}
+
+.alert__validation-main {
+  display: flex;
+  flex: 1 0 0;
+  min-width: 0;
+  flex-direction: column;
+  /* header↔list spacing lives INSIDE the reveal (padding-top on the list) so
+     the collapsed state has no phantom gap */
+}
+
+.alert__validation-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-6);
+  width: 100%;
+  min-height: 32px; /* keeps the single-line header centered against the 32px icon */
+  cursor: pointer; /* the whole header toggles the list, not just the chevron */
+}
+
+.alert--docked .alert__validation-header {
+  cursor: default;
+}
+
+/* Expand/collapse reveal — the Accordion grid-rows 0fr→1fr pattern (animates
+   to natural height, no JS measuring). */
+.alert__reveal {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--transition-reveal);
+}
+
+.alert__reveal--open {
+  grid-template-rows: 1fr;
+}
+
+.alert__reveal-inner {
+  overflow: hidden;
+  min-height: 0;
+}
+
+.alert__validation-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-6);
+  flex-shrink: 0;
+}
+
+.alert__chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: transparent;
+  border: none;
+  color: currentColor;
+  cursor: pointer;
+}
+
+.alert__chevron-icon {
+  transition: transform var(--transition-fast);
+}
+
+.alert__chevron[aria-expanded='true'] .alert__chevron-icon {
+  transform: rotate(180deg);
+}
+
+.alert__error-list {
+  list-style: none;
+  margin: 0;
+  padding: var(--spacing-3) 0 0; /* header↔list gap, inside the reveal */
+  width: 100%;
+}
+
+.alert__error-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-6);
+  padding: var(--spacing-1) var(--spacing-12) var(--spacing-1) var(--spacing-3);
+  color: var(--text-error);
+  border-bottom: 1px solid var(--bittersweet-300);
+}
+
+.alert__error-row:last-child {
+  border-bottom: none;
+}
+
+.alert__error-reason {
+  padding: 0;
+  background: transparent;
+  border: none;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* Docked (sticky) morph — full-width squared bar; the consumer owns
+   position:sticky placement + the scroll trigger. */
+.alert--docked {
+  border-radius: 0;
+  align-items: center;
+  padding: var(--spacing-4) var(--spacing-6);
+}
+
+.alert__error-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.alert__nav-label {
+  text-decoration: underline;
+}
+
+.alert__nav-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: transparent;
+  border: none;
+  color: currentColor;
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.alert__nav-arrow:hover:not(:disabled) { opacity: 0.65; }
+.alert__nav-arrow:disabled { opacity: 0.35; cursor: default; }
+
 .alert__close {
   display: inline-flex;
   align-items: center;
@@ -4336,6 +4477,11 @@ button.breadcrumb__label:focus-visible {
   border: 1px solid var(--caribbean-green-100);
 }
 
+/* Error (Figma 4593:1014) — plain Bittersweet fill, no ring, lines unchanged */
+.step-indicator--error .step-indicator__circle {
+  background: var(--bittersweet-600);
+}
+
 /* === Accordion (molecule) — Figma 2850:612, normalized 2026-06-09 ===
    Expandable form-section card composing StepIndicator. The reveal animates
    grid-template-rows 0fr→1fr (animates to auto height, no JS measuring). */
@@ -4369,6 +4515,14 @@ button.breadcrumb__label:focus-visible {
   flex-direction: column;
   flex: 1;
   min-width: 0;
+}
+
+/* Title row (Figma TitleRow, added with Status=Error 2026-07-20) — heading +
+   optional error-count Badge */
+.accordion__title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
 }
 
 .accordion__title {
@@ -4562,6 +4716,8 @@ button.breadcrumb__label:focus-visible {
 
 @media (prefers-reduced-motion: reduce) {
   .accordion__reveal,
+  .alert__reveal,
+  .alert__chevron-icon,
   .accordion__chevron,
   .sub-accordion__reveal,
   .sub-accordion__chevron,

@@ -8,18 +8,21 @@ export const meta = {
   createdVersion: '0.2.0',
   figmaNode: '2909:13',
   codeConnect: 'packages/ui/src/StepIndicator.figma.tsx',
+  normalizing: true,
+  approved: true,
 }
 
 export const props = [
   { name: 'position', type: 'start|mid|end', desc: 'Which connector lines render: start = below only, mid = both, end = above only. Hidden lines keep their 16px slot (uniform 40×72). Default start.' },
-  { name: 'status', type: 'off|on', desc: 'off = pending (gray circle), on = validated (green circle + ring). The check shows in both. Default off.' },
+  { name: 'status', type: 'off|on|error', desc: 'off = pending (gray circle), on = validated (green circle + ring), error = validation failed (Bittersweet circle + octagon-x, no ring). Default off.' },
 ]
 
 export const tokens = [
   { token: '--deep-sea-neutral-300', resolves: 'Deep Sea Neutral/300', usage: 'connector lines + off circle' },
   { token: '--caribbean-green-600', resolves: 'Caribbean Green/600', usage: 'on circle fill' },
   { token: '--caribbean-green-100', resolves: 'Caribbean Green/100', usage: 'on circle ring (1px)' },
-  { token: '--white', resolves: 'White', usage: 'check icon (currentColor)' },
+  { token: '--bittersweet-600', resolves: 'Bittersweet/600', usage: 'error circle fill' },
+  { token: '--white', resolves: 'White', usage: 'check / octagon-x icon (currentColor)' },
   { token: '--radius-full', resolves: 'Radius/full', usage: 'circle' },
   { token: '--transition-base', resolves: '200ms ease', usage: 'off↔on tint' },
 ]
@@ -27,7 +30,8 @@ export const tokens = [
 const POSITIONS = ['start', 'mid', 'end']
 
 export default function StepIndicatorDemo() {
-  const [done, setDone] = useState([false, false, false])
+  const [steps, setSteps] = useState(['off', 'off', 'off'])
+  const NEXT = { off: 'on', on: 'error', error: 'off' }
 
   return (
     <div>
@@ -42,7 +46,7 @@ export default function StepIndicatorDemo() {
         <div className="ds-demo-row" style={{ alignItems: 'flex-start', gap: 'var(--spacing-8)' }}>
           {POSITIONS.map((pos) => (
             <div key={pos} style={{ display: 'flex', gap: 'var(--spacing-6)' }}>
-              {['off', 'on'].map((st) => (
+              {['off', 'on', 'error'].map((st) => (
                 <div key={st} style={{ textAlign: 'center' }}>
                   <StepIndicator position={pos} status={st} />
                   <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)', marginTop: 'var(--spacing-1)' }}>
@@ -56,20 +60,19 @@ export default function StepIndicatorDemo() {
       </div>
 
       <div className="ds-demo-section">
-        <h4 className="ds-demo-section__title">Stacked stepper — click a circle to toggle validation</h4>
+        <h4 className="ds-demo-section__title">Stacked stepper — click a circle to cycle off → on → error</h4>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-          {done.map((isDone, i) => (
+          {steps.map((st, i) => (
             <button
               key={i}
               type="button"
-              onClick={() => setDone((d) => d.map((v, j) => (j === i ? !v : v)))}
+              onClick={() => setSteps((d) => d.map((v, j) => (j === i ? NEXT[v] : v)))}
               style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'block' }}
-              aria-pressed={isDone}
-              aria-label={`Toggle step ${i + 1}`}
+              aria-label={`Cycle step ${i + 1} (currently ${st})`}
             >
               <StepIndicator
-                position={i === 0 ? 'start' : i === done.length - 1 ? 'end' : 'mid'}
-                status={isDone ? 'on' : 'off'}
+                position={i === 0 ? 'start' : i === steps.length - 1 ? 'end' : 'mid'}
+                status={st}
               />
             </button>
           ))}

@@ -2,11 +2,13 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Inbox, Plus } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
-import { Button, EmptyState, PageHeader } from '@odyssey/ui'
+import { Button, EmptyState, PageHeader, Tab } from '@odyssey/ui'
 import AppShell from '../../components/layout/AppShell'
 import OrdersToolbar from '../../components/orders/OrdersToolbar'
 import OrdersTable from '../../components/orders/OrdersTable'
 import { useOrderList } from '../../api/queries/useOrderList'
+import { useOrderTabCounts } from '../../api/queries/useOrderTabCounts'
+import { VALIDATION_ERROR_STATUSES } from '../../api/services/orderService'
 import { useCustomers } from '../../contexts/CustomersContext'
 import '../../components/orders/orders.css'
 
@@ -17,6 +19,15 @@ import '../../components/orders/orders.css'
  * instance). Mock-mode data layer shaped like POST /order-service/v3/order/list
  * (Phase-2 LLD) — live flip is an env var.
  */
+// Main tabs act as status filters (Shipments-pattern): All = unfiltered,
+// Draft = the Draft status, Validation Errors = the failure statuses (orders
+// needing error validation — VALIDATION_ERROR_STATUSES).
+const MAIN_TABS = [
+  { key: 'all', label: 'All', statuses: null, countKey: 'all' },
+  { key: 'draft', label: 'Draft', statuses: ['Draft'], countKey: 'draft' },
+  { key: 'validation-errors', label: 'Validation Errors', statuses: VALIDATION_ERROR_STATUSES, countKey: 'validationErrors' },
+]
+
 export default function OrdersRoute() {
   const navigate = useNavigate()
   // Navbar customer scope — same first-order filter the Shipments grid applies
@@ -25,11 +36,15 @@ export default function OrdersRoute() {
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 20 }) // pageIndex 0-based (TanStack)
   const [sortDirection, setSortDirection] = useState('desc') // newest-first proxy (A3/Q31)
   const [rowSelection, setRowSelection] = useState({})
+  // Main tabs (Orders Tabs mock) — status filters over the same list query.
+  const [activeTab, setActiveTab] = useState('all')
 
+  const tabStatuses = MAIN_TABS.find(t => t.key === activeTab)?.statuses
   const request = useMemo(() => ({
     pagination: { pageNumber: pagination.pageIndex + 1, pageSize: pagination.pageSize },
     sort: { field: 'orderNumber', direction: sortDirection },
-  }), [pagination, sortDirection])
+    ...(tabStatuses ? { filters: { orderStatuses: tabStatuses } } : {}),
+  }), [pagination, sortDirection, tabStatuses])
 
   // Reset to the first page when the customer scope changes (query identity
   // change — the Shipments-proven pattern).
@@ -39,6 +54,13 @@ export default function OrdersRoute() {
   }, [scopeKey])
 
   const { data, isPending, isError, isFetching, refetch } = useOrderList(request, selectedDataIds)
+  const { data: tabCounts } = useOrderTabCounts(selectedDataIds)
+
+  const handleTabSelect = (key) => {
+    if (key === activeTab) return
+    setActiveTab(key)
+    setPagination(p => ({ ...p, pageIndex: 0 }))
+  }
   // `isFetching` gates only the toolbar's sort toggle. It is intentionally NOT
   // threaded to the Paginator footer: the @odyssey/ui Paginator disables nav via
   // getCan{Previous,Next}Page(), and `placeholderData: keepPreviousData` keeps the
@@ -63,11 +85,24 @@ export default function OrdersRoute() {
   return (
     <AppShell>
       <div className="orders-page">
-        <PageHeader title="Orders">
+        {/* marginBottom 25 = the Shipments header→tabs gap (ShipmentsRoute) */}
+        <PageHeader title="Orders" style={{ marginBottom: 25 }}>
           <Button variant="primary" icon={<Plus {...ICON_MD} />} onClick={() => navigate('/orders/create')}>
             Create Order
           </Button>
         </PageHeader>
+
+        <div className="orders-tabs">
+          {MAIN_TABS.map(tab => (
+            <Tab
+              key={tab.key}
+              label={tab.label}
+              count={tabCounts?.[tab.countKey] ?? null}
+              current={activeTab === tab.key}
+              onClick={() => handleTabSelect(tab.key)}
+            />
+          ))}
+        </div>
 
         <OrdersToolbar
           totalCount={data?.totalCount}

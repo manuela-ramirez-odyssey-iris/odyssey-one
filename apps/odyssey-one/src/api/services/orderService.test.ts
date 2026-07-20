@@ -44,7 +44,7 @@ const STORE = [
 
 vi.mock('../../data/orders', () => ({ getAllOrders: () => STORE, getOrderEnrichment: () => null }))
 
-import { getOrderList, saveDraft, __resetOrderWriteState } from './orderService'
+import { getOrderList, getOrderTabCounts, saveDraft, __resetOrderWriteState } from './orderService'
 import { orderFormValuesSample } from '../fixtures/orderFormValues.sample'
 
 const page = (pageNumber = 1, pageSize = 20) => ({ pagination: { pageNumber, pageSize } })
@@ -142,6 +142,23 @@ describe('orderService.getOrderList (mock)', () => {
       expect(list.pagination.totalCount).toBe(5) // replaced, not appended
     } finally {
       __resetOrderWriteState()
+    }
+  })
+})
+
+describe('orderService.getOrderTabCounts (mock)', () => {
+  it('buckets All / Draft / Validation Errors, honors customer scope', async () => {
+    STORE.push(
+      mk('DDD100006', { orderStatus: 'Draft' }),
+      mk('EEE100007', { orderStatus: 'Shipment Failed' }),
+      mk('FFF100008', { customer: 'BASF_CHM_01', orderStatus: 'Planning Failed' }),
+    )
+    try {
+      expect(await getOrderTabCounts()).toEqual({ all: 8, draft: 1, validationErrors: 2 })
+      expect(await getOrderTabCounts(['ERCO_SYS_01'])).toEqual({ all: 5, draft: 1, validationErrors: 1 })
+      expect(await getOrderTabCounts([])).toEqual({ all: 0, draft: 0, validationErrors: 0 })
+    } finally {
+      STORE.splice(-3)
     }
   })
 })

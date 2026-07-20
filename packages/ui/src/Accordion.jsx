@@ -1,6 +1,7 @@
 import { useId, useState } from 'react'
-import { ChevronDown } from 'lucide-react'
-import { ICON_LG } from '@odyssey/tokens'
+import { Check, ChevronDown, OctagonX } from 'lucide-react'
+import { ICON_LG, ICON_MD } from '@odyssey/tokens'
+import Badge from './Badge.jsx'
 import StepIndicator from './StepIndicator.jsx'
 
 /**
@@ -14,7 +15,11 @@ import StepIndicator from './StepIndicator.jsx'
  * line — they get bottom padding instead of the stub.
  *
  * Validation is consumer-driven: flip `status` to 'on' when the section's
- * content is correctly filled. The Accordion only reflects it.
+ * content is correctly filled, or to 'error' when at least one field inside
+ * has an error. The Accordion only reflects it. `errorCount` drives a Badge
+ * next to the title (Figma 4593:787): status='error' → red "N Errors";
+ * status='on' → green "Completed · N Errors validated" (all errors solved —
+ * Figma "Show validated badge" BOOLEAN). errorCount 0/omitted = no badge.
  *
  * Expansion is uncontrolled by default (`defaultExpanded`); pass `expanded`
  * (+ `onToggle`) to control it. The reveal animates via grid-template-rows
@@ -27,6 +32,7 @@ import StepIndicator from './StepIndicator.jsx'
 export default function Accordion({
   position = 'start',
   status = 'off',
+  errorCount = 0,
   title,
   description,
   expanded,
@@ -60,7 +66,19 @@ export default function Accordion({
       >
         <StepIndicator position={position} status={status} />
         <span className="accordion__text">
-          <span className="accordion__title text-heading-lg-semibold">{title}</span>
+          <span className="accordion__title-row">
+            <span className="accordion__title text-heading-lg-semibold">{title}</span>
+            {status === 'error' && errorCount > 0 && (
+              <Badge variant="red" leftIcon={<OctagonX {...ICON_MD} />}>
+                {errorCount} {errorCount === 1 ? 'Error' : 'Errors'}
+              </Badge>
+            )}
+            {status === 'on' && errorCount > 0 && (
+              <Badge variant="green" leftIcon={<Check {...ICON_MD} />}>
+                Completed · {errorCount} {errorCount === 1 ? 'Error' : 'Errors'} validated
+              </Badge>
+            )}
+          </span>
           {description && (
             <span className="accordion__description text-label-sm-regular">{description}</span>
           )}

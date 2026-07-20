@@ -12,3 +12,4 @@ shipments-documentation/Documentation/converted/
 .env
 .env.local
 .env.*.local
+tools/.connect-publish.last

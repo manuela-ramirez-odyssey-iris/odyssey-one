@@ -2,6 +2,21 @@
 
 > **Note:** Sessions ≤81 are condensed to one-line summaries. Full narratives archived at `vault/99-archive/progress-full-archive-2026-07-14.md` (and in git history). Component detail lives in `playground/normalization-tracker.md` + the DSM route + vault decision logs.
 
+## Session 90 — July 20, 2026
+
+**Orders main tabs shipped + the S90 error-state component batch (StepIndicator / Accordion / Alert) through the full /normalize update cycle — Figma-first, all three APPROVED (GATE B), parked pre-wiring/pre-port awaiting stakeholder feedback.** Tests: app **503/503** (+1), tools **65/65** (+1). Nothing deployed; both repos committed (Angular local-only).
+
+- **Decision: Shipments DataTable `sortable` stays OFF** (string sort would break date columns; option 3 — per-column comparators — is the only correct "on" and costs a lib cycle nobody asked for yet).
+- **Orders main tabs (ORD-03):** processed the `Orders Tabs.png` inbox mock → three underline `Tab`s with count chips (All / Draft / Validation Errors) above the toolbar, Shipments-pattern. Tabs feed the existing `filters.orderStatuses` (no service filter change needed); new `getOrderTabCounts` (customer-scoped, overlay-aware, mock-only) + `useOrderTabCounts` hook; `mockScopedRows` extraction; pagination reset on tab switch. **Validation Errors = `['Planning Failed','Shipment Failed']` (`VALIDATION_ERROR_STATUSES`) — inference from the mock's "Rating/Routing Failed" badges, flagged in ORD-03 to confirm with Ramesh/Efrain.** Header→tabs gap matched to Shipments (`marginBottom: 25` inline, same structure). Verified live via CDP: All 829 → Draft 21 → Validation Errors 252, each matching its chip. Mock filed to `vault/10-domains/orders/screenshots/`.
+- **`dsm-flags --demote`** (S87 Tier-3 item, built exactly when needed): removes `approved`/`ported`, restores `normalizing: true` in BOTH DSM metas — the modification-reset is no longer hand-edited. +1 test.
+- **StepIndicator `status="error"`** (Figma set 2909:13 → 9 variants): Bittersweet/600 circle + white octagon-x (lg), no ring, connector lines untouched. Figma masters extended from Efrain's reference frames (bound fills copied, not re-created).
+- **Accordion error/validated badges** (set 2850:612 → 18 variants + `Show validated badge` BOOLEAN, default off): new `errorCount` prop — `status="error"` → red "N Errors" Badge (octagon-x md); `status="on"` → green "Completed · N Errors validated" (check md; only when all errors solved). One prop drives both; 0/omitted = no badge. New `.accordion__title-row` (gap Spacing/3); `status` was already forwarded to StepIndicator so `error` flowed through free. Zero Badge-component changes.
+- **Alert error-validation anatomy** (set 2569:1841 → 7 variants via a new `Layout` axis {Default, Expanded, Sticky}; existing 4 message variants auto-assigned `Layout=Default`, untouched): `errors=[{field, reason, resolved?}]` activates it — header "N Errors: Validation Required" (N = unresolved) + `contextText` ("ORD-D78120458 · Integrated from ACME"), Validate Errors ButtonLink, whole-header chevron toggle with the Accordion grid-rows reveal transition; expanded per-field list (`--text-error` rows, `--bittersweet-300` dividers — that token's FIRST consumer); `docked` sticky morph = full-width squared bar, "resolved out of total errors resolved", ← Error i/N → stepper over open errors. **One `onErrorNav(index)` contract** (original-array indices) for every jump path — Validate Errors (first open error), row click, docked arrows; the consumer owns position:sticky, the scroll trigger, and autoscroll-to-red-field. Resolution lives per-error (`resolved: true` drops from count + rows; docked counts derive). Demo playground: "errored fields" pool slicer + resolvedCount + auto-dock-on-nav emulation. Figma sticky variant built by reconfiguring the ButtonLink master (lead arrow-left md + label override — instance text overrides beat TEXT props, learned live).
+- **Lifecycle:** all three demoted → re-approved via `dsm-flags` (React APPROVED ×3); Angular twins flagged NORMALIZING (metas only — twins catch up at the next batch port). Code Connect updated (Status=Error enums; Alert validation documented as data-driven). User published the Figma library changes.
+- **PARKED (needs stakeholder feedback before continuing):** create-order page wiring (per-section `errorCount` on Accordions, validation Alert with real field errors, scroll-triggered docking + autoscroll) and the S90 Angular batch port.
+
+---
+
 ## Session 89 — July 17, 2026
 
 **The field-components batch: QA'd, hard-bug-fixed, feature-extended, and RELEASED as `@oneodyssey/ui` 0.8.0 — both repos pushed, Angular PR #12 open.** Session opened on the in-flight uncommitted batch (TimePicker + MultiSelect new; CalendarPicker/DatePicker/`useFieldPopover`; SearchField typeahead; FieldSearchResults/MatchSimpleRow/FormField/DataTable/ShipmentsBar updates — built pre-session in both repos, unwrapped). Verified it end-to-end, then spent the session on an intensive interactive QA loop with the user across both DSMs. Tests: React **490 → 502/502**, Angular lib **827 → 904/904**, app **51 → 52/52**.
@@ -28,33 +43,21 @@
 
 ---
 
-## Session 87 — July 14, 2026
+## What's Next (S91)
 
-**Audit session — reviewed the S85 process automation (read-only; no code changes).** Fanned out a 3-cluster subagent audit of the 10 normalize/port/release scripts against the two routine docs (`figma-component-routine.md`, `angular-port-routine.md`) + the `/wrap` skill, asking the two questions the user posed: did automating steps break a judgment/approval gate (over-automation), and did we leave toil un-automated. **Verdict: no gate was broken.** Every script is advisory (`token-check` / `port-readiness` / `verify-all`), emits inert `TODO`-marked skeletons (`scaffold-*`), or stops cleanly before Angular push / npm publish (`release` / `wrap-commit` / `connect-publish`); the asymmetric badge model + `createdVersion`-only-if-new are encoded correctly; everything with a test is green (51/51). The real weakness is *under*-guarding, not over-reach. Confirmed live:
-
-- **`wrap-commit.sh:56` hardcodes the retired `Claude Fable 5` co-author trailer** — every scripted `/wrap` regresses it (should be the active model). *This wrap was committed manually with the correct trailer to avoid re-introducing the exact bug we just found.*
-- **`token-check.mjs` mislabels a bare font-weight** — `node tools/token-check.mjs '{"w":"600"}'` → "LEGAL-FIGMA-ONLY, mirror into tokens.css" while `--font-weight-semibold: 600` already exists (`tokens.css:218`); the plain-number branch never consults `weightVars`. One-line fix. And it has **no test** — the most branch-heavy pure-logic script in the set.
-- **`release.mjs` has no test** despite mutating 3 files incl. two external-format files in the Angular repo (`package.json` version + `CHANGELOG` insert) by string surgery — the clearest safety-net gap; the pure CHANGELOG/bucket logic is trivially fixture-testable.
-- **`PORTING` badge is half-built** — the React DSM renders it on `meta.porting` (`DesignSystem.jsx:127`) and the routine documents APPROVED→PORTING→PORTED, but no tool sets `porting` and `release` doesn't clear it (cleanup blind spot). Currently unreachable (no demo carries it). Decision: wire into `dsm-flags` or delete the badge.
-- **`scaffold-port.mjs insertAppModule`** is the least-guarded of the 4 wiring edits (no marker-idempotency on the imports-array insert; throws if the `} from 'odyssey-ui';` anchor is missing; `--force` can double-insert). The other 3 inserts are idempotent + verified against real files.
-- **`demoPrefix` collisions** (first-letter-per-kebab-segment → `sb` / `b` / `mr` / `fs` / `am` / `a` / `t` clashes across ~60 demos) — not a runtime bug (Angular view-encapsulation scopes the classes) but makes demo files look interchangeable during the two-window review; seed the prefix from the full kebab.
-- Minor: `verify-all` stat regexes are fragile (false-red on a 600s per-step timeout or an "error" substring in a passing build); `.connect-publish.last` isn't gitignored (`wrap-commit -A` would stage it); `scaffold-normalize --force` only half-guards (re-run appends a duplicate CSS block); dead string-prefix branch + bare `Inter` false-UNKNOWN in `token-check`.
-
-**Missed-automation opportunities** (cheap, data already in hand): a `dsm-flags --demote` action (the modification-reset — clear approved/ported, keep normalizing, both DSMs — is the one 100%-manual lifecycle step, easiest to forget); turn `port-readiness`'s dependency-order *print* into an `existsSync` **check** (catches the PageHeader→ButtonToggle trap mechanically); auto-stamp `figma-link.md` `last_synced` at Phase 5; generate the `normalization-tracker.md` rows from `scaffold` / `release`. Correctly left manual (good boundaries): the token-mirror action stays human-gated, `domain-usage` regen, Figma-page placement.
-
----
-
-## What's Next (S90)
-
-1. **PR #12 watch** (0.8.0 batch) — merge → Cognizant publishes `@oneodyssey/ui@0.8.0` → batch-branch cleanup → `domain-usage.json` regen. (PR #11 presumably absorbed — verify its state while there.)
-2. **Fix the 3 real API gaps** (the only demo-parity reds): checkbox `defaultChecked`, navbar `trailRef`, trail-nav `onMenuClick`.
-3. **S87 automation punch-list, Tier 3+4** (unchanged from S88 carry): `dsm-flags --demote`, `PORTING` badge decision (`DesignSystem.jsx:127`), `port-readiness` `existsSync` check, auto-stamp `figma-link.md` `last_synced`; gitignore `.connect-publish.last`, `verify-all` stat regexes, `demoPrefix` widening, `insertAppModule` anchor guard. **New Tier-4 item: `wrap-commit.sh` trailer is stale AGAIN (says Opus 4.8, session ran on Fable 5) — exactly the ceiling its `ponytail:` comment predicted; consider deriving from env or dropping the trailer.**
-4. Decide Shipments `sortable` on/off for the demo build; date-column sort parsing if it matters.
-5. Carried: MiniMultiselect (blocked on Efrain), ActionMenu cell-click flicker, stickyTop measured-toolbar, 9.3MB chunk code-split, `.worktrees` disk cleanup (~430MB, confirm dead first), `cell-tab-mapping.xlsx.zip` + `~$cell-tab-mapping.xlsx` junk in repo root (confirm disposable), React MatchSimpleRow row-height ~51px vs Angular 56px cosmetic diff (flagged during lazy-load parity check).
+1. **Home domain updates** (user-scoped next session).
+2. **S90 error-state batch — UNPARK when feedback lands:** (a) wire the create-order page (per-section `errorCount` Accordions, validation Alert with real field errors, scroll-triggered `docked` + `onErrorNav` autoscroll); (b) batch approval → Angular port of StepIndicator + Accordion + Alert (twins are flagged NORMALIZING, metas committed local-only on `port/s76-search-batch`). Confirm the Validation Errors status mapping (`Planning Failed`/`Shipment Failed`) with Ramesh/Efrain — flagged in ORD-03.
+3. **PR #12 watch** (0.8.0 batch) — merge → Cognizant publishes `@oneodyssey/ui@0.8.0` → batch-branch cleanup → `domain-usage.json` regen. (PR #11 presumably absorbed — verify its state while there.)
+4. **Fix the 3 real API gaps** (the only demo-parity reds): checkbox `defaultChecked`, navbar `trailRef`, trail-nav `onMenuClick`.
+5. **S87 punch-list remainder** (`--demote` DONE in S90): `PORTING` badge decision (`DesignSystem.jsx:127`), `port-readiness` `existsSync` check, auto-stamp `figma-link.md` `last_synced`; gitignore `.connect-publish.last`, `verify-all` stat regexes, `demoPrefix` widening, `insertAppModule` anchor guard, `wrap-commit.sh` stale trailer (derive from env or drop).
+6. Carried: MiniMultiselect (blocked on Efrain), ActionMenu cell-click flicker, stickyTop measured-toolbar, 9.3MB chunk code-split, `.worktrees` disk cleanup (~430MB, confirm dead first), `cell-tab-mapping.xlsx.zip` + `~$cell-tab-mapping.xlsx` junk in repo root (confirm disposable), React MatchSimpleRow row-height ~51px vs Angular 56px cosmetic diff.
 
 ---
 
 # Session Index (condensed)
+
+## Session 87 — July 14, 2026
+**Automation audit (read-only) — reviewed the 10 S85 normalize/port/release scripts vs the routine docs + /wrap skill.** Verdict: no approval gate broken (all scripts advisory or stop before push/publish); real weakness = under-guarding. Findings became the Tier 1–4 punch-list: stale `wrap-commit.sh` trailer, `token-check` bare font-weight bug, untested `release.mjs`, half-built PORTING badge, `insertAppModule`/`demoPrefix`/`verify-all` fragilities, and the missed `dsm-flags --demote` (built S90). Tiers 1+2 applied in S88.
 
 ## Session 86 — July 14, 2026
 **Maintenance session — progress.md compaction.** 7,088 → ~330 lines: sessions ≤81 condensed into this index, foundations condensed, full narrative archived at `vault/99-archive/progress-full-archive-2026-07-14.md`. `/wrap` gained the rolling-compaction rule (3 newest sessions verbose). No code/library changes.
