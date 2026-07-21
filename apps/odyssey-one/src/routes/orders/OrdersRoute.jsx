@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { Inbox, Plus } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
 import { Button, EmptyState, PageHeader, Tab } from '@odyssey/ui'
@@ -30,6 +30,8 @@ const MAIN_TABS = [
 
 export default function OrdersRoute() {
   const navigate = useNavigate()
+  // Tab deep-link (S91 Home widgets): navigate('/orders', { state: { tab } }).
+  const location = useLocation()
   // Navbar customer scope — same first-order filter the Shipments grid applies
   // (CustomersContext.selectedDataIds → gridService customerIds).
   const { selectedDataIds } = useCustomers()
@@ -37,7 +39,7 @@ export default function OrdersRoute() {
   const [sortDirection, setSortDirection] = useState('desc') // newest-first proxy (A3/Q31)
   const [rowSelection, setRowSelection] = useState({})
   // Main tabs (Orders Tabs mock) — status filters over the same list query.
-  const [activeTab, setActiveTab] = useState('all')
+  const [activeTab, setActiveTab] = useState(() => location.state?.tab ?? 'all')
 
   const tabStatuses = MAIN_TABS.find(t => t.key === activeTab)?.statuses
   const request = useMemo(() => ({

@@ -125,6 +125,14 @@
   padding-bottom: var(--spacing-8);
 }
 
+/* Desktop cap (S91): foreground content maxes at 1800px and centers once the
+   window grows past it. Applied to the children — NOT .home-content itself —
+   so the absolutely-positioned hero background stays full-bleed. */
+.home-content > :not(.home-background) {
+  max-width: 1800px;
+  margin-inline: auto;
+}
+
 /* === Pinned Edit Dashboard View action =================================
    Right-aligned button pulled up (negative margin-top) to sit on the "Home"
    PageHeader row; the "Last update" slug stays on the Welcome row below as
@@ -205,7 +213,9 @@
   margin-top: var(--spacing-6);
 }
 
-/* Home dashboard grid — 6 equal columns, cells ≥ 170×184, 20px gap.
+/* Home dashboard grid — 6 equal columns (8 from 1440px content width — the
+   CSS vars are overridden inline on .home-content by Home.jsx's resize
+   observer, which also re-packs placements), cells ≥ 170×184, 20px gap.
    Widget variants span: 1x = 1×1, 2x = 2×1, 3x / 3xChart / 3xCta = 2×2. */
 .home-widget-grid {
   display: grid;
@@ -226,6 +236,12 @@
   width: 100%;
 }
 .home-widget-cell--1x { grid-column: span 1; grid-row: span 1; }
+/* 1x headers carry the "Domain / Tab" title in the xs label style — wrap
+   instead of ellipsizing (Home-scoped: the @odyssey/ui Widget spec keeps
+   single-line ellipsis elsewhere). */
+.home-widget-cell--1x .widget__title {
+  white-space: normal;
+}
 .home-widget-cell--2x { grid-column: span 2; grid-row: span 1; }
 .home-widget-cell--3x,
 .home-widget-cell--3xChart,

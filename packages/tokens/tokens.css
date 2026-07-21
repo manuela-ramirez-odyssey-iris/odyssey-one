@@ -241,7 +241,8 @@
   /* --- Home Widget Grid ---
      6-column grid for the Home dashboard. Each cell ≥ 170×184; 20px gap (= --spacing-5).
      Widget variants span 1×1 (1x) / 2×1 (2x) / 2×2 (3x, 3xChart).
-     Kept as separate tokens so a future responsive pass can redefine them per breakpoint. */
+     Separate tokens on purpose: Home.jsx overrides both inline on .home-content
+     at ≥1440px content width (8 cols, 150px floor — the S91 responsive pass). */
   --home-grid-columns: 6;
   --home-grid-col-min-width: 170px;
   --home-grid-row-min-height: 184px;

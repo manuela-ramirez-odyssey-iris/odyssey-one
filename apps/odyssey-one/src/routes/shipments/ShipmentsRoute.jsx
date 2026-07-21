@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useRef } from 'react'
+import { useLocation } from 'react-router-dom'
 import AppShell from '../../components/layout/AppShell'
 import ShipmentsPanelTabs from '../../components/shipments/ShipmentsPanelTabs'
 import TableControls from '../../components/shipments/TableControls'
@@ -28,8 +29,11 @@ function ShipmentsRoute() {
   // Cell→tab mapping (S82): { key } token minted per qualifying cell click,
   // consumed by BottomBar to land the detail bar on the mapped tab.
   const [requestedTab, setRequestedTab] = useState(null)
-  const [activePanel, setActivePanel] = useState('exceptions')
-  const [activeTab, setActiveTab] = useState('all')
+  // Panel/tab deep-link (S91 Home widgets): navigate('/shipments',
+  // { state: { panel, tab } }) lands directly on that panel + category tab.
+  const location = useLocation()
+  const [activePanel, setActivePanel] = useState(() => location.state?.panel ?? 'exceptions')
+  const [activeTab, setActiveTab] = useState(() => location.state?.tab ?? 'all')
   // Committed GlobalSearch criteria — { chips, text } or null (S79c decision 7).
   // Set only by an explicit commit in the navbar search (Show all / Enter);
   // cleared only by an explicit Clear all. Feeds listParams.searchCriteria AND

@@ -2,6 +2,19 @@
 
 > **Note:** Sessions ≤81 are condensed to one-line summaries. Full narratives archived at `vault/99-archive/progress-full-archive-2026-07-14.md` (and in git history). Component detail lives in `playground/normalization-tracker.md` + the DSM route + vault decision logs.
 
+## Session 91 — July 20, 2026
+
+**Home domain desktop pass + the tab-widget showcase, iterated live with the user and DEPLOYED (odyssey-one-stage.vercel.app).** Tests app **503/503** (unchanged). React repo only — no Angular, no library component changes. Uncommitted until this wrap.
+
+- **Responsive grid:** Home foreground content caps at **1800px and centers** past it (one CSS rule on `.home-content`'s children — the hero background stays full-bleed). Grid flips **6 → 8 tracks when `.home-content` itself reaches 1440px** (user-corrected twice: content width, NOT viewport): a `ResizeObserver` is the single source of truth, driving both the inline CSS vars and the module `GRID_COLS` the packing math reads, then re-packing every section in reading order. 8-col mode drops the track floor to 0 (8×170 + gaps > 1440 → pure 1fr shares, no overflow at the threshold; verified 6 tracks @1439px content / 8 @1440px).
+- **Default showcase rebuilt** (one "Overview" section, 12 widgets, 23 cells → 4 full rows @6 cols / 3 @8 cols with a single trailing empty cell): Exceptions 3xChart (5 real PANEL_CONFIG category rows) · quick-actions CTA · Orders All 2x · Tracking 3xChart (seeded after orders-all so it lands at the END — user request) · Orders Draft + Validation Errors 1x · Monitoring total 2x · five Monitoring category 1x (Hold/Consolidation/Tender Sent/SpotBid/Approved). **PGI/PGR defined but unplaced** ("we have nothing in PGI/PGR"). The seed order is load-bearing — documented in the `initialSections` comment.
+- **Tab deep-linking (new):** `OrdersRoute` + `ShipmentsRoute` seed tab/panel state from `location.state` (`{tab}` / `{panel, tab}`); `widgetGoToPaths` accepts `{path, state}`; chart rows carry `nav` descriptors wired to `navigate()` at init. **Bug found post-deploy: duplicate keys in `widgetGoToPaths`** — legacy `'shipments-monitoring': '/shipments'` entries silently overrode the state-carrying ones (last key wins) → "Go to Monitoring" landed on Exceptions. Deduped + full link audit; every jump verified live via CDP (Draft tab, Monitoring panel, category tabs, exceptions row → Date Issues tab).
+- **"Domain / Tab" header convention** (rule iterated with the user, codified in the `widgetTitle` helper comment): the slash is **reserved for widgets whose content nests inside that tab** (chart rows = sub-tabs, or a 1x whose label is a leaf under it — "Shipments / Monitoring" + label Hold); a widget targeting a leaf tab already named by its label, or an All/Total, keeps a plain domain title. Tab part renders at `--text-tertiary` (DSN-500 — user toned it down from 700). Swept ALL widgets incl. the catalog (every em-dash title → slash format: Tracking / Load Status, Orders / Fulfillment, Carriers / Performance, …). **1x titles wrap instead of ellipsizing — Home-scoped CSS** (`.home-widget-cell--1x .widget__title`), deliberately NOT a @odyssey/ui Widget spec change (flagged; Figma-first cycle if it should become one).
+- **Widget data wired to the domains** (user: "they need to match, visible data comes from selected customers"): one effect joins the SAME customer-scoped hooks the routes use — `useOrderTabCounts(selectedDataIds)` for the Orders trio, `useCategoryCounts(panel, …, selectedDataIds)` ×3 for exceptions/monitoring/pgipgr (rows join counts on their `nav.state.tab` key; percentages + chart segments recomputed; Monitoring ring = real share of all shipment rows). Verified numbers match the routes' own tab badges (Exceptions 112, Monitoring 245, Tender Sent 60). CTA "Go to Create a New Order" now → `/orders/create`.
+- **Ops:** ~5 prod deploys via CLI along the iteration. One `npx vercel --prod` accidentally ran from `apps/` and auto-created a stray "apps" Vercel project — deleted (project + local `.vercel` link); deploy always from repo root.
+
+---
+
 ## Session 90 — July 20, 2026
 
 **Orders main tabs shipped + the S90 error-state component batch (StepIndicator / Accordion / Alert) through the full /normalize update cycle — Figma-first, all three APPROVED (GATE B), parked pre-wiring/pre-port awaiting stakeholder feedback.** Tests: app **503/503** (+1), tools **65/65** (+1). Nothing deployed; both repos committed (Angular local-only).
@@ -31,30 +44,20 @@
 
 ---
 
-## Session 88 — July 15, 2026
+## What's Next (S92)
 
-**Applied Tier 1 + Tier 2 of the S87 automation punch-list (React tooling only — no Angular, no lib component change).** First re-verified the audit findings live against the actual scripts (user's concern: the S87 wrap autocompacted mid-analysis) — every finding held up unchanged, so the compaction lost nothing. Then fixed the two correctness bugs and closed the two most dangerous test gaps. Tool tests **51 → 64/64** (`node --test tools/*.test.mjs`). Nothing else touched.
-
-- **Tier 1 (silently-wrong-every-run):**
-  - `tools/wrap-commit.sh:56` — co-author trailer `Claude Fable 5` (retired) → `Claude Opus 4.8 (1M context)`, plus a `ponytail:` marker naming the ceiling (no reliable model-name env source in a bash script → it must be hand-updated on model change; that's exactly why it went stale).
-  - `tools/token-check.mjs` — bare font-weight bug: the px/bare-number branch checked `pxVars` + `figmaNums` but never `weightVars`, so `{"w":"600"}` mislabelled LEGAL-FIGMA-ONLY ("mirror into tokens.css") even though `--font-weight-semibold: 600` already exists (600 is also a Figma primitive → `figmaNums` won the race). Now checks `weightVars` first → LEGAL `--font-weight-semibold`. CLI output otherwise unchanged.
-- **Tier 2 (first tests for the untested file-mutating scripts):** both `token-check.mjs` and `release.mjs` executed their entire body at import (arg-parse, and for `release` **file writes**), so importing them for tests would have fired the CLI. Guarded both behind `process.argv[1] === fileURLToPath(import.meta.url)` and exported the pure logic. For `release`, extracted the two risky external-format string-surgery ops — `bumpPkgVersion` (package.json version) and `insertChangelogSection` (CHANGELOG insert-above-top + dup/anchor guards) — out of the CLI into pure exports. New: `token-check.test.mjs` (6 tests incl. the S87 regression guard) + `release.test.mjs` (7 tests: CHANGELOG bucketing/insert/dup/anchor + pkg bump). `dsm-flags` untouched (already 51 green).
-- **Deferred to S89:** Tier 3 — `dsm-flags --demote` (the modification-reset is the one 100%-manual lifecycle step), the `PORTING` badge decision (wire into `dsm-flags` vs delete the unreachable render at `DesignSystem.jsx:127`), `port-readiness` dep-order `existsSync` check; Tier 4 hygiene — gitignore `.connect-publish.last`, `verify-all` fragile stat regexes, widen `demoPrefix`, `scaffold-port insertAppModule` anchor guard.
-
----
-
-## What's Next (S91)
-
-1. **Home domain updates** (user-scoped next session).
-2. **S90 error-state batch — UNPARK when feedback lands:** (a) wire the create-order page (per-section `errorCount` Accordions, validation Alert with real field errors, scroll-triggered `docked` + `onErrorNav` autoscroll); (b) batch approval → Angular port of StepIndicator + Accordion + Alert (twins are flagged NORMALIZING, metas committed local-only on `port/s76-search-batch`). Confirm the Validation Errors status mapping (`Planning Failed`/`Shipment Failed`) with Ramesh/Efrain — flagged in ORD-03.
-3. **PR #12 watch** (0.8.0 batch) — merge → Cognizant publishes `@oneodyssey/ui@0.8.0` → batch-branch cleanup → `domain-usage.json` regen. (PR #11 presumably absorbed — verify its state while there.)
-4. **Fix the 3 real API gaps** (the only demo-parity reds): checkbox `defaultChecked`, navbar `trailRef`, trail-nav `onMenuClick`.
-5. **S87 punch-list remainder** (`--demote` DONE in S90): `PORTING` badge decision (`DesignSystem.jsx:127`), `port-readiness` `existsSync` check, auto-stamp `figma-link.md` `last_synced`; gitignore `.connect-publish.last`, `verify-all` stat regexes, `demoPrefix` widening, `insertAppModule` anchor guard, `wrap-commit.sh` stale trailer (derive from env or drop).
-6. Carried: MiniMultiselect (blocked on Efrain), ActionMenu cell-click flicker, stickyTop measured-toolbar, 9.3MB chunk code-split, `.worktrees` disk cleanup (~430MB, confirm dead first), `cell-tab-mapping.xlsx.zip` + `~$cell-tab-mapping.xlsx` junk in repo root (confirm disposable), React MatchSimpleRow row-height ~51px vs Angular 56px cosmetic diff.
+1. **S90 error-state batch — UNPARK when feedback lands:** (a) wire the create-order page (per-section `errorCount` Accordions, validation Alert with real field errors, scroll-triggered `docked` + `onErrorNav` autoscroll); (b) batch approval → Angular port of StepIndicator + Accordion + Alert (twins are flagged NORMALIZING, metas committed local-only on `port/s76-search-batch`). Confirm the Validation Errors status mapping (`Planning Failed`/`Shipment Failed`) with Ramesh/Efrain — flagged in ORD-03.
+2. **PR #12 watch** (0.8.0 batch) — merge → Cognizant publishes `@oneodyssey/ui@0.8.0` → batch-branch cleanup → `domain-usage.json` regen. (PR #11 presumably absorbed — verify its state while there.)
+3. **Fix the 3 real API gaps** (the only demo-parity reds): checkbox `defaultChecked`, navbar `trailRef`, trail-nav `onMenuClick`.
+4. **S87 punch-list remainder** (`--demote` DONE in S90): `PORTING` badge decision (`DesignSystem.jsx:127`), `port-readiness` `existsSync` check, auto-stamp `figma-link.md` `last_synced`; gitignore `.connect-publish.last`, `verify-all` stat regexes, `demoPrefix` widening, `insertAppModule` anchor guard, `wrap-commit.sh` stale trailer (derive from env or drop).
+5. Carried: Home 1x-title wrap → possible @odyssey/ui Widget spec change (Figma-first cycle if Manuela wants it canonical), MiniMultiselect (blocked on Efrain), ActionMenu cell-click flicker, stickyTop measured-toolbar, 9.3MB chunk code-split, `.worktrees` disk cleanup (~430MB, confirm dead first), `cell-tab-mapping.xlsx.zip` + `~$cell-tab-mapping.xlsx` junk in repo root (confirm disposable), React MatchSimpleRow row-height ~51px vs Angular 56px cosmetic diff.
 
 ---
 
 # Session Index (condensed)
+
+## Session 88 — July 15, 2026
+**Applied Tier 1 + 2 of the S87 automation punch-list (React tooling only).** Re-verified the S87 audit findings live (post-autocompact) — all held. Tier 1: `wrap-commit.sh` stale co-author trailer fixed; `token-check.mjs` bare font-weight bug (weightVars now checked before figmaNums → `600` correctly maps to `--font-weight-semibold`). Tier 2: CLI-guarded `token-check`/`release` behind `process.argv[1]` so importing them can't fire file writes, extracted `bumpPkgVersion` + `insertChangelogSection` as pure exports, +13 tests (tools 51 → 64/64). Tier 3/4 deferred (S90 built `--demote`).
 
 ## Session 87 — July 14, 2026
 **Automation audit (read-only) — reviewed the 10 S85 normalize/port/release scripts vs the routine docs + /wrap skill.** Verdict: no approval gate broken (all scripts advisory or stop before push/publish); real weakness = under-guarding. Findings became the Tier 1–4 punch-list: stale `wrap-commit.sh` trailer, `token-check` bare font-weight bug, untested `release.mjs`, half-built PORTING badge, `insertAppModule`/`demoPrefix`/`verify-all` fragilities, and the missed `dsm-flags --demote` (built S90). Tiers 1+2 applied in S88.

@@ -49,10 +49,23 @@ import AppShell from '../components/layout/AppShell'
 import { useEditMode } from '../contexts/EditModeContext.jsx'
 import { useCustomers } from '../contexts/CustomersContext.jsx'
 import { useTrackingLoadStatistics } from '../hooks/useTrackingLoadStatistics'
+import { useOrderTabCounts } from '../api/queries/useOrderTabCounts'
+import { useCategoryCounts } from '../api/queries/useCategoryCounts'
 import { HERO_IMAGES, HERO_ROTATE_MS, HERO_INITIAL_INDEX, heroPosition } from '../heroImages'
 import './Home.css'
 
 const domainIcon = <TriangleAlert {...ICON_LG} />
+
+// "Domain / Tab" widget header — the tab part drops to --text-tertiary
+// (DSN-500). Reserved for widgets whose CONTENT nests inside that tab (chart
+// rows = sub-tabs, or a 1x whose label is a leaf under it). A widget that
+// targets a single tab already named by its label (Orders/Draft) — or an
+// All/Total — keeps a plain domain title; the slash would be redundant.
+const widgetTitle = (domain, tab) => (
+  <>
+    {domain} <span style={{ color: 'var(--text-tertiary)' }}>/ {tab}</span>
+  </>
+)
 
 const handleRow = (label) => () => console.log('drill into', label)
 
@@ -114,7 +127,20 @@ function previewWidgetProps(variant, itemLabel) {
   return base
 }
 
+// Widget "Go to" targets — a plain path, or { path, state } when the target
+// route should land on a specific tab/panel (OrdersRoute + ShipmentsRoute read
+// location.state on mount — see those routes).
 const widgetGoToPaths = {
+  'orders-all': '/orders',
+  'orders-draft': { path: '/orders', state: { tab: 'draft' } },
+  'orders-validation-errors': { path: '/orders', state: { tab: 'validation-errors' } },
+  'shipments-monitoring': { path: '/shipments', state: { panel: 'monitoring' } },
+  'monitoring-hold': { path: '/shipments', state: { panel: 'monitoring', tab: 'hold' } },
+  'monitoring-consolidation': { path: '/shipments', state: { panel: 'monitoring', tab: 'consolidation' } },
+  'monitoring-tender-sent': { path: '/shipments', state: { panel: 'monitoring', tab: 'sent' } },
+  'monitoring-spotbid': { path: '/shipments', state: { panel: 'monitoring', tab: 'spotbid' } },
+  'monitoring-approved': { path: '/shipments', state: { panel: 'monitoring', tab: 'approved' } },
+  'shipments-po-ipgr': { path: '/shipments', state: { panel: 'pgipgr' } },
   'order-exceptions': '/orders',
   'carriers-active': '/tracking',
   'um-locked': '/users',
@@ -122,8 +148,6 @@ const widgetGoToPaths = {
   'um-account-reviews': '/users',
   'um-rejected': '/users',
   'tracking-load-status': '/tracking',
-  'shipments-monitoring': '/shipments',
-  'shipments-po-ipgr': '/shipments',
   'tracking-total': '/tracking',
   'orders-exceptions-detail': '/orders',
   'orders-fulfillment': '/orders',
@@ -149,32 +173,36 @@ const userMgmtIcon = <UserCog {...ICON_LG} />
 const shipmentsIcon = <Container {...ICON_LG} />
 const trackingIcon = <Route {...ICON_LG} />
 
-const shipmentsMonitoringRows = [
-  { label: 'Hold', value: '533 (64.93%)', indicatorColor: 'var(--chart-1)', onClick: handleRow('hold') },
-  { label: 'Consolidation', value: '128 (15.53%)', indicatorColor: 'var(--chart-2)', onClick: handleRow('consolidation') },
-  { label: 'Sent', value: '99 (12.05%)', indicatorColor: 'var(--chart-3)', onClick: handleRow('sent') },
-  { label: 'Spotted', value: '64 (7.49%)', indicatorColor: 'var(--chart-4)', onClick: handleRow('spotted') },
+// Rows carrying a `nav` descriptor get their onClick wired to navigate() in
+// the widgets useState init (rows live at module scope; navigate doesn't).
+// Keys/labels mirror PANEL_CONFIG (src/data/panelConfig.js) so each row lands
+// on its real Shipments category tab.
+const shipmentsExceptionsRows = [
+  { label: 'Date Issues', value: '99 (23.91%)', indicatorColor: 'var(--chart-1)', nav: { path: '/shipments', state: { panel: 'exceptions', tab: 'date-issues' } } },
+  { label: 'Routing Review', value: '72 (17.39%)', indicatorColor: 'var(--chart-2)', nav: { path: '/shipments', state: { panel: 'exceptions', tab: 'routing-review' } } },
+  { label: 'Tender Issues', value: '161 (38.89%)', indicatorColor: 'var(--chart-3)', nav: { path: '/shipments', state: { panel: 'exceptions', tab: 'tender-issues' } } },
+  { label: 'Tender Review', value: '38 (9.18%)', indicatorColor: 'var(--chart-4)', nav: { path: '/shipments', state: { panel: 'exceptions', tab: 'tender-review' } } },
+  { label: 'Bid Review', value: '44 (10.63%)', indicatorColor: 'var(--chart-rest)', nav: { path: '/shipments', state: { panel: 'exceptions', tab: 'bid-review' } } },
 ]
 
-const shipmentsMonitoringSegments = [
-  { value: 533, color: 'var(--chart-1)' },
-  { value: 128, color: 'var(--chart-2)' },
-  { value: 99, color: 'var(--chart-3)' },
-  { value: 64, color: 'var(--chart-4)' },
+const shipmentsExceptionsSegments = [
+  { value: 99, color: 'var(--chart-1)' },
+  { value: 72, color: 'var(--chart-2)' },
+  { value: 161, color: 'var(--chart-3)' },
+  { value: 38, color: 'var(--chart-4)' },
+  { value: 44, color: 'var(--chart-rest)' },
 ]
 
-const shipmentsPoIpgrRows = [
-  { label: 'PO Errors', value: '56 (48.43%)', indicatorColor: 'var(--chart-1)', onClick: handleRow('po-errors') },
-  { label: 'IPGR Errors', value: '32 (27.65%)', indicatorColor: 'var(--chart-2)', onClick: handleRow('ipgr-errors') },
-  { label: 'Routing Failures', value: '17 (14.55%)', indicatorColor: 'var(--chart-3)', onClick: handleRow('routing-failures') },
-  { label: 'Manual PO/IPGR', value: '10 (9.37%)', indicatorColor: 'var(--chart-4)', onClick: handleRow('manual-po-ipgr') },
+const shipmentsPgipgrRows = [
+  { label: 'PGI/PGR Errors', value: '56 (53.85%)', indicatorColor: 'var(--chart-1)', nav: { path: '/shipments', state: { panel: 'pgipgr', tab: 'pgipgr-errors' } } },
+  { label: 'Rating Failure', value: '32 (30.77%)', indicatorColor: 'var(--chart-2)', nav: { path: '/shipments', state: { panel: 'pgipgr', tab: 'rating-failure' } } },
+  { label: 'Manual PGI/PGR', value: '16 (15.38%)', indicatorColor: 'var(--chart-3)', nav: { path: '/shipments', state: { panel: 'pgipgr', tab: 'manual-pgipgr' } } },
 ]
 
-const shipmentsPoIpgrSegments = [
+const shipmentsPgipgrSegments = [
   { value: 56, color: 'var(--chart-1)' },
   { value: 32, color: 'var(--chart-2)' },
-  { value: 17, color: 'var(--chart-3)' },
-  { value: 10, color: 'var(--chart-4)' },
+  { value: 16, color: 'var(--chart-3)' },
 ]
 
 const trackingRows = [
@@ -200,7 +228,7 @@ const initialWidgets = [
     id: 'order-exceptions',
     variant: '2x',
     props: {
-      title: 'Order',
+      title: 'Orders',
       domainIcon: orderIcon,
       value: '99',
       label: 'Order Exceptions',
@@ -284,7 +312,7 @@ const initialWidgets = [
     id: 'tracking-load-status',
     variant: '3xChart',
     props: {
-      title: 'Tracking — Load Status',
+      title: widgetTitle('Tracking', 'Load Status'),
       domainIcon: trackingIcon,
       // Zero/empty state shown until live load-statistics resolve (see the
       // useTrackingLoadStatistics effect). Empty gray ring + 0 rows so nothing
@@ -304,31 +332,127 @@ const initialWidgets = [
     },
   },
   {
-    id: 'shipments-monitoring',
+    id: 'shipments-po-ipgr',
     variant: '3xChart',
     props: {
-      title: 'Shipments - Monitoring',
+      title: widgetTitle('Shipments', 'PGI/PGR'),
+      domainIcon: shipmentsIcon,
+      value: '104',
+      label: 'Total PGI/PGR',
+      chartSegments: shipmentsPgipgrSegments,
+      chartTotal: 104,
+      rows: shipmentsPgipgrRows,
+      goToLabel: 'Go to Shipments PGI/PGR',
+      onGoToClick: handleRow('shipments-po-ipgr'),
+    },
+  },
+  // --- Orders tab widgets (S91 default showcase) — each lands on its tab ---
+  {
+    id: 'orders-all',
+    variant: '2x',
+    props: {
+      title: 'Orders',
+      domainIcon: orderIcon,
+      value: '829',
+      label: 'All Orders',
+      percentage: '100%',
+      chartSegments: [{ value: 100, color: 'var(--chart-1)' }],
+      chartTotal: 100,
+      goToLabel: 'Go to Orders',
+      onGoToClick: handleRow('orders-all'),
+    },
+  },
+  {
+    id: 'orders-draft',
+    variant: '1x',
+    props: {
+      title: 'Orders',
+      domainIcon: orderIcon,
+      value: '21',
+      label: 'Draft',
+      onGoToClick: handleRow('orders-draft'),
+    },
+  },
+  {
+    id: 'orders-validation-errors',
+    variant: '1x',
+    props: {
+      title: 'Orders',
+      domainIcon: orderIcon,
+      value: '252',
+      label: 'Validation Errors',
+      onGoToClick: handleRow('orders-validation-errors'),
+    },
+  },
+  // --- Shipments Monitoring tab widgets (S91 default showcase) ---
+  {
+    id: 'shipments-monitoring',
+    variant: '2x',
+    props: {
+      title: 'Shipments',
       domainIcon: shipmentsIcon,
       value: '824',
-      label: 'Total Shipments in Monitoring',
-      chartSegments: shipmentsMonitoringSegments,
-      rows: shipmentsMonitoringRows,
-      goToLabel: 'Go to Shipments Monitoring',
+      label: 'Total in Monitoring',
+      percentage: '69%',
+      chartSegments: [{ value: 69, color: 'var(--chart-1)' }],
+      chartTotal: 100,
+      goToLabel: 'Go to Monitoring',
       onGoToClick: handleRow('shipments-monitoring'),
     },
   },
   {
-    id: 'shipments-po-ipgr',
-    variant: '3xChart',
+    id: 'monitoring-hold',
+    variant: '1x',
     props: {
-      title: 'Shipments - PO/IPGR',
+      title: widgetTitle('Shipments', 'Monitoring'),
       domainIcon: shipmentsIcon,
-      value: '115',
-      label: 'Total PO/IPGR',
-      chartSegments: shipmentsPoIpgrSegments,
-      rows: shipmentsPoIpgrRows,
-      goToLabel: 'Go to Shipments PO/IPGR',
-      onGoToClick: handleRow('shipments-po-ipgr'),
+      value: '533',
+      label: 'Hold',
+      onGoToClick: handleRow('monitoring-hold'),
+    },
+  },
+  {
+    id: 'monitoring-consolidation',
+    variant: '1x',
+    props: {
+      title: widgetTitle('Shipments', 'Monitoring'),
+      domainIcon: shipmentsIcon,
+      value: '128',
+      label: 'Consolidation',
+      onGoToClick: handleRow('monitoring-consolidation'),
+    },
+  },
+  {
+    id: 'monitoring-tender-sent',
+    variant: '1x',
+    props: {
+      title: widgetTitle('Shipments', 'Monitoring'),
+      domainIcon: shipmentsIcon,
+      value: '99',
+      label: 'Tender Sent',
+      onGoToClick: handleRow('monitoring-tender-sent'),
+    },
+  },
+  {
+    id: 'monitoring-spotbid',
+    variant: '1x',
+    props: {
+      title: widgetTitle('Shipments', 'Monitoring'),
+      domainIcon: shipmentsIcon,
+      value: '64',
+      label: 'SpotBid',
+      onGoToClick: handleRow('monitoring-spotbid'),
+    },
+  },
+  {
+    id: 'monitoring-approved',
+    variant: '1x',
+    props: {
+      title: widgetTitle('Shipments', 'Monitoring'),
+      domainIcon: shipmentsIcon,
+      value: '41',
+      label: 'Approved',
+      onGoToClick: handleRow('monitoring-approved'),
     },
   },
   // --- Dummy data, ready (NOT placed in the default layout) ----------------
@@ -342,7 +466,7 @@ const initialWidgets = [
     id: 'orders-exceptions-detail',
     variant: '3xChart',
     props: {
-      title: 'Orders — Exceptions',
+      title: widgetTitle('Orders', 'Exceptions'),
       domainIcon: orderIcon,
       value: '312',
       label: 'Total Order Exceptions',
@@ -367,7 +491,7 @@ const initialWidgets = [
     id: 'orders-fulfillment',
     variant: '3xChart',
     props: {
-      title: 'Orders — Fulfillment',
+      title: widgetTitle('Orders', 'Fulfillment'),
       domainIcon: orderIcon,
       value: '1,240',
       label: 'Total Orders in Fulfillment',
@@ -393,7 +517,7 @@ const initialWidgets = [
     id: 'tracking-at-risk',
     variant: '3xChart',
     props: {
-      title: 'Tracking — At Risk',
+      title: widgetTitle('Tracking', 'At Risk'),
       domainIcon: trackingIcon,
       value: '287',
       label: 'Total At Risk Loads',
@@ -418,7 +542,7 @@ const initialWidgets = [
     id: 'tracking-on-time',
     variant: '3xChart',
     props: {
-      title: 'Tracking — On Time',
+      title: widgetTitle('Tracking', 'On Time'),
       domainIcon: trackingIcon,
       value: '1,684',
       label: 'Total On Time Loads',
@@ -444,7 +568,7 @@ const initialWidgets = [
     id: 'carriers-performance',
     variant: '3xChart',
     props: {
-      title: 'Carriers — Performance',
+      title: widgetTitle('Carriers', 'Performance'),
       domainIcon: carriersIcon,
       value: '946',
       label: 'Total Carrier Performance',
@@ -469,7 +593,7 @@ const initialWidgets = [
     id: 'carriers-capacity',
     variant: '3xChart',
     props: {
-      title: 'Carriers — Capacity',
+      title: widgetTitle('Carriers', 'Capacity'),
       domainIcon: carriersIcon,
       value: '1,432',
       label: 'Total Carrier Capacity',
@@ -495,23 +619,13 @@ const initialWidgets = [
     id: 'shipments-exceptions',
     variant: '3xChart',
     props: {
-      title: 'Shipments — Exceptions',
+      title: widgetTitle('Shipments', 'Exceptions'),
       domainIcon: shipmentsIcon,
-      value: '376',
+      value: '414',
       label: 'Total Shipments Exceptions',
-      chartSegments: [
-        { value: 99, color: 'var(--chart-1)' },
-        { value: 72, color: 'var(--chart-2)' },
-        { value: 161, color: 'var(--chart-3)' },
-        { value: 44, color: 'var(--chart-4)' },
-      ],
-      chartTotal: 376,
-      rows: [
-        { label: 'Date Issues', value: '99 (26.33%)', indicatorColor: 'var(--chart-1)', onClick: handleRow('date-issues') },
-        { label: 'Routing Review', value: '72 (19.15%)', indicatorColor: 'var(--chart-2)', onClick: handleRow('routing-review') },
-        { label: 'Tender Issues', value: '161 (42.82%)', indicatorColor: 'var(--chart-3)', onClick: handleRow('tender-issues') },
-        { label: 'Bid Review', value: '44 (11.70%)', indicatorColor: 'var(--chart-4)', onClick: handleRow('bid-review') },
-      ],
+      chartSegments: shipmentsExceptionsSegments,
+      chartTotal: 414,
+      rows: shipmentsExceptionsRows,
       goToLabel: 'Go to Shipments',
       onGoToClick: handleRow('shipments-exceptions'),
     },
@@ -521,7 +635,7 @@ const initialWidgets = [
     id: 'users-activity',
     variant: '3xChart',
     props: {
-      title: 'Users — Activity',
+      title: widgetTitle('Users', 'Activity'),
       domainIcon: userMgmtIcon,
       value: '648',
       label: 'Total User Activity',
@@ -546,7 +660,7 @@ const initialWidgets = [
     id: 'users-reviews',
     variant: '3xChart',
     props: {
-      title: 'Users — Reviews',
+      title: widgetTitle('Users', 'Reviews'),
       domainIcon: userMgmtIcon,
       value: '218',
       label: 'Total Account Reviews',
@@ -573,24 +687,31 @@ const initialWidgets = [
 // rename, delete, and re-order via edit mode; this is just the on-mount state.
 // `widgetIds` is converted to `placements` lazily on Home mount via auto-pack
 // (see the useState init), so the file-level constant stays declarative.
+// S91 demo showcase: every widget references an Orders or Shipments tab (plus
+// the live Tracking widget and the quick-actions CTA). The order is
+// load-bearing — 23 cells auto-pack with a single trailing empty cell at both
+// grid widths. Tracking seeds right after orders-all so it lands at the END:
+// 8 cols → top-right corner (Draft/VE tuck under orders-all), 6 cols → the
+// right column under orders-all. PGI/PGR stays defined but unplaced — no
+// real data to show yet.
 const initialSections = [
   {
     id: 'sec-overview',
     name: 'Overview',
     widgetIds: [
-      'order-exceptions',
-      'um-locked',
-      'um-pending',
+      'shipments-exceptions',
       'home-quick-actions',
-      'carriers-active',
-      'um-account-reviews',
-      'um-rejected',
+      'orders-all',
+      'tracking-load-status',
+      'orders-draft',
+      'orders-validation-errors',
+      'shipments-monitoring',
+      'monitoring-hold',
+      'monitoring-consolidation',
+      'monitoring-tender-sent',
+      'monitoring-spotbid',
+      'monitoring-approved',
     ],
-  },
-  {
-    id: 'sec-shipments',
-    name: 'Shipments',
-    widgetIds: ['tracking-load-status', 'shipments-monitoring', 'shipments-po-ipgr'],
   },
 ]
 
@@ -665,7 +786,12 @@ const initialCatalog = [
 const VARIANT_COLS = { '1x': 1, '2x': 2, '3x': 2, '3xChart': 2, '3xCta': 2 }
 // Row-span per variant.
 const VARIANT_ROWS = { '1x': 1, '2x': 1, '3x': 2, '3xChart': 2, '3xCta': 2 }
-const GRID_COLS = 6
+// ponytail: module-level `let` so the pure packing helpers below don't all
+// grow a gridCols param — Home's resize observer updates it (and re-packs)
+// before any placement math runs. Thread as a param if Home ever renders twice.
+let GRID_COLS = 6
+const WIDE_GRID_COLS = 8 // ≥1440px content width → 4 standard widgets per row
+const WIDE_CONTENT_MIN = 1440
 const KEY = (r, c) => `${r}:${c}`
 
 // Build a (row,col) → widgetId map from a section's placements, accounting for
@@ -1171,7 +1297,7 @@ export default function Home() {
 
   const ctaRows = useMemo(
     () => [
-      { icon: <Plus size={20} />, label: 'Go to Create a New Order', onClick: () => navigate('/orders') },
+      { icon: <Plus size={20} />, label: 'Go to Create a New Order', onClick: () => navigate('/orders/create') },
       { icon: <Route size={20} />, label: 'Track a Shipment', onClick: () => navigate('/tracking') },
       { icon: <UserCog size={20} />, label: 'Management Users', onClick: () => navigate('/users') },
       { icon: <Download size={20} />, label: 'Invoices', onClick: () => {} },
@@ -1184,11 +1310,21 @@ export default function Home() {
       if (w.id === 'home-quick-actions') {
         return { ...w, props: { ...w.props, ctaRows } }
       }
+      const props = { ...w.props }
+      // Rows carrying a `nav` descriptor become tab deep-links (the target
+      // route reads location.state on mount).
+      if (Array.isArray(props.rows) && props.rows.some((r) => r.nav)) {
+        props.rows = props.rows.map((r) =>
+          r.nav ? { ...r, onClick: () => navigate(r.nav.path, { state: r.nav.state }) } : r,
+        )
+      }
       const target = widgetGoToPaths[w.id]
       if (target) {
-        return { ...w, props: { ...w.props, onGoToClick: () => navigate(target) } }
+        props.onGoToClick = typeof target === 'string'
+          ? () => navigate(target)
+          : () => navigate(target.path, { state: target.state })
       }
-      return w
+      return { ...w, props }
     }),
   )
 
@@ -1257,8 +1393,68 @@ export default function Home() {
   const [gridKey, setGridKey] = useState(0)
   // Customer selection is global (owned by CustomersContext, triggered from the
   // navbar handshake). Home is just a consumer: it reads selectedIds to gate
-  // widget data.
-  const { selectedIds } = useCustomers()
+  // widget data, and selectedDataIds to scope the widget count queries (the
+  // same first-order filter the Orders + Shipments routes apply).
+  const { selectedIds, selectedDataIds } = useCustomers()
+
+  // Wire the tab widgets to their domains' real counts — the SAME hooks the
+  // routes use (useOrderTabCounts / useCategoryCounts), customer-scoped, so a
+  // widget's number always matches the tab it deep-links to.
+  const { data: orderCounts } = useOrderTabCounts(selectedDataIds)
+  const { data: excCounts = [] } = useCategoryCounts('exceptions', undefined, selectedDataIds)
+  const { data: monCounts = [] } = useCategoryCounts('monitoring', undefined, selectedDataIds)
+  const { data: pgiCounts = [] } = useCategoryCounts('pgipgr', undefined, selectedDataIds)
+  useEffect(() => {
+    const cnt = (arr, key) => arr.find((x) => x.category === key)?.count ?? 0
+    const sum = (arr) => arr.reduce((a, x) => a + x.count, 0)
+    const excTotal = sum(excCounts)
+    const monTotal = sum(monCounts)
+    const pgiTotal = sum(pgiCounts)
+    const grand = excTotal + monTotal + pgiTotal
+    const pct = (n, total) => (total > 0 ? ((n / total) * 100).toFixed(2) : '0.00')
+    // Chart widgets: each row's nav.state.tab IS the category key (kept by the
+    // init wiring), so counts join on it — labels/colors/onClick untouched.
+    const chartProps = (arr, props, total) => ({
+      ...props,
+      value: total.toLocaleString(),
+      chartTotal: total,
+      rows: props.rows.map((r) => {
+        const n = cnt(arr, r.nav?.state?.tab)
+        return { ...r, value: `${n.toLocaleString()} (${pct(n, total)}%)` }
+      }),
+      chartSegments: props.rows.map((r) => ({ value: cnt(arr, r.nav?.state?.tab), color: r.indicatorColor })),
+    })
+    const monKey = {
+      'monitoring-hold': 'hold',
+      'monitoring-consolidation': 'consolidation',
+      'monitoring-tender-sent': 'sent',
+      'monitoring-spotbid': 'spotbid',
+      'monitoring-approved': 'approved',
+    }
+    setWidgets((prev) =>
+      prev.map((w) => {
+        if (w.id === 'orders-all' && orderCounts) return { ...w, props: { ...w.props, value: orderCounts.all.toLocaleString() } }
+        if (w.id === 'orders-draft' && orderCounts) return { ...w, props: { ...w.props, value: orderCounts.draft.toLocaleString() } }
+        if (w.id === 'orders-validation-errors' && orderCounts) return { ...w, props: { ...w.props, value: orderCounts.validationErrors.toLocaleString() } }
+        if (w.id === 'shipments-exceptions') return { ...w, props: chartProps(excCounts, w.props, excTotal) }
+        if (w.id === 'shipments-po-ipgr') return { ...w, props: chartProps(pgiCounts, w.props, pgiTotal) }
+        if (w.id === 'shipments-monitoring') {
+          const share = grand > 0 ? Math.round((monTotal / grand) * 100) : 0
+          return {
+            ...w,
+            props: {
+              ...w.props,
+              value: monTotal.toLocaleString(),
+              percentage: `${share}%`,
+              chartSegments: [{ value: share, color: 'var(--chart-1)' }],
+            },
+          }
+        }
+        if (monKey[w.id]) return { ...w, props: { ...w.props, value: cnt(monCounts, monKey[w.id]).toLocaleString() } }
+        return w
+      }),
+    )
+  }, [orderCounts, excCounts, monCounts, pgiCounts])
 
   // Configurator modal — also tracks which section the new widget should land in.
   const [configurator, setConfigurator] = useState(null)
@@ -1319,6 +1515,44 @@ export default function Home() {
     for (const w of widgets) m[w.id] = w
     return m
   }, [widgets])
+
+  // Responsive grid (S91 desktop pass): 6 tracks by default, 8 once
+  // .home-content itself is ≥1440px wide. One source of truth — this observer
+  // drives BOTH the CSS vars (inline on .home-content) and the module
+  // GRID_COLS the packing math reads, so the two can't drift. Observing the
+  // content (not the viewport) means the edit-mode panel narrowing the page
+  // flips the grid back too.
+  const contentRef = useRef(null)
+  const [gridCols, setGridCols] = useState(GRID_COLS)
+  useLayoutEffect(() => {
+    const el = contentRef.current
+    if (!el) return
+    const measure = () => {
+      const cols = el.clientWidth >= WIDE_CONTENT_MIN ? WIDE_GRID_COLS : 6
+      setGridCols((prev) => (prev === cols ? prev : cols))
+    }
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+  // On a width flip, re-pack every section in reading order — widgets flow
+  // into the new track count with no strands. ponytail: custom drag layouts
+  // also re-pack on crossing the threshold (session-only state); keep a
+  // per-width placement map if that ever matters.
+  useEffect(() => {
+    if (GRID_COLS === gridCols) return
+    GRID_COLS = gridCols
+    setSections((prev) =>
+      prev.map((s) => ({
+        ...s,
+        placements: autoPackFromWidgetIds(
+          [...s.placements].sort((a, b) => a.row - b.row || a.col - b.col).map((p) => p.id),
+          widgetsById,
+        ),
+      })),
+    )
+  }, [gridCols, widgetsById])
 
   // Zero-out widget data when no customers are selected (CTA widgets pass through).
   const hasCustomers = selectedIds.size > 0
@@ -1650,7 +1884,16 @@ export default function Home() {
 
   return (
     <AppShell>
-      <div className={`home-content ${isEditMode ? 'home-content--edit' : ''}`.trim()}>
+      <div
+        ref={contentRef}
+        className={`home-content ${isEditMode ? 'home-content--edit' : ''}`.trim()}
+        // 8-col mode drops the track floor to 0 (8×170 + gaps > 1440, so the
+        // 170px floor would overflow right at the threshold) — tracks are pure
+        // 1fr equal shares, ≥162px at any content width past the breakpoint.
+        style={gridCols === WIDE_GRID_COLS
+          ? { '--home-grid-columns': WIDE_GRID_COLS, '--home-grid-col-min-width': '0px' }
+          : undefined}
+      >
         {/* Hero background — composed port-at-dusk effect (see .home-background
             in Home.css): each photo layer is masked to fade out, with a DSN/900
             COLOR-blend tint band (::after) over a DSN/50 base — all image-
