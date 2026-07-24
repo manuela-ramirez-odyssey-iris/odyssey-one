@@ -71,5 +71,10 @@ test('list: searchTerm unscoped → OR across shared fields', () => {
     filter: { panel: 'exceptions', searchTerm: 'acme' },
   })
   assert.match(q.text, /sell_shipment ILIKE .* OR .*customer_name ILIKE/s)
-  assert.equal(q.values.filter((v) => v === '%acme%').length, 4)
+  assert.equal(q.values.filter((v) => v === '%acme%').length, 6)
+})
+
+test('list: empty customerIds → FALSE (honest empty on the list path)', () => {
+  const q = buildListQuery({ filter: { customerIds: [] } })
+  assert.match(q.text, /FALSE/)
 })

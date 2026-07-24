@@ -29,9 +29,10 @@ const FIELD_MAP = {
 }
 
 // Columns the unscoped free-text search ORs across (mirrors FREE_TEXT_KEYS in
-// search/shipments/criteria.js — customerId/orders excluded here as they aren't
-// user-facing text columns in the legacy searchTerm path).
-const FREE_TEXT_COLUMNS = ['sell_shipment', 'customer_name', 'origin', 'destination']
+// search/shipments/criteria.js). Excludes only customerId (an internal scope
+// key, not user-facing text) and orders (an array, not a substring-matchable
+// text column) — every other free-text key maps to a column here.
+const FREE_TEXT_COLUMNS = ['sell_shipment', 'buy_shipment', 'customer_name', 'origin', 'destination', 'scac']
 
 function scope(where, values, customerIds) {
   if (customerIds === undefined) return
