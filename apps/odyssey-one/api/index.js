@@ -18,10 +18,11 @@ export default async function handler(req, res) {
   if (delay > 0) await new Promise((r) => setTimeout(r, delay))
 
   try {
-    const result = await route.handler({ query: url.searchParams, body: req.body ?? null, db: getPool() })
+    const result = await route.handler({ query: url.searchParams, params: route.params, body: req.body ?? null, db: getPool() })
     return res.status(200).json(result)
   } catch (e) {
     console.error(route.name, e) // shows in Vercel function logs
-    return res.status(500).json({ message: 'Internal error', detail: String(e.message ?? e) })
+    const status = e.status ?? 500
+    return res.status(status).json({ message: status === 500 ? 'Internal error' : String(e.message), detail: String(e.message ?? e) })
   }
 }

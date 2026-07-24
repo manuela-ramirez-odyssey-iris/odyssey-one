@@ -55,6 +55,7 @@ function resetGeneratorState() {
   orderRows = [];
   orderEnrichments = {};
   usedSellShipments.clear();
+  usedBuyShipments.clear();
 }
 
 // Local-naive ISO ("2026-06-15T08:00:00") — the LLD datetime shape; list/view
@@ -69,6 +70,16 @@ function genUniqueSellShipment() {
   let v;
   do { v = String(faker.number.int({ min: 25000000, max: 25999999 })); } while (usedSellShipments.has(v));
   usedSellShipments.add(v);
+  return v;
+}
+
+// buyShipment is THE user-facing shipment ID (LINX-11591/12490) — must be unique
+// like the DB's UNIQUE constraint on shipments.buy_shipment.
+const usedBuyShipments = new Set();
+function genUniqueBuyShipment() {
+  let v;
+  do { v = String(faker.number.int({ min: 10000000, max: 99999999 })); } while (usedBuyShipments.has(v));
+  usedBuyShipments.add(v);
   return v;
 }
 
@@ -266,7 +277,7 @@ function fillTemplate(template, shipment) {
 function generateShipment(index) {
   // CSV example: 28826319 — bare 8-digit number (no SHP- prefix). buyShipment is
   // the primary key + per-shipment detail filename; the generator rewrites both.
-  const buyShipment = String(faker.number.int({ min: 10000000, max: 99999999 }));
+  const buyShipment = genUniqueBuyShipment();
   const sellShipment = genUniqueSellShipment();
   const customer = pick(CUSTOMERS);
   const originLoc = pick(LOCATIONS);

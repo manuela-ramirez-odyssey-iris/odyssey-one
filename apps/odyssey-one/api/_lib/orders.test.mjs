@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { buildOrderListQuery, buildTabCountsQuery } from './orders.mjs'
+import { buildOrderListQuery, buildTabCountsQuery, buildOrderViewQuery, orderView } from './orders.mjs'
 
 test('order list: 1-based pagination (page 1 = offset 0)', () => {
   const q = buildOrderListQuery({ pagination: { pageNumber: 1, pageSize: 20 } })
@@ -44,4 +44,18 @@ test('honest-empty: empty scope/filter yields FALSE, no values', () => {
   assert.deepEqual(counts.values, [])
   const list = buildOrderListQuery({ filters: { customers: [] } })
   assert.match(list.text, /FALSE/)
+})
+
+test('order view: by number, by pending id, missing key', async () => {
+  const byNum = buildOrderViewQuery('ORD-123')
+  assert.match(byNum.text, /order_number = \$1/)
+  assert.deepEqual(byNum.values, ['ORD-123'])
+  const byPending = buildOrderViewQuery('pending-42')
+  assert.match(byPending.text, /order_number = '' AND order_id = \$1/)
+  assert.deepEqual(byPending.values, [42])
+  await assert.rejects(() => orderView({ body: {}, db: null }), (e) => e.status === 400)
+  const dbMiss = { query: async () => ({ rows: [] }) }
+  await assert.rejects(() => orderView({ body: { orderNumber: 'x' }, db: dbMiss }), (e) => e.status === 404)
+  const dbHit = { query: async () => ({ rows: [{ orderNumber: 'x', manualOrder: null }] }) }
+  assert.deepEqual(await orderView({ body: { orderNumber: 'x' }, db: dbHit }), { row: { orderNumber: 'x' }, manualOrder: null })
 })

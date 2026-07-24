@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { buildCountsQuery, buildListQuery } from './shipments.mjs'
+import { buildCountsQuery, buildListQuery, buildDetailQuery, sellShipmentDetail } from './shipments.mjs'
 
 test('counts: panel only', () => {
   const q = buildCountsQuery({ panel: 'exceptions', customerIds: undefined })
@@ -77,4 +77,17 @@ test('list: searchTerm unscoped → OR across shared fields', () => {
 test('list: empty customerIds → FALSE (honest empty on the list path)', () => {
   const q = buildListQuery({ filter: { customerIds: [] } })
   assert.match(q.text, /FALSE/)
+})
+
+test('detail: parameterized single-row lookup', () => {
+  const q = buildDetailQuery('25004876')
+  assert.match(q.text, /WHERE sell_shipment = \$1/)
+  assert.deepEqual(q.values, ['25004876'])
+})
+
+test('detail handler: 404s on missing shipment, returns detail verbatim on hit', async () => {
+  const dbHit = { query: async () => ({ rows: [{ detail: { shipmentId: 'x' } }] }) }
+  assert.deepEqual(await sellShipmentDetail({ params: ['1'], db: dbHit }), { shipmentId: 'x' })
+  const dbMiss = { query: async () => ({ rows: [] }) }
+  await assert.rejects(() => sellShipmentDetail({ params: ['1'], db: dbMiss }), (e) => e.status === 404)
 })

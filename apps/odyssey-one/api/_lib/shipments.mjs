@@ -121,3 +121,18 @@ export async function shipmentErrorList({ body, db }) {
   const totalCount = rows[0]?.__total ?? 0
   return { pageNumber, pageSize, totalCount, rows: rows.map(({ __total, ...r }) => r) }
 }
+
+// Slice 3: full SellShipmentOut detail — stored verbatim as shipments.detail JSONB.
+export function buildDetailQuery(sellShipment) {
+  return { text: 'SELECT detail FROM shipments WHERE sell_shipment = $1', values: [sellShipment] }
+}
+
+export async function sellShipmentDetail({ params, db }) {
+  const { rows } = await db.query(buildDetailQuery(params[0]))
+  if (rows.length === 0) {
+    const e = new Error(`No shipment: ${params[0]}`)
+    e.status = 404
+    throw e
+  }
+  return rows[0].detail
+}

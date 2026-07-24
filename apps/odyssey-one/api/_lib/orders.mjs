@@ -113,3 +113,30 @@ export async function orderTabCounts({ query, db }) {
   const { rows: [counts] } = await db.query(buildTabCountsQuery({ customerIds }))
   return counts   // { all, draft, validationErrors }
 }
+
+// Order view (slice 3b): the list-row projection + the manual_order enrichment
+// JSONB. The client composes them with its existing listRowToManualOrder+merge
+// (same ladder as mock mode). Pending rows (no order_number yet) are addressed
+// as 'pending-<orderId>' — resolved by internal order_id.
+export function buildOrderViewQuery(key) {
+  const pendingId = key.startsWith('pending-') ? key.slice('pending-'.length) : null
+  if (pendingId) {
+    return {
+      text: `SELECT ${ROW_COLUMNS}, manual_order AS "manualOrder" FROM orders WHERE order_number = '' AND order_id = $1`,
+      values: [Number(pendingId)],
+    }
+  }
+  return {
+    text: `SELECT ${ROW_COLUMNS}, manual_order AS "manualOrder" FROM orders WHERE order_number = $1`,
+    values: [key],
+  }
+}
+
+export async function orderView({ body, db }) {
+  const key = body?.orderNumber
+  if (!key) { const e = new Error('orderNumber required'); e.status = 400; throw e }
+  const { rows } = await db.query(buildOrderViewQuery(String(key)))
+  if (rows.length === 0) { const e = new Error(`No order: ${key}`); e.status = 404; throw e }
+  const { manualOrder, ...row } = rows[0]
+  return { row, manualOrder: manualOrder ?? null }
+}

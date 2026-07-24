@@ -28,7 +28,7 @@ function Probe() {
   )
 }
 
-const DEFAULT_APPLIED = 'ERCO_SYS_01,GEON_01,KEMIRA_EU_01,KEMIRA_NA_01'
+const DEFAULT_APPLIED = 'ERCO_SYS_01,GEON_01,KEMIRA_EU_01,KEMIRA_NA_01,USALCO_SYS_01,VALTRIS_01'
 
 function setup() {
   const utils = render(
@@ -64,9 +64,9 @@ describe('staged selection — edits do not touch the live context until confirm
     setup()
     expect(applied()).toBe(DEFAULT_APPLIED)
 
-    addFromSearch('Valtris')
+    addFromSearch('Dubois')
     // Staged list shows it…
-    expect(within(popover()).getByText('Valtris')).toBeTruthy()
+    expect(within(popover()).getByText('Dubois')).toBeTruthy()
     // …but the LIVE selection (what scopes the tables) has not moved.
     expect(applied()).toBe(DEFAULT_APPLIED)
   })
@@ -79,7 +79,7 @@ describe('staged selection — edits do not touch the live context until confirm
 
   test('Cancel discards the stage — reopening shows the applied set again', () => {
     setup()
-    addFromSearch('Valtris')
+    addFromSearch('Dubois')
     removeFromList('Kemira NA')
 
     fireEvent.click(within(popover()).getByRole('button', { name: 'Cancel' }))
@@ -88,12 +88,12 @@ describe('staged selection — edits do not touch the live context until confirm
 
     fireEvent.click(screen.getByText('open-picker'))
     expect(within(popover()).getByText('Kemira NA')).toBeTruthy()
-    expect(within(popover()).queryByText('Valtris')).toBeNull()
+    expect(within(popover()).queryByText('Dubois')).toBeNull()
   })
 
   test('Escape dismissal discards the stage', () => {
     setup()
-    addFromSearch('Valtris')
+    addFromSearch('Dubois')
     fireEvent.keyDown(window, { key: 'Escape' })
     expect(screen.queryByRole('dialog', { name: 'Add Customers' })).toBeNull()
     expect(applied()).toBe(DEFAULT_APPLIED)
@@ -120,14 +120,14 @@ describe('dirty-gated Save (set equality)', () => {
 describe('save confirmation', () => {
   test('lists added and removed customers by name', () => {
     setup()
-    addFromSearch('Valtris')
+    addFromSearch('Dubois')
     removeFromList('Kemira NA')
     fireEvent.click(saveBtn())
 
     const confirm = screen.getByRole('dialog', { name: 'Apply customer changes' })
     const adding = within(confirm).getByText('Adding').parentElement
     const removing = within(confirm).getByText('Removing').parentElement
-    expect(within(adding).getByText('Valtris')).toBeTruthy()
+    expect(within(adding).getByText('Dubois')).toBeTruthy()
     expect(within(removing).getByText('Kemira NA')).toBeTruthy()
     // Nothing applied yet.
     expect(applied()).toBe(DEFAULT_APPLIED)
@@ -135,7 +135,7 @@ describe('save confirmation', () => {
 
   test('add-only change shows Adding but no Removing group', () => {
     setup()
-    addFromSearch('Valtris')
+    addFromSearch('Dubois')
     fireEvent.click(saveBtn())
 
     const confirm = screen.getByRole('dialog', { name: 'Apply customer changes' })
@@ -145,7 +145,7 @@ describe('save confirmation', () => {
 
   test('Back returns to the panel with the stage intact, nothing applied', () => {
     setup()
-    addFromSearch('Valtris')
+    addFromSearch('Dubois')
     fireEvent.click(saveBtn())
     fireEvent.click(
       within(screen.getByRole('dialog', { name: 'Apply customer changes' }))
@@ -154,14 +154,14 @@ describe('save confirmation', () => {
 
     expect(screen.queryByRole('dialog', { name: 'Apply customer changes' })).toBeNull()
     // Panel still open, staged addition still there, Save still armed.
-    expect(within(popover()).getByText('Valtris')).toBeTruthy()
+    expect(within(popover()).getByText('Dubois')).toBeTruthy()
     expect(saveBtn().disabled).toBe(false)
     expect(applied()).toBe(DEFAULT_APPLIED)
   })
 
   test('Apply commits the staged set to the context and closes both layers', () => {
     setup()
-    addFromSearch('Valtris')
+    addFromSearch('Dubois')
     removeFromList('Kemira NA')
     fireEvent.click(saveBtn())
     fireEvent.click(
@@ -171,17 +171,17 @@ describe('save confirmation', () => {
 
     expect(screen.queryByRole('dialog', { name: 'Apply customer changes' })).toBeNull()
     expect(screen.queryByRole('dialog', { name: 'Add Customers' })).toBeNull()
-    expect(applied()).toBe('ERCO_SYS_01,GEON_01,KEMIRA_EU_01,VALTRIS_01')
+    expect(applied()).toBe('DUBOIS_01,ERCO_SYS_01,GEON_01,KEMIRA_EU_01,USALCO_SYS_01,VALTRIS_01')
   })
 
   test('Escape while the confirmation is up closes ONLY the confirmation — the panel and stage survive', () => {
     setup()
-    addFromSearch('Valtris')
+    addFromSearch('Dubois')
     fireEvent.click(saveBtn())
     fireEvent.keyDown(window, { key: 'Escape' })
 
     expect(screen.queryByRole('dialog', { name: 'Apply customer changes' })).toBeNull()
-    expect(within(popover()).getByText('Valtris')).toBeTruthy()
+    expect(within(popover()).getByText('Dubois')).toBeTruthy()
     expect(applied()).toBe(DEFAULT_APPLIED)
   })
 })
@@ -194,12 +194,12 @@ describe('search mode (results list open)', () => {
     fireEvent.focus(input)
     expect(screen.getByText('All Customers')).toBeTruthy() // results open
 
-    const row = screen.getByText('Valtris').closest('.customer-row')
+    const row = screen.getByText('Dubois').closest('.customer-row')
     fireEvent.click(row)
     expect(screen.queryByText('All Customers')).toBeNull() // closed on select
     expect(document.activeElement).not.toBe(input) // search bar defocused
     // Row moved from results into the staged list, wearing the just-added pulse.
-    expect(within(popover()).getByText('Valtris').closest('.customers-row-pulse')).toBeTruthy()
+    expect(within(popover()).getByText('Dubois').closest('.customers-row-pulse')).toBeTruthy()
 
     // Refocusing reopens the list for the next add.
     input.focus()
@@ -233,7 +233,7 @@ describe('search mode (results list open)', () => {
 
   test('the header X closes the popover without applying the stage', () => {
     setup()
-    addFromSearch('Valtris')
+    addFromSearch('Dubois')
     fireEvent.click(within(popover()).getByRole('button', { name: 'Close' }))
     expect(screen.queryByRole('dialog', { name: 'Customers' })).toBeNull()
     expect(applied()).toBe(DEFAULT_APPLIED) // stage discarded

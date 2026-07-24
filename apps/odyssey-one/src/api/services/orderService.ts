@@ -326,15 +326,16 @@ export async function getOrderView(
   customerId?: string,
 ): Promise<OrderFormValues | null> {
   if (getApiMode() === 'live') {
-    if (!customerId) {
-      // customerId is mandatory (LINX-10700 AC) but not yet sourceable from the
-      // grid row (Q30) — gate the live path, like getDraft's live branch.
-      throw new Error('getOrderView: live customerId sourcing pending (Q30); mock-mode only')
-    }
-    const { manualOrder } = await apiPost<{ manualOrder: ManualOrder }>(
-      '/order-service/v3/order/view', { orderNumber, customerId },
+    // OUR backend resolves by orderNumber alone (orders.order_number is UNIQUE;
+    // 'pending-<orderId>' keys resolve by internal id) — the Q30 customerId gate
+    // applied to the real order-service contract, not this one. The endpoint
+    // returns the lean list row + the manual_order enrichment JSONB; compose
+    // them exactly like the mock ladder below.
+    const { row, manualOrder } = await apiPost<{ row: OrderListRow; manualOrder: Partial<ManualOrder> | null }>(
+      '/order-service/v3/order/view', { orderNumber },
     )
-    return mapOrderViewToFormVm(manualOrder)
+    const dto = manualOrder ? { ...listRowToManualOrder(row), ...manualOrder } : listRowToManualOrder(row)
+    return mapOrderViewToFormVm(dto)
   }
 
   const draftId = draftValues.has(orderNumber) ? orderNumber : draftIdByOrderNumber.get(orderNumber)

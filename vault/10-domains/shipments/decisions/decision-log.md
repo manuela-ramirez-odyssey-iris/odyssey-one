@@ -378,6 +378,11 @@ Every implemented decision with its previous state, source, and rationale. This 
 - **Decision:** a fresh open animates ONCE 48→cap with the loader centered in the fully-expanded canvas; data swaps in place with zero height movement (ratchet holds). Loader hold timer removed (dead).
 - **Source:** Manuela, Jul 6 (S79e) — "no more partial opening, expand and load data while expanded"
 
+### DEC-66: buyShipment is THE user-facing shipment ID; leads all default columns
+- **Previous:** Sell Shipment # led the default column arrangements (DEC-51-adjacent S43 ordering: sell surfaced first as the contract-identity reminder); generator drew buyShipment as a non-unique random 8-digit (~50% collision odds at 10k rows)
+- **Decision:** Team decision confirmed via Jira: **Buy Shipment # leads** every default column arrangement (Exceptions + Monitoring presets and DEFAULT_COLUMNS), Sell second. buyShipment is now generated unique (`genUniqueBuyShipment`) and constrained `UNIQUE` in `shipments.buy_shipment` (schema 001, DB reseeded, 9/9 invariants). **sellShipment stays the internal wire key** — DB PK, row key, detail-link token (`sell-shipment-out/{id}`), unchanged. Supersedes DEC-51's display prominence only, not its selection semantics.
+- **Source:** LINX-11591 (approved grid field list — Buy Shipment first; Steve O'Hara approval 6/15), LINX-12490 (`GET /action/get-orders/{buyShipmentId}` — buy-keyed lookup), LINX-13023 (Monitoring grid buy-first columns). Verbal: team decision reported by user (S92), Jira-confirmed S93. Note: inference from approved column order + buy-keyed APIs; no ticket states the literal sentence "buy is the shipment id".
+
 ---
 
 ## Changelog
@@ -392,4 +397,5 @@ Every implemented decision with its previous state, source, and rationale. This 
 | Jul 5, 2026 | DEC-40 through DEC-47 — S79 Shipments update: Orders tab SubAccordion rebuild, shadow-up-lg token, tab arrangement panel, radio removal, GlobalSearch as table search, Tooltip migration, icon-button standardization, sidebar-shift fix |
 | Jul 6, 2026 | DEC-48 through DEC-55 — S79b: pane column tiers, content-proportional bar height, up-only shadow clip, search glimpse/commit/open flow, DataTable external footer + Paginator restyle (React+Angular, demoted), sticky-header gap root cause, Orders canon fake data + orphaned documents/notes/history wired, all 7 tab panes restyled |
 | Jul 6, 2026 | DEC-61 through DEC-65 — S79d/e: bar animation v3 + open-to-cap, customers data-backed, toolbar parity, GroupTable + SummaryStrip staging components |
+| Jul 24, 2026 | DEC-66 — buyShipment = THE shipment ID (Jira-confirmed LINX-11591/12490/13023): buy-first default columns, unique buyShipment in generator + DB UNIQUE + reseed; sell stays internal wire key |
 | Jul 6, 2026 | DEC-56 through DEC-60 — S79c: bar interaction model v2 (104px cap, drawer easing, useTransition tab switch, close=deselect, outside-click close), unified search criteria + search-aware counts, zero-count tab hiding (PGI/PGR exempt), customer-list first-order scoping (+ERCO assigned), sticky toolbar clamp |

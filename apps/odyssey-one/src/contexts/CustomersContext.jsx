@@ -58,7 +58,7 @@ export function CustomersProvider({ children }) {
   const [customers, setCustomers] = useState(initialCustomers)
   // Default selection = Kemira NA, Kemira EU, Geon + ERCO — all now data-backed
   // (S79 data fix), so the default Shipments table shows rows for all four.
-  const [selectedIds, setSelectedIds] = useState(() => new Set(['KEMIRA_NA_01', 'KEMIRA_EU_01', 'GEON_01', 'ERCO_SYS_01']))
+  const [selectedIds, setSelectedIds] = useState(() => new Set(['KEMIRA_NA_01', 'KEMIRA_EU_01', 'GEON_01', 'ERCO_SYS_01', 'VALTRIS_01', 'USALCO_SYS_01']))
   const [modalOpen, setModalOpen] = useState(false)
 
   const openModal = useCallback(() => {

@@ -21,3 +21,11 @@ test('unknown route returns null', () => {
 test('every route has a handler function', () => {
   for (const r of ROUTES) assert.equal(typeof r.handler, 'function')
 })
+
+test('matches sell-shipment-out detail route with id param', () => {
+  const m = matchRoute('GET', '/shipment-service/v1/sell-shipment-out/25004876')
+  assert.equal(m.name, 'sellShipmentDetail')
+  assert.deepEqual(m.params, ['25004876'])
+  assert.equal(matchRoute('GET', '/shipment-service/v1/sell-shipment-out/'), null)
+  assert.equal(matchRoute('GET', '/shipment-service/v1/sell-shipment-out/abc'), null)
+})

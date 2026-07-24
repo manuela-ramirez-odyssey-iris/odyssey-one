@@ -19,7 +19,7 @@ CREATE TABLE locations (
 
 CREATE TABLE shipments (
   sell_shipment  text PRIMARY KEY,
-  buy_shipment   text NOT NULL,
+  buy_shipment   text NOT NULL UNIQUE, -- THE user-facing shipment ID (LINX-11591); sell stays the internal wire key
   orders         text[] NOT NULL,               -- orderNumber list (contract: rows.orders)
   pro            text, customer_id text NOT NULL REFERENCES customers(id),
   customer_name  text NOT NULL,

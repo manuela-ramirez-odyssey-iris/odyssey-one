@@ -57,24 +57,25 @@ export const ALL_COLUMNS = [
   { key: 'validationMessage', label: 'Validation Message' },
 ]
 
-// Sell Shipment # leads the default profiles, Buy Shipment # second. Sell is the
-// contract identity (grid row → detail link key = sellShipment); surfacing it first
-// is a deliberate reminder of that data decision. Buy stays prominent (second) since
-// it's the number users actually care about. See progress.md Session 43.
+// Buy Shipment # leads the default profiles — the team decided buyShipment is THE
+// shipment ID users work with (LINX-11591 approved grid field list, LINX-12490
+// buy-keyed orders endpoint, LINX-13023). Sell Shipment # stays second: it remains
+// the internal wire key (grid row → detail link = sell-shipment-out/{sellShipment}).
+// Supersedes the S43 sell-first ordering; see decision-log DEC entry.
 const DEFAULT_COLUMNS = [
-  'sellShipment', 'buyShipment', 'customerId', 'shipmentStatus', 'orderCount',
+  'buyShipment', 'sellShipment', 'customerId', 'shipmentStatus', 'orderCount',
   'pickupDate', 'deliveryDate', 'origin', 'destination', 'grossWeight',
   'mode', 'equipmentCode', 'scac', 'orders', 'apFreightCost', 'validationMessage',
 ]
 
 export const EXCEPTIONS_DEFAULT_COLUMNS = [
-  'sellShipment', 'buyShipment', 'customerId', 'shipmentStatus', 'orderCount',
+  'buyShipment', 'sellShipment', 'customerId', 'shipmentStatus', 'orderCount',
   'pickupDate', 'deliveryDate', 'origin', 'destination', 'grossWeight',
   'mode', 'equipmentCode', 'scac', 'orders', 'apFreightCost', 'validationMessage',
 ]
 
 export const MONITORING_DEFAULT_COLUMNS = [
-  'sellShipment', 'buyShipment', 'customerId', 'shipmentStatus', 'tenderStatus', 'scac',
+  'buyShipment', 'sellShipment', 'customerId', 'shipmentStatus', 'tenderStatus', 'scac',
   'pickupDate', 'deliveryDate', 'origin', 'destination', 'stops',
   'grossWeight', 'mode', 'equipmentCode',
 ]

@@ -11,6 +11,13 @@ export default defineConfig(({ mode }) => {
     plugins: [react(), tailwindcss()],
     server: {
       proxy: {
+        // Local live-mode: forward /api to the deployed Vercel function (reads Neon).
+        // `vercel dev` clobbers vite module URLs (S92), so this is the local-DB path.
+        '/api': {
+          target: env.VITE_API_PROXY_TARGET || 'https://odyssey-one-stage.vercel.app',
+          changeOrigin: true,
+          secure: true,
+        },
         '/odyssey-tracking-api': {
           target: env.VITE_ODYSSEY_TRACKING_API_BASE || 'https://odyssey-one.com',
           changeOrigin: true,
