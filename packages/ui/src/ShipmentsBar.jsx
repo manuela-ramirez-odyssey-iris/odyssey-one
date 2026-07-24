@@ -171,7 +171,7 @@ export default function ShipmentsBar({
           {onShipmentIdClick && !isDisabled ? (
             <Button
               variant="link"
-              className="shipments-bar__id shipments-bar__id--link"
+              className="shipments-bar__id--link"
               onClick={onShipmentIdClick}
             >
               {shipmentId}

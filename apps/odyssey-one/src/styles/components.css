@@ -166,9 +166,16 @@
 .odyssey-table tbody tr:hover td {
   background: var(--bg-secondary);
 }
-.odyssey-table tbody tr:active td,
-.odyssey-table tbody tr[data-selected] td {
+.odyssey-table tbody tr:active td {
   background: var(--bg-tertiary);
+}
+/* Selected row (S93): one tone darker than the old --bg-tertiary (DSN-100 →
+   DSN-200), text matching the bar's CurrentShipment ButtonLink — link color +
+   semibold. */
+.odyssey-table tbody tr[data-selected] td {
+  background: var(--deep-sea-neutral-200);
+  color: var(--text-link);
+  font-weight: var(--font-weight-semibold);
 }
 
 .odyssey-table tbody tr:last-child td {
@@ -4888,12 +4895,13 @@ button.breadcrumb__label:focus-visible {
   color: var(--text-primary);
   white-space: nowrap;
 }
-/* S93: the id renders as a ButtonLink (Button variant="link") when the consumer
-   wires onShipmentIdClick — keep the strip's semibold weight over the link
-   variant's medium so the segment reads the same as the plain label. */
+/* S93: the id renders as a ButtonLink (Button variant="link", DEFAULT non-black
+   tone — color owned by .btn--link) when the consumer wires onShipmentIdClick.
+   Keep the strip's semibold weight + nowrap; deliberately NOT carrying
+   .shipments-bar__id, whose --text-primary would override the link blue. */
 .shipments-bar__id--link {
-  /* color comes from the Button link variant itself */
   font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
 }
 .shipments-bar--disabled .shipments-bar__id {
   color: var(--text-placeholder);
