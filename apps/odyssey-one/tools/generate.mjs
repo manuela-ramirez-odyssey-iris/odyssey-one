@@ -111,7 +111,7 @@ const VALIDATION_MESSAGES = {
   'bid-review': ['Spot bid expired', 'Multiple bids pending review', 'Bid below minimum rate'],
 };
 
-const CARRIERS = [
+export const CARRIERS = [
   { scac: 'SEFL', name: 'SOUTHEASTERN FREIGHT LINES' },
   { scac: 'ODFL', name: 'OLD DOMINION FREIGHT LINE' },
   { scac: 'XPOL', name: 'XPO LOGISTICS' },
