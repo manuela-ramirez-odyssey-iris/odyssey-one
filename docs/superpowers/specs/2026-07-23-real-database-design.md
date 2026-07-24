@@ -38,13 +38,14 @@ The parked plan's **C-pragmatic normalization** applied as numbered SQL files in
 - Reference: `customers`, `carriers`, `locations`
 - Operational: `users`, `user_customer_assignments`, `orders`, `shipments`, `stops`, `tenders`, `events`
 - 5 JSONB columns on `shipments`: `cost_data`, `documents_data`, `instructions_data`, `notes_data`, `product_data`
+- **`user_preferences`** (`user_id` FK, `key` text, `value` JSONB, `updated_at`; PK `(user_id, key)`) — one generic table absorbs per-user UI state as flows emerge (column arrangements, search profiles, home widget layout, selected customers, …). New preference kind = new `key`, no migration.
 
 Column lists start from the plan-doc sketch and are refined against what the unified generator actually produces. **Data is NOT domain-siloed** — orders↔shipments↔tenders↔stops↔events are one relational web (S80 invariants preserved).
 
 ## Seeding
 
 - The existing seeded generator (`tools/generate.mjs`, seed 42) remains the single source of truth for data shape.
-- New `tools/seed.mjs`: runs the same generation logic scaled 2,200 → 10k+ shipments (+ related orders/tenders/stops/events/reference rows) and bulk-inserts into Neon. Also seeds ~10 fake users (planners with differing customer assignments, a manager, an admin).
+- New `tools/seed.mjs`: runs the same generation logic scaled 2,200 → 10k+ shipments (+ related orders/tenders/stops/events/reference rows) and bulk-inserts into Neon. Also seeds the 9 accounts (guest + 8 mock users — see Auth model).
 - **Reset ritual:** drop schema → apply migrations → reseed. Reproducibility makes schema reshaping free while prototyping.
 
 ## Cutover — by data path, not by screen
@@ -62,6 +63,12 @@ Column lists start from the plan-doc sketch and are refined against what the uni
 | 7 | Fake login | `/api/login` (checks seeded accounts, returns token); API scopes queries via `user_customer_assignments` | login + user-management emulation, per-role data scoping |
 
 Screens whose endpoints don't exist yet stay on mock — the seam is per-service, so mixed mode is clean.
+
+## Auth model — guest + 8 mock users (user decision 2026-07-23)
+
+- **Guest (default):** active with NO login — the app boots into it, behaving like today's prototype. **Read-only, enforced at the API layer** (writes return 403; UI hides/disables write affordances for guest). Guest preference changes stay client-side only (today's behavior); server-side guest preferences are the seeded defaults.
+- **8 mock users:** activate via explicit login (`/api/login` against seeded credentials). Full write ability. Preferences + customer scoping persist server-side, making each user a reusable, hassle-free test scenario (mix of planners with differing customer assignments, a manager, an admin).
+- No SSO / OIDC / IT involvement — fake accounts emulate the login and user-management features end-to-end.
 
 ## Latency & UX
 
