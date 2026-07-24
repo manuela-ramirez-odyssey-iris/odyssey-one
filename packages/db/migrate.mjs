@@ -33,10 +33,16 @@ export async function migrate(client, dir = MIGRATIONS_DIR) {
 
 // CLI guard (same pattern as tools/token-check.mjs post-S88)
 if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href) {
+  const reset = process.argv.includes('--reset')
+  if (reset && !process.argv.includes('--yes')) {
+    console.error('--reset requires --yes (drops the ENTIRE public schema)')
+    process.exit(1)
+  }
   const { default: pg } = await import('pg')
+  // ponytail: cert validation off — fine for Neon prototype, revisit for prod (proper CA bundle)
   const client = new pg.Client({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } })
   await client.connect()
-  if (process.argv.includes('--reset')) {
+  if (reset) {
     await client.query('DROP SCHEMA public CASCADE; CREATE SCHEMA public;')
     console.log('schema reset')
   }
