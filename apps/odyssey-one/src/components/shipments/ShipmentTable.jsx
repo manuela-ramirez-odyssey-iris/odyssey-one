@@ -214,6 +214,12 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
       // Mapped cells open a specific bar tab (CELL_TAB_MAP) — hover tint
       // signals the link (S82).
       if (CELL_TAB_MAP[col.key]) cellClasses.push('odyssey-table__cell--tab-link')
+      // DataTable contract: meta.cellClass REPLACES the text-label-sm-regular
+      // default entirely — any custom class list must restore the typography
+      // (S93 audit: tab-link-only cells were falling back to the 16px body font).
+      if (cellClasses.length && !cellClasses.some((c) => c.startsWith('text-'))) {
+        cellClasses.unshift('text-label-sm-regular')
+      }
       const meta = cellClasses.length ? { cellClass: cellClasses.join(' ') } : {}
       return columnHelper.accessor(col.key, {
         id: col.key,
