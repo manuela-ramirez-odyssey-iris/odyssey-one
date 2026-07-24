@@ -1209,3 +1209,13 @@ Repeat Step 1's checks against https://odyssey-one-stage.vercel.app — first re
 - **Placeholders:** two deliberate executor-verification NOTEs (data-pools export names, seed-users real customer ids) — these are read-the-source checks, not design gaps.
 - **Type consistency:** response field aliases in Tasks 5–6 match the Explore-verified contract types; `buildDataset` return shape used consistently in Tasks 2–3.
 - **Risk register:** (1) Task 2 refactor is the riskiest step — the byte-identical `git diff` gate catches ordering/state regressions; (2) `pg` over Neon requires SSL — handled in every client/pool construction; (3) Vercel `req.body` parsing + `[...path].js` catch-all behavior verified in Task 5 smoke before anything depends on it.
+
+---
+
+## Execution addendum (2026-07-24 — as-built deviations)
+
+- **Deviation 4 — routing pivot.** The planned catch-all `api/[...path].js` does NOT match multi-segment paths on this setup (Vite app, Root Directory `apps/odyssey-one`, custom `vercel.json` rewrites) — single-segment `/api/foo` reached the function, `/api/a/b/c` returned Vercel NOT_FOUND, in BOTH `vercel dev` and production. Shipped instead: plain `api/index.js` + explicit rewrite `{ "source": "/api/(.*)", "destination": "/api/index?__path=$1" }` ahead of the SPA rewrite; the handler reads the path from `__path` (falling back to stripping `/api` from the pathname) and deletes the plumbing param before dispatch. Commit `96cf603`.
+- **Deviation 5 — E2E environment.** `vercel dev` additionally applies the SPA rewrite to vite's own module URLs (`/src/main.jsx` served as index.html → blank app), so the local `vercel dev` E2E gate was abandoned. E2E ran against a production deployment instead (preview deploys are SSO-protected on this team). Local dev remains plain `vite` (mock mode, or point `VITE_API_BASE_URL` at the deployed `/api`).
+- **Deviation 6 — live payload shape.** `gridService` live mode flattens `filter`/`dateFilters` into the request `filter` (plan assumed nested); the shipments builder reads both shapes. `searchFilters` is now sent NESTED by the live branch so the server can distinguish ILIKE from exact matching.
+- **As-built seed stats (10k run, 2026-07-24):** shipments 10,000 · orders 23,182 · stops 21,158 · tenders 45,094 · events 84,890 · users 9 · assignments 20 — DB size **263 MB** (Neon free tier 0.5 GB). Seed wall-clock 3m48s; `verify-seed` 9/9 ✓.
+- **Observed prod latency:** counts endpoint ~0.31–0.52s via curl; in-browser `/api` calls 124–469 ms. Real loading states visible on route switches.
