@@ -14,5 +14,8 @@
       "permanent": true
     }
   ],
-  "rewrites": [{ "source": "/((?!api/).*)", "destination": "/index.html" }]
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/index?__path=$1" },
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
+  ]
 }

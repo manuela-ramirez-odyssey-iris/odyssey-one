@@ -1,10 +1,16 @@
-// api/[...path].js — single Vercel Function serving every contract path under /api.
+// api/index.js — single Vercel Function serving every contract path under /api.
+// The bracket catch-all ([...path].js) fails to match multi-segment paths on this
+// setup (Vite app, Root Directory = apps/odyssey-one, custom vercel.json rewrites).
+// So vercel.json rewrites /api/(.*) → /api/index?__path=$1, carrying the real path
+// explicitly. We read it back below and strip the plumbing param before dispatch.
 import { matchRoute } from './_lib/router.mjs'
 import { getPool } from './_lib/db.mjs'
 
 export default async function handler(req, res) {
   const url = new URL(req.url, 'http://x')
-  const pathname = url.pathname.replace(/^\/api/, '')
+  const viaRewrite = url.searchParams.get('__path')
+  const pathname = viaRewrite ? `/${viaRewrite}` : url.pathname.replace(/^\/api/, '')
+  url.searchParams.delete('__path') // handlers must never see the plumbing param
   const route = matchRoute(req.method, pathname)
   if (!route) return res.status(404).json({ message: `No route: ${req.method} ${pathname}` })
 
