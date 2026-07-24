@@ -1060,8 +1060,6 @@ function generateShipment(index) {
   // ── Orders-side emission (I1–I8): every order this shipment carries becomes
   // an orders.json row with the SAME id, customer, locations, dates, weights.
   const orderStatusLabel = hasAccepted ? 'Shipment Planned' : hasSent ? 'Load Planned' : 'Shipment Failed'; // I6
-  const emittedOrderRows = [];
-  const emittedEnrichments = {};
   orders.forEach((ord, oi) => {
     const h = orderHeaders[oi];
     const w = ord.window;
@@ -1092,7 +1090,6 @@ function generateShipment(index) {
       orderStatus: orderStatusLabel,
     };
     orderRows.push(orderRow);
-    emittedOrderRows.push(orderRow);
     // I8 — a subset of shipped orders gets full ManualOrder enrichment so the
     // Order Summary shows the SAME lines/instructions/services as the shipment
     // detail; the rest resolve through the lean row (consistent aggregates).
@@ -1105,11 +1102,10 @@ function generateShipment(index) {
         fromIdx: ord.shipFromLocIdx, toIdx: ord.shipToLocIdx,
       });
       orderEnrichments[ord.orderId] = enrichment;
-      emittedEnrichments[ord.orderId] = enrichment;
     }
   });
 
-  return { mainRow, detail, orderRows: emittedOrderRows, enrichments: emittedEnrichments };
+  return { mainRow, detail };
 }
 
 // ManualOrder-shaped enrichment (the /order/view DTO subset) derived from the
