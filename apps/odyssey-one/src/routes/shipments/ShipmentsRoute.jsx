@@ -69,13 +69,6 @@ function ShipmentsRoute() {
 
   const { data: shipmentDetails = null, isLoading: detailsLoading, isError: detailsError, refetch: refetchDetails } = useShipmentDetail(selectedShipmentId)
 
-  // Selection id = sellShipment (the contract detail-link key). Look the raw row up
-  // in the full set so BottomBar keeps its row summary even after paging away.
-  const selectedShipment = useMemo(() => {
-    if (!selectedShipmentId) return null
-    return allShipments.find(s => s.sellShipment === selectedShipmentId) || null
-  }, [selectedShipmentId, allShipments])
-
   // Reset to the first page whenever the query identity (panel/tab/search/customer
   // scope) changes. Done during render (React's documented "adjust state on change"
   // pattern) rather than in an effect, so the stale-page query never fires — avoids
@@ -114,6 +107,23 @@ function ShipmentsRoute() {
 
   const pageRows = listData?.rows ?? []
   const totalCount = listData?.totalCount ?? 0
+
+  // Selection id = sellShipment (the contract detail-link key). The raw row for
+  // BottomBar (buy label + summary) comes from the LIVE page rows first — the
+  // mock full set only covers live data by coincidence (S93: live sell ids
+  // missed it, so the bar fell back to labeling with the sell id). The ref keeps
+  // the last-found row so the summary survives paging away from the selection.
+  const selectedRowRef = useRef(null)
+  const selectedShipment = useMemo(() => {
+    if (!selectedShipmentId) { selectedRowRef.current = null; return null }
+    const row =
+      pageRows.find(r => r.sellShipment === selectedShipmentId)
+      ?? (selectedRowRef.current?.sellShipment === selectedShipmentId ? selectedRowRef.current : null)
+      ?? allShipments.find(s => s.sellShipment === selectedShipmentId)
+      ?? null
+    selectedRowRef.current = row
+    return row
+  }, [selectedShipmentId, pageRows, allShipments])
 
   // Tab badges + metrics strip: counts come from the count endpoint per panel,
   // scoped to the selected customers (decision 10) and filtered by the committed
