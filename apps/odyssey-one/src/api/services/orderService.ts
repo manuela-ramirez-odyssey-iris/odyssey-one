@@ -1,5 +1,5 @@
 import { getApiMode } from '../config'
-import { apiPost } from '../client'
+import { apiGet, apiPost } from '../client'
 import { getAllOrders, getOrderEnrichment } from '../../data/orders'
 import type { OrderListRequest, OrderListResponse, OrderListRow } from '../types/orderList'
 import { mapFormToOrderInterface } from '../mappers/mapFormToOrderInterface'
@@ -58,10 +58,15 @@ export interface OrderTabCounts {
 /**
  * Counts for the Orders main tabs (All / Draft / Validation Errors), scoped by
  * the navbar customer selection — same semantics as getOrderList's customerIds.
- * Mock-only: the LLD has no counts endpoint yet; live wiring lands with it.
+ * live → GET /order-service/v3/order/tab-counts?customers=csv — OUR contract
+ * extension (the LLD has no counts endpoint); mock computes over orders.json.
  */
 export async function getOrderTabCounts(customerIds?: string[]): Promise<OrderTabCounts> {
   if (customerIds && customerIds.length === 0) return { all: 0, draft: 0, validationErrors: 0 }
+  if (getApiMode() === 'live') {
+    const params = customerIds !== undefined ? `?customers=${encodeURIComponent(customerIds.join(','))}` : ''
+    return apiGet<OrderTabCounts>(`/order-service/v3/order/tab-counts${params}`)
+  }
   const rows = mockScopedRows(customerIds)
   return {
     all: rows.length,

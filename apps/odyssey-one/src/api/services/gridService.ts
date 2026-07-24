@@ -36,9 +36,12 @@ function scopeToCustomers(rows: ShipmentErrorRow[], customerIds?: string[]): Shi
 export async function getCategoryCounts(params: CategoryCountParams): Promise<CategoryCount[]> {
   if (getApiMode() === 'live') {
     // Real: GET /shipment-service/v1/shipment/error/category/count → { errorOverview, total }
-    // (criteria-aware counts are a mock-side feature until the real endpoint grows a filter)
+    // Our fake backend grew the customerIds filter (plan deviation 1); searchCriteria
+    // stays mock-only until the search slice lands (plan deviation 2).
+    const search = new URLSearchParams({ panel: params.panel })
+    if (params.customerIds !== undefined) search.set('customerIds', params.customerIds.join(','))
     const res = await apiGet<{ errorOverview: CategoryCount[] }>(
-      `/shipment-service/v1/shipment/error/category/count?panel=${encodeURIComponent(params.panel)}`,
+      `/shipment-service/v1/shipment/error/category/count?${search.toString()}`,
     )
     return res.errorOverview ?? []
   }
@@ -80,7 +83,14 @@ export async function getShipmentErrorList(
       {
         pageNumber: params.pageNumber,
         pageSize: params.pageSize,
-        filter: { panel: params.panel, category: params.category, customerIds: params.customerIds, ...params.filter, ...params.searchFilters, ...params.dateFilters, searchTerm: params.searchTerm, searchCriteria: params.searchCriteria },
+        // searchFilters stays NESTED (not spread flat) so the server can tell
+        // substring-filters from exact-filters and apply ILIKE not = (Task 5 review).
+        filter: {
+          panel: params.panel, category: params.category, customerIds: params.customerIds,
+          ...params.filter, ...params.dateFilters,
+          searchTerm: params.searchTerm, searchCriteria: params.searchCriteria,
+          ...(params.searchFilters !== undefined ? { searchFilters: params.searchFilters } : {}),
+        },
         sortBy: params.sortBy,
         orderBy: params.orderBy,
       },

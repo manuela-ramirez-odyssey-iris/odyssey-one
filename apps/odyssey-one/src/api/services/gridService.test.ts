@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('../config', () => ({ getApiMode: vi.fn(() => 'mock') }))
 
@@ -25,6 +25,11 @@ const STORE = [
 
 vi.mock('../../data', () => ({ getAllShipments: () => STORE }))
 
+// Live-branch tests stub the HTTP layer; mock tests never reach it.
+vi.mock('../client', () => ({ apiGet: vi.fn(), apiPost: vi.fn() }))
+
+import { getApiMode } from '../config'
+import { apiGet, apiPost } from '../client'
 import { getCategoryCounts, getShipmentErrorList } from './gridService'
 // The glimpse adapter shares the criteria matcher (and the mocked data module),
 // so the S79c invariant — panel totals sum to the glimpse total — is testable
@@ -171,6 +176,53 @@ describe('gridService — searchCriteria (shared matcher with the glimpse)', () 
           .then(cs => cs.reduce((s, c) => s + c.count, 0))))
       expect(countTotals).toEqual(totals)
     }
+  })
+})
+
+// ── live branch: real HTTP seam (getApiMode → 'live', client stubbed) ──
+describe('gridService (live)', () => {
+  const mode = vi.mocked(getApiMode)
+  const get = vi.mocked(apiGet)
+  const post = vi.mocked(apiPost)
+  afterEach(() => { mode.mockReturnValue('mock'); get.mockReset(); post.mockReset() })
+
+  it('counts pass customerIds as a csv query param', async () => {
+    mode.mockReturnValue('live')
+    get.mockResolvedValue({ errorOverview: [] })
+    await getCategoryCounts({ panel: 'exceptions', customerIds: ['A_01', 'B_02'] })
+    expect(get).toHaveBeenCalledWith(
+      '/shipment-service/v1/shipment/error/category/count?panel=exceptions&customerIds=A_01%2CB_02',
+    )
+  })
+
+  it('counts omit customerIds from the URL when undefined', async () => {
+    mode.mockReturnValue('live')
+    get.mockResolvedValue({ errorOverview: [] })
+    await getCategoryCounts({ panel: 'exceptions' })
+    expect(get).toHaveBeenCalledWith(
+      '/shipment-service/v1/shipment/error/category/count?panel=exceptions',
+    )
+  })
+
+  it('list nests searchFilters (not spread flat) so the server can ILIKE them', async () => {
+    mode.mockReturnValue('live')
+    post.mockResolvedValue({ pageNumber: 0, pageSize: 25, totalCount: 0, rows: [] })
+    await getShipmentErrorList({
+      panel: 'exceptions', pageNumber: 0, pageSize: 25,
+      searchFilters: { origin: 'Dallas' },
+    })
+    const body = post.mock.calls[0][1] as { filter: Record<string, unknown> }
+    expect(body.filter.searchFilters).toEqual({ origin: 'Dallas' })
+    // the substring keys must NOT be spread flat onto filter
+    expect(body.filter.origin).toBeUndefined()
+  })
+
+  it('list omits searchFilters entirely when undefined', async () => {
+    mode.mockReturnValue('live')
+    post.mockResolvedValue({ pageNumber: 0, pageSize: 25, totalCount: 0, rows: [] })
+    await getShipmentErrorList({ panel: 'exceptions', pageNumber: 0, pageSize: 25 })
+    const body = post.mock.calls[0][1] as { filter: Record<string, unknown> }
+    expect('searchFilters' in body.filter).toBe(false)
   })
 })
 

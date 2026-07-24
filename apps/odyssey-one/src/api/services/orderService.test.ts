@@ -1,6 +1,8 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('../config', () => ({ getApiMode: vi.fn(() => 'mock') }))
+// Live-branch tests stub the HTTP layer; mock tests never reach it.
+vi.mock('../client', () => ({ apiGet: vi.fn(), apiPost: vi.fn() }))
 
 function mk(orderNumber: string, extra: Record<string, unknown> = {}) {
   return {
@@ -44,6 +46,8 @@ const STORE = [
 
 vi.mock('../../data/orders', () => ({ getAllOrders: () => STORE, getOrderEnrichment: () => null }))
 
+import { getApiMode } from '../config'
+import { apiGet } from '../client'
 import { getOrderList, getOrderTabCounts, saveDraft, __resetOrderWriteState } from './orderService'
 import { orderFormValuesSample } from '../fixtures/orderFormValues.sample'
 
@@ -160,5 +164,32 @@ describe('orderService.getOrderTabCounts (mock)', () => {
     } finally {
       STORE.splice(-3)
     }
+  })
+})
+
+describe('orderService.getOrderTabCounts (live)', () => {
+  const mode = vi.mocked(getApiMode)
+  const get = vi.mocked(apiGet)
+  afterEach(() => { mode.mockReturnValue('mock'); get.mockReset() })
+
+  it('calls the tab-counts endpoint scoped, passing the response through', async () => {
+    mode.mockReturnValue('live')
+    const counts = { all: 3, draft: 1, validationErrors: 0 }
+    get.mockResolvedValue(counts)
+    expect(await getOrderTabCounts(['A_01'])).toEqual(counts)
+    expect(get).toHaveBeenCalledWith('/order-service/v3/order/tab-counts?customers=A_01')
+  })
+
+  it('short-circuits an empty scope to zeros without an HTTP call', async () => {
+    mode.mockReturnValue('live')
+    expect(await getOrderTabCounts([])).toEqual({ all: 0, draft: 0, validationErrors: 0 })
+    expect(get).not.toHaveBeenCalled()
+  })
+
+  it('omits the customers param when the scope is undefined', async () => {
+    mode.mockReturnValue('live')
+    get.mockResolvedValue({ all: 5, draft: 0, validationErrors: 0 })
+    await getOrderTabCounts()
+    expect(get).toHaveBeenCalledWith('/order-service/v3/order/tab-counts')
   })
 })
