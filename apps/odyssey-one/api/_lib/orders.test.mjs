@@ -24,3 +24,24 @@ test('tab counts: single grouped query, scoped', () => {
   assert.match(q.text, /count\(\*\)/i)
   assert.deepEqual(q.values, [['VALTRIS_01']])
 })
+
+test('order list: date range filters (inclusive upper bound)', () => {
+  const q = buildOrderListQuery({
+    filters: { earliestPickupDateFrom: '2026-04-01', earliestPickupDateTo: '2026-04-30' },
+  })
+  assert.match(q.text, /earliest_pickup_ts >= \$\d+/)
+  assert.match(q.text, /earliest_pickup_ts < \(\$\d+::date \+ 1\)/)
+})
+
+test('order list: unknown sort field falls back to order_number', () => {
+  const q = buildOrderListQuery({ sort: { field: 'DROP TABLE', direction: 'asc' } })
+  assert.match(q.text, /ORDER BY order_number/)
+})
+
+test('honest-empty: empty scope/filter yields FALSE, no values', () => {
+  const counts = buildTabCountsQuery({ customerIds: [] })
+  assert.match(counts.text, /WHERE FALSE/)
+  assert.deepEqual(counts.values, [])
+  const list = buildOrderListQuery({ filters: { customers: [] } })
+  assert.match(list.text, /FALSE/)
+})
