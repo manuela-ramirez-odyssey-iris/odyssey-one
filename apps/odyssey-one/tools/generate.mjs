@@ -36,18 +36,26 @@ import { faker } from '@faker-js/faker';
 import { writeFileSync, mkdirSync, existsSync, readdirSync, unlinkSync } from 'fs';
 import { CUSTOMERS, LOCATIONS, EQUIPMENT_CODES, CHEMICAL_PRODUCTS, locationIdFor } from './data-pools.mjs'
 
-faker.seed(42);
-
 // ── Orders accumulator (I1) ──────────────────────────────────────────────────
 // Globally unique customer-prefixed order numbers, shared by shipped and
 // unshipped orders so "orderNumber desc" stays a sane newest-first proxy.
+// Module-level mutable state (orderSeq, orderRows, orderEnrichments,
+// usedSellShipments) is reset by buildDataset() so repeated in-process calls
+// stay deterministic. resetGeneratorState() zeroes it all at once.
 let orderSeq = 0;
 function genOrderNumber(customer) {
   const prefix = customer.id.replace(/[^A-Z]/g, '').slice(0, 3).padEnd(3, 'X');
   return `${prefix}${100000 + orderSeq++}`;
 }
-const orderRows = [];        // → src/data/orders.json  (OrderListRow shape)
-const orderEnrichments = {}; // → src/data/order-details.json (partial ManualOrder by orderNumber)
+let orderRows = [];        // → src/data/orders.json  (OrderListRow shape)
+let orderEnrichments = {}; // → src/data/order-details.json (partial ManualOrder by orderNumber)
+
+function resetGeneratorState() {
+  orderSeq = 0;
+  orderRows = [];
+  orderEnrichments = {};
+  usedSellShipments.clear();
+}
 
 // Local-naive ISO ("2026-06-15T08:00:00") — the LLD datetime shape; list/view
 // mappers string-slice it, so no timezone shifting.
@@ -1052,12 +1060,14 @@ function generateShipment(index) {
   // ── Orders-side emission (I1–I8): every order this shipment carries becomes
   // an orders.json row with the SAME id, customer, locations, dates, weights.
   const orderStatusLabel = hasAccepted ? 'Shipment Planned' : hasSent ? 'Load Planned' : 'Shipment Failed'; // I6
+  const emittedOrderRows = [];
+  const emittedEnrichments = {};
   orders.forEach((ord, oi) => {
     const h = orderHeaders[oi];
     const w = ord.window;
     const from = LOCATIONS[ord.shipFromLocIdx];
     const to = LOCATIONS[ord.shipToLocIdx];
-    orderRows.push({
+    const orderRow = {
       orderNumber: ord.orderId,
       orderSource: faker.number.float({ min: 0, max: 1 }) < 0.85 ? 'INTEGRATED' : 'MANUAL',
       customer: customer.id, // I2
@@ -1080,22 +1090,26 @@ function generateShipment(index) {
       volume: { value: ord.orderVolume, uom: 'cbf' },
       commodity: ord.lines[0].itemDescription, // I7
       orderStatus: orderStatusLabel,
-    });
+    };
+    orderRows.push(orderRow);
+    emittedOrderRows.push(orderRow);
     // I8 — a subset of shipped orders gets full ManualOrder enrichment so the
     // Order Summary shows the SAME lines/instructions/services as the shipment
     // detail; the rest resolve through the lean row (consistent aggregates).
     if (faker.number.float({ min: 0, max: 1 }) < 0.25) {
-      orderEnrichments[ord.orderId] = buildOrderEnrichment({
+      const enrichment = buildOrderEnrichment({
         orderNumber: ord.orderId,
         customer, freightTerms, shipDirection,
         header: h, lines: ord.lines, window: w,
         instructionList: instrOrders[oi].instructionList,
         fromIdx: ord.shipFromLocIdx, toIdx: ord.shipToLocIdx,
       });
+      orderEnrichments[ord.orderId] = enrichment;
+      emittedEnrichments[ord.orderId] = enrichment;
     }
   });
 
-  return { mainRow, detail };
+  return { mainRow, detail, orderRows: emittedOrderRows, enrichments: emittedEnrichments };
 }
 
 // ManualOrder-shaped enrichment (the /order/view DTO subset) derived from the
@@ -1205,57 +1219,12 @@ const CATEGORY_WEIGHTS = {
 };
 
 // ============================================================
-// GENERATE SHIPMENTS
-// ============================================================
-
-console.log('Generating 2200 shipments...');
-
-const TOTAL_SHIPMENTS = 2200;
-const shipments = [];
-const shipmentDetails = {};
-
-for (let i = 0; i < TOTAL_SHIPMENTS; i++) {
-  const { mainRow, detail } = generateShipment(i);
-  shipments.push(mainRow);
-  shipmentDetails[mainRow.sellShipment] = detail;
-}
-
-// Write main table data (statically imported by app)
-const outDir = new URL('../src/data/', import.meta.url);
-writeFileSync(new URL('shipments.json', outDir), JSON.stringify(shipments, null, 2));
-
-// Write per-shipment detail files to public/details/
-const detailsDir = new URL('../public/details/', import.meta.url);
-const detailsDirPath = new URL('.', detailsDir).pathname;
-
-// Ensure directory exists
-mkdirSync(detailsDirPath, { recursive: true });
-
-// Clean old detail files
-if (existsSync(detailsDirPath)) {
-  for (const f of readdirSync(detailsDirPath)) {
-    if (f.endsWith('.json')) unlinkSync(detailsDirPath + f);
-  }
-}
-
-// Write individual files
-for (const [id, detail] of Object.entries(shipmentDetails)) {
-  writeFileSync(detailsDirPath + id + '.json', JSON.stringify(detail));
-}
-
-// ============================================================
 // UNSHIPPED ORDERS (Orders-side only — I6/I9)
 // ============================================================
 // Orders that exist but are NOT on any shipment yet: awaiting planning, drafts,
 // failures, cancellations, and a few number-less async creations (I9). Facts
 // follow the same invariants (line roll-ups, ordered date windows, shared
 // location ids) so the create-form contract can explain every row.
-
-const shippedOrderCount = orderRows.length;
-// Scaled with TOTAL_SHIPMENTS (~25% of shipments' order volume stays pre-plan)
-// so the status mix reads like a living system at any database size.
-const UNSHIPPED_ORDERS = 550;
-const PENDING_ORDERS = 20; // orderNumber not assigned yet (async create processing)
 
 // Weighted pre-plan statuses (I6) — HOLD is a flag, not a status.
 const UNSHIPPED_STATUS_POOL = [
@@ -1399,14 +1368,71 @@ function generateUnshippedOrder(n, pending) {
   return row;
 }
 
-for (let n = 0; n < UNSHIPPED_ORDERS; n++) orderRows.push(generateUnshippedOrder(n, false));
-for (let n = 0; n < PENDING_ORDERS; n++) orderRows.push(generateUnshippedOrder(n, true));
+// ============================================================
+// DATASET BUILDER + CLI
+// ============================================================
 
-writeFileSync(new URL('orders.json', outDir), JSON.stringify(orderRows, null, 1));
-writeFileSync(new URL('order-details.json', outDir), JSON.stringify(orderEnrichments));
+// Build the whole dataset IN MEMORY (no fs). Deterministic per seed 42 across
+// repeated in-process calls because all module state is reset up front.
+//   totalShipments   — mainRows generated (each carries 1–5 shipped orders)
+//   unshippedOrders  — Orders-only pre-plan rows; default 25% of shipments,
+//                      which is 550 at the CLI default of 2200 (byte-identical)
+//   pendingOrders    — number-less async-create rows (I9)
+export function buildDataset({
+  totalShipments = 2200,
+  unshippedOrders = Math.round(totalShipments * 0.25),
+  pendingOrders = 20,
+} = {}) {
+  faker.seed(42);
+  resetGeneratorState();
 
-console.log(`Done! Generated ${shipments.length} shipments.`);
-console.log(`  shipments.json: ${shipments.length} rows`);
-console.log(`  public/details/: ${Object.keys(shipmentDetails).length} detail files`);
-console.log(`  orders.json: ${orderRows.length} rows (${shippedOrderCount} shipped + ${UNSHIPPED_ORDERS} unshipped + ${PENDING_ORDERS} pending/number-less)`);
-console.log(`  order-details.json: ${Object.keys(orderEnrichments).length} enriched orders`);
+  const shipments = [];       // mainRow per shipment
+  const details = new Map();  // sellShipment -> SellShipmentOut detail
+  for (let i = 0; i < totalShipments; i++) {
+    const { mainRow, detail } = generateShipment(i);
+    shipments.push(mainRow);
+    details.set(mainRow.sellShipment, detail);
+  }
+
+  for (let n = 0; n < unshippedOrders; n++) orderRows.push(generateUnshippedOrder(n, false));
+  for (let n = 0; n < pendingOrders; n++) orderRows.push(generateUnshippedOrder(n, true));
+
+  // orderRows / orderEnrichments are the module accumulators generateShipment +
+  // generateUnshippedOrder pushed into — hand them back as the dataset's orders.
+  return { shipments, details, orders: orderRows, orderDetails: orderEnrichments };
+}
+
+// Write the dataset to disk exactly as the original top-level driver did.
+function writeOutputs({ shipments, details, orders, orderDetails }) {
+  const outDir = new URL('../src/data/', import.meta.url);
+  writeFileSync(new URL('shipments.json', outDir), JSON.stringify(shipments, null, 2));
+
+  const detailsDir = new URL('../public/details/', import.meta.url);
+  const detailsDirPath = new URL('.', detailsDir).pathname;
+  mkdirSync(detailsDirPath, { recursive: true });
+  if (existsSync(detailsDirPath)) {
+    for (const f of readdirSync(detailsDirPath)) {
+      if (f.endsWith('.json')) unlinkSync(detailsDirPath + f);
+    }
+  }
+  for (const [id, detail] of details) {
+    writeFileSync(detailsDirPath + id + '.json', JSON.stringify(detail));
+  }
+
+  writeFileSync(new URL('orders.json', outDir), JSON.stringify(orders, null, 1));
+  writeFileSync(new URL('order-details.json', outDir), JSON.stringify(orderDetails));
+}
+
+// CLI: unchanged behavior — 2200 shipments, same seed, same files.
+if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href) {
+  console.log('Generating 2200 shipments...');
+  const ds = buildDataset();
+  writeOutputs(ds);
+  const unshippedCount = Math.round(2200 * 0.25);
+  const shippedOrderCount = ds.orders.length - unshippedCount - 20;
+  console.log(`Done! Generated ${ds.shipments.length} shipments.`);
+  console.log(`  shipments.json: ${ds.shipments.length} rows`);
+  console.log(`  public/details/: ${ds.details.size} detail files`);
+  console.log(`  orders.json: ${ds.orders.length} rows (${shippedOrderCount} shipped + ${unshippedCount} unshipped + 20 pending/number-less)`);
+  console.log(`  order-details.json: ${Object.keys(ds.orderDetails).length} enriched orders`);
+}
