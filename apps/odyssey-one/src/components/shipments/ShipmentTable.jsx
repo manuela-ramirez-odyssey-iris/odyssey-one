@@ -196,14 +196,22 @@ function deriveColumnState(visibleColumns) {
   return { columnVisibility, columnOrder }
 }
 
-export default function ShipmentTable({ shipments, onRowSelect, selectedId, onToggleColumnPanel, visibleColumns, pageNumber = 0, pageSize = 25, totalCount = 0, onPageChange, onPageSizeChange, sorting, onSortingChange, isLoading = false, isError = false, onRetry }) {
+export default function ShipmentTable({ shipments, onRowSelect, selectedId, onToggleColumnPanel, visibleColumns, pageNumber = 0, pageSize = 25, totalCount = 0, onPageChange, onPageSizeChange, sorting, onSortingChange, isLoading = false, isFetchingRows = false, isError = false, onRetry }) {
   const containerRef = useRef(null)
   const [columnSizing, setColumnSizing] = useState({})
 
   // Stable master column set — select + every possible data column (ALL_COLUMNS) +
   // the sticky-right action column. The SET never changes; the ColumnPanel only
+  // Stale-page indicator (S93): while TanStack Query shows the PREVIOUS page's
+  // rows for a new page/tab (keepPreviousData placeholder), every data cell
+  // renders "Loading…" instead of the stale value. Read through a ref so the
+  // memoized column defs don't rebuild on every fetch.
+  const fetchingRef = useRef(false)
+  fetchingRef.current = isFetchingRows
+
   // toggles visibility + order (derived below). Built once (depends only on the panel toggle).
   const columns = useMemo(() => {
+    const loadingCell = <span style={{ color: 'var(--text-placeholder)' }}>Loading…</span>
     const dataCols = ALL_COLUMNS.map((col) => {
       const cfg = COLUMN_CONFIG_MAP[col.key]
       const label = colLabel(col.key)
@@ -225,8 +233,8 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
         id: col.key,
         header: label,
         cell: cfg?.render
-          ? ({ row }) => cfg.render(row.original)
-          : ({ getValue }) => getValue() ?? '—',
+          ? ({ row }) => (fetchingRef.current ? loadingCell : cfg.render(row.original))
+          : ({ getValue }) => (fetchingRef.current ? loadingCell : (getValue() ?? '—')),
         meta,
       })
     })
@@ -321,8 +329,15 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
       if (!row) return
       const barTop = document.querySelector('[data-bottombar]')?.getBoundingClientRect().top
         ?? window.innerHeight
-      const overlap = row.getBoundingClientRect().bottom - (barTop - 12) // 12px breathing room
+      const rect = row.getBoundingClientRect()
+      const overlap = rect.bottom - (barTop - 12) // 12px breathing room
+      // Upward (prev arrow): 'nearest' parks the row BEHIND the sticky table
+      // header — scroll it down into the gap below the header instead (S93,
+      // the mirror of the bar-overlap case).
+      const headerBottom = containerRef.current?.querySelector('thead')?.getBoundingClientRect().bottom ?? 0
+      const upOverlap = (headerBottom + 12) - rect.top
       if (overlap > 0) row.closest('main')?.scrollBy({ top: overlap, behavior: 'smooth' })
+      else if (upOverlap > 0) row.closest('main')?.scrollBy({ top: -upOverlap, behavior: 'smooth' })
       else row.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
     }, 600)
     return () => clearTimeout(t)

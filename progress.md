@@ -14,6 +14,11 @@
 - **Local dev now reaches Neon:** 6-line vite proxy `/api` → `odyssey-one-stage.vercel.app` (override `VITE_API_PROXY_TARGET`) — the missing piece that made live mode work locally (`vercel dev` still off-limits per S92).
 - **Default customers 4 → 6:** + Valtris + USALCO (next in the planner's book order) in `CustomersContext.jsx:61`; CustomersModal tests re-fixtured (stage "Dubois" now that Valtris is default-selected).
 - Known remaining live-mode gap: **Edit flow** (`?draft=` → `getDraft`) still live-gated (order/view → form hydration mapping, plan decision 21).
+- **Post-wrap continuation (same session):** three fix rounds + an improvement batch, each deployed:
+  - **Cell font audit:** ~20 `CELL_TAB_MAP` columns passed `cellClass` without a typography class — DataTable's replace contract dropped the 14px default → 16px body font. Consumer conformed (auto-restores `text-label-sm-regular`); latent since S82.
+  - **Bar shows the buy id:** two rounds — BottomBar label prop, then the real fix: `selectedShipment` lookup now prefers **live page rows** (mock `getAllShipments()` misses most live sell ids; a ref holds the last row across paging). Verified via puppeteer-core click test.
+  - **Improvement batch (all browser-verified):** inert toolbar Sort button removed; truncation tooltip now fires on ANY clipped cell (was >1 hidden word — @odyssey/ui change); **ShipmentsBar reworked (→ NORMALIZING both DSMs)**: shipment id renders as ButtonLink (`onShipmentIdClick`) opening the NEW `ShipmentDetailsModal` (ModalMedium, 2×2 sections, Routing Query (QCP) = primary) — extracted from the Tender tab (its button + hand-rolled modal deleted); **fixed 3-stage height model** (collapsed 48px / partial 60dvh / full 100dvh−clearance, plain CSS transitions — the S79d adaptive auto-height + ratchet + measured-JS animation RETIRED); **bar scrim** (RightPanel pattern — first outside click only collapses, covers `<main>` only); prev-arrow autoscroll now sticky-header-aware (mirror of the bar-overlap case); page/tab changes render **"Loading…" cells** while TanStack shows placeholder rows (`isPlaceholderData` → ref-read by the memoized columns). Default sort seed → `buyShipment`.
+  - **Figma sync owed:** ShipmentsBar master (id as link) — flag for the next Efrain/Figma pass; Angular twin catches up at the next batch port.
 
 ---
 

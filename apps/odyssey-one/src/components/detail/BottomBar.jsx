@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef, useTransition, Suspense } from 'react'
 import { Loader2 } from 'lucide-react'
 import { ShipmentsBar } from '@odyssey/ui'
+import ShipmentDetailsModal from './ShipmentDetailsModal'
 
 const OrderTab = React.lazy(() => import('./OrderTab'))
 const StopsTab = React.lazy(() => import('./StopsTab'))
@@ -76,6 +77,8 @@ export default function BottomBar({
   // Three-state bar (S82): selection opens PARTIAL (60dvh); the bar's
   // CollapseExpand walks partial → full → closed (close = deselect).
   const [stage, setStage] = useState('partial')
+  // View Shipment Details modal — opened from the bar's shipment-id ButtonLink (S93).
+  const [detailsModalOpen, setDetailsModalOpen] = useState(false)
   const [, startTransition] = useTransition()
 
   // Only a FRESH open (null → id) resets to the Orders tab; a selected →
@@ -88,6 +91,7 @@ export default function BottomBar({
     if (!fresh) return
     setActiveTab('order')
     setStage('partial')
+    setDetailsModalOpen(false)
     // eslint-disable-next-line react-hooks/exhaustive-deps -- shipmentDetails read once at open
   }, [selectedShipmentId])
 
@@ -255,15 +259,28 @@ export default function BottomBar({
     }
   }
 
-  // openToCapHeight: true while no data is available for the current shipment
-  // (fresh open with loading content). Computed synchronously from props so
-  // ShipmentsBar's useLayoutEffect captures the correct value in the same
-  // render that expanded first becomes true — no useEffect timing gap (S79e).
-  const openToCapHeight = detailsLoading && !shownDetails
+  // Fresh open with loading content: with the S93 fixed-stage heights the bar
+  // opens to its full stage size regardless — the loader just needs an
+  // absolutely-pinned wrapper so it centers in the canvas.
+  const freshLoading = detailsLoading && !shownDetails
 
   return (
+    <>
+    {/* Bar scrim (S93, RightPanel pattern): while a shipment is selected, the
+        first click outside the bar/panels only COLLAPSES the bar — it never
+        reaches the content underneath. z-39 sits under the bar (40) and the
+        right panels; the bar's own document-level mousedown close stays as
+        the actual closer (the scrim is not in its EXEMPT list). */}
+    {selectedShipmentId && (
+      <div
+        className="shipments-bar-scrim"
+        aria-hidden="true"
+        onMouseDown={(e) => e.preventDefault()}
+      />
+    )}
     <ShipmentsBar
         shipmentId={shipment?.buyShipment ?? selectedShipmentId}
+        onShipmentIdClick={() => setDetailsModalOpen(true)}
         onPrevShipment={onPrevShipment}
         onNextShipment={onNextShipment}
         prevDisabled={prevDisabled}
@@ -277,23 +294,26 @@ export default function BottomBar({
         onClose={onClose}
         onTabArrangement={onTabArrangement}
         rightOffset={rightOffset}
-        openToCapHeight={openToCapHeight}
       >
         {/* key stays for data freshness (pane-local state resets per shipment)
             — on a switch it remounts SYNCHRONOUSLY with the held stale details
-            (chunks already loaded), so no loader flash and, with the bar's
-            ratchet, no height dip (S79d). While the fresh-open loader shows,
-            the wrapper is absolutely pinned to the content area (position:
-            relative on .shipments-bar__content) so TabLoader's height:100%
-            resolves and the spinner centers in the growing canvas — absolute
-            inset works in BOTH phases, unlike height:100%, which loses its
-            definite chain once the bar releases to auto + min-height (S79f);
-            real panes go back to normal flow (they own their canvas/scroll). */}
-        <div key={selectedShipmentId} style={openToCapHeight ? { position: 'absolute', inset: 0 } : undefined}>
+            (chunks already loaded), so no loader flash. While the fresh-open
+            loader shows, the wrapper is absolutely pinned to the content area
+            (position: relative on .shipments-bar__content) so TabLoader
+            centers in the fixed-stage canvas. */}
+        <div key={selectedShipmentId} style={freshLoading ? { position: 'absolute', inset: 0 } : undefined}>
           <Suspense fallback={<TabLoader />}>
             {renderTabContent()}
           </Suspense>
         </div>
     </ShipmentsBar>
+    {detailsModalOpen && selectedShipmentId && (
+      <ShipmentDetailsModal
+        shipment={shipment}
+        shipmentDetails={shownDetails}
+        onClose={() => setDetailsModalOpen(false)}
+      />
+    )}
+    </>
   )
 }

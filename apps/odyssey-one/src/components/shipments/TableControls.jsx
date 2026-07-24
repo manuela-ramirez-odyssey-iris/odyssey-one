@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ArrowUpDown, Upload } from 'lucide-react'
+import { Upload } from 'lucide-react'
 import TooltipTrigger from '../ui/TooltipTrigger'
 import { Button, ModalMedium } from '@odyssey/ui'
 
@@ -38,12 +38,6 @@ const TableControls = React.memo(function TableControls({
 
         {/* Action buttons */}
         <div className="flex items-center gap-2 shrink-0">
-          <Button
-            variant="icon"
-            size="sm"
-            icon={<ArrowUpDown size={20} />}
-            aria-label="Sort"
-          />
           <TooltipTrigger tooltipProps={{ groups: [{ content: 'Only the first 10,000 records will be exported to Excel' }] }}>
             {/* Nothing to export at 0 results — keep the control visible but inert */}
             <Button variant="secondary" size="sm" icon={<Upload size={20} />} disabled={itemCount === 0} onClick={() => setExportModalOpen(true)}>

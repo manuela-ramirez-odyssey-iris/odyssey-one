@@ -101,6 +101,7 @@ function ShipmentsRoute() {
   const {
     data: listData,
     isLoading: listLoading,
+    isPlaceholderData: listStale,
     isError: listError,
     refetch: refetchList,
   } = useShipmentErrorList(listParams)
@@ -395,6 +396,7 @@ function ShipmentsRoute() {
           sorting={sorting}
           onSortingChange={setSorting}
           isLoading={listLoading}
+          isFetchingRows={listStale}
           isError={listError}
           onRetry={refetchList}
         />

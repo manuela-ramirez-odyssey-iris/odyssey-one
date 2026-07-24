@@ -17,7 +17,7 @@ import Tooltip from './Tooltip.jsx'
  * Per-instance FEATURE SWITCHES (all default off — mix freely; see DataTable.usage.md):
  *   sortable          — header sort buttons, asc ↔ desc, one column always drives
  *                       (auto-seeds the first sortable column when unseeded).
- *   truncationTooltip — full-text Tooltip on cells whose ellipsis hides > 1 word.
+ *   truncationTooltip — full-text Tooltip on any ellipsis-truncated cell (S93: was > 1 hidden word).
  *   onCellClick       — per-cell click callback (suppressed on interactive cells).
  * Plus per-table column RESIZE (TanStack `enableColumnResizing` → grips on resizable
  * columns; pinned system columns set `enableResizing:false`) and per-column WHOLE-CELL
@@ -210,7 +210,7 @@ export function cellClassName(meta, isStickyRight) {
 //                       hasn't). Client tables also pass getSortedRowModel() to the
 //                       engine; server tables set manualSorting and map the sorting
 //                       state to their query.
-//   truncationTooltip — full-text Tooltip on cells whose ellipsis hides > 1 word.
+//   truncationTooltip — full-text Tooltip on any ellipsis-truncated cell (S93: was > 1 hidden word).
 //   onCellClick       — per-cell click callback.
 //   (column resize stays a TanStack option: enableColumnResizing on the table.)
 export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, onCellClick, sortable = false, truncationTooltip = false, className = '' }) {
@@ -431,7 +431,7 @@ export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, onC
       .find((el) => el.scrollWidth > el.clientWidth + 1)
     if (!clipped) return
     const text = clipped.textContent.trim()
-    if (hiddenWordCount(text, clipped.clientWidth, clipped.scrollWidth) <= 1) return
+    if (hiddenWordCount(text, clipped.clientWidth, clipped.scrollWidth) < 1) return
     const r = td.getBoundingClientRect()
     setTruncTip({ text, left: Math.max(8, r.left), top: r.top - 6 })
   }

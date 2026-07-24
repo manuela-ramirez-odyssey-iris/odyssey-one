@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { ArrowLeft, ArrowRight, ArrowUpToLine, ChevronsDown, ChevronsUp, Columns3Cog } from 'lucide-react'
 import Button from './Button.jsx'
 
@@ -7,10 +7,7 @@ import Button from './Button.jsx'
  * a 48px strip with a current-entity segment (prev/next arrows + shipment ID),
  * a tab strip where EACH TAB IS A CONTENT SLOT, and the PanelActions cluster.
  * The consumer renders the active pane as `children` (the Content slot),
- * revealed while the bar is expanded. This REPLACES the old BottomBar chrome —
- * no close X, no tab-scroll chevrons, no fullscreen step (the old bar's extras
- * are gone by design; deselection happens at the consumer, e.g. re-clicking the
- * table row).
+ * revealed while the bar is expanded.
  *
  * PanelActions (Figma 4095:3070 in the mock, in-master 4110:5003): two
  * `Button variant="icon" size="sm"` — TabArrangement (columns+cog,
@@ -32,6 +29,9 @@ import Button from './Button.jsx'
  *
  * Props:
  *   shipmentId        — current entity label; null renders `placeholder` + disables the bar.
+ *   onShipmentIdClick — when provided (and a shipment is selected) the ID renders as a
+ *                       ButtonLink (Button variant="link") — e.g. opens the View
+ *                       Shipment Details modal (S93). Without it: plain label.
  *   placeholder       — label when nothing is selected (default 'Select a Shipment').
  *   onPrevShipment / onNextShipment — arrow handlers; arrows render only when provided.
  *   prevDisabled / nextDisabled     — bound states for the arrows.
@@ -51,14 +51,16 @@ import Button from './Button.jsx'
  *   rightOffset       — px inset when side panels are open.
  *   children          — the active tab's pane (the Content slot), rendered while expanded.
  *
- * Height model (S79d): expanded height is content-driven (auto, dvh-capped)
- * with a min-height RATCHET — while open the bar holds the largest height
- * reached, so shorter panes never shrink it (ratchet resets on close). Close
- * keeps the last-rendered pane mounted (inert) while the height eases back to
- * the 48px strip, so both directions animate on the drawer curve.
+ * Height model (S93): THREE FIXED STAGES — collapsed (48px strip), partial
+ * (--bottombar-partial) and full (100dvh − --bottombar-top-clearance). Heights
+ * are definite CSS lengths, so stage changes and open/close animate with a
+ * plain CSS height transition (the drawer curve). The S79d/S82 adaptive
+ * content-driven height (auto + ratchet + measured JS animation) was retired —
+ * pane content scrolls within the fixed stage height instead.
  */
 export default function ShipmentsBar({
   shipmentId,
+  onShipmentIdClick,
   placeholder = 'Select a Shipment',
   onPrevShipment,
   onNextShipment,
@@ -69,10 +71,11 @@ export default function ShipmentsBar({
   onTabChange,
   expanded = false,
   onExpandedChange,
-  // stage: expansion size while expanded — 'partial' (60dvh, --bottombar-partial)
-  // or 'full' (the dvh cap). S82 three-state bar: the CollapseExpand button
-  // walks closed → partial (arrow-up-to-line) → full (chevrons-up) → closed
-  // (chevrons-down, fires onClose). Consumers open to 'partial' on selection.
+  // stage: expansion size while expanded — 'partial' (--bottombar-partial)
+  // or 'full' (100dvh − clearance). S82 three-state bar: the CollapseExpand
+  // button walks closed → partial (arrow-up-to-line) → full (chevrons-up) →
+  // closed (chevrons-down, fires onClose). Consumers open to 'partial' on
+  // selection.
   stage = 'full',
   onStageChange,
   onClose,
@@ -81,182 +84,12 @@ export default function ShipmentsBar({
   children,
   className = '',
   style,
-  // openToCapHeight: when true the OPEN animation targets the dvh cap height
-  // instead of the loader's intrinsic height — prevents the two-phase
-  // expansion on a fresh open with loading content (S79e). The consumer sets
-  // this while detailsLoading && !shownDetails (fresh open only); it clears
-  // once data arrives so the ratchet takes over naturally.
-  openToCapHeight = false,
   ...rest
 }) {
   const isDisabled = !shipmentId
   const isExpanded = expanded && !isDisabled
 
-  // --- Height model (S79d) -------------------------------------------------
   const rootRef = useRef(null)
-
-  // The height effect below deliberately re-runs only on open/close; the RO
-  // callback reads the CURRENT stage through this ref so ratchet clamps track
-  // a partial→full change without re-running the effect (S82).
-  const stageRef = useRef(stage)
-  stageRef.current = stage
-
-  // All height motion is JS-measured length→length (pin the old height,
-  // measure the new used height — WITH the dvh cap applied — animate between
-  // the two pixel values, then release back to `auto` under a suppressed
-  // transition). CSS `interpolate-size` transitions to `auto` were retired:
-  // the keyword endpoint resolves to the UNCAPPED intrinsic content height,
-  // so with a pane taller than the max-height cap the animated value crosses
-  // the clamp almost immediately and the bar visually snaps (S79d root
-  // cause). Measured pixels animate the true visible range in every engine.
-  //
-  // The expanded ResizeObserver drives two behaviors:
-  //
-  // RATCHET — an inline min-height tracks the largest height the bar has
-  // reached (clamped to the dvh cap so a viewport shrink can't wedge it open
-  // past the clearance). Switching to a shorter pane therefore never shrinks
-  // the bar — short panes just show more canvas below their content. Resets
-  // only on close.
-  //
-  // GROWTH EASING — `height: auto` means content-driven growth (data landing
-  // in a pane, switching to a taller tab) never transitions on its own; the
-  // RO replays any growth seen while no height animation is running as an
-  // eased prev→target transition on the same drawer curve. Under reduced
-  // motion the pin/animate degrades to the same instant snap (the 400ms
-  // release fallback un-pins when no transitionend will come).
-  //
-  // The effect cleanup doubles as the CLOSE animation: it pins the last
-  // tracked height in the same commit the --expanded class drops, then
-  // releases to the CSS 48px rule — so the shrink eases too (the `closing`
-  // flag below keeps the pane mounted while it does).
-  useLayoutEffect(() => {
-    const el = rootRef.current
-    if (!el || !isExpanded) return
-    let max = 0
-    let prev = 0
-    let animating = false
-    let releaseTimer = 0
-    let startRaf = 0
-    // Ratchet floor waiting to be applied at release time (cap-height open).
-    // min-height must NOT be set while the open animation runs — min-height
-    // overrides the pinned inline height, so a pre-set floor at capPx makes
-    // the used height capPx from frame one and the 48→cap transition never
-    // paints (the S79e pre-set snapped the open). Deferred to release(), the
-    // floor lands exactly when the animated height reaches it: no motion.
-    let pendingMinPx = null
-
-    // Un-pin: back to content-driven auto (same used height — no motion),
-    // so the RO can see the next content growth. Applies any deferred ratchet
-    // floor FIRST so the post-release measurement reads the ratcheted height
-    // (capPx on a cap-height open), not the pane's intrinsic height — without
-    // it, prev = loader height and the min-height snap-in would replay as a
-    // second rising animation (S79e symptom).
-    // Ratchet clamp: the current stage's height cap (matches the CSS max-height).
-    const capExpr = () => stageRef.current === 'partial'
-      ? 'var(--bottombar-partial)'
-      : '100dvh - var(--bottombar-top-clearance)'
-    const release = () => {
-      clearTimeout(releaseTimer)
-      animating = false
-      if (pendingMinPx !== null) {
-        el.style.minHeight = `min(${pendingMinPx}px, ${capExpr()})`
-        pendingMinPx = null
-      }
-      el.style.transition = 'none'
-      el.style.height = ''
-      void el.offsetHeight
-      el.style.transition = ''
-      prev = el.offsetHeight
-    }
-    // Ease fromPx → toPx (or the current used height when toPx is omitted).
-    // The pin lands pre-paint; the transition starts on the NEXT frame — a
-    // heavy commit (big pane mounting) backdates a same-frame transition's
-    // start time and the bezier's head gets eaten (measured ~70ms → the bar
-    // leapt to ~80% before the first painted frame).
-    const animateFrom = (fromPx, toPx) => {
-      clearTimeout(releaseTimer)
-      cancelAnimationFrame(startRaf)
-      el.style.transition = 'none'
-      el.style.height = ''
-      const target = toPx !== undefined ? toPx : el.offsetHeight
-      if (target <= fromPx + 1) { el.style.transition = ''; release(); return } // grow-only
-      el.style.height = `${fromPx}px`
-      void el.offsetHeight // reflow at the pinned start height
-      animating = true
-      startRaf = requestAnimationFrame(() => {
-        el.style.transition = ''
-        el.style.height = `${target}px`
-        releaseTimer = setTimeout(release, 400) // reduced-motion fallback
-      })
-    }
-    const onEnd = (e) => {
-      if (e.target === el && e.propertyName === 'height') release()
-    }
-    el.addEventListener('transitionend', onEnd)
-    el.addEventListener('transitioncancel', onEnd)
-
-    // OPEN: from the strip height to the content height in one motion.
-    // When openToCapHeight is true (fresh open with loading content), animate
-    // directly to the dvh cap so the bar expands fully in one shot and the
-    // loader fills the available canvas — no second expansion when data lands
-    // (the ratchet at cap holds; content swaps in-place). The cap is the
-    // same value the CSS max-height uses: 100dvh − --bottombar-top-clearance
-    // (104px, measured as window.innerHeight at open time — S79e).
-    //
-    // The capPx ratchet floor is DEFERRED (pendingMinPx → applied by
-    // release() on transitionend / the reduced-motion fallback): setting
-    // min-height up front would override the pinned 48px start height and
-    // snap the bar open (min-height beats height — S79f regression). `max`
-    // is still seeded to capPx immediately so the RO can't apply its own
-    // mid-animation floor and cause the same snap; release() then measures
-    // the floored height, so prev = capPx and data landing swaps in place
-    // with no second rise (the S79e goal, kept).
-    const stripH = el.firstElementChild?.offsetHeight ?? 48
-    const capPx = openToCapHeight
-      ? (stageRef.current === 'partial' ? Math.round(window.innerHeight * 0.6) : window.innerHeight - 104)
-      : undefined
-    if (capPx !== undefined) {
-      max = capPx
-      pendingMinPx = capPx
-    }
-    animateFrom(stripH, capPx)
-    prev = capPx ?? el.offsetHeight
-
-    const ro = new ResizeObserver(() => {
-      const h = el.offsetHeight
-      if (!animating && h > prev + 1) animateFrom(prev)
-      prev = el.offsetHeight
-      if (prev > max) {
-        max = prev // ratchet follows the ANIMATED height, never the jump target
-        el.style.minHeight = `min(${prev}px, ${capExpr()})`
-      }
-    })
-    ro.observe(el)
-
-    return () => {
-      ro.disconnect()
-      el.removeEventListener('transitionend', onEnd)
-      el.removeEventListener('transitioncancel', onEnd)
-      clearTimeout(releaseTimer)
-      cancelAnimationFrame(startRaf)
-      el.style.minHeight = ''
-      // CLOSE: pin the last height, release to the CSS 48px strip → eased
-      // shrink (class is already off in this commit; recalc stays suppressed
-      // until the pin is in place, so no auto→48 snap sneaks in first; the
-      // next-frame start dodges commit backdating, same as animateFrom).
-      el.style.transition = 'none'
-      el.style.height = `${prev}px`
-      void el.offsetHeight
-      requestAnimationFrame(() => {
-        el.style.transition = ''
-        el.style.height = ''
-      })
-    }
-  // openToCapHeight is read only at mount (open) time, so it's safe to keep
-  // the dep on isExpanded only. Adding openToCapHeight would re-run the whole
-  // effect (including the close cleanup) every time loading state changes.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isExpanded])
 
   // CLOSING: when expansion drops (close = deselect, so `children` empties in
   // the same commit), keep the LAST-RENDERED pane mounted while the height
@@ -288,7 +121,6 @@ export default function ShipmentsBar({
       clearTimeout(t)
     }
   }, [isExpanded])
-  // --------------------------------------------------------------------------
 
   // S82 three-state walk: collapsed → expand (partial); partial → full;
   // full → CLOSE (deselection at the consumer). The strip's button is
@@ -336,9 +168,19 @@ export default function ShipmentsBar({
               <ArrowLeft size={20} />
             </button>
           )}
-          <span className="shipments-bar__id text-label-sm-semibold">
-            {shipmentId || placeholder}
-          </span>
+          {onShipmentIdClick && !isDisabled ? (
+            <Button
+              variant="link"
+              className="shipments-bar__id shipments-bar__id--link"
+              onClick={onShipmentIdClick}
+            >
+              {shipmentId}
+            </Button>
+          ) : (
+            <span className="shipments-bar__id text-label-sm-semibold">
+              {shipmentId || placeholder}
+            </span>
+          )}
           {onNextShipment && (
             <button
               type="button"

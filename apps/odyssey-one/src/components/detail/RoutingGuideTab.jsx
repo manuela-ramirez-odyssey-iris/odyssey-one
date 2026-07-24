@@ -172,7 +172,7 @@ const CHARGE_CODES = [
    Section 2 — Helper Components
    ═══════════════════════════════════════════════════════════ */
 
-function Field({ label, value }) {
+export function Field({ label, value }) {
   return (
     <div style={{ marginBottom: 6 }}>
       <div style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-tertiary)', lineHeight: 1.3, marginBottom: 1 }}>
@@ -185,7 +185,7 @@ function Field({ label, value }) {
   )
 }
 
-function SectionHeader({ children }) {
+export function SectionHeader({ children }) {
   return (
     <div
       style={{
@@ -231,178 +231,6 @@ function StatusBadge({ status }) {
     >
       {status}
     </span>
-  )
-}
-
-/* ═══════════════════════════════════════════════════════════
-   Section 3 — TenderDetailModal
-   ═══════════════════════════════════════════════════════════ */
-
-function TenderDetailModal({ isOpen, onClose, shipment, shipmentDetails }) {
-  const handleKeyDown = useCallback((e) => {
-    if (e.key === 'Escape') onClose()
-  }, [onClose])
-
-  useEffect(() => {
-    if (!isOpen) return
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen, handleKeyDown])
-
-  if (!isOpen) return null
-
-  const order = shipmentDetails?.orderDetails?.[0]
-  const stops = shipmentDetails?.stopsData?.stops || []
-  const summary = shipmentDetails?.stopsData?.summary || {}
-  const costOrder = shipmentDetails?.costData?.planned?.orders?.[0]
-  const pickupStop = stops.find(s => s.type === 'pickup')
-  const deliveryStop = [...stops].reverse().find(s => s.type === 'delivery')
-
-  const columnStyle = { padding: '14px 16px', borderRight: '1px solid var(--border-subtle)' }
-  const lastColumnStyle = { ...columnStyle, borderRight: 'none' }
-
-  return createPortal(
-    <div
-      onClick={onClose}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0,0,0,0.4)',
-        backdropFilter: 'blur(4px)',
-        zIndex: 9999,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width: '90vw',
-          maxWidth: 1100,
-          maxHeight: '80vh',
-          overflow: 'auto',
-          background: 'var(--bg-primary)',
-          borderRadius: 'var(--radius-md)',
-          border: '1px solid var(--border-subtle)',
-          boxShadow: 'var(--shadow-lg)',
-        }}
-      >
-        {/* Header bar */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '12px 16px',
-          borderBottom: '1px solid var(--border-subtle)',
-          position: 'sticky',
-          top: 0,
-          background: 'var(--bg-primary)',
-          zIndex: 1,
-        }}>
-          <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Shipment Details</span>
-          <button
-            onClick={onClose}
-            className="flex items-center justify-center bg-transparent border-none cursor-pointer"
-            style={{ color: 'var(--text-placeholder)', padding: 0, transition: 'color 0.15s ease' }}
-            onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
-            onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-placeholder)'}
-          >
-            <X size={18} />
-          </button>
-        </div>
-
-        {/* 4-column grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr' }}>
-          {/* Column 1: Shipment */}
-          <div style={columnStyle}>
-            <SectionHeader>Shipment</SectionHeader>
-            <Field label="Buy Shipment ID" value={shipment?.buyShipment} />
-            <Field label="Sell Shipment ID" value={shipment?.sellShipment} />
-            <Field label="Mode" value={shipment?.mode} />
-            <Field label="Seed Equipment" value={shipment?.equipmentCode} />
-            <Field label="Planning Date Type" value="RDD" />
-            <Field label="Gross Weight" value={shipment?.grossWeight ? `${Number(shipment.grossWeight).toLocaleString()} LB` : null} />
-            <Field label="Pkg Count" value={pickupStop?.packageCount || null} />
-            <Field label="Volume" value={summary.volume} />
-            <Field label="Distance" value={summary.distance} />
-            <Field label="Instructions" value={
-              (() => {
-                const orders = shipmentDetails?.instructionsData?.orders || []
-                const count = orders.reduce((sum, o) => sum + (o.instructions?.length || 0), 0)
-                return count > 0 ? `${count} instruction${count !== 1 ? 's' : ''}` : 'No instructions'
-              })()
-            } />
-            <Field label="Hazardous" value={
-              order?.hazmat === 'Yes'
-                ? (() => {
-                    const products = shipmentDetails?.productData?.orders?.[0]?.products || []
-                    const haz = products.find(p => p.hazmat)
-                    return haz ? `Yes — ${haz.hazmatClass || ''} ${haz.hazmatDescription || ''}`.trim() : 'Yes'
-                  })()
-                : 'No'
-            } />
-          </div>
-
-          {/* Column 2: Order */}
-          <div style={columnStyle}>
-            <SectionHeader>Order</SectionHeader>
-            <Field label="Planning Date Type" value="RDD" />
-            <Field label="Order Pickup Date/Time" value={order?.earliestPickup} />
-            <Field label="Order Delivery Date/Time" value={order?.earliestDelivery} />
-            <Field label="Order #" value={shipment?.orders?.join(', ')} />
-            <Field label="Direct Cost" value={costOrder?.directCost || null} />
-            <Field label="Pickup #" value={order?.pickupNumber || null} />
-          </div>
-
-          {/* Column 3: Initial Pickup */}
-          <div style={columnStyle}>
-            <SectionHeader>Initial Pickup</SectionHeader>
-            <div style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-tertiary)', marginBottom: 4 }}>
-              Pickup location name &amp; Address
-            </div>
-            <Field label="Company" value={order?.shipFrom?.company} />
-            <Field label="Address" value={order?.shipFrom?.address} />
-            <Field label="Location" value={order?.shipFrom?.location} />
-            <div style={{ marginTop: 8 }} />
-            <Field label="Pickup Date/Time" value={pickupStop?.date} />
-          </div>
-
-          {/* Column 4: Final Delivery */}
-          <div style={lastColumnStyle}>
-            <SectionHeader>Final Delivery</SectionHeader>
-            <div style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-tertiary)', marginBottom: 4 }}>
-              Delivery location name &amp; Address
-            </div>
-            <Field label="Company" value={order?.shipTo?.company} />
-            <Field label="Address" value={order?.shipTo?.address} />
-            <Field label="Location" value={order?.shipTo?.location} />
-            <div style={{ marginTop: 8 }} />
-            <Field label="Delivery Date/Time" value={deliveryStop?.date} />
-          </div>
-        </div>
-
-        {/* Footer — shipment context actions */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'flex-end',
-          alignItems: 'center',
-          gap: 8,
-          padding: '12px 16px',
-          borderTop: '1px solid var(--border-subtle)',
-        }}>
-          {/* No-op stubs — real actions require backend wiring */}
-          <Button variant="secondary" onClick={() => { /* TODO: wire Routing Query (QCP) */ }}>
-            Routing Query (QCP)
-          </Button>
-          <Button variant="secondary" onClick={() => { /* TODO: wire View Stops */ }}>
-            View Stops
-          </Button>
-        </div>
-
-      </div>
-    </div>,
-    document.body,
   )
 }
 
@@ -1279,7 +1107,6 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
   const [openMenuRank, setOpenMenuRank] = useState(null)
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 })
   const [options, setOptions] = useState(data?.options || [])
-  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
   const [quoteModal, setQuoteModal] = useState({ isOpen: false, mode: 'add', carrierData: null })
   const [collapsedWidths, setCollapsedWidths] = useState(null)
   const [expandedWidths, setExpandedWidths] = useState(null)
@@ -1536,9 +1363,6 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
             ))}
           </div>
           <div className="tender-pane__tab-actions">
-            <Button variant="secondary" onClick={() => setIsDetailModalOpen(true)}>
-              View Shipment Details
-            </Button>
             <Button variant="primary" onClick={() => setQuoteModal({ isOpen: true, mode: 'add', carrierData: null })}>
               + Add Quote
             </Button>
@@ -1569,15 +1393,6 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
           </div>
         </div>{/* /tender-pane__table-card */}
       </div>{/* /pane-col */}
-
-      {isDetailModalOpen && (
-        <TenderDetailModal
-          isOpen={isDetailModalOpen}
-          onClose={() => setIsDetailModalOpen(false)}
-          shipment={shipment}
-          shipmentDetails={shipmentDetails}
-        />
-      )}
 
       {quoteModal.isOpen && (
         <QuoteModal

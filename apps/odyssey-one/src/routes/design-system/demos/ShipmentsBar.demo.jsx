@@ -6,7 +6,7 @@ export const meta = {
   tier: 'organism',
   version: '0.8.0',
   createdVersion: '0.6.0',
-  normalizing: false,
+  normalizing: true,
   figmaNode: '4120:4623',
   codeConnect: 'packages/ui/src/ShipmentsBar.figma.tsx',
 }

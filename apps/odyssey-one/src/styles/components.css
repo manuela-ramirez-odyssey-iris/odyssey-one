@@ -3423,6 +3423,19 @@ button.breadcrumb__label:focus-visible {
   inset: 0;
   z-index: 60;
 }
+/* Bar scrim (S93): while a shipment is selected the first click on the page
+   content only collapses the bar (RightPanel pattern). Covers the <main>
+   region ONLY — navbar/sidebar chrome stays interactive (mirrors the bar's
+   document-close EXEMPT rules). z-39 sits under the bar (40) and the right
+   panels/scrim (60/61). */
+.shipments-bar-scrim {
+  position: fixed;
+  top: var(--navbar-height, 64px);
+  left: var(--sidebar-width);
+  right: 0;
+  bottom: 0;
+  z-index: 39;
+}
 .right-panel-dock .right-panel {
   position: absolute;
   top: 0;
@@ -4827,18 +4840,16 @@ button.breadcrumb__label:focus-visible {
   height: var(--bottombar-collapsed);
 }
 .shipments-bar--expanded {
-  /* Content-driven height, capped so the top edge never rises above the
-     page title row (S79b decision 2). While open, an inline min-height
-     RATCHET (set by the component) holds the largest height reached so
-     shorter panes never shrink the bar (S79d). */
-  height: auto;
-  max-height: calc(100dvh - var(--bottombar-top-clearance));
+  /* S93 fixed three-stage model: full = viewport minus the title-row clearance
+     (S79b decision 2 — the top edge never rises above the page title row).
+     Definite lengths, so open/close and partial↔full animate on the plain CSS
+     height transition above. The S79d adaptive auto-height + ratchet was
+     retired — pane content scrolls within the fixed stage height. */
+  height: calc(100dvh - var(--bottombar-top-clearance));
 }
-/* Partial (middle) stage of the S82 three-state bar: same auto height model,
-   lower cap. Stage full drops this class — the loosened cap lets content grow
-   and the component's growth easing animates the rise. */
+/* Partial (middle) stage of the S82 three-state bar. */
 .shipments-bar--partial {
-  max-height: var(--bottombar-partial);
+  height: var(--bottombar-partial);
 }
 /* --closing keeps the expanded chrome (shadow) while the height eases back
    to the strip with the last pane still mounted (S79d) — without it the
@@ -4876,6 +4887,13 @@ button.breadcrumb__label:focus-visible {
 .shipments-bar__id {
   color: var(--text-primary);
   white-space: nowrap;
+}
+/* S93: the id renders as a ButtonLink (Button variant="link") when the consumer
+   wires onShipmentIdClick — keep the strip's semibold weight over the link
+   variant's medium so the segment reads the same as the plain label. */
+.shipments-bar__id--link {
+  /* color comes from the Button link variant itself */
+  font-weight: var(--font-weight-semibold);
 }
 .shipments-bar--disabled .shipments-bar__id {
   color: var(--text-placeholder);
