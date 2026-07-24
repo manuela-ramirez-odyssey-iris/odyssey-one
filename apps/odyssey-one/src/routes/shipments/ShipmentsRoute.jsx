@@ -49,7 +49,7 @@ function ShipmentsRoute() {
   // Column sorting (S85) — one column always drives (DataTable flips asc↔desc, never
   // unsorted). Default driver: the first default-visible column. Server-side: mapped
   // to gridService sortBy/orderBy below (full dataset, before pagination).
-  const [sorting, setSorting] = useState([{ id: 'sellShipment', desc: false }])
+  const [sorting, setSorting] = useState([{ id: 'buyShipment', desc: false }])
   // 'pills' | 'widgets' — how the category row renders (PillTabs vs WidgetMini
   // cards), toggled by the header ButtonToggle. Pill mode is the Figma default.
   const [viewMode, setViewMode] = useState('pills')

@@ -263,7 +263,7 @@ export default function BottomBar({
 
   return (
     <ShipmentsBar
-        shipmentId={selectedShipmentId}
+        shipmentId={shipment?.buyShipment ?? selectedShipmentId}
         onPrevShipment={onPrevShipment}
         onNextShipment={onNextShipment}
         prevDisabled={prevDisabled}
