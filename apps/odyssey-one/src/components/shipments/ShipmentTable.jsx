@@ -202,16 +202,8 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
 
   // Stable master column set — select + every possible data column (ALL_COLUMNS) +
   // the sticky-right action column. The SET never changes; the ColumnPanel only
-  // Stale-page indicator (S93): while TanStack Query shows the PREVIOUS page's
-  // rows for a new page/tab (keepPreviousData placeholder), every data cell
-  // renders "Loading…" instead of the stale value. Read through a ref so the
-  // memoized column defs don't rebuild on every fetch.
-  const fetchingRef = useRef(false)
-  fetchingRef.current = isFetchingRows
-
   // toggles visibility + order (derived below). Built once (depends only on the panel toggle).
   const columns = useMemo(() => {
-    const loadingCell = <span style={{ color: 'var(--text-placeholder)' }}>Loading…</span>
     const dataCols = ALL_COLUMNS.map((col) => {
       const cfg = COLUMN_CONFIG_MAP[col.key]
       const label = colLabel(col.key)
@@ -233,8 +225,8 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
         id: col.key,
         header: label,
         cell: cfg?.render
-          ? ({ row }) => (fetchingRef.current ? loadingCell : cfg.render(row.original))
-          : ({ getValue }) => (fetchingRef.current ? loadingCell : (getValue() ?? '—')),
+          ? ({ row }) => cfg.render(row.original)
+          : ({ getValue }) => getValue() ?? '—',
         meta,
       })
     })
@@ -322,8 +314,18 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
   // overlaps, scroll the row up into the visible gap above the bar so the
   // user sees where the pane came from (S82). The 600ms delay lets the bar's
   // 300ms open animation land first, so its measured top is final.
+  // Fresh open (null → id) waits 600ms for the bar's open animation so its
+  // measured top is final; a selection SWITCH (arrows, row-to-row) has the bar
+  // already at its stage height — scroll right away (S93: the fixed wait made
+  // arrow navigation feel laggy).
+  const prevSelectedRef = useRef(null)
   useEffect(() => {
-    if (!selectedId || !containerRef.current) return
+    if (!selectedId || !containerRef.current) {
+      prevSelectedRef.current = selectedId
+      return
+    }
+    const freshOpen = prevSelectedRef.current == null
+    prevSelectedRef.current = selectedId
     const t = setTimeout(() => {
       const row = containerRef.current?.querySelector('tr[data-selected]')
       if (!row) return
@@ -339,7 +341,7 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
       if (overlap > 0) row.closest('main')?.scrollBy({ top: overlap, behavior: 'smooth' })
       else if (upOverlap > 0) row.closest('main')?.scrollBy({ top: -upOverlap, behavior: 'smooth' })
       else row.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
-    }, 600)
+    }, freshOpen ? 600 : 50)
     return () => clearTimeout(t)
   }, [selectedId])
 
@@ -394,6 +396,8 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
           // `sortable` OFF (S85 test) — the sorting plumbing (state → gridService
           // sortBy/orderBy) stays wired; re-adding the prop turns the buttons back on.
           truncationTooltip
+          // Stale placeholder pages (TanStack keepPreviousData) render Loading… cells.
+          loadingRows={isFetchingRows}
           // AppShell's <main> has --spacing-8 (32px) padding-top; sticky insets resolve
           // against the content edge, not the viewport edge (S79b header-gap fix).
           // S82: toolbar no longer sticky — scrolls away. Header sticks at spacing-3

@@ -31,7 +31,7 @@ export const meta = {
   // aria-sort, and a SORT_MIN_WIDTH resize floor (1 char + ellipsis + icon stay visible).
   // Resize drag also reworked: shell-owned, starts from the VISIBLE colgroup width
   // (TanStack's getResizeHandler started from the injected default 150 → jump).
-  normalizing: false,
+  normalizing: true,
 }
 
 export const props = [
@@ -40,7 +40,8 @@ export const props = [
   { name: 'footer', type: 'ReactNode', desc: 'Rendered BELOW the bordered card, transparent on the page canvas (S79b) — put a <Paginator table={table}/> here.' },
   { name: 'ariaLabel', type: 'string', desc: 'Optional aria-label applied to the body <table> element (per ARIA table semantics).' },
   { name: 'sortable', type: 'boolean', desc: 'Feature switch (default false): header sort buttons, asc ↔ desc, one column always drives (the shell auto-seeds the first sortable column when the consumer hasn\'t). Client tables also pass getSortedRowModel() to the engine; server tables set manualSorting and map the sorting state to their query. Per-column opt-out: enableSorting: false on the columnDef.' },
-  { name: 'truncationTooltip', type: 'boolean', desc: 'Feature switch (default false): hovering a body cell whose ellipsis hides MORE than one word shows the normalized Tooltip with the full text (inner-wrapper truncation detected too). Cells wrapped in their own [data-tooltip-trigger] (complementary-data tooltips, e.g. dates) are left alone. Default column widths = max(header label, cell content) capped at MAX_COL_WIDTH (290px) — past the cap content ellipsizes.' },
+  { name: 'loadingRows', type: 'boolean', desc: 'Feature switch (default false): data cells (accessor columns) render "Loading…" instead of their value — pass while stale placeholder rows are showing (TanStack Query keepPreviousData + isPlaceholderData). Display columns (select/actions) keep rendering.' },
+  { name: 'truncationTooltip', type: 'boolean', desc: 'Feature switch (default false): hovering any ellipsis-truncated body cell shows the normalized Tooltip (S93 — was >1 hidden word) with the full text (inner-wrapper truncation detected too). Cells wrapped in their own [data-tooltip-trigger] (complementary-data tooltips, e.g. dates) are left alone. Default column widths = max(header label, cell content) capped at MAX_COL_WIDTH (290px) — past the cap content ellipsizes.' },
   { name: 'onCellClick', type: '(cell, row) => void', desc: 'Per-cell click (opt-in): fires on a body-cell click, suppressed when the click is inside an interactive element (button/ActionMenu, checkbox, link, [role=menuitem], [data-no-cell-click]). Providing it also adds the pointer affordance.' },
   { name: 'resize', type: '(engine)', desc: 'Column resize: enable enableColumnResizing + columnResizeMode on the TanStack table → a drag-grip renders in each resizable header; the colgroup uses the user-dragged size.' },
   { name: 'className', type: 'string', desc: 'Merged onto the root.' },

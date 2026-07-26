@@ -213,7 +213,7 @@ export function cellClassName(meta, isStickyRight) {
 //   truncationTooltip — full-text Tooltip on any ellipsis-truncated cell (S93: was > 1 hidden word).
 //   onCellClick       — per-cell click callback.
 //   (column resize stays a TanStack option: enableColumnResizing on the table.)
-export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, onCellClick, sortable = false, truncationTooltip = false, className = '' }) {
+export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, onCellClick, sortable = false, truncationTooltip = false, loadingRows = false, className = '' }) {
   // stickyTop: number (px) or any CSS length expression (string). The sticky reference is
   // the page scroller's CONTENT edge — a padded scroller (e.g. an app shell <main> with
   // padding-top) parks a `top: 0` header padding-top BELOW the visible clip edge, letting
@@ -568,7 +568,15 @@ export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, onC
                             }
                           : undefined}
                       >
-                        {renderCell(cell.column.columnDef.cell, cell.getContext())}
+                        {/* loadingRows feature switch (S93): while the consumer
+                            shows stale placeholder rows for a new page/filter
+                            (e.g. TanStack Query keepPreviousData), DATA cells
+                            (accessor columns) render "Loading…" instead of the
+                            stale value; display columns (select/actions) keep
+                            rendering. */}
+                        {loadingRows && cell.column.accessorFn
+                          ? <span className="odyssey-table__cell-loading">Loading…</span>
+                          : renderCell(cell.column.columnDef.cell, cell.getContext())}
                       </td>
                     )
                   })}

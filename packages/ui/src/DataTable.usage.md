@@ -21,6 +21,7 @@ return <DataTable table={table} ariaLabel="Shipments" />
 | `table` | TanStack v8 instance | required | Source of headers/rows/state. Duck-typed. |
 | `sortable` | boolean | `false` | Feature switch: header sort buttons (see Sorting). |
 | `truncationTooltip` | boolean | `false` | Feature switch: full-text Tooltip on truncated cells (see Truncation tooltip). |
+| `loadingRows` | boolean | `false` | Feature switch: data cells (accessor columns) render "Loading…" instead of their value — pass while stale placeholder rows are showing (TanStack Query `keepPreviousData` + `isPlaceholderData`). Display columns (select/actions) keep rendering. |
 | `onCellClick` | `(cell, row) => void` | — | Per-cell click; suppressed on interactive cells (buttons, links, inputs, `[data-no-cell-click]`). |
 | `stickyTop` | number \| CSS length | `0` | Where the sticky header parks. Padded page scrollers compensate with a negative `calc()`. |
 | `footer` | ReactNode | — | Rendered below the bordered card (put `<Paginator table={table} />` here). |
@@ -60,7 +61,7 @@ const table = useReactTable({ ..., state: { sorting }, onSortingChange: setSorti
 
 ## Truncation tooltip (`truncationTooltip`)
 
-Hovering a body cell whose ellipsis hides **more than one word** shows the normalized
+Hovering a body cell whose ellipsis hides **any content** (S93 — was more than one word) shows the normalized
 `Tooltip` with the full text. Checked at hover time (never stale after a column drag);
 inner wrappers that own their own overflow are detected too.
 

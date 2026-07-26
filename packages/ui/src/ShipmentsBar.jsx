@@ -48,6 +48,12 @@ import Button from './Button.jsx'
  *                       when not provided).
  *   onTabArrangement  — the TabArrangement PanelAction (e.g. opens the column/tab
  *                       arrangement panel); button renders only when provided.
+ *   closeOnOutsideClick — opt-in (RightPanel parity, S93): while expanded the bar
+ *                       renders a scrim over the page content — the first click
+ *                       outside the bar only fires `onClose` (collapse), it never
+ *                       reaches the content underneath. The scrim carries
+ *                       `.shipments-bar__scrim`; consumers position it via CSS
+ *                       (e.g. inset below their app chrome).
  *   rightOffset       — px inset when side panels are open.
  *   children          — the active tab's pane (the Content slot), rendered while expanded.
  *
@@ -80,6 +86,7 @@ export default function ShipmentsBar({
   onStageChange,
   onClose,
   onTabArrangement,
+  closeOnOutsideClick = false,
   rightOffset = 0,
   children,
   className = '',
@@ -148,6 +155,14 @@ export default function ShipmentsBar({
   ].filter(Boolean).join(' ')
 
   return (
+    <>
+    {closeOnOutsideClick && isExpanded && (
+      <div
+        className="shipments-bar__scrim"
+        aria-hidden="true"
+        onMouseDown={(e) => { e.preventDefault(); onClose ? onClose() : onExpandedChange?.(false) }}
+      />
+    )}
     <div
       ref={rootRef}
       data-bottombar
@@ -248,5 +263,6 @@ export default function ShipmentsBar({
         </div>
       )}
     </div>
+    </>
   )
 }

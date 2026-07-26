@@ -266,20 +266,9 @@ export default function BottomBar({
 
   return (
     <>
-    {/* Bar scrim (S93, RightPanel pattern): while a shipment is selected, the
-        first click outside the bar/panels only COLLAPSES the bar — it never
-        reaches the content underneath. z-39 sits under the bar (40) and the
-        right panels; the bar's own document-level mousedown close stays as
-        the actual closer (the scrim is not in its EXEMPT list). */}
-    {selectedShipmentId && (
-      <div
-        className="shipments-bar-scrim"
-        aria-hidden="true"
-        onMouseDown={(e) => e.preventDefault()}
-      />
-    )}
     <ShipmentsBar
         shipmentId={shipment?.buyShipment ?? selectedShipmentId}
+        closeOnOutsideClick
         onShipmentIdClick={() => setDetailsModalOpen(true)}
         onPrevShipment={onPrevShipment}
         onNextShipment={onNextShipment}

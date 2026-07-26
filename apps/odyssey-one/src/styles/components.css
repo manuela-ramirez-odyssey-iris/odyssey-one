@@ -181,6 +181,11 @@
 .odyssey-table tbody tr:last-child td {
   border-bottom: none;
 }
+/* DataTable loadingRows feature switch (S93): stale placeholder pages render
+   "Loading…" in data cells. */
+.odyssey-table__cell-loading {
+  color: var(--text-placeholder);
+}
 
 /* ----------------------------------------
    TABLE — DataTable shell (chrome + scroll)
@@ -3430,14 +3435,14 @@ button.breadcrumb__label:focus-visible {
   inset: 0;
   z-index: 60;
 }
-/* Bar scrim (S93): while a shipment is selected the first click on the page
-   content only collapses the bar (RightPanel pattern). Covers the <main>
-   region ONLY — navbar/sidebar chrome stays interactive (mirrors the bar's
-   document-close EXEMPT rules). z-39 sits under the bar (40) and the right
-   panels/scrim (60/61). */
-.shipments-bar-scrim {
+/* Bar scrim (S93, rendered by ShipmentsBar's closeOnOutsideClick opt-in):
+   while expanded the first click on the page content only collapses the bar
+   (RightPanel parity). Covers the <main> region ONLY — navbar/sidebar chrome
+   stays interactive (mirrors the bar's document-close EXEMPT rules). z-39
+   sits under the bar (40) and the right panels/scrim (60/61). */
+.shipments-bar__scrim {
   position: fixed;
-  top: var(--navbar-height, 64px);
+  top: var(--navbar-height);
   left: var(--sidebar-width);
   right: 0;
   bottom: 0;
