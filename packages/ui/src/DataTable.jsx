@@ -212,8 +212,21 @@ export function cellClassName(meta, isStickyRight) {
 //                       state to their query.
 //   truncationTooltip — full-text Tooltip on any ellipsis-truncated cell (S93: was > 1 hidden word).
 //   onCellClick       — per-cell click callback.
+//   onRowClick        — row-level click callback (S93): fires for clicks on any
+//                       non-interactive part of the row (interactive elements keep
+//                       their native behavior). Runs AFTER onCellClick when both are
+//                       provided — most consumers pick one.
+//   loadingRows       — data cells render "Loading…" while stale placeholder rows show.
+//   scrollSelectedIntoView — keep the selected row (TanStack rowSelection) visible
+//                       between the sticky header and a bottom boundary (S93; extracted
+//                       from the Shipments arrow-navigation autoscroll). `true` or
+//                       `{ bottomBoundary?: () => px, freshDelay?: ms, switchDelay?: ms }`:
+//                       bottomBoundary defaults to the viewport bottom (pass e.g. an
+//                       open detail bar's top edge); freshDelay (default 600) applies on
+//                       an empty→selected change so consumer open-animations can land;
+//                       switchDelay (default 50) on selection switches (arrows).
 //   (column resize stays a TanStack option: enableColumnResizing on the table.)
-export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, onCellClick, sortable = false, truncationTooltip = false, loadingRows = false, className = '' }) {
+export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, onCellClick, onRowClick, sortable = false, truncationTooltip = false, loadingRows = false, scrollSelectedIntoView = false, className = '' }) {
   // stickyTop: number (px) or any CSS length expression (string). The sticky reference is
   // the page scroller's CONTENT edge — a padded scroller (e.g. an app shell <main> with
   // padding-top) parks a `top: 0` header padding-top BELOW the visible clip edge, letting
@@ -228,6 +241,44 @@ export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, onC
   const [measured, setMeasured] = useState(null) // { headerWidths, bodyWidths, container } — the measure pass
 
   const rowModel = table.getRowModel()
+
+  // scrollSelectedIntoView (S93): after a selection change, scroll the selected
+  // row into the visible band between the sticky header (+12px breathing room)
+  // and the bottom boundary. Scrolls the nearest scrollable ancestor.
+  const svOpts = scrollSelectedIntoView === true ? {} : scrollSelectedIntoView
+  const selectionKey = svOpts ? JSON.stringify(table.getState().rowSelection ?? {}) : ''
+  const prevSelectionRef = useRef('')
+  useEffect(() => {
+    if (!svOpts) return
+    const hadSelection = prevSelectionRef.current && prevSelectionRef.current !== '{}'
+    prevSelectionRef.current = selectionKey
+    if (!selectionKey || selectionKey === '{}') return
+    const delay = hadSelection ? (svOpts.switchDelay ?? 50) : (svOpts.freshDelay ?? 600)
+    const t = setTimeout(() => {
+      const row = bodyTableRef.current?.querySelector('tr[data-selected]')
+      if (!row) return
+      const scroller = (() => {
+        for (let p = row.parentElement; p; p = p.parentElement) {
+          const s = getComputedStyle(p)
+          if (/(auto|scroll)/.test(s.overflowY) && p.scrollHeight > p.clientHeight) return p
+        }
+        return null
+      })()
+      const rect = row.getBoundingClientRect()
+      const bottom = svOpts.bottomBoundary?.() ?? window.innerHeight
+      const headerBottom = bodyTableRef.current?.closest('.odyssey-data-table')
+        ?.querySelector('thead')?.getBoundingClientRect().bottom ?? 0
+      const downOverlap = rect.bottom - bottom
+      const upOverlap = (headerBottom + 12) - rect.top
+      const target = scroller ?? window
+      if (downOverlap > 0) target.scrollBy({ top: downOverlap, behavior: 'smooth' })
+      else if (upOverlap > 0) target.scrollBy({ top: -upOverlap, behavior: 'smooth' })
+      else row.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    }, delay)
+    return () => clearTimeout(t)
+    // svOpts is a per-render literal; the selection key is the real trigger.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectionKey])
   // Re-measure only when the column SET/ORDER or the rows change — NOT when sizing changes.
   // A resize drag updates the derived widths below without a DOM re-measure (re-measuring
   // per mouse-move was the resize lag). A by-value string keeps this stable across renders.
@@ -547,7 +598,19 @@ export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, onC
             {colgroup}
             <tbody>
               {rowModel.rows.map((row) => (
-                <tr key={row.id} data-selected={row.getIsSelected() || undefined}>
+                <tr
+                  key={row.id}
+                  data-selected={row.getIsSelected() || undefined}
+                  onClick={onRowClick
+                    ? (e) => {
+                        // Interactive elements keep their native behavior (same
+                        // rule as cell clicks).
+                        const t = e.target
+                        if (t instanceof Element && t.closest(INTERACTIVE_SELECTOR)) return
+                        onRowClick(row)
+                      }
+                    : undefined}
+                >
                   {row.getVisibleCells().map((cell) => {
                     const meta = cell.column.columnDef.meta
                     const forwardClick = meta?.forwardClick === true

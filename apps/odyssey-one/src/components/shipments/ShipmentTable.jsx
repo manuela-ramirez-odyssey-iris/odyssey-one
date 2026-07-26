@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { useReactTable, getCoreRowModel, createColumnHelper } from '@tanstack/react-table'
 import { EllipsisVertical, Columns3Cog, Info, TriangleAlert } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
@@ -307,44 +307,6 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
     onRowSelect(row.original.id, tab, expandGeneral)
   }, [onRowSelect])
 
-  // Auto-scroll the selected row into view — parity with the old virtual-list
-  // scrollToRow, now over real DOM rows. The detail bar (fixed, 60dvh when
-  // partial) covers the lower page but <main> only reserves 48px, so 'nearest'
-  // alone can leave the origin row hidden BEHIND the open bar: when it
-  // overlaps, scroll the row up into the visible gap above the bar so the
-  // user sees where the pane came from (S82). The 600ms delay lets the bar's
-  // 300ms open animation land first, so its measured top is final.
-  // Fresh open (null → id) waits 600ms for the bar's open animation so its
-  // measured top is final; a selection SWITCH (arrows, row-to-row) has the bar
-  // already at its stage height — scroll right away (S93: the fixed wait made
-  // arrow navigation feel laggy).
-  const prevSelectedRef = useRef(null)
-  useEffect(() => {
-    if (!selectedId || !containerRef.current) {
-      prevSelectedRef.current = selectedId
-      return
-    }
-    const freshOpen = prevSelectedRef.current == null
-    prevSelectedRef.current = selectedId
-    const t = setTimeout(() => {
-      const row = containerRef.current?.querySelector('tr[data-selected]')
-      if (!row) return
-      const barTop = document.querySelector('[data-bottombar]')?.getBoundingClientRect().top
-        ?? window.innerHeight
-      const rect = row.getBoundingClientRect()
-      const overlap = rect.bottom - (barTop - 12) // 12px breathing room
-      // Upward (prev arrow): 'nearest' parks the row BEHIND the sticky table
-      // header — scroll it down into the gap below the header instead (S93,
-      // the mirror of the bar-overlap case).
-      const headerBottom = containerRef.current?.querySelector('thead')?.getBoundingClientRect().bottom ?? 0
-      const upOverlap = (headerBottom + 12) - rect.top
-      if (overlap > 0) row.closest('main')?.scrollBy({ top: overlap, behavior: 'smooth' })
-      else if (upOverlap > 0) row.closest('main')?.scrollBy({ top: -upOverlap, behavior: 'smooth' })
-      else row.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
-    }, freshOpen ? 600 : 50)
-    return () => clearTimeout(t)
-  }, [selectedId])
-
   return (
     <div
       ref={containerRef}
@@ -398,6 +360,12 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
           truncationTooltip
           // Stale placeholder pages (TanStack keepPreviousData) render Loading… cells.
           loadingRows={isFetchingRows}
+          // Keep the selected row visible between the sticky header and the open
+          // detail bar (S82 origin-row rule, componentized S93). freshDelay lets
+          // the bar's open animation land before its top is measured.
+          scrollSelectedIntoView={{
+            bottomBoundary: () => (document.querySelector('[data-bottombar]')?.getBoundingClientRect().top ?? window.innerHeight) - 12,
+          }}
           // AppShell's <main> has --spacing-8 (32px) padding-top; sticky insets resolve
           // against the content edge, not the viewport edge (S79b header-gap fix).
           // S82: toolbar no longer sticky — scrolls away. Header sticks at spacing-3

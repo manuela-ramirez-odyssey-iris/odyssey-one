@@ -23,6 +23,8 @@ return <DataTable table={table} ariaLabel="Shipments" />
 | `truncationTooltip` | boolean | `false` | Feature switch: full-text Tooltip on truncated cells (see Truncation tooltip). |
 | `loadingRows` | boolean | `false` | Feature switch: data cells (accessor columns) render "Loading…" instead of their value — pass while stale placeholder rows are showing (TanStack Query `keepPreviousData` + `isPlaceholderData`). Display columns (select/actions) keep rendering. |
 | `onCellClick` | `(cell, row) => void` | — | Per-cell click; suppressed on interactive cells (buttons, links, inputs, `[data-no-cell-click]`). |
+| `onRowClick` | `(row) => void` | — | Row-level click on any non-interactive part of the row (interactive elements keep native behavior). Fires after `onCellClick` when both are provided — most consumers pick one. |
+| `scrollSelectedIntoView` | boolean \| options | `false` | Keep the selected row (TanStack `rowSelection`) visible between the sticky header and a bottom boundary. Options: `bottomBoundary?: () => px` (default viewport bottom — pass e.g. an open detail bar's top edge), `freshDelay?: ms` (default 600, empty→selected — lets consumer open-animations land), `switchDelay?: ms` (default 50, selection switches like prev/next arrows). Scrolls the nearest scrollable ancestor. |
 | `stickyTop` | number \| CSS length | `0` | Where the sticky header parks. Padded page scrollers compensate with a negative `calc()`. |
 | `footer` | ReactNode | — | Rendered below the bordered card (put `<Paginator table={table} />` here). |
 | `ariaLabel` | string | — | `aria-label` on the body `<table>`. |
