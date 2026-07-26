@@ -97,6 +97,7 @@ function Schematic() {
       <div style={{ border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
         <ShipmentsBar
           shipmentId="B28826319"
+          onShipmentIdClick={() => {}}
           onPrevShipment={() => {}}
           onNextShipment={() => {}}
           tabs={TABS}
@@ -110,7 +111,7 @@ function Schematic() {
       </div>
       <ul style={{ display: 'grid', gridTemplateColumns: 'max-content 1fr', columnGap: '10px', listStyle: 'none', margin: 0, padding: 0 }}>
         <LegendRow part="bar" tier="organism">Docked bottom detail bar — 48px white strip (<code>--bottombar-collapsed</code>) over a <code>DSN/100</code> canvas; hairline per segment (selected tab breaks it). Expands to a content-height pane, capped at <code>100dvh − --bottombar-top-clearance</code> (Figma: <code>State=Collapsed|Expanded</code>). <strong>Replaces the old BottomBar chrome</strong> — no close X, no scroll chevrons, no fullscreen.</LegendRow>
-        <LegendRow part="current shipment" nested>Lead segment: prev/next arrows (<code>lucide/arrow-left|right</code>, 20px, <code>--deep-sea-neutral-500</code>) + shipment ID (<code>label/sm semibold</code>, <code>--text-primary</code>). (Figma: Shipment ID TEXT.)</LegendRow>
+        <LegendRow part="current shipment" nested>Lead segment: prev/next arrows (<code>lucide/arrow-left|right</code>, 20px, <code>--deep-sea-neutral-500</code>) + shipment ID. With <code>onShipmentIdClick</code> (S93) the ID renders as a <strong>ButtonLink</strong> (<code>Button variant="link"</code>, default non-black tone, kept semibold) — the app opens the View Shipment Details modal; without it: plain <code>label/sm semibold</code> <code>--text-primary</code>. (Figma: Shipment ID TEXT — link face sync owed.)</LegendRow>
         <LegendRow part="tab slots" nested>Strip of <code>ShipmentsBarTab</code>s — <code>label/sm semibold</code>, padding 14/16; selected = <code>DSN/100</code> fill (real Selected state, not Hover); hover <code>DSN/50</code> code-only; overflow scrolls natively. Each tab is a content slot.</LegendRow>
         <LegendRow part="PanelActions" nested>The ONLY controls (Figma 4095:3070), composing <code>Button Icon/sm</code>: <strong>TabArrangement</strong> (columns+cog — closest lucide is <code>columns-3-cog</code>; the mock draws 2 columns) + <strong>CollapseExpand</strong> — expanded → <code>chevrons-down</code> is a <strong>CLOSE</strong> gesture (fires <code>onClose</code>; the app deselects the row — S79c); the placeholder strip shows <code>chevrons-up</code>, disabled without a selection. Gap <code>--spacing-3</code>, padding 24/12.</LegendRow>
         <LegendRow part="Content slot" nested><code>children</code> — the active pane, rendered while expanded (see Playground). (Figma: native Content slot below the strip.)</LegendRow>
@@ -123,6 +124,7 @@ function Playground() {
   const [shipmentIdx, setShipmentIdx] = useState(0)
   const [activeTab, setActiveTab] = useState('orders')
   const [expanded, setExpanded] = useState(true)
+  const [idClicks, setIdClicks] = useState(0)
   const shipments = ['B28826319', 'B28826320', 'B28826321']
   const activeLabel = TABS.find(t => t.key === activeTab)?.label
 
@@ -133,11 +135,12 @@ function Playground() {
   return (
     <div>
       <div className="ds-demo-row" style={{ gap: 'var(--spacing-4)', marginBottom: 'var(--spacing-3)', flexWrap: 'wrap', alignItems: 'center' }}>
-        <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-tertiary)' }}>arrows step shipments · tabs switch the slot · chevrons-down = CLOSE (in the app it deselects the row; here it just collapses so chevrons-up can re-expand) · open/close and partial↔full ease on the drawer curve between the fixed stage heights (S93 — adaptive ratchet retired)</span>
+        <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-tertiary)' }}>arrows step shipments · the ID is a ButtonLink (in the app it opens View Shipment Details{idClicks > 0 ? ` — clicked ${idClicks}×` : ''}) · tabs switch the slot · chevrons-down = CLOSE (in the app it deselects the row; here it just collapses so chevrons-up can re-expand) · open/close and partial↔full ease on the drawer curve between the fixed stage heights (S93 — adaptive ratchet retired)</span>
       </div>
       <div style={{ border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
         <ShipmentsBar
           shipmentId={shipments[shipmentIdx]}
+          onShipmentIdClick={() => setIdClicks(n => n + 1)}
           onPrevShipment={() => setShipmentIdx(i => Math.max(0, i - 1))}
           onNextShipment={() => setShipmentIdx(i => Math.min(shipments.length - 1, i + 1))}
           prevDisabled={shipmentIdx === 0}
