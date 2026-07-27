@@ -61,6 +61,8 @@ export default function OrdersRoute() {
   const [confirmAction, setConfirmAction] = useState(null) // { type: 'submit' | 'cancel', row }
   const submitDraftOrder = useSubmitDraftOrder()
   const cancelOrder = useCancelOrder()
+  // Export to Excel (LINX-9896 BR V) — toolbar Export opens the confirm modal.
+  const [exportOpen, setExportOpen] = useState(false)
 
   const tabStatuses = MAIN_TABS.find(t => t.key === activeTab)?.statuses
   const sortField = SORT_FIELD_BY_COLUMN[sorting[0]?.id] ?? sorting[0]?.id ?? 'orderNumber'
@@ -124,7 +126,7 @@ export default function OrdersRoute() {
           ))}
         </div>
 
-        <OrdersToolbar totalCount={data?.totalCount} />
+        <OrdersToolbar totalCount={data?.totalCount} onExportClick={() => setExportOpen(true)} />
 
         {isPending ? (
           <div className="orders-page__status text-label-sm-regular">Loading orders…</div>

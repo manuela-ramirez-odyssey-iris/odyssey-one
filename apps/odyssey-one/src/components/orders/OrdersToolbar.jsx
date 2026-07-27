@@ -1,31 +1,30 @@
-import { ArrowDownWideNarrow, ArrowUpNarrowWide, SlidersHorizontal } from 'lucide-react'
+import { SlidersHorizontal, Upload } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
 import { Button } from '@odyssey/ui'
 
 /**
- * OrdersToolbar — count · sort-direction toggle · Filters (inert).
- * Direction-only sort on orderNumber is the A4 interim (header-click sorting is
- * Efrain's call, Q33). Filters button renders inert until the filter-panel
- * build (needs Efrain's open-panel export first).
+ * OrdersToolbar — count · Filters (disabled: decision pending, may be
+ * superseded by global search) · Export (LINX-9896 BR V — current tab → Excel).
+ * The old direction-only sort toggle is gone — header sorting owns it (S94).
  */
-export default function OrdersToolbar({ totalCount, sortDirection, onToggleSort, disabled }) {
-  const SortIcon = sortDirection === 'desc' ? ArrowDownWideNarrow : ArrowUpNarrowWide
+export default function OrdersToolbar({ totalCount, onExportClick }) {
   return (
     <div className="orders-toolbar">
       <span className="orders-toolbar__count text-label-sm-regular">
         {totalCount == null ? '—' : `${totalCount.toLocaleString('en-US')} items`}
       </span>
       <div className="orders-toolbar__right">
-        <Button
-          variant="icon"
-          size="sm"
-          icon={<SortIcon size={20} />}
-          onClick={onToggleSort}
-          aria-label={`Sorted ${sortDirection === 'desc' ? 'descending' : 'ascending'} — toggle direction`}
-          disabled={disabled}
-        />
-        <Button variant="secondary" size="sm" icon={<SlidersHorizontal {...ICON_MD} />} onClick={() => {}}>
+        <Button variant="secondary" size="sm" icon={<SlidersHorizontal {...ICON_MD} />} disabled>
           Filters
+        </Button>
+        <Button
+          variant="secondary"
+          size="sm"
+          icon={<Upload size={20} />}
+          onClick={onExportClick}
+          disabled={totalCount === 0 || totalCount == null}
+        >
+          Export
         </Button>
       </div>
     </div>
