@@ -1085,12 +1085,16 @@ function generateShipment(index) {
       equipment: h.equipmentCode, // I7
       consignor: {
         locationId: locationIdFor(from, ord.shipFromLocIdx),
+        name: from.facility,
+        address: `${faker.number.int({ min: 100, max: 9900 })} ${faker.location.street()}`,
         city: from.city, state: from.state, country: 'US',
         earliestPickupDateTime: toIsoLocal(w.earliestPickup),
         latestPickupDateTime: toIsoLocal(w.latestPickup),
       },
       consignee: {
         locationId: locationIdFor(to, ord.shipToLocIdx),
+        name: to.facility,
+        address: `${faker.number.int({ min: 100, max: 9900 })} ${faker.location.street()}`,
         city: to.city, state: to.state, country: 'US',
         earliestDeliveryDateTime: toIsoLocal(w.earliestDelivery),
         latestDeliveryDateTime: toIsoLocal(w.latestDelivery),
@@ -1099,7 +1103,14 @@ function generateShipment(index) {
       volume: { value: ord.orderVolume, uom: 'cbf' },
       commodity: ord.lines[0].itemDescription, // I7
       orderStatus: orderStatusLabel,
+      hazardous: faker.number.float({ min: 0, max: 1 }) < 0.12,
+      createdAt: toIsoLocal(new Date(w.earliestPickup.getTime() - faker.number.int({ min: 24, max: 240 }) * 3600e3)),
+      createdBy: pick(ORDER_USERS),
     };
+    if (VALIDATION_ERROR_STATUSES.includes(orderRow.orderStatus)) {
+      orderRow.draftOrderStatus = pick(DRAFT_ORDER_STATUS_POOL);
+      orderRow.errorCount = faker.number.int({ min: 1, max: 12 });
+    }
     orderRows.push(orderRow);
     // I8 — a subset of shipped orders gets full ManualOrder enrichment so the
     // Order Summary shows the SAME lines/instructions/services as the shipment
@@ -1241,6 +1252,12 @@ const UNSHIPPED_STATUS_POOL = [
   ...Array(12).fill('Cancelled'),
 ];
 
+// Draft-tab "Created By" pool — plain full names (LINX-11663).
+const ORDER_USERS = ['Amy Cook', 'Luis Herrera', 'Priya Nair', 'Tom Becker',
+  'Sofia Almeida', 'Dan Whitfield', 'Grace Liu', 'Marcus Bell'];
+const VALIDATION_ERROR_STATUSES = ['Planning Failed', 'Shipment Failed'];
+const DRAFT_ORDER_STATUS_POOL = ['Ready', 'Ready', 'Ready', 'Complete', 'Complete', 'Purge'];
+
 // Long, MULTILINE-worthy instruction bodies for the rich unshipped orders.
 const LONG_INSTRUCTIONS = [
   'RECEIVING PROTOCOL:\n1. Check in at the guard shack with BOL and photo ID — no exceptions.\n2. Tarps remain ON until a dock door is assigned by the receiving supervisor.\n3. Hazmat loads stage in the marked lane only; placards verified before unload.\n4. Overages, shortages and damages must be noted on the POD before the driver leaves the yard.',
@@ -1290,12 +1307,16 @@ function generateUnshippedOrder(n, pending) {
     equipment: pick(EQUIPMENT_CODES),
     consignor: {
       locationId: locationIdFor(from, originIdx),
+      name: from.facility,
+      address: `${faker.number.int({ min: 100, max: 9900 })} ${faker.location.street()}`,
       city: from.city, state: from.state, country: 'US',
       earliestPickupDateTime: toIsoLocal(earliestPickup),
       latestPickupDateTime: toIsoLocal(latestPickup),
     },
     consignee: {
       locationId: locationIdFor(to, destIdx),
+      name: to.facility,
+      address: `${faker.number.int({ min: 100, max: 9900 })} ${faker.location.street()}`,
       city: to.city, state: to.state, country: 'US',
       earliestDeliveryDateTime: toIsoLocal(earliestDelivery),
       latestDeliveryDateTime: toIsoLocal(latestDelivery),
@@ -1304,8 +1325,18 @@ function generateUnshippedOrder(n, pending) {
     volume: { value: volume, uom: 'cbf' },
     commodity: lines[0].itemDescription,
     orderStatus: pending ? 'Ready For Plan' : pick(UNSHIPPED_STATUS_POOL),
+    hazardous: faker.number.float({ min: 0, max: 1 }) < 0.12,
+    createdAt: toIsoLocal(new Date(earliestPickup.getTime() - faker.number.int({ min: 24, max: 240 }) * 3600e3)),
+    createdBy: pick(ORDER_USERS),
   };
   if (pending) row.orderId = 91000 + n; // internal id — the only handle a number-less row has
+  if (row.orderStatus === 'Draft') {
+    row.lastEditAt = toIsoLocal(new Date(new Date(row.createdAt).getTime() + faker.number.int({ min: 1, max: 72 }) * 3600e3));
+  }
+  if (VALIDATION_ERROR_STATUSES.includes(row.orderStatus)) {
+    row.draftOrderStatus = pick(DRAFT_ORDER_STATUS_POOL);
+    row.errorCount = faker.number.int({ min: 1, max: 12 });
+  }
 
   // ~half of the numbered unshipped orders are RICH: every optional create-form
   // field populated (references, long multiline instructions, services,
