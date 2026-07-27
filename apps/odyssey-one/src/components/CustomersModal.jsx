@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Handshake } from 'lucide-react'
-import { SearchField, CustomerRow, EmptyState, Button, ModalMedium, ModalHeader } from '@odyssey/ui'
+import { ComboBox, CustomerRow, EmptyState, Button, ModalMedium, ModalHeader } from '@odyssey/ui'
 import { useCustomers } from '../contexts/CustomersContext.jsx'
 
 // Set equality helper for the dirty check — Save only arms when the staged
@@ -144,7 +144,7 @@ export default function CustomersModal() {
 
       <div className="customers-popover__content">
         <div ref={searchRef} onFocus={() => setResultsOpen(true)}>
-          <SearchField
+          <ComboBox
             value={filter}
             onChange={(v) => { setFilter(v); setResultsOpen(true) }}
             onClear={() => { setFilter(''); setResultsOpen(false) }}

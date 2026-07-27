@@ -1,12 +1,12 @@
 import { useState, useRef, useMemo, useId, useCallback } from 'react'
-import { Search, CircleX, Info } from 'lucide-react'
-import { ICON_MD } from '@odyssey/tokens'
+import { Search, CircleX, Info, ChevronDown } from 'lucide-react'
+import { ICON_MD, ICON_LG } from '@odyssey/tokens'
 import FieldSearchResults from './FieldSearchResults.jsx'
 import { useFieldPopover } from './useFieldPopover.js'
 import { moveHighlight } from './GlobalSearch.jsx'
 
 /**
- * SearchField — organism. Mirrors the Shipments TableControls search recipe:
+ * ComboBox (former SearchField) — organism. Mirrors the Shipments TableControls search recipe:
  * `--bg-primary` surface, 1px `--border-default` border (2px `--deep-sea-neutral-600`
  * on focus), `--shadow-sm`. Leading Search icon shifts text-placeholder → text-tertiary
  * on focus. Controlled via `value` + `onChange`.
@@ -37,6 +37,17 @@ import { moveHighlight } from './GlobalSearch.jsx'
  *
  * The typeahead popover renders all three states (loading / empty / populated) via
  * FieldSearchResults, which owns virtualization internally.
+ *
+ * ── variant ─────────────────────────────────────────────────────────────────
+ * `variant='search'` (default) — byte-identical to the original SearchField:
+ * leading Search icon, no trailing chevron.
+ * `variant='select'` — no leading Search icon; a trailing ChevronDown (20px,
+ * matches the Figma `Select` variant) at the end of the input bar. Clicking the
+ * chevron focuses the input (and opens the typeahead popover, when typeahead
+ * props are present); it rotates 180° while open. Convention: when both the
+ * clear-X and the chevron are visible, clear-X comes first (nearer the text),
+ * chevron last — mirrors FieldSelect's trailing-chevron placement and common
+ * combobox anatomy (clear affordance before the "open menu" affordance).
  */
 
 // ── Typeahead internals ─────────────────────────────────────────────────────
@@ -51,11 +62,12 @@ function defaultFilter(inputText, option) {
 
 // ── Component ───────────────────────────────────────────────────────────────
 
-export default function SearchField({
+export default function ComboBox({
   value = '',
   onChange,
   placeholder = 'Search',
   onClear,
+  variant = 'search',
   showLabel = false,
   label = 'Label',
   showInfoIcon = false,
@@ -88,6 +100,7 @@ export default function SearchField({
 
   // ── Shared focus state ───────────────────────────────────────────────────
   const [focused, setFocused] = useState(false)
+  const inputRef = useRef(null)
 
   // ── Typeahead state (inert when typeaheadMode=false) ─────────────────────
   const [inputText, setInputText] = useState('')
@@ -270,16 +283,19 @@ export default function SearchField({
         transition: 'border-color var(--transition-fast)',
       }}
     >
-      <Search
-        {...ICON_MD}
-        style={{
-          color: focused ? 'var(--text-tertiary)' : 'var(--text-placeholder)',
-          flexShrink: 0,
-          transition: 'color var(--transition-fast)',
-        }}
-        aria-hidden="true"
-      />
+      {variant === 'search' && (
+        <Search
+          {...ICON_MD}
+          style={{
+            color: focused ? 'var(--text-tertiary)' : 'var(--text-placeholder)',
+            flexShrink: 0,
+            transition: 'color var(--transition-fast)',
+          }}
+          aria-hidden="true"
+        />
+      )}
       <input
+        ref={inputRef}
         id={id}
         type="text"
         value={typeaheadMode ? inputText : value}
@@ -338,6 +354,27 @@ export default function SearchField({
           aria-label="Clear search"
         >
           <CircleX {...ICON_MD} />
+        </button>
+      )}
+      {variant === 'select' && (
+        <button
+          type="button"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => {
+            inputRef.current?.focus()
+            if (typeaheadMode) setOpen(true)
+          }}
+          className="flex items-center justify-center border-none bg-transparent cursor-pointer p-0 shrink-0"
+          style={{ color: 'var(--text-tertiary)' }}
+          aria-label="Toggle options"
+        >
+          <ChevronDown
+            {...ICON_LG}
+            style={{
+              transform: typeaheadMode && open ? 'rotate(180deg)' : 'rotate(0deg)',
+              transition: 'transform var(--transition-fast)',
+            }}
+          />
         </button>
       )}
     </div>

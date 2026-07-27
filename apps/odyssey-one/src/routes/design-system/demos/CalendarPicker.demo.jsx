@@ -151,7 +151,7 @@ export default function CalendarPickerDemo() {
         built on it — FormField shell + typeable dd/mm/yyyy mask + CalendarPicker popover
         (<code>useFieldPopover</code>) — and is what product code should use for date fields
         (<code>{"import { DatePicker } from '@odyssey/ui'"}</code>). Use raw CalendarPicker only to
-        embed a calendar outside a field (e.g. inline in a panel). Contrast with SearchField
+        embed a calendar outside a field (e.g. inline in a panel). Contrast with ComboBox
         typeahead: that folded into an existing field component; dates had no field to fold into,
         so the composite wraps FormField instead.
       </p>

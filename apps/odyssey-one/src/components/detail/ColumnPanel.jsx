@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect, useLayoutEffect, forwardRef, useImperativeHandle } from 'react'
 import { createPortal } from 'react-dom'
-import { RightPanel, MenuRowRadio, MenuRowCheckbox, SearchField, IconButtonGhost, DropdownMenu, MenuRow, ModalMedium, Button } from '@odyssey/ui'
+import { RightPanel, MenuRowRadio, MenuRowCheckbox, ComboBox, IconButtonGhost, DropdownMenu, MenuRow, ModalMedium, Button } from '@odyssey/ui'
 import { EllipsisVertical } from 'lucide-react'
 import { ICON_LG } from '@odyssey/tokens'
 
@@ -232,7 +232,7 @@ const BUILT_IN_PRESET_IDS = new Set([
 
 /**
  * ColumnPanel — Shipments data-column arrange feature, built on the normalized RightPanel
- * shell + Row-family controls (MenuRowRadio / MenuRowCheckbox) + SearchField + Button.
+ * shell + Row-family controls (MenuRowRadio / MenuRowCheckbox) + ComboBox + Button.
  *
  * Two views inside the same RightPanel (a directional slide animates the transition):
  *  - **presets**: Custom + Odyssey preset groups. The radio area selects/applies a preset
@@ -687,7 +687,7 @@ const ColumnPanel = forwardRef(function ColumnPanel({ isOpen, onClose, visibleCo
       <div>
         <GroupLabel>Available columns</GroupLabel>
         <div style={{ marginBottom: 'var(--spacing-2)' }}>
-          <SearchField
+          <ComboBox
             value={searchQuery}
             placeholder="Search columns"
             onChange={setSearchQuery}

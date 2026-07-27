@@ -1,12 +1,17 @@
 import figma from '@figma/code-connect'
-import SearchField from './SearchField'
+import ComboBox from './ComboBox'
 
+// FIGMA: master updated S94 (SearchField→ComboBox + Select variant); Code Connect publish owed at batch close.
 figma.connect(
-  SearchField,
-  'https://www.figma.com/design/vodiHJU38YWZYmTz81uOk7/Design-System---MCP?node-id=1959-76',
+  ComboBox,
+  'https://www.figma.com/design/vodiHJU38YWZYmTz81uOk7/Design-System---MCP?node-id=4715-6142',
   {
-    imports: ["import { SearchField } from '@odyssey/ui'"],
+    imports: ["import { ComboBox } from '@odyssey/ui'"],
     props: {
+      variant: figma.enum('Variant', {
+        Search: 'search',
+        Select: 'select',
+      }),
       placeholder: figma.string('Placeholder'),
       showLabel: figma.boolean('Show label'),
       label: figma.string('Label'),
@@ -15,8 +20,9 @@ figma.connect(
       // Typically a <FieldSearchResults>; the shell chrome lives on .search-field__results.
       results: figma.instance('Content'),
     },
-    example: ({ placeholder, showLabel, label, showInfoIcon, results }) => (
-      <SearchField
+    example: ({ variant, placeholder, showLabel, label, showInfoIcon, results }) => (
+      <ComboBox
+        variant={variant}
         placeholder={placeholder}
         showLabel={showLabel}
         label={label}

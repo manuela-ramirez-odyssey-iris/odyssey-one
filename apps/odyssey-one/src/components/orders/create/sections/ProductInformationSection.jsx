@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { ArrowDownWideNarrow, ArrowUpNarrowWide } from 'lucide-react'
 import { Controller, useFormContext } from 'react-hook-form'
-import { Button, ButtonToggle, SearchField } from '@odyssey/ui'
+import { Button, ButtonToggle, ComboBox } from '@odyssey/ui'
 import ProductGrid from '../ProductGrid.jsx'
 
 /**
@@ -26,7 +26,7 @@ export default function ProductInformationSection() {
       render={({ field }) => (
         <div className="co-section-body">
           <div className="co-product-toolbar">
-            <SearchField
+            <ComboBox
               className="co-product-search"
               value={search}
               onChange={setSearch}

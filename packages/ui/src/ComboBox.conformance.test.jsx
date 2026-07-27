@@ -1,15 +1,15 @@
 // @vitest-environment jsdom
 /**
- * SearchField typeahead conformance + performance tests using the real apis-guru
+ * ComboBox typeahead conformance + performance tests using the real apis-guru
  * fixture (2,529 {value, label} entries — real API names with punctuation, unicode,
  * long strings, and regex-risky chars like "(" and ".").
  *
- * Does NOT duplicate the 6 basic tests in SearchField.typeahead.test.jsx.
+ * Does NOT duplicate the 6 basic tests in ComboBox.typeahead.test.jsx.
  * Migrated from Autocomplete.conformance.test.jsx (S84 fold).
  */
 import { describe, test, expect, vi, beforeAll, afterEach } from 'vitest'
 import { render, screen, fireEvent, cleanup, act } from '@testing-library/react'
-import SearchField from './SearchField.jsx'
+import ComboBox from './ComboBox.jsx'
 import FIXTURE from './__fixtures__/apis-guru.json'
 
 beforeAll(() => {
@@ -42,7 +42,7 @@ function renderedOptionCount(container) {
 
 // ─── Functional / real-data robustness ──────────────────────────────────────
 
-describe('SearchField — typeahead conformance + perf (apis-guru fixture, 2 529 entries)', () => {
+describe('ComboBox — typeahead conformance + perf (apis-guru fixture, 2 529 entries)', () => {
 
   test('1. filtering 2 529 entries: "weather" narrows to only matching rows, case-insensitive', () => {
     // jsdom has no layout engine, so the virtualizer renders 0 DOM rows for large sets
@@ -50,7 +50,7 @@ describe('SearchField — typeahead conformance + perf (apis-guru fixture, 2 529
     // onSelect callback: select idx 0 after filtering — it must come from the weather subset.
     const onSelect = vi.fn()
     const { container } = render(
-      <SearchField id="ac" label="API" options={FIXTURE} onSelect={onSelect} />,
+      <ComboBox id="ac" label="API" options={FIXTURE} onSelect={onSelect} />,
     )
     const input = screen.getByRole('combobox')
     openWithQuery(input, 'WeAtHeR') // intentionally mixed-case to test case-insensitivity
@@ -80,7 +80,7 @@ describe('SearchField — typeahead conformance + perf (apis-guru fixture, 2 529
   test('2. special chars in query do not crash filtering ("(", ".", "+")', () => {
     // defaultFilter uses String.includes — no RegExp, so no injection risk.
     // This test guards against any future refactor to RegExp-based filtering.
-    const { container } = render(<SearchField id="ac" label="API" options={FIXTURE} />)
+    const { container } = render(<ComboBox id="ac" label="API" options={FIXTURE} />)
     const input = screen.getByRole('combobox')
 
     for (const char of ['(', '.', '+', '[', '*', '?', '^', '$', '\\', '|']) {
@@ -88,14 +88,14 @@ describe('SearchField — typeahead conformance + perf (apis-guru fixture, 2 529
         fireEvent.change(input, { target: { value: char } })
       }, `Crashed on char: ${char}`).not.toThrow()
       cleanup()
-      render(<SearchField id="ac" label="API" options={FIXTURE} />)
+      render(<ComboBox id="ac" label="API" options={FIXTURE} />)
     }
   })
 
   test('3. selecting a row fires onSelect with value (not label) and fills input with label', () => {
     const onSelect = vi.fn()
     const { container } = render(
-      <SearchField id="ac" label="API" options={FIXTURE} onSelect={onSelect} />,
+      <ComboBox id="ac" label="API" options={FIXTURE} onSelect={onSelect} />,
     )
     const input = screen.getByRole('combobox')
     openWithQuery(input, 'weather')
@@ -118,7 +118,7 @@ describe('SearchField — typeahead conformance + perf (apis-guru fixture, 2 529
   test('4. empty query: listbox opens and virtualizer does NOT render all 2 529 rows', () => {
     // jsdom has no layout, so virtualizer emits 0 visible rows (clientHeight=0).
     // The key invariant: rendered DOM option count < FIXTURE.length (not all rows dumped).
-    const { container } = render(<SearchField id="ac" label="API" options={FIXTURE} />)
+    const { container } = render(<ComboBox id="ac" label="API" options={FIXTURE} />)
     const input = screen.getByRole('combobox')
     fireEvent.focus(input)
     fireEvent.change(input, { target: { value: '' } })
@@ -136,7 +136,7 @@ describe('SearchField — typeahead conformance + perf (apis-guru fixture, 2 529
   // ─── ARIA combobox conformance ─────────────────────────────────────────────
 
   test('5. input has role=combobox; aria-expanded false→true on open', () => {
-    render(<SearchField id="ac" label="API" options={FIXTURE} />)
+    render(<ComboBox id="ac" label="API" options={FIXTURE} />)
     const input = screen.getByRole('combobox')
 
     // Before open
@@ -161,7 +161,7 @@ describe('SearchField — typeahead conformance + perf (apis-guru fixture, 2 529
       { value: 'twilio', label: 'Twilio API' },
       { value: 'sendgrid', label: 'SendGrid API' },
     ]
-    const { container } = render(<SearchField id="ac" label="API" options={THREE} />)
+    const { container } = render(<ComboBox id="ac" label="API" options={THREE} />)
     const input = screen.getByRole('combobox')
     fireEvent.focus(input)
     fireEvent.change(input, { target: { value: '' } })
@@ -197,7 +197,7 @@ describe('SearchField — typeahead conformance + perf (apis-guru fixture, 2 529
   })
 
   test('7. Escape closes the popup and aria-expanded returns false', () => {
-    const { container } = render(<SearchField id="ac" label="API" options={FIXTURE} />)
+    const { container } = render(<ComboBox id="ac" label="API" options={FIXTURE} />)
     const input = screen.getByRole('combobox')
     openWithQuery(input, 'google')
 
@@ -213,7 +213,7 @@ describe('SearchField — typeahead conformance + perf (apis-guru fixture, 2 529
 
   test('8. virtualization bound: full list open renders ≤ 30 DOM option nodes (not 2 529)', () => {
     // Separate from test 4 — explicitly asserts virtualizer is active
-    const { container } = render(<SearchField id="ac" label="API" options={FIXTURE} />)
+    const { container } = render(<ComboBox id="ac" label="API" options={FIXTURE} />)
     const input = screen.getByRole('combobox')
     fireEvent.focus(input)
     fireEvent.change(input, { target: { value: '' } })
@@ -224,7 +224,7 @@ describe('SearchField — typeahead conformance + perf (apis-guru fixture, 2 529
   })
 
   test('9. typing one char stays bounded; act() completes < 250ms backstop', () => {
-    const { container } = render(<SearchField id="ac" label="API" options={FIXTURE} />)
+    const { container } = render(<ComboBox id="ac" label="API" options={FIXTURE} />)
     const input = screen.getByRole('combobox')
     fireEvent.focus(input)
     fireEvent.change(input, { target: { value: '' } }) // open full list
@@ -244,7 +244,7 @@ describe('SearchField — typeahead conformance + perf (apis-guru fixture, 2 529
   })
 
   test('10. rapid-type sequence ends with correct final filtered state (no stale intermediate)', () => {
-    const { container } = render(<SearchField id="ac" label="API" options={FIXTURE} />)
+    const { container } = render(<ComboBox id="ac" label="API" options={FIXTURE} />)
     const input = screen.getByRole('combobox')
     fireEvent.focus(input)
 

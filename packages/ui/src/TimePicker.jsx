@@ -14,7 +14,7 @@ import { moveHighlight } from './GlobalSearch.jsx'
  * Code-only composite over Figma masters `TimePicker` 4534:5204 (field + open
  * dropdown). Mirrors DatePicker's FormField + useFieldPopover recipe.
  *
- * Keyboard (mirrors SearchField's combobox typeahead): ArrowDown/Up opens +
+ * Keyboard (mirrors ComboBox's combobox typeahead): ArrowDown/Up opens +
  * moves the active-row highlight (wraps, scrolls into view); Enter selects the
  * active row (sets value + closes); Escape closes. The trailing chevron is a
  * real button (aria-label, flips Down↔Up with open state) that toggles the

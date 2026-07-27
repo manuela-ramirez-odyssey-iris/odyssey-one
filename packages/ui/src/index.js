@@ -81,7 +81,9 @@ export { default as ModalMedium } from './ModalMedium.jsx';
 export { default as WidgetVariantPicker } from './WidgetVariantPicker.jsx';
 export { default as AuthModal } from './AuthModal.jsx';
 export { default as AuthContent } from './AuthContent.jsx';
-export { default as SearchField } from './SearchField.jsx';
+export { default as ComboBox } from './ComboBox.jsx';
+// SearchField — former name — prefer ComboBox
+export { default as SearchField } from './ComboBox.jsx';
 export { default as GlobalSearchPanel } from './GlobalSearchPanel.jsx';
 export { default as GlobalSearchResults } from './GlobalSearchResults.jsx';
 export { default as FieldSearchResults } from './FieldSearchResults.jsx';

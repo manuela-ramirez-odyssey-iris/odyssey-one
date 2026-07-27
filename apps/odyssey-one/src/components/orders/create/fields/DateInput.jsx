@@ -30,7 +30,7 @@ function formatDate(d) {
 
 /**
  * DateInput — masked MM/DD/YYYY text field. The trailing Calendar icon
- * opens DatePickerPopover (separate component — mirrors SearchField precedent).
+ * opens DatePickerPopover (separate component — mirrors ComboBox precedent).
  * Picking a day writes the masked string through onChange and closes the popover.
  * Typed input remains the source of truth; the mask still works unchanged.
  *

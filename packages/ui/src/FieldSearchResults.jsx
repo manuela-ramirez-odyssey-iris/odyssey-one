@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import MatchSimpleRow from './MatchSimpleRow.jsx'
 
-const ROW_HEIGHT = 56 // ponytail: matches SearchField's previous constant; covers avatar row + gap
+const ROW_HEIGHT = 56 // ponytail: matches ComboBox's previous constant; covers avatar row + gap
 
 /**
  * FieldSearchResults — organism. The compact results body for a focalized field

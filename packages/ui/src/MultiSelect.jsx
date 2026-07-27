@@ -17,7 +17,7 @@ import { moveHighlight } from './GlobalSearch.jsx'
  * Code-only composite over Figma masters `MultiSelect` 4536:5333 (Closed/Open).
  * Composes FormField + FieldSearchResults/MatchSimpleRow + Badge + IconButtonGhost.
  *
- * Keyboard (mirrors SearchField's combobox typeahead): ArrowDown/Up opens + moves
+ * Keyboard (mirrors ComboBox's combobox typeahead): ArrowDown/Up opens + moves
  * the active-row highlight (wraps, scrolls into view); Enter picks the active
  * option and moves it to the table, keeping the dropdown open for further picks
  * (its multi-select model — matches the mouse-click behaviour); Escape closes.

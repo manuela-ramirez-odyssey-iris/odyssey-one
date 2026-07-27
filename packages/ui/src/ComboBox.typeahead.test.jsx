@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, test, expect, vi, beforeAll, afterEach } from 'vitest'
 import { render, screen, fireEvent, cleanup, act } from '@testing-library/react'
-import SearchField from './SearchField.jsx'
+import ComboBox from './ComboBox.jsx'
 
 beforeAll(() => {
   // jsdom lacks ResizeObserver (virtualizer) and scrollIntoView
@@ -21,9 +21,9 @@ const OPTIONS = [
   { value: 'cherry', label: 'Cherry' },
 ]
 
-describe('SearchField — typeahead mode', () => {
+describe('ComboBox — typeahead mode', () => {
   test('filter narrows options: typing updates input value (smoke)', () => {
-    render(<SearchField id="ac" label="Fruit" options={OPTIONS} />)
+    render(<ComboBox id="ac" label="Fruit" options={OPTIONS} />)
     const input = screen.getByRole('combobox')
     fireEvent.focus(input)
     fireEvent.change(input, { target: { value: 'an' } })
@@ -33,7 +33,7 @@ describe('SearchField — typeahead mode', () => {
   test('ArrowDown + Enter selects highlighted option', () => {
     const onSelect = vi.fn()
     const { container } = render(
-      <SearchField id="ac" label="Fruit" options={OPTIONS} onSelect={onSelect} />,
+      <ComboBox id="ac" label="Fruit" options={OPTIONS} onSelect={onSelect} />,
     )
     const input = screen.getByRole('combobox')
     fireEvent.focus(input)
@@ -54,7 +54,7 @@ describe('SearchField — typeahead mode', () => {
 
   test('ArrowDown highlights and aria-activedescendant updates', () => {
     const { container } = render(
-      <SearchField id="ac" label="Fruit" options={OPTIONS} />,
+      <ComboBox id="ac" label="Fruit" options={OPTIONS} />,
     )
     const input = screen.getByRole('combobox')
     fireEvent.focus(input)
@@ -73,7 +73,7 @@ describe('SearchField — typeahead mode', () => {
   test('async loadOptions resolves and populates (debounce + stale guard)', async () => {
     vi.useFakeTimers()
     const loadOptions = vi.fn().mockResolvedValue([{ value: 'x', label: 'X-ray' }])
-    render(<SearchField id="ac" label="Test" loadOptions={loadOptions} />)
+    render(<ComboBox id="ac" label="Test" loadOptions={loadOptions} />)
     const input = screen.getByRole('combobox')
 
     fireEvent.focus(input)
@@ -102,7 +102,7 @@ describe('SearchField — typeahead mode', () => {
   test('async loadOptions fires on FOCUS with the current (empty) query — options load before any keystroke', async () => {
     vi.useFakeTimers()
     const loadOptions = vi.fn().mockResolvedValue([{ value: 'a', label: 'Apple' }])
-    render(<SearchField id="af" label="Test" loadOptions={loadOptions} />)
+    render(<ComboBox id="af" label="Test" loadOptions={loadOptions} />)
     const input = screen.getByRole('combobox')
 
     fireEvent.focus(input)
@@ -129,7 +129,7 @@ describe('SearchField — typeahead mode', () => {
       .mockReturnValueOnce(first)
       .mockReturnValueOnce(second)
 
-    render(<SearchField id="ac" label="Test" loadOptions={loadOptions} />)
+    render(<ComboBox id="ac" label="Test" loadOptions={loadOptions} />)
     const input = screen.getByRole('combobox')
     fireEvent.focus(input)
 
@@ -159,7 +159,7 @@ describe('SearchField — typeahead mode', () => {
       Array.from({ length: 3 }, (_, i) => ({ value: `v${skip + i}`, label: `Opt ${skip + i}` }))
     const loadOptions = vi.fn(async (query, skip) => ({ options: PAGE(skip), total: 6 }))
 
-    render(<SearchField id="pg" label="Test" loadOptions={loadOptions} />)
+    render(<ComboBox id="pg" label="Test" loadOptions={loadOptions} />)
     const input = screen.getByRole('combobox')
     fireEvent.focus(input)
     await act(async () => { vi.advanceTimersByTime(50) }) // focus load, 0ms debounce
@@ -189,7 +189,7 @@ describe('SearchField — typeahead mode', () => {
       return Promise.resolve({ options: [{ value: 'z', label: 'Zed' }], total: 1 })
     })
 
-    render(<SearchField id="pg" label="Test" loadOptions={loadOptions} />)
+    render(<ComboBox id="pg" label="Test" loadOptions={loadOptions} />)
     const input = screen.getByRole('combobox')
     fireEvent.focus(input)
     await act(async () => { vi.advanceTimersByTime(50) })
@@ -213,7 +213,7 @@ describe('SearchField — typeahead mode', () => {
   test('legacy plain-array loadOptions: no paging, no endReached wiring', async () => {
     vi.useFakeTimers()
     const loadOptions = vi.fn(async () => [{ value: 'a', label: 'Apple' }])
-    render(<SearchField id="lg" label="Test" loadOptions={loadOptions} />)
+    render(<ComboBox id="lg" label="Test" loadOptions={loadOptions} />)
     fireEvent.focus(screen.getByRole('combobox'))
     await act(async () => { vi.advanceTimersByTime(50) })
     await act(async () => { vi.advanceTimersByTime(500) })
@@ -226,7 +226,7 @@ describe('SearchField — typeahead mode', () => {
 
   test('empty state renders emptyMessage when no options match', () => {
     render(
-      <SearchField
+      <ComboBox
         id="ac"
         label="Fruit"
         options={OPTIONS}
@@ -243,7 +243,7 @@ describe('SearchField — typeahead mode', () => {
 
   test('clickable rows have --clickable class even when role=option (hover affordance fix)', () => {
     const { container } = render(
-      <SearchField id="ac" label="Fruit" options={OPTIONS} onSelect={() => {}} />,
+      <ComboBox id="ac" label="Fruit" options={OPTIONS} onSelect={() => {}} />,
     )
     const input = screen.getByRole('combobox')
     fireEvent.focus(input)

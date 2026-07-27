@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { SearchField } from '@odyssey/ui'
+import { ComboBox } from '@odyssey/ui'
 import { TIERS, groupDemosByTier, collectNormalizing, DOMAINS, filterTiersByDomain, filterDemosByDomain, allVersions, filterTiersByVersion, latestVersion, filterTiersByCurrentVersion, filterTiersBySearch, filterDemosBySearch } from './collectDemos.js'
 import domainUsage from './domain-usage.json'
 import './DesignSystem.css'
@@ -275,7 +275,7 @@ export default function DesignSystem() {
               the current tab. */}
           <div className="ds-header__filters">
             <div className="ds-header__search">
-              <SearchField
+              <ComboBox
                 className="ds-header__search-field"
                 value={query}
                 onChange={setQuery}

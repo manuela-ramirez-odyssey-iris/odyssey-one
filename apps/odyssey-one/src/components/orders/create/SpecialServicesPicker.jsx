@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Trash2 } from 'lucide-react'
-import { Badge, Button, SearchField } from '@odyssey/ui'
+import { Badge, Button, ComboBox } from '@odyssey/ui'
 import { useLookup } from '../../../api/queries/useLookup'
 import { useDebouncedValue } from './fields/useDebouncedValue.js'
 import { useAnchoredPortal } from '@odyssey/ui'
@@ -74,7 +74,7 @@ export default function SpecialServicesPicker({ value, onChange, id }) {
   return (
     <div className="co-services">
       <div className="co-typeahead" ref={setWrapRef}>
-        <SearchField
+        <ComboBox
           id={inputId}
           showLabel
           label="Special Services"

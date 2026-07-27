@@ -65,7 +65,7 @@ describe('MultiSelect table (selected rows)', () => {
 
 // NOTE: the dropdown rows render through FieldSearchResults, which virtualizes via
 // @tanstack/react-virtual — in jsdom the virtualizer measures 0 height and renders
-// 0 rows (same limitation SearchField's typeahead tests work around). So these tests
+// 0 rows (same limitation ComboBox's typeahead tests work around). So these tests
 // assert the dropdown container is present/absent and that selected items don't leak
 // a second on-screen occurrence, rather than clicking a (non-rendered) virtual row.
 describe('MultiSelect dropdown (available options)', () => {

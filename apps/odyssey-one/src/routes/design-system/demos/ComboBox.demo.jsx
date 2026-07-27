@@ -1,14 +1,14 @@
 import { useState, useMemo } from 'react'
-import { SearchField, FieldSearchResults } from '@odyssey/ui'
+import { ComboBox, FieldSearchResults } from '@odyssey/ui'
 
 export const meta = {
-  name: 'SearchField',
+  name: 'ComboBox',
   tier: 'organism',
   version: '0.8.0',
   createdVersion: '0.2.0',
-  figmaNode: '1959:76',
-  codeConnect: 'packages/ui/src/SearchField.figma.tsx',
-  normalizing: false,
+  figmaNode: '4715:6142',
+  codeConnect: 'packages/ui/src/ComboBox.figma.tsx',
+  normalizing: true,
 }
 
 export const props = [
@@ -16,6 +16,7 @@ export const props = [
   { name: 'onChange', type: '(value: string) => void', desc: 'Called on every keystroke.' },
   { name: 'placeholder', type: 'string', desc: "Input placeholder text. Default 'Search'." },
   { name: 'onClear', type: '() => void', desc: 'When provided + value is non-empty, shows a CircleX clear button that calls this on click.' },
+  { name: 'variant', type: "'search' | 'select'", desc: "Figma `Variant`. 'search' (default) = leading Search icon, no chevron — byte-identical to the former SearchField. 'select' = no leading icon; trailing ChevronDown (20px) that focuses the input on click, opens the typeahead popover when options/loadOptions are present, and rotates 180° while open." },
   { name: 'showLabel', type: 'boolean', desc: 'Render a label row above the input bar. Default false.' },
   { name: 'label', type: 'string', desc: "Label text (only shown when showLabel=true). Default 'Label'." },
   { name: 'showInfoIcon', type: 'boolean', desc: 'Append an Info icon to the label row. Default false.' },
@@ -82,7 +83,7 @@ function SlotSchematic() {
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-8)', alignItems: 'flex-start', background: 'var(--bg-secondary)', padding: 'var(--spacing-6)', borderRadius: 'var(--radius-md)' }}>
       <div style={{ flex: '1 1 380px', minWidth: 320 }}>
-        <SearchField showLabel label="Location" showInfoIcon value="" onChange={() => {}} results={<SlotPlaceholder />} />
+        <ComboBox showLabel label="Location" showInfoIcon value="" onChange={() => {}} results={<SlotPlaceholder />} />
       </div>
       <ul style={{ flex: '1 1 320px', minWidth: 280, display: 'grid', gridTemplateColumns: 'max-content 1fr', columnGap: '10px', listStyle: 'none', margin: 0, padding: 0 }}>
         <LegendRow part="root" tier="organism">Search input + optional results-dropdown slot below it.</LegendRow>
@@ -143,7 +144,7 @@ function SlotPlayground() {
         <Toggle label="simulate error" value={simulateError} set={setSimulateError} />
       </div>
       <div style={{ maxWidth: 420 }}>
-        <SearchField
+        <ComboBox
           value={value}
           onChange={setValue}
           onClear={() => setValue('')}
@@ -196,6 +197,7 @@ function TypeaheadPlayground() {
   const [sizeIdx, setSizeIdx] = useState(0)
   const [source, setSource] = useState('static') // 'static' | 'async'
   const [value, setValue] = useState(null)
+  const [variant, setVariant] = useState('search') // 'search' | 'select'
 
   const staticOptions = useMemo(() => makeOptions(SIZES[sizeIdx].count), [sizeIdx])
 
@@ -215,7 +217,7 @@ function TypeaheadPlayground() {
         })
     if (source === 'api')
       // Real paged API: dummyjson products search, ONE `chunk`-sized page per call.
-      // Returning { options, total } puts SearchField in paged mode — scrolling the
+      // Returning { options, total } puts ComboBox in paged mode — scrolling the
       // results near the end lazily fetches the next page (infinite scroll).
       return async (query, skip = 0) => {
         const res = await fetch(
@@ -248,6 +250,13 @@ function TypeaheadPlayground() {
             <option value="api">API (dummyjson products)</option>
           </select>
         </label>
+        <label style={labelStyle}>
+          Variant
+          <select value={variant} onChange={(e) => setVariant(e.target.value)} style={inputStyle}>
+            <option value="search">Search (leading icon)</option>
+            <option value="select">Select (trailing chevron)</option>
+          </select>
+        </label>
         {source !== 'static' && (
           <label style={labelStyle}>
             Chunk size (limit)
@@ -262,13 +271,14 @@ function TypeaheadPlayground() {
         </div>
       </div>
 
-      {/* SearchField in typeahead mode + anatomy legend */}
+      {/* ComboBox in typeahead mode + anatomy legend */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-8)', alignItems: 'flex-start', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', padding: 'var(--spacing-6)', minHeight: 400 }}>
         <div style={{ flex: '1 1 340px', minWidth: 280 }}>
-          <SearchField
+          <ComboBox
             id="ds-sf-typeahead-playground"
             label="Fruit"
             showLabel
+            variant={variant}
             placeholder="Type to filter…"
             options={source === 'static' ? staticOptions : undefined}
             loadOptions={source !== 'static' ? loadOptions : undefined}
@@ -281,6 +291,7 @@ function TypeaheadPlayground() {
         </div>
         <ul style={{ flex: '1 1 320px', minWidth: 280, display: 'grid', gridTemplateColumns: 'max-content 1fr', columnGap: '10px', listStyle: 'none', margin: 0, padding: 0 }}>
           <LegendRow part="typeahead mode">Activated by passing <code>options</code> or <code>loadOptions</code>. No separate Autocomplete component.</LegendRow>
+          <LegendRow part="variant" nested><code>search</code> (default, leading icon) vs <code>select</code> (no leading icon, trailing 20px ChevronDown — click focuses the input and opens the popover; rotates 180° while open).</LegendRow>
           <LegendRow part="useFieldPopover" nested>Manages open/close lifecycle — focus opens, blur/click-outside closes, Tab/Esc/Enter handled.</LegendRow>
           <LegendRow part="FieldSearchResults" tier="organism" nested>Renders ALL panel states (loading / empty / populated) — same card chrome as slot mode. Owns virtualization internally (@tanstack/react-virtual, ~320px max panel) for 10k+ options.</LegendRow>
           <LegendRow part="MatchSimpleRow" tier="molecule" depth={2}>Each row, nested inside <ChildLink to="FieldSearchResults">FieldSearchResults</ChildLink>. <strong>Typeahead default is the compact row</strong>: <code>showAvatar</code> + <code>showInfo</code> are OFF (label line only) — pass <code>rowProps</code> to re-enable. Keyboard highlight via <code>is-active</code>; <code>aria-selected</code> + <code>aria-activedescendant</code> on the input.</LegendRow>
@@ -292,15 +303,17 @@ function TypeaheadPlayground() {
 
 // ── Demo root ────────────────────────────────────────────────────────────────
 
-export default function SearchFieldDemo() {
+export default function ComboBoxDemo() {
   return (
     <div>
       <p style={{ marginTop: 0, color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)' }}>
-        Light-surface search input. Two modes:{' '}
+        <strong>ComboBox</strong> (former SearchField) — light-surface search/select input. Two modes:{' '}
         <strong>slot mode</strong> (pass <code>results</code> — transparent passthrough, content supplies
         its own card chrome) and <strong>typeahead mode</strong> (pass <code>options</code> or{' '}
         <code>loadOptions</code> — built-in virtualised popover with keyboard nav, absorbed from the
         former Autocomplete composite). With no typeahead props, behaviour is byte-identical to before.
+        The <code>variant</code> prop (<code>search</code> default | <code>select</code>) swaps the
+        leading Search icon for a trailing chevron — see the Typeahead playground below.
       </p>
 
       <div className="ds-demo-section">

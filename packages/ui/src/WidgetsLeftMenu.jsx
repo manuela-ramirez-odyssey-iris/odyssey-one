@@ -1,5 +1,5 @@
 import { Fragment } from 'react'
-import SearchField from './SearchField.jsx'
+import ComboBox from './ComboBox.jsx'
 import MenuRow from './MenuRow.jsx'
 import MenuDropdown from './MenuDropdown.jsx'
 
@@ -68,7 +68,7 @@ export default function WidgetsLeftMenu({
           padding: 'var(--spacing-3) var(--spacing-4)',
         }}
       >
-        <SearchField
+        <ComboBox
           value={searchValue}
           onChange={onSearchChange}
           placeholder="Search"

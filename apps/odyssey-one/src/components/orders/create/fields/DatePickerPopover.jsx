@@ -6,7 +6,7 @@ import 'react-day-picker/style.css'
 /**
  * DatePickerPopover — calendar popover rendered in a body portal.
  * Architecture: field and calendar are separate components (mirrors
- * SearchField precedent). Positioned from the trigger rect (fixed, like
+ * ComboBox precedent). Positioned from the trigger rect (fixed, like
  * OrderRowActionMenu). Escape and click-outside close; picking a day calls
  * onSelect with a JS Date, which DateInput converts to MM/DD/YYYY.
  *
