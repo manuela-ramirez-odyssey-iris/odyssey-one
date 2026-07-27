@@ -65,7 +65,7 @@ function defaultFilter(inputText, option) {
 export default function ComboBox({
   value = '',
   onChange,
-  placeholder = 'Search',
+  placeholder,
   onClear,
   variant = 'search',
   showLabel = false,
@@ -299,7 +299,7 @@ export default function ComboBox({
         id={id}
         type="text"
         value={typeaheadMode ? inputText : value}
-        placeholder={placeholder}
+        placeholder={placeholder ?? (variant === 'select' ? 'Select' : 'Search')}
         onChange={(e) =>
           typeaheadMode
             ? handleTypeaheadChange(e.target.value)
