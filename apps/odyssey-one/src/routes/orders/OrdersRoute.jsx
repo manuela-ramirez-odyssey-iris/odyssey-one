@@ -6,11 +6,13 @@ import { Button, EmptyState, ModalMedium, PageHeader, Tab } from '@odyssey/ui'
 import AppShell from '../../components/layout/AppShell'
 import OrdersToolbar from '../../components/orders/OrdersToolbar'
 import OrdersTable from '../../components/orders/OrdersTable'
+import OrdersExportModal, { EXPORT_ROW_CAP } from '../../components/orders/OrdersExportModal'
 import { useOrderList } from '../../api/queries/useOrderList'
 import { useOrderTabCounts } from '../../api/queries/useOrderTabCounts'
 import { useSubmitDraftOrder } from '../../api/queries/useSubmitDraftOrder'
 import { useCancelOrder } from '../../api/queries/useCancelOrder'
-import { VALIDATION_ERROR_STATUSES } from '../../api/services/orderService'
+import { getOrderList, VALIDATION_ERROR_STATUSES } from '../../api/services/orderService'
+import { mapOrderListRow } from '../../api/mappers/mapOrderListRow'
 import { useCustomers } from '../../contexts/CustomersContext'
 import '../../components/orders/orders.css'
 
@@ -102,6 +104,35 @@ export default function OrdersRoute() {
       const next = typeof updater === 'function' ? updater(prev) : updater
       return next.pageSize !== prev.pageSize ? { ...next, pageIndex: 0 } : next
     })
+  }
+
+  // Export current tab → Excel (LINX-9896 BR V), same request (filters+sort)
+  // re-paged to the 25k cap; dynamic `xlsx` import keeps it out of the main chunk.
+  const handleExport = async () => {
+    const res = await getOrderList(
+      { ...request, pagination: { pageNumber: 1, pageSize: EXPORT_ROW_CAP } },
+      selectedDataIds,
+    )
+    const vms = res.orders.map(mapOrderListRow)
+    const EXPORT_SHAPES = {
+      all: r => ({ 'Order Number': r.idLabel, Hazardous: r.hazardous ? 'Hazmat' : '-', 'Order Source': r.orderSource,
+        'Order Status': r.status, Customer: r.customer, 'Ship Direction': r.shipDirection,
+        'Freight Terms': r.freightTerms, Equipment: r.equipment,
+        'Shipper Location': `${r.shipperLocation.id} ${r.shipperLocation.name} ${r.shipperLocation.address}`.trim(),
+        'Destination Location': `${r.destinationLocation.id} ${r.destinationLocation.name} ${r.destinationLocation.address}`.trim(),
+        'Latest Pickup Date and Time': r.latestPickup, 'Latest Delivery Date and Time': r.latestDelivery,
+        'Gross Weight': r.weight, Volume: r.volume }),
+      draft: r => ({ 'Order Number': r.idLabel, Customer: r.customer, Created: r.created,
+        'Created By': r.createdBy, 'Last Edit': r.lastEdit }),
+      'validation-errors': r => ({ 'Order Number': r.idLabel, Customer: r.customer,
+        'Draft Order Status': r.draftOrderStatus, 'Errors Count': r.errorCount ?? '' }),
+    }
+    const shaped = vms.map(EXPORT_SHAPES[activeTab] ?? EXPORT_SHAPES.all)
+    const XLSX = await import('xlsx')
+    const ws = XLSX.utils.json_to_sheet(shaped)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Orders')
+    XLSX.writeFile(wb, `orders-${activeTab}-${new Date().toISOString().slice(0, 10)}.xlsx`)
   }
 
   return (
@@ -223,6 +254,15 @@ export default function OrdersRoute() {
           >
             <p className="text-label-sm-regular">Are you sure you want to cancel the order?</p>
           </ModalMedium>
+        )}
+
+        {exportOpen && (
+          <OrdersExportModal
+            tab={activeTab}
+            rowCount={data?.totalCount ?? 0}
+            onExport={handleExport}
+            onClose={() => setExportOpen(false)}
+          />
         )}
       </div>
     </AppShell>

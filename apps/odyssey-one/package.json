@@ -37,6 +37,7 @@
     "react-router-dom": "^6.30.3",
     "react-window": "^2.2.7",
     "tailwindcss": "^4.2.2",
+    "xlsx": "^0.18.5",
     "zod": "^3.25.76"
   },
   "devDependencies": {
