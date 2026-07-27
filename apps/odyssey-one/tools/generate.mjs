@@ -38,7 +38,10 @@
 //                  statuses (Planning Failed/Shipment Failed) additionally get
 //                  draftOrderStatus (Ready/Complete/Purge) + a numeric
 //                  errorCount — the per-tab grid (S94) reads these directly,
-//                  no join required.
+//                  no join required. row.hazardous (LINX-12102, S95) is DERIVED
+//                  from the order's lines (some(l => hazmat)), never an
+//                  independent draw — must agree with shipment detail line
+//                  items' hazmat fields, which share the same product.hazmat source.
 import { faker } from '@faker-js/faker';
 import { writeFileSync, mkdirSync, existsSync, readdirSync, unlinkSync } from 'fs';
 import { CUSTOMERS, LOCATIONS, EQUIPMENT_CODES, CHEMICAL_PRODUCTS, locationIdFor } from './data-pools.mjs'
@@ -1110,7 +1113,7 @@ function generateShipment(index) {
       volume: { value: ord.orderVolume, uom: 'cbf' },
       commodity: ord.lines[0].itemDescription, // I7
       orderStatus: orderStatusLabel,
-      hazardous: faker.number.float({ min: 0, max: 1 }) < 0.12,
+      hazardous: ord.lines.some(l => !!l.hazmatCode), // LINX-12102 — derived from lines (matches detail hazmat fields), not an independent draw
       createdAt: toIsoLocal(new Date(w.earliestPickup.getTime() - faker.number.int({ min: 24, max: 240 }) * 3600e3)),
       createdBy: pick(ORDER_USERS),
     };
@@ -1292,6 +1295,7 @@ function generateUnshippedOrder(n, pending) {
       grossWeightValue: faker.number.int({ min: 1000, max: 15000 }),
       volumeValue: faker.number.int({ min: 20, max: 200 }),
       productClass: pick(PRODUCT_CLASSES),
+      hazmat: product.hazmat, // local only — not serialized; feeds row.hazardous derivation below
     });
   }
   const gross = lines.reduce((s, l) => s + l.grossWeightValue, 0);
@@ -1333,7 +1337,7 @@ function generateUnshippedOrder(n, pending) {
     volume: { value: volume, uom: 'cbf' },
     commodity: lines[0].itemDescription,
     orderStatus: pending ? 'Ready For Plan' : pick(UNSHIPPED_STATUS_POOL),
-    hazardous: faker.number.float({ min: 0, max: 1 }) < 0.12,
+    hazardous: lines.some(l => l.hazmat), // LINX-12102 — derived from lines, not an independent draw
     createdAt: toIsoLocal(new Date(earliestPickup.getTime() - faker.number.int({ min: 24, max: 240 }) * 3600e3)),
     createdBy: pick(ORDER_USERS),
   };

@@ -41,3 +41,18 @@ test('I11: generator is deterministic for the new fields', () => {
   const b = buildDataset().orders
   assert.deepEqual(a, b)
 })
+
+test('LINX-12102: order.hazardous matches whether ANY of its lines are hazmat-flagged', () => {
+  const { orders, details } = buildDataset()
+  let checkedShipped = 0
+  for (const s of details.values()) {
+    for (const ord of s.orderList) {
+      const row = orders.find(o => o.orderNumber === ord.orderNumber)
+      if (!row) continue // enrichment subset only touches some orders' rows indirectly; row still exists in ds.orders
+      const expected = ord.orderLines.some(l => !!l.hazmatCode)
+      assert.equal(row.hazardous, expected, `order ${ord.orderNumber} hazardous mismatch`)
+      checkedShipped++
+    }
+  }
+  assert.ok(checkedShipped > 0)
+})
