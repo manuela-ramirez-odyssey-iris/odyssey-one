@@ -20,7 +20,7 @@ export default function DiscardSaveModal({ onClose, onSaveForLater, onDiscard, s
       onClose={onClose}
       ariaLabel="Discard order"
       footer={
-        <div className="co-modal-footer">
+        <>
           <Button
             variant="secondary"
             size="lg"
@@ -32,7 +32,7 @@ export default function DiscardSaveModal({ onClose, onSaveForLater, onDiscard, s
           <Button variant="primary" size="lg" onClick={onDiscard}>
             Discard
           </Button>
-        </div>
+        </>
       }
     >
       <div className="co-modal-body">

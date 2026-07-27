@@ -1119,7 +1119,6 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
     setOpenMenuRank(null)
     setMenuPos({ top: 0, left: 0 })
     setOptions(data?.options || [])
-    setIsDetailModalOpen(false)
     setQuoteModal({ isOpen: false, mode: 'add', carrierData: null })
 
     setCollapsedWidths(null)

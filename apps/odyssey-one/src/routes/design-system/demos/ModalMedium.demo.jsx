@@ -8,6 +8,7 @@ export const meta = {
   createdVersion: '0.2.0',
   figmaNode: '2032:915',
   codeConnect: 'packages/ui/src/ModalMedium.figma.tsx',
+  normalizing: true,
 }
 
 export const props = [
@@ -38,7 +39,8 @@ export default function ModalMediumDemo() {
   return (
     <div>
       <p style={{ marginTop: 0, color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)' }}>
-        540px-wide confirmation and short-workflow dialog. Shares the same overlay + ESC / backdrop-dismiss
+        Content-sized confirmation and short-workflow dialog (width auto, min 350px / max 780px;
+        height auto capped at 90vh — past the cap the content slot scrolls). Shares the same overlay + ESC / backdrop-dismiss
         pattern as ModalLarge but has no subtitle and uses a larger heading style. The
         <code>scrollableContent</code> flag removes body padding so a scrolling region seats flush
         against the footer divider.
@@ -92,10 +94,10 @@ export default function ModalMediumDemo() {
           scrollableContent={scrollable}
           onClose={() => setOpen(false)}
           footer={
-            <div style={{ display: 'flex', gap: 'var(--spacing-3)', justifyContent: 'flex-end' }}>
+            <>
               <Button variant="secondary" onClick={() => setOpen(false)}>Cancel</Button>
               <Button variant="primary" onClick={() => setOpen(false)}>Save</Button>
-            </div>
+            </>
           }
         >
           <div style={{ color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)', lineHeight: 'var(--line-height-md)' }}>

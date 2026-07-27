@@ -28,6 +28,11 @@ Hub for the Orders domain canon in OdysseyONE. Orders create the customer order 
 
 - [[10-domains/shipments/domain-analysis|Shipments domain analysis]] — downstream consumer; Order → Load → Shipment three-tier model and the rules for propagating order changes onto shipments.
 
+## Research
+
+- [[10-domains/orders/research/jira-orders-table-columns-2026-07-26|Orders main table — Jira research (2026-07-26)]] — full Jira column-spec extraction (Draft/Validation Errors/All tabs, row actions, backend data model) ahead of the Figma contrast session.
+- [[10-domains/orders/research/jira-create-order-sections-2026-07-26|Create Manual Order + Confirmation pages — Jira research (2026-07-26)]] — full Jira spec extraction for the Quick/Long Order Creation flow (General Info, Pickup/Delivery, Product Info, Special Services), validation-error model, and Confirmation pages, contrasted against our React implementation.
+
 ## Sources
 
 Raw Jira story dumps (852 stories, 12 epics) live **outside the vault** at `vault-sources/10-domains/orders/jira-stories/` (start with `_inventory.md`). These are the un-synthesized inputs the domain analysis condenses; they are not Obsidian-indexed.

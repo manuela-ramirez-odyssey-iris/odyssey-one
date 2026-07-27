@@ -4,7 +4,8 @@ import { ICON_LG } from '@odyssey/tokens'
 import IconButtonGhost from './IconButtonGhost.jsx'
 
 /**
- * ModalMedium — organism shell. 540-wide reusable modal with a header (title + close X),
+ * ModalMedium — organism shell. Content-sized reusable modal (width auto, 350–780px,
+ * height auto capped at 90vh — content slot scrolls past the cap) with a header (title + close X),
  * content slot (children), and footer slot. ESC + overlay-click dismiss; dialog click
  * does not propagate. No subtitle (unlike ModalLarge).
  *

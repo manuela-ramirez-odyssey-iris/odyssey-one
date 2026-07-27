@@ -14,7 +14,7 @@ export const meta = {
 export const props = [
   { name: 'value', type: 'string', desc: 'Controlled input value.' },
   { name: 'onChange', type: '(value: string) => void', desc: 'Called on every keystroke.' },
-  { name: 'placeholder', type: 'string', desc: "Input placeholder text. Default 'Search'." },
+  { name: 'placeholder', type: 'string', desc: "Input placeholder text (editable per instance). Variant-aware default: 'Search' (search face) / 'Select' (select face)." },
   { name: 'onClear', type: '() => void', desc: 'When provided + value is non-empty, shows a CircleX clear button that calls this on click.' },
   { name: 'variant', type: "'search' | 'select'", desc: "Figma `Variant`. 'search' (default) = leading Search icon, no chevron — byte-identical to the former SearchField. 'select' = no leading icon; trailing ChevronDown (20px) that focuses the input on click, opens the typeahead popover when options/loadOptions are present, and rotates 180° while open." },
   { name: 'showLabel', type: 'boolean', desc: 'Render a label row above the input bar. Default false.' },

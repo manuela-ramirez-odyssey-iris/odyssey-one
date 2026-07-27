@@ -622,13 +622,6 @@
 
 /* ── Modal footer ───────────────────────────────────────── */
 
-.co-modal-footer {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: var(--spacing-3);
-}
-
 .co-modal-body {
   display: flex;
   flex-direction: column;
