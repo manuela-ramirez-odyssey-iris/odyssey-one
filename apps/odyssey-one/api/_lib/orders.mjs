@@ -13,13 +13,22 @@ const VALIDATION_ERROR_STATUSES = ['Planning Failed', 'Shipment Failed']
 const ROW_COLUMNS = `
   order_number AS "orderNumber", order_id AS "orderId", order_source AS "orderSource",
   customer, ship_direction AS "shipDirection", freight_terms AS "freightTerms", equipment,
-  consignor, consignee, gross_weight AS "grossWeight", volume, commodity, order_status AS "orderStatus"`
+  consignor, consignee, gross_weight AS "grossWeight", volume, commodity, order_status AS "orderStatus",
+  hazardous, created_at AS "createdAt", created_by AS "createdBy",
+  last_edit_at AS "lastEditAt", draft_order_status AS "draftOrderStatus", error_count AS "errorCount"`
 
-// Sortable columns. Keys are OrderListRow field names (Q31 — only top-level
-// string fields sort in this build).
+// Sortable columns. Keys are OrderListRow/OrderRowVM field names — values are
+// whitelisted SQL (column names or expressions), never user input, so they're
+// safe to interpolate directly into ORDER BY (see buildOrderListQuery).
 const SORT_MAP = {
   orderNumber: 'order_number', customer: 'customer', orderStatus: 'order_status',
   commodity: 'commodity', equipment: 'equipment',
+  orderSource: 'order_source', shipDirection: 'ship_direction', freightTerms: 'freight_terms',
+  hazardous: 'hazardous', latestPickup: 'latest_pickup_ts', latestDelivery: 'latest_delivery_ts',
+  weight: `(gross_weight->>'value')::numeric`, volume: `(volume->>'value')::numeric`,
+  created: 'created_at', createdBy: 'created_by', lastEdit: 'last_edit_at',
+  draftOrderStatus: 'draft_order_status', errorCount: 'error_count',
+  shipperLocation: 'origin_city', destinationLocation: 'dest_city',
 }
 
 // Array-of-string filters (OrderListRequest.filters): key → column, matched with = ANY.

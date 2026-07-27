@@ -67,7 +67,8 @@ export async function seed(client, { totalShipments = 10000 } = {}) {
     ['order_number','order_id','order_source','customer','ship_direction','freight_terms','equipment',
      'consignor','consignee','gross_weight','volume','commodity','order_status','shipment_sell_id','manual_order',
      'origin_city','origin_state','origin_country','dest_city','dest_state','dest_country',
-     'earliest_pickup_ts','latest_pickup_ts','earliest_delivery_ts','latest_delivery_ts'],
+     'earliest_pickup_ts','latest_pickup_ts','earliest_delivery_ts','latest_delivery_ts',
+     'hazardous','created_at','created_by','last_edit_at','draft_order_status','error_count'],
     ds.orders.map((o) => [
       o.orderNumber, o.orderId ?? null, o.orderSource, o.customer, o.shipDirection, o.freightTerms, o.equipment,
       JSON.stringify(o.consignor), JSON.stringify(o.consignee), JSON.stringify(o.grossWeight), JSON.stringify(o.volume),
@@ -76,6 +77,8 @@ export async function seed(client, { totalShipments = 10000 } = {}) {
       o.consignor.city, o.consignor.state, o.consignor.country, o.consignee.city, o.consignee.state, o.consignee.country,
       o.consignor.earliestPickupDateTime, o.consignor.latestPickupDateTime,
       o.consignee.earliestDeliveryDateTime, o.consignee.latestDeliveryDateTime,
+      o.hazardous ?? false, o.createdAt ?? null, o.createdBy ?? null, o.lastEditAt ?? null,
+      o.draftOrderStatus ?? null, o.errorCount ?? null,
     ]))
 
   // stops / tenders / events extracted from each detail. Full objects into the jsonb

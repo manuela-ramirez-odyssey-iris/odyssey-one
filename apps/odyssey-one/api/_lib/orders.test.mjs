@@ -46,6 +46,22 @@ test('honest-empty: empty scope/filter yields FALSE, no values', () => {
   assert.match(list.text, /FALSE/)
 })
 
+test('order list sorts by new whitelisted fields', () => {
+  const { text } = buildOrderListQuery({ sort: { field: 'lastEdit', direction: 'desc' } })
+  assert.match(text, /ORDER BY last_edit_at DESC/)
+})
+
+test('unknown sort field falls back to order_number', () => {
+  const { text } = buildOrderListQuery({ sort: { field: 'evil; DROP TABLE', direction: 'asc' } })
+  assert.match(text, /ORDER BY order_number ASC/)
+})
+
+test('row projection includes per-tab fields', () => {
+  const { text } = buildOrderListQuery({})
+  assert.match(text, /"draftOrderStatus"/)
+  assert.match(text, /"errorCount"/)
+})
+
 test('order view: by number, by pending id, missing key', async () => {
   const byNum = buildOrderViewQuery('ORD-123')
   assert.match(byNum.text, /order_number = \$1/)
