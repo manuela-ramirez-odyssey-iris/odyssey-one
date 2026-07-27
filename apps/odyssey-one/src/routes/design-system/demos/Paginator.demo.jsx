@@ -11,14 +11,14 @@ export const meta = {
   tier: 'molecule',
   version: '0.7.0',
   createdVersion: '0.3.0',
-  normalizing: false,
+  normalizing: true,
   figmaNode: '3272:3890',
   codeConnect: 'packages/ui/src/Paginator.figma.tsx',
 }
 
 export const props = [
   { name: 'table', type: 'Table (TanStack v8)', desc: 'A TanStack table instance — duck-typed, the library takes no TanStack dependency. Drives everything (page index/size, counts, navigation).' },
-  { name: 'pageSizeOptions', type: 'number[]', desc: 'Rows-per-page choices in the Dropdown. Default [10, 25, 50, 100].' },
+  { name: 'pageSizeOptions', type: 'number[]', desc: 'Rows-per-page choices in the Dropdown. Default [10, 15, 20, 25, 30, 35, 40].' },
   { name: 'siblingCount', type: 'number', desc: 'Page numbers shown each side of the current page before collapsing to an ellipsis. Default 1.' },
   { name: 'className', type: 'string', desc: 'Merged onto the root bar.' },
 ]

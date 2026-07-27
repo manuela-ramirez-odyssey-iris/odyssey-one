@@ -224,7 +224,7 @@ function LiveDataTable() {
         truncationTooltip={truncationTooltip}
         ariaLabel="Sample data"
         onCellClick={(cell, row) => console.log('cell click →', cell.column.id, '·', row.original.name)}
-        footer={<Paginator table={table} pageSizeOptions={[10, 25, 50]} />}
+        footer={<Paginator table={table} />}
       />
     </div>
   )

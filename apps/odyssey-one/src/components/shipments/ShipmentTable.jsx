@@ -373,7 +373,7 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
           stickyTop="calc(-1 * var(--spacing-8) + var(--spacing-3))"
           ariaLabel="Shipments"
           onCellClick={handleCellClick}
-          footer={<Paginator table={table} pageSizeOptions={[25, 50, 100]} />}
+          footer={<Paginator table={table} />}
         />
         </>
       )}

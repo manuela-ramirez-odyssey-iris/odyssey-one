@@ -53,7 +53,7 @@ export default function OrdersRoute() {
   // Navbar customer scope — same first-order filter the Shipments grid applies
   // (CustomersContext.selectedDataIds → gridService customerIds).
   const { selectedDataIds } = useCustomers()
-  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 20 }) // pageIndex 0-based (TanStack)
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 25 }) // pageIndex 0-based (TanStack)
   // Main tabs (Orders Tabs mock) — status filters over the same list query.
   const [activeTab, setActiveTab] = useState(() => location.state?.tab ?? 'all')
   // Header sorting (S94) — TanStack-shaped, lifted here so it can drive the

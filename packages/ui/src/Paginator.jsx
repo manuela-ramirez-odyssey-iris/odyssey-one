@@ -19,14 +19,14 @@ import Dropdown from './Dropdown'
  *   - `table` — a TanStack table instance (v8). Reads `getState().pagination`,
  *     `getPageCount()`, `getRowCount()`, `getCan{Previous,Next}Page()`; calls
  *     `setPageIndex()`, `previousPage()`, `nextPage()`, `setPageSize()`.
- *   - `pageSizeOptions` — rows-per-page choices (default [10, 25, 50, 100]).
+ *   - `pageSizeOptions` — rows-per-page choices (default [10, 15, 20, 25, 30, 35, 40]).
  *   - `siblingCount` — page numbers shown each side of the current page (default 1).
  *   - `className` — merged onto the root.
  *
  * Figma master: `Paginator` `3272:3890` (Components-Molecules).
  */
 
-const DEFAULT_PAGE_SIZE_OPTIONS = [10, 25, 50, 100]
+const DEFAULT_PAGE_SIZE_OPTIONS = [10, 15, 20, 25, 30, 35, 40]
 
 function range(start, end) {
   const out = []
