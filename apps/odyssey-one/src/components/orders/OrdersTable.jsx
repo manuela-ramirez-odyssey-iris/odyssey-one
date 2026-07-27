@@ -2,111 +2,75 @@ import { useLayoutEffect, useMemo, useState } from 'react'
 import { useReactTable, getCoreRowModel, createColumnHelper } from '@tanstack/react-table'
 import { EllipsisVertical } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
-import { Checkbox, DataTable, Paginator, ActionMenu } from '@odyssey/ui'
+import { DataTable, Paginator, ActionMenu, Button } from '@odyssey/ui'
+import { TAB_COLUMNS, allTabActionLabels, DRAFT_ACTION_LABELS } from './ordersColumns'
 
 /**
- * OrdersTable — the Orders-specific configuration of the normalized DataTable
- * shell. Owns only the column defs + the TanStack instance (selection +
- * server-side pagination) + the toolbar-measured stickyTop. The shell owns the
- * chrome/scroll; the `.odyssey-table` Cell contract owns the cell skin
- * (Figma Cell set 2714:505). manualPagination/manualSorting: the table holds
- * one server-shaped page; the service does the real work. The @odyssey/ui
- * Paginator drives the page state (footer slot).
+ * OrdersTable — tab-driven configuration of the normalized DataTable shell.
+ * Column sets swap per MAIN_TAB (ordersColumns.jsx); the Action column is
+ * built here (row-context callbacks). No row selection (S94 decision — PO
+ * feedback + user call). Header sorting is server-driven (manualSorting;
+ * sorting state lifts to the route).
  */
-
 const columnHelper = createColumnHelper()
 
-// Canonical row actions (spec §2). Each selection reports (label, row) to the
-// route via onRowAction — View/Edit navigate today; Copy/Cancel/Restore/Delete
-// stay no-ops there until their features land.
-const ORDER_ACTION_LABELS = ['View', 'Edit', 'Copy', 'Cancel', 'Restore', 'Delete']
-
-const buildOrderActions = (row, onRowAction) =>
-  ORDER_ACTION_LABELS.map((label) => ({
-    label,
-    onSelect: () => onRowAction?.(label, row),
-  }))
-
-const DATA_COLUMNS = [
-  columnHelper.display({
-    id: 'select',
-    enableResizing: false, // pinned system column — never resized or reordered
-    header: ({ table }) => (
-      <Checkbox
-        checked={table.getIsAllRowsSelected()}
-        indeterminate={table.getIsSomeRowsSelected()}
-        onChange={table.getToggleAllRowsSelectedHandler()}
-        showLabel={false}
-        aria-label="Select all orders on this page"
-      />
-    ),
-    cell: ({ row }) => (
-      <Checkbox
-        checked={row.getIsSelected()}
-        onChange={row.getToggleSelectedHandler()}
-        showLabel={false}
-        aria-label={`Select order ${row.original.idLabel}`}
-      />
-    ),
-    meta: {
-      headClass: 'odyssey-table__cell--control',
-      cellClass: 'odyssey-table__cell--control',
-      fixedWidth: true,
-    },
-  }),
-  // Plain text — the ROW is the click target (order summary / draft reopen);
-  // the old per-ID link affordance is gone.
-  columnHelper.accessor('idLabel', { header: 'ID' }),
-  columnHelper.accessor('customer', {
-    header: 'Customer',
-    // Cell Variant=Title — the row's emphasis column
-    meta: { cellClass: 'odyssey-table__cell--title text-label-sm-medium' },
-  }),
-  columnHelper.accessor('origin', { header: 'Origin' }),
-  columnHelper.accessor('destination', { header: 'Destination' }),
-  columnHelper.accessor('weight', { header: 'Weight' }),
-  columnHelper.accessor('volume', { header: 'Volume' }),
-  columnHelper.accessor('commodity', { header: 'Commodity' }),
-  columnHelper.accessor('equipment', { header: 'Equipment' }),
-  columnHelper.accessor('earlyPickup', { header: 'Early Pickup' }),
-]
+const buildActions = (labels, row, onRowAction) =>
+  labels.map((label) => ({ label, onSelect: () => onRowAction?.(label, row) }))
 
 export default function OrdersTable({
+  tab = 'all',
   rows,
-  rowSelection,
-  onRowSelectionChange,
   pagination,
   onPaginationChange,
+  sorting,
+  onSortingChange,
   totalCount,
   onRowClick,
   onRowAction,
 }) {
   const [stickyTop, setStickyTop] = useState(0)
 
-  // The action column needs row context (its options close over the row), so it
-  // is built here rather than at module level (Shipments-style columns memo).
-  const columns = useMemo(() => [
-    ...DATA_COLUMNS,
-    columnHelper.display({
+  const columns = useMemo(() => {
+    const dataCols = TAB_COLUMNS[tab] ?? TAB_COLUMNS.all
+    if (tab === 'validation-errors') {
+      // Direct Resolve button (Figma) — enabled only while status is Ready.
+      return [...dataCols, columnHelper.display({
+        id: 'action',
+        enableResizing: false,
+        header: 'Action',
+        cell: ({ row }) => (
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={row.original.draftOrderStatus !== 'Ready'}
+            onClick={() => onRowAction?.('Resolve', row.original)}
+          >
+            Resolve
+          </Button>
+        ),
+        meta: { sticky: 'right', fixedWidth: true },
+      })]
+    }
+    return [...dataCols, columnHelper.display({
       id: 'action',
-      enableResizing: false, // pinned system column — never resized or reordered
+      enableResizing: false,
       header: 'Action',
       cell: ({ row }) => (
         <ActionMenu
           icon={<EllipsisVertical {...ICON_MD} />}
-          options={buildOrderActions(row.original, onRowAction)}
+          options={buildActions(
+            tab === 'draft' ? DRAFT_ACTION_LABELS : allTabActionLabels(row.original),
+            row.original,
+            onRowAction,
+          )}
           align="right"
           ariaLabel={`Actions for order ${row.original.idLabel}`}
         />
       ),
-      // forwardClick: the ⋮ trigger alone is too small a target — clicking anywhere
-      // in the cell forwards to it (DataTable whole-cell click delegation, S81).
       meta: { sticky: 'right', fixedWidth: true, forwardClick: true },
-    }),
-  ], [onRowAction])
+    })]
+  }, [tab, onRowAction])
 
-  // Anchor line = the stuck toolbar's bottom edge: its sticky `top` is negative
-  // (scrolls partially away), so stuck bottom = height + top.
   useLayoutEffect(() => {
     const toolbar = document.querySelector('.orders-toolbar')
     if (!toolbar) return
@@ -120,10 +84,9 @@ export default function OrdersTable({
   const table = useReactTable({
     data: rows,
     columns,
-    state: { rowSelection, pagination },
-    onRowSelectionChange,
+    state: { pagination, sorting },
     onPaginationChange,
-    enableRowSelection: true,
+    onSortingChange,
     getRowId: row => row.id,
     getCoreRowModel: getCoreRowModel(),
     manualPagination: true,
@@ -136,11 +99,9 @@ export default function OrdersTable({
       table={table}
       stickyTop={stickyTop}
       ariaLabel="Orders"
-      // Row click (Shipments-style full-row target): the shell's onCellClick fires
-      // for every non-interactive cell, so the checkbox + action-menu cells keep
-      // their own clicks and everything else opens the order.
+      sortable
       onCellClick={onRowClick ? (_cell, row) => onRowClick(row.original) : undefined}
-      footer={<Paginator table={table} pageSizeOptions={[20, 50, 100]} />}
+      footer={<Paginator table={table} />}
     />
   )
 }
