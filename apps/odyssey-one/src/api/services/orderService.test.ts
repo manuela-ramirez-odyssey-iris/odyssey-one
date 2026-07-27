@@ -48,7 +48,9 @@ vi.mock('../../data/orders', () => ({ getAllOrders: () => STORE, getOrderEnrichm
 
 import { getApiMode } from '../config'
 import { apiGet } from '../client'
-import { getOrderList, getOrderTabCounts, saveDraft, __resetOrderWriteState } from './orderService'
+import {
+  getOrderList, getOrderTabCounts, saveDraft, submitDraftOrder, cancelOrder, __resetOrderWriteState,
+} from './orderService'
 import { orderFormValuesSample } from '../fixtures/orderFormValues.sample'
 
 const page = (pageNumber = 1, pageSize = 20) => ({ pagination: { pageNumber, pageSize } })
@@ -144,6 +146,40 @@ describe('orderService.getOrderList (mock)', () => {
       expect(matches).toHaveLength(1)
       expect(matches[0].orderStatus).toBe('Draft') // the overlay version won
       expect(list.pagination.totalCount).toBe(5) // replaced, not appended
+    } finally {
+      __resetOrderWriteState()
+    }
+  })
+
+  // LINX-11663: Submit copies a base Draft row into the overlay under 'Ready
+  // For Plan' — it must vanish from the Draft-tab filter and reappear in All
+  // with the new status, exactly how the route's tab filters read it.
+  it('submitDraftOrder moves a Draft row out of the draft tab into All as Ready For Plan', async () => {
+    __resetOrderWriteState()
+    STORE.push(mk('GGG100009', { orderStatus: 'Draft' }))
+    try {
+      await submitDraftOrder('GGG100009')
+
+      const draftTab = await getOrderList({ ...page(), filters: { orderStatuses: ['Draft'] } })
+      expect(draftTab.orders.map(o => o.orderNumber)).not.toContain('GGG100009')
+
+      const allTab = await getOrderList(page())
+      const row = allTab.orders.find(o => o.orderNumber === 'GGG100009')
+      expect(row?.orderStatus).toBe('Ready For Plan')
+    } finally {
+      STORE.pop()
+      __resetOrderWriteState()
+    }
+  })
+
+  // LINX-10258: Cancel is a soft delete — status flips to 'Cancelled', row stays.
+  it('cancelOrder flips a row to Cancelled without removing it', async () => {
+    __resetOrderWriteState()
+    try {
+      await cancelOrder('CCC100005')
+      const list = await getOrderList(page())
+      expect(list.pagination.totalCount).toBe(5) // still present, not deleted
+      expect(list.orders.find(o => o.orderNumber === 'CCC100005')?.orderStatus).toBe('Cancelled')
     } finally {
       __resetOrderWriteState()
     }

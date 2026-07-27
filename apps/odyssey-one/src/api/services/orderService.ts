@@ -25,6 +25,24 @@ function dateInRange(iso: string | undefined, from?: string, to?: string): boole
 const oneOf = (values: string[] | undefined, v: string | undefined) =>
   !values?.length || values.includes(v ?? '')
 
+// Column id → row-value getter for header sorting (S94). Ids matching a
+// top-level string field (orderNumber, customer, orderStatus, ...) need no
+// entry — the comparator's default fallback reads the field directly.
+const SORT_GETTERS: Record<string, (r: OrderListRow) => string | number> = {
+  weight: r => r.grossWeight?.value ?? 0,
+  volume: r => r.volume?.value ?? 0,
+  latestPickup: r => r.consignor?.latestPickupDateTime ?? '',
+  latestDelivery: r => r.consignee?.latestDeliveryDateTime ?? '',
+  shipperLocation: r => r.consignor?.locationId ?? '',
+  destinationLocation: r => r.consignee?.locationId ?? '',
+  created: r => r.createdAt ?? '',
+  lastEdit: r => r.lastEditAt ?? '',
+  errorCount: r => r.errorCount ?? 0,
+  hazardous: r => (r.hazardous ? 1 : 0),
+  orderSource: r => r.orderSource ?? '',
+  draftOrderStatus: r => r.draftOrderStatus ?? '',
+}
+
 // Mock row assembly shared by list + tab counts. Overlay rows SHADOW base rows
 // with the same order number (a session draft saved over a generated Draft row
 // must not duplicate it — duplicate ids would also collide as TanStack row keys).
@@ -122,18 +140,23 @@ export async function getOrderList(
       rows = rows.filter(r => dateInRange(r.consignee?.latestDeliveryDateTime, f.latestDeliveryDateFrom, f.latestDeliveryDateTo))
   }
 
-  // LLD example default: orderNumber asc. Top-level string fields only — the
-  // toolbar only sorts orderNumber in this build (A4/Q31).
+  // LLD example default: orderNumber asc. Header sorting (S94) needs more than
+  // top-level string fields — SORT_GETTERS reaches into nested/typed values for
+  // the ids OrdersRoute's column→field map sends; anything else falls back to
+  // the raw top-level field as a string (the old behavior).
   const sort = request.sort ?? { field: 'orderNumber', direction: 'asc' }
   const dir = sort.direction === 'desc' ? -1 : 1
+  const get = SORT_GETTERS[sort.field] ??
+    ((r: OrderListRow) => String((r as unknown as Record<string, unknown>)[sort.field] ?? ''))
   rows = [...rows].sort((a, b) => {
-    const av = String((a as unknown as Record<string, unknown>)[sort.field] ?? '')
-    const bv = String((b as unknown as Record<string, unknown>)[sort.field] ?? '')
+    const av = get(a)
+    const bv = get(b)
     // Number-less pending rows (async create in flight) are the NEWEST orders —
     // treat the empty orderNumber as greatest so the default "orderNumber desc"
     // (the newest-first proxy) surfaces them first.
     if (sort.field === 'orderNumber' && !av !== !bv) return (av === '' ? 1 : -1) * dir
-    return av.localeCompare(bv) * dir
+    const cmp = typeof av === 'number' && typeof bv === 'number' ? av - bv : String(av).localeCompare(String(bv))
+    return cmp * dir
   })
 
   const { pageNumber, pageSize } = request.pagination
@@ -167,6 +190,31 @@ export function __resetOrderWriteState(): void {
   orderNumberByDraftId.clear()
   createSeq = 0
   draftSeq = 0
+}
+
+// Shared by submitDraftOrder/cancelOrder: shadow the row into the overlay
+// (copying it from the base seed the first time it's touched, same as
+// saveDraft/createOrder above) and stamp the new status label.
+function overlayUpdateStatus(orderNumber: string, status: string): void {
+  const existing = overlayRows.find(r => r.orderNumber === orderNumber)
+  const base = existing ?? (getAllOrders() as OrderListRow[]).find(r => r.orderNumber === orderNumber)
+  if (!base) return
+  overlayRows = [
+    { ...base, orderStatus: status },
+    ...overlayRows.filter(r => r.orderNumber !== orderNumber),
+  ]
+}
+
+/** Draft-tab Submit (LINX-11663): Draft → 'Ready For Plan'; row moves to All. */
+export async function submitDraftOrder(orderNumber: string): Promise<void> {
+  if (getApiMode() === 'live') throw new Error('submitDraftOrder: live mapping pending — mock-mode only')
+  overlayUpdateStatus(orderNumber, 'Ready For Plan')
+}
+
+/** Cancel (LINX-10258 soft delete): status → 'Cancelled'. */
+export async function cancelOrder(orderNumber: string): Promise<void> {
+  if (getApiMode() === 'live') throw new Error('cancelOrder: live mapping pending — mock-mode only')
+  overlayUpdateStatus(orderNumber, 'Cancelled')
 }
 
 function manualOrderToListRow(mo: ManualOrder, orderNumber: string, statusLabel: string): OrderListRow {

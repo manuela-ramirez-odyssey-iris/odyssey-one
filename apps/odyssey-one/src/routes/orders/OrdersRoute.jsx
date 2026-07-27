@@ -2,12 +2,14 @@ import { useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Inbox, Plus } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
-import { Button, EmptyState, PageHeader, Tab } from '@odyssey/ui'
+import { Button, EmptyState, ModalMedium, PageHeader, Tab } from '@odyssey/ui'
 import AppShell from '../../components/layout/AppShell'
 import OrdersToolbar from '../../components/orders/OrdersToolbar'
 import OrdersTable from '../../components/orders/OrdersTable'
 import { useOrderList } from '../../api/queries/useOrderList'
 import { useOrderTabCounts } from '../../api/queries/useOrderTabCounts'
+import { useSubmitDraftOrder } from '../../api/queries/useSubmitDraftOrder'
+import { useCancelOrder } from '../../api/queries/useCancelOrder'
 import { VALIDATION_ERROR_STATUSES } from '../../api/services/orderService'
 import { useCustomers } from '../../contexts/CustomersContext'
 import '../../components/orders/orders.css'
@@ -28,6 +30,20 @@ const MAIN_TABS = [
   { key: 'validation-errors', label: 'Validation Errors', statuses: VALIDATION_ERROR_STATUSES, countKey: 'validationErrors' },
 ]
 
+// Per-tab default header sort (S94 decision — Draft's is an inference, cheap
+// to change: lastEdit desc). Reapplied whenever the tab switches.
+const DEFAULT_SORT = {
+  all: [{ id: 'idLabel', desc: true }],
+  draft: [{ id: 'lastEdit', desc: true }],
+  'validation-errors': [{ id: 'errorCount', desc: true }],
+}
+
+// Column id → OrderListRequest sort field (ids that differ from wire names).
+const SORT_FIELD_BY_COLUMN = {
+  idLabel: 'orderNumber', status: 'orderStatus', weight: 'weight', volume: 'volume',
+  shipperLocation: 'shipperLocation', destinationLocation: 'destinationLocation',
+}
+
 export default function OrdersRoute() {
   const navigate = useNavigate()
   // Tab deep-link (S91 Home widgets): navigate('/orders', { state: { tab } }).
@@ -36,17 +52,23 @@ export default function OrdersRoute() {
   // (CustomersContext.selectedDataIds → gridService customerIds).
   const { selectedDataIds } = useCustomers()
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 20 }) // pageIndex 0-based (TanStack)
-  const [sortDirection, setSortDirection] = useState('desc') // newest-first proxy (A3/Q31)
-  const [rowSelection, setRowSelection] = useState({})
   // Main tabs (Orders Tabs mock) — status filters over the same list query.
   const [activeTab, setActiveTab] = useState(() => location.state?.tab ?? 'all')
+  // Header sorting (S94) — TanStack-shaped, lifted here so it can drive the
+  // request; resets to the tab's default on every tab switch (handleTabSelect).
+  const [sorting, setSorting] = useState(() => DEFAULT_SORT[activeTab] ?? DEFAULT_SORT.all)
+  // Submit/Cancel row actions confirm before mutating (LINX-11663/10258).
+  const [confirmAction, setConfirmAction] = useState(null) // { type: 'submit' | 'cancel', row }
+  const submitDraftOrder = useSubmitDraftOrder()
+  const cancelOrder = useCancelOrder()
 
   const tabStatuses = MAIN_TABS.find(t => t.key === activeTab)?.statuses
+  const sortField = SORT_FIELD_BY_COLUMN[sorting[0]?.id] ?? sorting[0]?.id ?? 'orderNumber'
   const request = useMemo(() => ({
     pagination: { pageNumber: pagination.pageIndex + 1, pageSize: pagination.pageSize },
-    sort: { field: 'orderNumber', direction: sortDirection },
+    sort: { field: sortField, direction: sorting[0]?.desc ? 'desc' : 'asc' },
     ...(tabStatuses ? { filters: { orderStatuses: tabStatuses } } : {}),
-  }), [pagination, sortDirection, tabStatuses])
+  }), [pagination, sortField, sorting, tabStatuses])
 
   // Reset to the first page when the customer scope changes (query identity
   // change — the Shipments-proven pattern).
@@ -55,25 +77,21 @@ export default function OrdersRoute() {
     setPagination(p => (p.pageIndex === 0 ? p : { ...p, pageIndex: 0 }))
   }, [scopeKey])
 
-  const { data, isPending, isError, isFetching, refetch } = useOrderList(request, selectedDataIds)
+  const { data, isPending, isError, refetch } = useOrderList(request, selectedDataIds)
   const { data: tabCounts } = useOrderTabCounts(selectedDataIds)
 
   const handleTabSelect = (key) => {
     if (key === activeTab) return
     setActiveTab(key)
     setPagination(p => ({ ...p, pageIndex: 0 }))
+    setSorting(DEFAULT_SORT[key] ?? DEFAULT_SORT.all)
   }
-  // `isFetching` gates only the toolbar's sort toggle. It is intentionally NOT
-  // threaded to the Paginator footer: the @odyssey/ui Paginator disables nav via
-  // getCan{Previous,Next}Page(), and `placeholderData: keepPreviousData` keeps the
-  // current page visible during an in-flight refetch — so free mid-fetch paging is
-  // fine (the standard TanStack pattern; accepted over the old freeze-while-fetching).
+  // Paging during a background refetch is intentionally NOT gated: the @odyssey/ui
+  // Paginator disables nav via getCan{Previous,Next}Page(), and
+  // `placeholderData: keepPreviousData` keeps the current page visible during an
+  // in-flight refetch — so free mid-fetch paging is fine (the standard TanStack
+  // pattern; accepted over the old freeze-while-fetching).
 
-  // Reset to the first page whenever the query identity changes (Shipments-proven pattern).
-  const handleToggleSort = () => {
-    setSortDirection(d => (d === 'desc' ? 'asc' : 'desc'))
-    setPagination(p => ({ ...p, pageIndex: 0 }))
-  }
   // Paginator drives setPageSize on the table → onPaginationChange. Reset to the
   // first page on a page-size change (preserves the prior UX, regardless of
   // TanStack's internal pageIndex math).
@@ -106,12 +124,7 @@ export default function OrdersRoute() {
           ))}
         </div>
 
-        <OrdersToolbar
-          totalCount={data?.totalCount}
-          sortDirection={sortDirection}
-          onToggleSort={handleToggleSort}
-          disabled={isFetching}
-        />
+        <OrdersToolbar totalCount={data?.totalCount} />
 
         {isPending ? (
           <div className="orders-page__status text-label-sm-regular">Loading orders…</div>
@@ -124,11 +137,12 @@ export default function OrdersRoute() {
           <EmptyState icon={<Inbox size={32} />} message="No orders found" />
         ) : (
           <OrdersTable
+            tab={activeTab}
             rows={data.rows}
-            rowSelection={rowSelection}
-            onRowSelectionChange={setRowSelection}
             pagination={pagination}
             onPaginationChange={handlePaginationChange}
+            sorting={sorting}
+            onSortingChange={setSorting}
             totalCount={data.totalCount}
             onRowClick={(row) => {
               // Full-row click target (Shipments-style): EVERY row opens the
@@ -144,12 +158,69 @@ export default function OrdersRoute() {
             onRowAction={(action, row) => {
               // View mirrors the full-row click; Edit reopens the order in the
               // create flow (?draft hydrates via getDraft, falling back to
-              // getOrderView for non-session rows). Copy/Cancel/Restore/Delete
-              // stay no-ops until their features land.
+              // getOrderView for non-session rows). Submit/Cancel confirm first
+              // (below); Resolve/Copy/Restore stay no-ops until their features land.
               if (action === 'View') navigate(`/orders/${encodeURIComponent(row.id)}`)
               else if (action === 'Edit') navigate(`/orders/create?draft=${encodeURIComponent(row.id)}`)
+              else if (action === 'Submit') setConfirmAction({ type: 'submit', row })
+              else if (action === 'Cancel') setConfirmAction({ type: 'cancel', row })
+              // else if (action === 'Resolve') — OIF UI pending (LINX-11137), no-op
             }}
           />
+        )}
+
+        {confirmAction?.type === 'submit' && (
+          <ModalMedium
+            title="Submit order"
+            onClose={() => setConfirmAction(null)}
+            ariaLabel="Submit order"
+            footer={
+              <>
+                <Button variant="secondary" size="lg" onClick={() => setConfirmAction(null)}>
+                  Cancel
+                </Button>
+                <Button
+                  variant="primary"
+                  size="lg"
+                  onClick={() => {
+                    submitDraftOrder.mutate(confirmAction.row.id)
+                    setConfirmAction(null)
+                  }}
+                >
+                  Submit
+                </Button>
+              </>
+            }
+          >
+            <p className="text-label-sm-regular">Are you sure you want to submit?</p>
+          </ModalMedium>
+        )}
+
+        {confirmAction?.type === 'cancel' && (
+          <ModalMedium
+            title="Cancel order"
+            onClose={() => setConfirmAction(null)}
+            ariaLabel="Cancel order"
+            footer={
+              <>
+                <Button variant="secondary" size="lg" onClick={() => setConfirmAction(null)}>
+                  Keep order
+                </Button>
+                <Button
+                  variant="primary"
+                  size="lg"
+                  onClick={() => {
+                    cancelOrder.mutate(confirmAction.row.id)
+                    setConfirmAction(null)
+                  }}
+                >
+                  Cancel order
+                </Button>
+              </>
+            }
+          >
+            <p className="text-label-sm-regular">Are you sure you want to cancel the order?</p>
+          </ModalMedium>
         )}
       </div>
     </AppShell>
