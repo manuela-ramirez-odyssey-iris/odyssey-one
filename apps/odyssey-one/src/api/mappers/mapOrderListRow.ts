@@ -26,11 +26,44 @@ function formatPlace(loc: OrderListRow['consignor'] | OrderListRow['consignee'] 
   return cityState ? `${loc.locationId}: ${cityState}` : loc.locationId
 }
 
-// { 4300, "lbs" } → "4300 lbs" (spec §5 example — no thousands separator).
-function formatMeasure(m: { value: number; uom: string } | undefined): string {
-  if (!m || m.value == null) return ''
-  return [String(m.value), m.uom].filter(Boolean).join(' ')
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+
+// "2026-06-08T08:45:00" → "Jun 8, 2026 at 8:45 AM". String-parsed local wall
+// time — no Date/timezone shifting (matches Figma format minus tz; our wire
+// values carry no tz — open item until a TZ policy exists).
+function formatLongDateTime(iso: string | undefined): string {
+  if (!iso) return ''
+  const [date, time] = iso.split('T')
+  if (!date || !time) return iso
+  const [y, m, d] = date.split('-').map(Number)
+  const [hh, mm] = time.split(':').map(Number)
+  const h12 = hh % 12 === 0 ? 12 : hh % 12
+  const ampm = hh < 12 ? 'AM' : 'PM'
+  return `${MONTHS[m - 1]} ${d}, ${y} at ${h12}:${String(mm).padStart(2, '0')} ${ampm}`
 }
+
+// { 24530, "LB" } → "24,530 LB"; '--' when absent (LINX-9896 note: optional
+// empties render '--').
+function formatMeasureDashed(m: { value: number; uom: string } | undefined): string {
+  if (!m || m.value == null) return '--'
+  return [m.value.toLocaleString('en-US'), m.uom].filter(Boolean).join(' ')
+}
+
+const dash = (v: string | undefined) => (v && v.trim() ? v : '--')
+
+function locationCell(loc: OrderListRow['consignor'] | OrderListRow['consignee'] | undefined) {
+  if (!loc) return { id: '--', name: '', address: '' }
+  const cityLine = [loc.city, loc.state].filter(Boolean).join(', ')
+  const address = [loc.address, cityLine].filter(Boolean).join(' ')
+  return {
+    id: loc.locationId || '--',
+    name: loc.name ?? '',
+    address: [address, loc.country].filter(Boolean).join(', '),
+  }
+}
+
+const titleCase = (v: string | undefined) =>
+  v ? v.charAt(0).toUpperCase() + v.slice(1).toLowerCase() : ''
 
 export function mapOrderListRow(row: OrderListRow): OrderRowVM {
   // Pending = async creation still processing: no orderNumber yet, but the row
@@ -44,11 +77,24 @@ export function mapOrderListRow(row: OrderListRow): OrderRowVM {
     customer: s(row.customer),
     origin: formatPlace(row.consignor),
     destination: formatPlace(row.consignee),
-    weight: formatMeasure(row.grossWeight),
-    volume: formatMeasure(row.volume),
     commodity: s(row.commodity),
     equipment: s(row.equipment),
     earlyPickup: formatDateTime(row.consignor?.earliestPickupDateTime),
     status: s(row.orderStatus),
+    hazardous: row.hazardous === true,
+    orderSource: titleCase(row.orderSource),
+    shipDirection: s(row.shipDirection),
+    freightTerms: s(row.freightTerms),
+    shipperLocation: locationCell(row.consignor),
+    destinationLocation: locationCell(row.consignee),
+    latestPickup: formatLongDateTime(row.consignor?.latestPickupDateTime),
+    latestDelivery: formatLongDateTime(row.consignee?.latestDeliveryDateTime),
+    weight: formatMeasureDashed(row.grossWeight),
+    volume: formatMeasureDashed(row.volume),
+    created: row.createdAt ? formatLongDateTime(row.createdAt) : '--',
+    createdBy: dash(row.createdBy),
+    lastEdit: row.lastEditAt ? formatLongDateTime(row.lastEditAt) : '--',
+    draftOrderStatus: s(row.draftOrderStatus),
+    errorCount: row.errorCount ?? null,
   }
 }
