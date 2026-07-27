@@ -16,6 +16,8 @@ export interface OrderListRow {
   equipment: string                 // "TL"
   consignor: {
     locationId: string              // "RGC-STL-001" — Origin cell prefix code
+    name?: string                   // facility name — "J & K INGREDIENTS" (location cell line 2)
+    address?: string                // street line — "900 Hall St SW" (location cell line 3)
     city: string
     state: string
     country: string
@@ -24,6 +26,8 @@ export interface OrderListRow {
   }
   consignee: {
     locationId: string
+    name?: string
+    address?: string
     city: string
     state: string
     country: string
@@ -34,6 +38,12 @@ export interface OrderListRow {
   volume: { value: number; uom: string }        // { 730, "cbf" }
   commodity: string                 // "Plastic"
   orderStatus: string               // DISPLAY LABEL on the row ("Ready For Plan"), not a code
+  hazardous?: boolean               // ≥1 hazardous line item (LINX-12102)
+  createdAt?: string                // ISO — first draft/creation timestamp (Draft tab "Created")
+  createdBy?: string                // "Amy Cook" — full name (Draft tab "Created By")
+  lastEditAt?: string               // ISO — most recent edit (Draft tab "Last Edit")
+  draftOrderStatus?: string         // 'Ready' | 'Complete' | 'Purge' — VE-tab rows only (LINX-11659)
+  errorCount?: number               // validation error count — VE-tab rows only
 }
 
 // /order-status/lookup enum (LLD) + DRAFT (create-order remark).
