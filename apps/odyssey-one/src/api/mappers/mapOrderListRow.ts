@@ -6,26 +6,6 @@ import type { OrderRowVM } from '../types/orderRowVm'
 
 const s = (v: string | undefined) => v ?? ''
 
-// "2026-06-15T08:00:00.000Z" → "06/15/2026 08:00". String-sliced from the ISO
-// value — no Date object, no timezone shifting; display matches the wire value
-// until a TZ policy exists.
-function formatDateTime(iso: string | undefined): string {
-  if (!iso) return ''
-  const [date, time] = iso.split('T')
-  if (!date || !time) return iso
-  const [y, m, d] = date.split('-')
-  return `${m}/${d}/${y} ${time.slice(0, 5)}`
-}
-
-// "RGC-STL-001: St Louis, MO" — full locationId as the prefix code (plan
-// decision 4); degrades to whichever parts exist.
-function formatPlace(loc: OrderListRow['consignor'] | OrderListRow['consignee'] | undefined): string {
-  if (!loc) return ''
-  const cityState = [loc.city, loc.state].filter(Boolean).join(', ')
-  if (!loc.locationId) return cityState
-  return cityState ? `${loc.locationId}: ${cityState}` : loc.locationId
-}
-
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
 // "2026-06-08T08:45:00" → "Jun 8, 2026 at 8:45 AM". String-parsed local wall
@@ -75,11 +55,7 @@ export function mapOrderListRow(row: OrderListRow): OrderRowVM {
     idLabel: s(row.orderNumber) || (pending ? '-' : ''),
     pending,
     customer: s(row.customer),
-    origin: formatPlace(row.consignor),
-    destination: formatPlace(row.consignee),
-    commodity: s(row.commodity),
     equipment: s(row.equipment),
-    earlyPickup: formatDateTime(row.consignor?.earliestPickupDateTime),
     status: s(row.orderStatus),
     hazardous: row.hazardous === true,
     orderSource: titleCase(row.orderSource),
@@ -91,9 +67,9 @@ export function mapOrderListRow(row: OrderListRow): OrderRowVM {
     latestDelivery: formatLongDateTime(row.consignee?.latestDeliveryDateTime),
     weight: formatMeasureDashed(row.grossWeight),
     volume: formatMeasureDashed(row.volume),
-    created: row.createdAt ? formatLongDateTime(row.createdAt) : '--',
+    created: dash(formatLongDateTime(row.createdAt)),
     createdBy: dash(row.createdBy),
-    lastEdit: row.lastEditAt ? formatLongDateTime(row.lastEditAt) : '--',
+    lastEdit: dash(formatLongDateTime(row.lastEditAt)),
     draftOrderStatus: s(row.draftOrderStatus),
     errorCount: row.errorCount ?? null,
   }

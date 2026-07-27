@@ -11,13 +11,9 @@ describe('mapOrderListRow', () => {
       idLabel: 'SUT355123',
       pending: false,
       customer: 'SABIC_CLT',
-      origin: 'RGC-STL-001: St Louis, MO',
-      destination: 'SAB-CLT-001: Charlotte, NC',
       weight: '4,300 lbs',   // thousands separator (S94 format change)
       volume: '730 cbf',
-      commodity: 'Plastic',
       equipment: 'TL',
-      earlyPickup: '06/15/2026 08:00',
       status: 'Ready For Plan',
       hazardous: false,
       orderSource: 'Integrated',
@@ -40,11 +36,8 @@ describe('mapOrderListRow', () => {
     expect(vm.id).toBe('')
     expect(vm.idLabel).toBe('')
     expect(vm.customer).toBe('')
-    expect(vm.origin).toBe('')
-    expect(vm.destination).toBe('')
     expect(vm.weight).toBe('--')
     expect(vm.volume).toBe('--')
-    expect(vm.earlyPickup).toBe('')
     expect(vm.status).toBe('')
   })
 
@@ -59,17 +52,6 @@ describe('mapOrderListRow', () => {
     const vm = mapOrderListRow({} as OrderListRow)
     expect(vm.pending).toBe(false)
     expect(vm.idLabel).toBe('')
-  })
-
-  it('degrades the place format gracefully when parts are missing', () => {
-    const partial = {
-      ...orderListRowSample,
-      consignor: { ...orderListRowSample.consignor, locationId: undefined as unknown as string },
-      consignee: { ...orderListRowSample.consignee, city: undefined as unknown as string, state: undefined as unknown as string },
-    }
-    const vm = mapOrderListRow(partial)
-    expect(vm.origin).toBe('St Louis, MO')          // no locationId → city/state only
-    expect(vm.destination).toBe('SAB-CLT-001')      // no city/state → id only
   })
 })
 

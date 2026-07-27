@@ -32,6 +32,13 @@
 //  I9 Pending    — a few Orders-only rows have NO orderNumber yet (async
 //                  create still processing): orderNumber '' + numeric orderId;
 //                  they can never appear on a shipment.
+//  I10 Tab fields — every order row carries createdAt/createdBy/lastEditAt
+//                  (Draft-tab columns) regardless of status; Draft-status rows
+//                  additionally get a lastEdit ≥ created; Validation-Errors
+//                  statuses (Planning Failed/Shipment Failed) additionally get
+//                  draftOrderStatus (Ready/Complete/Purge) + a numeric
+//                  errorCount — the per-tab grid (S94) reads these directly,
+//                  no join required.
 import { faker } from '@faker-js/faker';
 import { writeFileSync, mkdirSync, existsSync, readdirSync, unlinkSync } from 'fs';
 import { CUSTOMERS, LOCATIONS, EQUIPMENT_CODES, CHEMICAL_PRODUCTS, locationIdFor } from './data-pools.mjs'
@@ -1252,7 +1259,8 @@ const UNSHIPPED_STATUS_POOL = [
   ...Array(12).fill('Cancelled'),
 ];
 
-// Draft-tab "Created By" pool — plain full names (LINX-11663).
+// "Created By" pool — plain full names (LINX-11663); every order row gets one,
+// not just Draft-tab rows.
 const ORDER_USERS = ['Amy Cook', 'Luis Herrera', 'Priya Nair', 'Tom Becker',
   'Sofia Almeida', 'Dan Whitfield', 'Grace Liu', 'Marcus Bell'];
 const VALIDATION_ERROR_STATUSES = ['Planning Failed', 'Shipment Failed'];

@@ -37,7 +37,7 @@ test('I10: draft orders carry created/createdBy/lastEdit; VE orders carry draftO
 })
 
 test('I11: generator is deterministic for the new fields', () => {
-  const a = buildDataset().orders.slice(0, 50)
-  const b = buildDataset().orders.slice(0, 50)
+  const a = buildDataset().orders
+  const b = buildDataset().orders
   assert.deepEqual(a, b)
 })

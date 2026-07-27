@@ -20,8 +20,8 @@ import { makeEmptyParty, makeEmptyTriad } from '../types/orderFormVm'
 //  - row ids / manualMode / showContact: regenerated for display, not recovered
 
 // "2026-06-15T08:00:00" or "2026-06-10T16:00:00.000Z" → triad. Pure string
-// slice, never a Date — mirrors mapOrderListRow.formatDateTime so no timezone
-// shifting. Timezone comes from the paired *TimeZoneCode sibling (the tz arg).
+// slice, never a Date — no timezone shifting. Timezone comes from the paired
+// *TimeZoneCode sibling (the tz arg).
 export function fromIsoTimestamp(iso?: string, tz?: string): DateTimeTriad {
   if (!iso) return makeEmptyTriad()
   const [datePart = '', timePart = ''] = iso.split('T')
