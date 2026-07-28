@@ -48,7 +48,7 @@ describe('ComboBox — typeahead mode', () => {
     // Enter: select the highlighted option (Apple, value 'apple')
     fireEvent.keyDown(wrapper, { key: 'Enter' })
 
-    expect(onSelect).toHaveBeenCalledWith('apple')
+    expect(onSelect).toHaveBeenCalledWith('apple', { value: 'apple', label: 'Apple' })
     expect(input.value).toBe('Apple')
   })
 

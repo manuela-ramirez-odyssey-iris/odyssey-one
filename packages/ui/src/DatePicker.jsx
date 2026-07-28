@@ -30,6 +30,14 @@ export function fmtDDMMYYYY(d) {
   return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`
 }
 
+// Format-aware display/parse (the segment mask itself is order-agnostic).
+// `format` — 'DD/MM/YYYY' (default) | 'MM/DD/YYYY' (US, Jira LINX-8120 dates).
+export function fmtDate(d, format = 'DD/MM/YYYY') {
+  const dd = String(d.getDate()).padStart(2, '0')
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  return format === 'MM/DD/YYYY' ? `${mm}/${dd}/${d.getFullYear()}` : `${dd}/${mm}/${d.getFullYear()}`
+}
+
 // While-typing filter for a single dd/mm/yyyy field. Editing is FREE except:
 // digit caps per segment (2/2/4); separators are structural rails (always emit
 // exactly 3 "/"-joined slots, empty segments kept — no reset-to-01). Any digit
@@ -78,6 +86,16 @@ export function padSegments(text) {
   return `${pad(d)}/${pad(mo)}/${y}`
 }
 
+export function parseDate(text, format = 'DD/MM/YYYY', minDate = MIN_DATE, maxDate = MAX_DATE) {
+  const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(padSegments(text))
+  if (!m) return null
+  const [, a, b, yyyy] = m.map(Number)
+  const [dd, mm] = format === 'MM/DD/YYYY' ? [b, a] : [a, b]
+  const d = new Date(yyyy, mm - 1, dd)
+  if (d.getDate() !== dd || d.getMonth() !== mm - 1) return null
+  return d >= minDate && d <= maxDate ? d : null
+}
+
 // Full masked string → Date, or null if incomplete/invalid or out of bounds.
 export function parseDDMMYYYY(text, minDate = MIN_DATE, maxDate = MAX_DATE) {
   const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(padSegments(text))
@@ -96,12 +114,16 @@ export default function DatePicker({
   onChange,
   label,
   placeholder,
+  format = 'DD/MM/YYYY',
   minDate = MIN_DATE,
   maxDate = MAX_DATE,
   disabled = false,
   error,
   id,
 }) {
+  // Format-bound aliases — every display/parse in the component routes through these
+  const fmt = (d) => fmtDate(d, format)
+  const parse = (t) => parseDate(t, format, minDate, maxDate)
   const [text, setText] = useState('')
   const [invalid, setInvalid] = useState(false)
   const editingRef = useRef(false)
@@ -120,8 +142,8 @@ export default function DatePicker({
   // draft is never clobbered. (The TimePicker fix: value→text echo mid-keystroke
   // was what snapped the field and blocked editing.)
   const displayValue = () => {
-    if (mode === 'single') return value instanceof Date ? fmtDDMMYYYY(value) : ''
-    const parts = [value?.start, value?.end].filter(Boolean).map(fmtDDMMYYYY)
+    if (mode === 'single') return value instanceof Date ? fmt(value) : ''
+    const parts = [value?.start, value?.end].filter(Boolean).map(fmt)
     return parts.join(' - ')
   }
   useEffect(() => {
@@ -176,17 +198,17 @@ export default function DatePicker({
       return
     }
     if (mode === 'single') {
-      const parsed = parseDDMMYYYY(raw, minDate, maxDate)
-      if (parsed) { setInvalid(false); setText(fmtDDMMYYYY(parsed)); onChange?.(parsed) }
+      const parsed = parse(raw)
+      if (parsed) { setInvalid(false); setText(fmt(parsed)); onChange?.(parsed) }
       else setInvalid(true)
     } else {
       const [a = '', b = ''] = raw.split(' - ')
-      const start = parseDDMMYYYY(a.trim(), minDate, maxDate)
-      const end = parseDDMMYYYY(b.trim(), minDate, maxDate)
+      const start = parse(a.trim())
+      const end = parse(b.trim())
       if (!start || !end) { setInvalid(true); return }
       const next = end < start ? { start: end, end: start } : { start, end }
       setInvalid(false)
-      setText([next.start, next.end].map(fmtDDMMYYYY).join(' - '))
+      setText([next.start, next.end].map(fmt).join(' - '))
       onChange?.(next)
     }
   }
@@ -245,10 +267,10 @@ export default function DatePicker({
         >
           {mode === 'single' ? (
             <CalendarPicker
-              key={single ? fmtDDMMYYYY(single) : 'unset'}
+              key={single ? fmt(single) : 'unset'}
               mode="single"
               value={single}
-              onChange={(d) => { pickedRef.current = true; editingRef.current = false; setInvalid(false); onChange?.(d); setText(fmtDDMMYYYY(d)); closeAndBlur() }}
+              onChange={(d) => { pickedRef.current = true; editingRef.current = false; setInvalid(false); onChange?.(d); setText(fmt(d)); closeAndBlur() }}
               defaultMonth={single ?? new Date()}
               minDate={minDate}
               maxDate={maxDate}
@@ -260,7 +282,7 @@ export default function DatePicker({
               onChange={(next) => {
                 setInvalid(false)
                 onChange?.(next)
-                setText([next.start, next.end].filter(Boolean).map(fmtDDMMYYYY).join(' - '))
+                setText([next.start, next.end].filter(Boolean).map(fmt).join(' - '))
                 if (next.start && next.end) { pickedRef.current = true; editingRef.current = false; closeAndBlur() }
               }}
               defaultMonth={range?.start ?? new Date()}

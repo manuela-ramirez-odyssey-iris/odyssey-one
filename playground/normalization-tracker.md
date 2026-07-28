@@ -219,6 +219,8 @@ Variants/props defined in code but not yet pushed to Figma. Push all at once whe
 | Breadcrumb | link hover / focus-visible — **intentionally CSS-only** | Non-current link: hover darkens label `--deep-sea-neutral-400` → `-700`; `:focus-visible` → 2px `--border-focus` ring. Per the control state model these live in code + DSM only — the Figma master keeps only the `Current` axis (no hover variant). | 2026-06-26 |
 | SummaryStrip | `tone` axis decision — **Efrain ask** (componentization + fill fixes DONE 2026-07-06) | Master componentized by us 2026-07-06 → **`SummaryStrip` COMPONENT 4254:904** (Label/Value TEXT props, cells `Item 1–6`); value fills bound Text/primary (remote DSN/900 style cleared); band gradient flattened to Background/primary. Remaining: decide whether code's `tone: positive\|negative` value coloring (Caribbean Green/600 / Bittersweet/600) becomes a Figma axis. Code Connect updated to the component node (Label/Value mappings), publish with the batch. | 2026-07-06 |
 
+| Design tokens | **`--spacing-9` (36px) — new token** | Added 2026-07-28 in one motion: `packages/tokens/tokens.css` + Figma `Spacing/9` in the `4. Sizing` collection (VariableID:4731:14, scopes match siblings) + `figma-tokens.snapshot.json` (audit green, 117 vars). First consumer: create-order `co-section-body` gap. **Angular `@oneodyssey/ui` tokens file addition OWED at the next batch port** — new design-system token, mirror it there before the batch closes. | 2026-07-28 |
+
 ## Pushed to Figma
 
 Components pushed back to Figma via the `/normalize` skill's Step 8 routine.

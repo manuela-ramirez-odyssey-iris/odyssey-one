@@ -27,18 +27,19 @@ describe('lookupService.getLookupOptions (mock)', () => {
   })
 
   it('scopes equipment by owning organization (empty without one)', async () => {
-    expect(await getLookupOptions('equipment', 'va')).toEqual([])
-    const acme = await getLookupOptions('equipment', 'va', { orgId: 'ACME_LOG_01' })
-    expect(acme.map(o => o.value)).toEqual(['VAN'])
+    // Real vocabulary (lookup-only swap 2026-07-28): TL/LTL/… families
+    expect(await getLookupOptions('equipment', 'tl')).toEqual([])
+    const acme = await getLookupOptions('equipment', 'ltr', { orgId: 'ACME_LOG_01' })
+    expect(acme.map(o => o.value)).toEqual(['LTR'])
     const acmeAll = await getLookupOptions('equipment', '  ', { orgId: 'ACME_LOG_01' })
-    expect(acmeAll.map(o => o.value).sort()).toEqual(['FLT', 'VAN']) // restricted subset
+    expect(acmeAll.map(o => o.value).sort()).toEqual(['LTL', 'LTR', 'TL', 'TLR']) // restricted subset
     const erco = await getLookupOptions('equipment', '', { orgId: 'ERCO_SYS_01' })
-    expect(erco).toHaveLength(4) // unrestricted org sees all codes
+    expect(erco).toHaveLength(11) // unrestricted org sees the full catalog
   })
 
   it('select-like types return the full list with no typeahead gate', async () => {
     const terms = await getLookupOptions('freight-term', '')
-    expect(terms.map(o => o.value)).toEqual(['Pre-Paid', 'COL', 'Third Party'])
+    expect(terms.map(o => o.value)).toEqual(['Pre-Paid', 'Collect', 'Pre-Paid/Add', 'Third Party', 'No Charge'])
     const dirs = await getLookupOptions('ship-direction', '')
     expect(dirs.map(o => o.value)).toEqual(['Outbound', 'Inbound'])
   })

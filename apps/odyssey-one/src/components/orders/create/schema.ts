@@ -41,12 +41,18 @@ const instructionRowSchema = z.object({
 })
 
 export const generalInfoSchema = z.object({
-  orderNumber: z.string(), // optional at entry — auto-generated when blank (Q16)
-  owningOrganization: z.string().min(1, 'Owning Organization is required'),
+  // optional at entry — auto-generated when blank (Q16); LINX-8118: max 150 chars excluding space
+  orderNumber: z.string().refine(
+    v => v.replace(/\s/g, '').length <= 150,
+    'Order Number can have only 150 characters (excluding space). Please check the order number.',
+  ),
+  // "Customer" in the UI (LINX-13553 rename); wire key stays owningOrganization
+  owningOrganization: z.string().min(1, 'Please select Customer'),
   owningOrganizationName: z.string(),
-  equipment: z.string().min(1, 'Equipment is required'),
+  equipment: z.string().min(1, 'Please select Equipment'),
   freightTerm: z.string().min(1, 'Freight Term is required'),
   shipDirection: z.string().min(1, 'Ship Direction is required'),
+  hazardous: z.boolean(), // LINX-12102: derives from product lines
   consolidatable: z.boolean(),
   carrierScac: z.string(),
   equipmentReferenceNumber: z.string(),
@@ -101,6 +107,8 @@ export const pickupDeliverySchema = z.object({
   consignor: partySchema,
   consignee: partySchema,
   planningDateType: z.enum(['SHIP', 'DELIVERY']),
+  pickupAppointment: z.boolean(),   // LINX-12095: latest-date-gated flags
+  deliveryAppointment: z.boolean(),
   earlyPickup: dateTriadSchema,
   latePickup: dateTriadSchema,
   earlyDelivery: dateTriadSchema,
@@ -146,17 +154,73 @@ const positiveNumeric = z.string().refine(
   'Enter a value',
 )
 
-// Q26: ALL FIVE fields required per row (design supersedes LINX-9874 either/or)
+// Product row (rebuilt 2026-07-28 — Figma 5347:10752/6025:28087 + LINX-13893).
+// Required: Product ID, Description (≤75 per user ruling), Gross Weight,
+// Volume. Everything else optional (per-equipment columns); Shipping Class/ID
+// pair dropped per Figma decision — the LINX-8121 either/or rule collapses to
+// the Product ID path. Verbatim Jira messages where they exist.
+const optionalMeasure = z.object({ value: z.string(), uom: z.string() })
+const wholeNumberOrEmpty = z.string().refine(
+  v => v.trim() === '' || /^[1-9]\d*$/.test(v.trim()),
+  'Please enter a non-zero whole number',
+)
 export const productRowSchema = z.object({
   id: z.string(),
+  hazardous: z.boolean().default(false),
   productId: z.string().min(1, 'Select a Product ID'),
-  description: z.string().min(1, 'Please provide a description').max(150, 'Maximum 150 characters'),
-  grossWeight: z.object({ value: positiveNumeric, uom: z.string().min(1, 'Select') }),
+  description: z.string().min(1, 'Please enter product description').max(75, 'Maximum 75 characters'),
+  grossWeight: z.object({
+    value: z.string()
+      .refine(v => v.trim() !== '', 'Please enter gross weight value')
+      .refine(v => v.trim() === '' || (!Number.isNaN(Number(v)) && Number(v) > 0), 'Enter a value'),
+    uom: z.string().min(1, 'Please select gross weight UoM'),
+  }),
   volume: z.object({ value: positiveNumeric, uom: z.string().min(1, 'Select') }),
-  shipClass: z.string().min(1, 'Select a Ship Class'),
+  shipClass: z.string().default(''),
+  handlingUnit: z.string().default(''),
+  handlingCount: wholeNumberOrEmpty.default(''),
+  length: optionalMeasure.optional(),
+  width: optionalMeasure.optional(),
+  height: optionalMeasure.optional(),
+  harmonizedCode: z.string().default(''),
+  declaredValue: z.string().refine(
+    v => v.trim() === '' || /^\d+(\.\d{1,2})?$/.test(v.trim()),
+    'Numeric, up to 2 decimals',
+  ).default(''),
+  declaredValueCurrency: z.string().default(''),
+  manufacturingCountry: z.string().default(''),
+  stccCode: z.string().default(''),
+}).superRefine((row, ctx) => {
+  // LINX-8131: Declared Value ⟷ Currency mandatory-if-other-filled
+  if (row.declaredValue.trim() && !row.declaredValueCurrency.trim()) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['declaredValueCurrency'], message: 'Please enter declared value currency' })
+  }
+  if (row.declaredValueCurrency.trim() && !row.declaredValue.trim()) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['declaredValue'], message: 'Please enter declared value' })
+  }
 })
 
-export const productsSchema = z.array(productRowSchema).min(1, 'Add at least one product')
+// A fully-blank pending row is ignored by validation — only touched rows must
+// be complete, and ≥1 real product must exist (LINX-8121 submission gate).
+// Validated per-index via superRefine (NOT a filtering preprocess: filtering
+// would shift error paths off the RHF field names, landing errors on the
+// wrong rows).
+export const isBlankProductRow = (r: { productId?: string; description?: string; grossWeight?: { value?: string }; volume?: { value?: string } }) =>
+  !r?.productId && !r?.description && !r?.grossWeight?.value && !r?.volume?.value
+export const productsSchema = z.array(z.record(z.string(), z.unknown())).superRefine((rows, ctx) => {
+  if (!rows.some((r) => !isBlankProductRow(r as Parameters<typeof isBlankProductRow>[0]))) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Add at least one product' })
+  }
+  rows.forEach((row, i) => {
+    if (isBlankProductRow(row as Parameters<typeof isBlankProductRow>[0])) return
+    const res = productRowSchema.safeParse(row)
+    if (!res.success) {
+      for (const issue of res.error.issues) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: [i, ...issue.path], message: issue.message })
+      }
+    }
+  })
+})
 
 export const specialServicesSchema = z.array(z.object({
   code: z.string().min(1),

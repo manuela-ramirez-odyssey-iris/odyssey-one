@@ -221,13 +221,13 @@ function PresetActionsMenu({ options }) {
   )
 }
 
-// Built-in preset ids — the Odyssey-shipped presets (both groups). Used by the empty-preset
+// Built-in preset ids — the shipped presets (both groups). Used by the empty-preset
 // prune (shipped presets are never pruned) and to detect a brand-new user preset. In delete
 // mode EVERY row in the Custom Presets group gets a checkbox (Figma 4301:19405 — including
 // the shipped Default Exceptions / Default Monitoring); the Odyssey group renders disabled.
-const BUILT_IN_PRESET_IDS = new Set([
-  ...PRESETS.custom.map(p => p.id),
-  ...PRESETS.odyssey.map(p => p.id),
+const builtInPresetIds = (presets) => new Set([
+  ...presets.custom.map(p => p.id),
+  ...presets.odyssey.map(p => p.id),
 ])
 
 /**
@@ -265,21 +265,34 @@ const BUILT_IN_PRESET_IDS = new Set([
  *
  * Public API otherwise unchanged (drop-in for ShipmentsRoute): `{ isOpen, onClose,
  * visibleColumns, onColumnsChange }` + the exported column/preset constants.
+ *
+ * Generalized 2026-07-28 (Product Information reuse): `allColumns` / `presets` /
+ * `defaultPresetId` are props defaulting to the Shipments constants — Shipments
+ * call sites are byte-identical. An empty `presets.odyssey` hides that group.
  */
-const ColumnPanel = forwardRef(function ColumnPanel({ isOpen, onClose, visibleColumns, onColumnsChange }, ref) {
+const ColumnPanel = forwardRef(function ColumnPanel({
+  isOpen,
+  onClose,
+  visibleColumns,
+  onColumnsChange,
+  allColumns = ALL_COLUMNS,
+  presets = PRESETS,
+  defaultPresetId = 'default-exceptions',
+}, ref) {
+  const BUILT_IN_PRESET_IDS = useMemo(() => builtInPresetIds(presets), [presets])
   const [view, setView] = useState('presets')
-  const [activePresetId, setActivePresetId] = useState('default-exceptions')
+  const [activePresetId, setActivePresetId] = useState(defaultPresetId)
   const [searchQuery, setSearchQuery] = useState('')
   const [dragOverIndex, setDragOverIndex] = useState(null)
   const [slideDir, setSlideDir] = useState('forward')
 
   // Preset store — extends the pre-existing state mechanism (route lifespan, no new
   // storage): the user-editable preset list + committed column overrides + names.
-  const [customPresets, setCustomPresets] = useState(PRESETS.custom)
+  const [customPresets, setCustomPresets] = useState(presets.custom)
   const [presetColumns, setPresetColumns] = useState({})
   const [presetNames, setPresetNames] = useState(() => {
     const m = {}
-    ;[...PRESETS.custom, ...PRESETS.odyssey].forEach(p => { m[p.id] = p.name })
+    ;[...presets.custom, ...presets.odyssey].forEach(p => { m[p.id] = p.name })
     return m
   })
 
@@ -300,7 +313,7 @@ const ColumnPanel = forwardRef(function ColumnPanel({ isOpen, onClose, visibleCo
   const pulseTimerRef = useRef(null)
   const exitIntentRef = useRef('close') // what raised the unsaved dialog: 'close' (X/outside) or 'back'
 
-  const findPreset = (id) => customPresets.find(p => p.id === id) || PRESETS.odyssey.find(p => p.id === id)
+  const findPreset = (id) => customPresets.find(p => p.id === id) || presets.odyssey.find(p => p.id === id)
   // Committed columns for a preset — the saved override, else the shipped definition.
   const committedColumnsFor = (id) => presetColumns[id] ?? findPreset(id)?.columns ?? []
 
@@ -327,12 +340,12 @@ const ColumnPanel = forwardRef(function ColumnPanel({ isOpen, onClose, visibleCo
 
   // Arrangement lists reflect the DRAFT (pending) columns, not the committed table.
   const selectedColumns = useMemo(
-    () => draftColumns.map(key => ALL_COLUMNS.find(c => c.key === key)).filter(Boolean),
-    [draftColumns],
+    () => draftColumns.map(key => allColumns.find(c => c.key === key)).filter(Boolean),
+    [draftColumns, allColumns],
   )
   const availableColumns = useMemo(() => {
     const draftSet = new Set(draftColumns)
-    let cols = ALL_COLUMNS.filter(c => !draftSet.has(c.key))
+    let cols = allColumns.filter(c => !draftSet.has(c.key))
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase()
       cols = cols.filter(c => c.label.toLowerCase().includes(q))
@@ -365,7 +378,7 @@ const ColumnPanel = forwardRef(function ColumnPanel({ isOpen, onClose, visibleCo
     if (BUILT_IN_PRESET_IDS.has(id)) return
     if ((presetColumns[id] ?? []).length > 0) return
     setCustomPresets(prev => prev.filter(p => p.id !== id))
-    setActivePresetId(prevPresetIdRef.current ?? 'default-exceptions')
+    setActivePresetId(prevPresetIdRef.current ?? defaultPresetId)
     prevPresetIdRef.current = null
   }
 
@@ -557,9 +570,13 @@ const ColumnPanel = forwardRef(function ColumnPanel({ isOpen, onClose, visibleCo
     if (deleteSelection.has(activePresetId)) {
       // The applied preset was deleted — fall back to the first surviving custom preset
       // (or the first Odyssey preset if the custom group was emptied) and apply it.
-      const fallback = remaining[0] ?? PRESETS.odyssey[0]
-      setActivePresetId(fallback.id)
-      onColumnsChange(presetColumns[fallback.id] ?? fallback.columns)
+      // Both groups emptied (possible with a props-supplied preset set): keep the
+      // current table columns, just clear the selection.
+      const fallback = remaining[0] ?? presets.odyssey[0]
+      if (fallback) {
+        setActivePresetId(fallback.id)
+        onColumnsChange(presetColumns[fallback.id] ?? fallback.columns)
+      }
     }
     setShowDeleteConfirm(false)
     handleExitDeleteMode()
@@ -607,10 +624,10 @@ const ColumnPanel = forwardRef(function ColumnPanel({ isOpen, onClose, visibleCo
           })}
         </div>
       </div>
-      <div>
+      {presets.odyssey.length > 0 && <div>
         <GroupLabel>Odyssey Presets</GroupLabel>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-1)' }}>
-          {PRESETS.odyssey.map(preset => (
+          {presets.odyssey.map(preset => (
             <MenuRowRadio
               key={preset.id}
               label={presetNames[preset.id]}
@@ -621,7 +638,7 @@ const ColumnPanel = forwardRef(function ColumnPanel({ isOpen, onClose, visibleCo
             />
           ))}
         </div>
-      </div>
+      </div>}
     </div>
   )
 

@@ -8,7 +8,7 @@ export const meta = {
   tier: 'molecule',
   version: '0.8.0',
   createdVersion: '0.8.0',
-  normalizing: false,
+  normalizing: true,
   figmaNode: '4422:711',
   codeConnect: null,
 }

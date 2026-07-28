@@ -81,6 +81,7 @@ export function mapOrderViewToFormVm(mo: ManualOrder): OrderFormValues {
     equipment: carrierEquip?.equipmentCode ?? '',
     freightTerm: mo.freightTermCode ?? '',
     shipDirection: mo.shipDirectionCode ?? '',
+    hazardous: false, // lossy — DTO carries no order-level hazmat flag; re-derives from lines (LINX-12102)
     consolidatable: consolidatableFlag?.value === 'Y',
     carrierScac: carrierEquip?.scacCode ?? '',
     equipmentReferenceNumber: mo.equipmentNumber ?? '',
@@ -97,6 +98,9 @@ export function mapOrderViewToFormVm(mo: ManualOrder): OrderFormValues {
       consignor: reverseParty('origin', mo),
       consignee: reverseParty('destination', mo),
       planningDateType: mo.requestedDateType === 'DELIVERY' ? 'DELIVERY' : 'SHIP',
+      // LINX-12095/13845 flags ride userFieldList (provisional wire home)
+      pickupAppointment: (mo.userFieldList ?? []).find(f => f.name === 'PICKUP_APPOINTMENT')?.value === 'Y',
+      deliveryAppointment: (mo.userFieldList ?? []).find(f => f.name === 'DELIVERY_APPOINTMENT')?.value === 'Y',
       earlyPickup: fromIsoTimestamp(mo.requestedPickupDate, mo.requestedPickupTimeZoneCode),
       latePickup: fromIsoTimestamp(mo.pickupAppointment, mo.pickupAppointmentTimeZoneCode),
       earlyDelivery: fromIsoTimestamp(mo.requestedDeliveryDate, mo.requestedDeliveryTimeZoneCode),

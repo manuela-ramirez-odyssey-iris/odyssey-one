@@ -1,6 +1,6 @@
-import { Fragment } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { Button, FormField } from '@odyssey/ui'
+import SelectField from './fields/SelectField.jsx'
 
 export const newRowId = () => `row-${Math.random().toString(36).slice(2, 9)}`
 
@@ -9,9 +9,17 @@ export const newRowId = () => `row-${Math.random().toString(36).slice(2, 9)}`
  * guided rows lock the Type cell) and Instructions (numbered, one desc col).
  * Rendered as a <table> so row separator borders match Efrain's design (item 8).
  *
- * columns:        [{ key, header, placeholder, maxLength? }]
+ * columns:        [{ key, header, placeholder, maxLength?, maxWidth?, select? }]
+ *                 maxWidth caps the column (Figma 6238:24599: refs 350, instr 620);
+ *                 select: { options, placeholder } renders a SelectField dropdown
+ *                 in unlocked cells (References type cell — small static list,
+ *                 so a plain dropdown, not ComboBox)
  * lockedCell:     (row, colKey) => boolean — render as static label
  * rowPlaceholder: (row, colKey) => string | undefined — per-row override
+ * canDeleteRow:   (row) => boolean — guided rows have no trash (Figma 6238:24599)
+ *
+ * Delete is a PLAIN clickable trash icon, not a Button — order-creation
+ * convention (user, 2026-07-27).
  *
  * Decision-13 Controller pattern: rows are plain objects keyed by `id`;
  * the parent owns the array (Controller + immutable updates). This component
@@ -23,20 +31,26 @@ export default function RepeatableRows({
   rows,
   lockedCell,
   rowPlaceholder,
+  canDeleteRow,
   onCellChange,   // (rowId, colKey, value)
   onDeleteRow,    // (rowId)
   onAddRow,       // ()
   addLabel,
 }) {
+  const colStyle = (col) =>
+    col.maxWidth ? { width: col.maxWidth, maxWidth: col.maxWidth } : undefined
+
   return (
     <div className="co-rep">
       {rows.length > 0 && (
         <table className="co-rep__table">
           <thead>
             <tr className="co-rep__head-row">
-              {numbered && <th className="co-rep__head text-label-sm-medium co-rep__cell--num">#</th>}
+              {numbered && <th className="co-rep__head text-label-sm-semibold co-rep__cell--num">#</th>}
               {columns.map((col) => (
-                <th key={col.key} className="co-rep__head text-label-sm-medium">{col.header}</th>
+                <th key={col.key} className="co-rep__head text-label-sm-semibold" style={colStyle(col)}>
+                  {col.header}
+                </th>
               ))}
               <th className="co-rep__head co-rep__cell--action" aria-hidden="true" />
             </tr>
@@ -49,27 +63,42 @@ export default function RepeatableRows({
                 )}
                 {columns.map((col) =>
                   lockedCell?.(row, col.key) ? (
-                    <td key={col.key} className="co-rep__locked text-label-sm-medium">{row[col.key]}</td>
+                    <td key={col.key} className="co-rep__locked text-label-sm-medium" style={colStyle(col)}>{row[col.key]}</td>
                   ) : (
-                    <td key={col.key}>
-                      <FormField
-                        showLabel={false}
-                        placeholder={rowPlaceholder?.(row, col.key) ?? col.placeholder}
-                        value={row[col.key]}
-                        maxLength={col.maxLength}
-                        onChange={(e) => onCellChange(row.id, col.key, e.target.value)}
-                      />
+                    <td key={col.key} style={colStyle(col)}>
+                      {col.select ? (
+                        <SelectField
+                          showLabel={false}
+                          placeholder={col.select.placeholder}
+                          options={typeof col.select.options === 'function'
+                            ? col.select.options(row)
+                            : col.select.options}
+                          value={row[col.key]}
+                          onChange={(val) => onCellChange(row.id, col.key, val ?? '')}
+                        />
+                      ) : (
+                        <FormField
+                          showLabel={false}
+                          placeholder={rowPlaceholder?.(row, col.key) ?? col.placeholder}
+                          value={row[col.key]}
+                          maxLength={col.maxLength}
+                          onChange={(e) => onCellChange(row.id, col.key, e.target.value)}
+                        />
+                      )}
                     </td>
                   ),
                 )}
                 <td className="co-rep__cell--action">
-                  <Button
-                    variant="icon"
-                    size="sm"
-                    icon={<Trash2 size={16} />}
-                    aria-label="Delete row"
-                    onClick={() => onDeleteRow(row.id)}
-                  />
+                  {(canDeleteRow?.(row) ?? true) && (
+                    <button
+                      type="button"
+                      className="co-rep__trash"
+                      aria-label="Delete row"
+                      onClick={() => onDeleteRow(row.id)}
+                    >
+                      <Trash2 size={20} />
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}

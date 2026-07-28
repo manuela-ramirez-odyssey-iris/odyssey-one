@@ -75,9 +75,39 @@
 .co-sections > div {
   scroll-margin-top: var(--spacing-2);
   scroll-margin-bottom: var(--spacing-4);
+  width: 100%;
+  transition: width 280ms ease, margin-left 280ms ease;
+}
+
+/* Expanded Product Information breaks out of the 1080px form column to the
+   full content width minus 24px side paddings (user directive 2026-07-28);
+   collapsing animates back. 100vw includes the scrollbar — prototype-grade. */
+.co-sections > .co-breakout {
+  --co-breakout-w: calc(100vw - var(--sidebar-width) - 2 * var(--spacing-6));
+  width: var(--co-breakout-w);
+  margin-left: calc((100% - var(--co-breakout-w)) / 2);
+}
+
+/* The Accordion reveal is a grid whose auto column sizes to content — the
+   product table's intrinsic width would inflate the whole section instead of
+   scrolling inside .co-product-table-wrap. Pin the track to the section width. */
+.co-breakout .accordion__reveal {
+  grid-template-columns: minmax(0, 1fr);
+}
+.co-breakout .accordion__reveal-inner {
+  min-width: 0;
 }
 
 .co-section-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-9);
+}
+
+/* Field rows inside a section sit 24px apart (General Info: Customer /
+   Order Number row / Ship Direction row) while section blocks keep the
+   36px co-section-body gap */
+.co-field-stack {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-6);
@@ -86,6 +116,13 @@
 .co-grid-2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-4) var(--spacing-6);
+  align-items: start;
+}
+
+.co-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: var(--spacing-4) var(--spacing-6);
   align-items: start;
 }
@@ -108,6 +145,34 @@
 .co-link-row {
   display: flex;
   align-items: center;
+}
+
+.co-link-row--center {
+  justify-content: center;
+  /* parent .co-party aligns items flex-start — stretch so centering has width */
+  align-self: stretch;
+  /* 32px above/below: parent .co-party gap (16px) + 16px margin */
+  margin-block: var(--spacing-4);
+}
+
+/* Full-row cells inside the 2-col address grid (Address 1/2 — Figma 5921:16412) */
+.co-address-grid__full {
+  grid-column: 1 / -1;
+}
+
+/* Location search ComboBox fills its party column (Figma 5920:18351) */
+.co-party .search-field {
+  width: 100%;
+}
+
+/* The normalized pickers carry standalone widths (250–320px) — inside the
+   three-equal-column triads they must fill their track instead */
+.co-triad .time-picker {
+  width: auto;
+}
+
+.co-triad .date-picker--single {
+  min-width: 0;
 }
 
 /* ── Typeahead / select dropdowns ───────────────────────── */
@@ -187,7 +252,7 @@
 .co-rep__head {
   text-align: left;
   color: var(--text-secondary);
-  padding: var(--spacing-2) var(--spacing-3) var(--spacing-2) 0;
+  padding: var(--spacing-2) var(--spacing-4); /* 16px sides (user, 2026-07-27) */
   vertical-align: middle;
 }
 
@@ -197,7 +262,7 @@
 }
 
 .co-rep__row td {
-  padding: var(--spacing-2) var(--spacing-3) var(--spacing-2) 0;
+  padding: var(--spacing-2) var(--spacing-4); /* 16px sides, matching the th (user, 2026-07-27) */
   vertical-align: middle;
   /* Achieves ~48–56px row height via FormField's natural height + padding */
 }
@@ -212,10 +277,35 @@
   text-align: center;
 }
 
+/* The narrow # column keeps slim padding so its 32px cap holds (keeps the
+   Instructions trash column flush with the References one) */
+.co-rep__table .co-rep__cell--num,
+.co-rep__table td.co-rep__cell--num,
+.co-rep__head.co-rep__cell--num {
+  padding-left: var(--spacing-1);
+  padding-right: var(--spacing-1);
+}
+
+/* Trash sits right AFTER the last capped column (Figma 6238:24599) — the
+   action cell absorbs the leftover table width, icon aligned to its left edge */
 .co-rep__cell--action {
-  width: 40px;
-  text-align: right;
+  text-align: left;
   padding-right: 0;
+}
+
+/* Order-creation convention: delete = plain clickable trash icon, not a Button */
+.co-rep__trash {
+  display: inline-flex;
+  align-items: center;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--text-tertiary);
+}
+
+.co-rep__trash:hover {
+  color: var(--text-primary);
 }
 
 /* ── Section dividers (item 8) ──────────────────────────── */
@@ -224,6 +314,24 @@
   border: none;
   border-top: 1px solid var(--border-subtle);
   margin: 0;
+}
+
+/* References divider: 32px above/below (8px margin + the 24px body gap) */
+.co-divider--spaced {
+  margin: var(--spacing-2) 0;
+}
+
+/* Add More Details groups with its divider; spacing-12 (48px) own margin-top
+   when expanded, 24px when collapsed (user, 2026-07-27), 32px total below */
+.co-addmore {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  margin: var(--spacing-12) 0 var(--spacing-2);
+}
+
+.co-addmore--collapsed {
+  margin-top: var(--spacing-6);
 }
 
 /* ── Pickup & Delivery ──────────────────────────────────── */
@@ -274,7 +382,7 @@
 .co-planning {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-4);
+  gap: var(--spacing-6);
 }
 
 .co-radio-row {
@@ -293,12 +401,12 @@
 }
 
 .co-planning-grid > .co-planning-col:first-child {
-  padding-right: var(--spacing-8);
+  padding-right: var(--spacing-5);
   border-right: 1px solid var(--border-subtle);
 }
 
 .co-planning-grid > .co-planning-col:last-child {
-  padding-left: var(--spacing-8);
+  padding-left: var(--spacing-5);
 }
 
 .co-planning-col {
@@ -444,21 +552,7 @@
 }
 
 .co-product-search {
-  width: 280px;
-}
-
-.co-product-toolbar__right {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-4);
-}
-
-/* Divider between toolbar and count line (Efrain design — screens 4) */
-.co-product-divider {
-  border: none;
-  border-top: 1px solid var(--border-subtle);
-  margin: 0;
-  width: 100%;
+  width: 320px; /* filled mock 6025:28087 */
 }
 
 .co-product-count {
@@ -503,48 +597,6 @@
   white-space: nowrap;
 }
 
-/* Cancel / Save / ⤢ as ONE in-flow group. Because the cell shrink-wraps
-   (width: 1%) and the table is auto-layout, opening the editor grows this
-   column to fit the group — widening the row and the horizontal scroll.
-   Collapsing back to the read-row ⋮ returns it to the initial narrow width. */
-.co-product-actions {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-2);
-  white-space: nowrap;
-}
-
-/* Row ⋮ — direct edit trigger (spec 2026-06-12 §B.2), no popover */
-.co-product-edit-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: none;
-  border: none;
-  padding: var(--spacing-1);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  color: var(--text-tertiary);
-  line-height: 0;
-}
-
-.co-product-edit-btn:hover {
-  color: var(--text-primary);
-  background: var(--bg-secondary);
-}
-
-/* Read-row values: bordered field-box appearance matching FormField inputs */
-.co-product-readbox {
-  display: inline-block;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  padding: var(--spacing-2) var(--spacing-3);
-  color: var(--text-secondary);
-  background: var(--bg-primary);
-  white-space: nowrap;
-  min-width: 80px;
-}
-
 .co-cell-measure {
   display: grid;
   grid-template-columns: minmax(72px, 1fr) minmax(88px, auto);
@@ -552,10 +604,105 @@
   align-items: start;
 }
 
-/* Editor-row cells host inputs; loosen the read-row nowrap */
-.co-product-editor td {
+/* All rows host live inputs (2026-07-28 rebuild — always-editable grid).
+   Everything centers to the input row's vertical middle (user fix 2026-07-28). */
+.co-prod-row td {
   white-space: normal;
-  vertical-align: top;
+  vertical-align: middle;
+  padding: var(--spacing-2) var(--spacing-2);
+}
+
+/* Line # — sticky on the LEFT (mirror of the right actions column) so the
+   row number stays visible while the grid scrolls (user fix 2026-07-28) */
+.co-prod__line-col {
+  min-width: 56px;
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--bg-primary);
+}
+
+/* Horizontal centering must out-rank `.odyssey-table th, td { text-align: left }` */
+.co-prod-table th.co-prod__line-col,
+.co-prod-table td.co-prod__line-col,
+.co-prod-table th.co-product-col-manage,
+.co-prod-table td.co-product-col-manage {
+  text-align: center;
+}
+
+/* Table header: top rule matching the bottom one + tighter 8px vertical
+   padding (user fix 2026-07-28 — .odyssey-table default is 14px) */
+.co-prod-table thead th {
+  border-top: 1px solid var(--border-subtle);
+  padding-top: var(--spacing-2);
+  padding-bottom: var(--spacing-2);
+}
+
+/* Add Product lives OUTSIDE the scroll wrap (doesn't ride the h-scroll) */
+.co-prod-add .btn--link,
+.co-prod-add .btn--link:hover {
+  text-decoration: none;
+}
+
+.co-prod__center {
+  display: flex;
+  justify-content: center;
+}
+
+/* Row ⋮ / header cog center within the sticky actions cell */
+.co-product-col-manage > * {
+  vertical-align: middle;
+}
+
+
+/* Sortable header — the label IS the button (arrows per filled mock) */
+.co-prod__sort {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: inherit;
+  white-space: nowrap;
+}
+
+.co-prod__sort-idle {
+  color: var(--deep-sea-neutral-300); /* DataTable non-driving arrow tone (DSN-300) */
+  transition: color var(--transition-fast);
+}
+
+/* Hover mirrors DataTable: idle arrow lifts to text-primary (2026-07-28) */
+.co-prod__sort:hover .co-prod__sort-idle {
+  color: var(--text-primary);
+}
+
+/* Toolbar→table and table→Add Product sit 18px apart (mock measure; off-scale,
+   component-internal geometry — no token) */
+.co-prod-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* Delimit the table: the odyssey-table skin strips the last row's rule —
+   restore it here (2026-07-28) */
+.co-prod-table tbody tr:last-child td {
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+/* Column-arrangement drawer: fixed overlay dock below the navbar (the create
+   page has no flex dock like ShipmentsRoute) — right-panel-dock--open drives
+   the width/slide exactly as in Shipments. */
+.co-product-panel-dock {
+  position: fixed;
+  top: var(--navbar-height);
+  right: 0;
+  bottom: 0;
+  z-index: 100;
+  overflow: hidden;
+  display: flex;
 }
 
 /* ── Special Services ───────────────────────────────────── */
@@ -642,5 +789,5 @@
 .co-confirm-block {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-3);
+  gap: var(--spacing-6); /* 24px (user, 2026-07-27) */
 }

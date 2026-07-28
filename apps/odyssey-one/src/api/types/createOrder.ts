@@ -34,12 +34,26 @@ export interface OrderCarrierEquipDetail {
 export interface ManualOrderLine {
   lineIdentifier: number
   shipItemIdentifier: string    // Product ID
-  productDescription: string    // 1–150 chars
+  productDescription: string    // ≤75 chars (user ruling 2026-07-28; Jira said 150)
   grossWeightValue: number
   grossWeightUomCode: string
   volumeValue: number
   volumeUomCode: string
-  shipClass: string             // interim label "Ship Class" (Q26 residual)
+  shipClass: string             // label "Product Class" (wire key unchanged)
+  // LINX-13893 per-equipment fields — optional; PROVISIONAL wire keys (no LLD
+  // home confirmed for the manual-order line shape; reconcile at live flip)
+  hazardous?: boolean
+  handlingUnit?: string
+  handlingUnitCount?: number
+  lengthValue?: number
+  widthValue?: number
+  heightValue?: number
+  dimensionUomCode?: string
+  harmonizedCode?: string
+  declaredValue?: number
+  declaredValueCurrency?: string
+  manufacturingCountryCode?: string
+  stccCode?: string
 }
 
 export interface OrderAccessorialDetail {

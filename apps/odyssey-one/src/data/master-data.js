@@ -16,20 +16,36 @@ export const OWNING_ORGS = CUSTOMERS.map((c, i) => ({
 }))
 
 // ── Equipment (typeahead, scoped by Owning Organization) ───
-// Labels are provisional fakes; codes are the shared pool.
-export const EQUIPMENT_LABELS = { FLT: 'Flatbed', LTH: 'Lowboy', VAN: 'Dry Van', REEFER: 'Refrigerated' }
-// Orgs listed here see a restricted subset; everyone else sees all four
-// (plan decision 15 — proves org scoping observably in mock mode).
+// REAL vocabulary (lookup-only swap, 2026-07-28 — lookup-vocabularies research):
+// codes from the LINX-13893 matrix + old-TMS captures. The SHARED generator
+// pool (EQUIPMENT_CODES = FLT/LTH/VAN/REEFER) is deliberately untouched —
+// swapping it requires regen + Neon reseed (DB ledger; end-of-Orders reseed).
+// Descriptions: TL/TLR/TLF old-system verbatim; others standard or inferred
+// (LTH/TLH/TT UNCONFIRMED — open Q with Ramesh/master-data).
+export const EQUIPMENT_LABELS = {
+  LTL: 'Less Than Truckload', LTR: 'LTL Refrigerated', LTH: 'LTL Hazmat',
+  TL: 'Truck Load', TLR: 'Refrigerated Box Trailer', TLH: 'TL Hazmat',
+  TT: 'Tank Truck', TLF: 'Frozen Box Trailer',
+  LCL: 'Less than Container Load', FCL: 'Full Container Load', RR: 'Rail',
+}
+export const EQUIPMENT_LOOKUP_CODES = Object.keys(EQUIPMENT_LABELS)
+// Orgs listed here see a restricted subset; everyone else sees the full
+// catalog (plan decision 15 — proves org scoping observably in mock mode).
 export const EQUIPMENT_SCOPE = {
-  ACME_LOG_01: ['VAN', 'FLT'],
-  WEYERH_01: ['FLT', 'LTH'],
+  ACME_LOG_01: ['TL', 'TLR', 'LTL', 'LTR'],
+  WEYERH_01: ['TL', 'TLF', 'RR', 'FCL', 'LCL'],
 }
 
 // ── Plain selects ──────────────────────────────────────────
+// QA-build catalog (inbox screenshot 2026-07-27): 5 display labels, default
+// Pre-Paid. Wire codes (PPD/COL/…?) unconfirmed — value=label until master
+// data answers (open Q, freight-terms lookup).
 export const FREIGHT_TERMS = [
   { value: 'Pre-Paid', label: 'Pre-Paid' },
-  { value: 'COL', label: 'COL (Collect)' },
+  { value: 'Collect', label: 'Collect' },
+  { value: 'Pre-Paid/Add', label: 'Pre-Paid/Add' },
   { value: 'Third Party', label: 'Third Party' },
+  { value: 'No Charge', label: 'No Charge' },
 ]
 export const SHIP_DIRECTIONS = [
   { value: 'Outbound', label: 'Outbound' },
@@ -38,6 +54,11 @@ export const SHIP_DIRECTIONS = [
 // The 4-option class lookup (domain-analysis §3.3). Column label stays the
 // interim constant "Ship Class" (Q26 residual — Efrain owns the canonical pick).
 export const SHIP_CLASSES = ['Product Class', 'Commodity', 'Harmonized', 'NMFC']
+
+// Reference types for the References rows (Figma 6238:24599). Mock of the
+// real `reference-codes/lookup` master data (LINX-6036); Pickup/PO Number are
+// selectable types like any other — picking one locks the row's type cell.
+export const REFERENCE_TYPES = ['Pickup Number', 'PO Number', 'BOL Number', 'Delivery Number', 'Sales Order Number', 'Seal Number', 'Shipment Number']
 
 // ── Special services (typeahead; codes from screens 5) ─────
 export const SPECIAL_SERVICES = [
@@ -50,17 +71,107 @@ export const SPECIAL_SERVICES = [
 ]
 
 // ── Carriers (SCAC typeahead; free-typed values also allowed) ──
+// Mock of master-data/v1/scac-carrier/lookup (QA capture 2026-07-27,
+// vault-sources/10-domains/orders/carriers.png): label "<SCAC> - <NAME>",
+// alphabetical by NAME (LINX-8126), many QA rows carry a "(DNU)" prefix.
+// First 7 (DNU) entries are QA-verbatim; the rest generated in the same style.
 export const CARRIERS = [
-  { scac: 'KNGT', name: 'Knight-Swift Transportation', frequency: 95 },
-  { scac: 'SCNN', name: 'Schneider National', frequency: 90 },
-  { scac: 'JBHT', name: 'J.B. Hunt Transport', frequency: 85 },
-  { scac: 'WERN', name: 'Werner Enterprises', frequency: 70 },
-  { scac: 'ODFL', name: 'Old Dominion Freight Line', frequency: 60 },
-  { scac: 'SAIA', name: 'Saia LTL Freight', frequency: 40 },
+  { scac: 'KNGT', name: 'KNIGHT-SWIFT TRANSPORTATION' },
+  { scac: 'SCNN', name: 'SCHNEIDER NATIONAL' },
+  { scac: 'JBHT', name: 'J.B. HUNT TRANSPORT' },
+  { scac: 'WERN', name: 'WERNER ENTERPRISES' },
+  { scac: 'ODFL', name: 'OLD DOMINION FREIGHT LINE' },
+  { scac: 'SAIA', name: 'SAIA LTL FREIGHT' },
+  { scac: 'TAPT', name: '(DNU) GLEN TAY TRANS' },
+  { scac: 'GEL9', name: '(DNU) GLOBAL TRANZ' },
+  { scac: 'GBYN', name: '(DNU) GO BY TRUCK' },
+  { scac: 'GAFX', name: '(DNU) GREATWIDE' },
+  { scac: 'GSCR', name: '(DNU) GROCERS SUPPLY' },
+  { scac: 'GFCG', name: '(DNU) GULF STATES CA' },
+  { scac: 'HWCI', name: '(DNU) HANDLE WITH' },
+  { scac: 'ABFS', name: 'ABF FREIGHT SYSTEM' },
+  { scac: 'AACT', name: 'AAA COOPER TRANSPORTATION' },
+  { scac: 'AVRT', name: 'AVERT TRANSPORTATION' },
+  { scac: 'BDVL', name: 'BLUE DIAMOND VAN LINES' },
+  { scac: 'CLNI', name: 'CELADON TRUCKING' },
+  { scac: 'CNWY', name: 'CONWAY FREIGHT' },
+  { scac: 'CRST', name: 'CRST INTERNATIONAL' },
+  { scac: 'CTII', name: 'CENTRAL TRANSPORT' },
+  { scac: 'DAFG', name: 'DAYTON FREIGHT LINES' },
+  { scac: 'DHRN', name: 'D.M. BOWMAN' },
+  { scac: 'EXLA', name: 'ESTES EXPRESS LINES' },
+  { scac: 'FXFE', name: 'FEDEX FREIGHT' },
+  { scac: 'FXNL', name: 'FEDEX NATIONAL LTL' },
+  { scac: 'HJBT', name: 'HEARTLAND EXPRESS' },
+  { scac: 'HMES', name: 'USF HOLLAND' },
+  { scac: 'KLLM', name: 'KLLM TRANSPORT SERVICES' },
+  { scac: 'LKVL', name: 'LAKEVILLE MOTOR EXPRESS' },
+  { scac: 'MGNM', name: 'MAGNUM LTL' },
+  { scac: 'MRTN', name: 'MARTEN TRANSPORT' },
+  { scac: 'MTVL', name: 'MONTREAL VAN LINES' },
+  { scac: 'NEMF', name: 'NEW ENGLAND MOTOR FREIGHT' },
+  { scac: 'PAAF', name: 'PAN AM FREIGHT' },
+  { scac: 'PITD', name: 'PITT OHIO EXPRESS' },
+  { scac: 'PRIJ', name: 'PRIME INC' },
+  { scac: 'PYLE', name: 'A. DUIE PYLE' },
+  { scac: 'RDWY', name: 'ROADWAY EXPRESS' },
+  { scac: 'RETL', name: 'REDDAWAY' },
+  { scac: 'RLCA', name: 'R+L CARRIERS' },
+  { scac: 'SEFL', name: 'SOUTHEASTERN FREIGHT LINES' },
+  { scac: 'SNLU', name: 'SCHNEIDER LOGISTICS' },
+  { scac: 'SWFT', name: 'SWIFT TRANSPORTATION' },
+  { scac: 'TFIN', name: 'TFORCE FREIGHT' },
+  { scac: 'UPGF', name: 'UPS GROUND FREIGHT' },
+  { scac: 'USXI', name: 'U.S. XPRESS' },
+  { scac: 'WARD', name: 'WARD TRUCKING' },
+  { scac: 'WTVA', name: '(DNU) WEST TENNESSEE VAN' },
+  { scac: 'XPOL', name: 'XPO LOGISTICS' },
+  { scac: 'YFSY', name: 'YELLOW FREIGHT SYSTEM' },
 ]
 
+// ── Extra owning orgs (create-order lookup ONLY — not in the shared
+// generator pool, so they never appear in the shipments/orders DB). Mock of
+// customer-service/v1/owning-org/lookup (QA capture 2026-07-27,
+// vault-sources/10-domains/orders/organizations.png): "<NAME> (SOURCE)" and
+// "*<NAME> SOURCE SYSTEM 01" styles. First 4 (SOURCE) + 3 starred entries are
+// QA-verbatim; the rest generated in the same style.
+export const EXTRA_ORGS = [
+  'RECKITT-BENCKISER (SOURCE)', 'REDLAND BRICK INC (SOURCE)', 'REHEIS INC (SOURCE)',
+  'REVLON CONSUMER PRODUCTS CORP (SOURCE)', '*ADAMS-REMCO SOURCE SYSTEM 01',
+  '*EASTERNWIRE SOURCE SYSTEM 01', '*HABASIT-READ SOURCE SYSTEM 01',
+  'AKZO NOBEL COATINGS (SOURCE)', 'ARKEMA INC (SOURCE)', 'ASHLAND SPECIALTY (SOURCE)',
+  'AXALTA COATING SYSTEMS (SOURCE)', 'BRENNTAG NORTH AMERICA (SOURCE)',
+  'CABOT CORPORATION (SOURCE)', 'CHEMOURS COMPANY (SOURCE)', 'CLARIANT CORP (SOURCE)',
+  'ECOLAB INC (SOURCE)', 'EVONIK INDUSTRIES (SOURCE)', 'FERRO CORPORATION (SOURCE)',
+  'GRACE & CO (SOURCE)', 'HB FULLER COMPANY (SOURCE)', 'HENKEL CORPORATION (SOURCE)',
+  'HEXION INC (SOURCE)', 'HONEYWELL PMT (SOURCE)', 'ICL SPECIALTY PRODUCTS (SOURCE)',
+  'KRATON POLYMERS (SOURCE)', 'LANXESS CORPORATION (SOURCE)', 'LUBRIZOL CORP (SOURCE)',
+  'MOMENTIVE PERFORMANCE (SOURCE)', 'OLIN CORPORATION (SOURCE)', 'PPG INDUSTRIES (SOURCE)',
+  'SABIC AMERICAS (SOURCE)', 'SOLVAY USA (SOURCE)', 'STEPAN COMPANY (SOURCE)',
+  'TRINSEO LLC (SOURCE)', 'WACKER CHEMICAL (SOURCE)',
+  '*BORAL-ROOF SOURCE SYSTEM 01', '*CARLISLE-CM SOURCE SYSTEM 01',
+  '*DELTA-FAUCET SOURCE SYSTEM 01', '*GAF-MATERIALS SOURCE SYSTEM 01',
+  '*JELD-WEN SOURCE SYSTEM 01', '*MASCO-CABINET SOURCE SYSTEM 01',
+  '*PELLA-CORP SOURCE SYSTEM 01', '*USG-CORP SOURCE SYSTEM 01',
+].map((name) => ({
+  value: name.replace(/[^A-Z0-9]+/gi, '_').replace(/^_|_$/g, ''),
+  label: name,
+}))
+
 // ── Timezones + city→TZ auto-derivation (spec §10: static map in mock) ──
-export const TIMEZONES = ['EST', 'CST', 'MST', 'PST', 'AKST', 'HST']
+// Display format "(UTC-06:00) City/Zone" per Efrain's dropdown mock
+// (vault-sources/10-domains/orders/Time zones format DropdownMenu.png,
+// 2026-07-28); wire values stay the short codes. Sorted ascending by offset
+// (most negative first) matching the mock.
+export const TIMEZONES = ['HST', 'AKST', 'PST', 'MST', 'CST', 'EST']
+export const TIMEZONE_LABELS = {
+  HST: '(UTC-10:00) Hawaii',
+  AKST: '(UTC-09:00) Alaska',
+  PST: '(UTC-08:00) Pacific Time (US & Canada)',
+  MST: '(UTC-07:00) Mountain Time (US & Canada)',
+  CST: '(UTC-06:00) Central Time (US & Canada)',
+  EST: '(UTC-05:00) Eastern Time (US & Canada)',
+}
 export const CITY_TIMEZONES = {
   Houston: 'CST', Bastrop: 'CST', Geismar: 'CST', Dallas: 'CST',
   'Lake Charles': 'CST', 'Baton Rouge': 'CST', Freeport: 'CST', Baytown: 'CST',
@@ -104,3 +215,13 @@ export const UOM_VOLUME = [
   { value: 'cuft', label: 'Cu ft' },
   { value: 'm3', label: 'm³' },
 ]
+export const UOM_DIMENSION = [
+  { value: 'ft', label: 'Ft' },
+  { value: 'in', label: 'In' },
+  { value: 'm', label: 'm' },
+]
+
+// ── Product grid catalogs (LINX-8135 handling units; LINX-8131 currencies —
+// ISO alphabetic, alphabetical) ──
+export const HANDLING_UNITS = ['BAG', 'BOX', 'DRUM', 'PLT', 'TOTE']
+export const CURRENCIES = ['CAD', 'EUR', 'MXN', 'USD']

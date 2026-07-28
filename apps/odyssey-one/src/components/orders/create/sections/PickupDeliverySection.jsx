@@ -1,15 +1,47 @@
-import { useEffect, useState } from 'react'
-import { ChevronDown, ChevronUp, Plus } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { ChevronDown, ChevronUp, MapPin, Plus } from 'lucide-react'
 import { Controller, useFormContext, useWatch } from 'react-hook-form'
-import { Alert, Button, Radio } from '@odyssey/ui'
-import TypeaheadSelect from '../fields/TypeaheadSelect.jsx'
-import DateInput from '../fields/DateInput.jsx'
-import TimeSelect from '../fields/TimeSelect.jsx'
+import { Alert, Button, Checkbox, ComboBox, Radio, TimePicker } from '@odyssey/ui'
+import DateField from '../fields/DateField.jsx'
 import TimezoneSelect from '../fields/TimezoneSelect.jsx'
 import AddressFields from './AddressFields.jsx'
 import ContactFields from './ContactFields.jsx'
 import { getPastDateWarnings } from '../schema'
+import { getLookupOptions } from '../../../../api/services/lookupService'
 import { deriveTimezone } from '../../../../data/master-data'
+
+// Location search: server lookup (org-address master data) → ComboBox
+// variant='search' (magnifier face per Figma 5920:18351); paged 25/request,
+// browse on focus, 2-char gate while typing.
+const LOOKUP_PAGE_SIZE = 25
+const pagedLocationLookup = async (q, skip = 0) => {
+  if (q.trim().length === 1) return { options: [], total: 0 }
+  const all = await getLookupOptions('org-address', q)
+  return {
+    // Rich two-line rows (Figma 6010:42268): map-pin avatar, "ID:" semibold +
+    // long name, "City, ST ZIP" sub-line
+    options: all.slice(skip, skip + LOOKUP_PAGE_SIZE).map((a) => ({
+      ...a,
+      matchId: `${a.value}:`,
+      customer: String(a.meta?.longName ?? ''),
+      address: a.description,
+    })),
+    total: all.length,
+  }
+}
+const locationRowProps = { showAvatar: true, showInfo: true, icon: <MapPin size={20} /> }
+
+// A query shaped like a location id (e.g. HCO-TX-010) that matches nothing is
+// an INVALID ID, not a plain no-match (message spec: Efrain, 2026-07-28)
+const LOCATION_ID_RE = /^[A-Za-z]{2,5}-[A-Za-z]{2}-\d+$/
+const locationEmptyMessage = (q) => {
+  const t = q.trim()
+  if (t.length === 1) return 'Type at least 2 characters'
+  if (LOCATION_ID_RE.test(t)) return 'Invalid location ID entered. Please check the value and enter the correct location ID'
+  return 'No matching locations found.'
+}
+const DUPLICATE_LOCATION_MESSAGE =
+  'Consignor & Consignee location IDs can not be the same. Please check the value and enter the correct location ID'
 
 // Lookup pick hydrates the manual fields from master data, so the mapper
 // reads ONE set of address fields regardless of entry path.
@@ -43,33 +75,60 @@ function PartyColumn({ side, title }) {
   const showContact = watch(`${base}.showContact`)
   const longName = watch(`${base}.longName`)
 
+  // Duplicate-ID guard: the OTHER party's committed location id — typing or
+  // picking it here shows the alert in the dropdown slot instead of the list
+  const otherSide = side === 'consignor' ? 'consignee' : 'consignor'
+  const otherId = watch(`pickupDelivery.${otherSide}.locationId`)
+  const [typed, setTyped] = useState('')
+  const isDuplicate = (id) => !!otherId && !!id && id.trim().toUpperCase() === otherId.toUpperCase()
+  const panelError = isDuplicate(typed) ? DUPLICATE_LOCATION_MESSAGE : undefined
+
   // id prefix following co-pickupDelivery-<side> pattern (Batch 3 parity)
   const idPrefix = `co-pickupDelivery-${side}`
 
   return (
     <div className="co-party">
-      <h3 className="co-party__title text-label-base-medium">{title}</h3>
+      <h3 className="co-party__title text-label-base-semibold">{title}</h3>
       <Controller
         name={`${base}.locationId`}
         control={control}
         render={({ field, fieldState }) => (
-          <TypeaheadSelect
+          <ComboBox
             id={`${idPrefix}-locationId`}
+            variant="search"
+            showLabel
             label="Add Location *"
             placeholder="Search for ID/Org Name, Address, City, State and Postal Code"
-            lookupType="org-address"
-            selected={field.value
-              ? { value: field.value, label: longName ? `${field.value}: ${longName}` : field.value }
-              : null}
-            onSelect={(opt) => applyLocation(setValue, base, opt)}
+            value={field.value ? (longName ? `${field.value}: ${longName}` : field.value) : ''}
+            onChange={(text) => {
+              setTyped(text)
+              // Typing invalidates the committed pick
+              const committed = field.value ? (longName ? `${field.value}: ${longName}` : field.value) : ''
+              if (field.value && text !== committed) applyLocation(setValue, base, null)
+            }}
+            loadOptions={pagedLocationLookup}
+            rowProps={locationRowProps}
+            emptyMessage={locationEmptyMessage}
+            panelError={panelError}
+            onSelect={(val, opt) => {
+              if (opt && isDuplicate(opt.value)) {
+                setTyped(opt.value) // reopening the dropdown shows the duplicate alert
+                applyLocation(setValue, base, null)
+                return
+              }
+              setTyped('')
+              applyLocation(setValue, base, opt ?? null)
+            }}
             error={fieldState.error?.message}
           />
         )}
       />
       {!manualMode && (
-        <Button variant="link" icon={<Plus size={16} />} onClick={() => setValue(`${base}.manualMode`, true)}>
-          Add Location Manually
-        </Button>
+        <div className="co-link-row co-link-row--center">
+          <Button variant="link" icon={<Plus size={16} />} onClick={() => setValue(`${base}.manualMode`, true)}>
+            Add Location Manually
+          </Button>
+        </div>
       )}
       {manualMode && (
         <>
@@ -109,7 +168,7 @@ function DateTimeGroup({ basePath, label, required, warning }) {
           name={`${basePath}.date`}
           control={control}
           render={({ field, fieldState }) => (
-            <DateInput
+            <DateField
               id={`${idPrefix}-date`}
               label={`Date${star}`}
               value={field.value}
@@ -123,9 +182,10 @@ function DateTimeGroup({ basePath, label, required, warning }) {
           name={`${basePath}.time`}
           control={control}
           render={({ field, fieldState }) => (
-            <TimeSelect
+            <TimePicker
               id={`${idPrefix}-time`}
               label={`Time${star}`}
+              placeholder="Select Time"
               value={field.value}
               onChange={field.onChange}
               error={fieldState.error?.message}
@@ -174,6 +234,38 @@ export default function PickupDeliverySection() {
   })
   const warnings = getPastDateWarnings({ earlyPickup, latePickup, earlyDelivery, lateDelivery })
 
+  // Appointment flags (LINX-12095/13845): each checkbox is enabled ONLY while
+  // its Latest date+time is filled, and auto-clears when that date/time changes.
+  const canPickupAppt = !!(latePickup?.date && latePickup?.time)
+  const canDeliveryAppt = !!(lateDelivery?.date && lateDelivery?.time)
+  const apptInitRef = useRef(true)
+  useEffect(() => {
+    if (apptInitRef.current) { apptInitRef.current = false; return } // don't clear a hydrated draft on mount
+    setValue('pickupDelivery.pickupAppointment', false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [latePickup?.date, latePickup?.time])
+  const apptInitRef2 = useRef(true)
+  useEffect(() => {
+    if (apptInitRef2.current) { apptInitRef2.current = false; return }
+    setValue('pickupDelivery.deliveryAppointment', false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lateDelivery?.date, lateDelivery?.time])
+
+  const appointmentCheckbox = (name, enabled) => (
+    <Controller
+      name={name}
+      control={control}
+      render={({ field }) => (
+        <Checkbox
+          label="Appointment"
+          checked={field.value}
+          disabled={!enabled}
+          onChange={(e) => field.onChange(e.target.checked)}
+        />
+      )}
+    />
+  )
+
   // TZ auto-derive (spec §10): pickup TZs from the consignor city, delivery
   // TZs from the consignee city — only when the field is still empty.
   useEffect(() => {
@@ -198,18 +290,20 @@ export default function PickupDeliverySection() {
 
   return (
     <div className="co-section-body">
+      {/* Renames: Consignor→Shipper (LINX-12255), Consignee→Destination
+          (LINX-13899) — wire keys stay consignor/consignee */}
       <div className="co-party-grid">
-        <PartyColumn side="consignor" title="Consignor" />
-        <PartyColumn side="consignee" title="Consignee" />
+        <PartyColumn side="consignor" title="Shipper" />
+        <PartyColumn side="consignee" title="Destination" />
       </div>
 
       <hr className="co-divider" />
 
       <div className="co-planning">
-        <h3 id="co-pickupDelivery-planning-subhead" className="co-subhead text-label-base-medium">Planning Date/Time</h3>
+        <h3 id="co-pickupDelivery-planning-subhead" className="co-subhead text-label-base-semibold">Planning Date/Time</h3>
         {planningAlertOpen && (
           <Alert variant="info" onClose={() => setPlanningAlertOpen(false)}>
-            Please enter one of the following fields: 'Late Pickup' or 'Late Delivery.'
+            Please enter one of the following fields: 'Latest Pickup' or 'Latest Delivery'.
           </Alert>
         )}
         <Controller
@@ -242,6 +336,7 @@ export default function PickupDeliverySection() {
             vertical separator (same split-gutter mechanism as co-party-grid) */}
         <div className="co-planning-grid">
           <div className="co-planning-col">
+            {appointmentCheckbox('pickupDelivery.pickupAppointment', canPickupAppt)}
             <DateTimeGroup
               basePath="pickupDelivery.earlyPickup"
               label="Earliest Pickup Date and Time"
@@ -256,6 +351,7 @@ export default function PickupDeliverySection() {
             />
           </div>
           <div className="co-planning-col">
+            {appointmentCheckbox('pickupDelivery.deliveryAppointment', canDeliveryAppt)}
             <DateTimeGroup
               basePath="pickupDelivery.earlyDelivery"
               label="Earliest Delivery Date and Time"

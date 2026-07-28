@@ -1,8 +1,7 @@
-import { getApiMode } from '../config'
-import { apiPost } from '../client'
 import {
   OWNING_ORGS,
-  EQUIPMENT_CODES,
+  EXTRA_ORGS,
+  EQUIPMENT_LOOKUP_CODES,
   EQUIPMENT_LABELS,
   EQUIPMENT_SCOPE,
   FREIGHT_TERMS,
@@ -11,6 +10,7 @@ import {
   SPECIAL_SERVICES,
   CARRIERS,
   TIMEZONES,
+  TIMEZONE_LABELS,
   LOCATION_ADDRESSES,
   CHEMICAL_PRODUCTS,
 } from '../../data/master-data'
@@ -65,10 +65,12 @@ export interface LookupParams {
 function poolFor(type: LookupType, params: LookupParams): LookupOption[] {
   switch (type) {
     case 'owning-org':
-      return OWNING_ORGS
+      // Shared-pool customers first (frequency-ranked), then the create-order-only
+      // QA-style extras alphabetically (frequency 0 → label tiebreak)
+      return [...OWNING_ORGS, ...EXTRA_ORGS.map((o) => ({ ...o, frequency: 0 }))]
     case 'equipment': {
       if (!params.orgId) return [] // scoped by Owning Organization — none picked, no catalog
-      const codes: string[] = EQUIPMENT_SCOPE[params.orgId as keyof typeof EQUIPMENT_SCOPE] ?? EQUIPMENT_CODES
+      const codes: string[] = EQUIPMENT_SCOPE[params.orgId as keyof typeof EQUIPMENT_SCOPE] ?? EQUIPMENT_LOOKUP_CODES
       return codes.map((code: string, i: number) => ({
         value: code,
         label: `${code} — ${EQUIPMENT_LABELS[code as keyof typeof EQUIPMENT_LABELS] ?? code}`,
@@ -112,12 +114,19 @@ function poolFor(type: LookupType, params: LookupParams): LookupOption[] {
       }))
     case 'timezone':
       return TIMEZONES.map((tz: string, i: number) => ({
-        value: tz, label: tz, frequency: TIMEZONES.length - i,
+        value: tz,
+        label: TIMEZONE_LABELS[tz as keyof typeof TIMEZONE_LABELS] ?? tz,
+        frequency: TIMEZONES.length - i,
       }))
     case 'carrier':
-      return CARRIERS.map((c: { scac: string; name: string; frequency: number }) => ({
-        value: c.scac, label: `${c.scac} — ${c.name}`, frequency: c.frequency,
-      }))
+      // LINX-8126: "<SCAC> - <Carrier Name>", ALPHABETICAL by name (frequency
+      // sort was struck for carriers) — descending frequency encodes name order
+      // so the global frequency sort preserves it
+      return [...CARRIERS]
+        .sort((a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name))
+        .map((c: { scac: string; name: string }, i: number, arr: unknown[]) => ({
+          value: c.scac, label: `${c.scac} - ${c.name}`, frequency: arr.length - i,
+        }))
   }
 }
 
@@ -126,22 +135,17 @@ export async function getLookupOptions(
   query: string,
   params: LookupParams = {},
 ): Promise<LookupOption[]> {
-  if (getApiMode() === 'live') {
-    // Path per spec §2.3 (v1 catalog); request body per the LLD lookup shape
-    // ({ lookup, pageNumber, pageSize }). Response-shape reconciliation is a
-    // flip-time task against live Swagger (plan decision 22).
-    // TODO(flip): map LLD lookup response envelope → LookupOption[] — response shape unverified, reconcile at live flip (see plan decision 22)
-    return apiPost<LookupOption[]>(`/order-service/v1/${type}/lookup`, {
-      lookup: query,
-      pageNumber: 0,
-      pageSize: 30,
-      ...(params.orgId ? { owningOrganizationId: params.orgId } : {}),
-    })
-  }
+  // Live mode INTENTIONALLY falls through to the mock pools: our Neon API has
+  // no lookup endpoints yet (DB slice 5) — the old live branch POSTed to
+  // /order-service/v1/<type>/lookup, got nothing, and left dropdowns empty
+  // (S95 customer-search bug). Restore a live branch when slice 5 ships;
+  // request shape per LLD: POST { lookup, pageNumber, pageSize }.
 
   const q = normalizeLookupQuery(query)
   const gateLength = q.replace(/ /g, '').length // spaces excluded (LINX-7553)
-  if (TYPEAHEAD_TYPES.has(type) && gateLength < TYPEAHEAD_MIN_CHARS) return []
+  // Empty query = BROWSE mode (chevron click lists the catalog, paged by the
+  // caller); the 2-char gate only applies once the user starts typing
+  if (TYPEAHEAD_TYPES.has(type) && gateLength > 0 && gateLength < TYPEAHEAD_MIN_CHARS) return []
 
   return poolFor(type, params)
     .filter(o =>

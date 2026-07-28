@@ -109,21 +109,35 @@ describe('productsSchema (Q26 — all five required, ≥1 row)', () => {
     expect(productsSchema.safeParse([]).success).toBe(false)
   })
 
-  it('rejects a row missing any of the five fields', () => {
+  it('rejects a row missing a required field (Product Class now optional — Figma ruling 2026-07-28)', () => {
     const base = sample().products[0]
     expect(productRowSchema.safeParse(base).success).toBe(true)
     expect(productRowSchema.safeParse({ ...base, productId: '' }).success).toBe(false)
     expect(productRowSchema.safeParse({ ...base, description: '' }).success).toBe(false)
     expect(productRowSchema.safeParse({ ...base, grossWeight: { value: '', uom: 'lb' } }).success).toBe(false)
     expect(productRowSchema.safeParse({ ...base, volume: { value: '79', uom: '' } }).success).toBe(false)
-    expect(productRowSchema.safeParse({ ...base, shipClass: '' }).success).toBe(false)
+    expect(productRowSchema.safeParse({ ...base, shipClass: '' }).success).toBe(true)
   })
 
-  it('caps description at 150 chars and requires numeric positive measures', () => {
+  it('caps description at 75 chars and requires numeric positive measures', () => {
     const base = sample().products[0]
-    expect(productRowSchema.safeParse({ ...base, description: 'x'.repeat(151) }).success).toBe(false)
+    expect(productRowSchema.safeParse({ ...base, description: 'x'.repeat(76) }).success).toBe(false)
     expect(productRowSchema.safeParse({ ...base, grossWeight: { value: 'abc', uom: 'lb' } }).success).toBe(false)
     expect(productRowSchema.safeParse({ ...base, grossWeight: { value: '0', uom: 'lb' } }).success).toBe(false)
+  })
+
+  it('ignores a fully-blank pending row but still gates on ≥1 real product', () => {
+    const blank = { id: 'p-x', hazardous: false, productId: '', description: '', grossWeight: { value: '', uom: 'lb' }, volume: { value: '', uom: 'cuft' }, shipClass: '' }
+    expect(productsSchema.safeParse([blank]).success).toBe(false) // blank-only → no product
+    expect(productsSchema.safeParse([sample().products[0], blank]).success).toBe(true)
+  })
+
+  it('pairs Declared Value with Currency (LINX-8131) and rejects decimal handling counts', () => {
+    const base = sample().products[0]
+    expect(productRowSchema.safeParse({ ...base, declaredValue: '100.00' }).success).toBe(false) // currency missing
+    expect(productRowSchema.safeParse({ ...base, declaredValue: '100.00', declaredValueCurrency: 'USD' }).success).toBe(true)
+    expect(productRowSchema.safeParse({ ...base, handlingCount: '2.5' }).success).toBe(false)
+    expect(productRowSchema.safeParse({ ...base, handlingCount: '24' }).success).toBe(true)
   })
 })
 

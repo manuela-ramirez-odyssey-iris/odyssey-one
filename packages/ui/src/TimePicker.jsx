@@ -122,6 +122,7 @@ export default function TimePicker({
   value = '',
   onChange,
   format = 'standard',
+  error: externalError,
   step = 30,
   min,
   max,
@@ -131,7 +132,7 @@ export default function TimePicker({
   id,
 }) {
   const [text, setText] = useState('')
-  const [error, setError] = useState('')
+  const [error, setError] = useState('')  // internal parse error; externalError (form validation) shows when this is clear
   const [activeIdx, setActiveIdx] = useState(-1)
   const listboxId = useId()
   const { open, setOpen, wrapperRef, wrapperProps, fieldProps, popoverProps, closeAndBlur } =
@@ -264,7 +265,7 @@ export default function TimePicker({
           </button>
         }
         disabled={disabled}
-        error={error || undefined}
+        error={error || externalError || undefined}
         onFocus={fieldProps.onFocus}
         role="combobox"
         aria-haspopup="listbox"

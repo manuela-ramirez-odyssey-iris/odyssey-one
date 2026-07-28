@@ -3847,6 +3847,8 @@ button.breadcrumb__label:focus-visible {
 .form-field--error .form-field__field { color: var(--text-error); }
 .form-field--error .form-field__field::placeholder { color: var(--text-error); }
 .form-field--error .form-field__clear { color: var(--bittersweet-600); }
+/* ComboBox error state mirrors FormField's placeholder tint (2026-07-28) */
+.search-field--error input::placeholder { color: var(--text-error); }
 
 /* FieldSelect dividers track the field state (override the atom's CSS var). */
 .form-field__input:focus-within .field-select { --field-select-divider: var(--border-strong); }
@@ -4600,9 +4602,18 @@ button.breadcrumb__label:focus-visible {
   grid-template-rows: 1fr;
 }
 
+.accordion--expanded .accordion__reveal-inner {
+  overflow: visible;
+  transition: overflow 0s 300ms allow-discrete;
+}
+
 .accordion__reveal-inner {
   overflow: hidden;
   min-height: 0;
+  /* Once the reveal settles, un-clip so field-popover shadows (ComboBox
+     typeahead) aren't cut; the discrete transition delays the flip until the
+     grid-rows animation (--transition-reveal, 300ms) finishes. Collapse
+     re-clips instantly (this base rule carries no overflow transition). */
   /* Bottom-anchor the stack: as the reveal window grows/shrinks, the content
      (and the bottom line stub) rides its bottom edge — the stub line visibly
      travels down on expand and back up on collapse, clipped at the top under

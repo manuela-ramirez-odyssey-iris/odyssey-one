@@ -1,7 +1,7 @@
 import SelectField from './SelectField.jsx'
-import { TIMEZONES } from '../../../../data/master-data'
+import { TIMEZONES, TIMEZONE_LABELS } from '../../../../data/master-data'
 
-const TZ_OPTIONS = TIMEZONES.map((tz) => ({ value: tz, label: tz }))
+const TZ_OPTIONS = TIMEZONES.map((tz) => ({ value: tz, label: TIMEZONE_LABELS[tz] ?? tz }))
 
 // Auto-derivation from the party city happens upstream (PickupDeliverySection
 // effect via deriveTimezone) — this stays a dumb select for the manual case.

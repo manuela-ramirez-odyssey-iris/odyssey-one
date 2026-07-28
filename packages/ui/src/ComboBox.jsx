@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo, useId, useCallback } from 'react'
+import { useState, useRef, useMemo, useId, useCallback, useEffect } from 'react'
 import { Search, CircleX, Info, ChevronDown } from 'lucide-react'
 import { ICON_MD, ICON_LG } from '@odyssey/tokens'
 import FieldSearchResults from './FieldSearchResults.jsx'
@@ -27,7 +27,24 @@ import { moveHighlight } from './GlobalSearch.jsx'
  *   emptyMessage  — string shown when filter matches nothing (default "No options")
  *   filter        — (inputText, option) => bool; default case-insensitive substring
  *   rowProps      — object forwarded to every MatchSimpleRow; defaults to
- *                   { showAvatar: false, showInfo: false } (compact rows)
+ *                   { showAvatar: false, showInfo: false } (compact rows).
+ *                   Options may also carry per-row fields (matchId, customer,
+ *                   address, icon) — forwarded to their MatchSimpleRow, so rich
+ *                   two-line rows (e.g. location results) work per option.
+ *   panelError    — string; renders FieldSearchResults' red alert state in the
+ *                   dropdown slot INSTEAD of the option list (e.g. duplicate
+ *                   Consignor/Consignee location ID)
+ *
+ * Form-field mode (typeahead + committed value):
+ *   value         — in typeahead mode, the COMMITTED label; the input text
+ *                   resyncs to it whenever it changes while unfocused (draft
+ *                   hydration, external clears)
+ *   onChange      — in typeahead mode fires with the raw typed text (lets a
+ *                   form invalidate a stale pick / commit free text on blur)
+ *   onSelect      — fires (value, option) — option is the full { value, label }
+ *   error         — message string; red border + inline error text (aria-invalid)
+ *   disabled      — disables the input + trailing buttons, muted surface
+ *   emptyMessage  — string, or (inputText) => string for query-dependent copy
  *
  * With none of these passed → behaviour byte-identical to today; existing consumers
  * are untouched.
@@ -68,6 +85,8 @@ export default function ComboBox({
   placeholder,
   onClear,
   variant = 'search',
+  disabled = false,
+  error,
   showLabel = false,
   label = 'Label',
   showInfoIcon = false,
@@ -91,6 +110,7 @@ export default function ComboBox({
   loadOptions,                // (query: string) => Promise<Option[]> — async, debounced
   onSelect,                   // (value: string | null) => void
   emptyMessage = 'No options',
+  panelError,
   filter = defaultFilter,
   // Typeahead rows default to the compact single-line look; pass rowProps to re-enable.
   rowProps = { showAvatar: false, showInfo: false },
@@ -103,13 +123,21 @@ export default function ComboBox({
   const inputRef = useRef(null)
 
   // ── Typeahead state (inert when typeaheadMode=false) ─────────────────────
-  const [inputText, setInputText] = useState('')
+  const [inputText, setInputText] = useState(typeaheadMode ? String(value ?? '') : '')
   const [activeIdx, setActiveIdx] = useState(-1)
   const [asyncOptions, setAsyncOptions] = useState([])
   const [loading, setLoading] = useState(false)
 
   const seqRef = useRef(0)
   const debounceRef = useRef(null)
+
+  // Form-field mode: `value` is the committed label — resync the visible text
+  // when it changes externally (draft hydration, dependent-field clears), but
+  // never mid-typing.
+  useEffect(() => {
+    if (typeaheadMode && !focused) setInputText(String(value ?? ''))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value])
 
   // ── Paged (infinite scroll) state — inert for legacy plain-array loaders ──
   // loadOptions(query, skip) may resolve { options, total }; totalRef null = legacy.
@@ -135,17 +163,26 @@ export default function ComboBox({
     return normalised.filter((o) => filter(inputText, o))
   }, [typeaheadMode, loadOptions, asyncOptions, normalised, inputText, filter])
 
-  // Map options → MatchSimpleRow match shape: matchId = label, id preserved
+  // Map options → MatchSimpleRow match shape: matchId = label (overridable),
+  // per-option row fields (customer/address/icon) pass through for rich rows
   const matches = useMemo(
-    () => filtered.map((o) => ({ matchId: o.label, id: o.value, _value: o.value })),
+    () => filtered.map((o) => ({
+      matchId: o.matchId ?? o.label,
+      customer: o.customer,
+      address: o.address,
+      icon: o.icon,
+      id: o.value,
+      _value: o.value,
+      _option: o,
+    })),
     [filtered],
   )
 
   const handleSelect = useCallback(
     (match) => {
-      setInputText(match.matchId)
+      setInputText(match._option?.label ?? match.matchId)
       setActiveIdx(-1)
-      onSelect?.(match._value ?? match.id)
+      onSelect?.(match._value ?? match.id, match._option)
       closeAndBlur()
     },
     [onSelect, closeAndBlur],
@@ -217,9 +254,10 @@ export default function ComboBox({
       setInputText(rawValue)
       setActiveIdx(-1)
       setOpen(true)
+      onChange?.(rawValue)
       runLoad(rawValue, 200)
     },
-    [runLoad, setOpen],
+    [runLoad, setOpen, onChange],
   )
 
   const handleTypeaheadKeyDown = useCallback(
@@ -236,10 +274,18 @@ export default function ComboBox({
         handleSelect(matches[activeIdx])
         return
       }
+      if (e.key === 'Enter') {
+        // No highlighted option: close + blur so free-text consumers commit
+        // the typed value via their onBlur (was a silent no-op — the text
+        // stayed visible but never committed; caught 2026-07-28)
+        e.preventDefault()
+        closeAndBlur()
+        return
+      }
       // Delegate Tab/Escape/etc to useFieldPopover
       wrapperProps.onKeyDown?.(e)
     },
-    [filtered.length, activeIdx, handleSelect, matches, wrapperProps],
+    [filtered.length, activeIdx, handleSelect, matches, wrapperProps, closeAndBlur],
   )
 
   // ── Render ───────────────────────────────────────────────────────────────
@@ -267,17 +313,22 @@ export default function ComboBox({
     marginTop: 'var(--spacing-2)',
   }
 
+  // Error/disabled borders mirror FormField (bittersweet ramp / muted surface)
+  const borderStyle = error
+    ? (focused ? '2px solid var(--bittersweet-600)' : '1px solid var(--bittersweet-200)')
+    : (focused ? '2px solid var(--deep-sea-neutral-600)' : '1px solid var(--border-default)')
+
   const inputBar = (
     <div
       className="flex items-center"
       style={{
-        height: 32,
+        // 36px = 20px content row + 8px vertical padding each side (was 32/6px —
+        // fixed 2026-07-28 to match the 36px field height, Figma synced)
+        height: 36,
         padding: '0 var(--spacing-3)',
         gap: 'var(--spacing-2)',
-        background: 'var(--bg-primary)',
-        border: focused
-          ? '2px solid var(--deep-sea-neutral-600)'
-          : '1px solid var(--border-default)',
+        background: disabled ? 'var(--bg-secondary)' : 'var(--bg-primary)',
+        border: borderStyle,
         borderRadius: 'var(--radius-md)',
         boxShadow: 'var(--shadow-sm)',
         transition: 'border-color var(--transition-fast)',
@@ -327,12 +378,15 @@ export default function ComboBox({
         aria-activedescendant={effectiveAriaActiveDesc}
         aria-autocomplete={effectiveAriaAutocomplete}
         aria-haspopup={effectiveAriaHasPopup}
+        aria-invalid={error ? 'true' : undefined}
+        disabled={disabled}
         spellCheck={false}
         autoCorrect="off"
         autoCapitalize="off"
         className="flex-1 bg-transparent border-none min-w-0"
         style={{
-          color: 'var(--text-primary)',
+          color: disabled ? 'var(--text-tertiary)' : 'var(--text-primary)',
+          cursor: disabled ? 'not-allowed' : undefined,
           fontFamily: 'var(--font-primary)',
           fontSize: 'var(--font-size-sm)',
           lineHeight: 'var(--line-height-sm)',
@@ -340,7 +394,7 @@ export default function ComboBox({
           boxShadow: 'none',
         }}
       />
-      {showClear && (
+      {showClear && !disabled && (
         <button
           type="button"
           onMouseDown={(e) => e.preventDefault()}
@@ -359,6 +413,7 @@ export default function ComboBox({
       {variant === 'select' && (
         <button
           type="button"
+          disabled={disabled}
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => {
             inputRef.current?.focus()
@@ -384,12 +439,17 @@ export default function ComboBox({
   // All three states (loading / empty / populated) route through FieldSearchResults,
   // which owns virtualization internally. FieldSearchResults gets id=listboxId so
   // aria-controls on the combobox input points at the element that carries role=listbox.
-  const typeaheadPopover = typeaheadMode && !results && open ? (
+  const resolvedEmptyMessage =
+    typeof emptyMessage === 'function' ? emptyMessage(inputText) : emptyMessage
+
+  const typeaheadPopover = typeaheadMode && !results && open && !disabled ? (
     <div style={popoverStyle} {...popoverProps}>
-      {loading ? (
+      {panelError ? (
+        <FieldSearchResults id={listboxId} matches={[]} error={panelError} />
+      ) : loading ? (
         <FieldSearchResults id={listboxId} matches={[]} emptyMessage="Loading…" />
       ) : matches.length === 0 ? (
-        <FieldSearchResults id={listboxId} matches={[]} emptyMessage={emptyMessage} />
+        <FieldSearchResults id={listboxId} matches={[]} emptyMessage={resolvedEmptyMessage} />
       ) : (
         <FieldSearchResults
           id={listboxId}
@@ -410,7 +470,7 @@ export default function ComboBox({
   if (typeaheadMode) {
     return (
       <div
-        className={`search-field ${className}`.trim()}
+        className={`search-field${error ? ' search-field--error' : ''} ${className}`.trim()}
         style={{ position: 'relative' }}
         ref={wrapperProps.ref}
         onBlur={wrapperProps.onBlur}
@@ -448,6 +508,15 @@ export default function ComboBox({
           </div>
         )}
         {inputBar}
+        {error && (
+          <p
+            className="text-label-xs-regular"
+            role="alert"
+            style={{ color: 'var(--text-error)', margin: 'var(--spacing-1) 0 0' }}
+          >
+            {error}
+          </p>
+        )}
         {typeaheadPopover}
       </div>
     )

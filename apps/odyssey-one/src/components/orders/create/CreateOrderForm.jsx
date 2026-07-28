@@ -35,7 +35,9 @@ export default function CreateOrderForm({ draftKey, onSubmitted }) {
   const { enterCreateOrderMode, exitCreateOrderMode } = useCreateOrderMode()
   const methods = useForm({
     resolver: zodResolver(createOrderSchema),
-    mode: 'onChange',
+    // Validate on first blur (leaving/clicking outside a field), live afterwards
+    // (user directive 2026-07-28 — was 'onChange', which flagged mid-typing)
+    mode: 'onTouched',
     defaultValues: makeDefaultOrderFormValues(),
   })
   const { control, formState, getValues, handleSubmit, reset } = methods
@@ -207,8 +209,9 @@ export default function CreateOrderForm({ draftKey, onSubmitted }) {
 
         {bannerOpen && (
           <div className="co-banner-enter">
+            {/* LINX-12257 (2026-07-27 comment supersedes AC) */}
             <Alert variant="warning" onClose={() => setBannerOpen(false)}>
-              Required fields will complete steps.
+              Fields marked with an asterisk (*) are required
             </Alert>
           </div>
         )}
@@ -231,7 +234,6 @@ export default function CreateOrderForm({ draftKey, onSubmitted }) {
               position="start"
               status={status.general ? 'on' : 'off'}
               title="General Information"
-              description="Order identifiers, organization, equipment, and references"
               expanded={expanded.general}
               onToggle={toggle('general')}
             >
@@ -244,7 +246,6 @@ export default function CreateOrderForm({ draftKey, onSubmitted }) {
               position="mid"
               status={status.pickupDelivery ? 'on' : 'off'}
               title="Pickup and Delivery"
-              description="Consignor, consignee, and planning dates"
               expanded={expanded.pickupDelivery}
               onToggle={toggle('pickupDelivery')}
             >
@@ -252,12 +253,13 @@ export default function CreateOrderForm({ draftKey, onSubmitted }) {
             </Accordion>
           </div>
 
-          <div ref={sectionRefs.products}>
+          {/* Expanded Product Information breaks out horizontally to reduce the
+              grid's scroll (24px side paddings — user directive 2026-07-28) */}
+          <div ref={sectionRefs.products} className={expanded.products ? 'co-breakout' : undefined}>
             <Accordion
               position="mid"
               status={status.products ? 'on' : 'off'}
-              title="Product Information 🚧"
-              description="Products on this order"
+              title="Product Information"
               expanded={expanded.products}
               onToggle={toggle('products')}
             >
@@ -270,7 +272,6 @@ export default function CreateOrderForm({ draftKey, onSubmitted }) {
               position="end"
               status={status.specialServices ? 'on' : 'off'}
               title="Special Services (Optional)"
-              description="Service requirements pulled from master data"
               expanded={expanded.specialServices}
               onToggle={toggle('specialServices')}
             >

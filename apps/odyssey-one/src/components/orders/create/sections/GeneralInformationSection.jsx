@@ -1,20 +1,37 @@
 import { useEffect, useRef, useState } from 'react'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { Controller, useFormContext } from 'react-hook-form'
-import { Button, Checkbox, FormField } from '@odyssey/ui'
-import TypeaheadSelect from '../fields/TypeaheadSelect.jsx'
+import { Button, Checkbox, ComboBox, FormField } from '@odyssey/ui'
 import SelectField from '../fields/SelectField.jsx'
 import RepeatableRows, { newRowId } from '../RepeatableRows.jsx'
-import { FREIGHT_TERMS, SHIP_DIRECTIONS } from '../../../../data/master-data'
+import { getLookupOptions } from '../../../../api/services/lookupService'
+import { EQUIPMENT_LOOKUP_CODES, EQUIPMENT_LABELS, EQUIPMENT_SCOPE, FREIGHT_TERMS, REFERENCE_TYPES, SHIP_DIRECTIONS } from '../../../../data/master-data'
+
+// Server-search fields (Jira: infinite-scroll lookups) render ComboBox —
+// Customer + Carrier. Chevron click BROWSES the catalog (first page, then
+// lazy-loads on scroll — LINX-8118 25–30/page); typing searches, gated at
+// 2 chars. Small org-scoped/static lists (Equipment / Freight Term / Ship
+// Direction / Reference Type) are plain SelectField dropdowns.
+const LOOKUP_PAGE_SIZE = 25
+const pagedLookup = (type, opts) => async (q, skip = 0) => {
+  if (q.trim().length === 1) return { options: [], total: 0 } // typing gate
+  const all = await getLookupOptions(type, q, opts)
+  return { options: all.slice(skip, skip + LOOKUP_PAGE_SIZE), total: all.length }
+}
+const gatedEmptyMessage = (q) =>
+  q.trim().length === 1 ? 'Type at least 2 characters' : 'No matches'
+
+const REFERENCE_TYPE_OPTIONS = REFERENCE_TYPES.map((t) => ({ value: t, label: t }))
 
 /**
- * General Information (spec §3.1, screens 1/1-Long).
- * Quick: Order Number (optional, auto-gen helper), Owning Organization*,
- * Equipment* (org-scoped), Freight Term* (Q20 dynamic default), Ship
- * Direction* (default Outbound), Consolidatable (checked — Q15), References.
- * Long ("Add More Details"): Additional Information (Carrier SCAC typeahead
- * w/ free text, Equipment Reference Number) + Add Instructions (Q19
- * description-only rows).
+ * General Information (spec §3.1, screens 1/1-Long; Figma 4139:8806 / 4139:9050).
+ * Quick: Customer* (full-width ComboBox — renamed from Owning Organization,
+ * LINX-13553), then Order Number / Equipment* (org-scoped ComboBox) / Freight
+ * Term* (Q20 dynamic default), then Ship Direction* / Hazardous (LINX-12102) /
+ * Consolidatable (checked — Q15), References (quick shows only the add link).
+ * Long ("Add More Details"): Additional Information (Carrier ComboBox w/ free
+ * text, Equipment Reference Number) + Add Instructions (Q19 description-only
+ * rows).
  */
 export default function GeneralInformationSection() {
   const { control, setValue, watch, getValues } = useFormContext()
@@ -22,6 +39,13 @@ export default function GeneralInformationSection() {
 
   const owningOrg = watch('general.owningOrganization')
   const owningOrgName = watch('general.owningOrganizationName')
+
+  // Equipment is an org-scoped SMALL list → plain dropdown, "CODE - meaning"
+  // labels (user, 2026-07-27; nomenclature per the TMS lookup).
+  const equipmentOptions = (owningOrg
+    ? (EQUIPMENT_SCOPE[owningOrg] ?? EQUIPMENT_LOOKUP_CODES)
+    : []
+  ).map((code) => ({ value: code, label: `${code} - ${EQUIPMENT_LABELS[code] ?? code}` }))
 
   // Q20: dynamic Freight Term default — Outbound→Pre-Paid, Inbound→COL.
   // Never overwrites once the user touched the Freight Term field.
@@ -43,7 +67,7 @@ export default function GeneralInformationSection() {
     if (g.carrierScac || g.equipmentReferenceNumber || g.instructions.length > 0) {
       setIsLongMode(true)
     }
-    const directionDefault = g.shipDirection === 'Inbound' ? 'COL' : 'Pre-Paid'
+    const directionDefault = g.shipDirection === 'Inbound' ? 'Collect' : 'Pre-Paid'
     if (g.freightTerm && g.freightTerm !== directionDefault) {
       freightTouched.current = true // re-arm: hydrated value was a deliberate user pick
     }
@@ -58,43 +82,68 @@ export default function GeneralInformationSection() {
     setValue(name, getValues(name).filter(r => r.id !== rowId), { shouldValidate: true })
   }
 
+  // LINX-12102: order hazardous derives from product lines (≥1 hazmat line ⇒
+  // hazardous, cannot be manually unchecked while one exists).
+  const products = watch('products')
+  const derivedHazardous = (products ?? []).some((r) => r?.hazardous)
+  useEffect(() => {
+    if (derivedHazardous && !getValues('general.hazardous')) {
+      setValue('general.hazardous', true)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [derivedHazardous])
+
+  const carrierTypedRef = useRef('')
+
   return (
     <div className="co-section-body">
-      <div className="co-grid-2">
+      {/* Field rows sit 24px apart; the 36px section-body gap separates blocks */}
+      <div className="co-field-stack">
+      {/* Customer sits alone on a full-width row (Figma 4139:8806) */}
+      <Controller
+        name="general.owningOrganization"
+        control={control}
+        render={({ field, fieldState }) => (
+          <ComboBox
+            id="co-general-customer"
+            variant="select"
+            showLabel
+            label="Customer *"
+            placeholder="Search an organization"
+            value={field.value ? (owningOrgName || field.value) : ''}
+            onChange={(text) => {
+              // Typing invalidates the committed pick (and the org-scoped equipment)
+              if (field.value && text !== (owningOrgName || field.value)) {
+                field.onChange('')
+                setValue('general.owningOrganizationName', '')
+                setValue('general.equipment', '') // no shouldValidate — don't flag a field the user hasn't touched
+              }
+            }}
+            loadOptions={pagedLookup('owning-org')}
+            emptyMessage={gatedEmptyMessage}
+            onSelect={(val, opt) => {
+              field.onChange(val ?? '')
+              setValue('general.owningOrganizationName', opt?.label ?? '')
+              // Equipment options are org-scoped — a different org means a different catalog
+              setValue('general.equipment', '') // no shouldValidate — don't flag a field the user hasn't touched
+            }}
+            error={fieldState.error?.message}
+          />
+        )}
+      />
+
+      <div className="co-grid-3">
         <Controller
           name="general.orderNumber"
           control={control}
-          render={({ field }) => (
-            <div>
-              <FormField
-                id="co-general-orderNumber"
-                label="Order Number"
-                placeholder="Enter an ID"
-                value={field.value}
-                onChange={(e) => field.onChange(e.target.value)}
-              />
-              <p className="co-field-hint text-label-xs-regular">Auto-generated if left blank.</p>
-            </div>
-          )}
-        />
-
-        <Controller
-          name="general.owningOrganization"
-          control={control}
           render={({ field, fieldState }) => (
-            <TypeaheadSelect
-              id="co-general-owningOrganization"
-              label="Owning Organization *"
-              placeholder="Search an organization"
-              lookupType="owning-org"
-              selected={field.value ? { value: field.value, label: owningOrgName || field.value } : null}
-              onSelect={(opt) => {
-                field.onChange(opt?.value ?? '')
-                setValue('general.owningOrganizationName', opt?.label ?? '')
-                // Equipment options are org-scoped — a different org means a different catalog
-                setValue('general.equipment', '', { shouldValidate: true })
-              }}
+            <FormField
+              id="co-general-orderNumber"
+              label="Order Number"
+              placeholder="Enter an ID"
+              value={field.value}
               error={fieldState.error?.message}
+              onChange={(e) => field.onChange(e.target.value)}
             />
           )}
         />
@@ -103,15 +152,14 @@ export default function GeneralInformationSection() {
           name="general.equipment"
           control={control}
           render={({ field, fieldState }) => (
-            <TypeaheadSelect
+            <SelectField
               id="co-general-equipment"
               label="Equipment *"
-              placeholder={owningOrg ? 'Search equipment' : 'Pick an Owning Organization first'}
-              lookupType="equipment"
-              orgId={owningOrg || undefined}
+              placeholder={owningOrg ? 'Select an equipment' : 'Pick a Customer first'}
               disabled={!owningOrg}
-              selected={field.value ? { value: field.value, label: field.value } : null}
-              onSelect={(opt) => field.onChange(opt?.value ?? '')}
+              options={equipmentOptions}
+              value={field.value}
+              onChange={(v) => field.onChange(v)}
               error={fieldState.error?.message}
             />
           )}
@@ -134,7 +182,9 @@ export default function GeneralInformationSection() {
             />
           )}
         />
+      </div>
 
+      <div className="co-grid-3">
         <Controller
           name="general.shipDirection"
           control={control}
@@ -150,11 +200,29 @@ export default function GeneralInformationSection() {
                 // changing Ship Direction and has not already picked a Freight Term.
                 // reset() never calls this handler, so draft hydration is safe.
                 if (!freightTouched.current) {
-                  setValue('general.freightTerm', v === 'Inbound' ? 'COL' : 'Pre-Paid', { shouldValidate: true })
+                  setValue('general.freightTerm', v === 'Inbound' ? 'Collect' : 'Pre-Paid', { shouldValidate: true })
                 }
               }}
               error={fieldState.error?.message}
             />
+          )}
+        />
+
+        <Controller
+          name="general.hazardous"
+          control={control}
+          render={({ field }) => (
+            <div className="co-link-row" style={{ alignSelf: 'end', paddingBottom: 6 }}>
+              <Checkbox
+                label="Hazardous"
+                checked={field.value}
+                onChange={(e) => {
+                  // LINX-12102: can't uncheck while a hazardous product line exists
+                  if (!e.target.checked && derivedHazardous) return
+                  field.onChange(e.target.checked)
+                }}
+              />
+            </div>
           )}
         />
 
@@ -172,62 +240,106 @@ export default function GeneralInformationSection() {
           )}
         />
       </div>
+      </div>
 
-      <hr className="co-divider" />
+      <hr className="co-divider co-divider--spaced" />
 
-      {/* References sit in Quick, ABOVE Add More Details (screen 1 discrepancy note) */}
+      {/* References sit in Quick, ABOVE Add More Details (screen 1 discrepancy note).
+          Quick shows only the add link — the table (incl. guided rows) renders in
+          Long, or once the user adds a row (Figma 4139:8806 vs 4139:9050). */}
       <div className="co-confirm-block">
-        <h3 className="co-subhead text-label-base-medium">References</h3>
+        <h3 className="co-subhead text-label-base-semibold">References</h3>
         <Controller
           name="general.references"
           control={control}
           render={({ field }) => (
             <RepeatableRows
-              columns={[
-                { key: 'type', header: 'Reference Type', placeholder: 'Enter Reference Type' },
-                { key: 'value', header: 'Reference Value', placeholder: 'Enter Reference Value' },
-              ]}
               rows={field.value}
-              lockedCell={(row, colKey) => row.guided && colKey === 'type'} // Q21 guided rows
+              columns={[
+                // Each row starts as a type dropdown; picking a type locks the
+                // cell into a plain label (Figma 6238:24599 — the Pickup/PO
+                // label rows in the mock are the POST-selection face)
+                {
+                  key: 'type',
+                  header: 'Reference Type',
+                  maxWidth: 350,
+                  select: {
+                    placeholder: 'Select a Reference Type',
+                    // No duplicate types: each row's dropdown excludes types
+                    // already taken by other rows (LINX-8128 only-1-of-each)
+                    options: (row) => REFERENCE_TYPE_OPTIONS.filter(
+                      (o) => !field.value.some((r) => r.id !== row.id && r.type === o.value),
+                    ),
+                  },
+                },
+                { key: 'value', header: 'Reference Value', placeholder: 'Enter Reference Value', maxWidth: 350 },
+              ]}
+              lockedCell={(row, colKey) => colKey === 'type' && !!row.type}
+              canDeleteRow={(row) => !!row.type} // the pending dropdown row can't be deleted
               rowPlaceholder={(row, colKey) =>
-                row.guided && colKey === 'value' ? `Enter a ${row.type}` : undefined}
+                row.type && colKey === 'value' ? `Enter a ${row.type}` : undefined}
               onCellChange={updateRows('general.references')}
               onDeleteRow={deleteRow('general.references')}
-              onAddRow={() =>
-                field.onChange([...field.value, { id: newRowId(), guided: false, type: '', value: '' }])}
+              onAddRow={() => {
+                // One ref line at a time: reuse the pristine dropdown row if
+                // one exists, only append once it's taken
+                const hasEmptyRow = field.value.some((r) => !r.type && !r.value)
+                if (!hasEmptyRow) {
+                  field.onChange([...field.value, { id: newRowId(), guided: false, type: '', value: '' }])
+                }
+              }}
               addLabel="Add New Reference Code"
             />
           )}
         />
       </div>
 
-      <div className="co-link-row">
-        <Button
-          variant="link"
-          iconRight={isLongMode ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-          onClick={() => setIsLongMode(v => !v)}
-        >
-          Add More Details
-        </Button>
+      {/* Add More Details groups with its divider, 32px from siblings (Figma 6238:24599) */}
+      <div className={`co-addmore${isLongMode ? '' : ' co-addmore--collapsed'}`}>
+        <hr className="co-divider" />
+        <div className="co-link-row">
+          <Button
+            variant="link"
+            iconRight={isLongMode ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            onClick={() => setIsLongMode(v => !v)}
+          >
+            Add More Details
+          </Button>
+        </div>
       </div>
 
       {isLongMode && (
         <>
           <div className="co-confirm-block">
-            <h3 className="co-subhead text-label-base-medium">Additional Information</h3>
-            <div className="co-grid-2">
+            <h3 className="co-subhead text-label-base-semibold">Additional Information</h3>
+            {/* 3-track grid caps each field at ~350px (Figma 6238:24599) */}
+            <div className="co-grid-3">
               <Controller
                 name="general.carrierScac"
                 control={control}
                 render={({ field }) => (
-                  <TypeaheadSelect
+                  <ComboBox
                     id="co-general-carrierScac"
+                    variant="select"
+                    showLabel
                     label="Customer Required Carrier"
-                    placeholder="Select a Carrier"
-                    lookupType="carrier"
-                    allowFreeText
-                    selected={field.value ? { value: field.value, label: field.value } : null}
-                    onSelect={(opt) => field.onChange(opt?.value ?? '')}
+                    placeholder="Search a Carrier"
+                    value={field.value}
+                    onChange={(text) => {
+                      carrierTypedRef.current = text
+                      if (field.value && text !== field.value) field.onChange('')
+                    }}
+                    // LINX-8126: manual (free-text) carrier entry allowed — commit on blur
+                    onBlur={() => {
+                      const text = carrierTypedRef.current.trim()
+                      if (text && text !== field.value) field.onChange(text)
+                    }}
+                    loadOptions={pagedLookup('carrier')}
+                    emptyMessage={gatedEmptyMessage}
+                    onSelect={(val) => {
+                      carrierTypedRef.current = val ?? ''
+                      field.onChange(val ?? '')
+                    }}
                   />
                 )}
               />
@@ -247,10 +359,10 @@ export default function GeneralInformationSection() {
             </div>
           </div>
 
-          <hr className="co-divider" />
+          <hr className="co-divider co-divider--spaced" />
 
           <div className="co-confirm-block">
-            <h3 className="co-subhead text-label-base-medium">Add Instructions</h3>
+            <h3 className="co-subhead text-label-base-semibold">Add Instructions</h3>
             <Controller
               name="general.instructions"
               control={control}
@@ -263,6 +375,9 @@ export default function GeneralInformationSection() {
                       header: 'Instruction Description',
                       placeholder: 'Provide instruction details',
                       maxLength: 2000, // Q19: description-only, ≤2,000 chars
+                      // Ends flush with the References value column: 350+350
+                      // minus the 32px # column, so the trash icons align
+                      maxWidth: 668,
                     }]}
                     rows={field.value}
                     onCellChange={updateRows('general.instructions')}
