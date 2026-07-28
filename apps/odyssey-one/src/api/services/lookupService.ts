@@ -101,9 +101,13 @@ function poolFor(type: LookupType, params: LookupParams): LookupOption[] {
         },
       }))
     case 'product':
+      // Product ID = legacy external_id from mf_ship_item: ~18-digit
+      // zero-padded numeric string (Master Data LLD verbatim sample
+      // "000000000000100027"). Lookup-only formatting — the shared pool /
+      // DB keep the short item codes (db-update-ledger).
       return CHEMICAL_PRODUCTS.map((p: { item: string; desc: string; hazmat: boolean }, i: number) => ({
-        value: p.item,
-        label: p.item,
+        value: String(100027 + i).padStart(18, '0'),
+        label: String(100027 + i).padStart(18, '0'),
         description: p.desc,
         frequency: CHEMICAL_PRODUCTS.length - i,
         meta: { hazmat: p.hazmat },

@@ -45,8 +45,10 @@ export default function ProductInformationSection() {
 
   // Default = header-only table, NO pending row (Figma 5368:14750 — user
   // correction 2026-07-28); Add Product creates the first row.
-  // Complete rows only count (a just-added blank row doesn't).
-  const addedCount = products.filter((p) => p.productId).length
+  // Counter tracks ROWS added (user ruling 2026-07-28): bumps the moment
+  // Add Product creates a line, blank or not — earlier committed-value
+  // definitions read "0 products added" against visible rows.
+  const addedCount = products.length
 
   return (
     <div className="co-section-body">

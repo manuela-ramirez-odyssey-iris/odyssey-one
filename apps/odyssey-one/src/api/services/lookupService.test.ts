@@ -57,7 +57,9 @@ describe('lookupService.getLookupOptions (mock)', () => {
   })
 
   it('product options carry the description for the auto-filled cell', async () => {
-    const [opt] = await getLookupOptions('product', '39011E6K')
+    const [opt] = await getLookupOptions('product', 'Polyethylene Resin HD')
     expect(opt.description).toBe('Polyethylene Resin HD')
+    // Product ID = 18-digit zero-padded external_id (Master Data LLD format)
+    expect(opt.value).toMatch(/^\d{18}$/)
   })
 })

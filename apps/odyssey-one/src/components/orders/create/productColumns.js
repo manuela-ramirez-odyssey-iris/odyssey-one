@@ -33,7 +33,7 @@ export const PRODUCT_COLUMNS = {
   length: { key: 'length', label: 'Length', type: 'measure', uomKind: 'dimension', width: 170 },
   width: { key: 'width', label: 'Width', type: 'measure', uomKind: 'dimension', width: 170 },
   height: { key: 'height', label: 'Height', type: 'measure', uomKind: 'dimension', width: 170 },
-  harmonizedCode: { key: 'harmonizedCode', label: 'Harmonized Code', type: 'text', width: 180, placeholder: 'e.g. 156600' },
+  harmonizedCode: { key: 'harmonizedCode', label: 'Harmonized Code', type: 'text', width: 180, placeholder: 'e.g. 3401.20.00.00' },
   declaredValue: { key: 'declaredValue', label: 'Declared Value', type: 'text', width: 160, placeholder: '0.00', inputMode: 'decimal' },
   declaredValueCurrency: { key: 'declaredValueCurrency', label: 'Declared Value Currency', type: 'select', width: 190, placeholder: 'Select currency' },
   manufacturingCountry: { key: 'manufacturingCountry', label: 'Manufacturing Country Code', type: 'select', width: 210, placeholder: 'Select country' },

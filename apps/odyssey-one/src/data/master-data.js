@@ -51,9 +51,21 @@ export const SHIP_DIRECTIONS = [
   { value: 'Outbound', label: 'Outbound' },
   { value: 'Inbound', label: 'Inbound' },
 ]
-// The 4-option class lookup (domain-analysis §3.3). Column label stays the
-// interim constant "Ship Class" (Q26 residual — Efrain owns the canonical pick).
-export const SHIP_CLASSES = ['Product Class', 'Commodity', 'Harmonized', 'NMFC']
+// The 4-option class-TYPE dropdown — CONFIRMED by QA screenshot + live dev
+// capture 2026-07-28: {H: Harmonized, C: Commodity, P: Product, N: NMFC}.
+// This is what the UI's "Product Class" column renders (labels below, order
+// per screenshot); wire codes are the letters H/C/P/N.
+export const SHIP_CLASSES = ['Harmonized', 'Commodity', 'Product', 'NMFC']
+
+// Product Class dropdown values — VERBATIM from the live dev capture
+// (POST /master-data/v1/product-service/v1/product-class/lookup,
+// dev.masterdata.linx 2026-07-28): the NMFC scale incl. 350/450/650.
+// Dev also returns dirty rows (LTL, 0, 055/085 dupes, a stray product) —
+// deliberately excluded from the mock.
+export const PRODUCT_CLASSES = [
+  '50', '55', '60', '65', '70', '77.5', '85', '92.5', '100', '110',
+  '125', '150', '175', '200', '250', '300', '350', '400', '450', '500', '650',
+]
 
 // Reference types for the References rows (Figma 6238:24599). Mock of the
 // real `reference-codes/lookup` master data (LINX-6036); Pickup/PO Number are
@@ -223,5 +235,15 @@ export const UOM_DIMENSION = [
 
 // ── Product grid catalogs (LINX-8135 handling units; LINX-8131 currencies —
 // ISO alphabetic, alphabetical) ──
-export const HANDLING_UNITS = ['BAG', 'BOX', 'DRUM', 'PLT', 'TOTE']
+// Handling Unit — COMPLETE catalog, verbatim from the live dev capture
+// (GET /master-data/v1/product-service/v1/handling-units 2026-07-28):
+// {CRT:Crate, BUL:Bulk, PLT:Pallet, BOX:Box, DRM:Drum}. Dropdown shows the
+// label; code is the wire value.
+export const HANDLING_UNITS = [
+  { code: 'PLT', label: 'Pallet' },
+  { code: 'BOX', label: 'Box' },
+  { code: 'DRM', label: 'Drum' },
+  { code: 'BUL', label: 'Bulk' },
+  { code: 'CRT', label: 'Crate' },
+]
 export const CURRENCIES = ['CAD', 'EUR', 'MXN', 'USD']
