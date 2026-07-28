@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { Controller, useFormContext } from 'react-hook-form'
 import { Button, Checkbox, ComboBox, FormField } from '@odyssey/ui'
-import SelectField from '../fields/SelectField.jsx'
 import RepeatableRows, { newRowId } from '../RepeatableRows.jsx'
 import { getLookupOptions } from '../../../../api/services/lookupService'
 import { EQUIPMENT_LOOKUP_CODES, EQUIPMENT_LABELS, EQUIPMENT_SCOPE, FREIGHT_TERMS, REFERENCE_TYPES, SHIP_DIRECTIONS } from '../../../../data/master-data'
@@ -11,7 +10,7 @@ import { EQUIPMENT_LOOKUP_CODES, EQUIPMENT_LABELS, EQUIPMENT_SCOPE, FREIGHT_TERM
 // Customer + Carrier. Chevron click BROWSES the catalog (first page, then
 // lazy-loads on scroll — LINX-8118 25–30/page); typing searches, gated at
 // 2 chars. Small org-scoped/static lists (Equipment / Freight Term / Ship
-// Direction / Reference Type) are plain SelectField dropdowns.
+// Direction / Reference Type) are pick-only ComboBoxes (typable={false}).
 const LOOKUP_PAGE_SIZE = 25
 const pagedLookup = (type, opts) => async (q, skip = 0) => {
   if (q.trim().length === 1) return { options: [], total: 0 } // typing gate
@@ -120,6 +119,7 @@ export default function GeneralInformationSection() {
               }
             }}
             loadOptions={pagedLookup('owning-org')}
+            rowProps={{ showAvatar: true, iconType: 'handshake' }}
             emptyMessage={gatedEmptyMessage}
             onSelect={(val, opt) => {
               field.onChange(val ?? '')
@@ -152,14 +152,17 @@ export default function GeneralInformationSection() {
           name="general.equipment"
           control={control}
           render={({ field, fieldState }) => (
-            <SelectField
+            <ComboBox
               id="co-general-equipment"
+              variant="select"
+              typable={false}
+              showLabel
               label="Equipment *"
               placeholder={owningOrg ? 'Select an equipment' : 'Pick a Customer first'}
               disabled={!owningOrg}
               options={equipmentOptions}
               value={field.value}
-              onChange={(v) => field.onChange(v)}
+              onSelect={(v) => field.onChange(v ?? '')}
               error={fieldState.error?.message}
             />
           )}
@@ -169,14 +172,17 @@ export default function GeneralInformationSection() {
           name="general.freightTerm"
           control={control}
           render={({ field, fieldState }) => (
-            <SelectField
+            <ComboBox
               id="co-general-freightTerm"
+              variant="select"
+              typable={false}
+              showLabel
               label="Freight Term *"
               options={FREIGHT_TERMS}
               value={field.value}
-              onChange={(v) => {
+              onSelect={(v) => {
                 freightTouched.current = true // Q20: user pick wins over the dynamic default
-                field.onChange(v)
+                field.onChange(v ?? '')
               }}
               error={fieldState.error?.message}
             />
@@ -189,13 +195,16 @@ export default function GeneralInformationSection() {
           name="general.shipDirection"
           control={control}
           render={({ field, fieldState }) => (
-            <SelectField
+            <ComboBox
               id="co-general-shipDirection"
+              variant="select"
+              typable={false}
+              showLabel
               label="Ship Direction *"
               options={SHIP_DIRECTIONS}
               value={field.value}
-              onChange={(v) => {
-                field.onChange(v)
+              onSelect={(v) => {
+                field.onChange(v ?? '')
                 // Q20: apply Freight Term default only when the user is the one
                 // changing Ship Direction and has not already picked a Freight Term.
                 // reset() never calls this handler, so draft hydration is safe.

@@ -16,7 +16,8 @@ export const props = [
   { name: 'onChange', type: '(value: string) => void', desc: 'Called on every keystroke.' },
   { name: 'placeholder', type: 'string', desc: "Input placeholder text (editable per instance). Variant-aware default: 'Search' (search face) / 'Select' (select face)." },
   { name: 'onClear', type: '() => void', desc: 'When provided + value is non-empty, shows a CircleX clear button that calls this on click.' },
-  { name: 'variant', type: "'search' | 'select'", desc: "Figma `Variant`. 'search' (default) = leading Search icon, no chevron — byte-identical to the former SearchField. 'select' = no leading icon; trailing ChevronDown (20px) that focuses the input on click, opens the typeahead popover when options/loadOptions are present, and rotates 180° while open." },
+  { name: 'variant', type: "'search' | 'select'", desc: "Figma `Variant`. 'search' (default) = leading Search icon, no chevron — byte-identical to the former SearchField. 'select' = no leading icon; trailing ChevronDown (20px) that TOGGLES the popover on click (close keeps focus) and rotates 180° while open." },
+  { name: 'typable', type: 'boolean', desc: "Default true. false = pick-only select (replaces the retired app-local SelectField): readOnly input, clicking anywhere on the bar toggles the FULL unfiltered option list, chevron flips, and `value` is the committed option VALUE (its label renders). Mode ladder: local list → typable={false} · filter-as-you-type → typable · fetched/lazy catalog → typable + loadOptions. Code/DSM-level behaviour — no Figma variant (zero visual delta; the Select face models the appearance)." },
   { name: 'showLabel', type: 'boolean', desc: 'Render a label row above the input bar. Default false.' },
   { name: 'label', type: 'string', desc: "Label text (only shown when showLabel=true). Default 'Label'." },
   { name: 'showInfoIcon', type: 'boolean', desc: 'Append an Info icon to the label row. Default false.' },
@@ -198,6 +199,7 @@ function TypeaheadPlayground() {
   const [source, setSource] = useState('static') // 'static' | 'async'
   const [value, setValue] = useState(null)
   const [variant, setVariant] = useState('search') // 'search' | 'select'
+  const [typable, setTypable] = useState(true)
 
   const staticOptions = useMemo(() => makeOptions(SIZES[sizeIdx].count), [sizeIdx])
 
@@ -257,6 +259,22 @@ function TypeaheadPlayground() {
             <option value="select">Select (trailing chevron)</option>
           </select>
         </label>
+        <label style={labelStyle}>
+          Data-entry mode
+          <select
+            value={typable ? 'typable' : 'pick-only'}
+            onChange={(e) => {
+              const t = e.target.value === 'typable'
+              setTypable(t)
+              if (!t) setVariant('select') // pick-only reads as a select face
+              setValue(null)
+            }}
+            style={inputStyle}
+          >
+            <option value="typable">Typable (filters as you type)</option>
+            <option value="pick-only">Pick-only (typable=false — former SelectField)</option>
+          </select>
+        </label>
         {source !== 'static' && (
           <label style={labelStyle}>
             Chunk size (limit)
@@ -279,14 +297,16 @@ function TypeaheadPlayground() {
             label="Fruit"
             showLabel
             variant={variant}
-            placeholder="Type to filter…"
+            typable={typable}
+            value={typable ? undefined : (value ?? '')}
+            placeholder={typable ? 'Type to filter…' : 'Select a fruit'}
             options={source === 'static' ? staticOptions : undefined}
             loadOptions={source !== 'static' ? loadOptions : undefined}
             onSelect={setValue}
             emptyMessage={source === 'api' ? 'No matching products' : 'No matching fruits'}
           />
           <p style={{ marginTop: 'var(--spacing-2)', fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)', fontFamily: 'var(--font-primary)' }}>
-            ↑ ↓ navigate · Enter select · Esc close
+            {typable ? '↑ ↓ navigate · Enter select · Esc close' : 'Click the bar or chevron to toggle · ↑ ↓ navigate · Enter select · Esc close'}
           </p>
         </div>
         <ul style={{ flex: '1 1 320px', minWidth: 280, display: 'grid', gridTemplateColumns: 'max-content 1fr', columnGap: '10px', listStyle: 'none', margin: 0, padding: 0 }}>
@@ -313,7 +333,11 @@ export default function ComboBoxDemo() {
         <code>loadOptions</code> — built-in virtualised popover with keyboard nav, absorbed from the
         former Autocomplete composite). With no typeahead props, behaviour is byte-identical to before.
         The <code>variant</code> prop (<code>search</code> default | <code>select</code>) swaps the
-        leading Search icon for a trailing chevron — see the Typeahead playground below.
+        leading Search icon for a trailing chevron. Within typeahead mode, the <strong>data-entry
+        mode ladder</strong> is: local list, pick-only → <code>typable=&#123;false&#125;</code> (readOnly
+        input, full list on click — the former SelectField) · local list, filter-as-you-type →{' '}
+        <code>typable</code> (default) · fetched/lazy catalog → <code>typable</code> +{' '}
+        <code>loadOptions</code>. See the Typeahead playground below.
       </p>
 
       <div className="ds-demo-section">

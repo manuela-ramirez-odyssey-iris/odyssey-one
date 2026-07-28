@@ -1,6 +1,5 @@
 import { Plus, Trash2 } from 'lucide-react'
-import { Button, FormField } from '@odyssey/ui'
-import SelectField from './fields/SelectField.jsx'
+import { Button, ComboBox, FormField } from '@odyssey/ui'
 
 export const newRowId = () => `row-${Math.random().toString(36).slice(2, 9)}`
 
@@ -11,7 +10,7 @@ export const newRowId = () => `row-${Math.random().toString(36).slice(2, 9)}`
  *
  * columns:        [{ key, header, placeholder, maxLength?, maxWidth?, select? }]
  *                 maxWidth caps the column (Figma 6238:24599: refs 350, instr 620);
- *                 select: { options, placeholder } renders a SelectField dropdown
+ *                 select: { options, placeholder } renders a pick-only ComboBox
  *                 in unlocked cells (References type cell — small static list,
  *                 so a plain dropdown, not ComboBox)
  * lockedCell:     (row, colKey) => boolean — render as static label
@@ -67,14 +66,15 @@ export default function RepeatableRows({
                   ) : (
                     <td key={col.key} style={colStyle(col)}>
                       {col.select ? (
-                        <SelectField
-                          showLabel={false}
+                        <ComboBox
+                          variant="select"
+                          typable={false}
                           placeholder={col.select.placeholder}
                           options={typeof col.select.options === 'function'
                             ? col.select.options(row)
                             : col.select.options}
                           value={row[col.key]}
-                          onChange={(val) => onCellChange(row.id, col.key, val ?? '')}
+                          onSelect={(val) => onCellChange(row.id, col.key, val ?? '')}
                         />
                       ) : (
                         <FormField

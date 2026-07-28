@@ -32,6 +32,7 @@ export default function MatchSimpleRow({
   onClick,
   showAvatar = true,
   showInfo = true,
+  twoColumn = false,
   isSelected = false,
   className = '',
   ...rest
@@ -39,6 +40,29 @@ export default function MatchSimpleRow({
   // ponytail: --clickable class drives hover/pressed CSS instead of [role="button"] so
   // role="option" rows (typeahead) get the same interaction affordance.
   const clickable = !!onClick
+  // Plain-list mode: with no avatar and no info sub-line the row is a simple
+  // item list — semibold reads too heavy, so the ID drops to label/sm regular
+  // (14px/400). User rule 2026-07-28; Figma master sync owed with the batch.
+  const plainList = !showAvatar && !(showInfo && address)
+
+  // Two-column mode (Orders special-services mock 5427:13375): code | description
+  // on a shared grid so rows align with FieldSearchResults' columnHeaders row.
+  // Plain-list typography (14px/400) on both cells.
+  if (twoColumn) {
+    return (
+      <div
+        className={`match-simple-row match-simple-row--two-col${clickable ? ' match-simple-row--clickable' : ''}${isSelected ? ' match-simple-row--selected' : ''}${className ? ` ${className}` : ''}`}
+        onClick={onClick}
+        role={onClick ? 'button' : undefined}
+        tabIndex={onClick ? 0 : undefined}
+        {...rest}
+      >
+        <span className="match-simple-row__id text-label-sm-regular">{matchId}</span>
+        <span className="text-label-sm-regular" style={{ color: 'var(--text-primary)' }}>{address}</span>
+      </div>
+    )
+  }
+
   return (
     <div
       className={`match-simple-row${clickable ? ' match-simple-row--clickable' : ''}${isSelected ? ' match-simple-row--selected' : ''}${className ? ` ${className}` : ''}`}
@@ -54,7 +78,7 @@ export default function MatchSimpleRow({
       )}
       <div className="match-simple-row__details">
         <div className="match-simple-row__main">
-          <span className="match-simple-row__id text-label-sm-semibold">{matchId}</span>
+          <span className={`match-simple-row__id ${plainList ? 'text-label-sm-regular' : 'text-label-sm-semibold'}`}>{matchId}</span>
           {customer && (
             <span className="match-simple-row__customer text-label-sm-medium">{customer}</span>
           )}

@@ -605,10 +605,11 @@
 }
 
 /* All rows host live inputs (2026-07-28 rebuild — always-editable grid).
-   Everything centers to the input row's vertical middle (user fix 2026-07-28). */
+   Top-align so a cell growing an error label pushes the row down without
+   re-centering its siblings (user fix 2026-07-28). */
 .co-prod-row td {
   white-space: normal;
-  vertical-align: middle;
+  vertical-align: top;
   padding: var(--spacing-2) var(--spacing-2);
 }
 
@@ -647,11 +648,33 @@
 .co-prod__center {
   display: flex;
   justify-content: center;
+  align-items: center;
+  min-height: 36px; /* center against the input row, not the (error-grown) cell */
+}
+
+/* Line # text centers against the 36px input row while the td stays top-aligned */
+.co-prod-row td.co-prod__line-col {
+  line-height: 36px;
 }
 
 /* Row ⋮ / header cog center within the sticky actions cell */
 .co-product-col-manage > * {
   vertical-align: middle;
+}
+
+/* Action icons center against the 36px input row while the td stays top-aligned */
+.co-prod-row td.co-product-col-manage {
+  line-height: 36px;
+}
+
+/* Edit + trash icon pair (inbox mock 2026-07-28) */
+.co-prod-row td.co-product-col-manage .co-rep__trash + .co-rep__trash {
+  margin-left: var(--spacing-3);
+}
+
+.co-rep__trash:disabled {
+  color: var(--deep-sea-neutral-300);
+  cursor: default;
 }
 
 

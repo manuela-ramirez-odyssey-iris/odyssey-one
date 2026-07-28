@@ -265,3 +265,35 @@ describe('ComboBox — typeahead mode', () => {
     })
   })
 })
+
+describe('ComboBox — pick-only mode (typable={false})', () => {
+  test('input is readOnly and renders the LABEL of the committed option VALUE', () => {
+    render(<ComboBox id="ps" label="Fruit" typable={false} options={OPTIONS} value="banana" />)
+    const input = screen.getByRole('combobox')
+    expect(input.readOnly).toBe(true)
+    expect(input.value).toBe('Banana')
+  })
+
+  test('focus opens the FULL unfiltered list; keyboard pick fires onSelect with the option VALUE', () => {
+    const onSelect = vi.fn()
+    render(<ComboBox id="ps" label="Fruit" typable={false} options={OPTIONS} value="" onSelect={onSelect} />)
+    const input = screen.getByRole('combobox')
+    fireEvent.focus(input)
+    expect(input.getAttribute('aria-expanded')).toBe('true')
+    // 2× ArrowDown over the UNFILTERED list lands on Banana (index 1) —
+    // proves no filter applies (a filtered empty list would have no highlight)
+    fireEvent.keyDown(input.closest('.search-field'), { key: 'ArrowDown' })
+    fireEvent.keyDown(input.closest('.search-field'), { key: 'ArrowDown' })
+    fireEvent.keyDown(input.closest('.search-field'), { key: 'Enter' })
+    expect(onSelect).toHaveBeenCalledWith('banana', expect.objectContaining({ value: 'banana' }))
+  })
+
+  test('mousedown on the focused bar toggles the panel closed', () => {
+    render(<ComboBox id="ps" label="Fruit" typable={false} options={OPTIONS} value="" />)
+    const input = screen.getByRole('combobox')
+    fireEvent.focus(input)
+    expect(input.getAttribute('aria-expanded')).toBe('true')
+    fireEvent.mouseDown(input)
+    expect(input.getAttribute('aria-expanded')).toBe('false')
+  })
+})

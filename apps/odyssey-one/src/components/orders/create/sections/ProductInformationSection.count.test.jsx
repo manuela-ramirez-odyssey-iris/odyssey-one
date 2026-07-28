@@ -36,10 +36,8 @@ describe('product count', () => {
     fireEvent.click(screen.getByText('Add Product'))
     fireEvent.click(screen.getByText('Add Product'))
     expect(counter()).toBe('2 products added')
-    // ⋮ ActionMenu → Delete on the first row
-    const menuButtons = screen.getAllByLabelText(/actions/i)
-    fireEvent.click(menuButtons[0])
-    fireEvent.click(screen.getByText('Delete'))
+    // Plain trash icon on the first row (inbox mock 2026-07-28)
+    fireEvent.click(screen.getAllByLabelText('Delete row')[0])
     expect(counter()).toBe('1 products added')
   })
 })

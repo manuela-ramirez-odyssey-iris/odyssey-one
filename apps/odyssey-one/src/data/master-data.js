@@ -72,14 +72,37 @@ export const PRODUCT_CLASSES = [
 // selectable types like any other — picking one locks the row's type cell.
 export const REFERENCE_TYPES = ['Pickup Number', 'PO Number', 'BOL Number', 'Delivery Number', 'Sales Order Number', 'Seal Number', 'Shipment Number']
 
-// ── Special services (typeahead; codes from screens 5) ─────
+// ── Special services (frequency-sorted per LINX-8125) ─────
+// Descriptions: first 5 from Efrain's screens; the rest transcribed verbatim
+// from the old-TMS screenshot (vault research special-services-catalog-2026-07-28
+// — real catalog is 40+, A→I visible). CODES ARE INVENTED mnemonics (real
+// charge codes unknown — swap when a dev lookup capture lands). Frequencies
+// invented for sort order. LUMP/Detention excluded per LINX-8125.
 export const SPECIAL_SERVICES = [
   { code: 'PALEXG', description: 'Pallet Jack', frequency: 90 },
   { code: 'PJC', description: 'Pallet Exchange', frequency: 80 },
   { code: 'LFT', description: 'Lift gate', frequency: 75 },
   { code: 'INSD', description: 'Inside Delivery', frequency: 50 },
   { code: 'RESD', description: 'Residential Delivery', frequency: 35 },
-  { code: 'LUMP', description: 'Lumper Service', frequency: 20 },
+  { code: 'ADVLD', description: 'Advance Loading', frequency: 30 },
+  { code: 'AHDEL', description: 'After Hours Delivery', frequency: 28 },
+  { code: 'AIR', description: 'Air', frequency: 12 },
+  { code: 'APTDEL', description: 'Appointment at Delivery', frequency: 32 },
+  { code: 'BLNDD', description: 'Blind Shipment Delivery', frequency: 10 },
+  { code: 'BLNDP', description: 'Blind Shipment Pick Up', frequency: 9 },
+  { code: 'CLEAN', description: 'Cleaning', frequency: 8 },
+  { code: 'XBORD', description: 'Cross Border Fee', frequency: 14 },
+  { code: 'DNF', description: 'DoNotFreeze', frequency: 22 },
+  { code: 'DBLRSH', description: 'Double Rush', frequency: 7 },
+  { code: 'DRVAST', description: 'Driver Assist', frequency: 26 },
+  { code: 'DRPTRL', description: 'Drop Trailer', frequency: 24 },
+  { code: 'EXPSD', description: 'Expedited Same Day', frequency: 16 },
+  { code: 'FRZN', description: 'Frozen', frequency: 18 },
+  { code: 'HAZMAT', description: 'Hazmat', frequency: 20 },
+  { code: 'HIDENS', description: 'High Density', frequency: 6 },
+  { code: 'HOLPU', description: 'Holiday Pick Up', frequency: 5 },
+  { code: 'HOSE', description: 'Hose', frequency: 4 },
+  { code: 'INBND', description: 'Inbond Freight', frequency: 11 },
 ]
 
 // ── Carriers (SCAC typeahead; free-typed values also allowed) ──

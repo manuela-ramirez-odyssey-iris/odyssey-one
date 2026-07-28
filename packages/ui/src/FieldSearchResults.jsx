@@ -30,6 +30,10 @@ const ROW_HEIGHT = 56 // ponytail: matches ComboBox's previous constant; covers 
  *   onEndReached     — fired when the last virtual row nears the end (index >= count - 5);
  *                      re-fires only after matches.length changes, never while loadingMore.
  *   loadingMore      — renders one extra 56px "Loading…" footer row inside the spacer.
+ *   columnHeaders    — [col1, col2]; renders an in-panel small-caps header row on the
+ *                      two-column grid (Orders special-services mock 5427:13375) —
+ *                      pair with rowProps={{ twoColumn: true }}.
+ *   rowHeight        — virtual row height in px (default 56; two-column rows use 40).
  */
 export default function FieldSearchResults({
   matches = [],
@@ -43,6 +47,8 @@ export default function FieldSearchResults({
   selectedIds,
   onEndReached,
   loadingMore = false,
+  columnHeaders,
+  rowHeight = ROW_HEIGHT,
   className = '',
   ...rest
 }) {
@@ -53,7 +59,7 @@ export default function FieldSearchResults({
     // +1 footer row while a next page is in flight — grows the spacer/scrollbar visibly
     count: hasMatches && !error ? matches.length + (loadingMore ? 1 : 0) : 0,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => ROW_HEIGHT,
+    estimateSize: () => rowHeight,
     overscan: 5,
   })
 
@@ -89,6 +95,15 @@ export default function FieldSearchResults({
       {error ? (
         <p className="field-search-results__alert text-label-sm-regular" role="alert">{error}</p>
       ) : hasMatches ? (
+        <>
+        {/* In-panel column headers (Orders special-services mock 5427:13375) —
+            same grid template as MatchSimpleRow's two-column rows */}
+        {columnHeaders && (
+          <div className="field-search-results__cols" aria-hidden="true">
+            <span className="text-label-xs-medium-uppercase">{columnHeaders[0]}</span>
+            <span className="text-label-xs-medium-uppercase">{columnHeaders[1]}</span>
+          </div>
+        )}
         <div
           ref={parentRef}
           className="field-search-results__list"
@@ -111,7 +126,7 @@ export default function FieldSearchResults({
                       top: 0,
                       left: 0,
                       width: '100%',
-                      height: ROW_HEIGHT,
+                      height: rowHeight,
                       transform: `translateY(${vrow.start}px)`,
                       display: 'flex',
                       alignItems: 'center',
@@ -156,6 +171,7 @@ export default function FieldSearchResults({
             })}
           </div>
         </div>
+        </>
       ) : (
         <p className="field-search-results__empty text-label-sm-regular" role="status">{emptyMessage}</p>
       )}

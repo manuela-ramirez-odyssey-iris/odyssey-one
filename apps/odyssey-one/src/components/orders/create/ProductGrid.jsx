@@ -1,9 +1,7 @@
 import { useRef, useState } from 'react'
-import { ArrowDown, ArrowUp, ArrowUpDown, Columns3Cog, EllipsisVertical, Plus } from 'lucide-react'
+import { ArrowDown, ArrowUp, ArrowUpDown, Columns3Cog, Plus, SquarePen, Trash2 } from 'lucide-react'
 import { Controller, useFormContext, useWatch } from 'react-hook-form'
-import { ActionMenu, Button, Checkbox, ComboBox, FormField } from '@odyssey/ui'
-import { ICON_MD } from '@odyssey/tokens'
-import SelectField from './fields/SelectField.jsx'
+import { Button, Checkbox, ComboBox, FormField } from '@odyssey/ui'
 import MeasureField from './fields/MeasureField.jsx'
 import { PRODUCT_COLUMNS, emptyProductRow } from './productColumns'
 import { getLookupOptions } from '../../../api/services/lookupService'
@@ -65,8 +63,9 @@ function SortIcon({ state }) {
  * on `products.${index}.${key}`, columns render from the equipment-driven
  * model (`columnKeys` — arrangement-ordered by the ColumnPanel). Structural
  * columns (Line #, actions) are pinned outside the model. The actions column
- * is a DataTable-style ActionMenu: "Add More Details" (disabled — future
- * LINX-8131) + "Delete"; its header hosts the column-arrangement trigger.
+ * is two plain icons (inbox mock 2026-07-28): edit = Add More Details
+ * (disabled — future LINX-8131) + trash = delete; its header hosts the
+ * column-arrangement trigger.
  * Header sorting physically reorders the products array (form rows renumber).
  */
 export default function ProductGrid({ columnKeys, equipment, search, onOpenColumns }) {
@@ -196,12 +195,13 @@ export default function ProductGrid({ columnKeys, equipment, search, onOpenColum
       case 'select':
         return (
           <Controller name={name} control={control} render={({ field, fieldState }) => (
-            <SelectField
-              showLabel={false}
+            <ComboBox
+              variant="select"
+              typable={false}
               placeholder={col.placeholder}
               options={SELECT_OPTIONS[col.key] ?? []}
               value={field.value}
-              onChange={field.onChange}
+              onSelect={(val) => field.onChange(val ?? '')}
               error={fieldState.error?.message}
             />
           )} />
@@ -243,8 +243,8 @@ export default function ProductGrid({ columnKeys, equipment, search, onOpenColum
                 </button>
               </th>
             ))}
-            {/* DataTable action-column pattern (ShipmentTable parity):
-                Columns3Cog 18 icon-button header, ⋮ ActionMenu rows */}
+            {/* Columns3Cog 18 icon-button header; rows carry the two plain
+                action icons (edit + trash) */}
             <th className="co-product-col-manage">
               <Button
                 variant="icon"
@@ -264,15 +264,24 @@ export default function ProductGrid({ columnKeys, equipment, search, onOpenColum
                 <td key={col.key}>{renderCell(col, index)}</td>
               ))}
               <td className="co-product-col-manage">
-                <ActionMenu
-                  icon={<EllipsisVertical {...ICON_MD} aria-hidden="true" />}
-                  align="right"
-                  ariaLabel="Product row actions"
-                  options={[
-                    { label: 'Add More Details', disabled: true, onSelect: () => {} },
-                    { label: 'Delete', danger: true, onSelect: () => deleteRow(row.id) },
-                  ]}
-                />
+                {/* Two plain action icons (inbox mock 2026-07-28): edit = Add
+                    More Details (disabled pending LINX-8131), trash = delete */}
+                <button
+                  type="button"
+                  className="co-rep__trash"
+                  aria-label="Add more details"
+                  disabled
+                >
+                  <SquarePen size={20} />
+                </button>
+                <button
+                  type="button"
+                  className="co-rep__trash"
+                  aria-label="Delete row"
+                  onClick={() => deleteRow(row.id)}
+                >
+                  <Trash2 size={20} />
+                </button>
               </td>
             </tr>
           ))}

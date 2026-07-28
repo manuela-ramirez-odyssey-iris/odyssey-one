@@ -1,7 +1,6 @@
 import { useRef } from 'react'
 import { Controller, useFormContext, useWatch } from 'react-hook-form'
 import { ComboBox, FormField } from '@odyssey/ui'
-import SelectField from '../fields/SelectField.jsx'
 import { US_STATES, COUNTRIES, CITY_OPTIONS, POSTAL_OPTIONS, LOCATION_ADDRESSES } from '../../../../data/master-data'
 
 const toOptions = (list) => list.map((v) => ({ value: v, label: v }))
@@ -57,13 +56,16 @@ export default function AddressFields({ basePath }) {
       name={`${basePath}.${name}`}
       control={control}
       render={({ field, fieldState }) => (
-        <SelectField
+        <ComboBox
           id={`${idPrefix}-${name}`}
+          variant="select"
+          typable={false}
+          showLabel
           label={label}
           placeholder={placeholder}
           options={options}
           value={field.value}
-          onChange={field.onChange}
+          onSelect={(val) => field.onChange(val ?? '')}
           error={fieldState.error?.message}
         />
       )}

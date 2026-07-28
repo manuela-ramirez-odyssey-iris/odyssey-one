@@ -8,7 +8,7 @@ export const meta = {
   createdVersion: '0.6.0',
   figmaNode: '3169:2821',
   codeConnect: 'packages/ui/src/MatchSimpleRow.figma.tsx',
-  normalizing: false,
+  normalizing: true,
 }
 
 export const props = [

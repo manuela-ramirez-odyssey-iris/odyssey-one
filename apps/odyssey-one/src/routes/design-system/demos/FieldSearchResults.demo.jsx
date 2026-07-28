@@ -11,7 +11,7 @@ export const meta = {
   // Demoted back to NORMALIZING (S89): added the additive `maxHeight` prop
   // (default 320 preserves prior behavior) so MultiSelect can cap its dropdown
   // to a 4-row viewport. Re-runs GATE B; the Angular twin picks up the delta.
-  normalizing: false,
+  normalizing: true,
 }
 
 export const props = [

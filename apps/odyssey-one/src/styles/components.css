@@ -4288,6 +4288,18 @@ button.breadcrumb__label:focus-visible {
 .match-simple-row.is-active { background: var(--bg-tertiary); }
 .match-simple-row--selected { background: var(--deep-sea-neutral-200); }
 .match-simple-row--selected:hover { background: var(--deep-sea-neutral-300); }
+/* Two-column row (Orders special-services mock 5427:13375): code | description
+   on a shared grid; header row (.field-search-results__cols) uses the same
+   template so the columns align. 40px row height (vs 56 avatar rows). */
+.match-simple-row--two-col {
+  display: grid;
+  grid-template-columns: var(--msr-col1, 160px) 1fr;
+  gap: 0 var(--spacing-3);
+  min-height: 40px;
+  padding-top: var(--spacing-2);
+  padding-bottom: var(--spacing-2);
+  box-sizing: border-box;
+}
 .match-simple-row__avatar {
   display: inline-flex;
   align-items: center;
@@ -4454,6 +4466,20 @@ button.breadcrumb__label:focus-visible {
   flex-direction: column;
   gap: var(--spacing-1);
   width: 100%;
+}
+/* In-panel column headers — same grid template + horizontal padding as the
+   two-column rows below, so the columns line up. Bottom rule per the mock. */
+.field-search-results__cols {
+  display: grid;
+  grid-template-columns: var(--msr-col1, 160px) 1fr;
+  gap: 0 var(--spacing-3);
+  padding: var(--spacing-2) var(--spacing-4);
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: var(--spacing-1);
+  color: var(--text-tertiary);
+}
+.field-search-results__cols > span {
+  white-space: nowrap; /* column titles never wrap */
 }
 /* No-match / alert — a centered message block ~one row tall (40px + the 12px body
    padding = the Figma 490×64 SearchNoMatch / SearchAlert state). */
@@ -5904,6 +5930,10 @@ button.breadcrumb__label:focus-visible {
 .multi-select__td--actions {
   padding: var(--spacing-2) var(--spacing-4);
   width: 1%;
+}
+/* Empty-state row (emptyTableMessage) — muted fill-me affordance */
+.multi-select__td--empty {
+  color: var(--text-tertiary);
 }
 
 /* === Field min-widths (desktop) ==========================================

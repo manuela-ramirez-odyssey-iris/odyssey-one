@@ -1,4 +1,5 @@
-import { useState, useRef, useMemo, useId, useCallback, useEffect } from 'react'
+import { useState, useRef, useMemo, useId, useCallback, useEffect, useLayoutEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { Search, CircleX, Info, ChevronDown } from 'lucide-react'
 import { ICON_MD, ICON_LG } from '@odyssey/tokens'
 import FieldSearchResults from './FieldSearchResults.jsx'
@@ -60,11 +61,22 @@ import { moveHighlight } from './GlobalSearch.jsx'
  * leading Search icon, no trailing chevron.
  * `variant='select'` — no leading Search icon; a trailing ChevronDown (20px,
  * matches the Figma `Select` variant) at the end of the input bar. Clicking the
- * chevron focuses the input (and opens the typeahead popover, when typeahead
- * props are present); it rotates 180° while open. Convention: when both the
- * clear-X and the chevron are visible, clear-X comes first (nearer the text),
- * chevron last — mirrors FieldSelect's trailing-chevron placement and common
- * combobox anatomy (clear affordance before the "open menu" affordance).
+ * chevron TOGGLES the popover (2026-07-28 — was open-only); it rotates 180°
+ * while open. Convention: when both the clear-X and the chevron are visible,
+ * clear-X comes first (nearer the text), chevron last — mirrors FieldSelect's
+ * trailing-chevron placement and common combobox anatomy.
+ *
+ * ── typable ─────────────────────────────────────────────────────────────────
+ * `typable` (default true) selects the data-entry mode of the typeahead face:
+ * - `typable` — the input filters `options` / drives `loadOptions` as you type;
+ *   `value` is the committed TEXT (label).
+ * - `typable={false}` — a pick-only select: the input is readOnly, clicking
+ *   anywhere on the bar toggles the full unfiltered option list, and `value`
+ *   is the committed option VALUE (the matching label renders). Replaces the
+ *   retired app-local SelectField. No Figma variant: zero visual delta — the
+ *   Select face already models the appearance (control-state convention).
+ * Mode ladder: local list → `typable={false}`; local list w/ filter-as-you-type
+ * → `typable`; fetched/lazy catalog → `typable` + `loadOptions`.
  */
 
 // ── Typeahead internals ─────────────────────────────────────────────────────
@@ -112,6 +124,7 @@ export default function ComboBox({
   emptyMessage = 'No options',
   panelError,
   filter = defaultFilter,
+  typable = true,             // false → pick-only select (readOnly input, full list, value = option value)
   // Typeahead rows default to the compact single-line look; pass rowProps to re-enable.
   rowProps = { showAvatar: false, showInfo: false },
   ...rest
@@ -146,8 +159,38 @@ export default function ComboBox({
   const queryRef = useRef('')
   const loadingMoreRef = useRef(false)
 
-  const { open, setOpen, wrapperProps, fieldProps, popoverProps, closeAndBlur } =
+  const { open, setOpen, wrapperRef, wrapperProps, fieldProps, popoverProps, closeAndBlur } =
     useFieldPopover()
+
+  // Body-portal anchoring for the typeahead panel — a position:absolute panel
+  // gets clipped by any overflow ancestor (e.g. the product grid's h-scroll
+  // wrap), so the panel renders position:fixed in a portal, tracking the
+  // wrapper rect on open/scroll/resize. React portals bubble events through
+  // the React tree, so the wrapper's blur/keydown handling is unchanged.
+  const [panelRect, setPanelRect] = useState(null)
+  useLayoutEffect(() => {
+    if (!open) {
+      setPanelRect(null)
+      return
+    }
+    const measure = () => {
+      const r = wrapperRef.current?.getBoundingClientRect()
+      if (r) {
+        // Cap the results viewport to the space below the anchor (24px viewport
+        // breathing room + the 8px panel gap) so the panel never overflows the
+        // window; floor keeps it usable when the field sits near the bottom.
+        const maxListHeight = Math.max(120, window.innerHeight - r.bottom - 48)
+        setPanelRect({ top: r.bottom, left: r.left, width: r.width, maxListHeight })
+      }
+    }
+    measure()
+    window.addEventListener('scroll', measure, true)
+    window.addEventListener('resize', measure)
+    return () => {
+      window.removeEventListener('scroll', measure, true)
+      window.removeEventListener('resize', measure)
+    }
+  }, [open, wrapperRef])
 
   const listboxId = useId()
 
@@ -159,9 +202,15 @@ export default function ComboBox({
   const filtered = useMemo(() => {
     if (!typeaheadMode) return []
     if (loadOptions) return asyncOptions
-    if (!inputText) return normalised
+    if (!typable || !inputText) return normalised // pick-only: always the full list
     return normalised.filter((o) => filter(inputText, o))
-  }, [typeaheadMode, loadOptions, asyncOptions, normalised, inputText, filter])
+  }, [typeaheadMode, loadOptions, asyncOptions, normalised, inputText, filter, typable])
+
+  // Pick-only mode: `value` is the option VALUE — render its label
+  const displayText = useMemo(() => {
+    if (typable || !typeaheadMode) return null
+    return normalised.find((o) => o.value === value)?.label ?? String(value ?? '')
+  }, [typable, typeaheadMode, normalised, value])
 
   // Map options → MatchSimpleRow match shape: matchId = label (overridable),
   // per-option row fields (customer/address/icon) pass through for rich rows
@@ -290,7 +339,7 @@ export default function ComboBox({
 
   // ── Render ───────────────────────────────────────────────────────────────
 
-  const showClear = !!onClear && !!(typeaheadMode ? inputText : value)
+  const showClear = !!onClear && !!(typeaheadMode ? (typable ? inputText : value) : value)
 
   const effectiveRole           = typeaheadMode ? 'combobox'  : role
   const effectiveAriaExpanded   = typeaheadMode ? open        : ariaExpanded
@@ -298,20 +347,22 @@ export default function ComboBox({
   const effectiveAriaActiveDesc = typeaheadMode
     ? (activeIdx >= 0 ? `${listboxId}-option-${activeIdx}` : undefined)
     : ariaActiveDescendant
-  const effectiveAriaAutocomplete = typeaheadMode ? 'list'    : ariaAutocomplete
+  const effectiveAriaAutocomplete = typeaheadMode ? (typable ? 'list' : 'none') : ariaAutocomplete
   const effectiveAriaHasPopup     = typeaheadMode ? 'listbox' : ariaHasPopup
 
   // Positioning ONLY — the card chrome (bg/radius/shadow/padding) is
   // .field-search-results, the SAME class the legacy results slot renders,
   // so typeahead and slot mode look identical. 8px gap per Figma root stack.
-  const popoverStyle = {
-    position: 'absolute',
-    top: '100%',
-    left: 0,
-    width: '100%',
-    zIndex: 50,
-    marginTop: 'var(--spacing-2)',
-  }
+  const popoverStyle = panelRect
+    ? {
+        position: 'fixed',
+        top: panelRect.top,
+        left: panelRect.left,
+        width: panelRect.width,
+        zIndex: 200,
+        marginTop: 'var(--spacing-2)',
+      }
+    : { position: 'fixed', top: 0, left: 0, visibility: 'hidden', zIndex: 200 }
 
   // Error/disabled borders mirror FormField (bittersweet ramp / muted surface)
   const borderStyle = error
@@ -349,12 +400,23 @@ export default function ComboBox({
         ref={inputRef}
         id={id}
         type="text"
-        value={typeaheadMode ? inputText : value}
+        value={displayText ?? (typeaheadMode ? inputText : value)}
         placeholder={placeholder ?? (variant === 'select' ? 'Select' : 'Search')}
+        readOnly={typeaheadMode && !typable}
         onChange={(e) =>
           typeaheadMode
             ? handleTypeaheadChange(e.target.value)
             : onChange?.(e.target.value)
+        }
+        onMouseDown={
+          typeaheadMode && !typable && !disabled
+            ? () => {
+                // Pick-only: a click on the (already-focused) bar toggles the
+                // panel; the first click focuses, and onFocus opens it.
+                if (open) setOpen(false)
+                else if (focused) setOpen(true)
+              }
+            : undefined
         }
         onFocus={(e) => {
           setFocused(true)
@@ -386,7 +448,7 @@ export default function ComboBox({
         className="flex-1 bg-transparent border-none min-w-0"
         style={{
           color: disabled ? 'var(--text-tertiary)' : 'var(--text-primary)',
-          cursor: disabled ? 'not-allowed' : undefined,
+          cursor: disabled ? 'not-allowed' : (typeaheadMode && !typable ? 'pointer' : undefined),
           fontFamily: 'var(--font-primary)',
           fontSize: 'var(--font-size-sm)',
           lineHeight: 'var(--line-height-sm)',
@@ -416,6 +478,11 @@ export default function ComboBox({
           disabled={disabled}
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => {
+            // Toggle (2026-07-28 — was open-only): close keeps focus in the field
+            if (typeaheadMode && open) {
+              setOpen(false)
+              return
+            }
             inputRef.current?.focus()
             if (typeaheadMode) setOpen(true)
           }}
@@ -442,7 +509,7 @@ export default function ComboBox({
   const resolvedEmptyMessage =
     typeof emptyMessage === 'function' ? emptyMessage(inputText) : emptyMessage
 
-  const typeaheadPopover = typeaheadMode && !results && open && !disabled ? (
+  const typeaheadPopover = typeaheadMode && !results && open && !disabled ? createPortal(
     <div style={popoverStyle} {...popoverProps}>
       {panelError ? (
         <FieldSearchResults id={listboxId} matches={[]} error={panelError} />
@@ -454,6 +521,7 @@ export default function ComboBox({
         <FieldSearchResults
           id={listboxId}
           matches={matches}
+          maxHeight={Math.min(320, panelRect?.maxListHeight ?? 320)}
           activeIndex={activeIdx}
           optionIdPrefix={listboxId}
           onMatchClick={handleSelect}
@@ -462,7 +530,8 @@ export default function ComboBox({
           loadingMore={loadingMore}
         />
       )}
-    </div>
+    </div>,
+    document.body,
   ) : null
 
   // ── Layout variants ──────────────────────────────────────────────────────

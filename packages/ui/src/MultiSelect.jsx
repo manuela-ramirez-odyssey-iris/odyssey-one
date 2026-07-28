@@ -16,6 +16,9 @@ import { moveHighlight } from './GlobalSearch.jsx'
  *
  * Code-only composite over Figma masters `MultiSelect` 4536:5333 (Closed/Open).
  * Composes FormField + FieldSearchResults/MatchSimpleRow + Badge + IconButtonGhost.
+ * Dropdown renders the TWO-COLUMN layout (code | description with in-panel
+ * column headers — Orders mock 5427:13375, decision 2026-07-28); `columnHeaders`
+ * titles both the dropdown panel and the selected-items table.
  *
  * Keyboard (mirrors ComboBox's combobox typeahead): ArrowDown/Up opens + moves
  * the active-row highlight (wraps, scrolls into view); Enter picks the active
@@ -33,6 +36,9 @@ import { moveHighlight } from './GlobalSearch.jsx'
  *   label         — FormField label.
  *   placeholder   — FormField placeholder.
  *   disabled      — passed through to FormField; hides the dropdown.
+ *   emptyTableMessage — when set, the selected-items table renders even with no
+ *                   selections (headers + this muted placeholder row) so the
+ *                   fill-me affordance is visible by default (2026-07-28).
  *   id            — passed through to FormField.
  */
 
@@ -59,6 +65,7 @@ export default function MultiSelect({
   label,
   placeholder = 'Search',
   disabled = false,
+  emptyTableMessage,
   id,
 }) {
   const [query, setQuery] = useState('')
@@ -133,7 +140,7 @@ export default function MultiSelect({
       ref={wrapperProps.ref}
       onBlur={wrapperProps.onBlur}
       onKeyDown={handleKeyDown}
-      style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-2)', width: 640 }}
+      style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-2)', width: '100%' }}
     >
       <FormField
         id={id}
@@ -178,15 +185,19 @@ export default function MultiSelect({
             onMatchClick={pick}
             activeIndex={activeIdx}
             optionIdPrefix={listboxId}
-            maxHeight={4 * 56}
-            rowProps={{ showAvatar: false }}
+            maxHeight={4 * 40}
+            rowHeight={40}
+            columnHeaders={columnHeaders}
+            rowProps={{ showAvatar: false, twoColumn: true }}
             selectedIds={selected}
           />
         </div>
       )}
 
-      {/* Selected-items table — rendered only when there are rows. */}
-      {rows.length > 0 && (
+      {/* Selected-items table. With `emptyTableMessage` it renders even when
+          empty (headers + muted placeholder row) so the fill-me affordance is
+          visible by default; without it, only when there are rows. */}
+      {(rows.length > 0 || emptyTableMessage) && (
         <table className="multi-select__table">
           <thead>
             <tr>
@@ -196,6 +207,13 @@ export default function MultiSelect({
             </tr>
           </thead>
           <tbody>
+            {rows.length === 0 && (
+              <tr>
+                <td colSpan={3} className="multi-select__td multi-select__td--empty text-label-sm-regular">
+                  {emptyTableMessage}
+                </td>
+              </tr>
+            )}
             {rows.map((o) => (
               <tr key={o.value}>
                 <td className="multi-select__td"><Badge variant="gray">{o.label}</Badge></td>

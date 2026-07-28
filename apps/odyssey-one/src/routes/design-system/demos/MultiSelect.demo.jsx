@@ -6,7 +6,7 @@ export const meta = {
   tier: 'organism',
   version: '0.8.0',
   createdVersion: '0.8.0',
-  normalizing: false,
+  normalizing: true,
   figmaNode: '4536:5333',
   codeConnect: 'packages/ui/src/MultiSelect.figma.tsx',
 }
