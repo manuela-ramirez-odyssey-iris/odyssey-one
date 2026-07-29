@@ -24,7 +24,9 @@ export const props = [
   { name: 'onMatchClick', type: '(match) => void', desc: 'Shared row click handler; overrides individual row onClick when provided. Also adds role="listbox" to the container.' },
   { name: 'activeIndex', type: 'number', desc: 'Index of the highlighted row — gets .is-active + aria-selected=true. Rows get ids `${optionIdPrefix}-option-${i}`.' },
   { name: 'optionIdPrefix', type: 'string', desc: 'Prefix for option node ids (used by combobox aria-controls + aria-activedescendant).' },
-  { name: 'rowProps', type: 'object', desc: 'Spread onto every MatchSimpleRow (e.g. { showAvatar: false, showInfo: false }).' },
+  { name: 'rowProps', type: '{ showAvatar?, showInfo?, twoColumn? }', desc: 'Spread onto every MatchSimpleRow. { twoColumn: true } switches rows to the code + description grid — pair with columnHeaders + rowHeight 40.' },
+  { name: 'columnHeaders', type: '[string, string]', desc: 'Renders an in-panel small-caps header row above the list, on the same 160px + 1fr grid as two-column rows so the columns align.' },
+  { name: 'rowHeight', type: 'number', desc: 'Virtual row height in px. Default 56 (avatar rows); 40 in two-column contexts (MultiSelect passes 40).' },
 ]
 
 export const tokens = [
@@ -73,6 +75,7 @@ function Schematic() {
         <LegendRow part={<ChildLink to="MatchSimpleRow">MatchSimpleRow</ChildLink>} tier="molecule" nested>Compact rows (id + customer + address), 4px-gapped. Always virtualized via @tanstack/react-virtual — transparent for small sets.</LegendRow>
         <LegendRow part="empty state" nested>Figma SearchNoMatch — centered <code>emptyMessage</code>, <code>--text-tertiary</code>, when <code>matches</code> is empty.</LegendRow>
         <LegendRow part="alert state" nested>Figma SearchAlert — centered <code>error</code>, <code>--text-error</code>, highest precedence.</LegendRow>
+        <LegendRow part="column headers" nested><code>columnHeaders</code> — in-panel small-caps header pair on the same grid as two-column rows. Real usage sets <code>columnHeaders</code> + <code>rowHeight=40</code> + <code>rowProps.twoColumn</code> together (the MultiSelect pattern).</LegendRow>
       </ul>
     </div>
   )
@@ -81,6 +84,7 @@ function Schematic() {
 // ── Playground ──────────────────────────────────────────────────────────────
 function Playground() {
   const [state, setState] = useState('populated') // 'populated' | 'empty' | 'alert'
+  const [twoColumn, setTwoColumn] = useState(false)
   const [note, setNote] = useState(null)
   const matches = state === 'populated' ? MOCK : []
   const error = state === 'alert' ? 'Invalid location ID entered. Please check the value and enter the correct location ID' : undefined
@@ -96,9 +100,20 @@ function Playground() {
             <option value="alert">alert (error)</option>
           </select>
         </label>
+        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-sm)', cursor: 'pointer' }}>
+          <input type="checkbox" checked={twoColumn} onChange={(e) => setTwoColumn(e.target.checked)} />
+          Two-column (columnHeaders + rowHeight 40 + rowProps.twoColumn)
+        </label>
       </div>
       <div style={{ width: 460, maxWidth: '100%', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', padding: 'var(--spacing-6)' }}>
-        <FieldSearchResults matches={matches} error={error} onMatchClick={(m) => setNote(m.matchId)} />
+        <FieldSearchResults
+          matches={matches}
+          error={error}
+          onMatchClick={(m) => setNote(m.matchId)}
+          columnHeaders={twoColumn ? ['Location ID', 'Address'] : undefined}
+          rowHeight={twoColumn ? 40 : undefined}
+          rowProps={twoColumn ? { twoColumn: true } : undefined}
+        />
       </div>
       {note && (
         <p style={{ marginTop: 'var(--spacing-2)', fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)' }}>
@@ -121,6 +136,10 @@ export default function FieldSearchResultsDemo() {
         The populated list is always virtualized via <code>@tanstack/react-virtual</code> — transparent for small sets,
         DOM-bounded for large ones. Pass <code>activeIndex</code> + <code>optionIdPrefix</code> for keyboard navigation
         in a combobox; <code>rowProps</code> spreads onto every row (e.g. <code>{'{ showAvatar: false }'}</code>).
+        For tabular option lists (the MultiSelect pattern), set <code>columnHeaders</code>{' '}
+        (small-caps in-panel header pair), <code>rowHeight=&#123;40&#125;</code> and{' '}
+        <code>rowProps=&#123;&#123; twoColumn: true &#125;&#125;</code> together — headers and rows
+        share the same 160px + 1fr grid so the columns align.
       </p>
 
       <div className="ds-demo-section">
@@ -129,7 +148,7 @@ export default function FieldSearchResultsDemo() {
       </div>
 
       <div className="ds-demo-section">
-        <h4 className="ds-demo-section__title">Playground — switch state (populated / empty / alert)</h4>
+        <h4 className="ds-demo-section__title">Playground — switch state (populated / empty / alert) + two-column</h4>
         <Playground />
       </div>
     </div>
