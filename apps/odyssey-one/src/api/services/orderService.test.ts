@@ -9,8 +9,8 @@ function mk(orderNumber: string, extra: Record<string, unknown> = {}) {
     orderNumber,
     orderSource: 'INTEGRATED',
     customer: 'ERCO_SYS_01',
-    shipDirection: 'Outbound',
-    freightTerms: 'Pre-Paid',
+    shipDirection: 'O',
+    freightTerms: 'P',
     equipment: 'VAN',
     consignor: {
       locationId: 'EW-TX-001', city: 'Houston', state: 'TX', country: 'US',

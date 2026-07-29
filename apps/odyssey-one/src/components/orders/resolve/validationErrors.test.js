@@ -5,8 +5,8 @@ import { makeDefaultOrderFormValues } from '../../../api/types/orderFormVm'
 function sampleValues() {
   const v = makeDefaultOrderFormValues()
   v.general.equipment = 'SUTU3456789'
-  v.general.freightTerm = 'Pre-Paid'
-  v.general.shipDirection = 'Outbound'
+  v.general.freightTerm = 'P'
+  v.general.shipDirection = 'O'
   v.pickupDelivery.consignor.idOrgName = 'PMX1214'
   v.pickupDelivery.consignor.address1 = '714 Warehouse St'
   v.pickupDelivery.consignor.city = 'Missoula'

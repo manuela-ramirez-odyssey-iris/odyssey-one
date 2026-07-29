@@ -7,8 +7,8 @@ const SEEDED = [
     orderNumber: 'AAA100001',
     orderSource: 'INTEGRATED',
     customer: 'ERCO_SYS_01',
-    shipDirection: 'Outbound',
-    freightTerms: 'Pre-Paid',
+    shipDirection: 'O',
+    freightTerms: 'P',
     equipment: 'VAN',
     consignor: {
       locationId: 'EW-TX-001', city: 'Houston', state: 'TX', country: 'US',
@@ -44,8 +44,8 @@ describe('orderService.getOrderView (mock)', () => {
     const vm = await getOrderView('AAA100001')
     expect(vm).not.toBeNull()
     expect(vm!.general.owningOrganization).toBe('ERCO_SYS_01')
-    expect(vm!.general.freightTerm).toBe('Pre-Paid')
-    expect(vm!.general.shipDirection).toBe('Outbound')
+    expect(vm!.general.freightTerm).toBe('P')
+    expect(vm!.general.shipDirection).toBe('O')
     expect(vm!.pickupDelivery.consignor.city).toBe('Houston')
     expect(vm!.pickupDelivery.consignee.city).toBe('Bastrop')
     expect(vm!.pickupDelivery.earlyPickup.date).toBe('06/10/2026')

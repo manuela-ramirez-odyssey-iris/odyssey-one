@@ -35,8 +35,8 @@ describe('mapOrderViewToFormVm (DTO → form VM)', () => {
   const dto: ManualOrder = {
     orderNumber: 'S260004NGW',
     customerId: 'ERCO_SYS_01',
-    freightTermCode: 'Pre-Paid',
-    shipDirectionCode: 'Outbound',
+    freightTermCode: 'P',
+    shipDirectionCode: 'O',
     pickupNumber: '41197',
     poNumber: 'PO-9',
     requestedDateType: 'DELIVERY',
@@ -86,8 +86,8 @@ describe('mapOrderViewToFormVm (DTO → form VM)', () => {
   it('maps the general header fields', () => {
     expect(vm.general.orderNumber).toBe('S260004NGW')
     expect(vm.general.owningOrganization).toBe('ERCO_SYS_01')
-    expect(vm.general.freightTerm).toBe('Pre-Paid')
-    expect(vm.general.shipDirection).toBe('Outbound')
+    expect(vm.general.freightTerm).toBe('P')
+    expect(vm.general.shipDirection).toBe('O')
     expect(vm.general.equipment).toBe('VAN')
     expect(vm.general.carrierScac).toBe('KNGT')
     expect(vm.general.equipmentReferenceNumber).toBe('EQ-REF-9')

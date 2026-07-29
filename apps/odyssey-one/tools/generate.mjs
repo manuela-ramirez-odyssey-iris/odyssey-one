@@ -116,7 +116,7 @@ const ROUTE_GROUPS = ['Primary', 'Backup', 'Spot'];
 const PACKAGE_TYPES = ['Boxes', 'Pallets', 'Bags', 'Drums', 'Totes', 'Crates'];
 // Wire-code vocabulary (DB ledger row 2): rows store the letter codes; the UI
 // maps code → label at render. Shipment detail and order rows agree verbatim.
-const PAYMENT_TERMS = FREIGHT_TERMS.map((t) => t.value)          // P/C/A/T/N
+const PAYMENT_TERM_CODES = FREIGHT_TERMS.map((t) => t.value)          // P/C/A/T/N
 const SHIP_DIRECTION_CODES = SHIP_DIRECTIONS.map((d) => d.value) // O/I
 const HAZMAT_CLASSES = ['Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 8', 'Class 9'];
 const HAZMAT_GROUPS = ['I', 'II', 'III'];
@@ -312,7 +312,7 @@ function generateShipment(index) {
   const deliveryDate = genDate(baseDate, transitDays);
   // Shared per-shipment facts the order rows must agree with (I2)
   const shipDirection = pick(SHIP_DIRECTION_CODES);
-  const freightTerms = pick(PAYMENT_TERMS);
+  const freightTerms = pick(PAYMENT_TERM_CODES);
 
   // Orders per shipment — business rule: AT MOST 5 orders with a valid id
   // (the badge palette and order tabs assume this cap). The cap is NOT the
@@ -957,7 +957,7 @@ function generateShipment(index) {
       specialServices: orderSpecialServices,
       poNumber: `PO-${faker.number.int({ min: 100000, max: 999999 })}`,
       bolNo: `BOL-${faker.number.int({ min: 100000, max: 999999 })}`,
-      shipDirectionCode: shipDirection, // I2 — already the wire code ('O'/'I')
+      shipDirectionCode: shipDirection, // I2 — same value as the shipment + order row
       origin: {
         externalIdentifier: shipFromLoc.facility,
         fullName: shipFromCustomer.name,
@@ -1314,7 +1314,7 @@ function generateUnshippedOrder(n, pending) {
     orderSource: pending ? 'MANUAL' : pick(['INTEGRATED', 'INTEGRATED', 'MANUAL']),
     customer: customer.id,
     shipDirection: pick(SHIP_DIRECTION_CODES),
-    freightTerms: pick(PAYMENT_TERMS),
+    freightTerms: pick(PAYMENT_TERM_CODES),
     equipment: pick(EQUIPMENT_CODES),
     consignor: {
       locationId: locationIdFor(from, originIdx),

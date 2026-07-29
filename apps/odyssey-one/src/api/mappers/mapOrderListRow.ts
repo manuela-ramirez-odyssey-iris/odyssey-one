@@ -1,5 +1,6 @@
 import type { OrderListRow } from '../types/orderList'
 import type { OrderRowVM } from '../types/orderRowVm'
+import { freightTermLabel, shipDirectionLabel } from '../../data/master-data'
 
 // LLD row DTO → flat grid view-model. This is the single place to reconcile
 // real field names / formats when the live Swagger lands.
@@ -59,8 +60,8 @@ export function mapOrderListRow(row: OrderListRow): OrderRowVM {
     status: s(row.orderStatus),
     hazardous: row.hazardous === true,
     orderSource: titleCase(row.orderSource),
-    shipDirection: s(row.shipDirection),
-    freightTerms: s(row.freightTerms),
+    shipDirection: shipDirectionLabel(s(row.shipDirection)),
+    freightTerms: freightTermLabel(s(row.freightTerms)),
     shipperLocation: locationCell(row.consignor),
     destinationLocation: locationCell(row.consignee),
     latestPickup: formatLongDateTime(row.consignor?.latestPickupDateTime),

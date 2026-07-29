@@ -68,7 +68,7 @@ export default function GeneralInformationSection() {
     if (g.carrierScac || g.equipmentReferenceNumber || g.instructions.length > 0) {
       setIsLongMode(true)
     }
-    const directionDefault = g.shipDirection === 'Inbound' ? 'Collect' : 'Pre-Paid'
+    const directionDefault = g.shipDirection === 'I' ? 'C' : 'P'
     if (g.freightTerm && g.freightTerm !== directionDefault) {
       freightTouched.current = true // re-arm: hydrated value was a deliberate user pick
     }
@@ -213,7 +213,7 @@ export default function GeneralInformationSection() {
                 // changing Ship Direction and has not already picked a Freight Term.
                 // reset() never calls this handler, so draft hydration is safe.
                 if (!freightTouched.current) {
-                  setValue('general.freightTerm', v === 'Inbound' ? 'Collect' : 'Pre-Paid', { shouldValidate: true })
+                  setValue('general.freightTerm', v === 'I' ? 'C' : 'P', { shouldValidate: true })
                 }
               }}
               error={fieldState.error?.message}

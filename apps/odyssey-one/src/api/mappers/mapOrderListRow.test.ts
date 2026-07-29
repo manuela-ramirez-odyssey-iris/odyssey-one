@@ -17,7 +17,7 @@ describe('mapOrderListRow', () => {
       status: 'Ready For Plan',
       hazardous: false,
       orderSource: 'Integrated',
-      shipDirection: 'Inbound',
+      shipDirection: 'Inbound',  // code → label at the grid seam
       freightTerms: 'Pre-Paid',
       shipperLocation: { id: 'RGC-STL-001', name: '', address: 'St Louis, MO, US' },
       destinationLocation: { id: 'SAB-CLT-001', name: '', address: 'Charlotte, NC, US' },
@@ -57,7 +57,7 @@ describe('mapOrderListRow', () => {
 
 const baseRow = {
   orderNumber: 'SUT355123', orderSource: 'INTEGRATED', customer: 'SABIC_CLT',
-  shipDirection: 'Inbound', freightTerms: 'Pre-Paid', equipment: 'TL',
+  shipDirection: 'I', freightTerms: 'P', equipment: 'TL',
   consignor: { locationId: 'RGC-STL-001', name: 'J & K INGREDIENTS', address: '900 Hall St SW',
     city: 'St Louis', state: 'MO', country: 'US',
     earliestPickupDateTime: '2026-06-08T06:00:00', latestPickupDateTime: '2026-06-08T08:45:00' },

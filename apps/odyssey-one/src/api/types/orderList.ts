@@ -11,8 +11,8 @@ export interface OrderListRow {
                                     // number-less pending rows so they stay addressable
   orderSource: string               // "INTEGRATED"
   customer: string                  // "SABIC_CLT" — display key; no separate customerId on the row
-  shipDirection: string             // "Inbound"
-  freightTerms: string              // "Pre-Paid"
+  shipDirection: string             // "I" — wire code; mapped to a label at the grid seam
+  freightTerms: string              // "P" — wire code; mapped to a label at the grid seam
   equipment: string                 // "TL"
   consignor: {
     locationId: string              // "RGC-STL-001" — Origin cell prefix code

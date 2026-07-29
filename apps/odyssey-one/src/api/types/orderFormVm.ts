@@ -125,8 +125,8 @@ export function makeDefaultOrderFormValues(): OrderFormValues {
       owningOrganization: '',
       owningOrganizationName: '',
       equipment: '',
-      freightTerm: 'Pre-Paid',   // Q20: Outbound default → Pre-Paid
-      shipDirection: 'Outbound', // default per Efrain §1
+      freightTerm: 'P',   // Q20: Outbound default → Pre-Paid (wire code)
+      shipDirection: 'O', // default per Efrain §1 (wire code)
       hazardous: false,          // LINX-12102: unchecked by default, derives from lines
       consolidatable: true,      // Q15: checked by default
       carrierScac: '',

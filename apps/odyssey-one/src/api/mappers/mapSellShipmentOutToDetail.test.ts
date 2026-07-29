@@ -14,7 +14,8 @@ describe('mapSellShipmentOutToDetail', () => {
     const o = vm.orderDetails[0]
     expect(o.orderNumber).toBe('SO-660001')
     expect(o.poNumber).toBe('PO-770001')
-    expect(o.shipDirection).toBe('Outbound')
+    expect(o.shipDirection).toBe('Outbound') // 'O' → label
+    expect(o.paymentTerms).toBe('Pre-Paid')  // 'P' → label
   })
 
   it('formats weights as "value UOM" strings', () => {

@@ -6,8 +6,8 @@ export const orderListRowSample: OrderListRow = {
   orderNumber: 'SUT355123',
   orderSource: 'INTEGRATED',
   customer: 'SABIC_CLT',
-  shipDirection: 'Inbound',
-  freightTerms: 'Pre-Paid',
+  shipDirection: 'I',
+  freightTerms: 'P',
   equipment: 'TL',
   consignor: {
     locationId: 'RGC-STL-001',

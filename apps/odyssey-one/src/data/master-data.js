@@ -1,7 +1,7 @@
 // src/data/master-data.js — master-data pools for the create-order mock lookups.
 // Shared pools come from tools/data-pools.mjs (A7: master data is shared
 // cross-domain — the grid generator and these lookups must agree). Pools that
-// only the create flow needs (freight terms, ship classes, special services,
+// only the create flow needs (ship classes, special services,
 // carriers, timezones, UoMs) are defined here. `frequency` drives the
 // LINX-7553 frequency sort in lookupService; values are PROVISIONAL fakes.
 import { CUSTOMERS, LOCATIONS, EQUIPMENT_CODES, EQUIPMENT_LABELS, CHEMICAL_PRODUCTS, locationIdFor, FREIGHT_TERMS, SHIP_DIRECTIONS, freightTermLabel, shipDirectionLabel } from '../../tools/data-pools.mjs'

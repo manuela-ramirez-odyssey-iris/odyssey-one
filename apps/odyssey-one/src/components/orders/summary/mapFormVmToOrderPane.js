@@ -1,5 +1,5 @@
 import { computeProductRollups, convertMeasureDisplay } from '../create/productMath'
-import { HANDLING_UNITS, SPECIAL_SERVICES } from '../../../data/master-data'
+import { HANDLING_UNITS, SPECIAL_SERVICES, freightTermLabel, shipDirectionLabel } from '../../../data/master-data'
 import { DASH } from './OrderPaneSections'
 
 // OrderFormValues (the getOrderView seam / mapOrderViewToFormVm output) → the
@@ -68,8 +68,8 @@ export default function mapFormVmToOrderPane(values) {
   const d = {
     // prefer the display name; only the id round-trips through the DTO
     owningOrganization: general.owningOrganizationName || general.owningOrganization,
-    paymentTerms: general.freightTerm, // detail-VM label drift: Freight Term
-    shipDirection: general.shipDirection,
+    paymentTerms: freightTermLabel(general.freightTerm), // detail-VM label drift: Freight Term
+    shipDirection: shipDirectionLabel(general.shipDirection),
     consolidatable: general.consolidatable ? 'Yes' : 'No',
     equipment: general.equipment,
     equipmentReferenceNumber: general.equipmentReferenceNumber,
@@ -130,7 +130,7 @@ export default function mapFormVmToOrderPane(values) {
     orderNumber: general.orderNumber,
     orderDate: '',
     shipmentMode: '',
-    paymentTerms: general.freightTerm,
+    paymentTerms: freightTermLabel(general.freightTerm),
   }
 
   return { d, references, instructions, productLines, services, strip }

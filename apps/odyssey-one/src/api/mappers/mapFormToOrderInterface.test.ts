@@ -9,8 +9,8 @@ describe('mapFormToOrderInterface', () => {
     const mo = mapFormToOrderInterface(sample()).manualOrder
     expect(mo.orderNumber).toBe('ORD-1001')
     expect(mo.customerId).toBe('ERCO_SYS_01')
-    expect(mo.freightTermCode).toBe('Pre-Paid')
-    expect(mo.shipDirectionCode).toBe('Outbound')
+    expect(mo.freightTermCode).toBe('P')
+    expect(mo.shipDirectionCode).toBe('O')
     expect(mo.requestedDateType).toBe('SHIP')
   })
 

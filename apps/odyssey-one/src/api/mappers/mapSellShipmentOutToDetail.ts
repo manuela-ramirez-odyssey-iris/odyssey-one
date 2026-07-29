@@ -20,6 +20,7 @@ import type {
   StopVM,
   StopsSummaryVM,
 } from '../types/shipmentDetail'
+import { freightTermLabel, shipDirectionLabel } from '../../data/master-data'
 
 const DASH = '--'
 
@@ -44,12 +45,6 @@ function fmtAddress(a?: SellShipmentAddress): string {
   return parts.length ? parts.join(', ') : DASH
 }
 
-function mapShipDirection(code?: string): string {
-  if (code === 'O') return 'Outbound'
-  if (code === 'I') return 'Inbound'
-  return code ?? DASH
-}
-
 function hasHazmat(order: SellShipmentOrder): string {
   return (order.orderLines ?? []).some((l) => l.hazmatCode) ? 'Yes' : 'No'
 }
@@ -72,9 +67,9 @@ function mapOrder(order: SellShipmentOrder, header: SellShipmentOut): OrderDetai
   const uom = order.grossWeightUomCode
   return {
     orderNumber: order.orderNumber ?? order.orderId,
-    shipDirection: mapShipDirection(order.shipDirectionCode),
+    shipDirection: order.shipDirectionCode ? shipDirectionLabel(order.shipDirectionCode) : DASH,
     orderDate: DASH,
-    paymentTerms: header.freightTerms || DASH,
+    paymentTerms: header.freightTerms ? freightTermLabel(header.freightTerms) : DASH,
     shipmentMode: DASH,
     expedited: DASH,
     owningOrganization: order.owningOrganization || DASH,
