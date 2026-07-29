@@ -297,3 +297,64 @@ describe('ComboBox — pick-only mode (typable={false})', () => {
     expect(input.getAttribute('aria-expanded')).toBe('false')
   })
 })
+
+describe('ComboBox — error / validated states', () => {
+  test('error renders message with id + aria-describedby + aria-invalid (typeahead mode)', () => {
+    const { container } = render(
+      <ComboBox options={['A', 'B']} onSelect={() => {}} error="Invalid Data" />,
+    )
+    const input = container.querySelector('input')
+    expect(input.getAttribute('aria-invalid')).toBe('true')
+    const describedBy = input.getAttribute('aria-describedby')
+    expect(describedBy).toBeTruthy()
+    const msg = document.getElementById(describedBy)
+    expect(msg.textContent).toBe('Invalid Data')
+    expect(msg.getAttribute('role')).toBe('alert')
+  })
+
+  test('error renders in plain (non-typeahead) mode too', () => {
+    const { getByRole } = render(
+      <ComboBox value="" onChange={() => {}} error="Missing Mandatory" />,
+    )
+    expect(getByRole('alert').textContent).toBe('Missing Mandatory')
+  })
+
+  test('validated renders success border, check icon, and Validated line; error wins', () => {
+    const { container, getByText, rerender } = render(
+      <ComboBox variant="select" options={['A']} onSelect={() => {}} validated />,
+    )
+    expect(getByText('Validated')).toBeTruthy()
+    expect(container.querySelector('.search-field--validated')).toBeTruthy()
+    const bar = container.querySelector('input').parentElement
+    expect(bar.style.border).toContain('var(--border-success)')
+    rerender(
+      <ComboBox variant="select" options={['A']} onSelect={() => {}} validated error="Invalid Data" />,
+    )
+    expect(container.querySelector('.search-field--validated')).toBeNull()
+    expect(container.textContent).not.toContain('Validated')
+    expect(container.textContent).toContain('Invalid Data')
+  })
+
+  test('required renders the label marker + aria-required', () => {
+    const { container, getByText } = render(
+      <ComboBox showLabel label="Equipment" required value="" onChange={() => {}} />,
+    )
+    expect(getByText('*')).toBeTruthy()
+    expect(container.querySelector('input').getAttribute('aria-required')).toBe('true')
+  })
+})
+
+describe('ComboBox — focused state borders', () => {
+  test('validated + focus = 2px caribbean-green-600; error + focus = 2px bittersweet-600', () => {
+    const { container, rerender } = render(
+      <ComboBox variant="select" options={['A']} onSelect={() => {}} validated />,
+    )
+    const input = container.querySelector('input')
+    fireEvent.focus(input)
+    expect(input.parentElement.style.border).toBe('2px solid var(--caribbean-green-600)')
+    rerender(
+      <ComboBox variant="select" options={['A']} onSelect={() => {}} error="Invalid Data" />,
+    )
+    expect(input.parentElement.style.border).toBe('2px solid var(--bittersweet-600)')
+  })
+})

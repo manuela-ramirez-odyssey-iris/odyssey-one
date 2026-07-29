@@ -28,6 +28,10 @@ export const props = [
   { name: 'onSelect', type: '(value: string | null) => void', desc: 'Typeahead: fired with the selected option value, or null on clear.' },
   { name: 'emptyMessage', type: 'string', desc: "Typeahead: shown when filter matches nothing. Default 'No options'." },
   { name: 'filter', type: '(inputText, option) => bool', desc: 'Typeahead: custom filter fn. Default case-insensitive substring.' },
+  { name: 'error', type: 'string|false', desc: 'Figma `State=Error`. Red border (bittersweet ramp) + inline red message below the bar, aria-invalid + aria-describedby. Renders in ALL modes (slot / typeahead / plain).' },
+  { name: 'validated', type: 'boolean', desc: 'Figma `State=Validated`. Success border (--border-success) + trailing check (text-tertiary) + green "Validated" line below. `error` wins when both are set.' },
+  { name: 'required', type: 'boolean', desc: 'Renders ` *` after the label + aria-required on the input.' },
+  { name: 'panelError', type: 'string', desc: "Typeahead: renders FieldSearchResults' red alert state INSIDE the dropdown instead of the option list (e.g. duplicate location ID). Distinct from `error`, which marks the field itself." },
   { name: 'className', type: 'string', desc: 'Extra class names forwarded to the root element.' },
 ]
 
@@ -38,6 +42,11 @@ export const tokens = [
   { token: '--bg-primary', resolves: 'white', usage: 'input bar background' },
   { token: '--text-placeholder', resolves: 'Text/placeholder', usage: 'Search icon at rest' },
   { token: '--text-secondary', resolves: 'Text/secondary', usage: 'label text' },
+  { token: '--bittersweet-200', resolves: 'Bittersweet/200', usage: 'error border — idle' },
+  { token: '--bittersweet-600', resolves: 'Bittersweet/600', usage: 'error border — focused' },
+  { token: '--border-success', resolves: 'Border/success', usage: 'validated border — idle' },
+  { token: '--caribbean-green-600', resolves: 'Caribbean Green/600', usage: 'validated border — focused' },
+  { token: '--text-success', resolves: 'Text/success', usage: 'validated message' },
 ]
 
 // ── Shared helpers ───────────────────────────────────────────────────────────
@@ -200,6 +209,8 @@ function TypeaheadPlayground() {
   const [value, setValue] = useState(null)
   const [variant, setVariant] = useState('search') // 'search' | 'select'
   const [typable, setTypable] = useState(true)
+  const [fieldState, setFieldState] = useState('default') // 'default' | 'error' | 'validated'
+  const [required, setRequired] = useState(false)
 
   const staticOptions = useMemo(() => makeOptions(SIZES[sizeIdx].count), [sizeIdx])
 
@@ -275,6 +286,18 @@ function TypeaheadPlayground() {
             <option value="pick-only">Pick-only (typable=false — former SelectField)</option>
           </select>
         </label>
+        <label style={labelStyle}>
+          Field state
+          <select value={fieldState} onChange={(e) => setFieldState(e.target.value)} style={inputStyle}>
+            <option value="default">Default</option>
+            <option value="error">Error</option>
+            <option value="validated">Validated</option>
+          </select>
+        </label>
+        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-sm)', cursor: 'pointer' }}>
+          <input type="checkbox" checked={required} onChange={(e) => setRequired(e.target.checked)} />
+          required
+        </label>
         {source !== 'static' && (
           <label style={labelStyle}>
             Chunk size (limit)
@@ -304,6 +327,9 @@ function TypeaheadPlayground() {
             loadOptions={source !== 'static' ? loadOptions : undefined}
             onSelect={setValue}
             emptyMessage={source === 'api' ? 'No matching products' : 'No matching fruits'}
+            error={fieldState === 'error' ? 'Invalid Data' : undefined}
+            validated={fieldState === 'validated'}
+            required={required}
           />
           <p style={{ marginTop: 'var(--spacing-2)', fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)', fontFamily: 'var(--font-primary)' }}>
             {typable ? '↑ ↓ navigate · Enter select · Esc close' : 'Click the bar or chevron to toggle · ↑ ↓ navigate · Enter select · Esc close'}

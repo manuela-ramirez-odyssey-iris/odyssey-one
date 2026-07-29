@@ -1,6 +1,6 @@
 import { useState, useRef, useMemo, useId, useCallback, useEffect, useLayoutEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { Search, CircleX, Info, ChevronDown } from 'lucide-react'
+import { Search, CircleX, Info, ChevronDown, Check } from 'lucide-react'
 import { ICON_MD, ICON_LG } from '@odyssey/tokens'
 import FieldSearchResults from './FieldSearchResults.jsx'
 import { useFieldPopover } from './useFieldPopover.js'
@@ -43,7 +43,13 @@ import { moveHighlight } from './GlobalSearch.jsx'
  *   onChange      — in typeahead mode fires with the raw typed text (lets a
  *                   form invalidate a stale pick / commit free text on blur)
  *   onSelect      — fires (value, option) — option is the full { value, label }
- *   error         — message string; red border + inline error text (aria-invalid)
+ *   error         — message string; red border + inline error text (aria-invalid,
+ *                   aria-describedby → the message element). Renders in ALL modes
+ *                   (was typeahead-only pre-2026-07-28). Figma `State=Error`.
+ *   validated     — boolean; success border (`--border-success`), trailing check
+ *                   (text-tertiary), green "Validated" line below. `error` wins.
+ *                   Figma `State=Validated` (2026-07-28).
+ *   required      — boolean; `*` after the label + aria-required
  *   disabled      — disables the input + trailing buttons, muted surface
  *   emptyMessage  — string, or (inputText) => string for query-dependent copy
  *
@@ -99,6 +105,8 @@ export default function ComboBox({
   variant = 'search',
   disabled = false,
   error,
+  validated = false,
+  required = false,
   showLabel = false,
   label = 'Label',
   showInfoIcon = false,
@@ -364,10 +372,67 @@ export default function ComboBox({
       }
     : { position: 'fixed', top: 0, left: 0, visibility: 'hidden', zIndex: 200 }
 
-  // Error/disabled borders mirror FormField (bittersweet ramp / muted surface)
+  // Error/validated/disabled borders mirror FormField (bittersweet ramp /
+  // caribbean-green ramp / muted surface). Precedence: error > validated >
+  // neutral; each state has its own focused treatment (200-idle → 600-focused,
+  // Figma `State=Focused Error` / `State=Focused Validated`).
+  const isValidated = validated && !error
   const borderStyle = error
     ? (focused ? '2px solid var(--bittersweet-600)' : '1px solid var(--bittersweet-200)')
-    : (focused ? '2px solid var(--deep-sea-neutral-600)' : '1px solid var(--border-default)')
+    : isValidated
+    ? (focused ? '2px solid var(--caribbean-green-600)' : '1px solid var(--border-success)')
+    : focused ? '2px solid var(--deep-sea-neutral-600)'
+    : '1px solid var(--border-default)'
+
+  // Error message element id — links the input via aria-describedby (parity
+  // with FormField's errorId wiring; reuses listboxId as the stable base).
+  const errorId = error ? `${id ?? listboxId}-error` : undefined
+  const helperText = error ? (
+    <p
+      className="text-label-xs-regular"
+      id={errorId}
+      role="alert"
+      style={{ color: 'var(--text-error)', margin: 'var(--spacing-1) 0 0' }}
+    >
+      {error}
+    </p>
+  ) : isValidated ? (
+    <p
+      className="text-label-xs-regular"
+      style={{ color: 'var(--text-success)', margin: 'var(--spacing-1) 0 0' }}
+    >
+      Validated
+    </p>
+  ) : null
+
+  const labelRow = showLabel ? (
+    <div className="flex items-center" style={{ gap: 'var(--spacing-1)' }}>
+      <span className="text-label-sm-medium" style={{ color: 'var(--text-secondary)' }}>
+        {label}{required && <span aria-hidden="true"> *</span>}
+      </span>
+      {showInfoIcon && (
+        onInfoClick ? (
+          <button
+            type="button"
+            onClick={onInfoClick}
+            className="inline-flex items-center justify-center border-none bg-transparent cursor-pointer p-0"
+            style={{ color: 'var(--text-tertiary)' }}
+            aria-label="More info"
+          >
+            <Info {...ICON_MD} />
+          </button>
+        ) : (
+          <span
+            className="inline-flex items-center justify-center"
+            style={{ color: 'var(--text-tertiary)' }}
+            aria-hidden="true"
+          >
+            <Info {...ICON_MD} />
+          </span>
+        )
+      )}
+    </div>
+  ) : null
 
   const inputBar = (
     <div
@@ -441,6 +506,8 @@ export default function ComboBox({
         aria-autocomplete={effectiveAriaAutocomplete}
         aria-haspopup={effectiveAriaHasPopup}
         aria-invalid={error ? 'true' : undefined}
+        aria-describedby={errorId}
+        aria-required={required || undefined}
         disabled={disabled}
         spellCheck={false}
         autoCorrect="off"
@@ -456,6 +523,13 @@ export default function ComboBox({
           boxShadow: 'none',
         }}
       />
+      {isValidated && (
+        <Check
+          {...ICON_MD}
+          style={{ color: 'var(--text-tertiary)', flexShrink: 0 }}
+          aria-hidden="true"
+        />
+      )}
       {showClear && !disabled && (
         <button
           type="button"
@@ -539,53 +613,15 @@ export default function ComboBox({
   if (typeaheadMode) {
     return (
       <div
-        className={`search-field${error ? ' search-field--error' : ''} ${className}`.trim()}
+        className={`search-field${error ? ' search-field--error' : ''}${isValidated ? ' search-field--validated' : ''} ${className}`.trim()}
         style={{ position: 'relative' }}
         ref={wrapperProps.ref}
         onBlur={wrapperProps.onBlur}
         onKeyDown={handleTypeaheadKeyDown}
       >
-        {showLabel && (
-          <div
-            className="flex items-center"
-            style={{ gap: 'var(--spacing-1)', marginBottom: 'var(--spacing-2)' }}
-          >
-            <span className="text-label-sm-medium" style={{ color: 'var(--text-secondary)' }}>
-              {label}
-            </span>
-            {showInfoIcon && (
-              onInfoClick ? (
-                <button
-                  type="button"
-                  onClick={onInfoClick}
-                  className="inline-flex items-center justify-center border-none bg-transparent cursor-pointer p-0"
-                  style={{ color: 'var(--text-tertiary)' }}
-                  aria-label="More info"
-                >
-                  <Info {...ICON_MD} />
-                </button>
-              ) : (
-                <span
-                  className="inline-flex items-center justify-center"
-                  style={{ color: 'var(--text-tertiary)' }}
-                  aria-hidden="true"
-                >
-                  <Info {...ICON_MD} />
-                </span>
-              )
-            )}
-          </div>
-        )}
+        {labelRow && <div style={{ marginBottom: 'var(--spacing-2)' }}>{labelRow}</div>}
         {inputBar}
-        {error && (
-          <p
-            className="text-label-xs-regular"
-            role="alert"
-            style={{ color: 'var(--text-error)', margin: 'var(--spacing-1) 0 0' }}
-          >
-            {error}
-          </p>
-        )}
+        {helperText}
         {typeaheadPopover}
       </div>
     )
@@ -593,8 +629,12 @@ export default function ComboBox({
 
   if (!showLabel) {
     return (
-      <div className={`search-field ${className}`.trim()} {...rest}>
+      <div
+        className={`search-field${error ? ' search-field--error' : ''}${isValidated ? ' search-field--validated' : ''} ${className}`.trim()}
+        {...rest}
+      >
         {inputBar}
+        {helperText}
         {results && <div className="search-field__results">{results}</div>}
       </div>
     )
@@ -602,40 +642,13 @@ export default function ComboBox({
 
   return (
     <div
-      className={`search-field flex flex-col ${className}`.trim()}
+      className={`search-field${error ? ' search-field--error' : ''}${isValidated ? ' search-field--validated' : ''} flex flex-col ${className}`.trim()}
       style={{ gap: 'var(--spacing-2)', alignItems: 'stretch' }}
       {...rest}
     >
-      <div className="flex items-center" style={{ gap: 'var(--spacing-1)' }}>
-        <span
-          className="text-label-sm-medium"
-          style={{ color: 'var(--text-secondary)' }}
-        >
-          {label}
-        </span>
-        {showInfoIcon && (
-          onInfoClick ? (
-            <button
-              type="button"
-              onClick={onInfoClick}
-              className="inline-flex items-center justify-center border-none bg-transparent cursor-pointer p-0"
-              style={{ color: 'var(--text-tertiary)' }}
-              aria-label="More info"
-            >
-              <Info {...ICON_MD} />
-            </button>
-          ) : (
-            <span
-              className="inline-flex items-center justify-center"
-              style={{ color: 'var(--text-tertiary)' }}
-              aria-hidden="true"
-            >
-              <Info {...ICON_MD} />
-            </span>
-          )
-        )}
-      </div>
+      {labelRow}
       {inputBar}
+      {helperText}
       {results && <div className="search-field__results">{results}</div>}
     </div>
   )
