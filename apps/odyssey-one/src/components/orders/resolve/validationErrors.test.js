@@ -40,6 +40,12 @@ describe('deriveValidationErrors', () => {
     expect(deriveValidationErrors('X', 99, sampleValues()).errors).toHaveLength(RESOLVE_POOL.length)
   })
 
+  test('count clamps to 1 for falsy/negative counts (no fabricated errors)', () => {
+    for (const bad of [0, null, -2]) {
+      expect(deriveValidationErrors('X', bad, sampleValues()).errors).toHaveLength(1)
+    }
+  })
+
   test('errors are in pool (DOM) order and carry field/reason/section/path', () => {
     const { errors } = deriveValidationErrors('S260004NGW', 6, sampleValues())
     const poolIdx = errors.map((e) => RESOLVE_POOL.findIndex((p) => p.path === e.path))
@@ -51,21 +57,26 @@ describe('deriveValidationErrors', () => {
     }
   })
 
-  test('mutateDraft blanks Missing Mandatory paths and corrupts the others', () => {
+  test('applyErrors blanks Missing Mandatory paths, corrupts the others, leaves the source alone', () => {
     const values = sampleValues()
-    const { errors, mutateDraft } = deriveValidationErrors('S260004NGW', 8, values)
-    const draft = mutateDraft(structuredClone(values))
+    const { errors, applyErrors } = deriveValidationErrors('S260004NGW', 8, values)
+    const draft = applyErrors(values)
+    const get = (obj, path) => path.split('.').reduce((o, k) => o?.[k], obj)
     for (const e of errors) {
-      const get = (obj, path) => path.split('.').reduce((o, k) => o?.[k], obj)
       if (e.reason === 'Missing Mandatory') expect(get(draft, e.path)).toBe('')
-      else expect(get(draft, e.path)).toBeTruthy() // corrupted, not blanked
+      else expect(get(draft, e.path)).toBe(e.badValue) // corrupted, not blanked
     }
+    // source untouched
+    expect(values).toEqual(sampleValues())
+    // a pool path that wasn't selected keeps its sample value
+    const untouched = RESOLVE_POOL.find((p) => !errors.some((e) => e.path === p.path))
+    expect(get(draft, untouched.path)).toBe(get(sampleValues(), untouched.path))
   })
 
   test('isResolved: blank fails, filled passes; corrupted value fails until changed', () => {
     const values = sampleValues()
-    const { errors, mutateDraft, isResolved } = deriveValidationErrors('S260004NGW', 8, values)
-    const draft = mutateDraft(structuredClone(values))
+    const { errors, applyErrors, isResolved } = deriveValidationErrors('S260004NGW', 8, values)
+    const draft = applyErrors(values)
     const get = (obj, path) => path.split('.').reduce((o, k) => o?.[k], obj)
     for (const e of errors) {
       expect(isResolved(e, get(draft, e.path))).toBe(false)

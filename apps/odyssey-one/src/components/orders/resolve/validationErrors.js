@@ -4,6 +4,8 @@
  * errorCount and the resolution view always agree. This module is the seam a
  * real OIF endpoint replaces when LINX-11137 leaves Analysis (Q3).
  *
+ * `applyErrors(values)` returns a NEW hydrated draft — the source is untouched.
+ *
  * Three AC categories:
  * - Missing Mandatory  → field blanked in the hydrated draft (data agrees)
  * - Invalid Data       → value present but wrong (TMS-master mismatch stand-in);
@@ -15,21 +17,21 @@
 // Pool order = DOM order (top of the form → bottom), so "Error 1/N" reads
 // naturally. Labels match the field labels on screen (mock 6005:39544).
 export const RESOLVE_POOL = [
-  { path: 'general.equipment',      field: 'Equipment *',      section: 'general', reason: 'Invalid Data' },
-  { path: 'general.freightTerm',    field: 'Freight Term *',   section: 'general', reason: 'Missing Mandatory' },
-  { path: 'general.shipDirection',  field: 'Ship Direction *', section: 'general', reason: 'Missing Mandatory' },
-  { path: 'pickupDelivery.consignor.idOrgName',    field: 'Shipper ID/Org Name *', section: 'pickupDelivery', reason: 'Missing Mandatory' },
-  { path: 'pickupDelivery.consignor.address1',     field: 'Shipper Address 1 *',   section: 'pickupDelivery', reason: 'Missing Mandatory' },
-  { path: 'pickupDelivery.consignor.city',         field: 'Shipper City *',        section: 'pickupDelivery', reason: 'Missing Mandatory' },
-  { path: 'pickupDelivery.consignor.state',        field: 'Shipper State *',       section: 'pickupDelivery', reason: 'Missing Mandatory' },
-  { path: 'pickupDelivery.consignor.postal',       field: 'Shipper Postal Code *', section: 'pickupDelivery', reason: 'Missing Mandatory' },
-  { path: 'pickupDelivery.consignor.contactPhone', field: 'Shipper Phone Number *', section: 'pickupDelivery', reason: 'Invalid Data Type' },
-  { path: 'pickupDelivery.consignee.idOrgName',    field: 'Destination ID/Org Name *', section: 'pickupDelivery', reason: 'Missing Mandatory' },
-  { path: 'pickupDelivery.consignee.address1',     field: 'Destination Address 1 *',   section: 'pickupDelivery', reason: 'Missing Mandatory' },
-  { path: 'pickupDelivery.consignee.city',         field: 'Destination City *',        section: 'pickupDelivery', reason: 'Missing Mandatory' },
-  { path: 'pickupDelivery.consignee.state',        field: 'Destination State *',       section: 'pickupDelivery', reason: 'Missing Mandatory' },
-  { path: 'pickupDelivery.consignee.postal',       field: 'Destination Postal Code *', section: 'pickupDelivery', reason: 'Missing Mandatory' },
-  { path: 'pickupDelivery.consignee.contactPhone', field: 'Destination Phone Number *', section: 'pickupDelivery', reason: 'Invalid Data Type' },
+  { path: 'general.equipment',      field: 'Equipment *',      reason: 'Invalid Data' },
+  { path: 'general.freightTerm',    field: 'Freight Term *',   reason: 'Missing Mandatory' },
+  { path: 'general.shipDirection',  field: 'Ship Direction *', reason: 'Missing Mandatory' },
+  { path: 'pickupDelivery.consignor.idOrgName',    field: 'Shipper ID/Org Name *', reason: 'Missing Mandatory' },
+  { path: 'pickupDelivery.consignor.address1',     field: 'Shipper Address 1 *',   reason: 'Missing Mandatory' },
+  { path: 'pickupDelivery.consignor.city',         field: 'Shipper City *',        reason: 'Missing Mandatory' },
+  { path: 'pickupDelivery.consignor.state',        field: 'Shipper State *',       reason: 'Missing Mandatory' },
+  { path: 'pickupDelivery.consignor.postal',       field: 'Shipper Postal Code *', reason: 'Missing Mandatory' },
+  { path: 'pickupDelivery.consignor.contactPhone', field: 'Shipper Phone Number *', reason: 'Invalid Data Type' },
+  { path: 'pickupDelivery.consignee.idOrgName',    field: 'Destination ID/Org Name *', reason: 'Missing Mandatory' },
+  { path: 'pickupDelivery.consignee.address1',     field: 'Destination Address 1 *',   reason: 'Missing Mandatory' },
+  { path: 'pickupDelivery.consignee.city',         field: 'Destination City *',        reason: 'Missing Mandatory' },
+  { path: 'pickupDelivery.consignee.state',        field: 'Destination State *',       reason: 'Missing Mandatory' },
+  { path: 'pickupDelivery.consignee.postal',       field: 'Destination Postal Code *', reason: 'Missing Mandatory' },
+  { path: 'pickupDelivery.consignee.contactPhone', field: 'Destination Phone Number *', reason: 'Invalid Data Type' },
 ]
 
 const INVALID_EQUIPMENT_FALLBACK = 'SUTU3456789' // mock 5711:16403's bad value
@@ -64,7 +66,9 @@ function setPath(obj, path, value) {
 
 export function deriveValidationErrors(orderNumber, errorCount, values) {
   const rand = seededRandom(String(orderNumber))
-  const count = Math.max(1, Math.min(errorCount || 3, RESOLVE_POOL.length))
+  // Falsy / negative / NaN counts clamp to 1 — never fabricate errors the tab
+  // didn't claim.
+  const count = Math.min(Math.max(1, Number(errorCount) || 1), RESOLVE_POOL.length)
 
   // Fisher-Yates pick of `count` pool entries, then restore DOM order.
   const idx = RESOLVE_POOL.map((_, i) => i)
@@ -82,14 +86,12 @@ export function deriveValidationErrors(orderNumber, errorCount, values) {
       p.reason === 'Invalid Data' ? (original || INVALID_EQUIPMENT_FALLBACK)
       : p.reason === 'Invalid Data Type' ? CORRUPT_PHONE
       : ''
-    return { ...p, badValue }
+    return { ...p, section: p.path.split('.')[0], badValue }
   })
 
-  const mutateDraft = (draft) => {
-    for (const e of errors) {
-      if (e.reason === 'Missing Mandatory') setPath(draft, e.path, '')
-      else setPath(draft, e.path, e.badValue)
-    }
+  const applyErrors = (src) => {
+    const draft = structuredClone(src)
+    for (const e of errors) setPath(draft, e.path, e.badValue)
     return draft
   }
 
@@ -101,5 +103,5 @@ export function deriveValidationErrors(orderNumber, errorCount, values) {
     return true // Missing Mandatory: any non-blank value
   }
 
-  return { errors, mutateDraft, isResolved }
+  return { errors, applyErrors, isResolved }
 }
