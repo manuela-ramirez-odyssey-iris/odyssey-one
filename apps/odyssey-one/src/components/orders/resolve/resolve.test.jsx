@@ -119,3 +119,43 @@ describe('resolve mode — alert + accordions', () => {
     expect(byName(/Product Information/).getAttribute('aria-expanded')).toBe('false')
   })
 })
+
+describe('resolve mode — save/purge transition', () => {
+  // The row's status is the whole transition: 'Ready For Plan' is outside
+  // VALIDATION_ERROR_STATUSES, so the row leaves the Validation Errors tab.
+  async function statusOf(orderNumber) {
+    const { getOrderList } = await import('../../../api/services/orderService')
+    const res = await getOrderList({
+      pagination: { pageNumber: 1, pageSize: 50 },
+      filters: { orderNumbers: [orderNumber] },
+    })
+    return res.orders.find((r) => r.orderNumber === orderNumber)?.orderStatus
+  }
+
+  test('Purge: confirm modal → status flips to Ready For Plan and navigates back', async () => {
+    renderResolve()
+    await waitFor(() => expect(screen.getByText(/5 Errors: Validation Required/)).toBeTruthy())
+    fireEvent.click(screen.getByRole('button', { name: 'Purge' }))
+    expect(await screen.findByText('Are you sure you want to purge this Order?')).toBeTruthy()
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Yes' }))
+    await waitFor(() => expect(screen.getByText('orders list')).toBeTruthy())
+    expect(await statusOf(ORDER)).toBe('Ready For Plan')
+  })
+
+  test('Purge modal Cancel closes without transition', async () => {
+    renderResolve()
+    await waitFor(() => expect(screen.getByText(/5 Errors: Validation Required/)).toBeTruthy())
+    fireEvent.click(screen.getByRole('button', { name: 'Purge' }))
+    expect(await screen.findByText('Are you sure you want to purge this Order?')).toBeTruthy()
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel' }))
+    await waitFor(() => expect(screen.queryByText('Are you sure you want to purge this Order?')).toBeNull())
+    expect(screen.queryByText('orders list')).toBeNull()
+    expect(await statusOf(ORDER)).toBe('Shipment Failed')
+  })
+
+  test('Save is disabled until all errors are resolved', async () => {
+    renderResolve()
+    await waitFor(() => expect(screen.getByText(/5 Errors: Validation Required/)).toBeTruthy())
+    expect(screen.getByRole('button', { name: 'Save' })).toHaveProperty('disabled', true)
+  })
+})

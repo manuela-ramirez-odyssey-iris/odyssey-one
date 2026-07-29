@@ -211,6 +211,18 @@ export async function submitDraftOrder(orderNumber: string): Promise<void> {
   overlayUpdateStatus(orderNumber, 'Ready For Plan')
 }
 
+/**
+ * OIF resolution (LINX-11137): Save-with-all-resolved and Purge both send the
+ * order to the re-processing queue → 'Ready For Plan' (the AC's "Ready for
+ * Planning" in app vocabulary). The status flip alone moves the row out of the
+ * status-filtered Validation Errors tab into All. Mock-only until the OIF
+ * endpoint exists.
+ */
+export async function resolveOrder(orderNumber: string): Promise<void> {
+  if (getApiMode() === 'live') throw new Error('resolveOrder: live mapping pending — mock-mode only')
+  overlayUpdateStatus(orderNumber, 'Ready For Plan')
+}
+
 /** Cancel (LINX-10258 soft delete): status → 'Cancelled'. */
 export async function cancelOrder(orderNumber: string): Promise<void> {
   if (getApiMode() === 'live') throw new Error('cancelOrder: live mapping pending — mock-mode only')

@@ -1,15 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import { FormProvider, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Accordion, Alert, Breadcrumb, Button, PageHeader } from '@odyssey/ui'
+import { Accordion, Alert, Breadcrumb, Button, ModalMedium, PageHeader } from '@odyssey/ui'
 import { ArrowLeft, ListChevronsUpDown, ListChevronsDownUp } from 'lucide-react'
 import { deriveValidationErrors } from '../resolve/validationErrors.js'
 import { ResolveModeProvider } from '../resolve/ResolveModeContext.jsx'
 import { useCreateOrderMode } from '../../../contexts/CreateOrderModeContext.jsx'
 import { useCreateOrder } from '../../../api/queries/useCreateOrder'
 import { useSaveDraft } from '../../../api/queries/useSaveDraft'
-import { getDraft, getOrderView } from '../../../api/services/orderService'
+import { getDraft, getOrderView, resolveOrder } from '../../../api/services/orderService'
 import { makeDefaultOrderFormValues } from '../../../api/types/orderFormVm'
 import { createOrderSchema, saveGateSchema } from './schema'
 import { useSectionStatus } from './useSectionStatus.js'
@@ -36,6 +37,7 @@ const SAVE_GATE_MESSAGE =
  */
 export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onSubmitted }) {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const { enterCreateOrderMode, exitCreateOrderMode } = useCreateOrderMode()
   const methods = useForm({
     resolver: zodResolver(createOrderSchema),
@@ -270,8 +272,15 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
     navigate('/orders') // explicit confirm happened in the modal; nothing kept
   }, [navigate])
 
-  // Resolution Save — the resubmit-to-OIF transition. Stub; Task 6 fills it in.
-  const handleResolveSave = () => {}
+  // Resolution exit (LINX-11137): Save-with-all-resolved and Purge share one
+  // path — status → 'Ready For Plan', which drops the row out of the Validation
+  // Errors tab, then back to the list.
+  const finishResolve = useCallback(async () => {
+    await resolveOrder(resolveKey)
+    queryClient.invalidateQueries({ queryKey: ['order-list'] })
+    queryClient.invalidateQueries({ queryKey: ['order-tab-counts'] })
+    navigate('/orders')
+  }, [resolveKey, queryClient, navigate])
 
   // ── Navbar contextual mode: register latest handlers via a ref ──
   const saveForLaterRef = useRef(handleSaveForLater)
@@ -483,7 +492,7 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
           primaryLabel="Save"
           onCancel={() => navigate('/orders')}
           onSave={() => setPurgeOpen(true)}
-          onCreate={handleResolveSave}
+          onCreate={finishResolve}
           createDisabled={!allResolved}
         />
       ) : (
@@ -494,6 +503,33 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
           createDisabled={!formState.isValid || createOrderMutation.isPending}
           saving={saveDraftMutation.isPending}
         />
+      )}
+
+      {purgeOpen && (
+        <ModalMedium
+          title="Confirmation"
+          onClose={() => setPurgeOpen(false)}
+          ariaLabel="Purge order confirmation"
+          footer={
+            <>
+              <Button variant="secondary" size="lg" onClick={() => setPurgeOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                size="lg"
+                onClick={() => {
+                  setPurgeOpen(false)
+                  finishResolve()
+                }}
+              >
+                Yes
+              </Button>
+            </>
+          }
+        >
+          <p className="text-label-sm-regular">Are you sure you want to purge this Order?</p>
+        </ModalMedium>
       )}
 
       {modalOpen && (
