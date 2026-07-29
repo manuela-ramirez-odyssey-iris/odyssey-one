@@ -816,8 +816,10 @@
 }
 
 /* Resolve mode (LINX-11137) — order number under the page title; the back
-   link rides in PageHeader's actions slot. */
+   link rides in PageHeader's actions slot. The sub-heading hugs the title:
+   the parent flex column's 16px gap is pulled back so title→subheading reads
+   as one unit (4px) instead of gap+margin stacking to 20px. */
 .co-resolve-subheading {
   color: var(--text-secondary);
-  margin: var(--spacing-1) 0 0;
+  margin: calc(var(--spacing-1) - var(--spacing-4)) 0 0;
 }
