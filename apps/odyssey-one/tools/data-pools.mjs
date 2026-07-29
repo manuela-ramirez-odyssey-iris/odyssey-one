@@ -136,6 +136,10 @@ export const shipDirectionLabel = (code) => SHIP_DIRECTIONS.find((d) => d.value 
 // formerly lookup-only EXTRA_ORGS; now real seeded customers that can own
 // orders. Ids derive from the names exactly as master-data's lookup values
 // always did.
+// Source: customer-service/v1/owning-org/lookup (QA capture 2026-07-27,
+// vault-sources/10-domains/orders/organizations.png): "<NAME> (SOURCE)" and
+// "*<NAME> SOURCE SYSTEM 01" styles. First 4 (SOURCE) + 3 starred entries are
+// QA-verbatim; the rest generated in the same style.
 export const EXTRA_CUSTOMERS = [
   'RECKITT-BENCKISER (SOURCE)', 'REDLAND BRICK INC (SOURCE)', 'REHEIS INC (SOURCE)',
   'REVLON CONSUMER PRODUCTS CORP (SOURCE)', '*ADAMS-REMCO SOURCE SYSTEM 01',

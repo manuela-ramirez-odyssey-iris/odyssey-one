@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useCallback, useMemo } from 'react
 // Shared master-data customer pool (tools/data-pools.mjs re-exported through
 // src/data/master-data.js) — the SAME 25 customers the shipment generator
 // stamps onto rows as customerId/customerName.
-import { CUSTOMERS as DATA_CUSTOMERS } from '../data/master-data.js'
+import { CUSTOMERS as DATA_CUSTOMERS, EXTRA_CUSTOMERS } from '../data/master-data.js'
 
 const CustomersContext = createContext(null)
 
@@ -50,6 +50,13 @@ function initialCustomers() {
     if (merged.has(c.id)) continue
     // Assigned/favorited: the 3 legacy favorites above + ERCO (explicit ask).
     list.push({ id: c.id, label: c.name, dataId: c.id, favorite: c.id === 'ERCO_SYS_01' })
+  }
+  // Promoted create-order orgs (DB ledger row 3) — real seeded customers now, so
+  // they belong in the book or their orders are unreachable in scoped views.
+  // Appended after the original 25: same entry shape, never favorited, not
+  // selected by default (they own only a thin tail of rows).
+  for (const c of EXTRA_CUSTOMERS) {
+    list.push({ id: c.id, label: c.name, dataId: c.id, favorite: false })
   }
   return list
 }

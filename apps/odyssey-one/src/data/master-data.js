@@ -146,10 +146,7 @@ export const CARRIERS = [
 // ── Extra owning orgs — PROMOTED to real seeded customers at the end-of-Orders
 // reseed (DB ledger row 3): the list now lives in data-pools EXTRA_CUSTOMERS,
 // gets inserted into the customers table, and owns a thin tail of orders.
-// Mock of customer-service/v1/owning-org/lookup (QA capture 2026-07-27,
-// vault-sources/10-domains/orders/organizations.png): "<NAME> (SOURCE)" and
-// "*<NAME> SOURCE SYSTEM 01" styles. First 4 (SOURCE) + 3 starred entries are
-// QA-verbatim; the rest generated in the same style.
+// Provenance for the list itself lives with it in data-pools.
 export const EXTRA_ORGS = EXTRA_CUSTOMERS.map((c) => ({ value: c.id, label: c.name }))
 
 // ── Timezones + city→TZ auto-derivation (spec §10: static map in mock) ──
