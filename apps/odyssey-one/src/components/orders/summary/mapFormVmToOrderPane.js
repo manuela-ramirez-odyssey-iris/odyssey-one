@@ -1,5 +1,5 @@
 import { computeProductRollups, convertMeasureDisplay } from '../create/productMath'
-import { HANDLING_UNITS, SPECIAL_SERVICES, freightTermLabel, shipDirectionLabel } from '../../../data/master-data'
+import { HANDLING_UNITS, SPECIAL_SERVICES, freightTermLabel, shipDirectionLabel, shipClassLabel } from '../../../data/master-data'
 import { DASH } from './OrderPaneSections'
 
 // OrderFormValues (the getOrderView seam / mapOrderViewToFormVm output) → the
@@ -114,7 +114,7 @@ export default function mapFormVmToOrderPane(values) {
     description: p.description,
     grossWeight: convertMeasureDisplay(p.grossWeight, 'us'),
     volume: convertMeasureDisplay(p.volume, 'us'),
-    productClass: p.shipClass,
+    productClass: p.shipClass ? shipClassLabel(p.shipClass) : '', // wire code H/C/P/N → label
     shippingClass: '', // gap — not on OrderFormValues (create flow captures shipClass only)
   }))
 

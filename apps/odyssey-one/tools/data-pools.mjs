@@ -166,3 +166,37 @@ export const EXTRA_CUSTOMERS = [
   '*JELD-WEN SOURCE SYSTEM 01', '*MASCO-CABINET SOURCE SYSTEM 01',
   '*PELLA-CORP SOURCE SYSTEM 01', '*USG-CORP SOURCE SYSTEM 01',
 ].map((name) => ({ id: name.replace(/[^A-Z0-9]+/gi, '_').replace(/^_|_$/g, ''), name }))
+
+// Class-TYPE selector (QA screenshot + live dev capture 2026-07-28): wire codes
+// H/C/P/N. This is the create form's "Product Class" cell. The NMFC scale below
+// is the separate class-VALUE catalog. Label order is master-data verbatim.
+export const SHIP_CLASSES = [
+  { value: 'H', label: 'Harmonized' },
+  { value: 'C', label: 'Commodity' },
+  { value: 'P', label: 'Product' },
+  { value: 'N', label: 'NMFC' },
+]
+export const SHIP_CLASS_CODES = SHIP_CLASSES.map((c) => c.value)
+export const shipClassLabel = (code) => SHIP_CLASSES.find((c) => c.value === code)?.label ?? code
+
+// Product Class dropdown values — VERBATIM from the live dev capture
+// (POST /master-data/v1/product-service/v1/product-class/lookup,
+// dev.masterdata.linx 2026-07-28): the NMFC scale incl. 350/450/650.
+// Dev also returns dirty rows (LTL, 0, 055/085 dupes, a stray product) —
+// deliberately excluded from the mock.
+export const PRODUCT_CLASSES = [
+  '50', '55', '60', '65', '70', '77.5', '85', '92.5', '100', '110',
+  '125', '150', '175', '200', '250', '300', '350', '400', '450', '500', '650',
+]
+
+// Handling Unit — COMPLETE catalog, verbatim from the live dev capture
+// (GET /master-data/v1/product-service/v1/handling-units 2026-07-28,
+// LINX-8135). Dropdown shows the label; order lines store the CODE
+// (DB ledger row 6).
+export const HANDLING_UNITS = [
+  { code: 'PLT', label: 'Pallet' },
+  { code: 'BOX', label: 'Box' },
+  { code: 'DRM', label: 'Drum' },
+  { code: 'BUL', label: 'Bulk' },
+  { code: 'CRT', label: 'Crate' },
+]

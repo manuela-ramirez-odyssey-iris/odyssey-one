@@ -105,7 +105,7 @@ describe('mapFormToOrderInterface', () => {
       grossWeightUomCode: 'lb',
       volumeValue: 79,
       volumeUomCode: 'cuft',
-      shipClass: 'Commodity',
+      shipClass: 'C',
     })
   })
 

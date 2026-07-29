@@ -86,8 +86,8 @@ function poolFor(type: LookupType, params: LookupParams): LookupOption[] {
         ...d, frequency: SHIP_DIRECTIONS.length - i,
       }))
     case 'ship-class':
-      return SHIP_CLASSES.map((c: string, i: number) => ({
-        value: c, label: c, frequency: SHIP_CLASSES.length - i,
+      return SHIP_CLASSES.map((c: { value: string; label: string }, i: number) => ({
+        ...c, frequency: SHIP_CLASSES.length - i,
       }))
     case 'org-address':
       return LOCATION_ADDRESSES.map((a: Record<string, string | number>) => ({

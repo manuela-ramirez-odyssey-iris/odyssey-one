@@ -44,7 +44,7 @@
 //                  items' hazmat fields, which share the same product.hazmat source.
 import { faker } from '@faker-js/faker';
 import { writeFileSync, mkdirSync, existsSync, readdirSync, unlinkSync } from 'fs';
-import { CUSTOMERS, EXTRA_CUSTOMERS, LOCATIONS, EQUIPMENT_CODES, CHEMICAL_PRODUCTS, locationIdFor, FREIGHT_TERMS, SHIP_DIRECTIONS } from './data-pools.mjs'
+import { CUSTOMERS, EXTRA_CUSTOMERS, LOCATIONS, EQUIPMENT_CODES, CHEMICAL_PRODUCTS, locationIdFor, FREIGHT_TERMS, SHIP_DIRECTIONS, SHIP_CLASS_CODES, PRODUCT_CLASSES, HANDLING_UNITS } from './data-pools.mjs'
 
 // ── Orders accumulator (I1) ──────────────────────────────────────────────────
 // Globally unique customer-prefixed order numbers, shared by shipped and
@@ -120,7 +120,8 @@ const PAYMENT_TERM_CODES = FREIGHT_TERMS.map((t) => t.value)          // P/C/A/T
 const SHIP_DIRECTION_CODES = SHIP_DIRECTIONS.map((d) => d.value) // O/I
 const HAZMAT_CLASSES = ['Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 8', 'Class 9'];
 const HAZMAT_GROUPS = ['I', 'II', 'III'];
-const PRODUCT_CLASSES = ['Commodity', 'Harmonized', 'NMFC', 'Product Class'];
+// PRODUCT_CLASSES (NMFC class VALUES) + SHIP_CLASS_CODES (class TYPE H/C/P/N)
+// + HANDLING_UNITS come from data-pools.mjs (DB ledger row 6).
 const TUNNEL_CODES = ['A', 'B', 'C', 'D', 'E'];
 
 const VALIDATION_MESSAGES = {
@@ -367,7 +368,11 @@ function generateShipment(index) {
         marinePollutant: product.hazmat ? (faker.number.int({ min: 1, max: 100 }) <= 30 ? 'Yes' : 'No') : null,
         wgkClass: product.hazmat ? pick(['1', '2', '3']) : null,
         tunnelCode: product.hazmat ? pick(TUNNEL_CODES) : null,
-        productClass: pick(PRODUCT_CLASSES),
+        productClass: pick(PRODUCT_CLASSES),       // NMFC class VALUE ('50'…'650')
+        shipClassCode: pick(SHIP_CLASS_CODES),     // class TYPE (H/C/P/N) — form wire `shipClass`
+        handlingUnit: pick(HANDLING_UNITS).code,   // PLT/BOX/DRM/BUL/CRT (ledger row 6)
+        harmonizedCode: `${faker.number.int({ min: 2800, max: 3999 })}.${faker.string.numeric(2)}.${faker.string.numeric(2)}.${faker.string.numeric(2)}`,
+        stccCode: faker.string.numeric(7),
         shippingClass: String(faker.number.int({ min: 100000, max: 999999 })),
         flashPoint: product.hazmat ? `${faker.number.int({ min: 60, max: 200 })} F` : null,
         countryOfOrigin: 'USA',
@@ -1300,7 +1305,17 @@ function generateUnshippedOrder(n, pending) {
       itemDescription: product.desc,
       grossWeightValue: faker.number.int({ min: 1000, max: 15000 }),
       volumeValue: faker.number.int({ min: 20, max: 200 }),
-      productClass: pick(PRODUCT_CLASSES),
+      packageCount: faker.number.int({ min: 5, max: 80 }),
+      productClass: pick(PRODUCT_CLASSES),       // NMFC class VALUE ('50'…'650')
+      shipClassCode: pick(SHIP_CLASS_CODES),     // class TYPE (H/C/P/N)
+      handlingUnit: pick(HANDLING_UNITS).code,   // PLT/BOX/DRM/BUL/CRT
+      lengthValue: faker.number.int({ min: 2, max: 6 }),
+      widthValue: faker.number.int({ min: 2, max: 6 }),
+      heightValue: faker.number.int({ min: 2, max: 6 }),
+      harmonizedCode: `${faker.number.int({ min: 2800, max: 3999 })}.${faker.string.numeric(2)}.${faker.string.numeric(2)}.${faker.string.numeric(2)}`,
+      stccCode: faker.string.numeric(7),
+      declaredValue: faker.number.int({ min: 2000, max: 50000 }),
+      declaredValueCurrency: 'USD',
       hazmat: product.hazmat, // local only — not serialized; feeds row.hazardous derivation below
     });
   }

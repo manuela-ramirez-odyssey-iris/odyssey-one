@@ -15,9 +15,9 @@ export const newProductId = () => `prod-${Math.random().toString(36).slice(2, 9)
 const toOptions = (list) => list.map((v) => ({ value: v, label: v }))
 const SELECT_OPTIONS = {
   // QA screenshot 2026-07-28: the UI's Product Class dropdown IS the 4-type
-  // selector (Harmonized/Commodity/Product/NMFC) — the NMFC 50–500 catalog
-  // (PRODUCT_CLASSES) is a different lookup, not this cell.
-  shipClass: toOptions(SHIP_CLASSES),
+  // selector; wire codes are the letters H/C/P/N (DB ledger row 6). The NMFC
+  // 50–650 catalog (PRODUCT_CLASSES) is a different lookup, not this cell.
+  shipClass: SHIP_CLASSES,
   handlingUnit: HANDLING_UNITS.map((u) => ({ value: u.code, label: u.label })),
   declaredValueCurrency: toOptions(CURRENCIES),
   manufacturingCountry: toOptions(COUNTRIES),

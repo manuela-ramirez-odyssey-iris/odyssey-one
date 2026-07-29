@@ -72,7 +72,7 @@ describe('mapOrderViewToFormVm (DTO → form VM)', () => {
     orderCarrierEquipDetailList: [{ carrierSequence: 1, scacCode: 'KNGT', equipmentCode: 'VAN' }],
     orderLines: [{
       lineIdentifier: 1, shipItemIdentifier: '39011E6K', productDescription: 'Polyethylene Resin HD',
-      grossWeightValue: 100, grossWeightUomCode: 'lb', volumeValue: 79, volumeUomCode: 'cuft', shipClass: 'Commodity',
+      grossWeightValue: 100, grossWeightUomCode: 'lb', volumeValue: 79, volumeUomCode: 'cuft', shipClass: 'C',
     }],
     orderAccessorialDetails: [{ accessorialCode: 'LFT', orderAccessorialDetailSequence: 1 }],
     userFieldList: [
@@ -142,7 +142,7 @@ describe('mapOrderViewToFormVm (DTO → form VM)', () => {
       description: 'Polyethylene Resin HD',
       grossWeight: { value: '100', uom: 'lb' },
       volume: { value: '79', uom: 'cuft' },
-      shipClass: 'Commodity',
+      shipClass: 'C',
     }])
   })
 
@@ -199,8 +199,8 @@ describe('mapOrderViewToFormVm — form → DTO → form round-trip', () => {
       productId: p.productId, description: p.description,
       grossWeight: p.grossWeight, volume: p.volume, shipClass: p.shipClass,
     }))).toEqual([
-      { productId: '0000000100037', description: 'Polyethylene Resin HD', grossWeight: { value: '100', uom: 'lb' }, volume: { value: '79', uom: 'cuft' }, shipClass: 'Commodity' },
-      { productId: '0000000100034', description: 'Sulfuric Acid 93%', grossWeight: { value: '4200', uom: 'lb' }, volume: { value: '651', uom: 'cuft' }, shipClass: 'Product Class' },
+      { productId: '0000000100037', description: 'Polyethylene Resin HD', grossWeight: { value: '100', uom: 'lb' }, volume: { value: '79', uom: 'cuft' }, shipClass: 'C' },
+      { productId: '0000000100034', description: 'Sulfuric Acid 93%', grossWeight: { value: '4200', uom: 'lb' }, volume: { value: '651', uom: 'cuft' }, shipClass: 'P' },
     ])
   })
 

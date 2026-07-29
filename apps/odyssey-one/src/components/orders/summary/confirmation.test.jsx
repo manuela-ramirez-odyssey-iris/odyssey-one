@@ -19,7 +19,7 @@ const product = (over = {}) => ({
   description: 'Soap',
   grossWeight: { value: '100', uom: 'lb' },
   volume: { value: '79', uom: 'cuft' },
-  shipClass: 'Commodity',
+  shipClass: 'C',
   handlingUnit: '',
   handlingCount: '',
   harmonizedCode: '',

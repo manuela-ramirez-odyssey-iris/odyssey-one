@@ -4,9 +4,9 @@
 // only the create flow needs (ship classes, special services,
 // carriers, timezones, UoMs) are defined here. `frequency` drives the
 // LINX-7553 frequency sort in lookupService; values are PROVISIONAL fakes.
-import { CUSTOMERS, EXTRA_CUSTOMERS, LOCATIONS, EQUIPMENT_CODES, EQUIPMENT_LABELS, CHEMICAL_PRODUCTS, locationIdFor, FREIGHT_TERMS, SHIP_DIRECTIONS, freightTermLabel, shipDirectionLabel } from '../../tools/data-pools.mjs'
+import { CUSTOMERS, EXTRA_CUSTOMERS, LOCATIONS, EQUIPMENT_CODES, EQUIPMENT_LABELS, CHEMICAL_PRODUCTS, locationIdFor, FREIGHT_TERMS, SHIP_DIRECTIONS, freightTermLabel, shipDirectionLabel, SHIP_CLASSES, SHIP_CLASS_CODES, shipClassLabel, PRODUCT_CLASSES, HANDLING_UNITS } from '../../tools/data-pools.mjs'
 
-export { CUSTOMERS, EXTRA_CUSTOMERS, LOCATIONS, EQUIPMENT_CODES, EQUIPMENT_LABELS, CHEMICAL_PRODUCTS, FREIGHT_TERMS, SHIP_DIRECTIONS, freightTermLabel, shipDirectionLabel }
+export { CUSTOMERS, EXTRA_CUSTOMERS, LOCATIONS, EQUIPMENT_CODES, EQUIPMENT_LABELS, CHEMICAL_PRODUCTS, FREIGHT_TERMS, SHIP_DIRECTIONS, freightTermLabel, shipDirectionLabel, SHIP_CLASSES, SHIP_CLASS_CODES, shipClassLabel, PRODUCT_CLASSES, HANDLING_UNITS }
 
 // ── Owning organizations (typeahead) ───────────────────────
 export const OWNING_ORGS = CUSTOMERS.map((c, i) => ({
@@ -30,21 +30,8 @@ export const EQUIPMENT_SCOPE = {
 // ── Plain selects ──────────────────────────────────────────
 // FREIGHT_TERMS / SHIP_DIRECTIONS now live in tools/data-pools.mjs as wire
 // codes (DB ledger row 2) — re-exported above with their label helpers.
-// The 4-option class-TYPE dropdown — CONFIRMED by QA screenshot + live dev
-// capture 2026-07-28: {H: Harmonized, C: Commodity, P: Product, N: NMFC}.
-// This is what the UI's "Product Class" column renders (labels below, order
-// per screenshot); wire codes are the letters H/C/P/N.
-export const SHIP_CLASSES = ['Harmonized', 'Commodity', 'Product', 'NMFC']
-
-// Product Class dropdown values — VERBATIM from the live dev capture
-// (POST /master-data/v1/product-service/v1/product-class/lookup,
-// dev.masterdata.linx 2026-07-28): the NMFC scale incl. 350/450/650.
-// Dev also returns dirty rows (LTL, 0, 055/085 dupes, a stray product) —
-// deliberately excluded from the mock.
-export const PRODUCT_CLASSES = [
-  '50', '55', '60', '65', '70', '77.5', '85', '92.5', '100', '110',
-  '125', '150', '175', '200', '250', '300', '350', '400', '450', '500', '650',
-]
+// SHIP_CLASSES (class TYPE, H/C/P/N) and PRODUCT_CLASSES (the NMFC class-VALUE
+// scale) now live in tools/data-pools.mjs (DB ledger row 6) — re-exported above.
 
 // Reference types for the References rows (Figma 6238:24599). Mock of the
 // real `reference-codes/lookup` master data (LINX-6036); Pickup/PO Number are
@@ -214,15 +201,6 @@ export const UOM_DIMENSION = [
 
 // ── Product grid catalogs (LINX-8135 handling units; LINX-8131 currencies —
 // ISO alphabetic, alphabetical) ──
-// Handling Unit — COMPLETE catalog, verbatim from the live dev capture
-// (GET /master-data/v1/product-service/v1/handling-units 2026-07-28):
-// {CRT:Crate, BUL:Bulk, PLT:Pallet, BOX:Box, DRM:Drum}. Dropdown shows the
-// label; code is the wire value.
-export const HANDLING_UNITS = [
-  { code: 'PLT', label: 'Pallet' },
-  { code: 'BOX', label: 'Box' },
-  { code: 'DRM', label: 'Drum' },
-  { code: 'BUL', label: 'Bulk' },
-  { code: 'CRT', label: 'Crate' },
-]
+// HANDLING_UNITS now lives in tools/data-pools.mjs (generated order lines store
+// the code) — re-exported above.
 export const CURRENCIES = ['CAD', 'EUR', 'MXN', 'USD']
