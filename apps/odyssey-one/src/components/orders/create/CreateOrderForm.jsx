@@ -20,6 +20,8 @@ import PickupDeliverySection from './sections/PickupDeliverySection.jsx'
 import ProductInformationSection from './sections/ProductInformationSection.jsx'
 import SpecialServicesSection from './sections/SpecialServicesSection.jsx'
 
+const get = (obj, path) => path.split('.').reduce((o, k) => o?.[k], obj)
+
 const SAVE_GATE_MESSAGE =
   'Order Number and Owning Organization are both required to save this order.'
 
@@ -111,15 +113,18 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
   }, [resolveKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const watchedAll = useWatch({ control })
+  // A field only counts resolved when the seeded-error module AND zod agree.
+  // mode:'onTouched' means an untouched field has no zod error yet — fine, zod
+  // flags it on touch.
+  const rhfErrors = formState.errors
   const resolvedSet = useMemo(() => {
     if (!resolveState) return new Set()
-    const get = (obj, path) => path.split('.').reduce((o, k) => o?.[k], obj)
     return new Set(
       resolveState.errors
-        .filter((e) => resolveState.isResolved(e, get(watchedAll, e.path)))
+        .filter((e) => resolveState.isResolved(e, get(watchedAll, e.path)) && !get(rhfErrors, e.path)?.message)
         .map((e) => e.path),
     )
-  }, [resolveState, watchedAll])
+  }, [resolveState, watchedAll, rhfErrors])
   const errorByPath = useMemo(
     () => new Map((resolveState?.errors ?? []).map((e) => [e.path, e])),
     [resolveState],
@@ -298,7 +303,7 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
           </Alert>
         )}
 
-        <div className="co-sections">
+        <div className={resolveMode ? 'co-sections co-resolve' : 'co-sections'}>
           <div ref={sectionRefs.general}>
             <Accordion
               position="start"

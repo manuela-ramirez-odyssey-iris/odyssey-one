@@ -13,17 +13,19 @@ export function useResolveMode() {
 }
 
 /**
- * Per-field prop injection — call with the context value + an RHF path; spread
- * the result LAST at a field call site so it wins over fieldState props.
+ * Per-field prop injection — call with the context value, an RHF path, and the
+ * call site's own `fieldState.error?.message`; spread the result LAST so it
+ * wins over the site's props. zod stays authoritative: we never paint a field
+ * green while the schema rejects its value.
  * - not in resolve mode / non-pool field → {}
- * - pool field, unresolved → { error: <category reason>, validated: false }
- * - pool field, resolved   → { error: undefined, validated: true }
+ * - pool field, unresolved → { error: <zod message ?? category reason>, validated: false }
+ * - pool field, resolved   → { error: <zod message>, validated: !zodError }
  */
-export function resolveFieldProps(ctx, path) {
+export function resolveFieldProps(ctx, path, fieldError) {
   if (!ctx) return {}
   const err = ctx.errorByPath.get(path)
   if (!err) return {}
   return ctx.resolvedSet.has(path)
-    ? { error: undefined, validated: true }
-    : { error: err.reason, validated: false }
+    ? { error: fieldError, validated: !fieldError }
+    : { error: fieldError ?? err.reason, validated: false }
 }

@@ -3,6 +3,7 @@ import { ChevronDown, ChevronUp } from 'lucide-react'
 import { Controller, useFormContext } from 'react-hook-form'
 import { Button, Checkbox, ComboBox, FormField } from '@odyssey/ui'
 import RepeatableRows, { newRowId } from '../RepeatableRows.jsx'
+import { useResolveMode, resolveFieldProps } from '../../resolve/ResolveModeContext.jsx'
 import { getLookupOptions } from '../../../../api/services/lookupService'
 import { EQUIPMENT_LOOKUP_CODES, EQUIPMENT_LABELS, EQUIPMENT_SCOPE, FREIGHT_TERMS, REFERENCE_TYPES, SHIP_DIRECTIONS } from '../../../../data/master-data'
 
@@ -34,6 +35,7 @@ const REFERENCE_TYPE_OPTIONS = REFERENCE_TYPES.map((t) => ({ value: t, label: t 
  */
 export default function GeneralInformationSection() {
   const { control, setValue, watch, getValues } = useFormContext()
+  const resolve = useResolveMode()
   const [isLongMode, setIsLongMode] = useState(false)
 
   const owningOrg = watch('general.owningOrganization')
@@ -164,6 +166,7 @@ export default function GeneralInformationSection() {
               value={field.value}
               onSelect={(v) => field.onChange(v ?? '')}
               error={fieldState.error?.message}
+              {...resolveFieldProps(resolve, 'general.equipment', fieldState.error?.message)}
             />
           )}
         />
@@ -185,6 +188,7 @@ export default function GeneralInformationSection() {
                 field.onChange(v ?? '')
               }}
               error={fieldState.error?.message}
+              {...resolveFieldProps(resolve, 'general.freightTerm', fieldState.error?.message)}
             />
           )}
         />
@@ -213,6 +217,7 @@ export default function GeneralInformationSection() {
                 }
               }}
               error={fieldState.error?.message}
+              {...resolveFieldProps(resolve, 'general.shipDirection', fieldState.error?.message)}
             />
           )}
         />

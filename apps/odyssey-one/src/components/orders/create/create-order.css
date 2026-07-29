@@ -823,3 +823,22 @@
   color: var(--text-secondary);
   margin: calc(var(--spacing-1) - var(--spacing-4)) 0 0;
 }
+
+/* === Resolve mode (LINX-11137) — read-only blanket ======================
+   Everything inside accordion content is locked; fields carrying an
+   error/validated state class stay interactive (they're the ones the user
+   must fix). Accordion headers stay clickable (outside __content). */
+.co-resolve .accordion__content :is(input, button, textarea, select, [role='checkbox']) {
+  pointer-events: none;
+}
+.co-resolve .accordion__content
+  :is(.form-field--error, .form-field--validated, .search-field--error, .search-field--validated)
+  :is(input, button) {
+  pointer-events: auto;
+}
+/* Muted read-only look for locked fields (inline bg on ComboBox bars wins
+   over a plain background rule, so use opacity — reads as disabled). */
+.co-resolve .accordion__content .form-field:not(.form-field--error):not(.form-field--validated),
+.co-resolve .accordion__content .search-field:not(.search-field--error):not(.search-field--validated) {
+  opacity: 0.6;
+}

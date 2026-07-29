@@ -1,6 +1,7 @@
 import { useRef } from 'react'
 import { Controller, useFormContext, useWatch } from 'react-hook-form'
 import { ComboBox, FormField } from '@odyssey/ui'
+import { useResolveMode, resolveFieldProps } from '../../resolve/ResolveModeContext.jsx'
 import { US_STATES, COUNTRIES, CITY_OPTIONS, POSTAL_OPTIONS, LOCATION_ADDRESSES } from '../../../../data/master-data'
 
 const toOptions = (list) => list.map((v) => ({ value: v, label: v }))
@@ -26,6 +27,7 @@ const POSTAL_SET = new Set(POSTAL_OPTIONS)
  */
 export default function AddressFields({ basePath }) {
   const { control } = useFormContext()
+  const resolve = useResolveMode()
 
   // Derive a stable id prefix from the basePath (e.g. "pickupDelivery.consignor"
   // → "co-pickupDelivery-consignor") matching the Batch 3 co-general-* convention.
@@ -46,6 +48,7 @@ export default function AddressFields({ basePath }) {
           value={field.value}
           onChange={(e) => field.onChange(e.target.value)}
           error={fieldState.error?.message}
+          {...resolveFieldProps(resolve, `${basePath}.${name}`, fieldState.error?.message)}
         />
       )}
     />
@@ -67,6 +70,7 @@ export default function AddressFields({ basePath }) {
           value={field.value}
           onSelect={(val) => field.onChange(val ?? '')}
           error={fieldState.error?.message}
+          {...resolveFieldProps(resolve, `${basePath}.${name}`, fieldState.error?.message)}
         />
       )}
     />
@@ -101,6 +105,7 @@ export default function AddressFields({ basePath }) {
           }}
           emptyMessage={notFoundMessage}
           error={fieldState.error?.message}
+          {...resolveFieldProps(resolve, `${basePath}.${name}`, fieldState.error?.message)}
         />
       )}
     />

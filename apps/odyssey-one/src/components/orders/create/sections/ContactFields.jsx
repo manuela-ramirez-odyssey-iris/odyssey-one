@@ -1,5 +1,6 @@
 import { Controller, useFormContext } from 'react-hook-form'
 import { FormField } from '@odyssey/ui'
+import { useResolveMode, resolveFieldProps } from '../../resolve/ResolveModeContext.jsx'
 
 /**
  * ContactFields — optional contact for a party (Efrain §2): Name, Phone
@@ -9,6 +10,7 @@ import { FormField } from '@odyssey/ui'
  */
 export default function ContactFields({ basePath }) {
   const { control } = useFormContext()
+  const resolve = useResolveMode()
 
   // Derive a stable id prefix from the basePath
   const idPrefix = `co-${basePath.replace(/\./g, '-')}`
@@ -26,6 +28,7 @@ export default function ContactFields({ basePath }) {
           value={f.value}
           onChange={(e) => f.onChange(e.target.value)}
           error={fieldState.error?.message}
+          {...resolveFieldProps(resolve, `${basePath}.${name}`, fieldState.error?.message)}
         />
       )}
     />
