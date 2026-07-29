@@ -38,7 +38,9 @@ async function insertRows(client, table, cols, rows) {
 }
 
 export async function seed(client, { totalShipments = 10000 } = {}) {
-  const ds = buildDataset({ totalShipments })
+  // +1000 unshipped rows at seed volume (DB ledger row 8). Mock CLI volume
+  // (2200 shipments) deliberately unchanged — bundle size stays flat.
+  const ds = buildDataset({ totalShipments, unshippedOrders: Math.round(totalShipments * 0.25) + 1000 })
 
   await insertRows(client, 'customers', ['id', 'name'], [...CUSTOMERS, ...EXTRA_CUSTOMERS].map((c) => [c.id, c.name]))
   await insertRows(client, 'carriers', ['scac', 'name'], CARRIERS.map((c) => [c.scac, c.name]))
