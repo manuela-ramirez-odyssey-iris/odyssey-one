@@ -4,7 +4,7 @@ import { ComboBox, FieldSearchResults } from '@odyssey/ui'
 export const meta = {
   name: 'ComboBox',
   tier: 'organism',
-  version: '0.9.0',
+  version: '0.9.1',
   createdVersion: '0.2.0',
   figmaNode: '4715:6142',
   codeConnect: 'packages/ui/src/ComboBox.figma.tsx',
@@ -31,6 +31,7 @@ export const props = [
   { name: 'error', type: 'string|false', desc: 'Figma `State=Error`. Red border (bittersweet ramp) + inline red message below the bar, aria-invalid + aria-describedby. Renders in ALL modes (slot / typeahead / plain).' },
   { name: 'validated', type: 'boolean', desc: 'Figma `State=Validated`. Success border (--border-success) + trailing check (text-tertiary) + green "Validated" line below. `error` wins when both are set.' },
   { name: 'required', type: 'boolean', desc: 'Renders ` *` after the label + aria-required on the input.' },
+  { name: 'disabled', type: 'boolean', desc: 'Figma `State=Disabled` (S101). Muted surface (--bg-secondary) + --text-tertiary text, not-allowed cursor; input, clear and trailing buttons all inert.' },
   { name: 'panelError', type: 'string', desc: "Typeahead: renders FieldSearchResults' red alert state INSIDE the dropdown instead of the option list (e.g. duplicate location ID). Distinct from `error`, which marks the field itself." },
   { name: 'className', type: 'string', desc: 'Extra class names forwarded to the root element.' },
 ]
@@ -47,6 +48,9 @@ export const tokens = [
   { token: '--border-success', resolves: 'Border/success', usage: 'validated border — idle' },
   { token: '--caribbean-green-600', resolves: 'Caribbean Green/600', usage: 'validated border — focused' },
   { token: '--text-success', resolves: 'Text/success', usage: 'validated message' },
+  { token: '--bg-secondary', resolves: 'DSN/50', usage: 'disabled input bar surface' },
+  { token: '--text-tertiary', resolves: 'Text/tertiary (DSN/500)', usage: 'disabled input text' },
+  { token: '--text-placeholder', resolves: 'Text/placeholder (DSN/400)', usage: 'disabled bar icons (search / chevron)' },
 ]
 
 // ── Shared helpers ───────────────────────────────────────────────────────────
@@ -128,6 +132,7 @@ function SlotPlayground() {
   const [showLabel, setShowLabel] = useState(true)
   const [showInfoIcon, setShowInfoIcon] = useState(true)
   const [simulateError, setSimulateError] = useState(false)
+  const [disabled, setDisabled] = useState(false)
 
   const q = value.trim().toLowerCase()
   const filtered = q
@@ -152,6 +157,7 @@ function SlotPlayground() {
         <Toggle label="label" value={showLabel} set={setShowLabel} />
         <Toggle label="info icon" value={showInfoIcon} set={setShowInfoIcon} />
         <Toggle label="simulate error" value={simulateError} set={setSimulateError} />
+        <Toggle label="disabled" value={disabled} set={setDisabled} />
       </div>
       <div style={{ maxWidth: 420 }}>
         <ComboBox
@@ -162,11 +168,12 @@ function SlotPlayground() {
           showLabel={showLabel}
           label="Location"
           showInfoIcon={showInfoIcon}
+          disabled={disabled}
           results={results}
         />
       </div>
       <p style={{ marginTop: 'var(--spacing-2)', fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)' }}>
-        Type to filter · clear the field to hide the dropdown · toggle "simulate error" for the alert state.
+        Type to filter · clear the field to hide the dropdown · toggle "simulate error" for the alert state · "disabled" mutes the field (Figma `State=Disabled`).
       </p>
     </div>
   )

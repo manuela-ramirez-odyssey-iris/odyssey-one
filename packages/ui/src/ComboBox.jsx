@@ -563,7 +563,7 @@ export default function ComboBox({
             if (typeaheadMode) setOpen(true)
           }}
           className="flex items-center justify-center border-none bg-transparent cursor-pointer p-0 shrink-0"
-          style={{ color: 'var(--text-tertiary)' }}
+          style={{ color: disabled ? 'var(--text-placeholder)' : 'var(--text-tertiary)', cursor: disabled ? 'not-allowed' : undefined }}
           aria-label="Toggle options"
         >
           <ChevronDown

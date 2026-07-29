@@ -19,8 +19,21 @@ figma.connect(
       // `Content` SLOT (gated by the `Show results` boolean) → the `results` dropdown slot.
       // Typically a <FieldSearchResults>; the shell chrome lives on .search-field__results.
       results: figma.instance('Content'),
+      // State axis (S99 error/validated + S101 disabled). Focused states are
+      // runtime-only in code (:focus-within) — no prop mapping.
+      error: figma.enum('State', {
+        Error: 'Error text',
+        'Focused Error': 'Error text',
+      }),
+      validated: figma.enum('State', {
+        Validated: true,
+        'Focused Validated': true,
+      }),
+      disabled: figma.enum('State', {
+        Disabled: true,
+      }),
     },
-    example: ({ variant, placeholder, showLabel, label, showInfoIcon, results }) => (
+    example: ({ variant, placeholder, showLabel, label, showInfoIcon, results, error, validated, disabled }) => (
       <ComboBox
         variant={variant}
         placeholder={placeholder}
@@ -30,6 +43,9 @@ figma.connect(
         value=""
         onChange={() => {}}
         results={results}
+        error={error}
+        validated={validated}
+        disabled={disabled}
       />
     ),
   },
