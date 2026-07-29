@@ -13,4 +13,10 @@ export const USERS = [
   { id: 'manager-mia',  email: 'mia@odyssey.local',   name: 'Mia Manager',  password: 'odyssey', role: 'manager', customers: ['VALTRIS_01', 'ERCO_SYS_01', 'BASF_CHM_01', 'DOW_IND_01', 'SOLENIS_01', 'GEON_01'] },
   { id: 'manager-noah', email: 'noah@odyssey.local',  name: 'Noah Manager', password: 'odyssey', role: 'manager', customers: ['SHELL_OIL_01', 'HUNT_REF_01', 'LYOND_PET_01', 'COVES_PLY_01'] },
   { id: 'admin-zoe',    email: 'zoe@odyssey.local',   name: 'Zoe Admin',    password: 'odyssey', role: 'admin',   customers: [] }, // admin: unscoped
+  // sso-mock personas (src/data/sso-mock.js) — the navbar user switcher sends
+  // these ids with preference writes; they must exist for the users FK.
+  { id: 'u1', email: 'amy.cook@odyssey.com',        name: 'Amy Cook',        password: 'odyssey', role: 'admin',   customers: [] },
+  { id: 'u2', email: 'david.johns@odyssey.com',     name: 'David Johns',     password: 'odyssey', role: 'manager', customers: [] },
+  { id: 'u3', email: 'janardhana.k@odyssey.com',    name: 'Janardhana K.',   password: 'odyssey', role: 'manager', customers: [] },
+  { id: 'u4', email: 'manuela.ramirez@odyssey.com', name: 'Manuela Ramirez', password: 'odyssey', role: 'admin',   customers: [] },
 ]

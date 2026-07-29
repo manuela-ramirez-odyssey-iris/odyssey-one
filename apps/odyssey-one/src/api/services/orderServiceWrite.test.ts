@@ -13,13 +13,13 @@ const page = () => ({ pagination: { pageNumber: 1, pageSize: 20 } })
 beforeEach(() => __resetOrderWriteState())
 
 describe('orderService.createOrder (mock)', () => {
-  it('returns the LINX-9340 envelope with a generated S26… number when blank', async () => {
+  it('returns the LINX-9340 envelope with orderNumber = orderId when blank (LINX-9742)', async () => {
     const v = sample()
     v.general.orderNumber = ''
     const res = await createOrder(mapFormToOrderInterface(v))
     expect(res.success).toBe(true)
     expect(res.orderId).toBeTruthy()
-    expect(res.data!.orderNumber).toMatch(/^S26\d{4}NGW$/)
+    expect(res.data!.orderNumber).toBe(String(res.orderId).padStart(13, '0'))
     expect(res.message).toContain(res.data!.orderNumber)
     expect(res.data!.shipmentMode).toBe('Ground') // Q28 open; mock constant
   })

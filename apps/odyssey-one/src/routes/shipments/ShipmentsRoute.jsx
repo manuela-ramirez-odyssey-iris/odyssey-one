@@ -1,11 +1,11 @@
-import { useState, useMemo, useCallback, useRef } from 'react'
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import AppShell from '../../components/layout/AppShell'
 import ShipmentsPanelTabs from '../../components/shipments/ShipmentsPanelTabs'
 import TableControls from '../../components/shipments/TableControls'
 import ShipmentTable from '../../components/shipments/ShipmentTable'
 import BottomBar, { DEFAULT_TAB_ORDER } from '../../components/detail/BottomBar'
-import ColumnPanel, { ALL_COLUMNS, EXCEPTIONS_DEFAULT_COLUMNS, MONITORING_DEFAULT_COLUMNS, RIGHT_PANEL_WIDTH } from '../../components/detail/ColumnPanel'
+import ColumnPanel, { ALL_COLUMNS, EXCEPTIONS_DEFAULT_COLUMNS, MONITORING_DEFAULT_COLUMNS, RIGHT_PANEL_WIDTH, PRESETS } from '../../components/detail/ColumnPanel'
 import TabArrangementPanel from '../../components/detail/TabArrangementPanel'
 import { COLUMN_CONFIG } from '../../components/shipments/ShipmentTable'
 import { FileText } from 'lucide-react'
@@ -15,6 +15,7 @@ import { getAllShipments } from '../../data'
 import { PANEL_CONFIG } from '../../data/panelConfig'
 import { useCustomers } from '../../contexts/CustomersContext.jsx'
 import { useShipmentDetail } from '../../api/queries/useShipmentDetail'
+import { useUserPreference } from '../../api/queries/useUserPreference'
 import { useShipmentErrorList } from '../../api/queries/useShipmentErrorList'
 import { useCategoryCounts } from '../../api/queries/useCategoryCounts'
 import { getShipmentErrorList } from '../../api/services/gridService'
@@ -61,6 +62,23 @@ function ShipmentsRoute() {
   const setVisibleColumns = useCallback((newCols) => {
     setColumnsByPanel(prev => ({ ...prev, [activePanel]: newCols }))
   }, [activePanel])
+
+  // Persisted ColumnPanel preset store (S101) — user_preferences row keyed
+  // 'shipments.columnPresets'. Loaded once; saved only when the panel commits
+  // (Save / confirmed delete). ColumnPanel hydrates via initialPresetState (its
+  // key below remounts it once the load resolves — panel is closed, invisible).
+  const { data: presetPref, isLoading: presetPrefLoading, save: savePresetPref } = useUserPreference('shipments.columnPresets')
+
+  // On hydration, re-apply the committed columns of the last-active preset so
+  // the table matches what the user last saved (mock mode: null, no-op).
+  useEffect(() => {
+    if (!presetPref) return
+    const all = [...(presetPref.customPresets ?? []), ...PRESETS.odyssey]
+    const cols = presetPref.presetColumns?.[presetPref.activePresetId]
+      ?? all.find(p => p.id === presetPref.activePresetId)?.columns
+    if (cols?.length) setVisibleColumns(cols)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- hydrate once, on load
+  }, [presetPref])
 
   // Full set kept for: the grand-total count and the selected-row lookup
   // (BottomBar consumes the raw row shape). In live mode these become lookup
@@ -317,11 +335,14 @@ function ShipmentsRoute() {
             />
           )}
           <ColumnPanel
+            key={presetPrefLoading ? 'pref-loading' : 'pref-ready'}
             ref={columnPanelRef}
             isOpen={columnPanelOpen}
             onClose={() => setColumnPanelOpen(false)}
             visibleColumns={visibleColumns}
             onColumnsChange={handleColumnsChange}
+            initialPresetState={presetPref ?? undefined}
+            onPresetStateChange={savePresetPref}
           />
           <TabArrangementPanel
             isOpen={tabPanelOpen}

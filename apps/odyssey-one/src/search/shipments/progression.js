@@ -39,7 +39,7 @@ export const SHIPMENTS_PROGRESSION = [
     attributes: [
       { key: 'buy-shipment', label: 'Buy Shipment #', dataKey: 'buyShipment', match: 'digits' },
       { key: 'sell-shipment', label: 'Sell Shipment #', dataKey: 'sellShipment', match: 'digits' },
-      { key: 'order', label: 'Order #', dataKey: 'orders', match: 'letters' },
+      { key: 'order', label: 'Order #', dataKey: 'orders', match: 'both' }, // LINX-9742: auto numbers are digits, user-provided keep letters
       { key: 'order-count', label: 'Order Count', dataKey: 'orderCount', match: 'digits', exact: true },
       { key: 'pro', label: 'Pro#/Booking #', dataKey: 'pro', match: 'digits' },
     ],

@@ -35,6 +35,7 @@ export default function RepeatableRows({
   onDeleteRow,    // (rowId)
   onAddRow,       // ()
   addLabel,
+  disabled = false, // locks every cell, trash, and the add button (resolve mode)
 }) {
   const colStyle = (col) =>
     col.maxWidth ? { width: col.maxWidth, maxWidth: col.maxWidth } : undefined
@@ -74,6 +75,7 @@ export default function RepeatableRows({
                             ? col.select.options(row)
                             : col.select.options}
                           value={row[col.key]}
+                          disabled={disabled}
                           onSelect={(val) => onCellChange(row.id, col.key, val ?? '')}
                         />
                       ) : (
@@ -82,6 +84,7 @@ export default function RepeatableRows({
                           placeholder={rowPlaceholder?.(row, col.key) ?? col.placeholder}
                           value={row[col.key]}
                           maxLength={col.maxLength}
+                          disabled={disabled}
                           onChange={(e) => onCellChange(row.id, col.key, e.target.value)}
                         />
                       )}
@@ -94,6 +97,7 @@ export default function RepeatableRows({
                       type="button"
                       className="co-rep__trash"
                       aria-label="Delete row"
+                      disabled={disabled}
                       onClick={() => onDeleteRow(row.id)}
                     >
                       <Trash2 size={20} />
@@ -105,7 +109,7 @@ export default function RepeatableRows({
           </tbody>
         </table>
       )}
-      <Button variant="link" icon={<Plus size={16} />} onClick={onAddRow}>{addLabel}</Button>
+      <Button variant="link" icon={<Plus size={16} />} disabled={disabled} onClick={onAddRow}>{addLabel}</Button>
     </div>
   )
 }

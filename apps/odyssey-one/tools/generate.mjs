@@ -47,21 +47,33 @@ import { writeFileSync, mkdirSync, existsSync, readdirSync, unlinkSync } from 'f
 import { CUSTOMERS, EXTRA_CUSTOMERS, LOCATIONS, EQUIPMENT_CODES, CHEMICAL_PRODUCTS, locationIdFor, FREIGHT_TERMS, SHIP_DIRECTIONS, SHIP_CLASS_CODES, shipClassLabel, PRODUCT_CLASSES, HANDLING_UNITS } from './data-pools.mjs'
 
 // ── Orders accumulator (I1) ──────────────────────────────────────────────────
-// Globally unique customer-prefixed order numbers, shared by shipped and
-// unshipped orders so "orderNumber desc" stays a sane newest-first proxy.
+// LINX-9742/9279: every order (shipped + unshipped + pending) draws a globally
+// unique NUMERIC orderId from ONE shared sequence (91000+, the legacy pending
+// range family). ~71% of numbers are auto-generated (orderNumber = the
+// 13-digit zero-padded orderId, mirroring the product external-ID convention);
+// ~29% are user-provided free text (customer prefix + the same id, "user typed
+// it to remember which customer" — uniqueness holds trivially). Equal-length
+// numeric strings keep "orderNumber desc" a sane newest-first proxy for the
+// auto majority.
 // Module-level mutable state (orderSeq, orderRows, orderEnrichments,
 // usedSellShipments) is reset by buildDataset() so repeated in-process calls
 // stay deterministic. resetGeneratorState() zeroes it all at once.
-let orderSeq = 0;
-function genOrderNumber(customer) {
-  const prefix = customer.id.replace(/[^A-Z]/g, '').slice(0, 3).padEnd(3, 'X');
-  return `${prefix}${100000 + orderSeq++}`;
+const ORDER_ID_BASE = 91000; // 5-digit family; ~5k orders/run stays 5-digit
+let orderSeq = ORDER_ID_BASE;
+function nextOrderId() { return orderSeq++; }
+function genOrderNumber(customer, orderId) {
+  if (faker.number.float({ min: 0, max: 1 }) < 0.29) {
+    // user-provided free-text number (customer-styled)
+    const prefix = customer.id.replace(/[^A-Z]/g, '').slice(0, 3).padEnd(3, 'X');
+    return `${prefix}-${orderId}`;
+  }
+  return String(orderId).padStart(13, '0'); // auto-generated: 13-digit external-ID form
 }
 let orderRows = [];        // → src/data/orders.json  (OrderListRow shape)
 let orderEnrichments = {}; // → src/data/order-details.json (partial ManualOrder by orderNumber)
 
 function resetGeneratorState() {
-  orderSeq = 0;
+  orderSeq = ORDER_ID_BASE;
   orderRows = [];
   orderEnrichments = {};
   usedSellShipments.clear();
@@ -350,7 +362,8 @@ function generateShipment(index) {
   const packageType = pick(PACKAGE_TYPES); // consistent per shipment
 
   for (let o = 0; o < orderCount; o++) {
-    const orderId = genOrderNumber(customer); // I1 — globally unique, customer-prefixed
+    const numericOrderId = nextOrderId();                 // I1 — globally unique numeric id
+    const orderId = genOrderNumber(customer, numericOrderId); // orderNumber string (auto = String(id), ~15% user-styled)
     const lineCount = faker.number.int({ min: 1, max: 3 });
     const lines = [];
 
@@ -419,7 +432,7 @@ function generateShipment(index) {
     const orderTare = lines.reduce((s, l) => s + l.tareWeightValue, 0);
     const orderVolume = lines.reduce((s, l) => s + l.volumeValue, 0);
     const orderPackages = lines.reduce((s, l) => s + l.packageCount, 0);
-    orders.push({ orderId, lineCount, lines, orderGross, orderTare, orderVolume, orderPackages });
+    orders.push({ orderId, numericOrderId, lineCount, lines, orderGross, orderTare, orderVolume, orderPackages });
   }
 
   // I5 — shipment gross weight = Σ of its orders' gross weights
@@ -1121,6 +1134,7 @@ function generateShipment(index) {
     const to = LOCATIONS[ord.shipToLocIdx];
     const orderRow = {
       orderNumber: ord.orderId,
+      orderId: ord.numericOrderId,
       orderSource: faker.number.float({ min: 0, max: 1 }) < 0.85 ? 'INTEGRATED' : 'MANUAL',
       customer: customer.id, // I2
       shipDirection,
@@ -1362,9 +1376,11 @@ function generateUnshippedOrder(n, pending) {
   const earliestDelivery = new Date(latestPickup.getTime() + faker.number.int({ min: 1, max: 5 }) * 24 * 60 * 60 * 1000);
   const latestDelivery = new Date(earliestDelivery.getTime() + faker.number.int({ min: 4, max: 48 }) * 60 * 60 * 1000);
 
-  const orderNumber = pending ? '' : genOrderNumber(customer);
+  const numericOrderId = nextOrderId();
+  const orderNumber = pending ? '' : genOrderNumber(customer, numericOrderId);
   const row = {
     orderNumber,
+    orderId: numericOrderId, // pending rows' only handle; present on all rows (LINX-9742)
     // Pending rows came through the async manual-create flow (I9)
     orderSource: pending ? 'MANUAL' : pick(['INTEGRATED', 'INTEGRATED', 'MANUAL']),
     customer: customer.id,
@@ -1395,7 +1411,6 @@ function generateUnshippedOrder(n, pending) {
     createdAt: toIsoLocal(new Date(earliestPickup.getTime() - faker.number.int({ min: 24, max: 240 }) * 3600e3)),
     createdBy: pick(ORDER_USERS),
   };
-  if (pending) row.orderId = 91000 + n; // internal id — the only handle a number-less row has
   if (row.orderStatus === 'Draft') {
     row.lastEditAt = toIsoLocal(new Date(new Date(row.createdAt).getTime() + faker.number.int({ min: 1, max: 72 }) * 3600e3));
   }

@@ -68,7 +68,7 @@ function SortIcon({ state }) {
  * column-arrangement trigger.
  * Header sorting physically reorders the products array (form rows renumber).
  */
-export default function ProductGrid({ columnKeys, equipment, search, onOpenColumns }) {
+export default function ProductGrid({ columnKeys, equipment, search, onOpenColumns, disabled = false }) {
   const { control, getValues, setValue } = useFormContext()
   const [sort, setSort] = useState(null) // { key, dir }
   // Free-text commit reads the TYPED ref, not the DOM value — at selection
@@ -122,6 +122,7 @@ export default function ProductGrid({ columnKeys, equipment, search, onOpenColum
             <div className="co-prod__center">
               <Checkbox
                 checked={!!field.value}
+                disabled={disabled}
                 onChange={(e) => field.onChange(e.target.checked)}
                 aria-label={col.label}
               />
@@ -134,6 +135,7 @@ export default function ProductGrid({ columnKeys, equipment, search, onOpenColum
             <ComboBox
               variant="select"
               placeholder="Search or enter an ID"
+              disabled={disabled}
               value={field.value}
               onChange={(text) => {
                 typedRef.current[index] = text
@@ -162,6 +164,7 @@ export default function ProductGrid({ columnKeys, equipment, search, onOpenColum
             <FormField
               showLabel={false}
               placeholder={col.placeholder}
+              disabled={disabled}
               value={field.value}
               maxLength={col.maxLength}
               showCounter
@@ -179,6 +182,7 @@ export default function ProductGrid({ columnKeys, equipment, search, onOpenColum
               {/* Figma FormField `State=Filled Trailing Button` — one field,
                   UoM as the trailing FieldSelect (2026-07-28 audit) */}
               <MeasureField
+                disabled={disabled}
                 value={field.value}
                 options={UOM_OPTIONS[col.uomKind]}
                 onChange={field.onChange}
@@ -199,6 +203,7 @@ export default function ProductGrid({ columnKeys, equipment, search, onOpenColum
               variant="select"
               typable={false}
               placeholder={col.placeholder}
+              disabled={disabled}
               options={SELECT_OPTIONS[col.key] ?? []}
               value={field.value}
               onSelect={(val) => field.onChange(val ?? '')}
@@ -213,6 +218,7 @@ export default function ProductGrid({ columnKeys, equipment, search, onOpenColum
               showLabel={false}
               placeholder={col.placeholder}
               inputMode={col.inputMode}
+              disabled={disabled}
               value={field.value}
               onChange={(e) => field.onChange(e.target.value)}
               onBlur={field.onBlur}
@@ -235,6 +241,7 @@ export default function ProductGrid({ columnKeys, equipment, search, onOpenColum
                 <button
                   type="button"
                   className="co-prod__sort text-label-sm-semibold"
+                  disabled={disabled}
                   onClick={() => toggleSort(col)}
                   aria-label={`Sort by ${col.label}`}
                 >
@@ -251,6 +258,7 @@ export default function ProductGrid({ columnKeys, equipment, search, onOpenColum
                 size="sm"
                 icon={<Columns3Cog size={18} />}
                 aria-label="Arrange columns"
+                disabled={disabled}
                 onClick={onOpenColumns}
               />
             </th>
@@ -278,6 +286,7 @@ export default function ProductGrid({ columnKeys, equipment, search, onOpenColum
                   type="button"
                   className="co-rep__trash"
                   aria-label="Delete row"
+                  disabled={disabled}
                   onClick={() => deleteRow(row.id)}
                 >
                   <Trash2 size={20} />
@@ -297,7 +306,7 @@ export default function ProductGrid({ columnKeys, equipment, search, onOpenColum
     </div>
     {/* Outside the scroll wrap — never moves with horizontal scroll */}
     <div className="co-prod-add">
-      <Button variant="link" icon={<Plus size={16} />} onClick={addRow}>Add Product</Button>
+      <Button variant="link" icon={<Plus size={16} />} disabled={disabled} onClick={addRow}>Add Product</Button>
     </div>
     </>
   )

@@ -129,7 +129,7 @@ export interface CreateOrderRequest {
 // data is typed as what the confirmation page consumes (mock supplies it;
 // live reconciliation at flip time).
 export interface CreatedOrderData {
-  orderNumber: string           // "S260004NGW" (sync) — async variant renders "–"
+  orderNumber: string           // auto-generated = String(orderId), LINX-9742 (sync) — async variant renders "–"
   orderDate: string             // ISO
   orderDateTimeZoneCode: string // "EST"
   shipmentMode: string          // "Ground" — derivation open (Q28); mock constant

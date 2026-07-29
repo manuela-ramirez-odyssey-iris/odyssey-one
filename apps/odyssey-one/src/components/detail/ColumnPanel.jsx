@@ -278,22 +278,27 @@ const ColumnPanel = forwardRef(function ColumnPanel({
   allColumns = ALL_COLUMNS,
   presets = PRESETS,
   defaultPresetId = 'default-exceptions',
+  // Persistence seam (S101): a previously saved preset-store snapshot to hydrate
+  // from, and a callback fired at COMMIT points only (Save / confirmed delete)
+  // with the next snapshot — the owner persists it (user_preferences API).
+  initialPresetState = null,
+  onPresetStateChange,
 }, ref) {
   const BUILT_IN_PRESET_IDS = useMemo(() => builtInPresetIds(presets), [presets])
   const [view, setView] = useState('presets')
-  const [activePresetId, setActivePresetId] = useState(defaultPresetId)
+  const [activePresetId, setActivePresetId] = useState(initialPresetState?.activePresetId ?? defaultPresetId)
   const [searchQuery, setSearchQuery] = useState('')
   const [dragOverIndex, setDragOverIndex] = useState(null)
   const [slideDir, setSlideDir] = useState('forward')
 
   // Preset store — extends the pre-existing state mechanism (route lifespan, no new
   // storage): the user-editable preset list + committed column overrides + names.
-  const [customPresets, setCustomPresets] = useState(presets.custom)
-  const [presetColumns, setPresetColumns] = useState({})
+  const [customPresets, setCustomPresets] = useState(initialPresetState?.customPresets ?? presets.custom)
+  const [presetColumns, setPresetColumns] = useState(initialPresetState?.presetColumns ?? {})
   const [presetNames, setPresetNames] = useState(() => {
     const m = {}
     ;[...presets.custom, ...presets.odyssey].forEach(p => { m[p.id] = p.name })
-    return m
+    return { ...m, ...initialPresetState?.presetNames }
   })
 
   // Editing session drafts — staged until Save (the ModalFooter).
@@ -385,6 +390,7 @@ const ColumnPanel = forwardRef(function ColumnPanel({
   // Leave the arrangement view for the presets list, discarding the draft.
   // (`handleBack` below guards this behind the unsaved-changes dialog.)
   const performBack = () => {
+    revertAppliedColumns() // live-applied draft edits roll back with the draft
     pruneEmptyPreset(activePresetId)
     setDraftColumns(baseColumns)
     setDraftName(currentName)
@@ -406,8 +412,14 @@ const ColumnPanel = forwardRef(function ColumnPanel({
     performBack()
   }
 
+  // Live-apply (user 2026-07-29): draft edits render on the table IMMEDIATELY —
+  // dragging reorders live, toggles show/hide live. Save only makes the draft
+  // durable (preset commit + persistence); Cancel/Back/discard revert the table
+  // to the committed columns via revertAppliedColumns.
   const handleToggleColumn = (key, checked) => {
-    setDraftColumns(checked ? [...draftColumns, key] : draftColumns.filter(k => k !== key))
+    const next = checked ? [...draftColumns, key] : draftColumns.filter(k => k !== key)
+    setDraftColumns(next)
+    if (next.length) onColumnsChange(next) // empty draft: table keeps last state (Save is disabled anyway)
   }
 
   const handleDrop = (e, toIndex) => {
@@ -419,6 +431,16 @@ const ColumnPanel = forwardRef(function ColumnPanel({
     const [moved] = newCols.splice(fromIndex, 1)
     newCols.splice(toIndex, 0, moved)
     setDraftColumns(newCols)
+    onColumnsChange(newCols)
+  }
+
+  // Restore the last COMMITTED columns after a discard. A pruned brand-new
+  // preset has no committed columns — fall back to the previously selected
+  // (or default) preset, mirroring pruneEmptyPreset's selection restore.
+  const revertAppliedColumns = () => {
+    let cols = committedColumnsFor(activePresetId)
+    if (!cols.length) cols = committedColumnsFor(prevPresetIdRef.current ?? defaultPresetId)
+    if (cols.length) onColumnsChange(cols)
   }
 
   // Title edit lifecycle — the edited value stays a PENDING draft (draftName) after
@@ -437,13 +459,18 @@ const ColumnPanel = forwardRef(function ColumnPanel({
     if (draftColumns.length === 0) return // empty preset is unsavable (footer Save is disabled)
     const wasNew = isNewPreset // capture before the commit flips it
     const name = draftName.trim() || currentName
-    setPresetNames(prev => ({ ...prev, [activePresetId]: name }))
+    const nextNames = { ...presetNames, [activePresetId]: name }
+    setPresetNames(nextNames)
     setDraftName(name)
     setEditingName(false)
+    let nextColumns = presetColumns
     if (columnsDirty) {
-      setPresetColumns(prev => ({ ...prev, [activePresetId]: draftColumns }))
+      nextColumns = { ...presetColumns, [activePresetId]: draftColumns }
+      setPresetColumns(nextColumns)
       onColumnsChange(draftColumns)
     }
+    // Persistence commit point — Save is the only place edits become durable.
+    onPresetStateChange?.({ customPresets, presetColumns: nextColumns, presetNames: nextNames, activePresetId })
     // Saving a brand-new preset closes the whole panel (preset persisted + applied).
     // Skip the deferred prune — this render's presetColumns closure predates the
     // commit above and would wrongly see the just-saved preset as empty.
@@ -457,12 +484,14 @@ const ColumnPanel = forwardRef(function ColumnPanel({
     if (isNewPreset) {
       setDraftColumns([])
       setEditingName(false)
+      revertAppliedColumns()
       doClose()
       return
     }
     setDraftColumns(baseColumns)
     setDraftName(currentName)
     setEditingName(false)
+    revertAppliedColumns()
   }
 
   // Closing always returns to the presets list and cancels any in-flight title edit.
@@ -517,8 +546,12 @@ const ColumnPanel = forwardRef(function ColumnPanel({
     setDraftColumns(baseColumns)
     setDraftName(currentName)
     setEditingName(false)
-    if (exitIntentRef.current === 'back') performBack()
-    else doClose()
+    if (exitIntentRef.current === 'back') {
+      performBack() // performBack reverts the live-applied draft itself
+    } else {
+      revertAppliedColumns()
+      doClose()
+    }
   }
 
   // New Preset — an empty user preset; jump straight into its arrangement with the
@@ -567,6 +600,7 @@ const ColumnPanel = forwardRef(function ColumnPanel({
   const handleConfirmDelete = () => {
     const remaining = customPresets.filter(p => !deleteSelection.has(p.id))
     setCustomPresets(remaining)
+    let nextActiveId = activePresetId
     if (deleteSelection.has(activePresetId)) {
       // The applied preset was deleted — fall back to the first surviving custom preset
       // (or the first Odyssey preset if the custom group was emptied) and apply it.
@@ -574,10 +608,13 @@ const ColumnPanel = forwardRef(function ColumnPanel({
       // current table columns, just clear the selection.
       const fallback = remaining[0] ?? presets.odyssey[0]
       if (fallback) {
+        nextActiveId = fallback.id
         setActivePresetId(fallback.id)
         onColumnsChange(presetColumns[fallback.id] ?? fallback.columns)
       }
     }
+    // Persistence commit point — a confirmed delete is durable, like Save.
+    onPresetStateChange?.({ customPresets: remaining, presetColumns, presetNames, activePresetId: nextActiveId })
     setShowDeleteConfirm(false)
     handleExitDeleteMode()
   }

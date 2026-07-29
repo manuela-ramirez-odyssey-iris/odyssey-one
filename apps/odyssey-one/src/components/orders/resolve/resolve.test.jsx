@@ -14,7 +14,7 @@ import { __resetOrderWriteState } from '../../../api/services/orderService'
 
 // Seeded row that sits in the Validation Errors tab (Shipment Failed) with
 // draftOrderStatus 'Ready' — src/data/orders.json.
-const ORDER = 'MON100206'
+const ORDER = '0000000091105'
 
 function renderResolve(orderNumber = ORDER, state = { errorCount: 5, customer: 'ACME', orderSource: 'Integrated' }) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -57,9 +57,9 @@ describe('resolve mode — chrome', () => {
 })
 
 describe('resolve mode — fields', () => {
-  // The seeded errors for MON100206 land on general.equipment (pick-only
-  // ComboBox) + consignor address1/state/postal & consignee postal. Postal is
-  // a plain typable input among them, so it's the one the flip assertion drives.
+  // The seeded errors for 0000000091105 land on general.freightTerm +
+  // consignor postal & consignee idOrgName/address1/postal. Postal is a plain
+  // typable input among them, so it's the one the flip assertion drives.
   const FLIP_PATH = 'pickupDelivery.consignor.postal'
 
   async function openShipperAddress() {
@@ -92,6 +92,23 @@ describe('resolve mode — fields', () => {
     const fieldRoot = input.closest('.form-field')
     await waitFor(() => expect(within(fieldRoot).getByText('Validated')).toBeTruthy())
   })
+
+  test('non-pool fields are disabled; pool fields stay enabled', async () => {
+    renderResolve()
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Order Validation Error Resolution' })).toBeTruthy())
+
+    // Order Number is never in the error pool → real disabled prop locks it.
+    const orderNumber = document.getElementById('co-general-orderNumber')
+    expect(orderNumber).toBeTruthy()
+    expect(orderNumber.disabled).toBe(true)
+
+    // Postal (seeded error for 0000000091105) is in the pool → resolveFieldProps
+    // re-enables it (disabled: false spread last).
+    await openShipperAddress()
+    const postal = document.getElementById(`co-${FLIP_PATH.replace(/\./g, '-')}`)
+    await waitFor(() => expect(postal).toBeTruthy())
+    expect(postal.disabled).toBe(false)
+  })
 })
 
 describe('resolve mode — alert + accordions', () => {
@@ -111,7 +128,7 @@ describe('resolve mode — alert + accordions', () => {
   test('error sections start expanded, error-free sections collapsed', async () => {
     renderResolve()
     await waitFor(() => expect(screen.getByText(/5 Errors: Validation Required/)).toBeTruthy())
-    // MON100206 seeds errors in general + pickupDelivery only
+    // 0000000091105 seeds errors in general + pickupDelivery only
     const headers = screen.getAllByRole('button', { name: /General Information|Pickup and Delivery|Product Information|Special Services/ })
     const byName = (re) => headers.find((h) => re.test(h.textContent))
     expect(byName(/General Information/).getAttribute('aria-expanded')).toBe('true')

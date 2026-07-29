@@ -272,14 +272,16 @@ export async function createOrder(request: CreateOrderRequest): Promise<CreateOr
   }
   createSeq += 1
   const mo = request.manualOrder
-  // Screen-6 shape "S260004NGW"; deterministic suffix keeps tests stable
-  const orderNumber = mo.orderNumber?.trim() || `S26${String(createSeq).padStart(4, '0')}NGW`
+  // LINX-9742/9279: blank order number → BE auto-generates orderNumber = orderId.
+  // 90000+seq stays below the seeded id range (91000+), so no collisions.
+  const orderId = 90000 + createSeq
+  const orderNumber = mo.orderNumber?.trim() || String(orderId).padStart(13, '0') // 13-digit external-ID form, matches seeded shape
   overlayRows = [
     manualOrderToListRow(mo, orderNumber, 'Ready For Plan'),
     ...overlayRows.filter(r => r.orderNumber !== orderNumber),
   ]
   return {
-    orderId: 90000 + createSeq,
+    orderId,
     success: true,
     message: `Order ${orderNumber} created successfully`,
     data: {

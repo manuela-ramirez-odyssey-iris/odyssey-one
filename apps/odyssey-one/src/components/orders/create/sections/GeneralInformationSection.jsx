@@ -36,6 +36,9 @@ const REFERENCE_TYPE_OPTIONS = REFERENCE_TYPES.map((t) => ({ value: t, label: t 
 export default function GeneralInformationSection() {
   const { control, setValue, watch, getValues } = useFormContext()
   const resolve = useResolveMode()
+  // Resolve mode locks EVERYTHING; resolveFieldProps re-enables pool fields
+  // (spread last → its disabled:false wins).
+  const locked = !!resolve
   const [isLongMode, setIsLongMode] = useState(false)
 
   const owningOrg = watch('general.owningOrganization')
@@ -111,6 +114,7 @@ export default function GeneralInformationSection() {
             showLabel
             label="Customer *"
             placeholder="Search an organization"
+            disabled={locked}
             value={field.value ? (owningOrgName || field.value) : ''}
             onChange={(text) => {
               // Typing invalidates the committed pick (and the org-scoped equipment)
@@ -143,6 +147,7 @@ export default function GeneralInformationSection() {
               id="co-general-orderNumber"
               label="Order Number"
               placeholder="Enter an ID"
+              disabled={locked}
               value={field.value}
               error={fieldState.error?.message}
               onChange={(e) => field.onChange(e.target.value)}
@@ -161,7 +166,7 @@ export default function GeneralInformationSection() {
               showLabel
               label="Equipment *"
               placeholder={owningOrg ? 'Select an equipment' : 'Pick a Customer first'}
-              disabled={!owningOrg}
+              disabled={!owningOrg || locked}
               options={equipmentOptions}
               value={field.value}
               onSelect={(v) => field.onChange(v ?? '')}
@@ -181,6 +186,7 @@ export default function GeneralInformationSection() {
               typable={false}
               showLabel
               label="Freight Term *"
+              disabled={locked}
               options={FREIGHT_TERMS}
               value={field.value}
               onSelect={(v) => {
@@ -205,6 +211,7 @@ export default function GeneralInformationSection() {
               typable={false}
               showLabel
               label="Ship Direction *"
+              disabled={locked}
               options={SHIP_DIRECTIONS}
               value={field.value}
               onSelect={(v) => {
@@ -229,6 +236,7 @@ export default function GeneralInformationSection() {
             <div className="co-link-row" style={{ alignSelf: 'end', paddingBottom: 6 }}>
               <Checkbox
                 label="Hazardous"
+                disabled={locked}
                 checked={field.value}
                 onChange={(e) => {
                   // LINX-12102: can't uncheck while a hazardous product line exists
@@ -247,6 +255,7 @@ export default function GeneralInformationSection() {
             <div className="co-link-row" style={{ alignSelf: 'end', paddingBottom: 6 }}>
               <Checkbox
                 label="Consolidatable"
+                disabled={locked}
                 checked={field.value}
                 onChange={(e) => field.onChange(e.target.checked)}
               />
@@ -268,6 +277,7 @@ export default function GeneralInformationSection() {
           control={control}
           render={({ field }) => (
             <RepeatableRows
+              disabled={locked}
               rows={field.value}
               columns={[
                 // Each row starts as a type dropdown; picking a type locks the
@@ -315,6 +325,7 @@ export default function GeneralInformationSection() {
           <Button
             variant="link"
             iconRight={isLongMode ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            disabled={locked}
             onClick={() => setIsLongMode(v => !v)}
           >
             Add More Details
@@ -338,6 +349,7 @@ export default function GeneralInformationSection() {
                     showLabel
                     label="Customer Required Carrier"
                     placeholder="Search a Carrier"
+                    disabled={locked}
                     value={field.value}
                     onChange={(text) => {
                       carrierTypedRef.current = text
@@ -365,6 +377,7 @@ export default function GeneralInformationSection() {
                     id="co-general-equipmentReferenceNumber"
                     label="Equipment Reference Number"
                     placeholder="Enter the Equipment Numbers"
+                    disabled={locked}
                     value={field.value}
                     onChange={(e) => field.onChange(e.target.value)}
                   />
@@ -384,6 +397,7 @@ export default function GeneralInformationSection() {
                 <>
                   <RepeatableRows
                     numbered
+                    disabled={locked}
                     columns={[{
                       key: 'description',
                       header: 'Instruction Description',

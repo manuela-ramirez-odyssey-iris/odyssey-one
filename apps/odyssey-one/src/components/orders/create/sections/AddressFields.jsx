@@ -28,6 +28,9 @@ const POSTAL_SET = new Set(POSTAL_OPTIONS)
 export default function AddressFields({ basePath }) {
   const { control } = useFormContext()
   const resolve = useResolveMode()
+  // Resolve mode locks every field; resolveFieldProps (spread last) re-enables
+  // pool fields via disabled:false.
+  const locked = !!resolve
 
   // Derive a stable id prefix from the basePath (e.g. "pickupDelivery.consignor"
   // → "co-pickupDelivery-consignor") matching the Batch 3 co-general-* convention.
@@ -46,6 +49,7 @@ export default function AddressFields({ basePath }) {
           label={label}
           placeholder={placeholder}
           value={field.value}
+          disabled={locked}
           onChange={(e) => field.onChange(e.target.value)}
           error={fieldState.error?.message}
           {...resolveFieldProps(resolve, `${basePath}.${name}`, fieldState.error?.message)}
@@ -68,6 +72,7 @@ export default function AddressFields({ basePath }) {
           placeholder={placeholder}
           options={options}
           value={field.value}
+          disabled={locked}
           onSelect={(val) => field.onChange(val ?? '')}
           error={fieldState.error?.message}
           {...resolveFieldProps(resolve, `${basePath}.${name}`, fieldState.error?.message)}
@@ -91,6 +96,7 @@ export default function AddressFields({ basePath }) {
           placeholder={placeholder}
           options={options}
           value={field.value}
+          disabled={locked}
           onChange={(text) => {
             typedRef.current[name] = text
             if (field.value && text !== field.value) field.onChange('')

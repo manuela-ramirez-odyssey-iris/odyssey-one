@@ -11,7 +11,7 @@ import { useAnchoredPortal } from '@odyssey/ui'
  *
  * `value` = { value, uom }; `options` = [{ value, label }].
  */
-export default function MeasureField({ id, value, options, onChange, onBlur, error, placeholder = '0.00' }) {
+export default function MeasureField({ id, value, options, onChange, onBlur, error, placeholder = '0.00', disabled = false }) {
   const [open, setOpen] = useState(false)
   const { triggerRef, dropdownRef, AnchoredPortal } = useAnchoredPortal({
     open,
@@ -31,9 +31,10 @@ export default function MeasureField({ id, value, options, onChange, onBlur, err
         onChange={(e) => onChange({ ...value, value: e.target.value })}
         onBlur={onBlur}
         error={error}
+        disabled={disabled}
         trailingSelect={{ label: uomLabel, onClick: () => setOpen((o) => !o) }}
       />
-      {open && (
+      {open && !disabled && (
         <AnchoredPortal>
           <div ref={dropdownRef} role="listbox" className="co-dropdown" onMouseDown={(e) => e.preventDefault()}>
             {options.map((opt) => (

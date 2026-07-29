@@ -6,6 +6,7 @@ import DateField from '../fields/DateField.jsx'
 import TimezoneSelect from '../fields/TimezoneSelect.jsx'
 import AddressFields from './AddressFields.jsx'
 import ContactFields from './ContactFields.jsx'
+import { useResolveMode } from '../../resolve/ResolveModeContext.jsx'
 import { getPastDateWarnings } from '../schema'
 import { getLookupOptions } from '../../../../api/services/lookupService'
 import { deriveTimezone } from '../../../../data/master-data'
@@ -70,6 +71,9 @@ function applyLocation(setValue, base, opt) {
 
 function PartyColumn({ side, title }) {
   const { control, setValue, watch } = useFormContext()
+  // Resolve mode locks everything here; the pool fields that re-enable live in
+  // AddressFields/ContactFields (via resolveFieldProps) — locationId never does.
+  const locked = !!useResolveMode()
   const base = `pickupDelivery.${side}`
   const manualMode = watch(`${base}.manualMode`)
   const showContact = watch(`${base}.showContact`)
@@ -99,6 +103,7 @@ function PartyColumn({ side, title }) {
             showLabel
             label="Add Location *"
             placeholder="Search for ID/Org Name, Address, City, State and Postal Code"
+            disabled={locked}
             value={field.value ? (longName ? `${field.value}: ${longName}` : field.value) : ''}
             onChange={(text) => {
               setTyped(text)
@@ -125,7 +130,7 @@ function PartyColumn({ side, title }) {
       />
       {!manualMode && (
         <div className="co-link-row co-link-row--center">
-          <Button variant="link" icon={<Plus size={16} />} onClick={() => setValue(`${base}.manualMode`, true)}>
+          <Button variant="link" icon={<Plus size={16} />} disabled={locked} onClick={() => setValue(`${base}.manualMode`, true)}>
             Add Location Manually
           </Button>
         </div>
@@ -140,6 +145,7 @@ function PartyColumn({ side, title }) {
       <Button
         variant="link"
         iconRight={showContact ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+        disabled={locked}
         onClick={() => setValue(`${base}.showContact`, !showContact)}
       >
         Add Contact Information
@@ -151,6 +157,7 @@ function PartyColumn({ side, title }) {
 
 function DateTimeGroup({ basePath, label, required, warning }) {
   const { control } = useFormContext()
+  const locked = !!useResolveMode() // date/time triads are never in the error pool
   const star = required ? ' *' : ''
 
   // id prefix following co-pickupDelivery-<triad> pattern (Batch 3 parity)
@@ -171,6 +178,7 @@ function DateTimeGroup({ basePath, label, required, warning }) {
             <DateField
               id={`${idPrefix}-date`}
               label={`Date${star}`}
+              disabled={locked}
               value={field.value}
               onChange={field.onChange}
               error={fieldState.error?.message}
@@ -186,6 +194,7 @@ function DateTimeGroup({ basePath, label, required, warning }) {
               id={`${idPrefix}-time`}
               label={`Time${star}`}
               placeholder="Select Time"
+              disabled={locked}
               value={field.value}
               onChange={field.onChange}
               error={fieldState.error?.message}
@@ -199,6 +208,7 @@ function DateTimeGroup({ basePath, label, required, warning }) {
             <TimezoneSelect
               id={`${idPrefix}-timezone`}
               label={`Time Zone${star}`}
+              disabled={locked}
               value={field.value}
               onChange={field.onChange}
               error={fieldState.error?.message}
@@ -216,6 +226,7 @@ function DateTimeGroup({ basePath, label, required, warning }) {
  */
 export default function PickupDeliverySection() {
   const { control, watch, getValues, setValue } = useFormContext()
+  const locked = !!useResolveMode()
   const planningDateType = watch('pickupDelivery.planningDateType')
   const [planningAlertOpen, setPlanningAlertOpen] = useState(true)
   const consignorCity = watch('pickupDelivery.consignor.city')
@@ -259,7 +270,7 @@ export default function PickupDeliverySection() {
         <Checkbox
           label="Appointment"
           checked={field.value}
-          disabled={!enabled}
+          disabled={!enabled || locked}
           onChange={(e) => field.onChange(e.target.checked)}
         />
       )}
@@ -319,6 +330,7 @@ export default function PickupDeliverySection() {
                 name="planningDateType"
                 value="SHIP"
                 label="Ship Date & Time"
+                disabled={locked}
                 checked={field.value === 'SHIP'}
                 onChange={() => field.onChange('SHIP')}
               />
@@ -326,6 +338,7 @@ export default function PickupDeliverySection() {
                 name="planningDateType"
                 value="DELIVERY"
                 label="Delivery Date & Time"
+                disabled={locked}
                 checked={field.value === 'DELIVERY'}
                 onChange={() => field.onChange('DELIVERY')}
               />

@@ -1,8 +1,9 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useFormContext, useWatch } from 'react-hook-form'
 import { ComboBox } from '@odyssey/ui'
 import ColumnPanel from '../../../detail/ColumnPanel.jsx'
 import ProductGrid from '../ProductGrid.jsx'
+import { useResolveMode } from '../../resolve/ResolveModeContext.jsx'
 import { PRODUCT_COLUMNS, EQUIPMENT_CASE, columnsForEquipment } from '../productColumns'
 
 /**
@@ -17,9 +18,24 @@ import { PRODUCT_COLUMNS, EQUIPMENT_CASE, columnsForEquipment } from '../product
  */
 export default function ProductInformationSection() {
   const { control } = useFormContext()
+  const locked = !!useResolveMode() // product fields are never in the error pool
   const [search, setSearch] = useState('')
   const [panelOpen, setPanelOpen] = useState(false)
   const panelRef = useRef(null)
+  const rootRef = useRef(null)
+
+  // Push model (user directive 2026-07-29, Shipments parity): while the panel
+  // is open the whole create page shifts left by the panel width instead of
+  // being overlaid. The page container lives above this section, so the class
+  // is toggled on the nearest .create-order-page ancestor.
+  // ponytail: DOM class toggle, lift panel state to the route if a second
+  // section ever needs the dock.
+  useEffect(() => {
+    const pageEl = rootRef.current?.closest('.create-order-page')
+    if (!pageEl) return
+    pageEl.classList.toggle('co-panel-pushed', panelOpen)
+    return () => pageEl.classList.remove('co-panel-pushed')
+  }, [panelOpen])
 
   const products = useWatch({ control, name: 'products' }) ?? []
   const equipment = useWatch({ control, name: 'general.equipment' })
@@ -51,13 +67,14 @@ export default function ProductInformationSection() {
   const addedCount = products.length
 
   return (
-    <div className="co-section-body">
+    <div className="co-section-body" ref={rootRef}>
       {/* 18px rhythm: toolbar → table → Add Product (mock measure) */}
       <div className="co-prod-stack">
         <div className="co-product-toolbar">
           <p className="co-product-count text-label-sm-regular">{addedCount} products added</p>
           <ComboBox
             className="co-product-search"
+            disabled={locked}
             value={search}
             onChange={setSearch}
             onClear={() => setSearch('')}
@@ -66,6 +83,7 @@ export default function ProductInformationSection() {
         </div>
 
         <ProductGrid
+          disabled={locked}
           columnKeys={visibleColumns}
           equipment={equipment}
           search={search}

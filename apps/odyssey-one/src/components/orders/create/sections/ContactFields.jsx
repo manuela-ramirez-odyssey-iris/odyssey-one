@@ -11,6 +11,9 @@ import { useResolveMode, resolveFieldProps } from '../../resolve/ResolveModeCont
 export default function ContactFields({ basePath }) {
   const { control } = useFormContext()
   const resolve = useResolveMode()
+  // Resolve mode locks every field; resolveFieldProps (spread last) re-enables
+  // pool fields via disabled:false.
+  const locked = !!resolve
 
   // Derive a stable id prefix from the basePath
   const idPrefix = `co-${basePath.replace(/\./g, '-')}`
@@ -26,6 +29,7 @@ export default function ContactFields({ basePath }) {
           placeholder={placeholder}
           type={type}
           value={f.value}
+          disabled={locked}
           onChange={(e) => f.onChange(e.target.value)}
           error={fieldState.error?.message}
           {...resolveFieldProps(resolve, `${basePath}.${name}`, fieldState.error?.message)}

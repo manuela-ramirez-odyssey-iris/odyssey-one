@@ -18,8 +18,11 @@ export function useResolveMode() {
  * wins over the site's props. zod stays authoritative: we never paint a field
  * green while the schema rejects its value.
  * - not in resolve mode / non-pool field → {}
- * - pool field, unresolved → { error: <zod message ?? category reason>, validated: false }
- * - pool field, resolved   → { error: <zod message>, validated: !zodError }
+ * - pool field, unresolved → { error: <zod message ?? category reason>, validated: false, disabled: false }
+ * - pool field, resolved   → { error: <zod message>, validated: !zodError, disabled: false }
+ * In resolve mode every control renders `disabled` (blanket lock at the call
+ * sites); `disabled: false` here re-enables exactly the error-pool fields —
+ * spread-last wins over the site's own `disabled`.
  * Spread-last ordering is enforced by the resolve field test — a call site that
  * spreads too early loses the category reason and the test fails.
  */
@@ -28,6 +31,6 @@ export function resolveFieldProps(ctx, path, fieldError) {
   const err = ctx.errorByPath.get(path)
   if (!err) return {}
   return ctx.resolvedSet.has(path)
-    ? { error: fieldError, validated: !fieldError }
-    : { error: fieldError ?? err.reason, validated: false }
+    ? { error: fieldError, validated: !fieldError, disabled: false }
+    : { error: fieldError ?? err.reason, validated: false, disabled: false }
 }

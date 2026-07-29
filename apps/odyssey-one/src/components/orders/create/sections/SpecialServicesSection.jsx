@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { Controller, useFormContext } from 'react-hook-form'
 import { MultiSelect } from '@odyssey/ui'
+import { useResolveMode } from '../../resolve/ResolveModeContext.jsx'
 import { SPECIAL_SERVICES } from '../../../../data/master-data'
 
 // Options frequency-sorted (LINX-8125); catalog already excludes Lumper/Detention.
@@ -12,6 +13,7 @@ const OPTIONS = [...SPECIAL_SERVICES]
 
 export default function SpecialServicesSection() {
   const { control } = useFormContext()
+  const locked = !!useResolveMode() // special services are never in the error pool
   const byCode = useMemo(() => new Map(OPTIONS.map((o) => [o.value, o])), [])
   return (
     <Controller
@@ -23,6 +25,7 @@ export default function SpecialServicesSection() {
           label="Special Services"
           placeholder="Search a special services"
           options={OPTIONS}
+          disabled={locked}
           emptyTableMessage="No special services added"
           selected={(field.value ?? []).map((s) => s.code)}
           onChange={(codes) =>

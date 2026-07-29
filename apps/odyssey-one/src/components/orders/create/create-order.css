@@ -6,6 +6,18 @@
   display: flex;
   flex-direction: column;
   min-height: 100%;
+  /* AppShell <main> pads 32px (inline style, all routes); create-order wants
+     24px horizontal (user 2026-07-29) — claw back the 8px difference here
+     rather than forking the shared shell. */
+  margin-inline: calc(var(--spacing-6) - var(--spacing-8));
+  /* Push model: the Product Information ColumnPanel shifts the page content
+     left while open (Shipments parity) instead of overlaying it. */
+  transition: margin-right var(--transition-drawer);
+}
+.create-order-page.co-panel-pushed {
+  /* keep the clawed-back 8px so the 24px gap holds against the open panel */
+  margin-right: calc(var(--right-panel-width) + var(--spacing-6) - var(--spacing-8));
+  --co-panel-w: var(--right-panel-width);
 }
 
 /* ── Content column: 1080px centered (item 2) ─────────── */
@@ -83,7 +95,9 @@
    full content width minus 24px side paddings (user directive 2026-07-28);
    collapsing animates back. 100vw includes the scrollbar — prototype-grade. */
 .co-sections > .co-breakout {
-  --co-breakout-w: calc(100vw - var(--sidebar-width) - 2 * var(--spacing-6));
+  /* --co-panel-w: 0 normally; the panel width while the ColumnPanel pushes the
+     page (co-panel-pushed) so the breakout math shrinks with the page. */
+  --co-breakout-w: calc(100vw - var(--sidebar-width) - var(--co-panel-w, 0px) - 2 * var(--spacing-5));
   width: var(--co-breakout-w);
   margin-left: calc((100% - var(--co-breakout-w)) / 2);
 }
@@ -321,17 +335,13 @@
   margin: var(--spacing-2) 0;
 }
 
-/* Add More Details groups with its divider; spacing-12 (48px) own margin-top
-   when expanded, 24px when collapsed (user, 2026-07-27), 32px total below */
+/* Add More Details groups with its divider; 24px margin-top in BOTH states
+   (user 2026-07-29 — was 48px expanded / 24px collapsed), 32px total below */
 .co-addmore {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-3);
-  margin: var(--spacing-12) 0 var(--spacing-2);
-}
-
-.co-addmore--collapsed {
-  margin-top: var(--spacing-6);
+  margin: var(--spacing-6) 0 var(--spacing-2);
 }
 
 /* ── Pickup & Delivery ──────────────────────────────────── */
@@ -824,32 +834,8 @@
   margin: calc(var(--spacing-1) - var(--spacing-4)) 0 0;
 }
 
-/* === Resolve mode (LINX-11137) — read-only blanket ======================
-   Everything inside accordion content is locked; fields carrying an
-   error/validated state class stay interactive (they're the ones the user
-   must fix). Accordion headers stay clickable (outside __content).
-   Lock and unlock use the SAME control list, so a control can never be
-   locked without a matching unlock path. Keyboard access is closed by the
-   focus-capture guard in CreateOrderForm (CSS can't stop tabbing). */
-.co-resolve .accordion__content :is(input, button) {
-  pointer-events: none;
-}
-.co-resolve .accordion__content
-  :is(.form-field--error, .form-field--validated, .search-field--error, .search-field--validated)
-  :is(input, button) {
-  pointer-events: auto;
-}
-/* Muted read-only look for locked fields (inline bg on ComboBox bars wins
-   over a plain background rule, so use opacity — reads as disabled). */
-.co-resolve .accordion__content .form-field:not(.form-field--error):not(.form-field--validated),
-.co-resolve .accordion__content .search-field:not(.search-field--error):not(.search-field--validated) {
-  opacity: 0.6;
-}
-/* Controls that never carry an error/validated state class — they're always
-   locked here, so they're always muted. `.control` = Checkbox + Radio. */
-.co-resolve .accordion__content :is(.date-picker, .time-picker, .control, .co-product-table-wrap) {
-  opacity: 0.6;
-}
+/* Resolve mode's read-only lock is real `disabled` props on every control
+   (resolveFieldProps re-enables pool fields) — no CSS blanket needed. */
 
 /* Resolve alert (2026-07-29 model): the expanded alert is a NORMAL in-flow
    block — scrolling scrolls it away, no pinning, no leftover hole. Only the
