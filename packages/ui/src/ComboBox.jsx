@@ -124,6 +124,7 @@ export default function ComboBox({
   'aria-activedescendant': ariaActiveDescendant,
   'aria-autocomplete': ariaAutocomplete,
   'aria-haspopup': ariaHasPopup,
+  'aria-describedby': ariaDescribedBy,
   id,
   // ── Typeahead props ──────────────────────────────────────────────────────
   options,                    // { value, label }[] | string[] — static list
@@ -506,7 +507,7 @@ export default function ComboBox({
         aria-autocomplete={effectiveAriaAutocomplete}
         aria-haspopup={effectiveAriaHasPopup}
         aria-invalid={error ? 'true' : undefined}
-        aria-describedby={errorId}
+        aria-describedby={[errorId, ariaDescribedBy].filter(Boolean).join(' ') || undefined}
         aria-required={required || undefined}
         disabled={disabled}
         spellCheck={false}
@@ -523,13 +524,6 @@ export default function ComboBox({
           boxShadow: 'none',
         }}
       />
-      {isValidated && (
-        <Check
-          {...ICON_MD}
-          style={{ color: 'var(--text-tertiary)', flexShrink: 0 }}
-          aria-hidden="true"
-        />
-      )}
       {showClear && !disabled && (
         <button
           type="button"
@@ -545,6 +539,14 @@ export default function ComboBox({
         >
           <CircleX {...ICON_MD} />
         </button>
+      )}
+      {/* Trailing order matches FormField: clear-X → validated check → chevron. */}
+      {isValidated && (
+        <Check
+          {...ICON_MD}
+          style={{ color: 'var(--text-tertiary)', flexShrink: 0 }}
+          aria-hidden="true"
+        />
       )}
       {variant === 'select' && (
         <button
@@ -610,10 +612,17 @@ export default function ComboBox({
 
   // ── Layout variants ──────────────────────────────────────────────────────
 
+  // State suffixes are CSS hooks (e.g. resolve-mode re-enables fields by state),
+  // so every branch's root has to carry them.
+  const rootClass = (extra = '') =>
+    ['search-field', error && 'search-field--error', isValidated && 'search-field--validated', extra, className]
+      .filter(Boolean)
+      .join(' ')
+
   if (typeaheadMode) {
     return (
       <div
-        className={`search-field${error ? ' search-field--error' : ''}${isValidated ? ' search-field--validated' : ''} ${className}`.trim()}
+        className={rootClass()}
         style={{ position: 'relative' }}
         ref={wrapperProps.ref}
         onBlur={wrapperProps.onBlur}
@@ -629,10 +638,7 @@ export default function ComboBox({
 
   if (!showLabel) {
     return (
-      <div
-        className={`search-field${error ? ' search-field--error' : ''}${isValidated ? ' search-field--validated' : ''} ${className}`.trim()}
-        {...rest}
-      >
+      <div className={rootClass()} {...rest}>
         {inputBar}
         {helperText}
         {results && <div className="search-field__results">{results}</div>}
@@ -642,14 +648,22 @@ export default function ComboBox({
 
   return (
     <div
-      className={`search-field${error ? ' search-field--error' : ''}${isValidated ? ' search-field--validated' : ''} flex flex-col ${className}`.trim()}
-      style={{ gap: 'var(--spacing-2)', alignItems: 'stretch' }}
+      className={rootClass('flex flex-col')}
+      style={{ alignItems: 'stretch' }}
       {...rest}
     >
-      {labelRow}
+      {/* Margin-driven like the typeahead branch — a parent `gap` would stack with
+          helperText's own margin-top and drift the error/validated line to 12px. */}
+      <div style={{ marginBottom: 'var(--spacing-2)' }}>{labelRow}</div>
       {inputBar}
       {helperText}
-      {results && <div className="search-field__results">{results}</div>}
+      {/* ponytail: display:block overrides the slot's `display: contents` so this
+          margin lands — margins are dropped on display:contents boxes. */}
+      {results && (
+        <div className="search-field__results" style={{ display: 'block', marginTop: 'var(--spacing-2)' }}>
+          {results}
+        </div>
+      )}
     </div>
   )
 }

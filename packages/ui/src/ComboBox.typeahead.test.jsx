@@ -335,6 +335,19 @@ describe('ComboBox — error / validated states', () => {
     expect(container.textContent).toContain('Invalid Data')
   })
 
+  test('plain mode (no label, no options) carries the validated state class', () => {
+    const { container } = render(<ComboBox value="" onChange={() => {}} validated />)
+    expect(container.querySelector('.search-field--validated')).toBeTruthy()
+  })
+
+  test('labeled slot mode renders the error message and carries the error state class', () => {
+    const { container, getByText } = render(
+      <ComboBox showLabel label="Location" value="" onChange={() => {}} error="Invalid Data" />,
+    )
+    expect(getByText('Invalid Data')).toBeTruthy()
+    expect(container.querySelector('.search-field--error')).toBeTruthy()
+  })
+
   test('required renders the label marker + aria-required', () => {
     const { container, getByText } = render(
       <ComboBox showLabel label="Equipment" required value="" onChange={() => {}} />,
