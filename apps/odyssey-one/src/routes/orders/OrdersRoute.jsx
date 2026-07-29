@@ -169,6 +169,9 @@ export default function OrdersRoute() {
         ) : (data?.rows.length ?? 0) === 0 ? (
           <EmptyState icon={<Inbox size={32} />} message="No orders found" />
         ) : (
+          /* Row clicking removed (user, 2026-07-29) — the kebab's View action
+             is the single way into the Order Summary page; full-row targets
+             fought the per-row action buttons. */
           <OrdersTable
             tab={activeTab}
             rows={data.rows}
@@ -177,9 +180,6 @@ export default function OrdersRoute() {
             sorting={sorting}
             onSortingChange={setSorting}
             totalCount={data.totalCount}
-            {/* Row clicking removed (user, 2026-07-29) — the kebab's View
-                action is the single way into the Order Summary page;
-                full-row targets fought the per-row action buttons. */}
             onRowAction={(action, row) => {
               // View mirrors the full-row click; Edit reopens the order in the
               // create flow (?draft hydrates via getDraft, falling back to
