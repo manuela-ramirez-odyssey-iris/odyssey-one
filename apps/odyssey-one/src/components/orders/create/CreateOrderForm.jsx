@@ -10,7 +10,7 @@ import { ResolveModeProvider } from '../resolve/ResolveModeContext.jsx'
 import { useCreateOrderMode } from '../../../contexts/CreateOrderModeContext.jsx'
 import { useCreateOrder } from '../../../api/queries/useCreateOrder'
 import { useSaveDraft } from '../../../api/queries/useSaveDraft'
-import { getDraft, getOrderView, resolveOrder } from '../../../api/services/orderService'
+import { getDraft, getOrderList, getOrderView, resolveOrder } from '../../../api/services/orderService'
 import { makeDefaultOrderFormValues } from '../../../api/types/orderFormVm'
 import { createOrderSchema, saveGateSchema } from './schema'
 import { useSectionStatus } from './useSectionStatus.js'
@@ -113,9 +113,17 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
   useEffect(() => {
     if (!resolveKey) return
     let cancelled = false
-    getOrderView(resolveKey).then((values) => {
+    // errorCount normally rides history state from the grid row. A direct or
+    // refreshed ?resolve= URL loses it — fetch the order's own list row (it
+    // carries errorCount in mock AND live) instead of fabricating 3; the
+    // derive clamps at ≥1 so a truly missing count seeds a single error.
+    const errorCountPromise = resolveMeta?.errorCount != null
+      ? Promise.resolve(resolveMeta.errorCount)
+      : getOrderList({ pagination: { pageNumber: 1, pageSize: 1 }, filters: { orderNumbers: [resolveKey] } })
+          .then((res) => res.orders[0]?.errorCount ?? 1)
+          .catch(() => 1)
+    Promise.all([getOrderView(resolveKey), errorCountPromise]).then(([values, errorCount]) => {
       if (cancelled || !values) return
-      const errorCount = resolveMeta?.errorCount ?? 3
       const { errors, applyErrors, isResolved } = deriveValidationErrors(resolveKey, errorCount, values)
       const draft = applyErrors(values)
       // mapOrderViewToFormVm regenerates manualMode/showContact as false, so a

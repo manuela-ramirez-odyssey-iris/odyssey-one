@@ -159,3 +159,20 @@ describe('resolve mode — save/purge transition', () => {
     expect(screen.getByRole('button', { name: 'Save' })).toHaveProperty('disabled', true)
   })
 })
+
+describe('resolve mode — direct URL (no history state)', () => {
+  test('falls back to the row errorCount instead of 3 (S99 seam closure)', async () => {
+    const { getOrderList } = await import('../../../api/services/orderService')
+    const res = await getOrderList({
+      pagination: { pageNumber: 1, pageSize: 1 },
+      filters: { orderNumbers: [ORDER] },
+    })
+    const rowCount = res.orders[0].errorCount
+    // The fixture has to be able to tell the two apart, else the test proves nothing.
+    expect(rowCount).not.toBe(3)
+
+    renderResolve(ORDER, null) // direct/refreshed URL — no router state
+    await waitFor(() => expect(screen.getByText(`${rowCount} Errors: Validation Required`)).toBeTruthy())
+    expect(screen.queryByText(/3 Errors: Validation Required/)).toBeNull()
+  })
+})
