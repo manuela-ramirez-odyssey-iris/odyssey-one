@@ -850,3 +850,22 @@
 .co-resolve .accordion__content :is(.date-picker, .time-picker, .control, .co-product-table-wrap) {
   opacity: 0.6;
 }
+
+/* Sticky wrapper for the resolve alert: in flow at the top; when the sentinel
+   above it scrolls out, the alert morphs to the docked bar stuck under the
+   navbar (-32px offsets the AppShell content padding — .orders-toolbar
+   precedent). Full-bleed while docked. */
+.co-resolve-alert {
+  position: sticky;
+  top: calc(-1 * var(--spacing-8));
+  z-index: 5;
+}
+.co-resolve-alert--docked {
+  margin-inline: calc(-1 * var(--spacing-8));
+}
+/* All resolved: docked bar flips to the success tint (mock 6146:22632).
+   ponytail: tint only — the Alert hardcodes OctagonX in validation mode and
+   swapping it means touching packages/ui. */
+.co-resolve-alert--done.alert--validation {
+  background: var(--status-success-message);
+}

@@ -57,6 +57,10 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
   // ── Resolve mode (LINX-11137) ──
   const [resolveState, setResolveState] = useState(null) // { errors, isResolved, contextText }
   const [purgeOpen, setPurgeOpen] = useState(false)
+  const [alertDocked, setAlertDocked] = useState(false)
+  const [alertExpanded, setAlertExpanded] = useState(true)
+  const [errorIndex, setErrorIndex] = useState(0)
+  const alertSentinelRef = useRef(null)
   const resolveMode = !!resolveKey
 
   const status = useSectionStatus(control)
@@ -105,9 +109,26 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
       if (cancelled || !values) return
       const errorCount = resolveMeta?.errorCount ?? 3
       const { errors, applyErrors, isResolved } = deriveValidationErrors(resolveKey, errorCount, values)
-      reset(applyErrors(values))
+      const draft = applyErrors(values)
+      // mapOrderViewToFormVm regenerates manualMode/showContact as false, so a
+      // seeded error can land on a field that isn't rendered — unreachable, and
+      // Save could never enable. Force the pools open for the erroring parties.
+      for (const party of ['consignor', 'consignee']) {
+        const partyErrors = errors.filter((e) => e.path.startsWith(`pickupDelivery.${party}.`))
+        if (partyErrors.some((e) => !e.path.endsWith('contactPhone'))) draft.pickupDelivery[party].manualMode = true
+        if (partyErrors.some((e) => e.path.endsWith('contactPhone'))) draft.pickupDelivery[party].showContact = true
+      }
+      reset(draft)
       const source = resolveMeta?.customer ? ` · Integrated from ${resolveMeta.customer}` : ''
       setResolveState({ errors, isResolved, contextText: `${resolveKey}${source}` })
+      // Open exactly the sections the user has to fix.
+      const secs = new Set(errors.map((e) => e.section))
+      setExpanded({
+        general: secs.has('general'),
+        pickupDelivery: secs.has('pickupDelivery'),
+        products: false,
+        specialServices: false,
+      })
     })
     return () => { cancelled = true }
   }, [resolveKey]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -134,6 +155,50 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
     () => (resolveMode ? { errorByPath, resolvedSet } : null),
     [resolveMode, errorByPath, resolvedSet],
   )
+
+  // ── Resolve alert + section badges ──
+  const alertErrors = useMemo(
+    () => (resolveState?.errors ?? []).map((e) => ({
+      field: e.field, reason: e.reason, resolved: resolvedSet.has(e.path),
+    })),
+    [resolveState, resolvedSet],
+  )
+
+  const sectionErrorInfo = useMemo(() => {
+    const info = { general: { total: 0, open: 0 }, pickupDelivery: { total: 0, open: 0 } }
+    for (const e of resolveState?.errors ?? []) {
+      info[e.section].total += 1
+      if (!resolvedSet.has(e.path)) info[e.section].open += 1
+    }
+    return info
+  }, [resolveState, resolvedSet])
+
+  const accordionStatus = (key) => {
+    if (resolveMode && sectionErrorInfo[key]?.total) return sectionErrorInfo[key].open > 0 ? 'error' : 'on'
+    return status[key] ? 'on' : 'off'
+  }
+  const accordionErrorCount = (key) => (resolveMode ? (sectionErrorInfo[key]?.total ?? 0) : 0)
+
+  // Jump to an error: open its section, scroll the field into view, focus it.
+  const handleErrorNav = (i) => {
+    const err = resolveState?.errors[i]
+    if (!err) return
+    setErrorIndex(i)
+    setExpanded((prev) => ({ ...prev, [err.section]: true }))
+    requestAnimationFrame(() => {
+      const el = document.getElementById(`co-${err.path.replace(/\./g, '-')}`)
+      el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      el?.focus?.()
+    })
+  }
+
+  // The alert morphs into the docked bar once the sentinel above it scrolls off.
+  useEffect(() => {
+    if (!resolveMode || !alertSentinelRef.current) return
+    const obs = new IntersectionObserver(([entry]) => setAlertDocked(!entry.isIntersecting))
+    obs.observe(alertSentinelRef.current)
+    return () => obs.disconnect()
+  }, [resolveMode, resolveState])
 
   // ── Save flows ──
   const passesSaveGate = useCallback(() => {
@@ -291,6 +356,24 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
           </div>
         )}
 
+        {resolveMode && resolveState && (
+          <>
+            <div ref={alertSentinelRef} aria-hidden="true" />
+            <div className={alertDocked ? 'co-resolve-alert co-resolve-alert--docked' : 'co-resolve-alert'}>
+              <Alert
+                errors={alertErrors}
+                contextText={resolveState.contextText}
+                expanded={alertDocked ? false : alertExpanded}
+                onToggle={setAlertExpanded}
+                docked={alertDocked}
+                errorIndex={errorIndex}
+                onErrorNav={handleErrorNav}
+                className={allResolved ? 'co-resolve-alert--done' : ''}
+              />
+            </div>
+          </>
+        )}
+
         {saveGateError && (
           <Alert variant="error" onClose={() => setSaveGateError('')}>
             {saveGateError}
@@ -318,7 +401,8 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
           <div ref={sectionRefs.general}>
             <Accordion
               position="start"
-              status={status.general ? 'on' : 'off'}
+              status={accordionStatus('general')}
+              errorCount={accordionErrorCount('general')}
               title="General Information"
               expanded={expanded.general}
               onToggle={toggle('general')}
@@ -330,7 +414,8 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
           <div ref={sectionRefs.pickupDelivery}>
             <Accordion
               position="mid"
-              status={status.pickupDelivery ? 'on' : 'off'}
+              status={accordionStatus('pickupDelivery')}
+              errorCount={accordionErrorCount('pickupDelivery')}
               title="Pickup and Delivery"
               expanded={expanded.pickupDelivery}
               onToggle={toggle('pickupDelivery')}
@@ -344,7 +429,8 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
           <div ref={sectionRefs.products} className={expanded.products ? 'co-breakout' : undefined}>
             <Accordion
               position="mid"
-              status={status.products ? 'on' : 'off'}
+              status={accordionStatus('products')}
+              errorCount={accordionErrorCount('products')}
               title="Product Information"
               expanded={expanded.products}
               onToggle={toggle('products')}
@@ -356,7 +442,8 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
           <div ref={sectionRefs.specialServices}>
             <Accordion
               position="end"
-              status={status.specialServices ? 'on' : 'off'}
+              status={accordionStatus('specialServices')}
+              errorCount={accordionErrorCount('specialServices')}
               title="Special Services (Optional)"
               expanded={expanded.specialServices}
               onToggle={toggle('specialServices')}

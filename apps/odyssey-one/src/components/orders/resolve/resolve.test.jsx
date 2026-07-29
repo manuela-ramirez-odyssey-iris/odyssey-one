@@ -93,3 +93,29 @@ describe('resolve mode — fields', () => {
     await waitFor(() => expect(within(fieldRoot).getByText('Validated')).toBeTruthy())
   })
 })
+
+describe('resolve mode — alert + accordions', () => {
+  test('validation alert lists the open errors with context', async () => {
+    renderResolve()
+    await waitFor(() => expect(screen.getByText(/5 Errors: Validation Required/)).toBeTruthy())
+    expect(screen.getByText(/Integrated from ACME/)).toBeTruthy()
+    expect(screen.getByText('Validate Errors')).toBeTruthy()
+  })
+
+  test('sections with errors show the red error badge', async () => {
+    renderResolve()
+    await waitFor(() => expect(screen.getByText(/5 Errors: Validation Required/)).toBeTruthy())
+    expect(screen.getAllByText(/^\d+ Errors?$/).length).toBeGreaterThan(0)
+  })
+
+  test('error sections start expanded, error-free sections collapsed', async () => {
+    renderResolve()
+    await waitFor(() => expect(screen.getByText(/5 Errors: Validation Required/)).toBeTruthy())
+    // VAL100000 seeds errors in general + pickupDelivery only
+    const headers = screen.getAllByRole('button', { name: /General Information|Pickup and Delivery|Product Information|Special Services/ })
+    const byName = (re) => headers.find((h) => re.test(h.textContent))
+    expect(byName(/General Information/).getAttribute('aria-expanded')).toBe('true')
+    expect(byName(/Pickup and Delivery/).getAttribute('aria-expanded')).toBe('true')
+    expect(byName(/Product Information/).getAttribute('aria-expanded')).toBe('false')
+  })
+})

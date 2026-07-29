@@ -34,3 +34,11 @@ if (typeof Object.groupBy !== 'function') {
     return obj
   }
 }
+
+// jsdom has no IntersectionObserver; the resolve-mode alert uses one to flip to
+// its docked bar. ponytail: no-op stub — no test asserts on docking.
+globalThis.IntersectionObserver ??= class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}

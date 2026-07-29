@@ -59,6 +59,9 @@ export default defineConfig(({ mode }) => {
         '../../packages/ui/src/**/*.test.{js,jsx}',
       ],
       setupFiles: ['./vitest.setup.js'],
+      // A local .env.local with VITE_API_MODE=live made the service layer fetch
+      // a relative URL under node — tests are mock-mode, always.
+      env: { VITE_API_MODE: 'mock', VITE_API_BASE_URL: '' },
     },
   }
 })
