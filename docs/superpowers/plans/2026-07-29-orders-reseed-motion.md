@@ -1198,7 +1198,7 @@ import pg from 'pg'
 const c = new pg.Client({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } })
 await c.connect()
 console.log((await c.query('SELECT count(*)::int AS orders, count(*) FILTER (WHERE freight_terms = ANY(\$1))::int AS coded FROM orders', [['P','C','A','T','N']])).rows[0])
-console.log((await c.query('SELECT count(*)::int FROM customers')).rows[0])          // expect 69 (26 + 43)
+console.log((await c.query('SELECT count(*)::int FROM customers')).rows[0])          // expect 68 (25 + 43)
 console.log((await c.query('SELECT max(error_count)::int AS max, avg(error_count)::numeric(4,2) AS avg FROM orders WHERE error_count IS NOT NULL')).rows[0]) // max ≤ 12, avg ≈ 3
 await c.end()"
 ```
