@@ -3,7 +3,7 @@
 // Ritual: node ../../packages/db/migrate.mjs --reset --yes && node tools/seed.mjs
 import pg from 'pg'
 import { buildDataset, CARRIERS } from './generate.mjs'
-import { CUSTOMERS, LOCATIONS, locationIdFor } from './data-pools.mjs'
+import { CUSTOMERS, EXTRA_CUSTOMERS, LOCATIONS, locationIdFor } from './data-pools.mjs'
 import { USERS } from './seed-users.mjs'
 
 export function parseDisplayDate(s) {
@@ -40,7 +40,7 @@ async function insertRows(client, table, cols, rows) {
 export async function seed(client, { totalShipments = 10000 } = {}) {
   const ds = buildDataset({ totalShipments })
 
-  await insertRows(client, 'customers', ['id', 'name'], CUSTOMERS.map((c) => [c.id, c.name]))
+  await insertRows(client, 'customers', ['id', 'name'], [...CUSTOMERS, ...EXTRA_CUSTOMERS].map((c) => [c.id, c.name]))
   await insertRows(client, 'carriers', ['scac', 'name'], CARRIERS.map((c) => [c.scac, c.name]))
   await insertRows(client, 'locations', ['id', 'facility_name', 'city', 'state', 'zip'],
     LOCATIONS.map((l, i) => [locationIdFor(l, i), l.facility, l.city, l.state, l.zip]))

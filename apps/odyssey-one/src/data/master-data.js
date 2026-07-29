@@ -4,9 +4,9 @@
 // only the create flow needs (ship classes, special services,
 // carriers, timezones, UoMs) are defined here. `frequency` drives the
 // LINX-7553 frequency sort in lookupService; values are PROVISIONAL fakes.
-import { CUSTOMERS, LOCATIONS, EQUIPMENT_CODES, EQUIPMENT_LABELS, CHEMICAL_PRODUCTS, locationIdFor, FREIGHT_TERMS, SHIP_DIRECTIONS, freightTermLabel, shipDirectionLabel } from '../../tools/data-pools.mjs'
+import { CUSTOMERS, EXTRA_CUSTOMERS, LOCATIONS, EQUIPMENT_CODES, EQUIPMENT_LABELS, CHEMICAL_PRODUCTS, locationIdFor, FREIGHT_TERMS, SHIP_DIRECTIONS, freightTermLabel, shipDirectionLabel } from '../../tools/data-pools.mjs'
 
-export { CUSTOMERS, LOCATIONS, EQUIPMENT_CODES, EQUIPMENT_LABELS, CHEMICAL_PRODUCTS, FREIGHT_TERMS, SHIP_DIRECTIONS, freightTermLabel, shipDirectionLabel }
+export { CUSTOMERS, EXTRA_CUSTOMERS, LOCATIONS, EQUIPMENT_CODES, EQUIPMENT_LABELS, CHEMICAL_PRODUCTS, FREIGHT_TERMS, SHIP_DIRECTIONS, freightTermLabel, shipDirectionLabel }
 
 // ── Owning organizations (typeahead) ───────────────────────
 export const OWNING_ORGS = CUSTOMERS.map((c, i) => ({
@@ -143,34 +143,14 @@ export const CARRIERS = [
   { scac: 'YFSY', name: 'YELLOW FREIGHT SYSTEM' },
 ]
 
-// ── Extra owning orgs (create-order lookup ONLY — not in the shared
-// generator pool, so they never appear in the shipments/orders DB). Mock of
-// customer-service/v1/owning-org/lookup (QA capture 2026-07-27,
+// ── Extra owning orgs — PROMOTED to real seeded customers at the end-of-Orders
+// reseed (DB ledger row 3): the list now lives in data-pools EXTRA_CUSTOMERS,
+// gets inserted into the customers table, and owns a thin tail of orders.
+// Mock of customer-service/v1/owning-org/lookup (QA capture 2026-07-27,
 // vault-sources/10-domains/orders/organizations.png): "<NAME> (SOURCE)" and
 // "*<NAME> SOURCE SYSTEM 01" styles. First 4 (SOURCE) + 3 starred entries are
 // QA-verbatim; the rest generated in the same style.
-export const EXTRA_ORGS = [
-  'RECKITT-BENCKISER (SOURCE)', 'REDLAND BRICK INC (SOURCE)', 'REHEIS INC (SOURCE)',
-  'REVLON CONSUMER PRODUCTS CORP (SOURCE)', '*ADAMS-REMCO SOURCE SYSTEM 01',
-  '*EASTERNWIRE SOURCE SYSTEM 01', '*HABASIT-READ SOURCE SYSTEM 01',
-  'AKZO NOBEL COATINGS (SOURCE)', 'ARKEMA INC (SOURCE)', 'ASHLAND SPECIALTY (SOURCE)',
-  'AXALTA COATING SYSTEMS (SOURCE)', 'BRENNTAG NORTH AMERICA (SOURCE)',
-  'CABOT CORPORATION (SOURCE)', 'CHEMOURS COMPANY (SOURCE)', 'CLARIANT CORP (SOURCE)',
-  'ECOLAB INC (SOURCE)', 'EVONIK INDUSTRIES (SOURCE)', 'FERRO CORPORATION (SOURCE)',
-  'GRACE & CO (SOURCE)', 'HB FULLER COMPANY (SOURCE)', 'HENKEL CORPORATION (SOURCE)',
-  'HEXION INC (SOURCE)', 'HONEYWELL PMT (SOURCE)', 'ICL SPECIALTY PRODUCTS (SOURCE)',
-  'KRATON POLYMERS (SOURCE)', 'LANXESS CORPORATION (SOURCE)', 'LUBRIZOL CORP (SOURCE)',
-  'MOMENTIVE PERFORMANCE (SOURCE)', 'OLIN CORPORATION (SOURCE)', 'PPG INDUSTRIES (SOURCE)',
-  'SABIC AMERICAS (SOURCE)', 'SOLVAY USA (SOURCE)', 'STEPAN COMPANY (SOURCE)',
-  'TRINSEO LLC (SOURCE)', 'WACKER CHEMICAL (SOURCE)',
-  '*BORAL-ROOF SOURCE SYSTEM 01', '*CARLISLE-CM SOURCE SYSTEM 01',
-  '*DELTA-FAUCET SOURCE SYSTEM 01', '*GAF-MATERIALS SOURCE SYSTEM 01',
-  '*JELD-WEN SOURCE SYSTEM 01', '*MASCO-CABINET SOURCE SYSTEM 01',
-  '*PELLA-CORP SOURCE SYSTEM 01', '*USG-CORP SOURCE SYSTEM 01',
-].map((name) => ({
-  value: name.replace(/[^A-Z0-9]+/gi, '_').replace(/^_|_$/g, ''),
-  label: name,
-}))
+export const EXTRA_ORGS = EXTRA_CUSTOMERS.map((c) => ({ value: c.id, label: c.name }))
 
 // ── Timezones + city→TZ auto-derivation (spec §10: static map in mock) ──
 // Display format "(UTC-06:00) City/Zone" per Efrain's dropdown mock

@@ -44,7 +44,7 @@
 //                  items' hazmat fields, which share the same product.hazmat source.
 import { faker } from '@faker-js/faker';
 import { writeFileSync, mkdirSync, existsSync, readdirSync, unlinkSync } from 'fs';
-import { CUSTOMERS, LOCATIONS, EQUIPMENT_CODES, CHEMICAL_PRODUCTS, locationIdFor, FREIGHT_TERMS, SHIP_DIRECTIONS } from './data-pools.mjs'
+import { CUSTOMERS, EXTRA_CUSTOMERS, LOCATIONS, EQUIPMENT_CODES, CHEMICAL_PRODUCTS, locationIdFor, FREIGHT_TERMS, SHIP_DIRECTIONS } from './data-pools.mjs'
 
 // ── Orders accumulator (I1) ──────────────────────────────────────────────────
 // Globally unique customer-prefixed order numbers, shared by shipped and
@@ -210,6 +210,13 @@ const NOTE_TEMPLATES = [
 
 function pick(arr) { return faker.helpers.arrayElement(arr); }
 function pickN(arr, min, max) { return faker.helpers.arrayElements(arr, faker.number.int({ min, max })); }
+
+// Ownership pick (DB ledger row 3): the original 25 shared-pool customers stay
+// dominant (~92% of shipments/orders); promoted extras own a thin tail so they
+// exist observably without re-shaping per-customer distributions.
+function pickCustomer() {
+  return faker.number.float({ min: 0, max: 1 }) < 0.92 ? pick(CUSTOMERS) : pick(EXTRA_CUSTOMERS)
+}
 function fmt(n) { return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 function fmtInt(n) { return n.toLocaleString('en-US'); }
 
@@ -288,7 +295,7 @@ function generateShipment(index) {
   // the primary key + per-shipment detail filename; the generator rewrites both.
   const buyShipment = genUniqueBuyShipment();
   const sellShipment = genUniqueSellShipment();
-  const customer = pick(CUSTOMERS);
+  const customer = pickCustomer();
   const originLoc = pick(LOCATIONS);
   const destLoc = pick(LOCATIONS.filter(l => l.city !== originLoc.city));
   // Weighted mode selection
@@ -1276,7 +1283,7 @@ const LONG_INSTRUCTIONS = [
 ];
 
 function generateUnshippedOrder(n, pending) {
-  const customer = pick(CUSTOMERS);
+  const customer = pickCustomer();
   const originIdx = faker.number.int({ min: 0, max: LOCATIONS.length - 1 });
   let destIdx = faker.number.int({ min: 0, max: LOCATIONS.length - 1 });
   if (destIdx === originIdx) destIdx = (destIdx + 1) % LOCATIONS.length;

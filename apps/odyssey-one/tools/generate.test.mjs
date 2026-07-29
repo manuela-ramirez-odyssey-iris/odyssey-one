@@ -1,6 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { buildDataset } from './generate.mjs'
+import { EXTRA_CUSTOMERS } from './data-pools.mjs'
 
 test('buildDataset returns a coherent scaled dataset', () => {
   const ds = buildDataset({ totalShipments: 50 })
@@ -55,4 +56,12 @@ test('LINX-12102: order.hazardous matches whether ANY of its lines are hazmat-fl
     }
   }
   assert.ok(checkedShipped > 0)
+})
+
+test('promoted extra orgs own a thin tail; original customers dominate', () => {
+  const { orders } = buildDataset({ totalShipments: 200 })
+  const extraIds = new Set(EXTRA_CUSTOMERS.map((c) => c.id))
+  const extras = orders.filter((o) => extraIds.has(o.customer)).length
+  assert.ok(extras > 0, 'extras own some orders')
+  assert.ok(extras / orders.length < 0.2, `extras own ${extras}/${orders.length}`)
 })
