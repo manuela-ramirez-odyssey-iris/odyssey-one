@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useLocation, useSearchParams } from 'react-router-dom'
 import AppShell from '../../components/layout/AppShell'
 import CreateOrderForm from '../../components/orders/create/CreateOrderForm.jsx'
 import ConfirmationView from '../../components/orders/create/ConfirmationView.jsx'
@@ -20,6 +20,11 @@ export default function CreateOrderRoute() {
   const [submitted, setSubmitted] = useState(null)
   const draftKey = searchParams.get('draft')
   const forceAsync = searchParams.get('confirm') === 'async'
+  // ?resolve=<orderNumber> opens the same form in OIF resolution mode
+  // (LINX-11137). The grid row's errorCount/customer/orderSource ride along in
+  // history state so the seeded errors match the Validation Errors tab.
+  const resolveKey = searchParams.get('resolve')
+  const location = useLocation()
 
   return (
     <AppShell>
@@ -31,7 +36,12 @@ export default function CreateOrderRoute() {
             variant={forceAsync ? 'async' : 'sync'}
           />
         ) : (
-          <CreateOrderForm draftKey={draftKey} onSubmitted={setSubmitted} />
+          <CreateOrderForm
+            draftKey={draftKey}
+            resolveKey={resolveKey}
+            resolveMeta={location.state}
+            onSubmitted={setSubmitted}
+          />
         )}
       </div>
     </AppShell>

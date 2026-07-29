@@ -3857,6 +3857,15 @@ button.breadcrumb__label:focus-visible {
 .form-field--error .field-select--leading { color: var(--bittersweet-600); }
 
 /* Disabled — muted DSN/50 surface. */
+/* Validated (Figma State=Validated, 2026-07-28): success border + green helper.
+   Check icon renders via .form-field__icon (text-tertiary = the mock's DSN/500).
+   Focused = 2px green ring via the same border+inset-shadow trick as error. */
+.form-field--validated .form-field__input { border-color: var(--border-success); }
+.form-field--validated .form-field__input:focus-within {
+  border-color: var(--caribbean-green-600);
+  box-shadow: inset 0 0 0 1px var(--caribbean-green-600), var(--shadow-sm);
+}
+
 .form-field--disabled .form-field__input { background: var(--bg-secondary); }
 .form-field--disabled .form-field__field { color: var(--text-tertiary); cursor: not-allowed; }
 .form-field--disabled .form-field__icon { color: var(--text-placeholder); }
@@ -3864,6 +3873,12 @@ button.breadcrumb__label:focus-visible {
 /* Typography via .text-label-xs-regular (applied in FormField.jsx). */
 .form-field__error {
   color: var(--text-error);
+  margin: 0;
+  margin-top: var(--spacing-1);
+}
+
+.form-field__validated {
+  color: var(--text-success);
   margin: 0;
   margin-top: var(--spacing-1);
 }

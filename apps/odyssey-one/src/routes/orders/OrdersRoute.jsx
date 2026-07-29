@@ -197,7 +197,13 @@ export default function OrdersRoute() {
               else if (action === 'Edit') navigate(`/orders/create?draft=${encodeURIComponent(row.id)}`)
               else if (action === 'Submit') setConfirmAction({ type: 'submit', row })
               else if (action === 'Cancel') setConfirmAction({ type: 'cancel', row })
-              // else if (action === 'Resolve') — OIF UI pending (LINX-11137), no-op
+              // Resolve reopens the order in resolution mode (LINX-11137); the
+              // row's errorCount/customer/source ride in history state so the
+              // seeded errors match what the Validation Errors tab claims.
+              else if (action === 'Resolve')
+                navigate(`/orders/create?resolve=${encodeURIComponent(row.id)}`, {
+                  state: { errorCount: row.errorCount, customer: row.customer, orderSource: row.orderSource },
+                })
             }}
           />
         )}

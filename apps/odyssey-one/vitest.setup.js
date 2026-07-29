@@ -15,6 +15,14 @@ if (typeof Map.groupBy !== 'function') {
   }
 }
 
+// jsdom has no ResizeObserver; any test rendering AppShell (navbar → GlobalSearch)
+// needs one. ponytail: no-op stub — nothing under test asserts on resize.
+globalThis.ResizeObserver ??= class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+
 if (typeof Object.groupBy !== 'function') {
   Object.groupBy = function (items, keyFn) {
     const obj = Object.create(null)

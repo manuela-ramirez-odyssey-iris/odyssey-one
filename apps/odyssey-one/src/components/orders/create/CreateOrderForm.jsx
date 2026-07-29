@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { FormProvider, useForm } from 'react-hook-form'
+import { FormProvider, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Accordion, Alert, Breadcrumb, Button, PageHeader } from '@odyssey/ui'
-import { ListChevronsUpDown, ListChevronsDownUp } from 'lucide-react'
+import { ArrowLeft, ListChevronsUpDown, ListChevronsDownUp } from 'lucide-react'
+import { deriveValidationErrors } from '../resolve/validationErrors.js'
+import { ResolveModeProvider } from '../resolve/ResolveModeContext.jsx'
 import { useCreateOrderMode } from '../../../contexts/CreateOrderModeContext.jsx'
 import { useCreateOrder } from '../../../api/queries/useCreateOrder'
 import { useSaveDraft } from '../../../api/queries/useSaveDraft'
@@ -30,7 +32,7 @@ const SAVE_GATE_MESSAGE =
  *  - Discard (modal):         navigate, nothing kept
  *  - Create Order (footer):   full schema → createOrder → onSubmitted
  */
-export default function CreateOrderForm({ draftKey, onSubmitted }) {
+export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onSubmitted }) {
   const navigate = useNavigate()
   const { enterCreateOrderMode, exitCreateOrderMode } = useCreateOrderMode()
   const methods = useForm({
@@ -50,6 +52,10 @@ export default function CreateOrderForm({ draftKey, onSubmitted }) {
   const [saveGateError, setSaveGateError] = useState('')
   const [saveNotice, setSaveNotice] = useState('')
   const [draftId, setDraftId] = useState(null)
+  // ── Resolve mode (LINX-11137) ──
+  const [resolveState, setResolveState] = useState(null) // { errors, isResolved, contextText }
+  const [purgeOpen, setPurgeOpen] = useState(false)
+  const resolveMode = !!resolveKey
 
   const status = useSectionStatus(control)
   const createOrderMutation = useCreateOrder()
@@ -85,6 +91,44 @@ export default function CreateOrderForm({ draftKey, onSubmitted }) {
     })
     return () => { cancelled = true }
   }, [draftKey, reset])
+
+  // ── Resolution reopen: /orders/create?resolve=<orderNumber> ──
+  // The order hydrates read-only-ish, then the seeded errors are stamped into
+  // the draft (blanked / corrupted / wrong values) so the form shows exactly
+  // what OIF rejected. Replaced by a real OIF fetch when LINX-11137 lands.
+  useEffect(() => {
+    if (!resolveKey) return
+    let cancelled = false
+    getOrderView(resolveKey).then((values) => {
+      if (cancelled || !values) return
+      const errorCount = resolveMeta?.errorCount ?? 3
+      const { errors, applyErrors, isResolved } = deriveValidationErrors(resolveKey, errorCount, values)
+      reset(applyErrors(values))
+      const source = resolveMeta?.customer ? ` · Integrated from ${resolveMeta.customer}` : ''
+      setResolveState({ errors, isResolved, contextText: `${resolveKey}${source}` })
+    })
+    return () => { cancelled = true }
+  }, [resolveKey]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const watchedAll = useWatch({ control })
+  const resolvedSet = useMemo(() => {
+    if (!resolveState) return new Set()
+    const get = (obj, path) => path.split('.').reduce((o, k) => o?.[k], obj)
+    return new Set(
+      resolveState.errors
+        .filter((e) => resolveState.isResolved(e, get(watchedAll, e.path)))
+        .map((e) => e.path),
+    )
+  }, [resolveState, watchedAll])
+  const errorByPath = useMemo(
+    () => new Map((resolveState?.errors ?? []).map((e) => [e.path, e])),
+    [resolveState],
+  )
+  const allResolved = !!resolveState && resolvedSet.size === resolveState.errors.length
+  const resolveCtx = useMemo(
+    () => (resolveMode ? { errorByPath, resolvedSet } : null),
+    [resolveMode, errorByPath, resolvedSet],
+  )
 
   // ── Save flows ──
   const passesSaveGate = useCallback(() => {
@@ -139,16 +183,20 @@ export default function CreateOrderForm({ draftKey, onSubmitted }) {
     navigate('/orders') // explicit confirm happened in the modal; nothing kept
   }, [navigate])
 
+  // Resolution Save — the resubmit-to-OIF transition. Stub; Task 6 fills it in.
+  const handleResolveSave = () => {}
+
   // ── Navbar contextual mode: register latest handlers via a ref ──
   const saveForLaterRef = useRef(handleSaveForLater)
   useEffect(() => { saveForLaterRef.current = handleSaveForLater })
   useEffect(() => {
+    if (resolveMode) return // resolution keeps the normal navbar (no Save for Later / ✕)
     enterCreateOrderMode({
       onSaveForLater: () => saveForLaterRef.current(),
       onClose: () => setModalOpen(true), // ✕ = same path as Cancel
     })
     return () => exitCreateOrderMode()
-  }, [enterCreateOrderMode, exitCreateOrderMode])
+  }, [enterCreateOrderMode, exitCreateOrderMode, resolveMode])
 
   // ── Submit ──
   const onSubmit = handleSubmit((values) => {
@@ -188,26 +236,48 @@ export default function CreateOrderForm({ draftKey, onSubmitted }) {
 
   return (
     <FormProvider {...methods}>
+     <ResolveModeProvider value={resolveCtx}>
       <div className="co-content">
         <nav className="co-breadcrumb" aria-label="Breadcrumb">
           <Breadcrumb label="Orders" onClick={() => navigate('/orders')} />
-          <Breadcrumb label="Create new order" current />
+          <Breadcrumb
+            label={resolveMode ? 'Order Validation Error Resolution' : 'Create new order'}
+            current
+          />
         </nav>
 
-        <PageHeader title="Create New Order">
-          <Button
-            variant="link"
-            className="co-expand-toggle"
-            icon={allExpanded
-              ? <ListChevronsDownUp size={16} />
-              : <ListChevronsUpDown size={16} />}
-            onClick={handleExpandCollapse}
-          >
-            {allExpanded ? 'Collapse All' : 'Expand All'}
-          </Button>
-        </PageHeader>
+        {resolveMode ? (
+          <>
+            {/* Back link takes the PageHeader actions slot; the order number
+                sits under the title as a sub-heading (mock 6005:39544). */}
+            <PageHeader title="Order Validation Error Resolution">
+              <Button
+                variant="link"
+                className="btn--link-black"
+                icon={<ArrowLeft size={16} />}
+                onClick={() => navigate('/orders')}
+              >
+                Back to overview page
+              </Button>
+            </PageHeader>
+            <p className="text-label-sm-regular co-resolve-subheading">Order Number {resolveKey}</p>
+          </>
+        ) : (
+          <PageHeader title="Create New Order">
+            <Button
+              variant="link"
+              className="co-expand-toggle"
+              icon={allExpanded
+                ? <ListChevronsDownUp size={16} />
+                : <ListChevronsUpDown size={16} />}
+              onClick={handleExpandCollapse}
+            >
+              {allExpanded ? 'Collapse All' : 'Expand All'}
+            </Button>
+          </PageHeader>
+        )}
 
-        {bannerOpen && (
+        {!resolveMode && bannerOpen && (
           <div className="co-banner-enter">
             {/* LINX-12257 (2026-07-27 comment supersedes AC) */}
             <Alert variant="warning" onClose={() => setBannerOpen(false)}>
@@ -287,13 +357,24 @@ export default function CreateOrderForm({ draftKey, onSubmitted }) {
         )}
       </div>
 
-      <StickyFooter
-        onCancel={() => setModalOpen(true)}
-        onSave={handleSave}
-        onCreate={onSubmit}
-        createDisabled={!formState.isValid || createOrderMutation.isPending}
-        saving={saveDraftMutation.isPending}
-      />
+      {resolveMode ? (
+        <StickyFooter
+          saveLabel="Purge"
+          primaryLabel="Save"
+          onCancel={() => navigate('/orders')}
+          onSave={() => setPurgeOpen(true)}
+          onCreate={handleResolveSave}
+          createDisabled={!allResolved}
+        />
+      ) : (
+        <StickyFooter
+          onCancel={() => setModalOpen(true)}
+          onSave={handleSave}
+          onCreate={onSubmit}
+          createDisabled={!formState.isValid || createOrderMutation.isPending}
+          saving={saveDraftMutation.isPending}
+        />
+      )}
 
       {modalOpen && (
         <DiscardSaveModal
@@ -303,6 +384,7 @@ export default function CreateOrderForm({ draftKey, onSubmitted }) {
           saving={saveDraftMutation.isPending}
         />
       )}
+     </ResolveModeProvider>
     </FormProvider>
   )
 }

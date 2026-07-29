@@ -9,7 +9,8 @@ export const meta = {
   createdVersion: '0.2.0',
   figmaNode: '2602:1424',
   codeConnect: 'packages/ui/src/FormField.figma.tsx',
-  normalizing: false,
+  normalizing: true,
+  approved: true,
 }
 
 export const props = [
@@ -21,6 +22,7 @@ export const props = [
   { name: 'onChange', type: '(e) => void', desc: 'Input change handler.' },
   { name: 'type', type: 'text|email|password|number|tel|search|url', desc: 'Native input type. Default text.' },
   { name: 'error', type: 'string|false', desc: 'Error message; truthy reddens border + shows the message.' },
+  { name: 'validated', type: 'boolean', desc: 'Success state (Figma State=Validated): success border + trailing check + green "Validated" line. `error` wins when both are set.' },
   { name: 'disabled', type: 'boolean', desc: 'Disables the input and all buttons.' },
   { name: 'leadingIcon', type: 'ReactNode', desc: 'Icon left of the input.' },
   { name: 'trailingIcon', type: 'ReactNode', desc: 'Icon right of the input.' },
@@ -36,6 +38,9 @@ export const tokens = [
   { token: '--bittersweet-200', resolves: 'Bittersweet/200', usage: 'error border — idle' },
   { token: '--bittersweet-600', resolves: 'Bittersweet/600', usage: 'error border — focused' },
   { token: '--border-strong', resolves: 'Border/strong', usage: 'focus border' },
+  { token: '--border-success', resolves: 'Border/success', usage: 'validated border — idle' },
+  { token: '--caribbean-green-600', resolves: 'Caribbean Green/600', usage: 'validated border — focused' },
+  { token: '--text-success', resolves: 'Text/success', usage: 'validated message' },
 ]
 
 // Each showcase field owns its value so it is actually typeable — the explorer's
@@ -118,6 +123,7 @@ function ComposedField({ edge, label, placeholder, options, initial }) {
 export default function FormFieldDemo() {
   const [value, setValue] = useState('Acme Logistics')
   const [error, setError] = useState(false)
+  const [validated, setValidated] = useState(false)
   const [disabled, setDisabled] = useState(false)
   const [required, setRequired] = useState(false)
   const [showCounter, setShowCounter] = useState(false)
@@ -129,6 +135,9 @@ export default function FormFieldDemo() {
         <div className="ds-demo-row" style={{ marginBottom: 'var(--spacing-4)' }}>
           <label style={{ display: 'inline-flex', gap: 'var(--spacing-2)', alignItems: 'center', fontSize: 'var(--font-size-sm)' }}>
             <input type="checkbox" checked={error} onChange={(e) => setError(e.target.checked)} /> error
+          </label>
+          <label style={{ display: 'inline-flex', gap: 'var(--spacing-2)', alignItems: 'center', fontSize: 'var(--font-size-sm)' }}>
+            <input type="checkbox" checked={validated} onChange={(e) => setValidated(e.target.checked)} /> validated
           </label>
           <label style={{ display: 'inline-flex', gap: 'var(--spacing-2)', alignItems: 'center', fontSize: 'var(--font-size-sm)' }}>
             <input type="checkbox" checked={disabled} onChange={(e) => setDisabled(e.target.checked)} /> disabled
@@ -150,6 +159,7 @@ export default function FormFieldDemo() {
             onClear={() => setValue('')}
             leadingIcon={<Search size={16} />}
             error={error ? 'This customer is not recognized.' : false}
+            validated={validated}
             disabled={disabled}
             required={required}
             showCounter={showCounter}
@@ -172,6 +182,9 @@ export default function FormFieldDemo() {
           </div>
           <div style={{ width: 240 }}>
             <LiveField label="Error" initial="bad@" error="Invalid email." />
+          </div>
+          <div style={{ width: 240 }}>
+            <LiveField label="Validated" initial="Outbound" validated />
           </div>
           <div style={{ width: 240 }}>
             <LiveField label="Disabled" initial="Locked" disabled />
