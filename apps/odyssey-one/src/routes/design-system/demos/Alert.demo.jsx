@@ -23,7 +23,7 @@ export const props = [
   { name: 'errors', type: '{field, reason, resolved?}[]', desc: 'Non-empty → error-validation anatomy (replaces message/link/close): "N Errors: Validation Required" header (N = unresolved), Validate Errors link, chevron-collapsible per-field error list. resolved: true entries drop out of the count + the rows.' },
   { name: 'contextText', type: 'string', desc: 'Header context after the count — e.g. "ORD-D78120458 · Integrated from ACME" (order id · source + customer).' },
   { name: 'expanded / defaultExpanded / onToggle', type: 'boolean / boolean / (next) => void', desc: 'Error-list collapse state (chevron) — controlled or uncontrolled. Default collapsed.' },
-  { name: 'docked', type: 'boolean', desc: 'Sticky morph: full-width squared bar, header "resolved out of total errors resolved" (derived from the resolved flags), link becomes the ← Error i/N → stepper over the unresolved errors. The consumer owns position:sticky + the scroll trigger. Default false.' },
+  { name: 'docked', type: 'boolean', desc: 'Sticky morph: full-width squared bar, header "resolved out of total errors resolved" (derived from the resolved flags), link becomes the ← Error i/N → stepper over the unresolved errors. The consumer owns position:sticky + the scroll trigger. Resolving the error the stepper sits on clamps it to the LAST open error (Next greys out, not Prev). Default false.' },
   { name: 'errorIndex', type: 'number', desc: 'Current error (0-based, original-array index) for the docked stepper label + nav. Default 0.' },
   { name: 'onErrorNav', type: '(index) => void', desc: 'Jump-to-error intent: Validate Errors click (current index), list-row click (row index), docked arrows (index ± 1). The consumer autoscrolls to the red field.' },
 ]

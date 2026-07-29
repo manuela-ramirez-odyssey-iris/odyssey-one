@@ -854,7 +854,8 @@
 /* Sticky wrapper for the resolve alert: in flow at the top; when the sentinel
    above it scrolls out, the alert morphs to the docked bar stuck under the
    navbar (-32px offsets the AppShell content padding — .orders-toolbar
-   precedent). Full-bleed while docked. */
+   precedent). Docked cancels the main padding only — true full-bleed geometry
+   is Task 7 QA. */
 .co-resolve-alert {
   position: sticky;
   top: calc(-1 * var(--spacing-8));
@@ -862,6 +863,11 @@
 }
 .co-resolve-alert--docked {
   margin-inline: calc(-1 * var(--spacing-8));
+}
+/* The sentinel is a flex item in .co-content's 16px column gap — pull the alert
+   back up so the scroll probe costs no vertical space. */
+.co-resolve-sentinel {
+  margin-bottom: calc(-1 * var(--spacing-4));
 }
 /* All resolved: docked bar flips to the success tint (mock 6146:22632).
    ponytail: tint only — the Alert hardcodes OctagonX in validation mode and

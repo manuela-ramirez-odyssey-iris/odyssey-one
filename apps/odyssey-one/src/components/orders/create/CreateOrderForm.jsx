@@ -121,6 +121,10 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
       reset(draft)
       const source = resolveMeta?.customer ? ` · Integrated from ${resolveMeta.customer}` : ''
       setResolveState({ errors, isResolved, contextText: `${resolveKey}${source}` })
+      // Fresh order = fresh alert: ?resolve=A→B must not keep A's nav state.
+      setErrorIndex(0)
+      setAlertDocked(false)
+      setAlertExpanded(true)
       // Open exactly the sections the user has to fix.
       const secs = new Set(errors.map((e) => e.section))
       setExpanded({
@@ -177,19 +181,32 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
     if (resolveMode && sectionErrorInfo[key]?.total) return sectionErrorInfo[key].open > 0 ? 'error' : 'on'
     return status[key] ? 'on' : 'off'
   }
-  const accordionErrorCount = (key) => (resolveMode ? (sectionErrorInfo[key]?.total ?? 0) : 0)
+  // Red badge counts what's still OPEN (agreeing with the Alert above it); the
+  // green "Completed · N validated" badge counts the total it validated.
+  const accordionErrorCount = (key) => {
+    const i = sectionErrorInfo[key]
+    if (!resolveMode || !i?.total) return 0
+    return i.open > 0 ? i.open : i.total
+  }
 
   // Jump to an error: open its section, scroll the field into view, focus it.
   const handleErrorNav = (i) => {
     const err = resolveState?.errors[i]
     if (!err) return
     setErrorIndex(i)
+    const wasExpanded = expanded[err.section]
     setExpanded((prev) => ({ ...prev, [err.section]: true }))
-    requestAnimationFrame(() => {
+    const reveal = () => {
       const el = document.getElementById(`co-${err.path.replace(/\./g, '-')}`)
+      // preventScroll: plain focus() jumps instantly and kills the smooth scroll.
       el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      el?.focus?.()
-    })
+      el?.focus?.({ preventScroll: true })
+    }
+    // An already-open section is laid out next frame. A collapsed one animates
+    // its grid-rows reveal over 280ms — scrolling before that ends targets the
+    // pre-expansion layout, so wait the curve out.
+    if (wasExpanded) requestAnimationFrame(reveal)
+    else setTimeout(reveal, 300)
   }
 
   // The alert morphs into the docked bar once the sentinel above it scrolls off.
@@ -358,7 +375,7 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
 
         {resolveMode && resolveState && (
           <>
-            <div ref={alertSentinelRef} aria-hidden="true" />
+            <div ref={alertSentinelRef} className="co-resolve-sentinel" aria-hidden="true" />
             <div className={alertDocked ? 'co-resolve-alert co-resolve-alert--docked' : 'co-resolve-alert'}>
               <Alert
                 errors={alertErrors}

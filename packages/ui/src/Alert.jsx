@@ -108,8 +108,12 @@ export default function Alert({
               <span className="alert__validation-actions">
                 {docked ? (() => {
                   // Step over OPEN errors only; errorIndex + emitted indices
-                  // stay in original-array terms.
-                  const pos = Math.max(0, open.findIndex((e) => e.index >= errorIndex))
+                  // stay in original-array terms. No open error at or after
+                  // errorIndex (the current one just got resolved) = we're at
+                  // the end, not the start — clamp there so Next greys out, not
+                  // Prev. n === 0 renders the disabled 0/0 bar.
+                  const found = open.findIndex((e) => e.index >= errorIndex)
+                  const pos = found === -1 ? n - 1 : found
                   return (
                     <span className="alert__error-nav">
                       <button
