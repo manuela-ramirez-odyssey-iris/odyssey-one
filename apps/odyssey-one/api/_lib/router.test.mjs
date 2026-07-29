@@ -29,3 +29,9 @@ test('matches sell-shipment-out detail route with id param', () => {
   assert.equal(matchRoute('GET', '/shipment-service/v1/sell-shipment-out/'), null)
   assert.equal(matchRoute('GET', '/shipment-service/v1/sell-shipment-out/abc'), null)
 })
+
+test('matches PATCH order status route', () => {
+  const m = matchRoute('PATCH', '/order-service/v3/order/status')
+  assert.equal(m.name, 'updateOrderStatus')
+  assert.equal(matchRoute('POST', '/order-service/v3/order/status'), null)
+})

@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('../config', () => ({ getApiMode: vi.fn(() => 'mock') }))
 // Live-branch tests stub the HTTP layer; mock tests never reach it.
-vi.mock('../client', () => ({ apiGet: vi.fn(), apiPost: vi.fn() }))
+vi.mock('../client', () => ({ apiGet: vi.fn(), apiPost: vi.fn(), apiPatch: vi.fn() }))
 
 function mk(orderNumber: string, extra: Record<string, unknown> = {}) {
   return {
@@ -47,9 +47,9 @@ const STORE = [
 vi.mock('../../data/orders', () => ({ getAllOrders: () => STORE, getOrderEnrichment: () => null }))
 
 import { getApiMode } from '../config'
-import { apiGet } from '../client'
+import { apiGet, apiPatch } from '../client'
 import {
-  getOrderList, getOrderTabCounts, saveDraft, submitDraftOrder, cancelOrder, __resetOrderWriteState,
+  getOrderList, getOrderTabCounts, saveDraft, submitDraftOrder, resolveOrder, cancelOrder, __resetOrderWriteState,
 } from './orderService'
 import { orderFormValuesSample } from '../fixtures/orderFormValues.sample'
 
@@ -227,5 +227,23 @@ describe('orderService.getOrderTabCounts (live)', () => {
     get.mockResolvedValue({ all: 5, draft: 0, validationErrors: 0 })
     await getOrderTabCounts()
     expect(get).toHaveBeenCalledWith('/order-service/v3/order/tab-counts')
+  })
+})
+
+describe('live status writes (ledger row 9)', () => {
+  const mode = vi.mocked(getApiMode)
+  const patch = vi.mocked(apiPatch)
+  afterEach(() => { mode.mockReturnValue('mock'); patch.mockReset() })
+
+  it('submit/resolve/cancel PATCH the status endpoint in live mode', async () => {
+    mode.mockReturnValue('live')
+    patch.mockResolvedValue({ success: true })
+
+    await submitDraftOrder('ORD-1')
+    expect(patch).toHaveBeenLastCalledWith('/order-service/v3/order/status', { orderNumber: 'ORD-1', status: 'Ready For Plan' })
+    await resolveOrder('ORD-2')
+    expect(patch).toHaveBeenLastCalledWith('/order-service/v3/order/status', { orderNumber: 'ORD-2', status: 'Ready For Plan' })
+    await cancelOrder('ORD-3')
+    expect(patch).toHaveBeenLastCalledWith('/order-service/v3/order/status', { orderNumber: 'ORD-3', status: 'Cancelled' })
   })
 })

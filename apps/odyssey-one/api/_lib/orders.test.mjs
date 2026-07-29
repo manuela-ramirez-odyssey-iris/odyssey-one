@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { buildOrderListQuery, buildTabCountsQuery, buildOrderViewQuery, orderView } from './orders.mjs'
+import { buildOrderListQuery, buildTabCountsQuery, buildOrderViewQuery, orderView, buildUpdateOrderStatusQuery, updateOrderStatus } from './orders.mjs'
 
 test('order list: 1-based pagination (page 1 = offset 0)', () => {
   const q = buildOrderListQuery({ pagination: { pageNumber: 1, pageSize: 20 } })
@@ -74,4 +74,22 @@ test('order view: by number, by pending id, missing key', async () => {
   await assert.rejects(() => orderView({ body: { orderNumber: 'x' }, db: dbMiss }), (e) => e.status === 404)
   const dbHit = { query: async () => ({ rows: [{ orderNumber: 'x', manualOrder: null }] }) }
   assert.deepEqual(await orderView({ body: { orderNumber: 'x' }, db: dbHit }), { row: { orderNumber: 'x' }, manualOrder: null })
+})
+
+test('update status: builder by number and by pending id', () => {
+  const q = buildUpdateOrderStatusQuery('ORD-123', 'Ready For Plan')
+  assert.match(q.text, /UPDATE orders SET order_status = \$1 WHERE order_number = \$2/)
+  assert.deepEqual(q.values, ['Ready For Plan', 'ORD-123'])
+  const p = buildUpdateOrderStatusQuery('pending-42', 'Cancelled')
+  assert.match(p.text, /order_number = '' AND order_id = \$2/)
+  assert.deepEqual(p.values, ['Cancelled', 42])
+})
+
+test('update status: whitelist, missing key, missing row', async () => {
+  await assert.rejects(() => updateOrderStatus({ body: { status: 'Ready For Plan' }, db: null }), (e) => e.status === 400)
+  await assert.rejects(() => updateOrderStatus({ body: { orderNumber: 'x', status: 'Shipped; DROP TABLE' }, db: null }), (e) => e.status === 400)
+  const dbMiss = { query: async () => ({ rows: [] }) }
+  await assert.rejects(() => updateOrderStatus({ body: { orderNumber: 'x', status: 'Cancelled' }, db: dbMiss }), (e) => e.status === 404)
+  const dbHit = { query: async () => ({ rows: [{ order_number: 'x' }] }) }
+  assert.deepEqual(await updateOrderStatus({ body: { orderNumber: 'x', status: 'Ready For Plan' }, db: dbHit }), { success: true })
 })

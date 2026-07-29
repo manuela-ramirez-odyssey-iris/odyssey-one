@@ -1,6 +1,6 @@
 // api/_lib/router.mjs — path table for the OdysseyONE-shaped endpoints.
 import { categoryCounts, shipmentErrorList, sellShipmentDetail } from './shipments.mjs'
-import { orderList, orderTabCounts, orderView } from './orders.mjs'
+import { orderList, orderTabCounts, orderView, updateOrderStatus } from './orders.mjs'
 
 // Exact `path` match, or `pattern` (RegExp) whose capture groups become handler params.
 export const ROUTES = [
@@ -10,6 +10,7 @@ export const ROUTES = [
   { name: 'orderTabCounts',    method: 'GET',  path: '/order-service/v3/order/tab-counts',                 handler: orderTabCounts },
   { name: 'sellShipmentDetail', method: 'GET', pattern: /^\/shipment-service\/v1\/sell-shipment-out\/(\d+)$/, handler: sellShipmentDetail },
   { name: 'orderView',         method: 'POST', path: '/order-service/v3/order/view',                        handler: orderView },
+  { name: 'updateOrderStatus', method: 'PATCH', path: '/order-service/v3/order/status',                     handler: updateOrderStatus },
 ]
 
 export function matchRoute(method, pathname) {

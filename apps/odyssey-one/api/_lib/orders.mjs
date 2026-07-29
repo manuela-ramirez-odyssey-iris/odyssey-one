@@ -149,3 +149,35 @@ export async function orderView({ body, db }) {
   const { manualOrder, ...row } = rows[0]
   return { row, manualOrder: manualOrder ?? null }
 }
+
+// ── Status update (DB ledger row 9) ─────────────────────────────────────────
+// PATCH /order-service/v3/order/status — the write path behind the three UI
+// flows (Draft submit → Ready For Plan, OIF resolve/purge → Ready For Plan,
+// cancel → Cancelled). Status values come ONLY from this whitelist.
+const ALLOWED_STATUS_UPDATES = ['Ready For Plan', 'Cancelled']
+
+export function buildUpdateOrderStatusQuery(key, status) {
+  const pendingId = key.startsWith('pending-') ? key.slice('pending-'.length) : null
+  if (pendingId) {
+    return {
+      text: `UPDATE orders SET order_status = $1 WHERE order_number = '' AND order_id = $2 RETURNING order_id`,
+      values: [status, Number(pendingId)],
+    }
+  }
+  return {
+    text: `UPDATE orders SET order_status = $1 WHERE order_number = $2 RETURNING order_number`,
+    values: [status, key],
+  }
+}
+
+export async function updateOrderStatus({ body, db }) {
+  const key = body?.orderNumber
+  const status = body?.status
+  if (!key) { const e = new Error('orderNumber required'); e.status = 400; throw e }
+  if (!ALLOWED_STATUS_UPDATES.includes(status)) {
+    const e = new Error(`status must be one of: ${ALLOWED_STATUS_UPDATES.join(', ')}`); e.status = 400; throw e
+  }
+  const { rows } = await db.query(buildUpdateOrderStatusQuery(String(key), status))
+  if (rows.length === 0) { const e = new Error(`No order: ${key}`); e.status = 404; throw e }
+  return { success: true }
+}

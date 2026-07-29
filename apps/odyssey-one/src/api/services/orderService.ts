@@ -1,5 +1,5 @@
 import { getApiMode } from '../config'
-import { apiGet, apiPost } from '../client'
+import { apiGet, apiPatch, apiPost } from '../client'
 import { getAllOrders, getOrderEnrichment } from '../../data/orders'
 import type { OrderListRequest, OrderListResponse, OrderListRow } from '../types/orderList'
 import { mapFormToOrderInterface } from '../mappers/mapFormToOrderInterface'
@@ -205,9 +205,15 @@ function overlayUpdateStatus(orderNumber: string, status: string): void {
   ]
 }
 
+// Shared live write: PATCH /order-service/v3/order/status (DB ledger row 9).
+// Pending rows are addressed as 'pending-<orderId>' — the builder resolves them.
+async function patchOrderStatus(orderNumber: string, status: string): Promise<void> {
+  await apiPatch('/order-service/v3/order/status', { orderNumber, status })
+}
+
 /** Draft-tab Submit (LINX-11663): Draft → 'Ready For Plan'; row moves to All. */
 export async function submitDraftOrder(orderNumber: string): Promise<void> {
-  if (getApiMode() === 'live') throw new Error('submitDraftOrder: live mapping pending — mock-mode only')
+  if (getApiMode() === 'live') return patchOrderStatus(orderNumber, 'Ready For Plan')
   overlayUpdateStatus(orderNumber, 'Ready For Plan')
 }
 
@@ -215,17 +221,17 @@ export async function submitDraftOrder(orderNumber: string): Promise<void> {
  * OIF resolution (LINX-11137): Save-with-all-resolved and Purge both send the
  * order to the re-processing queue → 'Ready For Plan' (the AC's "Ready for
  * Planning" in app vocabulary). The status flip alone moves the row out of the
- * status-filtered Validation Errors tab into All. Mock-only until the OIF
- * endpoint exists.
+ * status-filtered Validation Errors tab into All. Live mode writes the status
+ * directly — there is no dedicated OIF endpoint yet.
  */
 export async function resolveOrder(orderNumber: string): Promise<void> {
-  if (getApiMode() === 'live') throw new Error('resolveOrder: live mapping pending — mock-mode only')
+  if (getApiMode() === 'live') return patchOrderStatus(orderNumber, 'Ready For Plan')
   overlayUpdateStatus(orderNumber, 'Ready For Plan')
 }
 
 /** Cancel (LINX-10258 soft delete): status → 'Cancelled'. */
 export async function cancelOrder(orderNumber: string): Promise<void> {
-  if (getApiMode() === 'live') throw new Error('cancelOrder: live mapping pending — mock-mode only')
+  if (getApiMode() === 'live') return patchOrderStatus(orderNumber, 'Cancelled')
   overlayUpdateStatus(orderNumber, 'Cancelled')
 }
 
