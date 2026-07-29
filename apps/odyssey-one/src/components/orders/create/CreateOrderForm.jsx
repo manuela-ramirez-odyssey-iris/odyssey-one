@@ -212,11 +212,28 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
   }
 
   // The alert morphs into the docked bar once the sentinel above it scrolls off.
+  // An IntersectionObserver drops the last frame of the smooth scrollIntoView
+  // handleErrorNav fires (~2 runs in 3 the alert stayed expanded on top of the
+  // very field it had just scrolled to), so read the rect on scroll instead.
   useEffect(() => {
-    if (!resolveMode || !alertSentinelRef.current) return
-    const obs = new IntersectionObserver(([entry]) => setAlertDocked(!entry.isIntersecting))
-    obs.observe(alertSentinelRef.current)
-    return () => obs.disconnect()
+    const sentinel = alertSentinelRef.current
+    if (!resolveMode || !sentinel) return
+    let scroller = sentinel.parentElement
+    while (scroller && !/auto|scroll/.test(getComputedStyle(scroller).overflowY)) {
+      scroller = scroller.parentElement
+    }
+    const sync = () => {
+      const top = scroller ? scroller.getBoundingClientRect().top : 0
+      setAlertDocked(sentinel.getBoundingClientRect().bottom < top)
+    }
+    sync()
+    const target = scroller || window
+    target.addEventListener('scroll', sync, { passive: true })
+    window.addEventListener('resize', sync)
+    return () => {
+      target.removeEventListener('scroll', sync)
+      window.removeEventListener('resize', sync)
+    }
   }, [resolveMode, resolveState])
 
   // ── Save flows ──
