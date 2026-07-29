@@ -1,7 +1,7 @@
 import {
   OWNING_ORGS,
   EXTRA_ORGS,
-  EQUIPMENT_LOOKUP_CODES,
+  EQUIPMENT_CODES,
   EQUIPMENT_LABELS,
   EQUIPMENT_SCOPE,
   FREIGHT_TERMS,
@@ -70,7 +70,7 @@ function poolFor(type: LookupType, params: LookupParams): LookupOption[] {
       return [...OWNING_ORGS, ...EXTRA_ORGS.map((o) => ({ ...o, frequency: 0 }))]
     case 'equipment': {
       if (!params.orgId) return [] // scoped by Owning Organization — none picked, no catalog
-      const codes: string[] = EQUIPMENT_SCOPE[params.orgId as keyof typeof EQUIPMENT_SCOPE] ?? EQUIPMENT_LOOKUP_CODES
+      const codes: string[] = EQUIPMENT_SCOPE[params.orgId as keyof typeof EQUIPMENT_SCOPE] ?? EQUIPMENT_CODES
       return codes.map((code: string, i: number) => ({
         value: code,
         label: `${code} — ${EQUIPMENT_LABELS[code as keyof typeof EQUIPMENT_LABELS] ?? code}`,

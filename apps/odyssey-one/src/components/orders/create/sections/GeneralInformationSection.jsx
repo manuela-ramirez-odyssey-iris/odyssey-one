@@ -5,7 +5,7 @@ import { Button, Checkbox, ComboBox, FormField } from '@odyssey/ui'
 import RepeatableRows, { newRowId } from '../RepeatableRows.jsx'
 import { useResolveMode, resolveFieldProps } from '../../resolve/ResolveModeContext.jsx'
 import { getLookupOptions } from '../../../../api/services/lookupService'
-import { EQUIPMENT_LOOKUP_CODES, EQUIPMENT_LABELS, EQUIPMENT_SCOPE, FREIGHT_TERMS, REFERENCE_TYPES, SHIP_DIRECTIONS } from '../../../../data/master-data'
+import { EQUIPMENT_CODES, EQUIPMENT_LABELS, EQUIPMENT_SCOPE, FREIGHT_TERMS, REFERENCE_TYPES, SHIP_DIRECTIONS } from '../../../../data/master-data'
 
 // Server-search fields (Jira: infinite-scroll lookups) render ComboBox —
 // Customer + Carrier. Chevron click BROWSES the catalog (first page, then
@@ -44,7 +44,7 @@ export default function GeneralInformationSection() {
   // Equipment is an org-scoped SMALL list → plain dropdown, "CODE - meaning"
   // labels (user, 2026-07-27; nomenclature per the TMS lookup).
   const equipmentOptions = (owningOrg
-    ? (EQUIPMENT_SCOPE[owningOrg] ?? EQUIPMENT_LOOKUP_CODES)
+    ? (EQUIPMENT_SCOPE[owningOrg] ?? EQUIPMENT_CODES)
     : []
   ).map((code) => ({ value: code, label: `${code} - ${EQUIPMENT_LABELS[code] ?? code}` }))
 

@@ -20,7 +20,6 @@ export const OWNING_ORGS = CUSTOMERS.map((c, i) => ({
 // generators draw the same codes). Descriptions: TL/TLR/TLF old-system
 // verbatim; others standard or inferred (LTH/TLH/TT UNCONFIRMED — open Q
 // with Ramesh/master-data).
-export const EQUIPMENT_LOOKUP_CODES = EQUIPMENT_CODES
 // Orgs listed here see a restricted subset; everyone else sees the full
 // catalog (plan decision 15 — proves org scoping observably in mock mode).
 export const EQUIPMENT_SCOPE = {

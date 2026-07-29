@@ -4,13 +4,15 @@
 // /master-data/v1/*; spec A7), so the fake generators share these pools too:
 // generate.mjs (shipments) and generate-orders.mjs (orders) must draw customers,
 // locations, equipment, and commodities from the same lists.
-// MOVED VERBATIM from generate.mjs — do not edit values here without
-// regenerating BOTH datasets and checking the shipments diff is empty.
+// These are the REAL vocabularies the UI maps code→label against, so editing
+// any value here is a data migration, not a code tweak: it requires the full
+// regen + Neon reseed motion and a DB-ledger row. Don't edit in isolation.
 
 // Real equipment catalog (LINX-13893 matrix + old-TMS captures) — swapped at
 // the end-of-Orders reseed (DB ledger row 1). SINGLE SOURCE: master-data.js
 // re-exports these; both generators draw EQUIPMENT_CODES. Old mock LTH
 // ("Lowboy") is gone — LTH now means LTL Hazmat everywhere.
+// key order = lookup display/frequency order — do not reorder
 export const EQUIPMENT_LABELS = {
   LTL: 'Less Than Truckload', LTR: 'LTL Refrigerated', LTH: 'LTL Hazmat',
   TL: 'Truck Load', TLR: 'Refrigerated Box Trailer', TLH: 'TL Hazmat',
