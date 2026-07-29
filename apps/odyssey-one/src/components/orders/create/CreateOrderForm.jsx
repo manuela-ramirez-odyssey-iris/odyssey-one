@@ -62,10 +62,12 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
   const [alertDocked, setAlertDocked] = useState(false)
   const [alertExpanded, setAlertExpanded] = useState(true)
   const [errorIndex, setErrorIndex] = useState(0)
-  const [dockSpacerH, setDockSpacerH] = useState(0)
   const alertSentinelRef = useRef(null)
   const alertWrapRef = useRef(null)
+  const scrollerRef = useRef(null)
+  const dockedRef = useRef(false)
   const preDockHeightRef = useRef(0)
+  const dockScrolledPastRef = useRef(false)
   const navSessionRef = useRef(false)
   const resolveMode = !!resolveKey
 
@@ -131,6 +133,7 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
       setErrorIndex(0)
       setAlertDocked(false)
       setAlertExpanded(true)
+      dockedRef.current = false
       navSessionRef.current = false
       // Open exactly the sections the user has to fix.
       const secs = new Set(errors.map((e) => e.section))
@@ -198,24 +201,37 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
 
   // Jump to an error: open its section, scroll the field into view, focus it.
   // Any error nav (Validate Errors, a list row, a docked arrow) starts a nav
-  // SESSION: the alert goes docked and stays docked — even when the target
-  // field sits near the top of the form — until the user deliberately scrolls
-  // all the way back up (user ruling 2026-07-29).
+  // SESSION: the alert collapses + docks and stays docked — even when the
+  // target field sits near the top of the form — until the user deliberately
+  // scrolls all the way back up (user ruling 2026-07-29). The scroll target is
+  // floored at the alert's own slot so the sticky bar always pins flush under
+  // the navbar (never a half-engaged bar with a gap above it).
   const handleErrorNav = (i) => {
     const err = resolveState?.errors[i]
     if (!err) return
     setErrorIndex(i)
     navSessionRef.current = true
-    setAlertDocked((cur) => {
-      if (!cur && alertWrapRef.current) preDockHeightRef.current = alertWrapRef.current.offsetHeight
-      return true
-    })
+    dockScrolledPastRef.current = false // wrapper is on screen — no scroll compensation
+    setAlertExpanded(false)
+    dockedRef.current = true
+    setAlertDocked(true)
     const wasExpanded = expanded[err.section]
     setExpanded((prev) => ({ ...prev, [err.section]: true }))
     const reveal = () => {
       const el = document.getElementById(`co-${err.path.replace(/\./g, '-')}`)
+      const scroller = scrollerRef.current
+      const sentinel = alertSentinelRef.current
+      if (el && scroller && sentinel) {
+        const sRect = scroller.getBoundingClientRect()
+        const elTop = el.getBoundingClientRect().top - sRect.top + scroller.scrollTop
+        // Floor: at least past the alert's natural slot, so the sticky docked
+        // bar engages and sits aligned below the navbar.
+        const minTop = sentinel.getBoundingClientRect().top - sRect.top + scroller.scrollTop + 8
+        scroller.scrollTo({ top: Math.max(elTop - scroller.clientHeight / 2, minTop), behavior: 'smooth' })
+      } else {
+        el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
       // preventScroll: plain focus() jumps instantly and kills the smooth scroll.
-      el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
       el?.focus?.({ preventScroll: true })
     }
     // An already-open section is laid out next frame. A collapsed one animates
@@ -225,22 +241,21 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
     else setTimeout(reveal, 300)
   }
 
-  // The alert morphs into the docked bar once the sentinel above it scrolls off.
-  // An IntersectionObserver drops the last frame of the smooth scrollIntoView
-  // handleErrorNav fires (~2 runs in 3 the alert stayed expanded on top of the
-  // very field it had just scrolled to), so read the rect on scroll instead.
+  // ── Dock model (reworked 2026-07-29, user ruling) ──
+  // The expanded alert is a NORMAL in-flow block: scrolling simply scrolls it
+  // away. Docking triggers only once its LAST list item has scrolled past the
+  // navbar edge — at that moment it collapses (the return trip shows the
+  // collapsed bar in its slot, no leftover hole) and turns sticky as the
+  // full-width docked bar pinned below the navbar. Un-docking happens when the
+  // alert's slot scrolls back into view; it stays collapsed (chevron re-opens).
   //
-  // CRITICAL: two defenses against Chrome's scroll anchoring, which otherwise
-  // turns the dock morph into a flicker loop (collapse ~400px above the
-  // viewport → anchoring yanks scrollTop → sentinel back in view → un-dock →
-  // grow → yank; the page pins to the top, user-reported twice):
-  //  1. overflow-anchor: none on the scroller for the resolve session — the
-  //     spacer alone is not enough, because the morph's INTERMEDIATE layout
-  //     (alert shrunk, spacer not yet sized) already triggers anchoring.
-  //  2. The spacer keeps the column height constant so nothing visibly jumps.
-  // Plus hysteresis (dock past -8px, undock only past +40px) so the two
-  // thresholds can never both be true, and the nav-session rule: after any
-  // error nav the bar stays docked until the user scrolls back to the top.
+  // Scroll anchoring stays disabled for the session (overflow-anchor: none) —
+  // it was the engine of the earlier flicker loop — and the expanded→bar
+  // height delta is compensated with a single manual scrollTop adjustment in
+  // a layout effect (only when the alert had fully scrolled past; docking
+  // from a visible alert, e.g. Validate Errors at top, needs none).
+  // The dock (wrapper bottom) and undock (sentinel top) thresholds are ~a full
+  // alert height apart, so the two can never disagree.
   useEffect(() => {
     const sentinel = alertSentinelRef.current
     if (!resolveMode || !sentinel) return
@@ -248,26 +263,35 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
     while (scroller && !/auto|scroll/.test(getComputedStyle(scroller).overflowY)) {
       scroller = scroller.parentElement
     }
+    scrollerRef.current = scroller
     const prevAnchor = scroller ? scroller.style.overflowAnchor : ''
     if (scroller) scroller.style.overflowAnchor = 'none'
     const sync = () => {
       const st = scroller ? scroller.scrollTop : window.scrollY || 0
       const top = scroller ? scroller.getBoundingClientRect().top : 0
-      const sentB = sentinel.getBoundingClientRect().bottom
-      setAlertDocked((cur) => {
-        let next
-        if (navSessionRef.current) {
-          next = st > 2
-          if (!next) navSessionRef.current = false // deliberate return to top ends the session
-        } else {
-          next = cur ? sentB < top + 40 : sentB < top - 8
+      const wrap = alertWrapRef.current
+      if (!wrap) return
+      const docked = dockedRef.current
+      let next
+      if (navSessionRef.current) {
+        next = st > 2
+        if (!next) navSessionRef.current = false // deliberate return to top ends the session
+      } else if (docked) {
+        // undock once the alert's slot is back in view
+        next = sentinel.getBoundingClientRect().bottom < top + 8
+      } else {
+        // dock only when the whole (expanded or collapsed) alert scrolled past
+        next = wrap.getBoundingClientRect().bottom < top + 1
+      }
+      if (next !== docked) {
+        if (next) {
+          preDockHeightRef.current = wrap.offsetHeight
+          dockScrolledPastRef.current = true
+          setAlertExpanded(false) // "it collapsed while we were scrolling down"
         }
-        if (!cur && next && alertWrapRef.current) {
-          // capture the expanded in-flow height before the morph shrinks it
-          preDockHeightRef.current = alertWrapRef.current.offsetHeight
-        }
-        return next
-      })
+        dockedRef.current = next
+        setAlertDocked(next)
+      }
     }
     sync()
     const target = scroller || window
@@ -280,15 +304,16 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
     }
   }, [resolveMode, resolveState])
 
-  // After the dock render, hand the height delta to the spacer (and take it
-  // back on un-dock) so the total column height never changes.
+  // Docking shrinks the alert's in-flow slot (expanded → bar). When that slot
+  // is entirely ABOVE the viewport the shrink would shift everything up by the
+  // delta — compensate scrollTop once, before paint, so the view stays put.
   useLayoutEffect(() => {
-    if (!alertDocked) {
-      setDockSpacerH(0)
-      return
-    }
-    const dockedH = alertWrapRef.current?.offsetHeight ?? 0
-    setDockSpacerH(Math.max(0, preDockHeightRef.current - dockedH))
+    if (!alertDocked) return
+    const scroller = scrollerRef.current
+    const wrap = alertWrapRef.current
+    if (!scroller || !wrap || !dockScrolledPastRef.current) return
+    const delta = preDockHeightRef.current - wrap.offsetHeight
+    if (delta > 0) scroller.scrollTop -= delta
   }, [alertDocked])
 
   // ── Save flows ──
@@ -471,9 +496,6 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
                 className={allResolved ? 'co-resolve-alert--done' : ''}
               />
             </div>
-            {/* Height the alert gives up while docked — keeps the column height
-                constant so scroll anchoring can't feedback-loop (see effect). */}
-            <div className="co-resolve-dock-spacer" style={{ height: dockSpacerH }} aria-hidden="true" />
           </>
         )}
 

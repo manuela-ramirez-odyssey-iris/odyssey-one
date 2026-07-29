@@ -851,21 +851,20 @@
   opacity: 0.6;
 }
 
-/* Sticky wrapper for the resolve alert: in flow at the top; when the sentinel
-   above it scrolls out, the alert morphs to the docked bar stuck under the
-   navbar (-32px offsets the AppShell content padding — .orders-toolbar
-   precedent). Docked cancels the main padding only — it stays content-width
-   inside .co-content, not viewport full-bleed (accepted vs mock 5711:16403). */
+/* Resolve alert (2026-07-29 model): the expanded alert is a NORMAL in-flow
+   block — scrolling scrolls it away, no pinning, no leftover hole. Only the
+   DOCKED bar is sticky, pinned flush below the navbar (-32px offsets the
+   AppShell content padding — .orders-toolbar precedent). */
 .co-resolve-alert {
-  position: sticky;
-  top: calc(-1 * var(--spacing-8));
   z-index: 5;
 }
-/* Docked = full width of the main container (user ruling 2026-07-29) — same
-   breakout math as .co-breakout: escape the 1080px .co-content column out to
-   the viewport minus the sidebar. 100vw includes the scrollbar — prototype-
-   grade, same accepted caveat as .co-breakout. */
+/* Docked = sticky + full width of the main container (user ruling
+   2026-07-29) — same breakout math as .co-breakout: escape the 1080px
+   .co-content column out to the viewport minus the sidebar. 100vw includes
+   the scrollbar — prototype-grade, same accepted caveat as .co-breakout. */
 .co-resolve-alert--docked {
+  position: sticky;
+  top: calc(-1 * var(--spacing-8));
   --co-dock-w: calc(100vw - var(--sidebar-width));
   width: var(--co-dock-w);
   margin-left: calc((100% - var(--co-dock-w)) / 2);
@@ -881,12 +880,6 @@
    back up so the scroll probe costs no vertical space. */
 .co-resolve-sentinel {
   margin-bottom: calc(-1 * var(--spacing-4));
-}
-/* Same flex-gap trick for the dock spacer: always rendered so its gap
-   contribution is constant; only its height (the docked delta) varies. */
-.co-resolve-dock-spacer {
-  margin-top: calc(-1 * var(--spacing-4));
-  flex-shrink: 0;
 }
 /* All resolved: docked bar flips to the success tint (mock 6146:22632).
    ponytail: tint only — the Alert hardcodes OctagonX in validation mode and
