@@ -1,4 +1,4 @@
-import { Info, CircleX } from 'lucide-react'
+import { Info, CircleX, Check } from 'lucide-react'
 import FieldSelect from './FieldSelect.jsx'
 
 /**
@@ -9,6 +9,9 @@ import FieldSelect from './FieldSelect.jsx'
  * States: `filled` / `focused` derive automatically (value present / :focus-within);
  * `error` (pass a message string) and `disabled` are explicit. Error border is
  * `--bittersweet-200` idle → `--bittersweet-600` on focus, with a red message below.
+ * `validated` (boolean) is the success mirror (Figma `State=Validated`, 2026-07-28):
+ * `--border-success` border, trailing check (text-tertiary, matches the mock's
+ * DSN/500), and a green "Validated" line below. `error` wins when both are set.
  *
  * Slots (each maps to a Figma property):
  *   showLabel / label    — `Show label` + `Label`
@@ -30,6 +33,7 @@ export default function FormField({
   onChange,
   type = 'text',
   error,
+  validated = false,
   disabled = false,
   leadingIcon,
   trailingIcon,
@@ -47,9 +51,11 @@ export default function FormField({
   describedBy,
   ...rest
 }) {
+  const isValidated = validated && !error
   const cls = [
     'form-field',
     error && 'form-field--error',
+    isValidated && 'form-field--validated',
     disabled && 'form-field--disabled',
     className,
   ].filter(Boolean).join(' ')
@@ -111,6 +117,11 @@ export default function FormField({
           {/* No aria-hidden here: the trailing slot may hold an interactive
               control (e.g. TimePicker/MultiSelect chevron toggle). Decorative
               icons carry their own aria-hidden, so nothing leaks either way. */}
+          {isValidated && (
+            <span className="form-field__icon" aria-hidden="true">
+              <Check size={16} />
+            </span>
+          )}
           {trailingIcon && <span className="form-field__icon">{trailingIcon}</span>}
         </div>
         {trailingSelect && (
@@ -124,6 +135,9 @@ export default function FormField({
       </div>
       {error && (
         <p className="form-field__error text-label-xs-regular" id={errorId} role="alert">{error}</p>
+      )}
+      {isValidated && (
+        <p className="form-field__validated text-label-xs-regular">Validated</p>
       )}
     </div>
   )

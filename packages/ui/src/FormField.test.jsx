@@ -84,3 +84,26 @@ describe('FormField required', () => {
     expect(container.querySelector('input').getAttribute('aria-required')).toBeNull()
   })
 })
+
+describe('FormField validated', () => {
+  test('validated renders success class, check icon, and Validated line', () => {
+    const { container } = render(
+      <FormField label="Ship Direction" value="Outbound" onChange={() => {}} validated />,
+    )
+    expect(container.querySelector('.form-field--validated')).toBeTruthy()
+    const helper = container.querySelector('.form-field__validated')
+    expect(helper).toBeTruthy()
+    expect(helper.textContent).toBe('Validated')
+    expect(container.querySelector('.form-field__icon svg')).toBeTruthy()
+  })
+
+  test('error wins over validated', () => {
+    const { container } = render(
+      <FormField label="Ship Direction" value="x" onChange={() => {}} validated error="Missing Mandatory" />,
+    )
+    expect(container.querySelector('.form-field--validated')).toBeNull()
+    expect(container.querySelector('.form-field__validated')).toBeNull()
+    expect(container.querySelector('.form-field--error')).toBeTruthy()
+    expect(container.querySelector('.form-field__error').textContent).toBe('Missing Mandatory')
+  })
+})

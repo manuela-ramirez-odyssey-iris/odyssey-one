@@ -97,6 +97,7 @@
   --border-strong: var(--deep-sea-neutral-900);
   --border-focus: var(--carolina-blue-400);
   --border-inverse: var(--deep-sea-neutral-600);
+  --border-success: var(--caribbean-green-200); /* Figma `Border/success` (2026-07-28) — validated-field border, mirrors --text-success/--bg-success */
 
   /* --- Semantic: Status (message surfaces) ---
      Mirrors Efrain's Figma `Status/{info,success,warning,error}-message` semantic
