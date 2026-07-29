@@ -9,6 +9,7 @@ export const meta = {
   figmaNode: '4715:6142',
   codeConnect: 'packages/ui/src/ComboBox.figma.tsx',
   normalizing: true,
+  approved: true,
 }
 
 export const props = [

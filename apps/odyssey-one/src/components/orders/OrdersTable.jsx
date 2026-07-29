@@ -25,7 +25,6 @@ export default function OrdersTable({
   sorting,
   onSortingChange,
   totalCount,
-  onRowClick,
   onRowAction,
 }) {
   const [stickyTop, setStickyTop] = useState(0)
@@ -100,7 +99,6 @@ export default function OrdersTable({
       stickyTop={stickyTop}
       ariaLabel="Orders"
       sortable
-      onCellClick={onRowClick ? (_cell, row) => onRowClick(row.original) : undefined}
       footer={<Paginator table={table} />}
     />
   )

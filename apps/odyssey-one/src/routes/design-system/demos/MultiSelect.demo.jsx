@@ -9,6 +9,7 @@ export const meta = {
   normalizing: true,
   figmaNode: '4536:5333',
   codeConnect: 'packages/ui/src/MultiSelect.figma.tsx',
+  approved: true,
 }
 
 export const props = [

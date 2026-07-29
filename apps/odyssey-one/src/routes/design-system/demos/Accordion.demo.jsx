@@ -9,6 +9,7 @@ export const meta = {
   normalizing: true,
   figmaNode: '2850:612',
   codeConnect: 'packages/ui/src/Accordion.figma.tsx',
+  approved: true,
 }
 
 export const props = [

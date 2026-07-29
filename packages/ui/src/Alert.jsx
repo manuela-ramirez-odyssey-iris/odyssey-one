@@ -80,13 +80,18 @@ export default function Alert({
     const n = open.length
     const total = errors.length
     const resolved = total - n
-    const classes = ['alert', 'alert--error', 'alert--validation', docked ? 'alert--docked' : '', className]
+    // All resolved → the banner flips to the success surface + check icon
+    // (mock 6146:22632) — component-owned, consumers don't override.
+    const allResolved = n === 0 && total > 0
+    const classes = ['alert', 'alert--error', 'alert--validation', allResolved ? 'alert--resolved' : '', docked ? 'alert--docked' : '', className]
       .filter(Boolean).join(' ')
     return (
-      <div className={classes} role="alert" {...rest}>
+      // role=status: this banner is long-lived and its text updates on every
+      // resolution — assertive role=alert would re-announce constantly.
+      <div className={classes} role="status" {...rest}>
         <div className="alert__body alert__body--validation">
           <span className="alert__icon">
-            <OctagonX {...ICON_LG} />
+            {allResolved ? <CircleCheck {...ICON_LG} /> : <OctagonX {...ICON_LG} />}
           </span>
           <div className="alert__validation-main">
             {/* Whole header toggles the list (not just the chevron); inner

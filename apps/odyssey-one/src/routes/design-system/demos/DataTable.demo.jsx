@@ -32,6 +32,7 @@ export const meta = {
   // Resize drag also reworked: shell-owned, starts from the VISIBLE colgroup width
   // (TanStack's getResizeHandler started from the injected default 150 → jump).
   normalizing: true,
+  approved: true,
 }
 
 export const props = [

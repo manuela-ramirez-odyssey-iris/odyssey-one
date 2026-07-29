@@ -493,7 +493,6 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
                 docked={alertDocked}
                 errorIndex={errorIndex}
                 onErrorNav={handleErrorNav}
-                className={allResolved ? 'co-resolve-alert--done' : ''}
               />
             </div>
           </>

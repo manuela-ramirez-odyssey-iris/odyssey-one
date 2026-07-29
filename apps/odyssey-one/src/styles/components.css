@@ -1816,11 +1816,28 @@ input[type="date"].odyssey-date-input::-webkit-calendar-picker-indicator:hover {
 }
 
 /* Docked (sticky) morph — full-width squared bar; the consumer owns
-   position:sticky placement + the scroll trigger. */
+   position:sticky placement + the scroll trigger. The bar slides in from
+   under the navbar when the class mounts (S99). */
 .alert--docked {
   border-radius: 0;
   align-items: center;
   padding: var(--spacing-4) var(--spacing-6);
+  animation: alert-dock-in 220ms ease both;
+}
+
+@keyframes alert-dock-in {
+  from { transform: translateY(-100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .alert--docked { animation: none; }
+}
+
+/* All errors resolved: the validation banner flips to the success surface
+   (mock 6146:22632) — component-owned, no consumer override needed (S99). */
+.alert--validation.alert--resolved {
+  background: var(--status-success-message);
 }
 
 .alert__error-nav {

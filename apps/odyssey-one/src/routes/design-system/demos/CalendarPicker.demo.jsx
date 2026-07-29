@@ -11,6 +11,7 @@ export const meta = {
   normalizing: true,
   figmaNode: '4422:711',
   codeConnect: null,
+  approved: true,
 }
 
 export const props = [

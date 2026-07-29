@@ -868,15 +868,9 @@
   --co-dock-w: calc(100vw - var(--sidebar-width));
   width: var(--co-dock-w);
   margin-left: calc((100% - var(--co-dock-w)) / 2);
-  animation: co-dock-in 220ms ease both;
 }
-/* Dock/undock transitions: the bar slides down from under the navbar; the
-   un-docked (collapsed) alert fades back into its slot. Class toggle replays
-   the matching animation. */
-@keyframes co-dock-in {
-  from { transform: translateY(-100%); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
+/* The dock slide-in lives on the Alert itself (.alert--docked, S99); the
+   un-docked (collapsed) alert fading back into its slot is consumer layout. */
 .co-resolve-alert:not(.co-resolve-alert--docked) {
   animation: co-undock-in 200ms ease both;
 }
@@ -885,7 +879,7 @@
   to { opacity: 1; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .co-resolve-alert, .co-resolve-alert--docked { animation: none; }
+  .co-resolve-alert { animation: none; }
 }
 /* The bar bleeds full-width, but its contents align with the 1080px form
    column (.co-content) — icon/text/stepper sit over the accordions. */
@@ -898,10 +892,4 @@
    back up so the scroll probe costs no vertical space. */
 .co-resolve-sentinel {
   margin-bottom: calc(-1 * var(--spacing-4));
-}
-/* All resolved: docked bar flips to the success tint (mock 6146:22632).
-   ponytail: tint only — the Alert hardcodes OctagonX in validation mode and
-   swapping it means touching packages/ui. */
-.co-resolve-alert--done.alert--validation {
-  background: var(--status-success-message);
 }

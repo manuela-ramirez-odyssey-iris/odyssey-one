@@ -12,6 +12,7 @@ export const meta = {
   // (default 320 preserves prior behavior) so MultiSelect can cap its dropdown
   // to a 4-row viewport. Re-runs GATE B; the Angular twin picks up the delta.
   normalizing: true,
+  approved: true,
 }
 
 export const props = [

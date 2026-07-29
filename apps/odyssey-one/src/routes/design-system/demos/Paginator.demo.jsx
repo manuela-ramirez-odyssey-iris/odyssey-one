@@ -14,6 +14,7 @@ export const meta = {
   normalizing: true,
   figmaNode: '3272:3890',
   codeConnect: 'packages/ui/src/Paginator.figma.tsx',
+  approved: true,
 }
 
 export const props = [

@@ -9,6 +9,7 @@ export const meta = {
   figmaNode: '3169:2821',
   codeConnect: 'packages/ui/src/MatchSimpleRow.figma.tsx',
   normalizing: true,
+  approved: true,
 }
 
 export const props = [

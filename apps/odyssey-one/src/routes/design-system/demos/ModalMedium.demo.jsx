@@ -9,6 +9,7 @@ export const meta = {
   figmaNode: '2032:915',
   codeConnect: 'packages/ui/src/ModalMedium.figma.tsx',
   normalizing: true,
+  approved: true,
 }
 
 export const props = [
