@@ -218,6 +218,19 @@ function pickN(arr, min, max) { return faker.helpers.arrayElements(arr, faker.nu
 function pickCustomer() {
   return faker.number.float({ min: 0, max: 1 }) < 0.92 ? pick(CUSTOMERS) : pick(EXTRA_CUSTOMERS)
 }
+// errorCount weighted LOW (DB ledger row 7 — user flagged too many 12s):
+// most orders 1–4 errors, thin tail to 8, rare 9–12. Cap 12 stays under the
+// OIF RESOLVE_POOL size (15) so the resolve view can always seed them.
+function genErrorCount() {
+  return faker.helpers.weightedArrayElement([
+    { value: 1, weight: 28 }, { value: 2, weight: 24 }, { value: 3, weight: 18 },
+    { value: 4, weight: 12 }, { value: 5, weight: 7 },  { value: 6, weight: 4 },
+    { value: 7, weight: 3 },  { value: 8, weight: 2 },
+    { value: 9, weight: 0.6 }, { value: 10, weight: 0.5 },
+    { value: 11, weight: 0.5 }, { value: 12, weight: 0.4 },
+  ])
+}
+
 function fmt(n) { return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 function fmtInt(n) { return n.toLocaleString('en-US'); }
 
@@ -1139,7 +1152,7 @@ function generateShipment(index) {
     };
     if (VALIDATION_ERROR_STATUSES.includes(orderRow.orderStatus)) {
       orderRow.draftOrderStatus = pick(DRAFT_ORDER_STATUS_POOL);
-      orderRow.errorCount = faker.number.int({ min: 1, max: 12 });
+      orderRow.errorCount = genErrorCount();
     }
     orderRows.push(orderRow);
     // I8 — a subset of shipped orders gets full ManualOrder enrichment so the
@@ -1388,7 +1401,7 @@ function generateUnshippedOrder(n, pending) {
   }
   if (VALIDATION_ERROR_STATUSES.includes(row.orderStatus)) {
     row.draftOrderStatus = pick(DRAFT_ORDER_STATUS_POOL);
-    row.errorCount = faker.number.int({ min: 1, max: 12 });
+    row.errorCount = genErrorCount();
   }
 
   // ~half of the numbered unshipped orders are RICH: every optional create-form

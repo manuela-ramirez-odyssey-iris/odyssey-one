@@ -84,3 +84,11 @@ test('enrichment orderLines carry the create-form wire fields (ledger rows 4/5/6
     }
   }
 })
+
+test('errorCount is weighted low: majority 1–4, hard cap 12 (ledger row 7)', () => {
+  const counts = buildDataset().orders.filter((o) => o.errorCount != null).map((o) => o.errorCount)
+  assert.ok(counts.length > 0)
+  assert.ok(Math.max(...counts) <= 12)
+  const low = counts.filter((c) => c <= 4).length
+  assert.ok(low / counts.length > 0.7, `low share ${(low / counts.length).toFixed(2)}`)
+})
