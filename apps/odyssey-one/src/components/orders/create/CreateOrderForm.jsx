@@ -303,7 +303,18 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
           </Alert>
         )}
 
-        <div className={resolveMode ? 'co-sections co-resolve' : 'co-sections'}>
+        {/* The CSS blanket only stops the mouse — locked fields are still
+            tabbable and typable, which would also let bad values through the
+            Save gate. Bounce focus back out of anything that isn't a field the
+            user is here to fix. Accordion headers live outside __content and
+            stay focusable. */}
+        <div
+          className={resolveMode ? 'co-sections co-resolve' : 'co-sections'}
+          onFocusCapture={resolveMode ? (e) => {
+            if (!e.target.closest('.accordion__content')) return
+            if (!e.target.closest('.form-field--error, .form-field--validated, .search-field--error, .search-field--validated')) e.target.blur()
+          } : undefined}
+        >
           <div ref={sectionRefs.general}>
             <Accordion
               position="start"

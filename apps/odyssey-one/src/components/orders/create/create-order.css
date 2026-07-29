@@ -827,8 +827,11 @@
 /* === Resolve mode (LINX-11137) — read-only blanket ======================
    Everything inside accordion content is locked; fields carrying an
    error/validated state class stay interactive (they're the ones the user
-   must fix). Accordion headers stay clickable (outside __content). */
-.co-resolve .accordion__content :is(input, button, textarea, select, [role='checkbox']) {
+   must fix). Accordion headers stay clickable (outside __content).
+   Lock and unlock use the SAME control list, so a control can never be
+   locked without a matching unlock path. Keyboard access is closed by the
+   focus-capture guard in CreateOrderForm (CSS can't stop tabbing). */
+.co-resolve .accordion__content :is(input, button) {
   pointer-events: none;
 }
 .co-resolve .accordion__content
@@ -840,5 +843,10 @@
    over a plain background rule, so use opacity — reads as disabled). */
 .co-resolve .accordion__content .form-field:not(.form-field--error):not(.form-field--validated),
 .co-resolve .accordion__content .search-field:not(.search-field--error):not(.search-field--validated) {
+  opacity: 0.6;
+}
+/* Controls that never carry an error/validated state class — they're always
+   locked here, so they're always muted. `.control` = Checkbox + Radio. */
+.co-resolve .accordion__content :is(.date-picker, .time-picker, .control, .co-product-table-wrap) {
   opacity: 0.6;
 }

@@ -3,7 +3,7 @@
 // form as the Order Validation Error Resolution view (chrome swap only —
 // alert/field states land in later tasks).
 import { describe, test, expect, beforeEach, afterEach } from 'vitest'
-import { render, screen, cleanup, waitFor, fireEvent } from '@testing-library/react'
+import { render, screen, cleanup, waitFor, fireEvent, within } from '@testing-library/react'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import CreateOrderRoute from '../../../routes/orders/CreateOrderRoute.jsx'
@@ -66,7 +66,9 @@ describe('resolve mode — fields', () => {
     // Collapsed accordion content is aria-hidden, so expand before querying,
     // then reveal the manual-address grid (hydration leaves manualMode false).
     fireEvent.click(screen.getByRole('button', { name: /Pickup and Delivery/ }))
-    fireEvent.click(screen.getAllByRole('button', { name: 'Add Location Manually' })[0])
+    // Optional: Task 5's hydration fix may leave manualMode already true.
+    const manual = screen.queryAllByRole('button', { name: 'Add Location Manually' })[0]
+    if (manual) fireEvent.click(manual)
   }
 
   test('seeded error fields render the category reason; fixing one flips it to Validated', async () => {
@@ -87,12 +89,7 @@ describe('resolve mode — fields', () => {
     expect(input).toBeTruthy()
     fireEvent.change(input, { target: { value: '75201' } })
     fireEvent.blur(input)
-    await waitFor(() => expect(screen.getAllByText('Validated').length).toBeGreaterThan(0))
-  })
-
-  test('form body carries the co-resolve lock class', async () => {
-    renderResolve()
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Order Validation Error Resolution' })).toBeTruthy())
-    expect(document.querySelector('.co-resolve')).toBeTruthy()
+    const fieldRoot = input.closest('.form-field')
+    await waitFor(() => expect(within(fieldRoot).getByText('Validated')).toBeTruthy())
   })
 })

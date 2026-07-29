@@ -20,6 +20,8 @@ export function useResolveMode() {
  * - not in resolve mode / non-pool field → {}
  * - pool field, unresolved → { error: <zod message ?? category reason>, validated: false }
  * - pool field, resolved   → { error: <zod message>, validated: !zodError }
+ * Spread-last ordering is enforced by the resolve field test — a call site that
+ * spreads too early loses the category reason and the test fails.
  */
 export function resolveFieldProps(ctx, path, fieldError) {
   if (!ctx) return {}
