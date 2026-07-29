@@ -66,6 +66,7 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
   const alertSentinelRef = useRef(null)
   const alertWrapRef = useRef(null)
   const preDockHeightRef = useRef(0)
+  const navSessionRef = useRef(false)
   const resolveMode = !!resolveKey
 
   const status = useSectionStatus(control)
@@ -130,6 +131,7 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
       setErrorIndex(0)
       setAlertDocked(false)
       setAlertExpanded(true)
+      navSessionRef.current = false
       // Open exactly the sections the user has to fix.
       const secs = new Set(errors.map((e) => e.section))
       setExpanded({
@@ -195,10 +197,19 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
   }
 
   // Jump to an error: open its section, scroll the field into view, focus it.
+  // Any error nav (Validate Errors, a list row, a docked arrow) starts a nav
+  // SESSION: the alert goes docked and stays docked — even when the target
+  // field sits near the top of the form — until the user deliberately scrolls
+  // all the way back up (user ruling 2026-07-29).
   const handleErrorNav = (i) => {
     const err = resolveState?.errors[i]
     if (!err) return
     setErrorIndex(i)
+    navSessionRef.current = true
+    setAlertDocked((cur) => {
+      if (!cur && alertWrapRef.current) preDockHeightRef.current = alertWrapRef.current.offsetHeight
+      return true
+    })
     const wasExpanded = expanded[err.section]
     setExpanded((prev) => ({ ...prev, [err.section]: true }))
     const reveal = () => {
@@ -219,12 +230,17 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
   // handleErrorNav fires (~2 runs in 3 the alert stayed expanded on top of the
   // very field it had just scrolled to), so read the rect on scroll instead.
   //
-  // CRITICAL: the column height must stay CONSTANT across the dock morph.
-  // Collapsing the ~400px alert above the viewport makes Chrome's scroll
-  // anchoring yank scrollTop up to compensate, which pulls the sentinel back
-  // into view → un-dock → grow → yank again: an infinite flicker loop that
-  // pins the page to the top (user-reported). At dock time we capture the
-  // height the alert loses and give it to a spacer; un-dock returns it.
+  // CRITICAL: two defenses against Chrome's scroll anchoring, which otherwise
+  // turns the dock morph into a flicker loop (collapse ~400px above the
+  // viewport → anchoring yanks scrollTop → sentinel back in view → un-dock →
+  // grow → yank; the page pins to the top, user-reported twice):
+  //  1. overflow-anchor: none on the scroller for the resolve session — the
+  //     spacer alone is not enough, because the morph's INTERMEDIATE layout
+  //     (alert shrunk, spacer not yet sized) already triggers anchoring.
+  //  2. The spacer keeps the column height constant so nothing visibly jumps.
+  // Plus hysteresis (dock past -8px, undock only past +40px) so the two
+  // thresholds can never both be true, and the nav-session rule: after any
+  // error nav the bar stays docked until the user scrolls back to the top.
   useEffect(() => {
     const sentinel = alertSentinelRef.current
     if (!resolveMode || !sentinel) return
@@ -232,15 +248,25 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
     while (scroller && !/auto|scroll/.test(getComputedStyle(scroller).overflowY)) {
       scroller = scroller.parentElement
     }
+    const prevAnchor = scroller ? scroller.style.overflowAnchor : ''
+    if (scroller) scroller.style.overflowAnchor = 'none'
     const sync = () => {
+      const st = scroller ? scroller.scrollTop : window.scrollY || 0
       const top = scroller ? scroller.getBoundingClientRect().top : 0
-      const shouldDock = sentinel.getBoundingClientRect().bottom < top
+      const sentB = sentinel.getBoundingClientRect().bottom
       setAlertDocked((cur) => {
-        if (!cur && shouldDock && alertWrapRef.current) {
+        let next
+        if (navSessionRef.current) {
+          next = st > 2
+          if (!next) navSessionRef.current = false // deliberate return to top ends the session
+        } else {
+          next = cur ? sentB < top + 40 : sentB < top - 8
+        }
+        if (!cur && next && alertWrapRef.current) {
           // capture the expanded in-flow height before the morph shrinks it
           preDockHeightRef.current = alertWrapRef.current.offsetHeight
         }
-        return shouldDock
+        return next
       })
     }
     sync()
@@ -248,6 +274,7 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
     target.addEventListener('scroll', sync, { passive: true })
     window.addEventListener('resize', sync)
     return () => {
+      if (scroller) scroller.style.overflowAnchor = prevAnchor
       target.removeEventListener('scroll', sync)
       window.removeEventListener('resize', sync)
     }

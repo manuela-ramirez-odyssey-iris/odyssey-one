@@ -861,8 +861,14 @@
   top: calc(-1 * var(--spacing-8));
   z-index: 5;
 }
+/* Docked = full width of the main container (user ruling 2026-07-29) — same
+   breakout math as .co-breakout: escape the 1080px .co-content column out to
+   the viewport minus the sidebar. 100vw includes the scrollbar — prototype-
+   grade, same accepted caveat as .co-breakout. */
 .co-resolve-alert--docked {
-  margin-inline: calc(-1 * var(--spacing-8));
+  --co-dock-w: calc(100vw - var(--sidebar-width));
+  width: var(--co-dock-w);
+  margin-left: calc((100% - var(--co-dock-w)) / 2);
 }
 /* The sentinel is a flex item in .co-content's 16px column gap — pull the alert
    back up so the scroll probe costs no vertical space. */
