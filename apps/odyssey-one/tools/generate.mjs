@@ -44,7 +44,7 @@
 //                  items' hazmat fields, which share the same product.hazmat source.
 import { faker } from '@faker-js/faker';
 import { writeFileSync, mkdirSync, existsSync, readdirSync, unlinkSync } from 'fs';
-import { CUSTOMERS, EXTRA_CUSTOMERS, LOCATIONS, EQUIPMENT_CODES, CHEMICAL_PRODUCTS, locationIdFor, FREIGHT_TERMS, SHIP_DIRECTIONS, SHIP_CLASS_CODES, PRODUCT_CLASSES, HANDLING_UNITS } from './data-pools.mjs'
+import { CUSTOMERS, EXTRA_CUSTOMERS, LOCATIONS, EQUIPMENT_CODES, CHEMICAL_PRODUCTS, locationIdFor, FREIGHT_TERMS, SHIP_DIRECTIONS, SHIP_CLASS_CODES, shipClassLabel, PRODUCT_CLASSES, HANDLING_UNITS } from './data-pools.mjs'
 
 // ── Orders accumulator (I1) ──────────────────────────────────────────────────
 // Globally unique customer-prefixed order numbers, shared by shipped and
@@ -347,6 +347,15 @@ function generateShipment(index) {
       const tareWeight = Math.round(lineWeight * 0.2);
       const thirdPartRefDate = genDate(baseDate, faker.number.int({ min: -3, max: 3 }));
       const loadConstraint = pick(LOAD_CONSTRAINTS);
+      // Shipments canon (shipments-exceptions.md:324-325): detail Product Class
+      // is the TYPE label; Shipping Class is the VALUE that type implies —
+      // Commodity/Product → rail-commodity/product code, Harmonized → the
+      // harmonized code, NMFC → the NMFC scale. One draw keeps them coherent.
+      const shipClassCode = pick(SHIP_CLASS_CODES);
+      const harmonizedCode = `${faker.number.int({ min: 2800, max: 3999 })}.${faker.string.numeric(2)}.${faker.string.numeric(2)}.${faker.string.numeric(2)}`;
+      const shippingClass = shipClassCode === 'N' ? pick(PRODUCT_CLASSES)
+        : shipClassCode === 'H' ? harmonizedCode
+        : String(faker.number.int({ min: 100000, max: 999999 }));
       // SellShipmentOrderLine DTO shape — raw numeric/nullable fields (the mapper formats)
       lines.push({
         orderLineId: `${orderId}-L${l + 1}`,
@@ -368,12 +377,12 @@ function generateShipment(index) {
         marinePollutant: product.hazmat ? (faker.number.int({ min: 1, max: 100 }) <= 30 ? 'Yes' : 'No') : null,
         wgkClass: product.hazmat ? pick(['1', '2', '3']) : null,
         tunnelCode: product.hazmat ? pick(TUNNEL_CODES) : null,
-        productClass: pick(PRODUCT_CLASSES),       // NMFC class VALUE ('50'…'650')
-        shipClassCode: pick(SHIP_CLASS_CODES),     // class TYPE (H/C/P/N) — form wire `shipClass`
+        productClass: shipClassLabel(shipClassCode), // TYPE label (canon)
+        shipClassCode,                             // same draw as a wire code (H/C/P/N) — form wire `shipClass`
         handlingUnit: pick(HANDLING_UNITS).code,   // PLT/BOX/DRM/BUL/CRT (ledger row 6)
-        harmonizedCode: `${faker.number.int({ min: 2800, max: 3999 })}.${faker.string.numeric(2)}.${faker.string.numeric(2)}.${faker.string.numeric(2)}`,
+        harmonizedCode,
         stccCode: faker.string.numeric(7),
-        shippingClass: String(faker.number.int({ min: 100000, max: 999999 })),
+        shippingClass,                             // the VALUE the type implies
         flashPoint: product.hazmat ? `${faker.number.int({ min: 60, max: 200 })} F` : null,
         countryOfOrigin: 'USA',
         declaredValue: faker.number.int({ min: 2000, max: 50000 }),
