@@ -33,6 +33,7 @@ export const meta = {
   // (TanStack's getResizeHandler started from the injected default 150 → jump).
   normalizing: true,
   approved: true,
+  ported: true,
 }
 
 export const props = [

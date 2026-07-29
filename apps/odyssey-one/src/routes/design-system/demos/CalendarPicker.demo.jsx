@@ -12,6 +12,7 @@ export const meta = {
   figmaNode: '4422:711',
   codeConnect: null,
   approved: true,
+  ported: true,
 }
 
 export const props = [

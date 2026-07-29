@@ -10,6 +10,7 @@ export const meta = {
   figmaNode: '4120:4623',
   codeConnect: 'packages/ui/src/ShipmentsBar.figma.tsx',
   approved: true,
+  ported: true,
 }
 
 export const props = [

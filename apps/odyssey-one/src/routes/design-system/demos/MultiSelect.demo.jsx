@@ -10,6 +10,7 @@ export const meta = {
   figmaNode: '4536:5333',
   codeConnect: 'packages/ui/src/MultiSelect.figma.tsx',
   approved: true,
+  ported: true,
 }
 
 export const props = [

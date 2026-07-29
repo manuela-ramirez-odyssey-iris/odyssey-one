@@ -13,6 +13,7 @@ export const meta = {
   // to a 4-row viewport. Re-runs GATE B; the Angular twin picks up the delta.
   normalizing: true,
   approved: true,
+  ported: true,
 }
 
 export const props = [

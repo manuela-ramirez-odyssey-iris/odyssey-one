@@ -10,6 +10,7 @@ export const meta = {
   figmaNode: '2850:612',
   codeConnect: 'packages/ui/src/Accordion.figma.tsx',
   approved: true,
+  ported: true,
 }
 
 export const props = [

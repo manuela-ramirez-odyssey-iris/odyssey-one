@@ -10,6 +10,7 @@ export const meta = {
   codeConnect: 'packages/ui/src/ComboBox.figma.tsx',
   normalizing: true,
   approved: true,
+  ported: true,
 }
 
 export const props = [
