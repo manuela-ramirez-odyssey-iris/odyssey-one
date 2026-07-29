@@ -41,7 +41,9 @@ export default function OrderSummaryView({ vm, alert = null }) {
           <KV label="Order Number" value={vm.strip.orderNumber} />
           <KV label="Order Date" value={vm.strip.orderDate} />
           <KV label="Shipment Mode" value={vm.strip.shipmentMode} />
-          <KV label="Payment terms" value={vm.strip.paymentTerms} />
+          {/* mock says "Payment terms" — title-cased to match sibling labels
+              (copy convention: Efrain's layouts outrank, his English doesn't) */}
+          <KV label="Payment Terms" value={vm.strip.paymentTerms} />
         </div>
       </div>
 

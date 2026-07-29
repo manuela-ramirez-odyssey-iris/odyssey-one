@@ -5296,38 +5296,29 @@ button.breadcrumb__label:focus-visible {
   grid-template-columns: 1fr 1fr;
   gap: var(--spacing-6) var(--spacing-3);
 }
-/* Product Information — dimmed, non-interactive (🚧 plan decision #1) */
-.order-pane__under-construction {
-  opacity: 0.25;
-  pointer-events: none;
-  user-select: none;
-}
 .order-pane__product-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--spacing-4);
 }
-/* static US/Metric segmented visual — the wireframe's raw hexes tokenized
-   (bg-secondary track, bg-primary active pill); non-interactive by design */
-.order-pane__uom-toggle {
-  display: inline-flex;
-  padding: 2px;
-  background: var(--bg-secondary);
-  border-radius: var(--radius-md);
-}
-.order-pane__uom-seg {
-  padding: 2px var(--spacing-3);
-  border-radius: var(--radius-sm);
-  color: var(--text-tertiary);
-}
-.order-pane__uom-seg--active {
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  box-shadow: var(--shadow-sm);
-}
 .order-pane__product-count {
   color: var(--text-tertiary);
+}
+/* static bordered icon tiles per the confirmation mocks (sort affordance +
+   column-cog header) — decorative only, the summary table isn't interactive */
+.order-pane__table-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-1);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  color: var(--text-tertiary);
+}
+.order-pane__col-icon {
+  width: 40px;
+  text-align: right;
 }
 
 /* ============================================================

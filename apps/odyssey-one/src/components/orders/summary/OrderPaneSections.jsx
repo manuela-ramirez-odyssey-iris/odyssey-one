@@ -1,3 +1,4 @@
+import { ArrowDownWideNarrow, Columns3Cog, TriangleAlert } from 'lucide-react'
 import { Badge, SubAccordion, TitleSubtitle } from '@odyssey/ui'
 
 // Shared order-section cards (S82) — the four SubAccordion cards extracted
@@ -9,15 +10,6 @@ import { Badge, SubAccordion, TitleSubtitle } from '@odyssey/ui'
 // styles/components.css (loaded globally).
 
 export const DASH = '--'
-
-export function Field({ label, value }) {
-  return (
-    <div className="order-pane__field">
-      <div className="order-pane__field-label">{label}</div>
-      <div className="order-pane__field-value">{value || DASH}</div>
-    </div>
-  )
-}
 
 export function SubHeading({ children }) {
   return <h3 className="order-pane__subheading text-label-base-semibold">{children}</h3>
@@ -51,13 +43,19 @@ export function PartyColumn({ title, party, contact }) {
         <TitleSubtitle title={loc.postal || DASH} subtitle="Postal Code" />
         <TitleSubtitle title={loc.country || DASH} subtitle="Country" />
       </div>
-      <div className="order-pane__party-extra">
-        <div className="order-pane__party-fields">
-          <TitleSubtitle title={contact?.name || DASH} subtitle="Contact Name (Alternate City)" />
-          <TitleSubtitle title={contact?.phone || DASH} subtitle="Phone" />
-          <TitleSubtitle title={contact?.email || DASH} subtitle="Email Address" />
+      {/* Long-only block (Figma 4465:12225) — quick confirmations that never
+          captured contacts hide the ruled block entirely (4139:11389). */}
+      {(contact?.name || contact?.phone || contact?.email) && (
+        <div className="order-pane__party-extra">
+          <div className="order-pane__party-fields">
+            {/* mock label "Contact Name (Alternate City)" — parenthetical is
+                Efrain copy-junk, dropped (flagged in ORD-09) */}
+            <TitleSubtitle title={contact?.name || DASH} subtitle="Contact Name" />
+            <TitleSubtitle title={contact?.phone || DASH} subtitle="Phone" />
+            <TitleSubtitle title={contact?.email || DASH} subtitle="Email Address" />
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }
@@ -86,15 +84,19 @@ export function GeneralInfoCard({ d, references, instructions, expanded, onToggl
 
         <div className="order-pane__block">
           <SubHeading>Requested Transportation</SubHeading>
-          {/* 3 fields on the same 4-col rhythm as General (the mock keeps a
-              blank fourth column via an invisible TitleSubtitle) */}
+          {/* Quick/Long is data-driven (Figma 4139:11389 vs 4465:12225):
+              Equipment always renders; the long-only pair appears only when
+              captured. Field order per the Long mock. */}
           <div className="order-pane__fields-grid">
             <TitleSubtitle title={d.equipment || DASH} subtitle="Equipment" />
-            <TitleSubtitle title={d.equipmentReferenceNumber || DASH} subtitle="Equipment Reference Number" />
-            <TitleSubtitle title={d.carrier || DASH} subtitle="Customer Required Carrier" />
+            {d.carrier && <TitleSubtitle title={d.carrier} subtitle="Customer Required Carrier" />}
+            {d.equipmentReferenceNumber && (
+              <TitleSubtitle title={d.equipmentReferenceNumber} subtitle="Equipment Reference Number" />
+            )}
           </div>
         </div>
 
+        {references.length > 0 && (
         <div className="order-pane__block">
           <SubHeading>References</SubHeading>
           {/* type/value each ~⅓ + an empty filler column, per the mock's
@@ -108,13 +110,6 @@ export function GeneralInfoCard({ d, references, instructions, expanded, onToggl
               </tr>
             </thead>
             <tbody>
-              {references.length === 0 && (
-                <tr>
-                  <td className="text-label-sm-regular">{DASH}</td>
-                  <td className="text-label-sm-regular">{DASH}</td>
-                  <td aria-hidden="true" />
-                </tr>
-              )}
               {references.map(([type, value]) => (
                 <tr key={type}>
                   <td className="text-label-sm-medium odyssey-table__cell--title">{type}</td>
@@ -125,7 +120,9 @@ export function GeneralInfoCard({ d, references, instructions, expanded, onToggl
             </tbody>
           </table>
         </div>
+        )}
 
+        {instructions.length > 0 && (
         <div className="order-pane__block">
           <SubHeading>Instructions</SubHeading>
           <table className="odyssey-table">
@@ -136,12 +133,6 @@ export function GeneralInfoCard({ d, references, instructions, expanded, onToggl
               </tr>
             </thead>
             <tbody>
-              {instructions.length === 0 && (
-                <tr>
-                  <td className="text-label-sm-regular">{DASH}</td>
-                  <td className="text-label-sm-regular">{DASH}</td>
-                </tr>
-              )}
               {instructions.map((ins) => (
                 <tr key={ins.seq}>
                   <td className="text-label-sm-regular">{ins.seq}</td>
@@ -151,6 +142,7 @@ export function GeneralInfoCard({ d, references, instructions, expanded, onToggl
             </tbody>
           </table>
         </div>
+        )}
       </div>
     </SubAccordion>
   )
@@ -168,13 +160,15 @@ export function PickupDeliveryCard({ d, expanded, onToggle }) {
       <div className="order-pane__section order-pane__section--divided">
         <div className="order-pane__block">
           <div className="order-pane__cols">
+            {/* LINX-12255 Shipper + LINX-13899 Destination renames (13899 is
+                ahead of these mocks, which still say "Consignee details") */}
             <PartyColumn
-              title="Consignor details"
+              title="Shipper details"
               party={d.shipFrom}
               contact={{ name: d.contactName, phone: d.contactPhone, email: d.contactEmail }}
             />
             <PartyColumn
-              title="Consignee details"
+              title="Destination details"
               party={d.shipTo}
               contact={{ name: d.destContactName, phone: d.destContactPhone, email: d.destContactEmail }}
             />
@@ -192,51 +186,71 @@ export function PickupDeliveryCard({ d, expanded, onToggle }) {
   )
 }
 
-// ── Card 3: Product Information (🚧 dimmed) ──────────────────────────────────
+// ── Card 3: Product Information ──────────────────────────────────────────────
+// Rebuilt to the confirmation mocks (Figma 4139:11389 §Product Information):
+// 8-field rollup grid → "N products added" + static sort affordance → 6-col
+// read-only table with a static column-cog header. The mocks' header asterisks
+// (Line # * / Product Description * / Gross Weight *) are edit-grid template
+// junk on a read-only view — dropped, per the S96/S97 clean-subset convention.
 export function ProductInfoCard({ d, productLines, expanded, onToggle }) {
   return (
     <SubAccordion
-      title="Product Information - 🚧 Under Construction"
+      title="Product Information"
       showIcon={false}
       expanded={expanded}
       onToggle={onToggle}
     >
-      {/* Dimmed + non-interactive per plan decision #1 (ship-state pending
-          Efrain); inert keeps it out of the tab order. */}
-      <div className="order-pane__section order-pane__under-construction" inert>
+      <div className="order-pane__section">
         <div className="order-pane__block">
-          <SubHeading>Product Details</SubHeading>
-          <div className="order-pane__fields">
-            <Field label="Number of Products" value={d.numProducts} />
-            <Field label="Total Product Weight" value={d.totalWeight} />
-            <Field label="Total Volume" value={d.totalVolume} />
-            <Field label="Hazmat" value={d.hazmat} />
-            <Field label="Earliest Pickup" value={d.earliestPickup} />
-            <Field label="Last Pickup" value={d.latestPickup} />
+          <div className="order-pane__fields-grid">
+            <TitleSubtitle title={d.totalProductWeight || DASH} subtitle="Total Product Weight" />
+            <TitleSubtitle title={d.totalVolume || DASH} subtitle="Total Product Volume" />
+            {/* `|| d.totalWeight`: the Shipments OrderTab mapper predates the
+                rollup rename and only carries totalWeight */}
+            <TitleSubtitle title={d.totalGrossWeight || d.totalWeight || DASH} subtitle="Total Gross Weight" />
+            <TitleSubtitle title={d.totalTareWeight || DASH} subtitle="Total Tare Weight" />
+            <TitleSubtitle title={d.packageCount || DASH} subtitle="Package Count" />
+            <TitleSubtitle title={d.declaredValue || DASH} subtitle="Declared Value" />
+            <TitleSubtitle title={d.countryOfOrigin || DASH} subtitle="Country of Origin" />
+            <TitleSubtitle
+              title={
+                d.hazmat === 'Yes' ? (
+                  <Badge variant="amber" leftIcon={<TriangleAlert size={12} aria-hidden="true" />}>
+                    Hazmat
+                  </Badge>
+                ) : (
+                  DASH
+                )
+              }
+              subtitle="Hazmat"
+            />
           </div>
         </div>
 
         <div className="order-pane__block">
-          <SubHeading>Product List</SubHeading>
           <div className="order-pane__product-toolbar">
-            {/* static US/Metric segmented visual (non-interactive by design) */}
-            <span className="order-pane__uom-toggle" aria-hidden="true">
-              <span className="order-pane__uom-seg order-pane__uom-seg--active text-label-sm-medium">US</span>
-              <span className="order-pane__uom-seg text-label-sm-medium">Metric</span>
-            </span>
             <span className="order-pane__product-count text-label-sm-regular">
               {productLines.length} products added
+            </span>
+            {/* static sort affordance per mock — the summary isn't sortable */}
+            <span className="order-pane__table-icon" aria-hidden="true">
+              <ArrowDownWideNarrow size={16} />
             </span>
           </div>
           <table className="odyssey-table">
             <thead>
               <tr>
+                <th className="text-label-sm-semibold">Line #</th>
                 <th className="text-label-sm-semibold">Product ID</th>
-                <th className="text-label-sm-semibold">Description</th>
+                <th className="text-label-sm-semibold">Product Description</th>
                 <th className="text-label-sm-semibold">Gross Weight</th>
                 <th className="text-label-sm-semibold">Volume</th>
-                <th className="text-label-sm-semibold">Ship Class</th>
-                <th className="text-label-sm-semibold">Shipping Class ID</th>
+                <th className="text-label-sm-semibold">Product Class</th>
+                <th className="order-pane__col-icon" aria-hidden="true">
+                  <span className="order-pane__table-icon">
+                    <Columns3Cog size={16} />
+                  </span>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -245,18 +259,18 @@ export function ProductInfoCard({ d, productLines, expanded, onToggle }) {
                   {Array.from({ length: 6 }, (_, i) => (
                     <td key={i} className="text-label-sm-regular">{DASH}</td>
                   ))}
+                  <td aria-hidden="true" />
                 </tr>
               )}
               {productLines.map((line) => (
                 <tr key={line.lineNumber}>
-                  <td className="text-label-sm-regular">
-                    <span className="order-pane__link">{line.shipItem}</span>
-                  </td>
+                  <td className="text-label-sm-regular">{line.lineNumber}</td>
+                  <td className="text-label-sm-regular">{line.shipItem}</td>
                   <td className="text-label-sm-regular">{line.description}</td>
                   <td className="text-label-sm-regular">{line.grossWeight}</td>
                   <td className="text-label-sm-regular">{line.volume}</td>
                   <td className="text-label-sm-regular">{line.productClass}</td>
-                  <td className="text-label-sm-regular">{line.shippingClass}</td>
+                  <td aria-hidden="true" />
                 </tr>
               ))}
             </tbody>

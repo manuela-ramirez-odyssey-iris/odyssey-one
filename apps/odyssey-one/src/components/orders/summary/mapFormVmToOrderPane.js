@@ -1,5 +1,5 @@
 import { computeProductRollups, convertMeasureDisplay } from '../create/productMath'
-import { SPECIAL_SERVICES } from '../../../data/master-data'
+import { HANDLING_UNITS, SPECIAL_SERVICES } from '../../../data/master-data'
 import { DASH } from './OrderPaneSections'
 
 // OrderFormValues (the getOrderView seam / mapOrderViewToFormVm output) → the
@@ -9,6 +9,40 @@ import { DASH } from './OrderPaneSections'
 // convention — gaps catalogued inline.
 
 const triadLabel = (t) => (t?.date ? `${t.date} at ${t.time} ${t.timezone}`.trim() : '')
+
+// ── Confirmation-mock product rollups (Figma 4139:11389 §Product Information) ──
+// Package Count "15 Boxes": sum of handlingCount; unit label appended only when
+// every counted row uses the same handling unit. Pluralizer covers the 5-code
+// catalog (Pallets/Boxes/Drums/Bulks/Crates).
+const packageCount = (products) => {
+  const counted = products.filter((p) => Number(p.handlingCount) > 0)
+  if (!counted.length) return ''
+  const total = counted.reduce((s, p) => s + Number(p.handlingCount), 0)
+  const units = new Set(counted.map((p) => p.handlingUnit).filter(Boolean))
+  if (units.size !== 1) return String(total)
+  const label = HANDLING_UNITS.find((u) => u.code === [...units][0])?.label
+  if (!label) return String(total)
+  const plural = label.endsWith('x') ? `${label}es` : `${label}s`
+  return `${total} ${total === 1 ? label : plural}`
+}
+
+// Declared Value "$48,944.00 USD": sum where every valued row shares one
+// currency; mixed currencies don't sum → dash.
+const declaredValueTotal = (products) => {
+  const valued = products.filter((p) => p.declaredValue?.trim())
+  if (!valued.length) return ''
+  const currencies = new Set(valued.map((p) => p.declaredValueCurrency).filter(Boolean))
+  if (currencies.size !== 1) return ''
+  const total = valued.reduce((s, p) => s + Number(p.declaredValue), 0)
+  const cur = [...currencies][0]
+  return `${cur === 'USD' ? '$' : ''}${total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${cur}`
+}
+
+// Country of Origin: shown only when uniform across rows that set it.
+const countryOfOrigin = (products) => {
+  const set = new Set(products.map((p) => p.manufacturingCountry).filter(Boolean))
+  return set.size === 1 ? [...set][0] : ''
+}
 
 // PartyValues (structured) → the party shape PartyColumn re-parses via
 // parseLocation ("postal, city, region, country" — the detail-mapper's
@@ -53,7 +87,17 @@ export default function mapFormVmToOrderPane(values) {
     numProducts: products.length ? String(products.length) : '',
     totalWeight: products.length ? rollups.totalWeight : '',
     totalVolume: products.length ? rollups.totalVolume : '',
-    hazmat: products.length ? rollups.hazmat : '',
+    // Confirmation-mock rollup strip (Figma 4139:11389). Net product weight and
+    // tare weight are NOT captured by the create form — '--' gap, owed to Ramesh.
+    totalProductWeight: '',
+    totalTareWeight: '',
+    totalGrossWeight: products.length ? rollups.totalWeight : '',
+    packageCount: packageCount(products),
+    declaredValue: declaredValueTotal(products),
+    countryOfOrigin: countryOfOrigin(products),
+    // hazmat from the form's own per-row checkboxes (S95 hazmat chain), not the
+    // catalog lookup — the checkbox is what the user actually asserted.
+    hazmat: products.some((p) => p.hazardous) ? 'Yes' : 'No',
   }
 
   const references = general.references

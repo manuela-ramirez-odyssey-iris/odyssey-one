@@ -5,6 +5,7 @@ import { useCurrentUser } from '../../data/sso-mock'
 import { useEditMode } from '../../contexts/EditModeContext.jsx'
 import { useCreateOrderMode } from '../../contexts/CreateOrderModeContext.jsx'
 import { useCustomers } from '../../contexts/CustomersContext.jsx'
+import { useNotificationCount } from '../../utils/notifications'
 
 const Navbar = React.memo(function Navbar({ searchSlot } = {}) {
   const [searchValue, setSearchValue] = useState('')
@@ -15,6 +16,7 @@ const Navbar = React.memo(function Navbar({ searchSlot } = {}) {
   const { isEditMode, save, cancel } = useEditMode()
   const { isCreateOrderMode, saveForLater, close } = useCreateOrderMode()
   const { toggleModal, modalOpen } = useCustomers()
+  const notificationCount = useNotificationCount()
 
   useEffect(() => {
     function handleClickOutside(e) {
@@ -94,7 +96,7 @@ const Navbar = React.memo(function Navbar({ searchSlot } = {}) {
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               />
             }
-            notificationCount={6}
+            notificationCount={notificationCount}
             dropdownOpen={profileDropdownOpen}
             onProfileClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
           />
