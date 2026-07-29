@@ -2,8 +2,8 @@
  "_meta": {
   "fileKey": "vodiHJU38YWZYmTz81uOk7",
   "fileName": "Design System - MCP",
-  "pulledVia": "use_figma (Claude) \u2014 getLocalVariableCollectionsAsync + getLocalEffectStylesAsync",
-  "pulledOn": "2026-06-22",
+  "pulledVia": "use_figma (Claude) — getLocalVariableCollectionsAsync + getLocalEffectStylesAsync",
+  "pulledOn": "2026-07-29",
   "note": "Authoritative snapshot of the Figma design-system variables + effect/text styles. The Figma Variables REST API is Enterprise-gated and the Figma MCP is Claude-only, so this file is refreshed by asking Claude to re-run the use_figma dump (after any Efrain token pass), then `npm run tokens:audit` diffs tokens.css against it. Values: colors = hex; sizing/typography/icon = numbers; semantic/badge = 'alias:<primitive name>'."
  },
  "collections": {
@@ -18,10 +18,10 @@
    "Deep Sea Neutral/700": "#384253",
    "Deep Sea Neutral/800": "#283142",
    "Deep Sea Neutral/900": "#1B2537",
-   "Deep Sea Neutral/950": "#0F182A",
    "White": "#FFFFFF",
    "Carolina Blue/50": "#F3F7FC",
    "Carolina Blue/100": "#DCE8F7",
+   "Carolina Blue/200": "#C6DEF1",
    "Carolina Blue/400": "#5BA4D4",
    "Carolina Blue/600": "#276DA2",
    "Bittersweet/100": "#FDE5E3",
@@ -30,6 +30,7 @@
    "Bittersweet/600": "#D23930",
    "Bittersweet/800": "#922922",
    "Caribbean Green/100": "#D4F3EB",
+   "Caribbean Green/200": "#A8E7D7",
    "Caribbean Green/600": "#237E70",
    "Caribbean Green/800": "#1D524A",
    "Sunrise Yellow/50": "#FFFBEB",
@@ -44,12 +45,12 @@
    "Ice Blue/200": "#C0DEFD",
    "Ice Blue/600": "#296DE7",
    "Tan Hide/300": "#FFB872",
-   "Tan Hide/600": "#FC6F13"
+   "Tan Hide/600": "#FC6F13",
+   "Deep Sea Neutral/950": "#0F182A"
   },
   "2. Color Semantic": {
    "Text/primary": "alias:Deep Sea Neutral/900",
    "Text/secondary": "alias:Deep Sea Neutral/700",
-   "Text/secondary-soft": "alias:Deep Sea Neutral/600",
    "Text/tertiary": "alias:Deep Sea Neutral/500",
    "Text/placeholder": "alias:Deep Sea Neutral/400",
    "Text/inverse": "alias:White",
@@ -70,11 +71,17 @@
    "Border/strong": "alias:Deep Sea Neutral/900",
    "Border/focus": "alias:Carolina Blue/400",
    "Border/inverse": "alias:Deep Sea Neutral/600",
+   "Text/secondary-soft": "alias:Deep Sea Neutral/600",
    "Chart/1": "alias:Ice Blue/600",
    "Chart/2": "alias:Ice Blue/200",
    "Chart/3": "alias:Tan Hide/600",
    "Chart/4": "alias:Tan Hide/300",
-   "Chart/rest": "alias:Deep Sea Neutral/200"
+   "Chart/rest": "alias:Deep Sea Neutral/200",
+   "Status/info-message": "alias:Carolina Blue/200",
+   "Status/success-message": "alias:Caribbean Green/200",
+   "Status/warning-message": "alias:Sunrise Yellow/200",
+   "Status/error-message": "alias:Bittersweet/200",
+   "Border/success": "alias:Caribbean Green/200"
   },
   "3. Color Component / Badge": {
    "Blue/bg": "alias:Bay of Many/100",
@@ -88,7 +95,9 @@
    "Purple/bg": "alias:Purple/100",
    "Purple/text": "alias:Purple/800",
    "Gray/bg": "alias:Deep Sea Neutral/100",
-   "Gray/text": "alias:Deep Sea Neutral/700"
+   "Gray/text": "alias:Deep Sea Neutral/700",
+   "Info/bg": "alias:Carolina Blue/200",
+   "Info/text": "alias:Carolina Blue/600"
   },
   "4. Sizing": {
    "Spacing/1": 4,
@@ -98,15 +107,15 @@
    "Spacing/5": 20,
    "Spacing/6": 24,
    "Spacing/8": 32,
-   "Spacing/9": 36,
    "Spacing/12": 48,
    "Radius/sm": 4,
    "Radius/md": 6,
    "Radius/lg": 8,
-   "Radius/xl": 12,
    "Radius/2xl": 16,
    "Radius/pill": 10,
-   "Radius/full": 9999
+   "Radius/full": 9999,
+   "Radius/xl": 12,
+   "Spacing/9": 36
   },
   "5. Typography": {
    "Font/primary": "Inter",
@@ -114,21 +123,21 @@
    "Font Size/sm": 14,
    "Font Size/base": 16,
    "Font Size/lg": 18,
-   "Font Size/xl": 20,
-   "Font Size/2xl": 24,
-   "Font Size/3xl": 32,
-   "Font Size/4xl": 40,
    "Line Height/xs": 16,
    "Line Height/sm": 20,
    "Line Height/base": 24,
    "Line Height/lg": 24,
+   "Font Weight/medium": 500,
+   "Font Size/xl": 20,
    "Line Height/xl": 28,
+   "Font Weight/semibold": 600,
+   "Font Size/2xl": 24,
+   "Font Size/3xl": 32,
    "Line Height/2xl": 32,
    "Line Height/3xl": 32,
-   "Line Height/4xl": 48,
    "Font Weight/regular": 400,
-   "Font Weight/medium": 500,
-   "Font Weight/semibold": 600
+   "Font Size/4xl": 40,
+   "Line Height/4xl": 48
   },
   "6. Icon": {
    "Size/md": 16,
@@ -161,6 +170,9 @@
   ],
   "shadow/2xl": [
    "DROP_SHADOW 0,25 blur:50 spread:-12 a:0.25"
+  ],
+  "shadow/up-lg": [
+   "DROP_SHADOW 0,-5 blur:30 spread:0 a:0.2"
   ]
  },
  "textStyles": [
@@ -168,7 +180,6 @@
   "display/3xl semibold",
   "heading/2xl semibold",
   "heading/xl semibold",
-  "heading/lg semibold",
   "heading/lg medium",
   "label/base semibold",
   "label/base medium",
@@ -178,6 +189,7 @@
   "label/xs semibold",
   "label/xs medium",
   "label/xs regular",
+  "heading/lg semibold",
   "label/xs regular tight"
  ]
 }
