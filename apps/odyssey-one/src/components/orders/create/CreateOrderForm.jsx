@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { FormProvider, useForm, useWatch } from 'react-hook-form'
@@ -62,7 +62,10 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
   const [alertDocked, setAlertDocked] = useState(false)
   const [alertExpanded, setAlertExpanded] = useState(true)
   const [errorIndex, setErrorIndex] = useState(0)
+  const [dockSpacerH, setDockSpacerH] = useState(0)
   const alertSentinelRef = useRef(null)
+  const alertWrapRef = useRef(null)
+  const preDockHeightRef = useRef(0)
   const resolveMode = !!resolveKey
 
   const status = useSectionStatus(control)
@@ -215,6 +218,13 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
   // An IntersectionObserver drops the last frame of the smooth scrollIntoView
   // handleErrorNav fires (~2 runs in 3 the alert stayed expanded on top of the
   // very field it had just scrolled to), so read the rect on scroll instead.
+  //
+  // CRITICAL: the column height must stay CONSTANT across the dock morph.
+  // Collapsing the ~400px alert above the viewport makes Chrome's scroll
+  // anchoring yank scrollTop up to compensate, which pulls the sentinel back
+  // into view → un-dock → grow → yank again: an infinite flicker loop that
+  // pins the page to the top (user-reported). At dock time we capture the
+  // height the alert loses and give it to a spacer; un-dock returns it.
   useEffect(() => {
     const sentinel = alertSentinelRef.current
     if (!resolveMode || !sentinel) return
@@ -224,7 +234,14 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
     }
     const sync = () => {
       const top = scroller ? scroller.getBoundingClientRect().top : 0
-      setAlertDocked(sentinel.getBoundingClientRect().bottom < top)
+      const shouldDock = sentinel.getBoundingClientRect().bottom < top
+      setAlertDocked((cur) => {
+        if (!cur && shouldDock && alertWrapRef.current) {
+          // capture the expanded in-flow height before the morph shrinks it
+          preDockHeightRef.current = alertWrapRef.current.offsetHeight
+        }
+        return shouldDock
+      })
     }
     sync()
     const target = scroller || window
@@ -235,6 +252,17 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
       window.removeEventListener('resize', sync)
     }
   }, [resolveMode, resolveState])
+
+  // After the dock render, hand the height delta to the spacer (and take it
+  // back on un-dock) so the total column height never changes.
+  useLayoutEffect(() => {
+    if (!alertDocked) {
+      setDockSpacerH(0)
+      return
+    }
+    const dockedH = alertWrapRef.current?.offsetHeight ?? 0
+    setDockSpacerH(Math.max(0, preDockHeightRef.current - dockedH))
+  }, [alertDocked])
 
   // ── Save flows ──
   const passesSaveGate = useCallback(() => {
@@ -404,7 +432,7 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
         {resolveMode && resolveState && (
           <>
             <div ref={alertSentinelRef} className="co-resolve-sentinel" aria-hidden="true" />
-            <div className={alertDocked ? 'co-resolve-alert co-resolve-alert--docked' : 'co-resolve-alert'}>
+            <div ref={alertWrapRef} className={alertDocked ? 'co-resolve-alert co-resolve-alert--docked' : 'co-resolve-alert'}>
               <Alert
                 errors={alertErrors}
                 contextText={resolveState.contextText}
@@ -416,6 +444,9 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
                 className={allResolved ? 'co-resolve-alert--done' : ''}
               />
             </div>
+            {/* Height the alert gives up while docked — keeps the column height
+                constant so scroll anchoring can't feedback-loop (see effect). */}
+            <div className="co-resolve-dock-spacer" style={{ height: dockSpacerH }} aria-hidden="true" />
           </>
         )}
 

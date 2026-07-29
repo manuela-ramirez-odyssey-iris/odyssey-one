@@ -869,6 +869,12 @@
 .co-resolve-sentinel {
   margin-bottom: calc(-1 * var(--spacing-4));
 }
+/* Same flex-gap trick for the dock spacer: always rendered so its gap
+   contribution is constant; only its height (the docked delta) varies. */
+.co-resolve-dock-spacer {
+  margin-top: calc(-1 * var(--spacing-4));
+  flex-shrink: 0;
+}
 /* All resolved: docked bar flips to the success tint (mock 6146:22632).
    ponytail: tint only — the Alert hardcodes OctagonX in validation mode and
    swapping it means touching packages/ui. */
