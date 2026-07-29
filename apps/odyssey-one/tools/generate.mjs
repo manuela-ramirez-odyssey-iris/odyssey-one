@@ -1207,11 +1207,23 @@ function buildOrderEnrichment({ orderNumber, customer, freightTerms, shipDirecti
       lineIdentifier: i + 1,
       shipItemIdentifier: l.itemCode,
       productDescription: l.itemDescription,
+      hazardous: !!l.hazmatCode || undefined,
       grossWeightValue: l.grossWeightValue,
       grossWeightUomCode: 'lb',
       volumeValue: l.volumeValue,
       volumeUomCode: 'cuft',
-      shipClass: l.productClass,
+      shipClass: l.shipClassCode,               // class TYPE code (H/C/P/N)
+      handlingUnit: l.handlingUnit,             // PLT/BOX/DRM/BUL/CRT
+      handlingUnitCount: l.packageCount,
+      lengthValue: l.lengthValue,
+      widthValue: l.widthValue,
+      heightValue: l.heightValue,
+      dimensionUomCode: 'ft',
+      harmonizedCode: l.harmonizedCode,
+      declaredValue: l.declaredValue,
+      declaredValueCurrency: l.declaredValueCurrency,
+      manufacturingCountryCode: 'United States', // matches the form's COUNTRIES select values
+      stccCode: l.stccCode,
     })),
     orderAccessorialDetails: (header.specialServices ?? []).map((s, i) => ({
       accessorialCode: s.code,
@@ -1315,7 +1327,6 @@ function generateUnshippedOrder(n, pending) {
       grossWeightValue: faker.number.int({ min: 1000, max: 15000 }),
       volumeValue: faker.number.int({ min: 20, max: 200 }),
       packageCount: faker.number.int({ min: 5, max: 80 }),
-      productClass: pick(PRODUCT_CLASSES),       // NMFC class VALUE ('50'…'650')
       shipClassCode: pick(SHIP_CLASS_CODES),     // class TYPE (H/C/P/N)
       handlingUnit: pick(HANDLING_UNITS).code,   // PLT/BOX/DRM/BUL/CRT
       lengthValue: faker.number.int({ min: 2, max: 6 }),
@@ -1427,11 +1438,23 @@ function generateUnshippedOrder(n, pending) {
         lineIdentifier: i + 1,
         shipItemIdentifier: l.itemCode,
         productDescription: l.itemDescription,
+        hazardous: l.hazmat || undefined,
         grossWeightValue: l.grossWeightValue,
         grossWeightUomCode: 'lb',
         volumeValue: l.volumeValue,
         volumeUomCode: 'cuft',
-        shipClass: l.productClass,
+        shipClass: l.shipClassCode,               // class TYPE code (H/C/P/N)
+        handlingUnit: l.handlingUnit,             // PLT/BOX/DRM/BUL/CRT
+        handlingUnitCount: l.packageCount,
+        lengthValue: l.lengthValue,
+        widthValue: l.widthValue,
+        heightValue: l.heightValue,
+        dimensionUomCode: 'ft',
+        harmonizedCode: l.harmonizedCode,
+        declaredValue: l.declaredValue,
+        declaredValueCurrency: l.declaredValueCurrency,
+        manufacturingCountryCode: 'United States', // matches the form's COUNTRIES select values
+        stccCode: l.stccCode,
       })),
       orderAccessorialDetails: faker.helpers.arrayElements(SPECIAL_SERVICES_POOL, serviceCount)
         .map((s, i) => ({ accessorialCode: s.code, orderAccessorialDetailSequence: i + 1 })),

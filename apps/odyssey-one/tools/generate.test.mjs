@@ -65,3 +65,22 @@ test('promoted extra orgs own a thin tail; original customers dominate', () => {
   assert.ok(extras > 0, 'extras own some orders')
   assert.ok(extras / orders.length < 0.2, `extras own ${extras}/${orders.length}`)
 })
+
+test('enrichment orderLines carry the create-form wire fields (ledger rows 4/5/6)', () => {
+  const ds = buildDataset({ totalShipments: 50 })
+  const enriched = Object.values(ds.orderDetails)
+  assert.ok(enriched.length > 0)
+  for (const mo of enriched) {
+    for (const l of mo.orderLines) {
+      assert.match(l.shipItemIdentifier, /^\d{13}$/)
+      assert.ok(['H', 'C', 'P', 'N'].includes(l.shipClass), `shipClass ${l.shipClass}`)
+      assert.ok(['PLT', 'BOX', 'DRM', 'BUL', 'CRT'].includes(l.handlingUnit))
+      assert.equal(typeof l.handlingUnitCount, 'number')
+      assert.equal(typeof l.declaredValue, 'number')
+      assert.equal(l.declaredValueCurrency, 'USD')
+      assert.equal(l.manufacturingCountryCode, 'United States')
+      assert.match(l.stccCode, /^\d{7}$/)
+      assert.equal(typeof l.lengthValue, 'number')
+    }
+  }
+})

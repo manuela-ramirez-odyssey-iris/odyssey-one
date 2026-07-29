@@ -136,7 +136,8 @@ describe('mapOrderViewToFormVm (DTO → form VM)', () => {
   })
 
   it('maps orderLines to products with string-typed measures', () => {
-    expect(vm.products).toEqual([{
+    // toMatchObject: the LINX-13893 line fields also come back (covered below)
+    expect(vm.products).toMatchObject([{
       id: expect.any(String),
       productId: '39011E6K',
       description: 'Polyethylene Resin HD',
@@ -202,6 +203,29 @@ describe('mapOrderViewToFormVm — form → DTO → form round-trip', () => {
       { productId: '0000000100037', description: 'Polyethylene Resin HD', grossWeight: { value: '100', uom: 'lb' }, volume: { value: '79', uom: 'cuft' }, shipClass: 'C' },
       { productId: '0000000100034', description: 'Sulfuric Acid 93%', grossWeight: { value: '4200', uom: 'lb' }, volume: { value: '651', uom: 'cuft' }, shipClass: 'P' },
     ])
+  })
+
+  it('recovers the LINX-13893 line fields from the view DTO', () => {
+    const vm = mapOrderViewToFormVm({
+      orderLines: [{
+        lineIdentifier: 1, shipItemIdentifier: '0000000100027', productDescription: 'Caustic',
+        grossWeightValue: 100, grossWeightUomCode: 'lb', volumeValue: 10, volumeUomCode: 'cuft',
+        shipClass: 'N', hazardous: true, handlingUnit: 'PLT', handlingUnitCount: 24,
+        lengthValue: 4, widthValue: 4, heightValue: 5, dimensionUomCode: 'ft',
+        harmonizedCode: '3401.20.00.00', declaredValue: 2500, declaredValueCurrency: 'USD',
+        manufacturingCountryCode: 'United States', stccCode: '2812345',
+      }],
+    } as never)
+    const p = vm.products[0]
+    expect(p.hazardous).toBe(true)
+    expect(p.handlingUnit).toBe('PLT')
+    expect(p.handlingCount).toBe('24')
+    expect(p.length).toEqual({ value: '4', uom: 'ft' })
+    expect(p.harmonizedCode).toBe('3401.20.00.00')
+    expect(p.declaredValue).toBe('2500')
+    expect(p.declaredValueCurrency).toBe('USD')
+    expect(p.manufacturingCountry).toBe('United States')
+    expect(p.stccCode).toBe('2812345')
   })
 
   it('documents the lossy fields: owningOrganizationName + special-service description are dropped', () => {
