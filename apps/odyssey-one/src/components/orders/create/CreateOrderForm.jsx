@@ -276,7 +276,9 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
   // path — status → 'Ready For Plan', which drops the row out of the Validation
   // Errors tab, then back to the list.
   const finishResolve = useCallback(async () => {
-    await resolveOrder(resolveKey)
+    // live mode: no OIF endpoint yet (resolveOrder throws) — stay on the form
+    // instead of an unhandled rejection; siblings absorb this via mutations
+    try { await resolveOrder(resolveKey) } catch (e) { console.error(e); return }
     queryClient.invalidateQueries({ queryKey: ['order-list'] })
     queryClient.invalidateQueries({ queryKey: ['order-tab-counts'] })
     navigate('/orders')
