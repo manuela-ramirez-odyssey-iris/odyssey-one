@@ -38,7 +38,7 @@ describe('computeProductRollups (confirmation page, spec §3.3)', () => {
   })
 
   it('non-hazmat-only lists report No', () => {
-    const only = [orderFormValuesSample.products[0]] // 39011E6K Polyethylene — not hazmat
+    const only = [orderFormValuesSample.products[0]] // 0000000100037 Polyethylene — not hazmat
     expect(computeProductRollups(only, 'us').hazmat).toBe('No')
   })
 })

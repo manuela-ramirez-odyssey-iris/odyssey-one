@@ -98,6 +98,8 @@ export const locationIdFor = (loc, i) => {
 export const productExternalId = (i) => String(100027 + i).padStart(13, '0')
 
 export const CHEMICAL_PRODUCTS = [
+  // NOTE: the short item codes below are legacy display literals — the trailing
+  // .map replaces every `item` with its 13-digit external id.
   { item: '32041H1D', desc: 'Sodium Hydroxide Solution 50%', hazmat: true, hClass: 'Class 8', hGroup: 'II', unNumber: 'UN1824' },
   { item: '28103A2K', desc: 'Hydrochloric Acid 32%', hazmat: false },
   { item: '76201C5M', desc: 'Calcium Chloride Flakes 77%', hazmat: false },
