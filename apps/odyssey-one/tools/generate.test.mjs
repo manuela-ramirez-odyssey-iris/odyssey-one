@@ -44,7 +44,7 @@ test('I11: generator is deterministic for the new fields', () => {
 })
 
 test('LINX-12102: order.hazardous matches whether ANY of its lines are hazmat-flagged', () => {
-  const { orders, details } = buildDataset()
+  const { orders, details, orderDetails } = buildDataset()
   let checkedShipped = 0
   for (const s of details.values()) {
     for (const ord of s.orderList) {
@@ -56,6 +56,12 @@ test('LINX-12102: order.hazardous matches whether ANY of its lines are hazmat-fl
     }
   }
   assert.ok(checkedShipped > 0)
+  // the enrichment's per-line hazardous must agree with its own row's flag
+  for (const [orderNumber, mo] of Object.entries(orderDetails)) {
+    const row = orders.find(o => o.orderNumber === orderNumber)
+    if (!row) continue
+    assert.equal(mo.orderLines.some(l => l.hazardous) || false, row.hazardous, `enrichment ${orderNumber} hazardous mismatch`)
+  }
 })
 
 test('promoted extra orgs own a thin tail; original customers dominate', () => {

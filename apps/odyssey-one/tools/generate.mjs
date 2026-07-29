@@ -1220,7 +1220,7 @@ function buildOrderEnrichment({ orderNumber, customer, freightTerms, shipDirecti
       lineIdentifier: i + 1,
       shipItemIdentifier: l.itemCode,
       productDescription: l.itemDescription,
-      hazardous: !!l.hazmatCode || undefined,
+      hazardous: l.hazmatCode ? true : undefined,
       grossWeightValue: l.grossWeightValue,
       grossWeightUomCode: 'lb',
       volumeValue: l.volumeValue,

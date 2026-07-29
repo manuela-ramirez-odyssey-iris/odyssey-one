@@ -116,6 +116,7 @@ export function mapOrderViewToFormVm(mo: ManualOrder): OrderFormValues {
       shipClass: l.shipClass,
       handlingUnit: l.handlingUnit ?? '',
       handlingCount: l.handlingUnitCount != null ? String(l.handlingUnitCount) : '',
+      // lossy: single dimensionUomCode fans back out to all three axes
       length: { value: l.lengthValue != null ? String(l.lengthValue) : '', uom: l.dimensionUomCode ?? 'ft' },
       width: { value: l.widthValue != null ? String(l.widthValue) : '', uom: l.dimensionUomCode ?? 'ft' },
       height: { value: l.heightValue != null ? String(l.heightValue) : '', uom: l.dimensionUomCode ?? 'ft' },
