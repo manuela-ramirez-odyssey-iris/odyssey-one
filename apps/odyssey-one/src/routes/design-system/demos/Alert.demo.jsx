@@ -9,7 +9,6 @@ export const meta = {
   figmaNode: '2569:1841',
   codeConnect: 'packages/ui/src/Alert.figma.tsx',
   normalizing: true,
-  approved: true,
 }
 
 export const props = [
