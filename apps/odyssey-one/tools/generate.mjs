@@ -44,7 +44,7 @@
 //                  items' hazmat fields, which share the same product.hazmat source.
 import { faker } from '@faker-js/faker';
 import { writeFileSync, mkdirSync, existsSync, readdirSync, unlinkSync } from 'fs';
-import { CUSTOMERS, LOCATIONS, EQUIPMENT_CODES, CHEMICAL_PRODUCTS, locationIdFor } from './data-pools.mjs'
+import { CUSTOMERS, LOCATIONS, EQUIPMENT_CODES, CHEMICAL_PRODUCTS, locationIdFor, FREIGHT_TERMS, SHIP_DIRECTIONS } from './data-pools.mjs'
 
 // ── Orders accumulator (I1) ──────────────────────────────────────────────────
 // Globally unique customer-prefixed order numbers, shared by shipped and
@@ -114,10 +114,10 @@ const ROUTING_APIS = ['API', 'EDI', 'Email', 'Fax'];
 const RESPONSE_METHODS = ['API Update', 'EDI Update', 'Manual Update', 'Automatic Update'];
 const ROUTE_GROUPS = ['Primary', 'Backup', 'Spot'];
 const PACKAGE_TYPES = ['Boxes', 'Pallets', 'Bags', 'Drums', 'Totes', 'Crates'];
-// Unified freight-term vocabulary — same labels the Orders LLD rows and the
-// create-order form use, so shipment detail and order rows agree verbatim.
-const PAYMENT_TERMS = ['Pre-Paid', 'Collect', 'Third Party'];
-const SHIP_DIRECTIONS = ['Outbound', 'Inbound'];
+// Wire-code vocabulary (DB ledger row 2): rows store the letter codes; the UI
+// maps code → label at render. Shipment detail and order rows agree verbatim.
+const PAYMENT_TERMS = FREIGHT_TERMS.map((t) => t.value)          // P/C/A/T/N
+const SHIP_DIRECTION_CODES = SHIP_DIRECTIONS.map((d) => d.value) // O/I
 const HAZMAT_CLASSES = ['Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 8', 'Class 9'];
 const HAZMAT_GROUPS = ['I', 'II', 'III'];
 const PRODUCT_CLASSES = ['Commodity', 'Harmonized', 'NMFC', 'Product Class'];
@@ -311,7 +311,7 @@ function generateShipment(index) {
   const transitDays = faker.number.int({ min: 1, max: 7 });
   const deliveryDate = genDate(baseDate, transitDays);
   // Shared per-shipment facts the order rows must agree with (I2)
-  const shipDirection = pick(SHIP_DIRECTIONS);
+  const shipDirection = pick(SHIP_DIRECTION_CODES);
   const freightTerms = pick(PAYMENT_TERMS);
 
   // Orders per shipment — business rule: AT MOST 5 orders with a valid id
@@ -957,7 +957,7 @@ function generateShipment(index) {
       specialServices: orderSpecialServices,
       poNumber: `PO-${faker.number.int({ min: 100000, max: 999999 })}`,
       bolNo: `BOL-${faker.number.int({ min: 100000, max: 999999 })}`,
-      shipDirectionCode: shipDirection === 'Outbound' ? 'O' : 'I', // I2 — matches the shipment + order row
+      shipDirectionCode: shipDirection, // I2 — already the wire code ('O'/'I')
       origin: {
         externalIdentifier: shipFromLoc.facility,
         fullName: shipFromCustomer.name,
@@ -1313,7 +1313,7 @@ function generateUnshippedOrder(n, pending) {
     // Pending rows came through the async manual-create flow (I9)
     orderSource: pending ? 'MANUAL' : pick(['INTEGRATED', 'INTEGRATED', 'MANUAL']),
     customer: customer.id,
-    shipDirection: pick(SHIP_DIRECTIONS),
+    shipDirection: pick(SHIP_DIRECTION_CODES),
     freightTerms: pick(PAYMENT_TERMS),
     equipment: pick(EQUIPMENT_CODES),
     consignor: {

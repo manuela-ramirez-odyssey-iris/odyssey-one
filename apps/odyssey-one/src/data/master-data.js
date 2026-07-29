@@ -4,9 +4,9 @@
 // only the create flow needs (freight terms, ship classes, special services,
 // carriers, timezones, UoMs) are defined here. `frequency` drives the
 // LINX-7553 frequency sort in lookupService; values are PROVISIONAL fakes.
-import { CUSTOMERS, LOCATIONS, EQUIPMENT_CODES, EQUIPMENT_LABELS, CHEMICAL_PRODUCTS, locationIdFor } from '../../tools/data-pools.mjs'
+import { CUSTOMERS, LOCATIONS, EQUIPMENT_CODES, EQUIPMENT_LABELS, CHEMICAL_PRODUCTS, locationIdFor, FREIGHT_TERMS, SHIP_DIRECTIONS, freightTermLabel, shipDirectionLabel } from '../../tools/data-pools.mjs'
 
-export { CUSTOMERS, LOCATIONS, EQUIPMENT_CODES, EQUIPMENT_LABELS, CHEMICAL_PRODUCTS }
+export { CUSTOMERS, LOCATIONS, EQUIPMENT_CODES, EQUIPMENT_LABELS, CHEMICAL_PRODUCTS, FREIGHT_TERMS, SHIP_DIRECTIONS, freightTermLabel, shipDirectionLabel }
 
 // ── Owning organizations (typeahead) ───────────────────────
 export const OWNING_ORGS = CUSTOMERS.map((c, i) => ({
@@ -28,20 +28,8 @@ export const EQUIPMENT_SCOPE = {
 }
 
 // ── Plain selects ──────────────────────────────────────────
-// QA-build catalog (inbox screenshot 2026-07-27): 5 display labels, default
-// Pre-Paid. Wire codes (PPD/COL/…?) unconfirmed — value=label until master
-// data answers (open Q, freight-terms lookup).
-export const FREIGHT_TERMS = [
-  { value: 'Pre-Paid', label: 'Pre-Paid' },
-  { value: 'Collect', label: 'Collect' },
-  { value: 'Pre-Paid/Add', label: 'Pre-Paid/Add' },
-  { value: 'Third Party', label: 'Third Party' },
-  { value: 'No Charge', label: 'No Charge' },
-]
-export const SHIP_DIRECTIONS = [
-  { value: 'Outbound', label: 'Outbound' },
-  { value: 'Inbound', label: 'Inbound' },
-]
+// FREIGHT_TERMS / SHIP_DIRECTIONS now live in tools/data-pools.mjs as wire
+// codes (DB ledger row 2) — re-exported above with their label helpers.
 // The 4-option class-TYPE dropdown — CONFIRMED by QA screenshot + live dev
 // capture 2026-07-28: {H: Harmonized, C: Commodity, P: Product, N: NMFC}.
 // This is what the UI's "Product Class" column renders (labels below, order

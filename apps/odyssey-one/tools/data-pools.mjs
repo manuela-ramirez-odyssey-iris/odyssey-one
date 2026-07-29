@@ -114,3 +114,20 @@ export const CHEMICAL_PRODUCTS = [
   { item: '28070N6T', desc: 'Phosphoric Acid 75%', hazmat: false },
   { item: '39076P8U', desc: 'PVC Compound Rigid', hazmat: false },
 ];
+
+// Freight-term / ship-direction wire codes — CONFIRMED via live dev capture
+// (DB ledger row 2). The DB and generator rows store the letter codes; the UI
+// maps code → label at render. Order keeps Pre-Paid first (Q20 default).
+export const FREIGHT_TERMS = [
+  { value: 'P', label: 'Pre-Paid' },
+  { value: 'C', label: 'Collect' },
+  { value: 'A', label: 'Pre-Paid/Add' },
+  { value: 'T', label: 'Third Party' },
+  { value: 'N', label: 'No Charge' },
+]
+export const SHIP_DIRECTIONS = [
+  { value: 'O', label: 'Outbound' },
+  { value: 'I', label: 'Inbound' },
+]
+export const freightTermLabel = (code) => FREIGHT_TERMS.find((t) => t.value === code)?.label ?? code
+export const shipDirectionLabel = (code) => SHIP_DIRECTIONS.find((d) => d.value === code)?.label ?? code

@@ -39,9 +39,10 @@ describe('lookupService.getLookupOptions (mock)', () => {
 
   it('select-like types return the full list with no typeahead gate', async () => {
     const terms = await getLookupOptions('freight-term', '')
-    expect(terms.map(o => o.value)).toEqual(['Pre-Paid', 'Collect', 'Pre-Paid/Add', 'Third Party', 'No Charge'])
+    expect(terms.map(o => o.value)).toEqual(['P', 'C', 'A', 'T', 'N'])
+    expect(terms.map(o => o.label)).toEqual(['Pre-Paid', 'Collect', 'Pre-Paid/Add', 'Third Party', 'No Charge'])
     const dirs = await getLookupOptions('ship-direction', '')
-    expect(dirs.map(o => o.value)).toEqual(['Outbound', 'Inbound'])
+    expect(dirs.map(o => o.value)).toEqual(['O', 'I'])
   })
 
   it('org-address options carry the hydration meta (manual-grid autofill)', async () => {
