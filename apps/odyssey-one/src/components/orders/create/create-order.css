@@ -854,8 +854,8 @@
 /* Sticky wrapper for the resolve alert: in flow at the top; when the sentinel
    above it scrolls out, the alert morphs to the docked bar stuck under the
    navbar (-32px offsets the AppShell content padding — .orders-toolbar
-   precedent). Docked cancels the main padding only — true full-bleed geometry
-   is Task 7 QA. */
+   precedent). Docked cancels the main padding only — it stays content-width
+   inside .co-content, not viewport full-bleed (accepted vs mock 5711:16403). */
 .co-resolve-alert {
   position: sticky;
   top: calc(-1 * var(--spacing-8));

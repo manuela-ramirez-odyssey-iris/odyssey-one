@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
-// LINX-11137 resolve-mode entry: ?resolve=<orderNumber> hydrates the create
-// form as the Order Validation Error Resolution view (chrome swap only —
-// alert/field states land in later tasks).
+// LINX-11137 resolve mode: ?resolve=<orderNumber> hydrates the create form as
+// the Order Validation Error Resolution view — chrome, seeded field states,
+// Alert wiring, and the Save/Purge transition.
 import { describe, test, expect, beforeEach, afterEach } from 'vitest'
 import { render, screen, cleanup, waitFor, fireEvent, within } from '@testing-library/react'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
