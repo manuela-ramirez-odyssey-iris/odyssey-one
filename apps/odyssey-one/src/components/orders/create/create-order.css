@@ -870,6 +870,13 @@
   width: var(--co-dock-w);
   margin-left: calc((100% - var(--co-dock-w)) / 2);
 }
+/* The bar bleeds full-width, but its contents align with the 1080px form
+   column (.co-content) — icon/text/stepper sit over the accordions. */
+.co-resolve-alert--docked .alert__body {
+  max-width: 1080px;
+  width: 100%;
+  margin-inline: auto;
+}
 /* The sentinel is a flex item in .co-content's 16px column gap — pull the alert
    back up so the scroll probe costs no vertical space. */
 .co-resolve-sentinel {
