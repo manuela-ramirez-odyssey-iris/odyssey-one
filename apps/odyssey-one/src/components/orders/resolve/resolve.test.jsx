@@ -14,7 +14,7 @@ import { __resetOrderWriteState } from '../../../api/services/orderService'
 
 // Seeded row that sits in the Validation Errors tab (Shipment Failed) with
 // draftOrderStatus 'Ready' — src/data/orders.json.
-const ORDER = 'VAL100000'
+const ORDER = 'MON100206'
 
 function renderResolve(orderNumber = ORDER, state = { errorCount: 5, customer: 'ACME', orderSource: 'Integrated' }) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -57,9 +57,9 @@ describe('resolve mode — chrome', () => {
 })
 
 describe('resolve mode — fields', () => {
-  // The seeded errors for VAL100000 land on general.equipment (pick-only
-  // ComboBox) + consignor/consignee postal & city. Postal is the only plain
-  // typable input among them, so it's the one the flip assertion drives.
+  // The seeded errors for MON100206 land on general.equipment (pick-only
+  // ComboBox) + consignor address1/state/postal & consignee postal. Postal is
+  // a plain typable input among them, so it's the one the flip assertion drives.
   const FLIP_PATH = 'pickupDelivery.consignor.postal'
 
   async function openShipperAddress() {
@@ -111,7 +111,7 @@ describe('resolve mode — alert + accordions', () => {
   test('error sections start expanded, error-free sections collapsed', async () => {
     renderResolve()
     await waitFor(() => expect(screen.getByText(/5 Errors: Validation Required/)).toBeTruthy())
-    // VAL100000 seeds errors in general + pickupDelivery only
+    // MON100206 seeds errors in general + pickupDelivery only
     const headers = screen.getAllByRole('button', { name: /General Information|Pickup and Delivery|Product Information|Special Services/ })
     const byName = (re) => headers.find((h) => re.test(h.textContent))
     expect(byName(/General Information/).getAttribute('aria-expanded')).toBe('true')
