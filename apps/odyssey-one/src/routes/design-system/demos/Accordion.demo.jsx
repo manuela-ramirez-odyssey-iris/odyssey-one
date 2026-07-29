@@ -4,13 +4,11 @@ import { Accordion, Button, FormField, Checkbox } from '@odyssey/ui'
 export const meta = {
   name: 'Accordion',
   tier: 'molecule',
-  version: '0.8.0',
+  version: '0.9.0',
   createdVersion: '0.2.0',
-  normalizing: true,
+  normalizing: false,
   figmaNode: '2850:612',
   codeConnect: 'packages/ui/src/Accordion.figma.tsx',
-  approved: true,
-  ported: true,
 }
 
 export const props = [

@@ -4,16 +4,14 @@ import { FieldSearchResults } from '@odyssey/ui'
 export const meta = {
   name: 'FieldSearchResults',
   tier: 'organism',
-  version: '0.8.0',
+  version: '0.9.0',
   createdVersion: '0.6.0',
   figmaNode: '3170:2989',
   codeConnect: 'packages/ui/src/FieldSearchResults.figma.tsx',
   // Demoted back to NORMALIZING (S89): added the additive `maxHeight` prop
   // (default 320 preserves prior behavior) so MultiSelect can cap its dropdown
   // to a 4-row viewport. Re-runs GATE B; the Angular twin picks up the delta.
-  normalizing: true,
-  approved: true,
-  ported: true,
+  normalizing: false,
 }
 
 export const props = [

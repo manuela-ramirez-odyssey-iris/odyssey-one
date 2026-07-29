@@ -4,13 +4,11 @@ import { TimePicker } from '@odyssey/ui'
 export const meta = {
   name: 'TimePicker',
   tier: 'molecule',
-  version: '0.8.0',
+  version: '0.9.0',
   createdVersion: '0.8.0',
-  normalizing: true,
+  normalizing: false,
   figmaNode: '4534:5204',
   codeConnect: 'packages/ui/src/TimePicker.figma.tsx',
-  approved: true,
-  ported: true,
 }
 
 export const props = [

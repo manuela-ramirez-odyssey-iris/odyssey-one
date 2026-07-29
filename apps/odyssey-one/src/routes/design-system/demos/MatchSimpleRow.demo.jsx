@@ -4,13 +4,11 @@ import { MatchSimpleRow } from '@odyssey/ui'
 export const meta = {
   name: 'MatchSimpleRow',
   tier: 'molecule',
-  version: '0.8.0',
+  version: '0.9.0',
   createdVersion: '0.6.0',
   figmaNode: '3169:2821',
   codeConnect: 'packages/ui/src/MatchSimpleRow.figma.tsx',
-  normalizing: true,
-  approved: true,
-  ported: true,
+  normalizing: false,
 }
 
 export const props = [

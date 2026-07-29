@@ -9,13 +9,11 @@ import { Paginator } from '@odyssey/ui'
 export const meta = {
   name: 'Paginator',
   tier: 'molecule',
-  version: '0.7.0',
+  version: '0.9.0',
   createdVersion: '0.3.0',
-  normalizing: true,
+  normalizing: false,
   figmaNode: '3272:3890',
   codeConnect: 'packages/ui/src/Paginator.figma.tsx',
-  approved: true,
-  ported: true,
 }
 
 export const props = [

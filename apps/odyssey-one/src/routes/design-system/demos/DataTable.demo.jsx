@@ -13,7 +13,7 @@ import { DataTable, Paginator, Checkbox, Badge, ActionMenu } from '@odyssey/ui'
 export const meta = {
   name: 'DataTable',
   tier: 'organism',
-  version: '0.8.0',
+  version: '0.9.0',
   createdVersion: '0.3.0',
   codeOnly: true,
   // Code-first (composes Cell + Paginator + ActionMenu — no standalone Figma master).
@@ -31,9 +31,7 @@ export const meta = {
   // aria-sort, and a SORT_MIN_WIDTH resize floor (1 char + ellipsis + icon stay visible).
   // Resize drag also reworked: shell-owned, starts from the VISIBLE colgroup width
   // (TanStack's getResizeHandler started from the injected default 150 → jump).
-  normalizing: true,
-  approved: true,
-  ported: true,
+  normalizing: false,
 }
 
 export const props = [

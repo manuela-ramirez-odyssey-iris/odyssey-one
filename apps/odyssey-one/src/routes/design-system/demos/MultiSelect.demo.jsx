@@ -4,13 +4,11 @@ import { MultiSelect } from '@odyssey/ui'
 export const meta = {
   name: 'MultiSelect',
   tier: 'organism',
-  version: '0.8.0',
+  version: '0.9.0',
   createdVersion: '0.8.0',
-  normalizing: true,
+  normalizing: false,
   figmaNode: '4536:5333',
   codeConnect: 'packages/ui/src/MultiSelect.figma.tsx',
-  approved: true,
-  ported: true,
 }
 
 export const props = [

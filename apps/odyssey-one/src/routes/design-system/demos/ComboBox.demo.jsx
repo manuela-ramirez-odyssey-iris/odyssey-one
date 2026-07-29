@@ -4,13 +4,11 @@ import { ComboBox, FieldSearchResults } from '@odyssey/ui'
 export const meta = {
   name: 'ComboBox',
   tier: 'organism',
-  version: '0.8.0',
+  version: '0.9.0',
   createdVersion: '0.2.0',
   figmaNode: '4715:6142',
   codeConnect: 'packages/ui/src/ComboBox.figma.tsx',
-  normalizing: true,
-  approved: true,
-  ported: true,
+  normalizing: false,
 }
 
 export const props = [
