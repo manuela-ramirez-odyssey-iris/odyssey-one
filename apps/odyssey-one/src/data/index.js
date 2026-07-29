@@ -1,4 +1,5 @@
 import shipments from './shipments.json'
+import { EQUIPMENT_CODES } from './master-data'
 
 // ─── Shipment list (statically imported, ~0.9 MB) ───────────
 
@@ -23,5 +24,5 @@ export const SEARCH_ATTRIBUTES = [
   { key: 'scac', label: 'SCAC', type: 'dropdown', dataKey: 'scac' },
   { key: 'tender-status', label: 'Tender Status', type: 'dropdown', dataKey: 'tenderStatus', values: ['Sent', 'Accepted', 'Declined', 'Cancelled'] },
   { key: 'shipment-status', label: 'Shipment Status', type: 'dropdown', dataKey: 'shipmentStatus', values: ['Review', 'Done'] },
-  { key: 'equipment-code', label: 'Equipment Code', type: 'dropdown', dataKey: 'equipmentCode', values: ['FLT', 'LTH', 'VAN', 'REEFER'] },
+  { key: 'equipment-code', label: 'Equipment Code', type: 'dropdown', dataKey: 'equipmentCode', values: EQUIPMENT_CODES },
 ]
