@@ -97,7 +97,6 @@ function genUniqueBuyShipment() {
 // DOMAIN CONSTANTS (from grooming sessions + prototype)
 // ============================================================
 
-const ORDER_EQUIPMENT_CODES = ['TL', 'LTL', 'VAN', 'REEFER', 'TANK', 'FLATBED'];
 const SPECIAL_SERVICES_POOL = [
   { code: 'LFT',   desc: 'Lift gate' },
   { code: 'PALEXG', desc: 'Pallet Jack' },
@@ -930,7 +929,7 @@ function generateShipment(index) {
     ord.shipToLocIdx = LOCATIONS.indexOf(shipToLoc);
 
     // New order-level fields (decision 11 / W1-B)
-    const orderEquipCode = pick(ORDER_EQUIPMENT_CODES);
+    const orderEquipCode = pick(EQUIPMENT_CODES);
     const orderEquipRef = faker.number.float({ min: 0, max: 1 }) < 0.25
       ? `TANK-${faker.number.int({ min: 1000, max: 9999 })}`
       : null;

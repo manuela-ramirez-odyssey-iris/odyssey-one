@@ -30,6 +30,8 @@
  * orchestration hook never import it — the adapter is the seam. Other domains
  * provide their own progression + adapter behind the same contract.
  */
+import { EQUIPMENT_CODES } from '../../data/master-data'
+
 export const SHIPMENTS_PROGRESSION = [
   {
     group: 'Shipment Identifiers',
@@ -73,7 +75,7 @@ export const SHIPMENTS_PROGRESSION = [
     label: 'How it moves',
     attributes: [
       { key: 'mode', label: 'Mode', dataKey: 'mode', match: 'enum', values: ['TL', 'LTL', 'RR', 'IMD', 'AIR'] },
-      { key: 'equipment-code', label: 'Equipment Code', dataKey: 'equipmentCode', match: 'enum', values: ['FLT', 'LTH', 'VAN', 'REEFER'] },
+      { key: 'equipment-code', label: 'Equipment Code', dataKey: 'equipmentCode', match: 'enum', values: EQUIPMENT_CODES },
       { key: 'equipment', label: 'Equipment #', dataKey: 'equipment', match: 'digits' },
       { key: 'seal', label: 'Seal Number', dataKey: 'seal', match: 'letters' },
     ],

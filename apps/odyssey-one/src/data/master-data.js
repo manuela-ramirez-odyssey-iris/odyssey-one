@@ -4,9 +4,9 @@
 // only the create flow needs (freight terms, ship classes, special services,
 // carriers, timezones, UoMs) are defined here. `frequency` drives the
 // LINX-7553 frequency sort in lookupService; values are PROVISIONAL fakes.
-import { CUSTOMERS, LOCATIONS, EQUIPMENT_CODES, CHEMICAL_PRODUCTS, locationIdFor } from '../../tools/data-pools.mjs'
+import { CUSTOMERS, LOCATIONS, EQUIPMENT_CODES, EQUIPMENT_LABELS, CHEMICAL_PRODUCTS, locationIdFor } from '../../tools/data-pools.mjs'
 
-export { CUSTOMERS, LOCATIONS, EQUIPMENT_CODES, CHEMICAL_PRODUCTS }
+export { CUSTOMERS, LOCATIONS, EQUIPMENT_CODES, EQUIPMENT_LABELS, CHEMICAL_PRODUCTS }
 
 // ── Owning organizations (typeahead) ───────────────────────
 export const OWNING_ORGS = CUSTOMERS.map((c, i) => ({
@@ -16,19 +16,11 @@ export const OWNING_ORGS = CUSTOMERS.map((c, i) => ({
 }))
 
 // ── Equipment (typeahead, scoped by Owning Organization) ───
-// REAL vocabulary (lookup-only swap, 2026-07-28 — lookup-vocabularies research):
-// codes from the LINX-13893 matrix + old-TMS captures. The SHARED generator
-// pool (EQUIPMENT_CODES = FLT/LTH/VAN/REEFER) is deliberately untouched —
-// swapping it requires regen + Neon reseed (DB ledger; end-of-Orders reseed).
-// Descriptions: TL/TLR/TLF old-system verbatim; others standard or inferred
-// (LTH/TLH/TT UNCONFIRMED — open Q with Ramesh/master-data).
-export const EQUIPMENT_LABELS = {
-  LTL: 'Less Than Truckload', LTR: 'LTL Refrigerated', LTH: 'LTL Hazmat',
-  TL: 'Truck Load', TLR: 'Refrigerated Box Trailer', TLH: 'TL Hazmat',
-  TT: 'Tank Truck', TLF: 'Frozen Box Trailer',
-  LCL: 'Less than Container Load', FCL: 'Full Container Load', RR: 'Rail',
-}
-export const EQUIPMENT_LOOKUP_CODES = Object.keys(EQUIPMENT_LABELS)
+// Catalog + labels live in tools/data-pools.mjs (single source; both
+// generators draw the same codes). Descriptions: TL/TLR/TLF old-system
+// verbatim; others standard or inferred (LTH/TLH/TT UNCONFIRMED — open Q
+// with Ramesh/master-data).
+export const EQUIPMENT_LOOKUP_CODES = EQUIPMENT_CODES
 // Orgs listed here see a restricted subset; everyone else sees the full
 // catalog (plan decision 15 — proves org scoping observably in mock mode).
 export const EQUIPMENT_SCOPE = {

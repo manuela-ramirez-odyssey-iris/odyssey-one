@@ -7,7 +7,17 @@
 // MOVED VERBATIM from generate.mjs — do not edit values here without
 // regenerating BOTH datasets and checking the shipments diff is empty.
 
-export const EQUIPMENT_CODES = ['FLT', 'LTH', 'VAN', 'REEFER'];
+// Real equipment catalog (LINX-13893 matrix + old-TMS captures) — swapped at
+// the end-of-Orders reseed (DB ledger row 1). SINGLE SOURCE: master-data.js
+// re-exports these; both generators draw EQUIPMENT_CODES. Old mock LTH
+// ("Lowboy") is gone — LTH now means LTL Hazmat everywhere.
+export const EQUIPMENT_LABELS = {
+  LTL: 'Less Than Truckload', LTR: 'LTL Refrigerated', LTH: 'LTL Hazmat',
+  TL: 'Truck Load', TLR: 'Refrigerated Box Trailer', TLH: 'TL Hazmat',
+  TT: 'Tank Truck', TLF: 'Frozen Box Trailer',
+  LCL: 'Less than Container Load', FCL: 'Full Container Load', RR: 'Rail',
+}
+export const EQUIPMENT_CODES = Object.keys(EQUIPMENT_LABELS)
 
 export const CUSTOMERS = [
   { id: 'ERCO_SYS_01', name: 'ERCO Systems Inc' },
