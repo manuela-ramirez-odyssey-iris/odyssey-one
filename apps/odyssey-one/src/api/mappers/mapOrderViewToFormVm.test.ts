@@ -199,8 +199,8 @@ describe('mapOrderViewToFormVm — form → DTO → form round-trip', () => {
       productId: p.productId, description: p.description,
       grossWeight: p.grossWeight, volume: p.volume, shipClass: p.shipClass,
     }))).toEqual([
-      { productId: '39011E6K', description: 'Polyethylene Resin HD', grossWeight: { value: '100', uom: 'lb' }, volume: { value: '79', uom: 'cuft' }, shipClass: 'Commodity' },
-      { productId: '28042B9G', description: 'Sulfuric Acid 93%', grossWeight: { value: '4200', uom: 'lb' }, volume: { value: '651', uom: 'cuft' }, shipClass: 'Product Class' },
+      { productId: '0000000100037', description: 'Polyethylene Resin HD', grossWeight: { value: '100', uom: 'lb' }, volume: { value: '79', uom: 'cuft' }, shipClass: 'Commodity' },
+      { productId: '0000000100034', description: 'Sulfuric Acid 93%', grossWeight: { value: '4200', uom: 'lb' }, volume: { value: '651', uom: 'cuft' }, shipClass: 'Product Class' },
     ])
   })
 

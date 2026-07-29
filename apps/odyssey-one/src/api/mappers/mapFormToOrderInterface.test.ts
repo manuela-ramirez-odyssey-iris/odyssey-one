@@ -99,7 +99,7 @@ describe('mapFormToOrderInterface', () => {
     expect(mo.orderLines).toHaveLength(2)
     expect(mo.orderLines![0]).toEqual({
       lineIdentifier: 1,
-      shipItemIdentifier: '39011E6K',
+      shipItemIdentifier: '0000000100037',
       productDescription: 'Polyethylene Resin HD',
       grossWeightValue: 100,
       grossWeightUomCode: 'lb',

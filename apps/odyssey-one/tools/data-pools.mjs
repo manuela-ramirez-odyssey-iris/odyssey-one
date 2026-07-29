@@ -92,6 +92,11 @@ export const locationIdFor = (loc, i) => {
   return `${initials}-${loc.state}-${String(i + 1).padStart(3, '0')}`
 }
 
+// 13-digit external product IDs (legacy 18-digit mf_ship_item.external_id
+// minus 5 leading zeros — user decision 2026-07-29; DB ledger row 5). Single
+// source for pool lines AND the create-flow product lookup.
+export const productExternalId = (i) => String(100027 + i).padStart(13, '0')
+
 export const CHEMICAL_PRODUCTS = [
   { item: '32041H1D', desc: 'Sodium Hydroxide Solution 50%', hazmat: true, hClass: 'Class 8', hGroup: 'II', unNumber: 'UN1824' },
   { item: '28103A2K', desc: 'Hydrochloric Acid 32%', hazmat: false },
@@ -113,7 +118,7 @@ export const CHEMICAL_PRODUCTS = [
   { item: '34021M4S', desc: 'Surfactant Non-ionic', hazmat: false },
   { item: '28070N6T', desc: 'Phosphoric Acid 75%', hazmat: false },
   { item: '39076P8U', desc: 'PVC Compound Rigid', hazmat: false },
-];
+].map((p, i) => ({ ...p, item: productExternalId(i) }));
 
 // Freight-term / ship-direction wire codes — CONFIRMED via live dev capture
 // (DB ledger row 2). The DB and generator rows store the letter codes; the UI

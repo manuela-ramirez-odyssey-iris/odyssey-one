@@ -53,12 +53,12 @@ export const orderFormValuesSample: OrderFormValues = {
   },
   products: [
     {
-      id: 'p1', productId: '39011E6K', description: 'Polyethylene Resin HD',
+      id: 'p1', productId: '0000000100037', description: 'Polyethylene Resin HD',
       grossWeight: { value: '100', uom: 'lb' }, volume: { value: '79', uom: 'cuft' },
       shipClass: 'Commodity',
     },
     {
-      id: 'p2', productId: '28042B9G', description: 'Sulfuric Acid 93%',
+      id: 'p2', productId: '0000000100034', description: 'Sulfuric Acid 93%',
       grossWeight: { value: '4200', uom: 'lb' }, volume: { value: '651', uom: 'cuft' },
       shipClass: 'Product Class',
     },

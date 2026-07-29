@@ -29,7 +29,7 @@ describe('computeProductRollups (confirmation page, spec §3.3)', () => {
     expect(us.count).toBe(2)
     expect(us.totalWeight).toBe('4300.00 Lb')   // 100 + 4200
     expect(us.totalVolume).toBe('730.00 Cu ft') // 79 + 651
-    expect(us.hazmat).toBe('Yes')               // 28042B9G (Sulfuric Acid) is hazmat
+    expect(us.hazmat).toBe('Yes')               // 0000000100034 (Sulfuric Acid) is hazmat
   })
 
   it('totals convert in metric', () => {
