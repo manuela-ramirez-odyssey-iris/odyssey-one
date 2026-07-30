@@ -133,7 +133,7 @@ export default function CustomersModal() {
       aria-label="Customers"
     >
       {/* Static title; the MODE (default = manage the current selection,
-          search = adding customers) swaps the search-field label, gates the
+          search = adding customers) swaps the ComboBox label, gates the
           footer, and surfaces the ModalHeader back chevron as the way out of
           search mode. The header X always closes the popover. */}
       <ModalHeader
@@ -155,11 +155,11 @@ export default function CustomersModal() {
             results={
               resultsOpen ? (
                 <>
-                  <div className="search-field__results-header text-label-sm-medium">
+                  <div className="combo-box__results-header text-label-sm-medium">
                     All Customers
                   </div>
                   {searchMatches.length === 0 ? (
-                    <div className="search-field__results-empty text-label-sm-regular">
+                    <div className="combo-box__results-empty text-label-sm-regular">
                       No matches
                     </div>
                   ) : (

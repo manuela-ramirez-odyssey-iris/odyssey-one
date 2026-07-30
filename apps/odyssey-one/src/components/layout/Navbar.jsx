@@ -14,7 +14,7 @@ const Navbar = React.memo(function Navbar({ searchSlot } = {}) {
   const navigate = useNavigate()
   const currentUser = useCurrentUser()
   const { isEditMode, save, cancel } = useEditMode()
-  const { isCreateOrderMode, saveForLater, close } = useCreateOrderMode()
+  const { isCreateOrderMode, createOrderTitle, saveForLater, close } = useCreateOrderMode()
   const { toggleModal, modalOpen } = useCustomers()
   const notificationCount = useNotificationCount()
 
@@ -54,7 +54,7 @@ const Navbar = React.memo(function Navbar({ searchSlot } = {}) {
       <NavbarShell
         compact
         lead={<LeadNav />}
-        search={<GlobalSearch mode="title" title="Create New Order" />}
+        search={<GlobalSearch mode="title" title={createOrderTitle} />}
         trail={
           <TrailNav
             mode="editor"

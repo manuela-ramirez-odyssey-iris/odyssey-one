@@ -389,26 +389,16 @@ export default function ComboBox({
   // with FormField's errorId wiring; reuses listboxId as the stable base).
   const errorId = error ? `${id ?? listboxId}-error` : undefined
   const helperText = error ? (
-    <p
-      className="text-label-xs-regular"
-      id={errorId}
-      role="alert"
-      style={{ color: 'var(--text-error)', margin: 'var(--spacing-1) 0 0' }}
-    >
+    <p className="combo-box__error text-label-xs-regular" id={errorId} role="alert">
       {error}
     </p>
   ) : isValidated ? (
-    <p
-      className="text-label-xs-regular"
-      style={{ color: 'var(--text-success)', margin: 'var(--spacing-1) 0 0' }}
-    >
-      Validated
-    </p>
+    <p className="combo-box__validated text-label-xs-regular">Validated</p>
   ) : null
 
   const labelRow = showLabel ? (
-    <div className="flex items-center" style={{ gap: 'var(--spacing-1)' }}>
-      <span className="text-label-sm-medium" style={{ color: 'var(--text-secondary)' }}>
+    <div className="combo-box__label-row">
+      <span className="combo-box__label text-label-sm-medium">
         {label}{required && <span aria-hidden="true"> *</span>}
       </span>
       {showInfoIcon && (
@@ -442,8 +432,10 @@ export default function ComboBox({
         // 36px = 20px content row + 8px vertical padding each side (was 32/6px —
         // fixed 2026-07-28 to match the 36px field height, Figma synced)
         height: 36,
-        padding: '0 var(--spacing-3)',
-        gap: 'var(--spacing-2)',
+        // A chevron reads heavier than text at the same inset — the select
+        // variant pulls its right padding to 10px for optical balance (S102).
+        padding: variant === 'select' ? '0 10px 0 var(--spacing-3)' : '0 var(--spacing-3)',
+        gap: 'var(--spacing-1)',
         background: disabled ? 'var(--bg-secondary)' : 'var(--bg-primary)',
         border: borderStyle,
         borderRadius: 'var(--radius-md)',
@@ -615,20 +607,19 @@ export default function ComboBox({
   // State suffixes are CSS hooks (e.g. resolve-mode re-enables fields by state),
   // so every branch's root has to carry them.
   const rootClass = (extra = '') =>
-    ['search-field', error && 'search-field--error', isValidated && 'search-field--validated', extra, className]
+    ['combo-box', error && 'combo-box--error', isValidated && 'combo-box--validated', extra, className]
       .filter(Boolean)
       .join(' ')
 
   if (typeaheadMode) {
     return (
       <div
-        className={rootClass()}
-        style={{ position: 'relative' }}
+        className={rootClass('combo-box--relative')}
         ref={wrapperProps.ref}
         onBlur={wrapperProps.onBlur}
         onKeyDown={handleTypeaheadKeyDown}
       >
-        {labelRow && <div style={{ marginBottom: 'var(--spacing-2)' }}>{labelRow}</div>}
+        {labelRow}
         {inputBar}
         {helperText}
         {typeaheadPopover}
@@ -641,28 +632,20 @@ export default function ComboBox({
       <div className={rootClass()} {...rest}>
         {inputBar}
         {helperText}
-        {results && <div className="search-field__results">{results}</div>}
+        {results && <div className="combo-box__results">{results}</div>}
       </div>
     )
   }
 
   return (
-    <div
-      className={rootClass('flex flex-col')}
-      style={{ alignItems: 'stretch' }}
-      {...rest}
-    >
-      {/* Margin-driven like the typeahead branch — a parent `gap` would stack with
-          helperText's own margin-top and drift the error/validated line to 12px. */}
-      <div style={{ marginBottom: 'var(--spacing-2)' }}>{labelRow}</div>
+    <div className={rootClass()} {...rest}>
+      {labelRow}
       {inputBar}
       {helperText}
       {/* ponytail: display:block overrides the slot's `display: contents` so this
           margin lands — margins are dropped on display:contents boxes. */}
       {results && (
-        <div className="search-field__results" style={{ display: 'block', marginTop: 'var(--spacing-2)' }}>
-          {results}
-        </div>
+        <div className="combo-box__results">{results}</div>
       )}
     </div>
   )

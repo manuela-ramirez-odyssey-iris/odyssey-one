@@ -115,7 +115,8 @@
    "Radius/pill": 10,
    "Radius/full": 9999,
    "Radius/xl": 12,
-   "Spacing/9": 36
+   "Spacing/9": 36,
+   "Field/height": 36
   },
   "5. Typography": {
    "Font/primary": "Inter",

@@ -219,7 +219,25 @@ Variants/props defined in code but not yet pushed to Figma. Push all at once whe
 | Breadcrumb | link hover / focus-visible — **intentionally CSS-only** | Non-current link: hover darkens label `--deep-sea-neutral-400` → `-700`; `:focus-visible` → 2px `--border-focus` ring. Per the control state model these live in code + DSM only — the Figma master keeps only the `Current` axis (no hover variant). | 2026-06-26 |
 | SummaryStrip | `tone` axis decision — **Efrain ask** (componentization + fill fixes DONE 2026-07-06) | Master componentized by us 2026-07-06 → **`SummaryStrip` COMPONENT 4254:904** (Label/Value TEXT props, cells `Item 1–6`); value fills bound Text/primary (remote DSN/900 style cleared); band gradient flattened to Background/primary. Remaining: decide whether code's `tone: positive\|negative` value coloring (Caribbean Green/600 / Bittersweet/600) becomes a Figma axis. Code Connect updated to the component node (Label/Value mappings), publish with the batch. | 2026-07-06 |
 
+| FormField | `format` input content policy — **intentionally code-only** | `format: 'text' \| 'integer' \| 'decimal' \| 'phone'` sets the input's `inputMode` and strips disallowed characters before `onChange` fires (decimal keeps only the first dot). Behavioural, not appearance — a `format` variant axis would render identically in all four states, so it is deliberately NOT modeled in Figma. Ported 1:1 to the Angular twin (`applyFormat` + `ODYSSEY_FORM_FIELD_FORMATS`). Logged here so it reads as intentional, not a missing sync. | 2026-07-29 |
 | Design tokens | **`--spacing-9` (36px) — new token** | Added 2026-07-28 in one motion: `packages/tokens/tokens.css` + Figma `Spacing/9` in the `4. Sizing` collection (VariableID:4731:14, scopes match siblings) + `figma-tokens.snapshot.json` (audit green, 117 vars). First consumer: create-order `co-section-body` gap. **Angular `@oneodyssey/ui` tokens file addition OWED at the next batch port** — new design-system token, mirror it there before the batch closes. | 2026-07-28 |
+| Design tokens | **`--field-height` (36px) — new token, SYNCED** | Added 2026-07-29 (S102): `packages/tokens/tokens.css` + Angular `_tokens.scss` under Layout Dimensions. The single-line form-control height (border-box). Introduced because field height was *emerging* from child padding boxes, so variants disagreed (FormField 38 vs ComboBox 36). **Figma synced same day** — `Field/height` = 36 in the `4. Sizing` collection (VariableID:4801:14, scopes match siblings; named `Field/*` not `Sizing/*` so the audit's mechanical name mapping yields `--field-height`), snapshot refreshed to 127 vars, `tokens:audit` aligned. Not yet BOUND to the FormField master's height — flag for Efrain. | 2026-07-29 |
+
+### S102 modification reset — 5 components — **RELEASED 0.10.0 (2026-07-29)**
+
+Each of these was changed after release and demoted to NORMALIZING in BOTH DSMs (`dsm-flags --demote --both`) per the modification rule. Cycle **closed 2026-07-29**: re-approved, ported, and shipped in `@oneodyssey/ui` **0.10.0** via `tools/release.mjs` — `approved`/`ported` cleared, `normalizing: false`, `version: '0.10.0'` stamped in both DSMs; TimePicker's placeholder default also went `'Select time'` → `'Select Time'` in the same motion.
+
+**Version call:** **minor, not patch** — the ComboBox class rename breaks a published surface, and under npm caret semantics a `^0.x` range stops at the next minor, so `^0.9.x` consumers do *not* auto-adopt 0.10.0. The upgrade is a conscious range bump, which is what a breaking change requires; this also matches precedent (the 0.9.0 minor carried the ComboBox module rename + ShipmentsBar input removal, while 0.9.1 was a non-breaking patch). Migration table lives in the Angular `CHANGELOG.md`. **NOT published** — Cognizant owns `npm publish`.
+
+| Component | Change | Breaking? |
+|---|---|---|
+| FormField | Height model rebuilt: `.form-field__input` now sets `height: var(--field-height)`; `.form-field__control` vertical padding removed. Every variant is 36px by construction instead of by padding arithmetic. | No — visual only (2px shorter) |
+| FieldSelect | Vertical padding removed; stretches into the parent field instead of forcing it 2px taller. | No — visual only |
+| ComboBox | CSS classes renamed `search-field*` → `combo-box*` (React + Angular twin). Legacy naming left over from the S100 SearchField→ComboBox rename. | **YES** — external CSS targeting `.search-field*` breaks |
+| ModalMedium | `max-width` 780 → 920px (Shipment Details 4-column grid; quote modals). **Figma synced:** the master (2032:915) carried `minWidth 350` and NO maxWidth — the 780 cap only ever existed in CSS — so `maxWidth: 920` is now encoded on the component. | No — content-driven width, narrower modals unaffected |
+| TimePicker | `min-width` split out of the shared 150px field floor → 130px. | No |
+
+**Owed before re-approval:** Figma masters for ModalMedium (2032:915 still says 780) and the `--field-height` variable; Angular DSM re-verify; version bump on release (ComboBox's rename makes it a MAJOR-ish call — confirm with Cognizant since it ships as `@oneodyssey/ui`).
 
 ## Pushed to Figma
 

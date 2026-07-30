@@ -743,7 +743,7 @@ const ColumnPanel = forwardRef(function ColumnPanel({
         <div style={{ marginBottom: 'var(--spacing-2)' }}>
           <ComboBox
             value={searchQuery}
-            placeholder="Search columns"
+            placeholder="Search Columns"
             onChange={setSearchQuery}
             onClear={() => setSearchQuery('')}
           />

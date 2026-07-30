@@ -195,7 +195,7 @@ export default function CellDemo() {
                 <td className="text-label-sm-regular"><code>{'<FormField>'}</code> in a td — future inline-edit pattern</td>
                 <td>
                   <div style={{ width: 180 }}>
-                    <FormField showLabel={false} placeholder="Add note" aria-label="Field cell example" />
+                    <FormField showLabel={false} placeholder="Add Note" aria-label="Field cell example" />
                   </div>
                 </td>
               </tr>

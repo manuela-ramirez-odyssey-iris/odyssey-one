@@ -200,3 +200,21 @@ export const HANDLING_UNITS = [
   { code: 'BUL', label: 'Bulk' },
   { code: 'CRT', label: 'Crate' },
 ]
+
+// ── City → timezone ──────────────────────────────────────────────────────────
+// A shipment's timezone is the CONTEXT the user reads times in, and it comes
+// from the stop's city — never from the carrier (user ruling, S102). Lives here
+// so the generator and the app read ONE map.
+export const CITY_TIMEZONES = {
+  Houston: 'CST', Bastrop: 'CST', Geismar: 'CST', Dallas: 'CST',
+  'Lake Charles': 'CST', 'Baton Rouge': 'CST', Freeport: 'CST', Baytown: 'CST',
+  Channelview: 'CST', Odessa: 'CST', Atlanta: 'EST', Columbus: 'EST',
+  Chicago: 'CST', Miami: 'EST', 'San Antonio': 'CST', Kingsport: 'EST',
+  Wyandotte: 'EST', Phoenix: 'MST', Denver: 'MST', Seattle: 'PST',
+  Portland: 'PST', Minneapolis: 'CST', Detroit: 'EST', 'New Orleans': 'CST',
+  'Salt Lake City': 'MST', 'Kansas City': 'CST', 'San Diego': 'PST',
+  Neenah: 'CST', McIntosh: 'CST', 'Green River': 'MST',
+};
+
+/** City → timezone code; '' when unknown (callers decide the fallback). */
+export const deriveTimezone = (city) => CITY_TIMEZONES[city] ?? '';

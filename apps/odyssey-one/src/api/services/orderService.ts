@@ -1,5 +1,5 @@
 import { getApiMode } from '../config'
-import { apiGet, apiPatch, apiPost } from '../client'
+import { apiGet, apiPatch, apiPost, apiPut } from '../client'
 import { getAllOrders, getOrderEnrichment } from '../../data/orders'
 import type { OrderListRequest, OrderListResponse, OrderListRow } from '../types/orderList'
 import { mapFormToOrderInterface } from '../mappers/mapFormToOrderInterface'
@@ -293,6 +293,31 @@ export async function createOrder(request: CreateOrderRequest): Promise<CreateOr
   }
 }
 
+/**
+ * Edit Order save (LINX-10248) — "Confirm & Save Changes" on an EXISTING order.
+ * Distinct from createOrder (mints a row) and saveDraft (draft lifecycle): this
+ * rewrites the order in place, keeping its number, customer and status.
+ * Audit trail (LINX-13853–13866) not implemented.
+ */
+export async function updateOrder(orderNumber: string, values: OrderFormValues): Promise<void> {
+  const { manualOrder } = mapFormToOrderInterface(values)
+  if (getApiMode() === 'live') {
+    await apiPut('/order-service/v3/order', { orderNumber, manualOrder })
+    return
+  }
+  const existing = overlayRows.find(r => r.orderNumber === orderNumber)
+    ?? (getAllOrders() as OrderListRow[]).find(r => r.orderNumber === orderNumber)
+  const row = manualOrderToListRow(manualOrder, orderNumber, existing?.orderStatus ?? 'Draft')
+  if (existing?.orderSource) row.orderSource = existing.orderSource
+  overlayRows = [row, ...overlayRows.filter(r => r.orderNumber !== orderNumber)]
+  // Retain the full form values so a reopen hydrates at full fidelity (the
+  // same store getDraft/getOrderView read first).
+  const id = draftIdByOrderNumber.get(orderNumber) ?? `draft-${++draftSeq}`
+  draftValues.set(id, structuredClone(values))
+  draftIdByOrderNumber.set(orderNumber, id)
+  orderNumberByDraftId.set(id, orderNumber)
+}
+
 export interface SaveDraftResult {
   draftId: string
   orderNumber: string
@@ -329,9 +354,11 @@ export interface DraftRecord {
 /** Resolves by internal draftId OR order number (the ?draft=<orderNumber> URL). */
 export async function getDraft(key: string): Promise<DraftRecord | null> {
   if (getApiMode() === 'live') {
-    // Reopening a live draft needs the inverse mapping (order/view → form
-    // values) — out of scope this build (plan decision 21)
-    throw new Error('getDraft: live mapping pending (order/view → form hydration); mock-mode only')
+    // Session drafts are a mock-only concept — live has no draft store, every
+    // row (Draft or not) hydrates through getOrderView. Returning null lets the
+    // caller's fallback run; this used to THROW, which rejected the hydration
+    // chain and left every live Edit Order form blank (S102 fix).
+    return null
   }
   const draftId = draftValues.has(key) ? key : draftIdByOrderNumber.get(key)
   if (!draftId) return null

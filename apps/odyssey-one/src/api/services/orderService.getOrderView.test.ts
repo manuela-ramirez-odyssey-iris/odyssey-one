@@ -29,7 +29,8 @@ const SEEDED = [
 
 vi.mock('../../data/orders', () => ({ getAllOrders: () => SEEDED, getOrderEnrichment: () => null }))
 
-import { createOrder, getDraft, getOrderView, saveDraft, __resetOrderWriteState } from './orderService'
+import { createOrder, getDraft, getOrderList, getOrderView, saveDraft, updateOrder, __resetOrderWriteState } from './orderService'
+import { getApiMode } from '../config'
 import { mapFormToOrderInterface } from '../mappers/mapFormToOrderInterface'
 import { orderFormValuesSample } from '../fixtures/orderFormValues.sample'
 
@@ -83,6 +84,30 @@ describe('orderService.getOrderView (mock)', () => {
     const vm = await getOrderView('AAA100001')
     expect(vm).not.toBeNull()
     expect(vm!.general.orderNumber).toBe('AAA100001')
+  })
+
+  // Live has no session-draft store: getDraft must MISS (null), not throw —
+  // a rejection here broke the hydration chain and left every live Edit Order
+  // form blank (S102).
+  it('returns null in live mode instead of throwing', async () => {
+    vi.mocked(getApiMode).mockReturnValueOnce('live')
+    await expect(getDraft('AAA100001')).resolves.toBeNull()
+  })
+
+  // Edit Order (LINX-10248): updateOrder rewrites in place — the row keeps its
+  // number and status, and a reopen hydrates the edited values.
+  it('updates a seeded order in place, keeping its status', async () => {
+    const edited = structuredClone(orderFormValuesSample)
+    edited.general.orderNumber = 'AAA100001'
+    edited.products[0].description = 'Edited Commodity'
+    await updateOrder('AAA100001', edited)
+    const vm = await getOrderView('AAA100001')
+    expect(vm!.products[0].description).toBe('Edited Commodity')
+    const { orders } = await getOrderList({ pagination: { pageNumber: 1, pageSize: 50 } })
+    const row = orders.find(o => o.orderNumber === 'AAA100001')
+    expect(row?.orderStatus).toBe('Ready For Plan') // status untouched by the edit
+    expect(row?.commodity).toBe('Edited Commodity')
+    expect(orders.filter(o => o.orderNumber === 'AAA100001')).toHaveLength(1) // no duplicate row
   })
 
   it('returns a defensive copy of draft values (caller mutation does not leak)', async () => {

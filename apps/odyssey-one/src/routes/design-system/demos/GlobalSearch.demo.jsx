@@ -112,7 +112,7 @@ export default function GlobalSearchDemo() {
             onClear={handleClear}
             onBack={() => {}}
             onForward={() => {}}
-            placeholder="Search shipments…"
+            placeholder="Search Shipments…"
             minWidth={400}
             maxWidth={700}
             filterCount={filterCount}

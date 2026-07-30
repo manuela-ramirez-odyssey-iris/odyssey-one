@@ -300,6 +300,7 @@ export default function BottomBar({
       <ShipmentDetailsModal
         shipment={shipment}
         shipmentDetails={shownDetails}
+        error={detailsError}
         onClose={() => setDetailsModalOpen(false)}
       />
     )}

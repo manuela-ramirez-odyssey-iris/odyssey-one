@@ -5,7 +5,7 @@ import { Search, Calendar } from 'lucide-react'
 export const meta = {
   name: 'FormField',
   tier: 'molecule',
-  version: '0.9.0',
+  version: '0.10.0',
   createdVersion: '0.2.0',
   figmaNode: '2602:1424',
   codeConnect: 'packages/ui/src/FormField.figma.tsx',
@@ -20,6 +20,7 @@ export const props = [
   { name: 'value', type: 'string|number', desc: 'Controlled value; drives the derived filled state.' },
   { name: 'onChange', type: '(e) => void', desc: 'Input change handler.' },
   { name: 'type', type: 'text|email|password|number|tel|search|url', desc: 'Native input type. Default text.' },
+  { name: 'format', type: 'text|integer|decimal|phone', desc: 'Input CONTENT policy: sets the mobile inputMode AND strips characters that do not belong, before onChange fires — so a typo can never land in the value. decimal keeps only the first dot ("1.2.3" → "1.23"). Deliberately a small closed set, not a mask DSL. Default text.' },
   { name: 'error', type: 'string|false', desc: 'Error message; truthy reddens border + shows the message.' },
   { name: 'validated', type: 'boolean', desc: 'Success state (Figma State=Validated): success border + trailing check + green "Validated" line. `error` wins when both are set.' },
   { name: 'disabled', type: 'boolean', desc: 'Disables the input and all buttons.' },
@@ -126,6 +127,7 @@ export default function FormFieldDemo() {
   const [disabled, setDisabled] = useState(false)
   const [required, setRequired] = useState(false)
   const [showCounter, setShowCounter] = useState(false)
+  const [format, setFormat] = useState('text')
 
   return (
     <div>
@@ -147,15 +149,25 @@ export default function FormFieldDemo() {
           <label style={{ display: 'inline-flex', gap: 'var(--spacing-2)', alignItems: 'center', fontSize: 'var(--font-size-sm)' }}>
             <input type="checkbox" checked={showCounter} onChange={(e) => setShowCounter(e.target.checked)} /> showCounter (maxLength 30)
           </label>
+          <label style={{ display: 'inline-flex', gap: 'var(--spacing-2)', alignItems: 'center', fontSize: 'var(--font-size-sm)' }}>
+            format
+            <select value={format} onChange={(e) => { setFormat(e.target.value); setValue('') }}>
+              <option value="text">text</option>
+              <option value="integer">integer</option>
+              <option value="decimal">decimal</option>
+              <option value="phone">phone</option>
+            </select>
+          </label>
         </div>
         <div style={{ maxWidth: 360 }}>
           <FormField
             label="Customer"
             showInfo
-            placeholder="Search customers"
+            placeholder="Search Customers"
             value={value}
             onChange={(e) => setValue(e.target.value)}
             onClear={() => setValue('')}
+            format={format}
             leadingIcon={<Search size={16} />}
             error={error ? 'This customer is not recognized.' : false}
             validated={validated}
@@ -167,6 +179,7 @@ export default function FormFieldDemo() {
         </div>
         <p style={{ color: 'var(--text-tertiary)', fontSize: 'var(--font-size-sm)' }}>
           Type to fill · focus to see the border + label react · clear-X appears when non-empty.
+          {format !== 'text' && ` · format="${format}" is on — try typing letters, they never reach the value.`}
         </p>
       </div>
 
@@ -198,12 +211,12 @@ export default function FormFieldDemo() {
             <LiveField label="Leading" placeholder="Search" clearable={false} leadingIcon={<Search size={16} />} />
           </div>
           <div style={{ width: 240 }}>
-            <LiveField label="Trailing" placeholder="Pick a date" clearable={false} trailingIcon={<Calendar size={16} />} />
+            <LiveField label="Trailing" placeholder="Pick a Date" clearable={false} trailingIcon={<Calendar size={16} />} />
           </div>
           <div style={{ width: 240 }}>
             <LiveField
               label="Both"
-              placeholder="Search dates"
+              placeholder="Search Dates"
               clearable={false}
               leadingIcon={<Search size={16} />}
               trailingIcon={<Calendar size={16} />}

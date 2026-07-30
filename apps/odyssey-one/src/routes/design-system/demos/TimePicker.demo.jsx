@@ -4,7 +4,7 @@ import { TimePicker } from '@odyssey/ui'
 export const meta = {
   name: 'TimePicker',
   tier: 'molecule',
-  version: '0.9.0',
+  version: '0.10.0',
   createdVersion: '0.8.0',
   normalizing: false,
   figmaNode: '4534:5204',
@@ -17,7 +17,7 @@ export const props = [
   { name: 'format',      type: "'standard' | 'international'",          desc: "Display format. `standard` (default) = 12h AM/PM; `international` = 24h. Canonical value is always 24h." },
   { name: 'step',        type: 'number',                                desc: 'Minutes between generated options (default 30 → 00:00…23:30).' },
   { name: 'min / max',   type: 'string',                                desc: 'Optional "HH:MM" 24h bounds; options outside are excluded from the dropdown.' },
-  { name: 'placeholder', type: 'string',                                desc: "FormField placeholder (default 'Select time')." },
+  { name: 'placeholder', type: 'string',                                desc: "FormField placeholder (default 'Select Time')." },
   { name: 'label',       type: 'string',                                desc: 'FormField label above the input.' },
   { name: 'disabled',    type: 'boolean',                               desc: 'Passed through to FormField; suppresses the dropdown.' },
   { name: 'id',          type: 'string',                                desc: 'Passed through to FormField (label association).' },

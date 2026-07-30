@@ -44,7 +44,7 @@
 //                  items' hazmat fields, which share the same product.hazmat source.
 import { faker } from '@faker-js/faker';
 import { writeFileSync, mkdirSync, existsSync, readdirSync, unlinkSync } from 'fs';
-import { CUSTOMERS, EXTRA_CUSTOMERS, LOCATIONS, EQUIPMENT_CODES, CHEMICAL_PRODUCTS, locationIdFor, FREIGHT_TERMS, SHIP_DIRECTIONS, SHIP_CLASS_CODES, shipClassLabel, PRODUCT_CLASSES, HANDLING_UNITS } from './data-pools.mjs'
+import { deriveTimezone, CUSTOMERS, EXTRA_CUSTOMERS, LOCATIONS, EQUIPMENT_CODES, CHEMICAL_PRODUCTS, locationIdFor, FREIGHT_TERMS, SHIP_DIRECTIONS, SHIP_CLASS_CODES, shipClassLabel, PRODUCT_CLASSES, HANDLING_UNITS } from './data-pools.mjs'
 
 // ── Orders accumulator (I1) ──────────────────────────────────────────────────
 // LINX-9742/9279: every order (shipped + unshipped + pending) draws a globally
@@ -267,13 +267,13 @@ function genDate(baseDate, offsetDays) {
   return d;
 }
 
-function formatDateTime(d) {
+function formatDateTime(d, tz = 'CST') {
   const mm = String(d.getMonth() + 1).padStart(2, '0');
   const dd = String(d.getDate()).padStart(2, '0');
   const yyyy = d.getFullYear();
   const hh = String(d.getHours()).padStart(2, '0');
   const min = String(d.getMinutes()).padStart(2, '0');
-  return `${mm}/${dd}/${yyyy} ${hh}:${min} CST`;
+  return `${mm}/${dd}/${yyyy} ${hh}:${min} ${tz}`;
 }
 
 function formatDate(d) {
@@ -324,6 +324,10 @@ function generateShipment(index) {
   const customer = pickCustomer();
   const originLoc = pick(LOCATIONS);
   const destLoc = pick(LOCATIONS.filter(l => l.city !== originLoc.city));
+  // A shipment's times are read in the STOP's timezone (user ruling, S102) —
+  // never the carrier's. Quote pickup/delivery inherit these.
+  const originTz = deriveTimezone(originLoc.city) || 'CST';
+  const destTz = deriveTimezone(destLoc.city) || 'CST';
   // Weighted mode selection
   // If customer is not an RR customer, filter out RR from available modes
   const availableModes = RR_CUSTOMERS.includes(customer.id) ? MODES : MODES.filter(m => m !== 'RR');
@@ -462,7 +466,7 @@ function generateShipment(index) {
       region: stopLoc.state,
       postal: stopLoc.zip,
       country: 'US',
-      scheduledDateTime: `${formatDate(baseDate)} ${String(baseDate.getHours()).padStart(2, '0')}:00 CST`,
+      scheduledDateTime: `${formatDate(baseDate)} ${String(baseDate.getHours()).padStart(2, '0')}:00 ${deriveTimezone(stopLoc.city) || 'CST'}`,
       appointmentTime: `${String(baseDate.getHours()).padStart(2, '0')}:00 CST`,
       // I5 — stop weight/volume/packages = Σ of the orders picked up here
       grossWeightValue: stopOrders.reduce((t, o) => t + o.orderGross, 0),
@@ -483,7 +487,7 @@ function generateShipment(index) {
     region: destLoc.state,
     postal: destLoc.zip,
     country: 'US',
-    scheduledDateTime: `${formatDate(deliveryDate)} ${String(deliveryDate.getHours()).padStart(2, '0')}:00 CST`,
+    scheduledDateTime: `${formatDate(deliveryDate)} ${String(deliveryDate.getHours()).padStart(2, '0')}:00 ${destTz}`,
     appointmentTime: `${String(deliveryDate.getHours()).padStart(2, '0')}:00 CST`,
     grossWeightValue: grossWeight,
     grossWeightUomCode: 'LB',
@@ -572,13 +576,13 @@ function generateShipment(index) {
         arTotal: _arTotal,
       },
       status,
-      pickupDateTime: formatDateTime(baseDate),
-      pickupTZ: 'CST',
+      pickupDateTime: formatDateTime(baseDate, originTz),
+      pickupTZ: originTz,
       pickupOrgHours: `${String(pickupHour).padStart(2, '0')}:00 - ${String(pickupHour + faker.number.int({ min: 6, max: 10 })).padStart(2, '0')}:30`,
       pickupOrgDay: pick(['Yes', 'No']),
-      deliveryDateTime: formatDateTime(genDate(baseDate, faker.number.int({ min: 1, max: 5 }))),
+      deliveryDateTime: formatDateTime(genDate(baseDate, faker.number.int({ min: 1, max: 5 })), destTz),
       deliveryOrgHours: `${String(delivHour - 6).padStart(2, '0')}:00 - ${String(delivHour).padStart(2, '0')}:59`,
-      deliveryTZ: 'CST',
+      deliveryTZ: destTz,
       transitDays: faker.number.int({ min: 1, max: 5 }),
       distanceMiles: faker.number.float({ min: 100, max: 1500, fractionDigits: 2 }),
       serviceLevel: `${faker.number.int({ min: 85, max: 99 })}%`,

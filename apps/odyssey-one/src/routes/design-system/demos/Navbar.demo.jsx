@@ -57,7 +57,7 @@ export default function NavbarDemo() {
                 onClear={() => setSearchValue('')}
                 onBack={() => {}}
                 onForward={() => {}}
-                placeholder="Search shipments…"
+                placeholder="Search Shipments…"
                 minWidth={400}
                 maxWidth={640}
               />

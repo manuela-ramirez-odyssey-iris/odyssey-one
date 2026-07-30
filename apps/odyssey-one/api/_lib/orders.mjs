@@ -150,6 +150,65 @@ export async function orderView({ body, db }) {
   return { row, manualOrder: manualOrder ?? null }
 }
 
+// ── Order update / Edit Order (LINX-10248) ──────────────────────────────────
+// PUT /order-service/v3/order — "Confirm & Save Changes" on the edit form.
+// The client sends the SAME manualOrder wire object create posts; we store it
+// whole in manual_order (so a reopen hydrates at full fidelity) and re-derive
+// the grid's projection columns from it — the server-side twin of the client's
+// manualOrderToListRow. order_number / customer are identity: locked in the UI
+// and never written here. No audit trail yet (LINX-13853–13866).
+export function buildUpdateOrderQuery(key, mo) {
+  const line = mo.orderLines?.[0] ?? {}
+  const consignor = {
+    locationId: mo.originPartnerId ?? '', name: mo.originFullName ?? '', city: mo.originCity ?? '',
+    state: mo.originRegion ?? '', country: mo.originCountry ?? 'US',
+    earliestPickupDateTime: mo.requestedPickupDate ?? '', latestPickupDateTime: mo.pickupAppointment ?? '',
+  }
+  const consignee = {
+    locationId: mo.destinationPartnerId ?? '', name: mo.destinationFullName ?? '', city: mo.destinationCity ?? '',
+    state: mo.destinationRegion ?? '', country: mo.destinationCountry ?? 'US',
+    earliestDeliveryDateTime: mo.requestedDeliveryDate ?? '', latestDeliveryDateTime: mo.deliveryAppointment ?? '',
+  }
+  return {
+    text: `UPDATE orders SET
+             manual_order = $1,
+             ship_direction = $2, freight_terms = $3, equipment = $4,
+             consignor = $5, consignee = $6,
+             gross_weight = $7, volume = $8, commodity = $9, hazardous = $10,
+             origin_city = $11, origin_state = $12, origin_country = $13,
+             dest_city = $14, dest_state = $15, dest_country = $16,
+             earliest_pickup_ts = NULLIF($17,'')::timestamptz, latest_pickup_ts = NULLIF($18,'')::timestamptz,
+             earliest_delivery_ts = NULLIF($19,'')::timestamptz, latest_delivery_ts = NULLIF($20,'')::timestamptz,
+             last_edit_at = now()
+           WHERE order_number = $21 RETURNING order_number`,
+    values: [
+      JSON.stringify(mo),
+      mo.shipDirectionCode ?? '', mo.freightTermCode ?? '',
+      mo.orderCarrierEquipDetailList?.[0]?.equipmentCode ?? '',
+      JSON.stringify(consignor), JSON.stringify(consignee),
+      JSON.stringify({ value: mo.grossWeightValue ?? 0, uom: mo.grossWeightUomCode ?? 'lbs' }),
+      JSON.stringify({ value: mo.volumeValue ?? 0, uom: mo.volumeUomCode ?? 'cbf' }),
+      line.productDescription ?? '',
+      (mo.orderLines ?? []).some((l) => l.hazardous === true),
+      consignor.city, consignor.state, consignor.country,
+      consignee.city, consignee.state, consignee.country,
+      consignor.earliestPickupDateTime, consignor.latestPickupDateTime,
+      consignee.earliestDeliveryDateTime, consignee.latestDeliveryDateTime,
+      key,
+    ],
+  }
+}
+
+export async function updateOrder({ body, db }) {
+  const key = body?.orderNumber
+  const mo = body?.manualOrder
+  if (!key) { const e = new Error('orderNumber required'); e.status = 400; throw e }
+  if (!mo || typeof mo !== 'object') { const e = new Error('manualOrder required'); e.status = 400; throw e }
+  const { rows } = await db.query(buildUpdateOrderQuery(String(key), mo))
+  if (rows.length === 0) { const e = new Error(`No order: ${key}`); e.status = 404; throw e }
+  return { success: true, orderNumber: rows[0].order_number }
+}
+
 // ── Status update (DB ledger row 9) ─────────────────────────────────────────
 // PATCH /order-service/v3/order/status — the write path behind the three UI
 // flows (Draft submit → Ready For Plan, OIF resolve/purge → Ready For Plan,

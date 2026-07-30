@@ -3,7 +3,6 @@ import { ChevronDown, ChevronUp, MapPin, Plus } from 'lucide-react'
 import { Controller, useFormContext, useWatch } from 'react-hook-form'
 import { Alert, Button, Checkbox, ComboBox, Radio, TimePicker } from '@odyssey/ui'
 import DateField from '../fields/DateField.jsx'
-import TimezoneSelect from '../fields/TimezoneSelect.jsx'
 import AddressFields from './AddressFields.jsx'
 import ContactFields from './ContactFields.jsx'
 import { useResolveMode } from '../../resolve/ResolveModeContext.jsx'
@@ -201,20 +200,10 @@ function DateTimeGroup({ basePath, label, required, warning }) {
             />
           )}
         />
-        <Controller
-          name={`${basePath}.timezone`}
-          control={control}
-          render={({ field, fieldState }) => (
-            <TimezoneSelect
-              id={`${idPrefix}-timezone`}
-              label={`Time Zone${star}`}
-              disabled={locked}
-              value={field.value}
-              onChange={field.onChange}
-              error={fieldState.error?.message}
-            />
-          )}
-        />
+        {/* No Time Zone control: the timezone is SYSTEM-determined (user, S102) —
+            derived from the consignor/consignee city by the effects below and
+            written straight to `${basePath}.timezone`, which the wire mapper
+            still reads as requested*TimeZoneCode. */}
       </div>
     </div>
   )

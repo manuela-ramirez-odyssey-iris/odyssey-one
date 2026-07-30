@@ -26,7 +26,7 @@ import { moveHighlight } from './GlobalSearch.jsx'
  *   format      — 'standard' (12h AM/PM, default) | 'international' (24h) — display only.
  *   step        — minutes between generated options (default 30).
  *   min / max   — optional "HH:MM" 24h bounds; options outside are excluded.
- *   placeholder — FormField placeholder (default 'Select time').
+ *   placeholder — FormField placeholder (default 'Select Time').
  *   label       — FormField label.
  *   disabled    — passed through to FormField.
  *   id          — passed through to FormField.
@@ -126,7 +126,7 @@ export default function TimePicker({
   step = 30,
   min,
   max,
-  placeholder = 'Select time',
+  placeholder = 'Select Time',
   label,
   disabled = false,
   id,

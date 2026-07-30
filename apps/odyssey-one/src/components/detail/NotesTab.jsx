@@ -216,7 +216,7 @@ const NotesTab = React.memo(function NotesTab({ data }) {
                   showLabel={false}
                   value={newText}
                   onChange={(e) => setNewText(e.target.value)}
-                  placeholder="Type your note"
+                  placeholder="Type Your Note"
                   maxLength={200}
                   showCount
                   rows={3}

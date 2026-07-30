@@ -10,7 +10,7 @@ import { ResolveModeProvider } from '../resolve/ResolveModeContext.jsx'
 import { useCreateOrderMode } from '../../../contexts/CreateOrderModeContext.jsx'
 import { useCreateOrder } from '../../../api/queries/useCreateOrder'
 import { useSaveDraft } from '../../../api/queries/useSaveDraft'
-import { getDraft, getOrderList, getOrderView, resolveOrder } from '../../../api/services/orderService'
+import { getDraft, getOrderList, getOrderView, resolveOrder, updateOrder } from '../../../api/services/orderService'
 import { makeDefaultOrderFormValues } from '../../../api/types/orderFormVm'
 import { createOrderSchema, saveGateSchema } from './schema'
 import { useSectionStatus } from './useSectionStatus.js'
@@ -56,6 +56,11 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
   const [saveGateError, setSaveGateError] = useState('')
   const [saveNotice, setSaveNotice] = useState('')
   const [draftId, setDraftId] = useState(null)
+  // Edit Order: the hydrated snapshot (what "Discard" reverts to) + the
+  // Confirm & Save Changes dialog.
+  const hydratedRef = useRef(null)
+  const [confirmSaveOpen, setConfirmSaveOpen] = useState(false)
+  const [savingEdit, setSavingEdit] = useState(false)
   // ── Resolve mode (LINX-11137) ──
   const [resolveState, setResolveState] = useState(null) // { errors, isResolved, contextText }
   const [purgeOpen, setPurgeOpen] = useState(false)
@@ -70,6 +75,9 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
   const dockScrolledPastRef = useRef(false)
   const navSessionRef = useRef(false)
   const resolveMode = !!resolveKey
+  // Edit Order (LINX-10248): the same form reopened on an existing order —
+  // "Edit Order" chrome, Order Number + Customer locked (identity fields).
+  const editMode = !!draftKey && !resolveMode
 
   const status = useSectionStatus(control)
   const createOrderMutation = useCreateOrder()
@@ -96,11 +104,14 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
       if (cancelled) return
       if (draft) {
         reset(draft.values)
+        hydratedRef.current = draft.values
         setDraftId(draft.draftId)
         return
       }
       return getOrderView(draftKey).then((values) => {
-        if (!cancelled && values) reset(values)
+        if (cancelled || !values) return
+        reset(values)
+        hydratedRef.current = values
       })
     })
     return () => { cancelled = true }
@@ -335,7 +346,30 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
     return false
   }, [getValues])
 
+  // Editing an existing order has no draft lifecycle: Save (footer) and Save
+  // for Later (navbar) both write the order in place rather than minting a
+  // draft — saveDraft would create a second row (and 404 in live, which has no
+  // manual-order POST).
+  const saveEditInPlace = useCallback(async (thenNavigate) => {
+    if (!passesSaveGate()) return
+    setSavingEdit(true)
+    try {
+      await updateOrder(draftKey, getValues())
+    } catch (e) {
+      console.error(e)
+      setSavingEdit(false)
+      setSaveGateError("Couldn't save your changes. Please try again.")
+      return
+    }
+    queryClient.invalidateQueries({ queryKey: ['order-list'] })
+    queryClient.invalidateQueries({ queryKey: ['order-tab-counts'] })
+    if (thenNavigate) { navigate('/orders'); return }
+    setSavingEdit(false)
+    setSaveNotice(`Changes saved to order ${draftKey}.`)
+  }, [passesSaveGate, draftKey, getValues, queryClient, navigate])
+
   const handleSave = useCallback(() => {
+    if (editMode) { saveEditInPlace(false); return }
     if (!passesSaveGate()) return
     saveDraftMutation.mutate(
       { values: getValues(), draftId },
@@ -349,9 +383,10 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
         },
       },
     )
-  }, [passesSaveGate, saveDraftMutation, getValues, draftId])
+  }, [passesSaveGate, saveDraftMutation, getValues, draftId, editMode, saveEditInPlace])
 
   const handleSaveForLater = useCallback((onModalError) => {
+    if (editMode) { setModalOpen(false); saveEditInPlace(true); return }
     if (!passesSaveGate()) {
       setModalOpen(false) // surface the red alert in the form behind the modal
       return
@@ -389,17 +424,43 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
     navigate('/orders')
   }, [resolveKey, queryClient, navigate])
 
+  // ── Edit Order save (LINX-10248) ──
+  // The footer's primary opens a confirmation: Confirm & Save Changes writes the
+  // order in place and returns to the grid; Discard reverts the form to the
+  // version we hydrated (the AC's "previous version") and stays put.
+  const handleConfirmSaveChanges = useCallback(async () => {
+    setSavingEdit(true)
+    try {
+      await updateOrder(draftKey, getValues())
+    } catch (e) {
+      console.error(e)
+      setSavingEdit(false)
+      setConfirmSaveOpen(false)
+      setSaveGateError("Couldn't save your changes. Please try again.")
+      return
+    }
+    queryClient.invalidateQueries({ queryKey: ['order-list'] })
+    queryClient.invalidateQueries({ queryKey: ['order-tab-counts'] })
+    navigate('/orders')
+  }, [draftKey, getValues, queryClient, navigate])
+
+  const handleDiscardChanges = useCallback(() => {
+    if (hydratedRef.current) reset(hydratedRef.current)
+    setConfirmSaveOpen(false)
+  }, [reset])
+
   // ── Navbar contextual mode: register latest handlers via a ref ──
   const saveForLaterRef = useRef(handleSaveForLater)
   useEffect(() => { saveForLaterRef.current = handleSaveForLater })
   useEffect(() => {
     if (resolveMode) return // resolution keeps the normal navbar (no Save for Later / ✕)
     enterCreateOrderMode({
+      title: editMode ? 'Edit Order' : 'Create New Order',
       onSaveForLater: () => saveForLaterRef.current(),
       onClose: () => setModalOpen(true), // ✕ = same path as Cancel
     })
     return () => exitCreateOrderMode()
-  }, [enterCreateOrderMode, exitCreateOrderMode, resolveMode])
+  }, [enterCreateOrderMode, exitCreateOrderMode, resolveMode, editMode])
 
   // ── Submit ──
   const onSubmit = handleSubmit((values) => {
@@ -444,7 +505,7 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
         <nav className="co-breadcrumb" aria-label="Breadcrumb">
           <Breadcrumb label="Orders" onClick={() => navigate('/orders')} />
           <Breadcrumb
-            label={resolveMode ? 'Order Validation Error Resolution' : 'Create new order'}
+            label={resolveMode ? 'Order Validation Error Resolution' : editMode ? 'Edit order' : 'Create new order'}
             current
           />
         </nav>
@@ -466,7 +527,7 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
             <p className="text-label-sm-regular co-resolve-subheading">Order Number {resolveKey}</p>
           </>
         ) : (
-          <PageHeader title="Create New Order">
+          <PageHeader title={editMode ? 'Edit Order' : 'Create New Order'}>
             <Button
               variant="link"
               className="co-expand-toggle"
@@ -531,7 +592,7 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
               expanded={expanded.general}
               onToggle={toggle('general')}
             >
-              <GeneralInformationSection />
+              <GeneralInformationSection lockIdentity={editMode} />
             </Accordion>
           </div>
 
@@ -597,10 +658,33 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
         <StickyFooter
           onCancel={() => setModalOpen(true)}
           onSave={handleSave}
-          onCreate={onSubmit}
-          createDisabled={!formState.isValid || createOrderMutation.isPending}
+          onCreate={editMode ? () => setConfirmSaveOpen(true) : onSubmit}
+          primaryLabel={editMode ? 'Confirm & Save Changes' : 'Create Order'}
+          createDisabled={!formState.isValid || createOrderMutation.isPending || savingEdit}
           saving={saveDraftMutation.isPending}
         />
+      )}
+
+      {confirmSaveOpen && (
+        <ModalMedium
+          title="Confirm & Save Changes"
+          onClose={() => setConfirmSaveOpen(false)}
+          ariaLabel="Confirm and save changes"
+          footer={
+            <>
+              <Button variant="secondary" size="lg" onClick={handleDiscardChanges} disabled={savingEdit}>
+                Discard
+              </Button>
+              <Button variant="primary" size="lg" onClick={handleConfirmSaveChanges} disabled={savingEdit}>
+                {savingEdit ? 'Saving…' : 'Confirm & Save Changes'}
+              </Button>
+            </>
+          }
+        >
+          <p className="text-label-sm-regular">
+            Save your changes to order {draftKey}? Discard reverts the form to the previously saved version.
+          </p>
+        </ModalMedium>
       )}
 
       {purgeOpen && (

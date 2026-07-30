@@ -122,7 +122,7 @@ function ExampleBody({ onCollapse }) {
   const [confirmed, setConfirmed] = useState(false)
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-4)', maxWidth: 420 }}>
-      <FormField label="Required field" placeholder="Type anything to fill this section" value={value} onChange={(e) => setValue(e.target.value)} />
+      <FormField label="Required field" placeholder="Type Anything to Fill This Section" value={value} onChange={(e) => setValue(e.target.value)} />
       <Checkbox checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} label="I confirm this information is correct" />
       <div>
         <Button variant="secondary" size="sm" onClick={onCollapse}>Collapse section</Button>

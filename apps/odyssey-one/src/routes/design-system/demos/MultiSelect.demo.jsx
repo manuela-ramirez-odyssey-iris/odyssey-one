@@ -67,7 +67,7 @@ function Schematic() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-8)', background: 'var(--bg-secondary)', padding: 'var(--spacing-6)', borderRadius: 'var(--radius-md)', alignItems: 'flex-start' }}>
       <MultiSelect
         label="Special Services"
-        placeholder="Search a special service"
+        placeholder="Search a Special Service"
         options={OPTIONS}
         selected={['palexg', 'lftg']}
         onChange={() => {}}
@@ -104,7 +104,7 @@ function Playground() {
         <MultiSelect
           id="ds-multiselect-preview"
           label="Special Services"
-          placeholder="Search a special service"
+          placeholder="Search a Special Service"
           options={OPTIONS}
           selected={selected}
           onChange={setSelected}

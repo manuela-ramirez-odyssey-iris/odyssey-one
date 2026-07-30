@@ -134,7 +134,7 @@ export default function ProductGrid({ columnKeys, equipment, search, onOpenColum
           <Controller name={name} control={control} render={({ field, fieldState }) => (
             <ComboBox
               variant="select"
-              placeholder="Search or enter an ID"
+              placeholder="Search or Enter an ID"
               disabled={disabled}
               value={field.value}
               onChange={(text) => {

@@ -4,7 +4,7 @@ import { ComboBox, FieldSearchResults } from '@odyssey/ui'
 export const meta = {
   name: 'ComboBox',
   tier: 'organism',
-  version: '0.9.1',
+  version: '0.10.0',
   createdVersion: '0.2.0',
   figmaNode: '4715:6142',
   codeConnect: 'packages/ui/src/ComboBox.figma.tsx',
@@ -164,7 +164,7 @@ function SlotPlayground() {
           value={value}
           onChange={setValue}
           onClear={() => setValue('')}
-          placeholder="Search locations…"
+          placeholder="Search Locations…"
           showLabel={showLabel}
           label="Location"
           showInfoIcon={showInfoIcon}

@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { buildOrderListQuery, buildTabCountsQuery, buildOrderViewQuery, orderView, buildUpdateOrderStatusQuery, updateOrderStatus } from './orders.mjs'
+import { buildOrderListQuery, buildTabCountsQuery, buildOrderViewQuery, orderView, buildUpdateOrderStatusQuery, updateOrderStatus, buildUpdateOrderQuery, updateOrder } from './orders.mjs'
 
 test('order list: 1-based pagination (page 1 = offset 0)', () => {
   const q = buildOrderListQuery({ pagination: { pageNumber: 1, pageSize: 20 } })
@@ -92,4 +92,41 @@ test('update status: whitelist, missing key, missing row', async () => {
   await assert.rejects(() => updateOrderStatus({ body: { orderNumber: 'x', status: 'Cancelled' }, db: dbMiss }), (e) => e.status === 404)
   const dbHit = { query: async () => ({ rows: [{ order_number: 'x' }] }) }
   assert.deepEqual(await updateOrderStatus({ body: { orderNumber: 'x', status: 'Ready For Plan' }, db: dbHit }), { success: true })
+})
+
+test('update order: manual_order stored whole, grid projection re-derived', () => {
+  const mo = {
+    orderNumber: 'ORD-123', customerId: 'ACME_LOG_01',
+    shipDirectionCode: 'O', freightTermCode: 'P',
+    orderCarrierEquipDetailList: [{ equipmentCode: 'VAN' }],
+    originCity: 'Houston', originRegion: 'TX', originCountry: 'US',
+    destinationCity: 'Bastrop', destinationRegion: 'LA', destinationCountry: 'US',
+    requestedPickupDate: '2026-06-10T08:00:00', pickupAppointment: '',
+    grossWeightValue: 4300, grossWeightUomCode: 'lbs',
+    orderLines: [{ productDescription: 'Plastic', hazardous: true }],
+  }
+  const q = buildUpdateOrderQuery('ORD-123', mo)
+  assert.match(q.text, /UPDATE orders SET/)
+  assert.match(q.text, /last_edit_at = now\(\)/)
+  // identity columns are never written (order_number appears only in WHERE)
+  const setClause = q.text.split('WHERE')[0]
+  assert.doesNotMatch(setClause, /order_number =/)
+  assert.doesNotMatch(setClause, /\bcustomer =/)
+  assert.equal(JSON.parse(q.values[0]).customerId, 'ACME_LOG_01') // manual_order whole
+  assert.equal(q.values[3], 'VAN')                                 // equipment
+  assert.equal(JSON.parse(q.values[4]).city, 'Houston')            // consignor jsonb
+  assert.equal(q.values[8], 'Plastic')                             // commodity
+  assert.equal(q.values[9], true)                                  // hazardous derived from lines
+  assert.equal(q.values[q.values.length - 1], 'ORD-123')           // WHERE key
+  // blank timestamps must land as NULL, not an invalid cast
+  assert.match(q.text, /NULLIF\(\$18,''\)::timestamptz/)
+})
+
+test('update order: missing key / missing body / missing row', async () => {
+  await assert.rejects(() => updateOrder({ body: { manualOrder: {} }, db: null }), (e) => e.status === 400)
+  await assert.rejects(() => updateOrder({ body: { orderNumber: 'x' }, db: null }), (e) => e.status === 400)
+  const dbMiss = { query: async () => ({ rows: [] }) }
+  await assert.rejects(() => updateOrder({ body: { orderNumber: 'x', manualOrder: {} }, db: dbMiss }), (e) => e.status === 404)
+  const dbHit = { query: async () => ({ rows: [{ order_number: 'x' }] }) }
+  assert.deepEqual(await updateOrder({ body: { orderNumber: 'x', manualOrder: {} }, db: dbHit }), { success: true, orderNumber: 'x' })
 })

@@ -23,7 +23,7 @@ export default function SpecialServicesSection() {
         <MultiSelect
           id="co-special-services"
           label="Special Services"
-          placeholder="Search a special services"
+          placeholder="Search a Special Service"
           options={OPTIONS}
           disabled={locked}
           emptyTableMessage="No special services added"

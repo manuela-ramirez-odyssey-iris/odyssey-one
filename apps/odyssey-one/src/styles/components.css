@@ -553,7 +553,8 @@
    wired yet. */
 input[type="date"].odyssey-date-input {
   width: 100%;
-  padding: 8px 13px;
+  height: var(--field-height);
+  padding: 0 13px;
   background: var(--input-bg);
   border: 1px solid var(--input-border);
   border-radius: var(--radius-md);
@@ -709,8 +710,10 @@ input[type="date"].odyssey-date-input::-webkit-calendar-picker-indicator:hover {
   display: inline-flex;
   align-items: center;
   gap: var(--spacing-1);
-  /* 14px = off-scale component-internal padding (matches the Button raw 14). */
-  padding: var(--spacing-2) var(--spacing-3);
+  /* 14px = off-scale component-internal padding (matches the Button raw 14).
+     No vertical padding — the parent field owns the height and this stretches
+     into it; padding here used to force the field 2px taller (S102). */
+  padding: 0 var(--spacing-3);
   border: none;
   background: transparent;
   color: var(--text-tertiary);
@@ -1169,7 +1172,7 @@ input[type="date"].odyssey-date-input::-webkit-calendar-picker-indicator:hover {
 
 /* "All Customers" results header — breathing room from the search input above
    and the first result row below. */
-.search-field__results-header {
+.combo-box__results-header {
   padding: var(--spacing-2) 0 var(--spacing-1);
 }
 
@@ -3246,7 +3249,10 @@ button.breadcrumb__label:focus-visible {
   box-shadow: var(--shadow-2xl);
   width: auto;
   min-width: 350px;
-  max-width: 780px;
+  /* 920 (user, S102) — was 780; the Shipment Details 4-column field grid
+     (Figma 1348:16364) needs the room. Width is still content-driven, so
+     narrower modals are unaffected. */
+  max-width: 920px;
   height: auto;
   max-height: 90vh;
   display: flex;
@@ -3274,6 +3280,202 @@ button.breadcrumb__label:focus-visible {
 }
 
 .modal-medium__content--scroll { padding-bottom: 0; }
+
+/* ----------------------------------------
+   SHIPMENT DETAILS MODAL (app-local layout inside ModalMedium)
+   Figma 1348:16364 — four stacked sections, each a 4-column TitleSubtitle grid.
+   ---------------------------------------- */
+.shp-details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+}
+
+.shp-details__section-title {
+  display: block;
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-3);
+}
+
+.shp-details__grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  column-gap: var(--spacing-5);
+  row-gap: var(--spacing-6);
+}
+
+/* Error variant (Figma 1357:17184) — the shell + footer stay, the body swaps. */
+.shp-details__error {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  padding: var(--spacing-6) 0;
+  color: var(--text-primary);
+}
+
+.shp-details__error-link { color: var(--text-link); }
+
+/* ----------------------------------------
+   QUOTE MODAL (Tender: Add Quote / Rate Details / Edit Quote)
+   Figma 1175:39228 · 1408:21725 · 1408:23260 — sections of paired fields, then
+   the AP/AR summary cards. Rendered inside ModalMedium.
+   ---------------------------------------- */
+.quote-modal {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+}
+
+.quote-modal__section-title {
+  display: block;
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-3);
+}
+
+/* The date/time/timezone trios need the width the raised ModalMedium cap allows. */
+.quote-modal-shell { width: 920px; }
+
+.quote-modal__grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-3) var(--spacing-5);
+}
+
+.quote-modal__grid-2--gap { margin-top: var(--spacing-3); }
+
+/* Date + Time + Timezone trio (create-order recipe: one label over three controls). */
+.quote-datetime {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  min-width: 0;
+}
+
+.quote-datetime__label { color: var(--text-primary); }
+
+/* Date | (time + timezone) — two equal halves. The timezone is static text
+   (system-determined), so the TimePicker flexes into whatever the initials
+   don't take. */
+.quote-datetime__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--spacing-2);
+  align-items: start;
+}
+.quote-datetime__row > *,
+.quote-datetime__row .form-field,
+.quote-datetime__row .time-picker,
+.quote-datetime__row .date-picker--single {
+  min-width: 0;
+}
+
+.quote-datetime__time {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  min-width: 0;
+}
+.quote-datetime__time .time-picker {
+  flex: 1 1 0;
+  min-width: 0;
+}
+/* UTC offset only — short enough to never wrap, so it holds its width and the
+   TimePicker flexes into the rest. */
+.quote-datetime__tz {
+  flex: 0 0 auto;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.quote-modal__empty {
+  color: var(--text-tertiary);
+  text-align: center;
+  padding: var(--spacing-3) 0;
+}
+
+.quote-charges {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  margin-bottom: var(--spacing-3);
+}
+
+/* Code holds a 3-letter code + chevron and nothing else — 84px, not the mock's
+   100 (user, S102: the code fields read too wide). Description takes the slack;
+   amount keeps the mock's 164 for "1,234.56 USD ⌄". */
+.quote-charges__head,
+.quote-charges__row {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr) 164px;
+  gap: var(--spacing-3);
+  align-items: center;
+}
+
+.quote-charges__head { color: var(--text-tertiary); }
+
+.quote-charges__head:has(> :nth-child(4)),
+.quote-charges__row--editable {
+  grid-template-columns: 84px minmax(0, 1fr) 164px 24px;
+}
+
+/* Grid tracks only bind if the field internals can shrink below content width.
+   The desktop rule gives every .form-field / .combo-box a 150px min-width floor —
+   inside the 84px code track that overflowed and overlapped the neighbouring
+   column (S102). Same override the create-order triads use for the pickers. */
+.quote-charges__row > *,
+.quote-charges__row .combo-box,
+.quote-charges__row .form-field,
+.quote-charges__row .co-typeahead {
+  min-width: 0;
+}
+
+.quote-charges__remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--text-placeholder);
+  transition: color 0.15s ease;
+}
+
+.quote-charges__remove:hover { color: var(--badge-red-text); }
+
+.quote-summary {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.quote-summary__title { color: var(--text-primary); }
+
+.quote-summary__rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.quote-summary__row,
+.quote-summary__total {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+}
+
+.quote-summary__row { color: var(--text-secondary); }
+
+.quote-summary__total {
+  color: var(--text-primary);
+  border-top: 1px solid var(--border-subtle);
+  padding-top: var(--spacing-3);
+}
+
+.quote-summary__amount { font-variant-numeric: tabular-nums; }
 
 .modal-medium__footer {
   display: flex;
@@ -3638,11 +3840,33 @@ button.breadcrumb__label:focus-visible {
   color: var(--deep-sea-neutral-900);
 }
 
-/* Search-field results dropdown — appears below the input bar when a `results`
-   slot is passed. Bounded list with shadow. */
+/* ComboBox root — structurally identical to .form-field (column + 4px gap), so
+   label→field→helper spacing is owned in ONE place across both field families.
+   Was: inline flex + a marginBottom on the label wrapper + per-message margins
+   (S102 — the two components had drifted apart). */
+.combo-box {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  width: 100%;
+}
+/* Typeahead branch anchors its popover off the root. */
+.combo-box--relative { position: relative; }
+
+.combo-box__label-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+}
+.combo-box__label { color: var(--text-secondary); }
+
+/* Helper lines — spacing comes from the parent gap, never a local margin. */
+.combo-box__error { color: var(--text-error); margin: 0; }
+.combo-box__validated { color: var(--text-success); margin: 0; }
+
 /* Transparent passthrough — the results content (e.g. FieldSearchResults) carries its own
    card chrome (bg / radius / shadow). The slot just holds it below the input. */
-.search-field__results {
+.combo-box__results {
   display: contents;
 }
 
@@ -3801,6 +4025,14 @@ button.breadcrumb__label:focus-visible {
 .form-field__input {
   display: flex;
   align-items: stretch;
+  /* The field OWNS its height (border-box, so the 1px borders are inside it).
+     Height used to emerge from whichever child had the tallest padding box —
+     which is why variants disagreed: the plain control gave 38px and any
+     leading/trailing FieldSelect gave 38px too, while ComboBox's bar (which
+     hard-codes 36) sat next to them looking 2px shorter. Children now center
+     inside this box and contribute no vertical padding, so EVERY variant is
+     36px by construction (S102). */
+  height: var(--field-height);
   background: var(--white);
   border: 1px solid var(--deep-sea-neutral-300);
   border-radius: var(--radius-md);
@@ -3815,11 +4047,22 @@ button.breadcrumb__label:focus-visible {
 .form-field__control {
   display: flex;
   align-items: center;
-  gap: var(--spacing-2);
+  /* 4px between the input and its leading/trailing icons (user, S102 — was 8px) */
+  gap: var(--spacing-1);
   flex: 1 1 0;
   min-width: 0;
-  /* 13px = off-scale component-internal padding (carried forward). */
-  padding: var(--spacing-2) 13px;
+  /* 13px = off-scale component-internal padding (carried forward). No vertical
+     padding: .form-field__input fixes the height and align-items centers this. */
+  padding: 0 13px;
+}
+
+/* A chevron reads heavier than text at the same inset, so fields carrying one
+   pull their right padding to 10px for optical balance (user, S102). Matched on
+   the lucide class rather than a new prop — the chevron arrives through the
+   trailingIcon slot, so the field itself can't know it's there. */
+.form-field__control:has(.lucide-chevron-down),
+.form-field__control:has(.lucide-chevron-up) {
+  padding-right: 10px;
 }
 .form-field__field {
   flex: 1 1 0;
@@ -3865,7 +4108,7 @@ button.breadcrumb__label:focus-visible {
 .form-field--error .form-field__field::placeholder { color: var(--text-error); }
 .form-field--error .form-field__clear { color: var(--bittersweet-600); }
 /* ComboBox error state mirrors FormField's placeholder tint (2026-07-28) */
-.search-field--error input::placeholder { color: var(--text-error); }
+.combo-box--error input::placeholder { color: var(--text-error); }
 
 /* FieldSelect dividers track the field state (override the atom's CSS var). */
 .form-field__input:focus-within .field-select { --field-select-divider: var(--border-strong); }
@@ -3890,14 +4133,12 @@ button.breadcrumb__label:focus-visible {
 /* Typography via .text-label-xs-regular (applied in FormField.jsx). */
 .form-field__error {
   color: var(--text-error);
-  margin: 0;
-  margin-top: var(--spacing-1);
+  margin: 0; /* separation comes from .form-field's gap */
 }
 
 .form-field__validated {
   color: var(--text-success);
-  margin: 0;
-  margin-top: var(--spacing-1);
+  margin: 0; /* separation comes from .form-field's gap */
 }
 
 /* === AuthModal ===========================================================
@@ -4154,7 +4395,9 @@ button.breadcrumb__label:focus-visible {
 .shipments-filters__dropdown,
 .shipments-filters__input {
   width: 100%;
-  padding: 8px var(--spacing-3);
+  /* Height owned by the token, not derived from padding (S102). */
+  height: var(--field-height);
+  padding: 0 var(--spacing-3);
   border: 1px solid var(--input-border);
   border-radius: var(--radius-md);
   background: var(--bg-primary);
@@ -5967,9 +6210,14 @@ button.breadcrumb__label:focus-visible {
 .time-picker { width: 320px; } /* was inline on TimePicker.jsx — moved so the media rule below can win */
 @media (min-width: 1024px) {
   .form-field,
-  .search-field,
-  .time-picker {
+  .combo-box {
     min-width: 150px;
+    width: auto;
+  }
+  /* TimePicker holds "HH:MM" + a chevron and nothing else — 130px, not the
+     150px general field floor (user, S102). */
+  .time-picker {
+    min-width: 130px;
     width: auto;
   }
   .date-picker--single {

@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { buildCountsQuery, buildListQuery, buildDetailQuery, sellShipmentDetail } from './shipments.mjs'
+import { buildCountsQuery, buildListQuery, buildDetailQuery, sellShipmentDetail, saveTender } from './shipments.mjs'
 
 test('counts: panel only', () => {
   const q = buildCountsQuery({ panel: 'exceptions', customerIds: undefined })
@@ -90,4 +90,44 @@ test('detail handler: 404s on missing shipment, returns detail verbatim on hit',
   assert.deepEqual(await sellShipmentDetail({ params: ['1'], db: dbHit }), { shipmentId: 'x' })
   const dbMiss = { query: async () => ({ rows: [] }) }
   await assert.rejects(() => sellShipmentDetail({ params: ['1'], db: dbMiss }), (e) => e.status === 404)
+})
+
+test('detail: tenders table overrides the frozen shippingOptionList', async () => {
+  const db = {
+    query: async (q) => (q.text.includes('FROM shipments')
+      ? { rows: [{ detail: { sellShipment: '1', shippingOptionList: [{ rank: 1, scac: 'OLD' }] } }] }
+      : { rows: [{ option: { rank: 1, scac: 'NEW' } }, { option: { rank: 2, scac: 'ADDED' } }] }),
+  }
+  const detail = await sellShipmentDetail({ params: ['1'], db })
+  assert.deepEqual(detail.shippingOptionList.map(o => o.scac), ['NEW', 'ADDED'])
+})
+
+test('detail: empty tenders table falls back to the detail blob', async () => {
+  const db = {
+    query: async (q) => (q.text.includes('FROM shipments')
+      ? { rows: [{ detail: { shippingOptionList: [{ rank: 1, scac: 'SEED' }] } }] }
+      : { rows: [] }),
+  }
+  const detail = await sellShipmentDetail({ params: ['1'], db })
+  assert.deepEqual(detail.shippingOptionList.map(o => o.scac), ['SEED'])
+})
+
+test('saveTender: updates in place, inserts only when no row matched', async () => {
+  const seen = []
+  const dbHit = { query: async (q) => { seen.push(q.text); return { rows: [{ id: 7 }] } } }
+  assert.deepEqual(await saveTender({ params: ['1'], body: { option: { rank: 2, scac: 'JBHT' } }, db: dbHit }),
+    { success: true, rank: 2 })
+  assert.equal(seen.length, 1)
+  assert.match(seen[0], /UPDATE tenders/)
+
+  const inserted = []
+  const dbMiss = { query: async (q) => { inserted.push(q.text); return { rows: [] } } }
+  await saveTender({ params: ['1'], body: { option: { rank: 9, scac: 'ABFS' } }, db: dbMiss })
+  assert.equal(inserted.length, 2)
+  assert.match(inserted[1], /INSERT INTO tenders/)
+})
+
+test('saveTender: rejects a missing option or rank', async () => {
+  await assert.rejects(() => saveTender({ params: ['1'], body: {}, db: null }), (e) => e.status === 400)
+  await assert.rejects(() => saveTender({ params: ['1'], body: { option: { scac: 'X' } }, db: null }), (e) => e.status === 400)
 })

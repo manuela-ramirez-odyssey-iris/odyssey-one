@@ -127,6 +127,17 @@ export function buildDetailQuery(sellShipment) {
   return { text: 'SELECT detail FROM shipments WHERE sell_shipment = $1', values: [sellShipment] }
 }
 
+// Quotes/tenders live in their own table (seeded 1:1 from the detail's
+// shippingOptionList) so they can be written independently of the frozen detail
+// blob. The table is the source of truth on read — a saved quote shows up on the
+// next fetch instead of vanishing with the component's local state (S102).
+export function buildTendersQuery(sellShipment) {
+  return {
+    text: 'SELECT option FROM tenders WHERE shipment_sell_id = $1 ORDER BY rank',
+    values: [sellShipment],
+  }
+}
+
 export async function sellShipmentDetail({ params, db }) {
   const { rows } = await db.query(buildDetailQuery(params[0]))
   if (rows.length === 0) {
@@ -134,5 +145,52 @@ export async function sellShipmentDetail({ params, db }) {
     e.status = 404
     throw e
   }
-  return rows[0].detail
+  const detail = rows[0].detail
+  const { rows: tenders } = await db.query(buildTendersQuery(params[0]))
+  // No tender rows = pre-seed shipment; fall back to the blob rather than
+  // blanking the Tender tab. Rows without an option payload are ignored.
+  const options = tenders.map(t => t.option).filter(Boolean)
+  if (options.length > 0) detail.shippingOptionList = options
+  return detail
+}
+
+// PUT /shipment-service/v1/sell-shipment-out/:id/tender — add or update ONE
+// quote (Add Quote / Edit Quote / a tender-status action). Addressed by rank,
+// which is unique per shipment. ponytail: update-then-insert instead of an
+// ON CONFLICT upsert — no unique index to migrate onto the live table.
+export function buildTenderUpdateQuery(sellShipment, option) {
+  return {
+    text: `UPDATE tenders SET scac = $1, carrier_name = $2, status = $3, route_group = $4,
+             rate_amount = $5, option = $6
+           WHERE shipment_sell_id = $7 AND rank = $8 RETURNING id`,
+    values: [
+      option.scac ?? null, option.carrierName ?? null, option.status ?? null,
+      option.routeGroup ?? null, option.rateAmount ?? option.rateDetails?.baseRate ?? null,
+      JSON.stringify(option), sellShipment, option.rank,
+    ],
+  }
+}
+
+export function buildTenderInsertQuery(sellShipment, option) {
+  return {
+    text: `INSERT INTO tenders (shipment_sell_id, scac, carrier_name, status, route_group, rank, rate_amount, option)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+    values: [
+      sellShipment, option.scac ?? null, option.carrierName ?? null, option.status ?? null,
+      option.routeGroup ?? null, option.rank,
+      option.rateAmount ?? option.rateDetails?.baseRate ?? null, JSON.stringify(option),
+    ],
+  }
+}
+
+export async function saveTender({ params, body, db }) {
+  const sellShipment = params[0]
+  const option = body?.option
+  if (!option || typeof option !== 'object') {
+    const e = new Error('option required'); e.status = 400; throw e
+  }
+  if (option.rank == null) { const e = new Error('option.rank required'); e.status = 400; throw e }
+  const updated = await db.query(buildTenderUpdateQuery(sellShipment, option))
+  if (updated.rows.length === 0) await db.query(buildTenderInsertQuery(sellShipment, option))
+  return { success: true, rank: option.rank }
 }

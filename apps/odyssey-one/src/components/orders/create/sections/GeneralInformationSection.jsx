@@ -33,12 +33,15 @@ const REFERENCE_TYPE_OPTIONS = REFERENCE_TYPES.map((t) => ({ value: t, label: t 
  * text, Equipment Reference Number) + Add Instructions (Q19 description-only
  * rows).
  */
-export default function GeneralInformationSection() {
+export default function GeneralInformationSection({ lockIdentity = false }) {
   const { control, setValue, watch, getValues } = useFormContext()
   const resolve = useResolveMode()
   // Resolve mode locks EVERYTHING; resolveFieldProps re-enables pool fields
   // (spread last → its disabled:false wins).
   const locked = !!resolve
+  // Edit Order (LINX-10248): Order Number + Customer are identity — locked once
+  // the order exists. (Creation timestamp isn't a form field.)
+  const identityLocked = locked || lockIdentity
   const [isLongMode, setIsLongMode] = useState(false)
 
   const owningOrg = watch('general.owningOrganization')
@@ -113,8 +116,8 @@ export default function GeneralInformationSection() {
             variant="select"
             showLabel
             label="Customer *"
-            placeholder="Search an organization"
-            disabled={locked}
+            placeholder="Search an Organization"
+            disabled={identityLocked}
             value={field.value ? (owningOrgName || field.value) : ''}
             onChange={(text) => {
               // Typing invalidates the committed pick (and the org-scoped equipment)
@@ -147,7 +150,7 @@ export default function GeneralInformationSection() {
               id="co-general-orderNumber"
               label="Order Number"
               placeholder="Enter an ID"
-              disabled={locked}
+              disabled={identityLocked}
               value={field.value}
               error={fieldState.error?.message}
               onChange={(e) => field.onChange(e.target.value)}

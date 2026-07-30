@@ -4,7 +4,7 @@ import { ModalMedium, Button } from '@odyssey/ui'
 export const meta = {
   name: 'ModalMedium',
   tier: 'organism',
-  version: '0.9.0',
+  version: '0.10.0',
   createdVersion: '0.2.0',
   figmaNode: '2032:915',
   codeConnect: 'packages/ui/src/ModalMedium.figma.tsx',

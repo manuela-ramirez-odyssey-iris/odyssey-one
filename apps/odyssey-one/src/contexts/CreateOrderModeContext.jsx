@@ -9,10 +9,14 @@ const CreateOrderModeContext = createContext(null)
 // exits via its cleanup.
 export function CreateOrderModeProvider({ children }) {
   const [isCreateOrderMode, setIsCreateOrderMode] = useState(false)
+  // The navbar title is the mode's only per-entry copy — "Create New Order" or,
+  // reopening an existing order, "Edit Order" (LINX-10248).
+  const [title, setTitle] = useState('Create New Order')
   const handlersRef = useRef({ onSaveForLater: null, onClose: null })
 
-  const enterCreateOrderMode = useCallback(({ onSaveForLater, onClose } = {}) => {
+  const enterCreateOrderMode = useCallback(({ title: t, onSaveForLater, onClose } = {}) => {
     handlersRef.current = { onSaveForLater, onClose }
+    setTitle(t || 'Create New Order')
     setIsCreateOrderMode(true)
   }, [])
 
@@ -32,7 +36,7 @@ export function CreateOrderModeProvider({ children }) {
 
   return (
     <CreateOrderModeContext.Provider
-      value={{ isCreateOrderMode, enterCreateOrderMode, exitCreateOrderMode, saveForLater, close }}
+      value={{ isCreateOrderMode, createOrderTitle: title, enterCreateOrderMode, exitCreateOrderMode, saveForLater, close }}
     >
       {children}
     </CreateOrderModeContext.Provider>

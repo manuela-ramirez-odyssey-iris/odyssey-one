@@ -282,7 +282,7 @@ const DocumentsTab = React.memo(function DocumentsTab({ data }) {
             </div>
             <FormField
               label="Description"
-              placeholder="Enter description..."
+              placeholder="Enter Description..."
               value={formDesc}
               onChange={(e) => setFormDesc(e.target.value)}
             />

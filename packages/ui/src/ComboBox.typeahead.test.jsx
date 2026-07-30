@@ -282,9 +282,9 @@ describe('ComboBox — pick-only mode (typable={false})', () => {
     expect(input.getAttribute('aria-expanded')).toBe('true')
     // 2× ArrowDown over the UNFILTERED list lands on Banana (index 1) —
     // proves no filter applies (a filtered empty list would have no highlight)
-    fireEvent.keyDown(input.closest('.search-field'), { key: 'ArrowDown' })
-    fireEvent.keyDown(input.closest('.search-field'), { key: 'ArrowDown' })
-    fireEvent.keyDown(input.closest('.search-field'), { key: 'Enter' })
+    fireEvent.keyDown(input.closest('.combo-box'), { key: 'ArrowDown' })
+    fireEvent.keyDown(input.closest('.combo-box'), { key: 'ArrowDown' })
+    fireEvent.keyDown(input.closest('.combo-box'), { key: 'Enter' })
     expect(onSelect).toHaveBeenCalledWith('banana', expect.objectContaining({ value: 'banana' }))
   })
 
@@ -324,20 +324,20 @@ describe('ComboBox — error / validated states', () => {
       <ComboBox variant="select" options={['A']} onSelect={() => {}} validated />,
     )
     expect(getByText('Validated')).toBeTruthy()
-    expect(container.querySelector('.search-field--validated')).toBeTruthy()
+    expect(container.querySelector('.combo-box--validated')).toBeTruthy()
     const bar = container.querySelector('input').parentElement
     expect(bar.style.border).toContain('var(--border-success)')
     rerender(
       <ComboBox variant="select" options={['A']} onSelect={() => {}} validated error="Invalid Data" />,
     )
-    expect(container.querySelector('.search-field--validated')).toBeNull()
+    expect(container.querySelector('.combo-box--validated')).toBeNull()
     expect(container.textContent).not.toContain('Validated')
     expect(container.textContent).toContain('Invalid Data')
   })
 
   test('plain mode (no label, no options) carries the validated state class', () => {
     const { container } = render(<ComboBox value="" onChange={() => {}} validated />)
-    expect(container.querySelector('.search-field--validated')).toBeTruthy()
+    expect(container.querySelector('.combo-box--validated')).toBeTruthy()
   })
 
   test('labeled slot mode renders the error message and carries the error state class', () => {
@@ -345,7 +345,7 @@ describe('ComboBox — error / validated states', () => {
       <ComboBox showLabel label="Location" value="" onChange={() => {}} error="Invalid Data" />,
     )
     expect(getByText('Invalid Data')).toBeTruthy()
-    expect(container.querySelector('.search-field--error')).toBeTruthy()
+    expect(container.querySelector('.combo-box--error')).toBeTruthy()
   })
 
   test('required renders the label marker + aria-required', () => {

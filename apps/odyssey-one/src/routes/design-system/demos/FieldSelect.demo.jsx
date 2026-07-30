@@ -4,10 +4,11 @@ import { FieldSelect, useAnchoredPortal } from '@odyssey/ui'
 export const meta = {
   name: 'FieldSelect',
   tier: 'atom',
-  version: '0.2.0',
+  version: '0.10.0',
   createdVersion: '0.2.0',
   figmaNode: '2627:153',
   codeConnect: 'packages/ui/src/FieldSelect.figma.tsx',
+  normalizing: false,
 }
 
 export const props = [

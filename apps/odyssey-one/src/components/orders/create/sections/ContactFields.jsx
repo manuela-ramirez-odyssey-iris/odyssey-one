@@ -18,7 +18,7 @@ export default function ContactFields({ basePath }) {
   // Derive a stable id prefix from the basePath
   const idPrefix = `co-${basePath.replace(/\./g, '-')}`
 
-  const field = (name, label, placeholder, type = 'text') => (
+  const field = (name, label, placeholder, type = 'text', format = 'text') => (
     <Controller
       name={`${basePath}.${name}`}
       control={control}
@@ -28,6 +28,7 @@ export default function ContactFields({ basePath }) {
           label={label}
           placeholder={placeholder}
           type={type}
+          format={format}
           value={f.value}
           disabled={locked}
           onChange={(e) => f.onChange(e.target.value)}
@@ -41,7 +42,7 @@ export default function ContactFields({ basePath }) {
   return (
     <div className="co-contact-grid">
       {field('contactName', 'Contact Name', 'e.g., Nick Strauss')}
-      {field('contactPhone', 'Phone Number', '+1 (765) 670-4444')}
+      {field('contactPhone', 'Phone Number', '+1 (765) 670-4444', 'text', 'phone')}
       {field('contactEmail', 'Email Address', 'name@company.com', 'email')}
     </div>
   )

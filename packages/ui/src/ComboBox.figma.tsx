@@ -17,7 +17,7 @@ figma.connect(
       label: figma.string('Label'),
       showInfoIcon: figma.boolean('Show info icon'),
       // `Content` SLOT (gated by the `Show results` boolean) → the `results` dropdown slot.
-      // Typically a <FieldSearchResults>; the shell chrome lives on .search-field__results.
+      // Typically a <FieldSearchResults>; the shell chrome lives on .combo-box__results.
       results: figma.instance('Content'),
       // State axis (S99 error/validated + S101 disabled). Focused states are
       // runtime-only in code (:focus-within) — no prop mapping.

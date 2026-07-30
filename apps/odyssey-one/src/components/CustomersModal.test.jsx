@@ -207,7 +207,7 @@ describe('search mode (results list open)', () => {
     expect(screen.getByText('All Customers')).toBeTruthy()
   })
 
-  test('search-field label, footer, and header back chevron swap with the mode', () => {
+  test('ComboBox label, footer, and header back chevron swap with the mode', () => {
     setup()
     // Default mode: static title, "Search more customers" label, Cancel/Save
     // footer, no back chevron (ModalHeader back renders on onBack presence).

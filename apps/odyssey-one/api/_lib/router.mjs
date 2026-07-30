@@ -1,6 +1,6 @@
 // api/_lib/router.mjs — path table for the OdysseyONE-shaped endpoints.
-import { categoryCounts, shipmentErrorList, sellShipmentDetail } from './shipments.mjs'
-import { orderList, orderTabCounts, orderView, updateOrderStatus } from './orders.mjs'
+import { categoryCounts, shipmentErrorList, sellShipmentDetail, saveTender } from './shipments.mjs'
+import { orderList, orderTabCounts, orderView, updateOrder, updateOrderStatus } from './orders.mjs'
 import { getPreference, putPreference } from './preferences.mjs'
 
 // Exact `path` match, or `pattern` (RegExp) whose capture groups become handler params.
@@ -10,7 +10,9 @@ export const ROUTES = [
   { name: 'orderList',         method: 'POST', path: '/order-service/v3/order/list',                       handler: orderList },
   { name: 'orderTabCounts',    method: 'GET',  path: '/order-service/v3/order/tab-counts',                 handler: orderTabCounts },
   { name: 'sellShipmentDetail', method: 'GET', pattern: /^\/shipment-service\/v1\/sell-shipment-out\/(\d+)$/, handler: sellShipmentDetail },
+  { name: 'saveTender',        method: 'PUT',  pattern: /^\/shipment-service\/v1\/sell-shipment-out\/(\d+)\/tender$/, handler: saveTender },
   { name: 'orderView',         method: 'POST', path: '/order-service/v3/order/view',                        handler: orderView },
+  { name: 'updateOrder',       method: 'PUT',  path: '/order-service/v3/order',                             handler: updateOrder },
   { name: 'updateOrderStatus', method: 'PATCH', path: '/order-service/v3/order/status',                     handler: updateOrderStatus },
   { name: 'getPreference',     method: 'GET',  path: '/user-service/v1/preference',                         handler: getPreference },
   { name: 'putPreference',     method: 'PUT',  path: '/user-service/v1/preference',                         handler: putPreference },

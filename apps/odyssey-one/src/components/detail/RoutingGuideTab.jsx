@@ -1,8 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { TruckElectric, Columns3Cog, X, Trash2, FoldHorizontal, UnfoldHorizontal } from 'lucide-react'
+import { TruckElectric, Columns3Cog, X, Trash2, Plus, FoldHorizontal, UnfoldHorizontal } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
-import { Button, Tab } from '@odyssey/ui'
+import { Button, ComboBox, FormField, ModalMedium, Tab, TimePicker } from '@odyssey/ui'
+import MeasureField from '../orders/create/fields/MeasureField.jsx'
+import DateField from '../orders/create/fields/DateField.jsx'
+import { TIMEZONE_LABELS } from '../../data/master-data'
+import { getLookupOptions } from '../../api/services/lookupService'
+import { saveTenderOption } from '../../api/services/shipmentService'
 import { parseDollar, fmtDollar } from '../../utils/money'
 
 /* ═══════════════════════════════════════════════════════════
@@ -142,23 +147,10 @@ const stickyLastCol = {
   boxShadow: '-2px 0 4px rgba(0,0,0,0.06)',
 }
 
-const CARRIERS = [
-  { scac: 'SEFL', name: 'SOUTHEASTERN FREIGHT LINES' },
-  { scac: 'ODFL', name: 'OLD DOMINION FREIGHT LINE' },
-  { scac: 'XPOL', name: 'XPO LOGISTICS' },
-  { scac: 'EXLA', name: 'ESTES EXPRESS LINES' },
-  { scac: 'SAIA', name: 'SAIA INC' },
-  { scac: 'CTNS', name: 'CONTINENTAL TRANSPORTATION' },
-  { scac: 'JBHT', name: 'J.B. HUNT TRANSPORT' },
-  { scac: 'SNLU', name: 'SCHNEIDER NATIONAL' },
-  { scac: 'USFC', name: 'USF CORPORATION' },
-  { scac: 'FXFE', name: 'FEDEX FREIGHT ECONOMY' },
-  { scac: 'UPGF', name: 'UPS FREIGHT' },
-  { scac: 'RLCA', name: 'R+L CARRIERS' },
-  { scac: 'ABFS', name: 'ABF FREIGHT SYSTEM' },
-  { scac: 'CNWY', name: 'CONWAY FREIGHT' },
-  { scac: 'WARD', name: 'WARD TRUCKING' },
-]
+// Carriers come from the shared lookup (`getLookupOptions('carrier')`) — the
+// local 15-row copy that used to live here was a duplicate of master-data's 51.
+
+const DASH = '--' // LINX-13590 — empty optional values read '--'
 
 const CHARGE_CODES = [
   { code: 'THC', description: 'Terminal Handling Charge' },
@@ -238,14 +230,139 @@ function StatusBadge({ status }) {
    Section 4b — QuoteModal
    ═══════════════════════════════════════════════════════════ */
 
-function QuoteModal({ mode, carrierData, onSave, onClose }) {
+// QuoteModal — one modal, three modes (Figma: Add Quote 1175:39228 · Rate
+// Details 1408:21725 · Edit Quote 1408:23260). Same anatomy in all three:
+// ModalMedium shell → Carrier / Rate / Additional Charges sections → AP + AR
+// summary cards → Cancel · Save Quote footer (view has NO footer — read-only).
+// `view` renders everything disabled; `edit` locks the carrier identity (SCAC).
+//
+// Field components follow the create-order canon (S102 audit): dates are the
+// normalized DatePicker + time/timezone selects, not a masked free-text field;
+// SCAC is the shared paged carrier lookup, not a local 15-row copy.
+const CHARGE_CODE_OPTIONS = CHARGE_CODES.map(c => ({ value: c.code, label: c.code }))
+const CURRENCY_OPTIONS = [
+  { value: 'USD', label: 'USD' },
+  { value: 'CAD', label: 'CAD' },
+  { value: 'EUR', label: 'EUR' },
+]
+
+const CARRIER_PAGE_SIZE = 25
+const loadCarriers = async (q, skip = 0) => {
+  if (q.trim().length === 1) return { options: [], total: 0 } // 2-char typing gate (LINX-8118)
+  const all = await getLookupOptions('carrier', q)
+  return { options: all.slice(skip, skip + CARRIER_PAGE_SIZE), total: all.length }
+}
+
+// Timezone shown beside the time as its UTC offset only — "(UTC-06:00)". The
+// full TIMEZONE_LABELS string starved the TimePicker in a half-width column,
+// and the bare initials read too terse (user, S102).
+export const tzOffset = (tz) => {
+  const m = /^\((UTC[^)]*)\)/.exec(TIMEZONE_LABELS[tz] ?? '')
+  return m ? `(${m[1]})` : tz
+}
+
+// Quote timestamps ride as one display string ("01/07/2026 09:00 CST") through
+// the routing-option DTO. The form edits the three parts separately.
+export function splitDateTime(s) {
+  const m = /^(\d{2}\/\d{2}\/\d{4})?\s*(\d{1,2}:\d{2})?\s*([A-Z]{3,4})?/.exec(String(s ?? '').trim())
+  if (!m) return { date: '', time: '', tz: 'CST' }
+  return { date: m[1] ?? '', time: m[2] ? m[2].padStart(5, '0') : '', tz: m[3] ?? 'CST' }
+}
+export function joinDateTime({ date, time, tz }) {
+  if (!date) return ''
+  return [date, time, time ? tz : ''].filter(Boolean).join(' ')
+}
+
+function SummaryCard({ title, rows, total }) {
+  return (
+    <div className="quote-summary">
+      <div className="text-label-sm-semibold quote-summary__title">{title}</div>
+      <div className="quote-summary__rows">
+        {rows.map(([label, value], i) => (
+          <div key={`${label}-${i}`} className="quote-summary__row text-label-sm-regular">
+            <span>{label}</span>
+            <span className="quote-summary__amount">{fmtDollar(value)}</span>
+          </div>
+        ))}
+      </div>
+      <div className="quote-summary__total text-label-sm-medium">
+        <span>Total</span>
+        <span className="quote-summary__amount">{fmtDollar(total)}</span>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Date + Time. NO timezone CONTROL — the timezone is SYSTEM-determined from the
+ * shipment (user, S102); it renders as static initials beside the time and rides
+ * back out through joinDateTime.
+ *
+ * `readOnly` (Rate Details) collapses the whole thing to ONE blocked field
+ * showing the composed "MM/DD/YYYY HH:MM CST" — nothing to edit, so nothing is
+ * split into parts.
+ *
+ * Editable: date takes 1fr; time + the timezone label share the other 1fr, with
+ * the TimePicker flexing to fill whatever the initials don't use.
+ */
+function DateTimePair({ idPrefix, label, value, onChange, disabled, readOnly }) {
+  if (readOnly) {
+    return (
+      <FormField
+        id={`${idPrefix}-composed`}
+        label={label}
+        value={joinDateTime(value) || DASH}
+        disabled
+      />
+    )
+  }
+  return (
+    <div className="quote-datetime">
+      <span className="text-label-sm-medium quote-datetime__label">{label}</span>
+      <div className="quote-datetime__row">
+        <DateField
+          id={`${idPrefix}-date`}
+          value={value.date}
+          onChange={(date) => onChange({ ...value, date })}
+          disabled={disabled}
+        />
+        <div className="quote-datetime__time">
+          <TimePicker
+            id={`${idPrefix}-time`}
+            format="international"
+            value={value.time}
+            onChange={(time) => onChange({ ...value, time })}
+            disabled={disabled}
+          />
+          <span className="quote-datetime__tz text-label-sm-regular">
+            {tzOffset(value.tz)}
+          </span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export function QuoteModal({ mode, carrierData, shipmentTz, onSave, onClose }) {
   const isView = mode === 'view'
   const isEdit = mode === 'edit'
 
   const [scac, setScac] = useState(() => carrierData?.scac || '')
   const [carrierName, setCarrierName] = useState(() => carrierData?.carrierName || '')
-  const [pickupDateTime, setPickupDateTime] = useState(() => carrierData?.pickupDateTime || '')
-  const [deliveryDateTime, setDeliveryDateTime] = useState(() => carrierData?.deliveryDateTime || '')
+  // Timezone is the shipment's, not the user's: prefer the quote's own stored
+  // TZ, else the one every other option on this shipment carries.
+  const tzFor = (own, fallback) => {
+    const v = own && own !== DASH ? own : fallback
+    return v && v !== DASH ? v : 'CST'
+  }
+  const [pickup, setPickup] = useState(() => ({
+    ...splitDateTime(carrierData?.pickupDateTime),
+    tz: tzFor(carrierData?.pickupTZ, shipmentTz?.pickup),
+  }))
+  const [delivery, setDelivery] = useState(() => ({
+    ...splitDateTime(carrierData?.deliveryDateTime),
+    tz: tzFor(carrierData?.deliveryTZ, shipmentTz?.delivery),
+  }))
   const [baseRate, setBaseRate] = useState(() => carrierData?.rateDetails?.baseRate ?? '')
   const [currency, setCurrency] = useState(() => carrierData?.rateDetails?.currency || 'USD')
   const [markup, setMarkup] = useState(() => carrierData?.rateDetails?.markup ?? '')
@@ -254,44 +371,36 @@ function QuoteModal({ mode, carrierData, onSave, onClose }) {
     carrierData?.rateDetails?.additionalCharges?.map(c => ({ ...c })) || [],
   )
 
-  const handleKeyDown = useCallback(
-    (e) => { if (e.key === 'Escape') onClose() },
-    [onClose],
-  )
-
-  useEffect(() => {
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [handleKeyDown])
-
-  const handleScacChange = (val) => {
-    setScac(val)
-    const found = CARRIERS.find(c => c.scac === val)
-    setCarrierName(found ? found.name : '')
+  // The lookup labels read "SCAC - Carrier Name"; the field shows the code only
+  // (mock) and the name lands in its own derived field.
+  const handleScacSelect = (val, opt) => {
+    setScac(val ?? '')
+    const label = opt?.label ?? ''
+    const dash = label.indexOf(' - ')
+    setCarrierName(dash >= 0 ? label.slice(dash + 3) : '')
   }
 
   const addChargeRow = () => {
     setAdditionalCharges(prev => [...prev, { code: '', description: '', amount: '', currency: 'USD' }])
   }
 
-  const updateCharge = (idx, field, value) => {
-    setAdditionalCharges(prev => prev.map((c, i) => {
-      if (i !== idx) return c
-      if (field === 'code') {
-        const found = CHARGE_CODES.find(cc => cc.code === value)
-        return { ...c, code: value, description: found ? found.description : '' }
-      }
-      return { ...c, [field]: field === 'amount' ? (value === '' ? '' : Number(value)) : value }
-    }))
+  const updateCharge = (idx, patch) => {
+    setAdditionalCharges(prev => prev.map((c, i) => (i === idx ? { ...c, ...patch } : c)))
+  }
+
+  const setChargeCode = (idx, code) => {
+    const found = CHARGE_CODES.find(cc => cc.code === code)
+    updateCharge(idx, { code: code ?? '', description: found ? found.description : '' })
   }
 
   const removeCharge = (idx) => {
     setAdditionalCharges(prev => prev.filter((_, i) => i !== idx))
   }
 
-  // Derived totals
+  // Derived totals — AP pays base + charges, AR bills that plus the markup.
   const numBase = Number(baseRate) || 0
   const numMarkup = Number(markup) || 0
+  const codedCharges = additionalCharges.filter(c => c.code)
   const chargeTotal = additionalCharges.reduce((s, c) => s + (Number(c.amount) || 0), 0)
   const apTotal = Math.round((numBase + chargeTotal) * 100) / 100
   const arTotal = Math.round((numBase + numMarkup + chargeTotal) * 100) / 100
@@ -300,353 +409,174 @@ function QuoteModal({ mode, carrierData, onSave, onClose }) {
     onSave({
       scac,
       carrierName,
-      pickupDateTime,
-      deliveryDateTime,
+      pickupDateTime: joinDateTime(pickup),
+      deliveryDateTime: joinDateTime(delivery),
       rateDetails: {
         baseRate: numBase,
         currency,
         markup: numMarkup,
-        additionalCharges: additionalCharges.filter(c => c.code),
+        // Fields hold raw text; numbers are produced here, once.
+        additionalCharges: codedCharges.map((c) => ({ ...c, amount: Number(c.amount) || 0 })),
         apTotal,
         arTotal,
       },
     })
   }
 
-  const title = mode === 'add' ? 'Add Quote' : mode === 'edit' ? 'Edit Quote' : 'Rate Details'
-
-  const inputStyle = {
-    width: '100%',
-    padding: '6px 8px',
-    fontSize: 13,
-    fontFamily: 'var(--font-primary)',
-    background: isView ? 'var(--bg-tertiary)' : 'var(--bg-primary)',
-    border: '1px solid var(--border-subtle)',
-    borderRadius: 'var(--radius-sm)',
-    color: 'var(--text-primary)',
-    outline: 'none',
-  }
-
-  const labelStyle = {
-    fontSize: 11,
-    fontWeight: 600,
-    color: 'var(--text-tertiary)',
-    textTransform: 'uppercase',
-    letterSpacing: '0.03em',
-    marginBottom: 4,
-  }
+  const title = mode === 'add' ? 'Add Quote' : isEdit ? 'Edit Quote' : 'Rate Details'
+  const chargeRows = codedCharges.map(c => [c.code, Number(c.amount) || 0])
 
   return createPortal(
-    <div
-      onClick={onClose}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0,0,0,0.4)',
-        backdropFilter: 'blur(4px)',
-        zIndex: 9999,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
+    <ModalMedium
+      title={title}
+      onClose={onClose}
+      ariaLabel={title}
+      className="quote-modal-shell"
+      /* Rate Details is read-only — no footer at all (user, S102). The mock
+         carries Cancel/Save there because it reuses the same ModalMedium
+         instance; the header X is the only exit. */
+      footer={isView ? null : (
+        <>
+          <Button variant="secondary" size="lg" onClick={onClose}>Cancel</Button>
+          <Button variant="primary" size="lg" onClick={handleSave} disabled={!scac || !baseRate}>
+            Save Quote
+          </Button>
+        </>
+      )}
     >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width: '90vw',
-          maxWidth: 720,
-          maxHeight: '85vh',
-          overflow: 'auto',
-          background: 'var(--bg-primary)',
-          borderRadius: 'var(--radius-md)',
-          border: '1px solid var(--border-subtle)',
-          boxShadow: 'var(--shadow-lg)',
-        }}
-      >
-        {/* Header */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '12px 16px',
-          borderBottom: '1px solid var(--border-subtle)',
-          position: 'sticky',
-          top: 0,
-          background: 'var(--bg-primary)',
-          zIndex: 1,
-        }}>
-          <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{title}</span>
-          <button
-            onClick={onClose}
-            style={{ color: 'var(--text-placeholder)', padding: 0, background: 'transparent', border: 'none', cursor: 'pointer', transition: 'color 0.15s ease' }}
-            onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
-            onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-placeholder)'}
-          >
-            <X size={18} />
-          </button>
-        </div>
-
-        <div style={{ padding: '16px' }}>
-          {/* Carrier Section */}
-          <SectionHeader>Carrier</SectionHeader>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-            <div>
-              <div style={labelStyle}>SCAC</div>
-              <select
-                value={scac}
-                onChange={(e) => handleScacChange(e.target.value)}
-                disabled={isView || isEdit}
-                style={{ ...inputStyle, cursor: (isView || isEdit) ? 'default' : 'pointer' }}
-              >
-                <option value="">Select SCAC...</option>
-                {CARRIERS.map(c => (
-                  <option key={c.scac} value={c.scac}>{c.scac}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <div style={labelStyle}>Carrier Name</div>
-              <input
-                type="text"
-                value={carrierName}
-                disabled
-                style={{ ...inputStyle, background: 'var(--bg-tertiary)' }}
-              />
-            </div>
-            <div>
-              <div style={labelStyle}>Pickup Date/Time</div>
-              <input
-                type="text"
-                value={pickupDateTime}
-                onChange={(e) => setPickupDateTime(e.target.value)}
-                disabled={isView}
-                placeholder="MM/DD/YYYY HH:MM CST"
-                style={inputStyle}
-              />
-            </div>
-            <div>
-              <div style={labelStyle}>Delivery Date/Time</div>
-              <input
-                type="text"
-                value={deliveryDateTime}
-                onChange={(e) => setDeliveryDateTime(e.target.value)}
-                disabled={isView}
-                placeholder="MM/DD/YYYY HH:MM CST"
-                style={inputStyle}
-              />
-            </div>
+      <div className="quote-modal">
+        <section>
+          <h3 className="text-label-base-semibold quote-modal__section-title">Carrier</h3>
+          <div className="quote-modal__grid-2">
+            <ComboBox
+              id="quote-scac"
+              variant="select"
+              showLabel
+              label="SCAC"
+              placeholder="Select SCAC"
+              loadOptions={loadCarriers}
+              value={scac}
+              onChange={(text) => { if (scac && text !== scac) { setScac(''); setCarrierName('') } }}
+              onSelect={handleScacSelect}
+              emptyMessage={(q) => (q.trim().length === 1 ? 'Type at least 2 characters' : 'No matches')}
+              disabled={isView || isEdit}
+            />
+            {/* Carrier Name is always derived from the SCAC — never typed. */}
+            <FormField label="Carrier Name" value={carrierName} disabled />
           </div>
-
-          {/* Rate Section */}
-          <SectionHeader>Rate</SectionHeader>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr auto', gap: 12, marginBottom: 16, alignItems: 'end' }}>
-            <div>
-              <div style={labelStyle}>Base Rate *</div>
-              <input
-                type="number"
-                value={baseRate}
-                onChange={(e) => setBaseRate(e.target.value === '' ? '' : Number(e.target.value))}
-                disabled={isView}
-                style={inputStyle}
-                min="0"
-                step="0.01"
-              />
-            </div>
-            <div>
-              <div style={labelStyle}>Currency</div>
-              <select value={currency} onChange={(e) => setCurrency(e.target.value)} disabled={isView} style={{ ...inputStyle, width: 80 }}>
-                <option value="USD">USD</option>
-                <option value="CAD">CAD</option>
-                <option value="EUR">EUR</option>
-              </select>
-            </div>
-            <div>
-              <div style={labelStyle}>Markup</div>
-              <input
-                type="number"
-                value={markup}
-                onChange={(e) => setMarkup(e.target.value === '' ? '' : Number(e.target.value))}
-                disabled={isView}
-                style={inputStyle}
-                min="0"
-                step="0.01"
-              />
-            </div>
-            <div>
-              <div style={labelStyle}>Currency</div>
-              <select value={markupCurrency} onChange={(e) => setMarkupCurrency(e.target.value)} disabled={isView} style={{ ...inputStyle, width: 80 }}>
-                <option value="USD">USD</option>
-                <option value="CAD">CAD</option>
-                <option value="EUR">EUR</option>
-              </select>
-            </div>
+          <div className="quote-modal__grid-2 quote-modal__grid-2--gap">
+            <DateTimePair
+              idPrefix="quote-pickup"
+              label="Pickup Date/Time"
+              value={pickup}
+              onChange={setPickup}
+              disabled={isView}
+              readOnly={isView}
+            />
+            <DateTimePair
+              idPrefix="quote-delivery"
+              label="Delivery Date/Time"
+              value={delivery}
+              onChange={setDelivery}
+              disabled={isView}
+              readOnly={isView}
+            />
           </div>
+        </section>
 
-          {/* Additional Charges */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-            <SectionHeader>Additional Charges</SectionHeader>
-            {!isView && (
-              <button
-                onClick={addChargeRow}
-                style={{
-                  padding: '4px 10px',
-                  fontSize: 12,
-                  fontWeight: 600,
-                  fontFamily: 'var(--font-primary)',
-                  background: 'var(--btn-secondary-bg)',
-                  border: '1px solid var(--btn-secondary-border)',
-                  borderRadius: 'var(--radius-sm)',
-                  color: 'var(--btn-secondary-text)',
-                  cursor: 'pointer',
-                }}
-              >
-                + Add Row
-              </button>
-            )}
+        <section>
+          <h3 className="text-label-base-semibold quote-modal__section-title">Rate</h3>
+          <div className="quote-modal__grid-2">
+            <MeasureField
+              showLabel
+              label="Base Rate"
+              decimals={2}
+              value={{ value: baseRate, uom: currency }}
+              options={CURRENCY_OPTIONS}
+              onChange={(v) => { setBaseRate(v.value); setCurrency(v.uom) }}
+              disabled={isView}
+            />
+            <MeasureField
+              showLabel
+              label="Markup"
+              decimals={2}
+              value={{ value: markup, uom: markupCurrency }}
+              options={CURRENCY_OPTIONS}
+              onChange={(v) => { setMarkup(v.value); setMarkupCurrency(v.uom) }}
+              disabled={isView}
+            />
           </div>
+        </section>
 
-          {additionalCharges.length > 0 && (
-            <div style={{ marginBottom: 16 }}>
-              {/* Charge table header */}
-              <div style={{ display: 'grid', gridTemplateColumns: '100px 1fr 100px 80px 32px', gap: 8, marginBottom: 4 }}>
-                <div style={labelStyle}>Code</div>
-                <div style={labelStyle}>Description</div>
-                <div style={labelStyle}>Amount</div>
-                <div style={labelStyle}>Currency</div>
-                <div />
+        <section>
+          <h3 className="text-label-base-semibold quote-modal__section-title">Additional Charges</h3>
+          {additionalCharges.length === 0 ? (
+            <p className="text-label-sm-regular quote-modal__empty">No additional charges.</p>
+          ) : (
+            <div className="quote-charges">
+              <div className="quote-charges__head text-label-xs-medium-uppercase">
+                <span>Code</span>
+                <span>Description</span>
+                <span>Amount</span>
+                {!isView && <span />}
               </div>
               {additionalCharges.map((charge, idx) => (
-                <div key={idx} style={{ display: 'grid', gridTemplateColumns: '100px 1fr 100px 80px 32px', gap: 8, marginBottom: 6, alignItems: 'center' }}>
-                  <select
+                <div key={idx} className={`quote-charges__row${isView ? '' : ' quote-charges__row--editable'}`}>
+                  <ComboBox
+                    variant="select"
+                    typable={false}
+                    showLabel={false}
+                    placeholder="--"
+                    options={CHARGE_CODE_OPTIONS}
                     value={charge.code}
-                    onChange={(e) => updateCharge(idx, 'code', e.target.value)}
+                    onSelect={(v) => setChargeCode(idx, v)}
                     disabled={isView}
-                    style={{ ...inputStyle, padding: '4px 6px' }}
-                  >
-                    <option value="">--</option>
-                    {CHARGE_CODES.map(cc => (
-                      <option key={cc.code} value={cc.code}>{cc.code}</option>
-                    ))}
-                  </select>
-                  <input
-                    type="text"
-                    value={charge.description}
-                    disabled
-                    style={{ ...inputStyle, padding: '4px 6px', background: 'var(--bg-tertiary)' }}
                   />
-                  <input
-                    type="number"
-                    value={charge.amount}
-                    onChange={(e) => updateCharge(idx, 'amount', e.target.value)}
+                  <FormField showLabel={false} value={charge.description} disabled />
+                  <MeasureField
+                    decimals={2}
+                    value={{ value: charge.amount, uom: charge.currency }}
+                    options={CURRENCY_OPTIONS}
+                    onChange={(v) => updateCharge(idx, { amount: v.value, currency: v.uom })}
                     disabled={isView}
-                    style={{ ...inputStyle, padding: '4px 6px' }}
-                    min="0"
-                    step="0.01"
                   />
-                  <select
-                    value={charge.currency}
-                    onChange={(e) => updateCharge(idx, 'currency', e.target.value)}
-                    disabled={isView}
-                    style={{ ...inputStyle, padding: '4px 6px' }}
-                  >
-                    <option value="USD">USD</option>
-                    <option value="CAD">CAD</option>
-                    <option value="EUR">EUR</option>
-                  </select>
-                  {!isView ? (
+                  {/* Plain icon affordance, never a Button (row-action convention).
+                      NOTE: the mocks show no delete — flagged for Efrain. */}
+                  {!isView && (
                     <button
+                      type="button"
+                      className="quote-charges__remove"
+                      aria-label={`Remove charge ${idx + 1}`}
                       onClick={() => removeCharge(idx)}
-                      style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-placeholder)', padding: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                      onMouseEnter={(e) => e.currentTarget.style.color = 'var(--badge-red-text)'}
-                      onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-placeholder)'}
                     >
-                      <Trash2 size={14} />
+                      <Trash2 size={20} aria-hidden="true" />
                     </button>
-                  ) : <div />}
+                  )}
                 </div>
               ))}
             </div>
           )}
-
-          {additionalCharges.length === 0 && (
-            <div style={{ fontSize: 13, color: 'var(--text-placeholder)', marginBottom: 16 }}>
-              No additional charges.
-            </div>
-          )}
-
-          {/* Summary Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
-            {/* AP Card */}
-            <div style={{
-              background: 'var(--bg-secondary)',
-              border: '1px solid var(--border-subtle)',
-              borderRadius: 'var(--radius-md)',
-              padding: '12px 14px',
-            }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8 }}>
-                AP Summary
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--text-secondary)', marginBottom: 4 }}>
-                <span>Base Rate</span>
-                <span style={{ fontVariantNumeric: 'tabular-nums' }}>{fmtDollar(numBase)}</span>
-              </div>
-              {additionalCharges.filter(c => c.code).map((c, i) => (
-                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--text-secondary)', marginBottom: 4 }}>
-                  <span>{c.code}</span>
-                  <span style={{ fontVariantNumeric: 'tabular-nums' }}>{fmtDollar(c.amount || 0)}</span>
-                </div>
-              ))}
-              <div style={{ borderTop: '1px solid var(--border-subtle)', marginTop: 6, paddingTop: 6, display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
-                <span>Total</span>
-                <span style={{ fontVariantNumeric: 'tabular-nums' }}>{fmtDollar(apTotal)}</span>
-              </div>
-            </div>
-
-            {/* AR Card */}
-            <div style={{
-              background: 'var(--bg-secondary)',
-              border: '1px solid var(--border-subtle)',
-              borderRadius: 'var(--radius-md)',
-              padding: '12px 14px',
-            }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8 }}>
-                AR Summary
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--text-secondary)', marginBottom: 4 }}>
-                <span>Base Rate</span>
-                <span style={{ fontVariantNumeric: 'tabular-nums' }}>{fmtDollar(numBase)}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--text-secondary)', marginBottom: 4 }}>
-                <span>Markup</span>
-                <span style={{ fontVariantNumeric: 'tabular-nums' }}>{fmtDollar(numMarkup)}</span>
-              </div>
-              {additionalCharges.filter(c => c.code).map((c, i) => (
-                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--text-secondary)', marginBottom: 4 }}>
-                  <span>{c.code}</span>
-                  <span style={{ fontVariantNumeric: 'tabular-nums' }}>{fmtDollar(c.amount || 0)}</span>
-                </div>
-              ))}
-              <div style={{ borderTop: '1px solid var(--border-subtle)', marginTop: 6, paddingTop: 6, display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
-                <span>Total</span>
-                <span style={{ fontVariantNumeric: 'tabular-nums' }}>{fmtDollar(arTotal)}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Footer buttons */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, paddingTop: 8 }}>
-            <Button variant="secondary" onClick={onClose}>
-              {isView ? 'Close' : 'Cancel'}
+          {!isView && (
+            <Button variant="link" icon={<Plus size={16} />} onClick={addChargeRow}>
+              Add Row
             </Button>
-            {!isView && (
-              <Button variant="primary" onClick={handleSave} disabled={!scac || !baseRate}>
-                Save Quote
-              </Button>
-            )}
-          </div>
+          )}
+        </section>
+
+        <div className="quote-modal__grid-2">
+          <SummaryCard
+            title="AP Summary"
+            rows={[['Base Rate', numBase], ...chargeRows]}
+            total={apTotal}
+          />
+          <SummaryCard
+            title="AR Summary"
+            rows={[['Base Rate', numBase], ['Markup', numMarkup], ...chargeRows]}
+            total={arTotal}
+          />
         </div>
       </div>
-    </div>,
+    </ModalMedium>,
     document.body,
   )
 }
@@ -1219,10 +1149,20 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
   }, [activeSubTab, handleCollapse])
 
 
+  // Quotes are durable: every add / edit / tender-status change writes the option
+  // back to the shipment's `tenders` rows, so it survives a reload instead of
+  // living only in this component's state (S102). Optimistic — the local update
+  // lands immediately and a failed write is logged, not rolled back.
+  const persistTender = useCallback((option) => {
+    const id = shipment?.sellShipment
+    if (!id || !option) return
+    saveTenderOption(id, option).catch((e) => console.error('tender save failed', e))
+  }, [shipment])
+
   const handleQuoteSave = useCallback((formData) => {
     if (quoteModal.mode === 'add') {
-      setOptions((prev) => {
-        const maxRank = prev.reduce((m, o) => Math.max(m, o.rank), 0)
+      {
+        const maxRank = options.reduce((m, o) => Math.max(m, o.rank), 0)
         const newOption = {
           rank: maxRank + 1,
           routeRank: maxRank + 1,
@@ -1282,24 +1222,27 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
           pickupOrgDay: '--',
           deliveryOrgHours: '--',
         }
-        return [...prev, newOption]
-      })
+        setOptions((prev) => [...prev, newOption])
+        persistTender(newOption)
+      }
     } else if (quoteModal.mode === 'edit') {
-      setOptions((prev) =>
-        prev.map((opt) => {
-          if (opt.rank !== quoteModal.carrierData.rank) return opt
-          return {
-            ...opt,
-            pickupDateTime: formData.pickupDateTime || opt.pickupDateTime,
-            deliveryDateTime: formData.deliveryDateTime || opt.deliveryDateTime,
-            cost: `$${formData.rateDetails.apTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD`,
-            rateDetails: formData.rateDetails,
-          }
-        }),
-      )
+      const target = options.find((o) => o.rank === quoteModal.carrierData.rank)
+      if (target) {
+        const updated = {
+          ...target,
+          scac: formData.scac || target.scac,
+          carrierName: formData.carrierName || target.carrierName,
+          pickupDateTime: formData.pickupDateTime || target.pickupDateTime,
+          deliveryDateTime: formData.deliveryDateTime || target.deliveryDateTime,
+          cost: `$${formData.rateDetails.apTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD`,
+          rateDetails: formData.rateDetails,
+        }
+        setOptions((prev) => prev.map((opt) => (opt.rank === updated.rank ? updated : opt)))
+        persistTender(updated)
+      }
     }
     setQuoteModal({ isOpen: false, mode: 'add', carrierData: null })
-  }, [quoteModal])
+  }, [quoteModal, options, persistTender])
 
   const handleAction = useCallback((rank, action) => {
     if (action === 'ShowRateDetails') {
@@ -1316,27 +1259,37 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
       return
     }
 
-    setOptions((prev) => {
-      let updated = prev.map((opt) =>
-        opt.rank === rank ? { ...opt, status: STATUS_AFTER_ACTION[action] || opt.status } : opt,
-      )
+    let updated = options.map((opt) =>
+      opt.rank === rank ? { ...opt, status: STATUS_AFTER_ACTION[action] || opt.status } : opt,
+    )
+    const touched = [rank]
 
-      /* CASCADE: on Decline or Cancel, auto-tender next null-status carrier by rank ascending */
-      if (action === 'Decline' || action === 'Cancel') {
-        const sortedByRank = [...updated].sort((a, b) => a.rank - b.rank)
-        const nextNull = sortedByRank.find((opt) => opt.status === null || opt.status === undefined)
-        if (nextNull) {
-          updated = updated.map((opt) =>
-            opt.rank === nextNull.rank ? { ...opt, status: 'Sent' } : opt,
-          )
-        }
+    /* CASCADE: on Decline or Cancel, auto-tender next null-status carrier by rank ascending */
+    if (action === 'Decline' || action === 'Cancel') {
+      const sortedByRank = [...updated].sort((a, b) => a.rank - b.rank)
+      const nextNull = sortedByRank.find((opt) => opt.status === null || opt.status === undefined)
+      if (nextNull) {
+        updated = updated.map((opt) =>
+          opt.rank === nextNull.rank ? { ...opt, status: 'Sent' } : opt,
+        )
+        touched.push(nextNull.rank)
       }
+    }
 
-      return updated
-    })
+    setOptions(updated)
+    // The cascade changes TWO rows — persist both, not just the clicked one.
+    touched.forEach((r) => persistTender(updated.find((o) => o.rank === r)))
 
     setOpenMenuRank(null)
-  }, [options])
+  }, [options, persistTender])
+
+  // Every option on a shipment shares its pickup/delivery timezone — take the
+  // first one that actually carries a value as the shipment's TZ, so a NEW quote
+  // (no carrierData) still gets the right one.
+  const shipmentTz = {
+    pickup: options.find((o) => o.pickupTZ && o.pickupTZ !== DASH)?.pickupTZ,
+    delivery: options.find((o) => o.deliveryTZ && o.deliveryTZ !== DASH)?.deliveryTZ,
+  }
 
   const activeTabColumns = TAB_COLUMNS[activeSubTab] || []
 
@@ -1362,8 +1315,13 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
             ))}
           </div>
           <div className="tender-pane__tab-actions">
-            <Button variant="primary" onClick={() => setQuoteModal({ isOpen: true, mode: 'add', carrierData: null })}>
-              + Add Quote
+            <Button
+              variant="primary"
+              size="sm"
+              icon={<Plus size={16} />}
+              onClick={() => setQuoteModal({ isOpen: true, mode: 'add', carrierData: null })}
+            >
+              Add Quote
             </Button>
           </div>
         </div>
@@ -1397,6 +1355,7 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
         <QuoteModal
           mode={quoteModal.mode}
           carrierData={quoteModal.carrierData}
+          shipmentTz={shipmentTz}
           onSave={handleQuoteSave}
           onClose={() => setQuoteModal({ isOpen: false, mode: 'add', carrierData: null })}
         />

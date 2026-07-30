@@ -280,7 +280,7 @@ export default function DesignSystem() {
                 value={query}
                 onChange={setQuery}
                 onClear={() => setQuery('')}
-                placeholder="Search components"
+                placeholder="Search Components"
                 showLabel={false}
               />
             </div>

@@ -231,10 +231,18 @@
   --spacing-12: 48px;
 
   /* --- Layout Dimensions --- */
+  /* Single-line form-control height (FormField / ComboBox / DatePicker /
+     TimePicker / FieldSelect). Border-box — the 1px borders live inside it.
+     NOTE: local addition (S102), not yet in the Figma variable snapshot —
+     propose to Efrain on the next token pass. */
+  --field-height: 36px;
   --navbar-height: 64px;
   --sidebar-width: 64px;
   --bottombar-collapsed: 48px;
-  --bottombar-partial: 60dvh; /* the bar's middle (partial) expansion height — S82 three-state bar */
+  /* the bar's middle (partial) expansion height — S82 three-state bar. This is
+     the stage consumers open to on selection, so it IS the default open height.
+     +50px over the original 60dvh (user, S102: +57 then −7). */
+  --bottombar-partial: calc(60dvh + 50px);
   --bottombar-top-clearance: 104px; /* bar's max opening: top edge never rises above this (mid page-title row — S79c decision 1) */
   --edit-panel-width: 240px;
   --right-panel-width: 343px;

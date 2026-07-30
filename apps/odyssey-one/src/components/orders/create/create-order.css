@@ -175,7 +175,7 @@
 }
 
 /* Location search ComboBox fills its party column (Figma 5920:18351) */
-.co-party .search-field {
+.co-party .combo-box {
   width: 100%;
 }
 
@@ -408,6 +408,8 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   /* columns stretch equal height so the separator spans the block */
+  /* 18px = off-scale, sits between --spacing-4 and --spacing-5 (user, S102) */
+  margin-top: 18px;
 }
 
 .co-planning-grid > .co-planning-col:first-child {
@@ -442,7 +444,8 @@
 /* Date / Time / Time Zone — three equal columns (fix capture) */
 .co-triad {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  /* Date | Time — the Time Zone column was removed (system-determined, S102) */
+  grid-template-columns: 1fr 1fr;
   gap: var(--spacing-3);
   align-items: start;
 }

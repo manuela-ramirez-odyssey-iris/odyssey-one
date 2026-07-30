@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, test, expect } from 'vitest'
-import { render } from '@testing-library/react'
-import FormField from './FormField.jsx'
+import { render, fireEvent } from '@testing-library/react'
+import FormField, { applyFormat } from './FormField.jsx'
 
 describe('FormField char counter', () => {
   test('renders and counts when showCounter + maxLength (basic variant)', () => {
@@ -105,5 +105,36 @@ describe('FormField validated', () => {
     expect(container.querySelector('.form-field__validated')).toBeNull()
     expect(container.querySelector('.form-field--error')).toBeTruthy()
     expect(container.querySelector('.form-field__error').textContent).toBe('Missing Mandatory')
+  })
+})
+
+describe('FormField format (input content policy)', () => {
+  test('decimal drops letters and keeps only the first dot', () => {
+    expect(applyFormat('12ab.3', 'decimal')).toBe('12.3')
+    expect(applyFormat('1.2.3', 'decimal')).toBe('1.23')
+    expect(applyFormat('abc', 'decimal')).toBe('')
+  })
+
+  test('integer drops dots and letters; phone keeps dialling punctuation', () => {
+    expect(applyFormat('12.9x', 'integer')).toBe('129')
+    expect(applyFormat('+1 (713) 555-0134', 'phone')).toBe('+1 (713) 555-0134')
+    expect(applyFormat('+1abc713', 'phone')).toBe('+1713')
+  })
+
+  test('text is untouched, unknown formats pass through', () => {
+    expect(applyFormat('ACME Corp.', 'text')).toBe('ACME Corp.')
+    expect(applyFormat('ACME Corp.', 'nope')).toBe('ACME Corp.')
+  })
+
+  // The bug this closes: a rejected character never reaches the value, so the
+  // field can't get wedged (Number('abc') → NaN → every keystroke re-parses NaN).
+  test('a typed letter never reaches onChange in a decimal field', () => {
+    const seen = []
+    const { container } = render(
+      <FormField label="Amount" format="decimal" value="" onChange={(e) => seen.push(e.target.value)} />,
+    )
+    const input = container.querySelector('input')
+    fireEvent.change(input, { target: { value: '12a' } })
+    expect(seen).toEqual(['12'])
   })
 })

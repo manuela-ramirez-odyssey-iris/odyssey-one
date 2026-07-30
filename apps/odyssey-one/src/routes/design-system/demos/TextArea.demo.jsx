@@ -57,7 +57,7 @@ function Schematic() {
       <div style={{ flex: '1 1 420px', minWidth: 340 }}>
         <TextArea
           label="Description"
-          placeholder="Enter a description…"
+          placeholder="Enter a Description…"
           value=""
           onChange={() => {}}
           maxLength={200}
@@ -107,7 +107,7 @@ function Playground() {
           label="Special instructions"
           showLabel={showLabel}
           showInfo
-          placeholder="Enter special instructions…"
+          placeholder="Enter Special Instructions…"
           value={value}
           onChange={(e) => setValue(e.target.value)}
           maxLength={withMax ? 200 : undefined}
