@@ -4,7 +4,7 @@
 // only the create flow needs (ship classes, special services,
 // carriers, timezones, UoMs) are defined here. `frequency` drives the
 // LINX-7553 frequency sort in lookupService; values are PROVISIONAL fakes.
-import { CUSTOMERS, EXTRA_CUSTOMERS, LOCATIONS, EQUIPMENT_CODES, EQUIPMENT_LABELS, CHEMICAL_PRODUCTS, locationIdFor, FREIGHT_TERMS, SHIP_DIRECTIONS, freightTermLabel, shipDirectionLabel, SHIP_CLASSES, SHIP_CLASS_CODES, shipClassLabel, PRODUCT_CLASSES, HANDLING_UNITS, CITY_TIMEZONES, deriveTimezone } from '../../tools/data-pools.mjs'
+import { CUSTOMERS, EXTRA_CUSTOMERS, LOCATIONS, EQUIPMENT_CODES, EQUIPMENT_LABELS, CHEMICAL_PRODUCTS, locationIdFor, FREIGHT_TERMS, SHIP_DIRECTIONS, freightTermLabel, shipDirectionLabel, SHIP_CLASSES, SHIP_CLASS_CODES, shipClassLabel, PRODUCT_CLASSES, HANDLING_UNITS, CITY_TIMEZONES, deriveTimezone, tzAbbrev } from '../../tools/data-pools.mjs'
 
 export { CUSTOMERS, EXTRA_CUSTOMERS, LOCATIONS, EQUIPMENT_CODES, EQUIPMENT_LABELS, CHEMICAL_PRODUCTS, FREIGHT_TERMS, SHIP_DIRECTIONS, freightTermLabel, shipDirectionLabel, SHIP_CLASSES, SHIP_CLASS_CODES, shipClassLabel, PRODUCT_CLASSES, HANDLING_UNITS }
 
@@ -152,7 +152,7 @@ export const TIMEZONE_LABELS = {
 }
 // CITY_TIMEZONES / deriveTimezone now live in tools/data-pools.mjs (single
 // source shared with the generator) and are re-exported from the import above.
-export { CITY_TIMEZONES, deriveTimezone }
+export { CITY_TIMEZONES, deriveTimezone, tzAbbrev }
 
 // ── Location addresses (org-address typeahead; hydrates the manual grid) ──
 // locationId comes from the SHARED data-pools formula (locationIdFor), so

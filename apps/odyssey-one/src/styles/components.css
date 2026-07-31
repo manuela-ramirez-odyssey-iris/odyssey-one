@@ -3283,12 +3283,24 @@ button.breadcrumb__label:focus-visible {
 
 /* ----------------------------------------
    SHIPMENT DETAILS MODAL (app-local layout inside ModalMedium)
-   Figma 1348:16364 — four stacked sections, each a 4-column TitleSubtitle grid.
+   Information model per the 2026-07-30 annotated spec (see
+   vault/10-domains/shipments/shipment-details-modal-spec-2026-07-30.md):
+   SummaryStrip header + stacked sections, each a 4-column TitleSubtitle grid.
+   Supersedes the S102 four-section model (Figma 1348:16364).
    ---------------------------------------- */
 .shp-details {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-8);
+  /* ModalMedium is content-sized, so each tab would resize the dialog. Pin the
+     content box to the 920px cap minus its 24px side padding, and the modal
+     keeps ONE width across tab switches. */
+  width: 872px;
+  max-width: 100%;
+  /* Breathing room under the last section when the body scrolls — the shell's
+     own 20px bottom padding reads as cramped against a scrolled edge. Scoped
+     here, NOT on .modal-medium__content, so other modals are unaffected. */
+  padding-bottom: var(--spacing-8);
 }
 
 .shp-details__section-title {
@@ -3300,6 +3312,61 @@ button.breadcrumb__label:focus-visible {
 .shp-details__grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
+  column-gap: var(--spacing-5);
+  row-gap: var(--spacing-6);
+}
+
+/* Tab row over the identifiers strip — CostAllocationTab layout. The row's
+   bottom hairline touches the strip directly: gap 0, no margin between them.
+   Tabs lead, the Routing Query action trails; the hairline spans both, so it
+   lives on the ROW rather than on the tab group. */
+.shp-details__topbar {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.shp-details__tabrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-4);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.shp-details__tabrow > .shp-details__tabs { flex: 1; min-width: 0; }
+
+/* Customer Reference Values — order in column 1, its reference fields flowing
+   through the remaining 3 columns and wrapping downward (user, 2026-07-30).
+   Sparse: orders with no references show '--'. */
+.shp-details__orders {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-5);
+}
+
+.shp-details__order {
+  display: grid;
+  grid-template-columns: 1fr 3fr;
+  column-gap: var(--spacing-5);
+  align-items: start;
+}
+
+.shp-details__order-id { color: var(--text-tertiary); }
+
+/* A stop can serve several orders — the links wrap within their own cell
+   instead of running into the next column. */
+.shp-details__stop-orders {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: var(--spacing-3);
+  row-gap: var(--spacing-1);
+  min-width: 0;
+}
+
+.shp-details__order-refs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   column-gap: var(--spacing-5);
   row-gap: var(--spacing-6);
 }
@@ -5894,7 +5961,12 @@ button.breadcrumb__label:focus-visible {
 
 .odyssey-group-table__table {
   width: 100%;
-  border-collapse: collapse;
+  /* separate (not collapse): Chrome refuses to paint box-shadow on cells in
+     collapsed tables, so the pinned action column's left shadow vanished. Same
+     fix DataTable already carries (see .odyssey-table). With only bottom
+     borders per cell, separate + 0 spacing renders identically. */
+  border-collapse: separate;
+  border-spacing: 0;
 }
 
 /* Column header row — dark semibold labels (Figma: Text/primary), hairline
@@ -6030,6 +6102,92 @@ button.breadcrumb__label:focus-visible {
 /* Column alignment (columns[].align) — header + cells */
 .odyssey-group-table .odyssey-group-table__cell--right  { text-align: right; }
 .odyssey-group-table .odyssey-group-table__cell--center { text-align: center; }
+
+/* ── Nested-table flavor (`detailColumns`) — Figma GroupTableGroup
+   `Content=Nested table` (4824:739) ──────────────────────────────────────────
+   An expanded group reveals a SECOND, INDEPENDENT table instead of child rows
+   sharing the outer columns. The vertical alternative to two tables side by
+   side. Read `.odyssey-group-table--nested .odyssey-group-table__group-row` as
+   a DATA ROW, not a header: the chevron just happens to live in its lead cell,
+   and the table's own <thead> is its header. */
+
+/* Lead cell drops to regular data weight — in this flavor it carries a value,
+   not a group id. (Rows flavor keeps the medium/semibold group-header look.) */
+.odyssey-group-table--nested .odyssey-group-table__group-toggle {
+  font-weight: var(--font-weight-regular);
+}
+
+/* The gray band hosting the nested table. 48px LEFT inset only — the indent is
+   what marks the second table as subordinate; a matching right inset would just
+   cut the nested table short of the scroll extent (the Figma master carries a
+   symmetric 48px because a static mock has no scroll to run out of). */
+.odyssey-group-table__detail-row > td {
+  padding: 0 0 0 48px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.odyssey-group-table__detail {
+  width: 100%;
+  border-collapse: collapse;
+  background: transparent; /* the band owns the gray */
+}
+
+/* Nested header row — same treatment as the outer column header (Figma clones
+   Cell/Variant=Head here), just over the gray band. */
+.odyssey-group-table__detail th {
+  height: 48px;
+  padding: 0 var(--spacing-4);
+  vertical-align: middle;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  text-align: left;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.odyssey-group-table__detail td {
+  height: 48px;
+  padding: 0 var(--spacing-4);
+  vertical-align: middle;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+  font-weight: var(--font-weight-regular);
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+.odyssey-group-table__detail tbody tr:not(:last-child) td {
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+/* ── Pinned action column (`stickyActions`) — Figma `Show Actions` +
+   `Action` slot. Same convention DataTable uses for its right-sticky column,
+   so the two tables behave identically when a page carries both. */
+.odyssey-group-table .odyssey-group-table__cell--sticky-right {
+  position: sticky;
+  right: 0;
+  z-index: 1;
+  width: 68px;
+  min-width: 68px;
+  padding: 0;
+  text-align: center;
+  background: var(--bg-primary);
+  /* Same left shadow DataTable's sticky-right column uses (raw rgba there too),
+     so a pinned action column reads identically wherever it appears. Replaces
+     the hairline the Figma master draws — a shadow is what actually signals
+     "content scrolls under this". */
+  box-shadow: -2px 0 4px rgba(0, 0, 0, 0.06);
+}
+/* Child rows keep their gray band under the pinned cell rather than punching a
+   white hole through it. */
+.odyssey-group-table__row > td.odyssey-group-table__cell--sticky-right {
+  background: var(--bg-secondary);
+}
+.odyssey-group-table--flat .odyssey-group-table__row > td.odyssey-group-table__cell--sticky-right {
+  background: var(--bg-primary);
+}
 
 /* === CalendarPicker (molecule) — Figma 4422:711, normalizing S83 ===========
    Single-month date/date-range picker. 284px fixed-width card; month header

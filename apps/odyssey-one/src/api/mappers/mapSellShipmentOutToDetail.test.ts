@@ -413,6 +413,30 @@ describe('mapSellShipmentOutToDetail', () => {
       expect(order.apCost).toBe('--')
       expect(order.apBase).toBe('--')
     })
+
+    // Jana, 2026-07-30: "Shipment direct cost comes from orders' direct costs —
+    // it is the sum of all orders' direct cost." Direct cost is the cost of one
+    // order travelling point A → point B, so the shipment has no direct cost of
+    // its own; the wire carries no shipment-level field either.
+    it('sums order direct costs into the shipment-level rollup', () => {
+      const dto: SellShipmentOut = {
+        ...sellShipmentOutSample,
+        orderList: [
+          { orderId: 'ORD-1', cost: { directCostAmount: 1483.5 } },
+          { orderId: 'ORD-2', cost: { directCostAmount: 1082.36 } },
+        ],
+      }
+      expect(mapSellShipmentOutToDetail(dto).costData.planned.summary.directCost)
+        .toBe('$2,565.86')
+    })
+
+    it('leaves direct cost as "--" when no order carries one', () => {
+      const dto: SellShipmentOut = {
+        ...sellShipmentOutSample,
+        orderList: [{ orderId: 'ORD-1' }, { orderId: 'ORD-2' }],
+      }
+      expect(mapSellShipmentOutToDetail(dto).costData.planned.summary.directCost).toBe('--')
+    })
   })
 
   describe('instructionsData', () => {

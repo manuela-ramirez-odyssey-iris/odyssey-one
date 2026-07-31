@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { ChevronDown, ChevronUp, MapPin, Plus } from 'lucide-react'
 import { Controller, useFormContext, useWatch } from 'react-hook-form'
 import { Alert, Button, Checkbox, ComboBox, Radio, TimePicker } from '@odyssey/ui'
@@ -8,7 +8,7 @@ import ContactFields from './ContactFields.jsx'
 import { useResolveMode } from '../../resolve/ResolveModeContext.jsx'
 import { getPastDateWarnings } from '../schema'
 import { getLookupOptions } from '../../../../api/services/lookupService'
-import { deriveTimezone } from '../../../../data/master-data'
+import { deriveTimezone, tzAbbrev } from '../../../../data/master-data'
 
 // Location search: server lookup (org-address master data) → ComboBox
 // variant='search' (magnifier face per Figma 5920:18351); paged 25/request,
@@ -268,25 +268,39 @@ export default function PickupDeliverySection() {
 
   // TZ auto-derive (spec §10): pickup TZs from the consignor city, delivery
   // TZs from the consignee city — only when the field is still empty.
-  useEffect(() => {
-    const tz = deriveTimezone(consignorCity)
-    if (!tz) return
-    for (const key of ['earlyPickup', 'latePickup']) {
-      if (!getValues(`pickupDelivery.${key}.timezone`)) {
-        setValue(`pickupDelivery.${key}.timezone`, tz, { shouldValidate: true })
-      }
-    }
-  }, [consignorCity, getValues, setValue])
+  //
+  // The ORDER wire wants an abbreviation (the paired field is `*TimeZoneCode`),
+  // not the IANA id — unlike shipment/tracking stops, which store IANA (TR-04).
+  // So derive the zone from the city, then resolve it against THAT field's own
+  // date, which is what makes it DST-correct: a July pickup in Houston is CDT,
+  // the same city in January is CST. `deriveTimezone` used to return a fixed
+  // code and got this wrong half the year.
+  const codeFor = useCallback((city, key) => {
+    const zone = deriveTimezone(city)
+    if (!zone) return ''
+    const raw = getValues(`pickupDelivery.${key}.date`) // MM/DD/YYYY
+    const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(raw ?? '')
+    const when = m ? new Date(Number(m[3]), Number(m[1]) - 1, Number(m[2])) : new Date()
+    return tzAbbrev(zone, when)
+  }, [getValues])
 
   useEffect(() => {
-    const tz = deriveTimezone(consigneeCity)
-    if (!tz) return
-    for (const key of ['earlyDelivery', 'lateDelivery']) {
-      if (!getValues(`pickupDelivery.${key}.timezone`)) {
+    for (const key of ['earlyPickup', 'latePickup']) {
+      const tz = codeFor(consignorCity, key)
+      if (tz && !getValues(`pickupDelivery.${key}.timezone`)) {
         setValue(`pickupDelivery.${key}.timezone`, tz, { shouldValidate: true })
       }
     }
-  }, [consigneeCity, getValues, setValue])
+  }, [consignorCity, codeFor, getValues, setValue])
+
+  useEffect(() => {
+    for (const key of ['earlyDelivery', 'lateDelivery']) {
+      const tz = codeFor(consigneeCity, key)
+      if (tz && !getValues(`pickupDelivery.${key}.timezone`)) {
+        setValue(`pickupDelivery.${key}.timezone`, tz, { shouldValidate: true })
+      }
+    }
+  }, [consigneeCity, codeFor, getValues, setValue])
 
   return (
     <div className="co-section-body">

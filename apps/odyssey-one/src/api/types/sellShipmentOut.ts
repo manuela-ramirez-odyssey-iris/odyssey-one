@@ -113,6 +113,9 @@ export interface SellShipmentOrder {
   volumeUomCode?: string
   orderLines?: SellShipmentOrderLine[]
   instructionList?: SellShipmentInstruction[]
+  /* Customer-supplied extras, order-scoped and SPARSE — not a fixed schema.
+     Often external in origin (CSV drop / email), so no domain guarantees. */
+  userDefinedFieldList?: { name: string; value: string }[]
   cost?: SellShipmentOrderCost
 }
 

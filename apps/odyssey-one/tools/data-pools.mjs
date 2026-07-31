@@ -205,16 +205,47 @@ export const HANDLING_UNITS = [
 // A shipment's timezone is the CONTEXT the user reads times in, and it comes
 // from the stop's city — never from the carrier (user ruling, S102). Lives here
 // so the generator and the app read ONE map.
+/* City → IANA zone. IANA is the STORED form (the real Tracking payload carries
+   `"timeZone": "America/New_York"` — see vault/10-domains/tracking, TR-04);
+   the 3-letter abbreviation is DERIVED for display via `tzAbbrev`.
+   Storing abbreviations was wrong twice over: it discards the zone (EST and
+   America/New_York are not interchangeable) and it is DST-blind — a July
+   pickup in Houston read 'CST' when Central Daylight Time is in effect.
+   America/Phoenix is deliberate: Arizona does not observe DST, so it stays
+   MST year-round and only an IANA zone can express that. */
 export const CITY_TIMEZONES = {
-  Houston: 'CST', Bastrop: 'CST', Geismar: 'CST', Dallas: 'CST',
-  'Lake Charles': 'CST', 'Baton Rouge': 'CST', Freeport: 'CST', Baytown: 'CST',
-  Channelview: 'CST', Odessa: 'CST', Atlanta: 'EST', Columbus: 'EST',
-  Chicago: 'CST', Miami: 'EST', 'San Antonio': 'CST', Kingsport: 'EST',
-  Wyandotte: 'EST', Phoenix: 'MST', Denver: 'MST', Seattle: 'PST',
-  Portland: 'PST', Minneapolis: 'CST', Detroit: 'EST', 'New Orleans': 'CST',
-  'Salt Lake City': 'MST', 'Kansas City': 'CST', 'San Diego': 'PST',
-  Neenah: 'CST', McIntosh: 'CST', 'Green River': 'MST',
+  Houston: 'America/Chicago', Bastrop: 'America/Chicago', Geismar: 'America/Chicago',
+  Dallas: 'America/Chicago', 'Lake Charles': 'America/Chicago',
+  'Baton Rouge': 'America/Chicago', Freeport: 'America/Chicago',
+  Baytown: 'America/Chicago', Channelview: 'America/Chicago',
+  Odessa: 'America/Chicago', Atlanta: 'America/New_York',
+  Columbus: 'America/New_York', Chicago: 'America/Chicago',
+  Miami: 'America/New_York', 'San Antonio': 'America/Chicago',
+  Kingsport: 'America/New_York', Wyandotte: 'America/New_York',
+  Phoenix: 'America/Phoenix', Denver: 'America/Denver',
+  Seattle: 'America/Los_Angeles', Portland: 'America/Los_Angeles',
+  Minneapolis: 'America/Chicago', Detroit: 'America/New_York',
+  'New Orleans': 'America/Chicago', 'Salt Lake City': 'America/Denver',
+  'Kansas City': 'America/Chicago', 'San Diego': 'America/Los_Angeles',
+  Neenah: 'America/Chicago', McIntosh: 'America/Chicago',
+  'Green River': 'America/Denver',
 };
 
-/** City → timezone code; '' when unknown (callers decide the fallback). */
+/** City → IANA zone id; '' when unknown (callers decide the fallback). */
 export const deriveTimezone = (city) => CITY_TIMEZONES[city] ?? '';
+
+/**
+ * IANA zone + instant → the display abbreviation, DST-correct.
+ * `tzAbbrev('America/Chicago', <July>)` → 'CDT'; the same zone in January →
+ * 'CST'. Returns '' for an unknown/blank zone so callers keep their fallback.
+ */
+export function tzAbbrev(zone, date = new Date()) {
+  if (!zone) return '';
+  try {
+    return new Intl.DateTimeFormat('en-US', { timeZone: zone, timeZoneName: 'short' })
+      .formatToParts(date)
+      .find((p) => p.type === 'timeZoneName')?.value ?? '';
+  } catch {
+    return ''; // not a valid IANA id — never throw inside the generator
+  }
+}

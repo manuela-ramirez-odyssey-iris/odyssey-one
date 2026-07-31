@@ -6,11 +6,29 @@ import { buildDataset, CARRIERS } from './generate.mjs'
 import { CUSTOMERS, EXTRA_CUSTOMERS, LOCATIONS, locationIdFor } from './data-pools.mjs'
 import { USERS } from './seed-users.mjs'
 
+// US timezone abbreviation → fixed UTC offset. The generator emits DST-correct
+// abbreviations (CDT in July, CST in January — see tzAbbrev in data-pools.mjs),
+// so the offset must follow the abbreviation, not be hardcoded. This parser
+// previously matched ` CST` ONLY, which would have silently NULLed 2,823 of
+// 4,400 shipment timestamps the first time a non-CST date reached it.
+// ponytail: a flat lookup beats a tz library for fake data — the abbreviation
+// already encodes the DST decision.
+const TZ_OFFSETS = {
+  EST: '-05:00', EDT: '-04:00',
+  CST: '-06:00', CDT: '-05:00',
+  MST: '-07:00', MDT: '-06:00',
+  PST: '-08:00', PDT: '-07:00',
+  AKST: '-09:00', AKDT: '-08:00',
+  HST: '-10:00',
+}
+
 export function parseDisplayDate(s) {
   if (!s) return null
-  const m = /^(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2}) CST$/.exec(s)
+  const m = /^(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2}) ([A-Z]{3,4})$/.exec(s)
   if (!m) return null
-  return `${m[3]}-${m[1]}-${m[2]}T${m[4]}:${m[5]}:00-06:00` // ponytail: CST fixed offset is fine for fake data
+  const offset = TZ_OFFSETS[m[6]]
+  if (!offset) return null // unknown zone — better a null than a wrong instant
+  return `${m[3]}-${m[1]}-${m[2]}T${m[4]}:${m[5]}:00${offset}`
 }
 
 export function chunk(arr, n) {

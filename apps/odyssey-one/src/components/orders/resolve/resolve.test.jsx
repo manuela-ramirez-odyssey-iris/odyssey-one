@@ -11,10 +11,27 @@ import { CreateOrderModeProvider } from '../../../contexts/CreateOrderModeContex
 import { EditModeProvider } from '../../../contexts/EditModeContext.jsx'
 import { CustomersProvider } from '../../../contexts/CustomersContext.jsx'
 import { __resetOrderWriteState } from '../../../api/services/orderService'
+import { deriveValidationErrors } from './validationErrors'
+import ordersFixture from '../../../data/orders.json'
 
-// Seeded row that sits in the Validation Errors tab (Shipment Failed) with
-// draftOrderStatus 'Ready' — src/data/orders.json.
-const ORDER = '0000000091105'
+// The order under test is DERIVED from the fixture, not hardcoded. Any change
+// to tools/generate.mjs reshuffles the faker stream and re-rolls every seeded
+// value, which used to invalidate a pinned order number on every generator
+// edit (re-pinned in S100, S101, and twice on 2026-07-30 before this).
+// Criteria = exactly what the assertions below need:
+//   errorCount 5 · Shipment Failed · draftOrderStatus Ready
+//   seeded errors spanning general.* AND consignor.postal (the flip field)
+const FLIP_PATH = 'pickupDelivery.consignor.postal'
+const ORDER = (() => {
+  const rows = Array.isArray(ordersFixture) ? ordersFixture : (ordersFixture.orders ?? [])
+  const hit = rows.find((r) => {
+    if (r.errorCount !== 5 || r.orderStatus !== 'Shipment Failed' || r.draftOrderStatus !== 'Ready') return false
+    const paths = deriveValidationErrors(r.orderNumber, 5, {}).errors.map((e) => e.path)
+    return paths.includes(FLIP_PATH) && paths.some((p) => p.startsWith('general.'))
+  })
+  if (!hit) throw new Error('No seeded order matches the resolve-test criteria — regenerate the fixtures.')
+  return hit.orderNumber
+})()
 
 function renderResolve(orderNumber = ORDER, state = { errorCount: 5, customer: 'ACME', orderSource: 'Integrated' }) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -57,10 +74,9 @@ describe('resolve mode — chrome', () => {
 })
 
 describe('resolve mode — fields', () => {
-  // The seeded errors for 0000000091105 land on general.freightTerm +
-  // consignor postal & consignee idOrgName/address1/postal. Postal is a plain
-  // typable input among them, so it's the one the flip assertion drives.
-  const FLIP_PATH = 'pickupDelivery.consignor.postal'
+  // ORDER is selected so its seeded errors always span general.* plus
+  // consignor postal. Postal is a plain typable input, so it's the one the
+  // flip assertion drives (FLIP_PATH is module-scope — it also selects ORDER).
 
   async function openShipperAddress() {
     // Collapsed accordion content is aria-hidden, so expand before querying,
@@ -102,7 +118,7 @@ describe('resolve mode — fields', () => {
     expect(orderNumber).toBeTruthy()
     expect(orderNumber.disabled).toBe(true)
 
-    // Postal (seeded error for 0000000091105) is in the pool → resolveFieldProps
+    // Postal (a guaranteed seeded error for ORDER) is in the pool → resolveFieldProps
     // re-enables it (disabled: false spread last).
     await openShipperAddress()
     const postal = document.getElementById(`co-${FLIP_PATH.replace(/\./g, '-')}`)
@@ -128,7 +144,7 @@ describe('resolve mode — alert + accordions', () => {
   test('error sections start expanded, error-free sections collapsed', async () => {
     renderResolve()
     await waitFor(() => expect(screen.getByText(/5 Errors: Validation Required/)).toBeTruthy())
-    // 0000000091105 seeds errors in general + pickupDelivery only
+    // The pool only spans general.* + pickupDelivery.*, so Product is error-free
     const headers = screen.getAllByRole('button', { name: /General Information|Pickup and Delivery|Product Information|Special Services/ })
     const byName = (re) => headers.find((h) => re.test(h.textContent))
     expect(byName(/General Information/).getAttribute('aria-expanded')).toBe('true')

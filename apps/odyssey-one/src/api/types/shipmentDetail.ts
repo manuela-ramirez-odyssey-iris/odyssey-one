@@ -70,7 +70,11 @@ export interface OrderDetailVM {
 export interface StopVM {
   type: string
   stopNumber: number
+  /* Joined display form, kept for existing consumers (Stops pane). */
   order: string
+  /* Split form — a stop can serve several orders and the details modal renders
+     one link per order (same joined/split pattern as AddressVM). */
+  orderIds: string[]
   location: string
   address: string
   date: string
@@ -215,6 +219,9 @@ export interface CostSummaryVM {
   apTotal: string
   arTotal: string
   margin: string
+  /* Shipment-level rollup — the wire carries directCostAmount per ORDER only,
+     so this is the sum across orderList (Shipment Details modal, 2026-07-30). */
+  directCost: string
 }
 
 export interface CostOrderVM {
@@ -246,14 +253,31 @@ export interface InstructionOrderVM {
   instructions: InstructionVM[]
 }
 
+// ── User Defined Fields ──────────────────────────────────────
+// Order-scoped, sparse, customer-supplied (often external — CSV/email), so
+// neither the key set nor the presence of any key is guaranteed.
+export interface UserDefinedFieldVM {
+  name: string
+  value: string
+}
+
+export interface UserDefinedOrderVM {
+  orderId: string
+  fields: UserDefinedFieldVM[]
+}
+
 // ── Top-level VM ─────────────────────────────────────────────
 export interface ShipmentDetailVM {
+  /* Shipment header field — on the wire since S92 but never mapped until the
+     Shipment Details modal needed it (2026-07-30). */
+  ratingStatus: string
   orderDetails: OrderDetailVM[]
   stopsData: { summary: StopsSummaryVM; stops: StopVM[] }
   productData: { orders: ProductOrderVM[] }
   routingData: { options: RoutingOptionVM[] }
   costData: { planned: { summary: CostSummaryVM; orders: CostOrderVM[] } }
   instructionsData: { orders: InstructionOrderVM[] }
+  userDefinedData: { orders: UserDefinedOrderVM[] }
   documentsData: { documents: unknown[] }
   notesData: { notes: unknown[] }
   historyData: { entries: unknown[] }

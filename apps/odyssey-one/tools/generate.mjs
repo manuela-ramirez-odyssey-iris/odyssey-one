@@ -11,9 +11,18 @@
 //  I2 Customer   — order.customer === shipment.customerId === detail
 //                  orderList[].customerId. A shipment never carries another
 //                  customer's orders.
-//  I3 Locations  — order.consignor = the pickup stop the order is assigned to;
-//                  order.consignee = the shipment's delivery stop (same
-//                  facility/city/state/zip + shared locationIdFor id).
+//  I13 MultiStop — only LTL is capped at 2 stops (1 pickup + 1 delivery). Every
+//                  other mode MAY be multi-stop. Never gate stop-splitting on
+//                  mode === 'TL': the real Tracking payload has a 1P/3D load on
+//                  mode TT/ISO (TR-07), so that gate made shapes that exist in
+//                  production unrepresentable here.
+//  I3 Locations  — every order is picked up at EXACTLY ONE stop and delivered
+//                  at EXACTLY ONE stop (so it appears twice across the stop
+//                  list, once per side — that is correct; the same order twice
+//                  on the SAME side is not). order.consignor = its pickup stop,
+//                  order.consignee = its DELIVERY stop (same facility/city/
+//                  state/zip + shared locationIdFor id) — NOT the shipment's
+//                  destination, which differs once TL deliveries split.
 //  I4 Dates      — earliestPickup ≤ shipment pickup ≤ latestPickup <
 //                  earliestDelivery ≤ shipment delivery ≤ latestDelivery; the
 //                  detail's scheduled/requested dates render the SAME instants.
@@ -42,9 +51,16 @@
 //                  from the order's lines (some(l => hazmat)), never an
 //                  independent draw — must agree with shipment detail line
 //                  items' hazmat fields, which share the same product.hazmat source.
+//  (NOT an invariant) Jana's AGGREGATION (1 pickup + 1 delivery) /
+//                  CONSOLIDATION (>1 pickup AND >1 delivery) taxonomy is
+//                  documented in DEC-68 but deliberately NOT enforced — it is
+//                  not confirmed to be exhaustive, so mixed shapes stay legal.
+//  I12 DirectCost— direct cost is an ORDER fact (the cost of that order going
+//                  point A → point B). A shipment has none of its own; the
+//                  rollup is Σ of its orders' directCostAmount (DEC-68).
 import { faker } from '@faker-js/faker';
 import { writeFileSync, mkdirSync, existsSync, readdirSync, unlinkSync } from 'fs';
-import { deriveTimezone, CUSTOMERS, EXTRA_CUSTOMERS, LOCATIONS, EQUIPMENT_CODES, CHEMICAL_PRODUCTS, locationIdFor, FREIGHT_TERMS, SHIP_DIRECTIONS, SHIP_CLASS_CODES, shipClassLabel, PRODUCT_CLASSES, HANDLING_UNITS } from './data-pools.mjs'
+import { deriveTimezone, tzAbbrev, CUSTOMERS, EXTRA_CUSTOMERS, LOCATIONS, EQUIPMENT_CODES, CHEMICAL_PRODUCTS, locationIdFor, FREIGHT_TERMS, SHIP_DIRECTIONS, SHIP_CLASS_CODES, shipClassLabel, PRODUCT_CLASSES, HANDLING_UNITS } from './data-pools.mjs'
 
 // ── Orders accumulator (I1) ──────────────────────────────────────────────────
 // LINX-9742/9279: every order (shipped + unshipped + pending) draws a globally
@@ -180,6 +196,39 @@ const CHARGE_CODES = [
 
 const LOAD_CONSTRAINTS = ['Keep Upright', 'No Stacking', 'Temperature Controlled', 'Fragile - Handle With Care', 'Keep Dry', '--'];
 
+/* User Defined Fields — order-scoped extra information the CUSTOMER supplies;
+   it does not originate from any domain (Jana, 2026-07-30: "sometimes it's
+   external" — CSV drops, email). Therefore: not a fixed schema, SPARSE (an
+   order carries only the keys its customer happened to send), and free-text.
+   INVENTED DATA — the field names come from the 2026-07-30 spec artifact, the
+   value generators are ours. Flagged in
+   vault/10-domains/shipments/shipment-details-modal-spec-2026-07-30.md. */
+const UDF_CATALOG = [
+  { name: 'TEMP_SENSITIVITY',         gen: () => pick(['AMBIENT', 'REEFER 34-38F', 'PROTECT FROM FREEZING', 'NONE']) },
+  { name: 'CONTACT',                  gen: () => faker.person.fullName() },
+  { name: 'DATE_AVAILABLE',           gen: () => formatDate(genDate(new Date(), faker.number.int({ min: -5, max: 20 }))) },
+  { name: 'PICKUP_NUMBER',            gen: () => `PU${faker.number.int({ min: 100000, max: 999999 })}` },
+  { name: 'MANUAL_SHIPMENT_PLANNING', gen: () => pick(['Y', 'N']) },
+  { name: 'STATUS_1',                 gen: () => pick(['OPEN', 'HOLD', 'RELEASED', 'CLOSED']) },
+  { name: 'STATUS_2',                 gen: () => pick(['REVIEWED', 'PENDING REVIEW', 'EXCEPTION']) },
+  { name: 'MANUAL_TRACKING_REQUEST',  gen: () => pick(['Y', 'N']) },
+  { name: 'AFTER_HOURS',              gen: () => pick(['Y', 'N']) },
+  { name: 'EXTERNAL_TRANSACTION_ID',  gen: () => String(faker.number.int({ min: 100000000, max: 999999999 })) },
+  ...Array.from({ length: 7 }, (_, i) => ({
+    name: `ALD_USER${11 + i}`,
+    gen: () => faker.string.alphanumeric({ length: { min: 4, max: 10 }, casing: 'upper' }),
+  })),
+];
+
+// Every order carries UDFs (user: "fill user field details with anything") —
+// WHICH keys stay sparse and random, so the shape still reflects the real
+// model where each customer sends a different subset.
+function genUserDefinedFields() {
+  return faker.helpers
+    .arrayElements(UDF_CATALOG, faker.number.int({ min: 3, max: 8 }))
+    .map(({ name, gen }) => ({ name, value: gen() }));
+}
+
 const INSTRUCTION_TEMPLATES = [
   { type: 'TRA', text: 'Drivers are required to wear face coverings and follow social distancing guidelines. They may also be subject to temperature checks upon arrival.' },
   { type: 'ADC', text: 'DRIVER: Purchasing Contact: {contact} Main Office Phone; {phone} Receiving Hours: {hours}' },
@@ -267,13 +316,17 @@ function genDate(baseDate, offsetDays) {
   return d;
 }
 
-function formatDateTime(d, tz = 'CST') {
+/* `zone` is an IANA id; the trailing abbreviation is DERIVED per-instant so it
+   is DST-correct (a July Houston time reads CDT, the same clock in January
+   reads CST). Defaults to America/Chicago for the many call sites that carry no
+   location context. */
+function formatDateTime(d, zone = 'America/Chicago') {
   const mm = String(d.getMonth() + 1).padStart(2, '0');
   const dd = String(d.getDate()).padStart(2, '0');
   const yyyy = d.getFullYear();
   const hh = String(d.getHours()).padStart(2, '0');
   const min = String(d.getMinutes()).padStart(2, '0');
-  return `${mm}/${dd}/${yyyy} ${hh}:${min} ${tz}`;
+  return `${mm}/${dd}/${yyyy} ${hh}:${min} ${tzAbbrev(zone, d) || 'CST'}`;
 }
 
 function formatDate(d) {
@@ -326,8 +379,8 @@ function generateShipment(index) {
   const destLoc = pick(LOCATIONS.filter(l => l.city !== originLoc.city));
   // A shipment's times are read in the STOP's timezone (user ruling, S102) —
   // never the carrier's. Quote pickup/delivery inherit these.
-  const originTz = deriveTimezone(originLoc.city) || 'CST';
-  const destTz = deriveTimezone(destLoc.city) || 'CST';
+  const originTz = deriveTimezone(originLoc.city) || 'America/Chicago';
+  const destTz = deriveTimezone(destLoc.city) || 'America/Chicago';
   // Weighted mode selection
   // If customer is not an RR customer, filter out RR from available modes
   const availableModes = RR_CUSTOMERS.includes(customer.id) ? MODES : MODES.filter(m => m !== 'RR');
@@ -355,6 +408,12 @@ function generateShipment(index) {
   // (the badge palette and order tabs assume this cap). The cap is NOT the
   // norm: real freight skews to single-order shipments, consolidations taper
   // off — weighted 1:45% · 2:25% · 3:15% · 4:10% · 5:5%.
+  //
+  // Order count is deliberately INDEPENDENT of mode. A 2-stop shipment
+  // carrying 5 orders is a legitimate consolidation — all 5 are picked up at
+  // one shipper and delivered to one consignee, so both stops listing all 5 is
+  // correct, not a defect. (A mode gate was briefly added on 2026-07-30 and
+  // reverted the same day: it cost 30% of seeded orders to "fix" a non-problem.)
   const orderCount = faker.helpers.weightedArrayElement([
     { value: 1, weight: 45 },
     { value: 2, weight: 25 },
@@ -444,9 +503,30 @@ function generateShipment(index) {
   const totalVolume = orders.reduce((s, o) => s + o.orderVolume, 0);
 
   // Stops
-  // TL can have multi-stop; LTL, RR, IMD, AIR are always 1 pickup + 1 delivery (2 stops total)
-  const pickupStopCount = Math.min(orders.length, mode === 'TL' ? faker.number.int({ min: 1, max: 2 }) : 1);
-  // I3 — each order is assigned to exactly one pickup stop (contiguous chunks)
+  // LTL is 2 stops only — 1 pickup + 1 delivery (project_mode_definitions,
+  // David). Every OTHER mode may be multi-stop.
+  //
+  // Do NOT gate stop-splitting on `mode === 'TL'`. David's rule names LTL
+  // specifically; extending it to "every mode except TL is 2 stops" was our
+  // generalization, and the real Tracking payload refutes it: document
+  // 0200994650 is 1 pickup + 3 deliveries on mode `TT/ISO` — a multi-stop load
+  // in a mode we do not even carry. Under the old gate our generator could not
+  // represent a shipment that exists in production today. See TR-07 in
+  // vault/10-domains/tracking/decisions/decision-log.md.
+  //
+  // I3 — every order is picked up at exactly ONE stop and delivered at exactly
+  // ONE stop. An order therefore appears twice across the stop list (once per
+  // side), which is correct; what must never happen is one order appearing at
+  // two stops on the SAME side.
+  //
+  // Pickup and delivery counts are drawn INDEPENDENTLY. Jana's aggregation /
+  // consolidation taxonomy (DEC-68) describes the two common shapes but is not
+  // known to be exhaustive, so mixed shapes — 2 pickups feeding 1 consignee, a
+  // milk run — stay possible (0200994650 is exactly such a shape). Do not
+  // constrain to the two named patterns without confirming with Jana.
+  const canMultiStop = mode !== 'LTL';
+  const splitCount = (n) => Math.min(n, faker.number.int({ min: 1, max: 2 }));
+  const pickupStopCount = canMultiStop ? splitCount(orders.length) : 1;
   const chunkSize = Math.ceil(orders.length / pickupStopCount);
   orders.forEach((o, oi) => { o.pickupStopIdx = Math.min(Math.floor(oi / chunkSize), pickupStopCount - 1); });
   const stopLocs = [];
@@ -466,7 +546,16 @@ function generateShipment(index) {
       region: stopLoc.state,
       postal: stopLoc.zip,
       country: 'US',
-      scheduledDateTime: `${formatDate(baseDate)} ${String(baseDate.getHours()).padStart(2, '0')}:00 ${deriveTimezone(stopLoc.city) || 'CST'}`,
+      // IANA id, mirroring the real Tracking contract's stop `timeZone` (TR-04)
+      timeZone: deriveTimezone(stopLoc.city) || 'America/Chicago',
+      // Stops are sequenced in time, and the SHIPMENT's pickup date is the
+      // FIRST pickup (Jana, Feb 17 — "we took the first one for the pickup"),
+      // so stop 0 sits exactly on baseDate and later pickups run 3h apart.
+      scheduledDateTime: (() => {
+        const t = new Date(baseDate);
+        t.setHours(baseDate.getHours() + s * 3);
+        return `${formatDate(t)} ${String(t.getHours()).padStart(2, '0')}:00 ${tzAbbrev(deriveTimezone(stopLoc.city) || 'America/Chicago', t)}`;
+      })(),
       appointmentTime: `${String(baseDate.getHours()).padStart(2, '0')}:00 CST`,
       // I5 — stop weight/volume/packages = Σ of the orders picked up here
       grossWeightValue: stopOrders.reduce((t, o) => t + o.orderGross, 0),
@@ -477,25 +566,49 @@ function generateShipment(index) {
       pickupNumber: faker.datatype.boolean() ? `PU-${faker.number.int({ min: 100000, max: 999999 })}` : null,
     });
   }
-  stops.push({
-    stopSequence: pickupStopCount + 1,
-    stopType: 'delivery',
-    orderIds: orders.map(o => o.orderId),
-    facilityName: destLoc.facility,
-    address1: faker.location.streetAddress(),
-    city: destLoc.city,
-    region: destLoc.state,
-    postal: destLoc.zip,
-    country: 'US',
-    scheduledDateTime: `${formatDate(deliveryDate)} ${String(deliveryDate.getHours()).padStart(2, '0')}:00 ${destTz}`,
-    appointmentTime: `${String(deliveryDate.getHours()).padStart(2, '0')}:00 CST`,
-    grossWeightValue: grossWeight,
-    grossWeightUomCode: 'LB',
-    volumeValue: totalVolume,
-    volumeUomCode: 'cuft',
-    packageCount: null,
-    pickupNumber: null,
-  });
+  /* Deliveries mirror pickups. Before 2026-07-30 there was always exactly ONE
+     delivery stop carrying orderIds for EVERY order, which is why every stop on
+     a shipment listed the same orders. `deliveryLocs` is captured because the
+     ORDER's shipTo must be the stop it actually delivers at — it used to be
+     hardcoded to the shipment's destination, so a 5-order shipment claimed one
+     destination while its stops said otherwise. */
+  const deliveryStopCount = canMultiStop ? splitCount(orders.length) : 1;
+  const dChunk = Math.ceil(orders.length / deliveryStopCount);
+  orders.forEach((o, oi) => { o.deliveryStopIdx = Math.min(Math.floor(oi / dChunk), deliveryStopCount - 1); });
+  const deliveryLocs = [];
+  for (let s = 0; s < deliveryStopCount; s++) {
+    const dLoc = s === 0 ? destLoc : pick(LOCATIONS.filter(l => l.city !== originLoc.city && l.city !== destLoc.city));
+    deliveryLocs.push(dLoc);
+    const dOrders = orders.filter(o => o.deliveryStopIdx === s);
+    stops.push({
+      stopSequence: pickupStopCount + s + 1,
+      stopType: 'delivery',
+      orderIds: dOrders.map(o => o.orderId),
+      facilityName: dLoc.facility,
+      address1: faker.location.streetAddress(),
+      city: dLoc.city,
+      region: dLoc.state,
+      postal: dLoc.zip,
+      country: 'US',
+      timeZone: deriveTimezone(dLoc.city) || 'America/Chicago',
+      // The SHIPMENT's delivery date is the LAST delivery (Jana, Feb 17 — "if
+      // there are two deliveries, we will take the last one"), so the final
+      // stop sits exactly on deliveryDate and earlier drops run 3h before it.
+      scheduledDateTime: (() => {
+        const t = new Date(deliveryDate);
+        t.setHours(deliveryDate.getHours() - (deliveryStopCount - 1 - s) * 3);
+        return `${formatDate(t)} ${String(t.getHours()).padStart(2, '0')}:00 ${tzAbbrev(s === 0 ? destTz : (deriveTimezone(dLoc.city) || 'America/Chicago'), t)}`;
+      })(),
+      appointmentTime: `${String(deliveryDate.getHours()).padStart(2, '0')}:00 CST`,
+      // Σ of the orders dropped here (mirrors invariant I5 on the pickup side)
+      grossWeightValue: dOrders.reduce((t, o) => t + o.orderGross, 0),
+      grossWeightUomCode: 'LB',
+      volumeValue: dOrders.reduce((t, o) => t + o.orderVolume, 0),
+      volumeUomCode: 'cuft',
+      packageCount: null,
+      pickupNumber: null,
+    });
+  }
 
   const distance = faker.number.float({ min: 50, max: 2000, fractionDigits: 2 });
 
@@ -953,10 +1066,12 @@ function generateShipment(index) {
     const orderTotalWeight = orderGrossWeight - orderTareWeight;
     const orderVolume = ord.orderVolume;
     // I3 — ship-from = the pickup stop this order is assigned to; ship-to =
-    // the shipment's delivery stop. I2 — the order belongs to the shipment's
+    // the DELIVERY stop it is assigned to (was hardcoded to the shipment's
+    // destination until 2026-07-30, which contradicted the stop list on every
+    // multi-delivery shipment). I2 — the order belongs to the shipment's
     // customer, never a random one.
     const shipFromLoc = stopLocs[ord.pickupStopIdx];
-    const shipToLoc = destLoc;
+    const shipToLoc = deliveryLocs[ord.deliveryStopIdx];
     const shipFromCustomer = customer;
 
     // I4 — pickup window CONTAINS the shipment pickup instant (baseDate);
@@ -1006,6 +1121,7 @@ function generateShipment(index) {
       customerRequiredCarrier: orderCarrier,
       pickupNumber: orderPickupNumber,
       specialServices: orderSpecialServices,
+      userDefinedFieldList: genUserDefinedFields(),
       poNumber: `PO-${faker.number.int({ min: 100000, max: 999999 })}`,
       bolNo: `BOL-${faker.number.int({ min: 100000, max: 999999 })}`,
       shipDirectionCode: shipDirection, // I2 — same value as the shipment + order row

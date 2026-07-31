@@ -142,6 +142,7 @@ function mapStop(s: SellShipmentStop): StopVM {
     type: s.stopType,
     stopNumber: s.stopSequence,
     order: (s.orderIds ?? []).join(', ') || DASH,
+    orderIds: s.orderIds ?? [],
     location: loc,
     address: orDash(s.address1),
     date: orDash(s.scheduledDateTime),
@@ -356,7 +357,15 @@ function mapCostOrder(o: SellShipmentOrder): CostOrderVM {
 
 function mapCost(dto: SellShipmentOut): ShipmentDetailVM['costData'] {
   const cs = dto.costSummary
+  // Direct cost is seeded per order; the shipment-level figure the details
+  // modal shows is their sum. All-absent stays '--' (not $0.00).
+  const directAmounts = (dto.orderList ?? [])
+    .map(o => o.cost?.directCostAmount)
+    .filter((v): v is number => v != null)
   const summary: CostSummaryVM = {
+    directCost: directAmounts.length
+      ? fmtDollar(directAmounts.reduce((a, b) => a + b, 0))
+      : DASH,
     base: fmtCostAmt(cs?.apBaseAmount),
     discount: fmtCostAmt(cs?.apDiscountAmount),
     fuel: fmtCostAmt(cs?.apFuelAmount),
@@ -389,16 +398,33 @@ function mapInstructions(dto: SellShipmentOut): ShipmentDetailVM['instructionsDa
   }
 }
 
+// ── User Defined Fields ───────────────────────────────────────────────────────
+
+// Sparse and customer-supplied: orders with no UDFs keep an empty list rather
+// than gaining placeholder keys — absence is meaningful here, not a gap.
+function mapUserDefined(dto: SellShipmentOut): ShipmentDetailVM['userDefinedData'] {
+  return {
+    orders: (dto.orderList ?? []).map(o => ({
+      orderId: o.orderId,
+      fields: (o.userDefinedFieldList ?? [])
+        .filter(f => f?.name && f.value != null && f.value !== '')
+        .map(f => ({ name: f.name, value: String(f.value) })),
+    })),
+  }
+}
+
 // ── Main export ───────────────────────────────────────────────────────────────
 
 export function mapSellShipmentOutToDetail(dto: SellShipmentOut): ShipmentDetailVM {
   return {
+    ratingStatus: orDash(dto.ratingStatus),
     orderDetails: (dto.orderList ?? []).map((o) => mapOrder(o, dto)),
     stopsData: mapStops(dto),
     productData: mapProducts(dto),
     routingData: mapRouting(dto),
     costData: mapCost(dto),
     instructionsData: mapInstructions(dto),
+    userDefinedData: mapUserDefined(dto),
     documentsData: { documents: dto.documentList ?? [] },
     notesData: { notes: dto.noteList ?? [] },
     historyData: { entries: dto.historyList ?? [] },
