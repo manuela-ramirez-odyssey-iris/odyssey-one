@@ -9,6 +9,10 @@
 //
 // Mock stays the CASE-DISCOVERY environment and the behavioural reference this
 // path is checked against (user ruling, S104) — it is not dead code.
+// Paths passed to apiPost are RELATIVE to the client's /api base
+// (VITE_API_BASE_URL=/api) — '/api/v1/search' here becomes /api/api/v1/search on
+// the wire and 404s. Third occurrence of the /api-prefix defect class (S104/S105:
+// router paths, then these) — liveAdapter.paths.test.js pins it.
 import { apiPost } from '../../api/client'
 import { SHIPMENTS_ATTRIBUTES } from './progression'
 import { formatLocation, toStatusBadge, toTenderBadge, toItem } from './adapter'
@@ -62,7 +66,7 @@ export function makeLiveAdapter(base) {
     async getSuggestions(query) {
       const q = (query || '').trim()
       if (!q) return this.getInitial([])
-      const { attributes } = await apiPost('/api/v1/search/suggest', {
+      const { attributes } = await apiPost('/v1/search/suggest', {
         domain: 'shipments',
         criteria: { chips: [], text: q },
         scope: {},
@@ -80,7 +84,7 @@ export function makeLiveAdapter(base) {
       const q = (query || '').trim()
       const chipList = chips ?? []
       if (!chipList.length && !q) return { results: [], total: 0 }
-      const { results, total } = await apiPost('/api/v1/search', {
+      const { results, total } = await apiPost('/v1/search', {
         domain: 'shipments',
         criteria: { chips: chipList, text: q },
         scope: customerIds ? { customerIds } : {},
