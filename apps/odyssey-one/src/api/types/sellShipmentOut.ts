@@ -240,6 +240,8 @@ export interface SellShipmentOut {
   numberOfStops?: number
   pgiFlag?: boolean
   ratingStatus?: string
+  /** Tracking Link (R2-1). Shape INVENTED — no such field in the real contract yet. */
+  trackingUrl?: string
   distanceMiles?: number
   totalVolumeValue?: number
   totalVolumeUomCode?: string

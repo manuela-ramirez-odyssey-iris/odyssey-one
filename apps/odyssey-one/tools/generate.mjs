@@ -1224,6 +1224,10 @@ function generateShipment(index) {
     numberOfStops: stops.length,
     pgiFlag: faker.datatype.boolean(),
     ratingStatus: pick(['Rated', 'Not Rated', 'Pending']),
+    // Tracking Link (R2-1). The real contract has no such field yet, so the URL
+    // SHAPE IS INVENTED — flagged in the orders decision log. Per the 2026-07-30
+    // annotated spec the link hangs off the Pro/Booking # value.
+    trackingUrl: `https://tracking.oneodyssey.com/t/${mainRow.pro}`,
     distanceMiles: parseFloat(distance.toFixed(2)),
     totalVolumeValue: totalVolume, // I5 — Σ order volumes
     totalVolumeUomCode: 'cuft',

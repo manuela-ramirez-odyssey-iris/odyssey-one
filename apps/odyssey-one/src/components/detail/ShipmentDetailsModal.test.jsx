@@ -13,6 +13,7 @@ const shipment = {
 }
 const details = {
   ratingStatus: 'Successful',
+  trackingUrl: 'https://tracking.oneodyssey.com/t/67819A88',
   orderDetails: [
     { orderNumber: 'L14372086', hazmat: 'Yes', paymentTerms: 'Collect', proBooking: '67819A88', poNumber: 'PO-5512', salesOrder: '--' },
     { orderNumber: 'L14372084', hazmat: 'No', salesOrder: '--', poNumber: '--' },
@@ -54,8 +55,9 @@ describe('ShipmentDetailsModal', () => {
     // Dates come from the ACCEPTED option (rank 2), not rank 1
     expect(screen.getAllByText('06/02/2026 08:00 CST').length).toBeGreaterThan(0)
     expect(screen.queryByText('06/01/2026 07:00 CST')).toBeNull()
-    // Tracking Link has no backing field yet
-    expect(screen.getAllByText('--').length).toBeGreaterThan(0)
+    // Tracking Link is backed by `trackingUrl` now (R2-1) — it must render the
+    // URL, not dash. Before S104 this field was hardcoded to null.
+    expect(screen.getByText('https://tracking.oneodyssey.com/t/67819A88')).toBeTruthy()
   })
 
   it('renders all seven cost rows', () => {

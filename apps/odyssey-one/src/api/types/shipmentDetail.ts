@@ -271,6 +271,8 @@ export interface ShipmentDetailVM {
   /* Shipment header field — on the wire since S92 but never mapped until the
      Shipment Details modal needed it (2026-07-30). */
   ratingStatus: string
+  /** Tracking Link URL, or '' when absent — the strip renders '--' for empty. */
+  trackingUrl: string
   orderDetails: OrderDetailVM[]
   stopsData: { summary: StopsSummaryVM; stops: StopVM[] }
   productData: { orders: ProductOrderVM[] }

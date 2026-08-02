@@ -110,8 +110,8 @@ export default function ShipmentDetailsModal({ shipment, shipmentDetails, error,
         <div className="shp-details">
           {/* CostAllocationTab layout: tabs band on top, identifiers strip
               directly below with no gap. The strip is Details-only — the UDF
-              tab doesn't need it. Tracking Link has no backing field in the
-              contract yet, so it dashes. */}
+              tab doesn't need it. Tracking Link reads `trackingUrl`, whose URL
+              shape is INVENTED (R2-1) — the real contract has no such field. */}
           <div className="shp-details__topbar">
             {/* Tabs lead, Routing Query trails — the modal has no footer
                 (user, 2026-07-30); the row's hairline runs under both. */}
@@ -144,7 +144,7 @@ export default function ShipmentDetailsModal({ shipment, shipmentDetails, error,
                 items={[
                   { label: 'Buy Shipment',  value: shipment?.buyShipment },
                   { label: 'Pro/Booking #', value: shipment?.pro || order?.proBooking },
-                  { label: 'Tracking Link', value: null },
+                  { label: 'Tracking Link', value: shipmentDetails.trackingUrl },
                   { label: 'Rating Status', value: shipmentDetails.ratingStatus },
                   { label: 'Sell Shipment', value: shipment?.sellShipment },
                 ]}

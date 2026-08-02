@@ -137,3 +137,14 @@ test('each stop of a multi-stop shipment gets its OWN appointment hour', () => {
   const hours = multi.shipmentStopList.map((s) => String(s.appointmentTime).slice(0, 2))
   assert.ok(new Set(hours).size > 1, `every stop shares appointment hour ${hours[0]}`)
 })
+
+test('detail carries a Tracking Link built from the shipment Pro # (R2-1)', () => {
+  const ds = buildDataset()
+  const [sellId, d] = [...ds.details.entries()][0]
+  const row = ds.shipments.find((s) => s.sellShipment === sellId)
+  assert.ok(d.trackingUrl, 'no trackingUrl on the detail blob')
+  assert.match(d.trackingUrl, /^https:\/\/tracking\.oneodyssey\.com\/t\//)
+  assert.ok(d.trackingUrl.endsWith(row.pro), `${d.trackingUrl} does not hang off pro ${row.pro}`)
+  // Every shipment, not just the sampled one — the strip dashes on any miss.
+  for (const det of ds.details.values()) assert.ok(det.trackingUrl)
+})

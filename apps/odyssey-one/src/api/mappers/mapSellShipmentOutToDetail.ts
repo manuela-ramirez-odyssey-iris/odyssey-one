@@ -418,6 +418,7 @@ function mapUserDefined(dto: SellShipmentOut): ShipmentDetailVM['userDefinedData
 export function mapSellShipmentOutToDetail(dto: SellShipmentOut): ShipmentDetailVM {
   return {
     ratingStatus: orDash(dto.ratingStatus),
+    trackingUrl: dto.trackingUrl ?? '',
     orderDetails: (dto.orderList ?? []).map((o) => mapOrder(o, dto)),
     stopsData: mapStops(dto),
     productData: mapProducts(dto),
