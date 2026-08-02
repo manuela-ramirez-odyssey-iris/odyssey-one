@@ -41,7 +41,14 @@
 
 ## Decisions to confirm before Task 9
 
-- [ ] **D1 — What is the "Odyssey username"?** User: *"Created by & last edited by should be the user name (odyssey username) of the user and not the name (to prevent ambiguity due to multiple users with the same name)."* The `users` table has `id` (`planner-ava`, `u1`), `email` (`amy.cook@odyssey.com`), `name` (`Amy Cook`). **Recommendation: the email local-part** (`amy.cook`) — it is the only field that reads like a corporate username and is unique. **Conflict to flag:** `generate.mjs:1444` cites **LINX-11663** for "plain full names". User direction overrides, but the deviation must be logged in the decision log.
+- [x] **D1 — What is the "Odyssey username"? — RESOLVED (user, 2026-08-02).**
+  *"Username will come from the user-management domain which we don't have yet,
+  so you can invent users for now."* Implemented as `usernameFor(name)` in
+  `seed-users.mjs` (`'Amy Cook' → 'amy.cook'`, `'Janardhana K.' → 'janardhana.k'`)
+  over the 12 non-guest seeded users (`ORDER_AUTHOR_USERNAMES`), so every
+  `created_by` resolves to a real `users` row. Replace `usernameFor`, not 12
+  strings, when the domain arrives. **Deviates from LINX-11663** ("plain full
+  names") — log in the orders decision log.
 - [ ] **D2 — Appointment: flag vs late-bound datetime.** See HALTED above — the wire evidence suggests it may not be a boolean at all. Superseded by the user's pending question.
 - [x] **D3 — Pickup # — RESOLVED (user, 2026-08-02).** *"We just need to make sure
   there's a column for pickup# in shipments and put it as part of the search
@@ -744,57 +751,96 @@ git commit -m "feat(search): live adapter behind the domain seam; mock stays the
 
 ### Task 9: Created/Last-Edit timezone + username identity (R2-3, R2-4)
 
+> **REWRITTEN 2026-08-02 after the Fable review pass (findings 2–5).** D1 is
+> RESOLVED (see Decisions above). **Partially in flight, uncommitted:**
+> migration 004, `seed-users.mjs` (`usernameFor` + `ORDER_AUTHOR_USERNAMES`),
+> and `generate.mjs` (`ORDER_USERS = ORDER_AUTHOR_USERNAMES` — 12 usernames
+> from seeded users) are already in the working tree. Start from that state.
+
 **Files:**
-- Modify: `apps/odyssey-one/tools/generate.mjs:1444` (ORDER_USERS), `:1531-1535`
-- Modify: `packages/db/migrations/004_orders_last_edited_by.sql` (create)
-- Modify: `apps/odyssey-one/tools/seed.mjs:86` (orders insert)
+- Modify: `packages/db/migrations/004_orders_last_edited_by.sql` (in tree — EXTEND)
+- Modify: `apps/odyssey-one/tools/generate.mjs` (pool already swapped; timestamps + lastEditedBy pending — pool now at ~:1469, order-row sites at ~:1310 and ~:1560, NOT the stale :1444/:1531)
+- Modify: `apps/odyssey-one/tools/seed.mjs` (orders insert + users insert)
+- Modify: `apps/odyssey-one/api/_lib/orders.mjs` (ROW_COLUMNS, SORT_MAP, updateOrder)
+- Modify: `apps/odyssey-one/src/api/types/orderList.ts`, `src/api/types/orderRowVm.ts`, `src/api/mappers/mapOrderListRow.ts` + test, `src/components/orders/ordersColumns.jsx`
+- Modify: `apps/odyssey-one/src/api/services/orderService.ts` (updateOrder sends userId)
 
-**BLOCKED ON D1** — confirm the username form before writing this task.
-
-- [ ] **Step 1: Write the migration**
+- [ ] **Step 1: Extend migration 004.** The DB must be able to resolve id →
+  username or `updateOrder` can never stamp the editor (review finding 4):
 
 ```sql
--- 004: Orders — last_edited_by (S104 R2-4). created_by/last_edited_by store the
--- Odyssey USERNAME, not the display name: multiple users share a display name,
--- which makes the name ambiguous as an identity (user ruling 2026-08-01).
--- Deviates from LINX-11663 ("plain full names") — logged in the orders decision log.
 ALTER TABLE orders ADD COLUMN last_edited_by text;
+-- R2-3: zone codes ride BESIDE the naive timestamps (LLD pattern, same as
+-- requestedPickupTimeZoneCode) — do NOT change the timestamp wire shape.
+-- Naive-as-UTC storage keeps live wall times ≡ mock wall times; emitting real
+-- offsets would shift every displayed hour in live mode only.
+ALTER TABLE orders ADD COLUMN created_tz text;
+ALTER TABLE orders ADD COLUMN last_edit_tz text;
+-- The queryable identity: created_by/last_edited_by values must resolve to a
+-- row here, or "username as identity" is a derivation, not a fact.
+ALTER TABLE users ADD COLUMN username text UNIQUE;
 ```
 
-- [ ] **Step 2: Replace the ORDER_USERS pool with usernames**
+- [ ] **Step 2: Seed `users.username`** — `seed.mjs` users insert adds
+  `usernameFor(u.name)` to the column list + tuple.
+
+- [ ] **Step 3: Zone codes on BOTH order-row sites** (shipped ~:1310 AND
+  unshipped ~:1560 — the old plan cited only one). Derived the S103 way, never
+  a hardcoded suffix:
 
 ```js
-// "Created By" / "Last Edited By" pool — Odyssey USERNAMES (S104, user ruling).
-// Display names are ambiguous when two users share one; the username is unique.
-// Derived from the seeded users' email local-part.
-const ORDER_USERS = ['amy.cook', 'luis.herrera', 'priya.nair', 'tom.becker',
-  'sofia.almeida', 'dan.whitfield', 'grace.liu', 'marcus.bell'];
+    createdTimeZoneCode: tzAbbrev(deriveTimezone(<consignor city>) || 'America/Chicago', <createdAt instant>),
 ```
 
-- [ ] **Step 3: Add lastEditedBy + zoned timestamps**
+  Zone source = the order's consignor city is **INVENTED** (no LINX source
+  names one) — flag in the decision log. `lastEditTimeZoneCode` same zone,
+  lastEdit instant.
 
-At `generate.mjs:1531`, `createdAt`/`lastEditAt` must carry a zone derived the S103 way (`CITY_TIMEZONES` + `tzAbbrev(zone, date)`), NOT a hardcoded suffix — the hardcoded suffix was the exact S102/S103 bug that would have NULLed 2,823 timestamps.
+- [ ] **Step 4: `lastEditedBy` — placement matters.** Set it beside the
+  `row.lastEditAt` assignment (~:1563), NOT inside the row literal: the plan's
+  original snippet read `row.lastEditAt` BEFORE it is assigned, so the field
+  was always null and reseed probe 4 fails (review finding 3). Draft rows only,
+  mirroring `lastEditAt`:
 
 ```js
-    createdBy: pick(ORDER_USERS),
-    lastEditedBy: row.lastEditAt ? pick(ORDER_USERS) : null,
+  if (row.orderStatus === 'Draft') {
+    row.lastEditAt = ...existing...
+    row.lastEditTimeZoneCode = tzAbbrev(zone, new Date(row.lastEditAt))
+    row.lastEditedBy = pick(ORDER_USERS)
+  }
 ```
 
-- [ ] **Step 4: Add the column to the seed insert**
+- [ ] **Step 5: Seed insert** — orders column list + tuples gain
+  `last_edited_by`, `created_tz`, `last_edit_tz`.
 
-Add `'last_edited_by'` to the orders column list and `o.lastEditedBy ?? null` to the value tuple.
+- [ ] **Step 6: API row + sort** — `orders.mjs` `ROW_COLUMNS` gains
+  `last_edited_by AS "lastEditedBy", created_tz AS "createdTimeZoneCode",
+  last_edit_tz AS "lastEditTimeZoneCode"`; `SORT_MAP` gains
+  `lastEditedBy: 'last_edited_by'`.
 
-- [ ] **Step 5: Regenerate + verify**
+- [ ] **Step 7: `updateOrder` stamps the editor.** Client PUT body gains
+  `userId` (the established identity pattern — `preferenceService.ts` sends
+  `currentUser.id`); the update SQL sets
+  `last_edited_by = (SELECT username FROM users WHERE id = $n)` beside the
+  existing `last_edit_at = now()`. Without this, edited rows show a stale
+  editor forever (review finding 4).
 
-Run: `cd apps/odyssey-one && node tools/generate.mjs && npx vitest run`
-Expected: dataset regenerates; suite PASSES (resolve.test.jsx derives its fixture, so no re-pin).
+- [ ] **Step 8: VM + UI.** `orderList.ts` (+`lastEditedBy?`,
+  `createdTimeZoneCode?`, `lastEditTimeZoneCode?`), `orderRowVm.ts`,
+  `mapOrderListRow.ts`: map `lastEditedBy` (dash), and APPEND the zone code to
+  the `created`/`lastEdit` display strings — `"Jun 2, 2026 at 8:00 AM CDT"`.
+  **Appending the zone to the visible string IS the R2-3 deliverable.**
+  `ordersColumns.jsx` Draft tab gains `Last Edited By` beside Last Edit
+  (user-directed — R2-4's own title; deviation from LINX-11663's Draft column
+  set → decision log).
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 9: Regenerate + verify.**
+  `cd apps/odyssey-one && node tools/generate.mjs && npx vitest run` and
+  `node --test tools/ api/_lib/`. Update `mapOrderListRow.test.ts` fixtures to
+  username + zone-code shapes. resolve.test.jsx derives its fixture — no re-pin.
 
-```bash
-git add apps/odyssey-one/tools/generate.mjs apps/odyssey-one/tools/seed.mjs packages/db/migrations/004_orders_last_edited_by.sql
-git commit -m "feat(orders): last_edited_by + username identity + zoned created/edit timestamps (R2-3, R2-4)"
-```
+- [ ] **Step 10: Commit** — generate.mjs, seed.mjs, seed-users.mjs, migration
+  004, orders.mjs, the VM/type/mapper/column files, tests.
 
 ---
 
@@ -989,25 +1035,77 @@ export const PRODUCT_COLUMNS_BY_EQUIPMENT = {
 
 **Semantics (vault-sourced — David Johns, `0409-jana-david.vtt` 15:12–15:49):** a pickup/delivery date normally expresses an early/late **window** (*"a pickup between noon and 8:00 PM"*); checking Appointment **collapses it to a firm slot** (*"then that noon becomes the appointment"*) and must be **transmitted to the carrier**.
 
-- [ ] **Step 1** — Add the Appointment checkbox to the Edit flow beside pickup/delivery dates (editable in Orders per D2; DEC-36 keeps it display-only in Shipments).
-- [ ] **Step 2** — Surface Appointment **and** Hazardous in View Order. Hazardous is derived per LINX-8121: the line checkbox auto-checks on UN Number, and *"if at least 1 product in the order is hazardous, the entire order is considered as hazardous"* — so render both the order-level derived flag and the per-line flag.
+> **HAZARDOUS HALF RESCOPED 2026-08-02 (Fable review, finding 7).** Most of the
+> planned work ALREADY EXISTS: order-level derived badge in View
+> (`OrderPaneSections.jsx:217` via `mapFormVmToOrderPane.js:100`), derived
+> non-uncheckable checkbox in Edit (`GeneralInformationSection.jsx:92-98`),
+> per-line checkbox in the create form (`schema.ts:169`). The REAL gaps:
+
+- [ ] **Step 1 (root-cause fix)** — LEAN orders (no `manual_order` enrichment —
+  most rows) lose the flag: `listRowToManualOrder`
+  (`orderService.ts:373-410`) drops `row.hazardous` and
+  `mapOrderViewToFormVm.ts:84` hardcodes `false`, so a row showing the hazard
+  icon in the grid shows `--` in View. Fix at the shared seam: stamp
+  `hazardous: row.hazardous` on the synthetic line in `listRowToManualOrder` —
+  mock and live both compose through it, and the existing derivation chain
+  does the rest. Failing test first (a lean hazardous row → View shows Yes).
+- [ ] **Step 2** — The View product table has NO per-line hazardous column
+  (`OrderPaneSections.jsx:240-254` headers; `mapFormVmToOrderPane.js:111-119`
+  mapping) — add it per LINX-8121 (line auto-checks on UN Number; ≥1 hazardous
+  line ⇒ order hazardous). Per-line data already exists in enrichment payloads
+  (`generate.mjs:1382`, `:1617`) — **no reseed needed**.
 - [ ] **Step 3** — Tests for both, then commit.
+- ⛔ **Appointment (R2-6) stays HALTED** — user is asking. Do not touch.
 
 ---
 
 ### Task 13: Order creation persists + confirmation (R2-5)
 
+> **REWRITTEN 2026-08-02 after the Fable review pass (findings 1 + 8).** The
+> original plan targeted a path the client never calls, and Step 4 was already
+> built.
+
+**Facts that reshape the task:**
+- The client ALREADY posts to **`/order-service/v3/manual-order`**
+  (`orderService.ts:271` `createOrder`), and `saveDraft` (`:331`) posts to the
+  **SAME path** with `orderStatus.orderStatusCode: 'DRAFT'` stamped by
+  `mapFormToOrderInterface.ts:132-134`. There is no `/order-service/v3/order`
+  POST anywhere — register the handler at the manual-order path (and per the
+  S104 defect class, WITHOUT any `/api` prefix — `api/index.js` strips it).
+- The confirmation page's dual message states (LINX-9002: number provided →
+  *"created successfully"*; blank → async-assignment message that flips + bell)
+  are **ALREADY BUILT** — `ConfirmationView.jsx:74-90`. The old Step 4 is a
+  no-op. What matters: `ConfirmationView.jsx:47` early-returns when
+  `!data?.orderNumber`, so **the server must assign the 13-digit number
+  immediately and return it** or the flip/bell flow never fires in live mode.
+- Response must be the exact `CreateOrderResponse` shape the mock returns
+  (`orderService.ts:283-293`): `{ orderId, success, message, data: {
+  orderNumber, orderDate, orderDateTimeZoneCode, shipmentMode } }`.
+- NOT NULL columns on `orders` (`001_schema.sql:43-59`): `customer` (FK →
+  customers), `consignor`, `consignee`, `order_status`; `order_number` unique
+  when non-empty.
+- Mock mode needs NOTHING — the local overlay already covers creation.
+
 **Files:**
-- Modify: `apps/odyssey-one/api/_lib/orders.mjs` (add POST create)
-- Modify: order create submit path + confirmation page
+- Modify: `apps/odyssey-one/api/_lib/orders.mjs` (createOrder handler; extract the consignor/consignee/typed-column projection shared with `buildUpdateOrderQuery` — that is the concrete meaning of "mirror S102")
+- Modify: `apps/odyssey-one/api/_lib/router.mjs` (POST `/order-service/v3/manual-order`)
+- Modify: `apps/odyssey-one/src/api/services/orderService.ts` (live branch only if the guard currently throws)
 
-Per LINX-9002: order number provided → *"Your order was created successfully."*; not provided → blank field + *"Your order has been submitted successfully. An order number is being assigned and will be available shortly"*, flipping when the number arrives.
-
-- [ ] **Step 1** — Failing test: creating an order inserts a row and returns the created order.
+- [ ] **Step 1** — Failing tests (node:test, `orders.test.mjs`): (a) create
+  inserts a row with identity columns written once (`created_at`/`created_by`,
+  and per Task 9, `created_tz`); (b) `orderStatusCode: 'DRAFT'` → status
+  `Draft`, else `Ready For Plan`; (c) blank orderNumber → server assigns the
+  13-digit zero-padded form (row-10 convention, `orderNumber = orderId`) and
+  RETURNS it; (d) duplicate user-supplied number → honest 409 (pg `23505`),
+  the same pattern `preferences.mjs` uses for `23503`. Router test: the POST
+  path matches WITHOUT the /api prefix.
 - [ ] **Step 2** — Run, expect FAIL.
-- [ ] **Step 3** — Implement `POST /order-service/v3/order` mirroring S102's update-then-insert projection; identity columns written once.
-- [ ] **Step 4** — Wire the confirmation page's dual message states.
-- [ ] **Step 5** — Run, expect PASS. Commit.
+- [ ] **Step 3** — Implement: shared projection helper + insert + number
+  assignment + status branch + 23505 handling; register the route.
+- [ ] **Step 4** — Verify the live create flow feeds the EXISTING confirmation
+  contract: response shape identical to mock (`orderService.ts:283-293`), so
+  `ConfirmationView` renders the success alert with the returned number.
+- [ ] **Step 5** — Run all suites, expect PASS. Commit.
 
 ---
 
@@ -1028,12 +1126,24 @@ Expected: ~19–20 min (S103 baseline); counts logged include `search_index`.
 - [ ] **Step 3: Live probes** — all must pass before promotion:
 
 ```sql
-SELECT count(*) FROM search_index;                                    -- > 0
-SELECT count(*) FROM search_index WHERE value = '';                   -- 0
-SELECT count(DISTINCT attr) FROM search_index;                        -- 14
-SELECT count(*) FROM orders WHERE last_edited_by IS NOT NULL;         -- > 0
-SELECT count(*) FROM orders WHERE created_by LIKE '% %';              -- 0 (usernames, no spaces)
+-- CORRECTED 2026-08-02 (Fable review, finding 6)
+SELECT count(*) FROM search_index;                                     -- > 0 (~140-160k expected)
+SELECT count(*) FROM search_index WHERE value = '';                    -- 0
+SELECT count(DISTINCT attr) FROM search_index;                         -- 15 (pickup-number landed; registryParity confirms)
+SELECT count(*) FROM search_index WHERE attr = 'pickup-number';        -- > 0
+SELECT count(*) FROM shipments WHERE cardinality(pickup_numbers) > 0;  -- > 0 (~70%+ of shipments)
+SELECT count(*) FROM shipments WHERE detail->>'trackingUrl' IS NULL;   -- 0 (R2-1)
+SELECT count(*) FROM orders WHERE last_edited_by IS NOT NULL;          -- > 0 but SMALL (Draft rows only — do not expect "most rows")
+SELECT count(*) FROM orders
+  WHERE (last_edit_at IS NULL) <> (last_edited_by IS NULL);            -- 0 (editor and edit-time travel together)
+SELECT count(*) FROM orders WHERE created_by LIKE '% %';               -- 0 (usernames, no spaces)
+SELECT count(*) FROM orders WHERE created_tz IS NULL;                  -- 0 (R2-3)
+SELECT count(*) FROM users WHERE username IS NULL;                     -- 0
+SELECT count(*) - count(DISTINCT username) FROM users;                 -- 0 (unique)
 ```
+
+**Timing note:** the ~19–20 min S103 baseline predates the `search_index`
+insert (~140–160k rows) — expect meaningfully longer; an overrun is not a hang.
 
 - [ ] **Step 4: Browser-verify search in live mode** (puppeteer, `--no-save`): paste a Pro number → labeled row + correct landing tab; "Show all results" → table order matches the preview; panel tabs all present.
 - [ ] **Step 5: Promote** — reseed prod ONLY with explicit user permission for that specific reseed, then deploy.
