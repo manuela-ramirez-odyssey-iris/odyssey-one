@@ -131,3 +131,90 @@ test('saveTender: rejects a missing option or rank', async () => {
   await assert.rejects(() => saveTender({ params: ['1'], body: {}, db: null }), (e) => e.status === 400)
   await assert.rejects(() => saveTender({ params: ['1'], body: { option: { scac: 'X' } }, db: null }), (e) => e.status === 400)
 })
+
+// ── S104: the gap that produced "search keeps showing me all results" ──
+// buildListQuery never read filter.searchCriteria, buildCountsQuery took no
+// criteria at all, and SORT_MAP had no relevance entry. Every reported symptom
+// — full table, unfiltered tab counts, first rows matching nothing — was this.
+
+test('searchCriteria reaches the SQL (it was silently dropped before)', () => {
+  const { text } = buildListQuery({
+    filter: { panel: 'monitoring', searchCriteria: { chips: [], text: '442376' } },
+  })
+  assert.ok(text.includes('search_index'))
+})
+
+test('relevance sort orders by the ranked CTE, not by a column', () => {
+  const { text } = buildListQuery({
+    filter: { panel: 'monitoring', searchCriteria: { chips: [], text: '442376' } },
+    sortBy: 'relevance',
+  })
+  assert.match(text, /ORDER BY\s+r\.tier/)
+})
+
+test('relevance order is TOTAL and matches the preview tiebreak exactly (GS-16)', () => {
+  const { text } = buildListQuery({
+    filter: { panel: 'monitoring', searchCriteria: { chips: [], text: '442376' } },
+    sortBy: 'relevance',
+  })
+  assert.match(text, /ORDER BY\s+r\.tier,\s*r\.priority,\s*r\.display,\s*sell_shipment/)
+})
+
+test('an explicit column sort still wins over relevance', () => {
+  const { text } = buildListQuery({
+    filter: { panel: 'monitoring', searchCriteria: { chips: [], text: '442376' } },
+    sortBy: 'customerName', orderBy: 'asc',
+  })
+  assert.ok(text.includes('customer_name ASC'))
+  assert.ok(!/ORDER BY\s+r\.tier/.test(text))
+  assert.ok(text.includes('search_index'), 'still RESTRICTED to the hit set')
+})
+
+test('relevance sort without criteria falls back to a real column, never r.tier', () => {
+  // ShipmentsRoute can hold RELEVANCE_SORT while the bar is cleared.
+  const { text } = buildListQuery({ filter: { panel: 'monitoring' }, sortBy: 'relevance' })
+  assert.ok(!text.includes('r.tier'))
+  assert.ok(!text.includes('search_index'))
+  assert.ok(text.includes('pickup_ts'))
+})
+
+test('blank / whitespace criteria text does not restrict the list', () => {
+  for (const t of ['', '   ', null, undefined]) {
+    const { text } = buildListQuery({ filter: { panel: 'monitoring', searchCriteria: { chips: [], text: t } } })
+    assert.ok(!text.includes('search_index'), `"${t}" should not filter`)
+  }
+})
+
+test('counts accept criteria so tab badges narrow with the search', () => {
+  const { text } = buildCountsQuery({
+    panel: 'monitoring', searchCriteria: { chips: [], text: '442376' },
+  })
+  assert.ok(text.includes('search_index'))
+})
+
+test('counts without criteria stay the plain grouped count', () => {
+  const { text } = buildCountsQuery({ panel: 'monitoring' })
+  assert.ok(!text.includes('search_index'))
+  assert.ok(text.includes('GROUP BY category'))
+})
+
+test('criteria text is parameterized in both list and counts', () => {
+  const inject = "x'; DROP TABLE shipments--"
+  for (const q of [
+    buildListQuery({ filter: { panel: 'm', searchCriteria: { chips: [], text: inject } } }),
+    buildCountsQuery({ panel: 'm', searchCriteria: { chips: [], text: inject } }),
+  ]) {
+    assert.ok(!q.text.includes('DROP TABLE'))
+    assert.ok(q.values.includes(inject.toUpperCase()))
+  }
+})
+
+test('explicit needles override the phrase (the handler resolves GS-20 code lists)', () => {
+  const { values } = buildListQuery(
+    { filter: { panel: 'm', searchCriteria: { chips: [], text: 'A1 B2' } } },
+    ['A1', 'B2'],
+  )
+  assert.ok(values.includes('A1'))
+  assert.ok(values.includes('B2'))
+  assert.ok(!values.includes('A1 B2'))
+})

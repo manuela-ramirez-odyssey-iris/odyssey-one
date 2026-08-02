@@ -3,6 +3,14 @@
 // input reaches SQL ONLY through $N parameters; sort/filter columns come ONLY
 // from the whitelist maps below — never from raw request keys.
 
+import { buildRankedSubquery, resolveNeedles } from './search.mjs'
+
+// Sentinel `sortBy` meaning "order by search relevance, no column drives".
+// Must equal RELEVANCE_SORT in src/api/services/gridService.ts — the client
+// sends this string, and the route ALWAYS sends some sortBy (which is why the
+// S104 first attempt, gated on sortBy being absent, shipped dead).
+const RELEVANCE_SORT = 'relevance'
+
 // Row projection: DB snake_case → ShipmentErrorRow camelCase (types/shipmentErrorList.ts).
 const ROW_COLUMNS = `
   buy_shipment AS "buyShipment", sell_shipment AS "sellShipment", orders, pro,
@@ -58,17 +66,33 @@ function addFreeText(where, values, term, attributeKey) {
   where.push(`(${ors.join(' OR ')})`)
 }
 
-export function buildCountsQuery({ panel, customerIds }) {
+/**
+ * The committed-search JOIN (S104). Returns '' when there is nothing to search.
+ *
+ * `needles` is resolved by the async handler (phrase-first, code-list fallback —
+ * GS-20 needs a DB probe, and these builders stay pure). Absent, the text is
+ * treated as one phrase, which is the single-token case anyway.
+ */
+function relevanceJoin(searchCriteria, needles, bind) {
+  const text = String(searchCriteria?.text ?? '').trim()
+  const list = needles?.length ? needles : (text ? [text] : [])
+  if (!list.length) return ''
+  return `JOIN ${buildRankedSubquery({ needles: list, bind })} r ON r.entity_id = shipments.sell_shipment`
+}
+
+export function buildCountsQuery({ panel, customerIds, searchCriteria } = {}, needles) {
   const values = [panel]
   const where = ['panel = $1']
   scope(where, values, customerIds)
+  // Tab badges must narrow with the search, or they contradict the grid below them.
+  const join = relevanceJoin(searchCriteria, needles, (v) => { values.push(v); return `$${values.length}` })
   return {
-    text: `SELECT category, count(*)::int AS count FROM shipments WHERE ${where.join(' AND ')} GROUP BY category`,
+    text: `SELECT category, count(*)::int AS count FROM shipments ${join} WHERE ${where.join(' AND ')} GROUP BY category`,
     values,
   }
 }
 
-export function buildListQuery({ pageNumber = 0, pageSize = 50, filter = {}, sortBy, orderBy } = {}) {
+export function buildListQuery({ pageNumber = 0, pageSize = 50, filter = {}, sortBy, orderBy } = {}, needles) {
   const values = []
   const where = []
   const add = (clause, v) => { values.push(v); where.push(clause.replace('?', `$${values.length}`)) }
@@ -93,16 +117,26 @@ export function buildListQuery({ pageNumber = 0, pageSize = 50, filter = {}, sor
   if (df.deliveryDateFrom) add('delivery_ts >= ?', df.deliveryDateFrom)
   if (df.deliveryDateTo) add('delivery_ts < (?::date + 1)', df.deliveryDateTo)
 
-  const sortCol = SORT_MAP[sortBy] ?? 'pickup_ts'
+  // Committed search criteria (S104). Rows are RESTRICTED to the ranked hit set
+  // whatever the sort, and — unless a real column is driving — ORDERED by it, so
+  // "Show all results" lands on exactly the list the preview showed (GS-16).
+  const join = relevanceJoin(filter.searchCriteria, needles, (v) => { values.push(v); return `$${values.length}` })
+
   const dir = orderBy === 'desc' ? 'DESC' : 'ASC'
+  // The tiebreak chain mirrors buildSearchQuery's TOTAL order exactly. Anything
+  // less and the preview's 15 rows are not provably the table's first 15.
+  const orderSql = (sortBy === RELEVANCE_SORT && join)
+    ? `r.tier, r.priority, r.display, sell_shipment`
+    : `${SORT_MAP[sortBy] ?? 'pickup_ts'} ${dir} NULLS LAST`
+
   values.push(pageSize); const limitP = values.length
   values.push(pageNumber * pageSize); const offsetP = values.length
 
   const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : ''
   return {
     text: `SELECT ${ROW_COLUMNS}, count(*) OVER()::int AS "__total"
-           FROM shipments ${whereSql}
-           ORDER BY ${sortCol} ${dir} NULLS LAST
+           FROM shipments ${join} ${whereSql}
+           ORDER BY ${orderSql}
            LIMIT $${limitP} OFFSET $${offsetP}`,
     values,
   }
@@ -111,13 +145,21 @@ export function buildListQuery({ pageNumber = 0, pageSize = 50, filter = {}, sor
 export async function categoryCounts({ query, db }) {
   const panel = query.get('panel') ?? ''
   const customerIds = query.has('customerIds') ? query.get('customerIds').split(',').filter(Boolean) : undefined
-  const { rows } = await db.query(buildCountsQuery({ panel, customerIds }))
+  const text = query.get('searchText') ?? ''
+  const searchCriteria = text ? { chips: [], text } : undefined
+  // Resolved ONCE, against the full index, exactly as the list and the preview
+  // resolve it — so the badge and the grid can never read the query differently.
+  const needles = await resolveNeedles(db, 'shipments', text, customerIds)
+  const { rows } = await db.query(buildCountsQuery({ panel, customerIds, searchCriteria }, needles))
   return { errorOverview: rows }   // [{ category, count }]
 }
 
 export async function shipmentErrorList({ body, db }) {
   const { pageNumber = 0, pageSize = 50 } = body ?? {}
-  const { rows } = await db.query(buildListQuery(body ?? {}))
+  const needles = await resolveNeedles(
+    db, 'shipments', body?.filter?.searchCriteria?.text, body?.filter?.customerIds,
+  )
+  const { rows } = await db.query(buildListQuery(body ?? {}, needles))
   const totalCount = rows[0]?.__total ?? 0
   return { pageNumber, pageSize, totalCount, rows: rows.map(({ __total, ...r }) => r) }
 }

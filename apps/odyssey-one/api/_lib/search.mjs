@@ -25,12 +25,14 @@ function priorityCase(domain) {
  * gate ("offer an attribute only if it matches EVERY code") needs to count
  * DISTINCT needles per attribute — an entity count cannot answer that.
  *
- * Returns { sql, values, param } — `param` is the running binder so callers can
- * append their own parameters (LIMIT) after the branches.
+ * Returns { sql, values, p } — `p` is the running binder so callers can append
+ * their own parameters (LIMIT) after the branches. Callers that already own a
+ * parameter list (buildListQuery) pass their own `bind` instead, so the ranking
+ * SQL can be embedded in a larger query without renumbering.
  */
-function buildHits({ domain, needles, customerIds }) {
+function buildHits({ domain, needles, customerIds, bind }) {
   const values = []
-  const p = (v) => { values.push(v); return `$${values.length}` }
+  const p = bind ?? ((v) => { values.push(v); return `$${values.length}` })
   const dom = p(domain)
 
   const scope = customerIds
@@ -105,6 +107,23 @@ FROM hits GROUP BY attr ${having}
 ORDER BY min(tier), n DESC`,
     values,
   }
+}
+
+/**
+ * The ranked hit set as an embeddable subquery — one row per entity, carrying
+ * the tier/priority/display that the TOTAL order sorts on.
+ *
+ * This is what makes "Show all results" land on exactly the list the preview
+ * showed (GS-16): the list query JOINs the SAME ranking the preview ordered by,
+ * instead of a second hand-written copy of the tier SQL that has to be kept in
+ * agreement. `bind` is the caller's parameter binder.
+ */
+export function buildRankedSubquery({ domain = 'shipments', needles, bind }) {
+  const { sql } = buildHits({ domain, needles, bind })
+  return `(SELECT DISTINCT ON (entity_id) entity_id, tier, display,
+             ${priorityCase(domain)} AS priority
+           FROM (${sql}) h
+           ORDER BY entity_id, tier, ${priorityCase(domain)})`
 }
 
 /** Phrase-first, code-list fallback (GS-20). Decided ONCE per query against the

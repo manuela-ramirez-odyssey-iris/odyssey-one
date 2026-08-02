@@ -45,10 +45,13 @@ function scopeToCustomers(rows: ShipmentErrorRow[], customerIds?: string[]): Shi
 export async function getCategoryCounts(params: CategoryCountParams): Promise<CategoryCount[]> {
   if (getApiMode() === 'live') {
     // Real: GET /shipment-service/v1/shipment/error/category/count → { errorOverview, total }
-    // Our fake backend grew the customerIds filter (plan deviation 1); searchCriteria
-    // stays mock-only until the search slice lands (plan deviation 2).
+    // Our fake backend grew the customerIds filter (plan deviation 1). searchText
+    // landed with the S104 search slice — without it the tab badges counted the
+    // whole panel while the grid below showed the search's rows.
     const search = new URLSearchParams({ panel: params.panel })
     if (params.customerIds !== undefined) search.set('customerIds', params.customerIds.join(','))
+    const criteriaText = params.searchCriteria?.text?.trim()
+    if (criteriaText) search.set('searchText', criteriaText)
     const res = await apiGet<{ errorOverview: CategoryCount[] }>(
       `/shipment-service/v1/shipment/error/category/count?${search.toString()}`,
     )
