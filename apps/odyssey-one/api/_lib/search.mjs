@@ -98,13 +98,30 @@ function chipRestrictionSql(domain, chip, p) {
 function buildHits({ domain, needles, customerIds, chips, bind }) {
   const values = []
   const p = bind ?? ((v) => { values.push(v); return `$${values.length}` })
-  const dom = p(domain)
 
+  // Chip validity decides needles.length === 0's fate BEFORE anything binds a
+  // parameter — `dom`/`scope` below are unreferenced by the honest-empty
+  // shape, and Postgres rejects a values array with an unbound-but-unused
+  // $1 (42P18 "could not determine data type of parameter"). Bind nothing
+  // that isn't referenced in the SQL that's actually returned.
+  const chipList = validChips(domain, chips)
+  if (!needles.length && !chipList.length) {
+    // Honest-empty (S79c convention): nothing to search on (no needles, and no
+    // chip survived `validChips` — either none were sent, or every one carried
+    // an unknown/non-projected key). A bare `''` here produces `WITH hits AS
+    // ()` upstream, a Postgres SYNTAX ERROR (500), not an empty result — this
+    // was reachable from the UI (committing e.g. "Mode: TL" alone, a real
+    // progression attribute that just isn't indexed) on search, suggest, the
+    // grid list, AND tab counts, all four routing through this function. A
+    // well-formed zero-row shape also matches the mock's own semantics: an
+    // unrecognized/unindexed chip matches NOTHING, not everything.
+    return { sql: `SELECT NULL::text AS entity_id, NULL::text AS attr, NULL::text AS display, 0 AS tier, 0 AS needle_ix WHERE FALSE`, values, p }
+  }
+
+  const dom = p(domain)
   const scope = customerIds
     ? `AND entity_id IN (SELECT sell_shipment FROM shipments WHERE customer_id = ANY(${p(customerIds)}))`
     : ''
-
-  const chipList = validChips(domain, chips)
 
   if (needles.length) {
     const chipSql = chipList.map((c) => `AND ${chipRestrictionSql(domain, c, p)}`).join(' ')
@@ -128,27 +145,16 @@ function buildHits({ domain, needles, customerIds, chips, bind }) {
     return { sql: branches.join(' UNION ALL '), values, p }
   }
 
-  if (chipList.length) {
-    const [lead, ...rest] = chipList
-    const leadCfg = REGISTRY[domain].attrs[lead.key]
-    const leadTokens = chipTokens(lead.queryValue, leadCfg.normalize)
-    const leadOrs = leadTokens.map((t) => `value LIKE '%' || ${p(t)} || '%'`).join(' OR ')
-    const restSql = rest.map((c) => `AND ${chipRestrictionSql(domain, c, p)}`).join(' ')
-    const sql = `SELECT entity_id, attr, display, 2 AS tier, 0 AS needle_ix FROM search_index
-      WHERE domain = ${dom} AND attr = ${p(lead.key)} AND (${leadOrs}) ${scope} ${restSql}`
-    return { sql, values, p }
-  }
-
-  // Honest-empty (S79c convention): nothing to search on (no needles, and no
-  // chip survived `validChips` — either none were sent, or every one carried
-  // an unknown/non-projected key). A bare `''` here produces `WITH hits AS ()`
-  // upstream, which is a Postgres SYNTAX ERROR (500), not an empty result —
-  // this was reachable from the UI (committing e.g. "Mode: TL" alone, a real
-  // progression attribute that just isn't indexed) on search, suggest, the
-  // grid list, AND tab counts, all four routing through this function. A
-  // well-formed zero-row shape also matches the mock's own semantics: an
-  // unrecognized/unindexed chip matches NOTHING, not everything.
-  return { sql: `SELECT NULL::text AS entity_id, NULL::text AS attr, NULL::text AS display, 0 AS tier, 0 AS needle_ix WHERE FALSE`, values, p }
+  // Reached only with needles empty and chipList non-empty (the honest-empty
+  // early-out above covers "neither") — chips-only ranking off the lead chip.
+  const [lead, ...rest] = chipList
+  const leadCfg = REGISTRY[domain].attrs[lead.key]
+  const leadTokens = chipTokens(lead.queryValue, leadCfg.normalize)
+  const leadOrs = leadTokens.map((t) => `value LIKE '%' || ${p(t)} || '%'`).join(' OR ')
+  const restSql = rest.map((c) => `AND ${chipRestrictionSql(domain, c, p)}`).join(' ')
+  const sql = `SELECT entity_id, attr, display, 2 AS tier, 0 AS needle_ix FROM search_index
+    WHERE domain = ${dom} AND attr = ${p(lead.key)} AND (${leadOrs}) ${scope} ${restSql}`
+  return { sql, values, p }
 }
 
 /**
