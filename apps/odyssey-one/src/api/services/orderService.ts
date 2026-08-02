@@ -269,7 +269,9 @@ function manualOrderToListRow(mo: ManualOrder, orderNumber: string, statusLabel:
 
 export async function createOrder(request: CreateOrderRequest): Promise<CreateOrderResponse> {
   if (getApiMode() === 'live') {
-    return apiPost<CreateOrderResponse>('/order-service/v3/manual-order', request)
+    // userId (R2-4/R2-5): same identity pattern as updateOrder/preferenceService
+    // — the server resolves it to the username that fills created_by.
+    return apiPost<CreateOrderResponse>('/order-service/v3/manual-order', { ...request, userId: currentUser.id })
   }
   createSeq += 1
   const mo = request.manualOrder
@@ -338,8 +340,9 @@ export async function saveDraft(values: OrderFormValues, draftId?: string | null
   const request = mapFormToOrderInterface(values, { draft: true })
   if (getApiMode() === 'live') {
     // LLD remark: draft orders go through the same manual-order POST with
-    // orderStatusCode DRAFT (the mapper already stamped it)
-    await apiPost('/order-service/v3/manual-order', request)
+    // orderStatusCode DRAFT (the mapper already stamped it). userId: same
+    // identity pattern as createOrder/updateOrder (R2-4/R2-5).
+    await apiPost('/order-service/v3/manual-order', { ...request, userId: currentUser.id })
     const orderNumber = request.manualOrder.orderNumber ?? ''
     return { draftId: orderNumber, orderNumber }
   }

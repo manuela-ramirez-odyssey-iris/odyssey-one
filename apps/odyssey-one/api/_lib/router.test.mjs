@@ -36,6 +36,11 @@ test('matches PATCH order status route', () => {
   assert.equal(matchRoute('POST', '/order-service/v3/order/status'), null)
 })
 
+test('matches manual-order create route (R2-5); rejects the /api-prefixed form', () => {
+  assert.equal(matchRoute('POST', '/order-service/v3/manual-order').name, 'createOrder')
+  assert.equal(matchRoute('POST', '/api/order-service/v3/manual-order'), null)
+})
+
 // index.js strips the /api prefix before dispatch, so these paths must NOT carry
 // it. Registering them as '/api/v1/search' matches nothing and 404s every search.
 test('search routes match the /api-STRIPPED path the entry point passes', () => {

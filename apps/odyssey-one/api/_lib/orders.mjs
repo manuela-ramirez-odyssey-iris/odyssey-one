@@ -169,7 +169,12 @@ export async function orderView({ body, db }) {
 // module), so it inherits the order's own created_tz. Known ceiling: if an
 // edit moves the origin to a different zone, last_edit_tz goes stale until
 // a server-side zone lookup exists.
-export function buildUpdateOrderQuery(key, mo, userId) {
+// Shared wire → typed-column projection (S102 "mirror"): create and update
+// both receive the SAME manualOrder wire object and must derive consignor/
+// consignee/weights/commodity/hazardous identically, or the two paths drift
+// on what the grid displays depending on which one last touched a row. ONE
+// function, used by both buildCreateOrderQuery and buildUpdateOrderQuery.
+function deriveOrderProjection(mo) {
   const line = mo.orderLines?.[0] ?? {}
   const consignor = {
     locationId: mo.originPartnerId ?? '', name: mo.originFullName ?? '', city: mo.originCity ?? '',
@@ -181,6 +186,20 @@ export function buildUpdateOrderQuery(key, mo, userId) {
     state: mo.destinationRegion ?? '', country: mo.destinationCountry ?? 'US',
     earliestDeliveryDateTime: mo.requestedDeliveryDate ?? '', latestDeliveryDateTime: mo.deliveryAppointment ?? '',
   }
+  return {
+    consignor, consignee,
+    shipDirection: mo.shipDirectionCode ?? '',
+    freightTerms: mo.freightTermCode ?? '',
+    equipment: mo.orderCarrierEquipDetailList?.[0]?.equipmentCode ?? '',
+    grossWeight: { value: mo.grossWeightValue ?? 0, uom: mo.grossWeightUomCode ?? 'lbs' },
+    volume: { value: mo.volumeValue ?? 0, uom: mo.volumeUomCode ?? 'cbf' },
+    commodity: line.productDescription ?? '',
+    hazardous: (mo.orderLines ?? []).some((l) => l.hazardous === true),
+  }
+}
+
+export function buildUpdateOrderQuery(key, mo, userId) {
+  const p = deriveOrderProjection(mo)
   return {
     text: `UPDATE orders SET
              manual_order = $1,
@@ -197,17 +216,14 @@ export function buildUpdateOrderQuery(key, mo, userId) {
            WHERE order_number = $21 RETURNING order_number`,
     values: [
       JSON.stringify(mo),
-      mo.shipDirectionCode ?? '', mo.freightTermCode ?? '',
-      mo.orderCarrierEquipDetailList?.[0]?.equipmentCode ?? '',
-      JSON.stringify(consignor), JSON.stringify(consignee),
-      JSON.stringify({ value: mo.grossWeightValue ?? 0, uom: mo.grossWeightUomCode ?? 'lbs' }),
-      JSON.stringify({ value: mo.volumeValue ?? 0, uom: mo.volumeUomCode ?? 'cbf' }),
-      line.productDescription ?? '',
-      (mo.orderLines ?? []).some((l) => l.hazardous === true),
-      consignor.city, consignor.state, consignor.country,
-      consignee.city, consignee.state, consignee.country,
-      consignor.earliestPickupDateTime, consignor.latestPickupDateTime,
-      consignee.earliestDeliveryDateTime, consignee.latestDeliveryDateTime,
+      p.shipDirection, p.freightTerms, p.equipment,
+      JSON.stringify(p.consignor), JSON.stringify(p.consignee),
+      JSON.stringify(p.grossWeight), JSON.stringify(p.volume),
+      p.commodity, p.hazardous,
+      p.consignor.city, p.consignor.state, p.consignor.country,
+      p.consignee.city, p.consignee.state, p.consignee.country,
+      p.consignor.earliestPickupDateTime, p.consignor.latestPickupDateTime,
+      p.consignee.earliestDeliveryDateTime, p.consignee.latestDeliveryDateTime,
       key,
       userId ?? null,
     ],
@@ -254,4 +270,104 @@ export async function updateOrderStatus({ body, db }) {
   const { rows } = await db.query(buildUpdateOrderStatusQuery(String(key), status))
   if (rows.length === 0) { const e = new Error(`No order: ${key}`); e.status = 404; throw e }
   return { success: true }
+}
+
+// ── Order creation (R2-5) ───────────────────────────────────────────────────
+// POST /order-service/v3/manual-order. The client already posts creates here
+// (orderService.ts createOrder ~:271); saveDraft (~:331) posts the SAME path
+// with orderStatus.orderStatusCode 'DRAFT' stamped by mapFormToOrderInterface
+// (~:132-134) — one status field is the only difference, so one handler covers
+// both, mirroring the mock's createOrder/saveDraft pair that both write into
+// the same overlay. ConfirmationView.jsx:47 early-returns without
+// data.orderNumber, so the number MUST be assigned and returned synchronously
+// — there is no async/deferred-assignment path server-side.
+export function buildCreateOrderQuery(mo, userId) {
+  const p = deriveOrderProjection(mo)
+  const orderNumber = (mo.orderNumber ?? '').trim()
+  // 'DRAFT' is the only code the mapper ever stamps for a draft save
+  // (mapFormToOrderInterface.ts:132-134); anything else (including absent,
+  // e.g. a hand-built test payload) is a real create → 'Ready For Plan',
+  // matching the mock's createOrder status label (orderService.ts:281).
+  const status = mo.orderStatus?.orderStatusCode === 'DRAFT' ? 'Draft' : 'Ready For Plan'
+  return {
+    // id: orders.id (serial PK) is otherwise unused by app logic (ROW_COLUMNS
+    // never selects it) — resolving it from Postgres's own sequence up front
+    // (the CTE) gives atomic, race-free uniqueness for free, and lets a blank
+    // orderNumber be zero-padded from it in the SAME statement: no
+    // SELECT-MAX-then-INSERT race, no second round trip. 13-digit padding
+    // matches tools/generate.mjs genOrderNumber's auto-generated branch and
+    // the mock's `String(orderId).padStart(13, '0')` (orderService.ts:279) —
+    // row-10 convention: orderNumber = orderId, padded.
+    text: `WITH new_row AS (SELECT nextval(pg_get_serial_sequence('orders','id')) AS id)
+           INSERT INTO orders (
+             id, order_number, order_id, order_source, customer,
+             ship_direction, freight_terms, equipment, consignor, consignee,
+             gross_weight, volume, commodity, hazardous, order_status,
+             manual_order,
+             origin_city, origin_state, origin_country,
+             dest_city, dest_state, dest_country,
+             earliest_pickup_ts, latest_pickup_ts, earliest_delivery_ts, latest_delivery_ts,
+             created_at, created_by, created_tz
+           )
+           SELECT
+             id, COALESCE(NULLIF($1,''), lpad(id::text, 13, '0')), id, 'MANUAL', $2,
+             $3, $4, $5, $6::jsonb, $7::jsonb,
+             $8::jsonb, $9::jsonb, $10, $11, $12,
+             $13::jsonb,
+             $14, $15, $16,
+             $17, $18, $19,
+             NULLIF($20,'')::timestamptz, NULLIF($21,'')::timestamptz, NULLIF($22,'')::timestamptz, NULLIF($23,'')::timestamptz,
+             now(), (SELECT username FROM users WHERE id = $24), $25
+           FROM new_row
+           RETURNING order_number, order_id, created_at, created_tz`,
+    values: [
+      orderNumber,
+      mo.customerId ?? '',
+      p.shipDirection, p.freightTerms, p.equipment,
+      JSON.stringify(p.consignor), JSON.stringify(p.consignee),
+      JSON.stringify(p.grossWeight), JSON.stringify(p.volume),
+      p.commodity, p.hazardous, status,
+      JSON.stringify(mo),
+      p.consignor.city, p.consignor.state, p.consignor.country,
+      p.consignee.city, p.consignee.state, p.consignee.country,
+      p.consignor.earliestPickupDateTime, p.consignor.latestPickupDateTime,
+      p.consignee.earliestDeliveryDateTime, p.consignee.latestDeliveryDateTime,
+      userId ?? null,
+      // created_tz: unlike a pickup/delivery leg, the order itself has no
+      // top-level *TimeZoneCode field on the ManualOrder wire (createOrder.ts
+      // only has per-leg requestedPickup/pickupAppointment/... zones) — same
+      // ceiling Task 9 hit for last_edit_tz: no city→zone map is reachable
+      // from this file. Honest NULL, not a borrowed leg zone.
+      null,
+    ],
+  }
+}
+
+export async function createOrder({ body, db }) {
+  const mo = body?.manualOrder
+  if (!mo || typeof mo !== 'object') { const e = new Error('manualOrder required'); e.status = 400; throw e }
+  try {
+    const { rows } = await db.query(buildCreateOrderQuery(mo, body?.userId))
+    const row = rows[0]
+    return {
+      orderId: row.order_id,
+      success: true,
+      message: `Order ${row.order_number} created successfully`,
+      data: {
+        orderNumber: row.order_number,
+        orderDate: row.created_at.toISOString(),
+        // Q28 open (mock constant, orderService.ts:291-292) — no shipmentMode/
+        // zone derivation exists server-side either; matched verbatim so the
+        // confirmation page renders identically in both modes.
+        orderDateTimeZoneCode: 'EST',
+        shipmentMode: 'Ground',
+      },
+    }
+  } catch (err) {
+    // Unique violation on orders_number_unique = a user-supplied number that
+    // collides with an existing row — honest 409, not a 500 (mirrors
+    // preferences.mjs's 23503→400 pattern for the FK case).
+    if (err?.code === '23505') { const e = new Error(`Order number already exists: ${mo.orderNumber}`); e.status = 409; throw e }
+    throw err
+  }
 }

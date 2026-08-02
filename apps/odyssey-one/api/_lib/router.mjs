@@ -1,6 +1,6 @@
 // api/_lib/router.mjs — path table for the OdysseyONE-shaped endpoints.
 import { categoryCounts, shipmentErrorList, sellShipmentDetail, saveTender } from './shipments.mjs'
-import { orderList, orderTabCounts, orderView, updateOrder, updateOrderStatus } from './orders.mjs'
+import { orderList, orderTabCounts, orderView, updateOrder, updateOrderStatus, createOrder } from './orders.mjs'
 import { getPreference, putPreference } from './preferences.mjs'
 import { searchHandler, suggestHandler } from './search.mjs'
 
@@ -15,6 +15,7 @@ export const ROUTES = [
   { name: 'orderView',         method: 'POST', path: '/order-service/v3/order/view',                        handler: orderView },
   { name: 'updateOrder',       method: 'PUT',  path: '/order-service/v3/order',                             handler: updateOrder },
   { name: 'updateOrderStatus', method: 'PATCH', path: '/order-service/v3/order/status',                     handler: updateOrderStatus },
+  { name: 'createOrder',       method: 'POST', path: '/order-service/v3/manual-order',                      handler: createOrder },
   { name: 'getPreference',     method: 'GET',  path: '/user-service/v1/preference',                         handler: getPreference },
   { name: 'putPreference',     method: 'PUT',  path: '/user-service/v1/preference',                         handler: putPreference },
   // Paths here are POST-/api-STRIPPED (index.js:12) — the client posts to
