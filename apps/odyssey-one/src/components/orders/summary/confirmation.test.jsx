@@ -85,6 +85,20 @@ describe('mapFormVmToOrderPane rollups (confirmation mock strip)', () => {
     expect(vm.d.totalProductWeight).toBe('') // not captured — '--' gap
     expect(vm.d.totalTareWeight).toBe('')
   })
+
+  // R2-7 / LINX-8121: order-level hazmat is DERIVED from lines — a mixed order
+  // (one hazardous line, one not) must show order-level Yes while each
+  // productLines row keeps its own value (no all-or-nothing collapse).
+  test('mixed order: order-level Yes + per-line hazardous values render individually', () => {
+    const vm = mapFormVmToOrderPane(valuesWith({
+      products: [
+        product({ id: 'r1', hazardous: true }),
+        product({ id: 'r2', hazardous: false }),
+      ],
+    }))
+    expect(vm.d.hazmat).toBe('Yes')
+    expect(vm.productLines.map((l) => l.hazmat)).toEqual([true, false])
+  })
 })
 
 const renderConfirmation = ({ data, values, variant }) =>

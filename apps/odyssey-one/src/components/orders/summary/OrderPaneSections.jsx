@@ -245,6 +245,7 @@ export function ProductInfoCard({ d, productLines, expanded, onToggle }) {
                 <th className="text-label-sm-semibold">Product Description</th>
                 <th className="text-label-sm-semibold">Gross Weight</th>
                 <th className="text-label-sm-semibold">Volume</th>
+                <th className="text-label-sm-semibold">Hazardous</th>
                 <th className="text-label-sm-semibold">Product Class</th>
                 <th className="order-pane__col-icon" aria-hidden="true">
                   <span className="order-pane__table-icon">
@@ -256,7 +257,7 @@ export function ProductInfoCard({ d, productLines, expanded, onToggle }) {
             <tbody>
               {productLines.length === 0 && (
                 <tr>
-                  {Array.from({ length: 6 }, (_, i) => (
+                  {Array.from({ length: 7 }, (_, i) => (
                     <td key={i} className="text-label-sm-regular">{DASH}</td>
                   ))}
                   <td aria-hidden="true" />
@@ -269,6 +270,17 @@ export function ProductInfoCard({ d, productLines, expanded, onToggle }) {
                   <td className="text-label-sm-regular">{line.description}</td>
                   <td className="text-label-sm-regular">{line.grossWeight}</td>
                   <td className="text-label-sm-regular">{line.volume}</td>
+                  <td className="text-label-sm-regular">
+                    {/* per-line hazmat (LINX-8121) — same amber-Badge idiom as
+                        the order-level rollup above, not a new convention */}
+                    {line.hazmat ? (
+                      <Badge variant="amber" leftIcon={<TriangleAlert size={12} aria-hidden="true" />}>
+                        Hazmat
+                      </Badge>
+                    ) : (
+                      DASH
+                    )}
+                  </td>
                   <td className="text-label-sm-regular">{line.productClass}</td>
                   <td aria-hidden="true" />
                 </tr>

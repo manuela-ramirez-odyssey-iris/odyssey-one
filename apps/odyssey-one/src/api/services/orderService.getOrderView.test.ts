@@ -25,6 +25,54 @@ const SEEDED = [
     commodity: 'Plastic',
     orderStatus: 'Ready For Plan',
   },
+  // R2-7 / LINX-12102: lean rows (no manual_order enrichment) still carry the
+  // grid's derived row.hazardous — the seam under test.
+  {
+    orderNumber: 'HAZ100001',
+    orderSource: 'INTEGRATED',
+    customer: 'ERCO_SYS_01',
+    shipDirection: 'O',
+    freightTerms: 'P',
+    equipment: 'VAN',
+    consignor: {
+      locationId: 'EW-TX-001', city: 'Houston', state: 'TX', country: 'US',
+      earliestPickupDateTime: '2026-06-10T08:00:00.000Z',
+      latestPickupDateTime: '2026-06-10T16:00:00.000Z',
+    },
+    consignee: {
+      locationId: 'GT-LA-002', city: 'Bastrop', state: 'LA', country: 'US',
+      earliestDeliveryDateTime: '2026-06-12T08:00:00.000Z',
+      latestDeliveryDateTime: '2026-06-12T16:00:00.000Z',
+    },
+    grossWeight: { value: 4300, uom: 'lbs' },
+    volume: { value: 730, uom: 'cbf' },
+    commodity: 'Sulfuric Acid',
+    orderStatus: 'Ready For Plan',
+    hazardous: true,
+  },
+  {
+    orderNumber: 'HAZ100002',
+    orderSource: 'INTEGRATED',
+    customer: 'ERCO_SYS_01',
+    shipDirection: 'O',
+    freightTerms: 'P',
+    equipment: 'VAN',
+    consignor: {
+      locationId: 'EW-TX-001', city: 'Houston', state: 'TX', country: 'US',
+      earliestPickupDateTime: '2026-06-10T08:00:00.000Z',
+      latestPickupDateTime: '2026-06-10T16:00:00.000Z',
+    },
+    consignee: {
+      locationId: 'GT-LA-002', city: 'Bastrop', state: 'LA', country: 'US',
+      earliestDeliveryDateTime: '2026-06-12T08:00:00.000Z',
+      latestDeliveryDateTime: '2026-06-12T16:00:00.000Z',
+    },
+    grossWeight: { value: 4300, uom: 'lbs' },
+    volume: { value: 730, uom: 'cbf' },
+    commodity: 'Plastic',
+    orderStatus: 'Ready For Plan',
+    hazardous: false,
+  },
 ]
 
 vi.mock('../../data/orders', () => ({ getAllOrders: () => SEEDED, getOrderEnrichment: () => null }))
@@ -108,6 +156,25 @@ describe('orderService.getOrderView (mock)', () => {
     expect(row?.orderStatus).toBe('Ready For Plan') // status untouched by the edit
     expect(row?.commodity).toBe('Edited Commodity')
     expect(orders.filter(o => o.orderNumber === 'AAA100001')).toHaveLength(1) // no duplicate row
+  })
+
+  // R2-7 root-cause: listRowToManualOrder used to drop row.hazardous when
+  // synthesizing the lean order's single product line, so a row the grid
+  // flags hazardous showed non-hazardous in View Order. Fixed at the seam —
+  // the line-level flag now carries through so the LINX-8121 line→order
+  // derivation (elsewhere) has something to derive from.
+  it('carries a lean hazardous row.hazardous onto the synthetic product line', async () => {
+    const vm = await getOrderView('HAZ100001')
+    expect(vm).not.toBeNull()
+    expect(vm!.products).toHaveLength(1)
+    expect(vm!.products[0].hazardous).toBe(true)
+  })
+
+  it('does not mark a non-hazardous lean row hazardous (no accidental always-true)', async () => {
+    const vm = await getOrderView('HAZ100002')
+    expect(vm).not.toBeNull()
+    expect(vm!.products).toHaveLength(1)
+    expect(vm!.products[0].hazardous).toBe(false)
   })
 
   it('returns a defensive copy of draft values (caller mutation does not leak)', async () => {

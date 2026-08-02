@@ -418,6 +418,12 @@ function listRowToManualOrder(row: OrderListRow): ManualOrder {
           volumeValue: row.volume?.value ?? 0,
           volumeUomCode: row.volume?.uom ?? 'cbf',
           shipClass: '',
+          // R2-7: carry the grid's row.hazardous onto the synthetic line so the
+          // LINX-8121 line→order derivation downstream (mapOrderViewToFormVm,
+          // mapFormVmToOrderPane) has something to derive from — lean rows have
+          // no other line data. Previously dropped, so a row the grid flagged
+          // hazardous showed non-hazardous in View Order.
+          hazardous: row.hazardous ?? false,
         }]
       : [],
   }

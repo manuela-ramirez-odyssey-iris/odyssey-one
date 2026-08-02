@@ -114,6 +114,10 @@ export default function mapFormVmToOrderPane(values) {
     description: p.description,
     grossWeight: convertMeasureDisplay(p.grossWeight, 'us'),
     volume: convertMeasureDisplay(p.volume, 'us'),
+    // per-line flag (LINX-8121: line-level is what the user/derivation actually
+    // asserts) — field name `hazmat` matches ProductLineVM (shipmentDetail.ts),
+    // the shape the shared ProductInfoCard's Shipments caller already emits.
+    hazmat: p.hazardous,
     productClass: p.shipClass ? shipClassLabel(p.shipClass) : '', // wire code H/C/P/N → label
     shippingClass: '', // gap — not on OrderFormValues (create flow captures shipClass only)
   }))
