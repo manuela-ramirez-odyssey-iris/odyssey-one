@@ -4,7 +4,16 @@ import { getAllShipments } from '../../data'
 // Shared chip+text matcher — the SAME predicate the GlobalSearch glimpse uses
 // (adapter.searchShipments), so criteria-filtered panel totals always sum to the
 // glimpse total (S79c decision 7).
-import { hasCriteria, matchesCriteria, FREE_TEXT_KEYS } from '../../search/shipments/criteria'
+import { hasCriteria, matchesCriteria, compareByCriteria, textNeedles, FREE_TEXT_KEYS } from '../../search/shipments/criteria'
+import { FREE_TEXT_ATTRS } from '../../search/shipments/progression'
+
+/**
+ * Sentinel `sortBy` meaning "order by search relevance, no column drives".
+ * The shipments table always has a sorted column (DataTable never renders
+ * unsorted), so relevance needs its own sort identity rather than the absence
+ * of one — otherwise the default column sort silently wins (GS-16 follow-up).
+ */
+export const RELEVANCE_SORT = 'relevance'
 import type {
   ShipmentErrorRow,
   ShipmentErrorListResponse,
@@ -49,7 +58,12 @@ export async function getCategoryCounts(params: CategoryCountParams): Promise<Ca
   // and committed search criteria)
   let rows = scopeToCustomers(getAllShipments() as ShipmentErrorRow[], params.customerIds)
     .filter(r => r.panel === params.panel)
-  if (hasCriteria(params.searchCriteria)) rows = rows.filter(r => matchesCriteria(r, params.searchCriteria))
+  if (hasCriteria(params.searchCriteria)) {
+    // Text interpretation resolved once against the FULL dataset (GS-20), so the
+    // counts read the query identically to the glimpse and the list.
+    const needles = textNeedles(getAllShipments() as ShipmentErrorRow[], params.searchCriteria!.text)
+    rows = rows.filter(r => matchesCriteria(r, params.searchCriteria, needles))
+  }
   const counts = new Map<string, number>()
   for (const r of rows) counts.set(r.category, (counts.get(r.category) ?? 0) + 1)
   return [...counts].map(([category, count]) => ({ category, count }))
@@ -108,7 +122,12 @@ export async function getShipmentErrorList(
 
   // committed GlobalSearch criteria (chips ANDed + free text) — applied after
   // panel/category scoping with the SAME matcher as the search-panel glimpse
-  if (hasCriteria(params.searchCriteria)) rows = rows.filter(r => matchesCriteria(r, params.searchCriteria))
+  const criteriaNeedles = hasCriteria(params.searchCriteria)
+    ? textNeedles(getAllShipments() as ShipmentErrorRow[], params.searchCriteria!.text)
+    : []
+  if (hasCriteria(params.searchCriteria)) {
+    rows = rows.filter(r => matchesCriteria(r, params.searchCriteria, criteriaNeedles))
+  }
 
   // exact-equality filters (FilterPanel dropdown selections)
   if (params.filter) {
@@ -149,11 +168,22 @@ export async function getShipmentErrorList(
   // optional sort — numeric-aware ('10' sorts after '2', not before: orderCount etc.
   // are numeric strings). ponytail: date columns sort lexically (values are display
   // strings) — parse to Date here if that ever matters for the prototype.
-  if (params.sortBy) {
+  if (params.sortBy && params.sortBy !== RELEVANCE_SORT) {
     const key = params.sortBy as keyof ShipmentErrorRow
     const dir = params.orderBy === 'desc' ? -1 : 1
     rows = [...rows].sort((a, b) =>
       String(a[key] ?? '').localeCompare(String(b[key] ?? ''), undefined, { numeric: true }) * dir)
+  } else if (hasCriteria(params.searchCriteria)) {
+    // Rows arrived from a search and no COLUMN sort is driving → order them
+    // exactly as the results preview did, so "Show all results" lands on the
+    // list the user was just looking at, exact match first (S104, GS-16).
+    //
+    // The `RELEVANCE_SORT` sentinel exists because this table is never unsorted:
+    // the route seeds `sorting` with a real column, so `sortBy` was ALWAYS set
+    // and this branch was dead in the app (caught by the user, not by a test —
+    // the S104 test called this service directly and omitted sortBy).
+    const cmp = compareByCriteria(params.searchCriteria, FREE_TEXT_ATTRS, criteriaNeedles)
+    if (cmp) rows = [...rows].sort(cmp)
   }
 
   const totalCount = rows.length

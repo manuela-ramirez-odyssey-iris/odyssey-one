@@ -31,6 +31,7 @@
  * provide their own progression + adapter behind the same contract.
  */
 import { EQUIPMENT_CODES } from '../../data/master-data'
+import { FREE_TEXT_KEYS } from './criteria'
 
 export const SHIPMENTS_PROGRESSION = [
   {
@@ -116,4 +117,14 @@ export const SHIPMENTS_PROGRESSION = [
 /** Flattened, in progression (importance) order. Each attribute carries its group. */
 export const SHIPMENTS_ATTRIBUTES = SHIPMENTS_PROGRESSION.flatMap((g) =>
   g.attributes.map((a) => ({ ...a, group: g.group })),
+)
+
+/**
+ * The attributes a BARE CODE can resolve to — those the free-text filter actually
+ * searches. Restricted to FREE_TEXT_KEYS so a row is never LABELLED (or RANKED)
+ * by a field the filter didn't look at. Still in progression order, which is what
+ * breaks ties between two attributes matching the same query equally well.
+ */
+export const FREE_TEXT_ATTRS = SHIPMENTS_ATTRIBUTES.filter((a) =>
+  FREE_TEXT_KEYS.includes(a.dataKey),
 )

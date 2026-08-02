@@ -131,6 +131,88 @@ Decision IDs use the `GS-` prefix (GlobalSearch).
 **Source:** Tracking-demo Sc 3.1 frame 229a (`Customer: ERCO + BOL#: TH080725` → multi-stop denser card); Sc 3.2 frame 228b (`Customer: ERCO + Pickup Date Range` → same denser card visible behind dropdown). Cross-ref: [[../../../10-domains/shipments/data/attributes-progression-grouping|Shipments CSV]] confirms multi-stop is a first-class shape (Stops attribute, Sequence Leg attribute).
 **Affects:** Result-card component contract — needs to accept a multi-stop variant; backlog item to confirm trigger with Efrain; Shipments-route adapter responsible for mapping row → card shape.
 
+### GS-14 — An untouched bar suggests NOTHING; suggestions are reactive to typing
+**Decided:** 2026-07-31 (S104)
+**Previous state:** A focused, empty bar with no chips showed the first 5 progression attributes under the title "Suggested Filters" (`INITIAL_COUNT = 5`, adapter `getInitial`). This was the "entry points" half of GS/Case 2.
+**Decision:** No chips + nothing typed → **no suggestion panel at all**. Suggestions appear only once the user types (attribute matches) or once a chip is committed (the drill-forward group, which is **unchanged**).
+**Rationale:** User, S104 — *"users can click without understanding what to expect."* An entry-point chip offers a filter before the user has expressed any intent, and clicking one commits a chip whose effect they can't predict. The drill-forward case is different and survives: a committed chip is evidence of intent, so proposing the next group is an answer to a question the user has already asked.
+**Source:** User direction 2026-07-31.
+**Affects:** `adapter.getInitial` (no-chip branch), `INITIAL_COUNT` deleted, `suggestionsOpen` in `useGlobalSearch` (no items → dropdown never opens). Supersedes the entry-point half of **Case 2** in [[../composed-criteria|composed-criteria]]; the group-advancement half stands.
+
+### GS-15 — A bare code resolves to WHAT IT IS; results are labelled by the matched attribute
+**Decided:** 2026-07-31 (S104)
+**Previous state:** With no chips, `searchShipments` defaulted `primaryKey` to `'buyShipment'` (adapter.js). Every row was therefore **labelled with the shipment number** and **ranked by how well the query matched `buyShipment`** — even when the query had actually matched an order number, a SCAC, or a customer. Separately, `FREE_TEXT_KEYS` covered only 8 fields, so a pasted **Pro/BOL, load, trailer or seal number returned zero results** (measured, S104).
+**Decision:** Three parts.
+1. **Free-text coverage widened** to every identifier a user could paste plus the parties: `pro`, `load`, `equipment`, `seal`, `consignor`, `consignee` join the existing 8. Deliberately excluded: measures (`grossWeight`, `apFreightCost`, `orderCount`, `loadCount` — a bare "2" would match half the DB) and enums (reachable as chips).
+2. **Per-row attribute resolution.** Each matching row resolves which of its own fields the query best matched, scored 3/2/1 (exact / prefix / contains), progression order breaking ties.
+3. **The row label carries the type**: `Order #0000000091000`, `Pro#/Booking #442376`, `SCAC FXFE`. Labels already ending in `#` join without a space.
+**Rationale:** User, S104 — *"we type 00000001234, quick results should not assume that is a shipment."* The ranking machinery already existed (`searchIndex.valueMatchDetail` powers the suggestion chips and identified a pasted order number correctly); it simply was never consulted by the results rows. Measured after the change: typing a Pro number returns **both** its `Pro#/Booking #442376` row and a `Seal Number S442376` partial, exact first — the multi-type case, from real fixture data.
+**Deliberately NOT done:** rows stay **shipment-grained** — an order-number match labels the row `Order #…` but does not explode into order rows. Order explosion remains chip-driven (Case 1). This preserves S79c decision 7 (glimpse `total` == the table's total), which a mixed-grain result set would break. Guarded by a test.
+**Source:** User direction 2026-07-31; behavior measured against seed-42 fixtures before and after.
+**Affects:** `criteria.js` `FREE_TEXT_KEYS` (shared — so `gridService` list + category counts widen identically, which is what makes "Show all results" agree with the glimpse), `adapter.searchShipments` bare-code branch, new `resolveBestMatch` / `labelMatch`. `MatchRow` **unchanged** — `matchId` is a plain string, so no `@odyssey/ui` change, no Figma cycle, no release.
+
+### GS-16 — "Show all results" lands on the table in the PREVIEW's order
+**Decided:** 2026-07-31 (S104)
+**Previous state:** The preview sorted by match quality; the table did not sort at all unless the user had clicked a column header (`gridService` only sorted when `params.sortBy` was set, fed from `sorting[0]?.id`). Rows therefore arrived in generator/file order, so the exact match the preview put first could land anywhere in the table.
+**Decision:** When committed criteria arrive from search and **no explicit column sort is active**, the grid orders rows by the same relevance rule as the preview — leading chip → score against that chip's field; free text → best-matching attribute, progression order breaking ties. An explicit column sort always wins; this is a default, not an override.
+**Rationale:** User, S104, on seeing the labelled preview: *"if i click on show all, data shown in the table is in the same order as in the results preview?"* It wasn't. The preview's whole job is "your exact match is at the top"; discarding that on click throws away the one thing the user just confirmed.
+**Implementation note:** `compareByCriteria` + `resolveBestMatch` moved into `criteria.js` (the module `gridService` already imports for `matchesCriteria` — same single-source reasoning as S79c decision 7), with the domain's attribute pool `FREE_TEXT_ATTRS` exported from `progression.js`. The glimpse still computes its own ordering because it already holds the resolved match for labelling, so the two are kept honest by **test** rather than by shared code — Case 6, which uses a *discriminating* derived query (one whose exact match is NOT already first in natural order) and was mutation-checked: disabling the grid sort fails it.
+**Source:** User direction 2026-07-31.
+**Affects:** `gridService.getShipmentErrorList` sort branch, `criteria.js` (+`compareByCriteria`, `resolveBestMatch`, `scoreText`), `progression.js` (+`FREE_TEXT_ATTRS`).
+
+### GS-17 — Panels are POST-filters over one result set; a search lands on the panel holding the most matches
+**Decided:** 2026-07-31 (S104)
+**Previous state:** The glimpse total counted matches across ALL panels while the table rendered one panel at a time, so "Show all 123 results" could land on a tab holding 4 of them. The only panel movement was the S79c decision-8 fallback: when the active panel's criteria-filtered count hit **zero** it moved to `visiblePanels[0]` — the FIRST visible panel, not the fullest.
+**Decision:** Two parts, from one ruling.
+1. **The total stays global.** `N` is all matches, distributed across the tabs. The tabs are **post-filters over one result set**, not separate result sets — so a per-panel count would be answering a different question than the one the user asked.
+2. **A newly committed search jumps to the panel with the most matches**, tabs reset to `all`. Fires once per criteria identity, so a manual panel pick afterwards stands. Ties break on `PANEL_CONFIG` order.
+**Rationale:** User, S104 — *"123 is ALL results if some of them are in monitoring and others in exceptions and other tabs then you should take as those tabs as post filters, you are showing all that are distributed between the different places, lets actually add one criteria, always open the tab where it shows most of the previewed results."* This resolves the mismatch without lying about the count: the number is honest, and the user is placed where most of it lives. Measured case: `FXFE` → 123 total, Monitoring 90, Exceptions 33 → lands on Monitoring.
+**Interpretation flagged:** "most of the previewed results" is implemented against the **full per-panel counts**, not the 15 preview rows. The preview is a relevance-capped sample, so counting it would let a truncation artifact choose the tab. Say so if the literal reading was intended.
+**Implementation note:** deliberately does NOT reuse `fallbackPanelRef` — that memo restores the user's original panel the moment it is visible again, which would instantly undo the jump. Written as a render-time "adjust state on change" (the file's existing convention, and what the page-reset above uses) rather than an effect. The decision itself is extracted to `bestPanelForSearch` / `panelTotals` in `data/panelConfig.js` and unit-tested, since the route has no test harness.
+**Source:** User direction 2026-07-31.
+**Affects:** `ShipmentsRoute` (panel auto-jump + `totalsByPanel`), `data/panelConfig.js` (+2 exports, +`panelConfig.test.js`). The zero-hiding fallback (decision 8) is untouched and still runs first.
+
+### GS-18 — The landing tab comes from the PREVIEW's leading group, not the fullest panel
+**Decided:** 2026-07-31 (S104) · **Supersedes GS-17 part 2** (same session, on user testing)
+**Previous state:** GS-17 jumped to the panel with the most matches overall. Tested with `12`: the preview showed 5 Buy Shipment # rows, 5 Equipment # rows, 2 Load # rows — and the jump landed on Monitoring, whose top rows matched none of those leading groups.
+**Decision:** take the attribute group of the **first preview row**, keep the preview rows in that group, and open the panel most of them live in. Ties inside the group fall to the earliest (highest-relevance) row. Falls back to the fullest panel only when the preview can't answer (no rows, or its rows carry no panel), and never lands on a panel with zero matches.
+**Rationale:** User, S104 — *"in case we have a group like that 5, 5, 2 we should choose the group that shows first in the preview panel to pick the tab. The idea behind this is to give user eyes what they are seeing."* A larger tab the user can see nothing of is not where their attention is; the preview's top rows are the only thing they've actually looked at.
+**Implementation:** result rows gained `data-panel` + `data-attr` (the RESOLVED attribute for bare-code rows), `panelForResults()` in the adapter applies the rule, and `ShipmentsGlobalSearch` passes it as `onCommitQuery(criteria, { landOnPanel })` — a second argument, so the `{ chips, text }` criteria contract (and its query keys) stays unpolluted.
+**Source:** User testing 2026-07-31.
+**Affects:** `adapter.js` (+`panelForResults`, row data-attributes), `ShipmentsGlobalSearch.commitQuery`, `ShipmentsRoute` (`landOnPanel` state feeding the jump). `bestPanelForSearch` survives as the fallback.
+
+### GS-16a — Relevance needs its own sort identity (the fix that made GS-16 real)
+**Decided:** 2026-07-31 (S104) — bug found by the user, same session
+**Previous state:** GS-16 put the relevance ordering behind `else if (!params.sortBy …)` in `gridService`. But the shipments table is **never unsorted** — `ShipmentsRoute` seeds `sorting` with `[{ id: 'buyShipment' }]` and `listParams` always sends `sortBy`. **The relevance branch never executed in the app.** The S104 tests passed because they called `getShipmentErrorList` directly and omitted `sortBy` — testing a path the product never takes.
+**Decision:** relevance travels as an explicit sort id, `RELEVANCE_SORT = 'relevance'`. Committing a search sets `sorting` to it; clearing restores `DEFAULT_SORTING`. `gridService` treats it as "no column drives → order by criteria relevance".
+**Rationale:** user report — typing `12` produced table rows matching none of the preview's leading groups, because the seeded `buyShipment` sort was still driving.
+**Lesson recorded:** a service-level test that constructs its own params can pass while the feature is dead, because the route's real params were never exercised. The replacement tests send **exactly what `listParams` builds** (`sortBy: RELEVANCE_SORT`) and additionally assert that the old default-sort params produce a DIFFERENT first row — so the fixture proves the sentinel does something.
+**Affects:** `gridService` (+`RELEVANCE_SORT` export, sort branch), `ShipmentsRoute` (`DEFAULT_SORTING`, commit sets the sort).
+
+### GS-19 — Panel tabs are PERMANENT; only their numbers respond to a search
+**Decided:** 2026-07-31 (S104) · **RETIRES the panel half of S79c decision 8**
+**Previous state:** decision 8 hid zero-total panel tabs under a committed search, with PGI/PGR exempt (a "Coming soon" placeholder with **no rows at all** — 0 of 2,200). I first read the user's *"top bars are always visible even when 0"* as "so hide it too" and removed the exemption — **backwards**. Corrected same session: *"PGI/PGR AND THE OTHER TOP TABS EXCEPTIONS AND MONITORING ARE NEVER MEANT TO BE GONE."*
+**Decision:** the panel tab row is fixed — Exceptions, Monitoring, PGI/PGR always render, whatever the counts. A search changes the **numbers** on them, never their presence. Category **pills** still hide at zero (`hideZeroCategories`): a pill is a filter, a panel tab is the structure of the domain.
+**Rationale:** a tab disappearing mid-search reads as the application losing a feature, not as a filter narrowing. Structure must be stable for the view to stay legible; the counts carry the search's effect.
+**Consequence:** the decision-8 selection-fallback machinery (`fallbackPanelRef`, forced-move-and-restore) is **deleted** — with no panel ever hidden, the active panel can never become invisible. Removed 3 lint errors' worth of render-time ref access along with it.
+**Source:** User testing 2026-07-31.
+**Affects:** `ShipmentsRoute.visiblePanels` (now just the config keys), `handlePanelSelect`, `panelConfig.test.js`. The GS-18 landing jump still skips empty panels — landing ON an empty tab is different from hiding it.
+
+### GS-20 — Multi-code lists: the typed codes UNION; a same-attribute list also offers an IN-list chip
+**Decided:** 2026-08-01 (S104) — first implemented as AND, **corrected to UNION the same day by the user**
+**Previous state:** the free-text needle was a single string; `"442376, 448275"` was searched literally (matching nothing) and multi-value chips didn't exist.
+**My error, and the correction:** I read the user's *"CODE123 & CODE001 & …"* as boolean AND — every code must match the SAME row (narrowing). The user meant the union of result sets: *"I thought AND meant: show CODE123 results AND CODE223 results, doesn't matter if they are of the same attribute or they are different."* The ambiguity is real and worth recording — in boolean search, AND/OR describe conditions **on one row**, so "show A's results and B's results" is the operation boolean logic calls **OR**. Measured before and after on fixtures: a cross-row pro pair returns **0 rows under AND, 4 under union**.
+**Decision:**
+1. **Free text = UNION across codes.** Each row matches ANY code; the per-code result sets interleave, ranked by match quality (exact before prefix before contains, regardless of which code produced the hit).
+2. **Each row is labeled by its OWN matched code** — in `CODE123 CODE223`, the CODE123 rows read `Order #CODE123` and the CODE223 rows read `Buy Shipment #CODE223`. There is deliberately no shared "leading code": under union a row need only match one. (This differs from GS-18's leading-group rule for the landing TAB, which still applies — the tab follows the preview's first group.)
+3. **Codes may belong to different attributes** — mixed result sets are the expected shape, which is why the row format must carry its type (GS-15). Row *presentation* per entity type (an order-format row vs a shipment-format row) is **still to be designed** — flagged by the user, not built.
+4. **Phrase-first, code-list fallback.** The whole string is tried as ONE needle against the full dataset; only when it matches **nothing** is it tokenized. Under union this guard is load-bearing, not cosmetic: tokenizing `"Weyerhaeuser Company"` would union in every row containing "company" anywhere. Pinned by a test asserting the loose token matches strictly more rows than the phrase.
+5. **Same-attribute list → ONE IN-list chip** (`Pro#/Booking #: 442376, 448275`); committing it matches the field against ANY value (GS-12 multi-value precedent). **Mixed-attribute list → no chip** (user rule); free text still searches.
+6. **The interpretation is resolved ONCE per query against the FULL dataset** — never per row, never against the customer-scoped subset — so the glimpse, the table and the counts all read the query identically (the S79c d.7 single-source rule extended from matching to parsing).
+**Server-side note:** each code runs the tiered CTE independently; union = `UNION` of per-code hit sets deduped to each entity's best tier; chip IN-lists = `value = ANY($values)`. Cheaper than the AND reading (no intersect). Architecture spec §4a.
+**Source:** user direction + correction 2026-08-01; semantics measured against seed-42 fixtures both before and after the flip.
+**Affects:** `criteria.js` (`textNeedles`, `matchesAnyNeedle`, `resolveBestMatchNeedles`, `tokenizeChipValue`, `matchesChip`, `matchesCriteria`/`compareByCriteria` gain a `needles` param), `adapter.js` (suggestion gating, bare-code resolution, order-explosion IN handling), `gridService` (needles computed once for list + counts). Case 9 tests (10) pin all of it.
+
 ---
 
 ## Pending (need source / verification)

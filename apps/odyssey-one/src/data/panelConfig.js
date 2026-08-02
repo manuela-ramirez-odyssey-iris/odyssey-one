@@ -31,3 +31,29 @@ export const PANEL_CONFIG = {
     ],
   },
 }
+
+/**
+ * Matches per panel for a metrics object (the per-category counts the count
+ * endpoint returns). Shared by the zero-count hiding and the search auto-jump.
+ */
+export function panelTotals(metrics) {
+  const out = {}
+  for (const key of Object.keys(PANEL_CONFIG)) {
+    out[key] = (PANEL_CONFIG[key]?.categories ?? [])
+      .reduce((sum, c) => sum + (metrics?.[c.badgeKey] ?? 0), 0)
+  }
+  return out
+}
+
+/**
+ * Which panel a committed search should land on: the one holding the MOST
+ * matches (GS-17 — panels are post-filters over one result set, so the user
+ * should land where the results are, not on whichever tab they happened to be
+ * on). Ties break on PANEL_CONFIG order. Returns null when nothing matches
+ * anywhere, so the caller leaves the current panel alone.
+ */
+export function bestPanelForSearch(totals) {
+  return Object.keys(PANEL_CONFIG)
+    .filter((key) => (totals?.[key] ?? 0) > 0)
+    .sort((a, b) => totals[b] - totals[a])[0] ?? null
+}

@@ -12,13 +12,17 @@ import { FileText } from 'lucide-react'
 import { PageHeader } from '@odyssey/ui'
 import ShipmentsGlobalSearch from '../../components/global-search/ShipmentsGlobalSearch'
 import { getAllShipments } from '../../data'
-import { PANEL_CONFIG } from '../../data/panelConfig'
+import { PANEL_CONFIG, panelTotals, bestPanelForSearch } from '../../data/panelConfig'
 import { useCustomers } from '../../contexts/CustomersContext.jsx'
 import { useShipmentDetail } from '../../api/queries/useShipmentDetail'
 import { useUserPreference } from '../../api/queries/useUserPreference'
 import { useShipmentErrorList } from '../../api/queries/useShipmentErrorList'
 import { useCategoryCounts } from '../../api/queries/useCategoryCounts'
-import { getShipmentErrorList } from '../../api/services/gridService'
+import { getShipmentErrorList, RELEVANCE_SORT } from '../../api/services/gridService'
+
+// The table is never unsorted — this is the column that drives until a search
+// commits (relevance) or the user picks another.
+const DEFAULT_SORTING = [{ id: 'buyShipment', desc: false }]
 
 function ShipmentsRoute() {
   // Customer scoping (S79c decision 10) — the FIRST-order data filter. The
@@ -50,7 +54,12 @@ function ShipmentsRoute() {
   // Column sorting (S85) — one column always drives (DataTable flips asc↔desc, never
   // unsorted). Default driver: the first default-visible column. Server-side: mapped
   // to gridService sortBy/orderBy below (full dataset, before pagination).
-  const [sorting, setSorting] = useState([{ id: 'buyShipment', desc: false }])
+  const [sorting, setSorting] = useState(DEFAULT_SORTING)
+  // Set at commit time from the search preview (GS-18); consumed by the
+  // render-time panel jump below. State, not a ref: it is READ during render,
+  // and the commit that sets it also sets searchCriteria, so the two land in the
+  // same batch.
+  const [landOnPanel, setLandOnPanel] = useState(null)
   // 'pills' | 'widgets' — how the category row renders (PillTabs vs WidgetMini
   // cards), toggled by the header ButtonToggle. Pill mode is the Figma default.
   const [viewMode, setViewMode] = useState('pills')
@@ -172,45 +181,27 @@ function ShipmentsRoute() {
     }
   }, [exceptionCounts, monitoringCounts, pgipgrCounts])
 
-  // Zero-count hiding while committed criteria exist (S79c decision 8):
-  // panel tabs with a 0 criteria-filtered total hide — EXCEPT PGI/PGR, which
-  // always shows (demo); category pills hide via ShipmentsPanelTabs's
-  // hideZeroCategories. Gated on searchActive so no-search = today's full
-  // display; countsReady stops a not-yet-loaded [] from hiding everything.
+  // Zero-count hiding while committed criteria exist (S79c decision 8), now
+  // CATEGORY PILLS ONLY — see visiblePanels below. countsReady stops a
+  // not-yet-loaded [] from hiding everything.
   const searchActive = !!searchCriteria && countsReady
-  const visiblePanels = useMemo(() => {
-    const keys = Object.keys(PANEL_CONFIG)
-    if (!searchActive) return keys
-    const panelTotal = (key) =>
-      (PANEL_CONFIG[key]?.categories ?? []).reduce((sum, c) => sum + (metrics[c.badgeKey] ?? 0), 0)
-    return keys.filter(key => key === 'pgipgr' || panelTotal(key) > 0)
-  }, [searchActive, metrics])
+  // Matches per panel for the committed criteria — drives both the zero-hiding
+  // below and the auto-jump (GS-17).
+  const totalsByPanel = useMemo(() => panelTotals(metrics), [metrics])
+  // PANEL TABS ARE PERMANENT (user, S104): "PGI/PGR and the other top tabs
+  // Exceptions and Monitoring are never meant to be gone." A search narrows the
+  // NUMBERS on them, never the tabs themselves — the tab row is the shape of the
+  // domain, and a tab vanishing mid-search reads as the app losing a feature.
+  // This RETIRES the panel half of S79c decision 8 (zero-total panels used to
+  // hide, with PGI/PGR exempt) and its selection-fallback machinery with it.
+  // Category PILLS still hide at zero — those are a filter, not the structure.
+  const visiblePanels = useMemo(() => Object.keys(PANEL_CONFIG), [])
 
-  // Selection fallbacks for the hiding (decision 8), adjusted during render
-  // (same "adjust state on change" pattern as the page reset above): hidden
-  // selected panel → first visible; hidden selected category → 'all'. The
-  // subtab stays always-selected through both (decision 9).
-  // The FORCED move is remembered (S80 QA nuance): when the user's panel comes
-  // back — search cleared or counts recovered — we return to it, unless the
-  // user manually picked a panel in between (handlePanelSelect clears the memo).
-  const fallbackPanelRef = useRef(null)
-  if (!visiblePanels.includes(activePanel)) {
-    if (fallbackPanelRef.current === null) fallbackPanelRef.current = activePanel
-    setActivePanel(visiblePanels[0] ?? 'exceptions')
-    setActiveTab('all')
-  } else {
-    if (fallbackPanelRef.current && visiblePanels.includes(fallbackPanelRef.current)) {
-      const restore = fallbackPanelRef.current
-      fallbackPanelRef.current = null
-      if (restore !== activePanel) {
-        setActivePanel(restore)
-        setActiveTab('all')
-      }
-    }
-    if (searchActive && activeTab !== 'all') {
-      const activeCat = (PANEL_CONFIG[activePanel]?.categories ?? []).find(c => c.key === activeTab)
-      if (!activeCat || (metrics[activeCat.badgeKey] ?? 0) === 0) setActiveTab('all')
-    }
+  // A hidden category pill can still be the selected one — fall back to All.
+  // Adjusted during render (same pattern as the page reset above).
+  if (searchActive && activeTab !== 'all') {
+    const activeCat = (PANEL_CONFIG[activePanel]?.categories ?? []).find(c => c.key === activeTab)
+    if (!activeCat || (metrics[activeCat.badgeKey] ?? 0) === 0) setActiveTab('all')
   }
 
   // Compute right offset for bottom bar based on the open panel (the two right
@@ -218,7 +209,6 @@ function ShipmentsRoute() {
   const rightOffset = (columnPanelOpen ? RIGHT_PANEL_WIDTH : 0) + (tabPanelOpen ? RIGHT_PANEL_WIDTH : 0)
 
   const handlePanelSelect = useCallback((key) => {
-    fallbackPanelRef.current = null // a manual pick overrides the fallback memo
     setActivePanel(key)
     setActiveTab('all')
   }, [])
@@ -289,10 +279,18 @@ function ShipmentsRoute() {
   // commit is a { chips, text } criteria SET — chips-only commits work, and an
   // empty text no longer clears anything; only an explicit Clear all (null /
   // empty criteria) does.
-  const handleCommitQuery = useCallback((criteria) => {
+  // `opts.landOnPanel` — the panel the PREVIEW's leading group lives in, computed
+  // by the search component (GS-18). Null for a preview we couldn't read; the
+  // render-time jump below then falls back to the fullest panel.
+  const handleCommitQuery = useCallback((criteria, opts) => {
     const chips = criteria?.chips ?? []
     const text = (criteria?.text ?? '').trim()
-    setSearchCriteria(chips.length || text ? { chips, text } : null)
+    const next = chips.length || text ? { chips, text } : null
+    setSearchCriteria(next)
+    // A committed search takes over the sort (GS-16). Without this the seeded
+    // column sort below keeps driving and relevance never reaches the grid.
+    setSorting(next ? [{ id: RELEVANCE_SORT, desc: false }] : DEFAULT_SORTING)
+    setLandOnPanel(next ? (opts?.landOnPanel ?? null) : null)
   }, [])
 
   // Match-row click in the navbar search glimpse → select that shipment. The

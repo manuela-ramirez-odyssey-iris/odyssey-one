@@ -4,7 +4,7 @@ domain: orders
 type: reference
 tags: [orders, database, neon, reseed, ledger]
 date: 2026-07-28
-status: shipped
+status: active  # Round 1 shipped 2026-07-29; Round 2 open (S104)
 ---
 
 # DB-update ledger
@@ -36,3 +36,39 @@ closed.
 Related open questions (Ramesh/master-data): authoritative equipment
 descriptions per code; mode-category chips legacy-or-spec; TLF matrix case;
 LINX-6099 org-scoping in real master data.
+
+---
+
+# Round 2 — opened 2026-08-01 (S104)
+
+User-supplied list + carried-over S103 item. **Classified by what actually
+needs a reseed**, because most of this is code, not data — lumping it together
+would make the reseed look like a prerequisite it isn't.
+
+## 2A — Needs a generator change + reseed (data shape changes)
+
+| # | Item | Detail | Logged |
+|---|---|---|---|
+| R2-1 | **Tracking Link** (Shipments) | Carried from S103 — `ShipmentDetailsModal.jsx:147` hardcodes `{ label: 'Tracking Link', value: null }` because **no tracking URL exists anywhere in the contract** (modal spec 2026-07-30 §4 "Still open"). Giving it a real value = seeding the field. Shape is ours to invent (flag as invented); the artifact shows it as a hyperlink hanging off the Pro/Booking # value. | 2026-08-01 |
+| R2-2 | **Pickup # missing** (Orders) | Per LINX-8128, References pre-seeds **PO Number + Pickup Number** as Reference Type/Value pairs. Our generator seeds reference values but Pickup # is absent from the order view. Needs: confirm whether it should be a seeded Reference row (canon says yes, pre-seeded) and add it. **Investigate first** — may be partly a UI gap rather than data. | 2026-08-01 |
+| R2-3 | **Created / Last Edit Date need a timezone** (Orders) | Both currently carry no zone. S103 moved shipments to IANA zones + `tzAbbrev()` per-instant derivation (TR-04); Orders never got the same pass. Apply the SAME mechanism (city → IANA, abbreviation derived per instant so DST is correct), **not** a hardcoded suffix — that was the exact S102/S103 bug. | 2026-08-01 |
+| R2-4 | **`Last Edited By` column + username identity** (Orders) | Two parts: (a) NEW column `last_edited_by`; (b) **both** `created_by` and `last_edited_by` must store the **Odyssey username**, not the display name — user rationale: *multiple users share a display name, so the name is ambiguous as an identity*. `last_edit_at` already exists (S102). Seed from the 13 seeded users + the 4 sso-mock personas (S101). | 2026-08-01 |
+
+## 2B — Code only (NO reseed needed)
+
+| # | Item | Detail | Logged |
+|---|---|---|---|
+| R2-5 | **Order creation doesn't persist** | Create Order must write to the DB and then show the defined summary/confirmation to complete the flow. S102 shipped `PUT /order-service/v3/order` (edit); **creation** still needs its write path + the LINX-9002 confirmation page contract (order number provided → "Your order was created successfully."; not provided → async-assignment message that flips when the number arrives). Pure API + UI. | 2026-08-01 |
+| R2-6 | **Appointment flag invisible in Edit flow** | **Definition found in vault** — David Johns, Apr 9 2026 (`grooming/feedback/0409-jana-david.vtt` 15:12–15:49): a pickup/delivery date normally expresses an early/late **window** (*"that's a pickup between noon and 8:00 PM"*); checking the Appointment box **collapses the window to a firm slot** (*"then that noon becomes the appointment"*) and **must be transmitted to the carrier** (*"the carrier knows … you have an appointment to pick it up at"*). Related: DEC-34 (time is only meaningful for appointments), DEC-36 (in the **Shipments** Order tab the checkbox is **display-only**). Open: in **Orders** it should presumably be editable — confirm with Ramesh. | 2026-08-01 |
+| R2-7 | **Appointment & Hazardous flags invisible in View Order** | Hazardous is already specced: per LINX-8121 the line-level checkbox auto-checks when a UN Number is entered, and *"if at least 1 product in the order is hazardous, the entire order is considered as hazardous"* — so View Order needs the derived ORDER-level flag plus the per-line flag. Appointment per R2-6. | 2026-08-01 |
+| R2-8 | **Product Information columns not inline with LINX-13893** | The columns are **not a fixed set** — LINX-13893 ("Lauren's feedback") is an **equipment applicability matrix**: **Case 1** LTL/LTR/LTH → +Product Class, +Handling Unit Name/Description/Count, +L/W/H; **Case 2** TL/TLR/TLH/TT → same **minus Product Class**; **Case 3** LCL/FCL (Ocean) → +Harmonized Code, +Declared Value & Currency, +Manufacturing Country Code; **Case 4** RR (Rail) → +STCC (non-mandatory, TMS-validated, error *"Incorrect STCC Code. Please check the value & re-enter"*). Full text: `research/jira-create-order-sections-2026-07-26.md` §3. **Known unreconciled conflict:** STCC is struck from the base grid (8121/8131) but live for Rail (13893 Case 4) — flag to Ramesh. `TLF` exists in the legacy catalog but appears in **no** matrix case. | 2026-08-01 |
+
+## 2C — Search architecture (separate motion, see spec)
+
+| # | Item | Detail | Logged |
+|---|---|---|---|
+| R2-9 | `search_index` projection table | ONLY needed for the target-scale architecture (`docs/superpowers/specs/2026-07-31-progressive-search-architecture-design.md`). **Wiring search to Neon does NOT require it** — every searchable column already exists on `shipments` (schema verified 2026-08-01), so a direct-SQL implementation needs zero reseed. The projection is the scale answer, not a prerequisite. | 2026-08-01 |
+
+**Reseed gate unchanged:** nothing here ships to prod without explicit
+permission for that specific reseed. Round-2 reseed items (2A) should ride ONE
+motion, ideally on a Neon **branch** first.

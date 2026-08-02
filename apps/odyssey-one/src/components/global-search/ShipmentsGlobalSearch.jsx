@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect, useCallback, useMemo } from 'react'
 import { GlobalSearch, GlobalSearchPanel, GlobalSearchResults } from '@odyssey/ui'
 import { useGlobalSearch } from '../../search/useGlobalSearch'
-import { shipmentsSearchAdapter } from '../../search/shipments/adapter'
+import { shipmentsSearchAdapter, panelForResults } from '../../search/shipments/adapter'
 import { useCustomers } from '../../contexts/CustomersContext.jsx'
 import ShipmentsFiltersView from './ShipmentsFiltersView'
 import { tabForDataKey } from '../shipments/cellTabMap'
@@ -100,10 +100,12 @@ export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment 
   // contract is unchanged — the badge is presentation, `text` stays a string.
   const commitQuery = useCallback(() => {
     const text = value.trim() || textChip?.value || ''
-    onCommitQuery?.({ chips, text })
+    // The landing tab comes from the PREVIEW the user is looking at (GS-18) —
+    // the panel of the leading result group, not the fullest panel overall.
+    onCommitQuery?.({ chips, text }, { landOnPanel: panelForResults(results) })
     if (value.trim()) onTextCommit()
     closePanel()
-  }, [chips, value, textChip, onCommitQuery, onTextCommit, closePanel])
+  }, [chips, value, textChip, results, onCommitQuery, onTextCommit, closePanel])
 
   // Explicit Clear all — wipes the bar (chips + text, via the hook's onClear)
   // AND the committed table criteria. This is the only gesture that clears the

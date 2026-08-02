@@ -1,7 +1,9 @@
 import { describe, test, expect } from 'vitest'
 import { getAllShipments } from '../../data'
-import { shipmentsSearchAdapter as adapter } from './adapter'
-import { SHIPMENTS_PROGRESSION, SHIPMENTS_ATTRIBUTES } from './progression'
+import { shipmentsSearchAdapter as adapter, panelForResults } from './adapter'
+import { SHIPMENTS_PROGRESSION, FREE_TEXT_ATTRS } from './progression'
+import { matchesFreeText, resolveBestMatch } from './criteria'
+import { getShipmentErrorList, RELEVANCE_SORT } from '../../api/services/gridService'
 
 // Regression guard for GlobalSearch composed-criteria behavior.
 // Each case in vault/20-cross-cutting/global-search/composed-criteria.md gets a
@@ -78,12 +80,13 @@ describe('free-text query — the S79b results-panel glimpse (decision 5)', () =
   test('query alone (no chips) finds shipments across free-text fields', async () => {
     const { results, total } = await adapter.searchShipments([], MULTI.buyShipment)
     expect(total).toBeGreaterThanOrEqual(1)
-    expect(results.some((r) => r.matchId === MULTI.buyShipment)).toBe(true)
+    // Bare-code rows are LABELLED with the attribute they matched (Case 3).
+    expect(results.some((r) => r.matchId === `Buy Shipment #${MULTI.buyShipment}`)).toBe(true)
   })
 
   test('every row carries the SELECTION key (sellShipment) as data-shipment-key', async () => {
     const byQuery = await adapter.searchShipments([], MULTI.buyShipment)
-    const hit = byQuery.results.find((r) => r.matchId === MULTI.buyShipment)
+    const hit = byQuery.results.find((r) => r.matchId === `Buy Shipment #${MULTI.buyShipment}`)
     expect(hit['data-shipment-key']).toBe(MULTI.sellShipment)
 
     // Order rows carry it too (parent shipment's sellShipment).
@@ -134,13 +137,13 @@ describe('Case 1 — Order# (empty) + Buy Shipment# = X → that shipment\'s ord
 })
 
 describe('Case 2 — empty-input suggestions advance by progression group', () => {
-  test('no chips → entry points (top of progression), titled "Suggested Filters"', async () => {
-    const sections = await adapter.getInitial([])
-    expect(sections).toHaveLength(1)
-    expect(sections[0].title).toBe('Suggested Filters')
-    expect(sections[0].items.map((i) => i.key)).toEqual(
-      SHIPMENTS_ATTRIBUTES.slice(0, 5).map((a) => a.key),
-    )
+  // Case 4 (S104) SUPERSEDES the original entry-point behavior: an untouched bar
+  // showed 5 clickable attribute chips before the user knew what a chip does.
+  test('no chips, nothing typed → NO suggestions at all (Case 4)', async () => {
+    expect(await adapter.getInitial([])).toEqual([])
+    expect(await adapter.getInitial()).toEqual([])
+    // The typed path is unaffected — suggestions are reactive now.
+    expect(await adapter.getSuggestions('')).toEqual([])
   })
 
   test('one chip in group 0 → suggests the NEXT group, never repeats the entry set', async () => {
@@ -192,5 +195,313 @@ describe('Customer scoping — the glimpse respects the selected customer list (
     expect(await adapter.searchShipments([], 'us', [])).toEqual({ results: [], total: 0 })
     const legacy = await adapter.searchShipments([], 'us', undefined)
     expect(legacy.total).toBe(ALL.length)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Case 3 (S104) — a bare code the user can't classify.
+// "we type 00000001234, quick results should not assume that is a shipment"
+// ---------------------------------------------------------------------------
+describe('Case 3 — bare code resolves to WHAT IT IS, not to a shipment', () => {
+  // Data-derived: a shipment whose order number is unique across the fixture, so
+  // the expectation is unambiguous. Survives regen.
+  const ORDER_HOST = ALL.find(
+    (s) =>
+      Array.isArray(s.orders) &&
+      s.orders.length > 0 &&
+      ALL.filter((x) => (x.orders || []).includes(s.orders[0])).length === 1,
+  )
+
+  test('a pasted ORDER number is labelled as an order, not as its shipment', async () => {
+    const orderNo = String(ORDER_HOST.orders[0])
+    const { results } = await adapter.searchShipments([], orderNo)
+
+    expect(results[0].matchId).toBe(`Order #${orderNo}`)
+    // The regression this guards: it used to render the SHIPMENT number.
+    expect(results[0].matchId).not.toBe(ORDER_HOST.buyShipment)
+    // Still the right row underneath — selection key is untouched.
+    expect(results[0]['data-shipment-key']).toBe(ORDER_HOST.sellShipment)
+  })
+
+  test('a pasted PRO/BOL number finds anything at all (it returned 0 before)', async () => {
+    const withPro = ALL.find((s) => s.pro)
+    const { results, total } = await adapter.searchShipments([], String(withPro.pro))
+    expect(total).toBeGreaterThanOrEqual(1)
+    expect(results.some((r) => r.matchId === `Pro#/Booking #${withPro.pro}`)).toBe(true)
+  })
+
+  test('load / equipment / seal are reachable by bare code too', async () => {
+    for (const [dataKey, label] of [['load', 'Load #'], ['equipment', 'Equipment #'], ['seal', 'Seal Number']]) {
+      const row = ALL.find((s) => s[dataKey])
+      const { results, total } = await adapter.searchShipments([], String(row[dataKey]))
+      expect(total, `${dataKey} matched nothing`).toBeGreaterThanOrEqual(1)
+      expect(
+        results.some((r) => r.matchId === `${label} ${row[dataKey]}`.replace('# ', '#')),
+        `${dataKey} row was not labelled "${label}"`,
+      ).toBe(true)
+    }
+  })
+
+  test('EXACT matches outrank partial ones (the user\'s ordering rule)', async () => {
+    // A short digit fragment that is SOME row's whole value and other rows' prefix.
+    const exactRow = ALL.find((s) => String(s.equipment).length === 4)
+    const q = String(exactRow.equipment)
+    const { results } = await adapter.searchShipments([], q)
+    // Whatever the winning attribute is, row 0's value must be an EXACT hit.
+    const leadValue = results[0].matchId.split(/#| /).pop()
+    expect(leadValue.toLowerCase()).toBe(q.toLowerCase())
+  })
+
+  test('the glimpse total still equals the table total (S79c decision 7 holds)', async () => {
+    // Rows are labelled, NOT re-grained — one row per shipment, so `total` keeps
+    // meaning "shipments the table will show".
+    const withPro = ALL.find((s) => s.pro)
+    const q = String(withPro.pro)
+    const { total } = await adapter.searchShipments([], q)
+    expect(total).toBe(ALL.filter((s) => matchesFreeText(s, q)).length)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Case 6 (S104) — "if i click on show all, is the table in the same order as
+// the preview?" It is now. The glimpse and the grid compute relevance
+// separately (the glimpse already holds the resolved match for labelling), so
+// only an assertion keeps them from drifting.
+// ---------------------------------------------------------------------------
+describe('Case 6 — table order matches the results preview', () => {
+  // A DISCRIMINATING query, derived: one whose exact match is NOT already first
+  // in file order, so these tests fail if the relevance sort is removed. (A
+  // query whose best hit happens to sort first anyway would pass vacuously.)
+  const discriminating = (() => {
+    for (const panel of ['monitoring', 'exceptions']) {
+      const rows = ALL.filter((s) => s.panel === panel)
+      for (const row of rows) {
+        for (const key of ['equipment', 'load', 'pro', 'seal']) {
+          const q = String(row[key] ?? '').toLowerCase()
+          if (q.length < 4) continue
+          const matches = rows.filter((s) => matchesFreeText(s, q))
+          if (matches.length < 2) continue
+          const scores = matches.map((s) => resolveBestMatch(s, q, FREE_TEXT_ATTRS)?.score ?? 0)
+          const best = Math.max(...scores)
+          if (best > scores[0]) return { q, panel, exact: matches[scores.indexOf(best)] }
+        }
+      }
+    }
+    throw new Error('No discriminating query in the fixture — Case 6 cannot be tested honestly')
+  })()
+
+  test('the exact match leads the grid, though it is NOT first in natural order', async () => {
+    const { q, panel, exact } = discriminating
+    const grid = await getShipmentErrorList({
+      panel, pageNumber: 0, pageSize: 100, searchCriteria: { chips: [], text: q },
+    })
+    expect(grid.rows[0].buyShipment).toBe(exact.buyShipment)
+  })
+
+  test('grid order == preview order, row for row (within the panel)', async () => {
+    const { q, panel } = discriminating
+    const preview = await adapter.searchShipments([], q)
+    const grid = await getShipmentErrorList({
+      panel, pageNumber: 0, pageSize: 100, searchCriteria: { chips: [], text: q },
+    })
+    // The preview spans panels; compare its in-panel subsequence to the grid.
+    const inPanel = preview.results
+      .map((r) => r.id)
+      .filter((id) => ALL.some((s) => s.buyShipment === id && s.panel === panel))
+    expect(inPanel.length).toBeGreaterThan(1)
+    expect(grid.rows.slice(0, inPanel.length).map((r) => r.buyShipment)).toEqual(inPanel)
+  })
+
+  test('an explicit column sort still wins over relevance', async () => {
+    const { q, panel } = discriminating
+    const grid = await getShipmentErrorList({
+      panel, pageNumber: 0, pageSize: 100,
+      searchCriteria: { chips: [], text: q }, sortBy: 'customerName', orderBy: 'asc',
+    })
+    const names = grid.rows.map((r) => r.customerName)
+    expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b, undefined, { numeric: true })))
+  })
+
+  // The bug the user hit: the route ALWAYS sends a sortBy (the table is never
+  // unsorted), so the relevance branch was dead in the app while these tests —
+  // which omitted sortBy — passed. Relevance now travels as its own sort id.
+  test('RELEVANCE_SORT reaches the grid the way the ROUTE sends it', async () => {
+    const { q, panel, exact } = discriminating
+    const grid = await getShipmentErrorList({
+      panel, pageNumber: 0, pageSize: 100,
+      searchCriteria: { chips: [], text: q },
+      sortBy: RELEVANCE_SORT, orderBy: 'asc', // exactly what listParams builds
+    })
+    expect(grid.rows[0].buyShipment).toBe(exact.buyShipment)
+  })
+
+  test('the DEFAULT column sort does NOT silently override relevance', async () => {
+    const { q, panel, exact } = discriminating
+    // What the route used to send: the seeded buyShipment sort.
+    const asBefore = await getShipmentErrorList({
+      panel, pageNumber: 0, pageSize: 100,
+      searchCriteria: { chips: [], text: q }, sortBy: 'buyShipment', orderBy: 'asc',
+    })
+    const asNow = await getShipmentErrorList({
+      panel, pageNumber: 0, pageSize: 100,
+      searchCriteria: { chips: [], text: q }, sortBy: RELEVANCE_SORT, orderBy: 'asc',
+    })
+    // The two must DIFFER — otherwise this fixture can't prove the sentinel works.
+    expect(asNow.rows[0].buyShipment).not.toBe(asBefore.rows[0].buyShipment)
+    expect(asNow.rows[0].buyShipment).toBe(exact.buyShipment)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Case 8 (S104) — the landing tab comes from the PREVIEW's leading group.
+// "we should choose the group that shows first in the preview panel to pick the
+// tab. The idea behind this is to give user eyes what they are seeing."
+// ---------------------------------------------------------------------------
+describe('Case 8 — landing tab follows the preview\'s first group', () => {
+  const row = (attr, panel) => ({ 'data-attr': attr, 'data-panel': panel })
+
+  test('picks the first group\'s majority panel, ignoring bigger later groups', () => {
+    const results = [
+      // leading group: buy-shipment, mostly in exceptions
+      row('buy-shipment', 'exceptions'),
+      row('buy-shipment', 'exceptions'),
+      row('buy-shipment', 'monitoring'),
+      // a LATER group that is bigger overall — must not win
+      row('equipment', 'monitoring'), row('equipment', 'monitoring'),
+      row('equipment', 'monitoring'), row('equipment', 'monitoring'),
+      row('equipment', 'monitoring'), row('equipment', 'monitoring'),
+    ]
+    expect(panelForResults(results)).toBe('exceptions')
+  })
+
+  test('a single-row preview lands on that row\'s panel', () => {
+    expect(panelForResults([row('order', 'monitoring')])).toBe('monitoring')
+  })
+
+  test('ties inside the group fall to the highest-relevance row (seen first)', () => {
+    expect(panelForResults([
+      row('load', 'monitoring'),
+      row('load', 'exceptions'),
+    ])).toBe('monitoring')
+  })
+
+  test('empty / unreadable preview → null, caller falls back', () => {
+    expect(panelForResults([])).toBeNull()
+    expect(panelForResults()).toBeNull()
+    expect(panelForResults([{ 'data-attr': 'x' }])).toBeNull() // no panel on the row
+  })
+
+  test('real adapter rows carry the panel + group the rule needs', async () => {
+    const s = ALL.find((x) => x.pro)
+    const { results } = await adapter.searchShipments([], String(s.pro))
+    expect(results[0]['data-panel']).toBeTruthy()
+    expect(results[0]['data-attr']).toBe('pro') // the RESOLVED attribute
+    expect(panelForResults(results)).toBe(s.panel)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Case 9 (S104, corrected 2026-08-01) — multiple codes, comma- or space-separated.
+// UNION semantics: "show CODE123's results and CODE223's results". Each row
+// matches ANY code and is labeled by its OWN matched code, so the per-code
+// rankings interleave by match quality. A same-attribute list also offers ONE
+// IN-list chip; a mixed list offers none.
+// ---------------------------------------------------------------------------
+describe('Case 9 — multi-code search (union)', () => {
+  const A = ALL.find((s) => Array.isArray(s.orders) && s.orders.length > 0 && s.pro)
+  const B = ALL.find((s) => s.buyShipment !== A.buyShipment && s.pro)
+  const crossRowQ = `${A.pro}, ${B.pro}`
+
+  test('union: BOTH rows come back, and comma == space', async () => {
+    const byComma = await adapter.searchShipments([], crossRowQ)
+    const bySpace = await adapter.searchShipments([], `${A.pro} ${B.pro}`)
+    const keys = byComma.results.map((r) => r['data-shipment-key'])
+    expect(keys).toContain(A.sellShipment)
+    expect(keys).toContain(B.sellShipment)
+    expect(bySpace.results.map((r) => r.id)).toEqual(byComma.results.map((r) => r.id))
+  })
+
+  test('union total = rows matching ANY code (superset of each alone)', async () => {
+    const a = await adapter.searchShipments([], String(A.pro))
+    const b = await adapter.searchShipments([], String(B.pro))
+    const both = await adapter.searchShipments([], crossRowQ)
+    expect(both.total).toBeGreaterThanOrEqual(Math.max(a.total, b.total))
+    expect(both.total).toBeLessThanOrEqual(a.total + b.total) // overlaps dedupe
+  })
+
+  test('each row is labeled by ITS OWN matched code, not a shared leading one', async () => {
+    const { results } = await adapter.searchShipments([], crossRowQ)
+    const rowA = results.find((r) => r['data-shipment-key'] === A.sellShipment)
+    const rowB = results.find((r) => r['data-shipment-key'] === B.sellShipment)
+    expect(rowA.matchId).toContain(String(A.pro))
+    expect(rowB.matchId).toContain(String(B.pro))
+    expect(rowA.matchId).not.toContain(String(B.pro))
+  })
+
+  test('codes of DIFFERENT attributes mix in one result set', async () => {
+    // An order number + a different row's SCAC — both contribute their rows.
+    const scacRow = ALL.find((s) => s.scac && s.buyShipment !== A.buyShipment)
+    const { results, total } = await adapter.searchShipments([], `${A.orders[0]} ${scacRow.scac}`)
+    expect(total).toBeGreaterThanOrEqual(2)
+    const labels = results.map((r) => r.matchId)
+    expect(labels.some((l) => l === `Order #${A.orders[0]}`)).toBe(true)
+    expect(labels.some((l) => l === `SCAC ${scacRow.scac}`)).toBe(true)
+  })
+
+  test('exact matches still lead the mixed ranking', async () => {
+    const { results } = await adapter.searchShipments([], crossRowQ)
+    // Row 1 must be an EXACT hit on one of the two codes.
+    const lead = results[0].matchId.toLowerCase()
+    expect(lead.endsWith(String(A.pro).toLowerCase()) || lead.endsWith(String(B.pro).toLowerCase())).toBe(true)
+  })
+
+  test('same-attribute list → ONE IN-list chip suggestion', async () => {
+    const sections = await adapter.getSuggestions(crossRowQ)
+    expect(sections).toHaveLength(1)
+    expect(sections[0].title).toBe('What is it?')
+    const pro = sections[0].items.find((i) => i.key === 'pro')
+    expect(pro).toBeDefined()
+    expect(pro.queryValue).toBe(`${A.pro}, ${B.pro}`)
+  })
+
+  test('mixed-attribute list → NO suggestions (user rule)', async () => {
+    const sections = await adapter.getSuggestions(`${A.orders[0]} ${A.scac}`)
+    expect(sections).toEqual([])
+  })
+
+  test('committed IN-list chip = OR within the attribute (batch lookup)', async () => {
+    const { results, total } = await adapter.searchShipments([
+      chip('pro', 'pro', `${A.pro}, ${B.pro}`),
+    ])
+    expect(total).toBeGreaterThanOrEqual(2)
+    const keys = results.map((r) => r['data-shipment-key'])
+    expect(keys).toContain(A.sellShipment)
+    expect(keys).toContain(B.sellShipment)
+  })
+
+  // The regression union semantics could most easily cause: a multi-word value
+  // must stay ONE phrase, or every row containing "company" floods in.
+  test('multi-word values never tokenize when the phrase matches', async () => {
+    const named = ALL.find((s) => s.customerName.includes(' '))
+    const phraseRows = ALL.filter((s) => matchesFreeText(s, named.customerName.toLowerCase())).length
+    const { total } = await adapter.searchShipments([], named.customerName)
+    expect(total).toBe(phraseRows)
+    // Sanity: the loose token would have matched far more.
+    const looseWord = named.customerName.split(' ').pop().toLowerCase()
+    const looseRows = ALL.filter((s) => matchesFreeText(s, looseWord)).length
+    expect(looseRows).toBeGreaterThan(phraseRows)
+  })
+
+  test('grid parity: the table applies the same union and the same order', async () => {
+    const preview = await adapter.searchShipments([], crossRowQ)
+    const grid = await getShipmentErrorList({
+      panel: A.panel, pageNumber: 0, pageSize: 100,
+      searchCriteria: { chips: [], text: crossRowQ }, sortBy: RELEVANCE_SORT, orderBy: 'asc',
+    })
+    expect(grid.totalCount).toBeGreaterThanOrEqual(1)
+    const inPanel = preview.results
+      .map((r) => r.id)
+      .filter((id) => ALL.some((s) => s.buyShipment === id && s.panel === A.panel))
+    expect(grid.rows.slice(0, inPanel.length).map((r) => r.buyShipment)).toEqual(inPanel)
   })
 })

@@ -1,13 +1,13 @@
 import { getAllShipments } from '../../data'
-import { SHIPMENTS_ATTRIBUTES, SHIPMENTS_PROGRESSION } from './progression'
+import { SHIPMENTS_ATTRIBUTES, SHIPMENTS_PROGRESSION, FREE_TEXT_ATTRS } from './progression'
 import { valueMatchDetail } from './searchIndex'
 // Shared chip+text matcher (S79c) — the SAME predicates the grid service applies
 // to listParams.searchCriteria, so the glimpse previews exactly what committing
 // the criteria will show in the table.
-import { matchesChip, matchesFreeText } from './criteria'
-
-// How many entry-point attributes to show when the bar is empty + no chips.
-const INITIAL_COUNT = 5
+import {
+  matchesChip, FREE_TEXT_KEYS, matchesAnyNeedle, textNeedles,
+  resolveBestMatchNeedles, scoreText, tokenizeChipValue,
+} from './criteria'
 
 // dataKeys that drive avatar icon overrides in MatchRow
 const ORDER_KEYS    = new Set(['orders'])
@@ -64,16 +64,17 @@ function toItem(attr, queryValue) {
 }
 
 export const shipmentsSearchAdapter = {
-  // Empty-input suggestions. No chips → entry points (top of the progression).
-  // With chips → the NEXT progression GROUP (drill forward; never repeat the
-  // entry set; on the last group, stay on it). Suggestions only — typing still
-  // matches ANY attribute regardless of group. See composed-criteria.md →
-  // "Empty-suggestion progression".
+  // Empty-input suggestions. No chips → NOTHING (S104). With chips → the NEXT
+  // progression GROUP (drill forward; never repeat the entry set; on the last
+  // group, stay on it). Suggestions only — typing still matches ANY attribute
+  // regardless of group. See composed-criteria.md → "Empty-suggestion
+  // progression".
   async getInitial(chips = []) {
-    if (!chips.length) {
-      const items = SHIPMENTS_ATTRIBUTES.slice(0, INITIAL_COUNT).map((a) => toItem(a, null))
-      return [{ title: 'Suggested Filters', items }]
-    }
+    // Untouched bar (focused, nothing typed, no chips) → NO suggestions. Showing
+    // entry-point attributes here invited clicks before the user had any idea
+    // what a chip would do (user, S104). Suggestions are now reactive: they
+    // appear once you type, or once a chip gives the drill-forward a footing.
+    if (!chips.length) return []
     const group = nextProgressionGroup(chips)
     if (!group) return []
     const committed = new Set(chips.map((c) => c.key))
@@ -107,7 +108,34 @@ export const shipmentsSearchAdapter = {
       console.groupEnd()
     }
 
-    return [{ title: 'Suggested Filters', items: scored.map((s) => toItem(s.attr, q)) }]
+    // "What is it?" (not "Suggested Filters") — the panel's job at this moment is
+    // to tell the user what the thing they typed COULD be, not to offer filters.
+    if (scored.length) {
+      return [{ title: 'What is it?', items: scored.map((s) => toItem(s.attr, q)) }]
+    }
+
+    // Multi-code (Case 9): the whole string matched nothing, but it may be a
+    // LIST of codes. Suggest an attribute only when EVERY code matches real
+    // values of that attribute — the chip is then an IN-list ("Order #: a, b").
+    // One code resolving to a different attribute → no suggestion at all
+    // (user rule: mixed lists don't chip; they still free-text search).
+    const rawTokens = q.split(/[\s,]+/).filter(Boolean)
+    if (rawTokens.length >= 2) {
+      const common = SHIPMENTS_ATTRIBUTES
+        .map((attr, order) => {
+          const details = rawTokens.map((t) => valueMatchDetail(attr.dataKey, t))
+          if (details.some((d) => d.score === 0)) return null
+          // Weakest code's score is the honest rank for the whole list.
+          return { attr, order, score: Math.min(...details.map((d) => d.score)) }
+        })
+        .filter(Boolean)
+        .sort((a, b) => b.score - a.score || a.order - b.order)
+      if (common.length) {
+        const listValue = rawTokens.join(', ')
+        return [{ title: 'What is it?', items: common.map((s) => toItem(s.attr, listValue)) }]
+      }
+    }
+    return []
   },
 
   // Composed-criteria search. The LEADING chip (chips[0]) determines the result
@@ -140,8 +168,12 @@ export const shipmentsSearchAdapter = {
     // (An order-scoped chip "matches" when at least one order contains the value
     // — it narrows which shipments survive; the explosion below picks the exact
     // orders.)
+    // Resolve the text interpretation ONCE against the FULL dataset (phrase vs
+    // code-list, GS-20) — not per row, and not against the customer-scoped
+    // subset, so every surface reads the query the same way.
+    const needles = textNeedles(getAllShipments(), q)
     const shipments = all.filter(
-      (s) => matchesFreeText(s, q) && chipList.every((chip) => matchesChip(s, chip)),
+      (s) => matchesAnyNeedle(s, needles) && chipList.every((chip) => matchesChip(s, chip)),
     )
 
     // ---- Order entity: explode each shipment into its matching orders --------
@@ -152,9 +184,13 @@ export const shipmentsSearchAdapter = {
         const orders = Array.isArray(s.orders) ? s.orders : []
         for (const ord of orders) {
           const o = String(ord)
-          const keep = orderChips.every((c) =>
-            o.toLowerCase().includes((c.queryValue || '').toLowerCase()),
-          )
+          // Multi-value order chip = IN-list: the order survives when it
+          // matches ANY of the chip's values (Case 9; GS-12 semantics).
+          const keep = orderChips.every((c) => {
+            const needles = tokenizeChipValue(c.queryValue)
+            if (!needles.length) needles.push('')
+            return needles.some((n) => o.toLowerCase().includes(n))
+          })
           if (keep) rows.push(buildOrderRow(s, o))
         }
       }
@@ -162,6 +198,25 @@ export const shipmentsSearchAdapter = {
         ? rows.sort((a, b) => scoreText(b.matchId, primaryQuery) - scoreText(a.matchId, primaryQuery))
         : rows
       return { results: sorted.slice(0, 15), total: rows.length }
+    }
+
+    // ---- Bare code: resolve WHICH attribute matched, per row ----------------
+    // No chips + free text = "here's a code, I don't know what it is" (S104).
+    // Every row resolves its own best-matching attribute, so a pasted order
+    // number reads "Order #0000000091000" instead of being silently relabelled
+    // with the shipment number. Rows sort by match quality (exact before
+    // prefix before contains), progression order breaking ties.
+    if (!chipList.length && q) {
+      const resolved = shipments
+        .map((s) => ({ s, m: resolveBestMatchNeedles(s, needles, FREE_TEXT_ATTRS) }))
+        .filter((r) => r.m)
+        .sort((a, b) => b.m.score - a.m.score || a.m.order - b.m.order)
+      const results = resolved.slice(0, 15).map(({ s, m }) => ({
+        ...buildShipmentRow(s, m.attr.dataKey, q),
+        matchId: labelMatch(m),
+        'data-attr': m.attr.key, // the RESOLVED attribute, not the default
+      }))
+      return { results, total: shipments.length }
     }
 
     // ---- Shipment entity: one row per shipment ------------------------------
@@ -206,6 +261,12 @@ function buildShipmentRow(s, primaryKey, primaryQuery) {
   return {
     id: s.buyShipment,
     'data-shipment-key': s.sellShipment,
+    // Which panel tab this row lives in + which attribute group it matched.
+    // Both feed `panelForResults` (GS-18) — the landing tab is chosen from what
+    // the user can SEE at the top of the preview. Carried as data-attributes
+    // because MatchRow spreads unknown props onto its DOM node.
+    'data-panel': s.panel,
+    'data-attr': primaryKey,
     matchId: formatPrimaryField(s, primaryKey, primaryQuery),
     route: `${formatLocation(s.origin)} → ${formatLocation(s.destination)}`,
     customer: s.customerName,
@@ -223,6 +284,8 @@ function buildOrderRow(s, orderId) {
   return {
     id: `${s.buyShipment}-${orderId}`,
     'data-shipment-key': s.sellShipment,
+    'data-panel': s.panel,
+    'data-attr': 'orders',
     matchId: orderId,
     route: `${formatLocation(s.origin)} → ${formatLocation(s.destination)}`,
     customer: s.customerName,
@@ -234,13 +297,13 @@ function buildOrderRow(s, orderId) {
   }
 }
 
-// Relevance score for ordering: 3 = exact · 2 = starts-with · 1 = contains · 0 = none.
-function scoreText(text, query) {
-  const t = String(text).toLowerCase()
-  if (t === query) return 3
-  if (t.startsWith(query)) return 2
-  if (t.includes(query)) return 1
-  return 0
+// "Order #" + "0000000091000" → "Order #0000000091000"; labels that don't already
+// end in a '#' get a space ("SCAC FXFE").
+function labelMatch({ attr, value }) {
+  const display = attr.dataKey === 'origin' || attr.dataKey === 'destination'
+    ? formatLocation(value)
+    : value
+  return attr.label.endsWith('#') ? `${attr.label}${display}` : `${attr.label} ${display}`
 }
 
 // Scores a shipment's primary field against the query for result ordering.
@@ -286,4 +349,35 @@ function toTenderBadge(s) {
   if (s.tenderStatus === 'Declined')  return { label: 'Declined',  variant: 'red'   }
   if (s.tenderStatus === 'Cancelled') return { label: 'Cancelled', variant: 'gray'  }
   return { label: s.tenderStatus || '—', variant: 'gray' }
+}
+
+/**
+ * Which panel tab a committed search should open, chosen from the PREVIEW the
+ * user just looked at (GS-18).
+ *
+ * The rule, in the user's words: *"we should choose the group that shows first
+ * in the preview panel to pick the tab — the idea behind this is to give user
+ * eyes what they are seeing."* So: take the attribute group of the FIRST preview
+ * row (e.g. "Buy Shipment #"), keep only the rows in that group, and return the
+ * panel most of them live in. Ties inside the group break toward the earliest
+ * row, which is the highest-relevance one.
+ *
+ * Deliberately NOT "the panel with the most matches overall" (the S104 first
+ * attempt): a bigger tab the user cannot see anything of is not where their eyes
+ * are. Returns null for an empty preview — the caller then falls back.
+ */
+export function panelForResults(results = []) {
+  const first = results[0]
+  if (!first) return null
+  const group = first['data-attr']
+  const counts = new Map()
+  for (const r of results) {
+    if (r['data-attr'] !== group) continue
+    const panel = r['data-panel']
+    if (!panel) continue
+    counts.set(panel, (counts.get(panel) ?? 0) + 1)
+  }
+  if (!counts.size) return null
+  // Highest count wins; ties fall to the panel seen first (insertion order).
+  return [...counts].reduce((best, cur) => (cur[1] > best[1] ? cur : best))[0]
 }
