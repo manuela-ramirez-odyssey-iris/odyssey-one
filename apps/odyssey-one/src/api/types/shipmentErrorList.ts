@@ -7,6 +7,8 @@ export interface ShipmentErrorRow {
   buyShipment: string
   sellShipment: string          // contract detail-link id (sell-shipment-out/{id})
   orders: string[]
+  /** Customer pickup references, one per consolidated order (R2-2). */
+  pickupNumbers?: string[]
   pro: string
   customerId: string
   customerName: string

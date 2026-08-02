@@ -71,12 +71,13 @@ export async function seed(client, { totalShipments = 10000 } = {}) {
     ['sell_shipment','buy_shipment','orders','pro','customer_id','customer_name','consignor','consignee',
      'origin','destination','pickup_date','delivery_date','pickup_ts','delivery_ts','mode','equipment_code',
      'equipment','seal','scac','tender_status','shipment_status','panel','category','validation_message',
-     'gross_weight','load','load_count','order_count','ap_freight_cost','detail'],
+     'gross_weight','load','load_count','order_count','ap_freight_cost','pickup_numbers','detail'],
     ds.shipments.map((s) => [
       s.sellShipment, s.buyShipment, s.orders, s.pro, s.customerId, s.customerName, s.consignor, s.consignee,
       s.origin, s.destination, s.pickupDate, s.deliveryDate, parseDisplayDate(s.pickupDate), parseDisplayDate(s.deliveryDate),
       s.mode, s.equipmentCode, s.equipment, s.seal, s.scac, s.tenderStatus, s.shipmentStatus, s.panel, s.category,
       s.validationMessage, s.grossWeight, s.load, s.loadCount, s.orderCount, s.apFreightCost,
+      s.pickupNumbers ?? [],
       JSON.stringify(ds.details.get(s.sellShipment)),
     ]))
 

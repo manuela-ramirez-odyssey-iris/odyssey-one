@@ -1,6 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { buildSearchQuery, buildSuggestQuery, MIN_TRGM } from './search.mjs'
+import { SHIPMENTS_ATTRS } from './search-registry.mjs'
 
 test('exact + prefix tiers only for a short needle (trgm cannot serve <3 chars)', () => {
   const { text } = buildSearchQuery({ domain: 'shipments', needles: ['AB'], limit: 15 })
@@ -50,8 +51,10 @@ test('needles are parameterized, never inlined into the SQL text', () => {
 // the one place a string reaches the SQL text — so it must still be escaped.
 test('the priority CASE covers every registry attribute', () => {
   const { text } = buildSearchQuery({ domain: 'shipments', needles: ['A1'], limit: 15 })
-  for (const [key, prio] of [['buy-shipment', 0], ['order', 2], ['scac', 17], ['load', 22]]) {
-    assert.ok(text.includes(`WHEN '${key}' THEN ${prio}`), `missing CASE arm for ${key}`)
+  // Derived, not hardcoded: inserting an attribute shifts every priority after
+  // it, and a hardcoded list just rots into a false failure (it did, on Pickup #).
+  for (const [key, cfg] of Object.entries(SHIPMENTS_ATTRS)) {
+    assert.ok(text.includes(`WHEN '${key}' THEN ${cfg.priority}`), `missing CASE arm for ${key}`)
   }
 })
 

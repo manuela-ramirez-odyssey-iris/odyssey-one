@@ -148,3 +148,49 @@ test('detail carries a Tracking Link built from the shipment Pro # (R2-1)', () =
   // Every shipment, not just the sampled one — the strip dashes on any miss.
   for (const det of ds.details.values()) assert.ok(det.trackingUrl)
 })
+
+// ── S104 Task 10 Step 3: Pickup # is an ORDER-header reference (R2-2 / D3) ────
+test('shipment pickupNumbers rolls up from its orders, deduped', () => {
+  const ds = buildDataset()
+  let withAny = 0
+  for (const s of ds.shipments) {
+    assert.ok(Array.isArray(s.pickupNumbers), `${s.sellShipment} pickupNumbers not an array`)
+    assert.equal(new Set(s.pickupNumbers).size, s.pickupNumbers.length, 'duplicate pickup number')
+    for (const p of s.pickupNumbers) assert.match(p, /^PU-\d{6}$/)
+    if (s.pickupNumbers.length) withAny++
+  }
+  // ~60% per order, so nearly every shipment should carry at least one.
+  assert.ok(withAny / ds.shipments.length > 0.7, `only ${withAny}/${ds.shipments.length}`)
+})
+
+test('a pickup stop copies a pickup number from the orders it actually picks up', () => {
+  // Was a per-stop coin flip: half of all pickup stops rendered '--' despite the
+  // field being plumbed to StopsTab. It must now be a COPY, never minted.
+  const ds = buildDataset()
+  let checked = 0, present = 0
+  for (const [sellId, d] of ds.details) {
+    const row = ds.shipments.find((s) => s.sellShipment === sellId)
+    for (const stop of d.shipmentStopList ?? []) {
+      if (stop.stopType !== 'pickup') { assert.equal(stop.pickupNumber, null); continue }
+      checked++
+      if (stop.pickupNumber == null) continue
+      present++
+      assert.ok(row.pickupNumbers.includes(stop.pickupNumber),
+        `stop ${stop.pickupNumber} is not one of the shipment's ${row.pickupNumbers}`)
+    }
+  }
+  assert.ok(checked > 100)
+  assert.ok(present / checked > 0.7, `only ${present}/${checked} pickup stops carry a number`)
+})
+
+test('order-level pickupNumber agrees with the shipment roll-up', () => {
+  const ds = buildDataset()
+  for (const [sellId, d] of ds.details) {
+    const row = ds.shipments.find((s) => s.sellShipment === sellId)
+    for (const o of d.orderList ?? []) {
+      if (o.pickupNumber == null) continue
+      assert.ok(row.pickupNumbers.includes(o.pickupNumber),
+        `order ${o.orderNumber} pickup ${o.pickupNumber} missing from shipment roll-up`)
+    }
+  }
+})

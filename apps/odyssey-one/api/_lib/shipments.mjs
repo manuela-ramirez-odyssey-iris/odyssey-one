@@ -14,6 +14,7 @@ const RELEVANCE_SORT = 'relevance'
 // Row projection: DB snake_case → ShipmentErrorRow camelCase (types/shipmentErrorList.ts).
 const ROW_COLUMNS = `
   buy_shipment AS "buyShipment", sell_shipment AS "sellShipment", orders, pro,
+  pickup_numbers AS "pickupNumbers",
   customer_id AS "customerId", customer_name AS "customerName", consignor, consignee,
   origin, destination, pickup_date AS "pickupDate", delivery_date AS "deliveryDate",
   mode, equipment_code AS "equipmentCode", scac, tender_status AS "tenderStatus",

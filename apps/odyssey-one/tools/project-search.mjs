@@ -7,7 +7,8 @@ import { projectRow } from '../api/_lib/search-registry.mjs'
 // Verified against generate.mjs mainRow (:1178).
 const SRC_KEY = {
   buy_shipment: 'buyShipment', sell_shipment: 'sellShipment', orders: 'orders',
-  pro: 'pro', customer_id: 'customerId', customer_name: 'customerName',
+  pro: 'pro', pickup_numbers: 'pickupNumbers',
+  customer_id: 'customerId', customer_name: 'customerName',
   consignor: 'consignor', consignee: 'consignee', origin: 'origin',
   destination: 'destination', equipment: 'equipment', seal: 'seal',
   scac: 'scac', load: 'load',

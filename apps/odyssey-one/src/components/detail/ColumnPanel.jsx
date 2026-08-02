@@ -15,6 +15,7 @@ export const ALL_COLUMNS = [
   { key: 'orders', label: 'Order #' },
   { key: 'orderCount', label: 'Order Count' },
   { key: 'proBookingNumber', label: 'Pro#/Booking #' },
+  { key: 'pickupNumbers', label: 'Pickup #' },
   { key: 'customerId', label: 'Customer ID' },
   { key: 'customerName', label: 'Customer Name' },
   { key: 'consignor', label: 'Consignor' },

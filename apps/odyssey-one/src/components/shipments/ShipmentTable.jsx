@@ -90,6 +90,15 @@ export const COLUMN_CONFIG = [
     ),
   },
   {
+    // A shipment consolidates N orders, each carrying its own customer-provided
+    // pickup reference (R2-2 / D3) — so this cell is a LIST, not a scalar.
+    // Not default-visible: it is a lookup reference, and presets can carry it
+    // (user, 2026-08-02).
+    key: 'pickupNumbers',
+    label: 'Pickup #',
+    render: (s) => (s.pickupNumbers?.length ? s.pickupNumbers.join(', ') : '—'),
+  },
+  {
     key: 'orderCount',
     label: 'Order Count',
     render: (s) => (

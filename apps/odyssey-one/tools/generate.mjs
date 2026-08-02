@@ -495,8 +495,21 @@ function generateShipment(index) {
     const orderTare = lines.reduce((s, l) => s + l.tareWeightValue, 0);
     const orderVolume = lines.reduce((s, l) => s + l.volumeValue, 0);
     const orderPackages = lines.reduce((s, l) => s + l.packageCount, 0);
-    orders.push({ orderId, numericOrderId, lineCount, lines, orderGross, orderTare, orderVolume, orderPackages });
+    // Pickup # is an ORDER-HEADER field (R2-2 / D3) — a customer-provided pickup
+    // reference from the customer ERP / SAP PGI-PGR flow, sitting beside poNumber
+    // and orderNumber. It is COPIED to the load and the stop, never minted there.
+    // Generated here, on the order, so the stop and the shipment roll-up read the
+    // same value instead of each inventing its own (the stop used to mint its own
+    // on a coin flip, so half of all pickup stops rendered '--').
+    const pickupNumber = faker.number.float({ min: 0, max: 1 }) < 0.60
+      ? `PU-${faker.number.int({ min: 100000, max: 999999 })}`
+      : null;
+    orders.push({ orderId, numericOrderId, lineCount, lines, orderGross, orderTare, orderVolume, orderPackages, pickupNumber });
   }
+
+  // A shipment consolidates N orders, each with its own pickup reference, so the
+  // shipment carries an ARRAY — same shape as `orders` (D3, user 2026-08-02).
+  const pickupNumbers = [...new Set(orders.map((o) => o.pickupNumber).filter(Boolean))];
 
   // I5 — shipment gross weight = Σ of its orders' gross weights
   const grossWeight = orders.reduce((s, o) => s + o.orderGross, 0);
@@ -567,7 +580,10 @@ function generateShipment(index) {
       volumeValue: stopOrders.reduce((t, o) => t + o.orderVolume, 0),
       volumeUomCode: 'cuft',
       packageCount: stopOrders.reduce((t, o) => t + o.orderPackages, 0),
-      pickupNumber: faker.datatype.boolean() ? `PU-${faker.number.int({ min: 100000, max: 999999 })}` : null,
+      // Copied from the orders picked up at THIS stop (R2-2). Was a per-stop coin
+      // flip, which rendered '--' on half of all pickup stops despite the field
+      // being fully plumbed through to StopsTab.
+      pickupNumber: stopOrders.map((o) => o.pickupNumber).find(Boolean) ?? null,
     });
   }
   /* Deliveries mirror pickups. Before 2026-07-30 there was always exactly ONE
@@ -1106,9 +1122,8 @@ function generateShipment(index) {
     const orderCarrier = faker.number.float({ min: 0, max: 1 }) < 0.20
       ? pick(CARRIERS).scac
       : null;
-    const orderPickupNumber = faker.number.float({ min: 0, max: 1 }) < 0.60
-      ? `PU-${faker.number.int({ min: 100000, max: 999999 })}`
-      : null;
+    // Minted with the order (see the orders loop) so stop + shipment agree.
+    const orderPickupNumber = ord.pickupNumber;
     const orderHasSpecial = faker.number.float({ min: 0, max: 1 }) < 0.40;
     const orderSpecialServices = orderHasSpecial
       ? faker.helpers.arrayElements(SPECIAL_SERVICES_POOL, faker.number.int({ min: 1, max: 3 }))
@@ -1183,6 +1198,7 @@ function generateShipment(index) {
     buyShipment,
     sellShipment,
     orders: orders.map(o => o.orderId),
+    pickupNumbers,
     pro: genProNumber(),
     customerId: customer.id,
     customerName: customer.name,

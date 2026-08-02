@@ -43,6 +43,10 @@ export const SHIPMENTS_PROGRESSION = [
       { key: 'order', label: 'Order #', dataKey: 'orders', match: 'both' }, // LINX-9742: auto numbers are digits, user-provided keep letters
       { key: 'order-count', label: 'Order Count', dataKey: 'orderCount', match: 'digits', exact: true },
       { key: 'pro', label: 'Pro#/Booking #', dataKey: 'pro', match: 'digits' },
+      // Pickup # is an ORDER-header reference copied to the load, so a shipment
+      // carries N of them — which is exactly why Jana could not find it as a
+      // shipment column (D3, R2-2).
+      { key: 'pickup-number', label: 'Pickup #', dataKey: 'pickupNumbers', match: 'both' },
     ],
   },
   {

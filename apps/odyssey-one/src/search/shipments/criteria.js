@@ -25,6 +25,8 @@ export const FREE_TEXT_KEYS = [
   // Added S104: a pasted Pro/BOL, load, trailer, or seal number found NOTHING
   // before this — the single most likely thing to paste into an empty bar.
   'pro', 'load', 'equipment', 'seal', 'consignor', 'consignee',
+  // Added S104 (R2-2): the customer's own pickup reference is a prime paste.
+  'pickupNumbers',
 ]
 
 // Case-insensitive substring test against one field (arrays joined with spaces).
