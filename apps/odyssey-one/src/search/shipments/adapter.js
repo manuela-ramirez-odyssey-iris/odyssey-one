@@ -14,7 +14,7 @@ const ORDER_KEYS    = new Set(['orders'])
 const CUSTOMER_KEYS = new Set(['customerId', 'customerName', 'consignor', 'consignee'])
 
 // Parse "Phoenix AZ US 85001" → "Phoenix, AZ"
-function formatLocation(str) {
+export function formatLocation(str) {
   if (!str) return ''
   const base = str.split(' US ')[0].trim()
   const parts = base.split(' ')
@@ -49,7 +49,7 @@ const DEBUG_SEARCH = !!(import.meta.env && import.meta.env.DEV)
  * select; pending its own normalization (seam marked below).
  */
 
-function toItem(attr, queryValue) {
+export function toItem(attr, queryValue) {
   const label = queryValue ? `${attr.label}: ${queryValue}` : attr.label
   return {
     key: attr.key,
@@ -299,7 +299,7 @@ function buildOrderRow(s, orderId) {
 
 // "Order #" + "0000000091000" → "Order #0000000091000"; labels that don't already
 // end in a '#' get a space ("SCAC FXFE").
-function labelMatch({ attr, value }) {
+export function labelMatch({ attr, value }) {
   const display = attr.dataKey === 'origin' || attr.dataKey === 'destination'
     ? formatLocation(value)
     : value
@@ -336,14 +336,14 @@ function formatPrimaryField(s, dataKey, query) {
   return String(val)
 }
 
-function toStatusBadge(s) {
+export function toStatusBadge(s) {
   if (s.tenderStatus === 'Sent') return { label: 'Sent', variant: 'blue' }
   if (s.shipmentStatus === 'Done') return { label: 'Done', variant: 'green' }
   if (s.shipmentStatus === 'Review') return { label: 'Review', variant: 'amber' }
   return { label: s.shipmentStatus || '—', variant: 'gray' }
 }
 
-function toTenderBadge(s) {
+export function toTenderBadge(s) {
   if (s.tenderStatus === 'Accepted')  return { label: 'Accepted',  variant: 'green' }
   if (s.tenderStatus === 'Sent')      return { label: 'Sent',      variant: 'blue'  }
   if (s.tenderStatus === 'Declined')  return { label: 'Declined',  variant: 'red'   }

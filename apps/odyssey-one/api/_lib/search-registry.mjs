@@ -31,7 +31,22 @@ export const SHIPMENTS_ATTRS = {
 }
 
 export const REGISTRY = {
-  shipments: { attrs: SHIPMENTS_ATTRS, entityKey: 'sellShipment' },
+  shipments: {
+    attrs: SHIPMENTS_ATTRS,
+    entityKey: 'sellShipment',
+    // The wide fields a preview ROW renders (route/customer/carrier/badge) — the
+    // narrow index carries only the matched value. Fetched by primary key for the
+    // ≤15 ranked hits ONLY, never scanned: spec §6a's bound is "payload stays
+    // single-digit KB while typing", and 15 keyed rows is ~4KB.
+    // `panel` is not decorative — GS-18 picks the landing tab from it.
+    hydrate: {
+      table: 'shipments',
+      key: 'sell_shipment',
+      columns: `sell_shipment AS "sellShipment", buy_shipment AS "buyShipment", panel,
+                origin, destination, customer_name AS "customerName", scac, pro,
+                tender_status AS "tenderStatus", shipment_status AS "shipmentStatus"`,
+    },
+  },
 }
 
 /** Registry key → attr priority, for the ORDER BY tiebreaker. */

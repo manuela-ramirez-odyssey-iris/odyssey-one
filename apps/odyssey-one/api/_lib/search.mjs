@@ -151,10 +151,28 @@ export async function searchHandler({ body, db }) {
   const { rows } = await db.query(
     buildSearchQuery({ domain, needles, limit: page.limit ?? 15, customerIds: scope.customerIds }),
   )
+  const results = rows.map(({ __total, ...r }) => r)
   return {
     total: rows[0]?.__total ?? 0,
-    results: rows.map(({ __total, ...r }) => r),
+    results: await hydrate(db, domain, results),
   }
+}
+
+/**
+ * Attach the wide row fields to the ≤15 ranked hits. Without this the preview
+ * renders a bare matched value with no route/customer/carrier, and GS-18 has no
+ * `panel` to choose the landing tab from — the live preview would be visually
+ * unlike the mock it is supposed to be behaviourally identical to.
+ */
+async function hydrate(db, domain, results) {
+  const cfg = REGISTRY[domain]?.hydrate
+  if (!cfg || !results.length) return results
+  const { rows } = await db.query({
+    text: `SELECT ${cfg.columns} FROM ${cfg.table} WHERE ${cfg.key} = ANY($1)`,
+    values: [results.map((r) => r.entity_id)],
+  })
+  const byId = new Map(rows.map((r) => [String(r[REGISTRY[domain].entityKey]), r]))
+  return results.map((r) => ({ ...r, entity: byId.get(String(r.entity_id)) ?? null }))
 }
 
 export async function suggestHandler({ body, db }) {

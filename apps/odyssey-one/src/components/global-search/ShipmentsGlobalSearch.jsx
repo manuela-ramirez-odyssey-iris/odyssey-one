@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect, useCallback, useMemo } from 'react'
 import { GlobalSearch, GlobalSearchPanel, GlobalSearchResults } from '@odyssey/ui'
 import { useGlobalSearch } from '../../search/useGlobalSearch'
-import { shipmentsSearchAdapter, panelForResults } from '../../search/shipments/adapter'
+import { shipmentsSearchAdapter, panelForResults } from '../../search/shipments'
 import { useCustomers } from '../../contexts/CustomersContext.jsx'
 import ShipmentsFiltersView from './ShipmentsFiltersView'
 import { tabForDataKey } from '../shipments/cellTabMap'
