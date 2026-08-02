@@ -205,8 +205,8 @@ test('create order: manual_order stores the wire payload whole, grid projection 
 test('create order: NOT NULL columns satisfied — consignor/consignee/order_status always present', () => {
   const q = buildCreateOrderQuery({})
   const idx = { consignor: 5, consignee: 6, status: 11 }
-  assert.ok(q.values[idx.consignor])
-  assert.ok(q.values[idx.consignee])
+  assert.equal(JSON.parse(q.values[idx.consignor]).country, 'US') // default fallback, not just truthy
+  assert.equal(JSON.parse(q.values[idx.consignee]).country, 'US')
   assert.equal(q.values[idx.status], 'Ready For Plan')
 })
 

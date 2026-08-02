@@ -298,6 +298,8 @@ export function buildCreateOrderQuery(mo, userId) {
     // matches tools/generate.mjs genOrderNumber's auto-generated branch and
     // the mock's `String(orderId).padStart(13, '0')` (orderService.ts:279) —
     // row-10 convention: orderNumber = orderId, padded.
+    // pg_get_serial_sequence resolves 'orders' via search_path — schema-qualify
+    // it if the table ever moves out of public.
     text: `WITH new_row AS (SELECT nextval(pg_get_serial_sequence('orders','id')) AS id)
            INSERT INTO orders (
              id, order_number, order_id, order_source, customer,
@@ -364,10 +366,12 @@ export async function createOrder({ body, db }) {
       },
     }
   } catch (err) {
-    // Unique violation on orders_number_unique = a user-supplied number that
-    // collides with an existing row — honest 409, not a 500 (mirrors
-    // preferences.mjs's 23503→400 pattern for the FK case).
-    if (err?.code === '23505') { const e = new Error(`Order number already exists: ${mo.orderNumber}`); e.status = 409; throw e }
+    // 23505 = any unique violation; orders_number_unique is the only one a
+    // sequence-minted id can realistically hit — honest 409, not a 500
+    // (mirrors preferences.mjs's 23503→400 pattern for the FK case).
+    if (err?.code === '23505') {
+      const e = new Error(`Order number already exists: ${mo.orderNumber?.trim() || '(auto-generated)'}`); e.status = 409; throw e
+    }
     throw err
   }
 }
