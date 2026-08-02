@@ -4,7 +4,7 @@
 // product rollups, and the Scenario-2 async flip (number populates, alert
 // flips to success, navbar bell notified).
 import { describe, test, expect, afterEach, vi } from 'vitest'
-import { render, screen, cleanup, act } from '@testing-library/react'
+import { render, screen, within, cleanup, act } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { makeDefaultOrderFormValues } from '../../../api/types/orderFormVm'
 import mapFormVmToOrderPane from './mapFormVmToOrderPane'
@@ -120,6 +120,24 @@ describe('ConfirmationView quick/long + async flip', () => {
     expect(screen.getByText('Shipper details')).toBeTruthy()
     expect(screen.getByText('Destination details')).toBeTruthy()
     expect(screen.getByText(/created successfully/)).toBeTruthy()
+  })
+
+  // Review minor: the mapper-level mixed-order test above can't catch a JSX
+  // cell that reads d.hazmat (order-level) instead of line.hazmat — both
+  // would be 'Yes'/true for a mixed order. Assert the actual rendered row:
+  // only the hazardous line's cell shows the Hazmat badge, the other shows '--'.
+  test('mixed order: per-line hazmat badge renders row-by-row, not the order-level flag', () => {
+    const values = valuesWith({
+      products: [product({ id: 'r1', hazardous: true }), product({ id: 'r2', hazardous: false })],
+    })
+    values.general.orderNumber = 'S26TEST'
+    renderConfirmation({ data: { orderNumber: 'S26TEST' }, values })
+    const table = screen.getByText('Hazardous').closest('table')
+    const rows = table.querySelectorAll('tbody tr')
+    expect(rows).toHaveLength(2)
+    expect(within(rows[0]).getByText('Hazmat')).toBeTruthy()
+    expect(within(rows[1]).queryByText('Hazmat')).toBeNull()
+    expect(within(rows[1]).getByText('--')).toBeTruthy()
   })
 
   test('long order: populated blocks render', () => {
