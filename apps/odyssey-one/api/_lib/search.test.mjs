@@ -146,16 +146,35 @@ test('multi-value chip (comma list) ORs its tokens within ONE subquery', () => {
   assert.ok(values.includes('091001'))
 })
 
-test('unknown chip keys are dropped, not trusted as attr names', () => {
+// Balanced parens is enough of a well-formedness check at this pure layer
+// (no DB available to actually EXPLAIN the SQL).
+function balancedParens(sql) {
+  return (sql.match(/\(/g) || []).length === (sql.match(/\)/g) || []).length
+}
+
+test('unknown chip keys are dropped, not trusted as attr names — honest-empty, not a syntax error', () => {
   const { text } = buildSearchQuery({
     domain: 'shipments', needles: [],
     chips: [{ key: 'not-a-real-attr; DROP TABLE shipments--', queryValue: 'x' }],
   })
-  // No valid chips, no needles → empty hit set (no branch selects anything),
-  // and critically the bogus key never reaches the SQL text at all.
-  assert.ok(text.includes('WITH hits AS ()'))
+  // No valid chips, no needles → `WITH hits AS ()` is a Postgres SYNTAX ERROR,
+  // not an empty result (this was the reachable-500 bug). The honest-empty
+  // shape is a real zero-row SELECT ... WHERE FALSE.
+  assert.ok(!text.includes('WITH hits AS ()'), 'must not produce an empty CTE body')
+  assert.match(text, /WHERE FALSE/)
+  assert.ok(balancedParens(text))
   assert.ok(!text.includes('DROP TABLE'))
   assert.ok(!text.includes('not-a-real-attr'))
+})
+
+test('chips-only with ONLY a non-projected/unknown chip → honest-empty, for search AND suggest', () => {
+  const nonProjected = [{ key: 'tender-status', queryValue: 'Accepted' }] // real progression attr, not in SHIPMENTS_ATTRS
+  const search = buildSearchQuery({ domain: 'shipments', needles: [], chips: nonProjected })
+  assert.match(search.text, /WHERE FALSE/)
+  assert.ok(balancedParens(search.text))
+  const suggest = buildSuggestQuery({ domain: 'shipments', needles: [], chips: nonProjected })
+  assert.match(suggest.text, /WHERE FALSE/)
+  assert.ok(balancedParens(suggest.text))
 })
 
 test('suggest SQL carries the chip restriction', () => {

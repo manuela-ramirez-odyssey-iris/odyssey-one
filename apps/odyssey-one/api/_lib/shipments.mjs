@@ -163,6 +163,10 @@ export async function categoryCounts({ query, db }) {
   const rawChips = query.get('searchChips')
   if (rawChips) {
     try { chips = JSON.parse(rawChips) } catch { chips = [] }
+    // Valid JSON that isn't an array (e.g. `{"a":1}`) would otherwise reach
+    // validChips and blow up on `.filter is not a function` — same defensive
+    // stance as the malformed-JSON case, just past JSON.parse succeeding.
+    if (!Array.isArray(chips)) chips = []
   }
   const searchCriteria = (text || chips.length) ? { chips, text } : undefined
   // Resolved ONCE, against the full index, exactly as the list and the preview

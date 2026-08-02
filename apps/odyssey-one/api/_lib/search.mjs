@@ -72,11 +72,23 @@ function chipRestrictionSql(domain, chip, p) {
  * alone now drive a real hit set instead of `needles.length === 0` short-
  * circuiting to empty.
  *
- * Known accepted deviation from the mock (documented, not built): the mock
- * explodes ORDER-entity rows — one row per matching order — when the LEADING
- * chip is order-scoped (adapter.js ORDER_KEYS branch). Live keeps one row per
- * shipment for every chip combination for now; closing this gap waits on
- * orders becoming their own search domain (composed-criteria.md).
+ * Known accepted deviations from the mock (documented, not built):
+ *  1. The mock explodes ORDER-entity rows — one row per matching order — when
+ *     the LEADING chip is order-scoped (adapter.js ORDER_KEYS branch). Live
+ *     keeps one row per shipment for every chip combination for now; closing
+ *     this gap waits on orders becoming their own search domain
+ *     (composed-criteria.md).
+ *  2. Chips on the ~10 progression attributes that are NOT projected into
+ *     search_index (mode, tender-status, shipment-status, order-count,
+ *     load-count, pickup-date, delivery-date, equipment-code, gross-weight,
+ *     ap-freight-cost — see SHIPMENTS_ATTRS vs SHIPMENTS_ATTRIBUTES) are
+ *     dropped by `validChips` same as an unknown key: in the chips+TEXT case
+ *     they silently stop restricting (a committed "Tender Status: Accepted"
+ *     chip filters the mock but not live); chips-only falls back to the next
+ *     valid chip as lead, or the honest-empty set if none are valid. Upgrade
+ *     path: project these attrs into search_index (registry + generate.mjs),
+ *     or route non-indexed enum/measure chips to column filters the way
+ *     shipments.mjs's FIELD_MAP already does for the grid's own filter panel.
  *
  * Returns { sql, values, p } — `p` is the running binder so callers can append
  * their own parameters (LIMIT) after the branches. Callers that already own a
@@ -127,7 +139,16 @@ function buildHits({ domain, needles, customerIds, chips, bind }) {
     return { sql, values, p }
   }
 
-  return { sql: '', values, p }
+  // Honest-empty (S79c convention): nothing to search on (no needles, and no
+  // chip survived `validChips` — either none were sent, or every one carried
+  // an unknown/non-projected key). A bare `''` here produces `WITH hits AS ()`
+  // upstream, which is a Postgres SYNTAX ERROR (500), not an empty result —
+  // this was reachable from the UI (committing e.g. "Mode: TL" alone, a real
+  // progression attribute that just isn't indexed) on search, suggest, the
+  // grid list, AND tab counts, all four routing through this function. A
+  // well-formed zero-row shape also matches the mock's own semantics: an
+  // unrecognized/unindexed chip matches NOTHING, not everything.
+  return { sql: `SELECT NULL::text AS entity_id, NULL::text AS attr, NULL::text AS display, 0 AS tier, 0 AS needle_ix WHERE FALSE`, values, p }
 }
 
 /**

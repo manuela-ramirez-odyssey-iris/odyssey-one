@@ -243,6 +243,27 @@ test('list: no chips + no text → no join (unchanged)', () => {
   assert.ok(!q.text.includes('search_index'))
 })
 
+// Reachable 500 (re-review finding): a chip on a real progression attribute
+// that is NOT in the server registry (e.g. "Mode: TL") used to make
+// buildHits return `sql: ''`, which relevanceJoin/buildRankedSubquery embed
+// into `WITH hits AS ()` / `FROM () h` — a Postgres syntax error, not an empty
+// result — on the list AND the counts query (both route through buildHits).
+test('list: chips-only with ONLY a non-registry chip → honest-empty JOIN, no syntax error', () => {
+  const q = buildListQuery({
+    filter: { panel: 'monitoring', searchCriteria: { chips: [{ key: 'mode', queryValue: 'TL' }], text: '' } },
+  })
+  assert.match(q.text, /WHERE FALSE/)
+  assert.equal((q.text.match(/\(/g) || []).length, (q.text.match(/\)/g) || []).length)
+})
+
+test('counts: chips-only with ONLY a non-registry chip → honest-empty JOIN, no syntax error', () => {
+  const q = buildCountsQuery({
+    panel: 'monitoring', searchCriteria: { chips: [{ key: 'tender-status', queryValue: 'Accepted' }], text: '' },
+  })
+  assert.match(q.text, /WHERE FALSE/)
+  assert.equal((q.text.match(/\(/g) || []).length, (q.text.match(/\)/g) || []).length)
+})
+
 test('counts: chips-only searchCriteria still restricts the tab badges', () => {
   const q = buildCountsQuery({
     panel: 'monitoring', searchCriteria: { chips: [{ key: 'customer-name', queryValue: 'Acme Co' }], text: '' },
@@ -272,6 +293,17 @@ test('categoryCounts handler: malformed searchChips JSON is ignored, not a 500',
   const query = new URLSearchParams({ panel: 'monitoring', searchChips: '{not json' })
   await categoryCounts({ query, db })
   assert.ok(!seenQuery.text.includes('search_index'), 'bad JSON falls back to no chip restriction')
+})
+
+test('categoryCounts handler: valid-but-non-array searchChips is ignored, not a 500', async () => {
+  // JSON.parse('{"a":1}') succeeds — a bare object would reach validChips'
+  // `.filter(...)` and throw "chips.filter is not a function" without the
+  // Array.isArray guard.
+  let seenQuery
+  const db = { query: async (q) => { seenQuery = q; return { rows: [] } } }
+  const query = new URLSearchParams({ panel: 'monitoring', searchChips: '{"a":1}' })
+  await categoryCounts({ query, db })
+  assert.ok(!seenQuery.text.includes('search_index'), 'non-array JSON falls back to no chip restriction')
 })
 
 test('explicit needles override the phrase (the handler resolves GS-20 code lists)', () => {
