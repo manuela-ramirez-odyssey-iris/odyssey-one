@@ -98,3 +98,42 @@ test('errorCount is weighted low: majority 1–4, hard cap 12 (ledger row 7)', (
   const low = counts.filter((c) => c <= 4).length
   assert.ok(low / counts.length > 0.7, `low share ${(low / counts.length).toFixed(2)}`)
 })
+
+// ── S104 Task 10b: the stops-tab hardcode ─────────────────────────────────────
+// S103 made stop `scheduledDateTime` derive its abbreviation per city and per
+// instant. `appointmentTime` on the very next line was missed and still emitted
+// a literal ' CST', so a Denver stop showed MDT scheduled / CST appointment in
+// the SAME field grid. This is the inconsistency the user reported — and it lives
+// in the GENERATOR, which is why a component-level hardcode audit never found it.
+test('stop appointmentTime uses the stop own zone, never a literal CST', () => {
+  const ds = buildDataset()
+  const abbrev = (s) => String(s).trim().split(' ').pop()
+  let checked = 0
+  for (const d of ds.details.values()) {
+    for (const stop of d.shipmentStopList ?? []) {
+      // The appointment abbreviation must match the SCHEDULED abbreviation of
+      // the same stop — same city, same instant, so same zone.
+      assert.equal(abbrev(stop.appointmentTime), abbrev(stop.scheduledDateTime),
+        `stop in ${stop.city}: appointment ${stop.appointmentTime} vs scheduled ${stop.scheduledDateTime}`)
+      checked++
+    }
+  }
+  assert.ok(checked > 100, `only ${checked} stops checked`)
+})
+
+test('a western stop actually exercises a non-CST zone (else the test is vacuous)', () => {
+  const ds = buildDataset()
+  const zones = new Set()
+  for (const d of ds.details.values())
+    for (const stop of d.shipmentStopList ?? []) zones.add(String(stop.appointmentTime).trim().split(' ').pop())
+  assert.ok(zones.size > 1, `all appointments share one abbreviation: ${[...zones]}`)
+  assert.ok([...zones].some((z) => /^(M|P|E)[SD]T$/.test(z)), `no non-central zone: ${[...zones]}`)
+})
+
+test('each stop of a multi-stop shipment gets its OWN appointment hour', () => {
+  const ds = buildDataset()
+  const multi = [...ds.details.values()].find((d) => (d.shipmentStopList ?? []).length > 2)
+  assert.ok(multi, 'no multi-stop shipment generated')
+  const hours = multi.shipmentStopList.map((s) => String(s.appointmentTime).slice(0, 2))
+  assert.ok(new Set(hours).size > 1, `every stop shares appointment hour ${hours[0]}`)
+})

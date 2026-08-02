@@ -535,6 +535,14 @@ function generateShipment(index) {
     const stopLoc = s === 0 ? originLoc : pick(LOCATIONS.filter(l => l.city !== originLoc.city && l.city !== destLoc.city));
     stopLocs.push(stopLoc);
     const stopOrders = orders.filter(o => o.pickupStopIdx === s);
+    // This stop's own zone + own instant, shared by scheduledDateTime AND
+    // appointmentTime. They were computed separately before, which is how the
+    // appointment kept a literal ' CST' after S103 fixed the scheduled time
+    // (S104 Task 10b) — a Denver stop read MDT scheduled / CST appointment in
+    // the same grid. One source, so they cannot disagree again.
+    const stopTz = deriveTimezone(stopLoc.city) || 'America/Chicago';
+    const stopAt = new Date(baseDate);
+    stopAt.setHours(baseDate.getHours() + s * 3);
     // SellShipmentStop DTO shape — raw fields (the mapper builds location/weight strings)
     stops.push({
       stopSequence: s + 1,
@@ -547,16 +555,12 @@ function generateShipment(index) {
       postal: stopLoc.zip,
       country: 'US',
       // IANA id, mirroring the real Tracking contract's stop `timeZone` (TR-04)
-      timeZone: deriveTimezone(stopLoc.city) || 'America/Chicago',
+      timeZone: stopTz,
       // Stops are sequenced in time, and the SHIPMENT's pickup date is the
       // FIRST pickup (Jana, Feb 17 — "we took the first one for the pickup"),
       // so stop 0 sits exactly on baseDate and later pickups run 3h apart.
-      scheduledDateTime: (() => {
-        const t = new Date(baseDate);
-        t.setHours(baseDate.getHours() + s * 3);
-        return `${formatDate(t)} ${String(t.getHours()).padStart(2, '0')}:00 ${tzAbbrev(deriveTimezone(stopLoc.city) || 'America/Chicago', t)}`;
-      })(),
-      appointmentTime: `${String(baseDate.getHours()).padStart(2, '0')}:00 CST`,
+      scheduledDateTime: `${formatDate(stopAt)} ${String(stopAt.getHours()).padStart(2, '0')}:00 ${tzAbbrev(stopTz, stopAt)}`,
+      appointmentTime: `${String(stopAt.getHours()).padStart(2, '0')}:00 ${tzAbbrev(stopTz, stopAt)}`,
       // I5 — stop weight/volume/packages = Σ of the orders picked up here
       grossWeightValue: stopOrders.reduce((t, o) => t + o.orderGross, 0),
       grossWeightUomCode: 'LB',
@@ -580,6 +584,10 @@ function generateShipment(index) {
     const dLoc = s === 0 ? destLoc : pick(LOCATIONS.filter(l => l.city !== originLoc.city && l.city !== destLoc.city));
     deliveryLocs.push(dLoc);
     const dOrders = orders.filter(o => o.deliveryStopIdx === s);
+    // Same one-source rule as the pickup side (S104 Task 10b).
+    const dTz = s === 0 ? destTz : (deriveTimezone(dLoc.city) || 'America/Chicago');
+    const dAt = new Date(deliveryDate);
+    dAt.setHours(deliveryDate.getHours() - (deliveryStopCount - 1 - s) * 3);
     stops.push({
       stopSequence: pickupStopCount + s + 1,
       stopType: 'delivery',
@@ -590,16 +598,12 @@ function generateShipment(index) {
       region: dLoc.state,
       postal: dLoc.zip,
       country: 'US',
-      timeZone: deriveTimezone(dLoc.city) || 'America/Chicago',
+      timeZone: dTz,
       // The SHIPMENT's delivery date is the LAST delivery (Jana, Feb 17 — "if
       // there are two deliveries, we will take the last one"), so the final
       // stop sits exactly on deliveryDate and earlier drops run 3h before it.
-      scheduledDateTime: (() => {
-        const t = new Date(deliveryDate);
-        t.setHours(deliveryDate.getHours() - (deliveryStopCount - 1 - s) * 3);
-        return `${formatDate(t)} ${String(t.getHours()).padStart(2, '0')}:00 ${tzAbbrev(s === 0 ? destTz : (deriveTimezone(dLoc.city) || 'America/Chicago'), t)}`;
-      })(),
-      appointmentTime: `${String(deliveryDate.getHours()).padStart(2, '0')}:00 CST`,
+      scheduledDateTime: `${formatDate(dAt)} ${String(dAt.getHours()).padStart(2, '0')}:00 ${tzAbbrev(dTz, dAt)}`,
+      appointmentTime: `${String(dAt.getHours()).padStart(2, '0')}:00 ${tzAbbrev(dTz, dAt)}`,
       // Σ of the orders dropped here (mirrors invariant I5 on the pickup side)
       grossWeightValue: dOrders.reduce((t, o) => t + o.orderGross, 0),
       grossWeightUomCode: 'LB',
