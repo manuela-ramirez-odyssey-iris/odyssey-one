@@ -73,12 +73,19 @@ function addFreeText(where, values, term, attributeKey) {
  * `needles` is resolved by the async handler (phrase-first, code-list fallback —
  * GS-20 needs a DB probe, and these builders stay pure). Absent, the text is
  * treated as one phrase, which is the single-token case anyway.
+ *
+ * Chips (GS-12 follow-up) ride alongside: a chips-only searchCriteria (no text)
+ * still joins — `list` stays empty but `chips` isn't, and buildRankedSubquery's
+ * buildHits falls into the chips-only ranking branch. This is what fixes tab
+ * badges/list rows going blank on a committed chip with no text (the same bug
+ * as the search-panel glimpse, just hit through the grid path instead).
  */
 function relevanceJoin(searchCriteria, needles, bind) {
   const text = String(searchCriteria?.text ?? '').trim()
+  const chips = searchCriteria?.chips ?? []
   const list = needles?.length ? needles : (text ? [text] : [])
-  if (!list.length) return ''
-  return `JOIN ${buildRankedSubquery({ needles: list, bind })} r ON r.entity_id = shipments.sell_shipment`
+  if (!list.length && !chips.length) return ''
+  return `JOIN ${buildRankedSubquery({ needles: list, chips, bind })} r ON r.entity_id = shipments.sell_shipment`
 }
 
 export function buildCountsQuery({ panel, customerIds, searchCriteria } = {}, needles) {
@@ -147,7 +154,17 @@ export async function categoryCounts({ query, db }) {
   const panel = query.get('panel') ?? ''
   const customerIds = query.has('customerIds') ? query.get('customerIds').split(',').filter(Boolean) : undefined
   const text = query.get('searchText') ?? ''
-  const searchCriteria = text ? { chips: [], text } : undefined
+  // GET can't carry a body, so committed chips ride a JSON-encoded query param
+  // (gridService.ts live branch: `searchChips=` + JSON.stringify(chips.map(
+  // ({key,queryValue}) => ({key,queryValue})))). Parsed defensively — malformed
+  // JSON is ignored (falls back to no chip restriction) rather than 500ing the
+  // counts endpoint on a bad/stale query string.
+  let chips = []
+  const rawChips = query.get('searchChips')
+  if (rawChips) {
+    try { chips = JSON.parse(rawChips) } catch { chips = [] }
+  }
+  const searchCriteria = (text || chips.length) ? { chips, text } : undefined
   // Resolved ONCE, against the full index, exactly as the list and the preview
   // resolve it — so the badge and the grid can never read the query differently.
   const needles = await resolveNeedles(db, 'shipments', text, customerIds)

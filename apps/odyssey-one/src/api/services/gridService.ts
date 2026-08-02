@@ -52,6 +52,13 @@ export async function getCategoryCounts(params: CategoryCountParams): Promise<Ca
     if (params.customerIds !== undefined) search.set('customerIds', params.customerIds.join(','))
     const criteriaText = params.searchCriteria?.text?.trim()
     if (criteriaText) search.set('searchText', criteriaText)
+    // Committed chips (GS-12 follow-up) — GET has no body, so they ride a
+    // JSON-encoded param. Server parses defensively; only key/queryValue are
+    // sent (the rest of the chip shape is UI-only: label, group, dataKey...).
+    const chips = params.searchCriteria?.chips
+    if (chips?.length) {
+      search.set('searchChips', JSON.stringify(chips.map(c => ({ key: c.key, queryValue: c.queryValue }))))
+    }
     const res = await apiGet<{ errorOverview: CategoryCount[] }>(
       `/shipment-service/v1/shipment/error/category/count?${search.toString()}`,
     )

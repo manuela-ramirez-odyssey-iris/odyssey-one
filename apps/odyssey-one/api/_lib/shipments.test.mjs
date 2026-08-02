@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { buildCountsQuery, buildListQuery, buildDetailQuery, sellShipmentDetail, saveTender } from './shipments.mjs'
+import { buildCountsQuery, buildListQuery, buildDetailQuery, sellShipmentDetail, saveTender, categoryCounts } from './shipments.mjs'
 
 test('counts: panel only', () => {
   const q = buildCountsQuery({ panel: 'exceptions', customerIds: undefined })
@@ -207,6 +207,71 @@ test('criteria text is parameterized in both list and counts', () => {
     assert.ok(!q.text.includes('DROP TABLE'))
     assert.ok(q.values.includes(inject.toUpperCase()))
   }
+})
+
+// ── Committed chips reach list + counts (GS-12 follow-up) ──────────────────
+// relevanceJoin only ever read searchCriteria.text; a chips-only criteria
+// (the committed-suggestion flow, text cleared on commit) produced NO join at
+// all, so the grid showed the whole panel while the glimpse showed a filtered
+// preview — the same blank/wrong-total bug as the search-panel glimpse.
+
+test('list: chips-only searchCriteria (no text) still restricts — this was the blank-glimpse bug', () => {
+  const q = buildListQuery({
+    filter: { panel: 'monitoring', searchCriteria: { chips: [{ key: 'order', queryValue: '44237' }], text: '' } },
+  })
+  assert.ok(q.text.includes('search_index'), 'chips alone must still JOIN the ranked hit set')
+  assert.ok(q.values.includes('44237'))
+})
+
+test('list: chips AND text both restrict the ranked join', () => {
+  const q = buildListQuery(
+    {
+      filter: {
+        panel: 'monitoring',
+        searchCriteria: { chips: [{ key: 'pro', queryValue: 'PRO-1' }], text: '442376' },
+      },
+    },
+    ['442376'],
+  )
+  assert.ok(q.text.includes('search_index'))
+  assert.ok(q.values.includes('PRO1')) // upperStrip normalized
+  assert.ok(q.values.includes('442376'))
+})
+
+test('list: no chips + no text → no join (unchanged)', () => {
+  const q = buildListQuery({ filter: { panel: 'monitoring', searchCriteria: { chips: [], text: '' } } })
+  assert.ok(!q.text.includes('search_index'))
+})
+
+test('counts: chips-only searchCriteria still restricts the tab badges', () => {
+  const q = buildCountsQuery({
+    panel: 'monitoring', searchCriteria: { chips: [{ key: 'customer-name', queryValue: 'Acme Co' }], text: '' },
+  })
+  assert.ok(q.text.includes('search_index'))
+  assert.ok(q.values.includes('ACME CO'))
+})
+
+test('categoryCounts handler: parses searchChips off the query string and restricts the counts', async () => {
+  let seenQuery
+  const db = {
+    query: async (q) => { seenQuery = q; return { rows: [{ category: 'date-issues', count: 3 }] } },
+  }
+  const query = new URLSearchParams({
+    panel: 'monitoring',
+    searchChips: JSON.stringify([{ key: 'order', queryValue: '44237' }]),
+  })
+  const result = await categoryCounts({ query, db })
+  assert.deepEqual(result, { errorOverview: [{ category: 'date-issues', count: 3 }] })
+  assert.ok(seenQuery.text.includes('search_index'))
+  assert.ok(seenQuery.values.includes('44237'))
+})
+
+test('categoryCounts handler: malformed searchChips JSON is ignored, not a 500', async () => {
+  let seenQuery
+  const db = { query: async (q) => { seenQuery = q; return { rows: [] } } }
+  const query = new URLSearchParams({ panel: 'monitoring', searchChips: '{not json' })
+  await categoryCounts({ query, db })
+  assert.ok(!seenQuery.text.includes('search_index'), 'bad JSON falls back to no chip restriction')
 })
 
 test('explicit needles override the phrase (the handler resolves GS-20 code lists)', () => {

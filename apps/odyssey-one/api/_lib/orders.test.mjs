@@ -240,3 +240,11 @@ test('create order: duplicate user-supplied order number -> honest 409, not a 50
     (e) => e.status === 409,
   )
 })
+
+test('create order: unknown/absent customerId (FK violation) -> honest 400, not a 500', async () => {
+  const db = { query: async () => { const e = new Error('fk'); e.code = '23503'; throw e } }
+  await assert.rejects(
+    () => createOrder({ body: { manualOrder: { customerId: 'NOT_A_CUSTOMER', orderLines: [] } }, db }),
+    (e) => e.status === 400,
+  )
+})

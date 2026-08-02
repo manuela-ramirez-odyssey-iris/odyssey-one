@@ -372,6 +372,12 @@ export async function createOrder({ body, db }) {
     if (err?.code === '23505') {
       const e = new Error(`Order number already exists: ${mo.orderNumber?.trim() || '(auto-generated)'}`); e.status = 409; throw e
     }
+    // 23503 = FK violation — an unknown/absent customerId (orders.customer_id
+    // references customers). Honest 400, same pattern preferences.mjs uses for
+    // its FK case, instead of the raw pg error surfacing as a 500.
+    if (err?.code === '23503') {
+      const e = new Error(`Unknown customer: ${mo.customerId ?? '(none)'}`); e.status = 400; throw e
+    }
     throw err
   }
 }
