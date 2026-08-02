@@ -12,7 +12,7 @@ import { FileText } from 'lucide-react'
 import { PageHeader } from '@odyssey/ui'
 import ShipmentsGlobalSearch from '../../components/global-search/ShipmentsGlobalSearch'
 import { getAllShipments } from '../../data'
-import { PANEL_CONFIG, panelTotals, bestPanelForSearch } from '../../data/panelConfig'
+import { PANEL_CONFIG, panelTotals, landingPanel } from '../../data/panelConfig'
 import { useCustomers } from '../../contexts/CustomersContext.jsx'
 import { useShipmentDetail } from '../../api/queries/useShipmentDetail'
 import { useUserPreference } from '../../api/queries/useUserPreference'
@@ -204,6 +204,22 @@ function ShipmentsRoute() {
     if (!activeCat || (metrics[activeCat.badgeKey] ?? 0) === 0) setActiveTab('all')
   }
 
+  // GS-18 landing jump — one-shot, render-time, deferred until the committed
+  // criteria's counts arrive (searchActive requires countsReady) because the
+  // fullest-panel fallback needs the NEW totals. S104 declared `landOnPanel`
+  // and its setter but the consumer was never written — the landing rule
+  // silently never fired in either mode (found by S105 browser verification:
+  // a committed search stayed on an empty Exceptions tab while its one match
+  // sat in Monitoring). Same adjust-during-render pattern as the pill fallback.
+  if (searchActive && landOnPanel !== null) {
+    const target = landingPanel(landOnPanel, totalsByPanel)
+    if (target && target !== activePanel) {
+      setActivePanel(target)
+      setActiveTab('all')
+    }
+    setLandOnPanel(null) // one-shot: manual tab switches after landing stick
+  }
+
   // Compute right offset for bottom bar based on the open panel (the two right
   // panels — column arrangement, tab arrangement — are mutually exclusive).
   const rightOffset = (columnPanelOpen ? RIGHT_PANEL_WIDTH : 0) + (tabPanelOpen ? RIGHT_PANEL_WIDTH : 0)
@@ -290,7 +306,7 @@ function ShipmentsRoute() {
     // A committed search takes over the sort (GS-16). Without this the seeded
     // column sort below keeps driving and relevance never reaches the grid.
     setSorting(next ? [{ id: RELEVANCE_SORT, desc: false }] : DEFAULT_SORTING)
-    setLandOnPanel(next ? (opts?.landOnPanel ?? null) : null)
+    setLandOnPanel(next ? (opts?.landOnPanel ?? 'auto') : null)
   }, [])
 
   // Match-row click in the navbar search glimpse → select that shipment. The

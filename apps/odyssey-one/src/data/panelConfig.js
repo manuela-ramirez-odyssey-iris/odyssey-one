@@ -57,3 +57,15 @@ export function bestPanelForSearch(totals) {
     .filter((key) => (totals?.[key] ?? 0) > 0)
     .sort((a, b) => totals[b] - totals[a])[0] ?? null
 }
+
+/**
+ * GS-18 landing target for a committed search. `preferred` is the panel of the
+ * PREVIEW's leading result group (what the user's eyes were on) — honored when
+ * it actually has matches under the committed criteria; 'auto' (unreadable
+ * preview) or a zero-match preferred panel falls back to the fullest panel
+ * (GS-17 / bestPanelForSearch). Null = nothing matches anywhere; stay put.
+ */
+export function landingPanel(preferred, totals) {
+  if ((totals?.[preferred] ?? 0) > 0) return preferred
+  return bestPanelForSearch(totals)
+}

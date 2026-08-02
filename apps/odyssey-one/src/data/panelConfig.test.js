@@ -1,5 +1,5 @@
-import { describe, test, expect } from 'vitest'
-import { PANEL_CONFIG, panelTotals, bestPanelForSearch } from './panelConfig'
+import { describe, test, it, expect } from 'vitest'
+import { PANEL_CONFIG, panelTotals, bestPanelForSearch, landingPanel } from './panelConfig'
 
 // GS-17 — a committed search lands on the panel holding the most matches.
 describe('bestPanelForSearch', () => {
@@ -52,5 +52,23 @@ describe('panel tabs are never hidden', () => {
     const totals = { exceptions: 33, monitoring: 90, pgipgr: 0 }
     expect(panelTotals({})).toMatchObject({ pgipgr: 0 })
     expect(bestPanelForSearch(totals)).toBe('monitoring') // landing still skips empties
+  })
+})
+
+// ── GS-18 landing decision (S105 — the consumer S104 never wired) ────────────
+describe('landingPanel', () => {
+  const totals = { exceptions: 0, monitoring: 1, pgipgr: 0 }
+  it('honors the preview leading-group panel when it has matches', () => {
+    expect(landingPanel('monitoring', totals)).toBe('monitoring')
+  })
+  it('falls back to the fullest panel when the preferred one has no matches', () => {
+    // The exact live repro: preview row lived in Monitoring, route sat on Exceptions.
+    expect(landingPanel('exceptions', totals)).toBe('monitoring')
+  })
+  it("'auto' (unreadable preview) takes the fullest panel", () => {
+    expect(landingPanel('auto', { exceptions: 2, monitoring: 5, pgipgr: 1 })).toBe('monitoring')
+  })
+  it('returns null when nothing matches anywhere (caller stays put)', () => {
+    expect(landingPanel('auto', { exceptions: 0, monitoring: 0, pgipgr: 0 })).toBe(null)
   })
 })
