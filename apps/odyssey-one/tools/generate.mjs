@@ -1537,6 +1537,10 @@ function generateUnshippedOrder(n, pending) {
   // R2-3: the created instant, drawn ONCE — createdAt and createdTimeZoneCode
   // below both reuse it (a second faker/Date draw would shift the stream).
   const createdInstant = new Date(earliestPickup.getTime() - faker.number.int({ min: 24, max: 240 }) * 3600e3);
+  // Zone source = consignor (origin) city is INVENTED — no LINX field names
+  // one; flagged for the orders decision log. Hoisted once so created and
+  // last-edit STRUCTURALLY share the same zone, not by comment convention.
+  const zone = deriveTimezone(from.city) || 'America/Chicago';
   const row = {
     orderNumber,
     orderId: numericOrderId, // pending rows' only handle; present on all rows (LINX-9742)
@@ -1569,16 +1573,13 @@ function generateUnshippedOrder(n, pending) {
     hazardous: lines.some(l => l.hazmat), // LINX-12102 — derived from lines, not an independent draw
     createdAt: toIsoLocal(createdInstant),
     createdBy: pick(ORDER_USERS),
-    // R2-3: zone sibling of createdAt, same instant. Zone source = consignor
-    // (origin) city is INVENTED — no LINX field names one; flagged for the
-    // orders decision log.
-    createdTimeZoneCode: tzAbbrev(deriveTimezone(from.city) || 'America/Chicago', createdInstant),
+    createdTimeZoneCode: tzAbbrev(zone, createdInstant), // R2-3: zone sibling of createdAt, same instant
   };
   if (row.orderStatus === 'Draft') {
     row.lastEditAt = toIsoLocal(new Date(new Date(row.createdAt).getTime() + faker.number.int({ min: 1, max: 72 }) * 3600e3));
-    // R2-4: last-edit zone tracks the SAME consignor-city zone as created (no
-    // second location exists for a draft edit) — the LLD sibling pattern.
-    row.lastEditTimeZoneCode = tzAbbrev(deriveTimezone(from.city) || 'America/Chicago', new Date(row.lastEditAt));
+    // R2-4: last-edit zone shares `zone` with created (no second location
+    // exists for a draft edit) — the LLD sibling pattern.
+    row.lastEditTimeZoneCode = tzAbbrev(zone, new Date(row.lastEditAt));
     row.lastEditedBy = pick(ORDER_USERS);
   }
   if (VALIDATION_ERROR_STATUSES.includes(row.orderStatus)) {

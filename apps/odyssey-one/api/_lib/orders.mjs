@@ -160,11 +160,15 @@ export async function orderView({ body, db }) {
 // and never written here. No audit trail yet (LINX-13853–13866).
 // userId (optional — R2-4): resolved to a username via the users table so
 // last_edited_by stores the same identity kind as created_by, never the raw
-// caller-supplied id. Absent userId (or no matching row) leaves last_edited_by
-// unchanged — COALESCE, not an overwrite-with-null.
-// last_edit_tz is NOT re-derived here: the update path has no consignor-city
-// knowledge, so it inherits the order's own created_tz (same consignor city,
-// same zone family).
+// caller-supplied id. Absent/unresolvable userId writes NULL, not a COALESCE
+// fallback to the previous value — keeping the old name would misattribute
+// THIS edit to whoever made the last one, which defeats R2-4's whole point
+// (trustworthy identity). The mapper's dash() already renders NULL as '--'.
+// last_edit_tz is NOT re-derived here: no city→zone map is reachable from
+// this file (deriveTimezone lives in tools/data-pools.mjs, a generator-only
+// module), so it inherits the order's own created_tz. Known ceiling: if an
+// edit moves the origin to a different zone, last_edit_tz goes stale until
+// a server-side zone lookup exists.
 export function buildUpdateOrderQuery(key, mo, userId) {
   const line = mo.orderLines?.[0] ?? {}
   const consignor = {
@@ -188,7 +192,7 @@ export function buildUpdateOrderQuery(key, mo, userId) {
              earliest_pickup_ts = NULLIF($17,'')::timestamptz, latest_pickup_ts = NULLIF($18,'')::timestamptz,
              earliest_delivery_ts = NULLIF($19,'')::timestamptz, latest_delivery_ts = NULLIF($20,'')::timestamptz,
              last_edit_at = now(),
-             last_edited_by = COALESCE((SELECT username FROM users WHERE id = $22), last_edited_by),
+             last_edited_by = (SELECT username FROM users WHERE id = $22),
              last_edit_tz = created_tz
            WHERE order_number = $21 RETURNING order_number`,
     values: [

@@ -126,12 +126,13 @@ test('update order: manual_order stored whole, grid projection re-derived', () =
 test('update order: userId stamps last_edited_by via the users subquery when present (R2-4)', () => {
   const mo = { orderNumber: 'ORD-123', orderLines: [] }
   const withUser = buildUpdateOrderQuery('ORD-123', mo, 'u1')
-  assert.match(withUser.text, /last_edited_by = COALESCE\(\(SELECT username FROM users WHERE id = \$22\), last_edited_by\)/)
+  assert.match(withUser.text, /last_edited_by = \(SELECT username FROM users WHERE id = \$22\)/)
   assert.match(withUser.text, /last_edit_tz = created_tz/)
+  assert.equal(withUser.values.length, 22) // guards $22 against a mid-list param renumbering
   assert.equal(withUser.values[withUser.values.length - 1], 'u1')
 
   const noUser = buildUpdateOrderQuery('ORD-123', mo)
-  assert.equal(noUser.values[noUser.values.length - 1], null) // absent userId → NULL, COALESCE leaves last_edited_by unchanged
+  assert.equal(noUser.values[noUser.values.length - 1], null) // absent/unresolvable userId → honest NULL, not a stale name
 })
 
 test('update order: missing key / missing body / missing row', async () => {

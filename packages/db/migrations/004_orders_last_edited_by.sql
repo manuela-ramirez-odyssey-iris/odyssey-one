@@ -9,7 +9,8 @@
 -- that resolves to nobody is not an identity.
 ALTER TABLE orders ADD COLUMN last_edited_by text;
 
--- Both identity columns are looked up by user far more often than scanned.
+-- created_by is looked up by user (creator) far more often than scanned; a
+-- ~30k-row table doesn't earn last_edited_by its own index too.
 CREATE INDEX orders_created_by_idx ON orders (created_by);
 
 -- R2-3: zone codes ride BESIDE the naive timestamps (LLD pattern, same as

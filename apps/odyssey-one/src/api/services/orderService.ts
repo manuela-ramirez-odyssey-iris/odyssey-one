@@ -313,6 +313,13 @@ export async function updateOrder(orderNumber: string, values: OrderFormValues):
     ?? (getAllOrders() as OrderListRow[]).find(r => r.orderNumber === orderNumber)
   const row = manualOrderToListRow(manualOrder, orderNumber, existing?.orderStatus ?? 'Draft')
   if (existing?.orderSource) row.orderSource = existing.orderSource
+  // R2-4: mirror live's last_edited_by/last_edit_at stamp so the Draft column
+  // doesn't read '--' right after a mock edit while live shows the editor.
+  // Mock has no users table to resolve an id → username; derive inline with
+  // the SAME lowercase-dot rule as usernameFor (tools/seed-users.mjs) — that
+  // function is the twin this line stands in for.
+  row.lastEditedBy = currentUser.name.toLowerCase().replace(/\./g, '').trim().split(/\s+/).join('.')
+  row.lastEditAt = new Date().toISOString()
   overlayRows = [row, ...overlayRows.filter(r => r.orderNumber !== orderNumber)]
   // Retain the full form values so a reopen hydrates at full fidelity (the
   // same store getDraft/getOrderView read first).
