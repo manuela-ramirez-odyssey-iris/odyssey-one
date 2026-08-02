@@ -32,6 +32,13 @@ function formatMeasureDashed(m: { value: number; uom: string } | undefined): str
 
 const dash = (v: string | undefined) => (v && v.trim() ? v : '--')
 
+// R2-3: appends the display zone abbreviation to a formatted date-time —
+// "Jun 2, 2026 at 8:00 AM CDT". Blank/unknown zone (live default, older rows)
+// leaves the string unchanged rather than trailing a stray space.
+function joinZone(formatted: string, zone: string | undefined): string {
+  return formatted && zone ? `${formatted} ${zone}` : formatted
+}
+
 function locationCell(loc: OrderListRow['consignor'] | OrderListRow['consignee'] | undefined) {
   if (!loc) return { id: '--', name: '', address: '' }
   const cityLine = [loc.city, loc.state].filter(Boolean).join(', ')
@@ -68,9 +75,10 @@ export function mapOrderListRow(row: OrderListRow): OrderRowVM {
     latestDelivery: formatLongDateTime(row.consignee?.latestDeliveryDateTime),
     weight: formatMeasureDashed(row.grossWeight),
     volume: formatMeasureDashed(row.volume),
-    created: dash(formatLongDateTime(row.createdAt)),
+    created: dash(joinZone(formatLongDateTime(row.createdAt), row.createdTimeZoneCode)),
     createdBy: dash(row.createdBy),
-    lastEdit: dash(formatLongDateTime(row.lastEditAt)),
+    lastEditedBy: dash(row.lastEditedBy),
+    lastEdit: dash(joinZone(formatLongDateTime(row.lastEditAt), row.lastEditTimeZoneCode)),
     draftOrderStatus: s(row.draftOrderStatus),
     errorCount: row.errorCount ?? null,
   }

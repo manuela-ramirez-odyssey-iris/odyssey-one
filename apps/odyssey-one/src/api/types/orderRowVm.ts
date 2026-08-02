@@ -25,8 +25,9 @@ export interface OrderRowVM {
   weight: string      // "24,530 LB" — '--' when absent
   volume: string      // "64 cuft" — '--' when absent
   // ── Draft tab ──
-  created: string     // long date format — '--' when absent
-  createdBy: string
+  created: string     // long date format + zone (R2-3) — '--' when absent
+  createdBy: string   // username (R2-4)
+  lastEditedBy: string // username (R2-4)
   lastEdit: string
   // ── Validation Errors tab ──
   draftOrderStatus: string // 'Ready' | 'Complete' | 'Purge' | ''

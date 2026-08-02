@@ -83,6 +83,9 @@ export const DRAFT_COLUMNS = [
   col.accessor('created', { header: 'Created' }),
   col.accessor('createdBy', { header: 'Created By' }),
   col.accessor('lastEdit', { header: 'Last Edit' }),
+  // User-directed (R2-4); deviates from LINX-11663's Draft column set —
+  // logged in the orders decision log.
+  col.accessor('lastEditedBy', { header: 'Last Edited By' }),
 ]
 
 // ── Validation Errors tab (LINX-11659 + Figma) ──

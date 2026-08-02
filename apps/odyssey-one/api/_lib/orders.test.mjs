@@ -117,9 +117,21 @@ test('update order: manual_order stored whole, grid projection re-derived', () =
   assert.equal(JSON.parse(q.values[4]).city, 'Houston')            // consignor jsonb
   assert.equal(q.values[8], 'Plastic')                             // commodity
   assert.equal(q.values[9], true)                                  // hazardous derived from lines
-  assert.equal(q.values[q.values.length - 1], 'ORD-123')           // WHERE key
+  assert.equal(q.values[q.values.length - 2], 'ORD-123')           // WHERE key
+  assert.equal(q.values[q.values.length - 1], null)                // no userId passed → NULL param
   // blank timestamps must land as NULL, not an invalid cast
   assert.match(q.text, /NULLIF\(\$18,''\)::timestamptz/)
+})
+
+test('update order: userId stamps last_edited_by via the users subquery when present (R2-4)', () => {
+  const mo = { orderNumber: 'ORD-123', orderLines: [] }
+  const withUser = buildUpdateOrderQuery('ORD-123', mo, 'u1')
+  assert.match(withUser.text, /last_edited_by = COALESCE\(\(SELECT username FROM users WHERE id = \$22\), last_edited_by\)/)
+  assert.match(withUser.text, /last_edit_tz = created_tz/)
+  assert.equal(withUser.values[withUser.values.length - 1], 'u1')
+
+  const noUser = buildUpdateOrderQuery('ORD-123', mo)
+  assert.equal(noUser.values[noUser.values.length - 1], null) // absent userId → NULL, COALESCE leaves last_edited_by unchanged
 })
 
 test('update order: missing key / missing body / missing row', async () => {

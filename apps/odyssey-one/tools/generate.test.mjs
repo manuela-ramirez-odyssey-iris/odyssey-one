@@ -183,6 +183,36 @@ test('a pickup stop copies a pickup number from the orders it actually picks up'
   assert.ok(present / checked > 0.7, `only ${present}/${checked} pickup stops carry a number`)
 })
 
+// ── Task 9: username identity + zoned created/edit timestamps (R2-3, R2-4) ──
+test('every order carries a created zone abbreviation (R2-3)', () => {
+  const { orders } = buildDataset({ totalShipments: 50 })
+  assert.ok(orders.length > 0)
+  for (const o of orders) assert.match(o.createdTimeZoneCode, /^[A-Z]{3,4}$/, `order ${o.orderNumber} zone: ${o.createdTimeZoneCode}`)
+})
+
+test('Draft rows carry lastEditedBy WITH lastEditAt; non-Draft rows carry neither (R2-4)', () => {
+  const { orders } = buildDataset()
+  const drafts = orders.filter((o) => o.orderStatus === 'Draft')
+  assert.ok(drafts.length > 0)
+  for (const d of drafts) {
+    assert.ok(d.lastEditAt, `draft ${d.orderNumber} missing lastEditAt`)
+    assert.ok(d.lastEditedBy, `draft ${d.orderNumber} missing lastEditedBy`)
+    assert.match(d.lastEditTimeZoneCode, /^[A-Z]{3,4}$/)
+  }
+  for (const o of orders.filter((o) => o.orderStatus !== 'Draft')) {
+    assert.equal(o.lastEditAt, undefined, `non-draft ${o.orderNumber} unexpectedly has lastEditAt`)
+    assert.equal(o.lastEditedBy, undefined, `non-draft ${o.orderNumber} unexpectedly has lastEditedBy`)
+  }
+})
+
+test('createdBy is a username, not a display name (R2-4): lowercase, dot-separated, no spaces', () => {
+  const { orders } = buildDataset({ totalShipments: 50 })
+  for (const o of orders) {
+    assert.doesNotMatch(o.createdBy, /\s/, `createdBy "${o.createdBy}" contains a space`)
+    assert.match(o.createdBy, /^[a-z]+(\.[a-z]+)+$/, `createdBy "${o.createdBy}" is not username-shaped`)
+  }
+})
+
 test('order-level pickupNumber agrees with the shipment roll-up', () => {
   const ds = buildDataset()
   for (const [sellId, d] of ds.details) {

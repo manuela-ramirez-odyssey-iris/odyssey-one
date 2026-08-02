@@ -61,6 +61,7 @@
 import { faker } from '@faker-js/faker';
 import { writeFileSync, mkdirSync, existsSync, readdirSync, unlinkSync } from 'fs';
 import { deriveTimezone, tzAbbrev, CUSTOMERS, EXTRA_CUSTOMERS, LOCATIONS, EQUIPMENT_CODES, CHEMICAL_PRODUCTS, locationIdFor, FREIGHT_TERMS, SHIP_DIRECTIONS, SHIP_CLASS_CODES, shipClassLabel, PRODUCT_CLASSES, HANDLING_UNITS } from './data-pools.mjs'
+import { ORDER_AUTHOR_USERNAMES } from './seed-users.mjs'
 
 // ── Orders accumulator (I1) ──────────────────────────────────────────────────
 // LINX-9742/9279: every order (shipped + unshipped + pending) draws a globally
@@ -1276,6 +1277,9 @@ function generateShipment(index) {
     const w = ord.window;
     const from = LOCATIONS[ord.shipFromLocIdx];
     const to = LOCATIONS[ord.shipToLocIdx];
+    // R2-3: the created instant, drawn ONCE — createdAt and createdTimeZoneCode
+    // below both reuse it (see orderRow.createdTimeZoneCode comment).
+    const createdInstant = new Date(w.earliestPickup.getTime() - faker.number.int({ min: 24, max: 240 }) * 3600e3);
     const orderRow = {
       orderNumber: ord.orderId,
       orderId: ord.numericOrderId,
@@ -1305,8 +1309,13 @@ function generateShipment(index) {
       commodity: ord.lines[0].itemDescription, // I7
       orderStatus: orderStatusLabel,
       hazardous: ord.lines.some(l => !!l.hazmatCode), // LINX-12102 — derived from lines (matches detail hazmat fields), not an independent draw
-      createdAt: toIsoLocal(new Date(w.earliestPickup.getTime() - faker.number.int({ min: 24, max: 240 }) * 3600e3)),
+      createdAt: toIsoLocal(createdInstant),
       createdBy: pick(ORDER_USERS),
+      // R2-3: zone sibling of createdAt, same instant (computed once above —
+      // a second faker/Date draw would shift the stream). Zone source =
+      // consignor (origin) city is INVENTED — no LINX field names one;
+      // flagged for the orders decision log.
+      createdTimeZoneCode: tzAbbrev(deriveTimezone(from.city) || 'America/Chicago', createdInstant),
     };
     if (VALIDATION_ERROR_STATUSES.includes(orderRow.orderStatus)) {
       orderRow.draftOrderStatus = pick(DRAFT_ORDER_STATUS_POOL);
@@ -1465,10 +1474,13 @@ const UNSHIPPED_STATUS_POOL = [
   ...Array(12).fill('Cancelled'),
 ];
 
-// "Created By" pool — plain full names (LINX-11663); every order row gets one,
-// not just Draft-tab rows.
-const ORDER_USERS = ['Amy Cook', 'Luis Herrera', 'Priya Nair', 'Tom Becker',
-  'Sofia Almeida', 'Dan Whitfield', 'Grace Liu', 'Marcus Bell'];
+// "Created By" / "Last Edited By" pool — Odyssey USERNAMES (R2-4, user ruling
+// 2026-08-01: a display name is ambiguous when two users share one).
+// DEVIATES from LINX-11663 ("plain full names") — logged in the orders decision
+// log. Drawn from the SEEDED users, so every created_by resolves to a real row
+// in `users`; the invented names are replaced when the user-management domain
+// arrives (user, 2026-08-02).
+const ORDER_USERS = ORDER_AUTHOR_USERNAMES;
 const VALIDATION_ERROR_STATUSES = ['Planning Failed', 'Shipment Failed'];
 const DRAFT_ORDER_STATUS_POOL = ['Ready', 'Ready', 'Ready', 'Complete', 'Complete', 'Purge'];
 
@@ -1522,6 +1534,9 @@ function generateUnshippedOrder(n, pending) {
 
   const numericOrderId = nextOrderId();
   const orderNumber = pending ? '' : genOrderNumber(customer, numericOrderId);
+  // R2-3: the created instant, drawn ONCE — createdAt and createdTimeZoneCode
+  // below both reuse it (a second faker/Date draw would shift the stream).
+  const createdInstant = new Date(earliestPickup.getTime() - faker.number.int({ min: 24, max: 240 }) * 3600e3);
   const row = {
     orderNumber,
     orderId: numericOrderId, // pending rows' only handle; present on all rows (LINX-9742)
@@ -1552,11 +1567,19 @@ function generateUnshippedOrder(n, pending) {
     commodity: lines[0].itemDescription,
     orderStatus: pending ? 'Ready For Plan' : pick(UNSHIPPED_STATUS_POOL),
     hazardous: lines.some(l => l.hazmat), // LINX-12102 — derived from lines, not an independent draw
-    createdAt: toIsoLocal(new Date(earliestPickup.getTime() - faker.number.int({ min: 24, max: 240 }) * 3600e3)),
+    createdAt: toIsoLocal(createdInstant),
     createdBy: pick(ORDER_USERS),
+    // R2-3: zone sibling of createdAt, same instant. Zone source = consignor
+    // (origin) city is INVENTED — no LINX field names one; flagged for the
+    // orders decision log.
+    createdTimeZoneCode: tzAbbrev(deriveTimezone(from.city) || 'America/Chicago', createdInstant),
   };
   if (row.orderStatus === 'Draft') {
     row.lastEditAt = toIsoLocal(new Date(new Date(row.createdAt).getTime() + faker.number.int({ min: 1, max: 72 }) * 3600e3));
+    // R2-4: last-edit zone tracks the SAME consignor-city zone as created (no
+    // second location exists for a draft edit) — the LLD sibling pattern.
+    row.lastEditTimeZoneCode = tzAbbrev(deriveTimezone(from.city) || 'America/Chicago', new Date(row.lastEditAt));
+    row.lastEditedBy = pick(ORDER_USERS);
   }
   if (VALIDATION_ERROR_STATUSES.includes(row.orderStatus)) {
     row.draftOrderStatus = pick(DRAFT_ORDER_STATUS_POOL);

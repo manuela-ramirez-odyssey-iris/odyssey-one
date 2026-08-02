@@ -1,6 +1,7 @@
 import { getApiMode } from '../config'
 import { apiGet, apiPatch, apiPost, apiPut } from '../client'
 import { getAllOrders, getOrderEnrichment } from '../../data/orders'
+import { currentUser } from '../../data/sso-mock'
 import type { OrderListRequest, OrderListResponse, OrderListRow } from '../types/orderList'
 import { mapFormToOrderInterface } from '../mappers/mapFormToOrderInterface'
 import { mapOrderViewToFormVm } from '../mappers/mapOrderViewToFormVm'
@@ -302,7 +303,10 @@ export async function createOrder(request: CreateOrderRequest): Promise<CreateOr
 export async function updateOrder(orderNumber: string, values: OrderFormValues): Promise<void> {
   const { manualOrder } = mapFormToOrderInterface(values)
   if (getApiMode() === 'live') {
-    await apiPut('/order-service/v3/order', { orderNumber, manualOrder })
+    // userId (R2-4): identity = sso-mock currentUser.id until real SSO lands
+    // (same pattern as preferenceService) — the server resolves it to the
+    // username that fills last_edited_by.
+    await apiPut('/order-service/v3/order', { orderNumber, manualOrder, userId: currentUser.id })
     return
   }
   const existing = overlayRows.find(r => r.orderNumber === orderNumber)

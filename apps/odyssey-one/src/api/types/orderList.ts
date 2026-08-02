@@ -40,8 +40,13 @@ export interface OrderListRow {
   orderStatus: string               // DISPLAY LABEL on the row ("Ready For Plan"), not a code
   hazardous?: boolean               // ≥1 hazardous line item (LINX-12102)
   createdAt?: string                // ISO — first draft/creation timestamp (Draft tab "Created")
-  createdBy?: string                // "Amy Cook" — full name (Draft tab "Created By")
+  createdBy?: string                // "amy.cook" — Odyssey USERNAME, not display name (R2-4,
+                                     // user ruling 2026-08-01: display names collide across users)
+  createdTimeZoneCode?: string      // "CDT" — zone abbrev sibling of createdAt (R2-3, LLD pattern,
+                                     // e.g. requestedPickupTimeZoneCode); wire shape unchanged
   lastEditAt?: string               // ISO — most recent edit (Draft tab "Last Edit")
+  lastEditedBy?: string             // "ben.planner" — username of the last editor (R2-4)
+  lastEditTimeZoneCode?: string     // "CDT" — zone abbrev sibling of lastEditAt (R2-3)
   draftOrderStatus?: string         // 'Ready' | 'Complete' | 'Purge' — VE-tab rows only (LINX-11659)
   errorCount?: number               // validation error count — VE-tab rows only
 }

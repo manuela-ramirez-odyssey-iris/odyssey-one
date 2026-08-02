@@ -15,7 +15,8 @@ const ROW_COLUMNS = `
   customer, ship_direction AS "shipDirection", freight_terms AS "freightTerms", equipment,
   consignor, consignee, gross_weight AS "grossWeight", volume, commodity, order_status AS "orderStatus",
   hazardous, created_at AS "createdAt", created_by AS "createdBy",
-  last_edit_at AS "lastEditAt", draft_order_status AS "draftOrderStatus", error_count AS "errorCount"`
+  last_edit_at AS "lastEditAt", draft_order_status AS "draftOrderStatus", error_count AS "errorCount",
+  last_edited_by AS "lastEditedBy", created_tz AS "createdTimeZoneCode", last_edit_tz AS "lastEditTimeZoneCode"`
 
 // Sortable columns. Keys are OrderListRow/OrderRowVM field names — values are
 // whitelisted SQL (column names or expressions), never user input, so they're
@@ -26,7 +27,7 @@ const SORT_MAP = {
   orderSource: 'order_source', shipDirection: 'ship_direction', freightTerms: 'freight_terms',
   hazardous: 'hazardous', latestPickup: 'latest_pickup_ts', latestDelivery: 'latest_delivery_ts',
   weight: `(gross_weight->>'value')::numeric`, volume: `(volume->>'value')::numeric`,
-  created: 'created_at', createdBy: 'created_by', lastEdit: 'last_edit_at',
+  created: 'created_at', createdBy: 'created_by', lastEdit: 'last_edit_at', lastEditedBy: 'last_edited_by',
   draftOrderStatus: 'draft_order_status', errorCount: 'error_count',
   shipperLocation: 'origin_city', destinationLocation: 'dest_city',
 }
@@ -157,7 +158,14 @@ export async function orderView({ body, db }) {
 // the grid's projection columns from it — the server-side twin of the client's
 // manualOrderToListRow. order_number / customer are identity: locked in the UI
 // and never written here. No audit trail yet (LINX-13853–13866).
-export function buildUpdateOrderQuery(key, mo) {
+// userId (optional — R2-4): resolved to a username via the users table so
+// last_edited_by stores the same identity kind as created_by, never the raw
+// caller-supplied id. Absent userId (or no matching row) leaves last_edited_by
+// unchanged — COALESCE, not an overwrite-with-null.
+// last_edit_tz is NOT re-derived here: the update path has no consignor-city
+// knowledge, so it inherits the order's own created_tz (same consignor city,
+// same zone family).
+export function buildUpdateOrderQuery(key, mo, userId) {
   const line = mo.orderLines?.[0] ?? {}
   const consignor = {
     locationId: mo.originPartnerId ?? '', name: mo.originFullName ?? '', city: mo.originCity ?? '',
@@ -179,7 +187,9 @@ export function buildUpdateOrderQuery(key, mo) {
              dest_city = $14, dest_state = $15, dest_country = $16,
              earliest_pickup_ts = NULLIF($17,'')::timestamptz, latest_pickup_ts = NULLIF($18,'')::timestamptz,
              earliest_delivery_ts = NULLIF($19,'')::timestamptz, latest_delivery_ts = NULLIF($20,'')::timestamptz,
-             last_edit_at = now()
+             last_edit_at = now(),
+             last_edited_by = COALESCE((SELECT username FROM users WHERE id = $22), last_edited_by),
+             last_edit_tz = created_tz
            WHERE order_number = $21 RETURNING order_number`,
     values: [
       JSON.stringify(mo),
@@ -195,6 +205,7 @@ export function buildUpdateOrderQuery(key, mo) {
       consignor.earliestPickupDateTime, consignor.latestPickupDateTime,
       consignee.earliestDeliveryDateTime, consignee.latestDeliveryDateTime,
       key,
+      userId ?? null,
     ],
   }
 }
@@ -204,7 +215,7 @@ export async function updateOrder({ body, db }) {
   const mo = body?.manualOrder
   if (!key) { const e = new Error('orderNumber required'); e.status = 400; throw e }
   if (!mo || typeof mo !== 'object') { const e = new Error('manualOrder required'); e.status = 400; throw e }
-  const { rows } = await db.query(buildUpdateOrderQuery(String(key), mo))
+  const { rows } = await db.query(buildUpdateOrderQuery(String(key), mo, body?.userId))
   if (rows.length === 0) { const e = new Error(`No order: ${key}`); e.status = 404; throw e }
   return { success: true, orderNumber: rows[0].order_number }
 }

@@ -4,7 +4,7 @@
 import pg from 'pg'
 import { buildDataset, CARRIERS } from './generate.mjs'
 import { CUSTOMERS, EXTRA_CUSTOMERS, LOCATIONS, locationIdFor } from './data-pools.mjs'
-import { USERS } from './seed-users.mjs'
+import { USERS, usernameFor } from './seed-users.mjs'
 import { buildProjection } from './project-search.mjs'
 
 // US timezone abbreviation → fixed UTC offset. The generator emits DST-correct
@@ -90,7 +90,8 @@ export async function seed(client, { totalShipments = 10000 } = {}) {
      'consignor','consignee','gross_weight','volume','commodity','order_status','shipment_sell_id','manual_order',
      'origin_city','origin_state','origin_country','dest_city','dest_state','dest_country',
      'earliest_pickup_ts','latest_pickup_ts','earliest_delivery_ts','latest_delivery_ts',
-     'hazardous','created_at','created_by','last_edit_at','draft_order_status','error_count'],
+     'hazardous','created_at','created_by','last_edit_at','draft_order_status','error_count',
+     'last_edited_by','created_tz','last_edit_tz'],
     ds.orders.map((o) => [
       o.orderNumber, o.orderId ?? null, o.orderSource, o.customer, o.shipDirection, o.freightTerms, o.equipment,
       JSON.stringify(o.consignor), JSON.stringify(o.consignee), JSON.stringify(o.grossWeight), JSON.stringify(o.volume),
@@ -101,6 +102,7 @@ export async function seed(client, { totalShipments = 10000 } = {}) {
       o.consignee.earliestDeliveryDateTime, o.consignee.latestDeliveryDateTime,
       o.hazardous ?? false, o.createdAt ?? null, o.createdBy ?? null, o.lastEditAt ?? null,
       o.draftOrderStatus ?? null, o.errorCount ?? null,
+      o.lastEditedBy ?? null, o.createdTimeZoneCode ?? null, o.lastEditTimeZoneCode ?? null,
     ]))
 
   // stops / tenders / events extracted from each detail. Full objects into the jsonb
@@ -121,8 +123,10 @@ export async function seed(client, { totalShipments = 10000 } = {}) {
   await insertRows(client, 'tenders', ['shipment_sell_id','scac','carrier_name','status','route_group','rank','rate_amount','option'], tenderRows)
   await insertRows(client, 'events', ['shipment_sell_id','type','message','actor','occurred_at','data'], eventRows)
 
-  await insertRows(client, 'users', ['id','email','name','password','role'],
-    USERS.map((u) => [u.id, u.email, u.name, u.password, u.role]))
+  // username: the queryable identity orders.created_by/last_edited_by resolve
+  // against (R2-4) — derived so every seeded row names a real user.
+  await insertRows(client, 'users', ['id','email','name','password','role','username'],
+    USERS.map((u) => [u.id, u.email, u.name, u.password, u.role, usernameFor(u.name)]))
   await insertRows(client, 'user_customer_assignments', ['user_id','customer_id'],
     USERS.flatMap((u) => u.customers.map((c) => [u.id, c])))
 

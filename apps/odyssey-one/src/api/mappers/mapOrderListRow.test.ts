@@ -25,6 +25,7 @@ describe('mapOrderListRow', () => {
       latestDelivery: 'Jun 18, 2026 at 4:00 PM',
       created: '--',
       createdBy: '--',
+      lastEditedBy: '--',
       lastEdit: '--',
       draftOrderStatus: '',
       errorCount: null,
@@ -66,15 +67,23 @@ const baseRow = {
     earliestDeliveryDateTime: '', latestDeliveryDateTime: '' },
   grossWeight: { value: 24530, uom: 'LB' }, volume: { value: 64, uom: 'cuft' },
   commodity: 'Plastic', orderStatus: 'Ready For Plan',
-  hazardous: true, createdAt: '2026-06-08T08:45:00', createdBy: 'Amy Cook',
-  lastEditAt: '2026-06-09T10:00:00', draftOrderStatus: 'Ready', errorCount: 7,
+  // createdBy/lastEditedBy are USERNAMES (R2-4), not display names; created/
+  // lastEdit carry a sibling zone code (R2-3).
+  hazardous: true, createdAt: '2026-06-08T08:45:00', createdBy: 'amy.cook', createdTimeZoneCode: 'CDT',
+  lastEditAt: '2026-06-09T10:00:00', lastEditedBy: 'ben.planner', lastEditTimeZoneCode: 'CDT',
+  draftOrderStatus: 'Ready', errorCount: 7,
 } satisfies OrderListRow
 
 describe('mapOrderListRow — per-tab grid fields', () => {
   const vm = mapOrderListRow(baseRow)
-  it('formats long date-times ("MMM D, YYYY at h:mm AM/PM", no timezone)', () => {
-    expect(vm.latestPickup).toBe('Jun 8, 2026 at 8:45 AM')
-    expect(vm.created).toBe('Jun 8, 2026 at 8:45 AM')
+  it('formats long date-times ("MMM D, YYYY at h:mm AM/PM"), appending the zone to created/last-edit (R2-3)', () => {
+    expect(vm.latestPickup).toBe('Jun 8, 2026 at 8:45 AM') // not in R2-3 scope — no zone field on this row
+    expect(vm.created).toBe('Jun 8, 2026 at 8:45 AM CDT')
+    expect(vm.lastEdit).toBe('Jun 9, 2026 at 10:00 AM CDT')
+  })
+  it('leaves the display string unchanged when the zone code is absent', () => {
+    const bare = mapOrderListRow({ ...baseRow, createdTimeZoneCode: undefined })
+    expect(bare.created).toBe('Jun 8, 2026 at 8:45 AM')
   })
   it('renders BLANK (not --) for missing date-times (LINX-13590)', () => {
     expect(vm.latestDelivery).toBe('')
@@ -93,11 +102,13 @@ describe('mapOrderListRow — per-tab grid fields', () => {
     expect(vm.orderSource).toBe('Integrated')
   })
   it('passes draft + VE fields through with -- empties', () => {
-    expect(vm.createdBy).toBe('Amy Cook')
+    expect(vm.createdBy).toBe('amy.cook')
+    expect(vm.lastEditedBy).toBe('ben.planner')
     expect(vm.draftOrderStatus).toBe('Ready')
     expect(vm.errorCount).toBe(7)
-    const bare = mapOrderListRow({ ...baseRow, createdBy: undefined, errorCount: undefined })
+    const bare = mapOrderListRow({ ...baseRow, createdBy: undefined, lastEditedBy: undefined, errorCount: undefined })
     expect(bare.createdBy).toBe('--')
+    expect(bare.lastEditedBy).toBe('--')
     expect(bare.errorCount).toBeNull()
   })
 })
