@@ -106,3 +106,47 @@ ORDER BY min(tier), n DESC`,
     values,
   }
 }
+
+/** Phrase-first, code-list fallback (GS-20). Decided ONCE per query against the
+ *  full index — tokenizing a phrase like "WEYERHAEUSER COMPANY" would union in
+ *  every row containing "COMPANY". */
+export async function resolveNeedles(db, domain, text, customerIds) {
+  const q = String(text ?? '').trim()
+  if (!q) return []
+  const tokens = q.split(/[\s,]+/).filter(Boolean)
+  if (tokens.length < 2) return [q]
+  const probe = buildSearchQuery({ domain, needles: [q], limit: 1, customerIds })
+  const { rows } = await db.query(probe)
+  return rows.length ? [q] : tokens
+}
+
+// POST /api/v1/search — QUERY-shaped (safe, idempotent, deterministic).
+// RFC 10008 QUERY is the target verb; Vercel returns 400 for it today and
+// CloudFront (our pending infra) hard-rejects it, so the method is POST and
+// everything else already matches (spec §5).
+export async function searchHandler({ body, db }) {
+  const { domain = 'shipments', criteria = {}, scope = {}, page = {} } = body ?? {}
+  if (!REGISTRY[domain]) return { results: [], total: 0 }
+  const needles = await resolveNeedles(db, domain, criteria.text, scope.customerIds)
+  if (!needles.length) return { results: [], total: 0 }
+  const { rows } = await db.query(
+    buildSearchQuery({ domain, needles, limit: page.limit ?? 15, customerIds: scope.customerIds }),
+  )
+  return {
+    total: rows[0]?.__total ?? 0,
+    results: rows.map(({ __total, ...r }) => r),
+  }
+}
+
+export async function suggestHandler({ body, db }) {
+  const { domain = 'shipments', criteria = {}, scope = {} } = body ?? {}
+  if (!REGISTRY[domain]) return { attributes: [] }
+  const needles = await resolveNeedles(db, domain, criteria.text, scope.customerIds)
+  if (!needles.length) return { attributes: [] }
+  const { rows } = await db.query(buildSuggestQuery({ domain, needles, customerIds: scope.customerIds }))
+  // Multi-code gating is done in SQL (HAVING on DISTINCT needles). Samples still
+  // arrive duplicated — the same display matches under several tier branches.
+  return {
+    attributes: rows.map((r) => ({ ...r, samples: [...new Set(r.samples ?? [])].slice(0, 3) })),
+  }
+}
