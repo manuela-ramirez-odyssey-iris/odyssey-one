@@ -5,6 +5,7 @@ import pg from 'pg'
 import { buildDataset, CARRIERS } from './generate.mjs'
 import { CUSTOMERS, EXTRA_CUSTOMERS, LOCATIONS, locationIdFor } from './data-pools.mjs'
 import { USERS } from './seed-users.mjs'
+import { buildProjection } from './project-search.mjs'
 
 // US timezone abbreviation → fixed UTC offset. The generator emits DST-correct
 // abbreviations (CDT in July, CST in January — see tzAbbrev in data-pools.mjs),
@@ -124,7 +125,13 @@ export async function seed(client, { totalShipments = 10000 } = {}) {
   await insertRows(client, 'user_customer_assignments', ['user_id','customer_id'],
     USERS.flatMap((u) => u.customers.map((c) => [u.id, c])))
 
-  return { shipments: ds.shipments.length, orders: ds.orders.length, stops: stopRows.length, tenders: tenderRows.length, events: eventRows.length }
+  // search_index — the progressive-search projection (S104). Built from the same
+  // in-memory dataset, so it can never drift from the rows it indexes.
+  const projectionRows = buildProjection(ds.shipments)
+  await insertRows(client, 'search_index', ['domain','entity_id','attr','value','display'],
+    projectionRows.map((r) => [r.domain, r.entity_id, r.attr, r.value, r.display]))
+
+  return { shipments: ds.shipments.length, orders: ds.orders.length, stops: stopRows.length, tenders: tenderRows.length, events: eventRows.length, search_index: projectionRows.length }
 }
 
 if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href) {
