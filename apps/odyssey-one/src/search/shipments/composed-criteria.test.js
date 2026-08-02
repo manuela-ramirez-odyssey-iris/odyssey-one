@@ -283,7 +283,16 @@ describe('Case 6 — table order matches the results preview', () => {
           if (matches.length < 2) continue
           const scores = matches.map((s) => resolveBestMatch(s, q, FREE_TEXT_ATTRS)?.score ?? 0)
           const best = Math.max(...scores)
-          if (best > scores[0]) return { q, panel, exact: matches[scores.indexOf(best)] }
+          if (best <= scores[0]) continue
+          const exact = matches[scores.indexOf(best)]
+          // S104 lesson: a passing order-assertion is worthless unless the two
+          // orders provably differ. The DEFAULT-sort test below compares against
+          // buyShipment-ASC, so the exact match must ALSO not be first there —
+          // not just in natural (file) order — or that comparison is vacuous.
+          const byBuyAsc = [...matches].sort((a, b) =>
+            String(a.buyShipment).localeCompare(String(b.buyShipment), undefined, { numeric: true }))
+          if (byBuyAsc[0].buyShipment === exact.buyShipment) continue
+          return { q, panel, exact }
         }
       }
     }
