@@ -2,8 +2,10 @@ import { useRef, useState, useEffect, useCallback, useMemo } from 'react'
 import { GlobalSearch, GlobalSearchPanel, GlobalSearchResults } from '@odyssey/ui'
 import { useGlobalSearch } from '../../search/useGlobalSearch'
 import { shipmentsSearchAdapter, panelForResults } from '../../search/shipments'
+import { DATE_LIKE } from '../../search/shipments/adapter'
+import { parseSearchDate } from '../../search/shipments/criteria'
 import { useCustomers } from '../../contexts/CustomersContext.jsx'
-import ShipmentsFiltersView from './ShipmentsFiltersView'
+import ShipmentsFiltersView, { mergeFiltersIntoChips } from './ShipmentsFiltersView'
 import { tabForDataKey } from '../shipments/cellTabMap'
 
 /**
@@ -49,9 +51,9 @@ export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment 
   const {
     value, query, onChange, onClear, onFocus, onBlur,
     chips, onChipCommit, onChipRemove,
-    textChip, onTextCommit, onTextRemove,
+    textChip, onTextCommit, onTextRemove, onSetCommit, onDateCommit, onDateToggle, applyChips,
     suggestionSections, suggestionsOpen,
-    results, resultTotal,
+    results, resultTotal, searching, pendingDateChip,
   } = useGlobalSearch(scopedAdapter, { onLastRemoved: handleLastRemoved })
 
   const wrapperRef = useRef(null)
@@ -76,17 +78,33 @@ export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment 
   // the input (the text becomes a query badge), and without the delta check
   // that query change would re-open the panel right after commitQuery closed it.
   const hasQuery = query.trim().length > 0
-  const prevOpenKeyRef = useRef({ chipCount: 0, query: '' })
+  const prevOpenKeyRef = useRef({ chipCount: 0, query: '', pendingDateChip: false })
   useEffect(() => {
     const prev = prevOpenKeyRef.current
-    prevOpenKeyRef.current = { chipCount: chips.length, query }
+    prevOpenKeyRef.current = { chipCount: chips.length, query, pendingDateChip }
     const q = query.trim()
-    if ((q && query !== prev.query) || chips.length > prev.chipCount) {
+    // Case 12: while a date chip's CalendarPicker awaits its pick, the panel
+    // stays CLOSED — the calendar owns the space below the bar; quick results
+    // appear only once a date is actually selected.
+    if (pendingDateChip) {
+      setResultsOpen(false)
+      return
+    }
+    // Case 12: a PARTIAL date ("12/", "12/3") is suggestion territory — the
+    // date chips show, the panel doesn't. It opens once the date is VALID
+    // (fully typed) or picked in the calendar.
+    const partialDate = DATE_LIKE.test(q) && !parseSearchDate(q)
+    if (partialDate) {
+      if (panelViewRef.current === 'results') setResultsOpen(false)
+      return
+    }
+    const dateCompleted = prev.pendingDateChip && !pendingDateChip && chips.length > 0
+    if ((q && query !== prev.query) || chips.length > prev.chipCount || dateCompleted) {
       setResultsOpen(true)
     } else if (!q && chips.length === 0 && !textChip && panelViewRef.current === 'results') {
       setResultsOpen(false)
     }
-  }, [chips.length, query, textChip])
+  }, [chips, query, textChip, pendingDateChip])
 
   const openFilters = () => { setPanelView('filters'); setResultsOpen(true) }
   const closePanel = useCallback(() => { setResultsOpen(false); setPanelView('results') }, [])
@@ -114,6 +132,21 @@ export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment 
     onClear()
     onCommitQuery?.(null)
   }, [onClear, onCommitQuery])
+
+  // Filters outbound wiring: edited filter values become chips. "Show N
+  // results" MERGES into the current chips and commits to the table (chips are
+  // the criteria); a Saved profile REPLACES the chips (a profile is a whole
+  // search) and shows the glimpse without committing.
+  const handleApplyFilters = useCallback((filters, { commit = false, replace = false } = {}) => {
+    const nextChips = mergeFiltersIntoChips(replace ? [] : chips, filters)
+    applyChips(nextChips)
+    if (commit) {
+      onCommitQuery?.({ chips: nextChips, text: textChip?.value || '' })
+      closePanel()
+    } else {
+      setPanelView('results')
+    }
+  }, [chips, textChip, applyChips, onCommitQuery, closePanel])
 
   // Match-row click → select that shipment (docked bar opens with its details,
   // whether or not the row is on the current table page) and close the glimpse.
@@ -143,11 +176,21 @@ export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment 
   const handleKeyDown = useCallback((e) => {
     if (e.key === 'Escape') { closePanel(); return }
     if (e.key !== 'Enter' || !canCommit) return
+    // Case 12: while a date chip's calendar is open, Enter CLOSES the chip
+    // (which is what triggers the quick results) instead of committing the
+    // whole query to the table.
+    // (Enter on a calendar day button stays a pick — only Enter OUTSIDE the
+    // calendar closes the chip.)
+    const openDate = chips.find((c) => c.kind === 'date-range' && c.open)
+    if (openDate && !e.target.closest('.search-chip__calendar')) {
+      onDateToggle(openDate.key, false)
+      return
+    }
     const inInput = e.target.tagName === 'INPUT'
     const inPanel = panelRef.current?.contains(e.target) &&
       !e.target.closest('button, a, input, textarea, select, [role="button"], [role="option"]')
     if (inInput || inPanel) commitQuery()
-  }, [closePanel, commitQuery, canCommit])
+  }, [closePanel, commitQuery, canCommit, chips, onDateToggle])
 
   // S80 req 3: clicking back into the bar while there's in-progress text (or
   // committed chips / a query badge) re-opens the panel with the current
@@ -173,10 +216,16 @@ export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment 
   // Bar chips = committed attribute chips + (when present) the free-text query
   // badge (S80 req 2) — same visual treatment, quoted label to read as a query
   // term. Removal routes by key: the text badge clears via onTextRemove.
-  const barChips = useMemo(
-    () => (textChip ? [...chips, { ...textChip, label: `"${textChip.label}"` }] : chips),
-    [chips, textChip],
-  )
+  // GS-21: a multi-code commit upgrades the badge to kind 'set' — it renders
+  // as the expandable SearchChip; its label here only feeds the overflow
+  // measurer, so mirror SearchChip's summary string.
+  const barChips = useMemo(() => {
+    if (!textChip) return chips
+    const label = textChip.kind === 'set'
+      ? `${textChip.typeLabel || 'Multiple'} Set • ${textChip.codes.filter((c) => c.valid !== false).length} IDs`
+      : `"${textChip.label}"`
+    return [...chips, { ...textChip, label }]
+  }, [chips, textChip])
   const handleChipRemove = useCallback((key) => {
     if (textChip && key === textChip.key) onTextRemove()
     else onChipRemove(key)
@@ -195,6 +244,9 @@ export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment 
         chips={barChips}
         onChipRemove={handleChipRemove}
         onChipClick={() => setResultsOpen(true)}
+        onSetCommit={onSetCommit}
+        onDateCommit={onDateCommit}
+        onDateToggle={onDateToggle}
         resultsOpen={resultsOpen}
         filterCount={barChips.length}
         // FilterButton opens the Filters view; its active state is bound to the
@@ -216,6 +268,7 @@ export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment 
           {panelView === 'results' ? (
             <GlobalSearchPanel
               count={resultTotal}
+              loading={searching}
               // "Clear all" wipes chips AND the typed query (the hook's onClear
               // does both) AND the committed table criteria — with query-driven
               // results, clearing only chips would leave the glimpse open on
@@ -237,7 +290,7 @@ export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment 
               onBack={() => { if (chips.length > 0 || hasQuery) setPanelView('results'); else closePanel() }}
               onClose={closePanel}
               onClearAll={() => chips.forEach((c) => onChipRemove(c.key))}
-              onShowResults={closePanel}
+              onApplyFilters={handleApplyFilters}
             />
           )}
         </div>

@@ -6,8 +6,70 @@ import { valueMatchDetail } from './searchIndex'
 // the criteria will show in the table.
 import {
   matchesChip, FREE_TEXT_KEYS, matchesAnyNeedle, textNeedles,
-  resolveBestMatchNeedles, scoreText, tokenizeChipValue,
+  resolveBestMatch, resolveBestMatchNeedles, scoreText, tokenizeChipValue,
+  parseSearchDate,
 } from './criteria'
+
+// ── Dates (Case 12, GS-22) ──────────────────────────────────────────────────
+// The date-typed attributes (match: 'date' in the progression) each offer TWO
+// suggestion items: the plain date and its Range twin. A query "looks like a
+// date" only once a SLASH appears ("2/", "2/3", "2/3/2026") — bare digits stay
+// code-typing (a pro/shipment number must not collapse into dates).
+const DATE_ATTRS = SHIPMENTS_ATTRIBUTES.filter((a) => a.match === 'date')
+export const DATE_LIKE = /^\d{1,2}\/\d{0,2}(\/\d{0,4})?$/
+
+// The typed partial PRE-FILLS the chip the way other suggestions carry their
+// typed value ("Pro#: 442"): labels show the mask ("Pickup Date: 12/../....",
+// "Pickup Date Range: 12/../.... - ../../...."), and the parse fills what it
+// can — month+day default the year to CURRENT (from pre-filled); a month
+// alone steers the calendar to that month of the current year (monthHint).
+// M/D/YYYY reading (matches every displayed date); a first segment > 12
+// can't be a month, so it's taken as a DAY in the current month.
+export function parseDatePartial(query) {
+  const q = (query || '').trim()
+  if (!q) return { mask: null, from: null, monthHint: null, invalid: false }
+  const [s0 = '', s1 = '', s2 = ''] = q.split('/')
+  const mask = `${s0 || '..'}/${s1 || '..'}/${s2 || '....'}`
+  const now = new Date()
+  let m = null, d = null, y = null, invalid = false
+  const a = parseInt(s0, 10)
+  if (a >= 1 && a <= 12) m = a
+  else if (a >= 13 && a <= 31) { d = a; m = now.getMonth() + 1 }
+  else if (s0) invalid = true // "40/" — neither a month nor a day
+  const b = parseInt(s1, 10)
+  if (s1) {
+    if (m != null && d == null && b >= 1 && b <= 31) d = b
+    else invalid = true // second segment unusable ("12/40")
+  }
+  if (s2.length === 4) y = parseInt(s2, 10)
+  // A fully-typed date must actually exist on the calendar ("2/30/2026").
+  if (!invalid && m != null && d != null && y != null && !parseSearchDate(`${m}/${d}/${y}`)) invalid = true
+  const year = y ?? now.getFullYear()
+  const from = !invalid && m != null && d != null ? `${m}/${d}/${year}` : null
+  const monthHint = !invalid && m != null ? { y: year, m } : null
+  return { mask, from, monthHint, invalid }
+}
+
+function dateItems(query) {
+  const { mask, from, monthHint, invalid } = parseDatePartial(query)
+  const value = invalid ? 'Invalid Date' : mask
+  return DATE_ATTRS.flatMap((attr) => [
+    {
+      key: `date-${attr.key}`,
+      label: value ? `${attr.label}: ${value}` : attr.label,
+      kind: 'date',
+      attr: { key: attr.key, label: attr.label, dataKey: attr.dataKey, group: attr.group },
+      from, monthHint, invalid,
+    },
+    {
+      key: `date-range-${attr.key}`,
+      label: value ? `${attr.label} Range: ${value}${invalid ? '' : ' - ../../....'}` : `${attr.label} Range`,
+      kind: 'date-range-suggest',
+      attr: { key: attr.key, label: attr.label, dataKey: attr.dataKey, group: attr.group },
+      from, monthHint, invalid,
+    },
+  ])
+}
 
 // dataKeys that drive avatar icon overrides in MatchRow
 const ORDER_KEYS    = new Set(['orders'])
@@ -64,29 +126,113 @@ export function toItem(attr, queryValue) {
 }
 
 export const shipmentsSearchAdapter = {
+  /**
+   * Per-code validation + named-set detection for a committed multi-code
+   * string (GS-21, Case 11). Returns null when the text is NOT a code list —
+   * phrase mode (the whole string matches something) or a single token — so
+   * the caller falls back to the plain free-text badge. Otherwise:
+   *   codes     — [{ value, valid }] in typed order; valid = the code matches
+   *               at least one row on any free-text field (same fieldIncludes
+   *               semantics the search itself uses, so "found" here always
+   *               means "would return rows").
+   *   typeLabel — the named-set rule: set only when EVERY valid code's best
+   *               match (exact > prefix > contains, progression tiebreak)
+   *               resolves to the SAME attribute; any disagreement → null
+   *               ("Multiple"/mixed). The name is a promise, not a guess.
+   * Sync against the local fake DB; the live twin is a per-needle hit-count
+   * endpoint (GS-20 hits builder already counts DISTINCT needle_ix).
+   */
+  resolveCodeSet(text) {
+    const t = (text || '').trim()
+    const all = getAllShipments()
+    // Same interpretation gate as the search (GS-20): phrase-first; only a
+    // phrase that matches NOTHING tokenizes into a code list.
+    if (textNeedles(all, t.toLowerCase()).length < 2) return null
+    const rawTokens = t.split(/[\s,]+/).filter(Boolean) // preserve typed case for display
+    let typeLabel
+    const codes = rawTokens.map((value) => {
+      const q = value.toLowerCase()
+      let best = null
+      for (const s of all) {
+        const m = resolveBestMatch(s, q, FREE_TEXT_ATTRS)
+        if (m && (!best || m.score > best.score || (m.score === best.score && m.order < best.order))) best = m
+        if (best?.score === 3 && best.order === 0) break
+      }
+      if (best) typeLabel = typeLabel === undefined || typeLabel === best.attr.label ? best.attr.label : null
+      return { value, valid: !!best }
+    })
+    return { codes, typeLabel: typeLabel || null }
+  },
+
+  /**
+   * Re-validate a code list under an ASSERTED attribute (GS-21 rule 7 — the
+   * user clicked a type in the suggestion panel, or edited a typed set).
+   * valid = the code matches at least one row on THAT attribute's field.
+   */
+  validateCodes(values, dataKey) {
+    const all = getAllShipments()
+    return values.map((value) => ({
+      value,
+      valid: all.some((s) => matchesChip(s, { dataKey, queryValue: value })),
+    }))
+  },
+
   // Empty-input suggestions. No chips → NOTHING (S104). With chips → the NEXT
   // progression GROUP (drill forward; never repeat the entry set; on the last
   // group, stay on it). Suggestions only — typing still matches ANY attribute
   // regardless of group. See composed-criteria.md → "Empty-suggestion
   // progression".
-  async getInitial(chips = []) {
-    // Untouched bar (focused, nothing typed, no chips) → NO suggestions. Showing
-    // entry-point attributes here invited clicks before the user had any idea
-    // what a chip would do (user, S104). Suggestions are now reactive: they
-    // appear once you type, or once a chip gives the drill-forward a footing.
-    if (!chips.length) return []
+  //
+  // `setChip` (GS-21): when an UNTYPED code-set badge sits in the bar, the
+  // panel's first job is offering its type — one item per attribute at least
+  // one code matches. Clicking one asserts the whole batch as that type (the
+  // hook converts the badge into a typed IN-list set chip).
+  async getInitial(chips = [], setChip = null) {
+    const sections = []
+    if (setChip?.kind === 'set' && !setChip.typeLabel) {
+      const values = setChip.codes.map((c) => c.value)
+      const items = FREE_TEXT_ATTRS
+        .filter((attr) => values.some((v) => this.validateCodes([v], attr.dataKey)[0].valid))
+        .map((attr) => ({
+          key: `set-type-${attr.key}`,
+          label: attr.label,
+          kind: 'set-type',
+          attr: { key: attr.key, label: attr.label, dataKey: attr.dataKey, group: attr.group },
+        }))
+      if (items.length) sections.push({ title: 'Define set type', items })
+    }
+    // Untouched bar (focused, nothing typed, no chips): GS-14 said NOTHING —
+    // Case 12 (GS-22) carves out DATES: filtering the visible data by date is
+    // the one thing users reach for from a cold bar, so the date + range
+    // items appear as "Filter by date" ("later we might add more suggested
+    // filters to this case" — user, 2026-08-03). Attribute entry points stay
+    // gone; drill-forward still needs a chip footing.
+    if (!chips.length) {
+      // Empty-bar title invites BOTH actions (user, 2026-08-03): keep typing,
+      // or filter everything by date. The typed date-like section keeps the
+      // plain "Filter by date" title — there the intent is already dates.
+      if (!setChip) sections.push({ title: 'Type or Filter by date', items: dateItems('') })
+      return sections
+    }
     const group = nextProgressionGroup(chips)
-    if (!group) return []
+    if (!group) return sections
     const committed = new Set(chips.map((c) => c.key))
     const items = group.attributes
       .filter((a) => !committed.has(a.key))
       .map((a) => toItem({ ...a, group: group.group }, null))
-    return items.length ? [{ title: group.label, items }] : []
+    if (items.length) sections.push({ title: group.label, items })
+    return sections
   },
 
   async getSuggestions(query) {
     const q = (query || '').trim()
     if (!q) return this.getInitial()
+
+    // Date-like input ("2", "2/3", "2/3/2026") → the date + range chips lead
+    // (Case 12). A complete date rides along as the chip's pre-filled bound.
+    if (DATE_LIKE.test(q)) {
+      return [{ title: 'Filter by date', items: dateItems(q) }]
+    }
 
     const scored = SHIPMENTS_ATTRIBUTES
       .map((attr, order) => {

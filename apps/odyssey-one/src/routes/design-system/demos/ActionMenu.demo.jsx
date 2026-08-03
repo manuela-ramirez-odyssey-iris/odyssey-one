@@ -5,7 +5,7 @@ import { ActionMenu } from '@odyssey/ui'
 export const meta = {
   name: 'ActionMenu',
   tier: 'molecule',
-  version: '0.3.0',
+  version: '0.11.0',
   createdVersion: '0.3.0',
   codeOnly: true,
   // Code-first molecule — composes DropdownMenu + MenuRow (both already in Figma), so no

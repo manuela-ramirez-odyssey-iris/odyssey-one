@@ -31,7 +31,7 @@ export const meta = {
   // aria-sort, and a SORT_MIN_WIDTH resize floor (1 char + ellipsis + icon stay visible).
   // Resize drag also reworked: shell-owned, starts from the VISIBLE colgroup width
   // (TanStack's getResizeHandler started from the injected default 150 → jump).
-  normalizing: false,
+  normalizing: true,
 }
 
 export const props = [

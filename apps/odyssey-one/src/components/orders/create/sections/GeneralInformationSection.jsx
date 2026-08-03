@@ -89,13 +89,16 @@ export default function GeneralInformationSection({ lockIdentity = false }) {
     setValue(name, getValues(name).filter(r => r.id !== rowId), { shouldValidate: true })
   }
 
-  // LINX-12102: order hazardous derives from product lines (≥1 hazmat line ⇒
-  // hazardous, cannot be manually unchecked while one exists).
+  // LINX-12102, tightened 2026-08-03 (user): the order Hazardous flag is fully
+  // SYSTEM-DRIVEN — checked ⟺ at least one product line is hazmat. Both
+  // directions sync: adding a hazmat line checks it; removing the LAST hazmat
+  // line unchecks it (removing one while others remain keeps it, which falls
+  // out of the some()). No manual toggling — create and edit alike.
   const products = watch('products')
   const derivedHazardous = (products ?? []).some((r) => r?.hazardous)
   useEffect(() => {
-    if (derivedHazardous && !getValues('general.hazardous')) {
-      setValue('general.hazardous', true)
+    if (getValues('general.hazardous') !== derivedHazardous) {
+      setValue('general.hazardous', derivedHazardous)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [derivedHazardous])
@@ -237,15 +240,13 @@ export default function GeneralInformationSection({ lockIdentity = false }) {
           control={control}
           render={({ field }) => (
             <div className="co-link-row" style={{ alignSelf: 'end', paddingBottom: 6 }}>
+              {/* System-driven (LINX-12102 tightened): reflects the product
+                  lines, never hand-toggled — hence always disabled. */}
               <Checkbox
                 label="Hazardous"
-                disabled={locked}
+                disabled
                 checked={field.value}
-                onChange={(e) => {
-                  // LINX-12102: can't uncheck while a hazardous product line exists
-                  if (!e.target.checked && derivedHazardous) return
-                  field.onChange(e.target.checked)
-                }}
+                onChange={() => {}}
               />
             </div>
           )}

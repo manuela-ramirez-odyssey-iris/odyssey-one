@@ -8,6 +8,7 @@ export const meta = {
   createdVersion: '0.2.0',
   figmaNode: '2462:149',
   codeConnect: 'packages/ui/src/GlobalSearchPanel.figma.tsx',
+  normalizing: true,
 }
 
 export const props = [

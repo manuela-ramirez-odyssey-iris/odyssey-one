@@ -55,9 +55,10 @@ describe('ShipmentDetailsModal', () => {
     // Dates come from the ACCEPTED option (rank 2), not rank 1
     expect(screen.getAllByText('06/02/2026 08:00 CST').length).toBeGreaterThan(0)
     expect(screen.queryByText('06/01/2026 07:00 CST')).toBeNull()
-    // Tracking Link is backed by `trackingUrl` now (R2-1) — it must render the
-    // URL, not dash. Before S104 this field was hardcoded to null.
-    expect(screen.getByText('https://tracking.oneodyssey.com/t/67819A88')).toBeTruthy()
+    // Tracking Link is backed by `trackingUrl` (R2-1), shown WITHOUT the
+    // protocol (display convention, 2026-08-02) — the stored URL keeps it.
+    expect(screen.getByText('tracking.oneodyssey.com/t/67819A88')).toBeTruthy()
+    expect(screen.queryByText('https://tracking.oneodyssey.com/t/67819A88')).toBeNull()
   })
 
   it('renders all seven cost rows', () => {

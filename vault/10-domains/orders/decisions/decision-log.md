@@ -146,6 +146,12 @@ Ramesh also asked (a) whether a **separate grooming session** will be organized,
 **Source:** User decisions in-session 2026-07-29 (EXTRA_ORGS promotion, 13-digit product ids, +1000 rows, reseed + deploy green-lights); live dev captures 2026-07-27/28 for the freight-term / ship-direction / handling-unit / product-class catalogs ([[../research/lookup-vocabularies-2026-07-27|lookup-vocabularies]]); LINX-13893 (equipment-driven columns), LINX-8135 (product line fields), LINX-12102 (hazardous derivation); Shipments canon `shipments-exceptions.md:324`; plan `docs/superpowers/plans/2026-07-29-orders-reseed-motion.md`; commits `c2eb092..7876d38` + follow-ups.
 **Affects:** `tools/data-pools.mjs` (single source), `tools/generate.mjs` (+1000 rows, coded fields, `genErrorCount`, `productExternalId`), `src/api/master-data.js` (re-export), mappers `mapOrderListRow` / `mapSellShipmentOutToDetail` / `mapFormVmToOrderPane` / `mapFormToOrderInterface` / `mapOrderViewToFormVm`, `orderService.ts` (status-write live branches, resolve fallback fetch), the API's `PATCH /order-service/v3/order/status`, Neon dataset, prod deploy `odyssey-one-stage.vercel.app`. Closes [[../db-update-ledger|db-update-ledger]] rows 1–9.
 
+### ORD-12 — Order Hazardous flag fully SYSTEM-DRIVEN (LINX-12102 tightened)
+**Decided:** 2026-08-03
+**Previous state:** LINX-12102's first cut derived hazardous one-way — a hazmat product line auto-checked the order flag and blocked unchecking while one existed, but the user could still hand-check it with no hazmat lines, and removing the LAST hazmat line left the flag stuck on.
+**Decision (user, verbatim intent):** the General Info Hazardous checkbox is not manually editable at all — *"It should be system driven."* Checked ⟺ at least one product line is hazmat, in create AND edit: adding a hazmat product checks it; removing the last hazmat product unchecks it; removing one while other hazmat lines remain retains it. Implemented as a two-way sync effect on the derived value + a permanently disabled Checkbox (`GeneralInformationSection.jsx`). Side effect worth knowing: reopening an old draft whose flag was hand-set with no hazmat lines will now auto-clear it — correct under the new rule.
+**Source:** user 2026-08-03; extends LINX-12102 (Ramesh's Jira) — flag to Ramesh that the manual-check affordance is gone.
+
 ## TBDs / open items
 
 - **Grooming session** — Ramesh asks whether a separate grooming session will be organized for the gap items. Pending.

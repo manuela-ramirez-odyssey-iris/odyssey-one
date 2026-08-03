@@ -332,6 +332,59 @@ tender outcome is the relevant signal. (S-? refinement, 2026-06-04.)
   explicit `mode: 'semantic'` on the same endpoint contract, pgvector available
   on Neon when the time comes. Nothing else designed yet by user direction.
 
+### Case 11 — Bulk paste becomes ONE expandable set chip
+**Date:** 2026-08-02 · **Status:** ✅ spec confirmed, component in build · **Decision:** [[decisions/decision-log|GS-21]]
+
+- **Input:** paste many identifiers (Scenario 2 — tracking teams), press Enter.
+- **Before:** the committed chip rendered the raw list (`"10075537, 10039336"`) — unmanageable at bulk scale; mixed lists got no chip at all.
+- **After (spec):** one **expandable chip**. Collapsed: `<Attribute> Set • N IDs` (single detected type — *named-set rule:* every valid code's best match resolves to the same attribute) or `Multiple Set • N IDs` (mixed). Chevron expands an **EditableMiniPanel** anchored 4px below the badge (follows the badge position) for manual add/remove; **edits apply only on collapse/Enter**. Invalid/not-found codes paint **red** and are **decounted** + excluded from search.
+- **Rejected:** gray per-code type initials — a code's type is a set of matches, not a fact (`442376` = Pro# AND Seal, S104). Row-level self-labeling (GS-15/GS-20) already answers "what is it?".
+- **Type application:** on a Mixed set the suggestion panel offers attribute types; clicking one converts the batch to a single GS-12 IN-list chip of that type; non-matching codes go red + decounted.
+- **Search semantics unchanged:** union across codes (GS-20); rows self-label.
+
+### Case 12 — Dates: typed slashes suggest date/range chips; the empty bar offers them cold
+**Date:** 2026-08-03 · **Status:** ✅ implemented · **Decision:** [[decisions/decision-log|GS-22]]
+**Amends:** Case 4 / GS-14 (the "untouched bar offers nothing" rule gets a DATE carve-out).
+
+- **Input:** type a slashed date fragment (`2/`, `2/3`, `2/3/2026`) — or just focus the empty bar.
+- **Suggestions:** every date-typed attribute offers TWO chips — the plain date
+  (`Pickup Date`) and its **Range** twin (`Pickup Date Range`). A slashed query
+  leads with this "Filter by date" section; **bare digits never trigger it** (a
+  pro/shipment number must not collapse into dates). The **empty focused bar**
+  now shows the same section — *"dates are one of the cases where suggested
+  filters should appear when searchbar is empty… later we might add more
+  suggested filters to this case"* (user). Attribute entry points stay gone.
+- **Commit:** the chip lands **expanded** with a **CalendarPicker** in the mini
+  panel (same anchoring as the set chip's EditableMiniPanel). A complete typed
+  date pre-fills one bound (`Pickup Date Range: 2/6/2026-`); picking the other
+  completes the label (`…: 2/6/2026-4/6/2026`). Single-date chips complete on
+  one pick and auto-collapse; ranges collapse via chevron/outside click.
+- **Matching:** `kind: 'date-range'` chips compare **calendar days** (inclusive
+  from/to; a missing bound leaves that side open; single = one-day range; no
+  bounds yet = no narrowing so a half-built chip still previews). Shared
+  `matchesChip` — glimpse and table agree by construction (S79c d.7).
+- **Future field names:** the user's examples included *"Latest Pickup Date
+  Range" / "Earliest Delivery Date Range"* — today's data carries only
+  `pickupDate`/`deliveryDate`; the Latest/Earliest variants join when those
+  fields exist in the index.
+- **Partial pre-fill (2026-08-03):** the typed fragment shows in the chip like
+  any other criterion — `Pickup Date: 12/../....`, `Pickup Date Range:
+  12/../.... - ../../....`. Month+day default the year to CURRENT and pre-fill
+  `from`; a month alone steers the calendar to that month/current year. M/D
+  reading (matches every displayed date); a first segment > 12 can't be a
+  month, so it's a DAY in the current month.
+- **Invalid dates (user, 2026-08-03):** an impossible fragment (`40/`,
+  `12/40`, `2/30/2026`) suggests as `Pickup Date: Invalid Date`; committing it
+  anyway lands a **collapsed red "Invalid Date" chip whose calendar never
+  opens** (nothing to pick). It carries no bounds, so it doesn't narrow;
+  remove via X.
+- **Single-date semantics CONFIRMED (user, 2026-08-03):** a lone date chip =
+  *all shipments whose <attribute> falls on that day* — the one-day range
+  (`from === to`) under calendar-day matching, shipment-grained per Core model
+  #0/#1: *"in shipments everything is defaulted to shipments if no other
+  option — or same-amount-of-results competing options — exist."* (Also feeds
+  Q2's eventual answer: shipment grain is the domain default.)
+
 ---
 
 ## Open questions

@@ -2,7 +2,7 @@ import { useCallback, useMemo, useRef, useState } from 'react'
 import { useReactTable, getCoreRowModel, createColumnHelper } from '@tanstack/react-table'
 import { EllipsisVertical, Columns3Cog, Info, TriangleAlert } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
-import { Badge, Button, DataTable, Paginator, ActionMenu } from '@odyssey/ui'
+import { Badge, Button, DataTable, Paginator, ActionMenu, Spinner } from '@odyssey/ui'
 import TooltipTrigger from '../ui/TooltipTrigger'
 import { ALL_COLUMNS } from '../detail/ColumnPanel'
 import { CELL_TAB_MAP } from './cellTabMap'
@@ -342,8 +342,9 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
           )}
         </div>
       ) : isLoading && shipments.length === 0 ? (
-        <div className="flex items-center justify-center" style={{ padding: '48px 0', color: 'var(--text-placeholder)', fontSize: 'var(--font-size-sm)' }}>
-          Loading shipments…
+        // Centered Spinner, no text (user direction 2026-08-03).
+        <div className="flex items-center justify-center" style={{ padding: '48px 0' }}>
+          <Spinner size={32} />
         </div>
       ) : shipments.length === 0 ? (
         <div className="flex items-center justify-center" style={{ padding: '48px 0', color: 'var(--text-placeholder)', fontSize: 'var(--font-size-sm)' }}>

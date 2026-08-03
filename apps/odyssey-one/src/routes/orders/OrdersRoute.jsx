@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Inbox, Plus } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
-import { Button, EmptyState, ModalMedium, PageHeader, Tab } from '@odyssey/ui'
+import { Button, EmptyState, ModalMedium, PageHeader, Spinner, Tab } from '@odyssey/ui'
 import AppShell from '../../components/layout/AppShell'
 import OrdersToolbar from '../../components/orders/OrdersToolbar'
 import OrdersTable from '../../components/orders/OrdersTable'
@@ -81,7 +81,7 @@ export default function OrdersRoute() {
     setPagination(p => (p.pageIndex === 0 ? p : { ...p, pageIndex: 0 }))
   }, [scopeKey])
 
-  const { data, isPending, isError, refetch } = useOrderList(request, selectedDataIds)
+  const { data, isPending, isFetching, isError, refetch } = useOrderList(request, selectedDataIds)
   const { data: tabCounts } = useOrderTabCounts(selectedDataIds)
 
   const handleTabSelect = (key) => {
@@ -160,7 +160,11 @@ export default function OrdersRoute() {
         <OrdersToolbar totalCount={data?.totalCount} onExportClick={() => setExportOpen(true)} />
 
         {isPending ? (
-          <div className="orders-page__status text-label-sm-regular">Loading orders…</div>
+          // Centered Spinner, no text (user direction 2026-08-03 — the
+          // animated ring is the one loading signal).
+          <div className="orders-page__status" style={{ justifyContent: 'center' }}>
+            <Spinner size={32} />
+          </div>
         ) : isError ? (
           <div className="orders-page__status">
             <span className="text-label-sm-regular">Something went wrong loading orders.</span>
@@ -174,6 +178,7 @@ export default function OrdersRoute() {
              fought the per-row action buttons. */
           <OrdersTable
             tab={activeTab}
+            loadingRows={isFetching}
             rows={data.rows}
             pagination={pagination}
             onPaginationChange={handlePaginationChange}

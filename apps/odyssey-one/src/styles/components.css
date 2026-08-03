@@ -199,9 +199,21 @@
    against the page scroller (zero lag).
    ---------------------------------------- */
 .odyssey-data-table__card {
+  position: relative; /* anchors the centered loading overlay */
   background: var(--bg-primary);
   border-radius: var(--radius-2xl);
   overflow: clip;
+}
+/* loadingRows overlay — the Spinner centered (both axes) over the card. Above
+   the sticky head (z 3/4); cells render blank underneath so the ring is the
+   single loading signal. */
+.odyssey-data-table__loading {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .odyssey-data-table__head {
@@ -1042,6 +1054,128 @@ input[type="date"].odyssey-date-input::-webkit-calendar-picker-indicator:hover {
   color: var(--deep-sea-neutral-100);
 }
 
+/* SearchChip (GS-21) — a committed search criterion chip. Type=Single is the
+   canonical attribute:value chip; Type=Set is a multi-code list as one
+   expandable chip. Badge inherits the .global-search-chip family (DSN/700 bg,
+   DSN/100 text — canon over the mock's 600/200, flagged as drift). The
+   EditableMiniPanel is ANCHORED to the badge: absolute, 4px below, follows
+   the badge position. Panel border maps the mock's Carolina Blue/500 (not a
+   canon token) to --carolina-blue-400; invalid codes paint --bittersweet-300
+   (red legible on the dark panel) and are decounted by the component. */
+.search-chip {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+.search-chip__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  padding: 2px var(--spacing-1) 2px var(--spacing-2);
+  background: var(--deep-sea-neutral-700);
+  color: var(--deep-sea-neutral-100);
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  transition: background var(--transition-fast);
+}
+.search-chip__badge:has(.search-chip__toggle:hover) { background: var(--deep-sea-neutral-600); }
+.search-chip__badge:has(.search-chip__toggle:active) { background: var(--deep-sea-neutral-800); }
+.search-chip__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+/* Mirrors .global-search-chip__remove — same X, same color ladder. */
+.search-chip__remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--deep-sea-neutral-400);
+  cursor: pointer;
+  line-height: 0;
+  transition: color var(--transition-fast);
+}
+.search-chip__remove:hover { color: var(--deep-sea-neutral-100); }
+.search-chip__panel {
+  position: absolute;
+  top: calc(100% + var(--spacing-1));
+  left: 0;
+  z-index: 40; /* same layer as the search suggestions panel */
+  min-width: 100%;
+  width: max-content;
+  max-width: 280px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: var(--spacing-3);
+  background: var(--deep-sea-neutral-950);
+  border: 1px solid var(--carolina-blue-400);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  color: var(--deep-sea-neutral-50);
+}
+.search-chip__codes {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: text;
+}
+.search-chip__code--invalid { color: var(--bittersweet-300); }
+.search-chip__toggle--invalid { color: var(--bittersweet-300); }
+/* Date mode (Case 12) — bare anchor for the CalendarPicker, which brings its
+   OWN card (white, border, radius): no panel chrome, just the badge-anchored
+   position (same 4px drop as the set panel). */
+.search-chip__calendar {
+  position: absolute;
+  top: calc(100% + var(--spacing-1));
+  left: 0;
+  z-index: 40;
+}
+.search-chip__editor {
+  width: 100%;
+  padding: 0;
+  border: none;
+  outline: none;
+  resize: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+/* Spinner — loading ring (Figma: Components-Atoms → Spinner). Conic gradient
+   DSN/50 → DSN/700 masked to the ring stroke, rotating. Linear timing is
+   deliberate: continuous rotation must not pulse. Stroke width comes from the
+   component (--spinner-stroke, Figma ratio 8/48 of the size). */
+.spinner {
+  display: inline-block;
+  flex-shrink: 0;
+  border-radius: var(--radius-full);
+  background: conic-gradient(var(--deep-sea-neutral-50), var(--deep-sea-neutral-700));
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - var(--spinner-stroke)), #000 calc(100% - var(--spinner-stroke) + 0.5px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - var(--spinner-stroke)), #000 calc(100% - var(--spinner-stroke) + 0.5px));
+  animation: spinner-rotate 900ms linear infinite;
+}
+@keyframes spinner-rotate {
+  to { transform: rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .spinner { animation-duration: 2400ms; }
+}
+
 /* GlobalSearch — placeholder color (cannot be set via inline styles) */
 .global-search-input::placeholder {
   color: var(--deep-sea-neutral-400);
@@ -1090,6 +1224,13 @@ input[type="date"].odyssey-date-input::-webkit-calendar-picker-indicator:hover {
   flex-wrap: wrap;
   overflow: visible;
   row-gap: 4px;
+}
+/* GS-21: an open EditableMiniPanel must escape the chips row — the collapsed
+   row clips (overflow hidden) for the +N overflow measurement, but that clip
+   would swallow the anchored panel. Lift it only while a set chip is open. */
+.global-search-chips:has(.search-chip__panel),
+.global-search-chips:has(.search-chip__calendar) {
+  overflow: visible;
 }
 /* Expanded bar lifts above the SearchPanel (z-index 49) so it overlaps
    cleanly; the suggestions dropdown inside the bar stays on top of everything. */
@@ -3174,6 +3315,15 @@ button.breadcrumb__label:focus-visible {
   color: var(--text-secondary);
 }
 
+/* Pressed — Figma Cell `State=Pressed` (DSN/100). Also held while the menu is
+   open, so the trigger stays visibly engaged rather than reverting the moment
+   the pointer moves onto the menu. */
+.action-menu__trigger:active,
+.action-menu__trigger[aria-expanded='true'] {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+
 /* Destructive menu item — applied to a MenuRow via className. */
 .menu-row--danger .menu-row__label {
   color: var(--text-error);
@@ -4500,6 +4650,12 @@ button.breadcrumb__label:focus-visible {
   gap: var(--spacing-3);
   padding: var(--spacing-3) 0;
   border-bottom: 1px solid var(--border-subtle);
+  /* Clicking a saved profile applies it to the search bar. */
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+.shipments-filters__saved-row:hover {
+  background: var(--bg-secondary);
 }
 .shipments-filters__saved-name { color: var(--text-primary); flex-shrink: 0; }
 .shipments-filters__saved-query {
@@ -4722,6 +4878,15 @@ button.breadcrumb__label:focus-visible {
 .global-search-panel__content {
   display: flex;
   flex-direction: column;
+}
+/* In-flight results indicator (GS-21 wiring) — the animated spinner alone
+   replaces the content while a search is pending (incl. the debounce window),
+   so the panel never claims "No results" about a query it hasn't run. */
+.global-search-panel__loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-8) var(--spacing-4);
 }
 .global-search-panel__footer {
   display: flex;
@@ -6117,6 +6282,34 @@ button.breadcrumb__label:focus-visible {
   font-weight: var(--font-weight-regular);
 }
 
+/* First column pins left in this flavor only — it is the wide, horizontally
+   scrolling one, so the row identity + its disclosure chevron must survive the
+   scroll (mirror of the pinned action column at the other edge). The Rows
+   flavor is untouched. Shadow points the other way; no z-index race with the
+   action column because they never overlap. */
+.odyssey-group-table--nested .odyssey-group-table__table > thead th:first-child,
+.odyssey-group-table--nested .odyssey-group-table__group-row > td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--bg-primary);
+}
+/* The shadow is an AFFORDANCE, not decoration: it may only appear once content
+   is genuinely hidden behind the pinned column. At scrollLeft 0 nothing is
+   underneath it, so there is nothing to cast onto. */
+.odyssey-group-table--nested.odyssey-group-table--scrolled-x
+  .odyssey-group-table__table > thead th:first-child,
+.odyssey-group-table--nested.odyssey-group-table--scrolled-x
+  .odyssey-group-table__group-row > td:first-child {
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.06);
+}
+/* The nested band spans the full width and scrolls under the pinned column, so
+   its own cell must not paint over it. */
+.odyssey-group-table--nested .odyssey-group-table__detail-row > td {
+  position: relative;
+  z-index: 0;
+}
+
 /* The gray band hosting the nested table. 48px LEFT inset only — the indent is
    what marks the second table as subordinate; a matching right inset would just
    cut the nested table short of the scroll extent (the Figma master carries a
@@ -6173,12 +6366,95 @@ button.breadcrumb__label:focus-visible {
   min-width: 68px;
   padding: 0;
   text-align: center;
+  vertical-align: middle;
   background: var(--bg-primary);
   /* Same left shadow DataTable's sticky-right column uses (raw rgba there too),
      so a pinned action column reads identically wherever it appears. Replaces
      the hairline the Figma master draws — a shadow is what actually signals
      "content scrolls under this". */
   box-shadow: -2px 0 4px rgba(0, 0, 0, 0.06);
+}
+/* Whatever the consumer slots in (a Button, an ActionMenu) is inline-level, so
+   it lands on the cell's TEXT BASELINE and reads low. Center it on the line box
+   instead — the cell's own vertical-align doesn't reach its children. */
+.odyssey-group-table .odyssey-group-table__cell--sticky-right > * {
+  vertical-align: middle;
+}
+
+/* ── Action-cell tones (`groups[].actionTone`) ───────────────────────────────
+   Each tone only declares its two custom properties; the behavior below is
+   written once. Untoned cells declare nothing and keep the slotted control's
+   own neutral hover. */
+.odyssey-group-table__cell--tone-danger  { --gt-action-bg: var(--bg-error);         --gt-action-fg: var(--text-error); }
+.odyssey-group-table__cell--tone-warning { --gt-action-bg: var(--badge-yellow-bg);  --gt-action-fg: var(--badge-yellow-text); }
+.odyssey-group-table__cell--tone-success { --gt-action-bg: var(--badge-green-bg);   --gt-action-fg: var(--badge-green-text); }
+.odyssey-group-table__cell--tone-info    { --gt-action-bg: var(--badge-blue-bg);    --gt-action-fg: var(--badge-blue-text); }
+
+/* At rest the tone reads as a tile behind the glyph. Targeted at `button`
+   generically rather than any one component's class, so a Button, an ActionMenu
+   trigger or a plain button all tone identically. */
+.odyssey-group-table [class*='odyssey-group-table__cell--tone-'] button {
+  background: var(--gt-action-bg);
+  color: var(--gt-action-fg);
+  transition: background var(--transition-fast);
+}
+
+/* On hover the WHOLE CELL takes the tone and the tile dissolves into it, so the
+   68px column reads as one solid block — the glyph keeps its tone color.
+   Out-specifies the row-hover fill below so a direct hover always wins. */
+.odyssey-group-table__group-row > td[class*='odyssey-group-table__cell--tone-']:hover {
+  background: var(--gt-action-bg);
+}
+.odyssey-group-table [class*='odyssey-group-table__cell--tone-']:hover button {
+  background: transparent;
+  color: var(--gt-action-fg);
+}
+
+/* ── Pinned action cell: the WHOLE cell is the hit area ──────────────────────
+   The control inside is ~28px in a 68px cell, so clicking the margin did
+   nothing. The cell now forwards its click to the control (see
+   handleActionCellClick) and advertises it. */
+.odyssey-group-table td.odyssey-group-table__cell--sticky-right {
+  cursor: pointer;
+  /* Its own fade, on its own trigger — the row hover never reaches here. */
+  transition: background var(--transition-fast);
+}
+/* Untoned cells keep the TILE look rather than filling: hovering anywhere in
+   the cell lights the tile with the control's own hover value, so the whole
+   cell is the trigger while the look is unchanged. */
+.odyssey-group-table__group-row
+  > td.odyssey-group-table__cell--sticky-right:not([class*='--tone-']):hover button {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+
+/* ── Row hover has to reach the PINNED FIRST column ──────────────────────────
+   It carries its own opaque background so content can scroll under it, which
+   punched a white hole in the row-hover band at the left edge. The transition
+   must match the row's, or the pinned cell snaps while the rest fades and the
+   two edges of the same band move at different speeds.
+
+   The ACTION column is deliberately NOT included: it is an independent
+   affordance with its own hover and click, so the row hover must not bleed
+   into it. */
+.odyssey-group-table__group-row > td:first-child {
+  transition: background var(--transition-fast);
+}
+.odyssey-group-table__group-row:hover > td:first-child {
+  background: var(--bg-secondary);
+}
+
+/* ── Row hover: text steps up one weight ─────────────────────────────────────
+   Applies to all three flavors. Rows-flavor group ids and header values are
+   medium → semibold; the nested flavor's data row is regular → medium, so the
+   step is the same size in both. */
+.odyssey-group-table__group-row:hover .odyssey-group-table__group-toggle,
+.odyssey-group-table__group-row:hover > td.odyssey-group-table__group-value {
+  font-weight: var(--font-weight-semibold);
+}
+.odyssey-group-table--nested .odyssey-group-table__group-row:hover
+  .odyssey-group-table__group-toggle {
+  font-weight: var(--font-weight-medium);
 }
 /* Child rows keep their gray band under the pinned cell rather than punching a
    white hole through it. */

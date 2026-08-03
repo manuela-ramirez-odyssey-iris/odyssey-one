@@ -26,17 +26,99 @@ import { SHIPMENTS_PROGRESSION } from '../../search/shipments/progression'
  */
 
 // Seed list for the Saved tab (mirrors the old FilterPanel's sample queries).
+// Clicking a row APPLIES its query to the search bar (replaces the chips).
 const INITIAL_SAVED = [
   { name: 'Review Shipments -- West Coast', query: 'mode:LTL shipment-status:Review destination:CA' },
   { name: 'Sent Tenders -- JBHT', query: 'scac:JBHT tender-status:Sent' },
   { name: 'TL Shipments -- G2O Tech', query: 'mode:TL customer-name:G2O' },
   { name: 'Done -- Dallas Origin', query: 'origin:Dallas shipment-status:Done' },
+  { name: 'Early-April Pickups -- FXFE', query: 'scac:FXFE pickup-date:2026-04-01|2026-04-15' },
 ]
 
 // Map committed chips → initial filter values, keyed by attribute key.
-function chipsToFilters(chips) {
+// Date chips (Case 12) carry from/to instead of queryValue: they land in the
+// matching date-range control as "from|to" (ISO, for the native date inputs);
+// a single-date chip fills both ends with its one day.
+const mdyToIso = (s) => {
+  const m = String(s ?? '').match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)
+  return m ? `${m[3]}-${m[1].padStart(2, '0')}-${m[2].padStart(2, '0')}` : ''
+}
+export function chipsToFilters(chips) {
   const f = {}
-  chips.forEach((c) => { if (c.queryValue) f[c.key] = c.queryValue })
+  chips.forEach((c) => {
+    if (c.kind === 'date-range') {
+      const attrKey = c.key.replace(/^date(-range)?-/, '')
+      const from = mdyToIso(c.from)
+      const to = mdyToIso(c.single ? c.from : c.to)
+      if (from || to) f[attrKey] = `${from}|${to}`
+    } else if (c.queryValue) {
+      f[c.key] = c.queryValue
+    }
+  })
+  return f
+}
+
+// ── Outbound direction: filter values → committed chips ─────────────────────
+const isoToMdy = (s) => {
+  const m = String(s ?? '').match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  return m ? `${+m[2]}/${+m[3]}/${m[1]}` : null
+}
+const ATTR_BY_KEY = new Map(
+  SHIPMENTS_PROGRESSION.flatMap((g) => g.attributes.map((a) => [a.key, { ...a, group: g.group }])),
+)
+const chipAttrKey = (c) => (c.kind === 'date-range' ? c.key.replace(/^date(-range)?-/, '') : c.key)
+
+/**
+ * Merge edited filter values back into a chip set. Keys PRESENT in `filters`
+ * are authoritative for their attribute (empty value = remove the chip); keys
+ * never touched keep their existing chips untouched — which also preserves
+ * set/date chip metadata when the value didn't change. Date attributes build
+ * `kind: 'date-range'` chips (ISO "from|to" → M/D/YYYY bounds).
+ */
+export function mergeFiltersIntoChips(chips, filters) {
+  const next = [...chips]
+  for (const [key, value] of Object.entries(filters)) {
+    const attr = ATTR_BY_KEY.get(key)
+    if (!attr) continue
+    const ix = next.findIndex((c) => chipAttrKey(c) === key)
+    const existing = ix >= 0 ? next[ix] : null
+    if (attr.match === 'date') {
+      const [fromIso = '', toIso = ''] = String(value || '').split('|')
+      const from = isoToMdy(fromIso)
+      const to = isoToMdy(toIso)
+      if (!from && !to) { if (existing) next.splice(ix, 1); continue }
+      const sameFrom = (existing?.from ?? null) === (from ?? null)
+      const sameTo = ((existing?.single ? existing?.from : existing?.to) ?? null) === (to ?? null)
+      if (existing?.kind === 'date-range' && sameFrom && sameTo) continue
+      const chip = {
+        key: `date-range-${key}`, attrLabel: attr.label, dataKey: attr.dataKey, group: attr.group,
+        kind: 'date-range', single: false, from, to, open: false,
+      }
+      chip.label = `${attr.label} Range: ${from || ''}-${to || ''}`
+      if (existing) next[ix] = chip; else next.push(chip)
+    } else {
+      const v = String(value || '').trim()
+      if (!v) { if (existing) next.splice(ix, 1); continue }
+      if (existing && existing.queryValue === v) continue
+      const chip = {
+        key, label: `${attr.label}: ${v}`, attrLabel: attr.label, queryValue: v,
+        dataKey: attr.dataKey, group: attr.group, ...(attr.exact && { exact: true }), kind: 'attribute',
+      }
+      if (existing) next[ix] = chip; else next.push(chip)
+    }
+  }
+  return next
+}
+
+// A saved profile's query string ("scac:JBHT tender-status:Sent") → filters.
+export function queryStringToFilters(query) {
+  const f = {}
+  String(query || '').split(/\s+/).forEach((tok) => {
+    const i = tok.indexOf(':')
+    if (i <= 0) return
+    const key = tok.slice(0, i)
+    if (ATTR_BY_KEY.has(key)) f[key] = tok.slice(i + 1)
+  })
   return f
 }
 
@@ -123,7 +205,9 @@ export default function ShipmentsFiltersView({
   onBack,
   onClose,
   onClearAll,
-  onShowResults,
+  // Outbound wiring: (filters, { commit, replace }) — "Show N results" commits
+  // the edited filters; clicking a Saved profile replaces the bar with it.
+  onApplyFilters,
 }) {
   const [activeTab, setActiveTab] = useState('all')
   const [filters, setFilters] = useState(() => chipsToFilters(chips))
@@ -163,7 +247,7 @@ export default function ShipmentsFiltersView({
       secondaryLabel="Clear all"
       onClear={onClearAll}
       count={resultTotal}
-      onShowResults={onShowResults}
+      onShowResults={() => onApplyFilters?.(filters, { commit: true })}
     >
       <div className="shipments-filters__tabs">
         {tabs.map((tab) => (
@@ -193,10 +277,26 @@ export default function ShipmentsFiltersView({
         ) : (
           <div className="shipments-filters__saved">
             {saved.map((sq) => (
-              <div key={sq.name} className="shipments-filters__saved-row">
+              // The row itself applies the profile: its query replaces the
+              // bar's chips (a saved profile IS a whole search).
+              <div
+                key={sq.name}
+                className="shipments-filters__saved-row"
+                role="button"
+                tabIndex={0}
+                onClick={() => onApplyFilters?.(queryStringToFilters(sq.query), { replace: true })}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') onApplyFilters?.(queryStringToFilters(sq.query), { replace: true })
+                }}
+              >
                 <div className="shipments-filters__saved-name text-label-sm-medium">{sq.name}</div>
                 <div className="shipments-filters__saved-query">{sq.query}</div>
-                <button type="button" className="shipments-filters__icon-btn" aria-label="Copy query">
+                <button
+                  type="button"
+                  className="shipments-filters__icon-btn"
+                  aria-label="Copy query"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <Copy size={16} style={{ color: 'var(--text-tertiary)' }} />
                 </button>
               </div>

@@ -2,6 +2,7 @@ import { ChevronLeft, X, CirclePlus } from 'lucide-react'
 import { ICON_LG } from '@odyssey/tokens'
 import Button from './Button.jsx'
 import IconButtonGhost from './IconButtonGhost.jsx'
+import Spinner from './Spinner.jsx'
 
 /**
  * GlobalSearchPanel — organism shell. The card that drops below the GlobalSearch bar
@@ -42,6 +43,9 @@ export default function GlobalSearchPanel({
   count,
   primaryLabel,
   onShowResults,
+  // True while the results search is in flight — shows the Spinner above the
+  // content (stale results stay visible underneath; a blank swap would flash).
+  loading = false,
   className = '',
   style,
   ...rest
@@ -72,7 +76,13 @@ export default function GlobalSearchPanel({
         </header>
       )}
 
-      <div className="global-search-panel__content">{children}</div>
+      {loading ? (
+        <div className="global-search-panel__loading">
+          <Spinner size={24} />
+        </div>
+      ) : (
+        <div className="global-search-panel__content">{children}</div>
+      )}
 
       <div className="global-search-panel__footer">
         <div className="global-search-panel__footer-left">

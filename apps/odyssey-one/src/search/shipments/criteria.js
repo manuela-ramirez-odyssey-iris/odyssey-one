@@ -48,12 +48,35 @@ export function tokenizeChipValue(value) {
   return (value || '').toLowerCase().split(',').map((s) => s.trim()).filter(Boolean)
 }
 
+// ── Dates (Case 12, GS-22) ──────────────────────────────────────────────────
+// Parse "M/D/YYYY" (any padding; time/zone suffix like "05/08/2026 06:30 CDT"
+// ignored). Returns a local-midnight Date, or null for anything incomplete —
+// a partial "2/3" is a suggestion trigger, never a comparable value.
+export function parseSearchDate(value) {
+  const m = String(value ?? '').trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/)
+  if (!m) return null
+  const d = new Date(+m[3], +m[1] - 1, +m[2])
+  return d.getMonth() === +m[1] - 1 && d.getDate() === +m[2] ? d : null
+}
+
 // AND predicate for a single chip against a row (substring on chip.dataKey).
 // A multi-value chip ("Order #: 091000, 091001") is an IN-list — the field
 // matches ANY of its values (GS-12: multi-value within ONE attribute is OR;
 // a scalar field can't equal two values at once). Chips flagged `exact`
 // (count-like fields) require full equality per value — "2" must not match 12.
+// A `kind: 'date-range'` chip (Case 12) compares CALENDAR DAYS instead of
+// substrings: inclusive between from/to; a missing bound leaves that side
+// open; a single-date chip carries from === to. An unparseable/incomplete
+// bound is treated as absent so a half-built range still previews.
 export function matchesChip(row, chip) {
+  if (chip.kind === 'date-range') {
+    const d = parseSearchDate(row[chip.dataKey])
+    if (!d) return false
+    const from = parseSearchDate(chip.from)
+    const to = parseSearchDate(chip.to)
+    if (!from && !to) return true // nothing picked yet — no narrowing
+    return (!from || d >= from) && (!to || d <= to)
+  }
   const needles = tokenizeChipValue(chip.queryValue)
   if (!needles.length) needles.push('') // empty chip: matches any non-null field
   if (chip.exact) {

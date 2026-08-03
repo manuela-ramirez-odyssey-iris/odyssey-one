@@ -39,6 +39,42 @@ function chipTokens(queryValue, normalize) {
   return (raw.length ? raw : ['']).map(normalize)
 }
 
+// ── Date-range chips (Case 12, GS-22) ───────────────────────────────────────
+// pickup/delivery dates are NOT projected into search_index (documented
+// deviation 2 below) — date chips route to COLUMN filters on shipments
+// (pickup_ts/delivery_ts), the same columns the grid's own date filters use
+// (shipments.mjs). Bounds arrive as M/D/YYYY from the client; compared as
+// [from 00:00, to+1day) — inclusive calendar days, mirroring the mock's
+// parseSearchDate comparison. A missing bound leaves that side open; a chip
+// with NO parseable bound restricts nothing (mock: "no narrowing yet").
+const DATE_CHIP_COLS = {
+  pickupDate: { col: 'pickup_ts', attr: 'pickup-date', display: 'pickup_date' },
+  deliveryDate: { col: 'delivery_ts', attr: 'delivery-date', display: 'delivery_date' },
+}
+function mdyToIso(s) {
+  const m = String(s ?? '').match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)
+  return m ? `${m[3]}-${String(m[1]).padStart(2, '0')}-${String(m[2]).padStart(2, '0')}` : null
+}
+function validDateChips(chips) {
+  return (chips ?? []).filter(
+    (c) => c?.kind === 'date-range' && DATE_CHIP_COLS[c.dataKey] && (mdyToIso(c.from) || mdyToIso(c.to)),
+  )
+}
+// The chip's bounds as WHERE clauses over the shipments table itself.
+function dateClauses(chip, p) {
+  const { col } = DATE_CHIP_COLS[chip.dataKey]
+  const parts = []
+  const from = mdyToIso(chip.from)
+  const to = mdyToIso(chip.to)
+  if (from) parts.push(`${col} >= ${p(from)}::date`)
+  if (to) parts.push(`${col} < (${p(to)}::date + 1)`)
+  return parts.join(' AND ')
+}
+// The chip as an entity-set restriction (for AND-ing onto search_index hits).
+function dateRestrictionSql(chip, p) {
+  return `entity_id IN (SELECT sell_shipment FROM shipments WHERE ${dateClauses(chip, p)})`
+}
+
 // ONE chip as an entity-set restriction: `entity_id IN (SELECT ... WHERE attr
 // = X AND (value CONTAINS tok1 OR tok2 ...))`. Multi-value chip tokens OR
 // within the subquery (GS-12 IN-list semantics); multiple chips AND by each
@@ -105,7 +141,8 @@ function buildHits({ domain, needles, customerIds, chips, bind }) {
   // $1 (42P18 "could not determine data type of parameter"). Bind nothing
   // that isn't referenced in the SQL that's actually returned.
   const chipList = validChips(domain, chips)
-  if (!needles.length && !chipList.length) {
+  const dateChips = validDateChips(chips)
+  if (!needles.length && !chipList.length && !dateChips.length) {
     // Honest-empty (S79c convention): nothing to search on (no needles, and no
     // chip survived `validChips` — either none were sent, or every one carried
     // an unknown/non-projected key). A bare `''` here produces `WITH hits AS
@@ -118,13 +155,32 @@ function buildHits({ domain, needles, customerIds, chips, bind }) {
     return { sql: `SELECT NULL::text AS entity_id, NULL::text AS attr, NULL::text AS display, 0 AS tier, 0 AS needle_ix WHERE FALSE`, values, p }
   }
 
+  // ONLY date chips (no text, no indexed chips) — the user's "all shipments
+  // whose pickup date is this date" case. No search_index row exists for
+  // dates, so the hit set comes from the shipments table directly: the first
+  // date chip is the lead (its display string becomes the row's bold value),
+  // remaining date chips AND on as further column clauses. Bound BEFORE the
+  // shared `dom` binding so no unreferenced parameter can 42P18.
+  if (!needles.length && !chipList.length) {
+    const [dlead, ...drest] = dateChips
+    const cfg = DATE_CHIP_COLS[dlead.dataKey]
+    const clauses = [dateClauses(dlead, p), ...drest.map((c) => dateClauses(c, p))]
+    if (customerIds) clauses.push(`customer_id = ANY(${p(customerIds)})`)
+    const sql = `SELECT sell_shipment AS entity_id, ${p(cfg.attr)} AS attr, ${cfg.display} AS display, 2 AS tier, 0 AS needle_ix
+      FROM shipments WHERE ${clauses.join(' AND ')}`
+    return { sql, values, p }
+  }
+
   const dom = p(domain)
   const scope = customerIds
     ? `AND entity_id IN (SELECT sell_shipment FROM shipments WHERE customer_id = ANY(${p(customerIds)}))`
     : ''
 
   if (needles.length) {
-    const chipSql = chipList.map((c) => `AND ${chipRestrictionSql(domain, c, p)}`).join(' ')
+    const chipSql = [
+      ...chipList.map((c) => chipRestrictionSql(domain, c, p)),
+      ...dateChips.map((c) => dateRestrictionSql(c, p)),
+    ].map((s) => `AND ${s}`).join(' ')
     const branches = []
     needles.forEach((n, ix) => {
       const needle = p(String(n).toUpperCase())
@@ -151,7 +207,10 @@ function buildHits({ domain, needles, customerIds, chips, bind }) {
   const leadCfg = REGISTRY[domain].attrs[lead.key]
   const leadTokens = chipTokens(lead.queryValue, leadCfg.normalize)
   const leadOrs = leadTokens.map((t) => `value LIKE '%' || ${p(t)} || '%'`).join(' OR ')
-  const restSql = rest.map((c) => `AND ${chipRestrictionSql(domain, c, p)}`).join(' ')
+  const restSql = [
+    ...rest.map((c) => chipRestrictionSql(domain, c, p)),
+    ...dateChips.map((c) => dateRestrictionSql(c, p)),
+  ].map((s) => `AND ${s}`).join(' ')
   const sql = `SELECT entity_id, attr, display, 2 AS tier, 0 AS needle_ix FROM search_index
     WHERE domain = ${dom} AND attr = ${p(lead.key)} AND (${leadOrs}) ${scope} ${restSql}`
   return { sql, values, p }

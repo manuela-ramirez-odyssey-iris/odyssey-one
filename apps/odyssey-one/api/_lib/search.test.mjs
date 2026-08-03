@@ -242,3 +242,49 @@ test('GS-20 HAVING still gates on TEXT needles only — chips never change the c
   assert.ok(twoNeedles.text.includes('HAVING count(DISTINCT needle_ix) = 2'))
   assertAllParamsReferenced(twoNeedles.text, twoNeedles.values)
 })
+
+// ── Date-range chips (Case 12, GS-22) ───────────────────────────────────────
+
+const dateChip = (dataKey, from, to = null) => ({
+  key: `date-${dataKey === 'pickupDate' ? 'pickup-date' : 'delivery-date'}`,
+  kind: 'date-range', dataKey, from, to,
+})
+
+test('date chip ALONE drives a shipments-table hit set (not honest-empty)', () => {
+  const { text, values } = buildSearchQuery({
+    domain: 'shipments', needles: [], chips: [dateChip('pickupDate', '4/3/2026', '4/3/2026')],
+  })
+  assert.ok(text.includes('FROM shipments'), 'hits come from the shipments table')
+  assert.ok(text.includes('pickup_ts >= '))
+  assert.ok(text.includes("pickup_ts < ("), 'inclusive to-bound via to+1day')
+  assert.ok(values.includes('2026-04-03'), 'M/D/YYYY converted to ISO for binding')
+  assert.ok(!text.includes('WHERE FALSE'), 'must not fall to the honest-empty set')
+  assertAllParamsReferenced(text, values)
+})
+
+test('date chip with TEXT restricts every needle branch; open-ended from-only bound', () => {
+  const { text, values } = buildSearchQuery({
+    domain: 'shipments', needles: ['ABC'], chips: [dateChip('deliveryDate', '5/1/2026')],
+  })
+  assert.ok(text.includes('delivery_ts >= '))
+  assert.ok(!text.includes('delivery_ts < ('), 'missing to leaves that side open')
+  assert.ok(text.includes('entity_id IN (SELECT sell_shipment FROM shipments'))
+  assertAllParamsReferenced(text, values)
+})
+
+test('date chip alongside an indexed chip rides the chips-only rest set', () => {
+  const { text, values } = buildSearchQuery({
+    domain: 'shipments', needles: [],
+    chips: [{ key: 'pro', queryValue: 'PRO-1' }, dateChip('pickupDate', '4/3/2026', '4/9/2026')],
+  })
+  assert.ok(text.includes('attr = '), 'indexed chip still leads')
+  assert.ok(text.includes('pickup_ts >= '))
+  assertAllParamsReferenced(text, values)
+})
+
+test('a boundless or unknown date chip restricts nothing (and stays honest-empty alone)', () => {
+  const { text } = buildSearchQuery({
+    domain: 'shipments', needles: [], chips: [{ kind: 'date-range', dataKey: 'pickupDate', from: null, to: null }],
+  })
+  assert.ok(text.includes('WHERE FALSE'), 'no parseable bound → no hit set')
+})

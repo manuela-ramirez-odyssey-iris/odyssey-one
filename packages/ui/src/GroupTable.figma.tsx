@@ -10,6 +10,17 @@ import GroupTable from './GroupTable'
 // pass an object keyed by col.key to show it, omit to hide). Columns/groups
 // are data-driven in code, so the example is static sample data; expansion is
 // `expanded`+`onToggle` (controlled) or `defaultExpanded` (uncontrolled).
+//
+// `Show Actions` BOOLEAN → `stickyActions` (the pinned 68px trailing column);
+// `Header Action` INSTANCE_SWAP → `actionsHeader`. NOTE a deliberate 1:many
+// mismatch: Figma needs `Show Actions` toggled on this master AND on each nested
+// GroupTableGroup instance (Figma cannot propagate a boolean into nested
+// instances), whereas code has ONE `stickyActions` prop driving both the header
+// cell and every group row.
+//
+// The nested-table flavor lives on the GroupTableGroup set's `Content` axis
+// (Rows | Nested table, 4204:1243), not on this master — in code it is selected
+// by passing `detailColumns`, so there is no boolean here to map.
 figma.connect(
   GroupTable,
   'https://www.figma.com/design/vodiHJU38YWZYmTz81uOk7/Design-System---MCP?node-id=4183-773',
@@ -20,8 +31,10 @@ figma.connect(
         true: { item: 'TOTAL', qty: '128', weight: '4,820 lb' },
         false: undefined,
       }),
+      stickyActions: figma.boolean('Show Actions'),
+      actionsHeader: figma.instance('Header Action'),
     },
-    example: ({ footerRow }) => (
+    example: ({ footerRow, stickyActions, actionsHeader }) => (
       <GroupTable
         columns={[
           { key: 'item', label: 'Item' },
@@ -39,6 +52,8 @@ figma.connect(
           },
         ]}
         footerRow={footerRow}
+        stickyActions={stickyActions}
+        actionsHeader={actionsHeader}
         defaultExpanded
       />
     ),

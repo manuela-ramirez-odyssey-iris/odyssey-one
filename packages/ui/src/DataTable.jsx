@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { ArrowUpDown, MoveUp, MoveDown } from 'lucide-react'
 import Tooltip from './Tooltip.jsx'
+import Spinner from './Spinner.jsx'
 
 /**
  * DataTable — a thin presentation shell for a TanStack v8 table. It owns the
@@ -522,6 +523,13 @@ export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, onC
       {/* The bordered white card holds the table ONLY; the footer (Paginator) sits
           below it as a sibling, transparent on the page canvas (S79b, decision 6). */}
       <div className="odyssey-data-table__card">
+        {/* loadingRows: centered spinner over the card (cells go blank below) —
+            the animated ring alone, no text (user direction, GS-21 era). */}
+        {loadingRows && (
+          <div className="odyssey-data-table__loading">
+            <Spinner size={32} />
+          </div>
+        )}
         <div
           className="odyssey-data-table__head"
           style={{ top: hbar ? `calc(${stickyTopValue} + 8px)` : stickyTopValue }}
@@ -638,7 +646,9 @@ export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, onC
                             stale value; display columns (select/actions) keep
                             rendering. */}
                         {loadingRows && cell.column.accessorFn
-                          ? <span className="odyssey-table__cell-loading">Loading…</span>
+                          // Blank while loading — the card-level centered
+                          // Spinner is the one loading signal (no per-cell text).
+                          ? <span className="odyssey-table__cell-loading" />
                           : renderCell(cell.column.columnDef.cell, cell.getContext())}
                       </td>
                     )

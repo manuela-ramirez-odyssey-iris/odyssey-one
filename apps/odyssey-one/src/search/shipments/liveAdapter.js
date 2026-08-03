@@ -15,7 +15,7 @@
 // router paths, then these) — liveAdapter.paths.test.js pins it.
 import { apiPost } from '../../api/client'
 import { SHIPMENTS_ATTRIBUTES } from './progression'
-import { formatLocation, toStatusBadge, toTenderBadge, toItem } from './adapter'
+import { formatLocation, toStatusBadge, toTenderBadge, toItem, DATE_LIKE } from './adapter'
 
 const ATTR_BY_KEY = Object.fromEntries(SHIPMENTS_ATTRIBUTES.map((a) => [a.key, a]))
 
@@ -66,6 +66,10 @@ export function makeLiveAdapter(base) {
     async getSuggestions(query) {
       const q = (query || '').trim()
       if (!q) return this.getInitial([])
+      // Case 12 (GS-22): a slashed date-like query is pure config — the date +
+      // range chips need no data, so the mock implementation IS correct in
+      // live mode (same reasoning as getInitial above).
+      if (DATE_LIKE.test(q)) return base.getSuggestions(q)
       const { attributes } = await apiPost('/v1/search/suggest', {
         domain: 'shipments',
         criteria: { chips: [], text: q },

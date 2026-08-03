@@ -26,6 +26,8 @@ export default function OrdersTable({
   onSortingChange,
   totalCount,
   onRowAction,
+  // Background refetch (keepPreviousData) → the shell's centered Spinner.
+  loadingRows = false,
 }) {
   const [stickyTop, setStickyTop] = useState(0)
 
@@ -97,6 +99,7 @@ export default function OrdersTable({
     <DataTable
       table={table}
       stickyTop={stickyTop}
+      loadingRows={loadingRows}
       ariaLabel="Orders"
       sortable
       footer={<Paginator table={table} />}

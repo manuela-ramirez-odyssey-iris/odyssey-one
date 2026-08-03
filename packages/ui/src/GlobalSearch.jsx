@@ -4,6 +4,7 @@ import { ICON_MD, ICON_LG } from '@odyssey/tokens'
 import FilterButton from './FilterButton.jsx'
 import Badge from './Badge.jsx'
 import FilterSuggestions from './FilterSuggestions.jsx'
+import SearchChip from './SearchChip.jsx'
 
 /**
  * Combobox highlight movement (S80 keyboard navigation). Pure so it's directly
@@ -63,6 +64,12 @@ function GlobalSearchSearch({
   chips = [],
   onChipRemove,
   onChipClick,
+  // GS-21: edit-commit from an expanded set chip — (chipKey, values[]).
+  onSetCommit,
+  // Case 12: date picks from an open date chip — (chipKey, { from, to }).
+  onDateCommit,
+  // Case 12: the date chip's controlled open state — (chipKey, open).
+  onDateToggle,
   suggestionSections = [],
   suggestionsOpen = false,
   onSuggestionSelect,
@@ -208,7 +215,39 @@ function GlobalSearchSearch({
   const showBadge = showFilter && filterCount > 0
   const badgeLabel = filterCount > 99 ? '99+' : String(filterCount)
 
-  const renderChip = (chip) => (
+  const renderChip = (chip) => chip.kind === 'date-range' ? (
+    // Case 12 — a committed date / date-range criterion: SearchChip date mode
+    // (CalendarPicker in the mini panel). Commits arrive pre-opened
+    // (defaultOpen) so the pick finishes in place.
+    <SearchChip
+      key={chip.key}
+      dateLabel={chip.single ? chip.attrLabel : `${chip.attrLabel} Range`}
+      range={!chip.single}
+      from={chip.from}
+      to={chip.single ? null : chip.to}
+      open={chip.open ?? false}
+      invalid={chip.invalid}
+      // The typed-month hint only aims the FIRST open; once a date is picked,
+      // the calendar seeds from the picked value (defaultMonth outranks value
+      // in CalendarPicker, so it must drop out here).
+      defaultMonth={!chip.from && chip.monthHint ? new Date(chip.monthHint.y, chip.monthHint.m - 1, 1) : undefined}
+      onOpenChange={(next) => onDateToggle?.(chip.key, next)}
+      onDateChange={(next) => onDateCommit?.(chip.key, next)}
+      onRemove={() => onChipRemove?.(chip.key)}
+    />
+  ) : chip.kind === 'set' ? (
+    // GS-21 — a committed multi-code SET renders as the expandable SearchChip:
+    // summary badge + EditableMiniPanel anchored below. Edits commit through
+    // onSetCommit (Enter / collapse / outside click), removal through the
+    // same remove routing as any chip.
+    <SearchChip
+      key={chip.key}
+      typeLabel={chip.typeLabel}
+      codes={chip.codes}
+      onCommit={(values) => onSetCommit?.(chip.key, values)}
+      onRemove={() => onChipRemove?.(chip.key)}
+    />
+  ) : (
     <span
       key={chip.key}
       className="global-search-chip text-label-xs-medium"

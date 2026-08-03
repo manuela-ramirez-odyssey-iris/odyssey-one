@@ -71,6 +71,8 @@ export { default as TimePicker } from './TimePicker.jsx';
 
 // ── Organisms ──────────────────────────────────────────
 export { default as GroupTable } from './GroupTable.jsx';
+export { default as SearchChip } from './SearchChip.jsx';
+export { default as Spinner } from './Spinner.jsx';
 export { default as MultiSelect } from './MultiSelect.jsx';
 export { default as Navbar } from './Navbar.jsx';
 export { default as Sidebar } from './Sidebar.jsx';

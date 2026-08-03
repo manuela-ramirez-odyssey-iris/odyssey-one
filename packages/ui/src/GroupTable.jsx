@@ -1,4 +1,4 @@
-import { useId, useState } from 'react'
+import { useId, useRef, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
 
@@ -40,6 +40,31 @@ import { ICON_MD } from '@odyssey/tokens'
  *                       with 1px --border-subtle hairlines (no white gaps);
  *                       false = white rows with hairlines
  * @param className      extra class(es) on the root scroll element
+ *
+ * ── NESTED-TABLE FLAVOR (`detailColumns`) ──────────────────────────────────
+ * Pass `detailColumns` to switch what an expanded group reveals: instead of
+ * child rows sharing `columns`, each expanded group reveals a SECOND, FULLY
+ * INDEPENDENT TABLE beneath it — its own header row, its own column widths,
+ * deliberately NOT aligned to the outer columns. This is the vertical
+ * alternative to two tables side by side (which gets too wide).
+ *
+ * The distinction that matters when reading this component:
+ *   • Rows flavor  — the per-group row is a GROUP HEADER: a bold group id
+ *                    spanning the lead column + optional sparse summary
+ *                    `values` at the trail.
+ *   • Nested flavor — the per-group row is a DATA ROW: one value per outer
+ *                    column (via `values`), with the disclosure chevron simply
+ *                    living in the lead cell. It is NOT a header; the table's
+ *                    own `columns` header row is its header.
+ *
+ * @param detailColumns  [{ key, label, align?, width? }] — the nested table's OWN columns.
+ *                       Presence of this prop is what selects the nested flavor.
+ * @param renderDetailCell (row, col) => node — optional cell renderer for nested rows
+ *                       (parallel to `renderCell`); default renders `row[col.key] ?? '--'`
+ * @param stickyActions  bool — render a pinned trailing action column (sticky right),
+ *                       fed by `actionsHeader` (header cell) + `group.action` (per row)
+ * @param actionsHeader  node — content of the pinned column's header cell (e.g. a
+ *                       column-arrange Button)
  */
 export default function GroupTable({
   columns = [],
@@ -51,11 +76,35 @@ export default function GroupTable({
   onToggle,
   striped = true,
   className = '',
+  detailColumns,
+  renderDetailCell,
+  stickyActions = false,
+  actionsHeader,
   ...rest
 }) {
   const uid = useId()
   const controlled = expanded !== undefined
   const [internal, setInternal] = useState({})
+
+  // The pinned first column's shadow is a scroll AFFORDANCE, not decoration: it
+  // may only appear once content is actually hidden behind the column. At
+  // scrollLeft 0 there is nothing underneath, so no shadow.
+  const rootRef = useRef(null)
+  const [scrolledX, setScrolledX] = useState(false)
+  const handleScroll = (e) => {
+    const next = e.currentTarget.scrollLeft > 0
+    setScrolledX((prev) => (prev === next ? prev : next))
+  }
+
+  // The whole 68px action cell is the hit area, not just the ~28px control
+  // inside it. Clicks land on the cell and are forwarded to the control —
+  // except when the real control (or something interactive inside it) was hit
+  // directly, which would otherwise fire it twice.
+  const handleActionCellClick = (e) => {
+    e.stopPropagation() // never toggles the row
+    if (e.target.closest('button, a, input, select, [role="menuitem"]')) return
+    e.currentTarget.querySelector('button, a')?.click()
+  }
 
   const isOpen = (id) =>
     controlled ? !!expanded[id] : isGroupExpanded(internal, defaultExpanded, id)
@@ -66,16 +115,24 @@ export default function GroupTable({
     onToggle?.(id, next)
   }
 
+  // Presence of detailColumns selects the nested-table flavor — see the header
+  // comment for why the group row means something different in each.
+  const nested = Array.isArray(detailColumns) && detailColumns.length > 0
+  const spanAll = totalColumnCount(columns, stickyActions)
+
   const rootClasses = [
     'odyssey-group-table',
     !striped && 'odyssey-group-table--flat',
+    nested && 'odyssey-group-table--nested',
+    stickyActions && 'odyssey-group-table--sticky-actions',
+    scrolledX && 'odyssey-group-table--scrolled-x',
     className,
   ]
     .filter(Boolean)
     .join(' ')
 
   return (
-    <div className={rootClasses} {...rest}>
+    <div className={rootClasses} ref={rootRef} onScroll={handleScroll} {...rest}>
       <table className="odyssey-group-table__table">
         <thead>
           <tr>
@@ -89,6 +146,11 @@ export default function GroupTable({
                 {col.label}
               </th>
             ))}
+            {stickyActions && (
+              <th scope="col" className="odyssey-group-table__cell--sticky-right">
+                {actionsHeader}
+              </th>
+            )}
           </tr>
         </thead>
 
@@ -139,16 +201,71 @@ export default function GroupTable({
                     </td>
                   )
                 )}
+                {stickyActions && (
+                  /* The action is its own affordance — clicking it must not
+                     toggle the row the way the rest of the row does. The TONE
+                     lives on the cell (not the slotted node) because the hover
+                     fill is the cell's own background — a slotted node cannot
+                     paint its ancestor. */
+                  <td
+                    className={[
+                      'odyssey-group-table__cell--sticky-right',
+                      actionToneClass(group.actionTone),
+                    ].filter(Boolean).join(' ')}
+                    onClick={handleActionCellClick}
+                  >
+                    {group.action}
+                  </td>
+                )}
               </tr>
 
-              {open &&
-                group.rows.map((row, i) => (
+              {open && nested && (
+                /* The second table. One full-width cell hosts it, so its columns
+                   are free of the outer table's column widths entirely. */
+                <tr className="odyssey-group-table__detail-row">
+                  <td colSpan={spanAll}>
+                    <table className="odyssey-group-table__detail">
+                      <thead>
+                        <tr>
+                          {detailColumns.map((col) => (
+                            <th
+                              key={col.key}
+                              scope="col"
+                              className={alignClass(col.align) || undefined}
+                              style={col.width != null ? { width: col.width } : undefined}
+                            >
+                              {col.label}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(group.detailRows ?? []).map((row, i) => (
+                          <tr key={i}>
+                            {detailColumns.map((col) => (
+                              <td key={col.key} className={alignClass(col.align) || undefined}>
+                                {renderDetailCell
+                                  ? renderDetailCell(row, col)
+                                  : row[col.key] ?? '--'}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </td>
+                </tr>
+              )}
+
+              {open && !nested &&
+                (group.rows ?? []).map((row, i) => (
                   <tr key={i} className="odyssey-group-table__row">
                     {columns.map((col) => (
                       <td key={col.key} className={alignClass(col.align) || undefined}>
                         {renderCell ? renderCell(row, col) : row[col.key] ?? '—'}
                       </td>
                     ))}
+                    {stickyActions && <td className="odyssey-group-table__cell--sticky-right" />}
                   </tr>
                 ))}
             </tbody>
@@ -163,6 +280,7 @@ export default function GroupTable({
                   {footerRow[col.key] ?? ''}
                 </td>
               ))}
+              {stickyActions && <td className="odyssey-group-table__cell--sticky-right" />}
             </tr>
           </tfoot>
         )}
@@ -195,4 +313,34 @@ export function isGroupExpanded(overrides, defaultExpanded, id) {
  */
 export function groupHeaderValue(group, colKey) {
   return group.values?.[colKey] ?? ''
+}
+
+/**
+ * Total rendered column count — `columns` plus the pinned action column when
+ * `stickyActions` is on. This is the `colSpan` the nested table's host cell
+ * needs: get it wrong and the gray band stops short of (or overruns) the
+ * pinned column.
+ *
+ * @param {Array}   columns       — the outer column definitions
+ * @param {boolean} stickyActions — whether the pinned trailing column renders
+ * @returns {number}
+ */
+export function totalColumnCount(columns = [], stickyActions = false) {
+  return columns.length + (stickyActions ? 1 : 0)
+}
+
+/** The tones a pinned action cell may carry. Default (no tone) stays neutral —
+ *  the cell paints nothing and the slotted control keeps its own hover. */
+export const ACTION_TONES = ['danger', 'warning', 'success', 'info']
+
+/**
+ * Modifier class for a group's `actionTone`. Returns '' for no tone and for any
+ * value outside the vocabulary — an unknown tone degrades to neutral rather
+ * than emitting a class with no styles behind it.
+ *
+ * @param {string} [tone] — 'danger' | 'warning' | 'success' | 'info'
+ * @returns {string}
+ */
+export function actionToneClass(tone) {
+  return ACTION_TONES.includes(tone) ? `odyssey-group-table__cell--tone-${tone}` : ''
 }
