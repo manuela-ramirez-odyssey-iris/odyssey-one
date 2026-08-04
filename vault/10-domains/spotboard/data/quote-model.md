@@ -3,7 +3,7 @@ title: SpotBoard — Quote Data Model, States & Notification Catalog
 domain: spotboard
 type: data-model
 tags: [spotboard, overflow, data-model, schema, states, notifications, ocm, mffcofl, legacy]
-date: 2026-07-29
+date: 2026-08-03
 status: active
 ---
 
@@ -250,6 +250,8 @@ On send, **per included/active carrier**, legacy takes one of two paths (PRD, Ap
 Every carrier row is then updated with report-log id, quote status, response timestamp and modify user/date.
 
 **Current reality:** the API path is *"hooked up in TMS, but currently no carriers with a rate API participate in overflow. Path must still be supported, but is dormant today."* (PRD, Appendix A.11 #2). Email is not going away: *"many carriers remain low-tech and rely on it. Keep email/report delivery; a modern notification channel can be additive, not a replacement."* (PRD, Appendix A.11 #3). Which integration event owns this in OdysseyONE is **OQ-3** (owner Engineering).
+
+> **Corroborated at v1.5 (2026-08-03).** Kathleen confirms the granularity on the July 30 call: *"**Each shipment will be its own e-mail**"* (July 30 call, 10:01) — one RFQ per shipment per recipient, explicitly **not** merged across shipments for a carrier who happens to receive several (which would require the cross-shipment carrier view that is deferred post-V1; [[../decisions/decision-log|SPB-18]]). This matches the per-recipient signed-token model ([[../decisions/decision-log|SPB-09]], [[../decisions/decision-log|SPB-19]]): one email, one token, one shipment. A separate minor legacy detail from the same-week walkthrough: the carrier bid page *"refreshed every 5 minutes"* (July 28 full, ~28:00), where the wireframe proposes a 1-minute auto-refresh ([[../spotboard|canon]] §6) — a presentational discrepancy, not a schema one. No schema, state-machine or email-catalog fact changes at v1.5.
 
 ---
 
