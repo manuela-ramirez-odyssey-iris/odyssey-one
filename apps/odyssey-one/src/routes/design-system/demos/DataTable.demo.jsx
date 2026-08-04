@@ -13,9 +13,13 @@ import { DataTable, Paginator, Checkbox, Badge, ActionMenu } from '@odyssey/ui'
 export const meta = {
   name: 'DataTable',
   tier: 'organism',
-  version: '0.9.0',
+  version: '0.10.0',
   createdVersion: '0.3.0',
   codeOnly: true,
+  // S107 mod: per-cell loadingRows "Loading…" text restored (S106 had blanked
+  // the cells in favor of a card-level overlay) + a new `loading` whole-table
+  // mode (centered Spinner, no rows) for the initial-mount case. Two distinct
+  // modes now — see the Loading states section in DataTable.usage.md.
   // Code-first (composes Cell + Paginator + ActionMenu — no standalone Figma master).
   // S81 mods (approved + ported S81): isInteractiveTarget portal guard (out-of-cell
   // DOM targets are interactive — React portals bubble synthetic events through the
@@ -42,7 +46,8 @@ export const props = [
   { name: 'sortable', type: 'boolean', desc: 'Feature switch (default false): header sort buttons, asc ↔ desc, one column always drives (the shell auto-seeds the first sortable column when the consumer hasn\'t). Client tables also pass getSortedRowModel() to the engine; server tables set manualSorting and map the sorting state to their query. Per-column opt-out: enableSorting: false on the columnDef.' },
   { name: 'onRowClick', type: '(row) => void', desc: 'S93: row-level click on any non-interactive part of the row (interactive elements keep native behavior). Fires after onCellClick when both are provided — most consumers pick one.' },
   { name: 'scrollSelectedIntoView', type: 'boolean | { bottomBoundary?, freshDelay?, switchDelay? }', desc: "S93: keep the selected row (TanStack rowSelection) visible between the sticky header and a bottom boundary. bottomBoundary() defaults to the viewport bottom (Shipments passes the open detail bar's top edge); freshDelay (600ms) applies empty→selected so consumer open-animations land first; switchDelay (50ms) on selection switches (prev/next arrows). Scrolls the nearest scrollable ancestor." },
-  { name: 'loadingRows', type: 'boolean', desc: 'Feature switch (default false): data cells (accessor columns) render "Loading…" instead of their value — pass while stale placeholder rows are showing (TanStack Query keepPreviousData + isPlaceholderData). Display columns (select/actions) keep rendering.' },
+  { name: 'loadingRows', type: 'boolean', desc: 'Feature switch (default false): data cells (accessor columns) render "Loading…" instead of their value — pass while stale placeholder rows are showing (TanStack Query keepPreviousData + isPlaceholderData). Display columns (select/actions) keep rendering. For tab-change/refetch — chrome + rows already on screen.' },
+  { name: 'loading', type: 'boolean', desc: 'Feature switch (default false): whole-table mode for the first mount, before anything has loaded (e.g. isPending). Rows are suppressed entirely and a centered Spinner (32px, no text) covers the card instead. Mutually exclusive with loadingRows in practice.' },
   { name: 'truncationTooltip', type: 'boolean', desc: 'Feature switch (default false): hovering any ellipsis-truncated body cell shows the normalized Tooltip (S93 — was >1 hidden word) with the full text (inner-wrapper truncation detected too). Cells wrapped in their own [data-tooltip-trigger] (complementary-data tooltips, e.g. dates) are left alone. Default column widths = max(header label, cell content) capped at MAX_COL_WIDTH (290px) — past the cap content ellipsizes.' },
   { name: 'onCellClick', type: '(cell, row) => void', desc: 'Per-cell click (opt-in): fires on a body-cell click, suppressed when the click is inside an interactive element (button/ActionMenu, checkbox, link, [role=menuitem], [data-no-cell-click]). Providing it also adds the pointer affordance.' },
   { name: 'resize', type: '(engine)', desc: 'Column resize: enable enableColumnResizing + columnResizeMode on the TanStack table → a drag-grip renders in each resizable header; the colgroup uses the user-dragged size.' },
@@ -162,6 +167,8 @@ function LiveDataTable() {
   const [selectable, setSelectable] = useState(true)
   const [rowCount, setRowCount] = useState(32)
   const [longContent, setLongContent] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [loadingRows, setLoadingRows] = useState(false)
   const data = useMemo(() => makeData(rowCount, longContent), [rowCount, longContent])
   // selectable → include the leading checkbox column (consumer-owned; opt in/out by add/drop).
   const columns = useMemo(() => (selectable ? [SELECT_COLUMN, ...DATA_COLUMNS] : DATA_COLUMNS), [selectable])
@@ -217,11 +224,21 @@ function LiveDataTable() {
           <input type="checkbox" checked={longContent} onChange={(e) => setLongContent(e.target.checked)} />
           long content (290px cap + tooltip)
         </label>
+        <label style={labelStyle}>
+          <input type="checkbox" checked={loading} onChange={(e) => setLoading(e.target.checked)} />
+          loading (whole-table Spinner — first mount)
+        </label>
+        <label style={labelStyle}>
+          <input type="checkbox" checked={loadingRows} onChange={(e) => setLoadingRows(e.target.checked)} />
+          loadingRows (per-cell "Loading…" — tab-change/refetch)
+        </label>
       </div>
       <DataTable
         table={table}
         sortable={sortable}
         truncationTooltip={truncationTooltip}
+        loading={loading}
+        loadingRows={loadingRows}
         ariaLabel="Sample data"
         onCellClick={(cell, row) => console.log('cell click →', cell.column.id, '·', row.original.name)}
         footer={<Paginator table={table} />}
@@ -282,7 +299,11 @@ useReactTable({ ...config, state: { sorting }, onSortingChange: setSorting, manu
 // query: sortBy = sorting[0]?.id · orderBy = sorting[0]?.desc ? 'desc' : 'asc'
 
 // per-column opt-outs (system columns): enableSorting: false, enableResizing: false
-// own-tooltip cells: wrap in a [data-tooltip-trigger] element — truncationTooltip skips them`
+// own-tooltip cells: wrap in a [data-tooltip-trigger] element — truncationTooltip skips them
+
+// Loading states — two modes, picked by what's already on screen:
+<DataTable table={table} loading />       // first mount, nothing to show yet — centered Spinner, no rows
+<DataTable table={table} loadingRows />   // tab-change/refetch — chrome + rows stay, cells show "Loading…"`
 
 export default function DataTableDemo() {
   return (

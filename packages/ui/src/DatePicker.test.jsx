@@ -6,6 +6,41 @@ import DatePicker from './DatePicker.jsx'
 
 afterEach(cleanup)
 
+// ── QA repro: scripted char-by-char typing of a full date (S107) ────────────
+// Browser QA typed '04/03/2026' into a single DatePicker (format MM/DD/YYYY)
+// keystroke-by-keystroke and got '04//3202' + "Enter a valid date". Traced to
+// handleText's caret re-anchor: after "04" + typing "/", the mask rails out to
+// "04//" (3 structural slots, per the header comment — expected), but the old
+// re-anchor math landed the caret at index 2 (BEFORE both slashes) instead of
+// index 3 (between them). Every digit typed next lands one slot early and gets
+// truncated by the segment cap — "0" meant for the month segment overflows
+// into re-capping the day segment, discarding it. Fixed with a one-slot nudge
+// past a single just-typed separator (see handleText). This helper simulates
+// a real browser: it reads the CURRENT caret (wherever the last render put it)
+// before inserting each new character, so it only passes if the component's
+// caret math is actually correct after every keystroke — not just the final
+// mask string.
+async function typeChar(input, ch) {
+  const pos = input.selectionStart
+  const raw = input.value.slice(0, pos) + ch + input.value.slice(pos)
+  fireEvent.change(input, { target: { value: raw, selectionStart: pos + ch.length } })
+  // Flush the rAF the component uses to re-anchor the caret post-mask.
+  await new Promise((r) => requestAnimationFrame(r))
+}
+
+describe('DatePicker — scripted char-by-char typing (QA repro, S107)', () => {
+  test('typing "04032026" one character at a time (with the mask auto-inserting slashes... no slashes here) still commits cleanly', async () => {
+    render(<DatePicker id="dp" label="Date" onChange={() => {}} />)
+    const input = screen.getByRole('textbox')
+    input.focus()
+    input.setSelectionRange(0, 0)
+    for (const ch of '04/03/2026') await typeChar(input, ch)
+    expect(input.value).toBe('04/03/2026')
+    fireEvent.blur(input)
+    expect(screen.queryByText(/valid date/i)).toBeNull()
+  })
+})
+
 // ── Filter unit tests — editing is FREE, only digit caps + separators ─────────
 
 describe('maskDDMMYYYY (digit-cap filter, no auto-pad / no reset)', () => {
@@ -86,10 +121,32 @@ const dayButtons = () =>
     return al && !al.includes('month') && !al.includes('calendar') && !al.includes('clear') && !b.disabled
   })
 
+// S107 addendum (2026-08-03): default format flips DD/MM/YYYY → MM/DD/YYYY
+// (US canon). Every other test in this file passes format="DD/MM/YYYY"
+// explicitly to keep asserting the pre-flip day-first semantics unchanged;
+// these two pin the new DEFAULT.
+describe('DatePicker — default format is now MM/DD/YYYY (US canon)', () => {
+  test('displays a value month-first with no format prop', () => {
+    render(<DatePicker id="dp" label="Date" value={new Date(2026, 6, 14)} onChange={() => {}} />)
+    expect(screen.getByRole('textbox').value).toBe('07/14/2026')
+  })
+
+  test('commits a typed date month-first with no format prop', () => {
+    const onChange = vi.fn()
+    render(<DatePicker id="dp" label="Date" onChange={onChange} />)
+    const input = screen.getByRole('textbox')
+    fireEvent.change(input, { target: { value: '07/14/2026', selectionStart: 10 } })
+    fireEvent.blur(input)
+    const d = onChange.mock.calls.at(-1)[0]
+    expect(d.getMonth()).toBe(6) // July
+    expect(d.getDate()).toBe(14)
+  })
+})
+
 describe('DatePicker interaction — draft/commit model', () => {
   test('typing does NOT emit onChange mid-keystroke', () => {
     const onChange = vi.fn()
-    render(<DatePicker id="dp" label="Date" onChange={onChange} />)
+    render(<DatePicker id="dp" label="Date" format="DD/MM/YYYY" onChange={onChange} />)
     const input = screen.getByRole('textbox')
     fireEvent.change(input, { target: { value: '14072026', selectionStart: 8 } })
     expect(onChange).not.toHaveBeenCalled() // free typing, no commit yet
@@ -97,7 +154,7 @@ describe('DatePicker interaction — draft/commit model', () => {
 
   test('commit on blur emits a valid Date', () => {
     const onChange = vi.fn()
-    render(<DatePicker id="dp" label="Date" onChange={onChange} />)
+    render(<DatePicker id="dp" label="Date" format="DD/MM/YYYY" onChange={onChange} />)
     const input = screen.getByRole('textbox')
     fireEvent.change(input, { target: { value: '14/07/2026', selectionStart: 10 } })
     fireEvent.blur(input)
@@ -110,7 +167,7 @@ describe('DatePicker interaction — draft/commit model', () => {
 
   test('deleting the day mid-edit does NOT reset to 01', () => {
     const onChange = vi.fn()
-    render(<DatePicker id="dp" label="Date" value={new Date(2026, 6, 14)} onChange={onChange} />)
+    render(<DatePicker id="dp" label="Date" format="DD/MM/YYYY" value={new Date(2026, 6, 14)} onChange={onChange} />)
     const input = screen.getByRole('textbox')
     expect(input.value).toBe('14/07/2026')
     // user clears the day segment
@@ -120,7 +177,7 @@ describe('DatePicker interaction — draft/commit model', () => {
 
   test('commit on invalid date shows error, does not emit', () => {
     const onChange = vi.fn()
-    render(<DatePicker id="dp" label="Date" onChange={onChange} />)
+    render(<DatePicker id="dp" label="Date" format="DD/MM/YYYY" onChange={onChange} />)
     const input = screen.getByRole('textbox')
     fireEvent.change(input, { target: { value: '99/99/2026', selectionStart: 10 } })
     fireEvent.blur(input)
@@ -130,7 +187,7 @@ describe('DatePicker interaction — draft/commit model', () => {
 
   test('range mode: typing both ends and blurring commits a {start,end}', () => {
     const onChange = vi.fn()
-    render(<DatePicker id="dp" label="Date" mode="range" onChange={onChange} />)
+    render(<DatePicker id="dp" label="Date" format="DD/MM/YYYY" mode="range" onChange={onChange} />)
     const input = screen.getByRole('textbox')
     fireEvent.change(input, { target: { value: '14/07/2026 - 20/07/2026', selectionStart: 23 } })
     expect(input.value).toBe('14/07/2026 - 20/07/2026') // typed freely
@@ -144,7 +201,7 @@ describe('DatePicker interaction — draft/commit model', () => {
 
   test('range mode reorders reversed ends on commit', () => {
     const onChange = vi.fn()
-    render(<DatePicker id="dp" label="Date" mode="range" onChange={onChange} />)
+    render(<DatePicker id="dp" label="Date" format="DD/MM/YYYY" mode="range" onChange={onChange} />)
     const input = screen.getByRole('textbox')
     fireEvent.change(input, { target: { value: '20/07/2026 - 14/07/2026', selectionStart: 23 } })
     fireEvent.blur(input)
@@ -155,7 +212,7 @@ describe('DatePicker interaction — draft/commit model', () => {
 
   test('day-click wins over a stale typed draft (pick-guard)', () => {
     const onChange = vi.fn()
-    render(<DatePicker id="dp" label="Date" onChange={onChange} />)
+    render(<DatePicker id="dp" label="Date" format="DD/MM/YYYY" onChange={onChange} />)
     const input = screen.getByRole('textbox')
     fireEvent.focus(input)
     // stale, incomplete draft in the field
@@ -176,7 +233,7 @@ describe('DatePicker interaction — draft/commit model', () => {
   // the emptied segment can be refilled — it must NOT snap to the wrong slash.
 
   test('empty-month refill: caret stays between the slashes, filter untouched', () => {
-    render(<DatePicker id="dp" label="Date" value={new Date(2026, 7, 12)} onChange={() => {}} />)
+    render(<DatePicker id="dp" label="Date" format="DD/MM/YYYY" value={new Date(2026, 7, 12)} onChange={() => {}} />)
     const input = screen.getByRole('textbox')
     expect(input.value).toBe('12/08/2026')
     // select "08" (pos 3-5), backspace → "12//2026", caret at 3
@@ -187,7 +244,7 @@ describe('DatePicker interaction — draft/commit model', () => {
   })
 
   test('empty-day refill: caret stays at start, filter untouched', () => {
-    render(<DatePicker id="dp" label="Date" value={new Date(2026, 7, 12)} onChange={() => {}} />)
+    render(<DatePicker id="dp" label="Date" format="DD/MM/YYYY" value={new Date(2026, 7, 12)} onChange={() => {}} />)
     const input = screen.getByRole('textbox')
     input.setSelectionRange(0, 0)
     fireEvent.change(input, { target: { value: '//2026', selectionStart: 0 } })
@@ -196,7 +253,7 @@ describe('DatePicker interaction — draft/commit model', () => {
   })
 
   test('mid-string caret stability: single-digit backspace does not jump', () => {
-    render(<DatePicker id="dp" label="Date" value={new Date(2026, 7, 12)} onChange={() => {}} />)
+    render(<DatePicker id="dp" label="Date" format="DD/MM/YYYY" value={new Date(2026, 7, 12)} onChange={() => {}} />)
     const input = screen.getByRole('textbox')
     // "12/08/2026" → delete the "8" → "12/0/2026", caret at 4
     fireEvent.change(input, { target: { value: '12/0/2026', selectionStart: 4 } })
@@ -205,7 +262,7 @@ describe('DatePicker interaction — draft/commit model', () => {
   })
 
   test('year overflow still re-anchors the caret (filter changed the string)', () => {
-    render(<DatePicker id="dp" label="Date" onChange={() => {}} />)
+    render(<DatePicker id="dp" label="Date" format="DD/MM/YYYY" onChange={() => {}} />)
     const input = screen.getByRole('textbox')
     // typing a 5th year digit is stripped; caret must land after the 4 kept digits
     fireEvent.change(input, { target: { value: '14/07/20265', selectionStart: 11 } })
@@ -214,7 +271,7 @@ describe('DatePicker interaction — draft/commit model', () => {
 
   test('range mode: deleting the second-end month keeps separators + caret', () => {
     render(
-      <DatePicker id="dp" label="Date" mode="range"
+      <DatePicker id="dp" label="Date" format="DD/MM/YYYY" mode="range"
         value={{ start: new Date(2026, 6, 14), end: new Date(2026, 7, 20) }} onChange={() => {}} />
     )
     const input = screen.getByRole('textbox')
@@ -227,7 +284,7 @@ describe('DatePicker interaction — draft/commit model', () => {
 
   test('range mode: deleting the first-end day keeps separators + caret', () => {
     render(
-      <DatePicker id="dp" label="Date" mode="range"
+      <DatePicker id="dp" label="Date" format="DD/MM/YYYY" mode="range"
         value={{ start: new Date(2026, 6, 14), end: new Date(2026, 7, 20) }} onChange={() => {}} />
     )
     const input = screen.getByRole('textbox')
@@ -237,7 +294,7 @@ describe('DatePicker interaction — draft/commit model', () => {
   })
 
   test('backspace over a separator keeps it (single)', () => {
-    render(<DatePicker id="dp" label="Date" value={new Date(2026, 7, 12)} onChange={() => {}} />)
+    render(<DatePicker id="dp" label="Date" format="DD/MM/YYYY" value={new Date(2026, 7, 12)} onChange={() => {}} />)
     const input = screen.getByRole('textbox')
     expect(input.value).toBe('12/08/2026')
     // caret between "12" and "08", backspace removes the "/" → "1208/2026"
@@ -246,7 +303,7 @@ describe('DatePicker interaction — draft/commit model', () => {
   })
 
   test('selection spanning a separator deletes only digits, keeps rails', () => {
-    render(<DatePicker id="dp" label="Date" value={new Date(2026, 7, 12)} onChange={() => {}} />)
+    render(<DatePicker id="dp" label="Date" format="DD/MM/YYYY" value={new Date(2026, 7, 12)} onChange={() => {}} />)
     const input = screen.getByRole('textbox')
     // select "2/08" (spans a slash) and delete → browser yields "1/2026"
     fireEvent.change(input, { target: { value: '1/2026', selectionStart: 1 } })
@@ -256,7 +313,7 @@ describe('DatePicker interaction — draft/commit model', () => {
 
   test('range: deleting a separator on the second end is a no-op', () => {
     render(
-      <DatePicker id="dp" label="Date" mode="range"
+      <DatePicker id="dp" label="Date" format="DD/MM/YYYY" mode="range"
         value={{ start: new Date(2026, 6, 14), end: new Date(2026, 7, 20) }} onChange={() => {}} />
     )
     const input = screen.getByRole('textbox')
@@ -267,7 +324,7 @@ describe('DatePicker interaction — draft/commit model', () => {
   })
 
   test('typing "45" as day is accepted mid-typing (no mask rejection)', () => {
-    render(<DatePicker id="dp" label="Date" onChange={() => {}} />)
+    render(<DatePicker id="dp" label="Date" format="DD/MM/YYYY" onChange={() => {}} />)
     const input = screen.getByRole('textbox')
     fireEvent.change(input, { target: { value: '4/07/2026', selectionStart: 1 } })
     expect(input.value).toBe('4/07/2026')
@@ -277,7 +334,7 @@ describe('DatePicker interaction — draft/commit model', () => {
 
   test('typing "32/07/2026" and blurring shows error, keeps text', () => {
     const onChange = vi.fn()
-    render(<DatePicker id="dp" label="Date" onChange={onChange} />)
+    render(<DatePicker id="dp" label="Date" format="DD/MM/YYYY" onChange={onChange} />)
     const input = screen.getByRole('textbox')
     fireEvent.change(input, { target: { value: '32/07/2026', selectionStart: 10 } })
     expect(input.value).toBe('32/07/2026') // accepted mid-typing
@@ -289,7 +346,7 @@ describe('DatePicker interaction — draft/commit model', () => {
 
   test('typing month "13" is accepted mid-typing, fails at commit', () => {
     const onChange = vi.fn()
-    render(<DatePicker id="dp" label="Date" value={new Date(2026, 0, 12)} onChange={onChange} />)
+    render(<DatePicker id="dp" label="Date" format="DD/MM/YYYY" value={new Date(2026, 0, 12)} onChange={onChange} />)
     const input = screen.getByRole('textbox')
     fireEvent.change(input, { target: { value: '12/1/2026', selectionStart: 4 } })
     fireEvent.change(input, { target: { value: '12/13/2026', selectionStart: 5 } })
@@ -301,7 +358,7 @@ describe('DatePicker interaction — draft/commit model', () => {
 
   test('commit pads single-digit segments on blur', () => {
     const onChange = vi.fn()
-    render(<DatePicker id="dp" label="Date" onChange={onChange} />)
+    render(<DatePicker id="dp" label="Date" format="DD/MM/YYYY" onChange={onChange} />)
     const input = screen.getByRole('textbox')
     fireEvent.change(input, { target: { value: '4/7/2026', selectionStart: 8 } })
     fireEvent.blur(input)
@@ -310,7 +367,7 @@ describe('DatePicker interaction — draft/commit model', () => {
   })
 
   test('trailing calendar button toggles the popover', () => {
-    render(<DatePicker id="dp" label="Date" onChange={() => {}} />)
+    render(<DatePicker id="dp" label="Date" format="DD/MM/YYYY" onChange={() => {}} />)
     const toggle = screen.getByRole('button', { name: /open calendar/i })
     expect(toggle.getAttribute('aria-expanded')).toBe('false')
     fireEvent.click(toggle)

@@ -384,6 +384,34 @@ tender outcome is the relevant signal. (S-? refinement, 2026-06-04.)
   #0/#1: *"in shipments everything is defaulted to shipments if no other
   option — or same-amount-of-results competing options — exist."* (Also feeds
   Q2's eventual answer: shipment grain is the domain default.)
+- **Reopen-with-date refinement (user, 2026-08-03):** an open date chip
+  suppresses the results panel only while it has NO date yet (fresh pick —
+  the calendar owns the space below the bar as above). A **committed chip
+  reopened for editing** (`open: true`, `from` already set) leaves the panel
+  exactly as it was — reopening it must not force-close an already-open
+  results panel behind it. Fixed in `ShipmentsGlobalSearch.jsx`'s open/close
+  effect; suggestions gating (`pendingDateChip` in the hook) is unchanged.
+- **No spurious search on reopen (user, 2026-08-03):** reopening a committed
+  date chip's calendar must not re-fire the results search — nothing
+  search-relevant changed, only the chip's UI-only `open` flag. Fixed in
+  `useGlobalSearch.js`: the results-search effect now keys off a
+  content-only serialization of chips (excludes `open`/`monthHint`), not the
+  chips array's identity, so an `open`-only toggle no longer re-triggers
+  `adapter.searchShipments`. A real bounds change (`onDateCommit`) still
+  re-runs it.
+- **Selecting a shipment is a pure dismissal, never a commit (user,
+  2026-08-03):** clicking a match row (or the docked ShipmentsBar) while a
+  date chip's calendar is open must close the results panel, suggestions, and
+  the open chip — WITHOUT committing anything or firing a search. Previously
+  this raced with the chip's own outside-click auto-commit (Case 12) and the
+  "chip closed → open results" (`dateCompleted`) heuristic, which could
+  reopen the panel right after the click closed it. Fixed in
+  `ShipmentsGlobalSearch.jsx` via a `dismissSearchUI` helper (used by
+  `handleMatchClick` and by the outside-click handler when the click lands on
+  `.shipments-bar`) that force-closes any open date chip and suppresses that
+  one heuristic pass via a one-shot ref guard. Clicks elsewhere outside the
+  bar are unaffected — that's still the legitimate outside-click commit
+  (S106) and may still open results.
 
 ---
 

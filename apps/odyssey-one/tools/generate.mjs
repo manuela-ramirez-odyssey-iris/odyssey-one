@@ -939,7 +939,12 @@ function generateShipment(index) {
     { action: 'Status Changed', category: 'update' },
     { action: 'PGI Completed', category: 'completion' },
     { action: 'PGR Completed', category: 'completion' },
+    // LINX-13065 (Shipment View - Audit Log): must include entries for PGI
+    // error corrections and quotes entered.
+    { action: 'PGI Error Corrected', category: 'completion' },
+    { action: 'Quote Entered', category: 'tender' },
   ];
+  const HISTORY_SYSTEM_SOURCES = ['ERP', 'UI', 'Legacy TMS', 'Linx'];
 
   const historyEntryCount = faker.number.int({ min: 5, max: 12 });
   const historyEntries = [];
@@ -1043,15 +1048,28 @@ function generateShipment(index) {
       case 'PGR Completed':
         details = `Post Goods Receipt confirmed at ${destLoc.facility}`;
         break;
+      case 'PGI Error Corrected':
+        details = `PGI error corrected for order ${pick(orders).orderId}`;
+        break;
+      case 'Quote Entered': {
+        const qCarrier = pick(CARRIERS);
+        details = `Quote entered at $${fmt(faker.number.float({ min: 800, max: 5000, fractionDigits: 2 }))} for ${qCarrier.name}`;
+        break;
+      }
     }
 
+    // ~25% of entries are system-generated (User|System split, LINX-8091 AC)
+    const isSystemActor = faker.number.int({ min: 1, max: 100 }) <= 25;
+    const source = isSystemActor ? pick(HISTORY_SYSTEM_SOURCES) : undefined;
+
     const entry = {
-      user,
+      user: source || user,
       timestamp: ts.toISOString(),
       action: actionObj.action,
       category: actionObj.category,
       details,
     };
+    if (source) entry.source = source;
     if (field) entry.field = field;
     if (oldValue !== undefined) entry.oldValue = oldValue;
     if (newValue !== undefined) entry.newValue = newValue;

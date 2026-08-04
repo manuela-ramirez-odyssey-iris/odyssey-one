@@ -56,6 +56,24 @@ function matchInfo(values, query) {
   return { score: 0, samples: [] }
 }
 
+/**
+ * Distinct values for one attribute whose text starts with `query`
+ * (case-insensitive; empty query → the first `limit` values). Feeds the
+ * Filters view's ComboBox controls (S107) — same memoized index, so a
+ * keystroke never rescans the DB.
+ */
+export function distinctMatches(dataKey, query, limit = 50) {
+  const q = (query || '').trim().toLowerCase()
+  const out = []
+  for (const v of distinctValues(dataKey)) {
+    if (!q || v.toLowerCase().startsWith(q)) {
+      out.push(v)
+      if (out.length >= limit) break
+    }
+  }
+  return out
+}
+
 export function valueMatchScore(dataKey, query) {
   return matchInfo(distinctValues(dataKey), query).score
 }

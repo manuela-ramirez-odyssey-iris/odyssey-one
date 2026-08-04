@@ -235,3 +235,49 @@ describe('S81 fix 6 — removing the LAST committed item is the explicit full cl
     expect(onLastRemoved).toHaveBeenCalledTimes(2)
   })
 })
+
+describe('Fix A (user, 2026-08-03) — reopening a date chip must not re-fire the results search', () => {
+  const DATE_ITEM = {
+    key: 'ship-date', kind: 'date',
+    attr: { label: 'Ship Date', dataKey: 'shipDate', group: 'dates' },
+    from: '08/01/2026',
+  }
+
+  test('toggling a date chip open/closed with no bounds change does not call searchShipments again', async () => {
+    const adapter = makeAdapter()
+    const { result } = renderHook(() => useGlobalSearch(adapter))
+
+    await act(async () => result.current.onChipCommit(DATE_ITEM))
+    await flushDebounce()
+    expect(result.current.chips).toHaveLength(1)
+    const key = result.current.chips[0].key
+    expect(result.current.chips[0].open).toBe(true)
+    adapter.searchShipments.mockClear()
+
+    // Close then reopen — the chip's search-relevant content (from/to) never
+    // changes, only its UI-only `open` flag.
+    await act(async () => result.current.onDateToggle(key, false))
+    await act(async () => result.current.onDateToggle(key, true))
+    await act(async () => result.current.onDateToggle(key, false))
+
+    expect(adapter.searchShipments).not.toHaveBeenCalled()
+  })
+
+  test('an actual bounds change (onDateCommit) still re-runs the search', async () => {
+    const adapter = makeAdapter()
+    const { result } = renderHook(() => useGlobalSearch(adapter))
+
+    await act(async () => result.current.onChipCommit(DATE_ITEM))
+    await flushDebounce()
+    const key = result.current.chips[0].key
+    adapter.searchShipments.mockClear()
+
+    await act(async () => result.current.onDateCommit(key, { from: '08/01/2026', to: '08/02/2026' }))
+
+    expect(adapter.searchShipments).toHaveBeenCalledTimes(1)
+    expect(adapter.searchShipments).toHaveBeenLastCalledWith(
+      expect.arrayContaining([expect.objectContaining({ from: '08/01/2026', to: '08/02/2026' })]),
+      '',
+    )
+  })
+})

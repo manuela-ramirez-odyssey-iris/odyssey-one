@@ -79,14 +79,29 @@ export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment 
   // that query change would re-open the panel right after commitQuery closed it.
   const hasQuery = query.trim().length > 0
   const prevOpenKeyRef = useRef({ chipCount: 0, query: '', pendingDateChip: false })
+  // Fix B (user, 2026-08-03): selecting a shipment (match row) or clicking the
+  // docked ShipmentsBar is a pure UI dismissal — set right before forcing an
+  // open date chip closed / the panel closed, so THIS effect's next pass (the
+  // one reacting to that chip closing) skips its normal "chip closed → open
+  // results" heuristics instead of undoing the dismissal.
+  const dismissRef = useRef(false)
   useEffect(() => {
     const prev = prevOpenKeyRef.current
     prevOpenKeyRef.current = { chipCount: chips.length, query, pendingDateChip }
+    if (dismissRef.current) { dismissRef.current = false; return }
     const q = query.trim()
-    // Case 12: while a date chip's CalendarPicker awaits its pick, the panel
-    // stays CLOSED — the calendar owns the space below the bar; quick results
-    // appear only once a date is actually selected.
-    if (pendingDateChip) {
+    // Case 12 / GS-22 refinement: an open date chip suppresses the panel only
+    // while it has no date yet; a reopened chip with a date leaves the panel
+    // as-is (user, 2026-08-03). A fresh chip (no `from`) still owns the space
+    // below the bar — quick results appear only once a date is picked. A
+    // committed chip reopened for editing (`from` already set) must NOT force
+    // the results panel closed behind it.
+    const openDateChipNoDate = chips.some((c) => c.kind === 'date-range' && c.open && !c.from)
+    const openDateChipWithDate = chips.some((c) => c.kind === 'date-range' && c.open && c.from)
+    if (openDateChipWithDate) {
+      return
+    }
+    if (openDateChipNoDate) {
       setResultsOpen(false)
       return
     }
@@ -108,6 +123,26 @@ export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment 
 
   const openFilters = () => { setPanelView('filters'); setResultsOpen(true) }
   const closePanel = useCallback(() => { setResultsOpen(false); setPanelView('results') }, [])
+
+  // Fix B (user, 2026-08-03): a pure UI dismissal — the user's focus moved to
+  // a shipment (match-row click, or the docked ShipmentsBar). Closes the
+  // panel AND any open date chip's calendar, but is NOT a commit and must not
+  // trigger a search or the "chip closed → open results" heuristic above
+  // (guarded via dismissRef, since that closing chip re-fires this effect).
+  const dismissSearchUI = useCallback(() => {
+    // Only arm the guard when there's actually an open chip to close — that's
+    // the only case that re-fires the effect above; arming it unconditionally
+    // would wrongly swallow the NEXT unrelated chips/query change (the effect
+    // only reruns when one of its deps actually changes, so a stale armed
+    // flag would sit there until some future, unrelated change consumed it).
+    const openDate = chips.find((c) => c.kind === 'date-range' && c.open)
+    if (openDate) {
+      dismissRef.current = true
+      onDateToggle(openDate.key, false)
+    }
+    closePanel()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chips, onDateToggle, closePanel])
 
   // Commit the current criteria set — committed chips + free text — to the
   // host's table-search pipeline and close the glimpse. Chips-only commits work
@@ -149,19 +184,21 @@ export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment 
   }, [chips, textChip, applyChips, onCommitQuery, closePanel])
 
   // Match-row click → select that shipment (docked bar opens with its details,
-  // whether or not the row is on the current table page) and close the glimpse.
-  // Mirrors the table's cell→tab wiring: the LEADING chip (the one that scoped
-  // the search, same rule as the adapter's result entity) picks the bar tab via
-  // the shared CELL_TAB_MAP — searching by Order Count lands on Orders, by SCAC
-  // on Tender, etc. No chips (free-text glimpse) → default tab.
+  // whether or not the row is on the current table page) and dismiss the
+  // glimpse. Mirrors the table's cell→tab wiring: the LEADING chip (the one
+  // that scoped the search, same rule as the adapter's result entity) picks
+  // the bar tab via the shared CELL_TAB_MAP — searching by Order Count lands
+  // on Orders, by SCAC on Tender, etc. No chips (free-text glimpse) → default
+  // tab. Fix B (user, 2026-08-03): dismissSearchUI, not closePanel — this is
+  // the user's focus moving to the shipment, not a commit.
   const handleMatchClick = useCallback((match) => {
     const key = match?.['data-shipment-key']
     if (key) {
       const mapping = chips.length ? tabForDataKey(chips[0].dataKey) : null
       onSelectShipment?.(key, mapping?.tab, mapping?.expandGeneral)
     }
-    closePanel()
-  }, [onSelectShipment, closePanel, chips])
+    dismissSearchUI()
+  }, [onSelectShipment, dismissSearchUI, chips])
 
   // Keyboard: Enter in the input commits the query (same as "Show all N
   // results"); Escape closes the panel. Listens on the wrapper so we don't
@@ -200,18 +237,27 @@ export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment 
     if (canCommit) setResultsOpen(true)
   }, [onFocus, canCommit])
 
-  // Close on click outside the entire wrapper (bar + panel).
+  // Close on click outside the entire wrapper (bar + panel). Fix B (user,
+  // 2026-08-03): a click landing on the docked ShipmentsBar (`.shipments-bar`)
+  // is the same "focus moved to a shipment" dismissal as a match-row click —
+  // dismissSearchUI, not a plain close, so an open date chip doesn't race
+  // back open behind it. Any OTHER outside click is unaffected — it's a
+  // legitimate outside-click commit (S106) and may still open results.
   useEffect(() => {
     if (!resultsOpen) return
     const handleMouseDown = (e) => {
       if (wrapperRef.current && !wrapperRef.current.contains(e.target)) {
+        if (e.target.closest?.('.shipments-bar')) {
+          dismissSearchUI()
+          return
+        }
         setResultsOpen(false)
         setPanelView('results')
       }
     }
     document.addEventListener('mousedown', handleMouseDown)
     return () => document.removeEventListener('mousedown', handleMouseDown)
-  }, [resultsOpen])
+  }, [resultsOpen, dismissSearchUI])
 
   // Bar chips = committed attribute chips + (when present) the free-text query
   // badge (S80 req 2) — same visual treatment, quoted label to read as a query

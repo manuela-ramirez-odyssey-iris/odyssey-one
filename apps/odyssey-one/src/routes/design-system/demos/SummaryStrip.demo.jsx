@@ -4,15 +4,15 @@ import { SummaryStrip } from '@odyssey/ui'
 export const meta = {
   name: 'SummaryStrip',
   tier: 'molecule',
-  version: '0.7.0',
+  version: '0.7.1',
   createdVersion: '0.7.0',
-  normalizing: false,
+  normalizing: true,
   figmaNode: '4254:904',
   codeConnect: 'packages/ui/src/SummaryStrip.figma.tsx',
 }
 
 export const props = [
-  { name: 'items', type: '[{ label, value, tone? }]', desc: "The stat cells, in order. `label` renders uppercase (CSS transform — pass natural case); empty/nullish `value` renders '--'; `tone: 'positive' | 'negative'` colors the value (code extension — the Figma master has no tone axis)." },
+  { name: 'items', type: "[{ label, value, tone?, truncate? }]", desc: "The stat cells, in order. `label` renders uppercase (CSS transform — pass natural case); empty/nullish `value` renders '--'; `tone: 'positive' | 'negative'` colors the value (code extension — the Figma master has no tone axis); `truncate: 'lead'` caps the cell width and lead-ellipsizes the value (tail visible, '…' leads — for URL-ish values), full value via `title` (code extension)." },
   { name: 'className', type: 'string', desc: 'Extra class(es) on the root element.' },
   { name: '...rest', type: 'aria-* etc.', desc: 'Forwarded to the root — pass `aria-label` to name the region (root is a <dl> with role="region").' },
 ]
@@ -66,7 +66,7 @@ function Schematic() {
         <LegendRow part="band" tier="molecule">Full-width <code>&lt;dl&gt;</code> strip on the pane canvas: <code>--bg-primary</code>, <code>--border-subtle</code> bottom hairline, <code>--spacing-12</code> (48px) side padding — the cell row is <strong>centered</strong> inside it (Figma: justify CENTER). Overflows scroll, never wrap.</LegendRow>
         <LegendRow part="cell" nested><code>min-width: 152px</code> (Figma: fixed 152 — code grows rather than truncates), padding <code>--spacing-4</code>/<code>--spacing-3</code>, gap <code>--spacing-1</code>; <code>--deep-sea-neutral-200</code> right divider on <strong>every</strong> cell, the last included (per the master).</LegendRow>
         <LegendRow part="label" nested><code>&lt;dt&gt;</code>, <code>label/xs medium</code>, <code>--text-tertiary</code>, CSS-uppercased (the master bakes uppercase into content, letter-spacing 0 — no tracking).</LegendRow>
-        <LegendRow part="value" nested><code>&lt;dd&gt;</code>, <code>label/base semibold</code> (16/24), <code>--text-primary</code>; empty renders <code>--</code>; <code>tone</code> shifts it green/red (code extension — no Figma axis).</LegendRow>
+        <LegendRow part="value" nested><code>&lt;dd&gt;</code>, <code>label/base semibold</code> (16/24), <code>--text-primary</code>; empty renders <code>--</code>; <code>tone</code> shifts it green/red (code extension — no Figma axis); <code>truncate: 'lead'</code> caps the cell and lead-ellipsizes long values, e.g. Tracking Link (code extension — no Figma axis).</LegendRow>
       </ul>
     </div>
   )
@@ -125,6 +125,13 @@ function Playground() {
             <option value="default">default</option>
             <option value="positive">positive</option>
             <option value="negative">negative</option>
+          </select>
+        </label>
+        <label style={{ display: 'inline-flex', flexDirection: 'column', gap: 4, fontSize: 'var(--font-size-sm)' }}>
+          truncate
+          <select value={current.truncate || 'none'} onChange={(e) => patch(sel, { truncate: e.target.value === 'none' ? undefined : e.target.value })} style={inputStyle}>
+            <option value="none">none</option>
+            <option value="lead">lead</option>
           </select>
         </label>
         <button type="button" onClick={addCell} style={{ ...inputStyle, cursor: 'pointer' }}>+ cell</button>

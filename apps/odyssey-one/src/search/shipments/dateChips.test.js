@@ -63,19 +63,21 @@ describe('date suggestions', () => {
     expect(single.from).toBeNull()
     expect(single.monthHint).toEqual({ y: year, m: 12 })
 
-    // Month + day ("2/3") → year defaults to CURRENT, from pre-filled.
+    // Month + day ("2/3") → year defaults to CURRENT, from pre-filled — padded
+    // MM/DD/YYYY canon (S107 addendum): a complete typed date is a chip bound,
+    // not the "12/../...." mask, so it commits padded like every other date.
     const partial = await adapter.getSuggestions('2/3')
-    expect(partial[0].items[0].from).toBe(`2/3/${year}`)
-    expect(partial[0].items[0].label).toContain('2/3/....')
+    expect(partial[0].items[0].from).toBe(`02/03/${year}`)
+    expect(partial[0].items[0].label).toContain('2/3/....') // the MASK stays unpadded — an input affordance, not a display value
 
-    // A complete date carries verbatim.
+    // A complete date carries verbatim (padded).
     const complete = await adapter.getSuggestions('2/3/2026')
-    expect(complete[0].items.every((i) => i.from === '2/3/2026')).toBe(true)
+    expect(complete[0].items.every((i) => i.from === '02/03/2026')).toBe(true)
 
     // First segment > 12 can't be a month → DAY in the current month.
     const dayFirst = await adapter.getSuggestions('25/')
     const now = new Date()
-    expect(dayFirst[0].items[0].from).toBe(`${now.getMonth() + 1}/25/${year}`)
+    expect(dayFirst[0].items[0].from).toBe(`${String(now.getMonth() + 1).padStart(2, '0')}/25/${year}`)
   })
 
   test('an impossible date reads "Invalid Date" and carries the invalid flag', async () => {

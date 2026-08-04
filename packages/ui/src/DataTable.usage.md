@@ -21,7 +21,8 @@ return <DataTable table={table} ariaLabel="Shipments" />
 | `table` | TanStack v8 instance | required | Source of headers/rows/state. Duck-typed. |
 | `sortable` | boolean | `false` | Feature switch: header sort buttons (see Sorting). |
 | `truncationTooltip` | boolean | `false` | Feature switch: full-text Tooltip on truncated cells (see Truncation tooltip). |
-| `loadingRows` | boolean | `false` | Feature switch: data cells (accessor columns) render "Loading…" instead of their value — pass while stale placeholder rows are showing (TanStack Query `keepPreviousData` + `isPlaceholderData`). Display columns (select/actions) keep rendering. |
+| `loadingRows` | boolean | `false` | Feature switch: data cells (accessor columns) render "Loading…" instead of their value — pass while stale placeholder rows are showing (TanStack Query `keepPreviousData` + `isPlaceholderData`). Display columns (select/actions) keep rendering. Chrome + rows are already on screen — only the values are stale (tab-change/refetch). |
+| `loading` | boolean | `false` | Feature switch: whole-table mode for the first mount, before anything has loaded. Rows are suppressed entirely and a centered Spinner (32px, no text) covers the card — use this instead of `loadingRows` when there's nothing to show yet (mutually exclusive with `loadingRows` in practice). |
 | `onCellClick` | `(cell, row) => void` | — | Per-cell click; suppressed on interactive cells (buttons, links, inputs, `[data-no-cell-click]`). |
 | `onRowClick` | `(row) => void` | — | Row-level click on any non-interactive part of the row (interactive elements keep native behavior). Fires after `onCellClick` when both are provided — most consumers pick one. |
 | `scrollSelectedIntoView` | boolean \| options | `false` | Keep the selected row (TanStack `rowSelection`) visible between the sticky header and a bottom boundary. Options: `bottomBoundary?: () => px` (default viewport bottom — pass e.g. an open detail bar's top edge), `freshDelay?: ms` (default 600, empty→selected — lets consumer open-animations land), `switchDelay?: ms` (default 50, selection switches like prev/next arrows). Scrolls the nearest scrollable ancestor. |
@@ -32,6 +33,21 @@ return <DataTable table={table} ariaLabel="Shipments" />
 
 Feature switches are **per instance** — one table can be plain, another `sortable`,
 another `truncationTooltip`, another both.
+
+## Loading states (`loading` vs `loadingRows`)
+
+Two distinct modes, picked by what's already on screen:
+
+- **`loading`** — first mount, nothing to show yet (e.g. `isPending`/`isLoading` on
+  the query). Rows are suppressed; a centered Spinner covers the card.
+- **`loadingRows`** — chrome + a page of rows are already visible and the values
+  are stale (tab switch, background refetch with `keepPreviousData`). Data cells
+  render "Loading…" in place of the stale value; select/action columns keep
+  rendering normally.
+
+```jsx
+<DataTable table={table} loading={isPending} loadingRows={isFetching} />
+```
 
 ## Sorting (`sortable`)
 

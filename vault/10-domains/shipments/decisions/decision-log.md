@@ -417,12 +417,24 @@ Every implemented decision with its previous state, source, and rationale. This 
 - **Source:** Jana via the user, Jul 30 (S103) for the initial vocabulary and the direct-cost rule; corrected the same day by the user querying **Rovo** against LINX/Odyssey domain documentation. Real-data confirmation: `vault-sources/10-domains/tracking/data/tracking-payload-page43-2026-07-30.json`.
 - **Open:** `SubShipmentList` / `PickupSequence` / `DropoffSequence` are a consolidation XML structure we have never seen. Worth obtaining — it is the authoritative order↔stop binding and would supersede our inferred model.
 
+### DEC-70: History tab rebuilt — entry-timeline anatomy kept, absolute timestamps, User|System actor split, two LINX-13065 events added
+- **Previous:** Prototype `HistoryTab.jsx` was a fully inline-styled timeline with relative times (`timeAgo()` — "3 hours ago", "2 days ago") and no concept of a system-generated entry; all actors were assumed human.
+- **Decision:**
+  1. **Anatomy kept, not converted to a table.** The order-domain audit-log AC (LINX-8091) is tabular (Field/Old/New columns); Shipments keeps the timeline-with-dots shape instead — **our call**, flagged as a deviation because the order taxonomy doesn't map 1:1 onto Shipments' 4-category badge model (create/tender/update/completion), which is also **kept** rather than replaced with LINX-8091's Action/Event+Category split.
+  2. **Timestamps** switched to `MM/DD/YYYY HH:MM` (24-hour), verbatim from LINX-8091's AC, via a new `formatDateTimeMDYHM()` in `apps/odyssey-one/src/lib/dates.js`. `timeAgo()` deleted.
+  3. **Actor split (User | System)** added verbatim from LINX-8091: entries carry an optional `source` (`ERP` | `UI` | `Legacy TMS` | `Linx`); system-sourced entries render the system name with a muted treatment + a `Badge variant="gray"` "System" tag instead of the semibold user-name style.
+  4. **Two events added verbatim from LINX-13065** ("Shipment View - Audit Log"): "PGI Error Corrected" (category `completion`) and "Quote Entered" (category `tender`) — LINX-13065 explicitly requires audit entries for PGI-error corrections and quote entry on Buy & Sell shipments.
+  5. All inline styles moved to tokenized classes in a new `apps/odyssey-one/src/styles/panes/history.css` (mirrors the `documents.css` per-tab-file convention), and the tab is now wrapped in a single `SubAccordion` ("Shipment History", default open) matching the DocumentsTab chrome idiom.
+- **Source:** vault/10-domains/shipments/domain-analysis.md §9 (Jana, Mar 25 — "Populate with Jira-style audit entries: username, date/time, change type"); LINX-13065 (Story, Todo — PGI-error-corrected / quote-entered AC); LINX-8091 (order-level audit AC, used as precedent for timestamp format and User|System split only, not for the tabular layout or category taxonomy).
+- **Implemented:** Session 107 continuation — `HistoryTab.jsx` rebuilt, `tools/generate.mjs` HISTORY_ACTIONS extended + ~25% of entries assigned a system `source`, mock data regenerated (seed 42), `HistoryTab.test.jsx` added.
+
 ---
 
 ## Changelog
 
 | Date | Decisions added |
 |---|---|
+| Aug 3, 2026 | DEC-70 — History tab rebuilt: timeline anatomy kept over order-domain tabular AC (our call), MM/DD/YYYY HH:MM 24h + User/System split verbatim from LINX-8091, PGI-corrected + quote-entered events verbatim from LINX-13065 |
 | Apr 1, 2026 | Initial decision log created — DEC-01 through DEC-17 from Sessions 2-5 |
 | Apr 1, 2026 | DEC-18 (panel pools), DEC-19 (filter vs column visibility), DEC-20 (context-aware menu) from Session 6 speccing |
 | Apr 1, 2026 | DEC-21 through DEC-27 — Major corrections from grooming with Jana: Monitoring = same screen as Exceptions, PPT slides were one split table, tender statuses reduced to 4, shipment status mapping, actions in both panels, shipment status column |

@@ -76,3 +76,23 @@ describe('getInitial — "Define set type" section for an untyped set badge', ()
     }
   })
 })
+
+// S107 — Filters-view value suggestions (per-attribute distinct index).
+describe('getAttributeValues — Filters ComboBox source', () => {
+  test('prefix-matches real distinct values, case-insensitive', async () => {
+    const scac = ALL.find((s) => s.scac)?.scac
+    const hits = await adapter.getAttributeValues('scac', scac.slice(0, 2).toLowerCase())
+    expect(hits).toContain(scac)
+    expect(new Set(hits).size).toBe(hits.length) // distinct
+  })
+
+  test('empty query returns values, capped at 50', async () => {
+    const hits = await adapter.getAttributeValues('customerName', '')
+    expect(hits.length).toBeGreaterThan(0)
+    expect(hits.length).toBeLessThanOrEqual(50)
+  })
+
+  test('unknown dataKey → empty, never throws', async () => {
+    expect(await adapter.getAttributeValues('noSuchField', 'x')).toEqual([])
+  })
+})

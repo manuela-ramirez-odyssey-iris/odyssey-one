@@ -204,9 +204,9 @@
   border-radius: var(--radius-2xl);
   overflow: clip;
 }
-/* loadingRows overlay — the Spinner centered (both axes) over the card. Above
-   the sticky head (z 3/4); cells render blank underneath so the ring is the
-   single loading signal. */
+/* loading (whole-table mode, S107) — the Spinner centered (both axes) over the
+   card. Above the sticky head (z 3/4); no rows render underneath (nothing has
+   loaded yet) so the ring is the single loading signal. */
 .odyssey-data-table__loading {
   position: absolute;
   inset: 0;
@@ -4588,6 +4588,16 @@ button.breadcrumb__label:focus-visible {
   color: var(--text-secondary);
 }
 
+/* S107 addendum — two-column pairs: Schedule & Appointments' single/range date
+   rows, and Customers & Parties' four letters fields. Each `__field` child
+   takes one column; DatePicker/ComboBox popovers position off their own field
+   (not the grid), so they still overlay correctly at half width. */
+.shipments-filters__grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-4) var(--spacing-4);
+}
+
 .shipments-filters__chips {
   display: flex;
   flex-wrap: wrap;
@@ -4608,37 +4618,6 @@ button.breadcrumb__label:focus-visible {
   border-color: var(--carolina-blue-400);
   color: var(--text-primary);
 }
-
-.shipments-filters__dropdown,
-.shipments-filters__input {
-  width: 100%;
-  /* Height owned by the token, not derived from padding (S102). */
-  height: var(--field-height);
-  padding: 0 var(--spacing-3);
-  border: 1px solid var(--input-border);
-  border-radius: var(--radius-md);
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  font-family: var(--font-primary);
-  font-size: var(--font-size-sm);
-  line-height: var(--line-height-sm);
-}
-.shipments-filters__dropdown {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  cursor: pointer;
-  text-align: left;
-}
-.shipments-filters__dropdown-placeholder { color: var(--text-placeholder); }
-.shipments-filters__input::placeholder { color: var(--text-placeholder); }
-
-.shipments-filters__daterange {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-2);
-}
-.shipments-filters__daterange-sep { color: var(--text-tertiary); }
 
 .shipments-filters__saved {
   display: flex;
@@ -5905,11 +5884,20 @@ button.breadcrumb__label:focus-visible {
   background: linear-gradient(to bottom, rgba(255, 255, 255, 0) 50%, var(--white) 196%); /* Figma: white fade-in — transparent to 50% height, ~34% white at bottom edge */
   border-bottom: 1px solid var(--border-subtle);
   padding: 0 var(--spacing-12);    /* Figma: 48px band padding, 0 vertical */
-  overflow-x: auto;                /* many/long cells never break the band */
+  overflow: hidden;                 /* absolute no-horizontal-overflow guarantee (user, 2026-08-03) — cells shrink instead; this is a backstop, not the mechanism */
+  min-width: 0;                    /* flex-item default is content-width — let the band shrink to its container instead of pushing it wider (belt-and-braces, S107) */
 }
 .summary-strip__cell {
-  flex: 0 0 auto;
-  min-width: 152px;                /* Figma: fixed 152px cells — we grow, never truncate */
+  /* Figma: fixed 152px cells. Was `flex: 0 0 auto; min-width: 152px` (a hard
+     floor) — that's an ABSOLUTE MUST-FIT bug: cells can't shrink below their
+     floor, so a wide row (e.g. a long Tracking Link) forces the whole strip
+     past its container and pops the horizontal scrollbar. Now: flex-basis is
+     the DESIRED 152px width (holds there at normal sizes, row centered same
+     as before) but flex-shrink:1 + min-width:0 let every cell give up space
+     below 152px when the row doesn't fit — label/value ellipsize rather than
+     bleed (user, 2026-08-03: "no horizontal overflow, ever"). */
+  flex: 0 1 152px;
+  min-width: 0;
   padding: var(--spacing-4) var(--spacing-3); /* Figma: 16px / 12px */
   display: flex;
   flex-direction: column;
@@ -5923,6 +5911,8 @@ button.breadcrumb__label:focus-visible {
   color: var(--text-tertiary);
   text-transform: uppercase;           /* Figma bakes uppercase into content; letter-spacing 0 */
   white-space: nowrap;
+  overflow: hidden;                    /* tail-ellipsize instead of bleeding when the cell shrinks below content width (user, 2026-08-03) */
+  text-overflow: ellipsis;
 }
 .summary-strip__value {
   margin: 0;                           /* <dd> reset */
@@ -5931,10 +5921,35 @@ button.breadcrumb__label:focus-visible {
   font-weight: var(--font-weight-semibold);
   color: var(--text-primary);          /* Figma: Text/primary (bound 2026-07-06) */
   white-space: nowrap;
+  overflow: hidden;                    /* tail-ellipsize instead of bleeding when the cell shrinks below content width (user, 2026-08-03) */
+  text-overflow: ellipsis;
 }
 /* Tones — code extension, no Figma axis yet (Pending Figma Sync) */
 .summary-strip__value--negative { color: var(--bittersweet-600); }
 .summary-strip__value--positive { color: var(--caribbean-green-600); }
+
+/* truncate: 'lead' — code extension, no Figma axis (S107). Cell width capped
+   (raw px — strategic-tokens: tiny component-internal geometry); value
+   lead-ellipsizes via the rtl/ltr flip so the TAIL of the string (e.g. a
+   Tracking Link URL) stays visible. The <bdi> keeps punctuation from
+   reordering under rtl. */
+.summary-strip__cell--truncate {
+  flex-basis: 280px;                /* desired width override (base cell is 152px) */
+  max-width: 280px;                 /* cap — still flex-shrink:1 + min-width:0 from the base rule under pressure */
+  min-width: 0;
+}
+.summary-strip__value--truncate-lead {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  direction: rtl;
+  text-align: left;
+}
+.summary-strip__value--truncate-lead bdi {
+  unicode-bidi: plaintext;
+}
 
 /* ----------------------------------------
    STOP BADGE + TIMELINE (STAGING, S80) — Figma "NewBadge" (renamed StopBadge)

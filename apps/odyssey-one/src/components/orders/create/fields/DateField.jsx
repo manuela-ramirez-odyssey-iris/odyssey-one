@@ -1,4 +1,5 @@
 import { DatePicker } from '@odyssey/ui'
+import { DATE_FORMAT } from '../../../../lib/dates'
 
 const pad = (n) => String(n).padStart(2, '0')
 
@@ -25,7 +26,7 @@ export default function DateField({ id, label, value, onChange, error, warning, 
       <DatePicker
         id={id}
         label={label}
-        format="MM/DD/YYYY"
+        format={DATE_FORMAT}
         value={strToDate(value)}
         onChange={(d) => onChange(dateToStr(d))}
         error={error}

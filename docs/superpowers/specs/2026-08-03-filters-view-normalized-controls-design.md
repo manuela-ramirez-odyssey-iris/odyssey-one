@@ -44,6 +44,27 @@ No new library components, no Figma work.
 - `getAttributeValues` unit test (prefix match, cap, unknown key → []).
 - Component internals already covered by their own suites.
 
+## Addendum (user rulings, 2026-08-03 — same session)
+
+5. **Date-format canon (platform-wide): `MM/DD/YYYY`** for every slashed
+   numeric date — matches the current Odyssey system (US default) and Jira
+   LINX-8120. The long alphanumeric tier (`Sep 25, 2026 at 2:30 PM CDT` /
+   `Mar 24, 2026` table cells) is SANCTIONED and stays untouched — this canon
+   governs only the `../../....` forms. All display formatting routes through
+   one shared `DATE_FORMAT` constant + formatter so a later per-region
+   preference is a one-value seam. **Region-switching itself is HALTED**
+   (user) — locale-aware input/parsing (search partial-date heuristics, masks,
+   server conversion) is deferred until a real regional user model exists.
+   `DatePicker`'s default `format` flips DD/MM/YYYY → MM/DD/YYYY (component
+   modification → NORMALIZING both DSMs, version bump, Angular catch-up owed).
+6. **Filters panel layout — two-column pairs:** Pickup Date + Delivery Date
+   side by side; Pickup Date Range + Delivery Date Range side by side; the
+   Customers & Parties fields in two columns.
+7. **Live-mode letters fields degrade to plain free-text** — no typeahead
+   popover (the "No matching values" empty panel misreads as "value doesn't
+   exist"). The live adapter signals no-suggestion-source; the view omits
+   typeahead when the source is absent.
+
 ## Out of scope
 
 Saved-tab persistence / drag-reorder / Save Filter modal · FilterChip master

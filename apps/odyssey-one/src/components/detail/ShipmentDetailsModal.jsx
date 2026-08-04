@@ -146,7 +146,7 @@ export default function ShipmentDetailsModal({ shipment, shipmentDetails, error,
                   { label: 'Pro/Booking #', value: shipment?.pro || order?.proBooking },
                   // Display convention (user, 2026-08-02): strip the protocol —
                   // no reseed needed, the stored URL keeps it.
-                  { label: 'Tracking Link', value: shipmentDetails.trackingUrl?.replace(/^https?:\/\//, '') },
+                  { label: 'Tracking Link', value: shipmentDetails.trackingUrl?.replace(/^https?:\/\//, ''), truncate: 'lead' },
                   { label: 'Rating Status', value: shipmentDetails.ratingStatus },
                   { label: 'Sell Shipment', value: shipment?.sellShipment },
                 ]}

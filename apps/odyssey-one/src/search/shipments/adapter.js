@@ -1,6 +1,6 @@
 import { getAllShipments } from '../../data'
 import { SHIPMENTS_ATTRIBUTES, SHIPMENTS_PROGRESSION, FREE_TEXT_ATTRS } from './progression'
-import { valueMatchDetail } from './searchIndex'
+import { valueMatchDetail, distinctMatches } from './searchIndex'
 // Shared chip+text matcher (S79c) — the SAME predicates the grid service applies
 // to listParams.searchCriteria, so the glimpse previews exactly what committing
 // the criteria will show in the table.
@@ -9,6 +9,7 @@ import {
   resolveBestMatch, resolveBestMatchNeedles, scoreText, tokenizeChipValue,
   parseSearchDate,
 } from './criteria'
+import { formatDateMDY } from '../../lib/dates'
 
 // ── Dates (Case 12, GS-22) ──────────────────────────────────────────────────
 // The date-typed attributes (match: 'date' in the progression) each offer TWO
@@ -45,7 +46,10 @@ export function parseDatePartial(query) {
   // A fully-typed date must actually exist on the calendar ("2/30/2026").
   if (!invalid && m != null && d != null && y != null && !parseSearchDate(`${m}/${d}/${y}`)) invalid = true
   const year = y ?? now.getFullYear()
-  const from = !invalid && m != null && d != null ? `${m}/${d}/${year}` : null
+  // Padded MM/DD/YYYY canon (S107 addendum) — this is a COMPLETE typed date,
+  // not the "12/../...." mask, so it commits as a chip bound and must display
+  // padded like every other slashed date.
+  const from = !invalid && m != null && d != null ? formatDateMDY(m, d, year) : null
   const monthHint = !invalid && m != null ? { y: year, m } : null
   return { mask, from, monthHint, invalid }
 }
@@ -175,6 +179,16 @@ export const shipmentsSearchAdapter = {
       value,
       valid: all.some((s) => matchesChip(s, { dataKey, queryValue: value })),
     }))
+  },
+
+  /**
+   * Value suggestions for ONE attribute — feeds the Filters view's ComboBox
+   * controls (S107). Async like the other adapter methods so the live twin
+   * (a per-attribute values endpoint, not yet built — same gap class as
+   * resolveCodeSet's per-needle endpoint) swaps in invisibly.
+   */
+  async getAttributeValues(dataKey, query) {
+    return distinctMatches(dataKey, query)
   },
 
   // Empty-input suggestions. No chips → NOTHING (S104). With chips → the NEXT

@@ -1,0 +1,21 @@
+---
+title: Decision Log — Cross-domain
+type: decision-log
+status: active
+---
+
+# Decision Log — Cross-domain
+
+Every implemented cross-domain decision with its previous state, source, and rationale — same traceability record as the per-domain logs (see `vault/10-domains/shipments/decisions/decision-log.md`), scoped to decisions that span multiple domains. Domain-specific decisions stay in `10-domains/<domain>/decisions/`.
+
+---
+
+## Platform conventions
+
+### DEC-01: Slashed numeric date display — mixed formats → one MM/DD/YYYY canon
+- **Previous:** Four coexisting slashed-date formats with no shared seam: GlobalSearch date chips unpadded `M/D/YYYY` (`dateChipLabel` in `useGlobalSearch.js`, `SearchChip.jsx`'s `fmtMDY`, the Filters view's `isoToMdy`, and `parseDatePartial`'s typed-date `from`); Orders create padded `MM/DD/YYYY` (`DateField.jsx`/`DateInput.jsx`, hand-rolled per call site); `DocumentsTab.jsx`'s creation-time already 2-digit en-US (coincidentally padded, via `toLocaleDateString`, not a shared helper); and `packages/ui/src/DatePicker.jsx`'s default `format` prop was `'DD/MM/YYYY'` (EU-first default, no consumer relied on it as EU — every app call site passed `format="MM/DD/YYYY"` explicitly).
+- **Decision:** Every SLASHED numeric date displays as padded `MM/DD/YYYY`, platform-wide, routed through ONE shared constant + formatter (`apps/odyssey-one/src/lib/dates.js`: `DATE_FORMAT`, `formatDateMDY`, `formatDateMDYFromDate`, `padMdy`) so a later per-region preference is a one-value seam. `packages/ui/src/DatePicker.jsx`'s default `format` flips `'DD/MM/YYYY'` → `'MM/DD/YYYY'` (`'DD/MM/YYYY'` stays available via the `format` prop — nothing removed, just the default). The LONG alphanumeric tier is explicitly SANCTIONED and untouched by this canon: table cells ("Mar 24, 2026" — `ShipmentTable`'s `formatDateOnly`) and History-tab timestamps ("Sep 25, 2026 at 2:30 PM CDT") are a different display tier entirely, not a slashed numeric date. Region-SWITCHING itself is explicitly HALTED (deferred) — this decision fixes the canon, not a locale system; locale-aware input/parsing (search partial-date typing masks like `"12/../...."`, the DatePicker mask internals, server-side M/D/YYYY→ISO conversion) is deferred until a real regional user model exists, and stays unpadded/order-agnostic where it already was (those are input affordances, not display).
+- **Source:** User ruling, 2026-08-03 (Session 107 addendum) — "matches the current Odyssey system (US default)" — plus Jira LINX-8120 (Orders' pre-existing MM/DD/YYYY spec, cited as the precedent the rest of the platform should match).
+- **Implemented:** Session 107 — `apps/odyssey-one/src/lib/dates.js` added; swept `apps/odyssey-one/src/search/shipments/adapter.js` (`parseDatePartial`'s completed-date `from`), `apps/odyssey-one/src/components/global-search/ShipmentsFiltersView.jsx` (`isoToMdy`), `packages/ui/src/SearchChip.jsx` (`fmtMDY`, inlined pad — `@odyssey/ui` can't import the app's shared lib), `apps/odyssey-one/src/components/detail/DocumentsTab.jsx` (`formatCreationTime` rerouted through `formatDateMDYFromDate`), `apps/odyssey-one/src/components/orders/create/fields/DateField.jsx` (literal `"MM/DD/YYYY"` → `DATE_FORMAT`), and `packages/ui/src/DatePicker.jsx` (default flip). Tests updated to assert the padded canon (`chipsToFilters.test.js`, `dateChips.test.js`, `DatePicker.test.jsx` — the latter also gained two tests pinning the NEW default, while every pre-existing interaction test now passes `format="DD/MM/YYYY"` explicitly to keep asserting its original day-first intent unchanged).
+- **Why:** A single source of truth for "what does a slashed date look like" was overdue — four independent implementations meant every new call site was a coin flip, and the DatePicker default silently disagreed with every one of its own consumers. Padding the chip pipeline (previously the one gap: `4/3/2026`) closes the last inconsistency.
+- **Owed:** DatePicker's Angular twin still defaults to `DD/MM/YYYY` — flip + version bump owed on next Angular sync (component demoted to NORMALIZING, React-side only so far: `tools/dsm-flags.mjs CalendarPicker --demote --react-only`; see `playground/normalization-tracker.md`).

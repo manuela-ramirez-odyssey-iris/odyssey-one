@@ -30,7 +30,6 @@
     "PageHeader",
     "Paginator",
     "Radio",
-    "Spinner",
     "StepperButtonsFooter",
     "SubAccordion",
     "Tab",
@@ -58,7 +57,6 @@
     "PillTab",
     "RightPanel",
     "ShipmentsBar",
-    "Spinner",
     "SubAccordion",
     "SummaryStrip",
     "Tab",
@@ -84,6 +82,8 @@
     "PageHeader"
   ],
   "global-search": [
+    "ComboBox",
+    "FormField",
     "GlobalSearch",
     "GlobalSearchPanel",
     "GlobalSearchResults",

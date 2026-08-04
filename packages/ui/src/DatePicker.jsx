@@ -114,7 +114,7 @@ export default function DatePicker({
   onChange,
   label,
   placeholder,
-  format = 'DD/MM/YYYY',
+  format = 'MM/DD/YYYY', // US canon (S107 addendum, 2026-08-03) — 'DD/MM/YYYY' still available via prop
   minDate = MIN_DATE,
   maxDate = MAX_DATE,
   disabled = false,
@@ -173,12 +173,21 @@ export default function DatePicker({
     // kept digit, where N = digits before the original caret.
     if (filtered === raw) return
     const digitsBeforeCaret = raw.slice(0, caret).replace(/\D/g, '').length
+    // The char just left of the caret in the RAW input — when it's a
+    // separator (the user just typed "/"), the digit-count walk below lands
+    // BEFORE the rail the mask expanded into ("04/" → "04//" lands at index 2,
+    // ahead of BOTH slashes) instead of after the one the user typed. One-slot
+    // nudge past a single separator there puts the caret between the rails,
+    // ready for the next segment (root cause of the "04//3202" scripted-typing
+    // bug — QA S107; mask logic otherwise unchanged, see header).
+    const typedSeparator = caret > 0 && !/\d/.test(raw[caret - 1])
     requestAnimationFrame(() => {
       let pos = 0, seen = 0
       while (pos < filtered.length && seen < digitsBeforeCaret) {
         if (/\d/.test(filtered[pos])) seen++
         pos++
       }
+      if (typedSeparator && !/\d/.test(filtered[pos])) pos++
       input.setSelectionRange(pos, pos)
     })
   }

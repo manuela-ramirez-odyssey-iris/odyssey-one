@@ -10,6 +10,7 @@
 @import "./styles/panes/instructions.css";
 @import "./styles/panes/documents.css";
 @import "./styles/panes/notes.css";
+@import "./styles/panes/history.css";
 
 /* ========================================
    Tailwind v4 CSS-first theme extension

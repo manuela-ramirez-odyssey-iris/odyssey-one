@@ -1,0 +1,119 @@
+/* history pane — S107 rebuild. Timeline-with-dots anatomy kept deliberately
+   (NOT a table — that shape is order-domain precedent only, LINX-8091; see
+   HistoryTab.jsx header comment). Follows the docs-*/panes/documents.css
+   convention: tab-local classes, every value through a token except
+   component-internal geometry (dot size, line offsets — untokenized in
+   Figma too). */
+
+.history-list {
+  position: relative;
+  padding-left: 28px;
+}
+
+.history-entry {
+  position: relative;
+  padding-bottom: var(--spacing-5);
+}
+.history-entry:last-child {
+  padding-bottom: 0;
+}
+
+/* Timeline rail — one segment per entry, connecting its dot to the next
+   entry's dot. Scoped to :not(:last-child) so the rail stops at the last
+   dot instead of trailing on past it (was a single full-height line before,
+   which always overran the final entry). */
+.history-entry:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  left: -18px;
+  top: 13px;
+  bottom: 0;
+  width: 1px;
+  background: var(--border-subtle);
+}
+
+/* Category dot — color set inline per entry (create/tender/update/completion
+   map to the matching Badge text token; no dedicated dot token exists). */
+.history-dot {
+  position: absolute;
+  left: -21px;
+  top: 6px;
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-full);
+  box-shadow: 0 0 0 3px var(--bg-primary);
+}
+
+.history-content {
+  min-height: 28px;
+}
+
+/* Row 1: actor + action Badge + timestamp */
+.history-row1 {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  flex-wrap: wrap;
+}
+
+.history-actor {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  font-family: var(--font-primary);
+}
+
+/* System actor (source: ERP|UI|Legacy TMS|Linx, LINX-8091 User|System split) —
+   muted text is the lighter of the two spec-offered treatments. */
+.history-actor--system {
+  font-weight: var(--font-weight-regular);
+  color: var(--text-tertiary);
+}
+
+.history-timestamp {
+  margin-left: auto;
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+  font-family: var(--font-primary);
+  white-space: nowrap;
+}
+
+/* Row 2: details */
+.history-details {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  font-family: var(--font-primary);
+  line-height: var(--line-height-xs);
+  margin-top: 2px;
+}
+
+/* Row 3: field diff (mono; no --font-mono token exists yet, fallback chain
+   mirrors the pre-existing choice) */
+.history-diff {
+  font-size: var(--font-size-xs);
+  font-family: var(--font-mono, "SF Mono", "Fira Code", "Cascadia Code", monospace);
+  color: var(--text-tertiary);
+  margin-top: var(--spacing-1);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+}
+
+.history-diff-field {
+  font-weight: var(--font-weight-medium);
+  color: var(--text-secondary);
+}
+
+.history-diff-old {
+  text-decoration: line-through;
+  opacity: 0.65;
+}
+
+.history-diff-arrow {
+  color: var(--text-placeholder);
+}
+
+.history-diff-new {
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+}

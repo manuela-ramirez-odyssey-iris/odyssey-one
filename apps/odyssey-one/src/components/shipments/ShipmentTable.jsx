@@ -2,7 +2,7 @@ import { useCallback, useMemo, useRef, useState } from 'react'
 import { useReactTable, getCoreRowModel, createColumnHelper } from '@tanstack/react-table'
 import { EllipsisVertical, Columns3Cog, Info, TriangleAlert } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
-import { Badge, Button, DataTable, Paginator, ActionMenu, Spinner } from '@odyssey/ui'
+import { Badge, Button, DataTable, Paginator, ActionMenu } from '@odyssey/ui'
 import TooltipTrigger from '../ui/TooltipTrigger'
 import { ALL_COLUMNS } from '../detail/ColumnPanel'
 import { CELL_TAB_MAP } from './cellTabMap'
@@ -341,12 +341,7 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
             </button>
           )}
         </div>
-      ) : isLoading && shipments.length === 0 ? (
-        // Centered Spinner, no text (user direction 2026-08-03).
-        <div className="flex items-center justify-center" style={{ padding: '48px 0' }}>
-          <Spinner size={32} />
-        </div>
-      ) : shipments.length === 0 ? (
+      ) : shipments.length === 0 && !isLoading ? (
         <div className="flex items-center justify-center" style={{ padding: '48px 0', color: 'var(--text-placeholder)', fontSize: 'var(--font-size-sm)' }}>
           No shipments found
         </div>
@@ -368,6 +363,8 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
           // `sortable` OFF (S85 test) — the sorting plumbing (state → gridService
           // sortBy/orderBy) stays wired; re-adding the prop turns the buttons back on.
           truncationTooltip
+          // First mount, no data at all yet — whole-table Spinner (no rows).
+          loading={isLoading && shipments.length === 0}
           // Stale placeholder pages (TanStack keepPreviousData) render Loading… cells.
           loadingRows={isFetchingRows}
           // Keep the selected row visible between the sticky header and the open

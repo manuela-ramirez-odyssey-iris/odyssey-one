@@ -1,5 +1,57 @@
 // @vitest-environment jsdom
+import { afterEach } from 'vitest'
+import { render, screen, cleanup } from '@testing-library/react'
+import { useReactTable, getCoreRowModel, createColumnHelper } from '@tanstack/react-table'
 import { getColWidths, getSizesFromState, showResizeGrip, showSortButton, ariaSortValue, MIN_COL_WIDTH, SORT_MIN_WIDTH, MAX_COL_WIDTH, hiddenWordCount, renderCell, cellClassName, headClassName, isInteractiveTarget, resolveCellClick } from './DataTable.jsx'
+import DataTable from './DataTable.jsx'
+
+afterEach(cleanup)
+
+// ── render-mode tests: loading (whole-table Spinner) vs loadingRows (per-cell) ──
+const col = createColumnHelper()
+const COLUMNS = [col.accessor('name', { header: 'Name' })]
+const ROWS = [{ id: '1', name: 'Atlanta' }, { id: '2', name: 'Dallas' }]
+
+// Minimal harness — a real TanStack table instance (client-side, no pagination),
+// consistent with how ShipmentTable/OrdersTable drive the shell.
+function Harness({ data = ROWS, ...props }) {
+  const table = useReactTable({ data, columns: COLUMNS, getCoreRowModel: getCoreRowModel() })
+  return <DataTable table={table} ariaLabel="Test table" {...props} />
+}
+
+describe('DataTable loading modes (S107: per-cell restored + whole-table added)', () => {
+  it('loadingRows renders "Loading…" per data cell, rows still present', () => {
+    render(<Harness loadingRows />)
+    expect(screen.getAllByText('Loading…')).toHaveLength(ROWS.length)
+    // the real data is NOT rendered while its cell is in loading state
+    expect(screen.queryByText('Atlanta')).toBeNull()
+  })
+
+  it('loading (whole-table) renders the Spinner and no data rows', () => {
+    render(<Harness loading />)
+    // Spinner renders an SVG with role="status" via its own normalized markup —
+    // assert via the absence of any row content instead of the Spinner internals.
+    expect(screen.queryByText('Atlanta')).toBeNull()
+    expect(screen.queryByText('Dallas')).toBeNull()
+    expect(screen.queryByText('Loading…')).toBeNull()
+    expect(document.querySelector('.odyssey-data-table__loading')).not.toBeNull()
+    expect(document.querySelectorAll('tbody tr')).toHaveLength(0)
+  })
+
+  it('plain mode (neither flag) renders populated rows verbatim', () => {
+    render(<Harness />)
+    expect(screen.getByText('Atlanta')).not.toBeNull()
+    expect(screen.getByText('Dallas')).not.toBeNull()
+    expect(document.querySelector('.odyssey-data-table__loading')).toBeNull()
+  })
+
+  it('modes are mutually exclusive with populated rows: loading wins over loadingRows when both are set', () => {
+    render(<Harness loading loadingRows />)
+    expect(document.querySelectorAll('tbody tr')).toHaveLength(0)
+    expect(screen.queryByText('Loading…')).toBeNull()
+    expect(document.querySelector('.odyssey-data-table__loading')).not.toBeNull()
+  })
+})
 
 describe('getColWidths (S85: default = max(header label, body) capped at MAX_COL_WIDTH)', () => {
   it('defaults each column to max(header, body), rounded up', () => {

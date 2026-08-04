@@ -21,6 +21,9 @@
  *   Green/600 / Bittersweet/600 (carried over from the ad-hoc `.pane-kpis`).
  * - Cells grow past 152px rather than truncate (`min-width`, not `width`).
  * - Empty/nullish values render the '--' placeholder.
+ * - `truncate: 'lead'` per item caps the cell width and lead-ellipsizes the
+ *   value (tail stays visible, "…" at the start — for URL-ish values like
+ *   Tracking Link); full value exposed via `title`.
  *
  * Semantics: a <dl> of dt/dd pairs (each cell a div group — valid HTML).
  * Pass `aria-label` (forwarded via rest) to name the region.
@@ -28,18 +31,26 @@
 export default function SummaryStrip({ items = [], className = '', ...rest }) {
   return (
     <dl role="region" className={`summary-strip${className ? ` ${className}` : ''}`} {...rest}>
-      {items.map(({ label, value, tone }) => (
-        <div key={label} className="summary-strip__cell">
-          <dt className="summary-strip__label">{label}</dt>
-          <dd
-            className={`summary-strip__value${
-              tone === 'positive' || tone === 'negative' ? ` summary-strip__value--${tone}` : ''
-            }`}
+      {items.map(({ label, value, tone, truncate }) => {
+        const display = value == null || value === '' ? '--' : value
+        const lead = truncate === 'lead' && display !== '--'
+        return (
+          <div
+            key={label}
+            className={`summary-strip__cell${lead ? ' summary-strip__cell--truncate' : ''}`}
           >
-            {value == null || value === '' ? '--' : value}
-          </dd>
-        </div>
-      ))}
+            <dt className="summary-strip__label">{label}</dt>
+            <dd
+              className={`summary-strip__value${
+                tone === 'positive' || tone === 'negative' ? ` summary-strip__value--${tone}` : ''
+              }${lead ? ' summary-strip__value--truncate-lead' : ''}`}
+              title={lead ? display : undefined}
+            >
+              {lead ? <bdi>{display}</bdi> : display}
+            </dd>
+          </div>
+        )
+      })}
     </dl>
   )
 }

@@ -217,7 +217,14 @@ export function cellClassName(meta, isStickyRight) {
 //                       non-interactive part of the row (interactive elements keep
 //                       their native behavior). Runs AFTER onCellClick when both are
 //                       provided — most consumers pick one.
-//   loadingRows       — data cells render "Loading…" while stale placeholder rows show.
+//   loadingRows       — data cells render "Loading…" text while stale placeholder
+//                       rows show (tab-change/refetch — chrome + rows already on
+//                       screen, only the values are stale). Restored S107 after S106
+//                       briefly blanked the cells in favor of loading's overlay.
+//   loading           — whole-table mode (initial mount, nothing to show yet): rows
+//                       are suppressed entirely and a centered Spinner (32px, no
+//                       text) covers the card. Mutually exclusive with loadingRows
+//                       in practice — a table has no rows yet on first mount.
 //   scrollSelectedIntoView — keep the selected row (TanStack rowSelection) visible
 //                       between the sticky header and a bottom boundary (S93; extracted
 //                       from the Shipments arrow-navigation autoscroll). `true` or
@@ -227,7 +234,7 @@ export function cellClassName(meta, isStickyRight) {
 //                       an empty→selected change so consumer open-animations can land;
 //                       switchDelay (default 50) on selection switches (arrows).
 //   (column resize stays a TanStack option: enableColumnResizing on the table.)
-export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, onCellClick, onRowClick, sortable = false, truncationTooltip = false, loadingRows = false, scrollSelectedIntoView = false, className = '' }) {
+export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, onCellClick, onRowClick, sortable = false, truncationTooltip = false, loadingRows = false, loading = false, scrollSelectedIntoView = false, className = '' }) {
   // stickyTop: number (px) or any CSS length expression (string). The sticky reference is
   // the page scroller's CONTENT edge — a padded scroller (e.g. an app shell <main> with
   // padding-top) parks a `top: 0` header padding-top BELOW the visible clip edge, letting
@@ -523,9 +530,10 @@ export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, onC
       {/* The bordered white card holds the table ONLY; the footer (Paginator) sits
           below it as a sibling, transparent on the page canvas (S79b, decision 6). */}
       <div className="odyssey-data-table__card">
-        {/* loadingRows: centered spinner over the card (cells go blank below) —
-            the animated ring alone, no text (user direction, GS-21 era). */}
-        {loadingRows && (
+        {/* loading: whole-table mode — centered spinner over the card, no rows
+            rendered below it (nothing to show yet on first mount). The animated
+            ring alone, no text (user direction, GS-21 era). */}
+        {loading && (
           <div className="odyssey-data-table__loading">
             <Spinner size={32} />
           </div>
@@ -605,7 +613,9 @@ export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, onC
           <table className="odyssey-table" ref={bodyTableRef} style={tableStyle} aria-label={ariaLabel}>
             {colgroup}
             <tbody>
-              {rowModel.rows.map((row) => (
+              {/* loading (whole-table mode): no rows — the card-level Spinner
+                  above is the only loading signal while nothing is fetched yet. */}
+              {!loading && rowModel.rows.map((row) => (
                 <tr
                   key={row.id}
                   data-selected={row.getIsSelected() || undefined}
@@ -639,16 +649,14 @@ export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, onC
                             }
                           : undefined}
                       >
-                        {/* loadingRows feature switch (S93): while the consumer
-                            shows stale placeholder rows for a new page/filter
-                            (e.g. TanStack Query keepPreviousData), DATA cells
-                            (accessor columns) render "Loading…" instead of the
-                            stale value; display columns (select/actions) keep
-                            rendering. */}
+                        {/* loadingRows feature switch (S93, restored S107): while
+                            the consumer shows stale placeholder rows for a new
+                            page/filter (e.g. TanStack Query keepPreviousData),
+                            DATA cells (accessor columns) render "Loading…" instead
+                            of the stale value; display columns (select/actions)
+                            keep rendering. */}
                         {loadingRows && cell.column.accessorFn
-                          // Blank while loading — the card-level centered
-                          // Spinner is the one loading signal (no per-cell text).
-                          ? <span className="odyssey-table__cell-loading" />
+                          ? <span className="odyssey-table__cell-loading">Loading…</span>
                           : renderCell(cell.column.columnDef.cell, cell.getContext())}
                       </td>
                     )

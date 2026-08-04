@@ -63,6 +63,17 @@ export function makeLiveAdapter(base) {
     // in live mode (GS-14).
     getInitial: base.getInitial.bind(base),
 
+    // Filters-view value suggestions (S107). The mock version reads the LOCAL
+    // seed index — wrong data in live mode (the resolveCodeSet lesson, S106).
+    // No per-attribute values endpoint exists yet, so this signals NO
+    // suggestion source at all (S107 addendum) — `null`, not an async []. A
+    // resolved-empty [] still LOOKS like "I searched and found nothing" to the
+    // ComboBox (it renders the "No matching values" empty panel), which reads
+    // as "this value doesn't exist" — misleading for an honest free-text
+    // field. The view checks `shipmentsSearchAdapter.getAttributeValues` and
+    // omits typeahead entirely when it's falsy.
+    getAttributeValues: null,
+
     async getSuggestions(query) {
       const q = (query || '').trim()
       if (!q) return this.getInitial([])

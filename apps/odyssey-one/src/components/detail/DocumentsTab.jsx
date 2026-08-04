@@ -2,6 +2,7 @@ import React, { useState, useCallback, useRef } from 'react'
 import { Download, FileText, Sheet, File, EllipsisVertical, Plus } from 'lucide-react'
 import { ICON_MD, ICON_LG } from '@odyssey/tokens'
 import { Button, FormField, ModalMedium, Checkbox, ActionMenu, SubAccordion } from '@odyssey/ui'
+import { formatDateMDYFromDate } from '../../lib/dates'
 
 const DOC_TYPES = ['BoL', 'MBoL', 'POD', 'SL', 'Packing List', 'Other']
 
@@ -13,7 +14,7 @@ function getFileExtension(fileName) {
 // Figma 4288:16622 — "12/16/2025 6:48 EST" (no comma, numeric hour)
 function formatCreationTime(iso) {
   const d = new Date(iso)
-  const date = d.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })
+  const date = formatDateMDYFromDate(d) // platform date canon (S107 addendum)
   const time = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZoneName: 'short' })
   return `${date} ${time}`
 }

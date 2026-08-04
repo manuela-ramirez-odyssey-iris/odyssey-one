@@ -3,12 +3,17 @@ import { ChevronDown, ChevronUp, X } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
 import CalendarPicker from './CalendarPicker.jsx'
 
-// M/D/YYYY string ↔ Date, for the date mode's CalendarPicker round-trip.
+// Padded MM/DD/YYYY string ↔ Date, for the date mode's CalendarPicker
+// round-trip (platform date-format canon, S107 addendum — @odyssey/ui can't
+// import the app's shared lib/dates.js, so the pad is inlined here).
 const parseMDY = (s) => {
   const m = String(s ?? '').match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)
   return m ? new Date(+m[3], +m[1] - 1, +m[2]) : null
 }
-const fmtMDY = (d) => (d instanceof Date ? `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}` : null)
+const fmtMDY = (d) =>
+  d instanceof Date
+    ? `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}/${d.getFullYear()}`
+    : null
 
 /**
  * Splits a pasted multi-code string into codes — commas, whitespace and

@@ -99,14 +99,24 @@ export function useGlobalSearch(adapter, { debounceMs = 120, onLastRemoved } = {
     return () => clearTimeout(t)
   }, [value, focused, chips, textChip, run, debounceMs])
 
-  // Run results search whenever committed chips, the committed text chip, OR
-  // the debounced query change. Stale-response guarded (same pattern as
-  // suggestions) so a slow earlier search can't overwrite a newer one.
-  // Typed text wins over the committed text chip (it previews the replacement);
-  // an empty input falls back to the committed term so its glimpse stays live.
-  // `searching` covers the in-flight window (visible on the async live
-  // adapter; the sync mock resolves within the same tick) — consumers show
-  // the Spinner off it.
+  // Search-relevant serialization of chips — excludes UI-only fields (`open`,
+  // `monthHint`) so toggling a date chip's calendar open/closed (Fix A, user
+  // 2026-08-03) doesn't change this key. Strings compare by VALUE, so the
+  // effect below correctly skips re-running when only those fields differ,
+  // even though `chips` itself is a fresh array reference every toggle.
+  const chipsSearchKey = useMemo(
+    () => JSON.stringify(chips.map(({ open, monthHint, ...rest }) => rest)),
+    [chips],
+  )
+
+  // Run results search whenever committed chips' SEARCH-RELEVANT content, the
+  // committed text chip, OR the debounced query change. Stale-response
+  // guarded (same pattern as suggestions) so a slow earlier search can't
+  // overwrite a newer one. Typed text wins over the committed text chip (it
+  // previews the replacement); an empty input falls back to the committed
+  // term so its glimpse stays live. `searching` covers the in-flight window
+  // (visible on the async live adapter; the sync mock resolves within the
+  // same tick) — consumers show the Spinner off it.
   useEffect(() => {
     const q = debouncedValue.trim() || textChip?.value || ''
     if (!adapter?.searchShipments || (!chips.length && !q)) {
@@ -123,7 +133,8 @@ export function useGlobalSearch(adapter, { debounceMs = 120, onLastRemoved } = {
       setResultTotal(total)
       setSearching(false)
     })
-  }, [chips, debouncedValue, textChip, adapter])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chipsSearchKey, debouncedValue, textChip, adapter])
 
   // Generic safety net: never suggest an already-committed attribute. (Counts +
   // group advancement are the adapter's job — the hook doesn't slice.)
@@ -337,8 +348,12 @@ export function useGlobalSearch(adapter, { debounceMs = 120, onLastRemoved } = {
   }, [])
 
   // Case 12: an OPEN date chip — its CalendarPicker owns the space below the
-  // bar, so suggestions (and the consumer's results panel) hold off until the
-  // chip CLOSES (chevron / Enter / outside click / single-pick auto-close).
+  // bar, so suggestions hold off until the chip CLOSES (chevron / Enter /
+  // outside click / single-pick auto-close). Refinement (user, 2026-08-03):
+  // an open date chip suppresses the panel only while it has no date yet; a
+  // reopened chip with a date leaves the panel as-is — that distinction is
+  // computed by the consumer from `chips` directly. Suggestions gating here
+  // is unchanged: suggestions stay suppressed while ANY date chip is open.
   const pendingDateChip = chips.some((c) => c.kind === 'date-range' && c.open)
 
   const suggestionsOpen = focused && !pendingDateChip && filteredSections.some((s) => s.items.length)

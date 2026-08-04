@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Inbox, Plus } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
-import { Button, EmptyState, ModalMedium, PageHeader, Spinner, Tab } from '@odyssey/ui'
+import { Button, EmptyState, ModalMedium, PageHeader, Tab } from '@odyssey/ui'
 import AppShell from '../../components/layout/AppShell'
 import OrdersToolbar from '../../components/orders/OrdersToolbar'
 import OrdersTable from '../../components/orders/OrdersTable'
@@ -159,32 +159,29 @@ export default function OrdersRoute() {
 
         <OrdersToolbar totalCount={data?.totalCount} onExportClick={() => setExportOpen(true)} />
 
-        {isPending ? (
-          // Centered Spinner, no text (user direction 2026-08-03 — the
-          // animated ring is the one loading signal).
-          <div className="orders-page__status" style={{ justifyContent: 'center' }}>
-            <Spinner size={32} />
-          </div>
-        ) : isError ? (
+        {isError ? (
           <div className="orders-page__status">
             <span className="text-label-sm-regular">Something went wrong loading orders.</span>
             <Button variant="secondary" size="sm" onClick={() => refetch()}>Retry</Button>
           </div>
-        ) : (data?.rows.length ?? 0) === 0 ? (
+        ) : !isPending && (data?.rows.length ?? 0) === 0 ? (
           <EmptyState icon={<Inbox size={32} />} message="No orders found" />
         ) : (
           /* Row clicking removed (user, 2026-07-29) — the kebab's View action
              is the single way into the Order Summary page; full-row targets
-             fought the per-row action buttons. */
+             fought the per-row action buttons. isPending (first mount, no data
+             yet) → the shell's whole-table Spinner; isFetching (background
+             refetch/tab-change) → per-cell "Loading…" text. */
           <OrdersTable
             tab={activeTab}
+            loading={isPending}
             loadingRows={isFetching}
-            rows={data.rows}
+            rows={data?.rows ?? []}
             pagination={pagination}
             onPaginationChange={handlePaginationChange}
             sorting={sorting}
             onSortingChange={setSorting}
-            totalCount={data.totalCount}
+            totalCount={data?.totalCount ?? 0}
             onRowAction={(action, row) => {
               // View mirrors the full-row click; Edit reopens the order in the
               // create flow (?draft hydrates via getDraft, falling back to

@@ -1,127 +1,59 @@
 import React from 'react'
-import { Badge } from '@odyssey/ui'
+import { Badge, SubAccordion } from '@odyssey/ui'
+import { formatDateTimeMDYHM } from '../../lib/dates'
 import PaneEmpty from './PaneEmpty'
 
+// Shipment History = an audit trail ("who changed what and when", Jana Mar 25
+// — vault/10-domains/shipments/domain-analysis.md §9), rendered as an entry
+// timeline with a category-dot rail. Order-domain precedent (LINX-8091) uses
+// a tabular Field/Old/New audit log — deliberately NOT followed here; the
+// timeline anatomy is our own call for Shipments (see decision-log DEC-70).
+// What LINX-8091 IS reused verbatim: the User|System actor split and the
+// MM/DD/YYYY HH:MM (24h) timestamp format.
 const HistoryTab = React.memo(function HistoryTab({ data }) {
   const entries = data?.entries
-  // Use the newest entry as the reference point for relative times
-  const refDate = entries?.length > 0 ? new Date(entries[0].timestamp) : new Date()
   if (!entries || entries.length === 0) {
     return <PaneEmpty message="No history available." />
   }
 
   return (
-    <div style={{ position: 'relative', paddingLeft: 28 }}>
-      {/* Vertical timeline line */}
-      <div
-        style={{
-          position: 'absolute',
-          left: 11,
-          top: 8,
-          bottom: 8,
-          width: 1,
-          background: 'var(--border-subtle)',
-        }}
-      />
+    <div className="pane-canvas">
+      <div className="pane-col pane-col--narrow">
+        {/* Static SubAccordion card — no disclosure, no info icon (Figma
+            State=Static, same idiom as DocumentsTab's "All Documents" card) */}
+        <SubAccordion title="Shipment History" collapsible={false} showIcon={false}>
+          <div className="history-list">
+            {entries.map((entry, i) => (
+              <div className="history-entry" key={i}>
+                <div className="history-dot" style={{ background: getDotColor(entry.category) }} />
+                <div className="history-content">
+                  <div className="history-row1">
+                    <span className={`history-actor${entry.source ? ' history-actor--system' : ''}`}>
+                      {entry.user}
+                    </span>
+                    {entry.source && <Badge variant="gray">System</Badge>}
+                    <Badge variant={BADGE_VARIANTS[entry.category] || 'gray'}>{entry.action}</Badge>
+                    <span className="history-timestamp">
+                      {formatDateTimeMDYHM(new Date(entry.timestamp))}
+                    </span>
+                  </div>
 
-      {entries.map((entry, i) => {
-        const dotColor = getDotColor(entry.category)
+                  <div className="history-details">{entry.details}</div>
 
-        return (
-          <div
-            key={i}
-            style={{
-              position: 'relative',
-              paddingBottom: i < entries.length - 1 ? 20 : 0,
-            }}
-          >
-            {/* Dot */}
-            <div
-              style={{
-                position: 'absolute',
-                left: -21,
-                top: 6,
-                width: 7,
-                height: 7,
-                borderRadius: '50%',
-                background: dotColor,
-                boxShadow: `0 0 0 3px var(--bg-primary)`,
-              }}
-            />
-
-            {/* Content */}
-            <div style={{ minHeight: 28 }}>
-              {/* Row 1: user + action badge + timestamp */}
-              <div
-                className="flex items-center"
-                style={{ gap: 8, flexWrap: 'wrap' }}
-              >
-                <span
-                  style={{
-                    fontSize: 'var(--font-size-sm)',
-                    fontWeight: 600,
-                    color: 'var(--text-primary)',
-                    fontFamily: 'var(--font-primary)',
-                  }}
-                >
-                  {entry.user}
-                </span>
-                <Badge variant={BADGE_VARIANTS[entry.category] || 'gray'}>{entry.action}</Badge>
-                <span
-                  style={{
-                    marginLeft: 'auto',
-                    fontSize: 11,
-                    color: 'var(--text-tertiary)',
-                    fontFamily: 'var(--font-primary)',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {timeAgo(entry.timestamp, refDate)}
-                </span>
-              </div>
-
-              {/* Row 2: details */}
-              <div
-                style={{
-                  fontSize: 'var(--font-size-xs)',
-                  color: 'var(--text-secondary)',
-                  fontFamily: 'var(--font-primary)',
-                  marginTop: 2,
-                  lineHeight: 1.4,
-                }}
-              >
-                {entry.details}
-              </div>
-
-              {/* Row 3: field change */}
-              {entry.field && (
-                <div
-                  style={{
-                    fontSize: 11,
-                    fontFamily: 'var(--font-mono, "SF Mono", "Fira Code", "Cascadia Code", monospace)',
-                    color: 'var(--text-tertiary)',
-                    marginTop: 4,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
-                  }}
-                >
-                  <span style={{ fontWeight: 500, color: 'var(--text-secondary)' }}>
-                    {entry.field}:
-                  </span>
-                  <span style={{ textDecoration: 'line-through', opacity: 0.65 }}>
-                    {entry.oldValue}
-                  </span>
-                  <span style={{ color: 'var(--text-placeholder)' }}>&rarr;</span>
-                  <span style={{ fontWeight: 500, color: 'var(--text-primary)' }}>
-                    {entry.newValue}
-                  </span>
+                  {entry.field && (
+                    <div className="history-diff">
+                      <span className="history-diff-field">{entry.field}:</span>
+                      <span className="history-diff-old">{entry.oldValue}</span>
+                      <span className="history-diff-arrow">&rarr;</span>
+                      <span className="history-diff-new">{entry.newValue}</span>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+              </div>
+            ))}
           </div>
-        )
-      })}
+        </SubAccordion>
+      </div>
     </div>
   )
 })
@@ -150,25 +82,4 @@ function getDotColor(category) {
     case 'completion': return 'var(--badge-purple-text)'
     default: return 'var(--text-tertiary)'
   }
-}
-
-function timeAgo(isoString, referenceDate) {
-  const now = referenceDate || new Date()
-  const date = new Date(isoString)
-  const diffMs = now - date
-  const diffSec = Math.floor(diffMs / 1000)
-  const diffMin = Math.floor(diffSec / 60)
-  const diffHr = Math.floor(diffMin / 60)
-  const diffDay = Math.floor(diffHr / 24)
-
-  if (diffSec < 60) return 'just now'
-  if (diffMin < 60) return `${diffMin} min ago`
-  if (diffHr < 24) return `${diffHr} hour${diffHr > 1 ? 's' : ''} ago`
-  if (diffDay < 7) return `${diffDay} day${diffDay > 1 ? 's' : ''} ago`
-  if (diffDay < 30) return `${Math.floor(diffDay / 7)} week${Math.floor(diffDay / 7) > 1 ? 's' : ''} ago`
-
-  // Fallback: show short date
-  const m = date.toLocaleString('en-US', { month: 'short' })
-  const d = date.getDate()
-  return `${m} ${d}`
 }

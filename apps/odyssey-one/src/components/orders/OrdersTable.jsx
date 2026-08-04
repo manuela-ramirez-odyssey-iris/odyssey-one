@@ -26,7 +26,9 @@ export default function OrdersTable({
   onSortingChange,
   totalCount,
   onRowAction,
-  // Background refetch (keepPreviousData) → the shell's centered Spinner.
+  // First mount, no data at all yet → the shell's whole-table Spinner (no rows).
+  loading = false,
+  // Background refetch (keepPreviousData) → per-cell "Loading…" text.
   loadingRows = false,
 }) {
   const [stickyTop, setStickyTop] = useState(0)
@@ -99,6 +101,7 @@ export default function OrdersTable({
     <DataTable
       table={table}
       stickyTop={stickyTop}
+      loading={loading}
       loadingRows={loadingRows}
       ariaLabel="Orders"
       sortable
