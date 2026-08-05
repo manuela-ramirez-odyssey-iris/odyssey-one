@@ -57,7 +57,7 @@ export default function CarrierBid() {
           <OdysseyLogo variant="dark" />
           <h1 className="text-label-sm-medium carrier-bid-page__title">{portalTitle}</h1>
         </header>
-        <main>
+        <main className="carrier-bid-page__main">
           <Alert variant="warning" showClose={false}>{closedReason}</Alert>
         </main>
       </div>
@@ -107,35 +107,42 @@ export default function CarrierBid() {
         <Countdown closeAt={quote.closeAt} onExpire={() => setQuote(getQuote(shipmentId))} />
       </div>
 
-      <main>
+      <main className="carrier-bid-page__main">
       {isLoading || !order ? (
         <p className="carrier-bid-page__loading text-label-sm-regular">Loading shipment details…</p>
       ) : (
         <>
-          <SubAccordion title={`Shipment Detail — Quote ${quote.quoteId}`} showIcon={false} defaultExpanded>
-            <div className="carrier-bid-card__grid">
-              <FormField id="cb-shipper" label="Shipper" value={order.shipFrom.company} readOnly />
-              <FormField id="cb-equipment" label="Equipment" value={order.equipment} readOnly />
+          <SubAccordion
+            title={`Shipment Detail — Quote ${quote.quoteId}`}
+            showIcon={false}
+            defaultExpanded
+            className="carrier-bid-page__detail-section"
+          >
+            <div className="carrier-bid-card__grid carrier-bid-card__grid--pairs">
+              <FormField id="cb-shipper" label="Shipper" value={order.shipFrom.company} readOnly className="carrier-bid-card__grid-full" />
               <FormField id="cb-origin" label="Origin" value={order.shipFrom.location} readOnly />
               <FormField id="cb-destination" label="Destination" value={order.shipTo.location} readOnly />
-              <FormField id="cb-stops" label="Stops" value={String(shipment.stopsData.stops.length)} readOnly />
-              <FormField id="cb-distance" label="Distance" value={shipment.stopsData.summary.distance} readOnly />
               <FormField id="cb-pickup" label="Pickup" value={order.earliestPickup} readOnly />
               <FormField id="cb-delivery" label="Delivery" value={order.earliestDelivery} readOnly />
-              <FormField id="cb-hazmat" label="Hazmat" value={order.hazmat} readOnly />
-              {order.hazmat === 'Yes' && (
-                // ponytail: no MSDS document URL exists on the VM — stub link,
-                // flagged for a real source when one is available.
-                <a
-                  className="carrier-bid-card__msds text-label-sm-regular"
-                  href="#msds"
-                  onClick={(e) => e.preventDefault()}
-                >
-                  MSDS
-                </a>
-              )}
-              <FormField id="cb-special-services" label="Special Services" value={services.length ? services.map((s) => s.desc).join(', ') : '--'} readOnly />
-              <FormField id="cb-instructions" label="Instructions" value={instructionsText || '--'} readOnly />
+              <FormField id="cb-stops" label="Stops" value={String(shipment.stopsData.stops.length)} readOnly />
+              <FormField id="cb-distance" label="Distance" value={shipment.stopsData.summary.distance} readOnly />
+              <FormField id="cb-equipment" label="Equipment" value={order.equipment} readOnly />
+              <div className="carrier-bid-card__hazmat-group">
+                <FormField id="cb-hazmat" label="Hazmat" value={order.hazmat} readOnly />
+                {order.hazmat === 'Yes' && (
+                  // ponytail: no MSDS document URL exists on the VM — stub link,
+                  // flagged for a real source when one is available.
+                  <a
+                    className="carrier-bid-card__msds text-label-sm-regular"
+                    href="#msds"
+                    onClick={(e) => e.preventDefault()}
+                  >
+                    MSDS
+                  </a>
+                )}
+              </div>
+              <FormField id="cb-special-services" label="Special Services" value={services.length ? services.map((s) => s.desc).join(', ') : '--'} readOnly className="carrier-bid-card__grid-full" />
+              <FormField id="cb-instructions" label="Instructions" value={instructionsText || '--'} readOnly className="carrier-bid-card__grid-full" />
             </div>
           </SubAccordion>
 

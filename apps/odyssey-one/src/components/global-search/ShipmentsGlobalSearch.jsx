@@ -15,7 +15,7 @@ import {
 } from '../../api/services/sharedFilterService'
 import ShipmentsFiltersView, { mergeFiltersIntoChips } from './ShipmentsFiltersView'
 import SaveFilterModal from './SaveFilterModal'
-import { hydrate, newFilter, splitFreeText, toStored } from './savedFilters'
+import { hydrate, newFilter, splitFreeText, toStored, formatChipsForCopy } from './savedFilters'
 import { tabForDataKey } from '../shipments/cellTabMap'
 
 // react-query key for the Odyssey group's shared half (S108 Phase 3d) —
@@ -119,20 +119,38 @@ export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment 
     persistSavedFilters({ v: 1, custom: next })
   }, [savedFilters, persistSavedFilters])
 
-  // S110 rev1 "Footer links" — Update Filter writes the editor's current
-  // chips back onto the OPEN profile, replacing its stored chip list
-  // wholesale (same `toStored` strip `saveFilter`/`newFilter` already apply:
-  // transient UI state out, invalid chips dropped). This is the ONLY write
-  // path that mutates an existing profile's `chips` — nothing on the bar's
-  // own edit path (handleApplyFilters/handleApplySaved) calls it, which is
-  // what makes "a profile can be updated only from the panel, never from the
-  // bar" (spec HARD RULE) true by construction rather than by convention.
+  // S110 rev2 (docs/superpowers/specs/2026-08-05-filters-two-modes.md,
+  // decision 1) — Update Filter writes the editor's current chips back onto
+  // the OPEN profile, replacing its stored chip list wholesale (same
+  // `toStored` strip `saveFilter`/`newFilter` already apply: transient UI
+  // state out, invalid chips dropped). This is the ONLY write path that
+  // mutates an existing profile's `chips` — nothing on the bar's own edit
+  // path (handleApplyFilters/handleApplySaved) calls it, which is what makes
+  // "a profile can be updated only from the panel, never from the bar"
+  // (spec HARD RULE, carried over from rev1) true by construction.
   const updateFilter = useCallback((id, filterChips) => {
     persistSavedFilters({
       v: 1,
       custom: savedFilters.custom.map((f) => (f.id === id ? { ...f, chips: toStored(filterChips) } : f)),
     })
   }, [savedFilters, persistSavedFilters])
+
+  // S110 rev2 decision 1's SECOND half — Update Filter also APPLIES the
+  // merged chips to the bar/table (the one moment edit-filter mode's
+  // decoupling deliberately ends), but must NOT close the whole search
+  // panel: the spec is explicit the user "returns to the Saved tab with the
+  // row still selected," not out of the panel. Deliberately NOT
+  // `handleApplySaved` (below) — that one closes the panel (S108 1e, "Show N
+  // results" on Saved IS the exit gesture); reusing it here would close the
+  // panel out from under a click the spec says should land back on Saved.
+  // Same `dismissRef`/`splitFreeText` machinery as `handleApplySaved`, same
+  // reasoning (see that callback's own comment).
+  const applyUpdatedFilterToBar = useCallback((filterChips) => {
+    const { chips: realChips, freeText } = splitFreeText(filterChips)
+    dismissRef.current = true
+    applyChips(realChips, freeText)
+    onCommitQuery?.({ chips: realChips, text: freeText?.value || '' })
+  }, [applyChips, onCommitQuery])
 
   // Shared filters (S108 Phase 3d — the Odyssey group's shared half; the
   // migration + API + service landed in earlier phases, this wires the UI).
@@ -244,6 +262,16 @@ export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment 
   // return to cover it (see that callback + `ShipmentsFiltersView`'s own
   // `onRenameActiveChange` comment for the full mechanics).
   const [renameActive, setRenameActive] = useState(false)
+
+  // S110 rev2 decision 4 — the bridge for the two panel-dismissal paths this
+  // component owns DIRECTLY and never routes through ShipmentsFiltersView's
+  // own `onBack`/`onClose` props: outside-click and Escape (both below).
+  // ShipmentsFiltersView assigns its `attemptLeaveEditMode` guard to this
+  // ref on every render while it's mounted (see that component's own
+  // `editGuardRef` comment) — `null` whenever it isn't (e.g. the Results
+  // view is showing, or ShipmentsFiltersView is stubbed out in a test), in
+  // which case the two call sites below just close immediately.
+  const editGuardRef = useRef(null)
 
   const wrapperRef = useRef(null)
   const panelRef = useRef(null)
@@ -454,7 +482,16 @@ export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment 
     // and Escape (cancel) itself before this bubble; the early return here
     // just stops THIS handler from also treating them as commit/close.
     if (saveModalOpen || renameActive) return
-    if (e.key === 'Escape') { closePanel(); return }
+    // S110 rev2 decision 4 — Escape is one of the two dismissal paths this
+    // component owns directly (never routes through ShipmentsFiltersView's
+    // own onClose), so it's bridged through `editGuardRef` — see that ref's
+    // doc comment above. `null` (Results view showing, or no unsaved
+    // edit-filter-mode changes) closes immediately, same as before.
+    if (e.key === 'Escape') {
+      if (editGuardRef.current) editGuardRef.current(closePanel)
+      else closePanel()
+      return
+    }
     if (e.key !== 'Enter' || !canCommit) return
     // Case 12: while a date chip's calendar is open, Enter CLOSES the chip
     // (which is what triggers the quick results) instead of committing the
@@ -490,12 +527,18 @@ export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment 
     if (!resultsOpen) return
     const handleMouseDown = (e) => {
       if (wrapperRef.current && !wrapperRef.current.contains(e.target)) {
-        if (e.target.closest?.('.shipments-bar')) {
-          dismissSearchUI()
-          return
+        // S110 rev2 decision 4 — the other dismissal path this component
+        // owns directly; same `editGuardRef` bridge as Escape above.
+        const doClose = () => {
+          if (e.target.closest?.('.shipments-bar')) {
+            dismissSearchUI()
+            return
+          }
+          setResultsOpen(false)
+          setPanelView('results')
         }
-        setResultsOpen(false)
-        setPanelView('results')
+        if (editGuardRef.current) editGuardRef.current(doClose)
+        else doClose()
       }
     }
     document.addEventListener('mousedown', handleMouseDown)
@@ -522,13 +565,15 @@ export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment 
 
   // S108 1f (spec "Behaviour" 10): a human-readable rendering of the CURRENT
   // bar — `barChips`' own `label`s ("Attr: value", already computed for the
-  // bar itself, including the free-text/set badge folded in above) joined by
-  // " · ". Optimised for pasting into chat; there is no parser to read it
-  // back (spec, "Not in scope" — a follow-up if users start doing that).
+  // bar itself, including the free-text/set badge folded in above). S110
+  // rev2 (GS-28, decision 3) extracted the join into `formatChipsForCopy`
+  // (savedFilters.js) so the Saved tab's per-row copy icon
+  // (ShipmentsFiltersView's RowCopyButton) produces the IDENTICAL string
+  // shape for its own chips — one formatter, two call sites, no drift.
   // Guard `navigator.clipboard?.` — absent in non-secure contexts (plain
   // HTTP) and in jsdom; must not throw there (spec, "Copy-to-clipboard icon").
   const handleCopy = useCallback(() => {
-    navigator.clipboard?.writeText(barChips.map((c) => c.label).join(' · '))
+    navigator.clipboard?.writeText(formatChipsForCopy(barChips))
   }, [barChips])
 
   return (
@@ -608,12 +653,21 @@ export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment 
               onRenameFilter={renameFilter}
               onDeleteFilters={deleteFilters}
               onReorderFilters={reorderFilters}
-              // S110 rev1 — panel-only profile update (see `updateFilter`
-              // above for why this is the sole mutation path for it).
+              // S110 rev2 — panel-only profile update: persist (`updateFilter`
+              // above) AND apply to the bar/table without closing the panel
+              // (`applyUpdatedFilterToBar` above) — see decision 1.
               onUpdateFilter={updateFilter}
+              onApplyUpdatedFilter={applyUpdatedFilterToBar}
+              // S110 rev2 decision 4 — the escape hatch for the two
+              // dismissal paths this component owns directly (see the ref's
+              // own doc comment above).
+              editGuardRef={editGuardRef}
               // S108 Phase 3d — the Odyssey group's shared half + the four
               // cross-store mutations (see the "Shared filters" block above
-              // for why each is its own callback/query pairing).
+              // for why each is its own callback/query pairing). S110 rev2
+              // decision 2 also routes ⋮ → Edit Name through
+              // `onRenameSharedFilter` for the current user's OWNED shared
+              // rows, not just Custom — same callback, wired unchanged.
               sharedFilters={sharedFilters}
               onShareFilter={shareFilter}
               onUnshareFilter={unshareFilter}

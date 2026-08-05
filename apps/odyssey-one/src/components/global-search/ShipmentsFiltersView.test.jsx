@@ -60,15 +60,13 @@ describe('ShipmentsFiltersView — Saved tab, Custom group (S108 1d)', () => {
     expect(screen.queryByText(/mode:LTL shipment-status:Review/)).toBeNull()
   })
 
-  // Rewritten for S110 rev1 (supersedes the Phase 1 "chevron expands to
-  // read-only chips" behaviour, spec "Behaviour" 6/"Consequence" — the
-  // chevron-expand is DELETED outright, not migrated: "we don't need to
-  // expand below the row anything since now we have it expanded and
-  // editable in the other tab," user 2026-08-05). The two click zones now
-  // diverge: radio selects only (stays on Saved, no navigation); the row
-  // BODY (label/chevron) opens the profile in the right tab's editor,
-  // renamed to it. No inline chip list exists anywhere in either gesture.
-  test('the radio selects without navigating; the row body opens the profile in the editor tab, renamed to it, with no inline chip list', () => {
+  // Rewritten for S110 rev2 (docs/superpowers/specs/2026-08-05-filters-two-modes.md
+  // item 2 — REVERSES rev1's "row body navigates" gesture). Both click zones
+  // of a row now select, mirroring the column-preset radio rows: the radio
+  // AND the row body turn the SAME radio on. Neither zone navigates anywhere
+  // — entering the editor is only ever the explicit ⋮ → "Edit Filters"
+  // action (covered in the "two-mode profile editing" describe block below).
+  test('the radio selects; the row body ALSO selects — neither navigates (S110 rev2 item 2)', () => {
     const { container } = renderSavedTab()
     // Scoped to the Custom group — S108 Phase 2 added a second (Odyssey)
     // group of MenuRowRadio rows below it, so an unscoped query now matches 4.
@@ -78,26 +76,19 @@ describe('ShipmentsFiltersView — Saved tab, Custom group (S108 1d)', () => {
 
     fireEvent.click(radios[0])
     expect(container.querySelectorAll('.menu-row-radio--selected')).toHaveLength(1)
-    // Selection alone stays on the Saved tab (gesture table: "Stays on
-    // Saved. No navigation.") — the Saved pill is still the selected one.
     expect(screen.getByText('Saved').closest('button').getAttribute('aria-pressed')).toBe('true')
-    // No inline expand of any kind — deleted, not migrated.
-    expect(screen.queryByText('Mode: LTL')).toBeNull()
     expect(container.querySelector('.search-chip')).toBeNull()
 
-    // Clicking the row's BODY (label/chevron) opens it in the editor tab.
-    fireEvent.click(screen.getByText('West Coast LTL'))
-
-    // The right tab is RENAMED to the profile and is now the selected tab —
-    // the Saved list (and "West Coast LTL" as a row) is gone, so this text
-    // now resolves to exactly one element: the tab pill.
-    const renamedTab = screen.getByText('West Coast LTL').closest('button')
-    expect(renamedTab.getAttribute('aria-pressed')).toBe('true')
-    // Still no inline read-only chip list — the values live in the editor
-    // fields (spec: "expanded and editable in the other tab"), not as a
-    // second, static rendering of the same chips.
+    // Clicking the OTHER row's BODY selects THAT row instead — it does not
+    // navigate anywhere; the Saved pill stays selected and the All tab
+    // (never renamed, S110 rev2 item 1) still reads plain "All".
+    fireEvent.click(screen.getByText('JBHT Sent Tenders'))
+    const selectedRows = customList.querySelectorAll('.menu-row-radio--selected')
+    expect(selectedRows).toHaveLength(1)
+    expect(within(selectedRows[0]).getByText('JBHT Sent Tenders')).toBeTruthy()
+    expect(screen.getByText('Saved').closest('button').getAttribute('aria-pressed')).toBe('true')
+    expect(screen.getByText('All')).toBeTruthy()
     expect(container.querySelector('.search-chip')).toBeNull()
-    expect(screen.queryByText('SCAC: JBHT')).toBeNull()
   })
 
   test('⋮ → Edit Name is disabled with nothing selected, enabled once a row is selected', () => {
@@ -107,17 +98,22 @@ describe('ShipmentsFiltersView — Saved tab, Custom group (S108 1d)', () => {
     expect(editNameOption.getAttribute('aria-disabled')).toBe('true')
   })
 
-  // User ruling 2026-08-05: "edit name should only work on the selected custom
-  // rows." Opening a profile in the editor (row body) is NOT a rename target —
-  // an earlier build let it stand in for a selection to save a click, and that
-  // was rejected: selecting is the act that names a target.
-  test('⋮ → Edit Name stays disabled for a profile merely OPEN in the editor (no radio selection)', () => {
+  // S110 rev2 item 3 — the ⋮ menu's THIRD option, new this rev: "Edit
+  // Filters" enters edit-filter mode on the SELECTED row. Disabled with no
+  // selection, same as the other two options; selecting via the row BODY
+  // (item 2 — selects, doesn't navigate) is enough to enable it, same as
+  // selecting via the radio.
+  test('⋮ → Edit Filters is disabled with nothing selected, enabled once a row is selected (via either click zone)', () => {
     renderSavedTab()
-    fireEvent.click(screen.getByText('West Coast LTL')) // row body → opens editor
-    fireEvent.click(screen.getByText('Saved'))          // back to the list
     fireEvent.click(screen.getByRole('button', { name: 'Preset actions' }))
-    const editNameOption = screen.getByText('Edit Name').closest('[role="menuitem"]')
-    expect(editNameOption.getAttribute('aria-disabled')).toBe('true')
+    const editFiltersOption = screen.getByText('Edit Filters').closest('[role="menuitem"]')
+    expect(editFiltersOption.getAttribute('aria-disabled')).toBe('true')
+    fireEvent.click(screen.getByRole('button', { name: 'Preset actions' })) // close
+
+    fireEvent.click(screen.getByText('West Coast LTL')) // row body — selects only
+    fireEvent.click(screen.getByRole('button', { name: 'Preset actions' }))
+    const editFiltersOptionAfter = screen.getByText('Edit Filters').closest('[role="menuitem"]')
+    expect(editFiltersOptionAfter.getAttribute('aria-disabled')).toBeNull()
   })
 
   test('⋮ → Edit Name focuses the selected row with the cursor in it and the text selected; Enter commits + calls onRenameFilter', () => {
@@ -435,29 +431,38 @@ describe('ShipmentsFiltersView — Saved tab, Odyssey group (S108 Phase 2)', () 
   })
 })
 
-// S110 rev1 (docs/superpowers/specs/2026-08-05-filters-profile-flow.md) —
-// "a saved filter is not a thing you select and apply, it is a search
-// profile you edit." Covers the parts of the profile-editing flow not
-// already exercised above: tab order/naming, the footer link relabel +
-// dirty-tracked Update Filter (persist-only), the Odyssey-default carve-out,
-// and the badge.
-describe('ShipmentsFiltersView — profile-editing flow (S110 rev1)', () => {
-  test('tab order is Saved then All; the right tab renames to the open profile', () => {
+// S110 rev2 (docs/superpowers/specs/2026-08-05-filters-two-modes.md) —
+// SUPERSEDES the rev1 "profile-editing flow" suite this replaces (rev1's own
+// tests asserted tab order Saved·All, row-body-navigates, the link renaming
+// to "Create New Filter", and Update Filter as a dirty-tracked SECONDARY
+// link that persists WITHOUT applying — every one of those is reversed by
+// rev2's "two modes" model; see the doc comment atop ShipmentsFiltersView.jsx
+// for the full reversal table). Covers: tab order/naming (All never
+// renamed — the HEADER is), entering edit-filter mode via ⋮ → "Edit
+// Filters" only, the link being HIDDEN (not relabeled) while editing, Update
+// Filter as the PRIMARY button that both persists AND applies (decision 1),
+// the Odyssey-default/shared carve-outs, and the discard-confirm warning
+// (decision 4).
+describe('ShipmentsFiltersView — two-mode profile editing (S110 rev2)', () => {
+  test('tab order is All then Saved; the All tab is never renamed — the HEADER becomes "Edit <profile>" instead', () => {
     const { container } = render(<ShipmentsFiltersView savedFilters={sampleFilters} />)
     const tabButtons = container.querySelectorAll('.pill-tab')
     expect(tabButtons).toHaveLength(2)
-    // Order (spec "Tab order and naming": "All moves to the right"). Naming:
-    // no profile open yet → the right tab reads plain "All".
-    expect(tabButtons[0].textContent).toContain('Saved')
-    expect(tabButtons[1].textContent).toContain('All')
-    expect(tabButtons[1].textContent).not.toContain('West Coast LTL')
+    expect(tabButtons[0].textContent).toContain('All')
+    expect(tabButtons[1].textContent).toContain('Saved')
+    expect(screen.getByText('Filters')).toBeTruthy() // header, no profile open
 
     fireEvent.click(screen.getByText('Saved'))
-    fireEvent.click(screen.getByText('West Coast LTL')) // row body — opens the editor
+    const radios = container.querySelectorAll('.menu-row-radio input[type="radio"]')
+    fireEvent.click(radios[0]) // select "West Coast LTL"
+    fireEvent.click(screen.getByRole('button', { name: 'Preset actions' }))
+    fireEvent.click(screen.getByText('Edit Filters'))
 
+    // The HEADER renamed; the TAB did not.
+    expect(screen.getByText('Edit West Coast LTL')).toBeTruthy()
     const tabButtonsAfter = container.querySelectorAll('.pill-tab')
-    expect(tabButtonsAfter[0].textContent).toContain('Saved')
-    expect(tabButtonsAfter[1].textContent).toContain('West Coast LTL')
+    expect(tabButtonsAfter[0].textContent).toContain('All')
+    expect(tabButtonsAfter[0].textContent).not.toContain('West Coast LTL')
   })
 
   // 'buy-shipment' (Shipment Identifiers, match: 'digits') renders as a plain
@@ -474,71 +479,77 @@ describe('ShipmentsFiltersView — profile-editing flow (S110 rev1)', () => {
     }],
   }
 
-  test('Save Filters + relabels to Create New Filter once a profile is open; Update Filter appears only after an edit, disappears once the profile matches again, and persists WITHOUT applying to the bar/table', () => {
+  function enterEditMode(container, name) {
+    fireEvent.click(screen.getByText('Saved'))
+    fireEvent.click(within(container).getByText(name)) // row body — selects (S110 rev2 item 2)
+    fireEvent.click(screen.getByRole('button', { name: 'Preset actions' }))
+    fireEvent.click(screen.getByText('Edit Filters'))
+  }
+
+  test('Save Filters + is HIDDEN entirely in edit-filter mode (not relabeled); Update Filter is the PRIMARY button, disabled until dirty, and on click both PERSISTS and APPLIES (decision 1), landing back on Saved with the row still selected', () => {
     const onUpdateFilter = vi.fn()
+    const onApplyUpdatedFilter = vi.fn()
     const onApplyFilters = vi.fn()
     const onApplySaved = vi.fn()
-    const { rerender } = render(
+    const { container } = render(
       <ShipmentsFiltersView
         savedFilters={[editableFilter]}
         onUpdateFilter={onUpdateFilter}
+        onApplyUpdatedFilter={onApplyUpdatedFilter}
         onApplyFilters={onApplyFilters}
         onApplySaved={onApplySaved}
       />,
     )
-    // Default state — no profile open: the link is the unchanged "Save Filters".
+    // Free mode, nothing filled: the link renders (S110 rev2 item 5) — see
+    // the separate "free mode" describe block below for its disabled-when-
+    // empty behaviour.
     expect(screen.getByText('Save Filters')).toBeTruthy()
 
-    fireEvent.click(screen.getByText('Saved'))
-    fireEvent.click(screen.getByText('Editable Profile')) // row body — opens the editor, lands back on the (renamed) right tab
+    enterEditMode(container, 'Editable Profile')
 
-    // A profile is open: the link renames (spec "Footer links"), same action.
-    expect(screen.getByText('Create New Filter')).toBeTruthy()
+    // Edit-filter mode: the link is GONE — not relabeled to "Create New
+    // Filter" (that was rev1; rev2 item 4 hides it outright).
     expect(screen.queryByText('Save Filters')).toBeNull()
-    // Not dirty yet — Update Filter doesn't exist.
-    expect(screen.queryByText('Update Filter')).toBeNull()
+    expect(screen.queryByText('Create New Filter')).toBeNull()
+    // Not dirty yet — the primary button IS "Update Filter" (not "Show N
+    // results"), but disabled.
+    const updateBtn = screen.getByText('Update Filter').closest('button')
+    expect(updateBtn.disabled).toBe(true)
 
     const input = screen.getByPlaceholderText('Enter Buy Shipment #')
     fireEvent.change(input, { target: { value: '99999' } })
-    expect(screen.getByText('Update Filter')).toBeTruthy()
+    expect(updateBtn.disabled).toBe(false)
 
-    fireEvent.click(screen.getByText('Update Filter'))
+    fireEvent.click(updateBtn)
 
     expect(onUpdateFilter).toHaveBeenCalledTimes(1)
     const [updatedId, updatedChips] = onUpdateFilter.mock.calls[0]
     expect(updatedId).toBe('f3')
     expect(updatedChips.find((c) => c.key === 'buy-shipment').queryValue).toBe('99999')
-    // Update Filter PERSISTS ONLY (spec decision 1) — "Show N results" keeps
-    // the apply job; neither the All-tab commit path nor the Saved-tab
-    // wholesale-apply path may fire from this click.
+    // Decision 1 REVERSES rev1's persist-only rule: Update Filter now ALSO
+    // applies, via the DEDICATED `onApplyUpdatedFilter` — never
+    // `onApplyFilters` (the free-mode commit path) or `onApplySaved` (the
+    // Saved-tab wholesale-apply path, which would also close the panel).
+    expect(onApplyUpdatedFilter).toHaveBeenCalledWith(updatedChips)
     expect(onApplyFilters).not.toHaveBeenCalled()
     expect(onApplySaved).not.toHaveBeenCalled()
 
-    // Simulate the host round-trip a real update causes: the persisted
-    // profile now carries the chips Update Filter just wrote (same shape
-    // `onUpdateFilter` received) — the dirty check recomputes against the
-    // FRESH profile and Update Filter disappears again.
-    rerender(
-      <ShipmentsFiltersView
-        savedFilters={[{ ...editableFilter, chips: updatedChips }]}
-        onUpdateFilter={onUpdateFilter}
-        onApplyFilters={onApplyFilters}
-        onApplySaved={onApplySaved}
-      />,
-    )
-    expect(screen.queryByText('Update Filter')).toBeNull()
+    // Lands back on Saved, with the SAME row still selected.
+    expect(screen.getByText('Saved').closest('button').getAttribute('aria-pressed')).toBe('true')
+    expect(container.querySelectorAll('.menu-row-radio--selected')).toHaveLength(1)
+    expect(within(container).getByText('Editable Profile').closest('.menu-row-radio--selected')).toBeTruthy()
   })
 
-  test('Update Filter never appears for an Odyssey default', () => {
-    render(<ShipmentsFiltersView savedFilters={[]} onUpdateFilter={vi.fn()} />)
-    fireEvent.click(screen.getByText('Saved'))
-    fireEvent.click(screen.getByText(ODYSSEY_DEFAULT_FILTERS[0].name)) // row body — opens it in the editor
+  test('Update Filter never appears for an Odyssey default (opening it via Edit Filters is still allowed)', () => {
+    const { container } = render(<ShipmentsFiltersView savedFilters={[]} onUpdateFilter={vi.fn()} />)
+    enterEditMode(container, ODYSSEY_DEFAULT_FILTERS[0].name)
 
-    // Opening a default in the editor IS allowed (spec: "you can look at it,
-    // and use it as a starting point for Create New Filter") — only Update
-    // Filter is barred, same rule as no ⋮/no grip/not deletable.
-    expect(screen.getByText('Create New Filter')).toBeTruthy()
+    // Opening a default in the editor IS allowed (same allowance rev1
+    // recorded: "you can look at it") — only Update Filter is barred, same
+    // rule as no ⋮/no grip/not deletable. The link stays hidden regardless.
+    expect(screen.getByText(`Edit ${ODYSSEY_DEFAULT_FILTERS[0].name}`)).toBeTruthy()
     expect(screen.queryByText('Update Filter')).toBeNull()
+    expect(screen.queryByText('Save Filters')).toBeNull()
   })
 
   test('Update Filter never appears for a shared filter — owned or not, even after an edit', () => {
@@ -550,11 +561,12 @@ describe('ShipmentsFiltersView — profile-editing flow (S110 rev1)', () => {
         attrLabel: 'Buy Shipment #', queryValue: '1', dataKey: 'buyShipment', group: 'Shipment Identifiers',
       }],
     }
-    render(<ShipmentsFiltersView savedFilters={[]} sharedFilters={[mine]} onUpdateFilter={onUpdateFilter} />)
-    fireEvent.click(screen.getByText('Saved'))
-    fireEvent.click(screen.getByText('Mine')) // row body — opens it in the editor
+    const { container } = render(
+      <ShipmentsFiltersView savedFilters={[]} sharedFilters={[mine]} onUpdateFilter={onUpdateFilter} />,
+    )
+    enterEditMode(container, 'Mine')
 
-    expect(screen.getByText('Create New Filter')).toBeTruthy()
+    expect(screen.getByText('Edit Mine')).toBeTruthy()
     const input = screen.getByPlaceholderText('Enter Buy Shipment #')
     fireEvent.change(input, { target: { value: '999' } })
     // Would be dirty (and show Update Filter) for a Custom profile at this
@@ -563,6 +575,58 @@ describe('ShipmentsFiltersView — profile-editing flow (S110 rev1)', () => {
     // ShipmentsFiltersView's `isSharedOpen` comment).
     expect(screen.queryByText('Update Filter')).toBeNull()
     expect(onUpdateFilter).not.toHaveBeenCalled()
+  })
+
+  // S110 rev2 decision 4 — "leaving edit-filter mode with unsaved changes
+  // WARNS first... on any exit that would lose them." Covers the in-panel
+  // exits (tab switch, ‹ back, × close) that route through this component's
+  // own `attemptLeaveEditMode`; the host-level exits (outside-click, Escape,
+  // bridged via `editGuardRef`) are covered in ShipmentsGlobalSearch.test.jsx.
+  test('switching tabs while edit-filter mode is dirty warns first; Cancel stays in edit mode with the change intact, Discard leaves and clears it', () => {
+    const onUpdateFilter = vi.fn()
+    const { container } = render(<ShipmentsFiltersView savedFilters={[editableFilter]} onUpdateFilter={onUpdateFilter} />)
+    enterEditMode(container, 'Editable Profile')
+
+    const input = screen.getByPlaceholderText('Enter Buy Shipment #')
+    fireEvent.change(input, { target: { value: '99999' } })
+
+    fireEvent.click(screen.getByText('Saved'))
+    const dialog = screen.getByRole('dialog')
+    expect(within(dialog).getByText(/Discard changes to Editable Profile\?/)).toBeTruthy()
+    // Still in edit mode — the tab switch has NOT happened yet.
+    expect(screen.getByText('Edit Editable Profile')).toBeTruthy()
+
+    fireEvent.click(within(dialog).getByText('Cancel'))
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(screen.getByText('Edit Editable Profile')).toBeTruthy() // still editing
+    expect(screen.getByPlaceholderText('Enter Buy Shipment #').value).toBe('99999') // change intact
+
+    fireEvent.click(screen.getByText('Saved'))
+    fireEvent.click(within(screen.getByRole('dialog')).getByText('Discard'))
+    expect(screen.queryByRole('dialog')).toBeNull()
+    // Left edit mode — landed on Saved, no Update Filter call ever fired.
+    expect(screen.getByText('Saved').closest('button').getAttribute('aria-pressed')).toBe('true')
+    expect(onUpdateFilter).not.toHaveBeenCalled()
+  })
+
+  test('switching tabs while edit-filter mode is CLEAN (no edits) leaves silently — no confirm', () => {
+    const { container } = render(<ShipmentsFiltersView savedFilters={[editableFilter]} />)
+    enterEditMode(container, 'Editable Profile')
+    fireEvent.click(screen.getByText('Saved'))
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(screen.getByText('Saved').closest('button').getAttribute('aria-pressed')).toBe('true')
+  })
+
+  test('‹ Back while edit-filter mode is dirty also warns (any in-panel exit, not just the tab)', () => {
+    const onBack = vi.fn()
+    const { container } = render(<ShipmentsFiltersView savedFilters={[editableFilter]} onBack={onBack} />)
+    enterEditMode(container, 'Editable Profile')
+    fireEvent.change(screen.getByPlaceholderText('Enter Buy Shipment #'), { target: { value: '99999' } })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }))
+    expect(onBack).not.toHaveBeenCalled()
+    fireEvent.click(within(screen.getByRole('dialog')).getByText('Discard'))
+    expect(onBack).toHaveBeenCalledTimes(1)
   })
 })
 
@@ -607,15 +671,26 @@ describe('ShipmentsFiltersView — Saved tab, sharing (S108 Phase 3d)', () => {
     expect(screen.queryByText(/^\d+ filters?$/)).toBeNull()
   })
 
-  test('Odyssey group order is fixed: defaults first, then shared exactly as given (created_at order)', () => {
+  // S110 rev2 item 6 REVERSES the S108 render order — shared profiles now
+  // render ABOVE a visible line separator, shipped defaults BELOW it
+  // ("shared by people" reads above "shipped by Odyssey"). Within the
+  // shared sub-set the order is still fixed, exactly as given (created_at).
+  test('Odyssey group order: shared profiles ABOVE a divider (as given), shipped defaults BELOW it', () => {
     const { container } = renderSavedTab({ sharedFilters: [theirShared, myShared] })
     const odysseyList = container.querySelector('.shipments-filters__saved-list--odyssey')
     const names = [...odysseyList.querySelectorAll('.menu-row__label')].map((el) => el.textContent)
     expect(names).toEqual([
-      ...ODYSSEY_DEFAULT_FILTERS.map((f) => f.name),
       theirShared.name,
       myShared.name,
+      ...ODYSSEY_DEFAULT_FILTERS.map((f) => f.name),
     ])
+    expect(odysseyList.querySelector('.shipments-filters__saved-divider')).toBeTruthy()
+  })
+
+  test('no divider when there are no shared filters — just the defaults', () => {
+    const { container } = renderSavedTab({ sharedFilters: [] })
+    const odysseyList = container.querySelector('.shipments-filters__saved-list--odyssey')
+    expect(odysseyList.querySelector('.shipments-filters__saved-divider')).toBeNull()
   })
 
   test('dragging a Custom row into the Odyssey list calls onShareFilter with that filter, and a host round-trip moves the row across groups', () => {
@@ -719,13 +794,16 @@ describe('ShipmentsFiltersView — Saved tab, sharing (S108 Phase 3d)', () => {
     expect(odysseyList.querySelectorAll('.menu-row-checkbox')).toHaveLength(0)
   })
 
-  // Edit Name is Custom-only (user ruling 2026-08-05) — a shared row is NOT
-  // renameable in place, even your own. To change one: un-share it (drag back
-  // to Custom), edit it there, re-share. Same reasoning that suppresses Update
-  // Filter for shared rows. Batch DELETE of your own shared row still works.
-  test('your own shared row: NOT renameable via Edit Name, but gets a checkbox in batch delete', () => {
+  // S110 rev2 decision 2 REVERSES the earlier same-day "Edit Name is
+  // Custom-only" ruling: "Edit Name covers Custom rows AND the author's own
+  // shared rows." Un-share (drag back to Custom) is still the only way to
+  // change what a shared filter SEARCHES FOR (Update Filter's own
+  // carve-out, unaffected by this) — but its NAME is editable in place now.
+  // Batch DELETE of your own shared row still works, unchanged.
+  test('your own shared row IS renameable via Edit Name (decision 2) and gets a checkbox in batch delete', () => {
+    const onRenameSharedFilter = vi.fn()
     const onDeleteSharedFilters = vi.fn()
-    const { container } = renderSavedTab({ sharedFilters: [myShared], onDeleteSharedFilters })
+    const { container } = renderSavedTab({ sharedFilters: [myShared], onRenameSharedFilter, onDeleteSharedFilters })
     const odysseyList = container.querySelector('.shipments-filters__saved-list--odyssey')
 
     const radio = within(odysseyList).getByText(myShared.name).closest('.menu-row-radio').querySelector('input[type="radio"]')
@@ -733,13 +811,20 @@ describe('ShipmentsFiltersView — Saved tab, sharing (S108 Phase 3d)', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Preset actions' }))
     const editNameOption = screen.getByText('Edit Name').closest('[role="menuitem"]')
-    expect(editNameOption.getAttribute('aria-disabled')).toBe('true')
+    expect(editNameOption.getAttribute('aria-disabled')).toBeNull()
+
+    fireEvent.click(screen.getByText('Edit Name'))
+    const input = screen.getByLabelText(`Rename ${myShared.name}`)
+    expect(document.activeElement).toBe(input)
+    fireEvent.change(input, { target: { value: 'Renamed Shared' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+    // Routes to the SHARED persistence call, never the Custom one — this id
+    // lives in `sharedFilters`, not `savedFilters`.
+    expect(onRenameSharedFilter).toHaveBeenCalledWith(myShared.id, 'Renamed Shared')
 
     // Batch delete: your own shared row swaps to a checkbox and can be
-    // confirmed via `onDeleteSharedFilters` (never `onDeleteFilters` — this
-    // id lives in `sharedFilters`, not `savedFilters`). The ⋮ menu is still
-    // open (Edit Name was never clicked — it's disabled now), so go straight
-    // to Delete Filters rather than toggling the menu shut and back open.
+    // confirmed via `onDeleteSharedFilters` (never `onDeleteFilters`).
+    fireEvent.click(screen.getByRole('button', { name: 'Preset actions' }))
     fireEvent.click(screen.getByText('Delete Filters'))
     const checkbox = within(odysseyList).getByRole('checkbox')
     fireEvent.click(checkbox)
@@ -761,5 +846,120 @@ describe('ShipmentsFiltersView — Saved tab, sharing (S108 Phase 3d)', () => {
     // The two defaults + someone else's shared row: disabled radios.
     const disabledRadios = odysseyList.querySelectorAll('.menu-row-radio[data-disabled]')
     expect(disabledRadios).toHaveLength(ODYSSEY_DEFAULT_FILTERS.length + 1)
+  })
+})
+
+// S110 rev2 item 5 — free mode is "what exists today": two-way with the
+// bar, `Save Filters +` visible but disabled (no field filled).
+describe('ShipmentsFiltersView — free mode (S110 rev2 item 5)', () => {
+  test('Save Filters + is a functional no-op with nothing filled; filling a field enables it', () => {
+    const onOpenSaveModal = vi.fn()
+    render(<ShipmentsFiltersView onOpenSaveModal={onOpenSaveModal} />)
+
+    fireEvent.click(screen.getByText('Save Filters'))
+    expect(onOpenSaveModal).not.toHaveBeenCalled()
+
+    const input = screen.getByPlaceholderText('Enter Buy Shipment #')
+    fireEvent.change(input, { target: { value: '12345' } })
+    fireEvent.click(screen.getByText('Save Filters'))
+    expect(onOpenSaveModal).toHaveBeenCalledTimes(1)
+  })
+
+  test('the All tab count reflects the live filter fields in use (free mode) — matches decision "free mode counts fields in use"', () => {
+    render(<ShipmentsFiltersView />)
+    const allTabButton = screen.getByText('All').closest('button')
+    expect(within(allTabButton).getByText('0')).toBeTruthy()
+
+    fireEvent.change(screen.getByPlaceholderText('Enter Buy Shipment #'), { target: { value: '12345' } })
+    expect(within(allTabButton).getByText('1')).toBeTruthy()
+  })
+})
+
+// S110 rev2 item 7 (GS-28) — per-row copy icon, reverses GS-26. Every saved
+// row gets a copy icon that copies THAT row's own chips, using the SAME
+// `formatChipsForCopy` the bar's own copy button uses (decision 3) — proven
+// here by asserting the exact string shape, not just that SOMETHING was
+// copied.
+describe('ShipmentsFiltersView — per-row copy icon (S110 rev2 item 7 / GS-28)', () => {
+  test('copies the ROW\'s own chips as "Label: value · Label: value" without applying — the same shape the bar\'s copy button produces', () => {
+    const writeText = vi.fn()
+    const originalClipboard = navigator.clipboard
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
+
+    const onApplySaved = vi.fn()
+    renderSavedTab({ onApplySaved })
+    fireEvent.click(screen.getByRole('button', { name: 'Copy West Coast LTL filters' }))
+
+    expect(writeText).toHaveBeenCalledWith('Mode: LTL · Destination: CA')
+    // Copying is NOT applying — no selection, no apply call.
+    expect(onApplySaved).not.toHaveBeenCalled()
+
+    Object.defineProperty(navigator, 'clipboard', { value: originalClipboard, configurable: true })
+  })
+
+  test('every saved row gets its own copy icon, both groups, without needing to select the row first', () => {
+    const { container } = renderSavedTab({ sharedFilters: [] })
+    expect(screen.getByRole('button', { name: 'Copy West Coast LTL filters' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Copy JBHT Sent Tenders filters' })).toBeTruthy()
+    ODYSSEY_DEFAULT_FILTERS.forEach((f) => {
+      expect(screen.getByRole('button', { name: `Copy ${f.name} filters` })).toBeTruthy()
+    })
+    // None of the rows were selected to get a copy icon.
+    expect(container.querySelectorAll('.menu-row-radio--selected')).toHaveLength(0)
+  })
+
+  test('no navigator.clipboard — copy click does not throw', () => {
+    const originalClipboard = navigator.clipboard
+    Object.defineProperty(navigator, 'clipboard', { value: undefined, configurable: true })
+    renderSavedTab()
+    expect(() => fireEvent.click(screen.getByRole('button', { name: 'Copy West Coast LTL filters' }))).not.toThrow()
+    Object.defineProperty(navigator, 'clipboard', { value: originalClipboard, configurable: true })
+  })
+})
+
+// S110 rev2 item 8 — the drag rebuild's one visible affordance: a dashed
+// outline on the whole target GROUP, toggled by dragenter/dragleave, so a
+// cross-group drag is never ambiguous about where it will land.
+describe('ShipmentsFiltersView — drag rebuild visible affordance (S110 rev2 item 8)', () => {
+  function makeDataTransfer() {
+    const data = {}
+    return { setData: (k, v) => { data[k] = v }, getData: (k) => data[k], effectAllowed: null, dropEffect: null }
+  }
+
+  test('dragging a Custom row over the Odyssey group shows the drag-over affordance, and it clears on drop', () => {
+    const onShareFilter = vi.fn()
+    const { container } = render(
+      <ShipmentsFiltersView savedFilters={sampleFilters} sharedFilters={[]} onShareFilter={onShareFilter} />,
+    )
+    fireEvent.click(screen.getByText('Saved'))
+
+    const customWrapper = container.querySelector('.shipments-filters__saved-list--custom [draggable="true"]')
+    const odysseyList = container.querySelector('.shipments-filters__saved-list--odyssey')
+    const dataTransfer = makeDataTransfer()
+
+    fireEvent.dragStart(customWrapper, { dataTransfer })
+    fireEvent.dragEnter(odysseyList, { dataTransfer })
+    expect(odysseyList.className).toContain('shipments-filters__saved-list--drag-over')
+
+    fireEvent.drop(odysseyList, { dataTransfer })
+    expect(odysseyList.className).not.toContain('shipments-filters__saved-list--drag-over')
+    expect(onShareFilter).toHaveBeenCalledWith(sampleFilters[0])
+  })
+
+  test('the affordance also lights up when the pointer enters a ROW inside the target group, not just empty list space (dragenter/dragover wired on every row)', () => {
+    const { container } = render(<ShipmentsFiltersView savedFilters={sampleFilters} sharedFilters={[]} />)
+    fireEvent.click(screen.getByText('Saved'))
+
+    const customWrapper = container.querySelector('.shipments-filters__saved-list--custom [draggable="true"]')
+    const odysseyList = container.querySelector('.shipments-filters__saved-list--odyssey')
+    const odysseyRow = odysseyList.querySelector('.menu-row-radio')
+    const dataTransfer = makeDataTransfer()
+
+    fireEvent.dragStart(customWrapper, { dataTransfer })
+    // Entering a CHILD ROW bubbles dragenter up to the group container's own
+    // handler — the affordance still lights up even though the pointer
+    // never touched the container's own background.
+    fireEvent.dragEnter(odysseyRow, { dataTransfer })
+    expect(odysseyList.className).toContain('shipments-filters__saved-list--drag-over')
   })
 })

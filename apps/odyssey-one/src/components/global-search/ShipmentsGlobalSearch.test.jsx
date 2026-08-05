@@ -676,3 +676,79 @@ describe('ShipmentsGlobalSearch — shared filters (S108 Phase 3d)', () => {
     vi.doUnmock('../../search/useGlobalSearch')
   })
 })
+
+// S110 rev2 decision 4 — the two dismissal paths ShipmentsGlobalSearch owns
+// DIRECTLY (Escape, outside-click) never route through ShipmentsFiltersView's
+// own onBack/onClose, so they're bridged through `editGuardRef` (see that
+// ref's doc comment in ShipmentsGlobalSearch.jsx). This proves the bridge
+// actually intercepts BOTH paths when edit-filter mode is dirty, not just the
+// in-panel Back/tab-click paths already covered in ShipmentsFiltersView.test.jsx.
+describe('ShipmentsGlobalSearch — edit-filter mode discard guard bridges to host-level Escape/outside-click (S110 rev2 decision 4)', () => {
+  const seededFilter = {
+    id: 'f1',
+    name: 'West Coast LTL',
+    chips: [{
+      key: 'mode', kind: 'attribute', label: 'Mode: LTL',
+      attrLabel: 'Mode', queryValue: 'LTL', dataKey: 'mode', group: 'Shipment Details',
+    }],
+  }
+
+  async function mountWithDirtyEditFilterMode() {
+    vi.resetModules()
+    vi.doMock('../../contexts/CustomersContext.jsx', () => ({
+      useCustomers: () => ({ selectedDataIds: null }),
+    }))
+    vi.doMock('../../search/useGlobalSearch', () => ({
+      useGlobalSearch: () => baseHookReturn({}),
+    }))
+    const { default: ShipmentsGlobalSearch } = await import('./ShipmentsGlobalSearch.jsx')
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    qc.setQueryData(['user-preference', 'shipments.savedFilters'], { v: 1, custom: [seededFilter] })
+    const utils = render(withQueryClient(qc, <ShipmentsGlobalSearch />))
+    fireEvent.click(utils.container.querySelector('.filter-button'))
+    fireEvent.click(utils.getByText('Saved'))
+    fireEvent.click(utils.container.querySelector('.menu-row-radio input[type="radio"]'))
+    fireEvent.click(utils.getByRole('button', { name: 'Preset actions' }))
+    fireEvent.click(utils.getByText('Edit Filters'))
+    expect(utils.getByText('Edit West Coast LTL')).toBeTruthy()
+    // 'mode' is an enum field (TL/LTL/...) — toggling a different value
+    // dirties it. Scoped to the Mode field specifically: 'TL' is ALSO a
+    // value in the neighbouring Equipment Code enum (same "Transport &
+    // Equipment" section — EQUIPMENT_LABELS carries a 'TL' entry too), so an
+    // unscoped query is ambiguous.
+    const modeField = [...utils.container.querySelectorAll('.shipments-filters__field')]
+      .find((el) => within(el).queryByText('Mode'))
+    fireEvent.click(within(modeField).getByText('TL'))
+    return utils
+  }
+
+  test('Escape while edit-filter mode is dirty warns instead of closing the panel; Discard then closes it', async () => {
+    const { container, getByRole, queryByRole } = await mountWithDirtyEditFilterMode()
+
+    fireEvent.keyDown(container.querySelector('.shipments-results-panel'), { key: 'Escape' })
+    expect(getByRole('dialog')).toBeTruthy()
+    expect(container.querySelector('.shipments-results-panel')).toBeTruthy() // still open
+
+    fireEvent.click(within(getByRole('dialog')).getByText('Discard'))
+    await waitFor(() => expect(queryByRole('dialog')).toBeNull())
+    expect(container.querySelector('.shipments-results-panel')).toBeNull() // now closed
+
+    vi.doUnmock('../../contexts/CustomersContext.jsx')
+    vi.doUnmock('../../search/useGlobalSearch')
+  })
+
+  test('a click outside the wrapper while edit-filter mode is dirty warns instead of closing; Cancel keeps the panel open with the change intact', async () => {
+    const { container, getByRole, queryByRole } = await mountWithDirtyEditFilterMode()
+
+    fireEvent.mouseDown(document.body)
+    expect(getByRole('dialog')).toBeTruthy()
+    expect(container.querySelector('.shipments-results-panel')).toBeTruthy()
+
+    fireEvent.click(within(getByRole('dialog')).getByText('Cancel'))
+    expect(queryByRole('dialog')).toBeNull()
+    expect(container.querySelector('.shipments-results-panel')).toBeTruthy() // still open, still editing
+
+    vi.doUnmock('../../contexts/CustomersContext.jsx')
+    vi.doUnmock('../../search/useGlobalSearch')
+  })
+})

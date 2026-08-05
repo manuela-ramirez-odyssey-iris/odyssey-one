@@ -4,7 +4,7 @@ import { GlobalSearchPanel, GlobalSearchResults } from '@odyssey/ui'
 export const meta = {
   name: 'GlobalSearchPanel',
   tier: 'organism',
-  version: '0.6.1', // S110 primaryDisabled
+  version: '0.6.2', // S110 primaryDisabled + linkDisabled
   createdVersion: '0.2.0',
   figmaNode: '2462:149',
   codeConnect: 'packages/ui/src/GlobalSearchPanel.figma.tsx',
@@ -22,6 +22,7 @@ export const props = [
   { name: 'linkLabel', type: 'string', desc: "Footer link button label. Default 'Save Filters'." },
   { name: 'linkIcon', type: 'ReactNode', desc: 'Leading icon for the footer link button. Default <CirclePlus>.' },
   { name: 'onLink', type: '() => void', desc: 'Called when the footer link button is clicked.' },
+  { name: 'linkDisabled', type: 'boolean', desc: "Disables the footer link, using Button's own disabled state. For consumers with nothing to act on (e.g. Save Filters with no field filled) — an unwired handler would read as enabled and broken instead. Default false." },
   { name: 'showSecondary', type: 'boolean', desc: 'Show the lead/left secondary button in the footer. Default true.' },
   { name: 'showTrailSecondary', type: 'boolean', desc: 'Show a second secondary button on the trail/right (Filters·All "Clear all" next to "Show N"). Default false.' },
   { name: 'secondaryLabel', type: 'string', desc: "Secondary button label. Default 'Clear all'." },

@@ -4660,6 +4660,25 @@ button.breadcrumb__label:focus-visible {
   flex-direction: column;
 }
 
+/* S110 rev2 drag rebuild (docs/superpowers/specs/2026-08-05-filters-two-modes.md
+   item 8) — the ONE visible drop affordance: a dashed outline on the whole
+   target GROUP (not a row), so a cross-group drag never reads as landing on
+   "this specific row." Toggled by `dragOverGroup` state in
+   ShipmentsFiltersView.jsx. */
+.shipments-filters__saved-list--drag-over {
+  outline: 2px dashed var(--border-focus);
+  outline-offset: -2px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+}
+
+/* S110 rev2 item 6 — the Odyssey group's line separator between its two
+   sub-sets: shared user profiles ABOVE, shipped defaults BELOW. */
+.shipments-filters__saved-divider {
+  border-top: 1px solid var(--border-subtle);
+  margin: var(--spacing-2) 0;
+}
+
 /* ----------------------------------------
    SAVE FILTER MODAL (S108 1b) — ModalMedium content, not a Figma-mastered
    component itself (the modal shell/FormField/SearchChip pieces are). Just

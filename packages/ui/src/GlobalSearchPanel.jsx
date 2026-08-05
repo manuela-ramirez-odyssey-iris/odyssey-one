@@ -33,6 +33,11 @@ export default function GlobalSearchPanel({
   // Footer (baked) — link + secondary (white) on the lead/left; primary (+ optional
   // trail secondary, for the Filters·All "Clear all" next to "Show N") on the trail/right.
   showLink = false,
+  // Same pass-through rationale as `primaryDisabled` below: `Button` already
+  // defines its disabled state, so binding it is not new appearance. Without
+  // it a consumer with nothing to save (Filters·All with no field filled) can
+  // only unwire `onLink`, leaving a link that reads enabled and does nothing.
+  linkDisabled = false,
   linkLabel = 'Save Filters',
   linkIcon = <CirclePlus {...ICON_LG} />,
   onLink,
@@ -92,7 +97,7 @@ export default function GlobalSearchPanel({
       <div className="global-search-panel__footer">
         <div className="global-search-panel__footer-left">
           {showLink && (
-            <Button variant="link" size="sm" icon={linkIcon} onClick={onLink}>
+            <Button variant="link" size="sm" icon={linkIcon} disabled={linkDisabled} onClick={onLink}>
               {linkLabel}
             </Button>
           )}

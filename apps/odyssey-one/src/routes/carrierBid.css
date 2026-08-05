@@ -37,18 +37,56 @@
   color: var(--text-tertiary);
 }
 
+.carrier-bid-page__main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
 /* Section chrome (card bg/border/padding) now comes from SubAccordion
-   itself — this page only centers the column and caps its width. */
+   itself — this page only centers the column and caps its width.
+   margin-inline: auto centers regardless of block vs flex context
+   (align-self only works on direct flex children). */
 .carrier-bid-page .sub-accordion {
   max-width: 480px;
   width: 100%;
-  align-self: center;
+  margin-inline: auto;
 }
 
 .carrier-bid-card__grid {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-3);
+}
+
+/* Shipment Detail section only — pairs related fields two-up once there's
+   room, single column on narrow viewports (mobile-first, external carriers
+   on phones). */
+.carrier-bid-page .sub-accordion.carrier-bid-page__detail-section {
+  max-width: 480px;
+}
+
+@media (min-width: 640px) {
+  .carrier-bid-page .sub-accordion.carrier-bid-page__detail-section {
+    max-width: 720px;
+  }
+
+  .carrier-bid-card__grid--pairs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: var(--spacing-4);
+    row-gap: var(--spacing-3);
+  }
+
+  .carrier-bid-card__grid-full {
+    grid-column: 1 / -1;
+  }
+}
+
+.carrier-bid-card__hazmat-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
 }
 
 .carrier-bid-card__msds {

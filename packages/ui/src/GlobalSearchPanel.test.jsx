@@ -23,6 +23,22 @@ describe('GlobalSearchPanel primaryDisabled', () => {
     expect(onShowResults).not.toHaveBeenCalled()
   })
 
+  test('linkDisabled disables the footer link and blocks its handler', () => {
+    const onLink = vi.fn()
+    render(<GlobalSearchPanel showLink linkLabel="Save Filters" linkDisabled onLink={onLink} onShowResults={() => {}} />)
+    const link = screen.getByText('Save Filters').closest('button')
+    expect(link.disabled).toBe(true)
+    fireEvent.click(link)
+    expect(onLink).not.toHaveBeenCalled()
+  })
+
+  test('the footer link is enabled by default', () => {
+    const onLink = vi.fn()
+    render(<GlobalSearchPanel showLink linkLabel="Save Filters" onLink={onLink} onShowResults={() => {}} />)
+    fireEvent.click(screen.getByText('Save Filters'))
+    expect(onLink).toHaveBeenCalledTimes(1)
+  })
+
   test('disabling the primary leaves the secondary actionable', () => {
     const onClear = vi.fn()
     render(<GlobalSearchPanel count={0} primaryDisabled onClear={onClear} onShowResults={() => {}} />)

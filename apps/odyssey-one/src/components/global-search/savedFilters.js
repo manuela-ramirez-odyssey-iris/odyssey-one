@@ -60,6 +60,19 @@ export function splitFreeText(chips) {
   return { chips: chips.filter((c) => c.key !== '__free-text__'), freeText }
 }
 
+// S110 rev2 (GS-28, docs/superpowers/specs/2026-08-05-filters-two-modes.md
+// "Per-row copy icon"/decision 3) — the ONE formatter behind BOTH copy
+// affordances: the bar's own copy button (ShipmentsGlobalSearch's
+// `handleCopy`) and every Saved-tab row's copy icon
+// (ShipmentsFiltersView's `RowCopyButton`). Extracted here, rather than
+// duplicated, so the two call sites can never drift into two different
+// summaries of "the same" filters — spec decision 3 requires them to
+// produce the literal same string. Human-readable, optimised for pasting
+// into chat; not a parser round-trip (spec, "Not in scope").
+export function formatChipsForCopy(chips) {
+  return chips.map((c) => c.label).join(' · ')
+}
+
 // ── Odyssey defaults (S108 Phase 2, still no DB — code constants, mirroring
 // how `PRESETS.odyssey` ships for column presets in ColumnPanel.jsx) ────────
 //

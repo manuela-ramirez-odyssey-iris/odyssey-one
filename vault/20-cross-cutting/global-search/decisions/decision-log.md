@@ -267,7 +267,7 @@ Decision IDs use the `GS-` prefix (GlobalSearch).
 **Affects:** `ShipmentsGlobalSearch.jsx`, `ShipmentsFiltersView.jsx`, `ShipmentsGlobalSearch.test.jsx`. **Side effect:** the same `dismissRef` guard fixed a **pre-existing** bug — the All tab's `{commit:true}` path re-opened the results glimpse whenever filters added a chip.
 
 ### GS-26 — The bar's copy button copies the applied query; it is NOT a per-saved-row action
-**Decided:** 2026-08-05
+**Decided:** 2026-08-05 · **⚠ PARTLY SUPERSEDED 2026-08-05 by [[#GS-28 — Per-row copy on saved filters (supersedes GS-26's "not a per-row action")|GS-28]]** — the bar button stands; the "no per-row copy" exclusion does not.
 **Previous state:** Each saved row in the prototype Saved tab carried its own "Copy query" icon button (a no-op stub).
 **Decision:** Copy is a single affordance **on the search bar**, immediately left of the clear X — it copies the whole applied query (chips as `Label: value` joined by ` · `, plus free text) to the clipboard. No saved row has its own copy control. It is also the sanctioned answer to "how do I take someone else's shared filter": apply it, then copy the query.
 **Rationale:** User, 2026-08-04 — a per-row copy *"would mean an exclusivity feature"*. The string is optimised for pasting into chat, not machine round-trip; no parser reads it back, and building one is explicit future scope if users start trying.
@@ -288,6 +288,22 @@ Decision IDs use the `GS-` prefix (GlobalSearch).
 **Refutes the spec:** the spec proposed **Hazmat** as a third default. There is **no `hazmat`/`hazardous` attribute in `SHIPMENTS_PROGRESSION` at all** — the `hazardous` entry in `ColumnPanel.jsx`'s `ALL_COLUMNS` belongs to the grid's column vocabulary, which is a different vocabulary from search. A Hazmat default would have had no attribute to resolve and would have silently 0-resulted on apply. Two working defaults shipped instead of three shaky ones.
 **Source:** Spec `2026-08-04-save-filters-design.md` §"Odyssey default filters are INVENTED"; implementation S110 (verification of projection performed in code).
 **Affects:** `savedFilters.js` (`ODYSSEY_DEFAULT_FILTERS`, comment-marked INVENTED), `ShipmentsFiltersView.jsx`. **Owed: raise both with Jana before this reaches a demo.**
+
+### GS-28 — Per-row copy on saved filters (supersedes GS-26's "not a per-row action")
+**Decided:** 2026-08-05 · **Supersedes:** the exclusion half of GS-26. The bar copy button itself is UNCHANGED and stays.
+**Previous state:** GS-26 (same day) recorded that copy is a bar-level affordance and deliberately **not** a per-row control, on the user's reasoning that a per-row copy *"would mean an exclusivity feature."* The prototype's old per-row "Copy query" stub had been removed on that basis.
+**Decision:** Every saved-filter row carries a **clickable copy icon** that copies that profile's filters **without applying it first**. It produces the **identical string** to the bar's copy button — one shared `formatChipsForCopy` formatter, not a second implementation.
+**Rationale:** User direction, 2026-08-05: *"add a clickable copy icon next to each row so users can copy the filters without needing to apply them first and having to copy them from the bar."* The GS-26 route (apply, then copy from the bar) forces a destructive intermediate step — applying someone's filter replaces your current search just to read it. Copying a profile is a read, and a read shouldn't require mutating the thing you're looking at. The "exclusivity" concern GS-26 captured was about copy being framed as a *per-row privilege*; a plain read-only convenience on every row doesn't create that asymmetry.
+**Source:** User direction 2026-08-05; spec `docs/superpowers/specs/2026-08-05-filters-two-modes.md` §7.
+**Affects:** `ShipmentsFiltersView.jsx` (per-row copy button), `savedFilters.js` (`formatChipsForCopy`, extracted so bar + row can never drift), `ShipmentsGlobalSearch.jsx` (bar `handleCopy` now calls the shared formatter).
+
+### GS-29 — The filters panel has TWO MODES; edit-filter mode is decoupled from the bar
+**Decided:** 2026-08-05
+**Previous state:** One mode. The All tab always reflected the live search and was wired two-way to the bar; rev 1 (same day) had made a row-body click open a profile in that same tab, renaming the tab to the profile.
+**Decision:** The All-filters panel has **free mode** (default — fields are the live search's criteria, two-way with the bar) and **edit-filter mode** (fields are a saved profile's criteria, **fully decoupled** — nothing reaches the bar or table until `Update Filter`). Edit mode is entered only via **⋮ → Edit Filters** on a selected row; the panel **header** becomes `Edit <profile>` while the tab stays "All"; the `Save Filters +` link hides; the primary becomes `Update Filter`, inactive until a field changes. `Update Filter` persists, **applies to bar + table**, and returns to the Saved tab with the row still selected. Leaving with unsaved changes **warns** first.
+**Rationale:** Editing a saved profile must not disturb the search the user is currently looking at — that decoupling is the mode's whole purpose. Rev 1's row-body-opens-editor conflated "look at this profile" with "select this profile"; the user's correction makes **both** row zones select, and promotes entering the editor to an explicit menu action. The discard warning exists because edit-mode changes are invisible everywhere else until updated, so silent loss would be undetectable.
+**Source:** User direction 2026-08-05 (four follow-up rulings on Update-Filter scope, Edit-Name ownership, copy format, and discard behaviour); spec `2026-08-05-filters-two-modes.md`.
+**Affects:** `ShipmentsFiltersView.jsx`, `ShipmentsGlobalSearch.jsx`, `packages/ui/GlobalSearchPanel.jsx` (`linkDisabled`, 0.6.2). **Reverses from rev 1:** tab order (back to All·Saved), tab-renaming (now the header), row-body navigation (now selects), `Create New Filter` (back to `Save Filters +`), `Update Filter` as a secondary link (now primary). **Revises** the same-day Edit-Name ruling: Custom rows **and the author's own shared rows**.
 
 ---
 

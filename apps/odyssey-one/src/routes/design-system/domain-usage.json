@@ -86,6 +86,7 @@
     "GlobalSearch",
     "GlobalSearchPanel",
     "GlobalSearchResults",
+    "IconButtonGhost",
     "MenuRowCheckbox",
     "MenuRowRadio",
     "ModalMedium",
