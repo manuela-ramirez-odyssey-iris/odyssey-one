@@ -92,7 +92,7 @@ Decision IDs use the `GS-` prefix (GlobalSearch).
 **Affects:** v1 scope boundary; future v2 design work.
 
 ### GS-09 — Saved filters render as a single named chip when applied
-**Decided:** 2026-05-28
+**Decided:** 2026-05-28 · **⚠ SUPERSEDED 2026-08-05 by [[#GS-24 — Saved filters store CHIP OBJECTS and apply as the real chip set (supersedes GS-09 + GS-10)|GS-24]]** — applying now restores the actual chip set, not one opaque chip.
 **Previous state:** Shipments inline saved-query pill — a separate token rendered inside the search bar showing the saved name + × to clear. Underlying conditions invisible.
 **Decision:** A saved filter, when applied, appears as ONE chip in the bar using the user's saved title (e.g. `C814 - ABC Logistic`). The underlying conditions still drive the query; the chip is a presentational collapse.
 **Rationale:** Preserves the "this is a saved set, not three loose chips" affordance. Reduces visual noise when many conditions are saved together. Title carries the meaning users care about.
@@ -100,7 +100,7 @@ Decision IDs use the `GS-` prefix (GlobalSearch).
 **Affects:** Chip rendering logic, saved-filter application path.
 
 ### GS-10 — Saved filters are structured, not a DSL string
-**Decided:** 2026-05-28
+**Decided:** 2026-05-28 · **⚠ SUPERSEDED 2026-08-05 by [[#GS-24 — Saved filters store CHIP OBJECTS and apply as the real chip set (supersedes GS-09 + GS-10)|GS-24]]** — the conclusion (no string DSL) survives; the `conditions[]` SHAPE does not, because it cannot express a set or date-range chip.
 **Previous state:** Shipments `parseSavedQuery()` parses `key:value` strings like `mode:LTL shipment-status:Review destination:CA delivery:<2026-01-15`. Storage is the string.
 **Decision:** Saved filters are stored as structured objects with explicit fields: `id`, `title`, `conditions[]`, `order`. Each condition is `{ attributeKey, operator, value }`. No string DSL.
 **Rationale:** Save modal UI already operates on structured chips (the user removes individual conditions via × inside the modal — that requires a structured representation). Going string-DSL would force a parse/serialize round-trip with no benefit. Structured saves are also easier to migrate and reorder.
@@ -249,6 +249,40 @@ Decision IDs use the `GS-` prefix (GlobalSearch).
 **Source:** User direction 2026-08-04.
 **Affects:** `adapter.js` (`getInitial`'s no-chips branch — the `dateItems('')` push deleted, comment updated to record the reversal), `codeSet.test.js`, `dateChips.test.js`, `composed-criteria.test.js` (empty-bar assertions changed from `['Type or Filter by date']` to `[]`). `composed-criteria.md` Case 12 annotated with the reversal; typed-slash behavior and its tests are untouched.
 
+### GS-24 — Saved filters store CHIP OBJECTS and apply as the real chip set (supersedes GS-09 + GS-10)
+**Decided:** 2026-08-05
+**Supersedes:** GS-09 (single named chip on apply) and GS-10 (`{id, title, conditions[]}` storage). Both were 2026-05-28 inferences from the Tracking-demo frames, made before the chip vocabulary grew set and date-range kinds.
+**Previous state:** GS-09 — an applied saved filter renders as ONE opaque chip bearing the saved title, the underlying conditions invisible. GS-10 — storage is `{ id, title, conditions[] }`, each condition `{ attributeKey, operator, value }`.
+**Decision:** A saved filter stores **the chip objects themselves** — `{ v: 1, custom: [ { id, name, chips } ] }`, array position IS the order — and applying one restores **the actual chip set** into the bar, not a single collapsed chip. Transient UI fields (`open`, `monthHint`) are stripped at save; `invalid` chips are dropped; chips whose attribute no longer exists in `SHIPMENTS_PROGRESSION` are dropped on hydrate. Applying routes through a dedicated `onApplySaved(chips)` → `applyChips` wholesale, explicitly NOT through `onApplyFilters(filters, {commit, replace})`.
+**Rationale:** Two independent failures killed the old model. (1) **GS-09 contradicts the user's own framing** — *"what gets saved is the reflection of what is in the search bar"* (2026-08-04); one opaque chip cannot be edited or partially removed, so the bar would stop being that reflection. (2) **GS-10's shape cannot express the chips we now have** — a GS-21 **set** chip carries `codes[]` + `typeLabel`, and a GS-22 **date-range** chip carries `from`/`to`/`single`; neither survives an `{attributeKey, operator, value}` condition. The `{commit, replace}` prohibition is the same defect one layer down: that path runs `chipsToFilters` → `mergeFiltersIntoChips`, whose non-date branch only ever emits `kind: 'attribute'` chips with a `queryValue`, so a set chip round-trips back **flattened with `codes`/`typeLabel` lost** — exactly the loss chip-object storage exists to prevent. Verified in code before implementing, not assumed.
+**Source:** User description + rulings 2026-08-04 (spec `docs/superpowers/specs/2026-08-04-save-filters-design.md` rev 4, sources section); Opus adversarial review 2026-08-04 (blocker 5); implementation S110.
+**Affects:** `savedFilters.js` (new — `toStored`/`hydrate`/`newFilter`/`splitFreeText`), `ShipmentsGlobalSearch.jsx` (hosts state + `handleApplySaved`), `ShipmentsFiltersView.jsx` (Saved tab). **Deleted by this decision:** `queryStringToFilters` + its test, `INITIAL_SAVED`, `FilterPanel.jsx` (368 lines, zero importers, carried the ancestor `SAVED_QUERIES`) — the last of the `key:value` DSL lineage GS-10 already argued against.
+
+### GS-25 — Saved-filter state is hosted in the always-mounted search host, not the Filters view
+**Decided:** 2026-08-05
+**Previous state:** The Filters view (`ShipmentsFiltersView`) owned its own saved-list state, seeded from a hardcoded `INITIAL_SAVED`.
+**Decision:** All saved-filter state AND the save modal live in `ShipmentsGlobalSearch`, which never unmounts; the Filters view receives the list plus callbacks as props. Every persistence write pairs `save()` with `queryClient.setQueryData` on the hook's own key. The wrapper's `handleKeyDown` early-returns while the save modal or an inline rename is active.
+**Rationale:** One structural choice resolves four separate defects found by adversarial review before any code was written: (1) `.shipments-results-panel` has `transform: translateX(-50%)`, which makes it the containing block for `position: fixed` — a `ModalMedium` overlay hosted inside it would size to the panel, not the viewport, trapped under `z-index: 49`; (2) the wrapper's `onKeyDown` **commits the search on Enter in any INPUT** and closes on Escape, so naming a filter and pressing Enter would tear the modal down; (3) the Filters view unmounts on every panel close while `useUserPreference` is `staleTime: Infinity` with a fire-and-forget `save()` that never seeds the cache — **a just-saved filter would vanish on reopen**; (4) `ValueComboBox.test.jsx` renders the view bare with no `QueryClientProvider`, so a `useQuery` inside the view would break it.
+**Source:** Opus adversarial review 2026-08-04 (blockers 1–4); spec rev 2 §Hosting; implementation S110.
+**Affects:** `ShipmentsGlobalSearch.jsx`, `ShipmentsFiltersView.jsx`, `ShipmentsGlobalSearch.test.jsx`. **Side effect:** the same `dismissRef` guard fixed a **pre-existing** bug — the All tab's `{commit:true}` path re-opened the results glimpse whenever filters added a chip.
+
+### GS-26 — The bar's copy button copies the applied query; it is NOT a per-saved-row action
+**Decided:** 2026-08-05
+**Previous state:** Each saved row in the prototype Saved tab carried its own "Copy query" icon button (a no-op stub).
+**Decision:** Copy is a single affordance **on the search bar**, immediately left of the clear X — it copies the whole applied query (chips as `Label: value` joined by ` · `, plus free text) to the clipboard. No saved row has its own copy control. It is also the sanctioned answer to "how do I take someone else's shared filter": apply it, then copy the query.
+**Rationale:** User, 2026-08-04 — a per-row copy *"would mean an exclusivity feature"*. The string is optimised for pasting into chat, not machine round-trip; no parser reads it back, and building one is explicit future scope if users start trying.
+**Source:** User ruling 2026-08-04; Figma `GlobalSearch` set `658:18` (`Copy Search Icon` before `Clear Search Icon`, `State=Default` + `State=Focused`; `State=Title` has no search input and was skipped).
+**Affects:** `packages/ui/src/GlobalSearch.jsx` (new optional `onCopy`; button renders only when wired, disabled with nothing to copy, transient `Check`/"Copied" for 1.5s), `GlobalSearch.figma.tsx`, `ShipmentsGlobalSearch.jsx` (builds the readable summary, guards absent `navigator.clipboard`). **Lifecycle note:** this component is fully normalized, Code Connect mapped and Angular-ported, so the GlobalSearch v1 no-normalize exemption did **not** cover it — Figma-first was mandatory. Angular catch-up owed.
+
+### GS-27 — The two shipped "Odyssey Filters" defaults are INVENTED and unratified
+**Decided:** 2026-08-05 · **Status: INVENTED — needs Jana**
+**Previous state:** No shipped default filters existed; the Saved tab's list was the hardcoded `INITIAL_SAVED` sample.
+**Decision:** The Odyssey Filters group ships **two** defaults as code constants, in neither store and never editable: **"TL Shipments"** (`mode` = TL) and **"Pending Tenders"** (`tender-status` = Sent). The group has no ⋮, no drag grip and fixed order; rows are selectable and apply through the identical `onApplySaved` path as a custom filter.
+**Rationale:** No canon defines what Odyssey's shipped defaults should be — these are our invention, chosen only because both attributes are genuinely **projected** by the search (verified against `SHIPMENTS_PROGRESSION` and the adapter, which reads `mode` and `tenderStatus` as live row fields). A default built on a non-projected attribute would degrade to honest-empty and ship a filter that looks broken.
+**Refutes the spec:** the spec proposed **Hazmat** as a third default. There is **no `hazmat`/`hazardous` attribute in `SHIPMENTS_PROGRESSION` at all** — the `hazardous` entry in `ColumnPanel.jsx`'s `ALL_COLUMNS` belongs to the grid's column vocabulary, which is a different vocabulary from search. A Hazmat default would have had no attribute to resolve and would have silently 0-resulted on apply. Two working defaults shipped instead of three shaky ones.
+**Source:** Spec `2026-08-04-save-filters-design.md` §"Odyssey default filters are INVENTED"; implementation S110 (verification of projection performed in code).
+**Affects:** `savedFilters.js` (`ODYSSEY_DEFAULT_FILTERS`, comment-marked INVENTED), `ShipmentsFiltersView.jsx`. **Owed: raise both with Jana before this reaches a demo.**
+
 ---
 
 ## Pending (need source / verification)
@@ -261,3 +295,7 @@ Decision IDs use the `GS-` prefix (GlobalSearch).
 - **Bar resize / chip-overflow behavior** — frame 216 shows two-line wrap; spec the exact threshold.
 - **`Customer` vs `Customer Name` vs `Client` label drift** — frame 232 vs 211 vs drawer in 218; canonicalize.
 - **Saved-filter edit / delete affordances** — chevron implies edit; delete not visible.
+- **Odyssey default filters (GS-27)** — two INVENTED defaults shipped; Jana must ratify or replace them before demo.
+- **Shared-filter authorization ceiling** — author checks compare `owner_user_id` to a client-sent, **spoofable** mock-SSO `userId`; real enforcement lands with SSO (Soni). Phase 3 is blocked on the migration approval, so nothing is shipped yet.
+- **`GlobalSearchPanel` primary button has no `disabled` prop** — "nothing selected → Show N results disabled" is currently a functional no-op (the button reads enabled but does nothing). Needs a `disabled`/`primaryDisabled` prop, which is a Figma-first library change.
+- **`GlobalSearchPanel` `loading` is all-or-nothing** — it swaps the entire content slot for a Spinner, which would hide the whole saved-row list (⋮ included) during a count. The Saved tab's count is deliberately left unwired to it; a localized loading affordance next to the count is needed.
