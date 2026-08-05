@@ -45,8 +45,22 @@ export function GroupLabel({ children, action }) {
  * anchored DropdownMenu of preset actions (right-aligned to the trigger, flips up near
  * the viewport bottom). Composes IconButtonGhost + DropdownMenu + MenuRow; closes on
  * select / outside-click / scroll / resize.
+ *
+ * `containerRef` (optional): where the dropdown portals. Default `document.body` — fine
+ * for ColumnPanel/TabArrangementPanel, which host this inside RightPanel, whose own
+ * outside-click dismissal is opt-in (`closeOnOutsideClick`, default false, RightPanel.jsx)
+ * and neither panel enables it, so no document-level mousedown listener exists there to
+ * race against. The Saved Filters host (ShipmentsGlobalSearch) is different: it DOES
+ * install a document `mousedown` listener that closes the whole panel on anything outside
+ * its `wrapperRef` (S106 outside-click commit). A `document.body` portal sits outside that
+ * subtree, so the listener's `!wrapperRef.current.contains(e.target)` check reads a click
+ * on a menu item as an outside click and unmounts the panel (tearing down this portal)
+ * BEFORE the item's own onClick fires in the mousedown→click sequence — the menu looks
+ * completely dead. Passing `containerRef` (the host's own wrapperRef) keeps the portal
+ * inside the contains() check, exactly the same escape hatch ShipmentsFiltersView's
+ * delete-confirm ModalMedium already uses for the identical reason.
  */
-export function PresetActionsMenu({ options }) {
+export function PresetActionsMenu({ options, containerRef }) {
   const [open, setOpen] = useState(false)
   const [pos, setPos] = useState(null)
   const triggerRef = useRef(null)
@@ -123,7 +137,7 @@ export function PresetActionsMenu({ options }) {
             ))}
           </DropdownMenu>
         </div>,
-        document.body,
+        containerRef?.current ?? document.body,
       )}
     </>
   )

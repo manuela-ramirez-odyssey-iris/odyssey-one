@@ -4,7 +4,10 @@
 // metadata a plain condition can't express — round-tripping them intact is
 // the point of the feature.
 import { describe, test, expect } from 'vitest'
-import { stripChip, toStored, hydrate, newFilter, splitFreeText } from './savedFilters'
+import { stripChip, toStored, hydrate, newFilter, splitFreeText, ODYSSEY_DEFAULT_FILTERS } from './savedFilters'
+import { shipmentsSearchAdapter } from '../../search/shipments'
+import { SHIPMENTS_ATTRS } from '../../../api/_lib/search-registry.mjs'
+import { SHIPMENTS_PROGRESSION } from '../../search/shipments/progression'
 
 // Real attribute keys from SHIPMENTS_PROGRESSION (progression.js) — 'customer-id'
 // (letters, GS-21-eligible) and 'pickup-date' (date, GS-22-eligible).
@@ -119,6 +122,34 @@ describe('hydrate', () => {
     const filter = { id: 'f3', name: 'Free text', chips: [freeTextChip] }
     const { custom } = hydrate({ v: 1, custom: [filter] })
     expect(custom[0].chips).toEqual([freeTextChip])
+  })
+})
+
+// GS-24 BUG (2026-08-05): the two Odyssey defaults shipped with mode/
+// tender-status, which returned 1,839/364 in the mock but 0 in live mode —
+// the server-side search-registry.mjs never indexed those attributes, and
+// validChips silently dropped them (see savedFilters.js's header comment for
+// the full root cause + the "check BOTH vocabularies" rule this pins down as
+// a permanent, runnable check rather than a one-off manual verification).
+describe('ODYSSEY_DEFAULT_FILTERS — every default is searchable in BOTH vocabularies and returns real rows', () => {
+  const progressionKeys = new Set(
+    SHIPMENTS_PROGRESSION.flatMap((g) => g.attributes.map((a) => a.key)),
+  )
+
+  test('every default chip\'s key exists in the live registry (search-registry.mjs) AND the client vocabulary (progression.js)', () => {
+    for (const filter of ODYSSEY_DEFAULT_FILTERS) {
+      for (const chip of filter.chips) {
+        expect(SHIPMENTS_ATTRS).toHaveProperty(chip.key) // live: server actually indexes it
+        expect(progressionKeys.has(chip.key)).toBe(true) // client: the panel can build the chip at all
+      }
+    }
+  })
+
+  test('every default returns a non-zero count against the mock adapter — a 0-result default IS this bug', async () => {
+    for (const filter of ODYSSEY_DEFAULT_FILTERS) {
+      const { total } = await shipmentsSearchAdapter.searchShipments(filter.chips, '')
+      expect(total).toBeGreaterThan(0)
+    }
   })
 })
 

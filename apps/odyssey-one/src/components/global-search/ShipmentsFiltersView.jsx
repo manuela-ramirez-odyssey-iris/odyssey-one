@@ -646,7 +646,12 @@ export default function ShipmentsFiltersView({
           ))
         ) : (
           <div className="shipments-filters__saved">
-            <GroupLabel action={<PresetActionsMenu options={savedMenuOptions} />}>
+            {/* GS-24/Bug1 fix: portal the ⋮ menu into the host's wrapperRef, not
+                document.body — see PresetActionsMenu's own comment for why a
+                document.body portal races the host's outside-click listener
+                and kills every menu item's onClick. Same ref the delete-
+                confirm ModalMedium below already portals into. */}
+            <GroupLabel action={<PresetActionsMenu options={savedMenuOptions} containerRef={modalContainerRef} />}>
               Custom Filters
             </GroupLabel>
             <div

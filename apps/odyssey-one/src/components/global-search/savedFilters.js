@@ -63,22 +63,44 @@ export function splitFreeText(chips) {
 // ── Odyssey defaults (S108 Phase 2, still no DB — code constants, mirroring
 // how `PRESETS.odyssey` ships for column presets in ColumnPanel.jsx) ────────
 //
-// ⚠ INVENTED — no canon defines these. Spec's own suggestion was Mode, Tender
-// Status, Hazmat (design doc, "Odyssey default filters are INVENTED" box);
-// verified against SHIPMENTS_PROGRESSION (progression.js — "the ONLY place
-// Shipments search data lives") before picking: Mode (`mode`, group
-// 'Transport & Equipment') and Tender Status (`tender-status`, group 'Carrier
-// & Tender Status') are both real attributes with real `dataKey`s the adapter
-// reads off every row (see adapter.js's `toStatusBadge`/`toTenderBadge`,
-// which branch on `s.tenderStatus` — the same field this default filters on).
-// Hazmat is NOT in SHIPMENTS_PROGRESSION at all — there is no search
-// attribute for it, so a Hazmat chip's `dataKey` would resolve to nothing and
-// the filter would degrade to an honest-empty result the moment anyone
-// applied it. Dropped rather than shipped shaky (spec: "prefer fewer,
-// definitely-working defaults"). Flagged for a decision-log entry (GS-24) and
-// to raise with Jana (Shipments PM) before this reaches a demo — these two
-// picks (TL mode; pending/"Sent" tenders) are a guess at useful defaults, not
-// sourced from any transcript or Jira ticket.
+// ⚠ INVENTED — no canon defines these. GS-24 BUG (2026-08-05): the original
+// picks — Mode: TL, Tender Status: Sent — verified only against
+// SHIPMENTS_PROGRESSION (the CLIENT vocabulary), which is NOT the whole
+// story. Live search routes through a SEPARATE server-side registry
+// (api/_lib/search-registry.mjs SHIPMENTS_ATTRS) that only indexes a subset
+// of attributes into `search_index`; `mode`/`tender-status` aren't in it, so
+// `validChips` (api/_lib/search.mjs) silently dropped both chips, leaving
+// nothing to search on, and `buildHits` fell to its honest-empty branch —
+// both shipped defaults returned 0 results in live mode despite working fine
+// against the mock adapter. THE RULE, so this doesn't happen again: a
+// default's attribute key must exist in BOTH vocabularies — check it against
+// api/_lib/search-registry.mjs's SHIPMENTS_ATTRS keys AND SHIPMENTS_PROGRESSION
+// (progression.js) before shipping it here. Neither list alone is sufficient;
+// the client builds the chip, the server matches it, and either one missing
+// the key silently zeroes the result the same way this bug did.
+//
+// Current picks — both keys confirmed in SHIPMENTS_ATTRS (registry, `scac` /
+// `origin`) AND SHIPMENTS_PROGRESSION (client, same keys, `match: 'letters'`)
+// — plus real, non-zero, MEASURED values from the generated mock dataset
+// (savedFilters.test.js asserts `total > 0` against the real mock adapter for
+// each, so a future dataset reseed that drops these values fails the suite
+// instead of shipping silently broken again):
+//   SCAC: SEFL   — Southeastern Freight Lines, one of the 15 CARRIERS
+//                  (tools/generate.mjs) drawn near-uniformly per shipment;
+//                  166/2200 mock rows carry it.
+//   Origin: Houston — one of the 30 LOCATIONS (tools/data-pools.mjs) drawn
+//                  near-uniformly as shipment origin; stored as
+//                  "HOUSTON TX US 77001" (generate.mjs's `origin` field) —
+//                  the chip's substring match ("Houston") doesn't need the
+//                  full "City, ST" format, only to appear IN that string;
+//                  95/2200 mock rows carry it.
+// Both are genuinely useful planner lenses (carrier-scoped and lane-origin-
+// scoped worklists) and replace the old status-based picks, which have no
+// substitute in the registry (no enum/status attribute is projected — see
+// search.mjs's "deviation 2" comment). Flagged for a decision-log entry
+// (GS-24) and to raise with Jana (Shipments PM) before this reaches a demo —
+// still a guess at useful defaults, not sourced from any transcript or Jira
+// ticket.
 const attrByKey = new Map(
   SHIPMENTS_PROGRESSION.flatMap((g) => g.attributes.map((a) => [a.key, { ...a, group: g.group }])),
 )
@@ -101,8 +123,8 @@ function attrChip(key, value) {
 // Fixed array order = fixed display order (spec "Behaviour" 2: "nobody drags
 // inside it").
 export const ODYSSEY_DEFAULT_FILTERS = [
-  { id: 'odyssey-mode-tl', name: 'TL Shipments', chips: [attrChip('mode', 'TL')] },
-  { id: 'odyssey-tender-sent', name: 'Pending Tenders', chips: [attrChip('tender-status', 'Sent')] },
+  { id: 'odyssey-scac-sefl', name: 'SEFL Carrier', chips: [attrChip('scac', 'SEFL')] },
+  { id: 'odyssey-origin-houston', name: 'Ex-Houston', chips: [attrChip('origin', 'Houston')] },
 ]
 
 // Raw preference value → `{ v: 1, custom: [...] }`. Tolerates null/undefined/

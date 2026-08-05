@@ -385,6 +385,62 @@ describe('ShipmentsGlobalSearch — Saved tab inline rename keyboard trap (S108 
   })
 })
 
+// Bug 1 fix (GS-24, 2026-08-05): a REAL browser click is mousedown THEN click.
+// The tests above (mountWithRenameActive) use `fireEvent.click` alone, which
+// only dispatches a 'click' event — the host's document-level `mousedown`
+// listener (outside-click commit, S106, this file's line ~376 in
+// ShipmentsGlobalSearch.jsx) never gets a chance to misfire, so they never
+// caught the bug. PresetActionsMenu used to portal its dropdown unconditionally
+// to `document.body`, which sits OUTSIDE `wrapperRef`; the listener read a
+// menu item's mousedown as an outside click and closed (unmounted) the whole
+// panel — tearing down the portal — before the item's own click/onSelect ever
+// ran. Firing mousedown THEN click on the SAME target reproduces that real
+// sequence. presetChrome.jsx now portals into `modalContainerRef` (threaded
+// from ShipmentsFiltersView, same ref the delete-confirm ModalMedium already
+// portals into) instead of `document.body`, which keeps the portal inside
+// `wrapperRef.contains(e.target)` so the listener no longer treats it as
+// outside.
+describe('ShipmentsGlobalSearch — Saved tab ⋮ menu survives a real mousedown+click (Bug 1 / GS-24)', () => {
+  const seededFilter = {
+    id: 'f1',
+    name: 'West Coast LTL',
+    chips: [{ key: 'mode', kind: 'attribute', label: 'Mode: LTL' }],
+  }
+
+  test('"Edit Name"\'s onSelect fires (rename input appears) and the Filters panel stays open', async () => {
+    vi.resetModules()
+    vi.doMock('../../contexts/CustomersContext.jsx', () => ({
+      useCustomers: () => ({ selectedDataIds: null }),
+    }))
+    vi.doMock('../../search/useGlobalSearch', () => ({
+      useGlobalSearch: () => baseHookReturn({}),
+    }))
+    const { default: ShipmentsGlobalSearch } = await import('./ShipmentsGlobalSearch.jsx')
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    qc.setQueryData(['user-preference', 'shipments.savedFilters'], { v: 1, custom: [seededFilter] })
+    const { container, getByText, getByRole, getByLabelText } = render(
+      withQueryClient(qc, <ShipmentsGlobalSearch />),
+    )
+
+    fireEvent.click(container.querySelector('.filter-button'))
+    fireEvent.click(getByText('Saved'))
+    fireEvent.click(container.querySelector('.menu-row-radio input[type="radio"]'))
+    fireEvent.click(getByRole('button', { name: 'Preset actions' }))
+
+    const editNameItem = getByText('Edit Name')
+    fireEvent.mouseDown(editNameItem)
+    fireEvent.click(editNameItem)
+
+    // onSelect ran: handleEditName flipped the row into its rename <input>.
+    expect(getByLabelText('Rename West Coast LTL')).toBeTruthy()
+    // The panel is still mounted — the outside-click listener did not fire.
+    expect(container.querySelector('.shipments-results-panel')).toBeTruthy()
+
+    vi.doUnmock('../../contexts/CustomersContext.jsx')
+    vi.doUnmock('../../search/useGlobalSearch')
+  })
+})
+
 // S108 1e — the anti-flattening test named explicitly in the task: applying a
 // saved filter must go through `handleApplySaved` (→ `applyChips` wholesale),
 // never `handleApplyFilters`'s `{ commit, replace }` path — that path's
