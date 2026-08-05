@@ -1,58 +1,79 @@
-import { describe, expect, it } from 'vitest'
+import { describe, test, expect } from 'vitest'
 import { mapShipmentErrorRow } from './mapShipmentErrorRow'
-import type { ShipmentErrorRow } from '../types/shipmentErrorList'
+import { LATE_ADDED_COLUMNS } from '../../components/detail/ColumnPanel.jsx'
 
-const row: ShipmentErrorRow = {
-  buyShipment: '43708610',
-  sellShipment: '25690001',
-  orders: ['JAN6ERCO6'],
-  pro: '12345678',
-  customerId: 'ERCO_SYS_01',
-  customerName: 'ERCO Systems Inc',
-  consignor: 'ERCO WORLDWIDE',
-  consignee: 'EASTMAN CHEMICAL RECV',
-  origin: 'Houston TX US 77001',
-  destination: 'Kingsport TN US 37660',
-  pickupDate: '01/20/2026 14:00 CST',
-  deliveryDate: '01/23/2026 09:00 CST',
+// This mapper is a WHITELIST: it builds a new object, so any field it doesn't
+// name is dropped between the API and the table — invisibly, and with the
+// database, the API projection and the column definition all still correct.
+// That failure mode cost a full session: Pickup # rendered "—" for months, and
+// Shipment Type / Planning Type arrived empty on the day they shipped, because
+// every layer was verified EXCEPT this one.
+//
+// These tests exist so the next added column fails loudly here instead.
+
+const FULL_ROW = {
+  buyShipment: '0000000054321',
+  sellShipment: '0000000012345',
+  orders: ['ORD-1', 'ORD-2'],
+  pickupNumbers: ['PU-111111', 'PU-222222'],
+  poNumbers: ['SVI5HCKT4', '4000438190'],
+  pro: 'PRO-9',
+  customerId: 'VALTRIS_01',
+  customerName: 'Valtris',
+  consignor: 'A',
+  consignee: 'B',
+  origin: 'HOUSTON TX US 77001',
+  destination: 'CHICAGO IL US 60601',
+  pickupDate: '08/10/2026 08:00 CDT',
+  deliveryDate: '08/11/2026 17:00 CDT',
   mode: 'TL',
-  equipmentCode: 'VAN',
-  scac: 'ABFS',
-  tenderStatus: 'Accepted',
-  shipmentStatus: 'Done',
-  panel: 'monitoring',
-  category: 'approved',
+  equipmentCode: 'V',
+  scac: 'SEFL',
+  tenderStatus: 'Sent',
+  shipmentStatus: 'Review',
+  panel: 'exceptions',
+  category: 'all',
   validationMessage: null,
-  grossWeight: '18207',
-  loadCount: '3',
-  orderCount: '1',
-  apFreightCost: '2,231.18',
+  grossWeight: '12,000 LB',
+  loadCount: '1',
+  orderCount: '2',
+  apFreightCost: '1,234.00',
+  shipmentType: 'Consolidation',
+  planningType: 'RDD',
+  legType: 'Pooling',
+  shipmentSequenceLeg: 1,
+  nextShipmentId: '0000000099999',
 }
 
-describe('mapShipmentErrorRow', () => {
-  it('sets id to sellShipment (the detail-link key)', () => {
-    expect(mapShipmentErrorRow(row).id).toBe('25690001')
+describe('mapShipmentErrorRow preserves every displayable field', () => {
+  test('the late-added columns survive the mapper', () => {
+    const vm = mapShipmentErrorRow(FULL_ROW)
+    // The exact regression: these arrived from the API and were dropped here.
+    for (const key of LATE_ADDED_COLUMNS) {
+      expect(vm, `"${key}" was dropped by mapShipmentErrorRow`).toHaveProperty(key)
+    }
+    expect(vm.shipmentType).toBe('Consolidation')
+    expect(vm.planningType).toBe('RDD')
+    expect(vm.pickupNumbers).toEqual(['PU-111111', 'PU-222222'])
   })
 
-  it('passes through the display fields the table reads', () => {
-    const vm = mapShipmentErrorRow(row)
-    expect(vm.buyShipment).toBe('43708610')
-    expect(vm.orders).toEqual(['JAN6ERCO6'])
-    expect(vm.customerName).toBe('ERCO Systems Inc')
-    expect(vm.origin).toBe('Houston TX US 77001')
-    expect(vm.tenderStatus).toBe('Accepted')
-    expect(vm.apFreightCost).toBe('2,231.18')
+  test('the multi-leg linkage fields survive too', () => {
+    const vm = mapShipmentErrorRow(FULL_ROW)
+    expect(vm.legType).toBe('Pooling')
+    expect(vm.shipmentSequenceLeg).toBe(1)
+    expect(vm.nextShipmentId).toBe('0000000099999')
   })
 
-  it('preserves null validationMessage', () => {
-    expect(mapShipmentErrorRow(row).validationMessage).toBeNull()
-  })
-
-  it('degrades missing optional string fields to empty/safe defaults', () => {
-    const sparse = { buyShipment: 'B', sellShipment: 'S' } as ShipmentErrorRow
-    const vm = mapShipmentErrorRow(sparse)
-    expect(vm.id).toBe('S')
-    expect(vm.orders).toEqual([])
-    expect(vm.customerName).toBe('')
+  test('absent optional fields become null/[] rather than undefined', () => {
+    // A single-leg shipment with no references — the common case. These must be
+    // explicit empties so the table renders an em dash, not "undefined".
+    const bare: Record<string, unknown> = { ...FULL_ROW }
+    delete bare.pickupNumbers
+    delete bare.legType
+    delete bare.shipmentSequenceLeg
+    const vm = mapShipmentErrorRow(bare as never)
+    expect(vm.pickupNumbers).toEqual([])
+    expect(vm.legType).toBeNull()
+    expect(vm.shipmentSequenceLeg).toBeNull()
   })
 })

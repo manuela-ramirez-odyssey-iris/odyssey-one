@@ -24,4 +24,14 @@ export interface ShipmentRowVM {
   loadCount: string
   orderCount: string
   apFreightCost: string
+  // Array columns — the table joins them for display; [] renders as an em dash.
+  pickupNumbers: string[]
+  poNumbers: string[]
+  // LINX-11597 / LINX-12902 classification (migration 006).
+  shipmentType: string | null
+  planningType: string | null
+  // Multi-leg linkage (migration 007) — null on a normal single-leg shipment.
+  legType: string | null
+  shipmentSequenceLeg: number | null
+  nextShipmentId: string | null
 }

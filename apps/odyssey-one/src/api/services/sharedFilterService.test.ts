@@ -27,8 +27,9 @@ describe('sharedFilterService (mock mode)', () => {
     const setChip = { key: '__free-text__', kind: 'set', typeLabel: 'Order', codes: [{ code: 'A1' }, { code: 'B2' }] }
     await shareFilter('f2', 'Bulk', [setChip])
     const [stored] = await listSharedFilters()
-    expect(stored.chips[0]).toMatchObject({ kind: 'set', typeLabel: 'Order' })
-    expect(stored.chips[0].codes).toHaveLength(2)
+    const chip = stored.chips[0] as { kind: string; typeLabel: string; codes: unknown[] }
+    expect(chip).toMatchObject({ kind: 'set', typeLabel: 'Order' })
+    expect(chip.codes).toHaveLength(2)
   })
 
   test('a DATE-RANGE chip keeps its bounds through the round-trip', async () => {

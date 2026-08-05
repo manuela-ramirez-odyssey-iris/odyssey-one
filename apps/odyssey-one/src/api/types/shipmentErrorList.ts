@@ -9,6 +9,16 @@ export interface ShipmentErrorRow {
   orders: string[]
   /** Customer pickup references, one per consolidated order (R2-2). */
   pickupNumbers?: string[]
+  /** Order-header PO references, one per consolidated order (LINX-12039). */
+  poNumbers?: string[]
+  /** Direct (1 mapped order) | Consolidation (>1) — LINX-11597, migration 006. */
+  shipmentType?: string | null
+  /** RDD | SSD — RDD if ANY mapped order is RDD (LINX-12902), migration 006. */
+  planningType?: string | null
+  /** Multi-leg linkage (migration 007) — null on a normal single-leg shipment. */
+  legType?: string | null
+  shipmentSequenceLeg?: number | null
+  nextShipmentId?: string | null
   pro: string
   customerId: string
   customerName: string
