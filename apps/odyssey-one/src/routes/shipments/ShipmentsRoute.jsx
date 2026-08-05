@@ -5,7 +5,7 @@ import ShipmentsPanelTabs from '../../components/shipments/ShipmentsPanelTabs'
 import TableControls from '../../components/shipments/TableControls'
 import ShipmentTable from '../../components/shipments/ShipmentTable'
 import BottomBar, { DEFAULT_TAB_ORDER } from '../../components/detail/BottomBar'
-import ColumnPanel, { ALL_COLUMNS, EXCEPTIONS_DEFAULT_COLUMNS, MONITORING_DEFAULT_COLUMNS, RIGHT_PANEL_WIDTH, PRESETS } from '../../components/detail/ColumnPanel'
+import ColumnPanel, { ALL_COLUMNS, EXCEPTIONS_DEFAULT_COLUMNS, MONITORING_DEFAULT_COLUMNS, RIGHT_PANEL_WIDTH, PRESETS, mergeLateAddedColumns } from '../../components/detail/ColumnPanel'
 import TabArrangementPanel from '../../components/detail/TabArrangementPanel'
 import { COLUMN_CONFIG } from '../../components/shipments/ShipmentTable'
 import { FileText } from 'lucide-react'
@@ -85,7 +85,11 @@ function ShipmentsRoute() {
     const all = [...(presetPref.customPresets ?? []), ...PRESETS.odyssey]
     const cols = presetPref.presetColumns?.[presetPref.activePresetId]
       ?? all.find(p => p.id === presetPref.activePresetId)?.columns
-    if (cols?.length) setVisibleColumns(cols)
+    // A SAVED preset overrides the code defaults wholesale, so a column added
+    // after the user last saved would never appear for them — which is exactly
+    // what happened to Pickup #, Shipment Type and Planning Type. Merge those
+    // in on hydrate; nothing else is added and nothing is removed.
+    if (cols?.length) setVisibleColumns(mergeLateAddedColumns(cols))
     // eslint-disable-next-line react-hooks/exhaustive-deps -- hydrate once, on load
   }, [presetPref])
 

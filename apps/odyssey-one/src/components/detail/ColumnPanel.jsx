@@ -64,6 +64,31 @@ export const ALL_COLUMNS = [
   { key: 'validationMessage', label: 'Validation Message' },
 ]
 
+// Columns introduced AFTER users already had saved presets (user request
+// 2026-08-05: "i need those 3 with data"). Two things are needed for a new
+// column to actually appear:
+//   1. it must be in the default lists below, AND
+//   2. it must be merged into any ALREADY-SAVED preset — a persisted preset
+//      overrides the defaults wholesale (ShipmentsRoute's hydrate effect), so a
+//      user who saved a preset before these existed would never see them.
+// `mergeLateAddedColumns` (below) does (2). Keep this list SMALL and append-
+// only; it is a migration aid, not a second source of truth for defaults.
+//
+// pickupNumbers is here deliberately, reversing the 2026-08-02 "not
+// default-visible" ruling at the user's explicit request this session.
+export const LATE_ADDED_COLUMNS = ['pickupNumbers', 'shipmentType', 'planningType']
+
+/**
+ * Append any late-added column a saved preset predates. Order is preserved and
+ * nothing is removed — a column the user deliberately dropped stays dropped
+ * UNLESS it is in LATE_ADDED_COLUMNS, which by definition they never saw.
+ */
+export function mergeLateAddedColumns(cols) {
+  if (!Array.isArray(cols) || !cols.length) return cols
+  const missing = LATE_ADDED_COLUMNS.filter((k) => !cols.includes(k))
+  return missing.length ? [...cols, ...missing] : cols
+}
+
 // Buy Shipment # leads the default profiles — the team decided buyShipment is THE
 // shipment ID users work with (LINX-11591 approved grid field list, LINX-12490
 // buy-keyed orders endpoint, LINX-13023). Sell Shipment # stays second: it remains
@@ -73,18 +98,21 @@ const DEFAULT_COLUMNS = [
   'buyShipment', 'sellShipment', 'customerId', 'shipmentStatus', 'orderCount',
   'pickupDate', 'deliveryDate', 'origin', 'destination', 'grossWeight',
   'mode', 'equipmentCode', 'scac', 'orders', 'apFreightCost', 'validationMessage',
+  ...LATE_ADDED_COLUMNS,
 ]
 
 export const EXCEPTIONS_DEFAULT_COLUMNS = [
   'buyShipment', 'sellShipment', 'customerId', 'shipmentStatus', 'orderCount',
   'pickupDate', 'deliveryDate', 'origin', 'destination', 'grossWeight',
   'mode', 'equipmentCode', 'scac', 'orders', 'apFreightCost', 'validationMessage',
+  ...LATE_ADDED_COLUMNS,
 ]
 
 export const MONITORING_DEFAULT_COLUMNS = [
   'buyShipment', 'sellShipment', 'customerId', 'shipmentStatus', 'tenderStatus', 'scac',
   'pickupDate', 'deliveryDate', 'origin', 'destination', 'stops',
   'grossWeight', 'mode', 'equipmentCode',
+  ...LATE_ADDED_COLUMNS,
 ]
 
 export const PRESETS = {
