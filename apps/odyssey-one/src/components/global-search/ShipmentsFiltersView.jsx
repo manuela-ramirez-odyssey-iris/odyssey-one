@@ -3,13 +3,13 @@ import { createPortal } from 'react-dom'
 import { Info } from 'lucide-react'
 import {
   GlobalSearchPanel, PillTab, ComboBox, FormField, DatePicker,
-  MenuRowRadio, MenuRowCheckbox, SearchChip, ModalMedium, Button,
+  MenuRowRadio, MenuRowCheckbox, ModalMedium, Button,
 } from '@odyssey/ui'
 import { GroupLabel, PresetActionsMenu } from '../common/presetChrome.jsx'
 import { SHIPMENTS_PROGRESSION } from '../../search/shipments/progression'
 import { shipmentsSearchAdapter } from '../../search/shipments'
 import { formatDateMDY } from '../../lib/dates'
-import { splitFreeText, ODYSSEY_DEFAULT_FILTERS } from './savedFilters'
+import { splitFreeText, ODYSSEY_DEFAULT_FILTERS, stripChip } from './savedFilters'
 
 /**
  * ShipmentsFiltersView — the Filters *content* of the GlobalSearch overlay.
@@ -42,6 +42,18 @@ import { splitFreeText, ODYSSEY_DEFAULT_FILTERS } from './savedFilters'
  * `savedFilters` prop, plus (S108 Phase 2) the shipped ODYSSEY_DEFAULT_FILTERS
  * code constants (savedFilters.js) as a second, fixed-order, undeletable
  * group; sharing/author badges are Phase 3 (blocked on the migration).
+ *
+ * S110 rev1 (docs/superpowers/specs/2026-08-05-filters-profile-flow.md) —
+ * "a saved filter is not a thing you select and apply, it is a search
+ * profile you edit." A row's TWO click zones (MenuRowRadio, same split
+ * ColumnPanel already uses) now diverge in purpose: the radio only selects
+ * (Saved tab's own select→count→apply flow below, unchanged); the row BODY
+ * (label/chevron, `onNavigate`) opens the RIGHT tab loaded with that
+ * profile's values (`openProfileInEditor`) and renames it to the profile —
+ * the tab becomes that profile's editor. The Phase 1 chevron-expand (an
+ * inline read-only SearchChip list) is DELETED outright, not migrated: once
+ * the right tab holds the same values open and EDITABLE, an inline preview
+ * would just show them again in a worse (static, unremovable) form.
  */
 
 // Saved-tab selection → count debounce (spec "Behaviour" 7): mirrors
@@ -154,6 +166,16 @@ export function mergeFiltersIntoChips(chips, filters) {
     }
   }
   return next
+}
+
+// S110 rev1 "badge" — the chevron-expand (chip preview) is gone, so this is
+// the only remaining at-a-glance "how big is this profile" signal on a saved
+// row. MenuRowRadio's `badge` prop (already shipped — Figma `Show Badge`
+// boolean, `MenuRowRadio.jsx`) renders a string as our `Badge`. Kept to the
+// count only — `by: <username>` is Phase 3, blocked on the sharing migration.
+function filterCountBadge(chips) {
+  const n = chips.length
+  return `${n} filter${n === 1 ? '' : 's'}`
 }
 
 function SectionHeader({ children }) {
@@ -334,6 +356,13 @@ export default function ShipmentsFiltersView({
   onRenameFilter,
   onDeleteFilters,
   onReorderFilters,
+  // S110 rev1 "Footer links" — Update Filter persists the editor's current
+  // values onto the OPEN profile (id, chips). Panel-only by construction:
+  // this is the sole call site, and it never touches onApplyFilters/
+  // onApplySaved — that's the HARD RULE, "a profile can be updated only
+  // from the panel, never from the bar," and decision 1, "Update Filter
+  // persists only — it does NOT re-apply to the bar/table."
+  onUpdateFilter,
   // S108 1e (spec "Behaviour" 8): "Show N results" on the Saved tab applies
   // the SELECTED filter's stored chips wholesale — see this prop's consumer,
   // ShipmentsGlobalSearch's `handleApplySaved`, for why it must be a
@@ -392,16 +421,28 @@ export default function ShipmentsFiltersView({
 
   // ── Saved tab — Custom group (S108 1d) ───────────────────────────────────
   // Single select. Selecting does NOT apply — it COUNTS (spec "Behaviour" 7,
-  // the effect right below). Expand is a SEPARATE Set (a row can be expanded
-  // without being selected — the chevron/label zone navigates, the radio
-  // selects; MenuRowRadio's two-click-zone split, spec "Behaviour" 6).
+  // the effect right below) and does NOT navigate (S110 rev1 decision 2: "a
+  // different profile open leaves the editor where it is" — selecting and
+  // opening-for-edit are deliberately distinct gestures, kept as two
+  // separate pieces of state so one can't yank the other).
   const [selectedFilterId, setSelectedFilterId] = useState(null)
-  const [expandedIds, setExpandedIds] = useState(() => new Set())
-  const toggleExpand = (id) => setExpandedIds((prev) => {
-    const next = new Set(prev)
-    if (next.has(id)) next.delete(id); else next.add(id)
-    return next
-  })
+  // `openProfileId` — which profile (if any) is loaded into the RIGHT tab's
+  // editor (S110 rev1 "Behaviour" 2). Set only by a row-BODY click
+  // (`openProfileInEditor`, below); the radio never touches it. Replaces
+  // Phase 1's `expandedIds` Set — the chevron-expand is DELETED, not
+  // migrated (spec: "we don't need to expand below the row anything since
+  // now we have it expanded and editable in the other tab").
+  const [openProfileId, setOpenProfileId] = useState(null)
+  // S110 rev1 "Behaviour" 2/decision 3 — row-body click loads that profile's
+  // stored chips into the editor fields, renames the right tab to it, and
+  // lands on it. Whatever was in the editor before is silently discarded
+  // (decision 3: "unsaved edits are discarded silently on navigate-away",
+  // same as the All tab today) — no confirm dialog.
+  const openProfileInEditor = (filter) => {
+    setFilters(chipsToFilters(filter.chips))
+    setOpenProfileId(filter.id)
+    setActiveTab('all')
+  }
 
   // Selection → count (spec "Behaviour" 7). Debounced + cancelled on rapid
   // re-selection: a NEW `selectedFilterId` tears down the previous effect
@@ -513,6 +554,9 @@ export default function ShipmentsFiltersView({
   const handleConfirmDelete = () => {
     onDeleteFilters?.([...deleteSelection])
     if (selectedFilterId && deleteSelection.has(selectedFilterId)) setSelectedFilterId(null)
+    // The deleted profile can't stay "open" in the editor — its own tab
+    // label (its name) would dangle. Reverts the right tab back to "All".
+    if (openProfileId && deleteSelection.has(openProfileId)) setOpenProfileId(null)
     setShowDeleteConfirm(false)
     handleExitDeleteMode()
   }
@@ -548,13 +592,45 @@ export default function ShipmentsFiltersView({
   // number that belongs to a different search than the one about to apply.
   const savedTabActive = activeTab === 'saved' && !inSavedDeleteMode
   const savedFilterSelected = allSavedFilters.find((f) => f.id === selectedFilterId) || null
+  const editorTabActive = activeTab === 'all' && !inSavedDeleteMode
+
+  // S110 rev1 "Footer links"/"Dirty tracking" — the right tab's OPEN profile
+  // (null when it's just the generic All tab) + whether it's an uneditable
+  // Odyssey default (spec "Odyssey defaults stay uneditable": Update Filter
+  // must never appear for one, same rule as no ⋮/no grip/not deletable).
+  const openProfile = allSavedFilters.find((f) => f.id === openProfileId) || null
+  const isOdysseyDefaultOpen = !!openProfile && ODYSSEY_DEFAULT_FILTERS.some((f) => f.id === openProfile.id)
+  // Dirty = the editor's current values, merged back onto the OPEN PROFILE's
+  // own stored chips (not the bar's — that's the point), differ from the
+  // profile as stored. Reuses the exact field list `chipsSearchKey`
+  // (useGlobalSearch.js) strips before comparing — `stripChip`, exported by
+  // savedFilters.js — instead of a new deep-equal. `mergeFiltersIntoChips` is
+  // a no-op for any key whose value hasn't changed (see that function above),
+  // so an untouched profile round-trips byte-identical and reads as clean;
+  // this is also why it disappears again right after a successful update —
+  // `openProfile.chips` becomes what was just persisted, so the next merge
+  // is a no-op against itself.
+  const editorDirty = !!openProfile && !isOdysseyDefaultOpen &&
+    JSON.stringify(mergeFiltersIntoChips(openProfile.chips, filters).map(stripChip)) !==
+      JSON.stringify(openProfile.chips.map(stripChip))
+
+  // S110 rev1 "Footer links" — Update Filter PERSISTS ONLY (decision 1: it
+  // does NOT re-apply to the bar/table — "Show N results" keeps that job)
+  // and is the only call site for `onUpdateFilter`, making the panel the
+  // only place a profile can be updated from (the HARD RULE).
+  const handleUpdateFilter = () => {
+    if (!openProfile || isOdysseyDefaultOpen) return // belt + suspenders — the button is hidden for both already
+    onUpdateFilter?.(openProfile.id, mergeFiltersIntoChips(openProfile.chips, filters))
+  }
 
   // Tab count = every ROW the Saved tab actually renders — both groups
   // (S108 Phase 2: adding the Odyssey group without updating this would
-  // undercount, the exact "truthful number" the task calls out).
+  // undercount, the exact "truthful number" the task calls out). Order +
+  // naming per S110 rev1 "Tab order and naming": Saved now leads; the right
+  // tab reads "All" with no profile open, else the open profile's own name.
   const tabs = [
-    { key: 'all', label: 'All', count: activeCount },
     { key: 'saved', label: 'Saved', count: allSavedFilters.length },
+    { key: 'all', label: openProfile ? openProfile.name : 'All', count: activeCount },
   ]
 
   // Built once (not inline in the JSX below) so both the portal branch and
@@ -598,13 +674,28 @@ export default function ShipmentsFiltersView({
       // footer/saveLabel props instead of a second footer implementation).
       // Outside delete mode this is byte-identical to before (non-goal: leave
       // the "Show N results" footer behaviour exactly as it is, 1e wires it).
-      showLink={activeTab === 'all' && !inSavedDeleteMode}
-      linkLabel="Save Filters"
+      //
+      // S110 rev1 "Footer links" — the link renames Save Filters +→ Create
+      // New Filter once a profile is open (SAME action, `onOpenSaveModal`;
+      // spec is explicit this still saves what's in the BAR, just relabelled
+      // so it can't read as "save over the open profile"). GlobalSearchPanel
+      // exposes exactly ONE lead-secondary/trail-secondary label+handler pair
+      // (packages/ui, not modified here — see task notes), reused at either
+      // position; the two are mutually exclusive per tab today (Saved: lead
+      // "Clear all", All: trail "Clear all"). Update Filter needs a SECOND,
+      // independently-labelled button beside the link — the only slot that
+      // can host it without a library change is the lead-secondary one, so
+      // while the editor is dirty it takes over that slot as "Update Filter"
+      // and the trail "Clear all" is suppressed for as long as that lasts
+      // (there's no second secondary slot to keep both). Flagged in the task
+      // report, not a silent compromise.
+      showLink={editorTabActive}
+      linkLabel={openProfile ? 'Create New Filter' : 'Save Filters'}
       onLink={onOpenSaveModal}
-      showSecondary={inSavedDeleteMode ? true : activeTab !== 'all'}
-      showTrailSecondary={activeTab === 'all' && !inSavedDeleteMode}
-      secondaryLabel={inSavedDeleteMode ? 'Cancel' : 'Clear all'}
-      onClear={inSavedDeleteMode ? handleExitDeleteMode : onClearAll}
+      showSecondary={inSavedDeleteMode || savedTabActive || (editorTabActive && editorDirty)}
+      showTrailSecondary={editorTabActive && !editorDirty}
+      secondaryLabel={inSavedDeleteMode ? 'Cancel' : (editorTabActive && editorDirty ? 'Update Filter' : 'Clear all')}
+      onClear={inSavedDeleteMode ? handleExitDeleteMode : (editorTabActive && editorDirty ? handleUpdateFilter : onClearAll)}
       count={savedTabActive ? savedFilterCount : resultTotal}
       primaryLabel={inSavedDeleteMode ? `Delete (${deleteSelection.size})` : undefined}
       // S108 1e (spec "Behaviour" 8): Saved applies the SELECTED filter's
@@ -702,14 +793,15 @@ export default function ShipmentsFiltersView({
                       }}
                     >
                       <MenuRowRadio
-                        // Accepted delta (spec "Behaviour" 6): MenuRowRadio's nav
-                        // zone is the label AND the chevron, so clicking the name
-                        // expands rather than selects — only the radio selects.
-                        // `label` takes the inline rename <input> as a ReactNode
-                        // while renaming this row (`.menu-row__label` is a plain
-                        // span, happy with either); `onNavigate` is dropped so the
-                        // nav zone's click no-ops instead of collapsing the row
-                        // out from under the input mid-edit.
+                        // S110 rev1 "Behaviour" 2 — MenuRowRadio's two click
+                        // zones now diverge: the radio SELECTS only (stays on
+                        // Saved, no navigation); the row body (label/chevron,
+                        // `onNavigate`) OPENS this profile in the right tab's
+                        // editor. `label` takes the inline rename <input> as a
+                        // ReactNode while renaming this row (`.menu-row__label`
+                        // is a plain span, happy with either); `onNavigate` is
+                        // dropped so the nav zone's click no-ops instead of
+                        // swapping the tab out from under the input mid-edit.
                         label={isRenaming ? (
                           <input
                             ref={renameInputRef}
@@ -727,27 +819,13 @@ export default function ShipmentsFiltersView({
                             }}
                           />
                         ) : filter.name}
+                        badge={isRenaming ? undefined : filterCountBadge(filter.chips)}
                         selected={selectedFilterId === filter.id}
                         draggable
                         onSelect={() => setSelectedFilterId(filter.id)}
-                        onNavigate={isRenaming ? undefined : () => toggleExpand(filter.id)}
+                        onNavigate={isRenaming ? undefined : () => openProfileInEditor(filter)}
                       />
                     </div>
-                    {/* Chevron-expanded chips (spec "Behaviour" 6): read-only
-                        SearchChips — `label` as a plain STRING for every chip
-                        (no `codes`/date fields, no `onRemove`) so none of them
-                        render a chevron/CalendarPicker/document listener, same
-                        rule SaveFilterModal follows. */}
-                    {expandedIds.has(filter.id) && !isRenaming && (
-                      <div style={{
-                        display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-1)',
-                        padding: 'var(--spacing-1) var(--spacing-3) var(--spacing-3)',
-                      }}>
-                        {filter.chips.map((chip) => (
-                          <SearchChip key={chip.key} label={chip.label} />
-                        ))}
-                      </div>
-                    )}
                   </div>
                 )
               })}
@@ -770,11 +848,12 @@ export default function ShipmentsFiltersView({
                 constants (savedFilters.js's ODYSSEY_DEFAULT_FILTERS), neither
                 store. No ⋮ (not editable/deletable by anyone), rows carry no
                 `draggable` prop (no grip, no wrapper DnD div — fixed order,
-                "nobody drags inside it"). Select/expand reuse the SAME state
-                as Custom (`selectedFilterId`/`expandedIds`) — one selection
-                across both groups, applying goes through the identical
-                onApplySaved(chips) path (see `allSavedFilters` above). During
-                a Custom delete-mode batch these rows just disable (mirrors
+                "nobody drags inside it"). Select/open-in-editor reuse the SAME
+                state as Custom (`selectedFilterId`/`openProfileId`) — one
+                selection across both groups, applying goes through the
+                identical onApplySaved(chips) path (see `allSavedFilters`
+                above). During a Custom delete-mode batch these rows just
+                disable (mirrors
                 ColumnPanel's "Odyssey group renders disabled", 4301:19405)
                 rather than converting to checkboxes — they were never part
                 of the deletable set. */}
@@ -786,23 +865,18 @@ export default function ShipmentsFiltersView({
               >
                 {ODYSSEY_DEFAULT_FILTERS.map((filter) => (
                   <div key={filter.id}>
+                    {/* S110 rev1 "Behaviour" 2 — opening a default in the editor
+                        IS allowed (you can look at it, use it as a Create New
+                        Filter starting point); only Update Filter is barred
+                        for it (below, via `isOdysseyDefaultOpen`). */}
                     <MenuRowRadio
                       label={filter.name}
+                      badge={filterCountBadge(filter.chips)}
                       selected={selectedFilterId === filter.id}
                       disabled={deleteMode}
                       onSelect={() => setSelectedFilterId(filter.id)}
-                      onNavigate={deleteMode ? undefined : () => toggleExpand(filter.id)}
+                      onNavigate={deleteMode ? undefined : () => openProfileInEditor(filter)}
                     />
-                    {expandedIds.has(filter.id) && (
-                      <div style={{
-                        display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-1)',
-                        padding: 'var(--spacing-1) var(--spacing-3) var(--spacing-3)',
-                      }}>
-                        {filter.chips.map((chip) => (
-                          <SearchChip key={chip.key} label={chip.label} />
-                        ))}
-                      </div>
-                    )}
                   </div>
                 ))}
               </div>

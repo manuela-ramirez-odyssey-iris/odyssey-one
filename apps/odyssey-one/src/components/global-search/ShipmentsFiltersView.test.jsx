@@ -59,7 +59,15 @@ describe('ShipmentsFiltersView — Saved tab, Custom group (S108 1d)', () => {
     expect(screen.queryByText(/mode:LTL shipment-status:Review/)).toBeNull()
   })
 
-  test('the radio selects (single-select) without expanding; the label/chevron zone expands to read-only chips', () => {
+  // Rewritten for S110 rev1 (supersedes the Phase 1 "chevron expands to
+  // read-only chips" behaviour, spec "Behaviour" 6/"Consequence" — the
+  // chevron-expand is DELETED outright, not migrated: "we don't need to
+  // expand below the row anything since now we have it expanded and
+  // editable in the other tab," user 2026-08-05). The two click zones now
+  // diverge: radio selects only (stays on Saved, no navigation); the row
+  // BODY (label/chevron) opens the profile in the right tab's editor,
+  // renamed to it. No inline chip list exists anywhere in either gesture.
+  test('the radio selects without navigating; the row body opens the profile in the editor tab, renamed to it, with no inline chip list', () => {
     const { container } = renderSavedTab()
     // Scoped to the Custom group — S108 Phase 2 added a second (Odyssey)
     // group of MenuRowRadio rows below it, so an unscoped query now matches 4.
@@ -69,18 +77,25 @@ describe('ShipmentsFiltersView — Saved tab, Custom group (S108 1d)', () => {
 
     fireEvent.click(radios[0])
     expect(container.querySelectorAll('.menu-row-radio--selected')).toHaveLength(1)
-    // Selecting is NOT the same gesture as expanding (spec "Behaviour" 6,
-    // accepted delta) — no chips shown yet.
+    // Selection alone stays on the Saved tab (gesture table: "Stays on
+    // Saved. No navigation.") — the Saved pill is still the selected one.
+    expect(screen.getByText('Saved').closest('button').getAttribute('aria-pressed')).toBe('true')
+    // No inline expand of any kind — deleted, not migrated.
     expect(screen.queryByText('Mode: LTL')).toBeNull()
+    expect(container.querySelector('.search-chip')).toBeNull()
 
-    // Clicking the row's label (nav zone) expands it.
+    // Clicking the row's BODY (label/chevron) opens it in the editor tab.
     fireEvent.click(screen.getByText('West Coast LTL'))
-    expect(screen.getByText('Mode: LTL')).toBeTruthy()
-    expect(screen.getByText('Destination: CA')).toBeTruthy()
-    // Read-only chips: no onRemove passed → SearchChip renders no X.
-    expect(container.querySelector('.search-chip__remove')).toBeNull()
 
-    // The OTHER row's chips never rendered.
+    // The right tab is RENAMED to the profile and is now the selected tab —
+    // the Saved list (and "West Coast LTL" as a row) is gone, so this text
+    // now resolves to exactly one element: the tab pill.
+    const renamedTab = screen.getByText('West Coast LTL').closest('button')
+    expect(renamedTab.getAttribute('aria-pressed')).toBe('true')
+    // Still no inline read-only chip list — the values live in the editor
+    // fields (spec: "expanded and editable in the other tab"), not as a
+    // second, static rendering of the same chips.
+    expect(container.querySelector('.search-chip')).toBeNull()
     expect(screen.queryByText('SCAC: JBHT')).toBeNull()
   })
 
@@ -403,5 +418,128 @@ describe('ShipmentsFiltersView — Saved tab, Odyssey group (S108 Phase 2)', () 
     const savedTabButton = screen.getByText('Saved').closest('button')
     const expectedCount = sampleFilters.length + ODYSSEY_DEFAULT_FILTERS.length
     expect(within(savedTabButton).getByText(String(expectedCount))).toBeTruthy()
+  })
+})
+
+// S110 rev1 (docs/superpowers/specs/2026-08-05-filters-profile-flow.md) —
+// "a saved filter is not a thing you select and apply, it is a search
+// profile you edit." Covers the parts of the profile-editing flow not
+// already exercised above: tab order/naming, the footer link relabel +
+// dirty-tracked Update Filter (persist-only), the Odyssey-default carve-out,
+// and the badge.
+describe('ShipmentsFiltersView — profile-editing flow (S110 rev1)', () => {
+  test('tab order is Saved then All; the right tab renames to the open profile', () => {
+    const { container } = render(<ShipmentsFiltersView savedFilters={sampleFilters} />)
+    const tabButtons = container.querySelectorAll('.pill-tab')
+    expect(tabButtons).toHaveLength(2)
+    // Order (spec "Tab order and naming": "All moves to the right"). Naming:
+    // no profile open yet → the right tab reads plain "All".
+    expect(tabButtons[0].textContent).toContain('Saved')
+    expect(tabButtons[1].textContent).toContain('All')
+    expect(tabButtons[1].textContent).not.toContain('West Coast LTL')
+
+    fireEvent.click(screen.getByText('Saved'))
+    fireEvent.click(screen.getByText('West Coast LTL')) // row body — opens the editor
+
+    const tabButtonsAfter = container.querySelectorAll('.pill-tab')
+    expect(tabButtonsAfter[0].textContent).toContain('Saved')
+    expect(tabButtonsAfter[1].textContent).toContain('West Coast LTL')
+  })
+
+  // 'buy-shipment' (Shipment Identifiers, match: 'digits') renders as a plain
+  // FormField — the simplest control to drive an edit through in jsdom,
+  // avoiding ComboBox's typeahead machinery for a test about the FOOTER, not
+  // the field controls (those are S107's territory).
+  const editableFilter = {
+    id: 'f3',
+    name: 'Editable Profile',
+    chips: [{
+      key: 'buy-shipment', kind: 'attribute', label: 'Buy Shipment #: 12345',
+      attrLabel: 'Buy Shipment #', queryValue: '12345', dataKey: 'buyShipment',
+      group: 'Shipment Identifiers',
+    }],
+  }
+
+  test('Save Filters + relabels to Create New Filter once a profile is open; Update Filter appears only after an edit, disappears once the profile matches again, and persists WITHOUT applying to the bar/table', () => {
+    const onUpdateFilter = vi.fn()
+    const onApplyFilters = vi.fn()
+    const onApplySaved = vi.fn()
+    const { rerender } = render(
+      <ShipmentsFiltersView
+        savedFilters={[editableFilter]}
+        onUpdateFilter={onUpdateFilter}
+        onApplyFilters={onApplyFilters}
+        onApplySaved={onApplySaved}
+      />,
+    )
+    // Default state — no profile open: the link is the unchanged "Save Filters".
+    expect(screen.getByText('Save Filters')).toBeTruthy()
+
+    fireEvent.click(screen.getByText('Saved'))
+    fireEvent.click(screen.getByText('Editable Profile')) // row body — opens the editor, lands back on the (renamed) right tab
+
+    // A profile is open: the link renames (spec "Footer links"), same action.
+    expect(screen.getByText('Create New Filter')).toBeTruthy()
+    expect(screen.queryByText('Save Filters')).toBeNull()
+    // Not dirty yet — Update Filter doesn't exist.
+    expect(screen.queryByText('Update Filter')).toBeNull()
+
+    const input = screen.getByPlaceholderText('Enter Buy Shipment #')
+    fireEvent.change(input, { target: { value: '99999' } })
+    expect(screen.getByText('Update Filter')).toBeTruthy()
+
+    fireEvent.click(screen.getByText('Update Filter'))
+
+    expect(onUpdateFilter).toHaveBeenCalledTimes(1)
+    const [updatedId, updatedChips] = onUpdateFilter.mock.calls[0]
+    expect(updatedId).toBe('f3')
+    expect(updatedChips.find((c) => c.key === 'buy-shipment').queryValue).toBe('99999')
+    // Update Filter PERSISTS ONLY (spec decision 1) — "Show N results" keeps
+    // the apply job; neither the All-tab commit path nor the Saved-tab
+    // wholesale-apply path may fire from this click.
+    expect(onApplyFilters).not.toHaveBeenCalled()
+    expect(onApplySaved).not.toHaveBeenCalled()
+
+    // Simulate the host round-trip a real update causes: the persisted
+    // profile now carries the chips Update Filter just wrote (same shape
+    // `onUpdateFilter` received) — the dirty check recomputes against the
+    // FRESH profile and Update Filter disappears again.
+    rerender(
+      <ShipmentsFiltersView
+        savedFilters={[{ ...editableFilter, chips: updatedChips }]}
+        onUpdateFilter={onUpdateFilter}
+        onApplyFilters={onApplyFilters}
+        onApplySaved={onApplySaved}
+      />,
+    )
+    expect(screen.queryByText('Update Filter')).toBeNull()
+  })
+
+  test('Update Filter never appears for an Odyssey default', () => {
+    render(<ShipmentsFiltersView savedFilters={[]} onUpdateFilter={vi.fn()} />)
+    fireEvent.click(screen.getByText('Saved'))
+    fireEvent.click(screen.getByText(ODYSSEY_DEFAULT_FILTERS[0].name)) // row body — opens it in the editor
+
+    // Opening a default in the editor IS allowed (spec: "you can look at it,
+    // and use it as a starting point for Create New Filter") — only Update
+    // Filter is barred, same rule as no ⋮/no grip/not deletable.
+    expect(screen.getByText('Create New Filter')).toBeTruthy()
+    expect(screen.queryByText('Update Filter')).toBeNull()
+  })
+
+  test('the badge shows each profile\'s filter count', () => {
+    const { container } = render(<ShipmentsFiltersView savedFilters={sampleFilters} />)
+    fireEvent.click(screen.getByText('Saved'))
+
+    const customList = container.querySelector('.shipments-filters__saved-list--custom')
+    // sampleFilters[0] ("West Coast LTL") has 2 chips, [1] ("JBHT Sent
+    // Tenders") has 1 — singular/plural both covered.
+    expect(within(customList).getByText('2 filters')).toBeTruthy()
+    expect(within(customList).getByText('1 filter')).toBeTruthy()
+
+    // Both Odyssey defaults carry exactly 1 chip each (savedFilters.js) — one
+    // badge per row, both reading "1 filter".
+    const odysseyList = container.querySelector('.shipments-filters__saved-list--odyssey')
+    expect(within(odysseyList).getAllByText('1 filter')).toHaveLength(ODYSSEY_DEFAULT_FILTERS.length)
   })
 })

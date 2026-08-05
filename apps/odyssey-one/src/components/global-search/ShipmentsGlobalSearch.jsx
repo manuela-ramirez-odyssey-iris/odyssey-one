@@ -9,7 +9,7 @@ import { useCustomers } from '../../contexts/CustomersContext.jsx'
 import { useUserPreference } from '../../api/queries/useUserPreference'
 import ShipmentsFiltersView, { mergeFiltersIntoChips } from './ShipmentsFiltersView'
 import SaveFilterModal from './SaveFilterModal'
-import { hydrate, newFilter, splitFreeText } from './savedFilters'
+import { hydrate, newFilter, splitFreeText, toStored } from './savedFilters'
 import { tabForDataKey } from '../shipments/cellTabMap'
 
 // user_preferences key for personal Saved Filters (S108 spec, "Data model").
@@ -103,6 +103,21 @@ export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment 
     const [moved] = next.splice(fromIndex, 1)
     next.splice(toIndex, 0, moved)
     persistSavedFilters({ v: 1, custom: next })
+  }, [savedFilters, persistSavedFilters])
+
+  // S110 rev1 "Footer links" — Update Filter writes the editor's current
+  // chips back onto the OPEN profile, replacing its stored chip list
+  // wholesale (same `toStored` strip `saveFilter`/`newFilter` already apply:
+  // transient UI state out, invalid chips dropped). This is the ONLY write
+  // path that mutates an existing profile's `chips` — nothing on the bar's
+  // own edit path (handleApplyFilters/handleApplySaved) calls it, which is
+  // what makes "a profile can be updated only from the panel, never from the
+  // bar" (spec HARD RULE) true by construction rather than by convention.
+  const updateFilter = useCallback((id, filterChips) => {
+    persistSavedFilters({
+      v: 1,
+      custom: savedFilters.custom.map((f) => (f.id === id ? { ...f, chips: toStored(filterChips) } : f)),
+    })
   }, [savedFilters, persistSavedFilters])
 
   // Save Filter modal (S108 1b). Rendered as a SIBLING of
@@ -495,6 +510,9 @@ export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment 
               onRenameFilter={renameFilter}
               onDeleteFilters={deleteFilters}
               onReorderFilters={reorderFilters}
+              // S110 rev1 — panel-only profile update (see `updateFilter`
+              // above for why this is the sole mutation path for it).
+              onUpdateFilter={updateFilter}
               // S108 1b: "Save Filters" link opens the modal (below).
               // savedTabSignal
               // is a change-only counter the view watches to flip its OWN

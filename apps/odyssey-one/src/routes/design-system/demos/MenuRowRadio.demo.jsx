@@ -9,6 +9,7 @@ export const meta = {
   figmaNode: '3447:6593',
   codeConnect: 'packages/ui/src/MenuRowRadio.figma.tsx',
   normalizing: true,
+  approved: true,
 }
 
 export const props = [
@@ -52,8 +53,9 @@ export default function MenuRowRadioDemo() {
         Leading <code>Radio</code> + label + chevron, on the shared <code>.menu-row</code> chrome.
         Press shows a DSN/200 background (hover's DSN/300 border). <code>draggable</code> adds
         a leading grip handle before the radio, mirroring <code>MenuRowCheckbox</code>;{' '}
-        <code>badge</code> adds a gray pill before the chevron (its use is{' '}
-        <code>by: &lt;username&gt;</code> on a shared saved filter). At the master's 240px the
+        <code>badge</code> adds a gray pill before the chevron — live use is the filter
+        count on a Saved Filters row (<code>2 filters</code>), with{' '}
+        <code>by: &lt;username&gt;</code> joining it when shared filters land. At the master's 240px the
         label truncates with the badge on — real rows are ~672px.
       </p>
 
