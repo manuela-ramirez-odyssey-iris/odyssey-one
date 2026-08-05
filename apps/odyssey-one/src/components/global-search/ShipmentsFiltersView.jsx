@@ -702,11 +702,11 @@ export default function ShipmentsFiltersView({
       // stored chips WHOLESALE via the dedicated `onApplySaved` — never
       // `onApplyFilters` (see ShipmentsGlobalSearch's `handleApplySaved` for
       // the chipsToFilters/mergeFiltersIntoChips flattening it dodges).
-      // Nothing selected → `undefined`: GlobalSearchPanel's primary Button
-      // has no `disabled` prop to bind to (packages/ui gap; not modified
-      // here per this task's scope), so an unwired handler is the closest
-      // functional "disabled" available — the button reads enabled but does
-      // nothing on click.
+      // Nothing selected on the Saved tab → the primary is genuinely DISABLED
+      // (user ruling 2026-08-05: use the Button's own disabled state, which the
+      // design system already defines, rather than leaving a live-looking
+      // button that no-ops).
+      primaryDisabled={savedTabActive && !inSavedDeleteMode && !savedFilterSelected}
       onShowResults={
         inSavedDeleteMode
           ? handleDeleteSave

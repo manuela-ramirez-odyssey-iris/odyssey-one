@@ -43,6 +43,11 @@ export default function GlobalSearchPanel({
   count,
   primaryLabel,
   onShowResults,
+  // Disables the primary action. `Button` already defines the disabled state —
+  // this is a pass-through, not a new appearance. Without it a consumer with
+  // nothing to act on can only make the button a no-op, which reads as enabled
+  // and broken (Saved tab with no profile selected).
+  primaryDisabled = false,
   // True while the results search is in flight — shows the Spinner above the
   // content (stale results stay visible underneath; a blank swap would flash).
   loading = false,
@@ -103,7 +108,7 @@ export default function GlobalSearchPanel({
               {secondaryLabel}
             </Button>
           )}
-          <Button variant="primary" size="md" onClick={onShowResults}>
+          <Button variant="primary" size="md" disabled={primaryDisabled} onClick={onShowResults}>
             {primary}
           </Button>
         </div>

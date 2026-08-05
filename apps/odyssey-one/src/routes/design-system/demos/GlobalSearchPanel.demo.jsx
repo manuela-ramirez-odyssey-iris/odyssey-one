@@ -4,7 +4,7 @@ import { GlobalSearchPanel, GlobalSearchResults } from '@odyssey/ui'
 export const meta = {
   name: 'GlobalSearchPanel',
   tier: 'organism',
-  version: '0.6.0',
+  version: '0.6.1', // S110 primaryDisabled
   createdVersion: '0.2.0',
   figmaNode: '2462:149',
   codeConnect: 'packages/ui/src/GlobalSearchPanel.figma.tsx',
@@ -29,6 +29,7 @@ export const props = [
   { name: 'count', type: 'number', desc: 'Result count used to build the default primary label ("Show N results").' },
   { name: 'primaryLabel', type: 'string', desc: 'Override the primary button label entirely (skips the count-based default).' },
   { name: 'onShowResults', type: '() => void', desc: 'Called when the primary button is clicked.' },
+  { name: 'primaryDisabled', type: 'boolean', desc: "Disables the primary button, using Button's own disabled state. For consumers with nothing to act on (e.g. the Saved tab with no profile selected) — an unwired handler would read as enabled and broken instead. Default false." },
 ]
 
 export const tokens = [
