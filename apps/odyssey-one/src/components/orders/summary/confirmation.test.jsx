@@ -73,6 +73,21 @@ describe('mapFormVmToOrderPane rollups (confirmation mock strip)', () => {
     expect(mixed.d.declaredValue).toBe('')
   })
 
+  // R2-7 (db-update-ledger.md): the Appointment flags were captured by the
+  // create form (LINX-12095/13845) but never carried into the read-only
+  // View Order / confirmation pane — mapper gap fixed alongside the render.
+  test('appointment flags map through as Yes/No, same convention as consolidatable', () => {
+    const on = mapFormVmToOrderPane(valuesWith({
+      pickupDelivery: {
+        ...makeDefaultOrderFormValues().pickupDelivery,
+        pickupAppointment: true,
+        deliveryAppointment: false,
+      },
+    }))
+    expect(on.d.pickupAppointment).toBe('Yes')
+    expect(on.d.deliveryAppointment).toBe('No')
+  })
+
   test('country of origin only when uniform; hazmat from the row checkboxes', () => {
     const vm = mapFormVmToOrderPane(valuesWith({
       products: [
@@ -138,6 +153,23 @@ describe('ConfirmationView quick/long + async flip', () => {
     expect(within(rows[0]).getByText('Hazmat')).toBeTruthy()
     expect(within(rows[1]).queryByText('Hazmat')).toBeNull()
     expect(within(rows[1]).getByText('--')).toBeTruthy()
+  })
+
+  // R2-7: the Planning Date/Time block must show BOTH appointment flags, not
+  // just the Late Pickup date/time it already had.
+  test('planning block renders Pickup and Delivery Appointment flags', () => {
+    const values = valuesWith({ products: [product()] })
+    values.general.orderNumber = 'S26TEST'
+    values.pickupDelivery.pickupAppointment = true
+    values.pickupDelivery.deliveryAppointment = false
+    renderConfirmation({ data: { orderNumber: 'S26TEST' }, values })
+    expect(screen.getByText('Pickup Appointment')).toBeTruthy()
+    expect(screen.getByText('Delivery Appointment')).toBeTruthy()
+    // TitleSubtitle renders subtitle THEN the title row — walk forward to it.
+    const pickupAppt = screen.getByText('Pickup Appointment').nextElementSibling
+    const deliveryAppt = screen.getByText('Delivery Appointment').nextElementSibling
+    expect(pickupAppt.textContent).toBe('Yes')
+    expect(deliveryAppt.textContent).toBe('No')
   })
 
   test('long order: populated blocks render', () => {

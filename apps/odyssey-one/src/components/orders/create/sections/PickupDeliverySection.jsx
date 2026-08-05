@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { ChevronDown, ChevronUp, MapPin, Plus } from 'lucide-react'
 import { Controller, useFormContext, useWatch } from 'react-hook-form'
 import { Alert, Button, Checkbox, ComboBox, Radio, TimePicker } from '@odyssey/ui'
@@ -214,7 +214,7 @@ function DateTimeGroup({ basePath, label, required, warning }) {
  * are structurally identical here — the Long delta lives in General Info.
  */
 export default function PickupDeliverySection() {
-  const { control, watch, getValues, setValue } = useFormContext()
+  const { control, watch, getValues, setValue, formState } = useFormContext()
   const locked = !!useResolveMode()
   const planningDateType = watch('pickupDelivery.planningDateType')
   const [planningAlertOpen, setPlanningAlertOpen] = useState(true)
@@ -238,18 +238,31 @@ export default function PickupDeliverySection() {
   // its Latest date+time is filled, and auto-clears when that date/time changes.
   const canPickupAppt = !!(latePickup?.date && latePickup?.time)
   const canDeliveryAppt = !!(lateDelivery?.date && lateDelivery?.time)
-  const apptInitRef = useRef(true)
+  // R2-6 (data-loss bug, db-update-ledger.md): the auto-clear below must fire
+  // ONLY on a date/time change the USER makes — never as a side effect of
+  // hydration. A ref-based "skip the effect's first run" guard used to stand
+  // in for this and was WRONG: the ref is spent at MOUNT, when defaultValues
+  // are still empty (CreateOrderForm.jsx mounts with makeDefaultOrderFormValues()),
+  // but the real order arrives ASYNC via reset() from the draft/resolve effects
+  // (CreateOrderForm.jsx draft-reopen / resolve-reopen effects) well after
+  // mount. That reset() changes the watched date/time, re-fires this effect
+  // with the guard already spent, and silently unchecked a loaded `true`
+  // Appointment flag — the user saves and overwrites Y with N. Gate on RHF's
+  // dirtyFields instead: reset() does NOT mark fields dirty (only real user
+  // edits do), so this only fires on a genuine user edit, preserving the
+  // auto-clear's intent (LINX-12095/13845, decision-log ORD-06) without
+  // misfiring on hydration. DO NOT reintroduce the ref guard.
+  const { dirtyFields } = formState
+  const latePickupDirty = !!(dirtyFields.pickupDelivery?.latePickup?.date || dirtyFields.pickupDelivery?.latePickup?.time)
+  const lateDeliveryDirty = !!(dirtyFields.pickupDelivery?.lateDelivery?.date || dirtyFields.pickupDelivery?.lateDelivery?.time)
   useEffect(() => {
-    if (apptInitRef.current) { apptInitRef.current = false; return } // don't clear a hydrated draft on mount
+    if (!latePickupDirty) return
     setValue('pickupDelivery.pickupAppointment', false)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [latePickup?.date, latePickup?.time])
-  const apptInitRef2 = useRef(true)
+  }, [latePickup?.date, latePickup?.time, latePickupDirty, setValue])
   useEffect(() => {
-    if (apptInitRef2.current) { apptInitRef2.current = false; return }
+    if (!lateDeliveryDirty) return
     setValue('pickupDelivery.deliveryAppointment', false)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lateDelivery?.date, lateDelivery?.time])
+  }, [lateDelivery?.date, lateDelivery?.time, lateDeliveryDirty, setValue])
 
   const appointmentCheckbox = (name, enabled) => (
     <Controller

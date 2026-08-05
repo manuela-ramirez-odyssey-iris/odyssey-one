@@ -179,6 +179,11 @@ export function PickupDeliveryCard({ d, expanded, onToggle }) {
           <SubHeading>Planning Date/Time</SubHeading>
           <div className="order-pane__fields-grid">
             <TitleSubtitle title={d.latestPickup || DASH} subtitle="Late Pickup Date and Time" />
+            {/* R2-7: Appointment flags were captured by the create form but
+                never rendered on this read-only pane — same Yes/No idiom as
+                Consolidatable in GeneralInfoCard above. */}
+            <TitleSubtitle title={d.pickupAppointment || DASH} subtitle="Pickup Appointment" />
+            <TitleSubtitle title={d.deliveryAppointment || DASH} subtitle="Delivery Appointment" />
           </div>
         </div>
       </div>

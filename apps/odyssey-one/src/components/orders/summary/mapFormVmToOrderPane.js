@@ -84,6 +84,11 @@ export default function mapFormVmToOrderPane(values) {
     destContactEmail: pickupDelivery.consignee.contactEmail,
     earliestPickup: triadLabel(pickupDelivery.earlyPickup),
     latestPickup: triadLabel(pickupDelivery.latePickup),
+    // R2-7 (db-update-ledger.md): Appointment flags (LINX-12095/13845) were
+    // captured by the create form but never carried into the read-only View
+    // Order pane — same Yes/No boolean-flag convention as `consolidatable`.
+    pickupAppointment: pickupDelivery.pickupAppointment ? 'Yes' : 'No',
+    deliveryAppointment: pickupDelivery.deliveryAppointment ? 'Yes' : 'No',
     numProducts: products.length ? String(products.length) : '',
     totalWeight: products.length ? rollups.totalWeight : '',
     totalVolume: products.length ? rollups.totalVolume : '',
