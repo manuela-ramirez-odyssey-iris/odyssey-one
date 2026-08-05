@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { CalendarDays } from 'lucide-react'
 import CalendarPicker from './CalendarPicker.jsx'
 import FormField from './FormField.jsx'
 import { useFieldPopover } from './useFieldPopover.js'
+import { useAnchoredPortal } from './useAnchoredPortal.jsx'
 
 /**
  * DatePicker — composite molecule. FormField shell + CalendarPicker popover,
@@ -129,6 +130,19 @@ export default function DatePicker({
   const editingRef = useRef(false)
   const { open, setOpen, wrapperRef, wrapperProps, fieldProps, popoverProps, closeAndBlur } =
     useFieldPopover({ onCommit: () => commit() })
+  const closePopover = useCallback(() => setOpen(false), [setOpen])
+  const { triggerRef, dropdownRef, AnchoredPortal } = useAnchoredPortal({ open, onClose: closePopover })
+  // Merge useFieldPopover's wrapperRef (blur/focus lifecycle) with
+  // useAnchoredPortal's triggerRef (anchor measurement) onto the same node —
+  // mirrors Dropdown.jsx's trigger/popover split, adapted to FormField's
+  // single wrapper div instead of Dropdown's separate trigger span.
+  const setWrapperNode = useCallback(
+    (node) => {
+      wrapperRef.current = node
+      triggerRef.current = node
+    },
+    [wrapperRef, triggerRef],
+  )
 
   // Trailing calendar icon toggles the popover (mirrors TimePicker's chevron button):
   // a real button with aria-label + mousedown preventDefault so the field keeps focus.
@@ -236,11 +250,12 @@ export default function DatePicker({
   return (
     <div
       {...wrapperProps}
+      ref={setWrapperNode}
       className={mode === 'single' ? 'date-picker date-picker--single' : 'date-picker date-picker--range'}
       style={
         mode === 'single'
-          ? { position: 'relative', maxWidth: 284 } // min-width via .date-picker--single (250px, 150px ≥1024px)
-          : { position: 'relative', minWidth: 250, maxWidth: 284 }
+          ? { maxWidth: 284 } // min-width via .date-picker--single (250px, 150px ≥1024px)
+          : { minWidth: 250, maxWidth: 284 }
       }
     >
       <FormField
@@ -270,36 +285,35 @@ export default function DatePicker({
         {...fieldProps}
       />
       {open && (
-        <div
-          {...popoverProps}
-          style={{ position: 'absolute', top: '100%', left: 0, marginTop: 'var(--spacing-2)', zIndex: 10 }}
-        >
-          {mode === 'single' ? (
-            <CalendarPicker
-              key={single ? fmt(single) : 'unset'}
-              mode="single"
-              value={single}
-              onChange={(d) => { pickedRef.current = true; editingRef.current = false; setInvalid(false); onChange?.(d); setText(fmt(d)); closeAndBlur() }}
-              defaultMonth={single ?? new Date()}
-              minDate={minDate}
-              maxDate={maxDate}
-            />
-          ) : (
-            <CalendarPicker
-              mode="range"
-              value={range}
-              onChange={(next) => {
-                setInvalid(false)
-                onChange?.(next)
-                setText([next.start, next.end].filter(Boolean).map(fmt).join(' - '))
-                if (next.start && next.end) { pickedRef.current = true; editingRef.current = false; closeAndBlur() }
-              }}
-              defaultMonth={range?.start ?? new Date()}
-              minDate={minDate}
-              maxDate={maxDate}
-            />
-          )}
-        </div>
+        <AnchoredPortal>
+          <div {...popoverProps} ref={dropdownRef}>
+            {mode === 'single' ? (
+              <CalendarPicker
+                key={single ? fmt(single) : 'unset'}
+                mode="single"
+                value={single}
+                onChange={(d) => { pickedRef.current = true; editingRef.current = false; setInvalid(false); onChange?.(d); setText(fmt(d)); closeAndBlur() }}
+                defaultMonth={single ?? new Date()}
+                minDate={minDate}
+                maxDate={maxDate}
+              />
+            ) : (
+              <CalendarPicker
+                mode="range"
+                value={range}
+                onChange={(next) => {
+                  setInvalid(false)
+                  onChange?.(next)
+                  setText([next.start, next.end].filter(Boolean).map(fmt).join(' - '))
+                  if (next.start && next.end) { pickedRef.current = true; editingRef.current = false; closeAndBlur() }
+                }}
+                defaultMonth={range?.start ?? new Date()}
+                minDate={minDate}
+                maxDate={maxDate}
+              />
+            )}
+          </div>
+        </AnchoredPortal>
       )}
     </div>
   )

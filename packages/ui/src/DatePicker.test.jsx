@@ -375,6 +375,27 @@ describe('DatePicker interaction — draft/commit model', () => {
   })
 })
 
+// ── Portal regression guard ───────────────────────────────────────────────
+// The calendar popover must render into document.body (via useAnchoredPortal),
+// not as a child of the field wrapper — otherwise an ancestor's `overflow`
+// (e.g. DataTable's `.odyssey-data-table__card { overflow: clip }`) clips it.
+describe('DatePicker — calendar popover portals to document.body', () => {
+  test('the open popover is NOT a descendant of the field wrapper', () => {
+    const { container } = render(<DatePicker id="dp" label="Date" format="DD/MM/YYYY" onChange={() => {}} />)
+    const toggle = screen.getByRole('button', { name: /open calendar/i })
+    fireEvent.click(toggle)
+    // The calendar renders (month title present) …
+    expect(screen.getByText(/january|february|march|april|may|june|july|august|september|october|november|december/i)).toBeTruthy()
+    // … but none of its day cells live inside the component's own render tree.
+    const wrapper = container.querySelector('.date-picker')
+    const dayCell = dayButtons()[0]
+    expect(dayCell).toBeTruthy()
+    expect(wrapper.contains(dayCell)).toBe(false)
+    // It IS mounted somewhere under document.body (the portal target).
+    expect(document.body.contains(dayCell)).toBe(true)
+  })
+})
+
 describe('parseDDMMYYYY (commit-time validation unchanged)', () => {
   test('valid date parses', () => expect(parseDDMMYYYY('14/07/2026')).toBeInstanceOf(Date))
   test('invalid day → null', () => expect(parseDDMMYYYY('32/07/2026')).toBeNull())

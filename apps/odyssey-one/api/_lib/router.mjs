@@ -2,6 +2,7 @@
 import { categoryCounts, shipmentErrorList, sellShipmentDetail, saveTender } from './shipments.mjs'
 import { orderList, orderTabCounts, orderView, updateOrder, updateOrderStatus, createOrder } from './orders.mjs'
 import { getPreference, putPreference } from './preferences.mjs'
+import { listSharedFilters, createSharedFilter, renameSharedFilter, deleteSharedFilter } from './sharedFilters.mjs'
 import { searchHandler, suggestHandler } from './search.mjs'
 
 // Exact `path` match, or `pattern` (RegExp) whose capture groups become handler params.
@@ -18,6 +19,10 @@ export const ROUTES = [
   { name: 'createOrder',       method: 'POST', path: '/order-service/v3/manual-order',                      handler: createOrder },
   { name: 'getPreference',     method: 'GET',  path: '/user-service/v1/preference',                         handler: getPreference },
   { name: 'putPreference',     method: 'PUT',  path: '/user-service/v1/preference',                         handler: putPreference },
+  { name: 'listSharedFilters',  method: 'GET',    path: '/filter-service/v1/shared-filters',                  handler: listSharedFilters },
+  { name: 'createSharedFilter', method: 'POST',   path: '/filter-service/v1/shared-filters',                  handler: createSharedFilter },
+  { name: 'renameSharedFilter', method: 'PATCH',  pattern: /^\/filter-service\/v1\/shared-filters\/([^/]+)$/, handler: renameSharedFilter },
+  { name: 'deleteSharedFilter', method: 'DELETE', pattern: /^\/filter-service\/v1\/shared-filters\/([^/]+)$/, handler: deleteSharedFilter },
   // Paths here are POST-/api-STRIPPED (index.js:12) — the client posts to
   // /api/v1/search. QUERY-shaped in everything but the verb: RFC 10008 QUERY is
   // the target, but Vercel 400s it and CloudFront rejects it outright (spec §5).

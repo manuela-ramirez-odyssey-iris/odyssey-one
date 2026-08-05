@@ -75,6 +75,28 @@ export async function apiPut<T>(path: string, body: unknown): Promise<T> {
   return (await res.json()) as T
 }
 
+// DELETE carries a body — the author check needs the caller's userId, and until
+// SSO lands that only travels in the payload (see api/_lib/sharedFilters.mjs).
+export async function apiDelete<T>(path: string, body: unknown): Promise<T> {
+  const correlationId = newCorrelationId()
+  const token = getAuthToken()
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'x-correlation-id': correlationId,
+  }
+  if (token) headers.Authorization = `Bearer ${token}`
+
+  const res = await fetch(`${getApiBaseUrl()}${path}`, {
+    method: 'DELETE',
+    headers,
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) {
+    throw new ApiError(`Request failed (${res.status}): ${path}`, res.status, correlationId)
+  }
+  return (await res.json()) as T
+}
+
 export async function apiPatch<T>(path: string, body: unknown): Promise<T> {
   const correlationId = newCorrelationId()
   const token = getAuthToken()
