@@ -1291,7 +1291,12 @@ function generateShipment(index, chainOverride) {
     // participants get these three overwritten together by buildChainLegs
     // AFTER generation, never independently (invariant 7/8).
     legType: null,
-    sequenceLeg: null,
+    // NAME NOTE: the row field is `shipmentSequenceLeg`, matching BOTH the
+    // ColumnPanel key and the live API's alias (`sequence_leg AS
+    // "shipmentSequenceLeg"`). Calling it `sequenceLeg` here would render fine
+    // in live mode and stay BLANK in mock mode, since the column accessor reads
+    // the row property by that exact key.
+    shipmentSequenceLeg: null,
     nextShipmentId: null,
     pro: genProNumber(),
     customerId: customer.id,
@@ -1776,7 +1781,7 @@ function generateUnshippedOrder(n, pending) {
 // MULTI-LEG LINKAGE CHAINS (007_multileg_chains.sql, user ruling 2026-08-05)
 // ============================================================
 // A journey split across carriers/contracts becomes N `shipments` rows (one
-// per leg), stitched by legType + sequenceLeg + nextShipmentId. Built as a
+// per leg), stitched by legType + shipmentSequenceLeg + nextShipmentId. Built as a
 // real route FIRST — shared customer, N+1 DISTINCT waypoints, a strictly
 // forward timeline — then sliced into legs, because that is the only way to
 // get destination[N] === origin[N+1] and delivery[N] <= pickup[N+1] to hold
@@ -1831,7 +1836,7 @@ function buildChainLegs(legCount) {
   // grid's own Buy Shipment # column shows), null terminates the last leg.
   legs.forEach((l, i) => {
     l.mainRow.legType = legType;
-    l.mainRow.sequenceLeg = i + 1;
+    l.mainRow.shipmentSequenceLeg = i + 1;
     l.mainRow.nextShipmentId = i < legs.length - 1 ? legs[i + 1].mainRow.buyShipment : null;
   });
   return legs;

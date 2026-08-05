@@ -309,10 +309,10 @@ test('notes skew higher on exceptions-panel shipments than monitoring', () => {
 // 007_multileg_chains.sql, user ruling 2026-08-05) ──────────────────────────
 test('chain participants are a realistic minority (~4%), mostly 2-leg with fewer 3-leg', () => {
   const ds = buildDataset({ totalShipments: 2200 })
-  const chained = ds.shipments.filter((s) => s.sequenceLeg != null)
+  const chained = ds.shipments.filter((s) => s.shipmentSequenceLeg != null)
   const share = chained.length / ds.shipments.length
   assert.ok(share > 0.01 && share < 0.08, `chain participation ${(share * 100).toFixed(1)}%`)
-  const chainStarts = chained.filter((s) => s.sequenceLeg === 1)
+  const chainStarts = chained.filter((s) => s.shipmentSequenceLeg === 1)
   assert.ok(chainStarts.length > 0, 'no chains generated at all')
   const lengths = chainStarts.map((start) => {
     // walk the chain from its head to find its length
@@ -333,13 +333,13 @@ test('chain participants are a realistic minority (~4%), mostly 2-leg with fewer
 test('non-chain shipments carry all three linkage fields null (invariant 8)', () => {
   const ds = buildDataset({ totalShipments: 200 })
   for (const s of ds.shipments) {
-    if (s.legType != null || s.sequenceLeg != null || s.nextShipmentId != null) continue
-    assert.equal(s.legType, null); assert.equal(s.sequenceLeg, null); assert.equal(s.nextShipmentId, null)
+    if (s.legType != null || s.shipmentSequenceLeg != null || s.nextShipmentId != null) continue
+    assert.equal(s.legType, null); assert.equal(s.shipmentSequenceLeg, null); assert.equal(s.nextShipmentId, null)
   }
   // every field present together, never partially set
   for (const s of ds.shipments) {
-    const set = [s.legType != null, s.sequenceLeg != null].filter(Boolean).length
-    assert.ok(set === 0 || set === 2, `${s.sellShipment}: legType/sequenceLeg set independently`)
+    const set = [s.legType != null, s.shipmentSequenceLeg != null].filter(Boolean).length
+    assert.ok(set === 0 || set === 2, `${s.sellShipment}: legType/shipmentSequenceLeg set independently`)
   }
 })
 
@@ -406,12 +406,12 @@ test('time moves forward: leg N delivery <= leg N+1 pickup (invariant 3)', () =>
 test('sequence is dense and 1-based; last leg terminates with a null nextShipmentId (invariants 4/5)', () => {
   const ds = buildDataset()
   const byBuy = new Map(ds.shipments.map((s) => [s.buyShipment, s]))
-  const heads = ds.shipments.filter((s) => s.sequenceLeg === 1)
+  const heads = ds.shipments.filter((s) => s.shipmentSequenceLeg === 1)
   assert.ok(heads.length > 0)
   for (const head of heads) {
     let cur = head, expected = 1
     while (true) {
-      assert.equal(cur.sequenceLeg, expected, `${cur.sellShipment}: sequenceLeg ${cur.sequenceLeg}, expected ${expected}`)
+      assert.equal(cur.shipmentSequenceLeg, expected, `${cur.sellShipment}: shipmentSequenceLeg ${cur.shipmentSequenceLeg}, expected ${expected}`)
       if (cur.nextShipmentId == null) break
       cur = byBuy.get(cur.nextShipmentId)
       expected++
@@ -422,7 +422,7 @@ test('sequence is dense and 1-based; last leg terminates with a null nextShipmen
 test('leg type is consistent across every leg of a chain, drawn only from Pooling/Rule 11 (invariant 7)', () => {
   const ds = buildDataset()
   const byBuy = new Map(ds.shipments.map((s) => [s.buyShipment, s]))
-  const heads = ds.shipments.filter((s) => s.sequenceLeg === 1)
+  const heads = ds.shipments.filter((s) => s.shipmentSequenceLeg === 1)
   assert.ok(heads.length > 0)
   for (const head of heads) {
     assert.ok(['Pooling', 'Rule 11'].includes(head.legType), `unexpected legType ${head.legType}`)

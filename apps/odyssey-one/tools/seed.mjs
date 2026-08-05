@@ -113,7 +113,7 @@ export async function seed(client, { totalShipments = 10000, preserveUsers = fal
       s.shipmentType ?? null, s.planningType ?? null, s.poNumbers ?? [],
       // Multi-leg linkage triplet (007_multileg_chains.sql) — null on every
       // single-leg shipment (the vast majority); see generate.mjs buildChainLegs.
-      s.legType ?? null, s.sequenceLeg ?? null, s.nextShipmentId ?? null,
+      s.legType ?? null, s.shipmentSequenceLeg ?? null, s.nextShipmentId ?? null,
     ]))
 
   // orders — filter columns derived from the SAME nested objects that go into JSONB
