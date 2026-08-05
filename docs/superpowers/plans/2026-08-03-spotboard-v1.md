@@ -8,7 +8,14 @@
 
 **Architecture:** A new lazy pane (`SpotBoardTab`) in the shipment detail bar cloning the `RoutingGuideTab` pattern (sub-tab band + `Tab` + wide column), driving a per-shipment spot quote through `Eligible → Draft → Open → Closed → Awarded`. Auction state lives in a `localStorage`-backed store keyed by `shipmentId` so a separate carrier tab (`/spot-bid/:token`, outside `AppShell`) can submit bids the planner sees live via `storage` events. Award appends a SPOT RATE row to the existing Tender guide via the existing `saveTenderOption` path.
 
-**Tech Stack:** React 19, Vite, Vitest + Testing Library, `@odyssey/ui` (`Tab`, `DataTable`, `GroupTable` nested, `Dropdown`, `FormField`, `Checkbox`, `MeasureField`, `DatePicker`/`TimePicker`, `Badge`, `Alert`, `Button`, `EmptyState`, `OdysseyLogo`), React Router.
+**Tech Stack:** React 19, Vite, Vitest + Testing Library, `@odyssey/ui` (`Tab`, `DataTable`, `GroupTable` nested, `Dropdown`, `FormField`, `Checkbox`, `DatePicker`/`TimePicker`, `Badge`, `Alert`, `Button`, `EmptyState`, `OdysseyLogo`), React Router.
+
+> **S109 plan-review corrections (verified against the codebase before execution):**
+> - `MeasureField` is **NOT** a `@odyssey/ui` export — it is app-local at `apps/odyssey-one/src/components/orders/create/fields/MeasureField.jsx`. Import it from there (Task 12).
+> - `getLookupOptions('carrier', q)` is **async** (`RoutingGuideTab.jsx:252` is the usage pattern). Task 3's pure `buildCarrierRows(list, carrierOptions)` stays sync; the *caller* (Task 8) awaits the pool.
+> - Do **not** import `Field`/`SectionHeader` from `RoutingGuideTab.jsx` (Task 7) — that pulls the 1300-line lazy Tender pane into the SpotBoard bundle, and `SectionHeader` collides with the `@odyssey/ui` export of the same name. Write the ~13-line `Field` local to `spotboard/`.
+> - Test baseline in Task 13 is stale — assert **suite green**, not a count.
+> - Eligibility population (verified in `tools/generate.mjs:641-667`): 30% of shipments are `tenderFailed` (all `Declined`/`Cancelled`) → spot-eligible; 70% correctly hit the `EmptyState`. Demo from the **Exceptions** tab.
 
 **Spec:** `docs/superpowers/specs/2026-08-03-spotboard-v1-design.md`. Field/label/value source of truth: canon `vault/10-domains/spotboard/spotboard.md` §6–§7 + `data/quote-model.md`.
 
@@ -109,7 +116,7 @@ Prototype-grade only (not signed/secure); expiry is enforced by the quote's `clo
 - Create: `apps/odyssey-one/src/spotboard/carrierList.js`, `apps/odyssey-one/src/spotboard/eligibility.js`
 - Test: `apps/odyssey-one/src/spotboard/carrierList.test.js`, `apps/odyssey-one/src/spotboard/eligibility.test.js`
 
-**Context:** carrier pool is `getLookupOptions('carrier')` (label `"SCAC - Name"`), already used by `RoutingGuideTab`. Do NOT hardcode a copy.
+**Context:** carrier pool is `await getLookupOptions('carrier', q)` — **async**, from `src/api/services/lookupService` (label `"SCAC - Name"`), already used by `RoutingGuideTab.jsx:252`. Do NOT hardcode a copy. `buildCarrierRows` itself stays a pure sync function over an already-resolved options array.
 
 **Interface — carrierList.js:**
 ```
@@ -210,7 +217,7 @@ Tests use `vi.useFakeTimers()` where time matters; jsdom provides `localStorage`
 - Create: `apps/odyssey-one/src/spotboard/TolerancePanel.jsx` (+ styles in `spotboard.css`)
 - Test: `apps/odyssey-one/src/spotboard/TolerancePanel.test.jsx`
 
-**Contract:** `<TolerancePanel benchmark tolerancePct lowestBid manualReview .../>` — a bordered card (reuse `SectionHeader`/`Field` from `RoutingGuideTab` via export, or local equivalents) showing Highest routed cost (benchmark) · Tolerance % · Ceiling · Lowest bid, and an `Alert` verdict: `variant="success"` "Within tolerance — eligible for auto-award" when `evaluateTolerance().withinTolerance`, else `variant="warning"` with the `reason`. Uses `evaluateTolerance` from Task 1 (do not recompute inline).
+**Contract:** `<TolerancePanel benchmark tolerancePct lowestBid manualReview .../>` — a bordered card (write a local ~13-line `Field` in `spotboard/`; do NOT import from `RoutingGuideTab`) showing Highest routed cost (benchmark) · Tolerance % · Ceiling · Lowest bid, and an `Alert` verdict: `variant="success"` "Within tolerance — eligible for auto-award" when `evaluateTolerance().withinTolerance`, else `variant="warning"` with the `reason`. Uses `evaluateTolerance` from Task 1 (do not recompute inline).
 
 - [ ] **Step 1: Write failing test** — with within-tolerance inputs renders an `Alert` containing "Within tolerance"; with out-of-tolerance inputs renders a warning `Alert`; the ceiling value shown equals `evaluateTolerance(...).ceiling` formatted.
 - [ ] **Step 2: Run** — FAIL.
@@ -340,7 +347,7 @@ buildSpotRateOption(winningCarrier, quote, existingOptions, markup): RoutingOpti
 - [ ] **Step 1: Write failing test** — drive the store end to end: `saveDraft` → `sendRFQ` → `submitBid` (two carriers) → `closeQuote` → `lowestBid` picks the min → `award` → `buildSpotRateOption` yields a `routeGroup:'Spot'` row with markup applied. Assert each transition.
 - [ ] **Step 2: Run** — FAIL.
 - [ ] **Step 3:** No new impl expected; fix any integration gaps surfaced.
-- [ ] **Step 4: Run full suite** `npx vitest run` (app) — expect all green (566 prior + new spotboard tests). Run `npm run build:odyssey-one` — expect green.
+- [ ] **Step 4: Run full suite** `npx vitest run` (app) — expect **all green** (record the new total; do not assert a pre-set number, the S108 baseline was stale). Run `npm run build:odyssey-one` — expect green.
 - [ ] **Step 5: Commit** `test(spotboard): end-to-end auction flow + suite green`.
 
 ---

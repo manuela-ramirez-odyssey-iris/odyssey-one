@@ -7,6 +7,7 @@ const OrderTab = React.lazy(() => import('./OrderTab'))
 const StopsTab = React.lazy(() => import('./StopsTab'))
 const ProductTab = React.lazy(() => import('./ProductTab'))
 const RoutingGuideTab = React.lazy(() => import('./RoutingGuideTab'))
+const SpotBoardTab = React.lazy(() => import('./SpotBoardTab'))
 const CostAllocationTab = React.lazy(() => import('./CostAllocationTab'))
 const InstructionsTab = React.lazy(() => import('./InstructionsTab'))
 const DocumentsTab = React.lazy(() => import('./DocumentsTab'))
@@ -35,6 +36,7 @@ export const TABS = [
   { key: 'product', label: 'Product' },
   { key: 'stops', label: 'Stops' },
   { key: 'routing', label: 'Tender' },
+  { key: 'spot', label: 'SpotBoard' },
   { key: 'cost', label: 'Cost Allocation' },
   { key: 'instructions', label: 'Instructions' },
   { key: 'documents', label: 'Documents' },
@@ -249,6 +251,7 @@ export default function BottomBar({
       case 'stops': return <StopsTab data={shownDetails.stopsData} />
       case 'product': return <ProductTab data={shownDetails.productData} />
       case 'routing': return <RoutingGuideTab data={shownDetails.routingData} shipmentDetails={shownDetails} shipment={shipment} onToggleColumnPanel={onToggleColumnPanel} />
+      case 'spot': return <SpotBoardTab shipmentDetails={shownDetails} shipment={shipment} />
       case 'cost': return <CostAllocationTab data={shownDetails.costData} />
       case 'instructions': return <InstructionsTab data={shownDetails.instructionsData} />
       case 'documents': return <DocumentsTab data={shownDetails.documentsData} />

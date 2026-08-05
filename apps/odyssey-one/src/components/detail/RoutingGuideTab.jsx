@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { TruckElectric, Columns3Cog, X, Trash2, Plus, FoldHorizontal, UnfoldHorizontal } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
-import { Button, ComboBox, FormField, ModalMedium, Tab, TimePicker } from '@odyssey/ui'
+import { Badge, Button, ComboBox, FormField, ModalMedium, Tab, TimePicker } from '@odyssey/ui'
 import MeasureField from '../orders/create/fields/MeasureField.jsx'
 import DateField from '../orders/create/fields/DateField.jsx'
 import { TIMEZONE_LABELS } from '../../data/master-data'
@@ -863,6 +863,12 @@ function RoutingTable({ options, tabColumns, highlightedRank, openMenuRank, onOp
 
                     const content = col.key === 'status' ? <StatusBadge status={option.status} />
                       : col.key === 'cost' ? <CostTooltip carrier={option} onViewDetails={() => onViewRateDetails(option)} />
+                      : col.key === 'carrierName' && option.spotRate ? (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                          {getCellValue(option, col)}
+                          <Badge variant="amber">SPOT RATE</Badge>
+                        </span>
+                      )
                       : getCellValue(option, col)
 
                     return (

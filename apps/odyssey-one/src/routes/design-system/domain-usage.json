@@ -45,6 +45,7 @@
     "ComboBox",
     "DataTable",
     "DropdownMenu",
+    "EmptyState",
     "FormField",
     "GroupTable",
     "IconButtonGhost",

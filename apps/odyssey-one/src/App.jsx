@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClient } from './api/queryClient'
@@ -14,6 +14,10 @@ import Partners from './routes/Partners.jsx'
 import ShipmentsRoute from './routes/shipments/ShipmentsRoute.jsx'
 import ButtonDemo from './routes/ButtonDemo.jsx'
 import DesignSystem from './routes/design-system/DesignSystem.jsx'
+
+// Standalone external page (no AppShell) — lazy so the token-decode +
+// shipment-detail bid form never lands in the main app bundle.
+const CarrierBid = lazy(() => import('./routes/CarrierBid.jsx'))
 
 // Transition timeline (wall-clock ms from Log In click).
 //   0    → 'intro'   : modal fades out + image fades in (400ms).
@@ -75,6 +79,14 @@ export default function App() {
         <Route path="/partners" element={<Partners />} />
         <Route path="/button-demo" element={<ButtonDemo />} />
         <Route path="/design-system" element={<DesignSystem />} />
+        <Route
+          path="/spot-bid/:token"
+          element={
+            <Suspense fallback={null}>
+              <CarrierBid />
+            </Suspense>
+          }
+        />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </QueryClientProvider>
