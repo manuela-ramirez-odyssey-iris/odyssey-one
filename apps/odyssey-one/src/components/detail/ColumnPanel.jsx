@@ -1,8 +1,6 @@
-import { useState, useMemo, useRef, useEffect, useLayoutEffect, forwardRef, useImperativeHandle } from 'react'
-import { createPortal } from 'react-dom'
-import { RightPanel, MenuRowRadio, MenuRowCheckbox, ComboBox, IconButtonGhost, DropdownMenu, MenuRow, ModalMedium, Button } from '@odyssey/ui'
-import { EllipsisVertical } from 'lucide-react'
-import { ICON_LG } from '@odyssey/tokens'
+import { useState, useMemo, useRef, useEffect, forwardRef, useImperativeHandle } from 'react'
+import { RightPanel, MenuRowRadio, MenuRowCheckbox, ComboBox, ModalMedium, Button } from '@odyssey/ui'
+import { GroupLabel, PresetActionsMenu } from '../common/presetChrome.jsx'
 
 // Open width (px) of the right-side arrangement panels (Column + Tab).
 // Must stay in sync with --right-panel-width in packages/tokens/tokens.css,
@@ -109,118 +107,6 @@ function getPresetByColumns(columns) {
 }
 
 const arraysEqual = (a, b) => a.length === b.length && a.every((x, i) => x === b[i])
-
-/** Uppercase section label — matches the RightPanel preset-group header style.
- *  Optional `action` renders on the trailing side (e.g. the ⋮ preset-actions menu).
- *  Exported for sibling arrangement panels (TabArrangementPanel). */
-export function GroupLabel({ children, action }) {
-  return (
-    <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: 'var(--spacing-2)',
-      minHeight: 28,
-      padding: 'var(--spacing-1) 0',
-      marginBottom: 'var(--spacing-1)',
-    }}>
-      <span style={{
-        color: 'var(--text-tertiary)',
-        fontFamily: 'var(--font-primary)',
-        fontSize: 'var(--font-size-xs)',
-        lineHeight: 'var(--line-height-xs)',
-        fontWeight: 'var(--font-weight-medium)',
-        letterSpacing: 'var(--letter-spacing-wide)',
-        textTransform: 'uppercase',
-      }}>
-        {children}
-      </span>
-      {action}
-    </div>
-  )
-}
-
-/**
- * PresetActionsMenu — the ⋮ IconButtonGhost in the Custom Presets header. Opens an
- * anchored DropdownMenu of preset actions (right-aligned to the trigger, flips up near
- * the viewport bottom). Composes IconButtonGhost + DropdownMenu + MenuRow; closes on
- * select / outside-click / scroll / resize.
- */
-function PresetActionsMenu({ options }) {
-  const [open, setOpen] = useState(false)
-  const [pos, setPos] = useState(null)
-  const triggerRef = useRef(null)
-  const menuRef = useRef(null)
-
-  useLayoutEffect(() => {
-    if (!open) { setPos(null); return }
-    const t = triggerRef.current
-    const m = menuRef.current
-    if (!t || !m) return
-    const r = t.getBoundingClientRect()
-    const gap = 4
-    const mh = m.offsetHeight
-    const openUp = r.bottom + gap + mh > window.innerHeight && r.top - gap - mh > 0
-    setPos({
-      top: openUp ? r.top - gap - mh : r.bottom + gap,
-      left: r.right - m.offsetWidth, // right-align the menu to the trigger
-    })
-  }, [open])
-
-  useEffect(() => {
-    if (!open) return
-    const onDown = (e) => {
-      if (triggerRef.current?.contains(e.target)) return
-      if (menuRef.current?.contains(e.target)) return
-      setOpen(false)
-    }
-    const onScrollResize = () => setOpen(false)
-    document.addEventListener('mousedown', onDown)
-    window.addEventListener('scroll', onScrollResize, true)
-    window.addEventListener('resize', onScrollResize)
-    return () => {
-      document.removeEventListener('mousedown', onDown)
-      window.removeEventListener('scroll', onScrollResize, true)
-      window.removeEventListener('resize', onScrollResize)
-    }
-  }, [open])
-
-  return (
-    <>
-      <span ref={triggerRef} style={{ display: 'inline-flex' }}>
-        <IconButtonGhost
-          icon={<EllipsisVertical {...ICON_LG} aria-hidden="true" />}
-          ariaLabel="Preset actions"
-          onClick={() => setOpen((o) => !o)}
-          aria-haspopup="menu"
-          aria-expanded={open}
-        />
-      </span>
-      {open && createPortal(
-        <div
-          ref={menuRef}
-          style={pos
-            ? { position: 'fixed', top: pos.top, left: pos.left, zIndex: 200 }
-            : { position: 'fixed', top: 0, left: 0, visibility: 'hidden', zIndex: 200 }}
-        >
-          <DropdownMenu>
-            {options.map((opt) => (
-              <MenuRow
-                key={opt.label}
-                label={opt.label}
-                variant="select"
-                role="menuitem"
-                tabIndex={0}
-                onClick={() => { opt.onSelect?.(); setOpen(false) }}
-              />
-            ))}
-          </DropdownMenu>
-        </div>,
-        document.body,
-      )}
-    </>
-  )
-}
 
 // Built-in preset ids — the shipped presets (both groups). Used by the empty-preset
 // prune (shipped presets are never pruned) and to detect a brand-new user preset. In delete

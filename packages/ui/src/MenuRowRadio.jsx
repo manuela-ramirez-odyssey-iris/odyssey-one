@@ -1,4 +1,5 @@
 import Radio from './Radio.jsx'
+import Badge from './Badge.jsx'
 import { ChevronRight, GripVertical } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
 
@@ -15,12 +16,17 @@ import { ICON_MD } from '@odyssey/tokens'
  * reorderable lists; the radio row's established use is single-select + navigate.
  * Unlike MenuRowCheckbox (grip trailing, no chevron), the chevron owns the trailing
  * slot here, so the grip renders LEADING, before the radio.
- * Figma `MenuRowRadio` set `3447:6593`, `Draggable#4921:0` boolean property.
+ * `badge` (default none) renders in the nav zone BEFORE the chevron, which still
+ * owns the trailing slot. A string becomes our `Badge` (Shape=Pill, Variant=gray,
+ * the Figma default); pass a node to control it yourself.
+ * Figma `MenuRowRadio` set `3447:6593`, `Draggable#4921:0` + `Show Badge#4930:0`
+ * boolean properties.
  */
 export default function MenuRowRadio({
   label,
   selected = false,
   draggable = false,
+  badge,
   disabled = false,
   name,
   value,
@@ -67,6 +73,11 @@ export default function MenuRowRadio({
         role={onNavigate ? 'button' : undefined}
       >
         <span className="menu-row__label">{label}</span>
+        {badge && (
+          <span className="menu-row-radio__badge">
+            {typeof badge === 'string' ? <Badge variant="gray">{badge}</Badge> : badge}
+          </span>
+        )}
         {/* chevron is always present — MenuRowRadio's purpose is to navigate */}
         <span className="menu-row__trailing" aria-hidden="true">
           <ChevronRight {...ICON_MD} />

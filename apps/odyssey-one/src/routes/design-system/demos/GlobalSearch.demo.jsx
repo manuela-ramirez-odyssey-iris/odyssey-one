@@ -4,7 +4,7 @@ import { GlobalSearch } from '@odyssey/ui'
 export const meta = {
   name: 'GlobalSearch',
   tier: 'molecule',
-  version: '0.7.0', // S80 combobox keyboard navigation (re-approved + ported S81)
+  version: '0.7.1', // S110 copy button (onCopy)
   createdVersion: '0.2.0',
   figmaNode: '658:18',
   codeConnect: 'packages/ui/src/GlobalSearch.figma.tsx',
@@ -16,6 +16,7 @@ export const props = [
   { name: 'value', type: 'string', desc: 'Controlled input value (search mode).' },
   { name: 'onChange', type: '(value: string) => void', desc: 'Called on every keystroke.' },
   { name: 'onClear', type: '() => void', desc: 'Called when the CircleX clear button is clicked.' },
+  { name: 'onCopy', type: '() => void', desc: 'Copies the applied query (bar text + committed chips). The copy button renders ONLY when this is wired — bars that do not support copying show no dead control. Disabled while there is nothing to copy; the icon becomes a Check for 1.5s after a copy.' },
   { name: 'onBack', type: '() => void', desc: 'Called when the ChevronLeft back button is clicked.' },
   { name: 'onForward', type: '() => void', desc: 'Called when the ChevronRight forward button is clicked.' },
   { name: 'placeholder', type: 'string', desc: "Input placeholder. Default 'Search'." },
@@ -111,6 +112,7 @@ export default function GlobalSearchDemo() {
             value={searchValue}
             onChange={handleChange}
             onClear={handleClear}
+            onCopy={() => {}}
             onBack={() => {}}
             onForward={() => {}}
             placeholder="Search Shipments…"

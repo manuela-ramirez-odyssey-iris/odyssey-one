@@ -44,12 +44,9 @@
     "Checkbox",
     "ComboBox",
     "DataTable",
-    "DropdownMenu",
     "EmptyState",
     "FormField",
     "GroupTable",
-    "IconButtonGhost",
-    "MenuRow",
     "MenuRowCheckbox",
     "MenuRowRadio",
     "ModalMedium",
@@ -83,11 +80,16 @@
     "PageHeader"
   ],
   "global-search": [
+    "Button",
     "ComboBox",
     "FormField",
     "GlobalSearch",
     "GlobalSearchPanel",
     "GlobalSearchResults",
-    "PillTab"
+    "MenuRowCheckbox",
+    "MenuRowRadio",
+    "ModalMedium",
+    "PillTab",
+    "SearchChip"
   ]
 }

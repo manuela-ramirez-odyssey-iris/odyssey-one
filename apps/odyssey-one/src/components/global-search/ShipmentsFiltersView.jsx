@@ -1,9 +1,15 @@
-import { useState } from 'react'
-import { Info, Copy } from 'lucide-react'
-import { GlobalSearchPanel, PillTab, ComboBox, FormField, DatePicker } from '@odyssey/ui'
+import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
+import { Info } from 'lucide-react'
+import {
+  GlobalSearchPanel, PillTab, ComboBox, FormField, DatePicker,
+  MenuRowRadio, MenuRowCheckbox, SearchChip, ModalMedium, Button,
+} from '@odyssey/ui'
+import { GroupLabel, PresetActionsMenu } from '../common/presetChrome.jsx'
 import { SHIPMENTS_PROGRESSION } from '../../search/shipments/progression'
 import { shipmentsSearchAdapter } from '../../search/shipments'
 import { formatDateMDY } from '../../lib/dates'
+import { splitFreeText } from './savedFilters'
 
 /**
  * ShipmentsFiltersView — the Filters *content* of the GlobalSearch overlay.
@@ -30,19 +36,17 @@ import { formatDateMDY } from '../../lib/dates'
  * Filter-state keys: `<attr.key>` for every control EXCEPT the date range,
  * which owns `<attr.key>-range` (single date = ISO "YYYY-MM-DD", range =
  * ISO "from|to"). The committed searchbar chips pre-fill the matching
- * controls; "Save Filters" persists the current set as a local profile
- * (local-only — no persistence yet).
+ * controls; "Save Filters" opens the real Save Filter modal (S108 1b,
+ * `onOpenSaveModal` — hosted in ShipmentsGlobalSearch, not here). The Saved
+ * tab (S108 1d) renders the real persisted Custom-group list from the
+ * `savedFilters` prop — Custom group only; the Odyssey/defaults group is
+ * Phase 2 and sharing/author badges are Phase 3 (blocked on the migration).
  */
 
-// Seed list for the Saved tab (mirrors the old FilterPanel's sample queries).
-// Clicking a row APPLIES its query to the search bar (replaces the chips).
-const INITIAL_SAVED = [
-  { name: 'Review Shipments -- West Coast', query: 'mode:LTL shipment-status:Review destination:CA' },
-  { name: 'Sent Tenders -- JBHT', query: 'scac:JBHT tender-status:Sent' },
-  { name: 'TL Shipments -- G2O Tech', query: 'mode:TL customer-name:G2O' },
-  { name: 'Done -- Dallas Origin', query: 'origin:Dallas shipment-status:Done' },
-  { name: 'Early-April Pickups -- FXFE', query: 'scac:FXFE pickup-date-range:2026-04-01|2026-04-15' },
-]
+// Saved-tab selection → count debounce (spec "Behaviour" 7): mirrors
+// useGlobalSearch's own `debounceMs` default (120) — same rapid-input
+// smoothing, just for row selection instead of typing.
+const SAVED_COUNT_DEBOUNCE_MS = 150
 
 // ── ISO ⇄ M/D/YYYY ⇄ Date conversions (filters state is ISO) ────────────────
 const mdyToIso = (s) => {
@@ -149,21 +153,6 @@ export function mergeFiltersIntoChips(chips, filters) {
     }
   }
   return next
-}
-
-// A saved profile's query string ("scac:JBHT tender-status:Sent") → filters.
-// `-range` keys are legal only on date attributes.
-export function queryStringToFilters(query) {
-  const f = {}
-  String(query || '').split(/\s+/).forEach((tok) => {
-    const i = tok.indexOf(':')
-    if (i <= 0) return
-    const key = tok.slice(0, i)
-    const attr = ATTR_BY_KEY.get(baseAttrKey(key))
-    if (!attr || (key.endsWith('-range') && attr.match !== 'date')) return
-    f[key] = tok.slice(i + 1)
-  })
-  return f
 }
 
 function SectionHeader({ children }) {
@@ -327,30 +316,260 @@ export default function ShipmentsFiltersView({
   // Outbound wiring: (filters, { commit, replace }) — "Show N results" commits
   // the edited filters; clicking a Saved profile replaces the bar with it.
   onApplyFilters,
+  // S108 1b: opens the real Save Filter modal (hosted in ShipmentsGlobalSearch,
+  // not here — see its "Hosting" comment for why). `savedTabSignal` is a
+  // change-only counter bumped by the host on every successful save; this view
+  // stays mounted while the modal is open (it lives outside the modal's own
+  // subtree), so a plain boolean can't distinguish "just saved" from "already
+  // open" on remount — the effect below only reacts to it CHANGING.
+  onOpenSaveModal,
+  savedTabSignal,
+  // S108 1d — the persisted Custom-group list + its mutation callbacks
+  // (hosted in ShipmentsGlobalSearch; see its "Saved filters" block). Default
+  // `[]` so the bare `<ShipmentsFiltersView />` render in ValueComboBox.test.jsx
+  // (no QueryClientProvider in that suite — spec "Hosting" defect 4) doesn't
+  // crash on `.map`.
+  savedFilters = [],
+  onRenameFilter,
+  onDeleteFilters,
+  onReorderFilters,
+  // S108 1e (spec "Behaviour" 8): "Show N results" on the Saved tab applies
+  // the SELECTED filter's stored chips wholesale — see this prop's consumer,
+  // ShipmentsGlobalSearch's `handleApplySaved`, for why it must be a
+  // dedicated callback and not `onApplyFilters`.
+  onApplySaved,
+  // S108 1e (spec "Behaviour" 7): the CUSTOMER-SCOPED adapter built by the
+  // host (`ShipmentsGlobalSearch`'s `scopedAdapter`, selected customers'
+  // dataIds baked in) — used ONLY for counting a selected saved filter.
+  // Defaults to the unscoped module import (below) so this file's own bare
+  // renders (this suite, ValueComboBox.test.jsx) keep working without a host;
+  // the real app ALWAYS passes the scoped one. Do not swap this default in
+  // for the real prop — the unscoped adapter would show a total that
+  // disagrees with the table the user lands on after Apply.
+  scopedAdapter = shipmentsSearchAdapter,
+  // S108 1d keyboard trap (spec "Behaviour" 6): an active inline rename is an
+  // INPUT inside the host's wrapper, same trap as the save-modal title field
+  // (saveModalOpen, ShipmentsGlobalSearch.jsx). Told to the host so its
+  // handleKeyDown can early-return for Enter/Escape the same way.
+  onRenameActiveChange,
+  // The host's `wrapperRef` (spec "Hosting" defect 1) — the delete-confirm
+  // ModalMedium portals INTO it rather than rendering as a normal descendant.
+  // This component always renders inside `.shipments-results-panel`, which
+  // has `transform: translateX(-50%)` (components.css) and becomes the
+  // containing block for any `position: fixed` descendant, sizing the modal's
+  // overlay to the 720px panel instead of the viewport — the exact defect the
+  // spec documents for the Save modal. Portaling straight to `document.body`
+  // would dodge THAT trap but land in a second one: the host's outside-click
+  // listener tests `wrapperRef.current.contains(e.target)` on raw DOM
+  // position, and a `document.body` portal sits outside that subtree, so a
+  // click on Cancel/Delete would read as an outside click and close the whole
+  // panel before the button's own onClick ever runs. Portaling into
+  // `wrapperRef.current` itself escapes the transform (wrapperRef carries
+  // none) while staying inside the contains() check — same node, no new prop
+  // needed for the click guard. Optional: falls back to an inline (untransformed
+  // for jsdom, harmless) render when no ref is supplied, e.g. this file's own
+  // unit tests, which don't have a host wrapper to portal into.
+  modalContainerRef,
 }) {
   const [activeTab, setActiveTab] = useState('all')
   const [filters, setFilters] = useState(() => chipsToFilters(chips))
-  const [saved, setSaved] = useState(INITIAL_SAVED)
 
   const setFilter = (key, val) => setFilters((f) => ({ ...f, [key]: val }))
   const activeCount = Object.values(filters).filter(Boolean).length
 
-  const handleSaveFilters = () => {
-    const summary = Object.entries(filters)
-      .filter(([, v]) => v)
-      .map(([k, v]) => `${k}:${v}`)
-      .join(' ')
-    if (!summary) return
-    setSaved((s) => [{ name: `Saved Filter ${s.length + 1}`, query: summary }, ...s])
-    setActiveTab('saved')
+  // Guarded with a ref (not a plain `if (savedTabSignal)`) so a FRESH mount
+  // that inherits an already-bumped signal (e.g. reopening the panel after an
+  // earlier save this session) doesn't force the Saved tab open — only an
+  // actual change, while this instance is alive, does.
+  const prevSavedTabSignal = useRef(savedTabSignal)
+  useEffect(() => {
+    if (savedTabSignal !== prevSavedTabSignal.current) {
+      prevSavedTabSignal.current = savedTabSignal
+      setActiveTab('saved')
+    }
+  }, [savedTabSignal])
+
+  // ── Saved tab — Custom group (S108 1d) ───────────────────────────────────
+  // Single select. Selecting does NOT apply — it COUNTS (spec "Behaviour" 7,
+  // the effect right below). Expand is a SEPARATE Set (a row can be expanded
+  // without being selected — the chevron/label zone navigates, the radio
+  // selects; MenuRowRadio's two-click-zone split, spec "Behaviour" 6).
+  const [selectedFilterId, setSelectedFilterId] = useState(null)
+  const [expandedIds, setExpandedIds] = useState(() => new Set())
+  const toggleExpand = (id) => setExpandedIds((prev) => {
+    const next = new Set(prev)
+    if (next.has(id)) next.delete(id); else next.add(id)
+    return next
+  })
+
+  // Selection → count (spec "Behaviour" 7). Debounced + cancelled on rapid
+  // re-selection: a NEW `selectedFilterId` tears down the previous effect
+  // run FIRST (React's cleanup-before-next-effect ordering), which either
+  // clears a still-pending debounce timer or — if the request already went
+  // out — flips `cancelled` so its `.then` becomes a no-op; the in-flight
+  // response can't land after a newer selection's count already did.
+  // NOTE on `loading`: GlobalSearchPanel accepts one (spec "Behaviour" 7 says
+  // to feed it), but its implementation (packages/ui GlobalSearchPanel.jsx)
+  // swaps its ENTIRE content slot for a bare Spinner — fine for the Results
+  // glimpse (nothing else to interact with while it searches), but wiring it
+  // here would hide the Saved list itself (rows, ⋮ menu, expand) for as long
+  // as a count is in flight, which directly conflicts with THIS SAME
+  // paragraph's "debounce/cancel on rapid selection": a rapid re-selection
+  // needs the OTHER rows still clickable while the first one counts. Not
+  // wired — flagged in the task report as a packages/ui gap (a component-
+  // local loading affordance, not the panel-wide one) rather than shipping a
+  // literal reading that breaks re-selection.
+  const [savedFilterCount, setSavedFilterCount] = useState(0)
+  useEffect(() => {
+    if (!selectedFilterId) { setSavedFilterCount(0); return }
+    const filter = savedFilters.find((f) => f.id === selectedFilterId)
+    if (!filter || !scopedAdapter?.searchShipments) { setSavedFilterCount(0); return }
+    let cancelled = false
+    // `filter.chips` may carry a `__free-text__` badge — searchShipments
+    // wants it split into its `query` arg, not AND'd in as a chip (see
+    // `splitFreeText`'s header for why that would zero the count).
+    const { chips: searchChips, freeText } = splitFreeText(filter.chips)
+    const t = setTimeout(() => {
+      scopedAdapter.searchShipments(searchChips, freeText?.value || '').then(({ total }) => {
+        if (cancelled) return
+        setSavedFilterCount(total)
+      })
+    }, SAVED_COUNT_DEBOUNCE_MS)
+    return () => { cancelled = true; clearTimeout(t) }
+  }, [selectedFilterId, savedFilters, scopedAdapter])
+
+  // Inline rename (⋮ → Edit Name, spec "Behaviour" 3). Only one row renames
+  // at a time; `renameInputRef` focuses + selects it once, on ENTRY only
+  // (effect keyed to `renamingId`, not `renameValue` — keying on the value
+  // too would re-select the whole field after every keystroke and fight typing).
+  const [renamingId, setRenamingId] = useState(null)
+  const [renameValue, setRenameValue] = useState('')
+  const renameInputRef = useRef(null)
+  useEffect(() => {
+    if (renamingId) { renameInputRef.current?.focus(); renameInputRef.current?.select() }
+  }, [renamingId])
+
+  const handleEditName = () => {
+    const target = savedFilters.find((f) => f.id === selectedFilterId)
+    if (!target) return // menu option is disabled with nothing selected; belt + suspenders
+    setRenameValue(target.name)
+    setRenamingId(target.id)
+    onRenameActiveChange?.(true)
   }
+  // Idempotent (checked against `renamingId`, not a separate "did we already
+  // act" flag) — Escape can fire its own cancel and then a blur commit can
+  // still land on the same input as it unmounts; the second call is a no-op.
+  const commitRename = () => {
+    if (!renamingId) return
+    const name = renameValue.trim()
+    if (name) onRenameFilter?.(renamingId, name) // blank name: treat as cancel, don't persist
+    setRenamingId(null)
+    onRenameActiveChange?.(false)
+  }
+  const cancelRename = () => {
+    if (!renamingId) return
+    setRenamingId(null)
+    onRenameActiveChange?.(false)
+  }
+  const handleRenameKeyDown = (e) => {
+    // No stopPropagation — same idiom as the save-modal title field: this
+    // event still bubbles to the host's wrapper onKeyDown, which early-returns
+    // for as long as `onRenameActiveChange` reports an active rename (the
+    // state update above lands before the bubble reaches it in the same tick).
+    if (e.key === 'Enter') { e.preventDefault(); commitRename() }
+    else if (e.key === 'Escape') { e.preventDefault(); cancelRename() }
+  }
+
+  // Batch delete (⋮ → Delete Filters, spec "Behaviour" 3) — mirrors
+  // ColumnPanel's delete mode (Figma 4301:19405): radio rows swap for bordered
+  // MenuRowCheckbox, footer becomes Cancel / "Delete (n)", confirm via ModalMedium.
+  const [deleteMode, setDeleteMode] = useState(false)
+  const [deleteSelection, setDeleteSelection] = useState(() => new Set())
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const handleEnterDeleteMode = () => {
+    cancelRename() // no orphaned rename input once rows become checkboxes
+    setDeleteMode(true)
+    setDeleteSelection(new Set())
+  }
+  const handleExitDeleteMode = () => {
+    setDeleteMode(false)
+    setDeleteSelection(new Set())
+  }
+  const toggleDeleteSelection = (id) => setDeleteSelection((prev) => {
+    const next = new Set(prev)
+    if (next.has(id)) next.delete(id); else next.add(id)
+    return next
+  })
+  const handleDeleteSave = () => {
+    if (deleteSelection.size === 0) { handleExitDeleteMode(); return } // nothing selected
+    setShowDeleteConfirm(true)
+  }
+  const handleConfirmDelete = () => {
+    onDeleteFilters?.([...deleteSelection])
+    if (selectedFilterId && deleteSelection.has(selectedFilterId)) setSelectedFilterId(null)
+    setShowDeleteConfirm(false)
+    handleExitDeleteMode()
+  }
+
+  // Drag reorder (spec "Behaviour" 2, wrapper-div pattern per ColumnPanel.jsx's
+  // selected-columns list — MenuRowRadio destructures `draggable` for its own
+  // grip icon and does NOT forward it to the DOM, so the wrapper carries the
+  // real HTML5 DnD attributes).
+  const [savedDragOverIndex, setSavedDragOverIndex] = useState(null)
+  const handleSavedDrop = (e, toIndex) => {
+    e.preventDefault()
+    setSavedDragOverIndex(null)
+    const fromIndex = parseInt(e.dataTransfer.getData('text/plain'), 10)
+    if (isNaN(fromIndex) || fromIndex === toIndex) return
+    onReorderFilters?.(fromIndex, toIndex)
+  }
+
+  const savedMenuOptions = [
+    // Enabled only for a selection — Edit Name acts on "the selected filter" (spec).
+    { label: 'Edit Name', onSelect: handleEditName, disabled: !selectedFilterId },
+    { label: 'Delete Filters', onSelect: handleEnterDeleteMode },
+  ]
+
+  const inSavedDeleteMode = activeTab === 'saved' && deleteMode
+  // S108 1e — the footer's count/primary action is tab-scoped: All shows the
+  // live bar's resultTotal (unchanged); Saved shows the SELECTED filter's own
+  // count (the effect above), never resultTotal — mixing the two would show a
+  // number that belongs to a different search than the one about to apply.
+  const savedTabActive = activeTab === 'saved' && !inSavedDeleteMode
+  const savedFilterSelected = savedFilters.find((f) => f.id === selectedFilterId) || null
 
   const tabs = [
     { key: 'all', label: 'All', count: activeCount },
-    { key: 'saved', label: 'Saved', count: saved.length },
+    { key: 'saved', label: 'Saved', count: savedFilters.length },
   ]
 
+  // Built once (not inline in the JSX below) so both the portal branch and
+  // the no-container fallback render the exact same element — see
+  // `modalContainerRef` above for why a portal is needed at all.
+  const deleteConfirmModal = showDeleteConfirm ? (
+    <ModalMedium
+      title="Delete filters"
+      onClose={() => setShowDeleteConfirm(false)}
+      ariaLabel="Delete filters"
+      footer={
+        <>
+          <Button variant="secondary" size="lg" onClick={() => setShowDeleteConfirm(false)}>
+            Cancel
+          </Button>
+          <Button variant="primary" size="lg" onClick={handleConfirmDelete}>
+            Delete
+          </Button>
+        </>
+      }
+    >
+      <p className="text-label-sm-regular" style={{ margin: 0 }}>
+        Delete {deleteSelection.size} selected filter{deleteSelection.size === 1 ? '' : 's'}? This can't be undone.
+      </p>
+    </ModalMedium>
+  ) : null
+
   return (
+    <>
     <GlobalSearchPanel
       className="global-search-panel--filters"
       showHeader
@@ -358,15 +577,38 @@ export default function ShipmentsFiltersView({
       title="Filters"
       onBack={onBack}
       onClose={onClose}
-      showLink={activeTab === 'all'}
+      // Delete mode (Saved tab only) borrows the SAME baked footer slots
+      // GlobalSearchPanel already exposes — Cancel in the lead-secondary slot,
+      // "Delete (n)" in the primary slot — rather than adding a bespoke footer
+      // (mirrors how ColumnPanel's delete mode reuses RightPanel's existing
+      // footer/saveLabel props instead of a second footer implementation).
+      // Outside delete mode this is byte-identical to before (non-goal: leave
+      // the "Show N results" footer behaviour exactly as it is, 1e wires it).
+      showLink={activeTab === 'all' && !inSavedDeleteMode}
       linkLabel="Save Filters"
-      onLink={handleSaveFilters}
-      showSecondary={activeTab !== 'all'}
-      showTrailSecondary={activeTab === 'all'}
-      secondaryLabel="Clear all"
-      onClear={onClearAll}
-      count={resultTotal}
-      onShowResults={() => onApplyFilters?.(filters, { commit: true })}
+      onLink={onOpenSaveModal}
+      showSecondary={inSavedDeleteMode ? true : activeTab !== 'all'}
+      showTrailSecondary={activeTab === 'all' && !inSavedDeleteMode}
+      secondaryLabel={inSavedDeleteMode ? 'Cancel' : 'Clear all'}
+      onClear={inSavedDeleteMode ? handleExitDeleteMode : onClearAll}
+      count={savedTabActive ? savedFilterCount : resultTotal}
+      primaryLabel={inSavedDeleteMode ? `Delete (${deleteSelection.size})` : undefined}
+      // S108 1e (spec "Behaviour" 8): Saved applies the SELECTED filter's
+      // stored chips WHOLESALE via the dedicated `onApplySaved` — never
+      // `onApplyFilters` (see ShipmentsGlobalSearch's `handleApplySaved` for
+      // the chipsToFilters/mergeFiltersIntoChips flattening it dodges).
+      // Nothing selected → `undefined`: GlobalSearchPanel's primary Button
+      // has no `disabled` prop to bind to (packages/ui gap; not modified
+      // here per this task's scope), so an unwired handler is the closest
+      // functional "disabled" available — the button reads enabled but does
+      // nothing on click.
+      onShowResults={
+        inSavedDeleteMode
+          ? handleDeleteSave
+          : savedTabActive
+            ? (savedFilterSelected ? () => onApplySaved?.(savedFilterSelected.chips) : undefined)
+            : () => onApplyFilters?.(filters, { commit: true })
+      }
     >
       <div className="shipments-filters__tabs">
         {tabs.map((tab) => (
@@ -390,34 +632,124 @@ export default function ShipmentsFiltersView({
           ))
         ) : (
           <div className="shipments-filters__saved">
-            {saved.map((sq) => (
-              // The row itself applies the profile: its query replaces the
-              // bar's chips (a saved profile IS a whole search).
-              <div
-                key={sq.name}
-                className="shipments-filters__saved-row"
-                role="button"
-                tabIndex={0}
-                onClick={() => onApplyFilters?.(queryStringToFilters(sq.query), { replace: true })}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') onApplyFilters?.(queryStringToFilters(sq.query), { replace: true })
-                }}
-              >
-                <div className="shipments-filters__saved-name text-label-sm-medium">{sq.name}</div>
-                <div className="shipments-filters__saved-query">{sq.query}</div>
-                <button
-                  type="button"
-                  className="shipments-filters__icon-btn"
-                  aria-label="Copy query"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <Copy size={16} style={{ color: 'var(--text-tertiary)' }} />
-                </button>
-              </div>
-            ))}
+            <GroupLabel action={<PresetActionsMenu options={savedMenuOptions} />}>
+              Custom Filters
+            </GroupLabel>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-1)' }}>
+              {savedFilters.map((filter, index) => {
+                // Delete mode: EVERY Custom row swaps radio → bordered
+                // Checkbox (batch multi-select), same as ColumnPanel 4301:19405.
+                if (deleteMode) {
+                  return (
+                    <MenuRowCheckbox
+                      key={filter.id}
+                      label={filter.name}
+                      checked={deleteSelection.has(filter.id)}
+                      bordered
+                      draggable={false}
+                      value={filter.id}
+                      onToggle={() => toggleDeleteSelection(filter.id)}
+                      aria-label={`Select ${filter.name} for deletion`}
+                    />
+                  )
+                }
+                const isRenaming = renamingId === filter.id
+                return (
+                  <div key={filter.id}>
+                    {/* Wrapper carries the real HTML5 DnD attributes — MenuRowRadio
+                        destructures `draggable` for its own grip icon and never
+                        forwards it to the DOM (ColumnPanel.jsx selected-columns
+                        pattern). Not draggable mid-rename: a click-drag to select
+                        text inside the input would otherwise start a row drag. */}
+                    <div
+                      draggable={!isRenaming}
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData('text/plain', String(index))
+                        e.dataTransfer.effectAllowed = 'move'
+                      }}
+                      onDragOver={(e) => {
+                        e.preventDefault()
+                        e.dataTransfer.dropEffect = 'move'
+                        setSavedDragOverIndex(index)
+                      }}
+                      onDragLeave={() => setSavedDragOverIndex(null)}
+                      onDrop={(e) => handleSavedDrop(e, index)}
+                      style={{
+                        borderTop: savedDragOverIndex === index ? '2px solid var(--border-focus)' : '2px solid transparent',
+                        transition: 'border-top-color var(--transition-fast)',
+                      }}
+                    >
+                      <MenuRowRadio
+                        // Accepted delta (spec "Behaviour" 6): MenuRowRadio's nav
+                        // zone is the label AND the chevron, so clicking the name
+                        // expands rather than selects — only the radio selects.
+                        // `label` takes the inline rename <input> as a ReactNode
+                        // while renaming this row (`.menu-row__label` is a plain
+                        // span, happy with either); `onNavigate` is dropped so the
+                        // nav zone's click no-ops instead of collapsing the row
+                        // out from under the input mid-edit.
+                        label={isRenaming ? (
+                          <input
+                            ref={renameInputRef}
+                            value={renameValue}
+                            onChange={(e) => setRenameValue(e.target.value)}
+                            onKeyDown={handleRenameKeyDown}
+                            onBlur={commitRename}
+                            aria-label={`Rename ${filter.name}`}
+                            style={{
+                              background: 'transparent', border: 'none', outline: 'none',
+                              padding: 0, margin: 0, width: '100%', minWidth: 0,
+                              color: 'var(--text-secondary)', fontFamily: 'var(--font-primary)',
+                              fontSize: 'var(--font-size-sm)', lineHeight: 'var(--line-height-sm)',
+                              fontWeight: 'var(--font-weight-regular)',
+                            }}
+                          />
+                        ) : filter.name}
+                        selected={selectedFilterId === filter.id}
+                        draggable
+                        onSelect={() => setSelectedFilterId(filter.id)}
+                        onNavigate={isRenaming ? undefined : () => toggleExpand(filter.id)}
+                      />
+                    </div>
+                    {/* Chevron-expanded chips (spec "Behaviour" 6): read-only
+                        SearchChips — `label` as a plain STRING for every chip
+                        (no `codes`/date fields, no `onRemove`) so none of them
+                        render a chevron/CalendarPicker/document listener, same
+                        rule SaveFilterModal follows. */}
+                    {expandedIds.has(filter.id) && !isRenaming && (
+                      <div style={{
+                        display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-1)',
+                        padding: 'var(--spacing-1) var(--spacing-3) var(--spacing-3)',
+                      }}>
+                        {filter.chips.map((chip) => (
+                          <SearchChip key={chip.key} label={chip.label} />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+              {savedFilters.length === 0 && (
+                <div style={{
+                  display: 'flex', justifyContent: 'center',
+                  padding: 'var(--spacing-6) var(--spacing-4)',
+                }}>
+                  <span style={{
+                    fontSize: 'var(--font-size-xs)', lineHeight: 'var(--line-height-xs)',
+                    color: 'var(--text-tertiary)', textAlign: 'center',
+                  }}>
+                    No saved filters yet.
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
     </GlobalSearchPanel>
+    {deleteConfirmModal && (modalContainerRef?.current
+      ? createPortal(deleteConfirmModal, modalContainerRef.current)
+      : deleteConfirmModal)}
+    </>
   )
 }

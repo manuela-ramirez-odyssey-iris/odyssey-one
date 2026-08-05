@@ -4,7 +4,7 @@ import { MenuRowRadio } from '@odyssey/ui'
 export const meta = {
   name: 'MenuRowRadio',
   tier: 'atom',
-  version: '0.4.1',
+  version: '0.4.2',
   createdVersion: '0.4.0',
   figmaNode: '3447:6593',
   codeConnect: 'packages/ui/src/MenuRowRadio.figma.tsx',
@@ -15,6 +15,7 @@ export const props = [
   { name: 'label', type: 'string', desc: 'Row label.' },
   { name: 'selected', type: 'boolean', desc: 'Fills the radio + applies the DSN/900 border (the chosen option). Default false.' },
   { name: 'draggable', type: 'boolean', desc: 'Shows a leading grip drag handle before the radio (reorder via a consumer DnD adapter), mirroring MenuRowCheckbox. Default false.' },
+  { name: 'badge', type: 'string | node', desc: 'Renders in the nav zone before the chevron (which keeps the trailing slot). A string becomes a gray pill Badge; a node renders as-is. Default none.' },
   { name: 'disabled', type: 'boolean', desc: 'Muted (placeholder) label + disabled radio; not clickable. Default false.' },
   { name: 'name', type: 'string', desc: 'Radio group name (passed to the nested Radio).' },
   { name: 'value', type: 'any', desc: 'Option value — passed to onSelect / onNavigate.' },
@@ -36,6 +37,7 @@ export default function MenuRowRadioDemo() {
   const [picked, setPicked] = useState('overnight')
   const [navigated, setNavigated] = useState(null)
   const [draggable, setDraggable] = useState(false)
+  const [badge, setBadge] = useState(false)
   const options = [
     { value: 'overnight', label: 'Overnight' },
     { value: 'two-day', label: 'Two-day' },
@@ -49,7 +51,10 @@ export default function MenuRowRadioDemo() {
         <strong>radio area selects</strong>; the <strong>rest of the row navigates</strong>.
         Leading <code>Radio</code> + label + chevron, on the shared <code>.menu-row</code> chrome.
         Press shows a DSN/200 background (hover's DSN/300 border). <code>draggable</code> adds
-        a leading grip handle before the radio, mirroring <code>MenuRowCheckbox</code>.
+        a leading grip handle before the radio, mirroring <code>MenuRowCheckbox</code>;{' '}
+        <code>badge</code> adds a gray pill before the chevron (its use is{' '}
+        <code>by: &lt;username&gt;</code> on a shared saved filter). At the master's 240px the
+        label truncates with the badge on — real rows are ~672px.
       </p>
 
       <div className="ds-demo-section">
@@ -57,6 +62,8 @@ export default function MenuRowRadioDemo() {
         <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)', marginBottom: 'var(--spacing-3)', fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)' }}>
           <input type="checkbox" checked={draggable} onChange={(e) => setDraggable(e.target.checked)} />
           draggable
+          <input type="checkbox" checked={badge} onChange={(e) => setBadge(e.target.checked)} style={{ marginLeft: 'var(--spacing-4)' }} />
+          badge
         </label>
         <div className="ds-demo-col" style={{ width: 240, gap: 'var(--spacing-2)' }}>
           {options.map((o) => (
@@ -67,6 +74,7 @@ export default function MenuRowRadioDemo() {
               value={o.value}
               selected={picked === o.value}
               draggable={draggable}
+              badge={badge ? 'by: mramirez' : undefined}
               onSelect={setPicked}
               onNavigate={(v) => setNavigated(v)}
             />

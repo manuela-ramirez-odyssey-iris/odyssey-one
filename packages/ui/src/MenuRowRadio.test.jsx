@@ -19,6 +19,32 @@ describe('MenuRowRadio', () => {
     expect(row.children[0]).toBe(grip)
   })
 
+  test('no badge by default', () => {
+    const { container } = render(<MenuRowRadio label="Option A" value="a" />)
+    expect(container.querySelector('.menu-row-radio__badge')).toBeNull()
+  })
+
+  test('a string badge renders our Badge in the nav zone, before the chevron', () => {
+    const { container, getByText } = render(
+      <MenuRowRadio label="Option A" value="a" badge="by: mramirez" />,
+    )
+    const badge = container.querySelector('.menu-row-radio__badge')
+    expect(badge).toBeTruthy()
+    expect(getByText('by: mramirez')).toBeTruthy()
+    // chevron still owns the trailing slot — badge sits immediately before it
+    const nav = container.querySelector('.menu-row-radio__nav')
+    const kids = [...nav.children]
+    expect(kids.indexOf(badge)).toBe(kids.length - 2)
+    expect(kids[kids.length - 1].className).toContain('menu-row__trailing')
+  })
+
+  test('a node badge is rendered as-is', () => {
+    const { getByTestId } = render(
+      <MenuRowRadio label="Option A" value="a" badge={<span data-testid="custom" />} />,
+    )
+    expect(getByTestId('custom')).toBeTruthy()
+  })
+
   test('clicking the radio control still selects (onSelect)', () => {
     const onSelect = vi.fn()
     const { container } = render(

@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { RightPanel, MenuRowCheckbox } from '@odyssey/ui'
-import { GroupLabel } from './ColumnPanel'
+import { GroupLabel } from '../common/presetChrome.jsx'
 import { TABS } from './BottomBar'
 
 const arraysEqual = (a, b) => a.length === b.length && a.every((x, i) => x === b[i])

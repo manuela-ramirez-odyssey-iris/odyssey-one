@@ -9,11 +9,12 @@ figma.connect(
     props: {
       label: figma.string('Text Row'),
       draggable: figma.boolean('Draggable'),
+      badge: figma.boolean('Show Badge', { true: 'by: username', false: undefined }),
       selected: figma.enum('State', { Selected: true, Default: false, Hover: false, Pressed: false, Disabled: false }),
       disabled: figma.enum('State', { Disabled: true, Default: false, Hover: false, Pressed: false, Selected: false }),
     },
-    example: ({ label, draggable, selected, disabled }) => (
-      <MenuRowRadio label={label} draggable={draggable} selected={selected} disabled={disabled} onSelect={() => {}} onNavigate={() => {}} />
+    example: ({ label, draggable, badge, selected, disabled }) => (
+      <MenuRowRadio label={label} draggable={draggable} badge={badge} selected={selected} disabled={disabled} onSelect={() => {}} onNavigate={() => {}} />
     ),
   },
 )

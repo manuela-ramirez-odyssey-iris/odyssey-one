@@ -281,3 +281,46 @@ describe('Fix A (user, 2026-08-03) — reopening a date chip must not re-fire th
     )
   })
 })
+
+// S108 1e — applyChips's 2nd arg (nextTextChip) is a SENTINEL, not a plain
+// default: only an OMITTED arg (undefined) leaves textChip alone, matching
+// every pre-1e caller (`applyChips(nextChips)` — Filters-view edits only own
+// attribute criteria, per the existing "textChip survives" comment). A saved-
+// filter apply is the one caller that passes it, to restore/replace the free-
+// text badge from the filter's own stored chips.
+describe('S108 1e — applyChips 2nd arg (saved-filter apply)', () => {
+  test('one-arg call (existing Filters-view usage) leaves an existing textChip untouched', async () => {
+    const adapter = makeAdapter()
+    const { result } = renderHook(() => useGlobalSearch(adapter))
+
+    await act(async () => result.current.onChange('geon'))
+    await act(async () => result.current.onTextCommit())
+    expect(result.current.textChip).toMatchObject({ value: 'geon' })
+
+    await act(async () => result.current.applyChips([CHIP]))
+    expect(result.current.chips).toEqual([CHIP])
+    expect(result.current.textChip).toMatchObject({ value: 'geon' }) // survived
+  })
+
+  test('two-arg call REPLACES textChip — explicit null wipes a stale one', async () => {
+    const adapter = makeAdapter()
+    const { result } = renderHook(() => useGlobalSearch(adapter))
+
+    await act(async () => result.current.onChange('geon'))
+    await act(async () => result.current.onTextCommit())
+    expect(result.current.textChip).not.toBeNull()
+
+    await act(async () => result.current.applyChips([CHIP], null))
+    expect(result.current.textChip).toBeNull()
+  })
+
+  test('two-arg call sets a NEW textChip (a saved filter\'s own free-text/set badge)', async () => {
+    const adapter = makeAdapter()
+    const { result } = renderHook(() => useGlobalSearch(adapter))
+
+    const savedFreeText = { key: '__free-text__', label: '"JBHT12345"', value: 'JBHT12345', kind: 'text' }
+    await act(async () => result.current.applyChips([CHIP], savedFreeText))
+    expect(result.current.chips).toEqual([CHIP])
+    expect(result.current.textChip).toEqual(savedFreeText)
+  })
+})

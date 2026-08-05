@@ -1,12 +1,19 @@
 import { useRef, useState, useEffect, useCallback, useMemo } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { GlobalSearch, GlobalSearchPanel, GlobalSearchResults } from '@odyssey/ui'
 import { useGlobalSearch } from '../../search/useGlobalSearch'
 import { shipmentsSearchAdapter, panelForResults } from '../../search/shipments'
 import { DATE_LIKE } from '../../search/shipments/adapter'
 import { parseSearchDate } from '../../search/shipments/criteria'
 import { useCustomers } from '../../contexts/CustomersContext.jsx'
+import { useUserPreference } from '../../api/queries/useUserPreference'
 import ShipmentsFiltersView, { mergeFiltersIntoChips } from './ShipmentsFiltersView'
+import SaveFilterModal from './SaveFilterModal'
+import { hydrate, newFilter, splitFreeText } from './savedFilters'
 import { tabForDataKey } from '../shipments/cellTabMap'
+
+// user_preferences key for personal Saved Filters (S108 spec, "Data model").
+const SAVED_FILTERS_KEY = 'shipments.savedFilters'
 
 /**
  * ShipmentsGlobalSearch — Shipments-domain wiring of the GlobalSearch bar.
@@ -55,6 +62,75 @@ export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment 
     suggestionSections, suggestionsOpen,
     results, resultTotal, searching, pendingDateChip,
   } = useGlobalSearch(scopedAdapter, { onLastRemoved: handleLastRemoved })
+
+  // Saved filters (S108 Phase 1a/1c — hosting move + persistence shape). Lives
+  // HERE, not in ShipmentsFiltersView, which unmounts on every panel close
+  // (spec "Hosting" defect 3): `useUserPreference` is `staleTime: Infinity`
+  // with a fire-and-forget `save()` that never seeds the query cache, so a
+  // filter saved while the view was mounted would vanish the moment it
+  // remounts on reopen. Every mutation below pairs `save()` with
+  // `setQueryData` on the SAME queryKey the hook builds (`['user-preference',
+  // key]`) so the cache carries the write immediately, independent of any
+  // refetch. The list + callbacks pass down to `ShipmentsFiltersView`, whose
+  // Saved tab renders them directly.
+  const queryClient = useQueryClient()
+  const { data: savedFiltersPref, save: saveSavedFiltersPref } = useUserPreference(SAVED_FILTERS_KEY)
+  const savedFilters = useMemo(() => hydrate(savedFiltersPref), [savedFiltersPref])
+
+  const persistSavedFilters = useCallback((next) => {
+    saveSavedFiltersPref(next)
+    queryClient.setQueryData(['user-preference', SAVED_FILTERS_KEY], next)
+  }, [saveSavedFiltersPref, queryClient])
+
+  const saveFilter = useCallback((name, filterChips) => {
+    persistSavedFilters({ v: 1, custom: [...savedFilters.custom, newFilter(name, filterChips)] })
+  }, [savedFilters, persistSavedFilters])
+
+  const renameFilter = useCallback((id, name) => {
+    persistSavedFilters({
+      v: 1,
+      custom: savedFilters.custom.map((f) => (f.id === id ? { ...f, name } : f)),
+    })
+  }, [savedFilters, persistSavedFilters])
+
+  const deleteFilters = useCallback((ids) => {
+    const idSet = new Set(ids)
+    persistSavedFilters({ v: 1, custom: savedFilters.custom.filter((f) => !idSet.has(f.id)) })
+  }, [savedFilters, persistSavedFilters])
+
+  const reorderFilters = useCallback((fromIndex, toIndex) => {
+    const next = [...savedFilters.custom]
+    const [moved] = next.splice(fromIndex, 1)
+    next.splice(toIndex, 0, moved)
+    persistSavedFilters({ v: 1, custom: next })
+  }, [savedFilters, persistSavedFilters])
+
+  // Save Filter modal (S108 1b). Rendered as a SIBLING of
+  // `.shipments-results-panel` below, inside this wrapper — NOT nested inside
+  // the panel, which has `transform: translateX(-50%)` (components.css) and
+  // would become the containing block for ModalMedium's `position: fixed`
+  // overlay, sizing it to the panel instead of the viewport and trapping it
+  // under the panel's `z-index: 49` (spec "Hosting"). Staying inside the
+  // wrapper still keeps it inside `wrapperRef`, so the outside-click handler
+  // below never treats a modal click as an outside click.
+  const [saveModalOpen, setSaveModalOpen] = useState(false)
+  const openSaveModal = useCallback(() => setSaveModalOpen(true), [])
+  // Bumped on every successful save so the (still-mounted) ShipmentsFiltersView
+  // can flip its OWN `activeTab` to 'saved' (spec "Behaviour" 1) without lifting
+  // that tab state up here — see the matching effect in ShipmentsFiltersView.
+  const [savedTabSignal, setSavedTabSignal] = useState(0)
+  const handleSaveFilter = useCallback((name, filterChips) => {
+    saveFilter(name, filterChips)
+    setSavedTabSignal((n) => n + 1)
+    setSaveModalOpen(false)
+  }, [saveFilter])
+
+  // S108 1d keyboard trap: an active inline rename (⋮ → Edit Name on the
+  // Saved tab) is an INPUT inside this wrapper too, same trap class as the
+  // save-modal title field above — `handleKeyDown` below extends its early
+  // return to cover it (see that callback + `ShipmentsFiltersView`'s own
+  // `onRenameActiveChange` comment for the full mechanics).
+  const [renameActive, setRenameActive] = useState(false)
 
   const wrapperRef = useRef(null)
   const panelRef = useRef(null)
@@ -174,6 +250,16 @@ export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment 
   // search) and shows the glimpse without committing.
   const handleApplyFilters = useCallback((filters, { commit = false, replace = false } = {}) => {
     const nextChips = mergeFiltersIntoChips(replace ? [] : chips, filters)
+    // S108 1e bonus fix (spec "Behaviour" 9): committing here is ALSO the
+    // pre-existing All-tab bug — applyChips changes `chips` (often GROWING it
+    // by the chip just edited), which re-fires the open/close effect below;
+    // its `chips.length > prev.chipCount` branch reopens the results glimpse
+    // in the very next render, right behind the closePanel() a few lines down.
+    // Same dismissRef guard as `handleApplySaved`, same reasoning: consumed
+    // unconditionally at that effect's top, and applyChips always sets a
+    // fresh array, so the flag always gets consumed by the run this commit
+    // causes — it can't strand and suppress some unrelated later reopen.
+    if (commit) dismissRef.current = true
     applyChips(nextChips)
     if (commit) {
       onCommitQuery?.({ chips: nextChips, text: textChip?.value || '' })
@@ -182,6 +268,39 @@ export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment 
       setPanelView('results')
     }
   }, [chips, textChip, applyChips, onCommitQuery, closePanel])
+
+  // S108 1e (spec "Behaviour" 8) — the Saved tab's "Show N results": apply the
+  // SELECTED filter's stored chips WHOLESALE via the hook's `applyChips`, NOT
+  // `handleApplyFilters`'s `{ commit, replace }` path above. That path runs
+  // `chipsToFilters` (chip → flat filter value) then `mergeFiltersIntoChips`
+  // (flat value → chip) to merge an edit back in — and `mergeFiltersIntoChips`
+  // only ever builds `kind: 'attribute'` / `kind: 'date-range'` chips (see
+  // ShipmentsFiltersView.jsx). A GS-21 `kind: 'set'` chip's `codes`/
+  // `typeLabel` has nowhere to go in that round-trip and would silently
+  // flatten to a plain queryValue string — exactly the loss the chip-object
+  // storage format (GS-24, supersedes GS-10) exists to prevent. Confirmed by
+  // reading both functions before writing this: `chipsToFilters` only reads
+  // `c.queryValue` for a non-date chip (a set chip has one — its joined code
+  // list), and `mergeFiltersIntoChips`'s non-date branch always builds
+  // `{ kind: 'attribute', queryValue: v }` from scratch, never copying
+  // `codes`/`typeLabel` through. So this bypasses that pair entirely.
+  //
+  // `filterChips` may carry a `__free-text__` entry (the query badge folded
+  // in by `barChips` at save time) — split via `splitFreeText` and restore it
+  // as the hook's separate `textChip` state (its `applyChips` 2nd arg), not
+  // as a member of `chips` (a chip with no `dataKey` fails every
+  // `matchesChip` check and zeroes the count — see `savedFilters.js`).
+  // `null` when the saved filter carried no free text WIPES any stray text
+  // left in the bar, matching "wholesale replace."
+  const handleApplySaved = useCallback((filterChips) => {
+    const { chips: realChips, freeText } = splitFreeText(filterChips)
+    // Same reopen-suppression as the All-tab commit above (spec "Behaviour" 9,
+    // this task's primary case — the All-tab fix piggybacks on this one).
+    dismissRef.current = true
+    applyChips(realChips, freeText)
+    onCommitQuery?.({ chips: realChips, text: freeText?.value || '' })
+    closePanel()
+  }, [applyChips, onCommitQuery, closePanel])
 
   // Match-row click → select that shipment (docked bar opens with its details,
   // whether or not the row is on the current table page) and dismiss the
@@ -211,6 +330,17 @@ export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment 
   // interactive descendants (rows, links, buttons) keep their own Enter.
   const canCommit = !!(value.trim() || chips.length > 0 || textChip)
   const handleKeyDown = useCallback((e) => {
+    // S108 1b (the keyboard trap): while the Save Filter modal is open, Enter
+    // in its title field must NOT commit the search and Escape must close the
+    // MODAL only, not this whole panel. Doing nothing here for every key lets
+    // the event keep bubbling to ModalMedium's own window `keydown` listener
+    // (ModalMedium.jsx), which closes just the modal on Escape — no extra
+    // Escape handling needed on this side.
+    // S108 1d: the same trap applies to an active inline rename on the Saved
+    // tab — its own onKeyDown (ShipmentsFiltersView) handles Enter (commit)
+    // and Escape (cancel) itself before this bubble; the early return here
+    // just stops THIS handler from also treating them as commit/close.
+    if (saveModalOpen || renameActive) return
     if (e.key === 'Escape') { closePanel(); return }
     if (e.key !== 'Enter' || !canCommit) return
     // Case 12: while a date chip's calendar is open, Enter CLOSES the chip
@@ -227,7 +357,7 @@ export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment 
     const inPanel = panelRef.current?.contains(e.target) &&
       !e.target.closest('button, a, input, textarea, select, [role="button"], [role="option"]')
     if (inInput || inPanel) commitQuery()
-  }, [closePanel, commitQuery, canCommit, chips, onDateToggle])
+  }, [closePanel, commitQuery, canCommit, chips, onDateToggle, saveModalOpen, renameActive])
 
   // S80 req 3: clicking back into the bar while there's in-progress text (or
   // committed chips / a query badge) re-opens the panel with the current
@@ -277,6 +407,17 @@ export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment 
     else onChipRemove(key)
   }, [textChip, onTextRemove, onChipRemove])
 
+  // S108 1f (spec "Behaviour" 10): a human-readable rendering of the CURRENT
+  // bar — `barChips`' own `label`s ("Attr: value", already computed for the
+  // bar itself, including the free-text/set badge folded in above) joined by
+  // " · ". Optimised for pasting into chat; there is no parser to read it
+  // back (spec, "Not in scope" — a follow-up if users start doing that).
+  // Guard `navigator.clipboard?.` — absent in non-secure contexts (plain
+  // HTTP) and in jsdom; must not throw there (spec, "Copy-to-clipboard icon").
+  const handleCopy = useCallback(() => {
+    navigator.clipboard?.writeText(barChips.map((c) => c.label).join(' · '))
+  }, [barChips])
+
   return (
     <div className="shipments-global-search" ref={wrapperRef} onKeyDown={handleKeyDown}>
       <GlobalSearch
@@ -287,6 +428,7 @@ export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment 
         onClear={handleClearAll}
         onFocus={handleFocus}
         onBlur={onBlur}
+        onCopy={handleCopy}
         chips={barChips}
         onChipRemove={handleChipRemove}
         onChipClick={() => setResultsOpen(true)}
@@ -337,9 +479,50 @@ export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment 
               onClose={closePanel}
               onClearAll={() => chips.forEach((c) => onChipRemove(c.key))}
               onApplyFilters={handleApplyFilters}
+              // S108 1e: dedicated Saved-tab apply (see `handleApplySaved`
+              // above for why this is NOT `handleApplyFilters`) + the
+              // CUSTOMER-SCOPED adapter (this component's own `scopedAdapter`,
+              // built above with `selectedDataIds` baked in) for counting a
+              // selected filter — the unscoped module import the view falls
+              // back to on its own would disagree with the table.
+              onApplySaved={handleApplySaved}
+              scopedAdapter={scopedAdapter}
+              // S108 1a/1c/1d: hydrated Custom-group list + persistence
+              // callbacks, hosted here (see the block above) and rendered by
+              // the view's real Saved tab.
+              savedFilters={savedFilters.custom}
+              onSaveFilter={saveFilter}
+              onRenameFilter={renameFilter}
+              onDeleteFilters={deleteFilters}
+              onReorderFilters={reorderFilters}
+              // S108 1b: "Save Filters" link opens the modal (below).
+              // savedTabSignal
+              // is a change-only counter the view watches to flip its OWN
+              // `activeTab` to 'saved' once the modal actually saves.
+              onOpenSaveModal={openSaveModal}
+              savedTabSignal={savedTabSignal}
+              // S108 1d: the rename keyboard-trap flag (see `renameActive`
+              // above) + this wrapper's own ref, so the view's delete-confirm
+              // modal can portal INTO it instead of rendering as a normal
+              // descendant (see ShipmentsFiltersView's `modalContainerRef`
+              // comment for why — same transform trap as the Save modal).
+              onRenameActiveChange={setRenameActive}
+              modalContainerRef={wrapperRef}
             />
           )}
         </div>
+      )}
+
+      {/* S108 1b: sibling of .shipments-results-panel above, not nested in it
+          — see the `saveModalOpen` block near the top of this component for
+          why. `barChips` (not the bare `chips`) so the free-text/set query
+          badge is included in what gets saved (spec "Behaviour" 1). */}
+      {saveModalOpen && (
+        <SaveFilterModal
+          chips={barChips}
+          onSave={handleSaveFilter}
+          onClose={() => setSaveModalOpen(false)}
+        />
       )}
     </div>
   )

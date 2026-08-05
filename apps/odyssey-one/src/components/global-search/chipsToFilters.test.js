@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest'
-import { chipsToFilters, mergeFiltersIntoChips, queryStringToFilters } from './ShipmentsFiltersView'
+import { chipsToFilters, mergeFiltersIntoChips } from './ShipmentsFiltersView'
 
 // Filters pre-fill from committed chips — incl. date chips (Case 12), which
 // carry from/to instead of queryValue. S107: single chips fill `<key>` (one
@@ -88,16 +88,5 @@ describe('mergeFiltersIntoChips — the outbound direction', () => {
 
   test('a `-range` suffix on a non-date attribute is ignored', () => {
     expect(mergeFiltersIntoChips([], { 'scac-range': 'FXFE' })).toEqual([])
-  })
-})
-
-describe('queryStringToFilters — saved profiles', () => {
-  test('parses key:value tokens, date + range keys included; unknown keys drop', () => {
-    const f = queryStringToFilters('scac:FXFE pickup-date:2026-04-03 pickup-date-range:2026-04-01|2026-04-15 scac-range:x bogus:x')
-    expect(f).toEqual({
-      scac: 'FXFE',
-      'pickup-date': '2026-04-03',
-      'pickup-date-range': '2026-04-01|2026-04-15',
-    })
   })
 })

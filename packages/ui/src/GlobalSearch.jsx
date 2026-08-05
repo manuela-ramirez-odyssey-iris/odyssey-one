@@ -1,5 +1,5 @@
 import React, { useState, useRef, useLayoutEffect, useEffect, useMemo, useId } from 'react'
-import { ChevronLeft, ChevronRight, CircleX, X } from 'lucide-react'
+import { Check, ChevronLeft, ChevronRight, CircleX, Copy, X } from 'lucide-react'
 import { ICON_MD, ICON_LG } from '@odyssey/tokens'
 import FilterButton from './FilterButton.jsx'
 import Badge from './Badge.jsx'
@@ -50,6 +50,10 @@ function GlobalSearchSearch({
   value = '',
   onChange,
   onClear,
+  // Copies the applied query (bar text + committed chips). Optional — the copy
+  // button only renders when a consumer wires it, so bars that don't support
+  // copying show no dead control. Figma `Copy Search Icon` on set `658:18`.
+  onCopy,
   onBack,
   onForward,
   placeholder = 'Search',
@@ -86,11 +90,25 @@ function GlobalSearchSearch({
   // sections, -1 = none. aria-activedescendant pattern — DOM focus stays on the
   // input; the highlighted chip is only pointed at.
   const [activeIdx, setActiveIdx] = useState(-1)
+  // Transient copy confirmation — the icon becomes a Check for 1.5s. No toast
+  // system exists and one control doesn't justify inventing one.
+  const [copied, setCopied] = useState(false)
+  const copiedTimer = useRef(null)
   const listboxId = useId()
   const wrapperRef = useRef(null)
   const inputRef = useRef(null)
   const chipsRef = useRef(null)
   const measurerRef = useRef(null)
+
+  useEffect(() => () => clearTimeout(copiedTimer.current), [])
+
+  const canCopy = !!value || chips.length > 0
+  const handleCopy = () => {
+    onCopy?.()
+    setCopied(true)
+    clearTimeout(copiedTimer.current)
+    copiedTimer.current = setTimeout(() => setCopied(false), 1500)
+  }
 
   // `filterActive` is optional-controlled: when provided, the consumer owns the
   // drawer-open state; otherwise GlobalSearch toggles it internally on click.
@@ -373,6 +391,20 @@ function GlobalSearchSearch({
             }}
           />
         </div>
+
+        {onCopy && (
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={handleCopy}
+            disabled={!canCopy}
+            className="global-search-copy flex items-center justify-center border-none bg-transparent cursor-pointer p-0 shrink-0"
+            style={{ color: accent }}
+            aria-label={copied ? 'Copied' : 'Copy search'}
+          >
+            {copied ? <Check {...ICON_MD} /> : <Copy {...ICON_MD} />}
+          </button>
+        )}
 
         <button
           type="button"

@@ -268,11 +268,24 @@ export function useGlobalSearch(adapter, { debounceMs = 120, onLastRemoved } = {
   }, [])
 
   // Filters-view outbound wiring: replace the committed chip set wholesale
-  // (the Filters "Show results" / a Saved profile). The textChip survives —
-  // filters only own attribute criteria.
-  const applyChips = useCallback((next) => {
+  // (the Filters "Show results" / a Saved profile). The textChip survives BY
+  // DEFAULT — filters-view edits only own attribute criteria, so its caller
+  // (`applyChips(nextChips)`, one arg) must not disturb an in-progress free-
+  // text badge. `nextTextChip` is a SENTINEL param, not a plain default: only
+  // `undefined` (the arg omitted) leaves textChip alone; an explicit `null` or
+  // object REPLACES it. A saved-filter apply (S108 1e) is the one caller that
+  // passes it — a saved filter's chips may include its own free-text/set query
+  // badge (split out via `savedFilters.js`'s `splitFreeText`, since it can't
+  // ride in `next` the way a real attribute chip does — see that function's
+  // header), and applying a filter WHOLESALE means the old bar's stray text
+  // must go too, hence explicit `null` when the saved filter carried none.
+  const applyChips = useCallback((next, nextTextChip) => {
     chipsRef.current = next
     setChips(next)
+    if (nextTextChip !== undefined) {
+      textChipRef.current = nextTextChip
+      setTextChip(nextTextChip)
+    }
     setValue('')
     setDebouncedValue('')
   }, [])

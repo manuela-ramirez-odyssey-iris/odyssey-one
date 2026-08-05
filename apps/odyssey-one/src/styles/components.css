@@ -1302,14 +1302,22 @@ input[type="date"].odyssey-date-input::-webkit-calendar-picker-indicator:hover {
    (default 400 → hover 200; focused 200 → hover 100). Text + icon both
    pick up `color` via currentColor / inheritance. */
 .global-search-clear,
+.global-search-copy,
 .global-search-scope { transition: color var(--transition-fast); }
 .global-search-clear:hover,
+.global-search-copy:hover:not(:disabled),
 .global-search-scope:hover {
   color: var(--deep-sea-neutral-200) !important;
 }
 .global-search-wrapper.focused .global-search-clear:hover,
+.global-search-wrapper.focused .global-search-copy:hover:not(:disabled),
 .global-search-wrapper.focused .global-search-scope:hover {
   color: var(--deep-sea-neutral-100) !important;
+}
+/* nothing to copy — the control stays in place (no layout jump) but reads dead */
+.global-search-copy:disabled {
+  opacity: 0.4;
+  cursor: default;
 }
 
 /* Customers modal (global, mounted via AppShell) — scrollable selected-list
@@ -3189,6 +3197,12 @@ button.breadcrumb__label:focus-visible {
 .menu-row-radio__grip:active {
   cursor: grabbing;
 }
+/* author badge (Figma Show Badge#4930:0 boolean) — in the nav zone, before the
+   chevron. Never shrinks; the label truncates instead. */
+.menu-row-radio__badge {
+  display: inline-flex;
+  flex-shrink: 0;
+}
 .menu-row-radio {
   background: var(--white);
   box-shadow: inset 0 0 0 1px var(--deep-sea-neutral-300);
@@ -4645,29 +4659,24 @@ button.breadcrumb__label:focus-visible {
   display: flex;
   flex-direction: column;
 }
-.shipments-filters__saved-row {
+
+/* ----------------------------------------
+   SAVE FILTER MODAL (S108 1b) — ModalMedium content, not a Figma-mastered
+   component itself (the modal shell/FormField/SearchChip pieces are). Just
+   spacing/wrap for the title field, "Selected Filters" label, and the
+   removable chip list.
+   ---------------------------------------- */
+.save-filter-modal__field {
+  margin-bottom: var(--spacing-4);
+}
+.save-filter-modal__section-title {
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-2);
+}
+.save-filter-modal__chips {
   display: flex;
-  align-items: center;
-  gap: var(--spacing-3);
-  padding: var(--spacing-3) 0;
-  border-bottom: 1px solid var(--border-subtle);
-  /* Clicking a saved profile applies it to the search bar. */
-  cursor: pointer;
-  transition: background var(--transition-fast);
-}
-.shipments-filters__saved-row:hover {
-  background: var(--bg-secondary);
-}
-.shipments-filters__saved-name { color: var(--text-primary); flex-shrink: 0; }
-.shipments-filters__saved-query {
-  flex: 1;
-  min-width: 0;
-  font-size: var(--font-size-xs);
-  color: var(--text-tertiary);
-  font-family: var(--font-mono, monospace);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
 }
 
 /* ----------------------------------------
