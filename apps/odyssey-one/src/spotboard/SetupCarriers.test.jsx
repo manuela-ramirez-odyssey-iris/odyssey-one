@@ -19,7 +19,7 @@ const list = NAMED_LISTS[0]
 // regardless of what the virtualizer paints). NAMED_LISTS[0] is first in
 // LIST_OPTIONS, so one ArrowDown lands on it.
 function pickList(container) {
-  const input = within(container.querySelector('.setup-carriers__toolbar')).getByRole('combobox')
+  const input = within(container.querySelector('.setup-carriers__toolbar-controls')).getByRole('combobox')
   fireEvent.focus(input)
   fireEvent.keyDown(input, { key: 'ArrowDown' })
   fireEvent.keyDown(input, { key: 'Enter' })
@@ -143,7 +143,7 @@ describe('SetupCarriers', () => {
       />
     )
     const toolbar = container.querySelector('.setup-carriers__toolbar')
-    expect(within(toolbar).getByText('Carrier List')).toBeTruthy()
+    expect(within(toolbar).getByText('Carrier List (select exactly one)')).toBeTruthy()
     expect(within(toolbar).getByRole('combobox')).toBeTruthy()
   })
 
@@ -157,7 +157,79 @@ describe('SetupCarriers', () => {
         onCancel={() => {}}
       />
     )
-    expect(screen.getByText('Quote Duration (minutes)')).toBeTruthy()
+    expect(screen.getByText('Quote Duration (open window, min)')).toBeTruthy()
+  })
+
+  it('defaults to the first named list on mount when there is no existing quote', () => {
+    const { container } = render(
+      <SetupCarriers
+        carrierOptions={carrierOptions}
+        readOnly={false}
+        onSaveDraft={() => {}}
+        onSendRFQ={() => {}}
+        onCancel={() => {}}
+      />
+    )
+    const rows = buildCarrierRows(list, carrierOptions)
+    expect(screen.getByText(`${rows.length} carriers`)).toBeTruthy()
+    expect(screen.getByTestId(`pickup-${rows[0].scac}`)).toBeTruthy()
+    const combobox = within(container.querySelector('.setup-carriers__toolbar-controls')).getByRole('combobox')
+    expect(combobox.value).toBe(list.name)
+    expect(screen.getByLabelText('Quote Duration (open window, min)').value).toBe(String(list.defaultDurationMin))
+  })
+
+  it('an existing quote wins over the default list', () => {
+    const otherList = NAMED_LISTS[1]
+    const rows = buildCarrierRows(otherList, carrierOptions)
+    const quote = { listId: otherList.id, listName: otherList.name, durationMin: otherList.defaultDurationMin, carriers: rows }
+    const { container } = render(
+      <SetupCarriers
+        quote={quote}
+        carrierOptions={carrierOptions}
+        readOnly={false}
+        onSaveDraft={() => {}}
+        onSendRFQ={() => {}}
+        onCancel={() => {}}
+      />
+    )
+    const combobox = within(container.querySelector('.setup-carriers__toolbar-controls')).getByRole('combobox')
+    expect(combobox.value).toBe(otherList.name)
+  })
+
+  it('shows a carrier count in the toolbar', () => {
+    const rows = buildCarrierRows(list, carrierOptions)
+    const quote = { listId: list.id, listName: list.name, durationMin: list.defaultDurationMin, carriers: rows }
+    render(
+      <SetupCarriers
+        quote={quote}
+        carrierOptions={carrierOptions}
+        readOnly={false}
+        onSaveDraft={() => {}}
+        onSendRFQ={() => {}}
+        onCancel={() => {}}
+      />
+    )
+    expect(screen.getByText(`${rows.length} carriers`)).toBeTruthy()
+  })
+
+  it('moves Send RFQ/Save Draft/Cancel into the toolbar top row', () => {
+    const rows = buildCarrierRows(list, carrierOptions)
+    const quote = { listId: list.id, listName: list.name, durationMin: list.defaultDurationMin, carriers: rows }
+    const { container } = render(
+      <SetupCarriers
+        quote={quote}
+        carrierOptions={carrierOptions}
+        readOnly={false}
+        onSaveDraft={() => {}}
+        onSendRFQ={() => {}}
+        onCancel={() => {}}
+      />
+    )
+    const toolbarTop = container.querySelector('.setup-carriers__toolbar-top')
+    expect(within(toolbarTop).getByText('Send RFQ')).toBeTruthy()
+    expect(within(toolbarTop).getByText('Save Draft')).toBeTruthy()
+    expect(within(toolbarTop).getByText('Cancel')).toBeTruthy()
+    expect(container.querySelector('.setup-carriers__actions')).toBeFalsy()
   })
 
   it('readOnly hides the action buttons', () => {

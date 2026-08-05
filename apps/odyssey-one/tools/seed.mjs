@@ -1,6 +1,16 @@
 // apps/odyssey-one/tools/seed.mjs — buildDataset(10k) → Neon bulk insert.
-// Usage: node --env-file=.env.local tools/seed.mjs [--shipments=10000]
-// Ritual: node ../../packages/db/migrate.mjs --reset --yes && node tools/seed.mjs
+// Usage: node --env-file=.env.local tools/seed.mjs [--shipments=10000] [--reseed]
+//
+// RESEED RITUAL (current, S110): migrate WITHOUT --reset, then seed --reseed.
+//   node --env-file=.env.local ../../packages/db/migrate.mjs
+//   node --env-file=.env.local tools/seed.mjs --reseed
+// --reseed truncates only SEEDED_TABLES (below) and preserves `users`, so real
+// user_preferences / shared_filters rows survive.
+//
+// ⚠ The OLD ritual — `migrate.mjs --reset --yes && seed` — is DESTRUCTIVE and
+// should not be used against a database anyone has saved anything in: --reset
+// does DROP SCHEMA public CASCADE, which takes user_preferences (saved filters,
+// column presets) and shared_filters with it. Use it only to rebuild from empty.
 import pg from 'pg'
 import { buildDataset, CARRIERS } from './generate.mjs'
 import { CUSTOMERS, EXTRA_CUSTOMERS, LOCATIONS, locationIdFor } from './data-pools.mjs'
@@ -46,6 +56,26 @@ const LOCATION_ID_BY_KEY = new Map(
 
 // Multi-row parameterized INSERT for one chunk. cols = ['a','b'], rows = [[1,2],...]
 // pg's parameter cap is 65535; 200 rows × ~30 cols stays well under.
+// Tables this seeder OWNS — everything it inserts except `users`. A reseed
+// clears exactly these and nothing else.
+//
+// `users` is deliberately EXCLUDED and never truncated: both `user_preferences`
+// and `shared_filters` reference `users(id) ON DELETE CASCADE`, so clearing the
+// user rows would silently cascade away every saved filter and column preset a
+// real person created. That is also why the documented `migrate --reset --yes`
+// ritual (DROP SCHEMA public CASCADE) must NOT be used for a reseed any more —
+// it takes the same data with it. The USERS list is static and deterministic,
+// so preserving the rows costs nothing.
+export const SEEDED_TABLES = [
+  'search_index', 'events', 'tenders', 'stops', 'orders', 'shipments',
+  'user_customer_assignments', 'locations', 'carriers', 'customers',
+]
+
+// One statement so mutual FKs between the listed tables can't block the clear.
+export async function truncateSeeded(client) {
+  await client.query(`TRUNCATE TABLE ${SEEDED_TABLES.join(', ')}`)
+}
+
 async function insertRows(client, table, cols, rows) {
   if (rows.length === 0) return
   for (const part of chunk(rows, 200)) {
@@ -56,7 +86,7 @@ async function insertRows(client, table, cols, rows) {
   }
 }
 
-export async function seed(client, { totalShipments = 10000 } = {}) {
+export async function seed(client, { totalShipments = 10000, preserveUsers = false } = {}) {
   // +1000 unshipped rows at seed volume (DB ledger row 8). Mock CLI volume
   // (2200 shipments) deliberately unchanged — bundle size stays flat.
   const ds = buildDataset({ totalShipments, unshippedOrders: Math.round(totalShipments * 0.25) + 1000 })
@@ -71,7 +101,8 @@ export async function seed(client, { totalShipments = 10000 } = {}) {
     ['sell_shipment','buy_shipment','orders','pro','customer_id','customer_name','consignor','consignee',
      'origin','destination','pickup_date','delivery_date','pickup_ts','delivery_ts','mode','equipment_code',
      'equipment','seal','scac','tender_status','shipment_status','panel','category','validation_message',
-     'gross_weight','load','load_count','order_count','ap_freight_cost','pickup_numbers','detail'],
+     'gross_weight','load','load_count','order_count','ap_freight_cost','pickup_numbers','detail',
+     'shipment_type','planning_type','po_numbers'],
     ds.shipments.map((s) => [
       s.sellShipment, s.buyShipment, s.orders, s.pro, s.customerId, s.customerName, s.consignor, s.consignee,
       s.origin, s.destination, s.pickupDate, s.deliveryDate, parseDisplayDate(s.pickupDate), parseDisplayDate(s.deliveryDate),
@@ -79,6 +110,7 @@ export async function seed(client, { totalShipments = 10000 } = {}) {
       s.validationMessage, s.grossWeight, s.load, s.loadCount, s.orderCount, s.apFreightCost,
       s.pickupNumbers ?? [],
       JSON.stringify(ds.details.get(s.sellShipment)),
+      s.shipmentType ?? null, s.planningType ?? null, s.poNumbers ?? [],
     ]))
 
   // orders — filter columns derived from the SAME nested objects that go into JSONB
@@ -91,7 +123,7 @@ export async function seed(client, { totalShipments = 10000 } = {}) {
      'origin_city','origin_state','origin_country','dest_city','dest_state','dest_country',
      'earliest_pickup_ts','latest_pickup_ts','earliest_delivery_ts','latest_delivery_ts',
      'hazardous','created_at','created_by','last_edit_at','draft_order_status','error_count',
-     'last_edited_by','created_tz','last_edit_tz'],
+     'last_edited_by','created_tz','last_edit_tz','po_number','planning_date_type'],
     ds.orders.map((o) => [
       o.orderNumber, o.orderId ?? null, o.orderSource, o.customer, o.shipDirection, o.freightTerms, o.equipment,
       JSON.stringify(o.consignor), JSON.stringify(o.consignee), JSON.stringify(o.grossWeight), JSON.stringify(o.volume),
@@ -103,6 +135,7 @@ export async function seed(client, { totalShipments = 10000 } = {}) {
       o.hazardous ?? false, o.createdAt ?? null, o.createdBy ?? null, o.lastEditAt ?? null,
       o.draftOrderStatus ?? null, o.errorCount ?? null,
       o.lastEditedBy ?? null, o.createdTimeZoneCode ?? null, o.lastEditTimeZoneCode ?? null,
+      o.poNumber ?? null, o.planningDateType ?? null,
     ]))
 
   // stops / tenders / events extracted from each detail. Full objects into the jsonb
@@ -125,8 +158,13 @@ export async function seed(client, { totalShipments = 10000 } = {}) {
 
   // username: the queryable identity orders.created_by/last_edited_by resolve
   // against (R2-4) — derived so every seeded row names a real user.
-  await insertRows(client, 'users', ['id','email','name','password','role','username'],
-    USERS.map((u) => [u.id, u.email, u.name, u.password, u.role, usernameFor(u.name)]))
+  // `preserveUsers` skips this on a reseed: the rows already exist, are
+  // deterministic, and are load-bearing for user_preferences / shared_filters
+  // via ON DELETE CASCADE (see SEEDED_TABLES).
+  if (!preserveUsers) {
+    await insertRows(client, 'users', ['id','email','name','password','role','username'],
+      USERS.map((u) => [u.id, u.email, u.name, u.password, u.role, usernameFor(u.name)]))
+  }
   await insertRows(client, 'user_customer_assignments', ['user_id','customer_id'],
     USERS.flatMap((u) => u.customers.map((c) => [u.id, c])))
 
@@ -141,10 +179,18 @@ export async function seed(client, { totalShipments = 10000 } = {}) {
 
 if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href) {
   const totalShipments = Number((process.argv.find((a) => a.startsWith('--shipments=')) ?? '').split('=')[1]) || 10000
+  // --reseed: clear the seeded tables first, KEEPING users (and therefore every
+  // user_preferences / shared_filters row). Without it this script is
+  // insert-only and assumes an empty schema.
+  const reseed = process.argv.includes('--reseed')
   const client = new pg.Client({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } })
   await client.connect()
+  if (reseed) {
+    await truncateSeeded(client)
+    console.log(`truncated: ${SEEDED_TABLES.join(', ')} (users preserved)`)
+  }
   console.time('seed')
-  const counts = await seed(client, { totalShipments })
+  const counts = await seed(client, { totalShipments, preserveUsers: reseed })
   console.timeEnd('seed')
   console.log(counts)
   await client.end()

@@ -9,6 +9,7 @@ const ROW = {
   origin: 'Lake Charles LA US 70601', destination: 'Baton Rouge LA US 70801',
   equipment: '4359', seal: 'S442272', scac: 'FXFE', load: '16587',
   pickupNumbers: ['PU-820622'],
+  shipmentType: 'Direct', planningType: 'RDD',
 }
 
 const byAttr = (rows) => Object.fromEntries(rows.map((r) => [r.attr, r]))
@@ -51,7 +52,8 @@ test('every registry attribute is reachable from the generated row shape', () =>
   const attrs = new Set(buildProjection([ROW]).map((r) => r.attr))
   for (const key of ['buy-shipment', 'sell-shipment', 'order', 'pro', 'customer-id',
     'customer-name', 'consignor', 'consignee', 'origin', 'destination',
-    'equipment', 'seal', 'scac', 'load', 'pickup-number']) {
+    'equipment', 'seal', 'scac', 'load', 'pickup-number',
+    'shipment-type', 'planning-type']) {
     assert.ok(attrs.has(key), `attribute "${key}" was not projected — SRC_KEY gap`)
   }
 })

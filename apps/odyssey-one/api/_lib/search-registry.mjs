@@ -30,7 +30,15 @@ export const SHIPMENTS_ATTRS = {
   'seal':          { label: 'Seal Number',     col: 'seal',          normalize: upperStrip, trgm: true,  priority: 17 },
   // 4-char code: prefix is always enough, so skip the trigram write cost.
   'scac':          { label: 'SCAC',            col: 'scac',          normalize: upper,      trgm: false, priority: 18 },
-  'load':          { label: 'Load #',          col: 'load',          normalize: upperStrip, trgm: true,  priority: 23 },
+  // S108 DB motion — 2-value enums, exact match only (no fuzzy contains scan
+  // needed for a fixed vocabulary). Priority 21/22 sits in the NEW
+  // 'Classification' progression group, inserted after 'Carrier & Tender
+  // Status' (index 20) — see progression.js. Adding these shifted `load` from
+  // priority 23 to 25 (gross-weight/ap-freight-cost aren't projected, so they
+  // don't get registry entries, but they still occupy flattened indices 23/24).
+  'shipment-type': { label: 'Shipment Type',   col: 'shipment_type', normalize: upper,      trgm: false, priority: 21 },
+  'planning-type': { label: 'Planning Type',   col: 'planning_type', normalize: upper,      trgm: false, priority: 22 },
+  'load':          { label: 'Load #',          col: 'load',          normalize: upperStrip, trgm: true,  priority: 25 },
 }
 
 export const REGISTRY = {

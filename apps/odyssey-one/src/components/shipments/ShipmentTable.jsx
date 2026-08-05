@@ -99,6 +99,14 @@ export const COLUMN_CONFIG = [
     render: (s) => (s.pickupNumbers?.length ? s.pickupNumbers.join(', ') : '—'),
   },
   {
+    // Mirrors pickupNumbers: a shipment consolidates N orders, each with its
+    // own PO number (LINX-12039). Not default-visible (same 2026-08-02 ruling
+    // as Pickup #).
+    key: 'poNumbers',
+    label: 'PO #',
+    render: (s) => (s.poNumbers?.length ? s.poNumbers.join(', ') : '—'),
+  },
+  {
     key: 'orderCount',
     label: 'Order Count',
     render: (s) => (
@@ -139,6 +147,11 @@ export const COLUMN_CONFIG = [
   { key: 'mode', label: 'Mode' },
   { key: 'equipmentCode', label: 'Equipment' },
   { key: 'scac', label: 'SCAC' },
+  // LINX-11597 — Direct (1 mapped order) vs Consolidation (>1). Not
+  // default-visible; plain text is enough for a 2-value enum.
+  { key: 'shipmentType', label: 'Shipment Type' },
+  // LINX-12902 — RDD if ANY mapped order is RDD, else SSD. Not default-visible.
+  { key: 'planningType', label: 'Planning Type' },
   {
     key: 'apFreightCost',
     label: 'AP Freight Cost',

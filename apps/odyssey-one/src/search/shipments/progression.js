@@ -95,6 +95,20 @@ export const SHIPMENTS_PROGRESSION = [
     ],
   },
   {
+    // S108 DB motion. Deliberately NOT promoted to the top of the progression:
+    // prime empty-input suggestion slots belong to high-selectivity needles: a
+    // 2-value enum matches ~half the table. Placed after 'Carrier & Tender
+    // Status' — mid-low, beside the other operational enums.
+    group: 'Classification',
+    label: 'Shipment classification',
+    attributes: [
+      // LINX-11597 verbatim — Direct (1 mapped order) vs Consolidation (>1).
+      { key: 'shipment-type', label: 'Shipment Type', dataKey: 'shipmentType', match: 'enum', values: ['Direct', 'Consolidation'] },
+      // LINX-12902 verbatim — RDD if ANY mapped order is RDD, else SSD.
+      { key: 'planning-type', label: 'Planning Type', dataKey: 'planningType', match: 'enum', values: ['RDD', 'SSD'] },
+    ],
+  },
+  {
     group: 'Cargo & Handling',
     label: 'Cargo details',
     attributes: [

@@ -12,6 +12,8 @@ const SRC_KEY = {
   consignor: 'consignor', consignee: 'consignee', origin: 'origin',
   destination: 'destination', equipment: 'equipment', seal: 'seal',
   scac: 'scac', load: 'load',
+  // S108 DB motion — exact-enum chip attrs (trgm: false in search-registry.mjs).
+  shipment_type: 'shipmentType', planning_type: 'planningType',
 }
 
 export function buildProjection(shipments) {

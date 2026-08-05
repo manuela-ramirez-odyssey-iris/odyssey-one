@@ -22,6 +22,10 @@
   box-sizing: border-box;
 }
 
+.tolerance-panel__heading {
+  color: var(--text-primary);
+}
+
 .tolerance-panel__fields {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -38,7 +42,26 @@
   font-weight: 600;
 }
 
-/* SetupCarriers — context header + toolbar + carrier table + actions. */
+/* LiveBids — Award Action heading + Award≠Tender framing sentence, above the
+   closed-state action buttons. */
+.live-bids__actions-heading {
+  color: var(--text-primary);
+  width: 100%;
+}
+
+.live-bids__actions-note {
+  color: var(--text-secondary);
+  width: 100%;
+  margin: 0 0 var(--spacing-2);
+}
+
+/* SetupCarriers — sticky toolbar (count + Send RFQ/Save Draft/Cancel, then the
+   Carrier List/Quote Duration/Flexible Pickup controls) + carrier DataTable.
+   Follows the orders-toolbar convention (orders.css): sticky, count on the
+   left, actions on the right, the table's sticky header measured off it
+   (OrdersTable's stickyTop pattern) so the header sticks directly beneath
+   the toolbar instead of underneath it. The controls row is a second toolbar
+   row rather than crowding the count/actions row. */
 .setup-carriers {
   display: flex;
   flex-direction: column;
@@ -46,6 +69,33 @@
 }
 
 .setup-carriers__toolbar {
+  position: sticky;
+  top: calc(-1 * var(--spacing-8));
+  z-index: 4;
+  background: var(--bg-secondary);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  padding: var(--spacing-6) 0 var(--spacing-3);
+}
+
+.setup-carriers__toolbar-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.setup-carriers__toolbar-count {
+  color: var(--text-tertiary);
+}
+
+.setup-carriers__toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
+.setup-carriers__toolbar-controls {
   display: flex;
   align-items: flex-end;
   gap: var(--spacing-4);
@@ -53,14 +103,8 @@
 
 /* ComboBox (Carrier List) defaults to width:100% — cap it so it doesn't
    balloon in the flex toolbar the way the old inline-flex Dropdown never did. */
-.setup-carriers__toolbar .combo-box {
+.setup-carriers__toolbar-controls .combo-box {
   max-width: 240px;
-}
-
-.setup-carriers__actions {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-3);
 }
 
 /* RfqLinksPanel — CE-1 email stand-in shown after Send RFQ. */

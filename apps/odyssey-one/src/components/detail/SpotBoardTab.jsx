@@ -203,7 +203,7 @@ export default function SpotBoardTab({ shipmentDetails, shipment }) {
         items={[
           { label: 'Origin', value: header?.origin },
           { label: 'Destination', value: header?.destination },
-          { label: 'Equipment', value: header?.equipment },
+          { label: 'Equipment (seed)', value: header?.equipment },
           { label: 'Distance', value: header?.distance },
           { label: 'Hazmat', value: header?.hazmat },
           { label: 'Pickup Window', value: header?.pickupWindow },

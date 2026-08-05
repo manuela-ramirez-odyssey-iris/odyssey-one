@@ -169,6 +169,10 @@ export default function LiveBids({
         )}
         {closed && (
           <>
+            <h3 className="text-label-base-semibold live-bids__actions-heading">Award Action</h3>
+            <p className="text-label-sm-regular live-bids__actions-note">
+              Select a carrier and award. Award moves the carrier into the shipment tendering flow — it does not assign the load until tendered.
+            </p>
             <Button variant="primary" disabled={!lowest} onClick={() => lowest && onAward?.(lowest.scac)}>
               Award Carrier &amp; Send to Tender
             </Button>

@@ -9,6 +9,11 @@ export const NAMED_LISTS = [
 // Waffled) instead of randomness, so tests and demos stay stable.
 const FLAG_BY_INDEX = { 1: 'Routed', 3: 'Waffled' }
 
+// Flag IDENTITY strings ('Routed' / 'Waffled') drive logic (incl default,
+// filtering) and must never change. Display text is separate — Kathleen's
+// wireframe wants the fuller label without touching what the logic checks.
+export const FLAG_LABELS = { Waffled: 'Waffled / Gave back' }
+
 // carrierOptions come from the resolved async carrier pool
 // (getLookupOptions('carrier', q)) — { value: scac, label: 'SCAC - Name' }.
 // This function stays pure/sync; the caller awaits the fetch.

@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useReactTable, getCoreRowModel, createColumnHelper } from '@tanstack/react-table'
 import { DataTable, ComboBox, FormField, Checkbox, Badge, Button } from '@odyssey/ui'
 import DateField from '../components/orders/create/fields/DateField.jsx'
-import { NAMED_LISTS, buildCarrierRows } from './carrierList.js'
+import { NAMED_LISTS, buildCarrierRows, FLAG_LABELS } from './carrierList.js'
 import './spotboard.css'
 
 const LIST_OPTIONS = NAMED_LISTS.map((l) => ({ value: l.id, label: l.name }))
@@ -26,7 +26,7 @@ function buildColumns(readOnly, toggleIncl, updateDate) {
     }),
     columnHelper.display({
       id: 'carrier',
-      header: 'Carrier',
+      header: 'Carrier (SCAC · Name)',
       cell: ({ row }) => `${row.original.scac} · ${row.original.name}`,
     }),
     columnHelper.accessor('equipment', { header: 'Equip' }),
@@ -62,7 +62,7 @@ function buildColumns(readOnly, toggleIncl, updateDate) {
       header: 'Flags',
       cell: ({ row }) =>
         row.original.flags.map((f) => (
-          <Badge key={f} variant="red">{f}</Badge>
+          <Badge key={f} variant="red">{FLAG_LABELS[f] || f}</Badge>
         )),
     }),
   ]
@@ -104,6 +104,15 @@ export default function SetupCarriers({
     setDurationMin(String(list.defaultDurationMin))
   }
 
+  // No existing quote → default to the first named list, same as if the user
+  // had picked it themselves (reuses handleListChange, not a parallel copy).
+  // `carrierOptions` resolves async in the parent, so this re-fires until the
+  // rows actually populate (guarded on `!listId` so it only ever runs once).
+  useEffect(() => {
+    if (!quote && !listId) handleListChange(NAMED_LISTS[0].id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [carrierOptions])
+
   const toggleIncl = (scac) =>
     setRows((rs) => rs.map((r) => (r.scac === scac ? { ...r, incl: !r.incl } : r)))
 
@@ -113,6 +122,22 @@ export default function SetupCarriers({
   const columns = useMemo(() => buildColumns(readOnly, toggleIncl, updateDate), [readOnly])
 
   const table = useReactTable({ data: rows, columns, getCoreRowModel: getCoreRowModel() })
+
+  // Toolbar sticks above the table (spotboard.css); measure its rendered
+  // height + sticky offset and hand it to DataTable, exactly like
+  // OrdersTable does for orders-toolbar — the table header then sticks
+  // directly beneath it instead of underneath.
+  const toolbarRef = useRef(null)
+  const [stickyTop, setStickyTop] = useState(0)
+  useLayoutEffect(() => {
+    const toolbar = toolbarRef.current
+    if (!toolbar) return
+    const measure = () =>
+      setStickyTop(toolbar.offsetHeight + parseFloat(getComputedStyle(toolbar).top))
+    measure()
+    window.addEventListener('resize', measure)
+    return () => window.removeEventListener('resize', measure)
+  }, [])
 
   const includedRows = rows.filter((r) => r.incl)
   const canSend =
@@ -133,50 +158,56 @@ export default function SetupCarriers({
 
   return (
     <div className="setup-carriers">
-      <div className="setup-carriers__toolbar">
-        <ComboBox
-          id="carrier-list"
-          variant="select"
-          typable={false}
-          showLabel
-          label="Carrier List"
-          options={LIST_OPTIONS}
-          value={listId}
-          onSelect={handleListChange}
-          disabled={readOnly}
-        />
-        <FormField
-          id="quote-duration"
-          label="Quote Duration (minutes)"
-          format="integer"
-          maxLength={5}
-          value={durationMin}
-          onChange={(e) => setDurationMin(e.target.value)}
-          disabled={readOnly}
-        />
-        <Checkbox
-          label="Flexible Pickup"
-          checked={flexiblePickup}
-          onChange={(e) => setFlexiblePickup(e.target.checked)}
-          disabled={readOnly}
-        />
+      <div className="setup-carriers__toolbar" ref={toolbarRef}>
+        <div className="setup-carriers__toolbar-top">
+          <span className="setup-carriers__toolbar-count text-label-sm-regular">
+            {rows.length} {rows.length === 1 ? 'carrier' : 'carriers'}
+          </span>
+          {!readOnly && (
+            <div className="setup-carriers__toolbar-right">
+              <Button variant="primary" disabled={!canSend} onClick={() => onSendRFQ?.(buildPayload())}>
+                Send RFQ
+              </Button>
+              <Button variant="secondary" onClick={() => onSaveDraft?.(buildPayload())}>
+                Save Draft
+              </Button>
+              <Button variant="link" onClick={onCancel}>
+                Cancel
+              </Button>
+            </div>
+          )}
+        </div>
+        <div className="setup-carriers__toolbar-controls">
+          <ComboBox
+            id="carrier-list"
+            variant="select"
+            typable={false}
+            showLabel
+            label="Carrier List (select exactly one)"
+            options={LIST_OPTIONS}
+            value={listId}
+            onSelect={handleListChange}
+            disabled={readOnly}
+          />
+          <FormField
+            id="quote-duration"
+            label="Quote Duration (open window, min)"
+            format="integer"
+            maxLength={5}
+            value={durationMin}
+            onChange={(e) => setDurationMin(e.target.value)}
+            disabled={readOnly}
+          />
+          <Checkbox
+            label="Flexible Pickup"
+            checked={flexiblePickup}
+            onChange={(e) => setFlexiblePickup(e.target.checked)}
+            disabled={readOnly}
+          />
+        </div>
       </div>
 
-      <DataTable table={table} ariaLabel="Carrier List" />
-
-      {!readOnly && (
-        <div className="setup-carriers__actions">
-          <Button variant="primary" disabled={!canSend} onClick={() => onSendRFQ?.(buildPayload())}>
-            Send RFQ
-          </Button>
-          <Button variant="secondary" onClick={() => onSaveDraft?.(buildPayload())}>
-            Save Draft
-          </Button>
-          <Button variant="link" onClick={onCancel}>
-            Cancel
-          </Button>
-        </div>
-      )}
+      <DataTable table={table} stickyTop={stickyTop} ariaLabel="Carrier List" />
     </div>
   )
 }

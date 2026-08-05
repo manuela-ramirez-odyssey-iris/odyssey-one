@@ -29,6 +29,13 @@ export default function CarrierBid() {
   const priorBid = carrier?.bid?.status === 'bid' ? carrier.bid : null
   const declined = carrier?.bid?.status === 'declined'
 
+  // Carrier identity beside the logo — carrier.name resolves from the
+  // quote's carrier row (already looked up above); falls back to the bare
+  // SCAC if the name isn't available (e.g. before the quote loads).
+  const portalTitle = scac
+    ? `OdysseyONE Carrier Portal · ${carrier?.name ? `${carrier.name} (${scac})` : scac}`
+    : 'OdysseyONE Carrier Portal'
+
   const [linehaulValue, setLinehaulValue] = useState(() => String(priorBid?.linehaul ?? ''))
   const [accessorialAmounts, setAccessorialAmounts] = useState(() => {
     const map = {}
@@ -48,6 +55,7 @@ export default function CarrierBid() {
       <div className="carrier-bid-page">
         <header className="carrier-bid-page__header">
           <OdysseyLogo variant="dark" />
+          <span className="text-label-sm-medium carrier-bid-page__title">{portalTitle}</span>
         </header>
         <main>
           <Alert variant="warning" showClose={false}>{closedReason}</Alert>
@@ -91,6 +99,7 @@ export default function CarrierBid() {
     <div className="carrier-bid-page">
       <header className="carrier-bid-page__header">
         <OdysseyLogo variant="dark" />
+        <span className="text-label-sm-medium carrier-bid-page__title">{portalTitle}</span>
       </header>
 
       <div className="carrier-bid-page__countdown">
@@ -123,7 +132,7 @@ export default function CarrierBid() {
                   href="#msds"
                   onClick={(e) => e.preventDefault()}
                 >
-                  View MSDS
+                  MSDS
                 </a>
               )}
               <FormField id="cb-special-services" label="Special Services" value={services.length ? services.map((s) => s.desc).join(', ') : '--'} readOnly />
@@ -143,7 +152,7 @@ export default function CarrierBid() {
                 decimals={2}
                 onChange={(v) => setLinehaulValue(v.value)}
               />
-              <FormField id="cb-fuel" label="Fuel" value={fmtDollar(fuel)} readOnly />
+              <FormField id="cb-fuel" label="Fuel (precalculated — not editable)" value={fmtDollar(fuel)} readOnly />
               {accessorialLines.map((a) => (
                 <FormField
                   key={a.code}

@@ -124,6 +124,21 @@ describe('LiveBids', () => {
     expect(screen.queryByRole('button', { name: 'Force Close' })).toBeFalsy()
   })
 
+  test('closed state shows the Award Action heading and the Award ≠ tender framing sentence verbatim', () => {
+    render(<LiveBids quote={CLOSED_QUOTE} />)
+    expect(screen.getByText('Award Action')).toBeTruthy()
+    expect(
+      screen.getByText(
+        'Select a carrier and award. Award moves the carrier into the shipment tendering flow — it does not assign the load until tendered.'
+      )
+    ).toBeTruthy()
+  })
+
+  test('open state does not show the Award Action heading', () => {
+    render(<LiveBids quote={OPEN_QUOTE} />)
+    expect(screen.queryByText('Award Action')).toBeFalsy()
+  })
+
   test('closed quote with no bids at all shows a no-bids message, not a tolerance verdict', () => {
     const NO_BIDS_QUOTE = {
       ...CLOSED_QUOTE,

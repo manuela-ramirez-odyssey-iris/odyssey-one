@@ -17,6 +17,10 @@
   justify-content: space-between;
 }
 
+.carrier-bid-page__title {
+  color: var(--text-secondary);
+}
+
 .carrier-bid-page__countdown {
   display: flex;
   align-items: center;

@@ -2,6 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { buildDataset } from './generate.mjs'
 import { EXTRA_CUSTOMERS } from './data-pools.mjs'
+import { USERS } from './seed-users.mjs'
 
 test('buildDataset returns a coherent scaled dataset', () => {
   const ds = buildDataset({ totalShipments: 50 })
@@ -223,4 +224,72 @@ test('order-level pickupNumber agrees with the shipment roll-up', () => {
         `order ${o.orderNumber} pickup ${o.pickupNumber} missing from shipment roll-up`)
     }
   }
+})
+
+// ── S108 DB motion: shipmentType / planningType / poNumbers ─────────────────
+test('LINX-11597: shipmentType is Direct iff exactly 1 order, else Consolidation', () => {
+  const ds = buildDataset()
+  assert.ok(ds.shipments.length > 0)
+  for (const s of ds.shipments) {
+    const expected = s.orders.length === 1 ? 'Direct' : 'Consolidation';
+    assert.equal(s.shipmentType, expected, `${s.sellShipment}: ${s.orders.length} orders but shipmentType ${s.shipmentType}`);
+  }
+  // both branches actually exercised
+  assert.ok(ds.shipments.some((s) => s.shipmentType === 'Direct'))
+  assert.ok(ds.shipments.some((s) => s.shipmentType === 'Consolidation'))
+  // detail.shipmentType (was hardcoded 'sell') now agrees with the row
+  for (const s of ds.shipments) assert.equal(ds.details.get(s.sellShipment).shipmentType, s.shipmentType)
+})
+
+test('LINX-12902: planningType is RDD iff ANY mapped order is RDD, else SSD', () => {
+  const ds = buildDataset()
+  for (const [sellId, d] of ds.details) {
+    const row = ds.shipments.find((s) => s.sellShipment === sellId)
+    const anyRdd = d.orderList.some((o) => o.planningDateType === 'RDD')
+    assert.equal(row.planningType, anyRdd ? 'RDD' : 'SSD', `${sellId} planningType mismatch`)
+  }
+  assert.ok(ds.shipments.some((s) => s.planningType === 'RDD'))
+  assert.ok(ds.shipments.some((s) => s.planningType === 'SSD'))
+})
+
+test('LINX-12039: shipment poNumbers rolls up from its orders, deduped, real PO shapes', () => {
+  const ds = buildDataset()
+  const shape = /^([A-Z0-9]{9}|\d{10}|\d{2}-\d{9})$/
+  let withAny = 0
+  for (const s of ds.shipments) {
+    assert.ok(Array.isArray(s.poNumbers), `${s.sellShipment} poNumbers not an array`)
+    assert.equal(new Set(s.poNumbers).size, s.poNumbers.length, 'duplicate PO number')
+    for (const p of s.poNumbers) assert.match(p, shape, `PO ${p} does not match a known shape`)
+    if (s.poNumbers.length) withAny++
+  }
+  // ~60% per order, so nearly every shipment should carry at least one.
+  assert.ok(withAny / ds.shipments.length > 0.7, `only ${withAny}/${ds.shipments.length}`)
+})
+
+test('every order carries a poNumber (order-level, LINX-12039) and every non-null shape is valid', () => {
+  const { orders } = buildDataset()
+  const shape = /^([A-Z0-9]{9}|\d{10}|\d{2}-\d{9})$/
+  const withPo = orders.filter((o) => o.poNumber != null)
+  assert.ok(withPo.length > 0)
+  for (const o of withPo) assert.match(o.poNumber, shape, `order ${o.orderNumber} PO ${o.poNumber}`)
+  for (const o of orders) assert.ok(['RDD', 'SSD'].includes(o.planningDateType), `order ${o.orderNumber} planningDateType ${o.planningDateType}`)
+})
+
+test('notes are never empty (min:1, was min:0 — 1,669 blank Notes tabs before S108)', () => {
+  const ds = buildDataset()
+  for (const d of ds.details.values()) assert.ok(d.noteList.length >= 1, 'shipment with an empty Notes tab')
+})
+
+test('history actors are real seeded users (guest excluded) or a system source', () => {
+  const ds = buildDataset()
+  const realNames = new Set(USERS.filter((u) => u.role !== 'guest').map((u) => u.name))
+  let checkedUser = 0
+  for (const d of ds.details.values()) {
+    for (const h of d.historyList) {
+      if (h.source) continue // system-actor branch — untouched, not a user name
+      assert.ok(realNames.has(h.user), `history user "${h.user}" is not a real seeded user`)
+      checkedUser++
+    }
+  }
+  assert.ok(checkedUser > 0, 'no user-actor history entries checked')
 })

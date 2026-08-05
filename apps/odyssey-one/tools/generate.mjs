@@ -61,7 +61,7 @@
 import { faker } from '@faker-js/faker';
 import { writeFileSync, mkdirSync, existsSync, readdirSync, unlinkSync } from 'fs';
 import { deriveTimezone, tzAbbrev, CUSTOMERS, EXTRA_CUSTOMERS, LOCATIONS, EQUIPMENT_CODES, CHEMICAL_PRODUCTS, locationIdFor, FREIGHT_TERMS, SHIP_DIRECTIONS, SHIP_CLASS_CODES, shipClassLabel, PRODUCT_CLASSES, HANDLING_UNITS } from './data-pools.mjs'
-import { ORDER_AUTHOR_USERNAMES } from './seed-users.mjs'
+import { ORDER_AUTHOR_USERNAMES, USERS } from './seed-users.mjs'
 
 // ── Orders accumulator (I1) ──────────────────────────────────────────────────
 // LINX-9742/9279: every order (shipped + unshipped + pending) draws a globally
@@ -311,6 +311,33 @@ function genProNumber() {
   return String(faker.number.int({ min: 440001, max: 449999 }));
 }
 
+// LINX-12039 — order-header PO number. REAL shapes supplied by the user from
+// Rovo (2026-08-05), replacing the invented `PO-######` guess in the DB motion
+// plan (docs/superpowers/plans/2026-08-04-combined-db-motion.md). Real POs are
+// heterogeneous across ERPs, so generate a MIX — ⚠️ the DISTRIBUTION across the
+// three shapes is INVENTED (no source gives the real split): 40% alphanumeric
+// / 40% plain-numeric / 20% prefixed-numeric.
+function genPoNumber() {
+  const shape = faker.number.float({ min: 0, max: 1 });
+  if (shape < 0.4) return faker.string.alphanumeric({ length: 9, casing: 'upper' }); // e.g. SVI5HCKT4
+  if (shape < 0.8) return faker.string.numeric(10); // e.g. 4000438190
+  return `${faker.string.numeric(2)}-${faker.string.numeric(9)}`; // e.g. 01-410068964
+}
+
+// poNumber sits beside pickupNumber (LINX-12039) — same "not every order has
+// one" shape. ⚠️ Coverage ~60% INVENTED — mirrors pickupNumber's coverage
+// assumption; no canon source gives the real rate.
+function genOrderPoNumber() {
+  return faker.number.float({ min: 0, max: 1 }) < 0.60 ? genPoNumber() : null;
+}
+
+// LINX-12898 — order-level planning basis: RDD (Requested Delivery Date) or
+// SSD (Scheduled Ship Date). ⚠️ Ratio INVENTED (~35% RDD / 65% SSD, per the DB
+// motion plan) — Rovo defined the TERMS, not the real-world mix.
+function genPlanningDateType() {
+  return faker.number.float({ min: 0, max: 1 }) < 0.35 ? 'RDD' : 'SSD';
+}
+
 function genDate(baseDate, offsetDays) {
   const d = new Date(baseDate);
   d.setDate(d.getDate() + offsetDays);
@@ -505,12 +532,22 @@ function generateShipment(index) {
     const pickupNumber = faker.number.float({ min: 0, max: 1 }) < 0.60
       ? `PU-${faker.number.int({ min: 100000, max: 999999 })}`
       : null;
-    orders.push({ orderId, numericOrderId, lineCount, lines, orderGross, orderTare, orderVolume, orderPackages, pickupNumber });
+    // LINX-12039 / LINX-12898 — minted once here (same discipline as
+    // pickupNumber) so the order header, the orders.json row, and the
+    // shipment roll-up below all read the same value instead of drifting.
+    const poNumber = genOrderPoNumber();
+    const planningDateType = genPlanningDateType();
+    orders.push({ orderId, numericOrderId, lineCount, lines, orderGross, orderTare, orderVolume, orderPackages, pickupNumber, poNumber, planningDateType });
   }
 
   // A shipment consolidates N orders, each with its own pickup reference, so the
   // shipment carries an ARRAY — same shape as `orders` (D3, user 2026-08-02).
   const pickupNumbers = [...new Set(orders.map((o) => o.pickupNumber).filter(Boolean))];
+  // shipments.po_numbers — dedup array of its orders' PO numbers, mirrors
+  // pickupNumbers exactly (DB motion plan, "Data rules").
+  const poNumbers = [...new Set(orders.map((o) => o.poNumber).filter(Boolean))];
+  // shipments.planning_type (LINX-12902 verbatim) — RDD if ANY mapped order is RDD, else SSD.
+  const planningType = orders.some((o) => o.planningDateType === 'RDD') ? 'RDD' : 'SSD';
 
   // I5 — shipment gross weight = Σ of its orders' gross weights
   const grossWeight = orders.reduce((s, o) => s + o.orderGross, 0);
@@ -922,8 +959,11 @@ function generateShipment(index) {
     });
   }
 
-  // History / Audit entries
-  const HISTORY_USERS = ['Jana Soundararajan', 'David Johns', 'Sarah Chen', 'Mike Rodriguez', 'Emily Park', 'Alex Kumar'];
+  // History / Audit entries — actors are REAL seeded users (S108 DB motion),
+  // not an invented namesake list (only "David Johns" ever matched a real
+  // seeded row). Guest excluded — same reasoning as ORDER_AUTHOR_USERNAMES: it
+  // cannot log in and writes nothing, so it never authors an audit entry.
+  const HISTORY_USERS = USERS.filter((u) => u.role !== 'guest').map((u) => u.name);
   const HISTORY_ACTIONS = [
     { action: 'Order Created', category: 'create' },
     { action: 'Shipment Created', category: 'create' },
@@ -1077,8 +1117,9 @@ function generateShipment(index) {
     historyEntries.push(entry);
   }
 
-  // Notes
-  const noteCount = faker.number.int({ min: 0, max: 5 });
+  // Notes — min 1 (was 0): a legal 0-roll left 1,669 shipments with an empty
+  // Notes tab (S108 DB motion, "we need some default notes").
+  const noteCount = faker.number.int({ min: 1, max: 5 });
   const notes = [];
   for (let n = 0; n < noteCount; n++) {
     const author = pick(NOTE_AUTHORS);
@@ -1160,7 +1201,8 @@ function generateShipment(index) {
       pickupNumber: orderPickupNumber,
       specialServices: orderSpecialServices,
       userDefinedFieldList: genUserDefinedFields(),
-      poNumber: `PO-${faker.number.int({ min: 100000, max: 999999 })}`,
+      poNumber: ord.poNumber, // LINX-12039 — minted once with the order (see the orders loop)
+      planningDateType: ord.planningDateType, // LINX-12898
       bolNo: `BOL-${faker.number.int({ min: 100000, max: 999999 })}`,
       shipDirectionCode: shipDirection, // I2 — same value as the shipment + order row
       origin: {
@@ -1218,6 +1260,10 @@ function generateShipment(index) {
     sellShipment,
     orders: orders.map(o => o.orderId),
     pickupNumbers,
+    poNumbers,
+    // LINX-11597 verbatim — Direct (1 mapped order) vs Consolidation (>1).
+    shipmentType: orderCount === 1 ? 'Direct' : 'Consolidation',
+    planningType,
     pro: genProNumber(),
     customerId: customer.id,
     customerName: customer.name,
@@ -1250,7 +1296,12 @@ function generateShipment(index) {
   // here — those tabs degrade to empty until their endpoints exist.
   const detail = {
     shipmentId: sellShipment,
-    shipmentType: 'sell',
+    // Was hardcoded 'sell' — the buy/sell DTO side, a field nothing in the app
+    // ever read (grep-verified, 2026-08-05). S108 repurposes the ONE
+    // `shipmentType` name for the real concept (LINX-11597 Direct/Consolidation,
+    // same value as mainRow.shipmentType) rather than carrying two differently-
+    // meaning fields under the same key.
+    shipmentType: mainRow.shipmentType,
     customerId: customer.id,
     customerName: customer.name,
     shipDirection,
@@ -1306,6 +1357,8 @@ function generateShipment(index) {
       shipDirection,
       freightTerms,
       equipment: h.equipmentCode, // I7
+      poNumber: h.poNumber, // LINX-12039
+      planningDateType: h.planningDateType, // LINX-12898
       consignor: {
         locationId: locationIdFor(from, ord.shipFromLocIdx),
         name: from.facility,
@@ -1565,6 +1618,8 @@ function generateUnshippedOrder(n, pending) {
     // Pending rows came through the async manual-create flow (I9)
     orderSource: pending ? 'MANUAL' : pick(['INTEGRATED', 'INTEGRATED', 'MANUAL']),
     customer: customer.id,
+    poNumber: genOrderPoNumber(), // LINX-12039
+    planningDateType: genPlanningDateType(), // LINX-12898
     shipDirection: pick(SHIP_DIRECTION_CODES),
     freightTerms: pick(PAYMENT_TERM_CODES),
     equipment: pick(EQUIPMENT_CODES),
@@ -1620,7 +1675,7 @@ function generateUnshippedOrder(n, pending) {
       freightTermCode: row.freightTerms,
       shipDirectionCode: row.shipDirection,
       pickupNumber: `PU-${faker.number.int({ min: 100000, max: 999999 })}`,
-      poNumber: `PO-${faker.number.int({ min: 100000, max: 999999 })}`,
+      poNumber: genPoNumber(), // real PO shapes (LINX-12039) — was PO-######
       requestedDateType: 'SHIP',
       requestedPickupDate: toIsoLocal(earliestPickup), requestedPickupTimeZoneCode: 'CST',
       pickupAppointment: toIsoLocal(latestPickup), pickupAppointmentTimeZoneCode: 'CST',

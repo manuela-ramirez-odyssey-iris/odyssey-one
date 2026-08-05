@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { NAMED_LISTS, buildCarrierRows } from './carrierList'
+import { NAMED_LISTS, buildCarrierRows, FLAG_LABELS } from './carrierList'
 
 const carrierOptions = [
   { value: 'ODFL', label: 'ODFL - Old Dominion Freight Line' },
@@ -50,6 +50,15 @@ describe('buildCarrierRows', () => {
     const unflagged = rows.filter((r) => r.flags.length === 0)
     expect(unflagged.length).toBeGreaterThan(0)
     for (const r of unflagged) expect(r.incl).toBe(true)
+  })
+
+  it('a Waffled row still defaults to incl:false — display text changed, flag identity did not', () => {
+    const waffled = rows.filter((r) => r.flags.includes('Waffled'))
+    expect(waffled.length).toBeGreaterThanOrEqual(1)
+    for (const r of waffled) expect(r.incl).toBe(false)
+    // The identity string driving that check is still the bare 'Waffled' —
+    // display text ('Waffled / Gave back') lives in FLAG_LABELS, separate.
+    expect(FLAG_LABELS.Waffled).toBe('Waffled / Gave back')
   })
 
   it('is pure sync over an already-resolved options array', () => {

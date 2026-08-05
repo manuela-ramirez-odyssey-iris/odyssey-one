@@ -163,6 +163,15 @@ describe('CarrierBid — open quote', () => {
     await screen.findByDisplayValue('Acme Houston Plant')
     expect(screen.getByRole('heading', { name: new RegExp(`Quote ${quote.quoteId}`) })).toBeTruthy()
   })
+
+  it('renders the carrier-portal identity line beside the logo, with the carrier name and SCAC', async () => {
+    const quote = openQuote()
+    const token = tokenFor(quote, SCAC)
+    renderAt(`/spot-bid/${token}`)
+
+    await screen.findByDisplayValue('Acme Houston Plant')
+    expect(screen.getByText('OdysseyONE Carrier Portal · Old Dominion (ODFL)')).toBeTruthy()
+  })
 })
 
 describe('CarrierBid — closed / expired / invalid', () => {
