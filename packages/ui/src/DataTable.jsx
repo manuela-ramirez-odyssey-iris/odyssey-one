@@ -223,8 +223,9 @@ export function cellClassName(meta, isStickyRight) {
 //                       briefly blanked the cells in favor of loading's overlay.
 //   loading           — whole-table mode (initial mount, nothing to show yet): rows
 //                       are suppressed entirely and a centered Spinner (32px, no
-//                       text) covers the card. Mutually exclusive with loadingRows
-//                       in practice — a table has no rows yet on first mount.
+//                       text) covers the BODY area only — never the sticky header,
+//                       which stays fully visible (S108). Mutually exclusive with
+//                       loadingRows in practice — a table has no rows yet on first mount.
 //   scrollSelectedIntoView — keep the selected row (TanStack rowSelection) visible
 //                       between the sticky header and a bottom boundary (S93; extracted
 //                       from the Shipments arrow-navigation autoscroll). `true` or
@@ -530,14 +531,6 @@ export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, onC
       {/* The bordered white card holds the table ONLY; the footer (Paginator) sits
           below it as a sibling, transparent on the page canvas (S79b, decision 6). */}
       <div className="odyssey-data-table__card">
-        {/* loading: whole-table mode — centered spinner over the card, no rows
-            rendered below it (nothing to show yet on first mount). The animated
-            ring alone, no text (user direction, GS-21 era). */}
-        {loading && (
-          <div className="odyssey-data-table__loading">
-            <Spinner size={32} />
-          </div>
-        )}
         <div
           className="odyssey-data-table__head"
           style={{ top: hbar ? `calc(${stickyTopValue} + 8px)` : stickyTopValue }}
@@ -609,7 +602,19 @@ export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, onC
             </table>
           </div>
         </div>
-        <div className="odyssey-data-table__body" ref={wrapRef}>
+        <div
+          className={`odyssey-data-table__body${loading ? ' odyssey-data-table__body--loading' : ''}`}
+          ref={wrapRef}
+        >
+          {/* loading: whole-table mode — centered spinner scoped to the BODY area
+              only (a sibling of the head, never overlapping it), no rows rendered
+              underneath (nothing to show yet on first mount). The animated ring
+              alone, no text (user direction, GS-21 era). */}
+          {loading && (
+            <div className="odyssey-data-table__loading">
+              <Spinner size={32} />
+            </div>
+          )}
           <table className="odyssey-table" ref={bodyTableRef} style={tableStyle} aria-label={ariaLabel}>
             {colgroup}
             <tbody>

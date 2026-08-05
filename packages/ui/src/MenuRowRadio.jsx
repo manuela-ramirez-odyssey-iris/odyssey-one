@@ -1,5 +1,5 @@
 import Radio from './Radio.jsx'
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight, GripVertical } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
 
 /**
@@ -11,11 +11,16 @@ import { ICON_MD } from '@odyssey/tokens'
  *  - the **rest of the row** (label + chevron) navigates to the next view → `onNavigate(value)`
  *
  * `selected` fills the radio + applies the DSN/900 border. Hover is CSS-only.
- * Figma `MenuRowRadio` set `3447:6593`.
+ * `draggable` (default false) mirrors MenuRowCheckbox's grip prop — opt-in for
+ * reorderable lists; the radio row's established use is single-select + navigate.
+ * Unlike MenuRowCheckbox (grip trailing, no chevron), the chevron owns the trailing
+ * slot here, so the grip renders LEADING, before the radio.
+ * Figma `MenuRowRadio` set `3447:6593`, `Draggable#4921:0` boolean property.
  */
 export default function MenuRowRadio({
   label,
   selected = false,
+  draggable = false,
   disabled = false,
   name,
   value,
@@ -39,6 +44,11 @@ export default function MenuRowRadio({
       aria-disabled={disabled || undefined}
       {...rest}
     >
+      {draggable && (
+        <span className="menu-row__trailing menu-row-radio__grip" aria-hidden="true">
+          <GripVertical {...ICON_MD} />
+        </span>
+      )}
       {/* Select zone — clicking the radio picks this option. */}
       <span className="menu-row__control">
         <Radio

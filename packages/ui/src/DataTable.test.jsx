@@ -38,6 +38,20 @@ describe('DataTable loading modes (S107: per-cell restored + whole-table added)'
     expect(document.querySelectorAll('tbody tr')).toHaveLength(0)
   })
 
+  // Geometry (whether the spinner visually centers below the header) isn't
+  // assertable under jsdom (no layout engine) — this asserts the DOM structure
+  // that geometry depends on: the overlay lives inside .odyssey-data-table__body
+  // (a sibling of .odyssey-data-table__head), never inside the head or as a
+  // card-level overlay that could stack over the header.
+  it('loading overlay is scoped to the body region, not the head', () => {
+    render(<Harness loading />)
+    const body = document.querySelector('.odyssey-data-table__body')
+    const head = document.querySelector('.odyssey-data-table__head')
+    expect(body?.querySelector('.odyssey-data-table__loading')).not.toBeNull()
+    expect(head?.querySelector('.odyssey-data-table__loading')).toBeNull()
+    expect(body?.classList.contains('odyssey-data-table__body--loading')).toBe(true)
+  })
+
   it('plain mode (neither flag) renders populated rows verbatim', () => {
     render(<Harness />)
     expect(screen.getByText('Atlanta')).not.toBeNull()

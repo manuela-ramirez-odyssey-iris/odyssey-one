@@ -215,17 +215,15 @@ export const shipmentsSearchAdapter = {
         }))
       if (items.length) sections.push({ title: 'Define set type', items })
     }
-    // Untouched bar (focused, nothing typed, no chips): GS-14 said NOTHING —
-    // Case 12 (GS-22) carves out DATES: filtering the visible data by date is
-    // the one thing users reach for from a cold bar, so the date + range
-    // items appear as "Filter by date" ("later we might add more suggested
-    // filters to this case" — user, 2026-08-03). Attribute entry points stay
-    // gone; drill-forward still needs a chip footing.
+    // Untouched bar (focused, nothing typed, no chips): plain GS-14 rule —
+    // NOTHING. Case 12 (GS-22) briefly carved out a DATES section here
+    // ("Type or Filter by date", S106); the user reversed that carve-out
+    // (user, 2026-08-04 — reversal of the S106 carve-out: an empty bar
+    // suggests nothing). Attribute entry points stay gone; drill-forward
+    // still needs a chip footing. Typed date-like input still surfaces its
+    // own "Filter by date" section — see getSuggestions — and the setChip
+    // "Define set type" section above is untouched.
     if (!chips.length) {
-      // Empty-bar title invites BOTH actions (user, 2026-08-03): keep typing,
-      // or filter everything by date. The typed date-like section keeps the
-      // plain "Filter by date" title — there the intent is already dates.
-      if (!setChip) sections.push({ title: 'Type or Filter by date', items: dateItems('') })
       return sections
     }
     const group = nextProgressionGroup(chips)

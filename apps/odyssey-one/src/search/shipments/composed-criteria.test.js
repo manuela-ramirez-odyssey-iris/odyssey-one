@@ -137,17 +137,16 @@ describe('Case 1 — Order# (empty) + Buy Shipment# = X → that shipment\'s ord
 })
 
 describe('Case 2 — empty-input suggestions advance by progression group', () => {
-  // Case 4 (S104) killed the 5 attribute entry points; Case 12 (GS-22) carved
-  // DATES back in — an untouched bar offers ONLY the "Filter by date" section
-  // (dates are the one cold-bar filter users reach for). Attribute entry
-  // points stay gone.
-  test('no chips, nothing typed → ONLY the date filters (Case 4 as amended by Case 12)', async () => {
+  // Case 4 (S104) killed the 5 attribute entry points; Case 12 (GS-22) briefly
+  // carved DATES back in for an untouched bar (S106). The user reversed that
+  // carve-out (user, 2026-08-04 — reversal of the S106 carve-out: an empty bar
+  // suggests nothing) — back to the plain GS-14 rule.
+  test('no chips, nothing typed → NOTHING (Case 4, GS-14 plain rule restored)', async () => {
     for (const sections of [await adapter.getInitial([]), await adapter.getInitial()]) {
-      expect(sections.map((s) => s.title)).toEqual(['Type or Filter by date'])
-      expect(sections[0].items.every((i) => i.kind === 'date' || i.kind === 'date-range-suggest')).toBe(true)
+      expect(sections).toEqual([])
     }
-    // An empty typed query routes to getInitial — same single date section.
-    expect((await adapter.getSuggestions('')).map((s) => s.title)).toEqual(['Type or Filter by date'])
+    // An empty typed query routes to getInitial — same empty result.
+    expect(await adapter.getSuggestions('')).toEqual([])
   })
 
   test('one chip in group 0 → suggests the NEXT group, never repeats the entry set', async () => {

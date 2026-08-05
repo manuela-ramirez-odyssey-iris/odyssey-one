@@ -199,21 +199,10 @@
    against the page scroller (zero lag).
    ---------------------------------------- */
 .odyssey-data-table__card {
-  position: relative; /* anchors the centered loading overlay */
+  position: relative;
   background: var(--bg-primary);
   border-radius: var(--radius-2xl);
   overflow: clip;
-}
-/* loading (whole-table mode, S107) — the Spinner centered (both axes) over the
-   card. Above the sticky head (z 3/4); no rows render underneath (nothing has
-   loaded yet) so the ring is the single loading signal. */
-.odyssey-data-table__loading {
-  position: absolute;
-  inset: 0;
-  z-index: 5;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .odyssey-data-table__head {
@@ -228,10 +217,34 @@
   background: var(--bg-primary);
 }
 
+/* position: relative anchors the loading overlay below — the overlay is a
+   sibling of the header (not a card-level overlay), so it can never cover the
+   header no matter how tall/short the header is. */
 .odyssey-data-table__body {
+  position: relative;
   overflow-x: auto;
   overscroll-behavior-x: none;
   background: var(--bg-primary);
+}
+
+/* loading (whole-table mode, S107; fixed to body-only, S108): rows are empty
+   while loading, which would collapse the body to 0 height — this floor gives
+   the centered Spinner room without reaching up into the header's band. */
+.odyssey-data-table__body--loading {
+  min-height: 200px;
+}
+
+/* Spinner centered (both axes) within the BODY area only — never the header
+   (see .odyssey-data-table__body, its positioning parent). No rows render
+   underneath while loading (nothing has loaded yet) so the ring is the single
+   loading signal. */
+.odyssey-data-table__loading {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Custom horizontal scrollbar (S82) — part of the DataTable chrome, sticky at
@@ -3166,6 +3179,15 @@ button.breadcrumb__label:focus-visible {
 }
 .menu-row-radio__nav .menu-row__label {
   flex: 1 1 0;
+}
+/* draggable grip (Figma Draggable#4921:0 boolean) — leading, before the radio.
+   Unlike MenuRowCheckbox (whole row is the drag handle), MenuRowRadio keeps its
+   select/nav click zones, so only the grip itself is grabbable. */
+.menu-row-radio__grip {
+  cursor: grab;
+}
+.menu-row-radio__grip:active {
+  cursor: grabbing;
 }
 .menu-row-radio {
   background: var(--white);

@@ -70,9 +70,9 @@ describe('getInitial — "Define set type" section for an untyped set badge', ()
     expect(sections.find((s) => s.title === 'Define set type')).toBeUndefined()
   })
 
-  test('no set badge → no type section; the empty bar shows ONLY the date filters (Case 12)', async () => {
+  test('no set badge → no sections at all; the empty bar suggests nothing (user, 2026-08-04 reversal of S106 Case 12 carve-out)', async () => {
     for (const sections of [await adapter.getInitial([]), await adapter.getInitial([], null)]) {
-      expect(sections.map((s) => s.title)).toEqual(['Type or Filter by date'])
+      expect(sections).toEqual([])
     }
   })
 })

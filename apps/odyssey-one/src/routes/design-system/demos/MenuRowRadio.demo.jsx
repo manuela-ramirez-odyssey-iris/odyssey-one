@@ -4,15 +4,17 @@ import { MenuRowRadio } from '@odyssey/ui'
 export const meta = {
   name: 'MenuRowRadio',
   tier: 'atom',
-  version: '0.4.0',
+  version: '0.4.1',
   createdVersion: '0.4.0',
   figmaNode: '3447:6593',
   codeConnect: 'packages/ui/src/MenuRowRadio.figma.tsx',
+  normalizing: true,
 }
 
 export const props = [
   { name: 'label', type: 'string', desc: 'Row label.' },
   { name: 'selected', type: 'boolean', desc: 'Fills the radio + applies the DSN/900 border (the chosen option). Default false.' },
+  { name: 'draggable', type: 'boolean', desc: 'Shows a leading grip drag handle before the radio (reorder via a consumer DnD adapter), mirroring MenuRowCheckbox. Default false.' },
   { name: 'disabled', type: 'boolean', desc: 'Muted (placeholder) label + disabled radio; not clickable. Default false.' },
   { name: 'name', type: 'string', desc: 'Radio group name (passed to the nested Radio).' },
   { name: 'value', type: 'any', desc: 'Option value — passed to onSelect / onNavigate.' },
@@ -33,6 +35,7 @@ export const tokens = [
 export default function MenuRowRadioDemo() {
   const [picked, setPicked] = useState('overnight')
   const [navigated, setNavigated] = useState(null)
+  const [draggable, setDraggable] = useState(false)
   const options = [
     { value: 'overnight', label: 'Overnight' },
     { value: 'two-day', label: 'Two-day' },
@@ -45,11 +48,16 @@ export default function MenuRowRadioDemo() {
         Row family — single-select + navigate. Two click zones: the{' '}
         <strong>radio area selects</strong>; the <strong>rest of the row navigates</strong>.
         Leading <code>Radio</code> + label + chevron, on the shared <code>.menu-row</code> chrome.
-        Press shows a DSN/200 background (hover's DSN/300 border).
+        Press shows a DSN/200 background (hover's DSN/300 border). <code>draggable</code> adds
+        a leading grip handle before the radio, mirroring <code>MenuRowCheckbox</code>.
       </p>
 
       <div className="ds-demo-section">
-        <h4 className="ds-demo-section__title">Live — radio picks, row body navigates</h4>
+        <h4 className="ds-demo-section__title">Playground — radio picks, row body navigates</h4>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-2)', marginBottom: 'var(--spacing-3)', fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)' }}>
+          <input type="checkbox" checked={draggable} onChange={(e) => setDraggable(e.target.checked)} />
+          draggable
+        </label>
         <div className="ds-demo-col" style={{ width: 240, gap: 'var(--spacing-2)' }}>
           {options.map((o) => (
             <MenuRowRadio
@@ -58,6 +66,7 @@ export default function MenuRowRadioDemo() {
               name="ship-speed"
               value={o.value}
               selected={picked === o.value}
+              draggable={draggable}
               onSelect={setPicked}
               onNavigate={(v) => setNavigated(v)}
             />

@@ -343,17 +343,25 @@ tender outcome is the relevant signal. (S-? refinement, 2026-06-04.)
 - **Search semantics unchanged:** union across codes (GS-20); rows self-label.
 
 ### Case 12 — Dates: typed slashes suggest date/range chips; the empty bar offers them cold
-**Date:** 2026-08-03 · **Status:** ✅ implemented · **Decision:** [[decisions/decision-log|GS-22]]
+**Date:** 2026-08-03 · **Status:** ⚠️ partially reversed 2026-08-04 (see below) · **Decision:** [[decisions/decision-log|GS-22]]
 **Amends:** Case 4 / GS-14 (the "untouched bar offers nothing" rule gets a DATE carve-out).
 
-- **Input:** type a slashed date fragment (`2/`, `2/3`, `2/3/2026`) — or just focus the empty bar.
+> **Reversal (user, 2026-08-04):** the empty-bar carve-out below confused
+> users and was reverted — an untouched/empty focused bar now suggests
+> NOTHING again, restoring the plain GS-14 rule. The typed-slash behavior
+> (`2/`, `2/3`, `2/3/2026` → "Filter by date") is UNCHANGED and still applies.
+
+- **Input:** type a slashed date fragment (`2/`, `2/3`, `2/3/2026`).
 - **Suggestions:** every date-typed attribute offers TWO chips — the plain date
   (`Pickup Date`) and its **Range** twin (`Pickup Date Range`). A slashed query
   leads with this "Filter by date" section; **bare digits never trigger it** (a
-  pro/shipment number must not collapse into dates). The **empty focused bar**
-  now shows the same section — *"dates are one of the cases where suggested
-  filters should appear when searchbar is empty… later we might add more
-  suggested filters to this case"* (user). Attribute entry points stay gone.
+  pro/shipment number must not collapse into dates). ~~The **empty focused
+  bar** now shows the same section~~ — *"dates are one of the cases where
+  suggested filters should appear when searchbar is empty… later we might add
+  more suggested filters to this case"* (user, 2026-08-03) — **reversed
+  2026-08-04**: an empty bar suggests nothing (user, 2026-08-04 — reversal of
+  the S106 carve-out: an empty bar suggests nothing). Attribute entry points
+  stay gone regardless.
 - **Commit:** the chip lands **expanded** with a **CalendarPicker** in the mini
   panel (same anchoring as the set chip's EditableMiniPanel). A complete typed
   date pre-fills one bound (`Pickup Date Range: 2/6/2026-`); picking the other

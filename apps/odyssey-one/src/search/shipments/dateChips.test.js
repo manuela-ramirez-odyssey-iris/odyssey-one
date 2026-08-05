@@ -40,14 +40,9 @@ describe('matchesChip — date-range kind', () => {
 })
 
 describe('date suggestions', () => {
-  test('EMPTY focused bar → "Type or Filter by date" with date + Range twins (partial GS-14 supersede)', async () => {
+  test('EMPTY focused bar → no sections at all (user, 2026-08-04 — reversal of the S106 carve-out: an empty bar suggests nothing)', async () => {
     const sections = await adapter.getInitial([])
-    const dates = sections.find((s) => s.title === 'Type or Filter by date')
-    expect(dates).toBeTruthy()
-    const labels = dates.items.map((i) => i.label)
-    expect(labels).toContain('Pickup Date')
-    expect(labels).toContain('Pickup Date Range')
-    expect(labels).toContain('Delivery Date Range')
+    expect(sections).toEqual([])
   })
 
   test('a slashed date-like query leads with the date section; the partial pre-fills like other criteria', async () => {

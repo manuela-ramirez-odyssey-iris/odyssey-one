@@ -241,6 +241,14 @@ Decision IDs use the `GS-` prefix (GlobalSearch).
 **Source:** user spec 2026-08-03 (Scenario continuation of GS-21 session).
 **Affects:** `criteria.js` (`parseSearchDate`, `matchesChip` date branch), `adapter.js` (`dateItems`, `DATE_LIKE`, getInitial/getSuggestions), `useGlobalSearch` (`onDateCommit`, date-item intercept), `SearchChip` date mode (+ CalendarPicker), `GlobalSearch.renderChip`. 8 new tests (`dateChips.test.js`); the two GS-14 pins re-pinned to the amended rule. **Figma:** `Type=Date` variant on the SearchChip master OWED (master currently has Single/Set only).
 
+### GS-23 — GS-22's empty-bar DATE carve-out is REVERSED; GS-14 restored verbatim
+**Decided:** 2026-08-04 · **Reverts:** GS-22 part 1's empty-bar half (the typed-slash half of GS-22 is UNCHANGED)
+**Previous state:** GS-22 (S106) made an untouched/empty focused bar show a `"Type or Filter by date"` section (`dateItems('')`) — a carve-out from GS-14's "an untouched bar suggests nothing."
+**Decision:** The empty-bar date carve-out is removed. A focused bar with no chips and nothing typed now suggests **NOTHING**, full stop — GS-14's original rule, no exceptions. Typing a slashed date fragment still surfaces "Filter by date" (unchanged, still in `getSuggestions`); the `setChip` "Define set type" section and all drill-forward/progression sections (once a chip exists) are untouched.
+**Rationale:** User, 2026-08-04 — the empty-bar date suggestion confused users. This is a direct reversal of the user's own S106 ruling, not a new discovery.
+**Source:** User direction 2026-08-04.
+**Affects:** `adapter.js` (`getInitial`'s no-chips branch — the `dateItems('')` push deleted, comment updated to record the reversal), `codeSet.test.js`, `dateChips.test.js`, `composed-criteria.test.js` (empty-bar assertions changed from `['Type or Filter by date']` to `[]`). `composed-criteria.md` Case 12 annotated with the reversal; typed-slash behavior and its tests are untouched.
+
 ---
 
 ## Pending (need source / verification)
