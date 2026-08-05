@@ -107,6 +107,19 @@ describe('ShipmentsFiltersView — Saved tab, Custom group (S108 1d)', () => {
     expect(editNameOption.getAttribute('aria-disabled')).toBe('true')
   })
 
+  // User ruling 2026-08-05: "edit name should only work on the selected custom
+  // rows." Opening a profile in the editor (row body) is NOT a rename target —
+  // an earlier build let it stand in for a selection to save a click, and that
+  // was rejected: selecting is the act that names a target.
+  test('⋮ → Edit Name stays disabled for a profile merely OPEN in the editor (no radio selection)', () => {
+    renderSavedTab()
+    fireEvent.click(screen.getByText('West Coast LTL')) // row body → opens editor
+    fireEvent.click(screen.getByText('Saved'))          // back to the list
+    fireEvent.click(screen.getByRole('button', { name: 'Preset actions' }))
+    const editNameOption = screen.getByText('Edit Name').closest('[role="menuitem"]')
+    expect(editNameOption.getAttribute('aria-disabled')).toBe('true')
+  })
+
   test('⋮ → Edit Name focuses the selected row with the cursor in it and the text selected; Enter commits + calls onRenameFilter', () => {
     const onRenameFilter = vi.fn()
     const onRenameActiveChange = vi.fn()
@@ -706,10 +719,13 @@ describe('ShipmentsFiltersView — Saved tab, sharing (S108 Phase 3d)', () => {
     expect(odysseyList.querySelectorAll('.menu-row-checkbox')).toHaveLength(0)
   })
 
-  test('your own shared row: renameable via Edit Name and gets a checkbox in batch delete', () => {
-    const onRenameSharedFilter = vi.fn()
+  // Edit Name is Custom-only (user ruling 2026-08-05) — a shared row is NOT
+  // renameable in place, even your own. To change one: un-share it (drag back
+  // to Custom), edit it there, re-share. Same reasoning that suppresses Update
+  // Filter for shared rows. Batch DELETE of your own shared row still works.
+  test('your own shared row: NOT renameable via Edit Name, but gets a checkbox in batch delete', () => {
     const onDeleteSharedFilters = vi.fn()
-    const { container } = renderSavedTab({ sharedFilters: [myShared], onRenameSharedFilter, onDeleteSharedFilters })
+    const { container } = renderSavedTab({ sharedFilters: [myShared], onDeleteSharedFilters })
     const odysseyList = container.querySelector('.shipments-filters__saved-list--odyssey')
 
     const radio = within(odysseyList).getByText(myShared.name).closest('.menu-row-radio').querySelector('input[type="radio"]')
@@ -717,18 +733,13 @@ describe('ShipmentsFiltersView — Saved tab, sharing (S108 Phase 3d)', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Preset actions' }))
     const editNameOption = screen.getByText('Edit Name').closest('[role="menuitem"]')
-    expect(editNameOption.getAttribute('aria-disabled')).not.toBe('true')
-    fireEvent.click(screen.getByText('Edit Name'))
-
-    const input = screen.getByLabelText(`Rename ${myShared.name}`)
-    fireEvent.change(input, { target: { value: 'Renamed Shared' } })
-    fireEvent.keyDown(input, { key: 'Enter' })
-    expect(onRenameSharedFilter).toHaveBeenCalledWith(myShared.id, 'Renamed Shared')
+    expect(editNameOption.getAttribute('aria-disabled')).toBe('true')
 
     // Batch delete: your own shared row swaps to a checkbox and can be
     // confirmed via `onDeleteSharedFilters` (never `onDeleteFilters` — this
-    // id lives in `sharedFilters`, not `savedFilters`).
-    fireEvent.click(screen.getByRole('button', { name: 'Preset actions' }))
+    // id lives in `sharedFilters`, not `savedFilters`). The ⋮ menu is still
+    // open (Edit Name was never clicked — it's disabled now), so go straight
+    // to Delete Filters rather than toggling the menu shut and back open.
     fireEvent.click(screen.getByText('Delete Filters'))
     const checkbox = within(odysseyList).getByRole('checkbox')
     fireEvent.click(checkbox)

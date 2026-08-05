@@ -573,15 +573,24 @@ export default function ShipmentsFiltersView({
     if (renamingId) { renameInputRef.current?.focus(); renameInputRef.current?.select() }
   }, [renamingId])
 
+  // The row Edit Name acts on: a SELECTED **Custom** row, and nothing else
+  // (user ruling, 2026-08-05: "edit name should only work on the selected
+  // custom rows").
+  //
+  // Deliberately narrow, and deliberately NOT falling back to the profile open
+  // in the editor tab — an earlier attempt did that, to spare the extra radio
+  // click, and was rejected: opening a profile is a read/edit-its-values
+  // gesture, selecting it is the act that names a target. Renaming off the
+  // open profile would rename a row the user never pointed at.
+  //
+  // Shared rows are excluded too, owned or not — same reasoning as Update
+  // Filter (see `isSharedOpen`): to change a shared filter you un-share it,
+  // edit it as a Custom profile, and re-share.
+  const renameTargetId = savedFilters.some((f) => f.id === selectedFilterId) ? selectedFilterId : null
+
   const handleEditName = () => {
-    // S108 Phase 3d: "the author edits" (spec "Behaviour" 5) isn't scoped to
-    // Custom — the selection may be an OWNED shared row instead. Custom
-    // checked first (the common case); `ownedSharedFilters` (not the raw
-    // `sharedFilters`) is the guard that keeps this disabled for someone
-    // else's shared row, same as `savedMenuOptions`'s disabled check below.
-    const target = savedFilters.find((f) => f.id === selectedFilterId) ||
-      ownedSharedFilters.find((f) => f.id === selectedFilterId)
-    if (!target) return // menu option is disabled with nothing selected/owned; belt + suspenders
+    const target = savedFilters.find((f) => f.id === renameTargetId)
+    if (!target) return // menu option is disabled in this case; belt + suspenders
     setRenameValue(target.name)
     setRenamingId(target.id)
     onRenameActiveChange?.(true)
@@ -592,14 +601,11 @@ export default function ShipmentsFiltersView({
   const commitRename = () => {
     if (!renamingId) return
     const name = renameValue.trim()
-    // Route by which store the id lives in — `handleEditName` above only
-    // ever arms `renamingId` for a Custom filter or an OWNED shared one, so
-    // this dispatch is safe without re-checking ownership here. Blank name:
-    // treat as cancel, don't persist either way.
-    if (name) {
-      if (savedFilters.some((f) => f.id === renamingId)) onRenameFilter?.(renamingId, name)
-      else onRenameSharedFilter?.(renamingId, name)
-    }
+    // Custom-only by construction — `handleEditName` arms `renamingId` for a
+    // selected Custom row and nothing else (user ruling 2026-08-05), so there
+    // is no shared branch to route to. Blank name: treat as cancel, don't
+    // persist either way.
+    if (name) onRenameFilter?.(renamingId, name)
     setRenamingId(null)
     onRenameActiveChange?.(false)
   }
@@ -714,8 +720,7 @@ export default function ShipmentsFiltersView({
     {
       label: 'Edit Name',
       onSelect: handleEditName,
-      disabled: !savedFilters.some((f) => f.id === selectedFilterId) &&
-        !ownedSharedFilters.some((f) => f.id === selectedFilterId),
+      disabled: !renameTargetId,
     },
     { label: 'Delete Filters', onSelect: handleEnterDeleteMode },
   ]
