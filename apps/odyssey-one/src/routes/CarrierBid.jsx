@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { OdysseyLogo, Button, Alert, FormField } from '@odyssey/ui'
+import { OdysseyLogo, Button, Alert, FormField, SubAccordion } from '@odyssey/ui'
 import MeasureField from '../components/orders/create/fields/MeasureField.jsx'
 import { decodeToken } from '../spotboard/token.js'
 import { getQuote, submitBid, declineBid } from '../spotboard/spotStore.js'
@@ -55,7 +55,7 @@ export default function CarrierBid() {
       <div className="carrier-bid-page">
         <header className="carrier-bid-page__header">
           <OdysseyLogo variant="dark" />
-          <span className="text-label-sm-medium carrier-bid-page__title">{portalTitle}</span>
+          <h1 className="text-label-sm-medium carrier-bid-page__title">{portalTitle}</h1>
         </header>
         <main>
           <Alert variant="warning" showClose={false}>{closedReason}</Alert>
@@ -99,7 +99,7 @@ export default function CarrierBid() {
     <div className="carrier-bid-page">
       <header className="carrier-bid-page__header">
         <OdysseyLogo variant="dark" />
-        <span className="text-label-sm-medium carrier-bid-page__title">{portalTitle}</span>
+        <h1 className="text-label-sm-medium carrier-bid-page__title">{portalTitle}</h1>
       </header>
 
       <div className="carrier-bid-page__countdown">
@@ -112,8 +112,7 @@ export default function CarrierBid() {
         <p className="carrier-bid-page__loading text-label-sm-regular">Loading shipment details…</p>
       ) : (
         <>
-          <section className="carrier-bid-card">
-            <h1 className="text-label-base-semibold carrier-bid-card__title">Shipment Detail — Quote {quote.quoteId}</h1>
+          <SubAccordion title={`Shipment Detail — Quote ${quote.quoteId}`} showIcon={false} defaultExpanded>
             <div className="carrier-bid-card__grid">
               <FormField id="cb-shipper" label="Shipper" value={order.shipFrom.company} readOnly />
               <FormField id="cb-equipment" label="Equipment" value={order.equipment} readOnly />
@@ -138,10 +137,9 @@ export default function CarrierBid() {
               <FormField id="cb-special-services" label="Special Services" value={services.length ? services.map((s) => s.desc).join(', ') : '--'} readOnly />
               <FormField id="cb-instructions" label="Instructions" value={instructionsText || '--'} readOnly />
             </div>
-          </section>
+          </SubAccordion>
 
-          <section className="carrier-bid-card">
-            <h2 className="text-label-base-semibold carrier-bid-card__title">Your Bid</h2>
+          <SubAccordion title="Your Bid" showIcon={false} defaultExpanded>
             <div className="carrier-bid-card__grid">
               <MeasureField
                 id="cb-linehaul"
@@ -186,7 +184,7 @@ export default function CarrierBid() {
                 {priorBid ? 'Update Bid' : 'Submit Bid'}
               </Button>
             </div>
-          </section>
+          </SubAccordion>
         </>
       )}
       </main>

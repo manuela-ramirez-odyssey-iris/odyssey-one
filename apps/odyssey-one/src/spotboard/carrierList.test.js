@@ -1,15 +1,30 @@
 import { describe, it, expect } from 'vitest'
 import { NAMED_LISTS, buildCarrierRows, FLAG_LABELS } from './carrierList'
 
+// Mirrors the real getLookupOptions('carrier') pool shape ({value: scac,
+// label: 'SCAC - Name'}) — covers every SCAC referenced by NAMED_LISTS plus
+// a few extras, so "a named list is a curated subset of the pool" is
+// actually exercised (not every pool entry belongs to every list).
 const carrierOptions = [
+  { value: 'KNGT', label: 'KNGT - Knight-Swift Transportation' },
+  { value: 'SCNN', label: 'SCNN - Schneider National' },
+  { value: 'JBHT', label: 'JBHT - J.B. Hunt Transport' },
+  { value: 'WERN', label: 'WERN - Werner Enterprises' },
+  { value: 'CRST', label: 'CRST - CRST International' },
+  { value: 'SWFT', label: 'SWFT - Swift Transportation' },
+  { value: 'PRIJ', label: 'PRIJ - Prime Inc' },
   { value: 'ODFL', label: 'ODFL - Old Dominion Freight Line' },
+  { value: 'SAIA', label: 'SAIA - Saia LTL Freight' },
+  { value: 'ABFS', label: 'ABFS - ABF Freight System' },
+  { value: 'AACT', label: 'AACT - AAA Cooper Transportation' },
+  { value: 'EXLA', label: 'EXLA - Estes Express Lines' },
   { value: 'FXFE', label: 'FXFE - FedEx Freight' },
-  { value: 'SAIA', label: 'SAIA - Saia Inc' },
-  { value: 'UPGF', label: 'UPGF - UPS Freight' },
+  { value: 'SEFL', label: 'SEFL - Southeastern Freight Lines' },
+  { value: 'UPGF', label: 'UPGF - UPS Ground Freight' },
 ]
 
 describe('NAMED_LISTS', () => {
-  it('has id, name, equipment, defaultDurationMin on every entry', () => {
+  it('has id, name, equipment, defaultDurationMin, scacs on every entry', () => {
     expect(NAMED_LISTS.length).toBeGreaterThan(0)
     for (const l of NAMED_LISTS) {
       expect(l).toMatchObject({
@@ -18,6 +33,7 @@ describe('NAMED_LISTS', () => {
         equipment: expect.any(String),
         defaultDurationMin: expect.any(Number),
       })
+      expect(Array.isArray(l.scacs)).toBe(true)
     }
   })
 })
@@ -26,42 +42,55 @@ describe('buildCarrierRows', () => {
   const list = NAMED_LISTS[0]
   const rows = buildCarrierRows(list, carrierOptions)
 
-  it('synthesizes an ops@ email from the SCAC', () => {
+  it('resolves to a small, curated subset (5-8 rows) — not the whole pool', () => {
+    expect(rows.length).toBeGreaterThanOrEqual(5)
+    expect(rows.length).toBeLessThanOrEqual(8)
+    expect(rows.length).toBeLessThan(carrierOptions.length)
+  })
+
+  it('every row belongs to the list membership', () => {
+    for (const r of rows) expect(list.scacs).toContain(r.scac)
+  })
+
+  it('synthesizes an ops@ email from the SCAC, with empty dates (no prefill)', () => {
     expect(rows[0]).toMatchObject({
-      scac: 'ODFL',
-      name: 'Old Dominion Freight Line',
-      email: 'ops@odfl.example.com',
+      scac: 'KNGT',
+      name: 'Knight-Swift Transportation',
+      email: 'ops@kngt.example.com',
       equipment: list.equipment,
       plannedPickup: '',
       plannedDelivery: '',
     })
   })
 
-  it('flags at least one row Routed with incl:false, deterministically (no randomness)', () => {
+  it('flags at least one row Routed, deterministically (no randomness)', () => {
     const flagged = rows.filter((r) => r.flags.includes('Routed'))
     expect(flagged.length).toBeGreaterThanOrEqual(1)
-    expect(flagged[0].incl).toBe(false)
+    expect(list.scacs).toContain(flagged[0].scac)
 
     const again = buildCarrierRows(list, carrierOptions)
     expect(again).toEqual(rows)
   })
 
-  it('defaults incl:true for unflagged rows', () => {
-    const unflagged = rows.filter((r) => r.flags.length === 0)
-    expect(unflagged.length).toBeGreaterThan(0)
-    for (const r of unflagged) expect(r.incl).toBe(true)
+  it('every row starts incl:false — no row is pre-selected, regardless of flags', () => {
+    expect(rows.length).toBeGreaterThan(0)
+    for (const r of rows) expect(r.incl).toBe(false)
   })
 
-  it('a Waffled row still defaults to incl:false — display text changed, flag identity did not', () => {
+  it('a Waffled row still displays its flag — display text changed, flag identity did not', () => {
     const waffled = rows.filter((r) => r.flags.includes('Waffled'))
     expect(waffled.length).toBeGreaterThanOrEqual(1)
-    for (const r of waffled) expect(r.incl).toBe(false)
+    for (const r of waffled) {
+      expect(r.incl).toBe(false)
+      expect(list.scacs).toContain(r.scac)
+    }
     // The identity string driving that check is still the bare 'Waffled' —
     // display text ('Waffled / Gave back') lives in FLAG_LABELS, separate.
     expect(FLAG_LABELS.Waffled).toBe('Waffled / Gave back')
   })
 
-  it('is pure sync over an already-resolved options array', () => {
-    expect(rows).toHaveLength(carrierOptions.length)
+  it('skips membership SCACs the resolved pool does not (yet) have', () => {
+    const thin = buildCarrierRows(list, carrierOptions.slice(0, 1))
+    expect(thin.every((r) => r.scac === 'KNGT')).toBe(true)
   })
 })

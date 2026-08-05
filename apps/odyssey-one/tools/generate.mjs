@@ -397,14 +397,18 @@ function fillTemplate(template, shipment) {
 // SHIPMENT GENERATOR
 // ============================================================
 
-function generateShipment(index) {
+// chainOverride (multi-leg chains, see buildChainLegs below) pins customer/
+// geography/pickup-instant so a leg's facts agree with its neighbors — every
+// other fact (mode, carrier, orders, routing, notes …) still generates
+// normally, exactly as a standalone shipment would.
+function generateShipment(index, chainOverride) {
   // CSV example: 28826319 — bare 8-digit number (no SHP- prefix). buyShipment is
   // the primary key + per-shipment detail filename; the generator rewrites both.
   const buyShipment = genUniqueBuyShipment();
   const sellShipment = genUniqueSellShipment();
-  const customer = pickCustomer();
-  const originLoc = pick(LOCATIONS);
-  const destLoc = pick(LOCATIONS.filter(l => l.city !== originLoc.city));
+  const customer = chainOverride?.customer ?? pickCustomer();
+  const originLoc = chainOverride?.originLoc ?? pick(LOCATIONS);
+  const destLoc = chainOverride?.destLoc ?? pick(LOCATIONS.filter(l => l.city !== originLoc.city));
   // A shipment's times are read in the STOP's timezone (user ruling, S102) —
   // never the carrier's. Quote pickup/delivery inherit these.
   const originTz = deriveTimezone(originLoc.city) || 'America/Chicago';
@@ -424,8 +428,12 @@ function generateShipment(index) {
   })();
   const equipmentCode = pick(EQUIPMENT_CODES);
   const carrier = pick(CARRIERS);
-  const baseDate = faker.date.between({ from: '2026-01-01', to: '2026-06-30' });
-  baseDate.setHours(faker.number.int({ min: 6, max: 16 }), pick([0, 30]), 0, 0);
+  // chainOverride.baseDate is already a specific chosen instant (this leg's
+  // forced pickup — see buildChainLegs); a fresh random hour on top of it
+  // could push the leg BEFORE the invariant that put it there.
+  const baseDate = chainOverride?.baseDate ? new Date(chainOverride.baseDate)
+    : faker.date.between({ from: '2026-01-01', to: '2026-06-30' });
+  if (!chainOverride?.baseDate) baseDate.setHours(faker.number.int({ min: 6, max: 16 }), pick([0, 30]), 0, 0);
   const transitDays = faker.number.int({ min: 1, max: 7 });
   const deliveryDate = genDate(baseDate, transitDays);
   // Shared per-shipment facts the order rows must agree with (I2)
@@ -1117,9 +1125,23 @@ function generateShipment(index) {
     historyEntries.push(entry);
   }
 
-  // Notes — min 1 (was 0): a legal 0-roll left 1,669 shipments with an empty
-  // Notes tab (S108 DB motion, "we need some default notes").
-  const noteCount = faker.number.int({ min: 1, max: 5 });
+  // Notes — S111 (user ruling 2026-08-05): the S108 "min 1" fix over-corrected
+  // into EVERY shipment carrying a note, which isn't realistic — most
+  // shipments are unremarkable and untouched; worked/exception ones
+  // accumulate a few. Weighted target ~65% zero / ~25% one–two / ~10%
+  // three–five, biased by `panel` (already computed above, so keying off it
+  // is free): EXCEPTIONS shipments are the ones people actually work, so they
+  // skew toward the higher buckets; MONITORING is weighted to pull the
+  // blended average back to the stated target (panel splits ~30/70 —
+  // see hasAccepted/hasSent above). The Notes tab already supports
+  // add/edit/delete, so this is purely seed shape, not a feature change.
+  const NOTE_BUCKET_WEIGHTS = panel === 'exceptions'
+    ? [{ value: 0, weight: 49 }, { value: 1, weight: 32 }, { value: 2, weight: 19 }]
+    : [{ value: 0, weight: 72 }, { value: 1, weight: 22 }, { value: 2, weight: 6 }];
+  const noteBucket = faker.helpers.weightedArrayElement(NOTE_BUCKET_WEIGHTS);
+  const noteCount = noteBucket === 0 ? 0
+    : noteBucket === 1 ? faker.number.int({ min: 1, max: 2 })
+    : faker.number.int({ min: 3, max: 5 });
   const notes = [];
   for (let n = 0; n < noteCount; n++) {
     const author = pick(NOTE_AUTHORS);
@@ -1264,6 +1286,13 @@ function generateShipment(index) {
     // LINX-11597 verbatim — Direct (1 mapped order) vs Consolidation (>1).
     shipmentType: orderCount === 1 ? 'Direct' : 'Consolidation',
     planningType,
+    // Multi-leg linkage triplet (007_multileg_chains.sql, user ruling
+    // 2026-08-05) — null on every normal, single-leg shipment. Chain
+    // participants get these three overwritten together by buildChainLegs
+    // AFTER generation, never independently (invariant 7/8).
+    legType: null,
+    sequenceLeg: null,
+    nextShipmentId: null,
     pro: genProNumber(),
     customerId: customer.id,
     customerName: customer.name,
@@ -1408,7 +1437,10 @@ function generateShipment(index) {
     }
   });
 
-  return { mainRow, detail };
+  // _delivery: the raw Date (not the formatted string) — buildChainLegs needs
+  // the actual instant to floor the NEXT leg's pickup against (invariant 3).
+  // Not part of the mainRow/detail contract; ignored by every other caller.
+  return { mainRow, detail, _delivery: deliveryDate };
 }
 
 // ManualOrder-shaped enrichment (the /order/view DTO subset) derived from the
@@ -1741,6 +1773,71 @@ function generateUnshippedOrder(n, pending) {
 }
 
 // ============================================================
+// MULTI-LEG LINKAGE CHAINS (007_multileg_chains.sql, user ruling 2026-08-05)
+// ============================================================
+// A journey split across carriers/contracts becomes N `shipments` rows (one
+// per leg), stitched by legType + sequenceLeg + nextShipmentId. Built as a
+// real route FIRST — shared customer, N+1 DISTINCT waypoints, a strictly
+// forward timeline — then sliced into legs, because that is the only way to
+// get destination[N] === origin[N+1] and delivery[N] <= pickup[N+1] to hold
+// EVERY time: drawing each leg's geography/dates independently (like a
+// standalone shipment does) would make two legs agree only by astronomical
+// coincidence.
+//
+// legType — only 'Pooling' and 'Rule 11' are generated, the two values the
+// CSV's Next Shipment ID note explicitly names ("used for pooling or Rule
+// 11"). The CSV's other two "Shipment Type" values are deliberately NOT
+// generated:
+//   'Line haul' names a ROLE within a chain (the long middle segment), not a
+//   chain-wide type — coherently seeding it needs a scheme where one chain
+//   can mix types by leg position, which is a bigger feature than this task
+//   (open question Q1.2, questions-for-jana-2026-08-05.md).
+//   'Cross customer' does not read as a multi-leg concept at all — it
+//   describes whose freight shares a truck, not a route split into legs.
+//   Seeding it as a chain type would itself be the incoherence this whole
+//   feature exists to avoid (open question Q1.5, same doc).
+const LEG_TYPES = ['Pooling', 'Rule 11'];
+
+// Builds ONE complete chain of `legCount` shipment rows and returns them as
+// [{ mainRow, detail }, …] in leg order, linkage fields already set.
+function buildChainLegs(legCount) {
+  const legType = pick(LEG_TYPES);           // invariant 7: one type per chain
+  const customer = pickCustomer();           // invariant 2: same customer per chain
+  // invariant 1: legCount+1 DISTINCT waypoints (30 unique cities in the pool,
+  // ample for a 2–3 leg chain) sliced into consecutive (origin, dest) pairs —
+  // leg N's destination IS leg N+1's origin because they are the same object.
+  const waypoints = faker.helpers.arrayElements(LOCATIONS, legCount + 1);
+  // First leg's pickup instant; each subsequent leg's is derived below from
+  // the ACTUAL delivery instant generateShipment produced (transitDays is
+  // randomized inside it, so it can't be predicted from out here).
+  let legPickup = faker.date.between({ from: '2026-01-01', to: '2026-06-30' });
+  legPickup.setHours(faker.number.int({ min: 6, max: 16 }), pick([0, 30]), 0, 0);
+
+  const legs = [];
+  for (let leg = 0; leg < legCount; leg++) {
+    const { mainRow, detail, _delivery } = generateShipment(0, {
+      customer, originLoc: waypoints[leg], destLoc: waypoints[leg + 1], baseDate: legPickup,
+    });
+    legs.push({ mainRow, detail });
+    // invariant 3: next leg's pickup is never before this leg's delivery. A
+    // 0–48h layover (pool dwell / interchange) reads as realistic rather than
+    // a suspicious back-to-back handoff at the exact same instant every time.
+    legPickup = new Date(_delivery.getTime() + faker.number.int({ min: 0, max: 48 }) * 3600e3);
+  }
+
+  // invariants 4–6, applied together so they can never disagree: dense
+  // 1-based sequence, next_shipment_id points at the ACTUAL next row's
+  // buyShipment (the user-facing shipment ID — LINX-11591/12490, same id the
+  // grid's own Buy Shipment # column shows), null terminates the last leg.
+  legs.forEach((l, i) => {
+    l.mainRow.legType = legType;
+    l.mainRow.sequenceLeg = i + 1;
+    l.mainRow.nextShipmentId = i < legs.length - 1 ? legs[i + 1].mainRow.buyShipment : null;
+  });
+  return legs;
+}
+
+// ============================================================
 // DATASET BUILDER + CLI
 // ============================================================
 
@@ -1760,7 +1857,25 @@ export function buildDataset({
 
   const shipments = [];       // mainRow per shipment
   const details = new Map();  // sellShipment -> SellShipmentOut detail
-  for (let i = 0; i < totalShipments; i++) {
+
+  // ~4% of shipments join a chain (user ruling 2026-08-05: "realistic
+  // minority … chains of 2 (most) and 3 (fewer)"). The budget is a TARGET,
+  // not a hard cap — chains are built whole, so once the remaining budget
+  // can't fit even a 2-leg chain, building stops rather than truncating a
+  // chain mid-journey (which would orphan a leg and break invariant 5/6).
+  let chainBudget = Math.round(totalShipments * 0.04);
+  while (chainBudget >= 2) {
+    // 2-leg chains are "most"; 3-leg are "fewer" — weighted 70/30, and only
+    // offered when the budget can still fit one.
+    const legCount = (chainBudget >= 3 && faker.number.float({ min: 0, max: 1 }) < 0.3) ? 3 : 2;
+    for (const leg of buildChainLegs(legCount)) {
+      shipments.push(leg.mainRow);
+      details.set(leg.mainRow.sellShipment, leg.detail);
+    }
+    chainBudget -= legCount;
+  }
+
+  for (let i = shipments.length; i < totalShipments; i++) {
     const { mainRow, detail } = generateShipment(i);
     shipments.push(mainRow);
     details.set(mainRow.sellShipment, detail);

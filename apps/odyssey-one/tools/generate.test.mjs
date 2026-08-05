@@ -275,9 +275,169 @@ test('every order carries a poNumber (order-level, LINX-12039) and every non-nul
   for (const o of orders) assert.ok(['RDD', 'SSD'].includes(o.planningDateType), `order ${o.orderNumber} planningDateType ${o.planningDateType}`)
 })
 
-test('notes are never empty (min:1, was min:0 — 1,669 blank Notes tabs before S108)', () => {
+// ── S111: notes distribution (user ruling 2026-08-05 — S108's "min 1" fix
+// over-corrected into every shipment carrying a note) ───────────────────────
+test('notes distribution lands near the ~65/25/10 target band', () => {
   const ds = buildDataset()
-  for (const d of ds.details.values()) assert.ok(d.noteList.length >= 1, 'shipment with an empty Notes tab')
+  const counts = [...ds.details.values()].map((d) => d.noteList.length)
+  const n = counts.length
+  const zero = counts.filter((c) => c === 0).length / n
+  const oneToTwo = counts.filter((c) => c >= 1 && c <= 2).length / n
+  const threeToFive = counts.filter((c) => c >= 3 && c <= 5).length / n
+  // Band, not an exact number — the mix is a blend of two panel-keyed weight
+  // sets, so it won't land on 65/25/10 to the decimal.
+  assert.ok(zero > 0.55 && zero < 0.75, `zero-note share ${zero.toFixed(3)}`)
+  assert.ok(oneToTwo > 0.15 && oneToTwo < 0.35, `1-2 note share ${oneToTwo.toFixed(3)}`)
+  assert.ok(threeToFive > 0.04 && threeToFive < 0.18, `3-5 note share ${threeToFive.toFixed(3)}`)
+  assert.ok(counts.every((c) => c <= 5), 'a shipment exceeded the 5-note cap')
+})
+
+test('notes skew higher on exceptions-panel shipments than monitoring', () => {
+  const ds = buildDataset()
+  const byPanel = { exceptions: [], monitoring: [] }
+  for (const s of ds.shipments) {
+    if (!byPanel[s.panel]) continue
+    byPanel[s.panel].push(ds.details.get(s.sellShipment).noteList.length)
+  }
+  const avg = (arr) => arr.reduce((a, b) => a + b, 0) / arr.length
+  assert.ok(byPanel.exceptions.length > 0 && byPanel.monitoring.length > 0)
+  assert.ok(avg(byPanel.exceptions) > avg(byPanel.monitoring),
+    `exceptions avg ${avg(byPanel.exceptions).toFixed(2)} <= monitoring avg ${avg(byPanel.monitoring).toFixed(2)}`)
+})
+
+// ── S111: multi-leg linkage chains (leg_type / sequence_leg / next_shipment_id,
+// 007_multileg_chains.sql, user ruling 2026-08-05) ──────────────────────────
+test('chain participants are a realistic minority (~4%), mostly 2-leg with fewer 3-leg', () => {
+  const ds = buildDataset({ totalShipments: 2200 })
+  const chained = ds.shipments.filter((s) => s.sequenceLeg != null)
+  const share = chained.length / ds.shipments.length
+  assert.ok(share > 0.01 && share < 0.08, `chain participation ${(share * 100).toFixed(1)}%`)
+  const chainStarts = chained.filter((s) => s.sequenceLeg === 1)
+  assert.ok(chainStarts.length > 0, 'no chains generated at all')
+  const lengths = chainStarts.map((start) => {
+    // walk the chain from its head to find its length
+    let len = 1, cur = start
+    while (cur.nextShipmentId) {
+      len++
+      cur = ds.shipments.find((s) => s.buyShipment === cur.nextShipmentId)
+      assert.ok(cur, 'nextShipmentId dangled mid-walk')
+    }
+    return len
+  })
+  assert.ok(lengths.every((l) => l === 2 || l === 3), `chain lengths outside {2,3}: ${lengths}`)
+  const twoLeg = lengths.filter((l) => l === 2).length
+  const threeLeg = lengths.filter((l) => l === 3).length
+  assert.ok(twoLeg >= threeLeg, `2-leg chains (${twoLeg}) should be the majority over 3-leg (${threeLeg})`)
+})
+
+test('non-chain shipments carry all three linkage fields null (invariant 8)', () => {
+  const ds = buildDataset({ totalShipments: 200 })
+  for (const s of ds.shipments) {
+    if (s.legType != null || s.sequenceLeg != null || s.nextShipmentId != null) continue
+    assert.equal(s.legType, null); assert.equal(s.sequenceLeg, null); assert.equal(s.nextShipmentId, null)
+  }
+  // every field present together, never partially set
+  for (const s of ds.shipments) {
+    const set = [s.legType != null, s.sequenceLeg != null].filter(Boolean).length
+    assert.ok(set === 0 || set === 2, `${s.sellShipment}: legType/sequenceLeg set independently`)
+  }
+})
+
+test('every next_shipment_id resolves to a real shipment row (no dangling pointers)', () => {
+  const ds = buildDataset()
+  const buyShipments = new Set(ds.shipments.map((s) => s.buyShipment))
+  let checked = 0
+  for (const s of ds.shipments) {
+    if (s.nextShipmentId == null) continue
+    assert.ok(buyShipments.has(s.nextShipmentId), `${s.sellShipment}: nextShipmentId ${s.nextShipmentId} does not resolve`)
+    checked++
+  }
+  assert.ok(checked > 0, 'no chain produced a non-null nextShipmentId to check')
+})
+
+test('leg N destination equals leg N+1 origin, across every consecutive pair (invariant 1)', () => {
+  const ds = buildDataset()
+  const byBuy = new Map(ds.shipments.map((s) => [s.buyShipment, s]))
+  let checked = 0
+  for (const s of ds.shipments) {
+    if (s.nextShipmentId == null) continue
+    const next = byBuy.get(s.nextShipmentId)
+    assert.equal(s.destination, next.origin, `${s.sellShipment} -> ${next.sellShipment}: destination/origin mismatch`)
+    checked++
+  }
+  assert.ok(checked > 0, 'no consecutive leg pair to check')
+})
+
+test('same customer across every leg of a chain (invariant 2)', () => {
+  const ds = buildDataset()
+  const byBuy = new Map(ds.shipments.map((s) => [s.buyShipment, s]))
+  let checked = 0
+  for (const s of ds.shipments) {
+    if (s.nextShipmentId == null) continue
+    const next = byBuy.get(s.nextShipmentId)
+    assert.equal(s.customerId, next.customerId, `${s.sellShipment} -> ${next.sellShipment}: customer changed mid-chain`)
+    checked++
+  }
+  assert.ok(checked > 0)
+})
+
+test('time moves forward: leg N delivery <= leg N+1 pickup (invariant 3)', () => {
+  const ds = buildDataset()
+  const byBuy = new Map(ds.shipments.map((s) => [s.buyShipment, s]))
+  // Display strings are "MM/DD/YYYY HH:mm ZZZ" — compare the parseable prefix
+  // (date+time), which is monotonic regardless of the zone abbreviation since
+  // deliveryDate/pickupDate render in each leg's OWN stop timezone.
+  const toMillis = (s) => {
+    const [datePart, timePart] = s.split(' ')
+    const [mm, dd, yyyy] = datePart.split('/')
+    return new Date(`${yyyy}-${mm}-${dd}T${timePart}:00`).getTime()
+  }
+  let checked = 0
+  for (const s of ds.shipments) {
+    if (s.nextShipmentId == null) continue
+    const next = byBuy.get(s.nextShipmentId)
+    assert.ok(toMillis(s.deliveryDate) <= toMillis(next.pickupDate),
+      `${s.sellShipment} delivers ${s.deliveryDate} after ${next.sellShipment} picks up ${next.pickupDate}`)
+    checked++
+  }
+  assert.ok(checked > 0)
+})
+
+test('sequence is dense and 1-based; last leg terminates with a null nextShipmentId (invariants 4/5)', () => {
+  const ds = buildDataset()
+  const byBuy = new Map(ds.shipments.map((s) => [s.buyShipment, s]))
+  const heads = ds.shipments.filter((s) => s.sequenceLeg === 1)
+  assert.ok(heads.length > 0)
+  for (const head of heads) {
+    let cur = head, expected = 1
+    while (true) {
+      assert.equal(cur.sequenceLeg, expected, `${cur.sellShipment}: sequenceLeg ${cur.sequenceLeg}, expected ${expected}`)
+      if (cur.nextShipmentId == null) break
+      cur = byBuy.get(cur.nextShipmentId)
+      expected++
+    }
+  }
+})
+
+test('leg type is consistent across every leg of a chain, drawn only from Pooling/Rule 11 (invariant 7)', () => {
+  const ds = buildDataset()
+  const byBuy = new Map(ds.shipments.map((s) => [s.buyShipment, s]))
+  const heads = ds.shipments.filter((s) => s.sequenceLeg === 1)
+  assert.ok(heads.length > 0)
+  for (const head of heads) {
+    assert.ok(['Pooling', 'Rule 11'].includes(head.legType), `unexpected legType ${head.legType}`)
+    let cur = head
+    while (cur.nextShipmentId != null) {
+      const next = byBuy.get(cur.nextShipmentId)
+      assert.equal(next.legType, head.legType, `${next.sellShipment}: legType drifted mid-chain`)
+      cur = next
+    }
+  }
+  // Cross customer / Line haul are deliberately never generated (see
+  // buildChainLegs comment) — assert the exclusion holds, not just that the
+  // two allowed values appear.
+  const allTypes = new Set(ds.shipments.map((s) => s.legType).filter(Boolean))
+  assert.deepEqual([...allTypes].sort(), ['Pooling', 'Rule 11'])
 })
 
 test('history actors are real seeded users (guest excluded) or a system source', () => {

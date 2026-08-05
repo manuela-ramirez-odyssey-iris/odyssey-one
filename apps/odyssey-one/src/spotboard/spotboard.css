@@ -65,13 +65,13 @@
 .setup-carriers {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-4);
 }
 
 .setup-carriers__controls {
   display: flex;
   align-items: flex-end;
   gap: var(--spacing-4);
+  margin-bottom: var(--spacing-4);
 }
 
 /* ComboBox (Carrier List) defaults to width:100% — cap it so it doesn't
@@ -82,9 +82,19 @@
 
 .setup-carriers__toolbar {
   position: sticky;
-  top: calc(-1 * var(--spacing-8));
+  /* Unlike .orders-toolbar (orders.css), this bar isn't scrolled by
+     AppShell's <main> (--spacing-8 padding-top) — it scrolls inside
+     .shipments-bar__content (components.css), which has padding: 0. No
+     offset to cancel, so top: 0 sticks it flush to the pane's own
+     scrollport with nothing clipped. */
+  top: 0;
   z-index: 4;
-  background: var(--bg-secondary);
+  /* Match the shipments-bar surface itself (components.css .shipments-bar
+     background) rather than --bg-primary (white) — .pane-canvas/.pane-col
+     paint no background of their own, so the real surface color comes from
+     the bar. Must stay opaque (not transparent) so table rows don't scroll
+     visibly through the sticky bar. */
+  background: var(--deep-sea-neutral-100);
   padding: var(--spacing-3) 0;
 }
 

@@ -152,6 +152,12 @@ export const COLUMN_CONFIG = [
   { key: 'shipmentType', label: 'Shipment Type' },
   // LINX-12902 — RDD if ANY mapped order is RDD, else SSD. Not default-visible.
   { key: 'planningType', label: 'Planning Type' },
+  // 007_multileg_chains.sql — Pooling/Rule 11 (or empty for the vast majority
+  // of single-leg shipments). Distinct field from shipmentType above despite
+  // the shared CSV label — see ColumnPanel.jsx ALL_COLUMNS comment. Not
+  // default-visible; shipmentSequenceLeg/nextShipmentId (already in
+  // ALL_COLUMNS) round out the linkage triplet and need no render override.
+  { key: 'legType', label: 'Leg Type' },
   {
     key: 'apFreightCost',
     label: 'AP Freight Cost',

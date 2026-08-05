@@ -102,7 +102,7 @@ export async function seed(client, { totalShipments = 10000, preserveUsers = fal
      'origin','destination','pickup_date','delivery_date','pickup_ts','delivery_ts','mode','equipment_code',
      'equipment','seal','scac','tender_status','shipment_status','panel','category','validation_message',
      'gross_weight','load','load_count','order_count','ap_freight_cost','pickup_numbers','detail',
-     'shipment_type','planning_type','po_numbers'],
+     'shipment_type','planning_type','po_numbers','leg_type','sequence_leg','next_shipment_id'],
     ds.shipments.map((s) => [
       s.sellShipment, s.buyShipment, s.orders, s.pro, s.customerId, s.customerName, s.consignor, s.consignee,
       s.origin, s.destination, s.pickupDate, s.deliveryDate, parseDisplayDate(s.pickupDate), parseDisplayDate(s.deliveryDate),
@@ -111,6 +111,9 @@ export async function seed(client, { totalShipments = 10000, preserveUsers = fal
       s.pickupNumbers ?? [],
       JSON.stringify(ds.details.get(s.sellShipment)),
       s.shipmentType ?? null, s.planningType ?? null, s.poNumbers ?? [],
+      // Multi-leg linkage triplet (007_multileg_chains.sql) — null on every
+      // single-leg shipment (the vast majority); see generate.mjs buildChainLegs.
+      s.legType ?? null, s.sequenceLeg ?? null, s.nextShipmentId ?? null,
     ]))
 
   // orders — filter columns derived from the SAME nested objects that go into JSONB

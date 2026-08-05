@@ -53,6 +53,12 @@ export const ALL_COLUMNS = [
   { key: 'loadStatus', label: 'Load Status' },
   { key: 'shipmentType', label: 'Shipment Type' },
   { key: 'planningType', label: 'Planning Type' },
+  // 007_multileg_chains.sql — the CSV calls this "Shipment Type" too, but that
+  // collides with LINX-11597's shipmentType (Direct/Consolidation) above.
+  // Own column/key so neither overwrites the other; which of the two should
+  // own the "Shipment Type" label is an open question for Jana
+  // (vault/10-domains/shipments/questions-for-jana-2026-08-05.md).
+  { key: 'legType', label: 'Leg Type' },
   { key: 'shipmentSequenceLeg', label: 'Shipment Sequence Leg' },
   { key: 'nextShipmentId', label: 'Next Shipment ID' },
   { key: 'validationMessage', label: 'Validation Message' },

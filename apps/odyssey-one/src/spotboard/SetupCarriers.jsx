@@ -9,16 +9,35 @@ const LIST_OPTIONS = NAMED_LISTS.map((l) => ({ value: l.id, label: l.name }))
 
 const columnHelper = createColumnHelper()
 
-function buildColumns(readOnly, toggleIncl, updateDate) {
+// A row is selectable once it has both dates — the per-row Incl. checkbox is
+// disabled otherwise, and the header select-all must never include a
+// date-less row.
+const isSelectable = (row) => !!(row.plannedPickup && row.plannedDelivery)
+
+function buildColumns(readOnly, toggleIncl, updateDate, toggleAll, rows) {
+  const selectable = rows.filter(isSelectable)
+  const includedSelectable = selectable.filter((r) => r.incl)
+  const allChecked = selectable.length > 0 && includedSelectable.length === selectable.length
+  const someChecked = includedSelectable.length > 0 && !allChecked
+
   return [
     columnHelper.display({
       id: 'incl',
-      header: 'Incl.',
+      header: () => (
+        <Checkbox
+          checked={allChecked}
+          indeterminate={someChecked}
+          onChange={() => toggleAll(!allChecked)}
+          disabled={readOnly || selectable.length === 0}
+          showLabel={false}
+          aria-label="Select all carriers"
+        />
+      ),
       cell: ({ row }) => (
         <Checkbox
           checked={row.original.incl}
           onChange={() => toggleIncl(row.original.scac)}
-          disabled={readOnly}
+          disabled={readOnly || !isSelectable(row.original)}
           showLabel={false}
           aria-label={`Include ${row.original.scac}`}
         />
@@ -119,10 +138,29 @@ export default function SetupCarriers({
   const toggleIncl = (scac) =>
     setRows((rs) => rs.map((r) => (r.scac === scac ? { ...r, incl: !r.incl } : r)))
 
+  // Editing a date auto-checks the row once both dates are present, and
+  // auto-unchecks (+ disables, via the checkbox's own disabled expression
+  // above) it the moment a date is cleared — only a user EDIT does this,
+  // never the initial prefill (buildCarrierRows always seeds incl:false).
   const updateDate = (scac, field, value) =>
-    setRows((rs) => rs.map((r) => (r.scac === scac ? { ...r, [field]: value } : r)))
+    setRows((rs) =>
+      rs.map((r) => {
+        if (r.scac !== scac) return r
+        const next = { ...r, [field]: value }
+        next.incl = !!(next.plannedPickup && next.plannedDelivery)
+        return next
+      })
+    )
 
-  const columns = useMemo(() => buildColumns(readOnly, toggleIncl, updateDate), [readOnly])
+  // Toggling select-all only ever touches selectable (date-complete) rows —
+  // it must never include a row lacking dates.
+  const toggleAll = (include) =>
+    setRows((rs) => rs.map((r) => (isSelectable(r) ? { ...r, incl: include } : r)))
+
+  const columns = useMemo(
+    () => buildColumns(readOnly, toggleIncl, updateDate, toggleAll, rows),
+    [readOnly, rows],
+  )
 
   const table = useReactTable({ data: rows, columns, getCoreRowModel: getCoreRowModel() })
 
@@ -197,13 +235,13 @@ export default function SetupCarriers({
           </span>
           {!readOnly && (
             <div className="setup-carriers__toolbar-right">
-              <Button variant="primary" disabled={!canSend} onClick={() => onSendRFQ?.(buildPayload())}>
+              <Button size="sm" variant="primary" disabled={!canSend} onClick={() => onSendRFQ?.(buildPayload())}>
                 Send RFQ
               </Button>
-              <Button variant="secondary" onClick={() => onSaveDraft?.(buildPayload())}>
+              <Button size="sm" variant="secondary" onClick={() => onSaveDraft?.(buildPayload())}>
                 Save Draft
               </Button>
-              <Button variant="link" onClick={onCancel}>
+              <Button size="sm" variant="link" onClick={onCancel}>
                 Cancel
               </Button>
             </div>

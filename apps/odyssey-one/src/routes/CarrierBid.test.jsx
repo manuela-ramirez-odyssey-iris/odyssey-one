@@ -161,7 +161,25 @@ describe('CarrierBid — open quote', () => {
     renderAt(`/spot-bid/${token}`)
 
     await screen.findByDisplayValue('Acme Houston Plant')
-    expect(screen.getByRole('heading', { name: new RegExp(`Quote ${quote.quoteId}`) })).toBeTruthy()
+    // SubAccordion's title renders as a styled span inside the toggle
+    // button, not a heading element — query by text instead.
+    expect(screen.getByText(new RegExp(`Quote ${quote.quoteId}`))).toBeTruthy()
+  })
+
+  it('both sections render expanded by default and can be collapsed', async () => {
+    const quote = openQuote()
+    const token = tokenFor(quote, SCAC)
+    renderAt(`/spot-bid/${token}`)
+
+    await screen.findByDisplayValue('Acme Houston Plant')
+
+    const toggles = screen.getAllByRole('button', { name: /shipment detail|your bid/i })
+    expect(toggles.length).toBe(2)
+    toggles.forEach((t) => expect(t.getAttribute('aria-expanded')).toBe('true'))
+
+    fireEvent.click(toggles[0])
+    expect(toggles[0].getAttribute('aria-expanded')).toBe('false')
+    expect(toggles[1].getAttribute('aria-expanded')).toBe('true')
   })
 
   it('renders the carrier-portal identity line beside the logo, with the carrier name and SCAC', async () => {
@@ -171,6 +189,17 @@ describe('CarrierBid — open quote', () => {
 
     await screen.findByDisplayValue('Acme Houston Plant')
     expect(screen.getByText('OdysseyONE Carrier Portal · Old Dominion (ODFL)')).toBeTruthy()
+  })
+
+  it('exposes exactly one <h1>, containing the portal identity text', async () => {
+    const quote = openQuote()
+    const token = tokenFor(quote, SCAC)
+    renderAt(`/spot-bid/${token}`)
+
+    await screen.findByDisplayValue('Acme Houston Plant')
+    const headings = document.querySelectorAll('h1')
+    expect(headings.length).toBe(1)
+    expect(headings[0].textContent).toBe('OdysseyONE Carrier Portal · Old Dominion (ODFL)')
   })
 })
 
@@ -187,6 +216,8 @@ describe('CarrierBid — closed / expired / invalid', () => {
     // true during react-query's loading state regardless of the guard.
     await screen.findByText('This bidding window has closed.')
     expect(screen.queryByRole('button', { name: /submit/i })).toBe(null)
+    expect(document.querySelectorAll('h1').length).toBe(1)
+    expect(document.querySelector('main')).toBeTruthy()
   })
 
   it('shows the closed-window state when the quote status is closed', async () => {
@@ -197,11 +228,15 @@ describe('CarrierBid — closed / expired / invalid', () => {
 
     await screen.findByText('This bidding window has closed.')
     expect(screen.queryByRole('button', { name: /submit/i })).toBe(null)
+    expect(document.querySelectorAll('h1').length).toBe(1)
+    expect(document.querySelector('main')).toBeTruthy()
   })
 
   it('shows an invalid state for a malformed token without throwing', async () => {
     expect(() => renderAt('/spot-bid/!!not-a-real-token!!')).not.toThrow()
     await screen.findByText('This link is invalid.')
     expect(screen.queryByRole('button', { name: /submit/i })).toBe(null)
+    expect(document.querySelectorAll('h1').length).toBe(1)
+    expect(document.querySelector('main')).toBeTruthy()
   })
 })

@@ -21,7 +21,13 @@ const ROW_COLUMNS = `
   mode, equipment_code AS "equipmentCode", scac, tender_status AS "tenderStatus",
   shipment_status AS "shipmentStatus", panel, category, validation_message AS "validationMessage",
   gross_weight AS "grossWeight", load_count AS "loadCount", order_count AS "orderCount",
-  ap_freight_cost AS "apFreightCost"`
+  ap_freight_cost AS "apFreightCost",
+  -- 007_multileg_chains.sql — leg_type is a NEW column, distinct from
+  -- shipment_type above (LINX-11597 Direct/Consolidation) despite the shared
+  -- CSV label; see the migration's name-collision note. sequence_leg/
+  -- next_shipment_id alias to the "shipmentSequenceLeg"/"nextShipmentId" keys
+  -- the frontend (ColumnPanel.jsx ALL_COLUMNS) already carried.
+  leg_type AS "legType", sequence_leg AS "shipmentSequenceLeg", next_shipment_id AS "nextShipmentId"`
 
 // Sortable columns. Dates sort on the real timestamp cols, not the display strings.
 const SORT_MAP = {

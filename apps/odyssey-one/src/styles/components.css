@@ -5919,15 +5919,18 @@ button.breadcrumb__label:focus-visible {
   min-width: 0;                    /* flex-item default is content-width — let the band shrink to its container instead of pushing it wider (belt-and-braces, S107) */
 }
 .summary-strip__cell {
-  /* Figma: fixed 152px cells. Was `flex: 0 0 auto; min-width: 152px` (a hard
-     floor) — that's an ABSOLUTE MUST-FIT bug: cells can't shrink below their
-     floor, so a wide row (e.g. a long Tracking Link) forces the whole strip
-     past its container and pops the horizontal scrollbar. Now: flex-basis is
-     the DESIRED 152px width (holds there at normal sizes, row centered same
-     as before) but flex-shrink:1 + min-width:0 let every cell give up space
-     below 152px when the row doesn't fit — label/value ellipsize rather than
-     bleed (user, 2026-08-03: "no horizontal overflow, ever"). */
-  flex: 0 1 152px;
+  /* Figma: 152px is the DESIRED cell width, not a floor or a ceiling. Was
+     `flex: 0 0 auto; min-width: 152px` (a hard floor) — that's an ABSOLUTE
+     MUST-FIT bug: cells can't shrink below their floor, so a wide row (e.g.
+     a long Tracking Link) forces the whole strip past its container and
+     pops the horizontal scrollbar (fixed S107 with flex-shrink). That left
+     cells sitting at a fixed 152px basis with leftover row width unused
+     (design-lead report, 2026-08-05) — flex-grow:1 now lets cells expand to
+     fill the band evenly, while flex-shrink:1 + min-width:0 still let every
+     cell give up space below 152px when the row doesn't fit — label/value
+     ellipsize rather than bleed (user, 2026-08-03: "no horizontal overflow,
+     ever"). */
+  flex: 1 1 152px;
   min-width: 0;
   padding: var(--spacing-4) var(--spacing-3); /* Figma: 16px / 12px */
   display: flex;
