@@ -11,25 +11,18 @@ const carrierOptions = [
   { value: 'UPGF', label: 'UPGF - UPS Freight' },
 ]
 
-const header = {
-  origin: 'Atlanta, GA',
-  destination: 'Charlotte, NC',
-  equipment: 'Van',
-  distance: '245 mi',
-  hazmat: 'No',
-  pickupWindow: '08/10/2026 08:00 - 12:00',
-}
-
 const list = NAMED_LISTS[0]
 
-function openListDropdown(container) {
-  const trigger = container.querySelector('.dropdown-button')
-  fireEvent.click(trigger)
-}
-
+// ComboBox's typeahead popover is virtualized (@tanstack/react-virtual), which
+// renders zero rows in jsdom — so picking drives the keyboard path instead of
+// clicking a rendered row (the `matches` array driving Enter-select is real
+// regardless of what the virtualizer paints). NAMED_LISTS[0] is first in
+// LIST_OPTIONS, so one ArrowDown lands on it.
 function pickList(container) {
-  openListDropdown(container)
-  fireEvent.click(screen.getByText(list.name))
+  const input = within(container.querySelector('.setup-carriers__toolbar')).getByRole('combobox')
+  fireEvent.focus(input)
+  fireEvent.keyDown(input, { key: 'ArrowDown' })
+  fireEvent.keyDown(input, { key: 'Enter' })
 }
 
 function fillDate(scac, field, value) {
@@ -46,7 +39,6 @@ describe('SetupCarriers', () => {
     render(
       <SetupCarriers
         quote={quote}
-        header={header}
         carrierOptions={carrierOptions}
         readOnly={false}
         onSaveDraft={() => {}}
@@ -60,7 +52,6 @@ describe('SetupCarriers', () => {
   it('Send RFQ becomes enabled after choosing a list and filling dates for included rows', () => {
     const { container } = render(
       <SetupCarriers
-        header={header}
         carrierOptions={carrierOptions}
         readOnly={false}
         onSaveDraft={() => {}}
@@ -84,7 +75,6 @@ describe('SetupCarriers', () => {
     const onSendRFQ = vi.fn()
     const { container } = render(
       <SetupCarriers
-        header={header}
         carrierOptions={carrierOptions}
         readOnly={false}
         onSaveDraft={() => {}}
@@ -119,7 +109,6 @@ describe('SetupCarriers', () => {
     const onSendRFQ = vi.fn()
     const { container } = render(
       <SetupCarriers
-        header={header}
         carrierOptions={carrierOptions}
         readOnly={false}
         onSaveDraft={() => {}}
@@ -143,10 +132,9 @@ describe('SetupCarriers', () => {
     expect(onSendRFQ.mock.calls[0][0].flexiblePickup).toBe(true)
   })
 
-  it('gives the Carrier List dropdown a visible label and an accessible name', () => {
+  it('gives the Carrier List picker a visible label and an accessible name', () => {
     const { container } = render(
       <SetupCarriers
-        header={header}
         carrierOptions={carrierOptions}
         readOnly={false}
         onSaveDraft={() => {}}
@@ -156,13 +144,25 @@ describe('SetupCarriers', () => {
     )
     const toolbar = container.querySelector('.setup-carriers__toolbar')
     expect(within(toolbar).getByText('Carrier List')).toBeTruthy()
-    expect(within(toolbar).getByLabelText('Carrier List')).toBeTruthy()
+    expect(within(toolbar).getByRole('combobox')).toBeTruthy()
+  })
+
+  it('shows the Quote Duration unit so the value is unambiguous', () => {
+    render(
+      <SetupCarriers
+        carrierOptions={carrierOptions}
+        readOnly={false}
+        onSaveDraft={() => {}}
+        onSendRFQ={() => {}}
+        onCancel={() => {}}
+      />
+    )
+    expect(screen.getByText('Quote Duration (minutes)')).toBeTruthy()
   })
 
   it('readOnly hides the action buttons', () => {
     render(
       <SetupCarriers
-        header={header}
         carrierOptions={carrierOptions}
         readOnly
         onSaveDraft={() => {}}

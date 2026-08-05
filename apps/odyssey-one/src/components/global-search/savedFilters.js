@@ -60,6 +60,51 @@ export function splitFreeText(chips) {
   return { chips: chips.filter((c) => c.key !== '__free-text__'), freeText }
 }
 
+// ── Odyssey defaults (S108 Phase 2, still no DB — code constants, mirroring
+// how `PRESETS.odyssey` ships for column presets in ColumnPanel.jsx) ────────
+//
+// ⚠ INVENTED — no canon defines these. Spec's own suggestion was Mode, Tender
+// Status, Hazmat (design doc, "Odyssey default filters are INVENTED" box);
+// verified against SHIPMENTS_PROGRESSION (progression.js — "the ONLY place
+// Shipments search data lives") before picking: Mode (`mode`, group
+// 'Transport & Equipment') and Tender Status (`tender-status`, group 'Carrier
+// & Tender Status') are both real attributes with real `dataKey`s the adapter
+// reads off every row (see adapter.js's `toStatusBadge`/`toTenderBadge`,
+// which branch on `s.tenderStatus` — the same field this default filters on).
+// Hazmat is NOT in SHIPMENTS_PROGRESSION at all — there is no search
+// attribute for it, so a Hazmat chip's `dataKey` would resolve to nothing and
+// the filter would degrade to an honest-empty result the moment anyone
+// applied it. Dropped rather than shipped shaky (spec: "prefer fewer,
+// definitely-working defaults"). Flagged for a decision-log entry (GS-24) and
+// to raise with Jana (Shipments PM) before this reaches a demo — these two
+// picks (TL mode; pending/"Sent" tenders) are a guess at useful defaults, not
+// sourced from any transcript or Jira ticket.
+const attrByKey = new Map(
+  SHIPMENTS_PROGRESSION.flatMap((g) => g.attributes.map((a) => [a.key, { ...a, group: g.group }])),
+)
+// Builds a `kind: 'attribute'` chip in the EXACT shape `mergeFiltersIntoChips`
+// produces (ShipmentsFiltersView.jsx's non-date branch) — so applying a
+// default takes the IDENTICAL code path (`onApplySaved` → `applyChips`
+// wholesale) as applying a custom filter; nothing downstream can tell the
+// difference.
+function attrChip(key, value) {
+  const attr = attrByKey.get(key)
+  return {
+    key, label: `${attr.label}: ${value}`, attrLabel: attr.label, queryValue: value,
+    dataKey: attr.dataKey, group: attr.group, ...(attr.exact && { exact: true }), kind: 'attribute',
+  }
+}
+
+// Stable ids — `odyssey-` prefixed so they can never collide with a
+// `crypto.randomUUID()` custom-filter id (spec, "Data model": `id =
+// crypto.randomUUID()` for Custom; UUIDs never start with a bare word).
+// Fixed array order = fixed display order (spec "Behaviour" 2: "nobody drags
+// inside it").
+export const ODYSSEY_DEFAULT_FILTERS = [
+  { id: 'odyssey-mode-tl', name: 'TL Shipments', chips: [attrChip('mode', 'TL')] },
+  { id: 'odyssey-tender-sent', name: 'Pending Tenders', chips: [attrChip('tender-status', 'Sent')] },
+]
+
 // Raw preference value → `{ v: 1, custom: [...] }`. Tolerates null/undefined/
 // garbage input (empty list). The free-text chip (`key: '__free-text__'`, no
 // attribute — see useGlobalSearch.js) always survives; every other chip is

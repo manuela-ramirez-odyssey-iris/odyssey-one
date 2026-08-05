@@ -33,6 +33,17 @@ describe('SpotBoardTab', () => {
     expect(screen.getByText('Live Bids')).toBeTruthy()
   })
 
+  // The context strip was hoisted out of Setup & Carriers so it stays put across
+  // sub-tabs — assert it on Live Bids, where it never rendered before.
+  it('keeps the shipment-context SummaryStrip visible on both sub-tabs', () => {
+    render(<SpotBoardTab shipmentDetails={makeShipmentDetails([])} shipment={shipment} />)
+    const strip = screen.getByLabelText('Shipment Summary')
+    expect(strip.textContent).toContain('Atlanta, GA')
+    expect(strip.textContent).toContain('Charlotte, NC')
+    fireEvent.click(screen.getByText('Live Bids'))
+    expect(screen.getByLabelText('Shipment Summary').textContent).toContain('Atlanta, GA')
+  })
+
   it('shows the EmptyState (not the sub-tabs) when the shipment has an Accepted tender', () => {
     const details = makeShipmentDetails([
       { rank: 1, status: 'Accepted', scac: 'ODFL', carrierName: 'Old Dominion' },

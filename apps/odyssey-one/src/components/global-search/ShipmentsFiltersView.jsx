@@ -9,7 +9,7 @@ import { GroupLabel, PresetActionsMenu } from '../common/presetChrome.jsx'
 import { SHIPMENTS_PROGRESSION } from '../../search/shipments/progression'
 import { shipmentsSearchAdapter } from '../../search/shipments'
 import { formatDateMDY } from '../../lib/dates'
-import { splitFreeText } from './savedFilters'
+import { splitFreeText, ODYSSEY_DEFAULT_FILTERS } from './savedFilters'
 
 /**
  * ShipmentsFiltersView — the Filters *content* of the GlobalSearch overlay.
@@ -39,8 +39,9 @@ import { splitFreeText } from './savedFilters'
  * controls; "Save Filters" opens the real Save Filter modal (S108 1b,
  * `onOpenSaveModal` — hosted in ShipmentsGlobalSearch, not here). The Saved
  * tab (S108 1d) renders the real persisted Custom-group list from the
- * `savedFilters` prop — Custom group only; the Odyssey/defaults group is
- * Phase 2 and sharing/author badges are Phase 3 (blocked on the migration).
+ * `savedFilters` prop, plus (S108 Phase 2) the shipped ODYSSEY_DEFAULT_FILTERS
+ * code constants (savedFilters.js) as a second, fixed-order, undeletable
+ * group; sharing/author badges are Phase 3 (blocked on the migration).
  */
 
 // Saved-tab selection → count debounce (spec "Behaviour" 7): mirrors
@@ -419,10 +420,15 @@ export default function ShipmentsFiltersView({
   // wired — flagged in the task report as a packages/ui gap (a component-
   // local loading affordance, not the panel-wide one) rather than shipping a
   // literal reading that breaks re-selection.
+  // S108 Phase 2: selection is single-select ACROSS both groups (spec, user
+  // ruling "single select" isn't scoped to Custom) — an Odyssey default and a
+  // Custom filter share the same `selectedFilterId`/count/apply machinery, so
+  // lookups search the combined list rather than `savedFilters` alone.
+  const allSavedFilters = [...savedFilters, ...ODYSSEY_DEFAULT_FILTERS]
   const [savedFilterCount, setSavedFilterCount] = useState(0)
   useEffect(() => {
     if (!selectedFilterId) { setSavedFilterCount(0); return }
-    const filter = savedFilters.find((f) => f.id === selectedFilterId)
+    const filter = allSavedFilters.find((f) => f.id === selectedFilterId)
     if (!filter || !scopedAdapter?.searchShipments) { setSavedFilterCount(0); return }
     let cancelled = false
     // `filter.chips` may carry a `__free-text__` badge — searchShipments
@@ -525,8 +531,13 @@ export default function ShipmentsFiltersView({
   }
 
   const savedMenuOptions = [
-    // Enabled only for a selection — Edit Name acts on "the selected filter" (spec).
-    { label: 'Edit Name', onSelect: handleEditName, disabled: !selectedFilterId },
+    // Enabled only for a selection the current user OWNS (Custom group) —
+    // Edit Name acts on "the selected filter" (spec), and an Odyssey default
+    // is never editable/deletable by anyone (S108 Phase 2). Without this
+    // ownership check, selecting a default would show Edit Name as enabled
+    // even though `handleEditName`'s own `savedFilters.find` guard already
+    // no-ops for it — belt + suspenders, and keeps the ⋮ honest.
+    { label: 'Edit Name', onSelect: handleEditName, disabled: !savedFilters.some((f) => f.id === selectedFilterId) },
     { label: 'Delete Filters', onSelect: handleEnterDeleteMode },
   ]
 
@@ -536,11 +547,14 @@ export default function ShipmentsFiltersView({
   // count (the effect above), never resultTotal — mixing the two would show a
   // number that belongs to a different search than the one about to apply.
   const savedTabActive = activeTab === 'saved' && !inSavedDeleteMode
-  const savedFilterSelected = savedFilters.find((f) => f.id === selectedFilterId) || null
+  const savedFilterSelected = allSavedFilters.find((f) => f.id === selectedFilterId) || null
 
+  // Tab count = every ROW the Saved tab actually renders — both groups
+  // (S108 Phase 2: adding the Odyssey group without updating this would
+  // undercount, the exact "truthful number" the task calls out).
   const tabs = [
     { key: 'all', label: 'All', count: activeCount },
-    { key: 'saved', label: 'Saved', count: savedFilters.length },
+    { key: 'saved', label: 'Saved', count: allSavedFilters.length },
   ]
 
   // Built once (not inline in the JSX below) so both the portal branch and
@@ -635,7 +649,10 @@ export default function ShipmentsFiltersView({
             <GroupLabel action={<PresetActionsMenu options={savedMenuOptions} />}>
               Custom Filters
             </GroupLabel>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-1)' }}>
+            <div
+              className="shipments-filters__saved-list shipments-filters__saved-list--custom"
+              style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-1)' }}
+            >
               {savedFilters.map((filter, index) => {
                 // Delete mode: EVERY Custom row swaps radio → bordered
                 // Checkbox (batch multi-select), same as ColumnPanel 4301:19405.
@@ -742,6 +759,48 @@ export default function ShipmentsFiltersView({
                   </span>
                 </div>
               )}
+            </div>
+
+            {/* S108 Phase 2 — ODYSSEY FILTERS: shipped defaults, code
+                constants (savedFilters.js's ODYSSEY_DEFAULT_FILTERS), neither
+                store. No ⋮ (not editable/deletable by anyone), rows carry no
+                `draggable` prop (no grip, no wrapper DnD div — fixed order,
+                "nobody drags inside it"). Select/expand reuse the SAME state
+                as Custom (`selectedFilterId`/`expandedIds`) — one selection
+                across both groups, applying goes through the identical
+                onApplySaved(chips) path (see `allSavedFilters` above). During
+                a Custom delete-mode batch these rows just disable (mirrors
+                ColumnPanel's "Odyssey group renders disabled", 4301:19405)
+                rather than converting to checkboxes — they were never part
+                of the deletable set. */}
+            <div style={{ marginTop: 'var(--spacing-5)' }}>
+              <GroupLabel>Odyssey Filters</GroupLabel>
+              <div
+                className="shipments-filters__saved-list shipments-filters__saved-list--odyssey"
+                style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-1)' }}
+              >
+                {ODYSSEY_DEFAULT_FILTERS.map((filter) => (
+                  <div key={filter.id}>
+                    <MenuRowRadio
+                      label={filter.name}
+                      selected={selectedFilterId === filter.id}
+                      disabled={deleteMode}
+                      onSelect={() => setSelectedFilterId(filter.id)}
+                      onNavigate={deleteMode ? undefined : () => toggleExpand(filter.id)}
+                    />
+                    {expandedIds.has(filter.id) && (
+                      <div style={{
+                        display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-1)',
+                        padding: 'var(--spacing-1) var(--spacing-3) var(--spacing-3)',
+                      }}>
+                        {filter.chips.map((chip) => (
+                          <SearchChip key={chip.key} label={chip.label} />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}

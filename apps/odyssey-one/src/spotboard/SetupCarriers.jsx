@@ -1,20 +1,11 @@
 import { useMemo, useState } from 'react'
 import { useReactTable, getCoreRowModel, createColumnHelper } from '@tanstack/react-table'
-import { DataTable, Dropdown, FormField, Checkbox, Badge, Button } from '@odyssey/ui'
+import { DataTable, ComboBox, FormField, Checkbox, Badge, Button } from '@odyssey/ui'
 import DateField from '../components/orders/create/fields/DateField.jsx'
 import { NAMED_LISTS, buildCarrierRows } from './carrierList.js'
 import './spotboard.css'
 
 const LIST_OPTIONS = NAMED_LISTS.map((l) => ({ value: l.id, label: l.name }))
-
-function Field({ label, value }) {
-  return (
-    <div className="setup-carriers__field">
-      <div className="setup-carriers__field-label">{label}</div>
-      <div className="setup-carriers__field-value">{value}</div>
-    </div>
-  )
-}
 
 const columnHelper = createColumnHelper()
 
@@ -78,10 +69,12 @@ function buildColumns(readOnly, toggleIncl, updateDate) {
 }
 
 /**
- * SetupCarriers — SpotBoard "Setup & Carriers" sub-tab. Read-only context
- * header (from `header`, derived upstream) + a toolbar to pick a named
- * carrier list/quote duration/flexible-pickup + the carrier DataTable
+ * SetupCarriers — SpotBoard "Setup & Carriers" sub-tab. A toolbar to pick a
+ * named carrier list/quote duration/flexible-pickup + the carrier DataTable
  * (Incl./Carrier/Equip/Email/dates/Flags) + Send RFQ/Save Draft/Cancel.
+ *
+ * The shipment-context SummaryStrip now lives in the parent (SpotBoardTab),
+ * hoisted above both sub-tabs — it's not this component's concern anymore.
  *
  * `carrierOptions` arrives pre-resolved ({value: scac, label} from the async
  * `getLookupOptions('carrier', q)` pool) — the fetch is the parent's job
@@ -90,7 +83,6 @@ function buildColumns(readOnly, toggleIncl, updateDate) {
  */
 export default function SetupCarriers({
   quote,
-  header,
   carrierOptions,
   readOnly = false,
   onSaveDraft,
@@ -141,29 +133,21 @@ export default function SetupCarriers({
 
   return (
     <div className="setup-carriers">
-      <div className="setup-carriers__header">
-        <Field label="Origin" value={header?.origin} />
-        <Field label="Destination" value={header?.destination} />
-        <Field label="Equipment" value={header?.equipment} />
-        <Field label="Distance" value={header?.distance} />
-        <Field label="Hazmat" value={header?.hazmat} />
-        <Field label="Pickup Window" value={header?.pickupWindow} />
-      </div>
-
       <div className="setup-carriers__toolbar">
-        <div className="setup-carriers__dropdown-field">
-          <div className="setup-carriers__dropdown-label text-label-sm-medium">Carrier List</div>
-          <Dropdown
-            value={listId}
-            options={LIST_OPTIONS}
-            onChange={handleListChange}
-            disabled={readOnly}
-            aria-label="Carrier List"
-          />
-        </div>
+        <ComboBox
+          id="carrier-list"
+          variant="select"
+          typable={false}
+          showLabel
+          label="Carrier List"
+          options={LIST_OPTIONS}
+          value={listId}
+          onSelect={handleListChange}
+          disabled={readOnly}
+        />
         <FormField
           id="quote-duration"
-          label="Quote Duration"
+          label="Quote Duration (minutes)"
           format="integer"
           maxLength={5}
           value={durationMin}

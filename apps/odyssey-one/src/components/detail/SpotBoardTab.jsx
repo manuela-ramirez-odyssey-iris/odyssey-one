@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { TriangleAlert } from 'lucide-react'
-import { EmptyState, Tab } from '@odyssey/ui'
+import { EmptyState, Tab, SummaryStrip } from '@odyssey/ui'
 import SetupCarriers from '../../spotboard/SetupCarriers.jsx'
 import LiveBids from '../../spotboard/LiveBids.jsx'
 import RfqLinksPanel from '../../spotboard/RfqLinksPanel.jsx'
@@ -198,6 +198,18 @@ export default function SpotBoardTab({ shipmentDetails, shipment }) {
         </div>
       </div>
 
+      <SummaryStrip
+        aria-label="Shipment Summary"
+        items={[
+          { label: 'Origin', value: header?.origin },
+          { label: 'Destination', value: header?.destination },
+          { label: 'Equipment', value: header?.equipment },
+          { label: 'Distance', value: header?.distance },
+          { label: 'Hazmat', value: header?.hazmat },
+          { label: 'Pickup Window', value: header?.pickupWindow },
+        ]}
+      />
+
       {rfqLinksVisible && quote?.status === 'open' && (
         <div className="pane-col pane-col--wide">
           <RfqLinksPanel
@@ -212,7 +224,6 @@ export default function SpotBoardTab({ shipmentDetails, shipment }) {
         {subTab === 'setup' ? (
           <SetupCarriers
             quote={quote}
-            header={header}
             carrierOptions={carrierOptions}
             readOnly={quote?.status === 'open' || quote?.status === 'closed' || quote?.status === 'awarded'}
             onSaveDraft={saveDraft}
