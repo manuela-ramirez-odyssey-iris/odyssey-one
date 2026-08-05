@@ -10,6 +10,7 @@ import { SHIPMENTS_PROGRESSION } from '../../search/shipments/progression'
 import { shipmentsSearchAdapter } from '../../search/shipments'
 import { formatDateMDY } from '../../lib/dates'
 import { splitFreeText, ODYSSEY_DEFAULT_FILTERS, stripChip } from './savedFilters'
+import { currentUser } from '../../data/sso-mock'
 
 /**
  * ShipmentsFiltersView — the Filters *content* of the GlobalSearch overlay.
@@ -41,7 +42,10 @@ import { splitFreeText, ODYSSEY_DEFAULT_FILTERS, stripChip } from './savedFilter
  * tab (S108 1d) renders the real persisted Custom-group list from the
  * `savedFilters` prop, plus (S108 Phase 2) the shipped ODYSSEY_DEFAULT_FILTERS
  * code constants (savedFilters.js) as a second, fixed-order, undeletable
- * group; sharing/author badges are Phase 3 (blocked on the migration).
+ * group. S108 Phase 3d adds the SHARED filters (`sharedFilters` prop, hosted
+ * in ShipmentsGlobalSearch same as everything else) into that same Odyssey
+ * group, each carrying a `by: <username>` badge — see the "Odyssey Filters"
+ * render block below for the ownership rules (spec "Behaviour" 4/5).
  *
  * S110 rev1 (docs/superpowers/specs/2026-08-05-filters-profile-flow.md) —
  * "a saved filter is not a thing you select and apply, it is a search
@@ -168,14 +172,53 @@ export function mergeFiltersIntoChips(chips, filters) {
   return next
 }
 
-// S110 rev1 "badge" — the chevron-expand (chip preview) is gone, so this is
-// the only remaining at-a-glance "how big is this profile" signal on a saved
-// row. MenuRowRadio's `badge` prop (already shipped — Figma `Show Badge`
-// boolean, `MenuRowRadio.jsx`) renders a string as our `Badge`. Kept to the
-// count only — `by: <username>` is Phase 3, blocked on the sharing migration.
-function filterCountBadge(chips) {
-  const n = chips.length
-  return `${n} filter${n === 1 ? '' : 's'}`
+// S108 Phase 3d — the badge slot (MenuRowRadio's `badge` prop, gate 2 of the
+// spec, already shipped) now carries `by: <username>` on every SHARED row
+// (spec "Behaviour" 2, task instruction: "replace, don't stack" — the Phase 1
+// filter-count placeholder badge that used to live here is gone outright, not
+// kept alongside this one). Custom rows and shipped defaults get NO badge —
+// only a shared row has an author to show.
+function authorBadge(filter) {
+  return `by: ${filter.ownerUsername}`
+}
+
+// Drag payload shared by every draggable row in the Saved tab (Custom
+// reorder AND the two cross-group share/un-share gestures, spec "Behaviour"
+// 4). `from` tells a drop target which store the row came from; `index` is
+// only meaningful for a Custom-origin drag (Custom reorder needs a position,
+// Odyssey has none — "fixed order", spec "Behaviour" 2). JSON over the bare
+// index `ColumnPanel.jsx` uses because a single wire format now has to carry
+// two different drag intents (reposition vs. move-between-groups).
+function readDragPayload(e) {
+  try {
+    return JSON.parse(e.dataTransfer.getData('text/plain'))
+  } catch {
+    return null
+  }
+}
+
+// The inline rename `<input>` — same field, same styling, needed by BOTH the
+// Custom group (any row) and the Odyssey group (an OWNED shared row only,
+// spec "Behaviour" 5 "the author edits") — factored out once rather than
+// duplicated per group.
+function RenameInput({ inputRef, value, onChange, onKeyDown, onBlur, ariaLabel }) {
+  return (
+    <input
+      ref={inputRef}
+      value={value}
+      onChange={onChange}
+      onKeyDown={onKeyDown}
+      onBlur={onBlur}
+      aria-label={ariaLabel}
+      style={{
+        background: 'transparent', border: 'none', outline: 'none',
+        padding: 0, margin: 0, width: '100%', minWidth: 0,
+        color: 'var(--text-secondary)', fontFamily: 'var(--font-primary)',
+        fontSize: 'var(--font-size-sm)', lineHeight: 'var(--line-height-sm)',
+        fontWeight: 'var(--font-weight-regular)',
+      }}
+    />
+  )
 }
 
 function SectionHeader({ children }) {
@@ -356,6 +399,31 @@ export default function ShipmentsFiltersView({
   onRenameFilter,
   onDeleteFilters,
   onReorderFilters,
+  // S108 Phase 3d — the SHARED half of the Odyssey group (hosted in
+  // ShipmentsGlobalSearch, same `useQuery`/`setQueryData` pairing as
+  // `savedFilters` above; see that file's "Shared filters" block). Each
+  // entry carries `ownerId`/`ownerUsername` from the `users` join
+  // (sharedFilters.mjs) — ownership gates rename/delete/drag-out below.
+  // Default `[]` for the same bare-render reason as `savedFilters` above.
+  sharedFilters = [],
+  // Custom → Odyssey drag (spec "Behaviour" 4): shares the dragged Custom
+  // filter and moves it out of Custom, called with the FULL filter object
+  // (id/name/chips) so the host doesn't have to re-look-up what was dragged.
+  onShareFilter,
+  // Odyssey → Custom drag (spec "Behaviour" 4): un-shares + restores to
+  // Custom. Author-only — the view's own drag-doesn't-start guard (below)
+  // keeps a non-author's row from ever producing this call in the first
+  // place; the host's author check (sharedFilterService) is the backstop.
+  onUnshareFilter,
+  // ⋮ → Edit Name acting on a selection that's an OWNED shared filter rather
+  // than a Custom one (spec "Behaviour" 5: "the author edits" isn't scoped to
+  // Custom) — same menu, different persistence call underneath.
+  onRenameSharedFilter,
+  // ⋮ → Delete Filters batch, for the ids among the selection that are OWNED
+  // shared rows (spec "Behaviour" 4's "checkboxes appear only on your own
+  // shared rows"). A genuine delete, not an un-share+restore — that's what
+  // the drag gesture is for; see `handleConfirmDelete` below.
+  onDeleteSharedFilters,
   // S110 rev1 "Footer links" — Update Filter persists the editor's current
   // values onto the OPEN profile (id, chips). Panel-only by construction:
   // this is the sole call site, and it never touches onApplyFilters/
@@ -464,8 +532,17 @@ export default function ShipmentsFiltersView({
   // S108 Phase 2: selection is single-select ACROSS both groups (spec, user
   // ruling "single select" isn't scoped to Custom) — an Odyssey default and a
   // Custom filter share the same `selectedFilterId`/count/apply machinery, so
-  // lookups search the combined list rather than `savedFilters` alone.
-  const allSavedFilters = [...savedFilters, ...ODYSSEY_DEFAULT_FILTERS]
+  // lookups search the combined list rather than `savedFilters` alone. Phase
+  // 3d adds `sharedFilters` to the same combined list — "anyone can select
+  // and apply any shared filter" (spec "Behaviour" 5) needs no extra
+  // machinery beyond being IN this list; ownership only gates the
+  // rename/delete/drag-out paths below, never selection/apply.
+  const allSavedFilters = [...savedFilters, ...ODYSSEY_DEFAULT_FILTERS, ...sharedFilters]
+  // Shared filters this session's user authored (spec "Behaviour" 5: "the
+  // author edits, everyone applies") — same spoofable-until-SSO identity
+  // check as the API/service layer (sharedFilters.mjs header), just on the
+  // client for gating which affordances even render.
+  const ownedSharedFilters = sharedFilters.filter((f) => f.ownerId === currentUser.id)
   const [savedFilterCount, setSavedFilterCount] = useState(0)
   useEffect(() => {
     if (!selectedFilterId) { setSavedFilterCount(0); return }
@@ -497,8 +574,14 @@ export default function ShipmentsFiltersView({
   }, [renamingId])
 
   const handleEditName = () => {
-    const target = savedFilters.find((f) => f.id === selectedFilterId)
-    if (!target) return // menu option is disabled with nothing selected; belt + suspenders
+    // S108 Phase 3d: "the author edits" (spec "Behaviour" 5) isn't scoped to
+    // Custom — the selection may be an OWNED shared row instead. Custom
+    // checked first (the common case); `ownedSharedFilters` (not the raw
+    // `sharedFilters`) is the guard that keeps this disabled for someone
+    // else's shared row, same as `savedMenuOptions`'s disabled check below.
+    const target = savedFilters.find((f) => f.id === selectedFilterId) ||
+      ownedSharedFilters.find((f) => f.id === selectedFilterId)
+    if (!target) return // menu option is disabled with nothing selected/owned; belt + suspenders
     setRenameValue(target.name)
     setRenamingId(target.id)
     onRenameActiveChange?.(true)
@@ -509,7 +592,14 @@ export default function ShipmentsFiltersView({
   const commitRename = () => {
     if (!renamingId) return
     const name = renameValue.trim()
-    if (name) onRenameFilter?.(renamingId, name) // blank name: treat as cancel, don't persist
+    // Route by which store the id lives in — `handleEditName` above only
+    // ever arms `renamingId` for a Custom filter or an OWNED shared one, so
+    // this dispatch is safe without re-checking ownership here. Blank name:
+    // treat as cancel, don't persist either way.
+    if (name) {
+      if (savedFilters.some((f) => f.id === renamingId)) onRenameFilter?.(renamingId, name)
+      else onRenameSharedFilter?.(renamingId, name)
+    }
     setRenamingId(null)
     onRenameActiveChange?.(false)
   }
@@ -552,7 +642,17 @@ export default function ShipmentsFiltersView({
     setShowDeleteConfirm(true)
   }
   const handleConfirmDelete = () => {
-    onDeleteFilters?.([...deleteSelection])
+    // S108 Phase 3d — the batch may mix Custom ids and OWNED-shared ids (the
+    // Odyssey group's checkboxes only ever render for those, see the render
+    // block below), so split and route to the two stores' own delete calls.
+    // This is a genuine delete for a shared row, not un-share+restore — that
+    // pairing is the drag gesture's job (`onUnshareFilter`), a deliberately
+    // different, less-final action.
+    const ids = [...deleteSelection]
+    const customIds = ids.filter((id) => savedFilters.some((f) => f.id === id))
+    const sharedIds = ids.filter((id) => ownedSharedFilters.some((f) => f.id === id))
+    if (customIds.length) onDeleteFilters?.(customIds)
+    if (sharedIds.length) onDeleteSharedFilters?.(sharedIds)
     if (selectedFilterId && deleteSelection.has(selectedFilterId)) setSelectedFilterId(null)
     // The deleted profile can't stay "open" in the editor — its own tab
     // label (its name) would dangle. Reverts the right tab back to "All".
@@ -564,24 +664,59 @@ export default function ShipmentsFiltersView({
   // Drag reorder (spec "Behaviour" 2, wrapper-div pattern per ColumnPanel.jsx's
   // selected-columns list — MenuRowRadio destructures `draggable` for its own
   // grip icon and does NOT forward it to the DOM, so the wrapper carries the
-  // real HTML5 DnD attributes).
+  // real HTML5 DnD attributes). S108 Phase 3d reuses the SAME wiring for the
+  // two cross-group gestures (spec "Behaviour" 4) rather than adding a
+  // library — `readDragPayload` (above) tags every drag with its origin
+  // store so a drop target can tell "reposition within Custom" apart from
+  // "moved from the other group."
   const [savedDragOverIndex, setSavedDragOverIndex] = useState(null)
   const handleSavedDrop = (e, toIndex) => {
     e.preventDefault()
     setSavedDragOverIndex(null)
-    const fromIndex = parseInt(e.dataTransfer.getData('text/plain'), 10)
-    if (isNaN(fromIndex) || fromIndex === toIndex) return
-    onReorderFilters?.(fromIndex, toIndex)
+    const payload = readDragPayload(e)
+    // A Custom-origin drag landing on a Custom row: reorder (unchanged
+    // behaviour/wire shape aside from the JSON envelope). A shared-origin
+    // drag reaching here is handled by the LIST container's own onDrop
+    // below (un-share) — ignore it so the two don't double-fire (this
+    // handler doesn't stopPropagation, so the container still sees it).
+    if (!payload || payload.from !== 'custom' || payload.index === toIndex) return
+    onReorderFilters?.(payload.index, toIndex)
+  }
+  // Odyssey → Custom (spec "Behaviour" 4, un-share): dropped ANYWHERE in the
+  // Custom list — position is meaningless here, there's no "index" to land
+  // on, just "is now in Custom." Sits on the LIST container (not each row)
+  // so it still works when Custom is empty (no rows to drop onto).
+  const handleCustomListDrop = (e) => {
+    e.preventDefault()
+    const payload = readDragPayload(e)
+    if (!payload || payload.from !== 'shared') return
+    const filter = ownedSharedFilters.find((f) => f.id === payload.id)
+    if (filter) onUnshareFilter?.(filter)
+  }
+  // Custom → Odyssey (spec "Behaviour" 4, share): same reasoning — the
+  // Odyssey group has no per-row drop target at all (fixed order, "nobody
+  // drags inside it"), so this lives on the group's list container only.
+  const handleOdysseyListDrop = (e) => {
+    e.preventDefault()
+    const payload = readDragPayload(e)
+    if (!payload || payload.from !== 'custom') return
+    const filter = savedFilters.find((f) => f.id === payload.id)
+    if (filter) onShareFilter?.(filter)
   }
 
   const savedMenuOptions = [
-    // Enabled only for a selection the current user OWNS (Custom group) —
-    // Edit Name acts on "the selected filter" (spec), and an Odyssey default
-    // is never editable/deletable by anyone (S108 Phase 2). Without this
-    // ownership check, selecting a default would show Edit Name as enabled
-    // even though `handleEditName`'s own `savedFilters.find` guard already
-    // no-ops for it — belt + suspenders, and keeps the ⋮ honest.
-    { label: 'Edit Name', onSelect: handleEditName, disabled: !savedFilters.some((f) => f.id === selectedFilterId) },
+    // Enabled for a selection the current user OWNS — a Custom filter (all
+    // of them, no author concept) or an OWNED shared filter (S108 Phase 3d,
+    // spec "Behaviour" 5: "the author edits" isn't scoped to Custom). An
+    // Odyssey default or someone else's shared row is never editable —
+    // `handleEditName`'s own guard already no-ops for either, this is belt +
+    // suspenders that also keeps the ⋮ item's disabled state honest.
+    {
+      label: 'Edit Name',
+      onSelect: handleEditName,
+      disabled: !savedFilters.some((f) => f.id === selectedFilterId) &&
+        !ownedSharedFilters.some((f) => f.id === selectedFilterId),
+    },
     { label: 'Delete Filters', onSelect: handleEnterDeleteMode },
   ]
 
@@ -600,6 +735,19 @@ export default function ShipmentsFiltersView({
   // must never appear for one, same rule as no ⋮/no grip/not deletable).
   const openProfile = allSavedFilters.find((f) => f.id === openProfileId) || null
   const isOdysseyDefaultOpen = !!openProfile && ODYSSEY_DEFAULT_FILTERS.some((f) => f.id === openProfile.id)
+  // S108 Phase 3d — Update Filter is suppressed for EVERY shared row, owned
+  // or not, not just someone else's. Reason: `shared_filters` only exposes
+  // rename (PATCH name) and delete (DELETE) — sharedFilters.mjs has no
+  // "update chips" route, by design (the migration/API for this feature is
+  // already live and out of scope to extend here). A delete+re-share could
+  // fake it, but that's two non-atomic network calls behind one button —
+  // if the POST failed after the DELETE succeeded, the row would just be
+  // gone. The honest, safe answer: to change what a shared filter searches
+  // for, un-share it (drag Odyssey → Custom), edit it as a Custom profile
+  // (Update Filter works there), then re-share. This trivially also
+  // satisfies "must not let you overwrite someone else's" — it never
+  // overwrites anyone's, including your own, from this button.
+  const isSharedOpen = !!openProfile && sharedFilters.some((f) => f.id === openProfile.id)
   // Dirty = the editor's current values, merged back onto the OPEN PROFILE's
   // own stored chips (not the bar's — that's the point), differ from the
   // profile as stored. Reuses the exact field list `chipsSearchKey`
@@ -610,7 +758,7 @@ export default function ShipmentsFiltersView({
   // this is also why it disappears again right after a successful update —
   // `openProfile.chips` becomes what was just persisted, so the next merge
   // is a no-op against itself.
-  const editorDirty = !!openProfile && !isOdysseyDefaultOpen &&
+  const editorDirty = !!openProfile && !isOdysseyDefaultOpen && !isSharedOpen &&
     JSON.stringify(mergeFiltersIntoChips(openProfile.chips, filters).map(stripChip)) !==
       JSON.stringify(openProfile.chips.map(stripChip))
 
@@ -619,7 +767,7 @@ export default function ShipmentsFiltersView({
   // and is the only call site for `onUpdateFilter`, making the panel the
   // only place a profile can be updated from (the HARD RULE).
   const handleUpdateFilter = () => {
-    if (!openProfile || isOdysseyDefaultOpen) return // belt + suspenders — the button is hidden for both already
+    if (!openProfile || isOdysseyDefaultOpen || isSharedOpen) return // belt + suspenders — the button is hidden for all three already
     onUpdateFilter?.(openProfile.id, mergeFiltersIntoChips(openProfile.chips, filters))
   }
 
@@ -748,6 +896,15 @@ export default function ShipmentsFiltersView({
             <div
               className="shipments-filters__saved-list shipments-filters__saved-list--custom"
               style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-1)' }}
+              // S108 Phase 3d (spec "Behaviour" 4, un-share) — dropping an
+              // OWNED shared row anywhere in this list restores it to
+              // Custom. Lives on the LIST, not a row, so it still works when
+              // Custom is empty (`handleCustomListDrop` above). A Custom-
+              // origin drag bubbling up here from a row's own `onDrop`
+              // (reorder, below) is a no-op — that handler only reacts to
+              // `from === 'shared'`.
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={handleCustomListDrop}
             >
               {savedFilters.map((filter, index) => {
                 // Delete mode: EVERY Custom row swaps radio → bordered
@@ -773,11 +930,15 @@ export default function ShipmentsFiltersView({
                         destructures `draggable` for its own grip icon and never
                         forwards it to the DOM (ColumnPanel.jsx selected-columns
                         pattern). Not draggable mid-rename: a click-drag to select
-                        text inside the input would otherwise start a row drag. */}
+                        text inside the input would otherwise start a row drag.
+                        Payload tags this drag `from: 'custom'` + its own `index`
+                        (S108 Phase 3d, `readDragPayload`) so a drop target can
+                        tell "reposition" (Custom→Custom) apart from "move
+                        groups" (Custom→Odyssey, `handleOdysseyListDrop`). */}
                     <div
                       draggable={!isRenaming}
                       onDragStart={(e) => {
-                        e.dataTransfer.setData('text/plain', String(index))
+                        e.dataTransfer.setData('text/plain', JSON.stringify({ id: filter.id, index, from: 'custom' }))
                         e.dataTransfer.effectAllowed = 'move'
                       }}
                       onDragOver={(e) => {
@@ -803,23 +964,18 @@ export default function ShipmentsFiltersView({
                         // dropped so the nav zone's click no-ops instead of
                         // swapping the tab out from under the input mid-edit.
                         label={isRenaming ? (
-                          <input
-                            ref={renameInputRef}
+                          <RenameInput
+                            inputRef={renameInputRef}
                             value={renameValue}
                             onChange={(e) => setRenameValue(e.target.value)}
                             onKeyDown={handleRenameKeyDown}
                             onBlur={commitRename}
-                            aria-label={`Rename ${filter.name}`}
-                            style={{
-                              background: 'transparent', border: 'none', outline: 'none',
-                              padding: 0, margin: 0, width: '100%', minWidth: 0,
-                              color: 'var(--text-secondary)', fontFamily: 'var(--font-primary)',
-                              fontSize: 'var(--font-size-sm)', lineHeight: 'var(--line-height-sm)',
-                              fontWeight: 'var(--font-weight-regular)',
-                            }}
+                            ariaLabel={`Rename ${filter.name}`}
                           />
                         ) : filter.name}
-                        badge={isRenaming ? undefined : filterCountBadge(filter.chips)}
+                        // S108 Phase 3d "replace, don't stack" — Custom rows
+                        // never carry a badge (no filter-count placeholder
+                        // anymore, no author either — they're not shared).
                         selected={selectedFilterId === filter.id}
                         draggable
                         onSelect={() => setSelectedFilterId(filter.id)}
@@ -844,41 +1000,123 @@ export default function ShipmentsFiltersView({
               )}
             </div>
 
-            {/* S108 Phase 2 — ODYSSEY FILTERS: shipped defaults, code
-                constants (savedFilters.js's ODYSSEY_DEFAULT_FILTERS), neither
-                store. No ⋮ (not editable/deletable by anyone), rows carry no
-                `draggable` prop (no grip, no wrapper DnD div — fixed order,
-                "nobody drags inside it"). Select/open-in-editor reuse the SAME
-                state as Custom (`selectedFilterId`/`openProfileId`) — one
-                selection across both groups, applying goes through the
-                identical onApplySaved(chips) path (see `allSavedFilters`
-                above). During a Custom delete-mode batch these rows just
-                disable (mirrors
-                ColumnPanel's "Odyssey group renders disabled", 4301:19405)
-                rather than converting to checkboxes — they were never part
-                of the deletable set. */}
+            {/* ODYSSEY FILTERS: the shipped defaults (ODYSSEY_DEFAULT_FILTERS,
+                code constants, S108 Phase 2) AND everyone's shared filters
+                (S108 Phase 3d, `sharedFilters` prop) — spec "Behaviour" 2's
+                "fixed order: defaults first, then shared by created_at."
+                Concatenating the two arrays in that order IS the ordering —
+                `sharedFilters` already arrives newest-first (the service's
+                own `ORDER BY created_at DESC`, mirrored by the mock's
+                `.reverse()`), and no drag reorders inside this group, so
+                nothing here ever needs to re-sort it.
+                No ⋮ of its own — the Custom group's ⋮ still owns Edit
+                Name/Delete Filters; its actions route by ownership
+                (`handleEditName`/`handleConfirmDelete` above), which is why
+                a selected OWNED shared row can still be renamed/deleted from
+                that single menu. Select/open-in-editor reuse the SAME state
+                as Custom (`selectedFilterId`/`openProfileId`) — one
+                selection across every group, applying goes through the
+                identical onApplySaved(chips) path (`allSavedFilters` above),
+                because spec "Behaviour" 5 is "anyone can select/apply any
+                shared filter" — ownership never gates that half. */}
             <div style={{ marginTop: 'var(--spacing-5)' }}>
               <GroupLabel>Odyssey Filters</GroupLabel>
               <div
                 className="shipments-filters__saved-list shipments-filters__saved-list--odyssey"
                 style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-1)' }}
+                // S108 Phase 3d (spec "Behaviour" 4, share) — dropping a
+                // Custom-origin row anywhere in this list shares it. Lives on
+                // the LIST, not a row: the group has no per-row drop target
+                // at all (fixed order, "nobody drags inside it" — an
+                // Odyssey→Odyssey drag has nowhere to land, satisfying
+                // "reorder-drag inside it does nothing" by construction,
+                // not by a separate check).
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={handleOdysseyListDrop}
               >
-                {ODYSSEY_DEFAULT_FILTERS.map((filter) => (
-                  <div key={filter.id}>
-                    {/* S110 rev1 "Behaviour" 2 — opening a default in the editor
-                        IS allowed (you can look at it, use it as a Create New
-                        Filter starting point); only Update Filter is barred
-                        for it (below, via `isOdysseyDefaultOpen`). */}
-                    <MenuRowRadio
-                      label={filter.name}
-                      badge={filterCountBadge(filter.chips)}
-                      selected={selectedFilterId === filter.id}
-                      disabled={deleteMode}
-                      onSelect={() => setSelectedFilterId(filter.id)}
-                      onNavigate={deleteMode ? undefined : () => openProfileInEditor(filter)}
-                    />
-                  </div>
-                ))}
+                {[...ODYSSEY_DEFAULT_FILTERS, ...sharedFilters].map((filter) => {
+                  const isDefault = ODYSSEY_DEFAULT_FILTERS.some((d) => d.id === filter.id)
+                  // Every SHARED row (owned or not) carries its author badge
+                  // (spec "Behaviour" 2) — a shipped default has no author,
+                  // so it gets none, same as a Custom row.
+                  const badge = isDefault ? undefined : authorBadge(filter)
+                  const isOwnedShared = !isDefault && filter.ownerId === currentUser.id
+                  // Delete mode: only an OWNED shared row swaps to a
+                  // checkbox (spec "Behaviour" 4: "checkboxes appear only on
+                  // your own shared rows"); a default or someone else's
+                  // shared row renders disabled, mirroring ColumnPanel's
+                  // "Odyssey group renders disabled" (4301:19405) — neither
+                  // was ever part of the deletable batch.
+                  if (deleteMode) {
+                    if (isOwnedShared) {
+                      return (
+                        <MenuRowCheckbox
+                          key={filter.id}
+                          label={filter.name}
+                          checked={deleteSelection.has(filter.id)}
+                          bordered
+                          draggable={false}
+                          value={filter.id}
+                          onToggle={() => toggleDeleteSelection(filter.id)}
+                          aria-label={`Select ${filter.name} for deletion`}
+                        />
+                      )
+                    }
+                    return (
+                      <MenuRowRadio
+                        key={filter.id}
+                        label={filter.name}
+                        badge={badge}
+                        selected={selectedFilterId === filter.id}
+                        disabled
+                        onSelect={() => setSelectedFilterId(filter.id)}
+                      />
+                    )
+                  }
+                  const isRenaming = renamingId === filter.id
+                  return (
+                    <div key={filter.id}>
+                      {/* S110 rev1 "Behaviour" 2 — opening a default OR any
+                          shared filter in the editor IS allowed (you can
+                          look at it, use it as a Create New Filter starting
+                          point); only Update Filter is barred (above, via
+                          `isOdysseyDefaultOpen`/`isSharedOpen`).
+                          S108 Phase 3d — only an OWNED shared row is
+                          draggable at all: `draggable` is only SET (and only
+                          `onDragStart` attached) when `isOwnedShared`, so a
+                          default or someone else's row has no HTML5 drag
+                          affordance to trigger in the first place — "the
+                          drag must not start" is true by omission, not a
+                          runtime guard inside a handler. */}
+                      <div
+                        draggable={isOwnedShared}
+                        {...(isOwnedShared && {
+                          onDragStart: (e) => {
+                            e.dataTransfer.setData('text/plain', JSON.stringify({ id: filter.id, from: 'shared' }))
+                            e.dataTransfer.effectAllowed = 'move'
+                          },
+                        })}
+                      >
+                        <MenuRowRadio
+                          label={isRenaming ? (
+                            <RenameInput
+                              inputRef={renameInputRef}
+                              value={renameValue}
+                              onChange={(e) => setRenameValue(e.target.value)}
+                              onKeyDown={handleRenameKeyDown}
+                              onBlur={commitRename}
+                              ariaLabel={`Rename ${filter.name}`}
+                            />
+                          ) : filter.name}
+                          badge={isRenaming ? undefined : badge}
+                          selected={selectedFilterId === filter.id}
+                          onSelect={() => setSelectedFilterId(filter.id)}
+                          onNavigate={isRenaming ? undefined : () => openProfileInEditor(filter)}
+                        />
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             </div>
           </div>

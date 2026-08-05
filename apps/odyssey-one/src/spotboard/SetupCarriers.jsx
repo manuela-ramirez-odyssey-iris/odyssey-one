@@ -106,10 +106,13 @@ export default function SetupCarriers({
 
   // No existing quote → default to the first named list, same as if the user
   // had picked it themselves (reuses handleListChange, not a parallel copy).
-  // `carrierOptions` resolves async in the parent, so this re-fires until the
-  // rows actually populate (guarded on `!listId` so it only ever runs once).
+  // `carrierOptions` resolves async in the parent, so on first mount it's
+  // still `[]` and this builds zero rows. Guarded on `rows.length === 0`
+  // (not `!listId`) so the effect re-fires once the pool actually arrives
+  // and populates the table — but stops re-populating the moment rows exist,
+  // so it never clobbers a user's incl/date edits after that first fill.
   useEffect(() => {
-    if (!quote && !listId) handleListChange(NAMED_LISTS[0].id)
+    if (!quote && rows.length === 0) handleListChange(listId || NAMED_LISTS[0].id)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [carrierOptions])
 
@@ -158,6 +161,35 @@ export default function SetupCarriers({
 
   return (
     <div className="setup-carriers">
+      <div className="setup-carriers__controls">
+        <ComboBox
+          id="carrier-list"
+          variant="select"
+          typable={false}
+          showLabel
+          label="Carrier List (select exactly one)"
+          options={LIST_OPTIONS}
+          value={listId}
+          onSelect={handleListChange}
+          disabled={readOnly}
+        />
+        <FormField
+          id="quote-duration"
+          label="Quote Duration (open window, min)"
+          format="integer"
+          maxLength={5}
+          value={durationMin}
+          onChange={(e) => setDurationMin(e.target.value)}
+          disabled={readOnly}
+        />
+        <Checkbox
+          label="Flexible Pickup"
+          checked={flexiblePickup}
+          onChange={(e) => setFlexiblePickup(e.target.checked)}
+          disabled={readOnly}
+        />
+      </div>
+
       <div className="setup-carriers__toolbar" ref={toolbarRef}>
         <div className="setup-carriers__toolbar-top">
           <span className="setup-carriers__toolbar-count text-label-sm-regular">
@@ -176,34 +208,6 @@ export default function SetupCarriers({
               </Button>
             </div>
           )}
-        </div>
-        <div className="setup-carriers__toolbar-controls">
-          <ComboBox
-            id="carrier-list"
-            variant="select"
-            typable={false}
-            showLabel
-            label="Carrier List (select exactly one)"
-            options={LIST_OPTIONS}
-            value={listId}
-            onSelect={handleListChange}
-            disabled={readOnly}
-          />
-          <FormField
-            id="quote-duration"
-            label="Quote Duration (open window, min)"
-            format="integer"
-            maxLength={5}
-            value={durationMin}
-            onChange={(e) => setDurationMin(e.target.value)}
-            disabled={readOnly}
-          />
-          <Checkbox
-            label="Flexible Pickup"
-            checked={flexiblePickup}
-            onChange={(e) => setFlexiblePickup(e.target.checked)}
-            disabled={readOnly}
-          />
         </div>
       </div>
 

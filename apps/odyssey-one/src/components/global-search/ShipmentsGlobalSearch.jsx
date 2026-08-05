@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect, useCallback, useMemo } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { GlobalSearch, GlobalSearchPanel, GlobalSearchResults } from '@odyssey/ui'
 import { useGlobalSearch } from '../../search/useGlobalSearch'
 import { shipmentsSearchAdapter, panelForResults } from '../../search/shipments'
@@ -7,10 +7,24 @@ import { DATE_LIKE } from '../../search/shipments/adapter'
 import { parseSearchDate } from '../../search/shipments/criteria'
 import { useCustomers } from '../../contexts/CustomersContext.jsx'
 import { useUserPreference } from '../../api/queries/useUserPreference'
+import {
+  listSharedFilters,
+  shareFilter as shareFilterApi,
+  renameSharedFilter as renameSharedFilterApi,
+  deleteSharedFilter as deleteSharedFilterApi,
+} from '../../api/services/sharedFilterService'
 import ShipmentsFiltersView, { mergeFiltersIntoChips } from './ShipmentsFiltersView'
 import SaveFilterModal from './SaveFilterModal'
 import { hydrate, newFilter, splitFreeText, toStored } from './savedFilters'
 import { tabForDataKey } from '../shipments/cellTabMap'
+
+// react-query key for the Odyssey group's shared half (S108 Phase 3d) —
+// separate from SAVED_FILTERS_KEY above: that one is a user_preferences ROW
+// (personal, one per user); this one is the shared_filters TABLE (everyone's
+// rows, one list for the whole app). Kept as its own query rather than
+// folded into the preference fetch because they're genuinely different
+// resources with different write paths (PATCH/DELETE by id vs. whole-row PUT).
+const SHARED_FILTERS_QUERY_KEY = ['shared-filters']
 
 // user_preferences key for personal Saved Filters (S108 spec, "Data model").
 const SAVED_FILTERS_KEY = 'shipments.savedFilters'
@@ -119,6 +133,90 @@ export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment 
       custom: savedFilters.custom.map((f) => (f.id === id ? { ...f, chips: toStored(filterChips) } : f)),
     })
   }, [savedFilters, persistSavedFilters])
+
+  // Shared filters (S108 Phase 3d — the Odyssey group's shared half; the
+  // migration + API + service landed in earlier phases, this wires the UI).
+  // Hosted HERE for the identical reason as the Custom list above: the Saved
+  // tab (ShipmentsFiltersView) unmounts on every panel close, and a plain
+  // `useQuery` with `staleTime: Infinity` only fetches once per HOST mount.
+  // Every mutation below pairs its API/mock call with `setQueryData` on this
+  // SAME key so a just-shared/-renamed/-deleted row is in the cache the
+  // instant the mutation resolves — the exact "doesn't vanish on reopen"
+  // requirement `persistSavedFilters` above satisfies for Custom filters.
+  const { data: sharedFiltersData } = useQuery({
+    queryKey: SHARED_FILTERS_QUERY_KEY,
+    queryFn: listSharedFilters,
+    staleTime: Infinity,
+  })
+  const sharedFilters = sharedFiltersData ?? []
+
+  // Custom → Odyssey drag (spec "Behaviour" 4): share, then remove from
+  // Custom — a MOVE, not a copy (same `id` throughout; sharedFilters.mjs's
+  // own comment: "sharing moves it, not copies it"). Order matters: the
+  // Custom-side removal only happens AFTER the share (and its cache update)
+  // succeed, so the row never has a tick where it's in neither list — worst
+  // case on failure, it just stays in Custom instead of vanishing.
+  // Refetches the FULL list after sharing rather than appending the POST's
+  // own response: the live route's INSERT...RETURNING (sharedFilters.mjs)
+  // doesn't include `ownerUsername` (no `users` join on that statement, only
+  // on GET) — appending it directly would badge the just-shared row
+  // `by: undefined` until some unrelated refetch happened to fix it. This
+  // sidesteps that gap without touching the API file.
+  const shareFilter = useCallback(async (filter) => {
+    try {
+      await shareFilterApi(filter.id, filter.name, filter.chips)
+      const all = await listSharedFilters()
+      queryClient.setQueryData(SHARED_FILTERS_QUERY_KEY, all)
+      persistSavedFilters({ v: 1, custom: savedFilters.custom.filter((f) => f.id !== filter.id) })
+    } catch (e) {
+      console.error(`shareFilter(${filter.id})`, e)
+    }
+  }, [savedFilters, persistSavedFilters, queryClient])
+
+  // Odyssey → Custom drag (spec "Behaviour" 4): un-share + restore to
+  // Custom. Author-only in practice — the view's drag-doesn't-start guard
+  // (ShipmentsFiltersView) keeps a non-author's row from ever reaching this
+  // call, and sharedFilterService's own author check is the backstop if it
+  // somehow did (see that file's spoofable-userId ceiling comment).
+  const unshareFilter = useCallback(async (filter) => {
+    try {
+      await deleteSharedFilterApi(filter.id)
+      queryClient.setQueryData(SHARED_FILTERS_QUERY_KEY, (prev) => (prev ?? []).filter((f) => f.id !== filter.id))
+      persistSavedFilters({ v: 1, custom: [...savedFilters.custom, { id: filter.id, name: filter.name, chips: filter.chips }] })
+    } catch (e) {
+      console.error(`unshareFilter(${filter.id})`, e)
+    }
+  }, [savedFilters, persistSavedFilters, queryClient])
+
+  // ⋮ → Edit Name acting on an OWNED shared row (spec "Behaviour" 5). PATCH
+  // returns only `{ id, name }` (sharedFilters.mjs's RETURNING clause) — the
+  // merge below only overwrites `name`, so `ownerUsername`/`chips`/
+  // `createdAt` already in the cache survive untouched (no refetch needed,
+  // unlike `shareFilter` above: rename doesn't touch anything a `users` join
+  // would supply).
+  const renameSharedFilterEntry = useCallback(async (id, name) => {
+    try {
+      const renamed = await renameSharedFilterApi(id, name)
+      queryClient.setQueryData(SHARED_FILTERS_QUERY_KEY, (prev) =>
+        (prev ?? []).map((f) => (f.id === id ? { ...f, ...renamed } : f)))
+    } catch (e) {
+      console.error(`renameSharedFilter(${id})`, e)
+    }
+  }, [queryClient])
+
+  // ⋮ → Delete Filters batch, for whichever ids in the selection are OWNED
+  // shared rows (ShipmentsFiltersView splits the batch by store before
+  // calling this — see its handleConfirmDelete). A genuine delete, not
+  // un-share+restore; that pairing is the drag gesture's job above.
+  const deleteSharedFiltersEntries = useCallback(async (ids) => {
+    try {
+      await Promise.all(ids.map((id) => deleteSharedFilterApi(id)))
+      const idSet = new Set(ids)
+      queryClient.setQueryData(SHARED_FILTERS_QUERY_KEY, (prev) => (prev ?? []).filter((f) => !idSet.has(f.id)))
+    } catch (e) {
+      console.error('deleteSharedFilters', e)
+    }
+  }, [queryClient])
 
   // Save Filter modal (S108 1b). Rendered as a SIBLING of
   // `.shipments-results-panel` below, inside this wrapper — NOT nested inside
@@ -513,6 +611,14 @@ export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment 
               // S110 rev1 — panel-only profile update (see `updateFilter`
               // above for why this is the sole mutation path for it).
               onUpdateFilter={updateFilter}
+              // S108 Phase 3d — the Odyssey group's shared half + the four
+              // cross-store mutations (see the "Shared filters" block above
+              // for why each is its own callback/query pairing).
+              sharedFilters={sharedFilters}
+              onShareFilter={shareFilter}
+              onUnshareFilter={unshareFilter}
+              onRenameSharedFilter={renameSharedFilterEntry}
+              onDeleteSharedFilters={deleteSharedFiltersEntries}
               // S108 1b: "Save Filters" link opens the modal (below).
               // savedTabSignal
               // is a change-only counter the view watches to flip its OWN

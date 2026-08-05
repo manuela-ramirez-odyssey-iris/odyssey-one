@@ -7,8 +7,9 @@
 // ShipmentsGlobalSearch.jsx without wiring the live/mock adapter.
 import { useState } from 'react'
 import { describe, test, expect, vi, afterEach } from 'vitest'
-import { render, cleanup, fireEvent, waitFor } from '@testing-library/react'
+import { render, cleanup, fireEvent, waitFor, within } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { __clearMockSharedFilters } from '../../api/services/sharedFilterService'
 
 afterEach(cleanup)
 
@@ -581,6 +582,96 @@ describe('ShipmentsGlobalSearch — copy search (S108 1f)', () => {
     expect(() => fireEvent.click(getByLabelText('Copy search'))).not.toThrow()
 
     Object.defineProperty(navigator, 'clipboard', { value: originalClipboard, configurable: true })
+    vi.doUnmock('../../contexts/CustomersContext.jsx')
+    vi.doUnmock('../../search/useGlobalSearch')
+  })
+})
+
+// S108 Phase 3d — end-to-end proof that the host's four sharing mutations
+// (`shareFilter`/`unshareFilter`/`renameSharedFilterEntry`/
+// `deleteSharedFiltersEntries` in ShipmentsGlobalSearch.jsx) reach the REAL
+// service (mock mode's in-memory Map — the same one
+// sharedFilterService.test.ts exercises directly, `getApiMode()` defaults to
+// 'mock' with no VITE_API_MODE set in tests) and are paired with
+// `setQueryData` on `['shared-filters']` the same way the Custom-filter
+// block above pairs `saveSavedFiltersPref`/`setQueryData` — a share must
+// survive a panel close (unmount of ShipmentsFiltersView) + reopen
+// (remount), the exact "vanishing write" defect class this feature's
+// Hosting decision exists to prevent. Uses the REAL ShipmentsFiltersView (no
+// stub) so the drag gesture is the actual DnD wiring, not a stand-in.
+describe('ShipmentsGlobalSearch — shared filters (S108 Phase 3d)', () => {
+  afterEach(() => __clearMockSharedFilters())
+
+  const seededFilter = {
+    id: 'f1',
+    name: 'West Coast LTL',
+    chips: [{
+      key: 'mode', kind: 'attribute', label: 'Mode: LTL',
+      attrLabel: 'Mode', queryValue: 'LTL', dataKey: 'mode', group: 'Shipment Details',
+    }],
+  }
+
+  // Standard RTL recipe for native HTML5 DnD in jsdom (ShipmentsFiltersView.test.jsx).
+  function makeDataTransfer() {
+    const data = {}
+    return {
+      setData: (k, v) => { data[k] = v },
+      getData: (k) => data[k],
+      effectAllowed: null,
+      dropEffect: null,
+    }
+  }
+
+  async function mountWithSeededCustomFilter() {
+    vi.resetModules()
+    vi.doMock('../../contexts/CustomersContext.jsx', () => ({
+      useCustomers: () => ({ selectedDataIds: null }),
+    }))
+    vi.doMock('../../search/useGlobalSearch', () => ({
+      useGlobalSearch: () => baseHookReturn({}),
+    }))
+    const { default: ShipmentsGlobalSearch } = await import('./ShipmentsGlobalSearch.jsx')
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    qc.setQueryData(['user-preference', 'shipments.savedFilters'], { v: 1, custom: [seededFilter] })
+    return { ShipmentsGlobalSearch, qc }
+  }
+
+  test('dragging a Custom filter into Odyssey shares it (real service call), badges it, and the share survives a panel close + reopen', async () => {
+    const { ShipmentsGlobalSearch, qc } = await mountWithSeededCustomFilter()
+    const { container, getByText } = render(withQueryClient(qc, <ShipmentsGlobalSearch />))
+
+    fireEvent.click(container.querySelector('.filter-button'))
+    fireEvent.click(getByText('Saved'))
+
+    const customWrapper = container.querySelector('.shipments-filters__saved-list--custom [draggable="true"]')
+    const odysseyList = container.querySelector('.shipments-filters__saved-list--odyssey')
+    const dataTransfer = makeDataTransfer()
+    fireEvent.dragStart(customWrapper, { dataTransfer })
+    fireEvent.dragOver(odysseyList, { dataTransfer })
+    fireEvent.drop(odysseyList, { dataTransfer })
+
+    // shareFilter is async (POST, then a refetch of the full list, then the
+    // Custom-side removal) — wait for the round-trip to land in the DOM.
+    await waitFor(() => {
+      expect(container.querySelector('.shipments-filters__saved-list--custom').textContent).not.toContain('West Coast LTL')
+    })
+    const odysseyAfterShare = container.querySelector('.shipments-filters__saved-list--odyssey')
+    expect(within(odysseyAfterShare).getByText('West Coast LTL')).toBeTruthy()
+    // Author badge — mock service's `usernameFor` on currentUser ('Amy Cook').
+    expect(within(odysseyAfterShare).getByText('by: amy.cook')).toBeTruthy()
+
+    // Close (unmounts ShipmentsFiltersView) + reopen (remounts it) — the
+    // vanishing-write scenario this Hosting decision exists to prevent.
+    fireEvent.click(container.querySelector('.filter-button')) // close
+    expect(container.querySelector('.shipments-results-panel')).toBeNull()
+    fireEvent.click(container.querySelector('.filter-button')) // reopen
+    fireEvent.click(getByText('Saved'))
+
+    const odysseyAfterReopen = container.querySelector('.shipments-filters__saved-list--odyssey')
+    expect(within(odysseyAfterReopen).getByText('West Coast LTL')).toBeTruthy()
+    expect(within(odysseyAfterReopen).getByText('by: amy.cook')).toBeTruthy()
+    expect(container.querySelector('.shipments-filters__saved-list--custom').textContent).not.toContain('West Coast LTL')
+
     vi.doUnmock('../../contexts/CustomersContext.jsx')
     vi.doUnmock('../../search/useGlobalSearch')
   })

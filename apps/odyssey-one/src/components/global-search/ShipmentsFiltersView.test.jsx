@@ -10,6 +10,7 @@ import { render, screen, within, fireEvent, cleanup, act } from '@testing-librar
 import ShipmentsFiltersView from './ShipmentsFiltersView.jsx'
 import { shipmentsSearchAdapter } from '../../search/shipments'
 import { ODYSSEY_DEFAULT_FILTERS } from './savedFilters'
+import { currentUser } from '../../data/sso-mock'
 
 afterEach(cleanup)
 
@@ -527,19 +528,227 @@ describe('ShipmentsFiltersView — profile-editing flow (S110 rev1)', () => {
     expect(screen.queryByText('Update Filter')).toBeNull()
   })
 
-  test('the badge shows each profile\'s filter count', () => {
-    const { container } = render(<ShipmentsFiltersView savedFilters={sampleFilters} />)
+  test('Update Filter never appears for a shared filter — owned or not, even after an edit', () => {
+    const onUpdateFilter = vi.fn()
+    const mine = {
+      id: 'sm1', name: 'Mine', ownerId: currentUser.id, ownerUsername: 'amy.cook',
+      chips: [{
+        key: 'buy-shipment', kind: 'attribute', label: 'Buy Shipment #: 1',
+        attrLabel: 'Buy Shipment #', queryValue: '1', dataKey: 'buyShipment', group: 'Shipment Identifiers',
+      }],
+    }
+    render(<ShipmentsFiltersView savedFilters={[]} sharedFilters={[mine]} onUpdateFilter={onUpdateFilter} />)
+    fireEvent.click(screen.getByText('Saved'))
+    fireEvent.click(screen.getByText('Mine')) // row body — opens it in the editor
+
+    expect(screen.getByText('Create New Filter')).toBeTruthy()
+    const input = screen.getByPlaceholderText('Enter Buy Shipment #')
+    fireEvent.change(input, { target: { value: '999' } })
+    // Would be dirty (and show Update Filter) for a Custom profile at this
+    // point — the shared-filter carve-out suppresses it regardless (no
+    // "update chips" route exists for shared_filters, see
+    // ShipmentsFiltersView's `isSharedOpen` comment).
+    expect(screen.queryByText('Update Filter')).toBeNull()
+    expect(onUpdateFilter).not.toHaveBeenCalled()
+  })
+})
+
+// S108 Phase 3d (docs/superpowers/specs/2026-08-04-save-filters-design.md
+// "Behaviour" 2/4/5) — the Odyssey group's SHARED half: the author badge,
+// drag-to-share/drag-to-unshare, and the ownership rules gating
+// rename/delete/drag ("the author edits, everyone applies"). The migration +
+// API + service (sharedFilters.mjs / sharedFilterService.ts) already landed
+// and are exercised by their own suites; this covers the UI layer only,
+// with `sharedFilters` passed as a prop exactly as the host will pass it.
+describe('ShipmentsFiltersView — Saved tab, sharing (S108 Phase 3d)', () => {
+  afterEach(() => vi.useRealTimers())
+
+  const theirShared = {
+    id: 's1', name: 'Their Filter', ownerId: 'someone-else', ownerUsername: 'someone.else',
+    chips: [{ key: 'mode', kind: 'attribute', label: 'Mode: TL' }],
+    createdAt: '2026-08-01T00:00:00Z',
+  }
+  const myShared = {
+    id: 's2', name: 'My Shared Filter', ownerId: currentUser.id, ownerUsername: 'amy.cook',
+    chips: [{ key: 'scac', kind: 'attribute', label: 'SCAC: SEFL' }],
+    createdAt: '2026-08-02T00:00:00Z',
+  }
+
+  test('shared rows carry a by:<username> badge; defaults and Custom rows carry none — and the old filter-count badge is gone', () => {
+    const { container } = renderSavedTab({ sharedFilters: [theirShared, myShared] })
+    const customList = container.querySelector('.shipments-filters__saved-list--custom')
+    const odysseyList = container.querySelector('.shipments-filters__saved-list--odyssey')
+
+    // Custom rows: no badge of any kind.
+    expect(within(customList).queryByText(/^by:/)).toBeNull()
+    // Defaults: no badge either.
+    ODYSSEY_DEFAULT_FILTERS.forEach((f) => {
+      const row = within(odysseyList).getByText(f.name).closest('.menu-row-radio')
+      expect(within(row).queryByText(/^by:/)).toBeNull()
+    })
+    // Both shared rows: the author badge, nothing else.
+    expect(within(odysseyList).getByText(`by: ${theirShared.ownerUsername}`)).toBeTruthy()
+    expect(within(odysseyList).getByText(`by: ${myShared.ownerUsername}`)).toBeTruthy()
+    // The Phase 1 filter-count placeholder ("N filter(s)") is gone entirely —
+    // replaced, not stacked (task instruction).
+    expect(screen.queryByText(/^\d+ filters?$/)).toBeNull()
+  })
+
+  test('Odyssey group order is fixed: defaults first, then shared exactly as given (created_at order)', () => {
+    const { container } = renderSavedTab({ sharedFilters: [theirShared, myShared] })
+    const odysseyList = container.querySelector('.shipments-filters__saved-list--odyssey')
+    const names = [...odysseyList.querySelectorAll('.menu-row__label')].map((el) => el.textContent)
+    expect(names).toEqual([
+      ...ODYSSEY_DEFAULT_FILTERS.map((f) => f.name),
+      theirShared.name,
+      myShared.name,
+    ])
+  })
+
+  test('dragging a Custom row into the Odyssey list calls onShareFilter with that filter, and a host round-trip moves the row across groups', () => {
+    const onShareFilter = vi.fn()
+    const { container, rerender } = render(
+      <ShipmentsFiltersView savedFilters={sampleFilters} sharedFilters={[]} onShareFilter={onShareFilter} />,
+    )
     fireEvent.click(screen.getByText('Saved'))
 
-    const customList = container.querySelector('.shipments-filters__saved-list--custom')
-    // sampleFilters[0] ("West Coast LTL") has 2 chips, [1] ("JBHT Sent
-    // Tenders") has 1 — singular/plural both covered.
-    expect(within(customList).getByText('2 filters')).toBeTruthy()
-    expect(within(customList).getByText('1 filter')).toBeTruthy()
-
-    // Both Odyssey defaults carry exactly 1 chip each (savedFilters.js) — one
-    // badge per row, both reading "1 filter".
+    const customWrapper = container.querySelector('.shipments-filters__saved-list--custom [draggable="true"]')
     const odysseyList = container.querySelector('.shipments-filters__saved-list--odyssey')
-    expect(within(odysseyList).getAllByText('1 filter')).toHaveLength(ODYSSEY_DEFAULT_FILTERS.length)
+    const dataTransfer = makeDataTransfer()
+    fireEvent.dragStart(customWrapper, { dataTransfer })
+    fireEvent.dragOver(odysseyList, { dataTransfer })
+    fireEvent.drop(odysseyList, { dataTransfer })
+
+    expect(onShareFilter).toHaveBeenCalledWith(sampleFilters[0])
+
+    // Simulate the host's response to that call (ShipmentsGlobalSearch's
+    // `shareFilter`: POST, refetch, remove from Custom) — the row now lives
+    // in `sharedFilters`, gone from `savedFilters`.
+    const sharedNow = { id: sampleFilters[0].id, name: sampleFilters[0].name, ownerId: currentUser.id, ownerUsername: 'amy.cook', chips: sampleFilters[0].chips, createdAt: '2026-08-03T00:00:00Z' }
+    rerender(
+      <ShipmentsFiltersView savedFilters={sampleFilters.slice(1)} sharedFilters={[sharedNow]} onShareFilter={onShareFilter} />,
+    )
+    const customListAfter = container.querySelector('.shipments-filters__saved-list--custom')
+    const odysseyListAfter = container.querySelector('.shipments-filters__saved-list--odyssey')
+    expect(within(customListAfter).queryByText('West Coast LTL')).toBeNull()
+    expect(within(odysseyListAfter).getByText('West Coast LTL')).toBeTruthy()
+  })
+
+  test('dragging your own shared row into Custom calls onUnshareFilter; dragging someone else\'s row does not start', () => {
+    const onUnshareFilter = vi.fn()
+    const { container } = renderSavedTab({ sharedFilters: [theirShared, myShared], onUnshareFilter })
+    const odysseyList = container.querySelector('.shipments-filters__saved-list--odyssey')
+    const customList = container.querySelector('.shipments-filters__saved-list--custom')
+
+    // Your own row IS draggable — dropping it in Custom un-shares it.
+    const ownWrapper = within(odysseyList).getByText(myShared.name).closest('.menu-row-radio').parentElement
+    expect(ownWrapper.getAttribute('draggable')).toBe('true')
+    const dt1 = makeDataTransfer()
+    fireEvent.dragStart(ownWrapper, { dataTransfer: dt1 })
+    fireEvent.dragOver(customList, { dataTransfer: dt1 })
+    fireEvent.drop(customList, { dataTransfer: dt1 })
+    expect(onUnshareFilter).toHaveBeenCalledWith(myShared)
+
+    // Someone else's row is NOT draggable — no onDragStart handler is even
+    // attached (spec: "the drag must not start at all"), so a simulated
+    // dragstart/drop round-trip carries no payload and does nothing.
+    onUnshareFilter.mockClear()
+    const theirWrapper = within(odysseyList).getByText(theirShared.name).closest('.menu-row-radio').parentElement
+    expect(theirWrapper.getAttribute('draggable')).toBe('false')
+    const dt2 = makeDataTransfer()
+    fireEvent.dragStart(theirWrapper, { dataTransfer: dt2 })
+    fireEvent.drop(customList, { dataTransfer: dt2 })
+    expect(onUnshareFilter).not.toHaveBeenCalled()
+  })
+
+  test('dropping within the Odyssey list itself (reorder attempt) does nothing — fixed order', () => {
+    const onShareFilter = vi.fn()
+    const onUnshareFilter = vi.fn()
+    const { container } = renderSavedTab({ sharedFilters: [theirShared, myShared], onShareFilter, onUnshareFilter })
+    const odysseyList = container.querySelector('.shipments-filters__saved-list--odyssey')
+    const namesBefore = [...odysseyList.querySelectorAll('.menu-row__label')].map((el) => el.textContent)
+
+    const ownWrapper = within(odysseyList).getByText(myShared.name).closest('.menu-row-radio').parentElement
+    const dataTransfer = makeDataTransfer()
+    fireEvent.dragStart(ownWrapper, { dataTransfer })
+    fireEvent.dragOver(odysseyList, { dataTransfer })
+    fireEvent.drop(odysseyList, { dataTransfer })
+
+    expect(onShareFilter).not.toHaveBeenCalled()
+    expect(onUnshareFilter).not.toHaveBeenCalled()
+    const namesAfter = [...odysseyList.querySelectorAll('.menu-row__label')].map((el) => el.textContent)
+    expect(namesAfter).toEqual(namesBefore)
+  })
+
+  test('another user\'s shared row: selectable/applicable, but not renameable or deletable', async () => {
+    vi.useFakeTimers()
+    const onApplySaved = vi.fn()
+    const scopedAdapter = { searchShipments: vi.fn(async () => ({ results: [], total: 4 })) }
+    const { container } = renderSavedTab({ sharedFilters: [theirShared], onApplySaved, scopedAdapter })
+    const odysseyList = container.querySelector('.shipments-filters__saved-list--odyssey')
+
+    const radio = within(odysseyList).getByText(theirShared.name).closest('.menu-row-radio').querySelector('input[type="radio"]')
+    fireEvent.click(radio)
+    await act(async () => { vi.advanceTimersByTime(500) })
+    fireEvent.click(screen.getByText('Show all 4 results'))
+    expect(onApplySaved).toHaveBeenCalledWith(theirShared.chips)
+
+    // Not renameable: Edit Name stays disabled with their row selected.
+    fireEvent.click(screen.getByRole('button', { name: 'Preset actions' }))
+    const editNameOption = screen.getByText('Edit Name').closest('[role="menuitem"]')
+    expect(editNameOption.getAttribute('aria-disabled')).toBe('true')
+
+    // Not deletable: entering batch delete renders their row as a disabled
+    // radio, never a checkbox.
+    fireEvent.click(screen.getByText('Delete Filters'))
+    const theirRow = within(odysseyList).getByText(theirShared.name).closest('.menu-row-radio')
+    expect(theirRow.getAttribute('data-disabled')).toBe('true')
+    expect(odysseyList.querySelectorAll('.menu-row-checkbox')).toHaveLength(0)
+  })
+
+  test('your own shared row: renameable via Edit Name and gets a checkbox in batch delete', () => {
+    const onRenameSharedFilter = vi.fn()
+    const onDeleteSharedFilters = vi.fn()
+    const { container } = renderSavedTab({ sharedFilters: [myShared], onRenameSharedFilter, onDeleteSharedFilters })
+    const odysseyList = container.querySelector('.shipments-filters__saved-list--odyssey')
+
+    const radio = within(odysseyList).getByText(myShared.name).closest('.menu-row-radio').querySelector('input[type="radio"]')
+    fireEvent.click(radio)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Preset actions' }))
+    const editNameOption = screen.getByText('Edit Name').closest('[role="menuitem"]')
+    expect(editNameOption.getAttribute('aria-disabled')).not.toBe('true')
+    fireEvent.click(screen.getByText('Edit Name'))
+
+    const input = screen.getByLabelText(`Rename ${myShared.name}`)
+    fireEvent.change(input, { target: { value: 'Renamed Shared' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+    expect(onRenameSharedFilter).toHaveBeenCalledWith(myShared.id, 'Renamed Shared')
+
+    // Batch delete: your own shared row swaps to a checkbox and can be
+    // confirmed via `onDeleteSharedFilters` (never `onDeleteFilters` — this
+    // id lives in `sharedFilters`, not `savedFilters`).
+    fireEvent.click(screen.getByRole('button', { name: 'Preset actions' }))
+    fireEvent.click(screen.getByText('Delete Filters'))
+    const checkbox = within(odysseyList).getByRole('checkbox')
+    fireEvent.click(checkbox)
+    fireEvent.click(screen.getByText('Delete (1)'))
+    const dialog = screen.getByRole('dialog')
+    fireEvent.click(within(dialog).getByText('Delete'))
+    expect(onDeleteSharedFilters).toHaveBeenCalledWith([myShared.id])
+  })
+
+  test('batch delete: checkboxes appear only for the current user\'s own shared rows; defaults + others stay disabled radios', () => {
+    const { container } = renderSavedTab({ sharedFilters: [theirShared, myShared] })
+    fireEvent.click(screen.getByRole('button', { name: 'Preset actions' }))
+    fireEvent.click(screen.getByText('Delete Filters'))
+
+    const odysseyList = container.querySelector('.shipments-filters__saved-list--odyssey')
+    // Exactly one checkbox — the current user's own shared row.
+    expect(odysseyList.querySelectorAll('.menu-row-checkbox')).toHaveLength(1)
+    expect(within(odysseyList).getByText(myShared.name).closest('.menu-row-checkbox')).toBeTruthy()
+    // The two defaults + someone else's shared row: disabled radios.
+    const disabledRadios = odysseyList.querySelectorAll('.menu-row-radio[data-disabled]')
+    expect(disabledRadios).toHaveLength(ODYSSEY_DEFAULT_FILTERS.length + 1)
   })
 })

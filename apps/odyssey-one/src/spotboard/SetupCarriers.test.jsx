@@ -19,7 +19,7 @@ const list = NAMED_LISTS[0]
 // regardless of what the virtualizer paints). NAMED_LISTS[0] is first in
 // LIST_OPTIONS, so one ArrowDown lands on it.
 function pickList(container) {
-  const input = within(container.querySelector('.setup-carriers__toolbar-controls')).getByRole('combobox')
+  const input = within(container.querySelector('.setup-carriers__controls')).getByRole('combobox')
   fireEvent.focus(input)
   fireEvent.keyDown(input, { key: 'ArrowDown' })
   fireEvent.keyDown(input, { key: 'Enter' })
@@ -142,9 +142,9 @@ describe('SetupCarriers', () => {
         onCancel={() => {}}
       />
     )
-    const toolbar = container.querySelector('.setup-carriers__toolbar')
-    expect(within(toolbar).getByText('Carrier List (select exactly one)')).toBeTruthy()
-    expect(within(toolbar).getByRole('combobox')).toBeTruthy()
+    const controls = container.querySelector('.setup-carriers__controls')
+    expect(within(controls).getByText('Carrier List (select exactly one)')).toBeTruthy()
+    expect(within(controls).getByRole('combobox')).toBeTruthy()
   })
 
   it('shows the Quote Duration unit so the value is unambiguous', () => {
@@ -173,7 +173,7 @@ describe('SetupCarriers', () => {
     const rows = buildCarrierRows(list, carrierOptions)
     expect(screen.getByText(`${rows.length} carriers`)).toBeTruthy()
     expect(screen.getByTestId(`pickup-${rows[0].scac}`)).toBeTruthy()
-    const combobox = within(container.querySelector('.setup-carriers__toolbar-controls')).getByRole('combobox')
+    const combobox = within(container.querySelector('.setup-carriers__controls')).getByRole('combobox')
     expect(combobox.value).toBe(list.name)
     expect(screen.getByLabelText('Quote Duration (open window, min)').value).toBe(String(list.defaultDurationMin))
   })
@@ -192,7 +192,7 @@ describe('SetupCarriers', () => {
         onCancel={() => {}}
       />
     )
-    const combobox = within(container.querySelector('.setup-carriers__toolbar-controls')).getByRole('combobox')
+    const combobox = within(container.querySelector('.setup-carriers__controls')).getByRole('combobox')
     expect(combobox.value).toBe(otherList.name)
   })
 
@@ -230,6 +230,84 @@ describe('SetupCarriers', () => {
     expect(within(toolbarTop).getByText('Save Draft')).toBeTruthy()
     expect(within(toolbarTop).getByText('Cancel')).toBeTruthy()
     expect(container.querySelector('.setup-carriers__actions')).toBeFalsy()
+  })
+
+  it('keeps the controls row (Carrier List/Quote Duration/Flexible Pickup) out of the sticky toolbar', () => {
+    const rows = buildCarrierRows(list, carrierOptions)
+    const quote = { listId: list.id, listName: list.name, durationMin: list.defaultDurationMin, carriers: rows }
+    const { container } = render(
+      <SetupCarriers
+        quote={quote}
+        carrierOptions={carrierOptions}
+        readOnly={false}
+        onSaveDraft={() => {}}
+        onSendRFQ={() => {}}
+        onCancel={() => {}}
+      />
+    )
+    const toolbar = container.querySelector('.setup-carriers__toolbar')
+    expect(toolbar.querySelector('.setup-carriers__controls')).toBeFalsy()
+    expect(within(toolbar).queryByRole('combobox')).toBeFalsy()
+    const controls = container.querySelector('.setup-carriers__controls')
+    expect(controls).toBeTruthy()
+    expect(toolbar.contains(controls)).toBe(false)
+  })
+
+  it('populates the default list once carrierOptions actually resolves, not only on the first (empty) render', () => {
+    const { rerender } = render(
+      <SetupCarriers
+        carrierOptions={[]}
+        readOnly={false}
+        onSaveDraft={() => {}}
+        onSendRFQ={() => {}}
+        onCancel={() => {}}
+      />
+    )
+    // First render: carrierOptions is still empty (async pool not resolved yet).
+    expect(screen.getByText('0 carriers')).toBeTruthy()
+
+    rerender(
+      <SetupCarriers
+        carrierOptions={carrierOptions}
+        readOnly={false}
+        onSaveDraft={() => {}}
+        onSendRFQ={() => {}}
+        onCancel={() => {}}
+      />
+    )
+
+    const rows = buildCarrierRows(list, carrierOptions)
+    expect(screen.getByText(`${rows.length} carriers`)).toBeTruthy()
+    expect(screen.getByTestId(`pickup-${rows[0].scac}`)).toBeTruthy()
+  })
+
+  it('does not clobber user edits when carrierOptions changes again after rows are already populated', () => {
+    const { rerender } = render(
+      <SetupCarriers
+        carrierOptions={carrierOptions}
+        readOnly={false}
+        onSaveDraft={() => {}}
+        onSendRFQ={() => {}}
+        onCancel={() => {}}
+      />
+    )
+    const rows = buildCarrierRows(list, carrierOptions)
+    fillDate(rows[0].scac, 'pickup', '08/10/2026')
+
+    // A new carrierOptions array (same content, new reference) arrives, as
+    // would happen on a parent re-render — must not wipe the date just typed.
+    rerender(
+      <SetupCarriers
+        carrierOptions={[...carrierOptions]}
+        readOnly={false}
+        onSaveDraft={() => {}}
+        onSendRFQ={() => {}}
+        onCancel={() => {}}
+      />
+    )
+
+    const wrap = screen.getByTestId(`pickup-${rows[0].scac}`)
+    expect(within(wrap).getByRole('textbox').value).toBe('08/10/2026')
   })
 
   it('readOnly hides the action buttons', () => {
