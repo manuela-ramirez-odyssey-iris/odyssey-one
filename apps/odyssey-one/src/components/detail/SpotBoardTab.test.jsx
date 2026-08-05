@@ -111,4 +111,85 @@ describe('SpotBoardTab', () => {
     const token = href.slice('/spot-bid/'.length)
     expect(decodeToken(token)).toEqual({ shipmentId: shipment.sellShipment, scac: 'ODFL' })
   })
+
+  // Bug: RFQ links must survive a reload/remount — Send RFQ is never clicked
+  // in this component's lifetime here, the quote is already 'open' in the
+  // store with minted tokens (as spotStore.sendRFQ leaves it).
+  it('recovers bid links on fresh mount when the persisted quote is already open with tokens', () => {
+    localStorage.setItem(
+      `spotboard:${shipment.sellShipment}`,
+      JSON.stringify({
+        quoteId: 'q1',
+        shipmentId: shipment.sellShipment,
+        listId: 'tl-se',
+        listName: 'TL Southeast Overflow',
+        durationMin: 120,
+        openAt: 1000,
+        closeAt: 999999999999,
+        status: 'open',
+        awardType: null,
+        awardedScac: null,
+        carriers: [
+          { scac: 'ODFL', name: 'Old Dominion', email: 'ops@odfl.example.com', equipment: 'Van', incl: true, plannedPickup: '2026-08-10 08:00', plannedDelivery: '2026-08-11 17:00', flags: [], token: 'fake-token-odfl' },
+        ],
+        flexiblePickup: false,
+      })
+    )
+
+    render(<SpotBoardTab shipmentDetails={makeShipmentDetails([])} shipment={shipment} />)
+
+    const odflLink = screen.getByRole('link', { name: /ODFL.*Old Dominion/ })
+    expect(odflLink).toBeTruthy()
+    expect(odflLink.getAttribute('href')).toBe('/spot-bid/fake-token-odfl')
+  })
+
+  it('shows no links panel for a draft quote (no tokens minted yet)', () => {
+    localStorage.setItem(
+      `spotboard:${shipment.sellShipment}`,
+      JSON.stringify({
+        quoteId: 'q1',
+        shipmentId: shipment.sellShipment,
+        listId: 'tl-se',
+        listName: 'TL Southeast Overflow',
+        durationMin: 120,
+        openAt: null,
+        closeAt: null,
+        status: 'draft',
+        awardType: null,
+        awardedScac: null,
+        carriers: [
+          { scac: 'ODFL', name: 'Old Dominion', email: 'ops@odfl.example.com', equipment: 'Van', incl: true, plannedPickup: '2026-08-10 08:00', plannedDelivery: '2026-08-11 17:00', flags: [] },
+        ],
+        flexiblePickup: false,
+      })
+    )
+
+    render(<SpotBoardTab shipmentDetails={makeShipmentDetails([])} shipment={shipment} />)
+    expect(screen.queryByRole('link', { name: /ODFL/ })).toBeFalsy()
+  })
+
+  it('shows no links panel for a closed/awarded quote', () => {
+    localStorage.setItem(
+      `spotboard:${shipment.sellShipment}`,
+      JSON.stringify({
+        quoteId: 'q1',
+        shipmentId: shipment.sellShipment,
+        listId: 'tl-se',
+        listName: 'TL Southeast Overflow',
+        durationMin: 120,
+        openAt: 1000,
+        closeAt: 2000,
+        status: 'awarded',
+        awardType: 'manual',
+        awardedScac: 'ODFL',
+        carriers: [
+          { scac: 'ODFL', name: 'Old Dominion', email: 'ops@odfl.example.com', equipment: 'Van', incl: true, plannedPickup: '2026-08-10 08:00', plannedDelivery: '2026-08-11 17:00', flags: [], token: 'fake-token-odfl' },
+        ],
+        flexiblePickup: false,
+      })
+    )
+
+    render(<SpotBoardTab shipmentDetails={makeShipmentDetails([])} shipment={shipment} />)
+    expect(screen.queryByRole('link', { name: /ODFL/ })).toBeFalsy()
+  })
 })

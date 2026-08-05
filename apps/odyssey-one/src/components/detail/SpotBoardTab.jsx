@@ -97,11 +97,19 @@ export default function SpotBoardTab({ shipmentDetails, shipment }) {
   const eligible = isSpotEligible(shipmentDetails?.routingData)
   const [subTab, setSubTab] = useState('setup')
   const [carrierOptions, setCarrierOptions] = useState([])
-  const [rfqLinksVisible, setRfqLinksVisible] = useState(false)
+  // Panel visibility is dismissal state ONLY — actual visibility is derived
+  // below from the persisted quote (open + tokens present), so a reload,
+  // remount, or shipment switch always shows the links back. Dismissing only
+  // hides them for this quote; a fresh RFQ (new quoteId) un-dismisses.
+  const [linksDismissed, setLinksDismissed] = useState(false)
   const timersRef = useRef([])
 
   const { quote, saveDraft, sendRFQ, submitBid, closeQuote, award, clearQuote } =
     useSpotQuote(shipment?.sellShipment)
+
+  useEffect(() => {
+    setLinksDismissed(false)
+  }, [quote?.quoteId])
 
   // Carrier pool is resolved async (SetupCarriers itself stays sync) —
   // fetching it is this component's job per the SetupCarriers contract.
@@ -139,8 +147,10 @@ export default function SpotBoardTab({ shipmentDetails, shipment }) {
     saveDraft(payload)
     sendRFQ(Date.now())
     scheduleSimulatedBids(payload, benchmarkValue, submitBid, timersRef)
-    setRfqLinksVisible(true)
   }, [saveDraft, sendRFQ, submitBid, benchmarkValue])
+
+  const rfqLinksVisible =
+    !linksDismissed && quote?.status === 'open' && (quote.carriers ?? []).some((c) => c.token)
 
   // spotStore has no closed -> draft transition (verified) — "Modify &
   // Resend" is clearQuote() + a fresh saveDraft() reseeded from the previous
@@ -210,12 +220,12 @@ export default function SpotBoardTab({ shipmentDetails, shipment }) {
         ]}
       />
 
-      {rfqLinksVisible && quote?.status === 'open' && (
+      {rfqLinksVisible && (
         <div className="pane-col pane-col--wide">
           <RfqLinksPanel
             shipmentId={shipment?.sellShipment}
             carriers={quote.carriers}
-            onClose={() => setRfqLinksVisible(false)}
+            onClose={() => setLinksDismissed(true)}
           />
         </div>
       )}
