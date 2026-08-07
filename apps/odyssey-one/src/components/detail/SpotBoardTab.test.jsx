@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { beforeEach, describe, it, expect } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { afterEach, beforeEach, describe, it, expect } from 'vitest'
+import { render, screen, fireEvent, cleanup } from '@testing-library/react'
 import SpotBoardTab from './SpotBoardTab'
 import { decodeToken } from '../../spotboard/token.js'
 
@@ -26,22 +26,34 @@ beforeEach(() => {
   localStorage.clear()
 })
 
+// Without this the previous test's tree stays mounted and document-wide
+// `screen` queries hit ITS tabs instead of the current render's — a switch
+// then silently does nothing (S112).
+afterEach(cleanup)
+
 describe('SpotBoardTab', () => {
   it('renders both sub-tabs for an eligible shipment', () => {
     render(<SpotBoardTab shipmentDetails={makeShipmentDetails([])} shipment={shipment} />)
-    expect(screen.getByText('Setup & Carriers')).toBeTruthy()
-    expect(screen.getByText('Live Bids')).toBeTruthy()
+    // Each label now appears twice on the active tab — once as the Tab, once as
+    // the SubAccordion card title wrapping that sub-tab's content (S112).
+    expect(screen.getAllByText('Setup & Carriers').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Live Bids').length).toBeGreaterThan(0)
   })
 
-  // The context strip was hoisted out of Setup & Carriers so it stays put across
-  // sub-tabs — assert it on Live Bids, where it never rendered before.
-  it('keeps the shipment-context SummaryStrip visible on both sub-tabs', () => {
-    render(<SpotBoardTab shipmentDetails={makeShipmentDetails([])} shipment={shipment} />)
-    const strip = screen.getByLabelText('Shipment Summary')
-    expect(strip.textContent).toContain('Atlanta, GA')
-    expect(strip.textContent).toContain('Charlotte, NC')
-    fireEvent.click(screen.getByText('Live Bids'))
-    expect(screen.getByLabelText('Shipment Summary').textContent).toContain('Atlanta, GA')
+  // S111 hoisted the context strip out of Setup & Carriers so it survived the
+  // sub-tab switch; S112 REVERSED that (user) — the context is now an
+  // order-view field grid inside the Setup card, so Live Bids no longer shows
+  // it (Live Bids carries its own quote SummaryStrip instead).
+  it('renders the shipment context as a field grid inside the Setup card only', () => {
+    const { container } = render(<SpotBoardTab shipmentDetails={makeShipmentDetails([])} shipment={shipment} />)
+    const grid = container.querySelector('.order-pane__fields-grid')
+    expect(grid.textContent).toContain('Atlanta, GA')
+    expect(grid.textContent).toContain('Charlotte, NC')
+    // The SummaryStrip is gone — note `Shipment Summary` is now the name of the
+    // SubAccordion region, so assert on the strip's own class, not that name.
+    expect(container.querySelector('.summary-strip')).toBeFalsy()
+    fireEvent.click(screen.getAllByText('Live Bids')[0])
+    expect(container.querySelector('.order-pane__fields-grid')).toBeFalsy()
   })
 
   it('shows the EmptyState (not the sub-tabs) when the shipment has an Accepted tender', () => {
@@ -100,7 +112,10 @@ describe('SpotBoardTab', () => {
     )
 
     render(<SpotBoardTab shipmentDetails={makeShipmentDetails([])} shipment={shipment} />)
-    fireEvent.click(screen.getByText('Send RFQ'))
+    // Send RFQ is a trailing button below the table, behind a confirmation
+    // modal (S112).
+    fireEvent.click(screen.getByRole('button', { name: 'Send RFQ' }))
+    fireEvent.click(screen.getByRole('button', { name: /Confirm & Send/ }))
 
     const odflLink = screen.getByRole('link', { name: /ODFL.*Old Dominion/ })
     expect(odflLink).toBeTruthy()

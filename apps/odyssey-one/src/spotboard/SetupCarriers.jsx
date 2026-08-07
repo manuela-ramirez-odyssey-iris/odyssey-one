@@ -1,137 +1,87 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { useReactTable, getCoreRowModel, createColumnHelper } from '@tanstack/react-table'
-import { DataTable, ComboBox, FormField, Checkbox, Badge, Button } from '@odyssey/ui'
+import { useEffect, useState } from 'react'
+import {
+  Badge, Button, ButtonToggle, Checkbox, FormField, ModalMedium,
+  SubAccordion, TitleSubtitle,
+} from '@odyssey/ui'
 import DateField from '../components/orders/create/fields/DateField.jsx'
 import { NAMED_LISTS, buildCarrierRows, FLAG_LABELS } from './carrierList.js'
 import './spotboard.css'
-
-const LIST_OPTIONS = NAMED_LISTS.map((l) => ({ value: l.id, label: l.name }))
-
-const columnHelper = createColumnHelper()
 
 // A row is selectable once it has both dates — the per-row Incl. checkbox is
 // disabled otherwise, and the header select-all must never include a
 // date-less row.
 const isSelectable = (row) => !!(row.plannedPickup && row.plannedDelivery)
 
-function buildColumns(readOnly, toggleIncl, updateDate, toggleAll, rows) {
-  const selectable = rows.filter(isSelectable)
-  const includedSelectable = selectable.filter((r) => r.incl)
-  const allChecked = selectable.length > 0 && includedSelectable.length === selectable.length
-  const someChecked = includedSelectable.length > 0 && !allChecked
+// The TL/LTL toggle picks WHICH list the table shows — one mode at a time, not
+// both (user, S112). ButtonToggle is a two-option control, so the modes map
+// onto its 'first' | 'second' positions; NAMED_LISTS order is the contract.
+const MODES = [
+  { key: 'first', label: 'TL', list: NAMED_LISTS[0] },
+  { key: 'second', label: 'LTL', list: NAMED_LISTS[1] },
+]
 
-  return [
-    columnHelper.display({
-      id: 'incl',
-      header: () => (
-        <Checkbox
-          checked={allChecked}
-          indeterminate={someChecked}
-          onChange={() => toggleAll(!allChecked)}
-          disabled={readOnly || selectable.length === 0}
-          showLabel={false}
-          aria-label="Select all carriers"
-        />
-      ),
-      cell: ({ row }) => (
-        <Checkbox
-          checked={row.original.incl}
-          onChange={() => toggleIncl(row.original.scac)}
-          disabled={readOnly || !isSelectable(row.original)}
-          showLabel={false}
-          aria-label={`Include ${row.original.scac}`}
-        />
-      ),
-    }),
-    columnHelper.display({
-      id: 'carrier',
-      header: 'Carrier (SCAC · Name)',
-      cell: ({ row }) => `${row.original.scac} · ${row.original.name}`,
-    }),
-    columnHelper.accessor('equipment', { header: 'Equip' }),
-    columnHelper.accessor('email', { header: 'Contact Email' }),
-    columnHelper.display({
-      id: 'plannedPickup',
-      header: 'Planned Pickup',
-      cell: ({ row }) => (
-        <div data-testid={`pickup-${row.original.scac}`}>
-          <DateField
-            value={row.original.plannedPickup}
-            onChange={(v) => updateDate(row.original.scac, 'plannedPickup', v)}
-            disabled={readOnly}
-          />
-        </div>
-      ),
-    }),
-    columnHelper.display({
-      id: 'plannedDelivery',
-      header: 'Planned Delivery',
-      cell: ({ row }) => (
-        <div data-testid={`delivery-${row.original.scac}`}>
-          <DateField
-            value={row.original.plannedDelivery}
-            onChange={(v) => updateDate(row.original.scac, 'plannedDelivery', v)}
-            disabled={readOnly}
-          />
-        </div>
-      ),
-    }),
-    columnHelper.display({
-      id: 'flags',
-      header: 'Flags',
-      cell: ({ row }) =>
-        row.original.flags.map((f) => (
-          <Badge key={f} variant="red">{FLAG_LABELS[f] || f}</Badge>
-        )),
-    }),
-  ]
-}
+// Rows built before the multi-list change carry no `listId` — they belong to
+// the quote's own single list, so attribute them to the first mode rather than
+// dropping them off the table entirely.
+const listIdOf = (row) => row.listId ?? NAMED_LISTS[0].id
+
+const COLUMNS = [
+  { key: 'incl', label: null }, // select-all checkbox, rendered separately
+  { key: 'carrier', label: 'Carrier (SCAC · Name)' },
+  { key: 'equipment', label: 'Equip' },
+  { key: 'email', label: 'Contact Email' },
+  { key: 'plannedPickup', label: 'Planned Pickup' },
+  { key: 'plannedDelivery', label: 'Planned Delivery' },
+  { key: 'flags', label: 'Flags' },
+]
 
 /**
- * SetupCarriers — SpotBoard "Setup & Carriers" sub-tab. A toolbar to pick a
- * named carrier list/quote duration/flexible-pickup + the carrier DataTable
- * (Incl./Carrier/Equip/Email/dates/Flags) + Send RFQ/Save Draft/Cancel.
+ * SetupCarriers — SpotBoard "Setup & Carriers" sub-tab. Two cards (S112):
+ * a "Shipment Summary" SubAccordion carrying the order-view field grid, then
+ * "Setup & Carriers" holding the carrier table and its controls.
  *
- * The shipment-context SummaryStrip now lives in the parent (SpotBoardTab),
- * hoisted above both sub-tabs — it's not this component's concern anymore.
+ * The table follows the Orders product-information recipe — a plain
+ * `odyssey-table`, not DataTable or GroupTable — because the TL/LTL toggle
+ * shows exactly one list at a time, leaving nothing to group. Rows for BOTH
+ * lists are built and held in state regardless, so a planner's inclusions and
+ * dates survive toggling back and forth.
  *
  * `carrierOptions` arrives pre-resolved ({value: scac, label} from the async
  * `getLookupOptions('carrier', q)` pool) — the fetch is the parent's job
- * (SpotBoardTab, Task 10); this component stays sync, feeding it straight
- * into the pure `buildCarrierRows`.
+ * (SpotBoardTab), so this component stays sync, feeding it straight into the
+ * pure `buildCarrierRows`.
  */
 export default function SetupCarriers({
   quote,
   carrierOptions,
+  summaryFields = [],
   readOnly = false,
   onSaveDraft,
   onSendRFQ,
   onCancel,
 }) {
-  const [listId, setListId] = useState(quote?.listId ?? '')
+  // Left EMPTY on a fresh quote: the active mode's default rides in the
+  // placeholder instead ("Open Window 120min"), so switching TL↔LTL re-states
+  // the default without silently overwriting anything typed (user, S112).
   const [durationMin, setDurationMin] = useState(
     quote?.durationMin != null ? String(quote.durationMin) : ''
   )
   const [flexiblePickup, setFlexiblePickup] = useState(quote?.flexiblePickup ?? false)
   const [rows, setRows] = useState(quote?.carriers ?? [])
+  const [confirming, setConfirming] = useState(false)
+  const [mode, setMode] = useState('first')
 
-  const handleListChange = (id) => {
-    setListId(id)
-    const list = NAMED_LISTS.find((l) => l.id === id)
-    if (!list) return
-    setRows(buildCarrierRows(list, carrierOptions))
-    setDurationMin(String(list.defaultDurationMin))
-  }
-
-  // No existing quote → default to the first named list, same as if the user
-  // had picked it themselves (reuses handleListChange, not a parallel copy).
-  // `carrierOptions` resolves async in the parent, so on first mount it's
-  // still `[]` and this builds zero rows. Guarded on `rows.length === 0`
-  // (not `!listId`) so the effect re-fires once the pool actually arrives
-  // and populates the table — but stops re-populating the moment rows exist,
-  // so it never clobbers a user's incl/date edits after that first fill.
+  // Build every list's rows in one pass, stamping each row with the list it
+  // came from so the toggle can filter them. `carrierOptions` resolves async in
+  // the parent, so on first mount this builds zero rows — guarded on
+  // `rows.length === 0` so the effect re-fires once the pool arrives, then
+  // stops, never clobbering a planner's incl/date edits.
   useEffect(() => {
-    if (!quote && rows.length === 0) handleListChange(listId || NAMED_LISTS[0].id)
+    if (quote || rows.length > 0) return
+    const built = NAMED_LISTS.flatMap((list) =>
+      buildCarrierRows(list, carrierOptions).map((r) => ({ ...r, listId: list.id }))
+    )
+    if (built.length > 0) setRows(built)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [carrierOptions])
 
@@ -140,7 +90,7 @@ export default function SetupCarriers({
 
   // Editing a date auto-checks the row once both dates are present, and
   // auto-unchecks (+ disables, via the checkbox's own disabled expression
-  // above) it the moment a date is cleared — only a user EDIT does this,
+  // below) it the moment a date is cleared — only a user EDIT does this,
   // never the initial prefill (buildCarrierRows always seeds incl:false).
   const updateDate = (scac, field, value) =>
     setRows((rs) =>
@@ -152,104 +102,240 @@ export default function SetupCarriers({
       })
     )
 
-  // Toggling select-all only ever touches selectable (date-complete) rows —
-  // it must never include a row lacking dates.
-  const toggleAll = (include) =>
-    setRows((rs) => rs.map((r) => (isSelectable(r) ? { ...r, incl: include } : r)))
+  const activeList = MODES.find((m) => m.key === mode).list
+  const visibleRows = rows.filter((r) => listIdOf(r) === activeList.id)
 
-  const columns = useMemo(
-    () => buildColumns(readOnly, toggleIncl, updateDate, toggleAll, rows),
-    [readOnly, rows],
-  )
+  // Select-all is scoped to what's ON SCREEN — it must never silently include
+  // carriers from the mode you can't currently see.
+  const selectable = visibleRows.filter(isSelectable)
+  const includedSelectable = selectable.filter((r) => r.incl)
+  const allChecked = selectable.length > 0 && includedSelectable.length === selectable.length
+  const someChecked = includedSelectable.length > 0 && !allChecked
 
-  const table = useReactTable({ data: rows, columns, getCoreRowModel: getCoreRowModel() })
+  const toggleAll = (include) => {
+    const ids = new Set(selectable.map((r) => r.scac))
+    setRows((rs) => rs.map((r) => (ids.has(r.scac) ? { ...r, incl: include } : r)))
+  }
 
-  // Toolbar sticks above the table (spotboard.css); measure its rendered
-  // height + sticky offset and hand it to DataTable, exactly like
-  // OrdersTable does for orders-toolbar — the table header then sticks
-  // directly beneath it instead of underneath.
-  const toolbarRef = useRef(null)
-  const [stickyTop, setStickyTop] = useState(0)
-  useLayoutEffect(() => {
-    const toolbar = toolbarRef.current
-    if (!toolbar) return
-    const measure = () =>
-      setStickyTop(toolbar.offsetHeight + parseFloat(getComputedStyle(toolbar).top))
-    measure()
-    window.addEventListener('resize', measure)
-    return () => window.removeEventListener('resize', measure)
-  }, [])
-
-  const includedRows = rows.filter((r) => r.incl)
-  const canSend =
-    !!listId &&
-    includedRows.length > 0 &&
-    includedRows.every((r) => r.plannedPickup && r.plannedDelivery)
-
-  const buildPayload = () => {
-    const list = NAMED_LISTS.find((l) => l.id === listId)
-    return {
-      listId,
-      listName: list?.name ?? '',
-      durationMin: Number(durationMin) || 0,
-      carriers: rows,
-      flexiblePickup,
+  const renderCell = (row, col) => {
+    switch (col.key) {
+      case 'incl':
+        return (
+          <Checkbox
+            checked={row.incl}
+            onChange={() => toggleIncl(row.scac)}
+            disabled={readOnly || !isSelectable(row)}
+            showLabel={false}
+            aria-label={`Include ${row.scac}`}
+          />
+        )
+      case 'carrier':
+        return `${row.scac} · ${row.name}`
+      case 'plannedPickup':
+      case 'plannedDelivery':
+        return (
+          <div data-testid={`${col.key === 'plannedPickup' ? 'pickup' : 'delivery'}-${row.scac}`}>
+            <DateField
+              value={row[col.key]}
+              onChange={(v) => updateDate(row.scac, col.key, v)}
+              disabled={readOnly}
+            />
+          </div>
+        )
+      case 'flags':
+        return row.flags.map((f) => (
+          <Badge key={f} variant="red">{FLAG_LABELS[f] || f}</Badge>
+        ))
+      default:
+        return row[col.key] ?? '--'
     }
   }
 
-  return (
-    <div className="setup-carriers">
-      <div className="setup-carriers__controls">
-        <ComboBox
-          id="carrier-list"
-          variant="select"
-          typable={false}
-          showLabel
-          label="Carrier List (select exactly one)"
-          options={LIST_OPTIONS}
-          value={listId}
-          onSelect={handleListChange}
-          disabled={readOnly}
-        />
-        <FormField
-          id="quote-duration"
-          label="Quote Duration (open window, min)"
-          format="integer"
-          maxLength={5}
-          value={durationMin}
-          onChange={(e) => setDurationMin(e.target.value)}
-          disabled={readOnly}
-        />
-        <Checkbox
-          label="Flexible Pickup"
-          checked={flexiblePickup}
-          onChange={(e) => setFlexiblePickup(e.target.checked)}
-          disabled={readOnly}
-        />
-      </div>
+  // Inclusion spans BOTH modes — a planner can toggle to LTL, include a couple,
+  // toggle back, and send them all together.
+  const includedRows = rows.filter((r) => r.incl)
+  const canSend =
+    includedRows.length > 0 &&
+    includedRows.every((r) => r.plannedPickup && r.plannedDelivery)
 
-      <div className="setup-carriers__toolbar" ref={toolbarRef}>
-        <div className="setup-carriers__toolbar-top">
-          <span className="setup-carriers__toolbar-count text-label-sm-regular">
-            {rows.length} {rows.length === 1 ? 'carrier' : 'carriers'}
-          </span>
-          {!readOnly && (
-            <div className="setup-carriers__toolbar-right">
-              <Button size="sm" variant="primary" disabled={!canSend} onClick={() => onSendRFQ?.(buildPayload())}>
-                Send RFQ
-              </Button>
-              <Button size="sm" variant="secondary" onClick={() => onSaveDraft?.(buildPayload())}>
-                Save Draft
-              </Button>
-              <Button size="sm" variant="link" onClick={onCancel}>
-                Cancel
-              </Button>
-            </div>
-          )}
-        </div>
-      </div>
+  // Lists that actually contributed an included carrier — the payload's
+  // listId/listName describe what is being SENT, not a single up-front choice.
+  const includedLists = NAMED_LISTS.filter((l) =>
+    includedRows.some((r) => listIdOf(r) === l.id)
+  )
 
-      <DataTable table={table} stickyTop={stickyTop} ariaLabel="Carrier List" />
+  // An untouched field means "use the default" — the one the placeholder is
+  // advertising for the mode on screen.
+  const effectiveDuration = Number(durationMin) || activeList.defaultDurationMin
+
+  const buildPayload = () => ({
+    listId: includedLists.map((l) => l.id).join('+'),
+    listName: includedLists.map((l) => l.name).join(' + '),
+    durationMin: effectiveDuration,
+    carriers: rows,
+    flexiblePickup,
+  })
+
+  // Cancel leads on the left; Save Draft and the primary Send RFQ trail on the
+  // right (user, S112). All md; Cancel is a secondary button, not a link.
+  const actions = readOnly ? null : (
+    <div className="setup-carriers__actions">
+      <Button variant="secondary" onClick={onCancel}>Cancel</Button>
+      <div className="setup-carriers__actions-trail">
+        <Button variant="secondary" onClick={() => onSaveDraft?.(buildPayload())}>
+          Save Draft
+        </Button>
+        <Button variant="primary" disabled={!canSend} onClick={() => setConfirming(true)}>
+          Send RFQ
+        </Button>
+      </div>
     </div>
+  )
+
+  return (
+    <>
+      {/* Collapsible (user, S112) — open by default so the context is still the
+          first thing read, but it can be folded away once absorbed. */}
+      {summaryFields.length > 0 && (
+        <SubAccordion title="Shipment Summary" showIcon={false} defaultExpanded>
+          {/* Order-view field grid — label over value in columns (user, S112). */}
+          <div className="order-pane__fields-grid">
+            {summaryFields.map(({ label, value }) => (
+              <TitleSubtitle key={label} subtitle={label} title={value || '--'} />
+            ))}
+          </div>
+        </SubAccordion>
+      )}
+
+      <SubAccordion title="Setup & Carriers" showIcon={false} collapsible={false}>
+        <div className="order-pane__section setup-carriers">
+          <div className="order-pane__block">
+            {/* RFQ terms lead the card, directly below the accordion header —
+                a sibling of the table, not part of it (user, S112). */}
+            <div className="setup-carriers__controls">
+              <FormField
+                id="quote-duration"
+                label="Quote Duration"
+                placeholder={`Open Window ${activeList.defaultDurationMin}min`}
+                format="integer"
+                maxLength={5}
+                value={durationMin}
+                onChange={(e) => setDurationMin(e.target.value)}
+                disabled={readOnly}
+              />
+              <Checkbox
+                label="Flexible Pickup"
+                checked={flexiblePickup}
+                onChange={(e) => setFlexiblePickup(e.target.checked)}
+                disabled={readOnly}
+              />
+            </div>
+
+            {/* …then the count and the mode toggle, directly above the table. */}
+            <div className="setup-carriers__toolbar-top">
+              <span className="setup-carriers__toolbar-count text-label-sm-regular">
+                {visibleRows.length} {visibleRows.length === 1 ? 'carrier' : 'carriers'}
+              </span>
+              <ButtonToggle
+                firstLabel={MODES[0].label}
+                secondLabel={MODES[1].label}
+                selected={mode}
+                onChange={setMode}
+                firstAriaLabel={`Show ${MODES[0].label} carriers`}
+                secondAriaLabel={`Show ${MODES[1].label} carriers`}
+              />
+            </div>
+
+            <div className="setup-carriers__table-wrap">
+              <table className="odyssey-table setup-carriers__table" aria-label="Carrier List">
+                <thead>
+                  <tr>
+                    <th className="setup-carriers__col-incl">
+                      <Checkbox
+                        checked={allChecked}
+                        indeterminate={someChecked}
+                        onChange={() => toggleAll(!allChecked)}
+                        disabled={readOnly || selectable.length === 0}
+                        showLabel={false}
+                        aria-label="Select all carriers"
+                      />
+                    </th>
+                    {COLUMNS.slice(1).map((col) => (
+                      <th key={col.key} className="text-label-sm-semibold">{col.label}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {visibleRows.length === 0 && (
+                    <tr>
+                      <td className="text-label-sm-regular" colSpan={COLUMNS.length}>
+                        No carriers in this list.
+                      </td>
+                    </tr>
+                  )}
+                  {visibleRows.map((row) => (
+                    <tr key={row.scac}>
+                      {COLUMNS.map((col) => (
+                        <td
+                          key={col.key}
+                          className={col.key === 'incl'
+                            ? 'setup-carriers__col-incl'
+                            : 'text-label-sm-regular'}
+                        >
+                          {renderCell(row, col)}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {actions && <div className="order-pane__block">{actions}</div>}
+        </div>
+
+        {confirming && (
+          <ModalMedium
+            title="Send RFQ"
+            onClose={() => setConfirming(false)}
+            footer={
+              <>
+                <Button variant="secondary" size="lg" onClick={() => setConfirming(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  variant="primary"
+                  size="lg"
+                  onClick={() => {
+                    setConfirming(false)
+                    onSendRFQ?.(buildPayload())
+                  }}
+                >
+                  Confirm &amp; Send
+                </Button>
+              </>
+            }
+          >
+            <div className="setup-carriers__confirm">
+              <p className="text-label-sm-regular setup-carriers__confirm-lead">
+                The RFQ will be sent to {includedRows.length}{' '}
+                {includedRows.length === 1 ? 'carrier' : 'carriers'}:
+              </p>
+              <ul className="setup-carriers__confirm-list">
+                {includedRows.map((r) => (
+                  <li key={r.scac} className="text-label-sm-regular">{r.scac} · {r.name}</li>
+                ))}
+              </ul>
+              <div className="order-pane__fields-grid">
+                <TitleSubtitle subtitle="Quote Duration" title={`${effectiveDuration} min`} />
+                <TitleSubtitle subtitle="Flexible Pickup" title={flexiblePickup ? 'Yes' : 'No'} />
+                <TitleSubtitle subtitle="Carrier Lists" title={includedLists.map((l) => l.name).join(' + ') || '--'} />
+              </div>
+            </div>
+          </ModalMedium>
+        )}
+      </SubAccordion>
+    </>
   )
 }

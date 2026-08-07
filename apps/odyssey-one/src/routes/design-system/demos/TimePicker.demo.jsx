@@ -6,7 +6,7 @@ export const meta = {
   tier: 'molecule',
   version: '0.10.0',
   createdVersion: '0.8.0',
-  normalizing: false,
+  normalizing: true,
   figmaNode: '4534:5204',
   codeConnect: 'packages/ui/src/TimePicker.figma.tsx',
 }

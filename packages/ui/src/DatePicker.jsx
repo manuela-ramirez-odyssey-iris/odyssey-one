@@ -252,11 +252,10 @@ export default function DatePicker({
       {...wrapperProps}
       ref={setWrapperNode}
       className={mode === 'single' ? 'date-picker date-picker--single' : 'date-picker date-picker--range'}
-      style={
-        mode === 'single'
-          ? { maxWidth: 284 } // min-width via .date-picker--single (250px, 150px ≥1024px)
-          : { minWidth: 250, maxWidth: 284 }
-      }
+      // min-width is mode-driven and lives in CSS on the modifier class
+      // (single 180px / range 250px) — a range needs room for two masked dates
+      // plus the separator, a single does not.
+      style={{ maxWidth: 284 }}
     >
       <FormField
         id={id}

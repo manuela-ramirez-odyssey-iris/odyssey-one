@@ -119,6 +119,11 @@ export default function GroupTable({
   // comment for why the group row means something different in each.
   const nested = Array.isArray(detailColumns) && detailColumns.length > 0
   const spanAll = totalColumnCount(columns, stickyActions)
+  // Nested flavor's group row IS a data row (one value per column), so it keeps
+  // the column grid; only the rows flavor merges its label cell.
+  const { labelSpan, valueColumns } = nested
+    ? { labelSpan: 1, valueColumns: columns.slice(1) }
+    : splitHeaderRow(columns)
 
   const rootClasses = [
     'odyssey-group-table',
@@ -168,39 +173,39 @@ export default function GroupTable({
                 className="odyssey-group-table__group-row"
                 onClick={() => toggle(group.id)}
               >
-                {columns.map((col, colIdx) =>
-                  colIdx === 0 ? (
-                    <td key={col.key}>
-                      <button
-                        type="button"
-                        className="odyssey-group-table__group-toggle"
-                        aria-expanded={open}
-                        aria-controls={bodyId}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          toggle(group.id)
-                        }}
-                      >
-                        <ChevronDown
-                          {...ICON_MD}
-                          className="odyssey-group-table__chevron"
-                          aria-hidden="true"
-                        />
-                        {group.label}
-                      </button>
-                    </td>
-                  ) : (
-                    <td
-                      key={col.key}
-                      className={[
-                        'odyssey-group-table__group-value',
-                        alignClass(col.align) || undefined,
-                      ].filter(Boolean).join(' ') || undefined}
-                    >
-                      {groupHeaderValue(group, col.key)}
-                    </td>
-                  )
-                )}
+                {/* The label is ONE merged cell (see splitHeaderRow) — the
+                    header row does not follow the body's column grid, so a
+                    narrow lead column isn't stretched to fit the group name. */}
+                <td colSpan={labelSpan}>
+                  <button
+                    type="button"
+                    className="odyssey-group-table__group-toggle"
+                    aria-expanded={open}
+                    aria-controls={bodyId}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      toggle(group.id)
+                    }}
+                  >
+                    <ChevronDown
+                      {...ICON_MD}
+                      className="odyssey-group-table__chevron"
+                      aria-hidden="true"
+                    />
+                    {group.label}
+                  </button>
+                </td>
+                {valueColumns.map((col) => (
+                  <td
+                    key={col.key}
+                    className={[
+                      'odyssey-group-table__group-value',
+                      alignClass(col.align) || undefined,
+                    ].filter(Boolean).join(' ') || undefined}
+                  >
+                    {groupHeaderValue(group, col.key)}
+                  </td>
+                ))}
                 {stickyActions && (
                   /* The action is its own affordance — clicking it must not
                      toggle the row the way the rest of the row does. The TONE
@@ -313,6 +318,28 @@ export function isGroupExpanded(overrides, defaultExpanded, id) {
  */
 export function groupHeaderValue(group, colKey) {
   return group.values?.[colKey] ?? ''
+}
+
+/**
+ * How many TRAILING columns a group header row reserves for `values`.
+ * Per the Figma HeaderRow master the group label is ONE merged cell spanning
+ * everything before them — the header row deliberately does NOT follow the
+ * body's column grid. Getting this wrong is visible: a narrow lead column (a
+ * checkbox, say) gets stretched to fit the group label (user, S112).
+ */
+export const HEADER_VALUE_COLUMNS = 3
+
+/**
+ * Split `columns` into [labelSpan, valueColumns] for a group header row.
+ * Clamped so a table with ≤ HEADER_VALUE_COLUMNS columns still renders a label
+ * cell instead of colSpan={0}.
+ *
+ * @param {Array} columns — the outer column definitions
+ * @returns {{ labelSpan: number, valueColumns: Array }}
+ */
+export function splitHeaderRow(columns) {
+  const labelSpan = Math.max(1, columns.length - HEADER_VALUE_COLUMNS)
+  return { labelSpan, valueColumns: columns.slice(labelSpan) }
 }
 
 /**

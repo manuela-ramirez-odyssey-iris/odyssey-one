@@ -10,11 +10,12 @@ export const meta = {
   codeOnly: true,
   // Code-first molecule — composes DropdownMenu + MenuRow (both already in Figma), so no
   // standalone Figma master. React built S66; Angular twin shipped S67 → full cycle complete.
-  normalizing: false,
+  normalizing: true,
 }
 
 export const props = [
-  { name: 'icon', type: 'ReactNode', desc: 'The trigger glyph (required) — the library is icon-agnostic, so pass a real icon (⋮, ⚡, …). Lives inside a normalized 28×28 transparent trigger button.' },
+  { name: 'icon', type: 'ReactNode', desc: 'The trigger glyph — the library is icon-agnostic, so pass a real icon (⋮, ⚡, …). Lives inside a normalized 28×28 transparent trigger button. Required unless `label` is given.' },
+  { name: 'label', type: 'string', desc: 'Renders a LABELLED trigger instead of an icon one — the normalized DropdownButton atom (value + chevron, chevron flips with open). For toolbar action menus that must announce themselves ("Actions") rather than hide behind a 3-dot glyph. Mutually exclusive with `icon`; `label` wins if both are passed.' },
   { name: 'options', type: '{ label, onSelect, disabled?, danger? }[]', desc: 'The action items. Each fires onSelect + closes. disabled → inert + muted; danger → destructive color.' },
   { name: 'align', type: "'right' | 'left'", desc: "Horizontal anchor. 'right' (default) pins the menu's right edge to the trigger (safe for far-right action columns); 'left' pins its left edge." },
   { name: 'ariaLabel', type: 'string', desc: 'Accessible name for the icon-only trigger button.' },

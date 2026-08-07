@@ -1,4 +1,4 @@
-/* LiveBids — SpotBoard sub-tab: header strip + nested GroupTable of bids. */
+/* LiveBids — SpotBoard sub-tab: quote SummaryStrip + nested GroupTable of bids. */
 
 .live-bids {
   display: flex;
@@ -6,31 +6,11 @@
   gap: var(--spacing-4);
 }
 
-.live-bids__header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--spacing-4);
-  padding: var(--spacing-4);
-  background: var(--bg-primary);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  box-sizing: border-box;
-}
-
-.live-bids__header-field {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.live-bids__header-label {
-  color: var(--text-tertiary);
-}
-
-.live-bids__header-value {
-  color: var(--text-primary);
-  font-weight: 600;
+/* The quote header is a SummaryStrip (S112). SummaryStrip closes itself with a
+   bottom hairline; inside the card it also needs one ABOVE, so the strip reads
+   as a banded row rather than as content floating at the top of the card. */
+.live-bids__summary {
+  border-top: 1px solid var(--border-subtle);
 }
 
 .live-bids__actions {

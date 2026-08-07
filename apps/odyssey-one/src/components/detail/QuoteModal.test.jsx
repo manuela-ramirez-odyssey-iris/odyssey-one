@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, cleanup, fireEvent } from '@testing-library/react'
-import { QuoteModal, splitDateTime, joinDateTime } from './RoutingGuideTab'
+import { QuoteModal, splitDateTime, joinDateTime, tzOffset } from './RoutingGuideTab'
 
 afterEach(cleanup)
 
@@ -30,6 +30,12 @@ describe('quote date/time string', () => {
     // no date = no timestamp at all; a bare time would be meaningless
     expect(joinDateTime({ date: '', time: '09:00', tz: 'CST' })).toBe('')
     expect(joinDateTime({ date: '01/07/2026', time: '', tz: 'CST' })).toBe('01/07/2026')
+  })
+
+  // Times are 24h end to end — display AND wire (LINX-8120 / LINX-7629 data
+  // format). Guards against a 12h face being reintroduced from a mock.
+  it('keeps time 24h in the composed value', () => {
+    expect(joinDateTime({ date: '01/07/2026', time: '14:30', tz: 'CST' })).toBe('01/07/2026 14:30 CST')
   })
 })
 
@@ -60,13 +66,22 @@ describe('QuoteModal', () => {
     expect(screen.getByRole('button', { name: 'Remove charge 1' })).toBeTruthy()
   })
 
-  it('view mode composes pickup/delivery into ONE blocked field', () => {
+  it('view mode renders pickup/delivery as VALUES, not blocked fields', () => {
     render(<QuoteModal mode="view" carrierData={quote} onSave={() => {}} onClose={() => {}} />)
-    const composed = screen.getAllByDisplayValue('01/07/2026 09:00 CST')
-    expect(composed).toHaveLength(2) // pickup + delivery
-    composed.forEach((el) => expect(el.disabled).toBe(true))
+    // Read as text (TitleSubtitle), the General Information idiom — S112
+    expect(screen.getAllByText('01/07/2026 09:00 CST')).toHaveLength(2) // pickup + delivery
+    expect(screen.queryByDisplayValue('01/07/2026 09:00 CST')).toBeNull() // no dead input
     // no split controls in read-only mode
     expect(screen.queryByLabelText(/Select time/i)).toBeNull()
+  })
+
+  it('view mode has no form controls left in Carrier / Rate / Charges', () => {
+    render(<QuoteModal mode="view" carrierData={quote} onSave={() => {}} onClose={() => {}} />)
+    expect(screen.getByText('ABFS')).toBeTruthy()                 // SCAC as text
+    expect(screen.getByText('ABF FREIGHT SYSTEM')).toBeTruthy()   // carrier name as text
+    expect(screen.getByText('$803.73 USD')).toBeTruthy()          // base rate as text
+    expect(screen.getByText('Stop-Off Charge')).toBeTruthy()      // charge row as text
+    expect(screen.queryByRole('combobox')).toBeNull()             // nothing typeable anywhere
   })
 
   it('seeds the timezone from the shipment when the quote carries none', () => {
@@ -78,9 +93,17 @@ describe('QuoteModal', () => {
         onClose={() => {}}
       />,
     )
-    // static text (the UTC offset only), not a control
-    expect(screen.getAllByText('(UTC-07:00)')).toHaveLength(2)
+    // Still no timezone CONTROL — it stays system-determined. As of S112 the
+    // offset is not SURFACED in add/edit either: it rides silently in state and
+    // only becomes visible in the composed read-only value (asserted below).
     expect(screen.queryByRole('combobox', { name: /time zone/i })).toBeNull()
+    expect(screen.queryByText(/UTC-/)).toBeNull()
+  })
+
+  it('the timezone survives into the composed read-only value', () => {
+    render(<QuoteModal mode="view" carrierData={quote} onSave={() => {}} onClose={() => {}} />)
+    // "CST" is the seeded zone riding through splitDateTime → joinDateTime
+    expect(screen.getAllByText('01/07/2026 09:00 CST')).toHaveLength(2)
   })
 
   it('view mode is read-only: no Add Row, no footer at all', () => {

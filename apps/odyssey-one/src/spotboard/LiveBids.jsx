@@ -1,4 +1,4 @@
-import { Badge, Button, GroupTable } from '@odyssey/ui'
+import { Badge, Button, GroupTable, SubAccordion, SummaryStrip } from '@odyssey/ui'
 import Countdown from './Countdown'
 import TolerancePanel from './TolerancePanel'
 import { lowestBid } from './spotStore'
@@ -12,37 +12,55 @@ const STATUS_BADGE_VARIANT = {
   awarded: 'green',
 }
 
+// Pricing lives in the NESTED table, not the main row (user, S112) — the outer
+// row identifies the carrier and its bid state; the money is the breakdown you
+// expand to see, Total included as its own line.
 const COLUMNS = [
   { key: 'carrier', label: 'Carrier' },
   { key: 'status', label: 'Status' },
-  { key: 'linehaul', label: 'Linehaul', align: 'right' },
-  { key: 'fuel', label: 'Fuel', align: 'right' },
-  { key: 'accessorials', label: 'Accessorials', align: 'right' },
-  { key: 'total', label: 'Total', align: 'right' },
   { key: 'submittedBy', label: 'Submitted By' },
   { key: 'response', label: 'Response' },
 ]
 
+// Six columns (user, S112): the pricing keeps its COLUMN shape one level down
+// — the same four headings the outer row used to carry — and Code/Description
+// stay real columns rather than being folded into a cell's text.
 const DETAIL_COLUMNS = [
   { key: 'code', label: 'Code' },
   { key: 'description', label: 'Description' },
-  { key: 'amount', label: 'Amount', align: 'right' },
+  { key: 'linehaul', label: 'Linehaul', align: 'right' },
+  { key: 'fuel', label: 'Fuel', align: 'right' },
+  { key: 'accessorials', label: 'Accessorials', align: 'right' },
+  { key: 'total', label: 'Total', align: 'right' },
 ]
 
 function sumAccessorials(bid) {
   return (bid.accessorials ?? []).reduce((sum, a) => sum + a.amount, 0)
 }
 
-// A bid's charge lines: linehaul + fuel + each accessorial, in the shape
-// detailColumns expects (code/description/amount).
+// The priced row carries the bid's four money columns and leaves Code /
+// Description empty (they describe accessorials, not the bid). Each accessorial
+// then gets its own line: code + description filled, its amount under the
+// Accessorials column it rolls into, the other money columns blank.
+const DASH = '--'
+
 function chargeLines(bid) {
   return [
-    { code: 'LH', description: 'Linehaul', amount: fmtDollar(bid.linehaul) },
-    { code: 'FSC', description: 'Fuel', amount: fmtDollar(bid.fuel) },
+    {
+      code: DASH,
+      description: DASH,
+      linehaul: fmtDollar(bid.linehaul),
+      fuel: fmtDollar(bid.fuel),
+      accessorials: fmtDollar(sumAccessorials(bid)),
+      total: fmtDollar(bid.total),
+    },
     ...(bid.accessorials ?? []).map((a) => ({
       code: a.code,
       description: a.description || a.code,
-      amount: fmtDollar(a.amount),
+      linehaul: DASH,
+      fuel: DASH,
+      accessorials: fmtDollar(a.amount),
+      total: DASH,
     })),
   ]
 }
@@ -56,15 +74,6 @@ function statusBadge(bid, isLowest, closed) {
   if (bid?.status === 'bid') return <Badge variant="blue">Bid</Badge>
   if (bid?.status === 'declined') return <Badge variant="gray">Declined</Badge>
   return <Badge variant="gray">{closed ? 'No Bid Submitted' : 'Awaiting'}</Badge>
-}
-
-function headerField(label, value) {
-  return (
-    <div className="live-bids__header-field">
-      <span className="live-bids__header-label">{label}</span>
-      <span className="live-bids__header-value">{value}</span>
-    </div>
-  )
 }
 
 /**
@@ -105,10 +114,6 @@ export default function LiveBids({
       label: `${carrier.scac} · ${carrier.name}`,
       values: {
         status: statusBadge(bid, isLowest, terminal),
-        linehaul: bid ? fmtDollar(bid.linehaul) : '—',
-        fuel: bid ? fmtDollar(bid.fuel) : '—',
-        accessorials: bid ? fmtDollar(sumAccessorials(bid)) : '—',
-        total: bid ? fmtDollar(bid.total) : '—',
         submittedBy: bid?.submittedBy ?? '—',
         response: bid?.respondedAt ? new Date(bid.respondedAt).toLocaleString() : '—',
       },
@@ -126,61 +131,73 @@ export default function LiveBids({
     ...quote.carriers.map((c) => c.bid?.total).filter((n) => n != null)
   )
 
+  // The quote header is a stat strip, not a bespoke field row (user, S112) —
+  // same SummaryStrip the shipment context uses, so both read alike.
+  const summaryItems = [
+    { label: 'Quote ID', value: quote.quoteId },
+    { label: 'Status', value: <Badge variant={STATUS_BADGE_VARIANT[quote.status] ?? 'gray'}>{quote.status}</Badge> },
+    { label: 'Opened', value: quote.openAt ? new Date(quote.openAt).toLocaleString() : null },
+    { label: 'Closed', value: closed && quote.closeAt ? new Date(quote.closeAt).toLocaleString() : null },
+    { label: 'List', value: quote.listName },
+    { label: 'Award type', value: quote.awardType },
+    ...(quote.status === 'open'
+      ? [{ label: 'Closes in', value: <Countdown closeAt={quote.closeAt} /> }]
+      : []),
+  ]
+
   return (
-    <div className="live-bids">
-      <div className="live-bids__header">
-        {headerField('Quote ID', quote.quoteId)}
-        <Badge variant={STATUS_BADGE_VARIANT[quote.status] ?? 'gray'}>{quote.status}</Badge>
-        {headerField('Opened', quote.openAt ? new Date(quote.openAt).toLocaleString() : '—')}
-        {headerField('Closed', closed && quote.closeAt ? new Date(quote.closeAt).toLocaleString() : '—')}
-        {headerField('List', quote.listName)}
-        {headerField('Award type', quote.awardType ?? '—')}
-        {quote.status === 'open' && <Countdown closeAt={quote.closeAt} />}
-      </div>
+    <SubAccordion title="Live Bids" showIcon={false} collapsible={false}>
+      <div className="live-bids">
+        <SummaryStrip
+          className="live-bids__summary"
+          aria-label="Quote Summary"
+          items={summaryItems}
+        />
 
-      <GroupTable
-        columns={COLUMNS}
-        groups={groups}
-        detailColumns={DETAIL_COLUMNS}
-        defaultExpanded={false}
-        stickyActions
-        actionsHeader={null}
-        aria-label="Live bids"
-      />
+        <GroupTable
+          columns={COLUMNS}
+          groups={groups}
+          detailColumns={DETAIL_COLUMNS}
+          defaultExpanded={false}
+          stickyActions
+          actionsHeader={null}
+          aria-label="Live bids"
+        />
 
-      {closed && (
-        lowest ? (
-          <TolerancePanel
-            benchmark={benchmark ?? fallbackBenchmark}
-            tolerancePct={tolerancePct}
-            lowestBid={lowest.bid.total}
-            manualReview={manualReview}
-            monetaryCap={monetaryCap}
-            totalCap={totalCap}
-          />
-        ) : (
-          <p className="live-bids__no-bids">No bids received</p>
-        )
-      )}
-
-      <div className="live-bids__actions">
-        {quote.status === 'open' && (
-          <Button variant="secondary" onClick={onForceClose}>Force Close</Button>
-        )}
         {closed && (
-          <>
-            <h3 className="text-label-base-semibold live-bids__actions-heading">Award Action</h3>
-            <p className="text-label-sm-regular live-bids__actions-note">
-              Select a carrier and award. Award moves the carrier into the shipment tendering flow — it does not assign the load until tendered.
-            </p>
-            <Button variant="primary" disabled={!lowest} onClick={() => lowest && onAward?.(lowest.scac)}>
-              Award Carrier &amp; Send to Tender
-            </Button>
-            <Button variant="secondary" onClick={onModify}>Modify &amp; Resend</Button>
-            <Button variant="secondary" onClick={onClear}>Clear &amp; Start Over</Button>
-          </>
+          lowest ? (
+            <TolerancePanel
+              benchmark={benchmark ?? fallbackBenchmark}
+              tolerancePct={tolerancePct}
+              lowestBid={lowest.bid.total}
+              manualReview={manualReview}
+              monetaryCap={monetaryCap}
+              totalCap={totalCap}
+            />
+          ) : (
+            <p className="live-bids__no-bids">No bids received</p>
+          )
         )}
+
+        <div className="live-bids__actions">
+          {quote.status === 'open' && (
+            <Button variant="secondary" onClick={onForceClose}>Force Close</Button>
+          )}
+          {closed && (
+            <>
+              <h3 className="text-label-base-semibold live-bids__actions-heading">Award Action</h3>
+              <p className="text-label-sm-regular live-bids__actions-note">
+                Select a carrier and award. Award moves the carrier into the shipment tendering flow — it does not assign the load until tendered.
+              </p>
+              <Button variant="primary" disabled={!lowest} onClick={() => lowest && onAward?.(lowest.scac)}>
+                Award Carrier &amp; Send to Tender
+              </Button>
+              <Button variant="secondary" onClick={onModify}>Modify &amp; Resend</Button>
+              <Button variant="secondary" onClick={onClear}>Clear &amp; Start Over</Button>
+            </>
+          )}
+        </div>
       </div>
-    </div>
+    </SubAccordion>
   )
 }

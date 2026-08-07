@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { TriangleAlert } from 'lucide-react'
-import { EmptyState, Tab, SummaryStrip } from '@odyssey/ui'
+import { EmptyState, Tab } from '@odyssey/ui'
 import SetupCarriers from '../../spotboard/SetupCarriers.jsx'
 import LiveBids from '../../spotboard/LiveBids.jsx'
 import RfqLinksPanel from '../../spotboard/RfqLinksPanel.jsx'
@@ -130,6 +130,18 @@ export default function SpotBoardTab({ shipmentDetails, shipment }) {
   }, [])
 
   const header = useMemo(() => buildHeader(shipmentDetails), [shipmentDetails])
+  // Shipment context — rendered by SetupCarriers as an order-view FIELD GRID
+  // inside its card (user, S112). This reverses S111's hoist: the context no
+  // longer survives a switch to Live Bids, which has its own quote strip.
+  const summaryFields = useMemo(() => [
+    // Field order per the user (S112): route first, then the load's shape.
+    { label: 'Origin', value: header?.origin },
+    { label: 'Destination', value: header?.destination },
+    { label: 'Distance', value: header?.distance },
+    { label: 'Pickup Window', value: header?.pickupWindow },
+    { label: 'Equipment (seed)', value: header?.equipment },
+    { label: 'Hazmat', value: header?.hazmat },
+  ], [header])
   const distanceMi = parseDistanceMi(shipmentDetails?.stopsData?.summary?.distance)
   // Real benchmark: highest cost among the shipment's routed options (the
   // domain-correct definition — LiveBids' own "highest submitted bid"
@@ -208,18 +220,6 @@ export default function SpotBoardTab({ shipmentDetails, shipment }) {
         </div>
       </div>
 
-      <SummaryStrip
-        aria-label="Shipment Summary"
-        items={[
-          { label: 'Origin', value: header?.origin },
-          { label: 'Destination', value: header?.destination },
-          { label: 'Equipment (seed)', value: header?.equipment },
-          { label: 'Distance', value: header?.distance },
-          { label: 'Hazmat', value: header?.hazmat },
-          { label: 'Pickup Window', value: header?.pickupWindow },
-        ]}
-      />
-
       {rfqLinksVisible && (
         <div className="pane-col pane-col--wide">
           <RfqLinksPanel
@@ -235,6 +235,7 @@ export default function SpotBoardTab({ shipmentDetails, shipment }) {
           <SetupCarriers
             quote={quote}
             carrierOptions={carrierOptions}
+            summaryFields={summaryFields}
             readOnly={quote?.status === 'open' || quote?.status === 'closed' || quote?.status === 'awarded'}
             onSaveDraft={saveDraft}
             onSendRFQ={handleSendRFQ}

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { TruckElectric, Columns3Cog, X, Trash2, Plus, FoldHorizontal, UnfoldHorizontal } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
-import { Badge, Button, ComboBox, FormField, ModalMedium, Tab, TimePicker } from '@odyssey/ui'
+import { Badge, Button, ComboBox, FormField, ModalMedium, Tab, TimePicker, TitleSubtitle } from '@odyssey/ui'
 import MeasureField from '../orders/create/fields/MeasureField.jsx'
 import DateField from '../orders/create/fields/DateField.jsx'
 import { TIMEZONE_LABELS } from '../../data/master-data'
@@ -152,6 +152,11 @@ const stickyLastCol = {
 
 const DASH = '--' // LINX-13590 — empty optional values read '--'
 
+// Read-only money face: "$803.73 USD", or the dash when unset. Keeps the
+// currency visible now that the MeasureField's uom selector is gone in view mode.
+const money = (amount, uom) =>
+  (amount === '' || amount == null) ? DASH : `${fmtDollar(parseDollar(amount))}${uom ? ` ${uom}` : ''}`
+
 const CHARGE_CODES = [
   { code: 'THC', description: 'Terminal Handling Charge' },
   { code: 'FSC', description: 'Fuel Surcharge' },
@@ -257,8 +262,11 @@ const loadCarriers = async (q, skip = 0) => {
 // full TIMEZONE_LABELS string starved the TimePicker in a half-width column,
 // and the bare initials read too terse (user, S102).
 export const tzOffset = (tz) => {
+  if (!tz) return ''
   const m = /^\((UTC[^)]*)\)/.exec(TIMEZONE_LABELS[tz] ?? '')
-  return m ? `(${m[1]})` : tz
+  // Fallback = whatever the data actually carries, verbatim (IANA zones like
+  // "America/New_York" miss the short-code map). Parenthesised either way.
+  return `(${m ? m[1] : tz})`
 }
 
 // Quote timestamps ride as one display string ("01/07/2026 09:00 CST") through
@@ -305,39 +313,35 @@ function SummaryCard({ title, rows, total }) {
  * Editable: date takes 1fr; time + the timezone label share the other 1fr, with
  * the TimePicker flexing to fill whatever the initials don't use.
  */
-function DateTimePair({ idPrefix, label, value, onChange, disabled, readOnly }) {
+function DateTimePair({ idPrefix, name, value, onChange, disabled, readOnly }) {
   if (readOnly) {
-    return (
-      <FormField
-        id={`${idPrefix}-composed`}
-        label={label}
-        value={joinDateTime(value) || DASH}
-        disabled
-      />
-    )
+    // Read-only reads as a VALUE, not a dead input (user, S112) — same
+    // TitleSubtitle idiom ShipmentDetailsModal uses for General Information.
+    return <TitleSubtitle subtitle={name} title={joinDateTime(value) || DASH} />
   }
   return (
     <div className="quote-datetime">
-      <span className="text-label-sm-medium quote-datetime__label">{label}</span>
       <div className="quote-datetime__row">
         <DateField
           id={`${idPrefix}-date`}
+          label="Date"
           value={value.date}
           onChange={(date) => onChange({ ...value, date })}
           disabled={disabled}
         />
-        <div className="quote-datetime__time">
-          <TimePicker
-            id={`${idPrefix}-time`}
-            format="international"
-            value={value.time}
-            onChange={(time) => onChange({ ...value, time })}
-            disabled={disabled}
-          />
-          <span className="quote-datetime__tz text-label-sm-regular">
-            {tzOffset(value.tz)}
-          </span>
-        </div>
+        <TimePicker
+          id={`${idPrefix}-time`}
+          label="Time"
+          /* 24h — LINX-8120 / LINX-7629 data-format contract. Efrain's 12h mocks
+             do NOT govern this: source precedence covers design descriptions,
+             not data formats (user ruling, 2026-08-06). */
+          format="international"
+          /* No timezone here — it's SYSTEM-determined, so it qualifies the
+             Pickup/Delivery section title instead of the control. */
+          value={value.time}
+          onChange={(time) => onChange({ ...value, time })}
+          disabled={disabled}
+        />
       </div>
     </div>
   )
@@ -448,63 +452,86 @@ export function QuoteModal({ mode, carrierData, shipmentTz, onSave, onClose }) {
         <section>
           <h3 className="text-label-base-semibold quote-modal__section-title">Carrier</h3>
           <div className="quote-modal__grid-2">
-            <ComboBox
-              id="quote-scac"
-              variant="select"
-              showLabel
-              label="SCAC"
-              placeholder="Select SCAC"
-              loadOptions={loadCarriers}
-              value={scac}
-              onChange={(text) => { if (scac && text !== scac) { setScac(''); setCarrierName('') } }}
-              onSelect={handleScacSelect}
-              emptyMessage={(q) => (q.trim().length === 1 ? 'Type at least 2 characters' : 'No matches')}
-              disabled={isView || isEdit}
-            />
-            {/* Carrier Name is always derived from the SCAC — never typed. */}
-            <FormField label="Carrier Name" value={carrierName} disabled />
-          </div>
-          <div className="quote-modal__grid-2 quote-modal__grid-2--gap">
-            <DateTimePair
-              idPrefix="quote-pickup"
-              label="Pickup Date/Time"
-              value={pickup}
-              onChange={setPickup}
-              disabled={isView}
-              readOnly={isView}
-            />
-            <DateTimePair
-              idPrefix="quote-delivery"
-              label="Delivery Date/Time"
-              value={delivery}
-              onChange={setDelivery}
-              disabled={isView}
-              readOnly={isView}
-            />
+            {isView ? (
+              <>
+                <TitleSubtitle subtitle="SCAC" title={scac || DASH} />
+                <TitleSubtitle subtitle="Carrier Name" title={carrierName || DASH} />
+              </>
+            ) : (
+              <>
+                <ComboBox
+                  id="quote-scac"
+                  variant="select"
+                  showLabel
+                  label="SCAC"
+                  placeholder="Select SCAC"
+                  loadOptions={loadCarriers}
+                  value={scac}
+                  onChange={(text) => { if (scac && text !== scac) { setScac(''); setCarrierName('') } }}
+                  onSelect={handleScacSelect}
+                  emptyMessage={(q) => (q.trim().length === 1 ? 'Type at least 2 characters' : 'No matches')}
+                  disabled={isEdit}
+                />
+                {/* Carrier Name is always derived from the SCAC — never typed. */}
+                <FormField label="Carrier Name" value={carrierName} disabled />
+              </>
+            )}
           </div>
         </section>
+
+        {/* View mode composes each side into one self-describing value, so the
+            two sections collapse to one (user, S112). Editing still needs them
+            apart — that's the only thing telling Pickup's fields from
+            Delivery's, since the controls are just "Date" and "Time". */}
+        {isView ? (
+          <section>
+            <h3 className="text-label-base-semibold quote-modal__section-title">Pickup and Delivery</h3>
+            <div className="quote-modal__grid-2">
+              <DateTimePair idPrefix="quote-pickup" name="Pickup" value={pickup} readOnly />
+              <DateTimePair idPrefix="quote-delivery" name="Delivery" value={delivery} readOnly />
+            </div>
+          </section>
+        ) : (
+          <div className="quote-modal__grid-2">
+            <section>
+              <h3 className="text-label-base-semibold quote-modal__section-title">Pickup</h3>
+              <DateTimePair idPrefix="quote-pickup" name="Pickup" value={pickup} onChange={setPickup} />
+            </section>
+            <section>
+              <h3 className="text-label-base-semibold quote-modal__section-title">Delivery</h3>
+              <DateTimePair idPrefix="quote-delivery" name="Delivery" value={delivery} onChange={setDelivery} />
+            </section>
+          </div>
+        )}
 
         <section>
           <h3 className="text-label-base-semibold quote-modal__section-title">Rate</h3>
           <div className="quote-modal__grid-2">
-            <MeasureField
-              showLabel
-              label="Base Rate"
-              decimals={2}
-              value={{ value: baseRate, uom: currency }}
-              options={CURRENCY_OPTIONS}
-              onChange={(v) => { setBaseRate(v.value); setCurrency(v.uom) }}
-              disabled={isView}
-            />
-            <MeasureField
-              showLabel
-              label="Markup"
-              decimals={2}
-              value={{ value: markup, uom: markupCurrency }}
-              options={CURRENCY_OPTIONS}
-              onChange={(v) => { setMarkup(v.value); setMarkupCurrency(v.uom) }}
-              disabled={isView}
-            />
+            {isView ? (
+              <>
+                <TitleSubtitle subtitle="Base Rate" title={money(baseRate, currency)} />
+                <TitleSubtitle subtitle="Markup" title={money(markup, markupCurrency)} />
+              </>
+            ) : (
+              <>
+                <MeasureField
+                  showLabel
+                  label="Base Rate"
+                  decimals={2}
+                  value={{ value: baseRate, uom: currency }}
+                  options={CURRENCY_OPTIONS}
+                  onChange={(v) => { setBaseRate(v.value); setCurrency(v.uom) }}
+                />
+                <MeasureField
+                  showLabel
+                  label="Markup"
+                  decimals={2}
+                  value={{ value: markup, uom: markupCurrency }}
+                  options={CURRENCY_OPTIONS}
+                  onChange={(v) => { setMarkup(v.value); setMarkupCurrency(v.uom) }}
+                />
+              </>
+            )}
           </div>
         </section>
 
@@ -522,24 +549,32 @@ export function QuoteModal({ mode, carrierData, shipmentTz, onSave, onClose }) {
               </div>
               {additionalCharges.map((charge, idx) => (
                 <div key={idx} className={`quote-charges__row${isView ? '' : ' quote-charges__row--editable'}`}>
-                  <ComboBox
-                    variant="select"
-                    typable={false}
-                    showLabel={false}
-                    placeholder="--"
-                    options={CHARGE_CODE_OPTIONS}
-                    value={charge.code}
-                    onSelect={(v) => setChargeCode(idx, v)}
-                    disabled={isView}
-                  />
-                  <FormField showLabel={false} value={charge.description} disabled />
-                  <MeasureField
-                    decimals={2}
-                    value={{ value: charge.amount, uom: charge.currency }}
-                    options={CURRENCY_OPTIONS}
-                    onChange={(v) => updateCharge(idx, { amount: v.value, currency: v.uom })}
-                    disabled={isView}
-                  />
+                  {isView ? (
+                    <>
+                      <span className="text-label-sm-regular">{charge.code || DASH}</span>
+                      <span className="text-label-sm-regular">{charge.description || DASH}</span>
+                      <span className="text-label-sm-regular">{money(charge.amount, charge.currency)}</span>
+                    </>
+                  ) : (
+                    <>
+                      <ComboBox
+                        variant="select"
+                        typable={false}
+                        showLabel={false}
+                        placeholder="--"
+                        options={CHARGE_CODE_OPTIONS}
+                        value={charge.code}
+                        onSelect={(v) => setChargeCode(idx, v)}
+                      />
+                      <FormField showLabel={false} value={charge.description} disabled />
+                      <MeasureField
+                        decimals={2}
+                        value={{ value: charge.amount, uom: charge.currency }}
+                        options={CURRENCY_OPTIONS}
+                        onChange={(v) => updateCharge(idx, { amount: v.value, currency: v.uom })}
+                      />
+                    </>
+                  )}
                   {/* Plain icon affordance, never a Button (row-action convention).
                       NOTE: the mocks show no delete — flagged for Efrain. */}
                   {!isView && (

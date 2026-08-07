@@ -22,7 +22,7 @@ export function dateToStr(d) {
  */
 export default function DateField({ id, label, value, onChange, error, warning, disabled }) {
   return (
-    <div>
+    <div className="date-field">
       <DatePicker
         id={id}
         label={label}

@@ -3594,8 +3594,6 @@ button.breadcrumb__label:focus-visible {
   gap: var(--spacing-3) var(--spacing-5);
 }
 
-.quote-modal__grid-2--gap { margin-top: var(--spacing-3); }
-
 /* Date + Time + Timezone trio (create-order recipe: one label over three controls). */
 .quote-datetime {
   display: flex;
@@ -3604,40 +3602,27 @@ button.breadcrumb__label:focus-visible {
   min-width: 0;
 }
 
-.quote-datetime__label { color: var(--text-primary); }
 
-/* Date | (time + timezone) — two equal halves. The timezone is static text
-   (system-determined), so the TimePicker flexes into whatever the initials
-   don't take. */
+/* Two labelled fields — Date | Time — mirroring the Orders `.co-triad` recipe
+   (group heading above, each control carrying its own label). The timezone is
+   no longer a third column: it rides inside the TimePicker via its `timezone`
+   prop. `start` alignment because the labels set the top edge. */
 .quote-datetime__row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: var(--spacing-2);
+  display: flex;
+  gap: var(--spacing-3);
   align-items: start;
 }
-.quote-datetime__row > *,
-.quote-datetime__row .form-field,
-.quote-datetime__row .time-picker,
-.quote-datetime__row .date-picker--single {
-  min-width: 0;
+/* No `flex` shorthand on either field — they keep the default `0 1 auto`, so
+   each is sized by its own content and floor and neither claims the row's
+   surplus, which simply stays empty at the end of the line (user, S112). */
+.quote-datetime__row > .time-picker {
+  width: auto;                     /* beat the 320px base width below 1024px */
 }
-
-.quote-datetime__time {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-2);
+/* The FormField shells nested inside both pickers must not impose their own
+   150px desktop floor — that would out-floor the TimePicker's 124px and stop
+   either field reaching its basis. */
+.quote-datetime__row .form-field {
   min-width: 0;
-}
-.quote-datetime__time .time-picker {
-  flex: 1 1 0;
-  min-width: 0;
-}
-/* UTC offset only — short enough to never wrap, so it holds its width and the
-   TimePicker flexes into the rest. */
-.quote-datetime__tz {
-  flex: 0 0 auto;
-  color: var(--text-tertiary);
-  white-space: nowrap;
 }
 
 .quote-modal__empty {
@@ -5951,6 +5936,12 @@ button.breadcrumb__label:focus-visible {
      ever"). */
   flex: 1 1 152px;
   min-width: 0;
+  max-width: 160px;                /* growth ceiling (user, 2026-08-06) — cells
+                                      expand into leftover row width but stop at
+                                      160px, so a 3-cell strip in a wide band
+                                      stays a strip instead of three huge tiles.
+                                      The row is already justify-content:center,
+                                      so the surplus falls outside the cells. */
   padding: var(--spacing-4) var(--spacing-3); /* Figma: 16px / 12px */
   display: flex;
   flex-direction: column;
@@ -6394,8 +6385,10 @@ button.breadcrumb__label:focus-visible {
   background: transparent; /* the band owns the gray */
 }
 
-/* Nested header row — same treatment as the outer column header (Figma clones
-   Cell/Variant=Head here), just over the gray band. */
+/* Nested header row — the outer column header's treatment over the gray band,
+   but TERTIARY text, not primary (user, 2026-08-07): it labels a breakdown
+   nested inside a row, so it must read quieter than the table's own header or
+   the two compete for the same rank. */
 .odyssey-group-table__detail th {
   height: 48px;
   padding: 0 var(--spacing-4);
@@ -6403,7 +6396,7 @@ button.breadcrumb__label:focus-visible {
   font-size: var(--font-size-sm);
   line-height: var(--line-height-sm);
   font-weight: var(--font-weight-semibold);
-  color: var(--text-primary);
+  color: var(--text-tertiary);
   text-align: left;
   white-space: nowrap;
   border-bottom: 1px solid var(--border-subtle);
@@ -6430,9 +6423,19 @@ button.breadcrumb__label:focus-visible {
   position: sticky;
   right: 0;
   z-index: 1;
-  width: 68px;
+  /* 68px is the FLOOR, not the width — an icon-only control sits comfortably in
+     it, a Button does not, and a fixed width left the label touching the cell
+     edges (design-lead report, 2026-08-06). Horizontal padding matches every
+     other cell in the table (0 16px); vertical stays 0 because the fixed 48px
+     row height + vertical-align:middle already center the control.
+     `width: 1%` + `nowrap` is the shrink-to-fit idiom: table auto-layout hands
+     a width-less column a share of the surplus, which made the Award column far
+     wider than its button (user, 2026-08-07). 1% is under any real content
+     width, so the column collapses to content + padding and the floor holds. */
+  width: 1%;
   min-width: 68px;
-  padding: 0;
+  white-space: nowrap;
+  padding: 0 var(--spacing-4);
   text-align: center;
   vertical-align: middle;
   background: var(--bg-primary);
@@ -6704,25 +6707,57 @@ button.breadcrumb__label:focus-visible {
   color: var(--text-tertiary);
 }
 
-/* === Field min-widths (desktop) ==========================================
-   Field roots gain min-width: 150px at desktop viewports. DatePicker single
-   mode keeps its 250px floor below 1024px (was inline; range mode still
-   carries inline minWidth 250 / maxWidth 284, untouched). */
-.date-picker--single { min-width: 250px; }
-.time-picker { width: 320px; } /* was inline on TimePicker.jsx — moved so the media rule below can win */
+/* === Field floors ========================================================
+   A field's minimum width is CONTENT-DERIVED — what the control must hold (a
+   masked date, two masked dates plus a separator, "HH:MM" plus a chevron) — not
+   a point on a spacing scale. So these are named component properties, NOT
+   design tokens: they never appear in tokens.css or as Figma variables, because
+   nothing here is interchangeable with anything else here.
+
+   THREE RULES, each earned by a bug on 2026-08-06 (S112):
+
+   1. A floor is declared UNCONDITIONALLY on the component root. Never inside a
+      media query — TimePicker's 124px lived in the ≥1024px block below, so under
+      that breakpoint it had no floor at all and flex shrank it away. A
+      min-width cannot be "violated"; if it looks violated, it isn't applying.
+
+   2. A LAYOUT NEVER RE-DECLARES A FIELD'S FLOOR. `.quote-datetime__row > *
+      { min-width: 0 }` is two classes and out-specified every bare-class floor
+      here at every viewport, silently. Zero the generic FormField shell if you
+      must; leave the component roots alone.
+
+   3. ANY WRAPPER between a flex container and a field carries an EXPLICIT floor.
+      `min-width: auto` on a flex item resolves to its CONTENT-based automatic
+      minimum — DateField's unclassed div measured ~229px that way, quietly
+      beating the 180px declared below. An explicit value switches that off, and
+      it must MATCH the field's own floor or the clamped field overflows its
+      own wrapper.
+
+   Corollary worth remembering: floors only bind when the container is narrower
+   than their sum. In a fixed-width modal with surplus space, `flex-grow` sets
+   the width and min-width is inert — tune grow, not the floor. */
+:root {
+  --date-picker-single-min: 180px;  /* one masked dd/mm/yyyy + calendar button */
+  --date-picker-range-min:  250px;  /* two masked dates + separator */
+  --time-picker-min:        124px;  /* "HH:MM" + chevron, below the 150px general field floor */
+}
+.date-picker--single { min-width: var(--date-picker-single-min); }
+.date-picker--range  { min-width: var(--date-picker-range-min); }
+/* Rule 3: DateField wraps its DatePicker in a div (to hang the warning line
+   beneath), so the DIV is the flex item, not the picker. */
+.date-field          { min-width: var(--date-picker-single-min); }
+/* Rule 1: floor unconditional, only `width` is viewport-dependent. */
+.time-picker         { min-width: var(--time-picker-min); width: 320px; }
 @media (min-width: 1024px) {
+  /* The GENERAL field floor is deliberately viewport-conditional — it's a
+     comfort minimum for desktop forms, not a content-derived one, which is why
+     it stays a plain value and not a named property. */
   .form-field,
   .combo-box {
     min-width: 150px;
     width: auto;
   }
-  /* TimePicker holds "HH:MM" + a chevron and nothing else — 130px, not the
-     150px general field floor (user, S102). */
   .time-picker {
-    min-width: 130px;
     width: auto;
-  }
-  .date-picker--single {
-    min-width: 150px;
   }
 }

@@ -55,53 +55,117 @@
   margin: 0 0 var(--spacing-2);
 }
 
-/* SetupCarriers — Carrier List/Quote Duration/Flexible Pickup controls
-   (scrolls away normally) above a sticky toolbar (count + Send RFQ/Save
-   Draft/Cancel) + carrier DataTable. Follows the orders-toolbar convention
-   (orders.css): sticky, count on the left, actions on the right, the
-   table's sticky header measured off the toolbar alone (OrdersTable's
-   stickyTop pattern) so the header sticks directly beneath the toolbar
-   instead of underneath it. */
-.setup-carriers {
-  display: flex;
-  flex-direction: column;
+/* SetupCarriers — built to the Orders product-information card recipe (S112):
+   a SubAccordion holding the shipment SummaryStrip → an "Actions" block
+   (Carrier List / Quote Duration / Flexible Pickup) → a toolbar + GroupTable.
+   The toolbar is no longer sticky: the card scrolls as one unit, and
+   GroupTable carries its own sticky header, so the DataTable-era
+   stickyTop measuring is gone with it. */
+/* Carrier table — the Orders product-information skin. The two rules that
+   matter from `.co-prod-table` are REPLICATED here rather than reusing that
+   class: create-order.css is code-split with the Orders route, so on the
+   shipment detail page the class would resolve to nothing (S112). */
+.setup-carriers__table-wrap {
+  overflow-x: auto;
 }
 
-.setup-carriers__controls {
-  display: flex;
-  align-items: flex-end;
-  gap: var(--spacing-4);
-  margin-bottom: var(--spacing-4);
+/* Header rule matching the bottom one + tighter 8px vertical padding (the
+   .odyssey-table default is 14px). */
+.setup-carriers__table thead th {
+  border-top: 1px solid var(--border-subtle);
+  padding-top: var(--spacing-2);
+  padding-bottom: var(--spacing-2);
 }
 
-/* ComboBox (Carrier List) defaults to width:100% — cap it so it doesn't
-   balloon in the flex row the way the old inline-flex Dropdown never did. */
-.setup-carriers__controls .combo-box {
-  max-width: 240px;
+/* The odyssey-table skin strips the last row's rule — restore it so the table
+   closes cleanly against the controls below. */
+.setup-carriers__table tbody tr:last-child td {
+  border-bottom: 1px solid var(--border-subtle);
 }
 
-.setup-carriers__toolbar {
+/* Checkbox column: only as wide as the control, centered, and PINNED left so
+   the row's selection stays reachable while the rest of the table h-scrolls —
+   same treatment `.co-prod__line-col` gives the Line # column in the Orders
+   product grid. Needs an opaque background of its own, or the scrolled cells
+   show through it; the header keeps painting above via `.odyssey-table thead`
+   (z-index 2). Centering must out-rank `.odyssey-table th, td`'s left align,
+   hence the compound selectors. */
+.setup-carriers__table th.setup-carriers__col-incl,
+.setup-carriers__table td.setup-carriers__col-incl {
+  width: 1%;
+  text-align: center;
+  padding-left: var(--spacing-4);
+  padding-right: var(--spacing-4);
   position: sticky;
-  /* Unlike .orders-toolbar (orders.css), this bar isn't scrolled by
-     AppShell's <main> (--spacing-8 padding-top) — it scrolls inside
-     .shipments-bar__content (components.css), which has padding: 0. No
-     offset to cancel, so top: 0 sticks it flush to the pane's own
-     scrollport with nothing clipped. */
-  top: 0;
-  z-index: 4;
-  /* Match the shipments-bar surface itself (components.css .shipments-bar
-     background) rather than --bg-primary (white) — .pane-canvas/.pane-col
-     paint no background of their own, so the real surface color comes from
-     the bar. Must stay opaque (not transparent) so table rows don't scroll
-     visibly through the sticky bar. */
-  background: var(--deep-sea-neutral-100);
-  padding: var(--spacing-3) 0;
+  left: 0;
+  z-index: 1;
+  background: var(--bg-primary);
 }
 
-.setup-carriers__toolbar-top {
+/* Cancel leads, Save Draft + Send RFQ trail — one row below the table (S112). */
+.setup-carriers__actions {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: var(--spacing-3);
+}
+
+.setup-carriers__actions-trail {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
+/* Count on the left, mode toggle on the right — the lead row (S112). */
+.setup-carriers__toolbar-top {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--spacing-4);
+}
+
+/* The checkbox aligns to the INPUT, not to the whole label+input stack (user,
+   S112). `flex-end` bottoms out the FormField's input band and the checkbox
+   band together; giving the checkbox `--field-height` (the same 36px
+   .form-field__input uses) makes it a matching band, and `.control` is already
+   inline-flex/center, so the box lands on the input's centreline. Column gap
+   matches the create-order field grids (--spacing-6). */
+.setup-carriers__controls {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--spacing-6);
+}
+
+.setup-carriers__controls > .control {
+  min-height: var(--field-height);
+}
+
+/* Quote Duration sits beside the Actions menu — cap it so the FormField's
+   width:100% doesn't swallow the row (the list ComboBox this replaced needed
+   the same cap). */
+.setup-carriers__controls .form-field {
+  max-width: 240px;
+}
+
+/* Send RFQ confirmation (ModalMedium) — carrier roll-call over the terms. */
+.setup-carriers__confirm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.setup-carriers__confirm-lead {
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.setup-carriers__confirm-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  margin: 0;
+  padding: 0 0 0 var(--spacing-4);
+  color: var(--text-primary);
 }
 
 .setup-carriers__toolbar-count {

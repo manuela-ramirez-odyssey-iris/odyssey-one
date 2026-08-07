@@ -1,5 +1,5 @@
 // GroupTable pure helpers — node env (no DOM), vitest globals.
-import { alignClass, isGroupExpanded, groupHeaderValue, totalColumnCount, actionToneClass, ACTION_TONES } from './GroupTable.jsx'
+import { alignClass, isGroupExpanded, groupHeaderValue, totalColumnCount, actionToneClass, ACTION_TONES, splitHeaderRow, HEADER_VALUE_COLUMNS } from './GroupTable.jsx'
 
 describe('alignClass', () => {
   it('maps right/center to the modifier classes', () => {
@@ -90,5 +90,36 @@ describe('actionToneClass', () => {
   it('degrades an unknown tone to neutral rather than a class with no styles', () => {
     expect(actionToneClass('chartreuse')).toBe('')
     expect(actionToneClass('DANGER')).toBe('')
+  })
+})
+
+
+// The Figma HeaderRow master merges the group label across every column except
+// the trailing three — the header row deliberately does NOT follow the body's
+// column grid (S112).
+describe('splitHeaderRow', () => {
+  const cols = (n) => new Array(n).fill(0).map((_, i) => ({ key: `c${i}` }))
+
+  it('reserves the trailing three columns for values', () => {
+    const { labelSpan, valueColumns } = splitHeaderRow(cols(7))
+    expect(labelSpan).toBe(4)
+    expect(valueColumns.map((c) => c.key)).toEqual(['c4', 'c5', 'c6'])
+  })
+
+  it('clamps to a real label cell when the table is narrower than the reserve', () => {
+    expect(splitHeaderRow(cols(2)).labelSpan).toBe(1)
+    expect(splitHeaderRow(cols(1)).labelSpan).toBe(1)
+    expect(splitHeaderRow([]).labelSpan).toBe(1)
+  })
+
+  it('labelSpan + valueColumns always covers every column', () => {
+    for (const n of [1, 2, 3, 4, 7, 12]) {
+      const { labelSpan, valueColumns } = splitHeaderRow(cols(n))
+      expect(labelSpan + valueColumns.length).toBe(Math.max(labelSpan, n))
+    }
+  })
+
+  it('HEADER_VALUE_COLUMNS is the documented master value', () => {
+    expect(HEADER_VALUE_COLUMNS).toBe(3)
   })
 })

@@ -24,6 +24,25 @@ const carrierOptions = [
 ]
 
 const list = NAMED_LISTS[0]
+// Both lists are BUILT, but the TL/LTL toggle shows one at a time (S112).
+const allRows = NAMED_LISTS.flatMap((l) => buildCarrierRows(l, carrierOptions))
+const tlRows = buildCarrierRows(NAMED_LISTS[0], carrierOptions)
+const ltlRows = buildCarrierRows(NAMED_LISTS[1], carrierOptions)
+
+function showMode(label) {
+  fireEvent.click(screen.getByRole('button', { name: `Show ${label} carriers` }))
+}
+
+// Send RFQ / Save Draft / Cancel are separate buttons in the SubAccordion
+// header's trailing slot (S112).
+function actionButton(label) {
+  return screen.getByRole('button', { name: label })
+}
+// Send RFQ routes through a confirmation modal.
+function sendRFQ() {
+  fireEvent.click(actionButton('Send RFQ'))
+  fireEvent.click(screen.getByRole('button', { name: /Confirm & Send/ }))
+}
 
 function fillDate(scac, field, value) {
   const wrap = screen.getByTestId(`${field}-${scac}`)
@@ -54,7 +73,7 @@ describe('SetupCarriers', () => {
         onCancel={() => {}}
       />
     )
-    expect(screen.getByText('Send RFQ').closest('button').disabled).toBe(true)
+    expect(actionButton('Send RFQ').disabled).toBe(true)
   })
 
   it('rows build with empty dates and start unchecked — no prefill', () => {
@@ -101,7 +120,7 @@ describe('SetupCarriers', () => {
         onCancel={() => {}}
       />
     )
-    expect(screen.getByText('Send RFQ').closest('button').disabled).toBe(true)
+    expect(actionButton('Send RFQ').disabled).toBe(true)
   })
 
   it('onSendRFQ is called with the assembled payload once a row is date-complete and checked', () => {
@@ -119,14 +138,16 @@ describe('SetupCarriers', () => {
     const rows = buildCarrierRows(list, carrierOptions)
     fillDate(rows[0].scac, 'pickup', '08/10/2026')
     fillDate(rows[0].scac, 'delivery', '08/11/2026')
-    fireEvent.click(screen.getByText('Send RFQ'))
+    sendRFQ()
 
     expect(onSendRFQ).toHaveBeenCalledTimes(1)
     const payload = onSendRFQ.mock.calls[0][0]
+    // listId/listName now describe the lists actually BEING SENT, not a
+    // single up-front pick — only the TL row was included here.
     expect(payload.listId).toBe(list.id)
     expect(payload.listName).toBe(list.name)
     expect(payload.durationMin).toBe(list.defaultDurationMin)
-    expect(payload.carriers).toHaveLength(rows.length)
+    expect(payload.carriers).toHaveLength(allRows.length) // both modes ride along
     for (const r of payload.carriers.filter((c) => c.incl)) {
       expect(r.plannedPickup).toBe('08/10/2026')
       expect(r.plannedDelivery).toBe('08/11/2026')
@@ -149,13 +170,13 @@ describe('SetupCarriers', () => {
     fillDate(rows[0].scac, 'pickup', '08/10/2026')
     fillDate(rows[0].scac, 'delivery', '08/11/2026')
     fireEvent.click(screen.getByLabelText('Flexible Pickup'))
-    fireEvent.click(screen.getByText('Send RFQ'))
+    sendRFQ()
 
     expect(onSendRFQ).toHaveBeenCalledTimes(1)
     expect(onSendRFQ.mock.calls[0][0].flexiblePickup).toBe(true)
   })
 
-  it('gives the Carrier List picker a visible label and an accessible name', () => {
+  it('shows ONE list at a time behind the TL/LTL toggle — there is no picker', () => {
     const { container } = render(
       <SetupCarriers
         carrierOptions={carrierOptions}
@@ -165,9 +186,55 @@ describe('SetupCarriers', () => {
         onCancel={() => {}}
       />
     )
-    const controls = container.querySelector('.setup-carriers__controls')
-    expect(within(controls).getByText('Carrier List (select exactly one)')).toBeTruthy()
-    expect(within(controls).getByRole('combobox')).toBeTruthy()
+    // TL is the default mode: its carriers are on screen, LTL's are not.
+    expect(screen.getByTestId(`pickup-${tlRows[0].scac}`)).toBeTruthy()
+    expect(screen.queryByTestId(`pickup-${ltlRows[0].scac}`)).toBeFalsy()
+
+    showMode('LTL')
+    expect(screen.getByTestId(`pickup-${ltlRows[0].scac}`)).toBeTruthy()
+    expect(screen.queryByTestId(`pickup-${tlRows[0].scac}`)).toBeFalsy()
+
+    // no list ComboBox anywhere
+    expect(within(container.querySelector('.setup-carriers__controls')).queryByRole('combobox')).toBeFalsy()
+    expect(screen.queryByText('Carrier List (select exactly one)')).toBeFalsy()
+  })
+
+  it('keeps inclusions and dates when toggling between modes', () => {
+    render(
+      <SetupCarriers
+        carrierOptions={carrierOptions}
+        readOnly={false}
+        onSaveDraft={() => {}}
+        onSendRFQ={() => {}}
+        onCancel={() => {}}
+      />
+    )
+    fillDate(tlRows[0].scac, 'pickup', '08/10/2026')
+    fillDate(tlRows[0].scac, 'delivery', '08/11/2026')
+    expect(inclCheckbox(tlRows[0].scac).checked).toBe(true)
+
+    showMode('LTL')
+    showMode('TL')
+    // the edit survived the round trip
+    const wrap = screen.getByTestId(`pickup-${tlRows[0].scac}`)
+    expect(within(wrap).getByRole('textbox').value).toBe('08/10/2026')
+    expect(inclCheckbox(tlRows[0].scac).checked).toBe(true)
+  })
+
+  it('the carrier count reflects the VISIBLE mode, not every built row', () => {
+    render(
+      <SetupCarriers
+        carrierOptions={carrierOptions}
+        readOnly={false}
+        onSaveDraft={() => {}}
+        onSendRFQ={() => {}}
+        onCancel={() => {}}
+      />
+    )
+    expect(screen.getByText(`${tlRows.length} carriers`)).toBeTruthy()
+    expect(screen.queryByText(`${allRows.length} carriers`)).toBeFalsy()
+    showMode('LTL')
+    expect(screen.getByText(`${ltlRows.length} carriers`)).toBeTruthy()
   })
 
   it('shows the Quote Duration unit so the value is unambiguous', () => {
@@ -180,11 +247,11 @@ describe('SetupCarriers', () => {
         onCancel={() => {}}
       />
     )
-    expect(screen.getByText('Quote Duration (open window, min)')).toBeTruthy()
+    expect(screen.getByText('Quote Duration')).toBeTruthy()
   })
 
-  it('defaults to the first named list on mount when there is no existing quote', () => {
-    const { container } = render(
+  it('builds EVERY named list on mount, even though only one shows', () => {
+    render(
       <SetupCarriers
         carrierOptions={carrierOptions}
         readOnly={false}
@@ -193,19 +260,21 @@ describe('SetupCarriers', () => {
         onCancel={() => {}}
       />
     )
-    const rows = buildCarrierRows(list, carrierOptions)
-    expect(screen.getByText(`${rows.length} carriers`)).toBeTruthy()
-    expect(screen.getByTestId(`pickup-${rows[0].scac}`)).toBeTruthy()
-    const combobox = within(container.querySelector('.setup-carriers__controls')).getByRole('combobox')
-    expect(combobox.value).toBe(list.name)
-    expect(screen.getByLabelText('Quote Duration (open window, min)').value).toBe(String(list.defaultDurationMin))
+    expect(screen.getByTestId(`pickup-${tlRows[0].scac}`)).toBeTruthy()
+    // The default rides in the PLACEHOLDER (per-mode); the field starts empty.
+    expect(screen.getByLabelText('Quote Duration').value).toBe('')
+    expect(screen.getByLabelText('Quote Duration').placeholder)
+      .toBe(`Open Window ${NAMED_LISTS[0].defaultDurationMin}min`)
+
+    showMode('LTL')
+    expect(screen.getByTestId(`pickup-${ltlRows[0].scac}`)).toBeTruthy()
   })
 
-  it('an existing quote wins over the default list', () => {
+  it('an existing quote wins over the default build', () => {
     const otherList = NAMED_LISTS[1]
     const rows = buildCarrierRows(otherList, carrierOptions)
     const quote = { listId: otherList.id, listName: otherList.name, durationMin: otherList.defaultDurationMin, carriers: rows }
-    const { container } = render(
+    render(
       <SetupCarriers
         quote={quote}
         carrierOptions={carrierOptions}
@@ -215,8 +284,11 @@ describe('SetupCarriers', () => {
         onCancel={() => {}}
       />
     )
-    const combobox = within(container.querySelector('.setup-carriers__controls')).getByRole('combobox')
-    expect(combobox.value).toBe(otherList.name)
+    // Only the quote's own carriers render — not both lists rebuilt.
+    expect(screen.getByText(`${rows.length} carriers`)).toBeTruthy()
+    // An existing quote's duration IS a real value, not a placeholder default.
+    expect(screen.getByLabelText('Quote Duration').value)
+      .toBe(String(otherList.defaultDurationMin))
   })
 
   it('shows a carrier count in the toolbar', () => {
@@ -235,12 +307,9 @@ describe('SetupCarriers', () => {
     expect(screen.getByText(`${rows.length} carriers`)).toBeTruthy()
   })
 
-  it('moves Send RFQ/Save Draft/Cancel into the toolbar top row', () => {
-    const rows = buildCarrierRows(list, carrierOptions)
-    const quote = { listId: list.id, listName: list.name, durationMin: list.defaultDurationMin, carriers: rows }
+  it('spreads the three actions as separate buttons, trailing, below the table', () => {
     const { container } = render(
       <SetupCarriers
-        quote={quote}
         carrierOptions={carrierOptions}
         readOnly={false}
         onSaveDraft={() => {}}
@@ -248,19 +317,20 @@ describe('SetupCarriers', () => {
         onCancel={() => {}}
       />
     )
-    const toolbarTop = container.querySelector('.setup-carriers__toolbar-top')
-    expect(within(toolbarTop).getByText('Send RFQ')).toBeTruthy()
-    expect(within(toolbarTop).getByText('Save Draft')).toBeTruthy()
-    expect(within(toolbarTop).getByText('Cancel')).toBeTruthy()
-    expect(container.querySelector('.setup-carriers__actions')).toBeFalsy()
+    const actions = container.querySelector('.setup-carriers__actions')
+    for (const label of ['Send RFQ', 'Save Draft', 'Cancel']) {
+      expect(within(actions).getByRole('button', { name: label })).toBeTruthy()
+    }
+    // Below the table, NOT in the card header and NOT in the top toolbar row.
+    expect(actions.closest('.sub-accordion__header-row')).toBeFalsy()
+    expect(container.querySelector('.setup-carriers__toolbar-top').contains(actions)).toBe(false)
+    const table = container.querySelector('.setup-carriers__table-wrap')
+    expect(table.compareDocumentPosition(actions) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
-  it('keeps the controls row (Carrier List/Quote Duration/Flexible Pickup) out of the sticky toolbar', () => {
-    const rows = buildCarrierRows(list, carrierOptions)
-    const quote = { listId: list.id, listName: list.name, durationMin: list.defaultDurationMin, carriers: rows }
+  it('stacks the RFQ terms, then count+toggle, then the table', () => {
     const { container } = render(
       <SetupCarriers
-        quote={quote}
         carrierOptions={carrierOptions}
         readOnly={false}
         onSaveDraft={() => {}}
@@ -268,15 +338,52 @@ describe('SetupCarriers', () => {
         onCancel={() => {}}
       />
     )
-    const toolbar = container.querySelector('.setup-carriers__toolbar')
-    expect(toolbar.querySelector('.setup-carriers__controls')).toBeFalsy()
-    expect(within(toolbar).queryByRole('combobox')).toBeFalsy()
+    const toolbar = container.querySelector('.setup-carriers__toolbar-top')
     const controls = container.querySelector('.setup-carriers__controls')
-    expect(controls).toBeTruthy()
+    const table = container.querySelector('.setup-carriers__table-wrap')
+
+    // The terms lead the card (below the accordion header) as a SIBLING of the
+    // table; count and toggle sit between them and the table.
+    expect(within(toolbar).getByRole('button', { name: 'Show LTL carriers' })).toBeTruthy()
     expect(toolbar.contains(controls)).toBe(false)
+    expect(within(controls).getByLabelText('Quote Duration')).toBeTruthy()
+    expect(within(controls).getByLabelText('Flexible Pickup')).toBeTruthy()
+
+    // document order: controls → toolbar → table
+    const FOLLOWING = Node.DOCUMENT_POSITION_FOLLOWING
+    expect(controls.compareDocumentPosition(toolbar) & FOLLOWING).toBeTruthy()
+    expect(toolbar.compareDocumentPosition(table) & FOLLOWING).toBeTruthy()
   })
 
-  it('populates the default list once carrierOptions actually resolves, not only on the first (empty) render', () => {
+  it('Cancel leads the action row; Send RFQ is the trailing primary', () => {
+    const { container } = render(
+      <SetupCarriers
+        carrierOptions={carrierOptions}
+        readOnly={false}
+        onSaveDraft={() => {}}
+        onSendRFQ={() => {}}
+        onCancel={() => {}}
+      />
+    )
+    const actions = container.querySelector('.setup-carriers__actions')
+    const cancel = within(actions).getByRole('button', { name: 'Cancel' })
+    const send = within(actions).getByRole('button', { name: 'Send RFQ' })
+
+    // Cancel is a direct child (lead); Save Draft + Send RFQ sit in the trail.
+    expect(cancel.parentElement).toBe(actions)
+    expect(send.closest('.setup-carriers__actions-trail')).toBeTruthy()
+    expect(cancel.compareDocumentPosition(send) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+
+    // md sizing + Cancel is secondary, no longer a link
+    for (const b of [cancel, send, within(actions).getByRole('button', { name: 'Save Draft' })]) {
+      expect(b.className).toContain('btn--md')
+    }
+    expect(cancel.className).toContain('btn--secondary')
+    expect(cancel.className).not.toContain('btn--link')
+    expect(send.className).toContain('btn--primary')
+  })
+
+  it('populates the lists once carrierOptions actually resolves, not only on the first (empty) render', () => {
     const { rerender } = render(
       <SetupCarriers
         carrierOptions={[]}
@@ -300,7 +407,7 @@ describe('SetupCarriers', () => {
     )
 
     const rows = buildCarrierRows(list, carrierOptions)
-    expect(screen.getByText(`${rows.length} carriers`)).toBeTruthy()
+    expect(screen.getByText(`${tlRows.length} carriers`)).toBeTruthy()
     expect(screen.getByTestId(`pickup-${rows[0].scac}`)).toBeTruthy()
   })
 
@@ -421,12 +528,10 @@ describe('SetupCarriers', () => {
       )
       const rows = buildCarrierRows(list, carrierOptions)
       const scac = rows[0].scac
-      const button = screen.getByText('Send RFQ').closest('button')
-      expect(button.disabled).toBe(true)
-
+      expect(actionButton('Send RFQ').disabled).toBe(true)
       fillDate(scac, 'pickup', '08/10/2026')
       fillDate(scac, 'delivery', '08/11/2026')
-      expect(button.disabled).toBe(false)
+      expect(actionButton('Send RFQ').disabled).toBe(false)
     })
   })
 
@@ -525,7 +630,7 @@ describe('SetupCarriers', () => {
     })
   })
 
-  it('readOnly hides the action buttons', () => {
+  it('readOnly hides the header actions entirely', () => {
     render(
       <SetupCarriers
         carrierOptions={carrierOptions}
@@ -535,8 +640,136 @@ describe('SetupCarriers', () => {
         onCancel={() => {}}
       />
     )
-    expect(screen.queryByText('Send RFQ')).toBeFalsy()
-    expect(screen.queryByText('Save Draft')).toBeFalsy()
-    expect(screen.queryByText('Cancel')).toBeFalsy()
+    expect(screen.queryByRole('button', { name: 'Send RFQ' })).toBeFalsy()
+    expect(screen.queryByRole('button', { name: 'Save Draft' })).toBeFalsy()
+    expect(screen.queryByRole('button', { name: 'Cancel' })).toBeFalsy()
+  })
+
+  // ── Send RFQ confirmation modal (S112) ────────────────────────────────────
+  describe('Send RFQ confirmation', () => {
+    const renderAndComplete = (onSendRFQ = () => {}) => {
+      render(
+        <SetupCarriers
+          carrierOptions={carrierOptions}
+          readOnly={false}
+          onSaveDraft={() => {}}
+          onSendRFQ={onSendRFQ}
+          onCancel={() => {}}
+        />
+      )
+      const rows = buildCarrierRows(list, carrierOptions)
+      fillDate(rows[0].scac, 'pickup', '08/10/2026')
+      fillDate(rows[0].scac, 'delivery', '08/11/2026')
+      return rows
+    }
+
+    it('does NOT send until the modal is confirmed', () => {
+      const onSendRFQ = vi.fn()
+      renderAndComplete(onSendRFQ)
+      fireEvent.click(actionButton('Send RFQ'))
+      // Modal is up, nothing sent yet.
+      expect(screen.getByRole('dialog', { name: 'Send RFQ' })).toBeTruthy()
+      expect(onSendRFQ).not.toHaveBeenCalled()
+
+      fireEvent.click(screen.getByRole('button', { name: /Confirm & Send/ }))
+      expect(onSendRFQ).toHaveBeenCalledTimes(1)
+    })
+
+    it('cancelling the modal closes it and sends nothing', () => {
+      const onSendRFQ = vi.fn()
+      renderAndComplete(onSendRFQ)
+      fireEvent.click(actionButton('Send RFQ'))
+      const dialog = screen.getByRole('dialog', { name: 'Send RFQ' })
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }))
+      expect(screen.queryByRole('dialog', { name: 'Send RFQ' })).toBeFalsy()
+      expect(onSendRFQ).not.toHaveBeenCalled()
+    })
+
+    it('summarises the carriers, the duration and the flexible-pickup flag', () => {
+      const rows = renderAndComplete()
+      fireEvent.click(screen.getByLabelText('Flexible Pickup'))
+      fireEvent.click(actionButton('Send RFQ'))
+      const dialog = within(screen.getByRole('dialog', { name: 'Send RFQ' }))
+
+      // exactly the INCLUDED carrier, named
+      expect(dialog.getByText(`${rows[0].scac} · ${rows[0].name}`)).toBeTruthy()
+      expect(dialog.getByText(/will be sent to 1 carrier/)).toBeTruthy()
+      // a carrier that was never date-completed must not be listed
+      expect(dialog.queryByText(new RegExp(rows[1].scac))).toBeFalsy()
+
+      expect(dialog.getByText(`${NAMED_LISTS[0].defaultDurationMin} min`)).toBeTruthy()
+      expect(dialog.getByText('Yes')).toBeTruthy() // Flexible Pickup
+      expect(dialog.getByText(NAMED_LISTS[0].name)).toBeTruthy()
+    })
+  })
+
+  it('renders the shipment context as an order-view field grid, not a stat strip', () => {
+    const { container } = render(
+      <SetupCarriers
+        carrierOptions={carrierOptions}
+        summaryFields={[
+          { label: 'Origin', value: 'Atlanta, GA' },
+          { label: 'Destination', value: 'Charlotte, NC' },
+        ]}
+        readOnly={false}
+        onSaveDraft={() => {}}
+        onSendRFQ={() => {}}
+        onCancel={() => {}}
+      />
+    )
+    expect(container.querySelector('.order-pane__fields-grid')).toBeTruthy()
+    expect(container.querySelector('.summary-strip')).toBeFalsy()
+    expect(screen.getByText('Origin')).toBeTruthy()
+    expect(screen.getByText('Atlanta, GA')).toBeTruthy()
+  })
+
+  // ── Quote duration default (S112) ─────────────────────────────────────────
+  describe('quote duration', () => {
+    const renderIt = (onSendRFQ = () => {}) => render(
+      <SetupCarriers
+        carrierOptions={carrierOptions}
+        readOnly={false}
+        onSaveDraft={() => {}}
+        onSendRFQ={onSendRFQ}
+        onCancel={() => {}}
+      />
+    )
+
+    it('advertises the ACTIVE mode default in the placeholder, and follows the toggle', () => {
+      renderIt()
+      const duration = screen.getByLabelText('Quote Duration')
+      expect(duration.placeholder).toBe(`Open Window ${NAMED_LISTS[0].defaultDurationMin}min`)
+      showMode('LTL')
+      expect(screen.getByLabelText('Quote Duration').placeholder)
+        .toBe(`Open Window ${NAMED_LISTS[1].defaultDurationMin}min`)
+    })
+
+    it('the label carries no unit suffix', () => {
+      renderIt()
+      expect(screen.queryByText(/open window, min/i)).toBeFalsy()
+    })
+
+    it('an untouched field sends the active mode default', () => {
+      const onSendRFQ = vi.fn()
+      renderIt(onSendRFQ)
+      fillDate(tlRows[0].scac, 'pickup', '08/10/2026')
+      fillDate(tlRows[0].scac, 'delivery', '08/11/2026')
+      sendRFQ()
+      expect(onSendRFQ.mock.calls[0][0].durationMin).toBe(NAMED_LISTS[0].defaultDurationMin)
+    })
+
+    it('a typed value wins over the default, and toggling does not clobber it', () => {
+      const onSendRFQ = vi.fn()
+      renderIt(onSendRFQ)
+      fireEvent.change(screen.getByLabelText('Quote Duration'), { target: { value: '45' } })
+      showMode('LTL')
+      showMode('TL')
+      expect(screen.getByLabelText('Quote Duration').value).toBe('45')
+
+      fillDate(tlRows[0].scac, 'pickup', '08/10/2026')
+      fillDate(tlRows[0].scac, 'delivery', '08/11/2026')
+      sendRFQ()
+      expect(onSendRFQ.mock.calls[0][0].durationMin).toBe(45)
+    })
   })
 })

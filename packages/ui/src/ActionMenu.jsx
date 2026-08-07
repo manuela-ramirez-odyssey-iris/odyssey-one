@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import DropdownButton from './DropdownButton'
 import DropdownMenu from './DropdownMenu'
 import MenuRow from './MenuRow'
 import { computeVerticalPlacement } from './useAnchoredPortal.jsx'
@@ -23,7 +24,13 @@ import { computeVerticalPlacement } from './useAnchoredPortal.jsx'
  * to the trigger; closes on outside-click / scroll (capture) / resize.
  *
  * Props:
- *   - `icon` — the trigger glyph (required), e.g. <EllipsisVertical {...ICON_MD}/>.
+ *   - `icon` — the trigger glyph, e.g. <EllipsisVertical {...ICON_MD}/>. Required
+ *     unless `label` is given.
+ *   - `label` — render a LABELLED trigger instead of an icon one: the normalized
+ *     `DropdownButton` atom (value + chevron, chevron flips with `open`). For
+ *     action menus that need to announce themselves in a toolbar ("Actions")
+ *     rather than hide behind a 3-dot glyph. Mutually exclusive with `icon`;
+ *     `label` wins if both are passed.
  *   - `options` — { label, onSelect, disabled?, danger?, id? }[] (id only needed to disambiguate duplicate labels).
  *   - `align` — 'right' (default) | 'left'.
  *   - `ariaLabel` — the icon-only trigger's accessible name.
@@ -31,7 +38,7 @@ import { computeVerticalPlacement } from './useAnchoredPortal.jsx'
  *
  * Figma master: retro-synced (closed = trigger, open = trigger + DropdownMenu).
  */
-export default function ActionMenu({ icon, options = [], align = 'right', ariaLabel, className = '' }) {
+export default function ActionMenu({ icon, label, options = [], align = 'right', ariaLabel, className = '' }) {
   const [open, setOpen] = useState(false)
   const [pos, setPos] = useState(null) // { top, left } once measured
   const triggerRef = useRef(null)
@@ -81,18 +88,34 @@ export default function ActionMenu({ icon, options = [], align = 'right', ariaLa
 
   return (
     <span className={`action-menu${className ? ` ${className}` : ''}`}>
-      <button
-        ref={triggerRef}
-        type="button"
-        className="action-menu__trigger"
-        aria-haspopup="menu"
-        aria-expanded={open}
-        aria-label={ariaLabel}
-        onClick={() => setOpen((o) => !o)}
-        onKeyDown={(e) => { if (e.key === 'Escape') closeAndReturn() }}
-      >
-        {icon}
-      </button>
+      {label ? (
+        /* Labelled flavor — the normalized DropdownButton atom, so a toolbar
+           action menu looks like every other labelled trigger in the system.
+           It already owns the chevron + open/pressed look; only the menu
+           semantics (aria-haspopup="menu") are layered on here. */
+        <DropdownButton
+          ref={triggerRef}
+          value={label}
+          open={open}
+          aria-haspopup="menu"
+          aria-label={ariaLabel}
+          onClick={() => setOpen((o) => !o)}
+          onKeyDown={(e) => { if (e.key === 'Escape') closeAndReturn() }}
+        />
+      ) : (
+        <button
+          ref={triggerRef}
+          type="button"
+          className="action-menu__trigger"
+          aria-haspopup="menu"
+          aria-expanded={open}
+          aria-label={ariaLabel}
+          onClick={() => setOpen((o) => !o)}
+          onKeyDown={(e) => { if (e.key === 'Escape') closeAndReturn() }}
+        >
+          {icon}
+        </button>
+      )}
       {open && createPortal(
         <div
           ref={menuRef}

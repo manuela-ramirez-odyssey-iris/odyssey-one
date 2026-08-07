@@ -52,7 +52,8 @@ describe('ShipmentDetailsModal', () => {
     expect(screen.getByText('USALCO')).toBeTruthy()
     expect(screen.getByText('Collect')).toBeTruthy()
     expect(screen.getByText('CTNS')).toBeTruthy()
-    // Dates come from the ACCEPTED option (rank 2), not rank 1
+    // Dates come from the ACCEPTED option (rank 2), not rank 1. 24h per
+    // LINX-8120 / LINX-7629 — displayed exactly as stored.
     expect(screen.getAllByText('06/02/2026 08:00 CST').length).toBeGreaterThan(0)
     expect(screen.queryByText('06/01/2026 07:00 CST')).toBeNull()
     // Tracking Link is backed by `trackingUrl` (R2-1), shown WITHOUT the

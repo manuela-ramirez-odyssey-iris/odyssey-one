@@ -92,13 +92,39 @@ describe('LiveBids', () => {
     expect(row.textContent).not.toContain('Declined')
   })
 
-  test('expanding a bid row reveals its charge breakdown', () => {
+  test('expanding a bid row reveals its priced breakdown as COLUMNS', () => {
     render(<LiveBids quote={CLOSED_QUOTE} />)
-    expect(screen.queryByText('LGT')).toBeFalsy()
+    expect(screen.queryByText(/LGT/)).toBeFalsy()
     fireEvent.click(screen.getByRole('button', { name: /ODFL/ }))
-    expect(screen.getByText('LGT')).toBeTruthy()
-    expect(screen.getByText('LH')).toBeTruthy()
-    expect(screen.getByText('FSC')).toBeTruthy()
+
+    // Scoped to the nested table — the closed quote's TolerancePanel prints the
+    // same lowest-bid total, so document-wide queries are ambiguous here.
+    const detail = within(document.querySelector('.odyssey-group-table__detail'))
+
+    // Six columns (S112): code + description are real columns again, alongside
+    // the four pricing headings the outer row used to carry.
+    for (const heading of ['Code', 'Description', 'Linehaul', 'Fuel', 'Accessorials', 'Total']) {
+      expect(detail.getByText(heading)).toBeTruthy()
+    }
+    // ODFL: 2000 linehaul + 200 fuel + 75 liftgate = 2275
+    expect(detail.getByText('$2,000.00')).toBeTruthy()
+    expect(detail.getByText('$200.00')).toBeTruthy()
+    expect(detail.getByText('$2,275.00')).toBeTruthy()
+    // …and the accessorial itemises into its OWN code/description cells,
+    // with its amount under the Accessorials column it rolls into.
+    expect(detail.getByText('LGT')).toBeTruthy()
+    expect(detail.getByText('Liftgate')).toBeTruthy()
+    const itemised = detail.getByText('LGT').closest('tr')
+    expect(within(itemised).getByText('$75.00')).toBeTruthy()
+  })
+
+  // The pricing columns must NOT be on the outer row any more.
+  test('the main row carries identity + state only, no money', () => {
+    render(<LiveBids quote={CLOSED_QUOTE} />)
+    const headers = [...document.querySelectorAll('.odyssey-group-table__table > thead th')]
+      .map((th) => th.textContent)
+    // trailing '' is the pinned Award action column (stickyActions)
+    expect(headers).toEqual(['Carrier', 'Status', 'Submitted By', 'Response', ''])
   })
 
   test('onAward fires with the lowest carrier scac', () => {
