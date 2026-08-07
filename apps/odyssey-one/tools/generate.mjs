@@ -1427,10 +1427,23 @@ function generateShipment(index, chainOverride) {
       orderRow.errorCount = genErrorCount();
     }
     orderRows.push(orderRow);
-    // I8 — a subset of shipped orders gets full ManualOrder enrichment so the
-    // Order Summary shows the SAME lines/instructions/services as the shipment
-    // detail; the rest resolve through the lean row (consistent aggregates).
-    if (faker.number.float({ min: 0, max: 1 }) < 0.25) {
+    // I8 — most shipped orders get full ManualOrder enrichment, so the Order
+    // Summary shows the SAME lines/instructions/services as the shipment detail;
+    // the remainder resolve through the lean row (consistent aggregates).
+    //
+    // S113 (2026-08-07) raised this from 0.25 to 0.65 (user call). The lean-row
+    // fallback was a generator shortcut, not a domain truth: real orders carry
+    // their product detail whatever the source. At 25%, 71% of orders (17,004)
+    // had manual_order NULL, and since product lines live ONLY inside that
+    // payload, View Order had to synthesise a single line from the flat
+    // `commodity` string — so its product table was mostly dashes (visible once
+    // ORD-13 made the table equipment-driven). 0.65 keeps a real population of
+    // lean orders rather than pretending every order is fully detailed.
+    //
+    // The draw is still CONSUMED rather than deleted: faker is seeded, so
+    // removing the call would shift every subsequent random draw and change the
+    // whole dataset. Keeping it means the ONLY delta is added enrichment.
+    if (faker.number.float({ min: 0, max: 1 }) < 0.65) {
       const enrichment = buildOrderEnrichment({
         orderNumber: ord.orderId,
         customer, freightTerms, shipDirection,

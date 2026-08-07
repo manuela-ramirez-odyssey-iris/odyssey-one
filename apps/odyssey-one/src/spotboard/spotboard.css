@@ -124,25 +124,31 @@
   gap: var(--spacing-4);
 }
 
-/* The checkbox aligns to the INPUT, not to the whole label+input stack (user,
-   S112). `flex-end` bottoms out the FormField's input band and the checkbox
-   band together; giving the checkbox `--field-height` (the same 36px
-   .form-field__input uses) makes it a matching band, and `.control` is already
-   inline-flex/center, so the box lands on the input's centreline. Column gap
-   matches the create-order field grids (--spacing-6). */
+/* 4-column control row (user, S112 follow-up): mode ComboBox, Quote Duration,
+   Flexible Pickup, then a 4th track left empty — no other control here
+   naturally belongs in it. The checkbox and the unlabeled ComboBox align to
+   the FormField's INPUT band, not its whole label+input stack: `flex-end`
+   bottoms every column out together, and giving the short controls
+   `--field-height` (the same 36px .form-field__input uses) makes them a
+   matching band. Column gap matches the create-order field grids (--spacing-6). */
 .setup-carriers__controls {
-  display: flex;
+  display: grid;
+  /* FOUR columns holding THREE controls (mode / quote duration / flexible
+     pickup) — the trailing slot is RESERVED, not dead space. User call
+     2026-08-07: a fourth control is coming. Do not "tidy" this to repeat(3,…);
+     that would resize the other three and have to be undone. */
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   align-items: flex-end;
   gap: var(--spacing-6);
 }
 
-.setup-carriers__controls > .control {
+.setup-carriers__controls > .control,
+.setup-carriers__controls > .combo-box {
   min-height: var(--field-height);
 }
 
-/* Quote Duration sits beside the Actions menu — cap it so the FormField's
-   width:100% doesn't swallow the row (the list ComboBox this replaced needed
-   the same cap). */
+/* Quote Duration sits beside the mode ComboBox — cap it so the FormField's
+   width:100% doesn't overrun its grid column. */
 .setup-carriers__controls .form-field {
   max-width: 240px;
 }

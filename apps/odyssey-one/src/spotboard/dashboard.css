@@ -1,0 +1,103 @@
+/* SpotBoard Dashboard (wireframe Screen 6) — cross-shipment monitoring board.
+   Lives under AppShell's flex-column <main> (padding var(--spacing-8)); this
+   file only owns the page's own layout, not the chrome. */
+
+.spotboard-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+  padding-bottom: var(--spacing-8);
+  min-width: 0; /* flex-child trap: let the column shrink so the table wrapper below scrolls instead of pushing <main> wide */
+}
+
+/* ── KPI tiles ──────────────────────────────────────────────────────────
+   The wireframe's placeholder `red`/`review`/`win` classes aren't tokens.
+   Mapped to the same semantic token pairs Badge already uses: alert (Closing
+   < 15 min) reuses --badge-red-bg/--badge-red-text, amber (Awaiting review)
+   reuses --badge-yellow-bg/--badge-yellow-text. SummaryStrip (@odyssey/ui)
+   was checked first and doesn't fit: it's a flat divided strip with no
+   per-cell background/border (no tile look), and its only tone axis
+   (positive/negative, text-color-only) has no amber value — so these are
+   a small local tile, not a SummaryStrip escape hatch. */
+.spotboard-dashboard__kpis {
+  display: flex;
+  gap: var(--spacing-4);
+  flex-wrap: wrap;
+}
+
+.spotboard-kpi {
+  flex: 1 1 180px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  padding: var(--spacing-4) var(--spacing-4);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-primary);
+}
+
+.spotboard-kpi--alert {
+  background: var(--badge-red-bg);
+  border-color: transparent;
+}
+.spotboard-kpi--alert .spotboard-kpi__label,
+.spotboard-kpi--alert .spotboard-kpi__value {
+  color: var(--badge-red-text);
+}
+
+.spotboard-kpi--amber {
+  background: var(--badge-yellow-bg);
+  border-color: transparent;
+}
+.spotboard-kpi--amber .spotboard-kpi__label,
+.spotboard-kpi--amber .spotboard-kpi__value {
+  color: var(--badge-yellow-text);
+}
+
+.spotboard-kpi__label {
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+}
+
+.spotboard-kpi__value {
+  font-size: var(--font-size-2xl);
+  line-height: var(--line-height-2xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+/* ── Filters ──────────────────────────────────────────────────────────── */
+.spotboard-dashboard__filters {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--spacing-4);
+  flex-wrap: wrap;
+}
+
+.spotboard-dashboard__filter {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+
+.spotboard-dashboard__filter-label {
+  color: var(--text-tertiary);
+}
+
+/* ── Table ────────────────────────────────────────────────────────────── */
+.spotboard-dashboard__table {
+  min-width: 0; /* flex-child trap: DataTable owns its own horizontal scroller (.odyssey-data-table__hscroll) — without this the wrapper sizes to content and pushes the page wide instead of scrolling */
+}
+
+/* ── Row-level demo marker + Resp./Invited cell ─────────────────────────
+   A `demo: true` quote gets a small gray "Demo" Badge next to its Quote ID —
+   low-key and neutral (not a status color) so seeded rows read as honestly
+   marked without looking like the whole board is a mockup. */
+.spotboard-quote-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}

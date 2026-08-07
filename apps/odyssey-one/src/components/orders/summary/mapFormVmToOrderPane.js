@@ -44,6 +44,11 @@ const countryOfOrigin = (products) => {
   return set.size === 1 ? [...set][0] : ''
 }
 
+// Handling Unit code → label, same small-catalog lookup packageCount()
+// already does above; kept local rather than promoted to master-data since
+// it's a single find() over an already-imported list.
+const handlingUnitLabel = (code) => HANDLING_UNITS.find((u) => u.code === code)?.label || code
+
 // PartyValues (structured) → the party shape PartyColumn re-parses via
 // parseLocation ("postal, city, region, country" — the detail-mapper's
 // fmtLocation format).
@@ -113,6 +118,15 @@ export default function mapFormVmToOrderPane(values) {
     .filter((i) => i.description.trim() !== '')
     .map((ins, i) => ({ seq: i + 1, text: ins.description }))
 
+  // Deliberate pass-through, not a new fixed list. The OLD version of this
+  // map was a whitelist (lineNumber/shipItem/description/grossWeight/volume/
+  // hazmat/productClass/shippingClass only) that silently dropped Handling
+  // Unit, Handling Count, L/W/H, Harmonized Code, Declared Value + Currency,
+  // Manufacturing Country, and STCC — dead while ProductInfoCard's table was
+  // a fixed 7 columns, live the moment it became equipment-driven (ORD-08).
+  // `mapShipmentErrorRow` (S110) dropped columns the same way; this is the
+  // second whitelist mapper found doing it. Every field ProductRowValues
+  // carries reaches the table now — add a field there, it shows up here.
   const productLines = products.map((p, i) => ({
     lineNumber: i + 1,
     shipItem: p.productId,
@@ -124,7 +138,21 @@ export default function mapFormVmToOrderPane(values) {
     // the shape the shared ProductInfoCard's Shipments caller already emits.
     hazmat: p.hazardous,
     productClass: p.shipClass ? shipClassLabel(p.shipClass) : '', // wire code H/C/P/N → label
-    shippingClass: '', // gap — not on OrderFormValues (create flow captures shipClass only)
+    handlingUnit: p.handlingUnit ? handlingUnitLabel(p.handlingUnit) : '',
+    handlingCount: p.handlingCount,
+    length: p.length ? convertMeasureDisplay(p.length, 'us') : '',
+    width: p.width ? convertMeasureDisplay(p.width, 'us') : '',
+    height: p.height ? convertMeasureDisplay(p.height, 'us') : '',
+    harmonizedCode: p.harmonizedCode,
+    declaredValue: p.declaredValue,
+    declaredValueCurrency: p.declaredValueCurrency,
+    manufacturingCountry: p.manufacturingCountry,
+    stccCode: p.stccCode,
+    // `shippingClass` (a real field on the Shipments-tab BE record, see
+    // mapSellShipmentOutToDetail.ts:223) has no slot in the create-flow
+    // equipment case matrix (productColumns.js CASE_COLUMNS) — no case
+    // renders a "Shipping Class" column, so there is nothing to pass this
+    // value to. Not invented, not emitted. Canon gap, flagged for Ramesh.
   }))
 
   const services = specialServices.map((s) => ({

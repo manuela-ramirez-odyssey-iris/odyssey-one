@@ -46,7 +46,14 @@
 /* Section chrome (card bg/border/padding) now comes from SubAccordion
    itself — this page only centers the column and caps its width.
    margin-inline: auto centers regardless of block vs flex context
-   (align-self only works on direct flex children). */
+   (align-self only works on direct flex children).
+
+   Both sections (Shipment Detail + Your Bid) share this ONE selector —
+   they used to diverge because the 640px bump below only targeted a
+   page-specific `.carrier-bid-page__detail-section` modifier class, so
+   Shipment Detail widened to 720px while Your Bid stayed capped at 480px.
+   Root cause fixed by keying both the base and the bump off the shared
+   `.sub-accordion` class instead of a per-section class. */
 .carrier-bid-page .sub-accordion {
   max-width: 480px;
   width: 100%;
@@ -59,15 +66,8 @@
   gap: var(--spacing-3);
 }
 
-/* Shipment Detail section only — pairs related fields two-up once there's
-   room, single column on narrow viewports (mobile-first, external carriers
-   on phones). */
-.carrier-bid-page .sub-accordion.carrier-bid-page__detail-section {
-  max-width: 480px;
-}
-
 @media (min-width: 640px) {
-  .carrier-bid-page .sub-accordion.carrier-bid-page__detail-section {
+  .carrier-bid-page .sub-accordion {
     max-width: 720px;
   }
 

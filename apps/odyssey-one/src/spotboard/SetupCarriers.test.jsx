@@ -29,8 +29,19 @@ const allRows = NAMED_LISTS.flatMap((l) => buildCarrierRows(l, carrierOptions))
 const tlRows = buildCarrierRows(NAMED_LISTS[0], carrierOptions)
 const ltlRows = buildCarrierRows(NAMED_LISTS[1], carrierOptions)
 
+// The mode control is a pick-only (typable={false}) select-style ComboBox —
+// jsdom never renders virtualized role="option" rows (FieldSearchResults is
+// always virtualized; see FieldSearchResults.jsx), so selection goes through
+// the same keyboard path ComboBox.typeahead.test.jsx uses for pick-only mode:
+// focus opens the full unfiltered list, ArrowDown walks it from -1, Enter commits.
+// MODES order (TL, LTL) is the contract — TL is 1 ArrowDown, LTL is 2.
 function showMode(label) {
-  fireEvent.click(screen.getByRole('button', { name: `Show ${label} carriers` }))
+  const input = screen.getByRole('combobox')
+  const el = input.closest('.combo-box')
+  fireEvent.focus(input)
+  const steps = label === 'TL' ? 1 : 2
+  for (let i = 0; i < steps; i++) fireEvent.keyDown(el, { key: 'ArrowDown' })
+  fireEvent.keyDown(el, { key: 'Enter' })
 }
 
 // Send RFQ / Save Draft / Cancel are separate buttons in the SubAccordion
@@ -176,8 +187,8 @@ describe('SetupCarriers', () => {
     expect(onSendRFQ.mock.calls[0][0].flexiblePickup).toBe(true)
   })
 
-  it('shows ONE list at a time behind the TL/LTL toggle — there is no picker', () => {
-    const { container } = render(
+  it('shows ONE list at a time behind the TL/LTL mode control', () => {
+    render(
       <SetupCarriers
         carrierOptions={carrierOptions}
         readOnly={false}
@@ -194,9 +205,89 @@ describe('SetupCarriers', () => {
     expect(screen.getByTestId(`pickup-${ltlRows[0].scac}`)).toBeTruthy()
     expect(screen.queryByTestId(`pickup-${tlRows[0].scac}`)).toBeFalsy()
 
-    // no list ComboBox anywhere
-    expect(within(container.querySelector('.setup-carriers__controls')).queryByRole('combobox')).toBeFalsy()
-    expect(screen.queryByText('Carrier List (select exactly one)')).toBeFalsy()
+    showMode('TL')
+    expect(screen.getByTestId(`pickup-${tlRows[0].scac}`)).toBeTruthy()
+    expect(screen.queryByTestId(`pickup-${ltlRows[0].scac}`)).toBeFalsy()
+  })
+
+  it('the mode control is a select-style ComboBox with exactly TL and LTL options, not a ButtonToggle', () => {
+    render(
+      <SetupCarriers
+        carrierOptions={carrierOptions}
+        readOnly={false}
+        onSaveDraft={() => {}}
+        onSendRFQ={() => {}}
+        onCancel={() => {}}
+      />
+    )
+    // Not a ButtonToggle: the old segmented-button affordance is gone.
+    expect(screen.queryByRole('button', { name: /Show (TL|LTL) carriers/ })).toBeFalsy()
+
+    const input = screen.getByRole('combobox')
+    expect(input.readOnly).toBe(true) // pick-only (typable={false}) select mode
+
+    const el = input.closest('.combo-box')
+    fireEvent.focus(input)
+    expect(input.getAttribute('aria-expanded')).toBe('true')
+
+    // Exactly two options: a THIRD ArrowDown wraps cyclically back to the
+    // FIRST (TL) rather than advancing to a nonexistent third entry —
+    // jsdom never renders virtualized role="option" rows, so counting
+    // options directly isn't possible; the wrap proves the count is 2.
+    fireEvent.keyDown(el, { key: 'ArrowDown' }) // -> TL (index 0)
+    fireEvent.keyDown(el, { key: 'ArrowDown' }) // -> LTL (index 1)
+    fireEvent.keyDown(el, { key: 'ArrowDown' }) // -> wraps back to TL
+    fireEvent.keyDown(el, { key: 'Enter' })
+    expect(screen.getByTestId(`pickup-${tlRows[0].scac}`)).toBeTruthy()
+    expect(screen.queryByTestId(`pickup-${ltlRows[0].scac}`)).toBeFalsy()
+  })
+
+  it('controls row order is mode ComboBox, then Quote Duration, then Flexible Pickup — DOCUMENT ORDER', () => {
+    const { container } = render(
+      <SetupCarriers
+        carrierOptions={carrierOptions}
+        readOnly={false}
+        onSaveDraft={() => {}}
+        onSendRFQ={() => {}}
+        onCancel={() => {}}
+      />
+    )
+    const controls = container.querySelector('.setup-carriers__controls')
+    const modeControl = screen.getByRole('combobox')
+    const duration = screen.getByLabelText('Quote Duration')
+    const flexible = screen.getByLabelText('Flexible Pickup')
+
+    expect(controls.contains(modeControl)).toBe(true)
+    expect(controls.contains(duration)).toBe(true)
+    expect(controls.contains(flexible)).toBe(true)
+
+    const FOLLOWING = Node.DOCUMENT_POSITION_FOLLOWING
+    expect(modeControl.compareDocumentPosition(duration) & FOLLOWING).toBeTruthy()
+    expect(duration.compareDocumentPosition(flexible) & FOLLOWING).toBeTruthy()
+  })
+
+  it('the LTL mode payload carries the "LTL Comparable Set" list — TL carries "TL Southeast Overflow"', () => {
+    expect(NAMED_LISTS[0].name).toBe('TL Southeast Overflow')
+    expect(NAMED_LISTS[1].name).toBe('LTL Comparable Set')
+
+    const onSendRFQ = vi.fn()
+    render(
+      <SetupCarriers
+        carrierOptions={carrierOptions}
+        readOnly={false}
+        onSaveDraft={() => {}}
+        onSendRFQ={onSendRFQ}
+        onCancel={() => {}}
+      />
+    )
+    showMode('LTL')
+    fillDate(ltlRows[0].scac, 'pickup', '08/10/2026')
+    fillDate(ltlRows[0].scac, 'delivery', '08/11/2026')
+    sendRFQ()
+
+    const payload = onSendRFQ.mock.calls[0][0]
+    expect(payload.listId).toBe(NAMED_LISTS[1].id)
+    expect(payload.listName).toBe('LTL Comparable Set')
   })
 
   it('keeps inclusions and dates when toggling between modes', () => {
@@ -328,7 +419,7 @@ describe('SetupCarriers', () => {
     expect(table.compareDocumentPosition(actions) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
-  it('stacks the RFQ terms, then count+toggle, then the table', () => {
+  it('stacks the RFQ controls, then the count toolbar, then the table', () => {
     const { container } = render(
       <SetupCarriers
         carrierOptions={carrierOptions}
@@ -342,10 +433,11 @@ describe('SetupCarriers', () => {
     const controls = container.querySelector('.setup-carriers__controls')
     const table = container.querySelector('.setup-carriers__table-wrap')
 
-    // The terms lead the card (below the accordion header) as a SIBLING of the
-    // table; count and toggle sit between them and the table.
-    expect(within(toolbar).getByRole('button', { name: 'Show LTL carriers' })).toBeTruthy()
+    // The mode ComboBox now lives in `controls` (S112 follow-up), not the
+    // toolbar — the toolbar carries only the visible-count text.
+    expect(within(toolbar).getByText(`${tlRows.length} carriers`)).toBeTruthy()
     expect(toolbar.contains(controls)).toBe(false)
+    expect(within(controls).getByRole('combobox')).toBeTruthy()
     expect(within(controls).getByLabelText('Quote Duration')).toBeTruthy()
     expect(within(controls).getByLabelText('Flexible Pickup')).toBeTruthy()
 

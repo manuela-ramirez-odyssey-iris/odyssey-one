@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import {
-  Badge, Button, ButtonToggle, Checkbox, FormField, ModalMedium,
+  Badge, Button, Checkbox, ComboBox, FormField, ModalMedium,
   SubAccordion, TitleSubtitle,
 } from '@odyssey/ui'
 import DateField from '../components/orders/create/fields/DateField.jsx'
@@ -12,13 +12,18 @@ import './spotboard.css'
 // date-less row.
 const isSelectable = (row) => !!(row.plannedPickup && row.plannedDelivery)
 
-// The TL/LTL toggle picks WHICH list the table shows — one mode at a time, not
-// both (user, S112). ButtonToggle is a two-option control, so the modes map
-// onto its 'first' | 'second' positions; NAMED_LISTS order is the contract.
+// The TL/LTL mode picks WHICH list the table shows — one mode at a time, not
+// both (user, S112). Rendered as a select-style ComboBox (typable={false}) —
+// a pick-only two-option control — so the modes map onto option values
+// 'first' | 'second'; NAMED_LISTS order is the contract.
 const MODES = [
   { key: 'first', label: 'TL', list: NAMED_LISTS[0] },
   { key: 'second', label: 'LTL', list: NAMED_LISTS[1] },
 ]
+
+// ComboBox options derived straight from MODES — one source of truth for the
+// mode → list mapping and the two picker entries.
+const MODE_OPTIONS = MODES.map((m) => ({ value: m.key, label: m.label }))
 
 // Rows built before the multi-list change carry no `listId` — they belong to
 // the quote's own single list, so attribute them to the first mode rather than
@@ -211,8 +216,19 @@ export default function SetupCarriers({
         <div className="order-pane__section setup-carriers">
           <div className="order-pane__block">
             {/* RFQ terms lead the card, directly below the accordion header —
-                a sibling of the table, not part of it (user, S112). */}
+                a sibling of the table, not part of it (user, S112). 4-column
+                grid: mode ComboBox, Quote Duration, Flexible Pickup, then an
+                unused 4th track — no other control here naturally fills it. */}
             <div className="setup-carriers__controls">
+              <ComboBox
+                id="setup-carriers-mode"
+                variant="select"
+                typable={false}
+                options={MODE_OPTIONS}
+                value={mode}
+                onSelect={(val) => setMode(val)}
+                disabled={readOnly}
+              />
               <FormField
                 id="quote-duration"
                 label="Quote Duration"
@@ -231,19 +247,11 @@ export default function SetupCarriers({
               />
             </div>
 
-            {/* …then the count and the mode toggle, directly above the table. */}
+            {/* …then the count, directly above the table. */}
             <div className="setup-carriers__toolbar-top">
               <span className="setup-carriers__toolbar-count text-label-sm-regular">
                 {visibleRows.length} {visibleRows.length === 1 ? 'carrier' : 'carriers'}
               </span>
-              <ButtonToggle
-                firstLabel={MODES[0].label}
-                secondLabel={MODES[1].label}
-                selected={mode}
-                onChange={setMode}
-                firstAriaLabel={`Show ${MODES[0].label} carriers`}
-                secondAriaLabel={`Show ${MODES[1].label} carriers`}
-              />
             </div>
 
             <div className="setup-carriers__table-wrap">

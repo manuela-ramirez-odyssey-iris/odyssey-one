@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { OdysseyLogo, Button, Alert, FormField, SubAccordion } from '@odyssey/ui'
+import { OdysseyLogo, Button, Alert, FormField, SubAccordion, TitleSubtitle } from '@odyssey/ui'
 import MeasureField from '../components/orders/create/fields/MeasureField.jsx'
 import { decodeToken } from '../spotboard/token.js'
 import { getQuote, submitBid, declineBid } from '../spotboard/spotStore.js'
@@ -116,19 +116,24 @@ export default function CarrierBid() {
             title={`Shipment Detail — Quote ${quote.quoteId}`}
             showIcon={false}
             defaultExpanded
-            className="carrier-bid-page__detail-section"
           >
+            {/* Descriptive values, not blocked form fields — TitleSubtitle pairs
+                (value as title, label as subtitle), same idiom as OrderPaneSections'
+                General Information card and the S112 Tender quote Rate Details
+                rebuild. Never renders shipmentId/orderId (SPB-05: no Load ID on
+                the carrier-facing page) — every field below already existed as a
+                display-only value before this conversion. */}
             <div className="carrier-bid-card__grid carrier-bid-card__grid--pairs">
-              <FormField id="cb-shipper" label="Shipper" value={order.shipFrom.company} readOnly className="carrier-bid-card__grid-full" />
-              <FormField id="cb-origin" label="Origin" value={order.shipFrom.location} readOnly />
-              <FormField id="cb-destination" label="Destination" value={order.shipTo.location} readOnly />
-              <FormField id="cb-pickup" label="Pickup" value={order.earliestPickup} readOnly />
-              <FormField id="cb-delivery" label="Delivery" value={order.earliestDelivery} readOnly />
-              <FormField id="cb-stops" label="Stops" value={String(shipment.stopsData.stops.length)} readOnly />
-              <FormField id="cb-distance" label="Distance" value={shipment.stopsData.summary.distance} readOnly />
-              <FormField id="cb-equipment" label="Equipment" value={order.equipment} readOnly />
+              <TitleSubtitle title={order.shipFrom.company} subtitle="Shipper" className="carrier-bid-card__grid-full" />
+              <TitleSubtitle title={order.shipFrom.location} subtitle="Origin" />
+              <TitleSubtitle title={order.shipTo.location} subtitle="Destination" />
+              <TitleSubtitle title={order.earliestPickup} subtitle="Pickup" />
+              <TitleSubtitle title={order.earliestDelivery} subtitle="Delivery" />
+              <TitleSubtitle title={String(shipment.stopsData.stops.length)} subtitle="Stops" />
+              <TitleSubtitle title={shipment.stopsData.summary.distance} subtitle="Distance" />
+              <TitleSubtitle title={order.equipment} subtitle="Equipment" />
               <div className="carrier-bid-card__hazmat-group">
-                <FormField id="cb-hazmat" label="Hazmat" value={order.hazmat} readOnly />
+                <TitleSubtitle title={order.hazmat} subtitle="Hazmat" />
                 {order.hazmat === 'Yes' && (
                   // ponytail: no MSDS document URL exists on the VM — stub link,
                   // flagged for a real source when one is available.
@@ -141,8 +146,8 @@ export default function CarrierBid() {
                   </a>
                 )}
               </div>
-              <FormField id="cb-special-services" label="Special Services" value={services.length ? services.map((s) => s.desc).join(', ') : '--'} readOnly className="carrier-bid-card__grid-full" />
-              <FormField id="cb-instructions" label="Instructions" value={instructionsText || '--'} readOnly className="carrier-bid-card__grid-full" />
+              <TitleSubtitle title={services.length ? services.map((s) => s.desc).join(', ') : '--'} subtitle="Special Services" className="carrier-bid-card__grid-full" />
+              <TitleSubtitle title={instructionsText || '--'} subtitle="Instructions" className="carrier-bid-card__grid-full" />
             </div>
           </SubAccordion>
 

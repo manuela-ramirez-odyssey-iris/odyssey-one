@@ -1,0 +1,552 @@
+[
+  {
+    "id": 54640,
+    "order_number": "VAL-97589",
+    "order_id": 97589,
+    "order_source": "MANUAL",
+    "customer": "VALTRIS_01",
+    "ship_direction": "O",
+    "freight_terms": "C",
+    "equipment": "FCL",
+    "consignor": {
+      "city": "Baytown",
+      "name": "",
+      "state": "TX",
+      "country": "US",
+      "locationId": "CBP-TX-008",
+      "latestPickupDateTime": "2026-04-26T16:30:00",
+      "earliestPickupDateTime": "2026-04-26T09:45:00"
+    },
+    "consignee": {
+      "city": "Baton Rouge",
+      "name": "",
+      "state": "LA",
+      "country": "US",
+      "locationId": "BCP-LA-006",
+      "latestDeliveryDateTime": "2026-05-03T19:30:00",
+      "earliestDeliveryDateTime": "2026-05-03T12:45:00"
+    },
+    "gross_weight": {
+      "uom": "lbs",
+      "value": 18622
+    },
+    "volume": {
+      "uom": "cbf",
+      "value": 198
+    },
+    "commodity": "Sodium Hydroxide Solution 50%",
+    "order_status": "Shipment Planned",
+    "shipment_sell_id": "25327496",
+    "manual_order": {
+      "customerId": "VALTRIS_01",
+      "orderLines": [
+        {
+          "hazardous": true,
+          "shipClass": "",
+          "volumeValue": 198,
+          "volumeUomCode": "cbf",
+          "lineIdentifier": 1,
+          "grossWeightValue": 18622,
+          "grossWeightUomCode": "lbs",
+          "productDescription": "Sodium Hydroxide Solution 50%",
+          "shipItemIdentifier": "0000000100027"
+        }
+      ],
+      "originCity": "Baytown",
+      "orderNumber": "VAL-97589",
+      "orderStatus": {
+        "orderStatusCode": "RD_4_PLNNG",
+        "orderStatusName": "Ready for Planning"
+      },
+      "volumeValue": 198,
+      "originRegion": "TX",
+      "originCountry": "US",
+      "userFieldList": [
+        {
+          "name": "CONSOLIDATABLE",
+          "value": "N",
+          "userfieldType": "FLAG"
+        },
+        {
+          "name": "PICKUP_APPOINTMENT",
+          "value": "N",
+          "userfieldType": "FLAG"
+        },
+        {
+          "name": "DELIVERY_APPOINTMENT",
+          "value": "N",
+          "userfieldType": "FLAG"
+        }
+      ],
+      "volumeUomCode": "cbf",
+      "destinationCity": "Baton Rouge",
+      "freightTermCode": "C",
+      "originPartnerId": "CBP-TX-008",
+      "grossWeightValue": 18622,
+      "destinationRegion": "LA",
+      "pickupAppointment": "2026-04-26T16:30:00",
+      "requestedDateType": "SHIP",
+      "shipDirectionCode": "O",
+      "sourceApplication": {
+        "sourceApplicationCode": "ODYSSEY_ONE",
+        "sourceApplicationName": "OdysseyOne"
+      },
+      "destinationCountry": "US",
+      "grossWeightUomCode": "lbs",
+      "deliveryAppointment": "2026-05-03T19:30:00",
+      "requestedPickupDate": "2026-04-26T09:45:00",
+      "destinationPartnerId": "BCP-LA-006",
+      "orderInstructionList": [],
+      "requestedDeliveryDate": "2026-05-03T12:45:00",
+      "orderAccessorialDetails": [
+        {
+          "accessorialCode": "PJC",
+          "orderAccessorialDetailSequence": 1
+        }
+      ],
+      "orderCarrierEquipDetailList": [
+        {
+          "equipmentCode": "FCL",
+          "carrierSequence": 1
+        }
+      ],
+      "requestedPickupTimeZoneCode": "CDT",
+      "pickupAppointmentTimeZoneCode": "CDT",
+      "requestedDeliveryTimeZoneCode": "CDT",
+      "deliveryAppointmentTimeZoneCode": "CDT"
+    },
+    "origin_city": "Baytown",
+    "origin_state": "TX",
+    "origin_country": "US",
+    "dest_city": "Baton Rouge",
+    "dest_state": "LA",
+    "dest_country": "US",
+    "earliest_pickup_ts": "2026-04-26T09:45:00.000Z",
+    "latest_pickup_ts": "2026-04-26T16:30:00.000Z",
+    "earliest_delivery_ts": "2026-05-03T12:45:00.000Z",
+    "latest_delivery_ts": "2026-05-03T19:30:00.000Z",
+    "hazardous": true,
+    "created_at": "2026-04-18T16:45:00.000Z",
+    "created_by": "amy.cook",
+    "last_edit_at": "2026-08-07T13:02:37.277Z",
+    "draft_order_status": null,
+    "error_count": null,
+    "last_edited_by": "amy.cook",
+    "created_tz": "CDT",
+    "last_edit_tz": "CDT",
+    "po_number": null,
+    "planning_date_type": "SSD"
+  },
+  {
+    "id": 55344,
+    "order_number": "VAL-98293",
+    "order_id": 98293,
+    "order_source": "MANUAL",
+    "customer": "VALTRIS_01",
+    "ship_direction": "I",
+    "freight_terms": "P",
+    "equipment": "TLR",
+    "consignor": {
+      "city": "Wyandotte",
+      "name": "",
+      "state": "MI",
+      "country": "US",
+      "locationId": "BCW-MI-017",
+      "latestPickupDateTime": "2026-04-06T21:30:00",
+      "earliestPickupDateTime": "2026-04-06T12:45:00"
+    },
+    "consignee": {
+      "city": "Columbus",
+      "name": "",
+      "state": "GA",
+      "country": "US",
+      "locationId": "ISP-GA-012",
+      "latestDeliveryDateTime": "2026-04-13T02:00:00",
+      "earliestDeliveryDateTime": "2026-04-12T13:15:00"
+    },
+    "gross_weight": {
+      "uom": "lbs",
+      "value": 9728
+    },
+    "volume": {
+      "uom": "cbf",
+      "value": 163
+    },
+    "commodity": "Hydrogen Peroxide 35%",
+    "order_status": "Shipment Failed",
+    "shipment_sell_id": "25688676",
+    "manual_order": {
+      "customerId": "VALTRIS_01",
+      "orderLines": [
+        {
+          "hazardous": true,
+          "shipClass": "",
+          "volumeValue": 163,
+          "volumeUomCode": "cbf",
+          "lineIdentifier": 1,
+          "grossWeightValue": 9728,
+          "grossWeightUomCode": "lbs",
+          "productDescription": "Hydrogen Peroxide 35%",
+          "shipItemIdentifier": ""
+        }
+      ],
+      "originCity": "Wyandotte",
+      "orderNumber": "VAL-98293",
+      "orderStatus": {
+        "orderStatusCode": "RD_4_PLNNG",
+        "orderStatusName": "Ready for Planning"
+      },
+      "volumeValue": 163,
+      "originRegion": "MI",
+      "originCountry": "US",
+      "userFieldList": [
+        {
+          "name": "CONSOLIDATABLE",
+          "value": "Y",
+          "userfieldType": "FLAG"
+        },
+        {
+          "name": "PICKUP_APPOINTMENT",
+          "value": "N",
+          "userfieldType": "FLAG"
+        },
+        {
+          "name": "DELIVERY_APPOINTMENT",
+          "value": "N",
+          "userfieldType": "FLAG"
+        }
+      ],
+      "volumeUomCode": "cbf",
+      "destinationCity": "Columbus",
+      "freightTermCode": "P",
+      "originPartnerId": "BCW-MI-017",
+      "grossWeightValue": 9728,
+      "destinationRegion": "GA",
+      "pickupAppointment": "2026-04-06T21:30:00",
+      "requestedDateType": "SHIP",
+      "shipDirectionCode": "I",
+      "sourceApplication": {
+        "sourceApplicationCode": "ODYSSEY_ONE",
+        "sourceApplicationName": "OdysseyOne"
+      },
+      "destinationCountry": "US",
+      "grossWeightUomCode": "lbs",
+      "deliveryAppointment": "2026-04-13T02:00:00",
+      "requestedPickupDate": "2026-04-06T12:45:00",
+      "destinationPartnerId": "ISP-GA-012",
+      "orderInstructionList": [],
+      "requestedDeliveryDate": "2026-04-12T13:15:00",
+      "orderAccessorialDetails": [],
+      "orderCarrierEquipDetailList": [
+        {
+          "equipmentCode": "TLR",
+          "carrierSequence": 1
+        }
+      ],
+      "requestedPickupTimeZoneCode": "EDT",
+      "pickupAppointmentTimeZoneCode": "EDT",
+      "requestedDeliveryTimeZoneCode": "EDT",
+      "deliveryAppointmentTimeZoneCode": "EDT"
+    },
+    "origin_city": "Wyandotte",
+    "origin_state": "MI",
+    "origin_country": "US",
+    "dest_city": "Columbus",
+    "dest_state": "GA",
+    "dest_country": "US",
+    "earliest_pickup_ts": "2026-04-06T12:45:00.000Z",
+    "latest_pickup_ts": "2026-04-06T21:30:00.000Z",
+    "earliest_delivery_ts": "2026-04-12T13:15:00.000Z",
+    "latest_delivery_ts": "2026-04-13T02:00:00.000Z",
+    "hazardous": true,
+    "created_at": "2026-04-01T02:45:00.000Z",
+    "created_by": "zoe.admin",
+    "last_edit_at": "2026-08-07T13:00:40.300Z",
+    "draft_order_status": "Purge",
+    "error_count": 2,
+    "last_edited_by": "amy.cook",
+    "created_tz": "EDT",
+    "last_edit_tz": "EDT",
+    "po_number": "23-277787197",
+    "planning_date_type": "SSD"
+  },
+  {
+    "id": 71972,
+    "order_number": "Test123789",
+    "order_id": 71972,
+    "order_source": "MANUAL",
+    "customer": "USALCO_SYS_01",
+    "ship_direction": "O",
+    "freight_terms": "P",
+    "equipment": "LTH",
+    "consignor": {
+      "city": "Baytown",
+      "name": "COVESTRO BAYTOWN PL",
+      "state": "TX",
+      "country": "United States",
+      "locationId": "CBP-TX-008",
+      "latestPickupDateTime": "2026-08-10T15:00:00",
+      "earliestPickupDateTime": ""
+    },
+    "consignee": {
+      "city": "Baton Rouge",
+      "name": "BAYOU CHEMICAL PLANT",
+      "state": "LA",
+      "country": "United States",
+      "locationId": "BCP-LA-006",
+      "latestDeliveryDateTime": "",
+      "earliestDeliveryDateTime": ""
+    },
+    "gross_weight": {
+      "uom": "lb",
+      "value": 5801
+    },
+    "volume": {
+      "uom": "cuft",
+      "value": 912
+    },
+    "commodity": "Hydrogen Peroxide 35%",
+    "order_status": "Ready For Plan",
+    "shipment_sell_id": null,
+    "manual_order": {
+      "poNumber": "868",
+      "customerId": "USALCO_SYS_01",
+      "orderLines": [
+        {
+          "shipClass": "",
+          "volumeValue": 567,
+          "volumeUomCode": "cuft",
+          "lineIdentifier": 1,
+          "grossWeightValue": 1234,
+          "grossWeightUomCode": "lb",
+          "productDescription": "Hydrogen Peroxide 35%",
+          "shipItemIdentifier": "0000000100039"
+        },
+        {
+          "hazardous": true,
+          "shipClass": "",
+          "volumeValue": 345,
+          "volumeUomCode": "cuft",
+          "lineIdentifier": 2,
+          "grossWeightValue": 4567,
+          "grossWeightUomCode": "lb",
+          "productDescription": "Phosphoric Acid 75%",
+          "shipItemIdentifier": "0000000100045"
+        }
+      ],
+      "originCity": "Baytown",
+      "orderNumber": "Test123789",
+      "orderStatus": {
+        "orderStatusCode": "RD_4_PLNNG",
+        "orderStatusName": "Ready for Planning"
+      },
+      "volumeValue": 912,
+      "originPostal": "77520",
+      "originRegion": "TX",
+      "pickupNumber": "213",
+      "originCountry": "United States",
+      "userFieldList": [
+        {
+          "name": "CONSOLIDATABLE",
+          "value": "Y",
+          "userfieldType": "FLAG"
+        },
+        {
+          "name": "PICKUP_APPOINTMENT",
+          "value": "N",
+          "userfieldType": "FLAG"
+        },
+        {
+          "name": "DELIVERY_APPOINTMENT",
+          "value": "N",
+          "userfieldType": "FLAG"
+        },
+        {
+          "name": "Sales Order Number",
+          "value": "0987",
+          "userfieldType": "REFERENCE"
+        },
+        {
+          "name": "Delivery Number",
+          "value": "8765",
+          "userfieldType": "REFERENCE"
+        }
+      ],
+      "volumeUomCode": "cuft",
+      "originAddress1": "107 Industrial Blvd",
+      "originFullName": "COVESTRO BAYTOWN PL",
+      "destinationCity": "Baton Rouge",
+      "equipmentNumber": "6754",
+      "freightTermCode": "P",
+      "originPartnerId": "CBP-TX-008",
+      "grossWeightValue": 5801,
+      "destinationPostal": "70801",
+      "destinationRegion": "LA",
+      "pickupAppointment": "2026-08-10T15:00:00",
+      "requestedDateType": "SHIP",
+      "shipDirectionCode": "O",
+      "sourceApplication": {
+        "sourceApplicationCode": "ODYSSEY_ONE",
+        "sourceApplicationName": "OdysseyOne"
+      },
+      "destinationCountry": "United States",
+      "grossWeightUomCode": "lb",
+      "destinationAddress1": "105 Industrial Blvd",
+      "destinationFullName": "BAYOU CHEMICAL PLANT",
+      "destinationPartnerId": "BCP-LA-006",
+      "orderInstructionList": [
+        {
+          "instructionType": "0012",
+          "instructionDetail": "Please wear PPEs",
+          "instructionNumber": 1
+        },
+        {
+          "instructionType": "0012",
+          "instructionDetail": "Please unload at Dock # 5",
+          "instructionNumber": 2
+        }
+      ],
+      "orderAccessorialDetails": [
+        {
+          "accessorialCode": "LFT",
+          "orderAccessorialDetailSequence": 1
+        },
+        {
+          "accessorialCode": "PALEXG",
+          "orderAccessorialDetailSequence": 2
+        },
+        {
+          "accessorialCode": "AHDEL",
+          "orderAccessorialDetailSequence": 3
+        }
+      ],
+      "orderCarrierEquipDetailList": [
+        {
+          "scacCode": "GFCG",
+          "equipmentCode": "LTH",
+          "carrierSequence": 1
+        }
+      ],
+      "pickupAppointmentTimeZoneCode": "CDT"
+    },
+    "origin_city": "Baytown",
+    "origin_state": "TX",
+    "origin_country": "United States",
+    "dest_city": "Baton Rouge",
+    "dest_state": "LA",
+    "dest_country": "United States",
+    "earliest_pickup_ts": null,
+    "latest_pickup_ts": "2026-08-10T15:00:00.000Z",
+    "earliest_delivery_ts": null,
+    "latest_delivery_ts": null,
+    "hazardous": true,
+    "created_at": "2026-08-06T07:59:20.686Z",
+    "created_by": "amy.cook",
+    "last_edit_at": null,
+    "draft_order_status": null,
+    "error_count": null,
+    "last_edited_by": null,
+    "created_tz": null,
+    "last_edit_tz": null,
+    "po_number": null,
+    "planning_date_type": null
+  },
+  {
+    "id": 71973,
+    "order_number": "12345",
+    "order_id": 71973,
+    "order_source": "MANUAL",
+    "customer": "HUNT_REF_01",
+    "ship_direction": "O",
+    "freight_terms": "P",
+    "equipment": "",
+    "consignor": {
+      "city": "",
+      "name": "",
+      "state": "",
+      "country": "United States",
+      "locationId": "",
+      "latestPickupDateTime": "",
+      "earliestPickupDateTime": ""
+    },
+    "consignee": {
+      "city": "",
+      "name": "",
+      "state": "",
+      "country": "United States",
+      "locationId": "",
+      "latestDeliveryDateTime": "",
+      "earliestDeliveryDateTime": ""
+    },
+    "gross_weight": {
+      "uom": "lbs",
+      "value": 0
+    },
+    "volume": {
+      "uom": "cbf",
+      "value": 0
+    },
+    "commodity": "",
+    "order_status": "Draft",
+    "shipment_sell_id": null,
+    "manual_order": {
+      "customerId": "HUNT_REF_01",
+      "orderLines": [],
+      "orderNumber": "12345",
+      "orderStatus": {
+        "orderStatusCode": "DRAFT",
+        "orderStatusName": "Draft"
+      },
+      "originCountry": "United States",
+      "userFieldList": [
+        {
+          "name": "CONSOLIDATABLE",
+          "value": "Y",
+          "userfieldType": "FLAG"
+        },
+        {
+          "name": "PICKUP_APPOINTMENT",
+          "value": "N",
+          "userfieldType": "FLAG"
+        },
+        {
+          "name": "DELIVERY_APPOINTMENT",
+          "value": "N",
+          "userfieldType": "FLAG"
+        }
+      ],
+      "freightTermCode": "P",
+      "requestedDateType": "SHIP",
+      "shipDirectionCode": "O",
+      "sourceApplication": {
+        "sourceApplicationCode": "ODYSSEY_ONE",
+        "sourceApplicationName": "OdysseyOne"
+      },
+      "destinationCountry": "United States",
+      "orderInstructionList": [],
+      "orderAccessorialDetails": [],
+      "orderCarrierEquipDetailList": []
+    },
+    "origin_city": "",
+    "origin_state": "",
+    "origin_country": "United States",
+    "dest_city": "",
+    "dest_state": "",
+    "dest_country": "United States",
+    "earliest_pickup_ts": null,
+    "latest_pickup_ts": null,
+    "earliest_delivery_ts": null,
+    "latest_delivery_ts": null,
+    "hazardous": false,
+    "created_at": "2026-08-06T08:53:53.687Z",
+    "created_by": "amy.cook",
+    "last_edit_at": null,
+    "draft_order_status": null,
+    "error_count": null,
+    "last_edited_by": null,
+    "created_tz": null,
+    "last_edit_tz": null,
+    "po_number": null,
+    "planning_date_type": null
+  }
+]

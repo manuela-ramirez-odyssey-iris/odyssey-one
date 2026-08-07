@@ -12,6 +12,7 @@ import Tracking from './routes/Tracking.jsx'
 import Users from './routes/Users.jsx'
 import Partners from './routes/Partners.jsx'
 import ShipmentsRoute from './routes/shipments/ShipmentsRoute.jsx'
+import SpotBoardDashboard from './routes/SpotBoardDashboard.jsx'
 import ButtonDemo from './routes/ButtonDemo.jsx'
 import DesignSystem from './routes/design-system/DesignSystem.jsx'
 
@@ -74,6 +75,7 @@ export default function App() {
         <Route path="/orders/:orderId" element={<OrderSummaryRoute />} />
         <Route path="/carriers" element={<Carriers />} />
         <Route path="/shipments/*" element={<ShipmentsRoute />} />
+        <Route path="/spotboard" element={<SpotBoardDashboard />} />
         <Route path="/tracking" element={<Tracking />} />
         <Route path="/users" element={<Users />} />
         <Route path="/partners" element={<Partners />} />

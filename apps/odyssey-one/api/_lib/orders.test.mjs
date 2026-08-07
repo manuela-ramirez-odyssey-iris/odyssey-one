@@ -51,6 +51,18 @@ test('order list sorts by new whitelisted fields', () => {
   assert.match(text, /ORDER BY last_edit_at DESC/)
 })
 
+// S113 Task 3 (Fix A): All tab's new default sort — "created" must map to the
+// real created_at column, not fall through to the order_number fallback.
+test('order list: created field maps to created_at column (All-tab default sort)', () => {
+  const { text } = buildOrderListQuery({ sort: { field: 'created', direction: 'desc' } })
+  assert.match(text, /ORDER BY created_at DESC/)
+})
+
+test('order list: orderNumber remains a valid selectable sort field', () => {
+  const { text } = buildOrderListQuery({ sort: { field: 'orderNumber', direction: 'asc' } })
+  assert.match(text, /ORDER BY order_number ASC/)
+})
+
 test('unknown sort field falls back to order_number', () => {
   const { text } = buildOrderListQuery({ sort: { field: 'evil; DROP TABLE', direction: 'asc' } })
   assert.match(text, /ORDER BY order_number ASC/)

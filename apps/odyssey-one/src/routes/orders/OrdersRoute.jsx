@@ -34,8 +34,13 @@ const MAIN_TABS = [
 
 // Per-tab default header sort (S94 decision — Draft's is an inference, cheap
 // to change: lastEdit desc). Reapplied whenever the tab switches.
+// All defaults to newest-first (created_at DESC) — S113 Task 3 (Fix A). The
+// prior default (idLabel/order_number DESC) lexicographically sorted a TEXT
+// column: letter-prefixed order numbers sort above every 13-digit zero-padded
+// number the server mints for a blank Order Number, burying a freshly created
+// order dozens of pages deep. Order Number stays selectable via its column header.
 const DEFAULT_SORT = {
-  all: [{ id: 'idLabel', desc: true }],
+  all: [{ id: 'created', desc: true }],
   draft: [{ id: 'lastEdit', desc: true }],
   'validation-errors': [{ id: 'errorCount', desc: true }],
 }

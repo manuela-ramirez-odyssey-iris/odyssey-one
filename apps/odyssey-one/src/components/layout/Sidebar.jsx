@@ -1,4 +1,4 @@
-import { House, ClipboardList, Container, Route, Truck, UserCog, Handshake } from 'lucide-react'
+import { House, ClipboardList, Container, Route, Truck, UserCog, Handshake, Gavel } from 'lucide-react'
 import { ICON_LG } from '@odyssey/tokens'
 import React from 'react'
 import { NavLink } from 'react-router-dom'
@@ -11,6 +11,7 @@ const topItems = [
   { id: 'home',      icon: <House {...ICON_LG} />,         label: 'Home',      to: '/' },
   { id: 'orders',    icon: <ClipboardList {...ICON_LG} />, label: 'Orders',    to: '/orders' },
   { id: 'shipments', icon: <Container {...ICON_LG} />,     label: 'Shipments', to: '/shipments' },
+  { id: 'spotboard', icon: <Gavel {...ICON_LG} />,         label: 'SpotBoard', to: '/spotboard' },
   { id: 'tracking',  icon: <Route {...ICON_LG} />,         label: 'Tracking',  to: '/tracking' },
 ]
 

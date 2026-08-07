@@ -36,10 +36,10 @@ export interface OrderDetailVM {
   shipTo: AddressVM
   earliestPickup: string
   latestPickup: string
-  pickupAppointment: boolean
+  pickupAppointment: string
   earliestDelivery: string
   latestDelivery: string
-  deliveryAppointment: boolean
+  deliveryAppointment: string
   numProducts: string
   totalWeight: string
   totalVolume: string

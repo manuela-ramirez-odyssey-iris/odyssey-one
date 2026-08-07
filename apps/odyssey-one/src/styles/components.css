@@ -5817,6 +5817,23 @@ button.breadcrumb__label:focus-visible {
   grid-template-columns: 1fr 1fr;
   gap: var(--spacing-6) var(--spacing-3);
 }
+/* Product table scroll wrap (ORD-13). The table is equipment-driven and can
+   reach 12 columns + Line # + the cog cell, which outgrows the card.
+   `min-width: 0` is load-bearing: this is a flex child of .order-pane__block,
+   and a flex item's default `min-width: auto` resolves to its CONTENT width —
+   without it the wrapper widens to fit the table and pushes the card out
+   instead of scrolling (S112 field-floors, rule 3). The paired min-width on
+   the table is what makes it overflow at all, since .odyssey-table is
+   width:100% and would otherwise just squash. Mirrors .co-product-table-wrap. */
+.order-pane__product-scroll {
+  width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+}
+.order-pane__product-scroll .odyssey-table {
+  min-width: 880px;
+}
+
 .order-pane__product-toolbar {
   display: flex;
   align-items: center;

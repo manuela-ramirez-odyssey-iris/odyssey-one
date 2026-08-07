@@ -141,21 +141,25 @@ describe('productsSchema (Q26 — all five required, ≥1 row)', () => {
   })
 })
 
-describe('saveGateSchema (Q16/Q27 — Order Number + Owning Organization)', () => {
-  it('passes with just the two fields present', () => {
+describe('saveGateSchema (Owning Organization only — 2026-08-07 decision D: Order Number is optional, blank is the normal Save-for-Later path since the server assigns it)', () => {
+  it('passes with both fields present', () => {
     const g = makeDefaultOrderFormValues().general
     g.orderNumber = 'ORD-1'
     g.owningOrganization = 'ERCO_SYS_01'
     expect(saveGateSchema.safeParse(g).success).toBe(true)
   })
 
-  it('fails when either is missing', () => {
+  it('passes with a BLANK Order Number — the normal path; server auto-generates it', () => {
+    const g = makeDefaultOrderFormValues().general
+    g.orderNumber = ''
+    g.owningOrganization = 'ERCO_SYS_01'
+    expect(saveGateSchema.safeParse(g).success).toBe(true)
+  })
+
+  it('fails when Owning Organization is missing, regardless of Order Number', () => {
     const g1 = makeDefaultOrderFormValues().general
     g1.orderNumber = 'ORD-1'
     expect(saveGateSchema.safeParse(g1).success).toBe(false)
-    const g2 = makeDefaultOrderFormValues().general
-    g2.owningOrganization = 'ERCO_SYS_01'
-    expect(saveGateSchema.safeParse(g2).success).toBe(false)
   })
 })
 

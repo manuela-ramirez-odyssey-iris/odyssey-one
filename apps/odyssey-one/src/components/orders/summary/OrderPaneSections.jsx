@@ -1,5 +1,6 @@
 import { ArrowDownWideNarrow, Columns3Cog, TriangleAlert } from 'lucide-react'
 import { Badge, SubAccordion, TitleSubtitle } from '@odyssey/ui'
+import { columnsForEquipment, PRODUCT_COLUMNS } from '../create/productColumns'
 
 // Shared order-section cards (S82) — the four SubAccordion cards extracted
 // VERBATIM from the Shipments Orders tab pane (components/detail/OrderTab.jsx,
@@ -191,13 +192,30 @@ export function PickupDeliveryCard({ d, expanded, onToggle }) {
   )
 }
 
+// PRODUCT_COLUMNS key → the row's own field name, for the 3 columns where
+// they differ. Both productLines shapes this card renders (mapFormVmToOrderPane's
+// VM and mapSellShipmentOutToDetail's ProductLineVM) already agree on
+// `hazmat` / `shipItem` / `productClass`; every other PRODUCT_COLUMNS key
+// (description, grossWeight, handlingUnit, harmonizedCode, ...) matches the
+// row's field name directly, or has no equivalent on the Shipments-tab shape
+// yet and correctly falls back to DASH — that mapper's gap, not this card's.
+const COLUMN_FIELD = { hazardous: 'hazmat', productId: 'shipItem', shipClass: 'productClass' }
+
+function productCell(line, key) {
+  const v = line[COLUMN_FIELD[key] ?? key]
+  return v === undefined || v === null || v === '' ? DASH : v
+}
+
 // ── Card 3: Product Information ──────────────────────────────────────────────
 // Rebuilt to the confirmation mocks (Figma 4139:11389 §Product Information):
-// 8-field rollup grid → "N products added" + static sort affordance → 6-col
-// read-only table with a static column-cog header. The mocks' header asterisks
-// (Line # * / Product Description * / Gross Weight *) are edit-grid template
-// junk on a read-only view — dropped, per the S96/S97 clean-subset convention.
+// 8-field rollup grid → "N products added" + static sort affordance → an
+// equipment-driven read-only table (ORD-08 / LINX-13893), same column set +
+// order as Create's ProductGrid — `columnsForEquipment` is canon, imported
+// not duplicated. The mocks' header asterisks (Line # * / Product
+// Description * / Gross Weight *) are edit-grid template junk on a
+// read-only view — dropped, per the S96/S97 clean-subset convention.
 export function ProductInfoCard({ d, productLines, expanded, onToggle }) {
+  const columns = columnsForEquipment(d.equipment).map((key) => PRODUCT_COLUMNS[key])
   return (
     <SubAccordion
       title="Product Information"
@@ -242,16 +260,17 @@ export function ProductInfoCard({ d, productLines, expanded, onToggle }) {
               <ArrowDownWideNarrow size={16} />
             </span>
           </div>
+          {/* ORD-13 made this table equipment-driven (up to 12 columns + Line #
+              + the cog cell), so it can outgrow the card. Same overflow-x
+              treatment as Create's .co-product-table-wrap. */}
+          <div className="order-pane__product-scroll">
           <table className="odyssey-table">
             <thead>
               <tr>
                 <th className="text-label-sm-semibold">Line #</th>
-                <th className="text-label-sm-semibold">Product ID</th>
-                <th className="text-label-sm-semibold">Product Description</th>
-                <th className="text-label-sm-semibold">Gross Weight</th>
-                <th className="text-label-sm-semibold">Volume</th>
-                <th className="text-label-sm-semibold">Hazardous</th>
-                <th className="text-label-sm-semibold">Product Class</th>
+                {columns.map((col) => (
+                  <th key={col.key} className="text-label-sm-semibold">{col.label}</th>
+                ))}
                 <th className="order-pane__col-icon" aria-hidden="true">
                   <span className="order-pane__table-icon">
                     <Columns3Cog size={16} />
@@ -262,7 +281,7 @@ export function ProductInfoCard({ d, productLines, expanded, onToggle }) {
             <tbody>
               {productLines.length === 0 && (
                 <tr>
-                  {Array.from({ length: 7 }, (_, i) => (
+                  {Array.from({ length: columns.length + 1 }, (_, i) => (
                     <td key={i} className="text-label-sm-regular">{DASH}</td>
                   ))}
                   <td aria-hidden="true" />
@@ -271,27 +290,29 @@ export function ProductInfoCard({ d, productLines, expanded, onToggle }) {
               {productLines.map((line) => (
                 <tr key={line.lineNumber}>
                   <td className="text-label-sm-regular">{line.lineNumber}</td>
-                  <td className="text-label-sm-regular">{line.shipItem}</td>
-                  <td className="text-label-sm-regular">{line.description}</td>
-                  <td className="text-label-sm-regular">{line.grossWeight}</td>
-                  <td className="text-label-sm-regular">{line.volume}</td>
-                  <td className="text-label-sm-regular">
-                    {/* per-line hazmat (LINX-8121) — same amber-Badge idiom as
-                        the order-level rollup above, not a new convention */}
-                    {line.hazmat ? (
-                      <Badge variant="amber" leftIcon={<TriangleAlert size={12} aria-hidden="true" />}>
-                        Hazmat
-                      </Badge>
-                    ) : (
-                      DASH
-                    )}
-                  </td>
-                  <td className="text-label-sm-regular">{line.productClass}</td>
+                  {columns.map((col) => (
+                    <td key={col.key} className="text-label-sm-regular">
+                      {col.key === 'hazardous' ? (
+                        // per-line hazmat (LINX-8121) — same amber-Badge idiom
+                        // as the order-level rollup above, not a new convention
+                        line.hazmat ? (
+                          <Badge variant="amber" leftIcon={<TriangleAlert size={12} aria-hidden="true" />}>
+                            Hazmat
+                          </Badge>
+                        ) : (
+                          DASH
+                        )
+                      ) : (
+                        productCell(line, col.key)
+                      )}
+                    </td>
+                  ))}
                   <td aria-hidden="true" />
                 </tr>
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       </div>
     </SubAccordion>

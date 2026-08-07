@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, within, cleanup, fireEvent, waitFor } from '@testing-library/react'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import CarrierBid from './CarrierBid.jsx'
@@ -87,7 +87,7 @@ describe('CarrierBid — open quote', () => {
     const token = tokenFor(quote, SCAC)
     renderAt(`/spot-bid/${token}`)
 
-    await screen.findByDisplayValue('Acme Houston Plant')
+    await screen.findByText('Acme Houston Plant')
     expect(screen.getByRole('button', { name: /submit/i })).toBeTruthy()
     expect(screen.getByRole('button', { name: /decline/i })).toBeTruthy()
 
@@ -101,7 +101,7 @@ describe('CarrierBid — open quote', () => {
     const token = tokenFor(quote, SCAC)
     renderAt(`/spot-bid/${token}`)
 
-    await screen.findByDisplayValue('Acme Houston Plant')
+    await screen.findByText('Acme Houston Plant')
 
     const linehaulInput = screen.getByLabelText(/linehaul/i)
     fireEvent.change(linehaulInput, { target: { value: '1500' } })
@@ -133,7 +133,7 @@ describe('CarrierBid — open quote', () => {
     const token = tokenFor(quote, SCAC)
     renderAt(`/spot-bid/${token}`)
 
-    await screen.findByDisplayValue('Acme Houston Plant')
+    await screen.findByText('Acme Houston Plant')
 
     // Scan document.body (not the render `container`) — MeasureField's UoM
     // menu renders through a portal (useAnchoredPortal → document.body),
@@ -160,7 +160,7 @@ describe('CarrierBid — open quote', () => {
     const token = tokenFor(quote, SCAC)
     renderAt(`/spot-bid/${token}`)
 
-    await screen.findByDisplayValue('Acme Houston Plant')
+    await screen.findByText('Acme Houston Plant')
     // SubAccordion's title renders as a styled span inside the toggle
     // button, not a heading element — query by text instead.
     expect(screen.getByText(new RegExp(`Quote ${quote.quoteId}`))).toBeTruthy()
@@ -171,7 +171,7 @@ describe('CarrierBid — open quote', () => {
     const token = tokenFor(quote, SCAC)
     renderAt(`/spot-bid/${token}`)
 
-    await screen.findByDisplayValue('Acme Houston Plant')
+    await screen.findByText('Acme Houston Plant')
 
     const toggles = screen.getAllByRole('button', { name: /shipment detail|your bid/i })
     expect(toggles.length).toBe(2)
@@ -187,7 +187,7 @@ describe('CarrierBid — open quote', () => {
     const token = tokenFor(quote, SCAC)
     renderAt(`/spot-bid/${token}`)
 
-    await screen.findByDisplayValue('Acme Houston Plant')
+    await screen.findByText('Acme Houston Plant')
     expect(screen.getByText('OdysseyONE Carrier Portal · Old Dominion (ODFL)')).toBeTruthy()
   })
 
@@ -196,10 +196,52 @@ describe('CarrierBid — open quote', () => {
     const token = tokenFor(quote, SCAC)
     renderAt(`/spot-bid/${token}`)
 
-    await screen.findByDisplayValue('Acme Houston Plant')
+    await screen.findByText('Acme Houston Plant')
     const headings = document.querySelectorAll('h1')
     expect(headings.length).toBe(1)
     expect(headings[0].textContent).toBe('OdysseyONE Carrier Portal · Old Dominion (ODFL)')
+  })
+
+  it('shipment detail reads as descriptive TitleSubtitle values, not disabled/readonly form fields', async () => {
+    const quote = openQuote()
+    const token = tokenFor(quote, SCAC)
+    renderAt(`/spot-bid/${token}`)
+
+    await screen.findByText('Acme Houston Plant')
+
+    const detailSection = screen.getByRole('button', { name: /shipment detail/i }).closest('.sub-accordion')
+    // No input/textarea/select and no disabled control anywhere in the section —
+    // the S112 Rate Details conversion idiom: values render as text, not blocked fields.
+    expect(detailSection.querySelectorAll('input, textarea, select, [disabled]').length).toBe(0)
+    // TitleSubtitle pair: subtitle (label) + title (value) both present as text.
+    expect(within(detailSection).getByText('Shipper')).toBeTruthy()
+    expect(within(detailSection).getByText('Acme Houston Plant')).toBeTruthy()
+
+    // "Your Bid" keeps real inputs — only the read-only shipment detail changed.
+    const bidSection = screen.getByRole('button', { name: /your bid/i }).closest('.sub-accordion')
+    expect(bidSection.querySelectorAll('input').length).toBeGreaterThan(0)
+  })
+
+  it('both sections resolve to the same width constraint via the shared .sub-accordion rule, no per-section override', async () => {
+    const quote = openQuote()
+    const token = tokenFor(quote, SCAC)
+    renderAt(`/spot-bid/${token}`)
+
+    await screen.findByText('Acme Houston Plant')
+
+    const toggles = screen.getAllByRole('button', { name: /shipment detail|your bid/i })
+    const sections = toggles.map((t) => t.closest('.sub-accordion'))
+    expect(sections.length).toBe(2)
+    // Width is governed solely by `.carrier-bid-page .sub-accordion` (base + the
+    // 640px bump). If either section carried its own modifier class, that class
+    // could carry its own max-width override and the two would diverge again —
+    // assert the shared class/rule rather than a computed pixel value (jsdom
+    // doesn't lay out).
+    const knownStateClasses = ['sub-accordion', 'sub-accordion--expanded', 'sub-accordion--static']
+    for (const section of sections) {
+      const extra = Array.from(section.classList).filter((c) => !knownStateClasses.includes(c))
+      expect(extra).toEqual([])
+    }
   })
 })
 

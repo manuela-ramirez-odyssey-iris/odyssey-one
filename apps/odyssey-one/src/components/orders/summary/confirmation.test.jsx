@@ -147,12 +147,14 @@ describe('ConfirmationView quick/long + async flip', () => {
     })
     values.general.orderNumber = 'S26TEST'
     renderConfirmation({ data: { orderNumber: 'S26TEST' }, values })
-    const table = screen.getByText('Hazardous').closest('table')
+    // Case 1 (default '' equipment) column set — see productColumns.js.
+    const table = screen.getByText('Hazardous?').closest('table')
     const rows = table.querySelectorAll('tbody tr')
     expect(rows).toHaveLength(2)
     expect(within(rows[0]).getByText('Hazmat')).toBeTruthy()
     expect(within(rows[1]).queryByText('Hazmat')).toBeNull()
-    expect(within(rows[1]).getByText('--')).toBeTruthy()
+    // row 1's Hazardous cell (and every other blank Case-1 cell) renders DASH
+    expect(within(rows[1]).getAllByText('--').length).toBeGreaterThan(0)
   })
 
   // R2-7: the Planning Date/Time block must show BOTH appointment flags, not

@@ -37,7 +37,9 @@ export default function OrderSummaryRoute() {
       <div className="order-summary-page">
         <nav className="order-summary__crumbs" aria-label="Breadcrumb">
           <Breadcrumb label="Orders" onClick={() => navigate('/orders')} />
-          <Breadcrumb label={isPendingOrder ? '-' : orderId} current />
+          {/* A pending order has no number yet — drop the trailing token rather
+              than rendering "View order -", which reads as a missing value. */}
+          <Breadcrumb label={isPendingOrder ? 'View order' : `View order ${orderId}`} current />
         </nav>
 
         {isPending ? (

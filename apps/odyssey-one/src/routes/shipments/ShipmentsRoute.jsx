@@ -30,13 +30,18 @@ function ShipmentsRoute() {
   // pre-scope the list, the category counts and the search glimpse. A selection
   // with no data-backed customers (empty array) = an honest empty table.
   const { selectedDataIds } = useCustomers()
-  const [selectedShipmentId, setSelectedShipmentId] = useState(null)
-  // Cell→tab mapping (S82): { key } token minted per qualifying cell click,
-  // consumed by BottomBar to land the detail bar on the mapped tab.
-  const [requestedTab, setRequestedTab] = useState(null)
   // Panel/tab deep-link (S91 Home widgets): navigate('/shipments',
   // { state: { panel, tab } }) lands directly on that panel + category tab.
+  // S113 extends the same seam with `selectedShipmentId` + `requestedTab`, so
+  // the SpotBoard Dashboard's row action can drill from the cross-shipment
+  // board straight into ONE shipment's Spot tab. Declared above the states
+  // below because they now read from it (a lazy initialiser referencing
+  // `location` before this line would hit the TDZ).
   const location = useLocation()
+  const [selectedShipmentId, setSelectedShipmentId] = useState(location.state?.selectedShipmentId ?? null)
+  // Cell→tab mapping (S82): { key } token minted per qualifying cell click,
+  // consumed by BottomBar to land the detail bar on the mapped tab.
+  const [requestedTab, setRequestedTab] = useState(location.state?.requestedTab ?? null)
   const [activePanel, setActivePanel] = useState(() => location.state?.panel ?? 'exceptions')
   const [activeTab, setActiveTab] = useState(() => location.state?.tab ?? 'all')
   // Committed GlobalSearch criteria — { chips, text } or null (S79c decision 7).

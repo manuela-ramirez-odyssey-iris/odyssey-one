@@ -23,8 +23,15 @@ import SpecialServicesSection from './sections/SpecialServicesSection.jsx'
 
 const get = (obj, path) => path.split('.').reduce((o, k) => o?.[k], obj)
 
-const SAVE_GATE_MESSAGE =
-  'Order Number and Owning Organization are both required to save this order.'
+// 2026-08-07 decision D: Order Number dropped from the gate (blank is the
+// normal Save-for-Later path — the server assigns it). Owning Organization
+// is the only remaining requirement.
+const SAVE_GATE_MESSAGE = 'Owning Organization is required to save this order.'
+
+// Fallback only — the real server reason (ApiError.message, surfaced through
+// orderService.saveDraft) is shown whenever one is available (Task 4: a 409
+// was previously invisible behind this generic string).
+const SAVE_DRAFT_GENERIC_ERROR = "Couldn't save the draft. Please try again."
 
 /**
  * CreateOrderForm — the create-flow orchestrator (spec §2.2, §4).
@@ -378,8 +385,8 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
           setDraftId(res.draftId)
           setSaveNotice(`Draft saved (${res.orderNumber}). It stays open here and appears on the Orders grid.`)
         },
-        onError: () => {
-          setSaveGateError("Couldn't save the draft. Please try again.")
+        onError: (err) => {
+          setSaveGateError(err?.message || SAVE_DRAFT_GENERIC_ERROR)
         },
       },
     )
@@ -395,13 +402,14 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
       { values: getValues(), draftId },
       {
         onSuccess: () => navigate('/orders'),
-        onError: () => {
+        onError: (err) => {
           // If called from the modal, surface the error inside it (keep modal open).
           // If called from the navbar, surface the error in the form alert area.
+          const message = err?.message || SAVE_DRAFT_GENERIC_ERROR
           if (typeof onModalError === 'function') {
-            onModalError("Couldn't save the draft. Please try again.")
+            onModalError(message)
           } else {
-            setSaveGateError("Couldn't save the draft. Please try again.")
+            setSaveGateError(message)
           }
         },
       },
@@ -505,7 +513,13 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
         <nav className="co-breadcrumb" aria-label="Breadcrumb">
           <Breadcrumb label="Orders" onClick={() => navigate('/orders')} />
           <Breadcrumb
-            label={resolveMode ? 'Order Validation Error Resolution' : editMode ? 'Edit order' : 'Create new order'}
+            label={resolveMode
+              ? 'Order Validation Error Resolution'
+              : editMode
+                // pending orders have no number yet — omit it rather than
+                // rendering "Edit order -" (matches OrderSummaryRoute)
+                ? (draftKey?.startsWith('pending-') ? 'Edit order' : `Edit order ${draftKey}`)
+                : 'Create new order'}
             current
           />
         </nav>

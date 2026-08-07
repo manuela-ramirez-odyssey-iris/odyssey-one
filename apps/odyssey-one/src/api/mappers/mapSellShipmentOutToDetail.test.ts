@@ -32,9 +32,15 @@ describe('mapSellShipmentOutToDetail', () => {
     expect(o.shipTo.location).toBe('60601, Chicago, IL, US')
   })
 
-  it('derives appointment booleans from presence', () => {
-    expect(vm.orderDetails[0].pickupAppointment).toBe(true)
-    expect(vm.orderDetails[0].deliveryAppointment).toBe(false)
+  // R2/F (orders-fix-round, 2026-08-07): this mapper used to emit raw
+  // booleans while the consumer (OrderPaneSections.jsx) renders
+  // `{d.pickupAppointment || DASH}` — JSX renders boolean `true` as nothing,
+  // so a checked appointment showed BLANK and unchecked showed '--'. Emit
+  // 'Yes'/'No' strings instead, matching mapFormVmToOrderPane.js:90-91's
+  // convention for the same field pair.
+  it('derives appointment Yes/No strings from presence', () => {
+    expect(vm.orderDetails[0].pickupAppointment).toBe('Yes')
+    expect(vm.orderDetails[0].deliveryAppointment).toBe('No')
   })
 
   it('derives hazmat from order lines', () => {

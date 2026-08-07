@@ -99,10 +99,13 @@ function mapOrder(order: SellShipmentOrder, header: SellShipmentOut): OrderDetai
     },
     earliestPickup: order.scheduledShipDate ?? order.requestedShipDate ?? DASH,
     latestPickup: order.requestedShipDate ?? order.scheduledShipDate ?? DASH,
-    pickupAppointment: order.pickupAppointment != null,
+    // 'Yes'/'No' strings, not raw booleans — matches mapFormVmToOrderPane.js:90-91.
+    // The consumer renders `{d.pickupAppointment || DASH}`; JSX drops boolean
+    // `true` silently, so a checked appointment used to render blank.
+    pickupAppointment: order.pickupAppointment != null ? 'Yes' : 'No',
     earliestDelivery: order.scheduledDeliveryDate ?? order.requestedDeliveryDate ?? DASH,
     latestDelivery: order.requestedDeliveryDate ?? order.scheduledDeliveryDate ?? DASH,
-    deliveryAppointment: order.deliveryAppointment != null,
+    deliveryAppointment: order.deliveryAppointment != null ? 'Yes' : 'No',
     numProducts: order.orderLines?.length ? String(order.orderLines.length) : DASH,
     totalWeight: fmtMeasure(order.netWeightValue ?? order.grossWeightValue, uom, 'LB'),
     totalVolume: fmtMeasure(order.volumeValue, order.volumeUomCode, 'cuft'),

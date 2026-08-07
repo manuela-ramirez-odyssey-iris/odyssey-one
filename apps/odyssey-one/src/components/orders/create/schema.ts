@@ -3,7 +3,9 @@ import type { PickupDeliveryValues, DateTimeTriad } from '../../../api/types/ord
 
 // Validation model (spec §2.4). Two gates:
 //  - createOrderSchema → enables Create Order (full form must pass)
-//  - saveGateSchema    → Save / Save-for-Later (Order Number + Owning Org only; Q16/Q27)
+//  - saveGateSchema    → Save / Save-for-Later (Owning Org only; Q16/Q27,
+//                        revised 2026-08-07 decision D — blank Order Number
+//                        is the normal path, server assigns it)
 // Past/current dates are WARNINGS (getPastDateWarnings), never schema errors
 // (LINX-7632 family). Date format MM/DD/YYYY, time HH:MM 24h.
 
@@ -234,10 +236,12 @@ export const createOrderSchema = z.object({
   specialServices: specialServicesSchema,
 })
 
-// Save-gate (Q16/Q27): Order Number + Owning Organization, applied to
-// values.general by every save path (footer Save, Save-for-Later, navbar).
+// Save-gate (Q16/Q27, revised 2026-08-07 decision D): Owning Organization
+// only. Order Number is intentionally NOT required here — leaving it blank
+// is the normal Save-for-Later path (the server auto-generates a 13-digit
+// zero-padded number on first save; orderService.saveDraft adopts it so the
+// form's later saves target the same row).
 export const saveGateSchema = z.object({
-  orderNumber: z.string().trim().min(1),
   owningOrganization: z.string().trim().min(1),
 }).passthrough()
 

@@ -19,6 +19,23 @@ function newCorrelationId(): string {
   return uuid ?? `cid-${Date.now()}-${Math.random().toString(16).slice(2)}`
 }
 
+// api/index.js's catch-all returns { message, detail } on every non-2xx
+// (message is the real reason for 4xx, 'Internal error' for 500s). Every
+// apiXxx call routes through here so a real server message (e.g. a 409's
+// "Order number already exists: ...") reaches the caller instead of the
+// generic "Request failed (status): path" — that genericness is how a real
+// 409 stayed invisible to the user (orders-fix-round Task 4).
+async function apiErrorFrom(res: Response, path: string, correlationId: string): Promise<ApiError> {
+  let message = `Request failed (${res.status}): ${path}`
+  try {
+    const body = await res.json()
+    if (body && typeof body.message === 'string' && body.message) message = body.message
+  } catch {
+    // Non-JSON or empty body — keep the generic message.
+  }
+  return new ApiError(message, res.status, correlationId)
+}
+
 export async function apiGet<T>(path: string): Promise<T> {
   const correlationId = newCorrelationId()
   const token = getAuthToken()
@@ -30,7 +47,7 @@ export async function apiGet<T>(path: string): Promise<T> {
 
   const res = await fetch(`${getApiBaseUrl()}${path}`, { headers })
   if (!res.ok) {
-    throw new ApiError(`Request failed (${res.status}): ${path}`, res.status, correlationId)
+    throw await apiErrorFrom(res, path, correlationId)
   }
   return (await res.json()) as T
 }
@@ -50,7 +67,7 @@ export async function apiPost<T>(path: string, body: unknown): Promise<T> {
     body: JSON.stringify(body),
   })
   if (!res.ok) {
-    throw new ApiError(`Request failed (${res.status}): ${path}`, res.status, correlationId)
+    throw await apiErrorFrom(res, path, correlationId)
   }
   return (await res.json()) as T
 }
@@ -70,7 +87,7 @@ export async function apiPut<T>(path: string, body: unknown): Promise<T> {
     body: JSON.stringify(body),
   })
   if (!res.ok) {
-    throw new ApiError(`Request failed (${res.status}): ${path}`, res.status, correlationId)
+    throw await apiErrorFrom(res, path, correlationId)
   }
   return (await res.json()) as T
 }
@@ -92,7 +109,7 @@ export async function apiDelete<T>(path: string, body: unknown): Promise<T> {
     body: JSON.stringify(body),
   })
   if (!res.ok) {
-    throw new ApiError(`Request failed (${res.status}): ${path}`, res.status, correlationId)
+    throw await apiErrorFrom(res, path, correlationId)
   }
   return (await res.json()) as T
 }
@@ -112,7 +129,7 @@ export async function apiPatch<T>(path: string, body: unknown): Promise<T> {
     body: JSON.stringify(body),
   })
   if (!res.ok) {
-    throw new ApiError(`Request failed (${res.status}): ${path}`, res.status, correlationId)
+    throw await apiErrorFrom(res, path, correlationId)
   }
   return (await res.json()) as T
 }

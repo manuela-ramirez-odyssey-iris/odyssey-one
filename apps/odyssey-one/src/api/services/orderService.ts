@@ -339,11 +339,23 @@ export interface SaveDraftResult {
 export async function saveDraft(values: OrderFormValues, draftId?: string | null): Promise<SaveDraftResult> {
   const request = mapFormToOrderInterface(values, { draft: true })
   if (getApiMode() === 'live') {
-    // LLD remark: draft orders go through the same manual-order POST with
-    // orderStatusCode DRAFT (the mapper already stamped it). userId: same
-    // identity pattern as createOrder/updateOrder (R2-4/R2-5).
-    await apiPost('/order-service/v3/manual-order', { ...request, userId: currentUser.id })
-    const orderNumber = request.manualOrder.orderNumber ?? ''
+    // A prior save on this form session already minted/adopted a server order
+    // number (draftId) — upsert via PUT, the SAME endpoint + shape
+    // updateOrder/saveEditInPlace already use. The server INSERT has no ON
+    // CONFLICT, so re-POSTing a second time would 409 on orders_number_unique
+    // (that 409 is exactly how this bug shipped invisibly — Task 4).
+    if (draftId) {
+      await apiPut('/order-service/v3/order', { orderNumber: draftId, manualOrder: request.manualOrder, userId: currentUser.id })
+      return { draftId, orderNumber: draftId }
+    }
+    // First save (blank Order Number is the normal path — 2026-08-07 decision
+    // D): POST mints the row, server-side auto-generating a 13-digit
+    // zero-padded number when blank (LINX-9742). Adopt whatever number the
+    // server actually assigned — request.manualOrder.orderNumber is often ''
+    // here, and returning '' as draftId is what left the second save with
+    // nothing to PUT against.
+    const res = await apiPost<CreateOrderResponse>('/order-service/v3/manual-order', { ...request, userId: currentUser.id })
+    const orderNumber = res.data?.orderNumber ?? ''
     return { draftId: orderNumber, orderNumber }
   }
   const id = draftId ?? `draft-${++draftSeq}`
