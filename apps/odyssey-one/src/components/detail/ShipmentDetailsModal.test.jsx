@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { render, screen, cleanup, fireEvent } from '@testing-library/react'
+import { render, screen, cleanup, fireEvent, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import ShipmentDetailsModal from './ShipmentDetailsModal'
 
@@ -27,7 +27,21 @@ const details = {
   },
   routingData: { options: [
     { rank: 1, status: null, pickupDateTime: '06/01/2026 07:00 CST', deliveryDateTime: '06/03/2026 12:00 CST' },
-    { rank: 2, status: 'Accepted', pickupDateTime: '06/02/2026 08:00 CST', deliveryDateTime: '06/04/2026 14:00 CST' },
+    {
+      rank: 2, status: 'Accepted', pickupDateTime: '06/02/2026 08:00 CST', deliveryDateTime: '06/04/2026 14:00 CST',
+      // scac/carrierName only needed so QuoteModal's Save Quote button isn't
+      // disabled (it requires both scac and baseRate) in the save-round-trip test.
+      scac: 'CTNS', carrierName: 'Contract Freighters Inc',
+      // equipment is the QUOTE's equipment (RoutingOptionVM.equipment) — same
+      // value as shipment.equipmentCode/summary.seedEquipment here on purpose,
+      // so the existing combobox-interaction tests don't need new values; a
+      // dedicated test below uses a DIFFERENT value to prove sourcing.
+      equipment: 'LTL',
+      // rateDetails backs Markup (QuoteModal's own field) — deliberately
+      // distinct from costData.summary below so a test can prove Markup never
+      // reads costSummary.margin.
+      rateDetails: { baseRate: 2900, currency: 'USD', markup: 300, additionalCharges: [], apTotal: 3150, arTotal: 3450 },
+    },
   ] },
   userDefinedData: { orders: [
     { orderId: 'L14372086', fields: [{ name: 'TEMP_SENSITIVITY', value: 'REEFER 34-38F' }, { name: 'AFTER_HOURS', value: 'Y' }] },
@@ -134,5 +148,129 @@ describe('ShipmentDetailsModal', () => {
     render(<MemoryRouter><ShipmentDetailsModal shipment={shipment} shipmentDetails={null} error onClose={() => {}} /></MemoryRouter>)
     expect(screen.getByText(/Unable to load shipment details/)).toBeTruthy()
     expect(screen.queryByRole('heading', { name: 'General Information' })).toBeNull()
+  })
+})
+
+// Field editing (2026-08-10, final field list — Base, Markup, Equipment;
+// corrected same day after two misreads: Base briefly lost its pen, and
+// Equipment briefly got an inline ComboBox + this modal's own confirmation
+// instead of the shared QuoteModal). EDITABLE_FIELDS is a config map, not a
+// prop — "present in the map → editable, absent → plain" is the contract
+// under test. Every editable field opens the SAME QuoteModal instance; none
+// of them have a local draft/confirm any more. Gross Weight and Margin stay
+// unconfigured throughout as the negative cases.
+describe('ShipmentDetailsModal — field editing', () => {
+  it('renders a pen button for exactly the three configured fields — Base, Markup, Equipment', () => {
+    render(<MemoryRouter><ShipmentDetailsModal shipment={shipment} shipmentDetails={details} onClose={() => {}} /></MemoryRouter>)
+    expect(screen.getByRole('button', { name: 'Edit Base' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Edit Markup' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Edit Equipment' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Edit Gross Weight' })).toBeNull()
+  })
+
+  it('Margin has no pen — it stays read-only and derived, never editable', () => {
+    render(<MemoryRouter><ShipmentDetailsModal shipment={shipment} shipmentDetails={details} onClose={() => {}} /></MemoryRouter>)
+    expect(screen.queryByRole('button', { name: 'Edit Margin' })).toBeNull()
+  })
+
+  it('Equipment is sourced from the current routing option, not the shipment', () => {
+    // shipment.equipmentCode/summary.seedEquipment are BOTH 'LTL' (fixture);
+    // the accepted option's own equipment is set to a DIFFERENT value here to
+    // prove the field reads the quote, not the shipment.
+    const d = {
+      ...details,
+      routingData: { options: [
+        details.routingData.options[0],
+        { ...details.routingData.options[1], equipment: 'TL' },
+      ] },
+    }
+    render(<MemoryRouter><ShipmentDetailsModal shipment={shipment} shipmentDetails={d} onClose={() => {}} /></MemoryRouter>)
+    const cell = screen.getByRole('button', { name: 'Edit Equipment' }).closest('.shp-details__field')
+    expect(within(cell).getByText('TL')).toBeTruthy()
+    expect(within(cell).queryByText('LTL')).toBeNull() // must NOT leak the shipment-level value
+  })
+
+  it('Equipment falls back to DASH when there is no current routing option', () => {
+    const d = { ...details, routingData: { options: [] } }
+    render(<MemoryRouter><ShipmentDetailsModal shipment={shipment} shipmentDetails={d} onClose={() => {}} /></MemoryRouter>)
+    const cell = screen.getByRole('button', { name: 'Edit Equipment' }).closest('.shp-details__field')
+    expect(within(cell).getByText('--')).toBeTruthy()
+  })
+
+  it('Markup is backed by rateDetails.markup, not costSummary.margin', () => {
+    render(<MemoryRouter><ShipmentDetailsModal shipment={shipment} shipmentDetails={details} onClose={() => {}} /></MemoryRouter>)
+    // fixture: rateDetails.markup = 300 -> "$300.00"; costData.summary.margin is
+    // a totally different fixture value ("$250.00 (7.7%)") — proves no conflation
+    expect(screen.getByText('$300.00')).toBeTruthy()
+    expect(screen.getByText('$250.00 (7.7%)')).toBeTruthy()
+  })
+
+  it('clicking the pen on Base opens the Tender quote modal in edit mode', () => {
+    render(<MemoryRouter><ShipmentDetailsModal shipment={shipment} shipmentDetails={details} onClose={() => {}} /></MemoryRouter>)
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Base' }))
+    expect(screen.getByRole('dialog', { name: 'Edit Quote' })).toBeTruthy()
+  })
+
+  it('clicking the pen on Markup opens the Tender quote modal in edit mode', () => {
+    render(<MemoryRouter><ShipmentDetailsModal shipment={shipment} shipmentDetails={details} onClose={() => {}} /></MemoryRouter>)
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Markup' }))
+    expect(screen.getByRole('dialog', { name: 'Edit Quote' })).toBeTruthy()
+  })
+
+  it('clicking the pen on Equipment opens the Tender quote modal in edit mode — no inline ComboBox any more', () => {
+    render(<MemoryRouter><ShipmentDetailsModal shipment={shipment} shipmentDetails={details} onClose={() => {}} /></MemoryRouter>)
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Equipment' }))
+    expect(screen.getByRole('dialog', { name: 'Edit Quote' })).toBeTruthy()
+    // The pen never becomes a Save icon — QuoteModal owns the save button now
+    expect(screen.getByRole('button', { name: 'Edit Equipment' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Save Equipment' })).toBeNull()
+  })
+
+  it('QuoteModal receives the current (accepted) routing option as carrierData', () => {
+    render(<MemoryRouter><ShipmentDetailsModal shipment={shipment} shipmentDetails={details} onClose={() => {}} /></MemoryRouter>)
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Markup' }))
+    const dialog = screen.getByRole('dialog', { name: 'Edit Quote' })
+    // fixture's accepted option (rank 2) carries rateDetails.baseRate = 2900 —
+    // proof carrierData is that option, not an empty/add-mode form
+    const values = within(dialog).getAllByRole('textbox').map((el) => el.value)
+    expect(values).toContain('2900')
+  })
+
+  it('Escape while the quote modal is open closes ONLY the quote modal — the details modal survives', () => {
+    const onClose = vi.fn()
+    render(<MemoryRouter><ShipmentDetailsModal shipment={shipment} shipmentDetails={details} onClose={onClose} /></MemoryRouter>)
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Markup' }))
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(screen.queryByRole('dialog', { name: 'Edit Quote' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'Edit Markup' })).toBeTruthy()
+    expect(onClose).not.toHaveBeenCalled()
+  })
+
+  // jsdom ceiling (project_jsdom_test_ceilings): FieldSearchResults is
+  // virtualized, so ComboBox never renders role="option" rows here. Selection
+  // is driven by keyboard — focus, ArrowDown ×N, Enter — the same recipe
+  // ComboBox.typeahead.test.jsx and spotboard/SetupCarriers.test.jsx use for a
+  // pick-only (typable={false}) select ComboBox. EQUIPMENT_CODES' key order
+  // (master-data.js) is LTL, LTR, LTH, TL, ... — the fixture's accepted
+  // option seeds LTL (index 0), so 2× ArrowDown lands on LTR (index 1).
+  it('saving the quote modal after changing Equipment updates Base, Markup, AND Equipment together', () => {
+    render(<MemoryRouter><ShipmentDetailsModal shipment={shipment} shipmentDetails={details} onClose={() => {}} /></MemoryRouter>)
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Equipment' }))
+    const dialog = screen.getByRole('dialog', { name: 'Edit Quote' })
+
+    const equipmentCombo = within(dialog).getByText('Equipment').closest('.combo-box')
+    fireEvent.focus(within(equipmentCombo).getByRole('combobox'))
+    fireEvent.keyDown(equipmentCombo, { key: 'ArrowDown' })
+    fireEvent.keyDown(equipmentCombo, { key: 'ArrowDown' })
+    fireEvent.keyDown(equipmentCombo, { key: 'Enter' }) // LTL (seed) -> LTR
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Save Quote' }))
+    expect(screen.queryByRole('dialog', { name: 'Edit Quote' })).toBeNull()
+
+    const equipmentCell = screen.getByRole('button', { name: 'Edit Equipment' }).closest('.shp-details__field')
+    expect(within(equipmentCell).getByText('LTR')).toBeTruthy()
+    // Base/Markup refreshed from the same save (fixture's unedited baseRate/markup)
+    const baseCell = screen.getByRole('button', { name: 'Edit Base' }).closest('.shp-details__field')
+    expect(within(baseCell).getByText('$2,900.00')).toBeTruthy()
   })
 })

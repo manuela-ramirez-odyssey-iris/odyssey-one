@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { render, screen, cleanup, fireEvent } from '@testing-library/react'
-import { QuoteModal, splitDateTime, joinDateTime, tzOffset } from './RoutingGuideTab'
+import { render, screen, cleanup, fireEvent, within } from '@testing-library/react'
+import { QuoteModal, splitDateTime, joinDateTime, tzOffset } from './QuoteModal'
 
 afterEach(cleanup)
 
@@ -139,5 +139,61 @@ describe('QuoteModal', () => {
     expect(saved.scac).toBe('ABFS')
     expect(saved.rateDetails.apTotal).toBe(903.73)
     expect(saved.rateDetails.arTotal).toBe(1258.15)
+  })
+})
+
+// Equipment field (2026-08-10) — the only field QuoteModal was missing, added
+// so all three ShipmentDetailsModal pens (Base, Markup, Equipment) can open
+// this ONE modal instead of any inline control. Options: master-data's real
+// equipment catalog, "CODE - Label" rows while picking (same idiom
+// ShipmentDetailsModal's old inline combobox used) — committed/displayed
+// value stays the bare CODE.
+describe('QuoteModal — Equipment field', () => {
+  it('initializes from carrierData.equipment', () => {
+    render(<QuoteModal mode="edit" carrierData={{ ...quote, equipment: 'TT' }} onSave={() => {}} onClose={() => {}} />)
+    const combo = screen.getByText('Equipment').closest('.combo-box')
+    expect(within(combo).getByRole('combobox').value).toBe('TT - Tank Truck')
+  })
+
+  it('view mode renders Equipment as a TitleSubtitle, not a control', () => {
+    render(<QuoteModal mode="view" carrierData={{ ...quote, equipment: 'TT' }} onSave={() => {}} onClose={() => {}} />)
+    expect(screen.getByText('TT')).toBeTruthy() // bare code, matching every other view-mode field
+    expect(screen.queryByRole('combobox')).toBeNull()
+  })
+
+  it('view mode falls back to DASH with no equipment', () => {
+    render(<QuoteModal mode="view" carrierData={quote} onSave={() => {}} onClose={() => {}} />)
+    const cell = screen.getByText('Equipment').closest('.title-subtitle')
+    expect(within(cell).getByText('--')).toBeTruthy()
+  })
+
+  // jsdom ceiling (project_jsdom_test_ceilings): FieldSearchResults is
+  // virtualized — no role="option" rows. Keyboard selection (focus,
+  // ArrowDown ×N, Enter) is the established recipe (ComboBox.typeahead.test.jsx,
+  // spotboard/SetupCarriers.test.jsx). master-data's EQUIPMENT_LABELS key
+  // order is LTL, LTR, LTH, TL, ... ; seeding 'LTL' (index 0) then 2×
+  // ArrowDown lands on LTR (index 1).
+  it('a picked equipment value rides into the onSave payload — the whole point of the field', () => {
+    const onSave = vi.fn()
+    render(<QuoteModal mode="edit" carrierData={{ ...quote, equipment: 'LTL' }} onSave={onSave} onClose={() => {}} />)
+    const combo = screen.getByText('Equipment').closest('.combo-box')
+    const input = within(combo).getByRole('combobox')
+    fireEvent.focus(input)
+    fireEvent.keyDown(combo, { key: 'ArrowDown' })
+    fireEvent.keyDown(combo, { key: 'ArrowDown' })
+    fireEvent.keyDown(combo, { key: 'Enter' }) // LTL (seed) -> LTR
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save Quote' }))
+    expect(onSave).toHaveBeenCalledTimes(1)
+    expect(onSave.mock.calls[0][0].equipment).toBe('LTR')
+  })
+
+  it('defaults to empty when carrierData carries no equipment (Add Quote)', () => {
+    const onSave = vi.fn()
+    render(<QuoteModal mode="add" onSave={onSave} onClose={() => {}} />)
+    // Add mode's Save Quote is disabled without scac+baseRate; just prove the
+    // field renders unselected rather than crashing on a missing carrierData.
+    const combo = screen.getByText('Equipment').closest('.combo-box')
+    expect(within(combo).getByRole('combobox').value).toBe('')
   })
 })

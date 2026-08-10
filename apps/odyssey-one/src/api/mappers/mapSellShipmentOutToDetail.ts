@@ -21,6 +21,7 @@ import type {
   StopsSummaryVM,
 } from '../types/shipmentDetail'
 import { freightTermLabel, shipDirectionLabel } from '../../data/master-data'
+import { parseDollar } from '../../utils/money'
 
 const DASH = '--'
 
@@ -317,6 +318,52 @@ function mapRoutingOption(o: SellShipmentRoutingOption): RoutingOptionVM {
     orderEquip: orDash(o.orderEquip),
     contactExped: orDash(o.contactExped),
     note: orDash(o.note),
+  }
+}
+
+// Strips $, commas, and trailing units ("Days", "mi", "USD") down to a plain
+// number — parseDollar's regex just removes everything but digits/./-, so it
+// generically undoes fmtDollar/fmtDistance/the "N Days" format alike despite
+// the money-specific name (reused per money.js's own helpers rather than
+// hand-rolling a second parser).
+function numFrom(formatted: string | undefined): number | undefined {
+  return parseDollar(formatted) ?? undefined
+}
+
+// The inverse of mapRoutingOption — VM → DTO, used at the ONE choke point
+// before a tender write (RoutingGuideTab.jsx's persistTender). Without this,
+// `saveTenderOption` serialized the VM's own key names verbatim, and the next
+// load's mapRoutingOption reads DTO names it doesn't recognize
+// (equipmentCode, rateAmount, totalCostAmount, transitDays, distanceMiles,
+// apiSource) — the FIRST tender write on any shipment silently degraded
+// equipment/rate/cost/transit/distance/api to '--' on reload (found + fixed
+// 2026-08-10, alongside adding Equipment to QuoteModal, which would otherwise
+// have shipped visibly broken by this same bug).
+//
+// Every OTHER key is identical on both sides (verified by diffing
+// RoutingOptionVM against SellShipmentRoutingOption field-for-field) and
+// round-trips through the dash: orDash('--') is idempotent, so passthrough
+// fields need no special-casing even when they're the '--' placeholder.
+//
+// `rateCurrency`/`totalCostCurrency` exist on the DTO type but mapRoutingOption
+// never actually reads them (the read path hardcodes "USD" on `cost` and
+// doesn't consult a currency field for `rate` at all) — filled in here from
+// rateDetails.currency for schema completeness, not because today's read path
+// depends on it. `serviceLevel` (the OTHER unread-on-write DTO field) isn't
+// set here: the VM only ever surfaces its value through `sl` (the mapper
+// prefers `o.sl ?? o.serviceLevel`), so writing `sl` alone round-trips fine.
+export function routingOptionVmToDto(vm: RoutingOptionVM): SellShipmentRoutingOption {
+  const { equipment, rate, cost, transit, distance, api, ...rest } = vm
+  return {
+    ...rest,
+    equipmentCode: equipment,
+    rateAmount: numFrom(rate),
+    rateCurrency: vm.rateDetails?.currency,
+    totalCostAmount: numFrom(cost),
+    totalCostCurrency: vm.rateDetails?.currency,
+    transitDays: numFrom(transit),
+    distanceMiles: numFrom(distance),
+    apiSource: api,
   }
 }
 

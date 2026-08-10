@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { mapSellShipmentOutToDetail } from './mapSellShipmentOutToDetail'
+import { mapSellShipmentOutToDetail, routingOptionVmToDto } from './mapSellShipmentOutToDetail'
 import { sellShipmentOutSample } from '../fixtures/sellShipmentOut.sample'
 import type { SellShipmentOut } from '../types/sellShipmentOut'
 
@@ -551,6 +551,67 @@ describe('mapSellShipmentOutToDetail', () => {
       expect(opt.api).toBe('EDI')
       expect(opt.linehaul).toBe('Pending')
       expect(opt.sl).toBe('92%')
+    })
+  })
+
+  // 2026-08-10 — the tender-save choke point (RoutingGuideTab.jsx's
+  // persistTender) used to serialize the VM's own key names verbatim; the
+  // reader above expects DTO names, so equipment/rate/cost/transit/distance/
+  // api silently degraded to '--' on the NEXT load after any Add/Edit Quote,
+  // Accept, Decline, or Cancel. routingOptionVmToDto is the fix — this proves
+  // a save-then-reload round-trips, not just that the forward mapper works.
+  describe('routingOptionVmToDto — persist round-trip', () => {
+    it('carries equipment, rate, cost, transit, distance, and api through a save+reload, not dashes', () => {
+      const dto: SellShipmentOut = {
+        ...sellShipmentOutSample,
+        shippingOptionList: [{
+          rank: 1,
+          equipmentCode: 'TT',
+          rateAmount: 395.33,
+          totalCostAmount: 2162.72,
+          transitDays: 5,
+          distanceMiles: 1337.39,
+          apiSource: 'API',
+          rateDetails: { baseRate: 916.96, currency: 'USD', markup: 165.19, additionalCharges: [], apTotal: 2162.72, arTotal: 2327.91 },
+        }],
+      }
+      const vm = mapSellShipmentOutToDetail(dto).routingData.options[0]
+      // Sanity: the VM really is formatted-string-shaped (this is what a save
+      // would serialize verbatim without the fix), not the DTO's numbers.
+      expect(vm.equipment).toBe('TT')
+      expect(vm.cost).toBe('$2,162.72 USD')
+      expect(vm.transit).toBe('5 Days')
+      expect(vm.distance).toBe('1,337.39 mi')
+
+      // Simulate persistTender's write, then a fresh GET re-reading it.
+      const reloaded = mapSellShipmentOutToDetail({
+        ...sellShipmentOutSample,
+        shippingOptionList: [routingOptionVmToDto(vm)],
+      }).routingData.options[0]
+
+      expect(reloaded.equipment).toBe('TT')
+      expect(reloaded.rate).toBe('$395.33')
+      expect(reloaded.cost).toBe('$2,162.72 USD')
+      expect(reloaded.transit).toBe('5 Days')
+      expect(reloaded.distance).toBe('1,337.39 mi')
+      expect(reloaded.api).toBe('API')
+    })
+
+    it('round-trips string passthrough fields and the DASH placeholder unchanged', () => {
+      const dto: SellShipmentOut = {
+        ...sellShipmentOutSample,
+        shippingOptionList: [{ rank: 1, scac: 'ABFS', sl: '92%' }], // no equipmentCode/rateAmount etc — DASH cases
+      }
+      const vm = mapSellShipmentOutToDetail(dto).routingData.options[0]
+      expect(vm.equipment).toBe('--')
+
+      const reloaded = mapSellShipmentOutToDetail({
+        ...sellShipmentOutSample,
+        shippingOptionList: [routingOptionVmToDto(vm)],
+      }).routingData.options[0]
+      expect(reloaded.scac).toBe('ABFS')
+      expect(reloaded.sl).toBe('92%')
+      expect(reloaded.equipment).toBe('--') // DASH round-trips, doesn't become a literal "--" that then breaks
     })
   })
 })
