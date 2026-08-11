@@ -54,16 +54,22 @@ export function buildCarrierRows(list, carrierOptions) {
       const name = sep === -1 ? opt.label : opt.label.slice(sep + 3)
       const flag = FLAG_BY_INDEX[i]
       const flags = flag ? [flag] : []
-      // No row starts included — the planner opts each carrier in manually
-      // (SPB behavior change: Incl. is date-gated + auto-checked on the
-      // frontend, see SetupCarriers). Routed/Waffled still display as flags,
-      // they just no longer need a special incl:false case.
+      // PRESELECTED BY DEFAULT, except carriers already in the route guide.
+      // Kathleen, 2026-08-07 SpotBoard UX call [27:52]: "by default, you don't
+      // send them the routed carriers that were from the route guide, but you
+      // can include them for a spot bid if you want to." The legacy screen
+      // (Maintain Carrier Overflow) shows exactly this — routed carriers sit at
+      // Status=Excluded with Include? unchecked, every other carrier checked.
+      //
+      // So 'Routed' is not merely a display flag: it is the one thing that
+      // opts a carrier OUT of the default. 'Waffled' does not — a carrier who
+      // gave a load back is still invited unless the planner says otherwise.
       return {
         scac,
         name,
         email: `ops@${scac.toLowerCase()}.example.com`,
         equipment: list.equipment,
-        incl: false,
+        incl: !flags.includes('Routed'),
         plannedPickup: '',
         plannedDelivery: '',
         flags,

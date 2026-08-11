@@ -60,6 +60,8 @@ export default function SetupCarriers({
   quote,
   carrierOptions,
   summaryFields = [],
+  defaultPickup = '',
+  defaultDelivery = '',
   readOnly = false,
   onSaveDraft,
   onSendRFQ,
@@ -83,8 +85,17 @@ export default function SetupCarriers({
   // stops, never clobbering a planner's incl/date edits.
   useEffect(() => {
     if (quote || rows.length > 0) return
+    // Rows arrive PRESELECTED (except routed carriers), so they must also
+    // arrive DATED — the two halves of the same ruling. Without the dates the
+    // preselection is inert: Send RFQ requires a date on every included row,
+    // so a preselected-but-undated table can never be sent.
     const built = NAMED_LISTS.flatMap((list) =>
-      buildCarrierRows(list, carrierOptions).map((r) => ({ ...r, listId: list.id }))
+      buildCarrierRows(list, carrierOptions).map((r) => ({
+        ...r,
+        listId: list.id,
+        plannedPickup: defaultPickup || r.plannedPickup,
+        plannedDelivery: defaultDelivery || r.plannedDelivery,
+      }))
     )
     if (built.length > 0) setRows(built)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -117,8 +128,11 @@ export default function SetupCarriers({
   const allChecked = selectable.length > 0 && includedSelectable.length === selectable.length
   const someChecked = includedSelectable.length > 0 && !allChecked
 
+  // Same asymmetry as the per-row checkbox: including is date-gated, excluding
+  // is not. Deselect-all must be able to clear preselected rows that have no
+  // dates yet, or the header control silently leaves rows behind.
   const toggleAll = (include) => {
-    const ids = new Set(selectable.map((r) => r.scac))
+    const ids = new Set((include ? selectable : visibleRows).map((r) => r.scac))
     setRows((rs) => rs.map((r) => (ids.has(r.scac) ? { ...r, incl: include } : r)))
   }
 
@@ -129,7 +143,11 @@ export default function SetupCarriers({
           <Checkbox
             checked={row.incl}
             onChange={() => toggleIncl(row.scac)}
-            disabled={readOnly || !isSelectable(row)}
+            // The date gate blocks turning a carrier ON without planned dates —
+            // it must never block turning one OFF. Rows now arrive preselected
+            // (Kathleen [27:52]), so a flat `!isSelectable` would render them
+            // checked AND disabled: included, with no way to opt out.
+            disabled={readOnly || (!isSelectable(row) && !row.incl)}
             showLabel={false}
             aria-label={`Include ${row.scac}`}
           />

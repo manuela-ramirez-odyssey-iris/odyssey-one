@@ -45,6 +45,13 @@ function buildHeader(shipmentDetails) {
   }
 }
 
+// Order dates arrive as "MM/DD/YYYY HH:MM TZ" (or DASH); the planner's date
+// fields are date-only. Anything unparseable becomes '' — an empty field the
+// planner fills, never a fabricated date.
+function dateOnly(v) {
+  return typeof v === 'string' && /^\d{2}\/\d{2}\/\d{4}/.test(v) ? v.slice(0, 10) : ''
+}
+
 // stopsData.summary.distance reads "245.00 mi" | "--" — pull the number out
 // for the benchmark's ratePerMile*distanceMi fallback path.
 function parseDistanceMi(distance) {
@@ -236,6 +243,13 @@ export default function SpotBoardTab({ shipmentDetails, shipment }) {
             quote={quote}
             carrierOptions={carrierOptions}
             summaryFields={summaryFields}
+            // Kathleen's workflow (2026-08-07), node 1: the Spot Quote tab
+            // opens with "Dates/transit + eligible carriers auto-filled".
+            // Seeded from the ORDER's scheduled dates — the same values the
+            // legacy overflow screen shows against every carrier. Our pick of
+            // EARLIEST (not latest) is unratified; the planner can edit.
+            defaultPickup={dateOnly(shipmentDetails?.orderDetails?.[0]?.earliestPickup)}
+            defaultDelivery={dateOnly(shipmentDetails?.orderDetails?.[0]?.earliestDelivery)}
             readOnly={quote?.status === 'open' || quote?.status === 'closed' || quote?.status === 'awarded'}
             onSaveDraft={saveDraft}
             onSendRFQ={handleSendRFQ}

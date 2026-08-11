@@ -72,16 +72,30 @@ describe('buildCarrierRows', () => {
     expect(again).toEqual(rows)
   })
 
-  it('every row starts incl:false — no row is pre-selected, regardless of flags', () => {
+  // REVERSAL (2026-08-11, Kathleen 2026-08-07 [27:52]). This previously
+  // asserted the opposite — "no row is pre-selected, regardless of flags".
+  // The ruling is that the table arrives preselected and the ROUTE-GUIDE
+  // carriers are the exception, which is also what the legacy overflow screen
+  // shows (Routed ✓ → Status=Excluded, Include? unchecked).
+  it('rows are PRESELECTED, except carriers already in the route guide', () => {
     expect(rows.length).toBeGreaterThan(0)
-    for (const r of rows) expect(r.incl).toBe(false)
+    const routed = rows.filter((r) => r.flags.includes('Routed'))
+    const rest = rows.filter((r) => !r.flags.includes('Routed'))
+
+    expect(routed.length).toBeGreaterThanOrEqual(1) // the rule needs something to exclude
+    for (const r of routed) expect(r.incl).toBe(false)
+
+    expect(rest.length).toBeGreaterThan(0)
+    for (const r of rest) expect(r.incl).toBe(true)
   })
 
   it('a Waffled row still displays its flag — display text changed, flag identity did not', () => {
     const waffled = rows.filter((r) => r.flags.includes('Waffled'))
     expect(waffled.length).toBeGreaterThanOrEqual(1)
     for (const r of waffled) {
-      expect(r.incl).toBe(false)
+      // Waffled is NOT an exclusion — only Routed is. A carrier who gave a
+      // load back is still invited unless the planner says otherwise.
+      expect(r.incl).toBe(true)
       expect(list.scacs).toContain(r.scac)
     }
     // The identity string driving that check is still the bare 'Waffled' —

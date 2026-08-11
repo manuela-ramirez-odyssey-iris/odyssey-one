@@ -11,62 +11,28 @@
 }
 
 /* ── KPI tiles ──────────────────────────────────────────────────────────
-   The wireframe's placeholder `red`/`review`/`win` classes aren't tokens.
-   Mapped to the same semantic token pairs Badge already uses: alert (Closing
-   < 15 min) reuses --badge-red-bg/--badge-red-text, amber (Awaiting review)
-   reuses --badge-yellow-bg/--badge-yellow-text. SummaryStrip (@odyssey/ui)
-   was checked first and doesn't fit: it's a flat divided strip with no
-   per-cell background/border (no tile look), and its only tone axis
-   (positive/negative, text-color-only) has no amber value — so these are
-   a small local tile, not a SummaryStrip escape hatch. */
+   2026-08-11 (user ruling): the tiles are now @odyssey/ui's WidgetMini — the
+   SAME metric card the Shipments category row uses — so the count-up value,
+   count-up donut and selected state come from the shared component instead of
+   being approximated here. The local `.spotboard-kpi*` rules this file used to
+   carry are DELETED, not left behind: their tone mapping onto Badge's token
+   pairs, and the note about SummaryStrip not fitting, only described the
+   hand-rolled tile that no longer exists.
+
+   Only the layout row survives locally. WidgetMini owns its own surface. */
 .spotboard-dashboard__kpis {
   display: flex;
   gap: var(--spacing-4);
   flex-wrap: wrap;
 }
 
-.spotboard-kpi {
-  flex: 1 1 180px;
+/* Pill-tabs rendering of the same category row (ButtonToggle switches between
+   them, mirroring the Shipments panel). Same gap as the Shipments row. */
+.spotboard-dashboard__pills {
   display: flex;
-  flex-direction: column;
-  gap: var(--spacing-1);
-  padding: var(--spacing-4) var(--spacing-4);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-subtle);
-  background: var(--bg-primary);
-}
-
-.spotboard-kpi--alert {
-  background: var(--badge-red-bg);
-  border-color: transparent;
-}
-.spotboard-kpi--alert .spotboard-kpi__label,
-.spotboard-kpi--alert .spotboard-kpi__value {
-  color: var(--badge-red-text);
-}
-
-.spotboard-kpi--amber {
-  background: var(--badge-yellow-bg);
-  border-color: transparent;
-}
-.spotboard-kpi--amber .spotboard-kpi__label,
-.spotboard-kpi--amber .spotboard-kpi__value {
-  color: var(--badge-yellow-text);
-}
-
-.spotboard-kpi__label {
-  font-size: var(--font-size-xs);
-  line-height: var(--line-height-xs);
-  font-weight: var(--font-weight-medium);
-  color: var(--text-tertiary);
-  text-transform: uppercase;
-}
-
-.spotboard-kpi__value {
-  font-size: var(--font-size-2xl);
-  line-height: var(--line-height-2xl);
-  font-weight: var(--font-weight-semibold);
-  color: var(--text-primary);
+  align-items: center;
+  gap: var(--spacing-3);
+  flex-wrap: wrap;
 }
 
 /* ── Filters ──────────────────────────────────────────────────────────── */

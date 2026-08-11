@@ -328,6 +328,11 @@ export default function BottomBar({
       // it breaks any test asserting the old accessible name.
       return (
         <ErrorState
+          // Fills and centres in `.shipments-bar__content` exactly as TabLoader
+          // does — this error REPLACES that spinner, so it must occupy the same
+          // box rather than hugging the top of the pane. Opt-in modifier: the
+          // grid's ErrorState is in page flow and must NOT take it.
+          className="centered-message--fill"
           icon={<TriangleAlert {...ICON_LG} />}
           message={primaryMessage}
           detail={mandatedCopy && error?.message ? error.message : undefined}

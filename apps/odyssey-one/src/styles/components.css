@@ -5647,6 +5647,24 @@ button.breadcrumb__label:focus-visible {
   color: var(--text-tertiary);
 }
 
+/* Fill-and-centre modifier (2026-08-11, user ruling): the error surface sits
+   in the SAME box as TabLoader's spinner, so it must centre the same way —
+   it was hugging the top of the pane while the spinner it replaces was
+   centred, which reads as two different surfaces.
+
+   Deliberately a MODIFIER, not a change to `.centered-message` itself.
+   `position: absolute` only resolves against a positioned ancestor, and the
+   primitive's two call sites differ: BottomBar's `.shipments-bar__content`
+   IS `position: relative` with a definite height, while ShipmentTable's grid
+   error sits in an ordinary page-flow container — blanket-absolute there
+   would rip it out of flow. This is the S114 TabLoader bug exactly (a
+   height/position rule that held at 2 of 3 call sites and silently collapsed
+   at the third), so the fill behaviour is opt-in per call site. */
+.centered-message--fill {
+  position: absolute;
+  inset: 0;
+}
+
 /* INTERIM (2026-08-10, user ruling): shared ErrorState surface (app-local,
    src/components/common/ErrorState.jsx) — icon + text, subtle red, plain
    centered column. Used by both BottomBar.jsx's detailsError branch and

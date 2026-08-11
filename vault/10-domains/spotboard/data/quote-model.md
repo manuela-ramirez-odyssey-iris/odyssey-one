@@ -2,8 +2,8 @@
 title: SpotBoard — Quote Data Model, States & Notification Catalog
 domain: spotboard
 type: data-model
-tags: [spotboard, overflow, data-model, schema, states, notifications, ocm, mffcofl, legacy]
-date: 2026-08-03
+tags: [spotboard, overflow, data-model, schema, states, notifications, ocm, mffcofl, legacy, quote-viewer]
+date: 2026-08-11
 status: active
 ---
 
@@ -14,6 +14,8 @@ Field-level, state-level and message-level reference for the SpotBoard (Overflow
 **Everything here is sourced to `OdysseyONE_Overflow_Bidding_PRD_v2.md` (v2.0, 07/02/2026)** unless marked otherwise. Cited as `(PRD, Feature N)` / `(PRD, Appendix A.N)` / `(PRD, §N)`.
 
 > **One non-PRD source, added 2026-07-29 (canon v1.4).** §3.4 and part of §5.6 come from **`Jana story — Overflow Portal bid review and submission.md`** — a **draft** Jira-style user story by **Janardhana (Jana), PM for Shipments**, cited as `(Jana story, <section>)`. It is unpublished (*"Unsaved changes"*), carries no Jira key, and is by a PM from a neighbouring domain. **It is also one side of a live disagreement with Kathleen O'Donnell about carrier access** — see [[../spotboard|canon]] §15 and [[../decisions/decision-log|SPB-16]]. **The material used here is the part of that story that is *orthogonal* to the disagreement** and holds whichever access model wins.
+
+> **A second non-PRD source, added 2026-08-11 (canon v1.6).** Parts of §1.1, §1.2 and §3.3 come from **`image (1)`** (a direct screenshot of `Maintain Carrier Overflow (MFFCOFL)` with its carrier grid populated) and **`image (4)`** (the legacy `Quote Viewer` cross-bid screen), both pasted into the **2026-08-07 "Spotboard UX discussion"** call and therefore read together with its transcript. Cited as `(image N)`. **These are the same screens the PRD's Appendix B shows, photographed at higher fidelity and with real data in them** — they *extend* the PRD-sourced content here and correct none of it. Everything drawn from them is tagged *(new 2026-08-11, SHOWN)*. Narrative in [[../spotboard|canon]] §17. **`image (4)` is truncated** (header reads `1 - 16 of 16`, ~3 rows unseen), so nothing is claimed about its paging, sorting or footer.
 
 > **Naming.** The PRD predates the Overflow → SpotBoard rename and says *Overflow* throughout. This file uses **SpotBoard** for the product ([[../decisions/decision-log|SPB-01]]) and keeps *Overflow* only inside verbatim quotes, legacy identifiers (`MFFCOFL`, `COFL_*`, `mf_ocm_overflow_carrier`) and legacy screen names, where it is the literal name of the thing.
 
@@ -56,6 +58,11 @@ The legacy model splits a quote into **one header row plus N carrier-candidate r
 | Flexible delivery flag / flexible days | Same treatment. 23 active configurations each for flexible pickup and flexible delivery (PRD, Appendix A.11 #4). |
 | Status | Draft → OPEN → CLOSED (§3.1). |
 | Cost / tolerance audit fields | Display gated by system profile `COFL_DSPAU` (PRD, Appendix A.8, A.9). |
+| **`External Quote No`** *(new 2026-08-11, SHOWN)* | A pair of quote-header footer fields on `MFFCOFL` — `External Quote No` and `Expires` — **empty in every screenshot we hold**, and rendered as **editable inputs**, not read-outs. The same pair appears on the legacy tender screen's `Quote` tab ([[../spotboard|canon]] §14.6). **Purpose undocumented in the PRD and unmentioned in any transcript** — plausibly the dormant external rate-API path (`OQ-3`), but **that is INFERENCE and nobody has said so.** `image (1)`. |
+| **`Expires`** *(new 2026-08-11, SHOWN)* | See above — paired with `External Quote No`, and distinct from the quote header's own `Quote Expires`. |
+| **Raw legacy keys exposed on the form** *(new 2026-08-11, SHOWN)* | `ocm_id` · `ooc_id` · `rlce_id` · `rlce_mrl_id`, printed in the footer in italic lowercase. Confirms the FK graph in §1.3 against a live record (`ocm_id 762`, `ooc_id 515`, `rlce_id 10736`, `rlce_mrl_id 144112`). `image (1)`. |
+
+> **§1.1 provenance note (2026-08-11).** The four rows tagged *(new 2026-08-11, SHOWN)* above come from a **direct screenshot of `MFFCOFL`**, `image (1)`, pasted into the 2026-08-07 UX call — not from the PRD. Cited as `(image 1)`. See [[../spotboard|canon]] §17.2.
 
 ### 1.2 Carrier candidate / response row — legacy `mf_rate_admin_load_carr_equip` (RLCE)
 
@@ -74,6 +81,15 @@ The legacy model splits a quote into **one header row plus N carrier-candidate r
 | Report-log id | The RFQ email/report instance sent to this carrier (PRD, Appendix A.6). |
 | Currency | Defaults from the carrier master record, falling back to an org-level system-profile default. Multi-currency is out of MVP scope but *"this fallback logic is worth preserving as a pattern"* (PRD, Feature 2 legacy note). |
 | `rlce_embargoed` | Column exists but is **always written `'N'`** because the embargo check is disabled — *"misleading if relied on downstream"* (PRD, Appendix A.5 BR-2). |
+| **`Status Date`** *(new 2026-08-11, SHOWN)* | A **per-row timestamp beside `Status`**, distinct from the response datetime above: on a live quote `Excluded` rows carry a `Status Date` equal to the send time (`25-JUN-2026 11:01 EST`) even though those carriers never responded. So this stamps **the last status transition**, not the carrier's answer — which is what makes it usable for the audit trail David asked for ([[../decisions/decision-log|SPB-28]]). `image (1)`. |
+| **`Transit`** · **`Distance`** *(new 2026-08-11, SHOWN)* | **Per-carrier** columns on the `MFFCOFL` grid (`.74 hr`, `37 mi`). Uniform across all seven rows in the sample, so whether they are genuinely per-carrier values or a shipment value repeated per row is **not determinable from the screenshot**. Irina states they are per carrier: *"in TMS, I do have date. Pick up delivery, transit time, distance"* (Aug 7 call, 30:03). `image (1)`. |
+| **`Gave Back`** *(new 2026-08-11, SHOWN)* | A **checkbox column** on the carrier grid, unchecked on every row in the sample. **The term is defined nowhere** — not in the PRD, not in any transcript, not in this canon. It is *adjacent* to the wireframe's `Waffled / Gave back` eligibility flag (§2.2) and to `OQ-17`'s flag list, but **no artifact equates the two.** Recorded as an open vocabulary gap ([[../spotboard|canon]] §10). `image (1)`. |
+| **`Routed`** *(new 2026-08-11, SHOWN)* | A **checkbox column**, and the eligibility rule made visible: all four `Routed ☑` carriers in the sample are `Excluded` + `Include? ☐` + rendered red — **except `CTNS`, which is `Routed ☑` yet included and responded.** That single row is the proof that the planner's opt-in is real and exercised, confirming Kathleen's *"you can include them for a spot bid if you want to"* (Aug 7 call, 27:52). `image (1)`. |
+| **`MFFLCE Tender Status`** *(new 2026-08-11, SHOWN)* | The **tender** state of each candidate carrier, surfaced **inside** the overflow grid (observed value: `Cancelled`). **This is the Tender→SpotBoard direction of a cross-link we currently model only in the SpotBoard→Tender direction** ([[../decisions/decision-log|SPB-02]]'s `SPOT RATE` flag). Whether OdysseyONE needs the reverse link is unaddressed by every artifact. `image (1)`; [[../spotboard|canon]] §14.1, §17.2. |
+
+> **§1.2 provenance note (2026-08-11).** The six rows tagged *(new 2026-08-11, SHOWN)* come from **`image (1)`**, a direct screenshot of `MFFCOFL` with its carrier grid populated, plus **`image (4)`** (the `Quote Viewer`), both pasted into the 2026-08-07 UX call. They are legacy **field inventory**, not requirements: recorded so that a field we choose not to carry is a visible choice rather than an oversight. [[../spotboard|canon]] §17.2–17.3.
+>
+> **What `image (4)` adds at this grain:** the cross-quote view renders per carrier `Response Time` · `Response User` · `Quoted Cost` · `Awarded` — **`Awarded` is a PER-CARRIER mark** (`-` on the open quote, a red ✗ on every row of the closed ones), not a quote-level flag. And **`Quoted Cost` doubles as a response-outcome cell**: it carries the literal string **`Declined`** where a carrier declined, rather than a null with the state held elsewhere. Both are shape facts our model should decide about explicitly.
 
 ### 1.3 Other tables in the legacy quote graph
 
@@ -175,6 +191,10 @@ Carriers excluded by BR-3/BR-4 render **red** and are **unchecked by default**; 
 | **Carrier bid row status — the wireframe's set** | `Lowest bid`, `Bid`, `Declined`, no response (`—`) | wireframe, Screen 4. **The PRD prose does not enumerate these** — it names the concepts (lowest bid, decline, no response) but never as a status set. Presentational; treat as proposal, and reconcile against the legacy set above. |
 | **Quote lifecycle / board status** | `Open`, `Closing soon`, `In review`, `Awarded`, `Unawarded`, `Invalidated` | wireframe, Screen 6. PRD supports `Awarded` / `Unawarded` / `Invalidated` and the review concept; `Closing soon` is presentational. |
 | **Quote outcome / history** | `Awarded`, `Not awarded`, `Cancelled`, `Manual intervention`, `Invalidated (transportation-relevant change)`, `Superseded by later request` | **PRD, Feature 10 — verbatim.** *"awarded, non-awarded, cancelled, or manual intervention"* plus *"invalidated by transportation-relevant change, or superseded by a later quote request."* The wireframe's badges are a faithful rendering, not an invention. |
+
+> **Confirmed 2026-08-11 against a direct screenshot, with two additions.** `image (1)` shows the carrier-row set live on one 60-minute quote: **`Done`** (responded, with a `Quoted Cost`), **`Declined`**, **`Sent`** (transmitted, no answer yet), **`Excluded`** (failed an eligibility rule). `Accepted` does not appear on this open quote, consistent with §14.1's note that it appears on a closed one. **Two additions to the row above:** (a) each status carries a **`Status Date`** that stamps the *transition*, not the response — `Excluded` rows are dated at send time (§1.2); (b) the cross-quote `Quote Viewer` renders **`Declined` as a value in the `Quoted Cost` column** (§1.2), a **fourth rendering of the decline state** alongside the legacy status, the wireframe's row status and Jana's carrier-facing set. **Nobody has reconciled the four.** `image (1)`, `image (4)`; [[../spotboard|canon]] §17.2–17.3.
+>
+> **Also confirmed at the header level:** `image (1)` shows `Status OPEN` with `Quote Opened 11:01`, `Quote Expires 12:01` and **`Quote Closed` empty** — i.e. the close timestamp is written by the close event, and a quote can be `OPEN` with responses already in. Relevant to [[../decisions/decision-log|SPB-28]]'s award-early requirement, which needs `award()` to operate on exactly this state.
 
 **Open, in the PRD's own words:** *"Should we add another quote status for carrier history so quotes don't stay in review status?"* (PRD, Feature 7 — an unnumbered open question).
 

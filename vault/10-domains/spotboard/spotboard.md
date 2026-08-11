@@ -2,12 +2,23 @@
 title: SpotBoard — Domain Canon
 domain: spotboard
 type: canon
-tags: [spotboard, overflow, loadboard, tendering, carriers, bidding, carrier-portal, quotes]
-date: 2026-08-03
+tags: [spotboard, overflow, loadboard, tendering, carriers, bidding, carrier-portal, quotes, legacy-screens, auction, mffcofl, quote-viewer]
+date: 2026-08-11
 status: active
 ---
 
-# SpotBoard — Domain Canon (v1.5)
+# SpotBoard — Domain Canon (v1.6)
+
+**v1.6 changelog (2026-08-11) — the August 7 UX call, five legacy/current-state screenshots and one future-state wireframe.** Seven artifacts in one intake, and they are **co-equal**: the images are Teams-chat pastes from the same call as the transcript, so neither is read without the other (§17.1). This is the first cycle in which the domain holds **direct photographs of the two screens our built prototype descends from**, rather than the PRD's compressed Appendix B captions.
+
+- **New §17 — the August 7 call and the current-state screens.** The legacy planner screen is named on-screen: **`Maintain Carrier Overflow (MFFCOFL)`**, with its full carrier grid populated (§17.2). The legacy cross-bid screen is named on-screen: **`Quote Viewer`**, standalone, one row per carrier, grouped by `Quote#` (§17.3). The **carrier-facing current state is a two-depth portal** — a `Load Detail` page whose `Enter Quote` button opens the `Quote Entry` modal — not a standalone page (§17.4). Kathleen's post-call **workflow diagram** puts one stored quote in front of **four** consumer surfaces (§17.5).
+- **The carrier cannot revise a submitted bid in V1 — and that is a REGRESSION, recorded as one.** Kathleen rules it four times, Irina concedes twice, and Kathleen's own diagram writes *"Written once"*. But **legacy permits unlimited revision** (Irina, first-hand, volunteered against her own position) and **PRD Feature 3 lists `Update Bid`**. V1 removes a capability that both the legacy system and the requirements document have, on a **token-security constraint** — not a product judgement. `OQ-1` / [[decisions/decision-log|SPB-16]] are **unchanged**: Kathleen downgraded her own in-call *"Thomas said you cannot update it"* to *"Outstanding… with Thomas"* within hours. [[decisions/decision-log|SPB-23]], §17.6.
+- **⚠️ [[decisions/decision-log|SPB-18]] clause (2) is reversed in substance, and the ratification is missing.** Kathleen scopes the **cross-shipment board to phase one twice** (21:12, 53:34), corroborated by her diagram drawing it solid while marking only the carrier portal future. **David never engaged with that statement.** [[decisions/decision-log|SPB-24]] records the reversal and the missing ratification; **SPB-18 and SPB-20 are not rewritten.** Clause (1) — the in-shipment tab is V1 — is **unchanged and reinforced three times** ([[decisions/decision-log|SPB-25]]).
+- **A third internal surface exists and had never been logged:** Kathleen's diagram lists **`Monitoring spot view` (`EXISTS`)** and **`Internal Spot Board` (`NEW`)** as *siblings*, both fed by the same stored quote. The long-running "Kathleen placed it under Monitoring vs our `/spotboard` route" tension is a **false binary** — she sanctions both. [[decisions/decision-log|SPB-26]], §17.7.
+- **David ruled three times, not twice.** Tab defaulting ([[decisions/decision-log|SPB-27]]); all-carriers + current-bids + award-early + bid-history **at the shipment altitude** ([[decisions/decision-log|SPB-28]]); and — previously unlogged — **a closed quote cannot be reopened; you create a new one** ([[decisions/decision-log|SPB-29]]). §17.9.
+- **New §18 — the future-state auction portal, fenced.** The HTML wireframe is a **reverse auction**; today's system is a **sealed-quote RFQ**. It is gated on carrier login — *the same* user-management blocker as [[decisions/decision-log|SPB-09]] / [[decisions/decision-log|SPB-16]], not a separate roadmap item. Five things in it must not leak into V1 ([[decisions/decision-log|SPB-34]]).
+- **Two corrections to claims made inside this cycle's own reader reports**, both caught by checking the new images against §14: the carrier-side **countdown** and the carrier-side **leading-bid amount** are *not* inventions — §14.5 already records `HH:MM Remaining` and a `Best` column on the legacy carrier quote-list row under `SHOW_BEST`. What is genuinely new in the future-state wireframe is **rank** and **% gap**, not disclosure itself. §17.8, §18.3.
+- **Nothing about carrier access was closed.** Thomas has still not spoken in any artifact we hold.
 
 **v1.5 changelog (2026-08-03) — the July 28 full transcript and the July 30 placement call.** Two new artifacts, and the first of them is an **accuracy audit of the earliest layer of this canon**, not merely new material.
 
@@ -67,6 +78,9 @@ status: active
 | `loadboard transcript` | `Carrier Load Board vs Overflow Board meeting.txt` — 2026-07-29 (assumed; undated in-artifact). Kathleen O'Donnell, Saikat Ghosh (Cognizant), David Johns, Doug, "Kumar". Cited as `(loadboard transcript, M:SS)`. | The Loadboard ↔ Overflow/SpotBoard boundary; Loadboard's audience and trigger model; Doug's role |
 | `Jana story` | `Jana story — Overflow Portal bid review and submission.md` — **draft** Jira-style user story by **Janardhana (Jana), PM for Shipments**, relayed by Manuela Ramirez, **2026-07-29**. Status shown as *"Unsaved changes"*; **no Jira key, no assignee, no sprint.** Cited as `(Jana story, <section>)` — e.g. `(Jana story, AC "Status Visibility in Odyssey One")`, `(Jana story, Business Rules)`, `(Jana story, screen summary §4)`. | A carrier portal with username/password authentication and a twelve-screen inventory; **first-class non-participation semantics**; an accessorial-code alignment requirement |
 | `meeting context` | Manuela Ramirez's written framing accompanying the Jana story, **2026-07-29**. Cited as `(meeting context, 2026-07-29)`. **Not a transcript** — a one-sentence report of a meeting we hold no recording of. | The only evidence that Jana **and Irina** opposed Kathleen's email-link model in a live meeting, and that Kathleen holds her position *because* user management does not exist |
+| `Aug 7 call` | **`Spotboard UX discussion.vtt` — 2026-08-07, 57m23s, 925 cues.** Kathleen O'Donnell, Irina Jachimek, Manuela Ramirez, David Johns. Cited as `(Aug 7 call, MM:SS)`. **David was absent 07:56–26:07** — for the entire "where does the board live" argument. Cue counts: **Irina 358 · Manuela 306 · Kathleen 211 · David 51.** | Bid revision ruled out for V1; the cross-shipment board twice scoped to phase one; David's three closing rulings; the SpotBoard-tab tender-state gating; Irina's first-hand account of legacy re-bidding |
+| `Aug 7 images` | **`image (1)`…`image (5).png`** — screenshots pasted into the Teams chat **of that same call**, so they are companions to the transcript and are read **with** it, never separately. Cited as `(image N)`. `image (1)`/`(4)` pasted by Kathleen at 52:18; `image (2)` is Irina's own browser; `image (3)` is Kathleen's paste at 46:37; `image (5)` is Kathleen's post-call workflow diagram. | Direct photographs of `MFFCOFL`, the `Quote Viewer` cross-bid screen, both carrier-facing surfaces, and Kathleen's five-node workflow. §17 |
+| `auction wireframe` | **`Carrier Portal — Spot Quotes (Ideal State, Live Auction).html`** — Kathleen's own HTML wireframe, self-banners *"WIREFRAME — v1 for UX"*, chat-captioned *"future state with auction like bid"*. Cited as `(auction wireframe)`. **FUTURE SCOPE ONLY — see §18.** | The phase-two reverse-auction carrier portal: rank, outbid alerts, repeat bidding, per-card countdown, carrier-side KPIs |
 
 ### Precedence
 
@@ -80,6 +94,9 @@ status: active
 5. **Volume of detail is not authority — stated as a rule because this cycle needed it.** The Jana story is longer and more specific about the carrier portal than every other artifact combined, and it is a *draft* by a PM from a neighbouring domain. Where it conflicts with the PRD's requirement text, the PRD wins on being a *"Development Ready"* spec with a named owner for this domain (§9.13, §9.14). Where it conflicts with **Kathleen's note**, nothing wins — see rule 4.
 
 6. **Added at v1.5 — recency, and the two July transcripts.** The **`July 30 call` is the most recent evidence in the dossier** and **wins on anything it explicitly decides** — above all UI placement, where it settles what the PRD had left to David ([[decisions/decision-log|SPB-18]]). It does **not** override the carrier-access contest, because it does not decide it: Jana (the other party) was absent, so July 30 moves the evidence around the question without closing it (§15, [[decisions/decision-log|SPB-19]]). Separately, **`July 28 full` outranks the `meeting 1` cut** for any meeting-1 claim — but in practice it *corroborates and extends* the cut rather than correcting it, because the cut's timestamps proved accurate (§16).
+
+7. **Added at v1.6 — the transcript and the images are co-equal, and four things are kept apart everywhere.** The `Aug 7 images` are pastes from the `Aug 7 call`; neither outranks the other, and where they disagree the disagreement is recorded rather than arbitrated (§17.2's *"before it's sent out"* caption against a screenshot showing a live quote with populated bids is the worked example). Throughout §17 and §18, **SAID** (spoken in the call), **SHOWN** (visible in an artifact), **DECIDED** (a ruling by someone entitled to make it) and **INFERRED** (ours) are tagged separately. A paraphrase of a ruling is not a ruling: anything load-bearing is quoted verbatim with its timestamp.
+   **Authority, stated because this cycle needed it.** **David Johns is the central PM and owns decisions**; **Kathleen O'Donnell is co-PM and the design authority for this surface**. **Airtime is not authority** — the cue counts above invert the authority order. **Acquiescence is not ratification**, and **consensus in a room the decision-owner has left is not a decision**. Where an entry lacks its owner's ratification, §17 and the decision log **say so** rather than treating room-consensus as settled.
 
 **Source-quality caveat on the PRD.** The PRD carries its own draft notice: *"issued as development-ready. Requirements should be validated by Engineering before implementation begins"*, and closes with *"AI-generated draft — not an official Odyssey position. Validate with David and relevant SMEs before acting."* Appendix A is separately rated *"Confidence: medium-high — reverse-engineered from the form's items, triggers, and PL/SQL program units."* That is the document's own view of itself and it stands.
 
@@ -641,6 +658,37 @@ Recorded, not resolved.
 >
 > **A third kind, new at v1.4: a question that is open because two people who both get to answer it disagree.** That is not a gap in our understanding — we understand both positions precisely — and it is not an ordinary product TBD either, because it already *has* two answers. It is listed first, below.
 
+### Newly opened at v1.6 — grouped by who owns the answer
+
+**Nothing was closed at v1.6.** Stated explicitly so the absence is not read as an oversight. The August 7 artifacts settle *behaviour* in several places, but every item below lacks the ratification that would close it.
+
+**David Johns — central PM, owner of decisions.**
+- **⚠️ Is the cross-shipment SpotBoard in the September 30 V1?** Kathleen scoped it to phase one **twice** (Aug 7 call, 21:12 and 53:34), corroborated by her own diagram drawing it solid; `image (5)`'s only future-marked node is the carrier portal. **David never engaged** — at 53:31 Kathleen addressed him by name (*"So David, we kind of went round and round on this"*) and his only reply was *"What do you mean all quotes?"*, a question about a different clause. **[[decisions/decision-log|SPB-18]] clause (2) is reversed in substance and the ratification is missing** ([[decisions/decision-log|SPB-24]]). Irina's counterweight is a **timeline** argument, not a scope one (15:20, *"we have seven weeks"*). **What closes it: one sentence from David, with Kathleen present**, since the two of them *"went round and round"* on it in a meeting she describes that way herself. **This is the headline open item of this cycle.**
+- **Ratify or reject the standalone-module-with-its-own-database.** Irina's plan against [[decisions/decision-log|SPB-10]]'s *"rebuilt natively within OdysseyONE"*. Kathleen's [51:33] was acquiescence mid-pivot, and her own post-call diagram draws a single store with four readers. Evidence now exists on both sides. §17.10(a), [[decisions/decision-log|SPB-35]].
+- **Placement, still.** He was absent for the entire placement argument and ruled only on defaulting and shipment-level content. [[decisions/decision-log|SPB-11]] / [[decisions/decision-log|SPB-18]]'s sign-off residue is untouched by this call. §17.7.
+
+**Kathleen O'Donnell — co-PM, design authority for this surface.**
+- **The `Load #SP-48213` label in her own future-state wireframe against [[decisions/decision-log|SPB-05]].** §18.3 item 1.
+- **Is disclosing bid RANK and PERCENTAGE GAP to carriers sanctioned?** Note the precision: disclosing the leading-bid *amount* already exists as the configurable legacy `SHOW_BEST` behaviour (§14.5), so **only rank and gap are new**. §18.3 item 3.
+- **The un-cropped exports of `image (4)` and `image (5)`** — both are truncated, and claims about the completeness of either currently carry a caveat. §17.1.
+- **Is the `Monitoring spot view` in scope, and who builds it?** It is labelled `EXISTS` on her diagram and does not exist in our app. §17.7, [[decisions/decision-log|SPB-26]].
+
+**Thomas — the `OQ-1` owner, who has still not spoken in any artifact we hold.**
+- **Token lifetime** — *"he had concerns about how long they leave the token open"* (Kathleen, 41:32).
+- **Can a token permit a READ-ONLY return visit, as distinct from an UPDATE?** Kathleen's own chat asks both in one breath (*"see the carrier board **and** update their quote"*) and **nobody separated them in the call.** These are different security questions with different answers.
+- **Formal `OQ-1` ratification.** Unchanged by this cycle: Kathleen's in-call *"Thomas said you cannot update it"* [49:18] was downgraded by her own written *"Outstanding… with Thomas"* hours later. §17.6, [[decisions/decision-log|SPB-23]].
+
+**Ramesh / product, unowned in the artifacts.**
+- **Can a planner send a second RFQ wave** to carriers not included in the first? Asked by Manuela at 33:02, never answered. §17.10(d).
+- **Can a planner enter a bid on the carrier's behalf** (phone-in quotes)? Kathleen and Irina contradict each other in two consecutive cues (34:48 / 34:54) and it is never resolved. **It interacts directly with the one-time-submit ruling.** §17.10(d).
+- **Does un-declining survive the one-time-token ruling?** PRD Feature 3 permits it explicitly; a strict reading kills it. Nobody discussed it. §17.6.
+
+**Ours — understanding gaps, no external input needed to state them.**
+- **What is `Gave Back`?** A `MFFCOFL` carrier-grid checkbox column (§17.2) defined **nowhere** in this canon, in the PRD, or in any transcript. Adjacent to the wireframe's *"Waffled / Gave back"* eligibility flag but never equated to it by any artifact.
+- **Does the per-carrier `MFFLCE Tender Status` inside the overflow grid have an OdysseyONE counterpart?** It is the Tender→SpotBoard direction of a link we currently model only in the SpotBoard→Tender direction ([[decisions/decision-log|SPB-02]]). §17.2.
+- **What are `External Quote No` and `Expires` on the `MFFCOFL` footer for?** Present on both the overflow screen and the legacy tender `Quote` tab (§14.6), empty in every screenshot we hold.
+- **Which surfaces need the two non-award outcomes** (`Declined` vs `No Bid Submitted`) — **unchanged from v1.4** and now with a third data point: `Quote Viewer` renders the literal string `Declined` **in the cost column** (§17.3), a fourth rendering nobody has reconciled.
+
 ### Nothing was closed at v1.4
 
 **Stated explicitly so the absence is not read as an oversight.** The Jana story closes no open item in this section. It **sharpens** two (`OQ-1`, now contested rather than merely unratified; `OQ-8`, now with a requirement leaning on it — §9.13), **adds** the items below, and leaves the rest untouched. In particular it does **not** close *"Is 'SpotBoard' internal-only?"* — see §5 and the naming note below.
@@ -915,6 +963,8 @@ Two things to notice. The fifth story — *"without navigating a portal"* — is
 ## 14. Legacy screen evidence — Appendix B, recovered visually (new at v1.3)
 
 **Why this section exists.** Appendix B is the PRD's screenshot walkthrough of the legacy system — ten images with captions. The text conversion kept every caption and stripped every image, so v1.2 held sentences like *"the carrier can add the line haul, fuel and additional charges"* with nothing to look at. **The pages have now been read as images.** This is the only visual record we have of what SpotBoard is replacing, and it is the closest thing to design evidence the domain owns, since the wireframe is a proposal and the PRD is prose.
+
+> **Extended at v1.6 — read this section with §17.** Three of the screens below were photographed directly and pasted into the August 7 design call, at far higher fidelity and with their grids populated: **`MFFCOFL`** (§14.1 → §17.2), the **`Quote Viewer`** (§14.7 → §17.3), and the **carrier portal at both depths** (§14.3/§14.4 → §17.4). Where §14 lists a field inventory from the PRD's captions, §17 shows the same screen with data in it. **Nothing in §14 is corrected by §17** — it is confirmed and extended. One §14 detail is load-bearing in the other direction and is easy to miss: **§14.5's carrier-facing `HH:MM Remaining` and `Best` columns mean a countdown and a leading-bid amount are *inherited* on carrier surfaces, not invented** (§17.8).
 
 **Read it as legacy, not as target.** These are Oracle Forms and Oracle APEX screens from the system being retired. They establish *what the capability does today* — field inventory, status vocabulary, button vocabulary, information hierarchy — not what OdysseyONE should look like. Where legacy vocabulary is already ruled out, it is flagged (`Process SCAC` → `Award Carrier`, [[decisions/decision-log|SPB-06]]).
 
@@ -1198,6 +1248,263 @@ The v1 canon was synthesised from `Overflow meeting 1.txt`, a **~9 KB cut** of t
 **A note on the vault's own framing.** This vault files SpotBoard as a domain (`10-domains/spotboard/`), and Manuela herself *"initially imagined it was a separate domain"* (0:12). July 30 says the **UI** is not a separate domain — it is a shipment surface. The knowledge-organisation folder and the UI placement are different questions; the folder can stay, but SpotBoard-the-screen lives under Shipments, beside Tender.
 
 **Carrier access re-touched, not resolved.** July 30 is the most recent evidence and it **reaffirms Kathleen's token model** with a fresh rationale — the XPO/Laurie precedent that onboarding carriers *"took them years"*, against a one-month V1 deadline (2:10–2:52) — while **Irina defers the auth question** (*"do not even think about how we authorize them… that's for later"*, 3:54). The mechanic *"each shipment will be its own e-mail"* (10:01) confirms one RFQ (hence one per-recipient token) per shipment and no merged multi-shipment carrier view in V1. **Jana was absent and Thomas is still silent, so the §15 contest is unmoved on its two principals** — but Irina's own words here and on July 28 undercut the secondhand 07/29 claim that she opposed the token. §8, §15.1, [[decisions/decision-log|SPB-19]].
+
+---
+
+## 17. The August 7 call and the current-state screens (new at v1.6)
+
+**Why this section exists.** §14 describes the legacy screens as the PRD's Appendix B rendered them — small, cropped, captioned by someone summarising. This section describes **the same screens photographed directly and pasted into a live design call**, with their grids populated and their vocabulary readable. It is the first time the domain has seen the row-level data rather than the field list. It also lands the **2026-08-07 transcript analysis**, which was completed in Session 114 and never written to the vault.
+
+**Everything below is tagged.** **SHOWN** = visible in an artifact. **SAID** = spoken in the call, attributed and timestamped. **DECIDED** = a ruling by someone entitled to make it, with the ratification state stated. **INFERRED** = ours, and marked as ours.
+
+### 17.1 What the seven artifacts are, and three attribution corrections
+
+| Artifact | What it is | Correction or addition from the transcript |
+|---|---|---|
+| `image (1)` | **`Maintain Carrier Overflow (MFFCOFL)`** — the per-shipment planner screen, name read from its own title bar | Pasted by **Kathleen** at 52:18: *"Manuela, I copied in the screen that we have today just so that you have more details for the original screen."* |
+| `image (2)` | The carrier portal's **`Load Detail`** page | **Irina's own browser session** (the user chip reads `Jachimek, Irina`). The URL is `…/f?p=**200**:4:…` — Oracle APEX application **`200`**, which the PRD's Appendix B identifies as the **carrier** app. **First-hand visual confirmation of the `200`/`220`/`240` split** ([[decisions/decision-log|SPB-10]], [[data/quote-model|data/quote-model]] §6) |
+| `image (3)` | The carrier's **`Quote Entry`** modal, `Quote# 15940` | **Kathleen's paste, not Irina's**, at 46:37: *"Irina, I just copied in what the carrier sees today. It's not a board. It is an actual entry screen. It says quote entry."* Same quote number the PRD reproduces on p.23 (§14.4) |
+| `image (4)` | **`Quote Viewer`** — the cross-bid screen | **Kathleen names it verbatim** at 53:08: *"Okay, that one, that's the cross bid screen."* The phrase used across this intake is hers |
+| `image (5)` | Kathleen's **workflow diagram** | Produced **after** the call — *"Based on our crazy discussion today, I worked on a workflow"* |
+| `auction wireframe` | The future-state auction portal | Kathleen: *"a wireframe for the carrier portal dashboard, **future state** with auction like bid"*. §18 |
+| `Aug 7 call` | The 57m23s transcript | David absent **07:56–26:07**: *"I'll dial back in in 20 minutes. I gotta step out. Sorry."* [07:56], next cue [26:07] |
+
+> **⚠️ Two artifacts are truncated, and it bites on specific claims.**
+> - **`image (4)` is cut off at the bottom**, mid-way through the fourth quote group. Its own header states `1 - 16 of 16`, so **roughly 3 of 16 rows were never seen** and no footer or pagination control can be ruled in or out. Any claim about the completeness of that screen's row set, its sort behaviour or its paging is unsupported.
+> - **`image (5)` is cut off below `5 · Award load`** — the top arc of at least one further node is visible. **Any claim that the workflow "ends at award" is unsupported.** Ask Kathleen for the un-cropped export before treating the diagram as exhaustive.
+
+### 17.2 `MFFCOFL` — the legacy per-shipment planner screen (SHOWN, `image (1)`)
+
+**The direct ancestor of our in-shipment `SpotBoardTab`.** §14.1 lists its fields from the PRD; this is the same screen with data in it. One row of the carrier grid = **one carrier's participation in one quote on one load**.
+
+**Identifier hierarchy exposed on one screen:** Shipment `ID 09427` → `Load 35349` → Order `No ACME-052626.049` → `Quote# 15943` → carrier rows keyed by `Scac`.
+
+**Region A — `Shipment` (read-only).** `ID` `09427` · `Load` `35349` · `Consol` (empty) · `Status` `REVIEW` · `Ship Date` `07/08/2026` · `Owner` `*ACME_SYS_01` · `Desc` · `Consignor` `ACME PLT 1` · `Consignee` `ACME CLT 1` · `Weight` `140 LB` · `Pkg Count` `1` · `Equip` `TL`. Checkboxes `Instructions` ☐ and `Hazardous` ☐; button **`View Load Details`**.
+
+**Region B — `Order` (read-only).** `No` `ACME-052626.049` (plus a second, empty field) · `Date Type` `SCHEDULED SHIP DATE` under column headers `Earliest` / `Latest` · `Pickup` `07/06/2026 13:00 EST` · `Delivery` (empty) · `Pickup #` (empty).
+
+**Region C — the quote band.** `Equipment` `TL` / `Truckload` · `Owner` `ACME PLT 1` · `Ship From` `United States` · `Ship To` `United States` — then the quote box: `Quote#` `15943` · `Status` `OPEN` · `Duration (minutes)` `60` · `Flexible Pickup?` ☑ (checked, disabled) — then `Quote Opened` `25-Jun-2026 11:01 EST` · `Quote Expires` `25-Jun-2026 12:01 EST` · `Quote Closed` (empty).
+
+**Region D — the carrier grid.** Fourteen columns, verbatim, left to right:
+
+`Include?` · `Scac` · `Name` · `Pickup` · `Delivery` · `Transit` · `Distance` · `MFFLCE Tender Status` · `Gave Back` · `Routed` · `Status` · `Status Date` · `Username` · `Quoted Cost`
+
+Seven populated rows on a 60-minute quote, all sharing `Transit .74 hr` and `Distance 37 mi`:
+
+| Include? | Scac | Name | Delivery | MFFLCE Tender Status | Gave Back | Routed | Status | Status Date | Username | Quoted Cost |
+|---|---|---|---|---|---|---|---|---|---|---|
+| ☑ | `YFSY` | Yellow | `06-Jul 13:00 cst` | `Cancelled` | ☐ | ☐ | `Done` | `25-JUN-2026 11:02 EST` | `donaldduck@disney.c…` | `1,053.43 USD` |
+| ☑ | `CTNS` | Capital Transport… | `07-Jul 09:45 cst` | — | ☐ | ☑ | `Declined` | `25-JUN-2026 11:03 EST` | `donaldduck@disney.c…` | — |
+| ☑ | `RDWY` | Roadway | `06-Jul 13:00 cst` | — | ☐ | ☐ | `Sent` | `25-JUN-2026 11:01 EST` | — | — |
+| ☐ | `BSHP` | Bull Ship | — | — | ☐ | ☑ | `Excluded` | `25-JUN-2026 11:01 EST` | — | — |
+| ☐ | `CCNI` | Cardinal | — | — | ☐ | ☑ | `Excluded` | `25-JUN-2026 11:01 EST` | — | — |
+| ☐ | `CNWY` | Conway | `06-Jul 13:00 cst` | — | ☐ | ☑ | `Excluded` | `25-JUN-2026 11:01 EST` | — | — |
+| ☐ | `SEFL` | Sefl | `06-Jul 13:00 cst` | — | ☐ | ☑ | `Excluded` | `25-JUN-2026 11:01 EST` | — | — |
+
+**Region E — footer.** A single **`CLOSE`** button (the OPEN-state action bar, confirming the enablement matrix in [[data/quote-model|data/quote-model]] §3.2) · `External Quote No` and `Expires` (both empty inputs) · raw keys `ocm_id 762` · `ooc_id 515` · `rlce_id 10736` · `rlce_mrl_id 144112` · buttons **`Carrier Contacts`** and **`Load Instructions`**.
+
+**A clean triangulation win — Kathleen's recollection verified against the artifact.** She said from memory at 27:52: *"by default, **you don't send them the routed carriers** that were from the route guide, but you can include them for a spot bid if you want to."* The grid shows exactly that: `BSHP`, `CCNI`, `CNWY`, `SEFL` all carry `Routed ☑`, `Status Excluded`, `Include? ☐`, and render **red**; the three non-routed carriers are `Include?`-checked with live statuses. **`CTNS` is the informative outlier** — `Routed ☑` yet included and it responded, i.e. the planner's opt-in is real and was exercised. This is the red-carrier convention of §14.1 with the data behind it.
+
+**A conflict between the two co-equal sources, recorded not arbitrated.** Kathleen captions this paste *"that's the screen today with the look of everything that is on the bid screen. **Before it's sent out**"* [52:38] and Manuela accepts it [52:51]. **The screenshot does not show a pre-send state:** `Status OPEN`, `Quote Opened 11:01`, `Quote Expires 12:01`, carriers at `Done`/`Declined`/`Sent`, and `1,053.43 USD` already quoted. **Disambiguation (INFERRED, and low-risk):** legacy uses **one screen** for compose *and* live monitoring, where we split the work across `Setup & Carriers` and `Live Bids`. So *"everything that is on the bid screen"* is a **field checklist spanning both of our sub-tabs**, not an instruction to merge them. Nothing in the call asks for a merge.
+
+**Fields legacy persists that our model and our tab do not carry.** Raised as a checklist, **not as scope**: `Gave Back` (a term defined nowhere in this canon — genuinely new vocabulary), `Routed`, **`MFFLCE Tender Status`** (the tender state of each candidate carrier surfaced *inside* the overflow screen — the Tender↔SpotBoard cross-link, in the opposite direction from `SPOT RATE`, [[decisions/decision-log|SPB-02]]), `External Quote No` + `Expires`, `Username` (who responded), `Status Date`, and per-carrier `Transit` / `Distance` / `Pickup` / `Delivery`. Field-level detail added to [[data/quote-model|data/quote-model]] §1.1–1.2.
+
+### 17.3 `Quote Viewer` — the legacy cross-bid screen (SHOWN, `image (4)`)
+
+**The direct ancestor of our `/spotboard` dashboard**, and the screen Kathleen pointed at when she said *"that's the dashboard we're talking about that you built"* [53:21]. §14.7 describes the same screen from PRD p.27; this adds its chrome, its data and its grain.
+
+**Chrome — the placement evidence.** Odyssey-branded top bar; a **left sidebar containing exactly one item, 🔍 `Quote Viewer`**, active, with the rail empty beneath it for the full page height. **No `Monitoring` menu, no module list, no tab strip, no breadcrumb.** It presents as its own APEX application. *(This is evidence about **legacy**, not about where OdysseyONE should put the surface — see §17.7.)*
+
+**Filter bar:** `Client` (`SYS`) · `Order#` · `Load#` · `Quote#` · `Interval` (`6 days`), with **`Submit`** and **`Clear`**. Then APEX interactive-report furniture: a search box, `Rows` `100`, an **`Actions ▾`** menu, and an active **control break on `Quote#`** — which is *why* the table renders as per-quote bands. Row count `1 - 16 of 16`.
+
+**Twenty columns, verbatim:** `Order#` · `Load#` · `SCAC` · `Shipper` · `Equipment` · `Ship From` · `Ship To` · `Intermediate Stop-offs` · `Hazmat` · `Pickup` · `Deliver` · `Quote Opened` · `Quote Duration` · `Actual Duration/ Time Remaining` · `Response Time` · `Response User` · `Quoted Cost` · `Awarded` · `Quote Detail` · `Load Detail`.
+
+**The grain is the point.** One row = **one carrier's response to one quote**; rows are grouped by `Quote#` with the full header repeated per group (`15946` ×6, `15943` ×3, `15942` ×2, `15941` ×2+, truncated). Every row repeats the shipment- and order-level facts — the grid is fully denormalised so that **carriers can be read side by side**. There is **no per-quote aggregate anywhere**: no "3 of 6 responded", no leading-bid figure, no lifecycle status chip. The comparison is left to the eye.
+
+**Values worth carrying:**
+- `Actual Duration/ Time Remaining` is **one column with two renderings** — a large bold live `01:00` clock on the still-open quote, an elapsed string (`3 minutes`) on closed ones. §14.7 recorded the flip; this shows both renderings at once.
+- `Quoted Cost` carries the literal string **`Declined`** where a carrier declined — the cost cell doubles as a response-outcome cell.
+- `Awarded` is a **per-carrier** mark: `-` on the open quote, a red ✗ on every row of the three closed ones.
+- **Two** per-row drill-ins, `Quote Detail` and `Load Detail`.
+- `Load#` renders `L35349` here and bare `35349` on `MFFCOFL` — the `L` prefix is a display convention of this screen.
+
+**This is Irina's requirement, backed by the artifact.** [11:38] *"this view doesn't show you 4 different bids for the same shipment. The other board which we discussed to put not under the shipments, **the board itself will give you that view**."* The legacy reference design agrees with her: it is per-carrier, grouped. **Our dashboard is one row per quote with `Resp./Invited` and `Leading Bid` aggregates**, pushing the actual comparison behind a drill-in. [[decisions/decision-log|SPB-30]].
+
+### 17.4 The carrier-facing current state — a two-depth portal (SHOWN, `image (2)` + `image (3)`)
+
+**This is one application at two depths, and that is the finding.** `image (2)` is the `Load Detail` page; its **`Enter Quote`** button opens `image (3)`, the `Quote Entry` modal. Today's carrier does not land on a bare form.
+
+**Depth 1 — `Load Detail`** (APEX app `200`). Tabs `Requests For Quote` (active) / `Load Summary`. Left nav, exactly two items: ✎ **`Quote Requests`** · 🕘 **`Quote History`** — the same two-item nav §14.3 records, and the shape Kathleen's note describes as the *deferred* logged-in area ([[decisions/decision-log|SPB-09]]). Breadcrumb `Request For Quote / Load Detail`.
+
+- Card **`Load Details for Quote#`** — the header renders **with no number after it** (verbatim; an unfilled substitution or a blank value). Primary action **`Enter Quote`**. Columns: `SCAC` `ARVY` · `Shipper` `Usalco` · `Ship From` (full address) · `Ship To` (full address) · `Pickup` `08/26/2026` · `Deliver` `08/26/2026` · `Distance` `325 mi` · `Weight` `200 lb` · `Hazmat` `No`.
+- Card **`Items`** — `Item` · `Description` · `Weight` · `Package Count` (`15`) · `Hazmat Code` · `Hazmat Packing Group` (`Not Applicable`) · `Hazmat Class` · `Hazmat Description` (`No hazardous data provided by shipper`) · `Safety Data Sheet`. Footer `row(s) 1 - 1 of 1`.
+- Card **`Instructions`** — `No Instructions.`
+
+**Depth 2 — `Quote Entry` modal**, headed `Quote# 15940`, the only identifier on the screen. Matches §14.4 exactly, now at full resolution:
+
+- **`Base Charge`** — `Linehaul` editable (`100.00`) · `Currency` a real select (`USD`) · `Fuel` plain text (`53.43`) annotated **`[ 1.44 per mile (minimum 10.00) ]`** · `Subtotal` (`153.43`).
+- **`Additional Charges`** — a fixed four-row `Charge`/`Amount` catalogue: `Hazmat` (`100.00`) · `Pickup` · `Tips` · `Tolls`. **A catalogue, not a per-shipment derived list.**
+- **`Flexible Dates`** — red bold **`*Choose pickup and delivery dates:`**, then `Pickup` editable `08-Jul-2026` between greyed `Earliest 06-Jul-2026` / `Latest 10-Jul-2026`, and `Delivery` the same shape, each with a picker icon and the hint `(dd-Mon-yyyy)`.
+- Actions: **`Decline`** · **`Submit`**. Nothing else.
+
+**[[decisions/decision-log|SPB-13]] confirmed against a live screenshot rather than a PDF page** — carriers *choose within a planner-set window*; they do not propose dates. And the mechanic is real, not decorative: `image (4)` shows `CTNS` returning a delivery of `07-Jul-2026 09:45 cst` where every other carrier returned `06-Jul` — **date variation is captured and persisted per carrier.** `image (1)`'s `Flexible Pickup? ☑` is the planner side of the same window. **Our carrier bid page has no date affordance at all** ([[decisions/decision-log|SPB-33]]).
+
+**Identifier exposure — [[decisions/decision-log|SPB-05]] corroborated visually on both surfaces.** Neither carrier screen shows an Order#, a Load# or a shipment ID. The carrier's handle is the `Quote#`. Internal surrogate keys (`P_RLCE_ID,P_COFL_ID:4020394,222592`) appear **in the URL only**. *(Caveat: `image (2)` is viewed by an internal user, so it demonstrates the portal's layout, not the carrier's own authentication path.)*
+
+**Irina is right on the structural point here, and Kathleen's rebuttal is factually incomplete.** [46:56] Irina: *"This is the board. This is the board."* → [46:59] Kathleen: *"That's not a board."* The entry screen **is a modal inside a portal**. Where Irina overreaches is [47:39] *"you see **one or more quotes** to populate the rates"* — `image (2)` is a single quote; the multi-quote list lives behind `Quote Requests`, i.e. behind a login. **She bounds it herself** two minutes later [48:12]: *"No, one e-mail, it's specifically designed from the security perspective. **Until we have login, we do not redirect them to the board.**"* Separately, her *"today, they submit the link and they have to log in"* [50:19] is **true of TMS** and Kathleen's *"we have nowhere for them to log in today"* [50:30] is **true of OdysseyONE** — two altitudes, neither speaker says so. [[decisions/decision-log|SPB-32]].
+
+### 17.5 Kathleen's workflow diagram (SHOWN, `image (5)`)
+
+Titled `Spot board workflow design`. A four-swatch legend: ● blue `Internal / planner` · ● amber `Carrier (external)` · ○ white `System / auto` · ⬭ dashed `Future phase`.
+
+**The chain (single vertical, unlabelled arrows):**
+
+1. **`1 · Shipment → Spot Quote tab`** — *"Dates/transit + eligible carriers auto-filled"* (blue, planner)
+2. **`2 · Spot request email`** — *"Tokenized link, one per carrier"* (white, system)
+3. **`3 · Carrier Quote Entry`** — *"Opens link, enters rate, submits"* (**amber, the only carrier-owned node**)
+4. **`4 · Quote stored`** — **`"Written once, shown in the views below"`** (white, system)
+
+**Node 4 fans out to four sibling consumer views on one horizontal bus:**
+
+| Node | Eyebrow | Subtitle | Fill |
+|---|---|---|---|
+| `Spot Quote tab` | — | *"Responses per shipment"* | blue |
+| `Internal Spot Board` | **`NEW`** | *"All open bids, status"* | blue, heavier border |
+| `Monitoring spot view` | **`EXISTS`** | *"Existing shipment screen"* | blue |
+| `Carrier Spotboard` | — | *"Authenticated portal, later"* | **dashed = Future phase** |
+
+5. **`5 · Award load`** — *"From Spot Board or Spot Quote tab"*. Edges into it come from **`Spot Quote tab`** and **`Internal Spot Board`** only. **No edge** from `Monitoring spot view` or `Carrier Spotboard`.
+
+**Four things the diagram states, in its author's own hand, after the call:**
+
+1. **The quote is written once.** Node 4's subtitle is verbatim *"Written once, shown in the views below"*, on the same diagram whose carrier node reads *"enters rate, **submits**"* (singular). **No edge returns from any consumer view to node 3 or node 4.** §17.6.
+2. **Exactly one node is marked future** — `Carrier Spotboard`, *"Authenticated portal, later"*. **The `NEW` `Internal Spot Board` is drawn solid**, i.e. in-workflow. §17.7, [[decisions/decision-log|SPB-24]].
+3. **`Internal Spot Board` and `Monitoring spot view` are siblings, not nested.** Neither contains the other; both are consumers of the same stored quote. [[decisions/decision-log|SPB-26]].
+4. **Award is reachable from two surfaces**, not from Monitoring. Consistent with [[decisions/decision-log|SPB-28]] locating award at the shipment altitude *and* with the board being an award surface.
+
+**One store, four readers** — the diagram draws a single `Quote stored` node feeding everything. That is soft counter-evidence to the separate-database plan discussed in the call; §17.10, [[decisions/decision-log|SPB-35]].
+
+**Truncation caveat repeats here:** at least one node below `5 · Award load` was not captured.
+
+### 17.6 Bid revision — what was SHOWN, SAID, DECIDED, and what is still owed
+
+**SHOWN — one-time submit, three independent artifacts agree.** `image (3)`: exactly two actions, **`Decline`** and **`Submit`** — no `Update`, `Revise`, `Edit`, `Withdraw` or `Resubmit` control anywhere. `image (5)` node 4: *"Written once"*. The internal grids carry a **single-response shape**: one `Status` + `Status Date` + `Username` + `Quoted Cost` per carrier on `MFFCOFL`, one `Response Time` + `Response User` + `Quoted Cost` per carrier on `Quote Viewer` — **no revision count, no bid-history sub-list, no prior-quote column.** *(INFERRED: whether re-opening the modal after submit re-renders it editable cannot be determined from a still.)*
+
+**SAID — Irina reports, first-hand, that legacy permits unlimited revision.** She is the one who found out, and she volunteers it **against her own already-conceded position**:
+
+> **[38:08] Irina:** *"in this dashboard right now, if I go to the my quote, which is not awarded yet, but still not closed, **I can change my prices**."*
+> **[41:06] Irina:** *"If the bid is already entered, the carrier click again on that link and… he can add it and provide new cost **until the bid is closed**."*
+> **[48:40] Irina:** *"you click submit button… you realize that you make a mistake… You will click on that link second time… **it's open with your data entered**."*
+> **[56:59] Irina:** *"we can non-stop update these prices. **I just find out**, so I'm telling you, everybody, to know about it."*
+
+**DECIDED — Kathleen rules it out for V1, four times; Irina concedes twice.**
+
+> **[41:27] Kathleen:** *"…because he had concerns about how long they leave the token open. So for MVP, until we can have the carrier actually sign in, because **this is a cybersecurity concern** that allowing them to update into the last minute… **until they can log in, I don't think we're going to do that**."*
+> **[42:05] Kathleen:** *"MVP, they just, they get the e-mail, they click on the e-mail, they only get that screen…"*
+> **[49:14] Kathleen:** *"…when we talked to Thomas about it, he said you cannot update it. Like **that token is only available for a certain period of time**."*
+> **[51:56] Kathleen:** *"today, we don't have any way for them to even update their bid because of security reasons."*
+> **[41:54] Irina:** *"If we're not going to let them to update the cost, **it's fine with me**."* · **[49:27] Irina:** *"**I'm okay to not update it day one**, whatever you decide."*
+
+**There is therefore no advocate for revisable bidding in V1.** The behaviour is settled on the design authority's ruling with the objector's concession.
+
+**But record it as a REGRESSION, not as parity.** Today's system allows revision (SAID, first-hand) and **PRD Feature 3 explicitly lists `Update Bid`** with re-bid after decline permitted (*"status would move out of Declined"*). V1 *removes* a capability that both the legacy system and the requirements document have, **on a security constraint rather than a product judgement.** If the token question resolves favourably it comes straight back. [[decisions/decision-log|SPB-23]].
+
+**STILL OWED — Thomas, and [[decisions/decision-log|SPB-16]] / `OQ-1` are UNCHANGED.** Kathleen's two statements are in tension **on the same day**: in-call *"he said you cannot update it"* [49:18], then in her chat with `image (5)`, hours later: *"**Outstanding** is to figure out with Thomas IF the carrier token can permit them to see the carrier board and update their quote, or if it is a one time submit only… only phase 2."* **She downgrades her own in-call claim to outstanding. Thomas's words are in no artifact we hold.** Three sub-questions are his: **token lifetime**; whether a token may permit a **read-only return visit**, which is a different question from update and which nobody separated in the call; and formal `OQ-1` ratification. Irina names the owner at [52:07]: *"I told Thomas this is his fight, not mine. It's him."*
+
+**One consequence nobody addressed.** Un-declining is the same revisability class as re-bidding, and PRD Feature 3 permits it explicitly. A strict one-time-token reading would kill it too — contradicting the PRD twice over. **Flagged, not decided.**
+
+### 17.7 Placement — the tension stated factually
+
+**Three things are true at once, and they are compatible.**
+
+1. **SHOWN, legacy:** the cross-bid screen renders today as a **standalone `Quote Viewer` page with its own one-item nav** (§17.3). `MFFCOFL` is a modal form with no navigation chrome at all. **No pixel evidence places either "under Monitoring"** — and equally none places them among sibling modules, because no siblings render.
+2. **SAID, Irina** [17:24]: *"The board will be on the left… **Like icon on the very left. You click on that icon and you see all those.**"* Our `/spotboard` sidebar route implements this verbatim.
+3. **SAID, Kathleen, three times** [01:18, 06:29, 54:20]: *"under the monitoring"* — and at [01:27] she is **directing Manuela to navigate the existing OdysseyONE prototype** (*"go to the shipment screen, go to monitoring. And then go to spot bid"*), not proposing a new location. The thing she means is a **filtered spot view on the existing Shipments monitoring screen**, which is what Manuela was demoing and proposing to extend [03:03]: *"instead of creating a new one, we can just add the columns that we need here."*
+
+**`image (5)` dissolves the apparent conflict.** Kathleen's own diagram lists **`Monitoring spot view` (`EXISTS`, "Existing shipment screen")** and **`Internal Spot Board` (`NEW`, "All open bids, status")** as **two sibling consumers of the same stored quote**. She sanctions **both**. So the framing *"our route implements Irina's placement while Kathleen placed it under Monitoring"* is **not supported by the combined evidence** — our `/spotboard` route is the `NEW · Internal Spot Board` node, and the **Monitoring spot view is a third, separate, unbuilt surface** that no decision in `SPB-01…22` mentions. [[decisions/decision-log|SPB-26]].
+
+**David endorsed the monitoring-query concept** in his last words before stepping out — [07:33]: *"this query should only show things that are open spot right now. It's for monitoring until it closes… And then from the carrier view, they might have different queries… So their views might look different."*
+
+**What David did NOT do: rule on placement.** He was absent for the entire argument, and on return ruled only on **defaulting** and on **shipment-level content**. **[[decisions/decision-log|SPB-11]]'s formal openness on the launch point is not closed by this call**, and [[decisions/decision-log|SPB-18]]'s *"David's sign-off pending"* residue survives untouched.
+
+**A note on how this landed in the product, kept deliberately narrow.** The user's framing of *why* the board became a separate route is her read of the meeting's politics and is **explicitly not canon**; it is not recorded here in any form. What is recorded is the factual state: a cross-shipment board exists at `/spotboard`, the design authority's diagram sanctions such a board *and* a separate Monitoring spot view, and no one with authority over placement has ruled.
+
+### 17.8 What our built prototype invented — marked as ours, not as inherited
+
+**Stated so that nothing in the app reads as descended from a source that does not contain it.** Files: `apps/odyssey-one/src/routes/SpotBoardDashboard.jsx`, `apps/odyssey-one/src/spotboard/board.js`, `apps/odyssey-one/src/routes/CarrierBid.jsx`.
+
+**Dashboard — in `Quote Viewer`, absent from ours:** the per-carrier row grain and the `SCAC` column · grouping by `Quote#` · `Order#` · `Shipper` (we show `Client`) · addressed `Ship From`/`Ship To` (we collapse to a `Lane` string) · `Intermediate Stop-offs` · `Hazmat` · `Pickup`/`Deliver` · `Quote Opened` · `Quote Duration` · per-carrier `Response Time`, `Response User` and `Quoted Cost` · a **per-carrier** `Awarded` mark · **two** drill-ins where we have one action · dedicated `Order#`/`Load#`/`Quote#` filters · an **`Interval` date filter** (we have none) · `Submit`/`Clear` apply semantics · a row-count and a page-size control · `Declined` rendered in the cost column.
+
+**Dashboard — ours, with no source ancestor:** the **five KPI tiles** (no summary tiles of any kind exist on the legacy screen) · the **quote-lifecycle `Status` badge column**, whose vocabulary `Open` / `Closing soon` / `In review` / `Awarded` / `Unawarded` / `Invalidated` comes from the wireframe and **not from legacy** — legacy has `OPEN` per quote and a *per-carrier* set (`Done`/`Declined`/`Sent`/`Excluded`) · the computed `Leading Bid` · the `Resp. / Invited` counts · the `My org / site` filter · the single contextual row action · the `Demo` badge and the empty states.
+
+**Correctly inherited, not invented:** our `Time` column descends from `Actual Duration/ Time Remaining`, including its flip between a live clock and a post-close value. Minor divergence: legacy prints an *elapsed duration* after close, we print a *close timestamp*.
+
+**Carrier bid page — ours, with no ancestor in any current-state artifact:** the **`Update Bid`** label (`{priorBid ? 'Update Bid' : 'Submit Bid'}`) · the **`Last submitted: … by … · <timestamp>`** provenance line, which implies a bid history the legacy per-carrier row does not model · the **decline-then-rebid** copy (*"You declined this quote. You can still submit a bid while this window is open."*). These three implement the **phase-two** behaviour of §18 today. *(The `Last submitted` line is PRD Feature 3's, so it has a **requirements** ancestor even though it has no legacy-screen one — the distinction matters.)*
+
+> **Correction to a claim made during this cycle's own intake, and it matters twice.** It was asserted that the carrier-side **countdown** and any **leading-bid disclosure** are our inventions because `image (3)` shows neither. **§14.5 already records both on the legacy carrier surface**: the carrier's `Requests For Quote` row carries `Quote Closes`, **`Best`**, `Username` and **`HH:MM Remaining`** columns (PRD p.28, read visually), and the `Best` column is governed by the `SHOW_BEST` per-client profile ([[data/quote-model|data/quote-model]] §5.7). `image (3)` is the **modal**, one depth below the list, which is why neither appears in it. So: **a countdown on a carrier surface is inherited, and disclosing the leading bid *amount* to carriers is an existing, configurable legacy behaviour — not an unprecedented commercial-policy proposal.** What §18 genuinely adds is **rank position** and **percentage gap**. Recorded because the opposite claim would have sent a settled question to Kathleen as if it were new.
+
+**Carrier bid page — in legacy, absent from ours:** the **`Flexible Dates` panel** (the largest functional omission — [[decisions/decision-log|SPB-33]]) · the `Subtotal` line · the fuel-rate annotation `[ 1.44 per mile (minimum 10.00) ]` (we render *"Fuel (precalculated — not editable)"* with no basis shown, and the basis is exactly the TBD our code carries) · the **fixed four-charge catalogue** `Hazmat`/`Pickup`/`Tips`/`Tolls`, where we derive accessorial rows from the shipment's `specialServices` so a carrier can only price what that shipment happens to carry · `Weight`, `Package Count` and the entire `Items` table · a real `Safety Data Sheet` value · a real `Currency` select · and the **two-screen flow** (`Load Detail` → `Enter Quote` → modal), which we merged into one page.
+
+### 17.9 David's three rulings — verbatim (DECIDED)
+
+S114 recorded two. **There are three.**
+
+**Ruling 1 — tab defaulting.** [54:38] *"Well, **that tab should default**. Manuela talked about being able to do that. So if we, if we're in the spot section, then it should default to that tab. But yes."* It lands directly on Kathleen's [54:16] *"from that spot area, **so under the monitoring, that page**"* — so **"the spot section" is the Monitoring spot view**, not our `/spotboard` dashboard. Given §17.7's finding that two surfaces exist, the deep-link seam is obliged from **two** sources, one of which is unbuilt. [[decisions/decision-log|SPB-27]].
+
+**Ruling 2 — four capabilities, at the shipment altitude.** [54:53] *"But the user needs to see **all the carriers invited**, **the current bids**, have the ability to **award a bid early**, and then also go back and see a **history of bids** **when they're looking at a shipment**, right?"* The closing clause is load-bearing: David locates all four at the **shipment** altitude, which is independent confirmation of [[decisions/decision-log|SPB-18]] clause (1). **"History of bids" has a legacy shape and should not be invented** — `MFFCOFL` persists `Status` · `Status Date` · `Username` · `Quoted Cost` · `MFFLCE Tender Status` per carrier, and `Quote Viewer` renders `Response Time` · `Response User` · `Quoted Cost` · `Awarded` per carrier. **History = the per-carrier response record with timestamp and responder identity**, not an event log we author. [[decisions/decision-log|SPB-28]].
+
+**Ruling 3 — a closed quote cannot be reopened. Previously unlogged.** [56:18] *"I remember a long time ago when I looked at ODM quotes, the design was kind of strange and **I want to make sure we don't replicate that**. But **a quote should be specific to the duration that it's open**, right? And **if it closes, then it's closed. You can't reopen it. You can create a new quote**, right?"* Irina deflects on applicability only ([56:41] *"OGM put their quotes to load board, not to overflow board"*) and does not contest the principle; David restates it at [56:55]. **A normative constraint on the re-quote path**, and it bears on the Force Close summary flow Manuela demoed at [36:29] (*"I can have a summary of… and award it, re-send it, or start over"*). [[decisions/decision-log|SPB-29]].
+
+### 17.10 Other findings from the call, load-bearing but outside the above
+
+**(a) The standalone-module-with-its-own-database plan, and where it stands.** Irina, verbatim: *"This data stored in database, **not in linked shipments, it's separate database. A separate model**."* [48:56]; *"we build it is independent. So I can use later another planning system and also connect to the same dashboard."* [42:28]; *"I want to have separate page, separate placeholder."* [20:15]. **Kathleen's response is acquiescence mid-pivot, now timestamped:** [51:33] *"All right, that's fine. Do you want to build that? Okay. Also, what I want to show—"*. **Her own diagram, produced after the call, draws the opposite** — one `Quote stored` node with four readers, not a federated store. This collides with [[decisions/decision-log|SPB-10]]'s *"rebuilt **natively within** OdysseyONE"*, and there is now evidence on both sides. **A diagram is not an architecture ruling and Kathleen is not the architect. This goes to David.** [[decisions/decision-log|SPB-35]].
+
+**(b) A decision taken live that had never been logged: the SpotBoard tab's visibility is conditional on tender state.** Manuela proposed hiding the tab once a tender is accepted [22:04]; **Irina supplied the counter-case and it is correct** — [22:44] *"But tender can decline later and if tender decline after acceptance, you will show that spot board for that shipment"*, [23:05] *"today we do have cases when carrier accept and then call and say he cannot take it."* Manuela accepted [23:33]. Hide-versus-disable was explicitly left to Manuela ([22:16] *"I'm okay either way"*). Consistent with [[decisions/decision-log|SPB-12]]'s reciprocal tender lock. [[decisions/decision-log|SPB-31]].
+
+**(c) Where Irina is demonstrably right — recorded deliberately.** A prior session found one of her claims false, and wholesale-discounting a voice on that basis is its own failure mode. In this call she is correct on: **legacy re-bidding** (§17.6, first-hand, volunteered against her own position — the single most useful factual contribution in the call); **carrier-list provenance** — [29:14] *"this will be list provided based on the **OCM profile**… Which carrier participate for which equipment?"*, matching PRD Feature 1 and `image (1)` exactly; **the tender-decline-after-acceptance case**, which changed a design decision live and correctly (b); **the two-depth portal structure** (§17.4); and **timeline discipline** — [15:20] *"it's August 7th… We have seven weeks"*, the only quantified constraint anyone brings.
+
+**Where she remains wrong, unchanged:** [18:38] *"Manuela, they didn't build anything. Nothing."* — established as false in Session 114 against the code (`panelConfig.js:21`, `ShipmentsRoute.jsx:250`); the images do not rescue it. Note the softer earlier version at [02:14]: *"It's maybe the placeholder, but nothing is built."* And *"This is the board"* proves the **legacy structure** but nothing about what OdysseyONE should build; the two claims slide together in her framing.
+
+**(d) Two questions raised in the call and never answered.**
+- [33:02] **Manuela:** *"Once you send the inquiry, do you want to have the others one… that you didn't send the RFQ open. Or not?"* — **can a planner send a second RFQ wave to carriers not in the first?**
+- [34:48] **Kathleen:** *"But they can't update it, they'll just be able to view it."* / [34:54] **Irina:** *"Or they can update now."* — **can a planner enter a bid on the carrier's behalf** (phone-in quotes)? It interacts directly with the one-time-submit ruling.
+
+---
+
+## 18. FUTURE SCOPE ONLY — the auction-portal wireframe (new at v1.6)
+
+> # ⚠️ NOTHING IN THIS SECTION IS V1.
+>
+> **This section describes `Carrier Portal — Spot Quotes (Ideal State, Live Auction).html`, which is phase two.** It is fenced into its own section, after everything else, for one reason: it is the most likely artifact in the dossier to be opened without its label and built. Its own banner reads **`WIREFRAME — v1 for UX` · `Carrier Portal · Spot Quotes · Ideal state with live auction`** — note that *"v1"* there means **the first version of the wireframe**, not V1 of the product. Kathleen's chat caption is unambiguous: *"a wireframe for the carrier portal dashboard, **future state** with auction like bid."*
+>
+> **The gate is a login, not a date.** [41:44] *"we definitely want to get to that **auction like** view for them, but **until they can log in, I don't think we're going to do that**."* · [51:13] *"They can go sign into the portal if they want… **once we have a portal**. But for now…"* · `image (5)` marks **`Carrier Spotboard — "Authenticated portal, later"`** as the **only** dashed Future-phase node. **This is blocked on the identical user-management dependency as [[decisions/decision-log|SPB-09]] / [[decisions/decision-log|SPB-16]] — not a separate roadmap item. Whatever unblocks the carrier portal unblocks this, and nothing else will.**
+
+### 18.1 What it is
+
+An authenticated, carrier-branded, **cross-load** portal. Top nav `Dashboard` · **`Spot Quotes`** (active) · `My Loads` · `Documents` · `Settings`; user menu `Blue Ridge Carriers Inc.`; breadcrumb `Home / Spot Quotes`. Page sub-copy states the mechanism outright: *"Live bid opportunities matched to your lanes and equipment. **Lower your quote before the window closes to win the load.**"*
+
+- **Four carrier-side stat tiles:** `6 Open opportunities` · `2 You're currently lowest` (green) · `2 You've been outbid` (red) · `2 Closing within 1 hr` (amber).
+- **Toolbar:** search *"Search lane, city, or load ID"*; filter chips `All` / `Not quoted` / `You're lowest` / `Outbid` / `Closing soon`; a **`Show lowest bid $`** toggle that reveals a `Lowest: $…` line on every card.
+- **Six opportunity cards** (not a table), coloured left border by state, under headers `Lane & Load` · `Equipment` · `Pickup / Delivery` · `Time left` · `Auction status` · `Your quote`. Each carries a countdown (`1h 12m left`, red/amber tinted), a rank badge (`Not lowest · Rank 3 of 6`, `You're lowest · Rank 1 of 4`, `Open · 2 bids so far`, `Open · be the first to bid`), a gap line (*"You're ~6% above the lowest bid"*), a bid meter, and an action — **`Lower my quote`** / **`Update quote`** / **`Submit quote`**. Outbid cards carry an alert strip: *"⚠ You were outbid 8 minutes ago. Lower your quote to retake the lead before the window closes."*
+- **Bid drawer:** `All-in rate (USD)` · `Rate type` (`All-in`) · `Available pickup date` · `Equipment offered` · **`Notes to Odyssey (optional)`**, with `Cancel` / `Submit quote`.
+
+### 18.2 It is a different mechanism, not a higher fidelity of the same one
+
+**Today is a sealed-quote RFQ. This is a reverse auction.** That framing matters more than any individual feature, because it is what makes selective borrowing dangerous.
+
+**What it drops from today:** the itemised charge model (`Linehaul`/`Fuel`/`Subtotal`/`Hazmat`/`Pickup`/`Tips`/`Tolls`) collapses to a single **`All-in rate`**; **`Flexible Dates`** with its `Earliest`/`Latest` bounds collapses to one `Available pickup date` with no delivery date and no bounds; **`Decline` disappears entirely**; and **`Quote#` disappears**, replaced by `Load #` as the carrier-visible identifier.
+
+### 18.3 Five things that must not leak into V1
+
+1. **It shows `Load #SP-48213` to the carrier, on every card, in the drawer heading, and in the search placeholder.** Head-on collision with [[decisions/decision-log|SPB-05]] and the PRD's verbatim *"No IDs will be shared for Order/Shipment to protect from carriers 'stealing the load'"*. It may be a quote ID cosmetically labelled *"Load #"*, but it is **labelled `Load #` in the UI**. Both real carrier surfaces (§17.4) correctly show no order or load identifier, so **legacy is on SPB-05's side and this wireframe is the outlier. Do not carry the label forward. Flag to Kathleen.**
+2. **Repeat bidding is its central premise** — `Lower my quote`, `Update quote`, the outbid alerts. Exactly the capability the August 7 call **denied for V1** (§17.6) and Kathleen's chat scoped to *"only phase 2"*. Internally consistent with its own future-state label; the single most likely thing to be copied by someone who opens the file without the label.
+3. **Rank position and percentage gap** (`Rank 3 of 6`, *"~6% above the lowest bid"*). **Note the precision here** — disclosing the leading-bid *amount* to a carrier is **not** new (the legacy `Best` column under `SHOW_BEST`, §14.5, [[data/quote-model|data/quote-model]] §5.7). **Rank and gap are new**, and they are a competitive-disclosure escalation nobody has sanctioned. Take *those* to Kathleen; do not take her the amount as if it were unprecedented.
+4. **A cross-shipment carrier view** — six loads in one list. [[decisions/decision-log|SPB-18]] records this as doubly blocked (user management *and* carrier onboarding) and furthest out, and Irina's *"each shipment will be its own e-mail"* ([[decisions/decision-log|SPB-19]]) is the V1 shape. Directly contradicted for V1.
+5. **The nav items `My Loads`, `Documents`, `Settings`** — an entire carrier-portal surface area nobody has scoped. It is closest to **Jana's twelve-screen portal** (§15.5) — but **do not read this as Kathleen conceding to Jana.** She has always wanted the portal *later* ([[decisions/decision-log|SPB-09]], §15). **This is her phase two, drawn.** The §15 contest is about **V1**, and this artifact says nothing about V1.
+
+### 18.4 What it adds that has no counterpart today, for the record
+
+Authenticated multi-load browsing · a cross-load carrier-side list · rank / win-lose signalling / outbid alerts with elapsed time · per-opportunity countdown with urgency tinting · repeat bidding as the core loop · a competitive-price disclosure toggle · carrier-side filtering and KPIs · `Notes to Odyssey` free text · `Rate type` and `Equipment offered` as carrier-selectable bid dimensions. **No counter-offer from Odyssey to the carrier is modelled** — the loop is carrier-lowers-own-bid only.
 
 ---
 

@@ -23,6 +23,12 @@ const carrierOptions = [
   { value: 'SEFL', label: 'SEFL - Southeastern Freight Lines' },
 ]
 
+// The pane seeds planned dates from the order (SpotBoardTab passes these) —
+// rows arrive preselected AND dated, which is the state Send RFQ needs. Tests
+// that deliberately exercise the undated case simply omit them.
+const DEF_PICKUP = '08/01/2026'
+const DEF_DELIVERY = '08/02/2026'
+
 const list = NAMED_LISTS[0]
 // Both lists are BUILT, but the TL/LTL toggle shows one at a time (S112).
 const allRows = NAMED_LISTS.flatMap((l) => buildCarrierRows(l, carrierOptions))
@@ -87,7 +93,11 @@ describe('SetupCarriers', () => {
     expect(actionButton('Send RFQ').disabled).toBe(true)
   })
 
-  it('rows build with empty dates and start unchecked — no prefill', () => {
+  // REVERSAL (2026-08-11): this asserted "empty dates + unchecked — no
+  // prefill". Rows now arrive PRESELECTED (Kathleen 2026-08-07 [27:52]) and
+  // DATED from the order. With no defaults supplied the dates stay empty —
+  // nothing is fabricated — but the preselection is unconditional.
+  it('with no order dates supplied, dates stay empty — but rows are still preselected', () => {
     render(
       <SetupCarriers
         carrierOptions={carrierOptions}
@@ -98,17 +108,39 @@ describe('SetupCarriers', () => {
       />
     )
     const rows = buildCarrierRows(list, carrierOptions)
-    const wrap = screen.getByTestId(`pickup-${rows[0].scac}`)
+    const unrouted = rows.find((r) => !r.flags.includes('Routed'))
+    const wrap = screen.getByTestId(`pickup-${unrouted.scac}`)
     expect(within(wrap).getByRole('textbox').value).toBe('')
-    const deliveryWrap = screen.getByTestId(`delivery-${rows[0].scac}`)
+    const deliveryWrap = screen.getByTestId(`delivery-${unrouted.scac}`)
     expect(within(deliveryWrap).getByRole('textbox').value).toBe('')
-    expect(inclCheckbox(rows[0].scac).checked).toBe(false)
+    expect(inclCheckbox(unrouted.scac).checked).toBe(true)
+  })
+
+  it('seeds every row with the order dates when they are supplied', () => {
+    render(
+      <SetupCarriers
+        carrierOptions={carrierOptions}
+        defaultPickup={DEF_PICKUP}
+        defaultDelivery={DEF_DELIVERY}
+        readOnly={false}
+        onSaveDraft={() => {}}
+        onSendRFQ={() => {}}
+        onCancel={() => {}}
+      />
+    )
+    const rows = buildCarrierRows(list, carrierOptions)
+    for (const r of rows) {
+      expect(within(screen.getByTestId(`pickup-${r.scac}`)).getByRole('textbox').value).toBe(DEF_PICKUP)
+      expect(within(screen.getByTestId(`delivery-${r.scac}`)).getByRole('textbox').value).toBe(DEF_DELIVERY)
+    }
   })
 
   it('a row date stays editable', () => {
     render(
       <SetupCarriers
         carrierOptions={carrierOptions}
+        defaultPickup={DEF_PICKUP}
+        defaultDelivery={DEF_DELIVERY}
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={() => {}}
@@ -121,7 +153,10 @@ describe('SetupCarriers', () => {
     expect(within(wrap).getByRole('textbox').value).toBe('09/01/2026')
   })
 
-  it('no dates typed leaves Send RFQ disabled', () => {
+  // Still true, and now the reason matters more: rows are preselected, so if
+  // the order carries no dates every included row is undated and Send is
+  // blocked until the planner supplies them.
+  it('no dates anywhere leaves Send RFQ disabled', () => {
     render(
       <SetupCarriers
         carrierOptions={carrierOptions}
@@ -139,6 +174,8 @@ describe('SetupCarriers', () => {
     render(
       <SetupCarriers
         carrierOptions={carrierOptions}
+        defaultPickup={DEF_PICKUP}
+        defaultDelivery={DEF_DELIVERY}
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={onSendRFQ}
@@ -153,15 +190,23 @@ describe('SetupCarriers', () => {
 
     expect(onSendRFQ).toHaveBeenCalledTimes(1)
     const payload = onSendRFQ.mock.calls[0][0]
-    // listId/listName now describe the lists actually BEING SENT, not a
-    // single up-front pick — only the TL row was included here.
-    expect(payload.listId).toBe(list.id)
-    expect(payload.listName).toBe(list.name)
+    // listId/listName describe the lists actually BEING SENT. Under
+    // preselection BOTH lists contribute by default, so the composite is the
+    // correct answer — it is no longer possible to send only one list without
+    // deliberately excluding the other.
+    expect(payload.listId).toBe('tl-se+ltl-comp')
+    expect(payload.listName).toBe('TL Southeast Overflow + LTL Comparable Set')
     expect(payload.durationMin).toBe(list.defaultDurationMin)
     expect(payload.carriers).toHaveLength(allRows.length) // both modes ride along
+    // The row the planner edited carries the typed dates; everything else
+    // rides on the order's dates. Every included row must be dated — that is
+    // what Send RFQ gates on.
+    const edited = payload.carriers.find((c) => c.scac === rows[0].scac)
+    expect(edited.plannedPickup).toBe('08/10/2026')
+    expect(edited.plannedDelivery).toBe('08/11/2026')
     for (const r of payload.carriers.filter((c) => c.incl)) {
-      expect(r.plannedPickup).toBe('08/10/2026')
-      expect(r.plannedDelivery).toBe('08/11/2026')
+      expect(r.plannedPickup).toBeTruthy()
+      expect(r.plannedDelivery).toBeTruthy()
     }
   })
 
@@ -170,6 +215,8 @@ describe('SetupCarriers', () => {
     render(
       <SetupCarriers
         carrierOptions={carrierOptions}
+        defaultPickup={DEF_PICKUP}
+        defaultDelivery={DEF_DELIVERY}
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={onSendRFQ}
@@ -191,6 +238,8 @@ describe('SetupCarriers', () => {
     render(
       <SetupCarriers
         carrierOptions={carrierOptions}
+        defaultPickup={DEF_PICKUP}
+        defaultDelivery={DEF_DELIVERY}
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={() => {}}
@@ -214,6 +263,8 @@ describe('SetupCarriers', () => {
     render(
       <SetupCarriers
         carrierOptions={carrierOptions}
+        defaultPickup={DEF_PICKUP}
+        defaultDelivery={DEF_DELIVERY}
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={() => {}}
@@ -246,6 +297,8 @@ describe('SetupCarriers', () => {
     const { container } = render(
       <SetupCarriers
         carrierOptions={carrierOptions}
+        defaultPickup={DEF_PICKUP}
+        defaultDelivery={DEF_DELIVERY}
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={() => {}}
@@ -274,6 +327,8 @@ describe('SetupCarriers', () => {
     render(
       <SetupCarriers
         carrierOptions={carrierOptions}
+        defaultPickup={DEF_PICKUP}
+        defaultDelivery={DEF_DELIVERY}
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={onSendRFQ}
@@ -286,14 +341,18 @@ describe('SetupCarriers', () => {
     sendRFQ()
 
     const payload = onSendRFQ.mock.calls[0][0]
-    expect(payload.listId).toBe(NAMED_LISTS[1].id)
-    expect(payload.listName).toBe('LTL Comparable Set')
+    // Both lists ride along by default now (preselection), so the composite is
+    // expected — the LTL list is present, which is what this pins.
+    expect(payload.listId).toContain(NAMED_LISTS[1].id)
+    expect(payload.listName).toContain('LTL Comparable Set')
   })
 
   it('keeps inclusions and dates when toggling between modes', () => {
     render(
       <SetupCarriers
         carrierOptions={carrierOptions}
+        defaultPickup={DEF_PICKUP}
+        defaultDelivery={DEF_DELIVERY}
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={() => {}}
@@ -316,6 +375,8 @@ describe('SetupCarriers', () => {
     render(
       <SetupCarriers
         carrierOptions={carrierOptions}
+        defaultPickup={DEF_PICKUP}
+        defaultDelivery={DEF_DELIVERY}
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={() => {}}
@@ -332,6 +393,8 @@ describe('SetupCarriers', () => {
     render(
       <SetupCarriers
         carrierOptions={carrierOptions}
+        defaultPickup={DEF_PICKUP}
+        defaultDelivery={DEF_DELIVERY}
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={() => {}}
@@ -345,6 +408,8 @@ describe('SetupCarriers', () => {
     render(
       <SetupCarriers
         carrierOptions={carrierOptions}
+        defaultPickup={DEF_PICKUP}
+        defaultDelivery={DEF_DELIVERY}
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={() => {}}
@@ -402,6 +467,8 @@ describe('SetupCarriers', () => {
     const { container } = render(
       <SetupCarriers
         carrierOptions={carrierOptions}
+        defaultPickup={DEF_PICKUP}
+        defaultDelivery={DEF_DELIVERY}
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={() => {}}
@@ -423,6 +490,8 @@ describe('SetupCarriers', () => {
     const { container } = render(
       <SetupCarriers
         carrierOptions={carrierOptions}
+        defaultPickup={DEF_PICKUP}
+        defaultDelivery={DEF_DELIVERY}
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={() => {}}
@@ -451,6 +520,8 @@ describe('SetupCarriers', () => {
     const { container } = render(
       <SetupCarriers
         carrierOptions={carrierOptions}
+        defaultPickup={DEF_PICKUP}
+        defaultDelivery={DEF_DELIVERY}
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={() => {}}
@@ -491,6 +562,8 @@ describe('SetupCarriers', () => {
     rerender(
       <SetupCarriers
         carrierOptions={carrierOptions}
+        defaultPickup={DEF_PICKUP}
+        defaultDelivery={DEF_DELIVERY}
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={() => {}}
@@ -507,6 +580,8 @@ describe('SetupCarriers', () => {
     const { rerender } = render(
       <SetupCarriers
         carrierOptions={carrierOptions}
+        defaultPickup={DEF_PICKUP}
+        defaultDelivery={DEF_DELIVERY}
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={() => {}}
@@ -533,10 +608,13 @@ describe('SetupCarriers', () => {
   })
 
   describe('Incl. checkbox driven by dates', () => {
-    it('rows start unchecked', () => {
+    // REVERSAL (2026-08-11): was "rows start unchecked".
+    it('rows start CHECKED, except route-guide carriers', () => {
       render(
         <SetupCarriers
           carrierOptions={carrierOptions}
+          defaultPickup={DEF_PICKUP}
+          defaultDelivery={DEF_DELIVERY}
           readOnly={false}
           onSaveDraft={() => {}}
           onSendRFQ={() => {}}
@@ -544,21 +622,31 @@ describe('SetupCarriers', () => {
         />
       )
       const rows = buildCarrierRows(list, carrierOptions)
-      for (const r of rows) expect(inclCheckbox(r.scac).checked).toBe(false)
+      for (const r of rows) {
+        expect(inclCheckbox(r.scac).checked).toBe(!r.flags.includes('Routed'))
+      }
     })
 
     it('the checkbox is disabled while a date is missing, enabled once both dates are present', () => {
       render(
         <SetupCarriers
           carrierOptions={carrierOptions}
+          defaultPickup={DEF_PICKUP}
+          defaultDelivery={DEF_DELIVERY}
           readOnly={false}
           onSaveDraft={() => {}}
           onSendRFQ={() => {}}
           onCancel={() => {}}
         />
       )
+      // The gate is ASYMMETRIC now: it blocks turning a carrier ON without
+      // dates, never turning one OFF. So it is observable on a routed row
+      // (starts excluded) with its dates cleared — a preselected row is always
+      // enabled, precisely so it can be opted out of.
       const rows = buildCarrierRows(list, carrierOptions)
-      const scac = rows[0].scac
+      const scac = rows.find((r) => r.flags.includes('Routed')).scac
+      fillDate(scac, 'pickup', '')
+      fillDate(scac, 'delivery', '')
       expect(inclCheckbox(scac).disabled).toBe(true)
 
       fillDate(scac, 'pickup', '08/10/2026')
@@ -566,20 +654,33 @@ describe('SetupCarriers', () => {
 
       fillDate(scac, 'delivery', '08/11/2026')
       expect(inclCheckbox(scac).disabled).toBe(false)
+
+      // A preselected row is never disabled — opting out must always work.
+      const preselected = rows.find((r) => !r.flags.includes('Routed')).scac
+      expect(inclCheckbox(preselected).disabled).toBe(false)
     })
 
     it('completing a row by editing its second date auto-checks it', () => {
       render(
         <SetupCarriers
           carrierOptions={carrierOptions}
+          defaultPickup={DEF_PICKUP}
+          defaultDelivery={DEF_DELIVERY}
           readOnly={false}
           onSaveDraft={() => {}}
           onSendRFQ={() => {}}
           onCancel={() => {}}
         />
       )
+      // Exercised on a ROUTED row, the only kind that starts unchecked now —
+      // and the only kind whose dates start empty when defaults are supplied…
+      // except they don't, so clear them first to reach the undated state.
       const rows = buildCarrierRows(list, carrierOptions)
-      const scac = rows[0].scac
+      const scac = rows.find((r) => r.flags.includes('Routed')).scac
+      fillDate(scac, 'pickup', '')
+      fillDate(scac, 'delivery', '')
+      expect(inclCheckbox(scac).checked).toBe(false)
+
       fillDate(scac, 'pickup', '08/10/2026')
       expect(inclCheckbox(scac).checked).toBe(false)
 
@@ -591,6 +692,8 @@ describe('SetupCarriers', () => {
       render(
         <SetupCarriers
           carrierOptions={carrierOptions}
+          defaultPickup={DEF_PICKUP}
+          defaultDelivery={DEF_DELIVERY}
           readOnly={false}
           onSaveDraft={() => {}}
           onSendRFQ={() => {}}
@@ -612,18 +715,26 @@ describe('SetupCarriers', () => {
       render(
         <SetupCarriers
           carrierOptions={carrierOptions}
+          defaultPickup={DEF_PICKUP}
+          defaultDelivery={DEF_DELIVERY}
           readOnly={false}
           onSaveDraft={() => {}}
           onSendRFQ={() => {}}
           onCancel={() => {}}
         />
       )
-      const rows = buildCarrierRows(list, carrierOptions)
-      const scac = rows[0].scac
-      expect(actionButton('Send RFQ').disabled).toBe(true)
-      fillDate(scac, 'pickup', '08/10/2026')
-      fillDate(scac, 'delivery', '08/11/2026')
+      // REVERSAL (2026-08-11): rows arrive preselected AND dated, so Send is
+      // live immediately — that is the point of the change. What still gates
+      // it is having at least one included row: deselect everything and it
+      // goes back to disabled.
       expect(actionButton('Send RFQ').disabled).toBe(false)
+
+      for (const mode of ['TL', 'LTL']) {
+        showMode(mode)
+        fireEvent.click(selectAllCheckbox()) // check-all → …
+        fireEvent.click(selectAllCheckbox()) // … → clear-all for this mode
+      }
+      expect(actionButton('Send RFQ').disabled).toBe(true)
     })
   })
 
@@ -638,6 +749,8 @@ describe('SetupCarriers', () => {
           onCancel={() => {}}
         />
       )
+      // No order dates supplied → nothing is date-complete → select-all has
+      // nothing it is allowed to include.
       expect(selectAllCheckbox().disabled).toBe(true)
       expect(selectAllCheckbox().checked).toBe(false)
     })
@@ -646,6 +759,8 @@ describe('SetupCarriers', () => {
       render(
         <SetupCarriers
           carrierOptions={carrierOptions}
+          defaultPickup={DEF_PICKUP}
+          defaultDelivery={DEF_DELIVERY}
           readOnly={false}
           onSaveDraft={() => {}}
           onSendRFQ={() => {}}
@@ -657,6 +772,10 @@ describe('SetupCarriers', () => {
       const incomplete = rows[1].scac
       fillDate(complete, 'pickup', '08/10/2026')
       fillDate(complete, 'delivery', '08/11/2026')
+      // Every row is now seeded with the order's dates, so the "incomplete"
+      // row has to be made incomplete deliberately.
+      fillDate(incomplete, 'pickup', '')
+      fillDate(incomplete, 'delivery', '')
 
       // Row 0 auto-checked itself already; uncheck it so the select-all click
       // is what re-includes it, isolating the behavior under test.
@@ -675,6 +794,8 @@ describe('SetupCarriers', () => {
       render(
         <SetupCarriers
           carrierOptions={carrierOptions}
+          defaultPickup={DEF_PICKUP}
+          defaultDelivery={DEF_DELIVERY}
           readOnly={false}
           onSaveDraft={() => {}}
           onSendRFQ={() => {}}
@@ -699,6 +820,8 @@ describe('SetupCarriers', () => {
       render(
         <SetupCarriers
           carrierOptions={carrierOptions}
+          defaultPickup={DEF_PICKUP}
+          defaultDelivery={DEF_DELIVERY}
           readOnly={false}
           onSaveDraft={() => {}}
           onSendRFQ={() => {}}
@@ -726,6 +849,8 @@ describe('SetupCarriers', () => {
     render(
       <SetupCarriers
         carrierOptions={carrierOptions}
+        defaultPickup={DEF_PICKUP}
+        defaultDelivery={DEF_DELIVERY}
         readOnly
         onSaveDraft={() => {}}
         onSendRFQ={() => {}}
@@ -743,6 +868,8 @@ describe('SetupCarriers', () => {
       render(
         <SetupCarriers
           carrierOptions={carrierOptions}
+          defaultPickup={DEF_PICKUP}
+          defaultDelivery={DEF_DELIVERY}
           readOnly={false}
           onSaveDraft={() => {}}
           onSendRFQ={onSendRFQ}
@@ -783,15 +910,26 @@ describe('SetupCarriers', () => {
       fireEvent.click(actionButton('Send RFQ'))
       const dialog = within(screen.getByRole('dialog', { name: 'Send RFQ' }))
 
-      // exactly the INCLUDED carrier, named
+      // The included carriers, named. Under preselection that is every
+      // carrier across BOTH lists except the route-guide ones — which is
+      // exactly what the confirmation exists to show before sending.
       expect(dialog.getByText(`${rows[0].scac} · ${rows[0].name}`)).toBeTruthy()
-      expect(dialog.getByText(/will be sent to 1 carrier/)).toBeTruthy()
-      // a carrier that was never date-completed must not be listed
-      expect(dialog.queryByText(new RegExp(rows[1].scac))).toBeFalsy()
+
+      // The count is split across elements, so match on the dialog's own text.
+      const includedCount = allRows.filter((r) => !r.flags.includes('Routed')).length
+      expect(includedCount).toBeGreaterThan(1) // guards against a silent revert
+      const dialogText = screen.getByRole('dialog', { name: 'Send RFQ' }).textContent
+      expect(dialogText).toMatch(new RegExp(`will be sent to\\s*${includedCount}\\s*carrier`))
+
+      // The ROUTED carrier is excluded by default and must not be listed.
+      const routed = allRows.find((r) => r.flags.includes('Routed'))
+      expect(dialog.queryByText(new RegExp(routed.scac))).toBeFalsy()
 
       expect(dialog.getByText(`${NAMED_LISTS[0].defaultDurationMin} min`)).toBeTruthy()
       expect(dialog.getByText('Yes')).toBeTruthy() // Flexible Pickup
-      expect(dialog.getByText(NAMED_LISTS[0].name)).toBeTruthy()
+      // Both lists contribute now, so the summary names the composite.
+      expect(dialogText).toContain(NAMED_LISTS[0].name)
+      expect(dialogText).toContain(NAMED_LISTS[1].name)
     })
   })
 
@@ -799,6 +937,8 @@ describe('SetupCarriers', () => {
     const { container } = render(
       <SetupCarriers
         carrierOptions={carrierOptions}
+        defaultPickup={DEF_PICKUP}
+        defaultDelivery={DEF_DELIVERY}
         summaryFields={[
           { label: 'Origin', value: 'Atlanta, GA' },
           { label: 'Destination', value: 'Charlotte, NC' },
@@ -820,6 +960,8 @@ describe('SetupCarriers', () => {
     const renderIt = (onSendRFQ = () => {}) => render(
       <SetupCarriers
         carrierOptions={carrierOptions}
+        defaultPickup={DEF_PICKUP}
+        defaultDelivery={DEF_DELIVERY}
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={onSendRFQ}
