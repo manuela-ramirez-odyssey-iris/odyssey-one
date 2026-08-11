@@ -139,7 +139,19 @@ describe('mapSellShipmentOutToDetail', () => {
   })
 
   it('stops degrade gracefully when shipmentStopList absent', () => {
-    const dto: SellShipmentOut = { ...sellShipmentOutSample, shipmentStopList: undefined, distanceMiles: undefined }
+    // LINX-12067 (2026-08-10): distance now sources the current tender option
+    // (see currentTenderOption), not the header's distanceMiles — clearing
+    // only the header used to be enough to pin distance to '--', but
+    // sellShipmentOutSample's shippingOptionList still carries an Accepted
+    // option, so shippingOptionList must be cleared too to keep testing "no
+    // distance data at all" rather than accidentally asserting the OLD
+    // (wrong) source.
+    const dto: SellShipmentOut = {
+      ...sellShipmentOutSample,
+      shipmentStopList: undefined,
+      distanceMiles: undefined,
+      shippingOptionList: undefined,
+    }
     const result = mapSellShipmentOutToDetail(dto)
     expect(result.stopsData.stops).toHaveLength(0)
     expect(result.stopsData.summary.distance).toBe('--')
@@ -263,7 +275,7 @@ describe('mapSellShipmentOutToDetail', () => {
     it('builds summary from shipment header fields', () => {
       const dto: SellShipmentOut = {
         ...sellShipmentOutSample,
-        distanceMiles: 367.52,
+        distanceMiles: 367.52, // header value — LINX-12067 says this must NOT win; see below
         totalVolumeValue: 600,
         totalVolumeUomCode: 'cuft',
         acceptedCarrierLabel: 'ABFS - TL',
@@ -275,12 +287,20 @@ describe('mapSellShipmentOutToDetail', () => {
         ],
       }
       const summary = mapSellShipmentOutToDetail(dto).stopsData.summary
-      expect(summary.distance).toBe('367.52 mi')
+      // LINX-12067 (2026-08-10): distance now comes from the Accepted tender
+      // option (sellShipmentOutSample's shippingOptionList[0], distanceMiles
+      // 1337.39), not the header override above — the header field is the
+      // exact one the AC says must be ignored. Old assertion ('367.52 mi')
+      // encoded the pre-fix (wrong) source.
+      expect(summary.distance).toBe('1,337.39 mi')
       expect(summary.grossWeight).toBe('27,257 LB')
       expect(summary.volume).toBe('600 cuft')
       expect(summary.acceptedCarrier).toBe('ABFS - TL')
       expect(summary.seedEquipment).toBe('VAN')
-      expect(summary.utilization).toBe('74%')
+      // LINX-12067 (2026-08-10): Utilization is forced to '--' until the
+      // (nonexistent) Utilization story ships — old assertion ('74%') encoded
+      // the pre-fix behavior of trusting the generator's random value.
+      expect(summary.utilization).toBe('--')
     })
 
     it('degrades summary to "--" fields when header data absent', () => {
@@ -292,6 +312,11 @@ describe('mapSellShipmentOutToDetail', () => {
         acceptedCarrierLabel: undefined,
         seedEquipment: undefined,
         utilizationPercent: undefined,
+        // LINX-12067 (2026-08-10): distance now sources shippingOptionList's
+        // current tender option, not this header field — sellShipmentOutSample
+        // still carries an Accepted option, so it must be cleared too or this
+        // "everything absent" case would stop being all-absent.
+        shippingOptionList: undefined,
       }
       const summary = mapSellShipmentOutToDetail(dto).stopsData.summary
       expect(summary.distance).toBe('--')
@@ -405,9 +430,12 @@ describe('mapSellShipmentOutToDetail', () => {
       expect(order.apBase).toBe('$1,384.16')
       expect(order.apFuel).toBe('$553.66')
       expect(order.apSoc).toBe('$293.36')
-      // conditional accessorials degrade to '--' when zero/absent (consistent with hzc/soc)
-      expect(order.apDiscount).toBe('--')
-      expect(order.apHzc).toBe('--')
+      // LINX-12110 (2026-08-10): apDiscountAmount/apHzcAmount are explicit 0
+      // in this fixture, not absent — a real $0.00 charge, so it must render
+      // "$0.00", not '--'. Old assertions ('--') encoded the pre-fix truthy
+      // check that treated 0 and absent identically.
+      expect(order.apDiscount).toBe('$0.00')
+      expect(order.apHzc).toBe('$0.00')
     })
 
     it('degrades missing cost fields to "--"', () => {
@@ -612,6 +640,113 @@ describe('mapSellShipmentOutToDetail', () => {
       expect(reloaded.scac).toBe('ABFS')
       expect(reloaded.sl).toBe('92%')
       expect(reloaded.equipment).toBe('--') // DASH round-trips, doesn't become a literal "--" that then breaks
+    })
+  })
+
+  // Jira AC audit, 2026-08-10, against LINX-12067/12070/12106/12110.
+  describe('AC compliance fixes (2026-08-10 audit)', () => {
+    it('LINX-12067: utilization always renders "--" even when the DTO supplies a number (no Utilization story yet)', () => {
+      const dto: SellShipmentOut = { ...sellShipmentOutSample, utilizationPercent: 80 }
+      expect(mapSellShipmentOutToDetail(dto).stopsData.summary.utilization).toBe('--')
+    })
+
+    describe('LINX-12067: Stops summary distance sources the current tender option, not the header', () => {
+      it('uses the Accepted option distance, not the header distanceMiles, when they differ', () => {
+        const dto: SellShipmentOut = {
+          ...sellShipmentOutSample,
+          distanceMiles: 999.99, // header — must NOT win
+          shippingOptionList: [
+            { rank: 1, status: 'Accepted', distanceMiles: 1234.56 },
+            { rank: 2, status: 'Sent', distanceMiles: 555.55 },
+          ],
+        }
+        expect(mapSellShipmentOutToDetail(dto).stopsData.summary.distance).toBe('1,234.56 mi')
+      })
+
+      it('falls back to the Sent option when no option is Accepted', () => {
+        const dto: SellShipmentOut = {
+          ...sellShipmentOutSample,
+          distanceMiles: 999.99,
+          shippingOptionList: [
+            { rank: 1, status: 'Declined', distanceMiles: 111.11 },
+            { rank: 2, status: 'Sent', distanceMiles: 555.55 },
+          ],
+        }
+        expect(mapSellShipmentOutToDetail(dto).stopsData.summary.distance).toBe('555.55 mi')
+      })
+
+      it('degrades to "--" when neither an Accepted nor a Sent option exists', () => {
+        const dto: SellShipmentOut = {
+          ...sellShipmentOutSample,
+          distanceMiles: 999.99,
+          shippingOptionList: [{ rank: 1, status: 'Declined', distanceMiles: 111.11 }],
+        }
+        expect(mapSellShipmentOutToDetail(dto).stopsData.summary.distance).toBe('--')
+      })
+    })
+
+    describe('LINX-12110: explicit $0.00 discount/hzc/soc renders as a real value, not "--"', () => {
+      it('renders an explicit 0 as "$0.00" for all six ap/ar discount|hzc|soc fields', () => {
+        const dto: SellShipmentOut = {
+          ...sellShipmentOutSample,
+          orderList: [{
+            orderId: 'ORD-1001',
+            cost: {
+              apDiscountAmount: 0,
+              apHzcAmount: 0,
+              apSocAmount: 0,
+              arDiscountAmount: 0,
+              arHzcAmount: 0,
+              arSocAmount: 0,
+            },
+          }],
+        }
+        const order = mapSellShipmentOutToDetail(dto).costData.planned.orders[0]
+        expect(order.apDiscount).toBe('$0.00')
+        expect(order.apHzc).toBe('$0.00')
+        expect(order.apSoc).toBe('$0.00')
+        expect(order.arDiscount).toBe('$0.00')
+        expect(order.arHzc).toBe('$0.00')
+        expect(order.arSoc).toBe('$0.00')
+      })
+
+      it('renders a genuinely absent charge as "--" for all six fields (no cost object at all)', () => {
+        const dto: SellShipmentOut = { ...sellShipmentOutSample, orderList: [{ orderId: 'ORD-X' }] }
+        const order = mapSellShipmentOutToDetail(dto).costData.planned.orders[0]
+        expect(order.apDiscount).toBe('--')
+        expect(order.apHzc).toBe('--')
+        expect(order.apSoc).toBe('--')
+        expect(order.arDiscount).toBe('--')
+        expect(order.arHzc).toBe('--')
+        expect(order.arSoc).toBe('--')
+      })
+    })
+
+    describe('LINX-12070: Instructions tab follows the repo-wide null convention', () => {
+      it('renders a null instruction text as "--"', () => {
+        const dto: SellShipmentOut = {
+          ...sellShipmentOutSample,
+          orderList: [{
+            orderId: 'ORD-1001',
+            instructionList: [{ sequenceNumber: 1, text: null as unknown as string }],
+          }],
+        }
+        const orders = mapSellShipmentOutToDetail(dto).instructionsData.orders
+        expect(orders[0].instructions[0].text).toBe('--')
+      })
+
+      it('surfaces orderNumber (Client Transportation Order Number) over orderId when they differ', () => {
+        const dto: SellShipmentOut = {
+          ...sellShipmentOutSample,
+          orderList: [{
+            orderId: 'ORD-1001',
+            orderNumber: 'SO-660001',
+            instructionList: [{ sequenceNumber: 1, text: 'Deliver to dock 26B only.' }],
+          }],
+        }
+        const orders = mapSellShipmentOutToDetail(dto).instructionsData.orders
+        expect(orders[0].orderId).toBe('SO-660001')
+      })
     })
   })
 })

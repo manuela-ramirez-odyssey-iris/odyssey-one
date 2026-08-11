@@ -1,12 +1,14 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { TruckElectric, Columns3Cog, Plus, FoldHorizontal, UnfoldHorizontal } from 'lucide-react'
+import { TruckElectric, Plus, FoldHorizontal, UnfoldHorizontal } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
 import { Badge, Button, Tab } from '@odyssey/ui'
 import { saveTenderOption } from '../../api/services/shipmentService'
-import { parseDollar } from '../../utils/money'
+import { parseDollar, fmtDollar } from '../../utils/money'
 import { routingOptionVmToDto } from '../../api/mappers/mapSellShipmentOutToDetail'
 import { QuoteModal } from './QuoteModal.jsx'
+import { useCurrentUser } from '../../data/sso-mock.js'
+import { formatDateTimeMDYHM } from '../../lib/dates.js'
 
 /* ═══════════════════════════════════════════════════════════
    Section 1 — Constants
@@ -331,10 +333,26 @@ function CostTooltip({ carrier, onViewDetails }) {
     setHovered(true)
   }
 
-  const apTotal = carrier.cost || carrier.apFreightCost || '--'
-  const arTotal = carrier.arCost || carrier.arFreightCost || '--'
+  // AP is already the cell's own text — correct as-is. AR used to read
+  // arCost/arFreightCost, copy-pasted from CostOrderVM (Cost Allocation's
+  // shape); neither key exists on RoutingOptionVM, so AR Total rendered '--'
+  // forever and the Margin row (gated on both parsing) never rendered (Fix 1,
+  // 2026-08-10). The real figure is rateDetails.arTotal — a NUMBER, not a
+  // formatted string.
+  const apTotal = carrier.cost || '--'
   const apNum = parseDollar(apTotal)
-  const arNum = parseDollar(arTotal)
+  // mapSellShipmentOutToDetail.ts substitutes a ZEROED rateDetails when the DTO
+  // omits it — a falsy/zero arTotal means "no rate details", not "$0.00 AR".
+  // Keep it '--' (and the Margin row hidden) rather than ever showing $0.00.
+  const arNum = carrier.rateDetails?.arTotal || null
+  // Fix 8 (2026-08-10): apTotal's " USD" comes from the mapper HARDCODING it
+  // onto `cost` (mapSellShipmentOutToDetail.ts:270 — it never reads the DTO's
+  // totalCostCurrency; a known, separately-tracked gap from the 2026-08-10
+  // tender audit, not fixed here, mapper untouched). arTotal is the raw
+  // rateDetails number with no such mapper step, so leaving it unsuffixed
+  // made the tooltip read "AP ... USD / AR ..." with only one side labeled.
+  // Match the AP side's shape, sourced from rateDetails.currency itself.
+  const arTotal = arNum != null ? `${fmtDollar(arNum)} ${carrier.rateDetails?.currency || 'USD'}` : '--'
   const margin = (apNum != null && arNum != null) ? arNum - apNum : null
   const marginPct = (margin != null && apNum > 0) ? ((margin / apNum) * 100).toFixed(1) : null
 
@@ -387,7 +405,7 @@ function CostTooltip({ carrier, onViewDetails }) {
    Section 6 — RoutingTable
    ═══════════════════════════════════════════════════════════ */
 
-function RoutingTable({ options, tabColumns, highlightedRank, openMenuRank, onOpenMenu, onCloseMenu, onAction, onToggleColumnPanel, isCollapsed, columnsCollapsed, collapsedWidths, onCollapse, onExpand, onViewRateDetails }) {
+function RoutingTable({ options, tabColumns, highlightedRank, openMenuRank, onOpenMenu, onCloseMenu, onAction, isCollapsed, columnsCollapsed, collapsedWidths, onCollapse, onExpand, onViewRateDetails }) {
   const [hoveredRank, setHoveredRank] = useState(null)
   const [showToggle, setShowToggle] = useState(false)
   const rightTableRef = useRef(null)
@@ -556,16 +574,13 @@ function RoutingTable({ options, tabColumns, highlightedRank, openMenuRank, onOp
                 </th>
               ))}
               <th className="sticky top-0" style={{ ...stickyLastCol, zIndex: 5, width: 50, minWidth: 50, maxWidth: 50, padding: '0 var(--spacing-4)', textAlign: 'center', borderBottom: '1px solid var(--border-subtle)', background: 'var(--bg-secondary)' }}>
-                <button
-                  className="flex items-center justify-center mx-auto bg-transparent border-none cursor-pointer p-1 rounded"
-                  style={{ color: 'var(--text-placeholder)' }}
-                  onClick={() => { if (onToggleColumnPanel) onToggleColumnPanel() }}
-                  onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-secondary)' }}
-                  onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-placeholder)' }}
-                  title="Column arrangement"
-                >
-                  <Columns3Cog size={15} />
-                </button>
+                {/* Column-arrangement gear removed (Fix 3, 2026-08-10, user decision) — it
+                    called onToggleColumnPanel, the SAME handler ShipmentTable uses, so it
+                    opened the shipments-LIST column panel, not one for this table (this
+                    table has no panel of its own). A control that opens the wrong table's
+                    panel is worse than no control. Collapse/expand (FoldHorizontal/
+                    UnfoldHorizontal) + per-tab TAB_COLUMNS remain. Reversible once a real
+                    routing-column panel is specced. */}
               </th>
             </tr>
           </thead>
@@ -669,7 +684,8 @@ function RoutingSubTabs({ activeSubTab, onTabChange }) {
    Section 8 — Main Component
    ═══════════════════════════════════════════════════════════ */
 
-export default function RoutingGuideTab({ data, shipmentDetails, shipment, onToggleColumnPanel }) {
+export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
+  const currentUser = useCurrentUser()
   const [activeSubTab, setActiveSubTab] = useState('routing-options')
   const [highlightedRank, setHighlightedRank] = useState(null)
   const [openMenuRank, setOpenMenuRank] = useState(null)
@@ -846,8 +862,15 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
           loadboardExpiry: '--',
           rcpId: '--',
           lcePkId: '--',
-          modifyUser: 'Current User',
-          modifyDate: new Date().toLocaleString(),
+          // Fix 4/5 (2026-08-10): useCurrentUser() over the 'Current User'
+          // literal, and formatDateTimeMDYHM over toLocaleString() — the
+          // platform date canon (src/lib/dates.js, S107) is padded
+          // "MM/DD/YYYY HH:MM", not toLocaleString()'s unpadded/12h/seconds
+          // output. Known delta: seeded rows carry a trailing TZ abbreviation
+          // (generate.mjs) that this does not — we don't actually know the
+          // acting user's zone, so it's left off rather than hardcoding one.
+          modifyUser: currentUser.name,
+          modifyDate: formatDateTimeMDYHM(new Date()),
           indirectPoint: 'N/A',
           roundTrip: 'No',
           customerPreferred: 'No',
@@ -877,6 +900,11 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
           equipment: formData.equipment || target.equipment,
           pickupDateTime: formData.pickupDateTime || target.pickupDateTime,
           deliveryDateTime: formData.deliveryDateTime || target.deliveryDateTime,
+          // Fix 2 (2026-08-10): this branch recomputed `cost` from apTotal but
+          // never touched `rate`, so an edited Base Rate never left this
+          // component — persistTender/routingOptionVmToDto reads `rate` back
+          // into rateAmount, so the stale value would round-trip forever.
+          rate: `$${formData.rateDetails.baseRate.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
           cost: `$${formData.rateDetails.apTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD`,
           rateDetails: formData.rateDetails,
         }
@@ -885,7 +913,7 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
       }
     }
     setQuoteModal({ isOpen: false, mode: 'add', carrierData: null })
-  }, [quoteModal, options, persistTender])
+  }, [quoteModal, options, persistTender, currentUser])
 
   const handleAction = useCallback((rank, action) => {
     if (action === 'ShowRateDetails') {
@@ -902,9 +930,57 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
       return
     }
 
-    let updated = options.map((opt) =>
-      opt.rank === rank ? { ...opt, status: STATUS_AFTER_ACTION[action] || opt.status } : opt,
-    )
+    // Fix 4 (2026-08-10): Accept/Decline/Cancel used to persist ONLY `status`,
+    // leaving the audit/response fields stale/null forever. A click on any of
+    // the three IS a genuine response to the tender (a Decline is a response,
+    // not a non-event) — generate.mjs only seeds responseDateTime on Accepted
+    // rows, which is a generator gap (no seeded case for a Declined-with-
+    // response carrier), not a rule for live user actions to copy.
+    const now = formatDateTimeMDYHM(new Date())
+    const isResponseAction = action === 'Accept' || action === 'Decline' || action === 'Cancel'
+    // Fix 6 (2026-08-10): Tender/Re-Tender used to record NOTHING — not
+    // notifyDateTime, not modifyUser/modifyDate — even though a manual click
+    // and the Decline/Cancel cascade below (which already stamps both) are
+    // the SAME event: being tendered. isResponseAction correctly keeps them
+    // OUT of the response fields (they're notify events, not responses);
+    // this only adds the notify-side fields they were missing.
+    const isNotifyAction = action === 'Tender' || action === 'Re-Tender'
+
+    let updated = options.map((opt) => {
+      if (opt.rank !== rank) return opt
+      // modifyUser/modifyDate are the audit trail — every action sets them,
+      // not just the response ones, so no action is invisible to it.
+      const next = { ...opt, status: STATUS_AFTER_ACTION[action] || opt.status, modifyUser: currentUser.name, modifyDate: now }
+      if (isResponseAction) {
+        next.responseDateTime = now
+        next.responseUser = currentUser.name
+        next.responseMethod = 'Manual Update' // RESPONSE_METHODS literal (generate.mjs) — a UI click genuinely is one, not fabricated.
+        // proNumber / carrierPickup are CARRIER-supplied identifiers that only
+        // arrive from the carrier's actual response — inventing them here
+        // would be the same "~40 hardcoded fields" problem already flagged as
+        // its own product conversation. Left untouched, deliberately.
+      }
+      if (isNotifyAction) {
+        next.notifyDateTime = now
+      }
+      if (action === 'Re-Tender') {
+        // Fix 7 (2026-08-10): a Re-Tender fires on a Declined/Cancelled row
+        // that still carries the PREVIOUS cycle's response — left in place,
+        // the row would read "Declined by Amy Cook at 08/10/2026 14:23"
+        // while status says Sent (awaiting a fresh response). Cleared to the
+        // shape mapRoutingOption itself produces for an empty value
+        // (mapSellShipmentOutToDetail.ts), so a save-then-reload round-trips
+        // identically: responseDateTime/responseMethod go through
+        // orDash(...) there -> '--'; responseUser goes through `?? null` ->
+        // null. proNumber/carrierPickup are NOT cleared — carrier-supplied
+        // identifiers from the prior cycle; whether a re-tender voids them is
+        // a product question, not ours to decide.
+        next.responseDateTime = DASH
+        next.responseMethod = DASH
+        next.responseUser = null
+      }
+      return next
+    })
     const touched = [rank]
 
     /* CASCADE: on Decline or Cancel, auto-tender next null-status carrier by rank ascending */
@@ -913,7 +989,13 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
       const nextNull = sortedByRank.find((opt) => opt.status === null || opt.status === undefined)
       if (nextNull) {
         updated = updated.map((opt) =>
-          opt.rank === nextNull.rank ? { ...opt, status: 'Sent' } : opt,
+          opt.rank === nextNull.rank
+            // Being auto-tendered is a NOTIFY, not a RESPONSE — only
+            // notifyDateTime moves here. responseDateTime/responseUser/
+            // responseMethod stay untouched until THIS carrier is itself
+            // clicked; getting that distinction right is the point of Fix 4.
+            ? { ...opt, status: 'Sent', notifyDateTime: now, modifyUser: currentUser.name, modifyDate: now }
+            : opt,
         )
         touched.push(nextNull.rank)
       }
@@ -924,7 +1006,7 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
     touched.forEach((r) => persistTender(updated.find((o) => o.rank === r)))
 
     setOpenMenuRank(null)
-  }, [options, persistTender])
+  }, [options, persistTender, currentUser])
 
   // Every option on a shipment shares its pickup/delivery timezone — take the
   // first one that actually carries a value as the shipment's TZ, so a NEW quote
@@ -982,7 +1064,6 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment, onTog
           onOpenMenu={handleOpenMenu}
           onCloseMenu={handleCloseMenu}
           onAction={handleAction}
-          onToggleColumnPanel={onToggleColumnPanel}
           isCollapsed={isCollapsed}
           columnsCollapsed={collapsedWidths !== null}
           collapsedWidths={collapsedWidths}

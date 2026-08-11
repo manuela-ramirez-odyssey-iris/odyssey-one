@@ -2,7 +2,6 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { buildDataset } from './generate.mjs'
 import { EXTRA_CUSTOMERS } from './data-pools.mjs'
-import { USERS } from './seed-users.mjs'
 
 test('buildDataset returns a coherent scaled dataset', () => {
   const ds = buildDataset({ totalShipments: 50 })
@@ -182,6 +181,25 @@ test('a pickup stop copies a pickup number from the orders it actually picks up'
   }
   assert.ok(checked > 100)
   assert.ok(present / checked > 0.7, `only ${present}/${checked} pickup stops carry a number`)
+})
+
+// ── LINX-12068 (2026-08-10): Common Structure Rule — delivery stops must sum
+// packageCount from their own orders, same as pickup (was hardcoded null).
+test('a delivery stop sums package counts from the orders it delivers (LINX-12068)', () => {
+  const ds = buildDataset()
+  let checked = 0
+  for (const [, d] of ds.details) {
+    for (const stop of d.shipmentStopList ?? []) {
+      if (stop.stopType !== 'delivery') continue
+      checked++
+      assert.equal(typeof stop.packageCount, 'number', `delivery stop packageCount was ${stop.packageCount}`)
+      const expected = d.orderList
+        .filter((o) => stop.orderIds.includes(o.orderNumber))
+        .reduce((t, o) => t + o.orderLines.reduce((s, l) => s + l.packageCount, 0), 0)
+      assert.equal(stop.packageCount, expected)
+    }
+  }
+  assert.ok(checked > 100)
 })
 
 // ── Task 9: username identity + zoned created/edit timestamps (R2-3, R2-4) ──
@@ -440,16 +458,329 @@ test('leg type is consistent across every leg of a chain, drawn only from Poolin
   assert.deepEqual([...allTypes].sort(), ['Pooling', 'Rule 11'])
 })
 
-test('history actors are real seeded users (guest excluded) or a system source', () => {
+// ── S113: rate/rateDetails.baseRate invariant (RoutingGuideTab.jsx:814 derives
+// the Rate column from rateDetails.baseRate, so the generator must agree) ──
+test('routing option rateAmount equals its own rateDetails.baseRate', () => {
   const ds = buildDataset()
-  const realNames = new Set(USERS.filter((u) => u.role !== 'guest').map((u) => u.name))
-  let checkedUser = 0
+  let checked = 0
   for (const d of ds.details.values()) {
-    for (const h of d.historyList) {
-      if (h.source) continue // system-actor branch — untouched, not a user name
-      assert.ok(realNames.has(h.user), `history user "${h.user}" is not a real seeded user`)
-      checkedUser++
+    for (const opt of d.shippingOptionList ?? []) {
+      assert.equal(opt.rateAmount, opt.rateDetails.baseRate, `option ${opt.scac} rateAmount vs baseRate`)
+      checked++
     }
   }
-  assert.ok(checkedUser > 0, 'no user-actor history entries checked')
+  assert.ok(checked > 0, 'no routing options checked')
+})
+
+// ── DEC-80 Shipment Trail rebuild (S114) ────────────────────────────────────
+// Supersedes the pre-DEC-80 test 'history actors are real seeded users (guest
+// excluded) or a system source': that test asserted ~75% of entries carry a
+// REAL USER name (checkedUser > 0 on the non-source branch). DEC-80 ruling 2
+// inverts that ratio to 100% system/integrated-application — under the new
+// generator every entry has `source` set, so the old assertion's `continue`
+// would skip every entry and `checkedUser` would stay 0, failing on its own
+// final `assert.ok(checkedUser > 0, ...)`. Replaced outright rather than
+// patched, per the "report every broken assertion, then update it" rule.
+
+// Mirrors HISTORY_SYSTEM_SOURCES in generate.mjs (not exported — this is the
+// generator's private literal, duplicated here deliberately so a future
+// unreviewed addition to that array shows up as a test diff, not a silent
+// pass).
+const HISTORY_SYSTEM_SOURCES = ['ERP', 'UI', 'Legacy TMS', 'Linx', 'Net Native']
+
+// The MVP catalog's 15 event names (vault/10-domains/shipments/data/
+// history-event-catalog.md), in the pipeline order this generator emits them
+// — a subsequence per shipment, gated on real state, but never out of order.
+const PIPELINE_ORDER = [
+  'Shipment Created', 'Routing Completed', 'Optimization Evaluation',
+  'Consolidation Completed', 'Routing & Rating Completed', 'Ready for Tender',
+  'Auto Tender Validation', 'Tender Sent', 'Tender Response Received',
+  'Shipment Planning Completed', 'Planned Shipment Sent', 'PGI Response Received',
+  'Post PGI Rating Completed', 'Shipment Updated', 'Shipment Update Notification',
+]
+
+test('history events are limited to the MVP catalog vocabulary — no user-centric leftovers, no Quote Entered', () => {
+  const ds = buildDataset({ totalShipments: 300 })
+  const allowed = new Set(PIPELINE_ORDER)
+  let checked = 0
+  for (const d of ds.details.values()) {
+    for (const h of d.historyList) {
+      assert.ok(allowed.has(h.action), `"${h.action}" is not in the MVP catalog (or is a dropped legacy action)`)
+      assert.notEqual(h.action, 'Quote Entered', 'Quote Entered must be dropped per DEC-80 ruling 3')
+      checked++
+    }
+  }
+  assert.ok(checked > 0, 'no history entries checked')
+})
+
+test('history entries are strictly time-ordered and follow the catalog pipeline order', () => {
+  const ds = buildDataset({ totalShipments: 300 })
+  let checked = 0
+  for (const d of ds.details.values()) {
+    let prevTs = -Infinity
+    let prevRank = -1
+    for (const h of d.historyList) {
+      const ts = new Date(h.timestamp).getTime()
+      assert.ok(ts > prevTs, `entry "${h.action}" timestamp did not strictly increase`)
+      const rank = PIPELINE_ORDER.indexOf(h.action)
+      assert.ok(rank >= prevRank, `"${h.action}" (rank ${rank}) appears out of pipeline order after rank ${prevRank}`)
+      prevTs = ts
+      prevRank = rank
+      checked++
+    }
+  }
+  assert.ok(checked > 0, 'no history entries checked')
+})
+
+test('history actors are always system or an integrated application — never user-attributed', () => {
+  const ds = buildDataset({ totalShipments: 300 })
+  let checked = 0
+  for (const d of ds.details.values()) {
+    for (const h of d.historyList) {
+      assert.ok(h.source, `entry "${h.action}" has no source — DEC-80 ruling 2 requires system/integrated-app actor for every entry`)
+      assert.ok(HISTORY_SYSTEM_SOURCES.includes(h.source), `"${h.source}" is not a recognized system/integrated-application source`)
+      assert.equal(h.user, h.source, 'user field must mirror the system/integrated-app source, never a human name')
+      checked++
+    }
+  }
+  assert.ok(checked > 0, 'no history entries checked')
+})
+
+test('no Tender Response Received while a tender is still in-progress (Sent, not yet Accepted)', () => {
+  const ds = buildDataset({ totalShipments: 300 })
+  let checkedInProgress = 0
+  for (const s of ds.shipments) {
+    if (s.tenderStatus !== 'Sent') continue // Accepted or a failed/declined outcome — different branch
+    const d = ds.details.get(s.sellShipment)
+    const hasResponse = d.historyList.some((h) => h.action === 'Tender Response Received')
+    assert.equal(hasResponse, false, `shipment ${s.buyShipment} is still Sent (no response yet) but has a Tender Response Received entry`)
+    const hasSent = d.historyList.some((h) => h.action === 'Tender Sent')
+    assert.ok(hasSent, `shipment ${s.buyShipment} is Sent but has no Tender Sent entry`)
+    checkedInProgress++
+  }
+  assert.ok(checkedInProgress > 0, 'no in-progress (Sent) shipments found to check — widen totalShipments if this flakes')
+})
+
+// The highest-value coherence check: every identifier a history `details`
+// string names (buy/sell shipment #, order #, carrier name) is parsed back
+// out of OUR OWN templates and checked against THAT shipment's real data —
+// not the global pool. This is what would have caught the pre-rebuild bug
+// class (`pick(CARRIERS)` naming a carrier the shipment never tendered).
+test('history coherence: every identifier named in details belongs to that shipment', () => {
+  const ds = buildDataset({ totalShipments: 300 })
+  let checkedShipmentCreated = 0
+  let checkedConsolidation = 0
+  let checkedTenderSent = 0
+  let checkedTenderResponse = 0
+  let checkedCarrierConsistency = 0
+
+  function parseOxfordList(str) {
+    if (str.includes(', and ')) {
+      const parts = str.split(', ')
+      const last = parts.pop().replace(/^and /, '')
+      return [...parts, last]
+    }
+    if (str.includes(' and ')) return str.split(' and ')
+    return [str]
+  }
+
+  for (const s of ds.shipments) {
+    const d = ds.details.get(s.sellShipment)
+    const orderIds = new Set(d.orderList.map((o) => o.orderNumber))
+    const carrierNames = new Set(d.shippingOptionList.map((o) => o.carrierName))
+    const byAction = Object.fromEntries(d.historyList.map((h) => [h.action, h]))
+
+    const created = byAction['Shipment Created']
+    if (created) {
+      const m = created.details.match(/^Buy Shipment (\S+) and Sell Shipment (\S+) created successfully for Order (\S+)\.$/)
+      assert.ok(m, `Shipment Created details didn't match the catalog template: "${created.details}"`)
+      assert.equal(m[1], s.buyShipment, `Shipment Created named the wrong buy shipment`)
+      assert.equal(m[2], s.sellShipment, `Shipment Created named the wrong sell shipment`)
+      assert.ok(orderIds.has(m[3]), `Shipment Created named order "${m[3]}" which isn't one of this shipment's own orders`)
+      checkedShipmentCreated++
+    }
+
+    const consolidation = byAction['Consolidation Completed']
+    if (consolidation) {
+      const m = consolidation.details.match(/^Consolidation completed\. Final Shipment (\S+) contains Orders (.+)\.$/)
+      assert.ok(m, `Consolidation Completed details didn't match the catalog template: "${consolidation.details}"`)
+      assert.equal(m[1], s.buyShipment, 'Consolidation Completed named the wrong final shipment')
+      const namedOrders = parseOxfordList(m[2])
+      assert.deepEqual([...namedOrders].sort(), [...orderIds].sort(), 'Consolidation Completed order list does not exactly match this shipment\'s real orders')
+      checkedConsolidation++
+    }
+
+    const tenderSent = byAction['Tender Sent']
+    if (tenderSent) {
+      const m = tenderSent.details.match(/^Tender status updated to Sent\. Tender sent to carrier (.+) via (.+)\.$/)
+      assert.ok(m, `Tender Sent details didn't match the catalog template: "${tenderSent.details}"`)
+      assert.ok(carrierNames.has(m[1]), `Tender Sent named carrier "${m[1]}" which this shipment never tendered to`)
+      checkedTenderSent++
+    }
+
+    const tenderResponse = byAction['Tender Response Received']
+    if (tenderResponse && tenderResponse.details.startsWith('Tender response received')) {
+      const m = tenderResponse.details.match(/^Tender response received from carrier (.+) via (.+)\. Tender status updated to (Accepted|Declined)\.$/)
+      assert.ok(m, `Tender Response Received details didn't match the catalog template: "${tenderResponse.details}"`)
+      assert.ok(carrierNames.has(m[1]), `Tender Response Received named carrier "${m[1]}" which this shipment never tendered to`)
+      checkedTenderResponse++
+      if (tenderSent) {
+        const sentCarrier = tenderSent.details.match(/carrier (.+) via/)[1]
+        assert.equal(m[1], sentCarrier, 'Tender Sent and Tender Response Received named different carriers on the same shipment')
+        checkedCarrierConsistency++
+      }
+    }
+  }
+
+  assert.ok(checkedShipmentCreated > 0, 'no Shipment Created entries checked')
+  assert.ok(checkedConsolidation > 0, 'no Consolidation Completed entries checked — widen totalShipments if this flakes')
+  assert.ok(checkedTenderSent > 0, 'no Tender Sent entries checked')
+  assert.ok(checkedTenderResponse > 0, 'no Tender Response Received (named-carrier) entries checked')
+  assert.ok(checkedCarrierConsistency > 0, 'no same-carrier Tender Sent/Response Received pairs checked')
+})
+
+// ── Failure-scenario pass (2026-08-10, same-day follow-up to DEC-80) ───────
+// Mirrors VALIDATION_ERROR_STATUSES in generate.mjs (not exported — see the
+// same duplication rationale already used above for I10, line 28).
+const VALIDATION_ERROR_STATUSES = ['Planning Failed', 'Shipment Failed']
+
+test('every history entry carries a valid outcome (success | failure | update | neutral)', () => {
+  const ds = buildDataset({ totalShipments: 300 })
+  const allowed = new Set(['success', 'failure', 'update', 'neutral'])
+  let checked = 0
+  for (const d of ds.details.values()) {
+    for (const h of d.historyList) {
+      assert.ok(allowed.has(h.outcome), `"${h.action}" has invalid outcome "${h.outcome}"`)
+      checked++
+    }
+  }
+  assert.ok(checked > 0, 'no history entries checked')
+})
+
+// DEC-81 follow-up (2026-08-10 user ruling): a real carrier Decline is a
+// completed-but-unfavourable business outcome — the response arrived and was
+// recorded (not a failure), but it's negative (not a plain success), and
+// these are exactly the ~2,824/8,541 shipments that land in Review. Was
+// outcome: 'success' (bare green) until this ruling; now 'neutral' (amber).
+// The Accepted variant (still 'success') and the no-response timeout variant
+// (still 'failure' — nothing arrived at all) are UNCHANGED and asserted
+// alongside so this can't pass by accident if all three collapsed to one
+// value.
+test('Tender Response Received: Declined is neutral, timeout stays failure, Accepted stays success', () => {
+  const ds = buildDataset({ totalShipments: 1500 })
+  let sawDeclined = false
+  let sawTimeout = false
+  let sawAccepted = false
+  for (const d of ds.details.values()) {
+    for (const h of d.historyList) {
+      if (h.action !== 'Tender Response Received') continue
+      if (h.details.endsWith('Tender status updated to Declined.')) {
+        sawDeclined = true
+        assert.strictEqual(h.outcome, 'neutral', `Declined "Tender Response Received" entry has outcome "${h.outcome}", expected "neutral"`)
+      } else if (h.details === 'No carrier response received. Tender timed out and was automatically declined.') {
+        sawTimeout = true
+        assert.strictEqual(h.outcome, 'failure', `timeout "Tender Response Received" entry has outcome "${h.outcome}", expected "failure"`)
+      } else if (h.details.endsWith('Tender status updated to Accepted.')) {
+        sawAccepted = true
+        assert.strictEqual(h.outcome, 'success', `Accepted "Tender Response Received" entry has outcome "${h.outcome}", expected "success"`)
+      }
+    }
+  }
+  assert.ok(sawDeclined, 'no Declined "Tender Response Received" entry found — widen totalShipments if this flakes')
+  assert.ok(sawTimeout, 'no timeout "Tender Response Received" entry found — widen totalShipments if this flakes')
+  assert.ok(sawAccepted, 'no Accepted "Tender Response Received" entry found — widen totalShipments if this flakes')
+})
+
+test('failure and update variants actually occur across the dataset', () => {
+  // Widened beyond 300 — several failure variants are gated on a ~15-20%
+  // slice of the ~30% Review population, so a small sample can legitimately
+  // draw zero. 1500 keeps the suite fast while making that implausible.
+  const ds = buildDataset({ totalShipments: 1500 })
+  const failureDetailsSeen = new Set()
+  const updateDetailsSeen = new Set()
+  for (const d of ds.details.values()) {
+    for (const h of d.historyList) {
+      if (h.outcome === 'failure') failureDetailsSeen.add(h.action)
+      if (h.outcome === 'update') updateDetailsSeen.add(h.action)
+    }
+  }
+  // Every failure-carrying action from the catalog pass must show up at least once.
+  for (const action of ['Shipment Created', 'Routing Completed', 'Optimization Evaluation', 'Auto Tender Validation', 'Tender Response Received', 'PGI Response Received', 'Shipment Update Notification']) {
+    assert.ok(failureDetailsSeen.has(action), `no failure-outcome "${action}" entry found anywhere in the dataset`)
+  }
+  assert.ok(updateDetailsSeen.has('Shipment Updated'), 'no update-outcome "Shipment Updated" entry found anywhere in the dataset')
+  // Both Shipment Updated variants (Transportation / Non-Transportation Relevant) must appear.
+  let sawTransportRelevant = false
+  let sawNonTransportRelevant = false
+  for (const d of ds.details.values()) {
+    for (const h of d.historyList) {
+      if (h.action !== 'Shipment Updated') continue
+      if (h.details.includes('(Transportation Relevant)')) sawTransportRelevant = true
+      if (h.details.includes('(Non-Transportation Relevant)')) sawNonTransportRelevant = true
+    }
+  }
+  assert.ok(sawTransportRelevant, 'Transportation Relevant Shipment Updated variant never seen')
+  assert.ok(sawNonTransportRelevant, 'Non-Transportation Relevant Shipment Updated variant never seen')
+})
+
+// Cross-tab coherence check (2026-08-10, coordinator-flagged bug): routing
+// options (tender rows the Tender tab renders) are generated UNCONDITIONALLY
+// for every shipment — routingCount is always 3-6, never 0, and this is
+// confirmed against real data (Neon: every Review-terminal shipment has 3+
+// tender rows, minimum 3). That means Routing Completed / Optimization
+// Evaluation / Auto Tender Validation can NEVER be a shipment's real terminal
+// failure — every shipment demonstrably reached tendering. If one of these
+// three ever shows outcome:'failure' with no matching outcome:'success' retry
+// for the same action, the trail would say "moved to Review" at a stage this
+// shipment's own tender data proves it passed — exactly the cross-tab
+// contradiction this rebuild exists to remove. This is the highest-value
+// check in the file for that reason: it fails loudly the moment any of these
+// three is (re)modeled as a terminal event instead of TRANSIENT.
+test('Routing/Optimization/Auto-Tender failures are TRANSIENT only — every shipment reaches tendering, so none of the three can be terminal', () => {
+  const ds = buildDataset({ totalShipments: 1500 })
+  const TRANSIENT_ONLY_ACTIONS = ['Routing Completed', 'Optimization Evaluation', 'Auto Tender Validation']
+  let checkedFailures = 0
+  for (const s of ds.shipments) {
+    const d = ds.details.get(s.sellShipment)
+    assert.ok(d.shippingOptionList.length >= 3, `shipment ${s.buyShipment} has fewer than 3 tender rows — contradicts the real tender-data floor`)
+    assert.ok(d.historyList.some((h) => h.action === 'Tender Sent'), `shipment ${s.buyShipment} has tender rows but no "Tender Sent" history entry`)
+    for (const action of TRANSIENT_ONLY_ACTIONS) {
+      const entries = d.historyList.filter((h) => h.action === action)
+      if (!entries.some((h) => h.outcome === 'failure')) continue
+      checkedFailures++
+      assert.ok(entries.some((h) => h.outcome === 'success'), `shipment ${s.buyShipment} has a "${action}" failure with no matching success retry — reads as terminal, contradicting its own tender data`)
+    }
+  }
+  assert.ok(checkedFailures > 0, 'no transient routing/optimization/auto-tender failures found — widen totalShipments if this flakes')
+})
+
+test('PGI validation-errors variant only appears on shipments that actually carry a validation-error order', () => {
+  const ds = buildDataset({ totalShipments: 1500 })
+  let checked = 0
+  for (const s of ds.shipments) {
+    const d = ds.details.get(s.sellShipment)
+    const pgiError = d.historyList.find((h) => h.action === 'PGI Response Received' && h.outcome === 'failure')
+    if (!pgiError) continue
+    const orderIds = d.orderList.map((o) => o.orderNumber)
+    const ownOrders = ds.orders.filter((o) => orderIds.includes(o.orderNumber))
+    assert.ok(ownOrders.length > 0, `shipment ${s.buyShipment} has a PGI-errors entry but no matching order rows found`)
+    assert.ok(ownOrders.every((o) => VALIDATION_ERROR_STATUSES.includes(o.orderStatus)), `shipment ${s.buyShipment} has a PGI-errors entry but its orders aren't in a validation-error status`)
+    checked++
+  }
+  assert.ok(checked > 0, 'no PGI-errors entries found — widen totalShipments if this flakes')
+})
+
+test('tender-timeout variant never coexists with a real carrier response (Accepted or Declined) on the same shipment', () => {
+  const ds = buildDataset({ totalShipments: 1500 })
+  let checked = 0
+  for (const s of ds.shipments) {
+    const d = ds.details.get(s.sellShipment)
+    const timeout = d.historyList.find((h) => h.action === 'Tender Response Received' && h.outcome === 'failure')
+    if (!timeout) continue
+    const statuses = d.shippingOptionList.map((o) => o.status)
+    assert.ok(!statuses.includes('Accepted'), `shipment ${s.buyShipment} has a tender-timeout entry but also an Accepted routing option`)
+    assert.ok(!statuses.includes('Declined'), `shipment ${s.buyShipment} has a tender-timeout entry but also a Declined routing option`)
+    checked++
+  }
+  assert.ok(checked > 0, 'no tender-timeout entries found — widen totalShipments if this flakes')
 })

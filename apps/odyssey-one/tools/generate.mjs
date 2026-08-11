@@ -61,7 +61,7 @@
 import { faker } from '@faker-js/faker';
 import { writeFileSync, mkdirSync, existsSync, readdirSync, unlinkSync } from 'fs';
 import { deriveTimezone, tzAbbrev, CUSTOMERS, EXTRA_CUSTOMERS, LOCATIONS, EQUIPMENT_CODES, CHEMICAL_PRODUCTS, locationIdFor, FREIGHT_TERMS, SHIP_DIRECTIONS, SHIP_CLASS_CODES, shipClassLabel, PRODUCT_CLASSES, HANDLING_UNITS } from './data-pools.mjs'
-import { ORDER_AUTHOR_USERNAMES, USERS } from './seed-users.mjs'
+import { ORDER_AUTHOR_USERNAMES } from './seed-users.mjs'
 
 // ── Orders accumulator (I1) ──────────────────────────────────────────────────
 // LINX-9742/9279: every order (shipped + unshipped + pending) draws a globally
@@ -671,7 +671,10 @@ function generateShipment(index, chainOverride) {
       grossWeightUomCode: 'LB',
       volumeValue: dOrders.reduce((t, o) => t + o.orderVolume, 0),
       volumeUomCode: 'cuft',
-      packageCount: null,
+      // LINX-12068 (2026-08-10) — Common Structure Rule: delivery mirrors
+      // pickup, only the party context differs. Sum of orders dropped here,
+      // same as grossWeightValue/volumeValue above (was hardcoded null).
+      packageCount: dOrders.reduce((t, o) => t + o.orderPackages, 0),
       pickupNumber: null,
     });
   }
@@ -713,7 +716,6 @@ function generateShipment(index, chainOverride) {
 
     const isAccepted = status === 'Accepted';
     const wasTendered = status !== null;
-    const baseRate = faker.number.float({ min: 200, max: 2000, fractionDigits: 2 });
     const pickupHour = faker.number.int({ min: 6, max: 16 });
     const delivHour = faker.number.int({ min: 6, max: 22 });
     // Volume commitment: pre-compute so vcOpen + vcAccept + vcDecline === commitment
@@ -722,7 +724,9 @@ function generateShipment(index, chainOverride) {
     const _vcAccept = faker.number.int({ min: 0, max: _commitment - _vcOpen });
     const _vcDecline = _commitment - _vcOpen - _vcAccept;
 
-    // Rate details per carrier
+    // Rate details per carrier. rateAmount === rateDetails.baseRate is an invariant the
+    // app itself relies on (RoutingGuideTab.jsx:814 derives the Rate column from baseRate) —
+    // one draw feeds both instead of two independent ones.
     const _baseRate = faker.number.float({ min: 200, max: 2000, fractionDigits: 2 });
     const _markup = faker.number.float({ min: 50, max: 400, fractionDigits: 2 });
     const _numCharges = faker.number.int({ min: 0, max: 3 });
@@ -742,7 +746,7 @@ function generateShipment(index, chainOverride) {
       scac: rc.scac,
       carrierName: rc.name,
       equipmentCode: pick(EQUIPMENT_CODES),
-      rateAmount: baseRate,
+      rateAmount: _baseRate,
       rateCurrency: 'USD',
       totalCostAmount: _apTotal,
       totalCostCurrency: 'USD',
@@ -967,162 +971,346 @@ function generateShipment(index, chainOverride) {
     });
   }
 
-  // History / Audit entries — actors are REAL seeded users (S108 DB motion),
-  // not an invented namesake list (only "David Johns" ever matched a real
-  // seeded row). Guest excluded — same reasoning as ORDER_AUTHOR_USERNAMES: it
-  // cannot log in and writes nothing, so it never authors an audit entry.
-  const HISTORY_USERS = USERS.filter((u) => u.role !== 'guest').map((u) => u.name);
-  const HISTORY_ACTIONS = [
-    { action: 'Order Created', category: 'create' },
-    { action: 'Shipment Created', category: 'create' },
-    { action: 'Load Assigned', category: 'update' },
-    { action: 'Tender Sent', category: 'tender' },
-    { action: 'Tender Accepted', category: 'tender' },
-    { action: 'Tender Declined', category: 'tender' },
-    { action: 'Carrier Updated', category: 'update' },
-    { action: 'Schedule Updated', category: 'update' },
-    { action: 'Route Changed', category: 'update' },
-    { action: 'Cost Updated', category: 'update' },
-    { action: 'Document Uploaded', category: 'update' },
-    { action: 'Status Changed', category: 'update' },
-    { action: 'PGI Completed', category: 'completion' },
-    { action: 'PGR Completed', category: 'completion' },
-    // LINX-13065 (Shipment View - Audit Log): must include entries for PGI
-    // error corrections and quotes entered.
-    { action: 'PGI Error Corrected', category: 'completion' },
-    { action: 'Quote Entered', category: 'tender' },
-  ];
-  const HISTORY_SYSTEM_SOURCES = ['ERP', 'UI', 'Legacy TMS', 'Linx'];
+  // History / Audit entries — Shipment Trail rebuild per DEC-80 (2026-08-10):
+  // the Trail RENDERS backend-emitted lifecycle events, it does not author
+  // user actions. Event vocabulary + detail-message templates come verbatim
+  // from vault/10-domains/shipments/data/history-event-catalog.md (Pappu's
+  // MVP spec, 2026-08-06); every `<Placeholder>` is filled from THIS
+  // shipment's own real state (buyShipment/sellShipment/orders/
+  // routingOptions/apTotal/arTotal — all computed above), never an unrelated
+  // faker draw — that was exactly the S113-era bug class this rebuild fixes
+  // (`pick(CARRIERS)` naming a carrier the shipment never actually tendered).
+  // The old user-centric HISTORY_ACTIONS list (Carrier/Schedule/Route/Cost/
+  // Document/Status Updated, Order Created, Load Assigned) is DROPPED
+  // entirely — none of it is in the MVP catalog and DEC-80 rules it out of
+  // scope by kind, not just by name. Pappu's spreadsheet is now the ONLY
+  // source for event vocabulary. Both DEC-70's LINX-13065-sourced events are
+  // dropped too: `Quote Entered` per DEC-80 ruling 3 (verbatim — it's a user
+  // action), and `PGI Error Corrected` per a same-day follow-up user ruling
+  // (2026-08-10) after fetching LINX-13065 directly — it turned out to be a
+  // one-sentence, unrefined ticket (no acceptance criteria, status Todo,
+  // zero labels) whose entire body just asks for audit entries on
+  // "pgi errors...corrected, and quotes...entered." DEC-70's "verbatim from
+  // LINX-13065" framing OVERSTATED that sentence as a requirement; it wasn't
+  // one. PGI/PGR is out of project scope anyway (DEC-80 ruling 4), and
+  // Pappu's own catalog already supplies its own PGI events (`PGI Response
+  // Received`, `Post PGI Rating Completed`, both implemented below) — so
+  // nothing from the LINX-13065 pair survives.
+  //
+  // Actor model (DEC-80 ruling 2): every entry is system- or integrated-
+  // application-authored now, none user-attributed — this INVERTS DEC-70's
+  // ~75%-user-attributed seeded ratio. `Net Native` (Pappu's named example of
+  // an integrated application) is added to HISTORY_SYSTEM_SOURCES below.
+  // Smallest honest model, not a new actor kind: "integrated application" is
+  // just another VALUE of the existing `source` field, so it renders through
+  // HistoryTab.jsx's existing muted-actor + gray "System" badge treatment
+  // unchanged — no new visual design, per DEC-70's Figma-first rule.
+  const HISTORY_SYSTEM_SOURCES = ['ERP', 'UI', 'Legacy TMS', 'Linx', 'Net Native'];
 
-  const historyEntryCount = faker.number.int({ min: 5, max: 12 });
+  // Which of the catalog's events actually apply to THIS shipment, and which
+  // outcome variant, is GATED on real derived state (hasAccepted/hasSent/
+  // tenderFailed/orderCount/apTotal/arTotal/routingOptions — all computed
+  // above) — never chosen at random. This replaces the old `pick(HISTORY_
+  // ACTIONS)` random-sample-of-5-to-12 model entirely, so entry COUNT is now
+  // a consequence of shipment state, not an independent faker draw.
   const historyEntries = [];
-  // Generate timestamps spread over last 30 days
-  const historyTimestamps = [];
-  for (let h = 0; h < historyEntryCount; h++) {
-    const daysAgo = faker.number.float({ min: 0, max: 30, fractionDigits: 4 });
-    const ts = new Date(baseDate);
-    ts.setDate(ts.getDate() - daysAgo);
-    ts.setHours(faker.number.int({ min: 6, max: 20 }), faker.number.int({ min: 0, max: 59 }), faker.number.int({ min: 0, max: 59 }));
-    historyTimestamps.push(ts);
+  let clock = new Date(baseDate);
+  clock.setDate(clock.getDate() - faker.number.int({ min: 2, max: 10 }));
+  clock.setHours(faker.number.int({ min: 6, max: 16 }), pick([0, 15, 30, 45]), 0, 0);
+
+  // Advances the shared clock forward by a random (hours) amount and returns
+  // the new instant — keeps every pushed entry strictly ascending in time,
+  // matching the required pipeline order (Created → ... → Update
+  // Notification), unlike the old model's random-action / sorted-timestamp
+  // mismatch.
+  function advanceClock(minHours, maxHours) {
+    const deltaMs = faker.number.float({ min: minHours, max: maxHours, fractionDigits: 3 }) * 3600 * 1000;
+    clock = new Date(clock.getTime() + deltaMs);
+    return new Date(clock);
   }
-  // Sort newest first
-  historyTimestamps.sort((a, b) => b - a);
+  // `outcome` added 2026-08-10 (failure-scenario pass, same-day follow-up to
+  // DEC-80): 'success' | 'failure' | 'update' | 'neutral', additive to
+  // `category` (which still drives other things unchanged). Renderer keys
+  // badge color off this. Defaults to 'success' so every one of the
+  // pre-existing calls below that never had a failure/update/neutral variant
+  // needs no edit to comply with the "every entry carries outcome" contract.
+  //   - 'success' — the step completed AND the business result is good
+  //     (e.g. Tender Accepted).
+  //   - 'failure' — the step did not complete / nothing arrived (e.g. tender
+  //     timeout: no carrier response received at all).
+  //   - 'update'  — informational state change, neither good nor bad.
+  //   - 'neutral' — DEC-81 follow-up (2026-08-10 user ruling): the step
+  //     completed successfully — a response was received and recorded — but
+  //     the business outcome is unfavourable or non-advancing. Not an error
+  //     (nothing failed), not a good outcome either. Added specifically for
+  //     Tender Response Received/Declined: a real carrier decline is exactly
+  //     the event that lands a shipment in Review, and rendering it green
+  //     (as a bare 'success' would) reads as "this went fine" on the very
+  //     row that explains the stall. User's verbatim ruling: "A fourth
+  //     neutral/amber treatment."
+  function pushHistory(action, category, source, details, outcome = 'success') {
+    historyEntries.push({ user: source, source, timestamp: clock.toISOString(), action, category, details, outcome });
+  }
+  // Oxford-comma join — Consolidation Completed's template (catalog event
+  // #4) hardcodes exactly 3 `<Order Number>` placeholders; real shipments
+  // here carry 1-5 orders. Listing ALL of this shipment's real orders
+  // instead of truncating/padding to 3 keeps the row coherent — inventing
+  // filler order numbers or dropping real ones would violate the
+  // shipment-wide coherence this rebuild exists to fix. Flagged open item,
+  // not silently resolved: the spec doesn't address 2-or-4+-order shipments.
+  function joinOrders(items) {
+    if (items.length === 1) return items[0];
+    if (items.length === 2) return `${items[0]} and ${items[1]}`;
+    return `${items.slice(0, -1).join(', ')}, and ${items[items.length - 1]}`;
+  }
 
-  for (let h = 0; h < historyEntryCount; h++) {
-    const user = pick(HISTORY_USERS);
-    const actionObj = pick(HISTORY_ACTIONS);
-    const ts = historyTimestamps[h];
-    let details = '';
-    let field = undefined;
-    let oldValue = undefined;
-    let newValue = undefined;
+  // ── Failure-scenario pass (2026-08-10, same-day follow-up to DEC-80) ──────
+  // The prior pass implemented SUCCESS only, reporting the catalog's Failure/
+  // third-branch variants as "no reachable signal." The user has now asked
+  // for them explicitly, gated on real state where state exists, and marked
+  // honestly-random where it doesn't (never silently invented as if derived).
+  //
+  // CROSS-TAB COHERENCE CORRECTION (coordinator-flagged, same day): the first
+  // draft of this pass modeled Routing Completed / Optimization Evaluation /
+  // Auto Tender Validation as TERMINAL failures on a random slice of Review
+  // shipments. That was wrong and was caught by direct data verification:
+  // routingOptions are generated UNCONDITIONALLY for every shipment
+  // (routingCount is always 3-6, never 0) regardless of hasAccepted/hasSent —
+  // confirmed against real data (every Review-terminal shipment has 3+ tender
+  // rows, minimum 3, ALL of them). A shipment whose History says "Routing
+  // call failed, moved to Review" while its OWN Tender tab shows 3+ carriers
+  // tendered and declined is a direct cross-tab contradiction — the exact bug
+  // class this whole rebuild exists to remove. Three of the four candidate
+  // stages are therefore ruled out as terminal by the shipment's own data;
+  // only the TENDER stage can be a real Review-causing terminal event, because
+  // "tendered and every carrier declined/cancelled" is the one Review path
+  // that is actually consistent with routing options always existing.
+  //
+  // TERMINAL vs TRANSIENT (two different failure shapes, commented at each
+  // site below):
+  //  - TERMINAL: the shipment genuinely ends in Review because of THIS step.
+  //    The ONLY terminal stage left standing after the correction above is
+  //    the tender-response step (declined/timeout), gated on isReviewTerminal
+  //    (shipmentStatus === 'Review', i.e. !hasAccepted && !hasSent) — real
+  //    derived state that matches the catalog's failure copy directly.
+  //  - TRANSIENT: a step fails then succeeds on retry (both entries emitted,
+  //    same action name back to back) — realistic audit-log shape, and lets
+  //    otherwise-fine shipments still show a failure without contradicting
+  //    later success. Used for Shipment Created, Routing Completed,
+  //    Optimization Evaluation, Auto Tender Validation, and Shipment Update
+  //    Notification — every one of these demonstrably DID succeed for every
+  //    shipment in this dataset (it exists / it has tender rows / it reached
+  //    Done), so a failure here can only ever be a since-retried blip, never
+  //    gated on real state. Honestly random (seeded, not tied to any field),
+  //    flagged as such at each site rather than dressed up as derived.
+  const isReviewTerminal = !hasAccepted && !hasSent;
 
-    switch (actionObj.action) {
-      case 'Order Created':
-        details = `Order ${orders[0].orderId} created for ${customer.name}`;
-        break;
-      case 'Shipment Created':
-        details = `Shipment ${buyShipment} created with ${orderCount} order(s)`;
-        break;
-      case 'Load Assigned':
-        details = `Load ${genLoadId()} assigned to shipment`;
-        break;
-      case 'Tender Sent': {
-        const tCarrier = pick(CARRIERS);
-        details = `Tendered to ${tCarrier.name} at $${fmt(faker.number.float({ min: 800, max: 5000, fractionDigits: 2 }))}`;
-        break;
-      }
-      case 'Tender Accepted': {
-        const tCarrier = pick(CARRIERS);
-        details = `${tCarrier.name} accepted tender`;
-        break;
-      }
-      case 'Tender Declined': {
-        const tCarrier = pick(CARRIERS);
-        details = `${tCarrier.name} declined tender — capacity unavailable`;
-        break;
-      }
-      case 'Carrier Updated': {
-        const oldCarrier = pick(CARRIERS);
-        const newCarrier = pick(CARRIERS.filter(c => c.scac !== oldCarrier.scac));
-        details = `Carrier changed from ${oldCarrier.name} to ${newCarrier.name}`;
-        field = 'carrier';
-        oldValue = oldCarrier.name;
-        newValue = newCarrier.name;
-        break;
-      }
-      case 'Schedule Updated': {
-        const oldDate = formatShortDate(genDate(baseDate, -faker.number.int({ min: 1, max: 5 })));
-        const newDate2 = formatShortDate(genDate(baseDate, faker.number.int({ min: 0, max: 3 })));
-        details = `Pickup date rescheduled`;
-        field = 'pickupDate';
-        oldValue = oldDate;
-        newValue = newDate2;
-        break;
-      }
-      case 'Route Changed':
-        details = `Route updated — new transit via ${pick(LOCATIONS).city}, ${pick(LOCATIONS).state}`;
-        field = 'route';
-        oldValue = `${pick(LOCATIONS).city} direct`;
-        newValue = `Via ${pick(LOCATIONS).city}`;
-        break;
-      case 'Cost Updated': {
-        const oldCost = fmt(faker.number.float({ min: 500, max: 4000, fractionDigits: 2 }));
-        const newCost = fmt(faker.number.float({ min: 500, max: 4000, fractionDigits: 2 }));
-        details = `AP cost adjusted`;
-        field = 'apCost';
-        oldValue = `$${oldCost}`;
-        newValue = `$${newCost}`;
-        break;
-      }
-      case 'Document Uploaded': {
-        const docType = pick(DOC_TYPES);
-        details = `${docType} document uploaded`;
-        break;
-      }
-      case 'Status Changed': {
-        const statusValues = ['Review', 'Done'];
-        const oldStatus = pick(statusValues);
-        const newStatus2 = pick(statusValues.filter(s => s !== oldStatus));
-        details = `Shipment status changed`;
-        field = 'status';
-        oldValue = oldStatus;
-        newValue = newStatus2;
-        break;
-      }
-      case 'PGI Completed':
-        details = `Post Goods Issue completed for ${orders.length} order(s)`;
-        break;
-      case 'PGR Completed':
-        details = `Post Goods Receipt confirmed at ${destLoc.facility}`;
-        break;
-      case 'PGI Error Corrected':
-        details = `PGI error corrected for order ${pick(orders).orderId}`;
-        break;
-      case 'Quote Entered': {
-        const qCarrier = pick(CARRIERS);
-        details = `Quote entered at $${fmt(faker.number.float({ min: 800, max: 5000, fractionDigits: 2 }))} for ${qCarrier.name}`;
-        break;
-      }
+  // 1. Shipment Created — TRANSIENT only, honestly random (no field
+  // distinguishes which shipments retried creation once).
+  if (faker.number.float({ min: 0, max: 1 }) < 0.06) {
+    pushHistory('Shipment Created', 'create', 'ERP',
+      `Shipment creation failed for Order ${orders[0].orderId}.`, 'failure');
+    advanceClock(0.01, 0.1);
+  }
+  pushHistory('Shipment Created', 'create', 'ERP',
+    `Buy Shipment ${buyShipment} and Sell Shipment ${sellShipment} created successfully for Order ${orders[0].orderId}.`);
+
+  // 2. Routing Completed — TRANSIENT only (see cross-tab correction above):
+  // routingOptions exist unconditionally, so every shipment's routing call
+  // DID eventually succeed; a failure here can only be a retried blip, never
+  // terminal. Honestly random, not tied to any field.
+  advanceClock(0.02, 0.5);
+  const totalDirectCost = costOrders.reduce((s, c) => s + c.cost.directCostAmount, 0);
+  if (faker.number.float({ min: 0, max: 1 }) < 0.05) {
+    pushHistory('Routing Completed', 'update', 'Linx',
+      'Routing call failed. Shipment moved to Review.', 'failure');
+    advanceClock(0.02, 0.3);
+  }
+  pushHistory('Routing Completed', 'update', 'Linx',
+    `Routing completed successfully. Direct cost calculated: $${fmt(totalDirectCost)}. Eligible carriers and route details identified.`);
+
+  // 3. Optimization Evaluation — Consolidation branch for multi-order
+  // shipments, Hold branch for single-order ones (order count is the only
+  // optimization-relevant fact this generator tracks). TRANSIENT only, same
+  // reasoning as Routing Completed above — every shipment's own routing data
+  // proves it eventually cleared this stage.
+  advanceClock(0.02, 0.5);
+  if (faker.number.float({ min: 0, max: 1 }) < 0.05) {
+    pushHistory('Optimization Evaluation', 'update', 'Linx',
+      'Optimization evaluation failed. Shipment status updated to Review.', 'failure');
+    advanceClock(0.02, 0.3);
+  }
+  const isConsolidation = orderCount > 1;
+  pushHistory('Optimization Evaluation', 'update', 'Linx',
+    isConsolidation
+      ? 'Optimization evaluation completed. Shipment moved to Consolidation.'
+      : 'Optimization evaluation completed. Shipment moved to Hold.');
+
+  if (isConsolidation) {
+    // 4. Consolidation Completed
+    advanceClock(0.1, 1);
+    pushHistory('Consolidation Completed', 'update', 'Linx',
+      `Consolidation completed. Final Shipment ${buyShipment} contains Orders ${joinOrders(orders.map(o => o.orderId))}.`);
+
+    // 5. Routing & Rating Completed
+    advanceClock(0.05, 0.5);
+    pushHistory('Routing & Rating Completed', 'update', 'Linx',
+      `Consolidated shipment routed and rated successfully. AP: $${fmt(apTotal)}; AR: $${fmt(arTotal)}. Carrier and route details refreshed.`);
+  }
+
+  // 6. Ready for Tender
+  advanceClock(1, 48);
+  pushHistory('Ready for Tender', 'update', 'Linx',
+    'Time-to-Tender reached. Shipment is eligible for tendering and moved to auto tender evaluation.');
+
+  // 7. Auto Tender Validation — TRANSIENT only: every shipment below actually
+  // gets tendered (Tender Sent always follows), so a validation failure here
+  // can only be a retried blip, never this shipment's real terminal event.
+  advanceClock(0.01, 0.2);
+  if (faker.number.float({ min: 0, max: 1 }) < 0.05) {
+    pushHistory('Auto Tender Validation', 'tender', 'Linx',
+      'Auto tender validation failed. Shipment moved for User Review.', 'failure');
+    advanceClock(0.01, 0.1);
+  }
+  pushHistory('Auto Tender Validation', 'tender', 'Linx',
+    'Auto tender validation passed. Tender initiated.');
+
+  // 8/9. Tender Sent + Tender Response Received name the SAME carrier both
+  // times — this generator doesn't model re-tender cascades (Sheet3 defers
+  // "Manual tendering" from MVP). focusOption is this shipment's real
+  // accepted carrier, its real in-progress "Sent" carrier, or (all-declined
+  // scenario) its rank-1 carrier — never an unrelated pick(CARRIERS) draw.
+  // tenderFailed assigns EVERY rank an independent Declined/Cancelled draw
+  // (not just rank-1), so routingOptions[0] alone can be 'Cancelled' while
+  // another rank on the SAME shipment really was 'Declined' — a genuine
+  // carrier response. Preferring a real Declined option here (before falling
+  // back to rank-1) is what keeps the tender-timeout narrative below honest:
+  // it only fires when NO option on this shipment shows a real response,
+  // never alongside a Declined one.
+  const focusOption = acceptedOption
+    || routingOptions.find(o => o.status === 'Sent')
+    || routingOptions.find(o => o.status === 'Declined')
+    || routingOptions[0];
+  advanceClock(0.01, 0.5);
+  pushHistory('Tender Sent', 'tender', 'Net Native',
+    `Tender status updated to Sent. Tender sent to carrier ${focusOption.carrierName} via ${focusOption.apiSource}.`);
+
+  if (hasAccepted) {
+    advanceClock(0.5, 24);
+    pushHistory('Tender Response Received', 'tender', 'Net Native',
+      `Tender response received from carrier ${focusOption.carrierName} via ${focusOption.responseMethod}. Tender status updated to Accepted.`);
+  } else if (hasSent) {
+    // Genuinely mid-flight (tenderStatus === 'Sent', no accepted carrier
+    // yet) — no response has arrived, so NO Tender Response Received event
+    // is pushed. This is the "no response event on a not-yet-responded
+    // tender" guard made concrete, and it is reachable today (~15% of
+    // shipments, the tenderInProgress scenario).
+  } else {
+    // tenderFailed (isReviewTerminal): every carrier was tendered and every
+    // one declined or was cancelled (never null — routingCount is never 0
+    // and tenderFailed assigns a status to every rank), so a response WAS
+    // received, just not an acceptance. This IS this shipment's real
+    // terminal event — the only stage the cross-tab correction above leaves
+    // standing as coherent with the shipment's own tender data.
+    advanceClock(0.5, 24);
+    if (focusOption.status === 'Declined') {
+      // DEC-81 follow-up (2026-08-10 user ruling): a real carrier decline is
+      // a normal (if unhappy) SYSTEM outcome — the response arrived and was
+      // recorded successfully, so this is not 'failure' (nothing failed) —
+      // but it is also not a good business outcome, and these are exactly
+      // the shipments that end up in Review. Was outcome: 'success' (bare
+      // green) until this ruling; now 'neutral' (amber) per the user's
+      // verbatim call for "a fourth neutral/amber treatment." The Accepted
+      // branch above is untouched — it stays 'success'.
+      pushHistory('Tender Response Received', 'tender', 'Net Native',
+        `Tender response received from carrier ${focusOption.carrierName} via ${focusOption.responseMethod}. Tender status updated to Declined.`,
+        'neutral');
+    } else {
+      // 'Cancelled' maps to the catalog's Timeout variant — this generator's
+      // status enum has no literal "timeout"; "Cancelled" (no active carrier
+      // decision recorded) is the closer real-world analogue than "Declined".
+      pushHistory('Tender Response Received', 'tender', 'Net Native',
+        'No carrier response received. Tender timed out and was automatically declined.', 'failure');
     }
 
-    // ~25% of entries are system-generated (User|System split, LINX-8091 AC)
-    const isSystemActor = faker.number.int({ min: 1, max: 100 }) <= 25;
-    const source = isSystemActor ? pick(HISTORY_SYSTEM_SOURCES) : undefined;
+    // PGI Response Received (validation-errors variant) — TERMINAL wrap-up,
+    // gated on a REAL signal rather than another random draw: this
+    // shipment's own orders resolve orderStatus to 'Shipment Failed'
+    // whenever !hasAccepted && !hasSent (see orderStatusLabel a few hundred
+    // lines below — VALIDATION_ERROR_STATUSES includes 'Shipment Failed'),
+    // which is exactly the condition guarding this whole branch (isReview
+    // Terminal). So every shipment that reaches here really does carry a
+    // validation-error order; the PGI-errors variant is unconditional here,
+    // not a coin flip.
+    advanceClock(1, 24);
+    pushHistory('PGI Response Received', 'completion', 'ERP',
+      'PGI response received with validation errors. Moved to user review for correction.', 'failure');
+  }
 
-    const entry = {
-      user: source || user,
-      timestamp: ts.toISOString(),
-      action: actionObj.action,
-      category: actionObj.category,
-      details,
-    };
-    if (source) entry.source = source;
-    if (field) entry.field = field;
-    if (oldValue !== undefined) entry.oldValue = oldValue;
-    if (newValue !== undefined) entry.newValue = newValue;
+  // 10-15. Post-acceptance pipeline — only a shipment actually Accepted
+  // (shipmentStatus === 'Done') reaches planning completion, PGI, and the
+  // final update notification. A Sent-or-declined-or-earlier-terminated
+  // shipment stops at the branches above.
+  if (hasAccepted) {
+    advanceClock(0.1, 2);
+    pushHistory('Shipment Planning Completed', 'completion', 'ERP', 'Shipment status updated to Done.');
 
-    historyEntries.push(entry);
+    advanceClock(0.05, 1);
+    pushHistory('Planned Shipment Sent', 'completion', 'ERP', 'Planned shipment details sent to customer.');
+
+    // PGI/PGR are out of project scope (DEC-80 ruling 4) — values below are
+    // filled at our discretion per the user's explicit "feel free to fill
+    // things that you need as you feel" ruling; no design implied or built.
+    // Accepted shipments always get the clean PGI success text here — the
+    // validation-errors variant above is reachable only via the tenderFailed
+    // (Review) branch, matching the real VALIDATION_ERROR_STATUSES gate.
+    advanceClock(12, 72);
+    pushHistory('PGI Response Received', 'completion', 'ERP',
+      'PGI received and execution updates applied to orders and shipment.');
+
+    advanceClock(0.1, 2);
+    const plannedCost = acceptedOption.rateDetails.baseRate;
+    const variance = Math.round((apTotal - plannedCost) * 100) / 100;
+    const varianceSign = variance >= 0 ? '+' : '-';
+    pushHistory('Post PGI Rating Completed', 'completion', 'ERP',
+      `Buy and Sell shipments rated successfully following PGI update. Planned Cost: $${fmt(plannedCost)}, Actual Cost (AP): $${fmt(apTotal)}, Variance: ${varianceSign}$${fmt(Math.abs(variance))}, Sell Rate (AR): $${fmt(arTotal)}.`);
+
+    // Event #15, Shipment Updated — NOT part of the linear pipeline list in
+    // this rebuild's brief; gated on a real signal (this shipment actually
+    // carries a post-quote AP discount or accessorial, i.e. its cost WAS
+    // revised) rather than emitted unconditionally, so it doesn't duplicate
+    // what Routing & Rating Completed already said for every accepted
+    // consolidated shipment. The catalog gives TWO variants here (both
+    // outcome: 'update', not failures) — split on which real cost component
+    // actually moved: a discount implies the rate/route was renegotiated
+    // (Transportation Relevant); an accessorial-only change is a rating-only
+    // adjustment (Non-Transportation Relevant). Mutually exclusive by
+    // construction (apDiscount checked first), so only one fires per
+    // shipment — both variants are reachable across the dataset.
+    if (apDiscount > 0) {
+      advanceClock(1, 24);
+      pushHistory('Shipment Updated', 'update', 'ERP',
+        `Shipment updated (Transportation Relevant). AP Cost: $${fmt(apTotal)}; AR Rate: $${fmt(arTotal)}. Routing and rating recalculated successfully.`,
+        'update');
+    } else if (apAccessorials > 0) {
+      advanceClock(1, 24);
+      pushHistory('Shipment Updated', 'update', 'ERP',
+        `Shipment updated (Non-Transportation Relevant). AP Cost: $${fmt(apTotal)}; AR Rate: $${fmt(arTotal)}. Rating recalculated successfully.`,
+        'update');
+    }
+
+    // Shipment Update Notification — TRANSIENT only, same honestly-random
+    // shape as Shipment Created above: no real field distinguishes which
+    // accepted shipments hit a delivery failure on this outbound message, so
+    // a modest random share retries once before the (always-present) success.
+    advanceClock(0.05, 1);
+    if (faker.number.float({ min: 0, max: 1 }) < 0.08) {
+      pushHistory('Shipment Update Notification', 'completion', 'Legacy TMS',
+        'Buy Shipment Out and Sell Shipment Out message delivery failed.', 'failure');
+      advanceClock(0.05, 0.5);
+    }
+    pushHistory('Shipment Update Notification', 'completion', 'Legacy TMS',
+      'Buy Shipment Out and Sell Shipment Out message successfully sent.');
   }
 
   // Notes — S111 (user ruling 2026-08-05): the S108 "min 1" fix over-corrected

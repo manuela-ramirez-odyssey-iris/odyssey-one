@@ -2,7 +2,7 @@ import React, { useState, useCallback, useRef } from 'react'
 import { Download, FileText, Sheet, File, EllipsisVertical, Plus } from 'lucide-react'
 import { ICON_MD, ICON_LG } from '@odyssey/tokens'
 import { Button, FormField, ModalMedium, Checkbox, ActionMenu, SubAccordion } from '@odyssey/ui'
-import { formatDateMDYFromDate } from '../../lib/dates'
+import { formatDateTimeMDYHM } from '../../lib/dates'
 
 const DOC_TYPES = ['BoL', 'MBoL', 'POD', 'SL', 'Packing List', 'Other']
 
@@ -11,12 +11,19 @@ function getFileExtension(fileName) {
   return parts.length > 1 ? '.' + parts.pop().toLowerCase() : ''
 }
 
-// Figma 4288:16622 — "12/16/2025 6:48 EST" (no comma, numeric hour)
+// Was split: date via the platform canon, time via toLocaleTimeString with
+// hour12: true (Figma 4288:16622 — "12/16/2025 6:48 EST"), the last 12-hour
+// holdout in production code. Ruling 2026-08-06: source precedence covers
+// design DESCRIPTIONS, not DATA FORMATS — Jira mandates 24-hour in three
+// independent places (LINX-8120, LINX-7629/7628/7634, LINX-8091). Fixed
+// 2026-08-10 (audit) to formatDateTimeMDYHM, the same "MM/DD/YYYY HH:MM" seam
+// the History tab and Tender writes already use. The mock's "EST" suffix is
+// dropped, not preserved: it came from toLocaleTimeString rendering the
+// BROWSER's zone, never from the document data itself (`doc.createdAt` is a
+// plain ISO instant with no zone field) — asserting a zone we don't actually
+// know would be worse than omitting it.
 function formatCreationTime(iso) {
-  const d = new Date(iso)
-  const date = formatDateMDYFromDate(d) // platform date canon (S107 addendum)
-  const time = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZoneName: 'short' })
-  return `${date} ${time}`
+  return formatDateTimeMDYHM(new Date(iso))
 }
 
 function FileIcon({ extension, size = 48 }) {
@@ -66,12 +73,34 @@ const DocumentsTab = React.memo(function DocumentsTab({ data }) {
     })
   }, [])
 
+  // LINX-12113 (2026-08-10) — real signed-URL downloads need a backend that
+  // doesn't exist yet (TODO below). Rather than ship two silently-inert
+  // buttons, the honest minimum: a document that carries a real `file`
+  // (Blob/File — only true for docs uploaded THIS session, see handleUpload)
+  // downloads for real via an object URL; every other doc (all seeded/remote
+  // ones — mapSellShipmentOutToDetail never attaches a Blob) gets a visibly
+  // DISABLED affordance instead of a click that does nothing.
+  const handleDownload = useCallback((doc) => {
+    if (!doc?.file) return
+    const url = URL.createObjectURL(doc.file)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = doc.fileName || 'download'
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
+  }, [])
+
   const handleUpload = useCallback(() => {
     if (!formFile) return
     const newDoc = {
       type: formType,
       description: formDesc || formFile.name,
       fileName: formFile.name,
+      // Kept so this doc's Download affordance is real, not disabled — see
+      // handleDownload. Previously dropped entirely (only fileName survived).
+      file: formFile,
     }
     setDocuments((prev) => [...prev, newDoc])
     setShowModal(false)
@@ -174,9 +203,15 @@ const DocumentsTab = React.memo(function DocumentsTab({ data }) {
                           align="right"
                           options={[
                             {
-                              label: 'Download',
-                              // No-op stub — real download requires signed URL from backend
-                              onSelect: () => { /* TODO: wire to presigned download URL */ },
+                              // ActionMenu/MenuRow have no per-option title/tooltip slot (a
+                              // library change, out of scope here) — the label itself carries
+                              // the explanation for the disabled case so it's never a silently
+                              // inert click. TODO: once a presigned-download endpoint exists
+                              // (backend-gated), every doc gets a real onSelect regardless of
+                              // `file`, and this label collapses back to a plain 'Download'.
+                              label: doc.file ? 'Download' : 'Download (unavailable)',
+                              disabled: !doc.file,
+                              onSelect: doc.file ? () => handleDownload(doc) : undefined,
                             },
                             {
                               label: 'Delete',
@@ -207,7 +242,14 @@ const DocumentsTab = React.memo(function DocumentsTab({ data }) {
                 <Button variant="secondary" size="lg" onClick={() => setPreviewDoc(null)}>
                   Close
                 </Button>
-                <Button variant="primary" size="lg" icon={<Download size={20} />}>
+                <Button
+                  variant="primary"
+                  size="lg"
+                  icon={<Download size={20} />}
+                  disabled={!previewDoc.file}
+                  title={previewDoc.file ? undefined : 'Download unavailable — no file attached (presigned-URL download is backend-gated)'}
+                  onClick={previewDoc.file ? () => handleDownload(previewDoc) : undefined}
+                >
                   Download
                 </Button>
               </>

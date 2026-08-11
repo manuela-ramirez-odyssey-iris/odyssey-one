@@ -15,6 +15,8 @@ Entry point for the Shipments domain knowledge base.
 - [[domain-analysis|Domain Analysis]] — source-of-truth document, distilled from Jana + David grooming
 - [[decisions/decision-log|Decision Log]] — every implemented decision traced to its source
 - [[global-search-adaptation|GlobalSearch — Shipments Adaptation]] — how the cross-cutting [[../../20-cross-cutting/global-search/global-search|GlobalSearch canon]] lands as Shipments v1: attribute coverage gap, mechanism gap, Shipments-only extras, build ladder
+- [[shipment-trail|Shipment Trail (= History Screen)]] — terminology ruling, actor model, event-template model, MVP scope boundary, gap analysis against `HISTORY_ACTIONS`
+- [[data/history-event-catalog|History Event Catalog]] — Pappu's MVP event/variant/template spec, transcribed lossless with `<Placeholder>` tokens intact
 
 ## Backlog
 

@@ -5593,6 +5593,71 @@ button.breadcrumb__label:focus-visible {
   overflow: hidden;
 }
 
+/* TabLoader (BottomBar.jsx) — fix, 2026-08-10: absolute+inset:0 against
+   `.shipments-bar__content` (always position:relative, above) instead of a
+   height:100% that depended on a since-verified-partial ancestor pinning.
+   Fills and centers regardless of which of TabLoader's 3 call sites
+   (fresh-open loader, Suspense tab-switch fallback, stale overlay) renders
+   it. */
+.tab-loader {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Fix B (2026-08-10, user ruling / DEC-61): while the pane shows a react-query
+   PLACEHOLDER (the previous shipment's data, kept via keepPreviousData while
+   the newly-selected one fetches — BottomBar.jsx's `detailsStale`), dim the
+   pane and overlay the existing TabLoader spinner so the staleness is
+   VISIBLE instead of silently showing shipment A's data under shipment B's
+   id. Overlay is absolutely positioned against `.shipments-bar__content`
+   (already `position: relative`, above). */
+.shipments-bar__pane--stale {
+  /* ponytail: no opacity token exists yet in tokens.css — raw value until one
+     is proposed; everything else here (color/radii/etc.) already goes through
+     the shared TabLoader component, not new hardcoded values. */
+  opacity: 0.5;
+  pointer-events: none;
+}
+.shipments-bar__pane-stale-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* CenteredMessage — app-local primitive shared by ErrorState (and, once
+   /normalize'd together, EmptyState) — see
+   src/components/common/CenteredMessage.jsx for the merge-vs-share reasoning.
+   Base layout only; intent-specific color lives on the consumer class
+   (.error-state below). */
+.centered-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-3);
+  padding: var(--spacing-6);
+}
+.centered-message__detail {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+}
+
+/* INTERIM (2026-08-10, user ruling): shared ErrorState surface (app-local,
+   src/components/common/ErrorState.jsx) — icon + text, subtle red, plain
+   centered column. Used by both BottomBar.jsx's detailsError branch and
+   ShipmentTable.jsx's grid-fetch error so the two "something broke" surfaces
+   match. NOT the shared/normalized error surface — pending Efrain + a Figma
+   error state; this is a stopgap, not the finished component. Renamed off
+   `.shipments-bar__error-state` now that the grid shares it too. */
+.error-state {
+  color: var(--text-error);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .shipments-bar,
   .widget-mini {

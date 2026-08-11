@@ -197,3 +197,32 @@ describe('QuoteModal — Equipment field', () => {
     expect(within(combo).getByRole('combobox').value).toBe('')
   })
 })
+
+// Markup currency (2026-08-10) — markupCurrency was a dead, hardcoded 'USD'
+// state never seeded from carrierData, so a CAD quote's Markup silently
+// rendered/reset to USD. Ruling: markup shares the quote's ONE currency
+// (arTotal sums base + markup as a single currency), so this is a collapse,
+// not a persistence fix.
+describe('QuoteModal — Markup currency', () => {
+  it('view mode renders Markup in the quote\'s shared currency, not a hardcoded USD', () => {
+    const cadQuote = { ...quote, rateDetails: { ...quote.rateDetails, currency: 'CAD' } }
+    render(<QuoteModal mode="view" carrierData={cadQuote} onSave={() => {}} onClose={() => {}} />)
+    expect(screen.getByText('$803.73 CAD')).toBeTruthy() // Base Rate
+    expect(screen.getByText('$354.42 CAD')).toBeTruthy() // Markup — was '$354.42 USD'
+  })
+
+  it('changing currency via either rate field survives a save round-trip', () => {
+    const onSave = vi.fn()
+    render(<QuoteModal mode="edit" carrierData={quote} onSave={onSave} onClose={() => {}} />)
+    // FieldSelect's UoM trigger opens a portal dropdown (useAnchoredPortal →
+    // document.body) — same recipe CarrierBid.test.jsx uses for MeasureField.
+    // "Base Rate" also labels an AP/AR summary row, so pick the field's label.
+    const baseField = screen.getByText('Base Rate', { selector: 'label' }).closest('.form-field')
+    fireEvent.click(within(baseField).getByRole('button'))
+    fireEvent.click(screen.getByRole('option', { name: 'CAD' }))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save Quote' }))
+    expect(onSave).toHaveBeenCalledTimes(1)
+    expect(onSave.mock.calls[0][0].rateDetails.currency).toBe('CAD')
+  })
+})

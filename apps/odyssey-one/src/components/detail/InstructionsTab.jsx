@@ -2,10 +2,24 @@ import React, { useState } from 'react'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 import PaneEmpty from './PaneEmpty'
 
-function InstructionGroup({ order }) {
-  const [expanded, setExpanded] = useState(true)
+// LINX-12071 (audit 2026-08-10) — the default was `useState(true)` unconditionally,
+// so it applied identically to every InstructionGroup instance and EVERY order
+// rendered expanded. AC requires only the first order open by default, the rest
+// closed. `defaultOpen` is index-derived by the parent (index === 0) and used
+// only as the useState SEED — each group still owns its own independent toggle
+// afterwards, so expanding/collapsing one group never affects another.
+function InstructionGroup({ order, defaultOpen }) {
+  const [expanded, setExpanded] = useState(defaultOpen)
 
   const headingId = `instr-group-heading-${order.orderId}`
+  // LINX-12070/12071 — Order Header must show the instruction count, formatted
+  // "OXU6IOCR7 (4 instructions)" per the AC. The AC's only example is plural;
+  // English still requires the singular "(1 instruction)" for a count of
+  // exactly one, so that case is handled explicitly (a deliberate deviation
+  // from the literal example, not an oversight). An empty list reads
+  // "(0 instructions)" — plural, matching normal English usage for zero.
+  const count = order.instructions.length
+  const countLabel = count === 1 ? '1 instruction' : `${count} instructions`
 
   return (
     <div className="instr-group">
@@ -28,7 +42,7 @@ function InstructionGroup({ order }) {
         <span className="instr-group__chevron" aria-hidden="true">
           {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
         </span>
-        <span className="instr-group__id">{order.orderId}</span>
+        <span className="instr-group__id">{order.orderId} ({countLabel})</span>
       </div>
 
       {/* Mini-table — hidden when collapsed */}
@@ -75,8 +89,8 @@ const InstructionsTab = React.memo(function InstructionsTab({ data }) {
           <div className="pane-card__header">
             <span className="pane-card__title">Instructions</span>
           </div>
-          {data.orders.map((order) => (
-            <InstructionGroup key={order.orderId} order={order} />
+          {data.orders.map((order, i) => (
+            <InstructionGroup key={order.orderId} order={order} defaultOpen={i === 0} />
           ))}
         </div>
       </div>

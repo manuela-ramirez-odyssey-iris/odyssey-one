@@ -32,8 +32,9 @@
   background: var(--border-subtle);
 }
 
-/* Category dot — color set inline per entry (create/tender/update/completion
-   map to the matching Badge text token; no dedicated dot token exists). */
+/* Outcome dot — color set inline per entry (DEC-81, 2026-08-10: keyed on
+   entry.outcome — failure/success/update — not category; maps to the
+   matching Badge text token, no dedicated dot token exists). */
 .history-dot {
   position: absolute;
   left: -21px;

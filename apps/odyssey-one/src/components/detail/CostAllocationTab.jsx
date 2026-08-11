@@ -22,6 +22,30 @@ function diffIsPositive(diffStr) {
   return !diffStr.startsWith('-')
 }
 
+// LINX-12106/12109 (audit 2026-08-10) — Margin's SummaryStrip tone must track
+// the actual sign of the parsed number, not a literal. Verified how a negative
+// margin actually renders: fmtDollar (src/utils/money) formats a negative as
+// "-$250.00" (sign BEFORE the "$"), never "$-250.00". parseDollar strips
+// everything but digits/dot/minus, so it recovers -250 from that string
+// regardless of where the "-" sits — confirmed both shapes parse correctly.
+// Unparseable ('--', null, empty) must NOT default to 'positive' — that was
+// the exact defect (a losing shipment rendered green). Returns undefined
+// (tone omitted) for that case so SummaryStrip applies its neutral treatment
+// (no --positive/--negative class — see SummaryStrip.jsx's tone ternary).
+function marginTone(marginStr) {
+  const n = parseDollar(marginStr)
+  if (n == null) return undefined
+  return n < 0 ? 'negative' : 'positive'
+}
+
+// LINX-12107 — the expanded-map seed: first order's orderId → true, everything
+// else absent (GroupTable treats a missing key as collapsed). Zero orders
+// returns {} safely (no orderId to key on).
+function defaultExpandedMap(data) {
+  const firstId = data?.planned?.orders?.[0]?.orderId
+  return firstId ? { [firstId]: true } : {}
+}
+
 // Child charge lines from the order VM fields (the rows of a GroupTable group).
 function chargeLines(order) {
   return [
@@ -110,11 +134,16 @@ function CompareTable({ orders, expanded, onToggle }) {
 const CostAllocationTab = React.memo(function CostAllocationTab({ data }) {
   const [subTab, setSubTab] = useState('planned')
   // Expanded map keyed by orderId — controlled into GroupTable so Expand All
-  // and the per-order row toggles share one source of truth. Starts collapsed.
-  const [expandedOrders, setExpandedOrders] = useState({})
+  // and the per-order row toggles share one source of truth. LINX-12107
+  // (2026-08-10): the FIRST order must default expanded, the rest collapsed —
+  // an empty map defeats GroupTable's own defaultExpanded (its `expanded` prop
+  // treats a missing key as collapsed, not "use my default"), so the initial
+  // value has to seed the first key itself, and the reset-on-data-change effect
+  // below has to recompute it rather than clearing back to {}.
+  const [expandedOrders, setExpandedOrders] = useState(() => defaultExpandedMap(data))
 
   useEffect(() => {
-    setExpandedOrders({})
+    setExpandedOrders(defaultExpandedMap(data))
   }, [data])
 
   if (!data) return <PaneEmpty message="No cost data available." />
@@ -172,7 +201,7 @@ const CostAllocationTab = React.memo(function CostAllocationTab({ data }) {
                 { label: 'Accessorials', value: planned.summary.accessorials },
                 { label: 'AP Total',     value: planned.summary.apTotal },
                 { label: 'AR Total',     value: planned.summary.arTotal },
-                { label: 'Margin',       value: planned.summary.margin, tone: 'positive' },
+                { label: 'Margin',       value: planned.summary.margin, tone: marginTone(planned.summary.margin) },
               ]}
             />
           )}

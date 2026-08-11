@@ -4,7 +4,7 @@ import AppShell from '../../components/layout/AppShell'
 import ShipmentsPanelTabs from '../../components/shipments/ShipmentsPanelTabs'
 import TableControls from '../../components/shipments/TableControls'
 import ShipmentTable from '../../components/shipments/ShipmentTable'
-import BottomBar, { DEFAULT_TAB_ORDER } from '../../components/detail/BottomBar'
+import BottomBar, { DEFAULT_TAB_ORDER, mergeTabOrder } from '../../components/detail/BottomBar'
 import ColumnPanel, { ALL_COLUMNS, EXCEPTIONS_DEFAULT_COLUMNS, MONITORING_DEFAULT_COLUMNS, RIGHT_PANEL_WIDTH, PRESETS, mergeLateAddedColumns } from '../../components/detail/ColumnPanel'
 import TabArrangementPanel from '../../components/detail/TabArrangementPanel'
 import { COLUMN_CONFIG } from '../../components/shipments/ShipmentTable'
@@ -51,9 +51,6 @@ function ShipmentsRoute() {
   const [searchCriteria, setSearchCriteria] = useState(null)
   const [columnPanelOpen, setColumnPanelOpen] = useState(false)
   const [tabPanelOpen, setTabPanelOpen] = useState(false)
-  // Ordered visible ShipmentsBar tab keys (hidden = absent; Orders pinned first).
-  // Route-state lifespan only — same persistence as the column arrangement.
-  const [tabOrder, setTabOrder] = useState(DEFAULT_TAB_ORDER)
   const [pageNumber, setPageNumber] = useState(0)
   const [pageSize, setPageSize] = useState(25)
   // Column sorting (S85) — one column always drives (DataTable flips asc↔desc, never
@@ -76,6 +73,60 @@ function ShipmentsRoute() {
   const setVisibleColumns = useCallback((newCols) => {
     setColumnsByPanel(prev => ({ ...prev, [activePanel]: newCols }))
   }, [activePanel])
+
+  // Ordered visible ShipmentsBar tab keys (hidden = absent; Orders pinned
+  // first). Fix D (LINX-11786, 2026-08-10): was route-state-lifespan-only
+  // (plain useState reset on every reload) — mirrors `columnsByPanel` above
+  // exactly: scoped per PANEL (Exceptions vs Monitoring — the only two
+  // BottomBar actually opens against; PGI/PGR has no table/detail bar yet)
+  // and persisted through the SAME useUserPreference contract as the column
+  // presets below (load-once/save-on-commit, no optimistic updates).
+  const [tabOrderByPanel, setTabOrderByPanel] = useState({
+    exceptions: DEFAULT_TAB_ORDER,
+    monitoring: DEFAULT_TAB_ORDER,
+  })
+  const { data: tabOrderPref, isLoading: tabOrderPrefLoading, save: saveTabOrderPref } = useUserPreference('shipments.tabOrder')
+  // Hydrate once the preference loads — DURING RENDER (the "adjust state on
+  // change" pattern used elsewhere in this file: queryIdentity/pageNumber,
+  // the pill fallback, the GS-18 landing jump), not a useEffect. An effect
+  // fires ONE TICK AFTER `tabOrderPrefLoading` flips to false, which would
+  // race the ColumnPanel-style remount-on-load key below: the remount could
+  // land in the SAME commit as `tabOrderPrefLoading` going false but with the
+  // PRE-hydration (still-default) order, one tick before the effect actually
+  // applied the real one — a real bug (found by this session's own Fix D
+  // tests: TabArrangementPanel would only re-sync its draft from `tabOrder`
+  // on its next isOpen false→true edge, so a panel opened in that one-tick
+  // window would show/save the wrong order until closed and reopened).
+  // Doing it here instead means the merged value and the loading flag change
+  // together, in the exact same commit. Each panel's stored array is MERGED
+  // against the live TABS list (mergeTabOrder — unknown keys dropped, missing
+  // keys appended, Orders forced first) rather than trusted wholesale,
+  // because a save can predate a tab shipped later (SpotBoard/S104) or
+  // reference one since retired. One-shot via the ref guard.
+  const tabOrderHydratedRef = useRef(false)
+  let effectiveTabOrderByPanel = tabOrderByPanel
+  if (tabOrderPref && !tabOrderHydratedRef.current) {
+    tabOrderHydratedRef.current = true
+    effectiveTabOrderByPanel = {
+      exceptions: tabOrderPref.exceptions ? mergeTabOrder(tabOrderPref.exceptions) : tabOrderByPanel.exceptions,
+      monitoring: tabOrderPref.monitoring ? mergeTabOrder(tabOrderPref.monitoring) : tabOrderByPanel.monitoring,
+    }
+    setTabOrderByPanel(effectiveTabOrderByPanel)
+  }
+  const tabOrder = effectiveTabOrderByPanel[activePanel] || DEFAULT_TAB_ORDER
+  // Persists `{ order, knownKeys }` for ONLY the touched panel (see
+  // mergeTabOrder's comment for what `knownKeys` — DEFAULT_TAB_ORDER as of
+  // this save's epoch — disambiguates) — spread over whatever's already
+  // STORED for the other panel, not over its local runtime default/hydrated
+  // value, so saving Exceptions can never write a Monitoring entry the user
+  // never actually committed (true separation, not just non-overwrite).
+  const setTabOrder = useCallback((newOrder) => {
+    setTabOrderByPanel(prev => ({ ...prev, [activePanel]: newOrder }))
+    saveTabOrderPref({
+      ...tabOrderPref,
+      [activePanel]: { order: newOrder, knownKeys: DEFAULT_TAB_ORDER },
+    })
+  }, [activePanel, saveTabOrderPref, tabOrderPref])
 
   // Persisted ColumnPanel preset store (S101) — user_preferences row keyed
   // 'shipments.columnPresets'. Loaded once; saved only when the panel commits
@@ -103,7 +154,21 @@ function ShipmentsRoute() {
   // endpoints / the grid row already in hand — deferred.
   const allShipments = useMemo(() => getAllShipments(), [])
 
-  const { data: shipmentDetails = null, isLoading: detailsLoading, isError: detailsError, refetch: refetchDetails } = useShipmentDetail(selectedShipmentId)
+  // Fix A (2026-08-10): `error` is the real ApiError/Error the query threw
+  // (api/client.ts's apiErrorFrom parses the server's real {message, detail}
+  // body onto it) — was never destructured before, so BottomBar could only
+  // ever show its hardcoded generic string. Fix B (2026-08-10): `isPlaceholderData`
+  // is react-query's flag for "this data is the PREVIOUS shipment's, held over
+  // by placeholderData: keepPreviousData (useShipmentDetail.ts) while the new
+  // one fetches" — replaces BottomBar's old hand-rolled `lastDetailsRef`.
+  const {
+    data: shipmentDetails = null,
+    isLoading: detailsLoading,
+    isError: detailsError,
+    error: detailsErrorDetail,
+    isPlaceholderData: detailsStale,
+    refetch: refetchDetails,
+  } = useShipmentDetail(selectedShipmentId)
 
   // Reset to the first page whenever the query identity (panel/tab/search/customer
   // scope) changes. Done during render (React's documented "adjust state on change"
@@ -368,6 +433,14 @@ function ShipmentsRoute() {
             onPresetStateChange={savePresetPref}
           />
           <TabArrangementPanel
+            // Fix D (2026-08-10): same remount-once-loaded trick as ColumnPanel
+            // above (`presetPrefLoading` key) — TabArrangementPanel only re-syncs
+            // its internal draft from `tabOrder` on an isOpen false→true edge, so
+            // without this a panel opened before the preference resolves would
+            // capture the pre-hydration (default) order and never pick up the
+            // real saved one until closed and reopened. Safe: the panel is closed
+            // (invisible) for this — same as ColumnPanel's.
+            key={tabOrderPrefLoading ? 'tab-pref-loading' : 'tab-pref-ready'}
             isOpen={tabPanelOpen}
             onClose={() => setTabPanelOpen(false)}
             tabOrder={tabOrder}
@@ -445,6 +518,10 @@ function ShipmentsRoute() {
           onRetry={refetchList}
         />
       )}
+      {/* No onToggleColumnPanel prop here (Fix 3, 2026-08-10) — BottomBar dropped
+          its own onToggleColumnPanel prop since the Routing Guide tab (its only
+          consumer) removed the gear that used to call it; ShipmentTable above
+          still gets handleToggleColumnPanel for the shipments-list column panel. */}
       <BottomBar
         selectedShipmentId={selectedShipmentId}
         requestedTab={requestedTab}
@@ -452,11 +529,12 @@ function ShipmentsRoute() {
         shipmentDetails={shipmentDetails}
         shipment={selectedShipment}
         rightOffset={rightOffset}
-        onToggleColumnPanel={handleToggleColumnPanel}
         onTabArrangement={handleToggleTabPanel}
         tabOrder={tabOrder}
         detailsLoading={detailsLoading}
         detailsError={detailsError}
+        error={detailsErrorDetail}
+        detailsStale={detailsStale}
         onRetryDetails={refetchDetails}
         onPrevShipment={handlePrevShipment}
         onNextShipment={handleNextShipment}

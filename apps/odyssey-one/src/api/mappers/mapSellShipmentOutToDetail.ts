@@ -169,17 +169,43 @@ function sumOrderWeights(dto: SellShipmentOut): number | undefined {
   return vals.length ? vals.reduce((a, b) => a + b, 0) : undefined
 }
 
+// LINX-12067 (AC audit, 2026-08-10): AC says Distance must "Display distance
+// from routing corresponding to current tender option" — the shipment
+// header's own distanceMiles (dto.distanceMiles) is a DIFFERENT field, seeded
+// independently from the routing option's distanceMiles (generate.mjs:1352
+// vs :767), so the two provably disagree for every seeded shipment. "Current
+// tender option" isn't defined by the AC; there's an open question to Ramesh
+// on whether a pre-acceptance option should count. Until answered: prefer
+// Accepted (tender confirmed) > Sent (tendering in progress) > none.
+function currentTenderOption(list?: SellShipmentRoutingOption[]): SellShipmentRoutingOption | undefined {
+  if (!list || list.length === 0) return undefined
+  return list.find((o) => o.status === 'Accepted') ?? list.find((o) => o.status === 'Sent')
+}
+
 function mapStops(dto: SellShipmentOut): ShipmentDetailVM['stopsData'] {
   const totalWeight = sumOrderWeights(dto)
   const summary: StopsSummaryVM = {
-    distance: dto.distanceMiles != null ? `${dto.distanceMiles} mi` : DASH,
+    // dto.distanceMiles (header) deliberately NOT read here — see
+    // currentTenderOption's comment. fmtDistance is shared with
+    // mapRoutingOption's own `distance` field so the two tables format
+    // identically.
+    distance: fmtDistance(currentTenderOption(dto.shippingOptionList)?.distanceMiles),
     grossWeight: totalWeight != null ? `${fmtInt(totalWeight)} LB` : DASH,
     volume: dto.totalVolumeValue != null
       ? `${dto.totalVolumeValue} ${dto.totalVolumeUomCode ?? 'cuft'}`
       : DASH,
     acceptedCarrier: orDash(dto.acceptedCarrierLabel),
     seedEquipment: orDash(dto.seedEquipment),
-    utilization: dto.utilizationPercent != null ? `${dto.utilizationPercent}%` : DASH,
+    // LINX-12067 (AC audit, 2026-08-10): AC text is "Refer Story for
+    // Utilization (Story TBD)", with a bolded note: "In case Utilization
+    // story is not ready, please display field as '--'." That story doesn't
+    // exist, so dto.utilizationPercent (a real-looking random value from
+    // tools/generate.mjs:1357) was rendering as an invented metric. Forced to
+    // DASH on purpose at the display layer — generator is left alone (owned
+    // elsewhere) and the DTO read below is commented, not deleted, so
+    // restoring is a one-line change once the Utilization story ships:
+    // dto.utilizationPercent != null ? `${dto.utilizationPercent}%` : DASH
+    utilization: DASH,
   }
   return {
     summary,
@@ -389,19 +415,26 @@ function mapCostOrder(o: SellShipmentOrder): CostOrderVM {
     margin: (c?.arTotalAmount != null && c?.apTotalAmount != null)
       ? fmtDollar(c.arTotalAmount - c.apTotalAmount)
       : DASH,
-    // base/fuel always show ($0.00 if somehow zero); discount/hzc/soc are
-    // conditional accessorials — a zero/absent charge degrades to '--' (all three
-    // consistent, matching the original per-order breakdown).
+    // LINX-12110 (AC audit, 2026-08-10): all six of these used to be truthy
+    // ternaries (`c?.apDiscountAmount ? fmtCostAmt(...) : DASH`), rationalized
+    // as "conditional accessorials — a zero/absent charge degrades to '--'".
+    // That's wrong: `0` is falsy in JS, so a genuine $0.00 charge was
+    // indistinguishable from an absent one and rendered '--', contradicting
+    // fmtCostAmt's own documented rule two lines up ("Zero is a valid cost;
+    // show $0.00 not --") and inconsistent with apBase/apFuel below, which
+    // already null-check correctly. fmtCostAmt already does the `!= null`
+    // check internally, so passing the raw (possibly-undefined) amount
+    // straight through — same as apBase/apFuel — is sufficient.
     apBase: fmtCostAmt(c?.apBaseAmount),
     apFuel: fmtCostAmt(c?.apFuelAmount),
-    apDiscount: c?.apDiscountAmount ? fmtCostAmt(c.apDiscountAmount) : DASH,
-    apHzc: c?.apHzcAmount ? fmtCostAmt(c.apHzcAmount) : DASH,
-    apSoc: c?.apSocAmount ? fmtCostAmt(c.apSocAmount) : DASH,
+    apDiscount: fmtCostAmt(c?.apDiscountAmount),
+    apHzc: fmtCostAmt(c?.apHzcAmount),
+    apSoc: fmtCostAmt(c?.apSocAmount),
     arBase: fmtCostAmt(c?.arBaseAmount),
     arFuel: fmtCostAmt(c?.arFuelAmount),
-    arDiscount: c?.arDiscountAmount ? fmtCostAmt(c.arDiscountAmount) : DASH,
-    arHzc: c?.arHzcAmount ? fmtCostAmt(c.arHzcAmount) : DASH,
-    arSoc: c?.arSocAmount ? fmtCostAmt(c.arSocAmount) : DASH,
+    arDiscount: fmtCostAmt(c?.arDiscountAmount),
+    arHzc: fmtCostAmt(c?.arHzcAmount),
+    arSoc: fmtCostAmt(c?.arSocAmount),
   }
 }
 
@@ -439,10 +472,25 @@ function mapCost(dto: SellShipmentOut): ShipmentDetailVM['costData'] {
 function mapInstructions(dto: SellShipmentOut): ShipmentDetailVM['instructionsData'] {
   return {
     orders: (dto.orderList ?? []).map(o => ({
-      orderId: o.orderId,
+      // LINX-12070 (AC audit, 2026-08-10): Order Header must show the Client
+      // Transportation Order Number, which mapOrder (~:70) already sources as
+      // `orderNumber ?? orderId`; this mapper read `orderId` alone. Dormant
+      // only because the generator seeds the two equal (generate.mjs:1216-17)
+      // — same wrong-field bug class the whitelist-mapper issue shipped
+      // twice under.
+      orderId: o.orderNumber ?? o.orderId,
       instructions: (o.instructionList ?? []).map(i => ({
+        // seq is intentionally NOT routed through orDash: InstructionVM.seq
+        // is typed `number` (non-nullable) and orDash is typed for strings
+        // only, so this wouldn't type-check — and if it somehow did, it would
+        // silently turn seq into a string, breaking the numeric contract for
+        // any future consumer (sort/key/math) even though today's renderers
+        // (InstructionsTab.jsx, OrderPaneSections.jsx) only display it as
+        // text. sequenceNumber is also typed non-nullable on the DTO, so
+        // there's no real null case to guard here. Only `text` gets
+        // LINX-12070's null-handling treatment, same as every sibling mapper.
         seq: i.sequenceNumber,
-        text: i.text,
+        text: orDash(i.text),
       })),
     })),
   }

@@ -176,7 +176,6 @@ export function QuoteModal({ mode, carrierData, shipmentTz, onSave, onClose }) {
   const [baseRate, setBaseRate] = useState(() => carrierData?.rateDetails?.baseRate ?? '')
   const [currency, setCurrency] = useState(() => carrierData?.rateDetails?.currency || 'USD')
   const [markup, setMarkup] = useState(() => carrierData?.rateDetails?.markup ?? '')
-  const [markupCurrency, setMarkupCurrency] = useState(() => 'USD')
   const [additionalCharges, setAdditionalCharges] = useState(() =>
     carrierData?.rateDetails?.additionalCharges?.map(c => ({ ...c })) || [],
   )
@@ -329,7 +328,7 @@ export function QuoteModal({ mode, carrierData, shipmentTz, onSave, onClose }) {
             {isView ? (
               <>
                 <TitleSubtitle subtitle="Base Rate" title={money(baseRate, currency)} />
-                <TitleSubtitle subtitle="Markup" title={money(markup, markupCurrency)} />
+                <TitleSubtitle subtitle="Markup" title={money(markup, currency)} />
               </>
             ) : (
               <>
@@ -345,9 +344,14 @@ export function QuoteModal({ mode, carrierData, shipmentTz, onSave, onClose }) {
                   showLabel
                   label="Markup"
                   decimals={2}
-                  value={{ value: markup, uom: markupCurrency }}
+                  // UoM here IS the quote's shared `currency`, not a separate
+                  // markup-only one (2026-08-10 ruling): arTotal sums base +
+                  // markup as a single currency, so an independent markup
+                  // currency was arithmetically incoherent, not merely
+                  // un-persisted. One quote, one currency.
+                  value={{ value: markup, uom: currency }}
                   options={CURRENCY_OPTIONS}
-                  onChange={(v) => { setMarkup(v.value); setMarkupCurrency(v.uom) }}
+                  onChange={(v) => { setMarkup(v.value); setCurrency(v.uom) }}
                 />
               </>
             )}

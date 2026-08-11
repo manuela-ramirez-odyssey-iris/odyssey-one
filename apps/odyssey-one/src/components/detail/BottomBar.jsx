@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef, useTransition, Suspense } from 'react'
-import { Loader2 } from 'lucide-react'
-import { ShipmentsBar } from '@odyssey/ui'
+import { TriangleAlert, RefreshCw } from 'lucide-react'
+import { ICON_LG, ICON_MD } from '@odyssey/tokens'
+import { ShipmentsBar, Button, Spinner } from '@odyssey/ui'
 import ShipmentDetailsModal from './ShipmentDetailsModal'
+import PaneErrorBoundary from '../common/PaneErrorBoundary.jsx'
+import ErrorState from '../common/ErrorState.jsx'
 
 const OrderTab = React.lazy(() => import('./OrderTab'))
 const StopsTab = React.lazy(() => import('./StopsTab'))
@@ -15,15 +18,38 @@ const NotesTab = React.lazy(() => import('./NotesTab'))
 const HistoryTab = React.lazy(() => import('./HistoryTab'))
 const TenderHistoryTab = React.lazy(() => import('./TenderHistoryTab'))
 
-// Loader fills the full expanded canvas so the bar animates once (48→cap) and
-// the spinner sits centered in the available height. height:100% resolves
-// because the pane wrapper below is absolutely pinned to the content area
-// while loading (S79f) — definite both mid-animation (inline px height on
-// the bar) and after release (auto + min-height ratchet at the cap).
+// Fix (2026-08-10, user report "put the spinner in the vertical middle of
+// the slot" — it wasn't): the S79f comment this replaced claimed height:100%
+// always resolves because "the pane wrapper below is absolutely pinned to
+// the content area while loading." Verified false as a general claim — that
+// pinning (BottomBar's `style={freshLoading ? {position:'absolute',
+// inset:0} : undefined}` on the key={selectedShipmentId} wrapper) only
+// applies when `freshLoading` is true (first open, no data yet). On an
+// ordinary TAB SWITCH — the far more common path, where a not-yet-loaded
+// lazy pane trips the Suspense fallback below — `shownDetails` already
+// exists, so that wrapper is a plain unstyled div with no explicit height.
+// `height: 100%` on the old inline style then had no definite parent height
+// to resolve against (percentage heights require one) and collapsed to the
+// spinner's own size — never centered, just top-aligned content. `minHeight:
+// 0` made it worse by killing the one thing that could've forced height.
+// The comment was the bug: stale for 2 of TabLoader's 3 call sites (plain
+// Suspense fallback; only accurate for the freshLoading branch and the
+// already-absolute `.shipments-bar__pane-stale-overlay`).
+//
+// Fix: stop depending on the ancestor's per-render positioning at all.
+// `.tab-loader` (styles/components.css) is itself `position: absolute;
+// inset: 0`, anchored to `.shipments-bar__content` — that wrapper is
+// UNCONDITIONALLY `position: relative` (packages/ui/src/ShipmentsBar.jsx:261
+// wraps `children` in it directly, no state gate), so this resolves the same
+// way regardless of freshLoading/tab-switch/stale-overlay. Token-based class
+// over inline styles, matching the .centered-message conversion.
+// jsdom cannot verify real vertical centering (no layout engine) — the test
+// only asserts the class is applied; visual confirmation in a real browser
+// is still owed.
 function TabLoader() {
   return (
-    <div style={{ height: '100%', minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-placeholder)' }}>
-      <Loader2 size={24} className="animate-spin" />
+    <div className="tab-loader">
+      <Spinner size={32} />
     </div>
   )
 }
@@ -47,6 +73,73 @@ export const TABS = [
 
 export const DEFAULT_TAB_ORDER = TABS.map(t => t.key)
 
+// Fix E (2026-08-10): per-tab error copy, mandated verbatim by 5 Jira ACs
+// (LINX-12069 stops / LINX-12072 instructions / LINX-12076 notes / LINX-12110
+// cost / LINX-12114 documents — customfield_10032, read today). Keys here are
+// the real TABS keys above, NOT the AC's prose names — Tender is `routing`
+// and Cost Allocation is `cost`.
+//
+// This is copy over the ONE shared fetch, not real per-tab failure isolation:
+// getSellShipmentDetail returns a single blob (stops + notes + instructions +
+// cost + documents + tender + history in one response), so there is exactly
+// one `detailsError` boolean for the whole pane. A tab-specific backend
+// failure is structurally impossible today. User decision (2026-08-10):
+// ship the correct wording over the shared failure — the cheap option —
+// rather than splitting into 7 requests per shipment click on a guess that
+// the tabs' data is independently sourced. Whether it actually is stays open
+// with Ramesh; if he confirms independent services, THIS map is what turns
+// into real per-tab error state.
+//
+// The "later" divergence below is real, verified against the ACs, and
+// intentional — not a copy-paste slip to "fix": stops/instructions/notes end
+// "Please try again later.", cost/documents end "Please try again." (no
+// "later"). Raised with Ramesh; do not tidy them into agreement.
+const TAB_ERROR_COPY = {
+  stops: 'Unable to load stop details at the moment. Please try again later. If the issue persists, contact support.',
+  instructions: 'Unable to load instructions at the moment. Please try again later. If the issue persists, contact support.',
+  notes: 'Unable to load notes at the moment. Please try again later. If the issue persists, contact support.',
+  cost: 'Unable to load cost details at the moment. Please try again. If the issue persists, contact support.',
+  documents: 'Unable to load documents at the moment. Please try again. If the issue persists, contact support.',
+}
+
+// Fix D (LINX-11786, 2026-08-10): merge a STORED tab-order preference against
+// the live TABS list rather than trusting it wholesale.
+//
+// A tab absent from the stored order is ambiguous on its own — it could be a
+// tab the user deliberately UNCHECKED (TabArrangementPanel's "Available
+// tabs" section; the pre-existing hidden-tabs feature this order array
+// already doubled as, per BottomBar's "hidden = absent" convention), which
+// must STAY hidden, or a tab that didn't exist yet when the order was saved
+// (SpotBoard/S104 shipped after some users' saves), which must APPEAR. Both
+// look identical as a bare array. Disambiguating requires knowing what tabs
+// EXISTED at save time, so the stored shape is `{ order, knownKeys }` —
+// `knownKeys` is a snapshot of DEFAULT_TAB_ORDER taken when that save
+// happened. A key absent from `order` but present in `knownKeys` was
+// deliberately hidden; absent from BOTH means it's new — append it.
+//
+// `stored` may also be a bare array (this session's own earlier saves before
+// this shape existed, or any hand-seeded legacy data) — treated as
+// `knownKeys === order`, i.e. "nothing existed beyond what's listed," which
+// preserves the original missing-keys-get-appended behaviour for that case.
+//
+// Unknown keys (a tab since retired) are always dropped, and Orders is
+// forced back to the first slot no matter what's stored (mirrors
+// TabArrangementPanel.jsx's `PINNED_KEY` invariant, DEC-42) — a stored order
+// must never be able to un-pin it. Same shape/intent as ColumnPanel.jsx's
+// `mergeLateAddedColumns` for columns, plus the knownKeys epoch marker that
+// problem doesn't need (columns are never individually hidden the same way).
+export function mergeTabOrder(stored) {
+  const isLegacyArray = Array.isArray(stored)
+  const order = isLegacyArray ? stored : stored?.order
+  const knownAtSave = isLegacyArray ? stored : (stored?.knownKeys ?? stored?.order)
+  if (!Array.isArray(order) || !order.length) return DEFAULT_TAB_ORDER
+  const known = new Set(DEFAULT_TAB_ORDER)
+  const wasKnownAtSave = new Set(Array.isArray(knownAtSave) ? knownAtSave : [])
+  const kept = order.filter(k => k !== 'order' && known.has(k))
+  const missing = DEFAULT_TAB_ORDER.filter(k => k !== 'order' && !kept.includes(k) && !wasKnownAtSave.has(k))
+  return ['order', ...kept, ...missing]
+}
+
 // Shipments detail bar — composes the normalized ShipmentsBar shell (strip +
 // expansion + controls) and keeps the app wiring: lazy panes per tab slot, the
 // multi-order switcher inside the Orders tab, loading/error/retry states.
@@ -55,11 +148,23 @@ export default function BottomBar({
   shipmentDetails,
   shipment,
   rightOffset = 0,
-  onToggleColumnPanel,
   onTabArrangement,
   tabOrder = DEFAULT_TAB_ORDER,
   detailsLoading,
   detailsError,
+  // Fix A (2026-08-10): the real ApiError/Error thrown by the detail query
+  // (see api/client.ts's `apiErrorFrom` — every non-2xx response's real
+  // `{message, detail}` body lands on `.message`). Was never threaded down
+  // from ShipmentsRoute before, so this branch could only ever show the
+  // hardcoded generic string below, even after that server-message parsing
+  // fix landed (2026-08-09).
+  error,
+  // Fix B (2026-08-10): react-query's `isPlaceholderData` for this query —
+  // true while `shipmentDetails` is still the PREVIOUS shipment's data,
+  // served by `placeholderData: keepPreviousData` (useShipmentDetail.ts)
+  // while the newly-selected shipment's real data fetches. Drives the
+  // dim + spinner overlay below (user ruling, DEC-61).
+  detailsStale,
   onRetryDetails,
   onPrevShipment,
   onNextShipment,
@@ -109,16 +214,15 @@ export default function BottomBar({
     }
   }, [requestedTab])
 
-  // Stale-while-loading: across a selected → selected switch the detail query
-  // drops to null while the new shipment loads — hold the LAST shipment's
-  // details so the pane shows stale content instead of flashing the loader
-  // (the ratchet keeps the height; data swaps in place when it lands). Cleared
-  // on close so a fresh open still gets the loader pane, never another
-  // shipment's data (S79d).
-  const lastDetailsRef = useRef(null)
-  if (shipmentDetails) lastDetailsRef.current = shipmentDetails
-  else if (!selectedShipmentId) lastDetailsRef.current = null
-  const shownDetails = shipmentDetails ?? lastDetailsRef.current
+  // Stale-while-loading (S79d / DEC-61): across a selected → selected switch
+  // the pane shows the PREVIOUS shipment's details instead of flashing the
+  // loader (the ratchet keeps the height; data swaps in place when it lands).
+  // Fix B (2026-08-10) moved this from a hand-rolled `lastDetailsRef` to
+  // react-query's own previous-data behaviour (`placeholderData:
+  // keepPreviousData` in useShipmentDetail.ts) — `shipmentDetails` IS the
+  // held-over data now, and `detailsStale` (isPlaceholderData) tells the pane
+  // below when to show that visibly, rather than silently.
+  const shownDetails = shipmentDetails
 
   // Tab switches ride a transition so the PREVIOUS pane stays mounted while
   // the next lazy chunk loads — the auto-height bar never collapses to the
@@ -193,37 +297,50 @@ export default function BottomBar({
 
   const renderTabContent = () => {
     if (detailsError) {
+      // Fix E (2026-08-10): the mandated AC string (TAB_ERROR_COPY, see def'n
+      // above) wins as the primary line for the 5 tabs it covers. Every other
+      // tab has no mandated copy, so it keeps exactly Fix A's prior behaviour
+      // — real server message if there is one, else the generic string — the
+      // Fix A regression test below depends on that being unchanged.
+      //
+      // On a mandated tab the server's real message doesn't disappear: it's
+      // demoted to a SECONDARY line (smaller, tertiary-toned, rendered only
+      // when present) so the AC copy leads but the real diagnostic — the
+      // thing Fix A fought to surface at all — stays visible underneath.
+      const mandatedCopy = TAB_ERROR_COPY[shownTab]
+      const primaryMessage = mandatedCopy ?? (error?.message || "Couldn't load shipment details.")
+      // INTERIM (2026-08-10, user ruling): rendered via the shared ErrorState
+      // (src/components/common/ErrorState.jsx) — icon + text in a subtle
+      // red, plain centered layout — not the shared/normalized error surface.
+      // That's separate, design-gated work pending Efrain + a Figma error
+      // state. ErrorState now also backs ShipmentTable.jsx's grid-level fetch
+      // error, so both surfaces render identically. Do not mistake this for
+      // done.
+      //
+      // No AC (LINX-12069/72/76/110/114 — the 5 mandating TAB_ERROR_COPY
+      // above) requires a retry/reload control on error; verified directly,
+      // all 5 only require "must not break the UI / keep the user in
+      // shipment context." A working Retry affordance already existed here
+      // before this pass, so dropping it on spec-silence would be a
+      // regression — kept, restyled per explicit user ask: secondary Button,
+      // "Reload" label, RefreshCw (circular-arrows, not a plain arrow) icon.
+      // The Retry→Reload rename is a deliberate instruction, not a drive-by —
+      // it breaks any test asserting the old accessible name.
       return (
-        <div
-          style={{
-            display: 'flex', flexDirection: 'column', alignItems: 'center',
-            justifyContent: 'center', gap: 'var(--spacing-3)',
-            padding: 'var(--spacing-6)', color: 'var(--text-secondary)',
-          }}
-        >
-          <span>Couldn't load shipment details.</span>
-          <button
-            type="button"
-            onClick={onRetryDetails}
-            style={{
-              padding: '0 var(--spacing-3)',
-              height: 28,
-              cursor: 'pointer',
-              color: 'var(--text-secondary)',
-              background: 'transparent',
-              border: '1px solid var(--border-subtle)',
-              borderRadius: 'var(--radius-sm)',
-              fontFamily: 'var(--font-primary)',
-              fontSize: 13,
-              fontWeight: 500,
-              transition: 'color 0.15s ease, background 0.15s ease',
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.background = 'var(--bg-tertiary)' }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.background = 'transparent' }}
-          >
-            Retry
-          </button>
-        </div>
+        <ErrorState
+          icon={<TriangleAlert {...ICON_LG} />}
+          message={primaryMessage}
+          detail={mandatedCopy && error?.message ? error.message : undefined}
+          action={(
+            <Button
+              variant="secondary"
+              icon={<RefreshCw {...ICON_MD} aria-hidden="true" />}
+              onClick={onRetryDetails}
+            >
+              Reload
+            </Button>
+          )}
+        />
       )
     }
     if (detailsLoading && !shownDetails) {
@@ -250,7 +367,10 @@ export default function BottomBar({
       }
       case 'stops': return <StopsTab data={shownDetails.stopsData} />
       case 'product': return <ProductTab data={shownDetails.productData} />
-      case 'routing': return <RoutingGuideTab data={shownDetails.routingData} shipmentDetails={shownDetails} shipment={shipment} onToggleColumnPanel={onToggleColumnPanel} />
+      // No onToggleColumnPanel here (Fix 3, 2026-08-10) — it used to be the SAME
+      // handler ShipmentTable uses, so the Routing Guide's gear opened the
+      // shipments-LIST column panel, not one of its own. Removed at the source.
+      case 'routing': return <RoutingGuideTab data={shownDetails.routingData} shipmentDetails={shownDetails} shipment={shipment} />
       case 'spot': return <SpotBoardTab shipmentDetails={shownDetails} shipment={shipment} />
       case 'cost': return <CostAllocationTab data={shownDetails.costData} />
       case 'instructions': return <InstructionsTab data={shownDetails.instructionsData} />
@@ -293,10 +413,32 @@ export default function BottomBar({
             loader shows, the wrapper is absolutely pinned to the content area
             (position: relative on .shipments-bar__content) so TabLoader
             centers in the fixed-stage canvas. */}
-        <div key={selectedShipmentId} style={freshLoading ? { position: 'absolute', inset: 0 } : undefined}>
-          <Suspense fallback={<TabLoader />}>
-            {renderTabContent()}
-          </Suspense>
+        <div
+          key={selectedShipmentId}
+          className={detailsStale && shownDetails ? 'shipments-bar__pane--stale' : undefined}
+          style={freshLoading ? { position: 'absolute', inset: 0 } : undefined}
+        >
+          {/* Fix C (2026-08-10): boundary sits OUTSIDE Suspense, INSIDE the bar
+              chrome — a pane render throw degrades this pane only; the strip,
+              tab buttons and shipment selection above stay alive. Keyed on
+              shipment + tab so a switch of EITHER remounts it (clearing any
+              caught error) instead of leaving a crash sticky across navigation. */}
+          <PaneErrorBoundary key={`${selectedShipmentId}-${activeTab}`}>
+            <Suspense fallback={<TabLoader />}>
+              {renderTabContent()}
+            </Suspense>
+          </PaneErrorBoundary>
+          {/* Fix B (2026-08-10, user ruling / DEC-61): `shownDetails` above may
+              be the PREVIOUS shipment's data, held as a react-query placeholder
+              while this one fetches (isPlaceholderData → `detailsStale`). Only
+              overlay when there's actually content being held over — a
+              genuinely-empty first open renders nothing here and shows the
+              plain TabLoader inside renderTabContent() instead. */}
+          {detailsStale && shownDetails && (
+            <div className="shipments-bar__pane-stale-overlay" data-stale="true" aria-hidden="true">
+              <TabLoader />
+            </div>
+          )}
         </div>
     </ShipmentsBar>
     {detailsModalOpen && selectedShipmentId && (
