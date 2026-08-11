@@ -16,7 +16,7 @@ odyssey-one/                            (repo; GitHub: manuela-ramirez-odyssey-i
 │       │   │   └── shipments/          (ShipmentsRoute — owns AppShell + filterPanel)
 │       │   ├── components/layout/      (AppShell, Sidebar, Navbar — umbrella chrome)
 │       │   └── components/             (shipments-specific components — co-located until normalized)
-│       ├── public/details/             (1200 generated JSONs, gitignored)
+│       ├── public/details/             (2,200 generated JSONs, gitignored)
 │       ├── tools/generate.mjs          (data generator, node runtime)
 │       ├── vercel.json                 (SPA rewrite — all paths → /index.html)
 │       └── package.json                (name: odyssey-one-app)
@@ -41,12 +41,18 @@ From repo root:
 
 - `npm run dev:odyssey-one` — start dev server (preferred)
 - `npm run build:odyssey-one` — build the umbrella app
-- `cd apps/odyssey-one && node tools/generate.mjs` — regenerate the 1200 shipment JSONs (seed 42, reproducible)
+- `cd apps/odyssey-one && node tools/generate.mjs` — regenerate the 2,200 shipment JSONs (seed 42, reproducible)
 - `npm run tokens:audit` — diff `tokens.css` against the committed Figma variable snapshot (`packages/tokens/figma-tokens.snapshot.json`); reports gaps/drift, exits 1 on mismatch. Run after Efrain's token passes; refresh the snapshot by asking Claude to re-run the `use_figma` dump when Figma changes.
 
 ## Deploys
 
-**CLI only.** Deploy with `npx vercel --prod` from the **repo root** (Vercel project's Root Directory is set to `apps/odyssey-one`, so the CLI handles the build context). Do not enable GitHub auto-deploy. Do not `git push` expecting a deploy to fire.
+**CLI only.** Deploy with `vercel --prod` from the **repo root** (the Vercel project's Root Directory is set to `apps/odyssey-one`, so the CLI handles the build context).
+
+Use the **Homebrew binary** (`/opt/homebrew/bin/vercel`, 52.0.0) — **never `npx vercel`**: `npx` pulls an unauthenticated 58.x CLI that **exits 0 while reporting `"Not authorized"` in its JSON payload**, so trusting the exit code reports a ship that never happened (S115). The CLI can also print `"ready"` and suggest "Promote to production" in the same breath (S116), so its own output is not proof either.
+
+**Verify every deploy by grepping the LIVE bundle** for strings unique to the session's work — never by comparing asset hashes (Vercel builds from source, so hashes shift for unrelated reasons).
+
+Do not enable GitHub auto-deploy. Do not `git push` expecting a deploy to fire.
 
 ## Shared packages
 
