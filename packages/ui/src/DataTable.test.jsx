@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
-import { afterEach } from 'vitest'
-import { render, screen, cleanup } from '@testing-library/react'
+import { afterEach, vi } from 'vitest'
+import { render, screen, cleanup, fireEvent } from '@testing-library/react'
 import { useReactTable, getCoreRowModel, createColumnHelper } from '@tanstack/react-table'
-import { getColWidths, getSizesFromState, showResizeGrip, showSortButton, ariaSortValue, MIN_COL_WIDTH, SORT_MIN_WIDTH, MAX_COL_WIDTH, hiddenWordCount, renderCell, cellClassName, headClassName, isInteractiveTarget, resolveCellClick } from './DataTable.jsx'
+import { getColWidths, getSizesFromState, showResizeGrip, showSortButton, ariaSortValue, MIN_COL_WIDTH, SORT_MIN_WIDTH, MAX_COL_WIDTH, hiddenWordCount, renderCell, cellClassName, headClassName, isInteractiveTarget, resolveCellClick, itemCountLabel } from './DataTable.jsx'
 import DataTable from './DataTable.jsx'
 
 afterEach(cleanup)
@@ -343,5 +343,205 @@ describe('cellClassName', () => {
   it('adds the forward-click modifier when the column opts into meta.forwardClick (drives cursor:pointer)', () => {
     expect(cellClassName({ forwardClick: true }, true))
       .toBe('text-label-sm-regular odyssey-table__cell--sticky-right odyssey-table__cell--forward-click')
+  })
+})
+
+// ── S116: Table Actions row + composeRows (fourth body state) ────────────────
+
+describe('itemCountLabel', () => {
+  it('separates thousands (Shipments printed raw digits before S116)', () => {
+    expect(itemCountLabel(1284)).toBe('1,284 items')
+  })
+  it('renders an em dash when the count is not known yet — "0 items" would be a lie mid-flight', () => {
+    expect(itemCountLabel(null)).toBe('—')
+    expect(itemCountLabel(undefined)).toBe('—')
+  })
+  it('keeps a real zero as a real zero', () => {
+    expect(itemCountLabel(0)).toBe('0 items')
+  })
+})
+
+describe('DataTable actions row', () => {
+  it('renders nothing above the card when `actions` is absent (every pre-S116 consumer)', () => {
+    const { container } = render(<Harness />)
+    expect(container.querySelector('.odyssey-data-table__actions')).toBeNull()
+  })
+
+  it('renders the count and the trailing slot', () => {
+    render(<Harness actionsRow={{ count: 42, trailing: <button>Export</button> }} />)
+    expect(screen.getByText('42 items')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Export' })).toBeTruthy()
+  })
+
+  it('takes MORE than one trailing button — the shape a primary/secondary prop pair could not express', () => {
+    render(<Harness actionsRow={{ count: 1, trailing: <><button>Filters</button><button>Export</button></> }} />)
+    expect(screen.getByRole('button', { name: 'Filters' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Export' })).toBeTruthy()
+  })
+
+  it('sits OUTSIDE the body scroller and outside <table> — never a colSpan row', () => {
+    const { container } = render(<Harness actionsRow={{ count: 1 }} />)
+    const row = container.querySelector('.odyssey-data-table__actions')
+    expect(row.closest('.odyssey-data-table__body')).toBeNull()
+    expect(row.closest('table')).toBeNull()
+    // and it precedes the card in the DOM (it renders above it)
+    const card = container.querySelector('.odyssey-data-table__card')
+    expect(row.compareDocumentPosition(card) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('stickyTop is a VALUE, not a flag: absent → scrolls away, present → parks at that offset', () => {
+    const { container, rerender } = render(<Harness actionsRow={{ count: 1 }} />)
+    let row = container.querySelector('.odyssey-data-table__actions')
+    expect(row.className).not.toContain('--sticky')
+    expect(row.style.top).toBe('')
+
+    rerender(<Harness actionsRow={{ count: 1, stickyTop: 64 }} />)
+    row = container.querySelector('.odyssey-data-table__actions')
+    expect(row.className).toContain('odyssey-data-table__actions--sticky')
+    expect(row.style.top).toBe('64px')
+  })
+
+  it('stickyTop: 0 is a real offset, not "absent" — presence is != null, not truthiness', () => {
+    const { container } = render(<Harness actionsRow={{ count: 1, stickyTop: 0 }} />)
+    const row = container.querySelector('.odyssey-data-table__actions')
+    expect(row.className).toContain('odyssey-data-table__actions--sticky')
+    expect(row.style.top).toBe('0px')
+  })
+
+  it('accepts a CSS length expression, like the table-level stickyTop', () => {
+    const { container } = render(
+      <Harness actionsRow={{ count: 1, stickyTop: 'calc(-1 * var(--spacing-8))' }} />
+    )
+    const row = container.querySelector('.odyssey-data-table__actions')
+    expect(row.style.top).toBe('calc(-1 * var(--spacing-8))')
+  })
+
+  it('the row carries its OWN anchor — the table-level stickyTop does not move it', () => {
+    const { container } = render(<Harness stickyTop={200} actionsRow={{ count: 1, stickyTop: 12 }} />)
+    expect(container.querySelector('.odyssey-data-table__actions').style.top).toBe('12px')
+  })
+})
+
+// Compose mode. Opting in is manual — an empty FETCHED table never falls into it —
+// and it covers the ZERO-ROW case only. Two reversals are recorded here rather than
+// deleted: the first cut had the block rendering alongside existing rows, the second
+// had it switching on the actions row with a primary "+".
+const COMPOSE = { text: 'No domains have been created', actionLabel: 'New Domain' }
+
+describe('DataTable composeRows (compose mode)', () => {
+  it('is absent unless the consumer opts in — an empty table alone does not trigger it', () => {
+    const { container } = render(<Harness data={[]} />)
+    expect(container.querySelector('.odyssey-data-table__compose')).toBeNull()
+  })
+
+  it('NO ROWS → the fourth body state: supporting text + a SECONDARY "+" button', () => {
+    render(<Harness data={[]} composeRows={COMPOSE} />)
+    expect(screen.getByText('No domains have been created')).toBeTruthy()
+    expect(screen.getByRole('button', { name: /New Domain/ }).className).toContain('btn--secondary')
+  })
+
+  it('≥1 ROW → the block is gone; the first row retires it', () => {
+    const { container } = render(<Harness composeRows={COMPOSE} />)
+    expect(container.querySelector('.odyssey-data-table__compose')).toBeNull()
+    expect(screen.queryByText('No domains have been created')).toBeNull()
+  })
+
+  it('does NOT switch on the actions row — row 1 → row 2 is the consumer\'s own flow, wired to any button', () => {
+    const { container, rerender } = render(<Harness data={[]} composeRows={COMPOSE} />)
+    expect(container.querySelector('.odyssey-data-table__actions')).toBeNull()
+    rerender(<Harness composeRows={COMPOSE} />)   // rows now exist
+    expect(container.querySelector('.odyssey-data-table__actions')).toBeNull()
+  })
+
+  it('composes with an independently-declared actions row without either knowing about the other', () => {
+    render(<Harness composeRows={COMPOSE} actionsRow={{ count: 2, trailing: <button>Add row</button> }} />)
+    expect(screen.getByText('2 items')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Add row' })).toBeTruthy()
+  })
+
+  it('fires onAction', () => {
+    const onAction = vi.fn()
+    render(<Harness data={[]} composeRows={{ ...COMPOSE, onAction }} />)
+    fireEvent.click(screen.getByRole('button', { name: /New Domain/ }))
+    expect(onAction).toHaveBeenCalledOnce()
+  })
+
+  it('yields to `loading` — the Spinner stays the single signal on first mount', () => {
+    const { container } = render(<Harness data={[]} loading composeRows={COMPOSE} />)
+    expect(container.querySelector('.odyssey-data-table__compose')).toBeNull()
+  })
+
+  it('sits outside the horizontal scroller so a wide table cannot drag it sideways', () => {
+    const { container } = render(<Harness data={[]} composeRows={COMPOSE} />)
+    const block = container.querySelector('.odyssey-data-table__compose')
+    expect(block.closest('.odyssey-data-table__body')).toBeNull()
+    expect(block.closest('.odyssey-data-table__card')).toBeTruthy()
+  })
+})
+
+describe('DataTable error (third body state)', () => {
+  const ERR = { message: 'Error Message', detail: '<Error1> explanation', onRetry: () => {} }
+
+  it('renders both lines and a "Reload" button, announced as an alert', () => {
+    render(<Harness error={ERR} />)
+    expect(screen.getByRole('alert')).toBeTruthy()
+    expect(screen.getByText('Error Message')).toBeTruthy()
+    expect(screen.getByText('<Error1> explanation')).toBeTruthy()
+    expect(screen.getByRole('button', { name: /Reload/ })).toBeTruthy()
+  })
+
+  it('suppresses rows — stale values under an error message read as current data', () => {
+    render(<Harness error={ERR} />)
+    expect(screen.queryByText('Atlanta')).toBeNull()
+    expect(document.querySelectorAll('tbody tr')).toHaveLength(0)
+  })
+
+  it('keeps the table chrome: the header survives the failure', () => {
+    const { container } = render(<Harness error={ERR} />)
+    expect(container.querySelector('.odyssey-data-table__card')).toBeTruthy()
+    expect(screen.getByText('Name')).toBeTruthy()
+  })
+
+  it('keeps an actions row when the consumer declared one', () => {
+    render(<Harness error={ERR} actionsRow={{ count: 0, trailing: <button>Export</button> }} />)
+    expect(screen.getByRole('button', { name: 'Export' })).toBeTruthy()
+  })
+
+  it('omits the button when no onRetry is given (some surfaces have no retry)', () => {
+    render(<Harness error={{ message: 'Broke.' }} />)
+    expect(screen.queryByRole('button', { name: /Reload/ })).toBeNull()
+    expect(screen.getByText('Broke.')).toBeTruthy()
+  })
+
+  it('retryLabel overrides the default', () => {
+    render(<Harness error={{ ...ERR, retryLabel: 'Try again' }} />)
+    expect(screen.getByRole('button', { name: /Try again/ })).toBeTruthy()
+  })
+
+  it('fires onRetry', () => {
+    const onRetry = vi.fn()
+    render(<Harness error={{ ...ERR, onRetry }} />)
+    fireEvent.click(screen.getByRole('button', { name: /Reload/ }))
+    expect(onRetry).toHaveBeenCalledOnce()
+  })
+
+  // Precedence: loading → error → compose → rows.
+  it('yields to `loading` — a request still in flight has not failed yet', () => {
+    const { container } = render(<Harness loading error={ERR} />)
+    expect(container.querySelector('.odyssey-data-table__error')).toBeNull()
+    expect(container.querySelector('.odyssey-data-table__loading')).toBeTruthy()
+  })
+
+  it('outranks composeRows — a failed load is not an invitation to compose', () => {
+    const { container } = render(<Harness data={[]} error={ERR} composeRows={COMPOSE} />)
+    expect(container.querySelector('.odyssey-data-table__error')).toBeTruthy()
+    expect(container.querySelector('.odyssey-data-table__compose')).toBeNull()
+  })
+
+  it('sits outside the horizontal scroller, like the other body states', () => {
+    const { container } = render(<Harness error={ERR} />)
+    const block = container.querySelector('.odyssey-data-table__error')
+    expect(block.closest('.odyssey-data-table__body')).toBeNull()
+    expect(block.closest('.odyssey-data-table__card')).toBeTruthy()
   })
 })

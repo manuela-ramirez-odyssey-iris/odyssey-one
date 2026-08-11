@@ -4,9 +4,9 @@ import { SummaryStrip } from '@odyssey/ui'
 export const meta = {
   name: 'SummaryStrip',
   tier: 'molecule',
-  version: '0.7.1',
+  version: '0.13.0',
   createdVersion: '0.7.0',
-  normalizing: true,
+  normalizing: false,
   figmaNode: '4254:904',
   codeConnect: 'packages/ui/src/SummaryStrip.figma.tsx',
 }

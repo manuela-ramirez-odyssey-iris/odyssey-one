@@ -247,6 +247,87 @@
   justify-content: center;
 }
 
+/* Table Actions (S116) — the count + trailing action cluster ABOVE the card,
+   on the page canvas (Figma `Table Container` 5057:8509: row h32, 16px above the
+   table). A sibling of the card, never a row inside <table>: it is outside the
+   body's horizontal scroller by construction, so no colSpan and no scroll-sync.
+   `--sticky` is the only axis — whether it leaves the VERTICAL scroll. The stuck
+   row paints the canvas background for the same reason the header does: rows
+   scrolling underneath would otherwise show through. z-index 4 matches the
+   h-scroll track (both sit above the sticky head at 3). */
+.odyssey-data-table__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-4);
+  padding-bottom: var(--spacing-4);
+}
+
+.odyssey-data-table__actions--sticky {
+  position: sticky;
+  z-index: 4;
+  background: var(--bg-secondary);
+}
+
+.odyssey-data-table__actions-count {
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+
+/* margin-left:auto rather than relying on space-between alone — the cluster sits
+   right regardless of what the lead zone renders. */
+.odyssey-data-table__actions-trail {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+/* composeRows (S116) — the fourth body state (Figma `Fourth Content State`):
+   centered supporting text over a secondary "+" button, inside the card but OUTSIDE
+   the horizontal scroller. Shown only while the table has no rows. Figma geometry:
+   48px above/below, 16px between the two. */
+/* error (S116) — the third body state (Figma `Table Container Error` 5065:8602):
+   two lines of label/xs in --text-error over a secondary "Reload" button. NO icon
+   (the Figma error state has none). Shares the compose block's geometry exactly —
+   48px above/below, 16px between — because they occupy the same slot. */
+.odyssey-data-table__error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-4);
+  padding: var(--spacing-12) var(--spacing-4);
+  background: var(--bg-primary);
+}
+
+/* The two lines are one text node in Figma, so they share a style — the second is
+   an explanation, not a demoted caption. gap:0 keeps them a single paragraph block
+   while the button keeps the --spacing-4 gap above it. */
+.odyssey-data-table__error-text {
+  margin: 0;
+  color: var(--text-error);
+  text-align: center;
+}
+.odyssey-data-table__error-text + .odyssey-data-table__error-text {
+  margin-top: calc(-1 * var(--spacing-4));
+}
+
+.odyssey-data-table__compose {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-4);
+  padding: var(--spacing-12) var(--spacing-4);
+  background: var(--bg-primary);
+}
+
+.odyssey-data-table__compose-text {
+  margin: 0;
+  color: var(--text-tertiary);
+  text-align: center;
+}
+
 /* Custom horizontal scrollbar (S82) — part of the DataTable chrome, sticky at
    the consumer's stickyTop just above the column header (whose top the
    component bumps +8px while the track renders). A real element because the
@@ -282,7 +363,12 @@
 .odyssey-data-table .odyssey-table__cell--sticky-right {
   position: sticky;
   right: 0;
-  z-index: 1;
+  /* S116: 1 → 2, above the resize grips. A data column's grip travels with its
+     header during horizontal scroll and passes UNDER this pinned column; at the
+     old ordering (grip 2 / column 1) it painted over the Action header instead of
+     disappearing behind it. The pinned column must win against anything sliding
+     beneath it — that is the whole point of pinning. */
+  z-index: 2;
   text-align: center;
   box-shadow: -2px 0 4px rgba(0, 0, 0, 0.06);
 }
@@ -327,9 +413,13 @@
   cursor: col-resize;
   user-select: none;
   touch-action: none;
-  /* Above the sticky-right action column (z-index 1) — the LAST data column's grip
-     sits exactly at the action column's left edge and was painted under it. */
-  z-index: 2;
+  /* S116: 2 → 1, BEHIND the sticky-right action column (now z-index 2). S85 raised
+     this to clear the last data column's grip, which sat exactly at the action
+     column's left edge and was painted under it — but the `--edge` inset below is
+     what actually fixes that (it moves the grip 6px clear, so nothing overlaps at
+     rest). The z-index half of that fix only mattered during horizontal scroll, and
+     there it was wrong: grips travelling under the pinned column showed through it. */
+  z-index: 1;
 }
 /* Last resizable column (the one before the sticky action column): inset the grip so
    its hairline sits clear of the sticky column's edge + shadow instead of flush under it. */
@@ -5665,15 +5755,30 @@ button.breadcrumb__label:focus-visible {
   inset: 0;
 }
 
-/* INTERIM (2026-08-10, user ruling): shared ErrorState surface (app-local,
-   src/components/common/ErrorState.jsx) — icon + text, subtle red, plain
-   centered column. Used by both BottomBar.jsx's detailsError branch and
-   ShipmentTable.jsx's grid-fetch error so the two "something broke" surfaces
-   match. NOT the shared/normalized error surface — pending Efrain + a Figma
-   error state; this is a stopgap, not the finished component. Renamed off
-   `.shipments-bar__error-state` now that the grid shares it too. */
+/* ErrorState surface (app-local, src/components/common/ErrorState.jsx).
+   S116: conformed to the Figma error state (`Table Container Error` 5065:8602),
+   so the Shipments detail TABS render exactly what DataTable's own `error` body
+   state renders for the grid — two lines of label/xs in --text-error over a
+   secondary "Reload" button, no icon. The grid moved onto DataTable's prop; the
+   tabs are panes, not tables, so they keep this component with the same
+   treatment. The 2026-08-10 "stopgap pending Efrain" note is retired.
+   NOTE: `detail` was --text-tertiary at --font-size-xs (S114's deliberate
+   demotion of the real server message under the mandated AC copy). Figma draws
+   both lines as ONE text node, so they share a style — that hierarchy is
+   flattened to color-and-size parity here, by design intent. */
 .error-state {
   color: var(--text-error);
+  gap: var(--spacing-4);
+}
+.error-state .centered-message__message,
+.error-state .centered-message__detail {
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-xs);
+  color: var(--text-error);
+}
+/* The two text lines read as one paragraph block; only the button keeps the gap. */
+.error-state .centered-message__message + .centered-message__detail {
+  margin-top: calc(-1 * var(--spacing-4));
 }
 
 @media (prefers-reduced-motion: reduce) {

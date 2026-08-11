@@ -6,16 +6,29 @@ import {
   getSortedRowModel,
   createColumnHelper,
 } from '@tanstack/react-table'
-import { EllipsisVertical } from 'lucide-react'
+import { EllipsisVertical, Plus, Upload } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
-import { DataTable, Paginator, Checkbox, Badge, ActionMenu } from '@odyssey/ui'
+import { DataTable, Paginator, Checkbox, Badge, ActionMenu, Button } from '@odyssey/ui'
 
 export const meta = {
   name: 'DataTable',
   tier: 'organism',
-  version: '0.10.0',
+  version: '0.13.0',
   createdVersion: '0.3.0',
   codeOnly: true,
+  // S116 mod: two additions from Figma `Table Container` 5057:8509 —
+  //   `actions` — the Table Actions row ABOVE the card (count + trailing button
+  //     slot), with `stickyTop` (a value, not a flag) deciding where it parks, or absent to scroll away.
+  //     It is a sibling of the card, so it is never in the horizontal scroller and
+  //     never a colSpan row. Replaces three hand-rolled per-domain toolbars.
+  //   `composeRows` — COMPOSE MODE, the ZERO-ROW case only: the fourth body state
+  //     (supporting text + SECONDARY "+" button), retired by the first row. It does
+  //     NOT switch on the actions row — row 1 -> row 2 is the consumer's own flow,
+  //     wired to any button, because adding a row is a flow and not a callback.
+  //   `error` — the THIRD body state (Figma `Table Container Error` 5065:8602):
+  //     two red label/xs lines + a secondary "Reload", no icon, role="alert".
+  //     Rows suppressed, header + actions row kept. ShipmentTable moved onto it;
+  //     the Shipments detail TABS carry the same treatment via ErrorState.
   // S107 mod: per-cell loadingRows "Loading…" text restored (S106 had blanked
   // the cells in favor of a card-level overlay) + a new `loading` whole-table
   // mode (centered Spinner, no rows) for the initial-mount case. Two distinct
@@ -35,7 +48,7 @@ export const meta = {
   // aria-sort, and a SORT_MIN_WIDTH resize floor (1 char + ellipsis + icon stay visible).
   // Resize drag also reworked: shell-owned, starts from the VISIBLE colgroup width
   // (TanStack's getResizeHandler started from the injected default 150 → jump).
-  normalizing: true,
+  normalizing: false,
 }
 
 export const props = [
@@ -52,6 +65,10 @@ export const props = [
   { name: 'onCellClick', type: '(cell, row) => void', desc: 'Per-cell click (opt-in): fires on a body-cell click, suppressed when the click is inside an interactive element (button/ActionMenu, checkbox, link, [role=menuitem], [data-no-cell-click]). Providing it also adds the pointer affordance.' },
   { name: 'resize', type: '(engine)', desc: 'Column resize: enable enableColumnResizing + columnResizeMode on the TanStack table → a drag-grip renders in each resizable header; the colgroup uses the user-dragged size.' },
   { name: 'className', type: 'string', desc: 'Merged onto the root.' },
+  { name: 'actionsRow', type: '{ count, trailing, stickyTop }', desc: 'S116: the Table Actions row rendered ABOVE the card, on the page canvas (Figma `Table Container` 5057:8509). Absent → no row (every pre-S116 consumer is unchanged). `count` (number|null) renders "1,284 items", or an em dash while the count is unknown. `trailing` is a ReactNode SLOT, right-aligned — deliberately not typed primary/secondary props, because the three toolbars it replaces needed one primary, one secondary, and TWO secondaries; a fixed pair can express none of them. `stickyTop` is a VALUE, not a flag (number px or CSS length): PRESENT → the row leaves the VERTICAL scroll and parks at that offset, ABSENT → it scrolls away with the page. `0` is a real offset, so presence is tested with != null, never truthiness. Both behaviors already shipped in the app (Orders stuck, Shipments scrolling away since S82). It is never in the horizontal scroller either way, and never a colSpan row inside <table>. A sticky row anchors the WHOLE band: the h-scroll track and column header park at `actionsRow.stickyTop` + the MEASURED row height, and the table-level `stickyTop` does not apply (the header cannot park above a row pinned over it). Measuring here is what makes a consumer-side toolbar measurement unnecessary.' },
+  { name: 'error', type: '{ message, detail, onRetry, retryLabel }', desc: 'S116: the THIRD body state (Figma `Table Container Error` 5065:8602) — two lines of label/xs in --text-error over a secondary "Reload" button (lucide refresh-cw), announced with role="alert". NO icon: the Figma error state has none, unlike the app-local stopgap it replaces. Rows are SUPPRESSED (stale values under an error message read as current data) but the header and the actions row stay, so the user keeps the table chrome and context. Precedence: `loading` outranks it (a request still in flight has not failed yet) and it outranks `composeRows` (a failed load is not an invitation to compose). `onRetry` is optional — omit it and no button renders; `retryLabel` overrides the default "Reload". Owning this here is what stops consumers rendering an error surface INSTEAD of the table: ShipmentTable now passes this prop rather than reaching around the shell, which is exactly what S114 said should happen once a Figma error state existed.' },
+  { name: 'composeRows', type: '{ text, actionLabel, onAction }', desc: 'S116: COMPOSE MODE — for tables built by hand rather than fetched. Renders the fourth body state (Figma `Fourth Content State`): centered supporting text over a SECONDARY \"+\" button, shown ONLY while the table has no rows; the first row added retires it. Opting in is manual — an empty FETCHED table never falls into this state just by having no rows, which stays the consumer\'s own empty state. It deliberately does NOT switch on the actions row: getting from row 1 to row 2 is the consumer\'s own affordance, wired to any button it likes (typically one in `actionsRow.trailing`), because adding a row is a FLOW — a modal, a stepper, a route — not a single callback this component should dictate. Renders as a sibling of the horizontal scroller so a wide table cannot drag it sideways; yields to `loading`.' },
+  { name: 'error', type: '(not built yet)', desc: 'The third body state. Owned app-side today (ShipmentTable renders the app-local ErrorState INSTEAD of the table, reaching around the shell). Moves in here once Efrain\'s Figma error design lands — at which point the actions row survives an error, which is what makes migrating the domain toolbars lossless.' },
   { name: 'selectable', type: 'boolean (consumer/demo control — not a shell prop)', desc: 'The leading selection-checkbox column is CONSUMER-OWNED: the DataTable shell renders no checkbox itself, so selection is opt-in/out by including or omitting the select column in the table\'s column array (the shell has nothing to gate). This Playground exposes it as a `selectable` toggle; default on. Product consumers add/drop the column directly (ShipmentTable uses single-row selection with no checkbox column; OrdersTable includes one).' },
 ]
 
@@ -169,7 +186,20 @@ function LiveDataTable() {
   const [longContent, setLongContent] = useState(false)
   const [loading, setLoading] = useState(false)
   const [loadingRows, setLoadingRows] = useState(false)
-  const data = useMemo(() => makeData(rowCount, longContent), [rowCount, longContent])
+  const [showActions, setShowActions] = useState(true)
+  const [stickyActions, setStickyActions] = useState(false)
+  const [twoButtons, setTwoButtons] = useState(false)
+  // Compose mode is a real round trip here, not a static preview: turning it on
+  // empties the table so the fourth body state shows, and the "+" buttons actually
+  // append rows — which is the only way to see the handoff (secondary button in the
+  // body → primary button in the actions row) happen.
+  const [errorState, setErrorState] = useState(false)
+  const [compose, setCompose] = useState(false)
+  const [composed, setComposed] = useState([])
+  const fetched = useMemo(() => makeData(rowCount, longContent), [rowCount, longContent])
+  const data = compose ? composed : fetched
+  const addComposedRow = () =>
+    setComposed((rows) => [...rows, { ...makeData(rows.length + 1, longContent)[rows.length], id: `c${rows.length + 1}` }])
   // selectable → include the leading checkbox column (consumer-owned; opt in/out by add/drop).
   const columns = useMemo(() => (selectable ? [SELECT_COLUMN, ...DATA_COLUMNS] : DATA_COLUMNS), [selectable])
 
@@ -232,6 +262,31 @@ function LiveDataTable() {
           <input type="checkbox" checked={loadingRows} onChange={(e) => setLoadingRows(e.target.checked)} />
           loadingRows (per-cell "Loading…" — tab-change/refetch)
         </label>
+        <label style={labelStyle}>
+          <input type="checkbox" checked={showActions} onChange={(e) => setShowActions(e.target.checked)} />
+          actions (the Table Actions row)
+        </label>
+        <label style={labelStyle}>
+          <input type="checkbox" checked={stickyActions} disabled={!showActions} onChange={(e) => setStickyActions(e.target.checked)} />
+          actionsRow.stickyTop (pins the row; absent = scrolls away)
+        </label>
+        <label style={labelStyle}>
+          <input type="checkbox" checked={twoButtons} disabled={!showActions} onChange={(e) => setTwoButtons(e.target.checked)} />
+          two trailing buttons
+        </label>
+        <label style={labelStyle}>
+          <input type="checkbox" checked={errorState} onChange={(e) => setErrorState(e.target.checked)} />
+          error (third body state — outranks compose, yields to loading)
+        </label>
+        <label style={labelStyle}>
+          <input type="checkbox" checked={compose} onChange={(e) => { setCompose(e.target.checked); setComposed([]) }} />
+          composeRows (empties the table; row 2+ comes from the actions row's own button)
+        </label>
+        {compose && (
+          <button type="button" style={inputStyle} onClick={() => setComposed([])}>
+            reset composed rows ({composed.length})
+          </button>
+        )}
       </div>
       <DataTable
         table={table}
@@ -240,6 +295,39 @@ function LiveDataTable() {
         loading={loading}
         loadingRows={loadingRows}
         ariaLabel="Sample data"
+        // The trailing cluster is a SLOT, so the count of buttons and their variants
+        // are the consumer's call — one primary here, or a pair, or Orders' two
+        // secondaries. Toggling one off is a plain conditional, not a second flag.
+        actionsRow={showActions ? {
+          count: data.length,
+          stickyTop: stickyActions ? 0 : undefined,
+          trailing: (
+            <>
+              {twoButtons && <Button variant="secondary" size="sm" icon={<Upload {...ICON_MD} />}>Export</Button>}
+              {/* In compose mode this is what adds rows 2..n — wired by the consumer,
+                  not by composeRows. Any control can play this role. */}
+              <Button variant="primary" size="sm" icon={<Plus {...ICON_MD} />} onClick={compose ? addComposedRow : undefined}>
+                Create Domain
+              </Button>
+            </>
+          ),
+        } : undefined}
+        // The third body state. Rows are suppressed; the header + actions row stay.
+        error={errorState ? {
+          message: 'Error Message',
+          detail: '<Error1> explanation',
+          onRetry: () => console.log('error → Reload'),
+        } : undefined}
+        // Compose mode: the zero-row case only. Getting from row 1 to row 2 is NOT
+        // wired here — it's the "Create Domain" button in `actionsRow.trailing` above,
+        // which is the point: adding a row is a flow the consumer owns, so it can
+        // hang off any control (a modal, a stepper, a route) rather than a callback
+        // this component dictates.
+        composeRows={compose ? {
+          text: 'No domains have been created',
+          actionLabel: 'New Domain',
+          onAction: addComposedRow,
+        } : undefined}
         onCellClick={(cell, row) => console.log('cell click →', cell.column.id, '·', row.original.name)}
         footer={<Paginator table={table} />}
       />
@@ -270,12 +358,15 @@ function Anatomy() {
   return (
     <ul style={{ display: 'grid', gridTemplateColumns: 'max-content 1fr', columnGap: '10px', listStyle: 'none', margin: 0, padding: 0, width: '100%' }}>
       <LegendRow part="root" tier="organism">Transparent wrapper: bordered white card (table only) + <code>footer</code> slot BELOW it on the page canvas (S79b).</LegendRow>
+      <LegendRow part="actionsRow" tier="slot" nested>S116: count + trailing button slot ABOVE the card, on the canvas — outside both the card and the horizontal scroller. <code>actionsRow.stickyTop</code> is a value, not a flag: present pins the row at that offset (and anchors the header below it), absent lets it scroll away.</LegendRow>
       <LegendRow part="hscroll bar" nested>Custom sticky horizontal scrollbar ABOVE the header — renders only on column overflow (S82).</LegendRow>
       <LegendRow part="header strip" nested>Split sticky header (<code>stickyTop</code> offset), scroll-synced to the body; colgroup width-lock shared with the body table.</LegendRow>
       <LegendRow part="sort button" nested>Per header when <code>sortable</code>: label + icon, asc ↔ desc, one column always drives. Neutral icon DSN/400; driving/hover <code>--text-primary</code>; <code>aria-sort</code> on the th.</LegendRow>
       <LegendRow part="resize grip" nested>8px hit-area on the header's right edge (TanStack <code>enableColumnResizing</code>); drag starts from the VISIBLE width, floors at 54px (74px sortable); the last data column's grip insets 6px clear of the action column.</LegendRow>
       <LegendRow part="body cells" nested>Default width = max(header label, cell content) capped at 290px; past the cap content ellipsizes — with <code>truncationTooltip</code>, a &gt;1-word ellipsis raises the Tooltip on hover.</LegendRow>
       <LegendRow part="action column" nested>Pinned right via <code>meta.sticky: 'right'</code>; <code>meta.forwardClick</code> makes the whole cell the ⋮ tap target.</LegendRow>
+      <LegendRow part="error" tier="slot" nested>S116: the third body state — two red label/xs lines + a secondary "Reload", <code>role="alert"</code>. Rows suppressed, chrome kept.</LegendRow>
+      <LegendRow part="composeRows" tier="slot" nested>S116 compose mode: the zero-row body state (supporting text + <em>secondary</em> "+"), inside the card but outside the horizontal scroller. Retired by the first row; adding further rows is the consumer&rsquo;s own control.</LegendRow>
       <LegendRow part="footer" tier="slot" nested>The Paginator lives here — transparent on the canvas below the card.</LegendRow>
     </ul>
   )

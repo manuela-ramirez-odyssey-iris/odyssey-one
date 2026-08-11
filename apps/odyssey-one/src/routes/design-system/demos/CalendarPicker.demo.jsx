@@ -6,9 +6,9 @@ export const meta = {
   // DatePicker (the code-only field composite devs actually reach for).
   name: 'CalendarPicker + DatePicker',
   tier: 'molecule',
-  version: '0.9.0',
+  version: '0.13.0',
   createdVersion: '0.8.0',
-  normalizing: true,
+  normalizing: false,
   figmaNode: '4422:711',
   codeConnect: null,
 }

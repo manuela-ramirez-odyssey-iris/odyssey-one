@@ -25,9 +25,9 @@ function DiffCell({ value }) {
 export const meta = {
   name: 'GroupTable',
   tier: 'organism',
-  version: '0.11.0',
+  version: '0.13.0',
   createdVersion: '0.7.0',
-  normalizing: true,
+  normalizing: false,
   figmaNode: '4183:773',
   codeConnect: 'packages/ui/src/GroupTable.figma.tsx',
 }

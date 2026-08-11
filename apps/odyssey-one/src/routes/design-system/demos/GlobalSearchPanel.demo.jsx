@@ -4,11 +4,11 @@ import { GlobalSearchPanel, GlobalSearchResults } from '@odyssey/ui'
 export const meta = {
   name: 'GlobalSearchPanel',
   tier: 'organism',
-  version: '0.6.2', // S110 primaryDisabled + linkDisabled
+  version: '0.13.0',
   createdVersion: '0.2.0',
   figmaNode: '2462:149',
   codeConnect: 'packages/ui/src/GlobalSearchPanel.figma.tsx',
-  normalizing: true,
+  normalizing: false,
 }
 
 export const props = [

@@ -5,12 +5,12 @@ import { ActionMenu } from '@odyssey/ui'
 export const meta = {
   name: 'ActionMenu',
   tier: 'molecule',
-  version: '0.11.0',
+  version: '0.13.0',
   createdVersion: '0.3.0',
   codeOnly: true,
   // Code-first molecule — composes DropdownMenu + MenuRow (both already in Figma), so no
   // standalone Figma master. React built S66; Angular twin shipped S67 → full cycle complete.
-  normalizing: true,
+  normalizing: false,
 }
 
 export const props = [

@@ -1,12 +1,11 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { useReactTable, getCoreRowModel, createColumnHelper } from '@tanstack/react-table'
 import { EllipsisVertical, Columns3Cog, Info, TriangleAlert } from 'lucide-react'
-import { ICON_MD, ICON_LG } from '@odyssey/tokens'
+import { ICON_MD } from '@odyssey/tokens'
 import { Badge, Button, DataTable, Paginator, ActionMenu } from '@odyssey/ui'
 import TooltipTrigger from '../ui/TooltipTrigger'
 import { ALL_COLUMNS } from '../detail/ColumnPanel'
 import { CELL_TAB_MAP } from './cellTabMap'
-import ErrorState from '../common/ErrorState.jsx'
 
 /**
  * ShipmentTable — Shipments configuration of the normalized @odyssey/ui DataTable
@@ -349,18 +348,7 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
       // scrollBy() is a no-op. Collapses back to the strip height on deselect (S82).
       style={{ paddingBottom: selectedId ? 'var(--bottombar-partial)' : 'var(--bottombar-collapsed)' }}
     >
-      {isError ? (
-        // INTERIM (2026-08-10, user ruling): shared ErrorState
-        // (src/components/common/ErrorState.jsx) — same surface BottomBar.jsx
-        // uses for its per-tab detail error, so the grid and the panel match.
-        <ErrorState
-          icon={<TriangleAlert {...ICON_LG} />}
-          message="Couldn't load shipments."
-          action={onRetry ? (
-            <Button variant="secondary" onClick={onRetry}>Retry</Button>
-          ) : undefined}
-        />
-      ) : shipments.length === 0 && !isLoading ? (
+      {shipments.length === 0 && !isLoading && !isError ? (
         <div className="flex items-center justify-center" style={{ padding: '48px 0', color: 'var(--text-placeholder)', fontSize: 'var(--font-size-sm)' }}>
           No shipments found
         </div>
@@ -399,6 +387,14 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
           stickyTop="calc(-1 * var(--spacing-8) + var(--spacing-3))"
           ariaLabel="Shipments"
           onCellClick={handleCellClick}
+          // S116: the grid error is now the SHELL's third body state (Figma
+          // `Table Container Error`), not a surface rendered instead of the table.
+          // The header + chrome survive the failure, which is what S114 said this
+          // should become once a Figma error state existed.
+          error={isError ? {
+            message: "Couldn't load shipments.",
+            onRetry: onRetry || undefined,
+          } : undefined}
           footer={<Paginator table={table} />}
         />
         </>

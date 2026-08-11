@@ -26,6 +26,9 @@ return <DataTable table={table} ariaLabel="Shipments" />
 | `onCellClick` | `(cell, row) => void` | — | Per-cell click; suppressed on interactive cells (buttons, links, inputs, `[data-no-cell-click]`). |
 | `onRowClick` | `(row) => void` | — | Row-level click on any non-interactive part of the row (interactive elements keep native behavior). Fires after `onCellClick` when both are provided — most consumers pick one. |
 | `scrollSelectedIntoView` | boolean \| options | `false` | Keep the selected row (TanStack `rowSelection`) visible between the sticky header and a bottom boundary. Options: `bottomBoundary?: () => px` (default viewport bottom — pass e.g. an open detail bar's top edge), `freshDelay?: ms` (default 600, empty→selected — lets consumer open-animations land), `switchDelay?: ms` (default 50, selection switches like prev/next arrows). Scrolls the nearest scrollable ancestor. |
+| `actionsRow` | `{ count, trailing, stickyTop }` | — | S116: the **Table Actions** row above the card (see below). Absent → no row. Independent of `composeRows`. |
+| `error` | `{ message, detail, onRetry, retryLabel }` | — | S116: the **error** body state (see below). Rows suppressed, chrome kept. |
+| `composeRows` | `{ text, actionLabel, onAction }` | — | S116: **compose mode** — the zero-row body state (see below). Absent → not rendered. |
 | `stickyTop` | number \| CSS length | `0` | Where the sticky header parks. Padded page scrollers compensate with a negative `calc()`. |
 | `footer` | ReactNode | — | Rendered below the bordered card (put `<Paginator table={table} />` here). |
 | `ariaLabel` | string | — | `aria-label` on the body `<table>`. |
@@ -33,6 +36,132 @@ return <DataTable table={table} ariaLabel="Shipments" />
 
 Feature switches are **per instance** — one table can be plain, another `sortable`,
 another `truncationTooltip`, another both.
+
+## Table Actions (`actionsRow`)
+
+The row above the card — item count on the left, actions on the right. Figma
+`Table Container` 5057:8509.
+
+```jsx
+<DataTable
+  table={table}
+  actionsRow={{
+    count: totalCount,          // number|null → "1,284 items" / "—"
+    stickyTop: 0,               // present → pinned at this offset; omit → scrolls away
+    trailing: (
+      <>
+        <Button variant="secondary" size="sm" icon={<SlidersHorizontal {...ICON_MD} />}>Filters</Button>
+        <Button variant="secondary" size="sm" icon={<Upload {...ICON_MD} />}>Export</Button>
+      </>
+    ),
+  }}
+/>
+```
+
+**Where it lives.** A sibling **above the card**, on the page canvas — not a row
+inside `<table>`. So it never participates in the **horizontal** scroll, needs no
+`colSpan`, and needs no scroll-sync.
+
+**`stickyTop` is a value, not a flag** (number px, or any CSS length):
+
+| `actionsRow.stickyTop` | Behavior |
+|---|---|
+| omitted | The row scrolls away with the page. |
+| `0`, `64`, `calc(-1 * var(--spacing-8))` | The row leaves the vertical scroll and parks at that offset. |
+
+`0` is a real offset, so presence is tested with `!= null` — never truthiness. Both
+behaviors already existed in the app (Orders' toolbar stuck; Shipments' scrolls away
+since S82), so this is an observed axis, not a speculative one.
+
+**`trailing` is a slot, not typed button props.** The three toolbars this replaces
+needed one primary, one secondary, and *two* secondaries respectively — a
+`primaryAction`/`secondaryAction` pair can express none of them. Toggling a button
+off is the consumer's own `{cond && <Button/>}`.
+
+**A sticky row anchors the whole band.** The h-scroll track and the column header
+park at `actionsRow.stickyTop` **+ the row's measured height** (`ResizeObserver` — the
+height follows the consumer's buttons). The table-level `stickyTop` does not apply in
+that case: the header cannot park above a row pinned over it. Measuring here is why
+consumers no longer measure a toolbar themselves to compute an offset.
+
+## Compose mode (`composeRows`)
+
+For tables built by hand, row by row, instead of fetched. Figma
+`Fourth Content State`.
+
+```jsx
+<DataTable
+  table={table}
+  composeRows={{
+    text: 'No domains have been created', // supporting copy
+    actionLabel: 'New Domain',            // secondary "+" button
+    onAction: startAddRowFlow,
+  }}
+/>
+```
+
+**It is the zero-row case only.** While the table has no rows it renders centered
+supporting text over a secondary `+` button; the first row added retires it. Opting
+in is manual — an empty *fetched* table never falls into this state just by having
+no rows, which stays the consumer's own empty state.
+
+**It does not touch the actions row.** Getting from row 1 to row 2 is the consumer's
+own affordance, wired to any button it likes — typically one in `actionsRow.trailing`,
+but equally a control anywhere else on the page:
+
+```jsx
+<DataTable
+  table={table}
+  composeRows={rows.length ? undefined : { text: '…', actionLabel: 'New Domain', onAction: startAddRowFlow }}
+  actionsRow={{ count: rows.length, trailing: (
+    <Button variant="primary" size="sm" icon={<Plus {...ICON_MD} />} onClick={startAddRowFlow}>Create Domain</Button>
+  )}}
+/>
+```
+
+The two are deliberately uncoupled: **adding a row is a flow** — a modal, a stepper,
+a route, a validation pass — not a single callback this component should dictate, and
+the actions row has its own reasons to be shown or hidden that have nothing to do
+with composing.
+
+The block renders as a sibling of the horizontal scroller (inside the card, outside
+the scroll container) so a table wider than the viewport can't drag the centered
+block sideways — the same reasoning as the `loading` overlay. It yields to `loading`,
+where the Spinner remains the single signal.
+
+## The error state (`error`)
+
+Figma `Table Container Error` 5065:8602.
+
+```jsx
+<DataTable
+  table={table}
+  error={isError ? { message: "Couldn't load shipments.", onRetry: refetch } : undefined}
+/>
+```
+
+Two lines of `label/xs` in `--text-error` over a secondary **Reload** button
+(lucide `refresh-cw`), announced with `role="alert"`. **No icon** — the Figma error
+state has none, unlike the app-local stopgap it replaces.
+
+`onRetry` is optional: omit it and no button renders. `retryLabel` overrides the
+default `Reload`.
+
+**Rows are suppressed; the chrome is not.** Stale values sitting under an error
+message read as current data, so the rows go — but the header and the actions row
+stay, so the user keeps the table's context instead of watching it vanish.
+
+**Precedence, in one place:** `loading` → `error` → `composeRows` → rows. `loading`
+outranks the error because a request still in flight hasn't failed yet; the error
+outranks compose because a failed load is not an invitation to start composing.
+
+Owning this here is what stops a consumer rendering an error surface *instead of*
+the table. `ShipmentTable` now passes this prop rather than reaching around the
+shell — which also unblocks migrating the domain toolbars onto `actions`, since an
+error no longer takes the table (and its count and buttons) off screen.
+
+The Shipments detail **tabs** are panes, not tables, so they can't use this prop —
+they carry the identical treatment through the app-local `ErrorState`.
 
 ## Loading states (`loading` vs `loadingRows`)
 

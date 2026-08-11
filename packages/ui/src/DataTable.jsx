@@ -1,8 +1,10 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ArrowUpDown, MoveUp, MoveDown } from 'lucide-react'
+import { ArrowUpDown, MoveUp, MoveDown, Plus, RefreshCw } from 'lucide-react'
+import { ICON_MD } from '@odyssey/tokens'
 import Tooltip from './Tooltip.jsx'
 import Spinner from './Spinner.jsx'
+import Button from './Button.jsx'
 
 /**
  * DataTable — a thin presentation shell for a TanStack v8 table. It owns the
@@ -133,6 +135,16 @@ export function showSortButton(sortable, column) {
   return sortable === true && column?.getCanSort?.() === true
 }
 
+/**
+ * Item-counter copy for the Table Actions row. `null`/`undefined` → an em dash (the
+ * count isn't known yet — Orders' pre-S116 toolbar behavior, which is the correct
+ * one: "0 items" would be a lie while the first page is still in flight).
+ * Thousands are separated (en-US) — Shipments' hand-rolled row printed raw digits.
+ */
+export function itemCountLabel(count) {
+  return count == null ? '—' : `${count.toLocaleString('en-US')} items`
+}
+
 /** aria-sort value for a sortable header. TanStack getIsSorted(): false | 'asc' | 'desc'. */
 export function ariaSortValue(sorted) {
   return sorted === 'asc' ? 'ascending' : sorted === 'desc' ? 'descending' : 'none'
@@ -234,15 +246,92 @@ export function cellClassName(meta, isStickyRight) {
 //                       open detail bar's top edge); freshDelay (default 600) applies on
 //                       an empty→selected change so consumer open-animations can land;
 //                       switchDelay (default 50) on selection switches (arrows).
+//   actionsRow        — S116: the "Table Actions" row ABOVE the card (Figma
+//                       `Table Container` 5057:8509). Object, absent → no row:
+//                         { count, trailing, stickyTop }
+//                       count     — number|null → "1,284 items" / "—" (itemCountLabel).
+//                       trailing  — ReactNode slot, right-aligned. A SLOT, not typed
+//                                   primary/secondary props: the three toolbars this
+//                                   replaced needed one primary, one secondary and TWO
+//                                   secondaries respectively, so a fixed pair could not
+//                                   render all three. Toggling a button off is the
+//                                   consumer's `{cond && <Button/>}`.
+//                       stickyTop — number (px) or CSS length. PRESENT → the row leaves
+//                                   the VERTICAL scroll and parks at that offset; ABSENT
+//                                   → it scrolls away with the page. Both behaviors
+//                                   shipped in the app already (Orders' toolbar stuck,
+//                                   Shipments' scrolled away since S82), so this is a
+//                                   real axis, not a speculative one. `0` is a valid
+//                                   offset — presence is `!= null`, not truthiness.
+//                                   Never part of the HORIZONTAL scroll either way: the
+//                                   row is a sibling ABOVE the card, outside the body
+//                                   scroller, and never a colSpan row inside <table>.
+//                       A sticky row anchors the WHOLE band: the h-scroll track and the
+//                       column header park at `actionsRow.stickyTop + the row's MEASURED
+//                       height` (the table-level `stickyTop` does not apply — the header
+//                       cannot park above a row pinned over it). Measuring here is what
+//                       let OrdersTable drop its querySelector('.orders-toolbar') dance.
+//   error             — S116: the THIRD body state (Figma `Table Container Error`
+//                       5065:8602). { message, detail, onRetry, retryLabel }: two lines
+//                       of label/xs in --text-error over a secondary "Reload" button
+//                       (lucide refresh-cw). NO icon — the Figma error state has none,
+//                       unlike the app-local stopgap it replaces.
+//                       Rows are suppressed; the header and the actions row stay, so the
+//                       user keeps the table's chrome and context. Ranks BELOW `loading`
+//                       (a refetch that is still in flight has not failed yet) and ABOVE
+//                       `composeRows` (a failed load is not an invitation to compose).
+//                       Owning it here is what stops consumers rendering an error surface
+//                       INSTEAD of the table and reaching around the shell.
+//   composeRows       — S116: COMPOSE MODE — the table is built by hand, row by row.
+//                       { text, actionLabel, onAction } — the fourth body state (Figma
+//                       `Fourth Content State`): centered supporting text over a SECONDARY
+//                       "+" button, shown ONLY while the table has no rows. The first row
+//                       added retires it.
+//                       Opting in is manual: a fetched table never falls into this state
+//                       just by being empty (that stays the consumer's own empty state).
+//                       It does NOT switch on the actions row. Getting from row 1 to row 2
+//                       is the consumer's own affordance, wired to any button it likes
+//                       (typically one in `actionsRow.trailing`) — adding a row is a FLOW, not
+//                       a single callback, and the two are deliberately not coupled here.
+//                       Renders as a sibling of the horizontal scroller, so a table wider
+//                       than the viewport can't drag the centered block sideways (same
+//                       reasoning as `loading`).
 //   (column resize stays a TanStack option: enableColumnResizing on the table.)
-export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, onCellClick, onRowClick, sortable = false, truncationTooltip = false, loadingRows = false, loading = false, scrollSelectedIntoView = false, className = '' }) {
+export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, onCellClick, onRowClick, sortable = false, truncationTooltip = false, loadingRows = false, loading = false, scrollSelectedIntoView = false, actionsRow, composeRows, error, className = '' }) {
   // stickyTop: number (px) or any CSS length expression (string). The sticky reference is
   // the page scroller's CONTENT edge — a padded scroller (e.g. an app shell <main> with
   // padding-top) parks a `top: 0` header padding-top BELOW the visible clip edge, letting
   // rows scroll through the strip above it. Consumers compensate with a negative offset
   // (e.g. `stickyTop="calc(-1 * var(--spacing-8))"`); a measured-toolbar consumer keeps
   // passing its number and stays consistent with its own equally-offset toolbar.
-  const stickyTopValue = typeof stickyTop === 'number' ? `${stickyTop}px` : stickyTop
+  const toCssLength = (v) => (typeof v === 'number' ? `${v}px` : v)
+  const stickyTopValue = toCssLength(stickyTop)
+  // `actionsRow.stickyTop` is a VALUE, not a flag: present → the row is sticky and
+  // parks at that offset; absent → it scrolls away with the page. `0` is a real
+  // offset, so presence is tested with != null, never truthiness.
+  //
+  // When the row IS sticky it becomes the anchor for the WHOLE sticky band: the
+  // h-scroll track and the column header park at `actionsRow.stickyTop + the row's
+  // measured height`, and the table-level `stickyTop` doesn't apply (the header
+  // cannot park above a row that's pinned over it). Height is MEASURED, not assumed —
+  // it follows the trailing buttons, which the consumer owns.
+  const actionsStickyTop = actionsRow?.stickyTop != null ? toCssLength(actionsRow.stickyTop) : null
+  const actionsRef = useRef(null)
+  const [actionsH, setActionsH] = useState(0)
+  useLayoutEffect(() => {
+    const el = actionsRef.current
+    if (actionsStickyTop == null || !el) { setActionsH(0); return }
+    const measure = () => setActionsH(el.offsetHeight)
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [actionsStickyTop, actionsRow])
+  // Either offset may be an expression (e.g. `calc(-1 * var(--spacing-8))`) — nesting
+  // calc() is valid CSS, so this composes with any consumer offset.
+  const bandTop = actionsStickyTop != null && actionsH
+    ? `calc(${actionsStickyTop} + ${actionsH}px)`
+    : stickyTopValue
   const headRef = useRef(null)       // head-inner (overflow:hidden); scrollLeft set on it mirrors the body — the split-header trick, NOT a bug
   const wrapRef = useRef(null)       // body horizontal scroller
   const headTableRef = useRef(null)
@@ -250,6 +339,16 @@ export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, onC
   const [measured, setMeasured] = useState(null) // { headerWidths, bodyWidths, container } — the measure pass
 
   const rowModel = table.getRowModel()
+
+  // Compose mode (S116): the fourth body state is the zero-row case only — the first
+  // row retires it. It does not reach the actions row: that stays independently the
+  // consumer's, because getting from row 1 to row 2 is a flow, not a callback.
+  const hasRows = rowModel.rows.length > 0
+  // Body-state precedence, one place: loading → error → compose → rows. A failed load
+  // suppresses rows (stale values under an error message read as current data) and
+  // suppresses the compose invitation (nothing is known about what's there yet).
+  const showError = Boolean(error) && !loading
+  const showCompose = Boolean(composeRows) && !loading && !showError && !hasRows
 
   // scrollSelectedIntoView (S93): after a selection change, scroll the selected
   // row into the visible band between the sticky header (+12px breathing room)
@@ -509,6 +608,25 @@ export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, onC
 
   return (
     <div className={`odyssey-data-table${onCellClick ? ' odyssey-data-table--cell-clickable' : ''}${className ? ` ${className}` : ''}`}>
+      {/* Table Actions (S116): a sibling ABOVE the card, on the page canvas — NOT a
+          row inside <table>, so it never participates in the horizontal scroll and
+          never needs a colSpan. `sticky` decides only whether it leaves the VERTICAL
+          scroll. When stuck it needs the canvas background, or rows scrolling beneath
+          would show through (the same reason .odyssey-data-table__head paints one). */}
+      {actionsRow && (
+        <div
+          ref={actionsRef}
+          className={`odyssey-data-table__actions${actionsStickyTop != null ? ' odyssey-data-table__actions--sticky' : ''}`}
+          style={actionsStickyTop != null ? { top: actionsStickyTop } : undefined}
+        >
+          <span className="odyssey-data-table__actions-count text-label-sm-regular">
+            {itemCountLabel(actionsRow.count)}
+          </span>
+          {actionsRow.trailing && (
+            <div className="odyssey-data-table__actions-trail">{actionsRow.trailing}</div>
+          )}
+        </div>
+      )}
       {/* Horizontal scrollbar: a sibling ABOVE the card so it's never clipped by
           the card's border-radius + overflow:clip. Sticky at stickyTop; the card's
           header shifts down +8px while it's present. */}
@@ -516,7 +634,7 @@ export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, onC
         <div
           ref={trackRef}
           className="odyssey-data-table__hscroll"
-          style={{ top: stickyTopValue }}
+          style={{ top: bandTop }}
           aria-hidden="true"
           onPointerDown={jumpTrack}
         >
@@ -533,7 +651,7 @@ export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, onC
       <div className="odyssey-data-table__card">
         <div
           className="odyssey-data-table__head"
-          style={{ top: hbar ? `calc(${stickyTopValue} + 8px)` : stickyTopValue }}
+          style={{ top: hbar ? `calc(${bandTop} + 8px)` : bandTop }}
         >
           <div className="odyssey-data-table__head-inner" ref={headRef}>
             <table className="odyssey-table" ref={headTableRef} style={tableStyle}>
@@ -619,8 +737,10 @@ export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, onC
             {colgroup}
             <tbody>
               {/* loading (whole-table mode): no rows — the card-level Spinner
-                  above is the only loading signal while nothing is fetched yet. */}
-              {!loading && rowModel.rows.map((row) => (
+                  above is the only loading signal while nothing is fetched yet.
+                  error: rows are suppressed too — stale values sitting under an
+                  error message read as current data. */}
+              {!loading && !showError && rowModel.rows.map((row) => (
                 <tr
                   key={row.id}
                   data-selected={row.getIsSelected() || undefined}
@@ -671,6 +791,51 @@ export default function DataTable({ table, stickyTop = 0, footer, ariaLabel, onC
             </tbody>
           </table>
         </div>
+        {/* composeRows (S116): the fourth body state — compose mode with nothing built
+            yet. A sibling of the horizontal scroller, not a row inside it: centered
+            content inside the scroller would slide out of view on a wide table. Gone
+            the moment a row exists, and never shown during `loading`, where the
+            Spinner is the single signal. */}
+        {/* error (S116): the third body state — Figma `Table Container Error`.
+            Same block geometry as compose, inside the card and outside the
+            horizontal scroller. role="alert" so it is announced, not just seen. */}
+        {showError && (
+          <div className="odyssey-data-table__error" role="alert">
+            {error.message && (
+              <p className="odyssey-data-table__error-text text-label-xs-regular">{error.message}</p>
+            )}
+            {error.detail && (
+              <p className="odyssey-data-table__error-text text-label-xs-regular">{error.detail}</p>
+            )}
+            {error.onRetry && (
+              <Button
+                variant="secondary"
+                size="sm"
+                icon={<RefreshCw {...ICON_MD} aria-hidden="true" />}
+                onClick={error.onRetry}
+              >
+                {error.retryLabel ?? 'Reload'}
+              </Button>
+            )}
+          </div>
+        )}
+        {showCompose && (
+          <div className="odyssey-data-table__compose">
+            {composeRows.text && (
+              <p className="odyssey-data-table__compose-text text-label-sm-regular">{composeRows.text}</p>
+            )}
+            {composeRows.actionLabel && (
+              <Button
+                variant="secondary"
+                size="sm"
+                icon={<Plus {...ICON_MD} />}
+                onClick={composeRows.onAction}
+              >
+                {composeRows.actionLabel}
+              </Button>
+            )}
+          </div>
+        )}
       </div>
       {footer && <div className="odyssey-data-table__footer">{footer}</div>}
       {truncTip && createPortal(

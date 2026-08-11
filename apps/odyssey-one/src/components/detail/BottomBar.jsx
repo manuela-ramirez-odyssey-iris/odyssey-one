@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef, useTransition, Suspense } from 'react'
-import { TriangleAlert, RefreshCw } from 'lucide-react'
-import { ICON_LG, ICON_MD } from '@odyssey/tokens'
+import { RefreshCw } from 'lucide-react'
+import { ICON_MD } from '@odyssey/tokens'
 import { ShipmentsBar, Button, Spinner } from '@odyssey/ui'
 import ShipmentDetailsModal from './ShipmentDetailsModal'
 import PaneErrorBoundary from '../common/PaneErrorBoundary.jsx'
@@ -309,13 +309,12 @@ export default function BottomBar({
       // thing Fix A fought to surface at all — stays visible underneath.
       const mandatedCopy = TAB_ERROR_COPY[shownTab]
       const primaryMessage = mandatedCopy ?? (error?.message || "Couldn't load shipment details.")
-      // INTERIM (2026-08-10, user ruling): rendered via the shared ErrorState
-      // (src/components/common/ErrorState.jsx) — icon + text in a subtle
-      // red, plain centered layout — not the shared/normalized error surface.
-      // That's separate, design-gated work pending Efrain + a Figma error
-      // state. ErrorState now also backs ShipmentTable.jsx's grid-level fetch
-      // error, so both surfaces render identically. Do not mistake this for
-      // done.
+      // S116: the Figma error state landed (`Table Container Error` 5065:8602)
+      // and this now matches it — two lines of label/xs in --text-error over a
+      // secondary "Reload" button, NO icon. Same design as the grid, which took
+      // it from DataTable's own `error` prop; the tabs can't use that prop (they
+      // are panes, not tables), so ErrorState carries the identical treatment.
+      // The 2026-08-10 stopgap note is retired.
       //
       // No AC (LINX-12069/72/76/110/114 — the 5 mandating TAB_ERROR_COPY
       // above) requires a retry/reload control on error; verified directly,
@@ -333,12 +332,12 @@ export default function BottomBar({
           // box rather than hugging the top of the pane. Opt-in modifier: the
           // grid's ErrorState is in page flow and must NOT take it.
           className="centered-message--fill"
-          icon={<TriangleAlert {...ICON_LG} />}
           message={primaryMessage}
           detail={mandatedCopy && error?.message ? error.message : undefined}
           action={(
             <Button
               variant="secondary"
+              size="sm"
               icon={<RefreshCw {...ICON_MD} aria-hidden="true" />}
               onClick={onRetryDetails}
             >
