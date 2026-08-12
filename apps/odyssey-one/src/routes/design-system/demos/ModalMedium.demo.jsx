@@ -37,9 +37,26 @@ function ChildLink({ to, children }) {
   return <a href={`#comp-${to}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-link)', textDecoration: 'underline', fontWeight: 'var(--font-weight-semibold)', whiteSpace: 'nowrap' }}>{children}</a>
 }
 
+// Fake sections for the navigation rig — enough shape to feel like the real
+// Shipment Details modal without importing it.
+const FLOW_SECTIONS = [
+  { key: 'general', title: 'General Information', rows: ['Mode — LTL', 'Gross Weight — 44,470 LB'] },
+  { key: 'cost', title: 'Cost', rows: ['Base — $1,400.00', 'Markup — $100.00'], navigates: true },
+  { key: 'refs', title: 'Customer Reference Values', rows: ['PO Number — PO-5512'] },
+]
+
 export default function ModalMediumDemo() {
   const [open, setOpen] = useState(false)
   const [scrollable, setScrollable] = useState(false)
+  // Navigation rig — `view` is the SAME modal showing different content, while
+  // `confirmOpen` is a genuinely second dialog. Kept as separate state on
+  // purpose: conflating them is the mistake the rig exists to make visible.
+  const [flowOpen, setFlowOpen] = useState(false)
+  const [view, setView] = useState('details')
+  const [confirmOpen, setConfirmOpen] = useState(false)
+
+  const closeFlow = () => { setFlowOpen(false); setView('details'); setConfirmOpen(false) }
+  const overlays = (flowOpen ? 1 : 0) + (confirmOpen ? 1 : 0)
 
   return (
     <div>
@@ -90,6 +107,131 @@ export default function ModalMediumDemo() {
           with the rest of the Angular library.
         </p>
       </div>
+
+      {/* Navigation-stack rig (2026-08-12) — a working stand-in for the Shipment
+          Details modal, which is what `onBack` was added for.
+
+          The stack here is a NAVIGATION stack, not a visual one. Edit Quote is
+          PUSHED on top of Shipment Details conceptually — that relationship is
+          the entire reason the back chevron exists, it is what tells the user
+          "you came from somewhere and can return". But it renders by REPLACING
+          the body in the same shell (user, 2026-08-11: "replace, not overlap"),
+          so there is one overlay, not two.
+
+          That distinction is the thing to feel here: depth 2 in the stack does
+          NOT mean two dialogs on screen. The unsaved-changes prompt is the only
+          genuinely stacked dialog in the real modal, and it is included so the
+          two are directly comparable. */}
+      <div className="ds-demo-section">
+        <h4 className="ds-demo-section__title">Interactive — the Shipment Details navigation stack</h4>
+        <p style={{ margin: '0 0 var(--spacing-3)', color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)', lineHeight: 'var(--line-height-md)' }}>
+          A stand-in for the real modal. <strong>Edit on <em>Cost</em> pushes <em>Edit Quote</em> onto the
+          stack</strong> — the title changes and <code>onBack</code> appears, because the view on top has
+          somewhere to return to. Back pops it. <strong>The push does not open a second dialog:</strong>{' '}
+          the body is replaced in the same shell, so the backdrop darkens once and the X closes the whole
+          thing from either depth.
+        </p>
+        <p style={{ margin: '0 0 var(--spacing-3)', color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)', lineHeight: 'var(--line-height-md)' }}>
+          For contrast, Edit on the other two sections raises the <strong>unsaved-changes prompt</strong> —
+          the one genuinely stacked dialog, a second ModalMedium as a later sibling. Watch{' '}
+          <code>overlays</code> below: it stays at <strong>1</strong> through a navigation push and only
+          reaches <strong>2</strong> for a real stack. Both overlays sit at <code>z-index: 200</code>, so
+          DOM order alone decides which wins — there is no per-modal z-index to tune.
+        </p>
+        <div className="ds-demo-row">
+          <div className="ds-demo-col">
+            <Button variant="secondary" onClick={() => { setView('details'); setFlowOpen(true) }}>
+              Open Shipment Details
+            </Button>
+          </div>
+          <div className="ds-demo-col">
+            <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
+              stack:{' '}
+              <strong style={{ color: 'var(--text-primary)' }}>
+                {!flowOpen ? '—' : view === 'quote' ? 'Shipment Details › Edit Quote' : 'Shipment Details'}
+              </strong>
+              {'  ·  '}overlays:{' '}
+              <strong style={{ color: overlays > 1 ? 'var(--text-error)' : 'var(--text-primary)' }}>{overlays}</strong>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {flowOpen && (
+        <ModalMedium
+          title={view === 'quote' ? 'Edit Quote' : 'Shipment Details'}
+          ariaLabel={view === 'quote' ? 'Edit Quote' : 'Shipment Details'}
+          onClose={closeFlow}
+          /* Presence-gated: only the nested view offers a way back. */
+          onBack={view === 'quote' ? () => setView('details') : undefined}
+          footer={view === 'quote' ? (
+            <>
+              <Button variant="secondary" onClick={() => setView('details')}>Cancel</Button>
+              <Button variant="primary" onClick={() => setView('details')}>Save Quote</Button>
+            </>
+          ) : null}
+        >
+          {view === 'quote' ? (
+            <div style={{ display: 'grid', gap: 'var(--spacing-3)', minWidth: 380 }}>
+              <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)' }}>
+                Stand-in for the quote form. The point of this view is the header: title changed,
+                a back chevron appeared, and the X still closes everything.
+              </span>
+              {['Base Rate', 'Markup'].map((label) => (
+                <div key={label} style={{ display: 'grid', gap: 'var(--spacing-1)' }}>
+                  <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-secondary)' }}>{label}</span>
+                  <div style={{ height: 36, borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', background: 'var(--bg-secondary)' }} />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gap: 'var(--spacing-4)', minWidth: 380 }}>
+              {FLOW_SECTIONS.map((s) => (
+                <div key={s.key}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--spacing-3)', marginBottom: 'var(--spacing-2)' }}>
+                    <span className="text-label-base-semibold" style={{ color: 'var(--text-primary)' }}>{s.title}</span>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => (s.navigates ? setView('quote') : setConfirmOpen(true))}
+                    >
+                      Edit
+                    </Button>
+                  </div>
+                  {s.rows.map((r) => (
+                    <div key={r} style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)' }}>{r}</div>
+                  ))}
+                </div>
+              ))}
+              <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)' }}>
+                Edit on <em>Cost</em> pushes Edit Quote onto the stack (one overlay). Edit on the other
+                two raises the unsaved-changes prompt (two overlays).
+              </span>
+            </div>
+          )}
+        </ModalMedium>
+      )}
+
+      {/* The stacked dialog — a LATER SIBLING, which is the whole mechanism.
+          Move it above the flow modal in this file and it renders behind. */}
+      {confirmOpen && (
+        <ModalMedium
+          title="Unsaved changes"
+          ariaLabel="Unsaved changes"
+          onClose={() => setConfirmOpen(false)}
+          footer={
+            <>
+              <Button variant="secondary" onClick={() => setConfirmOpen(false)}>Discard Changes</Button>
+              <Button variant="primary" onClick={() => setConfirmOpen(false)}>Save Changes</Button>
+            </>
+          }
+        >
+          <p style={{ margin: 0, maxWidth: 380, fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)', lineHeight: 'var(--line-height-md)' }}>
+            A second ModalMedium over the first. Note the backdrop has darkened twice — that is how
+            you tell a stack from a navigation at a glance.
+          </p>
+        </ModalMedium>
+      )}
 
       <div className="ds-demo-section">
         <h4 className="ds-demo-section__title">Interactive — open / close</h4>
