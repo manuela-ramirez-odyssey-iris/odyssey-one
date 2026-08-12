@@ -64,26 +64,30 @@ test('LINX-12102: order.hazardous matches whether ANY of its lines are hazmat-fl
   }
 })
 
-test('history entries: human-authored entries carry name+email, email domain matches kind, system entries carry no author', () => {
+// 2026-08-12 correction: EVERY entry now carries `author` — system entries
+// used to have none at all (see HistoryTab.jsx header comment). Renamed and
+// rewritten accordingly; still asserts the same ~15% human minority.
+test('history entries: every entry carries an author with a kind; human authors carry name+email matching kind, system authors carry no email', () => {
   const { details } = buildDataset({ totalShipments: 100 })
   let humanCount = 0
   let totalCount = 0
   for (const d of details.values()) {
     for (const entry of d.historyList) {
       totalCount++
-      if (entry.author) {
+      assert.ok(entry.author, 'every entry has an author')
+      assert.ok(['internal', 'external', 'system'].includes(entry.author.kind), `unexpected kind ${entry.author.kind}`)
+      assert.ok(entry.author.name, 'author has a name')
+      if (entry.author.kind === 'system') {
+        assert.equal(entry.author.email, undefined, 'system author has no email')
+        assert.equal(entry.author.name, entry.source, 'system author name reuses source verbatim')
+      } else {
         humanCount++
-        assert.ok(entry.author.name, 'human author has a name')
         assert.ok(entry.author.email, 'human author has an email')
-        assert.ok(['internal', 'external'].includes(entry.author.kind))
         if (entry.author.kind === 'internal') {
           assert.ok(entry.author.email.endsWith('@odysseylogistics.com'), `internal email ${entry.author.email}`)
         } else {
           assert.ok(!entry.author.email.endsWith('@odysseylogistics.com'), `external email ${entry.author.email}`)
         }
-      } else {
-        // System-authored entries are unchanged: `source` still drives rendering.
-        assert.ok(entry.source, 'system entry keeps source')
       }
     }
   }

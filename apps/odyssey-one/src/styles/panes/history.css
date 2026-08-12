@@ -49,23 +49,18 @@
   min-height: 28px;
 }
 
-/* Row 1: action Badge leads (2026-08-11: was actor-then-badge-then-timestamp;
-   user asked for badge-left, author-right), timestamp + author trail on the
-   right via .history-row1-right (margin-left: auto moved here from
-   .history-timestamp so the whole right-hand group pins together instead of
-   just the timestamp). */
+/* Row 1: author LEADS (2026-08-12 correction — a prior pass put the author
+   in a .history-row1-right group trailing next to the timestamp; user
+   rejected that ("i said next to the badge (left side of the badge) so the
+   author has space to fill") — leading the row gives a long name/email room
+   to breathe without pushing the badge around), badge follows, timestamp
+   trails via its own margin-left: auto (moved back onto .history-timestamp
+   now that the right-hand group is gone). */
 .history-row1 {
   display: flex;
   align-items: center;
   gap: var(--spacing-2);
   flex-wrap: wrap;
-}
-
-.history-row1-right {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-2);
 }
 
 .history-actor {
@@ -83,6 +78,7 @@
 }
 
 .history-timestamp {
+  margin-left: auto;
   font-size: var(--font-size-xs);
   color: var(--text-tertiary);
   font-family: var(--font-primary);

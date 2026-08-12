@@ -254,7 +254,7 @@ const NOTE_AUTHORS = [
 ];
 
 // External (customer-side) human authors for history events — see
-// maybeHumanAuthor() below. Plain ASCII names only: these become email
+// buildAuthor() below. Plain ASCII names only: these become email
 // local-parts (first.last@<customer-domain>), and an accented character in a
 // synthetic corporate address reads as a bug, not realism.
 const EXTERNAL_AUTHOR_NAMES = ['Marcus Webb', 'Priya Anand', 'Daniel Osei', 'Grace Liu'];
@@ -1065,18 +1065,29 @@ function generateShipment(index, chainOverride) {
   //     (as a bare 'success' would) reads as "this went fine" on the very
   //     row that explains the stall. User's verbatim ruling: "A fourth
   //     neutral/amber treatment."
-  // Human authorship (user request 2026-08-11 — see HistoryTab.jsx header
-  // comment for the DEC-80 partial-revisit note). Most entries stay
-  // system-authored per DEC-80; a minority get an `author` in ADDITION to
-  // `source`/`user` (system fields are left untouched either way — the
-  // renderer falls back to them whenever `author` is absent). Internal
+  // Authorship (user request 2026-08-11, corrected 2026-08-12 — see
+  // HistoryTab.jsx header comment for the DEC-80 partial-revisit note and
+  // the 2026-08-12 correction). EVERY entry now carries an `author` — the
+  // 2026-08-11 pass only gave a minority (human) entries one and left system
+  // entries with no `author` object at all; user's verbatim 2026-08-12
+  // correction ("system authors also exists so we need bot human nad
+  // system") means system is now a real author `kind` too, not an absence.
+  // The ~15% human / 85% system split and the 65/35 internal/external split
+  // WITHIN human are unchanged from the 2026-08-11 pass — only the SHAPE of
+  // the system branch changed (a real `{ name, kind: 'system' }` object
+  // instead of `undefined`), so the faker draw sequence is unshifted: same
+  // two `faker.number.float` calls in the same order as before, just with a
+  // populated return on the branch that used to return early. Internal
   // roster reuses NOTE_AUTHORS rather than inventing a second names list
   // (same idea: an Odyssey ops person touching the shipment). External
   // authors are a customer contact — email domain derived from THIS
   // shipment's own `customer.name` so it plausibly belongs to the customer
-  // actually on the shipment, not invented noise.
-  function maybeHumanAuthor() {
-    if (faker.number.float({ min: 0, max: 1 }) >= 0.15) return undefined; // ~15% human-authored
+  // actually on the shipment, not invented noise. System authors reuse
+  // `source` verbatim as `name` (e.g. `Net Native`) — nothing invented.
+  function buildAuthor(source) {
+    if (faker.number.float({ min: 0, max: 1 }) >= 0.15) {
+      return { name: source, kind: 'system' }; // ~85% system-authored, no email, no tooltip
+    }
     if (faker.number.float({ min: 0, max: 1 }) < 0.65) {
       const person = pick(NOTE_AUTHORS);
       const [first, last] = person.name.toLowerCase().split(' ');
@@ -1088,10 +1099,9 @@ function generateShipment(index, chainOverride) {
   }
 
   function pushHistory(action, category, source, details, outcome = 'success') {
-    const author = maybeHumanAuthor();
+    const author = buildAuthor(source);
     historyEntries.push({
-      user: source, source, timestamp: clock.toISOString(), action, category, details, outcome,
-      ...(author ? { author } : {}),
+      user: source, source, timestamp: clock.toISOString(), action, category, details, outcome, author,
     });
   }
   // Oxford-comma join — Consolidation Completed's template (catalog event

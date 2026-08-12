@@ -103,18 +103,44 @@ describe('HistoryTab', () => {
     expect(screen.getByText('No history available.')).toBeTruthy()
   })
 
-  // 2026-08-11: badge-left/author-right layout + human authorship.
-  it('renders the action badge before the timestamp/author group in DOM order', () => {
+  // 2026-08-12 correction: author LEADS the row (left of the badge) — a
+  // prior pass (2026-08-11) trailed the author next to the timestamp on the
+  // right, which the user rejected verbatim ("i said next to the badge
+  // (left side of the badge)"). This test must fail against that prior
+  // layout.
+  it('renders the author before the badge, and the badge before the timestamp, in DOM order', () => {
     const data = {
       entries: [
-        { user: 'ERP', source: 'ERP', timestamp: '2026-06-02T14:05:00.000Z', action: 'Shipment Created', category: 'create', outcome: 'success', details: 'd1' },
+        {
+          user: 'ERP', source: 'ERP', timestamp: '2026-06-02T14:05:00.000Z', action: 'Shipment Created',
+          category: 'create', outcome: 'success', details: 'd1',
+          author: { name: 'Net Native', kind: 'system' },
+        },
       ],
     }
     render(<HistoryTab data={data} />)
+    const author = screen.getByText('Net Native')
     const badge = screen.getByText('Shipment Created')
     const timestamp = badge.closest('.history-row1').querySelector('.history-timestamp')
-    // DOCUMENT_POSITION_FOLLOWING (4) — badge precedes timestamp in DOM order
+    // DOCUMENT_POSITION_FOLLOWING (4) — author precedes badge, badge precedes timestamp
+    expect(author.compareDocumentPosition(badge) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(badge.compareDocumentPosition(timestamp) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('renders a system author (entry.author.kind === "system") with its name and NO tooltip', () => {
+    const data = {
+      entries: [
+        {
+          user: 'Net Native', source: 'Net Native', timestamp: '2026-06-02T14:05:00.000Z', action: 'Tender Sent',
+          category: 'tender', outcome: 'success', details: 'd1',
+          author: { name: 'Net Native', kind: 'system' },
+        },
+      ],
+    }
+    render(<HistoryTab data={data} />)
+    const actor = screen.getByText('Net Native')
+    fireEvent.mouseEnter(actor)
+    expect(screen.queryByRole('tooltip')).toBeNull()
   })
 
   it('shows the author name and a hover tooltip with full name + email for a human-authored entry', () => {

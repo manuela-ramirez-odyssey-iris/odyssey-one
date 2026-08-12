@@ -49,19 +49,36 @@ import TooltipTrigger from '../ui/TooltipTrigger'
 //      path — kept intact deliberately.
 //
 // 2026-08-11 (user request, direct verbatim ask — not a stakeholder ruling):
-// human authorship is back as a rendered SHAPE. Row 1 is re-laid-out
-// (badge leads, timestamp+author trail on the right — was actor-leads before)
-// and entries may now carry `entry.author = { name, email, kind }` alongside
-// the existing `source`/`user` fields. This PARTIALLY REVISITS DEC-80's "MVP
-// actor is system" position: DEC-80 never said human authorship couldn't
-// exist, only that no producer emitted it — `tools/generate.mjs` now emits a
-// minority of entries with a human `author` (see its own comment for the
-// split). Recording this per the traceability rule, not re-litigating DEC-80
-// — the user asked for it directly. System entries are UNCHANGED: no
-// `author`, no tooltip, same muted `history-actor--system` treatment as
-// before. Author tooltip reuses the existing `TooltipTrigger` +
-// `@odyssey/ui` `Tooltip` idiom (see RoutingGuideTab.jsx's CostTooltip / the
-// ShipmentTable OrdersTooltip) rather than inventing a new hover mechanism.
+// human authorship is back as a rendered SHAPE. Entries may now carry
+// `entry.author = { name, email, kind }` alongside the existing
+// `source`/`user` fields. This PARTIALLY REVISITS DEC-80's "MVP actor is
+// system" position: DEC-80 never said human authorship couldn't exist, only
+// that no producer emitted it. Recording this per the traceability rule, not
+// re-litigating DEC-80 — the user asked for it directly. Author tooltip
+// reuses the existing `TooltipTrigger` + `@odyssey/ui` `Tooltip` idiom (see
+// RoutingGuideTab.jsx's CostTooltip / the ShipmentTable OrdersTooltip)
+// rather than inventing a new hover mechanism.
+//
+// 2026-08-12, two corrections to the above, both direct verbatim user asks:
+//   1. LAYOUT: row 1's first pass pinned the author to the far right next to
+//      the timestamp (badge led, timestamp+author trailed together). User
+//      rejected this: "you put author trailing side, i didnt asked that, i
+//      said next to the badge (left side of the badge) so the author has
+//      space to fill." Author now LEADS the row, immediately left of the
+//      badge; timestamp keeps `margin-left: auto` alone so it still pins
+//      hard right. The `.history-row1-right` wrapper is gone — the author
+//      is no longer grouped with the timestamp at all.
+//   2. DATA MODEL: system entries were previously NOT authors — they had no
+//      `entry.author` and fell back to rendering bare `entry.source` text.
+//      User: "system authors also exists so we need bot human nad system."
+//      Every entry (`tools/generate.mjs`) now emits `entry.author` with a
+//      `kind` of `'internal' | 'external' | 'system'` — system authors carry
+//      `{ name: <source>, kind: 'system' }`, no email, no tooltip, same
+//      muted `history-actor--system` styling as before; internal/external
+//      are unchanged (email + tooltip). The entirely-absent-`author` branch
+//      stays alive in `HistoryAuthor` below ONLY as backward compatibility
+//      for pre-reseed seed data (Neon rows generated before this change) —
+//      it is not a third semantic category, just a degrade path.
 const HistoryTab = React.memo(function HistoryTab({ data }) {
   const entries = data?.entries
   if (!entries || entries.length === 0) {
@@ -82,14 +99,18 @@ const HistoryTab = React.memo(function HistoryTab({ data }) {
                   <div className="history-row1">
                     {/* DEC-70 introduced a "System" badge beside the actor; user removed
                         it 2026-08-10 — `entry.source`'s muted actor styling already said
-                        "not a human". 2026-08-11: badge now LEADS the row (was actor-then-
-                        badge-then-timestamp); timestamp + author trail on the right. */}
+                        "not a human". 2026-08-12 correction: author now LEADS the row,
+                        immediately left of the badge — a prior pass (2026-08-11) pinned
+                        author to the far right next to the timestamp, which the user
+                        rejected verbatim ("i said next to the badge (left side of the
+                        badge) so the author has space to fill"): at the right edge a
+                        long name/email was cramped against the timestamp, leading the
+                        row gives it room without pushing the badge around. Timestamp
+                        keeps margin-left:auto so it still pins hard right. */}
+                    <HistoryAuthor entry={entry} />
                     <Badge variant={BADGE_VARIANTS[entry.outcome] || BADGE_VARIANTS.default}>{entry.action}</Badge>
-                    <span className="history-row1-right">
-                      <span className="history-timestamp">
-                        {formatDateTimeMDYHM(new Date(entry.timestamp))}
-                      </span>
-                      <HistoryAuthor entry={entry} />
+                    <span className="history-timestamp">
+                      {formatDateTimeMDYHM(new Date(entry.timestamp))}
                     </span>
                   </div>
 
@@ -116,28 +137,46 @@ export default HistoryTab
 
 // --- Helpers ---
 
-// HistoryAuthor — the right-hand author label. `entry.author` (human:
-// { name, email, kind }) is a NEW, not-yet-reseeded shape (see 2026-08-11
-// header note) — the seeded Neon rows and generated JSONs won't carry it
+// HistoryAuthor — the row-leading author label. `entry.author` is a NEW,
+// not-yet-reseeded shape (2026-08-11) — the seeded Neon rows won't carry it
 // until a separately user-gated reseed runs, so this must degrade to
-// TODAY'S system rendering (source text, no tooltip, no crash) whenever
-// `author` is absent. Human authors get a hover tooltip (full name + email,
-// via the existing TooltipTrigger/@odyssey/ui Tooltip idiom); system authors
-// don't — a source string isn't a person to look up.
+// TODAY'S rendering (source text, no tooltip, no crash) whenever `author` is
+// absent entirely.
+//
+// 2026-08-12 correction: EVERY entry is now an author, human or system —
+// user's verbatim ruling ("system authors also exists so we need bot human
+// nad system") replaces the old two-branch model (author = human only,
+// system fell back to bare `source` text with no author object at all).
+// `author.kind` is the discriminator:
+//   - 'internal' | 'external' — has an email, gets a hover tooltip (full
+//     name + email, via the existing TooltipTrigger/@odyssey/ui Tooltip
+//     idiom already used elsewhere in this file).
+//   - 'system' — no email, no tooltip (a source string isn't a person to
+//     look up), same muted `history-actor--system` styling as before.
+// The no-`author`-at-all branch is kept ALIVE (not deleted) specifically for
+// backward compatibility with pre-reseed seed data/JSONs — see header note.
 function HistoryAuthor({ entry }) {
-  if (entry.author) {
+  const author = entry.author
+
+  if (author && author.kind !== 'system') {
     return (
       <TooltipTrigger
         asSpan
-        tooltipProps={{ label: entry.author.name, groups: [{ content: entry.author.email }] }}
+        tooltipProps={{ label: author.name, groups: [{ content: author.email }] }}
       >
-        <span className="history-actor">{entry.author.name}</span>
+        <span className="history-actor">{author.name}</span>
       </TooltipTrigger>
     )
   }
+
+  // author.kind === 'system' (new shape) OR author is entirely absent
+  // (reseed-pending fallback, degrades to entry.user/entry.source exactly
+  // as it did before this correction).
+  const label = author ? author.name : entry.user
+  const isSystem = author ? true : Boolean(entry.source)
   return (
-    <span className={`history-actor${entry.source ? ' history-actor--system' : ''}`}>
-      {entry.user}
+    <span className={`history-actor${isSystem ? ' history-actor--system' : ''}`}>
+      {label}
     </span>
   )
 }
