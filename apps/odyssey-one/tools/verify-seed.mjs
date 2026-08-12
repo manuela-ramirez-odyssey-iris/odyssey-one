@@ -1,6 +1,7 @@
 // apps/odyssey-one/tools/verify-seed.mjs — post-seed sanity: counts + invariant spot-checks.
 // Usage: node --env-file=.env.local tools/verify-seed.mjs
 import pg from 'pg'
+import { USERS } from './seed-users.mjs'
 
 const CHECKS = [
   ['10k shipments', `SELECT count(*) >= 10000 AS ok FROM shipments`],
@@ -28,7 +29,11 @@ const CHECKS = [
     SELECT NOT EXISTS (
       SELECT 1 FROM shipments s WHERE NOT EXISTS (SELECT 1 FROM tenders t WHERE t.shipment_sell_id = s.sell_shipment)
     ) AS ok`],
-  ['9 users seeded (guest + 8)', `SELECT count(*) = 9 AS ok FROM users`],
+  // Counted against the roster itself, not a literal. The old check hardcoded
+  // 9 and had been failing since the u1-u4 authors were added — a verifier that
+  // cries wolf on every run teaches people to ignore it, which is worse than
+  // not having it.
+  [`${USERS.length} users seeded (the full seed-users roster)`, `SELECT count(*) = ${USERS.length} AS ok FROM users`],
   ['guest cannot log in', `SELECT password IS NULL AS ok FROM users WHERE id = 'guest'`],
 ]
 
