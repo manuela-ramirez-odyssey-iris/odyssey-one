@@ -22,6 +22,15 @@ export const props = [
   { name: 'ariaLabel', type: 'string', desc: 'Accessible label override. Defaults to title.' },
 ]
 
+// Not props on ModalMedium — the navigation-stack contract a CONSUMER implements
+// on top of it. Surfaced here because the shell alone does not tell you how to
+// build a multi-view modal, and the rig below is the reference implementation.
+export const relatedApi = [
+  { name: 'modalNavigationStack', type: 'boolean state', desc: 'Consumer state: a second ModalMedium opened over the first as a navigation destination. Gets onBack; pops back to its origin, which stays mounted behind it.' },
+  { name: 'navDirection', type: "'forward' | 'back'", desc: 'Which way the last transition went. Drives the slide direction so motion matches the chevron.' },
+  { name: '.modal-nav-view', type: 'css class', desc: 'Applied by the consumer to an entering view. Slides in from the right; add --back to slide from the left. Needs a per-view React key or the animation will not re-run.' },
+]
+
 export const tokens = [
   { token: '--bg-primary', resolves: 'Background/primary', usage: 'dialog surface' },
   { token: '--bg-secondary', resolves: 'Background/secondary', usage: 'header background' },
@@ -38,11 +47,15 @@ function ChildLink({ to, children }) {
 }
 
 // Fake sections for the navigation rig — enough shape to feel like the real
-// Shipment Details modal without importing it.
+// Shipment Details modal without importing it. `action` names which of the
+// three exits each section's trailing control takes:
+//   swap   — push by REPLACING the body in this shell (1 overlay)
+//   stack  — push as a SECOND dialog (2 overlays)   ← modalNavigationStack
+//   prompt — terminal decision, no way back
 const FLOW_SECTIONS = [
-  { key: 'general', title: 'General Information', rows: ['Mode — LTL', 'Gross Weight — 44,470 LB'] },
-  { key: 'cost', title: 'Cost', rows: ['Base — $1,400.00', 'Markup — $100.00'], navigates: true },
-  { key: 'refs', title: 'Customer Reference Values', rows: ['PO Number — PO-5512'] },
+  { key: 'general', title: 'General Information', rows: ['Mode — LTL', 'Gross Weight — 44,470 LB'], action: 'stack', label: 'Modal Navigation Stack' },
+  { key: 'cost', title: 'Cost', rows: ['Base — $1,400.00', 'Markup — $100.00'], action: 'swap', label: 'Edit' },
+  { key: 'refs', title: 'Customer Reference Values', rows: ['PO Number — PO-5512'], action: 'prompt', label: 'Edit' },
 ]
 
 export default function ModalMediumDemo() {
@@ -54,11 +67,19 @@ export default function ModalMediumDemo() {
   const [flowOpen, setFlowOpen] = useState(false)
   const [view, setView] = useState('details')
   const [confirmOpen, setConfirmOpen] = useState(false)
-  // A second dialog that is a navigation DESTINATION rather than a decision —
-  // so unlike the prompt, it carries a back control.
-  const [stackedOpen, setStackedOpen] = useState(false)
+  // modalNavigationStack — a second dialog that is a navigation DESTINATION
+  // rather than a decision, so unlike the prompt it carries a back control.
+  const [modalNavigationStack, setModalNavigationStack] = useState(false)
+  // Which direction the last transition went, so the incoming view can slide
+  // the right way: 'forward' on a push, 'back' on a pop.
+  const [navDirection, setNavDirection] = useState('forward')
 
-  const closeFlow = () => { setFlowOpen(false); setView('details'); setConfirmOpen(false); setStackedOpen(false) }
+  const pushView = (next) => { setNavDirection('forward'); setView(next) }
+  const popView = () => { setNavDirection('back'); setView('details') }
+  const pushStack = () => { setNavDirection('forward'); setModalNavigationStack(true) }
+  const popStack = () => { setNavDirection('back'); setModalNavigationStack(false) }
+
+  const closeFlow = () => { setFlowOpen(false); setView('details'); setConfirmOpen(false); setModalNavigationStack(false) }
 
   // The live navigation stack, derived from the same state that drives the
   // dialogs — so the inspector below cannot drift from what is on screen.
@@ -70,9 +91,14 @@ export default function ModalMediumDemo() {
       stack.push({ title: 'Edit Quote', push: 'swap — body replaced in the same shell', overlay: false, onBack: true, footer: true })
     }
   }
-  if (stackedOpen) stack.push({ title: 'Stacked View', push: 'stack — second dialog, later sibling', overlay: true, onBack: true, footer: true })
+  if (modalNavigationStack) stack.push({ title: 'Modal Navigation Stack', push: 'stack — second dialog, later sibling', overlay: true, onBack: true, footer: true })
   if (confirmOpen) stack.push({ title: 'Unsaved changes', push: 'stack — second dialog, later sibling', overlay: true, onBack: false, footer: true })
   const overlays = stack.filter((s) => s.overlay).length
+
+  // Slide class for a view entering the stack. The `key` matters as much as the
+  // class: without it React reuses the same DOM node and the CSS animation
+  // never restarts, so the second push would be silent.
+  const navView = `modal-nav-view${navDirection === 'back' ? ' modal-nav-view--back' : ''}`
 
   return (
     <div>
@@ -148,8 +174,9 @@ export default function ModalMediumDemo() {
           thing from either depth.
         </p>
         <p style={{ margin: '0 0 var(--spacing-3)', color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)', lineHeight: 'var(--line-height-md)' }}>
-          A push can also render as a <strong>real second dialog</strong> — <em>Open stacked view</em>{' '}
-          inside the modal does that. It carries <code>onBack</code> for the same reason the swap does:
+          A push can also render as a <strong>real second dialog</strong> — the{' '}
+          <em>Modal Navigation Stack</em> control on General Information does that. It carries{' '}
+          <code>onBack</code> for the same reason the swap does:
           you navigated there and can return. <strong>The back chevron tracks the navigation
           relationship, not the rendering.</strong> Which rendering to choose is a design call about
           whether the origin should stay visible behind; Shipment Details chose the swap.
@@ -232,16 +259,16 @@ export default function ModalMediumDemo() {
           ariaLabel={view === 'quote' ? 'Edit Quote' : 'Shipment Details'}
           onClose={closeFlow}
           /* Presence-gated: only the nested view offers a way back. */
-          onBack={view === 'quote' ? () => setView('details') : undefined}
+          onBack={view === 'quote' ? popView : undefined}
           footer={view === 'quote' ? (
             <>
-              <Button variant="secondary" onClick={() => setView('details')}>Cancel</Button>
-              <Button variant="primary" onClick={() => setView('details')}>Save Quote</Button>
+              <Button variant="secondary" onClick={popView}>Cancel</Button>
+              <Button variant="primary" onClick={popView}>Save Quote</Button>
             </>
           ) : null}
         >
           {view === 'quote' ? (
-            <div style={{ display: 'grid', gap: 'var(--spacing-3)', minWidth: 380 }}>
+            <div key="quote" className={navView} style={{ display: 'grid', gap: 'var(--spacing-3)', minWidth: 380 }}>
               <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)' }}>
                 Stand-in for the quote form. The point of this view is the header: title changed,
                 a back chevron appeared, and the X still closes everything.
@@ -254,7 +281,7 @@ export default function ModalMediumDemo() {
               ))}
             </div>
           ) : (
-            <div style={{ display: 'grid', gap: 'var(--spacing-4)', minWidth: 380 }}>
+            <div key="details" className={navView} style={{ display: 'grid', gap: 'var(--spacing-4)', minWidth: 380 }}>
               {FLOW_SECTIONS.map((s) => (
                 <div key={s.key}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--spacing-3)', marginBottom: 'var(--spacing-2)' }}>
@@ -262,9 +289,13 @@ export default function ModalMediumDemo() {
                     <Button
                       variant="secondary"
                       size="sm"
-                      onClick={() => (s.navigates ? setView('quote') : setConfirmOpen(true))}
+                      onClick={() => {
+                        if (s.action === 'swap') pushView('quote')
+                        else if (s.action === 'stack') pushStack()
+                        else setConfirmOpen(true)
+                      }}
                     >
-                      Edit
+                      {s.label}
                     </Button>
                   </div>
                   {s.rows.map((r) => (
@@ -272,15 +303,11 @@ export default function ModalMediumDemo() {
                   ))}
                 </div>
               ))}
-              <div style={{ display: 'flex', gap: 'var(--spacing-2)', flexWrap: 'wrap' }}>
-                <Button variant="secondary" size="sm" onClick={() => setStackedOpen(true)}>
-                  Open stacked view (has back)
-                </Button>
-              </div>
               <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)' }}>
-                Three ways out of here, all on this page: Edit on <em>Cost</em> pushes by REPLACING
-                (back, 1 overlay) · the button above pushes by STACKING (back, 2 overlays) · Edit on the
-                other two raises the prompt (no back, 2 overlays).
+                One control per section, one exit each: <strong>Modal Navigation Stack</strong> pushes a
+                second dialog (back, 2 overlays) · <em>Cost</em>&apos;s Edit pushes by replacing this body
+                (back, 1 overlay) · <em>Customer Reference Values</em>&apos; Edit raises the terminal
+                prompt (no back, 2 overlays).
               </span>
             </div>
           )}
@@ -294,16 +321,16 @@ export default function ModalMediumDemo() {
           case — the same relationship as the Cost push, rendered the other way.
           Both renderings are legitimate; which one to use is a design call
           about whether the origin should stay visible behind. */}
-      {stackedOpen && (
+      {modalNavigationStack && (
         <ModalMedium
-          title="Stacked View"
-          ariaLabel="Stacked View"
-          onBack={() => setStackedOpen(false)}
-          onClose={() => setStackedOpen(false)}
+          title="Modal Navigation Stack"
+          ariaLabel="Modal Navigation Stack"
+          onBack={popStack}
+          onClose={popStack}
           footer={
             <>
-              <Button variant="secondary" onClick={() => setStackedOpen(false)}>Cancel</Button>
-              <Button variant="primary" onClick={() => setStackedOpen(false)}>Save</Button>
+              <Button variant="secondary" onClick={popStack}>Cancel</Button>
+              <Button variant="primary" onClick={popStack}>Save</Button>
             </>
           }
         >

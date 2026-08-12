@@ -3584,6 +3584,44 @@ button.breadcrumb__label:focus-visible {
 
 .modal-medium__content--scroll { padding-bottom: 0; }
 
+/* Modal navigation stack — slide transitions for a PUSH/POP inside one shell
+   (2026-08-12). Applied by the CONSUMER to the view it is swapping in, keyed
+   on direction, so the shell itself stays presentational and unaware of any
+   navigation model.
+   Forward (push) enters from the right; back (pop) enters from the left —
+   matching the direction the back chevron points, so the motion explains the
+   affordance rather than just decorating it.
+   Deliberately enter-only: there is no exit animation because the outgoing
+   view unmounts on the same tick React commits the new one, and holding it
+   for an exit would need the shell to own transition state. */
+@keyframes modal-nav-in-forward {
+  from { opacity: 0; transform: translateX(12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes modal-nav-in-back {
+  from { opacity: 0; transform: translateX(-12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* --transition-panel (220ms, the panel/drawer curve) rather than a bare
+   duration: the tokens here bundle duration + easing, and this is the same
+   family of motion as RightPanel's own reveal. */
+.modal-nav-view {
+  animation: modal-nav-in-forward var(--transition-panel) both;
+}
+
+.modal-nav-view--back {
+  animation-name: modal-nav-in-back;
+}
+
+/* Motion is decorative here — the title change and the chevron already carry
+   the state, so removing it costs no information. */
+@media (prefers-reduced-motion: reduce) {
+  .modal-nav-view,
+  .modal-nav-view--back { animation: none; }
+}
+
 /* ----------------------------------------
    SHIPMENT DETAILS MODAL (app-local layout inside ModalMedium)
    Information model per the 2026-07-30 annotated spec (see
