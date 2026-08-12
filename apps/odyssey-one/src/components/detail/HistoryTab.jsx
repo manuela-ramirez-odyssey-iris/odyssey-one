@@ -123,8 +123,16 @@ const HistoryTab = React.memo(function HistoryTab({ data }) {
                         it pins hard right on its own. */}
                     <Badge variant={BADGE_VARIANTS[entry.outcome] || BADGE_VARIANTS.default}>{entry.action}</Badge>
                     <HistoryAuthor entry={entry} />
+                    {/* UTC, labelled (user ruling 2026-08-12). The trail is an
+                        audit log read by people in different zones — rendering
+                        it in each viewer's local clock means two of them
+                        disagree about when the same event happened. The `UTC`
+                        suffix is deliberate and matches how the rest of the app
+                        stamps a zone (`04/15/2026 09:00 CDT` on the stops); an
+                        unlabelled UTC time is indistinguishable from a local
+                        one, which is the failure this ruling exists to fix. */}
                     <span className="history-timestamp">
-                      {formatDateTimeMDYHM(new Date(entry.timestamp))}
+                      {formatDateTimeMDYHM(new Date(entry.timestamp), { utc: true })} UTC
                     </span>
                   </div>
 
@@ -178,7 +186,11 @@ function HistoryAuthor({ entry }) {
         asSpan
         tooltipProps={{ label: author.name, groups: [{ content: author.email }] }}
       >
-        <span className="history-actor">{author.name}</span>
+        {/* --hoverable is the ONLY branch with a tooltip, so it is the only
+            one that gets the pointer cursor (user, 2026-08-12). A system
+            author is plain text with nothing to reveal — giving it the same
+            cursor would promise an interaction it doesn't have. */}
+        <span className="history-actor history-actor--hoverable">{author.name}</span>
       </TooltipTrigger>
     )
   }
@@ -186,14 +198,27 @@ function HistoryAuthor({ entry }) {
   // author.kind === 'system' (new shape) OR author is entirely absent
   // (reseed-pending fallback, degrades to entry.user/entry.source exactly
   // as it did before this correction).
-  const label = author ? author.name : entry.user
+  //
+  // 2026-08-12 user ruling: EVERY system actor reads `System OdysseyOne`,
+  // not the emitting service (`ERP`, `Linx`, `Net Native`, `Legacy TMS`).
+  // Deliberately a RENDER-time substitution, not a generator change: the
+  // emitting service stays on the data as `entry.source` — it is real
+  // provenance a backend would send and a future surface may want — this only
+  // stops the trail from asking the user to care which internal service
+  // happened to emit a row. Doing it here also means it applies to rows
+  // seeded BEFORE the ruling, with no reseed.
   const isSystem = author ? true : Boolean(entry.source)
+  const label = isSystem ? SYSTEM_AUTHOR_LABEL : entry.user
   return (
     <span className={`history-actor${isSystem ? ' history-actor--system' : ''}`}>
       {label}
     </span>
   )
 }
+
+// The single name every system-emitted entry is attributed to (user, verbatim
+// 2026-08-12: `All System authors is "System OdysseyOne"`).
+const SYSTEM_AUTHOR_LABEL = 'System OdysseyOne'
 
 // Action badge variant per entry OUTCOME (DEC-81, 2026-08-10, amber added in
 // the same-day follow-up; `info` added by DEC-87, 2026-08-12) — the

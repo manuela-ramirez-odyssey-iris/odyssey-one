@@ -6,7 +6,14 @@ import HistoryTab from './HistoryTab'
 afterEach(cleanup)
 
 describe('HistoryTab', () => {
-  it('renders entries with an absolute MM/DD/YYYY HH:MM timestamp', () => {
+  // 2026-08-12 user ruling: the trail stamps UTC, labelled. Previously this
+  // asserted the LOCAL clock (`d.getHours()`), which passed everywhere while
+  // rendering a different time to every viewer — the exact failure the ruling
+  // fixes. The literal 14:05 below is the whole point: it is the UTC hour of
+  // the input instant, so this test only passes if the component is genuinely
+  // zone-independent, and it fails on a machine set to any non-UTC zone if
+  // someone reverts to local formatting.
+  it('renders an absolute MM/DD/YYYY HH:MM timestamp in UTC, labelled', () => {
     const data = {
       entries: [
         { user: 'Jana Soundararajan', timestamp: '2026-06-02T14:05:00.000Z', action: 'Order Created', category: 'create', details: 'Order L14372086 created for USALCO' },
@@ -16,9 +23,20 @@ describe('HistoryTab', () => {
     expect(screen.getByText('Jana Soundararajan')).toBeTruthy()
     expect(screen.getByText('Order Created')).toBeTruthy()
     expect(screen.getByText('Order L14372086 created for USALCO')).toBeTruthy()
-    const d = new Date('2026-06-02T14:05:00.000Z')
-    const hh = String(d.getHours()).padStart(2, '0')
-    expect(screen.getByText(`06/02/2026 ${hh}:05`)).toBeTruthy()
+    expect(screen.getByText('06/02/2026 14:05 UTC')).toBeTruthy()
+  })
+
+  // The date and the clock must come from the SAME zone. This instant is
+  // 2026-06-02 in UTC but 2026-06-01 in every US zone, so a component that
+  // formats the time in UTC while taking the date locally prints 06/01 14:05.
+  it('takes the DATE from UTC too, not just the clock', () => {
+    const data = {
+      entries: [
+        { user: 'A', timestamp: '2026-06-02T02:30:00.000Z', action: 'Shipment Created', category: 'create', details: 'd1' },
+      ],
+    }
+    render(<HistoryTab data={data} />)
+    expect(screen.getByText('06/02/2026 02:30 UTC')).toBeTruthy()
   })
 
   it('renders a field: oldValue → newValue diff row', () => {
@@ -45,7 +63,11 @@ describe('HistoryTab', () => {
       ],
     }
     render(<HistoryTab data={data} />)
-    expect(screen.getByText('ERP')).toBeTruthy()
+    // 2026-08-12 user ruling: every system actor reads `System OdysseyOne`,
+    // never the emitting service — `ERP` stays on the data as entry.source
+    // but is no longer shown.
+    expect(screen.getByText('System OdysseyOne')).toBeTruthy()
+    expect(screen.queryByText('ERP')).toBeNull()
     expect(screen.queryByText('System')).toBeNull()
   })
 
@@ -123,7 +145,7 @@ describe('HistoryTab', () => {
       ],
     }
     render(<HistoryTab data={data} />)
-    const author = screen.getByText('Net Native')
+    const author = screen.getByText('System OdysseyOne')
     const badge = screen.getByText('Shipment Created')
     const timestamp = badge.closest('.history-row1').querySelector('.history-timestamp')
     // DOCUMENT_POSITION_FOLLOWING (4) — badge precedes author, author precedes timestamp
@@ -131,20 +153,33 @@ describe('HistoryTab', () => {
     expect(author.compareDocumentPosition(timestamp) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
-  it('renders a system author (entry.author.kind === "system") with its name and NO tooltip', () => {
+  it('renders every system author as "System OdysseyOne" with NO tooltip, whatever the emitting service', () => {
+    // Two different emitting services, one displayed name — the substitution
+    // must not be a rename of one particular source.
     const data = {
       entries: [
         {
           user: 'Net Native', source: 'Net Native', timestamp: '2026-06-02T14:05:00.000Z', action: 'Tender Sent',
-          category: 'tender', outcome: 'success', details: 'd1',
+          category: 'tender', outcome: 'update', details: 'd1',
           author: { name: 'Net Native', kind: 'system' },
+        },
+        {
+          user: 'Linx', source: 'Linx', timestamp: '2026-06-02T15:05:00.000Z', action: 'Ready for Tender',
+          category: 'update', outcome: 'update', details: 'd2',
+          author: { name: 'Linx', kind: 'system' },
         },
       ],
     }
     render(<HistoryTab data={data} />)
-    const actor = screen.getByText('Net Native')
+    expect(screen.getAllByText('System OdysseyOne')).toHaveLength(2)
+    expect(screen.queryByText('Net Native')).toBeNull()
+    expect(screen.queryByText('Linx')).toBeNull()
+    const actor = screen.getAllByText('System OdysseyOne')[0]
     fireEvent.mouseEnter(actor)
     expect(screen.queryByRole('tooltip')).toBeNull()
+    // No tooltip, so no pointer cursor — the cursor must not promise an
+    // interaction this actor doesn't have.
+    expect(actor.className).not.toContain('history-actor--hoverable')
   })
 
   it('shows the author name and a hover tooltip with full name + email for a human-authored entry', () => {
@@ -161,6 +196,11 @@ describe('HistoryTab', () => {
     const name = screen.getByText('Dana Whitfield')
     fireEvent.mouseEnter(name)
     expect(screen.getByText('dana.whitfield@odysseylogistics.com')).toBeTruthy()
+    // The hover target carries the pointer cursor (user, 2026-08-12) — the
+    // class is asserted rather than the computed style because the rule lives
+    // in panes/history.css, which jsdom never loads. Paired with the system
+    // case below, which must NOT have it.
+    expect(name.className).toContain('history-actor--hoverable')
   })
 
   it('renders an internal author email ending @odysseylogistics.com', () => {
@@ -186,14 +226,18 @@ describe('HistoryTab', () => {
     expect(email.textContent.endsWith('@odysseylogistics.com')).toBe(false)
   })
 
-  it('falls back to the system source with NO tooltip when entry.author is absent (reseed-pending shape)', () => {
+  // Legacy rows (no `author` object at all, just a `source`) reach the same
+  // system label — which is the point of doing the substitution at render
+  // time: rows seeded before the ruling need no reseed to comply.
+  it('labels a source-only legacy entry as "System OdysseyOne" too, with NO tooltip', () => {
     const data = {
       entries: [
-        { user: 'ERP', source: 'ERP', timestamp: '2026-06-02T14:05:00.000Z', action: 'Shipment Created', category: 'create', outcome: 'success', details: 'd1' },
+        { user: 'ERP', source: 'ERP', timestamp: '2026-06-02T14:05:00.000Z', action: 'Shipment Created', category: 'create', outcome: 'update', details: 'd1' },
       ],
     }
     render(<HistoryTab data={data} />)
-    const actor = screen.getByText('ERP')
+    const actor = screen.getByText('System OdysseyOne')
+    expect(screen.queryByText('ERP')).toBeNull()
     fireEvent.mouseEnter(actor)
     expect(screen.queryByRole('tooltip')).toBeNull()
   })

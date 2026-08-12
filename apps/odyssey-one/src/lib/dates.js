@@ -17,9 +17,17 @@ export function formatDateMDY(month, day, year) {
 }
 
 // JS Date → padded "MM/DD/YYYY" ('' for a non-Date).
-export function formatDateMDYFromDate(d) {
+//
+// `utc` reads the calendar date in UTC instead of the viewer's local zone.
+// It is not cosmetic: for a timestamp late in the day the two disagree on the
+// DATE, not just the clock (2026-06-02T02:00Z is June 1st in Chicago), so a
+// caller that shows UTC times must pass it here too or the row will print a
+// UTC time against a local date.
+export function formatDateMDYFromDate(d, { utc = false } = {}) {
   if (!(d instanceof Date)) return ''
-  return formatDateMDY(d.getMonth() + 1, d.getDate(), d.getFullYear())
+  return utc
+    ? formatDateMDY(d.getUTCMonth() + 1, d.getUTCDate(), d.getUTCFullYear())
+    : formatDateMDY(d.getMonth() + 1, d.getDate(), d.getFullYear())
 }
 
 // Any "M/D/YYYY" (unpadded or padded) → padded "MM/DD/YYYY"; passes through
@@ -31,9 +39,15 @@ export function padMdy(s) {
 
 // JS Date → "MM/DD/YYYY HH:MM" (24-hour) — verbatim from LINX-8091's
 // order-audit timestamp AC, reused for the Shipment History tab (S107).
-export function formatDateTimeMDYHM(d) {
+//
+// `utc` renders the instant in UTC rather than the viewer's local zone (user
+// ruling 2026-08-12, for the Shipment History trail: an audit log read across
+// timezones has to name one clock or two people reading the same row disagree
+// about when it happened). It does NOT append a zone label — the caller owns
+// that, because only some surfaces have room for it.
+export function formatDateTimeMDYHM(d, { utc = false } = {}) {
   if (!(d instanceof Date)) return ''
-  const hh = String(d.getHours()).padStart(2, '0')
-  const mm = String(d.getMinutes()).padStart(2, '0')
-  return `${formatDateMDYFromDate(d)} ${hh}:${mm}`
+  const hh = String(utc ? d.getUTCHours() : d.getHours()).padStart(2, '0')
+  const mm = String(utc ? d.getUTCMinutes() : d.getMinutes()).padStart(2, '0')
+  return `${formatDateMDYFromDate(d, { utc })} ${hh}:${mm}`
 }

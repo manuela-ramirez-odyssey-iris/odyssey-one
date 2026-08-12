@@ -68,6 +68,14 @@
   font-family: var(--font-primary);
 }
 
+/* Human author — the one actor that carries a hover tooltip (full name +
+   email). Pointer cursor per user ruling 2026-08-12, so the hover target
+   announces itself; system actors deliberately keep the default cursor
+   because there is nothing to reveal. */
+.history-actor--hoverable {
+  cursor: pointer;
+}
+
 /* System actor (source: ERP|UI|Legacy TMS|Linx, LINX-8091 User|System split) —
    muted text is the lighter of the two spec-offered treatments. */
 .history-actor--system {
