@@ -12,15 +12,19 @@ import { buildRankedSubquery, resolveNeedles } from './search.mjs'
 const RELEVANCE_SORT = 'relevance'
 
 // Row projection: DB snake_case → ShipmentErrorRow camelCase (types/shipmentErrorList.ts).
+// mode/grossWeight are COALESCEd against `overrides` (jsonb) because the
+// Shipment Details modal writes shipment-stage edits there (PATCH .../overrides)
+// — without this the grid would keep showing the pre-edit value right after
+// the user saved a new one in the modal.
 const ROW_COLUMNS = `
   buy_shipment AS "buyShipment", sell_shipment AS "sellShipment", orders, pro,
   pickup_numbers AS "pickupNumbers", po_numbers AS "poNumbers",
   shipment_type AS "shipmentType", planning_type AS "planningType",
   customer_id AS "customerId", customer_name AS "customerName", consignor, consignee,
   origin, destination, pickup_date AS "pickupDate", delivery_date AS "deliveryDate",
-  mode, equipment_code AS "equipmentCode", scac, tender_status AS "tenderStatus",
+  COALESCE(overrides->>'mode', mode) AS mode, equipment_code AS "equipmentCode", scac, tender_status AS "tenderStatus",
   shipment_status AS "shipmentStatus", panel, category, validation_message AS "validationMessage",
-  gross_weight AS "grossWeight", load_count AS "loadCount", order_count AS "orderCount",
+  COALESCE(overrides->>'grossWeight', gross_weight) AS "grossWeight", load_count AS "loadCount", order_count AS "orderCount",
   ap_freight_cost AS "apFreightCost",
   -- 007_multileg_chains.sql — leg_type is a NEW column, distinct from
   -- shipment_type above (LINX-11597 Direct/Consolidation) despite the shared

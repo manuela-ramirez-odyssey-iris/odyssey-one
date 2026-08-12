@@ -332,6 +332,12 @@ function fakeDb({ detailRow = { detail: {}, overrides: null }, rowCount = 1 } = 
   }
 }
 
+test('the list query prefers an override for mode and gross weight', () => {
+  const q = buildListQuery({ filter: {} }, null)
+  assert.match(q.text, /COALESCE\(overrides->>'mode', mode\) AS mode/)
+  assert.match(q.text, /COALESCE\(overrides->>'grossWeight', gross_weight\) AS "grossWeight"/)
+})
+
 describe('shipment overrides', () => {
   it('buildOverridesQuery writes the whole object as one jsonb value', () => {
     const q = buildOverridesQuery('25068206', { mode: 'TL' })
