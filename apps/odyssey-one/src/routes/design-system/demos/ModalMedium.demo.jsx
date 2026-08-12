@@ -54,9 +54,12 @@ export default function ModalMediumDemo() {
   const [flowOpen, setFlowOpen] = useState(false)
   const [view, setView] = useState('details')
   const [confirmOpen, setConfirmOpen] = useState(false)
+  // A second dialog that is a navigation DESTINATION rather than a decision —
+  // so unlike the prompt, it carries a back control.
+  const [stackedOpen, setStackedOpen] = useState(false)
 
-  const closeFlow = () => { setFlowOpen(false); setView('details'); setConfirmOpen(false) }
-  const overlays = (flowOpen ? 1 : 0) + (confirmOpen ? 1 : 0)
+  const closeFlow = () => { setFlowOpen(false); setView('details'); setConfirmOpen(false); setStackedOpen(false) }
+  const overlays = (flowOpen ? 1 : 0) + (confirmOpen ? 1 : 0) + (stackedOpen ? 1 : 0)
 
   return (
     <div>
@@ -132,11 +135,18 @@ export default function ModalMediumDemo() {
           thing from either depth.
         </p>
         <p style={{ margin: '0 0 var(--spacing-3)', color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)', lineHeight: 'var(--line-height-md)' }}>
-          For contrast, Edit on the other two sections raises the <strong>unsaved-changes prompt</strong> —
-          the one genuinely stacked dialog, a second ModalMedium as a later sibling. Watch{' '}
-          <code>overlays</code> below: it stays at <strong>1</strong> through a navigation push and only
-          reaches <strong>2</strong> for a real stack. Both overlays sit at <code>z-index: 200</code>, so
-          DOM order alone decides which wins — there is no per-modal z-index to tune.
+          A push can also render as a <strong>real second dialog</strong> — <em>Open stacked view</em>{' '}
+          inside the modal does that. It carries <code>onBack</code> for the same reason the swap does:
+          you navigated there and can return. <strong>The back chevron tracks the navigation
+          relationship, not the rendering.</strong> Which rendering to choose is a design call about
+          whether the origin should stay visible behind; Shipment Details chose the swap.
+        </p>
+        <p style={{ margin: '0 0 var(--spacing-3)', color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)', lineHeight: 'var(--line-height-md)' }}>
+          The <strong>unsaved-changes prompt</strong> (Edit on the other two sections) is the counter-case:
+          also stacked, but <strong>no back</strong> — it is a decision you must answer, not a place you
+          went. Watch <code>overlays</code> below: <strong>1</strong> for the swap, <strong>2</strong> for
+          either stack. Both overlays sit at <code>z-index: 200</code>, so DOM order alone decides which
+          wins — there is no per-modal z-index to tune.
         </p>
         <div className="ds-demo-row">
           <div className="ds-demo-col">
@@ -203,12 +213,48 @@ export default function ModalMediumDemo() {
                   ))}
                 </div>
               ))}
+              <div style={{ display: 'flex', gap: 'var(--spacing-2)', flexWrap: 'wrap' }}>
+                <Button variant="secondary" size="sm" onClick={() => setStackedOpen(true)}>
+                  Open stacked view (has back)
+                </Button>
+              </div>
               <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)' }}>
-                Edit on <em>Cost</em> pushes Edit Quote onto the stack (one overlay). Edit on the other
-                two raises the unsaved-changes prompt (two overlays).
+                Three ways out of here, all on this page: Edit on <em>Cost</em> pushes by REPLACING
+                (back, 1 overlay) · the button above pushes by STACKING (back, 2 overlays) · Edit on the
+                other two raises the prompt (no back, 2 overlays).
               </span>
             </div>
           )}
+        </ModalMedium>
+      )}
+
+      {/* STACKED + BACK — the second dialog is a navigation DESTINATION, so it
+          carries `onBack`. Back pops just this dialog and leaves the one behind
+          it open; the X closes only this dialog too (the shell underneath owns
+          its own close). This is the "modal on top knows where it came from"
+          case — the same relationship as the Cost push, rendered the other way.
+          Both renderings are legitimate; which one to use is a design call
+          about whether the origin should stay visible behind. */}
+      {stackedOpen && (
+        <ModalMedium
+          title="Stacked View"
+          ariaLabel="Stacked View"
+          onBack={() => setStackedOpen(false)}
+          onClose={() => setStackedOpen(false)}
+          footer={
+            <>
+              <Button variant="secondary" onClick={() => setStackedOpen(false)}>Cancel</Button>
+              <Button variant="primary" onClick={() => setStackedOpen(false)}>Save</Button>
+            </>
+          }
+        >
+          <p style={{ margin: 0, maxWidth: 400, fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)', lineHeight: 'var(--line-height-md)' }}>
+            A <strong>second</strong> ModalMedium, opened on top of Shipment Details — which is still
+            behind this one, and the backdrop has darkened twice. It carries a{' '}
+            <strong>back chevron</strong> because it is somewhere you <em>navigated to</em>, not a
+            decision you must answer: back pops this dialog and returns you to what you came from.
+            Contrast the unsaved-changes prompt, which is terminal and has no back.
+          </p>
         </ModalMedium>
       )}
 
