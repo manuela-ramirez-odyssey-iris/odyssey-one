@@ -27,8 +27,8 @@ export const props = [
 // build a multi-view modal, and the rig below is the reference implementation.
 export const relatedApi = [
   { name: 'modalNavigationStack', type: 'boolean state', desc: 'Consumer state: a second ModalMedium opened over the first as a navigation destination. Gets onBack; pops back to its origin, which stays mounted behind it.' },
-  { name: 'navDirection', type: "'forward' | 'back'", desc: 'Which way the last transition went. Drives the slide direction so motion matches the chevron.' },
-  { name: '.modal-nav-view', type: 'css class', desc: 'Applied by the consumer to an entering view. Slides in from the right; add --back to slide from the left. Needs a per-view React key or the animation will not re-run.' },
+  { name: 'nav', type: "null | { dir: 'forward' | 'back', target: 'view' | 'stack' }", desc: 'The last stack transition. Null when none has happened, which keeps the initial open un-animated — opening a modal is not navigating within it. `target` names which surface moved, so a stack push does not hand the animation class to the shell behind it.' },
+  { name: '.modal-nav-view', type: 'css class', desc: "Passed to ModalMedium's className so the DIALOG slides as one piece, not its body inside a static frame. Enters from the right; add --back to enter from the left. Needs a React key on the shell (key={view}) or the animation will not replay, since a CSS animation only runs on a fresh element." },
 ]
 
 export const tokens = [
@@ -83,16 +83,20 @@ export default function ModalMediumDemo() {
   // modalNavigationStack — a second dialog that is a navigation DESTINATION
   // rather than a decision, so unlike the prompt it carries a back control.
   const [modalNavigationStack, setModalNavigationStack] = useState(false)
-  // Which direction the last transition went, so the incoming view can slide
-  // the right way: 'forward' on a push, 'back' on a pop.
-  const [navDirection, setNavDirection] = useState('forward')
+  // The last stack transition: `{ dir, target }`, or null when none has
+  // happened. Null is what keeps the initial open un-animated — opening a modal
+  // is not navigating within it. `target` names WHICH surface moved, so a stack
+  // push does not also hand the animation class to the shell sitting behind it.
+  const [nav, setNav] = useState(null)
 
-  const pushView = (next) => { setNavDirection('forward'); setView(next) }
-  const popView = () => { setNavDirection('back'); setView('details') }
-  const pushStack = () => { setNavDirection('forward'); setModalNavigationStack(true) }
-  const popStack = () => { setNavDirection('back'); setModalNavigationStack(false) }
+  const pushView = (next) => { setNav({ dir: 'forward', target: 'view' }); setView(next) }
+  const popView = () => { setNav({ dir: 'back', target: 'view' }); setView('details') }
+  const pushStack = () => { setNav({ dir: 'forward', target: 'stack' }); setModalNavigationStack(true) }
+  const popStack = () => { setNav({ dir: 'back', target: 'stack' }); setModalNavigationStack(false) }
 
-  const closeFlow = () => { setFlowOpen(false); setView('details'); setConfirmOpen(false); setModalNavigationStack(false) }
+  // Fresh open clears the transition so the shell appears without sliding.
+  const openFlow = () => { setNav(null); setView('details'); setFlowOpen(true) }
+  const closeFlow = () => { setFlowOpen(false); setView('details'); setConfirmOpen(false); setModalNavigationStack(false); setNav(null) }
 
   // The live navigation stack, derived from the same state that drives the
   // dialogs — so the inspector below cannot drift from what is on screen.
@@ -108,10 +112,14 @@ export default function ModalMediumDemo() {
   if (confirmOpen) stack.push({ title: 'Unsaved changes', push: 'stack — second dialog, later sibling', overlay: true, onBack: false, footer: true })
   const overlays = stack.filter((s) => s.overlay).length
 
-  // Slide class for a view entering the stack. The `key` matters as much as the
-  // class: without it React reuses the same DOM node and the CSS animation
-  // never restarts, so the second push would be silent.
-  const navView = `modal-nav-view${navDirection === 'back' ? ' modal-nav-view--back' : ''}`
+  // Slide class for the MODAL entering a stack level — passed to ModalMedium's
+  // `className`, so the dialog moves as one piece rather than its body sliding
+  // inside a static frame. Returns '' unless THIS surface is the one that just
+  // moved, so an untouched shell never carries a transition class it isn't part
+  // of.
+  const navClassFor = (target) => (nav?.target === target
+    ? `modal-nav-view${nav.dir === 'back' ? ' modal-nav-view--back' : ''}`
+    : '')
 
   return (
     <div>
@@ -260,6 +268,10 @@ export default function ModalMediumDemo() {
 
       {flowOpen && (
         <ModalMedium
+          /* key on the view: a CSS animation only replays on a fresh element,
+             and the shell is otherwise the same node across a swap. */
+          key={view}
+          className={navClassFor('view')}
           title={view === 'quote' ? 'Edit Quote' : 'Shipment Details'}
           ariaLabel={view === 'quote' ? 'Edit Quote' : 'Shipment Details'}
           onClose={closeFlow}
@@ -273,7 +285,7 @@ export default function ModalMediumDemo() {
           ) : null}
         >
           {view === 'quote' ? (
-            <div key="quote" className={navView} style={{ display: 'grid', gap: 'var(--spacing-3)', minWidth: 380 }}>
+            <div style={{ display: 'grid', gap: 'var(--spacing-3)', minWidth: 380 }}>
               <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)' }}>
                 Stand-in for the quote form. The point of this view is the header: title changed,
                 a back chevron appeared, and the X still closes everything.
@@ -286,7 +298,7 @@ export default function ModalMediumDemo() {
               ))}
             </div>
           ) : (
-            <div key="details" className={navView} style={{ display: 'grid', gap: 'var(--spacing-4)', minWidth: 380 }}>
+            <div style={{ display: 'grid', gap: 'var(--spacing-4)', minWidth: 380 }}>
               {FLOW_SECTIONS.map((s) => (
                 <div key={s.key}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--spacing-3)', marginBottom: 'var(--spacing-2)' }}>
@@ -328,6 +340,7 @@ export default function ModalMediumDemo() {
           about whether the origin should stay visible behind. */}
       {modalNavigationStack && (
         <ModalMedium
+          className={navClassFor('stack')}
           title="Modal Navigation Stack"
           ariaLabel="Modal Navigation Stack"
           onBack={popStack}
@@ -396,7 +409,7 @@ export default function ModalMediumDemo() {
           <div className="ds-demo-col">
             <button
               type="button"
-              onClick={() => { setNavDirection('forward'); setView('details'); setFlowOpen(true) }}
+              onClick={openFlow}
               style={TRIGGER}
             >
               Open Shipment Details

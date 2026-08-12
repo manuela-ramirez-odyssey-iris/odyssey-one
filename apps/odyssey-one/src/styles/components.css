@@ -3584,23 +3584,27 @@ button.breadcrumb__label:focus-visible {
 
 .modal-medium__content--scroll { padding-bottom: 0; }
 
-/* Modal navigation stack — slide transitions for a PUSH/POP inside one shell
-   (2026-08-12). Applied by the CONSUMER to the view it is swapping in, keyed
-   on direction, so the shell itself stays presentational and unaware of any
-   navigation model.
-   Forward (push) enters from the right; back (pop) enters from the left —
-   matching the direction the back chevron points, so the motion explains the
-   affordance rather than just decorating it.
-   Deliberately enter-only: there is no exit animation because the outgoing
-   view unmounts on the same tick React commits the new one, and holding it
-   for an exit would need the shell to own transition state. */
+/* Modal navigation stack — slide transitions for entering a stack LEVEL
+   (2026-08-12). Passed by the consumer to ModalMedium's `className`, so it
+   lands on the DIALOG and the whole modal travels as one piece. Deliberately
+   not on the body: a body sliding inside a stationary frame reads as content
+   churn, not as navigation.
+   Forward (push) enters from the right; back (pop) from the left — the
+   direction the back chevron points, so the motion explains the affordance
+   rather than decorating it.
+   Applied ONLY on a push or a pop. Opening the modal is not navigating within
+   it, so the consumer withholds the class on first render (see the nullable
+   navDirection in ModalMedium.demo.jsx).
+   Enter-only: the outgoing level unmounts on the same tick React commits the
+   new one, so there is nothing left to animate out without the shell owning
+   transition state. */
 @keyframes modal-nav-in-forward {
-  from { opacity: 0; transform: translateX(12px); }
+  from { opacity: 0; transform: translateX(24px); }
   to   { opacity: 1; transform: translateX(0); }
 }
 
 @keyframes modal-nav-in-back {
-  from { opacity: 0; transform: translateX(-12px); }
+  from { opacity: 0; transform: translateX(-24px); }
   to   { opacity: 1; transform: translateX(0); }
 }
 
