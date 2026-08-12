@@ -201,3 +201,49 @@ describe('section edit affordance', () => {
     expect(container.querySelector('.shp-details__field-action')).toBeNull()
   })
 })
+
+// Mode/Equipment render via ComboBox, which (like the rest of the codebase's
+// ComboBox call sites — QuoteModal.test.jsx, RoutingGuideTab.test.jsx) has no
+// <label htmlFor> association, so getByLabelText can't find them; the
+// established query is screen.getByText(label).closest('.combo-box') then
+// within(...).getByRole('combobox'). Gross Weight/Volume go through
+// MeasureField → FormField, which DOES emit a real <label htmlFor>, so those
+// stay getByLabelText.
+describe('General Information editing', () => {
+  it('renders editable controls for Weight, Volume, Mode and Equipment only', () => {
+    renderModal()
+    fireEvent.click(screen.getByRole('button', { name: 'Edit General Information' }))
+    expect(screen.getByLabelText('Gross Weight')).toBeTruthy()
+    expect(screen.getByLabelText('Volume')).toBeTruthy()
+    expect(screen.getByText('Mode').closest('.combo-box')).toBeTruthy()
+    expect(screen.getByText('Equipment').closest('.combo-box')).toBeTruthy()
+    // Source Name is NOT editable — still a plain read-only value.
+    expect(screen.queryByLabelText('Source Name')).toBeNull()
+    expect(screen.getByText('USALCO')).toBeTruthy()
+  })
+
+  it('typing in a field enables Save Changes', () => {
+    renderModal()
+    fireEvent.click(screen.getByRole('button', { name: 'Edit General Information' }))
+    expect(screen.getByRole('button', { name: 'Save Changes' }).disabled).toBe(true)
+    fireEvent.change(screen.getByLabelText('Volume'), { target: { value: '250' } })
+    expect(screen.getByRole('button', { name: 'Save Changes' }).disabled).toBe(false)
+  })
+
+  it('cancel leaves edit mode and restores the original value', () => {
+    renderModal()
+    fireEvent.click(screen.getByRole('button', { name: 'Edit General Information' }))
+    fireEvent.change(screen.getByLabelText('Volume'), { target: { value: '250' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel editing General Information' }))
+    expect(screen.getByText('200 cuft')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Edit General Information' })).toBeTruthy()
+  })
+
+  it('save exits edit mode and shows the new value', async () => {
+    renderModal()
+    fireEvent.click(screen.getByRole('button', { name: 'Edit General Information' }))
+    fireEvent.change(screen.getByLabelText('Volume'), { target: { value: '250' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save Changes' }))
+    await screen.findByRole('button', { name: 'Edit General Information' })
+  })
+})

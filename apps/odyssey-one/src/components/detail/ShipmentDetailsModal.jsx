@@ -3,11 +3,38 @@ import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { X } from 'lucide-react'
 import { ICON_LG } from '@odyssey/tokens'
-import { Button, GroupTable, ModalMedium, SummaryStrip, Tab, TitleSubtitle } from '@odyssey/ui'
+import { Button, ComboBox, GroupTable, ModalMedium, SummaryStrip, Tab, TitleSubtitle } from '@odyssey/ui'
 import { isDirty, startEdit } from './sectionDraft.js'
 import { QuoteModal } from './QuoteModal.jsx'
+import MeasureField from '../orders/create/fields/MeasureField.jsx'
+import { EQUIPMENT_CODES, EQUIPMENT_LABELS, MODES, UOM_VOLUME, UOM_WEIGHT } from '../../data/master-data'
+import { saveShipmentOverrides, saveTenderOption } from '../../api/services/shipmentService'
+import { routingOptionVmToDto } from '../../api/mappers/mapSellShipmentOutToDetail'
 
 const DASH = '--' // LINX-13590 — empty optional fields read '--', never blank
+
+// The ONLY editable General Information fields (user, 2026-08-11). A label
+// absent here renders exactly as before, in edit mode and out of it.
+const EDITABLE_GENERAL = new Set(['Gross Weight', 'Volume', 'Mode', 'Equipment'])
+
+const MODE_OPTIONS = MODES.map((m) => ({ value: m, label: m }))
+const EQUIPMENT_OPTIONS = EQUIPMENT_CODES.map((c) => ({ value: c, label: `${c} - ${EQUIPMENT_LABELS[c]}` }))
+
+// "44,470 LB" ⇄ { value: '44470', uom: 'lb' }. MeasureField owns value+UoM as
+// one control, so the display string has to split on the way in and rejoin on
+// the way out. A value that doesn't match the shape (including '--') opens
+// empty rather than guessing.
+function splitMeasure(display, fallbackUom) {
+  const m = /^([\d,.]+)\s*(\S+)?$/.exec(String(display ?? '').trim())
+  if (!m) return { value: '', uom: fallbackUom }
+  return { value: m[1].replace(/,/g, ''), uom: (m[2] ?? fallbackUom).toLowerCase() }
+}
+
+function joinMeasure({ value, uom }, options) {
+  if (value === '' || value == null) return DASH
+  const label = options.find((o) => o.value === uom)?.label ?? uom
+  return `${Number(value).toLocaleString('en-US')} ${label}`
+}
 
 // Display-only formatter for Markup's ORIGINAL value: rateDetails.markup is
 // a raw number (routingData.options[].rateDetails, NOT costData — Margin
@@ -198,14 +225,17 @@ export default function ShipmentDetailsModal({ shipment, shipmentDetails, error,
   const stops = shipmentDetails?.stopsData?.stops || []
 
   // Draft seeds, one per editable section. Read at Edit-click time so the
-  // draft always starts from what is currently on screen.
+  // draft always starts from what is currently on screen — which means
+  // reading `overrides` first: a value saved in an earlier edit pass and not
+  // yet reflected in shipmentDetails (no refetch) must win over the original
+  // load, or re-opening Edit after a save would silently discard it.
   const draftFor = (section) => {
     if (section === 'general') {
       return {
-        grossWeight: summary.grossWeight ?? DASH,
-        volume: summary.volume ?? DASH,
-        mode: shipmentDetails.overrides?.mode ?? shipment?.mode ?? DASH,
-        equipment: option?.equipment ?? DASH,
+        grossWeight: overrides.grossWeight ?? summary.grossWeight ?? DASH,
+        volume: overrides.volume ?? summary.volume ?? DASH,
+        mode: overrides.mode ?? shipmentDetails.overrides?.mode ?? shipment?.mode ?? DASH,
+        equipment: overrides.equipment ?? option?.equipment ?? DASH,
       }
     }
     return Object.fromEntries(orders.map((o) => [o.orderNumber, referenceRowsFor(o, shipmentDetails.overrides)]))
@@ -220,8 +250,66 @@ export default function ShipmentDetailsModal({ shipment, shipmentDetails, error,
     onSave: () => saveSection(section),
   })
 
-  // Filled in by Task 6 (general) and Task 7 (references).
-  const saveSection = () => setEdit(null)
+  // Renders a General Information field: the 4 editable ones get a live
+  // control while editing, everything else (and everything when NOT editing)
+  // stays the plain read-only TitleSubtitle it always was.
+  const renderGeneralField = (label, value) => {
+    const editing = edit?.section === 'general'
+    if (!editing || !EDITABLE_GENERAL.has(label)) {
+      return <TitleSubtitle key={label} subtitle={label} title={value || DASH} />
+    }
+    const set = (patch) => setEdit((e) => ({ ...e, draft: { ...e.draft, ...patch } }))
+
+    if (label === 'Gross Weight' || label === 'Volume') {
+      const isWeight = label === 'Gross Weight'
+      const options = isWeight ? UOM_WEIGHT : UOM_VOLUME
+      const key = isWeight ? 'grossWeight' : 'volume'
+      return (
+        <MeasureField
+          key={label}
+          id={`shp-details-${key}`}
+          showLabel
+          label={label}
+          options={options}
+          value={splitMeasure(edit.draft[key], isWeight ? 'lb' : 'cuft')}
+          onChange={(next) => set({ [key]: joinMeasure(next, options) })}
+        />
+      )
+    }
+
+    const isMode = label === 'Mode'
+    return (
+      <ComboBox
+        key={label}
+        id={`shp-details-${isMode ? 'mode' : 'equipment'}`}
+        variant="select"
+        showLabel
+        label={label}
+        options={isMode ? MODE_OPTIONS : EQUIPMENT_OPTIONS}
+        value={isMode ? edit.draft.mode : edit.draft.equipment}
+        onSelect={(v) => set(isMode ? { mode: v ?? '' } : { equipment: v ?? '' })}
+      />
+    )
+  }
+
+  // General Information saves to TWO places on purpose: Equipment belongs to
+  // the routing option (tenders row), everything else is shipment-stage.
+  // Sequential, not Promise.all — if the tender write fails we must not have
+  // already told the user the whole save succeeded.
+  const saveSection = async (section) => {
+    const id = shipment?.sellShipment
+    if (section === 'general') {
+      const { equipment, ...stage } = edit.draft
+      await saveShipmentOverrides(id, { ...shipmentDetails.overrides, ...stage })
+      if (equipment !== option?.equipment && option) {
+        await saveTenderOption(id, routingOptionVmToDto({ ...option, equipment }))
+      }
+    } else {
+      await saveShipmentOverrides(id, { ...shipmentDetails.overrides, references: edit.draft })
+    }
+    setOverrides((prev) => ({ ...prev, ...edit.draft }))
+    setEdit(null)
+  }
 
   return createPortal(
     <ModalMedium
@@ -334,6 +422,7 @@ export default function ShipmentDetailsModal({ shipment, shipmentDetails, error,
               <Section
                 title="General Information"
                 {...sectionProps('general')}
+                renderField={renderGeneralField}
                 fields={[
                   // "Source Name" in the spec is Jana's wording for the customer.
                   ['Source Name', shipment?.customerName],
@@ -342,9 +431,12 @@ export default function ShipmentDetailsModal({ shipment, shipmentDetails, error,
                   // "from current option" per the spec annotation
                   ['Pickup Date/Time', option?.pickupDateTime],
                   ['Delivery Date/Time', option?.deliveryDateTime],
-                  ['Gross Weight', summary.grossWeight],
-                  ['Volume', summary.volume],
-                  ['Mode', shipment?.mode],
+                  // `overrides` (local, saved-this-session state) wins over the
+                  // original load so a save is visible without a refetch —
+                  // same precedence draftFor uses to seed the next Edit.
+                  ['Gross Weight', overrides.grossWeight ?? summary.grossWeight],
+                  ['Volume', overrides.volume ?? summary.volume],
+                  ['Mode', overrides.mode ?? shipmentDetails.overrides?.mode ?? shipment?.mode],
                   // Equipment reads the CURRENT ROUTING OPTION's equipment
                   // (the quote's — RoutingOptionVM.equipment,
                   // shipmentDetail.ts:149 / mapSellShipmentOutToDetail.ts:267),
@@ -353,7 +445,7 @@ export default function ShipmentDetailsModal({ shipment, shipmentDetails, error,
                   // current option → DASH, not a silent fallback to the
                   // shipment's value: that would display one equipment while
                   // editing a different one.
-                  ['Equipment', option?.equipment ?? DASH],
+                  ['Equipment', overrides.equipment ?? option?.equipment ?? DASH],
                   // paymentTerms IS the freight term, already label-mapped by the mapper
                   ['Freight Term', order?.paymentTerms],
                   ['Hazmat', order?.hazmat === 'Yes' ? 'Yes' : 'No'],

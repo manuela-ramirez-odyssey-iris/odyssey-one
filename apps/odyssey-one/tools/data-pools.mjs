@@ -21,6 +21,10 @@ export const EQUIPMENT_LABELS = {
 }
 export const EQUIPMENT_CODES = Object.keys(EQUIPMENT_LABELS)
 
+// Shipment modes. Order is LOAD-BEARING: generate.mjs picks weighted-random
+// by index, so reordering this array changes the seeded dataset.
+export const MODES = ['TL', 'LTL', 'RR', 'IMD', 'AIR']
+
 export const CUSTOMERS = [
   { id: 'ERCO_SYS_01', name: 'ERCO Systems Inc' },
   { id: 'G20TECH_SYS_01', name: 'G2O Technologies LLC' },

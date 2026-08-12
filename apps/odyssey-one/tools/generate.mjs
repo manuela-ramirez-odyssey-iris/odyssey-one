@@ -60,7 +60,7 @@
 //                  rollup is Σ of its orders' directCostAmount (DEC-68).
 import { faker } from '@faker-js/faker';
 import { writeFileSync, mkdirSync, existsSync, readdirSync, unlinkSync } from 'fs';
-import { deriveTimezone, tzAbbrev, CUSTOMERS, EXTRA_CUSTOMERS, LOCATIONS, EQUIPMENT_CODES, CHEMICAL_PRODUCTS, locationIdFor, FREIGHT_TERMS, SHIP_DIRECTIONS, SHIP_CLASS_CODES, shipClassLabel, PRODUCT_CLASSES, HANDLING_UNITS } from './data-pools.mjs'
+import { deriveTimezone, tzAbbrev, CUSTOMERS, EXTRA_CUSTOMERS, LOCATIONS, EQUIPMENT_CODES, CHEMICAL_PRODUCTS, locationIdFor, FREIGHT_TERMS, SHIP_DIRECTIONS, SHIP_CLASS_CODES, shipClassLabel, PRODUCT_CLASSES, HANDLING_UNITS, MODES } from './data-pools.mjs'
 import { ORDER_AUTHOR_USERNAMES } from './seed-users.mjs'
 
 // ── Orders accumulator (I1) ──────────────────────────────────────────────────
@@ -134,7 +134,6 @@ const SPECIAL_SERVICES_POOL = [
   { code: 'APPT',  desc: 'Appointment Required' },
 ];
 
-const MODES = ['TL', 'LTL', 'RR', 'IMD', 'AIR'];
 const MODE_WEIGHTS = { TL: 40, LTL: 40, RR: 5, IMD: 5, AIR: 10 };
 const RR_CUSTOMERS = ['BASF_CHM_01'];
 const TENDER_STATUSES = ['Sent', 'Accepted', 'Declined', 'Cancelled'];
