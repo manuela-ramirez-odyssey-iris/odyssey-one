@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Trash2, Plus } from 'lucide-react'
 import { Button, ComboBox, FormField, ModalMedium, TimePicker, TitleSubtitle } from '@odyssey/ui'
@@ -148,7 +148,20 @@ function DateTimePair({ idPrefix, name, value, onChange, disabled, readOnly }) {
   )
 }
 
-export function QuoteModal({ mode, carrierData, shipmentTz, onSave, onClose }) {
+/** The quote form's footer buttons, for hosts that own the dialog shell. */
+export function QuoteModalFooter({ onCancel, onSave, disabled }) {
+  return (
+    <>
+      <Button variant="secondary" size="lg" onClick={onCancel}>Cancel</Button>
+      <Button variant="primary" size="lg" onClick={onSave} disabled={disabled}>Save Quote</Button>
+    </>
+  )
+}
+
+export const QuoteModal = forwardRef(function QuoteModal(
+  { mode, carrierData, shipmentTz, onSave, onClose, embedded = false, onValidityChange },
+  ref,
+) {
   const isView = mode === 'view'
   const isEdit = mode === 'edit'
 
@@ -235,25 +248,19 @@ export function QuoteModal({ mode, carrierData, shipmentTz, onSave, onClose }) {
 
   const title = mode === 'add' ? 'Add Quote' : isEdit ? 'Edit Quote' : 'Rate Details'
   const chargeRows = codedCharges.map(c => [c.code, Number(c.amount) || 0])
+  const disabled = !scac || !baseRate
 
-  return createPortal(
-    <ModalMedium
-      title={title}
-      onClose={onClose}
-      ariaLabel={title}
-      className="quote-modal-shell"
-      /* Rate Details is read-only — no footer at all (user, S102). The mock
-         carries Cancel/Save there because it reuses the same ModalMedium
-         instance; the header X is the only exit. */
-      footer={isView ? null : (
-        <>
-          <Button variant="secondary" size="lg" onClick={onClose}>Cancel</Button>
-          <Button variant="primary" size="lg" onClick={handleSave} disabled={!scac || !baseRate}>
-            Save Quote
-          </Button>
-        </>
-      )}
-    >
+  // Embedded hosts (ShipmentDetailsModal's Edit Quote view) own the footer
+  // themselves via QuoteModalFooter, so they need `save` + the live validity
+  // state without lifting every field. A ref exposes the imperative action
+  // (mirrors a form-library submit ref); `onValidityChange` mirrors it back
+  // out for the host's Save button `disabled` prop — one render behind a
+  // keystroke, same as any other derived-in-an-effect value, and imperceptible
+  // for a button's disabled attribute.
+  useImperativeHandle(ref, () => ({ save: handleSave }), [handleSave])
+  useEffect(() => { onValidityChange?.(disabled) }, [disabled, onValidityChange])
+
+  const body = (
       <div className="quote-modal">
         <section>
           <h3 className="text-label-base-semibold quote-modal__section-title">Carrier</h3>
@@ -434,7 +441,29 @@ export function QuoteModal({ mode, carrierData, shipmentTz, onSave, onClose }) {
           />
         </div>
       </div>
+  )
+
+  // Embedded: the HOST owns the dialog shell (its own ModalMedium, its own
+  // header and footer), so this renders bare and does NOT portal. Used by the
+  // Shipment Details modal, where Edit Quote is a VIEW of that modal rather
+  // than a second dialog stacked on it (user, 2026-08-11).
+  if (embedded) return body
+
+  return createPortal(
+    <ModalMedium
+      title={title}
+      onClose={onClose}
+      ariaLabel={title}
+      className="quote-modal-shell"
+      /* Rate Details is read-only — no footer at all (user, S102). The mock
+         carries Cancel/Save there because it reuses the same ModalMedium
+         instance; the header X is the only exit. */
+      footer={isView ? null : (
+        <QuoteModalFooter onCancel={onClose} onSave={handleSave} disabled={disabled} />
+      )}
+    >
+      {body}
     </ModalMedium>,
     document.body,
   )
-}
+})

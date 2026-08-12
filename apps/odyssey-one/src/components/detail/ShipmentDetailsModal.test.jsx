@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, cleanup, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import ShipmentDetailsModal from './ShipmentDetailsModal'
+import * as shipmentService from '../../api/services/shipmentService'
 
 afterEach(cleanup)
 
@@ -363,5 +364,45 @@ describe('unsaved-changes guard', () => {
     renderModal()
     expect(screen.getByRole('button', { name: 'Edit General Information' })).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Save Changes' })).toBeNull()
+  })
+})
+
+// Cost → Edit Quote (Task 11, 2026-08-12): Edit Quote is a VIEW of this same
+// modal (ModalMedium onBack navigation), not a second stacked dialog — user's
+// explicit requirement. Also the DEC-86 regression guard: the quote save
+// used to only touch local `overrides`, never `saveTenderOption`, so every
+// Base/Markup/Equipment edit from this modal was lost on reload.
+describe('Cost → Edit Quote navigation', () => {
+  it('replaces the details body rather than stacking a second dialog', () => {
+    renderModal()
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Cost' }))
+    expect(document.querySelectorAll('[role="dialog"]').length).toBe(1)
+    expect(screen.queryByText('General Information')).toBeNull()
+    expect(screen.getByText('Carrier')).toBeTruthy()
+  })
+
+  it('offers a back control that returns to the details view', () => {
+    renderModal()
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Cost' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }))
+    expect(screen.getByText('General Information')).toBeTruthy()
+  })
+
+  it('the close X still closes the whole modal from the quote view', () => {
+    const onClose = vi.fn()
+    renderModal({ onClose })
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Cost' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+    expect(onClose).toHaveBeenCalledOnce()
+  })
+
+  it('saving the quote persists through saveTenderOption', async () => {
+    const spy = vi.spyOn(shipmentService, 'saveTenderOption').mockResolvedValue(undefined)
+    renderModal()
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Cost' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Save Quote' }))
+    await screen.findByText('General Information')
+    expect(spy).toHaveBeenCalled()
+    spy.mockRestore()
   })
 })

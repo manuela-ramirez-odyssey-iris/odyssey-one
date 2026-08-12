@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { X } from 'lucide-react'
 import { ICON_LG } from '@odyssey/tokens'
 import { Button, ComboBox, GroupTable, ModalMedium, SummaryStrip, Tab, TitleSubtitle } from '@odyssey/ui'
 import { isDirty, startEdit } from './sectionDraft.js'
-import { QuoteModal } from './QuoteModal.jsx'
+import { QuoteModal, QuoteModalFooter } from './QuoteModal.jsx'
 import DiscardChangesModal from './DiscardChangesModal.jsx'
 import MeasureField from '../orders/create/fields/MeasureField.jsx'
 import RepeatableRows, { newRowId } from '../orders/create/RepeatableRows.jsx'
@@ -49,6 +49,23 @@ function joinMeasure({ value, uom }, options) {
 function fmtMoney(n, currency = 'USD') {
   const symbol = currency === 'EUR' ? '€' : '$'
   return `${symbol}${Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+}
+
+// Overrides written by a quote save. Lower-case keys throughout (DEC-86,
+// 2026-08-12) — `equipment` matches the exact key General Information's own
+// draft/read sites already use (draftFor/renderGeneralField/the fields array
+// below), so a quote's equipment change is visible there and vice versa,
+// instead of the old `Equipment` (capitalized) key that nothing ever read.
+// `base`/`markup` are new (the old `Base`/`Markup` keys were dead — the Cost
+// section read straight off costData/option, never off overrides), added
+// here alongside the same override-first read added to Cost's fields array
+// below, matching the precedent General Information already set.
+function quoteOverridesFrom(result) {
+  return {
+    base: fmtMoney(result.rateDetails.baseRate, result.rateDetails.currency),
+    markup: fmtMoney(result.rateDetails.markup, result.rateDetails.currency),
+    equipment: result.equipment,
+  }
 }
 
 // The header strip and General Information both want the "current option" —
@@ -175,11 +192,16 @@ export default function ShipmentDetailsModal({ shipment, shipmentDetails, error,
   // commit still comes from QuoteModal's real save (saveTenderOption → PUT
   // .../tender), so it durably survives a reload; `overrides` just keeps this
   // modal's own display in sync with what was actually saved without a
-  // refetch. The per-field pens that used to open this are gone (section-
-  // level editing, 2026-08-11) — QuoteModal itself and its Escape handling
-  // below stay wired as-is until Task 11 gives Cost's Edit its real handler.
+  // refetch.
   const [overrides, setOverrides] = useState({})
-  const [quoteModalOpen, setQuoteModalOpen] = useState(false)
+
+  // View navigation (Task 11, 2026-08-12): Edit Quote is a VIEW of THIS modal
+  // (ModalMedium's onBack chevron), not a second dialog stacked on top of it
+  // (user's explicit requirement) — so one modal, one view flag, not a second
+  // open/close boolean.
+  const [view, setView] = useState('details')
+  const quoteRef = useRef(null)
+  const [quoteSaveDisabled, setQuoteSaveDisabled] = useState(true)
 
   // Section edit mode (2026-08-11). ONE state object, so "only one section at
   // a time" is structural rather than a rule to enforce — `section` cannot
@@ -204,24 +226,6 @@ export default function ShipmentDetailsModal({ shipment, shipmentDetails, error,
 
   const handleClose = () => requestExit(() => onClose?.())
   const switchTab = (next) => requestExit(() => { setEdit(null); setTab(next) })
-
-  // Escape must close the quote modal WITHOUT closing the outer ModalMedium —
-  // whose own Escape handling is an unconditional
-  // `window.addEventListener('keydown', ...)` we can't touch (packages/ui) or
-  // guard from inside (unlike CustomersModal's self-owned popover, which just
-  // no-ops its own listener while confirmOpen). QuoteModal has the identical
-  // unconditional listener (its own ModalMedium) — same fix, same reason.
-  // Capture phase on window fires before ANY bubble-phase listener on window,
-  // regardless of mount order, so stopping propagation here reliably beats
-  // both of their listeners to the punch.
-  useEffect(() => {
-    function onKeyCapture(e) {
-      if (e.key !== 'Escape') return
-      if (quoteModalOpen) { e.stopPropagation(); setQuoteModalOpen(false) }
-    }
-    window.addEventListener('keydown', onKeyCapture, true)
-    return () => window.removeEventListener('keydown', onKeyCapture, true)
-  }, [quoteModalOpen])
 
   // Stop → the order view in the Orders domain (/orders/:orderId). The modal
   // closes first: leaving it mounted over a different route strands the user.
@@ -346,11 +350,30 @@ export default function ShipmentDetailsModal({ shipment, shipmentDetails, error,
     setEdit(null)
   }
 
+  // Was missing entirely before 2026-08-12 — two comment blocks near the old
+  // wiring (removed) claimed this persisted and it never did (DEC-86): the
+  // old onSave only called setOverrides, so every Base/Markup/Equipment edit
+  // made from this modal was lost on reload. Same choke point RoutingGuideTab
+  // uses for its own quote saves: VM → DTO → PUT .../tender.
+  const handleQuoteSave = async (result) => {
+    await saveTenderOption(shipment?.sellShipment, routingOptionVmToDto(result))
+    setOverrides((prev) => ({ ...prev, ...quoteOverridesFrom(result) }))
+    setView('details')
+  }
+
   return createPortal(
     <ModalMedium
-      title="Shipment Details"
+      title={view === 'quote' ? 'Edit Quote' : 'Shipment Details'}
+      ariaLabel={view === 'quote' ? 'Edit Quote' : 'Shipment Details'}
       onClose={handleClose}
-      ariaLabel="Shipment Details"
+      onBack={view === 'quote' ? () => setView('details') : undefined}
+      footer={view === 'quote' ? (
+        <QuoteModalFooter
+          onCancel={() => setView('details')}
+          onSave={() => quoteRef.current?.save()}
+          disabled={quoteSaveDisabled}
+        />
+      ) : null}
     >
       {pendingExit && (
         <DiscardChangesModal
@@ -360,39 +383,27 @@ export default function ShipmentDetailsModal({ shipment, shipmentDetails, error,
         />
       )}
 
-      {/* QuoteModal wiring survives the per-field-pen removal (2026-08-11)
-          untouched — nothing sets quoteModalOpen true yet (Cost's Edit is a
-          no-op stub above; Task 11 points it here), so this block is
-          currently unreachable dead code by design, not an oversight.
-          Self-portals to document.body (QuoteModal.jsx) with the SAME z-200
-          sibling-DOM-order stacking this file relies on elsewhere, so no
-          extra wiring is needed here for it to sit above the Shipment Details
-          dialog. `carrierData` is the shipment's current routing option — the
-          exact RoutingOptionVM shape QuoteModal already consumes elsewhere
-          (BottomBar.jsx passes the same shipmentDetails.routingData down to
-          RoutingGuideTab, whose local `options` state is that array untouched
-          — confirmed no shape mismatch). onSave does NOT re-derive AP
-          Total/AR Total/Margin — QuoteModal already owns that math and this
-          modal must not re-implement it. */}
-      {quoteModalOpen && (
+      {/* Edit Quote is a VIEW of THIS modal, not a second dialog (user,
+          2026-08-11) — it REPLACES the details body below rather than
+          layering over it, so the two are mutually exclusive branches of the
+          same conditional, never both mounted. `carrierData` is the
+          shipment's current routing option — the exact RoutingOptionVM shape
+          QuoteModal already consumes elsewhere (BottomBar.jsx passes the
+          same shipmentDetails.routingData down to RoutingGuideTab, whose
+          local `options` state is that array untouched — confirmed no shape
+          mismatch). handleQuoteSave does NOT re-derive AP Total/AR
+          Total/Margin — QuoteModal already owns that math. */}
+      {view === 'quote' ? (
         <QuoteModal
+          ref={quoteRef}
+          embedded
           mode="edit"
           carrierData={option}
           shipmentTz={shipmentTz}
-          onSave={(result) => {
-            setOverrides((prev) => ({
-              ...prev,
-              Base: fmtMoney(result.rateDetails.baseRate, result.rateDetails.currency),
-              Markup: fmtMoney(result.rateDetails.markup, result.rateDetails.currency),
-              Equipment: result.equipment,
-            }))
-            setQuoteModalOpen(false)
-          }}
-          onClose={() => setQuoteModalOpen(false)}
+          onSave={handleQuoteSave}
+          onValidityChange={setQuoteSaveDisabled}
         />
-      )}
-
-      {error || !shipmentDetails ? (
+      ) : error || !shipmentDetails ? (
         <div className="shp-details__error" role="alert">
           <p className="text-label-sm-regular">Unable to load shipment details at the moment.</p>
           <p className="text-label-sm-regular">
@@ -498,9 +509,14 @@ export default function ShipmentDetailsModal({ shipment, shipmentDetails, error,
               <Section
                 title="Cost"
                 editable
-                onEdit={() => {}}
+                onEdit={() => requestExit(() => setView('quote'))}
                 fields={[
-                  ['Base', cost.base],
+                  // `overrides.base` wins when a quote save just wrote it —
+                  // same override-first precedence General Information's own
+                  // fields use — so Edit Quote's Base is visible here without
+                  // a refetch (2026-08-12; the old capitalized `Base` key was
+                  // written but never read anywhere, see quoteOverridesFrom).
+                  ['Base', overrides.base ?? cost.base],
                   ['Fuel (FSC)', cost.fuel],
                   ['Accessorials', cost.accessorials],
                   ['AP Total (Carrier)', cost.apTotal],
@@ -509,10 +525,10 @@ export default function ShipmentDetailsModal({ shipment, shipmentDetails, error,
                   // backed by the current routing option's rateDetails.markup,
                   // the same value the Tender quote edits. Adjacent to Margin
                   // (its dependent) so the input and its result read together.
-                  ['Markup', fmtMoney(option?.rateDetails?.markup, option?.rateDetails?.currency)],
+                  ['Markup', overrides.markup ?? fmtMoney(option?.rateDetails?.markup, option?.rateDetails?.currency)],
                   // Margin stays read-only and derived (AR − AP) — Cost has no
-                  // per-field editing any more, only the section-level Edit
-                  // (Task 11 wires its real handler).
+                  // per-field editing any more, only the section-level Edit,
+                  // which navigates to the Edit Quote view (Task 11).
                   ['Margin', cost.margin],
                   ['Direct Cost', cost.directCost],
                 ]}
