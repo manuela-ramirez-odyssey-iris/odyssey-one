@@ -64,6 +64,34 @@ test('LINX-12102: order.hazardous matches whether ANY of its lines are hazmat-fl
   }
 })
 
+test('history entries: human-authored entries carry name+email, email domain matches kind, system entries carry no author', () => {
+  const { details } = buildDataset({ totalShipments: 100 })
+  let humanCount = 0
+  let totalCount = 0
+  for (const d of details.values()) {
+    for (const entry of d.historyList) {
+      totalCount++
+      if (entry.author) {
+        humanCount++
+        assert.ok(entry.author.name, 'human author has a name')
+        assert.ok(entry.author.email, 'human author has an email')
+        assert.ok(['internal', 'external'].includes(entry.author.kind))
+        if (entry.author.kind === 'internal') {
+          assert.ok(entry.author.email.endsWith('@odysseylogistics.com'), `internal email ${entry.author.email}`)
+        } else {
+          assert.ok(!entry.author.email.endsWith('@odysseylogistics.com'), `external email ${entry.author.email}`)
+        }
+      } else {
+        // System-authored entries are unchanged: `source` still drives rendering.
+        assert.ok(entry.source, 'system entry keeps source')
+      }
+    }
+  }
+  assert.ok(totalCount > 0)
+  assert.ok(humanCount > 0, 'some entries are human-authored')
+  assert.ok(humanCount / totalCount < 0.5, 'human authorship stays a minority (DEC-80)')
+})
+
 test('promoted extra orgs own a thin tail; original customers dominate', () => {
   const { orders } = buildDataset({ totalShipments: 200 })
   const extraIds = new Set(EXTRA_CUSTOMERS.map((c) => c.id))
