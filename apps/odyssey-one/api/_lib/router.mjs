@@ -1,5 +1,5 @@
 // api/_lib/router.mjs — path table for the OdysseyONE-shaped endpoints.
-import { categoryCounts, shipmentErrorList, sellShipmentDetail, saveTender } from './shipments.mjs'
+import { categoryCounts, shipmentErrorList, sellShipmentDetail, saveTender, saveShipmentOverrides } from './shipments.mjs'
 import { orderList, orderTabCounts, orderView, updateOrder, updateOrderStatus, createOrder } from './orders.mjs'
 import { getPreference, putPreference } from './preferences.mjs'
 import { listSharedFilters, createSharedFilter, renameSharedFilter, deleteSharedFilter } from './sharedFilters.mjs'
@@ -13,6 +13,7 @@ export const ROUTES = [
   { name: 'orderTabCounts',    method: 'GET',  path: '/order-service/v3/order/tab-counts',                 handler: orderTabCounts },
   { name: 'sellShipmentDetail', method: 'GET', pattern: /^\/shipment-service\/v1\/sell-shipment-out\/(\d+)$/, handler: sellShipmentDetail },
   { name: 'saveTender',        method: 'PUT',  pattern: /^\/shipment-service\/v1\/sell-shipment-out\/(\d+)\/tender$/, handler: saveTender },
+  { name: 'saveShipmentOverrides', method: 'PATCH', pattern: /^\/shipment-service\/v1\/sell-shipment-out\/(\d+)\/overrides$/, handler: saveShipmentOverrides },
   { name: 'orderView',         method: 'POST', path: '/order-service/v3/order/view',                        handler: orderView },
   { name: 'updateOrder',       method: 'PUT',  path: '/order-service/v3/order',                             handler: updateOrder },
   { name: 'updateOrderStatus', method: 'PATCH', path: '/order-service/v3/order/status',                     handler: updateOrderStatus },

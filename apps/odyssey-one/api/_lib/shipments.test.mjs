@@ -1,6 +1,6 @@
-import { test } from 'node:test'
+import { test, describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { buildCountsQuery, buildListQuery, buildDetailQuery, sellShipmentDetail, saveTender, categoryCounts } from './shipments.mjs'
+import { buildCountsQuery, buildListQuery, buildDetailQuery, sellShipmentDetail, saveTender, categoryCounts, buildOverridesQuery, saveShipmentOverrides } from './shipments.mjs'
 
 test('counts: panel only', () => {
   const q = buildCountsQuery({ panel: 'exceptions', customerIds: undefined })
@@ -314,4 +314,58 @@ test('explicit needles override the phrase (the handler resolves GS-20 code list
   assert.ok(values.includes('A1'))
   assert.ok(values.includes('B2'))
   assert.ok(!values.includes('A1 B2'))
+})
+
+// Minimal db double, dispatched by query text (not call order — the overrides
+// write is a single query, so a call-count check would mistake it for the
+// detail SELECT and always hand back the hardcoded rowCount instead of the
+// one the test configured). The detail SELECT and tenders lookup answer with
+// `detailRow`/empty; anything else (the overrides UPDATE) answers with
+// whatever `rowCount` the caller configured.
+function fakeDb({ detailRow = { detail: {}, overrides: null }, rowCount = 1 } = {}) {
+  return {
+    query: async (q) => {
+      if (q.text.includes('FROM shipments')) return { rows: [detailRow], rowCount: 1 }
+      if (q.text.includes('FROM tenders')) return { rows: [], rowCount: 0 }
+      return { rows: [], rowCount }
+    },
+  }
+}
+
+describe('shipment overrides', () => {
+  it('buildOverridesQuery writes the whole object as one jsonb value', () => {
+    const q = buildOverridesQuery('25068206', { mode: 'TL' })
+    assert.match(q.text, /UPDATE shipments SET overrides = \$1/)
+    assert.equal(q.values[0], JSON.stringify({ mode: 'TL' }))
+    assert.equal(q.values[1], '25068206')
+  })
+
+  it('saveShipmentOverrides rejects a non-object body with 400', async () => {
+    await assert.rejects(
+      () => saveShipmentOverrides({ params: ['25068206'], body: { overrides: 'nope' }, db: fakeDb() }),
+      (e) => e.status === 400,
+    )
+  })
+
+  it('saveShipmentOverrides 404s when the shipment does not exist', async () => {
+    const db = fakeDb({ rowCount: 0 })
+    await assert.rejects(
+      () => saveShipmentOverrides({ params: ['nope'], body: { overrides: {} }, db }),
+      (e) => e.status === 404,
+    )
+  })
+
+  it('sellShipmentDetail attaches overrides to the returned detail blob', async () => {
+    const db = fakeDb({
+      detailRow: { detail: { sellShipment: '25068206' }, overrides: { mode: 'TL' } },
+    })
+    const detail = await sellShipmentDetail({ params: ['25068206'], db })
+    assert.deepEqual(detail.overrides, { mode: 'TL' })
+  })
+
+  it('sellShipmentDetail omits overrides entirely when the column is NULL', async () => {
+    const db = fakeDb({ detailRow: { detail: { sellShipment: '25068206' }, overrides: null } })
+    const detail = await sellShipmentDetail({ params: ['25068206'], db })
+    assert.equal('overrides' in detail, false)
+  })
 })

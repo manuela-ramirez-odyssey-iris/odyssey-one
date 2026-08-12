@@ -195,7 +195,7 @@ export async function shipmentErrorList({ body, db }) {
 
 // Slice 3: full SellShipmentOut detail — stored verbatim as shipments.detail JSONB.
 export function buildDetailQuery(sellShipment) {
-  return { text: 'SELECT detail FROM shipments WHERE sell_shipment = $1', values: [sellShipment] }
+  return { text: 'SELECT detail, overrides FROM shipments WHERE sell_shipment = $1', values: [sellShipment] }
 }
 
 // Quotes/tenders live in their own table (seeded 1:1 from the detail's
@@ -222,7 +222,36 @@ export async function sellShipmentDetail({ params, db }) {
   // blanking the Tender tab. Rows without an option payload are ignored.
   const options = tenders.map(t => t.option).filter(Boolean)
   if (options.length > 0) detail.shippingOptionList = options
+  // Shipment-stage field edits (2026-08-11). Attached rather than merged into
+  // the blob: the mapper decides field by field which wins, and a consumer
+  // that never asks for overrides keeps reading the untouched seeded values.
+  // Absent column stays ABSENT — an `overrides: null` key would make every
+  // `?? ` fallback in the mapper read as "explicitly cleared".
+  if (rows[0].overrides) detail.overrides = rows[0].overrides
   return detail
+}
+
+// PATCH /shipment-service/v1/sell-shipment-out/:id/overrides — shipment-STAGE
+// field edits from the Shipment Details modal. Whole-object replace, not a
+// deep merge: the modal always sends the complete override set it is holding,
+// so a merge would make it impossible to CLEAR a field.
+export function buildOverridesQuery(sellShipment, overrides) {
+  return {
+    text: 'UPDATE shipments SET overrides = $1 WHERE sell_shipment = $2 RETURNING sell_shipment',
+    values: [JSON.stringify(overrides), sellShipment],
+  }
+}
+
+export async function saveShipmentOverrides({ params, body, db }) {
+  const overrides = body?.overrides
+  if (!overrides || typeof overrides !== 'object' || Array.isArray(overrides)) {
+    const e = new Error('overrides object required'); e.status = 400; throw e
+  }
+  const { rowCount } = await db.query(buildOverridesQuery(params[0], overrides))
+  if (rowCount === 0) {
+    const e = new Error(`No shipment: ${params[0]}`); e.status = 404; throw e
+  }
+  return { success: true }
 }
 
 // PUT /shipment-service/v1/sell-shipment-out/:id/tender — add or update ONE
