@@ -80,8 +80,14 @@ function currentOption(options = []) {
 }
 
 // Section header = title + its edit control. `editable` opts a section in;
-// `editing` flips the control from a secondary Edit to a PRIMARY Save Changes
-// (user, 2026-08-11: the save face is the promoted one) plus a cancel X.
+// `editing` swaps the label Edit → Save Changes and adds a cancel X.
+//
+// BOTH faces are SECONDARY (user, 2026-08-12, reversing the 2026-08-11 call
+// that promoted the save face). A section header sits inside a modal that has
+// its own primary action; promoting an in-body button competes with it, and
+// with up to four editable sections the page could show several primaries at
+// once. The variant no longer carries state — `disabled` does.
+//
 // Save Changes stays disabled until something actually changed, so the button
 // itself communicates whether there is anything to lose.
 function Section({
@@ -97,7 +103,7 @@ function Section({
           <div className="shp-details__section-actions">
             {editing ? (
               <>
-                <Button variant="primary" size="sm" disabled={!dirty} onClick={onSave}>
+                <Button variant="secondary" size="sm" disabled={!dirty} onClick={onSave}>
                   Save Changes
                 </Button>
                 <button
