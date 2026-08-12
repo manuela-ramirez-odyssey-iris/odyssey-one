@@ -1,0 +1,19 @@
+-- 008_shipment_overrides.sql — shipment-STAGE field edits (Shipment Details
+-- modal, 2026-08-11). Additive: a nullable column with no default, so no
+-- backfill, no reseed, no data loss. Existing rows read NULL and behave
+-- exactly as before.
+--
+-- Shape (all keys optional):
+--   { "mode": "TL",
+--     "grossWeight": "44,470 LB",
+--     "volume": "200 cuft",
+--     "references": { "<orderNumber>": [ { "id": "...", "type": "PO Number", "value": "PO-5512" } ] } }
+--
+-- Deliberately NOT here: `equipment`. Equipment belongs to the routing option
+-- and persists through the existing tenders write (PUT .../tender), so putting
+-- it here too would create two sources for one value.
+--
+-- References are shipment-stage ONLY (user, 2026-08-11): editing a PO Number
+-- here must never write back to the order. That is why they live on the
+-- shipment row and not in `orders`.
+ALTER TABLE shipments ADD COLUMN IF NOT EXISTS overrides jsonb;
