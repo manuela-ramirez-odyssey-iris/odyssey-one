@@ -42,6 +42,19 @@ export const tokens = [
   { token: '--font-size-lg', resolves: '18px', usage: 'title font size (heading-lg)' },
 ]
 
+// The demo-trigger look, shared by every "open a modal" button in this entry.
+// Was copy-pasted inline twice; a third copy for the navigation rig is what
+// made it worth naming.
+const TRIGGER = {
+  padding: 'var(--spacing-2) var(--spacing-4)',
+  background: 'var(--bg-tertiary)',
+  border: '1px solid var(--border-default)',
+  borderRadius: 'var(--radius-md)',
+  fontFamily: 'var(--font-primary)',
+  fontSize: 'var(--font-size-sm)',
+  cursor: 'pointer',
+}
+
 function ChildLink({ to, children }) {
   return <a href={`#comp-${to}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-link)', textDecoration: 'underline', fontWeight: 'var(--font-weight-semibold)', whiteSpace: 'nowrap' }}>{children}</a>
 }
@@ -188,14 +201,6 @@ export default function ModalMediumDemo() {
           either stack. Both overlays sit at <code>z-index: 200</code>, so DOM order alone decides which
           wins — there is no per-modal z-index to tune.
         </p>
-        <div className="ds-demo-row" style={{ marginBottom: 'var(--spacing-3)' }}>
-          <div className="ds-demo-col">
-            <Button variant="secondary" onClick={() => { setView('details'); setFlowOpen(true) }}>
-              Open Shipment Details
-            </Button>
-          </div>
-        </div>
-
         {/* Live stack inspector. Derived from the SAME state the dialogs render
             from, so it cannot claim something the screen contradicts. Exists
             because the API is the thing a dev needs to see: which level got
@@ -212,7 +217,7 @@ export default function ModalMediumDemo() {
 
           {stack.length === 0 ? (
             <div style={{ padding: 'var(--spacing-3)', fontSize: 'var(--font-size-sm)', color: 'var(--text-tertiary)' }}>
-              Nothing open. Open the modal above and the stack fills in as you navigate.
+              Nothing open. Open Shipment Details from Interactive below, and the stack fills in as you navigate.
             </div>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'max-content 1fr max-content max-content', fontFamily: 'monospace', fontSize: 'var(--font-size-xs)' }}>
@@ -372,15 +377,7 @@ export default function ModalMediumDemo() {
             <button
               type="button"
               onClick={() => { setScrollable(false); setOpen(true) }}
-              style={{
-                padding: 'var(--spacing-2) var(--spacing-4)',
-                background: 'var(--bg-tertiary)',
-                border: '1px solid var(--border-default)',
-                borderRadius: 'var(--radius-md)',
-                fontFamily: 'var(--font-primary)',
-                fontSize: 'var(--font-size-sm)',
-                cursor: 'pointer',
-              }}
+              style={TRIGGER}
             >
               Open ModalMedium
             </button>
@@ -390,19 +387,21 @@ export default function ModalMediumDemo() {
             <button
               type="button"
               onClick={() => { setScrollable(true); setOpen(true) }}
-              style={{
-                padding: 'var(--spacing-2) var(--spacing-4)',
-                background: 'var(--bg-tertiary)',
-                border: '1px solid var(--border-default)',
-                borderRadius: 'var(--radius-md)',
-                fontFamily: 'var(--font-primary)',
-                fontSize: 'var(--font-size-sm)',
-                cursor: 'pointer',
-              }}
+              style={TRIGGER}
             >
               Open ModalMedium (scrollable)
             </button>
             <span className="ds-demo-label">scrollableContent = true</span>
+          </div>
+          <div className="ds-demo-col">
+            <button
+              type="button"
+              onClick={() => { setNavDirection('forward'); setView('details'); setFlowOpen(true) }}
+              style={TRIGGER}
+            >
+              Open Shipment Details
+            </button>
+            <span className="ds-demo-label">onBack + modalNavigationStack</span>
           </div>
         </div>
       </div>
