@@ -184,16 +184,20 @@ function currentTenderOption(list?: SellShipmentRoutingOption[]): SellShipmentRo
 
 function mapStops(dto: SellShipmentOut): ShipmentDetailVM['stopsData'] {
   const totalWeight = sumOrderWeights(dto)
+  // Shipment-stage overrides win over the derived value (2026-08-11). Both are
+  // already display strings, so there is nothing to re-format — the modal
+  // stores exactly what it rendered.
+  const ov = dto.overrides
   const summary: StopsSummaryVM = {
     // dto.distanceMiles (header) deliberately NOT read here — see
     // currentTenderOption's comment. fmtDistance is shared with
     // mapRoutingOption's own `distance` field so the two tables format
     // identically.
     distance: fmtDistance(currentTenderOption(dto.shippingOptionList)?.distanceMiles),
-    grossWeight: totalWeight != null ? `${fmtInt(totalWeight)} LB` : DASH,
-    volume: dto.totalVolumeValue != null
+    grossWeight: ov?.grossWeight ?? (totalWeight != null ? `${fmtInt(totalWeight)} LB` : DASH),
+    volume: ov?.volume ?? (dto.totalVolumeValue != null
       ? `${dto.totalVolumeValue} ${dto.totalVolumeUomCode ?? 'cuft'}`
-      : DASH,
+      : DASH),
     acceptedCarrier: orDash(dto.acceptedCarrierLabel),
     seedEquipment: orDash(dto.seedEquipment),
     // LINX-12067 (AC audit, 2026-08-10): AC text is "Refer Story for
@@ -527,5 +531,6 @@ export function mapSellShipmentOutToDetail(dto: SellShipmentOut): ShipmentDetail
     documentsData: { documents: dto.documentList ?? [] },
     notesData: { notes: dto.noteList ?? [] },
     historyData: { entries: dto.historyList ?? [] },
+    overrides: dto.overrides,
   }
 }

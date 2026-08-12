@@ -229,6 +229,31 @@ export interface SellShipmentCostSummary {
   marginPercent?: number
 }
 
+/** One shipment-stage reference row, as edited in the Shipment Details modal. */
+export interface ShipmentReferenceOverride {
+  id: string
+  type: string
+  value: string
+}
+
+/**
+ * Shipment-STAGE field edits (2026-08-11). Server-side only — this is not a
+ * field the real OdysseyONE contract returns; our API attaches it from the
+ * `shipments.overrides` column. Every key is optional and an absent key means
+ * "no override", NOT "cleared".
+ *
+ * `references` is keyed by orderNumber and REPLACES that order's whole
+ * reference list when present — the modal seeds the draft from the current
+ * values, so a save always carries the complete set. Per-field merging would
+ * make deleting a reference impossible.
+ */
+export interface ShipmentOverridesDTO {
+  mode?: string
+  grossWeight?: string
+  volume?: string
+  references?: Record<string, ShipmentReferenceOverride[]>
+}
+
 export interface SellShipmentOut {
   shipmentId: string
   shipmentType?: string
@@ -257,4 +282,5 @@ export interface SellShipmentOut {
   documentList?: unknown[]
   noteList?: unknown[]
   historyList?: unknown[]
+  overrides?: ShipmentOverridesDTO
 }

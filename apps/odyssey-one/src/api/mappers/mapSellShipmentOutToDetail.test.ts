@@ -749,4 +749,30 @@ describe('mapSellShipmentOutToDetail', () => {
       })
     })
   })
+
+  describe('shipment overrides', () => {
+    it('grossWeight and volume prefer the override over the derived value', () => {
+      const dto = { ...sellShipmentOutSample, totalVolumeValue: 200, totalVolumeUomCode: 'cuft',
+        overrides: { grossWeight: '99,999 LB', volume: '5 m³' } } as any
+      const vm = mapSellShipmentOutToDetail(dto)
+      expect(vm.stopsData.summary.grossWeight).toBe('99,999 LB')
+      expect(vm.stopsData.summary.volume).toBe('5 m³')
+    })
+
+    it('falls back to the derived value when the override key is absent', () => {
+      const dto = { ...sellShipmentOutSample, totalVolumeValue: 200, totalVolumeUomCode: 'cuft',
+        overrides: { mode: 'TL' } } as any
+      const vm = mapSellShipmentOutToDetail(dto)
+      expect(vm.stopsData.summary.volume).toBe('200 cuft')
+    })
+
+    it('passes the whole overrides object through to the VM', () => {
+      const dto = { ...sellShipmentOutSample, overrides: { mode: 'TL', references: { L1: [] } } } as any
+      expect(mapSellShipmentOutToDetail(dto).overrides).toEqual({ mode: 'TL', references: { L1: [] } })
+    })
+
+    it('overrides is undefined when the DTO carries none', () => {
+      expect(mapSellShipmentOutToDetail(sellShipmentOutSample as any).overrides).toBeUndefined()
+    })
+  })
 })

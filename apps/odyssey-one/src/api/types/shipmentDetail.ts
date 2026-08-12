@@ -1,5 +1,8 @@
 // The detail view-model the existing tabs consume. The mapper outputs this.
 
+import type { ShipmentOverridesDTO } from './sellShipmentOut'
+
+
 export interface AddressVM {
   siteId: string
   company: string
@@ -283,4 +286,6 @@ export interface ShipmentDetailVM {
   documentsData: { documents: unknown[] }
   notesData: { notes: unknown[] }
   historyData: { entries: unknown[] }
+  /** Shipment-stage field edits, passed through untouched. Absent = none. */
+  overrides?: ShipmentOverridesDTO
 }
