@@ -247,3 +247,47 @@ describe('General Information editing', () => {
     await screen.findByRole('button', { name: 'Edit General Information' })
   })
 })
+
+describe('Customer Reference Values editing', () => {
+  it('swaps the reference display for the repeatable-rows editor', () => {
+    renderModal()
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Customer Reference Values' }))
+    expect(screen.getAllByText('Reference Type').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Reference Value').length).toBeGreaterThan(0)
+    // No duplicated "References" heading — the section header already says it.
+    expect(screen.queryByRole('heading', { name: 'References' })).toBeNull()
+  })
+
+  it('keeps the order number visible and read-only', () => {
+    renderModal()
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Customer Reference Values' }))
+    // Also appears as a Stops link (same reason the existing "lists Customer
+    // Reference Values" test above matches on count, not uniqueness).
+    expect(screen.getAllByText('L14372086').length).toBeGreaterThan(0)
+    expect(screen.queryByDisplayValue('L14372086')).toBeNull()
+  })
+
+  it('PO Number is editable and dirties the section', () => {
+    renderModal()
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Customer Reference Values' }))
+    const po = screen.getByDisplayValue('PO-5512')
+    fireEvent.change(po, { target: { value: 'PO-9999' } })
+    expect(screen.getByRole('button', { name: 'Save Changes' }).disabled).toBe(false)
+  })
+
+  it('a new reference row can be added', () => {
+    renderModal()
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Customer Reference Values' }))
+    fireEvent.click(screen.getAllByRole('button', { name: /Add New Reference Code/ })[0])
+    expect(screen.getByRole('button', { name: 'Save Changes' }).disabled).toBe(false)
+  })
+
+  it('a saved reference survives leaving edit mode', async () => {
+    renderModal()
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Customer Reference Values' }))
+    fireEvent.change(screen.getByDisplayValue('PO-5512'), { target: { value: 'PO-9999' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save Changes' }))
+    await screen.findByRole('button', { name: 'Edit Customer Reference Values' })
+    expect(screen.getByText('PO-9999')).toBeTruthy()
+  })
+})

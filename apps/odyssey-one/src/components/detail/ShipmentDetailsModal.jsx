@@ -7,9 +7,12 @@ import { Button, ComboBox, GroupTable, ModalMedium, SummaryStrip, Tab, TitleSubt
 import { isDirty, startEdit } from './sectionDraft.js'
 import { QuoteModal } from './QuoteModal.jsx'
 import MeasureField from '../orders/create/fields/MeasureField.jsx'
-import { EQUIPMENT_CODES, EQUIPMENT_LABELS, MODES, UOM_VOLUME, UOM_WEIGHT } from '../../data/master-data'
+import RepeatableRows, { newRowId } from '../orders/create/RepeatableRows.jsx'
+import { EQUIPMENT_CODES, EQUIPMENT_LABELS, MODES, REFERENCE_TYPES, UOM_VOLUME, UOM_WEIGHT } from '../../data/master-data'
 import { saveShipmentOverrides, saveTenderOption } from '../../api/services/shipmentService'
 import { routingOptionVmToDto } from '../../api/mappers/mapSellShipmentOutToDetail'
+
+const REFERENCE_TYPE_OPTIONS = REFERENCE_TYPES.map((t) => ({ value: t, label: t }))
 
 const DASH = '--' // LINX-13590 — empty optional fields read '--', never blank
 
@@ -224,6 +227,12 @@ export default function ShipmentDetailsModal({ shipment, shipmentDetails, error,
   const udfOrders = shipmentDetails?.userDefinedData?.orders || []
   const stops = shipmentDetails?.stopsData?.stops || []
 
+  // Same precedence General Information's fields already use (local
+  // `overrides` > `shipmentDetails.overrides` > raw), applied once here so
+  // both the draft seed and the read-only render agree on what "current"
+  // means for references (Task 6's mechanism, not a new one).
+  const overridesForRead = { ...shipmentDetails?.overrides, ...overrides }
+
   // Draft seeds, one per editable section. Read at Edit-click time so the
   // draft always starts from what is currently on screen — which means
   // reading `overrides` first: a value saved in an earlier edit pass and not
@@ -238,7 +247,7 @@ export default function ShipmentDetailsModal({ shipment, shipmentDetails, error,
         equipment: overrides.equipment ?? option?.equipment ?? DASH,
       }
     }
-    return Object.fromEntries(orders.map((o) => [o.orderNumber, referenceRowsFor(o, shipmentDetails.overrides)]))
+    return Object.fromEntries(orders.map((o) => [o.orderNumber, referenceRowsFor(o, overridesForRead)]))
   }
 
   const sectionProps = (section) => ({
@@ -307,7 +316,14 @@ export default function ShipmentDetailsModal({ shipment, shipmentDetails, error,
     } else {
       await saveShipmentOverrides(id, { ...shipmentDetails.overrides, references: edit.draft })
     }
-    setOverrides((prev) => ({ ...prev, ...edit.draft }))
+    // General's draft keys (grossWeight, mode, ...) ARE overrides' top-level
+    // shape, so a flat spread mirrors them directly. References persist under
+    // their own `references` key (same shape saveShipmentOverrides just sent)
+    // — the local mirror has to nest the same way or overridesForRead's
+    // `overrides.references` lookup would miss it entirely.
+    setOverrides((prev) => (
+      section === 'general' ? { ...prev, ...edit.draft } : { ...prev, references: edit.draft }
+    ))
     setEdit(null)
   }
 
@@ -515,16 +531,64 @@ export default function ShipmentDetailsModal({ shipment, shipmentDetails, error,
               <Section title="Customer Reference Values" {...sectionProps('references')}>
                 <div className="shp-details__orders">
                   {orders.map((o) => {
-                    const refs = referencesFor(o)
+                    const editing = edit?.section === 'references'
+                    const rows = editing
+                      ? edit.draft[o.orderNumber] ?? []
+                      : referenceRowsFor(o, overridesForRead)
+
+                    const setRows = (next) => setEdit((e) => ({
+                      ...e, draft: { ...e.draft, [o.orderNumber]: next },
+                    }))
+
                     return (
                       /* Order in column 1, its references flowing through the
                          remaining columns and wrapping downward (user, 2026-07-30). */
                       <div key={o.orderNumber} className="shp-details__order">
+                        {/* Order Number is never editable (user, 2026-08-11) —
+                            it identifies the group, it is not a reference. */}
                         <TitleSubtitle subtitle="Order" title={o.orderNumber || DASH} />
-                        {refs.length ? (
+                        {editing ? (
+                          /* The Orders create-flow References block, minus its
+                             own "References" heading — this section header
+                             already names it (user, 2026-08-11). */
+                          <div className="co-confirm-block">
+                            <RepeatableRows
+                              rows={rows}
+                              columns={[
+                                {
+                                  key: 'type',
+                                  header: 'Reference Type',
+                                  maxWidth: 350,
+                                  select: {
+                                    placeholder: 'Select a Reference Type',
+                                    options: (row) => REFERENCE_TYPE_OPTIONS.filter(
+                                      (opt) => !rows.some((r) => r.id !== row.id && r.type === opt.value),
+                                    ),
+                                  },
+                                },
+                                { key: 'value', header: 'Reference Value', placeholder: 'Enter Reference Value', maxWidth: 350 },
+                              ]}
+                              lockedCell={(row, colKey) => colKey === 'type' && !!row.type}
+                              canDeleteRow={(row) => !!row.type}
+                              rowPlaceholder={(row, colKey) =>
+                                row.type && colKey === 'value' ? `Enter a ${row.type}` : undefined}
+                              onCellChange={(rowId, colKey, value) =>
+                                setRows(rows.map((r) => (r.id === rowId ? { ...r, [colKey]: value } : r)))}
+                              onDeleteRow={(rowId) => setRows(rows.filter((r) => r.id !== rowId))}
+                              onAddRow={() => {
+                                // One pending row at a time — reuse the blank
+                                // one if it exists (same rule as order creation).
+                                if (!rows.some((r) => !r.type && !r.value)) {
+                                  setRows([...rows, { id: newRowId(), type: '', value: '' }])
+                                }
+                              }}
+                              addLabel="Add New Reference Code"
+                            />
+                          </div>
+                        ) : rows.length ? (
                           <div className="shp-details__order-refs">
-                            {refs.map(([label, value]) => (
-                              <TitleSubtitle key={label} subtitle={label} title={value} />
+                            {rows.map((r) => (
+                              <TitleSubtitle key={r.id} subtitle={r.type} title={r.value} />
                             ))}
                           </div>
                         ) : (

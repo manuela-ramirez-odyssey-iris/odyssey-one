@@ -1,5 +1,9 @@
 import { Plus, Trash2 } from 'lucide-react'
 import { Button, ComboBox, FormField } from '@odyssey/ui'
+// The .co-rep table surface lives in create-order.css, which is code-split
+// with the Orders route. Imported here so this component works outside it —
+// same reason and same idiom as fields/MeasureField.jsx.
+import './create-order.css'
 
 export const newRowId = () => `row-${Math.random().toString(36).slice(2, 9)}`
 
