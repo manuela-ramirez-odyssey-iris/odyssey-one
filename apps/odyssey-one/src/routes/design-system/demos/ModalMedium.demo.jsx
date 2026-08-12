@@ -33,6 +33,10 @@ export const tokens = [
   { token: '--font-size-lg', resolves: '18px', usage: 'title font size (heading-lg)' },
 ]
 
+function ChildLink({ to, children }) {
+  return <a href={`#comp-${to}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-link)', textDecoration: 'underline', fontWeight: 'var(--font-weight-semibold)', whiteSpace: 'nowrap' }}>{children}</a>
+}
+
 export default function ModalMediumDemo() {
   const [open, setOpen] = useState(false)
   const [scrollable, setScrollable] = useState(false)
@@ -46,6 +50,46 @@ export default function ModalMediumDemo() {
         <code>scrollableContent</code> flag removes body padding so a scrolling region seats flush
         against the footer divider.
       </p>
+
+      {/* Header provenance (2026-08-12). Recorded here because two people in a row
+          assumed the back chevron was missing from the design system — it never was;
+          it was missing from THIS shell. Worth a dev seeing before they add the next
+          header capability in the wrong place. */}
+      <div
+        className="ds-demo-section"
+        style={{ borderLeft: '3px solid var(--border-default)', paddingLeft: 'var(--spacing-4)' }}
+      >
+        <h4 className="ds-demo-section__title">Header provenance — read before extending</h4>
+        <p style={{ margin: '0 0 var(--spacing-3)', color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)', lineHeight: 'var(--line-height-md)' }}>
+          <strong>Figma composes this shell from{' '}
+          <ChildLink to="ModalHeader">ModalHeader</ChildLink></strong> (node <code>2032:915</code> ={' '}
+          ModalHeader instance + Content slot + ModalFooter instance). <strong>The code does not.</strong>{' '}
+          Both the React and Angular <code>ModalMedium</code> hand-roll a simpler header — title + close X —
+          rather than composing the molecule.
+        </p>
+        <p style={{ margin: '0 0 var(--spacing-3)', color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)', lineHeight: 'var(--line-height-md)' }}>
+          So the header capabilities below live in <ChildLink to="ModalHeader">ModalHeader</ChildLink> and are{' '}
+          <strong>not reachable from this shell</strong>: an editable title (<code>editableTitle</code> → pencil,
+          used by ColumnPanel's rename) and a <code>subtitle</code>. <code>onBack</code> was in the same
+          position until 2026-08-12, when the Shipment Details modal needed in-modal navigation and it was
+          added here directly — mirroring ModalHeader's API rather than composing it, to keep the change
+          contained.
+        </p>
+        <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)', lineHeight: 'var(--line-height-md)' }}>
+          <strong>If you need a subtitle or an editable title, do not add them here.</strong> Use{' '}
+          <ChildLink to="ModalHeader">ModalHeader</ChildLink> (see{' '}
+          <ChildLink to="RightPanel">RightPanel</ChildLink>, which composes it properly) or resolve the
+          drift by making this shell compose it too. Adding a third one-off prop deepens the duplication.
+        </p>
+        <p style={{ margin: 'var(--spacing-3) 0 0', color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)', lineHeight: 'var(--line-height-md)' }}>
+          <strong>Angular naming differs, deliberately.</strong> The Angular twin&apos;s ModalHeader already
+          ships <code>[showBack]</code> + <code>(back)</code> — matching Figma&apos;s <code>Show Back</code>{' '}
+          boolean. React&apos;s presence-gated <code>onBack</code> is the odd one out, and that divergence
+          predates this change. <strong>Port <code>ModalMedium</code> using{' '}
+          <code>[showBack]</code>/<code>(back)</code>, not <code>onBack</code></strong>, to stay consistent
+          with the rest of the Angular library.
+        </p>
+      </div>
 
       <div className="ds-demo-section">
         <h4 className="ds-demo-section__title">Interactive — open / close</h4>
