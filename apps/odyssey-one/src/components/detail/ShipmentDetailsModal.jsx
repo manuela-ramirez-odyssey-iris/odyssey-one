@@ -1,35 +1,13 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
-import { Pencil } from 'lucide-react'
+import { X } from 'lucide-react'
 import { ICON_LG } from '@odyssey/tokens'
 import { Button, GroupTable, ModalMedium, SummaryStrip, Tab, TitleSubtitle } from '@odyssey/ui'
+import { isDirty, startEdit } from './sectionDraft.js'
 import { QuoteModal } from './QuoteModal.jsx'
 
 const DASH = '--' // LINX-13590 — empty optional fields read '--', never blank
-
-// FINAL editable set (2026-08-10, user-confirmed, corrected same day) — Base,
-// Markup, Equipment. Every pen opens the shared Tender QuoteModal
-// (QuoteModal.jsx) in edit mode; there is no inline control anywhere in this
-// modal any more (an earlier pass gave Equipment its own inline ComboBox +
-// confirmation, and separately dropped Base's pen by misreading the user —
-// both reverted). Rationale (user): a commit must PERSIST like everything
-// else. QuoteModal's save already routes through saveTenderOption → PUT
-// .../tender → a real `tenders` row write; an inline draft had no write path
-// and would silently vanish on reload.
-//
-// This map is still the single place that decides which fields are
-// editable — a label present here gets a pen; a label absent renders exactly
-// as before (plain TitleSubtitle). Everything else stays read-only: the
-// other Cost totals and Margin are derived, Hazmat is system-driven per
-// decision ORD-12. The value carries nothing since there is only one control
-// type left (a boolean map would do — kept as an object in case a future
-// field ever needs its own note here, same shape either way).
-export const EDITABLE_FIELDS = {
-  Base: true,
-  Markup: true,
-  Equipment: true,
-}
 
 // Display-only formatter for Markup's ORIGINAL value: rateDetails.markup is
 // a raw number (routingData.options[].rateDetails, NOT costData — Margin
@@ -40,31 +18,6 @@ export const EDITABLE_FIELDS = {
 function fmtMoney(n, currency = 'USD') {
   const symbol = currency === 'EUR' ? '€' : '$'
   return `${symbol}${Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-}
-
-// One grid cell of Section's `fields` form. Not in EDITABLE_FIELDS → byte-
-// identical to the original plain TitleSubtitle. Editable fields all open
-// QuoteModal directly — no inline draft, no local confirmation; the pen never
-// becomes a save icon here since QuoteModal owns its own Save Quote / Cancel.
-// Idiom matches packages/ui/src/SectionLabel.jsx: `icon-action`, ICON_LG,
-// type="button", real aria-label.
-function EditableField({ label, value, overrides, onOpenQuoteModal }) {
-  const displayValue = overrides[label] ?? value
-  if (!EDITABLE_FIELDS[label]) return <TitleSubtitle subtitle={label} title={displayValue || DASH} />
-
-  return (
-    <div className="shp-details__field">
-      <TitleSubtitle subtitle={label} title={displayValue || DASH} />
-      <button
-        type="button"
-        className="icon-action shp-details__field-action"
-        aria-label={`Edit ${label}`}
-        onClick={onOpenQuoteModal}
-      >
-        <Pencil {...ICON_LG} />
-      </button>
-    </div>
-  )
 }
 
 // The header strip and General Information both want the "current option" —
@@ -78,10 +31,50 @@ function currentOption(options = []) {
   )
 }
 
-function Section({ title, fields, renderField, children }) {
+// Section header = title + its edit control. `editable` opts a section in;
+// `editing` flips the control from a secondary Edit to a PRIMARY Save Changes
+// (user, 2026-08-11: the save face is the promoted one) plus a cancel X.
+// Save Changes stays disabled until something actually changed, so the button
+// itself communicates whether there is anything to lose.
+function Section({
+  title, fields, renderField, children,
+  editable = false, editing = false, dirty = false, editDisabled = false,
+  onEdit, onSave, onCancel,
+}) {
   return (
     <section className="shp-details__section">
-      <h3 className="text-label-base-semibold shp-details__section-title">{title}</h3>
+      <div className="shp-details__section-head">
+        <h3 className="text-label-base-semibold shp-details__section-title">{title}</h3>
+        {editable && (
+          <div className="shp-details__section-actions">
+            {editing ? (
+              <>
+                <Button variant="primary" size="sm" disabled={!dirty} onClick={onSave}>
+                  Save Changes
+                </Button>
+                <button
+                  type="button"
+                  className="icon-action"
+                  aria-label={`Cancel editing ${title}`}
+                  onClick={onCancel}
+                >
+                  <X {...ICON_LG} />
+                </button>
+              </>
+            ) : (
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={editDisabled}
+                aria-label={`Edit ${title}`}
+                onClick={onEdit}
+              >
+                Edit
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
       {fields ? (
         <div className="shp-details__grid">
           {fields.map(([label, value]) =>
@@ -108,6 +101,13 @@ function referencesFor(o) {
     ['Pickup Number', o.pickupNumber],
     ['Confirmation Number', o.confirmationNumber],
   ].filter(([, v]) => v && v !== DASH)
+}
+
+// Filled in by Task 7 — for now, the seeded values only.
+function referenceRowsFor(order, overrides) {
+  return overrides?.references?.[order.orderNumber] ?? referencesFor(order).map(([type, value], i) => ({
+    id: `${order.orderNumber}-${i}`, type, value,
+  }))
 }
 
 // User Defined Fields — one GroupTable group per order, mirroring Cost
@@ -144,12 +144,17 @@ export default function ShipmentDetailsModal({ shipment, shipmentDetails, error,
   // commit still comes from QuoteModal's real save (saveTenderOption → PUT
   // .../tender), so it durably survives a reload; `overrides` just keeps this
   // modal's own display in sync with what was actually saved without a
-  // refetch. All three editable fields (Base, Markup, Equipment) share ONE
-  // QuoteModal instance — there's nothing per-field to track beyond whether
-  // it's open.
+  // refetch. The per-field pens that used to open this are gone (section-
+  // level editing, 2026-08-11) — QuoteModal itself and its Escape handling
+  // below stay wired as-is until Task 11 gives Cost's Edit its real handler.
   const [overrides, setOverrides] = useState({})
   const [quoteModalOpen, setQuoteModalOpen] = useState(false)
-  const openQuoteModal = () => setQuoteModalOpen(true)
+
+  // Section edit mode (2026-08-11). ONE state object, so "only one section at
+  // a time" is structural rather than a rule to enforce — `section` cannot
+  // hold two values. Null = nothing is being edited.
+  const [edit, setEdit] = useState(null)
+  const dirty = isDirty(edit)
 
   // Escape must close the quote modal WITHOUT closing the outer ModalMedium —
   // whose own Escape handling is an unconditional
@@ -168,16 +173,6 @@ export default function ShipmentDetailsModal({ shipment, shipmentDetails, error,
     window.addEventListener('keydown', onKeyCapture, true)
     return () => window.removeEventListener('keydown', onKeyCapture, true)
   }, [quoteModalOpen])
-
-  const renderField = (label, value) => (
-    <EditableField
-      key={label}
-      label={label}
-      value={value}
-      overrides={overrides}
-      onOpenQuoteModal={openQuoteModal}
-    />
-  )
 
   // Stop → the order view in the Orders domain (/orders/:orderId). The modal
   // closes first: leaving it mounted over a different route strands the user.
@@ -202,15 +197,43 @@ export default function ShipmentDetailsModal({ shipment, shipmentDetails, error,
   const udfOrders = shipmentDetails?.userDefinedData?.orders || []
   const stops = shipmentDetails?.stopsData?.stops || []
 
+  // Draft seeds, one per editable section. Read at Edit-click time so the
+  // draft always starts from what is currently on screen.
+  const draftFor = (section) => {
+    if (section === 'general') {
+      return {
+        grossWeight: summary.grossWeight ?? DASH,
+        volume: summary.volume ?? DASH,
+        mode: shipmentDetails.overrides?.mode ?? shipment?.mode ?? DASH,
+        equipment: option?.equipment ?? DASH,
+      }
+    }
+    return Object.fromEntries(orders.map((o) => [o.orderNumber, referenceRowsFor(o, shipmentDetails.overrides)]))
+  }
+
+  const sectionProps = (section) => ({
+    editable: true,
+    editing: edit?.section === section,
+    dirty,
+    onEdit: () => setEdit(startEdit(section, draftFor(section))),
+    onCancel: () => setEdit(null),
+    onSave: () => saveSection(section),
+  })
+
+  // Filled in by Task 6 (general) and Task 7 (references).
+  const saveSection = () => setEdit(null)
+
   return createPortal(
     <ModalMedium
       title="Shipment Details"
       onClose={onClose}
       ariaLabel="Shipment Details"
     >
-      {/* Base / Markup / Equipment — ALL THREE pens open the Tender quote
-          modal whole (mode="edit"), not forked, not inline. QuoteModal
-          self-portals to document.body (QuoteModal.jsx) with the SAME z-200
+      {/* QuoteModal wiring survives the per-field-pen removal (2026-08-11)
+          untouched — nothing sets quoteModalOpen true yet (Cost's Edit is a
+          no-op stub above; Task 11 points it here), so this block is
+          currently unreachable dead code by design, not an oversight.
+          Self-portals to document.body (QuoteModal.jsx) with the SAME z-200
           sibling-DOM-order stacking this file relies on elsewhere, so no
           extra wiring is needed here for it to sit above the Shipment Details
           dialog. `carrierData` is the shipment's current routing option — the
@@ -219,10 +242,7 @@ export default function ShipmentDetailsModal({ shipment, shipmentDetails, error,
           RoutingGuideTab, whose local `options` state is that array untouched
           — confirmed no shape mismatch). onSave does NOT re-derive AP
           Total/AR Total/Margin — QuoteModal already owns that math and this
-          modal must not re-implement it. Any of the three pens opens the
-          SAME instance with the SAME carrierData, so one save always refreshes
-          all three overrides together — there's no per-field edit entry point
-          to go stale against what was actually saved. */}
+          modal must not re-implement it. */}
       {quoteModalOpen && (
         <QuoteModal
           mode="edit"
@@ -313,7 +333,7 @@ export default function ShipmentDetailsModal({ shipment, shipmentDetails, error,
             <>
               <Section
                 title="General Information"
-                renderField={renderField}
+                {...sectionProps('general')}
                 fields={[
                   // "Source Name" in the spec is Jana's wording for the customer.
                   ['Source Name', shipment?.customerName],
@@ -342,11 +362,9 @@ export default function ShipmentDetailsModal({ shipment, shipmentDetails, error,
 
               <Section
                 title="Cost"
-                renderField={renderField}
+                editable
+                onEdit={() => {}}
                 fields={[
-                  // Base — has a pen (2026-08-10, corrected same day; an
-                  // earlier pass cut it on a misread of the user). Opens the
-                  // same QuoteModal as Markup/Equipment.
                   ['Base', cost.base],
                   ['Fuel (FSC)', cost.fuel],
                   ['Accessorials', cost.accessorials],
@@ -357,9 +375,9 @@ export default function ShipmentDetailsModal({ shipment, shipmentDetails, error,
                   // the same value the Tender quote edits. Adjacent to Margin
                   // (its dependent) so the input and its result read together.
                   ['Markup', fmtMoney(option?.rateDetails?.markup, option?.rateDetails?.currency)],
-                  // Margin stays read-only and derived (AR − AP) — absent from
-                  // EDITABLE_FIELDS, so renderField falls through to plain
-                  // TitleSubtitle same as every other unconfigured Cost row.
+                  // Margin stays read-only and derived (AR − AP) — Cost has no
+                  // per-field editing any more, only the section-level Edit
+                  // (Task 11 wires its real handler).
                   ['Margin', cost.margin],
                   ['Direct Cost', cost.directCost],
                 ]}
@@ -368,7 +386,12 @@ export default function ShipmentDetailsModal({ shipment, shipmentDetails, error,
               {/* Stops — summary only (the full pane lives in the bar's Stops
                   tab). Mandatory per the user: every stop links to its order in
                   the Orders domain, and the address is shown. */}
-              <Section title="Stops">
+              {/* Stops editing is not built yet (user, 2026-08-11: "we will not
+                  do this one for now but will be triggered by the same button").
+                  The control renders DISABLED so the affordance is visible and
+                  a click gives honest feedback instead of silently doing
+                  nothing. Wire onEdit when the Stops draft shape is decided. */}
+              <Section title="Stops" editable editDisabled>
                 <div className="shp-details__orders">
                   {stops.length ? stops.map((s, i) => (
                     <div key={s.stopNumber ?? i} className="shp-details__order">
@@ -397,7 +420,7 @@ export default function ShipmentDetailsModal({ shipment, shipmentDetails, error,
                 </div>
               </Section>
 
-              <Section title="Customer Reference Values">
+              <Section title="Customer Reference Values" {...sectionProps('references')}>
                 <div className="shp-details__orders">
                   {orders.map((o) => {
                     const refs = referencesFor(o)

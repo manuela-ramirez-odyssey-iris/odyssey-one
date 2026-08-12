@@ -3585,29 +3585,32 @@ button.breadcrumb__label:focus-visible {
   margin-bottom: var(--spacing-3);
 }
 
+/* Section header row — title leading, edit control trailing (2026-08-11).
+   The title keeps its own margin-bottom so section spacing is unchanged when
+   a section has no edit control at all. */
+.shp-details__section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+}
+
+.shp-details__section-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  /* Matches the title's own margin so the control sits on the title baseline
+     rather than dragging the row taller. */
+  margin-bottom: var(--spacing-3);
+  flex-shrink: 0;
+}
+
 .shp-details__grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   column-gap: var(--spacing-5);
   row-gap: var(--spacing-6);
 }
-
-/* Field editing (2026-08-10) — one General Information/Cost grid cell,
-   configured via EDITABLE_FIELDS (Base, Markup, Equipment). Pen matches
-   SectionLabel's icon-action idiom; align to the bottom so it sits level
-   with the TitleSubtitle title line rather than the eyebrow subtitle above
-   it. Every editable field is a read-only value + pen — the pen opens
-   QuoteModal, nothing swaps to an inline control here any more. */
-.shp-details__field {
-  display: flex;
-  align-items: flex-end;
-  gap: var(--spacing-2);
-  min-width: 0;
-}
-
-.shp-details__field > :first-child { flex: 1; min-width: 0; }
-
-.shp-details__field-action { flex-shrink: 0; }
 
 /* Tab row over the identifiers strip — CostAllocationTab layout. The row's
    bottom hairline touches the strip directly: gap 0, no margin between them.
