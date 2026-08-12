@@ -2,6 +2,7 @@ import React from 'react'
 import { Badge, SubAccordion } from '@odyssey/ui'
 import { formatDateTimeMDYHM } from '../../lib/dates'
 import PaneEmpty from './PaneEmpty'
+import TooltipTrigger from '../ui/TooltipTrigger'
 
 // Shipment History = an audit trail ("who changed what and when", Jana Mar 25
 // — vault/10-domains/shipments/domain-analysis.md §9), rendered as an entry
@@ -46,6 +47,21 @@ import PaneEmpty from './PaneEmpty'
 //      structured old/new pairs is an open question (shipment-trail.md
 //      Open/TBD #2), not something we're deciding by deleting the render
 //      path — kept intact deliberately.
+//
+// 2026-08-11 (user request, direct verbatim ask — not a stakeholder ruling):
+// human authorship is back as a rendered SHAPE. Row 1 is re-laid-out
+// (badge leads, timestamp+author trail on the right — was actor-leads before)
+// and entries may now carry `entry.author = { name, email, kind }` alongside
+// the existing `source`/`user` fields. This PARTIALLY REVISITS DEC-80's "MVP
+// actor is system" position: DEC-80 never said human authorship couldn't
+// exist, only that no producer emitted it — `tools/generate.mjs` now emits a
+// minority of entries with a human `author` (see its own comment for the
+// split). Recording this per the traceability rule, not re-litigating DEC-80
+// — the user asked for it directly. System entries are UNCHANGED: no
+// `author`, no tooltip, same muted `history-actor--system` treatment as
+// before. Author tooltip reuses the existing `TooltipTrigger` +
+// `@odyssey/ui` `Tooltip` idiom (see RoutingGuideTab.jsx's CostTooltip / the
+// ShipmentTable OrdersTooltip) rather than inventing a new hover mechanism.
 const HistoryTab = React.memo(function HistoryTab({ data }) {
   const entries = data?.entries
   if (!entries || entries.length === 0) {
@@ -64,17 +80,16 @@ const HistoryTab = React.memo(function HistoryTab({ data }) {
                 <div className="history-dot" style={{ background: getDotColor(entry.outcome) }} />
                 <div className="history-content">
                   <div className="history-row1">
-                    <span className={`history-actor${entry.source ? ' history-actor--system' : ''}`}>
-                      {entry.user}
-                    </span>
-                    {/* DEC-70 introduced this "System" badge; user removed it 2026-08-10 —
-                        every entry now carries `source`, which the actor's own
-                        history-actor--system muted styling above already communicates,
-                        making the badge redundant beside it. `entry.source` itself is
-                        kept (drives that styling) — only the Badge render is gone. */}
+                    {/* DEC-70 introduced a "System" badge beside the actor; user removed
+                        it 2026-08-10 — `entry.source`'s muted actor styling already said
+                        "not a human". 2026-08-11: badge now LEADS the row (was actor-then-
+                        badge-then-timestamp); timestamp + author trail on the right. */}
                     <Badge variant={BADGE_VARIANTS[entry.outcome] || BADGE_VARIANTS.default}>{entry.action}</Badge>
-                    <span className="history-timestamp">
-                      {formatDateTimeMDYHM(new Date(entry.timestamp))}
+                    <span className="history-row1-right">
+                      <span className="history-timestamp">
+                        {formatDateTimeMDYHM(new Date(entry.timestamp))}
+                      </span>
+                      <HistoryAuthor entry={entry} />
                     </span>
                   </div>
 
@@ -100,6 +115,32 @@ const HistoryTab = React.memo(function HistoryTab({ data }) {
 export default HistoryTab
 
 // --- Helpers ---
+
+// HistoryAuthor — the right-hand author label. `entry.author` (human:
+// { name, email, kind }) is a NEW, not-yet-reseeded shape (see 2026-08-11
+// header note) — the seeded Neon rows and generated JSONs won't carry it
+// until a separately user-gated reseed runs, so this must degrade to
+// TODAY'S system rendering (source text, no tooltip, no crash) whenever
+// `author` is absent. Human authors get a hover tooltip (full name + email,
+// via the existing TooltipTrigger/@odyssey/ui Tooltip idiom); system authors
+// don't — a source string isn't a person to look up.
+function HistoryAuthor({ entry }) {
+  if (entry.author) {
+    return (
+      <TooltipTrigger
+        asSpan
+        tooltipProps={{ label: entry.author.name, groups: [{ content: entry.author.email }] }}
+      >
+        <span className="history-actor">{entry.author.name}</span>
+      </TooltipTrigger>
+    )
+  }
+  return (
+    <span className={`history-actor${entry.source ? ' history-actor--system' : ''}`}>
+      {entry.user}
+    </span>
+  )
+}
 
 // Action badge variant per entry OUTCOME (DEC-81, 2026-08-10, amber added in
 // the same-day follow-up) — the @odyssey/ui Badge owns the bg/text token

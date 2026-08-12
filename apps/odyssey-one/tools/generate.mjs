@@ -253,6 +253,24 @@ const NOTE_AUTHORS = [
   { name: 'Sarah Kim', initials: 'SK', css: 'ls', avatarUrl: 'https://randomuser.me/api/portraits/women/17.jpg' },
 ];
 
+// External (customer-side) human authors for history events — see
+// maybeHumanAuthor() below. Plain ASCII names only: these become email
+// local-parts (first.last@<customer-domain>), and an accented character in a
+// synthetic corporate address reads as a bug, not realism.
+const EXTERNAL_AUTHOR_NAMES = ['Marcus Webb', 'Priya Anand', 'Daniel Osei', 'Grace Liu'];
+
+// Derives a plausible corporate domain from a real CUSTOMERS pool name (e.g.
+// 'USALCO LLC' → 'usalco.com') so an external history author's email matches
+// the customer actually on the shipment, per the seeded-data-must-be-coherent
+// rule — never an invented, unrelated domain.
+function customerEmailDomain(cust) {
+  const slug = cust.name
+    .replace(/\b(LLC|Inc|Corp|Corporation|Company|Co)\b\.?/gi, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '');
+  return `${slug}.com`;
+}
+
 const NOTE_TEMPLATES = [
   'Confirmed with {carrier} dispatcher — pickup window adjusted to {time} per facility request.',
   'Customer requested delivery before {date} due to plant shutdown. Flagged as priority.',
@@ -1047,8 +1065,34 @@ function generateShipment(index, chainOverride) {
   //     (as a bare 'success' would) reads as "this went fine" on the very
   //     row that explains the stall. User's verbatim ruling: "A fourth
   //     neutral/amber treatment."
+  // Human authorship (user request 2026-08-11 — see HistoryTab.jsx header
+  // comment for the DEC-80 partial-revisit note). Most entries stay
+  // system-authored per DEC-80; a minority get an `author` in ADDITION to
+  // `source`/`user` (system fields are left untouched either way — the
+  // renderer falls back to them whenever `author` is absent). Internal
+  // roster reuses NOTE_AUTHORS rather than inventing a second names list
+  // (same idea: an Odyssey ops person touching the shipment). External
+  // authors are a customer contact — email domain derived from THIS
+  // shipment's own `customer.name` so it plausibly belongs to the customer
+  // actually on the shipment, not invented noise.
+  function maybeHumanAuthor() {
+    if (faker.number.float({ min: 0, max: 1 }) >= 0.15) return undefined; // ~15% human-authored
+    if (faker.number.float({ min: 0, max: 1 }) < 0.65) {
+      const person = pick(NOTE_AUTHORS);
+      const [first, last] = person.name.toLowerCase().split(' ');
+      return { name: person.name, email: `${first}.${last}@odysseylogistics.com`, kind: 'internal' };
+    }
+    const name = pick(EXTERNAL_AUTHOR_NAMES);
+    const [first, last] = name.toLowerCase().split(' ');
+    return { name, email: `${first}.${last}@${customerEmailDomain(customer)}`, kind: 'external' };
+  }
+
   function pushHistory(action, category, source, details, outcome = 'success') {
-    historyEntries.push({ user: source, source, timestamp: clock.toISOString(), action, category, details, outcome });
+    const author = maybeHumanAuthor();
+    historyEntries.push({
+      user: source, source, timestamp: clock.toISOString(), action, category, details, outcome,
+      ...(author ? { author } : {}),
+    });
   }
   // Oxford-comma join — Consolidation Completed's template (catalog event
   // #4) hardcodes exactly 3 `<Order Number>` placeholders; real shipments

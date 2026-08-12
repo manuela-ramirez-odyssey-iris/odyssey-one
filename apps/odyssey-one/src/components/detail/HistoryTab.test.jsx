@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from 'vitest'
-import { render, screen, cleanup } from '@testing-library/react'
+import { render, screen, cleanup, fireEvent } from '@testing-library/react'
 import HistoryTab from './HistoryTab'
 
 afterEach(cleanup)
@@ -101,5 +101,70 @@ describe('HistoryTab', () => {
   it('shows PaneEmpty when data is missing entirely', () => {
     render(<HistoryTab data={undefined} />)
     expect(screen.getByText('No history available.')).toBeTruthy()
+  })
+
+  // 2026-08-11: badge-left/author-right layout + human authorship.
+  it('renders the action badge before the timestamp/author group in DOM order', () => {
+    const data = {
+      entries: [
+        { user: 'ERP', source: 'ERP', timestamp: '2026-06-02T14:05:00.000Z', action: 'Shipment Created', category: 'create', outcome: 'success', details: 'd1' },
+      ],
+    }
+    render(<HistoryTab data={data} />)
+    const badge = screen.getByText('Shipment Created')
+    const timestamp = badge.closest('.history-row1').querySelector('.history-timestamp')
+    // DOCUMENT_POSITION_FOLLOWING (4) — badge precedes timestamp in DOM order
+    expect(badge.compareDocumentPosition(timestamp) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('shows the author name and a hover tooltip with full name + email for a human-authored entry', () => {
+    const data = {
+      entries: [
+        {
+          user: 'Dana Whitfield', timestamp: '2026-06-02T14:05:00.000Z', action: 'Shipment Updated',
+          category: 'update', outcome: 'update', details: 'd1',
+          author: { name: 'Dana Whitfield', email: 'dana.whitfield@odysseylogistics.com', kind: 'internal' },
+        },
+      ],
+    }
+    render(<HistoryTab data={data} />)
+    const name = screen.getByText('Dana Whitfield')
+    fireEvent.mouseEnter(name)
+    expect(screen.getByText('dana.whitfield@odysseylogistics.com')).toBeTruthy()
+  })
+
+  it('renders an internal author email ending @odysseylogistics.com', () => {
+    const data = {
+      entries: [
+        { user: 'A', timestamp: '2026-06-02T14:05:00.000Z', action: 'Shipment Updated', category: 'update', details: 'd1', author: { name: 'Amy Cook', email: 'amy.cook@odysseylogistics.com', kind: 'internal' } },
+      ],
+    }
+    render(<HistoryTab data={data} />)
+    fireEvent.mouseEnter(screen.getByText('Amy Cook'))
+    expect(screen.getByText(/@odysseylogistics\.com$/)).toBeTruthy()
+  })
+
+  it('renders an external author email NOT ending @odysseylogistics.com', () => {
+    const data = {
+      entries: [
+        { user: 'A', timestamp: '2026-06-02T14:05:00.000Z', action: 'Shipment Updated', category: 'update', details: 'd1', author: { name: 'Marcus Webb', email: 'marcus.webb@usalco.com', kind: 'external' } },
+      ],
+    }
+    render(<HistoryTab data={data} />)
+    fireEvent.mouseEnter(screen.getByText('Marcus Webb'))
+    const email = screen.getByText('marcus.webb@usalco.com')
+    expect(email.textContent.endsWith('@odysseylogistics.com')).toBe(false)
+  })
+
+  it('falls back to the system source with NO tooltip when entry.author is absent (reseed-pending shape)', () => {
+    const data = {
+      entries: [
+        { user: 'ERP', source: 'ERP', timestamp: '2026-06-02T14:05:00.000Z', action: 'Shipment Created', category: 'create', outcome: 'success', details: 'd1' },
+      ],
+    }
+    render(<HistoryTab data={data} />)
+    const actor = screen.getByText('ERP')
+    fireEvent.mouseEnter(actor)
+    expect(screen.queryByRole('tooltip')).toBeNull()
   })
 })

@@ -49,12 +49,23 @@
   min-height: 28px;
 }
 
-/* Row 1: actor + action Badge + timestamp */
+/* Row 1: action Badge leads (2026-08-11: was actor-then-badge-then-timestamp;
+   user asked for badge-left, author-right), timestamp + author trail on the
+   right via .history-row1-right (margin-left: auto moved here from
+   .history-timestamp so the whole right-hand group pins together instead of
+   just the timestamp). */
 .history-row1 {
   display: flex;
   align-items: center;
   gap: var(--spacing-2);
   flex-wrap: wrap;
+}
+
+.history-row1-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
 }
 
 .history-actor {
@@ -72,7 +83,6 @@
 }
 
 .history-timestamp {
-  margin-left: auto;
   font-size: var(--font-size-xs);
   color: var(--text-tertiary);
   font-family: var(--font-primary);
