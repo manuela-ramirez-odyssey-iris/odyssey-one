@@ -30,6 +30,20 @@ import TooltipTrigger from '../ui/TooltipTrigger'
 // it's the event that lands the shipment in Review). User's verbatim call:
 // "A fourth neutral/amber treatment." Not an error, not a good outcome.
 //
+// DEC-87 (2026-08-12, user ruling): green was overused — 11 of 15 catalog
+// events defaulted to 'success', so a normal shipment's trail was a wall of
+// green and green stopped signalling anything. User's verbatim problem
+// report: "there are too many greens (overused means false user flags for
+// important things)." Green ('success') is now RESERVED for exactly three
+// milestones (Tender Response Received/Accepted, PGI Response Received/
+// clean, Shipment Planning Completed); a fifth value, `'info'` (gray), is
+// added for outbound messaging that asserts nothing about the shipment's own
+// state (Planned Shipment Sent, Shipment Update Notification's
+// "successfully sent" variant). `'update'` (blue) now covers most
+// lifecycle-advancing steps that used to default to bare 'success'. Full
+// per-event mapping lives in tools/generate.mjs's outcome contract comment
+// (search `` `outcome` added 2026-08-10 ``) — this file only renders it.
+//
 // DEC-80 (2026-08-10): this component is a pure RENDERER of backend-emitted
 // events — it does not author the event vocabulary, and this file needed NO
 // structural change for the Shipment Trail rebuild (only `tools/generate.mjs`
@@ -60,14 +74,14 @@ import TooltipTrigger from '../ui/TooltipTrigger'
 // rather than inventing a new hover mechanism.
 //
 // 2026-08-12, two corrections to the above, both direct verbatim user asks:
-//   1. LAYOUT: row 1's first pass pinned the author to the far right next to
-//      the timestamp (badge led, timestamp+author trailed together). User
-//      rejected this: "you put author trailing side, i didnt asked that, i
-//      said next to the badge (left side of the badge) so the author has
-//      space to fill." Author now LEADS the row, immediately left of the
-//      badge; timestamp keeps `margin-left: auto` alone so it still pins
-//      hard right. The `.history-row1-right` wrapper is gone — the author
-//      is no longer grouped with the timestamp at all.
+//   1. LAYOUT: row 1 is `badge · author ———— date` (user, verbatim: "badge
+//      author ----------- date"). Two prior passes were rejected: the first
+//      pinned the author far right next to the timestamp (cramped), the
+//      second put the author FIRST and the badge second. The badge leads;
+//      the author sits immediately right of it with room to fill; the
+//      timestamp keeps `margin-left: auto` alone so it pins hard right.
+//      There is no `.history-row1-right` wrapper — author and timestamp are
+//      not grouped.
 //   2. DATA MODEL: system entries were previously NOT authors — they had no
 //      `entry.author` and fell back to rendering bare `entry.source` text.
 //      User: "system authors also exists so we need bot human nad system."
@@ -99,16 +113,16 @@ const HistoryTab = React.memo(function HistoryTab({ data }) {
                   <div className="history-row1">
                     {/* DEC-70 introduced a "System" badge beside the actor; user removed
                         it 2026-08-10 — `entry.source`'s muted actor styling already said
-                        "not a human". 2026-08-12 correction: author now LEADS the row,
-                        immediately left of the badge — a prior pass (2026-08-11) pinned
-                        author to the far right next to the timestamp, which the user
-                        rejected verbatim ("i said next to the badge (left side of the
-                        badge) so the author has space to fill"): at the right edge a
-                        long name/email was cramped against the timestamp, leading the
-                        row gives it room without pushing the badge around. Timestamp
-                        keeps margin-left:auto so it still pins hard right. */}
-                    <HistoryAuthor entry={entry} />
+                        "not a human". Row order is `badge · author ———— date`, the user's
+                        verbatim 2026-08-12 spec. Two earlier passes got it wrong and are
+                        recorded so nobody re-tries them: (1) author pinned far right next
+                        to the timestamp — rejected, a long name/email was cramped there;
+                        (2) author leading with the badge second — also rejected, the badge
+                        leads. The stable part across all three: the author sits BESIDE the
+                        badge with room to fill, and the timestamp keeps margin-left:auto so
+                        it pins hard right on its own. */}
                     <Badge variant={BADGE_VARIANTS[entry.outcome] || BADGE_VARIANTS.default}>{entry.action}</Badge>
+                    <HistoryAuthor entry={entry} />
                     <span className="history-timestamp">
                       {formatDateTimeMDYHM(new Date(entry.timestamp))}
                     </span>
@@ -182,20 +196,24 @@ function HistoryAuthor({ entry }) {
 }
 
 // Action badge variant per entry OUTCOME (DEC-81, 2026-08-10, amber added in
-// the same-day follow-up) — the @odyssey/ui Badge owns the bg/text token
-// pair; red/green/blue/amber are real Badge variants (confirmed against
-// packages/ui/src/Badge.jsx's `variants` map, not guessed — amber maps to
-// the `--badge-yellow-*` tokens there). `default` is the missing-outcome
-// fallback: the seed data won't carry `outcome` until a separately
-// user-gated reseed runs, so an absent/unrecognized value must NOT crash or
-// read as failure — gray is the existing neutral variant already used
-// elsewhere in this file, one system, no competing category-keyed map left
-// alive alongside it.
+// the same-day follow-up; `info` added by DEC-87, 2026-08-12) — the
+// @odyssey/ui Badge owns the bg/text token pair; red/green/blue/amber/gray
+// are real Badge variants (confirmed against packages/ui/src/Badge.jsx's
+// `variants` map, not guessed — amber maps to the `--badge-yellow-*` tokens,
+// gray maps to the `--badge-gray-*` tokens there). `info` reuses the same
+// `gray` variant as `default` — same visual treatment, distinct semantic
+// meaning (an intentional outbound-message outcome vs. a missing-outcome
+// fallback). `default` is the missing-outcome fallback: the seed data won't
+// carry `outcome` until a separately user-gated reseed runs, so an
+// absent/unrecognized value must NOT crash or read as failure — gray is the
+// existing neutral variant already used elsewhere in this file, one system,
+// no competing category-keyed map left alive alongside it.
 const BADGE_VARIANTS = {
   failure: 'red',
   success: 'green',
   update: 'blue',
   neutral: 'amber',
+  info: 'gray',
   default: 'gray',
 }
 
@@ -204,13 +222,18 @@ const BADGE_VARIANTS = {
 // of the old hardcoded hexes). Keyed on `outcome`, same DEC-81 mapping and
 // same neutral fallback as BADGE_VARIANTS above. `neutral` uses
 // `--badge-yellow-text` since the Badge `amber` variant is itself backed by
-// the yellow token pair (see packages/ui/src/Badge.jsx).
+// the yellow token pair (see packages/ui/src/Badge.jsx). `info` (DEC-87,
+// 2026-08-12) uses `--badge-gray-text` — the same token the Badge `gray`
+// variant is backed by — kept distinct from the `default` (missing-outcome)
+// fallback below, which uses `--text-tertiary` rather than the gray badge
+// token itself.
 function getDotColor(outcome) {
   switch (outcome) {
     case 'failure': return 'var(--badge-red-text)'
     case 'success': return 'var(--badge-green-text)'
     case 'update': return 'var(--badge-blue-text)'
     case 'neutral': return 'var(--badge-yellow-text)'
+    case 'info': return 'var(--badge-gray-text)'
     default: return 'var(--text-tertiary)'
   }
 }

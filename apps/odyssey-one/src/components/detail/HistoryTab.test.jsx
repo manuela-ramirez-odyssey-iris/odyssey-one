@@ -49,21 +49,22 @@ describe('HistoryTab', () => {
     expect(screen.queryByText('System')).toBeNull()
   })
 
-  it('colors the action badge from entry.outcome, not category (DEC-81, 2026-08-10 + neutral/amber follow-up)', () => {
+  it('colors the action badge from entry.outcome, not category (DEC-81, 2026-08-10 + neutral/amber follow-up + DEC-87 info/gray)', () => {
     // Superseded assertion: HistoryTab used to key BADGE_VARIANTS/getDotColor
     // off entry.category (create→green, tender→blue, update→amber,
     // completion→purple). The user's verbatim ruling replaced that with an
     // outcome-driven mapping (failure→red, success→green, update→blue,
-    // neutral→amber) — a 'create'-category entry marked outcome: 'failure'
-    // must now render RED, which the old category mapping could never
-    // produce. Asserting all FOUR outcome directions (not just the new one)
-    // so this can't pass against a hardcoded variant.
+    // neutral→amber, and DEC-87's info→gray) — a 'create'-category entry
+    // marked outcome: 'failure' must now render RED, which the old category
+    // mapping could never produce. Asserting all FIVE outcome directions (not
+    // just the newest one) so this can't pass against a hardcoded variant.
     const data = {
       entries: [
         { user: 'A', timestamp: '2026-06-02T14:05:00.000Z', action: 'Delivery Failed', category: 'create', outcome: 'failure', details: 'd1' },
         { user: 'B', timestamp: '2026-06-02T14:05:00.000Z', action: 'Message Sent', category: 'tender', outcome: 'success', details: 'd2' },
         { user: 'C', timestamp: '2026-06-02T14:05:00.000Z', action: 'Carrier Updated', category: 'completion', outcome: 'update', details: 'd3' },
         { user: 'D', timestamp: '2026-06-02T14:05:00.000Z', action: 'Tender Response Received', category: 'tender', outcome: 'neutral', details: 'd4' },
+        { user: 'E', timestamp: '2026-06-02T14:05:00.000Z', action: 'Planned Shipment Sent', category: 'completion', outcome: 'info', details: 'd5' },
       ],
     }
     render(<HistoryTab data={data} />)
@@ -71,10 +72,12 @@ describe('HistoryTab', () => {
     const successBadge = screen.getByText('Message Sent')
     const updateBadge = screen.getByText('Carrier Updated')
     const neutralBadge = screen.getByText('Tender Response Received')
+    const infoBadge = screen.getByText('Planned Shipment Sent')
     expect(failureBadge.getAttribute('style')).toContain('--badge-red-bg')
     expect(successBadge.getAttribute('style')).toContain('--badge-green-bg')
     expect(updateBadge.getAttribute('style')).toContain('--badge-blue-bg')
     expect(neutralBadge.getAttribute('style')).toContain('--badge-yellow-bg')
+    expect(infoBadge.getAttribute('style')).toContain('--badge-gray-bg')
   })
 
   it('falls back to the neutral gray variant when entry.outcome is missing', () => {
@@ -103,12 +106,13 @@ describe('HistoryTab', () => {
     expect(screen.getByText('No history available.')).toBeTruthy()
   })
 
-  // 2026-08-12 correction: author LEADS the row (left of the badge) — a
-  // prior pass (2026-08-11) trailed the author next to the timestamp on the
-  // right, which the user rejected verbatim ("i said next to the badge
-  // (left side of the badge)"). This test must fail against that prior
-  // layout.
-  it('renders the author before the badge, and the badge before the timestamp, in DOM order', () => {
+  // Row order is `badge · author ———— date` (user, verbatim 2026-08-12:
+  // "badge author ----------- date"). This test must fail against BOTH
+  // rejected predecessors: author trailing next to the timestamp
+  // (2026-08-11), and author leading with the badge second (earlier the
+  // same day) — the first assertion below is the one that catches the
+  // latter, so don't relax it to a set-membership check.
+  it('renders the badge before the author, and the author before the timestamp, in DOM order', () => {
     const data = {
       entries: [
         {
@@ -122,9 +126,9 @@ describe('HistoryTab', () => {
     const author = screen.getByText('Net Native')
     const badge = screen.getByText('Shipment Created')
     const timestamp = badge.closest('.history-row1').querySelector('.history-timestamp')
-    // DOCUMENT_POSITION_FOLLOWING (4) — author precedes badge, badge precedes timestamp
-    expect(author.compareDocumentPosition(badge) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    expect(badge.compareDocumentPosition(timestamp) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    // DOCUMENT_POSITION_FOLLOWING (4) — badge precedes author, author precedes timestamp
+    expect(badge.compareDocumentPosition(author) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(author.compareDocumentPosition(timestamp) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
   it('renders a system author (entry.author.kind === "system") with its name and NO tooltip', () => {

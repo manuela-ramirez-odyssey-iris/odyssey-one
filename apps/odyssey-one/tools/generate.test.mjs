@@ -96,6 +96,74 @@ test('history entries: every entry carries an author with a kind; human authors 
   assert.ok(humanCount / totalCount < 0.5, 'human authorship stays a minority (DEC-80)')
 })
 
+// 2026-08-12 gate (S117 carry-forward): human authorship was drawn UNIFORMLY,
+// so `Auto Tender Validation` — an event whose own name says a machine did it —
+// could be attributed to a named person. Every event in Pappu's catalog is
+// machine-emitted (DEC-80 ruling 2) except `Shipment Updated`, which is what a
+// user editing the Shipment Details modal causes. Mutation check: adding any
+// other action to HUMAN_AUTHORED_ACTIONS turns this red.
+test('history authors: only `Shipment Updated` may be human-authored; every machine event is system', () => {
+  const { details } = buildDataset({ totalShipments: 300 })
+  let humanCount = 0
+  for (const d of details.values()) {
+    for (const entry of d.historyList) {
+      if (entry.author.kind === 'system') continue
+      humanCount++
+      assert.equal(entry.action, 'Shipment Updated', `machine event "${entry.action}" drew a human author`)
+    }
+  }
+  assert.ok(humanCount > 0, 'human authorship is still reachable after the gate')
+})
+
+// DEC-87 (2026-08-12 user ruling): green ('success') was overused — 11 of 15
+// catalog events defaulted to it, so a normal shipment's trail was a wall of
+// green. Green is now RESERVED for exactly three milestones. Mutation check:
+// re-greening any other pipeline event (e.g. reverting its explicit outcome
+// argument back to the pushHistory default) turns this red.
+test('history outcome: green (success) is reserved for the three DEC-87 milestones; all five outcome values are reachable', () => {
+  const MILESTONE_ACTIONS = new Set([
+    'Tender Response Received',
+    'PGI Response Received',
+    'Shipment Planning Completed',
+  ])
+  const { details } = buildDataset({ totalShipments: 300 })
+  const seenOutcomes = new Set()
+  for (const d of details.values()) {
+    for (const entry of d.historyList) {
+      seenOutcomes.add(entry.outcome)
+      if (entry.outcome === 'success') {
+        assert.ok(MILESTONE_ACTIONS.has(entry.action), `non-milestone action "${entry.action}" emitted outcome 'success'`)
+      }
+    }
+  }
+  for (const outcome of ['success', 'failure', 'update', 'neutral', 'info']) {
+    assert.ok(seenOutcomes.has(outcome), `outcome '${outcome}' is never reachable in the dataset`)
+  }
+})
+
+// spotboard/board.js anchors its demo fixtures to REAL seeded sellShipment ids
+// and asks by name for a test that they resolve — every row action 404s the
+// moment they stop existing. This is that test, and it caught a live staleness
+// on 2026-08-12: the 2026-08-11 authorship pass added two faker draws per
+// history entry, which re-numbered every shipment allocated after them, so the
+// eight ids picked from the S114-era seed were already dead against HEAD.
+//
+// It MUST build with the seeder's own parameters (seed.mjs:89-92 — 10,000
+// shipments, unshippedOrders = 25% + 1000). buildDataset()'s bare default is
+// 2,200, and against that dataset the ids are legitimately absent for a reason
+// that has nothing to do with drift — a false alarm that is worse than no test.
+// board.js is import-clean (no DOM at module scope), so node:test can read the
+// ids straight from the source of truth rather than duplicating them here.
+const SEED_PARAMS = { totalShipments: 10000, unshippedOrders: 3500 }
+test('spotboard demo fixtures still resolve to seeded shipments (id-allocation tripwire)', async () => {
+  const { demoFixtureShipmentIds } = await import('../src/spotboard/board.js')
+  const seeded = new Set(buildDataset(SEED_PARAMS).shipments.map((s) => s.sellShipment))
+  assert.ok(demoFixtureShipmentIds.length > 0)
+  for (const id of demoFixtureShipmentIds) {
+    assert.ok(seeded.has(id), `demo fixture ${id} is no longer a seeded shipment — re-anchor DEMO_FIXTURES`)
+  }
+})
+
 test('promoted extra orgs own a thin tail; original customers dominate', () => {
   const { orders } = buildDataset({ totalShipments: 200 })
   const extraIds = new Set(EXTRA_CUSTOMERS.map((c) => c.id))
@@ -676,9 +744,9 @@ test('history coherence: every identifier named in details belongs to that shipm
 // same duplication rationale already used above for I10, line 28).
 const VALIDATION_ERROR_STATUSES = ['Planning Failed', 'Shipment Failed']
 
-test('every history entry carries a valid outcome (success | failure | update | neutral)', () => {
+test('every history entry carries a valid outcome (success | failure | update | neutral | info)', () => {
   const ds = buildDataset({ totalShipments: 300 })
-  const allowed = new Set(['success', 'failure', 'update', 'neutral'])
+  const allowed = new Set(['success', 'failure', 'update', 'neutral', 'info']) // DEC-87 adds 'info'
   let checked = 0
   for (const d of ds.details.values()) {
     for (const h of d.historyList) {
@@ -762,12 +830,21 @@ test('failure and update variants actually occur across the dataset', () => {
 // tender rows, minimum 3). That means Routing Completed / Optimization
 // Evaluation / Auto Tender Validation can NEVER be a shipment's real terminal
 // failure — every shipment demonstrably reached tendering. If one of these
-// three ever shows outcome:'failure' with no matching outcome:'success' retry
-// for the same action, the trail would say "moved to Review" at a stage this
+// three ever shows outcome:'failure' with no matching non-failure retry for
+// the same action, the trail would say "moved to Review" at a stage this
 // shipment's own tender data proves it passed — exactly the cross-tab
 // contradiction this rebuild exists to remove. This is the highest-value
 // check in the file for that reason: it fails loudly the moment any of these
 // three is (re)modeled as a terminal event instead of TRANSIENT.
+//
+// DEC-87 update (2026-08-12): the successful retry's outcome is no longer
+// always 'success' — Routing Completed and Auto Tender Validation's success
+// variants are now 'update' (DEC-87 reserves 'success' for the three
+// milestones), and Optimization Evaluation's success variant is 'update'
+// (Consolidation branch) or 'neutral' (Hold branch). The assertion below
+// checks "the retry resolved to something other than another failure" —
+// the transient-retry claim this test exists to prove — rather than
+// hardcoding the specific non-failure outcome, which now varies by action.
 test('Routing/Optimization/Auto-Tender failures are TRANSIENT only — every shipment reaches tendering, so none of the three can be terminal', () => {
   const ds = buildDataset({ totalShipments: 1500 })
   const TRANSIENT_ONLY_ACTIONS = ['Routing Completed', 'Optimization Evaluation', 'Auto Tender Validation']
@@ -780,7 +857,7 @@ test('Routing/Optimization/Auto-Tender failures are TRANSIENT only — every shi
       const entries = d.historyList.filter((h) => h.action === action)
       if (!entries.some((h) => h.outcome === 'failure')) continue
       checkedFailures++
-      assert.ok(entries.some((h) => h.outcome === 'success'), `shipment ${s.buyShipment} has a "${action}" failure with no matching success retry — reads as terminal, contradicting its own tender data`)
+      assert.ok(entries.some((h) => h.outcome !== 'failure'), `shipment ${s.buyShipment} has a "${action}" failure with no matching successful retry — reads as terminal, contradicting its own tender data`)
     }
   }
   assert.ok(checkedFailures > 0, 'no transient routing/optimization/auto-tender failures found — widen totalShipments if this flakes')

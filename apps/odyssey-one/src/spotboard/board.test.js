@@ -263,9 +263,9 @@ describe('retired demo ids in localStorage', () => {
   })
 
   it('still returns rows for quotes on real shipment ids', () => {
-    seedRealQuote('25000029', { status: 'open' })
+    seedRealQuote('25631418', { status: 'open' })
     const rows = listAllQuotes({ now: NOW })
-    expect(rows.some((r) => r.shipmentId === '25000029' && !r.demo)).toBe(true)
+    expect(rows.some((r) => r.shipmentId === '25631418' && !r.demo)).toBe(true)
   })
 })
 

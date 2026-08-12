@@ -197,13 +197,23 @@ function mapRealQuote(quote, now) {
 // survive a reseed — but if the generator's id allocation ever changes, these
 // go stale together and every row action 404s again. That is the tripwire:
 // `demoFixtureShipmentIds` is exported so a test can assert they resolve.
+// RE-ANCHORED 2026-08-12 (S118). The previous eight ids were picked from the
+// S114-era seed and had gone stale WITHOUT anyone touching this file: the
+// 2026-08-11 history-authorship pass added faker draws, which re-numbered every
+// shipment allocated after them, so all eight 404'd against a fresh build. The
+// tripwire that caught it now lives in tools/generate.test.mjs and builds with
+// the SEEDER's parameters (10k). shipmentId / load / client / lane / equipment
+// below are read straight out of that build — the auction fields
+// (invited/responded/status/closeOffset/leadingBid) are demo-authored and were
+// carried over unchanged, so the mix of Open / Closing soon / In review /
+// Awarded / Unawarded / Invalidated states is preserved exactly.
 const DEMO_FIXTURES = [
   {
-    shipmentId: '25000029',
-    load: '38986',
-    client: 'Huntsman Refining LLC',
-    lane: 'Phoenix, AZ → San Diego, CA',
-    equipment: 'TT',
+    shipmentId: '25631418',
+    load: '42036',
+    client: 'DOW Industrial Solutions',
+    lane: 'Lake Charles, LA → Baytown, TX',
+    equipment: 'LTR',
     invitedCount: 6,
     respondedCount: 3,
     status: 'Open',
@@ -211,11 +221,11 @@ const DEMO_FIXTURES = [
     leadingBid: 2140.0,
   },
   {
-    shipmentId: '25000645',
-    load: '69980',
-    client: 'INEOS Styrolution America',
-    lane: 'Freeport, TX → Kingsport, TN',
-    equipment: 'LCL',
+    shipmentId: '25200712',
+    load: '46351',
+    client: 'Kemira North America',
+    lane: 'Lake Charles, LA → San Diego, CA',
+    equipment: 'TLH',
     invitedCount: 5,
     respondedCount: 1,
     status: 'Open',
@@ -223,11 +233,11 @@ const DEMO_FIXTURES = [
     leadingBid: 1875.5,
   },
   {
-    shipmentId: '25000856',
-    load: '65366',
-    client: 'G2O Technologies LLC',
-    lane: 'Baton Rouge, LA → Atlanta, GA',
-    equipment: 'LCL',
+    shipmentId: '25053893',
+    load: '89316',
+    client: 'IMCD US',
+    lane: 'San Antonio, TX → Portland, OR',
+    equipment: 'TT',
     invitedCount: 7,
     respondedCount: 6,
     status: 'Open', // withCountdown flips this to 'Closing soon' — offset < 15min
@@ -235,10 +245,10 @@ const DEMO_FIXTURES = [
     leadingBid: 2310.25,
   },
   {
-    shipmentId: '25001268',
-    load: '24234',
-    client: 'ERCO Systems Inc',
-    lane: 'Columbus, GA → Atlanta, GA',
+    shipmentId: '25363892',
+    load: '55384',
+    client: 'Celanese Corporation',
+    lane: 'Columbus, GA → Lake Charles, LA',
     equipment: 'FCL',
     invitedCount: 6,
     respondedCount: 5,
@@ -247,11 +257,11 @@ const DEMO_FIXTURES = [
     leadingBid: 1650.0,
   },
   {
-    shipmentId: '25002141',
-    load: '79345',
-    client: 'DuBois Chemicals',
-    lane: 'Odessa, TX → Green River, WY',
-    equipment: 'TLR',
+    shipmentId: '25380224',
+    load: '65436',
+    client: 'Covestro Polymers LLC',
+    lane: 'Detroit, MI → New Orleans, LA',
+    equipment: 'TLF',
     invitedCount: 5,
     respondedCount: 4,
     status: 'Awarded',
@@ -259,11 +269,11 @@ const DEMO_FIXTURES = [
     leadingBid: 2975.0,
   },
   {
-    shipmentId: '25002538',
-    load: '79237',
-    client: 'Kemira North America',
-    lane: 'Baton Rouge, LA → Baytown, TX',
-    equipment: 'TL',
+    shipmentId: '25580290',
+    load: '93527',
+    client: 'INEOS Styrolution America',
+    lane: 'Baytown, TX → Houston, TX',
+    equipment: 'FCL',
     invitedCount: 7,
     respondedCount: 5,
     status: 'Awarded',
@@ -271,11 +281,11 @@ const DEMO_FIXTURES = [
     leadingBid: 3520.75,
   },
   {
-    shipmentId: '25002628',
-    load: '98756',
-    client: 'Kemira Europe',
-    lane: 'Dallas, TX → McIntosh, AL',
-    equipment: 'TLH',
+    shipmentId: '25278421',
+    load: '27362',
+    client: 'IMCD US',
+    lane: 'Lake Charles, LA → Green River, WY',
+    equipment: 'RR',
     invitedCount: 6,
     respondedCount: 2,
     status: 'Unawarded',
@@ -283,11 +293,11 @@ const DEMO_FIXTURES = [
     leadingBid: null, // Unawarded never carries a leading bid
   },
   {
-    shipmentId: '25002687',
-    load: '85723',
-    client: 'INEOS Styrolution America',
-    lane: 'Neenah, WI → Freeport, TX',
-    equipment: 'TLH',
+    shipmentId: '25249232',
+    load: '38712',
+    client: 'LUBRIZOL CORP (SOURCE)',
+    lane: 'Baton Rouge, LA → Wyandotte, MI',
+    equipment: 'TL',
     invitedCount: 4,
     respondedCount: 0,
     status: 'Invalidated',

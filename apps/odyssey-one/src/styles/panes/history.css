@@ -49,13 +49,11 @@
   min-height: 28px;
 }
 
-/* Row 1: author LEADS (2026-08-12 correction — a prior pass put the author
-   in a .history-row1-right group trailing next to the timestamp; user
-   rejected that ("i said next to the badge (left side of the badge) so the
-   author has space to fill") — leading the row gives a long name/email room
-   to breathe without pushing the badge around), badge follows, timestamp
-   trails via its own margin-left: auto (moved back onto .history-timestamp
-   now that the right-hand group is gone). */
+/* Row 1: `badge · author ———— date` (user, verbatim 2026-08-12). The badge
+   leads, the author sits beside it with room for a long name/email, and the
+   timestamp trails via its own margin-left: auto — author and timestamp are
+   never grouped (a rejected earlier pass put both in a .history-row1-right
+   wrapper, which cramped the name against the date). */
 .history-row1 {
   display: flex;
   align-items: center;

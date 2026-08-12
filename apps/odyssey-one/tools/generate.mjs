@@ -1046,11 +1046,12 @@ function generateShipment(index, chainOverride) {
     return new Date(clock);
   }
   // `outcome` added 2026-08-10 (failure-scenario pass, same-day follow-up to
-  // DEC-80): 'success' | 'failure' | 'update' | 'neutral', additive to
-  // `category` (which still drives other things unchanged). Renderer keys
-  // badge color off this. Defaults to 'success' so every one of the
-  // pre-existing calls below that never had a failure/update/neutral variant
-  // needs no edit to comply with the "every entry carries outcome" contract.
+  // DEC-80): originally 'success' | 'failure' | 'update' | 'neutral',
+  // additive to `category` (which still drives other things unchanged).
+  // Renderer keys badge color off this. Defaults to 'success' so every one of
+  // the pre-existing calls below that never had a failure/update/neutral
+  // variant needs no edit to comply with the "every entry carries outcome"
+  // contract.
   //   - 'success' — the step completed AND the business result is good
   //     (e.g. Tender Accepted).
   //   - 'failure' — the step did not complete / nothing arrived (e.g. tender
@@ -1065,6 +1066,43 @@ function generateShipment(index, chainOverride) {
   //     (as a bare 'success' would) reads as "this went fine" on the very
   //     row that explains the stall. User's verbatim ruling: "A fourth
   //     neutral/amber treatment."
+  //
+  // DEC-87 (2026-08-12, user ruling): the four-value model above let green
+  // mean "the step finished" — 11 of the 15 catalog events defaulted to
+  // 'success', so a normal shipment's trail was a wall of green and green
+  // stopped meaning anything. User's verbatim problem report: "there are too
+  // many greens (overused means false user flags for important things)."
+  // Green is now RESERVED for real milestones; a fifth value, 'info', is
+  // added for outbound messaging that asserts nothing about the shipment's
+  // own state. Every `pushHistory` call site that must now emit something
+  // other than the 'success' default carries an EXPLICIT outcome argument —
+  // nothing here is inferred at render time.
+  //   - 'success' (green) — RESERVED for exactly three milestones: Tender
+  //     Response Received (Accepted variant — a carrier committed), PGI
+  //     Response Received (clean variant — goods issue posted; the
+  //     validation-errors variant stays 'failure'), and Shipment Planning
+  //     Completed (terminal: status → Done). No other call site may pass
+  //     (or default to) 'success'.
+  //   - 'update' (blue) — a real state change that ADVANCES the lifecycle
+  //     without itself being a milestone: Shipment Created (success variant),
+  //     Routing Completed (success variant), Optimization Evaluation
+  //     (Consolidation branch), Consolidation Completed, Routing & Rating
+  //     Completed, Ready for Tender, Auto Tender Validation (passed variant),
+  //     Tender Sent, Post PGI Rating Completed, Shipment Updated (unchanged
+  //     from DEC-81).
+  //   - 'info' (gray, NEW) — outbound messaging that asserts nothing about
+  //     the shipment's own state: Planned Shipment Sent, and Shipment Update
+  //     Notification (the "successfully sent" variant only — its
+  //     delivery-failed variant stays 'failure').
+  //   - 'neutral' (amber) — unchanged meaning from the DEC-81 follow-up
+  //     above, PLUS one reclassification: Optimization Evaluation's Hold
+  //     branch ('Optimization evaluation completed. Shipment moved to
+  //     Hold.') moves from 'success' to 'neutral' — it completed, but the
+  //     shipment stopped advancing rather than reaching a milestone. This is
+  //     OUR call implementing DEC-87, not a ratified spec answer — it
+  //     deliberately resolves the Hold-branch question S114 had parked open
+  //     for Pappu.
+  //   - 'failure' (red) — unchanged from DEC-81.
   // Authorship (user request 2026-08-11, corrected 2026-08-12 — see
   // HistoryTab.jsx header comment for the DEC-80 partial-revisit note and
   // the 2026-08-12 correction). EVERY entry now carries an `author` — the
@@ -1084,22 +1122,43 @@ function generateShipment(index, chainOverride) {
   // shipment's own `customer.name` so it plausibly belongs to the customer
   // actually on the shipment, not invented noise. System authors reuse
   // `source` verbatim as `name` (e.g. `Net Native`) — nothing invented.
-  function buildAuthor(source) {
-    if (faker.number.float({ min: 0, max: 1 }) >= 0.15) {
-      return { name: source, kind: 'system' }; // ~85% system-authored, no email, no tooltip
+  // Which catalog events a PERSON can plausibly have caused (2026-08-12 gate,
+  // closing the S117 carry-forward). The 2026-08-11 pass drew human authorship
+  // UNIFORMLY across every event, which let `Auto Tender Validation` — an event
+  // whose own name says a machine did it — and the automated `Tender Sent` that
+  // follows it be attributed to a named person. Everything in Pappu's catalog is
+  // a pipeline stage a machine emits (DEC-80 ruling 2); the single exception is
+  // `Shipment Updated`, which is exactly what a user editing sections in the
+  // Shipment Details modal causes. Not a rate change — a truth gate: the events
+  // outside this set are now system-authored 100% of the time.
+  const HUMAN_AUTHORED_ACTIONS = new Set(['Shipment Updated']);
+  function buildAuthor(action, source) {
+    // ponytail: the three draws below happen in exactly the order and count
+    // they did before the gate existed, and the name is drawn even when it is
+    // then thrown away. Deliberate: shipment IDs come off this same seeded
+    // stream (genUniqueSellShipment), and spotboard/board.js anchors its demo
+    // fixtures to REAL seeded ids — consuming one draw fewer here would shift
+    // every id allocated after it and 404 every demo row on the board. The gate
+    // therefore changes ONLY authorship; the rest of the dataset is unmoved.
+    // Upgrade path: if the seed is ever reallocated on purpose, delete the
+    // discarded draw and re-anchor those fixtures in the same commit.
+    const humanRoll = faker.number.float({ min: 0, max: 1 });
+    if (humanRoll >= 0.15) {
+      return { name: source, kind: 'system' }; // no email, no tooltip
     }
-    if (faker.number.float({ min: 0, max: 1 }) < 0.65) {
-      const person = pick(NOTE_AUTHORS);
-      const [first, last] = person.name.toLowerCase().split(' ');
-      return { name: person.name, email: `${first}.${last}@odysseylogistics.com`, kind: 'internal' };
+    const internal = faker.number.float({ min: 0, max: 1 }) < 0.65;
+    const name = internal ? pick(NOTE_AUTHORS).name : pick(EXTERNAL_AUTHOR_NAMES);
+    if (!HUMAN_AUTHORED_ACTIONS.has(action)) {
+      return { name: source, kind: 'system' }; // machine-emitted event — never a person
     }
-    const name = pick(EXTERNAL_AUTHOR_NAMES);
     const [first, last] = name.toLowerCase().split(' ');
-    return { name, email: `${first}.${last}@${customerEmailDomain(customer)}`, kind: 'external' };
+    return internal
+      ? { name, email: `${first}.${last}@odysseylogistics.com`, kind: 'internal' }
+      : { name, email: `${first}.${last}@${customerEmailDomain(customer)}`, kind: 'external' };
   }
 
   function pushHistory(action, category, source, details, outcome = 'success') {
-    const author = buildAuthor(source);
+    const author = buildAuthor(action, source);
     historyEntries.push({
       user: source, source, timestamp: clock.toISOString(), action, category, details, outcome, author,
     });
@@ -1166,7 +1225,8 @@ function generateShipment(index, chainOverride) {
     advanceClock(0.01, 0.1);
   }
   pushHistory('Shipment Created', 'create', 'ERP',
-    `Buy Shipment ${buyShipment} and Sell Shipment ${sellShipment} created successfully for Order ${orders[0].orderId}.`);
+    `Buy Shipment ${buyShipment} and Sell Shipment ${sellShipment} created successfully for Order ${orders[0].orderId}.`,
+    'update'); // DEC-87: advances the lifecycle, not a milestone
 
   // 2. Routing Completed — TRANSIENT only (see cross-tab correction above):
   // routingOptions exist unconditionally, so every shipment's routing call
@@ -1180,7 +1240,8 @@ function generateShipment(index, chainOverride) {
     advanceClock(0.02, 0.3);
   }
   pushHistory('Routing Completed', 'update', 'Linx',
-    `Routing completed successfully. Direct cost calculated: $${fmt(totalDirectCost)}. Eligible carriers and route details identified.`);
+    `Routing completed successfully. Direct cost calculated: $${fmt(totalDirectCost)}. Eligible carriers and route details identified.`,
+    'update'); // DEC-87: advances the lifecycle, not a milestone
 
   // 3. Optimization Evaluation — Consolidation branch for multi-order
   // shipments, Hold branch for single-order ones (order count is the only
@@ -1197,24 +1258,32 @@ function generateShipment(index, chainOverride) {
   pushHistory('Optimization Evaluation', 'update', 'Linx',
     isConsolidation
       ? 'Optimization evaluation completed. Shipment moved to Consolidation.'
-      : 'Optimization evaluation completed. Shipment moved to Hold.');
+      : 'Optimization evaluation completed. Shipment moved to Hold.',
+    // DEC-87: Consolidation branch advances the lifecycle ('update'); Hold
+    // branch completed but the shipment stopped advancing ('neutral') — OUR
+    // call, not ratified spec (see outcome contract comment above, resolves
+    // the Hold-branch question S114 parked for Pappu).
+    isConsolidation ? 'update' : 'neutral');
 
   if (isConsolidation) {
     // 4. Consolidation Completed
     advanceClock(0.1, 1);
     pushHistory('Consolidation Completed', 'update', 'Linx',
-      `Consolidation completed. Final Shipment ${buyShipment} contains Orders ${joinOrders(orders.map(o => o.orderId))}.`);
+      `Consolidation completed. Final Shipment ${buyShipment} contains Orders ${joinOrders(orders.map(o => o.orderId))}.`,
+      'update'); // DEC-87: advances the lifecycle, not a milestone
 
     // 5. Routing & Rating Completed
     advanceClock(0.05, 0.5);
     pushHistory('Routing & Rating Completed', 'update', 'Linx',
-      `Consolidated shipment routed and rated successfully. AP: $${fmt(apTotal)}; AR: $${fmt(arTotal)}. Carrier and route details refreshed.`);
+      `Consolidated shipment routed and rated successfully. AP: $${fmt(apTotal)}; AR: $${fmt(arTotal)}. Carrier and route details refreshed.`,
+      'update'); // DEC-87: advances the lifecycle, not a milestone
   }
 
   // 6. Ready for Tender
   advanceClock(1, 48);
   pushHistory('Ready for Tender', 'update', 'Linx',
-    'Time-to-Tender reached. Shipment is eligible for tendering and moved to auto tender evaluation.');
+    'Time-to-Tender reached. Shipment is eligible for tendering and moved to auto tender evaluation.',
+    'update'); // DEC-87: advances the lifecycle, not a milestone
 
   // 7. Auto Tender Validation — TRANSIENT only: every shipment below actually
   // gets tendered (Tender Sent always follows), so a validation failure here
@@ -1226,7 +1295,8 @@ function generateShipment(index, chainOverride) {
     advanceClock(0.01, 0.1);
   }
   pushHistory('Auto Tender Validation', 'tender', 'Linx',
-    'Auto tender validation passed. Tender initiated.');
+    'Auto tender validation passed. Tender initiated.',
+    'update'); // DEC-87: advances the lifecycle, not a milestone
 
   // 8/9. Tender Sent + Tender Response Received name the SAME carrier both
   // times — this generator doesn't model re-tender cascades (Sheet3 defers
@@ -1246,12 +1316,14 @@ function generateShipment(index, chainOverride) {
     || routingOptions[0];
   advanceClock(0.01, 0.5);
   pushHistory('Tender Sent', 'tender', 'Net Native',
-    `Tender status updated to Sent. Tender sent to carrier ${focusOption.carrierName} via ${focusOption.apiSource}.`);
+    `Tender status updated to Sent. Tender sent to carrier ${focusOption.carrierName} via ${focusOption.apiSource}.`,
+    'update'); // DEC-87: advances the lifecycle, not a milestone
 
   if (hasAccepted) {
     advanceClock(0.5, 24);
     pushHistory('Tender Response Received', 'tender', 'Net Native',
-      `Tender response received from carrier ${focusOption.carrierName} via ${focusOption.responseMethod}. Tender status updated to Accepted.`);
+      `Tender response received from carrier ${focusOption.carrierName} via ${focusOption.responseMethod}. Tender status updated to Accepted.`,
+      'success'); // DEC-87 milestone #1: a carrier committed
   } else if (hasSent) {
     // Genuinely mid-flight (tenderStatus === 'Sent', no accepted carrier
     // yet) — no response has arrived, so NO Tender Response Received event
@@ -1306,10 +1378,12 @@ function generateShipment(index, chainOverride) {
   // shipment stops at the branches above.
   if (hasAccepted) {
     advanceClock(0.1, 2);
-    pushHistory('Shipment Planning Completed', 'completion', 'ERP', 'Shipment status updated to Done.');
+    pushHistory('Shipment Planning Completed', 'completion', 'ERP', 'Shipment status updated to Done.',
+      'success'); // DEC-87 milestone #3: terminal, status → Done
 
     advanceClock(0.05, 1);
-    pushHistory('Planned Shipment Sent', 'completion', 'ERP', 'Planned shipment details sent to customer.');
+    pushHistory('Planned Shipment Sent', 'completion', 'ERP', 'Planned shipment details sent to customer.',
+      'info'); // DEC-87: outbound messaging, asserts nothing about shipment state
 
     // PGI/PGR are out of project scope (DEC-80 ruling 4) — values below are
     // filled at our discretion per the user's explicit "feel free to fill
@@ -1319,14 +1393,16 @@ function generateShipment(index, chainOverride) {
     // (Review) branch, matching the real VALIDATION_ERROR_STATUSES gate.
     advanceClock(12, 72);
     pushHistory('PGI Response Received', 'completion', 'ERP',
-      'PGI received and execution updates applied to orders and shipment.');
+      'PGI received and execution updates applied to orders and shipment.',
+      'success'); // DEC-87 milestone #2: clean PGI, goods issue posted
 
     advanceClock(0.1, 2);
     const plannedCost = acceptedOption.rateDetails.baseRate;
     const variance = Math.round((apTotal - plannedCost) * 100) / 100;
     const varianceSign = variance >= 0 ? '+' : '-';
     pushHistory('Post PGI Rating Completed', 'completion', 'ERP',
-      `Buy and Sell shipments rated successfully following PGI update. Planned Cost: $${fmt(plannedCost)}, Actual Cost (AP): $${fmt(apTotal)}, Variance: ${varianceSign}$${fmt(Math.abs(variance))}, Sell Rate (AR): $${fmt(arTotal)}.`);
+      `Buy and Sell shipments rated successfully following PGI update. Planned Cost: $${fmt(plannedCost)}, Actual Cost (AP): $${fmt(apTotal)}, Variance: ${varianceSign}$${fmt(Math.abs(variance))}, Sell Rate (AR): $${fmt(arTotal)}.`,
+      'update'); // DEC-87: advances the lifecycle, not a milestone
 
     // Event #15, Shipment Updated — NOT part of the linear pipeline list in
     // this rebuild's brief; gated on a real signal (this shipment actually
@@ -1363,7 +1439,8 @@ function generateShipment(index, chainOverride) {
       advanceClock(0.05, 0.5);
     }
     pushHistory('Shipment Update Notification', 'completion', 'Legacy TMS',
-      'Buy Shipment Out and Sell Shipment Out message successfully sent.');
+      'Buy Shipment Out and Sell Shipment Out message successfully sent.',
+      'info'); // DEC-87: outbound messaging, asserts nothing about shipment state
   }
 
   // Notes — S111 (user ruling 2026-08-05): the S108 "min 1" fix over-corrected
