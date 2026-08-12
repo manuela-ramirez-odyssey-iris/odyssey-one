@@ -59,7 +59,20 @@ export default function ModalMediumDemo() {
   const [stackedOpen, setStackedOpen] = useState(false)
 
   const closeFlow = () => { setFlowOpen(false); setView('details'); setConfirmOpen(false); setStackedOpen(false) }
-  const overlays = (flowOpen ? 1 : 0) + (confirmOpen ? 1 : 0) + (stackedOpen ? 1 : 0)
+
+  // The live navigation stack, derived from the same state that drives the
+  // dialogs — so the inspector below cannot drift from what is on screen.
+  // `push` is how this level got here; `overlay` is whether it added one.
+  const stack = []
+  if (flowOpen) {
+    stack.push({ title: 'Shipment Details', push: 'root', overlay: true, onBack: false, footer: false })
+    if (view === 'quote') {
+      stack.push({ title: 'Edit Quote', push: 'swap — body replaced in the same shell', overlay: false, onBack: true, footer: true })
+    }
+  }
+  if (stackedOpen) stack.push({ title: 'Stacked View', push: 'stack — second dialog, later sibling', overlay: true, onBack: true, footer: true })
+  if (confirmOpen) stack.push({ title: 'Unsaved changes', push: 'stack — second dialog, later sibling', overlay: true, onBack: false, footer: true })
+  const overlays = stack.filter((s) => s.overlay).length
 
   return (
     <div>
@@ -148,23 +161,69 @@ export default function ModalMediumDemo() {
           either stack. Both overlays sit at <code>z-index: 200</code>, so DOM order alone decides which
           wins — there is no per-modal z-index to tune.
         </p>
-        <div className="ds-demo-row">
+        <div className="ds-demo-row" style={{ marginBottom: 'var(--spacing-3)' }}>
           <div className="ds-demo-col">
             <Button variant="secondary" onClick={() => { setView('details'); setFlowOpen(true) }}>
               Open Shipment Details
             </Button>
           </div>
-          <div className="ds-demo-col">
-            <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
-              stack:{' '}
-              <strong style={{ color: 'var(--text-primary)' }}>
-                {!flowOpen ? '—' : view === 'quote' ? 'Shipment Details › Edit Quote' : 'Shipment Details'}
-              </strong>
-              {'  ·  '}overlays:{' '}
+        </div>
+
+        {/* Live stack inspector. Derived from the SAME state the dialogs render
+            from, so it cannot claim something the screen contradicts. Exists
+            because the API is the thing a dev needs to see: which level got
+            `onBack`, and whether the push cost an overlay. */}
+        <div style={{ border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--spacing-3)', padding: 'var(--spacing-2) var(--spacing-3)', background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-subtle)' }}>
+            <span className="text-label-sm-semibold" style={{ color: 'var(--text-primary)' }}>Live navigation stack</span>
+            <span style={{ fontFamily: 'monospace', fontSize: 'var(--font-size-xs)', color: 'var(--text-secondary)' }}>
+              depth <strong style={{ color: 'var(--text-primary)' }}>{stack.length}</strong>
+              {'  ·  '}overlays{' '}
               <strong style={{ color: overlays > 1 ? 'var(--text-error)' : 'var(--text-primary)' }}>{overlays}</strong>
             </span>
           </div>
+
+          {stack.length === 0 ? (
+            <div style={{ padding: 'var(--spacing-3)', fontSize: 'var(--font-size-sm)', color: 'var(--text-tertiary)' }}>
+              Nothing open. Open the modal above and the stack fills in as you navigate.
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'max-content 1fr max-content max-content', fontFamily: 'monospace', fontSize: 'var(--font-size-xs)' }}>
+              {['', 'title / how it got here', 'onBack', 'overlay'].map((h) => (
+                <span key={h} style={{ padding: 'var(--spacing-2) var(--spacing-3)', color: 'var(--text-tertiary)', borderBottom: '1px solid var(--border-subtle)', whiteSpace: 'nowrap' }}>{h}</span>
+              ))}
+              {stack.map((s, i) => {
+                const cell = { padding: 'var(--spacing-2) var(--spacing-3)', borderBottom: i === stack.length - 1 ? 'none' : '1px solid var(--border-subtle)', color: 'var(--text-secondary)' }
+                const top = i === stack.length - 1
+                return (
+                  <div key={s.title} style={{ display: 'contents' }}>
+                    <span style={{ ...cell, color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>
+                      {i + 1}{top && stack.length > 1 ? ' ◀ top' : ''}
+                    </span>
+                    <span style={{ ...cell, color: 'var(--text-primary)' }}>
+                      <strong>{s.title}</strong>
+                      <span style={{ color: 'var(--text-tertiary)' }}>{'  —  '}{s.push}</span>
+                    </span>
+                    <span style={{ ...cell, textAlign: 'center', color: s.onBack ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
+                      {s.onBack ? '✓ fn' : 'undefined'}
+                    </span>
+                    <span style={{ ...cell, textAlign: 'center', color: s.overlay ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
+                      {s.overlay ? '+1' : 'reuses'}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </div>
+
+        <p style={{ margin: 'var(--spacing-3) 0 0', color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)', lineHeight: 'var(--line-height-md)' }}>
+          Read the two right-hand columns together — that is the whole API.{' '}
+          <strong>Depth 2 with <code>overlay: reuses</code></strong> is the swap: a level in the stack that
+          did <em>not</em> add a dialog. <strong>Depth 2 with <code>overlay: +1</code></strong> is a real
+          stack. <code>onBack</code> is set on every level that has somewhere to return to, in both
+          renderings — and left <code>undefined</code> on the prompt, which is terminal.
+        </p>
       </div>
 
       {flowOpen && (
