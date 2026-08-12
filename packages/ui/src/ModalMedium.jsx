@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { X } from 'lucide-react'
+import { ChevronLeft, X } from 'lucide-react'
 import { ICON_LG } from '@odyssey/tokens'
 import IconButtonGhost from './IconButtonGhost.jsx'
 
@@ -15,10 +15,15 @@ import IconButtonGhost from './IconButtonGhost.jsx'
  * `scrollableContent` — implementation-only flag (not in Figma): set true when the
  * content slot contains its own vertically-scrolling region. Removes the default
  * 20px bottom padding so the scroller runs flush against the footer divider.
+ *
+ * `onBack` — optional leading back control (chevron-left, lg). Present ⇒ rendered,
+ * mirroring ModalHeader's own `onBack` API so the two shells stay consistent. Used
+ * when a modal hosts a navigation flow between views rather than a single view.
  */
 export default function ModalMedium({
   title,
   onClose,
+  onBack,
   children,
   footer,
   scrollableContent = false,
@@ -43,7 +48,19 @@ export default function ModalMedium({
         onClick={(e) => e.stopPropagation()}
       >
         <header className="modal-medium__header">
-          <span className="text-heading-lg-semibold modal-medium__title">{title}</span>
+          <div className="modal-medium__lead">
+            {onBack && (
+              <button
+                type="button"
+                className="modal-medium__icon-btn modal-medium__back"
+                onClick={onBack}
+                aria-label="Back"
+              >
+                <ChevronLeft {...ICON_LG} aria-hidden="true" />
+              </button>
+            )}
+            <span className="text-heading-lg-semibold modal-medium__title">{title}</span>
+          </div>
           {onClose && (
             <IconButtonGhost
               icon={<X {...ICON_LG} aria-hidden="true" />}

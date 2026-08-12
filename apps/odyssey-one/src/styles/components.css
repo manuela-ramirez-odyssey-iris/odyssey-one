@@ -3543,7 +3543,34 @@ button.breadcrumb__label:focus-visible {
   padding: var(--spacing-5) var(--spacing-6);
 }
 
+.modal-medium__lead {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  min-width: 0;
+}
+
 .modal-medium__title { color: var(--text-primary); }
+
+/* Back chevron — mirrors .modal-header__icon-btn / .modal-header__back so the two
+   shells' onBack controls stay visually identical. */
+.modal-medium__icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-tertiary);
+  transition: color var(--transition-fast);
+}
+.modal-medium__icon-btn:hover { color: var(--text-primary); }
+.modal-medium__icon-btn:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
 
 .modal-medium__content {
   padding: 0 var(--spacing-6) var(--spacing-5);

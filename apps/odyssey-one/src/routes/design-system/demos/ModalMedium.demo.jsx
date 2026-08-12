@@ -8,7 +8,7 @@ export const meta = {
   createdVersion: '0.2.0',
   figmaNode: '2032:915',
   codeConnect: 'packages/ui/src/ModalMedium.figma.tsx',
-  normalizing: false,
+  normalizing: true,
 }
 
 export const props = [
@@ -16,6 +16,7 @@ export const props = [
   { name: 'children', type: 'ReactNode', desc: 'Content slot — body area.' },
   { name: 'footer', type: 'ReactNode', desc: 'Footer slot — typically Cancel / Save action buttons.' },
   { name: 'onClose', type: '() => void', desc: 'Dismiss handler — wired to ESC key, overlay click, and the header X button.' },
+  { name: 'onBack', type: '() => void', desc: 'Optional leading back chevron, rendered before the title when present. Mirrors ModalHeader’s onBack API.' },
   { name: 'scrollableContent', type: 'boolean', desc: 'Implementation-only: removes bottom padding so a scrolling content region runs flush to the footer divider. Default false.' },
   { name: 'className', type: 'string', desc: 'Extra class(es) on the dialog element.' },
   { name: 'ariaLabel', type: 'string', desc: 'Accessible label override. Defaults to title.' },
