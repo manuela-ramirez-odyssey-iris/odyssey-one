@@ -6,6 +6,7 @@ import { ICON_LG } from '@odyssey/tokens'
 import { Button, ComboBox, GroupTable, ModalMedium, SummaryStrip, Tab, TitleSubtitle } from '@odyssey/ui'
 import { isDirty, startEdit } from './sectionDraft.js'
 import { QuoteModal } from './QuoteModal.jsx'
+import DiscardChangesModal from './DiscardChangesModal.jsx'
 import MeasureField from '../orders/create/fields/MeasureField.jsx'
 import RepeatableRows, { newRowId } from '../orders/create/RepeatableRows.jsx'
 import { EQUIPMENT_CODES, EQUIPMENT_LABELS, MODES, REFERENCE_TYPES, UOM_VOLUME, UOM_WEIGHT } from '../../data/master-data'
@@ -186,6 +187,24 @@ export default function ShipmentDetailsModal({ shipment, shipmentDetails, error,
   const [edit, setEdit] = useState(null)
   const dirty = isDirty(edit)
 
+  // Discard-or-save guard (2026-08-11). Every way OUT of an edited section
+  // funnels through `requestExit`, so the prompt cannot be bypassed by
+  // adding a new exit later: modal close, section cancel, opening another
+  // section, and switching tabs all call it. `pendingExit` holds the
+  // proceed callback for whichever exit triggered the prompt.
+  const [pendingExit, setPendingExit] = useState(null)
+
+  const requestExit = (proceed) => {
+    // setPendingExit(() => proceed) is the functional-update form on
+    // purpose — setPendingExit(proceed) would call proceed AS a state
+    // updater instead of storing it.
+    if (dirty) { setPendingExit(() => proceed); return }
+    proceed()
+  }
+
+  const handleClose = () => requestExit(() => onClose?.())
+  const switchTab = (next) => requestExit(() => { setEdit(null); setTab(next) })
+
   // Escape must close the quote modal WITHOUT closing the outer ModalMedium —
   // whose own Escape handling is an unconditional
   // `window.addEventListener('keydown', ...)` we can't touch (packages/ui) or
@@ -254,8 +273,8 @@ export default function ShipmentDetailsModal({ shipment, shipmentDetails, error,
     editable: true,
     editing: edit?.section === section,
     dirty,
-    onEdit: () => setEdit(startEdit(section, draftFor(section))),
-    onCancel: () => setEdit(null),
+    onEdit: () => requestExit(() => setEdit(startEdit(section, draftFor(section)))),
+    onCancel: () => requestExit(() => setEdit(null)),
     onSave: () => saveSection(section),
   })
 
@@ -330,9 +349,17 @@ export default function ShipmentDetailsModal({ shipment, shipmentDetails, error,
   return createPortal(
     <ModalMedium
       title="Shipment Details"
-      onClose={onClose}
+      onClose={handleClose}
       ariaLabel="Shipment Details"
     >
+      {pendingExit && (
+        <DiscardChangesModal
+          onStay={() => setPendingExit(null)}
+          onDiscard={() => { const go = pendingExit; setEdit(null); setPendingExit(null); go() }}
+          onSave={async () => { const go = pendingExit; await saveSection(edit.section); setPendingExit(null); go() }}
+        />
+      )}
+
       {/* QuoteModal wiring survives the per-field-pen removal (2026-08-11)
           untouched — nothing sets quoteModalOpen true yet (Cost's Edit is a
           no-op stub above; Task 11 points it here), so this block is
@@ -389,14 +416,14 @@ export default function ShipmentDetailsModal({ shipment, shipmentDetails, error,
                 <Tab
                   label="Details"
                   current={tab === 'details'}
-                  onClick={() => setTab('details')}
+                  onClick={() => switchTab('details')}
                   aria-selected={tab === 'details'}
                   role="tab"
                 />
                 <Tab
                   label="User Defined Fields"
                   current={tab === 'udf'}
-                  onClick={() => setTab('udf')}
+                  onClick={() => switchTab('udf')}
                   aria-selected={tab === 'udf'}
                   role="tab"
                 />

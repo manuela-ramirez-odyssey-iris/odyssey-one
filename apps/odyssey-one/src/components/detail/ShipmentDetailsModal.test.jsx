@@ -231,10 +231,15 @@ describe('General Information editing', () => {
   })
 
   it('cancel leaves edit mode and restores the original value', () => {
+    // Updated for the discard-or-save guard (2026-08-11): cancelling a DIRTY
+    // section now raises the prompt instead of reverting immediately — this
+    // test drives through "Discard Changes" to reach the same end state the
+    // assertions below still check for.
     renderModal()
     fireEvent.click(screen.getByRole('button', { name: 'Edit General Information' }))
     fireEvent.change(screen.getByLabelText('Volume'), { target: { value: '250' } })
     fireEvent.click(screen.getByRole('button', { name: 'Cancel editing General Information' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Discard Changes' }))
     expect(screen.getByText('200 cuft')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Edit General Information' })).toBeTruthy()
   })
@@ -289,5 +294,74 @@ describe('Customer Reference Values editing', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save Changes' }))
     await screen.findByRole('button', { name: 'Edit Customer Reference Values' })
     expect(screen.getByText('PO-9999')).toBeTruthy()
+  })
+})
+
+// Discard-or-save guard (2026-08-11, Task 8): every way OUT of an edited
+// section — closing the modal, the section's own cancel X, opening a
+// different section, switching tabs — funnels through one prompt when the
+// draft is dirty. A clean draft is not "leaving an edit" in the sense the
+// requirement means, so those paths must stay silent.
+describe('unsaved-changes guard', () => {
+  const dirtyGeneral = () => {
+    fireEvent.click(screen.getByRole('button', { name: 'Edit General Information' }))
+    fireEvent.change(screen.getByLabelText('Volume'), { target: { value: '250' } })
+  }
+
+  it('closing the modal with a dirty draft prompts instead of closing', () => {
+    const onClose = vi.fn()
+    renderModal({ onClose })
+    dirtyGeneral()
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+    expect(screen.getByText('Unsaved changes')).toBeTruthy()
+    expect(onClose).not.toHaveBeenCalled()
+  })
+
+  it('closing with a CLEAN draft closes immediately', () => {
+    const onClose = vi.fn()
+    renderModal({ onClose })
+    fireEvent.click(screen.getByRole('button', { name: 'Edit General Information' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+    expect(onClose).toHaveBeenCalledOnce()
+  })
+
+  it('the section cancel X prompts when dirty', () => {
+    renderModal()
+    dirtyGeneral()
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel editing General Information' }))
+    expect(screen.getByText('Unsaved changes')).toBeTruthy()
+  })
+
+  it('switching sections with a dirty draft prompts', () => {
+    renderModal()
+    dirtyGeneral()
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Customer Reference Values' }))
+    expect(screen.getByText('Unsaved changes')).toBeTruthy()
+  })
+
+  it('switching tabs with a dirty draft prompts', () => {
+    renderModal()
+    dirtyGeneral()
+    fireEvent.click(screen.getByRole('tab', { name: 'User Defined Fields' }))
+    expect(screen.getByText('Unsaved changes')).toBeTruthy()
+  })
+
+  it('discard drops the change and completes the exit', () => {
+    renderModal()
+    dirtyGeneral()
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel editing General Information' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Discard Changes' }))
+    expect(screen.queryByText('Unsaved changes')).toBeNull()
+    expect(screen.getByText('200 cuft')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Edit General Information' })).toBeTruthy()
+  })
+
+  it('edit mode resets when the modal is reopened', () => {
+    const { unmount } = renderModal()
+    fireEvent.click(screen.getByRole('button', { name: 'Edit General Information' }))
+    unmount()
+    renderModal()
+    expect(screen.getByRole('button', { name: 'Edit General Information' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Save Changes' })).toBeNull()
   })
 })
