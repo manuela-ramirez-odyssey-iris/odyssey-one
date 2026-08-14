@@ -296,7 +296,12 @@ export default function CreateOrderForm({ draftKey, resolveKey, resolveMeta, onS
       const st = scroller ? scroller.scrollTop : window.scrollY || 0
       const top = scroller ? scroller.getBoundingClientRect().top : 0
       const wrap = alertWrapRef.current
-      if (!wrap) return
+      // A zero-height wrap has no real layout yet (not painted, or — in tests —
+      // jsdom's getBoundingClientRect always returns all-zero rects). Comparing
+      // against `top` in that state is meaningless and reads as "already
+      // scrolled past", spuriously docking the alert the instant it mounts.
+      // Bail until a real measurement exists; the next scroll/resize re-syncs.
+      if (!wrap || wrap.offsetHeight === 0) return
       const docked = dockedRef.current
       let next
       if (navSessionRef.current) {
