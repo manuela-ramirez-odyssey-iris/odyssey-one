@@ -221,6 +221,13 @@ Genuinely still open.
 4. **Consolidation Completed's fixed 3-order-placeholder template** — behaviour for 2 or 4+ orders
    is unaddressed by the spec (see catalog). A renderer receiving a pre-composed string from the
    backend would not care; this only matters while WE compose seeded strings.
+5. **`Optimization Evaluation → Hold` renders amber, and that is OUR call.** Under
+   [[decisions/decision-log#DEC-87]] amber means "the step completed, but the business result is
+   unfavourable or non-advancing" — a Hold stops the shipment advancing, so it reads as amber
+   rather than the blue every other lifecycle step gets. Nothing in Pappu's catalog says how the
+   two Optimization Evaluation branches should differ, or whether Hold is even an unhappy outcome
+   in his model. Ask Pappu **together with #3** — both are "is this event's meaning what we assumed"
+   questions, and both are cheap to reverse (one literal in `tools/generate.mjs`, then a reseed).
 
 ## Related
 

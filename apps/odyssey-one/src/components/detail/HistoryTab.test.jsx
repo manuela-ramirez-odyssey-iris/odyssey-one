@@ -63,10 +63,10 @@ describe('HistoryTab', () => {
       ],
     }
     render(<HistoryTab data={data} />)
-    // 2026-08-12 user ruling: every system actor reads `System OdysseyOne`,
+    // 2026-08-12 user ruling: every system actor reads `System (OdysseyOne)`,
     // never the emitting service — `ERP` stays on the data as entry.source
     // but is no longer shown.
-    expect(screen.getByText('System OdysseyOne')).toBeTruthy()
+    expect(screen.getByText('System (OdysseyOne)')).toBeTruthy()
     expect(screen.queryByText('ERP')).toBeNull()
     expect(screen.queryByText('System')).toBeNull()
   })
@@ -145,7 +145,7 @@ describe('HistoryTab', () => {
       ],
     }
     render(<HistoryTab data={data} />)
-    const author = screen.getByText('System OdysseyOne')
+    const author = screen.getByText('System (OdysseyOne)')
     const badge = screen.getByText('Shipment Created')
     const timestamp = badge.closest('.history-row1').querySelector('.history-timestamp')
     // DOCUMENT_POSITION_FOLLOWING (4) — badge precedes author, author precedes timestamp
@@ -153,7 +153,7 @@ describe('HistoryTab', () => {
     expect(author.compareDocumentPosition(timestamp) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
-  it('renders every system author as "System OdysseyOne" with NO tooltip, whatever the emitting service', () => {
+  it('renders every system author as "System (OdysseyOne)" with NO tooltip, whatever the emitting service', () => {
     // Two different emitting services, one displayed name — the substitution
     // must not be a rename of one particular source.
     const data = {
@@ -171,10 +171,10 @@ describe('HistoryTab', () => {
       ],
     }
     render(<HistoryTab data={data} />)
-    expect(screen.getAllByText('System OdysseyOne')).toHaveLength(2)
+    expect(screen.getAllByText('System (OdysseyOne)')).toHaveLength(2)
     expect(screen.queryByText('Net Native')).toBeNull()
     expect(screen.queryByText('Linx')).toBeNull()
-    const actor = screen.getAllByText('System OdysseyOne')[0]
+    const actor = screen.getAllByText('System (OdysseyOne)')[0]
     fireEvent.mouseEnter(actor)
     expect(screen.queryByRole('tooltip')).toBeNull()
     // No tooltip, so no pointer cursor — the cursor must not promise an
@@ -229,14 +229,14 @@ describe('HistoryTab', () => {
   // Legacy rows (no `author` object at all, just a `source`) reach the same
   // system label — which is the point of doing the substitution at render
   // time: rows seeded before the ruling need no reseed to comply.
-  it('labels a source-only legacy entry as "System OdysseyOne" too, with NO tooltip', () => {
+  it('labels a source-only legacy entry as "System (OdysseyOne)" too, with NO tooltip', () => {
     const data = {
       entries: [
         { user: 'ERP', source: 'ERP', timestamp: '2026-06-02T14:05:00.000Z', action: 'Shipment Created', category: 'create', outcome: 'update', details: 'd1' },
       ],
     }
     render(<HistoryTab data={data} />)
-    const actor = screen.getByText('System OdysseyOne')
+    const actor = screen.getByText('System (OdysseyOne)')
     expect(screen.queryByText('ERP')).toBeNull()
     fireEvent.mouseEnter(actor)
     expect(screen.queryByRole('tooltip')).toBeNull()

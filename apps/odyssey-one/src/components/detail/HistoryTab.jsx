@@ -199,7 +199,7 @@ function HistoryAuthor({ entry }) {
   // (reseed-pending fallback, degrades to entry.user/entry.source exactly
   // as it did before this correction).
   //
-  // 2026-08-12 user ruling: EVERY system actor reads `System OdysseyOne`,
+  // 2026-08-12 user ruling: EVERY system actor reads `System (OdysseyOne)`,
   // not the emitting service (`ERP`, `Linx`, `Net Native`, `Legacy TMS`).
   // Deliberately a RENDER-time substitution, not a generator change: the
   // emitting service stays on the data as `entry.source` — it is real
@@ -218,7 +218,7 @@ function HistoryAuthor({ entry }) {
 
 // The single name every system-emitted entry is attributed to (user, verbatim
 // 2026-08-12: `All System authors is "System OdysseyOne"`).
-const SYSTEM_AUTHOR_LABEL = 'System OdysseyOne'
+const SYSTEM_AUTHOR_LABEL = 'System (OdysseyOne)'
 
 // Action badge variant per entry OUTCOME (DEC-81, 2026-08-10, amber added in
 // the same-day follow-up; `info` added by DEC-87, 2026-08-12) — the
