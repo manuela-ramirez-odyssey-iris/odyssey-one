@@ -27,3 +27,43 @@ describe('ModalMedium onBack', () => {
     expect(onClose).not.toHaveBeenCalled()
   })
 })
+
+describe('ModalMedium composes ModalHeader', () => {
+  it('renders the shared ModalHeader markup, not a hand-rolled copy', () => {
+    const { container } = render(<ModalMedium title="Edit Quote" onBack={() => {}} onClose={() => {}} />)
+    // ModalHeader owns this class; a hand-rolled header would never carry it. Kills a
+    // regression back to a copy-pasted header even if back/close still behave right.
+    const header = container.querySelector('header.modal-header')
+    expect(header).toBeTruthy()
+    expect(header.querySelector('.modal-header__back')).toBeTruthy()
+  })
+})
+
+describe('ModalMedium stacked Escape', () => {
+  it('Escape dismisses only the topmost of two open dialogs', () => {
+    const onCloseBottom = vi.fn()
+    const onCloseTop = vi.fn()
+    render(<ModalMedium title="Bottom" onClose={onCloseBottom} />)
+    render(<ModalMedium title="Top" onClose={onCloseTop} />)
+
+    fireEvent.keyDown(window, { key: 'Escape' })
+
+    expect(onCloseTop).toHaveBeenCalledOnce()
+    expect(onCloseBottom).not.toHaveBeenCalled()
+  })
+
+  it('survives out-of-order unmount — closing the bottom dialog first leaves the top dialog on top', () => {
+    const onCloseBottom = vi.fn()
+    const onCloseTop = vi.fn()
+    const bottom = render(<ModalMedium title="Bottom" onClose={onCloseBottom} />)
+    render(<ModalMedium title="Top" onClose={onCloseTop} />)
+
+    // Bottom dialog unmounts first (e.g. closed via a non-Escape path), out of LIFO order.
+    bottom.unmount()
+
+    fireEvent.keyDown(window, { key: 'Escape' })
+
+    expect(onCloseTop).toHaveBeenCalledOnce()
+    expect(onCloseBottom).not.toHaveBeenCalled()
+  })
+})

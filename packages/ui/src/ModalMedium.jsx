@@ -1,7 +1,5 @@
-import { useEffect } from 'react'
-import { ChevronLeft, X } from 'lucide-react'
-import { ICON_LG } from '@odyssey/tokens'
-import IconButtonGhost from './IconButtonGhost.jsx'
+import ModalHeader from './ModalHeader.jsx'
+import useEscapeStack from './useEscapeStack.js'
 
 /**
  * ModalMedium — organism shell. Content-sized reusable modal (width auto, 350–780px,
@@ -9,16 +7,19 @@ import IconButtonGhost from './IconButtonGhost.jsx'
  * content slot (children), and footer slot. ESC + overlay-click dismiss; dialog click
  * does not propagate. No subtitle (unlike ModalLarge).
  *
- * Mirrors Figma component `ModalMedium` at 2032:915. Content / Footer SLOT properties
- * map to React children / footer props respectively.
+ * Mirrors Figma component `ModalMedium` at 2032:915 — an instance of `ModalHeader`
+ * (node 3447:7661), the same molecule composed by RightPanel. Content / Footer SLOT
+ * properties map to React children / footer props respectively.
  *
  * `scrollableContent` — implementation-only flag (not in Figma): set true when the
  * content slot contains its own vertically-scrolling region. Removes the default
  * 20px bottom padding so the scroller runs flush against the footer divider.
  *
- * `onBack` — optional leading back control (chevron-left, lg). Present ⇒ rendered,
- * mirroring ModalHeader's own `onBack` API so the two shells stay consistent. Used
- * when a modal hosts a navigation flow between views rather than a single view.
+ * `onBack` — optional leading back control (chevron-left, lg), passed straight through
+ * to ModalHeader. Used when a modal hosts a navigation flow between views rather than
+ * a single view. `ariaLabel` names the DIALOG (outer `role="dialog"` element) — it is
+ * deliberately not forwarded to ModalHeader, which would apply it to the `<header>`
+ * landmark instead and produce a second, redundant accessible name.
  */
 export default function ModalMedium({
   title,
@@ -30,13 +31,7 @@ export default function ModalMedium({
   className = '',
   ariaLabel,
 }) {
-  useEffect(() => {
-    function onKey(e) {
-      if (e.key === 'Escape' && onClose) onClose()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+  useEscapeStack(onClose)
 
   return (
     <div className="modal-medium-overlay" onClick={onClose}>
@@ -47,28 +42,12 @@ export default function ModalMedium({
         aria-label={ariaLabel || title}
         onClick={(e) => e.stopPropagation()}
       >
-        <header className="modal-medium__header">
-          <div className="modal-medium__lead">
-            {onBack && (
-              <button
-                type="button"
-                className="modal-medium__icon-btn modal-medium__back"
-                onClick={onBack}
-                aria-label="Back"
-              >
-                <ChevronLeft {...ICON_LG} aria-hidden="true" />
-              </button>
-            )}
-            <span className="text-heading-lg-semibold modal-medium__title">{title}</span>
-          </div>
-          {onClose && (
-            <IconButtonGhost
-              icon={<X {...ICON_LG} aria-hidden="true" />}
-              onClick={onClose}
-              ariaLabel="Close"
-            />
-          )}
-        </header>
+        <ModalHeader
+          title={title}
+          onBack={onBack}
+          onClose={onClose}
+          className="modal-medium__header"
+        />
         <div className={`modal-medium__content${scrollableContent ? ' modal-medium__content--scroll' : ''}`}>
           {children}
         </div>

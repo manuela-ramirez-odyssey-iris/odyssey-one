@@ -3536,41 +3536,17 @@ button.breadcrumb__label:focus-visible {
   overflow: hidden;
 }
 
-.modal-medium__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+/* ModalMedium composes ModalHeader (packages/ui/src/ModalMedium.jsx) via
+   className="modal-medium__header" — the combined selector below overrides
+   ModalHeader's own chrome (border, tighter padding, top-aligned lead) to keep
+   ModalMedium's single-line, no-subtitle header looking exactly as it did before
+   the two shells shared one component. See MODAL HEADER below for the base rules. */
+.modal-header.modal-medium__header {
   padding: var(--spacing-5) var(--spacing-6);
+  border-bottom: none;
 }
-
-.modal-medium__lead {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-2);
-  min-width: 0;
-}
-
-.modal-medium__title { color: var(--text-primary); }
-
-/* Back chevron — mirrors .modal-header__icon-btn / .modal-header__back so the two
-   shells' onBack controls stay visually identical. */
-.modal-medium__icon-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: var(--text-tertiary);
-  transition: color var(--transition-fast);
-}
-.modal-medium__icon-btn:hover { color: var(--text-primary); }
-.modal-medium__icon-btn:focus-visible {
-  outline: 2px solid var(--border-focus);
-  outline-offset: 2px;
-  border-radius: var(--radius-sm);
-}
+.modal-header.modal-medium__header .modal-header__lead { align-items: center; }
+.modal-header.modal-medium__header .modal-header__back { margin-top: 0; }
 
 .modal-medium__content {
   padding: 0 var(--spacing-6) var(--spacing-5);

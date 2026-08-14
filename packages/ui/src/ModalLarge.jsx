@@ -1,7 +1,7 @@
-import { useEffect } from 'react'
 import { X } from 'lucide-react'
 import { ICON_LG } from '@odyssey/tokens'
 import IconButtonGhost from './IconButtonGhost.jsx'
+import useEscapeStack from './useEscapeStack.js'
 
 /**
  * ModalLarge — organism shell. Reusable large modal with a header (title +
@@ -21,13 +21,7 @@ export default function ModalLarge({
   className = '',
   ariaLabel,
 }) {
-  useEffect(() => {
-    function onKey(e) {
-      if (e.key === 'Escape' && onClose) onClose()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+  useEscapeStack(onClose)
 
   return (
     <div className="modal-large-overlay" onClick={onClose}>
