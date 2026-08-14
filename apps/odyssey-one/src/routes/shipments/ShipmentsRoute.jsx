@@ -204,6 +204,7 @@ function ShipmentsRoute() {
     isLoading: listLoading,
     isPlaceholderData: listStale,
     isError: listError,
+    error: listErrorDetail,
     refetch: refetchList,
   } = useShipmentErrorList(listParams)
 
@@ -515,6 +516,7 @@ function ShipmentsRoute() {
           isLoading={listLoading}
           isFetchingRows={listStale}
           isError={listError}
+          error={listErrorDetail}
           onRetry={refetchList}
         />
       )}

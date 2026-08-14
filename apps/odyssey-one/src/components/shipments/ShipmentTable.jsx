@@ -6,6 +6,7 @@ import { Badge, Button, DataTable, Paginator, ActionMenu } from '@odyssey/ui'
 import TooltipTrigger from '../ui/TooltipTrigger'
 import { ALL_COLUMNS } from '../detail/ColumnPanel'
 import { CELL_TAB_MAP } from './cellTabMap'
+import { getErrorDetail } from '../common/errorDetail.js'
 
 /**
  * ShipmentTable — Shipments configuration of the normalized @odyssey/ui DataTable
@@ -224,7 +225,7 @@ function deriveColumnState(visibleColumns) {
   return { columnVisibility, columnOrder }
 }
 
-export default function ShipmentTable({ shipments, onRowSelect, selectedId, onToggleColumnPanel, visibleColumns, pageNumber = 0, pageSize = 25, totalCount = 0, onPageChange, onPageSizeChange, sorting, onSortingChange, isLoading = false, isFetchingRows = false, isError = false, onRetry }) {
+export default function ShipmentTable({ shipments, onRowSelect, selectedId, onToggleColumnPanel, visibleColumns, pageNumber = 0, pageSize = 25, totalCount = 0, onPageChange, onPageSizeChange, sorting, onSortingChange, isLoading = false, isFetchingRows = false, isError = false, error, onRetry }) {
   const containerRef = useRef(null)
   const [columnSizing, setColumnSizing] = useState({})
 
@@ -391,8 +392,13 @@ export default function ShipmentTable({ shipments, onRowSelect, selectedId, onTo
           // `Table Container Error`), not a surface rendered instead of the table.
           // The header + chrome survive the failure, which is what S114 said this
           // should become once a Figma error state existed.
+          // User ruling (2026-08-14): Figma draws exactly two SHORT lines — a
+          // headline (message) and a brief reason (detail) — never a long/raw
+          // server string. getErrorDetail maps the real query error to that
+          // brief reason; see src/components/common/errorDetail.js.
           error={isError ? {
             message: "Couldn't load shipments.",
+            detail: getErrorDetail(error),
             onRetry: onRetry || undefined,
           } : undefined}
           footer={<Paginator table={table} />}

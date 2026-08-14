@@ -29,6 +29,29 @@ describe('ShipmentTable — error state', () => {
     expect(screen.getByText("Couldn't load shipments.")).toBeTruthy()
   })
 
+  // User ruling (2026-08-14): the grid draws both Figma lines — a short
+  // headline and a brief reason from getErrorDetail (never the raw server
+  // string, see src/components/common/errorDetail.js).
+  test('renders the brief-reason detail line derived from the query error', () => {
+    render(
+      <ShipmentTable
+        {...baseProps}
+        isError
+        onRetry={vi.fn()}
+        error={{ name: 'ApiError', status: 503, message: 'gridService: upstream 503' }}
+      />,
+    )
+    expect(screen.getByText("Couldn't load shipments.")).toBeTruthy()
+    expect(screen.getByText('The service is temporarily unavailable.')).toBeTruthy()
+    expect(screen.queryByText('gridService: upstream 503')).toBeFalsy()
+  })
+
+  test('falls back to the generic brief reason when no error detail is known', () => {
+    render(<ShipmentTable {...baseProps} isError onRetry={vi.fn()} />)
+    expect(screen.getByText("Couldn't load shipments.")).toBeTruthy()
+    expect(screen.getByText('Something went wrong. Please try again.')).toBeTruthy()
+  })
+
   test('reload action fires onRetry', () => {
     const onRetry = vi.fn()
     render(<ShipmentTable {...baseProps} isError onRetry={onRetry} />)

@@ -40,8 +40,8 @@ const baseProps = {
   onRetryDetails: vi.fn(),
 }
 
-describe('Fix A — real server error message reaches the pane', () => {
-  test('renders the ApiError message when the query error carries one', () => {
+describe('Fix A / user ruling 2026-08-14 — short headline + brief reason, never the raw server message', () => {
+  test('a raw server message is never rendered — only the mapped brief reason', () => {
     render(
       <BottomBar
         {...baseProps}
@@ -51,11 +51,14 @@ describe('Fix A — real server error message reaches the pane', () => {
         error={{ name: 'ApiError', message: 'Order number already exists: ORD-9', status: 409 }}
       />,
     )
-    expect(screen.getByText('Order number already exists: ORD-9')).toBeTruthy()
-    expect(screen.queryByText("Couldn't load shipment details.")).toBeFalsy()
+    expect(screen.queryByText('Order number already exists: ORD-9')).toBeFalsy()
+    // default tab is 'order' (no requestedTab) — short headline from TABS label
+    expect(screen.getByText("Couldn't load orders.")).toBeTruthy()
+    // 409 isn't a mapped status — falls to the generic brief-reason fallback
+    expect(screen.getByText('Something went wrong. Please try again.')).toBeTruthy()
   })
 
-  test('falls back to the generic string when the error has no message (e.g. a raw network failure)', () => {
+  test('falls back to the generic brief reason when the error has no message (e.g. a raw network failure)', () => {
     render(
       <BottomBar
         {...baseProps}
@@ -65,12 +68,13 @@ describe('Fix A — real server error message reaches the pane', () => {
         error={undefined}
       />,
     )
-    expect(screen.getByText("Couldn't load shipment details.")).toBeTruthy()
+    expect(screen.getByText("Couldn't load orders.")).toBeTruthy()
+    expect(screen.getByText('Something went wrong. Please try again.')).toBeTruthy()
   })
 })
 
-describe('Fix E — per-tab mandated error copy (LINX-12069/72/76/110/114)', () => {
-  test('Stops tab error shows its mandated "try again later" string, character-exact', async () => {
+describe('Fix E / user ruling 2026-08-14 — per-tab short headline + brief reason (was: mandated long copy, LINX-12069/72/76/110/114)', () => {
+  test('Stops tab error shows its short mandated headline', async () => {
     render(
       <BottomBar
         {...baseProps}
@@ -81,14 +85,10 @@ describe('Fix E — per-tab mandated error copy (LINX-12069/72/76/110/114)', () 
         error={undefined}
       />,
     )
-    expect(
-      await screen.findByText(
-        'Unable to load stop details at the moment. Please try again later. If the issue persists, contact support.',
-      ),
-    ).toBeTruthy()
+    expect(await screen.findByText("Couldn't load stops.")).toBeTruthy()
   })
 
-  test('Cost tab error omits "later" — verified divergence from Stops, not a slip to unify', async () => {
+  test('Cost tab error shows its short mandated headline ("cost details", not "cost allocation")', async () => {
     render(
       <BottomBar
         {...baseProps}
@@ -99,20 +99,10 @@ describe('Fix E — per-tab mandated error copy (LINX-12069/72/76/110/114)', () 
         error={undefined}
       />,
     )
-    expect(
-      await screen.findByText(
-        'Unable to load cost details at the moment. Please try again. If the issue persists, contact support.',
-      ),
-    ).toBeTruthy()
-    // Guards against the two variants getting "tidied" into agreement.
-    expect(
-      screen.queryByText(
-        'Unable to load cost details at the moment. Please try again later. If the issue persists, contact support.',
-      ),
-    ).toBeFalsy()
+    expect(await screen.findByText("Couldn't load cost details.")).toBeTruthy()
   })
 
-  test('a tab with no mandated copy (Tender / routing) keeps the generic fallback', async () => {
+  test('a tab with no mandated copy (Tender / routing) derives its headline from the TABS label', async () => {
     render(
       <BottomBar
         {...baseProps}
@@ -123,10 +113,13 @@ describe('Fix E — per-tab mandated error copy (LINX-12069/72/76/110/114)', () 
         error={undefined}
       />,
     )
-    expect(await screen.findByText("Couldn't load shipment details.")).toBeTruthy()
+    expect(await screen.findByText("Couldn't load tender.")).toBeTruthy()
   })
 
-  test('the real server message survives as a subordinate line under the mandated Stops copy (Fix A regression guard)', async () => {
+  // Tests: "add coverage for ... a mandated tab rendering both lines" —
+  // headline (line 1, TAB_ERROR_COPY) + brief reason (line 2, getErrorDetail),
+  // never the raw server string.
+  test('a mandated tab (Stops) renders both the headline and the brief-reason line, never the raw server message', async () => {
     render(
       <BottomBar
         {...baseProps}
@@ -137,12 +130,9 @@ describe('Fix E — per-tab mandated error copy (LINX-12069/72/76/110/114)', () 
         error={{ name: 'ApiError', message: 'stops-service: upstream 503', status: 503 }}
       />,
     )
-    expect(
-      await screen.findByText(
-        'Unable to load stop details at the moment. Please try again later. If the issue persists, contact support.',
-      ),
-    ).toBeTruthy()
-    expect(screen.getByText('stops-service: upstream 503')).toBeTruthy()
+    expect(await screen.findByText("Couldn't load stops.")).toBeTruthy()
+    expect(screen.getByText('The service is temporarily unavailable.')).toBeTruthy()
+    expect(screen.queryByText('stops-service: upstream 503')).toBeFalsy()
   })
 })
 

@@ -5,6 +5,7 @@ import { ShipmentsBar, Button, Spinner } from '@odyssey/ui'
 import ShipmentDetailsModal from './ShipmentDetailsModal'
 import PaneErrorBoundary from '../common/PaneErrorBoundary.jsx'
 import ErrorState from '../common/ErrorState.jsx'
+import { getErrorDetail } from '../common/errorDetail.js'
 
 const OrderTab = React.lazy(() => import('./OrderTab'))
 const StopsTab = React.lazy(() => import('./StopsTab'))
@@ -73,11 +74,20 @@ export const TABS = [
 
 export const DEFAULT_TAB_ORDER = TABS.map(t => t.key)
 
-// Fix E (2026-08-10): per-tab error copy, mandated verbatim by 5 Jira ACs
-// (LINX-12069 stops / LINX-12072 instructions / LINX-12076 notes / LINX-12110
-// cost / LINX-12114 documents — customfield_10032, read today). Keys here are
-// the real TABS keys above, NOT the AC's prose names — Tender is `routing`
-// and Cost Allocation is `cost`.
+// Fix E (2026-08-10): per-tab error copy. PROVENANCE — the five strings this
+// constant held originally were mandated VERBATIM by 5 Jira acceptance
+// criteria (LINX-12069 stops / LINX-12072 instructions / LINX-12076 notes /
+// LINX-12110 cost / LINX-12114 documents — customfield_10032, read
+// 2026-08-10): long sentences like "Unable to load stop details at the
+// moment. Please try again later. If the issue persists, contact support."
+// SHORTENED on user ruling (2026-08-14): Figma `Table Container Error`
+// (5065:8602) draws exactly two short lines — a headline + a brief reason —
+// not a wall of text ("<Error1> explanation" is the user's own shorthand for
+// "brief reason, not a big message"). The long AC sentences below are what
+// this constant used to hold; this divergence from the ACs is deliberate,
+// not a drop — raise it with Ramesh before treating either version as stale.
+// Keys here are the real TABS keys above, NOT the AC's prose names — Tender
+// is `routing` and Cost Allocation is `cost`.
 //
 // This is copy over the ONE shared fetch, not real per-tab failure isolation:
 // getSellShipmentDetail returns a single blob (stops + notes + instructions +
@@ -89,17 +99,12 @@ export const DEFAULT_TAB_ORDER = TABS.map(t => t.key)
 // the tabs' data is independently sourced. Whether it actually is stays open
 // with Ramesh; if he confirms independent services, THIS map is what turns
 // into real per-tab error state.
-//
-// The "later" divergence below is real, verified against the ACs, and
-// intentional — not a copy-paste slip to "fix": stops/instructions/notes end
-// "Please try again later.", cost/documents end "Please try again." (no
-// "later"). Raised with Ramesh; do not tidy them into agreement.
 const TAB_ERROR_COPY = {
-  stops: 'Unable to load stop details at the moment. Please try again later. If the issue persists, contact support.',
-  instructions: 'Unable to load instructions at the moment. Please try again later. If the issue persists, contact support.',
-  notes: 'Unable to load notes at the moment. Please try again later. If the issue persists, contact support.',
-  cost: 'Unable to load cost details at the moment. Please try again. If the issue persists, contact support.',
-  documents: 'Unable to load documents at the moment. Please try again. If the issue persists, contact support.',
+  stops: "Couldn't load stops.",
+  instructions: "Couldn't load instructions.",
+  notes: "Couldn't load notes.",
+  cost: "Couldn't load cost details.",
+  documents: "Couldn't load documents.",
 }
 
 // Fix D (LINX-11786, 2026-08-10): merge a STORED tab-order preference against
@@ -297,24 +302,22 @@ export default function BottomBar({
 
   const renderTabContent = () => {
     if (detailsError) {
-      // Fix E (2026-08-10): the mandated AC string (TAB_ERROR_COPY, see def'n
-      // above) wins as the primary line for the 5 tabs it covers. Every other
-      // tab has no mandated copy, so it keeps exactly Fix A's prior behaviour
-      // — real server message if there is one, else the generic string — the
-      // Fix A regression test below depends on that being unchanged.
-      //
-      // On a mandated tab the server's real message doesn't disappear: it's
-      // demoted to a SECONDARY line (smaller, tertiary-toned, rendered only
-      // when present) so the AC copy leads but the real diagnostic — the
-      // thing Fix A fought to surface at all — stays visible underneath.
+      // Fix E (2026-08-10) / user ruling (2026-08-14): line 1 is always a
+      // SHORT headline — the mandated copy for the 5 ACs' tabs (TAB_ERROR_COPY,
+      // see def'n above), else "Couldn't load <tab label>." derived from the
+      // same TABS list the strip renders from (no separate copy to keep in
+      // sync). Line 2 is the shared getErrorDetail() brief reason (never the
+      // raw server string — see src/components/common/errorDetail.js) so both
+      // BottomBar and the grid (ShipmentTable.jsx) draw the identical Figma
+      // `Table Container Error` (5065:8602) two-line shape.
       const mandatedCopy = TAB_ERROR_COPY[shownTab]
-      const primaryMessage = mandatedCopy ?? (error?.message || "Couldn't load shipment details.")
+      const tabLabel = TABS.find((t) => t.key === shownTab)?.label
+      const primaryMessage = mandatedCopy ?? (tabLabel ? `Couldn't load ${tabLabel.toLowerCase()}.` : "Couldn't load shipment details.")
       // S116: the Figma error state landed (`Table Container Error` 5065:8602)
       // and this now matches it — two lines of label/xs in --text-error over a
       // secondary "Reload" button, NO icon. Same design as the grid, which took
       // it from DataTable's own `error` prop; the tabs can't use that prop (they
       // are panes, not tables), so ErrorState carries the identical treatment.
-      // The 2026-08-10 stopgap note is retired.
       //
       // No AC (LINX-12069/72/76/110/114 — the 5 mandating TAB_ERROR_COPY
       // above) requires a retry/reload control on error; verified directly,
@@ -333,7 +336,7 @@ export default function BottomBar({
           // grid's ErrorState is in page flow and must NOT take it.
           className="centered-message--fill"
           message={primaryMessage}
-          detail={mandatedCopy && error?.message ? error.message : undefined}
+          detail={getErrorDetail(error)}
           action={(
             <Button
               variant="secondary"
