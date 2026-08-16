@@ -95,6 +95,10 @@ export interface StopsSummaryVM {
   acceptedCarrier: string
   seedEquipment: string
   utilization: string
+  /* LINX-14541 additions — General Information reads these off the same
+     summary object it already reads grossWeight/volume/seedEquipment from. */
+  packageCount: string
+  planningType: string
 }
 
 // ── Product tab ──────────────────────────────────────────────

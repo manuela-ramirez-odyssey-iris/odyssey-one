@@ -264,6 +264,107 @@ describe('RoutingGuideTab — Accept/Decline/Cancel write audit fields', () => {
   })
 })
 
+// LINX-13894 (partial) — Add Quote moves from a page-level toolbar button
+// (which added ONE new option regardless of which row a user cared about)
+// into the per-row action menu, mutually exclusive with Edit Quote: an
+// option with no quote yet offers "Add Quote"; an option that already has
+// one offers "Edit Quote" — never both. "Has a quote" is read off
+// rateDetails.apTotal, the same signal CostTooltip already treats as "no
+// rate details" when zero/absent (mapSellShipmentOutToDetail.ts defaults a
+// missing rateDetails to a zeroed object) — not the AP Cost column, which
+// only gates the contracted-rate confirm below.
+describe('RoutingGuideTab — per-row Add/Edit Quote (LINX-13894)', () => {
+  const noQuoteOption = {
+    rank: 1, routeRank: 1, scac: 'ODFL', carrierName: 'Old Dominion Freight Line',
+    equipment: 'Van', cost: '--', status: 'Sent',
+  }
+  const quotedOption = {
+    ...noQuoteOption,
+    cost: '$2,790.00 USD',
+    rateDetails: { baseRate: 2500, currency: 'USD', markup: 300, additionalCharges: [], apTotal: 2790, arTotal: 3090 },
+  }
+  // AP Cost (Carrier) present, but no user-entered quote yet — the case the
+  // contracted-rate confirm (AC 3) exists for.
+  const costedButUnquotedOption = { ...noQuoteOption, cost: '$500.00 USD' }
+
+  const openRowMenu = () => {
+    const menuCell = document.querySelector('[data-right-table] tbody tr td:last-child')
+    fireEvent.click(menuCell)
+  }
+
+  it('removes the page-level Add Quote toolbar button', () => {
+    const data = { options: [noQuoteOption] }
+    render(<RoutingGuideTab data={data} />)
+    expect(screen.queryByRole('button', { name: 'Add Quote' })).toBeNull()
+  })
+
+  it('shows "Add Quote" (not "Edit Quote") in the row menu when the option has no quote', () => {
+    const data = { options: [noQuoteOption] }
+    render(<RoutingGuideTab data={data} />)
+    openRowMenu()
+    expect(screen.getByRole('button', { name: 'Add Quote' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Edit Quote' })).toBeNull()
+  })
+
+  it('shows "Edit Quote" (not "Add Quote") in the row menu when the option already has a quote', () => {
+    const data = { options: [quotedOption] }
+    render(<RoutingGuideTab data={data} />)
+    openRowMenu()
+    expect(screen.getByRole('button', { name: 'Edit Quote' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Add Quote' })).toBeNull()
+  })
+
+  it('Add Quote goes straight to the quote entry dialog when AP Cost is blank', () => {
+    const data = { options: [noQuoteOption] } // cost: '--'
+    render(<RoutingGuideTab data={data} />)
+    openRowMenu()
+    fireEvent.click(screen.getByRole('button', { name: 'Add Quote' }))
+    expect(screen.queryByText(/contracted rate already exists/i)).toBeNull()
+    expect(screen.getByRole('dialog', { name: 'Add Quote' })).toBeTruthy()
+  })
+
+  it('Add Quote confirms first when AP Cost (Carrier) is non-blank; Cancel backs out without opening the dialog', () => {
+    const data = { options: [costedButUnquotedOption] } // cost: '$500.00 USD', no rateDetails
+    render(<RoutingGuideTab data={data} />)
+    openRowMenu()
+    fireEvent.click(screen.getByRole('button', { name: 'Add Quote' }))
+
+    expect(screen.getByText('A contracted rate already exists for this carrier option. Do you want to continue?')).toBeTruthy()
+    expect(screen.queryByRole('dialog', { name: 'Add Quote' })).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(screen.queryByText(/contracted rate already exists/i)).toBeNull()
+    expect(screen.queryByRole('dialog', { name: 'Add Quote' })).toBeNull()
+  })
+
+  it('Add Quote confirm: OK proceeds to the quote entry dialog', () => {
+    const data = { options: [costedButUnquotedOption] }
+    render(<RoutingGuideTab data={data} />)
+    openRowMenu()
+    fireEvent.click(screen.getByRole('button', { name: 'Add Quote' }))
+    fireEvent.click(screen.getByRole('button', { name: 'OK' }))
+
+    expect(screen.queryByText(/contracted rate already exists/i)).toBeNull()
+    expect(screen.getByRole('dialog', { name: 'Add Quote' })).toBeTruthy()
+  })
+
+  // The hand-rolled AddQuoteConfirm (createPortal + inline styles, no Escape
+  // handling) would have FAILED this test — it never listened for keydown at
+  // all. ModalMedium's useEscapeStack is the fix (S119 replacement).
+  it('Escape closes the confirm without proceeding to the quote modal', () => {
+    const data = { options: [costedButUnquotedOption] }
+    render(<RoutingGuideTab data={data} />)
+    openRowMenu()
+    fireEvent.click(screen.getByRole('button', { name: 'Add Quote' }))
+    expect(screen.getByText('A contracted rate already exists for this carrier option. Do you want to continue?')).toBeTruthy()
+
+    fireEvent.keyDown(window, { key: 'Escape' })
+
+    expect(screen.queryByText(/contracted rate already exists/i)).toBeNull()
+    expect(screen.queryByRole('dialog', { name: 'Add Quote' })).toBeNull()
+  })
+})
+
 describe('RoutingGuideTab — tender persist (VM → DTO)', () => {
   it('a picked Equipment survives from the Edit Quote UI to saveTenderOption as equipmentCode, not equipment', () => {
     const option = {
@@ -302,5 +403,112 @@ describe('RoutingGuideTab — tender persist (VM → DTO)', () => {
     // to be present here as numbers now instead of formatted VM strings.
     expect(sentOption.totalCostAmount).toBe(1000)
     expect(typeof sentOption.cost).toBe('undefined')
+  })
+})
+
+// Delete Quote (LINX-13897). rateSource is the only field in the data shape
+// that tells a contracted/system-sourced rate (generate.mjs seeds every
+// option with one of 'Contract' | 'Spot' | 'Benchmark' | 'Historical') apart
+// from a user-entered one — 'Manual' is written ONLY by this component's own
+// Add Quote handler. Delete Quote is offered exclusively for the latter.
+describe('RoutingGuideTab — Delete Quote (LINX-13897)', () => {
+  const openRowMenu = () => {
+    const menuCell = document.querySelector('[data-right-table] tbody tr td:last-child')
+    fireEvent.click(menuCell)
+  }
+
+  const manualQuote = {
+    rank: 1, routeRank: 1, scac: 'ODFL', carrierName: 'Old Dominion Freight Line',
+    equipment: 'Van', cost: '$2,790.00 USD', status: null, rateSource: 'Manual',
+    rateDetails: { baseRate: 2500, currency: 'USD', markup: 300, additionalCharges: [], apTotal: 2790, arTotal: 3090 },
+  }
+
+  it('offers Delete Quote alongside Edit Quote for a user-entered quote (rateSource Manual)', () => {
+    const data = { options: [manualQuote] }
+    render(<RoutingGuideTab data={data} />)
+    openRowMenu()
+    expect(screen.getByRole('button', { name: 'Edit Quote' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Delete Quote' })).toBeTruthy()
+  })
+
+  it('never offers Delete Quote for a contracted rate, even though it has a quote', () => {
+    const data = { options: [{ ...manualQuote, rateSource: 'Contract' }] }
+    render(<RoutingGuideTab data={data} />)
+    openRowMenu()
+    expect(screen.getByRole('button', { name: 'Edit Quote' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Delete Quote' })).toBeNull()
+  })
+
+  it('does not offer Delete Quote when there is no quote yet (Add Quote shown instead)', () => {
+    const data = { options: [{ ...manualQuote, rateSource: 'Manual', cost: '--', rateDetails: undefined }] }
+    render(<RoutingGuideTab data={data} />)
+    openRowMenu()
+    expect(screen.getByRole('button', { name: 'Add Quote' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Delete Quote' })).toBeNull()
+  })
+
+  // LINX-13897 (hide when Sent/Accepted) contradicts LINX-13894's table (no
+  // status condition) — 13897 wins per user ruling (deleting on an
+  // already-sent tender is the riskier operation).
+  it.each(['Sent', 'Accepted'])('hides Delete Quote when tender status is %s', (status) => {
+    const data = { options: [{ ...manualQuote, status }] }
+    render(<RoutingGuideTab data={data} />)
+    openRowMenu()
+    expect(screen.queryByRole('button', { name: 'Delete Quote' })).toBeNull()
+  })
+
+  it('shows Delete Quote when tender status is Declined or Cancelled', () => {
+    const data = { options: [{ ...manualQuote, status: 'Declined' }] }
+    render(<RoutingGuideTab data={data} />)
+    openRowMenu()
+    expect(screen.getByRole('button', { name: 'Delete Quote' })).toBeTruthy()
+  })
+
+  it('Delete Quote shows a Yes/No confirm with the exact removal copy', () => {
+    const data = { options: [manualQuote] }
+    render(<RoutingGuideTab data={data} />)
+    openRowMenu()
+    fireEvent.click(screen.getByRole('button', { name: 'Delete Quote' }))
+
+    expect(screen.getByText('This quote will be permanently removed and cannot be undone.')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Yes' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'No' })).toBeTruthy()
+  })
+
+  it('No backs out: the quote and its menu entry are untouched', () => {
+    const data = { options: [manualQuote] }
+    render(<RoutingGuideTab data={data} />)
+    openRowMenu()
+    fireEvent.click(screen.getByRole('button', { name: 'Delete Quote' }))
+    fireEvent.click(screen.getByRole('button', { name: 'No' }))
+
+    expect(screen.queryByText(/permanently removed/i)).toBeNull()
+    expect(saveTenderOption).not.toHaveBeenCalled()
+    openRowMenu()
+    expect(screen.getByRole('button', { name: 'Edit Quote' })).toBeTruthy()
+  })
+
+  it('Yes clears the quote, persists the cleared option, and the menu reverts to Add Quote', () => {
+    const shipment = { sellShipment: 'SHIP-1' }
+    const data = { options: [manualQuote] }
+    render(<RoutingGuideTab data={data} shipment={shipment} />)
+    openRowMenu()
+    fireEvent.click(screen.getByRole('button', { name: 'Delete Quote' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Yes' }))
+
+    expect(screen.queryByText(/permanently removed/i)).toBeNull()
+
+    expect(saveTenderOption).toHaveBeenCalledTimes(1)
+    const [id, sentOption] = saveTenderOption.mock.calls[0]
+    expect(id).toBe('SHIP-1')
+    // AP/AR totals the quote generated are cleared, not just hidden.
+    expect(sentOption.totalCostAmount).toBeUndefined()
+    expect(sentOption.rateDetails.apTotal).toBe(0)
+    expect(sentOption.rateDetails.arTotal).toBe(0)
+    expect(sentOption.quoteFlag).toBe('N')
+
+    openRowMenu()
+    expect(screen.getByRole('button', { name: 'Add Quote' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Edit Quote' })).toBeNull()
   })
 })

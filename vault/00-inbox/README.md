@@ -16,6 +16,14 @@ Ephemeral drop zone for new artifacts (screenshots, transcripts, PDFs, DOCX, XLS
 4. **Synthesis** — a subagent reads all artifacts and produces structured vault markdown (canon + decision-log + schema if applicable). Main thread stays clean of image/transcript token bloat.
 5. **Review & archive** — confirm the synthesis; Claude archives raw artifacts to `vault-sources/<mirror-path>/` (outside Obsidian) and empties the inbox.
 
+## The one-topic rule
+
+**The inbox holds one intake at a time.** It is empty (this README only) between cycles.
+
+Never drop new material on top of an unfinished intake. If artifacts are already sitting here, that cycle owes step 5 (archive) — finish it before dropping anything else. `/analyze` step 0 enforces this and will refuse to start on a mixed inbox.
+
+Why: every step of the intake globs this folder. A SpotBoard image left here in August 2026 was still sitting alongside two unrelated tender transcripts four days and three sessions later — each session recording the debt in `progress.md` instead of running the four `mv` commands that would have cleared it. Mixed material means one topic's synthesis silently absorbs another's sources.
+
 ## Architecture
 
 - **`vault/`** — synthesized markdown only. RAG-friendly. What we know.

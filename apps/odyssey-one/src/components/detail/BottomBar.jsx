@@ -454,6 +454,10 @@ export default function BottomBar({
         shipmentDetails={shownDetails}
         error={detailsError}
         onClose={() => setDetailsModalOpen(false)}
+        // "More" (Cost/Stops section headers) — reuses the same tab-switch
+        // path a table cell click already rides (handleTabChange), just with
+        // the modal's own onClose above doing the closing half.
+        onViewTab={handleTabChange}
       />
     )}
     </>

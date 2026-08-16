@@ -58,7 +58,8 @@ import Button from './Button.jsx'
  *   children          — the active tab's pane (the Content slot), rendered while expanded.
  *
  * Height model (S93): THREE FIXED STAGES — collapsed (48px strip), partial
- * (--bottombar-partial) and full (100dvh − --bottombar-top-clearance). Heights
+ * (--bottombar-partial) and full (100dvh − --navbar-height, i.e. every pixel
+ * between the navbar and the viewport bottom — 2026-08-15). Heights
  * are definite CSS lengths, so stage changes and open/close animate with a
  * plain CSS height transition (the drawer curve). The S79d/S82 adaptive
  * content-driven height (auto + ratchet + measured JS animation) was retired —
@@ -78,7 +79,7 @@ export default function ShipmentsBar({
   expanded = false,
   onExpandedChange,
   // stage: expansion size while expanded — 'partial' (--bottombar-partial)
-  // or 'full' (100dvh − clearance). S82 three-state bar: the CollapseExpand
+  // or 'full' (100dvh − --navbar-height). S82 three-state bar: the CollapseExpand
   // button walks closed → partial (arrow-up-to-line) → full (chevrons-up) →
   // closed (chevrons-down, fires onClose). Consumers open to 'partial' on
   // selection.

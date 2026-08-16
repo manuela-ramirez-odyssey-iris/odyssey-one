@@ -169,6 +169,34 @@ function sumOrderWeights(dto: SellShipmentOut): number | undefined {
   return vals.length ? vals.reduce((a, b) => a + b, 0) : undefined
 }
 
+// LINX-14541 — Package Count for General Information. No single field for
+// this exists anywhere on the wire, only per-order-LINE packageCount. Summed
+// across every order the same way sumOrderWeights above already sums
+// grossWeightValue — same derivation convention, not a new one.
+function sumOrderPackages(dto: SellShipmentOut): number | undefined {
+  const vals = (dto.orderList ?? [])
+    .flatMap((o) => o.orderLines ?? [])
+    .map((l) => l.packageCount)
+    .filter((v): v is number => v != null)
+  return vals.length ? vals.reduce((a, b) => a + b, 0) : undefined
+}
+
+// LINX-14541 — Planning Type for General Information. Not on the wire at the
+// shipment level at all: generate.mjs derives mainRow.planningType with this
+// exact rule ("RDD if ANY mapped order is RDD, else SSD" — LINX-12902
+// verbatim) but never copies it onto the `detail` object this mapper
+// receives (public/details/<id>.json has no `planningType` key, confirmed
+// against a live generated file). The per-order INGREDIENT
+// (planningDateType) IS on the wire — SellShipmentOrder.planningDateType,
+// present in every generated JSON — so the shipment-level value is
+// recomputed here from real data using the generator's own rule, rather than
+// left unrendered or invented outright.
+function planningTypeFor(dto: SellShipmentOut): string {
+  const orders = dto.orderList ?? []
+  if (!orders.length) return DASH
+  return orders.some((o) => o.planningDateType === 'RDD') ? 'RDD' : 'SSD'
+}
+
 // LINX-12067 (AC audit, 2026-08-10): AC says Distance must "Display distance
 // from routing corresponding to current tender option" — the shipment
 // header's own distanceMiles (dto.distanceMiles) is a DIFFERENT field, seeded
@@ -210,6 +238,8 @@ function mapStops(dto: SellShipmentOut): ShipmentDetailVM['stopsData'] {
     // restoring is a one-line change once the Utilization story ships:
     // dto.utilizationPercent != null ? `${dto.utilizationPercent}%` : DASH
     utilization: DASH,
+    packageCount: fmtInt(sumOrderPackages(dto)),
+    planningType: planningTypeFor(dto),
   }
   return {
     summary,

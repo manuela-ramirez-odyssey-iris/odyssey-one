@@ -243,7 +243,6 @@
      the stage consumers open to on selection, so it IS the default open height.
      +50px over the original 60dvh (user, S102: +57 then −7). */
   --bottombar-partial: calc(60dvh + 50px);
-  --bottombar-top-clearance: 104px; /* bar's max opening: top edge never rises above this (mid page-title row — S79c decision 1) */
   --edit-panel-width: 240px;
   --right-panel-width: 343px;
   --main-padding-top-edit: 52px;
@@ -299,6 +298,12 @@
   /* Content reveals (accordion expand/collapse): longer ease-out-quart so the
      height change reads as a designed motion at larger travel distances. */
   --transition-reveal: 300ms cubic-bezier(0.22, 1, 0.36, 1);
+  /* Modal view navigation (ModalMedium push/pop, .modal-nav-view): the slowest
+     of the ease-out-quart family. A modal view swap replaces the whole dialog
+     body, so it needs longer than a --transition-reveal accordion to read as
+     one surface moving rather than a flicker. Tuned by eye 2026-08-15 (220 →
+     300 → 360ms); same curve as panel/reveal, duration is the only change. */
+  --transition-modal-nav: 360ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 /* --- Animations --- */

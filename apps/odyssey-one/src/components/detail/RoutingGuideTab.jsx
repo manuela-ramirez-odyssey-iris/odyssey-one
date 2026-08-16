@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { TruckElectric, Plus, FoldHorizontal, UnfoldHorizontal } from 'lucide-react'
+import { TruckElectric, FoldHorizontal, UnfoldHorizontal } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
-import { Badge, Button, Tab } from '@odyssey/ui'
+import { Badge, Button, ModalMedium, Tab } from '@odyssey/ui'
 import { saveTenderOption } from '../../api/services/shipmentService'
 import { parseDollar, fmtDollar } from '../../utils/money'
 import { routingOptionVmToDto } from '../../api/mappers/mapSellShipmentOutToDetail'
@@ -219,7 +219,7 @@ function StatusBadge({ status }) {
    Section 5 — ActionDropdown
    ═══════════════════════════════════════════════════════════ */
 
-function ActionDropdown({ status, position, onAction, onClose }) {
+function ActionDropdown({ option, position, onAction, onClose }) {
   const ref = useRef(null)
 
   useEffect(() => {
@@ -235,7 +235,30 @@ function ActionDropdown({ status, position, onAction, onClose }) {
     }
   }, [onClose])
 
-  const actions = TENDER_ACTIONS[status] || TENDER_ACTIONS[null] || []
+  const actions = TENDER_ACTIONS[option.status] || TENDER_ACTIONS[null] || []
+
+  // LINX-13894 — Add Quote and Edit Quote are mutually exclusive per option.
+  // "Has a quote" reads rateDetails.apTotal, the same zero-means-absent
+  // convention CostTooltip already relies on (mapRoutingOption substitutes a
+  // ZEROED rateDetails when the DTO omits it — a real quote leaves a
+  // positive apTotal behind).
+  const hasQuote = !!(option.rateDetails && option.rateDetails.apTotal > 0)
+
+  // LINX-13897 — Delete Quote. Offered only for a quote the USER entered, never
+  // a contracted rate. rateSource is the one field the data shape carries that
+  // tells them apart: generate.mjs seeds every routing option with one of
+  // 'Contract' | 'Spot' | 'Benchmark' | 'Historical' (a system/contract-sourced
+  // rate); 'Manual' is written ONLY by this component's own Add Quote handler
+  // (handleQuoteSave, mode 'add') — i.e. a quote the user actually typed in.
+  // Confidence: medium-high — inferred from the one write site, not a field
+  // Jira names explicitly as the contract/quote discriminator.
+  const isUserEnteredQuote = option.rateSource === 'Manual'
+  // LINX-13897 says hide Delete when tender status is Sent/Accepted; LINX-13894's
+  // table offers Delete whenever a quote exists with no status condition at all.
+  // Following 13897 (2026-08-14 ruling) — deleting a quote on an already-sent
+  // tender is the riskier operation. Flagged here for re-decision.
+  const tenderIsLocked = option.status === 'Sent' || option.status === 'Accepted'
+  const canDeleteQuote = hasQuote && isUserEnteredQuote && !tenderIsLocked
 
   const btnStyle = {
     display: 'block',
@@ -296,11 +319,11 @@ function ActionDropdown({ status, position, onAction, onClose }) {
       </div>
       <button
         style={btnStyle}
-        onClick={() => { onAction('EditQuote') }}
+        onClick={() => { onAction(hasQuote ? 'EditQuote' : 'AddQuote') }}
         onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-secondary)' }}
         onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
       >
-        Edit Quote
+        {hasQuote ? 'Edit Quote' : 'Add Quote'}
       </button>
       <button
         style={btnStyle}
@@ -310,13 +333,79 @@ function ActionDropdown({ status, position, onAction, onClose }) {
       >
         Show Rate Details
       </button>
+      {canDeleteQuote && (
+        <button
+          style={{ ...btnStyle, color: 'var(--text-error)' }}
+          onClick={() => { onAction('DeleteQuote') }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-secondary)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+        >
+          Delete Quote
+        </button>
+      )}
     </div>,
     document.body,
   )
 }
 
 /* ═══════════════════════════════════════════════════════════
-   Section 5b — CostTooltip (AP cost hover in routing table)
+   Section 5b — Confirm dialogs (contracted-rate guard LINX-13894;
+   delete-quote guard LINX-13897)
+   ═══════════════════════════════════════════════════════════ */
+
+// Shared shell — both confirms below are a one-line message + Cancel/OK-style
+// footer over ModalMedium, same composition as DiscardChangesModal. Replaces
+// the hand-rolled createPortal dialog this used to be (S119): that version had
+// its own inline-styled overlay/box and NO Escape handling — ModalMedium's
+// useEscapeStack (packages/ui/src/useEscapeStack.js) is the actual fix.
+function ConfirmDialog({ title, message, confirmLabel, cancelLabel = 'Cancel', onConfirm, onCancel }) {
+  return createPortal(
+    <ModalMedium
+      title={title}
+      onClose={onCancel}
+      ariaLabel={title}
+      footer={
+        <>
+          <Button variant="secondary" size="lg" onClick={onCancel}>{cancelLabel}</Button>
+          <Button variant="primary" size="lg" onClick={onConfirm}>{confirmLabel}</Button>
+        </>
+      }
+    >
+      <p className="text-label-sm-regular">{message}</p>
+    </ModalMedium>,
+    document.body,
+  )
+}
+
+function AddQuoteConfirm({ onContinue, onCancel }) {
+  return (
+    <ConfirmDialog
+      title="Confirm Add Quote"
+      message="A contracted rate already exists for this carrier option. Do you want to continue?"
+      confirmLabel="OK"
+      onConfirm={onContinue}
+      onCancel={onCancel}
+    />
+  )
+}
+
+// LINX-13897 — Yes/No copy is verbatim from the ticket; No is the default/
+// safe exit (ModalMedium routes the header X and overlay-click to it too).
+function DeleteQuoteConfirm({ onConfirm, onCancel }) {
+  return (
+    <ConfirmDialog
+      title="Delete Quote"
+      message="This quote will be permanently removed and cannot be undone."
+      confirmLabel="Yes"
+      cancelLabel="No"
+      onConfirm={onConfirm}
+      onCancel={onCancel}
+    />
+  )
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Section 5c — CostTooltip (AP cost hover in routing table)
    ═══════════════════════════════════════════════════════════ */
 
 function CostTooltip({ carrier, onViewDetails }) {
@@ -636,7 +725,7 @@ function RoutingTable({ options, tabColumns, highlightedRank, openMenuRank, onOp
         const pos = activeOption._menuPos || { top: 0, left: 0 }
         return (
           <ActionDropdown
-            status={activeOption.status}
+            option={activeOption}
             position={pos}
             onAction={(action) => onAction(openMenuRank, action)}
             onClose={onCloseMenu}
@@ -692,6 +781,11 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 })
   const [options, setOptions] = useState(data?.options || [])
   const [quoteModal, setQuoteModal] = useState({ isOpen: false, mode: 'add', carrierData: null })
+  // LINX-13894 — rank pending the "contracted rate already exists" confirm,
+  // or null when no confirm is showing.
+  const [confirmAddQuoteRank, setConfirmAddQuoteRank] = useState(null)
+  // LINX-13897 — rank pending the "delete this quote" confirm, or null.
+  const [confirmDeleteQuoteRank, setConfirmDeleteQuoteRank] = useState(null)
   const [collapsedWidths, setCollapsedWidths] = useState(null)
   const [expandedWidths, setExpandedWidths] = useState(null)
   const tableRef = useRef(null)
@@ -704,6 +798,8 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
     setMenuPos({ top: 0, left: 0 })
     setOptions(data?.options || [])
     setQuoteModal({ isOpen: false, mode: 'add', carrierData: null })
+    setConfirmAddQuoteRank(null)
+    setConfirmDeleteQuoteRank(null)
 
     setCollapsedWidths(null)
 
@@ -731,6 +827,17 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
 
   const handleCloseMenu = useCallback(() => {
     setOpenMenuRank(null)
+  }, [])
+
+  // LINX-13894 — contracted-rate confirm: OK proceeds to Add Quote, Cancel
+  // does nothing (no scaffolding for anything beyond that binary choice).
+  const handleConfirmAddQuote = useCallback(() => {
+    setConfirmAddQuoteRank(null)
+    setQuoteModal({ isOpen: true, mode: 'add', carrierData: null })
+  }, [])
+
+  const handleCancelAddQuote = useCallback(() => {
+    setConfirmAddQuoteRank(null)
   }, [])
 
   const isCollapsed = useCallback((key) => {
@@ -816,6 +923,35 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
     // '--' on the next load, since the reader expects DTO key names.
     saveTenderOption(id, routingOptionVmToDto(option)).catch((e) => console.error('tender save failed', e))
   }, [shipment])
+
+  // LINX-13897 — Yes clears the QUOTE, not the routing option: scac/carrierName/
+  // equipment/pickup/delivery stay (they identify the option itself, not the
+  // rate), while rate/cost/rateDetails reset to the same "no rate details" shape
+  // mapRoutingOption itself defaults an omitted quote to (mapSellShipmentOutToDetail.ts:301)
+  // — that's what makes hasQuote false again and reverts the menu to Add Quote.
+  // quoteFlag is a NEW field (not read anywhere else in this codebase today,
+  // same as the skipped Carrier Quoted checkbox below) — added because Jira
+  // names it explicitly; persisted verbatim through the tenders.option JSON
+  // blob, no schema migration needed.
+  const handleConfirmDeleteQuote = useCallback(() => {
+    const rank = confirmDeleteQuoteRank
+    setConfirmDeleteQuoteRank(null)
+    const target = options.find((o) => o.rank === rank)
+    if (!target) return
+    const cleared = {
+      ...target,
+      rate: DASH,
+      cost: DASH,
+      rateDetails: { baseRate: 0, currency: 'USD', markup: 0, additionalCharges: [], apTotal: 0, arTotal: 0 },
+      quoteFlag: 'N',
+    }
+    setOptions((prev) => prev.map((opt) => (opt.rank === rank ? cleared : opt)))
+    persistTender(cleared)
+  }, [confirmDeleteQuoteRank, options, persistTender])
+
+  const handleCancelDeleteQuote = useCallback(() => {
+    setConfirmDeleteQuoteRank(null)
+  }, [])
 
   const handleQuoteSave = useCallback((formData) => {
     if (quoteModal.mode === 'add') {
@@ -930,6 +1066,29 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
       return
     }
 
+    if (action === 'DeleteQuote') {
+      // LINX-13897 — ActionDropdown already gates this action to a user-entered
+      // quote (rateSource 'Manual') on an unlocked tender; just open the confirm.
+      setOpenMenuRank(null)
+      setConfirmDeleteQuoteRank(rank)
+      return
+    }
+
+    if (action === 'AddQuote') {
+      // AC 3 (LINX-13894): AP Cost (Carrier) non-blank means a contracted
+      // rate already exists for this option — confirm before opening the
+      // quote entry dialog. Blank ('--' or absent) skips the confirm.
+      const carrier = options.find(o => o.rank === rank)
+      const hasApCost = !!(carrier?.cost && carrier.cost !== DASH)
+      setOpenMenuRank(null)
+      if (hasApCost) {
+        setConfirmAddQuoteRank(rank)
+      } else {
+        setQuoteModal({ isOpen: true, mode: 'add', carrierData: null })
+      }
+      return
+    }
+
     // Fix 4 (2026-08-10): Accept/Decline/Cancel used to persist ONLY `status`,
     // leaving the audit/response fields stale/null forever. A click on any of
     // the three IS a genuine response to the tender (a Decline is a response,
@@ -1039,16 +1198,6 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
               />
             ))}
           </div>
-          <div className="tender-pane__tab-actions">
-            <Button
-              variant="primary"
-              size="sm"
-              icon={<Plus size={16} />}
-              onClick={() => setQuoteModal({ isOpen: true, mode: 'add', carrierData: null })}
-            >
-              Add Quote
-            </Button>
-          </div>
         </div>
       </div>
 
@@ -1083,6 +1232,14 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
           onSave={handleQuoteSave}
           onClose={() => setQuoteModal({ isOpen: false, mode: 'add', carrierData: null })}
         />
+      )}
+
+      {confirmAddQuoteRank != null && (
+        <AddQuoteConfirm onContinue={handleConfirmAddQuote} onCancel={handleCancelAddQuote} />
+      )}
+
+      {confirmDeleteQuoteRank != null && (
+        <DeleteQuoteConfirm onConfirm={handleConfirmDeleteQuote} onCancel={handleCancelDeleteQuote} />
       )}
     </div>
   )

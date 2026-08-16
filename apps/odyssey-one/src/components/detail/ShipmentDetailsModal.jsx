@@ -68,6 +68,22 @@ function quoteOverridesFrom(result) {
   }
 }
 
+// LINX-14541 — Carrier renders as the ticket's literal `SCAC-"SCAC Equipment"`
+// (ambiguous: the SCAC token appears twice, once bare and once inside the
+// quoted pair — no clarifying context found, so implemented exactly as
+// written rather than guessing a friendlier intent; flagged in the report).
+// Sourced from the CURRENT routing option (option.scac/option.equipment) —
+// the same option Equipment's own field already reads (:508), NOT
+// summary.acceptedCarrier, which is a differently-formatted string. Either
+// half missing collapses the whole field to DASH rather than a broken
+// half-dash string.
+function fmtCarrier(option) {
+  const scac = option?.scac
+  const equipment = option?.equipment
+  if (!scac || scac === DASH || !equipment || equipment === DASH) return DASH
+  return `${scac}-"${scac} ${equipment}"`
+}
+
 // The header strip and General Information both want the "current option" —
 // the shipping option the carrier accepted. Falls back to rank 1 (then the
 // first option) so a not-yet-accepted shipment still shows dates.
@@ -93,15 +109,16 @@ function currentOption(options = []) {
 function Section({
   title, fields, renderField, children,
   editable = false, editing = false, dirty = false, editDisabled = false,
-  onEdit, onSave, onCancel,
+  onEdit, onSave, onCancel, headerExtra,
 }) {
   return (
     <section className="shp-details__section">
       <div className="shp-details__section-head">
         <h3 className="text-label-base-semibold shp-details__section-title">{title}</h3>
-        {editable && (
+        {(editable || headerExtra) && (
           <div className="shp-details__section-actions">
-            {editing ? (
+            {headerExtra}
+            {editable && (editing ? (
               <>
                 <Button variant="secondary" size="sm" disabled={!dirty} onClick={onSave}>
                   Save Changes
@@ -125,7 +142,7 @@ function Section({
               >
                 Edit
               </Button>
-            )}
+            ))}
           </div>
         )}
       </div>
@@ -189,7 +206,7 @@ const UDF_COLUMNS = [
 //
 // Portaled to <body>: rendered inside the fixed bar it would inherit its
 // stacking context and z-index (same reasoning as TableControls' export modal).
-export default function ShipmentDetailsModal({ shipment, shipmentDetails, error, onClose }) {
+export default function ShipmentDetailsModal({ shipment, shipmentDetails, error, onClose, onViewTab }) {
   const [tab, setTab] = useState('details')
   const navigate = useNavigate()
 
@@ -208,6 +225,20 @@ export default function ShipmentDetailsModal({ shipment, shipmentDetails, error,
   const [view, setView] = useState('details')
   const quoteRef = useRef(null)
   const [quoteSaveDisabled, setQuoteSaveDisabled] = useState(true)
+
+  // The last view transition — `{ dir: 'forward' | 'back' }` or null — mirrors
+  // ModalMedium.demo.jsx's nav rig (contract at
+  // design-system/demos/ModalMedium.demo.jsx:30-31). Null is what keeps the
+  // initial open un-animated: this component unmounts on close (BottomBar
+  // gates it on `detailsModalOpen && selectedShipmentId`), so a fresh mount
+  // already starts at null without any explicit reset. `enterQuote`/
+  // `exitQuote` are the only two places `view` changes, so direction is
+  // recorded once, at the transition, never inferred later from old vs new
+  // view.
+  const [nav, setNav] = useState(null)
+  const enterQuote = () => { setNav({ dir: 'forward' }); setView('quote') }
+  const exitQuote = () => { setNav({ dir: 'back' }); setView('details') }
+  const navClass = nav ? `modal-nav-view${nav.dir === 'back' ? ' modal-nav-view--back' : ''}` : ''
 
   // Section edit mode (2026-08-11). ONE state object, so "only one section at
   // a time" is structural rather than a rule to enforce — `section` cannot
@@ -232,6 +263,15 @@ export default function ShipmentDetailsModal({ shipment, shipmentDetails, error,
 
   const handleClose = () => requestExit(() => onClose?.())
   const switchTab = (next) => requestExit(() => { setEdit(null); setTab(next) })
+
+  // "More" (Cost/Stops headers) — the link OUT Jana + Manuela settled on
+  // (2026-08-12 call) instead of duplicating a breakdown in the modal. Closes
+  // THIS modal the same way handleClose does (reuses `onClose`, no new close
+  // path) and separately asks the bottom panel to switch tabs via `onViewTab`
+  // — mirrors openOrder's "close, then go elsewhere" shape below. Routed
+  // through requestExit like every other exit here, so a dirty section still
+  // prompts instead of silently dropping the edit.
+  const handleViewTab = (key) => requestExit(() => { onClose?.(); onViewTab?.(key) })
 
   // Stop → the order view in the Orders domain (/orders/:orderId). The modal
   // closes first: leaving it mounted over a different route strands the user.
@@ -364,18 +404,20 @@ export default function ShipmentDetailsModal({ shipment, shipmentDetails, error,
   const handleQuoteSave = async (result) => {
     await saveTenderOption(shipment?.sellShipment, routingOptionVmToDto(result))
     setOverrides((prev) => ({ ...prev, ...quoteOverridesFrom(result) }))
-    setView('details')
+    exitQuote()
   }
 
   return createPortal(
     <ModalMedium
+      key={view}
+      className={navClass}
       title={view === 'quote' ? 'Edit Quote' : 'Shipment Details'}
       ariaLabel={view === 'quote' ? 'Edit Quote' : 'Shipment Details'}
       onClose={handleClose}
-      onBack={view === 'quote' ? () => setView('details') : undefined}
+      onBack={view === 'quote' ? exitQuote : undefined}
       footer={view === 'quote' ? (
         <QuoteModalFooter
-          onCancel={() => setView('details')}
+          onCancel={exitQuote}
           onSave={() => quoteRef.current?.save()}
           disabled={quoteSaveDisabled}
         />
@@ -487,7 +529,7 @@ export default function ShipmentDetailsModal({ shipment, shipmentDetails, error,
                   // "Source Name" in the spec is Jana's wording for the customer.
                   ['Source Name', shipment?.customerName],
                   ['Shipment Status', shipment?.shipmentStatus],
-                  ['Carrier', summary.acceptedCarrier],
+                  ['Carrier', fmtCarrier(option)],
                   // "from current option" per the spec annotation
                   ['Pickup Date/Time', option?.pickupDateTime],
                   ['Delivery Date/Time', option?.deliveryDateTime],
@@ -509,13 +551,25 @@ export default function ShipmentDetailsModal({ shipment, shipmentDetails, error,
                   // paymentTerms IS the freight term, already label-mapped by the mapper
                   ['Freight Term', order?.paymentTerms],
                   ['Hazmat', order?.hazmat === 'Yes' ? 'Yes' : 'No'],
+                  // LINX-14541 additions — all read-only, none in EDITABLE_GENERAL.
+                  ['Seed Equipment', summary.seedEquipment],
+                  ['Package Count', summary.packageCount],
+                  // Order-scoped, read off the first order — same convention
+                  // Freight Term/Hazmat above already use.
+                  ['Pickup Number', order?.pickupNumber],
+                  ['Planning Type', summary.planningType],
                 ]}
               />
 
               <Section
                 title="Cost"
                 editable
-                onEdit={() => requestExit(() => setView('quote'))}
+                onEdit={() => requestExit(enterQuote)}
+                headerExtra={
+                  <Button variant="secondary" size="sm" aria-label="More — Cost" onClick={() => handleViewTab('cost')}>
+                    More
+                  </Button>
+                }
                 fields={[
                   // `overrides.base` wins when a quote save just wrote it —
                   // same override-first precedence General Information's own
@@ -548,7 +602,16 @@ export default function ShipmentDetailsModal({ shipment, shipmentDetails, error,
                   The control renders DISABLED so the affordance is visible and
                   a click gives honest feedback instead of silently doing
                   nothing. Wire onEdit when the Stops draft shape is decided. */}
-              <Section title="Stops" editable editDisabled>
+              <Section
+                title="Stops"
+                editable
+                editDisabled
+                headerExtra={
+                  <Button variant="secondary" size="sm" aria-label="More — Stops" onClick={() => handleViewTab('stops')}>
+                    More
+                  </Button>
+                }
+              >
                 <div className="shp-details__orders">
                   {stops.length ? stops.map((s, i) => (
                     <div key={s.stopNumber ?? i} className="shp-details__order">

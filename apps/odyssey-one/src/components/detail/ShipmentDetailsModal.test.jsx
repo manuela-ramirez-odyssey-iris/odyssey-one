@@ -16,7 +16,7 @@ const details = {
   ratingStatus: 'Successful',
   trackingUrl: 'https://tracking.oneodyssey.com/t/67819A88',
   orderDetails: [
-    { orderNumber: 'L14372086', hazmat: 'Yes', paymentTerms: 'Collect', proBooking: '67819A88', poNumber: 'PO-5512', salesOrder: '--' },
+    { orderNumber: 'L14372086', hazmat: 'Yes', paymentTerms: 'Collect', proBooking: '67819A88', poNumber: 'PO-5512', salesOrder: '--', pickupNumber: 'PU-889305' },
     { orderNumber: 'L14372084', hazmat: 'No', salesOrder: '--', poNumber: '--' },
   ],
   stopsData: {
@@ -24,7 +24,12 @@ const details = {
       { type: 'pickup', stopNumber: 1, order: 'L14372086, L14372084', orderIds: ['L14372086', 'L14372084'], address: '244 E Jackson Street, Baytown, TX', date: '06/02/2026 08:00 CST' },
       { type: 'delivery', stopNumber: 2, order: 'L14372084', orderIds: ['L14372084'], address: '129 Broadway Avenue, Miami, FL', date: '06/04/2026 14:00 CST' },
     ],
-    summary: { grossWeight: '44,470 LB', volume: '200 cuft', acceptedCarrier: 'CTNS', seedEquipment: 'LTL' },
+    // seedEquipment deliberately distinct from Mode/Equipment's shared 'LTL'
+    // fixture value (LINX-14541 test) so its assertion can't collide with theirs.
+    summary: {
+      grossWeight: '44,470 LB', volume: '200 cuft', acceptedCarrier: 'CTNS', seedEquipment: 'FLATBED',
+      packageCount: '182', planningType: 'RDD',
+    },
   },
   routingData: { options: [
     { rank: 1, status: null, pickupDateTime: '06/01/2026 07:00 CST', deliveryDateTime: '06/03/2026 12:00 CST' },
@@ -66,7 +71,9 @@ describe('ShipmentDetailsModal', () => {
     // Source Name is the customer (Jana's wording), Freight Term is paymentTerms
     expect(screen.getByText('USALCO')).toBeTruthy()
     expect(screen.getByText('Collect')).toBeTruthy()
-    expect(screen.getByText('CTNS')).toBeTruthy()
+    // Carrier — LINX-14541: SCAC-"SCAC Equipment", literal, from the current
+    // (accepted, rank 2) routing option: scac 'CTNS', equipment 'LTL'.
+    expect(screen.getByText('CTNS-"CTNS LTL"')).toBeTruthy()
     // Dates come from the ACCEPTED option (rank 2), not rank 1. 24h per
     // LINX-8120 / LINX-7629 — displayed exactly as stored.
     expect(screen.getAllByText('06/02/2026 08:00 CST').length).toBeGreaterThan(0)
@@ -75,6 +82,21 @@ describe('ShipmentDetailsModal', () => {
     // protocol (display convention, 2026-08-02) — the stored URL keeps it.
     expect(screen.getByText('tracking.oneodyssey.com/t/67819A88')).toBeTruthy()
     expect(screen.queryByText('https://tracking.oneodyssey.com/t/67819A88')).toBeNull()
+  })
+
+  it('renders the LINX-14541 General Information additions', () => {
+    render(<MemoryRouter><ShipmentDetailsModal shipment={shipment} shipmentDetails={details} onClose={() => {}} /></MemoryRouter>)
+    expect(screen.getByText('Seed Equipment')).toBeTruthy()
+    expect(screen.getByText('FLATBED')).toBeTruthy()
+    expect(screen.getByText('Package Count')).toBeTruthy()
+    expect(screen.getByText('182')).toBeTruthy()
+    // Pickup Number also appears as a Customer Reference Values row (same
+    // order field, different section) — match on count, not uniqueness, same
+    // convention the Stops/References tests already use for shared values.
+    expect(screen.getAllByText('Pickup Number').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('PU-889305').length).toBeGreaterThan(0)
+    expect(screen.getByText('Planning Type')).toBeTruthy()
+    expect(screen.getByText('RDD')).toBeTruthy()
   })
 
   it('renders all seven cost rows', () => {
@@ -404,5 +426,76 @@ describe('Cost → Edit Quote navigation', () => {
     await screen.findByText('General Information')
     expect(spy).toHaveBeenCalled()
     spy.mockRestore()
+  })
+})
+
+// Slide transition (reusing the ModalMedium.demo.jsx pattern, components.css
+// .modal-nav-view / --back, ~:3590-3603) — this modal never adopted it before
+// now. jsdom has no layout engine and does not run CSS animations, so these
+// only assert what's observable without a browser: the class on the dialog
+// element, and (implicitly, via the class actually changing per click) that a
+// fresh `key={view}` element exists to replay it. Timing/computed style are
+// deliberately NOT asserted — that would pass or fail for the wrong reason.
+describe('Cost ↔ Edit Quote slide class', () => {
+  const dialogClasses = () => document.querySelector('[role="dialog"]').classList
+
+  it('carries no nav class on first open', () => {
+    renderModal()
+    const classes = dialogClasses()
+    expect(classes.contains('modal-nav-view')).toBe(false)
+    expect(classes.contains('modal-nav-view--back')).toBe(false)
+  })
+
+  it('slides in from the right after Cost Edit (forward, no --back)', () => {
+    renderModal()
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Cost' }))
+    const classes = dialogClasses()
+    expect(classes.contains('modal-nav-view')).toBe(true)
+    expect(classes.contains('modal-nav-view--back')).toBe(false)
+  })
+
+  it('slides in from the left after the back chevron (--back)', () => {
+    renderModal()
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Cost' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }))
+    const classes = dialogClasses()
+    expect(classes.contains('modal-nav-view')).toBe(true)
+    expect(classes.contains('modal-nav-view--back')).toBe(true)
+  })
+})
+
+// "More" (2026-08-12 call, Jana + Manuela): Cost and Stops stay
+// compressed in the modal — the affordance is a LINK OUT to the bottom
+// panel's existing tab, never a duplicated breakdown. Both share the visible
+// label "More" (Button variant="link", same precedent as the Stops
+// order links above) but need distinguishable accessible names, so each
+// carries its own aria-label.
+describe('"More" affordance', () => {
+  it('renders on both the Cost and Stops sections, distinguishable by accessible name', () => {
+    renderModal()
+    const cost = screen.getByRole('button', { name: 'More — Cost' })
+    const stops = screen.getByRole('button', { name: 'More — Stops' })
+    expect(cost).toBeTruthy()
+    expect(stops).toBeTruthy()
+    // Visible label is identical for both — only the accessible name differs.
+    expect(screen.getAllByText('More').length).toBe(2)
+  })
+
+  it('activating Cost closes the modal and requests the Cost Allocation tab', () => {
+    const onClose = vi.fn()
+    const onViewTab = vi.fn()
+    renderModal({ onClose, onViewTab })
+    fireEvent.click(screen.getByRole('button', { name: 'More — Cost' }))
+    expect(onClose).toHaveBeenCalledOnce()
+    expect(onViewTab).toHaveBeenCalledWith('cost')
+  })
+
+  it('activating Stops closes the modal and requests the Stops tab', () => {
+    const onClose = vi.fn()
+    const onViewTab = vi.fn()
+    renderModal({ onClose, onViewTab })
+    fireEvent.click(screen.getByRole('button', { name: 'More — Stops' }))
+    expect(onClose).toHaveBeenCalledOnce()
+    expect(onViewTab).toHaveBeenCalledWith('stops')
   })
 })

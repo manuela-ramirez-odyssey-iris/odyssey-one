@@ -95,6 +95,9 @@ export interface SellShipmentOrder {
   pickupNumber?: string | null
   specialServices?: SellShipmentSpecialService[]
   poNumber?: string
+  /* RDD/SSD per order (LINX-12898, generate.mjs); shipment-level Planning
+     Type is derived from this — see mapSellShipmentOutToDetail's planningTypeFor. */
+  planningDateType?: string
   bolNo?: string
   shipDirectionCode?: string // 'O' | 'I'
   origin?: SellShipmentAddress

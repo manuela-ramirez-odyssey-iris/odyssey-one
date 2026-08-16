@@ -3575,20 +3575,27 @@ button.breadcrumb__label:focus-visible {
    new one, so there is nothing left to animate out without the shell owning
    transition state. */
 @keyframes modal-nav-in-forward {
-  from { opacity: 0; transform: translateX(24px); }
+  from { opacity: 0; transform: translateX(48px); }
   to   { opacity: 1; transform: translateX(0); }
 }
 
 @keyframes modal-nav-in-back {
-  from { opacity: 0; transform: translateX(-24px); }
+  from { opacity: 0; transform: translateX(-48px); }
   to   { opacity: 1; transform: translateX(0); }
 }
 
-/* --transition-panel (220ms, the panel/drawer curve) rather than a bare
-   duration: the tokens here bundle duration + easing, and this is the same
-   family of motion as RightPanel's own reveal. */
+/* --transition-modal-nav rather than a bare duration: the tokens here bundle
+   duration + easing, and no existing token sat between --transition-reveal
+   (300ms) and --transition-chart-grow (1000ms), so this motion role got its
+   own token alongside panel/drawer/reveal.
+   Was --transition-panel (220ms) with a 24px travel until 2026-08-15 — the
+   user read that as too quick to register. Deliberately kept the SAME easing
+   curve (0.22, 1, 0.36, 1) throughout and changed only the two things that
+   control prominence: duration 220 → 300 → 360ms and travel 24 → 48px.
+   Swapping to --transition-drawer would also have slowed it, but on a
+   different curve, which changes the motion's character not just its weight. */
 .modal-nav-view {
-  animation: modal-nav-in-forward var(--transition-panel) both;
+  animation: modal-nav-in-forward var(--transition-modal-nav) both;
 }
 
 .modal-nav-view--back {
@@ -5542,9 +5549,10 @@ button.breadcrumb__label:focus-visible {
    Button Icon/sm — the ONLY controls; a replacement for the old bar, not a
    preservation of its chrome). Selected tab = DSN/100 fill (real Selected
    state — Figma mock faked it with Cell State=Hover); hover code-only.
-   Expanded height is code-side (no Figma axis): auto (content-driven),
-   capped at 100dvh − --bottombar-top-clearance so the bar's top edge never
-   rises above the page title row (S79b decision 2 — 50vh retired).
+   Expanded height is code-side (no Figma axis): partial stage is
+   --bottombar-partial; full stage is 100dvh − --navbar-height, i.e. every
+   pixel between the navbar's bottom edge and the viewport bottom
+   (2026-08-15 — supersedes the S79b/S79c "stop at the page title row" cap).
    ============================================================ */
 .shipments-bar {
   /* Left offset of the strip's FIRST TAB LABEL ("Orders") from the bar edge:
@@ -5572,12 +5580,17 @@ button.breadcrumb__label:focus-visible {
   height: var(--bottombar-collapsed);
 }
 .shipments-bar--expanded {
-  /* S93 fixed three-stage model: full = viewport minus the title-row clearance
-     (S79b decision 2 — the top edge never rises above the page title row).
-     Definite lengths, so open/close and partial↔full animate on the plain CSS
-     height transition above. The S79d adaptive auto-height + ratchet was
-     retired — pane content scrolls within the fixed stage height. */
-  height: calc(100dvh - var(--bottombar-top-clearance));
+  /* Full stage fills every pixel between the navbar's bottom edge and the
+     viewport bottom (2026-08-15 user directive — supersedes the S79c/S93
+     "stop at mid page-title row" cap, which used the now-removed
+     --bottombar-top-clearance token; `.shipments-bar` is position:fixed to
+     the viewport, not a flex child of the chrome, so the navbar's own height
+     token is what has to be subtracted here — same pattern AppShell's main
+     pane and the right-panel scrim already use). Definite length, so
+     open/close and partial↔full still animate on the plain CSS height
+     transition above. The S79d adaptive auto-height + ratchet stays retired —
+     pane content scrolls within the fixed stage height. */
+  height: calc(100dvh - var(--navbar-height));
 }
 /* Partial (middle) stage of the S82 three-state bar. */
 .shipments-bar--partial {
