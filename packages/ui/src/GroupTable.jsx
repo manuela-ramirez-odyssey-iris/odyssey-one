@@ -1,4 +1,4 @@
-import { useId, useLayoutEffect, useRef, useState } from 'react'
+import { useId, useRef, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
 
@@ -96,14 +96,6 @@ export default function GroupTable({
   // scrollLeft 0 there is nothing underneath, so no shadow.
   const rootRef = useRef(null)
   const [scrolledX, setScrolledX] = useState(false)
-
-  // The pinned lane's width, measured off its own header cell and published as
-  // a CSS variable. The nested band needs it to paint a matching sticky strip
-  // (see `__detail-lane` below) and the width is CONTENT-driven — 68px is the
-  // floor, an action carrying a text Button is wider — so no constant would be
-  // right for every consumer.
-  const actionHeadRef = useRef(null)
-  const [laneWidth, setLaneWidth] = useState(null)
   const handleScroll = (e) => {
     const next = e.currentTarget.scrollLeft > 0
     setScrolledX((prev) => (prev === next ? prev : next))
@@ -118,19 +110,6 @@ export default function GroupTable({
     if (e.target.closest('button, a, input, select, [role="menuitem"]')) return
     e.currentTarget.querySelector('button, a')?.click()
   }
-
-  useLayoutEffect(() => {
-    const el = actionHeadRef.current
-    if (!el) return
-    const measure = () => setLaneWidth(el.getBoundingClientRect().width || null)
-    measure()
-    // jsdom has no ResizeObserver and no layout engine — measuring there is
-    // meaningless, so the lane simply falls back to its CSS default in tests.
-    if (typeof ResizeObserver === 'undefined') return
-    const ro = new ResizeObserver(measure)
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [stickyActions, actionsHeader])
 
   const isOpen = (id) =>
     controlled ? !!expanded[id] : isGroupExpanded(internal, defaultExpanded, id)
@@ -163,16 +142,7 @@ export default function GroupTable({
     .join(' ')
 
   return (
-    <div
-      className={rootClasses}
-      ref={rootRef}
-      onScroll={handleScroll}
-      {...rest}
-      style={{
-        ...rest.style,
-        ...(laneWidth ? { '--odyssey-group-table-lane': `${laneWidth}px` } : null),
-      }}
-    >
+    <div className={rootClasses} ref={rootRef} onScroll={handleScroll} {...rest}>
       <table className="odyssey-group-table__table">
         <thead>
           <tr>
@@ -187,7 +157,7 @@ export default function GroupTable({
               </th>
             ))}
             {stickyActions && (
-              <th ref={actionHeadRef} scope="col" className="odyssey-group-table__cell--sticky-right">
+              <th scope="col" className="odyssey-group-table__cell--sticky-right">
                 {actionsHeader}
               </th>
             )}
@@ -267,23 +237,18 @@ export default function GroupTable({
                    not a continuation of the outer one, so it is not bound by
                    the outer table's column boundaries (user, 2026-08-17).
 
-                   The nested table gets NO action cell of its own — reserving
-                   one here would bind it to the outer grid, which is exactly
-                   what this flavor exists to avoid.
-
-                   The pinned lane is instead painted OVER the band by
-                   `__detail-lane`, a sticky strip matching the action column's
-                   measured width. So the band spans everything, its content
-                   scrolls UNDER the pinned lane the same way the outer table's
-                   columns do, and the action column still reads as one
-                   continuous pinned column top to bottom. Carving a cell out
-                   of the band instead (tried 2026-08-17) either left the lane
-                   with a hole at every expanded row, or — when the cell was
-                   present but `position: relative` beat the sticky rule — left
-                   it scrolling away, which reads as the pin failing outright. */
+                   This deliberately reverses the 2026-08-17 narrowing, which
+                   reserved the action lane on the detail row so the pinned
+                   column stayed opaque top to bottom. The cost of that was
+                   ~158px of unusable width under every expanded row while the
+                   nested table crowded 14 columns into what was left. The
+                   trade is known and accepted: with no pinned cell here, the
+                   nested table's content occupies that lane, so on a
+                   horizontally scrolled table the pinned action column has a
+                   gap at each expanded row. Reserving the lane again is a
+                   one-line revert if that reads worse in practice. */
                 <tr className="odyssey-group-table__detail-row">
                   <td colSpan={spanAll}>
-                   <div className="odyssey-group-table__detail-wrap">
                     <table className="odyssey-group-table__detail">
                       <thead>
                         <tr>
@@ -325,15 +290,10 @@ export default function GroupTable({
                         )}
                       </tbody>
                     </table>
-                    {/* The pinned lane, painted over the band rather than
-                        carved out of it — see the comment on this row. Width
-                        comes from the measured action column so the two line
-                        up exactly; purely decorative, hence aria-hidden. */}
-                    {stickyActions && (
-                      <div className="odyssey-group-table__detail-lane" aria-hidden="true" />
-                    )}
-                   </div>
                   </td>
+                  {/* No trailing pinned cell: the host cell above spans the
+                      action lane too, so the nested table gets the full width.
+                      See its comment for the trade-off. */}
                 </tr>
               )}
 

@@ -129,34 +129,3 @@ describe('GroupTable detailNote', () => {
     expect(container.querySelector('.odyssey-group-table__detail-note')).toBeNull()
   })
 })
-
-describe('GroupTable — the pinned lane over the nested band', () => {
-  it('paints the lane as a strip, never as a cell in the nested table', () => {
-    // The nested table must NOT gain an action column: it is an independent
-    // table and binding it to the outer grid is the one thing this flavor
-    // exists to avoid (user, 2026-08-17). The lane is therefore painted OVER
-    // the band by a sticky strip, so the band keeps its full width and its
-    // content scrolls under the pin like the outer columns do.
-    const { container } = render(
-      <GroupTable columns={COLUMNS} detailColumns={DETAIL_COLUMNS} groups={GROUPS}
-                  stickyActions defaultExpanded />
-    )
-    const detailRow = container.querySelector('.odyssey-group-table__detail-row')
-    // one full-width host cell, no reserved trailing cell
-    expect(detailRow.children.length).toBe(1)
-    expect(Number(detailRow.children[0].getAttribute('colspan'))).toBe(COLUMNS.length + 1)
-    // the strip exists and is NOT a table cell
-    const lane = detailRow.querySelector('.odyssey-group-table__detail-lane')
-    expect(lane).toBeTruthy()
-    expect(lane.tagName).toBe('DIV')
-    // and the inner table still has no action column of its own
-    expect(container.querySelectorAll(`.odyssey-group-table__detail ${STICKY}`).length).toBe(0)
-  })
-
-  it('omits the strip entirely when there is no action column to cover', () => {
-    const { container } = render(
-      <GroupTable columns={COLUMNS} detailColumns={DETAIL_COLUMNS} groups={GROUPS} defaultExpanded />
-    )
-    expect(container.querySelector('.odyssey-group-table__detail-lane')).toBeNull()
-  })
-})

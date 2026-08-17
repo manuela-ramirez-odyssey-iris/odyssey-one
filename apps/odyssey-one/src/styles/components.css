@@ -6692,36 +6692,6 @@ button.breadcrumb__label:focus-visible {
    again, this is the styling it needs back — gray band continuing, no white
    fill, no seam shadow, no padding. */
 
-/* The band spans the action lane, and the lane is painted back OVER it by the
-   strip below. Flex so the strip can stretch to the row's full height without
-   depending on a resolved `height: 100%` inside a table cell. */
-.odyssey-group-table__detail-wrap {
-  display: flex;
-  align-items: stretch;
-}
-.odyssey-group-table__detail-wrap > .odyssey-group-table__detail {
-  flex: 1 1 auto;
-}
-
-/* The pinned lane over the nested band. NOT a table cell — giving the nested
-   table an action column would bind it to the outer grid, which is the one
-   thing this flavor exists to avoid. It is a sticky strip the exact width of
-   the measured action column (published as --odyssey-group-table-lane by the
-   component; 68px is the CSS floor when unmeasured), pulled back over the
-   table by a negative margin so the table keeps its FULL width and its content
-   simply scrolls underneath — the same thing the outer table's columns do.
-   Without it the band ran through the lane and the pinned column read as
-   broken (2026-08-17). */
-.odyssey-group-table__detail-lane {
-  position: sticky;
-  right: 0;
-  flex: 0 0 var(--odyssey-group-table-lane, 68px);
-  width: var(--odyssey-group-table-lane, 68px);
-  margin-left: calc(-1 * var(--odyssey-group-table-lane, 68px));
-  background: var(--bg-secondary);
-  z-index: 2;
-}
-
 .odyssey-group-table__detail {
   width: 100%;
   border-collapse: collapse;
