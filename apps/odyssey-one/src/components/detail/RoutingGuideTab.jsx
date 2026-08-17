@@ -7,6 +7,7 @@ import { saveTenderOption } from '../../api/services/shipmentService'
 import { parseDollar, fmtDollar } from '../../utils/money'
 import { routingOptionVmToDto } from '../../api/mappers/mapSellShipmentOutToDetail'
 import { QuoteModal } from './QuoteModal.jsx'
+import DroppedCarrierSection from './DroppedCarrierSection'
 import { useCurrentUser } from '../../data/sso-mock.js'
 import { formatDateTimeMDYHM } from '../../lib/dates.js'
 
@@ -1263,6 +1264,14 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
         />
           </div>
         </div>{/* /tender-pane__table-card */}
+
+        {/* LINX-13953 — its own card: GroupTable owns horizontal scroll and
+            .tender-pane__table-card is overflow:hidden. Rendered regardless of
+            activeSubTab: the sub-tabs only switch which COLUMNS the tender
+            table shows, not which entity is on screen. */}
+        <div className="tender-pane__table-card">
+          <DroppedCarrierSection carriers={shipmentDetails?.droppedCarriers || []} />
+        </div>
       </div>{/* /pane-col */}
 
       {quoteModal.isOpen && (

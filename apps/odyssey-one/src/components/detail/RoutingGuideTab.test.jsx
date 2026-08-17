@@ -763,3 +763,34 @@ describe('RoutingGuideTab — Add Quote blocked when dates are unavailable (LINX
     expect(screen.getByRole('dialog', { name: 'Add Quote' })).toBeTruthy()
   })
 })
+
+// Dropped Carrier mount (LINX-13953) — droppedCarriers arrives via the
+// `shipmentDetails` prop (ShipmentDetailVM), a sibling of `routingData`/`data`,
+// NOT nested inside `data`. See BottomBar.jsx: `data={shownDetails.routingData}
+// shipmentDetails={shownDetails}`.
+describe('RoutingGuideTab — Dropped Carrier section (LINX-13953)', () => {
+  it('renders the Dropped Carrier section below the tender table', () => {
+    // The real shape: routing returns five fields, everything else is '--'.
+    const dropped = [{
+      scac: 'JBHT', carrierName: 'J.B. HUNT', equipment: 'LTL',
+      dropCode: '23', reason: 'Missing Transit Time',
+      reasonDescription: 'Transit time could not be calculated.',
+      routeRank: '--', pickup: '--', delivery: '--', startDate: '--', stopDate: '--',
+      transitTime: '--', transitSource: '--', routeGroup: '--', rpcId: '--', ttId: '--',
+      commitment: '--', uom: '--', accepted: '--', open: '--', comment: '--', cvcId: '--',
+      orderEquipment: false, indirectPoint: false,
+    }]
+    const data = { options: [baseOption] }
+    render(<RoutingGuideTab data={data} shipmentDetails={{ droppedCarriers: dropped }} />)
+    expect(screen.getByText('Dropped Carrier (1)')).toBeTruthy()
+  })
+
+  it("the dropped table does not answer to the tender table's collapse selector", () => {
+    // handleCollapse queries [data-routing-container] GLOBALLY. If the dropped
+    // table ever carried that attribute the tender collapse maths would grab the
+    // wrong table — this pins the attribute names apart.
+    const data = { options: [baseOption] }
+    const { container } = render(<RoutingGuideTab data={data} shipmentDetails={{ droppedCarriers: [] }} />)
+    expect(container.querySelectorAll('[data-routing-container]').length).toBeLessThanOrEqual(1)
+  })
+})
