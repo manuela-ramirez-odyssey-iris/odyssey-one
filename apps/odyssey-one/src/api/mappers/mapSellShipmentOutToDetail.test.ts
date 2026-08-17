@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { mapSellShipmentOutToDetail, routingOptionVmToDto } from './mapSellShipmentOutToDetail'
 import { sellShipmentOutSample } from '../fixtures/sellShipmentOut.sample'
-import type { SellShipmentOut } from '../types/sellShipmentOut'
+import type { SellShipmentOut, SellShipmentDroppedCarrier } from '../types/sellShipmentOut'
 
 describe('mapSellShipmentOutToDetail', () => {
   const vm = mapSellShipmentOutToDetail(sellShipmentOutSample)
@@ -773,6 +773,91 @@ describe('mapSellShipmentOutToDetail', () => {
 
     it('overrides is undefined when the DTO carries none', () => {
       expect(mapSellShipmentOutToDetail(sellShipmentOutSample as any).overrides).toBeUndefined()
+    })
+  })
+
+  describe('mapDroppedCarrier (LINX-13953)', () => {
+    const full: SellShipmentDroppedCarrier = {
+      scac: 'JBHT',
+      carrierName: 'J.B. HUNT',
+      equipmentCode: 'LTL',
+      dropCode: 23,
+      reason: 'Missing Transit Time',
+      reasonDescription: 'Transit time could not be calculated due to missing transit or distance data.',
+      routeRank: 3,
+      pickupDateTime: '08/20/2025 14:00 CST',
+      deliveryDateTime: '08/22/2025 09:00 PST',
+      startDate: '08/20/2025',
+      stopDate: '08/22/2025',
+      transitTime: '2 DY',
+      transitSource: 'PCMILER',
+      routeGroup: 'EAST-01',
+      rpcId: '3913973',
+      ttId: '10901692',
+      commitment: 10,
+      uom: 'Loads/Week',
+      accepted: 6,
+      open: 4,
+      comment: 'Contract renewal pending.',
+      cvcId: 'CVC12345',
+      orderEquipment: true,
+      indirectPoint: false,
+    }
+
+    it('composes Pickup/Delivery as date + time + zone + day, with NO org hours', () => {
+      const [vm] = mapSellShipmentOutToDetail({ droppedCarrierList: [full] } as never).droppedCarriers
+      // 13953's own example. Org hrs are explicitly not required here, so the
+      // trailing "(07:00-15:30)" that the Quote flow renders must be absent.
+      expect(vm.pickup).toBe('08/20/2025 14:00 CST, Wed')
+      expect(vm.delivery).toBe('08/22/2025 09:00 PST, Fri')
+      expect(vm.pickup).not.toContain('(')
+    })
+
+    it('renders every absent field as -- EXCEPT the two checkboxes, which fall back to false', () => {
+      // This is the REAL shape routing returns: five fields, everything else null.
+      const sparse: SellShipmentDroppedCarrier = {
+        ...full,
+        routeRank: null, pickupDateTime: null, deliveryDateTime: null,
+        startDate: null, stopDate: null, transitTime: null, transitSource: null,
+        routeGroup: null, rpcId: null, ttId: null,
+        commitment: null, uom: null, accepted: null, open: null,
+        comment: null, cvcId: null,
+        orderEquipment: false, indirectPoint: false,
+      }
+      const [vm] = mapSellShipmentOutToDetail({ droppedCarrierList: [sparse] } as never).droppedCarriers
+      for (const k of ['pickup', 'delivery', 'startDate', 'stopDate', 'transitTime',
+                       'transitSource', 'routeGroup', 'rpcId', 'ttId', 'commitment',
+                       'uom', 'accepted', 'open', 'comment', 'cvcId'] as const) {
+        expect(vm[k], `${k} should be the dash`).toBe('--')
+      }
+      // routeRank is a number on the wire; absent it must still be displayable
+      expect(vm.routeRank).toBe('--')
+      // The AC's deliberate asymmetry: these are checkboxes, not values.
+      expect(vm.orderEquipment).toBe(false)
+      expect(vm.indirectPoint).toBe(false)
+    })
+
+    it('GUARD: every DTO field reaches the VM — mapDroppedCarrier is a whitelist', () => {
+      // This mapper drops any field it does not explicitly name. That exact bug
+      // has shipped four times in this repo. If you add a field to
+      // SellShipmentDroppedCarrier and not to mapDroppedCarrier, this fails here
+      // instead of silently blanking a column in production.
+      const [vm] = mapSellShipmentOutToDetail({ droppedCarrierList: [full] } as never).droppedCarriers
+      const rendered = JSON.stringify(vm)
+      const skip = new Set([
+        'pickupDateTime', 'deliveryDateTime', // composed into pickup/delivery
+        'equipmentCode',                       // renamed to `equipment`
+      ])
+      for (const [key, value] of Object.entries(full)) {
+        if (skip.has(key) || typeof value === 'boolean') continue
+        expect(rendered, `DTO field "${key}" (${value}) never reached the VM`)
+          .toContain(String(value))
+      }
+      expect(vm.equipment).toBe('LTL')
+    })
+
+    it('returns an empty array when routing dropped nobody', () => {
+      expect(mapSellShipmentOutToDetail({} as never).droppedCarriers).toEqual([])
     })
   })
 })

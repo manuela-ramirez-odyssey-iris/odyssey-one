@@ -276,6 +276,51 @@ export interface ShipmentOverridesDTO {
   references?: Record<string, ShipmentReferenceOverride[]>
 }
 
+/**
+ * LINX-13953 — a carrier routing evaluated and excluded from the tender list.
+ *
+ * SPARSE BY NATURE. The real routing response returns only five attributes for
+ * a dropped carrier — seq, service, carrier, drop-code, drop-reason — versus
+ * eighteen for a qualified one. Hence the nullable everywhere: the AC marks
+ * seven fields "(if returned by Routing)" and its Null Handling rule is blanket
+ * ("if Routing does not return a value for ANY field displayed within the
+ * Dropped Carrier section, display '--'").
+ *
+ * `orderEquipment` and `indirectPoint` are the exception and are NOT nullable:
+ * the AC gives them a checkbox fallback ("if not returned, then unchecked"),
+ * so absence is `false`, not '--'.
+ *
+ * `dropCode` is the numeric reason code routing returns alongside the text
+ * (1 = No Rates, 2 = Prohibited Carrier, 23 = Missing Transit Time). It is the
+ * lookup key for the long description in TMS master data.
+ */
+export interface SellShipmentDroppedCarrier {
+  scac: string
+  carrierName: string
+  equipmentCode: string
+  dropCode: number
+  reason: string
+  reasonDescription: string
+  routeRank: number | null
+  pickupDateTime: string | null
+  deliveryDateTime: string | null
+  startDate: string | null
+  stopDate: string | null
+  transitTime: string | null
+  transitSource: string | null
+  routeGroup: string | null
+  rpcId: string | null
+  ttId: string | null
+  commitment: number | null
+  uom: string | null
+  accepted: number | null
+  open: number | null
+  comment: string | null
+  cvcId: string | null
+  orderEquipment: boolean
+  indirectPoint: boolean
+}
+
 export interface SellShipmentOut {
   shipmentId: string
   shipmentType?: string
@@ -299,6 +344,7 @@ export interface SellShipmentOut {
   orderList: SellShipmentOrder[]
   shipmentStopList?: SellShipmentStop[]
   shippingOptionList?: SellShipmentRoutingOption[]
+  droppedCarrierList?: SellShipmentDroppedCarrier[]
   /* Fake-data-only attachments (no real-contract equivalent yet): passed through
      verbatim to the Documents / Notes / History panes. */
   documentList?: unknown[]

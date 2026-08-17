@@ -6,10 +6,12 @@ import type {
   SellShipmentOrderLine,
   SellShipmentRoutingOption,
   SellShipmentSpecialService,
+  SellShipmentDroppedCarrier,
 } from '../types/sellShipmentOut'
 import type {
   CostOrderVM,
   CostSummaryVM,
+  DroppedCarrierVM,
   InstructionOrderVM,
   OrderDetailVM,
   ProductLineVM,
@@ -22,6 +24,7 @@ import type {
 } from '../types/shipmentDetail'
 import { freightTermLabel, shipDirectionLabel } from '../../data/master-data'
 import { parseDollar } from '../../utils/money'
+import { composeCarrierDateTime, splitDateTime } from '../../lib/dates'
 
 const DASH = '--'
 
@@ -387,6 +390,53 @@ function mapRoutingOption(o: SellShipmentRoutingOption): RoutingOptionVM {
   }
 }
 
+/**
+ * LINX-13953. A whitelist, like mapRoutingOption — a DTO field not named here
+ * is silently dropped. See the GUARD test in this file's spec.
+ *
+ * Pickup and Delivery are composed to the ticket's own example format,
+ * "08/20/2025 14:00 CST, Wed" — date, time, zone, day-of-week. Org hours are
+ * deliberately NOT passed: 13953 says twice that "org hrs are not required",
+ * the explicit exception that confirms they ARE required on the Quote flow's
+ * equivalent field (DEC-98).
+ *
+ * In practice almost every field below arrives null, because routing returns
+ * only five attributes for a dropped carrier. That is expected, not a bug.
+ */
+function mapDroppedCarrier(d: SellShipmentDroppedCarrier): DroppedCarrierVM {
+  return {
+    scac: orDash(d.scac),
+    carrierName: orDash(d.carrierName),
+    equipment: orDash(d.equipmentCode),
+    dropCode: d.dropCode != null ? String(d.dropCode) : DASH,
+    reason: orDash(d.reason),
+    reasonDescription: orDash(d.reasonDescription),
+    routeRank: d.routeRank != null ? String(d.routeRank) : DASH,
+    pickup: composeCarrierDateTime(splitDateTime(d.pickupDateTime)),
+    delivery: composeCarrierDateTime(splitDateTime(d.deliveryDateTime)),
+    startDate: orDash(d.startDate),
+    stopDate: orDash(d.stopDate),
+    transitTime: orDash(d.transitTime),
+    transitSource: orDash(d.transitSource),
+    routeGroup: orDash(d.routeGroup),
+    rpcId: orDash(d.rpcId),
+    ttId: orDash(d.ttId),
+    commitment: d.commitment != null ? String(d.commitment) : DASH,
+    uom: orDash(d.uom),
+    // Never computed here. The Accepted/Open arithmetic is deferred pending
+    // Dave's rules — we display what arrives and nothing more. The AC's gate
+    // ("a CVC ID alone shall not trigger the calculation") is therefore
+    // satisfied by construction: there is no calculation to trigger.
+    accepted: d.accepted != null ? String(d.accepted) : DASH,
+    open: d.open != null ? String(d.open) : DASH,
+    comment: orDash(d.comment),
+    cvcId: orDash(d.cvcId),
+    // Booleans, not values: the AC's fallback for these is "unchecked", not '--'.
+    orderEquipment: d.orderEquipment === true,
+    indirectPoint: d.indirectPoint === true,
+  }
+}
+
 // Strips $, commas, and trailing units ("Days", "mi", "USD") down to a plain
 // number — parseDollar's regex just removes everything but digits/./-, so it
 // generically undoes fmtDollar/fmtDistance/the "N Days" format alike despite
@@ -561,6 +611,7 @@ export function mapSellShipmentOutToDetail(dto: SellShipmentOut): ShipmentDetail
     stopsData: mapStops(dto),
     productData: mapProducts(dto),
     routingData: mapRouting(dto),
+    droppedCarriers: (dto.droppedCarrierList ?? []).map(mapDroppedCarrier),
     costData: mapCost(dto),
     instructionsData: mapInstructions(dto),
     userDefinedData: mapUserDefined(dto),

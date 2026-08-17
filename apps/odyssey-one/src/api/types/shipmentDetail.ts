@@ -291,6 +291,38 @@ export interface UserDefinedOrderVM {
   fields: UserDefinedFieldVM[]
 }
 
+/**
+ * LINX-13953 — display-ready dropped carrier. Every value is already a string
+ * ('--' when absent) except the two checkbox fields, which stay boolean because
+ * the AC gives them an unchecked fallback rather than a dash.
+ */
+export interface DroppedCarrierVM {
+  scac: string
+  carrierName: string
+  equipment: string
+  dropCode: string
+  reason: string
+  reasonDescription: string
+  routeRank: string
+  pickup: string
+  delivery: string
+  startDate: string
+  stopDate: string
+  transitTime: string
+  transitSource: string
+  routeGroup: string
+  rpcId: string
+  ttId: string
+  commitment: string
+  uom: string
+  accepted: string
+  open: string
+  comment: string
+  cvcId: string
+  orderEquipment: boolean
+  indirectPoint: boolean
+}
+
 // ── Top-level VM ─────────────────────────────────────────────
 export interface ShipmentDetailVM {
   /* Shipment header field — on the wire since S92 but never mapped until the
@@ -302,6 +334,7 @@ export interface ShipmentDetailVM {
   stopsData: { summary: StopsSummaryVM; stops: StopVM[] }
   productData: { orders: ProductOrderVM[] }
   routingData: { options: RoutingOptionVM[] }
+  droppedCarriers: DroppedCarrierVM[]
   costData: { planned: { summary: CostSummaryVM; orders: CostOrderVM[] } }
   instructionsData: { orders: InstructionOrderVM[] }
   userDefinedData: { orders: UserDefinedOrderVM[] }
