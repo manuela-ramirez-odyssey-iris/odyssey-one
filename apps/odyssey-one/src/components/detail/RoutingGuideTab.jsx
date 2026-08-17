@@ -2,13 +2,15 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { TruckElectric, FoldHorizontal, UnfoldHorizontal, Columns3Cog } from 'lucide-react'
 import { ICON_LG } from '@odyssey/tokens'
-import { Badge, Button, ModalMedium, Tab } from '@odyssey/ui'
+import { Alert, Badge, Button, ModalMedium, Tab } from '@odyssey/ui'
 import ColumnPanel from './ColumnPanel.jsx'
 import { saveTenderOption } from '../../api/services/shipmentService'
 import { parseDollar, fmtDollar } from '../../utils/money'
 import { routingOptionVmToDto } from '../../api/mappers/mapSellShipmentOutToDetail'
 import { QuoteModal } from './QuoteModal.jsx'
 import DroppedCarrierSection from './DroppedCarrierSection'
+import ManualDatesModal from './ManualDatesModal'
+import { droppedCarrierToOption, nextRank, planProcessScac } from '../../lib/processScac'
 import { useCurrentUser } from '../../data/sso-mock.js'
 import { formatDateTimeMDYHM } from '../../lib/dates.js'
 
@@ -868,6 +870,12 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
   const [openMenuRank, setOpenMenuRank] = useState(null)
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 })
   const [options, setOptions] = useState(data?.options || [])
+  // LINX-13954. One at a time, per the AC — this doubles as the lock and as
+  // the flag every Process SCAC button reads to disable itself.
+  const [processingScac, setProcessingScac] = useState(null)
+  const [manualDatesFor, setManualDatesFor] = useState(null)
+  const [processNotice, setProcessNotice] = useState(null)   // OK-only dialog
+  const [processSuccess, setProcessSuccess] = useState(null) // auto-dismissing
   const [quoteModal, setQuoteModal] = useState({ isOpen: false, mode: 'add', carrierData: null })
   // LINX-13894 — rank pending the "contracted rate already exists" confirm,
   // or null when no confirm is showing.
@@ -911,6 +919,10 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
     setConfirmAddQuoteRank(null)
     setConfirmDeleteQuoteRank(null)
     setDatesUnavailable(false)
+    setProcessingScac(null)
+    setManualDatesFor(null)
+    setProcessNotice(null)
+    setProcessSuccess(null)
 
     setCollapsedWidths(null)
 
@@ -1042,6 +1054,62 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
     // '--' on the next load, since the reader expects DTO key names.
     saveTenderOption(id, routingOptionVmToDto(option)).catch((e) => console.error('tender save failed', e))
   }, [shipment])
+
+  // LINX-13954 — walks the step list `planProcessScac` returns; every branch
+  // decision lives there, this only holds dialogs/state/persistence/focus.
+  const runProcessScac = useCallback(async (carrier, dates) => {
+    const steps = planProcessScac(carrier, options)
+
+    if (steps[0] === 'duplicate') {
+      setProcessNotice('Carrier and Equipment combination (SCAC/Equipment) already in the list.')
+      setProcessingScac(null)
+      return
+    }
+
+    // Pause the walk and re-enter through this same function once the user has
+    // supplied the dates (or bail if they cancel).
+    if (steps.includes('manual-dates') && !dates) {
+      setManualDatesFor(carrier)
+      return
+    }
+
+    if (steps.includes('rating-failed')) {
+      setProcessNotice('No rate is available for the carrier. You may obtain and enter a quote if needed.')
+    }
+
+    const option = droppedCarrierToOption(carrier, { rank: nextRank(options), dates })
+    try {
+      // Optimistic, matching how every other tender edit in this file behaves.
+      setOptions((prev) => [...prev, option])
+      await persistTender(option)
+    } catch (e) {
+      console.error('process SCAC failed', e)
+      // AC: no updates to the Tender List, carrier stays, retry available.
+      setOptions((prev) => prev.filter((o) => o.rank !== option.rank))
+      setProcessNotice('The dropped carrier could not be processed. If the issue persists, please contact your system administrator.')
+      setProcessingScac(null)
+      return
+    }
+
+    if (steps.includes('success')) setProcessSuccess('Routing completed successfully.')
+    // AC Focus Management — highlightedRank is the mechanism this tab already
+    // uses for "this is the row you just touched".
+    setHighlightedRank(option.rank)
+    setProcessingScac(null)
+  }, [options, persistTender])
+
+  const handleProcessScac = useCallback((carrier) => {
+    if (processingScac) return   // AC: additional clicks shall not be allowed
+    setProcessingScac(carrier.scac)
+    runProcessScac(carrier)
+  }, [processingScac, runProcessScac])
+
+  // AC: "The message disappears after 3 s. No user action required."
+  useEffect(() => {
+    if (!processSuccess) return
+    const t = setTimeout(() => setProcessSuccess(null), 3000)
+    return () => clearTimeout(t)
+  }, [processSuccess])
 
   // LINX-13897 — Yes clears the QUOTE, not the routing option: scac/carrierName/
   // equipment/pickup/delivery stay (they identify the option itself, not the
@@ -1349,7 +1417,11 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
             activeSubTab: the sub-tabs only switch which COLUMNS the tender
             table shows, not which entity is on screen. */}
         <div className="tender-pane__table-card">
-          <DroppedCarrierSection carriers={shipmentDetails?.droppedCarriers || []} />
+          <DroppedCarrierSection
+            carriers={shipmentDetails?.droppedCarriers || []}
+            onProcess={handleProcessScac}
+            processingScac={processingScac}
+          />
         </div>
       </div>{/* /pane-col */}
 
@@ -1373,6 +1445,33 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
 
       {datesUnavailable && (
         <DatesUnavailableConfirm onDismiss={handleDismissDatesUnavailable} />
+      )}
+
+      {/* LINX-13954 */}
+      {processSuccess && (
+        <Alert variant="success" showClose={false}>{processSuccess}</Alert>
+      )}
+
+      {manualDatesFor && (
+        <ManualDatesModal
+          onCancel={() => { setManualDatesFor(null); setProcessingScac(null) }}
+          onConfirm={(dates) => {
+            const carrier = manualDatesFor
+            setManualDatesFor(null)
+            runProcessScac(carrier, dates)
+          }}
+        />
+      )}
+
+      {processNotice && (
+        <ConfirmDialog
+          title="Process SCAC"
+          message={processNotice}
+          confirmLabel="OK"
+          cancelLabel={null}
+          onConfirm={() => setProcessNotice(null)}
+          onCancel={() => setProcessNotice(null)}
+        />
       )}
 
       {/* Portaled to <body> on purpose: the expanded ShipmentsBar carries a

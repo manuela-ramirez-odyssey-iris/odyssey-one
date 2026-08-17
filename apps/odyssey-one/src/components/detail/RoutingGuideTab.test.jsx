@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { render, screen, cleanup, fireEvent, within } from '@testing-library/react'
+import { render, screen, cleanup, fireEvent, within, act } from '@testing-library/react'
 import RoutingGuideTab, { orderedTabColumns } from './RoutingGuideTab'
 
 // Mocked so the persist-round-trip test below can inspect the EXACT payload
@@ -818,5 +818,106 @@ describe('RoutingGuideTab — Dropped Carrier section (LINX-13953)', () => {
       fireEvent.click(screen.getByLabelText('Column arrangement'))
       expect(screen.getByText('Default Columns')).toBeTruthy()
     })
+  })
+})
+
+// Process SCAC (LINX-13954) — the end-to-end wire-up. All BRANCH decisions
+// live in lib/processScac.js (see its own tests); this only exercises that
+// this component walks the step list correctly: dialogs, the one-at-a-time
+// lock, persistence and focus. `dropCode` drives the simulated routing
+// outcome (processScac.js: '23' = missing transit time, anything else routes
+// clean) — see that file's header for why the outcome is simulated.
+describe('Process SCAC (LINX-13954)', () => {
+  const shipment = { sellShipment: 'SHIP-1' }
+
+  const cleanDropped = {
+    scac: 'JBHT', carrierName: 'J.B. HUNT', equipment: 'LTL', dropCode: '1',
+    routeRank: '--', pickup: '--', delivery: '--', transitTime: '--', transitSource: '--',
+    routeGroup: '--', rpcId: '--',
+  }
+  const missingTransitDropped = {
+    scac: 'RLCA', carrierName: 'R+L CARRIERS', equipment: 'Van', dropCode: '23',
+    routeRank: '--', pickup: '--', delivery: '--', transitTime: '--', transitSource: '--',
+    routeGroup: '--', rpcId: '--',
+  }
+
+  it('a clean route copies the carrier into the Tender List and announces success; the row stays in the Dropped Carrier section too', async () => {
+    const data = { options: [] }
+    render(<RoutingGuideTab data={data} shipmentDetails={{ droppedCarriers: [cleanDropped] }} shipment={shipment} />)
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Process SCAC' }))
+    })
+
+    expect(screen.getByText('Routing completed successfully.')).toBeTruthy()
+    // Copied into the Tender List...
+    expect(document.querySelectorAll('[data-right-table] tbody tr')).toHaveLength(1)
+    // ...and still in the Dropped Carrier section — the action COPIES, it
+    // does not move the row.
+    expect(screen.getByRole('button', { name: /JBHT/ })).toBeTruthy()
+  })
+
+  it('a duplicate SCAC+Equipment refuses: processing stops, nothing is added', async () => {
+    const existing = {
+      rank: 1, routeRank: 1, scac: 'JBHT', carrierName: 'J.B. HUNT', equipment: 'LTL',
+      cost: '--', status: null,
+    }
+    const data = { options: [existing] }
+    render(<RoutingGuideTab data={data} shipmentDetails={{ droppedCarriers: [cleanDropped] }} shipment={shipment} />)
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Process SCAC' }))
+    })
+
+    expect(screen.getByText('Carrier and Equipment combination (SCAC/Equipment) already in the list.')).toBeTruthy()
+    // Still just the one pre-existing row — nothing appended.
+    expect(document.querySelectorAll('[data-right-table] tbody tr')).toHaveLength(1)
+  })
+
+  it('missing Transit Time asks for dates, then warns no rate is available', async () => {
+    const data = { options: [] }
+    render(<RoutingGuideTab data={data} shipmentDetails={{ droppedCarriers: [missingTransitDropped] }} shipment={shipment} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Process SCAC' }))
+    expect(screen.getByRole('dialog', { name: 'Manual Pickup and Delivery Entry' })).toBeTruthy()
+
+    // Deliberately far-future so the past-check in ManualDatesModal never fires.
+    fireEvent.change(screen.getByLabelText('Pickup Date/Time'), { target: { value: '09/02/2099 08:00' } })
+    fireEvent.change(screen.getByLabelText('Delivery Date/Time'), { target: { value: '09/04/2099 16:00' } })
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'OK' }))
+    })
+
+    expect(screen.getByText('No rate is available for the carrier. You may obtain and enter a quote if needed.')).toBeTruthy()
+  })
+
+  it('cancelling the date dialog copies nothing and releases the lock', () => {
+    const data = { options: [] }
+    render(<RoutingGuideTab data={data} shipmentDetails={{ droppedCarriers: [missingTransitDropped] }} shipment={shipment} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Process SCAC' }))
+    expect(screen.getByRole('dialog', { name: 'Manual Pickup and Delivery Entry' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+
+    expect(screen.queryByRole('dialog', { name: 'Manual Pickup and Delivery Entry' })).toBeNull()
+    expect(document.querySelectorAll('[data-right-table] tbody tr')).toHaveLength(0)
+    expect(screen.getByRole('button', { name: 'Process SCAC' }).disabled).toBe(false)
+  })
+
+  it('the success message disappears after 3s with no user action', async () => {
+    vi.useFakeTimers()
+    const data = { options: [] }
+    render(<RoutingGuideTab data={data} shipmentDetails={{ droppedCarriers: [cleanDropped] }} shipment={shipment} />)
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Process SCAC' }))
+    })
+    expect(screen.getByText('Routing completed successfully.')).toBeTruthy()
+
+    await act(async () => { vi.advanceTimersByTime(3000) })
+    expect(screen.queryByText('Routing completed successfully.')).toBeNull()
+
+    vi.useRealTimers()
   })
 })
