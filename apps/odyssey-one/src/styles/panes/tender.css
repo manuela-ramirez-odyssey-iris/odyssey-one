@@ -36,3 +36,13 @@
   box-shadow: var(--shadow-sm);
   overflow: hidden;
 }
+
+/* LINX-13953 — Dropped Carrier empty state. The section renders even at zero
+   so the count itself is readable; absence would be ambiguous. Font comes
+   from the .text-label-sm-regular utility class on the element (no
+   `--body-sm` token exists in this codebase — typography is per-property
+   tokens or the prebuilt .text-* classes, never a single shorthand var). */
+.dropped-carrier__empty {
+  padding: var(--spacing-4);
+  color: var(--text-secondary);
+}
