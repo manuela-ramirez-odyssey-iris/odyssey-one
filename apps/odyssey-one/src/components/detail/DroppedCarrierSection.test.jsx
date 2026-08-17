@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { render, screen, cleanup, fireEvent } from '@testing-library/react'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import DroppedCarrierSection from './DroppedCarrierSection'
 
 afterEach(cleanup)
@@ -93,5 +93,45 @@ describe('DroppedCarrierSection (LINX-13953)', () => {
     const noteCell = detail.querySelector('.odyssey-group-table__detail-note > td')
     expect(noteCell.getAttribute('colspan')).toBe(String(headers.length))
     expect(noteCell.textContent).toContain('prohibited for this customer')
+  })
+
+  // NOTE: @testing-library/user-event and @testing-library/jest-dom are not
+  // installed in this repo (only @testing-library/react + dom) — using
+  // fireEvent.click (this file's existing pattern) and plain assertions
+  // (toBeTruthy/toBeNull/.disabled) instead.
+  it('renders a Process SCAC button per carrier and reports which one was pressed', () => {
+    const onProcess = vi.fn()
+    render(
+      <DroppedCarrierSection
+        carriers={[carrier, { ...carrier, scac: 'RLCA' }]}
+        onProcess={onProcess}
+      />,
+    )
+    const buttons = screen.getAllByRole('button', { name: /Process SCAC/ })
+    expect(buttons).toHaveLength(2)
+    fireEvent.click(buttons[1])
+    expect(onProcess).toHaveBeenCalledTimes(1)
+    expect(onProcess.mock.calls[0][0].scac).toBe('RLCA')
+  })
+
+  it('disables EVERY Process SCAC while one is in flight, not just the pressed one', () => {
+    // AC: "Process SCAC shall be disabled (for the current SCAC and other
+    // dropped carrier SCACs)" — only one may be processed at a time.
+    render(
+      <DroppedCarrierSection
+        carriers={[carrier, { ...carrier, scac: 'RLCA' }]}
+        onProcess={() => {}}
+        processingScac="JBHT"
+      />,
+    )
+    for (const b of screen.getAllByRole('button', { name: /Process SCAC/ })) {
+      expect(b.disabled).toBe(true)
+    }
+  })
+
+  it('renders no action column at all when no handler is supplied', () => {
+    // 13953 shipped read-only and must stay renderable that way.
+    render(<DroppedCarrierSection carriers={[carrier]} />)
+    expect(screen.queryByRole('button', { name: /Process SCAC/ })).toBeNull()
   })
 })

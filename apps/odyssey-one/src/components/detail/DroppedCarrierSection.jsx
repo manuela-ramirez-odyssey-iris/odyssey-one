@@ -1,6 +1,6 @@
 import { Square, SquareCheck } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
-import { GroupTable, SubAccordion } from '@odyssey/ui'
+import { Button, GroupTable, SubAccordion } from '@odyssey/ui'
 
 /**
  * LINX-13953 — Dropped Carrier.
@@ -10,9 +10,13 @@ import { GroupTable, SubAccordion } from '@odyssey/ui'
  * screen the way TMS does it: "You want to just provide it below the screen
  * itself" (Jana, 2026-08-11). Canon: vault/10-domains/shipments/dropped-carrier.md
  *
- * READ-ONLY. The per-row Process SCAC action is LINX-13954 and lands in
- * GroupTable's existing `stickyActions` / `group.action` slot — no change to
- * this file's structure is needed to add it.
+ * LINX-13954 adds the per-row Process SCAC action, landing in GroupTable's
+ * existing `stickyActions` / `group.action` slot — no structural change to
+ * this file was needed to add it. The section stays presentational: it
+ * reports the press via `onProcess` and renders the disabled state it is
+ * told about via `processingScac`; it validates nothing and knows nothing
+ * about routing (that lives in the parent). Omitting `onProcess` renders no
+ * action column at all, so the section stays usable read-only (13953).
  *
  * ── EXPECT DASHES ──────────────────────────────────────────────────────────
  * Routing returns only five attributes for a dropped carrier (scac, service,
@@ -78,7 +82,12 @@ function CheckCell({ field, on }) {
   return <Icon {...ICON_MD} aria-label={`${CHECKBOX_LABELS[field]}: ${on ? 'yes' : 'no'}`} />
 }
 
-export default function DroppedCarrierSection({ carriers = [], defaultOpen = true }) {
+export default function DroppedCarrierSection({
+  carriers = [],
+  defaultOpen = true,
+  onProcess,
+  processingScac = null,
+}) {
   // Two independent disclosure levels, deliberately different defaults:
   //   • the SECTION opens by default (user ruling, 2026-08-17)
   //   • each CARRIER's detail table stays closed until asked for
@@ -97,6 +106,15 @@ export default function DroppedCarrierSection({ carriers = [], defaultOpen = tru
     // AC's Null Handling rule, and a silently missing row would read as "no
     // reason given" rather than "routing returned none".
     detailNote: { label: 'Reason Description', value: c.reasonDescription ?? '--' },
+    // LINX-13954. The slot GroupTable has always had — `stickyActions` pins the
+    // lane, `group.action` fills it. The section stays presentational: it
+    // reports the press and renders the disabled state it is told about; it
+    // validates nothing and knows nothing about routing.
+    action: onProcess ? (
+      <Button size="sm" variant="secondary" disabled={processingScac != null} onClick={() => onProcess(c)}>
+        Process SCAC
+      </Button>
+    ) : undefined,
   }))
 
   return (
@@ -120,6 +138,8 @@ export default function DroppedCarrierSection({ carriers = [], defaultOpen = tru
               ? <CheckCell field={col.key} on={row[col.key]} />
               : (row[col.key] ?? '--')
           }
+          stickyActions={Boolean(onProcess)}
+          actionsHeader="Action"
           data-dropped-carrier-table
         />
       )}
