@@ -150,6 +150,19 @@ export interface SellShipmentAdditionalCharge {
   currency: string
 }
 
+// LINX-13895 "Audit Information" — the six fields the Quote Entry Page shows
+// read-only, written by the save in LINX-13896. `initialApAmount` is the AP
+// total as it stood BEFORE the first user quote (null when the option had no
+// rate at all); `finalApAmount` tracks the current one.
+export interface SellShipmentQuoteAudit {
+  createdBy: string
+  createdDate: string
+  updatedBy: string
+  updatedDate: string
+  initialApAmount: number | null
+  finalApAmount: number | null
+}
+
 // One carrier option in the routing guide
 export interface SellShipmentRoutingOption {
   rank: number
@@ -169,6 +182,12 @@ export interface SellShipmentRoutingOption {
     apTotal: number
     arTotal: number
   }
+  /** LINX-13896/13897 — 'Y' once a USER-entered quote is saved, 'N' once deleted.
+      Absent on a contracted-rate option, which is what tells the two apart. */
+  quoteFlag?: 'Y' | 'N'
+  /** LINX-13895 "Audit Information" / LINX-13896 "Audit Information". Written on
+      every quote save, retained after a delete so the history survives. */
+  quoteAudit?: SellShipmentQuoteAudit
   status?: string | null
   pickupDateTime?: string | null
   pickupTZ?: string

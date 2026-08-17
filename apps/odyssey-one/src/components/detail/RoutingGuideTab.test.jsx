@@ -117,7 +117,7 @@ describe('RoutingGuideTab — Edit Quote persists the Rate', () => {
   it('a changed Base Rate reaches saveTenderOption as the new rateAmount', () => {
     const option = {
       rank: 1, routeRank: 1, scac: 'ODFL', carrierName: 'Old Dominion Freight Line',
-      equipment: 'Van', cost: '$1,000.00 USD', status: 'Sent',
+      equipment: 'Van', cost: '$1,000.00 USD', status: 'Sent', quoteFlag: 'Y',
       rateDetails: { baseRate: 1000, currency: 'USD', markup: 0, additionalCharges: [], apTotal: 1000, arTotal: 1000 },
     }
     const data = { options: [option] }
@@ -269,23 +269,38 @@ describe('RoutingGuideTab — Accept/Decline/Cancel write audit fields', () => {
 // into the per-row action menu, mutually exclusive with Edit Quote: an
 // option with no quote yet offers "Add Quote"; an option that already has
 // one offers "Edit Quote" — never both. "Has a quote" is read off
-// rateDetails.apTotal, the same signal CostTooltip already treats as "no
-// rate details" when zero/absent (mapSellShipmentOutToDetail.ts defaults a
-// missing rateDetails to a zeroed object) — not the AP Cost column, which
-// only gates the contracted-rate confirm below.
+// `quoteFlag === 'Y'` (LINX-13896 sets it on save, LINX-13897 clears it on
+// delete) — NOT rateDetails.apTotal: a CONTRACTED rate also carries a
+// positive apTotal (generate.mjs seeds one on every option), so apTotal alone
+// made "Add Quote" unreachable for every row in the app. The AP Cost column
+// is a separate signal that only gates the contracted-rate confirm below.
 describe('RoutingGuideTab — per-row Add/Edit Quote (LINX-13894)', () => {
+  // Pickup/delivery dates present throughout this block — these tests exercise
+  // the LINX-13894 Add/Edit/contracted-rate flows, not the LINX-13895 dates
+  // guard (that guard has its own describe block below).
   const noQuoteOption = {
     rank: 1, routeRank: 1, scac: 'ODFL', carrierName: 'Old Dominion Freight Line',
     equipment: 'Van', cost: '--', status: 'Sent',
+    pickupDateTime: '08/01/2026 09:00 CST', deliveryDateTime: '08/03/2026 09:00 CST',
   }
   const quotedOption = {
     ...noQuoteOption,
     cost: '$2,790.00 USD',
+    quoteFlag: 'Y',
     rateDetails: { baseRate: 2500, currency: 'USD', markup: 300, additionalCharges: [], apTotal: 2790, arTotal: 3090 },
   }
   // AP Cost (Carrier) present, but no user-entered quote yet — the case the
   // contracted-rate confirm (AC 3) exists for.
   const costedButUnquotedOption = { ...noQuoteOption, cost: '$500.00 USD' }
+  // A CONTRACTED rate: rateDetails carries a positive apTotal (same shape a
+  // real quote would have) but no quoteFlag — the exact case that used to
+  // make "Add Quote" unreachable everywhere (see block comment above).
+  const contractedRateOption = {
+    ...noQuoteOption,
+    cost: '$2,790.00 USD',
+    rateSource: 'Contract',
+    rateDetails: { baseRate: 2500, currency: 'USD', markup: 300, additionalCharges: [], apTotal: 2790, arTotal: 3090 },
+  }
 
   const openRowMenu = () => {
     const menuCell = document.querySelector('[data-right-table] tbody tr td:last-child')
@@ -314,6 +329,19 @@ describe('RoutingGuideTab — per-row Add/Edit Quote (LINX-13894)', () => {
     expect(screen.queryByRole('button', { name: 'Add Quote' })).toBeNull()
   })
 
+  // The regression this whole discriminator change exists for: a contracted
+  // rate has a POSITIVE apTotal (generate.mjs seeds one on every option) but
+  // no quoteFlag — under the old `apTotal > 0` test this offered Edit Quote
+  // for a quote that was never entered, and made Add Quote unreachable.
+  it('offers "Add Quote", never Edit/Delete, for a contracted rate with a positive apTotal', () => {
+    const data = { options: [contractedRateOption] }
+    render(<RoutingGuideTab data={data} />)
+    openRowMenu()
+    expect(screen.getByRole('button', { name: 'Add Quote' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Edit Quote' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Delete Quote' })).toBeNull()
+  })
+
   it('Add Quote goes straight to the quote entry dialog when AP Cost is blank', () => {
     const data = { options: [noQuoteOption] } // cost: '--'
     render(<RoutingGuideTab data={data} />)
@@ -329,7 +357,7 @@ describe('RoutingGuideTab — per-row Add/Edit Quote (LINX-13894)', () => {
     openRowMenu()
     fireEvent.click(screen.getByRole('button', { name: 'Add Quote' }))
 
-    expect(screen.getByText('A contracted rate already exists for this carrier option. Do you want to continue?')).toBeTruthy()
+    expect(screen.getByText('A contracted rate already exists for this routing option. Entering a quote will override the existing contracted rate. Do you want to continue?')).toBeTruthy()
     expect(screen.queryByRole('dialog', { name: 'Add Quote' })).toBeNull()
 
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
@@ -356,7 +384,7 @@ describe('RoutingGuideTab — per-row Add/Edit Quote (LINX-13894)', () => {
     render(<RoutingGuideTab data={data} />)
     openRowMenu()
     fireEvent.click(screen.getByRole('button', { name: 'Add Quote' }))
-    expect(screen.getByText('A contracted rate already exists for this carrier option. Do you want to continue?')).toBeTruthy()
+    expect(screen.getByText('A contracted rate already exists for this routing option. Entering a quote will override the existing contracted rate. Do you want to continue?')).toBeTruthy()
 
     fireEvent.keyDown(window, { key: 'Escape' })
 
@@ -366,10 +394,17 @@ describe('RoutingGuideTab — per-row Add/Edit Quote (LINX-13894)', () => {
 })
 
 describe('RoutingGuideTab — tender persist (VM → DTO)', () => {
-  it('a picked Equipment survives from the Edit Quote UI to saveTenderOption as equipmentCode, not equipment', () => {
+  // LINX-13895 made Carrier Option (incl. Equipment) read-only in the Quote
+  // Entry Page — there is no picker to drive any more; Equipment comes off
+  // the selected routing option and round-trips unchanged through Save Quote.
+  // The contract this guards predates that change and still matters: the
+  // VM's `equipment` must reach saveTenderOption as `equipmentCode`, not
+  // `equipment` — mapRoutingOption reads equipmentCode on the next load, so
+  // the wrong key silently degrades the value to '--'.
+  it("an option's Equipment survives Edit Quote save to saveTenderOption as equipmentCode, not equipment", () => {
     const option = {
       rank: 1, routeRank: 1, scac: 'ODFL', carrierName: 'Old Dominion Freight Line',
-      equipment: 'LTL', cost: '$2,790.00 USD', status: 'Sent',
+      equipment: 'LTL', cost: '$2,790.00 USD', status: 'Sent', quoteFlag: 'Y',
       rateDetails: { baseRate: 1000, currency: 'USD', markup: 0, additionalCharges: [], apTotal: 1000, arTotal: 1000 },
     }
     const data = { options: [option] }
@@ -383,21 +418,21 @@ describe('RoutingGuideTab — tender persist (VM → DTO)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Edit Quote' }))
 
     const dialog = screen.getByRole('dialog', { name: 'Edit Quote' })
-    const equipmentCombo = within(dialog).getByText('Equipment').closest('.combo-box')
-    fireEvent.focus(within(equipmentCombo).getByRole('combobox'))
-    fireEvent.keyDown(equipmentCombo, { key: 'ArrowDown' })
-    fireEvent.keyDown(equipmentCombo, { key: 'ArrowDown' })
-    fireEvent.keyDown(equipmentCombo, { key: 'Enter' }) // LTL (seed) -> LTR
+    // Equipment is read-only here (LINX-13895) — a TitleSubtitle value, not a
+    // combobox — sourced straight from the option, confirming there is
+    // nothing left to pick.
+    expect(within(dialog).queryByRole('combobox')).toBeNull()
+    expect(within(dialog).getByText('LTL')).toBeTruthy()
 
     fireEvent.click(within(dialog).getByRole('button', { name: 'Save Quote' }))
 
     expect(saveTenderOption).toHaveBeenCalledTimes(1)
     const [id, sentOption] = saveTenderOption.mock.calls[0]
     expect(id).toBe('SHIP-1')
-    // The bug: this used to be `sentOption.equipment === 'LTR'` and
+    // The bug: this used to be `sentOption.equipment === 'LTL'` and
     // `equipmentCode` was absent entirely — mapRoutingOption reads
     // equipmentCode on the next load, so that shape silently degrades.
-    expect(sentOption.equipmentCode).toBe('LTR')
+    expect(sentOption.equipmentCode).toBe('LTL')
     expect(sentOption.equipment).toBeUndefined()
     // Same bug class applies to cost/distance/transit/api; rate/cost happen
     // to be present here as numbers now instead of formatted VM strings.
@@ -406,11 +441,150 @@ describe('RoutingGuideTab — tender persist (VM → DTO)', () => {
   })
 })
 
-// Delete Quote (LINX-13897). rateSource is the only field in the data shape
-// that tells a contracted/system-sourced rate (generate.mjs seeds every
-// option with one of 'Contract' | 'Spot' | 'Benchmark' | 'Historical') apart
-// from a user-entered one — 'Manual' is written ONLY by this component's own
-// Add Quote handler. Delete Quote is offered exclusively for the latter.
+// LINX-13894/13896 save behaviour. Add and Edit are ONE operation on the
+// SELECTED option (see the block comment on handleQuoteSave) — until
+// 2026-08-16 the add path instead APPENDED a brand-new option at maxRank+1,
+// leftover from a deleted page-level "Add Quote" toolbar button. The first
+// test below is the regression guard for exactly that: it fails loudly (an
+// extra row, or a rank mismatch) if that append behaviour ever comes back.
+describe('RoutingGuideTab — Add/Edit Quote save behaviour (LINX-13894/13896)', () => {
+  const shipment = { sellShipment: 'SHIP-1' }
+
+  // LINX-3966 Rule 5 removed the old 'USD' default: Add Quote now starts with
+  // no currency selected, and Save is blocked until one is chosen (see
+  // QuoteModal.test.jsx's "currency starts unselected" describe block). Every
+  // caller below needs the currency picked to reach Save — including the Edit
+  // Quote caller, whose currency is already 'USD' from seeded rateDetails, so
+  // re-selecting the same option here is a no-op for that test's assertions,
+  // not a risk. One helper, one place to add the step.
+  const fillBaseRateAndSave = (dialog, value) => {
+    // Same "first match is the editable field" note as the Edit Quote Rate
+    // persistence test above — "Base Rate" also labels a read-only
+    // SummaryCard row further down the same dialog.
+    const baseRateField = within(dialog).getAllByText('Base Rate')[0].closest('.form-field')
+    fireEvent.change(within(baseRateField).getByRole('textbox'), { target: { value: String(value) } })
+    // Currency picker — same getByRole('button') -> getByRole('option') idiom
+    // QuoteModal.test.jsx uses for its own currency-selection assertions.
+    fireEvent.click(within(baseRateField).getByRole('button'))
+    fireEvent.click(screen.getByRole('option', { name: 'USD' }))
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Save Quote' }))
+  }
+
+  it('Add Quote attaches the quote to the SAME option — no phantom row, rank unchanged', () => {
+    const option = {
+      rank: 7, routeRank: 7, scac: 'ODFL', carrierName: 'Old Dominion Freight Line',
+      equipment: 'Van', cost: '--', status: 'Sent',
+      pickupDateTime: '08/01/2026 09:00 CST', deliveryDateTime: '08/03/2026 09:00 CST',
+    }
+    const data = { options: [option] }
+    render(<RoutingGuideTab data={data} shipment={shipment} />)
+
+    expect(document.querySelectorAll('[data-right-table] tbody tr')).toHaveLength(1)
+
+    const menuCell = document.querySelector('[data-right-table] tbody tr td:last-child')
+    fireEvent.click(menuCell)
+    fireEvent.click(screen.getByRole('button', { name: 'Add Quote' }))
+    fillBaseRateAndSave(screen.getByRole('dialog', { name: 'Add Quote' }), 900)
+
+    // Still exactly one row — no new option got appended alongside it.
+    expect(document.querySelectorAll('[data-right-table] tbody tr')).toHaveLength(1)
+    expect(saveTenderOption).toHaveBeenCalledTimes(1)
+    const [, sentOption] = saveTenderOption.mock.calls[0]
+    expect(sentOption.rank).toBe(7) // the SAME option, not a new maxRank+1 row
+  })
+
+  it('a successful save persists quoteFlag Y and carrierQuoted Yes', () => {
+    const option = {
+      rank: 1, routeRank: 1, scac: 'ODFL', carrierName: 'Old Dominion Freight Line',
+      equipment: 'Van', cost: '--', status: 'Sent',
+      pickupDateTime: '08/01/2026 09:00 CST', deliveryDateTime: '08/03/2026 09:00 CST',
+    }
+    const data = { options: [option] }
+    render(<RoutingGuideTab data={data} shipment={shipment} />)
+
+    const menuCell = document.querySelector('[data-right-table] tbody tr td:last-child')
+    fireEvent.click(menuCell)
+    fireEvent.click(screen.getByRole('button', { name: 'Add Quote' }))
+    fillBaseRateAndSave(screen.getByRole('dialog', { name: 'Add Quote' }), 900)
+
+    expect(saveTenderOption).toHaveBeenCalledTimes(1)
+    const [, sentOption] = saveTenderOption.mock.calls[0]
+    expect(sentOption.quoteFlag).toBe('Y')
+    expect(sentOption.carrierQuoted).toBe('Yes')
+  })
+
+  it('editing an existing quote preserves quoteAudit.createdBy/createdDate and moves updatedBy/updatedDate', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date(2026, 7, 16, 10, 0))
+
+    const option = {
+      rank: 1, routeRank: 1, scac: 'ODFL', carrierName: 'Old Dominion Freight Line',
+      equipment: 'Van', cost: '$1,000.00 USD', status: 'Sent', quoteFlag: 'Y',
+      rateDetails: { baseRate: 1000, currency: 'USD', markup: 0, additionalCharges: [], apTotal: 1000, arTotal: 1000 },
+      quoteAudit: {
+        createdBy: 'Jamie Fox', createdDate: '08/01/2026 09:00',
+        updatedBy: 'Jamie Fox', updatedDate: '08/01/2026 09:00',
+        initialApAmount: null, finalApAmount: 1000,
+      },
+    }
+    const data = { options: [option] }
+    render(<RoutingGuideTab data={data} shipment={shipment} />)
+
+    const menuCell = document.querySelector('[data-right-table] tbody tr td:last-child')
+    fireEvent.click(menuCell)
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Quote' }))
+    fillBaseRateAndSave(screen.getByRole('dialog', { name: 'Edit Quote' }), 1200)
+
+    expect(saveTenderOption).toHaveBeenCalledTimes(1)
+    const [, sentOption] = saveTenderOption.mock.calls[0]
+    // Created* survives the edit untouched...
+    expect(sentOption.quoteAudit.createdBy).toBe('Jamie Fox')
+    expect(sentOption.quoteAudit.createdDate).toBe('08/01/2026 09:00')
+    // ...only Updated* moves, to the acting user and now.
+    expect(sentOption.quoteAudit.updatedBy).toBe('Amy Cook')
+    expect(sentOption.quoteAudit.updatedDate).toBe('08/16/2026 10:00')
+
+    vi.useRealTimers()
+  })
+
+  // LINX-3966 General Rule 5 — this is the end-to-end counterpart to
+  // QuoteModal.test.jsx's "currency starts unselected" coverage (which pins
+  // the message and the disabled Save button in isolation). That file can't
+  // see saveTenderOption at all; this proves the persistence path is really
+  // unreachable, not just that the button LOOKS disabled.
+  it('Add Quote with a Base Rate but no currency never reaches saveTenderOption', () => {
+    const option = {
+      rank: 1, routeRank: 1, scac: 'ODFL', carrierName: 'Old Dominion Freight Line',
+      equipment: 'Van', cost: '--', status: 'Sent',
+      pickupDateTime: '08/01/2026 09:00 CST', deliveryDateTime: '08/03/2026 09:00 CST',
+    }
+    const data = { options: [option] }
+    render(<RoutingGuideTab data={data} shipment={shipment} />)
+
+    const menuCell = document.querySelector('[data-right-table] tbody tr td:last-child')
+    fireEvent.click(menuCell)
+    fireEvent.click(screen.getByRole('button', { name: 'Add Quote' }))
+
+    const dialog = screen.getByRole('dialog', { name: 'Add Quote' })
+    const baseRateField = within(dialog).getAllByText('Base Rate')[0].closest('.form-field')
+    fireEvent.change(within(baseRateField).getByRole('textbox'), { target: { value: '900' } })
+    fireEvent.blur(within(baseRateField).getByRole('textbox')) // touched idiom — reveals the error same as QuoteModal.test.jsx
+
+    expect(screen.getByText('Please select a currency.')).toBeTruthy()
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Save Quote' }))
+
+    expect(saveTenderOption).not.toHaveBeenCalled()
+    // Still exactly one row — no phantom save-and-append either.
+    expect(document.querySelectorAll('[data-right-table] tbody tr')).toHaveLength(1)
+  })
+})
+
+// Delete Quote (LINX-13897). `quoteFlag === 'Y'` is what tells a user-entered
+// quote apart from a contracted/system-sourced rate (generate.mjs seeds every
+// option with a rateSource of 'Contract' | 'Spot' | 'Benchmark' | 'Historical'
+// and a positive apTotal regardless) — quoteFlag is written ONLY by this
+// component's own Add/Edit Quote save (LINX-13896) and cleared by its own
+// Delete (below). Delete Quote is offered exclusively for a quoted option.
 describe('RoutingGuideTab — Delete Quote (LINX-13897)', () => {
   const openRowMenu = () => {
     const menuCell = document.querySelector('[data-right-table] tbody tr td:last-child')
@@ -419,11 +593,11 @@ describe('RoutingGuideTab — Delete Quote (LINX-13897)', () => {
 
   const manualQuote = {
     rank: 1, routeRank: 1, scac: 'ODFL', carrierName: 'Old Dominion Freight Line',
-    equipment: 'Van', cost: '$2,790.00 USD', status: null, rateSource: 'Manual',
+    equipment: 'Van', cost: '$2,790.00 USD', status: null, rateSource: 'Manual', quoteFlag: 'Y',
     rateDetails: { baseRate: 2500, currency: 'USD', markup: 300, additionalCharges: [], apTotal: 2790, arTotal: 3090 },
   }
 
-  it('offers Delete Quote alongside Edit Quote for a user-entered quote (rateSource Manual)', () => {
+  it("offers Delete Quote alongside Edit Quote for a quoted option (quoteFlag 'Y')", () => {
     const data = { options: [manualQuote] }
     render(<RoutingGuideTab data={data} />)
     openRowMenu()
@@ -431,16 +605,24 @@ describe('RoutingGuideTab — Delete Quote (LINX-13897)', () => {
     expect(screen.getByRole('button', { name: 'Delete Quote' })).toBeTruthy()
   })
 
-  it('never offers Delete Quote for a contracted rate, even though it has a quote', () => {
-    const data = { options: [{ ...manualQuote, rateSource: 'Contract' }] }
+  // Renamed from "...even though it has a quote" — under the old
+  // apTotal-based discriminator a contracted rate DID read as "has a quote"
+  // (the exact bug this contract change fixes), so the old assertion that
+  // Edit Quote still showed was itself testing the bug. Now a contracted
+  // rate has no quoteFlag at all, so it offers Add Quote and neither
+  // Edit nor Delete — see the LINX-13894 describe block above for the
+  // add-side assertion of this same case.
+  it('never offers Edit/Delete Quote for a contracted rate, even with a positive apTotal (Add Quote instead)', () => {
+    const data = { options: [{ ...manualQuote, quoteFlag: undefined, rateSource: 'Contract' }] }
     render(<RoutingGuideTab data={data} />)
     openRowMenu()
-    expect(screen.getByRole('button', { name: 'Edit Quote' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Add Quote' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Edit Quote' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Delete Quote' })).toBeNull()
   })
 
   it('does not offer Delete Quote when there is no quote yet (Add Quote shown instead)', () => {
-    const data = { options: [{ ...manualQuote, rateSource: 'Manual', cost: '--', rateDetails: undefined }] }
+    const data = { options: [{ ...manualQuote, quoteFlag: undefined, cost: '--', rateDetails: undefined }] }
     render(<RoutingGuideTab data={data} />)
     openRowMenu()
     expect(screen.getByRole('button', { name: 'Add Quote' })).toBeTruthy()
@@ -470,7 +652,7 @@ describe('RoutingGuideTab — Delete Quote (LINX-13897)', () => {
     openRowMenu()
     fireEvent.click(screen.getByRole('button', { name: 'Delete Quote' }))
 
-    expect(screen.getByText('This quote will be permanently removed and cannot be undone.')).toBeTruthy()
+    expect(screen.getByText('This quote will be permanently removed from this routing option. This action cannot be undone. Do you want to continue?')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Yes' })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'No' })).toBeTruthy()
   })
@@ -506,9 +688,78 @@ describe('RoutingGuideTab — Delete Quote (LINX-13897)', () => {
     expect(sentOption.rateDetails.apTotal).toBe(0)
     expect(sentOption.rateDetails.arTotal).toBe(0)
     expect(sentOption.quoteFlag).toBe('N')
+    // LINX-13897's counterpart to save's "Carrier Quoted = Yes".
+    expect(sentOption.carrierQuoted).toBe('No')
 
     openRowMenu()
     expect(screen.getByRole('button', { name: 'Add Quote' })).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Edit Quote' })).toBeNull()
+  })
+})
+
+// Dates-unavailable guard (LINX-13895). "Quote Entry shall not be allowed
+// when: Pickup Date is unavailable. / Delivery Date is unavailable." Checked
+// on Add Quote only — Edit Quote isn't gated, since an existing quote already
+// implies both dates were present when it was entered (see the comment in
+// handleAction's AddQuote branch).
+describe('RoutingGuideTab — Add Quote blocked when dates are unavailable (LINX-13895)', () => {
+  const openRowMenu = () => {
+    const menuCell = document.querySelector('[data-right-table] tbody tr td:last-child')
+    fireEvent.click(menuCell)
+  }
+
+  const NOTICE = 'Quote cannot be entered because Pickup and Delivery information is not available for the selected routing option.'
+
+  it('blocks Add Quote and shows the notice when a date is unavailable; the quote modal never opens', () => {
+    const option = {
+      rank: 1, routeRank: 1, scac: 'ODFL', carrierName: 'Old Dominion Freight Line',
+      equipment: 'Van', cost: '--', status: 'Sent',
+      pickupDateTime: '08/01/2026 09:00 CST', deliveryDateTime: '--', // delivery unavailable
+    }
+    const data = { options: [option] }
+    render(<RoutingGuideTab data={data} />)
+    openRowMenu()
+    fireEvent.click(screen.getByRole('button', { name: 'Add Quote' }))
+
+    expect(screen.getByText(NOTICE)).toBeTruthy()
+    expect(screen.queryByRole('dialog', { name: 'Add Quote' })).toBeNull()
+    // Single button.
+    expect(screen.getByRole('button', { name: 'OK' })).toBeTruthy()
+  })
+
+  it('OK dismisses the notice and leaves state untouched — no save, stays on Routing Options', () => {
+    const option = {
+      rank: 1, routeRank: 1, scac: 'ODFL', carrierName: 'Old Dominion Freight Line',
+      equipment: 'Van', cost: '--', status: 'Sent',
+      pickupDateTime: null, deliveryDateTime: null, // both unavailable
+    }
+    const data = { options: [option] }
+    render(<RoutingGuideTab data={data} />)
+    openRowMenu()
+    fireEvent.click(screen.getByRole('button', { name: 'Add Quote' }))
+    fireEvent.click(screen.getByRole('button', { name: 'OK' }))
+
+    expect(screen.queryByText(NOTICE)).toBeNull()
+    expect(screen.queryByRole('dialog', { name: 'Add Quote' })).toBeNull()
+    expect(saveTenderOption).not.toHaveBeenCalled()
+    // Still on Tender → Routing Options with the row menu reachable again —
+    // i.e. nothing about the option itself changed.
+    openRowMenu()
+    expect(screen.getByRole('button', { name: 'Add Quote' })).toBeTruthy()
+  })
+
+  it('does not gate an option that has both dates', () => {
+    const option = {
+      rank: 1, routeRank: 1, scac: 'ODFL', carrierName: 'Old Dominion Freight Line',
+      equipment: 'Van', cost: '--', status: 'Sent',
+      pickupDateTime: '08/01/2026 09:00 CST', deliveryDateTime: '08/03/2026 09:00 CST',
+    }
+    const data = { options: [option] }
+    render(<RoutingGuideTab data={data} />)
+    openRowMenu()
+    fireEvent.click(screen.getByRole('button', { name: 'Add Quote' }))
+
+    expect(screen.queryByText(NOTICE)).toBeNull()
+    expect(screen.getByRole('dialog', { name: 'Add Quote' })).toBeTruthy()
   })
 })

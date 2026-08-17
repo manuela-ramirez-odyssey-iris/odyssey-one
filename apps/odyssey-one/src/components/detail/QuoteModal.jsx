@@ -1,26 +1,30 @@
 import { forwardRef, useEffect, useImperativeHandle, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Trash2, Plus } from 'lucide-react'
-import { Button, ComboBox, FormField, ModalMedium, TimePicker, TitleSubtitle } from '@odyssey/ui'
+import { Button, ComboBox, FormField, ModalMedium, TitleSubtitle } from '@odyssey/ui'
 import MeasureField from '../orders/create/fields/MeasureField.jsx'
-import DateField from '../orders/create/fields/DateField.jsx'
-import { TIMEZONE_LABELS, EQUIPMENT_CODES, EQUIPMENT_LABELS } from '../../data/master-data'
+import { TIMEZONE_LABELS, CURRENCIES } from '../../data/master-data'
 import { getLookupOptions } from '../../api/services/lookupService'
 import { parseDollar, fmtDollar } from '../../utils/money'
 
 // QuoteModal — one modal, three modes (Figma: Add Quote 1175:39228 · Rate
 // Details 1408:21725 · Edit Quote 1408:23260). Same anatomy in all three:
-// ModalMedium shell → Carrier / Rate / Additional Charges sections → AP + AR
-// summary cards → Cancel · Save Quote footer (view has NO footer — read-only).
-// `view` renders everything disabled; `edit` locks the carrier identity (SCAC).
+// LINX-13895 structure, two sections in this order:
+//   1. "Carrier Option" — READ-ONLY in all three modes (SCAC, Carrier Name,
+//      Equipment, Pickup, Delivery), sourced from the selected routing option.
+//   2. "Quote" — the editable fields (Base Rate + Currency, Markup) followed by
+//      Additional Charges.
+// Then the AP/AR summary cards (LINX-13896) and read-only Audit Information
+// (LINX-13895). Footer is Cancel · Save Quote; `view` has NO footer.
 //
-// Field components follow the create-order canon (S102 audit): dates are the
-// normalized DatePicker + time/timezone selects, not a masked free-text field;
-// SCAC is the shared paged carrier lookup, not a local 15-row copy.
+// Corrects an earlier note here claiming this modal had to own the Equipment
+// control as "the ONLY place a quote's equipment is edited". It does not:
+// ShipmentDetailsModal's General Information section edits Equipment itself
+// (EDITABLE_GENERAL, with its own saveTenderOption call), and DEC-82 removed
+// the three per-field pens that note was describing.
 //
-// Extracted out of RoutingGuideTab.jsx (2026-08-10) — ShipmentDetailsModal's
-// three edit pens (Base, Markup, Equipment) all open this modal, and its old
-// home statically imported it into ShipmentDetailsModal.jsx, which defeated
+// Extracted out of RoutingGuideTab.jsx (2026-08-10) because its old home
+// statically imported it into ShipmentDetailsModal.jsx, which defeated
 // BottomBar's React.lazy() split of RoutingGuideTab (~1400 lines, still
 // lazy). Its own home module now, small enough to stay in the eager bundle.
 
@@ -31,33 +35,27 @@ const DASH = '--' // LINX-13590 — empty optional values read '--'
 const money = (amount, uom) =>
   (amount === '' || amount == null) ? DASH : `${fmtDollar(parseDollar(amount))}${uom ? ` ${uom}` : ''}`
 
-const CHARGE_CODES = [
-  { code: 'THC', description: 'Terminal Handling Charge' },
-  { code: 'FSC', description: 'Fuel Surcharge' },
-  { code: 'SOC', description: 'Stop-Off Charge' },
-  { code: 'HZC', description: 'Hazmat Charge' },
-  { code: 'ACC', description: 'Accessorial' },
-]
+// Currency (Base Rate) now sources from the shared CURRENCIES master-data pool
+// (LINX-13895, ticket refs LINX-3966 "TMS Master Data Currency") — same direct-
+// import idiom GeneralInformationSection uses for its own plain selects
+// (FREIGHT_TERMS/SHIP_DIRECTIONS), rather than a hardcoded 3-entry list that
+// was missing MXN. Also registered as lookupService's 'currency' type so every
+// master-data pool the app selects from is uniformly reachable through the
+// registry; a plain select just doesn't need the async round-trip a real
+// typeahead does.
+const CURRENCY_OPTIONS = CURRENCIES.map((c) => ({ value: c, label: c }))
 
-const CHARGE_CODE_OPTIONS = CHARGE_CODES.map(c => ({ value: c.code, label: c.code }))
-const CURRENCY_OPTIONS = [
-  { value: 'USD', label: 'USD' },
-  { value: 'CAD', label: 'CAD' },
-  { value: 'EUR', label: 'EUR' },
-]
+// Charge Code (Additional Charges) moved to the shared lookup registry's
+// 'charge-code' type (LINX-13895, refs LINX-3966 "Search by Code or
+// Description") — was a label-only 5-entry array a `typable={false}` ComboBox
+// could only ever pick, never search by description.
 
-// Real equipment catalog (master-data.js — SINGLE SOURCE per its own header
-// comment). "CODE - Full Name" rows while picking (same idiom
-// ShipmentDetailsModal's old inline Equipment combobox used, and SetupCarriers'
-// SCAC picker) — the field still displays/commits the bare CODE.
-const EQUIPMENT_OPTIONS = EQUIPMENT_CODES.map((code) => ({ value: code, label: `${code} - ${EQUIPMENT_LABELS[code]}` }))
-
-const CARRIER_PAGE_SIZE = 25
-const loadCarriers = async (q, skip = 0) => {
-  if (q.trim().length === 1) return { options: [], total: 0 } // 2-char typing gate (LINX-8118)
-  const all = await getLookupOptions('carrier', q)
-  return { options: all.slice(skip, skip + CARRIER_PAGE_SIZE), total: all.length }
-}
+// The equipment catalog and the paged carrier (SCAC) lookup both lived here
+// until 2026-08-16. LINX-13895 makes the whole Carrier Option section
+// read-only, so nothing in this modal picks a carrier or an equipment code any
+// more — both are shown as values off the selected routing option. Equipment
+// is still EDITED, just not here: ShipmentDetailsModal's General Information
+// section owns that control and its own save.
 
 // Timezone shown beside the time as its UTC offset only — "(UTC-06:00)". The
 // full TIMEZONE_LABELS string starved the TimePicker in a half-width column,
@@ -102,50 +100,46 @@ function SummaryCard({ title, rows, total }) {
   )
 }
 
+// Day-of-week for an "MM/DD/YYYY" string, as the ticket's "Tue" / "Wed".
+// DERIVED from the date rather than read from a stored day field: the VM
+// carries `pickupOrgDay` but has NO `deliveryOrgDay`, so only one side could
+// have used a stored value — and a stored day can silently disagree with its
+// own date, which a derived one cannot. Parsed part-wise, not via
+// `new Date(string)`, whose "MM/DD/YYYY" handling is implementation-defined.
+const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+export function dayOfWeek(mdY) {
+  const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(String(mdY ?? '').trim())
+  if (!m) return ''
+  const d = new Date(Number(m[3]), Number(m[1]) - 1, Number(m[2]))
+  // Guard a rolled-over invalid date (e.g. 02/31) rather than naming a day
+  // that isn't the one written down.
+  if (d.getMonth() !== Number(m[1]) - 1 || d.getDate() !== Number(m[2])) return ''
+  return DAY_NAMES[d.getDay()]
+}
+
 /**
- * Date + Time. NO timezone CONTROL — the timezone is SYSTEM-determined from the
- * shipment (user, S102); it renders as static initials beside the time and rides
- * back out through joinDateTime.
+ * LINX-13895 — the Carrier Option section's Pickup/Delivery value, composed as
+ * the ticket's own example: "01/07/2026 09:00 CST, Tue, (07:00-15:30)" —
+ * date, time (if available), time zone, day, org hours.
  *
- * `readOnly` (Rate Details) collapses the whole thing to ONE blocked field
- * showing the composed "MM/DD/YYYY HH:MM CST" — nothing to edit, so nothing is
- * split into parts.
- *
- * Editable: date takes 1fr; time + the timezone label share the other 1fr, with
- * the TimePicker flexing to fill whatever the initials don't use.
+ * Every part is optional and simply omitted when missing, so a partial record
+ * degrades to "01/07/2026, Tue" rather than "01/07/2026 , , ()". An entirely
+ * empty one reads as the DASH, per "if any data is blank or unavailable,
+ * display '--'".
  */
-function DateTimePair({ idPrefix, name, value, onChange, disabled, readOnly }) {
-  if (readOnly) {
-    // Read-only reads as a VALUE, not a dead input (user, S112) — same
-    // TitleSubtitle idiom ShipmentDetailsModal uses for General Information.
-    return <TitleSubtitle subtitle={name} title={joinDateTime(value) || DASH} />
-  }
-  return (
-    <div className="quote-datetime">
-      <div className="quote-datetime__row">
-        <DateField
-          id={`${idPrefix}-date`}
-          label="Date"
-          value={value.date}
-          onChange={(date) => onChange({ ...value, date })}
-          disabled={disabled}
-        />
-        <TimePicker
-          id={`${idPrefix}-time`}
-          label="Time"
-          /* 24h — LINX-8120 / LINX-7629 data-format contract. Efrain's 12h mocks
-             do NOT govern this: source precedence covers design descriptions,
-             not data formats (user ruling, 2026-08-06). */
-          format="international"
-          /* No timezone here — it's SYSTEM-determined, so it qualifies the
-             Pickup/Delivery section title instead of the control. */
-          value={value.time}
-          onChange={(time) => onChange({ ...value, time })}
-          disabled={disabled}
-        />
-      </div>
-    </div>
-  )
+export function composeCarrierDateTime(value) {
+  if (!value) return DASH
+  const day = dayOfWeek(value.date)
+  const hours = value.orgHours && value.orgHours !== DASH ? `(${value.orgHours})` : ''
+  return [joinDateTime(value), day, hours].filter(Boolean).join(', ') || DASH
+}
+
+/** Read-only Pickup/Delivery value. Reads as a VALUE, not a dead input (user,
+ *  S112) — the TitleSubtitle idiom ShipmentDetailsModal uses for General
+ *  Information. There is no editable variant: LINX-13895 makes the whole
+ *  Carrier Option section read-only in every mode. */
+function CarrierDateTime({ name, value }) {
+  return <TitleSubtitle subtitle={name} title={composeCarrierDateTime(value)} />
 }
 
 /** The quote form's footer buttons, for hosts that own the dialog shell. */
@@ -165,42 +159,105 @@ export const QuoteModal = forwardRef(function QuoteModal(
   const isView = mode === 'view'
   const isEdit = mode === 'edit'
 
-  const [scac, setScac] = useState(() => carrierData?.scac || '')
-  const [carrierName, setCarrierName] = useState(() => carrierData?.carrierName || '')
-  // Equipment — the ONLY place a quote's equipment is edited (2026-08-10):
-  // ShipmentDetailsModal's own pens for Base/Markup/Equipment all open this
-  // modal instead of any inline control, so it must own the field. Seeds from
-  // the routing option's own `equipment` (RoutingOptionVM.equipment).
-  const [equipment, setEquipment] = useState(() => carrierData?.equipment || '')
+  // LINX-13895 — the Carrier Option section is READ-ONLY in every mode
+  // ("Carrier Option information shall be read-only"), sourced from the
+  // selected Routing Option. So none of these five are state: there is nothing
+  // to edit and nothing to sync back. They ride straight off the prop.
+  //
+  // This corrects a 2026-08-10 note claiming this modal had to own Equipment
+  // because it was the only editor. It isn't: ShipmentDetailsModal's General
+  // Information section edits Equipment itself (EDITABLE_GENERAL, with its own
+  // saveTenderOption call), and DEC-82 removed the per-field pens that note
+  // referred to.
+  const scac = carrierData?.scac || ''
+  const carrierName = carrierData?.carrierName || ''
+  const equipment = carrierData?.equipment || ''
   // Timezone is the shipment's, not the user's: prefer the quote's own stored
   // TZ, else the one every other option on this shipment carries.
   const tzFor = (own, fallback) => {
     const v = own && own !== DASH ? own : fallback
     return v && v !== DASH ? v : 'CST'
   }
-  const [pickup, setPickup] = useState(() => ({
+  const pickup = {
     ...splitDateTime(carrierData?.pickupDateTime),
     tz: tzFor(carrierData?.pickupTZ, shipmentTz?.pickup),
-  }))
-  const [delivery, setDelivery] = useState(() => ({
+    orgHours: carrierData?.pickupOrgHours,
+  }
+  const delivery = {
     ...splitDateTime(carrierData?.deliveryDateTime),
     tz: tzFor(carrierData?.deliveryTZ, shipmentTz?.delivery),
-  }))
+    orgHours: carrierData?.deliveryOrgHours,
+  }
   const [baseRate, setBaseRate] = useState(() => carrierData?.rateDetails?.baseRate ?? '')
-  const [currency, setCurrency] = useState(() => carrierData?.rateDetails?.currency || 'USD')
+  // LINX-3966 (General Rule 5) / LINX-13895 ("Currency Selection is
+  // mandatory"): a NEW quote must start with no currency chosen, forcing a
+  // deliberate pick — defaulting to 'USD' made the ticket's own "Please
+  // select a currency" error permanently unreachable, since it can only fire
+  // when currency is falsy. Verified this isn't only a `|| 'USD'` bug here:
+  // mapRoutingOption (mapSellShipmentOutToDetail.ts:331) defaults an absent
+  // `rateDetails` to `{ ..., currency: 'USD', ... }`, AND generate.mjs writes
+  // `currency: 'USD'` into every seeded routing option's rateDetails
+  // regardless of quoteFlag (tools/generate.mjs:774) — so
+  // `carrierData.rateDetails.currency` reads 'USD' even for an option that
+  // has never been quoted.
+  //
+  // Discriminator is `mode`, not `quoteFlag === 'Y'`: `view` (Rate Details)
+  // must keep showing an option's real currency even when it was never
+  // quoted (quoteFlag !== 'Y') — ShowRateDetails isn't gated by hasQuote
+  // (RoutingGuideTab.jsx:330/1080), only the Edit-vs-Add row-menu label is
+  // (RoutingGuideTab.jsx:1094). A quoteFlag check would wrongly blank that
+  // view. `mode === 'edit'` and `quoteFlag === 'Y'` never disagree where it'd
+  // matter — the row menu only offers Edit Quote when quoteFlag === 'Y' — so
+  // this only changes behavior for `add`.
+  const [currency, setCurrency] = useState(() =>
+    mode === 'add' ? '' : (carrierData?.rateDetails?.currency || ''),
+  )
   const [markup, setMarkup] = useState(() => carrierData?.rateDetails?.markup ?? '')
   const [additionalCharges, setAdditionalCharges] = useState(() =>
     carrierData?.rateDetails?.additionalCharges?.map(c => ({ ...c })) || [],
   )
+  // Audit Information (LINX-13895) is read-only in every mode and never
+  // edited here, so it rides straight off the prop — no local state to seed
+  // or sync back.
+  const audit = carrierData?.quoteAudit
 
-  // The lookup labels read "SCAC - Carrier Name"; the field shows the code only
-  // (mock) and the name lands in its own derived field.
-  const handleScacSelect = (val, opt) => {
-    setScac(val ?? '')
-    const label = opt?.label ?? ''
-    const dash = label.indexOf(' - ')
-    setCarrierName(dash >= 0 ? label.slice(dash + 3) : '')
+  // Field-level validation (LINX-13895 table). `touched` gates when a
+  // still-empty/invalid field first shows red — same on-blur idiom as
+  // create-order's react-hook-form fields (mode: onTouched), reimplemented
+  // here without the dependency since this form is plain useState. A Save
+  // attempt (`submitted`) reveals everything at once, the same way a form
+  // library surfaces every field on submit.
+  const [touched, setTouched] = useState({})
+  const [submitted, setSubmitted] = useState(false)
+  const touch = (key) => setTouched((t) => (t[key] ? t : { ...t, [key]: true }))
+  const showError = (key, msg) => (touched[key] || submitted) ? msg : null
+
+  const isBlank = (v) => v === '' || v == null
+  const decimalPlaces = (v) => {
+    const s = String(v)
+    const i = s.indexOf('.')
+    return i === -1 ? 0 : s.length - i - 1
   }
+  // Shared shape for Base Rate / Markup / each Charge Amount: numeric-or-blank,
+  // then the two amount-specific rules from the ticket's table.
+  const amountError = (raw) => {
+    if (isBlank(raw)) return null // required-ness is each caller's own rule
+    if (!Number.isFinite(Number(raw))) return 'Please enter a valid numeric amount.'
+    if (decimalPlaces(raw) > 6) return 'Amount supports up to 6 decimal places.'
+    return null
+  }
+  // Base Rate is mandatory; Currency Selection is mandatory (ticket's field
+  // table) — both ride the one error slot MeasureField exposes for the
+  // combined value+currency control.
+  const baseRateError = isBlank(baseRate)
+    ? 'Base Rate is required.'
+    : amountError(baseRate) || (!currency ? 'Please select a currency.' : null)
+  const markupError = amountError(markup) // Markup is optional — no required check
+  const chargeErrors = additionalCharges.map((c) => ({
+    code: !c.code ? 'Charge Code is required.' : null,
+    amount: isBlank(c.amount) ? 'Amount is required.' : amountError(c.amount),
+  }))
+  const hasErrors = !!baseRateError || !!markupError || chargeErrors.some((e) => e.code || e.amount)
 
   const addChargeRow = () => {
     setAdditionalCharges(prev => [...prev, { code: '', description: '', amount: '', currency: 'USD' }])
@@ -210,9 +267,11 @@ export const QuoteModal = forwardRef(function QuoteModal(
     setAdditionalCharges(prev => prev.map((c, i) => (i === idx ? { ...c, ...patch } : c)))
   }
 
-  const setChargeCode = (idx, code) => {
-    const found = CHARGE_CODES.find(cc => cc.code === code)
-    updateCharge(idx, { code: code ?? '', description: found ? found.description : '' })
+  // Charge Description is "Auto-populated / Derived from Charge Code"
+  // (LINX-13895) — the lookup's own `description` field on the selected
+  // option, not a re-lookup against a local array.
+  const setChargeCode = (idx, code, description) => {
+    updateCharge(idx, { code: code ?? '', description: code ? (description ?? '') : '' })
   }
 
   const removeCharge = (idx) => {
@@ -224,10 +283,17 @@ export const QuoteModal = forwardRef(function QuoteModal(
   const numMarkup = Number(markup) || 0
   const codedCharges = additionalCharges.filter(c => c.code)
   const chargeTotal = additionalCharges.reduce((s, c) => s + (Number(c.amount) || 0), 0)
-  const apTotal = Math.round((numBase + chargeTotal) * 100) / 100
-  const arTotal = Math.round((numBase + numMarkup + chargeTotal) * 100) / 100
+  // Rounded to 6dp, not 2 (LINX-13895 — amounts input up to 6 decimal places).
+  // Snapping to cents here silently dropped any sub-cent precision the ticket
+  // explicitly allows on input, before it ever reached onSave's payload;
+  // display everywhere still reads 2dp because fmtDollar rounds at render
+  // time regardless of how many decimals the stored total carries.
+  const apTotal = Math.round((numBase + chargeTotal) * 1e6) / 1e6
+  const arTotal = Math.round((numBase + numMarkup + chargeTotal) * 1e6) / 1e6
 
   const handleSave = () => {
+    setSubmitted(true) // reveal every remaining error at once, form-submit idiom
+    if (hasErrors || !scac) return
     onSave({
       scac,
       carrierName,
@@ -238,8 +304,12 @@ export const QuoteModal = forwardRef(function QuoteModal(
         baseRate: numBase,
         currency,
         markup: numMarkup,
-        // Fields hold raw text; numbers are produced here, once.
-        additionalCharges: codedCharges.map((c) => ({ ...c, amount: Number(c.amount) || 0 })),
+        // Fields hold raw text; numbers are produced here, once. Currency is
+        // forced to the shared `currency` here too — LINX-13895: "All quote
+        // information shall use a single currency," so the persisted charge
+        // rows can never carry a stale/divergent currency even if the seed
+        // data did.
+        additionalCharges: codedCharges.map((c) => ({ ...c, amount: Number(c.amount) || 0, currency })),
         apTotal,
         arTotal,
       },
@@ -248,7 +318,7 @@ export const QuoteModal = forwardRef(function QuoteModal(
 
   const title = mode === 'add' ? 'Add Quote' : isEdit ? 'Edit Quote' : 'Rate Details'
   const chargeRows = codedCharges.map(c => [c.code, Number(c.amount) || 0])
-  const disabled = !scac || !baseRate
+  const disabled = !scac || hasErrors
 
   // Embedded hosts (ShipmentDetailsModal's Edit Quote view) own the footer
   // themselves via QuoteModalFooter, so they need `save` + the live validity
@@ -262,75 +332,27 @@ export const QuoteModal = forwardRef(function QuoteModal(
 
   const body = (
       <div className="quote-modal">
+        {/* LINX-13895 — "Carrier Option", READ-ONLY, identical in all three
+            modes. The five fields and their order are the ticket's own table:
+            SCAC, Carrier Name, Equipment, Pickup, Delivery, each "of the
+            selected routing option". Previously add/edit rendered SCAC and
+            Equipment as comboboxes and the dates as editable pickers, which
+            contradicted the section's stated contract. */}
         <section>
-          <h3 className="text-label-base-semibold quote-modal__section-title">Carrier</h3>
+          <h3 className="text-label-base-semibold quote-modal__section-title">Carrier Option</h3>
           <div className="quote-modal__grid-2">
-            {isView ? (
-              <>
-                <TitleSubtitle subtitle="SCAC" title={scac || DASH} />
-                <TitleSubtitle subtitle="Carrier Name" title={carrierName || DASH} />
-                <TitleSubtitle subtitle="Equipment" title={equipment || DASH} />
-              </>
-            ) : (
-              <>
-                <ComboBox
-                  id="quote-scac"
-                  variant="select"
-                  showLabel
-                  label="SCAC"
-                  placeholder="Select SCAC"
-                  loadOptions={loadCarriers}
-                  value={scac}
-                  onChange={(text) => { if (scac && text !== scac) { setScac(''); setCarrierName('') } }}
-                  onSelect={handleScacSelect}
-                  emptyMessage={(q) => (q.trim().length === 1 ? 'Type at least 2 characters' : 'No matches')}
-                  disabled={isEdit}
-                />
-                {/* Carrier Name is always derived from the SCAC — never typed. */}
-                <FormField label="Carrier Name" value={carrierName} disabled />
-                <ComboBox
-                  id="quote-equipment"
-                  variant="select"
-                  typable={false}
-                  showLabel
-                  label="Equipment"
-                  placeholder="Select equipment"
-                  options={EQUIPMENT_OPTIONS}
-                  value={equipment}
-                  onSelect={(v) => setEquipment(v ?? '')}
-                />
-              </>
-            )}
+            <TitleSubtitle subtitle="SCAC" title={scac || DASH} />
+            <TitleSubtitle subtitle="Carrier Name" title={carrierName || DASH} />
+            <TitleSubtitle subtitle="Equipment" title={equipment || DASH} />
+            <CarrierDateTime name="Pickup" value={pickup} />
+            <CarrierDateTime name="Delivery" value={delivery} />
           </div>
         </section>
 
-        {/* View mode composes each side into one self-describing value, so the
-            two sections collapse to one (user, S112). Editing still needs them
-            apart — that's the only thing telling Pickup's fields from
-            Delivery's, since the controls are just "Date" and "Time". */}
-        {isView ? (
-          <section>
-            <h3 className="text-label-base-semibold quote-modal__section-title">Pickup and Delivery</h3>
-            <div className="quote-modal__grid-2">
-              <DateTimePair idPrefix="quote-pickup" name="Pickup" value={pickup} readOnly />
-              <DateTimePair idPrefix="quote-delivery" name="Delivery" value={delivery} readOnly />
-            </div>
-          </section>
-        ) : (
-          <div className="quote-modal__grid-2">
-            <section>
-              <h3 className="text-label-base-semibold quote-modal__section-title">Pickup</h3>
-              <DateTimePair idPrefix="quote-pickup" name="Pickup" value={pickup} onChange={setPickup} />
-            </section>
-            <section>
-              <h3 className="text-label-base-semibold quote-modal__section-title">Delivery</h3>
-              <DateTimePair idPrefix="quote-delivery" name="Delivery" value={delivery} onChange={setDelivery} />
-            </section>
-          </div>
-        )}
-
         <section>
-          <h3 className="text-label-base-semibold quote-modal__section-title">Rate</h3>
+          {/* "Quote" — the ticket's own section name for the editable fields,
+              paired against the read-only "Carrier Option" above it. */}
+          <h3 className="text-label-base-semibold quote-modal__section-title">Quote</h3>
           <div className="quote-modal__grid-2">
             {isView ? (
               <>
@@ -342,23 +364,41 @@ export const QuoteModal = forwardRef(function QuoteModal(
                 <MeasureField
                   showLabel
                   label="Base Rate"
-                  decimals={2}
+                  // Numeric, up to 6 decimal places (LINX-13895).
+                  decimals={6}
                   value={{ value: baseRate, uom: currency }}
                   options={CURRENCY_OPTIONS}
                   onChange={(v) => { setBaseRate(v.value); setCurrency(v.uom) }}
+                  onBlur={() => touch('baseRate')}
+                  error={showError('baseRate', baseRateError)}
                 />
                 <MeasureField
                   showLabel
                   label="Markup"
-                  decimals={2}
-                  // UoM here IS the quote's shared `currency`, not a separate
-                  // markup-only one (2026-08-10 ruling): arTotal sums base +
-                  // markup as a single currency, so an independent markup
-                  // currency was arithmetically incoherent, not merely
-                  // un-persisted. One quote, one currency.
+                  // Numeric, up to 6 decimal places (LINX-13895).
+                  decimals={6}
+                  // UoM here IS the quote's shared `currency` (2026-08-10 ruling:
+                  // arTotal sums base + markup as a single currency, so an
+                  // independent markup currency was arithmetically incoherent).
+                  // LINX-13895 completes that ruling: "Currency shall only be
+                  // selected on Base Rate" / "Users shall not modify currency
+                  // on: Markup Amount." A single-entry `options` array is this
+                  // codebase's existing idiom for a MeasureField whose unit is
+                  // fixed rather than pickable — CarrierBid.jsx's Linehaul/Base
+                  // field locks USD the same way — so selecting the one option
+                  // is always a no-op; MeasureField/FieldSelect expose no
+                  // separate "trailing select disabled, input still editable"
+                  // affordance, and forking either was out of scope. Empty
+                  // options (not a `{ value: '', label: '' }` entry) while
+                  // currency is still unselected — MeasureField's own
+                  // `uomLabel` lookup falls back to 'UOM' when nothing
+                  // matches, so an unselected shared currency reads as the
+                  // same placeholder Base Rate shows, not a blank pill.
                   value={{ value: markup, uom: currency }}
-                  options={CURRENCY_OPTIONS}
-                  onChange={(v) => { setMarkup(v.value); setCurrency(v.uom) }}
+                  options={currency ? [{ value: currency, label: currency }] : []}
+                  onChange={(v) => setMarkup(v.value)}
+                  onBlur={() => touch('markup')}
+                  error={showError('markup', markupError)}
                 />
               </>
             )}
@@ -383,25 +423,43 @@ export const QuoteModal = forwardRef(function QuoteModal(
                     <>
                       <span className="text-label-sm-regular">{charge.code || DASH}</span>
                       <span className="text-label-sm-regular">{charge.description || DASH}</span>
-                      <span className="text-label-sm-regular">{money(charge.amount, charge.currency)}</span>
+                      {/* Currency shown, never charge.currency — every quote
+                          component reads the one shared currency (LINX-13895). */}
+                      <span className="text-label-sm-regular">{money(charge.amount, currency)}</span>
                     </>
                   ) : (
                     <>
                       <ComboBox
                         variant="select"
-                        typable={false}
                         showLabel={false}
                         placeholder="--"
-                        options={CHARGE_CODE_OPTIONS}
+                        // Searchable, not pick-only (LINX-13895/3966: "Search by
+                        // Code or Description") — loadOptions routes through the
+                        // shared registry, whose matcher already checks
+                        // value/label/description, so typing "Fuel" finds FSC.
+                        loadOptions={(q) => getLookupOptions('charge-code', q)}
+                        emptyMessage={(q) => (q.trim().length === 1 ? 'Type at least 2 characters' : 'No matching charge codes')}
                         value={charge.code}
-                        onSelect={(v) => setChargeCode(idx, v)}
+                        onSelect={(v, opt) => setChargeCode(idx, v, opt?.description)}
+                        onBlur={() => touch(`charge-${idx}-code`)}
+                        error={showError(`charge-${idx}-code`, chargeErrors[idx].code)}
                       />
                       <FormField showLabel={false} value={charge.description} disabled />
                       <MeasureField
-                        decimals={2}
-                        value={{ value: charge.amount, uom: charge.currency }}
-                        options={CURRENCY_OPTIONS}
-                        onChange={(v) => updateCharge(idx, { amount: v.value, currency: v.uom })}
+                        // Numeric, up to 6 decimal places (LINX-13895).
+                        decimals={6}
+                        value={{ value: charge.amount, uom: currency }}
+                        // Fixed unit, not a picker — same single-entry-options
+                        // idiom as Markup above: Additional Charges > Currency
+                        // is "Auto-populated — Derived from Base Rate Currency"
+                        // per the ticket, so only Base Rate's own MeasureField
+                        // keeps the real CURRENCY_OPTIONS list. Empty options
+                        // (not a blank-value entry) while currency is still
+                        // unselected — same 'UOM' fallback as Markup above.
+                        options={currency ? [{ value: currency, label: currency }] : []}
+                        onChange={(v) => updateCharge(idx, { amount: v.value })}
+                        onBlur={() => touch(`charge-${idx}-amount`)}
+                        error={showError(`charge-${idx}-amount`, chargeErrors[idx].amount)}
                       />
                     </>
                   )}
@@ -440,6 +498,24 @@ export const QuoteModal = forwardRef(function QuoteModal(
             total={arTotal}
           />
         </div>
+
+        {/* Audit Information (LINX-13895) — read-only in all three modes,
+            never edited here. Always rendered, every field individually
+            DASHed, rather than omitted on a never-quoted option: every other
+            read-only section in this file (Pickup and Delivery, Carrier in
+            view mode) follows the same rule — the section's shape never
+            depends on whether the data behind it exists. */}
+        <section>
+          <h3 className="text-label-base-semibold quote-modal__section-title">Audit Information</h3>
+          <div className="quote-modal__grid-2">
+            <TitleSubtitle subtitle="Created By" title={audit?.createdBy || DASH} />
+            <TitleSubtitle subtitle="Created Date/Time" title={audit?.createdDate || DASH} />
+            <TitleSubtitle subtitle="Updated By" title={audit?.updatedBy || DASH} />
+            <TitleSubtitle subtitle="Updated Date/Time" title={audit?.updatedDate || DASH} />
+            <TitleSubtitle subtitle="Initial AP Amount" title={audit?.initialApAmount != null ? fmtDollar(audit.initialApAmount) : DASH} />
+            <TitleSubtitle subtitle="Final AP Amount" title={audit?.finalApAmount != null ? fmtDollar(audit.finalApAmount) : DASH} />
+          </div>
+        </section>
       </div>
   )
 

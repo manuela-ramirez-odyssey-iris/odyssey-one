@@ -63,4 +63,36 @@ describe('lookupService.getLookupOptions (mock)', () => {
     // Product ID = 13-digit external id (18-digit legacy minus 5 leading zeros)
     expect(opt.value).toMatch(/^\d{13}$/)
   })
+
+  // LINX-13895 / LINX-3966 — Quote Entry's Currency comes from "TMS Master
+  // Data Currency". A plain select (short closed list) like freight-term/
+  // ship-direction above: full list, no typeahead gate.
+  it('currency is a plain select sourced from the shared CURRENCIES pool', async () => {
+    const currencies = await getLookupOptions('currency', '')
+    expect(currencies.map(o => o.value)).toEqual(['CAD', 'EUR', 'MXN', 'USD'])
+    expect(currencies.map(o => o.label)).toEqual(['CAD', 'EUR', 'MXN', 'USD'])
+  })
+
+  // LINX-13895 / LINX-3966 — Additional Charges' Charge Code is "Search by
+  // Code or Description", so charge-code gates like the other true
+  // typeaheads (special-service, etc.) rather than returning unfiltered.
+  it('charge-code gates at 2 characters like special-service', async () => {
+    expect(await getLookupOptions('charge-code', 'f')).toEqual([])
+    expect((await getLookupOptions('charge-code', 'fs')).length).toBeGreaterThan(0)
+  })
+
+  it('charge-code matches on DESCRIPTION as well as code (the ticket\'s "Search by Code or Description")', async () => {
+    const byDescription = await getLookupOptions('charge-code', 'fuel surcharge')
+    expect(byDescription.map(o => o.value)).toEqual(['FSC'])
+    const byCode = await getLookupOptions('charge-code', 'fsc')
+    expect(byCode.map(o => o.value)).toEqual(['FSC'])
+    // The description rides on the option itself — what the ComboBox's
+    // Charge Description auto-populate reads off the selected option.
+    expect(byCode[0].description).toBe('Fuel Surcharge')
+  })
+
+  it('charge-code sorts by frequency descending, like special-service', async () => {
+    const all = await getLookupOptions('charge-code', '')
+    expect(all.map(o => o.value)).toEqual(['THC', 'FSC', 'SOC', 'HZC', 'ACC'])
+  })
 })

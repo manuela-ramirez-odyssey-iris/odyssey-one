@@ -150,6 +150,18 @@ export interface RoutingAdditionalChargeVM {
   currency: string
 }
 
+/** LINX-13895 "Audit Information" — see SellShipmentQuoteAudit for field meaning.
+    Same shape on both sides: it is stored and displayed verbatim, never formatted
+    by the mapper (the Quote Entry Page does its own display formatting). */
+export interface QuoteAuditVM {
+  createdBy: string
+  createdDate: string
+  updatedBy: string
+  updatedDate: string
+  initialApAmount: number | null
+  finalApAmount: number | null
+}
+
 export interface RoutingOptionVM {
   rank: number
   routeRank: number
@@ -166,6 +178,12 @@ export interface RoutingOptionVM {
     apTotal: number
     arTotal: number
   }
+  /** LINX-13896/13897 — 'Y' once a USER-entered quote is saved, 'N' once deleted.
+      Absent on a contracted-rate option. Drives the Tender Actions menu's
+      Add-vs-Edit/Delete split (RoutingGuideTab). */
+  quoteFlag?: 'Y' | 'N'
+  /** LINX-13895 "Audit Information" — rendered read-only on the Quote Entry Page. */
+  quoteAudit?: QuoteAuditVM
   status: string | null
   pickupDateTime: string | null
   pickupTZ: string

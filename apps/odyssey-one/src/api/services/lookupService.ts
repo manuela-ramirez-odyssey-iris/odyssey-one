@@ -13,6 +13,8 @@ import {
   TIMEZONE_LABELS,
   LOCATION_ADDRESSES,
   CHEMICAL_PRODUCTS,
+  CURRENCIES,
+  CHARGE_CODES,
 } from '../../data/master-data'
 
 // Typeahead lookups behind the mock/live seam (spec §2.3). live → the
@@ -32,6 +34,8 @@ export type LookupType =
   | 'special-service'
   | 'timezone'
   | 'carrier'
+  | 'currency'
+  | 'charge-code'
 
 export interface LookupOption {
   value: string
@@ -53,9 +57,13 @@ export function normalizeLookupQuery(query: string): string {
 }
 
 // Plain selects return their full list; only true typeaheads gate on length
-// (plan decision 14). Equipment gates on org instead (decision 15).
+// (plan decision 14). Equipment gates on org instead (decision 15). Currency
+// is a short closed list (LINX-13895/3966) — plain select, joins
+// freight-term/ship-class/timezone below. Charge Code is "Search by Code or
+// Description" over a 40+-entry real catalog (LINX-13895/3966) — same shape
+// as special-service, so it gates the same way.
 const TYPEAHEAD_TYPES = new Set<LookupType>([
-  'owning-org', 'org-address', 'product', 'special-service', 'carrier',
+  'owning-org', 'org-address', 'product', 'special-service', 'carrier', 'charge-code',
 ])
 
 export interface LookupParams {
@@ -120,6 +128,21 @@ function poolFor(type: LookupType, params: LookupParams): LookupOption[] {
         value: tz,
         label: TIMEZONE_LABELS[tz as keyof typeof TIMEZONE_LABELS] ?? tz,
         frequency: TIMEZONES.length - i,
+      }))
+    case 'currency':
+      // Quote Entry Base Rate Currency — "TMS Master Data Currency" (LINX-13895,
+      // ticket references LINX-3966). Reuses the existing CURRENCIES pool
+      // (already ISO-alphabetic per LINX-8131) rather than a second list.
+      return CURRENCIES.map((c: string, i: number) => ({
+        value: c, label: c, frequency: CURRENCIES.length - i,
+      }))
+    case 'charge-code':
+      // Additional Charges "Search by Code or Description" (LINX-13895,
+      // references LINX-3966). Same shape as special-service: description
+      // rides on the option so the matcher below (value/label/description)
+      // already searches both — no bespoke filter needed.
+      return CHARGE_CODES.map((c: { code: string; description: string; frequency: number }) => ({
+        value: c.code, label: c.code, description: c.description, frequency: c.frequency,
       }))
     case 'carrier':
       // LINX-8126: "<SCAC> - <Carrier Name>", ALPHABETICAL by name (frequency

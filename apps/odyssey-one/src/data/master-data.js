@@ -196,3 +196,18 @@ export const UOM_DIMENSION = [
 // HANDLING_UNITS now lives in tools/data-pools.mjs (generated order lines store
 // the code) — re-exported above.
 export const CURRENCIES = ['CAD', 'EUR', 'MXN', 'USD']
+
+// ── Quote Entry additional-charge codes (LINX-13895 / LINX-3966: "TMS Master
+// Data Currency" ships the same catalog CURRENCIES already models above;
+// Charge Code is "Search by Code or Description" against this one) ──
+// Same shape SPECIAL_SERVICES uses (code/description/frequency) — moved out of
+// QuoteModal.jsx's local array so lookupService's 'charge-code' type can serve
+// it. CODES ARE INVENTED mnemonics (real charge-code catalog unknown, same
+// caveat as SPECIAL_SERVICES above) — swap when a dev lookup capture lands.
+export const CHARGE_CODES = [
+  { code: 'THC', description: 'Terminal Handling Charge', frequency: 50 },
+  { code: 'FSC', description: 'Fuel Surcharge', frequency: 40 },
+  { code: 'SOC', description: 'Stop-Off Charge', frequency: 30 },
+  { code: 'HZC', description: 'Hazmat Charge', frequency: 20 },
+  { code: 'ACC', description: 'Accessorial', frequency: 10 },
+]

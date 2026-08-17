@@ -3548,6 +3548,24 @@ button.breadcrumb__label:focus-visible {
 .modal-header.modal-medium__header .modal-header__lead { align-items: center; }
 .modal-header.modal-medium__header .modal-header__back { margin-top: 0; }
 
+/* Confirmation dialogs — a short prose question plus two buttons, never a data
+   grid. `.modal-medium` is content-sized up to 920px for the Shipment Details
+   grid (see above); a single paragraph left uncapped stretches toward that,
+   which reads as a full-size modal for a yes/no prompt (user, 2026-08-16).
+
+   440px, not a rounder number: at the --text-label-sm-regular size this holds
+   roughly 60 characters per line, inside the 45–75 range that keeps prose
+   comfortable to read. Wider costs the reader line-tracking; narrower turns two
+   sentences into a column. Sits clear of `.modal-medium`'s 350px min-width, so
+   the two constraints don't fight.
+
+   A local layout dimension, deliberately not a token: it describes THIS
+   dialog's reading measure, not a value shared across the design system.
+   Colour, radius, type and shadow all still come from .modal-medium's tokens. */
+.modal-medium.confirm-dialog {
+  max-width: 440px;
+}
+
 .modal-medium__content {
   padding: 0 var(--spacing-6) var(--spacing-5);
   display: flex;

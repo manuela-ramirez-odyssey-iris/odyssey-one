@@ -757,7 +757,9 @@ function generateShipment(index, chainOverride) {
     const _apTotal = Math.round((_baseRate + _chargeTotal) * 100) / 100;
     const _arTotal = Math.round((_baseRate + _markup + _chargeTotal) * 100) / 100;
 
-    return {
+    // Bound to a const rather than returned directly so the quote-derivation
+    // block below can read the values just drawn (see its comment).
+    const option = {
       rank,
       routeRank: routeRanks[ri],
       scac: rc.scac,
@@ -818,7 +820,13 @@ function generateShipment(index, chainOverride) {
       // --- Additional Info tab (8 new) ---
       carrierApiTenderId: faker.string.uuid(),
       breakPoint: faker.number.float({ min: 0, max: 1 }) < 0.8 ? faker.location.city() : 'Direct',
-      rateSource: pick(['Contract', 'Spot', 'Benchmark', 'Historical']),
+      // 'Manual' added 2026-08-16 (LINX-13894/13896). It is what the app itself
+      // writes when a user saves a quote, so a dataset in which it never appears
+      // has no user-quoted options at all — which left Edit Quote and Delete
+      // Quote unreachable in the running app. Adding a fifth element does NOT
+      // add a faker draw (arrayElement consumes one draw regardless of length),
+      // so shipment ids downstream are unshifted.
+      rateSource: pick(['Contract', 'Spot', 'Benchmark', 'Historical', 'Manual']),
       distanceSource: pick(['PC Miler', 'Google Maps', 'ALK', 'Manual']),
       transitTimeId: `TT-${faker.string.alphanumeric(8).toUpperCase()}`,
       loadboardExpiry: faker.number.float({ min: 0, max: 1 }) < 0.7 ? formatDateTime(genDate(baseDate, faker.number.int({ min: 5, max: 30 }))) : null,
@@ -835,6 +843,33 @@ function generateShipment(index, chainOverride) {
       contactExped: `${faker.person.fullName()} ${faker.phone.number()}`,
       note: faker.number.float({ min: 0, max: 1 }) < 0.5 ? faker.lorem.sentence() : null,
     };
+
+    // LINX-13894/13896/13897 — the quote fields are DERIVED from rateSource,
+    // never drawn, so this block adds zero faker calls and cannot renumber the
+    // shipment ids that later draws produce.
+    //
+    // Coherence (not just presence) is the point: an option whose rate the user
+    // typed is exactly an option with a saved quote, so quoteFlag 'Y',
+    // "Carrier Quoted" checked, and an audit record all travel together. A row
+    // flagged 'Y' with no audit trail would be data that contradicts itself.
+    // Everything here reuses values already drawn for this same option.
+    if (option.rateSource === 'Manual') {
+      option.quoteFlag = 'Y';
+      option.carrierQuoted = 'Yes';
+      option.quoteAudit = {
+        createdBy: option.modifyUser,
+        createdDate: option.modifyDate,
+        updatedBy: option.modifyUser,
+        updatedDate: option.modifyDate,
+        // Null, deliberately: these seeded quotes have no recorded pre-quote
+        // contracted rate to have overridden. The app writes a number here only
+        // when a quote actually replaces an existing AP cost.
+        initialApAmount: null,
+        finalApAmount: _apTotal,
+      };
+    }
+
+    return option;
   });
 
   // Derive tender status and shipment status from routing options

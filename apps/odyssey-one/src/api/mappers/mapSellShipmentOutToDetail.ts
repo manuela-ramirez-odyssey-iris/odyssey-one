@@ -329,6 +329,12 @@ function mapRoutingOption(o: SellShipmentRoutingOption): RoutingOptionVM {
     rate: o.rateAmount != null ? fmtDollar(o.rateAmount) : DASH,
     cost: o.totalCostAmount != null ? `${fmtDollar(o.totalCostAmount)} USD` : DASH,
     rateDetails: o.rateDetails ?? { baseRate: 0, currency: 'USD', markup: 0, additionalCharges: [], apTotal: 0, arTotal: 0 },
+    // Passed through, NOT defaulted: absent means "contracted rate, no user
+    // quote", which is a different state from an explicit 'N' (quote deleted).
+    // S120 wrote this field on delete but nothing read it back — the whitelist
+    // above silently dropped it on the next load. It is load-bearing now.
+    quoteFlag: o.quoteFlag,
+    quoteAudit: o.quoteAudit,
     status: o.status ?? null,
     pickupDateTime: o.pickupDateTime ?? null,
     pickupTZ: orDash(o.pickupTZ),

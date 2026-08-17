@@ -400,7 +400,11 @@ describe('Cost → Edit Quote navigation', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Edit Cost' }))
     expect(document.querySelectorAll('[role="dialog"]').length).toBe(1)
     expect(screen.queryByText('General Information')).toBeNull()
-    expect(screen.getByText('Carrier')).toBeTruthy()
+    // QuoteModal's read-only "Carrier Option" section (LINX-13895) — proves
+    // the details body was replaced by the embedded quote view, not stacked
+    // under a second dialog.
+    expect(screen.getByRole('dialog', { name: 'Edit Quote' })).toBeTruthy()
+    expect(screen.getByText('Carrier Option')).toBeTruthy()
   })
 
   it('offers a back control that returns to the details view', () => {

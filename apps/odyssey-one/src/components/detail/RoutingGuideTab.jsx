@@ -237,28 +237,30 @@ function ActionDropdown({ option, position, onAction, onClose }) {
 
   const actions = TENDER_ACTIONS[option.status] || TENDER_ACTIONS[null] || []
 
-  // LINX-13894 — Add Quote and Edit Quote are mutually exclusive per option.
-  // "Has a quote" reads rateDetails.apTotal, the same zero-means-absent
-  // convention CostTooltip already relies on (mapRoutingOption substitutes a
-  // ZEROED rateDetails when the DTO omits it — a real quote leaves a
-  // positive apTotal behind).
-  const hasQuote = !!(option.rateDetails && option.rateDetails.apTotal > 0)
+  // LINX-13894 — Add Quote and Edit Quote are mutually exclusive per option,
+  // keyed on whether a USER-entered quote exists. That is exactly what
+  // quoteFlag means: LINX-13896 sets 'Y' on save, LINX-13897 sets 'N' on
+  // delete, and a contracted-rate option carries neither.
+  //
+  // This used to read `rateDetails.apTotal > 0`, which was wrong in kind — a
+  // CONTRACTED rate also has a positive apTotal, and generate.mjs seeds one on
+  // every option (tools/generate.mjs:770). So hasQuote was true for every row
+  // in the app: "Add Quote" never rendered, and the contracted-rate confirm
+  // below was unreachable dead code.
+  const hasQuote = option.quoteFlag === 'Y'
 
-  // LINX-13897 — Delete Quote. Offered only for a quote the USER entered, never
-  // a contracted rate. rateSource is the one field the data shape carries that
-  // tells them apart: generate.mjs seeds every routing option with one of
-  // 'Contract' | 'Spot' | 'Benchmark' | 'Historical' (a system/contract-sourced
-  // rate); 'Manual' is written ONLY by this component's own Add Quote handler
-  // (handleQuoteSave, mode 'add') — i.e. a quote the user actually typed in.
-  // Confidence: medium-high — inferred from the one write site, not a field
-  // Jira names explicitly as the contract/quote discriminator.
-  const isUserEnteredQuote = option.rateSource === 'Manual'
   // LINX-13897 says hide Delete when tender status is Sent/Accepted; LINX-13894's
   // table offers Delete whenever a quote exists with no status condition at all.
-  // Following 13897 (2026-08-14 ruling) — deleting a quote on an already-sent
-  // tender is the riskier operation. Flagged here for re-decision.
+  // Both tickets were approved the same day, so this was a genuine conflict.
+  // SETTLED 2026-08-16 (user ruling, DEC-102): follow 13897. A quoted option in
+  // Sent/Accepted offers Edit only — which is why some quoted rows correctly
+  // show no Delete.
+  //
+  // No separate "is it user-entered" test any more: hasQuote already means
+  // that, which retires the `rateSource === 'Manual'` inference S120 flagged as
+  // ours rather than Jira's.
   const tenderIsLocked = option.status === 'Sent' || option.status === 'Accepted'
-  const canDeleteQuote = hasQuote && isUserEnteredQuote && !tenderIsLocked
+  const canDeleteQuote = hasQuote && !tenderIsLocked
 
   const btnStyle = {
     display: 'block',
@@ -358,15 +360,25 @@ function ActionDropdown({ option, position, onAction, onClose }) {
 // the hand-rolled createPortal dialog this used to be (S119): that version had
 // its own inline-styled overlay/box and NO Escape handling — ModalMedium's
 // useEscapeStack (packages/ui/src/useEscapeStack.js) is the actual fix.
+// cancelLabel is optional — omit it for a single-button (OK-only) dialog like
+// LINX-13895's dates-unavailable notice below, which has nothing to cancel
+// out of. Kept on this one shell rather than a second hand-rolled portal.
 function ConfirmDialog({ title, message, confirmLabel, cancelLabel = 'Cancel', onConfirm, onCancel }) {
   return createPortal(
     <ModalMedium
       title={title}
       onClose={onCancel}
       ariaLabel={title}
+      /* `.modal-medium` is deliberately content-sized (width:auto, max 920px —
+         the Shipment Details 4-column grid needs the room, S102). A confirm is
+         one short paragraph, so without a cap it stretches toward 920px and a
+         yes/no prompt renders as wide as a full data modal. Narrowing HERE via
+         the className hook ModalMedium already exposes, rather than touching
+         the shared component. */
+      className="confirm-dialog"
       footer={
         <>
-          <Button variant="secondary" size="lg" onClick={onCancel}>{cancelLabel}</Button>
+          {cancelLabel && <Button variant="secondary" size="lg" onClick={onCancel}>{cancelLabel}</Button>}
           <Button variant="primary" size="lg" onClick={onConfirm}>{confirmLabel}</Button>
         </>
       }
@@ -377,11 +389,16 @@ function ConfirmDialog({ title, message, confirmLabel, cancelLabel = 'Cancel', o
   )
 }
 
+// LINX-13894 — message is VERBATIM from the ticket. S119's "don't overwhelm the
+// user" ruling shortened the tab ERROR surfaces; it does not reach here. This
+// is a destructive-override confirm whose second sentence carries the actual
+// consequence ("will override the existing contracted rate") — cutting it
+// leaves the user confirming something the dialog never told them.
 function AddQuoteConfirm({ onContinue, onCancel }) {
   return (
     <ConfirmDialog
       title="Confirm Add Quote"
-      message="A contracted rate already exists for this carrier option. Do you want to continue?"
+      message="A contracted rate already exists for this routing option. Entering a quote will override the existing contracted rate. Do you want to continue?"
       confirmLabel="OK"
       onConfirm={onContinue}
       onCancel={onCancel}
@@ -395,11 +412,30 @@ function DeleteQuoteConfirm({ onConfirm, onCancel }) {
   return (
     <ConfirmDialog
       title="Delete Quote"
-      message="This quote will be permanently removed and cannot be undone."
+      message="This quote will be permanently removed from this routing option. This action cannot be undone. Do you want to continue?"
       confirmLabel="Yes"
       cancelLabel="No"
       onConfirm={onConfirm}
       onCancel={onCancel}
+    />
+  )
+}
+
+// LINX-13895 — "Quote Entry shall not be allowed when: Pickup Date is
+// unavailable. / Delivery Date is unavailable." A notice, not a choice: single
+// OK button (cancelLabel omitted), and OK does the same thing overlay-click/
+// Escape/the header X already do via ModalMedium's onClose — dismiss, stay on
+// Tender → Routing Options, Quote Entry never opens. Message is VERBATIM from
+// the ticket.
+function DatesUnavailableConfirm({ onDismiss }) {
+  return (
+    <ConfirmDialog
+      title="Quote Entry Unavailable"
+      message="Quote cannot be entered because Pickup and Delivery information is not available for the selected routing option."
+      confirmLabel="OK"
+      cancelLabel={null}
+      onConfirm={onDismiss}
+      onCancel={onDismiss}
     />
   )
 }
@@ -786,6 +822,10 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
   const [confirmAddQuoteRank, setConfirmAddQuoteRank] = useState(null)
   // LINX-13897 — rank pending the "delete this quote" confirm, or null.
   const [confirmDeleteQuoteRank, setConfirmDeleteQuoteRank] = useState(null)
+  // LINX-13895 — true while the "dates unavailable" notice is showing. No rank
+  // to remember: OK/Escape/overlay-click all just dismiss it, there's no
+  // "continue" path out the other side the way the two confirms above have.
+  const [datesUnavailable, setDatesUnavailable] = useState(false)
   const [collapsedWidths, setCollapsedWidths] = useState(null)
   const [expandedWidths, setExpandedWidths] = useState(null)
   const tableRef = useRef(null)
@@ -800,6 +840,7 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
     setQuoteModal({ isOpen: false, mode: 'add', carrierData: null })
     setConfirmAddQuoteRank(null)
     setConfirmDeleteQuoteRank(null)
+    setDatesUnavailable(false)
 
     setCollapsedWidths(null)
 
@@ -832,12 +873,20 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
   // LINX-13894 — contracted-rate confirm: OK proceeds to Add Quote, Cancel
   // does nothing (no scaffolding for anything beyond that binary choice).
   const handleConfirmAddQuote = useCallback(() => {
+    const carrier = options.find((o) => o.rank === confirmAddQuoteRank)
     setConfirmAddQuoteRank(null)
-    setQuoteModal({ isOpen: true, mode: 'add', carrierData: null })
-  }, [])
+    setQuoteModal({ isOpen: true, mode: 'add', carrierData: carrier || null })
+  }, [confirmAddQuoteRank, options])
 
   const handleCancelAddQuote = useCallback(() => {
     setConfirmAddQuoteRank(null)
+  }, [])
+
+  // LINX-13895 — dismiss the dates-unavailable notice. OK, Escape, and the
+  // overlay/header-X all route here (ModalMedium's onClose === onCancel);
+  // there is nothing to branch on, the user just stays put.
+  const handleDismissDatesUnavailable = useCallback(() => {
+    setDatesUnavailable(false)
   }, [])
 
   const isCollapsed = useCallback((key) => {
@@ -944,6 +993,13 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
       cost: DASH,
       rateDetails: { baseRate: 0, currency: 'USD', markup: 0, additionalCharges: [], apTotal: 0, arTotal: 0 },
       quoteFlag: 'N',
+      // LINX-13897 "Set Carrier Quoted = Unchecked" — the counterpart to the
+      // save's 'Yes'. Skipped in S120 because LINX-12581 isn't built; the
+      // FIELD still has to be right whether or not a checkbox reads it.
+      carrierQuoted: 'No',
+      // quoteAudit is deliberately RETAINED: 13897 nulls the quote's own
+      // fields, and an audit trail that vanishes with the thing it audits is
+      // not an audit trail.
     }
     setOptions((prev) => prev.map((opt) => (opt.rank === rank ? cleared : opt)))
     persistTender(cleared)
@@ -953,101 +1009,70 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
     setConfirmDeleteQuoteRank(null)
   }, [])
 
+  // LINX-13894/13895/13896 — Add and Edit are ONE operation on the SELECTED
+  // routing option: "Quote information shall be maintained independently for
+  // each Routing Option" (13894), and the Quote Entry Page's Carrier Option
+  // section is read-only, sourced from that option (13895). Add differs from
+  // Edit only in whether a quote was there before.
+  //
+  // Until 2026-08-16 the 'add' branch instead APPENDED a brand-new routing
+  // option at maxRank+1, synthesising ~50 placeholder fields for a carrier the
+  // routing guide never returned. That was left over from the page-level "Add
+  // Quote" button S120 deleted when Jana moved the action into the per-row
+  // menu ("quote is being added for every option").
   const handleQuoteSave = useCallback((formData) => {
-    if (quoteModal.mode === 'add') {
-      {
-        const maxRank = options.reduce((m, o) => Math.max(m, o.rank), 0)
-        const newOption = {
-          rank: maxRank + 1,
-          routeRank: maxRank + 1,
-          scac: formData.scac,
-          carrierName: formData.carrierName,
-          equipment: formData.equipment || '--',
-          rate: `$${formData.rateDetails.baseRate.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-          cost: `$${formData.rateDetails.apTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD`,
-          rateDetails: formData.rateDetails,
-          status: null,
-          pickupDateTime: formData.pickupDateTime || '--',
-          deliveryDateTime: formData.deliveryDateTime || '--',
-          transit: '--',
-          distance: '--',
-          api: '--',
-          notifyDateTime: '--',
-          responseMethod: '--',
-          responseDateTime: '--',
-          responseUser: null,
-          carrierQuoted: 'Yes',
-          networkLeverage: '0%',
-          proNumber: null,
-          transportingCarrier: formData.carrierName,
-          equipNumber: '--',
-          routeGroup: 'Spot',
-          commitment: 0,
-          uom: '--',
-          vcEquipNumber: '--',
-          vcOpen: 0,
-          vcAccept: 0,
-          vcDecline: 0,
-          carrierApiTenderId: '--',
-          breakPoint: 'Direct',
-          rateSource: 'Manual',
-          distanceSource: '--',
-          description: 'Manual quote',
-          transitTimeSource: '--',
-          transitTimeId: '--',
-          loadboardExpiry: '--',
-          rcpId: '--',
-          lcePkId: '--',
-          // Fix 4/5 (2026-08-10): useCurrentUser() over the 'Current User'
-          // literal, and formatDateTimeMDYHM over toLocaleString() — the
-          // platform date canon (src/lib/dates.js, S107) is padded
-          // "MM/DD/YYYY HH:MM", not toLocaleString()'s unpadded/12h/seconds
-          // output. Known delta: seeded rows carry a trailing TZ abbreviation
-          // (generate.mjs) that this does not — we don't actually know the
-          // acting user's zone, so it's left off rather than hardcoding one.
-          modifyUser: currentUser.name,
-          modifyDate: formatDateTimeMDYHM(new Date()),
-          indirectPoint: 'N/A',
-          roundTrip: 'No',
-          customerPreferred: 'No',
-          orderEquip: '--',
-          contactExped: '--',
-          note: '--',
-          sl: '--',
-          linehaul: 'Pending',
-          carrierPickup: '--',
-          deliveryNum: '--',
-          pickupTZ: 'CST',
-          deliveryTZ: 'CST',
-          pickupOrgHours: '--',
-          pickupOrgDay: '--',
-          deliveryOrgHours: '--',
-        }
-        setOptions((prev) => [...prev, newOption])
-        persistTender(newOption)
-      }
-    } else if (quoteModal.mode === 'edit') {
-      const target = options.find((o) => o.rank === quoteModal.carrierData.rank)
-      if (target) {
-        const updated = {
-          ...target,
-          scac: formData.scac || target.scac,
-          carrierName: formData.carrierName || target.carrierName,
-          equipment: formData.equipment || target.equipment,
-          pickupDateTime: formData.pickupDateTime || target.pickupDateTime,
-          deliveryDateTime: formData.deliveryDateTime || target.deliveryDateTime,
-          // Fix 2 (2026-08-10): this branch recomputed `cost` from apTotal but
-          // never touched `rate`, so an edited Base Rate never left this
-          // component — persistTender/routingOptionVmToDto reads `rate` back
-          // into rateAmount, so the stale value would round-trip forever.
-          rate: `$${formData.rateDetails.baseRate.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-          cost: `$${formData.rateDetails.apTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD`,
-          rateDetails: formData.rateDetails,
-        }
-        setOptions((prev) => prev.map((opt) => (opt.rank === updated.rank ? updated : opt)))
-        persistTender(updated)
-      }
+    const target = options.find((o) => o.rank === quoteModal.carrierData?.rank)
+    if (!target) return
+    const now = formatDateTimeMDYHM(new Date())
+    const prior = target.quoteAudit
+    const updated = {
+      ...target,
+      // Carrier identity is read-only on the entry page, so these come back
+      // unchanged; kept defensive in case a mode ever unlocks one.
+      scac: formData.scac || target.scac,
+      carrierName: formData.carrierName || target.carrierName,
+      equipment: formData.equipment || target.equipment,
+      pickupDateTime: formData.pickupDateTime || target.pickupDateTime,
+      deliveryDateTime: formData.deliveryDateTime || target.deliveryDateTime,
+      // Fix 2 (2026-08-10): this used to recompute `cost` from apTotal but
+      // never touch `rate`, so an edited Base Rate never left this component —
+      // persistTender/routingOptionVmToDto reads `rate` back into rateAmount,
+      // so the stale value would round-trip forever.
+      rate: `$${formData.rateDetails.baseRate.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      cost: `$${formData.rateDetails.apTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD`,
+      rateDetails: formData.rateDetails,
+      // LINX-13896 save behaviour — both flags, on add AND on edit.
+      quoteFlag: 'Y',
+      carrierQuoted: 'Yes',
+      // The rate on this option is now the user's, not the contract's — the
+      // Rate Source column would otherwise still read "Contract". No longer
+      // load-bearing for the menu (that's quoteFlag now), just truthful.
+      rateSource: 'Manual',
+      quoteAudit: {
+        // Created* survives an edit; only Updated* moves.
+        createdBy: prior?.createdBy ?? currentUser.name,
+        createdDate: prior?.createdDate ?? now,
+        updatedBy: currentUser.name,
+        updatedDate: now,
+        // "Initial Cost (either null or cost/total exist from the initial
+        // quote)" — the AP total as it stood before the FIRST user quote, i.e.
+        // the contracted rate being overridden. Null when there was none.
+        initialApAmount: prior
+          ? prior.initialApAmount
+          : (target.rateDetails?.apTotal || null),
+        finalApAmount: formData.rateDetails.apTotal,
+      },
+      // Fix 4/5 (2026-08-10): useCurrentUser() over the 'Current User' literal,
+      // and formatDateTimeMDYHM over toLocaleString() — the platform date canon
+      // (src/lib/dates.js, S107) is padded "MM/DD/YYYY HH:MM". Known delta:
+      // seeded rows carry a trailing TZ abbreviation (generate.mjs) that this
+      // does not — we don't know the acting user's zone, so it's left off
+      // rather than hardcoding one.
+      modifyUser: currentUser.name,
+      modifyDate: now,
     }
+    setOptions((prev) => prev.map((opt) => (opt.rank === updated.rank ? updated : opt)))
+    persistTender(updated)
     setQuoteModal({ isOpen: false, mode: 'add', carrierData: null })
   }, [quoteModal, options, persistTender, currentUser])
 
@@ -1067,24 +1092,40 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
     }
 
     if (action === 'DeleteQuote') {
-      // LINX-13897 — ActionDropdown already gates this action to a user-entered
-      // quote (rateSource 'Manual') on an unlocked tender; just open the confirm.
+      // LINX-13897 — ActionDropdown already gates this action to a quoted
+      // option (quoteFlag 'Y') on an unlocked tender; just open the confirm.
       setOpenMenuRank(null)
       setConfirmDeleteQuoteRank(rank)
       return
     }
 
     if (action === 'AddQuote') {
+      const carrier = options.find(o => o.rank === rank)
+      setOpenMenuRank(null)
+
+      // LINX-13895 — Quote Entry is blocked outright when either date is
+      // missing, BEFORE the contracted-rate confirm below (AC 3 is about
+      // overriding a rate; there's no rate override question worth asking on
+      // an option the Quote Entry Page can't even open for). Scoped to Add
+      // Quote only, per the ticket's own wording — Edit Quote isn't gated:
+      // an existing quote already implies both dates were present when it
+      // was entered.
+      const isUnavailable = (v) => v == null || v === '' || v === DASH
+      if (isUnavailable(carrier?.pickupDateTime) || isUnavailable(carrier?.deliveryDateTime)) {
+        setDatesUnavailable(true)
+        return
+      }
+
       // AC 3 (LINX-13894): AP Cost (Carrier) non-blank means a contracted
       // rate already exists for this option — confirm before opening the
       // quote entry dialog. Blank ('--' or absent) skips the confirm.
-      const carrier = options.find(o => o.rank === rank)
       const hasApCost = !!(carrier?.cost && carrier.cost !== DASH)
-      setOpenMenuRank(null)
       if (hasApCost) {
         setConfirmAddQuoteRank(rank)
       } else {
-        setQuoteModal({ isOpen: true, mode: 'add', carrierData: null })
+        // carrierData is the SELECTED option, not null: the quote attaches to
+        // this option, and its Carrier Option section is read-only off it.
+        setQuoteModal({ isOpen: true, mode: 'add', carrierData: carrier || null })
       }
       return
     }
@@ -1240,6 +1281,10 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
 
       {confirmDeleteQuoteRank != null && (
         <DeleteQuoteConfirm onConfirm={handleConfirmDeleteQuote} onCancel={handleCancelDeleteQuote} />
+      )}
+
+      {datesUnavailable && (
+        <DatesUnavailableConfirm onDismiss={handleDismissDatesUnavailable} />
       )}
     </div>
   )
