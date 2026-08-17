@@ -37,6 +37,21 @@
   overflow: hidden;
 }
 
+/* Column-arrangement drawer for the tender table (2026-08-17). Fixed viewport
+   dock below the navbar — the pane has no flex dock of its own, so this mirrors
+   Product Information's overlay drawer; `.right-panel-dock` (composed on the same
+   element) drives the width + slide. z above .right-panel-scrim (60) and the bar
+   (40) so the panel stays interactive while the scrim swallows outside clicks. */
+.tender-panel-dock {
+  position: fixed;
+  top: var(--navbar-height);
+  right: 0;
+  bottom: 0;
+  z-index: 100;
+  overflow: hidden;
+  display: flex;
+}
+
 /* LINX-13953 — Dropped Carrier empty state. The section renders even at zero
    so the count itself is readable; absence would be ambiguous. Font comes
    from the .text-label-sm-regular utility class on the element (no

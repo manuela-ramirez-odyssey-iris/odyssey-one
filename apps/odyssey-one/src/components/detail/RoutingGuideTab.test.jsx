@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, cleanup, fireEvent, within } from '@testing-library/react'
-import RoutingGuideTab from './RoutingGuideTab'
+import RoutingGuideTab, { orderedTabColumns } from './RoutingGuideTab'
 
 // Mocked so the persist-round-trip test below can inspect the EXACT payload
 // `saveTenderOption` receives — the real function is a live-mode-only no-op
@@ -792,5 +792,31 @@ describe('RoutingGuideTab — Dropped Carrier section (LINX-13953)', () => {
     const data = { options: [baseOption] }
     const { container } = render(<RoutingGuideTab data={data} shipmentDetails={{ droppedCarriers: [] }} />)
     expect(container.querySelectorAll('[data-routing-container]').length).toBeLessThanOrEqual(1)
+  })
+
+  describe('column arrangement (2026-08-17)', () => {
+    const DEFS = [
+      { key: 'transit', label: 'Transit Time' },
+      { key: 'distance', label: 'Distance' },
+      { key: 'api', label: 'Notify Method' },
+    ]
+
+    it('applies the arrangement order, not the definition order', () => {
+      expect(orderedTabColumns(DEFS, ['api', 'transit']).map((c) => c.label))
+        .toEqual(['Notify Method', 'Transit Time'])
+    })
+
+    it('drops keys the active sub-tab does not define instead of rendering blanks', () => {
+      // The one render right after a sub-tab switch still holds the previous
+      // tab's keys; a missing definition must vanish, not become an empty column.
+      expect(orderedTabColumns(DEFS, ['distance', 'vcOpen'])).toHaveLength(1)
+    })
+
+    it("opens the tender table's own panel from the pinned header control", () => {
+      const data = { options: [baseOption] }
+      render(<RoutingGuideTab data={data} shipmentDetails={{ droppedCarriers: [] }} />)
+      fireEvent.click(screen.getByLabelText('Column arrangement'))
+      expect(screen.getByText('Default Columns')).toBeTruthy()
+    })
   })
 })

@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { TruckElectric, FoldHorizontal, UnfoldHorizontal } from 'lucide-react'
+import { TruckElectric, FoldHorizontal, UnfoldHorizontal, Columns3Cog } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
 import { Badge, Button, ModalMedium, Tab } from '@odyssey/ui'
+import ColumnPanel from './ColumnPanel.jsx'
 import { saveTenderOption } from '../../api/services/shipmentService'
 import { parseDollar, fmtDollar } from '../../utils/money'
 import { routingOptionVmToDto } from '../../api/mappers/mapSellShipmentOutToDetail'
@@ -113,32 +114,19 @@ const STATUS_AFTER_ACTION = {
   'Re-Tender': 'Sent',
 }
 
-const thStyle = {
-  padding: '10px 14px',
-  textAlign: 'left',
-  whiteSpace: 'nowrap',
-  fontSize: '12px',
-  fontWeight: 600,
-  color: 'var(--text-tertiary)',
-  textTransform: 'uppercase',
-  letterSpacing: '0.03em',
-  background: 'var(--bg-secondary)',
-  borderBottom: '1px solid var(--border-subtle)',
-  height: 48,
-  verticalAlign: 'middle',
-  position: 'sticky',
-  top: 0,
-  zIndex: 2,
-}
+/* Restyled 2026-08-17 against the Tender Table mock (Figma 1596:21526). Every
+   visual property of a cell now comes from the CANONICAL Cell contract —
+   `.odyssey-table` + the `.text-label-sm-*` utilities (components.css "TABLE —
+   Cell contract"), normalized from the same Figma Cell master the mock is built
+   from: white 48px cells, 14px/16px padding, border-subtle hairlines, semibold
+   text-primary heads (NOT the old 12px uppercase tertiary), regular data cells.
+   Only what the canon cannot know stays inline: the sticky header offset, the
+   collapse-animation widths, and the per-row status tint. */
+const thSticky = { position: 'sticky', top: 0, zIndex: 2 }
 
-const tdStyle = {
-  padding: '10px 14px',
-  whiteSpace: 'nowrap',
-  fontSize: '14px',
-  fontWeight: 400,
-  color: 'var(--text-secondary)',
-  borderBottom: '1px solid var(--bg-tertiary)',
-}
+// Emphasis columns (Cell Variant=Title) vs plain data cells (Variant=Text).
+const cellTypeClass = (emphasis) =>
+  emphasis ? 'odyssey-table__cell--title text-label-sm-medium' : 'text-label-sm-regular'
 
 const stickyLastCol = {
   position: 'sticky',
@@ -149,6 +137,17 @@ const stickyLastCol = {
 }
 
 const DASH = '--' // LINX-13590 — empty optional values read '--'
+
+/**
+ * Apply a column arrangement to a sub-tab's column definitions: ORDER comes from
+ * `visibleKeys` (the panel's list), and anything not in it is hidden. A key with
+ * no definition is dropped rather than rendered as a blank column — that happens
+ * for one render right after a sub-tab switch, while the arrangement still holds
+ * the previous tab's keys.
+ */
+export function orderedTabColumns(defs, visibleKeys) {
+  return visibleKeys.map((key) => defs.find((c) => c.key === key)).filter(Boolean)
+}
 
 /* ═══════════════════════════════════════════════════════════
    Section 2 — Helper Components
@@ -531,7 +530,7 @@ function CostTooltip({ carrier, onViewDetails }) {
    Section 6 — RoutingTable
    ═══════════════════════════════════════════════════════════ */
 
-function RoutingTable({ options, tabColumns, highlightedRank, openMenuRank, onOpenMenu, onCloseMenu, onAction, isCollapsed, columnsCollapsed, collapsedWidths, onCollapse, onExpand, onViewRateDetails }) {
+function RoutingTable({ options, tabColumns, highlightedRank, openMenuRank, onOpenMenu, onCloseMenu, onAction, isCollapsed, columnsCollapsed, collapsedWidths, onCollapse, onExpand, onViewRateDetails, onOpenColumns }) {
   const [hoveredRank, setHoveredRank] = useState(null)
   const [showToggle, setShowToggle] = useState(false)
   const rightTableRef = useRef(null)
@@ -570,20 +569,14 @@ function RoutingTable({ options, tabColumns, highlightedRank, openMenuRank, onOp
     return 'var(--bg-primary)'
   }
 
-  const tableStyle = {
-    width: '100%',
-    borderCollapse: 'collapse',
-    fontFamily: 'var(--font-primary)',
-    fontSize: '14px',
-    color: 'var(--text-secondary)',
-  }
-
   return (
-    <div data-routing-container style={{ display: 'flex', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', marginBottom: 24, overflow: 'hidden' }}>
+    /* No border/radius of its own: .tender-pane__table-card already IS the white
+       surface (2xl + shadow-sm), and the mock shows one frame, not two. */
+    <div data-routing-container style={{ display: 'flex', marginBottom: 24, overflow: 'hidden' }}>
       {/* ── LEFT TABLE + TOGGLE: fixed container with shadow ── */}
       <div style={{ flexShrink: 0, display: 'flex', boxShadow: '2px 0 4px rgba(0,0,0,0.06)', zIndex: 3 }}>
       <div data-left-table style={{ flexShrink: 0 }}>
-        <table style={tableStyle}>
+        <table className="odyssey-table">
           <thead>
             <tr>
               {LOCKED_COLUMNS.map((col) => {
@@ -593,8 +586,8 @@ function RoutingTable({ options, tabColumns, highlightedRank, openMenuRank, onOp
                 const wrapWhenCollapsed = columnsCollapsed && !col.narrow ? { whiteSpace: 'normal', lineHeight: 1.3 } : {}
                 const statusNarrow = columnsCollapsed && col.key === 'status' ? { width: 78, maxWidth: 78 } : {}
                 return (
-                  <th key={col.key} style={{
-                    ...thStyle,
+                  <th key={col.key} className="text-label-sm-semibold" style={{
+                    ...thSticky,
                     ...(col.narrow ? { width: 64, whiteSpace: 'normal', lineHeight: 1.3, textAlign: 'center' } : {}),
                     ...wrapWhenCollapsed,
                     ...statusNarrow,
@@ -616,7 +609,7 @@ function RoutingTable({ options, tabColumns, highlightedRank, openMenuRank, onOp
               return (
                 <tr
                   key={option.rank}
-                  style={{ cursor: 'default', background: getRowBg(option), transition: 'background 0.12s ease' }}
+                  style={{ cursor: 'default' }}
                   onMouseEnter={() => setHoveredRank(option.rank)}
                   onMouseLeave={() => setHoveredRank(null)}
                 >
@@ -627,9 +620,11 @@ function RoutingTable({ options, tabColumns, highlightedRank, openMenuRank, onOp
                     const w = hasWidth ? collapsedWidths[col.key] : null
 
                     const cellStyle = {
-                      ...tdStyle,
-                      ...(isHighlighted ? { fontWeight: 500 } : {}),
-                      ...(isPrimary ? { fontWeight: 500, color: 'var(--text-primary)' } : {}),
+                      // The tint lives on the CELL, not the row: the Cell contract paints
+                      // every td white, so a row-level background would be covered. This
+                      // is also what keeps hover synced across the two split tables —
+                      // CSS :hover cannot reach a sibling table's row.
+                      background: getRowBg(option),
                       ...(col.narrow ? { width: 64, textAlign: 'center' } : {}),
                       ...(columnsCollapsed && col.key === 'status' ? { width: 78, maxWidth: 78 } : {}),
                       ...(hasWidth ? { width: w, maxWidth: w, overflow: 'hidden', textOverflow: 'ellipsis' } : {}),
@@ -648,7 +643,7 @@ function RoutingTable({ options, tabColumns, highlightedRank, openMenuRank, onOp
                       : getCellValue(option, col)
 
                     return (
-                      <td key={col.key} style={cellStyle}>
+                      <td key={col.key} className={cellTypeClass(isPrimary || isHighlighted)} style={cellStyle}>
                         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', display: 'block', whiteSpace: 'nowrap' }}>
                           {content}
                         </span>
@@ -691,22 +686,28 @@ function RoutingTable({ options, tabColumns, highlightedRank, openMenuRank, onOp
 
       {/* ── RIGHT TABLE: tab-specific columns + actions ── */}
       <div ref={rightTableRef} data-right-table style={{ flex: 1, overflowX: 'auto', minWidth: 100 }}>
-        <table style={tableStyle}>
+        <table className="odyssey-table">
           <thead>
             <tr>
               {tabColumns.map((col) => (
-                <th key={col.key} style={{ ...thStyle, ...(col.narrow ? { width: 64, whiteSpace: 'normal', lineHeight: 1.3, textAlign: 'center' } : {}) }}>
+                <th key={col.key} className="text-label-sm-semibold" style={{ ...thSticky, ...(col.narrow ? { width: 64, whiteSpace: 'normal', lineHeight: 1.3, textAlign: 'center' } : {}) }}>
                   {col.label}
                 </th>
               ))}
-              <th className="sticky top-0" style={{ ...stickyLastCol, zIndex: 5, width: 50, minWidth: 50, maxWidth: 50, padding: '0 var(--spacing-4)', textAlign: 'center', borderBottom: '1px solid var(--border-subtle)', background: 'var(--bg-secondary)' }}>
-                {/* Column-arrangement gear removed (Fix 3, 2026-08-10, user decision) — it
-                    called onToggleColumnPanel, the SAME handler ShipmentTable uses, so it
-                    opened the shipments-LIST column panel, not one for this table (this
-                    table has no panel of its own). A control that opens the wrong table's
-                    panel is worse than no control. Collapse/expand (FoldHorizontal/
-                    UnfoldHorizontal) + per-tab TAB_COLUMNS remain. Reversible once a real
-                    routing-column panel is specced. */}
+              <th className="sticky top-0" style={{ ...stickyLastCol, zIndex: 5, width: 50, minWidth: 50, maxWidth: 50, padding: '0 var(--spacing-4)', textAlign: 'center', borderBottom: '1px solid var(--border-subtle)' }}>
+                {/* Column arrangement (mock 1596:21526 puts it exactly here, in the pinned
+                    action lane's header). Restored 2026-08-17 with the thing that was
+                    missing when it was pulled on 2026-08-10: a panel of its OWN. It no
+                    longer borrows ShipmentTable's onToggleColumnPanel — that handler opened
+                    the shipments-LIST panel, which is why the control was worse than
+                    nothing. Same canonical control ShipmentTable uses. */}
+                <Button
+                  variant="icon"
+                  size="sm"
+                  icon={<Columns3Cog size={18} />}
+                  aria-label="Column arrangement"
+                  onClick={onOpenColumns}
+                />
               </th>
             </tr>
           </thead>
@@ -716,24 +717,23 @@ function RoutingTable({ options, tabColumns, highlightedRank, openMenuRank, onOp
               return (
                 <tr
                   key={option.rank}
-                  style={{ cursor: 'default', background: getRowBg(option), transition: 'background 0.12s ease' }}
+                  style={{ cursor: 'default' }}
                   onMouseEnter={() => setHoveredRank(option.rank)}
                   onMouseLeave={() => setHoveredRank(null)}
                 >
                   {tabColumns.map((col) => {
                     const cellStyle = {
-                      ...tdStyle,
-                      ...(isHighlighted ? { fontWeight: 500 } : {}),
+                      background: getRowBg(option), // see the left table — tint on the cell
                       ...(col.narrow ? { width: 64, textAlign: 'center' } : {}),
                     }
                     return (
-                      <td key={col.key} style={cellStyle}>
+                      <td key={col.key} className={cellTypeClass(isHighlighted)} style={cellStyle}>
                         {getCellValue(option, col)}
                       </td>
                     )
                   })}
                   <td
-                    style={{ ...stickyLastCol, padding: '0 var(--spacing-4)', borderBottom: '1px solid var(--bg-tertiary)', textAlign: 'center', width: 50, minWidth: 50, maxWidth: 50, cursor: 'pointer', background: isHighlighted ? (STATUS_STYLES[option.status]?.bg ?? 'var(--badge-blue-bg)') : (STATUS_STYLES[option.status]?.bg ?? 'var(--bg-primary)') }}
+                    style={{ ...stickyLastCol, padding: '0 var(--spacing-4)', borderBottom: '1px solid var(--border-subtle)', textAlign: 'center', width: 50, minWidth: 50, maxWidth: 50, cursor: 'pointer', background: STATUS_STYLES[option.status]?.bg ?? 'var(--bg-primary)' }}
                     onClick={(e) => {
                       e.stopPropagation()
                       const rect = e.currentTarget.getBoundingClientRect()
@@ -830,6 +830,24 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
   const [collapsedWidths, setCollapsedWidths] = useState(null)
   const [expandedWidths, setExpandedWidths] = useState(null)
   const tableRef = useRef(null)
+
+  // Column arrangement for the RIGHT (tab-specific) half of the tender table —
+  // the mock's pinned-header control (Figma 1596:21526). Universe = the ACTIVE
+  // sub-tab's columns: the sub-tabs are themselves column groups, so arranging
+  // within one is the only reading that doesn't make them meaningless. Same
+  // generalized ColumnPanel Product Information reuses; state is per-tab
+  // (`key`), pane-lifespan, no persistence — matching that call site.
+  const [columnPanelOpen, setColumnPanelOpen] = useState(false)
+  const [visibleColumns, setVisibleColumns] = useState(() => TAB_COLUMNS[activeSubTab].map((c) => c.key))
+  const columnPanelRef = useRef(null)
+
+  // Switching sub-tab switches the whole column universe, so the arrangement
+  // resets with it (same rule as Product Information's equipment case).
+  const subTabRef = useRef(activeSubTab)
+  if (subTabRef.current !== activeSubTab) {
+    subTabRef.current = activeSubTab
+    setVisibleColumns(TAB_COLUMNS[activeSubTab].map((c) => c.key))
+  }
 
   /* Reset all state when data changes (new shipment selected) */
   useEffect(() => {
@@ -1217,7 +1235,16 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
     delivery: options.find((o) => o.deliveryTZ && o.deliveryTZ !== DASH)?.deliveryTZ,
   }
 
-  const activeTabColumns = TAB_COLUMNS[activeSubTab] || []
+  // What the right table renders: the arrangement's ORDER + visibility applied to
+  // the active sub-tab's definitions (which carry `narrow`/`dataKey`, so the panel
+  // only ever hands back keys).
+  const tabColumnDefs = TAB_COLUMNS[activeSubTab] || []
+  const activeTabColumns = orderedTabColumns(tabColumnDefs, visibleColumns)
+  const columnPanelColumns = tabColumnDefs.map(({ key, label }) => ({ key, label }))
+  const columnPanelPresets = {
+    custom: [{ id: 'default-tender', name: 'Default Columns', columns: tabColumnDefs.map((c) => c.key) }],
+    odyssey: [],
+  }
 
   /* Attach _menuPos to the option that has its menu open */
   const optionsWithPos = options.map((opt) =>
@@ -1261,6 +1288,7 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
           onCollapse={handleCollapse}
           onExpand={handleExpand}
           onViewRateDetails={(carrier) => setQuoteModal({ isOpen: true, mode: 'view', carrierData: carrier })}
+          onOpenColumns={() => setColumnPanelOpen(true)}
         />
           </div>
         </div>{/* /tender-pane__table-card */}
@@ -1294,6 +1322,37 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
 
       {datesUnavailable && (
         <DatesUnavailableConfirm onDismiss={handleDismissDatesUnavailable} />
+      )}
+
+      {/* Portaled to <body> on purpose: the expanded ShipmentsBar carries a
+          `clip-path`, which makes it the containing block for position:fixed
+          descendants AND clips them — a dock rendered in place would be cut to
+          the bar's box (and to nothing at all in the partial stage). Body-level
+          also lands it outside <main>, which BottomBar's outside-click rule
+          already treats as exempt, so opening the panel can't collapse the bar. */}
+      {createPortal(
+        <>
+          {columnPanelOpen && (
+            <div
+              className="right-panel-scrim"
+              onMouseDown={() => { columnPanelRef.current?.requestClose() }}
+            />
+          )}
+          <div className={`tender-panel-dock right-panel-dock${columnPanelOpen ? ' right-panel-dock--open' : ''}`}>
+            <ColumnPanel
+              key={activeSubTab}
+              ref={columnPanelRef}
+              isOpen={columnPanelOpen}
+              onClose={() => setColumnPanelOpen(false)}
+              visibleColumns={visibleColumns}
+              onColumnsChange={setVisibleColumns}
+              allColumns={columnPanelColumns}
+              presets={columnPanelPresets}
+              defaultPresetId="default-tender"
+            />
+          </div>
+        </>,
+        document.body,
       )}
     </div>
   )
