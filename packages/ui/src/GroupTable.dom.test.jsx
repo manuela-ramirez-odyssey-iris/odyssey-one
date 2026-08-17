@@ -26,20 +26,17 @@ const GROUPS = [{
 
 const STICKY = '.odyssey-group-table__cell--sticky-right'
 
-describe('GroupTable — the nested band keeps out of the action lane', () => {
-  it('stops the nested band short of the action column instead of spanning it', () => {
-    // REGRESSION (2026-08-17): the detail row was a single `colSpan={spanAll}`
-    // cell that swallowed the action column, so the nested table rendered
-    // straight through the pinned lane and scrolled horizontally while the
-    // group rows' actions sat still — the column read as "not sticky anymore".
+describe('GroupTable — the nested band spans the full width', () => {
+  it('spans the action lane too, so the nested table gets the whole width', () => {
+    // RULED 2026-08-17 (user): "nested table is separate, doesn't need to follow
+    // the boundaries of its parent." The nested table is an INDEPENDENT table
+    // that happens to render inside a row, so it takes the action lane's width
+    // as well rather than leaving ~158px of dead band under every expanded row.
     //
-    // The fix is the COLSPAN, not the extra cell: narrowing the host cell is
-    // what keeps the inner table out of the lane. The trailing cell is only
-    // there so the row still has a slot for that column — it is deliberately
-    // NOT sticky (the nested flavor's `position: relative` on detail-row tds
-    // out-specifies the sticky rule) and is styled as the gray band continuing,
-    // not as an action cell. The inner table stays fully independent of the
-    // outer columns and may carry more or fewer of them.
+    // This reverses the earlier narrowing, which reserved the lane so the pinned
+    // column stayed opaque top to bottom. Known, accepted trade: on a
+    // horizontally scrolled table the pinned action column now has a gap at each
+    // expanded row. Reserving the lane again is a one-line revert.
     const { container } = render(
       <GroupTable columns={COLUMNS} detailColumns={DETAIL_COLUMNS} groups={GROUPS}
                   stickyActions defaultExpanded />
@@ -49,14 +46,19 @@ describe('GroupTable — the nested band keeps out of the action lane', () => {
 
     const host = detailRow.querySelector('td[colspan]')
     expect(Number(host.getAttribute('colspan')),
-      'host cell must stop short of the action column').toBe(COLUMNS.length)
+      'host cell must span the action column too').toBe(COLUMNS.length + 1)
 
-    // the INNER table must never grow an action cell of its own
+    // ...and it is the ONLY cell on the row — no reserved trailing lane.
+    expect(detailRow.children.length,
+      'the detail row is one full-width cell, nothing beside it').toBe(1)
+
+    // the INNER table must STILL never grow an action cell of its own: it takes
+    // the width, not the outer table's column structure.
     expect(container.querySelectorAll(`.odyssey-group-table__detail ${STICKY}`).length,
       'the inner table is independent — it gets no action column').toBe(0)
   })
 
-  it('every outer row has a slot for the action column when stickyActions is on', () => {
+  it('every outer row EXCEPT the nested band still has its pinned slot', () => {
     const { container } = render(
       <GroupTable columns={COLUMNS} detailColumns={DETAIL_COLUMNS} groups={GROUPS}
                   stickyActions defaultExpanded
@@ -67,6 +69,14 @@ describe('GroupTable — the nested band keeps out of the action lane', () => {
     const outer = container.querySelector('.odyssey-group-table__table')
     const outerRows = [...outer.children].flatMap(sec => [...sec.children])
     for (const row of outerRows) {
+      // The detail row is the deliberate exception — it spans the lane instead
+      // of reserving it. Every other row must still pin, or the column really
+      // would read as one that scrolls away.
+      if (row.classList.contains('odyssey-group-table__detail-row')) {
+        expect(row.querySelector(STICKY),
+          'the nested band spans the lane, it does not reserve it').toBeNull()
+        continue
+      }
       expect(row.querySelector(STICKY), `row "${row.textContent.slice(0, 30)}" has no pinned cell`).toBeTruthy()
     }
   })
