@@ -27,7 +27,7 @@ export const meta = {
   tier: 'organism',
   version: '0.13.0',
   createdVersion: '0.7.0',
-  normalizing: false,
+  normalizing: true,
   figmaNode: '4183:773',
   codeConnect: 'packages/ui/src/GroupTable.figma.tsx',
 }

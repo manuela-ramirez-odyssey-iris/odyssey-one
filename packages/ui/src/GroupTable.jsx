@@ -226,9 +226,16 @@ export default function GroupTable({
 
               {open && nested && (
                 /* The second table. One full-width cell hosts it, so its columns
-                   are free of the outer table's column widths entirely. */
+                   are free of the outer table's column widths entirely.
+                   The host cell stops SHORT of the pinned action column and the
+                   detail row grows its own (empty) pinned cell instead — with a
+                   single colSpan across everything, the nested table ran under
+                   the action lane with nothing pinned above it, so its content
+                   stayed visible in that lane while the group rows' actions sat
+                   still. The pinned column has to be continuous down the whole
+                   table or it reads as a column that scrolls away. */
                 <tr className="odyssey-group-table__detail-row">
-                  <td colSpan={spanAll}>
+                  <td colSpan={spanAll - (stickyActions ? 1 : 0)}>
                     <table className="odyssey-group-table__detail">
                       <thead>
                         <tr>
@@ -259,6 +266,7 @@ export default function GroupTable({
                       </tbody>
                     </table>
                   </td>
+                  {stickyActions && <td className="odyssey-group-table__cell--sticky-right" />}
                 </tr>
               )}
 
