@@ -893,3 +893,70 @@ test('tender-timeout variant never coexists with a real carrier response (Accept
   }
   assert.ok(checked > 0, 'no tender-timeout entries found — widen totalShipments if this flakes')
 })
+
+// ── LINX-13953: Dropped Carrier list ────────────────────────────────────────
+test('LINX-13953: droppedCarrierList matches the real routing payload shape', () => {
+  const ds = buildDataset({ totalShipments: 200 })
+  let seenWithDrops = 0
+  const codesSeen = new Set()
+
+  for (const [, d] of ds.details) {
+    const dropped = d.droppedCarrierList ?? []
+    if (dropped.length === 0) continue
+    seenWithDrops++
+
+    const tenderScacs = new Set((d.shippingOptionList ?? []).map((o) => o.scac))
+    for (const dc of dropped) {
+      // disjoint from the tender list — otherwise 13954's duplicate rule fires on every row
+      assert.ok(!tenderScacs.has(dc.scac), `${dc.scac} is in BOTH lists`)
+
+      // the five routing actually returns, plus the two we look up
+      assert.ok(dc.scac && dc.equipmentCode && dc.reason)
+      assert.equal(typeof dc.dropCode, 'number')
+      assert.ok(dc.carrierName, 'carrier name is looked up by SCAC (13397 §2)')
+      assert.ok(dc.reasonDescription, 'description is looked up by dropCode (TMS)')
+      codesSeen.add(dc.dropCode)
+
+      // SPARSE BY DESIGN: routing sends none of these for a dropped carrier.
+      // If a future change starts populating them, this test should be updated
+      // deliberately — not silently loosened.
+      for (const absent of ['routeRank', 'pickupDateTime', 'deliveryDateTime',
+                            'startDate', 'stopDate', 'transitTime', 'transitSource',
+                            'routeGroup', 'rpcId', 'ttId', 'commitment', 'uom',
+                            'accepted', 'open', 'comment', 'cvcId']) {
+        assert.equal(dc[absent], null, `${absent} must be null — routing does not return it`)
+      }
+
+      // the two checkbox fields have no '--' state
+      assert.equal(dc.orderEquipment, false)
+      assert.equal(dc.indirectPoint, false)
+    }
+  }
+
+  assert.ok(seenWithDrops > 20, `only ${seenWithDrops}/200 shipments had dropped carriers`)
+  // all three real drop codes should show up across 200 shipments
+  assert.deepEqual([...codesSeen].sort((a, b) => a - b), [1, 2, 23])
+})
+
+test('LINX-13953: the dropped list can outnumber the tender list, as in the real payload', () => {
+  // The sample had 11 dropped vs 7 qualified. A generator that always produces
+  // a short dropped list would hide the layout problem that creates.
+  const ds = buildDataset({ totalShipments: 200 })
+  let sawBigger = 0
+  for (const [, d] of ds.details) {
+    const dropped = (d.droppedCarrierList ?? []).length
+    const usable = (d.shippingOptionList ?? []).length
+    if (dropped > usable) sawBigger++
+  }
+  assert.ok(sawBigger > 0, 'no shipment ever had more dropped carriers than tender options')
+})
+
+test('LINX-13953: dropped carriers are deterministic across builds', () => {
+  const a = buildDataset({ totalShipments: 50 })
+  const b = buildDataset({ totalShipments: 50 })
+  const first = a.shipments[0].sellShipment
+  assert.deepEqual(
+    a.details.get(first).droppedCarrierList,
+    b.details.get(first).droppedCarrierList,
+  )
+})

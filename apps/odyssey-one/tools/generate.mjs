@@ -58,7 +58,7 @@
 //  I12 DirectCost— direct cost is an ORDER fact (the cost of that order going
 //                  point A → point B). A shipment has none of its own; the
 //                  rollup is Σ of its orders' directCostAmount (DEC-68).
-import { faker } from '@faker-js/faker';
+import { faker, Faker, en } from '@faker-js/faker';
 import { writeFileSync, mkdirSync, existsSync, readdirSync, unlinkSync } from 'fs';
 import { deriveTimezone, tzAbbrev, CUSTOMERS, EXTRA_CUSTOMERS, LOCATIONS, EQUIPMENT_CODES, CHEMICAL_PRODUCTS, locationIdFor, FREIGHT_TERMS, SHIP_DIRECTIONS, SHIP_CLASS_CODES, shipClassLabel, PRODUCT_CLASSES, HANDLING_UNITS, MODES } from './data-pools.mjs'
 import { ORDER_AUTHOR_USERNAMES } from './seed-users.mjs'
@@ -177,6 +177,115 @@ export const CARRIERS = [
   { scac: 'CNWY', name: 'CONWAY FREIGHT' },
   { scac: 'WARD', name: 'WARD TRUCKING' },
 ];
+
+// REAL, from the routing sample payload the PM confirmed as current on
+// 2026-08-17 (vault-sources/10-domains/shipments/sources/routing-response-sample-S260000025.xml).
+// Routing returns BOTH the numeric code and the short label on every dropped
+// carrier, so `reason` needs no lookup at all.
+//
+// Frequencies are the sample's own: 6/11 Missing Transit Time, 4/11 No Rates,
+// 1/11 Prohibited Carrier — weighted below to match, so the seeded data looks
+// like real routing output rather than a uniform spread.
+//
+// Codes are sparse (1, 2, 23), so the real catalog has at least 23 entries and
+// we have seen three. The LONG DESCRIPTION is NOT in the payload — the PM says
+// it comes "From TMS", looked up by drop-code, and the exact table is still
+// owed. The descriptions below are therefore still OURS: plausible text, not
+// TMS text. Do not present them as canonical.
+export const DROP_REASONS = [
+  { dropCode: 23, reason: 'Missing Transit Time', weight: 6,
+    description: 'Transit time could not be calculated due to missing transit or distance data.' },
+  { dropCode: 1, reason: 'No Rates', weight: 4,
+    description: 'No rate is available for this carrier on this lane and equipment.' },
+  { dropCode: 2, reason: 'Prohibited Carrier', weight: 1,
+    description: 'This carrier is prohibited for this customer, lane or commodity.' },
+];
+
+// A SECOND, independently-seeded Faker. Dropped carriers are net-new data, and
+// every draw on the main `faker` is positional — adding one to the shared
+// sequence renumbers every shipment id downstream, which is exactly how an
+// earlier session's demo fixtures died. Isolating the draws makes id stability
+// true by construction rather than by luck; generate.test.mjs proves it.
+const droppedFaker = new Faker({ locale: en });
+
+/**
+ * LINX-13953 — the carriers routing evaluated and excluded, with the reason.
+ *
+ * ── SPARSE ON PURPOSE ──────────────────────────────────────────────────────
+ * This mirrors what routing ACTUALLY returns. A <d-option> carries five
+ * attributes (seq, service, carrier, drop-code, drop-reason) versus eighteen on
+ * a qualified <option>. So route rank, RPC-ID, transit time, transit source,
+ * dates, TT ID and the entire commitment block are NULL here — not because we
+ * couldn't be bothered to invent them, but because routing does not send them.
+ *
+ * 13953 still lists all 23 fields and handles this itself: "If Routing does not
+ * return a value for ANY field displayed within the Dropped Carrier section,
+ * Odyssey One shall display '--'". The mapper turns these nulls into dashes.
+ *
+ * Seeding rich values here would make the prototype look finished while the
+ * real screen renders mostly dashes — the opposite of what seeded data is for.
+ * If routing is later extended, widen this function, not the mapper.
+ *
+ * Carrier Name is the ONE field we add that routing doesn't send: 13953 says to
+ * look it up by SCAC (13397 §2), and CARRIERS is our stand-in for mf_carrier.
+ *
+ * Drawn only from carriers NOT in this shipment's tender list — a SCAC in both
+ * would trip 13954's duplicate rule on sight, which routing cannot produce.
+ *
+ * @param {{scac: string, name: string}[]} routingCarriers - already in the tender list
+ * @param {string} equipmentCode - the shipment's equipment ('service' in the payload)
+ */
+function buildDroppedCarriers(routingCarriers, equipmentCode) {
+  const taken = new Set(routingCarriers.map((c) => c.scac));
+  const available = CARRIERS.filter((c) => !taken.has(c.scac));
+  // 0-11. The sample had ELEVEN dropped against seven qualified, so the dropped
+  // list routinely outnumbers the tender list above it. Zero is also a real
+  // state the UI must survive.
+  const count = Math.min(droppedFaker.number.int({ min: 0, max: 11 }), available.length);
+  if (count === 0) return [];
+
+  // Weighted to the sample's own mix: 6 Missing Transit Time / 4 No Rates /
+  // 1 Prohibited Carrier.
+  const reasonPool = DROP_REASONS.flatMap((r) => Array(r.weight).fill(r));
+
+  return droppedFaker.helpers.arrayElements(available, count).map((c) => {
+    const reason = droppedFaker.helpers.arrayElement(reasonPool);
+    return {
+      // ── returned by routing ────────────────────────────────────────────
+      scac: c.scac,
+      equipmentCode,                       // payload: service="LTL"
+      dropCode: reason.dropCode,           // payload: drop-code="2"
+      reason: reason.reason,               // payload: drop-reason="Prohibited Carrier"
+      // ── looked up (13397 §2, by SCAC) ──────────────────────────────────
+      carrierName: c.name,
+      // ── looked up in TMS by dropCode. Descriptions are still ours. ──────
+      reasonDescription: reason.description,
+      // ── NOT returned by routing for a dropped carrier. All render '--'. ──
+      routeRank: null,
+      pickupDateTime: null,
+      deliveryDateTime: null,
+      startDate: null,      // 13397 §7 keys on rpcId, which is null
+      stopDate: null,       // 13397 §7, same
+      transitTime: null,
+      transitSource: null,
+      routeGroup: null,     // 13397 §8 keys on rpcId, same
+      rpcId: null,
+      ttId: null,
+      commitment: null,     // get_cvc_id needs a pickup date; there isn't one
+      uom: null,
+      accepted: null,
+      open: null,
+      comment: null,
+      cvcId: null,
+      // ── the two checkbox fields: no '--' state, absence means unchecked ──
+      // AC: "Y-Checked N-Unchecked. If not returned, then unchecked." The
+      // payload omits indirect-point on dropped carriers entirely, so both are
+      // false rather than drawn.
+      orderEquipment: false,
+      indirectPoint: false,
+    };
+  });
+}
 
 const HAZMAT_DESCRIPTIONS = {
   'Class 2': 'Flammable gas',
@@ -1720,6 +1829,9 @@ function generateShipment(index, chainOverride) {
     orderList,
     shipmentStopList: stops,
     shippingOptionList: routingOptions,
+    // LINX-13953. Rides inside shipments.detail, which sellShipmentDetail()
+    // returns verbatim — no migration, no API change, no seed change.
+    droppedCarrierList: buildDroppedCarriers(routingCarriers, equipmentCode),
     documentList: documents,
     noteList: notes,
     historyList: historyEntries,
@@ -2224,6 +2336,10 @@ export function buildDataset({
   pendingOrders = 20,
 } = {}) {
   faker.seed(42);
+  // Own seed, own sequence — see the droppedFaker declaration. Re-seeded on
+  // every buildDataset call so repeated calls in one process are deterministic
+  // (generate.test.mjs asserts this).
+  droppedFaker.seed(1953);
   resetGeneratorState();
 
   const shipments = [];       // mainRow per shipment
