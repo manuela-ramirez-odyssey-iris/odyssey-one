@@ -1047,12 +1047,24 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
   // lands immediately and a failed write is logged, not rolled back.
   const persistTender = useCallback((option) => {
     const id = shipment?.sellShipment
-    if (!id || !option) return
+    // Nothing to persist is a no-op, not a failure — mock mode and the pre-seed
+    // fixtures both land here, and treating it as an error would fire Process
+    // SCAC's rollback on a path that never attempted a write.
+    if (!id || !option) return Promise.resolve(true)
     // VM → DTO at the ONE choke point before the write (2026-08-10 fix) — the
     // local `options` state is VM-shaped (mapRoutingOption's output); writing
     // it verbatim silently degrades equipment/cost/distance/transit/api to
     // '--' on the next load, since the reader expects DTO key names.
-    saveTenderOption(id, routingOptionVmToDto(option)).catch((e) => console.error('tender save failed', e))
+    // Resolves true/false rather than rejecting. Every pre-existing caller here
+    // is deliberately fire-and-forget (optimistic, never rolled back) and
+    // ignores the return, so their behaviour is unchanged — but Process SCAC
+    // (LINX-13954) has to know, because its AC requires the opposite on
+    // failure: "Carrier shall remain in the Dropped Carrier section. No updates
+    // shall be made to the Tender List." A swallowed rejection made that branch
+    // unreachable, so a failed write left the row on screen and said nothing.
+    return saveTenderOption(id, routingOptionVmToDto(option))
+      .then(() => true)
+      .catch((e) => { console.error('tender save failed', e); return false })
   }, [shipment])
 
   // LINX-13954 — walks the step list `planProcessScac` returns; every branch
@@ -1078,13 +1090,15 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
     }
 
     const option = droppedCarrierToOption(carrier, { rank: nextRank(options), dates })
-    try {
-      // Optimistic, matching how every other tender edit in this file behaves.
-      setOptions((prev) => [...prev, option])
-      await persistTender(option)
-    } catch (e) {
-      console.error('process SCAC failed', e)
-      // AC: no updates to the Tender List, carrier stays, retry available.
+    // Optimistic, matching how every other tender edit in this file behaves —
+    // but unlike them this one ROLLS BACK, because the AC requires it.
+    setOptions((prev) => [...prev, option])
+    // A resolved false, not a rejection: persistTender reports failure by value
+    // so the other callers can keep ignoring it. try/catch would never fire.
+    if (!(await persistTender(option))) {
+      // AC Processing Failure: "Carrier shall remain in the Dropped Carrier
+      // section. No updates shall be made to the Tender List. Process SCAC
+      // shall remain available for retry."
       setOptions((prev) => prev.filter((o) => o.rank !== option.rank))
       setProcessNotice('The dropped carrier could not be processed. If the issue persists, please contact your system administrator.')
       setProcessingScac(null)

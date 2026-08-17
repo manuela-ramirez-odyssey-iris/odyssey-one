@@ -857,6 +857,34 @@ describe('Process SCAC (LINX-13954)', () => {
     expect(screen.getByRole('button', { name: /JBHT/ })).toBeTruthy()
   })
 
+  it('rolls the row back and says so when the write fails', async () => {
+    // AC Processing Failure: "Carrier shall remain in the Dropped Carrier
+    // section. No updates shall be made to the Tender List. Process SCAC shall
+    // remain available for retry."
+    //
+    // This branch was UNREACHABLE until persistTender stopped swallowing the
+    // rejection: it logged to the console, resolved, and left the optimistic
+    // row on screen with the user told nothing. The mock rejects here, which is
+    // the only way to reach it.
+    saveTenderOption.mockRejectedValueOnce(new Error('write failed'))
+    const data = { options: [] }
+    render(<RoutingGuideTab data={data} shipmentDetails={{ droppedCarriers: [cleanDropped] }} shipment={shipment} />)
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Process SCAC' }))
+    })
+
+    expect(screen.getByText(
+      'The dropped carrier could not be processed. If the issue persists, please contact your system administrator.',
+    )).toBeTruthy()
+    // Rolled back — no row survived in the Tender List.
+    expect(document.querySelectorAll('[data-right-table] tbody tr')).toHaveLength(0)
+    // And no success message crept out alongside the failure.
+    expect(screen.queryByText('Routing completed successfully.')).toBeNull()
+    // Retry stays available: the one-at-a-time lock released.
+    expect(screen.getByRole('button', { name: 'Process SCAC' }).disabled).toBe(false)
+  })
+
   it('a duplicate SCAC+Equipment refuses: processing stops, nothing is added', async () => {
     const existing = {
       rank: 1, routeRank: 1, scac: 'JBHT', carrierName: 'J.B. HUNT', equipment: 'LTL',
