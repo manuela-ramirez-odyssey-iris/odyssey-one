@@ -348,8 +348,13 @@ function Playground() {
   const [showFooter, setShowFooter] = useState(true)
   const [stickyActions, setStickyActions] = useState(false)
   const [narrow, setNarrow] = useState(false)
+  // detailNote is per-group and optional in the API; this toggle just strips it
+  // from the demo data so both states are visible (nested flavor only).
+  const [showDetailNote, setShowDetailNote] = useState(true)
 
-  const activeGroups = FLAVORS[flavor].groups
+  const activeGroups = showDetailNote
+    ? FLAVORS[flavor].groups
+    : FLAVORS[flavor].groups.map(({ detailNote, ...g }) => g)
   const [expanded, setExpanded] = useState(() =>
     Object.fromEntries(GROUPS.map((g) => [g.id, true]))
   )
@@ -399,6 +404,9 @@ function Playground() {
         <Toggle label="footerRow (totals row — pass to show, omit to hide)" value={showFooter} set={setShowFooter} />
         <Toggle label="stickyActions (pinned action column)" value={stickyActions} set={setStickyActions} />
         <Toggle label="narrow container (h-scroll)" value={narrow} set={setNarrow} />
+        {flavor === 'nested' && (
+          <Toggle label="detailNote (per-group note row)" value={showDetailNote} set={setShowDetailNote} />
+        )}
         <Button
           variant="link"
           onClick={() => setExpanded(Object.fromEntries(activeGroups.map((g) => [g.id, !allExpanded])))}
