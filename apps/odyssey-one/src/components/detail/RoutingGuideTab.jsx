@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { TruckElectric, FoldHorizontal, UnfoldHorizontal, Columns3Cog } from 'lucide-react'
-import { ICON_MD } from '@odyssey/tokens'
+import { ICON_MD, ICON_LG } from '@odyssey/tokens'
 import { Badge, Button, ModalMedium, Tab } from '@odyssey/ui'
 import ColumnPanel from './ColumnPanel.jsx'
 import { saveTenderOption } from '../../api/services/shipmentService'
@@ -135,6 +135,21 @@ const stickyLastCol = {
   background: 'var(--bg-primary)',
   boxShadow: '-2px 0 4px rgba(0,0,0,0.06)',
 }
+
+/* The pinned action lane. 68px is GroupTable's pinned-column floor, reused so the
+   two tables' action lanes line up on a page carrying both — and it has to be at
+   least that: at the old 50px with 16px side padding the content box was 18px and
+   clipped the 38px column-arrange Button (user, 2026-08-17). Padding drops to 8px
+   for the same reason. */
+const ACTION_LANE = { width: 68, minWidth: 68, maxWidth: 68, padding: '0 var(--spacing-2)', textAlign: 'center' }
+
+/* A `narrow` column's header. Center-aligned like its cells, but NOT wrapped: the
+   old two-line labels ("Carrier Quoted", "Network Leverage") made the right half's
+   header row 65px against the left half's 48, so the two halves of one split table
+   disagreed on where the header ended (user, 2026-08-17). Every cell in the Cell
+   contract is nowrap and 48px; a header is not the exception. No width hint either
+   — 64px + nowrap would just ellipsize the label it is meant to show. */
+const NARROW_TH = { textAlign: 'center' }
 
 const DASH = '--' // LINX-13590 — empty optional values read '--'
 
@@ -588,7 +603,7 @@ function RoutingTable({ options, tabColumns, highlightedRank, openMenuRank, onOp
                 return (
                   <th key={col.key} className="text-label-sm-semibold" style={{
                     ...thSticky,
-                    ...(col.narrow ? { width: 64, whiteSpace: 'normal', lineHeight: 1.3, textAlign: 'center' } : {}),
+                    ...(col.narrow ? NARROW_TH : {}),
                     ...wrapWhenCollapsed,
                     ...statusNarrow,
                     ...(hasWidth ? { width: w, maxWidth: w, overflow: 'hidden' } : {}),
@@ -663,23 +678,27 @@ function RoutingTable({ options, tabColumns, highlightedRank, openMenuRank, onOp
           onClick={() => columnsCollapsed ? onExpand() : onCollapse()}
           title={columnsCollapsed ? 'Expand columns' : 'Collapse columns'}
           style={{
-            width: 20,
-            minWidth: 20,
-            maxWidth: 20,
+            /* 36px lane, white, 20px glyph — the mock's Right Table Expander
+               (Figma 1596:21583). It was a 20px gray lane with a 14px icon: at
+               that size the glyph cannot sit in it without touching both edges,
+               and the gray fill read as a third table rather than a seam. */
+            width: 36,
+            minWidth: 36,
+            maxWidth: 36,
             flexShrink: 0,
             alignSelf: 'stretch',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            background: 'var(--bg-secondary)',
+            background: 'var(--bg-primary)',
             cursor: 'pointer',
             color: 'var(--text-tertiary)',
             transition: 'background 0.15s ease, color 0.15s ease',
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-tertiary)'; e.currentTarget.style.color = 'var(--text-primary)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--bg-secondary)'; e.currentTarget.style.color = 'var(--text-tertiary)' }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-secondary)'; e.currentTarget.style.color = 'var(--text-primary)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--bg-primary)'; e.currentTarget.style.color = 'var(--text-tertiary)' }}
         >
-          {columnsCollapsed ? <UnfoldHorizontal size={14} /> : <FoldHorizontal size={14} />}
+          {columnsCollapsed ? <UnfoldHorizontal {...ICON_LG} /> : <FoldHorizontal {...ICON_LG} />}
         </div>
       )}
       </div>
@@ -690,11 +709,11 @@ function RoutingTable({ options, tabColumns, highlightedRank, openMenuRank, onOp
           <thead>
             <tr>
               {tabColumns.map((col) => (
-                <th key={col.key} className="text-label-sm-semibold" style={{ ...thSticky, ...(col.narrow ? { width: 64, whiteSpace: 'normal', lineHeight: 1.3, textAlign: 'center' } : {}) }}>
+                <th key={col.key} className="text-label-sm-semibold" style={{ ...thSticky, ...(col.narrow ? NARROW_TH : {}) }}>
                   {col.label}
                 </th>
               ))}
-              <th className="sticky top-0" style={{ ...stickyLastCol, zIndex: 5, width: 50, minWidth: 50, maxWidth: 50, padding: '0 var(--spacing-4)', textAlign: 'center', borderBottom: '1px solid var(--border-subtle)' }}>
+              <th className="sticky top-0" style={{ ...stickyLastCol, ...ACTION_LANE, zIndex: 5, borderBottom: '1px solid var(--border-subtle)' }}>
                 {/* Column arrangement (mock 1596:21526 puts it exactly here, in the pinned
                     action lane's header). Restored 2026-08-17 with the thing that was
                     missing when it was pulled on 2026-08-10: a panel of its OWN. It no
@@ -733,7 +752,7 @@ function RoutingTable({ options, tabColumns, highlightedRank, openMenuRank, onOp
                     )
                   })}
                   <td
-                    style={{ ...stickyLastCol, padding: '0 var(--spacing-4)', borderBottom: '1px solid var(--border-subtle)', textAlign: 'center', width: 50, minWidth: 50, maxWidth: 50, cursor: 'pointer', background: STATUS_STYLES[option.status]?.bg ?? 'var(--bg-primary)' }}
+                    style={{ ...stickyLastCol, ...ACTION_LANE, borderBottom: '1px solid var(--border-subtle)', cursor: 'pointer', background: STATUS_STYLES[option.status]?.bg ?? 'var(--bg-primary)' }}
                     onClick={(e) => {
                       e.stopPropagation()
                       const rect = e.currentTarget.getBoundingClientRect()
