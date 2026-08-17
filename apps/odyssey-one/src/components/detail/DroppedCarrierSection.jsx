@@ -43,10 +43,12 @@ const COLUMNS = [
   { key: 'commitment', label: 'Commitment', align: 'right', width: 120 },
 ]
 
-// Behind the per-carrier disclosure: the reason in full, then routing
-// provenance, then the commitment block.
+// Behind the per-carrier disclosure: routing provenance, then the commitment
+// block. Reason Description is NOT here — it is the one long free-text field, and
+// as a column it cost 360px and pushed the rest off the scroll extent. It renders
+// as GroupTable's full-width `detailNote` row BELOW these values instead (user,
+// 2026-08-17), which is what buys the horizontal room back.
 const DETAIL_COLUMNS = [
-  { key: 'reasonDescription', label: 'Reason Description', width: 360 },
   { key: 'startDate', label: 'Start Date', width: 110 },
   { key: 'stopDate', label: 'Stop Date', width: 110 },
   { key: 'transitTime', label: 'Transit Time', width: 116 },
@@ -91,10 +93,23 @@ export default function DroppedCarrierSection({ carriers = [], defaultOpen = tru
     // (`group.rows` is the non-nested flavor's child-row list) — verified
     // against GroupTable.jsx before wiring this.
     detailRows: [c],
+    // Always rendered, dash included: absent optional values read '--' per the
+    // AC's Null Handling rule, and a silently missing row would read as "no
+    // reason given" rather than "routing returned none".
+    detailNote: (
+      <>
+        <span className="odyssey-group-table__detail-note-label">Reason Description</span>
+        {c.reasonDescription ?? '--'}
+      </>
+    ),
   }))
 
   return (
-    <SubAccordion title={`Dropped Carrier (${carriers.length})`} defaultExpanded={defaultOpen}>
+    <SubAccordion
+      title={`Dropped Carrier (${carriers.length})`}
+      defaultExpanded={defaultOpen}
+      showIcon={false}
+    >
       {carriers.length === 0 ? (
         <p className="dropped-carrier__empty text-label-sm-regular">
           Routing did not drop any carriers for this shipment.

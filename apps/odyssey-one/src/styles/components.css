@@ -138,8 +138,12 @@
   color: var(--text-tertiary);
 }
 
-/* Variant=Title — emphasis columns (pair with .text-label-sm-medium) */
-.odyssey-table__cell--title {
+/* Variant=Title — emphasis columns (pair with .text-label-sm-medium).
+   `td.` is load-bearing: `.odyssey-table td` (0,1,1) out-specifies a bare class
+   (0,1,0), so until 2026-08-17 this rule never actually won and every Title cell
+   in the app rendered tertiary — the contract documented above, the Cell master,
+   and the code all said primary; only the CSS disagreed. */
+.odyssey-table td.odyssey-table__cell--title {
   color: var(--text-primary);
 }
 
@@ -6730,6 +6734,21 @@ button.breadcrumb__label:focus-visible {
 }
 .odyssey-group-table__detail tbody tr:not(:last-child) td {
   border-bottom: 1px solid var(--border-subtle);
+}
+
+/* `group.detailNote` — the one WRAPPING row in an otherwise nowrap table. A long
+   free-text field (Dropped Carrier's Reason Description) sits here instead of in
+   a column, so the columns keep their horizontal real estate (user, 2026-08-17).
+   Fixed 48px row height is off: the text is the thing that grows. */
+.odyssey-group-table__detail-note > td {
+  height: auto;
+  white-space: normal;
+  padding: var(--spacing-3) var(--spacing-4);
+  border-top: 1px solid var(--border-subtle);
+}
+.odyssey-group-table__detail-note-label {
+  display: block;
+  font-weight: var(--font-weight-semibold);
 }
 
 /* ── Pinned action column (`stickyActions`) — Figma `Show Actions` +

@@ -61,6 +61,9 @@ import { ICON_MD } from '@odyssey/tokens'
  *                       Presence of this prop is what selects the nested flavor.
  * @param renderDetailCell (row, col) => node — optional cell renderer for nested rows
  *                       (parallel to `renderCell`); default renders `row[col.key] ?? '--'`
+ *                       Per-group `detailNote` (a node) renders as a full-width WRAPPING row
+ *                       at the bottom of the nested table — for the one long free-text field
+ *                       that must not become a column.
  * @param stickyActions  bool — render a pinned trailing action column (sticky right),
  *                       fed by `actionsHeader` (header cell) + `group.action` (per row)
  * @param actionsHeader  node — content of the pinned column's header cell (e.g. a
@@ -263,6 +266,16 @@ export default function GroupTable({
                             ))}
                           </tr>
                         ))}
+                        {group.detailNote && (
+                          /* Full-width note row UNDER the nested data row — the escape
+                             hatch for one long free-text field (a reason description)
+                             that as a column would need ~360px and push every other
+                             column off the scroll extent (user, 2026-08-17). It wraps;
+                             every other cell in this table stays nowrap. */
+                          <tr className="odyssey-group-table__detail-note">
+                            <td colSpan={detailColumns.length}>{group.detailNote}</td>
+                          </tr>
+                        )}
                       </tbody>
                     </table>
                   </td>

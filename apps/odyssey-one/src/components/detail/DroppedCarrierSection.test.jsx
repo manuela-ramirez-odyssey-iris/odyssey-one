@@ -80,4 +80,18 @@ describe('DroppedCarrierSection (LINX-13953)', () => {
     fireEvent.click(screen.getByRole('button', { name: /JBHT/ }))
     expect(screen.getByText(/Transit time could not be calculated/)).toBeTruthy()
   })
+
+  it('puts the reason description BELOW the detail values, not in a column', () => {
+    // The whole point of the 2026-08-17 change: the long field stops eating
+    // horizontal room. It must be a full-width row spanning every detail
+    // column, and there must be no Reason Description column header left.
+    const { container } = render(<DroppedCarrierSection carriers={[rich]} />)
+    fireEvent.click(screen.getByRole('button', { name: /RLCA/ }))
+    const detail = container.querySelector('.odyssey-group-table__detail')
+    const headers = [...detail.querySelectorAll('th')].map((th) => th.textContent)
+    expect(headers).not.toContain('Reason Description')
+    const noteCell = detail.querySelector('.odyssey-group-table__detail-note > td')
+    expect(noteCell.getAttribute('colspan')).toBe(String(headers.length))
+    expect(noteCell.textContent).toContain('prohibited for this customer')
+  })
 })
