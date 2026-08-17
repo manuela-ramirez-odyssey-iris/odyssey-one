@@ -23,6 +23,11 @@ const STATUS_STYLES = {
   Cancelled: { bg: 'var(--bg-tertiary)', color: 'var(--text-placeholder)' },
 }
 
+/* Width of the Tender Status header: wide enough that its LONGEST WORD clears the
+   32px of cell padding (at 78 the wrap worked but "Tender" itself ellipsized to
+   "Ten…"), narrow enough that the two words still can't share a line. */
+const STATUS_HEADER_W = 96
+
 const LOCKED_COLUMNS = [
   { key: 'routeRank', label: 'Route Rank', primary: true, narrow: true },
   { key: 'rank', label: 'Rank', primary: true, narrow: true },
@@ -30,7 +35,10 @@ const LOCKED_COLUMNS = [
   { key: 'carrierName', label: 'Carrier Name', primary: true },
   { key: 'equipment', label: 'Equipment' },
   { key: 'cost', label: 'AP Cost', narrow: true },
-  { key: 'status', label: 'Tender Status' },
+  // wrapHeader = the header width that breaks the label onto two lines ("Tender" /
+  // "Status", user 2026-08-17). Not `narrow`: the CELLS stay left-aligned and
+  // full-width, only the header stacks.
+  { key: 'status', label: 'Tender Status', wrapHeader: STATUS_HEADER_W },
   { key: 'pickupDateTime', label: 'Pickup Date/Time' },
   { key: 'deliveryDateTime', label: 'Delivery Date/Time' },
 ]
@@ -143,13 +151,19 @@ const stickyLastCol = {
    for the same reason. */
 const ACTION_LANE = { width: 68, minWidth: 68, maxWidth: 68, padding: '0 var(--spacing-2)', textAlign: 'center' }
 
-/* A `narrow` column's header. Center-aligned like its cells, but NOT wrapped: the
-   old two-line labels ("Carrier Quoted", "Network Leverage") made the right half's
-   header row 65px against the left half's 48, so the two halves of one split table
-   disagreed on where the header ended (user, 2026-08-17). Every cell in the Cell
-   contract is nowrap and 48px; a header is not the exception. No width hint either
-   — 64px + nowrap would just ellipsize the label it is meant to show. */
-const NARROW_TH = { textAlign: 'center' }
+/* Header cells are a FIXED two-line box in both halves of the split table (user,
+   2026-08-17): Route Rank and Tender Status read better stacked, and the moment one
+   header wraps the other half has to match it or the two halves of one table
+   disagree on where the header ends. 68 = two 20px label lines + the Cell contract's
+   14px pads, so a wrapped and an unwrapped header are the same height by
+   construction rather than by luck. Two SEPARATE tables cannot sync this in CSS. */
+const HEADER_H = 68
+const thBase = { ...thSticky, height: HEADER_H, verticalAlign: 'middle' }
+
+/* A `narrow` column's header: centered over its cells and allowed to wrap — the
+   width is what forces the break ("Route" / "Rank"). Line-height stays the canon
+   20px; the old 1.3 made wrapped headers a hair shorter than the box. */
+const NARROW_TH = { width: 64, whiteSpace: 'normal', textAlign: 'center' }
 
 const DASH = '--' // LINX-13590 — empty optional values read '--'
 
@@ -599,18 +613,23 @@ function RoutingTable({ options, tabColumns, highlightedRank, openMenuRank, onOp
                 const hasWidth = collapsedWidths && COLLAPSIBLE_KEYS.includes(col.key)
                 const w = hasWidth ? collapsedWidths[col.key] : null
                 const wrapWhenCollapsed = columnsCollapsed && !col.narrow ? { whiteSpace: 'normal', lineHeight: 1.3 } : {}
-                const statusNarrow = columnsCollapsed && col.key === 'status' ? { width: 78, maxWidth: 78 } : {}
+                const statusNarrow = columnsCollapsed && col.key === 'status' ? { width: STATUS_HEADER_W, maxWidth: STATUS_HEADER_W } : {}
+                // A collapsed column is an ellipsized stub — it never wraps, whatever
+                // the column asks for. The inner span has to agree with the cell: it
+                // is the nowrap here that kept these headers on one line before.
+                const wraps = !collapsed && (col.narrow || col.wrapHeader)
                 return (
                   <th key={col.key} className="text-label-sm-semibold" style={{
-                    ...thSticky,
+                    ...thBase,
                     ...(col.narrow ? NARROW_TH : {}),
+                    ...(col.wrapHeader ? { width: col.wrapHeader, whiteSpace: 'normal' } : {}),
                     ...wrapWhenCollapsed,
                     ...statusNarrow,
                     ...(hasWidth ? { width: w, maxWidth: w, overflow: 'hidden' } : {}),
                     ...(collapsed ? { padding: '10px 4px' } : {}),
                     transition: 'width var(--transition-base), max-width var(--transition-base), padding var(--transition-base)',
                   }} title={col.label}>
-                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', display: 'block', whiteSpace: 'nowrap', ...(collapsed ? { fontSize: 11, color: 'var(--text-placeholder)' } : {}) }}>
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', display: 'block', whiteSpace: wraps ? 'normal' : 'nowrap', ...(collapsed ? { fontSize: 11, color: 'var(--text-placeholder)' } : {}) }}>
                       {col.label}
                     </span>
                   </th>
@@ -641,7 +660,7 @@ function RoutingTable({ options, tabColumns, highlightedRank, openMenuRank, onOp
                       // CSS :hover cannot reach a sibling table's row.
                       background: getRowBg(option),
                       ...(col.narrow ? { width: 64, textAlign: 'center' } : {}),
-                      ...(columnsCollapsed && col.key === 'status' ? { width: 78, maxWidth: 78 } : {}),
+                      ...(columnsCollapsed && col.key === 'status' ? { width: STATUS_HEADER_W, maxWidth: STATUS_HEADER_W } : {}),
                       ...(hasWidth ? { width: w, maxWidth: w, overflow: 'hidden', textOverflow: 'ellipsis' } : {}),
                       ...(collapsed ? { padding: '10px 4px', fontSize: 12 } : {}),
                       transition: 'width var(--transition-base), max-width var(--transition-base), padding var(--transition-base)',
@@ -709,11 +728,11 @@ function RoutingTable({ options, tabColumns, highlightedRank, openMenuRank, onOp
           <thead>
             <tr>
               {tabColumns.map((col) => (
-                <th key={col.key} className="text-label-sm-semibold" style={{ ...thSticky, ...(col.narrow ? NARROW_TH : {}) }}>
+                <th key={col.key} className="text-label-sm-semibold" style={{ ...thBase, ...(col.narrow ? NARROW_TH : {}) }}>
                   {col.label}
                 </th>
               ))}
-              <th className="sticky top-0" style={{ ...stickyLastCol, ...ACTION_LANE, zIndex: 5, borderBottom: '1px solid var(--border-subtle)' }}>
+              <th className="sticky top-0" style={{ ...stickyLastCol, ...ACTION_LANE, ...thBase, zIndex: 5, borderBottom: '1px solid var(--border-subtle)' }}>
                 {/* Column arrangement (mock 1596:21526 puts it exactly here, in the pinned
                     action lane's header). Restored 2026-08-17 with the thing that was
                     missing when it was pulled on 2026-08-10: a panel of its OWN. It no

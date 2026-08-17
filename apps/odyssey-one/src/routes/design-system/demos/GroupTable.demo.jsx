@@ -47,7 +47,7 @@ export const props = [
   { name: 'stickyActions', type: 'boolean', desc: 'Render a pinned trailing action column (sticky right, 68px), fed by `actionsHeader` + `group.action`. Same convention DataTable uses, so both tables behave identically on a page carrying each.' },
   { name: 'actionsHeader', type: 'node', desc: 'Content of the pinned column\'s header cell — by convention a column-arrange `Button variant="icon"`.' },
   { name: 'groups[].detailRows', type: 'object[]', desc: 'Rows for that group\'s nested table, keyed by `detailColumns[].key`. Only read in the nested flavor.' },
-  { name: 'groups[].detailNote', type: 'node', desc: 'Optional full-width WRAPPING row at the bottom of that group\'s nested table, spanning every detail column. For the one long free-text field among short ones (Dropped Carrier\'s Reason Description) — as a column it needs ~360px and pushes the rest off the scroll extent. Pure slot: pass the label + text yourself (`.odyssey-group-table__detail-note-label` styles a leading label). Nested flavor only.' },
+  { name: 'groups[].detailNote', type: '{ label, value } | node', desc: 'Optional full-width WRAPPING row at the bottom of that group\'s nested table, spanning every detail column. For the one long free-text field among short ones (Dropped Carrier\'s Reason Description) — as a column it needs ~360px and pushes the rest off the scroll extent. Pass `{ label, value }` and the component renders and styles the label itself; a node is accepted as an escape hatch. Either way no internal class names are needed. Nested flavor only.' },
   { name: 'groups[].actionTone', type: "'danger' | 'warning' | 'success' | 'info'", desc: 'Colour scheme (glyph + background) for that row\'s pinned action cell. Omit for the neutral default. At rest the tone reads as a tile behind the glyph; on hover the WHOLE 68px cell fills with the tone and the tile dissolves into it, glyph keeping its colour. This lives on the component rather than the slot because the hover fill is the CELL\'s background — a slotted node cannot paint its own ancestor. An unrecognised value degrades to neutral.' },
   { name: 'groups[].action', type: 'node', desc: 'Content of that group row\'s pinned action cell. A PURE SLOT — the component supplies no behavior or tone. By convention pass an `ActionMenu` (the canonical row-action control, same as DataTable\'s action column): it brings the dropdown, hover/pressed states, keyboard a11y and viewport-flip placement. Clicks are stopped from toggling the row.' },
 ]
@@ -217,14 +217,10 @@ const ROUTE_GROUPS = [
     detailRows: [{ transit: '1 DY', distance: '499.39 mi', notifyMethod: 'Email', notifyDate: '02/12/2026 08:00 CST', responseMethod: 'EDI Update', responseUser: 'Devin Bernhard', quoted: 'No' }],
     // `detailNote` on ONE group deliberately: it is optional per group, and the
     // other two rows show what the nested table looks like without it.
-    detailNote: (
-      <>
-        <span className="odyssey-group-table__detail-note-label">Decline Reason</span>
-        Carrier declined — no equipment available in the pickup window. Long free text
-        like this is exactly what the note row exists for: as a column it would need
-        ~360px and push every short column off the scroll extent.
-      </>
-    ),
+    detailNote: {
+      label: 'Decline Reason',
+      value: 'Carrier declined — no equipment available in the pickup window. Long free text like this is exactly what the note row exists for: as a column it would need ~360px and push every short column off the scroll extent.',
+    },
   },
 ]
 

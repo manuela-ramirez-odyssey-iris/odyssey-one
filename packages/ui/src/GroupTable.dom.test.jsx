@@ -85,3 +85,37 @@ describe('GroupTable — the nested band keeps out of the action lane', () => {
     expect(screen.getByRole('button', { name: 'act' })).toBeTruthy()
   })
 })
+
+describe('GroupTable detailNote', () => {
+  const withNote = (detailNote) => [{ ...GROUPS[0], detailNote }]
+
+  it('renders { label, value } WITHOUT the consumer touching internal class names', () => {
+    // The point of the object shape (user, 2026-08-17): a downstream team gets the
+    // standard label treatment from props alone, not by hand-writing our internals.
+    const { container } = render(
+      <GroupTable columns={COLUMNS} detailColumns={DETAIL_COLUMNS} defaultExpanded
+        groups={withNote({ label: 'Reason Description', value: 'Prohibited for this lane.' })} />
+    )
+    const note = container.querySelector('.odyssey-group-table__detail-note > td')
+    expect(note.querySelector('.odyssey-group-table__detail-note-label').textContent)
+      .toBe('Reason Description')
+    expect(note.textContent).toContain('Prohibited for this lane.')
+    expect(Number(note.getAttribute('colspan'))).toBe(DETAIL_COLUMNS.length)
+  })
+
+  it('still takes a bare node, for what a label/value pair cannot say', () => {
+    const { container } = render(
+      <GroupTable columns={COLUMNS} detailColumns={DETAIL_COLUMNS} defaultExpanded
+        groups={withNote(<em>free form</em>)} />
+    )
+    expect(container.querySelector('.odyssey-group-table__detail-note em').textContent)
+      .toBe('free form')
+  })
+
+  it('renders no note row at all when a group has none', () => {
+    const { container } = render(
+      <GroupTable columns={COLUMNS} detailColumns={DETAIL_COLUMNS} groups={GROUPS} defaultExpanded />
+    )
+    expect(container.querySelector('.odyssey-group-table__detail-note')).toBeNull()
+  })
+})

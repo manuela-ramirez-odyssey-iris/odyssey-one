@@ -61,9 +61,11 @@ import { ICON_MD } from '@odyssey/tokens'
  *                       Presence of this prop is what selects the nested flavor.
  * @param renderDetailCell (row, col) => node — optional cell renderer for nested rows
  *                       (parallel to `renderCell`); default renders `row[col.key] ?? '--'`
- *                       Per-group `detailNote` (a node) renders as a full-width WRAPPING row
- *                       at the bottom of the nested table — for the one long free-text field
- *                       that must not become a column.
+ *                       Per-group `detailNote` renders as a full-width WRAPPING row at the
+ *                       bottom of the nested table — for the one long free-text field that
+ *                       must not become a column. Pass `{ label, value }` and the component
+ *                       renders (and styles) the label itself; a node is accepted as an
+ *                       escape hatch. No internal class names required either way.
  * @param stickyActions  bool — render a pinned trailing action column (sticky right),
  *                       fed by `actionsHeader` (header cell) + `group.action` (per row)
  * @param actionsHeader  node — content of the pinned column's header cell (e.g. a
@@ -273,7 +275,9 @@ export default function GroupTable({
                              column off the scroll extent (user, 2026-08-17). It wraps;
                              every other cell in this table stays nowrap. */
                           <tr className="odyssey-group-table__detail-note">
-                            <td colSpan={detailColumns.length}>{group.detailNote}</td>
+                            <td colSpan={detailColumns.length}>
+                              {detailNoteContent(group.detailNote)}
+                            </td>
                           </tr>
                         )}
                       </tbody>
@@ -312,6 +316,31 @@ export default function GroupTable({
         )}
       </table>
     </div>
+  )
+}
+
+/**
+ * Content of a `group.detailNote` row.
+ *
+ * `{ label, value }` is the SUPPORTED shape: the component owns the label markup
+ * and its styling, so a consumer never has to reach for an internal class name to
+ * get the standard look (user, 2026-08-17 — a component whose only route to a
+ * feature is hand-written internals is one every downstream team has to hack).
+ * A plain node still passes through untouched for the cases the pair can't say.
+ *
+ * @param {{label?: node, value?: node}|node} note
+ * @returns {node}
+ */
+export function detailNoteContent(note) {
+  if (!note || typeof note !== 'object' || Array.isArray(note) || note.$$typeof) return note
+  if (!('label' in note) && !('value' in note)) return note
+  return (
+    <>
+      {note.label != null && (
+        <span className="odyssey-group-table__detail-note-label">{note.label}</span>
+      )}
+      {note.value}
+    </>
   )
 }
 

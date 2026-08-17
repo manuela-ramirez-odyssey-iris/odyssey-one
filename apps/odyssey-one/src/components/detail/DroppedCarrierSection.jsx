@@ -96,12 +96,7 @@ export default function DroppedCarrierSection({ carriers = [], defaultOpen = tru
     // Always rendered, dash included: absent optional values read '--' per the
     // AC's Null Handling rule, and a silently missing row would read as "no
     // reason given" rather than "routing returned none".
-    detailNote: (
-      <>
-        <span className="odyssey-group-table__detail-note-label">Reason Description</span>
-        {c.reasonDescription ?? '--'}
-      </>
-    ),
+    detailNote: { label: 'Reason Description', value: c.reasonDescription ?? '--' },
   }))
 
   return (
