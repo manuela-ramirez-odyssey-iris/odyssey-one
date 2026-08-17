@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { TruckElectric, FoldHorizontal, UnfoldHorizontal, Columns3Cog } from 'lucide-react'
-import { ICON_MD, ICON_LG } from '@odyssey/tokens'
+import { ICON_LG } from '@odyssey/tokens'
 import { Badge, Button, ModalMedium, Tab } from '@odyssey/ui'
 import ColumnPanel from './ColumnPanel.jsx'
 import { saveTenderOption } from '../../api/services/shipmentService'
@@ -795,7 +795,9 @@ function RoutingTable({ options, tabColumns, highlightedRank, openMenuRank, onOp
                     }}
                   >
                     <div className="flex items-center justify-center" style={{ width: '100%', height: '100%' }}>
-                      <TruckElectric {...ICON_MD} style={{ color: option.status && STATUS_STYLES[option.status] ? STATUS_STYLES[option.status].color : 'var(--text-placeholder)' }} />
+                      {/* LG (20px) — it is the row's own action glyph in a 68px lane,
+                          the same weight as the header's arrange control (user, 2026-08-17). */}
+                      <TruckElectric {...ICON_LG} style={{ color: option.status && STATUS_STYLES[option.status] ? STATUS_STYLES[option.status].color : 'var(--text-placeholder)' }} />
                     </div>
                   </td>
                 </tr>
