@@ -6693,7 +6693,19 @@ button.breadcrumb__label:focus-visible {
    fill, no seam shadow, no padding. */
 
 .odyssey-group-table__detail {
-  width: 100%;
+  /* max-content + min-width, NOT `width: 100%`. 100% resolves against the
+     width the OUTER table's fixed columns produce — and when the nested
+     table's natural content needs more than that, it silently OVERFLOWS the
+     host cell and paints past the table's right edge, outside the pinned
+     action column (seen in the DSM 2026-08-17, where the two widths were
+     within ~50px of each other and font metrics tipped it over; the dropped
+     carrier table has a wide margin and never showed it). max-content makes
+     the inner table's needs part of the host cell's minimum, so the OUTER
+     table grows to contain it and the sticky lane stays at the true right
+     edge; min-width keeps it filling the band when the outer table is the
+     wider of the two. */
+  width: max-content;
+  min-width: 100%;
   border-collapse: collapse;
   background: transparent; /* the band owns the gray */
 }
