@@ -476,10 +476,20 @@ function numFrom(formatted: string | undefined): number | undefined {
 // set here: the VM only ever surfaces its value through `sl` (the mapper
 // prefers `o.sl ?? o.serviceLevel`), so writing `sl` alone round-trips fine.
 export function routingOptionVmToDto(vm: RoutingOptionVM): SellShipmentRoutingOption {
-  const { equipment, rate, cost, transit, distance, api, ...rest } = vm
+  const { equipment, rate, cost, transit, distance, api, routeRank, ...rest } = vm
   return {
     ...rest,
     equipmentCode: equipment,
+    // Pulled out of the spread deliberately. The VM's routeRank is a DISPLAY
+    // value and carries '--' for a carrier processed in from the Dropped
+    // Carrier list (LINX-13954) — routing returns no route rank for a dropped
+    // carrier. The wire field is numeric, so the dash must not survive the
+    // write: a non-numeric rank becomes ABSENT, never 0, which would read as
+    // a real first-place rank on the next load.
+    routeRank:
+      routeRank !== '' && routeRank != null && Number.isFinite(Number(routeRank))
+        ? Number(routeRank)
+        : undefined,
     rateAmount: numFrom(rate),
     rateCurrency: vm.rateDetails?.currency,
     totalCostAmount: numFrom(cost),

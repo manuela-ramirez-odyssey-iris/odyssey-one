@@ -589,6 +589,21 @@ describe('mapSellShipmentOutToDetail', () => {
   // Accept, Decline, or Cancel. routingOptionVmToDto is the fix — this proves
   // a save-then-reload round-trips, not just that the forward mapper works.
   describe('routingOptionVmToDto — persist round-trip', () => {
+    it('never persists a display dash into the numeric routeRank (LINX-13954)', () => {
+      // A carrier processed in from the Dropped Carrier list arrives with
+      // routeRank '--' — routing returns no route rank for a dropped carrier.
+      // The wire field is `routeRank?: number`, so the dash must not survive
+      // the write, and it must become ABSENT rather than 0: a persisted 0
+      // would read back as a real first-place rank.
+      const out = routingOptionVmToDto({ rank: 9, routeRank: '--' } as never)
+      expect(out.routeRank).toBeUndefined()
+      expect(out.routeRank).not.toBe(0)
+      // A real rank still round-trips as a number, string-typed or not.
+      expect(routingOptionVmToDto({ rank: 9, routeRank: 3 } as never).routeRank).toBe(3)
+      expect(routingOptionVmToDto({ rank: 9, routeRank: '3' } as never).routeRank).toBe(3)
+    })
+
+
     it('carries equipment, rate, cost, transit, distance, and api through a save+reload, not dashes', () => {
       const dto: SellShipmentOut = {
         ...sellShipmentOutSample,

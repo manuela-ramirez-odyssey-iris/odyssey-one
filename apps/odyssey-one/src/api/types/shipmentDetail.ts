@@ -164,7 +164,10 @@ export interface QuoteAuditVM {
 
 export interface RoutingOptionVM {
   rank: number
-  routeRank: number
+  /** Display-only — never arithmetic. A carrier processed in from the Dropped
+      Carrier list (LINX-13954) carries '--', because routing returns no route
+      rank for a dropped carrier and the AC says to carry across what it sent. */
+  routeRank: number | string
   scac: string
   carrierName: string
   equipment: string
