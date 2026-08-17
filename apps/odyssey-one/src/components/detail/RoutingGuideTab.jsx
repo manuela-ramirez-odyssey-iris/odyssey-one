@@ -50,7 +50,7 @@ const COLLAPSIBLE_KEYS = ['scac', 'carrierName', 'equipment', 'cost', 'pickupDat
 
 const TAB_COLUMNS = {
   'routing-options': [
-    { key: 'transit', label: 'Transit Time' },
+    { key: 'transit', label: 'Transit Time', wrapHeader: WRAP_HEADER_W },
     { key: 'distance', label: 'Distance' },
     { key: 'api', label: 'Notify Method', wrapHeader: WRAP_HEADER_W },
     { key: 'notifyDateTime', label: 'Notify Date' },
