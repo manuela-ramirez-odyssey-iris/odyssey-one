@@ -6,6 +6,11 @@ import MeasureField from '../orders/create/fields/MeasureField.jsx'
 import { TIMEZONE_LABELS, CURRENCIES } from '../../data/master-data'
 import { getLookupOptions } from '../../api/services/lookupService'
 import { parseDollar, fmtDollar } from '../../utils/money'
+// Re-exported rather than re-implemented: these moved to lib/dates.js when
+// Dropped Carrier (LINX-13953) became the second consumer. QuoteModal.test.jsx
+// imports them from here, and so do external callers.
+import { splitDateTime, joinDateTime, dayOfWeek, composeCarrierDateTime } from '../../lib/dates'
+export { splitDateTime, joinDateTime, dayOfWeek, composeCarrierDateTime }
 
 // QuoteModal — one modal, three modes (Figma: Add Quote 1175:39228 · Rate
 // Details 1408:21725 · Edit Quote 1408:23260). Same anatomy in all three:
@@ -70,15 +75,6 @@ export const tzOffset = (tz) => {
 
 // Quote timestamps ride as one display string ("01/07/2026 09:00 CST") through
 // the routing-option DTO. The form edits the three parts separately.
-export function splitDateTime(s) {
-  const m = /^(\d{2}\/\d{2}\/\d{4})?\s*(\d{1,2}:\d{2})?\s*([A-Z]{3,4})?/.exec(String(s ?? '').trim())
-  if (!m) return { date: '', time: '', tz: 'CST' }
-  return { date: m[1] ?? '', time: m[2] ? m[2].padStart(5, '0') : '', tz: m[3] ?? 'CST' }
-}
-export function joinDateTime({ date, time, tz }) {
-  if (!date) return ''
-  return [date, time, time ? tz : ''].filter(Boolean).join(' ')
-}
 
 function SummaryCard({ title, rows, total }) {
   return (
@@ -98,40 +94,6 @@ function SummaryCard({ title, rows, total }) {
       </div>
     </div>
   )
-}
-
-// Day-of-week for an "MM/DD/YYYY" string, as the ticket's "Tue" / "Wed".
-// DERIVED from the date rather than read from a stored day field: the VM
-// carries `pickupOrgDay` but has NO `deliveryOrgDay`, so only one side could
-// have used a stored value — and a stored day can silently disagree with its
-// own date, which a derived one cannot. Parsed part-wise, not via
-// `new Date(string)`, whose "MM/DD/YYYY" handling is implementation-defined.
-const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-export function dayOfWeek(mdY) {
-  const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(String(mdY ?? '').trim())
-  if (!m) return ''
-  const d = new Date(Number(m[3]), Number(m[1]) - 1, Number(m[2]))
-  // Guard a rolled-over invalid date (e.g. 02/31) rather than naming a day
-  // that isn't the one written down.
-  if (d.getMonth() !== Number(m[1]) - 1 || d.getDate() !== Number(m[2])) return ''
-  return DAY_NAMES[d.getDay()]
-}
-
-/**
- * LINX-13895 — the Carrier Option section's Pickup/Delivery value, composed as
- * the ticket's own example: "01/07/2026 09:00 CST, Tue, (07:00-15:30)" —
- * date, time (if available), time zone, day, org hours.
- *
- * Every part is optional and simply omitted when missing, so a partial record
- * degrades to "01/07/2026, Tue" rather than "01/07/2026 , , ()". An entirely
- * empty one reads as the DASH, per "if any data is blank or unavailable,
- * display '--'".
- */
-export function composeCarrierDateTime(value) {
-  if (!value) return DASH
-  const day = dayOfWeek(value.date)
-  const hours = value.orgHours && value.orgHours !== DASH ? `(${value.orgHours})` : ''
-  return [joinDateTime(value), day, hours].filter(Boolean).join(', ') || DASH
 }
 
 /** Read-only Pickup/Delivery value. Reads as a VALUE, not a dead input (user,
