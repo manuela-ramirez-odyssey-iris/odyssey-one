@@ -12,10 +12,12 @@ status: active
 Canon for the **Dropped Carrier** section of the Tender tab and the **Process SCAC** action that
 promotes a dropped carrier into the Tender List.
 
-**Nothing here is implemented.** All three tickets sit in `Initial UX/UI Design` / `New`; none carries
-`Approved` or `Refinement_done`. This document is analysis only — see
+**LINX-13953 (Display) and LINX-13954 (Process SCAC) are now built in the prototype** — see the ✅ markers
+through §3–§4. Ticket workflow status in Jira is unchanged for all three (`Initial UX/UI Design` / `New`);
+none carries `Approved` or `Refinement_done`. LINX-13397 (data lookups) remains unimplemented — see §5.
+This document mixes shipped behaviour with unresolved analysis; each subsection says which. See
 [[decisions/dropped-carrier-decisions|Dropped Carrier Decisions]] for the rulings, which use a `DC-`
-prefix precisely so they are never mistaken for shipped behaviour in
+prefix precisely so they are never mistaken for the ticket's own spec — implemented or not — in
 [[decisions/decision-log|the Shipments decision log]].
 
 ## Sources
@@ -266,6 +268,11 @@ unspecified — [OQ-9](#oq-9).
 
 ## 4. Process SCAC — LINX-13954
 
+**✅ Built** 2026-08-17. Commits `7367759`, `8bffdf1`, `006d3ce`, `14d1bfd`, `033576d`, `c29410f`. The
+sections below describe the AC/VTT-derived spec; §4.14–§4.16 record what building it actually required
+beyond that spec — see [[decisions/dropped-carrier-decisions#DC-12|DC-12]] through
+[[decisions/dropped-carrier-decisions#DC-21|DC-21]] for the full implementation-call record.
+
 ### 4.1 Where the action lives
 
 **One action per dropped-carrier row — not a single button above the section.** The AC only says the
@@ -277,7 +284,8 @@ what settles the placement, and Jana was emphatic and unprompted about it:
 > **instead of just having one button on the top** to say like Process SCAC. We should have for every
 > option which is dropped to process the SCAC from here to the usable list."* — Jana `[21:31]`–`[21:56]`
 
-Ruling: [[decisions/dropped-carrier-decisions#DC-02|DC-02]].
+Ruling: [[decisions/dropped-carrier-decisions#DC-02|DC-02]] — ✅ implemented (action column); see
+[[#OQ-14|OQ-14]] for a layout issue it introduced.
 
 ### 4.2 Concurrency
 
@@ -320,6 +328,11 @@ flowchart TD
 places the rating call **only** on the routing-failure branch, which is drawn faithfully above and is
 exactly what the VTT contradicts — see **[OQ-1](#oq-1)**, the most consequential open item in this
 document.
+
+**Built as drawn**, 2026-08-17 — with the addition of [[decisions/dropped-carrier-decisions#DC-12|DC-12]]
+(Routing/Rating simulated off the seeded `dropCode`) and
+[[decisions/dropped-carrier-decisions#DC-15|DC-15]] (the success/failure messages render as an `Alert`,
+not the "Toast" node this diagram's own label uses).
 
 ### 4.4 Routing success
 
@@ -374,6 +387,9 @@ button tables say **OK / Cancel**. Treat "Yes" as a leftover — [[decisions/dro
 
 The delivery≤pickup rule has full VTT backing (`[34:39]`–`[35:12]`, with Jana's 07:27-vs-07:28 worked
 example). **The pickup-in-the-past rule is AC-only** — no rationale anywhere in the VTT. See [OQ-6](#oq-6).
+
+✅ **Implemented** 2026-08-17 (`ManualDatesModal`, commit `14d1bfd`) — both validations browser-verified,
+see [[decisions/dropped-carrier-decisions#DC-21|DC-21]].
 
 ### 4.7 Rating failure
 
@@ -435,7 +451,9 @@ so:
 
 So: **Rank** = the carrier's position in the Tender List, recalculated on insert. **Route Rank** =
 routing's own rank, carried over from the dropped row together with its RPC-ID (or left empty on the
-manual path). Ruling: [[decisions/dropped-carrier-decisions#DC-05|DC-05]].
+manual path). Ruling: [[decisions/dropped-carrier-decisions#DC-05|DC-05]] — ✅ implemented; see
+[[decisions/dropped-carrier-decisions#DC-17|DC-17]] (both fields resolve blank on today's data) and
+[[#OQ-16|OQ-16]] (a pre-existing mapper fallback backfills Route Rank from Rank on the next read).
 
 #### There is no fixed equipment hierarchy
 
@@ -459,7 +477,9 @@ And the reason bottom-of-group is the right insert position:
 Routing has already ordered each group by quality for *this* shipment. The user's manual pick has not
 earned a position inside that ordering, so it appends. And the equipment-group order itself is whatever
 routing returned — a hardcoded `LTL > TL > …` sort would be wrong.
-Ruling: [[decisions/dropped-carrier-decisions#DC-04|DC-04]].
+Ruling: [[decisions/dropped-carrier-decisions#DC-04|DC-04]] — ✅ implemented for the always-flat Tender
+List; see [[decisions/dropped-carrier-decisions#DC-14|DC-14]] (the AC's own no-matching-group fallback is
+the only path we ever take).
 
 Scope of the rule: *"only when user is manually adding or processing a SCAC from the drop carrier list"*
 `[32:26]`. Routing's own results are not re-sorted by us.
@@ -520,6 +540,9 @@ these become trail events is **not** stated by either source.
 - Carrier remains in the Dropped Carrier section; no change to the Tender List; **Process SCAC remains
   available for retry.**
 
+✅ **Implemented and reachable** — this branch was dead code until
+[[decisions/dropped-carrier-decisions#DC-20|DC-20]] fixed it.
+
 ### 4.13 The ripple note
 
 The AC closes with a note that is easy to miss and expensive to miss:
@@ -529,6 +552,51 @@ The AC closes with a note that is easy to miss and expensive to miss:
 > Additional Information and Others tabs) to be updated as well."*
 
 Process SCAC is not a local mutation of one list. It refreshes the whole Tender surface.
+
+**As built, 2026-08-17:** only the Tender List updates and receives focus (§4.10). The wider ripple this
+note describes — Routing Options, Response comments, Volume commitment, Additional Information and Others
+tabs — is **not implemented**.
+
+### 4.14 Build notes — what the ticket doesn't specify (2026-08-17)
+
+This prototype has no routing or rating service, no audit backend, and a flat (non-grouped) Tender List.
+Four calls were needed to actually ship the flow above:
+
+- **Routing/Rating simulation** — driven by the seeded `dropCode`: `23` (Missing Transit Time) takes the
+  manual-dates branch, `1`/`2` (No Rates / Prohibited Carrier) route clean.
+  [[decisions/dropped-carrier-decisions#DC-12|DC-12]]
+- **Rating always fails** on the routing-failure branch — no rate data exists for a dropped carrier.
+  [[decisions/dropped-carrier-decisions#DC-13|DC-13]]
+- **Insertion always takes the AC's own no-matching-group fallback** — `max(rank) + 1`, never renumbered,
+  because the write endpoint addresses rows by rank. [[decisions/dropped-carrier-decisions#DC-14|DC-14]]
+- **Audit logging is not built** — no table, no endpoint. [[decisions/dropped-carrier-decisions#DC-16|DC-16]]
+
+**No migration, no API change** — `saveTender` already update-then-inserts; a processed carrier is just a
+new rank falling through the INSERT path. [[decisions/dropped-carrier-decisions#DC-18|DC-18]]
+
+### 4.15 Two defects found and fixed mid-build
+
+- **A display dash would have been persisted into a numeric wire field.** `routeRank: '--'` on a processed
+  carrier was passed through `routingOptionVmToDto`'s spread verbatim; fixed to coerce to a number or
+  leave the field absent. [[decisions/dropped-carrier-decisions#DC-19|DC-19]], commit `8bffdf1`.
+- **The AC's Processing Failure branch was unreachable dead code.** `persistTender` gave callers no
+  success/failure signal, so a failed write left the optimistic row on screen and told the user nothing.
+  [[decisions/dropped-carrier-decisions#DC-20|DC-20]], commit `c29410f`.
+
+### 4.16 Browser verification (2026-08-17)
+
+Driven end-to-end in headless Chrome against live Neon data, not asserted from jsdom:
+
+- 8 dropped carriers → 8 Process SCAC buttons; the action cell computes `position: sticky`.
+- Clean route: tender rows 6 → 7, "Routing completed successfully." shown.
+- Duplicate press: "Carrier and Equipment combination (SCAC/Equipment) already in the list." — row count
+  unchanged.
+- Missing Transit Time: dates dialog opens; both validations block OK with their verbatim messages; a
+  valid pair enables OK; "No rate is available for the carrier..." follows.
+- **Persistence confirmed cold** — a full page reload kept both processed carriers and their
+  manually-entered dates: `8 8 SAIA SAIA INC LCL -- -- 09/02/2099 08:00 09/04/2099 16:00`.
+
+Full record: [[decisions/dropped-carrier-decisions#DC-21|DC-21]].
 
 ---
 
@@ -775,6 +843,43 @@ Carrier Name, Equipment, Reason — plus a looked-up description) and not the 23
 
 *Caveat:* one sample, one shipment, LTL only. But the asymmetry is consistent across all eleven
 dropped rows and is clearly deliberate, not a per-row omission.
+
+### OQ-14
+**◐ OPEN (2026-08-17, build finding).** The Action column pushes Commitment under the pinned lane.
+Measured in Chrome: the eight data columns total 1178px in a 1232px scroller — the table fit exactly
+before the action column existed. The 158px pinned lane took `scrollWidth` to 1336, so at rest the lane
+covers 103px of Commitment's 119px. Still reachable by scrolling right, but at first glance the column
+reads as broken. Unresolved — the fix is either dropping Commitment from the visible row (it is `--` for
+every row today, per [[decisions/dropped-carrier-decisions#DC-07|DC-07]]) or accepting the horizontal
+scroll.
+
+### OQ-15
+**◐ OPEN (2026-08-17, build finding).** A cleanly-routed carrier lands with NO dates, which contradicts
+the AC's own definition of routing success. The AC defines Routing Success as *"(Pickup and Delivery date
+available)"*, but no dropped carrier in the seeded data carries dates, and
+[[decisions/dropped-carrier-decisions#DC-12|DC-12]]'s simulation does not invent them. So a `No Rates`
+carrier is copied in, "Routing completed successfully." is shown, and the row has `--` for pickup and
+delivery. Verified in Chrome: `7 7 WARD WARD TRUCKING LCL -- -- -- --`. Taken strictly, every dropped
+carrier should take the manual-dates branch, which would make the clean-route branch unreachable. Needs a
+ruling — distinct from [[#OQ-1|OQ-1]] (which settled whether Rating runs on the success path, not whether
+"success" itself is well-defined without dates).
+
+### OQ-16
+**◐ OPEN (2026-08-17, build finding).** Route Rank displays the row's own rank, not blank.
+[[decisions/dropped-carrier-decisions#DC-17|DC-17]] (extending
+[[decisions/dropped-carrier-decisions#DC-05|DC-05]]) says a processed carrier carries no route rank. But
+`mapRoutingOption` has a pre-existing fallback, `routeRank: o.routeRank ?? o.rank`, so on the next read
+the blank becomes the rank — WARD displays Route Rank 7 at rank 7. Pre-existing mapper behaviour applying
+to every option, not something this work introduced; changing it would affect all routing options, not
+just processed dropped carriers. Unresolved.
+
+### OQ-17
+**◐ OPEN (2026-08-17, build finding) — the gap §4.7 already flagged is now visible on screen.** A
+`No Rates` carrier routes cleanly, so under the failure-only rating rule
+([[decisions/dropped-carrier-decisions#DC-13|DC-13]]; [[#OQ-1|OQ-1]]) it lands in the Tender List with an
+empty cost and no prompt — the *"you should not leave it empty"* outcome Jana described designing against
+(§4.7). Built per the ticket as ruled; now worth looking at with the real screen in front of stakeholders
+rather than described.
 
 ---
 

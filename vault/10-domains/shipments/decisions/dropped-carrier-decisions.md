@@ -54,7 +54,8 @@ and Jana's call of 2026-08-11 (`jana-tender-drop-carrier-and-process-scac-2026-0
   the top** to say like Process SCAC."* The same argument they apply one breath earlier to Add Quote — the
   action belongs to the option, not to the tender.
 - **Source:** VTT `[21:31]`–`[21:56]`.
-- **Status:** analysis — not implemented.
+- **Status:** ✅ **implemented** 2026-08-17, LINX-13954 build — action column (`006d3ce`), wired end to
+  end (`033576d`). See [[#DC-12|DC-12]] onward for the implementation calls.
 - **Note:** the identical argument applied to **Add Quote** (*"instead of being on the top, it should be
   here as part of the dropdown"*, VTT `[21:03]`) targets already-shipped Quote UI. Logged in the canon §7,
   deliberately not actioned here.
@@ -75,7 +76,8 @@ and Jana's call of 2026-08-11 (`jana-tender-drop-carrier-and-process-scac-2026-0
   its Manual-Entry precondition — *"Routing fails (Routing call successful but didn't return Pickup or
   Delivery or both dates)"* — it just contradicts itself in the pseudocode above it.
 - **Source:** VTT `[19:04]`; LINX-13954 AC, "Manual Pickup and Delivery Entry" precondition.
-- **Status:** analysis — not implemented. Belongs to LINX-13954 (Process SCAC), not the display build.
+- **Status:** ✅ **implemented** 2026-08-17, LINX-13954 build — `routingReturnsDates` in
+  `apps/odyssey-one/src/lib/processScac.js` (commit `7367759`).
 - **Why it matters:** it is the difference between a dialog that asks the user for dates and a dialog that
   tells them to call an administrator. Getting it backwards puts a date picker in front of a network
   outage.
@@ -109,7 +111,8 @@ and Jana's call of 2026-08-11 (`jana-tender-drop-carrier-and-process-scac-2026-0
   rank shall be calculated — route rank logic. Okay, this is a route rank logic. **It is not about this
   one, right? This is not about this.** This is a route rank logic."*
 - **Source:** VTT `[37:44]`, `[38:03]`–`[38:31]`; LINX-13954 "Carrier Insertion Logic".
-- **Status:** analysis — not implemented.
+- **Status:** ✅ **implemented** 2026-08-17, LINX-13954 build (commit `7367759`) — see [[#DC-17|DC-17]]
+  for what "carried" resolves to on today's seeded data.
 - **Why it matters:** Route Rank and RPC-ID travel as a pair — the RPC-ID is what makes Start Date, Stop
   Date and Route Group (13397 §7/§8) resolvable on the promoted row. Dropping Route Rank on promotion
   would silently blank three other fields.
@@ -169,7 +172,8 @@ and Jana's call of 2026-08-11 (`jana-tender-drop-carrier-and-process-scac-2026-0
   a button saying that **okay and cancel**, and okay is continue processing, and **okay should be enabled
   only when this validation message is gone**."* The AC's own button tables agree; only its prose does not.
 - **Source:** VTT `[35:37]`; LINX-13954 "Manual Pickup and Delivery Entry" button tables.
-- **Status:** analysis — not implemented.
+- **Status:** ✅ **implemented** 2026-08-17, LINX-13954 build — `ManualDatesModal` (commit `14d1bfd`).
+  Both validations browser-verified; see [[#DC-21|DC-21]].
 
 ---
 
@@ -222,8 +226,146 @@ and Jana's call of 2026-08-11 (`jana-tender-drop-carrier-and-process-scac-2026-0
 
 ---
 
+## Process SCAC — implementation calls (LINX-13954, built)
+
+Entries below are engineering decisions made while **building** LINX-13954, not new readings of the AC or
+the VTT — the ticket does not make these calls, we did. Each entry says so explicitly.
+
+### DC-12: Routing and Rating are SIMULATED, driven by the seeded `dropCode`
+- **This is our call, not the ticket's.** LINX-13954 assumes real Routing and Rating services exist to
+  call; this prototype has neither.
+- **Previous:** no simulation existed — `planProcessScac` had no branch logic to write against.
+- **Decision:** derive the routing/rating outcome deterministically from the `dropCode` routing already
+  gave a dropped carrier. `dropCode 23` (Missing Transit Time) → routing returns no dates → manual entry
+  dialog. `dropCode 1` (No Rates) and `2` (Prohibited Carrier) → routing succeeds.
+- **Rationale:** deterministic, no randomness, so demos repeat and every branch is reachable on request.
+- **Source:** `apps/odyssey-one/src/lib/processScac.js` (`routingReturnsDates`,
+  `DROP_CODE_MISSING_TRANSIT_TIME`). Replacing it with a real call touches nothing else — the function is
+  the only seam.
+- **Status:** ✅ **implemented** 2026-08-17, LINX-13954 build. Commit `7367759`.
+
+### DC-13: Rating always fails for a dropped carrier
+- **This is our call, not the ticket's.**
+- **Previous:** [[../dropped-carrier#OQ-1|OQ-1]] had already ruled "follow the ticket" — Rating runs only
+  on the routing-failure branch. No rating *outcome* existed yet to build against.
+- **Decision:** on that branch, Rating always returns no rate.
+- **Rationale:** we hold no rate data for a dropped carrier — routing returns five attributes
+  ([[../dropped-carrier#OQ-13|OQ-13]]) and none is a rate — so "No rate available" is truthful, not a coin
+  flip.
+- **Source:** `processScac.js` (`planProcessScac`'s `'rating-failed'` step, unconditional on the failure
+  branch).
+- **Status:** ✅ **implemented** 2026-08-17, LINX-13954 build. Commit `7367759`.
+
+### DC-14: Append at `max(rank) + 1`; never renumber
+- **This is our call, not the ticket's**, applying the AC's own stated fallback.
+- **Previous:** [[#DC-04|DC-04]] ruled bottom-of-matching-Equipment-group insert with Rank recalculated by
+  position — correct for a grouped list. Our Tender List is FLAT, no equipment groups, so DC-04's primary
+  rule never applies.
+- **Decision:** the AC's own fallback governs every insert — *"If no matching Equipment group exists,
+  insert at the end of the Tender List."* Rank = `max(existing ranks) + 1`. Existing ranks are never
+  renumbered.
+- **Rationale:** renumbering is additionally not expressible through the write endpoint —
+  `buildTenderUpdateQuery` addresses rows `WHERE shipment_sell_id = $7 AND rank = $8`
+  (`apps/odyssey-one/api/_lib/shipments.mjs:269`), so shifting row 5 to 6 would overwrite whatever
+  currently holds rank 6.
+- **Source:** `processScac.js` (`nextRank`); `apps/odyssey-one/api/_lib/shipments.mjs:265-276`.
+- **Status:** ✅ **implemented** 2026-08-17, LINX-13954 build. Commit `7367759`.
+
+### DC-15: The 3-second success message is an inline `Alert`, not a new Toast component
+- **This is our call, not the ticket's.** The AC's flow calls it a "Toast" with a 3s auto-dismiss.
+- **Previous:** no toast/auto-dismiss pattern exists anywhere in this app.
+- **Decision:** `Alert variant="success"` + a `setTimeout` clearing it after 3000ms.
+- **Rationale:** ~6 lines against a new normalized component that would owe Figma, a DSM entry and an
+  Angular twin for one caller. Revisit if a second consumer appears.
+- **Source:** `RoutingGuideTab.jsx:1466` (`<Alert variant="success" showClose={false}>`); the
+  `processSuccess` auto-clear effect nearby.
+- **Status:** ✅ **implemented** 2026-08-17, LINX-13954 build. Commit `033576d`.
+
+### DC-16: Audit logging is NOT built
+- **This is a known gap, not a decision.**
+- **Previous:** canon §4.11 / the AC's audit list — user, date/time, shipment, SCAC, routing result, rating
+  result, manual dates — explicitly "recorded in backend audit logs."
+- **Decision:** not built. There is no audit table in Neon and no endpoint.
+- **Source:** LINX-13954 AC, "Audit Log" step; canon §4.11.
+- **Status:** ❌ **not implemented.** Known gap, flagged rather than silently dropped.
+
+### DC-17: Route Rank and RPC-ID are carried from the dropped row, which means both arrive blank
+- **This is our call, not the ticket's**, applying [[#DC-05|DC-05]] together with the routing-payload
+  finding at [[../dropped-carrier#OQ-13|OQ-13]].
+- **Previous:** DC-05 ruled Route Rank + RPC-ID carried over from the dropped row on the "adding from
+  dropped list" branch. OQ-13 separately found routing returns neither field for a dropped carrier
+  (`<d-option>` carries only `seq`, `service`, `carrier`, `drop-code`, `drop-reason`).
+- **Decision:** implement the carry-over exactly as specified. On today's seeded data both fields resolve
+  to blank, because there is nothing to carry.
+- **Rationale:** this matches what the AC's own "from scratch" branch prescribes as an *outcome* (route
+  rank and RPC-ID empty), even though mechanically we are on the "from dropped list" branch, not the
+  from-scratch one.
+- **Source:** `processScac.js` (`droppedCarrierToOption`: `routeRank: carrier.routeRank ?? DASH`, `rcpId:
+  carrier.rpcId ?? DASH`).
+- **Status:** ✅ **implemented** 2026-08-17, LINX-13954 build. Commit `7367759`.
+
+---
+
+## Process SCAC — engineering findings & defects (LINX-13954, built)
+
+### DC-18: No migration and no API change were needed
+- **Verified in code, not assumed.**
+- **Previous:** the plan could have assumed a write-side migration was needed to persist a carrier
+  promoted out of the Dropped Carrier list — the same assumption [[decision-log#DEC-106|DEC-106]]
+  disproved for the read side of 13953.
+- **Decision:** none needed. `saveTender` (`apps/odyssey-one/api/_lib/shipments.mjs:290`) already
+  update-then-inserts — it UPDATEs by `(shipment_sell_id, rank)` and INSERTs when nothing matched. A
+  processed carrier is simply a new rank falling through the INSERT path.
+- **Rationale:** same "read the code before assuming a migration" finding as
+  [[decision-log#DEC-106|DEC-106]].
+- **Source:** `apps/odyssey-one/api/_lib/shipments.mjs:261-299`.
+- **Status:** ✅ **confirmed** — no schema or endpoint change made.
+
+### DC-19: A display dash would have been persisted into a numeric wire field — found and fixed
+- **Previous:** `routingOptionVmToDto` passed `routeRank` through its `...rest` spread unchanged.
+- **Finding:** a carrier processed in from the Dropped Carrier list carries `routeRank: '--'`
+  ([[#DC-17|DC-17]]), so that string would have been written into `routeRank?: number` on the wire.
+- **Fix:** `routeRank` pulled out of the spread and coerced: non-numeric becomes ABSENT (`undefined`),
+  never `0` — a persisted `0` would read back as a real first-place rank on the next load. The VM type
+  widened to `number | string` (`shipmentDetail.ts:170`) so the dash is expressible and `tsc` can see it.
+- **Source:** `apps/odyssey-one/src/api/mappers/mapSellShipmentOutToDetail.ts:478-501`
+  (`routingOptionVmToDto`).
+- **Status:** ✅ **fixed.** Commit `8bffdf1`.
+
+### DC-20: The AC's Processing Failure branch was unreachable dead code — found and fixed
+- **Previous:** `persistTender` swallowed `saveTenderOption`'s rejection and gave callers no
+  success/failure signal, so `await persistTender(...)` resolved without ever surfacing a failed write — a
+  failed write left the optimistic row on screen and told the user nothing, and the AC's Processing
+  Failure dialog (canon §4.12) could never fire.
+- **Fix:** `persistTender` now resolves `true`/`false`. The ~10 pre-existing callers are deliberately
+  fire-and-forget and ignore the return value, so their behaviour is unchanged; `runProcessScac` is the
+  first caller to branch on it, rolling the optimistic row back on `false`.
+- **Source:** `apps/odyssey-one/src/components/detail/RoutingGuideTab.jsx:1048-1068` (`persistTender`),
+  `:1092-1106` (`runProcessScac`'s failure branch).
+- **Status:** ✅ **fixed.** Commit `c29410f`.
+
+### DC-21: Browser verification — real Chrome, live Neon (2026-08-17)
+- **Not jsdom.** The build was driven end-to-end in headless Chrome against live Neon data, not asserted
+  from component tests.
+- **Findings:**
+  - 8 dropped carriers rendered 8 Process SCAC buttons; the action cell computes `position: sticky`.
+  - Clean route: tender rows 6 → 7, "Routing completed successfully." shown.
+  - Duplicate: a second press on the same carrier produced "Carrier and Equipment combination
+    (SCAC/Equipment) already in the list." and the row count did not change.
+  - Missing Transit Time: the dates dialog opened; a past pickup and a delivery ≤ pickup each showed their
+    verbatim message and kept OK disabled; a valid pair enabled OK; "No rate is available for the
+    carrier..." followed.
+  - Persistence confirmed cold: after a full page reload both processed carriers were still in the Tender
+    List, and the manually-entered dates survived — `8 8 SAIA SAIA INC LCL -- -- 09/02/2099 08:00
+    09/04/2099 16:00`.
+- **Source:** manual browser session, 2026-08-17, headless Chrome against live Neon.
+- **Status:** ✅ **verified.**
+
+---
+
 ## Changelog
 
 | Date | Decisions added |
 |---|---|
+| Aug 17, 2026 | DC-12 through DC-21 — Process SCAC (LINX-13954) built: six implementation calls the ticket doesn't make — **DC-12** Routing/Rating simulated off the seeded `dropCode` (`23` → no dates, `1`/`2` → success); **DC-13** Rating always fails on the failure branch, since a dropped carrier carries no rate data; **DC-14** insertion always takes the AC's own no-matching-group fallback (flat list, `max(rank)+1`, never renumbered — the write endpoint addresses rows by rank); **DC-15** the 3s success message is an `Alert`, not a new Toast component; **DC-16** audit logging is a known, unbuilt gap; **DC-17** Route Rank/RPC-ID are carried per DC-05 but arrive blank because routing supplies neither. Plus **DC-18** confirms no migration or API change was needed (`saveTender` already update-then-inserts, same finding as DEC-106); **DC-19**/**DC-20** record two defects found and fixed mid-build (a display dash almost persisted into a numeric wire field; the AC's Processing Failure branch was unreachable dead code); **DC-21** records real-Chrome/live-Neon browser verification, including cold-reload persistence. Four items verified but **not resolved** are logged as OQ-14 through OQ-17 in the canon. Also flipped four DC-01–DC-11 statuses to ✅ implemented now that the behaviour they ruled on (per-row action, routing-failure semantics, Rank vs Route Rank, OK/Cancel buttons) shipped as part of this build: **DC-02**, **DC-03**, **DC-05**, **DC-08**. |
 | Aug 17, 2026 | DC-01 through DC-11 — Dropped Carrier intake (S122), from the LINX-13953/13954/13397 AC pulled live plus Jana's 2026-08-11 call. Placement and per-row action are VTT-only rulings the AC never states (**DC-01**, **DC-02**); **DC-03** pins "routing failure" to *returned-without-dates*, not a service error; **DC-04** kills the assumption of a fixed LTL→TL equipment hierarchy; **DC-05** separates Rank from Route Rank, which the AC reads as one contradictory field; **DC-06**/**DC-07** split Volume Commitment into in-scope display vs Dave-blocked calculation and confirm the CVC-ID lookup won the TBD; **DC-08** retires the AC's stray "Yes" button; **DC-09** confirms S120's `Refer Story xxxx` match but **refutes its framing** — Jana demoed the manual add path and said they owe the ticket, and the quote S120 attributed to this call is not in this transcript; **DC-10** retires the "13397 is a blocking hole" reading; **DC-11** fixes terminology. Headline unresolved item is **OQ-1** — the AC and the VTT disagree on whether Rating runs on the routing-success path. |
