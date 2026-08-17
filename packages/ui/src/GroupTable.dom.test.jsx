@@ -26,28 +26,37 @@ const GROUPS = [{
 
 const STICKY = '.odyssey-group-table__cell--sticky-right'
 
-describe('GroupTable — pinned action column continuity', () => {
-  it('gives the nested detail row its own pinned cell, so the column is unbroken', () => {
+describe('GroupTable — the nested band keeps out of the action lane', () => {
+  it('stops the nested band short of the action column instead of spanning it', () => {
     // REGRESSION (2026-08-17): the detail row was a single `colSpan={spanAll}`
-    // cell that swallowed the action column. The nested table then rendered
-    // underneath the pinned lane with nothing pinned above it, so its content
-    // stayed visible there and scrolled horizontally while the group rows'
-    // actions sat still — the column read as "not sticky anymore".
+    // cell that swallowed the action column, so the nested table rendered
+    // straight through the pinned lane and scrolled horizontally while the
+    // group rows' actions sat still — the column read as "not sticky anymore".
+    //
+    // The fix is the COLSPAN, not the extra cell: narrowing the host cell is
+    // what keeps the inner table out of the lane. The trailing cell is only
+    // there so the row still has a slot for that column — it is deliberately
+    // NOT sticky (the nested flavor's `position: relative` on detail-row tds
+    // out-specifies the sticky rule) and is styled as the gray band continuing,
+    // not as an action cell. The inner table stays fully independent of the
+    // outer columns and may carry more or fewer of them.
     const { container } = render(
       <GroupTable columns={COLUMNS} detailColumns={DETAIL_COLUMNS} groups={GROUPS}
                   stickyActions defaultExpanded />
     )
     const detailRow = container.querySelector('.odyssey-group-table__detail-row')
     expect(detailRow, 'the nested detail row should render when expanded').toBeTruthy()
-    expect(detailRow.querySelector(STICKY),
-      'detail row must carry a pinned cell or the action column has a hole in it').toBeTruthy()
 
-    // and the host cell must stop SHORT of the action column, not span it
     const host = detailRow.querySelector('td[colspan]')
-    expect(Number(host.getAttribute('colspan'))).toBe(COLUMNS.length)
+    expect(Number(host.getAttribute('colspan')),
+      'host cell must stop short of the action column').toBe(COLUMNS.length)
+
+    // the INNER table must never grow an action cell of its own
+    expect(container.querySelectorAll(`.odyssey-group-table__detail ${STICKY}`).length,
+      'the inner table is independent — it gets no action column').toBe(0)
   })
 
-  it('every outer row carries a pinned cell when stickyActions is on', () => {
+  it('every outer row has a slot for the action column when stickyActions is on', () => {
     const { container } = render(
       <GroupTable columns={COLUMNS} detailColumns={DETAIL_COLUMNS} groups={GROUPS}
                   stickyActions defaultExpanded
