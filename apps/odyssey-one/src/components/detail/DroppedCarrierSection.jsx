@@ -131,10 +131,6 @@ export default function DroppedCarrierSection({
         <GroupTable
           columns={COLUMNS}
           detailColumns={DETAIL_COLUMNS}
-          // 14 detail columns: give them their natural widths with the band's
-          // own scrollbar instead of compressing to the outer table (user,
-          // 2026-08-17).
-          detailScroll
           groups={groups}
           defaultExpanded={false}
           renderDetailCell={(row, col) =>

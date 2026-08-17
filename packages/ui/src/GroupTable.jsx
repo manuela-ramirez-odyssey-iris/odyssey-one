@@ -257,14 +257,15 @@ export default function GroupTable({
                    one-line revert if that reads worse in practice. */
                 <tr className="odyssey-group-table__detail-row">
                   <td colSpan={spanAll}>
-                    {/* The scroller isolates the nested table from the outer
-                        table's width negotiation (width:0 zeroes its sizing
-                        contribution; min-width:100% stretches it back to the
-                        band). If the inner table outgrows the band — always,
-                        with `detailScroll`; only when content forces it,
-                        without — it scrolls HERE, independently, so the outer
-                        geometry and the pinned action column never move. */}
-                    <div className="odyssey-group-table__detail-scroller">
+                    {/* With `detailScroll` this wrapper becomes the band's own
+                        scroller (width:0 zeroes its contribution to the outer
+                        table's sizing; min-width:100% stretches it back; the
+                        inner table takes max-content and scrolls HERE,
+                        independently). Without it the wrapper is a bare,
+                        layout-neutral div — the nested table fills the band
+                        and rides the outer scroll exactly as before (user,
+                        2026-08-17: off must be the original behavior). */}
+                    <div className={detailScroll ? 'odyssey-group-table__detail-scroller' : undefined}>
                     <table className="odyssey-group-table__detail">
                       <thead>
                         <tr>
