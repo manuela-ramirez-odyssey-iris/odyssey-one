@@ -23,10 +23,11 @@ const STATUS_STYLES = {
   Cancelled: { bg: 'var(--bg-tertiary)', color: 'var(--text-placeholder)' },
 }
 
-/* Width of the Tender Status header: wide enough that its LONGEST WORD clears the
-   32px of cell padding (at 78 the wrap worked but "Tender" itself ellipsized to
-   "Ten…"), narrow enough that the two words still can't share a line. */
-const STATUS_HEADER_W = 96
+/* Header width for a deliberately two-line label (`wrapHeader`). Wide enough that
+   its LONGEST WORD clears the 32px of cell padding — at 78 the wrap worked but
+   "Tender" itself ellipsized to "Ten…" — and narrow enough that the two words
+   still can't share a line. Same number suits Tender Status and Notify Method. */
+const WRAP_HEADER_W = 96
 
 const LOCKED_COLUMNS = [
   { key: 'routeRank', label: 'Route Rank', primary: true, narrow: true },
@@ -38,7 +39,7 @@ const LOCKED_COLUMNS = [
   // wrapHeader = the header width that breaks the label onto two lines ("Tender" /
   // "Status", user 2026-08-17). Not `narrow`: the CELLS stay left-aligned and
   // full-width, only the header stacks.
-  { key: 'status', label: 'Tender Status', wrapHeader: STATUS_HEADER_W },
+  { key: 'status', label: 'Tender Status', wrapHeader: WRAP_HEADER_W },
   { key: 'pickupDateTime', label: 'Pickup Date/Time' },
   { key: 'deliveryDateTime', label: 'Delivery Date/Time' },
 ]
@@ -51,7 +52,7 @@ const TAB_COLUMNS = {
   'routing-options': [
     { key: 'transit', label: 'Transit Time' },
     { key: 'distance', label: 'Distance' },
-    { key: 'api', label: 'Notify Method' },
+    { key: 'api', label: 'Notify Method', wrapHeader: WRAP_HEADER_W },
     { key: 'notifyDateTime', label: 'Notify Date' },
     { key: 'responseMethod', label: 'Response Method' },
     { key: 'responseDateTime', label: 'Response Date' },
@@ -613,7 +614,7 @@ function RoutingTable({ options, tabColumns, highlightedRank, openMenuRank, onOp
                 const hasWidth = collapsedWidths && COLLAPSIBLE_KEYS.includes(col.key)
                 const w = hasWidth ? collapsedWidths[col.key] : null
                 const wrapWhenCollapsed = columnsCollapsed && !col.narrow ? { whiteSpace: 'normal', lineHeight: 1.3 } : {}
-                const statusNarrow = columnsCollapsed && col.key === 'status' ? { width: STATUS_HEADER_W, maxWidth: STATUS_HEADER_W } : {}
+                const statusNarrow = columnsCollapsed && col.key === 'status' ? { width: WRAP_HEADER_W, maxWidth: WRAP_HEADER_W } : {}
                 // A collapsed column is an ellipsized stub — it never wraps, whatever
                 // the column asks for. The inner span has to agree with the cell: it
                 // is the nowrap here that kept these headers on one line before.
@@ -660,7 +661,7 @@ function RoutingTable({ options, tabColumns, highlightedRank, openMenuRank, onOp
                       // CSS :hover cannot reach a sibling table's row.
                       background: getRowBg(option),
                       ...(col.narrow ? { width: 64, textAlign: 'center' } : {}),
-                      ...(columnsCollapsed && col.key === 'status' ? { width: STATUS_HEADER_W, maxWidth: STATUS_HEADER_W } : {}),
+                      ...(columnsCollapsed && col.key === 'status' ? { width: WRAP_HEADER_W, maxWidth: WRAP_HEADER_W } : {}),
                       ...(hasWidth ? { width: w, maxWidth: w, overflow: 'hidden', textOverflow: 'ellipsis' } : {}),
                       ...(collapsed ? { padding: '10px 4px', fontSize: 12 } : {}),
                       transition: 'width var(--transition-base), max-width var(--transition-base), padding var(--transition-base)',
@@ -728,7 +729,17 @@ function RoutingTable({ options, tabColumns, highlightedRank, openMenuRank, onOp
           <thead>
             <tr>
               {tabColumns.map((col) => (
-                <th key={col.key} className="text-label-sm-semibold" style={{ ...thBase, ...(col.narrow ? NARROW_TH : {}) }}>
+                <th
+                  key={col.key}
+                  className="text-label-sm-semibold"
+                  style={{
+                    ...thBase,
+                    ...(col.narrow ? NARROW_TH : {}),
+                    // Same `wrapHeader` contract the locked half uses — the header box
+                    // is already two lines tall, so a stacked label costs nothing here.
+                    ...(col.wrapHeader ? { width: col.wrapHeader, whiteSpace: 'normal' } : {}),
+                  }}
+                >
                   {col.label}
                 </th>
               ))}
