@@ -74,6 +74,29 @@ export function nextRank(tenderOptions = []) {
 }
 
 /**
+ * The dates the SIMULATED routing call comes back with on the success branch.
+ *
+ * The AC defines Routing Success as "(Pickup and Delivery date available)" and
+ * then says "Routing results shall be refreshed for the carrier copied" — so a
+ * carrier we announce "Routing completed successfully." for must NOT land with
+ * empty dates. That is a different rule from the Dropped Carrier row's own
+ * dashes: those are what routing sent when it EXCLUDED the carrier (13953);
+ * these are what a fresh routing call returns when it accepts it (13954).
+ *
+ * Taken from the lane's existing tender options rather than invented. Every
+ * option on this shipment is the same origin/destination pair, so their pickup
+ * and delivery window is the coherent answer — a fabricated date could
+ * contradict the shipment it sits on. Returns null when there is nothing to
+ * copy from (a shipment with no other options), and the row then legitimately
+ * shows '--' because we have no basis for anything else.
+ */
+export function simulatedRoutingDates(tenderOptions = []) {
+  const donor = tenderOptions.find((o) => o.pickupDateTime && o.deliveryDateTime)
+  if (!donor) return null
+  return { pickupDateTime: donor.pickupDateTime, deliveryDateTime: donor.deliveryDateTime }
+}
+
+/**
  * Build the Tender List row from the dropped carrier.
  *
  * Shaped as a RoutingOptionVM, because RoutingGuideTab's `options` state is

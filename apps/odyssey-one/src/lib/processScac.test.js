@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { isDuplicate, planProcessScac, droppedCarrierToOption, nextRank } from './processScac'
+import { isDuplicate, planProcessScac, droppedCarrierToOption, nextRank, simulatedRoutingDates } from './processScac'
 
 const dropped = {
   scac: 'JBHT', carrierName: 'J.B. HUNT', equipment: 'LTL',
@@ -105,5 +105,26 @@ describe('droppedCarrierToOption — the copy', () => {
       { rank: 3 },
     )
     expect(o.pickupDateTime).toBe('08/20/2025 14:00 CST, Wed')
+  })
+})
+
+describe('simulatedRoutingDates — routing success means dates came back', () => {
+  it('takes the lane pickup/delivery window from an existing option', () => {
+    // The AC defines Routing Success as "(Pickup and Delivery date available)",
+    // so a carrier announced as "Routing completed successfully." must not land
+    // with empty dates. Copied from the lane rather than invented — every option
+    // on the shipment shares an origin/destination pair.
+    expect(simulatedRoutingDates([
+      { rank: 1, pickupDateTime: null, deliveryDateTime: null },
+      { rank: 2, pickupDateTime: '02/23/2026 12:30 PST', deliveryDateTime: '02/28/2026 12:30 CST' },
+    ])).toEqual({
+      pickupDateTime: '02/23/2026 12:30 PST',
+      deliveryDateTime: '02/28/2026 12:30 CST',
+    })
+  })
+
+  it('returns null when there is nothing to copy from, rather than inventing a date', () => {
+    expect(simulatedRoutingDates([])).toBeNull()
+    expect(simulatedRoutingDates([{ rank: 1, pickupDateTime: '02/23/2026 12:30 PST' }])).toBeNull()
   })
 })

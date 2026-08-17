@@ -10,7 +10,7 @@ import { routingOptionVmToDto } from '../../api/mappers/mapSellShipmentOutToDeta
 import { QuoteModal } from './QuoteModal.jsx'
 import DroppedCarrierSection from './DroppedCarrierSection'
 import ManualDatesModal from './ManualDatesModal'
-import { droppedCarrierToOption, nextRank, planProcessScac } from '../../lib/processScac'
+import { droppedCarrierToOption, nextRank, planProcessScac, simulatedRoutingDates } from '../../lib/processScac'
 import { useCurrentUser } from '../../data/sso-mock.js'
 import { formatDateTimeMDYHM } from '../../lib/dates.js'
 
@@ -1089,7 +1089,12 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
       setProcessNotice('No rate is available for the carrier. You may obtain and enter a quote if needed.')
     }
 
-    const option = droppedCarrierToOption(carrier, { rank: nextRank(options), dates })
+    // On the success branch routing itself supplied the dates (the AC defines
+    // success as "Pickup and Delivery date available"); on the failure branch
+    // the user typed them into the dialog. Either way the copied row must not
+    // land empty under a "Routing completed successfully." message.
+    const effectiveDates = dates ?? simulatedRoutingDates(options)
+    const option = droppedCarrierToOption(carrier, { rank: nextRank(options), dates: effectiveDates })
     // Optimistic, matching how every other tender edit in this file behaves —
     // but unlike them this one ROLLS BACK, because the AC requires it.
     setOptions((prev) => [...prev, option])

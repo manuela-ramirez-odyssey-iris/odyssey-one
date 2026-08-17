@@ -857,6 +857,31 @@ describe('Process SCAC (LINX-13954)', () => {
     expect(screen.getByRole('button', { name: /JBHT/ })).toBeTruthy()
   })
 
+  it('a cleanly-routed carrier lands WITH dates, not dashes', async () => {
+    // The AC defines Routing Success as "(Pickup and Delivery date available)"
+    // and requires routing results to be refreshed for the copied carrier. So a
+    // row announced with "Routing completed successfully." must carry dates.
+    // The dropped row's OWN dates are dashes — that is 13953's rule for a
+    // carrier routing EXCLUDED, and is not what the new call returns.
+    const existing = {
+      rank: 1, routeRank: 1, scac: 'TAXA', carrierName: 'TAX A', equipment: 'TL',
+      cost: '--', status: null,
+      pickupDateTime: '02/23/2026 12:30 PST', deliveryDateTime: '02/28/2026 12:30 CST',
+    }
+    render(<RoutingGuideTab data={{ options: [existing] }}
+                            shipmentDetails={{ droppedCarriers: [cleanDropped] }}
+                            shipment={shipment} />)
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Process SCAC' }))
+    })
+
+    expect(saveTenderOption).toHaveBeenCalledTimes(1)
+    const [, sent] = saveTenderOption.mock.calls[0]
+    expect(sent.pickupDateTime).toBe('02/23/2026 12:30 PST')
+    expect(sent.deliveryDateTime).toBe('02/28/2026 12:30 CST')
+  })
+
   it('rolls the row back and says so when the write fails', async () => {
     // AC Processing Failure: "Carrier shall remain in the Dropped Carrier
     // section. No updates shall be made to the Tender List. Process SCAC shall
