@@ -6692,7 +6692,20 @@ button.breadcrumb__label:focus-visible {
    continuing to the right edge, which is what the band already does
    underneath — the inner table stays fully independent of the outer columns.
    Specificity is deliberately above `.odyssey-group-table .…--sticky-right`. */
-.odyssey-group-table .odyssey-group-table__detail-row > .odyssey-group-table__cell--sticky-right {
+.odyssey-group-table--nested .odyssey-group-table__detail-row > .odyssey-group-table__cell--sticky-right {
+  /* It MUST actually pin. The rule above sets `position: relative` on every
+     detail-row td, which out-specifies the base sticky rule — so this cell
+     existed in the lane but SCROLLED AWAY with the row content, and the action
+     column visibly came apart mid-scroll (measured 2026-08-17: header and
+     group rows moved 0px under 604px of scroll, this cell moved the full 604).
+     A reserved lane that scrolls is worse than no lane at all: it reads as the
+     pinned column itself failing. Same specificity as that rule (0,3,0), so it
+     wins on source order — keep it BELOW. */
+  position: sticky;
+  right: 0;
+  z-index: 1;
+  /* Not an action cell and must not look like one: no white fill, no seam
+     shadow, no padding. It is the gray band continuing to the right edge. */
   background: var(--bg-secondary);
   box-shadow: none;
   padding: 0;
