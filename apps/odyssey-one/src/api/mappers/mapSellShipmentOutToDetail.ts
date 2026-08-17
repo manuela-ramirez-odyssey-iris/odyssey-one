@@ -404,6 +404,12 @@ function mapRoutingOption(o: SellShipmentRoutingOption): RoutingOptionVM {
  * only five attributes for a dropped carrier. That is expected, not a bug.
  */
 function mapDroppedCarrier(d: SellShipmentDroppedCarrier): DroppedCarrierVM {
+  // Accepted and Open are meaningless without BOTH the total and its unit —
+  // "6" alone reads as six of what, out of what. 13953's Commitment Rules say
+  // so three times over ("If Commitment is missing… If UoM is missing… If both
+  // are missing, Accepted and Open shall display '--'"). Matches orDash's own
+  // notion of missing for uom, so '' gates exactly the way it renders.
+  const hasCommitment = d.commitment != null && d.uom != null && d.uom !== ''
   return {
     scac: orDash(d.scac),
     carrierName: orDash(d.carrierName),
@@ -423,12 +429,13 @@ function mapDroppedCarrier(d: SellShipmentDroppedCarrier): DroppedCarrierVM {
     ttId: orDash(d.ttId),
     commitment: d.commitment != null ? String(d.commitment) : DASH,
     uom: orDash(d.uom),
-    // Never computed here. The Accepted/Open arithmetic is deferred pending
-    // Dave's rules — we display what arrives and nothing more. The AC's gate
-    // ("a CVC ID alone shall not trigger the calculation") is therefore
-    // satisfied by construction: there is no calculation to trigger.
-    accepted: d.accepted != null ? String(d.accepted) : DASH,
-    open: d.open != null ? String(d.open) : DASH,
+    // Never COMPUTED here — the Accepted/Open arithmetic is deferred pending
+    // Dave's rules, so the AC's "a CVC ID alone shall not trigger the
+    // calculation" is satisfied by construction: there is no calculation to
+    // trigger. What IS enforced is the display gate above: a value that arrives
+    // without its commitment context is suppressed, not shown orphaned.
+    accepted: hasCommitment && d.accepted != null ? String(d.accepted) : DASH,
+    open: hasCommitment && d.open != null ? String(d.open) : DASH,
     comment: orDash(d.comment),
     cvcId: orDash(d.cvcId),
     // Booleans, not values: the AC's fallback for these is "unchecked", not '--'.

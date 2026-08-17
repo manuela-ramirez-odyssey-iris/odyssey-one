@@ -837,6 +837,33 @@ describe('mapSellShipmentOutToDetail', () => {
       expect(vm.indirectPoint).toBe(false)
     })
 
+    it('suppresses Accepted/Open unless BOTH Commitment and UoM are present', () => {
+      // 13953 Commitment Rules. Accepted/Open only mean something next to the
+      // total and its unit — "Accepted 6" beside "Commitment --, UoM --" reads
+      // as six of nothing. Unreachable with today's seed (routing returns no
+      // commitment block at all, so all six are null) and reachable the moment
+      // LINX-13397's get_cvc_id lookup lands, which returns NULL when no
+      // capacity rule applies while the sibling fields can still come back.
+      const cases: [string, Partial<SellShipmentDroppedCarrier>][] = [
+        ['commitment missing', { commitment: null }],
+        ['uom missing', { uom: null }],
+        ['uom empty string', { uom: '' }],
+        ['both missing', { commitment: null, uom: null }],
+      ]
+      for (const [label, patch] of cases) {
+        const [vm] = mapSellShipmentOutToDetail({
+          droppedCarrierList: [{ ...full, ...patch }],
+        } as never).droppedCarriers
+        expect(vm.accepted, `accepted with ${label}`).toBe('--')
+        expect(vm.open, `open with ${label}`).toBe('--')
+      }
+      // Control: with both present the values render, so the gate is not just
+      // blanking the column unconditionally.
+      const [ok] = mapSellShipmentOutToDetail({ droppedCarrierList: [full] } as never).droppedCarriers
+      expect(ok.accepted).toBe('6')
+      expect(ok.open).toBe('4')
+    })
+
     it('GUARD: every DTO field reaches the VM — mapDroppedCarrier is a whitelist', () => {
       // This mapper drops any field it does not explicitly name. That exact bug
       // has shipped four times in this repo. If you add a field to
