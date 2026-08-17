@@ -93,11 +93,32 @@ import TooltipTrigger from '../ui/TooltipTrigger'
 //      stays alive in `HistoryAuthor` below ONLY as backward compatibility
 //      for pre-reseed seed data (Neon rows generated before this change) —
 //      it is not a third semantic category, just a degrade path.
+// 2026-08-17 (user asks, all three display-only):
+//   • Newest first. Sorted HERE rather than trusted from the producer —
+//     `tools/generate.mjs` emits lifecycle (oldest-first) order and a real
+//     backend may emit either, so reading order is the renderer's to guarantee.
+//   • Two events read under different names. This is a LABEL, not a change to
+//     the event vocabulary — which belongs to the backend (DEC-80) and is
+//     seeded into Neon, so renaming at the generator would additionally mean a
+//     reseed before anything changed in live mode. Mapped at render instead;
+//     `entry.action` keeps its wire value for badge/outcome/category logic.
+//     ("Execution", not the ask's "Excecution" — normalized spelling.)
+export const ACTION_LABELS = {
+  'Shipment Created': 'Shipment Creation',
+  'Routing Completed': 'Routing Execution',
+}
+
+/** Newest-first copy of the entries — never sorts the caller's array in place. */
+export function orderNewestFirst(entries = []) {
+  return [...entries].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+}
+
 const HistoryTab = React.memo(function HistoryTab({ data }) {
-  const entries = data?.entries
-  if (!entries || entries.length === 0) {
+  const raw = data?.entries
+  if (!raw || raw.length === 0) {
     return <PaneEmpty message="No history available." />
   }
+  const entries = orderNewestFirst(raw)
 
   return (
     <div className="pane-canvas">
@@ -121,7 +142,9 @@ const HistoryTab = React.memo(function HistoryTab({ data }) {
                         leads. The stable part across all three: the author sits BESIDE the
                         badge with room to fill, and the timestamp keeps margin-left:auto so
                         it pins hard right on its own. */}
-                    <Badge variant={BADGE_VARIANTS[entry.outcome] || BADGE_VARIANTS.default}>{entry.action}</Badge>
+                    <Badge variant={BADGE_VARIANTS[entry.outcome] || BADGE_VARIANTS.default}>
+                      {ACTION_LABELS[entry.action] ?? entry.action}
+                    </Badge>
                     <HistoryAuthor entry={entry} />
                     {/* UTC, labelled (user ruling 2026-08-12). The trail is an
                         audit log read by people in different zones — rendering

@@ -146,7 +146,8 @@ describe('HistoryTab', () => {
     }
     render(<HistoryTab data={data} />)
     const author = screen.getByText('System (OdysseyOne)')
-    const badge = screen.getByText('Shipment Created')
+    // The DATA still says 'Shipment Created'; the badge is the display label.
+    const badge = screen.getByText('Shipment Creation')
     const timestamp = badge.closest('.history-row1').querySelector('.history-timestamp')
     // DOCUMENT_POSITION_FOLLOWING (4) — badge precedes author, author precedes timestamp
     expect(badge.compareDocumentPosition(author) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
@@ -240,5 +241,56 @@ describe('HistoryTab', () => {
     expect(screen.queryByText('ERP')).toBeNull()
     fireEvent.mouseEnter(actor)
     expect(screen.queryByRole('tooltip')).toBeNull()
+  })
+  // ── 2026-08-17 user asks: newest-first + two renamed labels ───────────────
+
+  it('renders newest first, whatever order the producer sent', () => {
+    // The generator emits lifecycle (oldest-first) order, so this is the shape
+    // the component actually receives today — it must come out reversed.
+    const data = {
+      entries: [
+        { user: 'A', timestamp: '2026-06-01T08:00:00.000Z', action: 'Shipment Created', category: 'create', details: 'first' },
+        { user: 'A', timestamp: '2026-06-03T08:00:00.000Z', action: 'Tender Response Received', category: 'update', details: 'last' },
+        { user: 'A', timestamp: '2026-06-02T08:00:00.000Z', action: 'Routing Completed', category: 'update', details: 'middle' },
+      ],
+    }
+    const { container } = render(<HistoryTab data={data} />)
+    const order = [...container.querySelectorAll('.history-details')].map(e => e.textContent)
+    expect(order).toEqual(['last', 'middle', 'first'])
+  })
+
+  it('does not sort the caller\'s array in place', () => {
+    const entries = [
+      { user: 'A', timestamp: '2026-06-01T08:00:00.000Z', action: 'X', category: 'create', details: 'first' },
+      { user: 'A', timestamp: '2026-06-03T08:00:00.000Z', action: 'Y', category: 'update', details: 'last' },
+    ]
+    render(<HistoryTab data={{ entries }} />)
+    expect(entries.map(e => e.details)).toEqual(['first', 'last'])
+  })
+
+  it('reads "Shipment Created" and "Routing Completed" under their display names', () => {
+    // Display-only: the wire value is untouched, so badge tone/category logic
+    // and any live Neon row keep working without a reseed.
+    const data = {
+      entries: [
+        { user: 'A', timestamp: '2026-06-01T08:00:00.000Z', action: 'Shipment Created', category: 'create', details: 'd1' },
+        { user: 'A', timestamp: '2026-06-02T08:00:00.000Z', action: 'Routing Completed', category: 'update', details: 'd2' },
+      ],
+    }
+    render(<HistoryTab data={data} />)
+    expect(screen.getByText('Shipment Creation')).toBeTruthy()
+    expect(screen.getByText('Routing Execution')).toBeTruthy()
+    expect(screen.queryByText('Shipment Created')).toBeNull()
+    expect(screen.queryByText('Routing Completed')).toBeNull()
+  })
+
+  it('leaves every other event name exactly as the backend sent it', () => {
+    const data = {
+      entries: [
+        { user: 'A', timestamp: '2026-06-01T08:00:00.000Z', action: 'Optimization Evaluation', category: 'update', details: 'd1' },
+      ],
+    }
+    render(<HistoryTab data={data} />)
+    expect(screen.getByText('Optimization Evaluation')).toBeTruthy()
   })
 })
