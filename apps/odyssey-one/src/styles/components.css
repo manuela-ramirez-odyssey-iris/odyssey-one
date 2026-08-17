@@ -6692,17 +6692,17 @@ button.breadcrumb__label:focus-visible {
    again, this is the styling it needs back — gray band continuing, no white
    fill, no seam shadow, no padding. */
 
-/* The band owns its own horizontal overflow. When the nested table's natural
-   content is WIDER than the outer table (DSM 2026-08-17), a plain cell lets it
-   bleed past the table's right edge — which not only paints outside the pinned
-   action column but extends the scroller's scrollWidth beyond the table, and a
-   sticky cell cannot leave its own table: scroll into that overflow region and
-   the pinned trucks slide away. That was the "actions not sticking" report.
-   Scrolling the band internally keeps the outer table's geometry intact, so
-   the pinned column holds at every scroll position; when the inner table is
-   the narrower one (the dropped carrier table) nothing changes — width: 100%
-   fills the band and no inner scrollbar appears. */
-.odyssey-group-table--nested .odyssey-group-table__detail-row > td {
+/* The band's scroller. width:0 zeroes the wrapper's contribution to the
+   colSpan cell's sizing — so the nested table can NEVER widen or overflow the
+   outer table — and min-width:100% stretches it back to the band's real width.
+   Without this isolation, a nested table wider than the outer bled past the
+   table's right edge and extended the root scroller beyond it; a sticky cell
+   cannot leave its own table, so scrolling into that region made the pinned
+   action column slide away (DSM, 2026-08-17). Any inner excess now scrolls
+   HERE, independently, and the pinned column holds at every scroll position. */
+.odyssey-group-table__detail-scroller {
+  width: 0;
+  min-width: 100%;
   overflow-x: auto;
 }
 
@@ -6710,6 +6710,15 @@ button.breadcrumb__label:focus-visible {
   width: 100%;
   border-collapse: collapse;
   background: transparent; /* the band owns the gray */
+}
+
+/* detailScroll: the nested table takes its NATURAL width (columns stop
+   compressing to the outer table's width) and the band scrolls it
+   independently. min-width keeps it filling the band when it is the narrower
+   one, so short nested tables look identical in both modes. */
+.odyssey-group-table--detail-scroll .odyssey-group-table__detail {
+  width: max-content;
+  min-width: 100%;
 }
 
 /* Nested header row — the outer column header's treatment over the gray band,

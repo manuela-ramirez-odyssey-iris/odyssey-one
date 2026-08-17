@@ -129,3 +129,32 @@ describe('GroupTable detailNote', () => {
     expect(container.querySelector('.odyssey-group-table__detail-note')).toBeNull()
   })
 })
+
+describe('GroupTable — detail scroller isolation + detailScroll', () => {
+  it('always wraps the nested table in the band scroller', () => {
+    // The scroller (width:0 / min-width:100% / overflow-x:auto) is what keeps
+    // the nested table from ever widening or overflowing the outer table —
+    // remove it and a wide inner table extends the root scroller past the
+    // table, where sticky cells cannot follow (the 2026-08-17 DSM bug).
+    const { container } = render(
+      <GroupTable columns={COLUMNS} detailColumns={DETAIL_COLUMNS} groups={GROUPS} defaultExpanded />
+    )
+    const scroller = container.querySelector('.odyssey-group-table__detail-scroller')
+    expect(scroller).toBeTruthy()
+    expect(scroller.querySelector('.odyssey-group-table__detail')).toBeTruthy()
+  })
+
+  it('detailScroll flags the root; nested flavor only', () => {
+    const { container } = render(
+      <GroupTable columns={COLUMNS} detailColumns={DETAIL_COLUMNS} groups={GROUPS}
+                  detailScroll defaultExpanded />
+    )
+    expect(container.querySelector('.odyssey-group-table--detail-scroll')).toBeTruthy()
+    // rows flavor ignores it — there is no nested table to scroll
+    const rows = render(
+      <GroupTable columns={COLUMNS} groups={[{ id: 'r', label: 'R', rows: [{ name: 'x' }] }]}
+                  detailScroll defaultExpanded />
+    )
+    expect(rows.container.querySelector('.odyssey-group-table--detail-scroll')).toBeNull()
+  })
+})

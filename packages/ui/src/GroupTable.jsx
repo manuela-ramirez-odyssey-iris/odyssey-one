@@ -66,6 +66,12 @@ import { ICON_MD } from '@odyssey/tokens'
  *                       must not become a column. Pass `{ label, value }` and the component
  *                       renders (and styles) the label itself; a node is accepted as an
  *                       escape hatch. No internal class names required either way.
+ * @param detailScroll   bool (nested flavor only, default false) — give each nested
+ *                       table its NATURAL width with its own horizontal scrollbar
+ *                       inside the band, instead of compressing to the outer
+ *                       table's width. For nested tables with many columns
+ *                       (Dropped Carrier's 14). Off, the nested table fills the
+ *                       band and only scrolls if content genuinely cannot fit.
  * @param stickyActions  bool — render a pinned trailing action column (sticky right),
  *                       fed by `actionsHeader` (header cell) + `group.action` (per row)
  * @param actionsHeader  node — content of the pinned column's header cell (e.g. a
@@ -83,6 +89,7 @@ export default function GroupTable({
   className = '',
   detailColumns,
   renderDetailCell,
+  detailScroll = false,
   stickyActions = false,
   actionsHeader,
   ...rest
@@ -134,6 +141,7 @@ export default function GroupTable({
     'odyssey-group-table',
     !striped && 'odyssey-group-table--flat',
     nested && 'odyssey-group-table--nested',
+    nested && detailScroll && 'odyssey-group-table--detail-scroll',
     stickyActions && 'odyssey-group-table--sticky-actions',
     scrolledX && 'odyssey-group-table--scrolled-x',
     className,
@@ -249,6 +257,14 @@ export default function GroupTable({
                    one-line revert if that reads worse in practice. */
                 <tr className="odyssey-group-table__detail-row">
                   <td colSpan={spanAll}>
+                    {/* The scroller isolates the nested table from the outer
+                        table's width negotiation (width:0 zeroes its sizing
+                        contribution; min-width:100% stretches it back to the
+                        band). If the inner table outgrows the band — always,
+                        with `detailScroll`; only when content forces it,
+                        without — it scrolls HERE, independently, so the outer
+                        geometry and the pinned action column never move. */}
+                    <div className="odyssey-group-table__detail-scroller">
                     <table className="odyssey-group-table__detail">
                       <thead>
                         <tr>
@@ -290,6 +306,7 @@ export default function GroupTable({
                         )}
                       </tbody>
                     </table>
+                    </div>
                   </td>
                   {/* No trailing pinned cell: the host cell above spans the
                       action lane too, so the nested table gets the full width.

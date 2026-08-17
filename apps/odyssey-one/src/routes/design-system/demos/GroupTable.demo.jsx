@@ -25,7 +25,7 @@ function DiffCell({ value }) {
 export const meta = {
   name: 'GroupTable',
   tier: 'organism',
-  version: '0.13.0',
+  version: '0.14.0',
   createdVersion: '0.7.0',
   normalizing: true,
   figmaNode: '4183:773',
@@ -44,6 +44,7 @@ export const props = [
   { name: 'className', type: 'string', desc: 'Extra class(es) on the root scroll element.' },
   { name: 'detailColumns', type: '[{ key, label, align?, width? }]', desc: 'NESTED-TABLE FLAVOR. The second table\'s OWN columns — its own keys, labels and widths, deliberately NOT aligned to `columns`. Passing this prop is what selects the flavor: an expanded group then reveals a full second table instead of child rows sharing `columns`.' },
   { name: 'renderDetailCell', type: '(row, col) => node', desc: 'Optional cell renderer for the nested table\'s rows (parallel to `renderCell`). Default: `row[col.key] ?? "--"`.' },
+  { name: 'detailScroll', type: 'boolean', desc: 'Nested flavor only. Gives each nested table its NATURAL width with an independent horizontal scrollbar inside the band, instead of compressing its columns to the outer table\'s width. For nested tables with many columns (Dropped Carrier\'s 14).' },
   { name: 'stickyActions', type: 'boolean', desc: 'Render a pinned trailing action column (sticky right, 68px), fed by `actionsHeader` + `group.action`. Same convention DataTable uses, so both tables behave identically on a page carrying each.' },
   { name: 'actionsHeader', type: 'node', desc: 'Content of the pinned column\'s header cell — by convention a column-arrange `Button variant="icon"`.' },
   { name: 'groups[].detailRows', type: 'object[]', desc: 'Rows for that group\'s nested table, keyed by `detailColumns[].key`. Only read in the nested flavor.' },
@@ -351,6 +352,7 @@ function Playground() {
   // detailNote is per-group and optional in the API; this toggle just strips it
   // from the demo data so both states are visible (nested flavor only).
   const [showDetailNote, setShowDetailNote] = useState(true)
+  const [detailScroll, setDetailScroll] = useState(false)
 
   const activeGroups = showDetailNote
     ? FLAVORS[flavor].groups
@@ -405,7 +407,10 @@ function Playground() {
         <Toggle label="stickyActions (pinned action column)" value={stickyActions} set={setStickyActions} />
         <Toggle label="narrow container (h-scroll)" value={narrow} set={setNarrow} />
         {flavor === 'nested' && (
-          <Toggle label="detailNote (per-group note row)" value={showDetailNote} set={setShowDetailNote} />
+          <>
+            <Toggle label="detailNote (per-group note row)" value={showDetailNote} set={setShowDetailNote} />
+            <Toggle label="detailScroll (independent nested h-scroll)" value={detailScroll} set={setDetailScroll} />
+          </>
         )}
         <Button
           variant="link"
@@ -439,6 +444,7 @@ function Playground() {
               {...shared}
               columns={ROUTE_COLUMNS}
               detailColumns={ROUTE_DETAIL_COLUMNS}
+              detailScroll={detailScroll}
               aria-label="Routing options"
             />
           )}
