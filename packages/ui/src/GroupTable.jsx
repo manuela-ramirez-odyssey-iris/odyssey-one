@@ -1,4 +1,4 @@
-import { useId, useRef, useState } from 'react'
+import { useId, useLayoutEffect, useRef, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
 
@@ -77,6 +77,48 @@ import { ICON_MD } from '@odyssey/tokens'
  * @param actionsHeader  node — content of the pinned column's header cell (e.g. a
  *                       column-arrange Button)
  */
+/**
+ * The nested band's wrapper. Three states, one invariant — the band must NEVER
+ * overflow the outer table, because overflow extends the root scroller past
+ * the table and a sticky cell cannot leave its own table: the pinned action
+ * column visibly slides away (the 2026-08-17 DSM bug).
+ *
+ *  • detailScroll     — always the scroller: inner table at natural width,
+ *                       scrolled independently inside the band.
+ *  • off, fits/grows  — layout-neutral div; the inner table fills the band and
+ *                       rides the outer scroll (the approved default look).
+ *  • off, overflowing — engines differ on whether a colSpan cell's nested
+ *                       table GROWS the outer table or bleeds past it; when
+ *                       this engine bleeds, the measurement flips the scroller
+ *                       class on and the excess scrolls internally instead.
+ *
+ * jsdom measures 0/0 everywhere, so tests always see the neutral state —
+ * the self-healing branch is browser-verified only.
+ */
+function DetailBand({ detailScroll, children }) {
+  const ref = useRef(null)
+  const [contain, setContain] = useState(false)
+  useLayoutEffect(() => {
+    if (detailScroll) return
+    const el = ref.current
+    if (!el) return
+    const check = () => setContain(el.scrollWidth > el.clientWidth + 1)
+    check()
+    if (typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver(check)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [detailScroll])
+  return (
+    <div
+      ref={ref}
+      className={detailScroll || contain ? 'odyssey-group-table__detail-scroller' : undefined}
+    >
+      {children}
+    </div>
+  )
+}
+
 export default function GroupTable({
   columns = [],
   groups = [],
@@ -265,7 +307,7 @@ export default function GroupTable({
                         layout-neutral div — the nested table fills the band
                         and rides the outer scroll exactly as before (user,
                         2026-08-17: off must be the original behavior). */}
-                    <div className={detailScroll ? 'odyssey-group-table__detail-scroller' : undefined}>
+                    <DetailBand detailScroll={detailScroll}>
                     <table className="odyssey-group-table__detail">
                       <thead>
                         <tr>
@@ -307,7 +349,7 @@ export default function GroupTable({
                         )}
                       </tbody>
                     </table>
-                    </div>
+                    </DetailBand>
                   </td>
                   {/* No trailing pinned cell: the host cell above spans the
                       action lane too, so the nested table gets the full width.
