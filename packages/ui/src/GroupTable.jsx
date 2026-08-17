@@ -231,16 +231,24 @@ export default function GroupTable({
 
               {open && nested && (
                 /* The second table. One full-width cell hosts it, so its columns
-                   are free of the outer table's column widths entirely.
-                   The host cell stops SHORT of the pinned action column and the
-                   detail row grows its own (empty) pinned cell instead — with a
-                   single colSpan across everything, the nested table ran under
-                   the action lane with nothing pinned above it, so its content
-                   stayed visible in that lane while the group rows' actions sat
-                   still. The pinned column has to be continuous down the whole
-                   table or it reads as a column that scrolls away. */
+                   are free of the outer table's column widths entirely — and
+                   that includes the action lane: the nested table is an
+                   INDEPENDENT table that happens to be rendered inside a row,
+                   not a continuation of the outer one, so it is not bound by
+                   the outer table's column boundaries (user, 2026-08-17).
+
+                   This deliberately reverses the 2026-08-17 narrowing, which
+                   reserved the action lane on the detail row so the pinned
+                   column stayed opaque top to bottom. The cost of that was
+                   ~158px of unusable width under every expanded row while the
+                   nested table crowded 14 columns into what was left. The
+                   trade is known and accepted: with no pinned cell here, the
+                   nested table's content occupies that lane, so on a
+                   horizontally scrolled table the pinned action column has a
+                   gap at each expanded row. Reserving the lane again is a
+                   one-line revert if that reads worse in practice. */
                 <tr className="odyssey-group-table__detail-row">
-                  <td colSpan={spanAll - (stickyActions ? 1 : 0)}>
+                  <td colSpan={spanAll}>
                     <table className="odyssey-group-table__detail">
                       <thead>
                         <tr>
@@ -283,7 +291,9 @@ export default function GroupTable({
                       </tbody>
                     </table>
                   </td>
-                  {stickyActions && <td className="odyssey-group-table__cell--sticky-right" />}
+                  {/* No trailing pinned cell: the host cell above spans the
+                      action lane too, so the nested table gets the full width.
+                      See its comment for the trade-off. */}
                 </tr>
               )}
 
