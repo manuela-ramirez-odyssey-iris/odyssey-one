@@ -401,3 +401,27 @@ describe('parseDDMMYYYY (commit-time validation unchanged)', () => {
   test('invalid day → null', () => expect(parseDDMMYYYY('32/07/2026')).toBeNull())
   test('incomplete → null', () => expect(parseDDMMYYYY('14/07/2')).toBeNull())
 })
+
+// useAnchoredPortal closes on scroll because placement is computed once on
+// open — a moved anchor would strand the popover. But its listener sits on
+// `window` in CAPTURE phase, so it also saw scrolls raised INSIDE the popover
+// and slammed it shut the moment anyone tried to scroll the calendar itself
+// (reported 2026-08-18). The guard exempts scrolls originating in the dropdown.
+describe('DatePicker — scrolling inside the popover does not close it', () => {
+  test('a scroll from within the popover keeps it open; one from outside closes it', () => {
+    render(<DatePicker id="dp" label="Date" format="DD/MM/YYYY" onChange={() => {}} />)
+    fireEvent.click(screen.getByRole('button', { name: /open calendar/i }))
+
+    const dayCell = dayButtons()[0]
+    expect(dayCell).toBeTruthy()
+
+    // Scroll raised inside the calendar — the anchor has not moved, so the
+    // popover must survive it.
+    fireEvent.scroll(dayCell)
+    expect(screen.getByRole('button', { name: /close calendar/i })).toBeTruthy()
+
+    // Scroll raised OUTSIDE — the anchor may have moved, so it still closes.
+    fireEvent.scroll(document.body)
+    expect(screen.getByRole('button', { name: /open calendar/i })).toBeTruthy()
+  })
+})

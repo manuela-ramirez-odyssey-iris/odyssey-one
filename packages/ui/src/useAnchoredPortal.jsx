@@ -61,7 +61,17 @@ export function useAnchoredPortal({ open, onClose }) {
 
   useEffect(() => {
     if (!open) return
-    const onScrollOrResize = () => onClose()
+    // Close on scroll because placement is computed ONCE on open, so a moved
+    // anchor leaves the popover stranded. But a scroll INSIDE the popover does
+    // not move the anchor — and this listener is on `window` in CAPTURE phase,
+    // so it saw those too and closed the menu the instant the user tried to
+    // scroll its own list (user, 2026-08-18: the DatePicker calendar and the
+    // TimePicker listbox were both unscrollable). Same exemption the mousedown
+    // handler below already makes, for the same reason.
+    const onScrollOrResize = (e) => {
+      if (e?.type === 'scroll' && dropdownRef.current?.contains(e.target)) return
+      onClose()
+    }
     const onMouseDown = (e) => {
       if (triggerRef.current?.contains(e.target)) return
       if (dropdownRef.current?.contains(e.target)) return

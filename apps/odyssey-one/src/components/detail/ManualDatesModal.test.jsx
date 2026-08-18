@@ -20,12 +20,28 @@ function setup() {
   return { onConfirm, onCancel }
 }
 
-function fillPickup(value) {
-  fireEvent.change(screen.getByLabelText('Pickup Date/Time'), { target: { value } })
+// Each field is a DatePicker + TimePicker pair (2026-08-18), so a value takes
+// two commits. Both pickers accept typed text and commit it on blur — that is
+// the path jsdom can drive; the popover calendar and the time listbox are
+// browser-only surfaces this environment cannot see (see project memory on
+// jsdom ceilings), so they are verified by the components' own suites in
+// packages/ui, not re-tested here.
+function fill(label, value) {
+  const input = screen.getByLabelText(label)
+  fireEvent.change(input, { target: { value } })
+  fireEvent.blur(input)
 }
 
-function fillDelivery(value) {
-  fireEvent.change(screen.getByLabelText('Delivery Date/Time'), { target: { value } })
+function fillPickup(dateTime) {
+  const [date, time] = dateTime.split(' ')
+  fill('Pickup Date', date)
+  fill('Pickup Time', time)
+}
+
+function fillDelivery(dateTime) {
+  const [date, time] = dateTime.split(' ')
+  fill('Delivery Date', date)
+  fill('Delivery Time', time)
 }
 
 function okButton() {

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Button, FormField, ModalMedium } from '@odyssey/ui'
+import { Button, DatePicker, ModalMedium, TimePicker } from '@odyssey/ui'
 
 /**
  * LINX-13954 — Manual Pickup and Delivery Entry.
@@ -19,36 +19,51 @@ import { Button, FormField, ModalMedium } from '@odyssey/ui'
  *
  * Composition copies RoutingGuideTab's `ConfirmDialog` shell (ModalMedium +
  * createPortal + a Cancel/OK footer) — same known-working pattern, not the
- * narrowed `confirm-dialog` className, since this dialog carries two real
- * input fields rather than one line of message text.
+ * narrowed `confirm-dialog` className, since this dialog carries real input
+ * fields rather than one line of message text.
+ *
+ * ── PICKERS, NOT TYPED TEXT (user, 2026-08-18) ─────────────────────────────
+ * Each field is a normalized `DatePicker` + `TimePicker` pair rather than one
+ * free-text box expecting "MM/DD/YYYY HH:MM". The AC names the field "Pickup
+ * Date/Time" and says nothing about the control; typing a masked datetime is
+ * the worst of both, and this dialog sits on the MOST COMMON branch (Missing
+ * Transit Time is 6 of every 11 dropped carriers), so it is not a corner to
+ * cut. Both components are already normalized in @odyssey/ui — used on their
+ * own contracts, no wrappers, no escape hatches.
+ *
+ * The `onConfirm` payload is UNCHANGED ("MM/DD/YYYY HH:MM" strings), so
+ * processScac and every downstream reader are untouched by this swap.
  */
 
 export const PICKUP_PAST_ERROR = 'Pickup Date/Time cannot be in the past.'
 export const DELIVERY_ORDER_ERROR = 'Delivery Date/Time must be later than Pickup Date/Time.'
 
-// "MM/DD/YYYY HH:MM" -> Date, or null for anything that isn't a real
-// calendar date/time. Parsed part-wise rather than through `new Date(string)`,
-// whose MM/DD/YYYY handling is implementation-defined — same reasoning as
-// lib/dates.js `dayOfWeek`. Rejects a rolled-over value (02/31, 25:99) rather
-// than silently accepting the date JS Date would roll it into.
-function parse(s) {
-  const m = /^(\d{2})\/(\d{2})\/(\d{4}) (\d{1,2}):(\d{2})$/.exec(String(s ?? '').trim())
-  if (!m) return null
-  const [month, day, year, hour, minute] = m.slice(1).map(Number)
-  const d = new Date(year, month - 1, day, hour, minute)
-  if (
-    d.getFullYear() !== year || d.getMonth() !== month - 1 || d.getDate() !== day ||
-    d.getHours() !== hour || d.getMinutes() !== minute
-  ) return null
+const pad = (n) => String(n).padStart(2, '0')
+
+// DatePicker emits a Date; TimePicker emits canonical 24h "HH:MM". Neither is
+// meaningful alone, so both halves must be present before a value exists.
+function combine(date, time) {
+  if (!date || !time) return null
+  const [hour, minute] = time.split(':').map(Number)
+  if (!Number.isFinite(hour) || !Number.isFinite(minute)) return null
+  const d = new Date(date)
+  d.setHours(hour, minute, 0, 0)
   return d
 }
 
-export default function ManualDatesModal({ now = new Date(), onConfirm, onCancel }) {
-  const [pickupDateTime, setPickupDateTime] = useState('')
-  const [deliveryDateTime, setDeliveryDateTime] = useState('')
+// Back to the wire format the rest of the flow already speaks.
+function format(d) {
+  return `${pad(d.getMonth() + 1)}/${pad(d.getDate())}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
 
-  const pickup = parse(pickupDateTime)
-  const delivery = parse(deliveryDateTime)
+export default function ManualDatesModal({ now = new Date(), onConfirm, onCancel }) {
+  const [pickupDate, setPickupDate] = useState(null)
+  const [pickupTime, setPickupTime] = useState('')
+  const [deliveryDate, setDeliveryDate] = useState(null)
+  const [deliveryTime, setDeliveryTime] = useState('')
+
+  const pickup = combine(pickupDate, pickupTime)
+  const delivery = combine(deliveryDate, deliveryTime)
 
   // Only shown once there's a parseable value to judge — an error ahead of
   // any input reads as the form being broken, not as guidance.
@@ -58,7 +73,7 @@ export default function ManualDatesModal({ now = new Date(), onConfirm, onCancel
 
   const handleConfirm = () => {
     if (!valid) return
-    onConfirm({ pickupDateTime, deliveryDateTime })
+    onConfirm({ pickupDateTime: format(pickup), deliveryDateTime: format(delivery) })
   }
 
   return createPortal(
@@ -73,22 +88,39 @@ export default function ManualDatesModal({ now = new Date(), onConfirm, onCancel
         </>
       }
     >
-      <FormField
-        id="manual-dates-pickup"
-        label="Pickup Date/Time"
-        placeholder="MM/DD/YYYY HH:MM"
-        value={pickupDateTime}
-        onChange={(e) => setPickupDateTime(e.target.value)}
-        error={pastError}
-      />
-      <FormField
-        id="manual-dates-delivery"
-        label="Delivery Date/Time"
-        placeholder="MM/DD/YYYY HH:MM"
-        value={deliveryDateTime}
-        onChange={(e) => setDeliveryDateTime(e.target.value)}
-        error={orderError}
-      />
+      {/* The AC puts each message "under the pickup date" / "under the
+          delivery date", so the error binds to the DATE half of each pair
+          even though both halves feed the comparison. */}
+      <div className="manual-dates__row">
+        <DatePicker
+          id="manual-dates-pickup-date"
+          label="Pickup Date"
+          value={pickupDate}
+          onChange={setPickupDate}
+          error={pastError}
+        />
+        <TimePicker
+          id="manual-dates-pickup-time"
+          label="Pickup Time"
+          value={pickupTime}
+          onChange={setPickupTime}
+        />
+      </div>
+      <div className="manual-dates__row">
+        <DatePicker
+          id="manual-dates-delivery-date"
+          label="Delivery Date"
+          value={deliveryDate}
+          onChange={setDeliveryDate}
+          error={orderError}
+        />
+        <TimePicker
+          id="manual-dates-delivery-time"
+          label="Delivery Time"
+          value={deliveryTime}
+          onChange={setDeliveryTime}
+        />
+      </div>
     </ModalMedium>,
     document.body,
   )

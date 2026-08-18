@@ -1,10 +1,11 @@
-import { useState, useEffect, useId, useRef } from 'react'
+import { useState, useEffect, useId, useRef, useCallback } from 'react'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
 import FormField from './FormField.jsx'
 import DropdownMenu from './DropdownMenu.jsx'
 import MenuRow from './MenuRow.jsx'
 import { useFieldPopover } from './useFieldPopover.js'
+import { useAnchoredPortal } from './useAnchoredPortal.jsx'
 import { moveHighlight } from './GlobalSearch.jsx'
 
 /**
@@ -137,6 +138,25 @@ export default function TimePicker({
   const listboxId = useId()
   const { open, setOpen, wrapperRef, wrapperProps, fieldProps, popoverProps, closeAndBlur } =
     useFieldPopover()
+  // The listbox is PORTALED, exactly as DatePicker's calendar is. It used to
+  // render inline with `position: absolute`, which any scrolling ancestor
+  // clips — the live case was a TimePicker inside ModalMedium, whose content
+  // slot carries `overflow-y: auto` so the dropdown was cut off at the footer
+  // (user, 2026-08-18). Fixed here rather than in the modal because every
+  // caller inside any scroll container had the same bug, and because the
+  // sibling component already solved it this way.
+  const closePopover = useCallback(() => setOpen(false), [setOpen])
+  const { triggerRef, dropdownRef, AnchoredPortal } = useAnchoredPortal({ open, onClose: closePopover })
+  // Merge useFieldPopover's wrapperRef (blur/focus lifecycle) with
+  // useAnchoredPortal's triggerRef (anchor measurement) onto one node — same
+  // merge DatePicker does, same reason.
+  const setWrapperNode = useCallback(
+    (node) => {
+      wrapperRef.current = node
+      triggerRef.current = node
+    },
+    [wrapperRef, triggerRef],
+  )
 
   // Sync display text when the controlled value changes externally.
   useEffect(() => {
@@ -233,7 +253,7 @@ export default function TimePicker({
 
   return (
     <div
-      ref={wrapperProps.ref}
+      ref={setWrapperNode}
       onBlur={wrapperProps.onBlur}
       onKeyDown={handleKeyDown}
       className="time-picker"
@@ -275,9 +295,10 @@ export default function TimePicker({
         aria-autocomplete="list"
       />
       {open && !disabled && (
+        <AnchoredPortal>
         <div
           {...popoverProps}
-          style={{ position: 'absolute', top: '100%', left: 0, width: '100%', marginTop: 'var(--spacing-2)', zIndex: 10 }}
+          ref={dropdownRef}
         >
           {/* 5-row viewport (~36px rows), scrollable beyond. */}
           <DropdownMenu
@@ -301,6 +322,7 @@ export default function TimePicker({
             ))}
           </DropdownMenu>
         </div>
+        </AnchoredPortal>
       )}
     </div>
   )

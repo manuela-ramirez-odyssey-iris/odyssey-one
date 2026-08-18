@@ -604,7 +604,7 @@ function RoutingTable({ options, tabColumns, highlightedRank, openMenuRank, onOp
   return (
     /* No border/radius of its own: .tender-pane__table-card already IS the white
        surface (2xl + shadow-sm), and the mock shows one frame, not two. */
-    <div data-routing-container style={{ display: 'flex', marginBottom: 24, overflow: 'hidden' }}>
+    <div data-routing-container style={{ display: 'flex', overflow: 'hidden' }}>
       {/* ── LEFT TABLE + TOGGLE: fixed container with shadow ── */}
       <div style={{ flexShrink: 0, display: 'flex', boxShadow: '2px 0 4px rgba(0,0,0,0.06)', zIndex: 3 }}>
       <div data-left-table style={{ flexShrink: 0 }}>
@@ -1093,7 +1093,14 @@ export default function RoutingGuideTab({ data, shipmentDetails, shipment }) {
     // success as "Pickup and Delivery date available"); on the failure branch
     // the user typed them into the dialog. Either way the copied row must not
     // land empty under a "Routing completed successfully." message.
-    const effectiveDates = dates ?? simulatedRoutingDates(options)
+    //
+    // Precedence matters: the carrier's OWN dates win over the lane donation.
+    // The donor exists only for a cleanly-routed carrier that arrived without
+    // dates — once the row carries its own, borrowing a sibling's would
+    // overwrite real data with a neighbour's. droppedCarrierToOption already
+    // falls back to `carrier.pickup`, so passing null is what defers to it.
+    const carrierHasOwnDates = carrier.pickup !== '--' && carrier.delivery !== '--'
+    const effectiveDates = dates ?? (carrierHasOwnDates ? null : simulatedRoutingDates(options))
     const option = droppedCarrierToOption(carrier, { rank: nextRank(options), dates: effectiveDates })
     // Optimistic, matching how every other tender edit in this file behaves —
     // but unlike them this one ROLLS BACK, because the AC requires it.

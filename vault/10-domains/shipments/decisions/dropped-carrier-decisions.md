@@ -363,9 +363,61 @@ the VTT — the ticket does not make these calls, we did. Each entry says so exp
 
 ---
 
+### DC-22: Dropped-carrier seeding populated — DEC-108 reversed (2026-08-18)
+
+- **Decision:** the seed **invents** values for the dropped-carrier detail fields
+  instead of mirroring routing's five real attributes.
+- **Previous state:** [[decision-log#DEC-108|DEC-108]] (S122) seeded everything but
+  `scac`/`equipment`/`dropCode`/`reason`/`carrierName` as `null`, reasoning that
+  rich seeding "would make the prototype look finished while the real screen is
+  mostly dashes."
+- **Why it flipped:** that reasoning did not account for its own cost — the detail
+  table rendered as **fourteen dashes**, so the feature could not be reviewed or
+  groomed by looking at it. User ruling: *"doesnt matter if we overdo it, they need
+  to see in order to groom, in case we need to bring it back to empty then we do
+  it."* Shapes follow 13953's own examples and the sample payload's conventions.
+- **Constrained, not arbitrary.** Three dependency chains are enforced in the
+  generator and asserted in `tools/generate.test.mjs`, because breaking them would
+  seed states routing cannot produce:
+  1. `drop-code 23` **is** "Missing Transit Time" → transit time, transit source,
+     TT ID and both dates are null for that code (the same code 13954 branches its
+     manual-dates dialog on).
+  2. RPC-ID is the key for Start Date / Stop Date / Route Group (13397 §7/§8), and
+     Route Rank rides with it — all four present or all four absent.
+  3. Commitment hangs off the CVC ID; Accepted + Open sum to Commitment; a CVC ID
+     alone must not produce them (AC, verbatim).
+- **~20% of rows stay sparse on each chain** so the AC's Null Handling `--` path
+  stays reachable on screen, not only in a unit test.
+- **Source:** user ruling 2026-08-18; verified through `sellShipmentDetail()`
+  against live Neon (525 rows, 0 chain violations).
+- **Status:** ✅ implemented, Neon reseeded.
+
+### DC-23: Route Rank may be empty; Rank may not (2026-08-18) — resolves OQ-13
+
+- **Decision:** *"Route Rank can be empty but Rank will not be empty"* (Jana,
+  2026-08-18).
+- **Previous state:** **OQ-13** — the sample payload omits `route-rank` and `rpc-id`
+  on all eleven `<d-option>` rows, and it was unresolved whether routing lacks them
+  or merely does not echo them. A same-day interim ruling had made Route Rank
+  always-present on the reasoning that "the system determines it"; correct
+  instinct, wrong field — it holds for Rank, not Route Rank.
+- **Why:** Route Rank is routing's ordering of the carriers it could rank, and a
+  dropped carrier may never have entered that ordering. Rank is the row's own
+  position. Consistent with the payload.
+- **Consequence, not yet applied:** `mapRoutingOption`'s `routeRank ?? rank`
+  fallback (written 2026-06-06, before the payload existed) is now known-wrong — it
+  fills the field that is legitimately empty with the field that never is. Deleting
+  it touches every routing option, so it is Q1 in
+  [[questions-for-jana-2026-08-18]] rather than a silent change.
+- **Status:** ✅ seeding implemented (Route Rank empty on ~18% of dropped rows);
+  ⚠️ the mapper fallback is **unchanged pending Q1**.
+
+---
+
 ## Changelog
 
 | Date | Decisions added |
 |---|---|
+| Aug 18, 2026 | DC-22, DC-23 — **DEC-108 reversed**: the dropped-carrier seed now invents values so the feature can be groomed by looking at it, with three AC-derived dependency chains enforced in code and tests and ~20% of rows left sparse to keep the `--` path visible. **OQ-13 resolved** by Jana — Route Rank may be empty, Rank may not — which retires a same-day interim ruling and makes `mapRoutingOption`'s `routeRank ?? rank` fallback known-wrong (raised as Q1 rather than changed unilaterally, since it touches every routing option). |
 | Aug 17, 2026 | DC-12 through DC-21 — Process SCAC (LINX-13954) built: six implementation calls the ticket doesn't make — **DC-12** Routing/Rating simulated off the seeded `dropCode` (`23` → no dates, `1`/`2` → success); **DC-13** Rating always fails on the failure branch, since a dropped carrier carries no rate data; **DC-14** insertion always takes the AC's own no-matching-group fallback (flat list, `max(rank)+1`, never renumbered — the write endpoint addresses rows by rank); **DC-15** the 3s success message is an `Alert`, not a new Toast component; **DC-16** audit logging is a known, unbuilt gap; **DC-17** Route Rank/RPC-ID are carried per DC-05 but arrive blank because routing supplies neither. Plus **DC-18** confirms no migration or API change was needed (`saveTender` already update-then-inserts, same finding as DEC-106); **DC-19**/**DC-20** record two defects found and fixed mid-build (a display dash almost persisted into a numeric wire field; the AC's Processing Failure branch was unreachable dead code); **DC-21** records real-Chrome/live-Neon browser verification, including cold-reload persistence. Four items verified but **not resolved** are logged as OQ-14 through OQ-17 in the canon. Also flipped four DC-01–DC-11 statuses to ✅ implemented now that the behaviour they ruled on (per-row action, routing-failure semantics, Rank vs Route Rank, OK/Cancel buttons) shipped as part of this build: **DC-02**, **DC-03**, **DC-05**, **DC-08**. |
 | Aug 17, 2026 | DC-01 through DC-11 — Dropped Carrier intake (S122), from the LINX-13953/13954/13397 AC pulled live plus Jana's 2026-08-11 call. Placement and per-row action are VTT-only rulings the AC never states (**DC-01**, **DC-02**); **DC-03** pins "routing failure" to *returned-without-dates*, not a service error; **DC-04** kills the assumption of a fixed LTL→TL equipment hierarchy; **DC-05** separates Rank from Route Rank, which the AC reads as one contradictory field; **DC-06**/**DC-07** split Volume Commitment into in-scope display vs Dave-blocked calculation and confirm the CVC-ID lookup won the TBD; **DC-08** retires the AC's stray "Yes" button; **DC-09** confirms S120's `Refer Story xxxx` match but **refutes its framing** — Jana demoed the manual add path and said they owe the ticket, and the quote S120 attributed to this call is not in this transcript; **DC-10** retires the "13397 is a blocking hole" reading; **DC-11** fixes terminology. Headline unresolved item is **OQ-1** — the AC and the VTT disagree on whether Rating runs on the routing-success path. |

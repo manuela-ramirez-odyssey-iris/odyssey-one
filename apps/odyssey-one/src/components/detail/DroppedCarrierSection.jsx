@@ -1,4 +1,4 @@
-import { Square, SquareCheck } from 'lucide-react'
+import { Check, CircleX } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
 import { Button, GroupTable, SubAccordion } from '@odyssey/ui'
 
@@ -18,10 +18,17 @@ import { Button, GroupTable, SubAccordion } from '@odyssey/ui'
  * about routing (that lives in the parent). Omitting `onProcess` renders no
  * action column at all, so the section stays usable read-only (13953).
  *
- * ── EXPECT DASHES ──────────────────────────────────────────────────────────
+ * ── DASHES ARE STILL LEGAL, BUT THE SEED NO LONGER FORCES THEM ─────────────
  * Routing returns only five attributes for a dropped carrier (scac, service,
- * drop-code, drop-reason, seq), so most columns below legitimately render '--'
- * today. That is the ticket's own Null Handling rule, not a data bug.
+ * drop-code, drop-reason, seq), and the seed used to mirror that exactly — so
+ * every column here rendered '--' and the feature could not be reviewed. As of
+ * 2026-08-18 the seed invents the rest (user ruling: stakeholders have to SEE
+ * it to groom it), with the AC's own dependency chains kept intact.
+ *
+ * So a dash here is still correct and still reachable — it is the ticket's Null
+ * Handling rule, not a data bug — but it is now the minority case. Route Rank
+ * in particular may legitimately be blank: "Route Rank can be empty but Rank
+ * will not be empty" (Jana, 2026-08-18).
  *
  * COLUMN SPLIT IS PROVISIONAL. 13953 specifies 23 fields and no layout. The
  * division between the always-visible row and the disclosure is ours, not the
@@ -77,8 +84,13 @@ const CHECKBOX_LABELS = {
 // The AC's one deliberate asymmetry: every absent field displays '--', EXCEPT
 // these two, which fall back to unchecked. "If not returned, then unchecked" —
 // so a dash here would be wrong, not merely ugly.
+//
+// Rendered as check / circle-x, NOT as a checkbox (user, 2026-08-18). The
+// AC's word is "Checkbox", but these are READ-ONLY routing output: a checkbox
+// glyph advertises an affordance that does not exist and invites the click.
+// Same two states, stated as status rather than control.
 function CheckCell({ field, on }) {
-  const Icon = on ? SquareCheck : Square
+  const Icon = on ? Check : CircleX
   return <Icon {...ICON_MD} aria-label={`${CHECKBOX_LABELS[field]}: ${on ? 'yes' : 'no'}`} />
 }
 

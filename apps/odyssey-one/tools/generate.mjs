@@ -192,6 +192,23 @@ export const CARRIERS = [
 // it comes "From TMS", looked up by drop-code, and the exact table is still
 // owed. The descriptions below are therefore still OURS: plausible text, not
 // TMS text. Do not present them as canonical.
+// Routing's code for "transit time could not be calculated". Named because it
+// is load-bearing in two places — this file's seeding chain and 13954's
+// manual-dates branch (lib/processScac.js keeps its own copy for the same
+// reason: the two must not drift).
+const DROP_CODE_MISSING_TRANSIT_TIME = 23;
+
+// Free text on the commitment record (`cvc_comment`, 13397 §11) — a note the
+// TMS shows the user. Ours, like the reason descriptions: real ones live in a
+// table we have not been given.
+const COMMITMENT_COMMENTS = [
+  'Volume commitment negotiated for Q3.',
+  'Capacity reserved under the annual bid.',
+  'Weekly cap agreed with carrier rep.',
+  'Commitment shared across sister lanes.',
+  'Seasonal capacity — review before renewal.',
+];
+
 export const DROP_REASONS = [
   { dropCode: 23, reason: 'Missing Transit Time', weight: 6,
     description: 'Transit time could not be calculated due to missing transit or distance data.' },
@@ -211,20 +228,33 @@ const droppedFaker = new Faker({ locale: en });
 /**
  * LINX-13953 — the carriers routing evaluated and excluded, with the reason.
  *
- * ── SPARSE ON PURPOSE ──────────────────────────────────────────────────────
- * This mirrors what routing ACTUALLY returns. A <d-option> carries five
- * attributes (seq, service, carrier, drop-code, drop-reason) versus eighteen on
- * a qualified <option>. So route rank, RPC-ID, transit time, transit source,
- * dates, TT ID and the entire commitment block are NULL here — not because we
- * couldn't be bothered to invent them, but because routing does not send them.
+ * ── POPULATED, WITH THE DEPENDENCIES INTACT (2026-08-18) ───────────────────
+ * This function used to null every field but the five a <d-option> actually
+ * carries (seq, service, carrier, drop-code, drop-reason), so the whole detail
+ * table rendered as fourteen dashes and the feature could not be reviewed on
+ * screen. User ruling: invent the values, the real payload is not needed yet.
+ * Shapes follow 13953's own examples and the sample payload's conventions.
  *
- * 13953 still lists all 23 fields and handles this itself: "If Routing does not
- * return a value for ANY field displayed within the Dropped Carrier section,
- * Odyssey One shall display '--'". The mapper turns these nulls into dashes.
+ * The invented values are NOT independent draws. Three chains are enforced,
+ * because breaking them would seed states routing cannot produce:
  *
- * Seeding rich values here would make the prototype look finished while the
- * real screen renders mostly dashes — the opposite of what seeded data is for.
- * If routing is later extended, widen this function, not the mapper.
+ *   • drop-code 23 IS "Missing Transit Time" — so transit time, transit
+ *     source, TT ID and both dates are null for that code specifically. This
+ *     is also the branch 13954 keys its manual-dates dialog on.
+ *   • RPC-ID is the lookup key for Start Date, Stop Date and Route Group
+ *     (13397 §7/§8), and route-rank tracks the same rpc record — route-rank
+ *     rises monotonically with rpc-id across all seven sample options. So all
+ *     four stand or fall together.
+ *   • Commitment hangs off the CVC ID, and the AC is explicit that a CVC ID
+ *     ALONE must not produce Accepted/Open. Accepted + Open sum to Commitment.
+ *
+ * A minority of rows is left sparse on each chain so 13953's Null Handling
+ * rule ("display '--'") stays reachable on screen rather than only in tests.
+ *
+ * ⚠️ Still ours, not routing's: whether a dropped carrier has an RPC-ID or a
+ * route rank AT ALL is open (OQ-13) — the sample payload omits both, and it is
+ * unresolved whether routing lacks them or merely doesn't echo them. If that
+ * lands the other way, tighten this function, not the mapper.
  *
  * Carrier Name is the ONE field we add that routing doesn't send: 13953 says to
  * look it up by SCAC (13397 §2), and CARRIERS is our stand-in for mf_carrier.
@@ -234,8 +264,13 @@ const droppedFaker = new Faker({ locale: en });
  *
  * @param {{scac: string, name: string}[]} routingCarriers - already in the tender list
  * @param {string} equipmentCode - the shipment's equipment ('service' in the payload)
+ * @param {{baseDate: Date, originTz: string, destTz: string}} lane - the shipment's
+ *   own pickup window and timezones. Passed in rather than drawn so a dropped
+ *   carrier's dates sit on the SAME lane as the tender list above it; a freely
+ *   invented date would put the same shipment in two places.
  */
-function buildDroppedCarriers(routingCarriers, equipmentCode) {
+function buildDroppedCarriers(routingCarriers, equipmentCode, lane = {}) {
+  const { baseDate, originTz = 'America/Chicago', destTz = 'America/Chicago' } = lane;
   const taken = new Set(routingCarriers.map((c) => c.scac));
   const available = CARRIERS.filter((c) => !taken.has(c.scac));
   // 0-11. The sample had ELEVEN dropped against seven qualified, so the dropped
@@ -250,6 +285,60 @@ function buildDroppedCarriers(routingCarriers, equipmentCode) {
 
   return droppedFaker.helpers.arrayElements(available, count).map((c) => {
     const reason = droppedFaker.helpers.arrayElement(reasonPool);
+
+    // CHAIN 1 — the drop reason IS the missing data. Code 23 means transit time
+    // could not be calculated, so transit time, its source, the TT ID (the
+    // transit record's own id) and both dates are absent for that reason, not
+    // by coincidence. 13954's manual-dates branch keys on the same code, so
+    // seeding dates here would contradict the dialog it opens.
+    const hasTransit = reason.dropCode !== DROP_CODE_MISSING_TRANSIT_TIME;
+
+    // CHAIN 2 — RPC-ID unlocks Start Date, Stop Date and Route Group (13397
+    // §7/§8 both read `where rpc_id = :rpc_id`), and Route Rank rides with it.
+    // ~1 in 5 carriers has no rpc match, which is what keeps the AC's '--' path
+    // visible on screen instead of only in a unit test.
+    //
+    // ── OQ-13 IS SETTLED (Jana, 2026-08-18) ──────────────────────────────
+    // "Route Rank can be empty but Rank will not be empty."
+    //
+    // So the two are NOT symmetric, and this is the authoritative answer the
+    // sample payload only hinted at (route-rank absent on all eleven
+    // <d-option> rows). Route Rank is routing's ranking of carriers it could
+    // actually rank — a dropped carrier may never have entered that ordering,
+    // so blank is a legal value, not a data bug. Rank is the row's own
+    // position and always exists.
+    //
+    // This REVERSES the 2026-08-18 seeding rule that made routeRank always
+    // present ("it is the system which determines it") — correct instinct,
+    // wrong field: it holds for Rank, not for Route Rank. Consequence beyond
+    // this file: mapRoutingOption's `routeRank ?? rank` fallback is now
+    // definitively wrong, because it substitutes the one that is never empty
+    // for the one that legitimately is.
+    const hasRpc = droppedFaker.number.int({ min: 1, max: 5 }) > 1;
+
+    // CHAIN 3 — commitment hangs off the CVC ID, but the AC is explicit that
+    // "the presence of a CVC ID alone shall not trigger commitment
+    // calculations". So a quarter of the CVC rows carry the id with nothing
+    // behind it: that slice is the only live exercise of the display gate.
+    const hasCvc = droppedFaker.number.int({ min: 1, max: 10 }) > 3;
+    const hasCommitment = hasCvc && droppedFaker.number.int({ min: 1, max: 4 }) > 1;
+
+    const transitDays = hasTransit ? droppedFaker.number.int({ min: 1, max: 5 }) : null;
+    const pickupDate = hasTransit && baseDate
+      ? genDate(baseDate, droppedFaker.number.int({ min: 0, max: 2 }))
+      : null;
+    const deliveryDate = pickupDate ? genDate(pickupDate, transitDays) : null;
+
+    // The rpc row is a CONTRACT window; it has to contain the pickup it is
+    // being used for, so it opens before and closes after rather than floating.
+    const rpcStart = hasRpc && baseDate ? genDate(baseDate, -droppedFaker.number.int({ min: 30, max: 180 })) : null;
+    const rpcStop = hasRpc && baseDate ? genDate(baseDate, droppedFaker.number.int({ min: 30, max: 365 })) : null;
+
+    // Accepted + Open sum to Commitment — the AC calls them "utilization" and
+    // "remaining capacity" of the same number, so they cannot be drawn apart.
+    const commitment = hasCommitment ? droppedFaker.number.int({ min: 4, max: 40 }) : null;
+    const accepted = commitment != null ? droppedFaker.number.int({ min: 0, max: commitment }) : null;
+
     return {
       // ── returned by routing ────────────────────────────────────────────
       scac: c.scac,
@@ -260,29 +349,37 @@ function buildDroppedCarriers(routingCarriers, equipmentCode) {
       carrierName: c.name,
       // ── looked up in TMS by dropCode. Descriptions are still ours. ──────
       reasonDescription: reason.description,
-      // ── NOT returned by routing for a dropped carrier. All render '--'. ──
-      routeRank: null,
-      pickupDateTime: null,
-      deliveryDateTime: null,
-      startDate: null,      // 13397 §7 keys on rpcId, which is null
-      stopDate: null,       // 13397 §7, same
-      transitTime: null,
-      transitSource: null,
-      routeGroup: null,     // 13397 §8 keys on rpcId, same
-      rpcId: null,
-      ttId: null,
-      commitment: null,     // get_cvc_id needs a pickup date; there isn't one
-      uom: null,
-      accepted: null,
-      open: null,
-      comment: null,
-      cvcId: null,
-      // ── the two checkbox fields: no '--' state, absence means unchecked ──
-      // AC: "Y-Checked N-Unchecked. If not returned, then unchecked." The
-      // payload omits indirect-point on dropped carriers entirely, so both are
-      // false rather than drawn.
-      orderEquipment: false,
-      indirectPoint: false,
+      // ── chain 2: the rpc record ────────────────────────────────────────
+      // Sample payload shape: rpc-id="4457785", route-rank 1..16 (sparse, and
+      // NOT the row's position — see DC-05).
+      rpcId: hasRpc ? droppedFaker.number.int({ min: 4400000, max: 4499999 }) : null,
+      // Empty when there is no rpc record — legal per Jana, 2026-08-18.
+      routeRank: hasRpc ? droppedFaker.number.int({ min: 1, max: 20 }) : null,
+      startDate: rpcStart ? formatShortDate(rpcStart) : null,
+      stopDate: rpcStop ? formatShortDate(rpcStop) : null,
+      routeGroup: hasRpc ? droppedFaker.helpers.arrayElement(ROUTE_GROUPS) : null,
+      // ── chain 1: transit and the dates it produces ─────────────────────
+      pickupDateTime: pickupDate ? formatDateTime(pickupDate, originTz) : null,
+      deliveryDateTime: deliveryDate ? formatDateTime(deliveryDate, destTz) : null,
+      transitTime: transitDays != null ? `${transitDays} DY` : null,
+      transitSource: hasTransit ? droppedFaker.helpers.arrayElement(['SMC', 'PCMILER']) : null,
+      ttId: hasTransit ? droppedFaker.number.int({ min: 10000000, max: 19999999 }) : null,
+      // ── chain 3: the commitment block ──────────────────────────────────
+      cvcId: hasCvc ? `CVC${droppedFaker.number.int({ min: 10000, max: 99999 })}` : null,
+      commitment,
+      uom: hasCommitment ? droppedFaker.helpers.arrayElement(['Loads/Week', 'Loads/Month', 'KG/Day']) : null,
+      accepted,
+      open: commitment != null ? commitment - accepted : null,
+      comment: hasCommitment ? droppedFaker.helpers.arrayElement(COMMITMENT_COMMENTS) : null,
+      // ── the two flag fields: no '--' state, absence means "no" ──────────
+      // AC: "Y-Checked N-Unchecked. If not returned, then unchecked." Both were
+      // hardcoded false, which left the affirmative state unreachable in the
+      // whole app — nobody could see it, so nobody could review it.
+      //
+      // orderEquipment is "SCAC and Equipment match Order". A dropped carrier
+      // is drawn from OUTSIDE the tender list, so a match is uncommon but real.
+      orderEquipment: droppedFaker.number.int({ min: 1, max: 5 }) === 1,
+      indirectPoint: droppedFaker.number.int({ min: 1, max: 4 }) === 1,
     };
   });
 }
@@ -1831,7 +1928,7 @@ function generateShipment(index, chainOverride) {
     shippingOptionList: routingOptions,
     // LINX-13953. Rides inside shipments.detail, which sellShipmentDetail()
     // returns verbatim — no migration, no API change, no seed change.
-    droppedCarrierList: buildDroppedCarriers(routingCarriers, equipmentCode),
+    droppedCarrierList: buildDroppedCarriers(routingCarriers, equipmentCode, { baseDate, originTz, destTz }),
     documentList: documents,
     noteList: notes,
     historyList: historyEntries,

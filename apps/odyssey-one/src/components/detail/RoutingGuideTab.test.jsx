@@ -935,8 +935,15 @@ describe('Process SCAC (LINX-13954)', () => {
     expect(screen.getByRole('dialog', { name: 'Manual Pickup and Delivery Entry' })).toBeTruthy()
 
     // Deliberately far-future so the past-check in ManualDatesModal never fires.
-    fireEvent.change(screen.getByLabelText('Pickup Date/Time'), { target: { value: '09/02/2099 08:00' } })
-    fireEvent.change(screen.getByLabelText('Delivery Date/Time'), { target: { value: '09/04/2099 16:00' } })
+    // DatePicker + TimePicker pair per field (2026-08-18); each commits on blur.
+    for (const [label, value] of [
+      ['Pickup Date', '09/02/2099'], ['Pickup Time', '08:00'],
+      ['Delivery Date', '09/04/2099'], ['Delivery Time', '16:00'],
+    ]) {
+      const input = screen.getByLabelText(label)
+      fireEvent.change(input, { target: { value } })
+      fireEvent.blur(input)
+    }
 
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'OK' }))

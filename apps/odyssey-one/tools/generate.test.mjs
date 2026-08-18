@@ -917,19 +917,29 @@ test('LINX-13953: droppedCarrierList matches the real routing payload shape', ()
       assert.ok(dc.reasonDescription, 'description is looked up by dropCode (TMS)')
       codesSeen.add(dc.dropCode)
 
-      // SPARSE BY DESIGN: routing sends none of these for a dropped carrier.
-      // If a future change starts populating them, this test should be updated
-      // deliberately — not silently loosened.
-      for (const absent of ['routeRank', 'pickupDateTime', 'deliveryDateTime',
-                            'startDate', 'stopDate', 'transitTime', 'transitSource',
-                            'routeGroup', 'rpcId', 'ttId', 'commitment', 'uom',
-                            'accepted', 'open', 'comment', 'cvcId']) {
-        assert.equal(dc[absent], null, `${absent} must be null — routing does not return it`)
+      // These WERE all asserted null — routing sends none of them for a dropped
+      // carrier, so the seed mirrored that exactly. Superseded 2026-08-18 by an
+      // explicit user ruling: the detail table rendered as fourteen dashes and
+      // the feature could not be reviewed on screen, so the values are invented
+      // for now. The old note asked for a deliberate update rather than a silent
+      // loosening — this is it.
+      //
+      // What survives is the SHAPE. Whether each field is present is a
+      // dependency-chain question, asserted in its own test below; here we only
+      // insist that a present value is the right kind of thing.
+      for (const [field, kind] of [['routeRank', 'number'], ['rpcId', 'number'], ['ttId', 'number'],
+                                   ['commitment', 'number'], ['accepted', 'number'], ['open', 'number'],
+                                   ['startDate', 'string'], ['stopDate', 'string'],
+                                   ['transitTime', 'string'], ['transitSource', 'string'],
+                                   ['routeGroup', 'string'], ['uom', 'string'],
+                                   ['comment', 'string'], ['cvcId', 'string'],
+                                   ['pickupDateTime', 'string'], ['deliveryDateTime', 'string']]) {
+        if (dc[field] != null) assert.equal(typeof dc[field], kind, `${field} has the wrong type`)
       }
 
-      // the two checkbox fields have no '--' state
-      assert.equal(dc.orderEquipment, false)
-      assert.equal(dc.indirectPoint, false)
+      // the two flag fields have no '--' state — always a real boolean
+      assert.equal(typeof dc.orderEquipment, 'boolean')
+      assert.equal(typeof dc.indirectPoint, 'boolean')
     }
   }
 
@@ -959,4 +969,61 @@ test('LINX-13953: dropped carriers are deterministic across builds', () => {
     a.details.get(first).droppedCarrierList,
     b.details.get(first).droppedCarrierList,
   )
+})
+
+// The seeded values are invented (user ruling, 2026-08-18 — the detail table
+// rendered as fourteen dashes and could not be reviewed), but they are NOT
+// independent draws. Each chain below encodes a rule from 13953/13397, and
+// breaking one seeds a state routing cannot produce. This is the check that
+// goes red if a future edit widens the seeding without honouring them.
+test('LINX-13953: seeded dropped-carrier values keep their dependency chains', () => {
+  const ds = buildDataset({ totalShipments: 120 })
+  const rows = [...ds.details.values()].flatMap((d) => d.droppedCarrierList ?? [])
+  assert.ok(rows.length > 100, `too few dropped rows to be meaningful: ${rows.length}`)
+
+  for (const r of rows) {
+    // Chain 1 — drop-code 23 IS the absent transit data, so the fields that
+    // derive from transit must be absent for exactly that code, and present
+    // otherwise. 13954's manual-dates dialog branches on the same code.
+    if (r.dropCode === 23) {
+      for (const k of ['transitTime', 'transitSource', 'ttId', 'pickupDateTime', 'deliveryDateTime'])
+        assert.equal(r[k], null, `${r.scac}: code 23 must not carry ${k}`)
+    } else {
+      assert.ok(r.transitTime, `${r.scac}: routable carrier is missing transitTime`)
+      assert.ok(r.pickupDateTime && r.deliveryDateTime, `${r.scac}: routable carrier is missing dates`)
+    }
+
+    // Chain 2 — RPC-ID is the lookup key for Start Date, Stop Date and Route
+    // Group (13397 §7/§8), and Route Rank rides with it. All four present or
+    // all four absent; never a lookup result without its key.
+    //
+    // Route Rank being nullable is Jana's own ruling (2026-08-18): "Route Rank
+    // can be empty but Rank will not be empty." Do not re-tighten this to
+    // always-present without a ruling that reverses his.
+    const hasRpc = r.rpcId != null
+    for (const k of ['routeRank', 'startDate', 'stopDate', 'routeGroup'])
+      assert.equal(r[k] != null, hasRpc, `${r.scac}: ${k} disagrees with rpcId`)
+
+    // Chain 3 — commitment hangs off the CVC ID, and Accepted + Open are two
+    // halves of Commitment ("utilization" / "remaining capacity"), so they
+    // cannot drift apart. A CVC ID alone must NOT produce them (AC, verbatim).
+    if (r.commitment != null) {
+      assert.ok(r.cvcId, `${r.scac}: commitment without a cvcId`)
+      assert.equal(r.accepted + r.open, r.commitment, `${r.scac}: accepted+open != commitment`)
+    } else {
+      for (const k of ['accepted', 'open', 'uom'])
+        assert.equal(r[k], null, `${r.scac}: ${k} orphaned without a commitment`)
+    }
+  }
+
+  // Both states of every optional chain must actually OCCUR, or the '--' path
+  // (and the affirmative flag state) is unreachable on screen — which is the
+  // bug this seeding pass existed to fix, in reverse.
+  const some = (f) => rows.some(f)
+  assert.ok(some((r) => r.rpcId != null) && some((r) => r.rpcId == null), 'rpcId is not exercised both ways')
+  assert.ok(some((r) => r.routeRank == null), 'routeRank is never empty — Jana ruled it CAN be')
+  assert.ok(some((r) => r.commitment != null) && some((r) => r.commitment == null), 'commitment is not exercised both ways')
+  assert.ok(some((r) => r.cvcId != null && r.commitment == null), 'the CVC-ID-without-commitment gate is unreachable')
+  assert.ok(some((r) => r.orderEquipment) && some((r) => !r.orderEquipment), 'orderEquipment is not exercised both ways')
+  assert.ok(some((r) => r.indirectPoint) && some((r) => !r.indirectPoint), 'indirectPoint is not exercised both ways')
 })

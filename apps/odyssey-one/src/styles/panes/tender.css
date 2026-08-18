@@ -37,6 +37,27 @@
   overflow: hidden;
 }
 
+/* Split-table row height, STATED rather than inherited (2026-08-18).
+
+   The two halves are independent <table>s, so nothing makes their rows agree —
+   each sizes to its own tallest cell. Measured: the LEFT half carries the
+   Tender Status Badge, whose line box is 22px against every other cell's 20px,
+   so left rows came out 51px and right rows 49px. Two pixels per row, invisible
+   individually, but it accumulated to a 12px offset by the sixth row — which
+   read as dead space under the right table's last row (reported as a scrollbar
+   problem; the scrollbar was innocent).
+
+   51px = the Badge's 22px line box + the Cell contract's 14px pads + its 1px
+   rule. Same reasoning as the stated 68px two-line header (S123): two separate
+   tables cannot sync a height in CSS, so it is declared once for both. */
+[data-routing-container] {
+  --tender-row-height: 51px;
+}
+
+[data-routing-container] .odyssey-table tbody tr {
+  height: var(--tender-row-height);
+}
+
 /* Column-arrangement drawer for the tender table (2026-08-17). Fixed viewport
    dock below the navbar — the pane has no flex dock of its own, so this mirrors
    Product Information's overlay drawer; `.right-panel-dock` (composed on the same
@@ -60,4 +81,30 @@
 .dropped-carrier__empty {
   padding: var(--spacing-4);
   color: var(--text-secondary);
+}
+
+/* LINX-13954 Manual Pickup and Delivery Entry — each field is a date + time
+   pair on one line, the two halves EQUAL width (user, 2026-08-18). The pair is
+   capped rather than filling the dialog: two controls stretched to a medium
+   modal's full width read as a form far heavier than two values. */
+.manual-dates__row {
+  display: flex;
+  gap: var(--spacing-3);
+  align-items: flex-start;
+  max-width: 420px;
+}
+
+/* Equal halves. `min-width: 0` because DatePicker/TimePicker carry their own
+   intrinsic widths (.time-picker is 320px) — without it, flex-basis loses to
+   that floor and the halves go unequal again. */
+.manual-dates__row > * {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/* Pickup and Delivery are two separate decisions, so they get a rule between
+   them rather than only the content slot's gap. */
+.manual-dates__row + .manual-dates__row {
+  border-top: 1px solid var(--border-subtle);
+  padding-top: var(--spacing-4);
 }
