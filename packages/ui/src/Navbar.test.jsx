@@ -15,10 +15,10 @@ describe('Navbar — context variant', () => {
     expect(header.style.padding).toBe('14px var(--spacing-6) 14px var(--spacing-4)')
   })
 
-  it('context="external" renders the light surface token, not a hardcoded color', () => {
+  it('context="external" renders the Figma 5152:3904 gradient (0-alpha white → var(--white)), not a solid fill', () => {
     render(<Navbar lead="lead" search="search" trail="trail" context="external" />)
     const header = screen.getByText('lead').closest('header')
-    expect(header.style.background).toBe('var(--bg-primary)')
+    expect(header.style.background).toBe('linear-gradient(to bottom, rgba(255, 255, 255, 0) 0%, var(--white) 100%)')
     expect(header.style.padding).toBe('14px var(--spacing-6) 14px var(--spacing-6)')
   })
 

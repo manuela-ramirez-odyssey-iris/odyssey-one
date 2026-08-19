@@ -158,11 +158,13 @@ export function BidCountdownStrip({ closeAt, onExpire }) {
 // Standalone external carrier page — reached via an unauthenticated token link
 // (no login), so it renders NOTHING from AppShell: no sidebar, no app-chrome
 // Navbar, no nav landmark at all (SpotBoard canon: carriers see only their
-// own lane). The closedReason branch below renders the PACKAGE Navbar, in
-// context="external" — Figma's purpose-built white variant for external
-// landing pages (5152:3904), not AppShell's internal chrome. The open-bid
-// branch instead renders that Navbar's logo/trail merged into the countdown
-// strip bar — a ponytail experiment, see the bar's own comment below.
+// own lane). Both branches (open-bid and closed/expired/invalid) render the
+// same PACKAGE Navbar, in context="external" — Figma's purpose-built white
+// gradient+blur variant for external landing pages (5152:3904), not
+// AppShell's internal chrome — see `bidNavbar` below, built once and reused
+// by both returns. Only the `search` slot differs: the open branch shows the
+// live countdown, closed/expired/invalid keeps the static "Carrier Portal"
+// title (nothing left to count down to).
 export default function CarrierBid() {
   const { token } = useParams()
   const decoded = useMemo(() => decodeToken(token), [token])
@@ -307,27 +309,6 @@ export default function CarrierBid() {
     </>
   )
 
-  // package Navbar, context="external" (Figma 5152:3904) — logo-only lead,
-  // "Carrier Portal" title, carrier identity in the trail, no bell/customers,
-  // not sticky (package Navbar is position: relative already — nothing to add).
-  // Only rendered on the closedReason branch below now — the open-bid branch
-  // replaces this with the countdown-bar experiment (see there).
-  const navbar = (
-    <Navbar
-      context="external"
-      // LeadNav's `logo` is a plain composable slot (Code Connect resolves it
-      // straight off the Figma instance, LeadNav.figma.tsx) — it doesn't
-      // auto-swap for context. The default <OdysseyLogo /> is the light
-      // variant built for dark surfaces (LeadNav's own demo copy), so the
-      // white external bar needs the dark variant passed explicitly — same
-      // as the hand-rolled header this replaces.
-      lead={<LeadNav showMenu={false} logo={<OdysseyLogo variant="dark" />} />}
-      search={<GlobalSearch mode="title" title="Carrier Portal" />}
-      trailRef={profileDropdownRef}
-      trail={trailContent}
-    />
-  )
-
   const order = shipment?.orderDetails?.[0] ?? null
   // Read twice off the same array: the read-only Shipment Detail card below
   // ("Special Services" TitleSubtitle) AND the Additional Charges seed
@@ -376,11 +357,40 @@ export default function CarrierBid() {
   else if (!carrier) closedReason = 'This link is invalid.'
   else if (quote.status !== 'open' || isExpired) closedReason = 'This bidding window has closed.'
 
+  // package Navbar, context="external" (Figma 5152:3904) — logo-only lead,
+  // carrier identity in the trail, no bell/customers. One definition shared
+  // by both the closedReason early-return below and the open-bid return
+  // further down — only `search` differs (static title vs. live countdown).
+  // Wrapped in `.carrier-bid-navbar-wrap` (carrierBid.css) for sticky
+  // positioning only: the gradient + backdrop blur now live ON the Navbar
+  // itself (packages/ui/src/Navbar.jsx / components.css, Job 1), so the
+  // wrapper doesn't paint them a second time.
+  const bidNavbar = (
+    <div className={`carrier-bid-navbar-wrap${scrolled ? ' carrier-bid-navbar-wrap--compact' : ''}`}>
+      <Navbar
+        context="external"
+        // LeadNav's `logo` is a plain composable slot (Code Connect resolves it
+        // straight off the Figma instance, LeadNav.figma.tsx) — it doesn't
+        // auto-swap for context. The default <OdysseyLogo /> is the light
+        // variant built for dark surfaces (LeadNav's own demo copy), so the
+        // white external bar needs the dark variant passed explicitly.
+        lead={<LeadNav showMenu={false} logo={<OdysseyLogo variant="dark" />} />}
+        search={
+          closedReason
+            ? <GlobalSearch mode="title" title="Carrier Portal" />
+            : <BidCountdownStrip closeAt={quote.closeAt} onExpire={() => setQuote(getQuote(shipmentId))} />
+        }
+        trailRef={profileDropdownRef}
+        trail={trailContent}
+      />
+    </div>
+  )
+
   if (closedReason) {
     return (
       <div className="carrier-bid-page">
         <HeroBackground heroIndex={heroIndex} />
-        {navbar}
+        {bidNavbar}
         <main className="carrier-bid-page__main">
           <Alert variant="warning" showClose={false}>{closedReason}</Alert>
         </main>
@@ -462,25 +472,7 @@ export default function CarrierBid() {
   return (
     <div className="carrier-bid-page">
       <HeroBackground heroIndex={heroIndex} />
-
-      {/* ponytail experiment (2026-08-19): the countdown strip becomes this
-          page's navbar — logo, cells, and the carrier trail share one
-          gradient/blur surface (carrierBid.css). Replaces `{navbar}` for
-          this render path only (the closedReason branch above still
-          renders the real Navbar, untouched). Removed from the tree here
-          rather than CSS-hidden: a hidden-but-mounted Navbar would double
-          up profileDropdownRef/profileDropdownOpen with the trail below,
-          since both would render the same TrailNav+dropdown off the same
-          state. Revert: delete this block, put `{navbar}` back above it. */}
-      <div className={`carrier-bid-countdown-strip-wrap${scrolled ? ' carrier-bid-countdown-strip-wrap--compact' : ''}`}>
-        <div className="carrier-bid-countdown-bar navbar--external">
-          <OdysseyLogo variant="dark" />
-          <BidCountdownStrip closeAt={quote.closeAt} onExpire={() => setQuote(getQuote(shipmentId))} />
-          <div ref={profileDropdownRef} className="carrier-bid-countdown-bar__trail">
-            {trailContent}
-          </div>
-        </div>
-      </div>
+      {bidNavbar}
 
       <main className="carrier-bid-page__main">
       {isLoading || !order ? (

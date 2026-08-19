@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, within, cleanup, fireEvent, waitFor, act } from '@testing-library/react'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
@@ -91,7 +92,7 @@ afterEach(() => {
 })
 
 describe('CarrierBid — open quote', () => {
-  it('renders the bid form and no AppShell chrome (sidebar); the page Navbar itself is absent on this branch (ponytail experiment)', async () => {
+  it('renders the bid form and no AppShell chrome (sidebar); the real package Navbar (external context) hosts the countdown', async () => {
     const quote = openQuote()
     const token = tokenFor(quote, SCAC)
     renderAt(`/spot-bid/${token}`)
@@ -105,16 +106,16 @@ describe('CarrierBid — open quote', () => {
     expect(document.querySelector('nav')).toBe(null)
     expect(screen.queryByText('User Management')).toBe(null)
 
-    // ponytail experiment: the countdown strip becomes this page's navbar
-    // on the open-bid branch, so the package <Navbar> (a <header>) is
-    // removed from the tree entirely here — not just hidden. See the
-    // "countdown-strip-as-navbar" describe block below for the bar's own
-    // assertions, and the closed/expired/invalid describe block for proof
-    // the real Navbar still renders unchanged on that other branch.
-    expect(document.querySelector('header')).toBe(null)
-    // GlobalSearch's "Carrier Portal" title lived inside that Navbar —
-    // gone along with it on this branch (out of scope for the experiment's
-    // 3-region bar: logo, cells, trail).
+    // Converged onto the real package Navbar (was a bespoke bar) — a
+    // single <header.navbar--external>, context="external" (Figma
+    // 5152:3904), same one the closed/expired/invalid branch already used.
+    const header = document.querySelector('header.navbar--external')
+    expect(header).toBeTruthy()
+    // The countdown strip lives in Navbar's `search` slot, not a static
+    // "Carrier Portal" title — that title is reserved for the
+    // closed/expired/invalid branch (see that describe block below).
+    expect(within(header).getByRole('img', { name: 'Odyssey One' })).toBeTruthy()
+    expect(header.querySelector('.carrier-bid-countdown-strip')).toBeTruthy()
     expect(screen.queryByText('Carrier Portal')).toBe(null)
   })
 
@@ -127,9 +128,8 @@ describe('CarrierBid — open quote', () => {
 
     // SCAC is the prominent top line (`name` slot), full carrier name is
     // the smaller second line (`role` slot) — matches the Figma External
-    // variant (5152:3904): "KNGT" over "KNIGHT-SWIFT TRANSPORTATION". No
-    // <header> to scope into on this branch (see above) — TrailNav now
-    // lives directly inside the countdown bar.
+    // variant (5152:3904): "KNGT" over "KNIGHT-SWIFT TRANSPORTATION".
+    // TrailNav lives inside the real Navbar's `trail` slot (see above).
     expect(screen.getByText(SCAC).classList.contains('trail-nav-profile-name')).toBe(true)
     expect(screen.getByText('Old Dominion').classList.contains('trail-nav-profile-role')).toBe(true)
     // TrailNav showBell={false} / showCustomers={false}, unchanged from the
@@ -604,45 +604,43 @@ describe('CarrierBid — bid countdown SummaryStrip (SPB-43 §2)', () => {
   })
 })
 
-describe('CarrierBid — countdown strip as navbar (ponytail experiment, SPB-43)', () => {
-  it('renders the Odyssey logo and the carrier TrailNav inside the strip bar wrapper', async () => {
+describe('CarrierBid — countdown strip inside the real Navbar (SPB-43, converged)', () => {
+  it('renders the Odyssey logo, the countdown cells, and the carrier TrailNav all inside one <header.navbar--external>', async () => {
     const quote = openQuote()
     const token = tokenFor(quote, SCAC)
     renderAt(`/spot-bid/${token}`)
 
     await screen.findByText('Acme Houston Plant')
 
-    const wrap = document.querySelector('.carrier-bid-countdown-strip-wrap')
+    const wrap = document.querySelector('.carrier-bid-navbar-wrap')
     expect(wrap).toBeTruthy()
+    const header = wrap.querySelector('header.navbar--external')
+    expect(header).toBeTruthy()
     // Logo — OdysseyLogo's own aria-label, same for both variants.
-    expect(within(wrap).getByRole('img', { name: 'Odyssey One' })).toBeTruthy()
-    // The four SummaryStrip cells still live inside the same wrapper.
-    expect(wrap.querySelector('.carrier-bid-countdown-strip')).toBeTruthy()
+    expect(within(header).getByRole('img', { name: 'Odyssey One' })).toBeTruthy()
+    // The four SummaryStrip cells live in the Navbar's `search` slot.
+    expect(header.querySelector('.carrier-bid-countdown-strip')).toBeTruthy()
     // TrailNav's profile button, still wired to the same dropdown.
-    expect(within(wrap).getByRole('button', { name: 'User menu' })).toBeTruthy()
-
-    // The package Navbar (a <header>) is gone from this branch — see the
-    // "open quote" describe block above for the fuller assertion.
-    expect(document.querySelector('header')).toBe(null)
+    expect(within(header).getByRole('button', { name: 'User menu' })).toBeTruthy()
   })
 
-  it('toggles the compact class on the strip wrapper past a 20px scroll threshold, and back below it', async () => {
+  it('toggles the compact class on the sticky wrapper past a 20px scroll threshold, and back below it', async () => {
     const quote = openQuote()
     const token = tokenFor(quote, SCAC)
     renderAt(`/spot-bid/${token}`)
 
     await screen.findByText('Acme Houston Plant')
 
-    const wrap = document.querySelector('.carrier-bid-countdown-strip-wrap')
-    expect(wrap.classList.contains('carrier-bid-countdown-strip-wrap--compact')).toBe(false)
+    const wrap = document.querySelector('.carrier-bid-navbar-wrap')
+    expect(wrap.classList.contains('carrier-bid-navbar-wrap--compact')).toBe(false)
 
     Object.defineProperty(window, 'scrollY', { value: 25, configurable: true })
     fireEvent.scroll(window)
-    expect(wrap.classList.contains('carrier-bid-countdown-strip-wrap--compact')).toBe(true)
+    expect(wrap.classList.contains('carrier-bid-navbar-wrap--compact')).toBe(true)
 
     Object.defineProperty(window, 'scrollY', { value: 0, configurable: true })
     fireEvent.scroll(window)
-    expect(wrap.classList.contains('carrier-bid-countdown-strip-wrap--compact')).toBe(false)
+    expect(wrap.classList.contains('carrier-bid-navbar-wrap--compact')).toBe(false)
   })
 
   it('stays non-compact at exactly the 20px threshold (strict > 20 check)', async () => {
@@ -652,10 +650,10 @@ describe('CarrierBid — countdown strip as navbar (ponytail experiment, SPB-43)
 
     await screen.findByText('Acme Houston Plant')
 
-    const wrap = document.querySelector('.carrier-bid-countdown-strip-wrap')
+    const wrap = document.querySelector('.carrier-bid-navbar-wrap')
     Object.defineProperty(window, 'scrollY', { value: 20, configurable: true })
     fireEvent.scroll(window)
-    expect(wrap.classList.contains('carrier-bid-countdown-strip-wrap--compact')).toBe(false)
+    expect(wrap.classList.contains('carrier-bid-navbar-wrap--compact')).toBe(false)
   })
 })
 
@@ -755,7 +753,7 @@ describe('CarrierBid — hero background (SPB-43 plan, changes 1 & 2, 2026-08-18
     // hero.css's own scoping (the flip rules only fire under
     // `.hero-bg--flipped`), this is the assertable half of "Home's
     // appearance must not change".
-    const homeSrc = readFileSync(resolve(process.cwd(), 'src/routes/Home.jsx'), 'utf8')
+    const homeSrc = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), 'Home.jsx'), 'utf8')
     expect(homeSrc).not.toContain('hero-bg--flipped')
     expect(homeSrc).toContain('className="hero-bg home-background"')
   })

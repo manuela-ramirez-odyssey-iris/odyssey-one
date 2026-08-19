@@ -1587,6 +1587,22 @@ input[type="date"].odyssey-date-input::-webkit-calendar-picker-indicator:hover {
 .navbar--external .trail-nav-profile-name,
 .navbar--external .trail-nav-profile-role { color: var(--text-secondary-soft); }
 
+/* Navbar context="external" backdrop blur (Figma 5152:3904) — pairs with the
+   gradient fill in Navbar.jsx's inline style (0-alpha top → solid white
+   bottom); without it, content scrolled underneath the bar's transparent top
+   half would show through crisp. Lives here (not inline in Navbar.jsx)
+   because `@supports` can't be expressed inline. Feature-gated so browsers
+   without backdrop-filter keep the gradient with no blur rather than a
+   flattened/opaque one — same pattern this replaces from
+   routes/carrierBid.css's own bespoke bar. 8px is a raw px — no blur-radius
+   token exists yet. */
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .navbar--external {
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+}
+
 /* TrailNav hover — bell brightens; profile (name + role + chevron) brightens
    together when the profile button is hovered. Dark internal bar only. */
 .trail-nav-bell,

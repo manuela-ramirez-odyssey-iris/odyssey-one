@@ -35,72 +35,17 @@
   height: 100vh;
 }
 
-/* ponytail experiment (2026-08-19): the sticky strip becomes this page's
-   navbar — replaces <Navbar context="external"> for the open-bid render
-   path (CarrierBid.jsx swaps `{navbar}` for the bar below there; the
-   closedReason branch still renders the real Navbar unchanged). Revert:
-   delete the `.carrier-bid-countdown-bar*` rules below and restore the
-   plain 3-rule wrapper (position/blur only, no gradient/border) this
-   comment block used to describe.
-
-   Sticky wrapper — now also owns the full-bar gradient + border (moved off
-   `.summary-strip`, components.css, which only ever covered the cells).
-   OdysseyLogo + TrailNav flank the cells as siblings inside this same
-   wrapper, so the surface has to span all three regions or they'd sit on
-   bare page background while scrolled-under content bled through beneath
-   them. `.summary-strip`'s own background/border are neutralized below
-   (`.carrier-bid-countdown-bar .summary-strip`) so the gradient isn't
-   painted twice. Gradient stops unchanged from the original: 0 alpha at
-   top → opaque white at bottom (Figma 5172:7856's intended fade). */
-.carrier-bid-countdown-strip-wrap {
+/* Converged onto the real package Navbar (was a ponytail experiment
+   hand-rolling logo+cells+trail as a bespoke bar; the user ruling now
+   requires this page to ship the actual component). This wrapper exists
+   for STICKY POSITIONING ONLY — the gradient + backdrop blur that used to
+   live here now live on the Navbar itself (packages/ui/src/Navbar.jsx's
+   inline gradient + components.css's `.navbar--external` blur, Figma
+   5152:3904), so painting either one here again would double it up. */
+.carrier-bid-navbar-wrap {
   position: sticky;
   top: 0;
   z-index: 10;
-  background: linear-gradient(to bottom, rgba(255, 255, 255, 0) 0%, var(--white) 100%);
-  border-bottom: 1px solid var(--border-subtle);
-}
-
-/* Backdrop blur behind the bar — the gradient above is 0-alpha at its own
-   top edge, so without this, scrolled-under content (section cards, hero
-   photo) shows through crisp and collides with the bar's content. A
-   uniform blur (not masked to follow the gradient's falloff) — masking
-   backdrop-filter's blur radius to a gradient is fragile across
-   Safari/Firefox, and the bar's content sits mostly in the opaque-white
-   lower half anyway, so a uniform blur reads the same as a falloff one
-   would in practice. 8px is a raw px value — no blur-radius token exists
-   yet. Feature-gated via @supports so browsers without backdrop-filter
-   just keep today's behavior (no blur) rather than a flattened/opaque
-   gradient. Was already scoped to this wrapper (not `.summary-strip`), so
-   it already covered the full bar width — nothing to change here. */
-@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
-  .carrier-bid-countdown-strip-wrap {
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-  }
-}
-
-/* The bar itself — logo | cells | trail, left to right, vertically
-   centered; no explicit height, it's set by `.summary-strip__cell`'s own
-   padding (components.css) same as before. `.navbar--external` is reused
-   (not reimplemented) purely as a CSS hook: components.css already
-   recolors `.trail-nav-profile-name`/`-role` and their hover states for a
-   light bar under that class selector (Navbar.jsx's own context="external"
-   variant) — applying the same class here gets TrailNav's light-bar colors
-   for free instead of duplicating those rules page-scoped. */
-.carrier-bid-countdown-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--spacing-4);
-  padding: 0 var(--spacing-6);
-}
-
-/* Mirrors Navbar.jsx's own `trailRef` wrapper (`position: relative`) — the
-   profile dropdown anchors to this element via the same
-   `profileDropdownRef`/`position: absolute; top: 100%; right: 0` idiom. */
-.carrier-bid-countdown-bar__trail {
-  position: relative;
-  flex-shrink: 0;
 }
 
 /* Change 2 — carrier initials avatar, TrailNav's `avatar` slot (clipped to
@@ -132,9 +77,10 @@
    wrap onto a second line instead of stretching the bar or clipping.
    TrailNav.jsx puts `whitespace-nowrap` (Tailwind) on the name+role
    flex-col div with no page-reachable class of its own — overridden here via
-   a descendant selector scoped to this page's own trail wrapper, so the
-   app's real Navbar (a different DOM subtree) is untouched, and none of the
-   shared `.trail-nav-*` rules themselves are touched either.
+   a descendant selector scoped to this page's own sticky wrapper (the real
+   Navbar's `trailRef` div carries no page-hook class of its own), so the
+   app's own internal chrome (a different DOM subtree entirely) is untouched,
+   and none of the shared `.trail-nav-*` rules themselves are touched either.
    120px max-width + width: 100% (user ruling, 2026-08-19 — supersedes this
    rule's prior 180px) is both the wrap measure AND the fix for the reported
    "too much space left" gap: `items-start` on this same flex-col
@@ -151,26 +97,25 @@
    chevron against the text block's new (possibly taller) height — no extra
    rule needed for that, so avatar/chevron still sit on one line beside the
    two-line text block. */
-.carrier-bid-countdown-bar__trail .whitespace-nowrap {
+.carrier-bid-navbar-wrap .whitespace-nowrap {
   white-space: normal;
   text-align: left;
   max-width: 120px;
   width: 100%;
 }
 
-/* Neutralize SummaryStrip's own band chrome inside this bar — the wrap
-   above now owns the gradient/border/blur for the FULL bar width; without
-   this, the cells would paint a second (redundant) gradient/border under
-   themselves only, seaming visibly against the logo/trail regions
-   flanking them. flex: 1 lets the cell group take the remaining middle
-   space and center itself within it (SummaryStrip's own internal
-   `justify-content: center`, components.css, does the centering). */
-.carrier-bid-countdown-bar .summary-strip {
+/* Neutralize SummaryStrip's own band chrome inside the Navbar's search slot
+   — the Navbar itself now owns the gradient/blur for the full bar width
+   (Job 1); without this, the cells would paint a second (redundant)
+   gradient/border under themselves only, seaming visibly against the
+   logo/trail regions flanking them. No flex/min-width override needed here
+   anymore: the real Navbar centers its three slots via its own
+   `justify-content: space-between` (Navbar.jsx), not by the strip growing
+   to fill the row. */
+.carrier-bid-navbar-wrap .summary-strip {
   background: none;
   border-bottom: none;
   padding: 0;
-  flex: 1 1 auto;
-  min-width: 0;
 }
 
 /* Scroll-shrink experiment — past 20px scroll (strict `> 20` check, JS
@@ -195,7 +140,7 @@
     transition: none;
   }
 }
-.carrier-bid-countdown-strip-wrap--compact .summary-strip__value--display {
+.carrier-bid-navbar-wrap--compact .summary-strip__value--display {
   font-size: var(--font-size-lg);
   line-height: var(--line-height-lg);
 }
@@ -228,11 +173,11 @@
     transition: none;
   }
 }
-.carrier-bid-countdown-strip-wrap--compact .summary-strip__cell {
+.carrier-bid-navbar-wrap--compact .summary-strip__cell {
   flex-basis: 110px;
   max-width: 110px;
 }
-.carrier-bid-countdown-strip-wrap--compact .summary-strip__label {
+.carrier-bid-navbar-wrap--compact .summary-strip__label {
   font-weight: var(--font-weight-regular);
   line-height: 12px; /* tighter than --line-height-xs (16px) — no token this tight */
 }
