@@ -1,3 +1,5 @@
+@import '../styles/hero.css';
+
 /* CarrierBid — standalone external carrier page (no AppShell). Mobile-first
    single column; a max-width caps it on wider viewports. */
 
@@ -5,32 +7,259 @@
   min-height: 100dvh;
   box-sizing: border-box;
   background: var(--bg-secondary);
-  padding: var(--spacing-4);
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-4);
+  /* No flex `gap` here (was spacing-4, which also fell BETWEEN the navbar and
+     the countdown strip — the strip must sit flush beneath the nav, no
+     space). The strip-to-main gap moves to `.carrier-bid-page__main`'s own
+     margin-top below instead. */
+  isolation: isolate;
 }
 
-.carrier-bid-page__header {
+/* Hero background — FIXED to the viewport (plan §3b, deliberate deviation
+   from Home): this page has no AppShell, so there's no <main> scroll
+   container to anchor a scrolling background to — nav + sections scroll
+   over a background that stays put instead. `position: fixed` also takes
+   the layer out of `.carrier-bid-page`'s flex flow entirely, so it can't
+   disturb the max-width/centering rules below. See src/styles/hero.css for
+   the shared layered treatment (.hero-bg / .hero-bg__photo / ::after) this
+   builds on — this page only supplies position.
+   height/width in vh/vw (not just inset:0) — vh/vw are always relative to
+   the actual viewport regardless of containing-block quirks, so the layer
+   covers the full viewport height at any scroll position or content length,
+   never just "as tall as its containing block happened to be". */
+.carrier-bid-page__bg {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+}
+
+/* ponytail experiment (2026-08-19): the sticky strip becomes this page's
+   navbar — replaces <Navbar context="external"> for the open-bid render
+   path (CarrierBid.jsx swaps `{navbar}` for the bar below there; the
+   closedReason branch still renders the real Navbar unchanged). Revert:
+   delete the `.carrier-bid-countdown-bar*` rules below and restore the
+   plain 3-rule wrapper (position/blur only, no gradient/border) this
+   comment block used to describe.
+
+   Sticky wrapper — now also owns the full-bar gradient + border (moved off
+   `.summary-strip`, components.css, which only ever covered the cells).
+   OdysseyLogo + TrailNav flank the cells as siblings inside this same
+   wrapper, so the surface has to span all three regions or they'd sit on
+   bare page background while scrolled-under content bled through beneath
+   them. `.summary-strip`'s own background/border are neutralized below
+   (`.carrier-bid-countdown-bar .summary-strip`) so the gradient isn't
+   painted twice. Gradient stops unchanged from the original: 0 alpha at
+   top → opaque white at bottom (Figma 5172:7856's intended fade). */
+.carrier-bid-countdown-strip-wrap {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0) 0%, var(--white) 100%);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+/* Backdrop blur behind the bar — the gradient above is 0-alpha at its own
+   top edge, so without this, scrolled-under content (section cards, hero
+   photo) shows through crisp and collides with the bar's content. A
+   uniform blur (not masked to follow the gradient's falloff) — masking
+   backdrop-filter's blur radius to a gradient is fragile across
+   Safari/Firefox, and the bar's content sits mostly in the opaque-white
+   lower half anyway, so a uniform blur reads the same as a falloff one
+   would in practice. 8px is a raw px value — no blur-radius token exists
+   yet. Feature-gated via @supports so browsers without backdrop-filter
+   just keep today's behavior (no blur) rather than a flattened/opaque
+   gradient. Was already scoped to this wrapper (not `.summary-strip`), so
+   it already covered the full bar width — nothing to change here. */
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .carrier-bid-countdown-strip-wrap {
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+}
+
+/* The bar itself — logo | cells | trail, left to right, vertically
+   centered; no explicit height, it's set by `.summary-strip__cell`'s own
+   padding (components.css) same as before. `.navbar--external` is reused
+   (not reimplemented) purely as a CSS hook: components.css already
+   recolors `.trail-nav-profile-name`/`-role` and their hover states for a
+   light bar under that class selector (Navbar.jsx's own context="external"
+   variant) — applying the same class here gets TrailNav's light-bar colors
+   for free instead of duplicating those rules page-scoped. */
+.carrier-bid-countdown-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: var(--spacing-4);
+  padding: 0 var(--spacing-6);
 }
 
-.carrier-bid-page__title {
-  margin: 0;
-  color: var(--text-secondary);
+/* Mirrors Navbar.jsx's own `trailRef` wrapper (`position: relative`) — the
+   profile dropdown anchors to this element via the same
+   `profileDropdownRef`/`position: absolute; top: 100%; right: 0` idiom. */
+.carrier-bid-countdown-bar__trail {
+  position: relative;
+  flex-shrink: 0;
 }
 
-.carrier-bid-page__countdown {
+/* Change 2 — carrier initials avatar, TrailNav's `avatar` slot (clipped to
+   32×32 by TrailNav.jsx itself). Same tokens as the DSM's own stable
+   initials-avatar convention (TrailNav.demo.jsx `AVATAR`): DSN/600 fill +
+   Text/inverse label read correctly on both the dark navbar surface that
+   demo targets AND this page's light gradient strip. Circular per spec
+   (radius-full) — TrailNav's own clip wrapper uses radius-lg, but at equal
+   size the inner circle just renders as a circle inside it. Decorative:
+   the SCAC/name text right next to it already carries the accessible
+   name, so `aria-hidden` (set in CarrierBid.jsx) keeps it from announcing
+   twice. */
+.carrier-bid-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-lg);
+  background: var(--deep-sea-neutral-600);
+  color: var(--text-inverse);
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  gap: var(--spacing-2);
+  justify-content: center;
+  flex-shrink: 0;
+  font-family: var(--font-primary);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
 }
 
-.carrier-bid-page__countdown-label {
-  color: var(--text-secondary);
+/* Long carrier names (e.g. "KNIGHT-SWIFT TRANSPORTATION" as the `role` line)
+   wrap onto a second line instead of stretching the bar or clipping.
+   TrailNav.jsx puts `whitespace-nowrap` (Tailwind) on the name+role
+   flex-col div with no page-reachable class of its own — overridden here via
+   a descendant selector scoped to this page's own trail wrapper, so the
+   app's real Navbar (a different DOM subtree) is untouched, and none of the
+   shared `.trail-nav-*` rules themselves are touched either.
+   120px max-width + width: 100% (user ruling, 2026-08-19 — supersedes this
+   rule's prior 180px) is both the wrap measure AND the fix for the reported
+   "too much space left" gap: `items-start` on this same flex-col
+   (TrailNav.jsx) already sizes each line to ITS OWN text, not the column, so
+   without `width: 100%` a short SCAC line sits at the column's natural
+   (name-vs-role-max) width rather than actually touching the left edge at a
+   fixed measure — `width: 100%` forces every line to the same 120px box so
+   short and long names occupy the same footprint instead of drifting.
+   `text-align: left` stated explicitly for the same reason, even though
+   nothing upstream currently centers this text — belt-and-suspenders per
+   the ruling ("all text should be left justified"). Raw px (no width token
+   fits a two-word-wrap measurement). `align-items: center` on the wrapping
+   `.trail-nav-profile` button (TrailNav.jsx) already re-centers avatar +
+   chevron against the text block's new (possibly taller) height — no extra
+   rule needed for that, so avatar/chevron still sit on one line beside the
+   two-line text block. */
+.carrier-bid-countdown-bar__trail .whitespace-nowrap {
+  white-space: normal;
+  text-align: left;
+  max-width: 120px;
+  width: 100%;
+}
+
+/* Neutralize SummaryStrip's own band chrome inside this bar — the wrap
+   above now owns the gradient/border/blur for the FULL bar width; without
+   this, the cells would paint a second (redundant) gradient/border under
+   themselves only, seaming visibly against the logo/trail regions
+   flanking them. flex: 1 lets the cell group take the remaining middle
+   space and center itself within it (SummaryStrip's own internal
+   `justify-content: center`, components.css, does the centering). */
+.carrier-bid-countdown-bar .summary-strip {
+  background: none;
+  border-bottom: none;
+  padding: 0;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Scroll-shrink experiment — past 20px scroll (strict `> 20` check, JS
+   threshold in CarrierBid.jsx), the H/M/S digit cells drop from
+   display/4xl down to lg semibold (user ruling: lg reads better compact
+   than base/md). Labels (HOURS/MINUTES/SECONDS)
+   and the "Remaining" cell stay at their normal size — decision: once
+   you've started reading the page, it's the giant countdown NUMBER that's
+   in the way, not its label; shrinking the labels too would make the
+   compact bar harder to parse, not easier. The row's own
+   `align-items: stretch` (.summary-strip, components.css) already
+   re-levels every cell to the new shortest-cell height for free, so the
+   bar's total height shrinks as a consequence with no extra height rule
+   needed here. Transition lives on the base (non-modifier) selector so
+   toggling the class either direction animates; the reduced-motion gate
+   matches the idiom already used in styles/hero.css. */
+.carrier-bid-page .summary-strip__value--display {
+  transition: font-size 200ms ease, line-height 200ms ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .carrier-bid-page .summary-strip__value--display {
+    transition: none;
+  }
+}
+.carrier-bid-countdown-strip-wrap--compact .summary-strip__value--display {
+  font-size: var(--font-size-lg);
+  line-height: var(--line-height-lg);
+}
+
+/* Change 1 (Figma large/compact nodes) — cell width and label type also
+   shrink with the value, so the whole bar contracts as one motion instead
+   of just the digits. `.summary-strip__cell`'s shared rule (components.css)
+   is `flex: 1 1 152px` — grow:1 lets a cell stretch past 152px to fill
+   leftover row width, which is right for every OTHER SummaryStrip caller
+   (StopsTab, ShipmentDetailsModal, CostAllocationTab, LiveBids) but wrong
+   here: the Figma spec wants an exact 152px/110px cell, not a
+   grows-to-fill one. Page-scoped override (grow:0, fixed basis) rather
+   than touching the shared rule, so nothing else with a `.summary-strip`
+   changes. shrink stays 1 (unlike the shared rule's default) so the
+   existing "no horizontal overflow, ever" backstop (S107) still holds on
+   a narrow viewport. 152/110/12px are raw px — no width token fits a
+   component-internal measure like this (strategic-tokens), and there's no
+   line-height token below --line-height-xs's 16px floor. */
+.carrier-bid-page .summary-strip__cell {
+  flex: 0 1 152px;
+  max-width: 152px;
+  transition: flex-basis 200ms ease, max-width 200ms ease;
+}
+.carrier-bid-page .summary-strip__label {
+  transition: font-weight 200ms ease, line-height 200ms ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .carrier-bid-page .summary-strip__cell,
+  .carrier-bid-page .summary-strip__label {
+    transition: none;
+  }
+}
+.carrier-bid-countdown-strip-wrap--compact .summary-strip__cell {
+  flex-basis: 110px;
+  max-width: 110px;
+}
+.carrier-bid-countdown-strip-wrap--compact .summary-strip__label {
+  font-weight: var(--font-weight-regular);
+  line-height: 12px; /* tighter than --line-height-xs (16px) — no token this tight */
+}
+
+/* Urgent (< 15 min remaining) — same token as Countdown's own
+   `.countdown--urgent` (spotboard.css), applied to the H/M/S digit cells
+   only (`--display` emphasis); the "Time remaining / to close bid" cell
+   stays neutral, matching Countdown's own label treatment. */
+.carrier-bid-countdown-strip--urgent .summary-strip__value--display {
+  color: var(--text-error);
+}
+
+/* Badge cell (4th cell, "Bid Open") — centered horizontally, per user ruling
+   2026-08-19 (was left-aligned like the H/M/S label+value stacks, which the
+   ruling singles this cell out from). Targeted via `:has(.text-badge)`
+   (Badge.jsx's own typography class, unique to Badge among this strip's
+   contents) rather than `:nth-child(4)` — survives an item-order change
+   without silently mis-centering a digit cell. `align-items: center` swaps
+   the cell's cross-axis (flex-direction: column, so cross-axis is
+   horizontal) from the shared rule's default `stretch` to centered; the
+   H/M/S cells are untouched since they don't match `:has(.text-badge)`, so
+   their label/value stay left-aligned. Vertical centering needs no rule
+   here — `.summary-strip__cell`'s own `justify-content: center`
+   (components.css) already centers this cell's single dd on the main
+   (vertical) axis, same as it does for every other shorter-than-band cell. */
+.carrier-bid-page .summary-strip__cell:has(.text-badge) {
+  align-items: center;
 }
 
 .carrier-bid-page__loading {
@@ -41,6 +270,14 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-4);
+  /* margin-top replaces the page-level flex `gap` (removed above) for the
+     strip→main spacing specifically — the nav→strip gap it used to also
+     produce is gone. */
+  margin-top: var(--spacing-4);
+  /* Same inline inset as .carrier-bid-page__countdown, plus a bottom inset
+     since the wrapper no longer contributes one (padding moved off
+     .carrier-bid-page so the navbar above can go full-bleed). */
+  padding: 0 var(--spacing-4) var(--spacing-4);
 }
 
 /* Section chrome (card bg/border/padding) now comes from SubAccordion
@@ -101,6 +338,102 @@
   border-top: 1px solid var(--border-subtle);
   color: var(--text-primary);
 }
+
+/* Grand Total (Price Summary, SPB-43 §6) — visually distinct from the two
+   SummaryCard subtotals above it: thicker rule, larger padding. */
+.carrier-bid-total--grand {
+  padding-top: var(--spacing-3);
+  border-top: 2px solid var(--border-default);
+}
+
+/* Base Charge / Additional Charges labelled sub-sections inside "Your Bid"
+   (SPB-43 §5) — page-scoped heading class (was borrowed from QuoteModal's
+   .quote-modal__section-title; this page owns its own BEM namespace rather
+   than reaching into another component's, 2026-08-19). Spacing between the
+   two sections comes for free from the parent .carrier-bid-card__grid's
+   flex gap, same as every other field group on this page. */
+.carrier-bid-bid__section-title {
+  display: block;
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-3);
+}
+
+/* Base Charge and Additional Charges share one section class (CarrierBid.jsx)
+   with no per-instance modifier, so this targets "any section after another
+   section" rather than a name — same var(--spacing-4) rhythm
+   .carrier-bid-page__main already uses to separate whole cards, one step up
+   from the var(--spacing-3) .carrier-bid-card__grid gap these two sections
+   sat in before (that gap reads as an intra-section field gap, not enough
+   room between two headed sub-sections). */
+.carrier-bid-bid__section + .carrier-bid-bid__section {
+  margin-top: var(--spacing-4);
+}
+
+.carrier-bid-charges__empty {
+  color: var(--text-tertiary);
+  text-align: center;
+  padding: var(--spacing-3) 0;
+}
+
+.carrier-bid-charges {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  margin-bottom: var(--spacing-3);
+}
+
+/* Code | Description | Amount | remove — page-owned equivalent of
+   QuoteModal's `.quote-charges__row` (components.css), widened for a
+   ComboBox/FormField/MeasureField trio that each carry their own visible
+   label above the control (no shared header row to size against, per the
+   labelling job below). Code stays narrow (a 3-letter code + chevron),
+   Description takes the slack, Amount matches Linehaul/Fuel's own
+   MeasureField width upstairs. */
+.carrier-bid-charges__row {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr) 164px 24px;
+  gap: var(--spacing-3);
+  align-items: start;
+}
+
+/* Grid tracks only bind if the field internals can shrink below content
+   width — same overflow fix QuoteModal's own `.quote-charges__row` needs
+   (components.css), reapplied here since this page no longer inherits it. */
+.carrier-bid-charges__row > *,
+.carrier-bid-charges__row .combo-box,
+.carrier-bid-charges__row .form-field,
+.carrier-bid-charges__row .co-typeahead {
+  min-width: 0;
+}
+
+/* Remove sits in the fourth track with no label above it. align-self: end
+   bottom-aligns the button against the row's tallest column (label +
+   var(--field-height) input) so its bottom edge lands flush with the
+   INPUT's bottom, not the label text beside it — but the button's own box
+   used to size to its icon content (20px), so "flush with the bottom" just
+   parked the 20px icon low inside the 36px input band instead of centering
+   on it. Giving the button height: var(--field-height) matches it to the
+   input's own height (same token .form-field__input uses,
+   packages/tokens/tokens.css) so the two boxes are the same size and
+   align-self: end lines up their tops too — the icon then centers via
+   align-items/justify-content against the INPUT itself. */
+.carrier-bid-charges__remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: end;
+  height: var(--field-height);
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--text-placeholder);
+  transition: color 0.15s ease;
+}
+
+.carrier-bid-charges__remove:not(:disabled):hover { color: var(--badge-red-text); }
+
+.carrier-bid-charges__remove:disabled { cursor: not-allowed; }
 
 .carrier-bid-page__last-submitted {
   color: var(--text-tertiary);

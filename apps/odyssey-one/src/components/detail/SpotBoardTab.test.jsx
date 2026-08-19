@@ -116,6 +116,8 @@ describe('SpotBoardTab', () => {
     // modal (S112).
     fireEvent.click(screen.getByRole('button', { name: 'Send RFQ' }))
     fireEvent.click(screen.getByRole('button', { name: /Confirm & Send/ }))
+    // RFQ links banner is collapsed by default (S125) — expand to reach the rows.
+    fireEvent.click(screen.getByLabelText('Expand list'))
 
     const odflLink = screen.getByRole('link', { name: /ODFL.*Old Dominion/ })
     expect(odflLink).toBeTruthy()
@@ -152,6 +154,7 @@ describe('SpotBoardTab', () => {
     )
 
     render(<SpotBoardTab shipmentDetails={makeShipmentDetails([])} shipment={shipment} />)
+    fireEvent.click(screen.getByLabelText('Expand list'))
 
     const odflLink = screen.getByRole('link', { name: /ODFL.*Old Dominion/ })
     expect(odflLink).toBeTruthy()

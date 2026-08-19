@@ -11,14 +11,18 @@ figma.connect(
       name: figma.string('Name'),
       role: figma.string('Role'),
       showNotification: figma.boolean('Show notification'),
+      showBell: figma.boolean('Show bell'),
+      showCustomers: figma.boolean('Show customers'),
       chevron: figma.instance('Chevron'),
     },
-    example: ({ name, role, showNotification, chevron }) => (
+    example: ({ name, role, showNotification, showBell, showCustomers, chevron }) => (
       <TrailNav
         mode="profile"
         name={name}
         role={role}
         showNotification={showNotification}
+        showBell={showBell}
+        showCustomers={showCustomers}
         chevron={chevron}
         avatar={<img src="/avatar.png" alt="" style={{ width: 32, height: 32, borderRadius: 8, objectFit: 'cover' }} />}
         notificationCount={6}

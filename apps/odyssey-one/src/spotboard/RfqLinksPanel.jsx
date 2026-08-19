@@ -5,36 +5,50 @@ import './spotboard.css'
  * RfqLinksPanel — the CE-1 email stand-in (spec 2026-08-03 line 55). Shown
  * after Send RFQ: one `/spot-bid/:token` link per INCLUDED carrier, so the
  * planner can click through and demo the carrier side instead of a real
- * email going out. Dismissible; SpotBoardTab also hides it once the quote
- * leaves `open`.
+ * email going out. SpotBoardTab hides it once the quote leaves `open` —
+ * that's the only way it goes away; no manual dismiss.
  */
-export default function RfqLinksPanel({ carriers, onClose }) {
+export default function RfqLinksPanel({ carriers }) {
   const included = (carriers ?? []).filter((c) => c.incl)
   if (included.length === 0) return null
 
+  const items = [
+    {
+      key: 'note',
+      content: (
+        <div className="text-label-sm-regular rfq-links__note">
+          One bid link per included carrier (CE-1 stand-in; goes out by email in production)
+        </div>
+      ),
+    },
+    ...included.map((c) => {
+      const href = `/spot-bid/${c.token}`
+      return {
+        key: c.scac,
+        content: (
+          <div className="rfq-links__row">
+            <Badge variant="gray">{c.scac} · {c.name}</Badge>
+            <a
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`Open bid link for ${c.scac} · ${c.name}`}
+            >
+              {href}
+            </a>
+          </div>
+        ),
+      }
+    }),
+  ]
+
   return (
-    <Alert variant="success" onClose={onClose} className="rfq-links">
-      <div className="text-label-sm-medium">
-        RFQ sent — one bid link per included carrier (CE-1 stand-in; goes out by email in production)
-      </div>
-      <ul className="rfq-links__list">
-        {included.map((c) => {
-          const href = `/spot-bid/${c.token}`
-          return (
-            <li key={c.scac} className="rfq-links__row">
-              <Badge variant="gray">{c.scac} · {c.name}</Badge>
-              <a
-                href={href}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={`Open bid link for ${c.scac} · ${c.name}`}
-              >
-                {href}
-              </a>
-            </li>
-          )
-        })}
-      </ul>
-    </Alert>
+    <Alert
+      variant="success"
+      showClose={false}
+      className="rfq-links"
+      items={items}
+      summary={`RFQ sent — ${included.length} bid link${included.length === 1 ? '' : 's'}`}
+    />
   )
 }

@@ -69,7 +69,7 @@ async function openTabArrangement() {
 // name })` can't find it by accessible name — locate the row by its visible
 // label text instead and pull the checkbox out of that row. Scoped to the
 // RightPanel (aria-label="Shipment tabs") because the SAME tab labels
-// ('SpotBoard', 'Notes'...) also appear, disabled, in the ShipmentsBar tab
+// ('SpotBid', 'Notes'...) also appear, disabled, in the ShipmentsBar tab
 // strip behind the panel.
 function checkboxForLabel(text) {
   const panel = screen.getByRole('region', { name: 'Shipment tabs' })
@@ -152,6 +152,6 @@ describe('Fix D — tab order persists per panel through the preference layer', 
     const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     renderRoute(qc, { selectedShipmentId: EXCEPTIONS_SHIPMENT_ID })
     await openTabArrangement()
-    expect(checkboxForLabel('SpotBoard').checked).toBe(true)
+    expect(checkboxForLabel('SpotBid').checked).toBe(true)
   })
 })

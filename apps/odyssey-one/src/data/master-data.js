@@ -200,14 +200,19 @@ export const CURRENCIES = ['CAD', 'EUR', 'MXN', 'USD']
 // ── Quote Entry additional-charge codes (LINX-13895 / LINX-3966: "TMS Master
 // Data Currency" ships the same catalog CURRENCIES already models above;
 // Charge Code is "Search by Code or Description" against this one) ──
-// Same shape SPECIAL_SERVICES uses (code/description/frequency) — moved out of
-// QuoteModal.jsx's local array so lookupService's 'charge-code' type can serve
-// it. CODES ARE INVENTED mnemonics (real charge-code catalog unknown, same
-// caveat as SPECIAL_SERVICES above) — swap when a dev lookup capture lands.
+// Same shape SPECIAL_SERVICES uses (code/description/frequency), plus
+// `label` — moved out of QuoteModal.jsx's local array so lookupService's
+// 'charge-code' type can serve it. Real legacy catalog, not invented:
+// transcribed verbatim from the `MFFOOCC` "Maintain OCM Overflow Carrier
+// Charges" screen (vault/10-domains/spotboard/data/quote-model.md §5.6) —
+// `code`/`description` are that screen's own Code/Description columns,
+// `label` is its Label-shown column (the carrier-facing Quote Entry display
+// name, §9.3). Frequency preserves the table's own row order — no usage data
+// exists yet to rank them by anything real.
 export const CHARGE_CODES = [
-  { code: 'THC', description: 'Terminal Handling Charge', frequency: 50 },
-  { code: 'FSC', description: 'Fuel Surcharge', frequency: 40 },
-  { code: 'SOC', description: 'Stop-Off Charge', frequency: 30 },
-  { code: 'HZC', description: 'Hazmat Charge', frequency: 20 },
-  { code: 'ACC', description: 'Accessorial', frequency: 10 },
+  { code: 'HZC', description: 'Hazardous Materials', label: 'Haz-Mat', frequency: 50 },
+  { code: 'TKM', description: 'Tankerman', label: 'Tanker Endorsement', frequency: 40 },
+  { code: 'TAR', description: 'Tarping Charges', label: 'Tarping', frequency: 30 },
+  { code: 'HT', description: 'Highway Toll', label: 'Tolls', frequency: 20 },
+  { code: 'MSC', description: 'Misc Charge', label: 'Miscellaneous', frequency: 10 },
 ]

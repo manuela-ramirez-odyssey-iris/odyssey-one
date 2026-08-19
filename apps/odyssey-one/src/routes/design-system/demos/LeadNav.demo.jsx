@@ -8,11 +8,13 @@ export const meta = {
   createdVersion: '0.2.0',
   figmaNode: '639:564',
   codeConnect: 'packages/ui/src/LeadNav.figma.tsx',
+  normalizing: true,
 }
 
 export const props = [
   { name: 'logo', type: 'ReactNode', desc: 'Logo slot. Defaults to <OdysseyLogo /> — a light-colored SVG, so render on a dark surface.' },
   { name: 'onMenuClick', type: '() => void', desc: 'Called when the hamburger icon button is clicked.' },
+  { name: 'showMenu', type: 'boolean', desc: 'Show the hamburger icon button. Default true — false removes the button from the DOM (and a11y tree) entirely, e.g. the external Navbar context.' },
 ]
 
 export const tokens = [
@@ -43,6 +45,13 @@ export default function LeadNavDemo() {
             onMenuClick fired {clickCount}×
           </p>
         )}
+      </div>
+
+      <div className="ds-demo-section">
+        <h4 className="ds-demo-section__title">showMenu = false — no hamburger</h4>
+        <div className="ds-demo-cell ds-demo-cell--dark">
+          <LeadNav showMenu={false} />
+        </div>
       </div>
 
       <div className="ds-demo-section">

@@ -76,7 +76,9 @@ export const tzOffset = (tz) => {
 // Quote timestamps ride as one display string ("01/07/2026 09:00 CST") through
 // the routing-option DTO. The form edits the three parts separately.
 
-function SummaryCard({ title, rows, total }) {
+// Exported for CarrierBid.jsx's Price Summary section (SPB-43 §6) — same
+// AP/AR summary-card idiom, reused rather than re-implemented.
+export function SummaryCard({ title, rows, total }) {
   return (
     <div className="quote-summary">
       <div className="text-label-sm-semibold quote-summary__title">{title}</div>

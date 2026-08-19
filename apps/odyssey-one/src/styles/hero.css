@@ -1,0 +1,171 @@
+/* === Shared hero background + section-entrance treatment ================
+   Lifted from Home.css (S91 "port-at-dusk" composed background, ported from
+   the Figma "Background" artboard, Design System — MCP node 2383:4114) so
+   CarrierBid (SPB-43 plan §3, 2026-08-18) can reuse it without duplicating
+   the layers or the entrance keyframes. Each consumer supplies its own
+   positioning + delay math on top of these neutral classes:
+     - Home (routes/Home.css)        — .home-background: scrolls WITH the
+       content, random per-load entrance order.
+     - CarrierBid (routes/carrierBid.css) — .carrier-bid-page__bg: FIXED to
+       the viewport, deterministic top-first entrance.
+   Everything here is image-agnostic — swapping the photo(s) keeps the same
+   fade + tint treatment. */
+
+/* Layer 1 — base fill. DSN/50 gives the ::after COLOR-blend overlay a
+   luminance to act on, and matches the page bg where the photo has faded
+   away. isolation: isolate is load-bearing — it scopes the ::after blend to
+   THIS layer so it never bleeds onto page chrome painted above it. Callers
+   add their own `position` + offsets/inset on top (page-scroll vs
+   viewport-fixed differ per consumer, so that's not shared). */
+.hero-bg {
+  pointer-events: none;
+  overflow: hidden;
+  z-index: -1;
+  background-color: var(--deep-sea-neutral-50);
+  isolation: isolate;
+}
+
+/* Layer 2 — the photo(s). One stacked layer per image the caller renders;
+   only the active one is opacity: 1 (Home cross-fades between several;
+   CarrierBid renders a single static one at opacity: 1). Masked top→bottom
+   so it fades OUT toward the middle, revealing the base fill rather than
+   compositing a tint on top of it. */
+.hero-bg__photo {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: 0;
+  transition: opacity 1500ms ease-in-out;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 1) 31.4%,
+    rgba(0, 0, 0, 0.5) 43.8%,
+    rgba(0, 0, 0, 0) 62%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 1) 31.4%,
+    rgba(0, 0, 0, 0.5) 43.8%,
+    rgba(0, 0, 0, 0) 62%
+  );
+}
+
+/* Layer 3 — DSN/900 color cast, blended (hue only) and masked to a mid band. */
+.hero-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-color: var(--deep-sea-neutral-900);
+  mix-blend-mode: color;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0) 35.3%,
+    rgba(0, 0, 0, 0.6) 43.9%,
+    rgba(0, 0, 0, 0.8) 62.6%,
+    rgba(0, 0, 0, 0.6) 73.5%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0) 35.3%,
+    rgba(0, 0, 0, 0.6) 43.9%,
+    rgba(0, 0, 0, 0.8) 62.6%,
+    rgba(0, 0, 0, 0.6) 73.5%,
+    rgba(0, 0, 0, 0) 100%
+  );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-bg,
+  .hero-bg__photo {
+    transition: none;
+  }
+}
+
+/* === Flipped orientation modifier (CarrierBid, 2026-08-18) =============
+   CarrierBid wants the treatment upside down — light/white at the TOP,
+   image strongest toward the BOTTOM — while Home keeps the original
+   image-on-top orientation. Both masks are simple linear gradients with a
+   direction keyword (`to bottom`); flipping the keyword to `to top` while
+   keeping the exact same stops mirrors the mask vertically without
+   duplicating the stop math. SCOPING IS LOAD-BEARING: these rules only
+   fire when the consumer ALSO applies `.hero-bg--flipped` alongside
+   `.hero-bg` (CarrierBid does; Home does not), so Home's masks keep
+   resolving from the unmodified rules above. */
+/* Stops widened 2026-08-18 (user: "filter/overlay transition" should be
+   larger) — same three/five-stop shape as the base rules above, just spread
+   across a taller percentage range so the fade reads as a longer, softer
+   transition instead of a tight band. Scoping (only fires under
+   .hero-bg--flipped) is unchanged, so this is still CarrierBid-only. */
+.hero-bg--flipped .hero-bg__photo {
+  -webkit-mask-image: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 1) 18%,
+    rgba(0, 0, 0, 0.5) 45%,
+    rgba(0, 0, 0, 0) 82%
+  );
+  mask-image: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 1) 18%,
+    rgba(0, 0, 0, 0.5) 45%,
+    rgba(0, 0, 0, 0) 82%
+  );
+}
+.hero-bg--flipped::after {
+  -webkit-mask-image: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0) 18%,
+    rgba(0, 0, 0, 0.6) 36%,
+    rgba(0, 0, 0, 0.8) 58%,
+    rgba(0, 0, 0, 0.6) 80%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  mask-image: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0) 18%,
+    rgba(0, 0, 0, 0.6) 36%,
+    rgba(0, 0, 0, 0.8) 58%,
+    rgba(0, 0, 0, 0.6) 80%,
+    rgba(0, 0, 0, 0) 100%
+  );
+}
+
+/* === Section / widget entrance ==========================================
+   600ms translateY+scale settle, delay set inline per-element via
+   --enter-delay (Home: shuffled + jittered; CarrierBid: strict
+   index * 90ms, top → bottom — see each page's own JS). `backwards` holds
+   the element at the `from` frame during its delay so it stays invisible
+   until its turn arrives — no flash of already-settled content. */
+.hero-enter {
+  animation: hero-enter 600ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  animation-delay: var(--enter-delay, 0ms);
+  will-change: transform, opacity;
+}
+@keyframes hero-enter {
+  from {
+    opacity: 0;
+    transform: translateY(80px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+/* Pre-animation hold — while a caller is waiting on something (e.g. the
+   hero image decoding) before starting the stagger, this keeps the element
+   invisible so the later swap to .hero-enter produces no flash. */
+.hero-enter-waiting {
+  opacity: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-enter {
+    animation: hero-enter-fade 200ms ease-out backwards;
+    animation-delay: var(--enter-delay, 0ms);
+  }
+  @keyframes hero-enter-fade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+}

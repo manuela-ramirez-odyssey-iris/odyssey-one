@@ -2,12 +2,16 @@
 // Angular .demo.meta.ts). Targeted string surgery on the meta object literal
 // only — everything outside the touched field lines is preserved verbatim.
 //
-//   node tools/dsm-flags.mjs <Component...> --approve|--port|--release <ver>
+//   node tools/dsm-flags.mjs <Component...> --approve|--port|--demote|--release <ver>
 //                            [--react-only|--angular-only|--both] [--dry-run]
 //
 // Lifecycle (playground/figma-component-routine.md + angular-port-routine.md):
 //   approve         → approved: true (keep normalizing: true). React-side by default.
 //   port            → ported: true in BOTH repos (keep normalizing + approved).
+//   demote          → BOTH repos: remove approved/ported, set normalizing: true.
+//                     Modification-reset — a released/approved/ported component was
+//                     changed and goes back into staging (feedback_modified_component_
+//                     back_to_normalizing). Never touches version/createdVersion.
 //   release <ver>   → BOTH repos: remove approved/ported, set normalizing: false,
 //                     stamp version; stamp createdVersion ONLY if absent/null
 //                     (never overwrite — it marks the release a component FIRST shipped in).

@@ -11,7 +11,7 @@ const topItems = [
   { id: 'home',      icon: <House {...ICON_LG} />,         label: 'Home',      to: '/' },
   { id: 'orders',    icon: <ClipboardList {...ICON_LG} />, label: 'Orders',    to: '/orders' },
   { id: 'shipments', icon: <Container {...ICON_LG} />,     label: 'Shipments', to: '/shipments' },
-  { id: 'spotboard', icon: <Gavel {...ICON_LG} />,         label: 'SpotBoard', to: '/spotboard' },
+  { id: 'spotbid',   icon: <Gavel {...ICON_LG} />,         label: 'SpotBid',   to: '/spotbid' },
   { id: 'tracking',  icon: <Route {...ICON_LG} />,         label: 'Tracking',  to: '/tracking' },
 ]
 

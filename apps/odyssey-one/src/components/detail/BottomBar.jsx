@@ -63,7 +63,7 @@ export const TABS = [
   { key: 'product', label: 'Product' },
   { key: 'stops', label: 'Stops' },
   { key: 'routing', label: 'Tender' },
-  { key: 'spot', label: 'SpotBoard' },
+  { key: 'spot', label: 'SpotBid' },
   { key: 'cost', label: 'Cost Allocation' },
   { key: 'instructions', label: 'Instructions' },
   { key: 'documents', label: 'Documents' },

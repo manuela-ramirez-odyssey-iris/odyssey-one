@@ -346,13 +346,15 @@ describe('QuoteModal — Currency + Charge Code from the shared lookup (LINX-138
       await new Promise((resolve) => setTimeout(resolve, 10)) // flush the 0-debounce load + its promise
     })
 
-    fireEvent.keyDown(codeInput, { key: 'ArrowDown' }) // highlights THC — highest frequency (50)
+    fireEvent.keyDown(codeInput, { key: 'ArrowDown' }) // highlights HZC — highest frequency (50)
     fireEvent.keyDown(codeInput, { key: 'Enter' })
 
-    expect(screen.getByDisplayValue('THC')).toBeTruthy()
+    expect(screen.getByDisplayValue('HZC')).toBeTruthy()
     // Charge Description: "Auto-populated / Derived from Charge Code"
     // (LINX-13895) — read off the lookup option, not re-derived locally.
-    expect(screen.getByDisplayValue('Terminal Handling Charge')).toBeTruthy()
+    // Real legacy catalog now (quote-model.md §5.6), not the invented THC
+    // mnemonic this replaced.
+    expect(screen.getByDisplayValue('Hazardous Materials')).toBeTruthy()
   })
   // "Search by Code or Description" itself (typing "fuel" resolving FSC) is
   // covered at the registry in lookupService.test.ts, where it's actually

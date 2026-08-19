@@ -1,0 +1,27 @@
+/* SpotBid list (/spotbid) — lives under AppShell's flex-column <main>
+   (padding var(--spacing-8)); this file only owns the page's own layout. */
+
+.spotbid-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+  padding-bottom: var(--spacing-8);
+  min-width: 0; /* flex-child trap: let the column shrink so the table wrapper scrolls instead of pushing <main> wide */
+}
+
+/* .spotbid-list__tabs pairs with .tab-group (packages/ui) for the 24px gap
+   Tab.jsx documents as the standard row idiom — no local layout needed. */
+
+.spotbid-list__filter {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
+.spotbid-list__table {
+  min-width: 0; /* flex-child trap: DataTable owns its own horizontal scroller (.odyssey-data-table__hscroll) */
+}
+
+.spotbid-list__table--row-clickable tbody tr {
+  cursor: pointer;
+}

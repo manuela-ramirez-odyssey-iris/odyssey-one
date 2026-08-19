@@ -29,14 +29,13 @@ function GlobalSearchTitle({
 }) {
   return (
     <div
-      className="flex items-center justify-center text-heading-xl-semibold"
+      className="global-search-title flex items-center justify-center text-heading-xl-semibold"
       style={{
         flex: 1,
         minWidth,
         maxWidth,
         paddingTop: 2,
         paddingBottom: 2,
-        color: 'var(--white)',
         textAlign: 'center',
         whiteSpace: 'nowrap',
       }}

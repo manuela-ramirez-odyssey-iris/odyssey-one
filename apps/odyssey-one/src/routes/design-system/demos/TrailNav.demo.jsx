@@ -8,6 +8,7 @@ export const meta = {
   createdVersion: '0.2.0',
   figmaNode: '1565:648',
   codeConnect: 'packages/ui/src/TrailNav.figma.tsx',
+  normalizing: true,
 }
 
 export const props = [
@@ -17,6 +18,7 @@ export const props = [
   { name: 'avatar', type: 'ReactNode', desc: '[profile] Avatar element (img, initials div, etc.). Clipped to 32×32 with lg radius.' },
   { name: 'notificationCount', type: 'number', desc: '[profile] Badge count on the bell icon. Default 0.' },
   { name: 'showNotification', type: 'boolean', desc: '[profile] Force-show/hide the notification badge independent of count.' },
+  { name: 'showBell', type: 'boolean', desc: '[profile] Show the Notifications (bell) icon button. Default true — false removes the whole button, not just the badge (that\'s showNotification).' },
   { name: 'showCustomers', type: 'boolean', desc: '[profile] Show the Customers (handshake) icon button. Default true.' },
   { name: 'customersActive', type: 'boolean', desc: '[profile] Active state for the customers button.' },
   { name: 'dropdownOpen', type: 'boolean', desc: '[profile] Swaps chevron direction (down→up) when profile dropdown is open.' },
@@ -111,6 +113,21 @@ export default function TrailNavDemo() {
             notificationCount={0}
             customersActive
             onCustomersClick={() => {}}
+            onProfileClick={() => {}}
+          />
+        </div>
+      </div>
+
+      <div className="ds-demo-section">
+        <h4 className="ds-demo-section__title">mode = "profile" — no bell, no customers (external Navbar context)</h4>
+        <div className="ds-demo-cell ds-demo-cell--dark">
+          <TrailNav
+            mode="profile"
+            name="Carrier Co."
+            role="Carrier"
+            avatar={AVATAR}
+            showBell={false}
+            showCustomers={false}
             onProfileClick={() => {}}
           />
         </div>

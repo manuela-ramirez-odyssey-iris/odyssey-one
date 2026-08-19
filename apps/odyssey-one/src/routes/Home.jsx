@@ -51,7 +51,8 @@ import { useCustomers } from '../contexts/CustomersContext.jsx'
 import { useTrackingLoadStatistics } from '../hooks/useTrackingLoadStatistics'
 import { useOrderTabCounts } from '../api/queries/useOrderTabCounts'
 import { useCategoryCounts } from '../api/queries/useCategoryCounts'
-import { HERO_IMAGES, HERO_ROTATE_MS, HERO_INITIAL_INDEX, heroPosition } from '../heroImages'
+import { HERO_IMAGES, HERO_INITIAL_INDEX, heroPosition } from '../heroImages'
+import { useHeroRotation } from '../hooks/useHeroRotation'
 import './Home.css'
 
 const domainIcon = <TriangleAlert {...ICON_LG} />
@@ -1282,18 +1283,11 @@ export default function Home() {
     return () => clearTimeout(t)
   }, [bgLoaded])
 
-  // Rotate the hero photo every HERO_ROTATE_MS. All HERO_IMAGES layers stay
+  // Rotate the hero photo (extracted to useHeroRotation, shared with
+  // CarrierBid — src/hooks/useHeroRotation.js). All HERO_IMAGES layers stay
   // mounted (stacked in .home-background); only the active one is opaque, so
   // the swap is a CSS opacity cross-fade. Starts once the first image is in.
-  const [heroIndex, setHeroIndex] = useState(HERO_INITIAL_INDEX)
-  useEffect(() => {
-    if (!bgLoaded || HERO_IMAGES.length < 2) return
-    const id = setInterval(
-      () => setHeroIndex((i) => (i + 1) % HERO_IMAGES.length),
-      HERO_ROTATE_MS,
-    )
-    return () => clearInterval(id)
-  }, [bgLoaded])
+  const heroIndex = useHeroRotation(HERO_INITIAL_INDEX, { bgLoaded })
 
   const ctaRows = useMemo(
     () => [
@@ -1900,11 +1894,11 @@ export default function Home() {
             agnostic. The layers cross-fade through HERO_IMAGES every 2 min.
             Anchored at the top of the scrollable Home content so foreground
             text stays in lockstep with the bg it sits on. */}
-        <div className="home-background" aria-hidden="true">
+        <div className="hero-bg home-background" aria-hidden="true">
           {HERO_IMAGES.map((src, i) => (
             <div
               key={src}
-              className="home-background__photo"
+              className="hero-bg__photo"
               style={{
                 backgroundImage: `url(${src})`,
                 backgroundPosition: heroPosition(src),

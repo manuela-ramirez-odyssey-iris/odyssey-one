@@ -77,22 +77,24 @@ describe('lookupService.getLookupOptions (mock)', () => {
   // Code or Description", so charge-code gates like the other true
   // typeaheads (special-service, etc.) rather than returning unfiltered.
   it('charge-code gates at 2 characters like special-service', async () => {
-    expect(await getLookupOptions('charge-code', 'f')).toEqual([])
-    expect((await getLookupOptions('charge-code', 'fs')).length).toBeGreaterThan(0)
+    expect(await getLookupOptions('charge-code', 'h')).toEqual([])
+    expect((await getLookupOptions('charge-code', 'hz')).length).toBeGreaterThan(0)
   })
 
   it('charge-code matches on DESCRIPTION as well as code (the ticket\'s "Search by Code or Description")', async () => {
-    const byDescription = await getLookupOptions('charge-code', 'fuel surcharge')
-    expect(byDescription.map(o => o.value)).toEqual(['FSC'])
-    const byCode = await getLookupOptions('charge-code', 'fsc')
-    expect(byCode.map(o => o.value)).toEqual(['FSC'])
+    const byDescription = await getLookupOptions('charge-code', 'tarping charges')
+    expect(byDescription.map(o => o.value)).toEqual(['TAR'])
+    const byCode = await getLookupOptions('charge-code', 'tar')
+    expect(byCode.map(o => o.value)).toEqual(['TAR'])
     // The description rides on the option itself — what the ComboBox's
     // Charge Description auto-populate reads off the selected option.
-    expect(byCode[0].description).toBe('Fuel Surcharge')
+    expect(byCode[0].description).toBe('Tarping Charges')
   })
 
+  // Real legacy catalog (quote-model.md §5.6, `MFFOOCC`), not the invented
+  // THC/FSC/SOC/HZC/ACC mnemonics this replaced.
   it('charge-code sorts by frequency descending, like special-service', async () => {
     const all = await getLookupOptions('charge-code', '')
-    expect(all.map(o => o.value)).toEqual(['THC', 'FSC', 'SOC', 'HZC', 'ACC'])
+    expect(all.map(o => o.value)).toEqual(['HZC', 'TKM', 'TAR', 'HT', 'MSC'])
   })
 })

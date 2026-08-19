@@ -38,6 +38,7 @@
   ],
   "shipments": [
     "ActionMenu",
+    "Alert",
     "Badge",
     "Button",
     "ButtonToggle",
@@ -60,9 +61,24 @@
     "SummaryStrip",
     "Tab",
     "TextArea",
+    "TimePicker",
     "Timeline",
     "TitleSubtitle",
     "WidgetMini"
+  ],
+  "spotbid": [
+    "Alert",
+    "Badge",
+    "Breadcrumb",
+    "Button",
+    "DataTable",
+    "EmptyState",
+    "FormField",
+    "PageHeader",
+    "PillTab",
+    "SubAccordion",
+    "Tab",
+    "TitleSubtitle"
   ],
   "carriers": [
     "PageHeader"

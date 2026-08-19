@@ -6,7 +6,7 @@ export const meta = {
   tier: 'molecule',
   version: '0.13.0',
   createdVersion: '0.7.0',
-  normalizing: false,
+  normalizing: true,
   figmaNode: '4254:904',
   codeConnect: 'packages/ui/src/SummaryStrip.figma.tsx',
 }

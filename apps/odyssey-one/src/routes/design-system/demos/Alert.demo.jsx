@@ -8,7 +8,7 @@ export const meta = {
   createdVersion: '0.2.0',
   figmaNode: '2569:1841',
   codeConnect: 'packages/ui/src/Alert.figma.tsx',
-  normalizing: false,
+  normalizing: true,
 }
 
 export const props = [
@@ -20,6 +20,7 @@ export const props = [
   { name: 'showClose', type: 'boolean', desc: 'Show the trailing X dismiss button. Default true.' },
   { name: 'onClose', type: '() => void', desc: 'Dismiss handler (wire to remove/hide the alert).' },
   { name: 'errors', type: '{field, reason, resolved?}[]', desc: 'Non-empty → error-validation anatomy (replaces message/link/close): "N Errors: Validation Required" header (N = unresolved), Validate Errors link, chevron-collapsible per-field error list. resolved: true entries drop out of the count + the rows.' },
+  { name: 'items / summary', type: '{key?, content}[] / string', desc: 'Generic collapsible list (any variant, e.g. success) — used when `errors` is empty. `summary` is the caller-supplied header text; each item.content renders as-is in the reveal. Same chevron/reveal mechanics as errors, colored by variant.' },
   { name: 'contextText', type: 'string', desc: 'Header context after the count — e.g. "ORD-D78120458 · Integrated from ACME" (order id · source + customer).' },
   { name: 'expanded / defaultExpanded / onToggle', type: 'boolean / boolean / (next) => void', desc: 'Error-list collapse state (chevron) — controlled or uncontrolled. Default collapsed.' },
   { name: 'docked', type: 'boolean', desc: 'Sticky morph: full-width squared bar, header "resolved out of total errors resolved" (derived from the resolved flags), link becomes the ← Error i/N → stepper over the unresolved errors. The consumer owns position:sticky + the scroll trigger. Resolving the error the stepper sits on clamps it to the LAST open error (Next greys out, not Prev). Default false.' },
@@ -162,6 +163,41 @@ function ValidationPlayground() {
   )
 }
 
+const DEMO_LINK_POOL = ['ABCD', 'WXYZ', 'FGHI', 'JKLM', 'NOPQ']
+
+function ListPlayground() {
+  const [expanded, setExpanded] = useState(false)
+  const [count, setCount] = useState(3)
+  const items = DEMO_LINK_POOL.slice(0, count).map((scac) => ({
+    key: scac,
+    content: (
+      <div style={{ display: 'flex', gap: 'var(--spacing-2)' }}>
+        <span className="text-label-sm-medium">{scac}</span>
+        <span>/spot-bid/{scac.toLowerCase()}</span>
+      </div>
+    ),
+  }))
+
+  return (
+    <div>
+      <div className="ds-demo-row" style={{ gap: 'var(--spacing-4)', marginBottom: 'var(--spacing-3)', flexWrap: 'wrap', alignItems: 'center' }}>
+        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-sm)' }}>
+          items
+          <input type="number" min="1" max={DEMO_LINK_POOL.length} value={count} onChange={(e) => setCount(Math.min(DEMO_LINK_POOL.length, Math.max(1, Number(e.target.value))))} style={{ width: 56, padding: '2px 6px', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)' }} />
+        </label>
+      </div>
+      <Alert
+        variant="success"
+        items={items}
+        summary={`RFQ sent — ${count} bid link${count === 1 ? '' : 's'}`}
+        expanded={expanded}
+        onToggle={setExpanded}
+        onClose={() => {}}
+      />
+    </div>
+  )
+}
+
 function Playground() {
   const [showLink, setShowLink] = useState(false)
   const [showClose, setShowClose] = useState(true)
@@ -214,6 +250,11 @@ export default function AlertDemo() {
       <div className="ds-demo-section">
         <h4 className="ds-demo-section__title">Error validation — errors list, chevron collapse, docked sticky morph (Figma Layout Default/Expanded/Sticky)</h4>
         <ValidationPlayground />
+      </div>
+
+      <div className="ds-demo-section">
+        <h4 className="ds-demo-section__title">Generic collapsible list — success variant (SpotBoard RFQ links banner)</h4>
+        <ListPlayground />
       </div>
     </div>
   )

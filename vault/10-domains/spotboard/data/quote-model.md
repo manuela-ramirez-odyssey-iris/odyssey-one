@@ -3,7 +3,7 @@ title: SpotBoard — Quote Data Model, States & Notification Catalog
 domain: spotboard
 type: data-model
 tags: [spotboard, overflow, data-model, schema, states, notifications, ocm, mffcofl, legacy, quote-viewer]
-date: 2026-08-11
+date: 2026-08-18
 status: active
 ---
 
@@ -195,6 +195,8 @@ Carriers excluded by BR-3/BR-4 render **red** and are **unchecked by default**; 
 > **Confirmed 2026-08-11 against a direct screenshot, with two additions.** `image (1)` shows the carrier-row set live on one 60-minute quote: **`Done`** (responded, with a `Quoted Cost`), **`Declined`**, **`Sent`** (transmitted, no answer yet), **`Excluded`** (failed an eligibility rule). `Accepted` does not appear on this open quote, consistent with §14.1's note that it appears on a closed one. **Two additions to the row above:** (a) each status carries a **`Status Date`** that stamps the *transition*, not the response — `Excluded` rows are dated at send time (§1.2); (b) the cross-quote `Quote Viewer` renders **`Declined` as a value in the `Quoted Cost` column** (§1.2), a **fourth rendering of the decline state** alongside the legacy status, the wireframe's row status and Jana's carrier-facing set. **Nobody has reconciled the four.** `image (1)`, `image (4)`; [[../spotboard|canon]] §17.2–17.3.
 >
 > **Also confirmed at the header level:** `image (1)` shows `Status OPEN` with `Quote Opened 11:01`, `Quote Expires 12:01` and **`Quote Closed` empty** — i.e. the close timestamp is written by the close event, and a quote can be `OPEN` with responses already in. Relevant to [[../decisions/decision-log|SPB-28]]'s award-early requirement, which needs `award()` to operate on exactly this state.
+
+> **`Invalidated` defined by a human, 2026-08-11 — see §10.1.** Meaning, mechanic, **label latitude** (`Cancelled` / `Changed` are sanctioned alternatives) and a stated **expiry** on the status itself. [[../decisions/decision-log|SPB-52]].
 
 **Open, in the PRD's own words:** *"Should we add another quote status for carrier history so quotes don't stay in review status?"* (PRD, Feature 7 — an unnumbered open question).
 
@@ -484,6 +486,68 @@ There is also an unlisted internal exception in Feature 4's trigger bullets — 
 - **Order change:** an outstanding order change on the consolidation blocks tendering activity and disables insert/update.
 - **Award double-guard:** warns if the carrier's quote was already processed, or if the required resource lock cannot be obtained.
 - **Single instance:** only one MFFCOFL window per session (a legacy Forms constraint; *"Only one active quote workflow may exist per load at a time"* is the business rule that matters — PRD, §2).
+
+---
+
+## 9. Carrier portal, current state — live screenshots (new 2026-08-17, SHOWN)
+
+Source: `Main.jpg` / `QuoteDetails.jpg` / `QuoteEntry.jpg` — Irina's own APEX app `200` stage session, delivered with a verbal walkthrough `(Irina screenshot call, verbal, 2026-08)`. Narrative in [[../spotboard|canon]] §19.3; rulings [[../decisions/decision-log|SPB-37]]/[[../decisions/decision-log|SPB-38]]. Everything below is read from pixels; items the walkthrough did not state are marked *(inferred)*.
+
+**Portal shape:** `Requests For Quote` (list) → `Load Detail` → `Quote Entry` (modal). Sidebar nav: `Quote Requests` · `Quote History`. Footer `release 1.0`. Scoped to one carrier per session/SCAC.
+
+### 9.1 `Requests For Quote` — list columns
+
+`Load Detail` (icon link) · `Quote#` · `SCAC` · `Shipper` · `Equipment` · `Ship From` (city, state, zip) · `Ship To` · `Intermediate Stop-offs` · `Hazmat` (Yes/–) · `Pickup` · `Deliver` · `Quote Opened` (timestamp CST) · `Quote Closes` (timestamp CST) · `Your Quote` · `Best` · `Username` · `HH:MM Remaining` (live countdown, e.g. `00:44`; default sort *(inferred)*). `Your Quote`/`Best`/`Username` empty pre-bid — consistent with §5.7 `SHOW_BEST` and §3.3. `Reset` button (filters). Observed row: Quote# `222621`, SCAC `ARVY`, Flat Bed, Chattanooga TN → West Columbia (City Of) Lexington SC, Hazmat Yes, opened `08/12/2026 12:14 CST`, closes `13:14 CST` (60-minute window — matches §1 `Duration`).
+
+### 9.2 `Load Details for Quote#` — detail page
+
+Breadcrumb `Request For Quote / Load Detail`. **No order/shipment ID at any depth — `Quote#` is the only key** ([[../decisions/decision-log|SPB-05]] corroborated). Header row: `SCAC` · `Shipper` · `Ship From` / `Ship To` (**full street addresses here**; city-only on the list) · `Pickup` · `Deliver` · `Distance` (`325 mi`) · `Weight` (`25500 lb`) · `Hazmat`. **Items table:** `Item` · `Description` · `Weight` · `Package Count` · `Hazmat Code` · `Hazmat Packing Group` · `Hazmat Class` · `Hazmat Description` · `Safety Data Sheet` (observed: 25,000 lb / 15 pkgs / code III / class 8 / "HAZ PACL 18 LQ 9,0%AL MB BULK"; second row 500 lb, mostly `–`). `Instructions` free-text section. Single action: `Enter Quote`.
+
+### 9.3 `Quote Entry` — bid anatomy
+
+| Field | Behavior |
+|---|---|
+| `Linehaul` | **The only number the carrier types.** |
+| `Currency` | Dropdown, `USD` observed. |
+| `Fuel` | **System-computed, read-only** *(inferred read-only from rendering)* — `221.00`, annotated `[0.68 per mile]`; 0.68 × 325 mi = 221. Carrier does not enter fuel. |
+| `Subtotal` | Computed. |
+| Additional Charges | Fixed amount rows: `Haz-Mat` · `Tolls` · `Miscellaneous` · `Tarping` · `Tanker Endorsement` — *(inferred)* the §5.5 profile-driven charge codes resolved per load. |
+| Actions | `Decline` · `Submit` — decline is a peer action inside the entry modal. |
+
+**Divergences this pins on our prototype's carrier page:** single free bid amount (vs structured Linehaul + computed fuel + charge lines) and no date affordance ([[../decisions/decision-log|SPB-33]]). Neither divergence has been ruled on.
+
+---
+
+## 10. Additions from the 2026-08-11 meeting (new 2026-08-18)
+
+Source: `Spot Board.md` — the full 2026-08-11 transcript, cited `(Aug 11 call, M:SS)`. Narrative in [[../spotboard|canon]] §20. **Only field/state facts are recorded here; scope and surface rulings live in the canon and the decision log.**
+
+### 10.1 `Invalidated` — meaning, mechanic, label, lifespan
+
+**Meaning (VERBATIM, Kathleen reading the PRD aloud, [3:20]):** *"It is **an order change or cancellation invalidates an open quote**."* This is the first time any artifact states it in a human's words; §3.3 previously carried the value with no definition.
+
+**Mechanic (Irina describing today's system, Kathleen confirming, [3:49–4:29]):** *"if order changed, it's trigger replanning. So **my old quote will be closed and the new quote will be created for the same shipment**… We're **not going to update the quote as is**. We're going to close the old quote for the old version of the order and create a new one, correct?"* → **`Invalidated` is not an in-place mutation of the quote header.** It is `CLOSED` on the old record plus a **new** quote for the revised order. Consistent with:
+
+- **§3.1 step 6, `overflow_modify`** — copies a closed quote into a *new editable draft*; and
+- **[[../decisions/decision-log|SPB-29]]** (David) — a closed quote cannot be reopened; you create a new one.
+
+**Implication for the model, INFERRED (nobody stated it):** the two quotes need a **supersession link** if a planner is to see the lineage. The PRD's outcome set already names *"superseded by a later quote request"* (§3.3) — that is the pair-mate value, and nothing in evidence populates it.
+
+**Label — NOT locked.** Irina [3:29]: *"I don't like that word… don't you think it's supposed to be **cancelled**?"* Kathleen [3:43]: *"You could say it because it's canceled or changed. **I guess you can use either of those.**"* → `Invalidated` is the **PRD's** term, not a required UI string. `Cancelled` / `Changed` are sanctioned. *(The shipped `spotbid/carrierQuotes.js` uses `Cancelled` — permitted.)*
+
+**Lifespan — the status is deliberately temporary.** Kathleen [4:29]: *"there was no way to actually measure that today. **There's no visibility to that today.** So I like the visibility of something's changed so that they could have visibility into any same-day changes that invalidated or canceled the quote… **I just don't think we should leave it there for long because it's going to be covered by something else.**"* — *"something else"* is unnamed; **INFERRED**: a change/exception-management surface outside SpotBoard. **Do not build durable reporting on this status.** [[../decisions/decision-log|SPB-52]].
+
+### 10.2 Carrier-visible key — reconfirmed at the strongest available strength
+
+Irina [32:33]: *"Carrier still sits on the board only. **He doesn't even see the shipment yet, because we don't tell them a carrier shipment number until he telling us that he taking it.** We just tell him here's your possible movement. From A to B, that many pounds."* Kathleen [32:55]: *"His quote — **we're giving him a quote number**."*
+
+**`Quote#` is the only carrier-visible key, and the shipment number is disclosed only after the carrier accepts the load** — the second clause is new; [[../decisions/decision-log|SPB-05]] and §9.2 established the withholding but not the release condition. [[../decisions/decision-log|SPB-51]].
+
+### 10.3 Where the carrier's bid surface comes from
+
+Irina [39:29], on the tokenized email link: *"you'll open the e-mail and **it's going to look exactly like view details of that line item on the board**."* → **the email lands the carrier on the board's own row-detail view**; there is no separate bespoke email page. The bid anatomy is therefore §9.3's, unchanged. [[../decisions/decision-log|SPB-53]].
+
+**Not settled by this meeting and still unresolved here:** the missing **date affordance** ([[../decisions/decision-log|SPB-33]]) and whether the five additional-charge lines of §9.3 are profile-resolved per load (still *inferred*).
 
 ---
 

@@ -1567,8 +1567,28 @@ input[type="date"].odyssey-date-input::-webkit-calendar-picker-indicator:hover {
   transform: scale(1.15);
 }
 
+/* TrailNav profile — base colors (dark bar). */
+.trail-nav-profile-name { color: var(--deep-sea-neutral-300); }
+.trail-nav-profile-role { color: var(--deep-sea-neutral-400); }
+/* .trail-nav-profile-group carries no border in any context/mode — removed
+   component-wide per Figma (stroke dropped from the TrailNav Mode=Profile
+   main component's User Container, node 608:525). Class kept: TrailNav.jsx
+   still uses it as the profile's flex wrapper. */
+
+/* GlobalSearch title mode — base color (dark bar); moved out of the inline
+   style that used to hardcode var(--white) so the external override below
+   can win on class specificity instead of fighting an inline style. */
+.global-search-title { color: var(--white); }
+
+/* Navbar context="external" (Figma 5152:3904) — the white external-landing
+   variant recolors its own nested content rather than GlobalSearch/TrailNav
+   growing tone props. Scoped descendant rules, not new component props. */
+.navbar--external .global-search-title { color: var(--text-secondary); }
+.navbar--external .trail-nav-profile-name,
+.navbar--external .trail-nav-profile-role { color: var(--text-secondary-soft); }
+
 /* TrailNav hover — bell brightens; profile (name + role + chevron) brightens
-   together when the profile button is hovered. */
+   together when the profile button is hovered. Dark internal bar only. */
 .trail-nav-bell,
 .trail-nav-customers { transition: color var(--transition-fast); }
 .trail-nav-bell:hover,
@@ -1588,6 +1608,21 @@ input[type="date"].odyssey-date-input::-webkit-calendar-picker-indicator:hover {
 }
 .trail-nav-profile:hover .trail-nav-profile-chevron {
   color: var(--deep-sea-neutral-200) !important;
+}
+
+/* Navbar context="external" hover — the base ladder above brightens toward
+   white, which reads correctly on the dark internal bar but goes the wrong
+   direction on the white external bar (text/icons fade toward invisible).
+   Scoped override: darken toward --text-primary instead. Additive only —
+   does not touch the internal (dark) hover rules above. */
+.navbar--external .trail-nav-bell:hover,
+.navbar--external .trail-nav-customers:hover {
+  color: var(--text-primary) !important;
+}
+.navbar--external .trail-nav-profile:hover .trail-nav-profile-name,
+.navbar--external .trail-nav-profile:hover .trail-nav-profile-role,
+.navbar--external .trail-nav-profile:hover .trail-nav-profile-chevron {
+  color: var(--text-primary) !important;
 }
 
 /* TrailNav Editor mode — Help + Right (X/?) icons share the bell hover ladder. */
@@ -2072,6 +2107,18 @@ input[type="date"].odyssey-date-input::-webkit-calendar-picker-indicator:hover {
   font: inherit;
   text-decoration: underline;
   cursor: pointer;
+}
+
+/* Generic collapsible list (variant-agnostic, e.g. success/RFQ links) —
+   shares the validation header/reveal/chevron mechanics but rows carry
+   arbitrary caller content and pick up currentColor instead of the
+   error-only red. */
+.alert__item-row {
+  color: currentColor;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.alert--success .alert__item-row {
+  border-bottom-color: var(--border-success);
 }
 
 /* Docked (sticky) morph — full-width squared bar; the consumer owns
@@ -6221,7 +6268,7 @@ button.breadcrumb__label:focus-visible {
   justify-content: center;         /* Figma: primaryAxisAlignItems CENTER */
   align-items: stretch;
   margin: 0;                       /* <dl> reset */
-  background: linear-gradient(to bottom, rgba(255, 255, 255, 0) 50%, var(--white) 196%); /* Figma: white fade-in — transparent to 50% height, ~34% white at bottom edge */
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0) 0%, var(--white) 100%); /* Figma 5172:7856: 0 alpha top, opaque white bottom — was transparent-to-50%-then-196% (only ~34% white at the actual bottom edge), fixed to reach true 100% at 100% */
   border-bottom: 1px solid var(--border-subtle);
   padding: 0 var(--spacing-12);    /* Figma: 48px band padding, 0 vertical */
   overflow: hidden;                 /* absolute no-horizontal-overflow guarantee (user, 2026-08-03) — cells shrink instead; this is a backstop, not the mechanism */
@@ -6250,6 +6297,16 @@ button.breadcrumb__label:focus-visible {
   padding: var(--spacing-4) var(--spacing-3); /* Figma: 16px / 12px */
   display: flex;
   flex-direction: column;
+  justify-content: center;         /* general default: content centers within the
+                                       row's stretched height (align-items:stretch
+                                       above). A `display`-emphasis cell's
+                                       label+value already fills that height
+                                       edge-to-edge, so this is a no-op for
+                                       cells 1–3; a shorter normal-value cell
+                                       (e.g. carrier-bid's 4th "Remaining" cell,
+                                       Figma 5172:7856 inset y=12/h=76 of a
+                                       100px band) centers instead of pinning
+                                       to the top. */
   gap: var(--spacing-1);           /* Figma: 4px label↔value */
   border-right: 1px solid var(--deep-sea-neutral-200); /* on EVERY cell, last included */
 }
@@ -6276,6 +6333,15 @@ button.breadcrumb__label:focus-visible {
 /* Tones — code extension, no Figma axis yet (Pending Figma Sync) */
 .summary-strip__value--negative { color: var(--bittersweet-600); }
 .summary-strip__value--positive { color: var(--caribbean-green-600); }
+
+/* emphasis: 'display' (Figma 5172:7856, carrier bid countdown H/M/S cells) —
+   display/4xl semibold in place of the default label/base semibold; color
+   stays Text/primary, inherited from .summary-strip__value above. */
+.summary-strip__value--display {
+  font-size: var(--font-size-4xl);
+  line-height: var(--line-height-4xl);
+  font-weight: var(--font-weight-semibold);
+}
 
 /* truncate: 'lead' — code extension, no Figma axis (S107). Cell width capped
    (raw px — strategic-tokens: tiny component-internal geometry); value

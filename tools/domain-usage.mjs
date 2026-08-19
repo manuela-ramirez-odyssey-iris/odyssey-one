@@ -39,6 +39,7 @@ const DOMAIN_SOURCES = {
   home: { dirs: ['components/home'], files: ['routes/Home.jsx'] },
   orders: { dirs: ['components/orders', 'routes/orders'], files: [] },
   shipments: { dirs: ['components/shipments', 'components/detail', 'routes/shipments'], files: [] },
+  spotbid: { dirs: ['routes/spotbid', 'spotbid'], files: [] },
   carriers: { dirs: [], files: ['routes/Carriers.jsx'] },
   tracking: { dirs: [], files: ['routes/Tracking.jsx'] },
   users: { dirs: [], files: ['routes/Users.jsx', 'components/CustomersModal.jsx'] },

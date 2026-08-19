@@ -1,7 +1,10 @@
 // node --test tools/dsm-flags.test.mjs
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { applyAction, locate, toKebab } from './dsm-flags.mjs';
+import { execFileSync } from 'node:child_process';
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { applyAction, locate, toKebab, REACT_DEMOS, ANGULAR_ROOT } from './dsm-flags.mjs';
 
 // Fixtures — copies of real meta shapes from both repos.
 
@@ -105,6 +108,90 @@ test('demote removes approved/ported and restores normalizing: true (modificatio
   // version/createdVersion stay — demote only resets the staging flags
   assert.match(source, /version: '0\.8\.0',/);
   assert.ok(changes.some(c => c.field === 'normalizing' && c.to === 'true'));
+});
+
+// These exercise the --demote CLI flag itself end-to-end (parsing,
+// --react-only/--angular-only sides, --dry-run) against a disposable fixture
+// component, never a real one — coverage the pure applyAction tests above
+// don't reach (they call applyAction directly, bypassing the CLI/runAction).
+
+const FIXTURE = 'DsmFlagsDemoteFixture';
+const FIXTURE_KEBAB = toKebab(FIXTURE);
+const fixtureReactPath = join(REACT_DEMOS, `${FIXTURE}.demo.jsx`);
+const fixtureAngularPath = join(ANGULAR_ROOT, 'src/app/demos', `${FIXTURE_KEBAB}.demo.meta.ts`);
+const SCRIPT = join(import.meta.dirname, 'dsm-flags.mjs');
+
+const fixtureReactSrc = `export const meta = {
+  name: '${FIXTURE}',
+  tier: 'atom',
+  version: '1.2.0',
+  createdVersion: '1.0.0',
+  figmaNode: '1:1',
+  codeConnect: null,
+  normalizing: false,
+  approved: true,
+  ported: true,
+}
+`;
+const fixtureAngularSrc = `export const dsmFlagsDemoteFixtureMeta: DemoMeta = {
+  name: '${FIXTURE}',
+  angularName: 'odyssey-${FIXTURE_KEBAB}',
+  tier: 'atom',
+  version: '1.2.0',
+  createdVersion: '1.0.0',
+  figmaNode: '1:1',
+  codeConnect: null,
+  normalizing: false,
+  approved: true,
+  ported: true,
+};
+`;
+
+function withFixture(fn) {
+  mkdirSync(join(ANGULAR_ROOT, 'src/app/demos'), { recursive: true });
+  writeFileSync(fixtureReactPath, fixtureReactSrc);
+  writeFileSync(fixtureAngularPath, fixtureAngularSrc);
+  try {
+    fn();
+  } finally {
+    rmSync(fixtureReactPath, { force: true });
+    rmSync(fixtureAngularPath, { force: true });
+  }
+}
+
+test('--demote --dry-run writes nothing, in either repo', () => {
+  withFixture(() => {
+    execFileSync('node', [SCRIPT, FIXTURE, '--demote', '--dry-run'], { encoding: 'utf8' });
+    assert.equal(readFileSync(fixtureReactPath, 'utf8'), fixtureReactSrc);
+    assert.equal(readFileSync(fixtureAngularPath, 'utf8'), fixtureAngularSrc);
+  });
+});
+
+test('--demote --react-only touches only the React meta', () => {
+  withFixture(() => {
+    execFileSync('node', [SCRIPT, FIXTURE, '--demote', '--react-only'], { encoding: 'utf8' });
+    const react = readFileSync(fixtureReactPath, 'utf8');
+    assert.match(react, /normalizing: true,/);
+    assert.doesNotMatch(react, /approved:/);
+    assert.doesNotMatch(react, /ported:/);
+    assert.match(react, /version: '1\.2\.0',/); // untouched
+    assert.match(react, /createdVersion: '1\.0\.0',/); // untouched
+    assert.equal(readFileSync(fixtureAngularPath, 'utf8'), fixtureAngularSrc); // untouched
+  });
+});
+
+test('--demote defaults to BOTH repos and clears approved/ported without touching version', () => {
+  withFixture(() => {
+    execFileSync('node', [SCRIPT, FIXTURE, '--demote'], { encoding: 'utf8' });
+    for (const path of [fixtureReactPath, fixtureAngularPath]) {
+      const out = readFileSync(path, 'utf8');
+      assert.match(out, /normalizing: true,/);
+      assert.doesNotMatch(out, /approved:/);
+      assert.doesNotMatch(out, /ported:/);
+      assert.match(out, /version: '1\.2\.0',/);
+      assert.match(out, /createdVersion: '1\.0\.0',/);
+    }
+  });
 });
 
 test('port is a no-op when already ported', () => {

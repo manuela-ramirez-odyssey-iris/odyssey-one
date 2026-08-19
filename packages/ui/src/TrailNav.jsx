@@ -14,6 +14,7 @@ function TrailNavProfile({
   avatar,
   notificationCount = 0,
   showNotification,
+  showBell = true,
   showCustomers = true,
   customersActive = false,
   chevron,
@@ -45,40 +46,41 @@ function TrailNavProfile({
         </button>
       )}
 
-      <button
-        type="button"
-        onClick={onNotificationClick}
-        className="trail-nav-bell relative flex items-center justify-center border-none bg-transparent cursor-pointer self-center"
-        style={{
-          width: 32,
-          height: 32,
-          padding: 'var(--spacing-1) 6px',
-          color: 'var(--deep-sea-neutral-500)',
-        }}
-        aria-label="Notifications"
-      >
-        <Bell {...ICON_LG} />
-        {showBadge && (
-          <span
-            style={{
-              position: 'absolute',
-              top: -6,
-              left: 16,
-              pointerEvents: 'none',
-            }}
-          >
-            <Badge variant="notification">{notificationCount}</Badge>
-          </span>
-        )}
-      </button>
+      {showBell && (
+        <button
+          type="button"
+          onClick={onNotificationClick}
+          className="trail-nav-bell relative flex items-center justify-center border-none bg-transparent cursor-pointer self-center"
+          style={{
+            width: 32,
+            height: 32,
+            padding: 'var(--spacing-1) 6px',
+            color: 'var(--deep-sea-neutral-500)',
+          }}
+          aria-label="Notifications"
+        >
+          <Bell {...ICON_LG} />
+          {showBadge && (
+            <span
+              style={{
+                position: 'absolute',
+                top: -6,
+                left: 16,
+                pointerEvents: 'none',
+              }}
+            >
+              <Badge variant="notification">{notificationCount}</Badge>
+            </span>
+          )}
+        </button>
+      )}
 
       <div
-        className="flex items-center"
+        className="trail-nav-profile-group flex items-center"
         style={{
           gap: 'var(--spacing-2)',
           paddingLeft: 'var(--spacing-5)',
           paddingRight: 'var(--spacing-1)',
-          borderLeft: '1px solid var(--deep-sea-neutral-700)',
         }}
       >
         <button
@@ -103,12 +105,7 @@ function TrailNavProfile({
             {avatar}
           </div>
           <div className="flex flex-col items-start whitespace-nowrap">
-            <span
-              className="trail-nav-profile-name text-label-sm-medium"
-              style={{
-                color: 'var(--deep-sea-neutral-300)',
-              }}
-            >
+            <span className="trail-nav-profile-name text-label-sm-medium">
               {name}
             </span>
             <span
@@ -118,7 +115,6 @@ function TrailNavProfile({
                 fontSize: 'var(--font-size-xs)',
                 fontWeight: 400,
                 lineHeight: '12px',
-                color: 'var(--deep-sea-neutral-400)',
               }}
             >
               {role}

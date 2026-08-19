@@ -8,9 +8,10 @@ figma.connect(
     imports: ["import { LeadNav } from '@odyssey/ui'"],
     props: {
       logo: figma.instance('Logo'),
+      showMenu: figma.boolean('Show menu'),
     },
-    example: ({ logo }) => (
-      <LeadNav logo={logo} />
+    example: ({ logo, showMenu }) => (
+      <LeadNav logo={logo} showMenu={showMenu} />
     ),
   },
 )

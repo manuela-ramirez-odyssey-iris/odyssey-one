@@ -12,15 +12,28 @@ export const HERO_ROTATE_MS = 120000 // 2 minutes
 
 // Per-image vertical framing (background-position) for `cover` crop. Default is
 // 'center' (50% 50%); some photos frame better cropped lower, so we bias toward
-// the bottom. Higher Y % = shows more of the image's bottom (50% = center).
-// Home-only — Login always renders the matching image centered.
+// the bottom. Higher Y % = shows more of the image's bottom, up to 100% = fully
+// bottom-aligned (the image's bottom edge flush with the container's bottom
+// edge) — that's the ceiling for `background-size: cover`; going past it pushes
+// the image UP past the bottom, leaving a gap. Home-only — Login always renders
+// the matching image centered.
 export const HERO_POSITIONS = {
   '/bg2.webp': 'center 90%', // toward bottom by 45%
-  '/bg3.webp': 'center 110%', // bottom-aligned (asked for 90%; 100% is the floor)
-  '/bg5.webp': 'center 150%', // bottom-aligned (asked for 90%; 100% is the floor)
-  '/bg4.webp': 'center 150%'
+  '/bg3.webp': 'center 100%', // bottom-aligned (was 110% — past the 100% ceiling, left a gap)
+  '/bg5.webp': 'center 100%', // bottom-aligned (was 150% — past the 100% ceiling, left a gap)
+  '/bg4.webp': 'center 100%' // bottom-aligned (was 150% — past the 100% ceiling, left a gap)
 }
-export const heroPosition = (src) => HERO_POSITIONS[src] || 'center'
+// Clamps the Y% so no config value (present or future) can push the image past
+// the bottom-aligned ceiling (100%) or above the top (0%) — every caller routes
+// through here, so this is the one guard rather than one per call site.
+export const heroPosition = (src) => {
+  const pos = HERO_POSITIONS[src]
+  if (!pos) return 'center'
+  const [x, y] = pos.split(' ')
+  const pct = parseFloat(y)
+  if (Number.isNaN(pct)) return pos
+  return `${x} ${Math.min(100, Math.max(0, pct))}%`
+}
 
 // Starting image, chosen ONCE per page load (module eval, so it's stable across
 // the Login→Home handoff). Both routes read this same value to open on the same

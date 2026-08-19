@@ -1,0 +1,91 @@
+/* SpotBid Detail — /spotbid/:quoteId. Card chrome (bg/border/radius/shadow)
+   comes from SubAccordion itself (same idiom as CarrierBid's carrierBid.css)
+   — this file only lays out the grids/rows inside each card. */
+
+.spotbid-detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  padding-bottom: var(--spacing-8);
+}
+
+.spotbid-detail__crumbs {
+  display: flex;
+  align-items: center;
+}
+
+.spotbid-detail__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-3) var(--spacing-4);
+}
+
+@media (min-width: 640px) {
+  .spotbid-detail__grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Shipper / Ship From / Ship To — one row, 3 columns; wraps to 1 column
+   narrow (full street addresses stay unabridged either way). */
+.spotbid-detail__shipper-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-3) var(--spacing-4);
+  margin-bottom: var(--spacing-3);
+}
+
+@media (min-width: 640px) {
+  .spotbid-detail__shipper-row {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.spotbid-detail__address {
+  display: flex;
+  flex-direction: column;
+}
+
+.spotbid-detail__hazmat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-1);
+}
+
+.spotbid-detail__instructions {
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* Quote Entry / Your Quote — shared field grid + totals row. */
+.spotbid-qe__label {
+  margin-bottom: var(--spacing-2);
+}
+
+.spotbid-qe__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-3);
+  margin-bottom: var(--spacing-3);
+}
+
+@media (min-width: 640px) {
+  .spotbid-qe__grid {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+}
+
+.spotbid-qe__total-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-2) 0;
+  border-top: 1px solid var(--border-subtle);
+  margin-bottom: var(--spacing-3);
+}
+
+.spotbid-qe__actions {
+  display: flex;
+  gap: var(--spacing-3);
+}

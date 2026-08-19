@@ -35,6 +35,15 @@ import Button from './Button.jsx'
  *   position:sticky placement): full-width squared bar, header becomes
  *   "resolvedCount out of N errors resolved", link becomes "← Error i/N →" —
  *   arrows fire `onErrorNav(errorIndex ± 1)`. No expand while docked.
+ *
+ * Generic collapsible list (variant-agnostic — e.g. success/RFQ links): pass
+ * `items` ([{ key?, content }]) + `summary` (header text, caller-supplied —
+ * no hardcoded wording) instead of `errors`. Same header/chevron/reveal
+ * mechanics as validation, but colored by `variant` instead of forced to
+ * error, and each row renders `item.content` as-is (no field/reason split).
+ * `expanded`/`defaultExpanded`/`onToggle` control it same as validation.
+ * `errors` continues to take precedence and keeps its exact existing
+ * behavior/classes untouched.
  */
 const ICONS = {
   info: Info,
@@ -53,6 +62,8 @@ export default function Alert({
   onClose,
   errors = [],
   contextText,
+  items,
+  summary,
   expanded,
   defaultExpanded = false,
   onToggle,
@@ -65,6 +76,7 @@ export default function Alert({
   const [internalExpanded, setInternalExpanded] = useState(defaultExpanded)
   const isExpanded = expanded !== undefined ? expanded : internalExpanded
   const validation = errors.length > 0
+  const collapsibleList = !validation && Array.isArray(items) && items.length > 0
 
   const handleToggle = () => {
     const next = !isExpanded
@@ -190,6 +202,63 @@ export default function Alert({
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (collapsibleList) {
+    const ListIcon = ICONS[variant] || Info
+    const classes = ['alert', `alert--${variant}`, 'alert--validation', 'alert--list', className].filter(Boolean).join(' ')
+    return (
+      <div className={classes} role="status" {...rest}>
+        <div className="alert__body alert__body--validation">
+          <span className="alert__icon">
+            <ListIcon {...ICON_LG} />
+          </span>
+          <div className="alert__validation-main">
+            <div className="alert__validation-header" onClick={handleToggle}>
+              <span className="alert__message text-label-sm-regular">
+                <span className="text-label-sm-medium">{summary}</span>
+              </span>
+              <span className="alert__validation-actions">
+                {showClose && (
+                  <button
+                    type="button"
+                    className="alert__close"
+                    onClick={(e) => { e.stopPropagation(); onClose?.() }}
+                    aria-label="Dismiss"
+                  >
+                    <X {...ICON_LG} />
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="alert__chevron"
+                  aria-label={isExpanded ? 'Collapse list' : 'Expand list'}
+                  aria-expanded={isExpanded}
+                  onClick={(e) => { e.stopPropagation(); handleToggle() }}
+                >
+                  <ChevronDown {...ICON_MD} className="alert__chevron-icon" />
+                </button>
+              </span>
+            </div>
+            <div
+              className={`alert__reveal${isExpanded ? ' alert__reveal--open' : ''}`}
+              aria-hidden={!isExpanded}
+              inert={!isExpanded}
+            >
+              <div className="alert__reveal-inner">
+                <ul className="alert__error-list alert__item-list">
+                  {items.map((item, i) => (
+                    <li key={item.key ?? i} className="alert__error-row alert__item-row">
+                      {item.content}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
           </div>
         </div>
       </div>
