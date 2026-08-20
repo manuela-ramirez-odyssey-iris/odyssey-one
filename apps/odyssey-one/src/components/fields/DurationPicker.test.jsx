@@ -201,6 +201,15 @@ describe('typable input (TimePicker parity)', () => {
     expect(onChange).toHaveBeenCalledWith(UNIT_CONFIG.minutes.max)
   })
 
+  it('clears the value when the field is emptied and blurred', () => {
+    const onChange = vi.fn()
+    render(<DurationPicker id="d" label="Quote Duration" unit="minutes" value={30} onChange={onChange} />)
+    const input = screen.getByRole('combobox')
+    fireEvent.change(input, { target: { value: '' } })
+    fireEvent.blur(input)
+    expect(onChange).toHaveBeenCalledWith('')
+  })
+
   it('picking a row still commits and closes, clearing any prior error', () => {
     const onChange = vi.fn()
     render(<DurationPicker id="d" label="Quote Duration" unit="minutes" value="" onChange={onChange} />)

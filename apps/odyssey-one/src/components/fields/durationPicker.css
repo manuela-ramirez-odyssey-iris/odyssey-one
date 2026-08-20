@@ -7,8 +7,10 @@
    is "120 min" and the widest running value is "23:59:59", both of which fit.
    Reusing the token rather than a new one — this is the same class of control
    and they should not drift apart. Unlike TimePicker, no flex container needs
-   this field to grow, so `width` is pinned flat instead of tracking a
-   breakpoint (user: field must sit at its min width, not stretch). */
+   this field to grow, so `width` is pinned flat at 150px instead of tracking
+   a breakpoint — it renders at that fixed width, and only shrinks below it
+   down to the 124px floor if a narrower ancestor forces it (user: field must
+   not stretch to fill its container). */
 .duration-picker {
   min-width: var(--time-picker-min);
   width: 150px;

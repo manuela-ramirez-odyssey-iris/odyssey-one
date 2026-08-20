@@ -23,7 +23,12 @@ import './durationPicker.css'
  * have been through Figma + /normalize (CLAUDE.md, Normalization policy).
  *
  * Two states:
- *   IDLE     — a pick-only dropdown of unit-appropriate increments.
+ *   IDLE     — typable, TimePicker-parity contract: free-typed draft text,
+ *              committed on blur/Enter via a liberal parse (parseDuration;
+ *              digits only, clamped to the unit's ceiling), or picked directly
+ *              off the unit-appropriate increment dropdown. One deliberate
+ *              parity gap from TimePicker: no arrow-key activeIdx highlighting
+ *              of dropdown rows — not asked for here, so not built.
  *   RUNNING  — locked, with a live countdown Badge inside the field. The
  *              parent drives this via `running` + `endsAt`; the component
  *              never starts or stops itself. It does NOT self-reset at zero
@@ -157,7 +162,10 @@ export default function DurationPicker({
   }
 
   const commitText = () => {
-    if (!text.trim()) { setError(''); return } // untouched/cleared field, nothing to commit
+    // Empty text clears the value (mirrors TimePicker's handleBlur) — value's
+    // own contract is `'' for unset`, so a blanked field must emit '' rather
+    // than silently leaving the controlled value stale behind the blank input.
+    if (!text.trim()) { setError(''); onChange?.(''); return }
     const n = parseDuration(text, unit)
     if (n == null) setError('Invalid duration')
     else commit(n)
