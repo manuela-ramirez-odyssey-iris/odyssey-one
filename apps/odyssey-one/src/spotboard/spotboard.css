@@ -233,8 +233,11 @@
   z-index: 5;
   background: linear-gradient(rgba(255, 255, 255, 0) 0%, var(--white) 100%);
 }
-@supports (backdrop-filter: blur(8px)) {
-  .spot-sticky-strip { backdrop-filter: blur(8px); }
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .spot-sticky-strip {
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
 }
 
 /* RfqLinksPanel — CE-1 email stand-in shown after Send RFQ. */

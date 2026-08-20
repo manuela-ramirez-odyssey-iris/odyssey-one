@@ -25,14 +25,13 @@ const SUB_TABS = [
 // (and wire it here) once the design calls for one.
 const DEFAULT_MARKUP = { type: 'flat', value: 0 }
 
-// header (origin/destination/equipment/distance/hazmat/pickup window) for
-// SetupCarriers' read-only strip — sourced from the same fields the other
-// panes already read off shipmentDetails (StopsTab, ShipmentDetailsModal):
-// stopsData.stops[].location/type, stopsData.summary.{distance,seedEquipment},
-// orderDetails[].{equipment,hazmat,earliestPickup,latestPickup}.
+// header (origin/destination/pickup window) for the sticky SpotSummaryStrip
+// — sourced from the same fields the other panes already read off
+// shipmentDetails (StopsTab, ShipmentDetailsModal): stopsData.stops[].location/type,
+// orderDetails[].{earliestPickup,latestPickup}. Distance/Equipment/Hazmat
+// were dropped 2026-08-20 (user) — the strip never consumed them.
 function buildHeader(shipmentDetails) {
   const stops = shipmentDetails?.stopsData?.stops ?? []
-  const summary = shipmentDetails?.stopsData?.summary ?? {}
   const orders = shipmentDetails?.orderDetails ?? []
   const firstOrder = orders[0]
   const origin = stops.find((s) => s.type === 'pickup')?.location
@@ -40,9 +39,6 @@ function buildHeader(shipmentDetails) {
   return {
     origin,
     destination,
-    equipment: summary.seedEquipment || firstOrder?.equipment,
-    distance: summary.distance,
-    hazmat: orders.some((o) => o.hazmat === 'Yes') ? 'Yes' : 'No',
     pickupWindow: firstOrder ? `${firstOrder.earliestPickup} - ${firstOrder.latestPickup}` : undefined,
   }
 }
