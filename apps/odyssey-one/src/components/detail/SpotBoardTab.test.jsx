@@ -56,6 +56,37 @@ describe('SpotBoardTab', () => {
     expect(container.querySelector('.order-pane__fields-grid')).toBeFalsy()
   })
 
+  // The carrier rows' Planned Pickup/Delivery default off the order's LATEST
+  // dates, not its earliest (user ruling 2026-08-19). The order guarantees one
+  // late date via the Planning Date Type anchor; earliest is optional on both
+  // sides, so defaulting off it was defaulting off a nullable field. Earliest
+  // and latest are deliberately different DAYS here — with the same day the
+  // assertion passes either way, since `dateOnly` drops the time.
+  it('defaults the carrier rows to the order LATEST pickup/delivery, not earliest', async () => {
+    const { within, waitFor } = await import('@testing-library/react')
+    const details = makeShipmentDetails([])
+    details.orderDetails = [{
+      orderNumber: 'ORD-1', equipment: 'Van', hazmat: 'No',
+      earliestPickup: '08/09/2026 08:00', latestPickup: '08/10/2026 12:00',
+      earliestDelivery: '08/11/2026 08:00', latestDelivery: '08/12/2026 17:00',
+    }]
+    const { container } = render(<SpotBoardTab shipmentDetails={details} shipment={shipment} />)
+
+    // The carrier pool is fetched async by the tab (getLookupOptions), so the
+    // rows don't exist on the first paint.
+    await waitFor(() => {
+      expect(container.querySelector('[data-testid^="pickup-"]')).toBeTruthy()
+    })
+    // Read the SCAC off the rendered table rather than rebuilding the row list
+    // — buildCarrierRows needs the carrier options the tab resolves internally.
+    const pickupWrap = container.querySelector('[data-testid^="pickup-"]')
+    const scac = pickupWrap.getAttribute('data-testid').replace('pickup-', '')
+    const pickup = within(pickupWrap).getByRole('textbox')
+    const delivery = within(screen.getByTestId(`delivery-${scac}`)).getByRole('textbox')
+    expect(pickup.value).toBe('08/10/2026')    // latestPickup, NOT 08/09
+    expect(delivery.value).toBe('08/12/2026')  // latestDelivery, NOT 08/11
+  })
+
   it('shows the EmptyState (not the sub-tabs) when the shipment has an Accepted tender', () => {
     const details = makeShipmentDetails([
       { rank: 1, status: 'Accepted', scac: 'ODFL', carrierName: 'Old Dominion' },
@@ -66,7 +97,10 @@ describe('SpotBoardTab', () => {
     expect(screen.queryByText('Live Bids')).toBeFalsy()
   })
 
-  it('keeps Setup & Carriers read-only (no action buttons) once a quote is awarded', () => {
+  // 2026-08-19 (user): the actions no longer disappear when the pane is
+  // read-only — they stay mounted and go disabled, so an awarded quote still
+  // shows where Send RFQ / Save Draft were rather than silently reflowing.
+  it('keeps Setup & Carriers read-only (actions present but disabled) once a quote is awarded', () => {
     localStorage.setItem(
       `spotboard:${shipment.sellShipment}`,
       JSON.stringify({
@@ -85,8 +119,8 @@ describe('SpotBoardTab', () => {
       })
     )
     render(<SpotBoardTab shipmentDetails={makeShipmentDetails([])} shipment={shipment} />)
-    expect(screen.queryByText('Send RFQ')).toBeFalsy()
-    expect(screen.queryByText('Save Draft')).toBeFalsy()
+    expect(screen.getByRole('button', { name: 'Send RFQ' }).disabled).toBe(true)
+    expect(screen.getByRole('button', { name: 'Save Draft' }).disabled).toBe(true)
   })
 
   it('on Send RFQ, surfaces one working bid link per included carrier and none for excluded ones', () => {

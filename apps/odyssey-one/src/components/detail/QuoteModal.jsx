@@ -329,7 +329,7 @@ export const QuoteModal = forwardRef(function QuoteModal(
                   showLabel
                   label="Base Rate"
                   // Numeric, up to 6 decimal places (LINX-13895).
-                  decimals={6}
+                  maxDecimals={6}
                   value={{ value: baseRate, uom: currency }}
                   options={CURRENCY_OPTIONS}
                   onChange={(v) => { setBaseRate(v.value); setCurrency(v.uom) }}
@@ -340,7 +340,7 @@ export const QuoteModal = forwardRef(function QuoteModal(
                   showLabel
                   label="Markup"
                   // Numeric, up to 6 decimal places (LINX-13895).
-                  decimals={6}
+                  maxDecimals={6}
                   // UoM here IS the quote's shared `currency` (2026-08-10 ruling:
                   // arTotal sums base + markup as a single currency, so an
                   // independent markup currency was arithmetically incoherent).
@@ -411,7 +411,7 @@ export const QuoteModal = forwardRef(function QuoteModal(
                       <FormField showLabel={false} value={charge.description} disabled />
                       <MeasureField
                         // Numeric, up to 6 decimal places (LINX-13895).
-                        decimals={6}
+                        maxDecimals={6}
                         value={{ value: charge.amount, uom: currency }}
                         // Fixed unit, not a picker — same single-entry-options
                         // idiom as Markup above: Additional Charges > Currency

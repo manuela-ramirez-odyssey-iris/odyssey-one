@@ -236,10 +236,21 @@ export default function SpotBoardTab({ shipmentDetails, shipment }) {
             // Kathleen's workflow (2026-08-07), node 1: the Spot Quote tab
             // opens with "Dates/transit + eligible carriers auto-filled".
             // Seeded from the ORDER's scheduled dates — the same values the
-            // legacy overflow screen shows against every carrier. Our pick of
-            // EARLIEST (not latest) is unratified; the planner can edit.
-            defaultPickup={dateOnly(shipmentDetails?.orderDetails?.[0]?.earliestPickup)}
-            defaultDelivery={dateOnly(shipmentDetails?.orderDetails?.[0]?.earliestDelivery)}
+            // legacy overflow screen shows against every carrier.
+            //
+            // LATEST, not earliest (user ruling 2026-08-19, replacing the
+            // "unratified" earliest pick that stood here). The order guarantees
+            // exactly ONE late date and which one depends on the Planning Date
+            // Type anchor — Ship Date → Late Pickup mandatory, Delivery Date →
+            // Late Delivery mandatory (LINX-7586/7587/7822; PRD 2365915159's
+            // "one of Late Pickup or Late Delivery must be present";
+            // vault/10-domains/orders/domain-analysis.md §86). Earliest is
+            // optional on BOTH sides, so it is the one value that can be
+            // absent — defaulting off it was defaulting off a nullable field.
+            // `dateOnly` drops the time component: time is not supported on the
+            // quote (Kathleen, written answer #5, 2026-08-19).
+            defaultPickup={dateOnly(shipmentDetails?.orderDetails?.[0]?.latestPickup)}
+            defaultDelivery={dateOnly(shipmentDetails?.orderDetails?.[0]?.latestDelivery)}
             readOnly={quote?.status === 'open' || quote?.status === 'closed' || quote?.status === 'awarded'}
             onSaveDraft={saveDraft}
             onSendRFQ={handleSendRFQ}

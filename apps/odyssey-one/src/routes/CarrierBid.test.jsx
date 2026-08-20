@@ -457,6 +457,22 @@ describe('CarrierBid — open quote', () => {
     expect(within(bidSection).queryByText('Code')).toBe(label) // the one real label, nothing else
   })
 
+  // Amount is MONEY — 2dp, same as Base Charge. It used to pass decimals={6}
+  // (copied from QuoteModal's LINX-13895 reading), so every entry blurred to
+  // "100.000000". `decimals` pads to exactly N; 6 is not a money precision.
+  it('an Additional Charges Amount normalizes to 2dp on blur, not 6', async () => {
+    const quote = openQuote()
+    const token = tokenFor(quote, SCAC)
+    renderAt(`/spot-bid/${token}`)
+    await screen.findByText('Acme Houston Plant')
+
+    const bidSection = screen.getByRole('button', { name: /your bid/i }).closest('.sub-accordion')
+    const amount = within(bidSection).getByLabelText('Amount')
+    fireEvent.change(amount, { target: { value: '100' } })
+    fireEvent.blur(amount)
+    expect(amount.value).toBe('100.00')
+  })
+
   it('Additional Charges totals (Summary card + Grand Total) include both a derived and a carrier-added charge', async () => {
     const quote = openQuote()
     const token = tokenFor(quote, SCAC)

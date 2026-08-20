@@ -15,14 +15,20 @@ import '../create-order.css'
  *
  * `value` = { value, uom }; `options` = [{ value, label }].
  *
- * `decimals` — opt-in fixed precision, normalized ON BLUR ("803.7" → "803.70",
+ * `decimals` — opt-in FIXED precision, normalized ON BLUR ("803.7" → "803.70",
  * "12" → "12.00"). Money fields pass 2; it stays OFF by default because most
  * measures here are whole numbers (a 22,416 lb gross weight must not become
  * "22416.00"). Precision is this composite's business, not FormField's —
  * FormField's `format` governs which CHARACTERS may be typed, nothing about
  * numeric meaning.
+ *
+ * `maxDecimals` — a CEILING, not a pad: rounds on blur to at most N places and
+ * drops trailing zeros ("12" stays "12", "1.2345678" → "1.234568"). This is
+ * what an AC phrased "up to N decimal places" (LINX-13895) actually asks for;
+ * passing `decimals={6}` for that reading was the bug — it blurred every entry
+ * to "150.000000". Pass one or the other, not both; `decimals` wins if both.
  */
-export default function MeasureField({ id, value, options, onChange, onBlur, error, placeholder = '0.00', disabled = false, label, showLabel = false, decimals }) {
+export default function MeasureField({ id, value, options, onChange, onBlur, error, placeholder = '0.00', disabled = false, label, showLabel = false, decimals, maxDecimals }) {
   const [open, setOpen] = useState(false)
   const { triggerRef, dropdownRef, AnchoredPortal } = useAnchoredPortal({
     open,
@@ -33,12 +39,15 @@ export default function MeasureField({ id, value, options, onChange, onBlur, err
 
   const handleBlur = (e) => {
     const raw = value?.value
-    if (decimals != null && raw !== '' && raw != null) {
+    const places = decimals ?? maxDecimals
+    if (places != null && raw !== '' && raw != null) {
       const n = Number(raw)
       // Non-numeric can't happen via typing (format="decimal" strips it), but a
       // hydrated value could be junk — leave it alone rather than write NaN.
       if (Number.isFinite(n)) {
-        const fixed = n.toFixed(decimals)
+        // `decimals` pads to exactly N; `maxDecimals` rounds to at most N and
+        // lets Number() drop the trailing zeros the rounding introduced.
+        const fixed = decimals != null ? n.toFixed(places) : String(Number(n.toFixed(places)))
         if (fixed !== String(raw)) onChange({ ...value, value: fixed })
       }
     }

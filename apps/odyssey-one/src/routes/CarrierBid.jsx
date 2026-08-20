@@ -602,7 +602,11 @@ export default function CarrierBid() {
                           id={`cb-charge-${idx}-amount`}
                           showLabel
                           label="Amount"
-                          decimals={6}
+                          /* Money — 2, same as Base Charge above. Was 6
+                             (copied from QuoteModal's LINX-13895 reading),
+                             which `decimals` PADS to, so every entry blurred
+                             to "150.000000". */
+                          decimals={2}
                           value={{ value: row.amount, uom: 'USD' }}
                           options={USD_OPTIONS}
                           onChange={(v) => updateChargeRow(idx, { amount: v.value })}

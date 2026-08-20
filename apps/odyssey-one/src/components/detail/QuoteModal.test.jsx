@@ -169,14 +169,21 @@ describe('QuoteModal', () => {
   })
 
   // LINX-13895 — Base Rate/Markup/Charge Amount are "Numeric, up to 6 decimal
-  // places" (was 2dp pre-ticket).
-  it('normalizes a pricing field to 6dp on blur', () => {
+  // places" (was 2dp pre-ticket). "UP TO" is a CEILING, not a pad: this used
+  // to assert "900.500000" because the field passed `decimals={6}` (fixed
+  // precision), which turned every entry into a wall of zeros. Now
+  // `maxDecimals={6}` — round to at most 6, keep what the user typed.
+  it('caps a pricing field at 6dp on blur without padding it', () => {
     render(<QuoteModal mode="edit" carrierData={quote} onSave={() => {}} onClose={() => {}} />)
     const base = screen.getByDisplayValue('803.73')
     fireEvent.change(base, { target: { value: '900.5' } })
     expect(base.value).toBe('900.5') // untouched while typing
     fireEvent.blur(base)
-    expect(screen.getByDisplayValue('900.500000')).toBeTruthy()
+    expect(base.value).toBe('900.5') // and untouched after — no trailing zeros
+    // past the ceiling, it rounds
+    fireEvent.change(base, { target: { value: '1.23456789' } })
+    fireEvent.blur(base)
+    expect(base.value).toBe('1.234568')
   })
 
   it('blur leaves an empty pricing field empty (no 0.00)', () => {

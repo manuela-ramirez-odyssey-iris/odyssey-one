@@ -154,11 +154,17 @@
    here: the Figma spec wants an exact 152px/110px cell, not a
    grows-to-fill one. Page-scoped override (grow:0, fixed basis) rather
    than touching the shared rule, so nothing else with a `.summary-strip`
-   changes. shrink stays 1 (unlike the shared rule's default) so the
-   existing "no horizontal overflow, ever" backstop (S107) still holds on
-   a narrow viewport. 152/110/12px are raw px — no width token fits a
-   component-internal measure like this (strategic-tokens), and there's no
-   line-height token below --line-height-xs's 16px floor. */
+   changes.
+
+   Measured 2026-08-19: cells sat at 87.7px — their CONTENT width — never 152,
+   because the strip lives in the Navbar's `search` slot, a `shrink-0` div
+   that sizes to the strip's MAX-CONTENT, and in that intrinsic pass a
+   shrinkable cell contributes its content width rather than its 152px basis.
+   The fix is the DEFINITE strip width further down (not shrink:0 on the
+   cell), so shrink stays 1 and the strip can still give ground on a narrow
+   window without clipping the lead/trail slots. 152/110/12px are raw px — no width
+   token fits a component-internal measure like this (strategic-tokens), and
+   there's no line-height token below --line-height-xs's 16px floor. */
 .carrier-bid-page .summary-strip__cell {
   flex: 0 1 152px;
   max-width: 152px;
@@ -173,9 +179,45 @@
     transition: none;
   }
 }
+
+/* Narrow-window backstop for the shrink:0 above — no breakpoint, because the
+   constraint is "does the row still fit", not a viewport number.
+   All three Navbar slots are `shrink-0` (Navbar.jsx), so a strip that refuses
+   to give up width pushes the lead (logo) and trail (profile) outward and
+   eventually off the bar. Giving the strip a DEFINITE width is what lets the
+   cells hold 152px without shrink:0: inside a definite-width container the
+   152px basis lays out as 152px, whereas the shrink-0 slot's max-content pass
+   was resolving a shrinkable cell to its content width (the 87.7px bug).
+   `max-width: 100%` + a shrinkable slot then lets the whole strip give ground
+   continuously once lead + strip + trail exceeds the row, instead of clipping
+   at a cliff. Widths track the cell rules directly (4 cells) so they can't
+   drift apart. */
+.carrier-bid-navbar-wrap .navbar > :nth-child(2) {
+  flex-shrink: 1;
+  min-width: 0;
+}
+.carrier-bid-navbar-wrap .summary-strip {
+  width: calc(4 * 152px);
+  max-width: 100%;
+  transition: width 200ms ease;
+}
+.carrier-bid-navbar-wrap--compact .summary-strip {
+  width: calc(4 * 110px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .carrier-bid-navbar-wrap .summary-strip {
+    transition: none;
+  }
+}
 .carrier-bid-navbar-wrap--compact .summary-strip__cell {
   flex-basis: 110px;
   max-width: 110px;
+  /* Vertical padding collapses to 0 compact (user, 2026-08-19) — the shared
+     cell's 16px top/bottom (components.css, Figma's 100px band) is what keeps
+     the bar tall after the digits have already shrunk to lg. Horizontal
+     padding is untouched: it's the cell's gutter against its divider, and
+     nothing about scrolling makes the columns want to touch. */
+  padding-block: 0;
 }
 .carrier-bid-navbar-wrap--compact .summary-strip__label {
   font-weight: var(--font-weight-regular);

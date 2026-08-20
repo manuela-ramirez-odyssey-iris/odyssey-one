@@ -1027,3 +1027,33 @@ test('LINX-13953: seeded dropped-carrier values keep their dependency chains', (
   assert.ok(some((r) => r.orderEquipment) && some((r) => !r.orderEquipment), 'orderEquipment is not exercised both ways')
   assert.ok(some((r) => r.indirectPoint) && some((r) => !r.indirectPoint), 'indirectPoint is not exercised both ways')
 })
+
+// I4 (revised 2026-08-19, user): the shipment instant is the order window's
+// LATE EDGE, not its middle. The order guarantees exactly one late date via the
+// Planning Date Type anchor (LINX-7586/7587/7822; PRD 2365915159) while
+// EARLIEST is optional on both sides, so a plain shipment date must default off
+// LATEST — and SpotBoardTab seeds its carrier rows from exactly these fields
+// (`orderDetails[].latestPickup/latestDelivery`, which mapSellShipmentOutToDetail
+// resolves from requestedShipDate/requestedDeliveryDate).
+test('I4: shipment pickup/delivery === the order LATEST (requested) dates, and earliest never exceeds it', () => {
+  const ds = buildDataset({ totalShipments: 120 })
+  let checked = 0
+  for (const s of ds.shipments) {
+    const detail = ds.details.get(s.sellShipment)
+    for (const o of detail.orderList ?? []) {
+      if (!o.requestedShipDate) continue
+      checked++
+      // late edge, exactly
+      assert.equal(o.requestedShipDate, s.pickupDate,
+        `requestedShipDate must equal the shipment pickup for ${s.sellShipment}`)
+      assert.equal(o.requestedDeliveryDate, s.deliveryDate,
+        `requestedDeliveryDate must equal the shipment delivery for ${s.sellShipment}`)
+      // and the scheduled (earliest) edge never runs past it
+      assert.ok(Date.parse(o.scheduledShipDate) <= Date.parse(o.requestedShipDate),
+        `scheduledShipDate must not exceed requestedShipDate for ${s.sellShipment}`)
+      assert.ok(Date.parse(o.scheduledDeliveryDate) <= Date.parse(o.requestedDeliveryDate),
+        `scheduledDeliveryDate must not exceed requestedDeliveryDate for ${s.sellShipment}`)
+    }
+  }
+  assert.ok(checked > 0, 'expected at least one order with dates')
+})

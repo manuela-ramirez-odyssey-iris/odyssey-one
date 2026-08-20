@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import {
-  Badge, Button, Checkbox, ComboBox, FormField, ModalMedium,
+  Badge, Button, Checkbox, ModalMedium, PillTab,
   SubAccordion, TitleSubtitle,
 } from '@odyssey/ui'
 import DateField from '../components/orders/create/fields/DateField.jsx'
+import DurationPicker from '../components/fields/DurationPicker.jsx'
 import { NAMED_LISTS, buildCarrierRows, FLAG_LABELS } from './carrierList.js'
 import './spotboard.css'
 
@@ -21,9 +22,18 @@ const MODES = [
   { key: 'second', label: 'LTL', list: NAMED_LISTS[1] },
 ]
 
-// ComboBox options derived straight from MODES — one source of truth for the
-// mode → list mapping and the two picker entries.
-const MODE_OPTIONS = MODES.map((m) => ({ value: m.key, label: m.label }))
+// Mode is now a PILL TAB band (user, 2026-08-19) — TL · LTL · All — replacing
+// the select-style ComboBox. 'all' is new: it shows every list's rows at once,
+// which the ComboBox could not express and which matches how inclusion already
+// worked (it always spanned both modes; only the VIEW was single-list).
+const MODE_ALL = 'all'
+const MODE_TABS = [...MODES.map((m) => ({ key: m.key, label: m.label })), { key: MODE_ALL, label: 'All' }]
+
+// Quote Duration default (user, 2026-08-19). Deliberately a flat constant, not
+// `activeList.defaultDurationMin`: those are 120 (TL) and 240 (LTL), and 240
+// cannot be picked in a minutes picker capped at 120 — so the list defaults are
+// no longer the seed for this field. They remain on NAMED_LISTS as data.
+const DEFAULT_DURATION_MIN = 30
 
 // Rows built before the multi-list change carry no `listId` — they belong to
 // the quote's own single list, so attribute them to the first mode rather than
@@ -67,12 +77,16 @@ export default function SetupCarriers({
   onSendRFQ,
   onCancel,
 }) {
-  // Left EMPTY on a fresh quote: the active mode's default rides in the
-  // placeholder instead ("Open Window 120min"), so switching TL↔LTL re-states
-  // the default without silently overwriting anything typed (user, S112).
-  const [durationMin, setDurationMin] = useState(
-    quote?.durationMin != null ? String(quote.durationMin) : ''
-  )
+  // Defaults to 30 MINUTES on a fresh quote (user, 2026-08-19), replacing
+  // S112's empty-field-plus-placeholder scheme. The per-list
+  // `defaultDurationMin` (120 TL / 240 LTL) no longer seeds this field — a
+  // single stated default beats one that changes under you when you flip mode,
+  // and the picker is now a fixed option list, so an empty value has nothing to
+  // advertise.
+  //
+  // ⚠ 240 (the LTL list default) is NOT expressible in a minutes picker whose
+  // ceiling is 120 — see DEFAULT_DURATION_MIN below.
+  const [durationMin, setDurationMin] = useState(quote?.durationMin ?? DEFAULT_DURATION_MIN)
   const [flexiblePickup, setFlexiblePickup] = useState(quote?.flexiblePickup ?? false)
   const [rows, setRows] = useState(quote?.carriers ?? [])
   const [confirming, setConfirming] = useState(false)
@@ -118,8 +132,11 @@ export default function SetupCarriers({
       })
     )
 
-  const activeList = MODES.find((m) => m.key === mode).list
-  const visibleRows = rows.filter((r) => listIdOf(r) === activeList.id)
+  // `activeList` is null in 'All' — there is no single list to attribute to.
+  // Everything downstream that used it for a per-list default is gone (the
+  // duration default is now a flat constant), so null is safe here.
+  const activeList = MODES.find((m) => m.key === mode)?.list ?? null
+  const visibleRows = mode === MODE_ALL ? rows : rows.filter((r) => listIdOf(r) === activeList.id)
 
   // Select-all is scoped to what's ON SCREEN — it must never silently include
   // carriers from the mode you can't currently see.
@@ -187,9 +204,10 @@ export default function SetupCarriers({
     includedRows.some((r) => listIdOf(r) === l.id)
   )
 
-  // An untouched field means "use the default" — the one the placeholder is
-  // advertising for the mode on screen.
-  const effectiveDuration = Number(durationMin) || activeList.defaultDurationMin
+  // The picker always holds a real value now (it seeds at 30 and its options
+  // start at 10), so the old "empty means use the list default" fallback is
+  // gone; DEFAULT_DURATION_MIN only covers a malformed persisted quote.
+  const effectiveDuration = Number(durationMin) || DEFAULT_DURATION_MIN
 
   const buildPayload = () => ({
     listId: includedLists.map((l) => l.id).join('+'),
@@ -201,14 +219,19 @@ export default function SetupCarriers({
 
   // Cancel leads on the left; Save Draft and the primary Send RFQ trail on the
   // right (user, S112). All md; Cancel is a secondary button, not a link.
-  const actions = readOnly ? null : (
+  //
+  // The buttons are ALWAYS MOUNTED (user, 2026-08-19) — once the RFQ is sent
+  // they go `disabled`, they do not disappear. A control that vanishes reads as
+  // a rendering bug and costs the planner the affordance's position; a disabled
+  // one says "this existed, and it is not available now".
+  const actions = (
     <div className="setup-carriers__actions">
-      <Button variant="secondary" onClick={onCancel}>Cancel</Button>
+      <Button variant="secondary" disabled={readOnly} onClick={onCancel}>Cancel</Button>
       <div className="setup-carriers__actions-trail">
-        <Button variant="secondary" onClick={() => onSaveDraft?.(buildPayload())}>
+        <Button variant="secondary" disabled={readOnly} onClick={() => onSaveDraft?.(buildPayload())}>
           Save Draft
         </Button>
-        <Button variant="primary" disabled={!canSend} onClick={() => setConfirming(true)}>
+        <Button variant="primary" disabled={readOnly || !canSend} onClick={() => setConfirming(true)}>
           Send RFQ
         </Button>
       </div>
@@ -230,40 +253,59 @@ export default function SetupCarriers({
         </SubAccordion>
       )}
 
-      <SubAccordion title="Setup & Carriers" showIcon={false} collapsible={false}>
+      {/* Restructured 2026-08-19 (user). The card header, the mode band and the
+          RFQ terms are now SIBLINGS ABOVE the accordion rather than contents of
+          it, and the actions sit BELOW it:
+
+            Setup & Carriers            ← heading (was the SubAccordion title)
+            [ TL ][ LTL ][ All ]        ← PillTab mode band
+            Quote Duration  ☐ Flexible  ← RFQ terms
+            ┌ table ─────────────────┐  ← the accordion now wraps only the table
+            Cancel      Save · Send     ← actions, always mounted
+
+          The accordion keeps no title of its own — the heading above owns the
+          card's identity, and two "Setup & Carriers" strings would be read
+          twice by a screen reader. */}
+      <div className="setup-carriers__head">
+        <h3 className="setup-carriers__heading text-label-base-semibold">Setup &amp; Carriers</h3>
+        <div className="setup-carriers__modes" role="group" aria-label="Carrier list mode">
+          {MODE_TABS.map((m) => (
+            <PillTab
+              key={m.key}
+              label={m.label}
+              selected={mode === m.key}
+              onClick={() => setMode(m.key)}
+            />
+          ))}
+        </div>
+        {/* RFQ terms. Quote Duration is a DurationPicker (app-local) rather than
+            a free-text integer field: the window is a pick from a fixed set of
+            increments, and once the RFQ is open the same control becomes the
+            live countdown instead of a second widget elsewhere. */}
+        <div className="setup-carriers__controls">
+          <DurationPicker
+            id="quote-duration"
+            label="Quote Duration"
+            unit="minutes"
+            value={durationMin}
+            onChange={setDurationMin}
+            running={quote?.status === 'open' && !!quote?.closeAt}
+            endsAt={quote?.closeAt ?? null}
+            totalMs={(quote?.durationMin ?? effectiveDuration) * 60_000}
+            disabled={readOnly}
+          />
+          <Checkbox
+            label="Flexible Pickup"
+            checked={flexiblePickup}
+            onChange={(e) => setFlexiblePickup(e.target.checked)}
+            disabled={readOnly}
+          />
+        </div>
+      </div>
+
+      <SubAccordion showIcon={false} collapsible={false}>
         <div className="order-pane__section setup-carriers">
           <div className="order-pane__block">
-            {/* RFQ terms lead the card, directly below the accordion header —
-                a sibling of the table, not part of it (user, S112). 4-column
-                grid: mode ComboBox, Quote Duration, Flexible Pickup, then an
-                unused 4th track — no other control here naturally fills it. */}
-            <div className="setup-carriers__controls">
-              <ComboBox
-                id="setup-carriers-mode"
-                variant="select"
-                typable={false}
-                options={MODE_OPTIONS}
-                value={mode}
-                onSelect={(val) => setMode(val)}
-                disabled={readOnly}
-              />
-              <FormField
-                id="quote-duration"
-                label="Quote Duration"
-                placeholder={`Open Window ${activeList.defaultDurationMin}min`}
-                format="integer"
-                maxLength={5}
-                value={durationMin}
-                onChange={(e) => setDurationMin(e.target.value)}
-                disabled={readOnly}
-              />
-              <Checkbox
-                label="Flexible Pickup"
-                checked={flexiblePickup}
-                onChange={(e) => setFlexiblePickup(e.target.checked)}
-                disabled={readOnly}
-              />
-            </div>
 
             {/* …then the count, directly above the table. */}
             <div className="setup-carriers__toolbar-top">
@@ -318,7 +360,6 @@ export default function SetupCarriers({
             </div>
           </div>
 
-          {actions && <div className="order-pane__block">{actions}</div>}
         </div>
 
         {confirming && (
@@ -362,6 +403,10 @@ export default function SetupCarriers({
           </ModalMedium>
         )}
       </SubAccordion>
+
+      {/* Actions live BELOW the accordion (user, 2026-08-19) — the card is the
+          table, the actions act on the card. */}
+      {actions}
     </>
   )
 }

@@ -90,6 +90,40 @@
    show through it; the header keeps painting above via `.odyssey-table thead`
    (z-index 2). Centering must out-rank `.odyssey-table th, td`'s left align,
    hence the compound selectors. */
+/* Card head block (2026-08-19 restructure) — heading, then the TL/LTL/All pill
+   band, then the RFQ terms, all ABOVE the table accordion. These used to live
+   inside the accordion with the heading as its title; they were lifted out so
+   the accordion wraps only the table and the actions can sit below it. */
+.setup-carriers__head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  margin-bottom: var(--spacing-3);
+}
+
+.setup-carriers__heading {
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.setup-carriers__modes {
+  display: flex;
+  gap: var(--spacing-2);
+  flex-wrap: wrap;
+}
+
+/* Planned Pickup / Planned Delivery cells — pin the DateField to its own
+   floor instead of letting the table hand it surplus width (user, 2026-08-19:
+   "they look too wide"). `.date-field` only sets `min-width`, and the inner
+   `.form-field` is `width: auto` at desktop, so in an auto-layout table the
+   column grows to whatever share of 100% is left over — 180px is the width
+   the control was measured for (one masked dd/mm/yyyy + calendar button), and
+   anything past it is dead space in a 7-column table. Same token as the floor,
+   so the two can never drift apart. */
+.setup-carriers__table .date-field {
+  width: var(--date-picker-single-min);
+}
+
 .setup-carriers__table th.setup-carriers__col-incl,
 .setup-carriers__table td.setup-carriers__col-incl {
   width: 1%;

@@ -35,19 +35,12 @@ const allRows = NAMED_LISTS.flatMap((l) => buildCarrierRows(l, carrierOptions))
 const tlRows = buildCarrierRows(NAMED_LISTS[0], carrierOptions)
 const ltlRows = buildCarrierRows(NAMED_LISTS[1], carrierOptions)
 
-// The mode control is a pick-only (typable={false}) select-style ComboBox —
-// jsdom never renders virtualized role="option" rows (FieldSearchResults is
-// always virtualized; see FieldSearchResults.jsx), so selection goes through
-// the same keyboard path ComboBox.typeahead.test.jsx uses for pick-only mode:
-// focus opens the full unfiltered list, ArrowDown walks it from -1, Enter commits.
-// MODES order (TL, LTL) is the contract — TL is 1 ArrowDown, LTL is 2.
+// The mode control is a PillTab band (TL · LTL · All) as of 2026-08-19,
+// replacing the pick-only ComboBox and its keyboard-only jsdom workaround —
+// a pill is a plain button, so this is now a click.
 function showMode(label) {
-  const input = screen.getByRole('combobox')
-  const el = input.closest('.combo-box')
-  fireEvent.focus(input)
-  const steps = label === 'TL' ? 1 : 2
-  for (let i = 0; i < steps; i++) fireEvent.keyDown(el, { key: 'ArrowDown' })
-  fireEvent.keyDown(el, { key: 'Enter' })
+  const band = screen.getByRole('group', { name: 'Carrier list mode' })
+  fireEvent.click(within(band).getByText(label))
 }
 
 // Send RFQ / Save Draft / Cancel are separate buttons in the SubAccordion
@@ -196,7 +189,7 @@ describe('SetupCarriers', () => {
     // deliberately excluding the other.
     expect(payload.listId).toBe('tl-se+ltl-comp')
     expect(payload.listName).toBe('TL Southeast Overflow + LTL Comparable Set')
-    expect(payload.durationMin).toBe(list.defaultDurationMin)
+    expect(payload.durationMin).toBe(30) // flat default (2026-08-19), not the list's
     expect(payload.carriers).toHaveLength(allRows.length) // both modes ride along
     // The row the planner edited carries the typed dates; everything else
     // rides on the order's dates. Every included row must be dated — that is
@@ -259,7 +252,10 @@ describe('SetupCarriers', () => {
     expect(screen.queryByTestId(`pickup-${ltlRows[0].scac}`)).toBeFalsy()
   })
 
-  it('the mode control is a select-style ComboBox with exactly TL and LTL options, not a ButtonToggle', () => {
+  // 2026-08-19 (user): the mode control is a PillTab band of THREE — TL, LTL
+  // and the new All — replacing the pick-only ComboBox. 'All' is the reason the
+  // ComboBox had to go: it could not express "show both lists at once".
+  it('the mode control is a PillTab band of TL, LTL and All — not a ComboBox', () => {
     render(
       <SetupCarriers
         carrierOptions={carrierOptions}
@@ -271,29 +267,45 @@ describe('SetupCarriers', () => {
         onCancel={() => {}}
       />
     )
-    // Not a ButtonToggle: the old segmented-button affordance is gone.
+    // Neither of the two superseded affordances survives.
     expect(screen.queryByRole('button', { name: /Show (TL|LTL) carriers/ })).toBeFalsy()
 
-    const input = screen.getByRole('combobox')
-    expect(input.readOnly).toBe(true) // pick-only (typable={false}) select mode
-
-    const el = input.closest('.combo-box')
-    fireEvent.focus(input)
-    expect(input.getAttribute('aria-expanded')).toBe('true')
-
-    // Exactly two options: a THIRD ArrowDown wraps cyclically back to the
-    // FIRST (TL) rather than advancing to a nonexistent third entry —
-    // jsdom never renders virtualized role="option" rows, so counting
-    // options directly isn't possible; the wrap proves the count is 2.
-    fireEvent.keyDown(el, { key: 'ArrowDown' }) // -> TL (index 0)
-    fireEvent.keyDown(el, { key: 'ArrowDown' }) // -> LTL (index 1)
-    fireEvent.keyDown(el, { key: 'ArrowDown' }) // -> wraps back to TL
-    fireEvent.keyDown(el, { key: 'Enter' })
-    expect(screen.getByTestId(`pickup-${tlRows[0].scac}`)).toBeTruthy()
-    expect(screen.queryByTestId(`pickup-${ltlRows[0].scac}`)).toBeFalsy()
+    const band = screen.getByRole('group', { name: 'Carrier list mode' })
+    // The band itself holds no combobox — the only one left on the card is
+    // DurationPicker's own field, which is a different control entirely.
+    expect(within(band).queryByRole('combobox')).toBeFalsy()
+    const pills = within(band).getAllByRole('button')
+    expect(pills.map((p) => p.textContent.trim())).toEqual(['TL', 'LTL', 'All'])
   })
 
-  it('controls row order is mode ComboBox, then Quote Duration, then Flexible Pickup — DOCUMENT ORDER', () => {
+  it('All shows BOTH lists at once; TL and LTL each show only their own', () => {
+    render(
+      <SetupCarriers
+        carrierOptions={carrierOptions}
+        defaultPickup={DEF_PICKUP}
+        defaultDelivery={DEF_DELIVERY}
+        readOnly={false}
+        onSaveDraft={() => {}}
+        onSendRFQ={() => {}}
+        onCancel={() => {}}
+      />
+    )
+    showMode('TL')
+    expect(screen.getByTestId(`pickup-${tlRows[0].scac}`)).toBeTruthy()
+    expect(screen.queryByTestId(`pickup-${ltlRows[0].scac}`)).toBeFalsy()
+
+    showMode('LTL')
+    expect(screen.queryByTestId(`pickup-${tlRows[0].scac}`)).toBeFalsy()
+    expect(screen.getByTestId(`pickup-${ltlRows[0].scac}`)).toBeTruthy()
+
+    showMode('All')
+    expect(screen.getByTestId(`pickup-${tlRows[0].scac}`)).toBeTruthy()
+    expect(screen.getByTestId(`pickup-${ltlRows[0].scac}`)).toBeTruthy()
+  })
+
+  // Restructured 2026-08-19: heading → pill band → RFQ terms, all ABOVE the
+  // table accordion, with the actions BELOW it.
+  it('head block order is heading, then the mode pills, then Quote Duration, then Flexible Pickup', () => {
     const { container } = render(
       <SetupCarriers
         carrierOptions={carrierOptions}
@@ -305,17 +317,21 @@ describe('SetupCarriers', () => {
         onCancel={() => {}}
       />
     )
+    const head = container.querySelector('.setup-carriers__head')
+    const heading = container.querySelector('.setup-carriers__heading')
+    const band = screen.getByRole('group', { name: 'Carrier list mode' })
     const controls = container.querySelector('.setup-carriers__controls')
-    const modeControl = screen.getByRole('combobox')
     const duration = screen.getByLabelText('Quote Duration')
     const flexible = screen.getByLabelText('Flexible Pickup')
 
-    expect(controls.contains(modeControl)).toBe(true)
+    expect(heading.textContent.trim()).toBe('Setup & Carriers')
+    expect(head.contains(band)).toBe(true)
     expect(controls.contains(duration)).toBe(true)
     expect(controls.contains(flexible)).toBe(true)
 
     const FOLLOWING = Node.DOCUMENT_POSITION_FOLLOWING
-    expect(modeControl.compareDocumentPosition(duration) & FOLLOWING).toBeTruthy()
+    expect(heading.compareDocumentPosition(band) & FOLLOWING).toBeTruthy()
+    expect(band.compareDocumentPosition(duration) & FOLLOWING).toBeTruthy()
     expect(duration.compareDocumentPosition(flexible) & FOLLOWING).toBeTruthy()
   })
 
@@ -417,10 +433,8 @@ describe('SetupCarriers', () => {
       />
     )
     expect(screen.getByTestId(`pickup-${tlRows[0].scac}`)).toBeTruthy()
-    // The default rides in the PLACEHOLDER (per-mode); the field starts empty.
-    expect(screen.getByLabelText('Quote Duration').value).toBe('')
-    expect(screen.getByLabelText('Quote Duration').placeholder)
-      .toBe(`Open Window ${NAMED_LISTS[0].defaultDurationMin}min`)
+    // The default is a real seeded value now (30 min), not a placeholder.
+    expect(screen.getByLabelText('Quote Duration').value).toBe('30 min')
 
     showMode('LTL')
     expect(screen.getByTestId(`pickup-${ltlRows[0].scac}`)).toBeTruthy()
@@ -442,9 +456,9 @@ describe('SetupCarriers', () => {
     )
     // Only the quote's own carriers render — not both lists rebuilt.
     expect(screen.getByText(`${rows.length} carriers`)).toBeTruthy()
-    // An existing quote's duration IS a real value, not a placeholder default.
+    // An existing quote's own duration still wins over the 30-min default.
     expect(screen.getByLabelText('Quote Duration').value)
-      .toBe(String(otherList.defaultDurationMin))
+      .toBe(`${otherList.defaultDurationMin} min`)
   })
 
   it('shows a carrier count in the toolbar', () => {
@@ -845,7 +859,10 @@ describe('SetupCarriers', () => {
     })
   })
 
-  it('readOnly hides the header actions entirely', () => {
+  // 2026-08-19 (user): "buttons should not disappear, they can get disabled
+  // when bid is sent". A control that vanishes reads as a rendering bug and
+  // moves everything below it; a disabled one keeps its place and says why.
+  it('readOnly DISABLES the actions rather than removing them', () => {
     render(
       <SetupCarriers
         carrierOptions={carrierOptions}
@@ -857,9 +874,11 @@ describe('SetupCarriers', () => {
         onCancel={() => {}}
       />
     )
-    expect(screen.queryByRole('button', { name: 'Send RFQ' })).toBeFalsy()
-    expect(screen.queryByRole('button', { name: 'Save Draft' })).toBeFalsy()
-    expect(screen.queryByRole('button', { name: 'Cancel' })).toBeFalsy()
+    for (const name of ['Send RFQ', 'Save Draft', 'Cancel']) {
+      const btn = screen.getByRole('button', { name })
+      expect(btn).toBeTruthy()
+      expect(btn.disabled).toBe(true)
+    }
   })
 
   // ── Send RFQ confirmation modal (S112) ────────────────────────────────────
@@ -925,7 +944,7 @@ describe('SetupCarriers', () => {
       const routed = allRows.find((r) => r.flags.includes('Routed'))
       expect(dialog.queryByText(new RegExp(routed.scac))).toBeFalsy()
 
-      expect(dialog.getByText(`${NAMED_LISTS[0].defaultDurationMin} min`)).toBeTruthy()
+      expect(dialog.getByText('30 min')).toBeTruthy() // flat default (2026-08-19)
       expect(dialog.getByText('Yes')).toBeTruthy() // Flexible Pickup
       // Both lists contribute now, so the summary names the composite.
       expect(dialogText).toContain(NAMED_LISTS[0].name)
@@ -969,13 +988,16 @@ describe('SetupCarriers', () => {
       />
     )
 
-    it('advertises the ACTIVE mode default in the placeholder, and follows the toggle', () => {
+    // 2026-08-19 (user): a DurationPicker seeded at a flat 30 min, replacing
+    // the free-text field whose placeholder advertised a per-list default. The
+    // list defaults (120 TL / 240 LTL) no longer seed it — and 240 could not be
+    // picked anyway in a minutes picker capped at 120.
+    it('seeds at 30 min regardless of mode, with no per-list placeholder', () => {
       renderIt()
-      const duration = screen.getByLabelText('Quote Duration')
-      expect(duration.placeholder).toBe(`Open Window ${NAMED_LISTS[0].defaultDurationMin}min`)
+      expect(screen.getByLabelText('Quote Duration').value).toBe('30 min')
       showMode('LTL')
-      expect(screen.getByLabelText('Quote Duration').placeholder)
-        .toBe(`Open Window ${NAMED_LISTS[1].defaultDurationMin}min`)
+      expect(screen.getByLabelText('Quote Duration').value).toBe('30 min')
+      expect(screen.queryByText(/open window/i)).toBeFalsy()
     })
 
     it('the label carries no unit suffix', () => {
@@ -983,27 +1005,28 @@ describe('SetupCarriers', () => {
       expect(screen.queryByText(/open window, min/i)).toBeFalsy()
     })
 
-    it('an untouched field sends the active mode default', () => {
+    it('an untouched picker sends the 30-minute default', () => {
       const onSendRFQ = vi.fn()
       renderIt(onSendRFQ)
       fillDate(tlRows[0].scac, 'pickup', '08/10/2026')
       fillDate(tlRows[0].scac, 'delivery', '08/11/2026')
       sendRFQ()
-      expect(onSendRFQ.mock.calls[0][0].durationMin).toBe(NAMED_LISTS[0].defaultDurationMin)
+      expect(onSendRFQ.mock.calls[0][0].durationMin).toBe(30)
     })
 
-    it('a typed value wins over the default, and toggling does not clobber it', () => {
+    it('a picked value wins over the default, and switching mode does not clobber it', () => {
       const onSendRFQ = vi.fn()
       renderIt(onSendRFQ)
-      fireEvent.change(screen.getByLabelText('Quote Duration'), { target: { value: '45' } })
+      fireEvent.click(screen.getByRole('button', { name: /open duration options/i }))
+      fireEvent.click(within(screen.getByRole('listbox')).getByText('40 min'))
       showMode('LTL')
       showMode('TL')
-      expect(screen.getByLabelText('Quote Duration').value).toBe('45')
+      expect(screen.getByLabelText('Quote Duration').value).toBe('40 min')
 
       fillDate(tlRows[0].scac, 'pickup', '08/10/2026')
       fillDate(tlRows[0].scac, 'delivery', '08/11/2026')
       sendRFQ()
-      expect(onSendRFQ.mock.calls[0][0].durationMin).toBe(45)
+      expect(onSendRFQ.mock.calls[0][0].durationMin).toBe(40)
     })
   })
 })

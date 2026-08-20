@@ -23,9 +23,13 @@
 //                  order.consignee = its DELIVERY stop (same facility/city/
 //                  state/zip + shared locationIdFor id) — NOT the shipment's
 //                  destination, which differs once TL deliveries split.
-//  I4 Dates      — earliestPickup ≤ shipment pickup ≤ latestPickup <
-//                  earliestDelivery ≤ shipment delivery ≤ latestDelivery; the
+//  I4 Dates      — earliestPickup ≤ shipment pickup === latestPickup <
+//                  earliestDelivery ≤ shipment delivery === latestDelivery; the
 //                  detail's scheduled/requested dates render the SAME instants.
+//                  The shipment instant is the window's LATE EDGE (user,
+//                  2026-08-19): the order guarantees exactly one late date via
+//                  the Planning Date Type anchor, earliest is optional on both
+//                  sides, so the plain shipment date defaults off LATEST.
 //  I5 Weights    — order gross/tare/net/volume ROLL UP from its lines; stop
 //                  weight = Σ of its orders; shipment grossWeight = Σ orders.
 //  I6 Status     — shipped orders derive status from the tender outcome
@@ -1735,16 +1739,33 @@ function generateShipment(index, chainOverride) {
     const shipToLoc = deliveryLocs[ord.deliveryStopIdx];
     const shipFromCustomer = customer;
 
-    // I4 — pickup window CONTAINS the shipment pickup instant (baseDate);
-    // delivery window CONTAINS the shipment delivery instant (deliveryDate).
+    // I4 — the shipment instant is the window's LATE EDGE, not its middle:
+    // earliestPickup ≤ shipment pickup === latestPickup, and likewise for
+    // delivery. Changed 2026-08-19 (user) — the order guarantees exactly ONE
+    // late date, selected by the Planning Date Type anchor (Ship Date → Late
+    // Pickup mandatory, Delivery Date → Late Delivery mandatory; LINX-7586/
+    // 7587/7822, PRD 2365915159 "one of Late Pickup or Late Delivery must be
+    // present"), while EARLIEST is optional on both sides. So the shipment's
+    // plain date defaults off LATEST, and the seed has to demonstrate that
+    // rather than straddle it — SpotBoardTab seeds its carrier rows from
+    // `orderDetails[0].latestPickup/latestDelivery` and the numbers must line
+    // up on screen.
+    //
+    // The two "late" faker draws below are RETAINED and deliberately unused.
+    // Deleting a draw shifts every subsequent value in the seeded sequence and
+    // re-numbers all 2,200 shipments — ids here are load-bearing (hardcoded in
+    // tests, vault docs and Neon rows). Keeping the draw costs one discarded
+    // number and keeps the ids byte-identical; the id diff below the change is
+    // what proves it.
     const orderPickupBase = new Date(baseDate);
     orderPickupBase.setHours(baseDate.getHours() - faker.number.int({ min: 1, max: 5 }), pick([0, 15, 30, 45]), 0, 0);
+    void faker.number.int({ min: 2, max: 8 }); void pick([0, 30]); // sequence-preserving discards
     const orderPickupLate = new Date(baseDate);
-    orderPickupLate.setHours(baseDate.getHours() + faker.number.int({ min: 2, max: 8 }), pick([0, 30]), 0, 0);
 
     const orderDeliveryEarly = new Date(deliveryDate);
     orderDeliveryEarly.setHours(deliveryDate.getHours() - faker.number.int({ min: 1, max: 4 }), pick([0, 15, 30, 45]), 0, 0);
-    const orderDeliveryLate = new Date(deliveryDate.getTime() + faker.number.int({ min: 4, max: 24 }) * 60 * 60 * 1000);
+    void faker.number.int({ min: 4, max: 24 }); // sequence-preserving discard
+    const orderDeliveryLate = new Date(deliveryDate.getTime());
     // Stash the window instants for the orders.json row emission (same facts)
     ord.window = {
       earliestPickup: orderPickupBase,
