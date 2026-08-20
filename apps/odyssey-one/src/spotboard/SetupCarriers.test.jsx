@@ -119,7 +119,6 @@ describe('SetupCarriers', () => {
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={() => {}}
-        onCancel={() => {}}
       />
     )
     expect(sendRFQButton().disabled).toBe(true)
@@ -159,7 +158,6 @@ describe('SetupCarriers', () => {
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={() => {}}
-        onCancel={() => {}}
       />
     )
     const rows = buildCarrierRows(list, carrierOptions)
@@ -180,7 +178,6 @@ describe('SetupCarriers', () => {
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={() => {}}
-        onCancel={() => {}}
       />
     )
     const rows = buildCarrierRows(list, carrierOptions)
@@ -199,7 +196,6 @@ describe('SetupCarriers', () => {
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={() => {}}
-        onCancel={() => {}}
       />
     )
     const rows = buildCarrierRows(list, carrierOptions)
@@ -218,7 +214,6 @@ describe('SetupCarriers', () => {
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={() => {}}
-        onCancel={() => {}}
       />
     )
     expect(sendRFQButton().disabled).toBe(true)
@@ -234,7 +229,6 @@ describe('SetupCarriers', () => {
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={onSendRFQ}
-        onCancel={() => {}}
       />
     )
 
@@ -275,7 +269,6 @@ describe('SetupCarriers', () => {
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={onSendRFQ}
-        onCancel={() => {}}
       />
     )
 
@@ -302,7 +295,6 @@ describe('SetupCarriers', () => {
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={() => {}}
-        onCancel={() => {}}
       />
     )
     // All is the default mode (2026-08-20): both lists' carriers are on screen.
@@ -331,7 +323,6 @@ describe('SetupCarriers', () => {
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={() => {}}
-        onCancel={() => {}}
       />
     )
     // Neither of the two superseded affordances survives.
@@ -358,7 +349,6 @@ describe('SetupCarriers', () => {
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={() => {}}
-        onCancel={() => {}}
       />
     )
     const band = screen.getByRole('group', { name: 'Carrier list mode' })
@@ -382,7 +372,6 @@ describe('SetupCarriers', () => {
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={() => {}}
-        onCancel={() => {}}
       />
     )
     showMode('TL')
@@ -411,7 +400,6 @@ describe('SetupCarriers', () => {
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={() => {}}
-        onCancel={() => {}}
       />
     )
     const head = container.querySelector('.setup-carriers__head')
@@ -439,7 +427,6 @@ describe('SetupCarriers', () => {
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={() => {}}
-        onCancel={() => {}}
       />
     )
     const toolbar = container.querySelector('.setup-carriers__toolbar-top')
@@ -459,7 +446,6 @@ describe('SetupCarriers', () => {
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={() => {}}
-        onCancel={() => {}}
       />
     )
     expect(screen.queryByRole('dialog', { name: 'Quote Setup' })).toBeFalsy()
@@ -479,7 +465,6 @@ describe('SetupCarriers', () => {
         readOnly
         onSaveDraft={() => {}}
         onSendRFQ={() => {}}
-        onCancel={() => {}}
       />
     )
     expect(setupQuoteButton().disabled).toBe(true)
@@ -494,7 +479,6 @@ describe('SetupCarriers', () => {
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={() => {}}
-        onCancel={() => {}}
       />
     )
     openSetupModal()
@@ -523,7 +507,6 @@ describe('SetupCarriers', () => {
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={() => {}}
-        onCancel={() => {}}
       />
     )
     openSetupModal()
@@ -547,7 +530,6 @@ describe('SetupCarriers', () => {
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={() => {}}
-        onCancel={() => {}}
       />
     )
     openSetupModal()
@@ -568,7 +550,6 @@ describe('SetupCarriers', () => {
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={() => {}}
-        onCancel={() => {}}
         onTermsChange={onTermsChange}
       />
     )
@@ -594,7 +575,6 @@ describe('SetupCarriers', () => {
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={onSendRFQ}
-        onCancel={() => {}}
       />
     )
     showMode('LTL')
@@ -618,7 +598,6 @@ describe('SetupCarriers', () => {
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={() => {}}
-        onCancel={() => {}}
       />
     )
     fillDate(tlRows[0].scac, 'pickup', '08/10/2026')
@@ -642,7 +621,6 @@ describe('SetupCarriers', () => {
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={() => {}}
-        onCancel={() => {}}
       />
     )
     // All is the default mode — the count spans every built row.
@@ -663,7 +641,6 @@ describe('SetupCarriers', () => {
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={() => {}}
-        onCancel={() => {}}
       />
     )
     openSetupModal()
@@ -679,7 +656,6 @@ describe('SetupCarriers', () => {
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={() => {}}
-        onCancel={() => {}}
       />
     )
     expect(screen.getByTestId(`pickup-${tlRows[0].scac}`)).toBeTruthy()
@@ -704,7 +680,6 @@ describe('SetupCarriers', () => {
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={() => {}}
-        onCancel={() => {}}
       />
     )
     // Only the quote's own carriers render — not both lists rebuilt.
@@ -726,7 +701,6 @@ describe('SetupCarriers', () => {
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={() => {}}
-        onCancel={() => {}}
       />
     )
     expect(screen.getByText(`${rows.length} carriers`)).toBeTruthy()
@@ -783,7 +757,6 @@ describe('SetupCarriers', () => {
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={() => {}}
-        onCancel={() => {}}
       />
     )
     const head = container.querySelector('.setup-carriers__head')
@@ -835,7 +808,6 @@ describe('SetupCarriers', () => {
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={() => {}}
-        onCancel={() => {}}
       />
     )
     // First render: carrierOptions is still empty (async pool not resolved yet).
@@ -849,7 +821,6 @@ describe('SetupCarriers', () => {
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={() => {}}
-        onCancel={() => {}}
       />
     )
 
@@ -868,7 +839,6 @@ describe('SetupCarriers', () => {
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={() => {}}
-        onCancel={() => {}}
       />
     )
     const rows = buildCarrierRows(list, carrierOptions)
@@ -882,7 +852,6 @@ describe('SetupCarriers', () => {
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={() => {}}
-        onCancel={() => {}}
       />
     )
 
@@ -901,7 +870,6 @@ describe('SetupCarriers', () => {
           readOnly={false}
           onSaveDraft={() => {}}
           onSendRFQ={() => {}}
-          onCancel={() => {}}
         />
       )
       const rows = buildCarrierRows(list, carrierOptions)
@@ -919,7 +887,6 @@ describe('SetupCarriers', () => {
           readOnly={false}
           onSaveDraft={() => {}}
           onSendRFQ={() => {}}
-          onCancel={() => {}}
         />
       )
       // The gate is ASYMMETRIC now: it blocks turning a carrier ON without
@@ -952,7 +919,6 @@ describe('SetupCarriers', () => {
           readOnly={false}
           onSaveDraft={() => {}}
           onSendRFQ={() => {}}
-          onCancel={() => {}}
         />
       )
       // Exercised on a ROUTED row, the only kind that starts unchecked now —
@@ -980,7 +946,6 @@ describe('SetupCarriers', () => {
           readOnly={false}
           onSaveDraft={() => {}}
           onSendRFQ={() => {}}
-          onCancel={() => {}}
         />
       )
       const rows = buildCarrierRows(list, carrierOptions)
@@ -1003,7 +968,6 @@ describe('SetupCarriers', () => {
           readOnly={false}
           onSaveDraft={() => {}}
           onSendRFQ={() => {}}
-          onCancel={() => {}}
         />
       )
       // REVERSAL (2026-08-11): rows arrive preselected AND dated, so Send is
@@ -1029,7 +993,6 @@ describe('SetupCarriers', () => {
           readOnly={false}
           onSaveDraft={() => {}}
           onSendRFQ={() => {}}
-          onCancel={() => {}}
         />
       )
       // No order dates supplied → nothing is date-complete → select-all has
@@ -1047,7 +1010,6 @@ describe('SetupCarriers', () => {
           readOnly={false}
           onSaveDraft={() => {}}
           onSendRFQ={() => {}}
-          onCancel={() => {}}
         />
       )
       // Scoped to TL (2026-08-20: All is now the default mode, and select-all
@@ -1086,7 +1048,6 @@ describe('SetupCarriers', () => {
           readOnly={false}
           onSaveDraft={() => {}}
           onSendRFQ={() => {}}
-          onCancel={() => {}}
         />
       )
       // Scoped to TL (2026-08-20: All is now the default mode).
@@ -1114,7 +1075,6 @@ describe('SetupCarriers', () => {
           readOnly={false}
           onSaveDraft={() => {}}
           onSendRFQ={() => {}}
-          onCancel={() => {}}
         />
       )
       // Scoped to TL (2026-08-20: All is now the default mode, and LTL has its
@@ -1167,7 +1127,6 @@ describe('SetupCarriers', () => {
           readOnly={false}
           onSaveDraft={() => {}}
           onSendRFQ={onSendRFQ}
-          onCancel={() => {}}
         />
       )
       const rows = buildCarrierRows(list, carrierOptions)
@@ -1242,7 +1201,6 @@ describe('SetupCarriers', () => {
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={() => {}}
-        onCancel={() => {}}
       />
     )
     expect(container.querySelector('.order-pane__fields-grid')).toBeFalsy()
@@ -1260,7 +1218,6 @@ describe('SetupCarriers', () => {
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={onSendRFQ}
-        onCancel={() => {}}
       />
     )
 
