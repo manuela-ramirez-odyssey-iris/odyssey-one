@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import {
   Badge, Button, Checkbox, ModalMedium, PillTab,
   SubAccordion, TitleSubtitle,
@@ -362,51 +363,58 @@ export default function SetupCarriers({
 
         </div>
 
-        {confirming && (
-          <ModalMedium
-            title="Send RFQ"
-            onClose={() => setConfirming(false)}
-            footer={
-              <>
-                <Button variant="secondary" size="lg" onClick={() => setConfirming(false)}>
-                  Cancel
-                </Button>
-                <Button
-                  variant="primary"
-                  size="lg"
-                  onClick={() => {
-                    setConfirming(false)
-                    onSendRFQ?.(buildPayload())
-                  }}
-                >
-                  Confirm &amp; Send
-                </Button>
-              </>
-            }
-          >
-            <div className="setup-carriers__confirm">
-              <p className="text-label-sm-regular setup-carriers__confirm-lead">
-                The RFQ will be sent to {includedRows.length}{' '}
-                {includedRows.length === 1 ? 'carrier' : 'carriers'}:
-              </p>
-              <ul className="setup-carriers__confirm-list">
-                {includedRows.map((r) => (
-                  <li key={r.scac} className="text-label-sm-regular">{r.scac} · {r.name}</li>
-                ))}
-              </ul>
-              <div className="order-pane__fields-grid">
-                <TitleSubtitle subtitle="Quote Duration" title={`${effectiveDuration} min`} />
-                <TitleSubtitle subtitle="Flexible Pickup" title={flexiblePickup ? 'Yes' : 'No'} />
-                <TitleSubtitle subtitle="Carrier Lists" title={includedLists.map((l) => l.name).join(' + ') || '--'} />
-              </div>
-            </div>
-          </ModalMedium>
-        )}
       </SubAccordion>
 
       {/* Actions live BELOW the accordion (user, 2026-08-19) — the card is the
           table, the actions act on the card. */}
       {actions}
+
+      {/* ponytail: portal at the call site — ModalMedium should portal itself;
+          deferred to its next normalization cycle to avoid demoting it for a
+          behavior change. Moved out of the SubAccordion above: a
+          transformed/overflow ancestor there clips the modal's fixed overlay
+          (same root cause ShipmentDetailsModal.jsx already portals around). */}
+      {confirming && createPortal(
+        <ModalMedium
+          title="Send RFQ"
+          onClose={() => setConfirming(false)}
+          footer={
+            <>
+              <Button variant="secondary" size="lg" onClick={() => setConfirming(false)}>
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                size="lg"
+                onClick={() => {
+                  setConfirming(false)
+                  onSendRFQ?.(buildPayload())
+                }}
+              >
+                Confirm &amp; Send
+              </Button>
+            </>
+          }
+        >
+          <div className="setup-carriers__confirm">
+            <p className="text-label-sm-regular setup-carriers__confirm-lead">
+              The RFQ will be sent to {includedRows.length}{' '}
+              {includedRows.length === 1 ? 'carrier' : 'carriers'}:
+            </p>
+            <ul className="setup-carriers__confirm-list">
+              {includedRows.map((r) => (
+                <li key={r.scac} className="text-label-sm-regular">{r.scac} · {r.name}</li>
+              ))}
+            </ul>
+            <div className="order-pane__fields-grid">
+              <TitleSubtitle subtitle="Quote Duration" title={`${effectiveDuration} min`} />
+              <TitleSubtitle subtitle="Flexible Pickup" title={flexiblePickup ? 'Yes' : 'No'} />
+              <TitleSubtitle subtitle="Carrier Lists" title={includedLists.map((l) => l.name).join(' + ') || '--'} />
+            </div>
+          </div>
+        </ModalMedium>,
+        document.body
+      )}
     </>
   )
 }

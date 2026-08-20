@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { Download, FileText, Sheet, File, EllipsisVertical, Plus } from 'lucide-react'
 import { ICON_MD, ICON_LG } from '@odyssey/tokens'
 import { Button, FormField, ModalMedium, Checkbox, ActionMenu, SubAccordion } from '@odyssey/ui'
@@ -230,8 +231,11 @@ const DocumentsTab = React.memo(function DocumentsTab({ data }) {
         </SubAccordion>
       </div>
 
-      {/* Preview Modal — mechanics unchanged */}
-      {previewDoc && (() => {
+      {/* Preview Modal — mechanics unchanged. Portaled to document.body:
+          ponytail: portal at the call site — ModalMedium should portal itself;
+          deferred to its next normalization cycle to avoid demoting it for a
+          behavior change. */}
+      {previewDoc && createPortal((() => {
         const ext = getFileExtension(previewDoc.fileName)
         return (
           <ModalMedium
@@ -263,10 +267,13 @@ const DocumentsTab = React.memo(function DocumentsTab({ data }) {
             <DocMockup doc={previewDoc} ext={ext} />
           </ModalMedium>
         )
-      })()}
+      })(), document.body)}
 
-      {/* Upload Modal — trigger renamed, mechanics unchanged */}
-      {showModal && (
+      {/* Upload Modal — trigger renamed, mechanics unchanged.
+          ponytail: portal at the call site — ModalMedium should portal itself;
+          deferred to its next normalization cycle to avoid demoting it for a
+          behavior change. */}
+      {showModal && createPortal(
         <ModalMedium
           title="Upload Attachment"
           onClose={handleCloseModal}
@@ -330,7 +337,8 @@ const DocumentsTab = React.memo(function DocumentsTab({ data }) {
               onChange={(e) => setFormDesc(e.target.value)}
             />
           </div>
-        </ModalMedium>
+        </ModalMedium>,
+        document.body
       )}
     </div>
   )
