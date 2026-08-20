@@ -40,7 +40,7 @@ import './durationPicker.css'
  * Props:
  *   unit      — 'hours' | 'minutes' | 'seconds'. Drives increments AND ceiling.
  *   value     — number of `unit`s, or '' for unset (controlled).
- *   onChange  — (number) on pick.
+ *   onChange  — (number) on pick or valid parse; also fires with '' on empty-blur.
  *   running   — external lock. True → no selection, countdown Badge shown.
  *   endsAt    — epoch ms the countdown targets. Required when `running`.
  *   totalMs   — optional: the full window length, for the colour thresholds.
