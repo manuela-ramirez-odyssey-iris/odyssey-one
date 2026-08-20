@@ -52,9 +52,12 @@ const COLUMNS = [
 ]
 
 /**
- * SetupCarriers — SpotBoard "Setup & Carriers" sub-tab. Two cards (S112):
- * a "Shipment Summary" SubAccordion carrying the order-view field grid, then
- * "Setup & Carriers" holding the carrier table and its controls.
+ * SetupCarriers — SpotBoard "Setup & Carriers" sub-tab: heading, mode pills,
+ * RFQ terms, and the carrier table/controls. The shipment context (Origin /
+ * Destination / Pickup Window / Duration) that used to render here as a
+ * "Shipment Summary" SubAccordion field grid (S112) moved OUT to a sticky
+ * `SpotSummaryStrip` rendered by the parent (SpotBoardTab, 2026-08-20) —
+ * this component no longer takes a `summaryFields` prop.
  *
  * The table follows the Orders product-information recipe — a plain
  * `odyssey-table`, not DataTable or GroupTable — because the TL/LTL toggle
@@ -70,13 +73,15 @@ const COLUMNS = [
 export default function SetupCarriers({
   quote,
   carrierOptions,
-  summaryFields = [],
   defaultPickup = '',
   defaultDelivery = '',
   readOnly = false,
   onSaveDraft,
   onSendRFQ,
   onCancel,
+  // ponytail: `onTermsChange` (wired by SpotBoardTab for Task 5's Quote Setup
+  // modal) is deliberately NOT destructured — an un-destructured extra prop
+  // is inert here, so there's nothing to ignore-and-wire yet.
 }) {
   // Defaults to 30 MINUTES on a fresh quote (user, 2026-08-19), replacing
   // S112's empty-field-plus-placeholder scheme. The per-list
@@ -241,19 +246,6 @@ export default function SetupCarriers({
 
   return (
     <>
-      {/* Collapsible (user, S112) — open by default so the context is still the
-          first thing read, but it can be folded away once absorbed. */}
-      {summaryFields.length > 0 && (
-        <SubAccordion title="Shipment Summary" showIcon={false} defaultExpanded>
-          {/* Order-view field grid — label over value in columns (user, S112). */}
-          <div className="order-pane__fields-grid">
-            {summaryFields.map(({ label, value }) => (
-              <TitleSubtitle key={label} subtitle={label} title={value || '--'} />
-            ))}
-          </div>
-        </SubAccordion>
-      )}
-
       {/* Restructured 2026-08-19 (user). The card header, the mode band and the
           RFQ terms are now SIBLINGS ABOVE the accordion rather than contents of
           it, and the actions sit BELOW it:

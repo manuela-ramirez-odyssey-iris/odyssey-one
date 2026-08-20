@@ -40,20 +40,36 @@ describe('SpotBoardTab', () => {
     expect(screen.getAllByText('Live Bids').length).toBeGreaterThan(0)
   })
 
-  // S111 hoisted the context strip out of Setup & Carriers so it survived the
-  // sub-tab switch; S112 REVERSED that (user) — the context is now an
-  // order-view field grid inside the Setup card, so Live Bids no longer shows
-  // it (Live Bids carries its own quote SummaryStrip instead).
-  it('renders the shipment context as a field grid inside the Setup card only', () => {
+  // 2026-08-20 (user): the S112 order-view field grid inside the Setup card
+  // is replaced by a sticky SpotSummaryStrip rendered by the tab itself,
+  // ABOVE the pane-col, on the setup sub-tab only.
+  it('renders the shipment context as a sticky strip on the Setup sub-tab only', () => {
     const { container } = render(<SpotBoardTab shipmentDetails={makeShipmentDetails([])} shipment={shipment} />)
-    const grid = container.querySelector('.order-pane__fields-grid')
-    expect(grid.textContent).toContain('Atlanta, GA')
-    expect(grid.textContent).toContain('Charlotte, NC')
-    // The SummaryStrip is gone — note `Shipment Summary` is now the name of the
-    // SubAccordion region, so assert on the strip's own class, not that name.
-    expect(container.querySelector('.summary-strip')).toBeFalsy()
-    fireEvent.click(screen.getAllByText('Live Bids')[0])
+    const strip = container.querySelector('.spot-sticky-strip')
+    expect(strip).toBeTruthy()
+    expect(strip.textContent).toContain('Atlanta, GA')
+    expect(strip.textContent).toContain('Charlotte, NC')
+    // The old field grid is gone.
     expect(container.querySelector('.order-pane__fields-grid')).toBeFalsy()
+
+    fireEvent.click(screen.getAllByText('Live Bids')[0])
+    expect(container.querySelector('.spot-sticky-strip')).toBeFalsy()
+  })
+
+  // The strip compacts Origin/Destination to "City, ST" and shows the full
+  // stop-location string in a hover tooltip (TooltipTrigger — mouseenter,
+  // since @testing-library/user-event isn't in this repo).
+  it('shows the full stop location in a tooltip on hover over a compacted cell', () => {
+    const details = makeShipmentDetails([])
+    details.stopsData.stops[0].location = 'NOURYON COLUMBUS PL, Kansas City, MO 64101 US'
+    const { container } = render(<SpotBoardTab shipmentDetails={details} shipment={shipment} />)
+    const strip = container.querySelector('.spot-sticky-strip')
+    expect(strip.textContent).toContain('Kansas City, MO')
+    expect(strip.textContent).not.toContain('NOURYON')
+
+    const trigger = strip.querySelector('[data-tooltip-trigger]')
+    fireEvent.mouseEnter(trigger)
+    expect(screen.getByText('NOURYON COLUMBUS PL, Kansas City, MO 64101 US')).toBeTruthy()
   })
 
   // The carrier rows' Planned Pickup/Delivery default off the order's LATEST

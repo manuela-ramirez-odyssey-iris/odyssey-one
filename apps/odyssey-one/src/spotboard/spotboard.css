@@ -218,6 +218,25 @@
   gap: var(--spacing-3);
 }
 
+/* SpotSummaryStrip — sticky shipment-context band above the Setup & Carriers
+   card (user, 2026-08-20; bid-page sticky treatment, cf. Navbar external
+   gradient + blur). Sticks to the TOP of `.shipments-bar__content`
+   (styles/components.css) — that is the nearest scrolling ancestor between
+   here and the strip; nothing in between (the BottomBar wrapper div,
+   PaneErrorBoundary, Suspense, .pane-canvas) sets `overflow`, so
+   `position: sticky` resolves against it directly. `.pane-tabs-band` above
+   the strip is NOT sticky, so it scrolls away first and `top: 0` is correct
+   as soon as it does. */
+.spot-sticky-strip {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: linear-gradient(rgba(255, 255, 255, 0) 0%, var(--white) 100%);
+}
+@supports (backdrop-filter: blur(8px)) {
+  .spot-sticky-strip { backdrop-filter: blur(8px); }
+}
+
 /* RfqLinksPanel — CE-1 email stand-in shown after Send RFQ. */
 .rfq-links .alert__body {
   align-items: flex-start;

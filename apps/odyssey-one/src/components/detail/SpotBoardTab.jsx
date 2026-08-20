@@ -4,6 +4,8 @@ import { EmptyState, Tab } from '@odyssey/ui'
 import SetupCarriers from '../../spotboard/SetupCarriers.jsx'
 import LiveBids from '../../spotboard/LiveBids.jsx'
 import RfqLinksPanel from '../../spotboard/RfqLinksPanel.jsx'
+import SpotSummaryStrip from '../../spotboard/SpotSummaryStrip.jsx'
+import { cityState, compactWindow } from '../../spotboard/stripFormat.js'
 import { useSpotQuote } from '../../spotboard/useSpotQuote.js'
 import { isSpotEligible, eligibilityReason } from '../../spotboard/eligibility.js'
 import { benchmark as computeBenchmark } from '../../spotboard/tolerance.js'
@@ -104,6 +106,9 @@ export default function SpotBoardTab({ shipmentDetails, shipment }) {
   const eligible = isSpotEligible(shipmentDetails?.routingData)
   const [subTab, setSubTab] = useState('setup')
   const [carrierOptions, setCarrierOptions] = useState([])
+  // Filled by Task 5's Quote Setup modal (onTermsChange) — wired now so the
+  // strip's Duration cell is live the moment that modal lands.
+  const [terms, setTerms] = useState(null)
   const timersRef = useRef([])
 
   const { quote, saveDraft, sendRFQ, submitBid, closeQuote, award, clearQuote } =
@@ -128,18 +133,17 @@ export default function SpotBoardTab({ shipmentDetails, shipment }) {
   }, [])
 
   const header = useMemo(() => buildHeader(shipmentDetails), [shipmentDetails])
-  // Shipment context — rendered by SetupCarriers as an order-view FIELD GRID
-  // inside its card (user, S112). This reverses S111's hoist: the context no
-  // longer survives a switch to Live Bids, which has its own quote strip.
-  const summaryFields = useMemo(() => [
-    // Field order per the user (S112): route first, then the load's shape.
-    { label: 'Origin', value: header?.origin },
-    { label: 'Destination', value: header?.destination },
-    { label: 'Distance', value: header?.distance },
-    { label: 'Pickup Window', value: header?.pickupWindow },
-    { label: 'Equipment (seed)', value: header?.equipment },
-    { label: 'Hazmat', value: header?.hazmat },
-  ], [header])
+  // Sticky shipment-context strip (user, 2026-08-20) — replaces the S112
+  // order-view field grid. Only Duration/Origin/Destination/Pickup Window;
+  // Distance/Equipment/Hazmat are deliberately dropped (not requested).
+  const firstOrder = shipmentDetails?.orderDetails?.[0]
+  const durationMin = quote?.durationMin ?? terms?.durationMin ?? null
+  const stripItems = [
+    ...(durationMin != null ? [{ label: 'Duration', value: `${durationMin} min` }] : []),
+    { label: 'Origin', value: cityState(header?.origin), full: header?.origin },
+    { label: 'Destination', value: cityState(header?.destination), full: header?.destination },
+    { label: 'Pickup Window', value: compactWindow(firstOrder?.earliestPickup, firstOrder?.latestPickup), full: header?.pickupWindow },
+  ]
   const distanceMi = parseDistanceMi(shipmentDetails?.stopsData?.summary?.distance)
   // Real benchmark: highest cost among the shipment's routed options (the
   // domain-correct definition — LiveBids' own "highest submitted bid"
@@ -218,6 +222,10 @@ export default function SpotBoardTab({ shipmentDetails, shipment }) {
         </div>
       </div>
 
+      {subTab === 'setup' && (
+        <SpotSummaryStrip aria-label="Shipment summary" items={stripItems} />
+      )}
+
       {rfqLinksVisible && (
         <div className="pane-col pane-col--wide">
           <RfqLinksPanel
@@ -232,7 +240,7 @@ export default function SpotBoardTab({ shipmentDetails, shipment }) {
           <SetupCarriers
             quote={quote}
             carrierOptions={carrierOptions}
-            summaryFields={summaryFields}
+            onTermsChange={setTerms}
             // Kathleen's workflow (2026-08-07), node 1: the Spot Quote tab
             // opens with "Dates/transit + eligible carriers auto-filled".
             // Seeded from the ORDER's scheduled dates — the same values the

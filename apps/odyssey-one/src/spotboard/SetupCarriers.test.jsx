@@ -952,26 +952,25 @@ describe('SetupCarriers', () => {
     })
   })
 
-  it('renders the shipment context as an order-view field grid, not a stat strip', () => {
+  // 2026-08-20 (user): the Shipment Summary field grid moved out of this
+  // component entirely — the shipment context is now a sticky
+  // SpotSummaryStrip the PARENT (SpotBoardTab) renders. SetupCarriers no
+  // longer takes a `summaryFields` prop or renders either grid/strip markup.
+  it('no longer renders a shipment-context field grid or strip of its own', () => {
     const { container } = render(
       <SetupCarriers
         carrierOptions={carrierOptions}
         defaultPickup={DEF_PICKUP}
         defaultDelivery={DEF_DELIVERY}
-        summaryFields={[
-          { label: 'Origin', value: 'Atlanta, GA' },
-          { label: 'Destination', value: 'Charlotte, NC' },
-        ]}
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={() => {}}
         onCancel={() => {}}
       />
     )
-    expect(container.querySelector('.order-pane__fields-grid')).toBeTruthy()
+    expect(container.querySelector('.order-pane__fields-grid')).toBeFalsy()
     expect(container.querySelector('.summary-strip')).toBeFalsy()
-    expect(screen.getByText('Origin')).toBeTruthy()
-    expect(screen.getByText('Atlanta, GA')).toBeTruthy()
+    expect(screen.queryByText('Shipment Summary')).toBeFalsy()
   })
 
   // ── Quote duration default (S112) ─────────────────────────────────────────
