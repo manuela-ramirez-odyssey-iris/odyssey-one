@@ -23,12 +23,16 @@ const MODES = [
   { key: 'second', label: 'LTL', list: NAMED_LISTS[1] },
 ]
 
-// Mode is now a PILL TAB band (user, 2026-08-19) — TL · LTL · All — replacing
-// the select-style ComboBox. 'all' is new: it shows every list's rows at once,
-// which the ComboBox could not express and which matches how inclusion already
-// worked (it always spanned both modes; only the VIEW was single-list).
+// Mode is now a PILL TAB band (user, 2026-08-19) — replacing the select-style
+// ComboBox. 'all' shows every list's rows at once, which the ComboBox could
+// not express and which matches how inclusion already worked (it always
+// spanned both modes; only the VIEW was single-list).
+//
+// All-first, and the default mode (user, 2026-08-20, Task 6) — a planner
+// opens the pane wanting the full carrier picture, not one list arbitrarily
+// picked over the other.
 const MODE_ALL = 'all'
-const MODE_TABS = [...MODES.map((m) => ({ key: m.key, label: m.label })), { key: MODE_ALL, label: 'All' }]
+const MODE_TABS = [{ key: MODE_ALL, label: 'All' }, ...MODES.map((m) => ({ key: m.key, label: m.label }))]
 
 // Quote Duration default (user, 2026-08-19). Deliberately a flat constant, not
 // `activeList.defaultDurationMin`: those are 120 (TL) and 240 (LTL), and 240
@@ -94,7 +98,7 @@ export default function SetupCarriers({
   const [flexiblePickup, setFlexiblePickup] = useState(quote?.flexiblePickup ?? false)
   const [rows, setRows] = useState(quote?.carriers ?? [])
   const [confirming, setConfirming] = useState(false)
-  const [mode, setMode] = useState('first')
+  const [mode, setMode] = useState(MODE_ALL)
 
   // Quote Setup modal (Task 5) — Duration / Planned Pickup for All / Planned
   // Delivery for All / Flexible, triggered by the "Setup Quote" button
@@ -187,6 +191,14 @@ export default function SetupCarriers({
   // duration default is now a flat constant), so null is safe here.
   const activeList = MODES.find((m) => m.key === mode)?.list ?? null
   const visibleRows = mode === MODE_ALL ? rows : rows.filter((r) => listIdOf(r) === activeList.id)
+
+  // Each pill's own count Badge (Task 6) — All = every built row, TL/LTL =
+  // that list's rows only. Independent of `visibleRows`/`mode`: a pill always
+  // reports ITS OWN count, not the currently-selected one's.
+  const countFor = (key) =>
+    key === MODE_ALL
+      ? rows.length
+      : rows.filter((r) => listIdOf(r) === MODES.find((m) => m.key === key).list.id).length
 
   // Select-all is scoped to what's ON SCREEN — it must never silently include
   // carriers from the mode you can't currently see.
@@ -295,7 +307,7 @@ export default function SetupCarriers({
           SIBLINGS ABOVE the accordion, and the actions sit BELOW it:
 
             Setup & Carriers            ← heading (was the SubAccordion title)
-            [ TL ][ LTL ][ All ]        ← PillTab mode band
+            [ All ][ TL ][ LTL ]        ← PillTab mode band, All-first + counts
             (live countdown, once open) ← running-state DurationPicker only
             ┌ table ─────────────────┐  ← the accordion now wraps only the table
             Cancel      Save · Send     ← actions, always mounted
@@ -310,6 +322,7 @@ export default function SetupCarriers({
             <PillTab
               key={m.key}
               label={m.label}
+              count={countFor(m.key)}
               selected={mode === m.key}
               onClick={() => setMode(m.key)}
             />

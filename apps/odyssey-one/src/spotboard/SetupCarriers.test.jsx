@@ -264,7 +264,7 @@ describe('SetupCarriers', () => {
     expect(onSendRFQ.mock.calls[0][0].flexiblePickup).toBe(true)
   })
 
-  it('shows ONE list at a time behind the TL/LTL mode control', () => {
+  it('shows ONE list at a time behind the TL/LTL mode control; All shows both', () => {
     render(
       <SetupCarriers
         carrierOptions={carrierOptions}
@@ -276,9 +276,9 @@ describe('SetupCarriers', () => {
         onCancel={() => {}}
       />
     )
-    // TL is the default mode: its carriers are on screen, LTL's are not.
+    // All is the default mode (2026-08-20): both lists' carriers are on screen.
     expect(screen.getByTestId(`pickup-${tlRows[0].scac}`)).toBeTruthy()
-    expect(screen.queryByTestId(`pickup-${ltlRows[0].scac}`)).toBeFalsy()
+    expect(screen.getByTestId(`pickup-${ltlRows[0].scac}`)).toBeTruthy()
 
     showMode('LTL')
     expect(screen.getByTestId(`pickup-${ltlRows[0].scac}`)).toBeTruthy()
@@ -292,7 +292,8 @@ describe('SetupCarriers', () => {
   // 2026-08-19 (user): the mode control is a PillTab band of THREE — TL, LTL
   // and the new All — replacing the pick-only ComboBox. 'All' is the reason the
   // ComboBox had to go: it could not express "show both lists at once".
-  it('the mode control is a PillTab band of TL, LTL and All — not a ComboBox', () => {
+  // 2026-08-20 (user): reordered All-first, since it's now the default.
+  it('the mode control is a PillTab band of All, TL and LTL — not a ComboBox', () => {
     render(
       <SetupCarriers
         carrierOptions={carrierOptions}
@@ -312,7 +313,35 @@ describe('SetupCarriers', () => {
     // DurationPicker's own field, which is a different control entirely.
     expect(within(band).queryByRole('combobox')).toBeFalsy()
     const pills = within(band).getAllByRole('button')
-    expect(pills.map((p) => p.textContent.trim())).toEqual(['TL', 'LTL', 'All'])
+    // The pill's label is its own direct text-node child — the count Badge is
+    // a nested element, so `firstChild` isolates the label from the count.
+    expect(pills.map((p) => p.firstChild.textContent.trim())).toEqual(['All', 'TL', 'LTL'])
+  })
+
+  // Task 6 (2026-08-20, user): All leads, and each pill carries a metric-badge
+  // count of its own rows — All = every built row, TL/LTL = that list's rows.
+  it('All is selected by default and each pill shows its own row count', () => {
+    render(
+      <SetupCarriers
+        carrierOptions={carrierOptions}
+        defaultPickup={DEF_PICKUP}
+        defaultDelivery={DEF_DELIVERY}
+        readOnly={false}
+        onSaveDraft={() => {}}
+        onSendRFQ={() => {}}
+        onCancel={() => {}}
+      />
+    )
+    const band = screen.getByRole('group', { name: 'Carrier list mode' })
+    const [allPill, tlPill, ltlPill] = within(band).getAllByRole('button')
+
+    expect(allPill.getAttribute('aria-pressed')).toBe('true')
+    expect(tlPill.getAttribute('aria-pressed')).toBe('false')
+    expect(ltlPill.getAttribute('aria-pressed')).toBe('false')
+
+    expect(within(allPill).getByText(String(allRows.length))).toBeTruthy()
+    expect(within(tlPill).getByText(String(tlRows.length))).toBeTruthy()
+    expect(within(ltlPill).getByText(String(ltlRows.length))).toBeTruthy()
   })
 
   it('All shows BOTH lists at once; TL and LTL each show only their own', () => {
@@ -387,7 +416,8 @@ describe('SetupCarriers', () => {
     const toolbar = container.querySelector('.setup-carriers__toolbar-top')
     const button = within(toolbar).getByRole('button', { name: 'Setup Quote' })
     expect(button.className).toContain('btn--secondary')
-    const count = within(toolbar).getByText(`${tlRows.length} carriers`)
+    // All is the default mode — the toolbar count spans every built row.
+    const count = within(toolbar).getByText(`${allRows.length} carriers`)
     expect(count.compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
@@ -586,6 +616,9 @@ describe('SetupCarriers', () => {
         onCancel={() => {}}
       />
     )
+    // All is the default mode — the count spans every built row.
+    expect(screen.getByText(`${allRows.length} carriers`)).toBeTruthy()
+    showMode('TL')
     expect(screen.getByText(`${tlRows.length} carriers`)).toBeTruthy()
     expect(screen.queryByText(`${allRows.length} carriers`)).toBeFalsy()
     showMode('LTL')
@@ -712,7 +745,8 @@ describe('SetupCarriers', () => {
     const toolbar = container.querySelector('.setup-carriers__toolbar-top')
     const table = container.querySelector('.setup-carriers__table-wrap')
 
-    expect(within(toolbar).getByText(`${tlRows.length} carriers`)).toBeTruthy()
+    // All is the default mode — the count spans every built row.
+    expect(within(toolbar).getByText(`${allRows.length} carriers`)).toBeTruthy()
     expect(within(toolbar).getByRole('button', { name: 'Setup Quote' })).toBeTruthy()
 
     // document order: head → toolbar → table
@@ -777,7 +811,8 @@ describe('SetupCarriers', () => {
     )
 
     const rows = buildCarrierRows(list, carrierOptions)
-    expect(screen.getByText(`${tlRows.length} carriers`)).toBeTruthy()
+    // All is the default mode — the count spans every built row.
+    expect(screen.getByText(`${allRows.length} carriers`)).toBeTruthy()
     expect(screen.getByTestId(`pickup-${rows[0].scac}`)).toBeTruthy()
   })
 
@@ -972,6 +1007,10 @@ describe('SetupCarriers', () => {
           onCancel={() => {}}
         />
       )
+      // Scoped to TL (2026-08-20: All is now the default mode, and select-all
+      // must stay scoped to what's ON SCREEN — pin it to TL explicitly so this
+      // test isolates one list's rows the way it always intended to).
+      showMode('TL')
       const rows = buildCarrierRows(list, carrierOptions)
       const complete = rows[0].scac
       const incomplete = rows[1].scac
@@ -1007,6 +1046,8 @@ describe('SetupCarriers', () => {
           onCancel={() => {}}
         />
       )
+      // Scoped to TL (2026-08-20: All is now the default mode).
+      showMode('TL')
       const rows = buildCarrierRows(list, carrierOptions)
       fillDate(rows[0].scac, 'pickup', '08/10/2026')
       fillDate(rows[0].scac, 'delivery', '08/11/2026')
@@ -1033,6 +1074,10 @@ describe('SetupCarriers', () => {
           onCancel={() => {}}
         />
       )
+      // Scoped to TL (2026-08-20: All is now the default mode, and LTL has its
+      // own preselected-off Routed carrier that would otherwise stop the
+      // "every selectable row included" state this test pins).
+      showMode('TL')
       const rows = buildCarrierRows(list, carrierOptions)
       fillDate(rows[0].scac, 'pickup', '08/10/2026')
       fillDate(rows[0].scac, 'delivery', '08/11/2026')
