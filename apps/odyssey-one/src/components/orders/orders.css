@@ -46,6 +46,67 @@
   gap: var(--spacing-3);
 }
 
+/* ── Filters panel (LINX-10285 / 11663 / 11659) ──────────── */
+
+/* Placement is the GlobalSearch one, not a bespoke anchor: the bar lives in the
+   navbar via AppShell's `searchSlot` and the panel drops beneath it. The
+   wrapper + panel rules are the SAME selectors Shipments uses
+   (`.shipments-global-search` / `.shipments-results-panel`), comma-extended in
+   components.css rather than restated here — so the two domains cannot drift
+   apart. The card chrome comes from `.global-search-panel` +
+   `.global-search-panel--filters`. */
+
+/* Two fields that read as a pair share a row: Origin/Destination and the two
+   date ranges (user, 2026-08-20). Every such run is already adjacent in the
+   AC's field order — see groupFields in OrdersFiltersView. */
+.orders-filters__grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-4);
+}
+
+/* DatePicker carries an inline `style={{ maxWidth: 284 }}` (DatePicker.jsx) —
+   a content-derived cap that suits a form field but leaves the picker short of
+   its grid column here, so it no longer lines up with the ComboBox above it.
+   `!important` is load-bearing and not a shortcut: an inline style cannot be
+   overridden any other way from CSS. Scoped to THIS panel (user: "remove max
+   width pickup and delivery dates for this case") — the component's own
+   default is untouched, so Shipments and every form keep the 284 cap. The
+   alternative, a width prop on DatePicker, is a normalized-component change
+   and would owe a Figma sync + an Angular twin for a panel-local layout tweak. */
+.orders-filters__field > .date-picker {
+  max-width: none !important;
+  width: 100%;
+}
+
+/* Operator dropdown + value field on one row (LINX-11659 Error Count). */
+.orders-filters__comparator {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  gap: var(--spacing-3);
+}
+
+/* Committed-value chips are spans (not toggle buttons) and carry a remove-X. */
+.orders-filters__chips [role='listitem'] {
+  display: inline-flex;
+  align-items: center;
+  cursor: default;
+}
+
+/* Remove-X on a committed value chip. */
+.orders-filters__chip-x {
+  display: inline-flex;
+  align-items: center;
+  margin-left: var(--spacing-2);
+  border: none;
+  background: transparent;
+  padding: 0;
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+.orders-filters__chip-x:hover { color: var(--text-primary); }
+
 /* ── Grid cells (S94 per-tab columns) ────────────────────── */
 
 .orders-location-cell {

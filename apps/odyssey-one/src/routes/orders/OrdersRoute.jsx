@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Inbox, Plus } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
@@ -7,6 +7,8 @@ import AppShell from '../../components/layout/AppShell'
 import OrdersToolbar from '../../components/orders/OrdersToolbar'
 import OrdersTable from '../../components/orders/OrdersTable'
 import OrdersExportModal, { EXPORT_ROW_CAP } from '../../components/orders/OrdersExportModal'
+import OrdersGlobalSearch from '../../components/global-search/OrdersGlobalSearch'
+import { activeFilterCount, toRequestFilters } from '../../search/orders/toRequest'
 import { useOrderList } from '../../api/queries/useOrderList'
 import { useOrderTabCounts } from '../../api/queries/useOrderTabCounts'
 import { useSubmitDraftOrder } from '../../api/queries/useSubmitDraftOrder'
@@ -70,14 +72,40 @@ export default function OrdersRoute() {
   const cancelOrder = useCancelOrder()
   // Export to Excel (LINX-9896 BR V) — toolbar Export opens the confirm modal.
   const [exportOpen, setExportOpen] = useState(false)
+  // Panel filters (LINX-10285/11663/11659), keyed BY TAB: the three tabs
+  // specify disjoint filter sets, so one shared bag would carry a value into a
+  // tab whose panel never shows that field — an invisible filter.
+  const [filtersByTab, setFiltersByTab] = useState({})
+  const tabFilters = filtersByTab[activeTab]
+  // Panel open state lives HERE, not in OrdersGlobalSearch: two triggers drive
+  // one panel — the navbar bar's FilterButton and the table toolbar's Filters
+  // button — and they sit in different subtrees, so neither can own it.
+  const [filtersOpen, setFiltersOpen] = useState(false)
+  // Committed GlobalSearch free text (S128). Deliberately NOT per-tab: a search
+  // is a question about ORDERS, not about the tab you happen to be on, and the
+  // Shipments bar behaves the same way across its panels. The tab's own status
+  // filter still applies on top, so the tab keeps its meaning.
+  const [searchText, setSearchText] = useState('')
 
   const tabStatuses = MAIN_TABS.find(t => t.key === activeTab)?.statuses
   const sortField = SORT_FIELD_BY_COLUMN[sorting[0]?.id] ?? sorting[0]?.id ?? 'orderNumber'
-  const request = useMemo(() => ({
-    pagination: { pageNumber: pagination.pageIndex + 1, pageSize: pagination.pageSize },
-    sort: { field: sortField, direction: sorting[0]?.desc ? 'desc' : 'asc' },
-    ...(tabStatuses ? { filters: { orderStatuses: tabStatuses } } : {}),
-  }), [pagination, sortField, sorting, tabStatuses])
+  const request = useMemo(() => {
+    // Tab statuses first, panel filters over them. They can't collide: only the
+    // All tab exposes an Order Status field, and its tabStatuses is null; the
+    // VE tab's status filter is the separate `draftOrderStatuses`.
+    const filters = {
+      ...(tabStatuses ? { orderStatuses: tabStatuses } : {}),
+      ...toRequestFilters(activeTab, tabFilters),
+      // Raw text; getOrderList resolves it into needles where the full dataset
+      // is (mock) or by asking the server (live).
+      ...(searchText ? { searchText } : {}),
+    }
+    return {
+      pagination: { pageNumber: pagination.pageIndex + 1, pageSize: pagination.pageSize },
+      sort: { field: sortField, direction: sorting[0]?.desc ? 'desc' : 'asc' },
+      ...(Object.keys(filters).length ? { filters } : {}),
+    }
+  }, [pagination, sortField, sorting, tabStatuses, activeTab, tabFilters, searchText])
 
   // Reset to the first page when the customer scope changes (query identity
   // change — the Shipments-proven pattern).
@@ -94,7 +122,21 @@ export default function OrdersRoute() {
     setActiveTab(key)
     setPagination(p => ({ ...p, pageIndex: 0 }))
     setSorting(DEFAULT_SORT[key] ?? DEFAULT_SORT.all)
+    // OrdersGlobalSearch closes its own panel on a tab change — the field set
+    // changes with the tab, so an open panel would show the previous one.
   }
+
+  // A committed search re-ranks the whole list — page 5 of the old result set
+  // is meaningless against the new one.
+  const handleSearch = useCallback((text) => {
+    setSearchText(text)
+    setPagination(p => ({ ...p, pageIndex: 0 }))
+  }, [])
+
+  const handleApplyFilters = useCallback((draft) => {
+    setFiltersByTab(prev => ({ ...prev, [activeTab]: draft }))
+    setPagination(p => ({ ...p, pageIndex: 0 })) // a narrowed list may have fewer pages than the current index
+  }, [activeTab])
   // Paging during a background refetch is intentionally NOT gated: the @odyssey/ui
   // Paginator disables nav via getCan{Previous,Next}Page(), and
   // `placeholderData: keepPreviousData` keeps the current page visible during an
@@ -141,7 +183,21 @@ export default function OrdersRoute() {
   }
 
   return (
-    <AppShell>
+    <AppShell
+      // Filters live in the navbar bar's FilterButton, with the panel dropping
+      // beneath it — the same slot + placement Shipments uses (user ruling,
+      // 2026-08-20). The Orders search half is phase 2.
+      searchSlot={
+        <OrdersGlobalSearch
+          tab={activeTab}
+          filters={tabFilters}
+          onApply={handleApplyFilters}
+          open={filtersOpen}
+          onOpenChange={setFiltersOpen}
+          onSearch={handleSearch}
+        />
+      }
+    >
       <div className="orders-page">
         {/* marginBottom 25 = the Shipments header→tabs gap (ShipmentsRoute) */}
         <PageHeader title="Orders" style={{ marginBottom: 25 }}>
@@ -162,7 +218,14 @@ export default function OrdersRoute() {
           ))}
         </div>
 
-        <OrdersToolbar totalCount={data?.totalCount} onExportClick={() => setExportOpen(true)} />
+        {/* Filters here is a TRIGGER only — the panel renders in the
+            GlobalSearch slot above, never next to the grid. */}
+        <OrdersToolbar
+          totalCount={data?.totalCount}
+          onExportClick={() => setExportOpen(true)}
+          onFiltersClick={() => setFiltersOpen(o => !o)}
+          filterCount={activeFilterCount(activeTab, tabFilters)}
+        />
 
         {isError ? (
           <div className="orders-page__status">

@@ -124,6 +124,14 @@ export const PRESETS = {
     { id: 'logistics', name: 'Logistics View', columns: ['buyShipment', 'customerId', 'shipmentStatus', 'origin', 'destination', 'mode', 'equipmentCode', 'grossWeight', 'pickupDate', 'deliveryDate'] },
     { id: 'financial', name: 'Financial View', columns: ['buyShipment', 'customerId', 'shipmentStatus', 'orders', 'apFreightCost', 'grossWeight', 'mode', 'scac'] },
     { id: 'carrier', name: 'Carrier View', columns: ['buyShipment', 'shipmentStatus', 'scac', 'mode', 'equipmentCode', 'pickupDate', 'deliveryDate', 'origin', 'destination', 'apFreightCost'] },
+    // Everything the catalog offers, in catalog order — Jana asked for a way to
+    // demo the grid with every column on. DERIVED from ALL_COLUMNS rather than
+    // listed, so a column added above is in this preset the moment it exists;
+    // a hand-typed list would silently drift the first time someone appends a
+    // column (exactly the failure mode LATE_ADDED_COLUMNS exists to patch up).
+    // Named "All Columns" because the GROUP is already "Odyssey" — a preset
+    // called "Odyssey" inside "Odyssey Presets" says nothing about what it does.
+    { id: 'all-columns', name: 'All Columns', columns: ALL_COLUMNS.map(c => c.key) },
   ],
 }
 

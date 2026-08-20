@@ -2,7 +2,10 @@ import { getApiMode } from '../config'
 import { apiGet, apiPatch, apiPost, apiPut } from '../client'
 import { getAllOrders, getOrderEnrichment } from '../../data/orders'
 import { currentUser } from '../../data/sso-mock'
-import type { OrderListRequest, OrderListResponse, OrderListRow } from '../types/orderList'
+import type { LocationTriple, OrderListRequest, OrderListResponse, OrderListRow } from '../types/orderList'
+import {
+  matchesAnyNeedle, compareByCriteria, textNeedles, tokenizeText, ORDERS_FREE_TEXT_ATTRS,
+} from '../../search/orders/criteria'
 import { mapFormToOrderInterface } from '../mappers/mapFormToOrderInterface'
 import { mapOrderViewToFormVm } from '../mappers/mapOrderViewToFormVm'
 import type { CreateOrderRequest, CreateOrderResponse, ManualOrder } from '../types/createOrder'
@@ -25,6 +28,71 @@ function dateInRange(iso: string | undefined, from?: string, to?: string): boole
 
 const oneOf = (values: string[] | undefined, v: string | undefined) =>
   !values?.length || values.includes(v ?? '')
+
+// LINX-11663 note: "Filters can not be applied on blank values" — a row whose
+// field is blank must not match a filter on that field. `oneOf` already gives
+// that (a filter of ['Ready'] can't include ''), and `dateInRange` returns
+// false for a missing date. Nothing extra needed; stated here so the next
+// reader doesn't "fix" it into a permissive null-passes check.
+
+// Match a location against selected City-State-Country triples: the row matches
+// if it equals ANY WHOLE triple. This is what the three parallel LLD arrays
+// can't express — ANDing them cross-products, so Miami/Florida/US +
+// Milan/Lombardy/Italy would also admit "Miami, Lombardy, Italy". Applied only
+// when the triples are present; the arrays remain the fallback.
+function matchesLocation(
+  loc: { city?: string; state?: string; country?: string } | undefined,
+  triples: LocationTriple[] | undefined,
+): boolean {
+  if (!triples?.length) return true
+  if (!loc) return false
+  return triples.some(t =>
+    (t.city ?? '') === (loc.city ?? '') &&
+    (t.state ?? '') === (loc.state ?? '') &&
+    (t.country ?? '') === (loc.country ?? ''))
+}
+
+/**
+ * GlobalSearch free text (S128). Delegates to the SHARED matcher so the Orders
+ * bar behaves exactly as the Shipments one does — substring match ORed across
+ * the free-text columns, needles ORed with each other (multi-code union).
+ * Relevance ordering is applied separately, below, so prefix hits float to the
+ * top the way they do in Shipments.
+ */
+/**
+ * Swap the client-facing raw `searchText` for the resolved `searchTerms` the
+ * matcher and the SQL actually consume. `searchText` never goes on the wire —
+ * leaving it there would invite a second, divergent server-side resolution.
+ */
+function withTerms(
+  filters: OrderListRequest['filters'],
+  searchTerms?: string[],
+): OrderListRequest['filters'] {
+  const next = { ...filters }
+  delete next!.searchText
+  if (searchTerms?.length) next!.searchTerms = searchTerms
+  else delete next!.searchTerms
+  return next
+}
+
+function matchesSearchTerms(row: OrderListRow, terms: string[] | undefined): boolean {
+  if (!terms?.length) return true
+  return matchesAnyNeedle(row as unknown as Record<string, unknown>, terms)
+}
+
+// LINX-11659 Error Count comparator. A row with no errorCount never matches
+// (same blank-value rule as above) — the field only exists on VE-tab rows.
+function matchesErrorCount(
+  count: number | undefined,
+  op: 'gt' | 'eq' | 'lt' | undefined,
+  value: number | undefined,
+): boolean {
+  if (!op || value == null) return true
+  if (count == null) return false
+  if (op === 'gt') return count > value
+  if (op === 'lt') return count < value
+  return count === value
+}
 
 // Column id → row-value getter for header sorting (S94). Ids matching a
 // top-level string field (orderNumber, customer, orderStatus, ...) need no
@@ -109,28 +177,78 @@ export async function getOrderList(
     const { pageNumber, pageSize } = request.pagination
     return { success: true, orders: [], pagination: { pageNumber, pageSize, totalCount: 0 }, error: null }
   }
+  const searchText = request.filters?.searchText?.trim()
+
   if (getApiMode() === 'live') {
-    const body = customerIds
-      ? { ...request, filters: { ...request.filters, customers: customerIds } }
-      : request
-    return apiPost<OrderListResponse>('/order-service/v3/order/list', body)
+    // The navbar scope and a panel Customer filter must INTERSECT, not replace.
+    // This used to be a flat `customers: customerIds`, which silently threw away
+    // the panel's own Customer selection — the live path returned the whole
+    // scope while mock (scope first, then `oneOf`) correctly ANDed them, so the
+    // two modes disagreed and only live was wrong. An empty intersection is
+    // honest: filtering to a customer outside your scope yields nothing.
+    const picked = request.filters?.customers
+    const scopedFilters = {
+      ...request.filters,
+      ...(customerIds
+        ? { customers: picked?.length ? picked.filter(c => customerIds.includes(c)) : customerIds }
+        : {}),
+    }
+    const post = (searchTerms?: string[]) =>
+      apiPost<OrderListResponse>('/order-service/v3/order/list', {
+        ...request,
+        filters: withTerms(scopedFilters, searchTerms),
+      })
+
+    if (!searchText) return post()
+
+    // Phrase-vs-code-list, server-side twin (criteria-core `textNeedles`): we
+    // cannot ask "does the phrase match ANY row?" from here without the whole
+    // dataset, so ask the server — run the phrase, and only if it matches
+    // NOTHING re-run as a code list. The second round trip happens exactly in
+    // the miss case, which is the case the union exists to rescue.
+    const phrase = await post([searchText.toLowerCase()])
+    if (phrase.pagination.totalCount > 0) return phrase
+    const tokens = tokenizeText(searchText)
+    return tokens.length >= 2 ? post(tokens) : phrase
   }
 
   let rows = mockScopedRows(customerIds)
 
+  // Resolved ONCE, against the FULL dataset (not the customer-scoped rows) so
+  // every consumer reads the query the same way — the criteria-core contract.
+  const mockNeedles = searchText
+    ? textNeedles(getAllOrders() as unknown as Record<string, unknown>[], searchText)
+    : []
+
   const f = request.filters
   if (f) {
+    // Origin/Destination: the triples win when the caller sent them (the panel
+    // always does); the parallel arrays stay the path for any caller still on
+    // the raw LLD shape. Sending both would otherwise double-filter, which is
+    // harmless but makes the cross-product bug invisible in the mock.
+    const originTriples = f.originLocations
+    const destTriples = f.destinationLocations
     rows = rows.filter(r =>
       oneOf(f.customers, r.customer) &&
       oneOf(f.orderNumbers, r.orderNumber) &&
       // mock matches display labels; code→label mapping deferred until filters bind (plan decision 8)
       oneOf(f.orderStatuses, r.orderStatus) &&
-      oneOf(f.originCities, r.consignor?.city) &&
-      oneOf(f.originStates, r.consignor?.state) &&
-      oneOf(f.originCountries, r.consignor?.country) &&
-      oneOf(f.destinationCities, r.consignee?.city) &&
-      oneOf(f.destinationStates, r.consignee?.state) &&
-      oneOf(f.destinationCountries, r.consignee?.country))
+      // LINX-11659 — the VE tab's own status vocabulary, distinct from orderStatus above.
+      oneOf(f.draftOrderStatuses, r.draftOrderStatus) &&
+      oneOf(f.createdBy, r.createdBy) &&
+      oneOf(f.lastEditedBy, r.lastEditedBy) &&
+      matchesErrorCount(r.errorCount, f.errorCountOperator, f.errorCountValue) &&
+      matchesSearchTerms(r, mockNeedles) &&
+      (originTriples?.length
+        ? matchesLocation(r.consignor, originTriples)
+        : oneOf(f.originCities, r.consignor?.city) &&
+          oneOf(f.originStates, r.consignor?.state) &&
+          oneOf(f.originCountries, r.consignor?.country)) &&
+      (destTriples?.length
+        ? matchesLocation(r.consignee, destTriples)
+        : oneOf(f.destinationCities, r.consignee?.city) &&
+          oneOf(f.destinationStates, r.consignee?.state) &&
+          oneOf(f.destinationCountries, r.consignee?.country)))
     if (f.earliestPickupDateFrom || f.earliestPickupDateTo)
       rows = rows.filter(r => dateInRange(r.consignor?.earliestPickupDateTime, f.earliestPickupDateFrom, f.earliestPickupDateTo))
     if (f.latestPickupDateFrom || f.latestPickupDateTo)
@@ -139,6 +257,34 @@ export async function getOrderList(
       rows = rows.filter(r => dateInRange(r.consignee?.earliestDeliveryDateTime, f.earliestDeliveryDateFrom, f.earliestDeliveryDateTo))
     if (f.latestDeliveryDateFrom || f.latestDeliveryDateTo)
       rows = rows.filter(r => dateInRange(r.consignee?.latestDeliveryDateTime, f.latestDeliveryDateFrom, f.latestDeliveryDateTo))
+    // LINX-11663 (Draft tab) — same From/To semantics over the audit timestamps.
+    if (f.createdDateFrom || f.createdDateTo)
+      rows = rows.filter(r => dateInRange(r.createdAt, f.createdDateFrom, f.createdDateTo))
+    if (f.lastEditDateFrom || f.lastEditDateTo)
+      rows = rows.filter(r => dateInRange(r.lastEditAt, f.lastEditDateFrom, f.lastEditDateTo))
+  }
+
+  // RELEVANCE first, when the bar carries free text (S128). Same rule Shipments
+  // applies: exact > starts-with > contains, ties broken by which free-text
+  // attribute matched. This is what makes "type the first characters of an
+  // order number" put that order at the TOP rather than somewhere in 5,000
+  // rows — the substring matcher above admits interior hits too, and without
+  // this they would interleave with the prefix hits.
+  //
+  // It deliberately OVERRIDES the column sort while a search is active, exactly
+  // as the Shipments grid does (gridService's `compareByCriteria` branch):
+  // a relevance-ranked result list that is then re-sorted by created-date is
+  // just an unranked list.
+  if (mockNeedles.length) {
+    const cmp = compareByCriteria({ text: mockNeedles[0], chips: [] }, ORDERS_FREE_TEXT_ATTRS, mockNeedles)
+    if (cmp) rows = [...rows].sort(cmp as (a: OrderListRow, b: OrderListRow) => number)
+    const { pageNumber: pn, pageSize: ps } = request.pagination
+    return {
+      success: true,
+      orders: rows.slice((pn - 1) * ps, (pn - 1) * ps + ps),
+      pagination: { pageNumber: pn, pageSize: ps, totalCount: rows.length },
+      error: null,
+    }
   }
 
   // LLD example default: orderNumber asc. Header sorting (S94) needs more than

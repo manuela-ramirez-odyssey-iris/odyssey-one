@@ -4680,11 +4680,13 @@ button.breadcrumb__label:focus-visible {
    ShipmentsGlobalSearch wraps GlobalSearch + SearchPanel in a relative
    container so the SearchPanel can be absolutely positioned below the bar.
    ---------------------------------------- */
-.shipments-global-search {
+.shipments-global-search,
+.orders-global-search {
   position: relative;
   flex: 1;
 }
-.shipments-results-panel {
+.shipments-results-panel,
+.orders-results-panel {
   position: absolute;
   top: calc(100% + var(--spacing-2));
   /* Centered horizontally under the GlobalSearch component (stays put as the
@@ -4696,7 +4698,8 @@ button.breadcrumb__label:focus-visible {
 /* The panel is programmatically focusable (tabIndex -1) so clicking inside it
    keeps Enter committing the search (S80 req 4) — no visible focus ring: focus
    here is a side-effect of clicking, not keyboard navigation. */
-.shipments-results-panel:focus {
+.shipments-results-panel:focus,
+.orders-results-panel:focus {
   outline: none;
 }
 
@@ -4830,7 +4833,8 @@ button.breadcrumb__label:focus-visible {
   padding: var(--spacing-3) var(--spacing-6) 0;
 }
 
-.shipments-filters__body {
+.shipments-filters__body,
+.orders-filters__body {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-5);
@@ -4844,12 +4848,14 @@ button.breadcrumb__label:focus-visible {
   gap: var(--spacing-3);
 }
 .shipments-filters__section-title { color: var(--text-primary); }
-.shipments-filters__field {
+.shipments-filters__field,
+.orders-filters__field {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
-.shipments-filters__label {
+.shipments-filters__label,
+.orders-filters__label {
   display: flex;
   align-items: center;
   gap: 4px;
@@ -4866,12 +4872,14 @@ button.breadcrumb__label:focus-visible {
   gap: var(--spacing-4) var(--spacing-4);
 }
 
-.shipments-filters__chips {
+.shipments-filters__chips,
+.orders-filters__chips {
   display: flex;
   flex-wrap: wrap;
   gap: var(--spacing-2);
 }
-.shipments-filters__chip {
+.shipments-filters__chip,
+.orders-filters__chip {
   padding: 4px var(--spacing-3);
   border: 1px solid transparent;
   border-radius: var(--radius-pill);
@@ -4880,8 +4888,10 @@ button.breadcrumb__label:focus-visible {
   cursor: pointer;
   transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
 }
-.shipments-filters__chip:hover { background: var(--deep-sea-neutral-100); }
-.shipments-filters__chip.is-selected {
+.shipments-filters__chip:hover,
+.orders-filters__chip:hover { background: var(--deep-sea-neutral-100); }
+.shipments-filters__chip.is-selected,
+.orders-filters__chip.is-selected {
   background: var(--bg-primary);
   border-color: var(--carolina-blue-400);
   color: var(--text-primary);

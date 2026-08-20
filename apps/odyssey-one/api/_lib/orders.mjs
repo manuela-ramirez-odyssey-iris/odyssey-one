@@ -33,10 +33,21 @@ const SORT_MAP = {
 }
 
 // Array-of-string filters (OrderListRequest.filters): key → column, matched with = ANY.
+//
+// These maps are WHITELISTS: a filter key that isn't listed is silently
+// ignored, which is exactly how a panel filter can look wired and do nothing.
+// Adding a field to OrderListRequest.filters means adding it HERE too, not
+// only to the mock service — the app runs live whenever .env.local sets
+// VITE_API_MODE=live, which is the default local setup.
 const ARRAY_FILTERS = [
   ['customers', 'customer'], ['orderNumbers', 'order_number'], ['orderStatuses', 'order_status'],
   ['originCities', 'origin_city'], ['originStates', 'origin_state'], ['originCountries', 'origin_country'],
   ['destinationCities', 'dest_city'], ['destinationStates', 'dest_state'], ['destinationCountries', 'dest_country'],
+  // Draft tab (LINX-11663) + Validation Errors tab (LINX-11659). `= ANY`
+  // excludes NULLs, which is the AC's "filters can not be applied on blank
+  // values" for free.
+  ['createdBy', 'created_by'], ['lastEditedBy', 'last_edited_by'],
+  ['draftOrderStatuses', 'draft_order_status'],
 ]
 // Date-range bounds: key → column, comparison. To-bounds are date-inclusive (< next day).
 const DATE_FILTERS = [
@@ -44,6 +55,40 @@ const DATE_FILTERS = [
   ['latestPickupDateFrom', 'latest_pickup_ts', '>='], ['latestPickupDateTo', 'latest_pickup_ts', '<'],
   ['earliestDeliveryDateFrom', 'earliest_delivery_ts', '>='], ['earliestDeliveryDateTo', 'earliest_delivery_ts', '<'],
   ['latestDeliveryDateFrom', 'latest_delivery_ts', '>='], ['latestDeliveryDateTo', 'latest_delivery_ts', '<'],
+  // Draft tab (LINX-11663)
+  ['createdDateFrom', 'created_at', '>='], ['createdDateTo', 'created_at', '<'],
+  ['lastEditDateFrom', 'last_edit_at', '>='], ['lastEditDateTo', 'last_edit_at', '<'],
+]
+
+// Error Count comparator (LINX-11659). The operator is looked up in this map,
+// never interpolated from the request — same rule as SORT_MAP.
+const ERROR_COUNT_OPS = { gt: '>', eq: '=', lt: '<' }
+
+// Columns GlobalSearch free text scans. MIRROR of ORDERS_FREE_TEXT_KEYS in
+// src/search/orders/criteria.js — change both together, or the bar means one
+// thing in mock and another in live. (`po_number` is deliberately absent from
+// both: this table has no such column.)
+const SEARCH_COLUMNS = ['order_number', 'customer']
+
+// Relevance ranking for a free-text search, mirroring `scoreText` in
+// src/search/criteria-core.js: exact 3 · starts-with 2 · contains 1 · none 0.
+// Scored on the FIRST needle only — enough to float prefix hits to the top,
+// which is the behaviour being reproduced, without a per-needle CASE explosion.
+function relevanceSql(paramIndex) {
+  const scored = SEARCH_COLUMNS.map(c =>
+    `CASE WHEN lower(${c}) = lower($${paramIndex}) THEN 3
+          WHEN lower(${c}) LIKE lower($${paramIndex}) || '%' THEN 2
+          WHEN lower(${c}) LIKE '%' || lower($${paramIndex}) || '%' THEN 1
+          ELSE 0 END`)
+  return `GREATEST(${scored.join(', ')})`
+}
+
+// Origin/Destination location triples (LINX-10285): key → the three columns.
+// Row-wise IN means a whole City-State-Country must match, so two selections
+// can't cross-product into a third combination the user never picked.
+const LOCATION_FILTERS = [
+  ['originLocations', ['origin_city', 'origin_state', 'origin_country']],
+  ['destinationLocations', ['dest_city', 'dest_state', 'dest_country']],
 ]
 
 export function buildOrderListQuery({ pagination = {}, filters = {}, sort } = {}) {
@@ -51,9 +96,18 @@ export function buildOrderListQuery({ pagination = {}, filters = {}, sort } = {}
   const where = []
   const add = (clause, v) => { values.push(v); where.push(clause.replace('?', `$${values.length}`)) }
 
+  // The panel sends location triples AND their three parallel arrays while the
+  // LLD shape is unsettled. When the triples are present they are authoritative
+  // and the arrays are skipped — a triple with a blank part (Birmingham, UK)
+  // drops that part from the mirror array, so keeping both clauses would
+  // exclude the very row the user picked.
+  const supersededArrays = new Set(
+    LOCATION_FILTERS.flatMap(([key, cols]) => (filters[key]?.length ? cols : [])),
+  )
+
   for (const [key, col] of ARRAY_FILTERS) {
     const v = filters[key]
-    if (v === undefined) continue
+    if (v === undefined || supersededArrays.has(col)) continue
     if (v.length === 0) { where.push('FALSE'); continue }   // honest empty (S79c decision 10)
     add(`${col} = ANY(?)`, v)
   }
@@ -61,11 +115,60 @@ export function buildOrderListQuery({ pagination = {}, filters = {}, sort } = {}
     if (!filters[key]) continue
     add(op === '<' ? `${col} < (?::date + 1)` : `${col} >= ?`, filters[key])
   }
+  // Location triples — one row-wise IN per filter (the mirror arrays were
+  // skipped above).
+  for (const [key, cols] of LOCATION_FILTERS) {
+    const list = filters[key]
+    if (!list?.length) continue
+    const tuples = list.map(t => {
+      values.push(t.city ?? '', t.state ?? '', t.country ?? '')
+      const n = values.length
+      return `($${n - 2}, $${n - 1}, $${n})`
+    })
+    where.push(`(${cols.join(', ')}) IN (${tuples.join(', ')})`)
+  }
+  // Error Count comparator (LINX-11659) — both halves required, operator
+  // whitelisted. A NULL error_count never satisfies a comparison, which is the
+  // blank-value rule again.
+  const ecOp = ERROR_COUNT_OPS[filters.errorCountOperator]
+  if (ecOp && Number.isInteger(filters.errorCountValue)) {
+    add(`error_count ${ecOp} ?`, filters.errorCountValue)
+  }
+
+  // GlobalSearch free text (S128). The client resolved the query into NEEDLES
+  // already (phrase, or several codes) — this only has to reproduce the match:
+  // each needle is a case-insensitive SUBSTRING ORed across the free-text
+  // columns, and the needles are ORed with each other (multi-code union).
+  //
+  // The column list mirrors ORDERS_FREE_TEXT_KEYS in
+  // src/search/orders/criteria.js — they must be changed together or live and
+  // mock disagree about what "search" means. Values go through $N parameters;
+  // ILIKE's wildcards are added in SQL, not by string-building the pattern.
+  if (filters.searchTerms?.length) {
+    const ors = filters.searchTerms.map(term => {
+      values.push(term)
+      const n = values.length
+      return SEARCH_COLUMNS.map(c => `${c} ILIKE '%' || $${n} || '%'`).join(' OR ')
+    })
+    where.push(`(${ors.join(' OR ')})`)
+  }
 
   const pageNumber = pagination.pageNumber ?? 1        // 1-based per LLD (Q29)
   const pageSize = pagination.pageSize ?? 50
   const sortCol = SORT_MAP[sort?.field] ?? 'order_number'
   const dir = sort?.direction === 'desc' ? 'DESC' : 'ASC'
+
+  // A free-text search is RELEVANCE-ordered and the column sort is dropped for
+  // the duration — the same override the mock service and the Shipments grid
+  // apply. Ranking a result set and then re-sorting it by created-date would
+  // throw the ranking away. The term parameter is pushed BEFORE limit/offset so
+  // its $N is stable.
+  let orderSql = `${sortCol} ${dir} NULLS LAST`
+  if (filters.searchTerms?.length) {
+    values.push(filters.searchTerms[0])
+    orderSql = `${relevanceSql(values.length)} DESC, ${sortCol} ${dir} NULLS LAST`
+  }
+
   values.push(pageSize); const limitP = values.length
   values.push((pageNumber - 1) * pageSize); const offsetP = values.length
 
@@ -73,7 +176,7 @@ export function buildOrderListQuery({ pagination = {}, filters = {}, sort } = {}
   return {
     text: `SELECT ${ROW_COLUMNS}, count(*) OVER()::int AS "__total"
            FROM orders ${whereSql}
-           ORDER BY ${sortCol} ${dir} NULLS LAST
+           ORDER BY ${orderSql}
            LIMIT $${limitP} OFFSET $${offsetP}`,
     values,
   }

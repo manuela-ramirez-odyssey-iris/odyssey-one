@@ -58,6 +58,13 @@ export type OrderStatusCode =
   | 'DRAFT' | 'RD_4_PLNNG' | 'PLN_LD' | 'PLNED_SHIP'
   | 'PLNNG_FAIL' | 'SHIP_FAIL' | 'CAN'
 
+/** One City-State-Country selection from the Origin/Destination filter. */
+export interface LocationTriple {
+  city: string
+  state: string
+  country: string
+}
+
 export interface OrderListRequest {
   pagination: {
     pageNumber: number              // LLD list example is 1-BASED ("pageNumber": 1) but the sibling
@@ -82,6 +89,55 @@ export interface OrderListRequest {
     earliestDeliveryDateTo?: string
     latestDeliveryDateFrom?: string
     latestDeliveryDateTo?: string
+
+    // ── OUR CONTRACT EXTENSION (2026-08-20) ────────────────────────────────
+    // The LLD's filter object covers the All tab only. LINX-11663 (Draft) and
+    // LINX-11659 (Validation Errors) specify filter sets with no LLD field to
+    // bind to, so these are ours to propose — same footing as the
+    // /order-service/v3/order/tab-counts endpoint (also not in the LLD).
+    // Naming follows the LLD's own conventions (<field>From/To, plural arrays).
+    createdDateFrom?: string          // LINX-11663 — Draft "Created Date" range
+    createdDateTo?: string
+    lastEditDateFrom?: string         // LINX-11663 — Draft "Last Edit Date" range
+    lastEditDateTo?: string
+    createdBy?: string[]              // LINX-11663 — usernames, matches row.createdBy
+    lastEditedBy?: string[]           // LINX-11663 — matches row.lastEditedBy
+    // LINX-11659 — the VE tab's "Order Status" is draftOrderStatus
+    // (Ready/Complete/Purge, the OIF validation state per LINX-11137), NOT the
+    // lifecycle orderStatus. Separate field so the two vocabularies can't collide.
+    draftOrderStatuses?: string[]
+    errorCountOperator?: 'gt' | 'eq' | 'lt'  // LINX-11659 — Greater Than / Equals / Less Than
+    errorCountValue?: number                 // whole number ≥ 1, no decimals
+
+    /**
+     * GlobalSearch free text as the user committed it — the CLIENT-facing
+     * field. `getOrderList` resolves it into `searchTerms` below; nothing else
+     * should read it.
+     */
+    searchText?: string
+
+    /**
+     * The resolved NEEDLES — what actually reaches the matcher and the SQL.
+     * Semantics are Shipments' verbatim (search/criteria-core): each needle is
+     * a case-insensitive SUBSTRING match ORed across the Orders free-text
+     * columns, and the needles are ORed with each other — the multi-code union,
+     * so "CODE1 CODE2" returns both orders' results mixed.
+     *
+     * An ARRAY, not a raw string, on purpose: phrase-vs-code-list is a property
+     * of the QUERY against the whole dataset, decided ONCE per query and never
+     * re-derived per row — or per PAGE, which would let page 2 disagree with
+     * page 1 about what the query even meant.
+     */
+    searchTerms?: string[]
+
+    // Location triples (LINX-10285). The three parallel arrays above are the
+    // LLD's model and are ANDed, which cross-products on multi-select: two
+    // selected triples also match every mix of their parts. These carry the
+    // intended semantics (match ANY whole triple); the mock uses them when
+    // present and falls back to the arrays otherwise. Open with Ramesh —
+    // when the LLD shape is settled, one of the two representations goes away.
+    originLocations?: LocationTriple[]
+    destinationLocations?: LocationTriple[]
   }
   sort?: { field: string; direction: 'asc' | 'desc' }  // LLD example default: orderNumber asc;
                                                         // valid field list not stated (Q31)

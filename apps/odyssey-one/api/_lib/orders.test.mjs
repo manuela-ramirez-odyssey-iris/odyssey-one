@@ -260,3 +260,124 @@ test('create order: unknown/absent customerId (FK violation) -> honest 400, not 
     (e) => e.status === 400,
   )
 })
+
+// ── Panel filters: Draft + Validation Errors + location triples ─────────────
+// (LINX-11663 / LINX-11659 / LINX-10285). These keys are whitelisted in
+// ARRAY_FILTERS / DATE_FILTERS / LOCATION_FILTERS — an unlisted key is silently
+// ignored, so each one needs a test that proves it reaches the SQL.
+
+test('order list: Draft-tab filters reach the SQL', () => {
+  const q = buildOrderListQuery({
+    filters: {
+      createdBy: ['amy.cook'], lastEditedBy: ['ben.planner'],
+      createdDateFrom: '2026-01-01', createdDateTo: '2026-01-31',
+      lastEditDateFrom: '2026-02-01', lastEditDateTo: '2026-02-28',
+    },
+  })
+  assert.match(q.text, /created_by = ANY/)
+  assert.match(q.text, /last_edited_by = ANY/)
+  assert.match(q.text, /created_at >= \$\d+/)
+  assert.match(q.text, /created_at < \(\$\d+::date \+ 1\)/)
+  assert.match(q.text, /last_edit_at >= \$\d+/)
+  assert.match(q.text, /last_edit_at < \(\$\d+::date \+ 1\)/)
+})
+
+test('order list: VE-tab draftOrderStatuses is its own column, not order_status', () => {
+  const q = buildOrderListQuery({ filters: { draftOrderStatuses: ['Ready', 'Purge'] } })
+  assert.match(q.text, /draft_order_status = ANY/)
+  assert.ok(!/[^_]order_status = ANY/.test(q.text))
+})
+
+test('order list: error-count comparator, operator whitelisted', () => {
+  assert.match(buildOrderListQuery({ filters: { errorCountOperator: 'lt', errorCountValue: 10 } }).text,
+    /error_count < \$\d+/)
+  assert.match(buildOrderListQuery({ filters: { errorCountOperator: 'gt', errorCountValue: 3 } }).text,
+    /error_count > \$\d+/)
+  assert.match(buildOrderListQuery({ filters: { errorCountOperator: 'eq', errorCountValue: 3 } }).text,
+    /error_count = \$\d+/)
+  // An injected operator, a missing half, and a non-integer are all no-ops.
+  for (const filters of [
+    { errorCountOperator: '> 0 OR 1=1 --', errorCountValue: 1 },
+    { errorCountOperator: 'lt' },
+    { errorCountValue: 10 },
+    { errorCountOperator: 'lt', errorCountValue: 1.5 },
+    // `error_count` also appears in the row projection — assert on the
+    // COMPARISON, which only a WHERE clause produces.
+  ]) assert.ok(!/error_count [<>=]/.test(buildOrderListQuery({ filters }).text))
+})
+
+test('order list: location triples match row-wise, superseding the mirror arrays', () => {
+  const q = buildOrderListQuery({
+    filters: {
+      originLocations: [
+        { city: 'Miami', state: 'Florida', country: 'US' },
+        { city: 'Milan', state: 'Lombardy', country: 'Italy' },
+      ],
+      // The panel sends these too; they must NOT also constrain, or a triple
+      // with a blank part would exclude its own row.
+      originCities: ['Miami', 'Milan'], originStates: ['Florida', 'Lombardy'], originCountries: ['US', 'Italy'],
+    },
+  })
+  assert.match(q.text, /\(origin_city, origin_state, origin_country\) IN \(\(\$\d+, \$\d+, \$\d+\), \(\$\d+, \$\d+, \$\d+\)\)/)
+  assert.ok(!/origin_city = ANY/.test(q.text))
+  assert.deepEqual(q.values.slice(0, 6), ['Miami', 'Florida', 'US', 'Milan', 'Lombardy', 'Italy'])
+})
+
+test('order list: mirror arrays still apply when no triples are sent', () => {
+  const q = buildOrderListQuery({ filters: { originCities: ['Milan'] } })
+  assert.match(q.text, /origin_city = ANY/)
+})
+
+// ── GlobalSearch free text (S128) ──────────────────────────────────────────
+// Mirrors src/search/orders/criteria.js: substring per needle, ORed across the
+// free-text columns and ORed across needles (multi-code union), relevance-first
+// ordering. The two implementations must agree or the bar means different
+// things in mock and live.
+
+test('order list: free text ORs across columns and across needles', () => {
+  const q = buildOrderListQuery({ filters: { searchTerms: ['abc', 'def'] } })
+  assert.match(q.text, /order_number ILIKE '%' \|\| \$\d+ \|\| '%' OR customer ILIKE '%' \|\| \$\d+ \|\| '%'/)
+  // Two needles → two OR-groups, both inside ONE parenthesised clause so the
+  // union can't leak across the ANDed filters around it.
+  const clause = q.text.match(/\((order_number ILIKE[^)]*)\)/)[1]
+  assert.equal((clause.match(/order_number ILIKE/g) || []).length, 2)
+  assert.ok(q.values.includes('abc'))
+  assert.ok(q.values.includes('def'))
+})
+
+test('order list: free text never string-builds the pattern', () => {
+  // The % wildcards are SQL literals; the user's text only ever arrives as $N.
+  const q = buildOrderListQuery({ filters: { searchTerms: ["%' OR 1=1 --"] } })
+  assert.ok(q.values.includes("%' OR 1=1 --"))
+  assert.ok(!q.text.includes('OR 1=1'))
+})
+
+test('order list: a search is relevance-ordered and overrides the column sort', () => {
+  const q = buildOrderListQuery({
+    filters: { searchTerms: ['usa'] },
+    sort: { field: 'created', direction: 'desc' },
+  })
+  // exact 3 / starts-with 2 / contains 1, mirroring scoreText.
+  assert.match(q.text, /ORDER BY GREATEST\(/)
+  assert.match(q.text, /THEN 3/)
+  assert.match(q.text, /THEN 2/)
+  assert.match(q.text, /THEN 1/)
+  // The column sort survives as the tiebreak, not as the primary key.
+  assert.match(q.text, /GREATEST\([\s\S]*?\) DESC, created_at DESC NULLS LAST/)
+})
+
+test('order list: no search text leaves the column sort untouched', () => {
+  const q = buildOrderListQuery({ sort: { field: 'created', direction: 'desc' } })
+  assert.match(q.text, /ORDER BY created_at DESC NULLS LAST/)
+  assert.ok(!/GREATEST/.test(q.text))
+})
+
+test('order list: LIMIT/OFFSET params stay correct with a search term present', () => {
+  const q = buildOrderListQuery({
+    filters: { searchTerms: ['usa'] },
+    pagination: { pageNumber: 3, pageSize: 20 },
+  })
+  // The relevance param is pushed before limit/offset — the last two values
+  // must still be pageSize then offset, or paging silently breaks.
+  assert.deepEqual(q.values.slice(-2), [20, 40])
+})
