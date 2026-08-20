@@ -136,11 +136,14 @@
   background: var(--bg-primary);
 }
 
-/* Cancel leads, Save Draft + Send RFQ trail — one row below the table (S112). */
+/* Save Draft + Send RFQ trail right — one row below the table (S112). Cancel
+   removed (Task 7, 2026-08-20) — flex-end, not space-between: with only the
+   trail div as a child now, space-between would push it to the left instead
+   of keeping it trailing. */
 .setup-carriers__actions {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: var(--spacing-3);
 }
 

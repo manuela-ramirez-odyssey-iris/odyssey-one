@@ -82,7 +82,6 @@ export default function SetupCarriers({
   readOnly = false,
   onSaveDraft,
   onSendRFQ,
-  onCancel,
   onTermsChange,
 }) {
   // Defaults to 30 MINUTES on a fresh quote (user, 2026-08-19), replacing
@@ -279,8 +278,10 @@ export default function SetupCarriers({
     flexiblePickup,
   })
 
-  // Cancel leads on the left; Save Draft and the primary Send RFQ trail on the
-  // right (user, S112). All md; Cancel is a secondary button, not a link.
+  // Save Draft and the primary Send RFQ trail on the right (user, S112).
+  // Cancel is GONE (Task 7, 2026-08-20, user) — there is nothing to lead the
+  // row on the left anymore. The primary button's label counts included vs
+  // total rows ("Send x/y RFQ", Task 7) instead of a flat "Send RFQ".
   //
   // The buttons are ALWAYS MOUNTED (user, 2026-08-19) — once the RFQ is sent
   // they go `disabled`, they do not disappear. A control that vanishes reads as
@@ -288,13 +289,12 @@ export default function SetupCarriers({
   // one says "this existed, and it is not available now".
   const actions = (
     <div className="setup-carriers__actions">
-      <Button variant="secondary" disabled={readOnly} onClick={onCancel}>Cancel</Button>
       <div className="setup-carriers__actions-trail">
         <Button variant="secondary" disabled={readOnly} onClick={() => onSaveDraft?.(buildPayload())}>
           Save Draft
         </Button>
         <Button variant="primary" disabled={readOnly || !canSend} onClick={() => setConfirming(true)}>
-          Send RFQ
+          {`Send ${includedRows.length}/${rows.length} RFQ`}
         </Button>
       </div>
     </div>
@@ -310,7 +310,7 @@ export default function SetupCarriers({
             [ All ][ TL ][ LTL ]        ← PillTab mode band, All-first + counts
             (live countdown, once open) ← running-state DurationPicker only
             ┌ table ─────────────────┐  ← the accordion now wraps only the table
-            Cancel      Save · Send     ← actions, always mounted
+                   Save · Send x/y RFQ  ← actions, always mounted, no Cancel
 
           The accordion keeps no title of its own — the heading above owns the
           card's identity, and two "Setup & Carriers" strings would be read

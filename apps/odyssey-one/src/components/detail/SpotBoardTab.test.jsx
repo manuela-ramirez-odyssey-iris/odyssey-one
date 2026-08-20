@@ -161,7 +161,8 @@ describe('SpotBoardTab', () => {
       })
     )
     render(<SpotBoardTab shipmentDetails={makeShipmentDetails([])} shipment={shipment} />)
-    expect(screen.getByRole('button', { name: 'Send RFQ' }).disabled).toBe(true)
+    // Send RFQ's label is now dynamic ("Send x/y RFQ", Task 7).
+    expect(screen.getByRole('button', { name: /^Send \d+\/\d+ RFQ$/ }).disabled).toBe(true)
     expect(screen.getByRole('button', { name: 'Save Draft' }).disabled).toBe(true)
   })
 
@@ -189,8 +190,8 @@ describe('SpotBoardTab', () => {
 
     render(<SpotBoardTab shipmentDetails={makeShipmentDetails([])} shipment={shipment} />)
     // Send RFQ is a trailing button below the table, behind a confirmation
-    // modal (S112).
-    fireEvent.click(screen.getByRole('button', { name: 'Send RFQ' }))
+    // modal (S112). Its label is dynamic ("Send x/y RFQ", Task 7).
+    fireEvent.click(screen.getByRole('button', { name: /^Send \d+\/\d+ RFQ$/ }))
     fireEvent.click(screen.getByRole('button', { name: /Confirm & Send/ }))
     // RFQ links banner is collapsed by default (S125) — expand to reach the rows.
     fireEvent.click(screen.getByLabelText('Expand list'))
@@ -203,6 +204,42 @@ describe('SpotBoardTab', () => {
     expect(href.startsWith('/spot-bid/')).toBe(true)
     const token = href.slice('/spot-bid/'.length)
     expect(decodeToken(token)).toEqual({ shipmentId: shipment.sellShipment, scac: 'ODFL' })
+  })
+
+  // Task 7 (2026-08-20, user): "when sent should take us to live bids
+  // automatically" — Confirm & Send switches the sub-tab band to Live Bids.
+  it('switches to the Live Bids sub-tab automatically after Confirm & Send', () => {
+    localStorage.setItem(
+      `spotboard:${shipment.sellShipment}`,
+      JSON.stringify({
+        quoteId: 'q1',
+        shipmentId: shipment.sellShipment,
+        listId: 'tl-se',
+        listName: 'TL Southeast Overflow',
+        durationMin: 120,
+        openAt: null,
+        closeAt: null,
+        status: 'draft',
+        awardType: null,
+        awardedScac: null,
+        carriers: [
+          { scac: 'ODFL', name: 'Old Dominion', email: 'ops@odfl.example.com', equipment: 'Van', incl: true, plannedPickup: '2026-08-10 08:00', plannedDelivery: '2026-08-11 17:00', flags: [] },
+        ],
+        flexiblePickup: false,
+      })
+    )
+
+    render(<SpotBoardTab shipmentDetails={makeShipmentDetails([])} shipment={shipment} />)
+    // Setup & Carriers is the sub-tab shown by default.
+    expect(screen.queryByRole('button', { name: /^Send \d+\/\d+ RFQ$/ })).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: /^Send \d+\/\d+ RFQ$/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Confirm & Send/ }))
+
+    // Setup & Carriers' own content (the Send RFQ button) is gone — Live Bids
+    // is now the active sub-tab.
+    expect(screen.queryByRole('button', { name: /^Send \d+\/\d+ RFQ$/ })).toBeFalsy()
+    expect(screen.getByRole('button', { name: 'Live Bids' }).className).toContain('tab--current')
   })
 
   // Bug: RFQ links must survive a reload/remount — Send RFQ is never clicked

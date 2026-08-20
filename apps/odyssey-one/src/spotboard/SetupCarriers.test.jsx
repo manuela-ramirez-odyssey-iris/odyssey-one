@@ -43,14 +43,20 @@ function showMode(label) {
   fireEvent.click(within(band).getByText(label))
 }
 
-// Send RFQ / Save Draft / Cancel are separate buttons in the SubAccordion
-// header's trailing slot (S112).
+// Send RFQ / Save Draft are separate buttons below the table (S112; Cancel
+// removed Task 7 — 2026-08-20).
 function actionButton(label) {
   return screen.getByRole('button', { name: label })
 }
-// Send RFQ routes through a confirmation modal.
+// The primary button's label is now `Send x/y RFQ` (Task 7) — x = included
+// rows, y = total rows — so it's matched by pattern, not exact text.
+function sendRFQButton() {
+  return screen.getByRole('button', { name: /^Send \d+\/\d+ RFQ$/ })
+}
+// Send RFQ routes through a confirmation modal (whose own title stays the
+// static "Send RFQ" — only the trigger button's label became dynamic).
 function sendRFQ() {
-  fireEvent.click(actionButton('Send RFQ'))
+  fireEvent.click(sendRFQButton())
   fireEvent.click(screen.getByRole('button', { name: /Confirm & Send/ }))
 }
 
@@ -116,7 +122,30 @@ describe('SetupCarriers', () => {
         onCancel={() => {}}
       />
     )
-    expect(actionButton('Send RFQ').disabled).toBe(true)
+    expect(sendRFQButton().disabled).toBe(true)
+  })
+
+  // Task 7 (2026-08-20, user): the primary button's label counts included vs
+  // total rows — "Send x/y RFQ" — instead of a flat "Send RFQ".
+  it('the primary button reads "Send x/y RFQ", counting included vs total rows', () => {
+    const carriers = [
+      { scac: 'A1', name: 'Carrier 1', email: 'a1@example.com', equipment: 'Van', incl: true, plannedPickup: DEF_PICKUP, plannedDelivery: DEF_DELIVERY, flags: [] },
+      { scac: 'A2', name: 'Carrier 2', email: 'a2@example.com', equipment: 'Van', incl: true, plannedPickup: DEF_PICKUP, plannedDelivery: DEF_DELIVERY, flags: [] },
+      { scac: 'A3', name: 'Carrier 3', email: 'a3@example.com', equipment: 'Van', incl: false, plannedPickup: '', plannedDelivery: '', flags: [] },
+      { scac: 'A4', name: 'Carrier 4', email: 'a4@example.com', equipment: 'Van', incl: false, plannedPickup: '', plannedDelivery: '', flags: [] },
+      { scac: 'A5', name: 'Carrier 5', email: 'a5@example.com', equipment: 'Van', incl: false, plannedPickup: '', plannedDelivery: '', flags: [] },
+    ]
+    const quote = { listId: 'x-list', listName: 'X List', durationMin: 30, carriers }
+    render(
+      <SetupCarriers
+        quote={quote}
+        carrierOptions={carrierOptions}
+        readOnly={false}
+        onSaveDraft={() => {}}
+        onSendRFQ={() => {}}
+      />
+    )
+    expect(screen.getByRole('button', { name: 'Send 2/5 RFQ' })).toBeTruthy()
   })
 
   // REVERSAL (2026-08-11): this asserted "empty dates + unchecked — no
@@ -192,7 +221,7 @@ describe('SetupCarriers', () => {
         onCancel={() => {}}
       />
     )
-    expect(actionButton('Send RFQ').disabled).toBe(true)
+    expect(sendRFQButton().disabled).toBe(true)
   })
 
   it('onSendRFQ is called with the assembled payload once a row is date-complete and checked', () => {
@@ -703,7 +732,8 @@ describe('SetupCarriers', () => {
     expect(screen.getByText(`${rows.length} carriers`)).toBeTruthy()
   })
 
-  it('spreads the three actions as separate buttons, trailing, below the table', () => {
+  // 2026-08-20 (Task 7): Cancel is gone — only Save Draft + Send x/y RFQ.
+  it('spreads the two actions as separate buttons, trailing, below the table', () => {
     const { container } = render(
       <SetupCarriers
         carrierOptions={carrierOptions}
@@ -712,18 +742,33 @@ describe('SetupCarriers', () => {
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={() => {}}
-        onCancel={() => {}}
       />
     )
     const actions = container.querySelector('.setup-carriers__actions')
-    for (const label of ['Send RFQ', 'Save Draft', 'Cancel']) {
-      expect(within(actions).getByRole('button', { name: label })).toBeTruthy()
-    }
+    expect(within(actions).getByRole('button', { name: 'Save Draft' })).toBeTruthy()
+    expect(within(actions).getByRole('button', { name: /^Send \d+\/\d+ RFQ$/ })).toBeTruthy()
     // Below the table, NOT in the card header and NOT in the top toolbar row.
     expect(actions.closest('.sub-accordion__header-row')).toBeFalsy()
     expect(container.querySelector('.setup-carriers__toolbar-top').contains(actions)).toBe(false)
     const table = container.querySelector('.setup-carriers__table-wrap')
     expect(table.compareDocumentPosition(actions) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  // Task 7 (2026-08-20, user): Cancel is DROPPED from the actions row — Save
+  // Draft and Send RFQ trail right on their own, nothing leads on the left.
+  it('renders no Cancel button in the actions row', () => {
+    const { container } = render(
+      <SetupCarriers
+        carrierOptions={carrierOptions}
+        defaultPickup={DEF_PICKUP}
+        defaultDelivery={DEF_DELIVERY}
+        readOnly={false}
+        onSaveDraft={() => {}}
+        onSendRFQ={() => {}}
+      />
+    )
+    const actions = container.querySelector('.setup-carriers__actions')
+    expect(within(actions).queryByRole('button', { name: 'Cancel' })).toBeFalsy()
   })
 
   // RFQ terms moved into the Quote Setup modal (Task 5) — the head no longer
@@ -755,7 +800,9 @@ describe('SetupCarriers', () => {
     expect(toolbar.compareDocumentPosition(table) & FOLLOWING).toBeTruthy()
   })
 
-  it('Cancel leads the action row; Send RFQ is the trailing primary', () => {
+  // 2026-08-20 (Task 7): with Cancel gone, Save Draft + Send RFQ are the only
+  // two actions — both trail right, no lead-left affordance anymore.
+  it('Save Draft and Send RFQ both trail right in the actions row', () => {
     const { container } = render(
       <SetupCarriers
         carrierOptions={carrierOptions}
@@ -764,24 +811,20 @@ describe('SetupCarriers', () => {
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={() => {}}
-        onCancel={() => {}}
       />
     )
     const actions = container.querySelector('.setup-carriers__actions')
-    const cancel = within(actions).getByRole('button', { name: 'Cancel' })
-    const send = within(actions).getByRole('button', { name: 'Send RFQ' })
+    const save = within(actions).getByRole('button', { name: 'Save Draft' })
+    const send = sendRFQButton()
 
-    // Cancel is a direct child (lead); Save Draft + Send RFQ sit in the trail.
-    expect(cancel.parentElement).toBe(actions)
+    expect(save.closest('.setup-carriers__actions-trail')).toBeTruthy()
     expect(send.closest('.setup-carriers__actions-trail')).toBeTruthy()
-    expect(cancel.compareDocumentPosition(send) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(save.compareDocumentPosition(send) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
 
-    // md sizing + Cancel is secondary, no longer a link
-    for (const b of [cancel, send, within(actions).getByRole('button', { name: 'Save Draft' })]) {
+    // md sizing; Send RFQ stays the primary
+    for (const b of [save, send]) {
       expect(b.className).toContain('btn--md')
     }
-    expect(cancel.className).toContain('btn--secondary')
-    expect(cancel.className).not.toContain('btn--link')
     expect(send.className).toContain('btn--primary')
   })
 
@@ -967,14 +1010,14 @@ describe('SetupCarriers', () => {
       // live immediately — that is the point of the change. What still gates
       // it is having at least one included row: deselect everything and it
       // goes back to disabled.
-      expect(actionButton('Send RFQ').disabled).toBe(false)
+      expect(sendRFQButton().disabled).toBe(false)
 
       for (const mode of ['TL', 'LTL']) {
         showMode(mode)
         fireEvent.click(selectAllCheckbox()) // check-all → …
         fireEvent.click(selectAllCheckbox()) // … → clear-all for this mode
       }
-      expect(actionButton('Send RFQ').disabled).toBe(true)
+      expect(sendRFQButton().disabled).toBe(true)
     })
   })
 
@@ -1107,14 +1150,10 @@ describe('SetupCarriers', () => {
         readOnly
         onSaveDraft={() => {}}
         onSendRFQ={() => {}}
-        onCancel={() => {}}
       />
     )
-    for (const name of ['Send RFQ', 'Save Draft', 'Cancel']) {
-      const btn = screen.getByRole('button', { name })
-      expect(btn).toBeTruthy()
-      expect(btn.disabled).toBe(true)
-    }
+    expect(sendRFQButton().disabled).toBe(true)
+    expect(screen.getByRole('button', { name: 'Save Draft' }).disabled).toBe(true)
   })
 
   // ── Send RFQ confirmation modal (S112) ────────────────────────────────────
@@ -1140,7 +1179,7 @@ describe('SetupCarriers', () => {
     it('does NOT send until the modal is confirmed', () => {
       const onSendRFQ = vi.fn()
       renderAndComplete(onSendRFQ)
-      fireEvent.click(actionButton('Send RFQ'))
+      fireEvent.click(sendRFQButton())
       // Modal is up, nothing sent yet.
       expect(screen.getByRole('dialog', { name: 'Send RFQ' })).toBeTruthy()
       expect(onSendRFQ).not.toHaveBeenCalled()
@@ -1152,7 +1191,7 @@ describe('SetupCarriers', () => {
     it('cancelling the modal closes it and sends nothing', () => {
       const onSendRFQ = vi.fn()
       renderAndComplete(onSendRFQ)
-      fireEvent.click(actionButton('Send RFQ'))
+      fireEvent.click(sendRFQButton())
       const dialog = screen.getByRole('dialog', { name: 'Send RFQ' })
       fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }))
       expect(screen.queryByRole('dialog', { name: 'Send RFQ' })).toBeFalsy()
@@ -1164,7 +1203,7 @@ describe('SetupCarriers', () => {
       openSetupModal()
       fireEvent.click(screen.getByLabelText('Flexible'))
       applySetupModal()
-      fireEvent.click(actionButton('Send RFQ'))
+      fireEvent.click(sendRFQButton())
       const dialog = within(screen.getByRole('dialog', { name: 'Send RFQ' }))
 
       // The included carriers, named. Under preselection that is every

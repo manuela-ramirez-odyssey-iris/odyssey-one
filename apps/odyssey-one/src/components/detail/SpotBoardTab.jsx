@@ -157,6 +157,9 @@ export default function SpotBoardTab({ shipmentDetails, shipment }) {
     saveDraft(payload)
     sendRFQ(Date.now())
     scheduleSimulatedBids(payload, benchmarkValue, submitBid, timersRef)
+    // "when sent should take us to live bids automatically" (user, Task 7,
+    // 2026-08-20) — jump the sub-tab band the moment the RFQ goes out.
+    setSubTab('bids')
   }, [saveDraft, sendRFQ, submitBid, benchmarkValue])
 
   const rfqLinksVisible =
@@ -258,7 +261,6 @@ export default function SpotBoardTab({ shipmentDetails, shipment }) {
             readOnly={quote?.status === 'open' || quote?.status === 'closed' || quote?.status === 'awarded'}
             onSaveDraft={saveDraft}
             onSendRFQ={handleSendRFQ}
-            onCancel={clearQuote}
           />
         ) : quote ? (
           <LiveBids
