@@ -2,8 +2,12 @@
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import { render, screen, fireEvent, cleanup, within } from '@testing-library/react'
 import DurationPicker, {
-  UNIT_CONFIG, durationOptions, formatDuration, formatRemaining, countdownVariant,
+  UNIT_CONFIG, durationOptions, formatDuration, formatRemaining, countdownVariant, parseDuration,
 } from './DurationPicker.jsx'
+
+// NOTE: @testing-library/user-event is not installed in this repo (see
+// DroppedCarrierSection.test.jsx) — fireEvent.change/blur stand in for
+// userEvent.type/tab, same intent, this file's existing idiom.
 
 afterEach(cleanup)
 
@@ -130,5 +134,95 @@ describe('DurationPicker component', () => {
         running endsAt={Date.now() + 60_000} />,
     )
     expect(screen.getByText('Quote Duration')).toBeTruthy()
+  })
+})
+
+describe('parseDuration', () => {
+  it('parses a bare integer', () => {
+    expect(parseDuration('45', 'minutes')).toBe(45)
+  })
+
+  it('strips non-digit characters (unit suffix, spaces)', () => {
+    expect(parseDuration('45 min', 'minutes')).toBe(45)
+  })
+
+  it('clamps to the unit ceiling', () => {
+    expect(parseDuration('999', 'minutes')).toBe(UNIT_CONFIG.minutes.max)
+  })
+
+  it('rejects unparseable / zero / negative text', () => {
+    expect(parseDuration('abc', 'minutes')).toBeNull()
+    expect(parseDuration('0', 'minutes')).toBeNull()
+    expect(parseDuration('', 'minutes')).toBeNull()
+  })
+})
+
+describe('typable input (TimePicker parity)', () => {
+  it('opens the listbox on field click', () => {
+    render(<DurationPicker id="d" label="Quote Duration" unit="minutes" value={30} onChange={() => {}} />)
+    fireEvent.click(screen.getByRole('combobox'))
+    expect(screen.getByRole('listbox')).toBeTruthy()
+  })
+
+  it('commits a typed integer on blur', () => {
+    const onChange = vi.fn()
+    render(<DurationPicker id="d" label="Quote Duration" unit="minutes" value={30} onChange={onChange} />)
+    const input = screen.getByRole('combobox')
+    fireEvent.change(input, { target: { value: '45' } })
+    fireEvent.blur(input)
+    expect(onChange).toHaveBeenCalledWith(45)
+  })
+
+  it('accepts "45 min" text and strips the unit suffix', () => {
+    const onChange = vi.fn()
+    render(<DurationPicker id="d" label="Quote Duration" unit="minutes" value={30} onChange={onChange} />)
+    const input = screen.getByRole('combobox')
+    fireEvent.change(input, { target: { value: '45 min' } })
+    fireEvent.blur(input)
+    expect(onChange).toHaveBeenCalledWith(45)
+  })
+
+  it('shows an error and does not commit on unparseable text', () => {
+    const onChange = vi.fn()
+    render(<DurationPicker id="d" label="Quote Duration" unit="minutes" value={30} onChange={onChange} />)
+    const input = screen.getByRole('combobox')
+    fireEvent.change(input, { target: { value: 'abc' } })
+    fireEvent.blur(input)
+    expect(onChange).not.toHaveBeenCalled()
+    expect(screen.getByText(/invalid/i)).toBeTruthy()
+  })
+
+  it('clamps typed values above the ceiling to max', () => {
+    const onChange = vi.fn()
+    render(<DurationPicker id="d" label="Quote Duration" unit="minutes" value={30} onChange={onChange} />)
+    const input = screen.getByRole('combobox')
+    fireEvent.change(input, { target: { value: '999' } })
+    fireEvent.blur(input)
+    expect(onChange).toHaveBeenCalledWith(UNIT_CONFIG.minutes.max)
+  })
+
+  it('picking a row still commits and closes, clearing any prior error', () => {
+    const onChange = vi.fn()
+    render(<DurationPicker id="d" label="Quote Duration" unit="minutes" value="" onChange={onChange} />)
+    const input = screen.getByRole('combobox')
+    fireEvent.change(input, { target: { value: 'abc' } })
+    fireEvent.blur(input)
+    expect(screen.getByText(/invalid/i)).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('combobox'))
+    const listbox = screen.getByRole('listbox')
+    fireEvent.click(within(listbox).getByText('40 min'))
+    expect(onChange).toHaveBeenCalledWith(40)
+    expect(screen.queryByText(/invalid/i)).toBeFalsy()
+    expect(screen.queryByRole('listbox')).toBeFalsy()
+  })
+
+  it('commits a typed integer on Enter', () => {
+    const onChange = vi.fn()
+    render(<DurationPicker id="d" label="Quote Duration" unit="minutes" value={30} onChange={onChange} />)
+    const input = screen.getByRole('combobox')
+    fireEvent.change(input, { target: { value: '50' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+    expect(onChange).toHaveBeenCalledWith(50)
   })
 })

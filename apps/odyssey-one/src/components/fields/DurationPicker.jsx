@@ -1,4 +1,4 @@
-import { useCallback, useId, useState } from 'react'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { ICON_MD } from '@odyssey/tokens'
 import {
@@ -64,6 +64,17 @@ export function formatDuration(value, unit) {
   return `${value} ${cfg.abbr}`
 }
 
+// Liberal parse of free-typed text → a valid unit count, or null. Mirrors
+// TimePicker's parseTime contract: strip everything but digits (so "45 min"
+// and "45" both land on 45), reject non-numbers and non-positive counts,
+// clamp anything above the unit's ceiling rather than rejecting it (typing
+// "999" minutes means "as much as I can get", not "error").
+export function parseDuration(raw, unit) {
+  const cfg = UNIT_CONFIG[unit] ?? UNIT_CONFIG.minutes
+  const n = parseInt(String(raw).replace(/[^\d]/g, ''), 10)
+  return Number.isNaN(n) || n < 1 ? null : Math.min(n, cfg.max)
+}
+
 // Remaining ms → clock, built on the EXISTING spotboard formatters rather than
 // a third implementation: formatMMSS below an hour (what Countdown itself
 // shows), formatHMS above it so a 24-hour window doesn't read "1440:00".
@@ -94,8 +105,10 @@ export default function DurationPicker({
   placeholder,
   disabled = false,
   id,
-  error,
+  error: externalError,
 }) {
+  const [text, setText] = useState('')
+  const [error, setError] = useState('')  // internal parse error; externalError (form validation) shows when this is clear
   const [activeIdx, setActiveIdx] = useState(-1)
   const listboxId = useId()
   const { open, setOpen, wrapperRef, wrapperProps, fieldProps, popoverProps } = useFieldPopover()
@@ -110,11 +123,66 @@ export default function DurationPicker({
   const options = durationOptions(unit)
   const locked = running || disabled
 
+  // Sync display text when the controlled value changes externally.
+  useEffect(() => {
+    setText(value === '' || value == null ? '' : formatDuration(value, unit))
+    if (value !== '' && value != null) setError('')
+  }, [value, unit])
+
+  const commit = (n) => {
+    setError('')
+    setText(formatDuration(n, unit))
+    onChange?.(n)
+  }
+
+  // Guards the blur-commit against the programmatic input.blur() that Enter
+  // and a row pick both trigger: that blur still sees the pre-commit `text`
+  // closure and would re-commit the stale draft, redundant at best (Enter)
+  // or overwriting the pick at worst — same guard TimePicker uses.
+  const pickedRef = useRef(false)
+  const pick = (opt) => {
+    pickedRef.current = true
+    commit(opt)
+    setOpen(false)
+    setActiveIdx(-1)
+  }
+
+  // Typing is free-form: only track the draft, never parse/emit mid-keystroke
+  // (see TimePicker's handleText for why). Commit happens on blur/Enter only.
+  const handleText = (e) => {
+    setText(e.target.value)
+    setError('')
+    setActiveIdx(-1)
+    if (!open) setOpen(true)
+  }
+
+  const commitText = () => {
+    if (!text.trim()) { setError(''); return } // untouched/cleared field, nothing to commit
+    const n = parseDuration(text, unit)
+    if (n == null) setError('Invalid duration')
+    else commit(n)
+  }
+
+  const handleBlur = () => {
+    if (pickedRef.current) { pickedRef.current = false; return } // pick already committed
+    commitText()
+  }
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && e.target.tagName === 'INPUT' && text.trim()) {
+      const n = parseDuration(text, unit)
+      if (n == null) { e.preventDefault(); setError('Invalid duration'); return }
+      pickedRef.current = true // wrapperProps.onKeyDown below closes + blurs; blur re-commit would be redundant
+      commit(n)
+    }
+    wrapperProps.onKeyDown(e)
+  }
+
   return (
     <div
       ref={setWrapperNode}
       onBlur={wrapperProps.onBlur}
-      onKeyDown={locked ? undefined : wrapperProps.onKeyDown}
+      onKeyDown={locked ? undefined : handleKeyDown}
       className="duration-picker"
       style={{ position: 'relative' }}
     >
@@ -127,11 +195,13 @@ export default function DurationPicker({
             label={label}
             showLabel={!!label}
             placeholder={placeholder ?? `Select ${unit}`}
-            value={value === '' || value == null ? '' : formatDuration(value, unit)}
-            readOnly
+            value={text}
+            onChange={handleText}
+            onBlur={handleBlur}
+            onClick={() => setOpen(true)}
             onFocus={fieldProps.onFocus}
             disabled={disabled}
-            error={error}
+            error={error || externalError || undefined}
             trailingIcon={
               <button
                 type="button"
@@ -139,6 +209,7 @@ export default function DurationPicker({
                 onClick={() => {
                   setOpen(!open)
                   if (open) setActiveIdx(-1)
+                  wrapperRef.current?.querySelector('input')?.focus()
                 }}
                 disabled={locked}
                 aria-label={open ? 'Close duration options' : 'Open duration options'}
@@ -156,6 +227,7 @@ export default function DurationPicker({
             aria-haspopup="listbox"
             aria-expanded={open}
             aria-controls={listboxId}
+            aria-autocomplete="list"
           />
         )}
 
@@ -179,11 +251,7 @@ export default function DurationPicker({
                   className={i === activeIdx ? 'is-active' : ''}
                   label={formatDuration(opt, unit)}
                   selected={opt === Number(value)}
-                  onClick={() => {
-                    onChange?.(opt)
-                    setOpen(false)
-                    setActiveIdx(-1)
-                  }}
+                  onClick={() => pick(opt)}
                 />
               ))}
             </DropdownMenu>

@@ -6,9 +6,12 @@
 /* Same floor as TimePicker (`--time-picker-min`, 124px): the widest idle value
    is "120 min" and the widest running value is "23:59:59", both of which fit.
    Reusing the token rather than a new one — this is the same class of control
-   and they should not drift apart. */
+   and they should not drift apart. Unlike TimePicker, no flex container needs
+   this field to grow, so `width` is pinned flat instead of tracking a
+   breakpoint (user: field must sit at its min width, not stretch). */
 .duration-picker {
   min-width: var(--time-picker-min);
+  width: 150px;
 }
 
 .duration-picker__running {
