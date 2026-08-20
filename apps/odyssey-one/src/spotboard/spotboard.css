@@ -158,33 +158,12 @@
   gap: var(--spacing-4);
 }
 
-/* 4-column control row (user, S112 follow-up): mode ComboBox, Quote Duration,
-   Flexible Pickup, then a 4th track left empty — no other control here
-   naturally belongs in it. The checkbox and the unlabeled ComboBox align to
-   the FormField's INPUT band, not its whole label+input stack: `flex-end`
-   bottoms every column out together, and giving the short controls
-   `--field-height` (the same 36px .form-field__input uses) makes them a
-   matching band. Column gap matches the create-order field grids (--spacing-6). */
-.setup-carriers__controls {
+/* Quote Setup modal (Task 5) — Duration / Planned Pickup for All / Planned
+   Delivery for All / Flexible, 2 columns wide. */
+.setup-carriers__setup-grid {
   display: grid;
-  /* FOUR columns holding THREE controls (mode / quote duration / flexible
-     pickup) — the trailing slot is RESERVED, not dead space. User call
-     2026-08-07: a fourth control is coming. Do not "tidy" this to repeat(3,…);
-     that would resize the other three and have to be undone. */
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  align-items: flex-end;
-  gap: var(--spacing-6);
-}
-
-.setup-carriers__controls > .control,
-.setup-carriers__controls > .combo-box {
-  min-height: var(--field-height);
-}
-
-/* Quote Duration sits beside the mode ComboBox — cap it so the FormField's
-   width:100% doesn't overrun its grid column. */
-.setup-carriers__controls .form-field {
-  max-width: 240px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-4);
 }
 
 /* Send RFQ confirmation (ModalMedium) — carrier roll-call over the terms. */

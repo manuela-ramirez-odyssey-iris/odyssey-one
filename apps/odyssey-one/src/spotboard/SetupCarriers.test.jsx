@@ -69,6 +69,39 @@ function selectAllCheckbox() {
   return screen.getByLabelText('Select all carriers')
 }
 
+// Quote Setup modal (Task 5) — Duration / Planned Pickup for All / Planned
+// Delivery for All / Flexible, behind the "Setup Quote" trigger trailing the
+// carrier-count row.
+function setupQuoteButton() {
+  return screen.getByRole('button', { name: 'Setup Quote' })
+}
+
+function openSetupModal() {
+  fireEvent.click(setupQuoteButton())
+  return screen.getByRole('dialog', { name: 'Quote Setup' })
+}
+
+function applySetupModal() {
+  fireEvent.click(screen.getByRole('button', { name: 'Apply' }))
+}
+
+function cancelSetupModal() {
+  fireEvent.click(within(screen.getByRole('dialog', { name: 'Quote Setup' })).getByRole('button', { name: 'Cancel' }))
+}
+
+// The modal's date fields carry real FormField labels (unlike the per-row
+// table cells, which are unlabeled and located by data-testid instead).
+function fillModalDate(label, value) {
+  const input = screen.getByLabelText(label)
+  fireEvent.change(input, { target: { value } })
+  fireEvent.blur(input)
+}
+
+function pickModalDuration(optionLabel) {
+  fireEvent.click(screen.getByRole('button', { name: /open duration options/i }))
+  fireEvent.click(within(screen.getByRole('listbox')).getByText(optionLabel))
+}
+
 describe('SetupCarriers', () => {
   it('Send RFQ is disabled when a list is chosen but dates are missing', () => {
     const rows = buildCarrierRows(list, carrierOptions)
@@ -220,7 +253,11 @@ describe('SetupCarriers', () => {
     const rows = buildCarrierRows(list, carrierOptions)
     fillDate(rows[0].scac, 'pickup', '08/10/2026')
     fillDate(rows[0].scac, 'delivery', '08/11/2026')
-    fireEvent.click(screen.getByLabelText('Flexible Pickup'))
+
+    openSetupModal()
+    fireEvent.click(screen.getByLabelText('Flexible'))
+    applySetupModal()
+
     sendRFQ()
 
     expect(onSendRFQ).toHaveBeenCalledTimes(1)
@@ -303,9 +340,11 @@ describe('SetupCarriers', () => {
     expect(screen.getByTestId(`pickup-${ltlRows[0].scac}`)).toBeTruthy()
   })
 
-  // Restructured 2026-08-19: heading → pill band → RFQ terms, all ABOVE the
-  // table accordion, with the actions BELOW it.
-  it('head block order is heading, then the mode pills, then Quote Duration, then Flexible Pickup', () => {
+  // Restructured 2026-08-19, RFQ terms moved into the Quote Setup modal
+  // 2026-08-20 (Task 5): heading → pill band, ABOVE the table accordion, with
+  // the actions BELOW it. Quote Duration/Flexible no longer live in the head
+  // at all while there is no open quote to show a countdown for.
+  it('head block order is heading, then the mode pills — no RFQ terms live there anymore', () => {
     const { container } = render(
       <SetupCarriers
         carrierOptions={carrierOptions}
@@ -320,19 +359,167 @@ describe('SetupCarriers', () => {
     const head = container.querySelector('.setup-carriers__head')
     const heading = container.querySelector('.setup-carriers__heading')
     const band = screen.getByRole('group', { name: 'Carrier list mode' })
-    const controls = container.querySelector('.setup-carriers__controls')
-    const duration = screen.getByLabelText('Quote Duration')
-    const flexible = screen.getByLabelText('Flexible Pickup')
 
     expect(heading.textContent.trim()).toBe('Setup & Carriers')
     expect(head.contains(band)).toBe(true)
-    expect(controls.contains(duration)).toBe(true)
-    expect(controls.contains(flexible)).toBe(true)
+    expect(container.querySelector('.setup-carriers__controls')).toBeFalsy()
+    // Nothing renders the RFQ terms outside the modal while no quote is open.
+    expect(screen.queryByLabelText('Quote Duration')).toBeFalsy()
+    expect(screen.queryByLabelText('Flexible')).toBeFalsy()
 
     const FOLLOWING = Node.DOCUMENT_POSITION_FOLLOWING
     expect(heading.compareDocumentPosition(band) & FOLLOWING).toBeTruthy()
-    expect(band.compareDocumentPosition(duration) & FOLLOWING).toBeTruthy()
-    expect(duration.compareDocumentPosition(flexible) & FOLLOWING).toBeTruthy()
+  })
+
+  // Task 5, step 1(a)/(b): the trigger and the modal it opens.
+  it('a "Setup Quote" secondary button renders trailing the carrier-count row', () => {
+    const { container } = render(
+      <SetupCarriers
+        carrierOptions={carrierOptions}
+        defaultPickup={DEF_PICKUP}
+        defaultDelivery={DEF_DELIVERY}
+        readOnly={false}
+        onSaveDraft={() => {}}
+        onSendRFQ={() => {}}
+        onCancel={() => {}}
+      />
+    )
+    const toolbar = container.querySelector('.setup-carriers__toolbar-top')
+    const button = within(toolbar).getByRole('button', { name: 'Setup Quote' })
+    expect(button.className).toContain('btn--secondary')
+    const count = within(toolbar).getByText(`${tlRows.length} carriers`)
+    expect(count.compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('clicking Setup Quote opens a dialog containing the four fields', () => {
+    render(
+      <SetupCarriers
+        carrierOptions={carrierOptions}
+        defaultPickup={DEF_PICKUP}
+        defaultDelivery={DEF_DELIVERY}
+        readOnly={false}
+        onSaveDraft={() => {}}
+        onSendRFQ={() => {}}
+        onCancel={() => {}}
+      />
+    )
+    expect(screen.queryByRole('dialog', { name: 'Quote Setup' })).toBeFalsy()
+    const dialog = within(openSetupModal())
+    expect(dialog.getByLabelText('Quote Duration')).toBeTruthy()
+    expect(dialog.getByLabelText('Planned Pickup for All')).toBeTruthy()
+    expect(dialog.getByLabelText('Planned Delivery for All')).toBeTruthy()
+    expect(dialog.getByLabelText('Flexible')).toBeTruthy()
+  })
+
+  it('the Setup Quote trigger is disabled when the pane is readOnly', () => {
+    render(
+      <SetupCarriers
+        carrierOptions={carrierOptions}
+        defaultPickup={DEF_PICKUP}
+        defaultDelivery={DEF_DELIVERY}
+        readOnly
+        onSaveDraft={() => {}}
+        onSendRFQ={() => {}}
+        onCancel={() => {}}
+      />
+    )
+    expect(setupQuoteButton().disabled).toBe(true)
+  })
+
+  // Task 5, step 1(c): Apply mass-applies the planned dates to EVERY row and
+  // closes the dialog.
+  it('Apply sets every row\'s Planned Pickup/Delivery and closes the dialog', () => {
+    render(
+      <SetupCarriers
+        carrierOptions={carrierOptions}
+        readOnly={false}
+        onSaveDraft={() => {}}
+        onSendRFQ={() => {}}
+        onCancel={() => {}}
+      />
+    )
+    openSetupModal()
+    fillModalDate('Planned Pickup for All', '09/01/2026')
+    fillModalDate('Planned Delivery for All', '09/02/2026')
+    applySetupModal()
+
+    expect(screen.queryByRole('dialog', { name: 'Quote Setup' })).toBeFalsy()
+    for (const r of tlRows) {
+      expect(within(screen.getByTestId(`pickup-${r.scac}`)).getByRole('textbox').value).toBe('09/01/2026')
+      expect(within(screen.getByTestId(`delivery-${r.scac}`)).getByRole('textbox').value).toBe('09/02/2026')
+    }
+    // Every row is now date-complete, so the auto-check rule (same as a
+    // per-row edit) includes them all.
+    for (const r of tlRows) {
+      expect(inclCheckbox(r.scac).checked).toBe(true)
+    }
+  })
+
+  it('Apply only overwrites the date field that was actually supplied', () => {
+    render(
+      <SetupCarriers
+        carrierOptions={carrierOptions}
+        defaultPickup={DEF_PICKUP}
+        defaultDelivery={DEF_DELIVERY}
+        readOnly={false}
+        onSaveDraft={() => {}}
+        onSendRFQ={() => {}}
+        onCancel={() => {}}
+      />
+    )
+    openSetupModal()
+    fillModalDate('Planned Pickup for All', '09/01/2026')
+    // Planned Delivery for All left blank.
+    applySetupModal()
+
+    for (const r of tlRows) {
+      expect(within(screen.getByTestId(`pickup-${r.scac}`)).getByRole('textbox').value).toBe('09/01/2026')
+      // Existing (order-seeded) delivery date survives untouched.
+      expect(within(screen.getByTestId(`delivery-${r.scac}`)).getByRole('textbox').value).toBe(DEF_DELIVERY)
+    }
+  })
+
+  it('Cancel discards the draft without touching any row', () => {
+    render(
+      <SetupCarriers
+        carrierOptions={carrierOptions}
+        defaultPickup={DEF_PICKUP}
+        defaultDelivery={DEF_DELIVERY}
+        readOnly={false}
+        onSaveDraft={() => {}}
+        onSendRFQ={() => {}}
+        onCancel={() => {}}
+      />
+    )
+    openSetupModal()
+    fillModalDate('Planned Pickup for All', '09/01/2026')
+    cancelSetupModal()
+
+    expect(screen.queryByRole('dialog', { name: 'Quote Setup' })).toBeFalsy()
+    expect(within(screen.getByTestId(`pickup-${tlRows[0].scac}`)).getByRole('textbox').value).toBe(DEF_PICKUP)
+  })
+
+  // Task 5, step 1(d): the duration picked in the modal reaches
+  // `onTermsChange` as `{ durationMin, flexiblePickup }`.
+  it('Apply reports the picked duration and flexible flag via onTermsChange', () => {
+    const onTermsChange = vi.fn()
+    render(
+      <SetupCarriers
+        carrierOptions={carrierOptions}
+        readOnly={false}
+        onSaveDraft={() => {}}
+        onSendRFQ={() => {}}
+        onCancel={() => {}}
+        onTermsChange={onTermsChange}
+      />
+    )
+    openSetupModal()
+    pickModalDuration('40 min')
+    fireEvent.click(screen.getByLabelText('Flexible'))
+    applySetupModal()
+
+    expect(onTermsChange).toHaveBeenCalledTimes(1)
+    expect(onTermsChange).toHaveBeenCalledWith({ durationMin: 40, flexiblePickup: true })
   })
 
   it('the LTL mode payload carries the "LTL Comparable Set" list — TL carries "TL Southeast Overflow"', () => {
@@ -417,6 +604,7 @@ describe('SetupCarriers', () => {
         onCancel={() => {}}
       />
     )
+    openSetupModal()
     expect(screen.getByText('Quote Duration')).toBeTruthy()
   })
 
@@ -433,8 +621,11 @@ describe('SetupCarriers', () => {
       />
     )
     expect(screen.getByTestId(`pickup-${tlRows[0].scac}`)).toBeTruthy()
-    // The default is a real seeded value now (30 min), not a placeholder.
+    // The default is a real seeded value now (30 min), not a placeholder —
+    // seeded into the modal's draft.
+    openSetupModal()
     expect(screen.getByLabelText('Quote Duration').value).toBe('30 min')
+    cancelSetupModal()
 
     showMode('LTL')
     expect(screen.getByTestId(`pickup-${ltlRows[0].scac}`)).toBeTruthy()
@@ -456,7 +647,9 @@ describe('SetupCarriers', () => {
     )
     // Only the quote's own carriers render — not both lists rebuilt.
     expect(screen.getByText(`${rows.length} carriers`)).toBeTruthy()
-    // An existing quote's own duration still wins over the 30-min default.
+    // An existing quote's own duration still wins over the 30-min default,
+    // seeded into the modal's draft.
+    openSetupModal()
     expect(screen.getByLabelText('Quote Duration').value)
       .toBe(`${otherList.defaultDurationMin} min`)
   })
@@ -500,7 +693,10 @@ describe('SetupCarriers', () => {
     expect(table.compareDocumentPosition(actions) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
-  it('stacks the RFQ controls, then the count toolbar, then the table', () => {
+  // RFQ terms moved into the Quote Setup modal (Task 5) — the head no longer
+  // carries a `controls` block, so what remains to pin down is just the
+  // toolbar (count + Setup Quote trigger) sitting above the table.
+  it('stacks the head, then the count toolbar, then the table', () => {
     const { container } = render(
       <SetupCarriers
         carrierOptions={carrierOptions}
@@ -512,21 +708,16 @@ describe('SetupCarriers', () => {
         onCancel={() => {}}
       />
     )
+    const head = container.querySelector('.setup-carriers__head')
     const toolbar = container.querySelector('.setup-carriers__toolbar-top')
-    const controls = container.querySelector('.setup-carriers__controls')
     const table = container.querySelector('.setup-carriers__table-wrap')
 
-    // The mode ComboBox now lives in `controls` (S112 follow-up), not the
-    // toolbar — the toolbar carries only the visible-count text.
     expect(within(toolbar).getByText(`${tlRows.length} carriers`)).toBeTruthy()
-    expect(toolbar.contains(controls)).toBe(false)
-    expect(within(controls).getByRole('combobox')).toBeTruthy()
-    expect(within(controls).getByLabelText('Quote Duration')).toBeTruthy()
-    expect(within(controls).getByLabelText('Flexible Pickup')).toBeTruthy()
+    expect(within(toolbar).getByRole('button', { name: 'Setup Quote' })).toBeTruthy()
 
-    // document order: controls → toolbar → table
+    // document order: head → toolbar → table
     const FOLLOWING = Node.DOCUMENT_POSITION_FOLLOWING
-    expect(controls.compareDocumentPosition(toolbar) & FOLLOWING).toBeTruthy()
+    expect(head.compareDocumentPosition(toolbar) & FOLLOWING).toBeTruthy()
     expect(toolbar.compareDocumentPosition(table) & FOLLOWING).toBeTruthy()
   })
 
@@ -925,7 +1116,9 @@ describe('SetupCarriers', () => {
 
     it('summarises the carriers, the duration and the flexible-pickup flag', () => {
       const rows = renderAndComplete()
-      fireEvent.click(screen.getByLabelText('Flexible Pickup'))
+      openSetupModal()
+      fireEvent.click(screen.getByLabelText('Flexible'))
+      applySetupModal()
       fireEvent.click(actionButton('Send RFQ'))
       const dialog = within(screen.getByRole('dialog', { name: 'Send RFQ' }))
 
@@ -990,17 +1183,24 @@ describe('SetupCarriers', () => {
     // 2026-08-19 (user): a DurationPicker seeded at a flat 30 min, replacing
     // the free-text field whose placeholder advertised a per-list default. The
     // list defaults (120 TL / 240 LTL) no longer seed it — and 240 could not be
-    // picked anyway in a minutes picker capped at 120.
+    // picked anyway in a minutes picker capped at 120. 2026-08-20 (Task 5):
+    // the field itself moved into the Quote Setup modal — its draft reseeds
+    // from the committed value every time the modal opens, mode included.
     it('seeds at 30 min regardless of mode, with no per-list placeholder', () => {
       renderIt()
-      expect(screen.getByLabelText('Quote Duration').value).toBe('30 min')
-      showMode('LTL')
+      openSetupModal()
       expect(screen.getByLabelText('Quote Duration').value).toBe('30 min')
       expect(screen.queryByText(/open window/i)).toBeFalsy()
+      cancelSetupModal()
+
+      showMode('LTL')
+      openSetupModal()
+      expect(screen.getByLabelText('Quote Duration').value).toBe('30 min')
     })
 
     it('the label carries no unit suffix', () => {
       renderIt()
+      openSetupModal()
       expect(screen.queryByText(/open window, min/i)).toBeFalsy()
     })
 
@@ -1016,11 +1216,15 @@ describe('SetupCarriers', () => {
     it('a picked value wins over the default, and switching mode does not clobber it', () => {
       const onSendRFQ = vi.fn()
       renderIt(onSendRFQ)
-      fireEvent.click(screen.getByRole('button', { name: /open duration options/i }))
-      fireEvent.click(within(screen.getByRole('listbox')).getByText('40 min'))
+      openSetupModal()
+      pickModalDuration('40 min')
+      applySetupModal()
+
       showMode('LTL')
       showMode('TL')
+      openSetupModal()
       expect(screen.getByLabelText('Quote Duration').value).toBe('40 min')
+      cancelSetupModal()
 
       fillDate(tlRows[0].scac, 'pickup', '08/10/2026')
       fillDate(tlRows[0].scac, 'delivery', '08/11/2026')

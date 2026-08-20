@@ -56,6 +56,26 @@ describe('SpotBoardTab', () => {
     expect(container.querySelector('.spot-sticky-strip')).toBeFalsy()
   })
 
+  // 2026-08-20 (Task 5): Duration only joins the strip once the planner has
+  // set it — via the Quote Setup modal's onTermsChange, wired through to
+  // SpotBoardTab's `terms` state (SetupCarriers.jsx, SpotBoardTab.jsx).
+  it('the strip gains a Duration cell once Setup Quote → Apply commits a duration', async () => {
+    const { waitFor } = await import('@testing-library/react')
+    const { container } = render(<SpotBoardTab shipmentDetails={makeShipmentDetails([])} shipment={shipment} />)
+
+    await waitFor(() => {
+      expect(container.querySelector('[data-testid^="pickup-"]')).toBeTruthy()
+    })
+    const strip = container.querySelector('.spot-sticky-strip')
+    expect(strip.textContent).not.toContain('Duration')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Setup Quote' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Apply' }))
+
+    expect(container.querySelector('.spot-sticky-strip').textContent).toContain('Duration')
+    expect(container.querySelector('.spot-sticky-strip').textContent).toContain('30 min')
+  })
+
   // The strip compacts Origin/Destination to "City, ST" and shows the full
   // stop-location string in a hover tooltip (TooltipTrigger — mouseenter,
   // since @testing-library/user-event isn't in this repo).

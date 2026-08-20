@@ -79,9 +79,7 @@ export default function SetupCarriers({
   onSaveDraft,
   onSendRFQ,
   onCancel,
-  // ponytail: `onTermsChange` (wired by SpotBoardTab for Task 5's Quote Setup
-  // modal) is deliberately NOT destructured — an un-destructured extra prop
-  // is inert here, so there's nothing to ignore-and-wire yet.
+  onTermsChange,
 }) {
   // Defaults to 30 MINUTES on a fresh quote (user, 2026-08-19), replacing
   // S112's empty-field-plus-placeholder scheme. The per-list
@@ -97,6 +95,17 @@ export default function SetupCarriers({
   const [rows, setRows] = useState(quote?.carriers ?? [])
   const [confirming, setConfirming] = useState(false)
   const [mode, setMode] = useState('first')
+
+  // Quote Setup modal (Task 5) — Duration / Planned Pickup for All / Planned
+  // Delivery for All / Flexible, triggered by the "Setup Quote" button
+  // trailing the carrier-count row. Drafts are separate from the committed
+  // durationMin/flexiblePickup state so Cancel discards them; they are
+  // reseeded from the committed values every time the modal opens.
+  const [setupOpen, setSetupOpen] = useState(false)
+  const [draftDuration, setDraftDuration] = useState(durationMin)
+  const [draftPickup, setDraftPickup] = useState('')
+  const [draftDelivery, setDraftDelivery] = useState('')
+  const [draftFlexible, setDraftFlexible] = useState(flexiblePickup)
 
   // Build every list's rows in one pass, stamping each row with the list it
   // came from so the toggle can filter them. `carrierOptions` resolves async in
@@ -137,6 +146,41 @@ export default function SetupCarriers({
         return next
       })
     )
+
+  // Seed the drafts from the committed values every time the modal opens —
+  // Cancel must discard anything typed without touching committed state, and
+  // a stale draft from a previous open must never leak into a new one. Dates
+  // seed blank: they are a mass-APPLY action, not a display of any single
+  // row's current date.
+  const openSetup = () => {
+    setDraftDuration(durationMin)
+    setDraftPickup('')
+    setDraftDelivery('')
+    setDraftFlexible(flexiblePickup)
+    setSetupOpen(true)
+  }
+
+  // Apply commits the drafts, mass-applies whichever planned date(s) were
+  // typed to EVERY row (leaving the other field alone when only one was
+  // supplied), and recomputes `incl` per row with the same
+  // both-dates-present rule `updateDate` uses on a single-row edit.
+  const applySetup = () => {
+    setDurationMin(draftDuration)
+    setFlexiblePickup(draftFlexible)
+    if (draftPickup || draftDelivery) {
+      setRows((rs) =>
+        rs.map((r) => {
+          const next = { ...r }
+          if (draftPickup) next.plannedPickup = draftPickup
+          if (draftDelivery) next.plannedDelivery = draftDelivery
+          next.incl = !!(next.plannedPickup && next.plannedDelivery)
+          return next
+        })
+      )
+    }
+    onTermsChange?.({ durationMin: draftDuration, flexiblePickup: draftFlexible })
+    setSetupOpen(false)
+  }
 
   // `activeList` is null in 'All' — there is no single list to attribute to.
   // Everything downstream that used it for a per-list default is gone (the
@@ -246,13 +290,13 @@ export default function SetupCarriers({
 
   return (
     <>
-      {/* Restructured 2026-08-19 (user). The card header, the mode band and the
-          RFQ terms are now SIBLINGS ABOVE the accordion rather than contents of
-          it, and the actions sit BELOW it:
+      {/* Restructured 2026-08-19 (user); RFQ terms moved into the Quote Setup
+          modal 2026-08-20 (Task 5). The card header and the mode band are
+          SIBLINGS ABOVE the accordion, and the actions sit BELOW it:
 
             Setup & Carriers            ← heading (was the SubAccordion title)
             [ TL ][ LTL ][ All ]        ← PillTab mode band
-            Quote Duration  ☐ Flexible  ← RFQ terms
+            (live countdown, once open) ← running-state DurationPicker only
             ┌ table ─────────────────┐  ← the accordion now wraps only the table
             Cancel      Save · Send     ← actions, always mounted
 
@@ -271,40 +315,37 @@ export default function SetupCarriers({
             />
           ))}
         </div>
-        {/* RFQ terms. Quote Duration is a DurationPicker (app-local) rather than
-            a free-text integer field: the window is a pick from a fixed set of
-            increments, and once the RFQ is open the same control becomes the
-            live countdown instead of a second widget elsewhere. */}
-        <div className="setup-carriers__controls">
+        {/* Duration/Flexible are now set through the Quote Setup modal — the
+            planner must still see the burn-down without opening it, so the
+            picker's own RUNNING state (a countdown Badge, not an editable
+            field) keeps rendering here once the RFQ is actually open. */}
+        {quote?.status === 'open' && quote?.closeAt && (
           <DurationPicker
             id="quote-duration"
             label="Quote Duration"
             unit="minutes"
             value={durationMin}
-            onChange={setDurationMin}
-            running={quote?.status === 'open' && !!quote?.closeAt}
-            endsAt={quote?.closeAt ?? null}
+            running
+            endsAt={quote.closeAt}
             totalMs={(quote?.durationMin ?? effectiveDuration) * 60_000}
             disabled={readOnly}
           />
-          <Checkbox
-            label="Flexible Pickup"
-            checked={flexiblePickup}
-            onChange={(e) => setFlexiblePickup(e.target.checked)}
-            disabled={readOnly}
-          />
-        </div>
+        )}
       </div>
 
       <SubAccordion showIcon={false} collapsible={false}>
         <div className="order-pane__section setup-carriers">
           <div className="order-pane__block">
 
-            {/* …then the count, directly above the table. */}
+            {/* …then the count, directly above the table, with the Quote
+                Setup trigger trailing it (Task 5). */}
             <div className="setup-carriers__toolbar-top">
               <span className="setup-carriers__toolbar-count text-label-sm-regular">
                 {visibleRows.length} {visibleRows.length === 1 ? 'carrier' : 'carriers'}
               </span>
+              <Button variant="secondary" disabled={readOnly} onClick={openSetup}>
+                Setup Quote
+              </Button>
             </div>
 
             <div className="setup-carriers__table-wrap">
@@ -366,6 +407,55 @@ export default function SetupCarriers({
           behavior change. Moved out of the SubAccordion above: a
           transformed/overflow ancestor there clips the modal's fixed overlay
           (same root cause ShipmentDetailsModal.jsx already portals around). */}
+      {/* Quote Setup modal (Task 5) — Duration, Planned Pickup/Delivery for
+          All, and Flexible, gathered behind the "Setup Quote" trigger.
+          Portaled for the same reason the Send RFQ modal below is: an
+          ancestor here clips a fixed overlay. */}
+      {setupOpen && createPortal(
+        <ModalMedium
+          title="Quote Setup"
+          onClose={() => setSetupOpen(false)}
+          footer={
+            <>
+              <Button variant="secondary" size="lg" onClick={() => setSetupOpen(false)}>
+                Cancel
+              </Button>
+              <Button variant="primary" size="lg" onClick={applySetup}>
+                Apply
+              </Button>
+            </>
+          }
+        >
+          <div className="setup-carriers__setup-grid">
+            <DurationPicker
+              id="setup-quote-duration"
+              label="Quote Duration"
+              unit="minutes"
+              value={draftDuration}
+              onChange={setDraftDuration}
+            />
+            <DateField
+              id="setup-pickup-all"
+              label="Planned Pickup for All"
+              value={draftPickup}
+              onChange={setDraftPickup}
+            />
+            <DateField
+              id="setup-delivery-all"
+              label="Planned Delivery for All"
+              value={draftDelivery}
+              onChange={setDraftDelivery}
+            />
+            <Checkbox
+              label="Flexible"
+              checked={draftFlexible}
+              onChange={(e) => setDraftFlexible(e.target.checked)}
+            />
+          </div>
+        </ModalMedium>,
+        document.body
+      )}
+
       {confirming && createPortal(
         <ModalMedium
           title="Send RFQ"
