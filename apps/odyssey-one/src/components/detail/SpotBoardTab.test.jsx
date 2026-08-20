@@ -81,10 +81,16 @@ describe('SpotBoardTab', () => {
     // — buildCarrierRows needs the carrier options the tab resolves internally.
     const pickupWrap = container.querySelector('[data-testid^="pickup-"]')
     const scac = pickupWrap.getAttribute('data-testid').replace('pickup-', '')
-    const pickup = within(pickupWrap).getByRole('textbox')
-    const delivery = within(screen.getByTestId(`delivery-${scac}`)).getByRole('textbox')
-    expect(pickup.value).toBe('08/10/2026')    // latestPickup, NOT 08/09
-    expect(delivery.value).toBe('08/12/2026')  // latestDelivery, NOT 08/11
+    // The row existing (waitFor above) doesn't mean its default-date effect has
+    // landed yet — that's a separate tick. Assert the values inside their own
+    // waitFor so a slow tick retries instead of racing (S128 suite growth
+    // started tripping this deterministically).
+    await waitFor(() => {
+      const pickup = within(pickupWrap).getByRole('textbox')
+      const delivery = within(screen.getByTestId(`delivery-${scac}`)).getByRole('textbox')
+      expect(pickup.value).toBe('08/10/2026')    // latestPickup, NOT 08/09
+      expect(delivery.value).toBe('08/12/2026')  // latestDelivery, NOT 08/11
+    })
   })
 
   it('shows the EmptyState (not the sub-tabs) when the shipment has an Accepted tender', () => {
