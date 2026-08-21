@@ -104,149 +104,79 @@
   width: 100%;
 }
 
-/* Neutralize SummaryStrip's own band chrome inside the Navbar's search slot
-   — the Navbar itself now owns the gradient/blur for the full bar width
-   (Job 1); without this, the cells would paint a second (redundant)
-   gradient/border under themselves only, seaming visibly against the
-   logo/trail regions flanking them. No flex/min-width override needed here
-   anymore: the real Navbar centers its three slots via its own
-   `justify-content: space-between` (Navbar.jsx), not by the strip growing
-   to fill the row. */
-.carrier-bid-navbar-wrap .summary-strip {
-  background: none;
-  border-bottom: none;
-  padding: 0;
-}
-
-/* Scroll-shrink experiment — past 20px scroll (strict `> 20` check, JS
-   threshold in CarrierBid.jsx), the H/M/S digit cells drop from
-   display/4xl down to lg semibold (user ruling: lg reads better compact
-   than base/md). Labels (HOURS/MINUTES/SECONDS)
-   and the "Remaining" cell stay at their normal size — decision: once
-   you've started reading the page, it's the giant countdown NUMBER that's
-   in the way, not its label; shrinking the labels too would make the
-   compact bar harder to parse, not easier. The row's own
-   `align-items: stretch` (.summary-strip, components.css) already
-   re-levels every cell to the new shortest-cell height for free, so the
-   bar's total height shrinks as a consequence with no extra height rule
-   needed here. Transition lives on the base (non-modifier) selector so
-   toggling the class either direction animates; the reduced-motion gate
-   matches the idiom already used in styles/hero.css. */
-.carrier-bid-page .summary-strip__value--display {
-  transition: font-size 200ms ease, line-height 200ms ease;
-}
-@media (prefers-reduced-motion: reduce) {
-  .carrier-bid-page .summary-strip__value--display {
-    transition: none;
-  }
-}
-.carrier-bid-navbar-wrap--compact .summary-strip__value--display {
-  font-size: var(--font-size-lg);
-  line-height: var(--line-height-lg);
-}
-
-/* Change 1 (Figma large/compact nodes) — cell width and label type also
-   shrink with the value, so the whole bar contracts as one motion instead
-   of just the digits. `.summary-strip__cell`'s shared rule (components.css)
-   is `flex: 1 1 152px` — grow:1 lets a cell stretch past 152px to fill
-   leftover row width, which is right for every OTHER SummaryStrip caller
-   (StopsTab, ShipmentDetailsModal, CostAllocationTab, LiveBids) but wrong
-   here: the Figma spec wants an exact 152px/110px cell, not a
-   grows-to-fill one. Page-scoped override (grow:0, fixed basis) rather
-   than touching the shared rule, so nothing else with a `.summary-strip`
-   changes.
-
-   Measured 2026-08-19: cells sat at 87.7px — their CONTENT width — never 152,
-   because the strip lives in the Navbar's `search` slot, a `shrink-0` div
-   that sizes to the strip's MAX-CONTENT, and in that intrinsic pass a
-   shrinkable cell contributes its content width rather than its 152px basis.
-   The fix is the DEFINITE strip width further down (not shrink:0 on the
-   cell), so shrink stays 1 and the strip can still give ground on a narrow
-   window without clipping the lead/trail slots. 152/110/12px are raw px — no width
-   token fits a component-internal measure like this (strategic-tokens), and
-   there's no line-height token below --line-height-xs's 16px floor. */
-.carrier-bid-page .summary-strip__cell {
-  flex: 0 1 152px;
-  max-width: 152px;
-  transition: flex-basis 200ms ease, max-width 200ms ease;
-}
-.carrier-bid-page .summary-strip__label {
-  transition: font-weight 200ms ease, line-height 200ms ease;
-}
-@media (prefers-reduced-motion: reduce) {
-  .carrier-bid-page .summary-strip__cell,
-  .carrier-bid-page .summary-strip__label {
-    transition: none;
-  }
-}
-
-/* Narrow-window backstop for the shrink:0 above — no breakpoint, because the
-   constraint is "does the row still fit", not a viewport number.
-   All three Navbar slots are `shrink-0` (Navbar.jsx), so a strip that refuses
-   to give up width pushes the lead (logo) and trail (profile) outward and
-   eventually off the bar. Giving the strip a DEFINITE width is what lets the
-   cells hold 152px without shrink:0: inside a definite-width container the
-   152px basis lays out as 152px, whereas the shrink-0 slot's max-content pass
-   was resolving a shrinkable cell to its content width (the 87.7px bug).
-   `max-width: 100%` + a shrinkable slot then lets the whole strip give ground
-   continuously once lead + strip + trail exceeds the row, instead of clipping
-   at a cliff. Widths track the cell rules directly (4 cells) so they can't
-   drift apart. */
+/* Narrow-window backstop — no breakpoint, because the constraint is "does
+   the row still fit", not a viewport number. All three Navbar slots are
+   `shrink-0` (Navbar.jsx); letting the middle (search) slot shrink instead
+   keeps the lead (logo) and trail (profile) from being pushed off the bar
+   by a long countdown title or a long carrier name. Generic to whatever the
+   search slot holds — not tied to any one component. */
 .carrier-bid-navbar-wrap .navbar > :nth-child(2) {
   flex-shrink: 1;
   min-width: 0;
 }
-.carrier-bid-navbar-wrap .summary-strip {
-  width: calc(4 * 152px);
-  max-width: 100%;
-  transition: width 200ms ease;
+
+/* Bid countdown center title (Task 10, replacing the SummaryStrip — see
+   BidCountdownTitle in CarrierBid.jsx). Hours/Minutes/Seconds stacked
+   value-over-label units, centered, separated by ':'. */
+.carrier-bid-countdown-title {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: var(--spacing-3);
 }
-.carrier-bid-navbar-wrap--compact .summary-strip {
-  width: calc(4 * 110px);
+.carrier-bid-countdown-title__unit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+/* Scroll-shrink (preserved from the old SummaryStrip — user ruling: "Preserve
+   the size changing in typography") — past 20px scroll, the value/separator
+   drop from display/4xl down to lg semibold, same threshold + JS as before
+   (CarrierBid.jsx `scrolled` state). Reduced-motion gate matches the idiom
+   already used in styles/hero.css. */
+.carrier-bid-countdown-title__value,
+.carrier-bid-countdown-title__sep {
+  font-size: var(--font-size-4xl);
+  line-height: var(--line-height-4xl);
+  font-weight: 600;
+  transition: font-size 200ms ease, line-height 200ms ease;
 }
 @media (prefers-reduced-motion: reduce) {
-  .carrier-bid-navbar-wrap .summary-strip {
+  .carrier-bid-countdown-title__value,
+  .carrier-bid-countdown-title__sep {
     transition: none;
   }
 }
-.carrier-bid-navbar-wrap--compact .summary-strip__cell {
-  flex-basis: 110px;
-  max-width: 110px;
-  /* Vertical padding collapses to 0 compact (user, 2026-08-19) — the shared
-     cell's 16px top/bottom (components.css, Figma's 100px band) is what keeps
-     the bar tall after the digits have already shrunk to lg. Horizontal
-     padding is untouched: it's the cell's gutter against its divider, and
-     nothing about scrolling makes the columns want to touch. */
-  padding-block: 0;
+.carrier-bid-navbar-wrap--compact .carrier-bid-countdown-title__value,
+.carrier-bid-navbar-wrap--compact .carrier-bid-countdown-title__sep {
+  font-size: var(--font-size-lg);
+  line-height: var(--line-height-lg);
 }
-.carrier-bid-navbar-wrap--compact .summary-strip__label {
-  font-weight: var(--font-weight-regular);
-  line-height: 12px; /* tighter than --line-height-xs (16px) — no token this tight */
+.carrier-bid-countdown-title__label {
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
 }
-
-/* Urgent (< 15 min remaining) — same token as Countdown's own
-   `.countdown--urgent` (spotboard.css), applied to the H/M/S digit cells
-   only (`--display` emphasis); the "Time remaining / to close bid" cell
-   stays neutral, matching Countdown's own label treatment. */
-.carrier-bid-countdown-strip--urgent .summary-strip__value--display {
+/* Urgent (< 15 min remaining) — same token the old SummaryStrip urgent rule
+   used (`--text-error`), same one Countdown's own `.countdown--urgent`
+   (spotboard.css) uses. */
+.carrier-bid-countdown-title--urgent .carrier-bid-countdown-title__value {
   color: var(--text-error);
 }
 
-/* Badge cell (4th cell, "Bid Open") — centered horizontally, per user ruling
-   2026-08-19 (was left-aligned like the H/M/S label+value stacks, which the
-   ruling singles this cell out from). Targeted via `:has(.text-badge)`
-   (Badge.jsx's own typography class, unique to Badge among this strip's
-   contents) rather than `:nth-child(4)` — survives an item-order change
-   without silently mis-centering a digit cell. `align-items: center` swaps
-   the cell's cross-axis (flex-direction: column, so cross-axis is
-   horizontal) from the shared rule's default `stretch` to centered; the
-   H/M/S cells are untouched since they don't match `:has(.text-badge)`, so
-   their label/value stay left-aligned. Vertical centering needs no rule
-   here — `.summary-strip__cell`'s own `justify-content: center`
-   (components.css) already centers this cell's single dd on the main
-   (vertical) axis, same as it does for every other shorter-than-band cell. */
-.carrier-bid-page .summary-strip__cell:has(.text-badge) {
-  align-items: center;
+/* "Bid Open" status badge — floats OUTSIDE the Navbar surface, centered
+   below it, riding the sticky wrap (`.carrier-bid-navbar-wrap`, which is
+   `position: sticky` and therefore already a containing block for this
+   absolutely-positioned child — no extra `position: relative` needed).
+   Open-bid branch only (CarrierBid.jsx gates it on `!closedReason`). Was
+   the countdown strip's own fourth cell before Task 10. */
+.carrier-bid-status-float {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: var(--spacing-2);
 }
 
 .carrier-bid-page__loading {
@@ -311,6 +241,17 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-1);
+}
+
+/* Flexible badge (Quote Setup task) — sits beside the Pickup/Delivery
+   TitleSubtitle, not stacked below it like hazmat's own MSDS link, so a row
+   layout (not hazmat-group's column) with the badge vertically centered
+   against the two-line title/subtitle text. */
+.carrier-bid-card__date-group {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--spacing-2);
 }
 
 .carrier-bid-card__msds {

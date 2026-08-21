@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { Trash2, Plus } from 'lucide-react'
-import { Navbar, LeadNav, GlobalSearch, TrailNav, OdysseyLogo, Button, Alert, Badge, ComboBox, FormField, SubAccordion, SummaryStrip, TitleSubtitle } from '@odyssey/ui'
+import { Navbar, LeadNav, GlobalSearch, TrailNav, OdysseyLogo, Button, Alert, Badge, ComboBox, FormField, SubAccordion, TitleSubtitle } from '@odyssey/ui'
 import MeasureField from '../components/orders/create/fields/MeasureField.jsx'
 import { SummaryCard } from '../components/detail/QuoteModal.jsx'
 import { decodeToken } from '../spotboard/token.js'
@@ -96,27 +96,24 @@ function HeroBackground({ heroIndex }) {
 // showLabel doesn't wire a real `<label for>` in typeahead mode, a
 // packages/ui gap this page works around with one real `<label>` per Code
 // cell instead — see the row markup below).
-// Bid countdown — sticky SummaryStrip instance (Figma 5180:7978 large /
-// 5180:7999 compact), replacing the small Countdown Badge: the number is
-// this page's most important value, so it renders at display/4xl size
-// instead of a badge. Four cells: HOURS, MINUTES, SECONDS (each
-// `emphasis: 'display'` — large numerals) then a fourth cell holding a
-// status Badge (Code Connect: `<Badge variant="green" statusDot>`) instead
-// of the earlier "Remaining"/"to close bid" label+value pair — label-less,
-// per Figma. SummaryStrip already renders whatever `value` it's given
-// (label-less/value-only cells are a documented extension, SPB-43 §2) and
-// `display: 'accent'` doesn't apply to it, so no SummaryStrip change is
-// needed: passing a Badge element straight through as `value` just works.
-// The cell's 152px/110px width + divider come from `.summary-strip__cell`
-// (page CSS) regardless of contents, so the badge inherits the same
-// width/compact behavior as the digit cells for free — and since nothing
-// targets the badge with the compact-mode font-size override (that only
-// hits `.summary-strip__value--display`), the badge itself stays the same
-// size across large/compact, per Figma. SummaryStrip's `.summary-strip__label`
-// already uppercases via CSS, so 'Hours'/'Minutes'/'Seconds' are passed
-// natural-case. Reuses Countdown's own tick hook (useCountdown) rather than
-// a second interval — exported so this component is unit-testable without
-// the parent's closedReason gate.
+// Bid countdown — standard Navbar center title (Task 10, replacing the
+// sticky SummaryStrip instance from SPB-43 §2): the user ruling removed the
+// SummaryStrip from the search slot in favor of the package Navbar's own
+// center-title pattern, with Hours/Minutes/Seconds labels stacked below
+// each value, values separated by ':'. The old SummaryStrip's fourth cell
+// (the "Bid Open" status badge) no longer lives inside this component at
+// all — it now floats OUTSIDE the Navbar entirely, rendered by the parent
+// (see `.carrier-bid-status-float` in CarrierBid() below) so it isn't
+// clipped to the search slot's layout.
+//
+// The 4xl→lg scroll-shrink behavior is PRESERVED (user ruling): each
+// value/separator carries the same `--compact` trigger class the old
+// `.summary-strip__value--display` override used, just retargeted at this
+// component's own `__value`/`__sep` classes (carrierBid.css).
+//
+// Reuses Countdown's own tick hook (useCountdown) rather than a second
+// interval — exported so this component is unit-testable without the
+// parent's closedReason gate.
 //
 // Hours cell resolves the old ">99 minutes" question — formatHMS gives
 // minutes a real hour bucket to overflow into, so it never grows past 2
@@ -127,31 +124,33 @@ function HeroBackground({ heroIndex }) {
 // whole page to the Alert-only closedReason branch above, so this component
 // only ever mounts for an open, unexpired quote — EXCEPT for the one tick
 // where its own interval reaches 0 before that parent re-render lands. Guard
-// that transient window the same way Countdown itself does: swap all four
-// cells for a single "Closed" value cell rather than rendering stale/negative
-// time (and NOT the "Bid Open" badge — that would lie for that transient
-// window). No urgent treatment for it — closed is terminal, not urgent.
-export function BidCountdownStrip({ closeAt, onExpire }) {
+// that transient window the same way Countdown itself does: swap the H/M/S
+// unit trio for a single "Closed" title rather than rendering stale/negative
+// time. No urgent treatment for it — closed is terminal, not urgent.
+export function BidCountdownTitle({ closeAt, onExpire }) {
   const remaining = useCountdown(closeAt, onExpire)
   const expired = remaining <= 0
   const urgent = !expired && remaining < URGENT_MS
   const { hh, mm, ss } = formatHMS(remaining)
 
-  const items = expired
-    ? [{ value: 'Closed' }]
-    : [
-        { value: hh, label: 'Hours', emphasis: 'display' },
-        { value: mm, label: 'Minutes', emphasis: 'display' },
-        { value: ss, label: 'Seconds', emphasis: 'display' },
-        { value: <Badge variant="green" statusDot>Bid Open</Badge> },
-      ]
+  if (expired) return <div className="carrier-bid-countdown-title" role="timer">Closed</div>
 
   return (
-    <SummaryStrip
-      aria-label="Bid closes in"
-      className={`carrier-bid-countdown-strip${urgent ? ' carrier-bid-countdown-strip--urgent' : ''}`}
-      items={items}
-    />
+    <div
+      className={`carrier-bid-countdown-title${urgent ? ' carrier-bid-countdown-title--urgent' : ''}`}
+      role="timer"
+      aria-label={`Bid closes in ${hh}:${mm}:${ss}`}
+    >
+      {[['Hours', hh], ['Minutes', mm], ['Seconds', ss]].map(([label, v], i) => (
+        <Fragment key={label}>
+          {i > 0 && <span className="carrier-bid-countdown-title__sep" aria-hidden="true">:</span>}
+          <span className="carrier-bid-countdown-title__unit">
+            <span className="carrier-bid-countdown-title__value">{v}</span>
+            <span className="carrier-bid-countdown-title__label">{label}</span>
+          </span>
+        </Fragment>
+      ))}
+    </div>
   )
 }
 
@@ -378,11 +377,19 @@ export default function CarrierBid() {
         search={
           closedReason
             ? <GlobalSearch mode="title" title="Carrier Portal" />
-            : <BidCountdownStrip closeAt={quote.closeAt} onExpire={() => setQuote(getQuote(shipmentId))} />
+            : <BidCountdownTitle closeAt={quote.closeAt} onExpire={() => setQuote(getQuote(shipmentId))} />
         }
         trailRef={profileDropdownRef}
         trail={trailContent}
       />
+      {/* Floats OUTSIDE the Navbar's own element, riding the sticky wrap
+          below it (carrierBid.css `.carrier-bid-status-float`) — was the
+          countdown strip's own fourth cell; open-bid only, same as before. */}
+      {!closedReason && (
+        <div className="carrier-bid-status-float">
+          <Badge variant="green" statusDot>Bid Open</Badge>
+        </div>
+      )}
     </div>
   )
 
@@ -500,8 +507,19 @@ export default function CarrierBid() {
               <TitleSubtitle title={order.shipFrom.company} subtitle="Shipper" className="carrier-bid-card__grid-full" />
               <TitleSubtitle title={order.shipFrom.location} subtitle="Origin" />
               <TitleSubtitle title={order.shipTo.location} subtitle="Destination" />
-              <TitleSubtitle title={order.earliestPickup} subtitle="Pickup" />
-              <TitleSubtitle title={order.earliestDelivery} subtitle="Delivery" />
+              {/* Flexible badge (Quote Setup task) — quote.flexiblePickup,
+                  persisted by SetupCarriers' saveDraft, surfaces beside both
+                  Pickup and Delivery once checked. Grouping div keeps each
+                  pair in the same grid--pairs cell the bare TitleSubtitle
+                  used to occupy — grid placement is unchanged. */}
+              <div className="carrier-bid-card__date-group">
+                <TitleSubtitle title={order.earliestPickup} subtitle="Pickup" />
+                {quote.flexiblePickup && <Badge variant="blue">Flexible</Badge>}
+              </div>
+              <div className="carrier-bid-card__date-group">
+                <TitleSubtitle title={order.earliestDelivery} subtitle="Delivery" />
+                {quote.flexiblePickup && <Badge variant="blue">Flexible</Badge>}
+              </div>
               <TitleSubtitle title={String(shipment.stopsData.stops.length)} subtitle="Stops" />
               <TitleSubtitle title={distanceDisplay} subtitle="Distance" />
               <TitleSubtitle title={weightDisplay} subtitle="Weight" />

@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, within, cleanup, fireEvent, waitFor, act } from '@testing-library/react'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import CarrierBid, { BidCountdownStrip } from './CarrierBid.jsx'
+import CarrierBid, { BidCountdownTitle } from './CarrierBid.jsx'
 import { saveDraft, sendRFQ, closeQuote, getQuote } from '../spotboard/spotStore.js'
 
 const SHIPMENT_ID = '25690001'
@@ -111,11 +111,13 @@ describe('CarrierBid — open quote', () => {
     // 5152:3904), same one the closed/expired/invalid branch already used.
     const header = document.querySelector('header.navbar--external')
     expect(header).toBeTruthy()
-    // The countdown strip lives in Navbar's `search` slot, not a static
+    // The countdown title lives in Navbar's `search` slot, not a static
     // "Carrier Portal" title — that title is reserved for the
-    // closed/expired/invalid branch (see that describe block below).
+    // closed/expired/invalid branch (see that describe block below). No
+    // SummaryStrip anywhere (Task 10 replaces it with the center title).
     expect(within(header).getByRole('img', { name: 'Odyssey One' })).toBeTruthy()
-    expect(header.querySelector('.carrier-bid-countdown-strip')).toBeTruthy()
+    expect(header.querySelector('.carrier-bid-countdown-title')).toBeTruthy()
+    expect(document.querySelector('.summary-strip')).toBe(null)
     expect(screen.queryByText('Carrier Portal')).toBe(null)
   })
 
@@ -544,53 +546,52 @@ describe('CarrierBid — open quote', () => {
   })
 })
 
-describe('CarrierBid — bid countdown SummaryStrip (SPB-43 §2)', () => {
+describe('CarrierBid — bid countdown title + floating badge (Task 10)', () => {
   afterEach(() => vi.useRealTimers())
 
-  it('renders as a SummaryStrip: hours, minutes, seconds, then a "Bid Open" status Badge cell (Figma 5180:7978)', async () => {
+  it('renders a role="timer" center title with Hours/Minutes/Seconds labels and ":" separators, no SummaryStrip', async () => {
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date('2026-08-17T12:00:00Z'))
-    // durationMin defaults to 120 => remaining is 02:00:00 — the hours cell
-    // now absorbs what used to be a >99-minute overflow into minutes.
+    // durationMin defaults to 120 => remaining is 02:00:00.
     const quote = openQuote()
     const token = tokenFor(quote, SCAC)
     renderAt(`/spot-bid/${token}`)
 
     await screen.findByText('Acme Houston Plant')
 
-    const strip = document.querySelector('.carrier-bid-countdown-strip')
-    expect(strip).toBeTruthy()
-    expect(strip.tagName).toBe('DL')
+    const title = document.querySelector('.carrier-bid-countdown-title')
+    expect(title).toBeTruthy()
+    expect(title.getAttribute('role')).toBe('timer')
+    expect(title.textContent).toContain('02')
+    expect(title.textContent).toContain('Hours')
+    expect(title.textContent).toContain('Minutes')
+    expect(title.textContent).toContain('Seconds')
 
-    const cells = strip.querySelectorAll('.summary-strip__cell')
-    expect(cells).toHaveLength(4) // Hours, Minutes, Seconds, Remaining
+    // Exactly two ':' separators, between H/M and M/S.
+    const seps = title.querySelectorAll('.carrier-bid-countdown-title__sep')
+    expect(seps).toHaveLength(2)
+    seps.forEach((s) => expect(s.textContent).toBe(':'))
 
-    expect(cells[0].querySelector('dd').textContent).toBe('02')
-    // Natural-case in the DOM — SummaryStrip's CSS (.summary-strip__label
-    // { text-transform: uppercase }) does the visual uppercasing, which
-    // jsdom's textContent doesn't reflect; the component must pass natural
-    // case per the component's own contract.
-    expect(cells[0].querySelector('dt').textContent).toBe('Hours')
-    expect(cells[0].querySelector('dd').className).toContain('summary-strip__value--display')
+    // SummaryStrip is gone entirely (Task 10 replaces it with this title).
+    expect(document.querySelector('.summary-strip')).toBe(null)
+  })
 
-    expect(cells[1].querySelector('dd').textContent).toBe('00')
-    expect(cells[1].querySelector('dt').textContent).toBe('Minutes')
-    expect(cells[1].querySelector('dd').className).toContain('summary-strip__value--display')
+  it('the "Bid Open" badge floats outside the Navbar element but inside the sticky wrap', async () => {
+    const quote = openQuote()
+    const token = tokenFor(quote, SCAC)
+    renderAt(`/spot-bid/${token}`)
 
-    expect(cells[2].querySelector('dd').textContent).toBe('00')
-    expect(cells[2].querySelector('dt').textContent).toBe('Seconds')
-    expect(cells[2].querySelector('dd').className).toContain('summary-strip__value--display')
+    await screen.findByText('Acme Houston Plant')
 
-    // Fourth cell — label-less status Badge, not a label+value pair.
-    expect(cells[3].querySelector('dt')).toBeNull()
-    const badgeCell = cells[3].querySelector('dd')
-    expect(badgeCell.textContent).toBe('Bid Open')
-    expect(badgeCell.className).not.toContain('summary-strip__value--display')
-
-    // No colon anywhere in the digit values.
-    expect(cells[0].querySelector('dd').textContent).not.toContain(':')
-    expect(cells[1].querySelector('dd').textContent).not.toContain(':')
-    expect(cells[2].querySelector('dd').textContent).not.toContain(':')
+    const wrap = document.querySelector('.carrier-bid-navbar-wrap')
+    const header = wrap.querySelector('header.navbar--external')
+    const float = wrap.querySelector('.carrier-bid-status-float')
+    expect(float).toBeTruthy()
+    expect(screen.getByText('Bid Open')).toBeTruthy()
+    // NOT a descendant of the Navbar's own root element...
+    expect(header.contains(float)).toBe(false)
+    // ...but still inside the sticky wrap that hosts both.
+    expect(wrap.contains(float)).toBe(true)
   })
 
   it('applies the urgent modifier once remaining time drops under 15 minutes', async () => {
@@ -602,8 +603,8 @@ describe('CarrierBid — bid countdown SummaryStrip (SPB-43 §2)', () => {
 
     await screen.findByText('Acme Houston Plant')
 
-    const strip = document.querySelector('.carrier-bid-countdown-strip')
-    expect(strip.className).toContain('carrier-bid-countdown-strip--urgent')
+    const title = document.querySelector('.carrier-bid-countdown-title')
+    expect(title.className).toContain('carrier-bid-countdown-title--urgent')
   })
 
   it('does not apply the urgent modifier above the 15-minute threshold', async () => {
@@ -615,13 +616,39 @@ describe('CarrierBid — bid countdown SummaryStrip (SPB-43 §2)', () => {
 
     await screen.findByText('Acme Houston Plant')
 
-    const strip = document.querySelector('.carrier-bid-countdown-strip')
-    expect(strip.className).not.toContain('carrier-bid-countdown-strip--urgent')
+    const title = document.querySelector('.carrier-bid-countdown-title')
+    expect(title.className).not.toContain('carrier-bid-countdown-title--urgent')
   })
 })
 
-describe('CarrierBid — countdown strip inside the real Navbar (SPB-43, converged)', () => {
-  it('renders the Odyssey logo, the countdown cells, and the carrier TrailNav all inside one <header.navbar--external>', async () => {
+describe('CarrierBid — Flexible badges (Task 10)', () => {
+  it('shows a "Flexible" badge beside both Pickup and Delivery when quote.flexiblePickup is true', async () => {
+    saveDraft(SHIPMENT_ID, { listId: 'tl-se', listName: 'TL Southeast Overflow', durationMin: 120, carriers: CARRIERS, flexiblePickup: true })
+    const quote = sendRFQ(SHIPMENT_ID, Date.now())
+    const token = tokenFor(quote, SCAC)
+    renderAt(`/spot-bid/${token}`)
+
+    await screen.findByText('Acme Houston Plant')
+
+    const detailSection = screen.getByRole('button', { name: /shipment detail/i }).closest('.sub-accordion')
+    // One "Flexible" badge each beside Pickup and Delivery.
+    expect(within(detailSection).getAllByText('Flexible')).toHaveLength(2)
+  })
+
+  it('shows no "Flexible" badge when quote.flexiblePickup is false', async () => {
+    const quote = openQuote() // flexiblePickup defaults to false (spotStore.saveDraft)
+    const token = tokenFor(quote, SCAC)
+    renderAt(`/spot-bid/${token}`)
+
+    await screen.findByText('Acme Houston Plant')
+
+    const detailSection = screen.getByRole('button', { name: /shipment detail/i }).closest('.sub-accordion')
+    expect(within(detailSection).queryByText('Flexible')).toBe(null)
+  })
+})
+
+describe('CarrierBid — countdown title inside the real Navbar (SPB-43, converged)', () => {
+  it('renders the Odyssey logo, the countdown title, and the carrier TrailNav all inside one <header.navbar--external>', async () => {
     const quote = openQuote()
     const token = tokenFor(quote, SCAC)
     renderAt(`/spot-bid/${token}`)
@@ -634,8 +661,8 @@ describe('CarrierBid — countdown strip inside the real Navbar (SPB-43, converg
     expect(header).toBeTruthy()
     // Logo — OdysseyLogo's own aria-label, same for both variants.
     expect(within(header).getByRole('img', { name: 'Odyssey One' })).toBeTruthy()
-    // The four SummaryStrip cells live in the Navbar's `search` slot.
-    expect(header.querySelector('.carrier-bid-countdown-strip')).toBeTruthy()
+    // The countdown title lives in the Navbar's `search` slot.
+    expect(header.querySelector('.carrier-bid-countdown-title')).toBeTruthy()
     // TrailNav's profile button, still wired to the same dropdown.
     expect(within(header).getByRole('button', { name: 'User menu' })).toBeTruthy()
   })
@@ -673,17 +700,17 @@ describe('CarrierBid — countdown strip inside the real Navbar (SPB-43, converg
   })
 })
 
-describe('BidCountdownStrip — closed/expired degrade (unit)', () => {
-  it('once remaining hits 0, renders a single "Closed" value cell instead of stale/negative digits', () => {
-    render(<BidCountdownStrip closeAt={Date.now() - 5000} />)
+describe('BidCountdownTitle — closed/expired degrade (unit)', () => {
+  it('once remaining hits 0, renders role="timer" with "Closed" text instead of stale/negative digits', () => {
+    render(<BidCountdownTitle closeAt={Date.now() - 5000} />)
 
-    const cells = document.querySelectorAll('.summary-strip__cell')
-    expect(cells).toHaveLength(1)
-    expect(cells[0].querySelector('dt')).toBeNull()
-    expect(cells[0].querySelector('dd').textContent).toBe('Closed')
-    expect(document.querySelector('.carrier-bid-countdown-strip--urgent')).toBeNull()
-    // The open-bid "Bid Open" badge must not survive into the closed
-    // degrade — it would misreport an already-closed bid as open.
+    const title = document.querySelector('.carrier-bid-countdown-title')
+    expect(title).toBeTruthy()
+    expect(title.getAttribute('role')).toBe('timer')
+    expect(title.textContent).toBe('Closed')
+    expect(title.className).not.toContain('carrier-bid-countdown-title--urgent')
+    // The open-bid "Bid Open" badge is a separate, page-level element now
+    // (not part of this component) — must never appear from a bare render.
     expect(screen.queryByText('Bid Open')).toBeNull()
   })
 })
