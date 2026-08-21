@@ -75,9 +75,11 @@ function selectAllCheckbox() {
   return screen.getByLabelText('Select all carriers')
 }
 
-// Quote Setup modal (Task 5) — Duration / General Planned Pickup / General
-// Planned Delivery / Flexible, behind the "Quote Setup" trigger (round 2:
-// renamed from "Setup Quote", primary variant) trailing the carrier-count row.
+// Quote Setup modal (Task 5) — Duration / Planned Pickup / Planned Delivery /
+// Flexible, behind the "Quote Setup" trigger (round 2: renamed from "Setup
+// Quote", primary variant) trailing the carrier-count row. The date labels
+// dropped their "General" prefix (user, 2026-08-21) to match the table's own
+// column headers.
 function setupQuoteButton() {
   return screen.getByRole('button', { name: 'Quote Setup' })
 }
@@ -458,8 +460,8 @@ describe('SetupCarriers', () => {
     expect(screen.queryByRole('dialog', { name: 'Quote Setup' })).toBeFalsy()
     const dialog = within(openSetupModal())
     expect(dialog.getByLabelText('Quote Duration')).toBeTruthy()
-    expect(dialog.getByLabelText('General Planned Pickup')).toBeTruthy()
-    expect(dialog.getByLabelText('General Planned Delivery')).toBeTruthy()
+    expect(dialog.getByLabelText('Planned Pickup')).toBeTruthy()
+    expect(dialog.getByLabelText('Planned Delivery')).toBeTruthy()
     expect(dialog.getByLabelText('Flexible')).toBeTruthy()
   })
 
@@ -489,8 +491,8 @@ describe('SetupCarriers', () => {
       />
     )
     openSetupModal()
-    fillModalDate('General Planned Pickup', '09/01/2026')
-    fillModalDate('General Planned Delivery', '09/02/2026')
+    fillModalDate('Planned Pickup', '09/01/2026')
+    fillModalDate('Planned Delivery', '09/02/2026')
     applySetupModal()
 
     expect(screen.queryByRole('dialog', { name: 'Quote Setup' })).toBeFalsy()
@@ -505,7 +507,55 @@ describe('SetupCarriers', () => {
     }
   })
 
-  it('Apply only overwrites the date field that was actually supplied', () => {
+  // 2026-08-21 (user): the general fields are the single source that sets
+  // every row's dates AT ONCE — so on a fresh mount they open PRE-FILLED with
+  // the order defaults, matching what the rows already show.
+  it('opens pre-filled with the order defaults on a fresh (no-quote) mount, matching the rows', () => {
+    render(
+      <SetupCarriers
+        carrierOptions={carrierOptions}
+        defaultPickup={DEF_PICKUP}
+        defaultDelivery={DEF_DELIVERY}
+        readOnly={false}
+        onSaveDraft={() => {}}
+        onSendRFQ={() => {}}
+      />
+    )
+    const dialog = within(openSetupModal())
+    expect(dialog.getByLabelText('Planned Pickup').value).toBe(DEF_PICKUP)
+    expect(dialog.getByLabelText('Planned Delivery').value).toBe(DEF_DELIVERY)
+  })
+
+  // Mounting from an existing quote is the other case: the quote's own rows
+  // carry per-row dates that may already diverge from each other, so there is
+  // no single stored "general" value to show — it starts blank rather than
+  // guessing at one row's date.
+  it('opens with BLANK general dates when mounting from an existing quote', () => {
+    const rows = buildCarrierRows(list, carrierOptions).map((r, i) => ({
+      ...r, plannedPickup: DEF_PICKUP, plannedDelivery: i === 0 ? DEF_DELIVERY : '09/09/2026',
+    }))
+    const quote = { listId: list.id, listName: list.name, durationMin: list.defaultDurationMin, carriers: rows }
+    render(
+      <SetupCarriers
+        quote={quote}
+        carrierOptions={carrierOptions}
+        readOnly={false}
+        onSaveDraft={() => {}}
+        onSendRFQ={() => {}}
+      />
+    )
+    const dialog = within(openSetupModal())
+    expect(dialog.getByLabelText('Planned Pickup').value).toBe('')
+    expect(dialog.getByLabelText('Planned Delivery').value).toBe('')
+  })
+
+  // The core of the fix (user, 2026-08-21): "if quote setup modal dates are
+  // empty i expect the individual carrier dates are also empty" — clearing
+  // both general fields and applying must clear EVERY row, not leave the
+  // order defaults standing. The old "only overwrite what's supplied" rule
+  // (leave the other field alone when one was left blank) is gone — the
+  // general fields are now assigned unconditionally, clears included.
+  it('clearing both general dates and applying blanks every row and unchecks it', () => {
     render(
       <SetupCarriers
         carrierOptions={carrierOptions}
@@ -517,15 +567,60 @@ describe('SetupCarriers', () => {
       />
     )
     openSetupModal()
-    fillModalDate('General Planned Pickup', '09/01/2026')
-    // General Planned Delivery left blank.
+    fillModalDate('Planned Pickup', '')
+    fillModalDate('Planned Delivery', '')
     applySetupModal()
 
-    for (const r of tlRows) {
-      expect(within(screen.getByTestId(`pickup-${r.scac}`)).getByRole('textbox').value).toBe('09/01/2026')
-      // Existing (order-seeded) delivery date survives untouched.
-      expect(within(screen.getByTestId(`delivery-${r.scac}`)).getByRole('textbox').value).toBe(DEF_DELIVERY)
+    for (const r of allRows) {
+      expect(within(screen.getByTestId(`pickup-${r.scac}`)).getByRole('textbox').value).toBe('')
+      expect(within(screen.getByTestId(`delivery-${r.scac}`)).getByRole('textbox').value).toBe('')
+      expect(inclCheckbox(r.scac).checked).toBe(false)
     }
+  })
+
+  // "when i open the modal again im expecting those to be preserved unless
+  // page is reloaded" (user, 2026-08-21) — an applied general date survives a
+  // close + reopen of the SAME modal instance (no remount), because it reads
+  // from committed state, not a blank reseed.
+  it('preserves the applied general dates across a modal close and reopen', () => {
+    render(
+      <SetupCarriers
+        carrierOptions={carrierOptions}
+        defaultPickup={DEF_PICKUP}
+        defaultDelivery={DEF_DELIVERY}
+        readOnly={false}
+        onSaveDraft={() => {}}
+        onSendRFQ={() => {}}
+      />
+    )
+    openSetupModal()
+    fillModalDate('Planned Pickup', '09/01/2026')
+    fillModalDate('Planned Delivery', '09/02/2026')
+    applySetupModal()
+
+    const dialog = within(openSetupModal())
+    expect(dialog.getByLabelText('Planned Pickup').value).toBe('09/01/2026')
+    expect(dialog.getByLabelText('Planned Delivery').value).toBe('09/02/2026')
+  })
+
+  // A per-row edit made directly in the table (never through the modal) must
+  // not leak into the committed general state — the general fields only ever
+  // change via Apply.
+  it('a per-row date edit does not change what the general fields show on the next open', () => {
+    render(
+      <SetupCarriers
+        carrierOptions={carrierOptions}
+        defaultPickup={DEF_PICKUP}
+        defaultDelivery={DEF_DELIVERY}
+        readOnly={false}
+        onSaveDraft={() => {}}
+        onSendRFQ={() => {}}
+      />
+    )
+    fillDate(tlRows[0].scac, 'pickup', '07/04/2026')
+
+    const dialog = within(openSetupModal())
+    expect(dialog.getByLabelText('Planned Pickup').value).toBe(DEF_PICKUP)
   })
 
   it('Cancel discards the draft without touching any row', () => {
@@ -540,7 +635,7 @@ describe('SetupCarriers', () => {
       />
     )
     openSetupModal()
-    fillModalDate('General Planned Pickup', '09/01/2026')
+    fillModalDate('Planned Pickup', '09/01/2026')
     cancelSetupModal()
 
     expect(screen.queryByRole('dialog', { name: 'Quote Setup' })).toBeFalsy()
@@ -1172,20 +1267,20 @@ describe('SetupCarriers', () => {
       fireEvent.click(sendRFQButton())
       const dialog = within(screen.getByRole('dialog', { name: 'Send RFQ' }))
 
-      // The included carriers, named. Under preselection that is every
-      // carrier across BOTH lists except the route-guide ones — which is
-      // exactly what the confirmation exists to show before sending.
+      // The included carriers, named. The confirmation exists to show before
+      // sending exactly who is being contacted.
       expect(dialog.getByText(`${rows[0].scac} · ${rows[0].name}`)).toBeTruthy()
 
-      // The count is split across elements, so match on the dialog's own text.
-      const includedCount = allRows.filter((r) => !r.flags.includes('Routed')).length
+      // Apply mass-applies the (order-seeded, non-empty) general dates to
+      // EVERY row — including the route-guide carriers that start excluded
+      // (2026-08-21: Apply is now an unconditional per-row date assignment,
+      // the same auto-check rule a direct per-row edit already applies even
+      // to a Routed carrier — see "completing a row ... auto-checks it").
+      // So clicking Apply here (for the Flexible flag) also re-includes them.
+      const includedCount = allRows.length
       expect(includedCount).toBeGreaterThan(1) // guards against a silent revert
       const dialogText = screen.getByRole('dialog', { name: 'Send RFQ' }).textContent
       expect(dialogText).toMatch(new RegExp(`will be sent to\\s*${includedCount}\\s*carrier`))
-
-      // The ROUTED carrier is excluded by default and must not be listed.
-      const routed = allRows.find((r) => r.flags.includes('Routed'))
-      expect(dialog.queryByText(new RegExp(routed.scac))).toBeFalsy()
 
       expect(dialog.getByText('30 min')).toBeTruthy() // flat default (2026-08-19)
       expect(dialog.getByText('Yes')).toBeTruthy() // Flexible Pickup

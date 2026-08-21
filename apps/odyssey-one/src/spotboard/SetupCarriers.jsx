@@ -99,15 +99,28 @@ export default function SetupCarriers({
   const [confirming, setConfirming] = useState(false)
   const [mode, setMode] = useState(MODE_ALL)
 
-  // Quote Setup modal (Task 5) — Duration / General Planned Pickup / General
-  // Planned Delivery / Flexible, triggered by the "Quote Setup" button
-  // trailing the carrier-count row. Drafts are separate from the committed
-  // durationMin/flexiblePickup state so Cancel discards them; they are
-  // reseeded from the committed values every time the modal opens.
+  // Quote Setup modal (Task 5) — Duration / Planned Pickup / Planned
+  // Delivery / Flexible, triggered by the "Quote Setup" button trailing the
+  // carrier-count row. Drafts are separate from the committed
+  // durationMin/flexiblePickup/general-date state so Cancel discards them;
+  // they are reseeded from the committed values every time the modal opens.
+  //
+  // generalPickup/generalDelivery are the COMMITTED "set the date for all at
+  // once" values (user, 2026-08-21) — the single source the rows' dates trace
+  // to. On a fresh (no-quote) mount the rows are seeded straight from
+  // defaultPickup/defaultDelivery (see the effect below), so the general
+  // fields start AT that same value — the modal must show what's already true
+  // of every row, not claim to be empty while the table is dated. On a
+  // quote-seeded mount there is no stored general value (the quote's rows
+  // carry their OWN per-row dates, possibly diverging from each other) — '' is
+  // the only honest starting point; applying then still works, it just hasn't
+  // happened yet this page-life.
   const [setupOpen, setSetupOpen] = useState(false)
   const [draftDuration, setDraftDuration] = useState(durationMin)
-  const [draftPickup, setDraftPickup] = useState('')
-  const [draftDelivery, setDraftDelivery] = useState('')
+  const [generalPickup, setGeneralPickup] = useState(quote ? '' : defaultPickup)
+  const [generalDelivery, setGeneralDelivery] = useState(quote ? '' : defaultDelivery)
+  const [draftPickup, setDraftPickup] = useState(generalPickup)
+  const [draftDelivery, setDraftDelivery] = useState(generalDelivery)
   const [draftFlexible, setDraftFlexible] = useState(flexiblePickup)
 
   // Build every list's rows in one pass, stamping each row with the list it
@@ -150,37 +163,41 @@ export default function SetupCarriers({
       })
     )
 
-  // Seed the drafts from the committed values every time the modal opens —
+  // Seed the drafts from the COMMITTED values every time the modal opens —
   // Cancel must discard anything typed without touching committed state, and
   // a stale draft from a previous open must never leak into a new one. Dates
-  // seed blank: they are a mass-APPLY action, not a display of any single
-  // row's current date.
+  // seed from generalPickup/generalDelivery (not '') so a reopen shows
+  // whatever was last applied this page-life — that's the "preserved unless
+  // page is reloaded" rule (user, 2026-08-21); reseeding from '' every time
+  // was the bug this replaces.
   const openSetup = () => {
     setDraftDuration(durationMin)
-    setDraftPickup('')
-    setDraftDelivery('')
+    setDraftPickup(generalPickup)
+    setDraftDelivery(generalDelivery)
     setDraftFlexible(flexiblePickup)
     setSetupOpen(true)
   }
 
-  // Apply commits the drafts, mass-applies whichever planned date(s) were
-  // typed to EVERY row (leaving the other field alone when only one was
-  // supplied), and recomputes `incl` per row with the same
-  // both-dates-present rule `updateDate` uses on a single-row edit.
+  // Apply commits the drafts. The general dates are now the single declared
+  // source for every row's dates (user, 2026-08-21) — they are assigned to
+  // EVERY row UNCONDITIONALLY, including clearing: an emptied general field
+  // blanks that field on every row, not just non-empty ones. (Previously only
+  // a non-empty draft overwrote its field, leaving the other alone — that
+  // "only overwrite what's supplied" rule is gone along with the always-blank
+  // seed above.) `incl` recomputes per row with the same both-dates-present
+  // rule `updateDate` uses on a single-row edit.
   const applySetup = () => {
     setDurationMin(draftDuration)
     setFlexiblePickup(draftFlexible)
-    if (draftPickup || draftDelivery) {
-      setRows((rs) =>
-        rs.map((r) => {
-          const next = { ...r }
-          if (draftPickup) next.plannedPickup = draftPickup
-          if (draftDelivery) next.plannedDelivery = draftDelivery
-          next.incl = !!(next.plannedPickup && next.plannedDelivery)
-          return next
-        })
-      )
-    }
+    setGeneralPickup(draftPickup)
+    setGeneralDelivery(draftDelivery)
+    setRows((rs) =>
+      rs.map((r) => {
+        const next = { ...r, plannedPickup: draftPickup, plannedDelivery: draftDelivery }
+        next.incl = !!(next.plannedPickup && next.plannedDelivery)
+        return next
+      })
+    )
     onTermsChange?.({ durationMin: draftDuration, flexiblePickup: draftFlexible })
     setSetupOpen(false)
   }
@@ -424,11 +441,11 @@ export default function SetupCarriers({
           }
         >
           {/* Row 1: Quote Duration (filled, see .setup-carriers__setup-grid
-              .duration-picker) + Flexible. Row 2: the two General Planned
-              dates, side by side (user, round 2). "General Planned Delivery"
-              is the user's explicit rename; "General Planned Pickup" is
-              renamed to match it for symmetry — the user only named the
-              delivery field. */}
+              .duration-picker) + Flexible. Row 2: the two Planned dates, side
+              by side (user, round 2). Labeled "Planned Pickup"/"Planned
+              Delivery" (user, 2026-08-21 — dropped the "General" prefix to
+              match the table's own column headers; the modal context already
+              implies "applies to all carriers"). */}
           <div className="setup-carriers__setup-grid">
             <DurationPicker
               id="setup-quote-duration"
@@ -444,13 +461,13 @@ export default function SetupCarriers({
             />
             <DateField
               id="setup-pickup-all"
-              label="General Planned Pickup"
+              label="Planned Pickup"
               value={draftPickup}
               onChange={setDraftPickup}
             />
             <DateField
               id="setup-delivery-all"
-              label="General Planned Delivery"
+              label="Planned Delivery"
               value={draftDelivery}
               onChange={setDraftDelivery}
             />

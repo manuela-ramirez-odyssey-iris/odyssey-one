@@ -170,6 +170,19 @@
   width: 100%;
 }
 
+/* Flexible's checkbox cell must vertically center against Quote Duration
+   beside it — that field carries a label row above its input, so the two
+   grid cells are different heights and the grid's default row `stretch`
+   leaves the checkbox content pinned to the top of its (taller) cell. Force
+   the cell itself into a centering flex box (overriding Checkbox's own
+   `.control { display: inline-flex }`, which sizes to content, not the grid
+   row). */
+.setup-carriers__setup-grid .control--checkbox {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+}
+
 /* Send RFQ confirmation (ModalMedium) — carrier roll-call over the terms. */
 .setup-carriers__confirm {
   display: flex;
