@@ -293,12 +293,13 @@ export default function CarrierBid() {
   const priorBid = carrier?.bid?.status === 'bid' ? carrier.bid : null
   const declined = carrier?.bid?.status === 'declined'
 
-  // Submit/Update Bid confirmation (user ask: "we need a dialog confirmation
-  // in submit and update bid") — declared here, above the closedReason early
-  // return below, so the hook count stays constant across renders (Rules of
-  // Hooks). Title tracks the trigger button's own label (Submit Bid vs
-  // Update Bid).
-  const [confirmOpen, setConfirmOpen] = useState(false)
+  // Confirmation dialog — Submit/Update Bid AND Decline (user asks, same
+  // idiom both times: "we need a dialog confirmation"). One shared
+  // 'submit' | 'decline' | null state rather than a second boolean — the two
+  // triggers are mutually exclusive by construction, so a single value is
+  // the smaller diff. Declared here, above the closedReason early return
+  // below, so the hook count stays constant across renders (Rules of Hooks).
+  const [confirmAction, setConfirmAction] = useState(null)
   const confirmTitle = priorBid ? 'Update Bid' : 'Submit Bid'
 
   // Carrier identity for the TrailNav profile — SCAC on top (prominent),
@@ -806,8 +807,8 @@ export default function CarrierBid() {
                   carrier's final decision sits right under the number it's
                   a decision about. */}
               <div className="carrier-bid-page__actions">
-                <Button variant="secondary" size="lg" onClick={handleDecline}>Decline</Button>
-                <Button variant="primary" size="lg" onClick={() => setConfirmOpen(true)}>
+                <Button variant="secondary" size="lg" onClick={() => setConfirmAction('decline')}>Decline</Button>
+                <Button variant="primary" size="lg" onClick={() => setConfirmAction('submit')}>
                   {confirmTitle}
                 </Button>
               </div>
@@ -818,36 +819,49 @@ export default function CarrierBid() {
       )}
       </main>
 
-      {confirmOpen && createPortal(
+      {confirmAction && createPortal(
         <ModalMedium
-          title={confirmTitle}
-          onClose={() => setConfirmOpen(false)}
+          title={confirmAction === 'decline' ? 'Decline Bid' : confirmTitle}
+          onClose={() => setConfirmAction(null)}
           footer={
             <>
-              <Button variant="secondary" size="lg" onClick={() => setConfirmOpen(false)}>
+              <Button variant="secondary" size="lg" onClick={() => setConfirmAction(null)}>
                 Cancel
               </Button>
               <Button
                 variant="primary"
                 size="lg"
                 onClick={() => {
-                  setConfirmOpen(false)
-                  handleSubmit()
+                  setConfirmAction(null)
+                  if (confirmAction === 'decline') handleDecline()
+                  else handleSubmit()
                 }}
               >
-                Confirm &amp; Submit
+                {confirmAction === 'decline' ? 'Confirm Decline' : 'Confirm & Submit'}
               </Button>
             </>
           }
         >
-          <div className="carrier-bid-card__grid carrier-bid-card__grid--pairs">
-            <TitleSubtitle subtitle="Base Charge" title={fmtDollar(round2(linehaulNum + effectiveFuel))} />
-            <TitleSubtitle subtitle="Additional Charges" title={fmtDollar(chargeTotal)} />
-          </div>
-          <div className="carrier-bid-total carrier-bid-total--grand text-label-base-semibold">
-            <span>Grand Total</span>
-            <span>{fmtDollar(total)}</span>
-          </div>
+          {confirmAction === 'decline' ? (
+            // Copy aligned with the existing post-decline note below (same
+            // "you can still submit a bid while this window is open" idea).
+            <p className="text-label-sm-regular">
+              Declining tells the shipper you are passing on this load. While the
+              bidding window is open you can still change your mind and submit or
+              update a bid at any time.
+            </p>
+          ) : (
+            <>
+              <div className="carrier-bid-card__grid carrier-bid-card__grid--pairs">
+                <TitleSubtitle subtitle="Base Charge" title={fmtDollar(round2(linehaulNum + effectiveFuel))} />
+                <TitleSubtitle subtitle="Additional Charges" title={fmtDollar(chargeTotal)} />
+              </div>
+              <div className="carrier-bid-total carrier-bid-total--grand text-label-base-semibold">
+                <span>Grand Total</span>
+                <span>{fmtDollar(total)}</span>
+              </div>
+            </>
+          )}
         </ModalMedium>,
         document.body
       )}

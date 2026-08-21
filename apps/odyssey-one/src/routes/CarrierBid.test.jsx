@@ -298,6 +298,55 @@ describe('CarrierBid — open quote', () => {
     expect(screen.getByRole('dialog', { name: 'Update Bid' })).toBeTruthy()
   })
 
+  it('clicking Decline opens a "Decline Bid" confirmation dialog without declining yet', async () => {
+    const quote = openQuote()
+    const token = tokenFor(quote, SCAC)
+    renderAt(`/spot-bid/${token}`)
+    await screen.findByText('Acme Houston Plant')
+
+    fireEvent.click(screen.getByRole('button', { name: /^decline$/i }))
+
+    const dialog = screen.getByRole('dialog', { name: 'Decline Bid' })
+    expect(dialog).toBeTruthy()
+    expect(within(dialog).getByText(/declining tells the shipper/i)).toBeTruthy()
+    const stored = getQuote(SHIPMENT_ID)
+    expect(stored.carriers.find((c) => c.scac === SCAC).bid).toBeUndefined()
+  })
+
+  it('Cancel on the Decline dialog closes it without declining', async () => {
+    const quote = openQuote()
+    const token = tokenFor(quote, SCAC)
+    renderAt(`/spot-bid/${token}`)
+    await screen.findByText('Acme Houston Plant')
+
+    fireEvent.click(screen.getByRole('button', { name: /^decline$/i }))
+    const dialog = screen.getByRole('dialog', { name: 'Decline Bid' })
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }))
+
+    expect(screen.queryByRole('dialog', { name: 'Decline Bid' })).toBeFalsy()
+    const stored = getQuote(SHIPMENT_ID)
+    expect(stored.carriers.find((c) => c.scac === SCAC).bid).toBeUndefined()
+  })
+
+  it('Confirm Decline in the dialog actually declines the quote for that scac', async () => {
+    const quote = openQuote()
+    const token = tokenFor(quote, SCAC)
+    renderAt(`/spot-bid/${token}`)
+    await screen.findByText('Acme Houston Plant')
+
+    fireEvent.click(screen.getByRole('button', { name: /^decline$/i }))
+    const dialog = screen.getByRole('dialog', { name: 'Decline Bid' })
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Confirm Decline' }))
+
+    expect(screen.queryByRole('dialog', { name: 'Decline Bid' })).toBeFalsy()
+    const stored = getQuote(SHIPMENT_ID)
+    const row = stored.carriers.find((c) => c.scac === SCAC)
+    expect(row.bid?.status).toBe('declined')
+
+    // Other carrier's row untouched.
+    expect(stored.carriers.find((c) => c.scac === 'SAIA').bid).toBeUndefined()
+  })
+
   it('never renders an Order ID or Load ID anywhere in the DOM, incl. portals and attributes', async () => {
     const quote = openQuote()
     const token = tokenFor(quote, SCAC)
