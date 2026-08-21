@@ -5,6 +5,8 @@ import SetupCarriers from '../../spotboard/SetupCarriers.jsx'
 import LiveBids from '../../spotboard/LiveBids.jsx'
 import RfqLinksPanel from '../../spotboard/RfqLinksPanel.jsx'
 import SpotSummaryStrip from '../../spotboard/SpotSummaryStrip.jsx'
+import DraftsPanel from '../../spotboard/DraftsPanel.jsx'
+import { listDrafts, saveDraftSnapshot, removeDraft } from '../../spotboard/draftStore.js'
 import { cityState, compactWindow } from '../../spotboard/stripFormat.js'
 import { useSpotQuote } from '../../spotboard/useSpotQuote.js'
 import { isSpotEligible, eligibilityReason } from '../../spotboard/eligibility.js'
@@ -16,6 +18,7 @@ import { saveTenderOption } from '../../api/services/shipmentService'
 const SUB_TABS = [
   { key: 'setup', label: 'Setup & Carriers' },
   { key: 'bids', label: 'Live Bids' },
+  { key: 'drafts', label: 'Drafts' },
 ]
 
 // ponytail: no markup UI control exists anywhere in SpotBoard V1 (neither
@@ -107,8 +110,17 @@ export default function SpotBoardTab({ shipmentDetails, shipment }) {
   const [terms, setTerms] = useState(null)
   const timersRef = useRef([])
 
+  const sid = shipment?.sellShipment
   const { quote, saveDraft, sendRFQ, submitBid, closeQuote, award, clearQuote } =
-    useSpotQuote(shipment?.sellShipment)
+    useSpotQuote(sid)
+
+  // Saved snapshots (Task 9) — separate from the live `quote`, listed fresh
+  // whenever the shipment changes (the tab is not remounted on a shipment
+  // switch, so this can't rely on useState's lazy initializer alone).
+  const [drafts, setDrafts] = useState(() => listDrafts(sid))
+  useEffect(() => {
+    setDrafts(listDrafts(sid))
+  }, [sid])
 
   // Carrier pool is resolved async (SetupCarriers itself stays sync) —
   // fetching it is this component's job per the SetupCarriers contract.
@@ -195,6 +207,25 @@ export default function SpotBoardTab({ shipmentDetails, shipment }) {
     award(scac, awardType)
   }, [quote, shipmentDetails, shipment, award])
 
+  // Restore replaces whatever quote is live with the snapshot's payload —
+  // spotStore.saveDraft refuses over a non-draft quote, hence clearQuote()
+  // first (restoreDisabled below keeps this out of reach while a quote is
+  // open/awarded). Also drops `terms` — a stale Setup Quote modal draft must
+  // not out-live the quote it was drafted against.
+  const handleRestore = useCallback((draft) => {
+    clearQuote()
+    saveDraft(draft.payload)
+    setTerms(null)
+    setSubTab('setup')
+  }, [clearQuote, saveDraft])
+
+  const handleDeleteDraft = useCallback((draft) => {
+    removeDraft(sid, draft.id)
+    setDrafts(listDrafts(sid))
+  }, [sid])
+
+  const restoreDisabled = quote?.status === 'open' || quote?.status === 'awarded'
+
   if (!eligible) {
     return (
       <EmptyState
@@ -237,6 +268,10 @@ export default function SpotBoardTab({ shipmentDetails, shipment }) {
       {subTab === 'setup' ? (
         <div className="pane-col pane-col--wide">
           <SetupCarriers
+            // Remounts on restore (a fresh quoteId) so its rows/duration/
+            // flexible state re-seed from the just-restored `quote` at mount,
+            // the same way it already seeds from a persisted quote on load.
+            key={quote?.quoteId ?? 'fresh'}
             quote={quote}
             carrierOptions={carrierOptions}
             onTermsChange={setTerms}
@@ -259,10 +294,21 @@ export default function SpotBoardTab({ shipmentDetails, shipment }) {
             defaultPickup={dateOnly(shipmentDetails?.orderDetails?.[0]?.latestPickup)}
             defaultDelivery={dateOnly(shipmentDetails?.orderDetails?.[0]?.latestDelivery)}
             readOnly={quote?.status === 'open' || quote?.status === 'closed' || quote?.status === 'awarded'}
-            onSaveDraft={saveDraft}
+            onSaveDraft={(payload) => {
+              saveDraft(payload)
+              saveDraftSnapshot(sid, payload, Date.now())
+              setDrafts(listDrafts(sid))
+            }}
             onSendRFQ={handleSendRFQ}
           />
         </div>
+      ) : subTab === 'drafts' ? (
+        <DraftsPanel
+          drafts={drafts}
+          restoreDisabled={restoreDisabled}
+          onRestore={handleRestore}
+          onDelete={handleDeleteDraft}
+        />
       ) : quote ? (
         // LiveBids is self-contained here (components.css:6227-6228, "full-width
         // bands sit OUTSIDE .pane-col, directly on .pane-canvas") — its quote

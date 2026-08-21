@@ -236,3 +236,31 @@
   align-items: center;
   gap: var(--spacing-2);
 }
+
+/* DraftsPanel — same table-wrap idiom as SetupCarriers; trailing actions cell
+   pairs a Button (Restore) with a plain icon affordance (Delete), matching
+   the row-action convention used by quote-charges__remove / co-rep__trash. */
+.drafts-panel__table-wrap {
+  overflow-x: auto;
+}
+
+.drafts-panel__col-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  white-space: nowrap;
+}
+
+.drafts-panel__remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--text-placeholder);
+  transition: color 0.15s ease;
+}
+
+.drafts-panel__remove:hover { color: var(--badge-red-text); }

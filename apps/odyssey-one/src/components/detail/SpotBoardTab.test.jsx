@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, it, expect } from 'vitest'
 import { render, screen, fireEvent, cleanup } from '@testing-library/react'
 import SpotBoardTab from './SpotBoardTab'
 import { decodeToken } from '../../spotboard/token.js'
+import { saveDraftSnapshot } from '../../spotboard/draftStore.js'
 
 const shipment = { sellShipment: '0000000091105', buyShipment: '0000000091105' }
 
@@ -322,5 +323,66 @@ describe('SpotBoardTab', () => {
 
     render(<SpotBoardTab shipmentDetails={makeShipmentDetails([])} shipment={shipment} />)
     expect(screen.queryByRole('link', { name: /ODFL/ })).toBeFalsy()
+  })
+
+  // Task 9: Drafts sub-tab — save + restore.
+  describe('Drafts', () => {
+    it('shows a saved snapshot in the Drafts tab after Save Draft', () => {
+      render(<SpotBoardTab shipmentDetails={makeShipmentDetails([])} shipment={shipment} />)
+
+      fireEvent.click(screen.getByRole('button', { name: 'Save Draft' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Drafts' }))
+
+      expect(screen.getByText('30 min')).toBeTruthy()
+      expect(screen.getByRole('button', { name: 'Restore' })).toBeTruthy()
+    })
+
+    it('Restore repopulates Setup with the draft and switches to the Setup tab', () => {
+      saveDraftSnapshot(shipment.sellShipment, {
+        listId: 'tl-se', listName: 'TL Southeast Overflow', durationMin: 99, carriers: [], flexiblePickup: false,
+      }, 1000)
+
+      render(<SpotBoardTab shipmentDetails={makeShipmentDetails([])} shipment={shipment} />)
+      fireEvent.click(screen.getByRole('button', { name: 'Drafts' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Restore' }))
+
+      expect(screen.getByRole('button', { name: 'Setup & Carriers' }).className).toContain('tab--current')
+      // Duration comes back off the restored quote, into the sticky strip.
+      expect(document.querySelector('.spot-sticky-strip').textContent).toContain('99 min')
+    })
+
+    it('disables Restore while a quote is open', () => {
+      localStorage.setItem(
+        `spotboard:${shipment.sellShipment}`,
+        JSON.stringify({
+          quoteId: 'q1', shipmentId: shipment.sellShipment, listId: 'l', listName: 'L', durationMin: 60,
+          openAt: 1000, closeAt: 999999999999, status: 'open', awardType: null, awardedScac: null,
+          carriers: [], flexiblePickup: false,
+        })
+      )
+      saveDraftSnapshot(shipment.sellShipment, {
+        listId: 'l', listName: 'L', durationMin: 30, carriers: [], flexiblePickup: false,
+      }, 1000)
+
+      render(<SpotBoardTab shipmentDetails={makeShipmentDetails([])} shipment={shipment} />)
+      fireEvent.click(screen.getByRole('button', { name: 'Drafts' }))
+
+      expect(screen.getByRole('button', { name: 'Restore' }).disabled).toBe(true)
+    })
+
+    it('Delete removes a draft row', () => {
+      saveDraftSnapshot(shipment.sellShipment, {
+        listId: 'l', listName: 'L', durationMin: 30, carriers: [], flexiblePickup: false,
+      }, 1000)
+
+      render(<SpotBoardTab shipmentDetails={makeShipmentDetails([])} shipment={shipment} />)
+      fireEvent.click(screen.getByRole('button', { name: 'Drafts' }))
+      expect(screen.getByRole('button', { name: 'Restore' })).toBeTruthy()
+
+      fireEvent.click(screen.getByLabelText('Delete draft'))
+
+      expect(screen.queryByRole('button', { name: 'Restore' })).toBeFalsy()
+      expect(screen.getByText(/No saved drafts yet/)).toBeTruthy()
+    })
   })
 })
