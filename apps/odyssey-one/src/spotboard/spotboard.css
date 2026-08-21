@@ -217,6 +217,31 @@
   }
 }
 
+/* SpotSummaryStrip round-2 fix — a hoverable cell's value is now wrapped in
+   TooltipTrigger's `asSpan` anchor (components/ui/TooltipTrigger.jsx: a
+   `<span data-tooltip-trigger>` with its own inline `display: inline-flex`),
+   which breaks `.summary-strip__value`'s ellipsis (components.css): text-
+   overflow only truncates a block's own inline content, and a nested
+   inline-flex box is an atomic box the parent's ellipsis doesn't reach into
+   — it just hard-clips instead (user, round 2). TooltipTrigger takes no
+   className, so this is scoped by descendant selector; `!important` is
+   required to beat the anchor's own inline `display` style. Forcing the
+   anchor (and its inner value span) back to a block that ellipsizes ITSELF
+   reproduces the plain-text look exactly. */
+.summary-strip__value [data-tooltip-trigger] {
+  display: block !important;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.summary-strip__value [data-tooltip-trigger] > span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* RfqLinksPanel — CE-1 email stand-in shown after Send RFQ. */
 .rfq-links .alert__body {
   align-items: flex-start;

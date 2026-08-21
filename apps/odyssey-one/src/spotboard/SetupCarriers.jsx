@@ -99,8 +99,8 @@ export default function SetupCarriers({
   const [confirming, setConfirming] = useState(false)
   const [mode, setMode] = useState(MODE_ALL)
 
-  // Quote Setup modal (Task 5) — Duration / Planned Pickup for All / Planned
-  // Delivery for All / Flexible, triggered by the "Setup Quote" button
+  // Quote Setup modal (Task 5) — Duration / General Planned Pickup / General
+  // Planned Delivery / Flexible, triggered by the "Quote Setup" button
   // trailing the carrier-count row. Drafts are separate from the committed
   // durationMin/flexiblePickup state so Cancel discards them; they are
   // reseeded from the committed values every time the modal opens.
