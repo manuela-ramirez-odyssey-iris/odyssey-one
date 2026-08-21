@@ -463,4 +463,45 @@ describe('SpotBoardTab', () => {
       expect(screen.getByText(/No saved drafts yet/)).toBeTruthy()
     })
   })
+
+  // S128 (user, 2026-08-21: "make sure distance cell value is calculated").
+  // A spot-eligible shipment never has an Accepted/Sent tender option
+  // (eligibility.js), so stopsData.summary.distance is almost always '--' —
+  // the strip falls back to a routed option's own distance, then the
+  // shipment header's distance, before finally giving up.
+  describe('strip Distance fallback', () => {
+    it('falls back to a routed option\'s distance when there is no tender-option distance', () => {
+      const details = makeShipmentDetails([
+        { rank: 1, status: 'Declined', scac: 'ODFL', carrierName: 'Old Dominion', distance: '412.30 mi' },
+      ])
+      details.stopsData.summary.distance = '--'
+      const { container } = render(<SpotBoardTab shipmentDetails={details} shipment={shipment} />)
+      const strip = container.querySelector('.spot-sticky-strip')
+      expect(strip.textContent).toContain('412.30 mi')
+    })
+
+    it('falls back to the header distanceMiles when no tender option or routed option has one', () => {
+      const details = makeShipmentDetails([
+        { rank: 1, status: 'Declined', scac: 'ODFL', carrierName: 'Old Dominion' }, // no distance
+      ])
+      details.stopsData.summary.distance = '--'
+      details.stopsData.summary.headerDistance = '900.00 mi'
+      const { container } = render(<SpotBoardTab shipmentDetails={details} shipment={shipment} />)
+      const strip = container.querySelector('.spot-sticky-strip')
+      expect(strip.textContent).toContain('900.00 mi')
+    })
+
+    it('shows "--" when the tender option, every routed option, and the header distance are all missing', () => {
+      const details = makeShipmentDetails([
+        { rank: 1, status: 'Declined', scac: 'ODFL', carrierName: 'Old Dominion' },
+      ])
+      details.stopsData.summary.distance = '--'
+      details.stopsData.summary.headerDistance = '--'
+      const { container } = render(<SpotBoardTab shipmentDetails={details} shipment={shipment} />)
+      const strip = container.querySelector('.spot-sticky-strip')
+      expect(strip.textContent).toContain('Distance')
+      // No stray real-looking distance value anywhere in the strip.
+      expect(strip.textContent).not.toMatch(/\d+\.\d{2} mi/)
+    })
+  })
 })

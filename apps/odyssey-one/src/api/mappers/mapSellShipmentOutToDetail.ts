@@ -225,6 +225,10 @@ function mapStops(dto: SellShipmentOut): ShipmentDetailVM['stopsData'] {
     // mapRoutingOption's own `distance` field so the two tables format
     // identically.
     distance: fmtDistance(currentTenderOption(dto.shippingOptionList)?.distanceMiles),
+    // S128 — additive, read by the SpotBoard strip's distance fallback chain
+    // ONLY (SpotBoardTab.jsx stripDistance). See StopsSummaryVM for why this
+    // is deliberately separate from `distance` above.
+    headerDistance: fmtDistance(dto.distanceMiles),
     grossWeight: ov?.grossWeight ?? (totalWeight != null ? `${fmtInt(totalWeight)} LB` : DASH),
     volume: ov?.volume ?? (dto.totalVolumeValue != null
       ? `${dto.totalVolumeValue} ${dto.totalVolumeUomCode ?? 'cuft'}`

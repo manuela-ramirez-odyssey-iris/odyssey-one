@@ -38,6 +38,28 @@ const DEFAULT_MARKUP = { type: 'flat', value: 0 }
 // orderDetails[].{equipment,hazmat,earliestPickup,latestPickup}.
 // Distance/Equipment/Hazmat were dropped 2026-08-20 then RESTORED 2026-08-21
 // (user, round 2: "you forgot to add the other summary values to the strip").
+// S128 (user, 2026-08-21: "make sure distance cell value is calculated").
+// stopsData.summary.distance only resolves off an Accepted/Sent tender
+// option (mapSellShipmentOutToDetail.ts currentTenderOption) — on a spot-
+// ELIGIBLE shipment there is no such option (eligibility.js blocks
+// Accepted/Sent), so it is almost always '--'. Falls back to the first
+// routed option carrying a real distance, then the shipment header's own
+// distanceMiles (stopsData.summary.headerDistance). This fallback is
+// SpotBoard-strip-local only — the Stops tab's own `distance` field/semantics
+// (LINX-12067) are untouched.
+function isRealDistance(v) {
+  return !!v && v !== '--'
+}
+
+function stripDistance(shipmentDetails) {
+  const summary = shipmentDetails?.stopsData?.summary ?? {}
+  if (isRealDistance(summary.distance)) return summary.distance
+  const routed = (shipmentDetails?.routingData?.options ?? [])
+    .find((o) => isRealDistance(o.distance))
+  if (routed) return routed.distance
+  return isRealDistance(summary.headerDistance) ? summary.headerDistance : '--'
+}
+
 function buildHeader(shipmentDetails) {
   const stops = shipmentDetails?.stopsData?.stops ?? []
   const summary = shipmentDetails?.stopsData?.summary ?? {}
@@ -49,7 +71,7 @@ function buildHeader(shipmentDetails) {
     origin,
     destination,
     equipment: summary.seedEquipment || firstOrder?.equipment,
-    distance: summary.distance,
+    distance: stripDistance(shipmentDetails),
     hazmat: orders.some((o) => o.hazmat === 'Yes') ? 'Yes' : 'No',
     pickupWindow: firstOrder ? `${firstOrder.earliestPickup} - ${firstOrder.latestPickup}` : undefined,
   }

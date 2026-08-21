@@ -99,6 +99,12 @@ export interface StopsSummaryVM {
      summary object it already reads grossWeight/volume/seedEquipment from. */
   packageCount: string
   planningType: string
+  /* S128 — the shipment header's OWN distanceMiles (dto.distanceMiles),
+     deliberately NOT read into `distance` above (LINX-12067 — see mapStops).
+     Exposed additively so the SpotBoard strip has a last-resort fallback
+     when neither a tender option nor a routed option carries a distance;
+     the Stops tab's own `distance` semantics are untouched. */
+  headerDistance: string
 }
 
 // ── Product tab ──────────────────────────────────────────────

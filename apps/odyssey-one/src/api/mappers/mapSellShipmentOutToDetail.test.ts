@@ -293,6 +293,9 @@ describe('mapSellShipmentOutToDetail', () => {
       // exact one the AC says must be ignored. Old assertion ('367.52 mi')
       // encoded the pre-fix (wrong) source.
       expect(summary.distance).toBe('1,337.39 mi')
+      // S128 — headerDistance carries the header's OWN distanceMiles through
+      // additively (SpotBoard strip fallback only), independent of `distance`.
+      expect(summary.headerDistance).toBe('367.52 mi')
       expect(summary.grossWeight).toBe('27,257 LB')
       expect(summary.volume).toBe('600 cuft')
       expect(summary.acceptedCarrier).toBe('ABFS - TL')
@@ -320,6 +323,7 @@ describe('mapSellShipmentOutToDetail', () => {
       }
       const summary = mapSellShipmentOutToDetail(dto).stopsData.summary
       expect(summary.distance).toBe('--')
+      expect(summary.headerDistance).toBe('--')
       expect(summary.grossWeight).toBe('--')
     })
   })
