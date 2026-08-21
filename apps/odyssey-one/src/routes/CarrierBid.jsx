@@ -179,6 +179,10 @@ export default function CarrierBid() {
   const scac = decoded?.scac ?? null
 
   const [quote, setQuote] = useState(() => (shipmentId ? getQuote(shipmentId) : null))
+  // Gates the closedReason "no longer available" flash below — true
+  // immediately in mock mode (nothing to wait for), flips true once the live
+  // hydrate SETTLES (success or failure; see the effect's .finally).
+  const [hydrated, setHydrated] = useState(() => getApiMode() !== 'live')
   const { data: shipment, isLoading } = useShipmentDetail(shipmentId)
 
   // A carrier opening this token link in a FRESH browser has empty
@@ -187,7 +191,13 @@ export default function CarrierBid() {
   useEffect(() => {
     if (!shipmentId || getApiMode() !== 'live') return
     let cancelled = false
-    hydrateQuote(shipmentId).then((q) => { if (!cancelled) setQuote(q) })
+    hydrateQuote(shipmentId)
+      .then((q) => { if (!cancelled) setQuote(q) })
+      .catch(() => {
+        // ponytail: swallow — a failed hydrate leaves the local-cache view
+        // on screen (degraded, not blanked); no retry machinery.
+      })
+      .finally(() => { if (!cancelled) setHydrated(true) })
     return () => { cancelled = true }
   }, [shipmentId])
 
@@ -374,6 +384,14 @@ export default function CarrierBid() {
   else if (!carrier) closedReason = 'This link is invalid.'
   else if (quote.status !== 'open' || isExpired) closedReason = 'This bidding window has closed.'
 
+  // Live-mode flash guard: a fresh browser's FIRST render has no local quote
+  // yet (empty localStorage), which would otherwise flash "no longer
+  // available" for the one round-trip before hydrateQuote settles above.
+  // Only the `!quote` branch is time-sensitive this way — !decoded is known
+  // synchronously (bad/malformed token, nothing to fetch) and needs no gate;
+  // !carrier/closed/expired can't be reached until a quote HAS loaded.
+  const awaitingFirstHydration = decoded && !quote && !hydrated
+
   // package Navbar, context="external" (Figma 5152:3904) — logo-only lead,
   // carrier identity in the trail, no bell/customers. One definition shared
   // by both the closedReason early-return below and the open-bid return
@@ -424,7 +442,9 @@ export default function CarrierBid() {
         <HeroBackground heroIndex={heroIndex} />
         {bidNavbar}
         <main className="carrier-bid-page__main">
-          <Alert variant="warning" showClose={false}>{closedReason}</Alert>
+          {awaitingFirstHydration
+            ? <p className="carrier-bid-page__loading text-label-sm-regular">Loading shipment details…</p>
+            : <Alert variant="warning" showClose={false}>{closedReason}</Alert>}
         </main>
       </div>
     )

@@ -151,7 +151,12 @@ export default function SpotBoardTab({ shipmentDetails, shipment }) {
     // VITE_API_MODE — so this branch keeps the existing tests byte-identical).
     if (getApiMode() !== 'live') { setDrafts(listDrafts(sid)); return }
     let cancelled = false
-    hydrateDrafts(sid).then((d) => { if (!cancelled) setDrafts(d) })
+    hydrateDrafts(sid)
+      .then((d) => { if (!cancelled) setDrafts(d) })
+      .catch(() => {
+        // ponytail: swallow — a failed hydrate leaves the existing local
+        // drafts list on screen (degraded, not blanked); no retry machinery.
+      })
     return () => { cancelled = true }
   }, [sid])
 

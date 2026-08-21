@@ -8,6 +8,7 @@ import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import CarrierBid, { BidCountdownTitle } from './CarrierBid.jsx'
 import { saveDraft, sendRFQ, closeQuote, getQuote } from '../spotboard/spotStore.js'
+import { mintToken } from '../spotboard/token.js'
 
 const SHIPMENT_ID = '25690001'
 const SCAC = 'ODFL'
@@ -767,6 +768,62 @@ describe('CarrierBid — closed / expired / invalid', () => {
     expect(document.querySelector('header.navbar--external')).toBeTruthy()
     expect(document.querySelectorAll('h1').length).toBe(0)
     expect(document.querySelector('main')).toBeTruthy()
+  })
+})
+
+// Live-mode flash guard (fix-first review, 2026-08-21): a fresh browser has
+// no local quote at first render — closedReason's `!quote` branch would
+// otherwise flash "This quote is no longer available." for the one
+// round-trip before hydrateQuote settles. Builds tokens directly via
+// mintToken (independent of a stored quote — see token.js) so a quote can be
+// legitimately absent from localStorage at mount.
+describe('CarrierBid — live-mode first-hydration flash guard', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
+  it('shows the loading treatment (never the closed Alert) while hydrateQuote is in flight, then the closed Alert once it resolves null', async () => {
+    vi.stubEnv('VITE_API_MODE', 'live')
+    const token = mintToken(SHIPMENT_ID, SCAC) // no quote ever saved locally
+    let resolveSpot
+    vi.stubGlobal('fetch', vi.fn((url) => {
+      if (String(url).includes('/spot-service/v1/spot/')) {
+        return new Promise((resolve) => {
+          resolveSpot = () => resolve({ ok: true, json: async () => ({ value: null }) })
+        })
+      }
+      return Promise.resolve({ ok: true, status: 200, json: async () => DTO })
+    }))
+
+    renderAt(`/spot-bid/${token}`)
+
+    expect(screen.queryByText('This quote is no longer available.')).toBe(null)
+    await screen.findByText('Loading shipment details…')
+
+    await act(async () => { resolveSpot() })
+
+    await screen.findByText('This quote is no longer available.')
+  })
+
+  it('hydrates a quote from the DB into a fresh browser — no Alert flash, straight to the bid form', async () => {
+    const quote = openQuote() // mock-mode: mints a real token + writes the quote locally
+    const token = tokenFor(quote, SCAC)
+    localStorage.removeItem(`spotboard:${SHIPMENT_ID}`) // simulate a fresh browser: token survives, quote doesn't
+
+    vi.stubEnv('VITE_API_MODE', 'live')
+    vi.stubGlobal('fetch', vi.fn((url) => {
+      if (String(url).includes('/spot-service/v1/spot/')) {
+        return Promise.resolve({ ok: true, json: async () => ({ value: quote }) })
+      }
+      return Promise.resolve({ ok: true, status: 200, json: async () => DTO })
+    }))
+
+    renderAt(`/spot-bid/${token}`)
+
+    expect(screen.queryByText('This quote is no longer available.')).toBe(null)
+    await screen.findByText('Acme Houston Plant')
+    expect(screen.getByRole('button', { name: /submit/i })).toBeTruthy()
+    expect(screen.queryByText('This quote is no longer available.')).toBe(null)
   })
 })
 

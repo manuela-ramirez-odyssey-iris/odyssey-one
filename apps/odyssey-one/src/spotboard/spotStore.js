@@ -160,7 +160,18 @@ export function subscribe(shipmentId, cb) {
 
   let intervalId = null
   if (getApiMode() === 'live') {
-    const poll = () => { hydrateFromApi(shipmentId).then(cb) }
+    let loggedPollError = false
+    const poll = () => {
+      hydrateFromApi(shipmentId).then(cb).catch((err) => {
+        // ponytail: swallow — spot-service being unreachable must not spam
+        // the console every 4s; log once per subscription, not per tick. No
+        // retry machinery: the next scheduled poll IS the retry.
+        if (!loggedPollError) {
+          loggedPollError = true
+          console.debug('spot poll failed (will keep retrying every 4s):', err)
+        }
+      })
+    }
     poll() // immediate hydrate on subscribe
     intervalId = setInterval(poll, POLL_MS)
   }
