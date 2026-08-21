@@ -118,13 +118,35 @@ describe('LiveBids', () => {
     expect(within(itemised).getByText('$75.00')).toBeTruthy()
   })
 
-  // The pricing columns must NOT be on the outer row any more.
-  test('the main row carries identity + state only, no money', () => {
+  // S112 kept pricing off the outer row entirely; the user has since reversed
+  // that for Total only — the outer row now identifies + states + totals.
+  test('the main row carries identity + state + a trailing Total, no other money', () => {
     render(<LiveBids quote={CLOSED_QUOTE} />)
     const headers = [...document.querySelectorAll('.odyssey-group-table__table > thead th')]
       .map((th) => th.textContent)
     // trailing '' is the pinned Award action column (stickyActions)
-    expect(headers).toEqual(['Carrier', 'Status', 'Submitted By', 'Response', ''])
+    expect(headers).toEqual(['Carrier', 'Status', 'Submitted By', 'Response', 'Total', ''])
+  })
+
+  test('outer row Total: a bid carrier shows fmtDollar(bid.total), a bidless carrier shows —', () => {
+    const { container } = render(<LiveBids quote={CLOSED_QUOTE} />)
+    const table = within(container.querySelector('.odyssey-group-table'))
+
+    // ODFL bid total is 2275 — collapsed, so this can only be the outer row's
+    // value (the nested breakdown table doesn't exist until expanded).
+    const odflRow = table.getByText(/ODFL/).closest('tr')
+    expect(within(odflRow).getByText('$2,275.00')).toBeTruthy()
+
+    // XPO never submitted a bid at all — its Total cell (the right-aligned
+    // trailing column) reads the em-dash, same as its other empty cells.
+    const xpoRow = table.getByText(/XPO/).closest('tr')
+    const xpoTotalCell = xpoRow.querySelector('.odyssey-group-table__cell--right')
+    expect(xpoTotalCell.textContent).toBe('—')
+
+    // FXFE declined — also no total.
+    const fxfeRow = table.getByText(/FXFE/).closest('tr')
+    const fxfeTotalCell = fxfeRow.querySelector('.odyssey-group-table__cell--right')
+    expect(fxfeTotalCell.textContent).toBe('—')
   })
 
   test('onAward fires with the lowest carrier scac', () => {
@@ -177,6 +199,22 @@ describe('LiveBids', () => {
     expect(screen.queryByText('Within tolerance — eligible for auto-award')).toBeFalsy()
     expect(document.querySelector('.alert--success')).toBeFalsy()
     expect(screen.getByText('No bids received')).toBeTruthy()
+  })
+
+  // Task 8: strip moves outside + above the accordion, sticky (Setup & Carriers convention).
+  test('the quote SummaryStrip renders outside the Live Bids accordion and is sticky', () => {
+    const { container } = render(<LiveBids quote={CLOSED_QUOTE} />)
+    const strip = container.querySelector('.live-bids__summary')
+    expect(strip).toBeTruthy()
+    expect(strip.classList.contains('spot-sticky-strip')).toBe(true)
+
+    // Not nested inside the SubAccordion's content wrapper.
+    const content = container.querySelector('.sub-accordion__content')
+    expect(content.contains(strip)).toBe(false)
+
+    // Strip precedes the accordion in document order.
+    const subAccordion = container.querySelector('.sub-accordion')
+    expect(strip.compareDocumentPosition(subAccordion) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
   test('an awarded quote still reads terminal status wording: silent carrier is No Bid Submitted, not Awaiting', () => {

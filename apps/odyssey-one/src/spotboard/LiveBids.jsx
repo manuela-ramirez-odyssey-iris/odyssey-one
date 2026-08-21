@@ -3,6 +3,7 @@ import Countdown from './Countdown'
 import TolerancePanel from './TolerancePanel'
 import { lowestBid } from './spotStore'
 import { fmtDollar } from '../utils/money'
+import './spotboard.css'
 import './liveBids.css'
 
 const STATUS_BADGE_VARIANT = {
@@ -14,12 +15,16 @@ const STATUS_BADGE_VARIANT = {
 
 // Pricing lives in the NESTED table, not the main row (user, S112) — the outer
 // row identifies the carrier and its bid state; the money is the breakdown you
-// expand to see, Total included as its own line.
+// expand to see, Total included as its own line. The user has since reversed
+// that ruling for Total specifically: it now also appears on the outer row,
+// last (money right-aligned at the row's end), so the total is visible
+// without expanding.
 const COLUMNS = [
   { key: 'carrier', label: 'Carrier' },
   { key: 'status', label: 'Status' },
   { key: 'submittedBy', label: 'Submitted By' },
   { key: 'response', label: 'Response' },
+  { key: 'total', label: 'Total', align: 'right' },
 ]
 
 // Six columns (user, S112): the pricing keeps its COLUMN shape one level down
@@ -116,6 +121,7 @@ export default function LiveBids({
         status: statusBadge(bid, isLowest, terminal),
         submittedBy: bid?.submittedBy ?? '—',
         response: bid?.respondedAt ? new Date(bid.respondedAt).toLocaleString() : '—',
+        total: bid?.status === 'bid' ? fmtDollar(bid.total) : '—',
       },
       detailRows: bid ? chargeLines(bid) : [],
       action: isBiddable ? (
@@ -146,58 +152,64 @@ export default function LiveBids({
   ]
 
   return (
-    <SubAccordion title="Live Bids" showIcon={false} collapsible={false}>
-      <div className="live-bids">
-        <SummaryStrip
-          className="live-bids__summary"
-          aria-label="Quote Summary"
-          items={summaryItems}
-        />
+    <>
+      {/* Quote header strip lives OUTSIDE the accordion and sticks (user,
+          2026-08-20) — same sticky treatment as Setup & Carriers' shipment
+          strip (spotboard.css `.spot-sticky-strip`), so it stays visible
+          while the bids table scrolls underneath it. */}
+      <SummaryStrip
+        className="spot-sticky-strip live-bids__summary"
+        aria-label="Quote Summary"
+        items={summaryItems}
+      />
 
-        <GroupTable
-          columns={COLUMNS}
-          groups={groups}
-          detailColumns={DETAIL_COLUMNS}
-          defaultExpanded={false}
-          stickyActions
-          actionsHeader={null}
-          aria-label="Live bids"
-        />
+      <SubAccordion title="Live Bids" showIcon={false} collapsible={false}>
+        <div className="live-bids">
+          <GroupTable
+            columns={COLUMNS}
+            groups={groups}
+            detailColumns={DETAIL_COLUMNS}
+            defaultExpanded={false}
+            stickyActions
+            actionsHeader={null}
+            aria-label="Live bids"
+          />
 
-        {closed && (
-          lowest ? (
-            <TolerancePanel
-              benchmark={benchmark ?? fallbackBenchmark}
-              tolerancePct={tolerancePct}
-              lowestBid={lowest.bid.total}
-              manualReview={manualReview}
-              monetaryCap={monetaryCap}
-              totalCap={totalCap}
-            />
-          ) : (
-            <p className="live-bids__no-bids">No bids received</p>
-          )
-        )}
-
-        <div className="live-bids__actions">
-          {quote.status === 'open' && (
-            <Button variant="secondary" onClick={onForceClose}>Force Close</Button>
-          )}
           {closed && (
-            <>
-              <h3 className="text-label-base-semibold live-bids__actions-heading">Award Action</h3>
-              <p className="text-label-sm-regular live-bids__actions-note">
-                Select a carrier and award. Award moves the carrier into the shipment tendering flow — it does not assign the load until tendered.
-              </p>
-              <Button variant="primary" disabled={!lowest} onClick={() => lowest && onAward?.(lowest.scac)}>
-                Award Carrier &amp; Send to Tender
-              </Button>
-              <Button variant="secondary" onClick={onModify}>Modify &amp; Resend</Button>
-              <Button variant="secondary" onClick={onClear}>Clear &amp; Start Over</Button>
-            </>
+            lowest ? (
+              <TolerancePanel
+                benchmark={benchmark ?? fallbackBenchmark}
+                tolerancePct={tolerancePct}
+                lowestBid={lowest.bid.total}
+                manualReview={manualReview}
+                monetaryCap={monetaryCap}
+                totalCap={totalCap}
+              />
+            ) : (
+              <p className="live-bids__no-bids">No bids received</p>
+            )
           )}
+
+          <div className="live-bids__actions">
+            {quote.status === 'open' && (
+              <Button variant="secondary" onClick={onForceClose}>Force Close</Button>
+            )}
+            {closed && (
+              <>
+                <h3 className="text-label-base-semibold live-bids__actions-heading">Award Action</h3>
+                <p className="text-label-sm-regular live-bids__actions-note">
+                  Select a carrier and award. Award moves the carrier into the shipment tendering flow — it does not assign the load until tendered.
+                </p>
+                <Button variant="primary" disabled={!lowest} onClick={() => lowest && onAward?.(lowest.scac)}>
+                  Award Carrier &amp; Send to Tender
+                </Button>
+                <Button variant="secondary" onClick={onModify}>Modify &amp; Resend</Button>
+                <Button variant="secondary" onClick={onClear}>Clear &amp; Start Over</Button>
+              </>
+            )}
+          </div>
         </div>
-      </div>
-    </SubAccordion>
+      </SubAccordion>
+    </>
   )
 }
