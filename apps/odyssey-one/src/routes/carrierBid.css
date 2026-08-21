@@ -138,7 +138,7 @@
 .carrier-bid-countdown-title__sep {
   font-size: var(--font-size-4xl);
   line-height: var(--line-height-4xl);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   transition: font-size 200ms ease, line-height 200ms ease;
 }
 @media (prefers-reduced-motion: reduce) {
@@ -154,7 +154,7 @@
 }
 .carrier-bid-countdown-title__label {
   font-size: var(--font-size-xs);
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
   text-transform: uppercase;
   color: var(--text-tertiary);
 }
