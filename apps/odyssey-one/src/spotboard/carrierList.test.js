@@ -22,6 +22,11 @@ const carrierOptions = [
   { value: 'TAPT', label: 'TAPT - (DNU) Glen Tay Trans', meta: { mode: 'TL' } },
 ]
 
+// Default shipmentId for every single-shipment test below — the overflow
+// hash seeds off this (SpotBoardTab's `sid` = shipment.sellShipment), NOT
+// orderDetails[0].orderNumber (pending orders seed that '', S128 fix-first).
+const SID = '0000000091105'
+
 function shipmentWith({ orderNumber = 'TEST-001', options = [], dropped = [] } = {}) {
   return {
     orderDetails: [{ orderNumber }],
@@ -35,29 +40,39 @@ describe('buildOverflowRows', () => {
     const shipment = shipmentWith({
       options: [{ scac: 'PRIJ', carrierName: 'Prime Inc', equipment: 'Van', status: 'Declined' }],
     })
-    const row = buildOverflowRows(shipment, carrierOptions).find((r) => r.scac === 'PRIJ')
+    const row = buildOverflowRows(shipment, carrierOptions, SID).find((r) => r.scac === 'PRIJ')
     expect(row.flags).toEqual(['Routed', 'Declined'])
     expect(row.incl).toBe(false)
     expect(row.listId).toBe('TL')
     expect(row.equipment).toBe('Van')
   })
 
-  it('flags a null/Cancelled-status route-guide carrier Routed + No Response', () => {
-    for (const status of [null, 'Cancelled']) {
-      const shipment = shipmentWith({
-        options: [{ scac: 'ODFL', carrierName: 'Old Dominion', equipment: 'LTL', status }],
-      })
-      const row = buildOverflowRows(shipment, carrierOptions).find((r) => r.scac === 'ODFL')
-      expect(row.flags).toEqual(['Routed', 'No Response'])
-      expect(row.incl).toBe(false)
-    }
+  it('flags a null-status route-guide carrier Routed + No Response', () => {
+    const shipment = shipmentWith({
+      options: [{ scac: 'ODFL', carrierName: 'Old Dominion', equipment: 'LTL', status: null }],
+    })
+    const row = buildOverflowRows(shipment, carrierOptions, SID).find((r) => r.scac === 'ODFL')
+    expect(row.flags).toEqual(['Routed', 'No Response'])
+    expect(row.incl).toBe(false)
+  })
+
+  // Cancelled is semantically distinct from a silent no-response — a
+  // cancelled tender was actively pulled back, not left unanswered — so it
+  // gets its own display flag rather than folding into 'No Response'.
+  it('flags a Cancelled-status route-guide carrier Routed + Cancelled', () => {
+    const shipment = shipmentWith({
+      options: [{ scac: 'ODFL', carrierName: 'Old Dominion', equipment: 'LTL', status: 'Cancelled' }],
+    })
+    const row = buildOverflowRows(shipment, carrierOptions, SID).find((r) => r.scac === 'ODFL')
+    expect(row.flags).toEqual(['Routed', 'Cancelled'])
+    expect(row.incl).toBe(false)
   })
 
   it('flags a dropped carrier Routed + its drop reason, unselected by default', () => {
     const shipment = shipmentWith({
       dropped: [{ scac: 'SWFT', carrierName: 'Swift', equipment: 'Van', reason: 'No Rates' }],
     })
-    const row = buildOverflowRows(shipment, carrierOptions).find((r) => r.scac === 'SWFT')
+    const row = buildOverflowRows(shipment, carrierOptions, SID).find((r) => r.scac === 'SWFT')
     expect(row.flags).toEqual(['Routed', 'No Rates'])
     expect(row.incl).toBe(false)
     expect(row.listId).toBe('TL')
@@ -67,7 +82,7 @@ describe('buildOverflowRows', () => {
     const shipment = shipmentWith({
       dropped: [{ scac: 'SWFT', carrierName: 'Swift', equipment: 'Van', reason: '--' }],
     })
-    const row = buildOverflowRows(shipment, carrierOptions).find((r) => r.scac === 'SWFT')
+    const row = buildOverflowRows(shipment, carrierOptions, SID).find((r) => r.scac === 'SWFT')
     expect(row.flags).toEqual(['Routed', 'No Response'])
   })
 
@@ -76,7 +91,7 @@ describe('buildOverflowRows', () => {
       options: [{ scac: 'PRIJ', carrierName: 'Prime Inc', equipment: 'Van', status: 'Declined' }],
       dropped: [{ scac: 'PRIJ', carrierName: 'Prime Inc', equipment: 'Van', reason: 'No Rates' }],
     })
-    const rows = buildOverflowRows(shipment, carrierOptions).filter((r) => r.scac === 'PRIJ')
+    const rows = buildOverflowRows(shipment, carrierOptions, SID).filter((r) => r.scac === 'PRIJ')
     expect(rows).toHaveLength(1)
     expect(rows[0].flags).toEqual(['Routed', 'Declined'])
   })
@@ -85,7 +100,7 @@ describe('buildOverflowRows', () => {
     const shipment = shipmentWith({
       options: [{ scac: 'PRIJ', carrierName: 'Prime Inc', equipment: 'Van', status: 'Declined' }],
     })
-    const rows = buildOverflowRows(shipment, carrierOptions)
+    const rows = buildOverflowRows(shipment, carrierOptions, SID)
     const overflow = rows.filter((r) => r.scac !== 'PRIJ')
     expect(overflow.length).toBeGreaterThan(0)
     for (const r of overflow) {
@@ -98,7 +113,7 @@ describe('buildOverflowRows', () => {
     const shipment = shipmentWith({
       options: [{ scac: 'PRIJ', carrierName: 'Prime Inc', status: 'Declined' }], // no equipment
     })
-    const row = buildOverflowRows(shipment, carrierOptions).find((r) => r.scac === 'PRIJ')
+    const row = buildOverflowRows(shipment, carrierOptions, SID).find((r) => r.scac === 'PRIJ')
     expect(row.equipment).toBe('Van') // TL mode default
   })
 
@@ -109,14 +124,14 @@ describe('buildOverflowRows', () => {
     const shipment = shipmentWith({
       options: [{ scac: 'CTNS', carrierName: 'Continental Transportation', equipment: 'LTL', status: 'Declined' }],
     })
-    const row = buildOverflowRows(shipment, [])[0]
+    const row = buildOverflowRows(shipment, [], SID)[0]
     expect(row.name).toBe('Continental Transportation')
     expect(row.listId).toBe('LTL') // equipment code prefix fallback
     expect(row.flags).toEqual(['Routed', 'Declined'])
   })
 
   it('excludes (DNU) pool entries from the overflow list entirely', () => {
-    const rows = buildOverflowRows(shipmentWith(), carrierOptions)
+    const rows = buildOverflowRows(shipmentWith(), carrierOptions, SID)
     expect(rows.some((r) => r.scac === 'TAPT')).toBe(false)
   })
 
@@ -124,19 +139,31 @@ describe('buildOverflowRows', () => {
     const shipment = shipmentWith({
       options: [{ scac: 'PRIJ', carrierName: 'Prime Inc', equipment: 'Van', status: 'Declined' }],
     })
-    const first = buildOverflowRows(shipment, carrierOptions)
-    const second = buildOverflowRows(shipment, carrierOptions)
+    const first = buildOverflowRows(shipment, carrierOptions, SID)
+    const second = buildOverflowRows(shipment, carrierOptions, SID)
     expect(second).toEqual(first)
   })
 
   it('two different shipments produce different overflow membership', () => {
-    const a = buildOverflowRows(shipmentWith({ orderNumber: 'SHIP-0001' }), carrierOptions)
-    const b = buildOverflowRows(shipmentWith({ orderNumber: 'SHIP-0002' }), carrierOptions)
+    const a = buildOverflowRows(shipmentWith(), carrierOptions, SID)
+    const b = buildOverflowRows(shipmentWith(), carrierOptions, '0000000091103')
+    expect(a.map((r) => r.scac).sort()).not.toEqual(b.map((r) => r.scac).sort())
+  })
+
+  // Fix-first (coordinator review, S128): the hash used to seed off
+  // orderDetails[0].orderNumber, which the generator seeds '' for pending
+  // orders (I9) — every such shipment collapsed to identical membership.
+  // shipmentId (SpotBoardTab's `sid`) is always present and unique, so two
+  // shipments sharing an empty orderNumber must still diverge.
+  it('two shipments with the SAME empty orderNumber still produce different membership, keyed by shipmentId', () => {
+    const pending = shipmentWith({ orderNumber: '' })
+    const a = buildOverflowRows(pending, carrierOptions, SID)
+    const b = buildOverflowRows(pending, carrierOptions, '0000000091103')
     expect(a.map((r) => r.scac).sort()).not.toEqual(b.map((r) => r.scac).sort())
   })
 
   it('synthesizes an ops@ email and empty dates, same convention as the old builder', () => {
-    const rows = buildOverflowRows(shipmentWith(), carrierOptions)
+    const rows = buildOverflowRows(shipmentWith(), carrierOptions, SID)
     expect(rows.length).toBeGreaterThan(0)
     for (const r of rows) {
       expect(r.email).toBe(`ops@${r.scac.toLowerCase()}.example.com`)

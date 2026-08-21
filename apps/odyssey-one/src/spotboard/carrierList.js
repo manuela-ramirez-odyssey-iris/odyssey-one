@@ -21,7 +21,9 @@
 export const FLAG_LABELS = {}
 
 function reasonForStatus(status) {
-  return status === 'Declined' ? 'Declined' : 'No Response'
+  if (status === 'Declined') return 'Declined'
+  if (status === 'Cancelled') return 'Cancelled'
+  return 'No Response'
 }
 
 // ponytail: a tiny string hash stands in for the real OCM carrier-list
@@ -35,13 +37,6 @@ function hashKeep(seed) {
   let h = 0
   for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) | 0
   return Math.abs(h) % 3 !== 0
-}
-
-// The order's own order number is real per-shipment data already on the VM
-// (orderDetails[0].orderNumber) — a stable, unique-enough seed without
-// threading a separate shipmentId prop through SetupCarriers.
-function seedFor(shipmentDetails) {
-  return String(shipmentDetails?.orderDetails?.[0]?.orderNumber ?? '')
 }
 
 // Mode classifies a carrier TL vs LTL. Prefers the master pool's own
@@ -85,7 +80,12 @@ function buildRow(scac, name, equipment, incl, flags, listId) {
 // carrierOptions come from the resolved async carrier pool
 // (getLookupOptions('carrier', q)) — { value: scac, label: 'SCAC - Name',
 // meta: { mode } }. This function stays pure/sync; the caller awaits the fetch.
-export function buildOverflowRows(shipmentDetails, carrierOptions) {
+//
+// shipmentId seeds the overflow hash — must be the shipment's own stable id
+// (SpotBoardTab's `sid` = shipment.sellShipment), NOT orderDetails[0]
+// .orderNumber: pending orders seed orderNumber '' (generator I9), which
+// would collapse every such shipment's overflow membership to the same set.
+export function buildOverflowRows(shipmentDetails, carrierOptions, shipmentId) {
   const poolByScac = new Map((carrierOptions ?? []).map((opt) => [opt.value, opt]))
   const routeGuideScacs = new Set()
   const routeRows = []
@@ -117,7 +117,7 @@ export function buildOverflowRows(shipmentDetails, carrierOptions) {
   // SELECTED, deterministic membership per shipment (~2/3 of the eligible
   // pool). '(DNU)' entries are QA/master-data noise, never real carriers —
   // excluded outright, not just unselected.
-  const seed = seedFor(shipmentDetails)
+  const seed = String(shipmentId ?? '')
   const overflowRows = []
   for (const opt of carrierOptions ?? []) {
     const scac = opt.value

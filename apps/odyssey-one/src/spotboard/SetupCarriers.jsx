@@ -73,12 +73,14 @@ const COLUMNS = [
  * parent's job (SpotBoardTab), so this component stays sync, feeding it
  * straight into the pure `buildOverflowRows` alongside `shipmentDetails`
  * (S128) — the route guide + dropped carriers the overflow list is derived
- * from, per shipment.
+ * from, per shipment — and `shipmentId` (SpotBoardTab's own `sid`), which
+ * seeds the overflow hash so composition actually varies by shipment.
  */
 export default function SetupCarriers({
   quote,
   carrierOptions,
   shipmentDetails,
+  shipmentId,
   defaultPickup = '',
   defaultDelivery = '',
   readOnly = false,
@@ -140,14 +142,14 @@ export default function SetupCarriers({
     // arrive DATED — the two halves of the same ruling. Without the dates the
     // preselection is inert: Send RFQ requires a date on every included row,
     // so a preselected-but-undated table can never be sent.
-    const built = buildOverflowRows(shipmentDetails, carrierOptions).map((r) => ({
+    const built = buildOverflowRows(shipmentDetails, carrierOptions, shipmentId).map((r) => ({
       ...r,
       plannedPickup: defaultPickup || r.plannedPickup,
       plannedDelivery: defaultDelivery || r.plannedDelivery,
     }))
     if (built.length > 0) setRows(built)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [carrierOptions, shipmentDetails])
+  }, [carrierOptions, shipmentDetails, shipmentId])
 
   const toggleIncl = (scac) =>
     setRows((rs) => rs.map((r) => (r.scac === scac ? { ...r, incl: !r.incl } : r)))
