@@ -292,6 +292,15 @@ export default function CarrierBid() {
   const carrier = quote?.carriers.find((c) => c.scac === scac) ?? null
   const priorBid = carrier?.bid?.status === 'bid' ? carrier.bid : null
   const declined = carrier?.bid?.status === 'declined'
+  // Confirmed-declined-with-no-bid-yet — same gate as the existing
+  // post-decline note below (`declined && !priorBid`), reused rather than a
+  // separate flag so the two stay coherent. Reads straight off the store
+  // (quote.carriers[].bid.status), so a RETURNING declined carrier sees this
+  // too, not just the one that just clicked through the dialog. The store's
+  // bid is a single object with one status — submitBid overwrites it to
+  // 'bid', so this naturally flips back to false (and Decline re-enables) on
+  // its own once a bid lands; no separate reset needed.
+  const declinedNoBid = declined && !priorBid
 
   // Confirmation dialog — Submit/Update Bid AND Decline (user asks, same
   // idiom both times: "we need a dialog confirmation"). One shared
@@ -300,7 +309,10 @@ export default function CarrierBid() {
   // the smaller diff. Declared here, above the closedReason early return
   // below, so the hook count stays constant across renders (Rules of Hooks).
   const [confirmAction, setConfirmAction] = useState(null)
-  const confirmTitle = priorBid ? 'Update Bid' : 'Submit Bid'
+  // Bid Now once declined-with-no-bid (user ask) — dialog title tracks this
+  // same label (see the ModalMedium title below), so Decline/Bid Now/Update
+  // Bid all stay in sync off this one string.
+  const confirmTitle = declinedNoBid ? 'Bid Now' : (priorBid ? 'Update Bid' : 'Submit Bid')
 
   // Carrier identity for the TrailNav profile — SCAC on top (prominent),
   // full carrier name on the second line (Figma External variant 5152:3904:
@@ -768,7 +780,7 @@ export default function CarrierBid() {
                 Last submitted: {fmtDollar(priorBid.total)} by {priorBid.submittedBy} · {formatDateTimeMDYHM(new Date(priorBid.respondedAt))}
               </p>
             )}
-            {declined && !priorBid && (
+            {declinedNoBid && (
               <p className="carrier-bid-page__note text-label-sm-regular">
                 You declined this quote. You can still submit a bid while this window is open.
               </p>
@@ -807,7 +819,9 @@ export default function CarrierBid() {
                   carrier's final decision sits right under the number it's
                   a decision about. */}
               <div className="carrier-bid-page__actions">
-                <Button variant="secondary" size="lg" onClick={() => setConfirmAction('decline')}>Decline</Button>
+                <Button variant="secondary" size="lg" disabled={declinedNoBid} onClick={() => setConfirmAction('decline')}>
+                  {declinedNoBid ? 'Declined' : 'Decline'}
+                </Button>
                 <Button variant="primary" size="lg" onClick={() => setConfirmAction('submit')}>
                   {confirmTitle}
                 </Button>

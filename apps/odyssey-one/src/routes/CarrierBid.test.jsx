@@ -7,7 +7,7 @@ import { render, screen, within, cleanup, fireEvent, waitFor, act } from '@testi
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import CarrierBid, { BidCountdownTitle } from './CarrierBid.jsx'
-import { saveDraft, sendRFQ, closeQuote, getQuote, submitBid } from '../spotboard/spotStore.js'
+import { saveDraft, sendRFQ, closeQuote, getQuote, submitBid, declineBid } from '../spotboard/spotStore.js'
 import { mintToken } from '../spotboard/token.js'
 
 const SHIPMENT_ID = '25690001'
@@ -328,7 +328,7 @@ describe('CarrierBid — open quote', () => {
     expect(stored.carriers.find((c) => c.scac === SCAC).bid).toBeUndefined()
   })
 
-  it('Confirm Decline in the dialog actually declines the quote for that scac', async () => {
+  it('Confirm Decline in the dialog actually declines the quote for that scac, then disables Decline ("Declined") and relabels the primary action "Bid Now"', async () => {
     const quote = openQuote()
     const token = tokenFor(quote, SCAC)
     renderAt(`/spot-bid/${token}`)
@@ -345,6 +345,55 @@ describe('CarrierBid — open quote', () => {
 
     // Other carrier's row untouched.
     expect(stored.carriers.find((c) => c.scac === 'SAIA').bid).toBeUndefined()
+
+    // Post-decline UI: Decline is now disabled and reads "Declined"; the
+    // primary action relabels to "Bid Now" (the carrier can still bid while
+    // the window is open — same condition as the existing post-decline note).
+    const declinedBtn = screen.getByRole('button', { name: 'Declined' })
+    expect(declinedBtn.disabled).toBe(true)
+    expect(screen.queryByRole('button', { name: /^decline$/i })).toBe(null)
+    expect(screen.getByRole('button', { name: 'Bid Now' })).toBeTruthy()
+  })
+
+  it('a returning declined carrier (declined status already in the store) also sees Decline disabled and "Bid Now", not just right after confirming', async () => {
+    const quote = openQuote()
+    declineBid(SHIPMENT_ID, SCAC, Date.now())
+    const token = tokenFor(quote, SCAC)
+    renderAt(`/spot-bid/${token}`)
+    await screen.findByText('Acme Houston Plant')
+
+    const declinedBtn = screen.getByRole('button', { name: 'Declined' })
+    expect(declinedBtn.disabled).toBe(true)
+    expect(screen.getByRole('button', { name: 'Bid Now' })).toBeTruthy()
+
+    // Dialog title tracks the primary button's own label.
+    fireEvent.click(screen.getByRole('button', { name: 'Bid Now' }))
+    expect(screen.getByRole('dialog', { name: 'Bid Now' })).toBeTruthy()
+  })
+
+  it('submitting a bid from the declined state re-enables Decline and relabels the primary action back to "Update Bid"', async () => {
+    const quote = openQuote()
+    declineBid(SHIPMENT_ID, SCAC, Date.now())
+    const token = tokenFor(quote, SCAC)
+    renderAt(`/spot-bid/${token}`)
+    await screen.findByText('Acme Houston Plant')
+
+    expect(screen.getByRole('button', { name: 'Declined' }).disabled).toBe(true)
+
+    fireEvent.change(screen.getByLabelText(/linehaul/i), { target: { value: '1000' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Bid Now' }))
+    const dialog = screen.getByRole('dialog', { name: 'Bid Now' })
+    fireEvent.click(within(dialog).getByRole('button', { name: /confirm/i }))
+
+    await waitFor(() => {
+      const row = getQuote(SHIPMENT_ID).carriers.find((c) => c.scac === SCAC)
+      expect(row.bid?.status).toBe('bid')
+    })
+
+    const decline = screen.getByRole('button', { name: /^decline$/i })
+    expect(decline.disabled).toBe(false)
+    expect(screen.queryByRole('button', { name: 'Declined' })).toBe(null)
+    expect(screen.getByRole('button', { name: 'Update Bid' })).toBeTruthy()
   })
 
   it('never renders an Order ID or Load ID anywhere in the DOM, incl. portals and attributes', async () => {
