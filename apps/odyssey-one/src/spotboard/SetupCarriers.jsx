@@ -81,6 +81,26 @@ export default function SetupCarriers({
   carrierOptions,
   shipmentDetails,
   shipmentId,
+  // Root-cause fix (2026-08-21, SpotBid-pane-frozen-on-shipment-switch bug):
+  // react-query's `isPlaceholderData` for the CURRENT shipment's detail fetch
+  // (threaded down BottomBar -> SpotBoardTab -> here). On a shipment-to-
+  // shipment switch, BottomBar's `key={selectedShipmentId}` remounts this
+  // component SYNCHRONOUSLY, before the new shipment's detail query resolves
+  // — `shipmentDetails` at that first render is still the PREVIOUS shipment's
+  // data (`placeholderData: keepPreviousData`, useShipmentDetail.ts). Meanwhile
+  // `carrierOptions` (getLookupOptions, lookupService.ts) is a LOCAL pool
+  // wrapped in an async function with no real I/O — it resolves on the next
+  // microtask, always winning the race against the network-bound detail
+  // fetch. The build effect below used to gate ONLY on `carrierOptions.length
+  // === 0`, so it fired the instant the pool arrived — building rows off the
+  // stale placeholder `shipmentDetails` but the CORRECT `shipmentId`. Once
+  // `rows.length > 0`, the effect's own `rows.length > 0` guard (needed so a
+  // planner's edits survive re-renders) permanently blocked ever rebuilding —
+  // even after the real per-shipment data landed moments later. Gating the
+  // build on `!detailsStale` too defers it until real data for THIS shipment
+  // is in hand, without touching the "don't clobber the planner's edits"
+  // invariant the length check already provides.
+  detailsStale = false,
   defaultPickup = '',
   defaultDelivery = '',
   readOnly = false,
@@ -137,7 +157,7 @@ export default function SetupCarriers({
   // and `rows.length === 0` so the effect re-fires once the pool arrives,
   // then stops, never clobbering a planner's incl/date edits.
   useEffect(() => {
-    if (quote || rows.length > 0 || carrierOptions.length === 0) return
+    if (quote || rows.length > 0 || carrierOptions.length === 0 || detailsStale) return
     // Rows arrive PRESELECTED (except routed carriers), so they must also
     // arrive DATED — the two halves of the same ruling. Without the dates the
     // preselection is inert: Send RFQ requires a date on every included row,
@@ -149,7 +169,7 @@ export default function SetupCarriers({
     }))
     if (built.length > 0) setRows(built)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [carrierOptions, shipmentDetails, shipmentId])
+  }, [carrierOptions, shipmentDetails, shipmentId, detailsStale])
 
   const toggleIncl = (scac) =>
     setRows((rs) => rs.map((r) => (r.scac === scac ? { ...r, incl: !r.incl } : r)))

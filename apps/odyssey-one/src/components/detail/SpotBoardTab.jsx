@@ -144,7 +144,7 @@ function scheduleSimulatedBids({ carriers, durationMin }, benchmarkValue, submit
  * eligibility, then composes SetupCarriers + LiveBids under a sub-tab band,
  * wiring both to useSpotQuote and to the award → Tender handoff.
  */
-export default function SpotBoardTab({ shipmentDetails, shipment }) {
+export default function SpotBoardTab({ shipmentDetails, shipment, detailsStale = false }) {
   const eligible = isSpotEligible(shipmentDetails?.routingData)
   const [subTab, setSubTab] = useState('setup')
   const [carrierOptions, setCarrierOptions] = useState([])
@@ -347,6 +347,11 @@ export default function SpotBoardTab({ shipmentDetails, shipment }) {
             key={restoreKey}
             quote={quote}
             carrierOptions={carrierOptions}
+            // Root-cause fix (see SetupCarriers' own comment on this prop) —
+            // isPlaceholderData for the CURRENT shipment's detail fetch, so
+            // the row-build effect defers until `shipmentDetails` genuinely
+            // belongs to THIS shipment rather than a held-over previous one.
+            detailsStale={detailsStale}
             // The route guide + dropped carriers the overflow list derives
             // from, per shipment (S128) — buildOverflowRows (carrierList.js).
             shipmentDetails={shipmentDetails}

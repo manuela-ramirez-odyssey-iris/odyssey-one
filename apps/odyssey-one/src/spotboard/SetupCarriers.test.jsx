@@ -1479,4 +1479,74 @@ describe('SetupCarriers', () => {
       expect(onSendRFQ.mock.calls[0][0].durationMin).toBe(40)
     })
   })
+
+  // Regression (2026-08-21) — SpotBid pane froze on the PREVIOUS shipment's
+  // carrier data after clicking a different table row. Root cause: on a
+  // shipment switch, BottomBar's `key={selectedShipmentId}` remounts this
+  // component before the new shipment's detail query resolves, so the first
+  // render still carries the OLD shipment's `shipmentDetails` (react-query
+  // `placeholderData: keepPreviousData`). `carrierOptions` (a local pool with
+  // no real I/O — lookupService.ts's `getLookupOptions`) always resolves
+  // first, so the build effect used to fire off that stale placeholder — and
+  // once `rows.length > 0`, its own re-run guard permanently blocked
+  // rebuilding once the real per-shipment data landed. `detailsStale` (wired
+  // from react-query's `isPlaceholderData`) closes the race: the effect now
+  // waits for real data before building even once.
+  describe('detailsStale (placeholder-data race)', () => {
+    // A second fixture whose route guide declines a DIFFERENT carrier (WERN,
+    // not PRIJ) — stands in for "the previous shipment's held-over data".
+    const staleFixture = {
+      ...shipmentDetailsFixture,
+      routingData: {
+        options: [{ scac: 'WERN', carrierName: 'Werner Enterprises', equipment: 'Van', status: 'Declined' }],
+      },
+    }
+
+    it('does not build rows from placeholder shipmentDetails while detailsStale is true', () => {
+      render(
+        <SetupCarriers
+          carrierOptions={carrierOptions}
+          shipmentDetails={staleFixture}
+          detailsStale
+          defaultPickup={DEF_PICKUP}
+          defaultDelivery={DEF_DELIVERY}
+          onSaveDraft={() => {}}
+          onSendRFQ={() => {}}
+        />
+      )
+      expect(screen.getByText('No carriers in this list.')).toBeTruthy()
+      expect(screen.queryByTestId(`pickup-${tlRows[0].scac}`)).toBeNull()
+    })
+
+    it('builds rows off the FRESH shipmentDetails once detailsStale flips to false, never off the earlier stale render', () => {
+      const { rerender } = render(
+        <SetupCarriers
+          carrierOptions={carrierOptions}
+          shipmentDetails={staleFixture}
+          detailsStale
+          defaultPickup={DEF_PICKUP}
+          defaultDelivery={DEF_DELIVERY}
+          onSaveDraft={() => {}}
+          onSendRFQ={() => {}}
+        />
+      )
+      expect(screen.getByText('No carriers in this list.')).toBeTruthy()
+
+      rerender(
+        <SetupCarriers
+          carrierOptions={carrierOptions}
+          shipmentDetails={shipmentDetailsFixture}
+          detailsStale={false}
+          defaultPickup={DEF_PICKUP}
+          defaultDelivery={DEF_DELIVERY}
+          onSaveDraft={() => {}}
+          onSendRFQ={() => {}}
+        />
+      )
+      // Rows now exist and reflect shipmentDetailsFixture (PRIJ declined —
+      // 'Routed', unselected), NOT staleFixture (which declined WERN instead).
+      expect(within(screen.getByTestId(`pickup-PRIJ`).closest('tr')).getByText('Declined')).toBeTruthy()
+      expect(inclCheckbox('PRIJ').checked).toBe(false)
+    })
+  })
 })
