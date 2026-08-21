@@ -102,9 +102,16 @@ function HeroBackground({ heroIndex }) {
 // center-title pattern, with Hours/Minutes/Seconds labels stacked below
 // each value, values separated by ':'. The old SummaryStrip's fourth cell
 // (the "Bid Open" status badge) no longer lives inside this component at
-// all — it now floats OUTSIDE the Navbar entirely, rendered by the parent
-// (see `.carrier-bid-status-float` in CarrierBid() below) so it isn't
-// clipped to the search slot's layout.
+// all — it's rendered by the parent, INSIDE the search slot alongside this
+// title (see `.carrier-bid-countdown-wrap` / `.carrier-bid-status-float` in
+// CarrierBid() below) so its horizontal center tracks the title's own
+// center rather than the whole navbar's (round 2 fix, 2026-08-20/21): the
+// navbar's lead/trail slots aren't equal width, so a badge centered on the
+// FULL bar drifts off the title's actual center. Nesting it in the same
+// flex item as the title — both plain blocks that stretch to the search
+// slot's width — means the title's own `justify-content: center` and the
+// badge's `left: 50%` resolve to the identical pixel, without any JS
+// measuring.
 //
 // The 4xl→lg scroll-shrink behavior is PRESERVED (user ruling): each
 // value/separator carries the same `--compact` trigger class the old
@@ -377,19 +384,26 @@ export default function CarrierBid() {
         search={
           closedReason
             ? <GlobalSearch mode="title" title="Carrier Portal" />
-            : <BidCountdownTitle closeAt={quote.closeAt} onExpire={() => setQuote(getQuote(shipmentId))} />
+            : (
+              // `.carrier-bid-countdown-wrap` is a plain relatively-positioned
+              // div — no width of its own, so it stretches to the search
+              // slot's width exactly like the title does, keeping the two in
+              // the same coordinate space (see the doc comment on
+              // BidCountdownTitle above). The badge is still visually
+              // OUTSIDE the bar (carrierBid.css positions it below the
+              // header's own bottom edge) even though it's now a DOM
+              // descendant of the search slot.
+              <div className="carrier-bid-countdown-wrap">
+                <BidCountdownTitle closeAt={quote.closeAt} onExpire={() => setQuote(getQuote(shipmentId))} />
+                <div className="carrier-bid-status-float">
+                  <Badge variant="green" statusDot>Bid Open</Badge>
+                </div>
+              </div>
+            )
         }
         trailRef={profileDropdownRef}
         trail={trailContent}
       />
-      {/* Floats OUTSIDE the Navbar's own element, riding the sticky wrap
-          below it (carrierBid.css `.carrier-bid-status-float`) — was the
-          countdown strip's own fourth cell; open-bid only, same as before. */}
-      {!closedReason && (
-        <div className="carrier-bid-status-float">
-          <Badge variant="green" statusDot>Bid Open</Badge>
-        </div>
-      )}
     </div>
   )
 
@@ -648,7 +662,7 @@ export default function CarrierBid() {
                   </div>
                 )}
                 <Button variant="link" icon={<Plus size={16} />} onClick={addChargeRow}>
-                  Add Row
+                  Add
                 </Button>
               </section>
             </div>

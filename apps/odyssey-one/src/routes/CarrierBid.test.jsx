@@ -416,7 +416,7 @@ describe('CarrierBid — open quote', () => {
     expect(within(bidSection).getByLabelText('Amount').disabled).toBe(false)
   })
 
-  it('Add Row appends a fully editable row; its remove button works (SPB-43 restore)', async () => {
+  it('Add appends a fully editable row; its remove button works (SPB-43 restore)', async () => {
     const quote = openQuote()
     const token = tokenFor(quote, SCAC)
     renderAt(`/spot-bid/${token}`)
@@ -426,7 +426,7 @@ describe('CarrierBid — open quote', () => {
     const bidSection = screen.getByRole('button', { name: /your bid/i }).closest('.sub-accordion')
     expect(within(bidSection).getAllByRole('combobox')).toHaveLength(1) // derived LFT row only
 
-    fireEvent.click(within(bidSection).getByRole('button', { name: /add row/i }))
+    fireEvent.click(within(bidSection).getByRole('button', { name: /^add$/i }))
     const combos = within(bidSection).getAllByRole('combobox')
     expect(combos).toHaveLength(2)
     const newCombo = combos[combos.length - 1]
@@ -491,7 +491,7 @@ describe('CarrierBid — open quote', () => {
     // Add a carrier row and pick a code the same way QuoteModal.test.jsx does
     // — keyboard-select off the loadOptions popover (its virtualized rows
     // aren't otherwise assertable in jsdom).
-    fireEvent.click(within(bidSection).getByRole('button', { name: /add row/i }))
+    fireEvent.click(within(bidSection).getByRole('button', { name: /^add$/i }))
     const rows = bidSection.querySelectorAll('.carrier-bid-charges__row')
     const newRow = rows[rows.length - 1]
     const codeInput = within(newRow).getByRole('combobox')
@@ -576,7 +576,7 @@ describe('CarrierBid — bid countdown title + floating badge (Task 10)', () => 
     expect(document.querySelector('.summary-strip')).toBe(null)
   })
 
-  it('the "Bid Open" badge floats outside the Navbar element but inside the sticky wrap', async () => {
+  it('the "Bid Open" badge sits alongside the countdown title in the search slot, positioned below via the float class (round 2 centering fix)', async () => {
     const quote = openQuote()
     const token = tokenFor(quote, SCAC)
     renderAt(`/spot-bid/${token}`)
@@ -585,13 +585,21 @@ describe('CarrierBid — bid countdown title + floating badge (Task 10)', () => 
 
     const wrap = document.querySelector('.carrier-bid-navbar-wrap')
     const header = wrap.querySelector('header.navbar--external')
-    const float = wrap.querySelector('.carrier-bid-status-float')
+    const countdownWrap = header.querySelector('.carrier-bid-countdown-wrap')
+    const float = header.querySelector('.carrier-bid-status-float')
     expect(float).toBeTruthy()
     expect(screen.getByText('Bid Open')).toBeTruthy()
-    // NOT a descendant of the Navbar's own root element...
-    expect(header.contains(float)).toBe(false)
-    // ...but still inside the sticky wrap that hosts both.
-    expect(wrap.contains(float)).toBe(true)
+    // Round 2: the badge is now a DOM descendant of the Navbar (it lives in
+    // the search slot, next to BidCountdownTitle) so its horizontal center
+    // tracks the title's own center instead of the whole bar's — jsdom
+    // doesn't lay out, so "visually below the bar" isn't assertable here;
+    // that's covered by the required browser verification instead. What IS
+    // assertable statically: it's a sibling of the title inside the shared
+    // wrapper, and still carries the `.carrier-bid-status-float` class that
+    // carrierBid.css positions below the header's bottom edge.
+    expect(header.contains(float)).toBe(true)
+    expect(countdownWrap.contains(float)).toBe(true)
+    expect(countdownWrap.querySelector('.carrier-bid-countdown-title')).toBeTruthy()
   })
 
   it('applies the urgent modifier once remaining time drops under 15 minutes', async () => {

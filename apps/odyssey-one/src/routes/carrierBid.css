@@ -165,18 +165,42 @@
   color: var(--text-error);
 }
 
-/* "Bid Open" status badge — floats OUTSIDE the Navbar surface, centered
-   below it, riding the sticky wrap (`.carrier-bid-navbar-wrap`, which is
-   `position: sticky` and therefore already a containing block for this
-   absolutely-positioned child — no extra `position: relative` needed).
-   Open-bid branch only (CarrierBid.jsx gates it on `!closedReason`). Was
-   the countdown strip's own fourth cell before Task 10. */
+/* Round-2 centering fix (2026-08-20/21) — the badge used to be a sibling of
+   <Navbar> centered on the FULL sticky wrap's width. That's wrong: the
+   navbar's lead (logo) and trail (carrier profile) slots aren't the same
+   width, so the search slot's own center — where the countdown title
+   actually sits — isn't the bar's geometric center. Fix: the badge now
+   lives INSIDE the search slot, as a sibling of BidCountdownTitle inside
+   this wrapper (CarrierBid.jsx). Neither this wrapper nor the title itself
+   sets an explicit width, so both stretch to the search slot's width and
+   the title's own `justify-content: center` and this badge's `left: 50%`
+   land on the identical pixel — no JS measuring needed (rejected option:
+   measuring the title's rendered rect at runtime for a static layout).
+   `position: relative` makes this the badge's containing block instead of
+   the sticky wrap. */
+.carrier-bid-countdown-wrap {
+  position: relative;
+}
+
+/* "Bid Open" status badge — still rendered visually OUTSIDE the bar
+   (below the header's own bottom edge), just anchored to the title's own
+   box now instead of the full navbar. The title's wrapper is only as tall
+   as the title itself (the row is vertically centered via the package
+   Navbar's `items-center`, not stretched), so `top: 100%` alone would land
+   the badge inside the header's own bottom padding rather than past it —
+   the extra 14px closes that gap. 14px matches Navbar.jsx's own fixed
+   vertical padding (`vPad`, packages/ui/src/Navbar.jsx) for `compact=false`,
+   which is the only value this page ever passes (the `compact` prop is
+   never set here — the unrelated `.carrier-bid-navbar-wrap--compact` class
+   only shrinks the countdown digits on scroll, it doesn't touch the
+   Navbar's own padding). Raw px: no token exists for this component's own
+   fixed inline padding value, so nothing to bind here either. */
 .carrier-bid-status-float {
   position: absolute;
   top: 100%;
   left: 50%;
   transform: translateX(-50%);
-  margin-top: var(--spacing-2);
+  margin-top: calc(var(--spacing-2) + 14px);
 }
 
 .carrier-bid-page__loading {
