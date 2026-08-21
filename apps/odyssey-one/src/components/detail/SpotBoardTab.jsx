@@ -105,9 +105,15 @@ export default function SpotBoardTab({ shipmentDetails, shipment }) {
   const eligible = isSpotEligible(shipmentDetails?.routingData)
   const [subTab, setSubTab] = useState('setup')
   const [carrierOptions, setCarrierOptions] = useState([])
-  // Filled by Task 5's Quote Setup modal (onTermsChange) — wired now so the
-  // strip's Duration cell is live the moment that modal lands.
+  // Mirrors the Setup modal's applied duration/flexible (onTermsChange) so
+  // the strip's Duration cell can show before an RFQ exists; quote.durationMin
+  // wins once a quote is saved (see durationMin below).
   const [terms, setTerms] = useState(null)
+  // Forces a SetupCarriers remount ONLY on Restore (see handleRestore) — a
+  // key off quote?.quoteId would also remount on the FIRST Save Draft (a
+  // fresh quote mints a quoteId too), wiping the planner's just-picked
+  // TL/LTL/All pill mode for no reason.
+  const [restoreKey, setRestoreKey] = useState(0)
   const timersRef = useRef([])
 
   const sid = shipment?.sellShipment
@@ -217,6 +223,7 @@ export default function SpotBoardTab({ shipmentDetails, shipment }) {
     saveDraft(draft.payload)
     setTerms(null)
     setSubTab('setup')
+    setRestoreKey((k) => k + 1)
   }, [clearQuote, saveDraft])
 
   const handleDeleteDraft = useCallback((draft) => {
@@ -268,10 +275,13 @@ export default function SpotBoardTab({ shipmentDetails, shipment }) {
       {subTab === 'setup' ? (
         <div className="pane-col pane-col--wide">
           <SetupCarriers
-            // Remounts on restore (a fresh quoteId) so its rows/duration/
-            // flexible state re-seed from the just-restored `quote` at mount,
-            // the same way it already seeds from a persisted quote on load.
-            key={quote?.quoteId ?? 'fresh'}
+            // Remounts ONLY on Restore (restoreKey, bumped in handleRestore)
+            // so its rows/duration/flexible/mode state re-seed from the
+            // just-restored `quote` at mount — the same way it already seeds
+            // from a persisted quote on initial load. Save Draft and other
+            // quote changes must NOT remount this (they'd wipe the planner's
+            // TL/LTL/All pill selection for no reason).
+            key={restoreKey}
             quote={quote}
             carrierOptions={carrierOptions}
             onTermsChange={setTerms}

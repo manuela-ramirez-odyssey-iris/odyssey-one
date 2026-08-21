@@ -194,12 +194,6 @@
   color: var(--text-tertiary);
 }
 
-.setup-carriers__toolbar-right {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-3);
-}
-
 /* SpotSummaryStrip — sticky shipment-context band above the Setup & Carriers
    card (user, 2026-08-20; bid-page sticky treatment, cf. Navbar external
    gradient + blur). Sticks to the TOP of `.shipments-bar__content`

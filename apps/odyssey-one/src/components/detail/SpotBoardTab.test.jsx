@@ -337,6 +337,23 @@ describe('SpotBoardTab', () => {
       expect(screen.getByRole('button', { name: 'Restore' })).toBeTruthy()
     })
 
+    // Regression: SetupCarriers used to remount on `quote?.quoteId`, which a
+    // fresh Save Draft also mints — silently resetting the planner's TL/LTL/
+    // All pill back to All. The remount is now keyed off `restoreKey`, bumped
+    // only by Restore (see handleRestore), so Save Draft must leave it alone.
+    it('Save Draft does not reset the selected mode pill', () => {
+      render(<SpotBoardTab shipmentDetails={makeShipmentDetails([])} shipment={shipment} />)
+
+      const band = screen.getByRole('group', { name: 'Carrier list mode' })
+      const [, tlPill] = within(band).getAllByRole('button')
+      fireEvent.click(tlPill)
+      expect(tlPill.getAttribute('aria-pressed')).toBe('true')
+
+      fireEvent.click(screen.getByRole('button', { name: 'Save Draft' }))
+
+      expect(tlPill.getAttribute('aria-pressed')).toBe('true')
+    })
+
     it('Restore repopulates Setup with the draft and switches to the Setup tab', () => {
       saveDraftSnapshot(shipment.sellShipment, {
         listId: 'tl-se', listName: 'TL Southeast Overflow', durationMin: 99, carriers: [], flexiblePickup: false,
@@ -353,7 +370,7 @@ describe('SpotBoardTab', () => {
 
     // The strip's duration is computed at SpotBoardTab level straight off
     // quote.durationMin — it proves the quote object came back, but nothing
-    // above proves SetupCarriers' keyed remount (key={quote?.quoteId}) actually
+    // above proves SetupCarriers' keyed remount (key={restoreKey}) actually
     // reseeded ITS OWN table from the snapshot's carrier rows. Pin that here.
     it('Restore reseeds the Setup & Carriers table with the snapshot carrier rows', () => {
       saveDraftSnapshot(shipment.sellShipment, {
