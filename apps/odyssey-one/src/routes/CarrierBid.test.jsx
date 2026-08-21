@@ -769,6 +769,20 @@ describe('CarrierBid — closed / expired / invalid', () => {
     expect(document.querySelectorAll('h1').length).toBe(0)
     expect(document.querySelector('main')).toBeTruthy()
   })
+
+  // Defect 2 forgery guard: the token is now self-contained (base64url JSON,
+  // see token.js) — decodeToken alone can't tell a forged token (right
+  // shipmentId/scac, wrong nonce) from the real one minted onto this
+  // carrier's row. CarrierBid must additionally require the raw URL token to
+  // string-match quote.carriers[].token.
+  it('shows an invalid state for a well-shaped but forged token (correct shipmentId/scac, wrong nonce)', async () => {
+    openQuote()
+    const forged = mintToken(SHIPMENT_ID, SCAC) // decodes fine, but was never stored on the carrier row
+    renderAt(`/spot-bid/${forged}`)
+
+    await screen.findByText('This link is invalid.')
+    expect(screen.queryByRole('button', { name: /submit/i })).toBe(null)
+  })
 })
 
 // Live-mode flash guard (fix-first review, 2026-08-21): a fresh browser has

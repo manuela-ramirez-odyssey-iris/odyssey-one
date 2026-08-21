@@ -1,10 +1,6 @@
 // @vitest-environment jsdom
-import { beforeEach, describe, test, expect } from 'vitest'
+import { describe, test, expect } from 'vitest'
 import { mintToken, decodeToken } from './token'
-
-beforeEach(() => {
-  localStorage.clear()
-})
 
 describe('mintToken / decodeToken', () => {
   test('round-trips exactly', () => {
@@ -13,13 +9,18 @@ describe('mintToken / decodeToken', () => {
     expect(decodeToken(token)).toEqual(input)
   })
 
-  test('decodeToken returns null for an unknown key', () => {
-    expect(decodeToken('not-a-real-key')).toBeNull()
+  test('two mints for the same (shipmentId, scac) still produce distinct tokens (nonce)', () => {
+    const a = mintToken('0000000091105', 'ODFL')
+    const b = mintToken('0000000091105', 'ODFL')
+    expect(a).not.toBe(b)
+    expect(decodeToken(a)).toEqual({ shipmentId: '0000000091105', scac: 'ODFL' })
+    expect(decodeToken(b)).toEqual({ shipmentId: '0000000091105', scac: 'ODFL' })
   })
 
-  test('decodeToken returns null on malformed input, never throws', () => {
+  test('decodeToken returns null on malformed/garbage input, never throws', () => {
     expect(() => decodeToken('!!bad!!')).not.toThrow()
     expect(decodeToken('!!bad!!')).toBeNull()
+    expect(decodeToken('not-a-real-token')).toBeNull()
   })
 
   test('decodeToken returns null for absent/falsy input', () => {
@@ -28,30 +29,29 @@ describe('mintToken / decodeToken', () => {
     expect(decodeToken('')).toBeNull()
   })
 
-  test('decodeToken returns null when the stored mapping is corrupt JSON', () => {
-    localStorage.setItem('spotboard:token:bad-key', '{not json')
-    expect(decodeToken('bad-key')).toBeNull()
+  test('decodeToken returns null when the decoded shape is missing required fields', () => {
+    const token = btoa(JSON.stringify({ foo: 'bar' })).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+    expect(decodeToken(token)).toBeNull()
   })
 
-  test('decodeToken returns null when the stored mapping is missing required fields', () => {
-    localStorage.setItem('spotboard:token:incomplete-key', JSON.stringify({ foo: 'bar' }))
-    expect(decodeToken('incomplete-key')).toBeNull()
+  // Defect 2 fix: the token must be self-contained (no localStorage lookup)
+  // so a carrier opening the link in a browser that never minted it — the
+  // real-world case — still resolves shipmentId/scac.
+  test('cross-browser: decode works with zero localStorage state', () => {
+    const token = mintToken('0000000091105', 'ODFL')
+    localStorage.clear() // simulate a fresh browser — nothing was ever stored here
+    expect(decodeToken(token)).toEqual({ shipmentId: '0000000091105', scac: 'ODFL' })
   })
 
-  test('the minted token does not carry the shipmentId — opaque, not reversible', () => {
-    const shipmentId = '0000000091105'
-    const token = mintToken(shipmentId, 'ODFL')
-
-    expect(token).not.toContain(shipmentId)
-
-    // The old design was reversible base64 — assert atob() no longer yields
-    // the id (either it throws on invalid base64, or decodes to garbage).
-    let decoded = ''
-    try {
-      decoded = atob(token)
-    } catch {
-      decoded = ''
-    }
-    expect(decoded).not.toContain(shipmentId)
+  // decodeToken alone can't distinguish a forged-but-valid-shaped token from
+  // the real minted one — anyone who knows a shipmentId/scac pair can build
+  // one. That's expected; the actual forgery guard is the raw-token
+  // string-equality check against quote.carriers[].token in CarrierBid.jsx
+  // (see CarrierBid.test.jsx's "forged token" case).
+  test('a well-shaped token with a different nonce still decodes to the same identity', () => {
+    const real = mintToken('0000000091105', 'ODFL')
+    const forged = mintToken('0000000091105', 'ODFL')
+    expect(forged).not.toBe(real)
+    expect(decodeToken(forged)).toEqual({ shipmentId: '0000000091105', scac: 'ODFL' })
   })
 })

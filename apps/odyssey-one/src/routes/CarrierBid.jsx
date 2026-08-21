@@ -382,6 +382,13 @@ export default function CarrierBid() {
   if (!decoded) closedReason = 'This link is invalid.'
   else if (!quote) closedReason = 'This quote is no longer available.'
   else if (!carrier) closedReason = 'This link is invalid.'
+  // Forgery guard (defect 2 fix, token.js): decodeToken alone can't tell a
+  // forged token (correct shipmentId/scac, wrong nonce) from the real one
+  // minted onto this carrier's row — anyone who knows the pair can build a
+  // well-shaped token that decodes cleanly. The raw URL token must
+  // string-match carrier.token (minted once at draft->open, spotStore.sendRFQ)
+  // or the link is treated exactly like a malformed one.
+  else if (carrier.token !== token) closedReason = 'This link is invalid.'
   else if (quote.status !== 'open' || isExpired) closedReason = 'This bidding window has closed.'
 
   // Live-mode flash guard: a fresh browser's FIRST render has no local quote
