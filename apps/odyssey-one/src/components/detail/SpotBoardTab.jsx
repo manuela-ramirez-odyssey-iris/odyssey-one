@@ -234,8 +234,8 @@ export default function SpotBoardTab({ shipmentDetails, shipment }) {
         </div>
       )}
 
-      <div className="pane-col pane-col--wide">
-        {subTab === 'setup' ? (
+      {subTab === 'setup' ? (
+        <div className="pane-col pane-col--wide">
           <SetupCarriers
             quote={quote}
             carrierOptions={carrierOptions}
@@ -262,22 +262,28 @@ export default function SpotBoardTab({ shipmentDetails, shipment }) {
             onSaveDraft={saveDraft}
             onSendRFQ={handleSendRFQ}
           />
-        ) : quote ? (
-          <LiveBids
-            quote={quote}
-            benchmark={benchmarkValue}
-            onForceClose={() => closeQuote(Date.now())}
-            onAward={handleAward}
-            onModify={handleModify}
-            onClear={clearQuote}
-          />
-        ) : (
+        </div>
+      ) : quote ? (
+        // LiveBids is self-contained here (components.css:6227-6228, "full-width
+        // bands sit OUTSIDE .pane-col, directly on .pane-canvas") — its quote
+        // SummaryStrip renders straight on .pane-canvas like SpotSummaryStrip
+        // above, and LiveBids wraps its own SubAccordion in pane-col internally.
+        <LiveBids
+          quote={quote}
+          benchmark={benchmarkValue}
+          onForceClose={() => closeQuote(Date.now())}
+          onAward={handleAward}
+          onModify={handleModify}
+          onClear={clearQuote}
+        />
+      ) : (
+        <div className="pane-col pane-col--wide">
           <EmptyState
             icon={<TriangleAlert size={32} />}
             message="No active quote yet — send an RFQ from Setup & Carriers."
           />
-        )}
-      </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -153,16 +153,18 @@ export default function LiveBids({
 
   return (
     <>
-      {/* Quote header strip lives OUTSIDE the accordion and sticks (user,
-          2026-08-20) — same sticky treatment as Setup & Carriers' shipment
-          strip (spotboard.css `.spot-sticky-strip`), so it stays visible
-          while the bids table scrolls underneath it. */}
+      {/* Quote header strip lives OUTSIDE the accordion AND outside .pane-col
+          (user, 2026-08-20; components.css:6227-6228 — full-width bands sit
+          directly on .pane-canvas, same as Setup & Carriers' SpotSummaryStrip)
+          and sticks via spotboard.css `.spot-sticky-strip`, so it stays
+          visible while the bids table scrolls underneath it. */}
       <SummaryStrip
         className="spot-sticky-strip live-bids__summary"
         aria-label="Quote Summary"
         items={summaryItems}
       />
 
+      <div className="pane-col pane-col--wide">
       <SubAccordion title="Live Bids" showIcon={false} collapsible={false}>
         <div className="live-bids">
           <GroupTable
@@ -210,6 +212,7 @@ export default function LiveBids({
           </div>
         </div>
       </SubAccordion>
+      </div>
     </>
   )
 }

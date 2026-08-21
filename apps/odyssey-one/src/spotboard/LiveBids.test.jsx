@@ -215,6 +215,12 @@ describe('LiveBids', () => {
     // Strip precedes the accordion in document order.
     const subAccordion = container.querySelector('.sub-accordion')
     expect(strip.compareDocumentPosition(subAccordion) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+
+    // Not inset inside .pane-col either — full-width bands sit directly on
+    // .pane-canvas (components.css:6227-6228), same as the setup tab's
+    // SpotSummaryStrip. Only the accordion keeps the column wrapper.
+    expect(strip.closest('.pane-col')).toBeFalsy()
+    expect(subAccordion.closest('.pane-col')).toBeTruthy()
   })
 
   test('an awarded quote still reads terminal status wording: silent carrier is No Bid Submitted, not Awaiting', () => {
