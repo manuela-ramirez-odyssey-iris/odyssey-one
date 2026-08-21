@@ -9,6 +9,28 @@ import { apiGet, apiPut, apiDelete } from '../api/client'
 
 const BASE = '/spot-service/v1/spot'
 
+// Per-(shipmentId, kind) write queue. saveDraft/sendRFQ/etc each fire a
+// fire-and-forget PUT (spotStore.write, draftStore.write); two of those in
+// quick succession race on the network and can land at the DB out of order,
+// so the LAST ONE TO RESOLVE wins regardless of which was sent first —
+// reproduced as an RFQ stuck at status:'draft' forever. Chaining each new
+// write onto the tail of the previous one for the same key guarantees the
+// fetch calls fire in the same order they were issued (the second fetch is
+// not even constructed until the first settles) — callers still don't await
+// anything, so this stays fire-and-forget from their perspective.
+// ponytail: process-lifetime Map, never pruned — fine, the key space is one
+// entry per (shipment, kind) a live session ever touches, not unbounded.
+const writeChains = new Map()
+const chainKeyFor = (shipmentId, kind) => `${shipmentId}:${kind}`
+
+function enqueueWrite(shipmentId, kind, task) {
+  const key = chainKeyFor(shipmentId, kind)
+  const prev = writeChains.get(key) ?? Promise.resolve()
+  const next = prev.catch(() => {}).then(task)
+  writeChains.set(key, next)
+  return next
+}
+
 export async function fetchSpotState(shipmentId, kind) {
   if (getApiMode() !== 'live') return undefined
   const res = await apiGet(`${BASE}/${encodeURIComponent(shipmentId)}?kind=${kind}`)
@@ -17,10 +39,10 @@ export async function fetchSpotState(shipmentId, kind) {
 
 export async function putSpotState(shipmentId, kind, value) {
   if (getApiMode() !== 'live') return
-  await apiPut(`${BASE}/${encodeURIComponent(shipmentId)}`, { kind, value })
+  await enqueueWrite(shipmentId, kind, () => apiPut(`${BASE}/${encodeURIComponent(shipmentId)}`, { kind, value }))
 }
 
 export async function deleteSpotState(shipmentId, kind) {
   if (getApiMode() !== 'live') return
-  await apiDelete(`${BASE}/${encodeURIComponent(shipmentId)}?kind=${kind}`, {})
+  await enqueueWrite(shipmentId, kind, () => apiDelete(`${BASE}/${encodeURIComponent(shipmentId)}?kind=${kind}`, {}))
 }
