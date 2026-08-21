@@ -57,10 +57,11 @@ describe('SpotBoardTab', () => {
     expect(container.querySelector('.spot-sticky-strip')).toBeFalsy()
   })
 
-  // 2026-08-20 (Task 5): Duration only joins the strip once the planner has
-  // set it — via the Quote Setup modal's onTermsChange, wired through to
-  // SpotBoardTab's `terms` state (SetupCarriers.jsx, SpotBoardTab.jsx).
-  it('the strip gains a Duration cell once Setup Quote → Apply commits a duration', async () => {
+  // Round 2 (2026-08-21, user): "duration should ... always be visible even
+  // if unset" — the Quote Duration cell is now ALWAYS in the strip, showing
+  // '--' before the planner has committed one via Quote Setup → Apply
+  // (SetupCarriers.jsx onTermsChange, wired through SpotBoardTab's `terms`).
+  it('the strip always shows a Quote Duration cell, "--" until Quote Setup → Apply commits one', async () => {
     const { waitFor } = await import('@testing-library/react')
     const { container } = render(<SpotBoardTab shipmentDetails={makeShipmentDetails([])} shipment={shipment} />)
 
@@ -68,13 +69,48 @@ describe('SpotBoardTab', () => {
       expect(container.querySelector('[data-testid^="pickup-"]')).toBeTruthy()
     })
     const strip = container.querySelector('.spot-sticky-strip')
-    expect(strip.textContent).not.toContain('Duration')
+    expect(strip.textContent).toContain('Quote Duration')
+    expect(strip.textContent).toContain('--')
 
-    fireEvent.click(screen.getByRole('button', { name: 'Setup Quote' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Quote Setup' }))
     fireEvent.click(screen.getByRole('button', { name: 'Apply' }))
 
-    expect(container.querySelector('.spot-sticky-strip').textContent).toContain('Duration')
+    expect(container.querySelector('.spot-sticky-strip').textContent).toContain('Quote Duration')
     expect(container.querySelector('.spot-sticky-strip').textContent).toContain('30 min')
+  })
+
+  // Round 2 (2026-08-21, user): "when sent the quote duration cell should
+  // show the countdown in a badge and not show another sudden field for it."
+  // Once the RFQ is open, the Quote Duration cell's VALUE swaps to a live
+  // countdown (mm:ss), not the plain "N min" string — and the old
+  // running-state DurationPicker field that used to render in SetupCarriers'
+  // head is gone entirely (no `.duration-picker__running` anywhere).
+  it('shows a live countdown in the Quote Duration cell once the RFQ is open, with no separate running field', () => {
+    localStorage.setItem(
+      `spotboard:${shipment.sellShipment}`,
+      JSON.stringify({
+        quoteId: 'q1',
+        shipmentId: shipment.sellShipment,
+        listId: 'tl-se',
+        listName: 'TL Southeast Overflow',
+        durationMin: 60,
+        openAt: Date.now(),
+        closeAt: Date.now() + 30 * 60_000,
+        status: 'open',
+        awardType: null,
+        awardedScac: null,
+        carriers: [],
+        flexiblePickup: false,
+      })
+    )
+    const { container } = render(<SpotBoardTab shipmentDetails={makeShipmentDetails([])} shipment={shipment} />)
+    const strip = container.querySelector('.spot-sticky-strip')
+    expect(strip.textContent).toContain('Quote Duration')
+    // A live mm:ss countdown, not the flat "60 min" the unset/draft case shows.
+    expect(strip.textContent).toMatch(/\d{2}:\d{2}/)
+    expect(strip.textContent).not.toContain('60 min')
+    // The "sudden field" is gone — no running-state DurationPicker anywhere.
+    expect(container.querySelector('.duration-picker__running')).toBeFalsy()
   })
 
   // The strip compacts Origin/Destination to "City, ST" and shows the full

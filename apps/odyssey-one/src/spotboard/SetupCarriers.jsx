@@ -302,62 +302,46 @@ export default function SetupCarriers({
 
   return (
     <>
-      {/* Restructured 2026-08-19 (user); RFQ terms moved into the Quote Setup
-          modal 2026-08-20 (Task 5). The card header and the mode band are
-          SIBLINGS ABOVE the accordion, and the actions sit BELOW it:
+      {/* Restructured round 2 (user, 2026-08-21): the SubAccordion owns the
+          "Setup & Carriers" title again (a plain h3 sibling would double it),
+          and the mode band now lives INSIDE the accordion, between the header
+          and the count+button toolbar row. The live countdown that used to
+          render here moved out entirely — it's now the Quote Duration cell in
+          the sticky SpotSummaryStrip (SpotBoardTab), so this component no
+          longer reads `quote.status`/`closeAt` for a running field:
 
-            Setup & Carriers            ← heading (was the SubAccordion title)
-            [ All ][ TL ][ LTL ]        ← PillTab mode band, All-first + counts
-            (live countdown, once open) ← running-state DurationPicker only
-            ┌ table ─────────────────┐  ← the accordion now wraps only the table
-                   Save · Send x/y RFQ  ← actions, always mounted, no Cancel
-
-          The accordion keeps no title of its own — the heading above owns the
-          card's identity, and two "Setup & Carriers" strings would be read
-          twice by a screen reader. */}
-      <div className="setup-carriers__head">
-        <h3 className="setup-carriers__heading text-label-base-semibold">Setup &amp; Carriers</h3>
-        <div className="setup-carriers__modes" role="group" aria-label="Carrier list mode">
-          {MODE_TABS.map((m) => (
-            <PillTab
-              key={m.key}
-              label={m.label}
-              count={countFor(m.key)}
-              selected={mode === m.key}
-              onClick={() => setMode(m.key)}
-            />
-          ))}
-        </div>
-        {/* Duration/Flexible are now set through the Quote Setup modal — the
-            planner must still see the burn-down without opening it, so the
-            picker's own RUNNING state (a countdown Badge, not an editable
-            field) keeps rendering here once the RFQ is actually open. */}
-        {quote?.status === 'open' && quote?.closeAt && (
-          <DurationPicker
-            id="quote-duration"
-            label="Quote Duration"
-            unit="minutes"
-            value={durationMin}
-            running
-            endsAt={quote.closeAt}
-            totalMs={(quote?.durationMin ?? effectiveDuration) * 60_000}
-            disabled={readOnly}
-          />
-        )}
-      </div>
-
-      <SubAccordion showIcon={false} collapsible={false}>
+            ┌ SubAccordion "Setup & Carriers" ───────────────────────────┐
+            │ [ All ][ TL ][ LTL ]        ← PillTab mode band            │
+            │ N carriers          [ Quote Setup ] ← count + primary btn  │
+            │ ┌ table ──────────────────────────────────────────────┐   │
+            └──────────────────────────────────────────────────────────┘
+                   Save · Send x/y RFQ  ← actions, always mounted, no Cancel,
+                                           still BELOW the accordion */}
+      <SubAccordion title="Setup & Carriers" showIcon={false} collapsible={false}>
         <div className="order-pane__section setup-carriers">
           <div className="order-pane__block">
 
+            <div className="setup-carriers__modes" role="group" aria-label="Carrier list mode">
+              {MODE_TABS.map((m) => (
+                <PillTab
+                  key={m.key}
+                  label={m.label}
+                  count={countFor(m.key)}
+                  selected={mode === m.key}
+                  onClick={() => setMode(m.key)}
+                />
+              ))}
+            </div>
+
             {/* …then the count, directly above the table, with the Quote
-                Setup trigger trailing it (Task 5). */}
+                Setup trigger trailing it (Task 5; primary variant + "Quote
+                Setup" label, round 2). */}
             <div className="setup-carriers__toolbar-top">
               <span className="setup-carriers__toolbar-count text-label-sm-regular">
                 {visibleRows.length} {visibleRows.length === 1 ? 'carrier' : 'carriers'}
               </span>
-              <Button variant="secondary" disabled={readOnly} onClick={openSetup}>
-                Setup Quote
+              <Button variant="primary" disabled={readOnly} onClick={openSetup}>
+                Quote Setup
               </Button>
             </div>
 
@@ -420,8 +404,8 @@ export default function SetupCarriers({
           behavior change. Moved out of the SubAccordion above: a
           transformed/overflow ancestor there clips the modal's fixed overlay
           (same root cause ShipmentDetailsModal.jsx already portals around). */}
-      {/* Quote Setup modal (Task 5) — Duration, Planned Pickup/Delivery for
-          All, and Flexible, gathered behind the "Setup Quote" trigger.
+      {/* Quote Setup modal (Task 5) — Duration, General Planned Pickup/
+          Delivery, and Flexible, gathered behind the "Quote Setup" trigger.
           Portaled for the same reason the Send RFQ modal below is: an
           ancestor here clips a fixed overlay. */}
       {setupOpen && createPortal(
@@ -439,6 +423,12 @@ export default function SetupCarriers({
             </>
           }
         >
+          {/* Row 1: Quote Duration (filled, see .setup-carriers__setup-grid
+              .duration-picker) + Flexible. Row 2: the two General Planned
+              dates, side by side (user, round 2). "General Planned Delivery"
+              is the user's explicit rename; "General Planned Pickup" is
+              renamed to match it for symmetry — the user only named the
+              delivery field. */}
           <div className="setup-carriers__setup-grid">
             <DurationPicker
               id="setup-quote-duration"
@@ -447,22 +437,22 @@ export default function SetupCarriers({
               value={draftDuration}
               onChange={setDraftDuration}
             />
+            <Checkbox
+              label="Flexible"
+              checked={draftFlexible}
+              onChange={(e) => setDraftFlexible(e.target.checked)}
+            />
             <DateField
               id="setup-pickup-all"
-              label="Planned Pickup for All"
+              label="General Planned Pickup"
               value={draftPickup}
               onChange={setDraftPickup}
             />
             <DateField
               id="setup-delivery-all"
-              label="Planned Delivery for All"
+              label="General Planned Delivery"
               value={draftDelivery}
               onChange={setDraftDelivery}
-            />
-            <Checkbox
-              label="Flexible"
-              checked={draftFlexible}
-              onChange={(e) => setDraftFlexible(e.target.checked)}
             />
           </div>
         </ModalMedium>,

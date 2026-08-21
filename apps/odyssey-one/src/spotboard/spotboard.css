@@ -90,22 +90,13 @@
    show through it; the header keeps painting above via `.odyssey-table thead`
    (z-index 2). Centering must out-rank `.odyssey-table th, td`'s left align,
    hence the compound selectors. */
-/* Card head block (2026-08-19 restructure) — heading, then the TL/LTL/All pill
-   band, then the RFQ terms, all ABOVE the table accordion. These used to live
-   inside the accordion with the heading as its title; they were lifted out so
-   the accordion wraps only the table and the actions can sit below it. */
-.setup-carriers__head {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-3);
-  margin-bottom: var(--spacing-3);
-}
-
-.setup-carriers__heading {
-  color: var(--text-primary);
-  margin: 0;
-}
-
+/* TL/LTL/All pill band — round 2 (2026-08-21): back INSIDE the SubAccordion,
+   a direct flex child of `.order-pane__block` alongside the toolbar and the
+   table, so the block's own `gap: var(--spacing-3)` (components.css) spaces
+   it from its siblings without a dedicated head wrapper. The SubAccordion's
+   own title carries "Setup & Carriers" again, so `.setup-carriers__head`/
+   `__heading` (the old lifted-out heading + head wrapper) are gone — a plain
+   h3 sibling would have doubled the accordion's own title. */
 .setup-carriers__modes {
   display: flex;
   gap: var(--spacing-2);
@@ -161,12 +152,22 @@
   gap: var(--spacing-4);
 }
 
-/* Quote Setup modal (Task 5) — Duration / Planned Pickup for All / Planned
-   Delivery for All / Flexible, 2 columns wide. */
+/* Quote Setup modal (Task 5) — row 1: Quote Duration + Flexible, row 2: the
+   two General Planned dates (round 2 order), 2 columns wide. */
 .setup-carriers__setup-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--spacing-4);
+}
+
+/* DurationPicker is pinned to a flat 150px everywhere else (durationPicker.css
+   — "field must not stretch to fill its container"), but this modal grid cell
+   is exactly the width a General Planned date field fills, and the user
+   explicitly asked for Quote Duration to match it here (round 2). Scoped to
+   this grid only — the component's own default stays untouched everywhere
+   else. */
+.setup-carriers__setup-grid .duration-picker {
+  width: 100%;
 }
 
 /* Send RFQ confirmation (ModalMedium) — carrier roll-call over the terms. */

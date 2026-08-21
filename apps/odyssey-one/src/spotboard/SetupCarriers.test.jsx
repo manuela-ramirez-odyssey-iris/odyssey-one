@@ -75,11 +75,11 @@ function selectAllCheckbox() {
   return screen.getByLabelText('Select all carriers')
 }
 
-// Quote Setup modal (Task 5) — Duration / Planned Pickup for All / Planned
-// Delivery for All / Flexible, behind the "Setup Quote" trigger trailing the
-// carrier-count row.
+// Quote Setup modal (Task 5) — Duration / General Planned Pickup / General
+// Planned Delivery / Flexible, behind the "Quote Setup" trigger (round 2:
+// renamed from "Setup Quote", primary variant) trailing the carrier-count row.
 function setupQuoteButton() {
-  return screen.getByRole('button', { name: 'Setup Quote' })
+  return screen.getByRole('button', { name: 'Quote Setup' })
 }
 
 function openSetupModal() {
@@ -387,11 +387,13 @@ describe('SetupCarriers', () => {
     expect(screen.getByTestId(`pickup-${ltlRows[0].scac}`)).toBeTruthy()
   })
 
-  // Restructured 2026-08-19, RFQ terms moved into the Quote Setup modal
-  // 2026-08-20 (Task 5): heading → pill band, ABOVE the table accordion, with
-  // the actions BELOW it. Quote Duration/Flexible no longer live in the head
-  // at all while there is no open quote to show a countdown for.
-  it('head block order is heading, then the mode pills — no RFQ terms live there anymore', () => {
+  // Restructured round 2 (2026-08-21, user): the SubAccordion owns the
+  // "Setup & Carriers" title again, and the pill band moved INSIDE it,
+  // between the header and the count+button toolbar row. Quote
+  // Duration/Flexible still don't live in this component's card at all — a
+  // committed quote's countdown now shows in the sticky strip (SpotBoardTab),
+  // not here.
+  it('the accordion carries the "Setup & Carriers" title, with the pill band inside it, before the toolbar', () => {
     const { container } = render(
       <SetupCarriers
         carrierOptions={carrierOptions}
@@ -402,23 +404,28 @@ describe('SetupCarriers', () => {
         onSendRFQ={() => {}}
       />
     )
-    const head = container.querySelector('.setup-carriers__head')
-    const heading = container.querySelector('.setup-carriers__heading')
+    const title = container.querySelector('.sub-accordion__title')
+    const content = container.querySelector('.sub-accordion__content')
     const band = screen.getByRole('group', { name: 'Carrier list mode' })
+    const toolbar = container.querySelector('.setup-carriers__toolbar-top')
 
-    expect(heading.textContent.trim()).toBe('Setup & Carriers')
-    expect(head.contains(band)).toBe(true)
+    expect(title.textContent.trim()).toBe('Setup & Carriers')
+    // No double heading — the old lifted-out `<h3>` is gone.
+    expect(container.querySelector('.setup-carriers__heading')).toBeFalsy()
+    expect(content.contains(band)).toBe(true)
     expect(container.querySelector('.setup-carriers__controls')).toBeFalsy()
     // Nothing renders the RFQ terms outside the modal while no quote is open.
     expect(screen.queryByLabelText('Quote Duration')).toBeFalsy()
     expect(screen.queryByLabelText('Flexible')).toBeFalsy()
 
     const FOLLOWING = Node.DOCUMENT_POSITION_FOLLOWING
-    expect(heading.compareDocumentPosition(band) & FOLLOWING).toBeTruthy()
+    expect(title.compareDocumentPosition(band) & FOLLOWING).toBeTruthy()
+    expect(band.compareDocumentPosition(toolbar) & FOLLOWING).toBeTruthy()
   })
 
-  // Task 5, step 1(a)/(b): the trigger and the modal it opens.
-  it('a "Setup Quote" secondary button renders trailing the carrier-count row', () => {
+  // Task 5, step 1(a)/(b): the trigger and the modal it opens. Round 2:
+  // renamed "Setup Quote" → "Quote Setup", secondary → primary.
+  it('a "Quote Setup" primary button renders trailing the carrier-count row', () => {
     const { container } = render(
       <SetupCarriers
         carrierOptions={carrierOptions}
@@ -430,14 +437,14 @@ describe('SetupCarriers', () => {
       />
     )
     const toolbar = container.querySelector('.setup-carriers__toolbar-top')
-    const button = within(toolbar).getByRole('button', { name: 'Setup Quote' })
-    expect(button.className).toContain('btn--secondary')
+    const button = within(toolbar).getByRole('button', { name: 'Quote Setup' })
+    expect(button.className).toContain('btn--primary')
     // All is the default mode — the toolbar count spans every built row.
     const count = within(toolbar).getByText(`${allRows.length} carriers`)
     expect(count.compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
-  it('clicking Setup Quote opens a dialog containing the four fields', () => {
+  it('clicking Quote Setup opens a dialog containing the four fields', () => {
     render(
       <SetupCarriers
         carrierOptions={carrierOptions}
@@ -451,8 +458,8 @@ describe('SetupCarriers', () => {
     expect(screen.queryByRole('dialog', { name: 'Quote Setup' })).toBeFalsy()
     const dialog = within(openSetupModal())
     expect(dialog.getByLabelText('Quote Duration')).toBeTruthy()
-    expect(dialog.getByLabelText('Planned Pickup for All')).toBeTruthy()
-    expect(dialog.getByLabelText('Planned Delivery for All')).toBeTruthy()
+    expect(dialog.getByLabelText('General Planned Pickup')).toBeTruthy()
+    expect(dialog.getByLabelText('General Planned Delivery')).toBeTruthy()
     expect(dialog.getByLabelText('Flexible')).toBeTruthy()
   })
 
@@ -482,8 +489,8 @@ describe('SetupCarriers', () => {
       />
     )
     openSetupModal()
-    fillModalDate('Planned Pickup for All', '09/01/2026')
-    fillModalDate('Planned Delivery for All', '09/02/2026')
+    fillModalDate('General Planned Pickup', '09/01/2026')
+    fillModalDate('General Planned Delivery', '09/02/2026')
     applySetupModal()
 
     expect(screen.queryByRole('dialog', { name: 'Quote Setup' })).toBeFalsy()
@@ -510,8 +517,8 @@ describe('SetupCarriers', () => {
       />
     )
     openSetupModal()
-    fillModalDate('Planned Pickup for All', '09/01/2026')
-    // Planned Delivery for All left blank.
+    fillModalDate('General Planned Pickup', '09/01/2026')
+    // General Planned Delivery left blank.
     applySetupModal()
 
     for (const r of tlRows) {
@@ -533,7 +540,7 @@ describe('SetupCarriers', () => {
       />
     )
     openSetupModal()
-    fillModalDate('Planned Pickup for All', '09/01/2026')
+    fillModalDate('General Planned Pickup', '09/01/2026')
     cancelSetupModal()
 
     expect(screen.queryByRole('dialog', { name: 'Quote Setup' })).toBeFalsy()
@@ -745,10 +752,10 @@ describe('SetupCarriers', () => {
     expect(within(actions).queryByRole('button', { name: 'Cancel' })).toBeFalsy()
   })
 
-  // RFQ terms moved into the Quote Setup modal (Task 5) — the head no longer
-  // carries a `controls` block, so what remains to pin down is just the
-  // toolbar (count + Setup Quote trigger) sitting above the table.
-  it('stacks the head, then the count toolbar, then the table', () => {
+  // RFQ terms moved into the Quote Setup modal (Task 5). Round 2: the mode
+  // pills moved inside the accordion too, so document order inside it is
+  // pills → count toolbar → table.
+  it('stacks the pill band, then the count toolbar, then the table', () => {
     const { container } = render(
       <SetupCarriers
         carrierOptions={carrierOptions}
@@ -759,17 +766,17 @@ describe('SetupCarriers', () => {
         onSendRFQ={() => {}}
       />
     )
-    const head = container.querySelector('.setup-carriers__head')
+    const band = screen.getByRole('group', { name: 'Carrier list mode' })
     const toolbar = container.querySelector('.setup-carriers__toolbar-top')
     const table = container.querySelector('.setup-carriers__table-wrap')
 
     // All is the default mode — the count spans every built row.
     expect(within(toolbar).getByText(`${allRows.length} carriers`)).toBeTruthy()
-    expect(within(toolbar).getByRole('button', { name: 'Setup Quote' })).toBeTruthy()
+    expect(within(toolbar).getByRole('button', { name: 'Quote Setup' })).toBeTruthy()
 
-    // document order: head → toolbar → table
+    // document order: pill band → toolbar → table
     const FOLLOWING = Node.DOCUMENT_POSITION_FOLLOWING
-    expect(head.compareDocumentPosition(toolbar) & FOLLOWING).toBeTruthy()
+    expect(band.compareDocumentPosition(toolbar) & FOLLOWING).toBeTruthy()
     expect(toolbar.compareDocumentPosition(table) & FOLLOWING).toBeTruthy()
   })
 

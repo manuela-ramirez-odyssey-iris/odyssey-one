@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { TriangleAlert } from 'lucide-react'
-import { EmptyState, Tab } from '@odyssey/ui'
+import { Badge, EmptyState, Tab } from '@odyssey/ui'
 import SetupCarriers from '../../spotboard/SetupCarriers.jsx'
 import LiveBids from '../../spotboard/LiveBids.jsx'
 import RfqLinksPanel from '../../spotboard/RfqLinksPanel.jsx'
@@ -9,6 +9,8 @@ import DraftsPanel from '../../spotboard/DraftsPanel.jsx'
 import { listDrafts, saveDraftSnapshot, removeDraft } from '../../spotboard/draftStore.js'
 import { cityState, compactWindow } from '../../spotboard/stripFormat.js'
 import { useSpotQuote } from '../../spotboard/useSpotQuote.js'
+import { useCountdown } from '../../spotboard/Countdown.jsx'
+import { formatRemaining, countdownVariant } from '../fields/DurationPicker.jsx'
 import { isSpotEligible, eligibilityReason } from '../../spotboard/eligibility.js'
 import { benchmark as computeBenchmark } from '../../spotboard/tolerance.js'
 import { buildSpotRateOption } from '../../spotboard/award.js'
@@ -28,13 +30,16 @@ const SUB_TABS = [
 // (and wire it here) once the design calls for one.
 const DEFAULT_MARKUP = { type: 'flat', value: 0 }
 
-// header (origin/destination/pickup window) for the sticky SpotSummaryStrip
-// — sourced from the same fields the other panes already read off
-// shipmentDetails (StopsTab, ShipmentDetailsModal): stopsData.stops[].location/type,
-// orderDetails[].{earliestPickup,latestPickup}. Distance/Equipment/Hazmat
-// were dropped 2026-08-20 (user) — the strip never consumed them.
+// header (origin/destination/equipment/distance/hazmat/pickup window) for the
+// sticky SpotSummaryStrip — sourced from the same fields the other panes
+// already read off shipmentDetails (StopsTab, ShipmentDetailsModal):
+// stopsData.stops[].location/type, stopsData.summary.{distance,seedEquipment},
+// orderDetails[].{equipment,hazmat,earliestPickup,latestPickup}.
+// Distance/Equipment/Hazmat were dropped 2026-08-20 then RESTORED 2026-08-21
+// (user, round 2: "you forgot to add the other summary values to the strip").
 function buildHeader(shipmentDetails) {
   const stops = shipmentDetails?.stopsData?.stops ?? []
+  const summary = shipmentDetails?.stopsData?.summary ?? {}
   const orders = shipmentDetails?.orderDetails ?? []
   const firstOrder = orders[0]
   const origin = stops.find((s) => s.type === 'pickup')?.location
@@ -42,8 +47,23 @@ function buildHeader(shipmentDetails) {
   return {
     origin,
     destination,
+    equipment: summary.seedEquipment || firstOrder?.equipment,
+    distance: summary.distance,
+    hazmat: orders.some((o) => o.hazmat === 'Yes') ? 'Yes' : 'No',
     pickupWindow: firstOrder ? `${firstOrder.earliestPickup} - ${firstOrder.latestPickup}` : undefined,
   }
+}
+
+// Quote Duration strip cell — ALWAYS present (user, round 2: "duration
+// should ... always be visible even if unset"). Once the RFQ is open it
+// swaps from a plain "N min" string to a live countdown Badge, reusing
+// DurationPicker's own running-state pieces (useCountdown, formatRemaining,
+// countdownVariant) rather than a second implementation — this replaces the
+// running-state DurationPicker that used to render in SetupCarriers' head
+// (the "sudden field" the user flagged; that block is now deleted).
+function QuoteDurationCountdown({ closeAt, totalMs }) {
+  const remaining = useCountdown(closeAt)
+  return <Badge variant={countdownVariant(remaining, totalMs)} statusDot>{formatRemaining(remaining)}</Badge>
 }
 
 // Order dates arrive as "MM/DD/YYYY HH:MM TZ" (or DASH); the planner's date
@@ -147,16 +167,25 @@ export default function SpotBoardTab({ shipmentDetails, shipment }) {
   }, [])
 
   const header = useMemo(() => buildHeader(shipmentDetails), [shipmentDetails])
-  // Sticky shipment-context strip (user, 2026-08-20) — replaces the S112
-  // order-view field grid. Only Duration/Origin/Destination/Pickup Window;
-  // Distance/Equipment/Hazmat are deliberately dropped (not requested).
+  // Sticky shipment-context strip (user, 2026-08-20; round-2 fixes
+  // 2026-08-21). Quote Duration is ALWAYS present (unset renders '--' via
+  // SummaryStrip's own placeholder — see stripItems below) and swaps to a
+  // live countdown Badge once the RFQ is open. Distance/Equipment/Hazmat are
+  // back (round 2) — see buildHeader.
   const firstOrder = shipmentDetails?.orderDetails?.[0]
   const durationMin = quote?.durationMin ?? terms?.durationMin ?? null
+  const quoteOpen = quote?.status === 'open' && !!quote?.closeAt
+  const durationValue = quoteOpen
+    ? <QuoteDurationCountdown closeAt={quote.closeAt} totalMs={quote.durationMin * 60_000} />
+    : (durationMin != null ? `${durationMin} min` : null)
   const stripItems = [
-    ...(durationMin != null ? [{ label: 'Duration', value: `${durationMin} min` }] : []),
+    { label: 'Quote Duration', value: durationValue },
     { label: 'Origin', value: cityState(header?.origin), full: header?.origin },
     { label: 'Destination', value: cityState(header?.destination), full: header?.destination },
     { label: 'Pickup Window', value: compactWindow(firstOrder?.earliestPickup, firstOrder?.latestPickup), full: header?.pickupWindow },
+    { label: 'Distance', value: header?.distance },
+    { label: 'Equipment', value: header?.equipment },
+    { label: 'Hazmat', value: header?.hazmat },
   ]
   const distanceMi = parseDistanceMi(shipmentDetails?.stopsData?.summary?.distance)
   // Real benchmark: highest cost among the shipment's routed options (the
