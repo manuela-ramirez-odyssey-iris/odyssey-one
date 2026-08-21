@@ -5,7 +5,8 @@ import { Navbar, LeadNav, GlobalSearch, TrailNav, OdysseyLogo, Button, Alert, Ba
 import MeasureField from '../components/orders/create/fields/MeasureField.jsx'
 import { SummaryCard } from '../components/detail/QuoteModal.jsx'
 import { decodeToken } from '../spotboard/token.js'
-import { getQuote, submitBid, declineBid } from '../spotboard/spotStore.js'
+import { getQuote, submitBid, declineBid, hydrateQuote } from '../spotboard/spotStore.js'
+import { getApiMode } from '../api/config'
 import { useCountdown, formatHMS, URGENT_MS } from '../spotboard/Countdown.jsx'
 import { useShipmentDetail } from '../api/queries/useShipmentDetail'
 import { getLookupOptions } from '../api/services/lookupService'
@@ -179,6 +180,16 @@ export default function CarrierBid() {
 
   const [quote, setQuote] = useState(() => (shipmentId ? getQuote(shipmentId) : null))
   const { data: shipment, isLoading } = useShipmentDetail(shipmentId)
+
+  // A carrier opening this token link in a FRESH browser has empty
+  // localStorage — the DB (spot-service) is the only place the quote lives.
+  // live mode only (no-op in mock/tests — see getApiMode/hydrateQuote).
+  useEffect(() => {
+    if (!shipmentId || getApiMode() !== 'live') return
+    let cancelled = false
+    hydrateQuote(shipmentId).then((q) => { if (!cancelled) setQuote(q) })
+    return () => { cancelled = true }
+  }, [shipmentId])
 
   // Same preload/decode-gating idiom as Home (routes/Home.jsx) — hold the
   // section entrance invisible until the FIRST hero image has decoded, so

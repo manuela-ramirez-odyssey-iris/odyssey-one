@@ -6,7 +6,8 @@ import LiveBids from '../../spotboard/LiveBids.jsx'
 import RfqLinksPanel from '../../spotboard/RfqLinksPanel.jsx'
 import SpotSummaryStrip from '../../spotboard/SpotSummaryStrip.jsx'
 import DraftsPanel from '../../spotboard/DraftsPanel.jsx'
-import { listDrafts, saveDraftSnapshot, removeDraft } from '../../spotboard/draftStore.js'
+import { listDrafts, saveDraftSnapshot, removeDraft, hydrateDrafts } from '../../spotboard/draftStore.js'
+import { getApiMode } from '../../api/config'
 import { cityState, compactWindow } from '../../spotboard/stripFormat.js'
 import { useSpotQuote } from '../../spotboard/useSpotQuote.js'
 import { useCountdown } from '../../spotboard/Countdown.jsx'
@@ -145,7 +146,13 @@ export default function SpotBoardTab({ shipmentDetails, shipment }) {
   // switch, so this can't rely on useState's lazy initializer alone).
   const [drafts, setDrafts] = useState(() => listDrafts(sid))
   useEffect(() => {
-    setDrafts(listDrafts(sid))
+    // live mode: DB is authoritative, hydrate async. mock mode: unchanged
+    // synchronous re-list (jsdom suite is always mock — vite.config.js pins
+    // VITE_API_MODE — so this branch keeps the existing tests byte-identical).
+    if (getApiMode() !== 'live') { setDrafts(listDrafts(sid)); return }
+    let cancelled = false
+    hydrateDrafts(sid).then((d) => { if (!cancelled) setDrafts(d) })
+    return () => { cancelled = true }
   }, [sid])
 
   // Carrier pool is resolved async (SetupCarriers itself stays sync) —
