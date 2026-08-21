@@ -1,5 +1,6 @@
-import { Badge, Button, GroupTable, SubAccordion, SummaryStrip } from '@odyssey/ui'
+import { Badge, Button, GroupTable, SubAccordion } from '@odyssey/ui'
 import Countdown from './Countdown'
+import SpotSummaryStrip from './SpotSummaryStrip'
 import TolerancePanel from './TolerancePanel'
 import { lowestBid } from './spotStore'
 import { fmtDollar } from '../utils/money'
@@ -137,15 +138,26 @@ export default function LiveBids({
     ...quote.carriers.map((c) => c.bid?.total).filter((n) => n != null)
   )
 
+  // No carrier has bid → no Award button would ever render → the GroupTable's
+  // pinned action column has nothing to show (user, round 2: "when no bid is
+  // submitted no need to show the actions column").
+  const hasAnyBid = quote.carriers.some((c) => c.bid?.status === 'bid')
+
   // The quote header is a stat strip, not a bespoke field row (user, S112) —
-  // same SummaryStrip the shipment context uses, so both read alike.
+  // same SpotSummaryStrip the Setup & Carriers tab uses, so both read alike
+  // AND both get hoverable cells (user, round 2: "make the strip cells
+  // hoverable too"). `full` is passed alongside `value` for every text cell
+  // so SpotSummaryStrip wraps it in a Tooltip; node-valued cells (Status
+  // badge, Countdown) are left without `full` and render bare.
+  const openedStr = quote.openAt ? new Date(quote.openAt).toLocaleString() : null
+  const closedStr = closed && quote.closeAt ? new Date(quote.closeAt).toLocaleString() : null
   const summaryItems = [
-    { label: 'Quote ID', value: quote.quoteId },
+    { label: 'Quote ID', value: quote.quoteId, full: quote.quoteId },
     { label: 'Status', value: <Badge variant={STATUS_BADGE_VARIANT[quote.status] ?? 'gray'}>{quote.status}</Badge> },
-    { label: 'Opened', value: quote.openAt ? new Date(quote.openAt).toLocaleString() : null },
-    { label: 'Closed', value: closed && quote.closeAt ? new Date(quote.closeAt).toLocaleString() : null },
-    { label: 'List', value: quote.listName },
-    { label: 'Award type', value: quote.awardType },
+    { label: 'Opened', value: openedStr, full: openedStr },
+    { label: 'Closed', value: closedStr, full: closedStr },
+    { label: 'List', value: quote.listName, full: quote.listName },
+    { label: 'Award type', value: quote.awardType, full: quote.awardType },
     ...(quote.status === 'open'
       ? [{ label: 'Closes in', value: <Countdown closeAt={quote.closeAt} /> }]
       : []),
@@ -158,8 +170,8 @@ export default function LiveBids({
           directly on .pane-canvas, same as Setup & Carriers' SpotSummaryStrip)
           and sticks via spotboard.css `.spot-sticky-strip`, so it stays
           visible while the bids table scrolls underneath it. */}
-      <SummaryStrip
-        className="spot-sticky-strip live-bids__summary"
+      <SpotSummaryStrip
+        className="live-bids__summary"
         aria-label="Quote Summary"
         items={summaryItems}
       />
@@ -172,8 +184,8 @@ export default function LiveBids({
             groups={groups}
             detailColumns={DETAIL_COLUMNS}
             defaultExpanded={false}
-            stickyActions
-            actionsHeader={null}
+            stickyActions={hasAnyBid}
+            actionsHeader={hasAnyBid ? null : undefined}
             aria-label="Live bids"
           />
 

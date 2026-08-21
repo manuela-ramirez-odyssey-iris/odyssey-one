@@ -232,4 +232,64 @@ describe('LiveBids', () => {
     expect(row.textContent).toContain('XPO')
     expect(table.queryByText('Awaiting')).toBeFalsy()
   })
+
+  // Round 2: "make the strip cells hoverable too" — SpotSummaryStrip wraps a
+  // text cell in a TooltipTrigger whenever `full` is passed, even when it
+  // equals `value`; node-valued cells (Status badge) are left bare.
+  test('quote summary strip text cells are hoverable, node-valued cells are not', () => {
+    const { container } = render(<LiveBids quote={CLOSED_QUOTE} />)
+    const strip = container.querySelector('.live-bids__summary')
+
+    const idCell = within(strip).getByText('Quote ID').closest('.summary-strip__cell')
+    expect(idCell.querySelector('[data-tooltip-trigger]')).toBeTruthy()
+
+    const listCell = within(strip).getByText('List').closest('.summary-strip__cell')
+    expect(listCell.querySelector('[data-tooltip-trigger]')).toBeTruthy()
+
+    // Status carries a Badge node, not text — no `full` is passed, so it
+    // stays bare (SpotSummaryStrip must tolerate items without `full`).
+    const statusCell = within(strip).getByText('Status').closest('.summary-strip__cell')
+    expect(statusCell.querySelector('[data-tooltip-trigger]')).toBeFalsy()
+  })
+
+  test('hovering a hoverable strip cell opens its tooltip', () => {
+    const { container } = render(<LiveBids quote={CLOSED_QUOTE} />)
+    const strip = container.querySelector('.live-bids__summary')
+    const trigger = within(strip)
+      .getByText('Quote ID')
+      .closest('.summary-strip__cell')
+      .querySelector('[data-tooltip-trigger]')
+    expect(trigger.getAttribute('aria-describedby')).toBeFalsy()
+    fireEvent.mouseEnter(trigger)
+    expect(trigger.getAttribute('aria-describedby')).toBeTruthy()
+  })
+
+  // Round 2: "when no bid is submitted no need to show the actions column."
+  test('the actions column is absent from the DOM when no carrier has bid', () => {
+    const NO_BID_QUOTE = {
+      ...CLOSED_QUOTE,
+      carriers: [
+        carrier('ODFL', 'Old Dominion', null),
+        carrier('SAIA', 'Saia Motor Freight', { status: 'declined', respondedAt: NOW }),
+      ],
+    }
+    const { container } = render(<LiveBids quote={NO_BID_QUOTE} />)
+    const headers = [...container.querySelectorAll('.odyssey-group-table__table > thead th')]
+      .map((th) => th.textContent)
+    expect(headers).toEqual(['Carrier', 'Status', 'Submitted By', 'Response', 'Total'])
+    expect(container.querySelector('.odyssey-group-table__cell--sticky-right')).toBeFalsy()
+    expect(screen.queryByRole('button', { name: 'Award' })).toBeFalsy()
+  })
+
+  test('the actions column is present with a per-row Award button when at least one carrier has bid', () => {
+    const { container } = render(<LiveBids quote={CLOSED_QUOTE} />)
+    const headers = [...container.querySelectorAll('.odyssey-group-table__table > thead th')]
+      .map((th) => th.textContent)
+    expect(headers).toEqual(['Carrier', 'Status', 'Submitted By', 'Response', 'Total', ''])
+    expect(container.querySelector('.odyssey-group-table__cell--sticky-right')).toBeTruthy()
+
+    const table = within(container.querySelector('.odyssey-group-table'))
+    const odflRow = table.getByText(/ODFL/).closest('tr')
+    expect(within(odflRow).getByRole('button', { name: 'Award' })).toBeTruthy()
+  })
 })
