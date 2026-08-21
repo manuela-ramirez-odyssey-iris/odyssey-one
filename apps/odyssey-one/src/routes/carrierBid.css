@@ -194,13 +194,16 @@
    never set here — the unrelated `.carrier-bid-navbar-wrap--compact` class
    only shrinks the countdown digits on scroll, it doesn't touch the
    Navbar's own padding). Raw px: no token exists for this component's own
-   fixed inline padding value, so nothing to bind here either. */
+   fixed inline padding value, so nothing to bind here either. The visual
+   gap below the nav is the --spacing-2 term alone (the +14px is the fixed
+   structural offset above, not part of the "gap" a viewer sees) — halved to
+   --spacing-1 (4px) per design feedback, 2026-08-21. */
 .carrier-bid-status-float {
   position: absolute;
   top: 100%;
   left: 50%;
   transform: translateX(-50%);
-  margin-top: calc(var(--spacing-2) + 14px);
+  margin-top: calc(var(--spacing-1) + 14px);
 }
 
 .carrier-bid-page__loading {

@@ -76,19 +76,30 @@ function HeroBackground({ heroIndex }) {
 // Additional Charges — restored editable grid (QuoteModal.jsx's Additional
 // Charges section is the pattern this models: same Code | Description |
 // Amount | remove row shape, same ComboBox(variant="select")/FormField
-// (disabled)/MeasureField trio, same plain-Trash2 remove + "Add Row" link
-// button). Two row origins, both `{ code, description, amount, derived }`:
-//   - DERIVED rows seed once from order.specialServices (the shipment's own
-//     required accessorials) — code ComboBox preselected+disabled,
-//     Description disabled, remove disabled ("required for this shipment").
-//     Amount stays editable: the service is mandatory, its dollar figure
-//     isn't.
-//   - CARRIER-ADDED rows come from "Add Row", fully editable, code picked off
-//     the shared 'charge-code' lookup (data/master-data.js CHARGE_CODES,
-//     §5.6), same registry QuoteModal's own Additional Charges uses.
-// `shipment` loads asynchronously (react-query), so the derived seed can't be
-// a lazy useState initializer (nothing to derive from at mount) — it's a
-// one-shot effect gated by a ref, below.
+// (disabled)/MeasureField trio, same plain-Trash2 remove + "Add More" link
+// button). Every row is `{ code, description, amount }` — the `derived`
+// lock (preselected+disabled Code, disabled remove) is RETIRED (bug fix,
+// 2026-08-21): the shipment's real routing-option accessorials (Hazmat,
+// Terminal Handling, Fuel Surcharge, etc.) weren't showing up here at all,
+// and the user's ruling on what SHOULD show up ("so the user can edit them,
+// delete them or add new") applies equally to every row regardless of where
+// it came from. Three row origins, seeded in this priority:
+//   - ROUTING-CHARGE rows seed from the first ranked routing option that
+//     carries any `rateDetails.additionalCharges` — the shipment's actual
+//     rate structure (mapRoutingOption passes it through verbatim, already
+//     exposed on the VM; no mapper change needed).
+//   - SPECIAL-SERVICE rows seed for any order.specialServices code NOT
+//     already covered by the routing-charge set — still a real shipment
+//     requirement, just no longer locked.
+//   - CARRIER-ADDED rows come from "Add More", code picked off the shared
+//     'charge-code' lookup (data/master-data.js CHARGE_CODES, §5.6), same
+//     registry QuoteModal's own Additional Charges uses.
+// A prior bid's accessorials rehydrate by code and WIN over both seed
+// sources' amounts for a matching code; a prior-bid code covered by neither
+// seed source still appends (returning-carrier edit isn't dropped).
+// `shipment` loads asynchronously (react-query), so the seed can't be a lazy
+// useState initializer (nothing to derive from at mount) — it's a one-shot
+// effect gated by a ref, below.
 //
 // Page-scoped classes (`.carrier-bid-charges*`) — this page no longer
 // borrows QuoteModal's `.quote-charges*` / `.quote-modal__*` BEM namespace
@@ -367,24 +378,44 @@ export default function CarrierBid() {
     if (!order || chargeRowsSeeded.current) return
     chargeRowsSeeded.current = true
     // A prior bid's accessorials (submitted under this same wire shape,
-    // handleSubmit below) rehydrate by matching code — derived rows first
-    // (their amount, if any, from that prior submission), then any
-    // remaining prior charges that AREN'T one of this shipment's special
-    // services become carrier-added rows, so a returning "Update Bid" visit
-    // doesn't drop a charge the carrier typed in themselves.
+    // handleSubmit below) rehydrate by code and WIN over either seed
+    // source's amount for a matching code.
     const priorByCode = Object.fromEntries((priorBid?.accessorials ?? []).map((a) => [a.code, a.amount]))
-    const derivedRows = (order.specialServices ?? []).map((s) => ({
-      code: s.code,
-      description: s.desc,
-      amount: priorByCode[s.code] != null ? String(priorByCode[s.code]) : '',
-      derived: true,
+
+    // Routing-charge seed — the shipment's real rate structure. Options are
+    // rank-ordered; the first one carrying any additionalCharges is the
+    // representative set (bug fix: these were never shown to the carrier at
+    // all before this change).
+    const routingCharges = (shipment?.routingData?.options ?? [])
+      .map((o) => o.rateDetails?.additionalCharges ?? [])
+      .find((charges) => charges.length > 0) ?? []
+    const chargeRowsSeed = routingCharges.map((c) => ({
+      code: c.code,
+      description: c.description,
+      amount: priorByCode[c.code] != null ? String(priorByCode[c.code]) : String(c.amount),
     }))
-    const derivedCodes = new Set(derivedRows.map((r) => r.code))
+    const seededCodes = new Set(chargeRowsSeed.map((r) => r.code))
+
+    // Special-service seed — any service code not already covered by the
+    // routing-charge set above (amount blank unless a prior bid covers it).
+    const serviceRows = (order.specialServices ?? [])
+      .filter((s) => !seededCodes.has(s.code))
+      .map((s) => ({
+        code: s.code,
+        description: s.desc,
+        amount: priorByCode[s.code] != null ? String(priorByCode[s.code]) : '',
+      }))
+    const coveredCodes = new Set([...seededCodes, ...serviceRows.map((r) => r.code)])
+
+    // Any prior-bid code neither seed source covers still appends, so a
+    // returning "Update Bid" visit doesn't drop a charge the carrier typed
+    // in themselves.
     const freeRows = (priorBid?.accessorials ?? [])
-      .filter((a) => !derivedCodes.has(a.code))
-      .map((a) => ({ code: a.code, description: a.description, amount: String(a.amount), derived: false }))
-    setChargeRows([...derivedRows, ...freeRows])
-  }, [order, priorBid])
+      .filter((a) => !coveredCodes.has(a.code))
+      .map((a) => ({ code: a.code, description: a.description, amount: String(a.amount) }))
+
+    setChargeRows([...chargeRowsSeed, ...serviceRows, ...freeRows])
+  }, [order, shipment, priorBid])
 
   const isExpired = !!quote?.closeAt && Date.now() > quote.closeAt
   let closedReason = null
@@ -475,6 +506,15 @@ export default function CarrierBid() {
   // with the shipment's own AP fuel amount ("precalculated") rather than
   // inventing a number. Flagged for Jana/David: real fuel-index source TBD.
   const fuel = shipment ? parseDollar(shipment.costData.planned.summary.fuel) ?? 0 : 0
+  // Fuel double-count guard (flagged, not user-ruled): the seed above can
+  // add a Fuel Surcharge (FSC) row into Additional Charges — the user
+  // explicitly expects it there. If it's present, the base "Fuel
+  // (Estimated)" field above is the SAME cost counted a second time, so it's
+  // suppressed from both render and every total below. Read live off
+  // chargeRows (not "was FSC seeded"), so adding/removing an FSC row by hand
+  // toggles the guard the same way a seeded one would.
+  const hasFscCharge = chargeRows.some((r) => r.code === 'FSC')
+  const effectiveFuel = hasFscCharge ? 0 : fuel
   const instructionsText = shipment
     ? (shipment.instructionsData.orders[0]?.instructions ?? []).map((i) => i.text).join(' ')
     : ''
@@ -507,7 +547,7 @@ export default function CarrierBid() {
   // accessorials filter below applies the same amount>0 rule, so the two
   // never disagree.
   const chargeTotal = chargeRows.reduce((sum, r) => sum + (Number(r.amount) || 0), 0)
-  const total = round2(linehaulNum + fuel + chargeTotal)
+  const total = round2(linehaulNum + effectiveFuel + chargeTotal)
 
   const updateChargeRow = (idx, patch) =>
     setChargeRows((rows) => rows.map((r, i) => (i === idx ? { ...r, ...patch } : r)))
@@ -517,7 +557,7 @@ export default function CarrierBid() {
   const setChargeCode = (idx, code, description) =>
     updateChargeRow(idx, { code: code ?? '', description: code ? (description ?? '') : '' })
   const addChargeRow = () =>
-    setChargeRows((rows) => [...rows, { code: '', description: '', amount: '', derived: false }])
+    setChargeRows((rows) => [...rows, { code: '', description: '', amount: '' }])
   const removeChargeRow = (idx) =>
     setChargeRows((rows) => rows.filter((_, i) => i !== idx))
 
@@ -530,7 +570,13 @@ export default function CarrierBid() {
     const accessorials = chargeRows
       .filter((r) => Number(r.amount) > 0)
       .map((r) => ({ code: r.code, description: r.description, amount: Number(r.amount) }))
-    const bid = { linehaul: linehaulNum, fuel, accessorials, total, submittedBy: carrier.name }
+    // `fuel` is 0 here (not the AP estimate) whenever the FSC guard above
+    // suppressed the base Fuel field — the carrier's FSC accessorial line
+    // already carries that cost, so `total` (built off effectiveFuel) stays
+    // consistent with what's sent. LiveBids' Fuel column will show the
+    // dash/0 for this bid and Accessorials will carry FSC — acceptable
+    // (flagged for Jana/David, not user-ruled).
+    const bid = { linehaul: linehaulNum, fuel: effectiveFuel, accessorials, total, submittedBy: carrier.name }
     setQuote(submitBid(shipmentId, scac, bid, Date.now()))
   }
   const handleDecline = () => {
@@ -631,8 +677,14 @@ export default function CarrierBid() {
                   />
                   {/* disabled, not readOnly — same ruling already applied to
                       SpotBidDetailRoute's own Fuel field (spotboard/spotbid/
-                      SpotBidDetailRoute.jsx). */}
-                  <FormField id="cb-fuel" label="Fuel (Estimated)" value={fmtDollar(fuel)} disabled />
+                      SpotBidDetailRoute.jsx). Hidden entirely once an FSC
+                      (Fuel Surcharge) row is seeded/added into Additional
+                      Charges below — see the hasFscCharge guard above; that
+                      row already covers the fuel cost, so showing both would
+                      double-count it. */}
+                  {!hasFscCharge && (
+                    <FormField id="cb-fuel" label="Fuel (Estimated)" value={fmtDollar(fuel)} disabled />
+                  )}
                 </div>
               </section>
 
@@ -663,7 +715,6 @@ export default function CarrierBid() {
                             loadOptions={(q) => getLookupOptions('charge-code', q)}
                             emptyMessage={(q) => (q.trim().length === 1 ? 'Type at least 2 characters' : 'No matching charge codes')}
                             value={row.code}
-                            disabled={row.derived}
                             onSelect={(v, opt) => setChargeCode(idx, v, opt?.description)}
                           />
                         </div>
@@ -674,9 +725,6 @@ export default function CarrierBid() {
                           value={row.description}
                           disabled
                         />
-                        {/* Amount stays editable even on a derived row — the
-                            special service is mandatory, its dollar figure
-                            isn't (that's the carrier's own quote). */}
                         <MeasureField
                           id={`cb-charge-${idx}-amount`}
                           showLabel
@@ -692,14 +740,14 @@ export default function CarrierBid() {
                         />
                         {/* Plain icon affordance, never a Button (row-action
                             convention) — same as QuoteModal's own remove.
-                            Disabled + titled on a derived row: it's required
-                            for this shipment, not the carrier's to drop. */}
+                            Every row is deletable now (the `derived` lock
+                            that disabled this for a shipment's own required
+                            accessorials is retired — see the section doc
+                            comment above). */}
                         <button
                           type="button"
                           className="carrier-bid-charges__remove"
                           aria-label={`Remove charge ${idx + 1}`}
-                          title={row.derived ? 'Required for this shipment' : undefined}
-                          disabled={row.derived}
                           onClick={() => removeChargeRow(idx)}
                         >
                           <Trash2 size={20} aria-hidden="true" />
@@ -709,7 +757,7 @@ export default function CarrierBid() {
                   </div>
                 )}
                 <Button variant="link" icon={<Plus size={16} />} onClick={addChargeRow}>
-                  Add
+                  Add More
                 </Button>
               </section>
             </div>
@@ -735,8 +783,12 @@ export default function CarrierBid() {
             <div className="carrier-bid-card__grid">
               <SummaryCard
                 title="Base Charge"
-                rows={[['Linehaul', linehaulNum], ['Fuel (Estimated)', fuel]]}
-                total={round2(linehaulNum + fuel)}
+                // Fuel (Estimated) row drops out with the field above when
+                // an FSC charge covers it (hasFscCharge guard) — no $0.00
+                // ghost row for a cost that's really sitting in Additional
+                // Charges now.
+                rows={hasFscCharge ? [['Linehaul', linehaulNum]] : [['Linehaul', linehaulNum], ['Fuel (Estimated)', fuel]]}
+                total={round2(linehaulNum + effectiveFuel)}
               />
               <SummaryCard
                 title="Additional Charges"
@@ -789,7 +841,7 @@ export default function CarrierBid() {
           }
         >
           <div className="carrier-bid-card__grid carrier-bid-card__grid--pairs">
-            <TitleSubtitle subtitle="Base Charge" title={fmtDollar(round2(linehaulNum + fuel))} />
+            <TitleSubtitle subtitle="Base Charge" title={fmtDollar(round2(linehaulNum + effectiveFuel))} />
             <TitleSubtitle subtitle="Additional Charges" title={fmtDollar(chargeTotal)} />
           </div>
           <div className="carrier-bid-total carrier-bid-total--grand text-label-base-semibold">

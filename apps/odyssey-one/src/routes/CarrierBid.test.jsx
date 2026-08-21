@@ -56,6 +56,36 @@ const DTO = {
   historyList: [],
 }
 
+// Fixture for the routing-charge seed bug fix (2026-08-21): the shipment's
+// real rate structure (rateDetails.additionalCharges) — shaped exactly like
+// a live rank-1 routing option (verified against Neon for sell shipment
+// 25378332: HZC/THC/FSC). DTO.orderList[0].specialServices still carries
+// LFT, uncovered by this charge set, so this fixture also exercises the
+// special-service seed alongside the routing-charge seed in one shipment.
+const DTO_WITH_CHARGES = {
+  ...DTO,
+  shippingOptionList: [
+    {
+      rank: 1,
+      scac: SCAC,
+      status: 'Quoted',
+      distanceMiles: 842.3,
+      rateDetails: {
+        baseRate: 545.54,
+        currency: 'USD',
+        markup: 368.13,
+        apTotal: 1536.4,
+        arTotal: 1904.53,
+        additionalCharges: [
+          { code: 'HZC', description: 'Hazmat Charge', amount: 381.52, currency: 'USD' },
+          { code: 'THC', description: 'Terminal Handling Charge', amount: 431.39, currency: 'USD' },
+          { code: 'FSC', description: 'Fuel Surcharge', amount: 177.95, currency: 'USD' },
+        ],
+      },
+    },
+  ],
+}
+
 function stubFetch(dto = DTO) {
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => dto }))
 }
@@ -434,7 +464,7 @@ describe('CarrierBid — open quote', () => {
     expect(fuelInput.value).toBe('$250.50')
   })
 
-  it('a special-service row (order.specialServices) prefills derived, disabled, and preselected (SPB-43 restore)', async () => {
+  it('with no routing charge lines on the shipment, a special-service row (order.specialServices) still seeds — fully editable and deletable, the derived lock is retired (bug fix, 2026-08-21)', async () => {
     const quote = openQuote()
     const token = tokenFor(quote, SCAC)
     renderAt(`/spot-bid/${token}`)
@@ -444,25 +474,29 @@ describe('CarrierBid — open quote', () => {
     const bidSection = screen.getByRole('button', { name: /your bid/i }).closest('.sub-accordion')
     // The DTO's one special service (LFT / Lift Gate) — exactly one row,
     // seeded by the async effect once `order` loads (not a lazy useState
-    // initializer, which can't see order.specialServices at mount).
+    // initializer, which can't see order.specialServices at mount). No
+    // routing-charge lines on this DTO's shippingOptionList, so the
+    // special-service seed is all there is.
     const combo = within(bidSection).getByRole('combobox')
     expect(combo.value).toBe('LFT')
-    expect(combo.disabled).toBe(true)
+    expect(combo.disabled).toBe(false)
 
     const description = within(bidSection).getByLabelText('Description')
     expect(description.value).toBe('Lift Gate')
-    expect(description.disabled).toBe(true)
+    expect(description.disabled).toBe(true) // Description is always auto-filled from Code, never hand-typed
 
     const removeBtn = within(bidSection).getByRole('button', { name: 'Remove charge 1' })
-    expect(removeBtn.disabled).toBe(true)
-    expect(removeBtn.getAttribute('title')).toMatch(/required for this shipment/i)
+    expect(removeBtn.disabled).toBe(false)
+    expect(removeBtn.getAttribute('title')).toBe(null)
 
-    // Amount is NOT disabled — the special service is mandatory, its dollar
-    // figure is still the carrier's own quote.
     expect(within(bidSection).getByLabelText('Amount').disabled).toBe(false)
+
+    fireEvent.click(removeBtn)
+    expect(within(bidSection).queryAllByRole('combobox')).toHaveLength(0)
   })
 
-  it('Add appends a fully editable row; its remove button works (SPB-43 restore)', async () => {
+  it('seeds Additional Charges from the shipment\'s real routing charge lines (bug fix: HZC/THC/FSC weren\'t showing up on bid pages) — fully editable and deletable, and a special-service code not covered by the charge set (LFT) still appends', async () => {
+    stubFetch(DTO_WITH_CHARGES)
     const quote = openQuote()
     const token = tokenFor(quote, SCAC)
     renderAt(`/spot-bid/${token}`)
@@ -470,9 +504,89 @@ describe('CarrierBid — open quote', () => {
     await screen.findByText('Acme Houston Plant')
 
     const bidSection = screen.getByRole('button', { name: /your bid/i }).closest('.sub-accordion')
-    expect(within(bidSection).getAllByRole('combobox')).toHaveLength(1) // derived LFT row only
+    const rows = bidSection.querySelectorAll('.carrier-bid-charges__row')
+    expect(rows.length).toBe(4) // HZC, THC, FSC (routing charges) + LFT (special service)
 
-    fireEvent.click(within(bidSection).getByRole('button', { name: /^add$/i }))
+    const combos = within(bidSection).getAllByRole('combobox')
+    expect(combos.map((c) => c.value)).toEqual(['HZC', 'THC', 'FSC', 'LFT'])
+    combos.forEach((c) => expect(c.disabled).toBe(false))
+
+    const amounts = within(bidSection).getAllByLabelText('Amount')
+    expect(amounts.map((a) => a.value)).toEqual(['381.52', '431.39', '177.95', ''])
+
+    const removeBtns = within(bidSection).getAllByRole('button', { name: /remove charge/i })
+    removeBtns.forEach((b) => {
+      expect(b.disabled).toBe(false)
+      expect(b.getAttribute('title')).toBe(null)
+    })
+
+    // Deletable — remove the first row (HZC), three remain.
+    fireEvent.click(removeBtns[0])
+    expect(within(bidSection).getAllByRole('combobox')).toHaveLength(3)
+  })
+
+  it('a returning carrier\'s prior-bid accessorial amount wins over the seeded routing-charge amount for a matching code', async () => {
+    stubFetch(DTO_WITH_CHARGES)
+    const quote = openQuote()
+    submitBid(SHIPMENT_ID, SCAC, {
+      linehaul: 1000,
+      fuel: 0,
+      accessorials: [{ code: 'HZC', description: 'Hazmat Charge', amount: 500 }],
+      total: 1500,
+      submittedBy: 'Old Dominion',
+    }, Date.now())
+    const token = tokenFor(quote, SCAC)
+    renderAt(`/spot-bid/${token}`)
+
+    await screen.findByText('Acme Houston Plant')
+
+    const bidSection = screen.getByRole('button', { name: /your bid/i }).closest('.sub-accordion')
+    const amounts = within(bidSection).getAllByLabelText('Amount')
+    // HZC's amount is the prior bid's 500, not the freshly-seeded 381.52;
+    // THC/FSC keep their seeded amounts (no prior-bid entry for them).
+    expect(amounts.map((a) => a.value)).toEqual(['500', '431.39', '177.95', ''])
+  })
+
+  it('excludes the base Fuel (Estimated) field and its amount from every total when the seed includes an FSC charge (avoids double-counting fuel)', async () => {
+    stubFetch(DTO_WITH_CHARGES)
+    const quote = openQuote()
+    const token = tokenFor(quote, SCAC)
+    renderAt(`/spot-bid/${token}`)
+
+    await screen.findByText('Acme Houston Plant')
+
+    expect(screen.queryByLabelText('Fuel (Estimated)')).toBe(null)
+
+    fireEvent.change(screen.getByLabelText(/linehaul/i), { target: { value: '1000' } })
+
+    const summarySection = screen.getByRole('button', { name: 'Summary' }).closest('.sub-accordion')
+    // linehaul 1000 + HZC 381.52 + THC 431.39 + FSC 177.95 (base fuel
+    // excluded, LFT's blank amount contributes 0) = 1990.86.
+    expect(within(summarySection).getByText('$1,990.86')).toBeTruthy()
+    expect(within(summarySection).queryByText('Fuel (Estimated)')).toBe(null)
+
+    // Submitting sends fuel: 0 (not the AP estimate) so the wire total
+    // stays consistent with what's shown — the FSC line already carries it.
+    fireEvent.click(screen.getByRole('button', { name: /submit bid/i }))
+    fireEvent.click(within(screen.getByRole('dialog', { name: 'Submit Bid' })).getByRole('button', { name: /confirm/i }))
+    await waitFor(() => {
+      const row = getQuote(SHIPMENT_ID).carriers.find((c) => c.scac === SCAC)
+      expect(row.bid?.fuel).toBe(0)
+      expect(row.bid?.total).toBe(1990.86)
+    })
+  })
+
+  it('Add More appends a fully editable row; its remove button works (SPB-43 restore)', async () => {
+    const quote = openQuote()
+    const token = tokenFor(quote, SCAC)
+    renderAt(`/spot-bid/${token}`)
+
+    await screen.findByText('Acme Houston Plant')
+
+    const bidSection = screen.getByRole('button', { name: /your bid/i }).closest('.sub-accordion')
+    expect(within(bidSection).getAllByRole('combobox')).toHaveLength(1) // LFT special-service row only
+
+    fireEvent.click(within(bidSection).getByRole('button', { name: /^add more$/i }))
     const combos = within(bidSection).getAllByRole('combobox')
     expect(combos).toHaveLength(2)
     const newCombo = combos[combos.length - 1]
@@ -521,7 +635,7 @@ describe('CarrierBid — open quote', () => {
     expect(amount.value).toBe('100.00')
   })
 
-  it('Additional Charges totals (Summary card + Grand Total) include both a derived and a carrier-added charge', async () => {
+  it('Additional Charges totals (Summary card + Grand Total) include both a special-service-seeded and a carrier-added charge', async () => {
     const quote = openQuote()
     const token = tokenFor(quote, SCAC)
     renderAt(`/spot-bid/${token}`)
@@ -531,13 +645,13 @@ describe('CarrierBid — open quote', () => {
     fireEvent.change(screen.getByLabelText(/linehaul/i), { target: { value: '1500' } })
 
     const bidSection = screen.getByRole('button', { name: /your bid/i }).closest('.sub-accordion')
-    // Derived LFT row's own Amount (only row present so far — unambiguous).
+    // Special-service-seeded LFT row's own Amount (only row present so far — unambiguous).
     fireEvent.change(within(bidSection).getByLabelText('Amount'), { target: { value: '25' } })
 
     // Add a carrier row and pick a code the same way QuoteModal.test.jsx does
     // — keyboard-select off the loadOptions popover (its virtualized rows
     // aren't otherwise assertable in jsdom).
-    fireEvent.click(within(bidSection).getByRole('button', { name: /^add$/i }))
+    fireEvent.click(within(bidSection).getByRole('button', { name: /^add more$/i }))
     const rows = bidSection.querySelectorAll('.carrier-bid-charges__row')
     const newRow = rows[rows.length - 1]
     const codeInput = within(newRow).getByRole('combobox')
