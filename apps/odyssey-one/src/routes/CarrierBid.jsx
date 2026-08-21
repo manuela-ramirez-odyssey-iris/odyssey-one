@@ -1,7 +1,8 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useParams } from 'react-router-dom'
 import { Trash2, Plus } from 'lucide-react'
-import { Navbar, LeadNav, GlobalSearch, TrailNav, OdysseyLogo, Button, Alert, Badge, ComboBox, FormField, SubAccordion, TitleSubtitle } from '@odyssey/ui'
+import { Navbar, LeadNav, GlobalSearch, TrailNav, OdysseyLogo, Button, Alert, Badge, ComboBox, FormField, SubAccordion, TitleSubtitle, ModalMedium } from '@odyssey/ui'
 import MeasureField from '../components/orders/create/fields/MeasureField.jsx'
 import { SummaryCard } from '../components/detail/QuoteModal.jsx'
 import { decodeToken } from '../spotboard/token.js'
@@ -280,6 +281,14 @@ export default function CarrierBid() {
   const carrier = quote?.carriers.find((c) => c.scac === scac) ?? null
   const priorBid = carrier?.bid?.status === 'bid' ? carrier.bid : null
   const declined = carrier?.bid?.status === 'declined'
+
+  // Submit/Update Bid confirmation (user ask: "we need a dialog confirmation
+  // in submit and update bid") — declared here, above the closedReason early
+  // return below, so the hook count stays constant across renders (Rules of
+  // Hooks). Title tracks the trigger button's own label (Submit Bid vs
+  // Update Bid).
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const confirmTitle = priorBid ? 'Update Bid' : 'Submit Bid'
 
   // Carrier identity for the TrailNav profile — SCAC on top (prominent),
   // full carrier name on the second line (Figma External variant 5152:3904:
@@ -746,8 +755,8 @@ export default function CarrierBid() {
                   a decision about. */}
               <div className="carrier-bid-page__actions">
                 <Button variant="secondary" size="lg" onClick={handleDecline}>Decline</Button>
-                <Button variant="primary" size="lg" onClick={handleSubmit}>
-                  {priorBid ? 'Update Bid' : 'Submit Bid'}
+                <Button variant="primary" size="lg" onClick={() => setConfirmOpen(true)}>
+                  {confirmTitle}
                 </Button>
               </div>
             </div>
@@ -756,6 +765,40 @@ export default function CarrierBid() {
         </>
       )}
       </main>
+
+      {confirmOpen && createPortal(
+        <ModalMedium
+          title={confirmTitle}
+          onClose={() => setConfirmOpen(false)}
+          footer={
+            <>
+              <Button variant="secondary" size="lg" onClick={() => setConfirmOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                size="lg"
+                onClick={() => {
+                  setConfirmOpen(false)
+                  handleSubmit()
+                }}
+              >
+                Confirm &amp; Submit
+              </Button>
+            </>
+          }
+        >
+          <div className="carrier-bid-card__grid carrier-bid-card__grid--pairs">
+            <TitleSubtitle subtitle="Base Charge" title={fmtDollar(round2(linehaulNum + fuel))} />
+            <TitleSubtitle subtitle="Additional Charges" title={fmtDollar(chargeTotal)} />
+          </div>
+          <div className="carrier-bid-total carrier-bid-total--grand text-label-base-semibold">
+            <span>Grand Total</span>
+            <span>{fmtDollar(total)}</span>
+          </div>
+        </ModalMedium>,
+        document.body
+      )}
     </div>
   )
 }

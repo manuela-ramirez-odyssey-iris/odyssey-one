@@ -7,7 +7,7 @@ import { render, screen, within, cleanup, fireEvent, waitFor, act } from '@testi
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import CarrierBid, { BidCountdownTitle } from './CarrierBid.jsx'
-import { saveDraft, sendRFQ, closeQuote, getQuote } from '../spotboard/spotStore.js'
+import { saveDraft, sendRFQ, closeQuote, getQuote, submitBid } from '../spotboard/spotStore.js'
 import { mintToken } from '../spotboard/token.js'
 
 const SHIPMENT_ID = '25690001'
@@ -199,7 +199,11 @@ describe('CarrierBid — open quote', () => {
     // enough to exercise submission without touching the ComboBox at all.
     fireEvent.change(screen.getByLabelText('Amount'), { target: { value: '100' } })
 
-    fireEvent.click(screen.getByRole('button', { name: /submit/i }))
+    // Submit Bid now opens a confirmation dialog rather than submitting
+    // immediately — confirm through it (Task: bid confirmation dialog).
+    fireEvent.click(screen.getByRole('button', { name: /submit bid/i }))
+    const dialog = screen.getByRole('dialog', { name: 'Submit Bid' })
+    fireEvent.click(within(dialog).getByRole('button', { name: /confirm/i }))
 
     await waitFor(() => {
       const stored = getQuote(SHIPMENT_ID)
@@ -221,6 +225,47 @@ describe('CarrierBid — open quote', () => {
 
     // Other carrier's row untouched.
     expect(stored.carriers.find((c) => c.scac === 'SAIA').bid).toBeUndefined()
+  })
+
+  it('clicking Submit Bid opens a confirmation dialog without submitting yet', async () => {
+    const quote = openQuote()
+    const token = tokenFor(quote, SCAC)
+    renderAt(`/spot-bid/${token}`)
+    await screen.findByText('Acme Houston Plant')
+
+    fireEvent.click(screen.getByRole('button', { name: /submit bid/i }))
+
+    expect(screen.getByRole('dialog', { name: 'Submit Bid' })).toBeTruthy()
+    const stored = getQuote(SHIPMENT_ID)
+    expect(stored.carriers.find((c) => c.scac === SCAC).bid).toBeUndefined()
+  })
+
+  it('Cancel closes the confirmation dialog without submitting', async () => {
+    const quote = openQuote()
+    const token = tokenFor(quote, SCAC)
+    renderAt(`/spot-bid/${token}`)
+    await screen.findByText('Acme Houston Plant')
+
+    fireEvent.click(screen.getByRole('button', { name: /submit bid/i }))
+    const dialog = screen.getByRole('dialog', { name: 'Submit Bid' })
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }))
+
+    expect(screen.queryByRole('dialog', { name: 'Submit Bid' })).toBeFalsy()
+    const stored = getQuote(SHIPMENT_ID)
+    expect(stored.carriers.find((c) => c.scac === SCAC).bid).toBeUndefined()
+  })
+
+  it('a returning carrier with a prior bid sees "Update Bid" as both the trigger and the dialog title', async () => {
+    const quote = openQuote()
+    submitBid(SHIPMENT_ID, SCAC, { linehaul: 1000, fuel: 250.5, accessorials: [], total: 1250.5, submittedBy: 'Old Dominion' }, Date.now())
+    const token = tokenFor(quote, SCAC)
+    renderAt(`/spot-bid/${token}`)
+    await screen.findByText('Acme Houston Plant')
+
+    const trigger = screen.getByRole('button', { name: /update bid/i })
+    fireEvent.click(trigger)
+
+    expect(screen.getByRole('dialog', { name: 'Update Bid' })).toBeTruthy()
   })
 
   it('never renders an Order ID or Load ID anywhere in the DOM, incl. portals and attributes', async () => {
