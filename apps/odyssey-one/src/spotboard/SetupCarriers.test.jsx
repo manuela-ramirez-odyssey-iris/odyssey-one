@@ -623,6 +623,35 @@ describe('SetupCarriers', () => {
     expect(dialog.getByLabelText('Planned Pickup').value).toBe(DEF_PICKUP)
   })
 
+  // Coordinator follow-up (2026-08-21): a planner who deliberately unchecked
+  // a dated carrier, then reopens the modal only to tweak Duration/Flexible
+  // (never touching the date fields), must not get that carrier silently
+  // re-included by Apply — the draft dates equal the row's own dates, so the
+  // row (dates AND incl) is left completely untouched.
+  it('Apply leaves a deliberately-unchecked, still-dated row untouched when only Duration changes', () => {
+    render(
+      <SetupCarriers
+        carrierOptions={carrierOptions}
+        defaultPickup={DEF_PICKUP}
+        defaultDelivery={DEF_DELIVERY}
+        readOnly={false}
+        onSaveDraft={() => {}}
+        onSendRFQ={() => {}}
+      />
+    )
+    // Preselected + dated by default — uncheck it deliberately.
+    fireEvent.click(inclCheckbox(tlRows[0].scac))
+    expect(inclCheckbox(tlRows[0].scac).checked).toBe(false)
+
+    openSetupModal()
+    pickModalDuration('40 min') // only Duration touched, dates left at their pre-filled default
+    applySetupModal()
+
+    expect(inclCheckbox(tlRows[0].scac).checked).toBe(false)
+    expect(within(screen.getByTestId(`pickup-${tlRows[0].scac}`)).getByRole('textbox').value).toBe(DEF_PICKUP)
+    expect(within(screen.getByTestId(`delivery-${tlRows[0].scac}`)).getByRole('textbox').value).toBe(DEF_DELIVERY)
+  })
+
   it('Cancel discards the draft without touching any row', () => {
     render(
       <SetupCarriers
@@ -1267,20 +1296,24 @@ describe('SetupCarriers', () => {
       fireEvent.click(sendRFQButton())
       const dialog = within(screen.getByRole('dialog', { name: 'Send RFQ' }))
 
-      // The included carriers, named. The confirmation exists to show before
-      // sending exactly who is being contacted.
+      // The included carriers, named. Under preselection that is every
+      // carrier across BOTH lists except the route-guide ones — which is
+      // exactly what the confirmation exists to show before sending.
       expect(dialog.getByText(`${rows[0].scac} · ${rows[0].name}`)).toBeTruthy()
 
-      // Apply mass-applies the (order-seeded, non-empty) general dates to
-      // EVERY row — including the route-guide carriers that start excluded
-      // (2026-08-21: Apply is now an unconditional per-row date assignment,
-      // the same auto-check rule a direct per-row edit already applies even
-      // to a Routed carrier — see "completing a row ... auto-checks it").
-      // So clicking Apply here (for the Flexible flag) also re-includes them.
-      const includedCount = allRows.length
+      // Apply here only changes Flexible — the general dates are unchanged
+      // (already the order defaults), so per the change-detection guard
+      // (2026-08-21) every row is left untouched, Routed carriers included:
+      // Apply must not silently re-include a carrier the user never dated
+      // itself into inclusion.
+      const includedCount = allRows.filter((r) => !r.flags.includes('Routed')).length
       expect(includedCount).toBeGreaterThan(1) // guards against a silent revert
       const dialogText = screen.getByRole('dialog', { name: 'Send RFQ' }).textContent
       expect(dialogText).toMatch(new RegExp(`will be sent to\\s*${includedCount}\\s*carrier`))
+
+      // The ROUTED carrier is excluded by default and must not be listed.
+      const routed = allRows.find((r) => r.flags.includes('Routed'))
+      expect(dialog.queryByText(new RegExp(routed.scac))).toBeFalsy()
 
       expect(dialog.getByText('30 min')).toBeTruthy() // flat default (2026-08-19)
       expect(dialog.getByText('Yes')).toBeTruthy() // Flexible Pickup

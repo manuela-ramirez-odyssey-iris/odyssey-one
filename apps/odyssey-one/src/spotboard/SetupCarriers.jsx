@@ -180,12 +180,17 @@ export default function SetupCarriers({
 
   // Apply commits the drafts. The general dates are now the single declared
   // source for every row's dates (user, 2026-08-21) — they are assigned to
-  // EVERY row UNCONDITIONALLY, including clearing: an emptied general field
-  // blanks that field on every row, not just non-empty ones. (Previously only
-  // a non-empty draft overwrote its field, leaving the other alone — that
-  // "only overwrite what's supplied" rule is gone along with the always-blank
-  // seed above.) `incl` recomputes per row with the same both-dates-present
-  // rule `updateDate` uses on a single-row edit.
+  // EVERY row whose dates actually CHANGE, including clearing: an emptied
+  // general field blanks that field on every row that didn't already match.
+  // (Previously only a non-empty draft overwrote its field, leaving the other
+  // alone — that "only overwrite what's supplied" rule is gone along with the
+  // always-blank seed above.) A row whose dates already equal the draft is
+  // left COMPLETELY untouched — dates AND `incl` — so a planner who
+  // deliberately unchecked a dated carrier and reopens the modal only to tweak
+  // Duration/Flexible does not get that carrier silently re-included (user,
+  // 2026-08-21). Only a row whose dates actually change recomputes `incl`,
+  // via the same both-dates-present rule `updateDate` uses on a single-row
+  // edit.
   const applySetup = () => {
     setDurationMin(draftDuration)
     setFlexiblePickup(draftFlexible)
@@ -193,6 +198,7 @@ export default function SetupCarriers({
     setGeneralDelivery(draftDelivery)
     setRows((rs) =>
       rs.map((r) => {
+        if (r.plannedPickup === draftPickup && r.plannedDelivery === draftDelivery) return r
         const next = { ...r, plannedPickup: draftPickup, plannedDelivery: draftDelivery }
         next.incl = !!(next.plannedPickup && next.plannedDelivery)
         return next
