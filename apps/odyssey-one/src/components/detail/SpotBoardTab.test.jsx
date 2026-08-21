@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, it, expect } from 'vitest'
-import { render, screen, fireEvent, cleanup } from '@testing-library/react'
+import { render, screen, fireEvent, cleanup, within } from '@testing-library/react'
 import SpotBoardTab from './SpotBoardTab'
 import { decodeToken } from '../../spotboard/token.js'
 import { saveDraftSnapshot } from '../../spotboard/draftStore.js'
@@ -349,6 +349,31 @@ describe('SpotBoardTab', () => {
       expect(screen.getByRole('button', { name: 'Setup & Carriers' }).className).toContain('tab--current')
       // Duration comes back off the restored quote, into the sticky strip.
       expect(document.querySelector('.spot-sticky-strip').textContent).toContain('99 min')
+    })
+
+    // The strip's duration is computed at SpotBoardTab level straight off
+    // quote.durationMin — it proves the quote object came back, but nothing
+    // above proves SetupCarriers' keyed remount (key={quote?.quoteId}) actually
+    // reseeded ITS OWN table from the snapshot's carrier rows. Pin that here.
+    it('Restore reseeds the Setup & Carriers table with the snapshot carrier rows', () => {
+      saveDraftSnapshot(shipment.sellShipment, {
+        listId: 'tl-se', listName: 'TL Southeast Overflow', durationMin: 45,
+        carriers: [{
+          scac: 'ODFL', name: 'Old Dominion', email: 'ops@odfl.example.com', equipment: 'Van',
+          incl: true, plannedPickup: '08/10/2026', plannedDelivery: '08/11/2026', flags: [],
+        }],
+        flexiblePickup: false,
+      }, 1000)
+
+      render(<SpotBoardTab shipmentDetails={makeShipmentDetails([])} shipment={shipment} />)
+      fireEvent.click(screen.getByRole('button', { name: 'Drafts' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Restore' }))
+
+      expect(screen.getByText('ODFL · Old Dominion')).toBeTruthy()
+      const pickup = within(screen.getByTestId('pickup-ODFL')).getByRole('textbox')
+      const delivery = within(screen.getByTestId('delivery-ODFL')).getByRole('textbox')
+      expect(pickup.value).toBe('08/10/2026')
+      expect(delivery.value).toBe('08/11/2026')
     })
 
     it('disables Restore while a quote is open', () => {
