@@ -148,10 +148,16 @@ function poolFor(type: LookupType, params: LookupParams): LookupOption[] {
       // LINX-8126: "<SCAC> - <Carrier Name>", ALPHABETICAL by name (frequency
       // sort was struck for carriers) — descending frequency encodes name order
       // so the global frequency sort preserves it
+      //
+      // `meta.mode` (S128) carries CARRIERS' TL/LTL classification through to
+      // the SpotBoard overflow-list builder (carrierList.js) — additive on
+      // LookupOption.meta, so nothing that reads value/label/frequency alone
+      // is affected.
       return [...CARRIERS]
         .sort((a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name))
-        .map((c: { scac: string; name: string }, i: number, arr: unknown[]) => ({
+        .map((c: { scac: string; name: string; mode: string }, i: number, arr: unknown[]) => ({
           value: c.scac, label: `${c.scac} - ${c.name}`, frequency: arr.length - i,
+          meta: { mode: c.mode },
         }))
   }
 }

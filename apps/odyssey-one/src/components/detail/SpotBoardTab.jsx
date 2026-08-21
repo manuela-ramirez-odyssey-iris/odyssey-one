@@ -325,6 +325,9 @@ export default function SpotBoardTab({ shipmentDetails, shipment }) {
             key={restoreKey}
             quote={quote}
             carrierOptions={carrierOptions}
+            // The route guide + dropped carriers the overflow list derives
+            // from, per shipment (S128) — buildOverflowRows (carrierList.js).
+            shipmentDetails={shipmentDetails}
             onTermsChange={setTerms}
             // Kathleen's workflow (2026-08-07), node 1: the Spot Quote tab
             // opens with "Dates/transit + eligible carriers auto-filled".

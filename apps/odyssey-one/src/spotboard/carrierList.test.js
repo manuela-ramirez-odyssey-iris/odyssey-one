@@ -1,110 +1,151 @@
 import { describe, it, expect } from 'vitest'
-import { NAMED_LISTS, buildCarrierRows, FLAG_LABELS } from './carrierList'
+import { buildOverflowRows, FLAG_LABELS } from './carrierList'
 
-// Mirrors the real getLookupOptions('carrier') pool shape ({value: scac,
-// label: 'SCAC - Name'}) — covers every SCAC referenced by NAMED_LISTS plus
-// a few extras, so "a named list is a curated subset of the pool" is
-// actually exercised (not every pool entry belongs to every list).
+// Mirrors the real getLookupOptions('carrier') pool shape ({value, label,
+// meta: {mode}}) — a mix of TL/LTL carriers plus one (DNU) entry, covering
+// every SCAC these tests reference.
 const carrierOptions = [
-  { value: 'KNGT', label: 'KNGT - Knight-Swift Transportation' },
-  { value: 'SCNN', label: 'SCNN - Schneider National' },
-  { value: 'JBHT', label: 'JBHT - J.B. Hunt Transport' },
-  { value: 'WERN', label: 'WERN - Werner Enterprises' },
-  { value: 'CRST', label: 'CRST - CRST International' },
-  { value: 'SWFT', label: 'SWFT - Swift Transportation' },
-  { value: 'PRIJ', label: 'PRIJ - Prime Inc' },
-  { value: 'ODFL', label: 'ODFL - Old Dominion Freight Line' },
-  { value: 'SAIA', label: 'SAIA - Saia LTL Freight' },
-  { value: 'ABFS', label: 'ABFS - ABF Freight System' },
-  { value: 'AACT', label: 'AACT - AAA Cooper Transportation' },
-  { value: 'EXLA', label: 'EXLA - Estes Express Lines' },
-  { value: 'FXFE', label: 'FXFE - FedEx Freight' },
-  { value: 'SEFL', label: 'SEFL - Southeastern Freight Lines' },
-  { value: 'UPGF', label: 'UPGF - UPS Ground Freight' },
+  { value: 'KNGT', label: 'KNGT - Knight-Swift Transportation', meta: { mode: 'TL' } },
+  { value: 'SCNN', label: 'SCNN - Schneider National', meta: { mode: 'TL' } },
+  { value: 'JBHT', label: 'JBHT - J.B. Hunt Transport', meta: { mode: 'TL' } },
+  { value: 'WERN', label: 'WERN - Werner Enterprises', meta: { mode: 'TL' } },
+  { value: 'CRST', label: 'CRST - CRST International', meta: { mode: 'TL' } },
+  { value: 'SWFT', label: 'SWFT - Swift Transportation', meta: { mode: 'TL' } },
+  { value: 'PRIJ', label: 'PRIJ - Prime Inc', meta: { mode: 'TL' } },
+  { value: 'ODFL', label: 'ODFL - Old Dominion Freight Line', meta: { mode: 'LTL' } },
+  { value: 'SAIA', label: 'SAIA - Saia LTL Freight', meta: { mode: 'LTL' } },
+  { value: 'ABFS', label: 'ABFS - ABF Freight System', meta: { mode: 'LTL' } },
+  { value: 'AACT', label: 'AACT - AAA Cooper Transportation', meta: { mode: 'LTL' } },
+  { value: 'EXLA', label: 'EXLA - Estes Express Lines', meta: { mode: 'LTL' } },
+  { value: 'FXFE', label: 'FXFE - FedEx Freight', meta: { mode: 'LTL' } },
+  { value: 'SEFL', label: 'SEFL - Southeastern Freight Lines', meta: { mode: 'LTL' } },
+  { value: 'TAPT', label: 'TAPT - (DNU) Glen Tay Trans', meta: { mode: 'TL' } },
 ]
 
-describe('NAMED_LISTS', () => {
-  it('has id, name, equipment, defaultDurationMin, scacs on every entry', () => {
-    expect(NAMED_LISTS.length).toBeGreaterThan(0)
-    for (const l of NAMED_LISTS) {
-      expect(l).toMatchObject({
-        id: expect.any(String),
-        name: expect.any(String),
-        equipment: expect.any(String),
-        defaultDurationMin: expect.any(Number),
-      })
-      expect(Array.isArray(l.scacs)).toBe(true)
-    }
-  })
-})
+function shipmentWith({ orderNumber = 'TEST-001', options = [], dropped = [] } = {}) {
+  return {
+    orderDetails: [{ orderNumber }],
+    routingData: { options },
+    droppedCarriers: dropped,
+  }
+}
 
-describe('buildCarrierRows', () => {
-  const list = NAMED_LISTS[0]
-  const rows = buildCarrierRows(list, carrierOptions)
-
-  it('resolves to a small, curated subset (5-8 rows) — not the whole pool', () => {
-    expect(rows.length).toBeGreaterThanOrEqual(5)
-    expect(rows.length).toBeLessThanOrEqual(8)
-    expect(rows.length).toBeLessThan(carrierOptions.length)
-  })
-
-  it('every row belongs to the list membership', () => {
-    for (const r of rows) expect(list.scacs).toContain(r.scac)
-  })
-
-  it('synthesizes an ops@ email from the SCAC, with empty dates (no prefill)', () => {
-    expect(rows[0]).toMatchObject({
-      scac: 'KNGT',
-      name: 'Knight-Swift Transportation',
-      email: 'ops@kngt.example.com',
-      equipment: list.equipment,
-      plannedPickup: '',
-      plannedDelivery: '',
+describe('buildOverflowRows', () => {
+  it('flags a Declined route-guide carrier Routed + Declined, unselected by default', () => {
+    const shipment = shipmentWith({
+      options: [{ scac: 'PRIJ', carrierName: 'Prime Inc', equipment: 'Van', status: 'Declined' }],
     })
+    const row = buildOverflowRows(shipment, carrierOptions).find((r) => r.scac === 'PRIJ')
+    expect(row.flags).toEqual(['Routed', 'Declined'])
+    expect(row.incl).toBe(false)
+    expect(row.listId).toBe('TL')
+    expect(row.equipment).toBe('Van')
   })
 
-  it('flags at least one row Routed, deterministically (no randomness)', () => {
-    const flagged = rows.filter((r) => r.flags.includes('Routed'))
-    expect(flagged.length).toBeGreaterThanOrEqual(1)
-    expect(list.scacs).toContain(flagged[0].scac)
-
-    const again = buildCarrierRows(list, carrierOptions)
-    expect(again).toEqual(rows)
-  })
-
-  // REVERSAL (2026-08-11, Kathleen 2026-08-07 [27:52]). This previously
-  // asserted the opposite — "no row is pre-selected, regardless of flags".
-  // The ruling is that the table arrives preselected and the ROUTE-GUIDE
-  // carriers are the exception, which is also what the legacy overflow screen
-  // shows (Routed ✓ → Status=Excluded, Include? unchecked).
-  it('rows are PRESELECTED, except carriers already in the route guide', () => {
-    expect(rows.length).toBeGreaterThan(0)
-    const routed = rows.filter((r) => r.flags.includes('Routed'))
-    const rest = rows.filter((r) => !r.flags.includes('Routed'))
-
-    expect(routed.length).toBeGreaterThanOrEqual(1) // the rule needs something to exclude
-    for (const r of routed) expect(r.incl).toBe(false)
-
-    expect(rest.length).toBeGreaterThan(0)
-    for (const r of rest) expect(r.incl).toBe(true)
-  })
-
-  it('a Waffled row still displays its flag — display text changed, flag identity did not', () => {
-    const waffled = rows.filter((r) => r.flags.includes('Waffled'))
-    expect(waffled.length).toBeGreaterThanOrEqual(1)
-    for (const r of waffled) {
-      // Waffled is NOT an exclusion — only Routed is. A carrier who gave a
-      // load back is still invited unless the planner says otherwise.
-      expect(r.incl).toBe(true)
-      expect(list.scacs).toContain(r.scac)
+  it('flags a null/Cancelled-status route-guide carrier Routed + No Response', () => {
+    for (const status of [null, 'Cancelled']) {
+      const shipment = shipmentWith({
+        options: [{ scac: 'ODFL', carrierName: 'Old Dominion', equipment: 'LTL', status }],
+      })
+      const row = buildOverflowRows(shipment, carrierOptions).find((r) => r.scac === 'ODFL')
+      expect(row.flags).toEqual(['Routed', 'No Response'])
+      expect(row.incl).toBe(false)
     }
-    // The identity string driving that check is still the bare 'Waffled' —
-    // display text ('Waffled / Gave back') lives in FLAG_LABELS, separate.
-    expect(FLAG_LABELS.Waffled).toBe('Waffled / Gave back')
   })
 
-  it('skips membership SCACs the resolved pool does not (yet) have', () => {
-    const thin = buildCarrierRows(list, carrierOptions.slice(0, 1))
-    expect(thin.every((r) => r.scac === 'KNGT')).toBe(true)
+  it('flags a dropped carrier Routed + its drop reason, unselected by default', () => {
+    const shipment = shipmentWith({
+      dropped: [{ scac: 'SWFT', carrierName: 'Swift', equipment: 'Van', reason: 'No Rates' }],
+    })
+    const row = buildOverflowRows(shipment, carrierOptions).find((r) => r.scac === 'SWFT')
+    expect(row.flags).toEqual(['Routed', 'No Rates'])
+    expect(row.incl).toBe(false)
+    expect(row.listId).toBe('TL')
+  })
+
+  it('a dropped carrier with no reason on the wire falls back to Routed + No Response', () => {
+    const shipment = shipmentWith({
+      dropped: [{ scac: 'SWFT', carrierName: 'Swift', equipment: 'Van', reason: '--' }],
+    })
+    const row = buildOverflowRows(shipment, carrierOptions).find((r) => r.scac === 'SWFT')
+    expect(row.flags).toEqual(['Routed', 'No Response'])
+  })
+
+  it('a carrier in BOTH routingData.options and droppedCarriers is listed once — routing wins', () => {
+    const shipment = shipmentWith({
+      options: [{ scac: 'PRIJ', carrierName: 'Prime Inc', equipment: 'Van', status: 'Declined' }],
+      dropped: [{ scac: 'PRIJ', carrierName: 'Prime Inc', equipment: 'Van', reason: 'No Rates' }],
+    })
+    const rows = buildOverflowRows(shipment, carrierOptions).filter((r) => r.scac === 'PRIJ')
+    expect(rows).toHaveLength(1)
+    expect(rows[0].flags).toEqual(['Routed', 'Declined'])
+  })
+
+  it('overflow additions (not in the route guide) arrive selected and unflagged', () => {
+    const shipment = shipmentWith({
+      options: [{ scac: 'PRIJ', carrierName: 'Prime Inc', equipment: 'Van', status: 'Declined' }],
+    })
+    const rows = buildOverflowRows(shipment, carrierOptions)
+    const overflow = rows.filter((r) => r.scac !== 'PRIJ')
+    expect(overflow.length).toBeGreaterThan(0)
+    for (const r of overflow) {
+      expect(r.incl).toBe(true)
+      expect(r.flags).toEqual([])
+    }
+  })
+
+  it('defaults a row\'s equipment off its mode when the routing/dropped record carries none', () => {
+    const shipment = shipmentWith({
+      options: [{ scac: 'PRIJ', carrierName: 'Prime Inc', status: 'Declined' }], // no equipment
+    })
+    const row = buildOverflowRows(shipment, carrierOptions).find((r) => r.scac === 'PRIJ')
+    expect(row.equipment).toBe('Van') // TL mode default
+  })
+
+  it('resolves name and mode straight off the route record when the SCAC is absent from the master pool', () => {
+    // Routing/dropped carriers are seeded from a smaller, separate pool
+    // (tools/generate.mjs) than the master carrier pool (master-data.js) — a
+    // route-guide participant can legitimately miss the pool.
+    const shipment = shipmentWith({
+      options: [{ scac: 'CTNS', carrierName: 'Continental Transportation', equipment: 'LTL', status: 'Declined' }],
+    })
+    const row = buildOverflowRows(shipment, [])[0]
+    expect(row.name).toBe('Continental Transportation')
+    expect(row.listId).toBe('LTL') // equipment code prefix fallback
+    expect(row.flags).toEqual(['Routed', 'Declined'])
+  })
+
+  it('excludes (DNU) pool entries from the overflow list entirely', () => {
+    const rows = buildOverflowRows(shipmentWith(), carrierOptions)
+    expect(rows.some((r) => r.scac === 'TAPT')).toBe(false)
+  })
+
+  it('is deterministic — the same shipment produces byte-identical rows on every call', () => {
+    const shipment = shipmentWith({
+      options: [{ scac: 'PRIJ', carrierName: 'Prime Inc', equipment: 'Van', status: 'Declined' }],
+    })
+    const first = buildOverflowRows(shipment, carrierOptions)
+    const second = buildOverflowRows(shipment, carrierOptions)
+    expect(second).toEqual(first)
+  })
+
+  it('two different shipments produce different overflow membership', () => {
+    const a = buildOverflowRows(shipmentWith({ orderNumber: 'SHIP-0001' }), carrierOptions)
+    const b = buildOverflowRows(shipmentWith({ orderNumber: 'SHIP-0002' }), carrierOptions)
+    expect(a.map((r) => r.scac).sort()).not.toEqual(b.map((r) => r.scac).sort())
+  })
+
+  it('synthesizes an ops@ email and empty dates, same convention as the old builder', () => {
+    const rows = buildOverflowRows(shipmentWith(), carrierOptions)
+    expect(rows.length).toBeGreaterThan(0)
+    for (const r of rows) {
+      expect(r.email).toBe(`ops@${r.scac.toLowerCase()}.example.com`)
+      expect(r.plannedPickup).toBe('')
+      expect(r.plannedDelivery).toBe('')
+    }
+  })
+
+  it('FLAG_LABELS stays an override point for display text, keyed by flag identity', () => {
+    expect(typeof FLAG_LABELS).toBe('object')
   })
 })

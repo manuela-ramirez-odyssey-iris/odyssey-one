@@ -151,7 +151,7 @@ describe('SpotBoardTab', () => {
       expect(container.querySelector('[data-testid^="pickup-"]')).toBeTruthy()
     })
     // Read the SCAC off the rendered table rather than rebuilding the row list
-    // — buildCarrierRows needs the carrier options the tab resolves internally.
+    // — buildOverflowRows needs the carrier options the tab resolves internally.
     const pickupWrap = container.querySelector('[data-testid^="pickup-"]')
     const scac = pickupWrap.getAttribute('data-testid').replace('pickup-', '')
     // The row existing (waitFor above) doesn't mean its default-date effect has

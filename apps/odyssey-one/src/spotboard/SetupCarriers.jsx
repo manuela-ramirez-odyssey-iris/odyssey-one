@@ -6,7 +6,7 @@ import {
 } from '@odyssey/ui'
 import DateField from '../components/orders/create/fields/DateField.jsx'
 import DurationPicker from '../components/fields/DurationPicker.jsx'
-import { NAMED_LISTS, buildCarrierRows, FLAG_LABELS } from './carrierList.js'
+import { buildOverflowRows, FLAG_LABELS } from './carrierList.js'
 import './spotboard.css'
 
 // A row is selectable once it has both dates — the per-row Incl. checkbox is
@@ -15,12 +15,13 @@ import './spotboard.css'
 const isSelectable = (row) => !!(row.plannedPickup && row.plannedDelivery)
 
 // The TL/LTL mode picks WHICH list the table shows — one mode at a time, not
-// both (user, S112). Rendered as a select-style ComboBox (typable={false}) —
-// a pick-only two-option control — so the modes map onto option values
-// 'first' | 'second'; NAMED_LISTS order is the contract.
+// both (user, S112). Rows are no longer built from a static NAMED_LISTS
+// fixture (S128) — buildOverflowRows stamps each row's own `listId` off the
+// carrier's real mode ('TL'|'LTL'), so these two entries are just the pill
+// labels + the id they filter rows on.
 const MODES = [
-  { key: 'first', label: 'TL', list: NAMED_LISTS[0] },
-  { key: 'second', label: 'LTL', list: NAMED_LISTS[1] },
+  { key: 'first', label: 'TL', id: 'TL' },
+  { key: 'second', label: 'LTL', id: 'LTL' },
 ]
 
 // Mode is now a PILL TAB band (user, 2026-08-19) — replacing the select-style
@@ -34,16 +35,14 @@ const MODES = [
 const MODE_ALL = 'all'
 const MODE_TABS = [{ key: MODE_ALL, label: 'All' }, ...MODES.map((m) => ({ key: m.key, label: m.label }))]
 
-// Quote Duration default (user, 2026-08-19). Deliberately a flat constant, not
-// `activeList.defaultDurationMin`: those are 120 (TL) and 240 (LTL), and 240
-// cannot be picked in a minutes picker capped at 120 — so the list defaults are
-// no longer the seed for this field. They remain on NAMED_LISTS as data.
+// Quote Duration default (user, 2026-08-19). Deliberately a flat constant —
+// no per-list default exists anymore (S128 dropped NAMED_LISTS entirely).
 const DEFAULT_DURATION_MIN = 30
 
 // Rows built before the multi-list change carry no `listId` — they belong to
 // the quote's own single list, so attribute them to the first mode rather than
 // dropping them off the table entirely.
-const listIdOf = (row) => row.listId ?? NAMED_LISTS[0].id
+const listIdOf = (row) => row.listId ?? MODES[0].id
 
 const COLUMNS = [
   { key: 'incl', label: null }, // select-all checkbox, rendered separately
@@ -69,14 +68,17 @@ const COLUMNS = [
  * lists are built and held in state regardless, so a planner's inclusions and
  * dates survive toggling back and forth.
  *
- * `carrierOptions` arrives pre-resolved ({value: scac, label} from the async
- * `getLookupOptions('carrier', q)` pool) — the fetch is the parent's job
- * (SpotBoardTab), so this component stays sync, feeding it straight into the
- * pure `buildCarrierRows`.
+ * `carrierOptions` arrives pre-resolved ({value: scac, label, meta: {mode}}
+ * from the async `getLookupOptions('carrier', q)` pool) — the fetch is the
+ * parent's job (SpotBoardTab), so this component stays sync, feeding it
+ * straight into the pure `buildOverflowRows` alongside `shipmentDetails`
+ * (S128) — the route guide + dropped carriers the overflow list is derived
+ * from, per shipment.
  */
 export default function SetupCarriers({
   quote,
   carrierOptions,
+  shipmentDetails,
   defaultPickup = '',
   defaultDelivery = '',
   readOnly = false,
@@ -123,28 +125,29 @@ export default function SetupCarriers({
   const [draftDelivery, setDraftDelivery] = useState(generalDelivery)
   const [draftFlexible, setDraftFlexible] = useState(flexiblePickup)
 
-  // Build every list's rows in one pass, stamping each row with the list it
-  // came from so the toggle can filter them. `carrierOptions` resolves async in
-  // the parent, so on first mount this builds zero rows — guarded on
-  // `rows.length === 0` so the effect re-fires once the pool arrives, then
-  // stops, never clobbering a planner's incl/date edits.
+  // Build the overflow list in one pass off the shipment's own route guide +
+  // dropped carriers (S128) — buildOverflowRows already stamps each row's
+  // `listId` off the carrier's real mode, so the toggle filters on that
+  // directly. `carrierOptions` resolves async in the parent, so on first
+  // mount the pool is empty — explicitly gated on `carrierOptions.length`
+  // (route-guide rows alone no longer depend on the pool the way the old
+  // NAMED_LISTS build did, so an empty guard can't be left implicit anymore)
+  // and `rows.length === 0` so the effect re-fires once the pool arrives,
+  // then stops, never clobbering a planner's incl/date edits.
   useEffect(() => {
-    if (quote || rows.length > 0) return
+    if (quote || rows.length > 0 || carrierOptions.length === 0) return
     // Rows arrive PRESELECTED (except routed carriers), so they must also
     // arrive DATED — the two halves of the same ruling. Without the dates the
     // preselection is inert: Send RFQ requires a date on every included row,
     // so a preselected-but-undated table can never be sent.
-    const built = NAMED_LISTS.flatMap((list) =>
-      buildCarrierRows(list, carrierOptions).map((r) => ({
-        ...r,
-        listId: list.id,
-        plannedPickup: defaultPickup || r.plannedPickup,
-        plannedDelivery: defaultDelivery || r.plannedDelivery,
-      }))
-    )
+    const built = buildOverflowRows(shipmentDetails, carrierOptions).map((r) => ({
+      ...r,
+      plannedPickup: defaultPickup || r.plannedPickup,
+      plannedDelivery: defaultDelivery || r.plannedDelivery,
+    }))
     if (built.length > 0) setRows(built)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [carrierOptions])
+  }, [carrierOptions, shipmentDetails])
 
   const toggleIncl = (scac) =>
     setRows((rs) => rs.map((r) => (r.scac === scac ? { ...r, incl: !r.incl } : r)))
@@ -152,7 +155,8 @@ export default function SetupCarriers({
   // Editing a date auto-checks the row once both dates are present, and
   // auto-unchecks (+ disables, via the checkbox's own disabled expression
   // below) it the moment a date is cleared — only a user EDIT does this,
-  // never the initial prefill (buildCarrierRows always seeds incl:false).
+  // never the initial prefill (buildOverflowRows always seeds a route-guide
+  // row's incl to false).
   const updateDate = (scac, field, value) =>
     setRows((rs) =>
       rs.map((r) => {
@@ -208,19 +212,17 @@ export default function SetupCarriers({
     setSetupOpen(false)
   }
 
-  // `activeList` is null in 'All' — there is no single list to attribute to.
-  // Everything downstream that used it for a per-list default is gone (the
-  // duration default is now a flat constant), so null is safe here.
-  const activeList = MODES.find((m) => m.key === mode)?.list ?? null
-  const visibleRows = mode === MODE_ALL ? rows : rows.filter((r) => listIdOf(r) === activeList.id)
+  // `activeMode` is null in 'All' — there is no single mode to attribute to.
+  const activeMode = MODES.find((m) => m.key === mode) ?? null
+  const visibleRows = mode === MODE_ALL ? rows : rows.filter((r) => listIdOf(r) === activeMode.id)
 
   // Each pill's own count Badge (Task 6) — All = every built row, TL/LTL =
-  // that list's rows only. Independent of `visibleRows`/`mode`: a pill always
+  // that mode's rows only. Independent of `visibleRows`/`mode`: a pill always
   // reports ITS OWN count, not the currently-selected one's.
   const countFor = (key) =>
     key === MODE_ALL
       ? rows.length
-      : rows.filter((r) => listIdOf(r) === MODES.find((m) => m.key === key).list.id).length
+      : rows.filter((r) => listIdOf(r) === MODES.find((m) => m.key === key).id).length
 
   // Select-all is scoped to what's ON SCREEN — it must never silently include
   // carriers from the mode you can't currently see.
@@ -282,10 +284,10 @@ export default function SetupCarriers({
     includedRows.length > 0 &&
     includedRows.every((r) => r.plannedPickup && r.plannedDelivery)
 
-  // Lists that actually contributed an included carrier — the payload's
+  // Modes that actually contributed an included carrier — the payload's
   // listId/listName describe what is being SENT, not a single up-front choice.
-  const includedLists = NAMED_LISTS.filter((l) =>
-    includedRows.some((r) => listIdOf(r) === l.id)
+  const includedModes = MODES.filter((m) =>
+    includedRows.some((r) => listIdOf(r) === m.id)
   )
 
   // The picker always holds a real value now (it seeds at 30 and its options
@@ -294,8 +296,8 @@ export default function SetupCarriers({
   const effectiveDuration = Number(durationMin) || DEFAULT_DURATION_MIN
 
   const buildPayload = () => ({
-    listId: includedLists.map((l) => l.id).join('+'),
-    listName: includedLists.map((l) => l.name).join(' + '),
+    listId: includedModes.map((m) => m.id).join('+'),
+    listName: includedModes.map((m) => m.label).join(' + '),
     durationMin: effectiveDuration,
     carriers: rows,
     flexiblePickup,
@@ -517,7 +519,7 @@ export default function SetupCarriers({
             <div className="order-pane__fields-grid">
               <TitleSubtitle subtitle="Quote Duration" title={`${effectiveDuration} min`} />
               <TitleSubtitle subtitle="Flexible Pickup" title={flexiblePickup ? 'Yes' : 'No'} />
-              <TitleSubtitle subtitle="Carrier Lists" title={includedLists.map((l) => l.name).join(' + ') || '--'} />
+              <TitleSubtitle subtitle="Carrier Lists" title={includedModes.map((m) => m.label).join(' + ') || '--'} />
             </div>
           </div>
         </ModalMedium>,

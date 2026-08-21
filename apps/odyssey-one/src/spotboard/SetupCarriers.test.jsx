@@ -2,25 +2,25 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent, within } from '@testing-library/react'
 import SetupCarriers from './SetupCarriers'
-import { NAMED_LISTS, buildCarrierRows } from './carrierList'
+import { buildOverflowRows } from './carrierList'
 
-// Mirrors the real getLookupOptions('carrier') pool shape — covers every
-// SCAC referenced by NAMED_LISTS.
+// Mirrors the real getLookupOptions('carrier') pool shape ({value, label,
+// meta: {mode}}) — a mix of TL/LTL carriers.
 const carrierOptions = [
-  { value: 'KNGT', label: 'KNGT - Knight-Swift Transportation' },
-  { value: 'SCNN', label: 'SCNN - Schneider National' },
-  { value: 'JBHT', label: 'JBHT - J.B. Hunt Transport' },
-  { value: 'WERN', label: 'WERN - Werner Enterprises' },
-  { value: 'CRST', label: 'CRST - CRST International' },
-  { value: 'SWFT', label: 'SWFT - Swift Transportation' },
-  { value: 'PRIJ', label: 'PRIJ - Prime Inc' },
-  { value: 'ODFL', label: 'ODFL - Old Dominion Freight Line' },
-  { value: 'SAIA', label: 'SAIA - Saia LTL Freight' },
-  { value: 'ABFS', label: 'ABFS - ABF Freight System' },
-  { value: 'AACT', label: 'AACT - AAA Cooper Transportation' },
-  { value: 'EXLA', label: 'EXLA - Estes Express Lines' },
-  { value: 'FXFE', label: 'FXFE - FedEx Freight' },
-  { value: 'SEFL', label: 'SEFL - Southeastern Freight Lines' },
+  { value: 'KNGT', label: 'KNGT - Knight-Swift Transportation', meta: { mode: 'TL' } },
+  { value: 'SCNN', label: 'SCNN - Schneider National', meta: { mode: 'TL' } },
+  { value: 'JBHT', label: 'JBHT - J.B. Hunt Transport', meta: { mode: 'TL' } },
+  { value: 'WERN', label: 'WERN - Werner Enterprises', meta: { mode: 'TL' } },
+  { value: 'CRST', label: 'CRST - CRST International', meta: { mode: 'TL' } },
+  { value: 'SWFT', label: 'SWFT - Swift Transportation', meta: { mode: 'TL' } },
+  { value: 'PRIJ', label: 'PRIJ - Prime Inc', meta: { mode: 'TL' } },
+  { value: 'ODFL', label: 'ODFL - Old Dominion Freight Line', meta: { mode: 'LTL' } },
+  { value: 'SAIA', label: 'SAIA - Saia LTL Freight', meta: { mode: 'LTL' } },
+  { value: 'ABFS', label: 'ABFS - ABF Freight System', meta: { mode: 'LTL' } },
+  { value: 'AACT', label: 'AACT - AAA Cooper Transportation', meta: { mode: 'LTL' } },
+  { value: 'EXLA', label: 'EXLA - Estes Express Lines', meta: { mode: 'LTL' } },
+  { value: 'FXFE', label: 'FXFE - FedEx Freight', meta: { mode: 'LTL' } },
+  { value: 'SEFL', label: 'SEFL - Southeastern Freight Lines', meta: { mode: 'LTL' } },
 ]
 
 // The pane seeds planned dates from the order (SpotBoardTab passes these) —
@@ -29,11 +29,29 @@ const carrierOptions = [
 const DEF_PICKUP = '08/01/2026'
 const DEF_DELIVERY = '08/02/2026'
 
-const list = NAMED_LISTS[0]
-// Both lists are BUILT, but the TL/LTL toggle shows one at a time (S112).
-const allRows = NAMED_LISTS.flatMap((l) => buildCarrierRows(l, carrierOptions))
-const tlRows = buildCarrierRows(NAMED_LISTS[0], carrierOptions)
-const ltlRows = buildCarrierRows(NAMED_LISTS[1], carrierOptions)
+// Rows are now derived PER SHIPMENT (S128) off the route guide + dropped
+// carriers, not a static NAMED_LISTS fixture — this shipment's route guide
+// declined one TL carrier (PRIJ), giving every test that needs "a Routed
+// row" something real to find. `buildOverflowRows` is pure, so the module-
+// level `tlRows`/`ltlRows`/`allRows` below are byte-identical to whatever
+// SetupCarriers builds internally off the same two arguments.
+const shipmentDetailsFixture = {
+  orderDetails: [{ orderNumber: 'TEST-001' }],
+  routingData: {
+    options: [{ scac: 'PRIJ', carrierName: 'Prime Inc', equipment: 'Van', status: 'Declined' }],
+  },
+  // LTL gets its OWN route-guide exception (a dropped carrier) — mirrors the
+  // real-world shape (a route guide only ever considers one equipment mode,
+  // so TL's Declined option and LTL's dropped carrier stand in for two
+  // different shipments' route guides layered onto one fixture) and keeps
+  // every mode-scoped test below from accidentally observing the OTHER
+  // mode's fully-preselected list.
+  droppedCarriers: [{ scac: 'SAIA', carrierName: 'Saia', equipment: 'LTL', reason: 'No Rates' }],
+}
+
+const allRows = buildOverflowRows(shipmentDetailsFixture, carrierOptions)
+const tlRows = allRows.filter((r) => r.listId === 'TL')
+const ltlRows = allRows.filter((r) => r.listId === 'LTL')
 
 // The mode control is a PillTab band (TL · LTL · All) as of 2026-08-19,
 // replacing the pick-only ComboBox and its keyboard-only jsdom workaround —
@@ -112,12 +130,13 @@ function pickModalDuration(optionLabel) {
 
 describe('SetupCarriers', () => {
   it('Send RFQ is disabled when a list is chosen but dates are missing', () => {
-    const rows = buildCarrierRows(list, carrierOptions)
-    const quote = { listId: list.id, listName: list.name, durationMin: list.defaultDurationMin, carriers: rows }
+    const rows = tlRows
+    const quote = { listId: 'TL', listName: 'TL', durationMin: 120, carriers: rows }
     render(
       <SetupCarriers
         quote={quote}
         carrierOptions={carrierOptions}
+        shipmentDetails={shipmentDetailsFixture}
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={() => {}}
@@ -141,6 +160,7 @@ describe('SetupCarriers', () => {
       <SetupCarriers
         quote={quote}
         carrierOptions={carrierOptions}
+        shipmentDetails={shipmentDetailsFixture}
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={() => {}}
@@ -157,12 +177,13 @@ describe('SetupCarriers', () => {
     render(
       <SetupCarriers
         carrierOptions={carrierOptions}
+        shipmentDetails={shipmentDetailsFixture}
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={() => {}}
       />
     )
-    const rows = buildCarrierRows(list, carrierOptions)
+    const rows = tlRows
     const unrouted = rows.find((r) => !r.flags.includes('Routed'))
     const wrap = screen.getByTestId(`pickup-${unrouted.scac}`)
     expect(within(wrap).getByRole('textbox').value).toBe('')
@@ -175,6 +196,7 @@ describe('SetupCarriers', () => {
     render(
       <SetupCarriers
         carrierOptions={carrierOptions}
+        shipmentDetails={shipmentDetailsFixture}
         defaultPickup={DEF_PICKUP}
         defaultDelivery={DEF_DELIVERY}
         readOnly={false}
@@ -182,7 +204,7 @@ describe('SetupCarriers', () => {
         onSendRFQ={() => {}}
       />
     )
-    const rows = buildCarrierRows(list, carrierOptions)
+    const rows = tlRows
     for (const r of rows) {
       expect(within(screen.getByTestId(`pickup-${r.scac}`)).getByRole('textbox').value).toBe(DEF_PICKUP)
       expect(within(screen.getByTestId(`delivery-${r.scac}`)).getByRole('textbox').value).toBe(DEF_DELIVERY)
@@ -193,6 +215,7 @@ describe('SetupCarriers', () => {
     render(
       <SetupCarriers
         carrierOptions={carrierOptions}
+        shipmentDetails={shipmentDetailsFixture}
         defaultPickup={DEF_PICKUP}
         defaultDelivery={DEF_DELIVERY}
         readOnly={false}
@@ -200,7 +223,7 @@ describe('SetupCarriers', () => {
         onSendRFQ={() => {}}
       />
     )
-    const rows = buildCarrierRows(list, carrierOptions)
+    const rows = tlRows
     fillDate(rows[0].scac, 'pickup', '09/01/2026')
     const wrap = screen.getByTestId(`pickup-${rows[0].scac}`)
     expect(within(wrap).getByRole('textbox').value).toBe('09/01/2026')
@@ -213,6 +236,7 @@ describe('SetupCarriers', () => {
     render(
       <SetupCarriers
         carrierOptions={carrierOptions}
+        shipmentDetails={shipmentDetailsFixture}
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={() => {}}
@@ -226,6 +250,7 @@ describe('SetupCarriers', () => {
     render(
       <SetupCarriers
         carrierOptions={carrierOptions}
+        shipmentDetails={shipmentDetailsFixture}
         defaultPickup={DEF_PICKUP}
         defaultDelivery={DEF_DELIVERY}
         readOnly={false}
@@ -234,7 +259,7 @@ describe('SetupCarriers', () => {
       />
     )
 
-    const rows = buildCarrierRows(list, carrierOptions)
+    const rows = tlRows
     fillDate(rows[0].scac, 'pickup', '08/10/2026')
     fillDate(rows[0].scac, 'delivery', '08/11/2026')
     sendRFQ()
@@ -245,8 +270,8 @@ describe('SetupCarriers', () => {
     // preselection BOTH lists contribute by default, so the composite is the
     // correct answer — it is no longer possible to send only one list without
     // deliberately excluding the other.
-    expect(payload.listId).toBe('tl-se+ltl-comp')
-    expect(payload.listName).toBe('TL Southeast Overflow + LTL Comparable Set')
+    expect(payload.listId).toBe('TL+LTL')
+    expect(payload.listName).toBe('TL + LTL')
     expect(payload.durationMin).toBe(30) // flat default (2026-08-19), not the list's
     expect(payload.carriers).toHaveLength(allRows.length) // both modes ride along
     // The row the planner edited carries the typed dates; everything else
@@ -266,6 +291,7 @@ describe('SetupCarriers', () => {
     render(
       <SetupCarriers
         carrierOptions={carrierOptions}
+        shipmentDetails={shipmentDetailsFixture}
         defaultPickup={DEF_PICKUP}
         defaultDelivery={DEF_DELIVERY}
         readOnly={false}
@@ -274,7 +300,7 @@ describe('SetupCarriers', () => {
       />
     )
 
-    const rows = buildCarrierRows(list, carrierOptions)
+    const rows = tlRows
     fillDate(rows[0].scac, 'pickup', '08/10/2026')
     fillDate(rows[0].scac, 'delivery', '08/11/2026')
 
@@ -292,6 +318,7 @@ describe('SetupCarriers', () => {
     render(
       <SetupCarriers
         carrierOptions={carrierOptions}
+        shipmentDetails={shipmentDetailsFixture}
         defaultPickup={DEF_PICKUP}
         defaultDelivery={DEF_DELIVERY}
         readOnly={false}
@@ -320,6 +347,7 @@ describe('SetupCarriers', () => {
     render(
       <SetupCarriers
         carrierOptions={carrierOptions}
+        shipmentDetails={shipmentDetailsFixture}
         defaultPickup={DEF_PICKUP}
         defaultDelivery={DEF_DELIVERY}
         readOnly={false}
@@ -346,6 +374,7 @@ describe('SetupCarriers', () => {
     render(
       <SetupCarriers
         carrierOptions={carrierOptions}
+        shipmentDetails={shipmentDetailsFixture}
         defaultPickup={DEF_PICKUP}
         defaultDelivery={DEF_DELIVERY}
         readOnly={false}
@@ -369,6 +398,7 @@ describe('SetupCarriers', () => {
     render(
       <SetupCarriers
         carrierOptions={carrierOptions}
+        shipmentDetails={shipmentDetailsFixture}
         defaultPickup={DEF_PICKUP}
         defaultDelivery={DEF_DELIVERY}
         readOnly={false}
@@ -399,6 +429,7 @@ describe('SetupCarriers', () => {
     const { container } = render(
       <SetupCarriers
         carrierOptions={carrierOptions}
+        shipmentDetails={shipmentDetailsFixture}
         defaultPickup={DEF_PICKUP}
         defaultDelivery={DEF_DELIVERY}
         readOnly={false}
@@ -431,6 +462,7 @@ describe('SetupCarriers', () => {
     const { container } = render(
       <SetupCarriers
         carrierOptions={carrierOptions}
+        shipmentDetails={shipmentDetailsFixture}
         defaultPickup={DEF_PICKUP}
         defaultDelivery={DEF_DELIVERY}
         readOnly={false}
@@ -450,6 +482,7 @@ describe('SetupCarriers', () => {
     render(
       <SetupCarriers
         carrierOptions={carrierOptions}
+        shipmentDetails={shipmentDetailsFixture}
         defaultPickup={DEF_PICKUP}
         defaultDelivery={DEF_DELIVERY}
         readOnly={false}
@@ -469,6 +502,7 @@ describe('SetupCarriers', () => {
     render(
       <SetupCarriers
         carrierOptions={carrierOptions}
+        shipmentDetails={shipmentDetailsFixture}
         defaultPickup={DEF_PICKUP}
         defaultDelivery={DEF_DELIVERY}
         readOnly
@@ -485,6 +519,7 @@ describe('SetupCarriers', () => {
     render(
       <SetupCarriers
         carrierOptions={carrierOptions}
+        shipmentDetails={shipmentDetailsFixture}
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={() => {}}
@@ -514,6 +549,7 @@ describe('SetupCarriers', () => {
     render(
       <SetupCarriers
         carrierOptions={carrierOptions}
+        shipmentDetails={shipmentDetailsFixture}
         defaultPickup={DEF_PICKUP}
         defaultDelivery={DEF_DELIVERY}
         readOnly={false}
@@ -531,14 +567,15 @@ describe('SetupCarriers', () => {
   // no single stored "general" value to show — it starts blank rather than
   // guessing at one row's date.
   it('opens with BLANK general dates when mounting from an existing quote', () => {
-    const rows = buildCarrierRows(list, carrierOptions).map((r, i) => ({
+    const rows = tlRows.map((r, i) => ({
       ...r, plannedPickup: DEF_PICKUP, plannedDelivery: i === 0 ? DEF_DELIVERY : '09/09/2026',
     }))
-    const quote = { listId: list.id, listName: list.name, durationMin: list.defaultDurationMin, carriers: rows }
+    const quote = { listId: 'TL', listName: 'TL', durationMin: 120, carriers: rows }
     render(
       <SetupCarriers
         quote={quote}
         carrierOptions={carrierOptions}
+        shipmentDetails={shipmentDetailsFixture}
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={() => {}}
@@ -559,6 +596,7 @@ describe('SetupCarriers', () => {
     render(
       <SetupCarriers
         carrierOptions={carrierOptions}
+        shipmentDetails={shipmentDetailsFixture}
         defaultPickup={DEF_PICKUP}
         defaultDelivery={DEF_DELIVERY}
         readOnly={false}
@@ -586,6 +624,7 @@ describe('SetupCarriers', () => {
     render(
       <SetupCarriers
         carrierOptions={carrierOptions}
+        shipmentDetails={shipmentDetailsFixture}
         defaultPickup={DEF_PICKUP}
         defaultDelivery={DEF_DELIVERY}
         readOnly={false}
@@ -610,6 +649,7 @@ describe('SetupCarriers', () => {
     render(
       <SetupCarriers
         carrierOptions={carrierOptions}
+        shipmentDetails={shipmentDetailsFixture}
         defaultPickup={DEF_PICKUP}
         defaultDelivery={DEF_DELIVERY}
         readOnly={false}
@@ -632,6 +672,7 @@ describe('SetupCarriers', () => {
     render(
       <SetupCarriers
         carrierOptions={carrierOptions}
+        shipmentDetails={shipmentDetailsFixture}
         defaultPickup={DEF_PICKUP}
         defaultDelivery={DEF_DELIVERY}
         readOnly={false}
@@ -656,6 +697,7 @@ describe('SetupCarriers', () => {
     render(
       <SetupCarriers
         carrierOptions={carrierOptions}
+        shipmentDetails={shipmentDetailsFixture}
         defaultPickup={DEF_PICKUP}
         defaultDelivery={DEF_DELIVERY}
         readOnly={false}
@@ -678,6 +720,7 @@ describe('SetupCarriers', () => {
     render(
       <SetupCarriers
         carrierOptions={carrierOptions}
+        shipmentDetails={shipmentDetailsFixture}
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={() => {}}
@@ -693,14 +736,12 @@ describe('SetupCarriers', () => {
     expect(onTermsChange).toHaveBeenCalledWith({ durationMin: 40, flexiblePickup: true })
   })
 
-  it('the LTL mode payload carries the "LTL Comparable Set" list — TL carries "TL Southeast Overflow"', () => {
-    expect(NAMED_LISTS[0].name).toBe('TL Southeast Overflow')
-    expect(NAMED_LISTS[1].name).toBe('LTL Comparable Set')
-
+  it('the LTL mode payload carries the "LTL" list — TL carries "TL"', () => {
     const onSendRFQ = vi.fn()
     render(
       <SetupCarriers
         carrierOptions={carrierOptions}
+        shipmentDetails={shipmentDetailsFixture}
         defaultPickup={DEF_PICKUP}
         defaultDelivery={DEF_DELIVERY}
         readOnly={false}
@@ -716,14 +757,15 @@ describe('SetupCarriers', () => {
     const payload = onSendRFQ.mock.calls[0][0]
     // Both lists ride along by default now (preselection), so the composite is
     // expected — the LTL list is present, which is what this pins.
-    expect(payload.listId).toContain(NAMED_LISTS[1].id)
-    expect(payload.listName).toContain('LTL Comparable Set')
+    expect(payload.listId).toContain('LTL')
+    expect(payload.listName).toContain('LTL')
   })
 
   it('keeps inclusions and dates when toggling between modes', () => {
     render(
       <SetupCarriers
         carrierOptions={carrierOptions}
+        shipmentDetails={shipmentDetailsFixture}
         defaultPickup={DEF_PICKUP}
         defaultDelivery={DEF_DELIVERY}
         readOnly={false}
@@ -747,6 +789,7 @@ describe('SetupCarriers', () => {
     render(
       <SetupCarriers
         carrierOptions={carrierOptions}
+        shipmentDetails={shipmentDetailsFixture}
         defaultPickup={DEF_PICKUP}
         defaultDelivery={DEF_DELIVERY}
         readOnly={false}
@@ -767,6 +810,7 @@ describe('SetupCarriers', () => {
     render(
       <SetupCarriers
         carrierOptions={carrierOptions}
+        shipmentDetails={shipmentDetailsFixture}
         defaultPickup={DEF_PICKUP}
         defaultDelivery={DEF_DELIVERY}
         readOnly={false}
@@ -782,6 +826,7 @@ describe('SetupCarriers', () => {
     render(
       <SetupCarriers
         carrierOptions={carrierOptions}
+        shipmentDetails={shipmentDetailsFixture}
         defaultPickup={DEF_PICKUP}
         defaultDelivery={DEF_DELIVERY}
         readOnly={false}
@@ -801,13 +846,13 @@ describe('SetupCarriers', () => {
   })
 
   it('an existing quote wins over the default build', () => {
-    const otherList = NAMED_LISTS[1]
-    const rows = buildCarrierRows(otherList, carrierOptions)
-    const quote = { listId: otherList.id, listName: otherList.name, durationMin: otherList.defaultDurationMin, carriers: rows }
+    const rows = ltlRows
+    const quote = { listId: 'LTL', listName: 'LTL', durationMin: 45, carriers: rows }
     render(
       <SetupCarriers
         quote={quote}
         carrierOptions={carrierOptions}
+        shipmentDetails={shipmentDetailsFixture}
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={() => {}}
@@ -818,17 +863,17 @@ describe('SetupCarriers', () => {
     // An existing quote's own duration still wins over the 30-min default,
     // seeded into the modal's draft.
     openSetupModal()
-    expect(screen.getByLabelText('Quote Duration').value)
-      .toBe(`${otherList.defaultDurationMin} min`)
+    expect(screen.getByLabelText('Quote Duration').value).toBe('45 min')
   })
 
   it('shows a carrier count in the toolbar', () => {
-    const rows = buildCarrierRows(list, carrierOptions)
-    const quote = { listId: list.id, listName: list.name, durationMin: list.defaultDurationMin, carriers: rows }
+    const rows = tlRows
+    const quote = { listId: 'TL', listName: 'TL', durationMin: 120, carriers: rows }
     render(
       <SetupCarriers
         quote={quote}
         carrierOptions={carrierOptions}
+        shipmentDetails={shipmentDetailsFixture}
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={() => {}}
@@ -842,6 +887,7 @@ describe('SetupCarriers', () => {
     const { container } = render(
       <SetupCarriers
         carrierOptions={carrierOptions}
+        shipmentDetails={shipmentDetailsFixture}
         defaultPickup={DEF_PICKUP}
         defaultDelivery={DEF_DELIVERY}
         readOnly={false}
@@ -865,6 +911,7 @@ describe('SetupCarriers', () => {
     const { container } = render(
       <SetupCarriers
         carrierOptions={carrierOptions}
+        shipmentDetails={shipmentDetailsFixture}
         defaultPickup={DEF_PICKUP}
         defaultDelivery={DEF_DELIVERY}
         readOnly={false}
@@ -883,6 +930,7 @@ describe('SetupCarriers', () => {
     const { container } = render(
       <SetupCarriers
         carrierOptions={carrierOptions}
+        shipmentDetails={shipmentDetailsFixture}
         defaultPickup={DEF_PICKUP}
         defaultDelivery={DEF_DELIVERY}
         readOnly={false}
@@ -910,6 +958,7 @@ describe('SetupCarriers', () => {
     const { container } = render(
       <SetupCarriers
         carrierOptions={carrierOptions}
+        shipmentDetails={shipmentDetailsFixture}
         defaultPickup={DEF_PICKUP}
         defaultDelivery={DEF_DELIVERY}
         readOnly={false}
@@ -936,6 +985,7 @@ describe('SetupCarriers', () => {
     const { rerender } = render(
       <SetupCarriers
         carrierOptions={[]}
+        shipmentDetails={shipmentDetailsFixture}
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={() => {}}
@@ -947,6 +997,7 @@ describe('SetupCarriers', () => {
     rerender(
       <SetupCarriers
         carrierOptions={carrierOptions}
+        shipmentDetails={shipmentDetailsFixture}
         defaultPickup={DEF_PICKUP}
         defaultDelivery={DEF_DELIVERY}
         readOnly={false}
@@ -955,7 +1006,7 @@ describe('SetupCarriers', () => {
       />
     )
 
-    const rows = buildCarrierRows(list, carrierOptions)
+    const rows = tlRows
     // All is the default mode — the count spans every built row.
     expect(screen.getByText(`${allRows.length} carriers`)).toBeTruthy()
     expect(screen.getByTestId(`pickup-${rows[0].scac}`)).toBeTruthy()
@@ -965,6 +1016,7 @@ describe('SetupCarriers', () => {
     const { rerender } = render(
       <SetupCarriers
         carrierOptions={carrierOptions}
+        shipmentDetails={shipmentDetailsFixture}
         defaultPickup={DEF_PICKUP}
         defaultDelivery={DEF_DELIVERY}
         readOnly={false}
@@ -972,7 +1024,7 @@ describe('SetupCarriers', () => {
         onSendRFQ={() => {}}
       />
     )
-    const rows = buildCarrierRows(list, carrierOptions)
+    const rows = tlRows
     fillDate(rows[0].scac, 'pickup', '08/10/2026')
 
     // A new carrierOptions array (same content, new reference) arrives, as
@@ -980,6 +1032,7 @@ describe('SetupCarriers', () => {
     rerender(
       <SetupCarriers
         carrierOptions={[...carrierOptions]}
+        shipmentDetails={shipmentDetailsFixture}
         readOnly={false}
         onSaveDraft={() => {}}
         onSendRFQ={() => {}}
@@ -996,6 +1049,7 @@ describe('SetupCarriers', () => {
       render(
         <SetupCarriers
           carrierOptions={carrierOptions}
+          shipmentDetails={shipmentDetailsFixture}
           defaultPickup={DEF_PICKUP}
           defaultDelivery={DEF_DELIVERY}
           readOnly={false}
@@ -1003,7 +1057,7 @@ describe('SetupCarriers', () => {
           onSendRFQ={() => {}}
         />
       )
-      const rows = buildCarrierRows(list, carrierOptions)
+      const rows = tlRows
       for (const r of rows) {
         expect(inclCheckbox(r.scac).checked).toBe(!r.flags.includes('Routed'))
       }
@@ -1013,6 +1067,7 @@ describe('SetupCarriers', () => {
       render(
         <SetupCarriers
           carrierOptions={carrierOptions}
+          shipmentDetails={shipmentDetailsFixture}
           defaultPickup={DEF_PICKUP}
           defaultDelivery={DEF_DELIVERY}
           readOnly={false}
@@ -1024,7 +1079,7 @@ describe('SetupCarriers', () => {
       // dates, never turning one OFF. So it is observable on a routed row
       // (starts excluded) with its dates cleared — a preselected row is always
       // enabled, precisely so it can be opted out of.
-      const rows = buildCarrierRows(list, carrierOptions)
+      const rows = tlRows
       const scac = rows.find((r) => r.flags.includes('Routed')).scac
       fillDate(scac, 'pickup', '')
       fillDate(scac, 'delivery', '')
@@ -1045,6 +1100,7 @@ describe('SetupCarriers', () => {
       render(
         <SetupCarriers
           carrierOptions={carrierOptions}
+          shipmentDetails={shipmentDetailsFixture}
           defaultPickup={DEF_PICKUP}
           defaultDelivery={DEF_DELIVERY}
           readOnly={false}
@@ -1055,7 +1111,7 @@ describe('SetupCarriers', () => {
       // Exercised on a ROUTED row, the only kind that starts unchecked now —
       // and the only kind whose dates start empty when defaults are supplied…
       // except they don't, so clear them first to reach the undated state.
-      const rows = buildCarrierRows(list, carrierOptions)
+      const rows = tlRows
       const scac = rows.find((r) => r.flags.includes('Routed')).scac
       fillDate(scac, 'pickup', '')
       fillDate(scac, 'delivery', '')
@@ -1072,6 +1128,7 @@ describe('SetupCarriers', () => {
       render(
         <SetupCarriers
           carrierOptions={carrierOptions}
+          shipmentDetails={shipmentDetailsFixture}
           defaultPickup={DEF_PICKUP}
           defaultDelivery={DEF_DELIVERY}
           readOnly={false}
@@ -1079,7 +1136,7 @@ describe('SetupCarriers', () => {
           onSendRFQ={() => {}}
         />
       )
-      const rows = buildCarrierRows(list, carrierOptions)
+      const rows = tlRows
       const scac = rows[0].scac
       fillDate(scac, 'pickup', '08/10/2026')
       fillDate(scac, 'delivery', '08/11/2026') // completes the row → auto-checks
@@ -1094,6 +1151,7 @@ describe('SetupCarriers', () => {
       render(
         <SetupCarriers
           carrierOptions={carrierOptions}
+          shipmentDetails={shipmentDetailsFixture}
           defaultPickup={DEF_PICKUP}
           defaultDelivery={DEF_DELIVERY}
           readOnly={false}
@@ -1121,6 +1179,7 @@ describe('SetupCarriers', () => {
       render(
         <SetupCarriers
           carrierOptions={carrierOptions}
+          shipmentDetails={shipmentDetailsFixture}
           readOnly={false}
           onSaveDraft={() => {}}
           onSendRFQ={() => {}}
@@ -1136,6 +1195,7 @@ describe('SetupCarriers', () => {
       render(
         <SetupCarriers
           carrierOptions={carrierOptions}
+          shipmentDetails={shipmentDetailsFixture}
           defaultPickup={DEF_PICKUP}
           defaultDelivery={DEF_DELIVERY}
           readOnly={false}
@@ -1147,7 +1207,7 @@ describe('SetupCarriers', () => {
       // must stay scoped to what's ON SCREEN — pin it to TL explicitly so this
       // test isolates one list's rows the way it always intended to).
       showMode('TL')
-      const rows = buildCarrierRows(list, carrierOptions)
+      const rows = tlRows
       const complete = rows[0].scac
       const incomplete = rows[1].scac
       fillDate(complete, 'pickup', '08/10/2026')
@@ -1174,6 +1234,7 @@ describe('SetupCarriers', () => {
       render(
         <SetupCarriers
           carrierOptions={carrierOptions}
+          shipmentDetails={shipmentDetailsFixture}
           defaultPickup={DEF_PICKUP}
           defaultDelivery={DEF_DELIVERY}
           readOnly={false}
@@ -1183,7 +1244,7 @@ describe('SetupCarriers', () => {
       )
       // Scoped to TL (2026-08-20: All is now the default mode).
       showMode('TL')
-      const rows = buildCarrierRows(list, carrierOptions)
+      const rows = tlRows
       fillDate(rows[0].scac, 'pickup', '08/10/2026')
       fillDate(rows[0].scac, 'delivery', '08/11/2026')
       fillDate(rows[1].scac, 'pickup', '08/12/2026')
@@ -1201,6 +1262,7 @@ describe('SetupCarriers', () => {
       render(
         <SetupCarriers
           carrierOptions={carrierOptions}
+          shipmentDetails={shipmentDetailsFixture}
           defaultPickup={DEF_PICKUP}
           defaultDelivery={DEF_DELIVERY}
           readOnly={false}
@@ -1212,19 +1274,24 @@ describe('SetupCarriers', () => {
       // own preselected-off Routed carrier that would otherwise stop the
       // "every selectable row included" state this test pins).
       showMode('TL')
-      const rows = buildCarrierRows(list, carrierOptions)
-      fillDate(rows[0].scac, 'pickup', '08/10/2026')
-      fillDate(rows[0].scac, 'delivery', '08/11/2026')
-      fillDate(rows[1].scac, 'pickup', '08/12/2026')
-      fillDate(rows[1].scac, 'delivery', '08/13/2026')
+      const rows = tlRows
+      const routed = rows.find((r) => r.flags.includes('Routed'))
+      const other = rows.find((r) => !r.flags.includes('Routed'))
+      // `other` is already dated + preselected. `routed` already has its
+      // default dates too (SetupCarriers seeds every row) but starts
+      // unchecked — re-editing its dates fires the same auto-check-on-edit
+      // rule any row gets, which is what carries the WHOLE list to "every
+      // selectable row included" despite its Routed default.
+      fillDate(routed.scac, 'pickup', '08/10/2026')
+      fillDate(routed.scac, 'delivery', '08/11/2026')
 
-      // Both rows date-complete → both auto-checked → select-all reads checked.
+      // Every row date-complete → select-all reads checked.
       expect(selectAllCheckbox().checked).toBe(true)
       expect(selectAllCheckbox().indeterminate).toBe(false)
 
       fireEvent.click(selectAllCheckbox())
-      expect(inclCheckbox(rows[0].scac).checked).toBe(false)
-      expect(inclCheckbox(rows[1].scac).checked).toBe(false)
+      expect(inclCheckbox(routed.scac).checked).toBe(false)
+      expect(inclCheckbox(other.scac).checked).toBe(false)
       expect(selectAllCheckbox().checked).toBe(false)
     })
   })
@@ -1236,6 +1303,7 @@ describe('SetupCarriers', () => {
     render(
       <SetupCarriers
         carrierOptions={carrierOptions}
+        shipmentDetails={shipmentDetailsFixture}
         defaultPickup={DEF_PICKUP}
         defaultDelivery={DEF_DELIVERY}
         readOnly
@@ -1253,6 +1321,7 @@ describe('SetupCarriers', () => {
       render(
         <SetupCarriers
           carrierOptions={carrierOptions}
+          shipmentDetails={shipmentDetailsFixture}
           defaultPickup={DEF_PICKUP}
           defaultDelivery={DEF_DELIVERY}
           readOnly={false}
@@ -1260,7 +1329,7 @@ describe('SetupCarriers', () => {
           onSendRFQ={onSendRFQ}
         />
       )
-      const rows = buildCarrierRows(list, carrierOptions)
+      const rows = tlRows
       fillDate(rows[0].scac, 'pickup', '08/10/2026')
       fillDate(rows[0].scac, 'delivery', '08/11/2026')
       return rows
@@ -1318,8 +1387,8 @@ describe('SetupCarriers', () => {
       expect(dialog.getByText('30 min')).toBeTruthy() // flat default (2026-08-19)
       expect(dialog.getByText('Yes')).toBeTruthy() // Flexible Pickup
       // Both lists contribute now, so the summary names the composite.
-      expect(dialogText).toContain(NAMED_LISTS[0].name)
-      expect(dialogText).toContain(NAMED_LISTS[1].name)
+      expect(dialogText).toContain('TL')
+      expect(dialogText).toContain('LTL')
     })
   })
 
@@ -1331,6 +1400,7 @@ describe('SetupCarriers', () => {
     const { container } = render(
       <SetupCarriers
         carrierOptions={carrierOptions}
+        shipmentDetails={shipmentDetailsFixture}
         defaultPickup={DEF_PICKUP}
         defaultDelivery={DEF_DELIVERY}
         readOnly={false}
@@ -1348,6 +1418,7 @@ describe('SetupCarriers', () => {
     const renderIt = (onSendRFQ = () => {}) => render(
       <SetupCarriers
         carrierOptions={carrierOptions}
+        shipmentDetails={shipmentDetailsFixture}
         defaultPickup={DEF_PICKUP}
         defaultDelivery={DEF_DELIVERY}
         readOnly={false}
