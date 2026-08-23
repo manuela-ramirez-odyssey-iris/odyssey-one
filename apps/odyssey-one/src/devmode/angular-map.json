@@ -1,0 +1,372 @@
+{
+  "Accordion": {
+    "selector": "odyssey-accordion",
+    "version": "0.9.0",
+    "normalizing": false
+  },
+  "ActionMenu": {
+    "selector": "odyssey-action-menu",
+    "version": "0.13.0",
+    "normalizing": false
+  },
+  "AddSectionButton": {
+    "selector": "odyssey-add-section-button",
+    "version": "0.2.0",
+    "normalizing": false
+  },
+  "AddSectionDivider": {
+    "selector": "odyssey-add-section-divider",
+    "version": "0.2.0",
+    "normalizing": false
+  },
+  "Alert": {
+    "selector": "odyssey-alert",
+    "version": "0.9.0",
+    "normalizing": true
+  },
+  "AuthContent": {
+    "selector": "odyssey-auth-content",
+    "version": "0.2.0",
+    "normalizing": false
+  },
+  "AuthModal": {
+    "selector": "odyssey-auth-modal",
+    "version": "0.2.0",
+    "normalizing": false
+  },
+  "Badge": {
+    "selector": "odyssey-badge",
+    "version": "0.4.0",
+    "normalizing": false
+  },
+  "Breadcrumb": {
+    "selector": "odyssey-breadcrumb",
+    "version": "0.4.0",
+    "normalizing": false
+  },
+  "Button": {
+    "selector": "odyssey-button",
+    "version": "0.3.0",
+    "normalizing": false
+  },
+  "ButtonToggle": {
+    "selector": "odyssey-button-toggle",
+    "version": "0.2.0",
+    "normalizing": false
+  },
+  "Checkbox": {
+    "selector": "odyssey-checkbox",
+    "version": "0.2.0",
+    "normalizing": false
+  },
+  "CustomerRow": {
+    "selector": "odyssey-customer-row",
+    "version": "0.2.0",
+    "normalizing": false
+  },
+  "DataTable": {
+    "selector": "odyssey-data-table",
+    "version": "0.13.0",
+    "normalizing": false
+  },
+  "Dropdown": {
+    "selector": "odyssey-dropdown",
+    "version": "0.3.0",
+    "normalizing": false
+  },
+  "DropdownButton": {
+    "selector": "odyssey-dropdown-button",
+    "version": "0.13.0",
+    "normalizing": false
+  },
+  "DropdownMenu": {
+    "selector": "odyssey-dropdown-menu",
+    "version": "0.3.0",
+    "normalizing": false
+  },
+  "EmptyState": {
+    "selector": "odyssey-empty-state",
+    "version": "0.2.0",
+    "normalizing": false
+  },
+  "FieldSearchResults": {
+    "selector": "odyssey-field-search-results",
+    "version": "0.9.0",
+    "normalizing": false
+  },
+  "FieldSelect": {
+    "selector": "odyssey-field-select",
+    "version": "0.10.0",
+    "normalizing": false
+  },
+  "FilterButton": {
+    "selector": "odyssey-filter-button",
+    "version": "0.2.0",
+    "normalizing": false
+  },
+  "FilterSuggestions": {
+    "selector": "odyssey-filter-suggestions",
+    "version": "0.7.0",
+    "normalizing": false
+  },
+  "FormField": {
+    "selector": "odyssey-form-field",
+    "version": "0.10.0",
+    "normalizing": false
+  },
+  "GlobalSearch": {
+    "selector": "odyssey-global-search",
+    "version": "0.13.0",
+    "normalizing": true
+  },
+  "GlobalSearchPanel": {
+    "selector": "odyssey-global-search-panel",
+    "version": "0.13.0",
+    "normalizing": false
+  },
+  "GlobalSearchResults": {
+    "selector": "odyssey-global-search-results",
+    "version": "0.6.0",
+    "normalizing": false
+  },
+  "GroupTable": {
+    "selector": "odyssey-group-table",
+    "version": "0.13.0",
+    "normalizing": true
+  },
+  "IconButtonGhost": {
+    "selector": "odyssey-icon-button-ghost",
+    "version": "0.2.0",
+    "normalizing": false
+  },
+  "LeadNav": {
+    "selector": "odyssey-lead-nav",
+    "version": "0.2.0",
+    "normalizing": true
+  },
+  "MatchRow": {
+    "selector": "odyssey-match-row",
+    "version": "0.6.0",
+    "normalizing": false
+  },
+  "MatchSimpleRow": {
+    "selector": "odyssey-match-simple-row",
+    "version": "0.9.0",
+    "normalizing": false
+  },
+  "MenuDropdown": {
+    "selector": "odyssey-menu-dropdown",
+    "version": "0.2.0",
+    "normalizing": false
+  },
+  "MenuRow": {
+    "selector": "odyssey-menu-row",
+    "version": "0.4.0",
+    "normalizing": false
+  },
+  "MenuRowCheckbox": {
+    "selector": "odyssey-menu-row-checkbox",
+    "version": "0.4.0",
+    "normalizing": false
+  },
+  "MenuRowRadio": {
+    "selector": "odyssey-menu-row-radio",
+    "version": "0.13.0",
+    "normalizing": false
+  },
+  "ModalFooter": {
+    "selector": "odyssey-modal-footer",
+    "version": "0.7.0",
+    "normalizing": false
+  },
+  "ModalHeader": {
+    "selector": "odyssey-modal-header",
+    "version": "0.5.0",
+    "normalizing": false
+  },
+  "ModalLarge": {
+    "selector": "odyssey-modal-large",
+    "version": "0.2.0",
+    "normalizing": true
+  },
+  "ModalMedium": {
+    "selector": "odyssey-modal-medium",
+    "version": "0.14.0",
+    "normalizing": true
+  },
+  "MultiSelect": {
+    "selector": "odyssey-multi-select",
+    "version": "0.9.0",
+    "normalizing": false
+  },
+  "Navbar": {
+    "selector": "odyssey-navbar",
+    "version": "0.2.0",
+    "normalizing": true
+  },
+  "OdysseyLogo": {
+    "selector": "odyssey-logo",
+    "version": "0.2.0",
+    "normalizing": false
+  },
+  "PageHeader": {
+    "selector": "odyssey-page-header",
+    "version": "0.5.0",
+    "normalizing": false
+  },
+  "PaginationButton": {
+    "selector": "odyssey-pagination-button",
+    "version": "0.3.0",
+    "normalizing": false
+  },
+  "Paginator": {
+    "selector": "odyssey-paginator",
+    "version": "0.9.0",
+    "normalizing": false
+  },
+  "PillTab": {
+    "selector": "odyssey-pill-tab",
+    "version": "0.7.0",
+    "normalizing": false
+  },
+  "Radio": {
+    "selector": "odyssey-radio",
+    "version": "0.2.0",
+    "normalizing": false
+  },
+  "RightPanel": {
+    "selector": "odyssey-right-panel",
+    "version": "0.7.0",
+    "normalizing": false
+  },
+  "SearchChip": {
+    "selector": "odyssey-search-chip",
+    "version": "0.12.0",
+    "normalizing": false
+  },
+  "SectionHeader": {
+    "selector": "odyssey-section-header",
+    "version": "0.2.0",
+    "normalizing": false
+  },
+  "SectionLabel": {
+    "selector": "odyssey-section-label",
+    "version": "0.2.0",
+    "normalizing": false
+  },
+  "ShipmentsBar": {
+    "selector": "odyssey-shipments-bar",
+    "version": "0.9.0",
+    "normalizing": true
+  },
+  "Sidebar": {
+    "selector": "odyssey-sidebar",
+    "version": "0.2.0",
+    "normalizing": false
+  },
+  "SidebarButton": {
+    "selector": "odyssey-sidebar-button",
+    "version": "0.2.0",
+    "normalizing": false
+  },
+  "Spinner": {
+    "selector": "odyssey-spinner",
+    "version": "0.12.0",
+    "normalizing": false
+  },
+  "StepIndicator": {
+    "selector": "odyssey-step-indicator",
+    "version": "0.9.0",
+    "normalizing": false
+  },
+  "StepperButtonsFooter": {
+    "selector": "odyssey-stepper-buttons-footer",
+    "version": "0.5.0",
+    "normalizing": false
+  },
+  "StopBadge": {
+    "selector": "odyssey-stop-badge",
+    "version": "0.7.0",
+    "normalizing": false
+  },
+  "SubAccordion": {
+    "selector": "odyssey-sub-accordion",
+    "version": "0.7.0",
+    "normalizing": false
+  },
+  "SummaryStrip": {
+    "selector": "odyssey-summary-strip",
+    "version": "0.13.0",
+    "normalizing": true
+  },
+  "Tab": {
+    "selector": "odyssey-tab",
+    "version": "0.2.0",
+    "normalizing": false
+  },
+  "TextArea": {
+    "selector": "odyssey-text-area",
+    "version": "0.6.0",
+    "normalizing": false
+  },
+  "TimePicker": {
+    "selector": "odyssey-time-picker",
+    "version": "0.13.0",
+    "normalizing": true
+  },
+  "Timeline": {
+    "selector": "odyssey-timeline",
+    "version": "0.7.0",
+    "normalizing": false
+  },
+  "TitleSubtitle": {
+    "selector": "odyssey-title-subtitle",
+    "version": "0.5.0",
+    "normalizing": false
+  },
+  "Tooltip": {
+    "selector": "odyssey-tooltip",
+    "version": "0.4.0",
+    "normalizing": false
+  },
+  "TrailNav": {
+    "selector": "odyssey-trail-nav",
+    "version": "0.2.0",
+    "normalizing": true
+  },
+  "Widget": {
+    "selector": "odyssey-widget",
+    "version": "0.2.0",
+    "normalizing": false
+  },
+  "WidgetCtaRow": {
+    "selector": "odyssey-widget-cta-row",
+    "version": "0.2.0",
+    "normalizing": false
+  },
+  "WidgetMetricRow": {
+    "selector": "odyssey-widget-metric-row",
+    "version": "0.2.0",
+    "normalizing": false
+  },
+  "WidgetMini": {
+    "selector": "odyssey-widget-mini",
+    "version": "0.6.0",
+    "normalizing": false
+  },
+  "WidgetPieChart": {
+    "selector": "odyssey-widget-pie-chart",
+    "version": "0.6.0",
+    "normalizing": false
+  },
+  "WidgetVariantPicker": {
+    "selector": "odyssey-widget-variant-picker",
+    "version": "0.2.0",
+    "normalizing": false
+  },
+  "WidgetsLeftMenu": {
+    "selector": "odyssey-widgets-left-menu",
+    "version": "0.2.0",
+    "normalizing": false
+  }
+}
