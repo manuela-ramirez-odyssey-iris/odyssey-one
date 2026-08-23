@@ -62,7 +62,7 @@ export default function DevDetailModal({ name, onClose }) {
             Open in React DSM
           </a>
           {angularUrl ? (
-            <a className="devmode-detail__link" href={angularUrl}>
+            <a className="devmode-detail__link" href={angularUrl} target="_blank" rel="noopener">
               Open in Angular DSM
             </a>
           ) : (

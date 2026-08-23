@@ -14,9 +14,8 @@ import angularMap from './angular-map.json'
 
 const demoLoaders = import.meta.glob('../routes/design-system/demos/*.demo.jsx')
 
-// null value ⇒ Task 7 (publish Angular DSM) hasn't landed yet; dsmUrl()
-// returns null for 'angular' until this is filled in.
-export const ANGULAR_DSM_URL = null
+// Task 7 (publish Angular DSM) landed 2026-08-23 — live at this URL.
+export const ANGULAR_DSM_URL = 'https://odyssey-dsm-angular-stage.vercel.app'
 
 let indexPromise = null
 let resolvedIndex = null // set once loadDemoIndex() resolves; powers the sync read path

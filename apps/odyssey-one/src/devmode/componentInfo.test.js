@@ -75,8 +75,8 @@ describe('dsmUrl', () => {
     expect(dsmUrl('Badge', 'react')).toBe('/design-system#comp-Badge')
   })
 
-  it('returns null for framework "angular" while ANGULAR_DSM_URL is unset', () => {
-    expect(ANGULAR_DSM_URL).toBeNull()
-    expect(dsmUrl('Badge', 'angular')).toBeNull()
+  it('returns the Angular DSM deep-link for framework "angular"', () => {
+    expect(ANGULAR_DSM_URL).toBe('https://odyssey-dsm-angular-stage.vercel.app')
+    expect(dsmUrl('Badge', 'angular')).toBe('https://odyssey-dsm-angular-stage.vercel.app#comp-Badge')
   })
 })

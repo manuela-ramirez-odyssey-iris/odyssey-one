@@ -58,6 +58,26 @@ describe('DevDetailModal — ported component', () => {
 
     const reactLink = screen.getByRole('link', { name: /open in react dsm/i })
     expect(reactLink.getAttribute('href')).toBe('/design-system#comp-Badge')
+    // Same-app deep link — stays in the current tab, no target/rel.
+    expect(reactLink.getAttribute('target')).toBeNull()
+  })
+
+  it('renders a real Angular DSM link, opened in a new tab, when dsmUrl resolves one', async () => {
+    getComponentInfo.mockResolvedValue(PORTED_INFO)
+    // Once-only overrides (not mockImplementation) — clearAllMocks() in
+    // afterEach doesn't restore the vi.mock() factory's base implementation,
+    // so a persistent override here would leak into later tests.
+    dsmUrl.mockImplementationOnce((name) => `/design-system#comp-${name}`)
+    dsmUrl.mockImplementationOnce((name) => `https://odyssey-dsm-angular-stage.vercel.app#comp-${name}`)
+    render(<DevDetailModal name="Badge" onClose={() => {}} />)
+
+    await waitFor(() => expect(screen.getByRole('dialog')).toBeTruthy())
+
+    const angularLink = screen.getByRole('link', { name: /open in angular dsm/i })
+    expect(angularLink.getAttribute('href')).toBe('https://odyssey-dsm-angular-stage.vercel.app#comp-Badge')
+    // Cross-site DSM link — new tab, no tab-nabbing via noopener.
+    expect(angularLink.getAttribute('target')).toBe('_blank')
+    expect(angularLink.getAttribute('rel')).toBe('noopener')
   })
 })
 
