@@ -32,6 +32,11 @@ EXCLUDES=(
   ':(exclude)vault-sources'
   ':(exclude,glob)**/~$*'
   ':(exclude,glob)**/*.xlsx.zip'
+  # Story-pack zips are HANDOFF artifacts built FROM files already tracked
+  # loose in the same folder (docs/story-packs/<pack>/) — committing one puts
+  # ~9MB of duplicate content in history permanently. Ship the zip over
+  # Teams/e-mail; git keeps the folder. (S129.)
+  ':(exclude,glob)docs/story-packs/*.zip'
   # vault/00-inbox is a TRANSIENT drop zone and the vault is markdown-only by
   # architecture — raw binaries there are destined for vault-sources/ (already
   # excluded above), so committing them would put them in history permanently
