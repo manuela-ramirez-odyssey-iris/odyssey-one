@@ -58,7 +58,7 @@ describe('findUiComponent', () => {
   })
 
   it('resolves through an app-local component nested inside a ui component', () => {
-    render(
+    const { container } = render(
       <Badge variant="blue">
         <LocalWrapper>
           <span data-testid="inner">Hi</span>
@@ -69,5 +69,18 @@ describe('findUiComponent', () => {
     const result = findUiComponent(inner)
     expect(result).not.toBeNull()
     expect(result.name).toBe('Badge')
+    expect(result.element).toBe(container.firstChild)
+  })
+
+  it('does NOT match an app-local component that merely shares a name with a real ui export (identity, not name string)', () => {
+    // Minified prod bundles strip function names, so matching must key off
+    // the actual exported component reference — not `type.name`/displayName
+    // string equality, which a same-named local component could spoof.
+    function Badge() {
+      return <div data-testid="fake-badge">Not the real thing</div>
+    }
+    render(<Badge />)
+    const fake = screen.getByTestId('fake-badge')
+    expect(findUiComponent(fake)).toBeNull()
   })
 })

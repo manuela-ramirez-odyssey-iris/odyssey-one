@@ -9,8 +9,18 @@ import * as UI from '@odyssey/ui'
 
 const FIBER_KEY_RE = /^__reactFiber\$/
 
+// Reverse map component reference → export name. Matching must key off the
+// actual exported reference, not a name STRING: vite's prod build minifies
+// function names (no keepNames), so `fiber.type.name` is empty on the
+// deployed bundle — and even unminified, a same-named local component would
+// spoof a string match. `fiber.type` is reference-equal to the namespace
+// export because the workspace package bundles once. `Map.get` on a
+// non-function `fiber.type` (e.g. a host string like 'div') is safely
+// `undefined`, so no separate typeof guard is needed in the hot path.
+const uiTypeToName = new Map(Object.entries(UI).map(([name, comp]) => [comp, name]))
+
 // Derived from the real package exports — never hand-typed, so it can't drift.
-export const uiNameSet = new Set(Object.keys(UI))
+export const uiNameSet = new Set(uiTypeToName.values())
 
 export function isUiComponentName(name) {
   return uiNameSet.has(name)
@@ -35,15 +45,15 @@ function getFiber(domNode) {
 }
 
 // No forwardRef/memo components exist in packages/ui/src as of this writing
-// (grep confirms) — every export's fiber.type is a plain function, so name
-// resolution is just displayName ?? name. Add object-type unwrapping here if
-// a forwardRef/memo component ever ships.
-function componentName(type) {
-  return typeof type === 'function' ? (type.displayName ?? type.name) : null
-}
+// (grep confirms) — every export's fiber.type is the plain function itself,
+// so identity matching against uiTypeToName needs no object-type unwrapping.
+// Add it here (map over .render / .type) if a forwardRef/memo component ever ships.
 
 // First host (DOM) fiber at or below `fiber`, following only the child chain
 // (first-rendered-element order), per spec.
+// ponytail: doesn't follow portals (a child rendered via createPortal has no
+// fiber `.child` link back into this tree) or a childless fiber — both fall
+// through to `null`. Callers (Task 4) must null-check `element`.
 function firstHostElement(fiber) {
   let f = fiber
   while (f) {
@@ -59,9 +69,9 @@ export function findUiComponent(domNode) {
 
   let match = null
   for (let fiber = startFiber; fiber; fiber = fiber.return) {
-    if (isUiComponentName(componentName(fiber.type))) match = fiber
+    if (uiTypeToName.has(fiber.type)) match = fiber
   }
   if (!match) return null
 
-  return { name: componentName(match.type), element: firstHostElement(match) }
+  return { name: uiTypeToName.get(match.type), element: firstHostElement(match) }
 }
