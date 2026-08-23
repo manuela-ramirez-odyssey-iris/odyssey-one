@@ -1,0 +1,49 @@
+/* Dev-mode overlay — outlines + chips drawn over @odyssey/ui components.
+   Layout-critical properties (position, inset, pointer-events, per-item
+   geometry) are set inline in DevOverlay.jsx so JS-computed rects stay the
+   source of truth; this file only carries decoration + stacking.
+
+   ponytail: raw hex, not design tokens. This overlay is dev TOOLING, not
+   product UI — it must read as obviously-not-product, and borrowing a
+   product accent color would blur that line. Tokens live in
+   packages/tokens/tokens.css; none of them are "obviously not real UI",
+   which is the whole point here. Exempt by design. */
+
+.devmode-overlay {
+  /* Clears every stacking layer found in the app: components.css' highest
+     modal/popover (.customers-popover__content, z-index: 9000) and the
+     highest ad-hoc inline zIndex (RoutingGuideTab.jsx / ProductTab.jsx
+     tooltips, 99999). The overlay must sit above all of it. */
+  z-index: 999999;
+}
+
+.devmode-outline {
+  border: 1px solid #e619c9;
+  box-sizing: border-box;
+  background: rgba(230, 25, 201, 0.06);
+}
+
+.devmode-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #e619c9;
+  color: #fff;
+  font: 500 11px/1.4 monospace;
+  white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+
+.devmode-chip--muted {
+  background: #6b6b6b;
+}
+
+.devmode-chip__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #f5a623;
+  flex-shrink: 0;
+}
