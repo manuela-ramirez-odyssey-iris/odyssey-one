@@ -23,18 +23,42 @@ const angularRepo = process.argv[2]
 const demosDir = join(angularRepo, 'src', 'app', 'demos')
 
 // Replicates inspect.js's uiTypeToName dedup: `packages/ui/src/index.js` has
-// one alias line (`SearchField` re-exports ComboBox.jsx's default) — Map
-// key = component reference (== module file), so the LAST `export { default
-// as X } from './File.jsx'` line for a given file wins. Parsed here from the
-// plain-JS index (no bundler needed) so this script has zero build deps.
+// one alias line (`SearchField` re-exports ComboBox.jsx's default, commented
+// "former name — prefer ComboBox") — Map key = component reference (== module
+// file), first-wins, so the canonical (first-declared) name survives the
+// alias. Parsed here from the plain-JS index (no bundler needed) so this
+// script has zero build deps.
 function loadReactNameSet() {
   const indexPath = join(REPO_ROOT, 'packages', 'ui', 'src', 'index.js')
   const src = readFileSync(indexPath, 'utf8')
-  const byModule = new Map() // modulePath -> exported name (last wins)
+  const byModule = new Map() // modulePath -> exported name (first wins)
   for (const m of src.matchAll(/^export \{ default as (\w+) \} from '(\.\/[^']+)';$/gm)) {
-    byModule.set(m[2], m[1])
+    if (!byModule.has(m[2])) byModule.set(m[2], m[1])
   }
   return new Set(byModule.values())
+}
+
+// ── Angular lib selector verification ───────────────────────────────────────
+// Concatenated text of every .ts file under the Angular lib package, lazily
+// loaded once. Used to VERIFY a derived selector actually exists rather than
+// trusting the odyssey-<kebab-case> naming convention blindly.
+let libText = null
+function loadLibText(angularRepo) {
+  if (libText === null) {
+    const libDir = join(angularRepo, 'projects', 'odyssey-ui', 'src', 'lib')
+    const files = readdirSync(libDir, { recursive: true }).filter((f) => f.endsWith('.ts'))
+    libText = files.map((f) => readFileSync(join(libDir, f), 'utf8')).join('\n')
+  }
+  return libText
+}
+
+function selectorExists(angularRepo, selector) {
+  const text = loadLibText(angularRepo)
+  return text.includes(`'${selector}'`) || text.includes(`"${selector}"`)
+}
+
+function kebabCase(name) {
+  return name.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase()
 }
 
 function extractField(block, field) {
@@ -87,6 +111,29 @@ function main() {
       skippedDeprecated.push(`${file} (${meta.name})`)
       continue
     }
+
+    // ponytail special case: a handful of Angular demos document TWO React
+    // components sharing one demo page (e.g. "CalendarPicker + DatePicker").
+    // meta.angularName only names ONE of them, so it can't be trusted here —
+    // derive each half's selector from the odyssey-<kebab-case> convention and
+    // verify it's real (grep the lib) before emitting, don't just assume the
+    // convention holds for every future joint meta.
+    if (meta.name.includes(' + ')) {
+      for (const part of meta.name.split(' + ').map((s) => s.trim())) {
+        if (!reactNames.has(part)) {
+          excludedNotInReact.push(`${file}: split name '${part}' (from '${meta.name}') not in current @odyssey/ui exports`)
+          continue
+        }
+        const selector = `odyssey-${kebabCase(part)}`
+        if (!selectorExists(angularRepo, selector)) {
+          excludedNotInReact.push(`${file}: derived selector '${selector}' for '${part}' not found under projects/odyssey-ui/src/lib`)
+          continue
+        }
+        map[part] = { selector, version: meta.version, normalizing: meta.normalizing }
+      }
+      continue
+    }
+
     if (!reactNames.has(meta.name)) {
       excludedNotInReact.push(`${file}: name '${meta.name}' not in current @odyssey/ui exports`)
       continue
