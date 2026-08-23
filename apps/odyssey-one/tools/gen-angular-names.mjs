@@ -9,33 +9,42 @@
 // string/bool literals in a hand-written object, a real parser buys nothing
 // here. If a meta ever computes a field instead of literal-izing it, this
 // breaks loudly (field comes back undefined) rather than silently.
-import { readdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { join, dirname } from 'node:path'
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { join, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const REPO_ROOT = join(__dirname, '..', '..', '..') // apps/odyssey-one/tools -> repo root
 const OUT_PATH = join(__dirname, '..', 'src', 'devmode', 'angular-map.json')
 
+// resolve() (not join(cwd, ...)) so an absolute path argument passes through
+// unchanged instead of getting prefixed with cwd again.
 const angularRepo = process.argv[2]
-  ? join(process.cwd(), process.argv[2])
+  ? resolve(process.argv[2])
   : join(REPO_ROOT, '..', 'odyssey-one-library-ui')
+if (!existsSync(angularRepo)) {
+  console.error(`Angular repo not found at ${angularRepo}`)
+  console.error('Usage: node gen-angular-names.mjs [path-to-odyssey-one-library-ui]')
+  process.exit(1)
+}
 const demosDir = join(angularRepo, 'src', 'app', 'demos')
 
-// Replicates inspect.js's uiTypeToName dedup: `packages/ui/src/index.js` has
-// one alias line (`SearchField` re-exports ComboBox.jsx's default, commented
-// "former name — prefer ComboBox") — Map key = component reference (== module
-// file), first-wins, so the canonical (first-declared) name survives the
-// alias. Parsed here from the plain-JS index (no bundler needed) so this
-// script has zero build deps.
+// Mirrors inspect.js's DEPRECATED_ALIASES exactly — keep the two in sync (see
+// inspect.js for why: module namespace enumeration is alphabetical, not
+// source order, so aliases must be excluded explicitly). This function parses
+// genuine source declaration order from the plain-JS index (no bundler
+// needed), so it doesn't need inspect.js's reference-dedup Map — just drop
+// the known alias name.
+const DEPRECATED_ALIASES = new Set(['SearchField'])
+
 function loadReactNameSet() {
   const indexPath = join(REPO_ROOT, 'packages', 'ui', 'src', 'index.js')
   const src = readFileSync(indexPath, 'utf8')
-  const byModule = new Map() // modulePath -> exported name (first wins)
+  const names = new Set()
   for (const m of src.matchAll(/^export \{ default as (\w+) \} from '(\.\/[^']+)';$/gm)) {
-    if (!byModule.has(m[2])) byModule.set(m[2], m[1])
+    if (!DEPRECATED_ALIASES.has(m[1])) names.add(m[1])
   }
-  return new Set(byModule.values())
+  return names
 }
 
 // ── Angular lib selector verification ───────────────────────────────────────

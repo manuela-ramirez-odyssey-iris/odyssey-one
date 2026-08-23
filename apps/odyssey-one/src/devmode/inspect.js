@@ -18,13 +18,21 @@ const FIBER_KEY_RE = /^__reactFiber\$/
 // non-function `fiber.type` (e.g. a host string like 'div') is safely
 // `undefined`, so no separate typeof guard is needed in the hot path.
 //
-// First-wins: packages/ui/src/index.js aliases some exports (e.g. `SearchField`
-// re-exports ComboBox.jsx's default, commented "former name — prefer ComboBox").
-// The canonical name is always declared first, so iterating Object.entries in
-// source order and keeping only the first name per reference resolves aliases
-// to the canonical name instead of whichever was declared last.
+// Module namespace objects (`import * as UI`) enumerate their keys
+// ALPHABETICALLY (ECMA-262 module namespace exotic object [[OwnPropertyKeys]]
+// sorts exported names) — NOT in source declaration order. So "keep the
+// first entry per reference" would silently pick whichever alias sorts
+// first alphabetically, not the canonical name (it only looked
+// order-dependent-correct before because 'ComboBox' < 'SearchField').
+// packages/ui/src/index.js has one alias line today (`SearchField` re-exports
+// ComboBox.jsx's default, commented "former name — prefer ComboBox") — list
+// it here and skip it explicitly. Add to this set whenever index.js adds
+// another alias. gen-angular-names.mjs hardcodes the same set — keep in sync.
+const DEPRECATED_ALIASES = new Set(['SearchField'])
+
 const uiTypeToName = new Map()
 for (const [name, comp] of Object.entries(UI)) {
+  if (DEPRECATED_ALIASES.has(name)) continue
   if (!uiTypeToName.has(comp)) uiTypeToName.set(comp, name)
 }
 

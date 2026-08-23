@@ -2,7 +2,7 @@
 import { describe, it, expect } from 'vitest'
 import angularMap from './angular-map.json'
 import { uiNameSet } from './inspect.js'
-import { getComponentInfo, dsmUrl, ANGULAR_DSM_URL } from './componentInfo.js'
+import { getComponentInfo, getComponentInfoSync, preloadComponentInfo, dsmUrl, ANGULAR_DSM_URL } from './componentInfo.js'
 
 describe('angular-map.json', () => {
   it('parses to a plain object', () => {
@@ -16,6 +16,28 @@ describe('angular-map.json', () => {
   it('every key is a real @odyssey/ui export name', () => {
     const stale = Object.keys(angularMap).filter((name) => !uiNameSet.has(name))
     expect(stale).toEqual([])
+  })
+})
+
+// Must run before anything else in this file awaits getComponentInfo/
+// preloadComponentInfo — the demo index is a module-level singleton, and this
+// test's whole point is observing its state BEFORE it has resolved.
+describe('getComponentInfoSync + preloadComponentInfo', () => {
+  it('returns angular-side data synchronously before the demo index has loaded', () => {
+    const info = getComponentInfoSync('Badge')
+    expect(info.react).toBeNull()
+    expect(info.angular).not.toBeNull()
+    expect(info.angular.selector).toBe(angularMap.Badge.selector)
+    expect(info.ported).toBe(true)
+  })
+
+  it('returns full merged data synchronously after preloadComponentInfo() resolves', async () => {
+    await preloadComponentInfo()
+    const info = getComponentInfoSync('Badge')
+    expect(info.react).not.toBeNull()
+    expect(info.react.version).toBeTruthy()
+    expect(info.angular).not.toBeNull()
+    expect(info.ported).toBe(true)
   })
 })
 
