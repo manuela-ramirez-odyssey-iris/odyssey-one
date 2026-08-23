@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, it, expect } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
-import { useDevMode, setEnabled, setMode, setFramework, _resetForTests } from './useDevMode.js'
+import { useDevMode, setEnabled, setMode, setFramework, setCorner, _resetForTests } from './useDevMode.js'
 
 function setSearch(search) {
   window.history.pushState({}, '', `/${search}`)
@@ -20,6 +20,27 @@ describe('useDevMode', () => {
     expect(result.current.mode).toBe('hover')
     expect(result.current.framework).toBe('react')
     expect(result.current.everActivated).toBe(false)
+    expect(result.current.corner).toBe('br')
+  })
+
+  it('setCorner updates the store and persists', () => {
+    const { result } = renderHook(() => useDevMode())
+
+    act(() => result.current.setCorner('tl'))
+
+    expect(result.current.corner).toBe('tl')
+    const stored = JSON.parse(localStorage.getItem('odyssey-devmode'))
+    expect(stored.corner).toBe('tl')
+
+    _resetForTests()
+    const { result: second } = renderHook(() => useDevMode())
+    expect(second.current.corner).toBe('tl')
+  })
+
+  it('raw setCorner works outside React', () => {
+    setCorner('bl')
+    const { result } = renderHook(() => useDevMode())
+    expect(result.current.corner).toBe('bl')
   })
 
   it('?dev=1 enables dev mode and sets everActivated on first read', () => {

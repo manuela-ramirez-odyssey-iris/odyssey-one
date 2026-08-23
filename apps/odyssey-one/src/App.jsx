@@ -16,6 +16,7 @@ import SpotBidRoute from './routes/spotbid/SpotBidRoute.jsx'
 import SpotBidDetailRoute from './routes/spotbid/SpotBidDetailRoute.jsx'
 import ButtonDemo from './routes/ButtonDemo.jsx'
 import DesignSystem from './routes/design-system/DesignSystem.jsx'
+import DevMode from './devmode/DevMode.jsx'
 
 // Standalone external page (no AppShell) — lazy so the token-decode +
 // shipment-detail bid form never lands in the main app bundle.
@@ -94,6 +95,7 @@ export default function App() {
         />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      <DevMode />
     </QueryClientProvider>
   )
 }

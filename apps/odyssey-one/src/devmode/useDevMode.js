@@ -7,7 +7,7 @@
 import { useSyncExternalStore } from 'react'
 
 const STORAGE_KEY = 'odyssey-devmode'
-const DEFAULTS = { enabled: false, mode: 'hover', framework: 'react', everActivated: false }
+const DEFAULTS = { enabled: false, mode: 'hover', framework: 'react', everActivated: false, corner: 'br' }
 
 let state = { ...DEFAULTS }
 let initialized = false
@@ -88,6 +88,10 @@ export function setFramework(framework) {
   update({ framework })
 }
 
+export function setCorner(corner) {
+  update({ corner })
+}
+
 export function getState() {
   ensureInit()
   return state
@@ -105,7 +109,7 @@ function getSnapshot() {
 
 export function useDevMode() {
   const snap = useSyncExternalStore(subscribe, getSnapshot)
-  return { ...snap, setEnabled, setMode, setFramework }
+  return { ...snap, setEnabled, setMode, setFramework, setCorner }
 }
 
 // Test-only: force the next read to re-evaluate URL/localStorage from

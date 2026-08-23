@@ -47,3 +47,179 @@
   background: #f5a623;
   flex-shrink: 0;
 }
+
+/* Toggle cluster (DevToggle) — must sit above .devmode-overlay (z-index
+   999999) since the button lives at a viewport corner where a hover/all-mode
+   chip could otherwise land on top of it and eat its clicks. */
+.devmode-toggle-cluster {
+  position: fixed;
+  z-index: 1000000;
+  /* Content-sized (no inset:0 — this isn't a full-viewport layer like
+     .devmode-overlay), so pointer-events: auto here is safe: it only makes
+     the button + menu's own footprint interactive, not the whole screen. */
+  pointer-events: auto;
+}
+.devmode-toggle-cluster--tl { top: 16px; left: 16px; }
+.devmode-toggle-cluster--tr { top: 16px; right: 16px; }
+.devmode-toggle-cluster--bl { bottom: 16px; left: 16px; }
+.devmode-toggle-cluster--br { bottom: 16px; right: 16px; }
+
+.devmode-toggle {
+  position: relative;
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #6b6b6b;
+  color: #fff;
+  font: 700 10px/1 monospace;
+  cursor: grab;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  touch-action: none; /* pointer drag owns this element, not browser scroll/zoom gestures */
+  user-select: none;
+}
+
+.devmode-toggle--on {
+  background: #e619c9;
+}
+
+.devmode-toggle__chevron {
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #fff;
+  border-radius: 50%;
+  background: #333;
+  color: #fff;
+  font-size: 10px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.devmode-menu {
+  position: absolute;
+  pointer-events: auto;
+  min-width: 160px;
+  padding: 6px;
+  border-radius: 6px;
+  background: #1e1e1e;
+  color: #fff;
+  font: 12px/1.4 monospace;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+}
+/* Opens TOWARD viewport center: vertical side flips opposite the button's
+   corner, horizontal side stays anchored to the same edge (the menu's own
+   width then grows inward from there). */
+.devmode-menu--tl, .devmode-menu--tr { top: 100%; margin-top: 8px; }
+.devmode-menu--bl, .devmode-menu--br { bottom: 100%; margin-bottom: 8px; }
+.devmode-menu--tl, .devmode-menu--bl { left: 0; }
+.devmode-menu--tr, .devmode-menu--br { right: 0; }
+
+.devmode-menu__group + .devmode-menu__group {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.devmode-menu__label {
+  padding: 4px 8px 2px;
+  color: #999;
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.devmode-menu__option {
+  display: block;
+  width: 100%;
+  padding: 6px 8px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: #ddd;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.devmode-menu__option:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.devmode-menu__option--active {
+  color: #e619c9;
+  font-weight: 700;
+}
+
+/* Detail modal (DevDetailModal) content — same "obviously not product UI"
+   exemption as the rest of this file. */
+.devmode-detail__columns {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.devmode-detail__column {
+  flex: 1;
+  min-width: 0;
+}
+
+.devmode-detail__column-title {
+  margin: 0 0 4px;
+  color: #6b6b6b;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.devmode-detail__column-body {
+  margin: 0;
+  font: 12px/1.4 monospace;
+}
+
+.devmode-detail__muted {
+  margin: 0;
+  color: #999;
+  font: 12px/1.4 monospace;
+}
+
+.devmode-badge-normalizing {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: #f5a623;
+  color: #fff;
+  font: 700 10px/1.6 monospace;
+}
+
+.devmode-detail__props {
+  width: 100%;
+  border-collapse: collapse;
+  font: 11px/1.4 monospace;
+}
+
+.devmode-detail__props th,
+.devmode-detail__props td {
+  padding: 4px 8px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  text-align: left;
+  vertical-align: top;
+}
+
+.devmode-detail__link {
+  color: #e619c9;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.devmode-detail__link--disabled {
+  color: #999;
+  cursor: not-allowed;
+}
