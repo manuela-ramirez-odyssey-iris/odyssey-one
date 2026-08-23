@@ -2,8 +2,8 @@
 import { describe, it, expect, afterEach } from 'vitest'
 import { render, screen, cleanup } from '@testing-library/react'
 import { Star } from 'lucide-react'
-import { Badge, FormField } from '@odyssey/ui'
-import { findUiComponent, isUiComponentName } from './inspect.js'
+import { Badge, ComboBox, FormField } from '@odyssey/ui'
+import { findUiComponent, isUiComponentName, uiNameSet } from './inspect.js'
 
 afterEach(cleanup)
 
@@ -20,6 +20,16 @@ describe('isUiComponentName', () => {
 
   it('rejects a name that is not an @odyssey/ui export', () => {
     expect(isUiComponentName('LocalWrapper')).toBe(false)
+  })
+
+  // packages/ui/src/index.js exports ComboBox.jsx's default under two names
+  // (`ComboBox` first, `SearchField` second — commented "former name, prefer
+  // ComboBox"). uiTypeToName must be first-wins so the canonical name survives
+  // the alias, not last-wins (which would collapse it to the deprecated name).
+  it('resolves the canonical name for an aliased export, not the deprecated alias', () => {
+    expect(isUiComponentName('ComboBox')).toBe(true)
+    expect(isUiComponentName('SearchField')).toBe(false)
+    expect(uiNameSet.has('SearchField')).toBe(false)
   })
 })
 
@@ -70,6 +80,14 @@ describe('findUiComponent', () => {
     expect(result).not.toBeNull()
     expect(result.name).toBe('Badge')
     expect(result.element).toBe(container.firstChild)
+  })
+
+  it('resolves a rendered ComboBox as "ComboBox", not its deprecated alias "SearchField"', () => {
+    const { container } = render(<ComboBox placeholder="Search" />)
+    const input = container.querySelector('input')
+    const result = findUiComponent(input)
+    expect(result).not.toBeNull()
+    expect(result.name).toBe('ComboBox')
   })
 
   it('does NOT match an app-local component that merely shares a name with a real ui export (identity, not name string)', () => {

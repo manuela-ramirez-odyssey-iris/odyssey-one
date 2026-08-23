@@ -17,7 +17,16 @@ const FIBER_KEY_RE = /^__reactFiber\$/
 // export because the workspace package bundles once. `Map.get` on a
 // non-function `fiber.type` (e.g. a host string like 'div') is safely
 // `undefined`, so no separate typeof guard is needed in the hot path.
-const uiTypeToName = new Map(Object.entries(UI).map(([name, comp]) => [comp, name]))
+//
+// First-wins: packages/ui/src/index.js aliases some exports (e.g. `SearchField`
+// re-exports ComboBox.jsx's default, commented "former name — prefer ComboBox").
+// The canonical name is always declared first, so iterating Object.entries in
+// source order and keeping only the first name per reference resolves aliases
+// to the canonical name instead of whichever was declared last.
+const uiTypeToName = new Map()
+for (const [name, comp] of Object.entries(UI)) {
+  if (!uiTypeToName.has(comp)) uiTypeToName.set(comp, name)
+}
 
 // Derived from the real package exports — never hand-typed, so it can't drift.
 export const uiNameSet = new Set(uiTypeToName.values())
