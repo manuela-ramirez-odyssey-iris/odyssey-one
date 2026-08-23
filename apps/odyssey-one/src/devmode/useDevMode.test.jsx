@@ -111,6 +111,15 @@ describe('useDevMode', () => {
     expect(result.current.framework).toBe('angular')
   })
 
+  it('a tampered/regressed localStorage enabled+everActivated cannot bypass the session gate', () => {
+    localStorage.setItem('odyssey-devmode', JSON.stringify({ enabled: true, everActivated: true, mode: 'all' }))
+    const { result } = renderHook(() => useDevMode())
+    expect(result.current.enabled).toBe(false)
+    expect(result.current.everActivated).toBe(false)
+    // preference keys in the same blob still hydrate normally
+    expect(result.current.mode).toBe('all')
+  })
+
   it('a seeded session flag alone activates without the param', () => {
     sessionStorage.setItem('odyssey-devmode-session', JSON.stringify({ enabled: true, everActivated: true }))
     const { result } = renderHook(() => useDevMode())

@@ -81,7 +81,15 @@ function ensureInit() {
   if (typeof window === 'undefined') return
 
   const params = new URLSearchParams(window.location.search)
-  const prefs = readJSON(window.localStorage, STORAGE_KEY)
+  const rawPrefs = readJSON(window.localStorage, STORAGE_KEY)
+  // Session-owned fields are stripped from the localStorage blob before it
+  // touches state — a hand-tampered or regression-written `enabled`/
+  // `everActivated` in localStorage must never bypass the session gate.
+  // Unknown non-session keys still round-trip (see 'merges onto existing
+  // persisted state' test).
+  const prefs = rawPrefs
+    ? Object.fromEntries(Object.entries(rawPrefs).filter(([key]) => !SESSION_FIELDS.includes(key)))
+    : null
   const session = readJSON(window.sessionStorage, SESSION_KEY)
   state = { ...DEFAULTS, ...prefs, ...session }
 
