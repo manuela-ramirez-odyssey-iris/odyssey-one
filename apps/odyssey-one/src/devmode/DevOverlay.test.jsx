@@ -26,6 +26,20 @@ function LocalWrapper({ children }) {
 }
 
 let rootEl
+let rafQueue
+
+// Queue-and-flush rAF stub. A synchronous "call cb immediately" stub is
+// wrong here: `raf = requestAnimationFrame(cb)` runs cb (which sets
+// `raf = null`) BEFORE the outer assignment lands `raf = <id>` — so `raf`
+// ends up truthy again right after, and the throttle guard (`if (raf !=
+// null) return`) latches shut for the rest of the test, silently dropping
+// every later event. Queuing defers the callback until the test explicitly
+// flushes, matching real (async) rAF ordering.
+function flushRaf() {
+  const queued = rafQueue
+  rafQueue = []
+  queued.forEach((cb) => cb())
+}
 
 beforeEach(() => {
   localStorage.clear()
@@ -34,10 +48,10 @@ beforeEach(() => {
   rootEl = document.createElement('div')
   rootEl.id = 'root'
   document.body.appendChild(rootEl)
-  // Run rAF synchronously so "flush rAF" is just "the callback already ran".
+  rafQueue = []
   vi.stubGlobal('requestAnimationFrame', (cb) => {
-    cb()
-    return 1
+    rafQueue.push(cb)
+    return rafQueue.length
   })
   vi.stubGlobal('cancelAnimationFrame', () => {})
 })
@@ -77,6 +91,7 @@ describe('DevOverlay — hover mode', () => {
     document.elementFromPoint = vi.fn(() => badgeNode)
 
     fireEvent.pointerMove(document, { clientX: 10, clientY: 10 })
+    act(() => flushRaf())
 
     const chips = container.querySelectorAll('.devmode-chip')
     expect(chips.length).toBe(1)
@@ -97,6 +112,7 @@ describe('DevOverlay — hover mode', () => {
     const badgeNode = screen.getByText('Hi')
     document.elementFromPoint = vi.fn(() => badgeNode)
     fireEvent.pointerMove(document, { clientX: 1, clientY: 1 })
+    act(() => flushRaf())
 
     act(() => setFramework('angular'))
 
@@ -120,6 +136,7 @@ describe('DevOverlay — hover mode', () => {
     document.elementFromPoint = vi.fn(() => iconButtonNode)
 
     fireEvent.pointerMove(document, { clientX: 1, clientY: 1 })
+    act(() => flushRaf())
 
     const chip = container.querySelector('.devmode-chip')
     expect(chip.textContent).toContain('not ported')
@@ -151,6 +168,43 @@ describe('DevOverlay — all mode', () => {
     expect(texts.filter((t) => t.includes('Badge')).length).toBe(2)
     expect(texts.some((t) => t.includes('EntityChip'))).toBe(true)
   })
+
+  // Route change with no scroll fired in between: allHighlights is stale,
+  // still holding a {name, element} pair whose element is no longer in the
+  // document. Rendering it anyway would getBoundingClientRect() a detached
+  // node (all zeros) — a chip pinned at the viewport corner forever.
+  it('drops a chip once its element is detached from the document, even without a new walk', () => {
+    setEnabled(true)
+    setMode('all')
+    setFramework('react')
+    // build(showBadge) returns a FRESH element tree each call (DevOverlay
+    // stays mounted in the same position, so its state survives — this is
+    // not a remount). Toggling showBadge off makes React unmount Badge the
+    // normal way (a real route change unmounting the previous route's
+    // components), which is what actually detaches the node — no manual
+    // DOM surgery that would fight React's own bookkeeping on cleanup.
+    const build = (showBadge) => (
+      <>
+        {showBadge && <Badge variant="blue">One</Badge>}
+        <DevOverlay onInspect={() => {}} />
+      </>
+    )
+    const { rerender } = render(build(true), { container: rootEl })
+    expect(rootEl.querySelectorAll('.devmode-chip').length).toBe(1)
+
+    // No scroll/resize fired — allHighlights still holds the (now-detached)
+    // Badge element from the original walk. Unmounting Badge and re-reading
+    // `.isConnected` both happen in ONE React commit, so the FIRST rerender
+    // still renders the stale chip (DevOverlay's render phase runs before
+    // Badge's removal actually commits to the DOM — same-pass ordering, a
+    // real React subtlety, not a filter bug). A second, later render pass —
+    // exactly what "some other re-render happens after the route change"
+    // looks like in production — is where the filter actually bites.
+    act(() => rerender(build(false)))
+    act(() => rerender(build(false)))
+
+    expect(rootEl.querySelectorAll('.devmode-chip').length).toBe(0)
+  })
 })
 
 describe('DevOverlay — chip interaction', () => {
@@ -169,6 +223,7 @@ describe('DevOverlay — chip interaction', () => {
     const badgeNode = screen.getByText('Hi')
     document.elementFromPoint = vi.fn(() => badgeNode)
     fireEvent.pointerMove(document, { clientX: 10, clientY: 10 })
+    act(() => flushRaf())
 
     const overlay = container.querySelector('.devmode-overlay')
     const chip = container.querySelector('.devmode-chip')

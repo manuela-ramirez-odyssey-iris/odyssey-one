@@ -113,8 +113,19 @@ export default function DevOverlay({ onInspect = () => {} }) {
   const [allHighlights, setAllHighlights] = useState([]) // [{ name, element }]
 
   // Kick off the DSM demo-index load once, on activation — fire-and-forget.
+  // On a static screen (no scroll/resize/pointermove after this resolves)
+  // nothing would otherwise re-render the already-found chips, so they'd be
+  // stuck showing bare names forever instead of picking up tier/version once
+  // the index lands. Nudge all-mode by re-setting the same array (new
+  // reference, same elements — no re-walk needed, chipContent() just re-reads
+  // the now-populated index on the next render). Hover mode doesn't need the
+  // same nudge: its highlight is already re-set on every pointermove, so it
+  // self-heals the next time the mouse moves.
   useEffect(() => {
-    if (enabled) preloadComponentInfo()
+    if (!enabled) return
+    preloadComponentInfo()
+      .then(() => setAllHighlights((prev) => prev.slice()))
+      .catch(() => {})
   }, [enabled])
 
   const processPointerMove = useCallback((x, y) => {
@@ -159,6 +170,12 @@ export default function DevOverlay({ onInspect = () => {} }) {
   }, [enabled, mode, processPointerMove])
 
   // All mode: walk on activation, and on throttled scroll/resize.
+  // ponytail: no route-change listener — a client-side nav with no scroll
+  // leaves the overlay empty (stale chips already get filtered out above,
+  // so this is "blank until the next scroll," not "wrong") until the walk
+  // re-runs. Upgrade path if that's annoying in practice: a router
+  // location listener, or just re-walk on click (cheap, no new listener
+  // class to clean up).
   useEffect(() => {
     if (!enabled || mode !== 'all') return
     const relayout = () => setAllHighlights(walkAll(overlayRef.current))
@@ -184,7 +201,15 @@ export default function DevOverlay({ onInspect = () => {} }) {
 
   if (!enabled) return null
 
-  const items = mode === 'hover' ? (hoverHighlight ? [hoverHighlight] : []) : allHighlights
+  // Filter detached elements at render time, not just at walk/hover time: a
+  // route change fires neither scroll nor pointermove, so a stale
+  // {name, element} can sit in state pointing at a node React already
+  // unmounted. getBoundingClientRect() on a detached node is all zeros —
+  // without this filter that's a chip pinned at the viewport corner forever.
+  // Covers hover mode's transient case too (element removed mid-hover).
+  const items = (mode === 'hover' ? (hoverHighlight ? [hoverHighlight] : []) : allHighlights).filter(
+    (item) => item.element.isConnected
+  )
 
   return (
     <div ref={overlayRef} className="devmode-overlay" style={{ position: 'fixed', inset: 0, pointerEvents: 'none' }}>
