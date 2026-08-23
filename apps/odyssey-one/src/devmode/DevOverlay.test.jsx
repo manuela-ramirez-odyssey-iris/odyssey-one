@@ -120,6 +120,39 @@ describe('DevOverlay — hover mode', () => {
     expect(chip.textContent).toContain('odyssey-badge')
   })
 
+  it('a devmode-owned element under the pointer keeps the current highlight (does not chip devmode chrome, e.g. the detail modal)', () => {
+    setEnabled(true)
+    setMode('hover')
+    setFramework('react')
+    const { container } = render(
+      <>
+        <Badge variant="blue">Hi</Badge>
+        <div data-devmode="true">
+          <EntityChip name="Chrome" count={1} />
+        </div>
+        <DevOverlay onInspect={() => {}} />
+      </>,
+      { container: rootEl }
+    )
+    const badgeNode = screen.getByText('Hi')
+    const chromeWrapper = container.querySelector('[data-devmode]')
+
+    document.elementFromPoint = vi.fn(() => badgeNode)
+    fireEvent.pointerMove(document, { clientX: 10, clientY: 10 })
+    act(() => flushRaf())
+    expect(container.querySelector('.devmode-chip').textContent).toContain('Badge')
+
+    // Pointer moves onto devmode-owned chrome — highlight must NOT switch to
+    // EntityChip (or disappear); it stays pinned on the last real match.
+    document.elementFromPoint = vi.fn(() => chromeWrapper)
+    fireEvent.pointerMove(document, { clientX: 20, clientY: 20 })
+    act(() => flushRaf())
+
+    const chips = container.querySelectorAll('.devmode-chip')
+    expect(chips.length).toBe(1)
+    expect(chips[0].textContent).toContain('Badge')
+  })
+
   it('an unported real ui component shows "not ported" under the angular framework', () => {
     setEnabled(true)
     setMode('hover')
@@ -167,6 +200,27 @@ describe('DevOverlay — all mode', () => {
     expect(texts.some((t) => t.includes('IconButton'))).toBe(false)
     expect(texts.filter((t) => t.includes('Badge')).length).toBe(2)
     expect(texts.some((t) => t.includes('EntityChip'))).toBe(true)
+  })
+
+  it('skips a devmode-owned subtree (e.g. the detail modal) even when it contains a real ui component', () => {
+    setEnabled(true)
+    setMode('all')
+    setFramework('react')
+    render(
+      <>
+        <Badge variant="blue">One</Badge>
+        <div data-devmode="true">
+          <EntityChip name="Chrome" count={1} />
+        </div>
+        <DevOverlay onInspect={() => {}} />
+      </>,
+      { container: rootEl }
+    )
+
+    const chips = rootEl.querySelectorAll('.devmode-chip')
+    expect(chips.length).toBe(1)
+    expect(chips[0].textContent).toContain('Badge')
+    expect(Array.from(chips).some((c) => c.textContent.includes('EntityChip'))).toBe(false)
   })
 
   // Route change with no scroll fired in between: allHighlights is stale,

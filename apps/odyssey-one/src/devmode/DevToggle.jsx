@@ -155,7 +155,7 @@ export default function DevToggle() {
   const style = dragOffset ? { transform: `translate(${dragOffset.x}px, ${dragOffset.y}px)` } : undefined
 
   return (
-    <div className={`devmode-toggle-cluster devmode-toggle-cluster--${corner}`}>
+    <div className={`devmode-toggle-cluster devmode-toggle-cluster--${corner}`} data-devmode="true">
       <div
         className={`devmode-toggle${enabled ? ' devmode-toggle--on' : ''}`}
         style={style}

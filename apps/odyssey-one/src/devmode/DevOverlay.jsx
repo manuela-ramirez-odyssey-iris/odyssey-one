@@ -54,6 +54,9 @@ function walkAll(overlayEl) {
 
   function visit(el) {
     if (overlayEl && overlayEl.contains(el)) return
+    // Skip devmode-owned chrome (toggle cluster, detail modal) and its whole
+    // subtree — see the data-devmode guard in the hover path below for why.
+    if (el.closest('[data-devmode]')) return
     if (skipZeroSize) {
       const rect = el.getBoundingClientRect()
       if (rect.width === 0 && rect.height === 0) return
@@ -133,8 +136,14 @@ export default function DevOverlay({ onInspect = () => {} }) {
     if (!el) return
     // Guard: the point resolved inside the overlay's own DOM (e.g. the chip
     // itself) — keep the current highlight so mousing onto the chip doesn't
-    // flicker it away.
+    // flicker it away. Same treatment for any devmode-owned chrome (toggle
+    // cluster, detail modal): findUiComponent walks the FIBER tree, which
+    // still links a portaled modal (rendered to document.body, outside
+    // #root) back up through DevDetailModal/DevMode/App — so without this,
+    // hovering the modal's own ModalMedium chrome would resolve to a real
+    // match and chip itself.
     if (overlayRef.current && overlayRef.current.contains(el)) return
+    if (el.closest('[data-devmode]')) return
     const match = findUiComponent(el)
     if (!match || !match.element) {
       setHoverHighlight(null)

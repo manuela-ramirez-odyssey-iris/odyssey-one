@@ -46,6 +46,12 @@ export default function DevDetailModal({ name, onClose }) {
   const angularUrl = dsmUrl(name, 'angular')
 
   return createPortal(
+    // data-devmode: marks this whole subtree as devtool chrome, not
+    // inspectable product UI. DevOverlay's own guards (hover elementFromPoint
+    // + all-mode walk) skip anything under this attribute — otherwise the
+    // overlay would chip its own ModalMedium (e.g. landing a chip on the
+    // close X, whose click re-opens this same modal for "ModalMedium").
+    <div data-devmode="true">
     <ModalMedium
       title={`${name} · ${info.angular ? info.angular.selector : 'not ported'}`}
       onClose={onClose}
@@ -119,7 +125,8 @@ export default function DevDetailModal({ name, onClose }) {
           </tbody>
         </table>
       )}
-    </ModalMedium>,
+    </ModalMedium>
+    </div>,
     document.body,
   )
 }
