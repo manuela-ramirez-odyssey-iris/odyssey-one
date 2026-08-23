@@ -95,6 +95,23 @@ describe('useDevMode', () => {
     expect(result.current.everActivated).toBe(true)
   })
 
+  it('?dev=1 merges onto existing persisted state instead of clobbering it', () => {
+    localStorage.setItem('odyssey-devmode', JSON.stringify({ mode: 'all', framework: 'angular', foo: 1 }))
+    setSearch('?dev=1')
+    const { result } = renderHook(() => useDevMode())
+
+    expect(result.current.enabled).toBe(true)
+    expect(result.current.everActivated).toBe(true)
+    expect(result.current.mode).toBe('all')
+    expect(result.current.framework).toBe('angular')
+
+    act(() => result.current.setMode('all'))
+    const stored = JSON.parse(localStorage.getItem('odyssey-devmode'))
+    expect(stored.foo).toBe(1)
+    expect(stored.mode).toBe('all')
+    expect(stored.framework).toBe('angular')
+  })
+
   it('raw store functions work outside React', () => {
     setEnabled(true)
     setMode('all')

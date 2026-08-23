@@ -55,6 +55,9 @@ function ensureInit() {
   if (typeof window === 'undefined') return
 
   const params = new URLSearchParams(window.location.search)
+  const stored = readStorage()
+  if (stored) state = { ...DEFAULTS, ...stored }
+
   if (params.has('dev')) {
     if (isTruthyParam(params.get('dev') ?? '')) {
       state = { ...state, enabled: true, everActivated: true }
@@ -63,11 +66,7 @@ function ensureInit() {
       state = { ...state, enabled: false }
       clearStorage()
     }
-    return
   }
-
-  const stored = readStorage()
-  if (stored) state = { ...DEFAULTS, ...stored }
 }
 
 function update(patch) {
