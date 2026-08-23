@@ -6,6 +6,7 @@
 // placement is Task 6 browser QA.
 import { beforeEach, afterEach, describe, it, expect, vi } from 'vitest'
 import { render, screen, cleanup, fireEvent } from '@testing-library/react'
+import { ModalMedium } from '@odyssey/ui'
 import DevToggle, { nearestCorner } from './DevToggle.jsx'
 import { setEnabled, setMode, setFramework, setCorner, getState, _resetForTests } from './useDevMode.js'
 
@@ -116,6 +117,59 @@ describe('DevToggle — menu', () => {
     fireEvent.pointerDown(document.body)
 
     expect(screen.queryByRole('menu')).toBeNull()
+  })
+
+  // useEscapeStack (packages/ui/src/useEscapeStack.js) only dismisses the
+  // TOPMOST registered dialog — but DevMenu isn't on that stack at all (it's
+  // a flyout, not a modal), so an Escape that closes it must not also reach
+  // a real product modal sitting underneath via the window-level listener
+  // useEscapeStack installs. Event order: document's bubble-phase (target
+  // phase, since the event is dispatched ON document) listener runs before
+  // window's, so stopPropagation() in DevMenu's handler is what has to stop it.
+  it('Escape closes the flyout without also closing a ModalMedium underneath it', () => {
+    setEnabled(true)
+    setEnabled(false)
+    const modalClose = vi.fn()
+    render(
+      <>
+        <ModalMedium title="Behind" onClose={modalClose}>
+          content
+        </ModalMedium>
+        <DevToggle />
+      </>
+    )
+    fireEvent.click(screen.getByRole('button', { name: /dev mode options/i }))
+    expect(screen.getByRole('menu')).toBeTruthy()
+
+    fireEvent.keyDown(document, { key: 'Escape' })
+
+    expect(screen.queryByRole('menu')).toBeNull()
+    expect(modalClose).not.toHaveBeenCalled()
+  })
+})
+
+describe('DevToggle — pointer cancel', () => {
+  it('pointercancel mid-drag clears the frozen drag transform and does not toggle enabled', () => {
+    setEnabled(true)
+    setEnabled(false)
+    setCorner('br')
+    render(<DevToggle />)
+    const button = screen.getByRole('button', { name: /enable dev mode/i })
+
+    firePointer('pointerdown', button, { clientX: 500, clientY: 500 })
+    firePointer('pointermove', button, { clientX: 700, clientY: 700 })
+    expect(button.style.transform).not.toBe('')
+
+    firePointer('pointercancel', button, { clientX: 700, clientY: 700 })
+
+    expect(button.style.transform).toBe('')
+    expect(getState().enabled).toBe(false)
+    expect(getState().corner).toBe('br')
+
+    // A fresh, independent tap afterward behaves normally.
+    firePointer('pointerdown', button, { clientX: 10, clientY: 10 })
+    firePointer('pointerup', button, { clientX: 10, clientY: 10 })
+    expect(getState().enabled).toBe(true)
   })
 })
 

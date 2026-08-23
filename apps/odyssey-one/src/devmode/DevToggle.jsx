@@ -45,7 +45,14 @@ function DevMenu({ corner, mode, framework, setMode, setFramework, onClose }) {
       if (menuRef.current && !menuRef.current.contains(e.target)) onClose()
     }
     function onKeyDown(e) {
-      if (e.key === 'Escape') onClose()
+      if (e.key !== 'Escape') return
+      // Stop here so this Escape doesn't ALSO reach useEscapeStack's
+      // window-level listener (packages/ui/src/useEscapeStack.js) and close
+      // a real product modal sitting underneath the flyout. The event is
+      // dispatched on `document`, so this document-level listener runs
+      // during the target phase — before it would bubble up to `window`.
+      e.stopPropagation()
+      onClose()
     }
     document.addEventListener('pointerdown', onPointerDown)
     document.addEventListener('keydown', onKeyDown)
@@ -128,6 +135,16 @@ export default function DevToggle() {
     setDragOffset(null)
   }
 
+  // The browser can fire pointercancel mid-drag (e.g. a touch gesture the OS
+  // reinterprets, window losing focus). Without this, dragOffset stays
+  // frozen at its last value — the button visually stuck off its corner —
+  // and the next plain tap's pointerdown/up would still read as a click.
+  function handlePointerCancel() {
+    startRef.current = null
+    movedRef.current = false
+    setDragOffset(null)
+  }
+
   function handleKeyDown(e) {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault()
@@ -149,6 +166,7 @@ export default function DevToggle() {
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerCancel}
         onKeyDown={handleKeyDown}
       >
         DEV

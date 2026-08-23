@@ -75,6 +75,16 @@ describe('DevDetailModal — unported component', () => {
   })
 })
 
+describe('DevDetailModal — load failure', () => {
+  it('a rejected getComponentInfo calls onClose (chip stays clickable, no dead modal / unhandled rejection)', async () => {
+    getComponentInfo.mockRejectedValue(new Error('stale chunk reference'))
+    const onClose = vi.fn()
+    render(<DevDetailModal name="Badge" onClose={onClose} />)
+
+    await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1))
+  })
+})
+
 describe('DevDetailModal — close', () => {
   it('Escape calls onClose (via ModalMedium/useEscapeStack)', async () => {
     getComponentInfo.mockResolvedValue(PORTED_INFO)

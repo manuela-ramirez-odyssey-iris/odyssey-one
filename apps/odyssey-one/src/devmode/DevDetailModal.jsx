@@ -4,7 +4,7 @@
 // Portaled to document.body (same pattern as DiscardChangesModal/QuoteModal/
 // etc.) so it stacks above whatever route/dialog is on screen rather than
 // inheriting that subtree's stacking context.
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { ModalMedium } from '@odyssey/ui'
 import { getComponentInfo, dsmUrl } from './componentInfo.js'
@@ -12,6 +12,11 @@ import './devmode.css'
 
 export default function DevDetailModal({ name, onClose }) {
   const [info, setInfo] = useState(null)
+  // Ref so the load effect only depends on `name` — DevMode's onClose is a
+  // fresh arrow fn every render, and re-running the fetch on every unrelated
+  // re-render would be wrong; this always calls the LATEST onClose.
+  const onCloseRef = useRef(onClose)
+  onCloseRef.current = onClose
 
   useEffect(() => {
     if (!name) {
@@ -19,9 +24,17 @@ export default function DevDetailModal({ name, onClose }) {
       return
     }
     let cancelled = false
-    getComponentInfo(name).then((result) => {
-      if (!cancelled) setInfo(result)
-    })
+    getComponentInfo(name)
+      .then((result) => {
+        if (!cancelled) setInfo(result)
+      })
+      .catch(() => {
+        // componentInfo.js explicitly designs for this (e.g. a stale chunk
+        // reference after a redeploy) and retries on the NEXT call — so
+        // don't leave a dead, stuck-loading modal open. Close it; the chip
+        // is still there to click again.
+        if (!cancelled) onCloseRef.current()
+      })
     return () => {
       cancelled = true
     }
