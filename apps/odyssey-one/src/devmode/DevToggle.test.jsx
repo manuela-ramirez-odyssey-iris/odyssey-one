@@ -101,6 +101,17 @@ describe('DevToggle — menu', () => {
     expect(getState().framework).toBe('angular')
   })
 
+  it('exposes a Nesting group whose options drive setNesting', () => {
+    openMenu()
+
+    expect(screen.getByRole('group', { name: 'Nesting' })).toBeTruthy()
+    // Default is 'all', so "All levels" is the checked one.
+    expect(screen.getByRole('menuitemradio', { name: /all levels/i }).getAttribute('aria-checked')).toBe('true')
+
+    fireEvent.click(screen.getByRole('menuitemradio', { name: /outermost/i }))
+    expect(getState().nesting).toBe('outermost')
+  })
+
   it('closes on Escape', () => {
     openMenu()
     expect(screen.getByRole('menu')).toBeTruthy()

@@ -7,7 +7,10 @@
 import { useSyncExternalStore } from 'react'
 
 const STORAGE_KEY = 'odyssey-devmode'
-const DEFAULTS = { enabled: false, mode: 'hover', framework: 'react', everActivated: false, corner: 'br' }
+// nesting: 'all' labels every ui component including ones nested inside
+// another (the common case — components composed into slots); 'outermost'
+// is the old behavior (stop at the enclosing component).
+const DEFAULTS = { enabled: false, mode: 'hover', framework: 'react', everActivated: false, corner: 'br', nesting: 'all' }
 
 let state = { ...DEFAULTS }
 let initialized = false
@@ -92,6 +95,10 @@ export function setCorner(corner) {
   update({ corner })
 }
 
+export function setNesting(nesting) {
+  update({ nesting })
+}
+
 export function getState() {
   ensureInit()
   return state
@@ -109,7 +116,7 @@ function getSnapshot() {
 
 export function useDevMode() {
   const snap = useSyncExternalStore(subscribe, getSnapshot)
-  return { ...snap, setEnabled, setMode, setFramework, setCorner }
+  return { ...snap, setEnabled, setMode, setFramework, setCorner, setNesting }
 }
 
 // Test-only: force the next read to re-evaluate URL/localStorage from

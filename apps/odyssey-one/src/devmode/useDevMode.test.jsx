@@ -21,6 +21,22 @@ describe('useDevMode', () => {
     expect(result.current.framework).toBe('react')
     expect(result.current.everActivated).toBe(false)
     expect(result.current.corner).toBe('br')
+    // Nesting defaults to 'all': components composed into a parent's slots
+    // are the thing people actually want to inspect.
+    expect(result.current.nesting).toBe('all')
+  })
+
+  it('setNesting updates the store, persists, and survives a fresh read', () => {
+    const { result } = renderHook(() => useDevMode())
+
+    act(() => result.current.setNesting('outermost'))
+
+    expect(result.current.nesting).toBe('outermost')
+    expect(JSON.parse(localStorage.getItem('odyssey-devmode')).nesting).toBe('outermost')
+
+    _resetForTests()
+    const { result: second } = renderHook(() => useDevMode())
+    expect(second.current.nesting).toBe('outermost')
   })
 
   it('setCorner updates the store and persists', () => {

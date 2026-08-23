@@ -3,7 +3,7 @@
 // (mode: 'all'). Renders nothing when dev mode is disabled.
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useDevMode } from './useDevMode.js'
-import { findUiComponent } from './inspect.js'
+import { findUiComponentChain } from './inspect.js'
 import { getComponentInfoSync, preloadComponentInfo } from './componentInfo.js'
 import './devmode.css'
 
@@ -42,11 +42,22 @@ function hasRealLayout() {
   return r.width > 0 || r.height > 0
 }
 
-// Depth-first walk from #root. For each element, ask findUiComponent(el) —
-// if it resolves to a match rooted AT el, that's an outermost ui component:
-// record it and don't descend (skips inner ui components nested inside it,
-// e.g. EntityChip's internal IconButton). Otherwise keep walking children.
-function walkAll(overlayEl) {
+// Depth-first walk from #root. For each element, ask findUiComponentChain(el)
+// and record every chain entry rooted AT el (a chain entry's `element` is the
+// component's first host element, so "rooted at el" == that component starts
+// here). `depth` is the entry's index in the chain, i.e. how many ui
+// components enclose it.
+//
+// nesting === 'outermost': only the chain head counts, and the subtree is
+// skipped on a match (the old behavior — EntityChip's internal IconButton
+// stays hidden). nesting === 'all': keep descending after a match, so
+// components composed into a parent's slots get labeled too.
+//
+// ponytail: 'all' visits every element under #root instead of pruning at each
+// match, so the walk is O(elements) with a fiber walk per element. Fine for a
+// dev tool on a normal page; if a huge table ever makes this stutter, the
+// upgrade path is to memoize per-element chain results between relayouts.
+function walkAll(overlayEl, nesting) {
   const root = document.getElementById('root')
   if (!root) return []
   const skipZeroSize = hasRealLayout()
@@ -61,10 +72,16 @@ function walkAll(overlayEl) {
       const rect = el.getBoundingClientRect()
       if (rect.width === 0 && rect.height === 0) return
     }
-    const match = findUiComponent(el)
-    if (match && match.element === el) {
-      found.push({ name: match.name, element: el })
-      return
+    const chain = findUiComponentChain(el)
+    if (nesting === 'outermost') {
+      if (chain[0] && chain[0].element === el) {
+        found.push({ name: chain[0].name, element: el, depth: 0 })
+        return
+      }
+    } else {
+      chain.forEach((entry, depth) => {
+        if (entry.element === el) found.push({ name: entry.name, element: el, depth })
+      })
     }
     for (const child of el.children) visit(child)
   }
@@ -85,23 +102,84 @@ function clampToViewport(left, top) {
   return { left: Math.max(0, left), top: Math.max(0, top) }
 }
 
+// Vertical offset per nesting level in all mode, so a parent and its nested
+// child don't stack their chips on the same corner.
+const CHIP_STAGGER_PX = 14
+const CHIP_HEIGHT_PX = 18
+
+// Ancestor breadcrumb: at most MAX_CRUMBS ancestors are shown; anything
+// deeper collapses to a leading '…'. Pure + exported so the cap is testable
+// without building a 4-deep component fixture.
+const MAX_CRUMBS = 2
+// eslint-disable-next-line react-refresh/only-export-components -- pure helper exported for tests, same as DevToggle's nearestCorner
+export function breadcrumbSegments(ancestors = []) {
+  return { ellipsis: ancestors.length > MAX_CRUMBS, names: ancestors.slice(-MAX_CRUMBS) }
+}
+
+function DevOutline({ element, nested }) {
+  const rect = rectOf(element)
+  return (
+    <div
+      className={nested ? 'devmode-outline devmode-outline--nested' : 'devmode-outline'}
+      style={{ position: 'fixed', left: rect.left, top: rect.top, width: rect.width, height: rect.height, pointerEvents: 'none' }}
+    />
+  )
+}
+
+// Ancestor crumbs deliberately render the REACT component name even when the
+// selected framework is Angular: Angular selectors are long (`odyssey-...`)
+// and the breadcrumb is orientation, not the deliverable — only the leaf
+// renders in the selected framework.
+function Breadcrumb({ ancestors, onInspect }) {
+  const { ellipsis, names } = breadcrumbSegments(ancestors)
+  return (
+    <span className="devmode-chip__crumbs">
+      {ellipsis && <span className="devmode-chip__crumb-sep">…&nbsp;›&nbsp;</span>}
+      {names.map((name, i) => (
+        <span key={`${name}-${i}`}>
+          <button
+            type="button"
+            className="devmode-chip__crumb"
+            onClick={(e) => {
+              // Without this the leaf chip's own onClick would also fire and
+              // open the LEAF's modal instead of the ancestor's.
+              e.stopPropagation()
+              onInspect(name)
+            }}
+          >
+            {name}
+          </button>
+          <span className="devmode-chip__crumb-sep">&nbsp;›&nbsp;</span>
+        </span>
+      ))}
+    </span>
+  )
+}
+
 function DevOverlayItem({ item, framework, onInspect }) {
   const rect = rectOf(item.element)
-  const { left, top } = clampToViewport(rect.left, rect.top)
+  const depth = item.depth || 0
+  // Clamp the stagger so a deep chain doesn't walk its chips off the bottom
+  // of the component they belong to.
+  const offset = Math.min(depth * CHIP_STAGGER_PX, Math.max(rect.height - CHIP_HEIGHT_PX, 0))
+  const { left, top } = clampToViewport(rect.left, rect.top + offset)
   const { text, muted, normalizing } = chipContent(item.name, framework)
+  const classes = ['devmode-chip']
+  if (muted) classes.push('devmode-chip--muted')
+  if (depth > 0) classes.push('devmode-chip--nested')
 
   return (
     <>
+      <DevOutline element={item.element} nested={depth > 0} />
       <div
-        className="devmode-outline"
-        style={{ position: 'fixed', left: rect.left, top: rect.top, width: rect.width, height: rect.height, pointerEvents: 'none' }}
-      />
-      <div
-        className={muted ? 'devmode-chip devmode-chip--muted' : 'devmode-chip'}
+        className={classes.join(' ')}
         style={{ position: 'fixed', left, top, pointerEvents: 'auto', cursor: 'pointer' }}
         onClick={() => onInspect(item.name)}
         title={normalizing ? 'NORMALIZING' : undefined}
       >
+        {item.ancestors && item.ancestors.length > 0 && (
+          <Breadcrumb ancestors={item.ancestors} onInspect={onInspect} />
+        )}
         {normalizing && <span className="devmode-chip__dot" aria-hidden="true" />}
         {text}
       </div>
@@ -110,10 +188,10 @@ function DevOverlayItem({ item, framework, onInspect }) {
 }
 
 export default function DevOverlay({ onInspect = () => {} }) {
-  const { enabled, mode, framework } = useDevMode()
+  const { enabled, mode, framework, nesting } = useDevMode()
   const overlayRef = useRef(null)
-  const [hoverHighlight, setHoverHighlight] = useState(null) // { name, element } | null
-  const [allHighlights, setAllHighlights] = useState([]) // [{ name, element }]
+  const [hoverChain, setHoverChain] = useState([]) // [{ name, element }] outer→inner
+  const [allHighlights, setAllHighlights] = useState([]) // [{ name, element, depth }]
 
   // Kick off the DSM demo-index load once, on activation — fire-and-forget.
   // On a static screen (no scroll/resize/pointermove after this resolves)
@@ -144,12 +222,10 @@ export default function DevOverlay({ onInspect = () => {} }) {
     // match and chip itself.
     if (overlayRef.current && overlayRef.current.contains(el)) return
     if (el.closest('[data-devmode]')) return
-    const match = findUiComponent(el)
-    if (!match || !match.element) {
-      setHoverHighlight(null)
-      return
-    }
-    setHoverHighlight({ name: match.name, element: match.element })
+    // Entries without a host element (portal / childless fiber — see
+    // firstHostElement) can't be outlined or positioned, so they drop out of
+    // the chain entirely; the deepest LOCATABLE component becomes the leaf.
+    setHoverChain(findUiComponentChain(el).filter((entry) => entry.element))
   }, [])
 
   // Hover mode: rAF-throttled pointermove over the whole document. State
@@ -174,7 +250,7 @@ export default function DevOverlay({ onInspect = () => {} }) {
     return () => {
       document.removeEventListener('pointermove', onPointerMove)
       if (raf != null) cancelAnimationFrame(raf)
-      setHoverHighlight(null)
+      setHoverChain([])
     }
   }, [enabled, mode, processPointerMove])
 
@@ -187,7 +263,7 @@ export default function DevOverlay({ onInspect = () => {} }) {
   // class to clean up).
   useEffect(() => {
     if (!enabled || mode !== 'all') return
-    const relayout = () => setAllHighlights(walkAll(overlayRef.current))
+    const relayout = () => setAllHighlights(walkAll(overlayRef.current, nesting))
     relayout()
 
     let raf = null
@@ -206,7 +282,7 @@ export default function DevOverlay({ onInspect = () => {} }) {
       if (raf != null) cancelAnimationFrame(raf)
       setAllHighlights([])
     }
-  }, [enabled, mode])
+  }, [enabled, mode, nesting])
 
   if (!enabled) return null
 
@@ -216,12 +292,25 @@ export default function DevOverlay({ onInspect = () => {} }) {
   // unmounted. getBoundingClientRect() on a detached node is all zeros —
   // without this filter that's a chip pinned at the viewport corner forever.
   // Covers hover mode's transient case too (element removed mid-hover).
-  const items = (mode === 'hover' ? (hoverHighlight ? [hoverHighlight] : []) : allHighlights).filter(
-    (item) => item.element.isConnected
-  )
+  // Hover mode: the LEAF (innermost) component is the labeled one — its
+  // metadata and its solid outline. Its ancestors get dashed outlines only,
+  // plus a clickable breadcrumb inside the leaf's chip (that breadcrumb is
+  // the only way to reach a parent whose layout leaves no uncovered gap).
+  const liveChain = hoverChain.filter((entry) => entry.element.isConnected)
+  const leaf = liveChain[liveChain.length - 1]
+  const items =
+    mode === 'hover'
+      ? leaf
+        ? [{ ...leaf, depth: 0, ancestors: liveChain.slice(0, -1).map((entry) => entry.name) }]
+        : []
+      : allHighlights.filter((item) => item.element.isConnected)
+  const ancestorOutlines = mode === 'hover' ? liveChain.slice(0, -1) : []
 
   return (
     <div ref={overlayRef} className="devmode-overlay" style={{ position: 'fixed', inset: 0, pointerEvents: 'none' }}>
+      {ancestorOutlines.map((entry, i) => (
+        <DevOutline key={`anc-${entry.name}-${i}`} element={entry.element} nested />
+      ))}
       {items.map((item, i) => (
         <DevOverlayItem key={`${item.name}-${i}`} item={item} framework={framework} onInspect={onInspect} />
       ))}

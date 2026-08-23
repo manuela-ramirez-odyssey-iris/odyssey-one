@@ -3,7 +3,7 @@ import { describe, it, expect, afterEach } from 'vitest'
 import { render, screen, cleanup } from '@testing-library/react'
 import { Star } from 'lucide-react'
 import { Badge, ComboBox, FormField } from '@odyssey/ui'
-import { findUiComponent, isUiComponentName, uiNameSet } from './inspect.js'
+import { findUiComponent, findUiComponentChain, isUiComponentName, uiNameSet } from './inspect.js'
 
 afterEach(cleanup)
 
@@ -100,5 +100,55 @@ describe('findUiComponent', () => {
     render(<Badge />)
     const fake = screen.getByTestId('fake-badge')
     expect(findUiComponent(fake)).toBeNull()
+  })
+})
+
+describe('findUiComponentChain', () => {
+  // FormField renders a real FieldSelect for `trailingSelect` (both are
+  // @odyssey/ui exports) — a genuine nested pair, not a test-only fixture.
+  it('returns the enclosing ui components OUTERMOST → INNERMOST', () => {
+    const { container } = render(
+      <FormField
+        label="Currency"
+        value=""
+        onChange={() => {}}
+        trailingSelect={{ label: 'USD', onClick: () => {} }}
+      />
+    )
+    const trailingButton = screen.getByRole('button', { name: 'USD' })
+    const chain = findUiComponentChain(trailingButton)
+
+    expect(chain.map((c) => c.name)).toEqual(['FormField', 'FieldSelect'])
+    expect(chain[0].element).toBe(container.firstChild)
+    // The inner entry's host element is FieldSelect's own root, not the
+    // FormField wrapper.
+    expect(chain[1].element).not.toBe(chain[0].element)
+    expect(chain[1].element.contains(trailingButton)).toBe(true)
+  })
+
+  it('returns a single-entry chain for an unnested component, and [] for a plain div', () => {
+    render(
+      <>
+        <Badge variant="blue">
+          <span data-testid="inner">Hi</span>
+        </Badge>
+        <div data-testid="plain">hi</div>
+      </>
+    )
+    expect(findUiComponentChain(screen.getByTestId('inner')).map((c) => c.name)).toEqual(['Badge'])
+    expect(findUiComponentChain(screen.getByTestId('plain'))).toEqual([])
+  })
+
+  it('findUiComponent stays the chain HEAD (outermost)', () => {
+    render(
+      <FormField
+        label="Currency"
+        value=""
+        onChange={() => {}}
+        trailingSelect={{ label: 'USD', onClick: () => {} }}
+      />
+    )
+    const trailingButton = screen.getByRole('button', { name: 'USD' })
+    expect(findUiComponent(trailingButton).name).toBe('FormField')
   })
 })

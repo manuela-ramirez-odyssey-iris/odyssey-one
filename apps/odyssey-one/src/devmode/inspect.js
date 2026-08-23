@@ -80,15 +80,24 @@ function firstHostElement(fiber) {
   return null
 }
 
-export function findUiComponent(domNode) {
+// Every @odyssey/ui component enclosing `domNode`, ordered OUTERMOST →
+// INNERMOST: [{ name, element }]. The return-chain walk visits ancestors
+// innermost-first, so the collected list is reversed once at the end.
+// `element` may be null (portal / childless fiber — see firstHostElement) —
+// callers must null-check, same contract as findUiComponent has always had.
+export function findUiComponentChain(domNode) {
   const startFiber = getFiber(domNode)
-  if (!startFiber) return null
+  if (!startFiber) return []
 
-  let match = null
+  const chain = []
   for (let fiber = startFiber; fiber; fiber = fiber.return) {
-    if (uiTypeToName.has(fiber.type)) match = fiber
+    if (uiTypeToName.has(fiber.type)) {
+      chain.push({ name: uiTypeToName.get(fiber.type), element: firstHostElement(fiber) })
+    }
   }
-  if (!match) return null
+  return chain.reverse()
+}
 
-  return { name: uiTypeToName.get(match.type), element: firstHostElement(match) }
+export function findUiComponent(domNode) {
+  return findUiComponentChain(domNode)[0] ?? null
 }

@@ -36,8 +36,43 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
 }
 
+/* Nested (non-leaf / deeper-level) treatment: dashed + dimmed so hierarchy
+   reads at a glance — the solid outline is always the component being
+   labeled, dashed ones are its context. */
+.devmode-outline--nested {
+  border-style: dashed;
+  opacity: 0.45;
+  background: transparent;
+}
+
 .devmode-chip--muted {
   background: #6b6b6b;
+}
+
+.devmode-chip--nested {
+  opacity: 0.85;
+}
+
+.devmode-chip__crumbs {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.devmode-chip__crumb {
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.devmode-chip__crumb:hover {
+  color: #fff;
+  text-decoration: underline;
+}
+
+.devmode-chip__crumb-sep {
+  color: rgba(255, 255, 255, 0.45);
 }
 
 .devmode-chip__dot {

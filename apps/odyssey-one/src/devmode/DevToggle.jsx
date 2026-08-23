@@ -32,8 +32,12 @@ const FRAMEWORK_OPTIONS = [
   { value: 'react', label: 'React' },
   { value: 'angular', label: 'Angular' },
 ]
+const NESTING_OPTIONS = [
+  { value: 'all', label: 'All levels' },
+  { value: 'outermost', label: 'Outermost' },
+]
 
-function DevMenu({ corner, mode, framework, setMode, setFramework, onClose }) {
+function DevMenu({ corner, mode, framework, nesting, setMode, setFramework, setNesting, onClose }) {
   const menuRef = useRef(null)
 
   // Outside-click + Escape close the menu. Plain document listeners (same
@@ -96,12 +100,29 @@ function DevMenu({ corner, mode, framework, setMode, setFramework, onClose }) {
           </button>
         ))}
       </div>
+      <div className="devmode-menu__group" role="group" aria-label="Nesting">
+        <div className="devmode-menu__label">Nesting</div>
+        {NESTING_OPTIONS.map((opt) => (
+          <button
+            key={opt.value}
+            type="button"
+            role="menuitemradio"
+            aria-checked={nesting === opt.value}
+            className={`devmode-menu__option${nesting === opt.value ? ' devmode-menu__option--active' : ''}`}
+            onClick={() => setNesting(opt.value)}
+          >
+            {nesting === opt.value ? '✓ ' : ''}
+            {opt.label}
+          </button>
+        ))}
+      </div>
     </div>
   )
 }
 
 export default function DevToggle() {
-  const { enabled, everActivated, mode, framework, corner, setEnabled, setMode, setFramework, setCorner } = useDevMode()
+  const { enabled, everActivated, mode, framework, corner, nesting, setEnabled, setMode, setFramework, setCorner, setNesting } =
+    useDevMode()
   const [menuOpen, setMenuOpen] = useState(false)
   const [dragOffset, setDragOffset] = useState(null)
   const startRef = useRef(null)
@@ -190,8 +211,10 @@ export default function DevToggle() {
           corner={corner}
           mode={mode}
           framework={framework}
+          nesting={nesting}
           setMode={setMode}
           setFramework={setFramework}
+          setNesting={setNesting}
           onClose={() => setMenuOpen(false)}
         />
       )}

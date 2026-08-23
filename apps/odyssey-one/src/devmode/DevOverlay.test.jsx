@@ -6,10 +6,10 @@
 // Real-viewport behavior (actual outline/chip placement) is Task 6 browser QA.
 import { beforeAll, beforeEach, afterEach, describe, it, expect, vi } from 'vitest'
 import { render, screen, cleanup, fireEvent, act } from '@testing-library/react'
-import { Badge, EntityChip, IconButton } from '@odyssey/ui'
-import DevOverlay from './DevOverlay.jsx'
+import { Badge, EntityChip, FormField, IconButton } from '@odyssey/ui'
+import DevOverlay, { breadcrumbSegments } from './DevOverlay.jsx'
 import { preloadComponentInfo } from './componentInfo.js'
-import { setEnabled, setMode, setFramework, _resetForTests } from './useDevMode.js'
+import { setEnabled, setMode, setFramework, setNesting, _resetForTests } from './useDevMode.js'
 
 // DevOverlay fire-and-forgets preloadComponentInfo() on activation (per spec —
 // tests aren't meant to await it either). Resolve it here, once, up front:
@@ -177,11 +177,93 @@ describe('DevOverlay — hover mode', () => {
   })
 })
 
-describe('DevOverlay — all mode', () => {
-  it('renders one chip per outermost ui component and none for a component nested inside another ui component', () => {
+describe('DevOverlay — hover mode, nested components', () => {
+  // FormField renders a real FieldSelect for `trailingSelect` — both are
+  // @odyssey/ui exports, so hovering the trailing control is a genuine
+  // 2-deep chain.
+  function renderNested(onInspect = () => {}) {
+    const result = render(
+      <>
+        <FormField label="Currency" value="" onChange={() => {}} trailingSelect={{ label: 'USD', onClick: () => {} }} />
+        <DevOverlay onInspect={onInspect} />
+      </>,
+      { container: rootEl }
+    )
+    const target = screen.getByRole('button', { name: 'USD' })
+    document.elementFromPoint = vi.fn(() => target)
+    fireEvent.pointerMove(document, { clientX: 5, clientY: 5 })
+    act(() => flushRaf())
+    return result
+  }
+
+  it('labels the INNERMOST component and renders its ancestor path', () => {
     setEnabled(true)
-    setMode('all')
+    setMode('hover')
     setFramework('react')
+    const { container } = renderNested()
+
+    const chips = container.querySelectorAll('.devmode-chip')
+    expect(chips.length).toBe(1)
+    expect(chips[0].textContent).toContain('FieldSelect')
+    expect(chips[0].querySelector('.devmode-chip__crumb').textContent).toBe('FormField')
+  })
+
+  it('outlines the whole chain — leaf solid, ancestors dashed/dimmed', () => {
+    setEnabled(true)
+    setMode('hover')
+    setFramework('react')
+    const { container } = renderNested()
+
+    const outlines = container.querySelectorAll('.devmode-outline')
+    expect(outlines.length).toBe(2)
+    expect(container.querySelectorAll('.devmode-outline--nested').length).toBe(1)
+  })
+
+  it('clicking a breadcrumb segment inspects the ANCESTOR, not the leaf', () => {
+    setEnabled(true)
+    setMode('hover')
+    setFramework('react')
+    const onInspect = vi.fn()
+    const { container } = renderNested(onInspect)
+
+    fireEvent.click(container.querySelector('.devmode-chip__crumb'))
+
+    expect(onInspect).toHaveBeenCalledTimes(1)
+    expect(onInspect).toHaveBeenCalledWith('FormField')
+  })
+
+  it('ancestors keep their REACT names while the leaf renders the Angular selector', () => {
+    setEnabled(true)
+    setMode('hover')
+    setFramework('angular')
+    const { container } = renderNested()
+
+    const chip = container.querySelector('.devmode-chip')
+    expect(chip.querySelector('.devmode-chip__crumb').textContent).toBe('FormField')
+    expect(chip.textContent).not.toContain('odyssey-form-field')
+    // Leaf side uses the selected framework (FieldSelect is ported).
+    expect(chip.textContent).toContain('odyssey-field-select')
+  })
+})
+
+describe('breadcrumbSegments', () => {
+  it('shows up to two ancestors verbatim', () => {
+    expect(breadcrumbSegments(['A', 'B'])).toEqual({ ellipsis: false, names: ['A', 'B'] })
+    expect(breadcrumbSegments([])).toEqual({ ellipsis: false, names: [] })
+  })
+
+  it('keeps the two NEAREST ancestors and flags an ellipsis when deeper', () => {
+    expect(breadcrumbSegments(['A', 'B', 'C', 'D'])).toEqual({ ellipsis: true, names: ['C', 'D'] })
+  })
+})
+
+describe('DevOverlay — all mode', () => {
+  // REWRITTEN (was: "renders one chip per outermost ui component and none for
+  // a component nested inside another ui component"). That assertion encoded
+  // the outermost-only contract this change replaces — nesting is now a
+  // user-visible option, defaulting to 'all', so the old behavior is asserted
+  // below under nesting='outermost' instead.
+  function renderTree() {
     render(
       <>
         <Badge variant="blue">One</Badge>
@@ -193,12 +275,32 @@ describe('DevOverlay — all mode', () => {
       </>,
       { container: rootEl }
     )
+    return Array.from(rootEl.querySelectorAll('.devmode-chip')).map((c) => c.textContent)
+  }
 
-    const chips = rootEl.querySelectorAll('.devmode-chip')
-    expect(chips.length).toBe(3)
-    const texts = Array.from(chips).map((c) => c.textContent)
-    expect(texts.some((t) => t.includes('IconButton'))).toBe(false)
+  it("nesting='all' chips a nested ui child (EntityChip's IconButton) as well as its parent", () => {
+    setEnabled(true)
+    setMode('all')
+    setFramework('react')
+    setNesting('all')
+
+    const texts = renderTree()
+
     expect(texts.filter((t) => t.includes('Badge')).length).toBe(2)
+    expect(texts.some((t) => t.includes('EntityChip'))).toBe(true)
+    expect(texts.some((t) => t.includes('IconButton'))).toBe(true)
+  })
+
+  it("nesting='outermost' chips only the parent, not its nested ui child", () => {
+    setEnabled(true)
+    setMode('all')
+    setFramework('react')
+    setNesting('outermost')
+
+    const texts = renderTree()
+
+    expect(texts.length).toBe(3)
+    expect(texts.some((t) => t.includes('IconButton'))).toBe(false)
     expect(texts.some((t) => t.includes('EntityChip'))).toBe(true)
   })
 
