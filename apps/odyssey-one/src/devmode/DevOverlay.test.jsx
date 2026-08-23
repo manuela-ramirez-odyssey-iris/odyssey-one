@@ -391,6 +391,67 @@ describe('DevOverlay — chip interaction', () => {
   })
 })
 
+describe('DevOverlay — suppressed (detail modal open)', () => {
+  // The detail modal must never sit under this overlay's chips/outlines
+  // (z-index 999999 vs the product modal's ~9000) — while it's open, the
+  // overlay renders nothing at all, and restores whatever mode was active
+  // once it closes.
+  it('all mode: chips present → suppressed hides them → un-suppressing restores them', () => {
+    setEnabled(true)
+    setMode('all')
+    setFramework('react')
+    const { container, rerender } = render(
+      <>
+        <Badge variant="blue">One</Badge>
+        <DevOverlay onInspect={() => {}} suppressed={false} />
+      </>,
+      { container: rootEl }
+    )
+    expect(container.querySelectorAll('.devmode-chip').length).toBe(1)
+
+    rerender(
+      <>
+        <Badge variant="blue">One</Badge>
+        <DevOverlay onInspect={() => {}} suppressed />
+      </>
+    )
+    expect(container.querySelector('.devmode-overlay')).toBeNull()
+    expect(container.querySelectorAll('.devmode-chip').length).toBe(0)
+
+    rerender(
+      <>
+        <Badge variant="blue">One</Badge>
+        <DevOverlay onInspect={() => {}} suppressed={false} />
+      </>
+    )
+    act(() => flushRaf())
+    expect(container.querySelectorAll('.devmode-chip').length).toBe(1)
+  })
+
+  it('hover mode: suppressing detaches the pointermove listener; un-suppressing reattaches it', () => {
+    setEnabled(true)
+    setMode('hover')
+    setFramework('react')
+    const removeDocSpy = vi.spyOn(document, 'removeEventListener')
+    const addDocSpy = vi.spyOn(document, 'addEventListener')
+    const { rerender } = render(<DevOverlay onInspect={() => {}} suppressed={false} />, { container: rootEl })
+
+    rerender(<DevOverlay onInspect={() => {}} suppressed />)
+    expect(removeDocSpy).toHaveBeenCalledWith('pointermove', expect.any(Function))
+
+    addDocSpy.mockClear()
+    rerender(<DevOverlay onInspect={() => {}} suppressed={false} />)
+    expect(addDocSpy).toHaveBeenCalledWith('pointermove', expect.any(Function))
+  })
+
+  it('renders nothing at all while suppressed, regardless of mode', () => {
+    setEnabled(true)
+    setMode('hover')
+    const { container } = render(<DevOverlay onInspect={() => {}} suppressed />, { container: rootEl })
+    expect(container.querySelector('.devmode-overlay')).toBeNull()
+  })
+})
+
 describe('DevOverlay — cleanup', () => {
   it('unmounting removes the scroll/resize listeners added in all mode', () => {
     setEnabled(true)

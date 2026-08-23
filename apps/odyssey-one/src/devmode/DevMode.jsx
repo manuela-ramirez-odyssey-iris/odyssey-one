@@ -13,7 +13,7 @@ export default function DevMode() {
   return (
     <>
       <DevToggle />
-      <DevOverlay onInspect={setInspected} />
+      <DevOverlay onInspect={setInspected} suppressed={Boolean(inspected)} />
       <DevDetailModal name={inspected} onClose={() => setInspected(null)} />
     </>
   )

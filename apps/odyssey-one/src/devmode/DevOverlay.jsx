@@ -187,7 +187,7 @@ function DevOverlayItem({ item, framework, onInspect }) {
   )
 }
 
-export default function DevOverlay({ onInspect = () => {} }) {
+export default function DevOverlay({ onInspect = () => {}, suppressed = false }) {
   const { enabled, mode, framework, nesting } = useDevMode()
   const overlayRef = useRef(null)
   const [hoverChain, setHoverChain] = useState([]) // [{ name, element }] outer→inner
@@ -203,11 +203,11 @@ export default function DevOverlay({ onInspect = () => {} }) {
   // same nudge: its highlight is already re-set on every pointermove, so it
   // self-heals the next time the mouse moves.
   useEffect(() => {
-    if (!enabled) return
+    if (!enabled || suppressed) return
     preloadComponentInfo()
       .then(() => setAllHighlights((prev) => prev.slice()))
       .catch(() => {})
-  }, [enabled])
+  }, [enabled, suppressed])
 
   const processPointerMove = useCallback((x, y) => {
     const el = document.elementFromPoint(x, y)
@@ -235,7 +235,7 @@ export default function DevOverlay({ onInspect = () => {} }) {
   // has the same observable effect (stale highlight never renders once the
   // listener that would refresh it is gone).
   useEffect(() => {
-    if (!enabled || mode !== 'hover') return
+    if (!enabled || mode !== 'hover' || suppressed) return
     let pending = null
     let raf = null
     const onPointerMove = (e) => {
@@ -252,7 +252,7 @@ export default function DevOverlay({ onInspect = () => {} }) {
       if (raf != null) cancelAnimationFrame(raf)
       setHoverChain([])
     }
-  }, [enabled, mode, processPointerMove])
+  }, [enabled, mode, suppressed, processPointerMove])
 
   // All mode: walk on activation, and on throttled scroll/resize.
   // ponytail: no route-change listener — a client-side nav with no scroll
@@ -262,7 +262,7 @@ export default function DevOverlay({ onInspect = () => {} }) {
   // location listener, or just re-walk on click (cheap, no new listener
   // class to clean up).
   useEffect(() => {
-    if (!enabled || mode !== 'all') return
+    if (!enabled || mode !== 'all' || suppressed) return
     const relayout = () => setAllHighlights(walkAll(overlayRef.current, nesting))
     relayout()
 
@@ -282,9 +282,14 @@ export default function DevOverlay({ onInspect = () => {} }) {
       if (raf != null) cancelAnimationFrame(raf)
       setAllHighlights([])
     }
-  }, [enabled, mode, nesting])
+  }, [enabled, mode, nesting, suppressed])
 
-  if (!enabled) return null
+  // The detail modal (DevDetailModal, z-index ~9000-ish product stacking)
+  // must never sit UNDER this overlay's chips/outlines (z-index 999999) —
+  // suppress rendering entirely while it's open. Listeners above already
+  // detach via the `suppressed` dependency, so nothing keeps running
+  // underneath either.
+  if (!enabled || suppressed) return null
 
   // Filter detached elements at render time, not just at walk/hover time: a
   // route change fires neither scroll nor pointermove, so a stale

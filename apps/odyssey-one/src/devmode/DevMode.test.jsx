@@ -33,17 +33,15 @@ vi.mock('./DevDetailModal.jsx', () => ({
 
 beforeEach(() => {
   localStorage.clear()
+  sessionStorage.clear()
   window.history.pushState({}, '', '/')
   _resetForTests()
 })
 
 afterEach(() => cleanup())
 
-it('renders the toggle once everActivated is seeded in localStorage', () => {
-  localStorage.setItem(
-    'odyssey-devmode',
-    JSON.stringify({ enabled: false, mode: 'hover', framework: 'react', everActivated: true, corner: 'br' })
-  )
+it('renders the toggle once everActivated is seeded in sessionStorage', () => {
+  sessionStorage.setItem('odyssey-devmode-session', JSON.stringify({ enabled: false, everActivated: true }))
   render(<DevMode />)
   expect(screen.getByRole('button', { name: /enable dev mode/i })).toBeTruthy()
 })
