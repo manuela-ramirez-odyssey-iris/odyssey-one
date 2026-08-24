@@ -48,3 +48,18 @@ Three more user-reported gaps after using the deployed dev mode. Commits: `f4881
 - **Browser QA 6/6 PASS**, zero console errors. Honest ceiling recorded: `DataTable`'s own expander reads `+52` — the count is disclosed before clicking, but drilling into a wide table still yields a local pile, inherent to the domain rather than a gap in the feature.
 - Tests 1686 → 1710 (devmode 80 → 104).
 - **Deployed to prod (user-authorized), verified by grepping the live bundle** `index-86NZNupU.js` — `rendered inside`, `in slot`, `Drill in`, `devmode-chip__expander`, `This instance` all present.
+
+### Third refinement round — per-framework APIs, honest option states, process wiring
+
+Commit `151a5d0` + skill/docs edits; deployed (user-authorized) and verified in live bundle `index-IxLgQLeJ.js` (`Angular API`, `Only in React`, `Applies to All mode`, `(clicked)` all present). Tests 1710 → 1718 (devmode 112).
+
+- **The modal was showing the WRONG framework's API — user-found.** With framework = Angular, `Tab · odyssey-tab` rendered React's props (`onClick`) because `componentInfo` only ever read the React demo metas. The generator now extracts every Angular meta's own `DemoProp[]` into `angular-map.json` (77/77 parsed, zero failures — a brace/quote-aware scanner, since descs legitimately contain braces and escaped quotes); the API table follows the selected framework, captioned "Angular API" / "React API", with a one-line **divergence hint** naming props that exist on one side only (Tab's reads `Only in React: onClick · Only in Angular: (clicked)`). Unported components fall back to the React table with a visible note.
+- **The user's question that started it had a second answer:** there IS no `showCount` prop — Figma's `Show count` BOOLEAN became implicit in `count` (badge renders iff provided). That's a doc gap, not a hidden API: both DSMs' `count` descriptions now state "omit to hide the badge". The Angular side of that edit is a **local, uncommitted-at-the-time** one-liner in the protected repo (committed locally at wrap; push stays user-gated).
+- **Nesting group disabled in Hover** — `nesting` only affects All mode (`DevOverlay.jsx` ignores it on the hover path by design), so the flyout's Nesting options now dim with `title="Applies to All mode"` while Mode is Hover, instead of silently doing nothing.
+- **Process wiring:** `/wrap` (user-level skill) now routes **S-sessions (product prototyping) vs D-sessions (design-system/dev-tooling — normalization cycles included)** to the right log with cross-references for mixed sessions, and carries an **angular-map regeneration check** (any Angular demo-meta change → re-run `tools/gen-angular-names.mjs`, commit the JSON; React-side DSM changes need nothing — dev mode reads the live metas). This file's charter recharted accordingly. Memory: [[two-thread-progress-logs]].
+- **Working-tree finding at wrap:** the sibling Angular repo carries six pre-existing uncommitted NORMALIZING flips (alert, global-search, lead-nav, navbar, summary-strip, trail-nav → `normalizing: true`) + a `domain-usage.json` addition — S126-era, not this session's; left uncommitted. Our committed `angular-map.json` was generated from that working tree, so it already reflects those six as NORMALIZING — consistent with the React DSM.
+
+### Next D-session (user)
+
+1. **Define/design how we deliver FLOWS** — SpotBid is the pilot: its flow was never written in Figma, so the flow-deliverable format gets invented against it.
+2. **Then update the handover format** for PMs/POs (Kathleen, Ramesh): the pack should reference the new dev mode on Vercel, the component list, and the flow — dev mode + Angular DSM become part of how deliverables are handed over, not just internal tooling.
