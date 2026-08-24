@@ -136,15 +136,29 @@ export function findUiComponent(domNode) {
 // Button-in-ModalMedium-`footer` report 'slot'; all six agree with
 // `_debugOwner` where dev builds expose it.
 //
+// IMPORTANT — what 'internal' actually proves: only that the element wasn't
+// found in the parent's props at commit time, i.e. the parent's OWN render
+// produced it. It does NOT prove the element is part of the parent's
+// implementation. The most common counter-example in this app: DataTable →
+// ActionMenu reports 'internal', but the ActionMenu comes from a
+// `columns[].cell` render-prop callback the APP supplied (ShipmentTable.jsx)
+// — DataTable merely invokes it. Same shape for Sidebar → SidebarButton via
+// `renderItem`. This is undetectable by identity alone (the callback's
+// *result* isn't in the parent's props, only the callback itself is, as a
+// function value `collectElements` doesn't call). So callers must not render
+// 'internal' as "belongs to the parent" — DevDetailModal renders it as
+// "rendered inside" with a title spelling out this caveat. Don't re-narrow
+// this without re-deriving the DataTable/Sidebar cases above.
+//
 // ponytail: two known ceilings, both accepted rather than guessed around.
 //   1. cloneElement() in an intermediate wrapper rebuilds props, so identity
 //      breaks while the TYPE still matches → reported 'unknown' (verified).
 //   2. an element created inside a render-prop callback the consumer passed in
 //      is genuinely absent from the parent's props at commit time → reported
-//      'internal', which is right by this definition (the parent's own render
-//      created it) but may read as surprising. Upgrade path if it ever
-//      matters: also scan function-valued props' *results*, which means
-//      calling consumer code during inspection — not worth it for a dev tool.
+//      'internal' (see IMPORTANT above — this is the overclaim, fixed at the
+//      rendering layer, not here). Upgrade path if it ever matters: also scan
+//      function-valued props' *results*, which means calling consumer code
+//      during inspection — not worth it for a dev tool.
 const MAX_PROP_DEPTH = 12
 const MAX_PROP_ELEMENTS = 500
 

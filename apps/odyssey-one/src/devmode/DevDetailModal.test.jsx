@@ -133,7 +133,7 @@ function renderProductTree() {
 }
 
 describe('DevDetailModal — hierarchy', () => {
-  it('lists the whole ancestry outermost → innermost with slot/internal relation labels', async () => {
+  it('lists the whole ancestry outermost → innermost with relation labels that state their evidence', async () => {
     getComponentInfo.mockResolvedValue(PORTED_INFO)
     renderProductTree()
     const target = screen.getByRole('button', { name: 'USD' })
@@ -147,13 +147,17 @@ describe('DevDetailModal — hierarchy', () => {
       'FormField',
       'FieldSelect',
     ])
-    // FormField was handed to PageHeader as children → slot. FieldSelect is
-    // built by FormField's own render → internal. The outermost row has no
-    // parent in this chain, so it carries no label.
-    expect(Array.from(document.querySelectorAll('.devmode-detail__relation')).map((n) => n.textContent)).toEqual([
-      'slot',
-      'internal',
-    ])
+    // FormField was handed to PageHeader as children → "in slot". FieldSelect
+    // is built by FormField's own render → "rendered inside" (not "internal":
+    // that word overclaims ownership — see inspect.js's relationBetween
+    // comment for the DataTable/ActionMenu counter-example). The outermost
+    // row has no parent in this chain, so it carries no label.
+    const relationEls = Array.from(document.querySelectorAll('.devmode-detail__relation'))
+    expect(relationEls.map((n) => n.textContent)).toEqual(['in slot', 'rendered inside'])
+    // The nuance ("rendered inside" isn't "part of the parent's
+    // implementation") must survive as a tooltip, not just live in a comment.
+    expect(relationEls[1].title).toContain('does not always mean the component is part of')
+    expect(relationEls[1].title).toContain('FormField')
     // The inspected entry is emphasized, and is the one row that isn't a link.
     expect(rows[2].className).toContain('devmode-detail__chain-row--current')
     expect(rows[2].querySelector('button')).toBeNull()

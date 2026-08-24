@@ -41,6 +41,28 @@ function formatPropValue(propName, value) {
   }
 }
 
+// Rendered vocabulary for `relation`, keyed off what the evidence actually
+// proves (see inspect.js's relationBetween comment) — NOT what a reader might
+// assume from a shorter word. 'internal' in particular reads as "part of the
+// parent's implementation" but the underlying check can't distinguish that
+// from a render-prop callback (e.g. a DataTable column's `cell`) that the app
+// supplied and the parent merely invoked — so the label says "rendered
+// inside" and the title spells out the caveat.
+const RELATION_LABELS = {
+  slot: (parent) => ({
+    text: 'in slot',
+    title: `Passed into ${parent} as an element prop (children or another prop) — the parent doesn't own it.`,
+  }),
+  internal: (parent) => ({
+    text: 'rendered inside',
+    title: `Created during ${parent}'s render. Includes elements produced by render-prop callbacks the app supplies (e.g. table cell renderers), which the parent merely invokes — so this does not always mean the component is part of ${parent}'s own implementation.`,
+  }),
+  unknown: (parent) => ({
+    text: 'unclear',
+    title: `Could not be determined — the element was cloned or rebuilt between ${parent} and here.`,
+  }),
+}
+
 // Live props of the clicked instance, ordered so the answer to "which variant
 // / is it disabled" comes first: documented props in the API table's own
 // order, then everything else (className, data-*, handlers) in a muted group.
@@ -170,16 +192,21 @@ export default function DevDetailModal({ name, element = null, onInspect = () =>
         </div>
       </div>
 
-      {/* Hierarchy — where this instance sits, and HOW it got there. `slot`
-          means the parent was handed it (children / an element-valued prop);
-          `internal` means the parent's own render created it. Each ancestor
-          row re-targets this modal (the job the hover breadcrumb used to do,
-          with room to actually read it). */}
+      {/* Hierarchy — where this instance sits, and HOW it got there. "in
+          slot" means the parent was handed it (children / an element-valued
+          prop); "rendered inside" means the parent's own render created it —
+          which includes render-prop callbacks the app supplied (see
+          RELATION_LABELS above), so it does NOT always mean "part of the
+          parent's implementation". Each ancestor row re-targets this modal
+          (the job the hover breadcrumb used to do, with room to actually
+          read it). */}
       {chain.length > 0 && (
         <section className="devmode-detail__section">
           <h4 className="devmode-detail__column-title">Hierarchy</h4>
           <ol className="devmode-detail__chain">
-            {chain.map((entry, i) => (
+            {chain.map((entry, i) => {
+              const relation = i > 0 ? RELATION_LABELS[entry.relation](chain[i - 1].name) : null
+              return (
               <li
                 key={`${entry.name}-${i}`}
                 className={
@@ -187,9 +214,12 @@ export default function DevDetailModal({ name, element = null, onInspect = () =>
                 }
                 style={{ paddingLeft: i * 12 }}
               >
-                {i > 0 && (
-                  <span className={`devmode-detail__relation devmode-detail__relation--${entry.relation}`}>
-                    {entry.relation}
+                {relation && (
+                  <span
+                    className={`devmode-detail__relation devmode-detail__relation--${entry.relation}`}
+                    title={relation.title}
+                  >
+                    {relation.text}
                   </span>
                 )}
                 {i === selectedIndex ? (
@@ -204,7 +234,8 @@ export default function DevDetailModal({ name, element = null, onInspect = () =>
                   </button>
                 )}
               </li>
-            ))}
+              )
+            })}
           </ol>
         </section>
       )}
