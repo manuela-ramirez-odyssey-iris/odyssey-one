@@ -190,6 +190,17 @@
   font-weight: 700;
 }
 
+/* Nesting only affects All mode (DevOverlay always shows the innermost leaf
+   in Hover) — dim the whole group rather than hide it, so the menu doesn't
+   reflow when Mode is switched and the current selection stays visible. */
+.devmode-menu__group--disabled {
+  opacity: 0.4;
+}
+
+.devmode-menu__group--disabled .devmode-menu__option {
+  cursor: not-allowed;
+}
+
 /* Detail modal (DevDetailModal) content — same "obviously not product UI"
    exemption as the rest of this file. */
 .devmode-detail__columns {

@@ -105,6 +105,9 @@ describe('DevToggle — menu', () => {
   // "Outermost", default 'all'). "Outermost" is now labeled "Top level" and
   // the default is 'progressive' ("Drill in").
   it('exposes a Nesting group with three options, each driving setNesting', () => {
+    // Nesting only does anything in All mode (see the dedicated hover-mode
+    // disabled test below) — set it explicitly rather than ride the default.
+    setMode('all')
     openMenu()
 
     expect(screen.getByRole('group', { name: 'Nesting' })).toBeTruthy()
@@ -119,6 +122,38 @@ describe('DevToggle — menu', () => {
 
     fireEvent.click(screen.getByRole('menuitemradio', { name: /drill in/i }))
     expect(getState().nesting).toBe('progressive')
+  })
+
+  it('disables the Nesting group in hover mode: non-interactive, and clicking does not change the store', () => {
+    setMode('hover')
+    openMenu()
+
+    const nestingGroup = screen.getByRole('group', { name: 'Nesting' })
+    expect(nestingGroup.title).toBe('Applies to All mode')
+
+    const drillIn = screen.getByRole('menuitemradio', { name: /drill in/i })
+    expect(drillIn.disabled).toBe(true)
+    expect(drillIn.getAttribute('aria-disabled')).toBe('true')
+    // Still shows the current value, and stays in place (not removed).
+    expect(drillIn.getAttribute('aria-checked')).toBe('true')
+
+    fireEvent.click(screen.getByRole('menuitemradio', { name: /top level/i }))
+    expect(getState().nesting).toBe('progressive') // unchanged
+  })
+
+  it('keeps the Nesting group enabled in all mode', () => {
+    setMode('all')
+    openMenu()
+
+    const nestingGroup = screen.getByRole('group', { name: 'Nesting' })
+    expect(nestingGroup.title).toBe('')
+
+    const topLevel = screen.getByRole('menuitemradio', { name: /top level/i })
+    expect(topLevel.disabled).toBe(false)
+    expect(topLevel.getAttribute('aria-disabled')).toBe('false')
+
+    fireEvent.click(topLevel)
+    expect(getState().nesting).toBe('outermost')
   })
 
   it('closes on Escape', () => {

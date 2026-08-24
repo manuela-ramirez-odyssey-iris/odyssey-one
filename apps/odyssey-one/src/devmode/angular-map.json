@@ -2,386 +2,3880 @@
   "Accordion": {
     "selector": "odyssey-accordion",
     "version": "0.9.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "position",
+        "type": "'start'|'mid'|'end'",
+        "desc": "Slot in the stepper stack — drives connector lines and whether expanded card shows line stub (end gets bottom padding). Default start."
+      },
+      {
+        "name": "status",
+        "type": "'off'|'on'|'error'",
+        "desc": "Validation state, consumer-driven: on when the section is correctly filled, error when at least one field inside has an error. Default off."
+      },
+      {
+        "name": "errorCount",
+        "type": "number",
+        "desc": "Error total for the section — with status=\"error\" renders the red \"N Errors\" Badge; with status=\"on\" renders the green \"Completed · N Errors validated\" Badge (all errors solved — Figma \"Show validated badge\" BOOLEAN). 0/omitted = no badge. Default 0."
+      },
+      {
+        "name": "title",
+        "type": "string",
+        "desc": "Header title (heading/lg semibold)."
+      },
+      {
+        "name": "description",
+        "type": "string",
+        "desc": "Supporting text under the title (label/sm regular). Optional."
+      },
+      {
+        "name": "expanded",
+        "type": "boolean",
+        "desc": "Controlled expansion. Omit for uncontrolled."
+      },
+      {
+        "name": "defaultExpanded",
+        "type": "boolean",
+        "desc": "Uncontrolled initial state. Default false."
+      },
+      {
+        "name": "(toggle)",
+        "type": "EventEmitter<boolean>",
+        "desc": "Fires on header click with the next expansion state."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Additional class names merged onto the host section."
+      },
+      {
+        "name": "<ng-content>",
+        "type": "projection",
+        "desc": "Content slot — revealed below the header when expanded (Figma Content SLOT)."
+      }
+    ]
   },
   "ActionMenu": {
     "selector": "odyssey-action-menu",
     "version": "0.13.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "[slot=icon]",
+        "type": "projected content",
+        "desc": "The trigger glyph — the library is icon-agnostic, so project a real icon (e.g. <i-lucide slot=\"icon\" name=\"ellipsis-vertical\" [size]=\"20\">). Lives inside a normalized 28×28 transparent trigger button. Required unless `label` is given."
+      },
+      {
+        "name": "label",
+        "type": "string",
+        "desc": "Renders a LABELLED trigger instead of an icon one — the normalized odyssey-dropdown-button atom (value + chevron, chevron flips with open). For toolbar action menus that must announce themselves (\"Actions\") rather than hide behind a 3-dot glyph. Mutually exclusive with the projected icon slot; label wins if both are supplied."
+      },
+      {
+        "name": "options",
+        "type": "ActionMenuOption[]",
+        "desc": "The action items ({ label, onSelect?, disabled?, danger?, id? }). Each fires onSelect + closes. disabled → inert + muted; danger → destructive color."
+      },
+      {
+        "name": "align",
+        "type": "'right' | 'left'",
+        "desc": "Horizontal anchor. 'right' (default) pins the menu's right edge to the trigger (safe for far-right action columns); 'left' pins its left edge."
+      },
+      {
+        "name": "ariaLabel",
+        "type": "string",
+        "desc": "Accessible name for the icon-only trigger button (aria-label)."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Additional class names merged onto the host (G8)."
+      }
+    ]
   },
   "AddSectionButton": {
     "selector": "odyssey-add-section-button",
     "version": "0.2.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "interactive",
+        "type": "boolean",
+        "desc": "When true the pill renders as a <button> (cursor + hover/pressed ladder + (clicked)); false → decorative <span>. Replaces React's onClick-presence inference."
+      },
+      {
+        "name": "ariaLabel",
+        "type": "string",
+        "desc": "Accessible label for the interactive pill button. Default \"Add section\"."
+      },
+      {
+        "name": "(clicked)",
+        "type": "EventEmitter<MouseEvent>",
+        "desc": "Emitted when the interactive pill is clicked."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Additional CSS classes for the root element."
+      }
+    ]
   },
   "AddSectionDivider": {
     "selector": "odyssey-add-section-divider",
     "version": "0.2.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "label",
+        "type": "string",
+        "desc": "Centered label text on the dashed divider line (also the host aria-label). Default \"Add Section\"."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Additional CSS classes for the root element."
+      }
+    ]
   },
   "Alert": {
     "selector": "odyssey-alert",
     "version": "0.9.0",
-    "normalizing": true
+    "normalizing": true,
+    "props": [
+      {
+        "name": "variant",
+        "type": "info|success|warning|error",
+        "desc": "Drives the tinted /200 background + status icon. Default info."
+      },
+      {
+        "name": "<ng-content>",
+        "type": "projection",
+        "desc": "The alert message."
+      },
+      {
+        "name": "showLink",
+        "type": "boolean",
+        "desc": "Show the trailing \"Click here →\" ButtonLink (Black/underline style). Default false."
+      },
+      {
+        "name": "linkLabel",
+        "type": "string",
+        "desc": "Link text. Default \"Click here\"."
+      },
+      {
+        "name": "(linkClick)",
+        "type": "EventEmitter<void>",
+        "desc": "Link click emitter."
+      },
+      {
+        "name": "showClose",
+        "type": "boolean",
+        "desc": "Show the trailing X dismiss button. Default true (matches the React canonical)."
+      },
+      {
+        "name": "(closeClick)",
+        "type": "EventEmitter<void>",
+        "desc": "Dismiss emitter (wire to remove/hide the alert)."
+      },
+      {
+        "name": "errors",
+        "type": "{field, reason, resolved?}[]",
+        "desc": "Non-empty → error-validation anatomy (replaces message/link/close): \"N Errors: Validation Required\" header (N = unresolved), Validate Errors link, chevron-collapsible per-field error list. resolved: true entries drop out of the count + the rows."
+      },
+      {
+        "name": "contextText",
+        "type": "string",
+        "desc": "Header context after the count — e.g. \"ORD-D78120458 · Integrated from ACME\" (order id · source + customer)."
+      },
+      {
+        "name": "expanded / defaultExpanded / (toggle)",
+        "type": "boolean / boolean / EventEmitter<boolean>",
+        "desc": "Error-list collapse state (chevron) — controlled or uncontrolled. Default collapsed."
+      },
+      {
+        "name": "docked",
+        "type": "boolean",
+        "desc": "Sticky morph: full-width squared bar (slides in from under the navbar), header \"resolved out of total errors resolved\" (derived from the resolved flags), link becomes the ← Error i/N → stepper over the unresolved errors. The consumer owns position:sticky + the scroll trigger. Resolving the error the stepper sits on clamps it to the LAST open error (Next greys out, not Prev). Default false."
+      },
+      {
+        "name": "errorIndex",
+        "type": "number",
+        "desc": "Current error (0-based, original-array index) for the docked stepper label + nav. Default 0."
+      },
+      {
+        "name": "(errorNav)",
+        "type": "EventEmitter<number>",
+        "desc": "Jump-to-error intent: Validate Errors click (first open error), list-row click (row index), docked arrows (previous/next open error). The consumer autoscrolls to the red field."
+      }
+    ]
   },
   "AuthContent": {
     "selector": "odyssey-auth-content",
     "version": "0.2.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "variant",
+        "type": "'login'",
+        "desc": "Content variant. Only \"login\" exists today; future variants include mfa-setup, password-setup, etc."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Extra class(es) merged onto the host (G8)."
+      },
+      {
+        "name": "(login)",
+        "type": "EventEmitter<{ email, password }>",
+        "desc": "Submit handler for the login form. Emits the current email + password values on (ngSubmit)."
+      },
+      {
+        "name": "(forgotPassword)",
+        "type": "EventEmitter<void>",
+        "desc": "Emitted when the \"Forgot password?\" link is clicked."
+      },
+      {
+        "name": "(createAccount)",
+        "type": "EventEmitter<void>",
+        "desc": "Emitted when the \"Create an account.\" link is clicked (preventDefault is applied)."
+      }
+    ]
   },
   "AuthModal": {
     "selector": "odyssey-auth-modal",
     "version": "0.2.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "children (ng-content)",
+        "type": "projected content",
+        "desc": "Content composed below the OdysseyLogo header — typically an odyssey-auth-content instance."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Extra class(es) merged onto the host (G8)."
+      }
+    ]
   },
   "Badge": {
     "selector": "odyssey-badge",
     "version": "0.4.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "variant",
+        "type": "amber|blue|green|red|purple|gray|notification|count|metric|favorite|time|info",
+        "desc": "Color + shape preset. Default blue. time/info are soft-tint status variants."
+      },
+      {
+        "name": "iconOnly",
+        "type": "boolean",
+        "desc": "Renders a 20×20 square icon-only tile (2px pad + 16px icon). time→Clock, info→Info baked in; override with [slot=left-icon]."
+      },
+      {
+        "name": "<ng-content>",
+        "type": "projection",
+        "desc": "Label text (not used by notification/favorite/iconOnly)."
+      },
+      {
+        "name": "[slot=left-icon]",
+        "type": "projection",
+        "desc": "Leading icon slot (ignored by metric). Pair with [hasLeftIcon]=\"true\". In iconOnly mode, overrides the baked icon."
+      },
+      {
+        "name": "[slot=right-icon]",
+        "type": "projection",
+        "desc": "Trailing icon slot (ignored by metric). Pair with [hasRightIcon]=\"true\"."
+      },
+      {
+        "name": "hasLeftIcon",
+        "type": "boolean",
+        "desc": "Declares leading-icon presence (drives asymmetric padding). In iconOnly mode, signals a consumer override over the baked icon."
+      },
+      {
+        "name": "hasRightIcon",
+        "type": "boolean",
+        "desc": "Declares trailing-icon presence (drives asymmetric padding)."
+      },
+      {
+        "name": "statusDot",
+        "type": "boolean",
+        "desc": "Renders an animated 6px pulse dot before the label (ignored by metric)."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Additional CSS classes merged onto the host surface."
+      }
+    ]
   },
   "Breadcrumb": {
     "selector": "odyssey-breadcrumb",
     "version": "0.4.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "label",
+        "type": "string",
+        "desc": "The text label for this breadcrumb segment."
+      },
+      {
+        "name": "current",
+        "type": "boolean",
+        "desc": "Marks the active (last) segment. Renders a <span> with aria-current=\"page\"; suppresses click affordance. Default false."
+      },
+      {
+        "name": "(clicked)",
+        "type": "EventEmitter<void>",
+        "desc": "Emitted on click. When bound and current=false, the label renders as a <button>. Absence of this binding = non-interactive <span>."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Additional class names merged onto the root element."
+      }
+    ]
   },
   "Button": {
     "selector": "odyssey-button",
     "version": "0.3.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "variant",
+        "type": "primary|secondary|outline|ghost|error|link|icon",
+        "desc": "Visual style. outline/ghost are dark-surface variants. icon = icon-only, Secondary-styled (sm)."
+      },
+      {
+        "name": "size",
+        "type": "sm|md|lg",
+        "desc": "Padding + label size. Default md."
+      },
+      {
+        "name": "disabled",
+        "type": "boolean",
+        "desc": "Native disabled; hover/active suppressed."
+      },
+      {
+        "name": "hasIcon / [slot=icon]",
+        "type": "boolean + projection",
+        "desc": "Leading icon slot (inherits currentColor)."
+      },
+      {
+        "name": "hasIconRight / [slot=icon-right]",
+        "type": "boolean + projection",
+        "desc": "Trailing icon slot."
+      },
+      {
+        "name": "<ng-content>",
+        "type": "projection",
+        "desc": "Button label."
+      },
+      {
+        "name": "type",
+        "type": "string",
+        "desc": "Native button type. Default \"button\"."
+      }
+    ]
   },
   "ButtonToggle": {
     "selector": "odyssey-button-toggle",
     "version": "0.2.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "[slot=first-icon]",
+        "type": "projection",
+        "desc": "Icon for the first segment (20px Lucide; placeholder-20 INSTANCE_SWAP slot in Figma). Ignored in text mode."
+      },
+      {
+        "name": "[slot=second-icon]",
+        "type": "projection",
+        "desc": "Icon for the second segment (20px Lucide). Ignored in text mode."
+      },
+      {
+        "name": "firstLabel",
+        "type": "string",
+        "desc": "Label for the first segment. Passing labels switches the whole toggle to text mode (Figma Content=Text) — icons OR text, never mixed."
+      },
+      {
+        "name": "secondLabel",
+        "type": "string",
+        "desc": "Label for the second segment (label/sm medium, DSN/500 both states — mirrors icon mode)."
+      },
+      {
+        "name": "selected",
+        "type": "'first' | 'second'",
+        "desc": "Controlled selection — mirrors the Figma Selected variant axis. Defaults to 'first'."
+      },
+      {
+        "name": "selectedChange",
+        "type": "EventEmitter<'first' | 'second'>",
+        "desc": "Emitted with 'first' or 'second' when the unselected segment is clicked."
+      },
+      {
+        "name": "firstAriaLabel",
+        "type": "string",
+        "desc": "Accessible label for the first segment button."
+      },
+      {
+        "name": "secondAriaLabel",
+        "type": "string",
+        "desc": "Accessible label for the second segment button."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Extra class names appended to the root element."
+      }
+    ]
   },
   "CalendarPicker": {
     "selector": "odyssey-calendar-picker",
     "version": "0.13.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "mode",
+        "type": "'single' | 'range'",
+        "desc": "Selection mode. `single` (default) selects one date; `range` builds a start→end span."
+      },
+      {
+        "name": "value",
+        "type": "Date|null  (single) | { start, end }  (range)",
+        "desc": "Controlled value. Pass `null` / `{ start: null, end: null }` for unset."
+      },
+      {
+        "name": "(valueChange)",
+        "type": "EventEmitter<Date | CalendarRange>",
+        "desc": "Single → receives a `Date`. Range → receives `{ start: Date, end: Date|null }`. First range click sets start; second sets end (if before start, restarts)."
+      },
+      {
+        "name": "defaultMonth",
+        "type": "Date",
+        "desc": "Initial month to display. Defaults to the selected value (or today) when omitted."
+      },
+      {
+        "name": "minDate",
+        "type": "Date",
+        "desc": "Lower bound — earlier days are disabled and month nav stops. Default 01/01/1900."
+      },
+      {
+        "name": "maxDate",
+        "type": "Date",
+        "desc": "Upper bound — later days are disabled and month nav stops. Default 01/01/2120."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Extra class(es) on the root element."
+      },
+      {
+        "name": "DatePicker: label",
+        "type": "string",
+        "desc": "FormField label above the input."
+      },
+      {
+        "name": "DatePicker: placeholder",
+        "type": "string",
+        "desc": "Defaults 'Select Date' (single) / 'Select Range' (range)."
+      },
+      {
+        "name": "DatePicker: disabled / error / id",
+        "type": "…",
+        "desc": "Passed through to the FormField shell."
+      }
+    ]
   },
   "Checkbox": {
     "selector": "odyssey-checkbox",
     "version": "0.2.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "checked",
+        "type": "boolean",
+        "desc": "Controlled checked state."
+      },
+      {
+        "name": "indeterminate",
+        "type": "boolean",
+        "desc": "Dash state; bound to the DOM property directly via Angular property binding [indeterminate]."
+      },
+      {
+        "name": "disabled",
+        "type": "boolean",
+        "desc": "Disables the native input."
+      },
+      {
+        "name": "label",
+        "type": "string",
+        "desc": "Label text."
+      },
+      {
+        "name": "showLabel",
+        "type": "boolean",
+        "desc": "Toggle label visibility. Default true."
+      },
+      {
+        "name": "(change)",
+        "type": "EventEmitter<Event>",
+        "desc": "Native change event emitter. Consumer owns forms — no ControlValueAccessor."
+      }
+    ]
   },
   "ComboBox": {
     "selector": "odyssey-combo-box",
     "version": "0.10.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "value",
+        "type": "string",
+        "desc": "Controlled value. Slot mode: the input text. Typeahead typable mode: the committed LABEL (text resyncs to it while unfocused). Pick-only mode: the committed option VALUE (its label renders)."
+      },
+      {
+        "name": "(valueChange)",
+        "type": "EventEmitter<string>",
+        "desc": "Emitted on every keystroke — in typeahead mode too (raw typed text; lets a form invalidate a stale pick / commit free text on blur)."
+      },
+      {
+        "name": "placeholder",
+        "type": "string",
+        "desc": "Input placeholder text (editable per instance). Variant-aware default: 'Search' (search face) / 'Select' (select face)."
+      },
+      {
+        "name": "(cleared)",
+        "type": "EventEmitter<void>",
+        "desc": "When bound + value is non-empty, shows a CircleX clear button that emits on click (slot mode; in typeahead mode the click emits select(null) instead)."
+      },
+      {
+        "name": "variant",
+        "type": "'search' | 'select'",
+        "desc": "Figma `Variant`. 'search' (default) = leading Search icon, no chevron — byte-identical to the former SearchField. 'select' = no leading icon; trailing ChevronDown (20px) that TOGGLES the popover on click (close keeps focus) and rotates 180° while open."
+      },
+      {
+        "name": "typable",
+        "type": "boolean",
+        "desc": "Default true. false = pick-only select (replaces the retired app-local SelectField): readOnly input, clicking anywhere on the bar toggles the FULL unfiltered option list, chevron flips, and `value` is the committed option VALUE (its label renders). Mode ladder: local list → typable=false · filter-as-you-type → typable · fetched/lazy catalog → typable + loadOptions. Code/DSM-level behaviour — no Figma variant (zero visual delta; the Select face models the appearance)."
+      },
+      {
+        "name": "showLabel",
+        "type": "boolean",
+        "desc": "Render a label row above the input bar. Default false."
+      },
+      {
+        "name": "label",
+        "type": "string",
+        "desc": "Label text (only shown when showLabel=true). Default 'Label'."
+      },
+      {
+        "name": "showInfoIcon",
+        "type": "boolean",
+        "desc": "Append an Info icon to the label row. Default false."
+      },
+      {
+        "name": "(infoClick)",
+        "type": "EventEmitter<void>",
+        "desc": "When bound the Info icon becomes a clickable button; otherwise it is decorative."
+      },
+      {
+        "name": "results",
+        "type": "<ng-content select=\"[slot=results]\">",
+        "desc": "Content slot rendered below the input. Transparent passthrough — wins over the typeahead popover when projected (set hasResultsSlot)."
+      },
+      {
+        "name": "options",
+        "type": "{ value, label }[] | string[]",
+        "desc": "Typeahead: static option list. Filtered synchronously (case-insensitive substring)."
+      },
+      {
+        "name": "loadOptions",
+        "type": "(query, skip?) => Promise<Option[] | { options, total }>",
+        "desc": "Typeahead: async loader. Debounced 200ms, stale-response guarded. Resolve { options, total } for paged mode: scrolling near the list end lazily fetches the next page (skip = accumulated count) until total is reached. Plain array = legacy single-shot."
+      },
+      {
+        "name": "(select)",
+        "type": "EventEmitter<string | null>",
+        "desc": "Typeahead: emitted with the selected option value, or null on clear."
+      },
+      {
+        "name": "emptyMessage",
+        "type": "string",
+        "desc": "Typeahead: shown when the filter matches nothing. Default 'No options'."
+      },
+      {
+        "name": "filter",
+        "type": "(inputText, option) => boolean",
+        "desc": "Typeahead: custom filter fn. Default case-insensitive substring."
+      },
+      {
+        "name": "error",
+        "type": "string",
+        "desc": "Figma `State=Error`. Red border (bittersweet ramp) + inline red message below the bar, aria-invalid + aria-describedby. Renders in ALL modes (slot / typeahead / plain)."
+      },
+      {
+        "name": "validated",
+        "type": "boolean",
+        "desc": "Figma `State=Validated`. Success border (--border-success) + trailing check (text-tertiary) + green \"Validated\" line below. `error` wins when both are set."
+      },
+      {
+        "name": "required",
+        "type": "boolean",
+        "desc": "Renders ` *` after the label + aria-required on the input."
+      },
+      {
+        "name": "disabled",
+        "type": "boolean",
+        "desc": "Figma `State=Disabled` (S101). Muted surface (--bg-secondary) + --text-tertiary text, not-allowed cursor; input, clear and trailing buttons all inert."
+      },
+      {
+        "name": "panelError",
+        "type": "string",
+        "desc": "Typeahead: renders FieldSearchResults' red alert state INSIDE the dropdown instead of the option list (e.g. duplicate location ID). Distinct from `error`, which marks the field itself."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Extra class names forwarded to the root element."
+      }
+    ]
   },
   "CustomerRow": {
     "selector": "odyssey-customer-row",
     "version": "0.2.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "label",
+        "type": "string",
+        "desc": "Customer name displayed in the row."
+      },
+      {
+        "name": "[slot=icon]",
+        "type": "projection",
+        "desc": "Override the default Handshake icon with a projected node."
+      },
+      {
+        "name": "mode",
+        "type": "'list'|'result'",
+        "desc": "Row context. 'list' = 48h with Trash action + favorite badge; 'result' = 40h with Star toggle. Default 'list'."
+      },
+      {
+        "name": "favorite",
+        "type": "boolean",
+        "desc": "In 'list' mode: shows a green Badge overlay. In 'result' mode: fills the Star icon. Default false."
+      },
+      {
+        "name": "showDefaultIcon",
+        "type": "boolean",
+        "desc": "Show the built-in Handshake fallback when no [slot=icon] is projected. Default true."
+      },
+      {
+        "name": "(favoriteToggle)",
+        "type": "EventEmitter<void>",
+        "desc": "Emitted on Star toggle click (result mode only)."
+      },
+      {
+        "name": "(deleteRow)",
+        "type": "EventEmitter<void>",
+        "desc": "Emitted on Trash click (list mode only). Renamed from React onDelete to avoid JS reserved word."
+      },
+      {
+        "name": "(rowClick)",
+        "type": "EventEmitter<void>",
+        "desc": "Emitted on row click when bound."
+      }
+    ]
   },
   "DataTable": {
     "selector": "odyssey-data-table",
     "version": "0.13.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "table",
+        "type": "DataTableInstance",
+        "desc": "A TanStack table instance — duck-typed via the structural DataTableInstance interface (the library takes no TanStack dependency). The shell renders headers/rows from it; the consumer owns columns, data, and state."
+      },
+      {
+        "name": "stickyTop",
+        "type": "number | string",
+        "desc": "Offset where the sticky header parks — px number or any CSS length string (e.g. calc(-1 * var(--spacing-8)) for a padded page scroller). Default 0."
+      },
+      {
+        "name": "[slot=footer]",
+        "type": "projected content",
+        "desc": "Rendered BELOW the bordered card, transparent on the page canvas (S79b) — project an <odyssey-paginator slot=\"footer\" [table]=\"table\"> here."
+      },
+      {
+        "name": "ariaLabel",
+        "type": "string",
+        "desc": "Optional aria-label applied to the body <table> element (per ARIA table semantics)."
+      },
+      {
+        "name": "sortable",
+        "type": "boolean",
+        "desc": "Feature switch (default false): header sort buttons, asc ↔ desc, one column always drives (the shell auto-seeds the first sortable column when the consumer has not). Client tables also pass getSortedRowModel() to the engine; server tables set manualSorting and map the sorting state to their query. Per-column opt-out: enableSorting: false on the columnDef."
+      },
+      {
+        "name": "(rowClick)",
+        "type": "EventEmitter<row>",
+        "desc": "S93: row-level click on any non-interactive part of the row (interactive elements keep native behavior). Fires after (cellClick) when both are bound — most consumers pick one."
+      },
+      {
+        "name": "scrollSelectedIntoView",
+        "type": "boolean | { bottomBoundary?, freshDelay?, switchDelay? }",
+        "desc": "S93: keep the selected row (TanStack rowSelection) visible between the sticky header and a bottom boundary. bottomBoundary() defaults to the viewport bottom (Shipments passes the open detail bar's top edge); freshDelay (600ms) applies empty→selected so consumer open-animations land first; switchDelay (50ms) on selection switches (prev/next arrows). Scrolls the nearest scrollable ancestor."
+      },
+      {
+        "name": "loadingRows",
+        "type": "boolean",
+        "desc": "Feature switch (default false): data cells (accessor columns) render \"Loading…\" instead of their value — pass while stale placeholder rows are showing (TanStack Query keepPreviousData + isPlaceholderData). Display columns (select/actions) keep rendering."
+      },
+      {
+        "name": "loading",
+        "type": "boolean",
+        "desc": "Feature switch (default false): whole-table mode for the first mount, before anything has loaded. Rows are suppressed entirely and a centered Spinner (32px, no text) covers the BODY area only — the sticky header stays fully visible. Mutually exclusive with loadingRows in practice. Outranks error and composeRows in the body-state precedence."
+      },
+      {
+        "name": "actionsRow",
+        "type": "{ count, stickyTop }",
+        "desc": "S116: the Table Actions row rendered ABOVE the card, on the page canvas (Figma `Table Container` 5057:8509). Absent → no row. `count` (number|null|undefined) renders \"1,284 items\" via itemCountLabel, or an em dash while unknown. `stickyTop` is a VALUE, not a flag (number px or CSS length): PRESENT (incl. 0 — tested with != null, never truthiness) → the row leaves the VERTICAL scroll and parks at that offset, ABSENT → it scrolls away with the page. Never in the horizontal scroller either way, never a colSpan row inside <table>. A sticky row anchors the WHOLE band: the h-scroll track and column header park at actionsRow.stickyTop + the MEASURED row height (ResizeObserver), and the table-level stickyTop does not apply. Deviation from React: the trailing cluster (a ReactNode carried inside `actionsRow` there) is a content-projection slot here — project one or more elements with `slot=\"actions-trailing\"` (not typed primary/secondary props: the toolbars this replaces needed one primary, one secondary, and TWO secondaries, so a fixed pair could not express all three). Rendered whenever actionsRow is present, same treatment as footer."
+      },
+      {
+        "name": "error",
+        "type": "{ message, detail, onRetry, retryLabel }",
+        "desc": "S116: the THIRD body state (Figma `Table Container Error` 5065:8602) — two lines of label/xs in --text-error over a secondary \"Reload\" button (lucide refresh-cw), announced with role=\"alert\". NO icon. Rows are SUPPRESSED but the header and actions row stay. Precedence: loading outranks it; it outranks composeRows. onRetry omitted → no button renders; retryLabel overrides the default \"Reload\"."
+      },
+      {
+        "name": "composeRows",
+        "type": "{ text, actionLabel, onAction }",
+        "desc": "S116: COMPOSE MODE — for tables built by hand rather than fetched. Renders the fourth body state (Figma `Fourth Content State`): centered supporting text over a SECONDARY \"+\" button, shown ONLY while the table has no rows; the first row added retires it. Opting in is manual. Deliberately does NOT switch on the actions row: getting from row 1 to row 2 is the consumer's own affordance (typically a control in [slot=actions-trailing]), because adding a row is a FLOW, not a single callback this component should dictate. Yields to loading."
+      },
+      {
+        "name": "truncationTooltip",
+        "type": "boolean",
+        "desc": "Feature switch (default false): hovering any ellipsis-truncated body cell shows the normalized Tooltip (S93 — was >1 hidden word) with the full text (inner-wrapper truncation detected too). Cells wrapped in their own [data-tooltip-trigger] are left alone. Default column widths = max(header label, cell content) capped at MAX_COL_WIDTH (290px) — past the cap content ellipsizes."
+      },
+      {
+        "name": "(cellClick)",
+        "type": "EventEmitter<{cell,row}>",
+        "desc": "Per-cell click (opt-in): emits {cell,row} on a body-cell click, suppressed when the click is inside an interactive element (button/ActionMenu, checkbox, link, [role=menuitem], [data-no-cell-click]). A bound listener also adds the pointer affordance."
+      },
+      {
+        "name": "resize",
+        "type": "(engine)",
+        "desc": "Column resize: enable enableColumnResizing + columnResizeMode on the TanStack table → a drag-grip renders in each resizable header; the colgroup uses the user-dragged size."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Merged onto the host root (G8)."
+      },
+      {
+        "name": "selectable",
+        "type": "boolean (consumer/demo control — not a shell input)",
+        "desc": "The leading selection-checkbox column is CONSUMER-OWNED: the shell renders no checkbox itself, so selection is opt-in/out by including or omitting the select column in the table's column array (nothing on the shell to gate). This Playground exposes it as a `selectable` toggle; default on. Product consumers add/drop the column directly."
+      }
+    ]
   },
   "DatePicker": {
     "selector": "odyssey-date-picker",
     "version": "0.13.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "mode",
+        "type": "'single' | 'range'",
+        "desc": "Selection mode. `single` (default) selects one date; `range` builds a start→end span."
+      },
+      {
+        "name": "value",
+        "type": "Date|null  (single) | { start, end }  (range)",
+        "desc": "Controlled value. Pass `null` / `{ start: null, end: null }` for unset."
+      },
+      {
+        "name": "(valueChange)",
+        "type": "EventEmitter<Date | CalendarRange>",
+        "desc": "Single → receives a `Date`. Range → receives `{ start: Date, end: Date|null }`. First range click sets start; second sets end (if before start, restarts)."
+      },
+      {
+        "name": "defaultMonth",
+        "type": "Date",
+        "desc": "Initial month to display. Defaults to the selected value (or today) when omitted."
+      },
+      {
+        "name": "minDate",
+        "type": "Date",
+        "desc": "Lower bound — earlier days are disabled and month nav stops. Default 01/01/1900."
+      },
+      {
+        "name": "maxDate",
+        "type": "Date",
+        "desc": "Upper bound — later days are disabled and month nav stops. Default 01/01/2120."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Extra class(es) on the root element."
+      },
+      {
+        "name": "DatePicker: label",
+        "type": "string",
+        "desc": "FormField label above the input."
+      },
+      {
+        "name": "DatePicker: placeholder",
+        "type": "string",
+        "desc": "Defaults 'Select Date' (single) / 'Select Range' (range)."
+      },
+      {
+        "name": "DatePicker: disabled / error / id",
+        "type": "…",
+        "desc": "Passed through to the FormField shell."
+      }
+    ]
   },
   "Dropdown": {
     "selector": "odyssey-dropdown",
     "version": "0.3.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "value",
+        "type": "string",
+        "desc": "The currently selected option value (controlled). Two-way bindable via [(value)]."
+      },
+      {
+        "name": "options",
+        "type": "DropdownOption[]",
+        "desc": "The selectable options ({ value, label }), rendered as odyssey-menu-row rows."
+      },
+      {
+        "name": "(valueChange)",
+        "type": "EventEmitter<string>",
+        "desc": "Emitted with the chosen value when an option is picked (also closes the menu). Enables [(value)]."
+      },
+      {
+        "name": "disabled",
+        "type": "boolean",
+        "desc": "Disables the trigger — never opens. Default false."
+      },
+      {
+        "name": "emptyMessage",
+        "type": "string",
+        "desc": "Shown when options is empty. Default \"No items\"."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Additional class names merged onto the host (G8)."
+      }
+    ]
   },
   "DropdownButton": {
     "selector": "odyssey-dropdown-button",
     "version": "0.13.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "value",
+        "type": "string",
+        "desc": "The current value shown in the trigger (e.g. \"50\")."
+      },
+      {
+        "name": "open",
+        "type": "boolean",
+        "desc": "Applies the pressed/active look while the trigger's menu is open. Flips chevron to chevron-up. Default false."
+      },
+      {
+        "name": "disabled",
+        "type": "boolean",
+        "desc": "Disables the trigger (opacity 0.4, not-allowed cursor). Default false."
+      },
+      {
+        "name": "(clicked)",
+        "type": "EventEmitter<void>",
+        "desc": "Emitted on click when not disabled. The composing component handles open/close toggle."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Additional class names merged onto the inner <button>."
+      }
+    ]
   },
   "DropdownMenu": {
     "selector": "odyssey-dropdown-menu",
     "version": "0.3.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "content (projected)",
+        "type": "ng-content",
+        "desc": "Menu content — typically odyssey-menu-row atoms or a MenuDropdown group. When present, renders the content (State=Content)."
+      },
+      {
+        "name": "emptyMessage",
+        "type": "string",
+        "desc": "Shown centered when there is no projected content (State=Empty). Default \"No items\"."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Additional class names merged onto the surface."
+      }
+    ]
   },
   "EmptyState": {
     "selector": "odyssey-empty-state",
     "version": "0.2.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "[slot=icon]",
+        "type": "projection",
+        "desc": "Optional lucide icon projected into the icon slot (consumer-sized, 24px recommended). Usage: <i-lucide slot=\"icon\" name=\"…\" [size]=\"24\">."
+      },
+      {
+        "name": "message",
+        "type": "string",
+        "desc": "Help text shown below the icon. Keep to one short sentence."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Additional CSS classes for the root element."
+      }
+    ]
   },
   "FieldSearchResults": {
     "selector": "odyssey-field-search-results",
     "version": "0.9.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "matches",
+        "type": "FieldSearchMatch[]",
+        "desc": "MatchSimpleRow-shaped data objects ({ matchId, customer?, address?, iconType?, id? }). Empty [] → the no-match state."
+      },
+      {
+        "name": "maxHeight",
+        "type": "number",
+        "desc": "Scroll-viewport cap in px (default 320). MultiSelect passes 4*56 for a 4-row dropdown."
+      },
+      {
+        "name": "emptyMessage",
+        "type": "string",
+        "desc": "Centered muted message when matches is empty (Figma SearchNoMatch). Default 'No matching locations found.'."
+      },
+      {
+        "name": "error",
+        "type": "string",
+        "desc": "When set, renders a centered red alert message instead of rows/empty (Figma SearchAlert). Highest precedence."
+      },
+      {
+        "name": "activeIndex",
+        "type": "number",
+        "desc": "Index of the highlighted row — gets .is-active + aria-selected (combobox keyboard nav)."
+      },
+      {
+        "name": "optionIdPrefix",
+        "type": "string",
+        "desc": "Prefix for option node ids `${optionIdPrefix}-option-${i}` (aria-activedescendant target)."
+      },
+      {
+        "name": "rowProps",
+        "type": "{ showAvatar?, showInfo?, twoColumn? }",
+        "desc": "React rowProps bag → discrete [showAvatar] / [showInfo] / [twoColumn] inputs on the Angular twin. [twoColumn] switches rows to the code + description grid — pair with columnHeaders + rowHeight 40."
+      },
+      {
+        "name": "columnHeaders",
+        "type": "[string, string]",
+        "desc": "Renders an in-panel small-caps header row above the list, on the same 160px + 1fr grid as two-column rows so the columns align."
+      },
+      {
+        "name": "rowHeight",
+        "type": "number",
+        "desc": "Virtual row height in px. Default 56 (avatar rows); 40 in two-column contexts (MultiSelect passes 40)."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Modifier class(es) merged onto the host (G8)."
+      },
+      {
+        "name": "(matchClick)",
+        "type": "EventEmitter<FieldSearchMatch>",
+        "desc": "Emits the clicked match when a row is clicked (React onMatchClick). Adds role=\"listbox\" when bound."
+      }
+    ]
   },
   "FieldSelect": {
     "selector": "odyssey-field-select",
     "version": "0.10.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "variant",
+        "type": "leading|trailing",
+        "desc": "Edge side. leading = left border (divider on right); trailing = right border (divider on left). Default trailing."
+      },
+      {
+        "name": "state",
+        "type": "default|focus|disabled|error-default|error",
+        "desc": "Drives the divider color ladder. Default default."
+      },
+      {
+        "name": "label",
+        "type": "string",
+        "desc": "Trigger text (e.g. \"+1\", \"kg\"). Default \"Select\"."
+      },
+      {
+        "name": "(clicked)",
+        "type": "EventEmitter<MouseEvent>",
+        "desc": "Open the parent-supplied menu."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Additional CSS classes."
+      }
+    ]
   },
   "FilterButton": {
     "selector": "odyssey-filter-button",
     "version": "0.2.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "active",
+        "type": "boolean",
+        "desc": "Persistent active state (drawer open / filters applied). Renders in Carolina Blue. Default false."
+      },
+      {
+        "name": "label",
+        "type": "string",
+        "desc": "Button label. Default \"Filter\"."
+      },
+      {
+        "name": "(clicked)",
+        "type": "EventEmitter<MouseEvent>",
+        "desc": "Click handler."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Extra class names (added in Angular per G8 — not present in the React source)."
+      }
+    ]
   },
   "FilterSuggestions": {
     "selector": "odyssey-filter-suggestions",
     "version": "0.7.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "title",
+        "type": "string",
+        "desc": "Section heading shown above the chip list. Default 'Suggested Filters'."
+      },
+      {
+        "name": "items",
+        "type": "string[] | {label: string, value: any}[]",
+        "desc": "Chip content. Strings are used as-is; objects expose a separate value emitted via (select)."
+      },
+      {
+        "name": "(select)",
+        "type": "EventEmitter<any>",
+        "desc": "Called when a chip is clicked. When not bound, chips render decoratively."
+      },
+      {
+        "name": "optionId",
+        "type": "(i: number) => string",
+        "desc": "Combobox wiring (S80, optional): id factory for each chip. When provided, chips render as role=\"option\" with aria-selected and the panel becomes a listbox group — used by GlobalSearch for aria-activedescendant keyboard navigation."
+      },
+      {
+        "name": "activeIndex",
+        "type": "number",
+        "desc": "Combobox wiring (S80): index of the keyboard-highlighted chip (-1 = none). The highlighted chip gets `.is-active` (mirrors hover). Default -1."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Extra class names forwarded to the root element."
+      }
+    ]
   },
   "FormField": {
     "selector": "odyssey-form-field",
     "version": "0.10.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "label",
+        "type": "string",
+        "desc": "Field title."
+      },
+      {
+        "name": "showLabel",
+        "type": "boolean",
+        "desc": "Show the label row. Default true."
+      },
+      {
+        "name": "showInfo",
+        "type": "boolean",
+        "desc": "Show the info icon beside the label. Default false."
+      },
+      {
+        "name": "placeholder",
+        "type": "string",
+        "desc": "Input placeholder."
+      },
+      {
+        "name": "value",
+        "type": "string|number",
+        "desc": "Controlled value; drives the derived filled state."
+      },
+      {
+        "name": "type",
+        "type": "text|email|password|number|tel|search|url",
+        "desc": "Native input type. Default text."
+      },
+      {
+        "name": "format",
+        "type": "text|integer|decimal|phone",
+        "desc": "Input CONTENT policy: sets the mobile inputMode AND strips characters that do not belong, before the value is emitted — so a typo can never land in the value. decimal keeps only the first dot (\"1.2.3\" → \"1.23\"). Deliberately a small closed set, not a mask DSL. Default text."
+      },
+      {
+        "name": "error",
+        "type": "string|false|null",
+        "desc": "Error message; truthy reddens border + shows the message."
+      },
+      {
+        "name": "validated",
+        "type": "boolean",
+        "desc": "Success state (Figma State=Validated): success border + trailing check + green \"Validated\" line. `error` wins when both are set."
+      },
+      {
+        "name": "disabled",
+        "type": "boolean",
+        "desc": "Disables the input and all buttons."
+      },
+      {
+        "name": "clearable",
+        "type": "boolean",
+        "desc": "Gates the clear-X button (React onClear presence). Default false."
+      },
+      {
+        "name": "required",
+        "type": "boolean",
+        "desc": "Marks the field required — ` *` label marker + native required + aria-required."
+      },
+      {
+        "name": "maxLength",
+        "type": "number",
+        "desc": "Native input maxLength; also the counter denominator."
+      },
+      {
+        "name": "showCounter",
+        "type": "boolean",
+        "desc": "Show the in-box char counter (basic variants only — suppressed when a select edge is present). Default false."
+      },
+      {
+        "name": "hasLeadingIcon",
+        "type": "boolean",
+        "desc": "Whether a [slot=leading-icon] is projected."
+      },
+      {
+        "name": "hasTrailingIcon",
+        "type": "boolean",
+        "desc": "Whether a [slot=trailing-icon] is projected."
+      },
+      {
+        "name": "leadingSelect",
+        "type": "{ label }",
+        "desc": "Renders a leading FieldSelect."
+      },
+      {
+        "name": "trailingSelect",
+        "type": "{ label }",
+        "desc": "Renders a trailing FieldSelect."
+      },
+      {
+        "name": "(changed)",
+        "type": "EventEmitter<Event>",
+        "desc": "Native input change event (mirrors React onChange)."
+      },
+      {
+        "name": "(valueChange)",
+        "type": "EventEmitter<string>",
+        "desc": "Idiomatic value passthrough."
+      },
+      {
+        "name": "(cleared)",
+        "type": "EventEmitter<void>",
+        "desc": "Clear-X pressed."
+      },
+      {
+        "name": "(leadingSelectClick)",
+        "type": "EventEmitter<MouseEvent>",
+        "desc": "Leading FieldSelect clicked."
+      },
+      {
+        "name": "(trailingSelectClick)",
+        "type": "EventEmitter<MouseEvent>",
+        "desc": "Trailing FieldSelect clicked."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Additional class names merged onto the host."
+      }
+    ]
   },
   "GlobalSearch": {
     "selector": "odyssey-global-search",
     "version": "0.13.0",
-    "normalizing": true
+    "normalizing": true,
+    "props": [
+      {
+        "name": "mode",
+        "type": "'search' | 'title'",
+        "desc": "Rendering mode. 'search' = full interactive bar; 'title' = centered white heading text. Default 'search'."
+      },
+      {
+        "name": "value",
+        "type": "string",
+        "desc": "Controlled input value (search mode)."
+      },
+      {
+        "name": "(valueChange)",
+        "type": "EventEmitter<string>",
+        "desc": "Emitted on every keystroke."
+      },
+      {
+        "name": "(clear)",
+        "type": "EventEmitter<void>",
+        "desc": "Emitted when the CircleX clear button is clicked."
+      },
+      {
+        "name": "(copy)",
+        "type": "EventEmitter<void>",
+        "desc": "Copies the applied query (bar text + committed chips). The copy button renders ONLY when this has a listener — bars that do not support copying show no dead control. Disabled while there is nothing to copy; the icon becomes a Check for 1.5s after a copy."
+      },
+      {
+        "name": "(back)",
+        "type": "EventEmitter<void>",
+        "desc": "Emitted when the ChevronLeft back button is clicked."
+      },
+      {
+        "name": "(forward)",
+        "type": "EventEmitter<void>",
+        "desc": "Emitted when the ChevronRight forward button is clicked."
+      },
+      {
+        "name": "placeholder",
+        "type": "string",
+        "desc": "Input placeholder. Default 'Search'."
+      },
+      {
+        "name": "minWidth",
+        "type": "number",
+        "desc": "Minimum bar width in px. Default 590."
+      },
+      {
+        "name": "maxWidth",
+        "type": "number",
+        "desc": "Maximum bar width in px. Default 900."
+      },
+      {
+        "name": "showFilter",
+        "type": "boolean",
+        "desc": "Show the FilterButton at the right edge. Default true."
+      },
+      {
+        "name": "filterCount",
+        "type": "number",
+        "desc": "Active-filter count shown on the count Badge overlay. Default 0."
+      },
+      {
+        "name": "filterActive",
+        "type": "boolean",
+        "desc": "Controlled filter-drawer open state (optional). Uncontrolled when omitted."
+      },
+      {
+        "name": "(filterClick)",
+        "type": "EventEmitter<boolean>",
+        "desc": "Emitted when FilterButton is clicked; carries the next active state."
+      },
+      {
+        "name": "chips",
+        "type": "GlobalSearchChip[]",
+        "desc": "Committed filter chips rendered inside the bar. Each chip: { key, label }."
+      },
+      {
+        "name": "(chipRemove)",
+        "type": "EventEmitter<string>",
+        "desc": "Emitted (chip key) when a chip X button is clicked."
+      },
+      {
+        "name": "(chipClick)",
+        "type": "EventEmitter<GlobalSearchChip>",
+        "desc": "Emitted when the chip body (not the X) is clicked."
+      },
+      {
+        "name": "suggestionSections",
+        "type": "GlobalSearchSection[]",
+        "desc": "Suggestion dropdown sections: [{ title, items, onSelect }]."
+      },
+      {
+        "name": "suggestionsOpen",
+        "type": "boolean",
+        "desc": "Whether the suggestion dropdown is visible. Default false."
+      },
+      {
+        "name": "(suggestionSelect)",
+        "type": "EventEmitter<any>",
+        "desc": "Fallback onSelect for suggestion sections that omit their own."
+      },
+      {
+        "name": "resultsOpen",
+        "type": "boolean",
+        "desc": "Keeps bar expanded (chips visible) while a results panel is open. Default false."
+      },
+      {
+        "name": "title",
+        "type": "string",
+        "desc": "Heading text shown in 'title' mode. Default 'Edit Dashboard'."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Extra class names merged onto the bar wrapper."
+      }
+    ]
   },
   "GlobalSearchPanel": {
     "selector": "odyssey-global-search-panel",
     "version": "0.13.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "showHeader",
+        "type": "boolean",
+        "desc": "Render the header bar (back button + title + close X). Hidden by default (the Results state has no header)."
+      },
+      {
+        "name": "showBack",
+        "type": "boolean",
+        "desc": "Show the ChevronLeft back button inside the header (requires showHeader). Default false."
+      },
+      {
+        "name": "title",
+        "type": "string",
+        "desc": "Header title text. Default 'Filters'."
+      },
+      {
+        "name": "showClose",
+        "type": "boolean",
+        "desc": "Gates the header close X. Renders only when showHeader && showClose. Default false. (Angular boolean replacing React onClose-presence gate.)"
+      },
+      {
+        "name": "showLink",
+        "type": "boolean",
+        "desc": "Show the leading-left link button in the footer (e.g. Save Filters). Default false."
+      },
+      {
+        "name": "linkLabel",
+        "type": "string",
+        "desc": "Footer link button label. Default 'Save Filters'. The link icon is baked (circle-plus)."
+      },
+      {
+        "name": "linkDisabled",
+        "type": "boolean",
+        "desc": "Disables the footer link, using Button's own disabled state. For consumers with nothing to act on (e.g. Save Filters with no field filled) — an unwired handler would read as enabled and broken instead. Default false."
+      },
+      {
+        "name": "showSecondary",
+        "type": "boolean",
+        "desc": "Show the lead/left secondary button in the footer. Default true."
+      },
+      {
+        "name": "showTrailSecondary",
+        "type": "boolean",
+        "desc": "Show a second secondary button on the trail/right (Filters·All \"Clear all\" next to \"Show all N\"). Default false."
+      },
+      {
+        "name": "secondaryLabel",
+        "type": "string",
+        "desc": "Secondary button label. Default 'Clear all'."
+      },
+      {
+        "name": "count",
+        "type": "number",
+        "desc": "Result count used to build the default primary label (\"Show all N results\")."
+      },
+      {
+        "name": "primaryLabel",
+        "type": "string",
+        "desc": "Override the primary button label entirely (skips the count-based default)."
+      },
+      {
+        "name": "primaryDisabled",
+        "type": "boolean",
+        "desc": "Disables the primary button, using Button's own disabled state. For consumers with nothing to act on (e.g. the Saved tab with no profile selected) — an unwired handler would read as enabled and broken instead. Default false."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Extra class(es) merged onto the host (G8). Add \"global-search-panel--filters\" to cap height + scroll the body."
+      },
+      {
+        "name": "(back)",
+        "type": "EventEmitter<void>",
+        "desc": "Emitted when the header back button is clicked."
+      },
+      {
+        "name": "(close)",
+        "type": "EventEmitter<void>",
+        "desc": "Emitted when the header close X is clicked."
+      },
+      {
+        "name": "(link)",
+        "type": "EventEmitter<void>",
+        "desc": "Emitted when the footer link button is clicked."
+      },
+      {
+        "name": "(clear)",
+        "type": "EventEmitter<void>",
+        "desc": "Emitted when any secondary button is clicked."
+      },
+      {
+        "name": "(showResults)",
+        "type": "EventEmitter<void>",
+        "desc": "Emitted when the primary button is clicked."
+      }
+    ]
   },
   "GlobalSearchResults": {
     "selector": "odyssey-global-search-results",
     "version": "0.6.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "matches",
+        "type": "GlobalSearchMatch[]",
+        "desc": "MatchRow-shaped data objects ({ matchId, route?, customer?, carrier?, bol?, shipmentId?, source?, iconType?, id? }). Only the first maxRows (12) render. Empty [] → the no-match state."
+      },
+      {
+        "name": "maxRows",
+        "type": "number",
+        "desc": "Cap on rendered rows. Default 12. Beyond this, the \"Filter More\" CTA is the refine path (no pagination)."
+      },
+      {
+        "name": "title",
+        "type": "string",
+        "desc": "Header above the list. When undefined, renders a dynamic \"Best N Matches\" (N = min(matches.length, maxRows)). Scrolls with the rows."
+      },
+      {
+        "name": "emptyMessage",
+        "type": "string",
+        "desc": "Centered muted message when matches is empty (Figma SearchNoMatch). Default 'No matching results found.'."
+      },
+      {
+        "name": "error",
+        "type": "string",
+        "desc": "When set, renders a centered red alert message instead of rows/empty (Figma SearchAlert). Highest precedence."
+      },
+      {
+        "name": "filtersLabel",
+        "type": "string",
+        "desc": "Filter CTA label while showing results. Default 'Filter More'."
+      },
+      {
+        "name": "editFiltersLabel",
+        "type": "string",
+        "desc": "Filter CTA label on the empty / error states (a refine affordance). Default 'Edit Filters'."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Modifier class(es) merged onto the host (G8)."
+      },
+      {
+        "name": "(filtersClick)",
+        "type": "EventEmitter<void>",
+        "desc": "When observed, renders the filter-link CTA at the end — in every state (populated / empty / error)."
+      },
+      {
+        "name": "(matchClick)",
+        "type": "EventEmitter<GlobalSearchMatch>",
+        "desc": "Emits the clicked match when a row is clicked."
+      }
+    ]
   },
   "GroupTable": {
     "selector": "odyssey-group-table",
     "version": "0.13.0",
-    "normalizing": true
+    "normalizing": true,
+    "props": [
+      {
+        "name": "columns",
+        "type": "OdysseyGroupTableColumn[]",
+        "desc": "Column definitions `{ key, label, align?, width? }`. `align`: 'left' (default) | 'right' | 'center'; `width` pins a column (number = px | string)."
+      },
+      {
+        "name": "groups",
+        "type": "OdysseyGroupTableGroup[]",
+        "desc": "One collapsible band per group `{ id, label, rows: Record<string,unknown>[], values? }`. `values` is optional: an object keyed by col.key whose entries appear on the group header row in matching columns (medium weight, col.align respected) — visible both collapsed and expanded. Omit for label-only headers (Product tab style). Interpolated as text by default — pass valueCellTemplate to render nodes."
+      },
+      {
+        "name": "cellTemplate",
+        "type": "TemplateRef<{ $implicit: { row, col } }>",
+        "desc": "Optional per-CHILD-row cell renderer (Angular analogue of React renderCell). Its $implicit context is `{ row, col }` — read `row[col.key]`, inject nodes (a hazmat Badge, a colored Diff). Default: `row[col.key] ?? \"—\"`."
+      },
+      {
+        "name": "valueCellTemplate",
+        "type": "TemplateRef<{ $implicit: { row, col } }>",
+        "desc": "Optional renderer for group-header VALUE cells (non-first columns of groups carrying `values`). Same context shape as cellTemplate with `row` = the group's `values` map — one template can serve child rows, header values and footer (React: `values[col.key]` accepts nodes, e.g. a colored DiffCell). Default: plain interpolation."
+      },
+      {
+        "name": "footerCellTemplate",
+        "type": "TemplateRef<{ $implicit: { row, col } }>",
+        "desc": "Optional renderer for footer (TOTAL) cells. Same context shape as cellTemplate with `row` = footerRow (React: `footerRow[col.key]` accepts nodes). Default: plain interpolation."
+      },
+      {
+        "name": "footerRow",
+        "type": "Record<string, unknown>",
+        "desc": "Optional TOTAL row (medium weight) keyed by col.key. Pass to show; omit to hide. Interpolated as text by default — pass footerCellTemplate to render nodes; NOT passed through cellTemplate."
+      },
+      {
+        "name": "expanded",
+        "type": "Record<string, boolean>",
+        "desc": "Controlled expansion map (missing key = collapsed) — pair with (toggle); lets a consumer drive Expand All."
+      },
+      {
+        "name": "defaultExpanded",
+        "type": "boolean",
+        "desc": "Uncontrolled initial state for every group. Default true."
+      },
+      {
+        "name": "(toggle)",
+        "type": "EventEmitter<{ groupId, next }>",
+        "desc": "Fires on any group toggle (row click or keyboard on the header button). Angular analogue of React onToggle(groupId, next)."
+      },
+      {
+        "name": "striped",
+        "type": "boolean",
+        "desc": "Default true — child rows as contiguous light-gray bands with 1px --border-subtle hairlines between them (no white gaps). False = white rows with hairlines."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Extra class(es) on the root scroll element."
+      },
+      {
+        "name": "detailColumns",
+        "type": "OdysseyGroupTableColumn[]",
+        "desc": "NESTED-TABLE FLAVOR. The second table's OWN columns — own keys, labels and widths, deliberately NOT aligned to `columns`. Setting this selects the flavor: an expanded group reveals a full second table instead of child rows. ⚠ READ THE EXPANDABLE ROW AS A DATA ROW, NOT A HEADER: in the Rows flavor the per-group row heads its children; here it heads nothing — it is an ordinary data row (one value per outer column via `values`, regular weight, the chevron merely living in its lead cell), and its header is the table's own `columns` row. An expanded group therefore shows TWO header rows belonging to TWO different tables — that is correct, not a duplicate."
+      },
+      {
+        "name": "detailCellTemplate",
+        "type": "TemplateRef<{ $implicit: { row, col } }>",
+        "desc": "Optional renderer for the nested table's cells (Angular analogue of React renderDetailCell). Same `{ row, col }` context, with `row` a detailRows entry. Default: `row[col.key] ?? \"--\"`."
+      },
+      {
+        "name": "groups[].detailRows",
+        "type": "Record<string, unknown>[]",
+        "desc": "Rows for that group's nested table, keyed by detailColumns[].key. Only read in the nested flavor."
+      },
+      {
+        "name": "stickyActions",
+        "type": "boolean",
+        "desc": "Render a pinned trailing action column (sticky right, 68px, with DataTable's left shadow). Same convention DataTable uses, so both tables behave identically on a page carrying each. Default false."
+      },
+      {
+        "name": "actionsHeader / actionsHeaderTemplate",
+        "type": "TemplateRef<unknown>",
+        "desc": "Content of the pinned column's HEADER cell (React: `actionsHeader`) — by convention a column-arrange icon button."
+      },
+      {
+        "name": "groups[].actionTone",
+        "type": "'danger' | 'warning' | 'success' | 'info'",
+        "desc": "Colour scheme (glyph + background) for that row's pinned action cell. Omit for the neutral default. At rest the tone reads as a tile behind the glyph; on hover the WHOLE 68px cell fills with the tone and the tile dissolves into it, glyph keeping its colour. This lives on the component rather than the slot because the hover fill is the CELL's background — a projected node cannot paint its own ancestor. An unrecognised value degrades to neutral."
+      },
+      {
+        "name": "groups[].action / actionTemplate",
+        "type": "TemplateRef<{ $implicit: { group } }>",
+        "desc": "Content of each group row's pinned action cell (React: `group.action`). The CONTENT is a pure slot — by convention project an `odyssey-action-menu` (the canonical row-action control, same as DataTable's action column): it brings the dropdown, hover/pressed states, keyboard a11y and viewport-flip placement. The COLOUR SCHEME is not the slot's — see `groups[].actionTone`. Clicks are stopped from toggling the row."
+      }
+    ]
   },
   "IconButtonGhost": {
     "selector": "odyssey-icon-button-ghost",
     "version": "0.2.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "<ng-content>",
+        "type": "projection",
+        "desc": "Icon to render (real lucide icon in code; placeholder-20 in the Figma INSTANCE_SWAP slot)."
+      },
+      {
+        "name": "interactive",
+        "type": "boolean",
+        "desc": "true → renders as <button> + emits (clicked); false → decorative <span>. Replaces React onClick presence-check."
+      },
+      {
+        "name": "(clicked)",
+        "type": "EventEmitter<MouseEvent>",
+        "desc": "Click emitter (interactive form only)."
+      },
+      {
+        "name": "ariaLabel",
+        "type": "string",
+        "desc": "Accessible label for the button."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Extra class names merged into the root element."
+      }
+    ]
   },
   "LeadNav": {
     "selector": "odyssey-lead-nav",
     "version": "0.2.0",
-    "normalizing": true
+    "normalizing": true,
+    "props": [
+      {
+        "name": "hasCustomLogo",
+        "type": "boolean",
+        "desc": "Set true when projecting a custom [slot=logo] to suppress the default <odyssey-logo>."
+      },
+      {
+        "name": "(menuClick)",
+        "type": "EventEmitter<void>",
+        "desc": "Called when the hamburger icon button is clicked."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Additional class names."
+      }
+    ]
   },
   "MatchRow": {
     "selector": "odyssey-match-row",
     "version": "0.6.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "matchId",
+        "type": "string",
+        "desc": "Primary identifier shown in semibold on the main line."
+      },
+      {
+        "name": "route",
+        "type": "string",
+        "desc": "Route description shown next to matchId in regular weight."
+      },
+      {
+        "name": "customer",
+        "type": "string",
+        "desc": "Customer value in the meta line."
+      },
+      {
+        "name": "carrier",
+        "type": "string",
+        "desc": "Carrier value in the meta line."
+      },
+      {
+        "name": "bol",
+        "type": "string",
+        "desc": "Bill of Lading value in the meta line."
+      },
+      {
+        "name": "shipmentId",
+        "type": "string",
+        "desc": "Optional fourth meta cell (Shipment #). When provided, adds a trailing divider to the BOL cell."
+      },
+      {
+        "name": "source",
+        "type": "{ label: string, variant: string }",
+        "desc": "Source Badge shown on the right of the main line. Default { label: 'FourKites, Inc.', variant: 'blue' }."
+      },
+      {
+        "name": "iconType",
+        "type": "'container'|'package'|'handshake'",
+        "desc": "Named avatar icon preset."
+      },
+      {
+        "name": "showDefaultIcon",
+        "type": "boolean",
+        "desc": "Show the default icon fallback when no [slot=icon] is projected. Default true."
+      },
+      {
+        "name": "interactive",
+        "type": "boolean",
+        "desc": "When true adds role=button + hover tint + emits (rowClick)."
+      },
+      {
+        "name": "(rowClick)",
+        "type": "EventEmitter<void>",
+        "desc": "Emitted on click when interactive=true."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Additional class names."
+      }
+    ]
   },
   "MatchSimpleRow": {
     "selector": "odyssey-match-simple-row",
     "version": "0.9.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "matchId",
+        "type": "string",
+        "desc": "Primary identifier — semibold, on the main line."
+      },
+      {
+        "name": "customer",
+        "type": "string",
+        "desc": "Customer name — medium weight, beside the id on the main line. Omit to hide."
+      },
+      {
+        "name": "address",
+        "type": "string",
+        "desc": "Address / additional info — label/xs regular, on the sub line. Omit to hide."
+      },
+      {
+        "name": "iconType",
+        "type": "'container'|'package'|'handshake'",
+        "desc": "Named avatar icon preset (Lucide glyph at 20px)."
+      },
+      {
+        "name": "showDefaultIcon",
+        "type": "boolean",
+        "desc": "Show the default icon fallback when no [slot=icon] is projected. Default true."
+      },
+      {
+        "name": "interactive",
+        "type": "boolean",
+        "desc": "When true adds role=button + hover/pressed affordance + emits (rowClick)."
+      },
+      {
+        "name": "showAvatar",
+        "type": "boolean",
+        "desc": "Show the avatar span. Default true (Figma showAvatar). With showInfo also off, the row becomes a plain list item automatically — the ID drops semibold → label/sm regular (no prop needed)."
+      },
+      {
+        "name": "showInfo",
+        "type": "boolean",
+        "desc": "Show the address sub-line. Default true (Figma showInfo). With showAvatar also off, the derived plain-list rule kicks in (ID drops to 14px/400 regular)."
+      },
+      {
+        "name": "twoColumn",
+        "type": "boolean",
+        "desc": "Figma Layout = Two column. Renders a two-cell grid — code (160px via --msr-col1 fallback) + description — 40px rows, both cells label/sm regular. Pairs with FieldSearchResults columnHeaders so the columns align."
+      },
+      {
+        "name": "isSelected",
+        "type": "boolean",
+        "desc": "Selected surface (DSN/200; DSN/300 on hover) via .match-simple-row--selected. Set by FieldSearchResults from selectedIds."
+      },
+      {
+        "name": "(rowClick)",
+        "type": "EventEmitter<void>",
+        "desc": "Emitted on click when interactive=true."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Additional class names."
+      }
+    ]
   },
   "MenuDropdown": {
     "selector": "odyssey-menu-dropdown",
     "version": "0.2.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "title",
+        "type": "string",
+        "desc": "Group header label. Rendered in uppercase label style."
+      },
+      {
+        "name": "expanded",
+        "type": "boolean",
+        "desc": "Controls whether children are visible. Default true."
+      },
+      {
+        "name": "(toggle)",
+        "type": "EventEmitter<void>",
+        "desc": "Header button click — consumer manages state."
+      },
+      {
+        "name": "<ng-content>",
+        "type": "projection",
+        "desc": "Slot content. Typically one or more odyssey-menu-row instances."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Additional class names merged onto the host."
+      }
+    ]
   },
   "MenuRow": {
     "selector": "odyssey-menu-row",
     "version": "0.4.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "label",
+        "type": "string",
+        "desc": "Row label text (truncates with ellipsis)."
+      },
+      {
+        "name": "selected",
+        "type": "boolean",
+        "desc": "Marks the chosen row — DSN/100 background. Default false."
+      },
+      {
+        "name": "draggable",
+        "type": "boolean",
+        "desc": "Adds a trailing grip + grab cursor for reorderable single-select rows (e.g. WidgetsLeftMenu). Composes with selected/disabled. Default false."
+      },
+      {
+        "name": "showLeadingIcon",
+        "type": "boolean",
+        "desc": "Renders the projected leading-icon slot ([slot=leading], 20px). Default false."
+      },
+      {
+        "name": "disabled",
+        "type": "boolean",
+        "desc": "Mutes the label + icon + grip (DSN/400) and suppresses the click. Default false."
+      },
+      {
+        "name": "(clicked)",
+        "type": "EventEmitter<void>",
+        "desc": "Emitted on click when not disabled."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Additional class names merged onto the host."
+      }
+    ]
   },
   "MenuRowCheckbox": {
     "selector": "odyssey-menu-row-checkbox",
     "version": "0.4.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "label",
+        "type": "string",
+        "desc": "Row label text (truncates with ellipsis)."
+      },
+      {
+        "name": "checked",
+        "type": "boolean",
+        "desc": "Checkbox checked state (multi-select). Default false."
+      },
+      {
+        "name": "draggable",
+        "type": "boolean",
+        "desc": "Shows the grip-vertical drag handle. Reorder via a consumer DnD adapter. Default true."
+      },
+      {
+        "name": "bordered",
+        "type": "boolean",
+        "desc": "Figma Type=Bordered — DSN/300 inset outline. Default false."
+      },
+      {
+        "name": "disabled",
+        "type": "boolean",
+        "desc": "Muted label + disabled checkbox; suppresses (toggle) emission. Default false."
+      },
+      {
+        "name": "name",
+        "type": "string",
+        "desc": "Passed to the nested odyssey-checkbox input name attribute."
+      },
+      {
+        "name": "value",
+        "type": "any",
+        "desc": "Value emitted by (toggle)."
+      },
+      {
+        "name": "(toggle)",
+        "type": "EventEmitter<any>",
+        "desc": "Emitted when the checkbox control area is clicked (not disabled). Carries value."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Additional class names merged onto the root host element."
+      }
+    ]
   },
   "MenuRowRadio": {
     "selector": "odyssey-menu-row-radio",
     "version": "0.13.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "label",
+        "type": "string",
+        "desc": "Row label text (truncates with ellipsis)."
+      },
+      {
+        "name": "selected",
+        "type": "boolean",
+        "desc": "Marks this row as the active selection. Drives radio checked state + DSN/900 outline ring. Default false."
+      },
+      {
+        "name": "draggable",
+        "type": "boolean",
+        "desc": "Shows a leading grip drag handle before the radio (reorder via a consumer DnD adapter), mirroring MenuRowCheckbox. Default false."
+      },
+      {
+        "name": "badge",
+        "type": "string",
+        "desc": "Renders a gray pill Badge in the nav zone before the chevron (which keeps the trailing slot). Use [slot=badge] projected content for custom badge nodes. Default none."
+      },
+      {
+        "name": "disabled",
+        "type": "boolean",
+        "desc": "Disables both zones; suppresses (select) and (navigate) emissions. Default false."
+      },
+      {
+        "name": "name",
+        "type": "string",
+        "desc": "HTML radio group name — use the same value across all rows in a group."
+      },
+      {
+        "name": "value",
+        "type": "any",
+        "desc": "Value emitted by both (select) and (navigate)."
+      },
+      {
+        "name": "(select)",
+        "type": "EventEmitter<any>",
+        "desc": "Emitted when the radio control changes (not disabled). Carries value."
+      },
+      {
+        "name": "(navigate)",
+        "type": "EventEmitter<any>",
+        "desc": "Emitted when the label/chevron zone is clicked (not disabled). Carries value."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Additional class names merged onto the root host element."
+      }
+    ]
   },
   "ModalFooter": {
     "selector": "odyssey-modal-footer",
     "version": "0.7.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "type",
+        "type": "'confirm' | 'filters' | 'link'",
+        "desc": "Which footer layout. (Figma: Type variant ModalFooter1 / 2 / 3.) Default 'confirm'."
+      },
+      {
+        "name": "cancelLabel",
+        "type": "string",
+        "desc": "confirm — left Cancel button label. Default 'Cancel'."
+      },
+      {
+        "name": "saveLabel",
+        "type": "string",
+        "desc": "confirm — right Save button label. Default 'Save'."
+      },
+      {
+        "name": "tertiaryLabel",
+        "type": "string",
+        "desc": "confirm only — pass a non-empty string to show a secondary 'Clear all' button beside Save. Omit to hide. Text-gated (no boolean)."
+      },
+      {
+        "name": "saveDisabled",
+        "type": "boolean",
+        "desc": "confirm only — disables the primary Save button (e.g. nothing to save yet). Default false."
+      },
+      {
+        "name": "saveFiltersLabel",
+        "type": "string",
+        "desc": "filters — left link button label (with bookmark icon). Default 'Save Filters'."
+      },
+      {
+        "name": "clearLabel",
+        "type": "string",
+        "desc": "filters — right group secondary button label. Default 'Clear all'."
+      },
+      {
+        "name": "resultsLabel",
+        "type": "string",
+        "desc": "filters — right group primary button label. Default 'Show results'."
+      },
+      {
+        "name": "text",
+        "type": "string",
+        "desc": "link — left helper text. Default \"Don't see your address?\"."
+      },
+      {
+        "name": "linkLabel",
+        "type": "string",
+        "desc": "link — right action link button label (with plus icon). Default 'Add manually'."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Extra class(es) merged onto the host footer element. Mirrors React className."
+      },
+      {
+        "name": "(cancel)",
+        "type": "EventEmitter<void>",
+        "desc": "confirm — Cancel button clicked."
+      },
+      {
+        "name": "(save)",
+        "type": "EventEmitter<void>",
+        "desc": "confirm — Save button clicked."
+      },
+      {
+        "name": "(tertiary)",
+        "type": "EventEmitter<void>",
+        "desc": "confirm — tertiary Clear all button clicked (only emits when tertiaryLabel is set)."
+      },
+      {
+        "name": "(saveFilters)",
+        "type": "EventEmitter<void>",
+        "desc": "filters — Save Filters link clicked."
+      },
+      {
+        "name": "(clear)",
+        "type": "EventEmitter<void>",
+        "desc": "filters — Clear all button clicked."
+      },
+      {
+        "name": "(results)",
+        "type": "EventEmitter<void>",
+        "desc": "filters — Show results button clicked."
+      },
+      {
+        "name": "(link)",
+        "type": "EventEmitter<void>",
+        "desc": "link — Add manually link clicked."
+      }
+    ]
   },
   "ModalHeader": {
     "selector": "odyssey-modal-header",
     "version": "0.5.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "title",
+        "type": "string",
+        "desc": "Header title text (controlled value). (Figma: Title TEXT prop.)"
+      },
+      {
+        "name": "subtitle",
+        "type": "string",
+        "desc": "Optional subtitle (label/xs). Provide to show, omit to hide. (Figma: Subtitle TEXT, gated by Show Subtitle boolean.)"
+      },
+      {
+        "name": "showBack",
+        "type": "boolean",
+        "desc": "Gates the back chevron-left (lg = 20px). Default false. (Angular equivalent of React onBack — handlers cannot be presence-checked.) (Figma: Show Back boolean.)"
+      },
+      {
+        "name": "editableTitle",
+        "type": "boolean",
+        "desc": "Shows the edit pencil (md = 16px) next to the title — enables in-place rename. Default false. (Figma: Editable boolean.)"
+      },
+      {
+        "name": "editingTitle",
+        "type": "boolean",
+        "desc": "Controlled. When true the title renders as an in-place chrome-less input, focused once on enter. Default false."
+      },
+      {
+        "name": "ariaLabel",
+        "type": "string",
+        "desc": "Optional accessible label on the host header element."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Extra class(es) merged onto the host element alongside modal-header (G8). Mirrors React className."
+      },
+      {
+        "name": "(back)",
+        "type": "EventEmitter<void>",
+        "desc": "Back chevron click."
+      },
+      {
+        "name": "(editTitle)",
+        "type": "EventEmitter<void>",
+        "desc": "Pencil click — the consumer should set editingTitle = true."
+      },
+      {
+        "name": "(close)",
+        "type": "EventEmitter<void>",
+        "desc": "Close X click — always wired, always shown (no gate)."
+      },
+      {
+        "name": "(titleChange)",
+        "type": "EventEmitter<string>",
+        "desc": "Title input changed (each keystroke). Enables [(title)] two-way binding."
+      },
+      {
+        "name": "(titleCommit)",
+        "type": "EventEmitter<void>",
+        "desc": "Enter pressed in the title input."
+      },
+      {
+        "name": "(titleCancel)",
+        "type": "EventEmitter<void>",
+        "desc": "Escape pressed in the title input."
+      }
+    ]
   },
   "ModalLarge": {
     "selector": "odyssey-modal-large",
     "version": "0.2.0",
-    "normalizing": true
+    "normalizing": true,
+    "props": [
+      {
+        "name": "title",
+        "type": "string",
+        "desc": "Header title text. Also the default accessible label when ariaLabel is unset."
+      },
+      {
+        "name": "subtitle",
+        "type": "string",
+        "desc": "Header subtitle text. Rendered only when showSubtitle is true and non-empty."
+      },
+      {
+        "name": "showSubtitle",
+        "type": "boolean",
+        "desc": "Toggle subtitle visibility. Default true."
+      },
+      {
+        "name": "hasFooter",
+        "type": "boolean",
+        "desc": "Gates the footer slot ([slot=footer]). Set true when projecting footer content. Default false. (Angular equivalent of React footer && — projected content cannot be presence-checked.)"
+      },
+      {
+        "name": "showClose",
+        "type": "boolean",
+        "desc": "Gates the header close X button. Default true."
+      },
+      {
+        "name": "ariaLabel",
+        "type": "string",
+        "desc": "Accessible label override on the dialog. Defaults to title."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Extra class(es) merged onto the DIALOG (mirrors React, where className lands on the dialog, not the overlay)."
+      },
+      {
+        "name": "(close)",
+        "type": "EventEmitter<void>",
+        "desc": "Dismiss event — wired to ESC, overlay (host) click, and the header X button. Consumer toggles its *ngIf."
+      },
+      {
+        "name": "default slot",
+        "type": "projected",
+        "desc": "Content slot — scrollable body area (React children)."
+      },
+      {
+        "name": "[slot=footer]",
+        "type": "projected",
+        "desc": "Footer slot — typically action buttons. Rendered only when hasFooter is true."
+      }
+    ]
   },
   "ModalMedium": {
     "selector": "odyssey-modal-medium",
     "version": "0.14.0",
-    "normalizing": true
+    "normalizing": true,
+    "props": [
+      {
+        "name": "title",
+        "type": "string",
+        "desc": "Header title text. Also the default accessible label when ariaLabel is unset."
+      },
+      {
+        "name": "scrollableContent",
+        "type": "boolean",
+        "desc": "Implementation-only: removes the content bottom padding so an internal scrolling region runs flush to the footer divider. Default false. (Not in Figma.)"
+      },
+      {
+        "name": "hasFooter",
+        "type": "boolean",
+        "desc": "Gates the footer slot ([slot=footer]). Set true when projecting footer content. Default false. (Angular equivalent of React footer && — projected content cannot be presence-checked.)"
+      },
+      {
+        "name": "showClose",
+        "type": "boolean",
+        "desc": "Gates the header close X button. Default true."
+      },
+      {
+        "name": "showBack",
+        "type": "boolean",
+        "desc": "Gates the leading back chevron-left (lg = 20px), rendered before the title. Default false. (Angular equivalent of React onBack — named to match this library’s ModalHeader and Figma’s Show Back boolean; handlers cannot be presence-checked.)"
+      },
+      {
+        "name": "ariaLabel",
+        "type": "string",
+        "desc": "Accessible label override on the dialog. Defaults to title."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Extra class(es) merged onto the DIALOG (mirrors React, where className lands on the dialog, not the overlay)."
+      },
+      {
+        "name": "(close)",
+        "type": "EventEmitter<void>",
+        "desc": "Dismiss event — wired to ESC, overlay (host) click, and the header X button. Consumer toggles its *ngIf."
+      },
+      {
+        "name": "(back)",
+        "type": "EventEmitter<void>",
+        "desc": "Back chevron click (only reachable when showBack is true). Not a dismiss — the consumer decides whether to pop a view or close."
+      },
+      {
+        "name": "default slot",
+        "type": "projected",
+        "desc": "Content slot — body area (React children)."
+      },
+      {
+        "name": "[slot=footer]",
+        "type": "projected",
+        "desc": "Footer slot — typically Cancel / Save action buttons. Rendered only when hasFooter is true."
+      }
+    ]
   },
   "MultiSelect": {
     "selector": "odyssey-multi-select",
     "version": "0.9.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "options",
+        "type": "{ value, label, description }[]",
+        "desc": "Full option set. `label` fills the first badge column, `description` the second."
+      },
+      {
+        "name": "selected",
+        "type": "string[]",
+        "desc": "Controlled array of selected option `value`s."
+      },
+      {
+        "name": "(selectedChange)",
+        "type": "EventEmitter<string[]>",
+        "desc": "Fired with the next selected-values array on a pick or a trash."
+      },
+      {
+        "name": "columnHeaders",
+        "type": "[string, string]",
+        "desc": "Column headers — used for BOTH the selected-items table and the in-panel dropdown headers; default ['Service Category', 'Description']."
+      },
+      {
+        "name": "emptyTableMessage",
+        "type": "string",
+        "desc": "When set, the selected-items table renders even with no selection — headers + a single muted placeholder row with this text. Omit to hide the table entirely when empty."
+      },
+      {
+        "name": "label",
+        "type": "string",
+        "desc": "FormField label above the search input."
+      },
+      {
+        "name": "placeholder",
+        "type": "string",
+        "desc": "FormField placeholder."
+      },
+      {
+        "name": "disabled",
+        "type": "boolean",
+        "desc": "Passed through to FormField; suppresses the dropdown."
+      },
+      {
+        "name": "id",
+        "type": "string",
+        "desc": "Passed through to FormField (label association)."
+      }
+    ]
   },
   "Navbar": {
     "selector": "odyssey-navbar",
     "version": "0.2.0",
-    "normalizing": true
+    "normalizing": true,
+    "props": [
+      {
+        "name": "[slot=lead]",
+        "type": "projection",
+        "desc": "Leading slot — typically <odyssey-lead-nav> (hamburger + logo)."
+      },
+      {
+        "name": "[slot=search]",
+        "type": "projection",
+        "desc": "Center slot — typically <odyssey-global-search>."
+      },
+      {
+        "name": "[slot=trail]",
+        "type": "projection",
+        "desc": "Trailing slot — typically <odyssey-trail-nav>."
+      },
+      {
+        "name": "compact",
+        "type": "boolean",
+        "desc": "Shaves 2px off each vertical padding (14→12px) to accommodate taller editor-mode trail buttons. Default false."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Additional class names merged onto the <header> element."
+      }
+    ]
   },
   "OdysseyLogo": {
     "selector": "odyssey-logo",
     "version": "0.2.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "variant",
+        "type": "light|dark",
+        "desc": "Color scheme. light = white wordmark (use on dark surfaces); dark = DSN/900 wordmark (use on light surfaces). Default light."
+      },
+      {
+        "name": "width",
+        "type": "number",
+        "desc": "SVG width in px. Default 172."
+      },
+      {
+        "name": "height",
+        "type": "number",
+        "desc": "SVG height in px. Default 24."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Additional CSS classes merged onto the host."
+      }
+    ]
   },
   "PageHeader": {
     "selector": "odyssey-page-header",
     "version": "0.5.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "title",
+        "type": "string",
+        "desc": "Route/page title. Rendered as an H1 with display-3xl-semibold typography."
+      },
+      {
+        "name": "supportingText",
+        "type": "string",
+        "desc": "Type=Last update mode. When set, renders a trailing \"Last update: …\" label (label/sm regular, tertiary) and the actions never render. Mutually exclusive with hasActions. (Figma: Type variant + Last update TEXT.)"
+      },
+      {
+        "name": "hasActions",
+        "type": "boolean",
+        "desc": "Type=Default mode. Gates the trailing actions cluster. Set true when passing action children. Angular equivalent of React children != null check. Ignored when supportingText is set."
+      },
+      {
+        "name": "<ng-content>",
+        "type": "projection",
+        "desc": "Actions for the trailing cluster (flex, 16px gap). Projected when hasActions=true and no supportingText."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Additional class names for the <header> element."
+      }
+    ]
   },
   "PaginationButton": {
     "selector": "odyssey-pagination-button",
     "version": "0.3.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "variant",
+        "type": "page|prev|next",
+        "desc": "Segment kind. page = numbered button; prev/next = arrow end-caps."
+      },
+      {
+        "name": "current",
+        "type": "boolean",
+        "desc": "page only — active/current page (Primary look + aria-current=\"page\"). Default false."
+      },
+      {
+        "name": "<ng-content>",
+        "type": "projection",
+        "desc": "Page number (page variant)."
+      },
+      {
+        "name": "disabled",
+        "type": "boolean",
+        "desc": "Native disabled (Paginator disables prev/next at bounds). Muted DSN/300 — matches Figma Icon Left/Right State=Disabled."
+      },
+      {
+        "name": "ariaLabel",
+        "type": "string",
+        "desc": "Overrides the arrow default (\"Previous page\" / \"Next page\")."
+      },
+      {
+        "name": "(click)",
+        "type": "MouseEvent",
+        "desc": "Native click on the inner button (mirrors React onClick — bound natively, no @Output needed)."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Modifier class(es) merged onto the inner button."
+      }
+    ]
   },
   "Paginator": {
     "selector": "odyssey-paginator",
     "version": "0.9.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "table",
+        "type": "PaginatorTable",
+        "desc": "A duck-typed table instance (a @tanstack/angular-table Table satisfies it structurally). The library takes no TanStack dependency. Drives page index/size, counts, and navigation."
+      },
+      {
+        "name": "pageSizeOptions",
+        "type": "number[]",
+        "desc": "Rows-per-page choices in the Dropdown. Default [10, 15, 20, 25, 30, 35, 40]."
+      },
+      {
+        "name": "siblingCount",
+        "type": "number",
+        "desc": "Page numbers shown each side of the current page before collapsing to an ellipsis. Default 1."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Additional class names merged onto the root .paginator bar (G8)."
+      }
+    ]
   },
   "PillTab": {
     "selector": "odyssey-pill-tab",
     "version": "0.7.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "label",
+        "type": "string",
+        "desc": "Tab label text."
+      },
+      {
+        "name": "count",
+        "type": "number",
+        "desc": "Count rendered as a metric Badge. Only shown when showCount is true and count is not null/undefined."
+      },
+      {
+        "name": "selected",
+        "type": "boolean",
+        "desc": "Selected state. Drives active background + text. Default false."
+      },
+      {
+        "name": "showCount",
+        "type": "boolean",
+        "desc": "Controls Badge visibility. Default true."
+      },
+      {
+        "name": "(clicked)",
+        "type": "EventEmitter<MouseEvent>",
+        "desc": "Click handler."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Extra class names."
+      }
+    ]
   },
   "Radio": {
     "selector": "odyssey-radio",
     "version": "0.2.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "checked",
+        "type": "boolean",
+        "desc": "Controlled checked state."
+      },
+      {
+        "name": "defaultChecked",
+        "type": "boolean",
+        "desc": "Uncontrolled initial checked. Folded into [checked]=\"checked || defaultChecked\"."
+      },
+      {
+        "name": "disabled",
+        "type": "boolean",
+        "desc": "Disables the native input."
+      },
+      {
+        "name": "label",
+        "type": "string",
+        "desc": "Label text."
+      },
+      {
+        "name": "showLabel",
+        "type": "boolean",
+        "desc": "Toggle label visibility. Default true."
+      },
+      {
+        "name": "name",
+        "type": "string",
+        "desc": "Group radios by sharing a name."
+      },
+      {
+        "name": "value",
+        "type": "string",
+        "desc": "Native input value; identifies the selected radio in a group."
+      },
+      {
+        "name": "(change)",
+        "type": "EventEmitter<Event>",
+        "desc": "Native change event emitter. Consumer owns forms — no ControlValueAccessor."
+      }
+    ]
   },
   "RightPanel": {
     "selector": "odyssey-right-panel",
     "version": "0.7.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "open",
+        "type": "boolean",
+        "desc": "Optional. When provided, the shell renders as an animated right-dock drawer (host becomes .right-panel-dock) that slides in (true) / out (false). Omit → static card (host collapses via display:contents)."
+      },
+      {
+        "name": "title",
+        "type": "string",
+        "desc": "Header title text. Also the default accessible label when ariaLabel is unset."
+      },
+      {
+        "name": "subtitle",
+        "type": "string",
+        "desc": "Optional header subtitle (label/xs). Omit to hide."
+      },
+      {
+        "name": "showBack",
+        "type": "boolean",
+        "desc": "Gates the back chevron-left (lg) on the header lead. Default false. (Angular equivalent of React onBack — handlers cannot be presence-checked.)"
+      },
+      {
+        "name": "editableTitle",
+        "type": "boolean",
+        "desc": "Shows the edit pencil (md) next to the title — enables in-place rename. Default false. (Mirrors React editableTitle.)"
+      },
+      {
+        "name": "editingTitle",
+        "type": "boolean",
+        "desc": "Controlled. When true the title renders as an in-place input (caret right after the name); the shell keeps it focused while editing. Default false."
+      },
+      {
+        "name": "closeOnOutsideClick",
+        "type": "boolean",
+        "desc": "Opt-in. A mousedown outside the panel emits (close) — cancelling any in-progress title edit first. Inactive while the drawer is closed. Default false."
+      },
+      {
+        "name": "footer",
+        "type": "boolean",
+        "desc": "Gates the baked footer (Cancel secondary + Save primary, space-between). Default false. Mirrors the Figma Footer BOOLEAN — NOT a content slot."
+      },
+      {
+        "name": "cancelLabel",
+        "type": "string",
+        "desc": "Footer Cancel button label. Default 'Cancel'."
+      },
+      {
+        "name": "saveLabel",
+        "type": "string",
+        "desc": "Footer Save button label. Default 'Save'."
+      },
+      {
+        "name": "saveDisabled",
+        "type": "boolean",
+        "desc": "Disables the footer Save button (passes through to the baked ModalFooter) — e.g. while a new preset has no changes. Default false."
+      },
+      {
+        "name": "ariaLabel",
+        "type": "string",
+        "desc": "Accessible label override on the panel. Defaults to title."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Extra class(es) merged onto the inner panel section (.right-panel). Mirrors React className."
+      },
+      {
+        "name": "(back)",
+        "type": "EventEmitter<void>",
+        "desc": "Back affordance click — wired to the header back chevron."
+      },
+      {
+        "name": "(editTitle)",
+        "type": "EventEmitter<void>",
+        "desc": "Edit pencil click — the consumer sets editingTitle = true."
+      },
+      {
+        "name": "(close)",
+        "type": "EventEmitter<void>",
+        "desc": "Close affordance click — wired to the header X button."
+      },
+      {
+        "name": "(titleChange)",
+        "type": "EventEmitter<string>",
+        "desc": "Title input changed (each keystroke). Enables [(title)] two-way binding."
+      },
+      {
+        "name": "(titleCommit)",
+        "type": "EventEmitter<void>",
+        "desc": "Enter pressed in the title input."
+      },
+      {
+        "name": "(titleCancel)",
+        "type": "EventEmitter<void>",
+        "desc": "Escape pressed in the title input."
+      },
+      {
+        "name": "(cancel)",
+        "type": "EventEmitter<void>",
+        "desc": "Footer Cancel button pressed."
+      },
+      {
+        "name": "(save)",
+        "type": "EventEmitter<void>",
+        "desc": "Footer Save button pressed."
+      },
+      {
+        "name": "default slot",
+        "type": "projected",
+        "desc": "Content slot — React children. Brings its own padding (the shell adds none)."
+      }
+    ]
   },
   "SearchChip": {
     "selector": "odyssey-search-chip",
     "version": "0.12.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "label",
+        "type": "string | null",
+        "desc": "Single variant: the attribute:value text (e.g. \"Carrier: ABC Logistic\"). When given, the chip is a plain criterion chip — no expand."
+      },
+      {
+        "name": "typeLabel",
+        "type": "string | null",
+        "desc": "Set variant: the detected attribute of the set (named-set rule: every valid code's best match agrees) — \"Order ID Set • 10 IDs\". null → \"Multiple\"."
+      },
+      {
+        "name": "codes",
+        "type": "OdysseySearchChipCode[]",
+        "desc": "Set variant: the codes with validity flags — validation is the search engine's job, the chip only renders it. Invalid codes paint red and are excluded from the ID count."
+      },
+      {
+        "name": "showRemove",
+        "type": "boolean",
+        "desc": "Renders the X remove button (both variants). Angular presence-check translation of React's onRemove prop-given check."
+      },
+      {
+        "name": "(commit)",
+        "type": "EventEmitter<string[]>",
+        "desc": "Set variant: fired with the re-parsed code list when an edit is committed — on Enter or collapse only, never per keystroke."
+      },
+      {
+        "name": "(removed)",
+        "type": "EventEmitter<void>",
+        "desc": "Fired when the X is clicked (both variants). Chips chain — removing or keeping a Set chip never blocks committing more chips after it."
+      },
+      {
+        "name": "dateLabel / range / from / to / (dateChange) / defaultOpen",
+        "type": "date mode (Case 12)",
+        "desc": "dateLabel switches to a date criterion: collapsed \"<dateLabel>: from[-to]\" (\"Invalid Date\" in red when invalid), expanded shows odyssey-calendar-picker anchored below the badge (defaultMonth aims its initial month). Single dates auto-collapse on pick; ranges complete on the second pick. from/to are M/D/YYYY strings. open/(openChange) is an optional CONTROLLED open pair (mirrors React's open/onOpenChange, not separately documented there either)."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Merged onto the root."
+      }
+    ]
   },
   "SectionHeader": {
     "selector": "odyssey-section-header",
     "version": "0.2.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "title",
+        "type": "string",
+        "desc": "Section title. Rendered as an H2 with heading-2xl-semibold typography."
+      },
+      {
+        "name": "supportingText",
+        "type": "string",
+        "desc": "Optional text aligned to the trailing edge of the title row — typically a timestamp."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Additional class names for the <header> element."
+      }
+    ]
   },
   "SectionLabel": {
     "selector": "odyssey-section-label",
     "version": "0.2.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "label",
+        "type": "string",
+        "desc": "Section title text."
+      },
+      {
+        "name": "mode",
+        "type": "default|edit",
+        "desc": "default = transparent surface, label only. edit = DSN/100 surface + pencil/trash actions. Default default."
+      },
+      {
+        "name": "showEdit",
+        "type": "boolean",
+        "desc": "Gates the pencil (edit) button in edit mode. Default true. Replaces React onEdit presence-check."
+      },
+      {
+        "name": "showDelete",
+        "type": "boolean",
+        "desc": "Gates the trash (delete) button in edit mode. Default true. Replaces React onDelete presence-check."
+      },
+      {
+        "name": "(editClick)",
+        "type": "EventEmitter<void>",
+        "desc": "Pencil click. Only emitted in edit mode."
+      },
+      {
+        "name": "(deleteClick)",
+        "type": "EventEmitter<void>",
+        "desc": "Trash click. Only emitted in edit mode."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Additional CSS classes for the root element."
+      }
+    ]
   },
   "ShipmentsBar": {
     "selector": "odyssey-shipments-bar",
     "version": "0.9.0",
-    "normalizing": true
+    "normalizing": true,
+    "props": [
+      {
+        "name": "shipmentId",
+        "type": "string | null",
+        "desc": "Current entity label in the lead segment; null renders the placeholder and disables the bar."
+      },
+      {
+        "name": "placeholder",
+        "type": "string",
+        "desc": "Lead label when nothing is selected. Default 'Select a Shipment'."
+      },
+      {
+        "name": "showShipmentIdLink / (shipmentIdClick)",
+        "type": "boolean / EventEmitter<void>",
+        "desc": "S93: when true (and a shipment is selected) the ID renders as a ButtonLink (Button variant=\"link\", default non-black tone, semibold) emitting (shipmentIdClick) — e.g. opens the View Shipment Details modal. Without it: plain semibold label. Angular deviation: React derives from onShipmentIdClick callback presence. Figma master sync owed."
+      },
+      {
+        "name": "showPrev / showNext",
+        "type": "boolean",
+        "desc": "Gate the prev/next arrow buttons (20px, DSN/500). Pair with prevDisabled / nextDisabled at list bounds. Angular deviation: React derives from callback presence."
+      },
+      {
+        "name": "(prevShipment) / (nextShipment)",
+        "type": "EventEmitter<void>",
+        "desc": "Prev/next arrow clicks (20px, DSN/500) beside the ID — gate rendering with showPrev / showNext; pair with prevDisabled / nextDisabled at list bounds."
+      },
+      {
+        "name": "tabs",
+        "type": "ShipmentsBarTab[]",
+        "desc": "Tab strip. Each entry: { key, label }. Plain tabs only — the dropdown-tab face (prelabel/value/chevron) retired S80 with the Figma State=Selected Dropdown variant; in-pane switchers live in the pane content. (Figma: ShipmentsBarTab State=Default|Selected, Label TEXT.)"
+      },
+      {
+        "name": "activeTab / (tabChange)",
+        "type": "string / EventEmitter<string>",
+        "desc": "Controlled selection. Selected tab = DSN/100 fill. (Figma: State VARIANT Default|Selected.)"
+      },
+      {
+        "name": "expanded / (expandedChange)",
+        "type": "boolean / EventEmitter<boolean>",
+        "desc": "Controlled expansion: 48px strip ↔ the fixed stage height (S93 three-stage model — the S79d adaptive content height + ratchet was retired; pane content scrolls within the stage height). CollapseExpand fires expandedChange(true) only in the expand direction — closing goes through (close)."
+      },
+      {
+        "name": "stage / (stageChange)",
+        "type": "'partial' | 'full' / EventEmitter<'partial' | 'full'>",
+        "desc": "S82 three-state expansion. 'partial' caps the open bar at --bottombar-partial (60dvh); 'full' fixes it at 100dvh − --navbar-height — every pixel between the navbar and the viewport bottom (2026-08-15; supersedes the earlier --bottombar-top-clearance mid-page-title cap). Definite heights — stage changes and open/close animate on the plain CSS drawer transition (S93). CollapseExpand walks closed → partial (arrow-up-to-line, fires expandedChange(true)) → full (chevrons-up, fires stageChange('full')) → closed (chevrons-down, fires (close)). Consumers reset to 'partial' on a fresh open. Default 'full' (two-state back-compat)."
+      },
+      {
+        "name": "(close)",
+        "type": "EventEmitter<void>",
+        "desc": "CLOSE (S79c): fired by CollapseExpand while expanded (chevrons-down, aria-label 'Close panel') — the consumer deselects the entity, returning the bar to the placeholder strip. The close ANIMATES (S79d): the last-rendered pane stays mounted (inert) while the height eases back to 48px on the drawer curve. No 'collapsed with selection' state exists. Falls back to expandedChange(false) when no observer is bound."
+      },
+      {
+        "name": "closeOnOutsideClick",
+        "type": "boolean",
+        "desc": "Opt-in (RightPanel parity, S93): while expanded the bar renders a scrim (.shipments-bar__scrim) over the page content — the first outside click only fires (close) (collapse), never reaching the content underneath. Consumers position the scrim via CSS (inset below their app chrome)."
+      },
+      {
+        "name": "showTabArrangement",
+        "type": "boolean",
+        "desc": "Show the TabArrangement PanelAction button (columns-3-cog). Angular deviation: React derives from callback presence."
+      },
+      {
+        "name": "(tabArrangement)",
+        "type": "EventEmitter<void>",
+        "desc": "Emitted when the TabArrangement button is clicked."
+      },
+      {
+        "name": "rightOffset",
+        "type": "number",
+        "desc": "Pixel inset applied to right (for sliding side panels)."
+      },
+      {
+        "name": "<ng-content>",
+        "type": "node",
+        "desc": "The active pane, rendered in the Content slot while expanded. Each tab is a content slot — the consumer swaps the projected content when the active tab changes."
+      }
+    ]
   },
   "Sidebar": {
     "selector": "odyssey-sidebar",
     "version": "0.2.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "topItems",
+        "type": "SidebarItem[]",
+        "desc": "Upper nav group. Each item ({ id, iconName, label }) renders a 40×40 SidebarButton with its lucide icon."
+      },
+      {
+        "name": "bottomItems",
+        "type": "SidebarItem[]",
+        "desc": "Lower nav group, separated from the top group by a hairline divider."
+      },
+      {
+        "name": "activeId",
+        "type": "string",
+        "desc": "Id of the selected item (default rendering). Sets the SidebarButton selected state + aria-current=page."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Extra class(es) merged onto the host <aside>. Default empty."
+      },
+      {
+        "name": "(itemClick)",
+        "type": "EventEmitter<string>",
+        "desc": "Emitted when a default item is clicked (carries the item id)."
+      },
+      {
+        "name": "<ng-template>",
+        "type": "projected (ContentChild)",
+        "desc": "Optional per-item template (Angular translation of React renderItem). Context: { $implicit: item, active }. Lets a consumer wrap each item in a router link without this package depending on a router."
+      }
+    ]
   },
   "SidebarButton": {
     "selector": "odyssey-sidebar-button",
     "version": "0.2.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "<ng-content>",
+        "type": "projection",
+        "desc": "Icon rendered inside the 40×40 hit area. Pass a Lucide icon at 20px (ICON_LG). Mirrors React's `icon` element-prop."
+      },
+      {
+        "name": "state",
+        "type": "default|hover|selected",
+        "desc": "Visual state. hover = text-primary tint; selected = DSN/300 background fill. Default default."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Additional CSS classes merged onto the host."
+      }
+    ]
   },
   "Spinner": {
     "selector": "odyssey-spinner",
     "version": "0.12.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "size",
+        "type": "number",
+        "desc": "Outer diameter in px (default 48, the Figma master). Ring stroke scales with it (Figma ratio 8/48)."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Merged onto the root."
+      }
+    ]
   },
   "StepIndicator": {
     "selector": "odyssey-step-indicator",
     "version": "0.9.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "position",
+        "type": "start|mid|end",
+        "desc": "Which connector lines render: start = below only, mid = both, end = above only. Hidden lines keep their 16px slot (uniform 40×72). Default start."
+      },
+      {
+        "name": "status",
+        "type": "off|on|error",
+        "desc": "off = pending (gray circle), on = validated (green circle + ring), error = validation failed (Bittersweet circle + octagon-x, no ring). Default off."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Additional CSS classes merged onto the host."
+      }
+    ]
   },
   "StepperButtonsFooter": {
     "selector": "odyssey-stepper-buttons-footer",
     "version": "0.5.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "cancelLabel",
+        "type": "string",
+        "desc": "Left secondary button label. Default 'Cancel'."
+      },
+      {
+        "name": "primaryLabel",
+        "type": "string",
+        "desc": "Right primary button label. Default 'Continue' (Figma default; override per flow — e.g. 'Create Order')."
+      },
+      {
+        "name": "saveLabel",
+        "type": "string",
+        "desc": "Optional Save (secondary) label. Default 'Save'."
+      },
+      {
+        "name": "showSave",
+        "type": "boolean",
+        "desc": "Renders the Save (secondary) button before the primary. Default false. (Figma: Tertiary Button BOOLEAN.)"
+      },
+      {
+        "name": "(cancel)",
+        "type": "EventEmitter<void>",
+        "desc": "Cancel button clicked."
+      },
+      {
+        "name": "(save)",
+        "type": "EventEmitter<void>",
+        "desc": "Save button clicked."
+      },
+      {
+        "name": "(primary)",
+        "type": "EventEmitter<void>",
+        "desc": "Primary button clicked."
+      },
+      {
+        "name": "primaryDisabled",
+        "type": "boolean",
+        "desc": "Disables the primary button (e.g. until a form validates). Default false."
+      },
+      {
+        "name": "saving",
+        "type": "boolean",
+        "desc": "Disables Save while a save is in flight. Default false."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Extra class(es) merged onto the host bar."
+      }
+    ]
   },
   "StopBadge": {
     "selector": "odyssey-stop-badge",
     "version": "0.7.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "label",
+        "type": "string",
+        "desc": "The stop marker text — pickup/delivery sequence like \"P1\" or \"D2\". Also folded into the aria-label together with the status."
+      },
+      {
+        "name": "status",
+        "type": "'completed' | 'issue' | 'pending'",
+        "desc": "Drives pill + circle colors and the circle glyph: completed = green pill + check circle; issue = red pill + \"!\" circle; pending = white outlined pill, no circle by default. Default completed."
+      },
+      {
+        "name": "showStatusBadge",
+        "type": "boolean",
+        "desc": "Overrides the default circle visibility (default: shown except for pending). pending + true renders the gray-outline circle — white disc, DSN/400 ring + check."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Extra class(es) on the root element."
+      }
+    ]
   },
   "SubAccordion": {
     "selector": "odyssey-sub-accordion",
     "version": "0.7.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "title",
+        "type": "string",
+        "desc": "The section title, heading/lg semibold. (Figma: Title TEXT prop.)"
+      },
+      {
+        "name": "showIcon",
+        "type": "boolean",
+        "desc": "Renders the trailing header icon (20px, DSN/400, non-interactive) beside the title. Default true. (Figma: Show Icon BOOLEAN.)"
+      },
+      {
+        "name": "showDefaultIcon",
+        "type": "boolean",
+        "desc": "Render the lucide/info fallback when no [slot=icon] is projected. Default true; set false when projecting a custom icon."
+      },
+      {
+        "name": "[slot=icon]",
+        "type": "projection",
+        "desc": "Swaps the header icon. Defaults to lucide/info. (Figma: Icon INSTANCE_SWAP, placeholder-20 default.)"
+      },
+      {
+        "name": "collapsible",
+        "type": "boolean",
+        "desc": "Default true. False renders the NON-COLLAPSIBLE flavor: plain heading row (no button/chevron/aria-expanded), content always revealed. (Figma: State=Static.)"
+      },
+      {
+        "name": "expanded",
+        "type": "boolean",
+        "desc": "Controlled expansion. Omit for uncontrolled (defaultExpanded). Ignored when collapsible=false. (Figma: State VARIANT Collapsed|Expanded|Static.)"
+      },
+      {
+        "name": "defaultExpanded",
+        "type": "boolean",
+        "desc": "Uncontrolled initial state. Default false."
+      },
+      {
+        "name": "(toggled)",
+        "type": "EventEmitter<boolean>",
+        "desc": "Fires on header click with the next expansion state."
+      },
+      {
+        "name": "allExpanded",
+        "type": "boolean",
+        "desc": "Whether ALL slot content is currently expanded — picks the expand-all action label/icon (\"Collapse All\" list-chevrons-down-up vs \"Expand All\" list-chevrons-up-down). Default false. Consumer-tracked. (Figma: Show Expand All BOOLEAN, S79h.)"
+      },
+      {
+        "name": "showToggleAll",
+        "type": "boolean",
+        "desc": "Renders the expand-all Button variant=\"link\" on the right of the header row (Static-only, a SIBLING of the header — clicks never bubble). Angular deviation: React derives from the onToggleAll callback presence. Default false."
+      },
+      {
+        "name": "(toggleAll)",
+        "type": "EventEmitter<boolean>",
+        "desc": "Fires when the expand-all link is clicked, with !allExpanded."
+      },
+      {
+        "name": "showAction",
+        "type": "boolean",
+        "desc": "Projects the primary [slot=action] content at the end of the header row, after the expand-all link (Static-only — by convention an odyssey-button variant=\"primary\" size=\"sm\", e.g. \"Add Document\"). Angular deviation: React passes the node directly as the `action` prop. Default false. (Figma: Show Button BOOLEAN, S80.)"
+      },
+      {
+        "name": "[slot=action]",
+        "type": "projection",
+        "desc": "The primary header action (Static-only), projected after the expand-all link when showAction=true."
+      },
+      {
+        "name": "<ng-content>",
+        "type": "projection",
+        "desc": "The section body, revealed on expand. (Figma: Content SLOT.)"
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Extra class(es) on the root element."
+      }
+    ]
   },
   "SummaryStrip": {
     "selector": "odyssey-summary-strip",
     "version": "0.13.0",
-    "normalizing": true
+    "normalizing": true,
+    "props": [
+      {
+        "name": "items",
+        "type": "[{ label, value, tone?, truncate? }]",
+        "desc": "The stat cells, in order (OdysseySummaryStripItem[]). `label` renders uppercase (CSS transform — pass natural case); empty/nullish `value` renders '--'; `tone: 'positive' | 'negative'` colors the value (code extension — the Figma master has no tone axis); `truncate: 'lead'` caps the cell width and lead-ellipsizes the value (tail visible, '…' leads — for URL-ish values), full value via the `title` attribute (code extension)."
+      },
+      {
+        "name": "ariaLabel",
+        "type": "string",
+        "desc": "Names the region — the root is a <dl> with role=\"region\". (Angular equivalent of forwarding aria-label; handlers/attributes cannot be spread as React ...rest.)"
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Extra class(es) merged onto the root .summary-strip element."
+      }
+    ]
   },
   "Tab": {
     "selector": "odyssey-tab",
     "version": "0.2.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "label",
+        "type": "string",
+        "desc": "Tab label (label/sm medium)."
+      },
+      {
+        "name": "count",
+        "type": "number",
+        "desc": "Optional count — renders Badge variant=\"metric\"; badge keeps its own colors in every tab state. Omit (leave undefined) to hide the badge — visibility is implicit in this prop, there is no separate showCount/boolean toggle."
+      },
+      {
+        "name": "current",
+        "type": "boolean",
+        "desc": "Selected state — text --text-primary + 2px DSN/500 underline. Default false."
+      },
+      {
+        "name": "(clicked)",
+        "type": "EventEmitter<MouseEvent>",
+        "desc": "Click handler; consumers manage which tab is current."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Extra class names appended to the root button."
+      }
+    ]
   },
   "TextArea": {
     "selector": "odyssey-text-area",
     "version": "0.6.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "label / showLabel / showInfo",
+        "type": "string / boolean / boolean",
+        "desc": "Label row — identical contract to FormField (label text-label-sm-medium + optional lucide/info)."
+      },
+      {
+        "name": "placeholder / value / (valueChange)",
+        "type": "string / string / EventEmitter<string>",
+        "desc": "Controlled textarea. Placeholder label/sm regular, --text-placeholder. (changed) also emits the raw Event, FormField convention."
+      },
+      {
+        "name": "maxLength",
+        "type": "number",
+        "desc": "Native maxLength; also enables the in-box \"N/max\" footer count. (Figma: Count TEXT prop.)"
+      },
+      {
+        "name": "showCount",
+        "type": "boolean",
+        "desc": "Override the count footer visibility. Undefined (default) → shown when maxLength is set. (Figma: Show Count BOOLEAN.)"
+      },
+      {
+        "name": "rows",
+        "type": "number",
+        "desc": "Initial visible lines. Default 2 (≈ the Figma 64px input area)."
+      },
+      {
+        "name": "resize",
+        "type": "'vertical' | 'none'",
+        "desc": "Resizing sits on the BOX, not the field — the native grip renders at the box corner below the footer. Default 'vertical'."
+      },
+      {
+        "name": "error",
+        "type": "string",
+        "desc": "Error message; red border/text + role=\"alert\" line below — FormField state model."
+      },
+      {
+        "name": "disabled",
+        "type": "boolean",
+        "desc": "Gray surface, not-allowed cursor — FormField state model."
+      },
+      {
+        "name": "id / name / required / describedBy / className",
+        "type": "…",
+        "desc": "Standard field plumbing."
+      }
+    ]
   },
   "TimePicker": {
     "selector": "odyssey-time-picker",
     "version": "0.13.0",
-    "normalizing": true
+    "normalizing": true,
+    "props": [
+      {
+        "name": "value",
+        "type": "string",
+        "desc": "Controlled canonical \"HH:MM\" 24h string (\"14:30\"), or \"\" for unset."
+      },
+      {
+        "name": "(valueChange)",
+        "type": "EventEmitter<string>",
+        "desc": "Fired with the canonical \"HH:MM\" 24h string on a valid parse or row pick; \"\" on clear (React onChange)."
+      },
+      {
+        "name": "format",
+        "type": "'standard' | 'international'",
+        "desc": "Display format. `standard` (default) = 12h AM/PM; `international` = 24h. Canonical value is always 24h."
+      },
+      {
+        "name": "step",
+        "type": "number",
+        "desc": "Minutes between generated options (default 30 → 00:00…23:30)."
+      },
+      {
+        "name": "min / max",
+        "type": "string",
+        "desc": "Optional \"HH:MM\" 24h bounds; options outside are excluded from the dropdown."
+      },
+      {
+        "name": "placeholder",
+        "type": "string",
+        "desc": "FormField placeholder (default 'Select Time')."
+      },
+      {
+        "name": "label",
+        "type": "string",
+        "desc": "FormField label above the input."
+      },
+      {
+        "name": "disabled",
+        "type": "boolean",
+        "desc": "Passed through to FormField; suppresses the dropdown."
+      },
+      {
+        "name": "id",
+        "type": "string",
+        "desc": "Passed through to FormField (label association)."
+      }
+    ]
   },
   "Timeline": {
     "selector": "odyssey-timeline",
     "version": "0.7.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "items",
+        "type": "OdysseyTimelineItem[]",
+        "desc": "One stop per item — `{ key?, label, status, data? }`. `label`/`status` feed the composed StopBadge marker; `data` is forwarded to the itemTemplate context. Row height is content-driven — the connector stretches with each item’s projected content."
+      },
+      {
+        "name": "itemTemplate",
+        "type": "TemplateRef<{ $implicit: item }>",
+        "desc": "Per-item content template rendered right of the rail. `$implicit` is the item, so `<ng-template #tpl let-item>…{{ item.label }}…</ng-template>` then `[itemTemplate]=\"tpl\"`. Angular analogue of React’s per-item `content` node — the consumer feeds any node per stop."
+      },
+      {
+        "name": "animate",
+        "type": "boolean",
+        "desc": "Grows the fills top-down on mount, staggered ~800ms per segment (truck marker fades in after its segment lands; reached badges flip from the pending skin to status colors at their beat). CSS-only; replays on remount (key trick); disabled under prefers-reduced-motion. Default false."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Extra class(es) on the root element."
+      }
+    ]
   },
   "TitleSubtitle": {
     "selector": "odyssey-title-subtitle",
     "version": "0.5.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "title",
+        "type": "string",
+        "desc": "Primary line (label/sm medium, text/primary). Wraps. (Figma: Title TEXT prop.)"
+      },
+      {
+        "name": "subtitle",
+        "type": "string",
+        "desc": "Eyebrow line above the title (label/xs medium, text/tertiary). Wraps. Omit to hide. (Figma: Subtitle TEXT prop.)"
+      },
+      {
+        "name": "showIcon",
+        "type": "boolean",
+        "desc": "Renders the trailing info glyph (16px, tertiary, non-interactive). Default false. (Figma: Show Icon BOOLEAN.)"
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Additional class names for the root element."
+      }
+    ]
   },
   "Tooltip": {
     "selector": "odyssey-tooltip",
     "version": "0.4.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "badgeVariant",
+        "type": "'time' | 'info'",
+        "desc": "Badge icon-only tile rendered in the header lead. 'time' → baked Clock (green tint); 'info' → baked Info (blue tint). When absent, no badge is shown."
+      },
+      {
+        "name": "label",
+        "type": "string",
+        "desc": "Header label text shown beside the badge icon, in white text-label-xs-regular. Omit to hide."
+      },
+      {
+        "name": "status",
+        "type": "string",
+        "desc": "Header trailing text pushed to the far right via space-between. Omit to hide."
+      },
+      {
+        "name": "groups",
+        "type": "OdysseyTooltipGroup[]",
+        "desc": "Body content groups. Each entry: { subtitle?: string; content: string }. An empty array hides the body block entirely."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Additional CSS class(es) merged onto the root .tooltip div."
+      }
+    ]
   },
   "TrailNav": {
     "selector": "odyssey-trail-nav",
     "version": "0.2.0",
-    "normalizing": true
+    "normalizing": true,
+    "props": [
+      {
+        "name": "mode",
+        "type": "'profile'|'editor'",
+        "desc": "Layout mode. 'profile' shows avatar/name/role + bell + chevron. 'editor' shows Cancel/Save buttons + help and close icons. Default 'profile'."
+      },
+      {
+        "name": "name",
+        "type": "string",
+        "desc": "[profile] User display name."
+      },
+      {
+        "name": "role",
+        "type": "string",
+        "desc": "[profile] User role label shown below name."
+      },
+      {
+        "name": "[slot=avatar]",
+        "type": "projection",
+        "desc": "[profile] Avatar element projected via slot. Clipped to 32×32 with lg radius."
+      },
+      {
+        "name": "notificationCount",
+        "type": "number",
+        "desc": "[profile] Badge count on the bell icon. Default 0."
+      },
+      {
+        "name": "showNotification",
+        "type": "boolean",
+        "desc": "[profile] Force-show/hide the notification badge independent of count."
+      },
+      {
+        "name": "showCustomers",
+        "type": "boolean",
+        "desc": "[profile] Show the Customers (handshake) icon button. Default true."
+      },
+      {
+        "name": "customersActive",
+        "type": "boolean",
+        "desc": "[profile] Active state for the customers button."
+      },
+      {
+        "name": "dropdownOpen",
+        "type": "boolean",
+        "desc": "[profile] Swaps chevron direction (down→up) when profile dropdown is open."
+      },
+      {
+        "name": "(customersClick)",
+        "type": "EventEmitter<void>",
+        "desc": "[profile] Customers icon click handler."
+      },
+      {
+        "name": "(notificationClick)",
+        "type": "EventEmitter<void>",
+        "desc": "[profile] Bell icon click handler."
+      },
+      {
+        "name": "(profileClick)",
+        "type": "EventEmitter<void>",
+        "desc": "[profile] Profile button click handler."
+      },
+      {
+        "name": "showPrimaryButton",
+        "type": "boolean",
+        "desc": "[editor] Show the primary (ghost) button. Default true. Label via primaryButtonLabel ('Cancel')."
+      },
+      {
+        "name": "primaryButtonLabel",
+        "type": "string",
+        "desc": "[editor] Label for the primary button. Default 'Cancel'."
+      },
+      {
+        "name": "showSecondaryButton",
+        "type": "boolean",
+        "desc": "[editor] Show the secondary (outline) button. Default true. Label via secondaryButtonLabel ('Save')."
+      },
+      {
+        "name": "secondaryButtonLabel",
+        "type": "string",
+        "desc": "[editor] Label for the secondary button. Default 'Save'."
+      },
+      {
+        "name": "showHelpIcon",
+        "type": "boolean",
+        "desc": "[editor] Show the help icon button. Default true."
+      },
+      {
+        "name": "helpIconName",
+        "type": "string",
+        "desc": "[editor] Lucide icon name for help button. Default 'circle-help'."
+      },
+      {
+        "name": "showRightIcon",
+        "type": "boolean",
+        "desc": "[editor] Show the right icon button. Default true."
+      },
+      {
+        "name": "rightIconName",
+        "type": "string",
+        "desc": "[editor] Lucide icon name for right button. Default 'x'."
+      },
+      {
+        "name": "(primaryButtonClick)",
+        "type": "EventEmitter<void>",
+        "desc": "[editor] Primary button click handler."
+      },
+      {
+        "name": "(secondaryButtonClick)",
+        "type": "EventEmitter<void>",
+        "desc": "[editor] Secondary button click handler."
+      },
+      {
+        "name": "(helpClick)",
+        "type": "EventEmitter<void>",
+        "desc": "[editor] Help icon click handler."
+      },
+      {
+        "name": "(rightIconClick)",
+        "type": "EventEmitter<void>",
+        "desc": "[editor] Right icon click handler."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Additional class names merged onto the host."
+      }
+    ]
   },
   "Widget": {
     "selector": "odyssey-widget",
     "version": "0.2.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "variant",
+        "type": "'1x'|'2x'|'3x'|'3xChart'|'3xCta'",
+        "desc": "Widget size/layout variant. Drives the content shape and width class."
+      },
+      {
+        "name": "title",
+        "type": "string",
+        "desc": "Widget header title."
+      },
+      {
+        "name": "domainIcon",
+        "type": "slot [slot=domain-icon] / [slot=domain-icon-inline]",
+        "desc": "Projected domain icon — container slot for 3x/3xChart, inline slot for 1x/2x."
+      },
+      {
+        "name": "showGrip",
+        "type": "boolean",
+        "desc": "Show the GripVertical drag handle (edit-mode affordance). Default false."
+      },
+      {
+        "name": "showClose",
+        "type": "boolean",
+        "desc": "Show the header X close button (non-edit). Default false. (editMode always shows it.)"
+      },
+      {
+        "name": "goToLabel",
+        "type": "string",
+        "desc": "Label for the footer link button (2x/3x/3xChart). Footer renders when set."
+      },
+      {
+        "name": "value",
+        "type": "string|number",
+        "desc": "Primary metric value (1x, 2x, 3xChart). Animates count-up once in view."
+      },
+      {
+        "name": "label",
+        "type": "string",
+        "desc": "Metric label below the value (1x, 2x, 3xChart)."
+      },
+      {
+        "name": "percentage",
+        "type": "string|number",
+        "desc": "2x only — center text rendered inside the donut chart (count-up)."
+      },
+      {
+        "name": "rows",
+        "type": "WidgetRow[]",
+        "desc": "Stat rows for 3x and 3xChart variants ({ label, value, indicatorColor? })."
+      },
+      {
+        "name": "chartSegments",
+        "type": "OdysseyPieSegment[]",
+        "desc": "Donut chart segments (2x, 3xChart). color = a Chart/* token."
+      },
+      {
+        "name": "chartTotal",
+        "type": "number",
+        "desc": "2x only — implied total for a single-segment percentage chart."
+      },
+      {
+        "name": "showChart",
+        "type": "boolean",
+        "desc": "2x only — hide the donut for stat-only widgets. Default true."
+      },
+      {
+        "name": "chartDelayMs",
+        "type": "number",
+        "desc": "Delay in ms before the donut grow-in animation starts. Default 0."
+      },
+      {
+        "name": "ctaRows",
+        "type": "WidgetCtaRow[]",
+        "desc": "3xCta only — call-to-action link rows ({ icon, label }), up to 4."
+      },
+      {
+        "name": "editMode",
+        "type": "boolean",
+        "desc": "Forces grip on, dims content, shows a close button wired to (remove). Default false."
+      },
+      {
+        "name": "(close)",
+        "type": "EventEmitter<void>",
+        "desc": "Emitted when the non-edit header close button is clicked."
+      },
+      {
+        "name": "(goToClick)",
+        "type": "EventEmitter<void>",
+        "desc": "Emitted from the 1x content area and the footer link."
+      },
+      {
+        "name": "(remove)",
+        "type": "EventEmitter<void>",
+        "desc": "Emitted when the edit-mode close button is clicked."
+      },
+      {
+        "name": "(rowClick)",
+        "type": "EventEmitter<number>",
+        "desc": "Emitted with the row index when a 3x/3xChart row is clicked."
+      },
+      {
+        "name": "(ctaClick)",
+        "type": "EventEmitter<number>",
+        "desc": "Emitted with the row index when a 3xCta row is clicked."
+      }
+    ]
   },
   "WidgetCtaRow": {
     "selector": "odyssey-widget-cta-row",
     "version": "0.2.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "[slot=icon]",
+        "type": "projection",
+        "desc": "20px icon rendered inside the 40×40 carolina-blue icon container."
+      },
+      {
+        "name": "label",
+        "type": "string",
+        "desc": "CTA label text."
+      },
+      {
+        "name": "interactive",
+        "type": "boolean",
+        "desc": "When true the row renders as a <button> with hover/pressed state ladder and emits (clicked). Angular equivalent of React onClick presence."
+      },
+      {
+        "name": "ariaLabel",
+        "type": "string",
+        "desc": "Accessible label for the interactive button host."
+      },
+      {
+        "name": "(clicked)",
+        "type": "EventEmitter<void>",
+        "desc": "Emitted on click when interactive=true."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Additional class names merged onto the host."
+      }
+    ]
   },
   "WidgetMetricRow": {
     "selector": "odyssey-widget-metric-row",
     "version": "0.2.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "label",
+        "type": "string",
+        "desc": "Row label text."
+      },
+      {
+        "name": "value",
+        "type": "string | number",
+        "desc": "Metric value rendered inside an inline Badge (metric variant)."
+      },
+      {
+        "name": "showIndicator",
+        "type": "boolean",
+        "desc": "Shows a filled dot to the left of the label. Default false."
+      },
+      {
+        "name": "indicatorColor",
+        "type": "string",
+        "desc": "CSS color for the indicator dot. Pass a chart token e.g. \"var(--chart-2)\". Default var(--chart-1)."
+      },
+      {
+        "name": "interactive",
+        "type": "boolean",
+        "desc": "When true the row renders as a <button> with hover + chevron highlight states and emits (clicked). Angular equivalent of React onClick presence."
+      },
+      {
+        "name": "(clicked)",
+        "type": "EventEmitter<void>",
+        "desc": "Emitted on click when interactive=true."
+      }
+    ]
   },
   "WidgetMini": {
     "selector": "odyssey-widget-mini",
     "version": "0.6.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "value",
+        "type": "number | string",
+        "desc": "The metric count, 24/24 semibold. Counts up on load (Widget’s CountUp sweep) and recounts on activation, together with the donut. (Figma: Value TEXT prop.)"
+      },
+      {
+        "name": "label",
+        "type": "string",
+        "desc": "The metric name under the count, label/xs medium DSN/600. (Figma: Label TEXT prop.)"
+      },
+      {
+        "name": "percentage",
+        "type": "number",
+        "desc": "0–100. Drives the donut sweep AND the \"N%\" center text. (Figma: Percentage TEXT prop — numeric in code.)"
+      },
+      {
+        "name": "selected",
+        "type": "boolean",
+        "desc": "Active-filter state: border DSN/900 + shadow/sm; renders aria-pressed. Becoming selected (false→true) replays the donut grow-in + count-up. (Figma: State VARIANT Default|Selected.)"
+      },
+      {
+        "name": "(clicked)",
+        "type": "EventEmitter<void>",
+        "desc": "The card is a <button> — a clickable filter toggle, not a passive Widget."
+      },
+      {
+        "name": "showChart",
+        "type": "boolean",
+        "desc": "Escape hatch for metrics without a share. Default true."
+      },
+      {
+        "name": "chartColor",
+        "type": "string",
+        "desc": "Donut arc color token. Default 'var(--ice-blue-600)' (the Figma binding)."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Extra class(es) merged onto the root button."
+      }
+    ]
   },
   "WidgetPieChart": {
     "selector": "odyssey-widget-pie-chart",
     "version": "0.6.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "segments",
+        "type": "Array<{ value: number, color: string }>",
+        "desc": "Segment data. color should be a Chart/* token (e.g. \"var(--chart-1)\")."
+      },
+      {
+        "name": "size",
+        "type": "'md' | 'lg' | number",
+        "desc": "Donut diameter. md=72px, lg=96px. Pass a number for ad-hoc sizes. Default md."
+      },
+      {
+        "name": "centerText",
+        "type": "string",
+        "desc": "Optional text rendered in the donut center (e.g. a percentage)."
+      },
+      {
+        "name": "total",
+        "type": "number",
+        "desc": "Optional denominator. When segment values do not sum to 100%, pass total so the rest renders as --chart-rest."
+      },
+      {
+        "name": "strokeWidth",
+        "type": "number",
+        "desc": "Optional ring thickness in px. Defaults to 18% of size (the Widget md/lg look); WidgetMini passes 9 for its slim 64px donut."
+      },
+      {
+        "name": "delayMs",
+        "type": "number",
+        "desc": "Delay in ms before the grow-in animation fires. Default 0."
+      },
+      {
+        "name": "play",
+        "type": "boolean",
+        "desc": "Gates the grow-in animation (lazy-load / scroll-into-view). Default true."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Additional class names merged onto the host."
+      }
+    ]
   },
   "WidgetVariantPicker": {
     "selector": "odyssey-widget-variant-picker",
     "version": "0.2.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "variant",
+        "type": "'1x' | '2x' | '3x' | '3xChart'",
+        "desc": "Currently displayed widget size. Controls which Widget variant renders in the preview slot. Default 1x."
+      },
+      {
+        "name": "widgetProps",
+        "type": "WidgetPickerProps",
+        "desc": "Forwarded (field-by-field) to the inner Widget — title, value, label, percentage, rows, chartSegments, chartTotal, showChart, domainIconName."
+      },
+      {
+        "name": "className",
+        "type": "string",
+        "desc": "Extra class(es) merged onto the host element."
+      },
+      {
+        "name": "(variantChange)",
+        "type": "EventEmitter<string>",
+        "desc": "Fired when the user clicks an arrow or a dot. Consumer owns the variant state."
+      }
+    ]
   },
   "WidgetsLeftMenu": {
     "selector": "odyssey-widgets-left-menu",
     "version": "0.2.0",
-    "normalizing": false
+    "normalizing": false,
+    "props": [
+      {
+        "name": "title",
+        "type": "string",
+        "desc": "Panel heading. Default 'Metrics library'."
+      },
+      {
+        "name": "groups",
+        "type": "WidgetsMenuGroup[]",
+        "desc": "Item groups ({ id, title, items:[{ id, label }] }). Each renders as a collapsible MenuDropdown of MenuRow items."
+      },
+      {
+        "name": "searchValue",
+        "type": "string",
+        "desc": "Controlled search input value. Filters items client-side (case-insensitive label match). Default empty."
+      },
+      {
+        "name": "collapsedGroupIds",
+        "type": "Set<string> | string[]",
+        "desc": "IDs of collapsed groups. Normalized to a Set internally."
+      },
+      {
+        "name": "isItemDisabled",
+        "type": "(item, group) => boolean",
+        "desc": "Predicate — return true to disable a specific item."
+      },
+      {
+        "name": "(searchChange)",
+        "type": "EventEmitter<string>",
+        "desc": "Emitted on every search keystroke."
+      },
+      {
+        "name": "(toggleGroup)",
+        "type": "EventEmitter<string>",
+        "desc": "Emitted when a group header is clicked (carries the group id)."
+      },
+      {
+        "name": "(itemClick)",
+        "type": "EventEmitter<{ itemId; groupId }>",
+        "desc": "Emitted when a default MenuRow item is clicked."
+      },
+      {
+        "name": "<ng-template>",
+        "type": "projected (ContentChild)",
+        "desc": "Optional per-item template (Angular translation of React renderItem). Context: { $implicit: item, group, disabled }. Lets a consumer wrap each item with a DnD adapter without this package depending on it."
+      }
+    ]
   }
 }

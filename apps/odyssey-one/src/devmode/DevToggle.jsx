@@ -104,7 +104,12 @@ function DevMenu({ corner, mode, framework, nesting, setMode, setFramework, setN
           </button>
         ))}
       </div>
-      <div className="devmode-menu__group" role="group" aria-label="Nesting">
+      <div
+        className={`devmode-menu__group${mode === 'hover' ? ' devmode-menu__group--disabled' : ''}`}
+        role="group"
+        aria-label="Nesting"
+        title={mode === 'hover' ? 'Applies to All mode' : undefined}
+      >
         <div className="devmode-menu__label">Nesting</div>
         {NESTING_OPTIONS.map((opt) => (
           <button
@@ -112,6 +117,8 @@ function DevMenu({ corner, mode, framework, nesting, setMode, setFramework, setN
             type="button"
             role="menuitemradio"
             aria-checked={nesting === opt.value}
+            disabled={mode === 'hover'}
+            aria-disabled={mode === 'hover'}
             className={`devmode-menu__option${nesting === opt.value ? ' devmode-menu__option--active' : ''}`}
             onClick={() => setNesting(opt.value)}
           >

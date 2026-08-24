@@ -66,7 +66,12 @@ function buildReactInfo(demo) {
 function buildAngularInfo(name) {
   const angularEntry = angularMap[name] || null
   return angularEntry
-    ? { selector: angularEntry.selector, version: angularEntry.version, normalizing: angularEntry.normalizing }
+    ? {
+        selector: angularEntry.selector,
+        version: angularEntry.version,
+        normalizing: angularEntry.normalizing,
+        props: angularEntry.props || [],
+      }
     : null
 }
 

@@ -12,7 +12,7 @@ export const meta = {
 
 export const props = [
   { name: 'label', type: 'string', desc: 'Tab label (label/sm medium).' },
-  { name: 'count', type: 'number', desc: 'Optional count — renders our Badge variant="metric" after the label; the badge keeps its own colors in every tab state.' },
+  { name: 'count', type: 'number', desc: 'Optional count — renders our Badge variant="metric" after the label; the badge keeps its own colors in every tab state. Omit (leave undefined) to hide the badge — visibility is implicit in this prop, there is no separate showCount/boolean toggle.' },
   { name: 'current', type: 'boolean', desc: 'Selected state — text --text-primary + 2px DSN/500 underline. Mirrors the Figma Current axis. Defaults to false.' },
   { name: 'onClick', type: '() => void', desc: 'Click handler; consumers manage which tab is current.' },
   { name: 'className', type: 'string', desc: 'Extra class names appended to the root button.' },

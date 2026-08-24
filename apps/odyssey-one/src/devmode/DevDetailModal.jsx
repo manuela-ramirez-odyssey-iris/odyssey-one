@@ -9,6 +9,7 @@ import { createPortal } from 'react-dom'
 import { ModalMedium } from '@odyssey/ui'
 import { getComponentInfo, dsmUrl } from './componentInfo.js'
 import { describeChain, elementTypeName, isReactElement } from './inspect.js'
+import { useDevMode } from './useDevMode.js'
 import './devmode.css'
 
 // Instance values are rendered small and flat — this modal answers "which
@@ -85,7 +86,37 @@ function instanceRows(props, apiProps = []) {
     })
 }
 
+// Picks which side's API table to show, honoring the selected framework —
+// but Angular ports don't all document props yet (or aren't ported at all),
+// so an empty/missing Angular side falls back to React's table rather than
+// showing nothing. `fallback: true` drives the visible note explaining why a
+// React table is showing under an Angular framework selection.
+function pickApiTable(info, framework) {
+  if (framework === 'angular') {
+    if (info.angular?.props?.length > 0) {
+      return { label: 'Angular API', props: info.angular.props, fallback: false }
+    }
+    return info.react ? { label: 'React API', props: info.react.props || [], fallback: true } : null
+  }
+  return info.react ? { label: 'React API', props: info.react.props || [], fallback: false } : null
+}
+
+// Names that exist on only one side — the whole point of showing both
+// frameworks is making this divergence visible, regardless of which table is
+// currently on screen. Only meaningful when BOTH sides have a documented API
+// (an unported/no-demo component isn't a "divergence", it's just missing).
+function divergingPropNames(info) {
+  if (!info.react || !info.angular) return null
+  const reactNames = new Set((info.react.props || []).map((p) => p.name))
+  const angularNames = new Set((info.angular.props || []).map((p) => p.name))
+  const onlyReact = [...reactNames].filter((n) => !angularNames.has(n))
+  const onlyAngular = [...angularNames].filter((n) => !reactNames.has(n))
+  if (onlyReact.length === 0 && onlyAngular.length === 0) return null
+  return { onlyReact, onlyAngular }
+}
+
 export default function DevDetailModal({ name, element = null, onInspect = () => {}, onClose }) {
+  const { framework } = useDevMode()
   const [info, setInfo] = useState(null)
   // Ref so the load effect only depends on `name` — DevMode's onClose is a
   // fresh arrow fn every render, and re-running the fetch on every unrelated
@@ -131,6 +162,8 @@ export default function DevDetailModal({ name, element = null, onInspect = () =>
 
   const reactUrl = dsmUrl(name, 'react')
   const angularUrl = dsmUrl(name, 'angular')
+  const apiTable = pickApiTable(info, framework)
+  const divergence = divergingPropNames(info)
 
   return createPortal(
     // data-devmode: marks this whole subtree as devtool chrome, not
@@ -256,26 +289,45 @@ export default function DevDetailModal({ name, element = null, onInspect = () =>
         </section>
       )}
 
-      {info.react && (
-        <table className="devmode-detail__props">
-          <caption className="devmode-detail__column-title devmode-detail__caption">API</caption>
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Type</th>
-              <th>Description</th>
-            </tr>
-          </thead>
-          <tbody>
-            {info.react.props.map((p) => (
-              <tr key={p.name}>
-                <td>{p.name}</td>
-                <td>{p.type}</td>
-                <td>{p.desc}</td>
+      {apiTable && (
+        <>
+          <table className="devmode-detail__props">
+            <caption className="devmode-detail__column-title devmode-detail__caption">{apiTable.label}</caption>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Description</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {apiTable.props.map((p) => (
+                <tr key={p.name}>
+                  <td>{p.name}</td>
+                  <td>{p.type}</td>
+                  <td>{p.desc}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {apiTable.fallback && (
+            <p className="devmode-detail__muted devmode-detail__api-fallback">
+              No Angular props documented — showing React API.
+            </p>
+          )}
+        </>
+      )}
+
+      {/* Divergence hint — the point of showing both frameworks: a prop name
+          that only exists on one side is exactly what a dev switching
+          frameworks needs to know about, whether or not that side's table is
+          the one currently on screen. */}
+      {divergence && (
+        <p className="devmode-detail__muted devmode-detail__divergence">
+          {divergence.onlyReact.length > 0 && `Only in React: ${divergence.onlyReact.join(', ')}`}
+          {divergence.onlyReact.length > 0 && divergence.onlyAngular.length > 0 && ' · '}
+          {divergence.onlyAngular.length > 0 && `Only in Angular: ${divergence.onlyAngular.join(', ')}`}
+        </p>
       )}
     </ModalMedium>
     </div>,

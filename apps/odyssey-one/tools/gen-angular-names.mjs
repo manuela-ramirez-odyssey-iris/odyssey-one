@@ -80,7 +80,95 @@ function extractBool(block, field) {
   return m ? m[1] === 'true' : false
 }
 
-function parseMetaFile(path) {
+// ── props array extraction ──────────────────────────────────────────────
+// `export const fooProps: DemoProp[] = [{ name, type, desc }, …]`. A plain
+// split-on-'},' can't be trusted here: desc text legitimately contains its
+// own braces (e.g. "the action items ({ label, onSelect? })") and escaped
+// quotes (e.g. "consumer\'s own affordance"), so entries are pulled out with
+// a small brace/quote-aware scan instead — still not a TS parser, just far
+// enough past regex to survive real desc prose.
+function extractObjectLiterals(arrayBody) {
+  const entries = []
+  let i = 0
+  const n = arrayBody.length
+  while (i < n) {
+    while (i < n && arrayBody[i] !== '{') i++
+    if (i >= n) break
+    const start = i
+    let depth = 0
+    let inString = null
+    for (; i < n; i++) {
+      const c = arrayBody[i]
+      if (inString) {
+        if (c === '\\') {
+          i++
+          continue
+        }
+        if (c === inString) inString = null
+        continue
+      }
+      if (c === '"' || c === "'" || c === '`') {
+        inString = c
+        continue
+      }
+      if (c === '{') depth++
+      else if (c === '}') {
+        depth--
+        if (depth === 0) {
+          i++
+          break
+        }
+      }
+    }
+    entries.push(arrayBody.slice(start, i))
+  }
+  return entries
+}
+
+// Reads a quoted field value ('...' | "..." | `...`), honoring backslash
+// escapes — a plain regex can't do this safely since desc text embeds its
+// own quotes.
+function extractQuotedField(objectText, field) {
+  const m = objectText.match(new RegExp(`\\b${field}\\s*:\\s*(['"\`])`))
+  if (!m) return null
+  const quote = m[1]
+  let i = m.index + m[0].length
+  let value = ''
+  while (i < objectText.length) {
+    const c = objectText[i]
+    if (c === '\\') {
+      value += objectText[i + 1]
+      i += 2
+      continue
+    }
+    if (c === quote) break
+    value += c
+    i++
+  }
+  return value
+}
+
+function parsePropsArray(src, fileLabel) {
+  const m = src.match(/export const \w+Props: DemoProp\[\] = \[([\s\S]*?)\n\];/)
+  if (!m) {
+    console.error(`WARNING: ${fileLabel}: no DemoProp[] array found — props: []`)
+    return []
+  }
+  const props = []
+  for (const entry of extractObjectLiterals(m[1])) {
+    const name = extractQuotedField(entry, 'name')
+    const type = extractQuotedField(entry, 'type')
+    const desc = extractQuotedField(entry, 'desc')
+    if (name === null || type === null || desc === null) {
+      console.error(`WARNING: ${fileLabel}: could not parse a props entry — skipped (${entry.slice(0, 60).replace(/\s+/g, ' ')}…)`)
+      continue
+    }
+    props.push({ name, type, desc })
+  }
+  return props
+}
+
+function parseMetaFile(path, fileLabel) {
   const src = readFileSync(path, 'utf8')
   const blockMatch = src.match(/:\s*DemoMeta\s*=\s*\{([\s\S]*?)\n\};/)
   if (!blockMatch) return { error: 'no DemoMeta block found' }
@@ -92,6 +180,7 @@ function parseMetaFile(path) {
     version: extractField(block, 'version'),
     normalizing: extractBool(block, 'normalizing'),
     deprecated: extractBool(block, 'deprecated'),
+    props: parsePropsArray(src, fileLabel),
   }
 }
 
@@ -106,7 +195,7 @@ function main() {
 
   for (const file of files) {
     const path = join(demosDir, file)
-    const meta = parseMetaFile(path)
+    const meta = parseMetaFile(path, file)
 
     if (meta.error) {
       skippedNoFields.push(`${file}: ${meta.error}`)
@@ -138,7 +227,7 @@ function main() {
           excludedNotInReact.push(`${file}: derived selector '${selector}' for '${part}' not found under projects/odyssey-ui/src/lib`)
           continue
         }
-        map[part] = { selector, version: meta.version, normalizing: meta.normalizing }
+        map[part] = { selector, version: meta.version, normalizing: meta.normalizing, props: meta.props }
       }
       continue
     }
@@ -152,6 +241,7 @@ function main() {
       selector: meta.angularName,
       version: meta.version,
       normalizing: meta.normalizing,
+      props: meta.props,
     }
   }
 

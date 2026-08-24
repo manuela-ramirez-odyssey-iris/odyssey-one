@@ -1,14 +1,26 @@
 // @vitest-environment jsdom
-import { afterEach, describe, it, expect, vi } from 'vitest'
+import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest'
 import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/react'
 import { Button, FormField, PageHeader } from '@odyssey/ui'
 import DevDetailModal from './DevDetailModal.jsx'
 import { getComponentInfo, dsmUrl } from './componentInfo.js'
+import { _resetForTests, setFramework } from './useDevMode.js'
 
 vi.mock('./componentInfo.js', () => ({
   getComponentInfo: vi.fn(),
   dsmUrl: vi.fn((name, framework) => (framework === 'react' ? `/design-system#comp-${name}` : null)),
 }))
+
+// The modal reads `framework` from the real useDevMode store (same
+// self-contained pattern as DevOverlay/DevToggle) — reset it before every
+// test so no test leaks its framework selection into the next one, and
+// default to 'react' so all the PRE-EXISTING fixtures below (none of which
+// populate `angular.props`) keep exercising a plain React API table exactly
+// as before. Framework-specific behavior gets its own describe block below.
+beforeEach(() => {
+  _resetForTests()
+  setFramework('react')
+})
 
 const PORTED_INFO = {
   name: 'Badge',
@@ -258,6 +270,139 @@ describe('DevDetailModal — no element (portal / childless fiber)', () => {
     // The documented API table is still there.
     expect(screen.getByText('variant')).toBeTruthy()
     expect(screen.getByText('Color preset.')).toBeTruthy()
+  })
+})
+
+// Modeled on the real Tab component/tab.demo.meta.ts divergence: React's
+// onClick vs Angular's (clicked) — the exact case that motivated this task.
+const TAB_BOTH_SIDES_INFO = {
+  name: 'Tab',
+  react: {
+    tier: 'atom',
+    version: '0.2.0',
+    normalizing: false,
+    props: [
+      { name: 'label', type: 'string', desc: 'Tab label.' },
+      { name: 'onClick', type: '() => void', desc: 'Click handler; consumers manage which tab is current.' },
+    ],
+  },
+  angular: {
+    selector: 'odyssey-tab',
+    version: '0.2.0',
+    normalizing: false,
+    props: [
+      { name: 'label', type: 'string', desc: 'Tab label.' },
+      { name: '(clicked)', type: 'EventEmitter<MouseEvent>', desc: 'Click handler; consumers manage which tab is current.' },
+    ],
+  },
+  ported: true,
+}
+
+const UNPORTED_WITH_REACT_INFO = {
+  name: 'Cell',
+  react: {
+    tier: 'atom',
+    version: '0.1.0',
+    normalizing: false,
+    props: [{ name: 'value', type: 'string', desc: 'Cell content.' }],
+  },
+  angular: null,
+  ported: false,
+}
+
+const NO_REACT_NO_ANGULAR_PROPS_INFO = {
+  name: 'Mystery',
+  react: null,
+  angular: { selector: 'odyssey-mystery', version: '0.1.0', normalizing: false, props: [] },
+  ported: true,
+}
+
+function apiTableCaption() {
+  return document.querySelector('.devmode-detail__caption')
+}
+
+function apiRowNames() {
+  return Array.from(document.querySelectorAll('.devmode-detail__props tbody tr td:first-child')).map(
+    (td) => td.textContent
+  )
+}
+
+describe('DevDetailModal — per-framework API table', () => {
+  it('framework=angular renders the ANGULAR prop rows ((clicked), not onClick)', async () => {
+    setFramework('angular')
+    getComponentInfo.mockResolvedValue(TAB_BOTH_SIDES_INFO)
+    render(<DevDetailModal name="Tab" onClose={() => {}} />)
+
+    await waitFor(() => expect(screen.getByRole('dialog')).toBeTruthy())
+
+    expect(apiTableCaption().textContent).toBe('Angular API')
+    const names = apiRowNames()
+    expect(names).toContain('(clicked)')
+    expect(names).not.toContain('onClick')
+  })
+
+  it('framework=react renders the REACT prop rows (onClick, not (clicked))', async () => {
+    setFramework('react')
+    getComponentInfo.mockResolvedValue(TAB_BOTH_SIDES_INFO)
+    render(<DevDetailModal name="Tab" onClose={() => {}} />)
+
+    await waitFor(() => expect(screen.getByRole('dialog')).toBeTruthy())
+
+    expect(apiTableCaption().textContent).toBe('React API')
+    const names = apiRowNames()
+    expect(names).toContain('onClick')
+    expect(names).not.toContain('(clicked)')
+  })
+
+  it('divergence line lists exactly the names unique to each side', async () => {
+    setFramework('angular')
+    getComponentInfo.mockResolvedValue(TAB_BOTH_SIDES_INFO)
+    render(<DevDetailModal name="Tab" onClose={() => {}} />)
+
+    await waitFor(() => expect(screen.getByRole('dialog')).toBeTruthy())
+
+    const divergence = document.querySelector('.devmode-detail__divergence')
+    expect(divergence.textContent).toBe('Only in React: onClick · Only in Angular: (clicked)')
+  })
+
+  it('omits the divergence line when both sides document the same prop names', async () => {
+    setFramework('angular')
+    getComponentInfo.mockResolvedValue({
+      name: 'Badge',
+      react: { tier: 'atom', version: '0.4.0', normalizing: false, props: [{ name: 'variant', type: 'string', desc: 'Color preset.' }] },
+      angular: { selector: 'odyssey-badge', version: '0.4.0', normalizing: false, props: [{ name: 'variant', type: 'string', desc: 'Color preset.' }] },
+      ported: true,
+    })
+    render(<DevDetailModal name="Badge" onClose={() => {}} />)
+
+    await waitFor(() => expect(screen.getByRole('dialog')).toBeTruthy())
+
+    expect(document.querySelector('.devmode-detail__divergence')).toBeNull()
+  })
+
+  it('an unported component falls back to React\'s table with a visible note', async () => {
+    setFramework('angular')
+    getComponentInfo.mockResolvedValue(UNPORTED_WITH_REACT_INFO)
+    render(<DevDetailModal name="Cell" onClose={() => {}} />)
+
+    await waitFor(() => expect(screen.getByRole('dialog')).toBeTruthy())
+
+    expect(apiTableCaption().textContent).toBe('React API')
+    expect(apiRowNames()).toContain('value')
+    expect(document.querySelector('.devmode-detail__api-fallback')).toBeTruthy()
+    expect(document.querySelector('.devmode-detail__divergence')).toBeNull()
+  })
+
+  it('a component with no React demo and no Angular props renders neither table, without crashing', async () => {
+    setFramework('angular')
+    getComponentInfo.mockResolvedValue(NO_REACT_NO_ANGULAR_PROPS_INFO)
+    render(<DevDetailModal name="Mystery" onClose={() => {}} />)
+
+    await waitFor(() => expect(screen.getByRole('dialog')).toBeTruthy())
+
+    expect(document.querySelector('.devmode-detail__props')).toBeNull()
+    expect(document.querySelector('.devmode-detail__api-fallback')).toBeNull()
+    expect(document.querySelector('.devmode-detail__divergence')).toBeNull()
   })
 })
 
