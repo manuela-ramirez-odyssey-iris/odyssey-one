@@ -30,7 +30,7 @@ Real usage of D2's dev mode surfaced five gaps in one pass: default framework, n
 - **Overlay yields to the detail modal** — z-index/pointer ordering fixed so the chip overlay no longer competes with an open detail modal for clicks.
 - **Browser QA 5/5 PASS**, zero console errors, on the refinement round.
 - **Dev mode found a real bug on its first outing.** `DataTable.demo.jsx` documented the `error` prop twice — a stale "(not built yet)" placeholder left over from before S116 actually built it — which collided React keys in the detail modal's props table. Fixed in `b4a8ef0`.
-- **Prod has NOT been redeployed** since this refinement round — the live `odyssey-one-stage.vercel.app` bundle still reflects pre-refinement D2 (outermost-only inspection, React default, unfiltered session-gate read path).
+- **Deployed to prod (user-authorized), verified by grepping the live bundle** `index-DRsS-jsE.js` — `odyssey-devmode-session`, `devmode-chip__crumb`, `All levels`, `devmode-outline--nested` all present. Dev mode with nesting is live at `odyssey-one-stage.vercel.app/shipments?dev=1`.
 
 ### Harden the session-gate read path (post-refinement)
 
