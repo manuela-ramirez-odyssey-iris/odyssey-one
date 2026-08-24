@@ -53,6 +53,24 @@
   opacity: 0.85;
 }
 
+/* Progressive-nesting expander: "+N" (N = direct ui children) → "−". Sits on
+   the chip, but is its own button — clicking it drills in instead of opening
+   the detail modal. */
+.devmode-chip__expander {
+  padding: 0 4px;
+  border: none;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
+  font: 700 10px/1.5 monospace;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.devmode-chip__expander:hover {
+  background: rgba(255, 255, 255, 0.45);
+}
+
 .devmode-chip__dot {
   width: 6px;
   height: 6px;

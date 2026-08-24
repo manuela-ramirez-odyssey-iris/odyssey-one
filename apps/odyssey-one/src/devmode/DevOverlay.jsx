@@ -1,6 +1,8 @@
 // Dev-mode overlay: draws outlines + name chips over @odyssey/ui components,
-// either on hover (mode: 'hover') or for every component on screen at once
-// (mode: 'all'). Renders nothing when dev mode is disabled.
+// either on hover (mode: 'hover') or for the components on screen (mode:
+// 'all', how deep set by `nesting` — top level only, drill in one level at a
+// time via the chip expanders, or all levels at once). Renders nothing when
+// dev mode is disabled.
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useDevMode } from './useDevMode.js'
 import { findUiComponentChain } from './inspect.js'
@@ -42,28 +44,36 @@ function hasRealLayout() {
   return r.width > 0 || r.height > 0
 }
 
-// Depth-first walk from #root. For each element, ask findUiComponentChain(el)
-// and record every chain entry rooted AT el (a chain entry's `element` is the
-// component's first host element, so "rooted at el" == that component starts
-// here). `depth` is the entry's index in the chain, i.e. how many ui
-// components enclose it.
+// Depth-first walk from #root, building the FULL match list once:
+//   { name, element, depth, parent, childCount }
+// For each element, ask findUiComponentChain(el) and record every chain entry
+// rooted AT el (a chain entry's `element` is the component's first host
+// element, so "rooted at el" == that component starts here). `parent` is the
+// nearest enclosing MATCH (maintained as an ancestor stack during the walk),
+// `depth` is how many matches enclose it, `childCount` is how many DIRECT ui
+// children it has — the number the progressive expander shows, so "+4" means
+// "four chips will appear", not a count the user can't map to anything.
 //
-// nesting === 'outermost': only the chain head counts, and the subtree is
-// skipped on a match (the old behavior — EntityChip's internal IconButton
-// stays hidden). nesting === 'all': keep descending after a match, so
-// components composed into a parent's slots get labeled too.
+// Nesting is NOT applied here: the walk is mode-agnostic and visibleMatches()
+// (pure, below) decides what actually renders. One walk, three views.
 //
-// ponytail: 'all' visits every element under #root instead of pruning at each
-// match, so the walk is O(elements) with a fiber walk per element. Fine for a
-// dev tool on a normal page; if a huge table ever makes this stutter, the
-// upgrade path is to memoize per-element chain results between relayouts.
-function walkAll(overlayEl, nesting) {
+// ponytail: two known ceilings.
+//   1. the walk visits every element under #root instead of pruning at each
+//      match (which 'outermost' used to do), so it's O(elements) with a fiber
+//      walk per element in every mode. Fine for a dev tool on a normal page;
+//      if a huge table ever makes this stutter, memoize per-element chain
+//      results between relayouts.
+//   2. `parent` is DOM nesting, not fiber nesting — a portaled child is
+//      chained to whatever DOM ancestor it lands under, not to the component
+//      that rendered it. That's the right answer for this UI anyway (the
+//      expander means "reveal the chips inside this chip's box").
+function collectMatches(overlayEl) {
   const root = document.getElementById('root')
   if (!root) return []
   const skipZeroSize = hasRealLayout()
   const found = []
 
-  function visit(el) {
+  function visit(el, parent) {
     if (overlayEl && overlayEl.contains(el)) return
     // Skip devmode-owned chrome (toggle cluster, detail modal) and its whole
     // subtree — see the data-devmode guard in the hover path below for why.
@@ -72,22 +82,38 @@ function walkAll(overlayEl, nesting) {
       const rect = el.getBoundingClientRect()
       if (rect.width === 0 && rect.height === 0) return
     }
-    const chain = findUiComponentChain(el)
-    if (nesting === 'outermost') {
-      if (chain[0] && chain[0].element === el) {
-        found.push({ name: chain[0].name, element: el, depth: 0 })
-        return
-      }
-    } else {
-      chain.forEach((entry, depth) => {
-        if (entry.element === el) found.push({ name: entry.name, element: el, depth })
-      })
+    let innermost = parent
+    for (const entry of findUiComponentChain(el)) {
+      if (entry.element !== el) continue
+      // Chain order is outer→inner, so successive entries rooted at the SAME
+      // element nest into each other.
+      const match = { name: entry.name, element: el, depth: innermost ? innermost.depth + 1 : 0, parent: innermost, childCount: 0 }
+      found.push(match)
+      innermost = match
     }
-    for (const child of el.children) visit(child)
+    for (const child of el.children) visit(child, innermost)
   }
 
-  visit(root)
+  visit(root, null)
+  for (const match of found) if (match.parent) match.parent.childCount += 1
   return found
+}
+
+// Which matches render, per nesting mode. Pure — no DOM, no store — so it's
+// testable directly against a synthetic match list.
+// `expanded` is a Set of ELEMENTS (see DevOverlay's state comment).
+// Exporting a non-component costs this dev-only file its fast refresh; a
+// separate module just to host one pure filter isn't worth the file.
+// eslint-disable-next-line react-refresh/only-export-components
+export function visibleMatches(matches, nesting, expanded) {
+  if (nesting === 'all') return matches
+  if (nesting !== 'progressive') return matches.filter((m) => m.depth === 0)
+  // progressive: visible iff every ancestor match is expanded — so collapsing
+  // a branch takes its whole subtree with it, not just its direct children.
+  return matches.filter((m) => {
+    for (let p = m.parent; p; p = p.parent) if (!expanded.has(p.element)) return false
+    return true
+  })
 }
 
 function rectOf(el) {
@@ -117,7 +143,7 @@ function DevOutline({ element, nested }) {
   )
 }
 
-function DevOverlayItem({ item, framework, onInspect }) {
+function DevOverlayItem({ item, framework, onInspect, expandable = false, isExpanded = false, onToggleExpand }) {
   const rect = rectOf(item.element)
   const depth = item.depth || 0
   // Clamp the stagger so a deep chain doesn't walk its chips off the bottom
@@ -143,6 +169,22 @@ function DevOverlayItem({ item, framework, onInspect }) {
       >
         {normalizing && <span className="devmode-chip__dot" aria-hidden="true" />}
         {text}
+        {/* Its own button, and it stopPropagation()s: expanding a branch must
+            never open the detail modal, while the chip body still does. */}
+        {expandable && (
+          <button
+            type="button"
+            className="devmode-chip__expander"
+            aria-expanded={isExpanded}
+            aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${item.name}`}
+            onClick={(e) => {
+              e.stopPropagation()
+              onToggleExpand(item.element)
+            }}
+          >
+            {isExpanded ? '−' : `+${item.childCount}`}
+          </button>
+        )}
       </div>
     </>
   )
@@ -152,7 +194,25 @@ export default function DevOverlay({ onInspect = () => {}, suppressed = false })
   const { enabled, mode, framework, nesting } = useDevMode()
   const overlayRef = useRef(null)
   const [hoverChain, setHoverChain] = useState([]) // [{ name, element }] outer→inner
-  const [allHighlights, setAllHighlights] = useState([]) // [{ name, element, depth }]
+  const [allMatches, setAllMatches] = useState([]) // [{ name, element, depth, parent, childCount }]
+  // Which branches are drilled into, in 'progressive' nesting. Transient UI
+  // state on purpose (not persisted, not in the store): it's about what you're
+  // looking at right now, and a stored set of DOM elements is meaningless on
+  // the next page anyway. Keyed by the ELEMENT rather than the match object —
+  // matches are rebuilt from scratch on every relayout, so match identity
+  // doesn't survive a scroll, while the element does.
+  // ponytail: an element hosting two nested matches (a ui component whose root
+  // host element IS its child's) expands both at once. Rare enough to accept;
+  // the fix would be a composite key, which then needs its own stable id.
+  const [expanded, setExpanded] = useState(() => new Set())
+
+  const toggleExpand = useCallback((element) => {
+    setExpanded((prev) => {
+      const next = new Set(prev)
+      if (!next.delete(element)) next.add(element)
+      return next
+    })
+  }, [])
 
   // Kick off the DSM demo-index load once, on activation — fire-and-forget.
   // On a static screen (no scroll/resize/pointermove after this resolves)
@@ -166,7 +226,7 @@ export default function DevOverlay({ onInspect = () => {}, suppressed = false })
   useEffect(() => {
     if (!enabled || suppressed) return
     preloadComponentInfo()
-      .then(() => setAllHighlights((prev) => prev.slice()))
+      .then(() => setAllMatches((prev) => prev.slice()))
       .catch(() => {})
   }, [enabled, suppressed])
 
@@ -222,9 +282,22 @@ export default function DevOverlay({ onInspect = () => {}, suppressed = false })
   // re-runs. Upgrade path if that's annoying in practice: a router
   // location listener, or just re-walk on click (cheap, no new listener
   // class to clean up).
+  //
+  // `nesting` is deliberately NOT a dependency: the walk is mode-agnostic now
+  // and switching nesting only re-runs the pure filter on the next render —
+  // no re-walk, and expansion state survives a trip through 'all' and back.
   useEffect(() => {
     if (!enabled || mode !== 'all' || suppressed) return
-    const relayout = () => setAllHighlights(walkAll(overlayRef.current, nesting))
+    const relayout = () => {
+      setAllMatches(collectMatches(overlayRef.current))
+      // Drop expanded entries whose element left the DOM, so a long session
+      // of route changes can't accumulate detached nodes in the Set. Same
+      // `prev` back when nothing changed — no pointless re-render.
+      setExpanded((prev) => {
+        const live = new Set([...prev].filter((el) => el.isConnected))
+        return live.size === prev.size ? prev : live
+      })
+    }
     relayout()
 
     let raf = null
@@ -241,9 +314,9 @@ export default function DevOverlay({ onInspect = () => {}, suppressed = false })
       document.removeEventListener('scroll', throttled, { capture: true })
       window.removeEventListener('resize', throttled)
       if (raf != null) cancelAnimationFrame(raf)
-      setAllHighlights([])
+      setAllMatches([])
     }
-  }, [enabled, mode, nesting, suppressed])
+  }, [enabled, mode, suppressed])
 
   // The detail modal (DevDetailModal, z-index ~9000-ish product stacking)
   // must never sit UNDER this overlay's chips/outlines (z-index 999999) —
@@ -270,8 +343,11 @@ export default function DevOverlay({ onInspect = () => {}, suppressed = false })
       ? leaf
         ? [{ ...leaf, depth: 0 }]
         : []
-      : allHighlights.filter((item) => item.element.isConnected)
+      : visibleMatches(allMatches, nesting, expanded).filter((item) => item.element.isConnected)
   const ancestorOutlines = mode === 'hover' ? liveChain.slice(0, -1) : []
+  // Expanders only make sense in 'progressive' — the other two modes already
+  // show everything they're ever going to show.
+  const showExpanders = mode === 'all' && nesting === 'progressive'
 
   return (
     <div ref={overlayRef} className="devmode-overlay" style={{ position: 'fixed', inset: 0, pointerEvents: 'none' }}>
@@ -279,7 +355,15 @@ export default function DevOverlay({ onInspect = () => {}, suppressed = false })
         <DevOutline key={`anc-${entry.name}-${i}`} element={entry.element} nested />
       ))}
       {items.map((item, i) => (
-        <DevOverlayItem key={`${item.name}-${i}`} item={item} framework={framework} onInspect={onInspect} />
+        <DevOverlayItem
+          key={`${item.name}-${i}`}
+          item={item}
+          framework={framework}
+          onInspect={onInspect}
+          expandable={showExpanders && item.childCount > 0}
+          isExpanded={expanded.has(item.element)}
+          onToggleExpand={toggleExpand}
+        />
       ))}
     </div>
   )

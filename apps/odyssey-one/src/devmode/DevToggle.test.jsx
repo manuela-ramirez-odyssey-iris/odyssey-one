@@ -101,15 +101,24 @@ describe('DevToggle — menu', () => {
     expect(getState().framework).toBe('angular')
   })
 
-  it('exposes a Nesting group whose options drive setNesting', () => {
+  // ADJUSTED for the three-option Nesting group (was two: "All levels" /
+  // "Outermost", default 'all'). "Outermost" is now labeled "Top level" and
+  // the default is 'progressive' ("Drill in").
+  it('exposes a Nesting group with three options, each driving setNesting', () => {
     openMenu()
 
     expect(screen.getByRole('group', { name: 'Nesting' })).toBeTruthy()
-    // Default is 'all', so "All levels" is the checked one.
-    expect(screen.getByRole('menuitemradio', { name: /all levels/i }).getAttribute('aria-checked')).toBe('true')
+    // Default is 'progressive', so "Drill in" is the checked one.
+    expect(screen.getByRole('menuitemradio', { name: /drill in/i }).getAttribute('aria-checked')).toBe('true')
 
-    fireEvent.click(screen.getByRole('menuitemradio', { name: /outermost/i }))
+    fireEvent.click(screen.getByRole('menuitemradio', { name: /top level/i }))
     expect(getState().nesting).toBe('outermost')
+
+    fireEvent.click(screen.getByRole('menuitemradio', { name: /all levels/i }))
+    expect(getState().nesting).toBe('all')
+
+    fireEvent.click(screen.getByRole('menuitemradio', { name: /drill in/i }))
+    expect(getState().nesting).toBe('progressive')
   })
 
   it('closes on Escape', () => {

@@ -7,7 +7,7 @@
 import { beforeAll, beforeEach, afterEach, describe, it, expect, vi } from 'vitest'
 import { render, screen, cleanup, fireEvent, act } from '@testing-library/react'
 import { Badge, EntityChip, FormField, IconButton } from '@odyssey/ui'
-import DevOverlay from './DevOverlay.jsx'
+import DevOverlay, { visibleMatches } from './DevOverlay.jsx'
 import { preloadComponentInfo } from './componentInfo.js'
 import { setEnabled, setMode, setFramework, setNesting, _resetForTests } from './useDevMode.js'
 
@@ -349,6 +349,126 @@ describe('DevOverlay — all mode', () => {
     act(() => rerender(build(false)))
 
     expect(rootEl.querySelectorAll('.devmode-chip').length).toBe(0)
+  })
+})
+
+describe('visibleMatches', () => {
+  // Synthetic match list — the filter is pure and never touches the DOM, so
+  // plain strings stand in for elements (Set membership is identity either way).
+  const a = { name: 'A', element: 'elA', depth: 0, parent: null }
+  const b = { name: 'B', element: 'elB', depth: 1, parent: a }
+  const c = { name: 'C', element: 'elC', depth: 2, parent: b }
+  const d = { name: 'D', element: 'elD', depth: 0, parent: null }
+  const matches = [a, b, c, d]
+  const names = (list) => list.map((m) => m.name)
+
+  it("'outermost' yields only depth 0", () => {
+    expect(names(visibleMatches(matches, 'outermost', new Set()))).toEqual(['A', 'D'])
+  })
+
+  it("'all' yields everything, expanded set irrelevant", () => {
+    expect(names(visibleMatches(matches, 'all', new Set()))).toEqual(['A', 'B', 'C', 'D'])
+  })
+
+  it("'progressive' with nothing expanded yields only depth 0", () => {
+    expect(names(visibleMatches(matches, 'progressive', new Set()))).toEqual(['A', 'D'])
+  })
+
+  it("'progressive' reveals exactly the direct children of an expanded entry", () => {
+    expect(names(visibleMatches(matches, 'progressive', new Set(['elA'])))).toEqual(['A', 'B', 'D'])
+  })
+
+  it("'progressive' hides a grandchild whose intermediate parent is collapsed", () => {
+    // B expanded but A is not: C must stay hidden — the chain is broken above it.
+    expect(names(visibleMatches(matches, 'progressive', new Set(['elB'])))).toEqual(['A', 'D'])
+    // Both expanded: the whole branch shows.
+    expect(names(visibleMatches(matches, 'progressive', new Set(['elA', 'elB'])))).toEqual(['A', 'B', 'C', 'D'])
+  })
+})
+
+describe('DevOverlay — all mode, progressive nesting', () => {
+  // FormField renders a real FieldSelect per select edge — two edges means
+  // two DIRECT ui children, so the expander must read "+2" and reveal exactly
+  // two chips.
+  function renderProgressive(onInspect = () => {}) {
+    setEnabled(true)
+    setMode('all')
+    setFramework('react')
+    setNesting('progressive')
+    return render(
+      <>
+        <FormField
+          label="Amount"
+          value=""
+          onChange={() => {}}
+          leadingSelect={{ label: 'USD', onClick: () => {} }}
+          trailingSelect={{ label: 'per lb', onClick: () => {} }}
+        />
+        <Badge variant="blue">Leaf</Badge>
+        <DevOverlay onInspect={onInspect} />
+      </>,
+      { container: rootEl }
+    )
+  }
+
+  const chipTexts = () => Array.from(rootEl.querySelectorAll('.devmode-chip')).map((c) => c.textContent)
+
+  it('starts collapsed: only the outermost components are chipped', () => {
+    renderProgressive()
+    const texts = chipTexts()
+    expect(texts.filter((t) => t.includes('FormField')).length).toBe(1)
+    expect(texts.filter((t) => t.includes('Badge')).length).toBe(1)
+    expect(texts.some((t) => t.includes('FieldSelect'))).toBe(false)
+  })
+
+  it('a chip with nested ui children carries an expander counting its DIRECT children', () => {
+    renderProgressive()
+    const expanders = rootEl.querySelectorAll('.devmode-chip__expander')
+    expect(expanders.length).toBe(1)
+    expect(expanders[0].textContent).toBe('+2')
+    expect(expanders[0].getAttribute('aria-expanded')).toBe('false')
+  })
+
+  it('a component with no nested ui children has no expander', () => {
+    renderProgressive()
+    const badgeChip = Array.from(rootEl.querySelectorAll('.devmode-chip')).find((c) => c.textContent.includes('Badge'))
+    expect(badgeChip.querySelector('.devmode-chip__expander')).toBeNull()
+  })
+
+  it('clicking the expander reveals exactly the direct children; clicking again collapses them', () => {
+    renderProgressive()
+
+    fireEvent.click(rootEl.querySelector('.devmode-chip__expander'))
+    expect(chipTexts().filter((t) => t.includes('FieldSelect')).length).toBe(2)
+    expect(rootEl.querySelector('.devmode-chip__expander').getAttribute('aria-expanded')).toBe('true')
+
+    fireEvent.click(rootEl.querySelector('.devmode-chip__expander'))
+    expect(chipTexts().some((t) => t.includes('FieldSelect'))).toBe(false)
+  })
+
+  it('expander clicks never open the modal, while the chip body still does', () => {
+    const onInspect = vi.fn()
+    renderProgressive(onInspect)
+
+    fireEvent.click(rootEl.querySelector('.devmode-chip__expander'))
+    expect(onInspect).not.toHaveBeenCalled()
+
+    const formFieldChip = Array.from(rootEl.querySelectorAll('.devmode-chip')).find((c) =>
+      c.textContent.includes('FormField')
+    )
+    fireEvent.click(formFieldChip)
+    expect(onInspect.mock.calls[0][0]).toBe('FormField')
+  })
+
+  it("no expanders in 'all' or 'outermost' nesting — there is nothing left to reveal", () => {
+    renderProgressive()
+    act(() => setNesting('all'))
+    expect(rootEl.querySelectorAll('.devmode-chip__expander').length).toBe(0)
+    expect(chipTexts().filter((t) => t.includes('FieldSelect')).length).toBe(2)
+
+    act(() => setNesting('outermost'))
+    expect(rootEl.querySelectorAll('.devmode-chip__expander').length).toBe(0)
+    expect(chipTexts().some((t) => t.includes('FieldSelect'))).toBe(false)
   })
 })
 

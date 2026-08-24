@@ -32,9 +32,13 @@ const FRAMEWORK_OPTIONS = [
   { value: 'react', label: 'React' },
   { value: 'angular', label: 'Angular' },
 ]
+// Labeled by what they DO, not by the internal value: "Top level" says what
+// you see, "Drill in" says you can go deeper from there, "All levels" says
+// everything at once.
 const NESTING_OPTIONS = [
+  { value: 'outermost', label: 'Top level' },
+  { value: 'progressive', label: 'Drill in' },
   { value: 'all', label: 'All levels' },
-  { value: 'outermost', label: 'Outermost' },
 ]
 
 function DevMenu({ corner, mode, framework, nesting, setMode, setFramework, setNesting, onClose }) {

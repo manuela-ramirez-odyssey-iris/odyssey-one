@@ -22,9 +22,20 @@ describe('useDevMode', () => {
     expect(result.current.framework).toBe('angular')
     expect(result.current.everActivated).toBe(false)
     expect(result.current.corner).toBe('br')
-    // Nesting defaults to 'all': components composed into a parent's slots
-    // are the thing people actually want to inspect.
-    expect(result.current.nesting).toBe('all')
+    // Nesting defaults to 'progressive': all-at-once ('all') is 141 chips on
+    // Shipments — technically right, visually a pile. Progressive starts at
+    // the top level and lets the user drill into the branch they care about.
+    expect(result.current.nesting).toBe('progressive')
+  })
+
+  it('setNesting accepts all three modes and persists each', () => {
+    const { result } = renderHook(() => useDevMode())
+
+    for (const value of ['outermost', 'all', 'progressive']) {
+      act(() => result.current.setNesting(value))
+      expect(result.current.nesting).toBe(value)
+      expect(JSON.parse(localStorage.getItem('odyssey-devmode')).nesting).toBe(value)
+    }
   })
 
   it('setNesting updates the store, persists, and survives a fresh read', () => {
@@ -42,6 +53,14 @@ describe('useDevMode', () => {
     localStorage.setItem('odyssey-devmode', savedPrefs)
     const { result: second } = renderHook(() => useDevMode())
     expect(second.current.nesting).toBe('outermost')
+  })
+
+  // 'all' stopped being the DEFAULT but is still a real option — a browser
+  // that persisted it before this change must keep it, not get migrated.
+  it('a persisted legacy nesting of "all" still loads', () => {
+    localStorage.setItem('odyssey-devmode', JSON.stringify({ nesting: 'all' }))
+    const { result } = renderHook(() => useDevMode())
+    expect(result.current.nesting).toBe('all')
   })
 
   it('setCorner updates the store and persists', () => {

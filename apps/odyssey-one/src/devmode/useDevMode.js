@@ -17,10 +17,15 @@ import { useSyncExternalStore } from 'react'
 const STORAGE_KEY = 'odyssey-devmode'
 const SESSION_KEY = 'odyssey-devmode-session'
 const SESSION_FIELDS = ['enabled', 'everActivated']
-// nesting: 'all' labels every ui component including ones nested inside
-// another (the common case — components composed into slots); 'outermost'
-// is the old behavior (stop at the enclosing component).
-const DEFAULTS = { enabled: false, mode: 'hover', framework: 'angular', everActivated: false, corner: 'br', nesting: 'all' }
+// nesting (all mode only): how deep the chips go.
+//   'outermost'   — only the top-level components ("Top level").
+//   'progressive' — starts at the top level; each chip with nested ui
+//                   children carries a +N expander that reveals its DIRECT
+//                   children, one level per click ("Drill in"). DEFAULT:
+//                   'all' renders 141 chips on Shipments, which is correct
+//                   and unreadable.
+//   'all'         — every ui component at once ("All levels").
+const DEFAULTS = { enabled: false, mode: 'hover', framework: 'angular', everActivated: false, corner: 'br', nesting: 'progressive' }
 
 let state = { ...DEFAULTS }
 let initialized = false
