@@ -4,7 +4,7 @@ import { SummaryStrip } from '@odyssey/ui'
 export const meta = {
   name: 'SummaryStrip',
   tier: 'molecule',
-  version: '0.14.0',
+  version: '0.14.1',
   createdVersion: '0.7.0',
   normalizing: true,
   figmaNode: '4254:904',
@@ -14,7 +14,7 @@ export const meta = {
 
 export const props = [
   { name: 'items', type: "[{ label, value, tone?, truncate?, emphasis? }]", desc: "The stat cells, in order. `label` renders uppercase (CSS transform — pass natural case); empty/nullish `value` renders '--'; `tone: 'positive' | 'negative'` colors the value (code extension — the Figma master has no tone axis); `truncate: 'lead'` caps the cell width and lead-ellipsizes the value (tail visible, '…' leads — for URL-ish values), full value via `title` (code extension); `emphasis: 'display'` swaps the value to display/4xl semibold (code extension, SPB-43 bid countdown digits)." },
-  { name: 'truncationTooltip', type: 'boolean', default: 'false', desc: "Opt-in, strip-level. On hover, scans the cell (both `<dt>` and `<dd>`) for real overflow (`scrollWidth > clientWidth`) and shows the normalized Tooltip with the full text — mirrors DataTable's `truncationTooltip` mechanism verbatim, but does NOT gate on hidden-word-count (SummaryStrip values are often a single long token). Suppresses the native `title` while on so the browser tooltip doesn't double up; default off is byte-identical to every existing caller." },
+  { name: 'truncationTooltip', type: 'boolean', default: 'false', desc: "Opt-in, strip-level. On hover, scans the cell (both `<dt>` and `<dd>`) for real overflow (`scrollWidth > clientWidth`) and shows the normalized Tooltip with the full text — mirrors DataTable's `truncationTooltip` mechanism, but gates on hidden CHARACTERS (`hiddenCharCount`, min 3) rather than hidden WORDS: SummaryStrip values are often a single long token (a tracking link, an ID) that a word count always reads as one word, hidden or not. Suppresses the native `title` while on so the browser tooltip doesn't double up; default off is byte-identical to every existing caller." },
   { name: 'className', type: 'string', desc: 'Extra class(es) on the root element.' },
   { name: '...rest', type: 'aria-* etc.', desc: 'Forwarded to the root — pass `aria-label` to name the region (root is a <dl> with role="region").' },
 ]
@@ -76,6 +76,7 @@ function Schematic() {
 
 // ── Playground ──────────────────────────────────────────────────────────────
 const inputStyle = { padding: '4px 8px', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-sm)', fontFamily: 'var(--font-primary)', fontSize: 'var(--font-size-sm)' }
+const labelStyle = { display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-sm)', fontFamily: 'var(--font-primary)', color: 'var(--text-primary)', cursor: 'pointer' }
 
 function Field({ label, value, set }) {
   return (
@@ -88,12 +89,18 @@ function Field({ label, value, set }) {
 
 function Playground() {
   const [items, setItems] = useState([
-    { label: 'Base',     value: '$1,240.00' },
-    { label: 'Discount', value: '-$124.00', tone: 'negative' },
-    { label: 'AP Total', value: '$1,489.20' },
-    { label: 'AR Total', value: '$1,720.00' },
-    { label: 'Margin',   value: '+$230.80', tone: 'positive' },
+    { label: 'Base',           value: '$1,240.00' },
+    { label: 'Discount',       value: '-$124.00', tone: 'negative' },
+    { label: 'AP Total',       value: '$1,489.20' },
+    { label: 'AR Total',       value: '$1,720.00' },
+    { label: 'Margin',         value: '+$230.80', tone: 'positive' },
+    // Long single-token value (a real tracking link) capped at 280px via
+    // truncate: 'lead' — genuinely clips in the browser, which is the case
+    // TOOLTIP_MIN_HIDDEN_CHARS exists for (a word-count gate reads this as
+    // exactly one word, hidden or not, so it could never fire here).
+    { label: 'Tracking Link',  value: 'https://track.odysseylogistics.com/shipments/9f3ac1d7-4b2e-4a91-9c05-9e1b1f4b6c78', truncate: 'lead' },
   ])
+  const [truncationTooltip, setTruncationTooltip] = useState(false)
   const [sel, setSel] = useState(0)
 
   const patch = (idx, part) =>
@@ -112,6 +119,12 @@ function Playground() {
 
   return (
     <div>
+      <div className="ds-demo-row" style={{ gap: 'var(--spacing-6)', marginBottom: 'var(--spacing-3)', flexWrap: 'wrap', alignItems: 'center' }}>
+        <label style={labelStyle}>
+          <input type="checkbox" checked={truncationTooltip} onChange={(e) => setTruncationTooltip(e.target.checked)} />
+          truncationTooltip
+        </label>
+      </div>
       <div className="ds-demo-row" style={{ gap: 'var(--spacing-4)', marginBottom: 'var(--spacing-3)', flexWrap: 'wrap', alignItems: 'flex-end' }}>
         <label style={{ display: 'inline-flex', flexDirection: 'column', gap: 4, fontSize: 'var(--font-size-sm)' }}>
           cell
@@ -140,7 +153,7 @@ function Playground() {
         <button type="button" onClick={removeCell} disabled={items.length <= 1} style={{ ...inputStyle, cursor: items.length <= 1 ? 'default' : 'pointer', opacity: items.length <= 1 ? 0.4 : 1 }}>− cell</button>
       </div>
       <div style={{ background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', padding: 'var(--spacing-6) 0' }}>
-        <SummaryStrip items={items} aria-label="Playground summary" />
+        <SummaryStrip items={items} truncationTooltip={truncationTooltip} aria-label="Playground summary" />
       </div>
     </div>
   )

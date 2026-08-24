@@ -50,10 +50,14 @@ import Tooltip from './Tooltip.jsx'
  *   `mouseenter`, scans the cell and its descendants (covers both `<dt>` and
  *   `<dd>` — either can clip) for the first element whose `scrollWidth >
  *   clientWidth + 1` and raises the normalized `Tooltip` with that element's
- *   full `textContent`. Unlike DataTable, this does NOT gate on
- *   `hiddenWordCount`: SummaryStrip values are frequently a single long
- *   token (a tracking link, an ID) where the hidden-word estimate is 0 and
- *   the tooltip would never fire — any real overflow shows it. When on, the
+ *   full `textContent` — but only when `hiddenCharCount(...) >=
+ *   TOOLTIP_MIN_HIDDEN_CHARS`. Unlike DataTable, this gates on hidden
+ *   CHARACTERS, not hidden WORDS: SummaryStrip values are frequently a
+ *   single long token (a tracking link, an ID) that the word estimator
+ *   always reads as exactly one word, hidden or not, so a word-count gate
+ *   could never fire for the values this component actually carries — a
+ *   character count still tells a one-glyph sliver from real lost
+ *   information. When on, the
  *   native `title` (see `truncate: 'lead'` above) is suppressed so the
  *   browser tooltip doesn't double up with the designed card; this costs no
  *   accessibility — `text-overflow: ellipsis` is purely visual and
@@ -63,6 +67,26 @@ import Tooltip from './Tooltip.jsx'
  * Semantics: a <dl> of dt/dd pairs (each cell a div group — valid HTML).
  * Pass `aria-label` (forwarded via rest) to name the region.
  */
+/**
+ * Estimated count of characters hidden behind a cell's ellipsis. Same
+ * proportional width-ratio estimate as DataTable's `hiddenWordCount`
+ * (packages/ui/src/DataTable.jsx) — visible share is clientWidth/scrollWidth
+ * of a nowrap single-line run, one font, good enough as a linear estimate —
+ * but counts characters instead of words, since SummaryStrip values are
+ * frequently a single long token where a word count is useless (see
+ * docblock above). Returns 0 when nothing is clipped.
+ */
+export function hiddenCharCount(text, clientWidth, scrollWidth) {
+  if (!text || scrollWidth <= clientWidth + 1) return 0
+  const visibleChars = Math.floor(text.length * (clientWidth / scrollWidth))
+  return text.length - visibleChars
+}
+
+// Below this many hidden characters, the clipping is a sliver of a glyph —
+// not lost information — so the tooltip stays quiet. Tunable/testable
+// rather than a magic number inline in onCellEnter.
+export const TOOLTIP_MIN_HIDDEN_CHARS = 3
+
 export default function SummaryStrip({ items = [], className = '', truncationTooltip = false, ...rest }) {
   // Overflow tooltip state — see docblock. Detected at hover time, never at mount
   // (a stale mount-time check is a bug this codebase already shed once — see the
@@ -72,8 +96,10 @@ export default function SummaryStrip({ items = [], className = '', truncationToo
     const cell = e.currentTarget
     const clipped = [cell, ...cell.querySelectorAll('*')].find((el) => el.scrollWidth > el.clientWidth + 1)
     if (!clipped) return
+    const text = clipped.textContent.trim()
+    if (hiddenCharCount(text, clipped.clientWidth, clipped.scrollWidth) < TOOLTIP_MIN_HIDDEN_CHARS) return
     const r = cell.getBoundingClientRect()
-    setTip({ text: clipped.textContent.trim(), left: Math.max(8, r.left), top: r.top - 6 })
+    setTip({ text, left: Math.max(8, r.left), top: r.top - 6 })
   }
   const onCellLeave = () => setTip(null)
 

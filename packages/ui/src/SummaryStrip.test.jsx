@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, vi } from 'vitest'
 import { render, screen, cleanup, fireEvent } from '@testing-library/react'
-import SummaryStrip from './SummaryStrip.jsx'
+import SummaryStrip, { hiddenCharCount, TOOLTIP_MIN_HIDDEN_CHARS } from './SummaryStrip.jsx'
 
 afterEach(cleanup)
 
@@ -11,6 +11,13 @@ afterEach(cleanup)
 function stubOverflow(el, { overflowing }) {
   Object.defineProperty(el, 'clientWidth', { configurable: true, value: 100 })
   Object.defineProperty(el, 'scrollWidth', { configurable: true, value: overflowing ? 200 : 100 })
+}
+
+// Explicit-width variant for exercising the hidden-char threshold precisely
+// (stubOverflow's fixed 50%-hidden ratio can't hit an exact boundary).
+function stubWidths(el, clientWidth, scrollWidth) {
+  Object.defineProperty(el, 'clientWidth', { configurable: true, value: clientWidth })
+  Object.defineProperty(el, 'scrollWidth', { configurable: true, value: scrollWidth })
 }
 
 describe('SummaryStrip truncate: "lead" (S107 — Tracking Link overflow fix)', () => {
@@ -171,7 +178,7 @@ describe('SummaryStrip truncationTooltip (opt-in, mirrors DataTable truncationTo
     expect(tip.textContent).toBe(longLabel)
   })
 
-  it('prop on + no overflow: no tooltip fires (not gated on hidden-word-count — a single overflowing token still requires real overflow)', () => {
+  it('prop on + no overflow: no tooltip fires (a single overflowing token still requires real overflow)', () => {
     render(<SummaryStrip items={[{ label: 'Status', value: 'OK' }]} truncationTooltip />)
     const dd = screen.getByText('OK')
     stubOverflow(dd, { overflowing: false })
@@ -189,5 +196,45 @@ describe('SummaryStrip truncationTooltip (opt-in, mirrors DataTable truncationTo
     expect(screen.getByRole('tooltip')).not.toBeNull()
     fireEvent.mouseLeave(cell)
     expect(screen.queryByRole('tooltip')).toBeNull()
+  })
+
+  it('overflow below TOOLTIP_MIN_HIDDEN_CHARS: no tooltip fires (a glyph sliver, not lost information)', () => {
+    // 10-char value, 80/100 width ratio → 8 visible, 2 hidden (< 3).
+    render(<SummaryStrip items={[{ label: 'Status', value: 'ABCDEFGHIJ' }]} truncationTooltip />)
+    const dd = screen.getByText('ABCDEFGHIJ')
+    stubWidths(dd, 80, 100)
+    fireEvent.mouseEnter(dd.closest('.summary-strip__cell'))
+    expect(screen.queryByRole('tooltip')).toBeNull()
+  })
+
+  it('overflow at TOOLTIP_MIN_HIDDEN_CHARS: tooltip fires', () => {
+    // Same 10-char value, 70/100 width ratio → 7 visible, 3 hidden (== 3).
+    render(<SummaryStrip items={[{ label: 'Status', value: 'ABCDEFGHIJ' }]} truncationTooltip />)
+    const dd = screen.getByText('ABCDEFGHIJ')
+    stubWidths(dd, 70, 100)
+    fireEvent.mouseEnter(dd.closest('.summary-strip__cell'))
+    expect(screen.getByRole('tooltip').textContent).toBe('ABCDEFGHIJ')
+  })
+})
+
+describe('hiddenCharCount (pure function)', () => {
+  it('returns 0 when nothing is clipped (scrollWidth <= clientWidth + 1)', () => {
+    expect(hiddenCharCount('hello world', 100, 100)).toBe(0)
+    expect(hiddenCharCount('hello world', 100, 101)).toBe(0)
+  })
+
+  it('returns 0 for empty/nullish text even if widths imply overflow', () => {
+    expect(hiddenCharCount('', 50, 100)).toBe(0)
+    expect(hiddenCharCount(null, 50, 100)).toBe(0)
+    expect(hiddenCharCount(undefined, 50, 100)).toBe(0)
+  })
+
+  it('estimates hidden characters proportionally from the width ratio', () => {
+    // 10 chars, 50% visible → 5 hidden.
+    expect(hiddenCharCount('ABCDEFGHIJ', 50, 100)).toBe(5)
+    // 10 chars, 70% visible → 3 hidden.
+    expect(hiddenCharCount('ABCDEFGHIJ', 70, 100)).toBe(3)
+    // Matches TOOLTIP_MIN_HIDDEN_CHARS at the boundary used above.
+    expect(hiddenCharCount('ABCDEFGHIJ', 70, 100)).toBe(TOOLTIP_MIN_HIDDEN_CHARS)
   })
 })

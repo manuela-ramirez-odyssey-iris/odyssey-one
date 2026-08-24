@@ -6,9 +6,10 @@ export const meta = {
   tier: 'molecule',
   version: '0.1.0',
   createdVersion: '0.1.0',
-  normalizing: true, // app-local (S127 + Task 1 typable pass); owes Figma + /normalize + Angular before promotion
-  figmaNode: null,
+  normalizing: true, // app-local; Figma master now exists (below) — still owes /normalize + promotion out of app-local + Angular
+  figmaNode: '5303:14',
   codeConnect: null,
+  approved: true,
 }
 
 export const props = [
