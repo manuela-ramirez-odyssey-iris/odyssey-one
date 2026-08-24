@@ -100,7 +100,9 @@ The parser fails loudly rather than silently degrading — if a `§2` heading is
 
 1. **Parse** the story pack's rule tables into the rules JSON.
 2. **Validate** the flow module (see below), exiting non-zero on any failure.
-3. **Emit** `docs/flows/<flowId>.md` — fenced Mermaid per diagram plus a node table — for Jira, Confluence, and Obsidian, all of which render Mermaid natively. It also copies referenced screenshots into `public/flows/<flowId>/`.
+3. **Emit** `docs/flows/<flowId>.md` — fenced Mermaid per diagram plus a node table — plus copies of the referenced screenshots into `public/flows/<flowId>/`.
+
+   **Where the Markdown actually renders.** GitHub and Obsidian render fenced Mermaid natively; both are verified. Confluence Cloud does **not**, without a Mermaid app — the Odyssey site has draw.io installed (a `DRAWIOCONFIG` space exists), and draw.io can import Mermaid, but that is a manual paste per diagram, not a render of the fenced block. Jira descriptions do not render Mermaid at all. **Untested claim, must be settled before the Confluence route is promised to anyone:** whether this Confluence site renders fenced Mermaid. Until then, the PM-facing copy is the `/flows` route (or the published artifact), and Confluence gets prose plus static diagram images.
 
 One script rather than three, because the three jobs share the parse and always run together.
 
