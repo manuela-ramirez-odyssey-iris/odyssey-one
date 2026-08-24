@@ -4,23 +4,45 @@
 # prints the staged list + diffstat, and commits with the repo's standard trailer.
 # Does NOT push.
 #
+# The message MUST start with its SESSION-ID THREAD TAG — "S<n>: " for the
+# product thread (progress.md) or "D<n>: " for the design-system/dev-tooling
+# thread (progress-deliverables.md). That tag is what makes `git log --grep
+# '^D[0-9]'` return one thread's whole history, and what lets /wrap group the
+# commits since the last wrap without anyone having to recognise them by eye.
+# Pass --no-tag to commit without one (rare; say why in the message).
+#
 # Usage:
-#   bash tools/wrap-commit.sh "session 85: message"
+#   bash tools/wrap-commit.sh "S130: message"
+#   bash tools/wrap-commit.sh "D4: message"
 #   bash tools/wrap-commit.sh --dry-run             # show what would be staged, touch nothing
 set -euo pipefail
 
-usage() { sed -n '2,9p' "$0" | sed 's/^# \{0,1\}//'; exit 2; }
+usage() { sed -n '2,17p' "$0" | sed 's/^# \{0,1\}//'; exit 2; }
 
 DRY=0
+NO_TAG=0
 MSG=""
 for arg in "$@"; do
   case "$arg" in
     --dry-run) DRY=1 ;;
+    --no-tag) NO_TAG=1 ;;
     -h|--help) usage ;;
     *) MSG="$arg" ;;
   esac
 done
 [[ "$DRY" == 0 && -z "$MSG" ]] && { echo "error: commit message required (or --dry-run)"; usage; }
+
+# Thread tag guard. A missing tag is the failure this exists to prevent: an
+# untagged commit is invisible to the per-thread log queries, and the only way
+# to find it later is to recognise the subject by eye — which is exactly how
+# five D-thread commits ended up unlogged (S130).
+if [[ "$DRY" == 0 && "$NO_TAG" == 0 ]] && [[ ! "$MSG" =~ ^[SD][0-9]+:\  ]]; then
+  echo "error: commit message must start with a thread tag — 'S<n>: ' (product, progress.md)"
+  echo "       or 'D<n>: ' (design-system/dev-tooling, progress-deliverables.md)."
+  echo "       got: $MSG"
+  echo "       use --no-tag to override."
+  exit 2
+fi
 
 cd "$(git rev-parse --show-toplevel)"
 

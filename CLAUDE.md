@@ -55,6 +55,15 @@ Use the **Homebrew binary** (`/opt/homebrew/bin/vercel`, 52.0.0) — **never `np
 
 Do not enable GitHub auto-deploy. Do not `git push` expecting a deploy to fire.
 
+## Commit convention
+
+Every commit subject starts with its **session-id thread tag** (user ruling, S130):
+
+- **`S<n>: `** — product prototyping; logged in `progress.md`
+- **`D<n>: `** — design-system / dev-tooling; logged in `progress-deliverables.md`
+
+Any type/scope vocabulary follows the tag (`D4: feat(devmode) per-framework API tables`). The tag is what makes each thread's history queryable — `git log --oneline --grep '^D[0-9]'` — and lets `/wrap` group the commits since the last wrap without recognising them by eye. `tools/wrap-commit.sh` rejects an untagged message (`--no-tag` overrides). Mid-session commits carry the tag too, not just the wrap commit.
+
 ## Shared packages
 
 Shared code lives under `packages/`:
