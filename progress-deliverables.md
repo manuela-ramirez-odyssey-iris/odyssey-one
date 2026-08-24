@@ -1,6 +1,6 @@
 # Odyssey — Deliverables Progress
 
-> Parallel to `progress.md` (the prototype build log). This file tracks **deliverable work only** — story packs, dev-facing guides, PM-facing artifacts. Separate log so deliverable sessions and prototype sessions can run as independent agent threads. Sessions numbered D1, D2, …
+> Parallel to `progress.md` (the product-prototyping build log). This file is the **design-system / dev-tooling thread**: story packs and PM/dev-facing artifacts, dev mode, DSM work, and **normalization cycles** — anything about the design system and its delivery, as opposed to product feature prototyping and domain discoveries. Separate log so the two threads can run as independent agent work streams. Sessions numbered D1, D2, … A session touching both threads logs to both files with a one-line cross-reference.
 
 ## Session D1 — August 20–21, 2026 (extracted from prototype S129)
 
