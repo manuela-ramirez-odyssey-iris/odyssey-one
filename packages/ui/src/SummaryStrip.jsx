@@ -1,3 +1,7 @@
+import { useState } from 'react'
+import { createPortal } from 'react-dom'
+import Tooltip from './Tooltip.jsx'
+
 /**
  * SummaryStrip (molecule) — the full-width tab-summary band: a centered row of
  * fixed-width stat cells (uppercase muted label over a semibold value), each
@@ -39,11 +43,40 @@
  *   — one strip instance mixes emphasized digit cells with a normal-weight
  *   cell (Figma's own "Time remaining" cell). Default (no `emphasis`) is
  *   byte-identical to every existing caller.
+ * - `truncationTooltip` (strip-level boolean, default off — mirrors
+ *   DataTable's S85 mechanism verbatim: same prop name/default, same hand-
+ *   rolled body portal, same inline `zIndex`/`pointerEvents: 'none'`, since
+ *   this package can't reach the app-local TooltipTrigger). On cell
+ *   `mouseenter`, scans the cell and its descendants (covers both `<dt>` and
+ *   `<dd>` — either can clip) for the first element whose `scrollWidth >
+ *   clientWidth + 1` and raises the normalized `Tooltip` with that element's
+ *   full `textContent`. Unlike DataTable, this does NOT gate on
+ *   `hiddenWordCount`: SummaryStrip values are frequently a single long
+ *   token (a tracking link, an ID) where the hidden-word estimate is 0 and
+ *   the tooltip would never fire — any real overflow shows it. When on, the
+ *   native `title` (see `truncate: 'lead'` above) is suppressed so the
+ *   browser tooltip doesn't double up with the designed card; this costs no
+ *   accessibility — `text-overflow: ellipsis` is purely visual and
+ *   assistive tech still reads the full text node either way. Default off
+ *   is byte-identical to every existing caller.
  *
  * Semantics: a <dl> of dt/dd pairs (each cell a div group — valid HTML).
  * Pass `aria-label` (forwarded via rest) to name the region.
  */
-export default function SummaryStrip({ items = [], className = '', ...rest }) {
+export default function SummaryStrip({ items = [], className = '', truncationTooltip = false, ...rest }) {
+  // Overflow tooltip state — see docblock. Detected at hover time, never at mount
+  // (a stale mount-time check is a bug this codebase already shed once — see the
+  // TruncatedText deletion in playground/normalization-tracker.md).
+  const [tip, setTip] = useState(null) // { text, left, top }
+  const onCellEnter = (e) => {
+    const cell = e.currentTarget
+    const clipped = [cell, ...cell.querySelectorAll('*')].find((el) => el.scrollWidth > el.clientWidth + 1)
+    if (!clipped) return
+    const r = cell.getBoundingClientRect()
+    setTip({ text: clipped.textContent.trim(), left: Math.max(8, r.left), top: r.top - 6 })
+  }
+  const onCellLeave = () => setTip(null)
+
   return (
     <dl role="region" className={`summary-strip${className ? ` ${className}` : ''}`} {...rest}>
       {items.map((item, index) => {
@@ -55,6 +88,8 @@ export default function SummaryStrip({ items = [], className = '', ...rest }) {
           <div
             key={index}
             className={`summary-strip__cell${lead ? ' summary-strip__cell--truncate' : ''}`}
+            onMouseEnter={truncationTooltip ? onCellEnter : undefined}
+            onMouseLeave={truncationTooltip ? onCellLeave : undefined}
           >
             {label != null && <dt className="summary-strip__label">{label}</dt>}
             {display != null && (
@@ -62,7 +97,7 @@ export default function SummaryStrip({ items = [], className = '', ...rest }) {
                 className={`summary-strip__value${
                   tone === 'positive' || tone === 'negative' ? ` summary-strip__value--${tone}` : ''
                 }${emphasis === 'display' ? ' summary-strip__value--display' : ''}${lead ? ' summary-strip__value--truncate-lead' : ''}`}
-                title={lead ? display : undefined}
+                title={lead && !truncationTooltip ? display : undefined}
               >
                 {lead ? <bdi>{display}</bdi> : display}
               </dd>
@@ -70,6 +105,22 @@ export default function SummaryStrip({ items = [], className = '', ...rest }) {
           </div>
         )
       })}
+      {truncationTooltip && tip && createPortal(
+        <div
+          style={{
+            position: 'fixed',
+            left: tip.left,
+            top: tip.top,
+            transform: 'translateY(-100%)',
+            width: 'max-content',
+            zIndex: 9999,
+            pointerEvents: 'none',
+          }}
+        >
+          <Tooltip groups={[{ content: tip.text }]} />
+        </div>,
+        document.body
+      )}
     </dl>
   )
 }

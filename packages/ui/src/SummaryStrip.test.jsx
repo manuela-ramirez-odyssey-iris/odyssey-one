@@ -1,9 +1,17 @@
 // @vitest-environment jsdom
 import { afterEach, vi } from 'vitest'
-import { render, screen, cleanup } from '@testing-library/react'
+import { render, screen, cleanup, fireEvent } from '@testing-library/react'
 import SummaryStrip from './SummaryStrip.jsx'
 
 afterEach(cleanup)
+
+// jsdom has no layout engine — scrollWidth/clientWidth are stubbed per-test via
+// Object.defineProperty to simulate real vs. no overflow (established pattern:
+// DataTable's own truncationTooltip hover detection, S85).
+function stubOverflow(el, { overflowing }) {
+  Object.defineProperty(el, 'clientWidth', { configurable: true, value: 100 })
+  Object.defineProperty(el, 'scrollWidth', { configurable: true, value: overflowing ? 200 : 100 })
+}
 
 describe('SummaryStrip truncate: "lead" (S107 — Tracking Link overflow fix)', () => {
   it('non-truncating items render plain, no title, no truncate classes', () => {
@@ -128,5 +136,58 @@ describe('SummaryStrip emphasis: "display" (SPB-43, carrier bid countdown H/M/S 
     )
     expect(screen.getByText('01').className).toContain('summary-strip__value--display')
     expect(screen.getByText('to close bid').className).not.toContain('summary-strip__value--display')
+  })
+})
+
+describe('SummaryStrip truncationTooltip (opt-in, mirrors DataTable truncationTooltip)', () => {
+  it('prop off: hovering an overflowing value never raises a tooltip, and lead `title` is preserved unchanged', () => {
+    const url = 'example.com/very/long/tracking/path/that/overflows'
+    render(<SummaryStrip items={[{ label: 'Tracking Link', value: url, truncate: 'lead' }]} />)
+    const dd = screen.getByText(url).closest('dd')
+    stubOverflow(dd, { overflowing: true })
+    fireEvent.mouseEnter(dd.closest('.summary-strip__cell'))
+    expect(screen.queryByRole('tooltip')).toBeNull()
+    expect(dd.getAttribute('title')).toBe(url)
+  })
+
+  it('prop on + overflowing value (<dd>): shows the Tooltip with the full value text, and suppresses native title', () => {
+    const url = 'example.com/very/long/tracking/path/that/overflows'
+    render(<SummaryStrip items={[{ label: 'Tracking Link', value: url, truncate: 'lead' }]} truncationTooltip />)
+    const dd = screen.getByText(url).closest('dd')
+    expect(dd.hasAttribute('title')).toBe(false)
+    stubOverflow(dd, { overflowing: true })
+    fireEvent.mouseEnter(dd.closest('.summary-strip__cell'))
+    const tip = screen.getByRole('tooltip')
+    expect(tip.textContent).toBe(url)
+  })
+
+  it('prop on + overflowing label (<dt>): shows the Tooltip with the full label text — labels clip too', () => {
+    const longLabel = 'A Very Long Uppercase Metric Label That Overflows The Cell'
+    render(<SummaryStrip items={[{ label: longLabel, value: 'OK' }]} truncationTooltip />)
+    const dt = screen.getByText(longLabel)
+    stubOverflow(dt, { overflowing: true })
+    fireEvent.mouseEnter(dt.closest('.summary-strip__cell'))
+    const tip = screen.getByRole('tooltip')
+    expect(tip.textContent).toBe(longLabel)
+  })
+
+  it('prop on + no overflow: no tooltip fires (not gated on hidden-word-count — a single overflowing token still requires real overflow)', () => {
+    render(<SummaryStrip items={[{ label: 'Status', value: 'OK' }]} truncationTooltip />)
+    const dd = screen.getByText('OK')
+    stubOverflow(dd, { overflowing: false })
+    fireEvent.mouseEnter(dd.closest('.summary-strip__cell'))
+    expect(screen.queryByRole('tooltip')).toBeNull()
+  })
+
+  it('mouseleave hides the tooltip', () => {
+    const url = 'example.com/very/long/tracking/path/that/overflows'
+    render(<SummaryStrip items={[{ label: 'Tracking Link', value: url, truncate: 'lead' }]} truncationTooltip />)
+    const dd = screen.getByText(url).closest('dd')
+    stubOverflow(dd, { overflowing: true })
+    const cell = dd.closest('.summary-strip__cell')
+    fireEvent.mouseEnter(cell)
+    expect(screen.getByRole('tooltip')).not.toBeNull()
+    fireEvent.mouseLeave(cell)
+    expect(screen.queryByRole('tooltip')).toBeNull()
   })
 })

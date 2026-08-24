@@ -9,6 +9,7 @@ export const meta = {
   figmaNode: '2006:663',
   codeConnect: 'packages/ui/src/ModalLarge.figma.tsx',
   normalizing: true,
+  approved: true,
 }
 
 export const props = [

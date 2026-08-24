@@ -9,6 +9,7 @@ export const meta = {
   figmaNode: '658:18',
   codeConnect: 'packages/ui/src/GlobalSearch.figma.tsx',
   normalizing: true,
+  approved: true,
 }
 
 export const props = [

@@ -9,6 +9,7 @@ export const meta = {
   figmaNode: '639:564',
   codeConnect: 'packages/ui/src/LeadNav.figma.tsx',
   normalizing: true,
+  approved: true,
 }
 
 export const props = [

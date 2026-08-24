@@ -30,6 +30,7 @@ export const meta = {
   normalizing: true,
   figmaNode: '4183:773',
   codeConnect: 'packages/ui/src/GroupTable.figma.tsx',
+  approved: true,
 }
 
 export const props = [

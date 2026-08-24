@@ -4,15 +4,17 @@ import { SummaryStrip } from '@odyssey/ui'
 export const meta = {
   name: 'SummaryStrip',
   tier: 'molecule',
-  version: '0.13.0',
+  version: '0.14.0',
   createdVersion: '0.7.0',
   normalizing: true,
   figmaNode: '4254:904',
   codeConnect: 'packages/ui/src/SummaryStrip.figma.tsx',
+  approved: true,
 }
 
 export const props = [
-  { name: 'items', type: "[{ label, value, tone?, truncate? }]", desc: "The stat cells, in order. `label` renders uppercase (CSS transform — pass natural case); empty/nullish `value` renders '--'; `tone: 'positive' | 'negative'` colors the value (code extension — the Figma master has no tone axis); `truncate: 'lead'` caps the cell width and lead-ellipsizes the value (tail visible, '…' leads — for URL-ish values), full value via `title` (code extension)." },
+  { name: 'items', type: "[{ label, value, tone?, truncate?, emphasis? }]", desc: "The stat cells, in order. `label` renders uppercase (CSS transform — pass natural case); empty/nullish `value` renders '--'; `tone: 'positive' | 'negative'` colors the value (code extension — the Figma master has no tone axis); `truncate: 'lead'` caps the cell width and lead-ellipsizes the value (tail visible, '…' leads — for URL-ish values), full value via `title` (code extension); `emphasis: 'display'` swaps the value to display/4xl semibold (code extension, SPB-43 bid countdown digits)." },
+  { name: 'truncationTooltip', type: 'boolean', default: 'false', desc: "Opt-in, strip-level. On hover, scans the cell (both `<dt>` and `<dd>`) for real overflow (`scrollWidth > clientWidth`) and shows the normalized Tooltip with the full text — mirrors DataTable's `truncationTooltip` mechanism verbatim, but does NOT gate on hidden-word-count (SummaryStrip values are often a single long token). Suppresses the native `title` while on so the browser tooltip doesn't double up; default off is byte-identical to every existing caller." },
   { name: 'className', type: 'string', desc: 'Extra class(es) on the root element.' },
   { name: '...rest', type: 'aria-* etc.', desc: 'Forwarded to the root — pass `aria-label` to name the region (root is a <dl> with role="region").' },
 ]

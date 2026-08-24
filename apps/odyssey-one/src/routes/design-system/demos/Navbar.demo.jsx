@@ -9,6 +9,7 @@ export const meta = {
   figmaNode: '5152:3908',
   codeConnect: 'packages/ui/src/Navbar.figma.tsx',
   normalizing: true,
+  approved: true,
 }
 
 export const props = [

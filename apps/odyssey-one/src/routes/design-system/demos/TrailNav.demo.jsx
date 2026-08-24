@@ -9,6 +9,7 @@ export const meta = {
   figmaNode: '1565:648',
   codeConnect: 'packages/ui/src/TrailNav.figma.tsx',
   normalizing: true,
+  approved: true,
 }
 
 export const props = [
