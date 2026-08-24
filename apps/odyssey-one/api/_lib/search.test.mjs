@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { buildSearchQuery, buildSuggestQuery, MIN_TRGM } from './search.mjs'
+import { buildSearchQuery, buildSuggestQuery, buildValuesQuery, valuesHandler, MIN_TRGM } from './search.mjs'
 import { SHIPMENTS_ATTRS } from './search-registry.mjs'
 
 // 42P18 guard: every bound $N must be referenced in the SQL text, or Postgres
@@ -197,13 +197,14 @@ test('unknown chip keys are dropped, not trusted as attr names — honest-empty,
   assertAllParamsReferenced(text, values)
 })
 
-test('chips-only with ONLY a non-projected/unknown chip → honest-empty, for search AND suggest', () => {
-  const nonProjected = [{ key: 'tender-status', queryValue: 'Accepted' }] // real progression attr, not in SHIPMENTS_ATTRS
-  const search = buildSearchQuery({ domain: 'shipments', needles: [], chips: nonProjected })
+test('a chip with no recognizable key AND no column → honest-empty, for search AND suggest', () => {
+  // No registry attr, no COLUMN_CHIP_COLS dataKey: nothing left to restrict on.
+  const nothing = [{ key: 'not-an-attr', dataKey: 'notAField', queryValue: 'Accepted' }]
+  const search = buildSearchQuery({ domain: 'shipments', needles: [], chips: nothing })
   assert.match(search.text, /WHERE FALSE/)
   assert.ok(balancedParens(search.text))
   assertAllParamsReferenced(search.text, search.values)
-  const suggest = buildSuggestQuery({ domain: 'shipments', needles: [], chips: nonProjected })
+  const suggest = buildSuggestQuery({ domain: 'shipments', needles: [], chips: nothing })
   assert.match(suggest.text, /WHERE FALSE/)
   assert.ok(balancedParens(suggest.text))
   assertAllParamsReferenced(suggest.text, suggest.values)
@@ -287,4 +288,121 @@ test('a boundless or unknown date chip restricts nothing (and stays honest-empty
     domain: 'shipments', needles: [], chips: [{ kind: 'date-range', dataKey: 'pickupDate', from: null, to: null }],
   })
   assert.ok(text.includes('WHERE FALSE'), 'no parseable bound → no hit set')
+})
+
+// ── Column chips: the non-projected progression attrs (S130) ────────────────
+// Before this these were dropped exactly like an unknown key, so the Filters
+// panel's enum chips returned zero rows live while filtering in the mock.
+
+test('an enum chip ALONE drives a shipments-table hit set (not honest-empty)', () => {
+  const { text, values } = buildSearchQuery({
+    domain: 'shipments', needles: [],
+    chips: [{ key: 'mode', dataKey: 'mode', queryValue: 'TL', exact: true }],
+  })
+  assert.ok(text.includes('FROM shipments'), 'hits come from the shipments table')
+  assert.ok(text.includes('upper(mode) = upper('), 'exact chip compares whole values')
+  assert.ok(!text.includes('WHERE FALSE'))
+  assert.ok(values.includes('TL'))
+  assert.ok(balancedParens(text))
+  assertAllParamsReferenced(text, values)
+})
+
+test('exact keeps "Mode: TL" from matching every LTL shipment', () => {
+  const { text } = buildSearchQuery({
+    domain: 'shipments', needles: [],
+    chips: [{ key: 'mode', dataKey: 'mode', queryValue: 'TL', exact: true }],
+  })
+  assert.ok(!text.includes("mode ILIKE '%'"), 'no substring branch for an exact chip')
+})
+
+test('a multi-value enum chip ORs its tokens (GS-12 IN-list)', () => {
+  const { text, values } = buildSearchQuery({
+    domain: 'shipments', needles: [],
+    chips: [{ key: 'mode', dataKey: 'mode', queryValue: 'TL,LTL', exact: true }],
+  })
+  assert.ok(text.includes(' OR '))
+  assert.ok(values.includes('TL') && values.includes('LTL'))
+  assertAllParamsReferenced(text, values)
+})
+
+test('a measure chip (not exact) substring-matches, mirroring the mock', () => {
+  const { text, values } = buildSearchQuery({
+    domain: 'shipments', needles: [], chips: [{ key: 'gross-weight', dataKey: 'grossWeight', queryValue: '4200' }],
+  })
+  assert.ok(text.includes("gross_weight ILIKE '%' || "))
+  assert.ok(values.includes('4200'))
+  assertAllParamsReferenced(text, values)
+})
+
+test('an enum chip riding alongside TEXT restricts every needle branch', () => {
+  const { text, values } = buildSearchQuery({
+    domain: 'shipments', needles: ['ABC'],
+    chips: [{ key: 'tender-status', dataKey: 'tenderStatus', queryValue: 'Accepted', exact: true }],
+  })
+  assert.ok(text.includes('entity_id IN (SELECT sell_shipment FROM shipments WHERE'))
+  assert.ok(text.includes('upper(tender_status) = upper('))
+  assertAllParamsReferenced(text, values)
+})
+
+test('an enum chip alongside an indexed chip rides the chips-only rest set', () => {
+  const { text, values } = buildSearchQuery({
+    domain: 'shipments', needles: [],
+    chips: [
+      { key: 'customer-name', dataKey: 'customerName', queryValue: 'ACME' },
+      { key: 'mode', dataKey: 'mode', queryValue: 'TL', exact: true },
+    ],
+  })
+  assert.ok(text.includes('attr = '), 'the indexed chip still leads')
+  assert.ok(text.includes('upper(mode) = upper('))
+  assertAllParamsReferenced(text, values)
+})
+
+test('enum values are parameterized, never inlined', () => {
+  const { text, values } = buildSearchQuery({
+    domain: 'shipments', needles: [],
+    chips: [{ key: 'mode', dataKey: 'mode', queryValue: "TL'; DROP TABLE shipments--", exact: true }],
+  })
+  assert.ok(!text.includes('DROP TABLE'))
+  assert.ok(values.some((v) => String(v).includes('DROP TABLE')))
+})
+
+test('an INDEXED chip marked exact compares the whole normalized value', () => {
+  const { text } = buildSearchQuery({
+    domain: 'shipments', needles: [],
+    chips: [{ key: 'shipment-type', dataKey: 'shipmentType', queryValue: 'Direct', exact: true }],
+  })
+  assert.ok(text.includes('value = '))
+  assert.ok(!text.includes("value LIKE '%' || "), 'exact never falls back to contains')
+})
+
+// ── /v1/search/values — the Filters ComboBox source (S130) ──────────────────
+
+test('values query is DISTINCT, prefix-matched on the normalized value, and paged', () => {
+  const { text, values } = buildValuesQuery({
+    domain: 'shipments', attr: 'customer-name', query: 'we', limit: 50, skip: 100,
+  })
+  assert.ok(text.includes('SELECT DISTINCT display FROM search_index'))
+  assert.ok(text.includes("|| '%'"), 'prefix match')
+  assert.ok(text.includes('count(*) OVER()::int AS __total'), 'total drives the lazy next page')
+  assert.ok(values.includes('WE'), 'query normalized the same way the projection was')
+  assert.ok(values.includes(50) && values.includes(100))
+  assertAllParamsReferenced(text, values)
+})
+
+test('an empty values query degrades to the full catalog, first page', () => {
+  const { text, values } = buildValuesQuery({ domain: 'shipments', attr: 'scac', query: '' })
+  assert.ok(values.includes(''), 'empty needle → LIKE %, no branch')
+  assertAllParamsReferenced(text, values)
+})
+
+test('an unknown attr never reaches SQL — the handler answers honest-empty', async () => {
+  const db = { query: () => { throw new Error('must not query') } }
+  assert.deepEqual(await valuesHandler({ body: { attr: 'not-an-attr' }, db }), { values: [], total: 0 })
+})
+
+test('the values handler caps the page size a client can ask for', async () => {
+  let bound = null
+  const db = { query: (q) => { bound = q.values; return { rows: [] } } }
+  await valuesHandler({ body: { attr: 'scac', page: { limit: 100000 } }, db })
+  assert.ok(bound.includes(200), 'clamped to 200')
 })

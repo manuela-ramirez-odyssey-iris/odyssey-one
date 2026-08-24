@@ -540,9 +540,12 @@ describe('QuoteModal — currency starts unselected on Add, restored on Edit (LI
   })
 })
 
-// LINX-13895 — read-only Audit Information: Created By, Created Date/Time,
-// Updated By, Updated Date/Time, Initial AP Amount, Final AP Amount.
-describe('QuoteModal — Audit Information (LINX-13895)', () => {
+// LINX-13895's read-only Audit Information block (Created/Updated By +
+// Date/Time, Initial/Final AP Amount) was REMOVED from this modal (user, S130).
+// Pinned so a re-render of the ticket's section is a deliberate change, not an
+// accident: the audit DATA is still stamped on save (RoutingGuideTab), it just
+// has no surface here.
+describe('QuoteModal — Audit Information removed (S130)', () => {
   const audited = {
     ...quote,
     quoteAudit: {
@@ -555,19 +558,17 @@ describe('QuoteModal — Audit Information (LINX-13895)', () => {
     },
   }
 
-  it('renders supplied audit values read-only, even while the rest of the form is editable', () => {
+  it('renders no Audit Information section, even when the data is present', () => {
     render(<QuoteModal mode="edit" carrierData={audited} onSave={() => {}} onClose={() => {}} />)
-    expect(screen.getByText('jdoe')).toBeTruthy()
-    expect(screen.getByText('01/05/2026 10:00 CST')).toBeTruthy()
-    expect(screen.getByText('asmith')).toBeTruthy()
-    expect(screen.getByText('01/06/2026 11:00 CST')).toBeTruthy()
-    expect(screen.getByText('$850.00')).toBeTruthy()
-    expect(screen.getByText('$875.50')).toBeTruthy()
+    expect(screen.queryByText('Audit Information')).toBeNull()
+    expect(screen.queryByText('jdoe')).toBeNull()
+    expect(screen.queryByText('01/05/2026 10:00 CST')).toBeNull()
+    expect(screen.queryByText('$875.50')).toBeNull()
   })
 
-  it('DASHes every field on an option that has never been quoted', () => {
-    render(<QuoteModal mode="add" onSave={() => {}} onClose={() => {}} />)
-    const section = screen.getByText('Audit Information').closest('section')
-    expect(within(section).getAllByText('--')).toHaveLength(6)
+  it('still renders the AP/AR summary cards that sat above it', () => {
+    render(<QuoteModal mode="edit" carrierData={audited} onSave={() => {}} onClose={() => {}} />)
+    expect(screen.getByText('AP Summary')).toBeTruthy()
+    expect(screen.getByText('AR Summary')).toBeTruthy()
   })
 })

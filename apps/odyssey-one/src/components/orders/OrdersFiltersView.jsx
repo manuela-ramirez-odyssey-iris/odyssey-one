@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react'
-import { X } from 'lucide-react'
 import { ComboBox, DatePicker, Dropdown, FormField, GlobalSearchPanel } from '@odyssey/ui'
 import {
   ERROR_COUNT_OPERATORS,
   attrsForTab,
   getOrdersAttributeValues,
+  locationLabel,
 } from '../../search/orders/registry'
 import { emptyState, parseErrorCount } from '../../search/orders/toRequest'
 
@@ -17,7 +17,7 @@ import { emptyState, parseErrorCount } from '../../search/orders/toRequest'
  * three tabs specifies its OWN set, which LINX-10285's note settles as
  * intentional, not an oversight.
  *
- * Scope is LEAN by decision: fields + Apply All Filters / Clear All Filters.
+ * Scope is LEAN by decision: fields + Show all results / Clear all.
  * No Saved tab, no shared filters, no edit-profile mode — none of the three
  * stories ask for them, and generalizing Shipments' savedFilters layer per
  * domain is its own piece of work.
@@ -31,11 +31,10 @@ import { emptyState, parseErrorCount } from '../../search/orders/toRequest'
  *     (user ruling, 2026-08-20: "an input field like we have in shipments,
  *     which can be entered from the searchbar or not"). Commas separate
  *     several values, the same IN-list rule Shipments' Order # chip uses.
- *   combobox / location → ComboBox (typeahead, options LAZY-LOADED in pages)
- *     + committed-value chips. The AC's "search bar with multi-select
- *     dropdown" — @odyssey/ui has no multi-select ComboBox variant, and adding
- *     one is a Figma-first /normalize cycle, so the multi-ness lives here as
- *     chips over the single-select ComboBox.
+ *   combobox / location → ComboBox (typeahead, options LAZY-LOADED in pages),
+ *     ONE value per field — the pick shows in the field, exactly as in
+ *     Shipments (S130 alignment ruling). See `ValueField` for what this
+ *     replaced and what it costs.
  *   enum → toggle chips. The AC says "dropdown", but for a fixed 3-7 value set
  *     that's intent, not a widget ruling (and it's the shipped Shipments
  *     pattern for the same shape).
@@ -78,8 +77,21 @@ function EnumChips({ attr, value, onChange }) {
 }
 
 /**
- * Typeahead + committed chips. Selecting appends and clears the input, so the
- * field is always ready for the next value; each chip removes itself.
+ * Lazy typeahead over one value — the same control, and the same one-value-per-
+ * field rule, as Shipments' filter panel (S130, user ruling: "make sure orders
+ * global search is aligned with the one in shipments"). The pick shows IN the
+ * field; picking again replaces it.
+ *
+ * SUPERSEDES the multi-select this was: LINX-10285 asks for a "multi-select
+ * dropdown", and since `@odyssey/ui` has no multi-select ComboBox the multi-ness
+ * used to live here as committed chips UNDER the field. That is the thing the
+ * ruling removes — the chips read as stray content below the input, and nothing
+ * in Shipments looks like it. Filtering on two customers at once is the cost;
+ * bringing it back means a real multi-select ComboBox variant (Figma-first
+ * /normalize cycle), not chips bolted under this one.
+ *
+ * The stored value stays an ARRAY that simply never exceeds one entry, so
+ * emptyState/toRequestFilters and the request wire format are untouched.
  *
  * NOT `@odyssey/ui`'s MultiSelect, deliberately: it takes a STATIC `options`
  * array with no async loading and renders a two-column selected-items table
@@ -97,50 +109,28 @@ function EnumChips({ attr, value, onChange }) {
  * onKeyDown once typeahead is active (ComboBox.jsx:490,619), so there is no
  * prop to hang it on. These are pick-from-a-list fields, which is why that is
  * acceptable; Order Number, the one people paste, is a plain text field
- * precisely so it never depends on a suggestion round-trip.
+ * precisely so it never depends on a suggestion round-trip. Consequence of the
+ * same gap: text typed and then abandoned (no pick) stays visible until the
+ * committed value next changes — upgrade path is a blur resync in ComboBox.
  */
-function MultiValueField({ attr, value, onChange }) {
-  const [text, setText] = useState('')
-  // Location options carry a display label distinct from their "City|State|Country"
-  // value, so chips need the label to render — remembered as picked.
-  const [labels, setLabels] = useState({})
-
-  const add = (v, label) => {
-    setText('')
-    if (!v || value.includes(v)) return
-    if (label && label !== v) setLabels((m) => ({ ...m, [v]: label }))
-    onChange([...value, v])
-  }
-
+function ValueField({ attr, value, onChange }) {
+  // DERIVED, never local state: "Clear all" resets the draft, and a
+  // field holding its own copy of the text would keep showing the cleared value
+  // (the exact defect Shipments' own Clear all had — S130).
+  const committed = value[0] ?? ''
   return (
-    <>
-      <ComboBox
-        variant="select"
-        placeholder={`Select ${attr.label}`}
-        value={text}
-        onChange={setText}
-        onSelect={(v, option) => add(v, option?.label)}
-        loadOptions={(q, skip) => getOrdersAttributeValues(attr, q, skip)}
-        emptyMessage="No matching values"
-      />
-      {value.length > 0 && (
-        <div className="orders-filters__chips" role="list">
-          {value.map((v) => (
-            <span key={v} role="listitem" className="orders-filters__chip is-selected text-label-xs-medium">
-              {labels[v] ?? v}
-              <button
-                type="button"
-                className="orders-filters__chip-x"
-                aria-label={`Remove ${labels[v] ?? v}`}
-                onClick={() => onChange(value.filter((x) => x !== v))}
-              >
-                <X size={12} aria-hidden="true" />
-              </button>
-            </span>
-          ))}
-        </div>
-      )}
-    </>
+    <ComboBox
+      variant="select"
+      placeholder={`Select ${attr.label}`}
+      value={attr.control === 'location' ? locationLabel(committed) : committed}
+      onSelect={(v) => onChange(v ? [v] : [])}
+      // ComboBox only RENDERS the clear-X when `onClear` is passed, but in
+      // typeahead mode it routes the click through `onSelect(null)` instead —
+      // same unset either way, so this is correct whichever path fires.
+      onClear={() => onChange([])}
+      loadOptions={(q, skip) => getOrdersAttributeValues(attr, q, skip)}
+      emptyMessage="No matching values"
+    />
   )
 }
 
@@ -215,7 +205,7 @@ function renderControl(attr, value, onChange) {
   if (attr.control === 'enum') return <EnumChips attr={attr} value={value} onChange={onChange} />
   if (attr.control === 'date-range') return <DateRangeField attr={attr} value={value} onChange={onChange} />
   if (attr.control === 'comparator') return <ComparatorField attr={attr} value={value} onChange={onChange} />
-  return <MultiValueField attr={attr} value={value} onChange={onChange} />
+  return <ValueField attr={attr} value={value} onChange={onChange} />
 }
 
 // Controls that pair into a two-column row when two of them sit next to each
@@ -262,9 +252,14 @@ export default function OrdersFiltersView({ tab, filters, onApply, onClose }) {
       showHeader
       title="Filters"
       onClose={onClose}
-      secondaryLabel="Clear All Filters"
+      // S130 alignment — same wording as the Shipments panel. "Show all
+      // results" carries NO count on purpose: the panel holds an unapplied
+      // draft, so any number here would describe the criteria currently on the
+      // table, not the ones the button is about to apply (user ruling: "we are
+      // not validating how many results for a filter there is").
+      secondaryLabel="Clear all"
       onClear={() => setDraft(emptyState(tab))}
-      primaryLabel="Apply All Filters"
+      primaryLabel="Show all results"
       onShowResults={() => onApply(draft)}
     >
       <div className="orders-filters__body">

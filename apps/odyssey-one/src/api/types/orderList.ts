@@ -65,6 +65,21 @@ export interface LocationTriple {
   country: string
 }
 
+/**
+ * One committed search-bar criterion. Shaped by `toItem` (search/adapter-core),
+ * so a chip the bar built can go on the wire unchanged.
+ */
+export interface OrderSearchChip {
+  /** Progression attribute key, e.g. 'order-status'. */
+  key: string
+  /** Field on the PROJECTED row (orderSearchRow) — what the mock matches. */
+  dataKey?: string
+  /** The criterion. A comma list is an IN-list, matching GS-12 semantics. */
+  queryValue?: string | null
+  /** Whole-value comparison (fixed-catalog enums, counts) instead of substring. */
+  exact?: boolean
+}
+
 export interface OrderListRequest {
   pagination: {
     pageNumber: number              // LLD list example is 1-BASED ("pageNumber": 1) but the sibling
@@ -129,6 +144,30 @@ export interface OrderListRequest {
      * page 1 about what the query even meant.
      */
     searchTerms?: string[]
+
+    /**
+     * COMMITTED BAR CHIPS (S130) — the structured half of a GlobalSearch
+     * commit, alongside `searchText`'s free half.
+     *
+     * This is the Orders twin of Shipments' `searchCriteria.chips`, and the
+     * reason it exists: the panel's filter fields are TAB-SCOPED by ticket
+     * ruling (LINX-10285, "Basic filters are applicable for 'All' tab only"),
+     * while the search bar is flat over the whole progression. Routing bar
+     * criteria through the panel's own fields would either drop them on tabs
+     * that don't show that field or force fields onto a tab the ticket says
+     * should not have them. A separate, flat criteria path avoids both.
+     *
+     * Each chip narrows on ONE progression attribute, matched exactly the way
+     * `criteria-core`'s matchesChip does — `exact` compares whole values (fixed
+     * catalogs, counts), everything else is a case-insensitive substring — and
+     * chips AND with each other and with every filter above.
+     *
+     * `key` is the progression key (search/orders/progression.js); the mock
+     * matches it against the projected row, and the live path maps it to a
+     * column through CHIP_COLS in api/_lib/orders.mjs. Those two must agree —
+     * search/orders/chipParity.test.js fails on drift.
+     */
+    searchChips?: OrderSearchChip[]
 
     // Location triples (LINX-10285). The three parallel arrays above are the
     // LLD's model and are ANDed, which cross-products on multi-select: two

@@ -21,7 +21,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
  *   the adapter's job — the hook just passes the committed chips to
  *   `getInitial(chips)`. The hook stays domain-agnostic: it knows nothing about
  *   progression order or group advancement.
- * - `adapter.searchShipments(chips, query)` is called whenever chips or the
+ * - `adapter.search(chips, query)` (or the legacy `searchShipments`) is called whenever chips or the
  *   DEBOUNCED query change (if the adapter implements it) to populate
  *   GlobalSearchResults results — a non-empty query alone is enough (the
  *   results-panel "glimpse"); the hook exposes the debounced query as `query`.
@@ -119,7 +119,12 @@ export function useGlobalSearch(adapter, { debounceMs = 120, onLastRemoved } = {
   // same tick) — consumers show the Spinner off it.
   useEffect(() => {
     const q = debouncedValue.trim() || textChip?.value || ''
-    if (!adapter?.searchShipments || (!chips.length && !q)) {
+    // `search` is the domain-agnostic contract name (S130, when Orders got its
+    // own adapter); `searchShipments` is the original domain-named one, kept
+    // because ShipmentsFiltersView and ShipmentsGlobalSearch both call it
+    // DIRECTLY on their scoped adapters, not only through this hook.
+    const runSearch = adapter?.search ?? adapter?.searchShipments
+    if (!runSearch || (!chips.length && !q)) {
       setResults([])
       setResultTotal(0)
       setSearching(false)
@@ -127,7 +132,7 @@ export function useGlobalSearch(adapter, { debounceMs = 120, onLastRemoved } = {
     }
     const id = ++searchReqId.current
     setSearching(true)
-    adapter.searchShipments(chips, q).then(({ results: r, total }) => {
+    runSearch.call(adapter, chips, q).then(({ results: r, total }) => {
       if (id !== searchReqId.current) return
       setResults(r)
       setResultTotal(total)

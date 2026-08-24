@@ -381,3 +381,65 @@ test('order list: LIMIT/OFFSET params stay correct with a search term present', 
   // must still be pageSize then offset, or paging silently breaks.
   assert.deepEqual(q.values.slice(-2), [20, 40])
 })
+
+// ── Committed bar chips (S130) ─────────────────────────────────────────────
+// The flat criteria path: every progression attribute filters the grid, whether
+// or not the tab-scoped panel has a field for it.
+
+const chipQuery = (searchChips) =>
+  buildOrderListQuery({ pagination: { pageNumber: 1, pageSize: 20 }, filters: { searchChips } })
+
+test('a chip on an attribute with NO panel filter still restricts the query', () => {
+  const { text, values } = chipQuery([{ key: 'equipment', queryValue: 'LTR', exact: true }])
+  assert.ok(text.includes('upper(equipment) = upper('), 'equipment has no ARRAY_FILTERS entry')
+  assert.ok(values.includes('LTR'))
+})
+
+test('chips AND with each other and with the panel filters', () => {
+  const { text } = buildOrderListQuery({
+    pagination: { pageNumber: 1, pageSize: 20 },
+    filters: {
+      customers: ['WEYERH_01'],
+      searchChips: [
+        { key: 'hazardous', queryValue: 'Hazmat', exact: true },
+        { key: 'order-source', queryValue: 'Manual', exact: true },
+      ],
+    },
+  })
+  assert.ok(text.includes('customer = ANY('), 'the panel filter survives')
+  assert.ok(text.includes('hazardous IS TRUE'))
+  assert.ok(text.includes('upper(order_source) = upper('))
+  assert.ok(!text.includes(' OR hazardous'), 'chips AND, never OR')
+})
+
+test('a label chip binds the stored CODE, so the label never reaches the column', () => {
+  const { text, values } = chipQuery([{ key: 'freight-terms', queryValue: 'Pre-Paid/Add', exact: true }])
+  assert.ok(values.includes('A'))
+  assert.ok(!values.includes('Pre-Paid/Add'))
+  assert.ok(text.includes('upper(freight_terms) = upper('))
+})
+
+test('an unknown chip key restricts nothing rather than erroring', () => {
+  const { text } = chipQuery([{ key: 'not-an-attr; DROP TABLE orders--', queryValue: 'x' }])
+  assert.ok(!text.includes('DROP TABLE'))
+  assert.ok(!text.includes('not-an-attr'))
+})
+
+test('a date chip becomes a one-day range, not a text compare', () => {
+  const { text, values } = chipQuery([{ key: 'latest-pickup', queryValue: '5/29/2026' }])
+  assert.ok(text.includes('latest_pickup_ts >='))
+  assert.ok(text.includes('latest_pickup_ts <'))
+  assert.ok(values.includes('2026-05-29'))
+})
+
+test('every chip value is a bound parameter', () => {
+  const { text, values } = chipQuery([{ key: 'customer', queryValue: "x'; DROP TABLE orders--" }])
+  assert.ok(!text.includes('DROP TABLE'))
+  assert.ok(values.some((v) => String(v).includes('DROP TABLE')))
+})
+
+test('no chips leaves the query exactly as it was', () => {
+  const withEmpty = buildOrderListQuery({ pagination: { pageNumber: 1, pageSize: 20 }, filters: { searchChips: [] } })
+  const without = buildOrderListQuery({ pagination: { pageNumber: 1, pageSize: 20 } })
+  assert.equal(withEmpty.text, without.text)
+})

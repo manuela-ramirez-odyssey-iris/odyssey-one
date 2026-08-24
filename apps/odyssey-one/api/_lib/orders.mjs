@@ -64,6 +64,116 @@ const DATE_FILTERS = [
 // never interpolated from the request — same rule as SORT_MAP.
 const ERROR_COUNT_OPS = { gt: '>', eq: '=', lt: '<' }
 
+
+// ── Committed bar chips (S130) ─────────────────────────────────────────────
+/**
+ * Progression attribute key → how it restricts a row. The SERVER TWIN of
+ * `src/search/orders/progression.js` + its `orderSearchRow` projection; the two
+ * cannot import each other (this file is a Vercel function, that one pulls the
+ * browser data layer), so the agreement is ASSERTED instead —
+ * src/search/orders/chipParity.test.js fails on drift. Same arrangement
+ * search-registry.mjs already has with the Shipments progression.
+ *
+ * Shapes:
+ *   sql    — an expression compared as text (substring, or whole-value when the
+ *            chip is `exact`). Projected the way the COLUMN reads, because that
+ *            is what the chip carries: a jsonb measure unwraps to its value, a
+ *            location concatenates the way orderSearchRow does.
+ *   date   — a timestamp column; the chip's M/D/YYYY value becomes a one-day range.
+ *   bool   — a boolean column; the chip carries the badge text the column shows.
+ *   labels — DISPLAY label → stored code, for the three columns that store codes
+ *            (ship_direction 'O', freight_terms 'A', order_source 'INTEGRATED').
+ *            The bar only ever shows labels, so an unmapped label must match
+ *            NOTHING rather than fall through to the raw text.
+ */
+const SHIP_DIRECTION_CODES = { Outbound: 'O', Inbound: 'I' }
+const FREIGHT_TERM_CODES = {
+  'Pre-Paid': 'P', Collect: 'C', 'Pre-Paid/Add': 'A', 'Third Party': 'T', 'No Charge': 'N',
+}
+const ORDER_SOURCE_CODES = { Integrated: 'INTEGRATED', Manual: 'MANUAL' }
+
+export const CHIP_COLS = {
+  'order-number': { sql: 'order_number' },
+  customer: { sql: 'customer' },
+  // Mirrors orderSearchRow's locationText: name, city, state, country.
+  'shipper-location': { sql: "concat_ws(', ', consignor->>'name', consignor->>'city', consignor->>'state', consignor->>'country')" },
+  'destination-location': { sql: "concat_ws(', ', consignee->>'name', consignee->>'city', consignee->>'state', consignee->>'country')" },
+  'latest-pickup': { date: 'latest_pickup_ts' },
+  'latest-delivery': { date: 'latest_delivery_ts' },
+  equipment: { sql: 'equipment' },
+  'ship-direction': { sql: 'ship_direction', labels: SHIP_DIRECTION_CODES },
+  'freight-terms': { sql: 'freight_terms', labels: FREIGHT_TERM_CODES },
+  'order-status': { sql: 'order_status' },
+  'order-source': { sql: 'order_source', labels: ORDER_SOURCE_CODES },
+  'draft-order-status': { sql: 'draft_order_status' },
+  'error-count': { sql: 'error_count::text' },
+  hazardous: { bool: 'hazardous', trueValue: 'Hazmat' },
+  'gross-weight': { sql: "gross_weight->>'value'" },
+  volume: { sql: "volume->>'value'" },
+  'created-date': { date: 'created_at' },
+  'created-by': { sql: 'created_by' },
+  'last-edit-date': { date: 'last_edit_at' },
+  'last-edited-by': { sql: 'last_edited_by' },
+}
+
+// A chip value is an IN-list on commas — the same split tokenizeChipValue makes
+// client-side (commas only: a value can contain spaces).
+function chipTokens(queryValue) {
+  return String(queryValue ?? '').split(',').map(t => t.trim()).filter(Boolean)
+}
+
+// M/D/YYYY (what a bar chip carries) → ISO, or null when unparseable.
+function chipDateIso(value) {
+  const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(String(value ?? '').trim())
+  return m ? `${m[3]}-${m[1].padStart(2, '0')}-${m[2].padStart(2, '0')}` : null
+}
+
+/**
+ * ONE chip as a WHERE fragment, or null when it restricts nothing (unknown key,
+ * empty value). `add` binds a value and returns its `$N` placeholder.
+ *
+ * Reproduces criteria-core's matchesChip exactly — that is the contract, since
+ * the mock runs that function over the projected row and the two surfaces must
+ * return the same set. `exact` compares whole values case-insensitively;
+ * everything else is a case-insensitive substring; multiple tokens OR.
+ */
+export function chipClause(chip, add) {
+  const cfg = CHIP_COLS[chip?.key]
+  if (!cfg) return null
+  const tokens = chipTokens(chip.queryValue)
+  if (!tokens.length) return null
+
+  if (cfg.date) {
+    const isos = tokens.map(chipDateIso).filter(Boolean)
+    if (!isos.length) return 'FALSE'   // a date chip with no parseable day matches nothing
+    return `(${isos.map(iso => `(${cfg.date} >= ${add(iso)}::date AND ${cfg.date} < (${add(iso)}::date + 1))`).join(' OR ')})`
+  }
+
+  if (cfg.bool) {
+    // The catalog has exactly one value ('Hazmat'), which the column renders for
+    // TRUE. Anything else is not a value the user could have seen.
+    const wantsTrue = tokens.some(t => t.toLowerCase() === cfg.trueValue.toLowerCase())
+    return wantsTrue ? `${cfg.bool} IS TRUE` : 'FALSE'
+  }
+
+  const mapped = cfg.labels
+    ? tokens.map(t => cfg.labels[t] ?? Object.entries(cfg.labels)
+        .find(([label]) => label.toLowerCase() === t.toLowerCase())?.[1])
+    : tokens
+  // An unmapped label means "a value that does not exist" — honest empty, never
+  // a fallthrough to matching the raw label against a column of codes.
+  if (cfg.labels && mapped.some(v => v === undefined)) {
+    if (mapped.every(v => v === undefined)) return 'FALSE'
+  }
+  const usable = mapped.filter(v => v !== undefined)
+  if (!usable.length) return 'FALSE'
+
+  const ors = usable.map(v => (chip.exact
+    ? `upper(${cfg.sql}) = upper(${add(v)})`
+    : `${cfg.sql} ILIKE '%' || ${add(v)} || '%'`))
+  return `(${ors.join(' OR ')})`
+}
+
 // Columns GlobalSearch free text scans. MIRROR of ORDERS_FREE_TEXT_KEYS in
 // src/search/orders/criteria.js — change both together, or the bar means one
 // thing in mock and another in live. (`po_number` is deliberately absent from
@@ -133,6 +243,14 @@ export function buildOrderListQuery({ pagination = {}, filters = {}, sort } = {}
   const ecOp = ERROR_COUNT_OPS[filters.errorCountOperator]
   if (ecOp && Number.isInteger(filters.errorCountValue)) {
     add(`error_count ${ecOp} ?`, filters.errorCountValue)
+  }
+
+  // Committed bar chips (S130) — each one ANDs onto everything above, the same
+  // way a panel filter does. They are a SEPARATE path from `filters` on purpose:
+  // see the `searchChips` doc comment in types/orderList.ts.
+  for (const chip of filters.searchChips ?? []) {
+    const clause = chipClause(chip, (v) => { values.push(v); return `$${values.length}` })
+    if (clause) where.push(clause)
   }
 
   // GlobalSearch free text (S128). The client resolved the query into NEEDLES

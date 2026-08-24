@@ -18,6 +18,13 @@ import { SHIPMENTS_ATTRIBUTES } from './progression'
 import { formatLocation, toStatusBadge, toTenderBadge, toItem, DATE_LIKE } from './adapter'
 
 const ATTR_BY_KEY = Object.fromEntries(SHIPMENTS_ATTRIBUTES.map((a) => [a.key, a]))
+// The Filters view addresses an attribute by its dataKey (the field name on a
+// mock row); the values endpoint addresses it by registry KEY. One map, built
+// from the same single source of truth, rather than a second hand-kept list.
+const ATTR_KEY_BY_DATAKEY = Object.fromEntries(SHIPMENTS_ATTRIBUTES.map((a) => [a.dataKey, a.key]))
+// One dropdown page. Small enough that opening a field is cheap, big enough
+// that most catalogs (SCAC, Consignor) never need a second fetch.
+const VALUES_PAGE = 50
 
 // "Order #" + "0000000091000" → "Order #0000000091000"; labels not ending in '#'
 // get a space ("SCAC FXFE"). Same rule as the mock's labelMatch (GS-15).
@@ -64,15 +71,28 @@ export function makeLiveAdapter(base) {
     getInitial: base.getInitial.bind(base),
 
     // Filters-view value suggestions (S107). The mock version reads the LOCAL
-    // seed index — wrong data in live mode (the resolveCodeSet lesson, S106).
-    // No per-attribute values endpoint exists yet, so this signals NO
-    // suggestion source at all (S107 addendum) — `null`, not an async []. A
-    // resolved-empty [] still LOOKS like "I searched and found nothing" to the
-    // ComboBox (it renders the "No matching values" empty panel), which reads
-    // as "this value doesn't exist" — misleading for an honest free-text
-    // field. The view checks `shipmentsSearchAdapter.getAttributeValues` and
-    // omits typeahead entirely when it's falsy.
-    getAttributeValues: null,
+    // seed index — wrong data in live mode (the resolveCodeSet lesson, S106) —
+    // so this hits the real per-attribute values endpoint instead (S130; until
+    // it existed this was `null`, which made every `letters` control degrade to
+    // a plain text field with no dropdown at all).
+    //
+    // PAGED: resolving `{ options, total }` puts the ComboBox in lazy-load mode
+    // — one 50-row page on open, the next fetched only when the user scrolls to
+    // the end of the list. That is what keeps Customer Name (hundreds of
+    // distinct values) from shipping its whole catalog to open a dropdown.
+    // `skip` is supplied by the ComboBox itself; the mock's plain-array return
+    // stays legacy (unpaged) and both are handled by the same component.
+    async getAttributeValues(dataKey, query, skip = 0) {
+      const attr = ATTR_KEY_BY_DATAKEY[dataKey]
+      if (!attr) return { options: [], total: 0 }
+      const { values, total } = await apiPost('/v1/search/values', {
+        domain: 'shipments',
+        attr,
+        query: query || '',
+        page: { limit: VALUES_PAGE, skip },
+      })
+      return { options: values ?? [], total: total ?? 0 }
+    },
 
     async getSuggestions(query) {
       const q = (query || '').trim()

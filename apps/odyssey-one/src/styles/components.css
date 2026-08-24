@@ -4890,11 +4890,14 @@ button.breadcrumb__label:focus-visible {
 }
 .shipments-filters__chip:hover,
 .orders-filters__chip:hover { background: var(--deep-sea-neutral-100); }
+/* Selected = a DARKER surface than hover, not an outline (user, S130): the same
+   --tab-* pair the selected PillTab uses, so "this one is on" reads identically
+   for the filter chips and the All/Saved tabs sitting a few pixels above them.
+   Border stays transparent — an outline on top of the fill double-signals. */
 .shipments-filters__chip.is-selected,
 .orders-filters__chip.is-selected {
-  background: var(--bg-primary);
-  border-color: var(--carolina-blue-400);
-  color: var(--text-primary);
+  background: var(--tab-active-bg);
+  color: var(--tab-active-text);
 }
 
 .shipments-filters__saved {

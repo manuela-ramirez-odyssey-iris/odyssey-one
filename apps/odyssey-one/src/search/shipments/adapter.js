@@ -10,6 +10,10 @@ import {
   parseSearchDate,
 } from './criteria'
 import { formatDateMDY } from '../../lib/dates'
+// Domain-agnostic adapter pieces, shared with the Orders adapter (S130) — see
+// ../adapter-core.js. `toItem` is re-exported below: liveAdapter.js and the
+// tests have always imported it from this module.
+import { toItem as coreToItem, nextProgressionGroup as coreNextGroup } from '../adapter-core'
 
 // ── Dates (Case 12, GS-22) ──────────────────────────────────────────────────
 // The date-typed attributes (match: 'date' in the progression) each offer TWO
@@ -115,19 +119,7 @@ const DEBUG_SEARCH = !!(import.meta.env && import.meta.env.DEV)
  * select; pending its own normalization (seam marked below).
  */
 
-export function toItem(attr, queryValue) {
-  const label = queryValue ? `${attr.label}: ${queryValue}` : attr.label
-  return {
-    key: attr.key,
-    label,
-    attrLabel: attr.label,
-    queryValue: queryValue || null,
-    group: attr.group,
-    dataKey: attr.dataKey,
-    ...(attr.exact && { exact: true }),
-    kind: 'attribute',
-  }
-}
+export const toItem = coreToItem
 
 export const shipmentsSearchAdapter = {
   /**
@@ -393,22 +385,7 @@ export const shipmentsSearchAdapter = {
 // the furthest group any chip belongs to. Past the end → stay on the last group
 // (user rule). Skips fully-committed groups so the panel is never empty; if the
 // tail is exhausted, falls back to any earlier group with room left.
-function nextProgressionGroup(chips) {
-  const idxByGroup = new Map(SHIPMENTS_PROGRESSION.map((g, i) => [g.group, i]))
-  const maxIdx = chips.reduce((m, c) => Math.max(m, idxByGroup.get(c.group) ?? -1), -1)
-  const lastIdx = SHIPMENTS_PROGRESSION.length - 1
-  const targetIdx = Math.min(maxIdx + 1, lastIdx)
-  const committed = new Set(chips.map((c) => c.key))
-  const hasRoom = (g) => g.attributes.some((a) => !committed.has(a.key))
-
-  for (let i = targetIdx; i <= lastIdx; i++) {
-    if (hasRoom(SHIPMENTS_PROGRESSION[i])) return SHIPMENTS_PROGRESSION[i]
-  }
-  for (let i = lastIdx; i >= 0; i--) {
-    if (hasRoom(SHIPMENTS_PROGRESSION[i])) return SHIPMENTS_PROGRESSION[i]
-  }
-  return null
-}
+const nextProgressionGroup = (chips) => coreNextGroup(SHIPMENTS_PROGRESSION, chips)
 
 // One result row when the result entity is a SHIPMENT.
 // `data-shipment-key` = sellShipment — the SELECTION id (ShipmentsRoute's

@@ -16,7 +16,7 @@
  * "match nothing" against `oneOf`'s `!values?.length` short-circuit only by
  * accident, and it makes `hasFilters` ambiguous.
  */
-import { ORDERS_FILTER_ATTRS, attrsForTab } from './registry'
+import { ORDERS_FILTER_ATTRS, attrsForTab, locationLabel, ERROR_COUNT_OPERATORS } from './registry'
 
 /**
  * LINX-11659: "whole number only, >=1 & no decimals allowed". Returns the
@@ -127,6 +127,55 @@ export function activeFilterCount(tab, state = {}) {
     else if (attr.control === 'comparator') n += value.op && parseErrorCount(value.value) != null ? 1 : 0
   }
   return n
+}
+
+// ISO yyyy-mm-dd → M/D/YYYY, the format the panel's own DatePicker displays.
+const isoToMdy = (iso) => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso ?? ''))
+  return m ? `${+m[2]}/${+m[3]}/${m[1]}` : ''
+}
+
+/** One field's value as the text a bar chip shows, or '' when it isn't filled. */
+function chipValue(attr, value) {
+  if (value == null) return ''
+  if (attr.control === 'text') return splitTextValues(value).join(', ')
+  if (attr.control === 'location') return value[0] ? locationLabel(value[0]) : ''
+  if (attr.control === 'date-range') {
+    const from = isoToMdy(value.from)
+    const to = isoToMdy(value.to)
+    if (!from && !to) return ''
+    // An open-ended range reads as a range, not as a single date.
+    return from && to ? `${from} – ${to}` : from ? `${from} –` : `– ${to}`
+  }
+  if (attr.control === 'comparator') {
+    // Same validity gate as toRequestFilters: a half-filled comparator emits no
+    // filter, so it must not show a chip claiming it does.
+    if (!value.op || parseErrorCount(value.value) == null) return ''
+    return `${ERROR_COUNT_OPERATORS.find((o) => o.value === value.op)?.label ?? value.op} ${value.value}`
+  }
+  return Array.isArray(value) ? value.join(', ') : '' // enum + combobox
+}
+
+/**
+ * The applied filter state as BAR CHIPS — one per filled field (S130, user
+ * ruling: "the searchbar is wired to the filters panel too like in shipments").
+ *
+ * This is what makes the bar and the panel two VIEWS OF ONE STATE rather than
+ * two states: applying populates the bar with the criteria, and removing a chip
+ * clears that field, exactly as a Shipments chip does. Derived on every render
+ * from the applied filters — deliberately NOT a second copy that could drift
+ * from what the grid is actually filtered by.
+ *
+ * Fields, not params — same rule as `activeFilterCount`: a location is ONE chip
+ * even though it emits four params, and a date range is one chip for two.
+ */
+export function filterChips(tab, state = {}) {
+  const chips = []
+  for (const attr of attrsForTab(tab)) {
+    const display = chipValue(attr, state[attr.key])
+    if (display) chips.push({ key: attr.key, label: `${attr.label}: ${display}` })
+  }
+  return chips
 }
 
 /** Blank state for a tab — every field cleared to its control's empty value. */

@@ -963,3 +963,46 @@ describe('ShipmentsFiltersView — drag rebuild visible affordance (S110 rev2 it
     expect(odysseyList.className).toContain('shipments-filters__saved-list--drag-over')
   })
 })
+
+// S130 — "Clear all" empties the FIELDS, not just the bar's committed chips.
+// The controls are this component's own `filters` state; the host's onClearAll
+// only removes chips from the bar, so a typed value stayed on screen (and a
+// value never committed to the bar had no chip to remove at all — onClearAll
+// was a total no-op for it).
+describe('ShipmentsFiltersView — Clear all', () => {
+  test('empties a typed field and resets the All tab count', () => {
+    const onClearAll = vi.fn()
+    render(<ShipmentsFiltersView onClearAll={onClearAll} />)
+
+    const input = screen.getByPlaceholderText('Enter Buy Shipment #')
+    fireEvent.change(input, { target: { value: '44237' } })
+    expect(input.value).toBe('44237')
+    expect(within(screen.getByRole('button', { name: /^All/ })).getByText('1')).toBeTruthy()
+
+    fireEvent.click(screen.getByText('Clear all'))
+
+    expect(screen.getByPlaceholderText('Enter Buy Shipment #').value).toBe('')
+    expect(within(screen.getByRole('button', { name: /^All/ })).getByText('0')).toBeTruthy()
+    // Still tells the host to wipe the bar — clearing the form is ADDITIONAL.
+    expect(onClearAll).toHaveBeenCalled()
+  })
+
+  test('a cleared field stays cleared through an Apply (present-and-empty, not absent)', () => {
+    const onApplyFilters = vi.fn()
+    const chips = [{
+      key: 'buy-shipment', kind: 'attribute', label: 'Buy Shipment #: 44237',
+      attrLabel: 'Buy Shipment #', queryValue: '44237', dataKey: 'buyShipment',
+      group: 'Shipment Identifiers',
+    }]
+    render(<ShipmentsFiltersView chips={chips} onApplyFilters={onApplyFilters} onClearAll={vi.fn()} />)
+    expect(screen.getByPlaceholderText('Enter Buy Shipment #').value).toBe('44237')
+
+    fireEvent.click(screen.getByText('Clear all'))
+    fireEvent.click(screen.getByRole('button', { name: /Show/ }))
+
+    // An ABSENT key would mean "leave that chip alone" and the chip would
+    // survive the clear; present-and-empty is what removes it.
+    expect(onApplyFilters).toHaveBeenCalled()
+    expect(onApplyFilters.mock.calls[0][0]['buy-shipment']).toBe('')
+  })
+})

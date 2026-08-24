@@ -17,6 +17,7 @@ import ShipmentsFiltersView, { mergeFiltersIntoChips } from './ShipmentsFiltersV
 import SaveFilterModal from './SaveFilterModal'
 import { hydrate, newFilter, splitFreeText, toStored, formatChipsForCopy } from './savedFilters'
 import { tabForDataKey } from '../shipments/cellTabMap'
+import { inFieldPopover } from './fieldPopovers'
 
 // react-query key for the Odyssey group's shared half (S108 Phase 3d) —
 // separate from SAVED_FILTERS_KEY above: that one is a user_preferences ROW
@@ -526,6 +527,13 @@ export default function ShipmentsGlobalSearch({ onCommitQuery, onSelectShipment 
   useEffect(() => {
     if (!resultsOpen) return
     const handleMouseDown = (e) => {
+      // A pick inside a body-portalled field popover (ComboBox typeahead list,
+      // DatePicker calendar) is DOM-outside this wrapper but is not an outside
+      // click — without this the panel closed on mousedown and unmounted the
+      // popover before the option's own click ran, so selecting a value or a
+      // date did nothing at all (S130). Same class as GS-24's ⋮ menu; the
+      // Orders host has carried this exemption since S128.
+      if (inFieldPopover(e.target)) return
       if (wrapperRef.current && !wrapperRef.current.contains(e.target)) {
         // S110 rev2 decision 4 — the other dismissal path this component
         // owns directly; same `editGuardRef` bridge as Escape above.

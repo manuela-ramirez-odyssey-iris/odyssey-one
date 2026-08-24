@@ -58,16 +58,16 @@ describe('footer actions (LINX-10285)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Draft' }))
     // Editing alone must not call onApply — the grid refetches on Apply only.
     expect(onApply).not.toHaveBeenCalled()
-    fireEvent.click(screen.getByRole('button', { name: 'Apply All Filters' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Show all results' }))
     expect(onApply).toHaveBeenCalledTimes(1)
     expect(onApply.mock.calls[0][0].orderStatus).toEqual(['Draft'])
   })
 
-  it('Clear All Filters empties the draft without applying', () => {
+  it('Clear all empties the draft without applying', () => {
     const onApply = vi.fn()
     setup('all', { filters: { orderStatus: ['Draft'] }, onApply })
     expect(screen.getByRole('button', { name: 'Draft' }).getAttribute('aria-pressed')).toBe('true')
-    fireEvent.click(screen.getByRole('button', { name: 'Clear All Filters' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Clear all' }))
     expect(screen.getByRole('button', { name: 'Draft' }).getAttribute('aria-pressed')).toBe('false')
     expect(onApply).not.toHaveBeenCalled()
   })
@@ -93,7 +93,7 @@ describe('control types (user ruling, 2026-08-20)', () => {
     const onApply = vi.fn()
     setup('all', { onApply })
     fireEvent.change(screen.getByPlaceholderText('Enter Order Number'), { target: { value: 'AAA1, BBB2' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Apply All Filters' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Show all results' }))
     expect(onApply.mock.calls[0][0].orderNumber).toBe('AAA1, BBB2')
   })
 
@@ -121,5 +121,39 @@ describe('error count comparator (LINX-11659)', () => {
     setup('validation-errors')
     fireEvent.change(screen.getByPlaceholderText('Enter Error Count'), { target: { value: '10' } })
     expect(screen.queryByText('Whole number, 1 or greater')).toBeNull()
+  })
+})
+
+// S130 alignment ruling — Orders' picker fields hold ONE value and show it in
+// the field, exactly like Shipments'. They used to append every pick as a chip
+// rendered UNDER the input ("why are we showing below fields when a value is
+// selected"), which nothing in Shipments does.
+describe('single-value pickers (S130 — aligned with Shipments)', () => {
+  it('a committed value renders IN the field, with nothing below it', () => {
+    setup('all', { filters: { customer: ['BASF_CHM_01'] } })
+    expect(screen.getByPlaceholderText('Select Customer').value).toBe('BASF_CHM_01')
+    // The removable value-chips are gone; the only chips left are the Order
+    // Status enum toggles, which have no remove button.
+    expect(document.querySelector('.orders-filters__chip-x')).toBeNull()
+    expect(screen.queryByRole('listitem')).toBeNull()
+  })
+
+  it('a location shows its display label, not the stored pipe-joined value', () => {
+    setup('all', { filters: { origin: ['Chicago|IL|US'] } })
+    expect(screen.getByPlaceholderText('Select Origin City, State, Country').value)
+      .toBe('Chicago, IL, US')
+  })
+
+  it('Clear all empties a committed picker', () => {
+    setup('all', { filters: { customer: ['BASF_CHM_01'] } })
+    fireEvent.click(screen.getByRole('button', { name: 'Clear all' }))
+    expect(screen.getByPlaceholderText('Select Customer').value).toBe('')
+  })
+
+  it('applies the value as a one-entry array — the wire format is unchanged', () => {
+    const onApply = vi.fn()
+    setup('all', { filters: { customer: ['BASF_CHM_01'] }, onApply })
+    fireEvent.click(screen.getByRole('button', { name: 'Show all results' }))
+    expect(onApply.mock.calls[0][0].customer).toEqual(['BASF_CHM_01'])
   })
 })

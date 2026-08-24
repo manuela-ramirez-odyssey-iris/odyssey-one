@@ -87,25 +87,9 @@
   gap: var(--spacing-3);
 }
 
-/* Committed-value chips are spans (not toggle buttons) and carry a remove-X. */
-.orders-filters__chips [role='listitem'] {
-  display: inline-flex;
-  align-items: center;
-  cursor: default;
-}
-
-/* Remove-X on a committed value chip. */
-.orders-filters__chip-x {
-  display: inline-flex;
-  align-items: center;
-  margin-left: var(--spacing-2);
-  border: none;
-  background: transparent;
-  padding: 0;
-  color: var(--text-tertiary);
-  cursor: pointer;
-}
-.orders-filters__chip-x:hover { color: var(--text-primary); }
+/* S130 removed the committed-value chips (and their remove-X) — pickers hold one
+   value and show it in the field, as in Shipments. `.orders-filters__chips` below
+   is still the enum toggle row. */
 
 /* ── Grid cells (S94 per-tab columns) ────────────────────── */
 

@@ -752,3 +752,45 @@ describe('ShipmentsGlobalSearch — edit-filter mode discard guard bridges to ho
     vi.doUnmock('../../search/useGlobalSearch')
   })
 })
+
+// S130 — picking a value from a FIELD POPOVER inside the Filters panel.
+//
+// The reported bug: choosing a ComboBox suggestion or a calendar day made the
+// whole panel vanish with nothing selected. Both popovers portal to
+// document.body (useAnchoredPortal / ComboBox's createPortal), so the host's
+// document-level mousedown listener read the pick as an outside click, closed
+// the panel, and unmounted the popover before its own click handler could run.
+// Same class as GS-24's ⋮ menu above — and, like that one, only a real
+// mousedown-THEN-click sequence reproduces it.
+describe('ShipmentsGlobalSearch — a pick inside a portalled field popover is not an outside click (S130)', () => {
+  const mount = async () => {
+    const { ShipmentsGlobalSearch } = await mountWithHook(baseHookReturn({}))
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const view = render(withQueryClient(qc, <ShipmentsGlobalSearch />))
+    fireEvent.click(view.container.querySelector('.filter-button'))
+    return view
+  }
+
+  test('the DatePicker calendar: picking a day keeps the panel open', async () => {
+    const { container, getAllByLabelText } = await mount()
+    expect(panelOpen(container)).toBe(true)
+
+    fireEvent.click(getAllByLabelText('Open calendar')[0])
+    // The calendar renders in a body portal — outside `container` entirely.
+    const calendar = document.body.querySelector('[data-placement]')
+    expect(calendar, 'the calendar portals to document.body').toBeTruthy()
+
+    const day = calendar.querySelector('button:not([disabled])')
+    fireEvent.mouseDown(day)
+    fireEvent.click(day)
+
+    expect(panelOpen(container)).toBe(true)
+  })
+
+  test('a mousedown anywhere else outside still closes the panel', async () => {
+    const { container } = await mount()
+    expect(panelOpen(container)).toBe(true)
+    fireEvent.mouseDown(document.body)
+    await waitFor(() => expect(panelOpen(container)).toBe(false))
+  })
+})

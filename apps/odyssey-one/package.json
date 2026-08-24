@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:api": "node --env-file=.env.local tools/local-api.mjs",
+    "dev:local": "VITE_API_PROXY_TARGET=http://localhost:3001 vite",
     "prebuild": "node tools/generate.mjs && node ../../tools/domain-usage.mjs",
     "build": "vite build",
     "lint": "eslint .",

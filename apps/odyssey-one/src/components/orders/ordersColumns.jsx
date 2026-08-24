@@ -9,20 +9,11 @@ import { Badge } from '@odyssey/ui'
  */
 const col = createColumnHelper()
 
-// Order Status display label → Badge variant. Figma pins New=blue,
-// Ready for Planning=green, Rating/Routing Failed=red; our current label
-// vocabulary maps onto the same tones.
-export const ORDER_STATUS_VARIANT = {
-  'Draft': 'gray',
-  'Ready For Plan': 'green',
-  'Shipment Planned': 'green',
-  'Load Planned': 'blue',
-  'Planning Failed': 'red',
-  'Shipment Failed': 'red',
-  'Cancelled': 'gray',
-}
-
-export const DRAFT_ORDER_STATUS_VARIANT = { Ready: 'green', Complete: 'blue', Purge: 'red' }
+// Status → Badge variant. Defined in search/orders/registry.js (pure data, no
+// React) so the search preview can badge a row identically; re-exported here
+// because this module has always been where the grid imports them from.
+export { ORDER_STATUS_VARIANT, DRAFT_ORDER_STATUS_VARIANT } from '../../search/orders/registry'
+import { ORDER_STATUS_VARIANT, DRAFT_ORDER_STATUS_VARIANT } from '../../search/orders/registry'
 
 const statusBadge = (label, map) =>
   label ? <Badge variant={map[label] ?? 'gray'}>{label}</Badge> : '--'

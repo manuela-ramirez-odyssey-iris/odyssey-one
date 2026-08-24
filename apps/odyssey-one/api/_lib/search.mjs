@@ -39,26 +39,38 @@ function chipTokens(queryValue, normalize) {
   return (raw.length ? raw : ['']).map(normalize)
 }
 
-// ── Date-range chips (Case 12, GS-22) ───────────────────────────────────────
-// pickup/delivery dates are NOT projected into search_index (documented
-// deviation 2 below) — date chips route to COLUMN filters on shipments
-// (pickup_ts/delivery_ts), the same columns the grid's own date filters use
-// (shipments.mjs). Bounds arrive as M/D/YYYY from the client; compared as
-// [from 00:00, to+1day) — inclusive calendar days, mirroring the mock's
-// parseSearchDate comparison. A missing bound leaves that side open; a chip
-// with NO parseable bound restricts nothing (mock: "no narrowing yet").
+// ── Chips that filter shipments COLUMNS instead of search_index rows ────────
+// Two families, one mechanism. (a) date chips (Case 12, GS-22): pickup/delivery
+// dates are not projected into search_index, so they route to the same
+// pickup_ts/delivery_ts columns the grid's own date filters use (shipments.mjs).
+// Bounds arrive as M/D/YYYY and compare as [from 00:00, to+1day) — inclusive
+// calendar days, mirroring the mock's parseSearchDate comparison; a missing
+// bound leaves that side open, and a chip with NO parseable bound restricts
+// nothing (mock: "no narrowing yet"). (b) the progression attributes that were
+// never projected either — the enums and measures. Until S130 those were
+// dropped by `validChips` exactly like an unknown key, so a Filters-panel enum
+// chip ("Mode: TL", "Tender Status: Accepted") returned ZERO rows live while
+// filtering correctly in the mock — the "filters don't work" report. They live
+// as plain columns on `shipments` (see the table's schema), so they restrict the
+// same way dates do, and can equally be the LEAD that produces the hit set when
+// nothing indexed is in play.
+//
+// Keyed by dataKey, and disjoint from SHIPMENTS_ATTRS by construction (an
+// indexed attribute's dataKey never appears here) — so no chip is ever
+// restricted twice, once per family.
 const DATE_CHIP_COLS = {
   pickupDate: { col: 'pickup_ts', attr: 'pickup-date', display: 'pickup_date' },
   deliveryDate: { col: 'delivery_ts', attr: 'delivery-date', display: 'delivery_date' },
 }
+const COLUMN_CHIP_COLS = {
+  mode: 'mode', equipmentCode: 'equipment_code',
+  tenderStatus: 'tender_status', shipmentStatus: 'shipment_status',
+  orderCount: 'order_count', loadCount: 'load_count',
+  grossWeight: 'gross_weight', apFreightCost: 'ap_freight_cost',
+}
 function mdyToIso(s) {
   const m = String(s ?? '').match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)
   return m ? `${m[3]}-${String(m[1]).padStart(2, '0')}-${String(m[2]).padStart(2, '0')}` : null
-}
-function validDateChips(chips) {
-  return (chips ?? []).filter(
-    (c) => c?.kind === 'date-range' && DATE_CHIP_COLS[c.dataKey] && (mdyToIso(c.from) || mdyToIso(c.to)),
-  )
 }
 // The chip's bounds as WHERE clauses over the shipments table itself.
 function dateClauses(chip, p) {
@@ -70,9 +82,37 @@ function dateClauses(chip, p) {
   if (to) parts.push(`${col} < (${p(to)}::date + 1)`)
   return parts.join(' AND ')
 }
-// The chip as an entity-set restriction (for AND-ing onto search_index hits).
-function dateRestrictionSql(chip, p) {
-  return `entity_id IN (SELECT sell_shipment FROM shipments WHERE ${dateClauses(chip, p)})`
+
+/**
+ * ONE column chip as { attr, display, clauses(p) }, or null when it restricts
+ * nothing (unknown dataKey, no parseable date bound, empty value). `attr` and
+ * `display` are what the lead branch reports for a matched row; `clauses`
+ * renders the WHERE fragment, binding every user value through `p`.
+ *
+ * Multi-value chips ("TL,LTL") OR their tokens — the same GS-12 IN-list the
+ * indexed path gives a comma chip. `exact` (counts + the enum catalogs) compares
+ * whole values; everything else substrings, mirroring the mock's matchesChip.
+ */
+function columnChipSpec(chip) {
+  if (chip?.kind === 'date-range') {
+    const cfg = DATE_CHIP_COLS[chip.dataKey]
+    if (!cfg || !(mdyToIso(chip.from) || mdyToIso(chip.to))) return null
+    return { attr: cfg.attr, display: cfg.display, clauses: (p) => dateClauses(chip, p) }
+  }
+  const col = COLUMN_CHIP_COLS[chip?.dataKey]
+  const tokens = String(chip?.queryValue ?? '').split(',').map((s) => s.trim()).filter(Boolean)
+  if (!col || !tokens.length) return null
+  return {
+    attr: chip.key,
+    display: col,
+    clauses: (p) => `(${tokens.map((t) => (chip.exact
+      ? `upper(${col}) = upper(${p(t)})`
+      : `${col} ILIKE '%' || ${p(t)} || '%'`)).join(' OR ')})`,
+  }
+}
+// A column chip as an entity-set restriction (for AND-ing onto search_index hits).
+function columnRestrictionSql(spec, p) {
+  return `entity_id IN (SELECT sell_shipment FROM shipments WHERE ${spec.clauses(p)})`
 }
 
 // ONE chip as an entity-set restriction: `entity_id IN (SELECT ... WHERE attr
@@ -83,7 +123,12 @@ function dateRestrictionSql(chip, p) {
 function chipRestrictionSql(domain, chip, p) {
   const cfg = REGISTRY[domain].attrs[chip.key]
   const tokens = chipTokens(chip.queryValue, cfg.normalize)
-  const ors = tokens.map((t) => `value LIKE '%' || ${p(t)} || '%'`).join(' OR ')
+  // `exact` chips (fixed-catalog enums, counts) compare whole values — the same
+  // branch the mock's matchesChip takes on the flag. Both sides compare the
+  // NORMALIZED value, which is what the projection stored.
+  const ors = tokens.map((t) => (chip.exact
+    ? `value = ${p(t)}`
+    : `value LIKE '%' || ${p(t)} || '%'`)).join(' OR ')
   return `entity_id IN (SELECT entity_id FROM search_index WHERE domain = ${p(domain)} AND attr = ${p(chip.key)} AND (${ors}))`
 }
 
@@ -114,17 +159,14 @@ function chipRestrictionSql(domain, chip, p) {
  *     keeps one row per shipment for every chip combination for now; closing
  *     this gap waits on orders becoming their own search domain
  *     (composed-criteria.md).
- *  2. Chips on the ~10 progression attributes that are NOT projected into
+ *  2. CLOSED (S130). The ~10 progression attributes that are not projected into
  *     search_index (mode, tender-status, shipment-status, order-count,
  *     load-count, pickup-date, delivery-date, equipment-code, gross-weight,
- *     ap-freight-cost — see SHIPMENTS_ATTRS vs SHIPMENTS_ATTRIBUTES) are
- *     dropped by `validChips` same as an unknown key: in the chips+TEXT case
- *     they silently stop restricting (a committed "Tender Status: Accepted"
- *     chip filters the mock but not live); chips-only falls back to the next
- *     valid chip as lead, or the honest-empty set if none are valid. Upgrade
- *     path: project these attrs into search_index (registry + generate.mjs),
- *     or route non-indexed enum/measure chips to column filters the way
- *     shipments.mjs's FIELD_MAP already does for the grid's own filter panel.
+ *     ap-freight-cost — see SHIPMENTS_ATTRS vs SHIPMENTS_ATTRIBUTES) used to be
+ *     dropped by `validChips` same as an unknown key, so they silently stopped
+ *     restricting live while filtering fine in the mock. They now route to
+ *     COLUMN filters on `shipments` — see COLUMN_CHIP_COLS below — the upgrade
+ *     path this note originally named.
  *
  * Returns { sql, values, p } — `p` is the running binder so callers can append
  * their own parameters (LIMIT) after the branches. Callers that already own a
@@ -141,8 +183,8 @@ function buildHits({ domain, needles, customerIds, chips, bind }) {
   // $1 (42P18 "could not determine data type of parameter"). Bind nothing
   // that isn't referenced in the SQL that's actually returned.
   const chipList = validChips(domain, chips)
-  const dateChips = validDateChips(chips)
-  if (!needles.length && !chipList.length && !dateChips.length) {
+  const colChips = (chips ?? []).map(columnChipSpec).filter(Boolean)
+  if (!needles.length && !chipList.length && !colChips.length) {
     // Honest-empty (S79c convention): nothing to search on (no needles, and no
     // chip survived `validChips` — either none were sent, or every one carried
     // an unknown/non-projected key). A bare `''` here produces `WITH hits AS
@@ -155,18 +197,17 @@ function buildHits({ domain, needles, customerIds, chips, bind }) {
     return { sql: `SELECT NULL::text AS entity_id, NULL::text AS attr, NULL::text AS display, 0 AS tier, 0 AS needle_ix WHERE FALSE`, values, p }
   }
 
-  // ONLY date chips (no text, no indexed chips) — the user's "all shipments
-  // whose pickup date is this date" case. No search_index row exists for
-  // dates, so the hit set comes from the shipments table directly: the first
-  // date chip is the lead (its display string becomes the row's bold value),
-  // remaining date chips AND on as further column clauses. Bound BEFORE the
-  // shared `dom` binding so no unreferenced parameter can 42P18.
+  // ONLY column chips (no text, no indexed chips) — "all shipments whose pickup
+  // date is this date", "every TL shipment". No search_index row exists for
+  // either family, so the hit set comes from the shipments table directly: the
+  // first column chip leads (its column's value becomes the row's bold display),
+  // the rest AND on as further clauses. Bound BEFORE the shared `dom` binding so
+  // no unreferenced parameter can 42P18.
   if (!needles.length && !chipList.length) {
-    const [dlead, ...drest] = dateChips
-    const cfg = DATE_CHIP_COLS[dlead.dataKey]
-    const clauses = [dateClauses(dlead, p), ...drest.map((c) => dateClauses(c, p))]
+    const [lead, ...restCols] = colChips
+    const clauses = [lead.clauses(p), ...restCols.map((c) => c.clauses(p))]
     if (customerIds) clauses.push(`customer_id = ANY(${p(customerIds)})`)
-    const sql = `SELECT sell_shipment AS entity_id, ${p(cfg.attr)} AS attr, ${cfg.display} AS display, 2 AS tier, 0 AS needle_ix
+    const sql = `SELECT sell_shipment AS entity_id, ${p(lead.attr)} AS attr, ${lead.display} AS display, 2 AS tier, 0 AS needle_ix
       FROM shipments WHERE ${clauses.join(' AND ')}`
     return { sql, values, p }
   }
@@ -179,7 +220,7 @@ function buildHits({ domain, needles, customerIds, chips, bind }) {
   if (needles.length) {
     const chipSql = [
       ...chipList.map((c) => chipRestrictionSql(domain, c, p)),
-      ...dateChips.map((c) => dateRestrictionSql(c, p)),
+      ...colChips.map((c) => columnRestrictionSql(c, p)),
     ].map((s) => `AND ${s}`).join(' ')
     const branches = []
     needles.forEach((n, ix) => {
@@ -206,10 +247,14 @@ function buildHits({ domain, needles, customerIds, chips, bind }) {
   const [lead, ...rest] = chipList
   const leadCfg = REGISTRY[domain].attrs[lead.key]
   const leadTokens = chipTokens(lead.queryValue, leadCfg.normalize)
-  const leadOrs = leadTokens.map((t) => `value LIKE '%' || ${p(t)} || '%'`).join(' OR ')
+  // Same exact/contains split as chipRestrictionSql — leading vs restricting is
+  // about which chip sources the rows, never about how a value is compared.
+  const leadOrs = leadTokens.map((t) => (lead.exact
+    ? `value = ${p(t)}`
+    : `value LIKE '%' || ${p(t)} || '%'`)).join(' OR ')
   const restSql = [
     ...rest.map((c) => chipRestrictionSql(domain, c, p)),
-    ...dateChips.map((c) => dateRestrictionSql(c, p)),
+    ...colChips.map((c) => columnRestrictionSql(c, p)),
   ].map((s) => `AND ${s}`).join(' ')
   const sql = `SELECT entity_id, attr, display, 2 AS tier, 0 AS needle_ix FROM search_index
     WHERE domain = ${dom} AND attr = ${p(lead.key)} AND (${leadOrs}) ${scope} ${restSql}`
@@ -342,6 +387,46 @@ async function hydrate(db, domain, results) {
   })
   const byId = new Map(rows.map((r) => [String(r[REGISTRY[domain].entityKey]), r]))
   return results.map((r) => ({ ...r, entity: byId.get(String(r.entity_id)) ?? null }))
+}
+
+/**
+ * Distinct values for ONE attribute — the live twin of the mock adapter's
+ * `getAttributeValues` (S107's documented gap: "a per-attribute values endpoint,
+ * not yet built"). Without it every `letters` control in the Filters panel fell
+ * back to a plain text field live, so nothing populated.
+ *
+ * Prefix-matched on the NORMALIZED value (the same `cfg.normalize` the
+ * projection wrote, so the comparison is apples to apples) and returned as the
+ * DISPLAY string, which is what a chip's queryValue has to carry. An empty query
+ * degrades to `LIKE '%'` — the full catalog, first page — with no branch.
+ *
+ * Paged rather than capped: `total` lets the ComboBox lazily fetch the next page
+ * on scroll instead of the caller guessing a limit big enough for Customer Name
+ * and small enough for SCAC.
+ */
+export function buildValuesQuery({ domain, attr, query = '', limit = 50, skip = 0 }) {
+  const cfg = REGISTRY[domain].attrs[attr]
+  const values = []
+  const p = (v) => { values.push(v); return `$${values.length}` }
+  return {
+    text: `WITH v AS (
+  SELECT DISTINCT display FROM search_index
+  WHERE domain = ${p(domain)} AND attr = ${p(attr)} AND value LIKE ${p(cfg.normalize(query))} || '%'
+)
+SELECT display, count(*) OVER()::int AS __total FROM v ORDER BY display LIMIT ${p(limit)} OFFSET ${p(skip)}`,
+    values,
+  }
+}
+
+// POST /api/v1/search/values — an unknown attr is honest-empty, never an error:
+// same "a stale key degrades to no data" rule `validChips` follows.
+export async function valuesHandler({ body, db }) {
+  const { domain = 'shipments', attr, query = '', page = {} } = body ?? {}
+  if (!REGISTRY[domain]?.attrs[attr]) return { values: [], total: 0 }
+  const { rows } = await db.query(buildValuesQuery({
+    domain, attr, query, limit: Math.min(page.limit ?? 50, 200), skip: page.skip ?? 0,
+  }))
+  return { values: rows.map((r) => r.display), total: rows[0]?.__total ?? 0 }
 }
 
 export async function suggestHandler({ body, db }) {

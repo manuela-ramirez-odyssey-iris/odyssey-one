@@ -283,11 +283,17 @@ function EnumChips({ attr, value, onChange }) {
 }
 
 // letters attrs — typable select; suggestions come from the adapter (mock =
-// distinct-value index, live = none — S107 addendum). Free-typed text IS a
-// legal filter. Live mode has NO suggestion source (`getAttributeValues` is
-// `null`): omit every typeahead prop so the ComboBox falls back to a plain
-// field instead of showing the "No matching values" empty panel, which reads
-// as "this value doesn't exist" rather than "no suggestions available yet."
+// distinct-value index, live = the /v1/search/values endpoint, S130). Free-typed
+// text IS a legal filter. The `hasSuggestions` guard predates that endpoint —
+// an adapter with NO value source at all omits every typeahead prop so the
+// ComboBox falls back to a plain field instead of showing the "No matching
+// values" empty panel, which reads as "this value doesn't exist" rather than
+// "no suggestions available yet."
+//
+// `skip` is threaded straight through: the live adapter resolves
+// { options, total }, which is what puts the ComboBox in paged/lazy-load mode —
+// it re-calls loadOptions with the accumulated count when the list is scrolled
+// to its end. Dropping the argument here would silently re-request page 1.
 function ValueComboBox({ attr, value, onChange }) {
   const hasSuggestions = !!shipmentsSearchAdapter.getAttributeValues
   return (
@@ -298,7 +304,7 @@ function ValueComboBox({ attr, value, onChange }) {
       onChange={onChange}
       {...(hasSuggestions && {
         onSelect: (v) => onChange(v || ''),
-        loadOptions: (q) => shipmentsSearchAdapter.getAttributeValues(attr.dataKey, q),
+        loadOptions: (q, skip) => shipmentsSearchAdapter.getAttributeValues(attr.dataKey, q, skip),
         emptyMessage: 'No matching values',
       })}
     />
@@ -362,10 +368,21 @@ function plainField(attr, filters, setFilter) {
   )
 }
 
-// Group body layout (S107 addendum, user ruling 2026-08-03):
+// Groups whose fields lay out as a two-column grid instead of one per row
+// (S107 addendum, user ruling 2026-08-03; Shipment Identifiers added S130 —
+// six single-column fields made the panel's tallest group its FIRST one, so the
+// whole panel opened on a wall of inputs). Only groups of same-shaped plain
+// fields belong here: Schedule & Appointments pairs its date twins itself
+// (below), and a mixed group would misalign.
+const TWO_COLUMN_GROUPS = new Set([
+  'Shipment Identifiers', 'Customers & Parties', 'Route & Geography',
+  'Transport & Equipment', 'Load Details',
+])
+
+// Group body layout:
 //   Schedule & Appointments — singles row (Pickup Date + Delivery Date side
 //     by side), then a ranges row (their Range twins side by side).
-//   Customers & Parties     — all fields in a two-column grid.
+//   TWO_COLUMN_GROUPS       — all fields in a two-column grid.
 //   everything else         — unchanged single column.
 function renderGroupBody(group, filters, setFilter) {
   if (group.group === 'Schedule & Appointments') {
@@ -380,11 +397,22 @@ function renderGroupBody(group, filters, setFilter) {
       </>
     )
   }
-  if (group.group === 'Customers & Parties') {
+  if (TWO_COLUMN_GROUPS.has(group.group)) {
+    // An enum control is a wrapping chip cloud, not a field — two of them side
+    // by side at half width wrap into a mess (Transport & Equipment's Mode +
+    // Equipment Code), so enums keep the full width above the grid and only the
+    // real fields pair up. A no-op for the groups that have no enum at all.
+    const enums = group.attributes.filter((attr) => attr.match === 'enum')
+    const fields = group.attributes.filter((attr) => attr.match !== 'enum')
     return (
-      <div className="shipments-filters__grid-2">
-        {group.attributes.map((attr) => plainField(attr, filters, setFilter))}
-      </div>
+      <>
+        {enums.map((attr) => plainField(attr, filters, setFilter))}
+        {fields.length > 0 && (
+          <div className="shipments-filters__grid-2">
+            {fields.map((attr) => plainField(attr, filters, setFilter))}
+          </div>
+        )}
+      </>
     )
   }
   return group.attributes.flatMap((attr) =>
@@ -515,6 +543,23 @@ export default function ShipmentsFiltersView({
   const [filters, setFilters] = useState(() => chipsToFilters(chips))
 
   const setFilter = (key, val) => setFilters((f) => ({ ...f, [key]: val }))
+
+  // "Clear all" has to empty the FIELDS, not just the bar's committed chips
+  // (S130). The panel's controls are this component's own `filters` state,
+  // seeded from the chips when the panel opens; wiping the chips alone left
+  // every value sitting in the form, so the panel still looked filled and the
+  // tab count still read the old number. A field that was never committed to
+  // the bar has no chip to remove at all, so for those `onClearAll` was a
+  // complete no-op.
+  //
+  // Each key is set to '' rather than dropping the object: mergeFiltersIntoChips
+  // reads a key PRESENT and empty as "remove this chip", while an ABSENT key
+  // means "leave whatever chip exists alone" — so `{}` would let a cleared
+  // field's chip come back on the next Apply.
+  const handleClearAll = () => {
+    setFilters((f) => Object.fromEntries(Object.keys(f).map((key) => [key, ''])))
+    onClearAll?.()
+  }
   // Tab count is MODE-DEPENDENT (S110 rev2 spec item 1: "free mode counts the
   // live filter fields in use; edit-filter mode counts the fields belonging
   // to the profile being edited"). Both modes render through the SAME
@@ -1174,16 +1219,27 @@ export default function ShipmentsFiltersView({
       showSecondary={inSavedDeleteMode || savedTabActive}
       showTrailSecondary={freeModeActive}
       secondaryLabel={inSavedDeleteMode ? 'Cancel' : 'Clear all'}
-      onClear={inSavedDeleteMode ? handleExitDeleteMode : onClearAll}
+      onClear={inSavedDeleteMode ? handleExitDeleteMode : handleClearAll}
       count={savedTabActive ? savedFilterCount : resultTotal}
       // `showUpdatePrimary` (not the broader `editModeActive`) gates the
       // TEXT — an uneditable open profile (default/shared, `editModeActive`
-      // true but `showUpdatePrimary` false) falls through to the undefined/
-      // default label rather than ever reading "Update Filter": see that
-      // flag's own comment above for why this must be a label change, not
-      // just a disabled state.
+      // true but `showUpdatePrimary` false) falls through to the ALL-tab label
+      // rather than ever reading "Update Filter": see that flag's own comment
+      // above for why this must be a label change, not just a disabled state.
+      //
+      // The All tab says "Show all results" with NO number (S130 user ruling:
+      // "we are not validating how many results for a filter there is"). The
+      // count the panel has is `resultTotal` — the BAR's current criteria — so
+      // on a tab holding edited, unapplied fields it described the wrong query.
+      // The Saved tab keeps its number: `savedFilterCount` is genuinely counted
+      // for the selected profile (the debounced effect above), so there it is
+      // an honest promise. Passing `undefined` there falls through to
+      // GlobalSearchPanel's own "Show all N results".
       primaryLabel={
-        inSavedDeleteMode ? `Delete (${deleteSelection.size})` : showUpdatePrimary ? 'Update Filter' : undefined
+        inSavedDeleteMode ? `Delete (${deleteSelection.size})`
+          : showUpdatePrimary ? 'Update Filter'
+          : savedTabActive ? undefined
+          : 'Show all results'
       }
       // S110 rev2 decision 1 — inactive until at least one field changes.
       // An uneditable open profile (editModeActive && !showUpdatePrimary)

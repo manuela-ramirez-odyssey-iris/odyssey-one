@@ -55,6 +55,24 @@ export const ORDER_STATUS_VALUES = [
 // mistake: it would filter against lifecycle labels and always return nothing.
 export const DRAFT_ORDER_STATUS_VALUES = ['Ready', 'Complete', 'Purge']
 
+// Status → Badge variant. Lives HERE rather than in ordersColumns.jsx so the
+// search layer can render the same badge without importing a React module for a
+// colour map; ordersColumns re-exports these, so the grid and the search preview
+// can never disagree about what colour a status is. Figma pins New=blue,
+// Ready for Planning=green, Rating/Routing Failed=red; our label vocabulary maps
+// onto the same tones.
+export const ORDER_STATUS_VARIANT = {
+  'Draft': 'gray',
+  'Ready For Plan': 'green',
+  'Shipment Planned': 'green',
+  'Load Planned': 'blue',
+  'Planning Failed': 'red',
+  'Shipment Failed': 'red',
+  'Cancelled': 'gray',
+}
+
+export const DRAFT_ORDER_STATUS_VARIANT = { Ready: 'green', Complete: 'blue', Purge: 'red' }
+
 // LINX-11659 verbatim — the Error Count operator dropdown.
 export const ERROR_COUNT_OPERATORS = [
   { value: 'gt', label: 'Greater Than' },
@@ -208,6 +226,17 @@ function distinctValues(dataKey, query) {
 }
 
 /**
+ * The display form of a committed location value — the exact inverse of the
+ * "City|State|Country" join below. Exported so a consumer can render a STORED
+ * value without the option it came from: reopening the filter panel has the
+ * value but not the option list, and showing the raw pipe-joined string there
+ * ("Chicago|IL|US") is not a label.
+ */
+export function locationLabel(value) {
+  return String(value ?? '').split('|').filter(Boolean).join(', ')
+}
+
+/**
  * Distinct City-State-Country triples off one location field, matched per
  * LINX-10285: the query hits if it appears in City OR State OR Country
  * ("MI" → Miami/Florida/US, Detroit/Michigan/US, Palikir/Micronesia — the
@@ -223,7 +252,7 @@ function distinctLocations(dataKey, query) {
     const parts = [loc.city, loc.state, loc.country].filter(Boolean)
     if (q && !parts.some((p) => String(p).toLowerCase().includes(q))) continue
     const value = `${loc.city ?? ''}|${loc.state ?? ''}|${loc.country ?? ''}`
-    if (!byValue.has(value)) byValue.set(value, { value, label: parts.join(', ') })
+    if (!byValue.has(value)) byValue.set(value, { value, label: locationLabel(value) })
   }
   return [...byValue.values()].sort((a, b) => a.label.localeCompare(b.label))
 }

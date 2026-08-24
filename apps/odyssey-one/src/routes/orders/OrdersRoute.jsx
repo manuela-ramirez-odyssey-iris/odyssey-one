@@ -86,6 +86,14 @@ export default function OrdersRoute() {
   // Shipments bar behaves the same way across its panels. The tab's own status
   // filter still applies on top, so the tab keeps its meaning.
   const [searchText, setSearchText] = useState('')
+  // Committed bar CHIPS (S130) — the structured half of a search commit, the
+  // twin of `searchText`'s free half. A SEPARATE path from `filtersByTab`: the
+  // panel's fields are tab-scoped by ticket ruling while the bar is flat over
+  // the whole progression, so bar criteria cannot live in panel state without
+  // either being dropped on the wrong tab or forcing fields onto a tab
+  // LINX-10285 says should not have them. Not per-tab, for the same reason
+  // `searchText` isn't: a search is a question about ORDERS.
+  const [searchChips, setSearchChips] = useState([])
 
   const tabStatuses = MAIN_TABS.find(t => t.key === activeTab)?.statuses
   const sortField = SORT_FIELD_BY_COLUMN[sorting[0]?.id] ?? sorting[0]?.id ?? 'orderNumber'
@@ -99,13 +107,14 @@ export default function OrdersRoute() {
       // Raw text; getOrderList resolves it into needles where the full dataset
       // is (mock) or by asking the server (live).
       ...(searchText ? { searchText } : {}),
+      ...(searchChips.length ? { searchChips } : {}),
     }
     return {
       pagination: { pageNumber: pagination.pageIndex + 1, pageSize: pagination.pageSize },
       sort: { field: sortField, direction: sorting[0]?.desc ? 'desc' : 'asc' },
       ...(Object.keys(filters).length ? { filters } : {}),
     }
-  }, [pagination, sortField, sorting, tabStatuses, activeTab, tabFilters, searchText])
+  }, [pagination, sortField, sorting, tabStatuses, activeTab, tabFilters, searchText, searchChips])
 
   // Reset to the first page when the customer scope changes (query identity
   // change — the Shipments-proven pattern).
@@ -129,6 +138,15 @@ export default function OrdersRoute() {
   // A committed search re-ranks the whole list — page 5 of the old result set
   // is meaningless against the new one.
   const handleSearch = useCallback((text) => {
+    setSearchText(text)
+    setPagination(p => ({ ...p, pageIndex: 0 }))
+  }, [])
+
+  // "Show all results" — both halves of a bar commit land in one gesture, so
+  // the list is never briefly filtered by the chips without the text (or the
+  // reverse). Same page reset: a narrowed list has fewer pages.
+  const handleCommitCriteria = useCallback((chips, text) => {
+    setSearchChips(chips)
     setSearchText(text)
     setPagination(p => ({ ...p, pageIndex: 0 }))
   }, [])
@@ -195,6 +213,7 @@ export default function OrdersRoute() {
           open={filtersOpen}
           onOpenChange={setFiltersOpen}
           onSearch={handleSearch}
+          onCommitCriteria={handleCommitCriteria}
         />
       }
     >

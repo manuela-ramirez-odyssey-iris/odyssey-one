@@ -8,6 +8,7 @@ vi.mock('../../data/orders', () => ({ getAllOrders: () => [] }))
 import {
   activeFilterCount,
   emptyState,
+  filterChips,
   hasFilters,
   parseErrorCount,
   parseLocationValue,
@@ -186,5 +187,63 @@ describe('splitTextValues', () => {
     expect(splitTextValues('one two')).toEqual(['one two'])
     expect(splitTextValues('')).toEqual([])
     expect(splitTextValues(null)).toEqual([])
+  })
+})
+
+// S130 — the applied filters, as the bar's chips. This is what makes the bar
+// and the panel two views of ONE state (user ruling: "the searchbar is wired to
+// the filters panel too like in shipments").
+describe('filterChips (S130 bar wiring)', () => {
+  it('gives one chip per FILLED field, labelled "<Field>: <value>"', () => {
+    const chips = filterChips('all', {
+      ...emptyState('all'),
+      orderNumber: 'AAA1',
+      customer: ['BASF_CHM_01'],
+    })
+    expect(chips).toEqual([
+      { key: 'orderNumber', label: 'Order Number: AAA1' },
+      { key: 'customer', label: 'Customer: BASF_CHM_01' },
+    ])
+  })
+
+  it('an untouched state produces none', () => {
+    expect(filterChips('all', emptyState('all'))).toEqual([])
+  })
+
+  it('a location reads as its display label, never the pipe-joined value', () => {
+    const [chip] = filterChips('all', { ...emptyState('all'), origin: ['Chicago|IL|US'] })
+    expect(chip.label).toBe('Origin City, State, Country: Chicago, IL, US')
+  })
+
+  it('a date range is ONE chip, and an open-ended bound still reads as a range', () => {
+    const both = filterChips('all', {
+      ...emptyState('all'), latestPickup: { from: '2026-04-03', to: '2026-04-09' },
+    })
+    expect(both).toEqual([{ key: 'latestPickup', label: 'Latest Pickup Date: 4/3/2026 – 4/9/2026' }])
+    const fromOnly = filterChips('all', { ...emptyState('all'), latestPickup: { from: '2026-04-03', to: '' } })
+    expect(fromOnly[0].label).toBe('Latest Pickup Date: 4/3/2026 –')
+  })
+
+  it('multiple enum values share one chip', () => {
+    const [chip] = filterChips('all', { ...emptyState('all'), orderStatus: ['Draft', 'Submitted'] })
+    expect(chip.label).toBe('Order Status: Draft, Submitted')
+  })
+
+  it('a half-filled comparator shows NO chip — it emits no filter either', () => {
+    const state = { ...emptyState('validation-errors'), errorCount: { op: 'gt', value: '' } }
+    expect(filterChips('validation-errors', state)).toEqual([])
+    expect(toRequestFilters('validation-errors', state)).toEqual({})
+    const filled = { ...emptyState('validation-errors'), errorCount: { op: 'gt', value: '5' } }
+    expect(filterChips('validation-errors', filled)[0].label).toBe('Error Count: Greater Than 5')
+  })
+
+  it('counts the same fields activeFilterCount does', () => {
+    const state = {
+      ...emptyState('all'),
+      customer: ['BASF_CHM_01'],
+      origin: ['Chicago|IL|US'],
+      latestPickup: { from: '2026-04-03', to: '' },
+    }
+    expect(filterChips('all', state)).toHaveLength(activeFilterCount('all', state))
   })
 })

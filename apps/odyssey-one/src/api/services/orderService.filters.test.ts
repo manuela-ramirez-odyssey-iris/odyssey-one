@@ -177,3 +177,77 @@ describe('live: customer scope intersects the panel filter', () => {
     vi.mocked(getApiMode).mockReturnValue('mock')
   })
 })
+
+// ── Committed bar chips (S130) ─────────────────────────────────────────────
+// The flat criteria path. Its whole point is reaching attributes the tab-scoped
+// panel has no field for, so the assertions below deliberately favour those.
+describe('searchChips — the flat criteria path', () => {
+  const byChips = (searchChips: unknown[]) => numbers({ searchChips } as never)
+
+  it('filters on an attribute with NO panel field (equipment)', async () => {
+    expect(await byChips([{ key: 'equipment', dataKey: 'equipment', queryValue: 'VAN', exact: true }]))
+      .toHaveLength(STORE.length)
+    expect(await byChips([{ key: 'equipment', dataKey: 'equipment', queryValue: 'REEFER', exact: true }]))
+      .toEqual([])
+  })
+
+  it('matches an enum by the DISPLAY label the column shows, not the stored code', async () => {
+    // Rows store shipDirection 'O'; the bar only ever offers 'Outbound'.
+    expect(await byChips([{ key: 'ship-direction', dataKey: 'shipDirection', queryValue: 'Outbound', exact: true }]))
+      .toHaveLength(STORE.length)
+    expect(await byChips([{ key: 'ship-direction', dataKey: 'shipDirection', queryValue: 'O', exact: true }]))
+      .toEqual([])
+  })
+
+  it('matches hazardous by the badge text, and a non-hazmat row by neither', async () => {
+    expect(await byChips([{ key: 'hazardous', dataKey: 'hazardous', queryValue: 'Hazmat', exact: true }]))
+      .toEqual([])
+  })
+
+  it('an exact chip does not substring-match a sibling value', async () => {
+    // 'Ready For Plan' must not be reached by a chip for 'Ready'.
+    expect(await byChips([{ key: 'order-status', dataKey: 'orderStatus', queryValue: 'Ready', exact: true }]))
+      .toEqual([])
+  })
+
+  it('a non-exact chip is a substring, matching the preview', async () => {
+    expect((await byChips([{ key: 'customer', dataKey: 'customer', queryValue: 'ERCO' }])).length)
+      .toBe(STORE.length)
+  })
+
+  it('chips AND with each other', async () => {
+    const both = await byChips([
+      { key: 'draft-order-status', dataKey: 'draftOrderStatus', queryValue: 'Purge', exact: true },
+      { key: 'error-count', dataKey: 'errorCount', queryValue: '12', exact: true },
+    ])
+    expect(both).toEqual(['V0002'])
+    const contradiction = await byChips([
+      { key: 'draft-order-status', dataKey: 'draftOrderStatus', queryValue: 'Purge', exact: true },
+      { key: 'error-count', dataKey: 'errorCount', queryValue: '3', exact: true },
+    ])
+    expect(contradiction).toEqual([])
+  })
+
+  it('chips AND with the panel filters, not replace them', async () => {
+    const narrowed = await numbers({
+      draftOrderStatuses: ['Purge'],
+      searchChips: [{ key: 'error-count', dataKey: 'errorCount', queryValue: '12', exact: true }],
+    } as never)
+    expect(narrowed).toEqual(['V0002'])
+  })
+
+  it('a location chip matches the flattened string the bar shows', async () => {
+    expect(await byChips([{ key: 'shipper-location', dataKey: 'shipperLocation', queryValue: 'Milan' }]))
+      .toEqual(['L0001'])
+  })
+
+  it('a date chip matches the day, in the M/D/YYYY form the bar carries', async () => {
+    const hits = await byChips([{ key: 'latest-pickup', dataKey: 'latestPickup', queryValue: '6/10/2026' }])
+    expect(hits.length).toBe(STORE.length)
+    expect(await byChips([{ key: 'latest-pickup', dataKey: 'latestPickup', queryValue: '6/11/2026' }])).toEqual([])
+  })
+
+  it('no chips changes nothing', async () => {
+    expect(await byChips([])).toHaveLength(STORE.length)
+  })
+})

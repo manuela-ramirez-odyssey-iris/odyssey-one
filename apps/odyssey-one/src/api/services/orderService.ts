@@ -2,10 +2,12 @@ import { getApiMode } from '../config'
 import { apiGet, apiPatch, apiPost, apiPut } from '../client'
 import { getAllOrders, getOrderEnrichment } from '../../data/orders'
 import { currentUser } from '../../data/sso-mock'
-import type { LocationTriple, OrderListRequest, OrderListResponse, OrderListRow } from '../types/orderList'
+import type { LocationTriple, OrderListRequest, OrderListResponse, OrderListRow, OrderSearchChip } from '../types/orderList'
 import {
   matchesAnyNeedle, compareByCriteria, textNeedles, tokenizeText, ORDERS_FREE_TEXT_ATTRS,
 } from '../../search/orders/criteria'
+import { matchesChip } from '../../search/criteria-core'
+import { orderSearchRow } from '../../search/orders/progression'
 import { mapFormToOrderInterface } from '../mappers/mapFormToOrderInterface'
 import { mapOrderViewToFormVm } from '../mappers/mapOrderViewToFormVm'
 import type { CreateOrderRequest, CreateOrderResponse, ManualOrder } from '../types/createOrder'
@@ -163,6 +165,23 @@ export async function getOrderTabCounts(customerIds?: string[]): Promise<OrderTa
 }
 
 /**
+ * Committed bar chips (S130), mock side. Every chip must match, and each one is
+ * evaluated by `matchesChip` — the SAME function the search adapter's preview
+ * uses — over the SAME projected row. That is what makes the preview's count and
+ * the grid's count agree; reimplementing the comparison here is exactly the
+ * drift criteria-core exists to prevent.
+ *
+ * The row is projected because an order row is not flat: locations are objects,
+ * dates ISO, measures `{ value, uom }`, and three enums stored as codes while
+ * the chip carries the label the column displays.
+ */
+function matchesSearchChips(row: OrderListRow, chips?: OrderSearchChip[]): boolean {
+  if (!chips?.length) return true
+  const projected = orderSearchRow(row as unknown as Record<string, unknown>)
+  return chips.every((chip) => matchesChip(projected, chip))
+}
+
+/**
  * Order list. `customerIds` is the navbar-customer FIRST-order scope — the same
  * semantics gridService applies to Shipments (S79c decision 10): `undefined` =
  * unscoped (legacy callers/tests), `[]` honestly yields nothing, otherwise rows
@@ -239,6 +258,7 @@ export async function getOrderList(
       oneOf(f.lastEditedBy, r.lastEditedBy) &&
       matchesErrorCount(r.errorCount, f.errorCountOperator, f.errorCountValue) &&
       matchesSearchTerms(r, mockNeedles) &&
+      matchesSearchChips(r, f.searchChips) &&
       (originTriples?.length
         ? matchesLocation(r.consignor, originTriples)
         : oneOf(f.originCities, r.consignor?.city) &&

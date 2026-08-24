@@ -4,7 +4,7 @@ import { orderList, orderTabCounts, orderView, updateOrder, updateOrderStatus, c
 import { getPreference, putPreference } from './preferences.mjs'
 import { listSharedFilters, createSharedFilter, renameSharedFilter, deleteSharedFilter } from './sharedFilters.mjs'
 import { getSpotState, putSpotState, deleteSpotState } from './spot.mjs'
-import { searchHandler, suggestHandler } from './search.mjs'
+import { searchHandler, suggestHandler, valuesHandler } from './search.mjs'
 
 // Exact `path` match, or `pattern` (RegExp) whose capture groups become handler params.
 export const ROUTES = [
@@ -33,6 +33,7 @@ export const ROUTES = [
   // the target, but Vercel 400s it and CloudFront rejects it outright (spec §5).
   { name: 'search',            method: 'POST', path: '/v1/search',                                          handler: searchHandler },
   { name: 'searchSuggest',     method: 'POST', path: '/v1/search/suggest',                                  handler: suggestHandler },
+  { name: 'searchValues',      method: 'POST', path: '/v1/search/values',                                   handler: valuesHandler },
 ]
 
 export function matchRoute(method, pathname) {

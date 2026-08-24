@@ -23,8 +23,11 @@
  *
  * `dataKey` maps to the field in the fake JSON DB (shipments.json).
  *
- * `exact: true` marks count-like fields whose chips match by full equality
- * instead of substring — "Order Count: 2" must not match a count of 12.
+ * `exact: true` marks fields whose chips match by full equality instead of
+ * substring — "Order Count: 2" must not match a count of 12, and (S130) no enum
+ * either: every enum value comes from a fixed catalog, so a substring match is
+ * never what the user meant and "Mode: TL" was matching every LTL shipment.
+ * Read by BOTH engines — the mock's matchesChip and the live column filter.
  *
  * NOTE: this is the ONLY place Shipments search data lives. GlobalSearch and the
  * orchestration hook never import it — the adapter is the seam. Other domains
@@ -79,8 +82,8 @@ export const SHIPMENTS_PROGRESSION = [
     group: 'Transport & Equipment',
     label: 'How it moves',
     attributes: [
-      { key: 'mode', label: 'Mode', dataKey: 'mode', match: 'enum', values: ['TL', 'LTL', 'RR', 'IMD', 'AIR'] },
-      { key: 'equipment-code', label: 'Equipment Code', dataKey: 'equipmentCode', match: 'enum', values: EQUIPMENT_CODES },
+      { key: 'mode', label: 'Mode', dataKey: 'mode', match: 'enum', exact: true, values: ['TL', 'LTL', 'RR', 'IMD', 'AIR'] },
+      { key: 'equipment-code', label: 'Equipment Code', dataKey: 'equipmentCode', match: 'enum', exact: true, values: EQUIPMENT_CODES },
       { key: 'equipment', label: 'Equipment #', dataKey: 'equipment', match: 'digits' },
       { key: 'seal', label: 'Seal Number', dataKey: 'seal', match: 'letters' },
     ],
@@ -90,8 +93,8 @@ export const SHIPMENTS_PROGRESSION = [
     label: 'Operational status',
     attributes: [
       { key: 'scac', label: 'SCAC', dataKey: 'scac', match: 'letters' },
-      { key: 'tender-status', label: 'Tender Status', dataKey: 'tenderStatus', match: 'enum', values: ['Sent', 'Accepted', 'Declined', 'Cancelled'] },
-      { key: 'shipment-status', label: 'Shipment Status', dataKey: 'shipmentStatus', match: 'enum', values: ['Review', 'Done'] },
+      { key: 'tender-status', label: 'Tender Status', dataKey: 'tenderStatus', match: 'enum', exact: true, values: ['Sent', 'Accepted', 'Declined', 'Cancelled'] },
+      { key: 'shipment-status', label: 'Shipment Status', dataKey: 'shipmentStatus', match: 'enum', exact: true, values: ['Review', 'Done'] },
     ],
   },
   {
@@ -103,9 +106,9 @@ export const SHIPMENTS_PROGRESSION = [
     label: 'Shipment classification',
     attributes: [
       // LINX-11597 verbatim — Direct (1 mapped order) vs Consolidation (>1).
-      { key: 'shipment-type', label: 'Shipment Type', dataKey: 'shipmentType', match: 'enum', values: ['Direct', 'Consolidation'] },
+      { key: 'shipment-type', label: 'Shipment Type', dataKey: 'shipmentType', match: 'enum', exact: true, values: ['Direct', 'Consolidation'] },
       // LINX-12902 verbatim — RDD if ANY mapped order is RDD, else SSD.
-      { key: 'planning-type', label: 'Planning Type', dataKey: 'planningType', match: 'enum', values: ['RDD', 'SSD'] },
+      { key: 'planning-type', label: 'Planning Type', dataKey: 'planningType', match: 'enum', exact: true, values: ['RDD', 'SSD'] },
     ],
   },
   {

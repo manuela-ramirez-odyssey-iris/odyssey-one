@@ -19,8 +19,14 @@ export { splitDateTime, joinDateTime, dayOfWeek, composeCarrierDateTime }
 //      Equipment, Pickup, Delivery), sourced from the selected routing option.
 //   2. "Quote" — the editable fields (Base Rate + Currency, Markup) followed by
 //      Additional Charges.
-// Then the AP/AR summary cards (LINX-13896) and read-only Audit Information
-// (LINX-13895). Footer is Cancel · Save Quote; `view` has NO footer.
+// Then the AP/AR summary cards (LINX-13896). Footer is Cancel · Save Quote;
+// `view` has NO footer.
+//
+// The read-only "Audit Information" block LINX-13895 specifies (Created/Updated
+// By + Date/Time, Initial/Final AP Amount) was REMOVED from this modal (user,
+// S130). The audit data itself is untouched — RoutingGuideTab still stamps
+// `quoteAudit` on every save — so restoring the section is a render change, not
+// a data change.
 //
 // Corrects an earlier note here claiming this modal had to own the Equipment
 // control as "the ONLY place a quote's equipment is edited". It does not:
@@ -180,11 +186,6 @@ export const QuoteModal = forwardRef(function QuoteModal(
   const [additionalCharges, setAdditionalCharges] = useState(() =>
     carrierData?.rateDetails?.additionalCharges?.map(c => ({ ...c })) || [],
   )
-  // Audit Information (LINX-13895) is read-only in every mode and never
-  // edited here, so it rides straight off the prop — no local state to seed
-  // or sync back.
-  const audit = carrierData?.quoteAudit
-
   // Field-level validation (LINX-13895 table). `touched` gates when a
   // still-empty/invalid field first shows red — same on-blur idiom as
   // create-order's react-hook-form fields (mode: onTouched), reimplemented
@@ -463,23 +464,6 @@ export const QuoteModal = forwardRef(function QuoteModal(
           />
         </div>
 
-        {/* Audit Information (LINX-13895) — read-only in all three modes,
-            never edited here. Always rendered, every field individually
-            DASHed, rather than omitted on a never-quoted option: every other
-            read-only section in this file (Pickup and Delivery, Carrier in
-            view mode) follows the same rule — the section's shape never
-            depends on whether the data behind it exists. */}
-        <section>
-          <h3 className="text-label-base-semibold quote-modal__section-title">Audit Information</h3>
-          <div className="quote-modal__grid-2">
-            <TitleSubtitle subtitle="Created By" title={audit?.createdBy || DASH} />
-            <TitleSubtitle subtitle="Created Date/Time" title={audit?.createdDate || DASH} />
-            <TitleSubtitle subtitle="Updated By" title={audit?.updatedBy || DASH} />
-            <TitleSubtitle subtitle="Updated Date/Time" title={audit?.updatedDate || DASH} />
-            <TitleSubtitle subtitle="Initial AP Amount" title={audit?.initialApAmount != null ? fmtDollar(audit.initialApAmount) : DASH} />
-            <TitleSubtitle subtitle="Final AP Amount" title={audit?.finalApAmount != null ? fmtDollar(audit.finalApAmount) : DASH} />
-          </div>
-        </section>
       </div>
   )
 
