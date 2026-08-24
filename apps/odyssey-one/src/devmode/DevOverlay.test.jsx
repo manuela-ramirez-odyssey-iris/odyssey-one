@@ -7,7 +7,7 @@
 import { beforeAll, beforeEach, afterEach, describe, it, expect, vi } from 'vitest'
 import { render, screen, cleanup, fireEvent, act } from '@testing-library/react'
 import { Badge, EntityChip, FormField, IconButton } from '@odyssey/ui'
-import DevOverlay, { breadcrumbSegments } from './DevOverlay.jsx'
+import DevOverlay from './DevOverlay.jsx'
 import { preloadComponentInfo } from './componentInfo.js'
 import { setEnabled, setMode, setFramework, setNesting, _resetForTests } from './useDevMode.js'
 
@@ -196,7 +196,11 @@ describe('DevOverlay — hover mode, nested components', () => {
     return result
   }
 
-  it('labels the INNERMOST component and renders its ancestor path', () => {
+  // REWRITTEN (was: "labels the INNERMOST component and renders its ancestor
+  // path"). The ancestor breadcrumb moved into the detail modal's Hierarchy
+  // section — the chip is back to leaf-only, so the crumb assertion it made
+  // is now the opposite of the contract.
+  it('labels ONLY the innermost component — no ancestor text in the chip', () => {
     setEnabled(true)
     setMode('hover')
     setFramework('react')
@@ -205,7 +209,8 @@ describe('DevOverlay — hover mode, nested components', () => {
     const chips = container.querySelectorAll('.devmode-chip')
     expect(chips.length).toBe(1)
     expect(chips[0].textContent).toContain('FieldSelect')
-    expect(chips[0].querySelector('.devmode-chip__crumb').textContent).toBe('FormField')
+    expect(chips[0].textContent).not.toContain('FormField')
+    expect(chips[0].querySelector('.devmode-chip__crumb')).toBeNull()
   })
 
   it('outlines the whole chain — leaf solid, ancestors dashed/dimmed', () => {
@@ -219,41 +224,25 @@ describe('DevOverlay — hover mode, nested components', () => {
     expect(container.querySelectorAll('.devmode-outline--nested').length).toBe(1)
   })
 
-  it('clicking a breadcrumb segment inspects the ANCESTOR, not the leaf', () => {
-    setEnabled(true)
-    setMode('hover')
-    setFramework('react')
-    const onInspect = vi.fn()
-    const { container } = renderNested(onInspect)
+  // REMOVED: "clicking a breadcrumb segment inspects the ANCESTOR, not the
+  // leaf" and the whole `breadcrumbSegments` describe (2 cases: the verbatim
+  // cap and the ellipsis). Both asserted the breadcrumb contract that the
+  // modal's Hierarchy section replaces — the helper no longer exists, and
+  // ancestor re-targeting is covered in DevDetailModal.test.jsx instead.
 
-    fireEvent.click(container.querySelector('.devmode-chip__crumb'))
-
-    expect(onInspect).toHaveBeenCalledTimes(1)
-    expect(onInspect).toHaveBeenCalledWith('FormField')
-  })
-
-  it('ancestors keep their REACT names while the leaf renders the Angular selector', () => {
+  // REWRITTEN (was: "ancestors keep their REACT names while the leaf renders
+  // the Angular selector"). Only the leaf renders at all now, so the
+  // React-name-for-ancestors rule has no chip to apply to; what's left worth
+  // asserting is that the leaf still follows the selected framework.
+  it('the leaf renders the Angular selector under the angular framework', () => {
     setEnabled(true)
     setMode('hover')
     setFramework('angular')
     const { container } = renderNested()
 
     const chip = container.querySelector('.devmode-chip')
-    expect(chip.querySelector('.devmode-chip__crumb').textContent).toBe('FormField')
-    expect(chip.textContent).not.toContain('odyssey-form-field')
-    // Leaf side uses the selected framework (FieldSelect is ported).
     expect(chip.textContent).toContain('odyssey-field-select')
-  })
-})
-
-describe('breadcrumbSegments', () => {
-  it('shows up to two ancestors verbatim', () => {
-    expect(breadcrumbSegments(['A', 'B'])).toEqual({ ellipsis: false, names: ['A', 'B'] })
-    expect(breadcrumbSegments([])).toEqual({ ellipsis: false, names: [] })
-  })
-
-  it('keeps the two NEAREST ancestors and flags an ellipsis when deeper', () => {
-    expect(breadcrumbSegments(['A', 'B', 'C', 'D'])).toEqual({ ellipsis: true, names: ['C', 'D'] })
+    expect(chip.textContent).not.toContain('odyssey-form-field')
   })
 })
 
@@ -364,7 +353,7 @@ describe('DevOverlay — all mode', () => {
 })
 
 describe('DevOverlay — chip interaction', () => {
-  it('clicking a chip calls onInspect with the component name; overlay is pointer-events none, chip is pointer-events auto', () => {
+  it('clicking a chip calls onInspect with the component name AND its element; overlay is pointer-events none, chip is pointer-events auto', () => {
     setEnabled(true)
     setMode('hover')
     setFramework('react')
@@ -387,7 +376,12 @@ describe('DevOverlay — chip interaction', () => {
     expect(chip.style.pointerEvents).toBe('auto')
 
     fireEvent.click(chip)
-    expect(onInspect).toHaveBeenCalledWith('Badge')
+    // The element is what lets the modal re-walk THIS instance (ancestry +
+    // live props) rather than only knowing the component type.
+    const [calledName, calledElement] = onInspect.mock.calls[0]
+    expect(calledName).toBe('Badge')
+    expect(calledElement instanceof HTMLElement).toBe(true)
+    expect(calledElement.contains(badgeNode)).toBe(true)
   })
 })
 

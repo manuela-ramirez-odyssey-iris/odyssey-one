@@ -107,15 +107,6 @@ function clampToViewport(left, top) {
 const CHIP_STAGGER_PX = 14
 const CHIP_HEIGHT_PX = 18
 
-// Ancestor breadcrumb: at most MAX_CRUMBS ancestors are shown; anything
-// deeper collapses to a leading '…'. Pure + exported so the cap is testable
-// without building a 4-deep component fixture.
-const MAX_CRUMBS = 2
-// eslint-disable-next-line react-refresh/only-export-components -- pure helper exported for tests, same as DevToggle's nearestCorner
-export function breadcrumbSegments(ancestors = []) {
-  return { ellipsis: ancestors.length > MAX_CRUMBS, names: ancestors.slice(-MAX_CRUMBS) }
-}
-
 function DevOutline({ element, nested }) {
   const rect = rectOf(element)
   return (
@@ -123,36 +114,6 @@ function DevOutline({ element, nested }) {
       className={nested ? 'devmode-outline devmode-outline--nested' : 'devmode-outline'}
       style={{ position: 'fixed', left: rect.left, top: rect.top, width: rect.width, height: rect.height, pointerEvents: 'none' }}
     />
-  )
-}
-
-// Ancestor crumbs deliberately render the REACT component name even when the
-// selected framework is Angular: Angular selectors are long (`odyssey-...`)
-// and the breadcrumb is orientation, not the deliverable — only the leaf
-// renders in the selected framework.
-function Breadcrumb({ ancestors, onInspect }) {
-  const { ellipsis, names } = breadcrumbSegments(ancestors)
-  return (
-    <span className="devmode-chip__crumbs">
-      {ellipsis && <span className="devmode-chip__crumb-sep">…&nbsp;›&nbsp;</span>}
-      {names.map((name, i) => (
-        <span key={`${name}-${i}`}>
-          <button
-            type="button"
-            className="devmode-chip__crumb"
-            onClick={(e) => {
-              // Without this the leaf chip's own onClick would also fire and
-              // open the LEAF's modal instead of the ancestor's.
-              e.stopPropagation()
-              onInspect(name)
-            }}
-          >
-            {name}
-          </button>
-          <span className="devmode-chip__crumb-sep">&nbsp;›&nbsp;</span>
-        </span>
-      ))}
-    </span>
   )
 }
 
@@ -171,15 +132,15 @@ function DevOverlayItem({ item, framework, onInspect }) {
   return (
     <>
       <DevOutline element={item.element} nested={depth > 0} />
+      {/* onInspect gets the ELEMENT alongside the name so the modal can
+          re-walk THIS instance's fibers (ancestry + live props) instead of
+          only knowing which component type was clicked. */}
       <div
         className={classes.join(' ')}
         style={{ position: 'fixed', left, top, pointerEvents: 'auto', cursor: 'pointer' }}
-        onClick={() => onInspect(item.name)}
+        onClick={() => onInspect(item.name, item.element)}
         title={normalizing ? 'NORMALIZING' : undefined}
       >
-        {item.ancestors && item.ancestors.length > 0 && (
-          <Breadcrumb ancestors={item.ancestors} onInspect={onInspect} />
-        )}
         {normalizing && <span className="devmode-chip__dot" aria-hidden="true" />}
         {text}
       </div>
@@ -297,16 +258,17 @@ export default function DevOverlay({ onInspect = () => {}, suppressed = false })
   // unmounted. getBoundingClientRect() on a detached node is all zeros —
   // without this filter that's a chip pinned at the viewport corner forever.
   // Covers hover mode's transient case too (element removed mid-hover).
-  // Hover mode: the LEAF (innermost) component is the labeled one — its
-  // metadata and its solid outline. Its ancestors get dashed outlines only,
-  // plus a clickable breadcrumb inside the leaf's chip (that breadcrumb is
-  // the only way to reach a parent whose layout leaves no uncovered gap).
+  // Hover mode: the LEAF (innermost) component is the only one LABELED — one
+  // chip, name/tier/version, nothing else. Its ancestors keep dashed outlines
+  // (spatial context is what hover is good at); the ancestor NAMES, and how
+  // each one relates to its parent, moved into the detail modal, which has
+  // room for them. Clicking the chip opens that modal for the leaf.
   const liveChain = hoverChain.filter((entry) => entry.element.isConnected)
   const leaf = liveChain[liveChain.length - 1]
   const items =
     mode === 'hover'
       ? leaf
-        ? [{ ...leaf, depth: 0, ancestors: liveChain.slice(0, -1).map((entry) => entry.name) }]
+        ? [{ ...leaf, depth: 0 }]
         : []
       : allHighlights.filter((item) => item.element.isConnected)
   const ancestorOutlines = mode === 'hover' ? liveChain.slice(0, -1) : []

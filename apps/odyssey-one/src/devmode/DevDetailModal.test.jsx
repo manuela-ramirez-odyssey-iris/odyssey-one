@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, it, expect, vi } from 'vitest'
 import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/react'
+import { Button, FormField, PageHeader } from '@odyssey/ui'
 import DevDetailModal from './DevDetailModal.jsx'
 import { getComponentInfo, dsmUrl } from './componentInfo.js'
 
@@ -102,6 +103,157 @@ describe('DevDetailModal — load failure', () => {
     render(<DevDetailModal name="Badge" onClose={onClose} />)
 
     await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1))
+  })
+})
+
+const BUTTON_INFO = {
+  name: 'Button',
+  react: {
+    tier: 'atom',
+    version: '1.0.0',
+    normalizing: false,
+    props: [
+      { name: 'variant', type: 'string', desc: 'Visual preset.' },
+      { name: 'size', type: 'string', desc: 'Control size.' },
+      { name: 'disabled', type: 'bool', desc: 'Disables the control.' },
+    ],
+  },
+  angular: null,
+  ported: false,
+}
+
+// Real component trees, so the fiber walk under test is exercised against
+// genuine @odyssey/ui instances rather than a hand-built fake.
+function renderProductTree() {
+  return render(
+    <PageHeader title="Shipments">
+      <FormField label="Currency" value="" onChange={() => {}} trailingSelect={{ label: 'USD', onClick: () => {} }} />
+    </PageHeader>
+  )
+}
+
+describe('DevDetailModal — hierarchy', () => {
+  it('lists the whole ancestry outermost → innermost with slot/internal relation labels', async () => {
+    getComponentInfo.mockResolvedValue(PORTED_INFO)
+    renderProductTree()
+    const target = screen.getByRole('button', { name: 'USD' })
+
+    render(<DevDetailModal name="FieldSelect" element={target} onClose={() => {}} />)
+    await waitFor(() => expect(screen.getByRole('dialog')).toBeTruthy())
+
+    const rows = Array.from(document.querySelectorAll('.devmode-detail__chain-row'))
+    expect(rows.map((r) => r.querySelector('.devmode-detail__chain-name').textContent)).toEqual([
+      'PageHeader',
+      'FormField',
+      'FieldSelect',
+    ])
+    // FormField was handed to PageHeader as children → slot. FieldSelect is
+    // built by FormField's own render → internal. The outermost row has no
+    // parent in this chain, so it carries no label.
+    expect(Array.from(document.querySelectorAll('.devmode-detail__relation')).map((n) => n.textContent)).toEqual([
+      'slot',
+      'internal',
+    ])
+    // The inspected entry is emphasized, and is the one row that isn't a link.
+    expect(rows[2].className).toContain('devmode-detail__chain-row--current')
+    expect(rows[2].querySelector('button')).toBeNull()
+  })
+
+  it('clicking an ancestor row re-targets the modal at that ancestor (name + its element)', async () => {
+    getComponentInfo.mockResolvedValue(PORTED_INFO)
+    renderProductTree()
+    const target = screen.getByRole('button', { name: 'USD' })
+    const onInspect = vi.fn()
+
+    render(<DevDetailModal name="FieldSelect" element={target} onInspect={onInspect} onClose={() => {}} />)
+    await waitFor(() => expect(screen.getByRole('dialog')).toBeTruthy())
+
+    fireEvent.click(screen.getByRole('button', { name: 'PageHeader' }))
+
+    expect(onInspect).toHaveBeenCalledTimes(1)
+    const [calledName, calledElement] = onInspect.mock.calls[0]
+    expect(calledName).toBe('PageHeader')
+    expect(calledElement.contains(target)).toBe(true)
+  })
+})
+
+describe('DevDetailModal — "This instance"', () => {
+  function renderButtonInstance(extraProps = {}) {
+    const { container } = render(
+      <Button variant="secondary" size="sm" disabled onClick={() => {}} className="hero-cta" {...extraProps}>
+        Save
+      </Button>
+    )
+    return container.querySelector('button')
+  }
+
+  it('shows the clicked instance\'s live resolved props — variant and disabled included', async () => {
+    getComponentInfo.mockResolvedValue(BUTTON_INFO)
+    const el = renderButtonInstance()
+
+    render(<DevDetailModal name="Button" element={el} onClose={() => {}} />)
+    await waitFor(() => expect(screen.getByRole('dialog')).toBeTruthy())
+
+    const cells = Array.from(document.querySelectorAll('.devmode-detail__section td')).map((td) => td.textContent)
+    expect(cells).toContain('variant')
+    expect(cells).toContain('"secondary"')
+    expect(cells).toContain('disabled')
+    expect(cells).toContain('true')
+  })
+
+  it('renders a function prop as ƒ and children as <ReactNode>, never expanded', async () => {
+    getComponentInfo.mockResolvedValue(BUTTON_INFO)
+    const el = renderButtonInstance()
+
+    render(<DevDetailModal name="Button" element={el} onClose={() => {}} />)
+    await waitFor(() => expect(screen.getByRole('dialog')).toBeTruthy())
+
+    const rowText = Array.from(document.querySelectorAll('.devmode-detail__section tr')).map((tr) => tr.textContent)
+    expect(rowText).toContain('onClickƒ')
+    expect(rowText).toContain('children<ReactNode>')
+  })
+
+  it('sorts documented API props before undocumented ones (which are muted)', async () => {
+    getComponentInfo.mockResolvedValue(BUTTON_INFO)
+    const el = renderButtonInstance()
+
+    render(<DevDetailModal name="Button" element={el} onClose={() => {}} />)
+    await waitFor(() => expect(screen.getByRole('dialog')).toBeTruthy())
+
+    const rows = Array.from(document.querySelectorAll('.devmode-detail__section tbody tr'))
+    const names = rows.map((r) => r.querySelector('td').textContent)
+    expect(names.slice(0, 3)).toEqual(['variant', 'size', 'disabled'])
+    expect(names.slice(3).sort()).toEqual(['children', 'className', 'onClick'])
+    expect(rows[0].className).not.toContain('--other')
+    expect(rows[3].className).toContain('devmode-detail__instance-row--other')
+  })
+
+  it('omits a documented prop the instance never received (no invented defaults)', async () => {
+    getComponentInfo.mockResolvedValue(BUTTON_INFO)
+    const el = renderButtonInstance({ size: undefined })
+
+    render(<DevDetailModal name="Button" element={el} onClose={() => {}} />)
+    await waitFor(() => expect(screen.getByRole('dialog')).toBeTruthy())
+
+    const names = Array.from(document.querySelectorAll('.devmode-detail__section tbody tr')).map(
+      (r) => r.querySelector('td').textContent
+    )
+    expect(names).not.toContain('size')
+  })
+})
+
+describe('DevDetailModal — no element (portal / childless fiber)', () => {
+  it('falls back to the API section only, without crashing', async () => {
+    getComponentInfo.mockResolvedValue(PORTED_INFO)
+    render(<DevDetailModal name="Badge" element={null} onClose={() => {}} />)
+
+    await waitFor(() => expect(screen.getByRole('dialog')).toBeTruthy())
+
+    expect(document.querySelector('.devmode-detail__chain')).toBeNull()
+    expect(screen.queryByText('This instance')).toBeNull()
+    // The documented API table is still there.
+    expect(screen.getByText('variant')).toBeTruthy()
+    expect(screen.getByText('Color preset.')).toBeTruthy()
   })
 })
 

@@ -53,28 +53,6 @@
   opacity: 0.85;
 }
 
-.devmode-chip__crumbs {
-  color: rgba(255, 255, 255, 0.65);
-}
-
-.devmode-chip__crumb {
-  padding: 0;
-  border: none;
-  background: none;
-  color: inherit;
-  font: inherit;
-  cursor: pointer;
-}
-
-.devmode-chip__crumb:hover {
-  color: #fff;
-  text-decoration: underline;
-}
-
-.devmode-chip__crumb-sep {
-  color: rgba(255, 255, 255, 0.45);
-}
-
 .devmode-chip__dot {
   width: 6px;
   height: 6px;
@@ -233,6 +211,83 @@
   background: #f5a623;
   color: #fff;
   font: 700 10px/1.6 monospace;
+}
+
+/* Hierarchy + "This instance" — the ancestry text that used to live in the
+   hover chip, plus the clicked instance's live props. */
+.devmode-detail__section {
+  margin-bottom: 12px;
+}
+
+.devmode-detail__chain {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font: 12px/1.6 monospace;
+}
+
+.devmode-detail__chain-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.devmode-detail__chain-row--current .devmode-detail__chain-name {
+  color: #e619c9;
+  font-weight: 700;
+}
+
+.devmode-detail__chain-name {
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: inherit;
+}
+
+.devmode-detail__chain-link {
+  cursor: pointer;
+  text-decoration: underline dotted;
+}
+
+.devmode-detail__chain-link:hover {
+  color: #e619c9;
+}
+
+/* Relation to the row above: how this component got into its parent. */
+.devmode-detail__relation {
+  padding: 0 5px;
+  border-radius: 3px;
+  background: #eee;
+  color: #6b6b6b;
+  font: 700 9px/1.8 monospace;
+  text-transform: uppercase;
+}
+
+.devmode-detail__relation--slot {
+  background: #d7e9ff;
+  color: #14508c;
+}
+
+.devmode-detail__relation--internal {
+  background: #e2e2e2;
+  color: #555;
+}
+
+.devmode-detail__relation--unknown {
+  background: #f6e3c0;
+  color: #8a5a00;
+}
+
+/* Undocumented props (className, data-*, handlers) — present, but not the
+   answer to "which variant is this". */
+.devmode-detail__instance-row--other td {
+  color: #999;
+}
+
+.devmode-detail__caption {
+  text-align: left;
+  margin-bottom: 4px;
 }
 
 .devmode-detail__props {

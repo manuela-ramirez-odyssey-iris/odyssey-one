@@ -11,19 +11,26 @@ import { render, screen, cleanup, fireEvent } from '@testing-library/react'
 import DevMode from './DevMode.jsx'
 import { _resetForTests } from './useDevMode.js'
 
+// Stand-in for the real chip's element argument.
+const CHIP_ELEMENT = { id: 'chip-element' }
+
 vi.mock('./DevOverlay.jsx', () => ({
   default: ({ onInspect }) => (
-    <button type="button" onClick={() => onInspect('Badge')}>
+    <button type="button" onClick={() => onInspect('Badge', CHIP_ELEMENT)}>
       simulate chip click
     </button>
   ),
 }))
 
 vi.mock('./DevDetailModal.jsx', () => ({
-  default: ({ name, onClose }) =>
+  default: ({ name, element, onInspect, onClose }) =>
     name ? (
       <div role="dialog">
         {name}
+        {element ? ` @${element.id}` : ' @none'}
+        <button type="button" onClick={() => onInspect('FormField', { id: 'ancestor-element' })}>
+          retarget ancestor
+        </button>
         <button type="button" onClick={onClose}>
           close
         </button>
@@ -52,14 +59,27 @@ it('does not render the toggle when never activated', () => {
 })
 
 describe('chip click → modal wiring', () => {
-  it('DevOverlay.onInspect(name) opens DevDetailModal with that name; onClose clears it', () => {
+  it('DevOverlay.onInspect(name, element) opens DevDetailModal with BOTH; onClose clears it', () => {
     render(<DevMode />)
     expect(screen.queryByRole('dialog')).toBeNull()
 
     fireEvent.click(screen.getByText('simulate chip click'))
     expect(screen.getByRole('dialog').textContent).toContain('Badge')
+    // The element travels with the name — the modal needs it to re-walk the
+    // clicked instance's fibers.
+    expect(screen.getByRole('dialog').textContent).toContain('@chip-element')
 
     fireEvent.click(screen.getByText('close'))
     expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('the modal re-targets through the SAME state (ancestry row click swaps name + element)', () => {
+    render(<DevMode />)
+    fireEvent.click(screen.getByText('simulate chip click'))
+
+    fireEvent.click(screen.getByText('retarget ancestor'))
+
+    expect(screen.getByRole('dialog').textContent).toContain('FormField')
+    expect(screen.getByRole('dialog').textContent).toContain('@ancestor-element')
   })
 })

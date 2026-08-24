@@ -2,8 +2,9 @@
 import { describe, it, expect, afterEach } from 'vitest'
 import { render, screen, cleanup } from '@testing-library/react'
 import { Star } from 'lucide-react'
-import { Badge, ComboBox, FormField } from '@odyssey/ui'
-import { findUiComponent, findUiComponentChain, isUiComponentName, uiNameSet } from './inspect.js'
+import { cloneElement } from 'react'
+import { Badge, Button, ComboBox, FormField, PageHeader } from '@odyssey/ui'
+import { describeChain, findUiComponent, findUiComponentChain, isUiComponentName, uiNameSet } from './inspect.js'
 
 afterEach(cleanup)
 
@@ -150,5 +151,97 @@ describe('findUiComponentChain', () => {
     )
     const trailingButton = screen.getByRole('button', { name: 'USD' })
     expect(findUiComponent(trailingButton).name).toBe('FormField')
+  })
+})
+
+// Relation detection runs on props IDENTITY (an element passed into a parent
+// shows up in that parent's memoizedProps, and the fiber built from it keeps
+// the same `props` object) — not on `_debugOwner`, which only exists in dev
+// builds. Every fixture below is a real @odyssey/ui pair, so these assertions
+// double as the empirical check that the production-safe signal holds.
+describe('describeChain — slot vs internal', () => {
+  it('labels a component the parent renders ITSELF as "internal" (FormField → FieldSelect)', () => {
+    render(
+      <FormField
+        label="Currency"
+        value=""
+        onChange={() => {}}
+        trailingSelect={{ label: 'USD', onClick: () => {} }}
+      />
+    )
+    const chain = describeChain(screen.getByRole('button', { name: 'USD' }))
+
+    expect(chain.map((c) => [c.name, c.relation])).toEqual([
+      ['FormField', null],
+      ['FieldSelect', 'internal'],
+    ])
+  })
+
+  it('labels a component passed in as `children` as "slot" (Button inside PageHeader)', () => {
+    render(
+      <PageHeader title="Shipments">
+        <Button>Create</Button>
+      </PageHeader>
+    )
+    const chain = describeChain(screen.getByRole('button', { name: 'Create' }))
+
+    expect(chain.map((c) => [c.name, c.relation])).toEqual([
+      ['PageHeader', null],
+      ['Button', 'slot'],
+    ])
+  })
+
+  it('finds the match DEEPER inside a slot-passed subtree (Button wrapped in a plain div)', () => {
+    render(
+      <PageHeader title="Shipments">
+        <div className="actions">
+          <Button>Create</Button>
+        </div>
+      </PageHeader>
+    )
+    const chain = describeChain(screen.getByRole('button', { name: 'Create' }))
+    expect(chain.map((c) => c.relation)).toEqual([null, 'slot'])
+  })
+
+  it('mixes both in one chain: slot-passed FormField that internally renders FieldSelect', () => {
+    render(
+      <PageHeader title="Shipments">
+        <FormField label="Currency" value="" onChange={() => {}} trailingSelect={{ label: 'EUR', onClick: () => {} }} />
+      </PageHeader>
+    )
+    const chain = describeChain(screen.getByRole('button', { name: 'EUR' }))
+
+    expect(chain.map((c) => [c.name, c.relation])).toEqual([
+      ['PageHeader', null],
+      ['FormField', 'slot'],
+      ['FieldSelect', 'internal'],
+    ])
+  })
+
+  it('falls back to "unknown" when cloneElement breaks props identity but the type still matches', () => {
+    function Cloner({ children }) {
+      return <div>{cloneElement(children, { 'data-cloned': 'yes' })}</div>
+    }
+    render(
+      <PageHeader title="Shipments">
+        <Cloner>
+          <Button>Create</Button>
+        </Cloner>
+      </PageHeader>
+    )
+    const chain = describeChain(screen.getByRole('button', { name: 'Create' }))
+    expect(chain.map((c) => c.relation)).toEqual([null, 'unknown'])
+  })
+
+  it('exposes the live resolved props of each entry and returns [] for a plain div', () => {
+    render(
+      <>
+        <Badge variant="blue">Hi</Badge>
+        <div data-testid="plain">hi</div>
+      </>
+    )
+    const [entry] = describeChain(screen.getByText('Hi'))
+    expect(entry.props.variant).toBe('blue')
+    expect(describeChain(screen.getByTestId('plain'))).toEqual([])
   })
 })

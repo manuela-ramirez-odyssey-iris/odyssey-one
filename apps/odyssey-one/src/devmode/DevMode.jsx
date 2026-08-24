@@ -9,12 +9,25 @@ import DevOverlay from './DevOverlay.jsx'
 import DevDetailModal from './DevDetailModal.jsx'
 
 export default function DevMode() {
+  // { name, element } — the DOM element, never a fiber: React swaps
+  // current/alternate on re-render, so a fiber held in state goes stale. The
+  // modal re-walks from the element when it opens.
+  //
+  // The same setter is handed to the modal as `onInspect`, so a click on one
+  // of its ancestry rows re-targets this one piece of state — no second
+  // "which component is the modal showing" source of truth.
   const [inspected, setInspected] = useState(null)
+  const inspect = (name, element = null) => setInspected(name ? { name, element } : null)
   return (
     <>
       <DevToggle />
-      <DevOverlay onInspect={setInspected} suppressed={Boolean(inspected)} />
-      <DevDetailModal name={inspected} onClose={() => setInspected(null)} />
+      <DevOverlay onInspect={inspect} suppressed={Boolean(inspected)} />
+      <DevDetailModal
+        name={inspected?.name ?? null}
+        element={inspected?.element ?? null}
+        onInspect={inspect}
+        onClose={() => setInspected(null)}
+      />
     </>
   )
 }
