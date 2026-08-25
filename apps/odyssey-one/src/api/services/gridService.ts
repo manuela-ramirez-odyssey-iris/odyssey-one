@@ -53,11 +53,25 @@ export async function getCategoryCounts(params: CategoryCountParams): Promise<Ca
     const criteriaText = params.searchCriteria?.text?.trim()
     if (criteriaText) search.set('searchText', criteriaText)
     // Committed chips (GS-12 follow-up) — GET has no body, so they ride a
-    // JSON-encoded param. Server parses defensively; only key/queryValue are
-    // sent (the rest of the chip shape is UI-only: label, group, dataKey...).
+    // JSON-encoded param, carrying every field the SERVER reads.
+    //
+    // It used to send `{key, queryValue}` only, on the belief that "the rest of
+    // the chip shape is UI-only". That stopped being true when non-indexed
+    // chips started routing to shipments COLUMNS (`columnChipSpec`, search.mjs),
+    // which reads `dataKey`, `kind` and the date `from`/`to`. Stripped of those,
+    // a date or enum chip matched no registry attr AND no column, so
+    // `buildHits` took its honest-empty branch and EVERY tab counted 0 while the
+    // grid below — a POST that sends the whole chip — filtered correctly.
+    // Verified live: pickup+delivery chips count 122, stripped they count 0.
+    //
+    // Still deliberately dropped: label, attrLabel, group, open, monthHint,
+    // invalid, single, codes — presentation the server has no use for.
     const chips = params.searchCriteria?.chips
     if (chips?.length) {
-      search.set('searchChips', JSON.stringify(chips.map(c => ({ key: c.key, queryValue: c.queryValue }))))
+      search.set('searchChips', JSON.stringify(chips.map(
+        ({ key, queryValue, exact, dataKey, kind, from, to }) =>
+          ({ key, queryValue, exact, dataKey, kind, from, to }),
+      )))
     }
     const res = await apiGet<{ errorOverview: CategoryCount[] }>(
       `/shipment-service/v1/shipment/error/category/count?${search.toString()}`,

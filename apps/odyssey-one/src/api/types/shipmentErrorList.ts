@@ -60,10 +60,27 @@ export interface CategoryCount {
 // dataKey), free text ANDed and ORed across the shared field list. Matching is
 // implemented once in src/search/shipments/criteria.js and shared with the
 // search-panel glimpse.
+/**
+ * One committed bar chip, as the SERVER reads it. Everything here restricts
+ * rows; the rest of the runtime chip (label, group, open, monthHint…) is
+ * presentation and never travels.
+ *
+ * `kind`/`from`/`to` and `exact` were missing until S131, which is precisely how
+ * the counts endpoint came to strip them: a Case-12 date chip carries its
+ * bounds, not a `queryValue`, and an enum chip needs `exact` to compare whole
+ * values. Stripped, both matched nothing and every tab counted 0.
+ */
 export interface SearchCriteriaChip {
   key?: string
   dataKey: string
   queryValue?: string | null
+  /** Fixed-catalog enums + counts compare whole values, not substrings. */
+  exact?: boolean
+  /** 'date-range' switches the match from substring to calendar days. */
+  kind?: string
+  /** Inclusive day bounds, M/D/YYYY. Either side may be absent (open range). */
+  from?: string | null
+  to?: string | null
 }
 
 export interface SearchCriteria {

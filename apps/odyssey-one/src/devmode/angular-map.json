@@ -1671,7 +1671,7 @@
   "MatchRow": {
     "selector": "odyssey-match-row",
     "version": "0.6.0",
-    "normalizing": false,
+    "normalizing": true,
     "props": [
       {
         "name": "matchId",

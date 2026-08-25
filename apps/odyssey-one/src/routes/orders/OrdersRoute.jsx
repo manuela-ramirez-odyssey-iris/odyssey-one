@@ -6,6 +6,7 @@ import { Button, EmptyState, ModalMedium, PageHeader, Tab } from '@odyssey/ui'
 import AppShell from '../../components/layout/AppShell'
 import OrdersToolbar from '../../components/orders/OrdersToolbar'
 import OrdersTable from '../../components/orders/OrdersTable'
+import { primaryRowAction } from '../../components/orders/ordersColumns'
 import OrdersExportModal, { EXPORT_ROW_CAP } from '../../components/orders/OrdersExportModal'
 import OrdersGlobalSearch from '../../components/global-search/OrdersGlobalSearch'
 import { activeFilterCount, toRequestFilters } from '../../search/orders/toRequest'
@@ -123,8 +124,18 @@ export default function OrdersRoute() {
     setPagination(p => (p.pageIndex === 0 ? p : { ...p, pageIndex: 0 }))
   }, [scopeKey])
 
+  // The badges count what the grid is filtered by, MINUS the tab's own status
+  // restriction — each tab applies its own, which is what makes the three
+  // numbers differ (S131: "tabs badge counters are not updating in orders").
+  // Panel params + bar chips + free text all ride along.
+  const countFilters = useMemo(() => ({
+    ...toRequestFilters(activeTab, tabFilters),
+    ...(searchText ? { searchText } : {}),
+    ...(searchChips.length ? { searchChips } : {}),
+  }), [activeTab, tabFilters, searchText, searchChips])
+
   const { data, isPending, isFetching, isError, refetch } = useOrderList(request, selectedDataIds)
-  const { data: tabCounts } = useOrderTabCounts(selectedDataIds)
+  const { data: tabCounts } = useOrderTabCounts(selectedDataIds, countFilters)
 
   const handleTabSelect = (key) => {
     if (key === activeTab) return
@@ -150,6 +161,46 @@ export default function OrdersRoute() {
     setSearchText(text)
     setPagination(p => ({ ...p, pageIndex: 0 }))
   }, [])
+
+  // Every way into an order goes through here — the grid's ⋮ menu, the VE tab's
+  // Resolve button, and (S131) a click on a search-preview row. One handler, so
+  // "Edit" cannot mean two different destinations depending on where it started.
+  const handleRowAction = useCallback((action, row) => {
+    // View mirrors the full-row click; Edit reopens the order in the
+    // create flow (?draft hydrates via getDraft, falling back to
+    // getOrderView for non-session rows). Submit/Cancel confirm first
+    // (below); Resolve/Copy/Restore stay no-ops until their features land.
+    if (action === 'View') navigate(`/orders/${encodeURIComponent(row.id)}`)
+    else if (action === 'Edit') navigate(`/orders/create?draft=${encodeURIComponent(row.id)}`)
+    else if (action === 'Submit') setConfirmAction({ type: 'submit', row })
+    else if (action === 'Cancel') setConfirmAction({ type: 'cancel', row })
+    // Resolve reopens the order in resolution mode (LINX-11137); the
+    // row's errorCount/customer/source ride in history state so the
+    // seeded errors match what the Validation Errors tab claims.
+    else if (action === 'Resolve')
+      navigate(`/orders/create?resolve=${encodeURIComponent(row.id)}`, {
+        state: { errorCount: row.errorCount, customer: row.customer, orderSource: row.orderSource },
+      })
+  }, [navigate])
+
+  /**
+   * A search-preview row click (S131) opens the order the same way the grid
+   * would: the row's own status picks View / Edit / Resolve (`primaryRowAction`),
+   * and the destination is `handleRowAction`'s. The preview row carries the
+   * status fields as `data-*` (see the adapter's `buildOrderRow`), so this maps
+   * them back onto the grid VM's field names the rule expects.
+   */
+  const handleMatchClick = useCallback((match) => {
+    const row = {
+      id: match.id,
+      status: match['data-order-status'],
+      draftOrderStatus: match['data-draft-status'],
+      orderSource: match['data-order-source'],
+      errorCount: match['data-error-count'] === '' ? null : Number(match['data-error-count']),
+      customer: match.customer,
+    }
+    if (row.id) handleRowAction(primaryRowAction(row), row)
+  }, [handleRowAction])
 
   const handleApplyFilters = useCallback((draft) => {
     setFiltersByTab(prev => ({ ...prev, [activeTab]: draft }))
@@ -214,6 +265,7 @@ export default function OrdersRoute() {
           onOpenChange={setFiltersOpen}
           onSearch={handleSearch}
           onCommitCriteria={handleCommitCriteria}
+          onMatchClick={handleMatchClick}
         />
       }
     >
@@ -243,7 +295,10 @@ export default function OrdersRoute() {
           totalCount={data?.totalCount}
           onExportClick={() => setExportOpen(true)}
           onFiltersClick={() => setFiltersOpen(o => !o)}
-          filterCount={activeFilterCount(activeTab, tabFilters)}
+          // Params AND committed chips (S131): the panel now applies most of
+          // its fields as bar chips, so counting only `tabFilters` would show 0
+          // right after the user applied a filter with this very button.
+          filterCount={activeFilterCount(activeTab, tabFilters) + searchChips.length}
         />
 
         {isError ? (
@@ -269,23 +324,7 @@ export default function OrdersRoute() {
             sorting={sorting}
             onSortingChange={setSorting}
             totalCount={data?.totalCount ?? 0}
-            onRowAction={(action, row) => {
-              // View mirrors the full-row click; Edit reopens the order in the
-              // create flow (?draft hydrates via getDraft, falling back to
-              // getOrderView for non-session rows). Submit/Cancel confirm first
-              // (below); Resolve/Copy/Restore stay no-ops until their features land.
-              if (action === 'View') navigate(`/orders/${encodeURIComponent(row.id)}`)
-              else if (action === 'Edit') navigate(`/orders/create?draft=${encodeURIComponent(row.id)}`)
-              else if (action === 'Submit') setConfirmAction({ type: 'submit', row })
-              else if (action === 'Cancel') setConfirmAction({ type: 'cancel', row })
-              // Resolve reopens the order in resolution mode (LINX-11137); the
-              // row's errorCount/customer/source ride in history state so the
-              // seeded errors match what the Validation Errors tab claims.
-              else if (action === 'Resolve')
-                navigate(`/orders/create?resolve=${encodeURIComponent(row.id)}`, {
-                  state: { errorCount: row.errorCount, customer: row.customer, orderSource: row.orderSource },
-                })
-            }}
+            onRowAction={handleRowAction}
           />
         )}
 

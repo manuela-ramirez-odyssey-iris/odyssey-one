@@ -80,11 +80,13 @@ describe('getSuggestions — "What is it?"', () => {
     expect(keys).toContain('shipper-location')
   })
 
-  it('a typed date matches the date attributes with no special case', async () => {
-    // The projection stores dates as M/D/YYYY, so this rides the ordinary
-    // value-ranking path — no Case-12 carve-out needed for a COMPLETE date.
+  it('a typed date goes to the date chips, pre-filled (S131 — was the ranking path)', async () => {
+    // SUPERSEDES "a typed date matches the date attributes with no special
+    // case": Case 12 now claims anything slash-shaped, complete or not, so a
+    // full date commits an expanded calendar chip with the day already picked
+    // rather than a plain attribute chip that can't be edited.
     const keys = items(await adapter.getSuggestions('5/29/2026')).map((i) => i.key)
-    expect(keys).toContain('latest-pickup')
+    expect(keys).toContain('date-latest-pickup')
   })
 
   it('an enum reached by its DISPLAY label, never the stored code', async () => {
@@ -171,5 +173,57 @@ describe('getAttributeValues', () => {
   it('returns the distinct values of one attribute', async () => {
     expect(await adapter.getAttributeValues('customer', '')).toEqual(['WEYERH_01', 'BASF_CHM_01'])
     expect(await adapter.getAttributeValues('customer', 'BAS')).toEqual(['BASF_CHM_01'])
+  })
+})
+
+// S131 (Case 12, user ruling: "when i type a date like 1/ and select a date
+// chip then the chip should show as a chevron and show a calendar picker …
+// just like it is in shipments"). Before this, "1/" fell through to the
+// value-ranking path and offered nothing to pick a day with.
+describe('date suggestions (Case 12)', () => {
+  it('a slashed partial offers each date attribute twice — plain and Range', async () => {
+    const [section] = await adapter.getSuggestions('1/')
+    expect(section.title).toBe('Filter by date')
+    expect(section.items.map((i) => i.label)).toEqual([
+      'Latest Pickup Date: 1/../....', 'Latest Pickup Date Range: 1/../.... - ../../....',
+      'Latest Delivery Date: 1/../....', 'Latest Delivery Date Range: 1/../.... - ../../....',
+      'Created: 1/../....', 'Created Range: 1/../.... - ../../....',
+      'Last Edit: 1/../....', 'Last Edit Range: 1/../.... - ../../....',
+    ])
+    // The kinds useGlobalSearch turns into an EXPANDED calendar chip.
+    expect(section.items[0].kind).toBe('date')
+    expect(section.items[1].kind).toBe('date-range-suggest')
+  })
+
+  it('a complete typed date rides along as the chip\'s pre-filled bound', async () => {
+    const [section] = await adapter.getSuggestions('5/29/2026')
+    expect(section.items[0].from).toBe('05/29/2026')
+    expect(section.items[0].invalid).toBe(false)
+  })
+
+  it('bare digits stay code-typing — an order number must not become a date', async () => {
+    const [section] = await adapter.getSuggestions('91000')
+    expect(section?.title).not.toBe('Filter by date')
+  })
+})
+
+// S131 — the grid is scoped by the navbar customer selection
+// (`useOrderList(request, selectedDataIds)`). A preview that ignored the scope
+// promised rows the table then dropped — the same preview≠grid disagreement as
+// the seeded-vs-live one, from a second direction.
+describe('customer scope', () => {
+  it('counts only the selected customers', async () => {
+    expect((await adapter.search([], 'WEYERH_01')).total).toBe(1)
+    // That order belongs to WEYERH_01, so a BASF scope must not see it.
+    expect((await adapter.search([], 'WEYERH_01', ['BASF_CHM_01'])).total).toBe(0)
+    expect((await adapter.search([], 'WEYERH_01', ['WEYERH_01'])).total).toBe(1)
+  })
+
+  it('an empty selection honestly yields nothing', async () => {
+    expect((await adapter.search([], 'WEYERH_01', [])).total).toBe(0)
+  })
+
+  it('no scope at all searches everything (legacy callers)', async () => {
+    expect((await adapter.search([], 'WEYERH_01', undefined)).total).toBe(1)
   })
 })

@@ -147,16 +147,48 @@ export interface OrderTabCounts {
 /**
  * Counts for the Orders main tabs (All / Draft / Validation Errors), scoped by
  * the navbar customer selection — same semantics as getOrderList's customerIds.
- * live → GET /order-service/v3/order/tab-counts?customers=csv — OUR contract
- * extension (the LLD has no counts endpoint); mock computes over orders.json.
+ * OUR contract extension (the LLD has no counts endpoint); mock computes over
+ * orders.json.
+ *
+ * CRITERIA-AWARE since S131 (user: "tabs badge counters are not updating in
+ * orders"). `filters` is what the grid is filtered by MINUS the active tab's own
+ * status restriction — each count applies its own, which is what makes them
+ * three different numbers. Both modes run the very predicate the list runs
+ * (`applyMockFilters` / `orderWhereClauses`), so a badge cannot claim rows the
+ * grid isn't showing.
+ *
+ * live → the same GET, with the criteria as ONE JSON param. Not a POST: a
+ * method change 404s against an already-deployed server and the badges
+ * DISAPPEAR (they render `count ?? null`), whereas an unknown query param is
+ * ignored — old server keeps showing scope-only counts, new server narrows them.
+ * And `filters` goes whole, never field-by-field: cherry-picking chip fields
+ * into a URL is what truncated the Shipments chips and zeroed those badges.
  */
-export async function getOrderTabCounts(customerIds?: string[]): Promise<OrderTabCounts> {
+export async function getOrderTabCounts(
+  customerIds?: string[],
+  filters?: OrderListRequest['filters'],
+): Promise<OrderTabCounts> {
   if (customerIds && customerIds.length === 0) return { all: 0, draft: 0, validationErrors: 0 }
+  const searchText = filters?.searchText?.trim()
   if (getApiMode() === 'live') {
-    const params = customerIds !== undefined ? `?customers=${encodeURIComponent(customerIds.join(','))}` : ''
-    return apiGet<OrderTabCounts>(`/order-service/v3/order/tab-counts${params}`)
+    const fetchCounts = (searchTerms?: string[]) => {
+      const params = new URLSearchParams()
+      if (customerIds !== undefined) params.set('customers', customerIds.join(','))
+      const wire = withTerms(filters ?? {}, searchTerms)
+      if (wire && Object.keys(wire).length) params.set('filters', JSON.stringify(wire))
+      const qs = params.toString()
+      return apiGet<OrderTabCounts>(`/order-service/v3/order/tab-counts${qs ? `?${qs}` : ''}`)
+    }
+    if (!searchText) return fetchCounts()
+    // Phrase-vs-code-list, same two-step getOrderList runs — the counts have to
+    // read the query the way the list does, or the badges describe a different
+    // search than the rows.
+    const phrase = await fetchCounts([searchText.toLowerCase()])
+    if (phrase.all > 0) return phrase
+    const tokens = tokenizeText(searchText)
+    return tokens.length >= 2 ? fetchCounts(tokens) : phrase
   }
-  const rows = mockScopedRows(customerIds)
+  const rows = applyMockFilters(mockScopedRows(customerIds), filters, searchText)
   return {
     all: rows.length,
     draft: rows.filter(r => r.orderStatus === 'Draft').length,
@@ -179,6 +211,75 @@ function matchesSearchChips(row: OrderListRow, chips?: OrderSearchChip[]): boole
   if (!chips?.length) return true
   const projected = orderSearchRow(row as unknown as Record<string, unknown>)
   return chips.every((chip) => matchesChip(projected, chip))
+}
+
+/**
+ * Free text → needles, resolved ONCE against the FULL dataset (not the
+ * customer-scoped rows) so every consumer reads the query the same way — the
+ * criteria-core contract.
+ */
+function mockSearchNeedles(searchText?: string): string[] {
+  return searchText
+    ? textNeedles(getAllOrders() as unknown as Record<string, unknown>[], searchText)
+    : []
+}
+
+/**
+ * EVERY filter family, mock side — one predicate, so the list and the TAB
+ * COUNTS can't disagree (S131). Extracted from getOrderList when the badges
+ * became criteria-aware; before that they counted the customer scope alone and
+ * sat unchanged above a filtered grid.
+ */
+export function applyMockFilters(
+  rows: OrderListRow[],
+  f?: OrderListRequest['filters'],
+  searchText?: string,
+): OrderListRow[] {
+  const mockNeedles = mockSearchNeedles(searchText)
+  if (f) {
+    // Origin/Destination: the triples win when the caller sent them (the panel
+    // always does); the parallel arrays stay the path for any caller still on
+    // the raw LLD shape. Sending both would otherwise double-filter, which is
+    // harmless but makes the cross-product bug invisible in the mock.
+    const originTriples = f.originLocations
+    const destTriples = f.destinationLocations
+    rows = rows.filter(r =>
+      oneOf(f.customers, r.customer) &&
+      oneOf(f.orderNumbers, r.orderNumber) &&
+      // mock matches display labels; code→label mapping deferred until filters bind (plan decision 8)
+      oneOf(f.orderStatuses, r.orderStatus) &&
+      // LINX-11659 — the VE tab's own status vocabulary, distinct from orderStatus above.
+      oneOf(f.draftOrderStatuses, r.draftOrderStatus) &&
+      oneOf(f.createdBy, r.createdBy) &&
+      oneOf(f.lastEditedBy, r.lastEditedBy) &&
+      matchesErrorCount(r.errorCount, f.errorCountOperator, f.errorCountValue) &&
+      matchesSearchTerms(r, mockNeedles) &&
+      matchesSearchChips(r, f.searchChips) &&
+      (originTriples?.length
+        ? matchesLocation(r.consignor, originTriples)
+        : oneOf(f.originCities, r.consignor?.city) &&
+          oneOf(f.originStates, r.consignor?.state) &&
+          oneOf(f.originCountries, r.consignor?.country)) &&
+      (destTriples?.length
+        ? matchesLocation(r.consignee, destTriples)
+        : oneOf(f.destinationCities, r.consignee?.city) &&
+          oneOf(f.destinationStates, r.consignee?.state) &&
+          oneOf(f.destinationCountries, r.consignee?.country)))
+    if (f.earliestPickupDateFrom || f.earliestPickupDateTo)
+      rows = rows.filter(r => dateInRange(r.consignor?.earliestPickupDateTime, f.earliestPickupDateFrom, f.earliestPickupDateTo))
+    if (f.latestPickupDateFrom || f.latestPickupDateTo)
+      rows = rows.filter(r => dateInRange(r.consignor?.latestPickupDateTime, f.latestPickupDateFrom, f.latestPickupDateTo))
+    if (f.earliestDeliveryDateFrom || f.earliestDeliveryDateTo)
+      rows = rows.filter(r => dateInRange(r.consignee?.earliestDeliveryDateTime, f.earliestDeliveryDateFrom, f.earliestDeliveryDateTo))
+    if (f.latestDeliveryDateFrom || f.latestDeliveryDateTo)
+      rows = rows.filter(r => dateInRange(r.consignee?.latestDeliveryDateTime, f.latestDeliveryDateFrom, f.latestDeliveryDateTo))
+    // LINX-11663 (Draft tab) — same From/To semantics over the audit timestamps.
+    if (f.createdDateFrom || f.createdDateTo)
+      rows = rows.filter(r => dateInRange(r.createdAt, f.createdDateFrom, f.createdDateTo))
+    if (f.lastEditDateFrom || f.lastEditDateTo)
+      rows = rows.filter(r => dateInRange(r.lastEditAt, f.lastEditDateFrom, f.lastEditDateTo))
+  }
+  return rows
 }
 
 /**
@@ -231,58 +332,9 @@ export async function getOrderList(
     return tokens.length >= 2 ? post(tokens) : phrase
   }
 
-  let rows = mockScopedRows(customerIds)
-
-  // Resolved ONCE, against the FULL dataset (not the customer-scoped rows) so
-  // every consumer reads the query the same way — the criteria-core contract.
-  const mockNeedles = searchText
-    ? textNeedles(getAllOrders() as unknown as Record<string, unknown>[], searchText)
-    : []
-
-  const f = request.filters
-  if (f) {
-    // Origin/Destination: the triples win when the caller sent them (the panel
-    // always does); the parallel arrays stay the path for any caller still on
-    // the raw LLD shape. Sending both would otherwise double-filter, which is
-    // harmless but makes the cross-product bug invisible in the mock.
-    const originTriples = f.originLocations
-    const destTriples = f.destinationLocations
-    rows = rows.filter(r =>
-      oneOf(f.customers, r.customer) &&
-      oneOf(f.orderNumbers, r.orderNumber) &&
-      // mock matches display labels; code→label mapping deferred until filters bind (plan decision 8)
-      oneOf(f.orderStatuses, r.orderStatus) &&
-      // LINX-11659 — the VE tab's own status vocabulary, distinct from orderStatus above.
-      oneOf(f.draftOrderStatuses, r.draftOrderStatus) &&
-      oneOf(f.createdBy, r.createdBy) &&
-      oneOf(f.lastEditedBy, r.lastEditedBy) &&
-      matchesErrorCount(r.errorCount, f.errorCountOperator, f.errorCountValue) &&
-      matchesSearchTerms(r, mockNeedles) &&
-      matchesSearchChips(r, f.searchChips) &&
-      (originTriples?.length
-        ? matchesLocation(r.consignor, originTriples)
-        : oneOf(f.originCities, r.consignor?.city) &&
-          oneOf(f.originStates, r.consignor?.state) &&
-          oneOf(f.originCountries, r.consignor?.country)) &&
-      (destTriples?.length
-        ? matchesLocation(r.consignee, destTriples)
-        : oneOf(f.destinationCities, r.consignee?.city) &&
-          oneOf(f.destinationStates, r.consignee?.state) &&
-          oneOf(f.destinationCountries, r.consignee?.country)))
-    if (f.earliestPickupDateFrom || f.earliestPickupDateTo)
-      rows = rows.filter(r => dateInRange(r.consignor?.earliestPickupDateTime, f.earliestPickupDateFrom, f.earliestPickupDateTo))
-    if (f.latestPickupDateFrom || f.latestPickupDateTo)
-      rows = rows.filter(r => dateInRange(r.consignor?.latestPickupDateTime, f.latestPickupDateFrom, f.latestPickupDateTo))
-    if (f.earliestDeliveryDateFrom || f.earliestDeliveryDateTo)
-      rows = rows.filter(r => dateInRange(r.consignee?.earliestDeliveryDateTime, f.earliestDeliveryDateFrom, f.earliestDeliveryDateTo))
-    if (f.latestDeliveryDateFrom || f.latestDeliveryDateTo)
-      rows = rows.filter(r => dateInRange(r.consignee?.latestDeliveryDateTime, f.latestDeliveryDateFrom, f.latestDeliveryDateTo))
-    // LINX-11663 (Draft tab) — same From/To semantics over the audit timestamps.
-    if (f.createdDateFrom || f.createdDateTo)
-      rows = rows.filter(r => dateInRange(r.createdAt, f.createdDateFrom, f.createdDateTo))
-    if (f.lastEditDateFrom || f.lastEditDateTo)
-      rows = rows.filter(r => dateInRange(r.lastEditAt, f.lastEditDateFrom, f.lastEditDateTo))
-  }
+  let rows = applyMockFilters(mockScopedRows(customerIds), request.filters, searchText)
+  // The same needles the filter pass used — relevance ranks by them below.
+  const mockNeedles = mockSearchNeedles(searchText)
 
   // RELEVANCE first, when the bar carries free text (S128). Same rule Shipments
   // applies: exact > starts-with > contains, ties broken by which free-text

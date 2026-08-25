@@ -204,6 +204,50 @@ describe('gridService (live)', () => {
     )
   })
 
+  // S131 — the counts endpoint used to send `{key, queryValue}` only. A date or
+  // enum chip carries its restriction in `kind`/`dataKey`/`from`/`to`, so
+  // stripped it matched no registry attr AND no column, and the server's
+  // honest-empty branch made EVERY tab count 0 while the grid (a POST, whole
+  // chip) filtered correctly. Verified live: 122 rows, 0 counted.
+  it('counts send every field the SERVER reads off a chip', async () => {
+    mode.mockReturnValue('live')
+    get.mockResolvedValue({ errorOverview: [] })
+    await getCategoryCounts({
+      panel: 'monitoring',
+      searchCriteria: {
+        text: '',
+        chips: [{
+          key: 'pickup-date', dataKey: 'pickupDate', kind: 'date-range',
+          from: '06/23/2026', to: '06/25/2026',
+          // UI-only fields the server has no use for.
+          label: 'Pickup Date Range: 06/23/2026-06/25/2026', attrLabel: 'Pickup Date',
+          group: 'Schedule & Appointments', open: true, single: false, monthHint: { y: 2026, m: 6 },
+        }],
+      },
+    } as never)
+    const url = get.mock.calls[0][0] as string
+    const sent = JSON.parse(new URL(url, 'http://x').searchParams.get('searchChips') as string)
+    expect(sent).toEqual([{
+      key: 'pickup-date', dataKey: 'pickupDate', kind: 'date-range',
+      from: '06/23/2026', to: '06/25/2026',
+    }])
+  })
+
+  it('counts still drop the presentation half of an ordinary chip', async () => {
+    mode.mockReturnValue('live')
+    get.mockResolvedValue({ errorOverview: [] })
+    await getCategoryCounts({
+      panel: 'monitoring',
+      searchCriteria: {
+        text: '',
+        chips: [{ key: 'mode', dataKey: 'mode', queryValue: 'TL', exact: true, label: 'Mode: TL', group: 'Transport' }],
+      },
+    } as never)
+    const url = get.mock.calls[0][0] as string
+    const sent = JSON.parse(new URL(url, 'http://x').searchParams.get('searchChips') as string)
+    expect(sent).toEqual([{ key: 'mode', dataKey: 'mode', queryValue: 'TL', exact: true }])
+  })
+
   it('list nests searchFilters (not spread flat) so the server can ILIKE them', async () => {
     mode.mockReturnValue('live')
     post.mockResolvedValue({ pageNumber: 0, pageSize: 25, totalCount: 0, rows: [] })

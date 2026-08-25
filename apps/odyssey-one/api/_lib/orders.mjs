@@ -140,6 +140,22 @@ function chipDateIso(value) {
 export function chipClause(chip, add) {
   const cfg = CHIP_COLS[chip?.key]
   if (!cfg) return null
+
+  // Case 12 (S131) — an EXPANDED calendar chip carries `from`/`to` days, not a
+  // queryValue, and would otherwise fall through the `tokens` guard below and
+  // silently narrow nothing. Mirrors criteria-core's matchesChip: inclusive
+  // between, a missing bound leaves that side open, an unparseable bound is
+  // treated as absent, and no bounds at all restrict nothing.
+  if (chip.kind === 'date-range') {
+    if (!cfg.date) return null
+    const from = chipDateIso(chip.from)
+    const to = chipDateIso(chip.to)
+    const parts = []
+    if (from) parts.push(`${cfg.date} >= ${add(from)}::date`)
+    if (to) parts.push(`${cfg.date} < (${add(to)}::date + 1)`)
+    return parts.length ? `(${parts.join(' AND ')})` : null
+  }
+
   const tokens = chipTokens(chip.queryValue)
   if (!tokens.length) return null
 
@@ -201,8 +217,16 @@ const LOCATION_FILTERS = [
   ['destinationLocations', ['dest_city', 'dest_state', 'dest_country']],
 ]
 
-export function buildOrderListQuery({ pagination = {}, filters = {}, sort } = {}) {
-  const values = []
+/**
+ * Every criteria family as WHERE fragments, over a caller-owned `values` array.
+ *
+ * Extracted from buildOrderListQuery (S131) so the TAB COUNTS run the identical
+ * predicate instead of a second implementation. The tab badges used to count
+ * with nothing but the customer scope, so a filtered grid sat under badges
+ * claiming the unfiltered totals — the Orders half of the Shipments
+ * zero-counters report.
+ */
+export function orderWhereClauses(filters = {}, values = []) {
   const where = []
   const add = (clause, v) => { values.push(v); where.push(clause.replace('?', `$${values.length}`)) }
 
@@ -271,6 +295,13 @@ export function buildOrderListQuery({ pagination = {}, filters = {}, sort } = {}
     where.push(`(${ors.join(' OR ')})`)
   }
 
+  return where
+}
+
+export function buildOrderListQuery({ pagination = {}, filters = {}, sort } = {}) {
+  const values = []
+  const where = orderWhereClauses(filters, values)
+
   const pageNumber = pagination.pageNumber ?? 1        // 1-based per LLD (Q29)
   const pageSize = pagination.pageSize ?? 50
   const sortCol = SORT_MAP[sort?.field] ?? 'order_number'
@@ -306,13 +337,21 @@ export function buildOrderListQuery({ pagination = {}, filters = {}, sort } = {}
 // they contain spaces ('{"Planning Failed","Shipment Failed"}').
 const VALIDATION_ERROR_ARRAY_LITERAL = `{${VALIDATION_ERROR_STATUSES.map((s) => `"${s}"`).join(',')}}`
 
-export function buildTabCountsQuery({ customerIds } = {}) {
+/**
+ * The three tab badges. Criteria-aware since S131: the SAME `orderWhereClauses`
+ * the list runs, so a badge can never claim rows the grid beneath it isn't
+ * showing. The caller sends the criteria WITHOUT the active tab's own status
+ * restriction — each count applies its own (that's what makes them three
+ * different numbers).
+ */
+export function buildTabCountsQuery({ customerIds, filters } = {}) {
   const values = []
-  let scopeSql = ''
+  const where = orderWhereClauses(filters ?? {}, values)
   if (customerIds !== undefined) {
-    if (customerIds.length === 0) scopeSql = 'WHERE FALSE'   // honest empty (S79c decision 10)
-    else { values.push(customerIds); scopeSql = `WHERE customer = ANY($${values.length})` }
+    if (customerIds.length === 0) where.push('FALSE')   // honest empty (S79c decision 10)
+    else { values.push(customerIds); where.push(`customer = ANY($${values.length})`) }
   }
+  const scopeSql = where.length ? `WHERE ${where.join(' AND ')}` : ''
   return {
     // "all" is a SQL reserved word — quote the alias.
     text: `SELECT count(*)::int AS "all",
@@ -339,9 +378,30 @@ export async function orderList({ body, db }) {
   }
 }
 
+/**
+ * Stays a GET, and the criteria ride as ONE JSON param (S131).
+ *
+ * Two constraints shaped this. (a) The badges must narrow with the grid, which
+ * needs the whole filter object — a POST would have been the natural home for
+ * it, but changing the method makes every already-deployed client 404 and the
+ * badges vanish. An unknown query param, by contrast, is simply ignored by an
+ * older server: the badges keep rendering scope-only counts until the deploy
+ * catches up. (b) `filters` is sent WHOLE, never field-by-field — cherry-picking
+ * chip fields into a URL is exactly what truncated the Shipments chips and made
+ * every badge count 0.
+ *
+ * Parsed defensively, like the Shipments counts endpoint: malformed JSON
+ * degrades to no criteria rather than 500ing the badges.
+ */
 export async function orderTabCounts({ query, db }) {
   const customerIds = query.has('customers') ? query.get('customers').split(',').filter(Boolean) : undefined
-  const { rows: [counts] } = await db.query(buildTabCountsQuery({ customerIds }))
+  let filters
+  const raw = query.get('filters')
+  if (raw) {
+    try { filters = JSON.parse(raw) } catch { filters = undefined }
+    if (filters && typeof filters !== 'object') filters = undefined
+  }
+  const { rows: [counts] } = await db.query(buildTabCountsQuery({ customerIds, filters }))
   return counts   // { all, draft, validationErrors }
 }
 

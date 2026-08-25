@@ -1,9 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { GlobalSearch, GlobalSearchPanel, GlobalSearchResults } from '@odyssey/ui'
 import OrdersFiltersView from '../orders/OrdersFiltersView'
-import { activeFilterCount, emptyState, filterChips } from '../../search/orders/toRequest'
-import { ordersSearchAdapter } from '../../search/orders/adapter'
+import { emptyState, filterChips } from '../../search/orders/toRequest'
+import { chipsToPanelState, panelOwnedChipKeys, panelStateToChips } from '../../search/orders/panelChips'
+// The MODE-AWARE adapter (S131). Importing ./adapter directly is what put the
+// seeded JSON behind the preview while the grid read Neon — "Show all 56
+// results" landing on a table of 293.
+import { ordersSearchAdapter } from '../../search/orders'
 import { useGlobalSearch } from '../../search/useGlobalSearch'
+import { useCustomers } from '../../contexts/CustomersContext'
 import { FIELD_POPOVER_SELECTOR } from './fieldPopovers'
 
 /**
@@ -44,6 +49,13 @@ const KEEP_OPEN_SELECTOR = `[data-filters-trigger], ${FIELD_POPOVER_SELECTOR}`
  * its Filters panel. The chips are DERIVED from the applied filters
  * (`filterChips`), not held here, so there is no second copy to drift.
  *
+ * …AND THE PANEL IS FILLED FROM THE BAR (S131, user ruling: "the filters panel
+ * is just another way of filling the searchbar, both are bound"). Opening the
+ * panel seeds its fields from the committed chips, and applying it emits CHIPS
+ * (not params) for every field the bar can also express — one criteria state,
+ * one matching rule, whichever half you type into. Which fields those are, and
+ * why the rest stay params, is `search/orders/panelChips.js`.
+ *
  * SUGGESTIONS + RESULTS PREVIEW (S130) are live: the bar is given the Orders
  * adapter, so typing offers "What is it?" attribute chips, a committed chip
  * drills forward through the progression, and the preview panel shows the top
@@ -56,14 +68,23 @@ const KEEP_OPEN_SELECTOR = `[data-filters-trigger], ${FIELD_POPOVER_SELECTOR}`
  * the rest could be previewed but not applied, which is the "looks wired, does
  * nothing" failure api/_lib/orders.mjs warns about.
  */
-export default function OrdersGlobalSearch({ tab, filters, onApply, open, onOpenChange, onSearch, onCommitCriteria }) {
+export default function OrdersGlobalSearch({ tab, filters, onApply, open, onOpenChange, onSearch, onCommitCriteria, onMatchClick }) {
   const wrapperRef = useRef(null)
   const setOpen = onOpenChange
 
   // The Orders adapter (S130) — suggestions, drill-forward and the results
   // preview all come from it. Passing `null` here is what used to keep the bar
   // text-only: no dropdown, no preview, however good the adapter was.
-  const search = useGlobalSearch(ordersSearchAdapter, {
+  // CUSTOMER-SCOPED, like the Shipments bar's own `scopedAdapter`: the grid is
+  // scoped by the navbar selection (`useOrderList(request, selectedDataIds)`),
+  // so a preview counting every customer would promise rows the table drops.
+  const { selectedDataIds } = useCustomers()
+  const scopedAdapter = useMemo(() => ({
+    ...ordersSearchAdapter,
+    search: (chips, query) => ordersSearchAdapter.search(chips, query, selectedDataIds),
+  }), [selectedDataIds])
+
+  const search = useGlobalSearch(scopedAdapter, {
     // Removing the last committed item IS the clear gesture (S81) — the bar and
     // the table criteria must not disagree about whether a search is active.
     onLastRemoved: useCallback(() => onSearch(''), [onSearch]),
@@ -71,6 +92,7 @@ export default function OrdersGlobalSearch({ tab, filters, onApply, open, onOpen
   const {
     value, onChange, onClear, onFocus, onBlur, textChip, onTextCommit, onTextRemove,
     chips: draftChips, onChipCommit, onChipRemove: onDraftChipRemove, applyChips,
+    onDateCommit, onDateToggle,
     suggestionSections, suggestionsOpen, results, resultTotal, searching,
   } = search
 
@@ -93,6 +115,29 @@ export default function OrdersGlobalSearch({ tab, filters, onApply, open, onOpen
     ...draftChips,
     ...(textChip ? [textChip] : []),
   ]
+
+  // The panel opens showing what the BAR already holds (S131): its fields are
+  // seeded from the committed chips, over whatever params are applied. Without
+  // this the two halves disagree — the bar claims "Customer: BASF" and the
+  // panel renders an empty Customer field.
+  const panelFilters = useMemo(
+    () => ({ ...filters, ...chipsToPanelState(tab, draftChips) }),
+    [tab, filters, draftChips],
+  )
+
+  // Applying the panel: fields with a bar twin leave as CHIPS, the rest as
+  // params. The chips this tab's panel speaks for are REPLACED wholesale (the
+  // draft is the new truth for them); chips for attributes this tab has no
+  // field for survive untouched.
+  const applyPanel = useCallback((draft) => {
+    const { chips, params } = panelStateToChips(tab, draft)
+    const owned = panelOwnedChipKeys(tab)
+    const next = [...draftChips.filter((c) => !owned.has(c.key)), ...chips]
+    applyChips(next)
+    onApply(params)
+    onCommitCriteria(next, textChip?.value ?? '')
+    setOpen(false)
+  }, [tab, draftChips, applyChips, onApply, onCommitCriteria, textChip, setOpen])
 
   // Removing a criterion chip clears THAT field and re-applies — the same
   // "modify the current criteria from the bar" gesture Shipments has. The text
@@ -135,13 +180,16 @@ export default function OrdersGlobalSearch({ tab, filters, onApply, open, onOpen
   const commitCriteria = useCallback(() => {
     const text = value.trim() || textChip?.value || ''
     if (value.trim()) onTextCommit()
+    // An open calendar has nothing left to pick once the criteria are
+    // submitted — collapse it, the way Enter does in the Shipments bar.
+    draftChips.forEach((c) => { if (c.kind === 'date-range' && c.open) onDateToggle(c.key, false) })
     // Chips and text commit TOGETHER — one request, so the grid is never
     // briefly narrowed by one half without the other. The chips STAY in the
     // hook (they are the bar's own criteria, exactly as in Shipments); the
     // route just mirrors them onto the request.
     onCommitCriteria(draftChips, text)
     setPreviewOpen(false)
-  }, [value, textChip, draftChips, onTextCommit, onCommitCriteria])
+  }, [value, textChip, draftChips, onTextCommit, onCommitCriteria, onDateToggle])
 
   // The preview closes on the same gestures the filters panel does.
   useEffect(() => {
@@ -204,12 +252,24 @@ export default function OrdersGlobalSearch({ tab, filters, onApply, open, onOpen
         onChipRemove={removeChip}
         onChipClick={() => setPreviewOpen(true)}
         resultsOpen={previewOpen}
-        filterCount={activeFilterCount(tab, filters)}
+        // Criteria, not params: since the panel writes chips (S131), counting
+        // only the applied filter state would undercount everything the panel
+        // itself just applied.
+        filterCount={criteriaChips.length + draftChips.length}
         filterActive={open}
         onFilterClick={(next) => { setOpen(next); if (next) setPreviewOpen(false) }}
         suggestionSections={suggestionSections}
         suggestionsOpen={suggestionsOpen && !open}
-        onSuggestionSelect={(item) => { onChipCommit(item); setPreviewOpen(true) }}
+        // A date suggestion commits an EXPANDED chip whose CalendarPicker owns
+        // the space below the bar (Case 12) — the preview would render on top
+        // of it, so it waits until a day is actually picked (`onDateCommit`).
+        onSuggestionSelect={(item) => {
+          onChipCommit(item)
+          setPreviewOpen(item.kind !== 'date' && item.kind !== 'date-range-suggest')
+        }}
+        // The chip's own calendar: pick a bound, collapse/reopen via the chevron.
+        onDateCommit={(key, bounds) => { onDateCommit(key, bounds); setPreviewOpen(true) }}
+        onDateToggle={onDateToggle}
       />
 
       {/* One panel place, two views: the FILTERS panel wins whenever it is open
@@ -226,6 +286,9 @@ export default function OrdersGlobalSearch({ tab, filters, onApply, open, onOpen
             <GlobalSearchResults
               matches={results}
               maxRows={12}
+              // Opening a result leaves the search context (S131) — the preview
+              // closes, the way the Shipments panel dismisses on a match click.
+              onMatchClick={onMatchClick && ((match) => { setPreviewOpen(false); onMatchClick(match) })}
               onFiltersClick={() => { setPreviewOpen(false); setOpen(true) }}
             />
           </GlobalSearchPanel>
@@ -239,8 +302,8 @@ export default function OrdersGlobalSearch({ tab, filters, onApply, open, onOpen
           <OrdersFiltersView
             key={tab}
             tab={tab}
-            filters={filters}
-            onApply={(draft) => { onApply(draft); setOpen(false) }}
+            filters={panelFilters}
+            onApply={applyPanel}
             onClose={() => setOpen(false)}
           />
         </div>

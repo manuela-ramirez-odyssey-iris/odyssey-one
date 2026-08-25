@@ -14,6 +14,7 @@ const col = createColumnHelper()
 // because this module has always been where the grid imports them from.
 export { ORDER_STATUS_VARIANT, DRAFT_ORDER_STATUS_VARIANT } from '../../search/orders/registry'
 import { ORDER_STATUS_VARIANT, DRAFT_ORDER_STATUS_VARIANT } from '../../search/orders/registry'
+import { VALIDATION_ERROR_STATUSES } from '../../api/services/orderService'
 
 const statusBadge = (label, map) =>
   label ? <Badge variant={map[label] ?? 'gray'}>{label}</Badge> : '--'
@@ -111,3 +112,34 @@ export function allTabActionLabels(row) {
 }
 
 export const DRAFT_ACTION_LABELS = ['Edit', 'Submit', 'Cancel']
+
+/**
+ * The row's PRIMARY action — what OPENING a row does (S131: a row click is
+ * "bound from the available actions, either error validation, edit or view").
+ *
+ * It picks the FIRST action this row actually offers, in that precedence — it
+ * never invents one. Availability is `allTabActionLabels` above, so the rule
+ * cannot drift from the ⋮ menu:
+ *
+ *   Resolve — validation-error status AND `Ready`. Exactly when the VE tab's
+ *             Resolve button is enabled; `Complete`/`Purge` are not resolvable.
+ *   Edit    — an UNFINISHED order (draft, or a validation error that can't be
+ *             resolved) whose menu offers Edit, i.e. Manual and not Cancelled.
+ *             A draft has no Summary page, and an errored order is something to
+ *             fix rather than read.
+ *   View    — everything else, including any order the rules say is not
+ *             editable. An INTEGRATED draft lands here: its menu is
+ *             ['View', 'Copy'], so opening the create form (what an earlier cut
+ *             did off `status === 'Draft'` alone) offered an edit the row does
+ *             not allow.
+ *
+ * Takes the GRID row VM's field names (`status`, not `orderStatus`) — the search
+ * preview maps onto that shape at the call site.
+ */
+export function primaryRowAction(row) {
+  const erroring = VALIDATION_ERROR_STATUSES.includes(row?.status ?? '')
+  if (erroring && row?.draftOrderStatus === 'Ready') return 'Resolve'
+  const unfinished = erroring || row?.status === 'Draft'
+  if (unfinished && allTabActionLabels(row ?? {}).includes('Edit')) return 'Edit'
+  return 'View'
+}

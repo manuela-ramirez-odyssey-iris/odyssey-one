@@ -47,7 +47,7 @@ const STORE = [
 vi.mock('../../data/orders', () => ({ getAllOrders: () => STORE, getOrderEnrichment: () => null }))
 
 import { getApiMode } from '../config'
-import { apiGet, apiPatch } from '../client'
+import { apiGet, apiPatch, apiPost } from '../client'
 import {
   getOrderList, getOrderTabCounts, saveDraft, submitDraftOrder, resolveOrder, cancelOrder, __resetOrderWriteState,
 } from './orderService'
@@ -201,19 +201,73 @@ describe('orderService.getOrderTabCounts (mock)', () => {
       STORE.splice(-3)
     }
   })
+
+  // S131 — the badges follow the criteria, so they can never claim rows the
+  // grid isn't showing. Before this they took the customer scope only.
+  it('applies panel filters, bar chips and free text', async () => {
+    STORE.push(
+      mk('DDD100006', { orderStatus: 'Draft', customer: 'BASF_CHM_01' }),
+      mk('EEE100007', { orderStatus: 'Shipment Failed', customer: 'BASF_CHM_01' }),
+    )
+    try {
+      const unfiltered = await getOrderTabCounts()
+      // A panel param.
+      const basf = await getOrderTabCounts(undefined, { customers: ['BASF_CHM_01'] } as never)
+      expect(basf.all).toBeLessThan(unfiltered.all)
+      expect(basf.draft).toBe(1)
+      expect(basf.validationErrors).toBe(1)
+      // A bar chip — the OTHER criteria path, same badges.
+      const chipped = await getOrderTabCounts(undefined, {
+        searchChips: [{ key: 'order-status', dataKey: 'orderStatus', queryValue: 'Draft', exact: true }],
+      } as never)
+      expect(chipped.all).toBe(chipped.draft)
+      expect(chipped.validationErrors).toBe(0)
+      // Free text.
+      const texted = await getOrderTabCounts(undefined, { searchText: 'DDD100006' } as never)
+      expect(texted.all).toBe(1)
+      expect(texted.draft).toBe(1)
+    } finally {
+      STORE.splice(-2)
+    }
+  })
 })
 
 describe('orderService.getOrderTabCounts (live)', () => {
   const mode = vi.mocked(getApiMode)
   const get = vi.mocked(apiGet)
-  afterEach(() => { mode.mockReturnValue('mock'); get.mockReset() })
+  const post = vi.mocked(apiPost)
+  afterEach(() => { mode.mockReturnValue('mock'); get.mockReset(); post.mockReset() })
 
-  it('calls the tab-counts endpoint scoped, passing the response through', async () => {
+  const sentFilters = () => {
+    const url = get.mock.calls.at(-1)![0] as string
+    const raw = new URL(url, 'http://x').searchParams.get('filters')
+    return raw ? JSON.parse(raw) : null
+  }
+
+  it('sends the scope and the criteria, passing the response through', async () => {
     mode.mockReturnValue('live')
     const counts = { all: 3, draft: 1, validationErrors: 0 }
     get.mockResolvedValue(counts)
-    expect(await getOrderTabCounts(['A_01'])).toEqual(counts)
-    expect(get).toHaveBeenCalledWith('/order-service/v3/order/tab-counts?customers=A_01')
+    const filters = { customers: ['A_01'], searchChips: [{ key: 'customer', queryValue: 'BASF' }] }
+    expect(await getOrderTabCounts(['A_01'], filters as never)).toEqual(counts)
+    const url = get.mock.calls[0][0] as string
+    expect(url.startsWith('/order-service/v3/order/tab-counts?')).toBe(true)
+    expect(new URL(url, 'http://x').searchParams.get('customers')).toBe('A_01')
+    // Whole object, not cherry-picked fields — the truncation that zeroed the
+    // Shipments badges came from hand-picking chip fields into a URL.
+    expect(sentFilters()).toEqual(filters)
+  })
+
+  // It stays a GET on the SAME path on purpose: a method (or path) change 404s
+  // against an already-deployed server, and the badges render `count ?? null`,
+  // so they would silently disappear until the next deploy.
+  it('keeps the deployed contract — GET, same path, criteria only additive', async () => {
+    mode.mockReturnValue('live')
+    get.mockResolvedValue({ all: 5, draft: 0, validationErrors: 0 })
+    await getOrderTabCounts(['A_01'], { customers: ['A_01'] } as never)
+    expect(post).not.toHaveBeenCalled()
+    const [path] = (get.mock.calls[0][0] as string).split('?')
+    expect(path).toBe('/order-service/v3/order/tab-counts')
   })
 
   it('short-circuits an empty scope to zeros without an HTTP call', async () => {
@@ -222,11 +276,25 @@ describe('orderService.getOrderTabCounts (live)', () => {
     expect(get).not.toHaveBeenCalled()
   })
 
-  it('omits the customers param when the scope is undefined', async () => {
+  it('sends no params at all when there is neither scope nor criteria', async () => {
     mode.mockReturnValue('live')
     get.mockResolvedValue({ all: 5, draft: 0, validationErrors: 0 })
     await getOrderTabCounts()
     expect(get).toHaveBeenCalledWith('/order-service/v3/order/tab-counts')
+  })
+
+  // The badges must read the query the way the LIST does, or they describe a
+  // different search than the rows below them.
+  it('runs the phrase-then-code-list two-step for free text', async () => {
+    mode.mockReturnValue('live')
+    get.mockResolvedValueOnce({ all: 0, draft: 0, validationErrors: 0 })   // phrase misses
+    get.mockResolvedValueOnce({ all: 7, draft: 2, validationErrors: 1 })   // code list hits
+    const counts = await getOrderTabCounts(undefined, { searchText: 'AAA1 BBB2' } as never)
+    expect(counts.all).toBe(7)
+    const terms = (call: number) =>
+      JSON.parse(new URL(get.mock.calls[call][0] as string, 'http://x').searchParams.get('filters')!).searchTerms
+    expect(terms(0)).toEqual(['aaa1 bbb2'])
+    expect(terms(1)).toEqual(['aaa1', 'bbb2'])
   })
 })
 

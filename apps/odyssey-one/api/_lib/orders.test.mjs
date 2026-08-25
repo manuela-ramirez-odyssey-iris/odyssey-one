@@ -443,3 +443,61 @@ test('no chips leaves the query exactly as it was', () => {
   const without = buildOrderListQuery({ pagination: { pageNumber: 1, pageSize: 20 } })
   assert.equal(withEmpty.text, without.text)
 })
+
+// S131 (Case 12) — an EXPANDED calendar chip carries from/to days, not a
+// queryValue. Before this it fell through the token guard and narrowed nothing:
+// the bar showed a date criterion the live grid was not applying.
+test('order list: date-range chip filters on its bounds', () => {
+  const q = buildOrderListQuery({
+    pagination: { pageNumber: 1, pageSize: 10 },
+    filters: { searchChips: [{ key: 'latest-pickup', kind: 'date-range', from: '5/29/2026', to: '6/2/2026' }] },
+  })
+  assert.match(q.text, /latest_pickup_ts >= \$\d+::date AND latest_pickup_ts < \(\$\d+::date \+ 1\)/)
+  assert.ok(q.values.includes('2026-05-29') && q.values.includes('2026-06-02'))
+})
+
+test('order list: a half-open date-range chip leaves the other side open', () => {
+  const q = buildOrderListQuery({
+    pagination: { pageNumber: 1, pageSize: 10 },
+    filters: { searchChips: [{ key: 'created-date', kind: 'date-range', from: '5/29/2026', to: null }] },
+  })
+  assert.match(q.text, /created_at >= \$\d+::date/)
+  assert.doesNotMatch(q.text, /created_at </)
+})
+
+test('order list: a date-range chip with no bounds yet narrows nothing', () => {
+  const q = buildOrderListQuery({
+    pagination: { pageNumber: 1, pageSize: 10 },
+    filters: { searchChips: [{ key: 'latest-pickup', kind: 'date-range', from: null, to: null }] },
+  })
+  assert.doesNotMatch(q.text, /WHERE/)
+})
+
+// S131 — the tab badges run the LIST's own predicate. They used to count the
+// customer scope alone, so a filtered grid sat under badges showing the
+// unfiltered totals ("tabs badge counters are not updating in orders").
+test('tab counts: criteria narrow every badge, via the list predicate', () => {
+  const q = buildTabCountsQuery({
+    customerIds: ['VALTRIS_01'],
+    filters: {
+      customers: ['VALTRIS_01'],
+      searchChips: [{ key: 'customer', queryValue: 'VALTRIS' }],
+      latestPickupDateFrom: '2026-06-20',
+    },
+  })
+  assert.match(q.text, /customer = ANY/)          // panel param
+  assert.match(q.text, /customer ILIKE/)          // bar chip
+  assert.match(q.text, /latest_pickup_ts >=/)     // date range
+  assert.match(q.text, /count\(\*\) FILTER \(WHERE order_status = 'Draft'\)/)
+})
+
+test('tab counts: scope-only still counts everything in scope', () => {
+  const q = buildTabCountsQuery({ customerIds: ['VALTRIS_01'] })
+  assert.match(q.text, /WHERE customer = ANY\(\$1\)/)
+  assert.deepEqual(q.values, [['VALTRIS_01']])
+})
+
+test('tab counts: an empty scope is honestly zero', () => {
+  const q = buildTabCountsQuery({ customerIds: [] })
+  assert.match(q.text, /WHERE FALSE/)
+})

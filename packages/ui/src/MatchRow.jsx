@@ -13,8 +13,13 @@ const AVATAR_ICONS = {
  *
  * Layout: 40×40 avatar (gray surface, switchable icon) · a main line with the
  * match ID (semibold) + route (regular) on the left and a source Badge on the
- * right · a meta line of Customer | Carrier | BOL cells separated by vertical
- * dividers.
+ * right · a meta line of label/value cells separated by vertical dividers.
+ *
+ * The meta cells are DATA (`meta={[{label, value}]}`), not baked text: the row
+ * is the shared search-result row for every domain, and the labels differ per
+ * domain — Orders has no carrier and no BOL, so Shipments' three labels were
+ * printing empty cells there. Omit `meta` and the `customer`/`carrier`/`bol`
+ * (+ optional `shipmentId`) props build the Shipments set, unchanged.
  *
  * Figma master: `MatchRow` set `2460:2` on Components-Molecules.
  * The avatar icon is a switchable INSTANCE_SWAP slot (placeholder-20 in Figma);
@@ -30,6 +35,7 @@ export default function MatchRow({
   carrier,
   bol,
   shipmentId,
+  meta,
   source = { label: 'FourKites, Inc.', variant: 'blue' },
   icon,
   iconType,
@@ -37,6 +43,14 @@ export default function MatchRow({
   className = '',
   ...rest
 }) {
+  // Shipments' three cells (+ Shipment # when present) are the default set, so
+  // every existing caller renders exactly as before.
+  const cells = meta ?? [
+    { label: 'Customer', value: customer },
+    { label: 'Carrier', value: carrier },
+    { label: 'BOL', value: bol },
+    ...(shipmentId ? [{ label: 'Shipment #', value: shipmentId }] : []),
+  ]
   return (
     <div
       className={`match-row ${className}`.trim()}
@@ -58,24 +72,17 @@ export default function MatchRow({
             {source && <Badge variant={source.variant}>{source.label}</Badge>}
           </div>
           <div className="match-row__meta text-label-xs-regular">
-            <span className="match-row__meta-cell match-row__meta-cell--divider">
-              <span>Customer:</span>
-              <span>{customer}</span>
-            </span>
-            <span className="match-row__meta-cell match-row__meta-cell--divider">
-              <span>Carrier:</span>
-              <span>{carrier}</span>
-            </span>
-            <span className={`match-row__meta-cell${shipmentId ? ' match-row__meta-cell--divider' : ''}`}>
-              <span>BOL:</span>
-              <span>{bol}</span>
-            </span>
-            {shipmentId && (
-              <span className="match-row__meta-cell">
-                <span>Shipment #:</span>
-                <span>{shipmentId}</span>
+            {cells.map(({ label, value }, i) => (
+              <span
+                key={label}
+                // Every cell but the last carries the divider — the rule the
+                // hardcoded classes used to spell out one by one.
+                className={`match-row__meta-cell${i < cells.length - 1 ? ' match-row__meta-cell--divider' : ''}`}
+              >
+                <span>{label}:</span>
+                <span>{value}</span>
               </span>
-            )}
+            ))}
           </div>
         </div>
       </div>

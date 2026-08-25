@@ -26,11 +26,10 @@
  *  · resolveCodeSet / validateCodes — the GS-21 multi-code SET chip. The hook
  *    treats both as optional (`adapter?.resolveCodeSet`), so the bar degrades to
  *    a plain free-text badge, which is exactly what Orders does today.
- *  · The Case-12 date carve-out (a slashed partial like "5/" offering date +
- *    range chips). Orders needs no special case for a COMPLETE date: the
- *    projection stores dates as "5/29/2026", so a typed date matches the date
- *    attributes through the ordinary value-ranking path below. Only PARTIALS
- *    are unserved.
+ *  · ~~The Case-12 date carve-out.~~ **Ported S131** (user ruling: typing "1/"
+ *    and picking a date chip must open a calendar in the bar, "just like it is
+ *    in shipments"). The machinery moved to `../adapter-core` rather than being
+ *    copied — see `dateItems` there.
  *  · Customer scoping (`customerIds`). Shipments' glimpse is customer-scoped;
  *    the Orders grid has no equivalent scope selector.
  */
@@ -38,7 +37,7 @@ import { getAllOrders } from '../../data/orders'
 import { ORDERS_ATTRIBUTES, ORDERS_PROGRESSION, orderSearchRow } from './progression'
 import { ORDER_STATUS_VARIANT } from './registry'
 import { valueMatchDetail, distinctMatches } from './searchIndex'
-import { toItem, nextProgressionGroup } from '../adapter-core'
+import { toItem, nextProgressionGroup, dateItems, DATE_LIKE } from '../adapter-core'
 // Same matcher the Shipments glimpse uses, bound to the Orders free-text keys —
 // so the preview shows exactly what committing the criteria will filter to.
 import {
@@ -48,6 +47,10 @@ import {
 // `matchesChip` is free-text-key-independent, so it comes straight from the core
 // rather than through a domain binding that has nothing to bind.
 import { matchesChip } from '../criteria-core'
+
+// The date-typed attributes (Latest Pickup / Latest Delivery / Created / Last
+// Edit) — what Case 12 offers when the typed text looks like a date.
+const ORDERS_DATE_ATTRS = ORDERS_ATTRIBUTES.filter((a) => a.match === 'date')
 
 // The projected rows, memoized on source length — same reasoning as
 // searchIndex.js's cache (a mock-created order must not stay invisible).
@@ -86,8 +89,25 @@ function buildOrderRow(row, attr, value) {
     matchId: attr ? labelMatch(attr, value) : row.orderNumber,
     route: `${shortLocation(row._raw?.consignor)} → ${shortLocation(row._raw?.consignee)}`,
     customer: row.customer,
+    // The meta line, Orders' own (S131). Same three-identifier shape Shipments
+    // uses (Customer | Carrier | BOL) with the fields an ORDER actually has:
+    // the customer's own reference and what it needs to move. An order has no
+    // carrier and no BOL until it is planned into a shipment.
+    meta: [
+      { label: 'Customer', value: row.customer || '—' },
+      { label: 'PO #', value: row.poNumber || '—' },
+      { label: 'Equipment', value: row.equipment || '—' },
+    ],
     iconType: 'package',
     source: statusBadge(row),
+    // What OPENING this row does (S131). The rule itself lives with the grid's
+    // own action rules (`primaryRowAction`, ordersColumns.jsx) — the row just
+    // carries the state it reads, as `data-*` so MatchRow's prop spread puts
+    // valid attributes on the DOM (the `data-shipment-key` precedent).
+    'data-order-status': row.orderStatus || '',
+    'data-draft-status': row.draftOrderStatus || '',
+    'data-order-source': row.orderSource || '',
+    'data-error-count': row.errorCount ?? '',
   }
 }
 
@@ -144,6 +164,15 @@ export const ordersSearchAdapter = {
     const q = (query || '').trim()
     if (!q) return this.getInitial()
 
+    // Date-like input ("1/", "1/5", "1/5/2026") → the date + range chips lead
+    // (Case 12, S131). Committing one gives the expanded calendar chip, so the
+    // day is picked in the bar before the criteria are submitted. A COMPLETE
+    // typed date still reaches the value-ranking path below through the chip's
+    // pre-filled bound, so nothing that used to work stops working.
+    if (DATE_LIKE.test(q)) {
+      return [{ title: 'Filter by date', items: dateItems(q, ORDERS_DATE_ATTRS) }]
+    }
+
     const scored = ORDERS_ATTRIBUTES
       .map((attr, order) => ({ attr, order, ...valueMatchDetail(attr.dataKey, q) }))
       .filter((s) => s.score > 0)
@@ -183,12 +212,17 @@ export const ordersSearchAdapter = {
    * One row per ORDER — there is no second entity to explode into, so the
    * Shipments order-explosion branch has no counterpart here.
    */
-  async search(chips, query = '') {
+  async search(chips, query = '', customerIds) {
     const q = (query || '').trim().toLowerCase()
     const chipList = chips || []
     if (!chipList.length && !q) return { results: [], total: 0 }
 
-    const all = projectedOrders()
+    // The navbar customer scope, the grid's FIRST-order filter (S79c decision
+    // 10). Without it the preview counts customers the table won't show —
+    // `undefined` = unscoped, `[]` honestly yields nothing.
+    const all = customerIds
+      ? projectedOrders().filter((r) => customerIds.includes(r.customer))
+      : projectedOrders()
     // The phrase-vs-code-list decision is made ONCE against the full dataset
     // (GS-20), not per row, so every surface reads the query the same way.
     const needles = textNeedles(all, q)
@@ -225,4 +259,26 @@ export const ordersSearchAdapter = {
       total: matched.length,
     }
   },
+}
+
+/**
+ * Raw order rows → preview rows, shared with the LIVE adapter (S131).
+ *
+ * The live path gets its rows from the order-list API and must render them
+ * IDENTICALLY — same labels, same badge, same route line — so the mapping is
+ * imported, never rewritten. The rows arrive already filtered and ranked by the
+ * server; this only decides what each row's bold value says.
+ */
+export function toPreviewRows(rows, chipList = [], query = '') {
+  const projected = rows.map((r) => ({ ...orderSearchRow(r), _raw: r }))
+  const lead = chipList[0]
+  if (lead) {
+    const leadAttr = ORDERS_ATTRIBUTES.find((a) => a.key === lead.key) ?? null
+    return projected.map((row) => buildOrderRow(row, leadAttr, String(row[lead.dataKey] ?? '')))
+  }
+  const needles = [String(query || '').trim().toLowerCase()].filter(Boolean)
+  return projected.map((row) => {
+    const m = needles.length ? resolveBestMatchNeedles(row, needles, ORDERS_FREE_TEXT_ATTRS) : null
+    return buildOrderRow(row, m?.attr ?? null, m?.value ?? '')
+  })
 }

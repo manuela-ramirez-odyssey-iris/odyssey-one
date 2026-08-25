@@ -4,7 +4,7 @@
 // Before this the bar showed only the free-text badge, so an applied filter was
 // visible ONLY as a number on the FilterButton.
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
-import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, cleanup, waitFor, within } from '@testing-library/react'
 
 // GlobalSearch collapses trailing chips behind a "+N" pill when they overflow
 // the bar's width. jsdom reports every width as 0, so with two or more chips the
@@ -19,6 +19,10 @@ afterAll(() => {
 })
 
 vi.mock('../../api/config', () => ({ getApiMode: () => 'mock' }))
+// The bar scopes its preview to the navbar customer selection (S131). These
+// tests exercise the bar itself, so they run UNSCOPED — `[]`, the real default
+// for a user who has picked no customers, honestly returns no rows.
+vi.mock('../../contexts/CustomersContext', () => ({ useCustomers: () => ({ selectedDataIds: undefined }) }))
 vi.mock('../../data/orders', () => ({
   getAllOrders: () => [{
     orderNumber: 'AAA1', customer: 'BASF_CHM_01', equipment: 'LTR',
@@ -157,6 +161,85 @@ describe('OrdersGlobalSearch — suggestions + results preview', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Remove Customer: BASF' }))
     // The grid must never disagree with what the bar shows.
     expect(onCommitCriteria).toHaveBeenCalledWith([], '')
+  })
+
+  // S131 — the panel and the bar are ONE criteria state. Before this, criteria
+  // typed into the bar left the panel's fields empty, and applying the panel
+  // wrote params the bar's chips knew nothing about.
+  it('seeds the panel from the chips already on the bar', async () => {
+    const { rerender } = setup({ filters: {} })
+    typeInBar('AAA1')
+    fireEvent.click(await screen.findByText('Order Number: AAA1'))
+    rerender(
+      <OrdersGlobalSearch
+        tab="all" filters={{}} onApply={vi.fn()} open onOpenChange={vi.fn()}
+        onSearch={vi.fn()} onCommitCriteria={vi.fn()}
+      />,
+    )
+    const field = document.querySelector('.orders-filters input[type="text"]')
+    expect(field.value).toBe('AAA1')
+  })
+
+  it('applying the panel commits a CHIP, not a param, for a twinned field', () => {
+    const { onApply, onCommitCriteria } = setup({ filters: {}, open: true })
+    const field = document.querySelector('.orders-filters input[type="text"]')
+    fireEvent.change(field, { target: { value: 'AAA1' } })
+    fireEvent.click(screen.getByRole('button', { name: /Show all results/ }))
+    const [chips] = onCommitCriteria.mock.calls.at(-1)
+    expect(chips.map((c) => [c.key, c.queryValue])).toEqual([['order-number', 'AAA1']])
+    // The same criterion must not ALSO ride as a param — it would be applied
+    // twice, exactly-matched on one path and substring-matched on the other.
+    expect(onApply.mock.calls.at(-1)[0].orderNumber).toBe('')
+  })
+
+  // S131 — a preview row opens the order. The host doesn't decide WHERE (that is
+  // the route's `primaryRowAction` + `handleRowAction`); it decides that the row
+  // is clickable, carries the status the rule reads, and closes the preview.
+  it('a result row click hands the row up and dismisses the preview', async () => {
+    const onMatchClick = vi.fn()
+    setup({ filters: {}, onMatchClick })
+    typeInBar('BASF')
+    fireEvent.click(await screen.findByText('Customer: BASF'))
+    fireEvent.click(await waitFor(() => {
+      const row = document.querySelector('.match-row')
+      expect(row).toBeTruthy()
+      return row
+    }))
+    expect(onMatchClick).toHaveBeenCalledTimes(1)
+    const match = onMatchClick.mock.calls[0][0]
+    expect(match.id).toBe('AAA1')
+    expect(match['data-order-status']).toBe('Load Planned')
+    expect(document.querySelector('.orders-results-panel')).toBeNull()
+  })
+
+  // S131 (Case 12) — "when i type a date like 1/ and select a date chip then
+  // the chip should show as a chevron and show a calendar picker, so we can
+  // select the date before submitting it".
+  it('a slashed partial offers date chips, and committing one opens its calendar', async () => {
+    setup({ filters: {} })
+    typeInBar('1/')
+    fireEvent.click(await screen.findByText('Latest Pickup Date: 1/../....'))
+    // The chip is expanded: the SearchChip date panel with a calendar in it.
+    const calendar = await screen.findByRole('group', { name: 'Pick date' })
+    expect(calendar).toBeTruthy()
+    expect(calendar.closest('.search-chip')).toBeTruthy()
+    // The results preview stays shut — the calendar owns the space below the bar.
+    expect(document.querySelector('.orders-results-panel')).toBeNull()
+  })
+
+  it('picking a day fills the chip and commits it as a date-range criterion', async () => {
+    const { onCommitCriteria } = setup({ filters: {} })
+    typeInBar('1/')
+    fireEvent.click(await screen.findByText('Latest Pickup Date: 1/../....'))
+    const calendar = await screen.findByRole('group', { name: 'Pick date' })
+    // The typed month steers the calendar, so day 15 is January's.
+    fireEvent.click(within(calendar).getByText('15'))
+    // The chip label now reads the picked day, and the preview may open.
+    expect(await screen.findByText(/Latest Pickup Date: 01\/15\//)).toBeTruthy()
+    fireEvent.click(await screen.findByRole('button', { name: /Show all/ }))
+    const [chips] = onCommitCriteria.mock.calls.at(-1)
+    expect(chips[0].kind).toBe('date-range')
+    expect(chips[0].from).toMatch(/^01\/15\/\d{4}$/)
   })
 
   it('offers an attribute that has NO panel filter field behind it', async () => {
